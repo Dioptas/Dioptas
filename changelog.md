@@ -1,3 +1,18 @@
+# 0.6.0 (under development)
+
+## New Features
+    - Complete GUI overhaul with a Material inspired design
+    - Added a new Map Mode for exploring data collected in a 2D grid
+    - Multiple files loaded can now be averaged (new batch mode average selection availlable)
+
+## Bug Fixes
+    - fixed some issues related to memory when using HDF5 files
+    - clicking calibrate without having defined peaks will result in a critical message box and 
+      not an error anymore
+    - when the automatic refinement will not find any points it will show a critical message 
+      box with this information and the program does not show an error
+    
+
 # 0.5.9 (stable 13.11.2023)
 
 ## New Features

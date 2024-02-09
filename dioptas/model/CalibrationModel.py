@@ -37,7 +37,12 @@ from skimage.measure import find_contours
 from .. import calibrants_path
 from .ImgModel import ImgModel
 from .util import Signal
-from .util.HelperModule import get_base_name, rotate_matrix_p90, rotate_matrix_m90, get_partial_index
+from .util.HelperModule import (
+    get_base_name,
+    rotate_matrix_p90,
+    rotate_matrix_m90,
+    get_partial_index,
+)
 from .util.calc import supersample_image, trim_trailing_zeros
 
 logger = logging.getLogger(__name__)
@@ -59,27 +64,36 @@ class CalibrationModel(object):
         self.detector = Detector(pixel1=79e-6, pixel2=79e-6)
         # self.detector.shape = (2048, 2048)
         self.detector_mode = DetectorModes.CUSTOM
-        self._original_detector = None  # used for saving original state before rotating or flipping
-        self.pattern_geometry = GeometryRefinement(detector=self.detector, wavelength=0.3344e-10,
-                                                   poni1=0, poni2=0)  # default params are necessary, otherwise fails...
+        self._original_detector = (
+            None  # used for saving original state before rotating or flipping
+        )
+        self.pattern_geometry = GeometryRefinement(
+            detector=self.detector, wavelength=0.3344e-10, poni1=0, poni2=0
+        )  # default params are necessary, otherwise fails...
         self.pattern_geometry_img_shape = None
         self.cake_geometry = None
         self.cake_geometry_img_shape = None
         self.calibrant = Calibrant()
 
-        self.orig_pixel1 = self.detector.pixel1  # needs to be extra stored for applying supersampling
+        self.orig_pixel1 = (
+            self.detector.pixel1
+        )  # needs to be extra stored for applying supersampling
         self.orig_pixel2 = self.detector.pixel2
 
-        self.start_values = {'dist': 200e-3,
-                             'wavelength': 0.3344e-10,
-                             'polarization_factor': 0.99}
+        self.start_values = {
+            "dist": 200e-3,
+            "wavelength": 0.3344e-10,
+            "polarization_factor": 0.99,
+        }
         self.fit_wavelength = False
-        self.fixed_values = {}  # dictionary for fixed parameters during calibration (keys can be e.g. rot1, poni1 etc.
+        self.fixed_values = (
+            {}
+        )  # dictionary for fixed parameters during calibration (keys can be e.g. rot1, poni1 etc.
         # and values are the values to what the respective parameter will be set
         self.is_calibrated = False
         self.use_mask = False
-        self.filename = ''
-        self.calibration_name = 'None'
+        self.filename = ""
+        self.calibration_name = "None"
         self.polarization_factor = 0.99
         self.supersampling_factor = 1
         self.correct_solid_angle = True
@@ -114,7 +128,9 @@ class CalibrationModel(object):
             array of points found
         """
         massif = Massif(self.img_model.img_data, median_prefilter=False)
-        cur_peak_points = massif.find_peaks((int(np.round(x)), int(np.round(y))), stdout=DummyStdOut())
+        cur_peak_points = massif.find_peaks(
+            (int(np.round(x)), int(np.round(y))), stdout=DummyStdOut()
+        )
         if len(cur_peak_points):
             self.points.append(np.array(cur_peak_points))
             self.points_index.append(peak_ind)
@@ -141,7 +157,9 @@ class CalibrationModel(object):
         top_ind = int(np.round(y - search_size * 0.5))
         if top_ind < 0:
             top_ind = 0
-        search_array = self.img_model.img_data[left_ind:(left_ind + search_size), top_ind:(top_ind + search_size)]
+        search_array = self.img_model.img_data[
+            left_ind : (left_ind + search_size), top_ind : (top_ind + search_size)
+        ]
         x_ind, y_ind = np.where(search_array == search_array.max())
         x_ind = x_ind[0] + left_ind
         y_ind = y_ind[0] + top_ind
@@ -155,26 +173,32 @@ class CalibrationModel(object):
 
     def remove_last_peak(self):
         if self.points:
-            num_points = int(self.points[-1].size / 2)  # each peak is x, y so length is twice as number of peaks
+            num_points = int(
+                self.points[-1].size / 2
+            )  # each peak is x, y so length is twice as number of peaks
             self.points.pop(-1)
             self.points_index.pop(-1)
             return num_points
 
     def create_cake_geometry(self):
-        self.cake_geometry = AzimuthalIntegrator(splineFile=self.distortion_spline_filename)
+        self.cake_geometry = AzimuthalIntegrator(
+            splineFile=self.distortion_spline_filename
+        )
 
         pyFAI_parameter = self.pattern_geometry.getPyFAI()
-        pyFAI_parameter['wavelength'] = self.pattern_geometry.wavelength
+        pyFAI_parameter["wavelength"] = self.pattern_geometry.wavelength
 
-        self.cake_geometry.setPyFAI(dist=pyFAI_parameter['dist'],
-                                    poni1=pyFAI_parameter['poni1'],
-                                    poni2=pyFAI_parameter['poni2'],
-                                    rot1=pyFAI_parameter['rot1'],
-                                    rot2=pyFAI_parameter['rot2'],
-                                    rot3=pyFAI_parameter['rot3'])
+        self.cake_geometry.setPyFAI(
+            dist=pyFAI_parameter["dist"],
+            poni1=pyFAI_parameter["poni1"],
+            poni2=pyFAI_parameter["poni2"],
+            rot1=pyFAI_parameter["rot1"],
+            rot2=pyFAI_parameter["rot2"],
+            rot3=pyFAI_parameter["rot3"],
+        )
 
         self.cake_geometry.detector = self.detector
-        self.cake_geometry.wavelength = pyFAI_parameter['wavelength']
+        self.cake_geometry.wavelength = pyFAI_parameter["wavelength"]
 
     def setup_peak_search_algorithm(self, algorithm, mask=None):
         """
@@ -185,19 +209,24 @@ class CalibrationModel(object):
             if a mask is used during the process this is provided here as a 2d array for the image.
         """
 
-        if algorithm == 'Massif':
-            self.peak_search_algorithm = Massif(self.img_model.img_data, median_prefilter=False)
-        elif algorithm == 'Blob':
+        if algorithm == "Massif":
+            self.peak_search_algorithm = Massif(
+                self.img_model.img_data, median_prefilter=False
+            )
+        elif algorithm == "Blob":
             if mask is not None:
-                self.peak_search_algorithm = BlobDetection(self.img_model.img_data * mask)
+                self.peak_search_algorithm = BlobDetection(
+                    self.img_model.img_data * mask
+                )
             else:
                 self.peak_search_algorithm = BlobDetection(self.img_model.img_data)
             self.peak_search_algorithm.process()
         else:
             return
 
-    def search_peaks_on_ring(self, ring_index, delta_tth=0.1, min_mean_factor=1,
-                             upper_limit=55000, mask=None):
+    def search_peaks_on_ring(
+        self, ring_index, delta_tth=0.1, min_mean_factor=1, upper_limit=55000, mask=None
+    ):
         """
         This function is searching for peaks on an expected ring. It needs an initial calibration
         before. Then it will search for the ring within some delta_tth and other parameters to get
@@ -239,7 +268,9 @@ class CalibrationModel(object):
             mask = ring_mask
 
         # calculate the mean and standard deviation of this area
-        sub_data = np.array(self.img_model.img_data.ravel()[np.where(mask.ravel())], dtype=np.float64)
+        sub_data = np.array(
+            self.img_model.img_data.ravel()[np.where(mask.ravel())], dtype=np.float64
+        )
         sub_data[np.where(sub_data > upper_limit)] = np.NaN
         mean = np.nanmean(sub_data)
         std = np.nanstd(sub_data)
@@ -254,7 +285,9 @@ class CalibrationModel(object):
         try:
             old_stdout = sys.stdout
             sys.stdout = DummyStdOut
-            res = self.peak_search_algorithm.peaks_from_area(mask2, Imin=mean - std, keep=keep)
+            res = self.peak_search_algorithm.peaks_from_area(
+                mask2, Imin=mean - std, keep=keep
+            )
             sys.stdout = old_stdout
         except IndexError:
             res = []
@@ -274,7 +307,7 @@ class CalibrationModel(object):
 
     def set_start_values(self, start_values):
         self.start_values = start_values
-        self.polarization_factor = start_values['polarization_factor']
+        self.polarization_factor = start_values["polarization_factor"]
 
     def set_pixel_size(self, pixel_size):
         """
@@ -301,28 +334,38 @@ class CalibrationModel(object):
         self.fixed_values = fixed_values
 
     def calibrate(self):
+        if len(self.points) == 0:
+            raise NoPointsError("No starting points for calibration found.")
+
         self.reset_supersampling()
-        self.pattern_geometry = GeometryRefinement(self.create_point_array(self.points, self.points_index),
-                                                   dist=self.start_values['dist'],
-                                                   wavelength=self.start_values['wavelength'],
-                                                   detector=self.detector,
-                                                   calibrant=self.calibrant,
-                                                   splineFile=self.distortion_spline_filename)
+        self.pattern_geometry = GeometryRefinement(
+            self.create_point_array(self.points, self.points_index),
+            dist=self.start_values["dist"],
+            wavelength=self.start_values["wavelength"],
+            detector=self.detector,
+            calibrant=self.calibrant,
+            splineFile=self.distortion_spline_filename,
+        )
 
         self.refine()
         self.create_cake_geometry()
         self.is_calibrated = True
 
-        self.calibration_name = 'current'
+        self.calibration_name = "current"
         self.set_supersampling()
         # reset the integrator (not the geometric parameters)
         self.pattern_geometry.reset()
 
     def refine(self):
-        self.reset_supersampling()
-        self.pattern_geometry.data = self.create_point_array(self.points, self.points_index)
+        if len(self.points) == 0:
+            raise NoPointsError("No points for refinement found.")
 
-        fix = ['wavelength']
+        self.reset_supersampling()
+        self.pattern_geometry.data = self.create_point_array(
+            self.points, self.points_index
+        )
+
+        fix = ["wavelength"]
         if self.fit_wavelength:
             fix = []
 
@@ -359,15 +402,26 @@ class CalibrationModel(object):
 
     def _prepare_integration_super_sampling(self, mask):
         if self.supersampling_factor > 1:
-            img_data = supersample_image(self.img_model.img_data, self.supersampling_factor)
+            img_data = supersample_image(
+                self.img_model.img_data, self.supersampling_factor
+            )
             if mask is not None:
                 mask = supersample_image(mask, self.supersampling_factor)
         else:
             img_data = self.img_model.img_data
         return img_data, mask
 
-    def integrate_1d(self, num_points=None, mask=None, polarization_factor=None, filename=None,
-                     unit='2th_deg', method='csr', azi_range=None, trim_zeros=True):
+    def integrate_1d(
+        self,
+        num_points=None,
+        mask=None,
+        polarization_factor=None,
+        filename=None,
+        unit="2th_deg",
+        method="csr",
+        azi_range=None,
+        trim_zeros=True,
+    ):
         """
         :param num_points: number of points for the integration
         :param mask: mask for the integration
@@ -381,7 +435,10 @@ class CalibrationModel(object):
         :param trim_zeros: if True, the trailing zeros in the integration will be trimmed
         :return: tth, intensity
         """
-        if np.sum(mask) == self.img_model.img_data.shape[0] * self.img_model.img_data.shape[1]:
+        if (
+            np.sum(mask)
+            == self.img_model.img_data.shape[0] * self.img_model.img_data.shape[1]
+        ):
             # do not perform integration if the image is completely masked...
             return self.tth, self.int
 
@@ -404,56 +461,85 @@ class CalibrationModel(object):
 
         t1 = time.time()
 
-        if unit == 'd_A':
+        if unit == "d_A":
             try:
-                self.tth, self.int = self.pattern_geometry.integrate1d(img_data, num_points,
-                                                                       method=method,
-                                                                       unit='2th_deg',
-                                                                       azimuth_range=azi_range,
-                                                                       mask=mask,
-                                                                       polarization_factor=polarization_factor,
-                                                                       correctSolidAngle=self.correct_solid_angle,
-                                                                       filename=filename)
+                self.tth, self.int = self.pattern_geometry.integrate1d(
+                    img_data,
+                    num_points,
+                    method=method,
+                    unit="2th_deg",
+                    azimuth_range=azi_range,
+                    mask=mask,
+                    polarization_factor=polarization_factor,
+                    correctSolidAngle=self.correct_solid_angle,
+                    filename=filename,
+                )
             except NameError:
-                self.tth, self.int = self.pattern_geometry.integrate1d(img_data, num_points,
-                                                                       method='csr',
-                                                                       unit='2th_deg',
-                                                                       azimuth_range=azi_range,
-                                                                       mask=mask,
-                                                                       polarization_factor=polarization_factor,
-                                                                       correctSolidAngle=self.correct_solid_angle,
-                                                                       filename=filename)
-            self.tth = self.pattern_geometry.wavelength / (2 * np.sin(self.tth / 360 * np.pi)) * 1e10
+                self.tth, self.int = self.pattern_geometry.integrate1d(
+                    img_data,
+                    num_points,
+                    method="csr",
+                    unit="2th_deg",
+                    azimuth_range=azi_range,
+                    mask=mask,
+                    polarization_factor=polarization_factor,
+                    correctSolidAngle=self.correct_solid_angle,
+                    filename=filename,
+                )
+            self.tth = (
+                self.pattern_geometry.wavelength
+                / (2 * np.sin(self.tth / 360 * np.pi))
+                * 1e10
+            )
             self.int = self.int
         else:
             try:
-                self.tth, self.int = self.pattern_geometry.integrate1d(img_data, num_points,
-                                                                       method=method,
-                                                                       unit=unit,
-                                                                       azimuth_range=azi_range,
-                                                                       mask=mask,
-                                                                       polarization_factor=polarization_factor,
-                                                                       correctSolidAngle=self.correct_solid_angle,
-                                                                       filename=filename)
+                self.tth, self.int = self.pattern_geometry.integrate1d(
+                    img_data,
+                    num_points,
+                    method=method,
+                    unit=unit,
+                    azimuth_range=azi_range,
+                    mask=mask,
+                    polarization_factor=polarization_factor,
+                    correctSolidAngle=self.correct_solid_angle,
+                    filename=filename,
+                )
             except NameError:
-                self.tth, self.int = self.pattern_geometry.integrate1d(img_data, num_points,
-                                                                       method='csr',
-                                                                       unit=unit,
-                                                                       azimuth_range=azi_range,
-                                                                       mask=mask,
-                                                                       polarization_factor=polarization_factor,
-                                                                       correctSolidAngle=self.correct_solid_angle,
-                                                                       filename=filename)
-        logger.info('1d integration of {0}: {1}s.'.format(os.path.basename(self.img_model.filename), time.time() - t1))
+                self.tth, self.int = self.pattern_geometry.integrate1d(
+                    img_data,
+                    num_points,
+                    method="csr",
+                    unit=unit,
+                    azimuth_range=azi_range,
+                    mask=mask,
+                    polarization_factor=polarization_factor,
+                    correctSolidAngle=self.correct_solid_angle,
+                    filename=filename,
+                )
+        logger.info(
+            "1d integration of {0}: {1}s.".format(
+                os.path.basename(self.img_model.filename), time.time() - t1
+            )
+        )
 
-        if np.sum(self.int) != 0 and trim_zeros:  # only trim zeros if not everything is 0 (e.g. bkg-subtraction of the same image)
+        if (
+            np.sum(self.int) != 0 and trim_zeros
+        ):  # only trim zeros if not everything is 0 (e.g. bkg-subtraction of the same image)
             self.tth, self.int = trim_trailing_zeros(self.tth, self.int)
 
         return self.tth, self.int
 
-    def integrate_2d(self, mask=None, polarization_factor=None, unit='2th_deg', method='csr',
-                     rad_points=None, azimuth_points=360,
-                     azimuth_range=None):
+    def integrate_2d(
+        self,
+        mask=None,
+        polarization_factor=None,
+        unit="2th_deg",
+        method="csr",
+        rad_points=None,
+        azimuth_points=360,
+        azimuth_range=None,
+    ):
         if polarization_factor is None:
             polarization_factor = self.polarization_factor
 
@@ -472,14 +558,22 @@ class CalibrationModel(object):
 
         t1 = time.time()
 
-        res = self.cake_geometry.integrate2d(img_data, rad_points, azimuth_points,
-                                             azimuth_range=azimuth_range,
-                                             method=method,
-                                             mask=mask,
-                                             unit=unit,
-                                             polarization_factor=polarization_factor,
-                                             correctSolidAngle=self.correct_solid_angle)
-        logger.info('2d integration of {0}: {1}s.'.format(os.path.basename(self.img_model.filename), time.time() - t1))
+        res = self.cake_geometry.integrate2d(
+            img_data,
+            rad_points,
+            azimuth_points,
+            azimuth_range=azimuth_range,
+            method=method,
+            mask=mask,
+            unit=unit,
+            polarization_factor=polarization_factor,
+            correctSolidAngle=self.correct_solid_angle,
+        )
+        logger.info(
+            "2d integration of {0}: {1}s.".format(
+                os.path.basename(self.img_model.filename), time.time() - t1
+            )
+        )
         self.cake_img = res[0]
         self.cake_tth = res[1]
         self.cake_azi = res[2]
@@ -501,7 +595,7 @@ class CalibrationModel(object):
         right = tth_center + 0.5 * bins
 
         y1 = abs(np.ceil(left) - left) * self.cake_img[:, int(np.floor(left))]
-        y2 = np.sum(self.cake_img[:, int(np.ceil(left)): int(np.floor(right))], axis=1)
+        y2 = np.sum(self.cake_img[:, int(np.ceil(left)) : int(np.floor(right))], axis=1)
         y3 = (right - np.floor(right)) * self.cake_img[:, int(np.floor(right))]
 
         x = np.array(range(len(self.cake_azi))) + 0.5
@@ -523,16 +617,16 @@ class CalibrationModel(object):
 
     def get_calibration_parameter(self):
         pyFAI_parameter = self.pattern_geometry.getPyFAI()
-        pyFAI_parameter['polarization_factor'] = self.polarization_factor
+        pyFAI_parameter["polarization_factor"] = self.polarization_factor
         try:
             fit2d_parameter = self.pattern_geometry.getFit2D()
-            fit2d_parameter['polarization_factor'] = self.polarization_factor
+            fit2d_parameter["polarization_factor"] = self.polarization_factor
         except TypeError:
             fit2d_parameter = None
 
-        pyFAI_parameter['wavelength'] = self.pattern_geometry.wavelength
+        pyFAI_parameter["wavelength"] = self.pattern_geometry.wavelength
         if fit2d_parameter:
-            fit2d_parameter['wavelength'] = self.pattern_geometry.wavelength
+            fit2d_parameter["wavelength"] = self.pattern_geometry.wavelength
 
         return pyFAI_parameter, fit2d_parameter
 
@@ -540,8 +634,8 @@ class CalibrationModel(object):
         # calculates the number of points for an integrated pattern, based on the distance of the beam center to the the
         # image corners. Maximum value is determined by the shape of the image.
         fit2d_parameter = self.pattern_geometry.getFit2D()
-        center_x = fit2d_parameter['centerX']
-        center_y = fit2d_parameter['centerY']
+        center_x = fit2d_parameter["centerX"]
+        center_y = fit2d_parameter["centerY"]
         width, height = img_shape
 
         if width > center_x > 0:
@@ -553,7 +647,7 @@ class CalibrationModel(object):
             side2 = np.max([abs(height - center_y), center_y])
         else:
             side2 = height
-        max_dist = np.sqrt(side1 ** 2 + side2 ** 2)
+        max_dist = np.sqrt(side1**2 + side2**2)
         return int(max_dist * max_dist_factor)
 
     def load(self, filename):
@@ -561,15 +655,20 @@ class CalibrationModel(object):
         Loads a calibration file andsets all the calibration parameter.
         :param filename: filename for a *.poni calibration file
         """
-        self.pattern_geometry = GeometryRefinement(wavelength=0.3344e-10, detector=self.detector,
-                                                   poni1=0, poni2=0)  # default params are necessary, otherwise fails...
+        self.pattern_geometry = GeometryRefinement(
+            wavelength=0.3344e-10, detector=self.detector, poni1=0, poni2=0
+        )  # default params are necessary, otherwise fails...
         self.pattern_geometry.load(filename)
         self.orig_pixel1 = self.pattern_geometry.pixel1
         self.orig_pixel2 = self.pattern_geometry.pixel2
 
-        if self.pattern_geometry.pixel1 == self.detector.pixel1 and \
-                self.pattern_geometry.pixel2 == self.detector.pixel2:
-            self.pattern_geometry.detector = self.detector  # necessary since loading a poni file will reset the detector
+        if (
+            self.pattern_geometry.pixel1 == self.detector.pixel1
+            and self.pattern_geometry.pixel2 == self.detector.pixel2
+        ):
+            self.pattern_geometry.detector = (
+                self.detector
+            )  # necessary since loading a poni file will reset the detector
         else:
             self.reset_detector()
 
@@ -600,7 +699,7 @@ class CalibrationModel(object):
         self._load_detector(NexusDetector(filename))
 
     def _load_detector(self, detector):
-        """ Loads a pyFAI detector
+        """Loads a pyFAI detector
         :param detector: an instance of pyFAI Detector
         """
         self.detector = detector
@@ -618,7 +717,9 @@ class CalibrationModel(object):
 
     def reset_detector(self):
         self.detector_mode = DetectorModes.CUSTOM
-        self.detector = Detector(pixel1=self.detector.pixel1, pixel2=self.detector.pixel2)
+        self.detector = Detector(
+            pixel1=self.detector.pixel1, pixel2=self.detector.pixel2
+        )
         self.update_detector_shape()
         self.pattern_geometry.detector = self.detector
         if self.cake_geometry:
@@ -628,10 +729,13 @@ class CalibrationModel(object):
     def create_file_header(self):
         try:
             # pyFAI version 0.12.0
-            return self.pattern_geometry.makeHeaders(polarization_factor=self.polarization_factor)
+            return self.pattern_geometry.makeHeaders(
+                polarization_factor=self.polarization_factor
+            )
         except AttributeError:
             # pyFAI after version 0.12.0
             from pyFAI.io import DefaultAiWriter
+
             return DefaultAiWriter(None, self.pattern_geometry).make_headers()
 
     def set_fit2d(self, fit2d_parameter):
@@ -640,22 +744,24 @@ class CalibrationModel(object):
         'directDist', 'centerX', 'centerY', 'tilt', 'tiltPlanRotation', 'pixelX', pixelY',
         'polarization_factor', 'wavelength'
         """
-        self.pattern_geometry.setFit2D(directDist=fit2d_parameter['directDist'],
-                                       centerX=fit2d_parameter['centerX'],
-                                       centerY=fit2d_parameter['centerY'],
-                                       tilt=fit2d_parameter['tilt'],
-                                       tiltPlanRotation=fit2d_parameter['tiltPlanRotation'],
-                                       pixelX=fit2d_parameter['pixelX'],
-                                       pixelY=fit2d_parameter['pixelY'])
+        self.pattern_geometry.setFit2D(
+            directDist=fit2d_parameter["directDist"],
+            centerX=fit2d_parameter["centerX"],
+            centerY=fit2d_parameter["centerY"],
+            tilt=fit2d_parameter["tilt"],
+            tiltPlanRotation=fit2d_parameter["tiltPlanRotation"],
+            pixelX=fit2d_parameter["pixelX"],
+            pixelY=fit2d_parameter["pixelY"],
+        )
         # the detector pixel1 and pixel2 values are updated by setPyFAI
         self.orig_pixel1 = self.detector.pixel1
         self.orig_pixel2 = self.detector.pixel2
 
-        self.pattern_geometry.wavelength = fit2d_parameter['wavelength']
+        self.pattern_geometry.wavelength = fit2d_parameter["wavelength"]
         self.create_cake_geometry()
-        self.polarization_factor = fit2d_parameter['polarization_factor']
-        self.orig_pixel1 = fit2d_parameter['pixelX'] * 1e-6
-        self.orig_pixel2 = fit2d_parameter['pixelY'] * 1e-6
+        self.polarization_factor = fit2d_parameter["polarization_factor"]
+        self.orig_pixel1 = fit2d_parameter["pixelX"] * 1e-6
+        self.orig_pixel2 = fit2d_parameter["pixelY"] * 1e-6
         self.is_calibrated = True
         self.set_supersampling()
 
@@ -665,21 +771,23 @@ class CalibrationModel(object):
         'dist', 'poni1', 'poni2', 'rot1', 'rot2', 'rot3', 'pixel1', 'pixel2', 'wavelength',
         'polarization_factor'
         """
-        self.pattern_geometry.setPyFAI(dist=pyFAI_parameter['dist'],
-                                       poni1=pyFAI_parameter['poni1'],
-                                       poni2=pyFAI_parameter['poni2'],
-                                       rot1=pyFAI_parameter['rot1'],
-                                       rot2=pyFAI_parameter['rot2'],
-                                       rot3=pyFAI_parameter['rot3'],
-                                       pixel1=pyFAI_parameter['pixel1'],
-                                       pixel2=pyFAI_parameter['pixel2'])
-        self.detector.pixel1 = pyFAI_parameter['pixel1']
-        self.detector.pixel2 = pyFAI_parameter['pixel2']
+        self.pattern_geometry.setPyFAI(
+            dist=pyFAI_parameter["dist"],
+            poni1=pyFAI_parameter["poni1"],
+            poni2=pyFAI_parameter["poni2"],
+            rot1=pyFAI_parameter["rot1"],
+            rot2=pyFAI_parameter["rot2"],
+            rot3=pyFAI_parameter["rot3"],
+            pixel1=pyFAI_parameter["pixel1"],
+            pixel2=pyFAI_parameter["pixel2"],
+        )
+        self.detector.pixel1 = pyFAI_parameter["pixel1"]
+        self.detector.pixel2 = pyFAI_parameter["pixel2"]
         self.orig_pixel1 = self.detector.pixel1
         self.orig_pixel2 = self.detector.pixel2
-        self.pattern_geometry.wavelength = pyFAI_parameter['wavelength']
+        self.pattern_geometry.wavelength = pyFAI_parameter["wavelength"]
         self.create_cake_geometry()
-        self.polarization_factor = pyFAI_parameter['polarization_factor']
+        self.polarization_factor = pyFAI_parameter["polarization_factor"]
         self.is_calibrated = True
         self.set_supersampling()
 
@@ -739,7 +847,9 @@ class CalibrationModel(object):
         x *= self.supersampling_factor
         y *= self.supersampling_factor
 
-        return self.pattern_geometry.tth(x - 0.5, y - 0.5)[0]  # deletes 0.5 because tth function uses pixel indices
+        return self.pattern_geometry.tth(x - 0.5, y - 0.5)[
+            0
+        ]  # deletes 0.5 because tth function uses pixel indices
 
     def get_azi_img(self, x, y):
         """
@@ -756,8 +866,9 @@ class CalibrationModel(object):
         return self.pattern_geometry.chi(x - 0.5, y - 0.5)[0]
 
     def get_two_theta_array(self):
-        return self.pattern_geometry.twoThetaArray(self.img_model.img_data.shape)[::self.supersampling_factor,
-               ::self.supersampling_factor]
+        return self.pattern_geometry.twoThetaArray(self.img_model.img_data.shape)[
+            :: self.supersampling_factor, :: self.supersampling_factor
+        ]
 
     def get_pixel_ind(self, tth, azi):
         """
@@ -800,8 +911,7 @@ class CalibrationModel(object):
         self._transform_pixel_corners(rotate_matrix_m90)
 
     def rotate_detector_p90(self):
-        """
-        """
+        """ """
         self._save_original_detector_definition()
 
         self.swap_detector_shape()
@@ -830,7 +940,7 @@ class CalibrationModel(object):
         self._original_detector = None
 
     def load_transformations_string_list(self, transformations):
-        """ Transforms the detector parameters (shape, pixel size and distortion correction) based on a
+        """Transforms the detector parameters (shape, pixel size and distortion correction) based on a
         list of transformation actions.
         :param transformations: list of transformations specified as strings, values are "flipud", "fliplr",
                                 "rotate_matrix_m90", "rotate_matrix_p90
@@ -861,7 +971,9 @@ class CalibrationModel(object):
         :param transform_function: function pointer which will affect the dx, dy and pixel corners of the detector
         """
         if self.detector._pixel_corners is not None:
-            self.detector._pixel_corners = np.ascontiguousarray(transform_function(self.detector.get_pixel_corners()))
+            self.detector._pixel_corners = np.ascontiguousarray(
+                transform_function(self.detector.get_pixel_corners())
+            )
 
     def _swap_pixel_size(self):
         """swaps the pixel sizes"""
@@ -873,14 +985,23 @@ class CalibrationModel(object):
         if self.detector.shape is not None:
             self.detector.shape = (self.detector.shape[1], self.detector.shape[0])
         if self.detector.max_shape is not None:
-            self.detector.max_shape = (self.detector.max_shape[1], self.detector.max_shape[0])
+            self.detector.max_shape = (
+                self.detector.max_shape[1],
+                self.detector.max_shape[0],
+            )
 
     def _swap_detector_module_size(self):
         """swaps the module size and gap sizes for e.g. Pilatus Detectors"""
-        if hasattr(self.detector, 'module_size'):
-            self.detector.module_size = (self.detector.module_size[1], self.detector.module_size[0])
-        if hasattr(self.detector, 'MODULE_GAP'):
-            self.detector.MODULE_GAP = (self.detector.MODULE_GAP[1], self.detector.MODULE_GAP[0])
+        if hasattr(self.detector, "module_size"):
+            self.detector.module_size = (
+                self.detector.module_size[1],
+                self.detector.module_size[0],
+            )
+        if hasattr(self.detector, "MODULE_GAP"):
+            self.detector.MODULE_GAP = (
+                self.detector.MODULE_GAP[1],
+                self.detector.MODULE_GAP[0],
+            )
 
     def _reset_detector_mask(self):
         """resets and recalculates the mask. Transformations to shape and module size have to be performed before."""
@@ -898,6 +1019,10 @@ class NotEnoughSpacingsInCalibrant(Exception):
 
 
 class DetectorShapeError(Exception):
+    pass
+
+
+class NoPointsError(Exception):
     pass
 
 
@@ -925,7 +1050,7 @@ def get_available_detectors():
     detector_names_sorted = [detector_names[i] for i in sorted_indices]
     detector_classes_sorted = [list(detector_classes)[i] for i in sorted_indices]
 
-    base_class_index = detector_names_sorted.index('Detector')
+    base_class_index = detector_names_sorted.index("Detector")
     del detector_names_sorted[base_class_index]
     del detector_classes_sorted[base_class_index]
 
