@@ -68,14 +68,14 @@ class MapWidget(QtWidgets.QWidget):
         self._left_layout.addWidget(self.map_pg_layout)
         self._left_layout.addWidget(self.map_plot_control_widget)
 
-        self._upper_right_widget = QtWidgets.QWidget()
-        self._upper_right_widget.setLayout(self._upper_right_layout)
-        self._upper_right_layout.addWidget(self.img_pg_layout)
-        self._upper_right_layout.addWidget(self.control_widget)
+        self.upper_right_splitter = QtWidgets.QSplitter()
+        self.upper_right_splitter.setOrientation(QtCore.Qt.Horizontal)
+        self.upper_right_splitter.addWidget(self.img_pg_layout)
+        self.upper_right_splitter.addWidget(self.control_widget)
 
         self.vertical_splitter = QtWidgets.QSplitter(self)
         self.vertical_splitter.setOrientation(QtCore.Qt.Vertical)
-        self.vertical_splitter.addWidget(self._upper_right_widget)
+        self.vertical_splitter.addWidget(self.upper_right_splitter)
         self.vertical_splitter.addWidget(self.pattern_pg_layout)
 
         self.horizontal_splitter = QtWidgets.QSplitter()
@@ -116,6 +116,8 @@ class MapControlWidget(QtWidgets.QWidget):
 
     def create_layout(self):
         self._outer_layout = TightVBoxLayout()
+        self._outer_layout.setContentsMargins(0, 0, 0, 0)
+        self._outer_layout.setSpacing(5)
 
         self._outer_layout.addWidget(self.load_btn)
         self._outer_layout.addWidget(self.file_list)
