@@ -22,6 +22,7 @@ import weakref
 import pytest
 from qtpy import QtCore, QtWidgets
 from qtpy.QtTest import QTest
+from dioptas.controller import CalibrationController
 
 from dioptas.controller.MainController import MainController
 
@@ -36,6 +37,7 @@ from dioptas.controller.integration.ImageController import ImageController
 
 from dioptas.model.DioptasModel import DioptasModel
 from dioptas.widgets.integration import IntegrationWidget
+from dioptas.widgets.CalibrationWidget import CalibrationWidget
 
 
 @pytest.fixture(scope="session")
@@ -116,6 +118,13 @@ def integration_widget(qtbot):
 
 
 @pytest.fixture
+def calibration_widget(qtbot):
+    widget = CalibrationWidget()
+    yield widget
+    widget.close()
+
+
+@pytest.fixture
 def integration_controller(integration_widget, dioptas_model, qtbot):
     return IntegrationController(widget=integration_widget, dioptas_model=dioptas_model)
 
@@ -139,9 +148,16 @@ def batch_widget(integration_widget):
 def background_controller(integration_widget, dioptas_model, qtbot):
     return BackgroundController(integration_widget, dioptas_model)
 
+
 @pytest.fixture
 def image_controller(integration_widget, dioptas_model, qtbot):
     return ImageController(integration_widget, dioptas_model)
+
+
+@pytest.fixture
+def calibration_controller(calibration_widget, dioptas_model, qtbot):
+    return CalibrationController(calibration_widget, dioptas_model)
+
 
 @pytest.fixture
 def calibration_model(dioptas_model):
