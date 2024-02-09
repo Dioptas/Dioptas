@@ -61,6 +61,9 @@ class MapModel2:
 
     def load(self, filepaths: list[str]):
         """Loads a list of files, integrates them and creates a map"""
+        if len(filepaths) == 0:
+            raise ValueError("No files to load")
+
         self.filepaths = filepaths
 
         self.integrate()

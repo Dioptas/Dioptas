@@ -65,6 +65,9 @@ class MapController(object):
             "Load image data file(s)",
             self.model.working_directories["image"],
         )
+        if len(filenames) == 0:
+            return
+
         try:
             self.model.map_model.load(filenames)
             self.model.map_model.select_point(0, 0)
