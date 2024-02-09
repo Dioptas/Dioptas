@@ -190,7 +190,7 @@ class Configuration(object):
         else:
             self.pattern_model.save_pattern(filename)
 
-    def _create_xy_header(self):
+    def _create_xy_header(self) -> str:
         """
         Creates the header for the xy file format (contains information about calibration parameters).
         :return: header string
@@ -200,7 +200,7 @@ class Configuration(object):
         header = header + "\n#\n# " + self._integration_unit + "\t I"
         return header
 
-    def _create_fxye_header(self, filename):
+    def _create_fxye_header(self, filename) -> str:
         """
         Creates the header for the fxye file format (used by GSAS and GSAS-II) containing the calibration information
         :return: header string
@@ -259,7 +259,7 @@ class Configuration(object):
         self.mask_model.set_dimension(self.img_model._img_data.shape)
 
     @property
-    def integration_rad_points(self):
+    def integration_rad_points(self) -> int:
         return self._integration_rad_points
 
     @integration_rad_points.setter
@@ -270,7 +270,7 @@ class Configuration(object):
             self.integrate_image_2d()
 
     @property
-    def cake_azimuth_points(self):
+    def cake_azimuth_points(self) -> int:
         return self._cake_azimuth_points
 
     @cake_azimuth_points.setter
@@ -300,11 +300,11 @@ class Configuration(object):
             self.integrate_image_1d()
 
     @property
-    def integration_unit(self):
+    def integration_unit(self) -> str:
         return self._integration_unit
 
     @integration_unit.setter
-    def integration_unit(self, new_unit):
+    def integration_unit(self, new_unit: str):
         old_unit = self.integration_unit
         self._integration_unit = new_unit
 
@@ -369,11 +369,11 @@ class Configuration(object):
             )
 
     @property
-    def is_calibrated(self):
+    def is_calibrated(self) -> bool:
         return self.calibration_model.is_calibrated
 
     @property
-    def auto_integrate_cake(self):
+    def auto_integrate_cake(self) -> bool:
         return self._auto_integrate_cake
 
     @auto_integrate_cake.setter
@@ -388,7 +388,7 @@ class Configuration(object):
             self.img_model.img_changed.disconnect(self.integrate_image_2d)
 
     @property
-    def auto_integrate_pattern(self):
+    def auto_integrate_pattern(self) -> bool:
         return self._auto_integrate_pattern
 
     @auto_integrate_pattern.setter
@@ -403,7 +403,7 @@ class Configuration(object):
             self.img_model.img_changed.disconnect(self.integrate_image_1d)
 
     @property
-    def cake_img(self):
+    def cake_img(self) -> np.ndarray:
         return self.calibration_model.cake_img
 
     @property
@@ -415,9 +415,9 @@ class Configuration(object):
         self.mask_model.roi = new_val
         self.integrate_image_1d()
 
-    def copy(self):
+    def copy(self) -> "Configuration":
         """
-        Creates a copy of the current working directory
+        Creates a copy of the current configuration directory
         :return: copied configuration
         :rtype: Configuration
         """

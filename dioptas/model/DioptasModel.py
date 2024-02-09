@@ -260,70 +260,43 @@ class DioptasModel(object):
         self.current_configuration.working_directories = new
 
     @property
-    def current_configuration(self):
-        """
-        :rtype: Configuration
-        """
+    def current_configuration(self) -> Configuration:
         return self.configurations[self.configuration_ind]
 
     @property
-    def img_model(self):
-        """
-        :rtype: ImgModel
-        """
+    def img_model(self) -> ImgModel:
         return self.configurations[self.configuration_ind].img_model
 
     @property
-    def mask_model(self):
-        """
-        :rtype: MaskModel
-        """
+    def mask_model(self) -> MaskModel:
         return self.configurations[self.configuration_ind].mask_model
 
     @property
-    def calibration_model(self):
-        """
-        :rtype: CalibrationModel
-        """
+    def calibration_model(self) -> MaskModel:
         return self.configurations[self.configuration_ind].calibration_model
 
     @property
-    def pattern_model(self):
-        """
-        :rtype: PatternModel
-        """
+    def pattern_model(self) -> PatternModel:
         return self.configurations[self.configuration_ind].pattern_model
 
     @property
-    def overlay_model(self):
-        """
-        :rtype: OverlayModel
-        """
+    def overlay_model(self) -> OverlayModel:
         return self._overlay_model
 
     @property
-    def phase_model(self):
-        """
-        :rtype: PhaseModel
-        """
+    def phase_model(self) -> PhaseModel:
         return self._phase_model
 
     @property
-    def batch_model(self):
-        """
-        :rtype: BatchModel
-        """
+    def batch_model(self) -> BatchModel:
         return self.configurations[self.configuration_ind].batch_model
 
     @property
     def map_model(self) -> MapModel2:
-        """
-        :rtype: MapModel2
-        """
         return self.configurations[self.configuration_ind].map_model
 
     @property
-    def use_mask(self):
+    def use_mask(self) -> bool:
         return self.configurations[self.configuration_ind].use_mask
 
     @use_mask.setter
@@ -339,7 +312,7 @@ class DioptasModel(object):
         self.configurations[self.configuration_ind].transparent_mask = new_val
 
     @property
-    def integration_unit(self):
+    def integration_unit(self) -> str:
         return self.current_configuration.integration_unit
 
     @integration_unit.setter
@@ -347,11 +320,11 @@ class DioptasModel(object):
         self.current_configuration.integration_unit = new_val
 
     @property
-    def img_data(self):
+    def img_data(self) -> np.ndarray:
         return self.img_model.img_data
 
     @property
-    def cake_data(self):
+    def cake_data(self) -> np.ndarray:
         if not self.combine_cakes:
             return self.calibration_model.cake_img
         else:
@@ -440,10 +413,7 @@ class DioptasModel(object):
             return self._get_combined_cake_azi()
 
     @property
-    def pattern(self):
-        """
-        :rtype: Pattern
-        """
+    def pattern(self) -> Pattern:
         if not self.combine_patterns:
             return self.pattern_model.pattern
         else:
@@ -451,10 +421,7 @@ class DioptasModel(object):
             return combine_patterns(patterns)
 
     @property
-    def combine_patterns(self):
-        """
-        :rtype: bool
-        """
+    def combine_patterns(self) -> bool:
         return self._combine_patterns
 
     @combine_patterns.setter
