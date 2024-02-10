@@ -68,8 +68,11 @@ def mock_map_model(map_model: MapModel2):
     map_model.dimension = (2, 3)
     map_model.map_changed.emit()
 
+
 def mock_integrate_1d(map_controller: MapController):
-    map_controller.model.calibration_model.integrate_1d = MagicMock(return_value=(np.arange(10), np.arange(10)))
+    map_controller.model.calibration_model.integrate_1d = MagicMock(
+        return_value=(np.arange(10), np.arange(10))
+    )
 
 
 def test_click_load_starts_creating_map(map_controller, map_model: MapModel2):
@@ -83,15 +86,34 @@ def test_click_load_empties_file_list_without_calibration(
     map_controller, map_model: MapModel2
 ):
     mock_open_filenames(map_img_file_paths)
+    QtWidgets.QMessageBox.critical = MagicMock()
     map_controller.load_btn_clicked()
 
     assert map_controller.widget.control_widget.file_list.count() == 0
+    assert QtWidgets.QMessageBox.critical.assert_called_once
+
 
 def test_load_empty_filelist(map_controller, map_model: MapModel2):
     mock_open_filenames([])
     map_controller.load_btn_clicked()
 
     assert map_controller.widget.control_widget.file_list.count() == 0
+
+
+def test_files_with_different_dimensions(map_controller, map_model: MapModel2):
+    load_calibration(map_controller)
+    mock_open_filenames(
+        [
+            os.path.join(data_path, "CeO2_Pilatus1M.tif"),
+            os.path.join(data_path, "image_001.tif"),
+        ]
+    )
+    QtWidgets.QMessageBox.critical = MagicMock()
+    map_controller.load_btn_clicked()
+    assert QtWidgets.QMessageBox.critical.assert_called_once
+    assert map_model.filepaths is None
+    assert map_controller.widget.control_widget.file_list.count() == 0
+
 
 def test_click_load_fills_file_list(map_controller, map_model: MapModel2):
     load_calibration(map_controller)

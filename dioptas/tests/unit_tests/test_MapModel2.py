@@ -48,6 +48,26 @@ def test_load_empty_filelist(map_model: MapModel2, configuration: Configuration)
         map_model.load([])
 
 
+def test_load_files_with_different_dimensions(
+    map_model: MapModel2, configuration: Configuration
+):
+    file_paths = [
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.tif"),
+        os.path.join(unittest_data_path, "image_001.tif"),
+    ]
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    with pytest.raises(ValueError):
+        map_model.load(file_paths)
+    
+    assert map_model.filepaths is None
+    assert map_model.pattern_intensities is None
+    assert map_model.dimension is None
+    assert configuration.img_model.img_changed.blocked is False
+    assert configuration.trim_trailing_zeros is True
+
+
 def test_set_dimensions(map_model: MapModel2, configuration: Configuration):
     configuration.calibration_model.load(
         os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
@@ -154,8 +174,9 @@ def test_emits_point_integrated_signal(
     assert listener.call_count == 9
     # assert listener.call_args_list == [(1), (2), (3), (4), (5), (6), (7), (8), (9)]
 
+
 def test_emits_point_integrated_signal_with_multiimage_file(
-        map_model: MapModel2, configuration: Configuration
+    map_model: MapModel2, configuration: Configuration
 ):
     configuration.calibration_model.load(
         os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")

@@ -83,7 +83,9 @@ class MapController(object):
             self.model.map_model.load(filenames)
             self.model.map_model.select_point(0, 0)
         except ValueError as e:
-            self.update_file_list()
+            QtWidgets.QMessageBox.critical(
+                self.widget, "Error loading image data.", str(e)
+            )
         finally:
             self.model.map_model.point_integrated.disconnect(progressDialog.setValue)
             progressDialog.close()
