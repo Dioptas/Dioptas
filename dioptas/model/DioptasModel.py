@@ -28,7 +28,16 @@ from .util import Signal
 from .util import jcpds
 from .util.Pattern import Pattern, combine_patterns
 from .Configuration import Configuration
-from . import ImgModel, CalibrationModel, MaskModel, PhaseModel, PatternModel, OverlayModel, MapModel, BatchModel
+from . import (
+    ImgModel,
+    CalibrationModel,
+    MaskModel,
+    PhaseModel,
+    PatternModel,
+    OverlayModel,
+    MapModel,
+    BatchModel,
+)
 from .MapModel2 import MapModel2
 from .. import __version__
 
@@ -79,15 +88,19 @@ class DioptasModel(object):
         self.configurations.append(Configuration(self.working_directories))
 
         if self.current_configuration.calibration_model.is_calibrated:
-            dioptas_config_folder = os.path.join(os.path.expanduser('~'), '.Dioptas')
+            dioptas_config_folder = os.path.join(os.path.expanduser("~"), ".Dioptas")
             if not os.path.isdir(dioptas_config_folder):
                 os.mkdir(dioptas_config_folder)
             self.current_configuration.calibration_model.save(
-                os.path.join(dioptas_config_folder, 'transfer.poni'))
+                os.path.join(dioptas_config_folder, "transfer.poni")
+            )
             self.configurations[-1].calibration_model.load(
-                os.path.join(dioptas_config_folder, 'transfer.poni'))
+                os.path.join(dioptas_config_folder, "transfer.poni")
+            )
 
-        self.configurations[-1].img_model._img_data = self.current_configuration.img_model.img_data
+        self.configurations[-1].img_model._img_data = (
+            self.current_configuration.img_model.img_data
+        )
 
         self.select_configuration(len(self.configurations) - 1)
         self.configuration_added.emit()
@@ -111,52 +124,54 @@ class DioptasModel(object):
         Saves the current state of the model in a h5py file. file-ending can be chosen as wanted. Usually Dioptas
         projects are saved as *.dio files.
         """
-        f = h5py.File(filename, 'w')
+        f = h5py.File(filename, "w")
 
-        f.attrs['__version__'] = __version__
+        f.attrs["__version__"] = __version__
 
         # save configuration
-        configurations_group = f.create_group('configurations')
-        configurations_group.attrs['selected_configuration'] = self.configuration_ind
+        configurations_group = f.create_group("configurations")
+        configurations_group.attrs["selected_configuration"] = self.configuration_ind
         for ind, configuration in enumerate(self.configurations):
             configuration_group = configurations_group.create_group(str(ind))
             configuration.save_in_hdf5(configuration_group)
 
         # save overlays
-        overlay_group = f.create_group('overlays')
+        overlay_group = f.create_group("overlays")
 
         for ind, overlay in enumerate(self.overlay_model.overlays):
-            ov = overlay_group.create_group(str(ind).zfill(5))  # need to fill the ind string, in order to keep it
+            ov = overlay_group.create_group(
+                str(ind).zfill(5)
+            )  # need to fill the ind string, in order to keep it
             # ordered also for larger numbers of overlays
-            ov.attrs['name'] = overlay.name
-            ov.create_dataset('x', overlay.original_x.shape, 'f', overlay.original_x)
-            ov.create_dataset('y', overlay.original_y.shape, 'f', overlay.original_y)
-            ov.attrs['scaling'] = overlay.scaling
-            ov.attrs['offset'] = overlay.offset
+            ov.attrs["name"] = overlay.name
+            ov.create_dataset("x", overlay.original_x.shape, "f", overlay.original_x)
+            ov.create_dataset("y", overlay.original_y.shape, "f", overlay.original_y)
+            ov.attrs["scaling"] = overlay.scaling
+            ov.attrs["offset"] = overlay.offset
 
         # save phases
-        phases_group = f.create_group('phases')
+        phases_group = f.create_group("phases")
         for ind, phase in enumerate(self.phase_model.phases):
             phase_group = phases_group.create_group(str(ind))
-            phase_group.attrs['name'] = phase._name
-            phase_group.attrs['filename'] = phase._filename
-            phase_parameter_group = phase_group.create_group('params')
+            phase_group.attrs["name"] = phase._name
+            phase_group.attrs["filename"] = phase._filename
+            phase_parameter_group = phase_group.create_group("params")
             for key in phase.params:
-                if key == 'comments':
-                    phases_comments_group = phase_group.create_group('comments')
-                    for ind, comment in enumerate(phase.params['comments']):
+                if key == "comments":
+                    phases_comments_group = phase_group.create_group("comments")
+                    for ind, comment in enumerate(phase.params["comments"]):
                         phases_comments_group.attrs[str(ind)] = comment
                 else:
                     phase_parameter_group.attrs[key] = phase.params[key]
-            phase_reflections_group = phase_group.create_group('reflections')
+            phase_reflections_group = phase_group.create_group("reflections")
             for ind, reflection in enumerate(phase.reflections):
                 phase_reflection_group = phase_reflections_group.create_group(str(ind))
-                phase_reflection_group.attrs['d0'] = reflection.d0
-                phase_reflection_group.attrs['d'] = reflection.d
-                phase_reflection_group.attrs['intensity'] = reflection.intensity
-                phase_reflection_group.attrs['h'] = reflection.h
-                phase_reflection_group.attrs['k'] = reflection.k
-                phase_reflection_group.attrs['l'] = reflection.l
+                phase_reflection_group.attrs["d0"] = reflection.d0
+                phase_reflection_group.attrs["d"] = reflection.d
+                phase_reflection_group.attrs["intensity"] = reflection.intensity
+                phase_reflection_group.attrs["h"] = reflection.h
+                phase_reflection_group.attrs["k"] = reflection.k
+                phase_reflection_group.attrs["l"] = reflection.l
         f.flush()
         f.close()
 
@@ -166,7 +181,7 @@ class DioptasModel(object):
         """
         self.disconnect_models()
 
-        f = h5py.File(filename, 'r')
+        f = h5py.File(filename, "r")
 
         # delete old configurations
         for config in self.configurations:
@@ -174,44 +189,56 @@ class DioptasModel(object):
             del config.calibration_model
             del config.mask_model
             import gc
+
             gc.collect()
 
         # load_configurations
         self.configurations = []
-        for ind, configuration_group in f.get('configurations').items():
+        for ind, configuration_group in f.get("configurations").items():
             configuration = Configuration()
             configuration.load_from_hdf5(configuration_group)
             self.configurations.append(configuration)
-        self.configuration_ind = f.get('configurations').attrs['selected_configuration']
+        self.configuration_ind = f.get("configurations").attrs["selected_configuration"]
 
         self.connect_models()
         self.configuration_added.emit()
         self.select_configuration(self.configuration_ind)
 
         # load phase model
-        for ind, phase_group in f.get('phases').items():
+        for ind, phase_group in f.get("phases").items():
             new_jcpds = jcpds()
-            new_jcpds.name = phase_group.attrs.get('name')
-            new_jcpds.filename = phase_group.attrs.get('filename')
-            for p_key, p_value in phase_group.get('params').attrs.items():
+            new_jcpds.name = phase_group.attrs.get("name")
+            new_jcpds.filename = phase_group.attrs.get("filename")
+            for p_key, p_value in phase_group.get("params").attrs.items():
                 new_jcpds.params[p_key] = p_value
-            for c_key, comment in phase_group.get('comments').attrs.items():
-                new_jcpds.params['comments'].append(comment)
-            for r_key, reflection in phase_group.get('reflections').items():
-                new_jcpds.add_reflection(reflection.attrs['h'], reflection.attrs['k'], reflection.attrs['l'],
-                                         reflection.attrs['intensity'], reflection.attrs['d'])
-            new_jcpds.params['modified'] = bool(phase_group.get('params').attrs['modified'])
+            for c_key, comment in phase_group.get("comments").attrs.items():
+                new_jcpds.params["comments"].append(comment)
+            for r_key, reflection in phase_group.get("reflections").items():
+                new_jcpds.add_reflection(
+                    reflection.attrs["h"],
+                    reflection.attrs["k"],
+                    reflection.attrs["l"],
+                    reflection.attrs["intensity"],
+                    reflection.attrs["d"],
+                )
+            new_jcpds.params["modified"] = bool(
+                phase_group.get("params").attrs["modified"]
+            )
             self.phase_model.phase_files.append(new_jcpds.filename)
             self.phase_model.add_jcpds_object(new_jcpds)
 
         # load overlay model
-        for ind, overlay_group in f.get('overlays').items():
-            self.overlay_model.add_overlay(overlay_group.get('x')[...],
-                                           overlay_group.get('y')[...],
-                                           overlay_group.attrs['name'])
+        for ind, overlay_group in f.get("overlays").items():
+            self.overlay_model.add_overlay(
+                overlay_group.get("x")[...],
+                overlay_group.get("y")[...],
+                overlay_group.attrs["name"],
+            )
             index = len(self.overlay_model.overlays) - 1
-            self.overlay_model.set_overlay_offset(index, overlay_group.attrs['offset'])
-            self.overlay_model.set_overlay_scaling(index, overlay_group.attrs['scaling'])
+            self.overlay_model.set_overlay_offset(index, overlay_group.attrs["offset"])
+            self.overlay_model.set_overlay_scaling(
+                index, overlay_group.attrs["scaling"]
+            )
 
         f.close()
 
@@ -340,10 +367,12 @@ class DioptasModel(object):
         combined_tth, combined_azi = np.meshgrid(tth, azi)
         combined_intensity = np.zeros(combined_azi.shape)
         for configuration in self.configurations:
-            cake_interp2d = interp2d(configuration.calibration_model.cake_tth,
-                                     configuration.calibration_model.cake_azi,
-                                     configuration.calibration_model.cake_img,
-                                     fill_value=0)
+            cake_interp2d = interp2d(
+                configuration.calibration_model.cake_tth,
+                configuration.calibration_model.cake_azi,
+                configuration.calibration_model.cake_img,
+                fill_value=0,
+            )
             combined_intensity += cake_interp2d(tth, azi)
         self._cake_data = combined_intensity
 
@@ -417,7 +446,10 @@ class DioptasModel(object):
         if not self.combine_patterns:
             return self.pattern_model.pattern
         else:
-            patterns = [configuration.pattern_model.pattern for configuration in self.configurations]
+            patterns = [
+                configuration.pattern_model.pattern
+                for configuration in self.configurations
+            ]
             return combine_patterns(patterns)
 
     @property

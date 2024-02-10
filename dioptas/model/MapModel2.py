@@ -41,6 +41,10 @@ class MapPointInfo:
 class MapModel2:
     map_changed = Signal()
 
+    # point_integrated is emitted with the index of the integrated point
+    # it will be a fractional number, when the image file contains multiple frames
+    point_integrated = Signal(float)
+
     def __init__(self, configuration: "Configuration"):
         """
         Creates a new map-model. The configuration specified will serve as
@@ -101,19 +105,36 @@ class MapModel2:
         trim_trailing_zeros_backup = self.configuration.trim_trailing_zeros
         self.configuration.trim_trailing_zeros = False
 
+        self.configuration.img_model.img_changed.blocked = True
+
+        try:
+            self._integrate()
+        except Exception as e:
+            raise e
+        finally:
+            self.pattern_intensities = np.array(self.pattern_intensities)
+            
+            # reset model to previous state
+            self.configuration.trim_trailing_zeros = trim_trailing_zeros_backup
+            self.configuration.img_model.img_changed.blocked = False
+
+    def _integrate(self):
         for file_ind, filepath in enumerate(self.filepaths):
             self.configuration.img_model.load(filepath)
 
             for frame_ind in range(self.configuration.img_model.series_max):
                 self.configuration.img_model.load_series_img(frame_ind + 1)
                 x, y = self.configuration.integrate_image_1d()
+
                 if file_ind == 0:
                     self.pattern_x = x
+
                 self.point_infos.append(MapPointInfo(filepath, frame_ind))
                 self.pattern_intensities.append(y)
 
-        self.pattern_intensities = np.array(self.pattern_intensities)
-        self.configuration.trim_trailing_zeros = trim_trailing_zeros_backup
+                self.point_integrated.emit(
+                    file_ind + (frame_ind + 1) / self.configuration.img_model.series_max
+                )
 
     def set_window(self, window: tuple[float, float]):
         """Sets the window in the pattern for generating the map
@@ -156,9 +177,7 @@ class MapModel2:
             if point_info.frame_index == 0:
                 filenames.append(point_info.filename)
             else:
-                filenames.append(
-                    f"{point_info.filename}:{point_info.frame_index}"
-                )
+                filenames.append(f"{point_info.filename}:{point_info.frame_index}")
         return filenames
 
     def select_point(self, row_index: int, column_index: int):
@@ -170,8 +189,9 @@ class MapModel2:
         self.select_point_by_index(point_ind)
 
     def select_point_by_index(self, index: int):
-        """Selects the point at the specified index (considering the list of images), will trigger a load of the 
-        image through the configuration. Thus the image_changed signal will be sent to all listeners"""
+        """Selects the point at the specified index (considering the list of images), will trigger a load of the
+        image through the configuration. Thus the image_changed signal will be sent to all listeners
+        """
         if index < 0 or index >= len(self.point_infos):
             return
         point_info = self.point_infos[index]

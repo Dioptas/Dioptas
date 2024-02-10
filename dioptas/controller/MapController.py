@@ -18,12 +18,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import numpy as np
-import os
+from qtpy import QtWidgets
 
 from dioptas.model import DioptasModel
 from dioptas.widgets.MapWidget import MapWidget
 
-from ..widgets.UtilityWidgets import open_files_dialog
+from ..widgets.UtilityWidgets import get_progress_dialog, open_files_dialog
 
 
 class MapController(object):
@@ -48,9 +48,7 @@ class MapController(object):
         self.widget.map_plot_control_widget.map_dimension_cb.currentIndexChanged.connect(
             self.map_dimension_cb_changed
         )
-        self.widget.map_plot_widget.mouse_moved.connect(
-            self.map_plot_mouse_moved
-        ) 
+        self.widget.map_plot_widget.mouse_moved.connect(self.map_plot_mouse_moved)
 
         self.model.map_model.map_changed.connect(self.update_map)
         self.model.map_model.map_changed.connect(self.update_file_list)
@@ -68,16 +66,36 @@ class MapController(object):
         if len(filenames) == 0:
             return
 
+        progressDialog = get_progress_dialog(
+            "Loading image data",
+            "Abort Integration",
+            100,
+            (
+                int(self.widget.map_pg_layout.x() + self.widget.map_pg_layout.width() / 2),
+                int(self.widget.map_pg_layout.y() + self.widget.map_pg_layout.height() / 2),
+            ),
+            self.widget,
+        )
+
+        def update_progress_dialog(value):
+            progress_value = int(value / len(filenames) * 100)
+            progressDialog.setValue(progress_value)
+            QtWidgets.QApplication.processEvents()
+
+        self.model.map_model.point_integrated.connect(update_progress_dialog)
         try:
             self.model.map_model.load(filenames)
             self.model.map_model.select_point(0, 0)
         except ValueError as e:
             self.update_file_list()
+        finally:
+            self.model.map_model.point_integrated.disconnect(progressDialog.setValue)
+            progressDialog.close()
 
     def update_file_list(self):
         self.widget.control_widget.file_list.clear()
         filenames = self.model.map_model.get_filenames()
-        if len(filenames) == 0: # no files loaded
+        if len(filenames) == 0:  # no files loaded
             return
         self.widget.control_widget.file_list.addItems(filenames)
         self.widget.control_widget.file_list.blockSignals(True)
@@ -93,17 +111,20 @@ class MapController(object):
                 np.flipud(self.model.map_model.map), auto_level=True
             )
             self.update_dimension_cb()
-    
+
     def update_dimension_cb(self):
         dim_cb = self.widget.map_plot_control_widget.map_dimension_cb
         dim_cb.blockSignals(True)
         dim_cb.clear()
-        possible_dimensions_str = [f"{x}x{y}" for x, y in self.model.map_model.possible_dimensions]
+        possible_dimensions_str = [
+            f"{x}x{y}" for x, y in self.model.map_model.possible_dimensions
+        ]
         dim_cb.addItems(possible_dimensions_str)
-        current_dimension_index = self.model.map_model.possible_dimensions.index(self.model.map_model.dimension)
+        current_dimension_index = self.model.map_model.possible_dimensions.index(
+            self.model.map_model.dimension
+        )
         dim_cb.setCurrentIndex(current_dimension_index)
         dim_cb.blockSignals(False)
-
 
     def update_image(self):
         if self.model.img_model.img_data is None:
@@ -148,9 +169,11 @@ class MapController(object):
         self.model.map_model.select_point(row, col)
         ind = self.model.map_model.get_point_index(row, col)
         self.widget.control_widget.file_list.setCurrentRow(ind)
-    
+
     def map_dimension_cb_changed(self, _):
-        dimension_str = self.widget.map_plot_control_widget.map_dimension_cb.currentText()
+        dimension_str = (
+            self.widget.map_plot_control_widget.map_dimension_cb.currentText()
+        )
         dimension = tuple([int(x) for x in dimension_str.split("x")])
         self.model.map_model.set_dimension(dimension)
 
@@ -179,7 +202,7 @@ class MapController(object):
             f"I: {self.model.map_model.map[row, col]:.0f}"
         )
 
-        point_info = self.model.map_model.get_point_info(row, col)  
+        point_info = self.model.map_model.get_point_info(row, col)
         if point_info.frame_index == 0:
             self.widget.map_plot_control_widget.filename_label.setText(
                 f"{point_info.filename}"
@@ -188,7 +211,6 @@ class MapController(object):
             self.widget.map_plot_control_widget.filename_label.setText(
                 f"{point_info.filename} - Frame: {point_info.frame_index}"
             )
-
 
     def pattern_clicked(self, x, _):
         self.widget.pattern_plot_widget.map_interactive_roi.setCenter(x)

@@ -68,6 +68,9 @@ def mock_map_model(map_model: MapModel2):
     map_model.dimension = (2, 3)
     map_model.map_changed.emit()
 
+def mock_integrate_1d(map_controller: MapController):
+    map_controller.model.calibration_model.integrate_1d = MagicMock(return_value=(np.arange(10), np.arange(10)))
+
 
 def test_click_load_starts_creating_map(map_controller, map_model: MapModel2):
     map_model.load = MagicMock()
@@ -304,3 +307,14 @@ def test_changing_configuration_updates_gui(map_controller, dioptas_model):
         for i in range(map_controller.widget.control_widget.file_list.count())
     ]
     assert items_text == list(reversed(map_img_file_names))
+
+
+def test_progress_dialog_is_shown(map_controller):
+    load_calibration(map_controller)
+    mock_open_filenames(map_img_file_paths)
+    mock_integrate_1d(map_controller)
+
+    QtWidgets.QProgressDialog.setValue = MagicMock()
+    map_controller.load_btn_clicked()
+
+    assert QtWidgets.QProgressDialog.setValue.call_count == len(map_img_file_paths)

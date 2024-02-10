@@ -47,9 +47,13 @@ class CifConversionParametersDialog(QtWidgets.QDialog):
         self.min_d_spacing_lbl = QtWidgets.QLabel("Minimum d-spacing:")
 
         self.int_cutoff_txt = QtWidgets.QLineEdit("0.5")
-        self.int_cutoff_txt.setToolTip("Reflections with lower Intensity won't be considered.")
+        self.int_cutoff_txt.setToolTip(
+            "Reflections with lower Intensity won't be considered."
+        )
         self.min_d_spacing_txt = QtWidgets.QLineEdit("0.5")
-        self.min_d_spacing_txt.setToolTip("Reflections with smaller d_spacing won't be considered.")
+        self.min_d_spacing_txt.setToolTip(
+            "Reflections with smaller d_spacing won't be considered."
+        )
 
         self.int_cutoff_unit_lbl = QtWidgets.QLabel("%")
         self.min_d_spacing_unit_lbl = QtWidgets.QLabel("A")
@@ -78,8 +82,12 @@ class CifConversionParametersDialog(QtWidgets.QDialog):
         self.int_cutoff_lbl.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         self.int_cutoff_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         self.int_cutoff_txt.setMaximumWidth(40)
-        self.min_d_spacing_lbl.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.min_d_spacing_txt.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.min_d_spacing_lbl.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
+        )
+        self.min_d_spacing_txt.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
+        )
         self.min_d_spacing_txt.setMaximumWidth(40)
 
         self.int_cutoff_txt.setValidator(QtGui.QDoubleValidator())
@@ -116,7 +124,9 @@ class CifConversionParametersDialog(QtWidgets.QDialog):
         """
         Overwriting the dialog exec_ function to center the widget in the parent window before execution.
         """
-        parent_center = self._parent.window().mapToGlobal(self._parent.window().rect().center())
+        parent_center = self._parent.window().mapToGlobal(
+            self._parent.window().rect().center()
+        )
         self.move(parent_center.x() - 101, parent_center.y() - 48)
         super(CifConversionParametersDialog, self).exec_()
 
@@ -149,7 +159,9 @@ class FileInfoWidget(QtWidgets.QWidget):
 
     def raise_widget(self):
         self.show()
-        self.setWindowState(self.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
+        self.setWindowState(
+            self.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive
+        )
         self.activateWindow()
         self.raise_()
 
@@ -165,7 +177,7 @@ class ErrorMessageBox(QtWidgets.QDialog):
 
         self.scroll_area.setWidget(self.text_lbl)
         self.scroll_area.setWidgetResizable(True)
-        self.ok_btn = QtWidgets.QPushButton('OK')
+        self.ok_btn = QtWidgets.QPushButton("OK")
 
         _layout = QtWidgets.QGridLayout()
         _layout.addWidget(self.scroll_area, 0, 0, 1, 10)
@@ -179,27 +191,27 @@ class ErrorMessageBox(QtWidgets.QDialog):
 
 
 def open_file_dialog(parent_widget, caption, directory, filter=None):
-    filename = QtWidgets.QFileDialog.getOpenFileName(parent_widget, caption=caption,
-                                                     directory=directory,
-                                                     filter=filter)
+    filename = QtWidgets.QFileDialog.getOpenFileName(
+        parent_widget, caption=caption, directory=directory, filter=filter
+    )
     if isinstance(filename, tuple):  # PyQt5 returns a tuple...
         return str(filename[0])
     return str(filename)
 
 
 def open_files_dialog(parent_widget, caption, directory, filter=None):
-    filenames = QtWidgets.QFileDialog.getOpenFileNames(parent_widget, caption=caption,
-                                                       directory=directory,
-                                                       filter=filter)
+    filenames = QtWidgets.QFileDialog.getOpenFileNames(
+        parent_widget, caption=caption, directory=directory, filter=filter
+    )
     if isinstance(filenames, tuple):  # PyQt5 returns a tuple...
         filenames = filenames[0]
     return filenames
 
 
 def save_file_dialog(parent_widget, caption, directory, filter=None):
-    filename = QtWidgets.QFileDialog.getSaveFileName(parent_widget, caption,
-                                                     directory=directory,
-                                                     filter=filter)
+    filename = QtWidgets.QFileDialog.getSaveFileName(
+        parent_widget, caption, directory=directory, filter=filter
+    )
     if isinstance(filename, tuple):  # PyQt5 returns a tuple...
         return set_extension(str(filename[0]), str(filename[1]))
     return str(filename)
@@ -216,12 +228,31 @@ def set_extension(filename, ext_filter):
     name, ext = os.path.splitext(filename)
 
     # extension already given
-    if ext != '':
+    if ext != "":
         return filename
 
     # Extension can not be extracted from filter string
     if ext_filter.count("(") != 1:
         return filename
 
-    ext = ext_filter[ext_filter.find("(") + 2:ext_filter.find(")")]
+    ext = ext_filter[ext_filter.find("(") + 2 : ext_filter.find(")")]
     return f"{filename}{ext}"
+
+
+def get_progress_dialog(
+    message: str,
+    abort_text: str,
+    num_points: int,
+    pos: tuple[float, float],
+    parent=None,
+) -> QtWidgets.QProgressDialog:
+    progress_dialog = QtWidgets.QProgressDialog(
+        message, abort_text, 0, num_points, parent=parent
+    )
+    progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
+    progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+    progress_dialog.move(
+        int(pos[0] - progress_dialog.width() / 2), int(pos[1] - progress_dialog.height() / 2)
+    )
+    progress_dialog.show()
+    return progress_dialog

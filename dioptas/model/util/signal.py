@@ -83,6 +83,18 @@ class Signal:
         self.listeners = WeakRefList()
         self.priority_listeners = WeakRefList()
 
+    def block(self):
+        """
+        Blocks the Signal from emitting.
+        """
+        self.blocked = True
+
+    def unblock(self):
+        """
+        Unblocks the Signal from emitting.
+        """
+        self.blocked = False    
+
 
 class WeakRefList(list):
     """
