@@ -164,7 +164,7 @@ class MapModel2:
         self.map = create_map(self.window_intensities, self.dimension)
         self.map_changed.emit()
 
-    def set_dimension(self, dimension: (float, float)):
+    def set_dimension(self, dimension: tuple[float, float]):
         """Sets the dimension of the map"""
         if dimension not in self.possible_dimensions:
             return
@@ -231,7 +231,7 @@ def get_center_window(x, window_range=3) -> list[float, float]:
     ]
 
 
-def ind_in_window(x_array, window: (float, float)) -> np.ndarray:
+def ind_in_window(x_array, window: tuple[float, float]) -> np.ndarray:
     """
     Gets the indices of a numpy array which are in the window
     :param x_array: a numpy array
@@ -242,7 +242,7 @@ def ind_in_window(x_array, window: (float, float)) -> np.ndarray:
 
 
 def get_window_intensities(
-    pattern_x, intensities, window: (float, float)
+    pattern_x, intensities, window: tuple[float, float]
 ) -> np.ndarray:
     """
     Estimates the intensities inside the specified window
@@ -273,7 +273,7 @@ def find_possible_dimensions(num_points: int) -> list[(int, int)]:
     return dimension_pairs
 
 
-def create_map(data: np.ndarray, dimension: (int, int)) -> np.ndarray:
+def create_map(data: np.ndarray, dimension: tuple[int, int]) -> np.ndarray:
     """
     Creates a new map from the given 1D array and specified dimension. It will
     always create a copy of the data.
