@@ -92,7 +92,7 @@ class MapModel2:
     def integrate(self):
         """Integrates all files in the filepaths list and stores the results"""
         if not self.configuration.calibration_model.is_calibrated:
-            raise ValueError("Configuration is not calibrated")
+            raise ValueError("Detector geometry is not calibrated")
 
         # initialize data structures
         self.pattern_x = []
@@ -110,10 +110,9 @@ class MapModel2:
         try:
             self._integrate()
         except Exception as e:
+            self._reset()
             raise e
         finally:
-            self.pattern_intensities = np.array(self.pattern_intensities)
-            
             # reset model to previous state
             self.configuration.trim_trailing_zeros = trim_trailing_zeros_backup
             self.configuration.img_model.img_changed.blocked = False
@@ -128,6 +127,11 @@ class MapModel2:
 
                 if file_ind == 0:
                     self.pattern_x = x
+                else:
+                    if len(x) != len(self.pattern_x):
+                        raise ValueError(
+                            "The integrated patterns have different length, this is not supported"
+                        )
 
                 self.point_infos.append(MapPointInfo(filepath, frame_ind))
                 self.pattern_intensities.append(y)
@@ -135,6 +139,17 @@ class MapModel2:
                 self.point_integrated.emit(
                     file_ind + (frame_ind + 1) / self.configuration.img_model.series_max
                 )
+        self.pattern_intensities = np.array(self.pattern_intensities)
+
+    def _reset(self):
+        self.filepaths = None
+        self.point_infos = []
+        self.pattern_intensities = None
+        self.pattern_x = None
+        self.dimension = None
+        self.possible_dimensions = None
+        self.map = None
+        self.map_changed.emit()
 
     def set_window(self, window: tuple[float, float]):
         """Sets the window in the pattern for generating the map
