@@ -1,3 +1,4 @@
+from unittest.mock import MagicMock
 import pytest
 import os
 
@@ -117,3 +118,55 @@ def test_use_multi_file_img(map_model: MapModel2, configuration: Configuration):
     assert map_model.filepaths == [multi_file_img_path]
     assert img_model.series_max == 10
     assert map_model.pattern_intensities.shape[0] == 10
+
+
+def test_integrates_each_image_only_once(
+    map_model: MapModel2, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    x = np.linspace(0, 10, 100)
+    y = np.sin(x)
+    configuration.calibration_model.integrate_1d = MagicMock(return_value=(x, y))
+    map_model.load(map_img_file_paths)
+
+    assert configuration.calibration_model.integrate_1d.call_count == len(
+        map_img_file_paths
+    )
+
+
+def test_emits_point_integrated_signal(
+    map_model: MapModel2, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    # mock the integrate_1d method
+    x = np.linspace(0, 10, 100)
+    y = np.sin(x)
+    configuration.calibration_model.integrate_1d = MagicMock(return_value=(x, y))
+
+    listener = MagicMock()
+    map_model.point_integrated.connect(listener)
+
+    map_model.load(map_img_file_paths)
+    assert listener.call_count == 9
+    # assert listener.call_args_list == [(1), (2), (3), (4), (5), (6), (7), (8), (9)]
+
+def test_emits_point_integrated_signal_with_multiimage_file(
+        map_model: MapModel2, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    # mock the integrate_1d method
+    x = np.linspace(0, 10, 100)
+    y = np.sin(x)
+    configuration.calibration_model.integrate_1d = MagicMock(return_value=(x, y))
+
+    listener = MagicMock()
+    map_model.point_integrated.connect(listener)
+
+    map_model.load([multi_file_img_path])
+    assert listener.call_count == 10
