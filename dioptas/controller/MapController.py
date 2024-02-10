@@ -70,11 +70,7 @@ class MapController(object):
             "Loading image data",
             "Abort Integration",
             100,
-            (
-                int(self.widget.map_pg_layout.x() + self.widget.map_pg_layout.width() / 2),
-                int(self.widget.map_pg_layout.y() + self.widget.map_pg_layout.height() / 2),
-            ),
-            self.widget,
+            self.widget.map_pg_layout
         )
 
         def update_progress_dialog(value):
