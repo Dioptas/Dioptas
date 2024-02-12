@@ -32,7 +32,7 @@ def dioptas_model():
 
 
 @pytest.fixture
-def map_controller(qapp, dioptas_model):
+def map_controller(qapp, dioptas_model: DioptasModel):
     """Fixture providing a MainController instance"""
     widget = MapWidget()
     model = dioptas_model
@@ -78,6 +78,7 @@ def mock_integrate_1d(map_controller: MapController):
 def test_click_load_starts_creating_map(map_controller, map_model: MapModel2):
     map_model.load = MagicMock()
     mock_open_filenames(map_img_file_paths)
+    mock_integrate_1d(map_controller)
     map_controller.load_btn_clicked()
     map_model.load.assert_called_once_with(map_img_file_paths)
 
@@ -119,6 +120,7 @@ def test_click_load_fills_file_list(map_controller, map_model: MapModel2):
     load_calibration(map_controller)
     assert map_controller.model.current_configuration.is_calibrated == True
     mock_open_filenames(map_img_file_paths)
+    mock_integrate_1d(map_controller)
     map_controller.load_btn_clicked()
 
     assert map_model.filepaths == map_img_file_paths
@@ -134,6 +136,7 @@ def test_loading_files_plots_map(map_controller: MapController, map_model: MapMo
     assert map_controller.widget.map_plot_widget.img_data is None
 
     mock_open_filenames(map_img_file_paths)
+    mock_integrate_1d(map_controller)
     map_controller.load_btn_clicked()
 
     plot_widget = map_controller.widget.map_plot_widget
@@ -150,6 +153,7 @@ def test_loading_files_also_plots_first_image(
     load_calibration(map_controller)
     assert map_controller.model.current_configuration.is_calibrated == True
     mock_open_filenames(map_img_file_paths)
+    mock_integrate_1d(map_controller)
     map_controller.load_btn_clicked()
 
     plot_widget = map_controller.widget.img_plot_widget
@@ -167,9 +171,9 @@ def test_loading_files_also_plots_first_image(
 def test_click_load_shows_error_if_not_calibrated(map_controller):
     mock_open_filenames(map_img_file_paths)
     assert map_controller.model.current_configuration.is_calibrated == False
+    QtWidgets.QMessageBox.critical = MagicMock()
     map_controller.load_btn_clicked()
-    map_widget = map_controller.widget
-    # TODO: decide what kind of error message and how to guide the user here
+    assert QtWidgets.QMessageBox.critical.assert_called_once
 
 
 def test_select_file_in_file_list_will_update_gui(map_controller):
@@ -193,10 +197,25 @@ def test_select_file_in_file_list_will_update_gui(map_controller):
     )
 
 
+def test_select_file_in_file_list_integrates_1d_only_once(map_controller):
+    load_calibration(map_controller)
+    mock_open_filenames(map_img_file_paths[:2])
+    mock_integrate_1d(map_controller)
+    map_controller.load_btn_clicked()
+    load_call_count = map_controller.model.calibration_model.integrate_1d.call_count
+    map_controller.widget.control_widget.file_list.setCurrentRow(1)
+    assert (
+        map_controller.model.calibration_model.integrate_1d.call_count
+        == load_call_count + 1
+    )
+
+
 def test_click_in_map_image_will_update_gui(map_controller):
     load_calibration(map_controller)
     mock_open_filenames(map_img_file_paths)
+    mock_integrate_1d(map_controller)
     map_controller.load_btn_clicked()
+    load_call_count = map_controller.model.calibration_model.integrate_1d.call_count
 
     # select second file in file list
     map_controller.widget.map_plot_widget.mouse_left_clicked.emit(2, 2)
@@ -205,6 +224,12 @@ def test_click_in_map_image_will_update_gui(map_controller):
         == map_img_file_paths[2]
     )
     assert map_controller.widget.control_widget.file_list.currentRow() == 2
+
+    # check that integrate_1d was called only once
+    assert (
+        map_controller.model.calibration_model.integrate_1d.call_count
+        == load_call_count + 1
+    )
 
 
 def test_click_in_pattern_will_update_region_of_interest(map_controller):
@@ -296,6 +321,7 @@ def test_map_dimension_cb_updates_correctly(map_controller, map_model):
 def test_changing_configuration_updates_gui(map_controller, dioptas_model):
     load_calibration(map_controller)
     mock_open_filenames(map_img_file_paths)
+    mock_integrate_1d(map_controller)
     map_controller.load_btn_clicked()
 
     map_config0 = map_controller.widget.map_plot_widget.img_data.copy()
