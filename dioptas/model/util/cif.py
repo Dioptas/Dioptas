@@ -18,17 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import division, unicode_literals
-
 import os
 import itertools
-
-try:
-    from urllib import pathname2url
-except ImportError:
-    from urllib.request import pathname2url
-
 from math import degrees
+from urllib.request import pathname2url
 
 from CifFile import ReadCif
 from .jcpds import jcpds

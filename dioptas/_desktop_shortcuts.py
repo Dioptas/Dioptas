@@ -6,7 +6,6 @@ for Windows or Linux, or a small App for MacOSX.
 
 """
 
-from __future__ import print_function
 import os
 import sys
 import shutil
