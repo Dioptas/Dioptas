@@ -166,7 +166,10 @@ class MapController(object):
 
         self.model.map_model.select_point(row, col)
         ind = self.model.map_model.get_point_index(row, col)
+
+        self.widget.control_widget.file_list.blockSignals(True)
         self.widget.control_widget.file_list.setCurrentRow(ind)
+        self.widget.control_widget.file_list.blockSignals(False)
 
     def map_dimension_cb_changed(self, _):
         dimension_str = (
