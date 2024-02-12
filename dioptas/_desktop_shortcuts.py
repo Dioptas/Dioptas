@@ -145,7 +145,7 @@ export SCRIPT={prefix:s}/bin/{script:s}
     text = "$PY $SCRIPT"
     if in_terminal:
         text = """
-osascript -e 'tell application "Terminal" to do script "'${{PY}}\ ${{SCRIPT}}'"'
+osascript -e 'tell application "Terminal" to do script "'${{PY}}\\ ${{SCRIPT}}'"'
 """
 
     with open(os.path.join(dest, 'Contents', 'Info.plist'), 'w') as fout:
