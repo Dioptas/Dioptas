@@ -303,7 +303,7 @@ class ImgWidget(QtCore.QObject):
         Gets the current state of the image widget, including the view range, histogram levels and normalization.
         :return: view range, histogram levels, histogram normalization
         """
-        view_range = self.img_view_box.viewRange()
+        view_range = self.img_view_box.targetRange()
         if self.orientation == "horizontal":
             hist_level = self.img_histogram_LUT_horizontal.getExpLevels()
             hist_normalization = self.img_histogram_LUT_horizontal.getNormalization()
@@ -319,7 +319,7 @@ class ImgWidget(QtCore.QObject):
         :param hist_level: histogram levels
         :param hist_normalization: histogram normalization
         """
-        self.img_view_box.setRange(xRange=view_range[0], yRange=view_range[1])
+        self.set_range(view_range[0], view_range[1])
         if self.orientation == "horizontal":
             self.img_histogram_LUT_horizontal.setLevels(*hist_level)
             self.img_histogram_LUT_horizontal.setNormalization(hist_normalization)
