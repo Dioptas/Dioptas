@@ -26,7 +26,6 @@ requirements:
         - fabio # [linux64 or osx]
         - pyfai # [linux64 or osx]
         - pycifrw
-        - future
         - scikit-image
         - qtpy
 
@@ -42,7 +41,6 @@ requirements:
         - fabio # [linux64 or osx]
         - pyfai # [linux64 or osx]
         - pycifrw
-        - future
         - scikit-image
         - qtpy
 
