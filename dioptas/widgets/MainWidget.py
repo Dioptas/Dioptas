@@ -60,10 +60,6 @@ class MainWidget(QtWidgets.QWidget):
         self.configuration_widget.setVisible(False)
         self._content_layout.addWidget(self.configuration_widget)
 
-        self.tabWidget = QtWidgets.QTabWidget()
-        self.tabWidget.setTabPosition(QtWidgets.QTabWidget.West)
-        self.tabWidget.setCurrentIndex(0)
-
         self._create_main_frame()
 
         self._style_layouts()

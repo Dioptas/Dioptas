@@ -103,7 +103,6 @@ class MainController(object):
         Creates subscriptions for changing tabs and also newly loaded files which will update the title of the main
                 window.
         """
-        self.widget.tabWidget.currentChanged.connect(self.tab_changed)
         self.widget.closeEvent = self.close_event
         self.widget.show_configuration_menu_btn.toggled.connect(
             self.widget.configuration_widget.setVisible
