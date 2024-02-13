@@ -21,6 +21,7 @@ import numpy as np
 from qtpy import QtWidgets
 
 from dioptas.model import DioptasModel
+from dioptas.model.util.calc import convert_units
 from dioptas.widgets.MapWidget import MapWidget
 
 from ..widgets.UtilityWidgets import get_progress_dialog, open_files_dialog
@@ -57,6 +58,7 @@ class MapController(object):
         self.model.map_model.map_changed.connect(self.update_file_list)
         self.model.img_changed.connect(self.update_image)
         self.model.pattern_changed.connect(self.update_pattern)
+        self.model.clicked_tth_changed.connect(self.update_green_line)
 
         self.model.configuration_selected.connect(self.configuration_selected)
 
@@ -140,6 +142,15 @@ class MapController(object):
         self.widget.pattern_plot_widget.plot_data(
             self.model.pattern.x, self.model.pattern.y
         )
+        self.update_green_line(self.model.clicked_tth)
+
+    def update_green_line(self, pos):
+        if self.model.integration_unit == "2th_deg":
+            self.widget.pattern_plot_widget.set_pos_line(pos)
+        else:
+            wavelength = self.model.calibration_model.wavelength
+            new_pos = convert_units(pos, wavelength, '2th_deg', self.model.integration_unit)
+            self.widget.pattern_plot_widget.set_pos_line(new_pos)
 
     def file_list_row_changed(self, row):
         self.model.map_model.select_point_by_index(row)
