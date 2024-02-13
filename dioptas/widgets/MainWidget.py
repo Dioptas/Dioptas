@@ -153,6 +153,7 @@ class MainWidget(QtWidgets.QWidget):
         self.map_widget.setVisible(False)
 
         self._content_layout.addWidget(self.main_frame)
+        self._content_layout.setStretchFactor(self.main_frame, 100)
 
         self.style_widgets()
         self.add_tooltips()
@@ -171,6 +172,8 @@ class MainWidget(QtWidgets.QWidget):
         for btn in adjust_height_btns:
             btn.setHeight(button_height)
             btn.setWidth(button_width)
+        
+        self.configuration_widget.setMaximumHeight(28)
 
     def _style_menu_btn(self):
         self.menu_btn.setFixedWidth(30)
