@@ -366,3 +366,17 @@ def test_progress_dialog_is_shown(map_controller):
     map_controller.load_btn_clicked()
 
     assert QtWidgets.QProgressDialog.setValue.call_count == len(map_img_file_paths)
+
+
+def test_phase_is_displayed(map_controller, dioptas_model):
+    load_calibration(map_controller)
+    mock_integrate_1d(map_controller)
+    mock_open_filenames(map_img_file_paths)
+    map_controller.load_btn_clicked()
+
+    pattern_widget = map_controller.widget.pattern_plot_widget
+
+    assert pattern_widget.phases == []
+
+    dioptas_model.phase_model.add_jcpds(os.path.join(data_path, "jcpds", "ar.jcpds"))
+    assert len(pattern_widget.phases) == 1

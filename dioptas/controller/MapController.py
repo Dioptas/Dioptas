@@ -24,12 +24,15 @@ from dioptas.model import DioptasModel
 from dioptas.widgets.MapWidget import MapWidget
 
 from ..widgets.UtilityWidgets import get_progress_dialog, open_files_dialog
+from .integration.phase.PhaseInPatternController import PhaseInPatternController
 
 
 class MapController(object):
     def __init__(self, widget: MapWidget, dioptas_model: DioptasModel):
         self.widget = widget
         self.model = dioptas_model
+
+        self.phase_in_pattern_controller = PhaseInPatternController(self.widget.pattern_plot_widget, self.model)
 
         self.create_signals()
 
