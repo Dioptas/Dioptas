@@ -380,3 +380,22 @@ def test_phase_is_displayed(map_controller, dioptas_model):
 
     dioptas_model.phase_model.add_jcpds(os.path.join(data_path, "jcpds", "ar.jcpds"))
     assert len(pattern_widget.phases) == 1
+
+
+def test_green_line_in_pattern_plot(map_controller, dioptas_model):
+    pattern_widget = map_controller.widget.pattern_plot_widget
+
+    current_value = pattern_widget.get_pos_line()
+    assert current_value is 0 
+
+    dioptas_model.clicked_tth_changed.emit(10)
+    assert dioptas_model.clicked_tth == 10
+    assert pattern_widget.get_pos_line() == 10
+
+    # change unit, so that position of the line needs to
+    # be in new unit
+    dioptas_model.integration_unit = 'q_A^-1'
+    dioptas_model.clicked_tth_changed.emit(10)
+    assert dioptas_model.clicked_tth == 10
+    assert pattern_widget.get_pos_line() != 10
+
