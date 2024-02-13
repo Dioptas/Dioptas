@@ -58,7 +58,7 @@ class PhaseController(object):
 
         self.cif_conversion_dialog = CifConversionParametersDialog(self.integration_widget)
 
-        self.phase_in_pattern_controller = PhaseInPatternController(self.integration_widget, dioptas_model)
+        self.phase_in_pattern_controller = PhaseInPatternController(self.integration_widget.pattern_widget, dioptas_model)
         self.phase_in_cake_controller = PhaseInCakeController(self.integration_widget, dioptas_model)
         self.phase_in_batch_controller = PhaseInBatchController(self.integration_widget.batch_widget, dioptas_model)
         self.jcpds_editor_controller = JcpdsEditorController(self.integration_widget, self.model)
