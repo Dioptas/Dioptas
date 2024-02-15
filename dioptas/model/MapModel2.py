@@ -187,6 +187,12 @@ class MapModel2:
             return None
         return int(column_index + self.dimension[1] * row_index)
 
+    def get_point_coordinates(self, index: int) -> tuple[int, int]:
+        """Returns the row and column index for the specified point index"""
+        if self.dimension is None:
+            return None
+        return divmod(index, self.dimension[1])
+
     def get_filenames(self) -> list[str]:
         """Returns a list of filenames for the integrated images, it will add the frame index if it is not 0"""
         filenames = []

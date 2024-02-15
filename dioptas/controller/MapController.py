@@ -55,7 +55,9 @@ class MapController(object):
             self.map_dimension_cb_changed
         )
         self.widget.map_plot_widget.mouse_moved.connect(self.map_plot_mouse_moved)
-        self.widget.img_plot_widget.mouse_left_clicked.connect(self.img_plot_left_clicked)
+        self.widget.img_plot_widget.mouse_left_clicked.connect(
+            self.img_plot_left_clicked
+        )
 
         self.model.map_model.map_changed.connect(self.update_map)
         self.model.map_model.map_changed.connect(self.update_file_list)
@@ -97,13 +99,20 @@ class MapController(object):
             progressDialog.close()
 
     def update_file_list(self):
+        # get current items
+        items = [
+            self.widget.control_widget.file_list.item(i).text()
+            for i in range(self.widget.control_widget.file_list.count())
+        ]
+        if items == self.model.map_model.get_filenames():
+            return
+
+        self.widget.control_widget.file_list.blockSignals(True)
         self.widget.control_widget.file_list.clear()
         filenames = self.model.map_model.get_filenames()
         if len(filenames) == 0:  # no files loaded
             return
         self.widget.control_widget.file_list.addItems(filenames)
-        self.widget.control_widget.file_list.blockSignals(True)
-        self.widget.control_widget.file_list.setCurrentRow(0)
         self.widget.control_widget.file_list.blockSignals(False)
 
     def update_map(self):
@@ -165,6 +174,11 @@ class MapController(object):
 
     def file_list_row_changed(self, row):
         self.model.map_model.select_point_by_index(row)
+        row, col = self.model.map_model.get_point_coordinates(row)
+        map_shape = self.model.map_model.map.shape
+        self.widget.map_plot_widget.set_mouse_click_position(
+            col + 0.5, map_shape[0] - row - 0.5  # 0.5 are there to shift to center
+        )
 
     def _get_mouse_row_col(self, x, y):
         x, y = np.floor(x), np.floor(y)
@@ -244,7 +258,7 @@ class MapController(object):
 
         calibration_model = self.model.calibration_model
         img_shape = self.model.img_model.img_data.shape
-        
+
         x, y = np.array([y]), np.array([x])
         if 0.5 < x < img_shape[0] - 0.5 and 0.5 < y < img_shape[1] - 0.5:
             tth = calibration_model.get_two_theta_img(x, y)
