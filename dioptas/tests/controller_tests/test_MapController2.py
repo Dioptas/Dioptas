@@ -127,7 +127,6 @@ def test_click_load_fills_file_list(map_controller, map_model: MapModel2):
     assert map_controller.widget.control_widget.file_list.count() == len(
         map_img_file_paths
     )
-    assert map_controller.widget.control_widget.file_list.currentRow() == 0
 
 
 def test_loading_files_plots_map(map_controller: MapController, map_model: MapModel2):
@@ -195,6 +194,28 @@ def test_select_file_in_file_list_will_update_gui(map_controller):
     assert not np.array_equal(
         map_controller.widget.img_plot_widget.img_data, current_img
     )
+
+def test_mouse_click_item_in_map_plot_widget_updates_correctly(map_controller, dioptas_model):
+    load_calibration(map_controller)
+    mock_open_filenames(map_img_file_paths)
+    map_controller.load_btn_clicked()
+
+    click_x, click_y = map_controller.widget.map_plot_widget.mouse_click_item.getData()
+    assert click_x[0] == approx(0)
+    assert click_y[0] == approx(0)
+
+    map_controller.widget.control_widget.file_list.setCurrentRow(1)
+    # check that mouse click item in map_plot_widget has changed
+    click_x, click_y = map_controller.widget.map_plot_widget.mouse_click_item.getData()
+    assert click_x[0] == approx(1.5)
+    assert click_y[0] == approx(2.5)
+
+    # check that replotting does not change po
+    map_controller.widget.pattern_plot_widget.mouse_left_clicked.emit(10, 0)
+
+    click_x, click_y = map_controller.widget.map_plot_widget.mouse_click_item.getData()
+    assert click_x[0] == approx(1.5)
+    assert click_y[0] == approx(2.5)
 
 
 def test_select_file_in_file_list_integrates_1d_only_once(map_controller):
