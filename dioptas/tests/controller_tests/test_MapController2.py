@@ -399,3 +399,28 @@ def test_green_line_in_pattern_plot(map_controller, dioptas_model):
     assert dioptas_model.clicked_tth == 10
     assert pattern_widget.get_pos_line() != 10
 
+
+def test_green_line_shown_in_image(map_controller, dioptas_model):
+    load_calibration(map_controller)
+    mock_open_filenames(map_img_file_paths[:1])
+    map_controller.load_btn_clicked()
+    
+    img_widget = map_controller.widget.img_plot_widget
+    circle_plot_item = img_widget.circle_plot_items[0]
+    x, y = circle_plot_item.getData()
+    assert x is None
+    assert y is None 
+
+    dioptas_model.clicked_tth_changed.emit(10)
+    x, y = circle_plot_item.getData()
+    assert len(x) > 0
+    assert len(y) > 0    
+
+def test_green_line_shown_in_image_without_calibration(map_controller, dioptas_model):
+    img_widget = map_controller.widget.img_plot_widget
+    circle_plot_item = img_widget.circle_plot_items[0]
+    
+    dioptas_model.clicked_tth_changed.emit(10)
+    x, y = circle_plot_item.getData()
+    assert x is None
+    assert y is None
