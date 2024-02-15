@@ -33,7 +33,9 @@ class MapController(object):
         self.widget = widget
         self.model = dioptas_model
 
-        self.phase_in_pattern_controller = PhaseInPatternController(self.widget.pattern_plot_widget, self.model)
+        self.phase_in_pattern_controller = PhaseInPatternController(
+            self.widget.pattern_plot_widget, self.model
+        )
 
         self.create_signals()
 
@@ -58,7 +60,8 @@ class MapController(object):
         self.model.map_model.map_changed.connect(self.update_file_list)
         self.model.img_changed.connect(self.update_image)
         self.model.pattern_changed.connect(self.update_pattern)
-        self.model.clicked_tth_changed.connect(self.update_green_line)
+        self.model.clicked_tth_changed.connect(self.update_pattern_green_line)
+        self.model.clicked_tth_changed.connect(self.update_image_green_line)
 
         self.model.configuration_selected.connect(self.configuration_selected)
 
@@ -72,10 +75,7 @@ class MapController(object):
             return
 
         progressDialog = get_progress_dialog(
-            "Loading image data",
-            "Abort Integration",
-            100,
-            self.widget.map_pg_layout
+            "Loading image data", "Abort Integration", 100, self.widget.map_pg_layout
         )
 
         def update_progress_dialog(value):
@@ -142,15 +142,25 @@ class MapController(object):
         self.widget.pattern_plot_widget.plot_data(
             self.model.pattern.x, self.model.pattern.y
         )
-        self.update_green_line(self.model.clicked_tth)
+        self.update_pattern_green_line(self.model.clicked_tth)
 
-    def update_green_line(self, pos):
+    def update_pattern_green_line(self, pos):
         if self.model.integration_unit == "2th_deg":
             self.widget.pattern_plot_widget.set_pos_line(pos)
         else:
             wavelength = self.model.calibration_model.wavelength
-            new_pos = convert_units(pos, wavelength, '2th_deg', self.model.integration_unit)
+            new_pos = convert_units(
+                pos, wavelength, "2th_deg", self.model.integration_unit
+            )
             self.widget.pattern_plot_widget.set_pos_line(new_pos)
+
+    def update_image_green_line(self, pos):
+        if not self.model.current_configuration.is_calibrated:
+            return
+
+        self.widget.img_plot_widget.set_circle_line(
+            self.model.calibration_model.pattern_geometry.ttha, np.deg2rad(pos)
+        )
 
     def file_list_row_changed(self, row):
         self.model.map_model.select_point_by_index(row)
