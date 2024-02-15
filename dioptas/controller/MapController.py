@@ -55,6 +55,7 @@ class MapController(object):
             self.map_dimension_cb_changed
         )
         self.widget.map_plot_widget.mouse_moved.connect(self.map_plot_mouse_moved)
+        self.widget.img_plot_widget.mouse_left_clicked.connect(self.img_plot_left_clicked)
 
         self.model.map_model.map_changed.connect(self.update_map)
         self.model.map_model.map_changed.connect(self.update_file_list)
@@ -236,6 +237,21 @@ class MapController(object):
             self.widget.map_plot_control_widget.filename_label.setText(
                 f"{point_info.filename} - Frame: {point_info.frame_index}"
             )
+
+    def img_plot_left_clicked(self, x, y):
+        if not self.model.current_configuration.is_calibrated:
+            return
+
+        calibration_model = self.model.calibration_model
+        img_shape = self.model.img_model.img_data.shape
+        
+        x, y = np.array([y]), np.array([x])
+        if 0.5 < x < img_shape[0] - 0.5 and 0.5 < y < img_shape[1] - 0.5:
+            tth = calibration_model.get_two_theta_img(x, y)
+            azi = calibration_model.get_azi_img(x, y)
+
+            self.model.clicked_tth_changed.emit(np.rad2deg(tth))
+            self.model.clicked_azi_changed.emit(np.rad2deg(azi))
 
     def pattern_clicked(self, x, _):
         self.widget.pattern_plot_widget.map_interactive_roi.setCenter(x)
