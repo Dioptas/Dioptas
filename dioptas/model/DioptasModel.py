@@ -299,7 +299,7 @@ class DioptasModel(object):
         return self.configurations[self.configuration_ind].mask_model
 
     @property
-    def calibration_model(self) -> MaskModel:
+    def calibration_model(self) -> CalibrationModel:
         return self.configurations[self.configuration_ind].calibration_model
 
     @property
