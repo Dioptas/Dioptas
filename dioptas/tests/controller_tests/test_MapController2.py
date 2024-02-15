@@ -424,3 +424,17 @@ def test_green_line_shown_in_image_without_calibration(map_controller, dioptas_m
     x, y = circle_plot_item.getData()
     assert x is None
     assert y is None
+
+
+def test_clicking_image_updates_tth_and_azi(map_controller, dioptas_model):
+    load_calibration(map_controller)
+    mock_open_filenames(map_img_file_paths[:1])
+    map_controller.load_btn_clicked()
+
+    img_widget = map_controller.widget.img_plot_widget
+    assert dioptas_model.clicked_tth == 0
+    assert dioptas_model.clicked_azi == 0
+    img_widget.mouse_left_clicked.emit(100, 100)
+
+    assert dioptas_model.clicked_tth != 0
+    assert dioptas_model.clicked_azi != 0
