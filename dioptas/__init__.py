@@ -32,7 +32,7 @@ if "QT_API" not in os.environ:
 from qtpy import QtWidgets
 from qt_material import apply_stylesheet
 
-__version__ = "0.5.9"
+__version__ = "0.6.0-alpha.1"
 
 from .paths import resources_path, calibrants_path, icons_path, data_path, style_path
 from .excepthook import excepthook
