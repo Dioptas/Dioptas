@@ -147,6 +147,8 @@ class MapController(object):
             self.widget.img_plot_widget.plot_image(
                 self.model.img_model.img_data, auto_level=True
             )
+            if self.model.current_configuration.use_mask:
+                self.widget.img_plot_widget.plot_mask(self.model.mask_model.get_mask())
 
     def update_pattern(self):
         self.widget.pattern_plot_widget.plot_data(

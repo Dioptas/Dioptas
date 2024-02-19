@@ -46,7 +46,7 @@ def map_controller(qapp, dioptas_model: DioptasModel):
 
 
 @pytest.fixture
-def map_model(map_controller):
+def map_model(map_controller) -> MapModel2:
     return map_controller.model.map_model
 
 
@@ -129,6 +129,22 @@ def test_click_load_fills_file_list(map_controller, map_model: MapModel2):
     )
 
 
+def test_mask_is_shown(map_controller):
+    img_model = map_controller.model.img_model
+    mask_model = map_controller.model.mask_model
+    img_model.load(map_img_file_paths[0])
+
+    map_controller.model.use_mask = True
+
+    mask = np.zeros_like(img_model.img_data, dtype=bool)
+    mask[0, 0] = True
+    mask_model.set_mask(mask)
+    img_model.img_changed.emit()
+
+    assert map_controller.widget.img_plot_widget.mask_data is not None
+    assert np.array_equal(map_controller.widget.img_plot_widget.mask_data, mask)
+
+
 def test_loading_files_plots_map(map_controller: MapController, map_model: MapModel2):
     load_calibration(map_controller)
     assert map_controller.model.current_configuration.is_calibrated == True
@@ -195,7 +211,10 @@ def test_select_file_in_file_list_will_update_gui(map_controller):
         map_controller.widget.img_plot_widget.img_data, current_img
     )
 
-def test_mouse_click_item_in_map_plot_widget_updates_correctly(map_controller, dioptas_model):
+
+def test_mouse_click_item_in_map_plot_widget_updates_correctly(
+    map_controller, dioptas_model
+):
     load_calibration(map_controller)
     mock_open_filenames(map_img_file_paths)
     map_controller.load_btn_clicked()
@@ -407,7 +426,7 @@ def test_green_line_in_pattern_plot(map_controller, dioptas_model):
     pattern_widget = map_controller.widget.pattern_plot_widget
 
     current_value = pattern_widget.get_pos_line()
-    assert current_value is 0 
+    assert current_value is 0
 
     dioptas_model.clicked_tth_changed.emit(10)
     assert dioptas_model.clicked_tth == 10
@@ -415,7 +434,7 @@ def test_green_line_in_pattern_plot(map_controller, dioptas_model):
 
     # change unit, so that position of the line needs to
     # be in new unit
-    dioptas_model.integration_unit = 'q_A^-1'
+    dioptas_model.integration_unit = "q_A^-1"
     dioptas_model.clicked_tth_changed.emit(10)
     assert dioptas_model.clicked_tth == 10
     assert pattern_widget.get_pos_line() != 10
@@ -425,22 +444,23 @@ def test_green_line_shown_in_image(map_controller, dioptas_model):
     load_calibration(map_controller)
     mock_open_filenames(map_img_file_paths[:1])
     map_controller.load_btn_clicked()
-    
+
     img_widget = map_controller.widget.img_plot_widget
     circle_plot_item = img_widget.circle_plot_items[0]
     x, y = circle_plot_item.getData()
     assert x is None
-    assert y is None 
+    assert y is None
 
     dioptas_model.clicked_tth_changed.emit(10)
     x, y = circle_plot_item.getData()
     assert len(x) > 0
-    assert len(y) > 0    
+    assert len(y) > 0
+
 
 def test_green_line_shown_in_image_without_calibration(map_controller, dioptas_model):
     img_widget = map_controller.widget.img_plot_widget
     circle_plot_item = img_widget.circle_plot_items[0]
-    
+
     dioptas_model.clicked_tth_changed.emit(10)
     x, y = circle_plot_item.getData()
     assert x is None
