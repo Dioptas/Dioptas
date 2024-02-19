@@ -57,6 +57,7 @@ PyCifRW = "^4.4.5"
 PyQt6 = "^6.5.1"
 pyfai = "^2023.5.0"
 pyqtgraph = "^0.13.3"
+pyshortcuts = "^1.8.1"
 QtPy = "^2.3.1"
 scikit-image = [
   {version = "^0.21.0", python = "<3.9"},
