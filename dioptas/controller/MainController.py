@@ -64,6 +64,11 @@ class MainController(object):
         )
         self.map_controller = MapController(self.widget.map_widget, self.model)
 
+        self.calibration_controller.activate()
+        self.integration_controller.image_controller.deactivate()
+        self.map_controller.deactivate()
+        self.mask_controller.deactivate()
+
         self.configuration_controller = ConfigurationController(
             configuration_widget=self.widget.configuration_widget,
             dioptas_model=self.model,
@@ -155,43 +160,50 @@ class MainController(object):
             old_display_state = self.widget.calibration_widget.img_widget.get_display_state()
         elif old_index == 1:  # mask tab
             old_display_state = self.widget.mask_widget.img_widget.get_display_state()
-        elif old_index == 2: # integration tab
+        elif old_index == 2:  # integration tab
             old_display_state = self.widget.integration_widget.img_widget.get_display_state()
-        elif old_index == 3: # map tab
+        elif old_index == 3:  # map tab
             old_display_state = self.widget.map_widget.img_plot_widget.get_display_state()
 
         # update the GUI
         if ind == 3:  # map tab
+            self.map_controller.activate()
+            self.mask_controller.deactivate()
+            self.calibration_controller.deactivate()
+            self.integration_controller.image_controller.deactivate()
             if old_display_state is not None:
                 self.widget.map_widget.img_plot_widget.set_display_state(*old_display_state)
         elif ind == 2:  # integration tab
-            self.integration_controller.image_controller.plot_mask()
-            self.integration_controller.widget.calibration_lbl.setText(
-                self.model.calibration_model.calibration_name
-            )
-            self.integration_controller.widget.wavelength_lbl.setText(
-                "{:.4f}".format(self.model.calibration_model.wavelength * 1e10) + " A"
-            )
-            self.integration_controller.image_controller._auto_scale = False
+            self.integration_controller.image_controller.activate()
+            self.map_controller.deactivate()
+            self.mask_controller.deactivate()
+            self.calibration_controller.deactivate()
 
-            if self.widget.integration_widget.img_mode == "Image":
-                self.integration_controller.image_controller.plot_img()
-
-            if self.model.use_mask:
-                self.model.current_configuration.integrate_image_1d()
-                if self.model.current_configuration.auto_integrate_cake:
-                    self.model.current_configuration.integrate_image_2d()
+            if old_index == 1:  # mask tab
+                if self.model.use_mask and self.model.calibration_model.is_calibrated:
+                    self.model.current_configuration.integrate_image_1d()
+                    if self.model.current_configuration.auto_integrate_cake:
+                        self.model.current_configuration.integrate_image_2d()
+                else:
+                    self.integration_controller.image_controller.update_image()
             else:
-                self.model.pattern_changed.emit()
+                self.integration_controller.image_controller.update_image()
+
             if old_display_state is not None:
                 self.widget.integration_widget.img_widget.set_display_state(*old_display_state)
         elif ind == 1:  # mask tab
-            self.mask_controller.plot_mask()
-            self.mask_controller.plot_image()
+            self.mask_controller.activate()
+            self.map_controller.deactivate()
+            self.calibration_controller.deactivate()
+            self.integration_controller.image_controller.deactivate()
             if old_display_state is not None:
                 self.widget.mask_widget.img_widget.set_display_state(*old_display_state)
         elif ind == 0:  # calibration tab
-            self.calibration_controller.plot_mask()
+            self.calibration_controller.activate()
+            self.calibration_controller.update_img_plot()
+            self.mask_controller.deactivate()
+            self.map_controller.deactivate()
+            self.integration_controller.image_controller.deactivate()
             if old_display_state is not None:
                 self.widget.calibration_widget.img_widget.set_display_state(*old_display_state)
 
@@ -237,11 +249,11 @@ class MainController(object):
         if os.path.isfile(config_path):
             self.show_window()
             if QtWidgets.QMessageBox.Yes == QtWidgets.QMessageBox.question(
-                self.widget,
-                "Recovering previous state.",
-                "Should Dioptas recover your previous Work?",
-                QtWidgets.QMessageBox.Yes,
-                QtWidgets.QMessageBox.No,
+                    self.widget,
+                    "Recovering previous state.",
+                    "Should Dioptas recover your previous Work?",
+                    QtWidgets.QMessageBox.Yes,
+                    QtWidgets.QMessageBox.No,
             ):
                 self.model.load(os.path.join(self.settings_directory, "config.dio"))
             else:
@@ -322,10 +334,10 @@ class MainController(object):
 
     def reset_btn_clicked(self):
         if QtWidgets.QMessageBox.Yes == QtWidgets.QMessageBox.question(
-            self.widget,
-            "Resetting Dioptas.",
-            "Do you really want to reset Dioptas?\nAll unsaved work will be lost!",
-            QtWidgets.QMessageBox.Yes,
-            QtWidgets.QMessageBox.No,
+                self.widget,
+                "Resetting Dioptas.",
+                "Do you really want to reset Dioptas?\nAll unsaved work will be lost!",
+                QtWidgets.QMessageBox.Yes,
+                QtWidgets.QMessageBox.No,
         ):
             self.model.reset()

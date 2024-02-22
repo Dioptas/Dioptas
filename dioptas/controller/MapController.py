@@ -61,12 +61,24 @@ class MapController(object):
 
         self.model.map_model.map_changed.connect(self.update_map)
         self.model.map_model.map_changed.connect(self.update_file_list)
-        self.model.img_changed.connect(self.update_image)
-        self.model.pattern_changed.connect(self.update_pattern)
         self.model.clicked_tth_changed.connect(self.update_pattern_green_line)
         self.model.clicked_tth_changed.connect(self.update_image_green_line)
 
+        self.activate_model_signals()
+
+    def activate(self):
+        self.activate_model_signals()
+        self.configuration_selected()
+
+    def activate_model_signals(self):
+        self.model.img_changed.connect(self.update_image)
+        self.model.pattern_changed.connect(self.update_pattern)
         self.model.configuration_selected.connect(self.configuration_selected)
+
+    def deactivate(self):
+        self.model.img_changed.disconnect(self.update_image)
+        self.model.pattern_changed.disconnect(self.update_pattern)
+        self.model.configuration_selected.disconnect(self.configuration_selected)
 
     def load_btn_clicked(self):
         filenames = open_files_dialog(
@@ -147,8 +159,14 @@ class MapController(object):
             self.widget.img_plot_widget.plot_image(
                 self.model.img_model.img_data, auto_level=True
             )
-            if self.model.current_configuration.use_mask:
-                self.widget.img_plot_widget.plot_mask(self.model.mask_model.get_mask())
+            self.plot_mask()
+
+    def plot_mask(self):
+        if self.model.current_configuration.use_mask:
+            self.widget.img_plot_widget.activate_mask()
+            self.widget.img_plot_widget.plot_mask(self.model.mask_model.get_mask())
+        else:
+            self.widget.img_plot_widget.deactivate_mask()
 
     def update_pattern(self):
         self.widget.pattern_plot_widget.plot_data(
