@@ -184,10 +184,7 @@ class MainController(object):
                     self.model.current_configuration.integrate_image_1d()
                     if self.model.current_configuration.auto_integrate_cake:
                         self.model.current_configuration.integrate_image_2d()
-                else:
-                    self.integration_controller.image_controller.update_image()
-            else:
-                self.integration_controller.image_controller.update_image()
+            self.integration_controller.image_controller.update_image()
 
             if old_display_state is not None:
                 self.widget.integration_widget.img_widget.set_display_state(*old_display_state)
