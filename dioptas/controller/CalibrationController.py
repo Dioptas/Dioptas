@@ -135,6 +135,7 @@ class CalibrationController(object):
     def activate(self):
         if not self.model.img_changed.has_listener(self.plot_image):
             self.model.img_changed.connect(self.plot_image)
+        self.update_img_plot()
 
     def update_img_plot(self):
         self.plot_image()

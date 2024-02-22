@@ -35,6 +35,11 @@ def test_image_is_shown_correctly_after_tab_change(main_controller: MainControll
     map_img_widget = main_controller.map_controller.widget.img_plot_widget
     assert np.array_equal(map_img_widget.img_data, img_data)
 
+    dioptas_model.img_model.load(os.path.join(data_path, "image_002.tif"))
+    img_data = dioptas_model.img_model.img_data
+    click_button(main_widget.calibration_mode_btn)
+    assert np.array_equal(calibration_img_widget.img_data, img_data)
+
 
 def test_map_image_listening_is_enabled_after_tab_change(main_controller: MainController):
     dioptas_model = main_controller.model
