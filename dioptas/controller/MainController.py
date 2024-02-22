@@ -167,18 +167,9 @@ class MainController(object):
 
         # update the GUI
         if ind == 3:  # map tab
-            self.map_controller.activate()
-            self.mask_controller.deactivate()
-            self.calibration_controller.deactivate()
-            self.integration_controller.image_controller.deactivate()
             if old_display_state is not None:
                 self.widget.map_widget.img_plot_widget.set_display_state(*old_display_state)
         elif ind == 2:  # integration tab
-            self.integration_controller.image_controller.activate()
-            self.map_controller.deactivate()
-            self.mask_controller.deactivate()
-            self.calibration_controller.deactivate()
-
             if old_index == 1:  # mask tab
                 if self.model.use_mask and self.model.calibration_model.is_calibrated:
                     self.model.current_configuration.integrate_image_1d()
@@ -189,20 +180,26 @@ class MainController(object):
             if old_display_state is not None:
                 self.widget.integration_widget.img_widget.set_display_state(*old_display_state)
         elif ind == 1:  # mask tab
-            self.mask_controller.activate()
-            self.map_controller.deactivate()
-            self.calibration_controller.deactivate()
-            self.integration_controller.image_controller.deactivate()
             if old_display_state is not None:
                 self.widget.mask_widget.img_widget.set_display_state(*old_display_state)
         elif ind == 0:  # calibration tab
-            self.calibration_controller.activate()
-            self.calibration_controller.update_img_plot()
-            self.mask_controller.deactivate()
-            self.map_controller.deactivate()
-            self.integration_controller.image_controller.deactivate()
             if old_display_state is not None:
                 self.widget.calibration_widget.img_widget.set_display_state(*old_display_state)
+
+        self.activate_mode(ind)
+
+    def activate_mode(self, mode_ind):
+        controllers = [
+            self.calibration_controller,
+            self.mask_controller,
+            self.integration_controller.image_controller,
+            self.map_controller
+        ]
+        for i, controller in enumerate(controllers):
+            if i == mode_ind:
+                controller.activate()
+            else:
+                controller.deactivate()
 
     def update_title(self):
         """
