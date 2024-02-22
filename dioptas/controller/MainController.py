@@ -154,39 +154,19 @@ class MainController(object):
         old_index = self.current_tab_index
         self.current_tab_index = ind
 
-        # get the old view range
-        old_display_state = None
-        if old_index == 0:  # calibration tab
-            old_display_state = self.widget.calibration_widget.img_widget.get_display_state()
-        elif old_index == 1:  # mask tab
-            old_display_state = self.widget.mask_widget.img_widget.get_display_state()
-        elif old_index == 2:  # integration tab
-            old_display_state = self.widget.integration_widget.img_widget.get_display_state()
-        elif old_index == 3:  # map tab
-            old_display_state = self.widget.map_widget.img_plot_widget.get_display_state()
+        # changing from mask tab will reintegrate the image
+        if old_index == 1:  # mask tab
+            if self.model.use_mask and self.model.calibration_model.is_calibrated:
+                self.model.current_configuration.integrate_image_1d()
+                if self.model.current_configuration.auto_integrate_cake:
+                    self.model.current_configuration.integrate_image_2d()
 
         # update the GUI
-        if ind == 3:  # map tab
-            if old_display_state is not None:
-                self.widget.map_widget.img_plot_widget.set_display_state(*old_display_state)
-        elif ind == 2:  # integration tab
-            if old_index == 1:  # mask tab
-                if self.model.use_mask and self.model.calibration_model.is_calibrated:
-                    self.model.current_configuration.integrate_image_1d()
-                    if self.model.current_configuration.auto_integrate_cake:
-                        self.model.current_configuration.integrate_image_2d()
+        if ind == 2:  # integration tab
             self.integration_controller.image_controller.update_image()
 
-            if old_display_state is not None:
-                self.widget.integration_widget.img_widget.set_display_state(*old_display_state)
-        elif ind == 1:  # mask tab
-            if old_display_state is not None:
-                self.widget.mask_widget.img_widget.set_display_state(*old_display_state)
-        elif ind == 0:  # calibration tab
-            if old_display_state is not None:
-                self.widget.calibration_widget.img_widget.set_display_state(*old_display_state)
-
         self.activate_mode(ind)
+        self.update_image_display_state(old_index, ind)
 
     def activate_mode(self, mode_ind):
         controllers = [
@@ -200,6 +180,16 @@ class MainController(object):
                 controller.activate()
             else:
                 controller.deactivate()
+
+    def update_image_display_state(self, old_index, new_index):
+        img_widgets = [
+            self.widget.calibration_widget.img_widget,
+            self.widget.mask_widget.img_widget,
+            self.widget.integration_widget.img_widget,
+            self.widget.map_widget.img_plot_widget
+        ]
+        old_display_state = img_widgets[old_index].get_display_state()
+        img_widgets[new_index].set_display_state(*old_display_state)
 
     def update_title(self):
         """
