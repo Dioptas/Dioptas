@@ -254,13 +254,18 @@ class HistogramLUTItem(GraphicsWidget):
 
     def activate(self):
         # we should make sure we are not double connected
-        # disconnect does not throw an error if the signal is not connected
-        self.imageItem.sigImageChanged.disconnect(self.imageChanged)
+        try:
+            self.imageItem.sigImageChanged.disconnect(self.imageChanged)
+        except TypeError:
+            pass
         self.imageItem.sigImageChanged.connect(self.imageChanged)
         self.imageItem.setLookupTable(self.getLookupTable)
 
     def deactivate(self):
-        self.imageItem.sigImageChanged.disconnect(self.imageChanged)
+        try:
+            self.imageItem.sigImageChanged.disconnect(self.imageChanged)
+        except TypeError:
+            pass
         self.imageItem.setLookupTable(None)
 
     def gradientChanged(self):
