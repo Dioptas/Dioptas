@@ -389,12 +389,11 @@ class CalibrationController(object):
         self.widget.calibrant_cb.setCurrentIndex(index)
         self.load_calibrant()
 
-    def plot_image(self):
+    def plot_image(self, autoscale=True):
         """
         Plots the current image loaded in img_data and autoscales the intensity.
         """
-        print("plotting image")
-        self.widget.img_widget.plot_image(self.model.img_data, True)
+        self.widget.img_widget.plot_image(self.model.img_data, autoscale)
         self.widget.set_img_filename(self.model.img_model.filename)
 
     def search_peaks(self, x, y):

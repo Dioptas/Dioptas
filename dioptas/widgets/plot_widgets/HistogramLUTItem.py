@@ -19,6 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import pathlib
+from collections import OrderedDict
 from typing import Optional
 
 from qtpy import QtCore, QtGui, QtWidgets
@@ -36,7 +37,6 @@ from .ColormapPopup import ColormapPopup
 from .NormalizedImageItem import NormalizedImageItem
 from ..CustomWidgets import FlatButton
 from ... import icons_path, style_path
-
 
 __all__ = ["HistogramLUTItem"]
 
@@ -78,7 +78,7 @@ class HistogramLUTItem(GraphicsWidget):
     sigLevelChangeFinished = QtCore.Signal(object)
 
     def __init__(
-        self, image=None, fillHistogram=False, orientation="horizontal", autoLevel=None
+            self, image=None, fillHistogram=False, orientation="horizontal", autoLevel=None
     ):
         """
         If *image* (ImageItem) is provided, then the control will be automatically linked to the image and changes to the control will be immediately reflected in the image's appearance.
@@ -248,13 +248,20 @@ class HistogramLUTItem(GraphicsWidget):
         self.imageItem = img
         self._updateNormalizationLabel(self.getNormalization())
         img.sigImageChanged.connect(self.imageChanged)
-        img.setLookupTable(
-            self.getLookupTable
-        )  ## send function pointer, not the result
-        # self.gradientChanged()
+        img.setLookupTable(self.getLookupTable)
         self.regionChanged()
         self.imageChanged()
-        # self.vb.autoRange()
+
+    def activate(self):
+        # we should make sure we are not double connected
+        # disconnect does not throw an error if the signal is not connected
+        self.imageItem.sigImageChanged.disconnect(self.imageChanged)
+        self.imageItem.sigImageChanged.connect(self.imageChanged)
+        self.imageItem.setLookupTable(self.getLookupTable)
+
+    def deactivate(self):
+        self.imageItem.sigImageChanged.disconnect(self.imageChanged)
+        self.imageItem.setLookupTable(None)
 
     def gradientChanged(self):
         if self.imageItem is not None:
@@ -297,18 +304,10 @@ class HistogramLUTItem(GraphicsWidget):
             if img_data is None:
                 return
 
-        log_data = np.log(img_data)
-        log_data = log_data[np.isfinite(log_data)]
-        if log_data.size == 0:
+        left_edges_nonzero, log_hist_nonzero = get_histogram_data(img_data)
+        if log_hist_nonzero is None:
             return
 
-        hist, bin_edges = np.histogram(log_data, bins=3000)
-
-        mask_nonzero = hist > 0
-        left_edges_nonzero = bin_edges[:-1][mask_nonzero]
-        hist_nonzero = hist[mask_nonzero]
-
-        log_hist_nonzero = np.log(hist_nonzero)
         if self.orientation == "horizontal":
             self.plot.setData(left_edges_nonzero, log_hist_nonzero)
         elif self.orientation == "vertical":
@@ -405,7 +404,7 @@ class HistogramLUTItem(GraphicsWidget):
 
 class LogarithmRegionItem(LinearRegionItem):
     def __contains__(
-        self, values=[0, 1], orientation=None, brush=None, movable=True, bounds=None
+            self, values=[0, 1], orientation=None, brush=None, movable=True, bounds=None
     ):
         super(LogarithmRegionItem, self).__init__(
             values, orientation, brush, movable, bounds
@@ -446,3 +445,36 @@ class LogarithmRegionItem(LinearRegionItem):
         except TypeError:
             self.lineMoved()
         self.lineMoveFinished()
+
+
+histogram_cache = OrderedDict()
+
+
+def get_histogram_data(img_data: np.ndarray) -> tuple:
+    """calculates the histogram data necessary for the histogram LUt item"""
+    if img_data is None:
+        return None, None
+
+    ar_hash = hash(img_data[::13, ::17].tobytes())
+
+    if ar_hash in histogram_cache:
+        return histogram_cache[ar_hash]
+    else:
+        log_data = np.log(img_data)
+        log_data = log_data[np.isfinite(log_data)]
+        if log_data.size == 0:
+            return None, None
+
+        hist, bin_edges = np.histogram(log_data, bins=1500)
+
+        mask_nonzero = hist > 0
+        left_edges_nonzero = bin_edges[:-1][mask_nonzero]
+        hist_nonzero = hist[mask_nonzero]
+
+        log_hist_nonzero = np.log(hist_nonzero)
+
+        histogram_cache[ar_hash] = (left_edges_nonzero, log_hist_nonzero)
+        histogram_cache.move_to_end(ar_hash)
+        if len(histogram_cache) > 100:  # keep only 100 histograms in cache
+            histogram_cache.popitem(last=False)
+        return left_edges_nonzero, log_hist_nonzero
