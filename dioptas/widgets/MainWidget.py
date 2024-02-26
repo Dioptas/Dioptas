@@ -51,6 +51,7 @@ class MainWidget(QtWidgets.QWidget):
 
         self._left_layout.addLayout(self._menu_layout)
         self._left_layout.addLayout(self._mode_layout)
+        self._left_layout.addLayout(self._external_actions_layout)
 
         self._outer_layout.addLayout(self._left_layout)
         self._outer_layout.addWidget(VerticalLine())
@@ -81,10 +82,13 @@ class MainWidget(QtWidgets.QWidget):
         self._content_layout.setContentsMargins(0, 6, 0, 0)
         self._left_layout.setContentsMargins(0, 0, 0, 0)
         self._left_layout.setSpacing(6)
+        self._external_actions_layout.setContentsMargins(6, 6, 6, 6)
+        self._external_actions_layout.setSpacing(6)
 
     def _create_layouts(self):
         self._outer_layout = QtWidgets.QHBoxLayout()
         self._left_layout = QtWidgets.QVBoxLayout()
+        self._external_actions_layout = QtWidgets.QVBoxLayout()
         self._content_layout = QtWidgets.QVBoxLayout()
         self._mode_layout = QtWidgets.QVBoxLayout()
 
@@ -172,7 +176,7 @@ class MainWidget(QtWidgets.QWidget):
         for btn in adjust_height_btns:
             btn.setHeight(button_height)
             btn.setWidth(button_width)
-        
+
         self.configuration_widget.setMaximumHeight(28)
 
     def _style_menu_btn(self):
@@ -210,6 +214,13 @@ class MainWidget(QtWidgets.QWidget):
         self.calibration_mode_btn.setToolTip("Calibration Mode")
         self.mask_mode_btn.setToolTip("Mask Mode")
         self.integration_mode_btn.setToolTip("Integration Mode")
+
+    def create_external_actions(self, quick_actions):
+        self.external_action_btns = {}
+        for action in quick_actions:
+            btn = QtWidgets.QPushButton(action['name'])
+            self.external_action_btns[action['name']] = btn
+            self._external_actions_layout.addWidget(btn)
 
 
 class MenuPopup(QtWidgets.QFrame):

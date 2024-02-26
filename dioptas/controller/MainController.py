@@ -21,6 +21,10 @@
 import os
 import json
 import datetime
+import threading
+import subprocess
+import shlex
+from functools import partial
 from sys import platform as _platform
 
 from qtpy import QtWidgets, QtCore
@@ -40,10 +44,15 @@ from dioptas import __version__
 
 class MainController(object):
     """
-    Creates a the main controller for Dioptas. Creates all the data objects and connects them with the other controllers
+    Creates the main controller for Dioptas. Creates all the data objects and connects them with the other controllers
     """
 
-    def __init__(self, use_settings=True, settings_directory="default"):
+    def __init__(self, use_settings=True, settings_directory="default", config_file=None):
+        """
+        :param use_settings: whether to use previously auto saved state of dioptas
+        :param settings_directory: directory where the settings are saved
+        :param config_file: a json file path with configuration, currently only used for quick_actions
+        """
         self.use_settings = use_settings
         self.widget = MainWidget()
 
@@ -86,6 +95,10 @@ class MainController(object):
         if use_settings:
             QtCore.QTimer.singleShot(0, self.load_default_settings)
             self.setup_backup_timer()
+
+        if config_file is not None:
+            self.configuration = json.load(open(config_file, "r"))
+            self.create_external_actions()
 
         self.current_tab_index = 0
 
@@ -325,3 +338,33 @@ class MainController(object):
                 QtWidgets.QMessageBox.No,
         ):
             self.model.reset()
+
+    def create_external_actions(self):
+        self.widget.create_external_actions(self.configuration["external_actions"])
+        for action in self.configuration["external_actions"]:
+            self.widget.external_action_btns[action["name"]].clicked.connect(
+                partial(
+                    self.execute_action,
+                    action
+                )
+            )
+
+    def execute_action(self, action):
+        command = format(action["command"])
+        arguments = action["arguments"]
+        img_path = self.model.img_model.filename
+        frame_index = self.model.img_model.series_pos
+
+        combined_arguments = f"{arguments} \"{img_path}\" {frame_index}"
+        command_str = " ".join([command, combined_arguments])
+
+        # prepare command_str for Popen
+        args = shlex.split(command_str)
+
+        def run_command():
+            """Run the command with arguments pulse the image file path."""
+            subprocess.Popen(args, shell=True)
+
+        threading.Thread(target=run_command).start()
+
+        return command_str

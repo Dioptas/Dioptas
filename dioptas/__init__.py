@@ -71,4 +71,10 @@ def main():
                 icon_path=icons_path,
                 icon="icon",
             )
+        elif sys.argv[1].startswith("version"):
+            print(__version__)
+        elif sys.argv[1].endswith(".json"):
+            controller = MainController(config_file=sys.argv[1])
+            controller.show_window()
+        app.exec_()
     del app

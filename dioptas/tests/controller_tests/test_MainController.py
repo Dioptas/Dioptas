@@ -1,8 +1,9 @@
 import os
+import subprocess
 
 import numpy as np
-import pytest
-from dioptas.model.DioptasModel import DioptasModel
+from unittest.mock import MagicMock
+import json
 from dioptas.controller.MainController import MainController
 from ..utility import click_button
 
@@ -75,3 +76,52 @@ def test_integration_image_listener_is_enabled_after_tab_change(main_controller:
     dioptas_model.img_model.load(os.path.join(data_path, "image_002.tif"))
     img_data = dioptas_model.img_model.img_data
     assert np.array_equal(integration_img_widget.img_data, img_data)
+
+
+def test_load_with_configuration(qapp, tmp_path):
+    config_file = tmp_path / "config.ini"
+    config = {
+        "quick_actions":
+            [
+                {
+                    "name": "A",
+                    "command": "echo",
+                    "arguments": "",
+                },
+                {
+                    "name": "B",
+                    "command": "sub",
+                    "arguments": "-t tree",
+                },
+            ]
+    }
+    json.dump(config, open(config_file, "w"))
+
+    main_controller = MainController(use_settings=False, config_file=config_file)
+    assert main_controller.configuration == config
+    assert main_controller.widget.external_action_btns["A"].text() == "A"
+    assert main_controller.widget.external_action_btns["B"].text() == "B"
+
+    img_model = main_controller.model.img_model
+    img_model.load(os.path.join(data_path, "image_001.tif"))
+
+    subprocess.Popen = MagicMock()
+    click_button(main_controller.widget.external_action_btns["A"])
+    subprocess.Popen.assert_called_once_with(
+        [
+            "echo",
+            img_model.filename,
+            str(img_model.series_pos),
+        ],
+        shell=True)
+
+    click_button(main_controller.widget.external_action_btns["B"])
+    subprocess.Popen.assert_called_with(
+        [
+            "sub",
+            "-t",
+            "tree",
+            img_model.filename,
+            str(img_model.series_pos),
+        ],
+        shell=True)
