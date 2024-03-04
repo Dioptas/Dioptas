@@ -81,7 +81,7 @@ def test_integration_image_listener_is_enabled_after_tab_change(main_controller:
 def test_load_with_configuration(qapp, tmp_path):
     config_file = tmp_path / "config.ini"
     config = {
-        "quick_actions":
+        "external_actions":
             [
                 {
                     "name": "A",
