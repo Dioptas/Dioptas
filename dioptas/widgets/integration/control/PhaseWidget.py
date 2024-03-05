@@ -97,6 +97,8 @@ class PhaseWidget(QtWidgets.QWidget):
         self.phase_tw.horizontalHeader().setStretchLastSection(False)
         self.phase_tw.setColumnWidth(0, 20)
         self.phase_tw.setColumnWidth(1, 25)
+        self.phase_tw.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.Fixed)
+        self.phase_tw.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.Fixed)
         self.phase_tw.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
         self.phase_tw.horizontalHeader().setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
         self.phase_tw.horizontalHeader().setSectionResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
@@ -206,7 +208,7 @@ class PhaseWidget(QtWidgets.QWidget):
         self.phase_show_cbs.append(show_cb)
 
         color_button = FlatButton()
-        color_button.setStyleSheet("background-color: " + color)
+        color_button.setStyleSheet(f"background-color: {color}; margin: 2px;")
         color_button.clicked.connect(partial(self.phase_color_btn_click, color_button))
         self.phase_tw.setCellWidget(current_rows, 1, color_button)
         self.phase_color_btns.append(color_button)
