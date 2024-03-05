@@ -118,6 +118,8 @@ class OverlayWidget(QtWidgets.QWidget):
         self.overlay_tw.setHorizontalHeaderLabels(['', '', 'Name', 'Scale', 'Offset'])
         self.overlay_tw.horizontalHeader().setVisible(True)
         self.overlay_tw.horizontalHeader().setStretchLastSection(False)
+        self.overlay_tw.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.Fixed)
+        self.overlay_tw.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.Fixed)
         self.overlay_tw.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
         self.overlay_tw.horizontalHeader().setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
         self.overlay_tw.horizontalHeader().setSectionResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
@@ -225,7 +227,7 @@ class OverlayWidget(QtWidgets.QWidget):
         self.show_cbs.append(show_cb)
 
         color_button = FlatButton()
-        color_button.setStyleSheet("background-color: " + color)
+        color_button.setStyleSheet(f"background-color: {color}; margin: 2px")
         color_button.clicked.connect(partial(self.color_btn_click, color_button))
         self.overlay_tw.setCellWidget(current_rows, 1, color_button)
         self.color_btns.append(color_button)

@@ -218,7 +218,7 @@ class OverlayController(object):
         else:
             color = str(previous_color.name())
         self.integration_widget.pattern_widget.set_overlay_color(ind, color)
-        button.setStyleSheet('background-color:' + color)
+        button.setStyleSheet(f"background-color: {color}; margin: 2px")
 
     def scale_sb_changed(self, overlay_ind, new_value):
         """
