@@ -76,5 +76,5 @@ def main():
         elif sys.argv[1].endswith(".json"):
             controller = MainController(config_file=sys.argv[1])
             controller.show_window()
-        app.exec_()
+            app.exec_()
     del app
