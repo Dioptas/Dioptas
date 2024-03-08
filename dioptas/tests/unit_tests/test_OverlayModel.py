@@ -27,7 +27,7 @@ from ...model.OverlayModel import OverlayModel
 from ...model.util import Pattern
 
 unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, '../data')
+data_path = os.path.join(unittest_path, "../data")
 
 
 @pytest.fixture
@@ -50,13 +50,13 @@ def test_add_overlay(overlay_model: OverlayModel):
 
 
 def test_add_overlay_from_file(overlay_model: OverlayModel):
-    filename = os.path.join(data_path, 'pattern_001.xy')
+    filename = os.path.join(data_path, "pattern_001.xy")
     overlay_model.add_overlay_file(filename)
 
     assert len(overlay_model.overlays) == 1
     overlay = overlay_model.get_overlay(0)
     assert overlay is not None
-    assert overlay.name == ''.join(os.path.basename(filename).split('.')[0:-1])
+    assert overlay.name == "".join(os.path.basename(filename).split(".")[0:-1])
 
 
 def test_different_colors_for_overlay(overlay_model: OverlayModel):
@@ -84,7 +84,7 @@ def test_move_up_overlay(overlay_model: OverlayModel):
     overlay_model.add_overlay(x_overlay, y_overlay, "dummy2")
     overlay_model.add_overlay(x_overlay, y_overlay, "dummy3")
 
-    overlay_model.move_up_overlay(1)
+    overlay_model.move_overlay_up(1)
 
     overlay1 = overlay_model.get_overlay(0)
     overlay2 = overlay_model.get_overlay(1)
@@ -106,7 +106,7 @@ def test_move_down_overlay(overlay_model: OverlayModel):
     overlay_model.add_overlay(x_overlay, y_overlay, "dummy2")
     overlay_model.add_overlay(x_overlay, y_overlay, "dummy3")
 
-    overlay_model.move_down_overlay(1)
+    overlay_model.move_overlay_down(1)
 
     overlay1 = overlay_model.get_overlay(0)
     overlay2 = overlay_model.get_overlay(1)
@@ -126,14 +126,14 @@ def test_move_signals(overlay_model: OverlayModel):
         overlay_model.add_overlay(np.linspace(0, 10), np.linspace(0, 100), f"dummy{i}")
 
     overlay_model.overlay_changed.emit = MagicMock()
-    overlay_model.move_up_overlay(1)
+    overlay_model.move_overlay_up(1)
 
     assert overlay_model.overlay_changed.emit.call_count == 2
     overlay_model.overlay_changed.emit.assert_any_call(1)
     overlay_model.overlay_changed.emit.assert_any_call(0)
 
     overlay_model.overlay_changed.emit.reset_mock()
-    overlay_model.move_down_overlay(3)
+    overlay_model.move_overlay_down(3)
     assert overlay_model.overlay_changed.emit.call_count == 2
     overlay_model.overlay_changed.emit.assert_any_call(3)
     overlay_model.overlay_changed.emit.assert_any_call(4)

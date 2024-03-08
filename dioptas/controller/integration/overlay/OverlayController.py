@@ -20,13 +20,12 @@
 
 import os
 
-import numpy as np
 from qtpy import QtWidgets, QtGui
-from ...widgets.UtilityWidgets import open_files_dialog
+from ....widgets.UtilityWidgets import open_files_dialog
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from ...widgets.integration import IntegrationWidget
-from ...model.DioptasModel import DioptasModel
+from ....widgets.integration import IntegrationWidget
+from ....model.DioptasModel import DioptasModel
 
 
 class OverlayController(object):
@@ -35,13 +34,10 @@ class OverlayController(object):
     the corresponding overlay data in the Pattern Model.
     """
 
-    def __init__(self, widget, dioptas_model):
+    def __init__(self, widget: IntegrationWidget, dioptas_model: DioptasModel):
         """
         :param widget: Reference to IntegrationWidget object
         :param pattern_model: Reference to PatternModel object
-
-        :type widget: IntegrationWidget
-        :type dioptas_model: DioptasModel
         """
         self.integration_widget = widget
         self.overlay_widget = self.integration_widget.overlay_widget
@@ -51,61 +47,94 @@ class OverlayController(object):
         self.create_signals()
 
     def create_signals(self):
-        self.connect_click_function(self.overlay_widget.add_btn, self.add_overlay_btn_click_callback)
-        self.connect_click_function(self.overlay_widget.delete_btn, self.delete_btn_click_callback)
-        self.connect_click_function(self.overlay_widget.move_up_btn, self.move_up_overlay_btn_click_callback)
-        self.connect_click_function(self.overlay_widget.move_down_btn, self.move_down_overlay_btn_click_callback)
-        self.overlay_widget.clear_btn.clicked.connect(self.clear_overlays_btn_click_callback)
+        self.connect_click_function(
+            self.overlay_widget.add_btn, self.add_overlay_btn_click_callback
+        )
+        self.connect_click_function(
+            self.overlay_widget.delete_btn, self.delete_btn_click_callback
+        )
+        self.connect_click_function(
+            self.overlay_widget.move_up_btn, self.move_up_overlay_btn_click_callback
+        )
+        self.connect_click_function(
+            self.overlay_widget.move_down_btn, self.move_down_overlay_btn_click_callback
+        )
+        self.overlay_widget.clear_btn.clicked.connect(
+            self.clear_overlays_btn_click_callback
+        )
 
         self.overlay_widget.overlay_tw.currentCellChanged.connect(self.overlay_selected)
         self.overlay_widget.color_btn_clicked.connect(self.color_btn_clicked)
-        self.overlay_widget.show_cb_state_changed.connect(self.show_cb_state_changed)
+        self.overlay_widget.show_cb_state_changed.connect(
+            self.model.overlay_model.set_overlay_visible
+        )
         self.overlay_widget.name_changed.connect(self.rename_overlay)
 
         self.overlay_widget.scale_step_msb.valueChanged.connect(self.update_scale_step)
-        self.overlay_widget.offset_step_msb.valueChanged.connect(self.update_overlay_offset_step)
+        self.overlay_widget.offset_step_msb.valueChanged.connect(
+            self.update_overlay_offset_step
+        )
         self.overlay_widget.scale_sb_value_changed.connect(self.scale_sb_changed)
         self.overlay_widget.offset_sb_value_changed.connect(self.offset_sb_changed)
 
-        self.overlay_widget.waterfall_btn.clicked.connect(self.waterfall_btn_click_callback)
-        self.overlay_widget.waterfall_reset_btn.clicked.connect(self.model.overlay_model.reset_overlay_offsets)
+        self.overlay_widget.waterfall_btn.clicked.connect(
+            self.waterfall_btn_click_callback
+        )
+        self.overlay_widget.waterfall_reset_btn.clicked.connect(
+            self.model.overlay_model.reset_overlay_offsets
+        )
 
-        self.overlay_widget.set_as_bkg_btn.clicked.connect(self.set_as_bkg_btn_click_callback)
+        self.overlay_widget.set_as_bkg_btn.clicked.connect(
+            self.set_as_bkg_btn_click_callback
+        )
 
-        self.overlay_widget.overlay_tw.horizontalHeader().sectionClicked.connect(self.overlay_tw_header_section_clicked)
+        self.overlay_widget.overlay_tw.horizontalHeader().sectionClicked.connect(
+            self.overlay_tw_header_section_clicked
+        )
 
         # creating the quick-actions signals
 
-        self.connect_click_function(self.integration_widget.qa_set_as_overlay_btn, self.set_current_pattern_as_overlay)
-        self.connect_click_function(self.integration_widget.qa_set_as_background_btn, self.set_current_pattern_as_background)
+        self.connect_click_function(
+            self.integration_widget.qa_set_as_overlay_btn,
+            self.set_current_pattern_as_overlay,
+        )
+        self.connect_click_function(
+            self.integration_widget.qa_set_as_background_btn,
+            self.set_current_pattern_as_background,
+        )
 
         # pattern_data signals
-        self.model.overlay_model.overlay_removed.connect(self.overlay_removed)
         self.model.overlay_model.overlay_added.connect(self.overlay_added)
+        self.model.overlay_model.overlay_removed.connect(self.overlay_removed)
         self.model.overlay_model.overlay_changed.connect(self.overlay_changed)
 
     def connect_click_function(self, emitter, function):
         emitter.clicked.connect(function)
 
     def add_overlay_btn_click_callback(self):
-        """
-
-        """
-        filenames = open_files_dialog(self.integration_widget, "Load Overlay(s).",
-                                      self.model.working_directories['overlay'])
+        filenames = open_files_dialog(
+            self.integration_widget,
+            "Load Overlay(s).",
+            self.model.working_directories["overlay"],
+        )
         if len(filenames):
             for filename in filenames:
                 filename = str(filename)
                 self.model.overlay_model.add_overlay_file(filename)
-            self.model.working_directories['overlay'] = os.path.dirname(str(filenames[0]))
+            self.model.working_directories["overlay"] = os.path.dirname(
+                str(filenames[0])
+            )
 
     def overlay_added(self):
         """
         callback when overlay is added to the PatternData
         """
-        color = self.integration_widget.pattern_widget.add_overlay(self.model.overlay_model.overlays[-1])
-        self.overlay_widget.add_overlay(self.model.overlay_model.overlays[-1].name,
-                                               '#%02x%02x%02x' % (int(color[0]), int(color[1]), int(color[2])))
+        color = self.model.overlay_model.get_overlay_color(
+            len(self.model.overlay_model.overlays) - 1
+        )
+        self.overlay_widget.add_overlay(
+            self.model.overlay_model.overlays[-1].name, color
+        )
 
     def delete_btn_click_callback(self):
         """
@@ -114,7 +143,10 @@ class OverlayController(object):
         cur_ind = self.overlay_widget.get_selected_overlay_row()
         if cur_ind < 0:
             return
-        if self.model.pattern_model.background_pattern == self.model.overlay_model.overlays[cur_ind]:
+        if (
+            self.model.pattern_model.background_pattern
+            == self.model.overlay_model.overlays[cur_ind]
+        ):
             self.model.pattern_model.background_pattern = None
         self.model.overlay_model.remove_overlay(cur_ind)
 
@@ -123,7 +155,6 @@ class OverlayController(object):
         callback when overlay is removed from PatternData
         :param ind: index of overlay removed
         """
-        self.integration_widget.pattern_widget.remove_overlay(ind)
         self.overlay_widget.remove_overlay(ind)
 
         # if no more overlays are present the set_as_bkg_btn should be unchecked
@@ -134,40 +165,17 @@ class OverlayController(object):
         cur_ind = self.overlay_widget.get_selected_overlay_row()
         if cur_ind < 1:
             return
-        new_ind = cur_ind - 1
 
-        self.overlay_widget.move_overlay_up(cur_ind)
-        self.model.overlay_model.overlays.insert(new_ind, self.model.overlay_model.overlays.pop(cur_ind))
-        self.integration_widget.pattern_widget.move_overlay_up(cur_ind)
-
-        if self.overlay_widget.show_cbs[cur_ind].isChecked():
-            self.integration_widget.pattern_widget.legend.showItem(cur_ind + 1)
-        else:
-            self.integration_widget.pattern_widget.legend.hideItem(cur_ind + 1)
-
-        if self.overlay_widget.show_cbs[new_ind].isChecked():
-            self.integration_widget.pattern_widget.legend.showItem(cur_ind)
-        else:
-            self.integration_widget.pattern_widget.legend.hideItem(cur_ind)
+        self.model.overlay_model.move_overlay_up(cur_ind)
+        self.overlay_widget.overlay_tw.selectRow(cur_ind - 1)
 
     def move_down_overlay_btn_click_callback(self):
         cur_ind = self.overlay_widget.get_selected_overlay_row()
         if cur_ind < 0 or cur_ind >= self.integration_widget.overlay_tw.rowCount() - 1:
             return
 
-        self.overlay_widget.move_overlay_down(cur_ind)
-        self.model.overlay_model.overlays.insert(cur_ind + 1, self.model.overlay_model.overlays.pop(cur_ind))
-        self.integration_widget.pattern_widget.move_overlay_down(cur_ind)
-
-        if self.overlay_widget.show_cbs[cur_ind].isChecked():
-            self.integration_widget.pattern_widget.legend.showItem(cur_ind + 1)
-        else:
-            self.integration_widget.pattern_widget.legend.hideItem(cur_ind + 1)
-
-        if self.overlay_widget.show_cbs[cur_ind + 1].isChecked():
-            self.integration_widget.pattern_widget.legend.showItem(cur_ind + 2)
-        else:
-            self.integration_widget.pattern_widget.legend.hideItem(cur_ind + 2)
+        self.model.overlay_model.move_overlay_down(cur_ind)
+        self.overlay_widget.overlay_tw.selectRow(cur_ind + 1)
 
     def clear_overlays_btn_click_callback(self):
         """
@@ -192,14 +200,17 @@ class OverlayController(object):
         for offset_sb in self.overlay_widget.offset_sbs:
             offset_sb.setSingleStep(value)
 
-    def overlay_selected(self, row, *args):
+    def overlay_selected(self, row, *_):
         """
         Callback when the selected row in the overlay table is changed. It will update the scale and offset values
         for the newly selected overlay and check whether it is set as background or not and check the
         the set_as_bkg_btn appropriately.
         :param row: selected row in the overlay table
         """
-        if self.model.pattern_model.background_pattern == self.model.overlay_model.overlays[row]:
+        if (
+            self.model.pattern_model.background_pattern
+            == self.model.overlay_model.overlays[row]
+        ):
             self.overlay_widget.set_as_bkg_btn.setChecked(True)
         else:
             self.overlay_widget.set_as_bkg_btn.setChecked(False)
@@ -212,13 +223,14 @@ class OverlayController(object):
         :param button: button to color
         """
         previous_color = button.palette().color(QtGui.QPalette.Button)
-        new_color = QtWidgets.QColorDialog.getColor(previous_color, self.integration_widget)
+        new_color = QtWidgets.QColorDialog.getColor(
+            previous_color, self.integration_widget
+        )
         if new_color.isValid():
             color = str(new_color.name())
         else:
             color = str(previous_color.name())
-        self.integration_widget.pattern_widget.set_overlay_color(ind, color)
-        button.setStyleSheet(f"background-color: {color}; margin: 2px")
+        self.model.overlay_model.set_overlay_color(ind, color)
 
     def scale_sb_changed(self, overlay_ind, new_value):
         """
@@ -227,7 +239,10 @@ class OverlayController(object):
         :param new_value: new scale value
         """
         self.model.overlay_model.set_overlay_scaling(overlay_ind, new_value)
-        if self.model.overlay_model.overlays[overlay_ind] == self.model.pattern_model.background_pattern:
+        if (
+            self.model.overlay_model.overlays[overlay_ind]
+            == self.model.pattern_model.background_pattern
+        ):
             self.model.pattern_changed.emit()
 
     def offset_sb_changed(self, overlay_ind, new_value):
@@ -237,17 +252,31 @@ class OverlayController(object):
         :param new_value: new value
         """
         self.model.overlay_model.set_overlay_offset(overlay_ind, new_value)
-        if self.model.overlay_model.overlays[overlay_ind] == self.model.pattern_model.background_pattern:
+        if (
+            self.model.overlay_model.overlays[overlay_ind]
+            == self.model.pattern_model.background_pattern
+        ):
             self.model.pattern_changed.emit()
 
     def overlay_changed(self, ind):
-        self.integration_widget.pattern_widget.update_overlay(self.model.overlay_model.overlays[ind], ind)
         self.overlay_widget.offset_sbs[ind].blockSignals(True)
         self.overlay_widget.scale_sbs[ind].blockSignals(True)
-        self.overlay_widget.offset_sbs[ind].setValue(self.model.overlay_model.get_overlay_offset(ind))
-        self.overlay_widget.scale_sbs[ind].setValue(self.model.overlay_model.get_overlay_scaling(ind))
+        self.overlay_widget.offset_sbs[ind].setValue(
+            self.model.overlay_model.get_overlay_offset(ind)
+        )
+        self.overlay_widget.scale_sbs[ind].setValue(
+            self.model.overlay_model.get_overlay_scaling(ind)
+        )
         self.overlay_widget.offset_sbs[ind].blockSignals(False)
         self.overlay_widget.scale_sbs[ind].blockSignals(False)
+
+        color = self.model.overlay_model.get_overlay_color(ind)
+        self.overlay_widget.color_btns[ind].setStyleSheet(
+            f"background-color: {color}; margin: 2px"
+        )
+
+        overlay = self.model.overlay_model.overlays[ind]
+        self.overlay_widget.set_overlay_name(ind, overlay.name)
 
     def waterfall_btn_click_callback(self):
         separation = self.overlay_widget.waterfall_separation_msb.value()
@@ -269,7 +298,9 @@ class OverlayController(object):
             self.model.pattern_model.background_pattern = None
         else:
             # if the overlay is currently the active background
-            self.model.pattern_model.background_pattern = self.model.overlay_model.overlays[cur_ind]
+            self.model.pattern_model.background_pattern = (
+                self.model.overlay_model.overlays[cur_ind]
+            )
             if self.overlay_widget.show_cb_is_checked(cur_ind):
                 self.overlay_widget.show_cb_set_checked(cur_ind, False)
 
@@ -278,7 +309,9 @@ class OverlayController(object):
 
     def set_current_pattern_as_background(self):
         self.model.overlay_model.add_overlay_pattern(self.model.pattern)
-        self.model.pattern_model.background_pattern = self.model.overlay_model.overlays[-1]
+        self.model.pattern_model.background_pattern = self.model.overlay_model.overlays[
+            -1
+        ]
 
         self.overlay_widget.set_as_bkg_btn.setChecked(True)
         self.overlay_widget.show_cb_set_checked(-1, False)
@@ -302,10 +335,7 @@ class OverlayController(object):
         :param ind: index of overlay
         :param state: boolean value whether the checkbox was checked or unchecked
         """
-        if state:
-            self.integration_widget.pattern_widget.show_overlay(ind)
-        else:
-            self.integration_widget.pattern_widget.hide_overlay(ind)
+        self.model.overlay_model.set_overlay_visible(ind, state)
 
     def rename_overlay(self, ind, name):
         """
@@ -314,8 +344,7 @@ class OverlayController(object):
         :param ind: index of overlay for which the name was changed
         :param name: new name
         """
-        self.integration_widget.pattern_widget.rename_overlay(ind, name)
-        self.model.overlay_model.overlays[ind].name = name
+        self.model.overlay_model.set_overlay_name(ind, name)
 
     def overlay_tw_header_section_clicked(self, ind):
         if ind != 0:

@@ -27,7 +27,7 @@ from pyqtgraph.graphicsItems.ScatterPlotItem import ScatterPlotItem, drawSymbol
 from pyqtgraph.graphicsItems.PlotDataItem import PlotDataItem
 from pyqtgraph.graphicsItems.GraphicsWidgetAnchor import GraphicsWidgetAnchor
 
-__all__ = ['LegendItem']
+__all__ = ["LegendItem"]
 
 
 class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
@@ -45,8 +45,16 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
 
     """
 
-    def __init__(self, size=None, offset=None, horSpacing=25, verSpacing=0, box=True, labelAlignment='center',
-                 showLines=True):
+    def __init__(
+        self,
+        size=None,
+        offset=None,
+        horSpacing=25,
+        verSpacing=0,
+        box=True,
+        labelAlignment="center",
+        showLines=True,
+    ):
         """
         ==============  ===============================================================
         **Arguments:**
@@ -121,14 +129,14 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
         """
 
         # get item color
-        pen = fn.mkPen(item.opts['pen'])
+        pen = fn.mkPen(item.opts["pen"])
         color = pen.color()
         color_str = color.name()
 
         # create label with same color
         label = LabelItem()
-        label.setAttr('color', color_str)
-        label.setAttr('justify', self.label_alignment)
+        label.setAttr("color", color_str)
+        label.setAttr("justify", self.label_alignment)
         label.setText(name)
 
         if isinstance(item, ItemSample):
@@ -168,6 +176,7 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
                     sample.close()  # remove from drawing
                     label.close()
                 self.updateSize()  # redraq box
+                self.numItems -= 1
                 del self.hiddenFlag[ind]
                 return
             ind += 1
@@ -185,6 +194,7 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
                 label.close()
                 self.legendItems.remove((sample, label))
                 self.updateSize()
+                self.numItems -= 1
                 del self.hiddenFlag[ind]
 
     def hideItem(self, ind):
@@ -211,7 +221,7 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
 
     def setItemColor(self, ind, color):
         sample_item, label_item = self.legendItems[ind]
-        label_item.setAttr('color', color)
+        label_item.setAttr("color", color)
         label_item.setText(label_item.text)
 
     def renameItem(self, ind, name):
@@ -245,7 +255,7 @@ class LegendItem(GraphicsWidget, GraphicsWidgetAnchor):
 
 
 class ItemSample(GraphicsWidget):
-    """ Class responsible for drawing a single item in a LegendItem (sans label).
+    """Class responsible for drawing a single item in a LegendItem (sans label).
 
     This may be subclassed to draw custom graphics in a Legend.
     """
@@ -262,23 +272,34 @@ class ItemSample(GraphicsWidget):
         # p.setRenderHint(p.Antialiasing)  # only if the data is antialiased.
         opts = self.item.opts
 
-        if opts.get('fillLevel', None) is not None and opts.get('fillBrush', None) is not None:
-            p.setBrush(fn.mkBrush(opts['fillBrush']))
+        if (
+            opts.get("fillLevel", None) is not None
+            and opts.get("fillBrush", None) is not None
+        ):
+            p.setBrush(fn.mkBrush(opts["fillBrush"]))
             p.setPen(fn.mkPen(None))
-            p.drawPolygon(QtGui.QPolygonF([QtCore.QPointF(2, 18), QtCore.QPointF(18, 2), QtCore.QPointF(18, 18)]))
+            p.drawPolygon(
+                QtGui.QPolygonF(
+                    [
+                        QtCore.QPointF(2, 18),
+                        QtCore.QPointF(18, 2),
+                        QtCore.QPointF(18, 18),
+                    ]
+                )
+            )
 
         if not isinstance(self.item, ScatterPlotItem):
-            p.setPen(fn.mkPen(opts['pen']))
+            p.setPen(fn.mkPen(opts["pen"]))
             p.drawLine(2, 18, 18, 2)
 
-        symbol = opts.get('symbol', None)
+        symbol = opts.get("symbol", None)
         if symbol is not None:
             if isinstance(self.item, PlotDataItem):
                 opts = self.item.scatter.opts
 
-            pen = fn.mkPen(opts['pen'])
-            brush = fn.mkBrush(opts['brush'])
-            size = opts['size']
+            pen = fn.mkPen(opts["pen"])
+            brush = fn.mkBrush(opts["brush"])
+            size = opts["size"]
 
             p.translate(10, 10)
             path = drawSymbol(p, symbol, size, pen, brush)
