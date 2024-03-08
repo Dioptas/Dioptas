@@ -20,12 +20,13 @@
 import numpy as np
 from qtpy import QtWidgets
 
-from dioptas.model import DioptasModel
+from dioptas.model.DioptasModel import DioptasModel
 from dioptas.model.util.calc import convert_units
 from dioptas.widgets.MapWidget import MapWidget
 
 from ..widgets.UtilityWidgets import get_progress_dialog, open_files_dialog
 from .integration.phase.PhaseInPatternController import PhaseInPatternController
+from .integration.overlay.OverlayInPatternController import OverlayInPatternController
 
 
 class MapController(object):
@@ -35,6 +36,9 @@ class MapController(object):
 
         self.phase_in_pattern_controller = PhaseInPatternController(
             self.widget.pattern_plot_widget, self.model
+        )
+        self.overlay_in_pattern_controller = OverlayInPatternController(
+            self.widget.pattern_plot_widget, self.model.overlay_model
         )
 
         self.create_signals()

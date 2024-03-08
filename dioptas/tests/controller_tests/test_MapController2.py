@@ -422,6 +422,13 @@ def test_phase_is_displayed(map_controller, dioptas_model):
     assert len(pattern_widget.phases) == 1
 
 
+def test_overlay_is_displayed(map_controller, dioptas_model: DioptasModel):
+    dioptas_model.overlay_model.add_overlay(np.arange(10), np.arange(10), "test")
+    pattern_widget = map_controller.widget.pattern_plot_widget
+
+    assert len(pattern_widget.overlays) == 1
+
+
 def test_green_line_in_pattern_plot(map_controller, dioptas_model):
     pattern_widget = map_controller.widget.pattern_plot_widget
 
