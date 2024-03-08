@@ -182,22 +182,20 @@ class OverlayModel(object):
         self.overlays[ind].visible = visible
         self.overlay_changed.emit(ind)
 
-    def set_overlay_color(
-        self, ind: int, color: tuple[int, int, int] | tuple[int, int, int, int]
-    ):
+    def set_overlay_color(self, ind: int, color: str):
         """
-        Sets the color of the specified overlay
+        Sets the color of the specified overlay (as hex string, e.g. #FF0000)
         :param ind: index of the overlay
         :param color: new color value
         """
         self.overlays[ind].color = color
         self.overlay_changed.emit(ind)
 
-    def get_overlay_color(self, ind: int) -> tuple[int, int, int]:
+    def get_overlay_color(self, ind: int) -> str:
         """
         Returns the color of the specified overlay
         :param ind: index of the overlay
-        :return: color value
+        :return: color as hex string (e.g. #FF0000)
         """
         return self.overlays[ind].color
 
