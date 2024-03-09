@@ -174,7 +174,7 @@ class MapController(object):
 
     def update_pattern(self):
         self.widget.pattern_plot_widget.plot_data(
-            self.model.pattern.x, self.model.pattern.y
+            self.model.pattern.x, self.model.pattern.y, self.model.pattern.name
         )
         self.update_pattern_green_line(self.model.clicked_tth)
 
