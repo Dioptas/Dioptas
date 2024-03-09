@@ -55,6 +55,10 @@ class MapController(object):
         self.widget.pattern_plot_widget.map_interactive_roi.sigRegionChanged.connect(
             self.pattern_roi_changed
         )
+        self.widget.pattern_plot_widget.mouse_moved.connect(
+            self.pattern_plot_mouse_moved
+        )
+
         self.widget.map_plot_control_widget.map_dimension_cb.currentIndexChanged.connect(
             self.map_dimension_cb_changed
         )
@@ -62,11 +66,14 @@ class MapController(object):
         self.widget.img_plot_widget.mouse_left_clicked.connect(
             self.img_plot_left_clicked
         )
+        self.widget.img_plot_widget.mouse_moved.connect(self.img_plot_mouse_moved)
 
         self.model.map_model.map_changed.connect(self.update_map)
         self.model.map_model.map_changed.connect(self.update_file_list)
         self.model.clicked_tth_changed.connect(self.update_pattern_green_line)
         self.model.clicked_tth_changed.connect(self.update_image_green_line)
+        self.model.clicked_tth_changed.connect(self.update_clicked_pos_label)
+        self.model.clicked_azi_changed.connect(self.update_clicked_azi_label)
 
         self.activate_model_signals()
 
@@ -291,6 +298,107 @@ class MapController(object):
             self.model.clicked_tth_changed.emit(np.rad2deg(tth))
             self.model.clicked_azi_changed.emit(np.rad2deg(azi))
 
+    def img_plot_mouse_moved(self, x, y):
+        image_x = self.widget.map_plot_control_widget.mouse_x_label
+        image_y = self.widget.map_plot_control_widget.mouse_y_label
+        image_int = self.widget.map_plot_control_widget.mouse_int_label
+
+        if self.model.img_model.img_data is None:
+            image_x.setText(f"X: ")
+            image_y.setText(f"Y: ")
+            image_int.setText(f"I: ")
+            return
+
+        img_shape = self.model.img_model.img_data.shape
+        if 0 <= x < img_shape[1] and 0 <= y < img_shape[0]:
+            image_x.setText(f"X: {x:.0f}")
+            image_y.setText(f"Y: {y:.0f}")
+            image_int.setText(f"I: {self.model.img_model.img_data[int(y), int(x)]:.0f}")
+        else:
+            image_x.setText(f"X: ")
+            image_y.setText(f"Y: ")
+            image_int.setText(f"I: ")
+
+        if not self.model.current_configuration.is_calibrated:
+            return
+
+        x, y = y, x  # swap x and y for the calibration model
+        img_tth = self.model.calibration_model.get_two_theta_img(x, y)
+        img_tth = np.rad2deg(img_tth)
+        img_azi = self.model.calibration_model.get_azi_img(x, y)
+        img_azi = np.rad2deg(img_azi)
+
+        tth_str, d_str, q_str, _ = self.get_position_strings(img_tth, "2th_deg")
+        pos_widget = self.widget.pattern_footer_widget.mouse_unit_widget.cur_unit_widget
+        pos_widget.tth_lbl.setText(tth_str)
+        pos_widget.d_lbl.setText(d_str)
+        pos_widget.q_lbl.setText(q_str)
+        pos_widget.azi_lbl.setText(f"X: {img_azi:.3f}")
+
+    def get_position_strings(
+        self, x: float, current_unit: str | None = None
+    ) -> tuple[str, str, str, str]:
+        if current_unit is None:
+            current_unit = self.model.integration_unit
+        if self.model.calibration_model.is_calibrated:
+            wavelength = self.model.calibration_model.wavelength
+            if current_unit == "2th_deg":
+                tth = x
+                q_value = convert_units(tth, wavelength, "2th_deg", "q_A^-1")
+                d_value = convert_units(tth, wavelength, "2th_deg", "d_A")
+            elif current_unit == "q_A^-1":
+                q_value = x
+                tth = convert_units(q_value, wavelength, "q_A^-1", "2th_deg")
+                d_value = convert_units(q_value, wavelength, "q_A^-1", "d_A")
+            elif current_unit == "d_A":
+                d_value = x
+                q_value = convert_units(d_value, wavelength, "d_A", "q_A^-1")
+                tth = convert_units(d_value, wavelength, "d_A", "2th_deg")
+            else:
+                tth = 0
+                d_value = 0
+                q_value = 0
+
+            tth_str = "2θ:%9.3f" % tth
+            d_str = "d:%9.3f" % d_value
+            q_str = "Q:%9.3f" % q_value
+        else:
+            tth_str = "2θ: -"
+            d_str = "d: -"
+            q_str = "Q: -"
+            if current_unit == "2th_deg":
+                tth_str = "2θ:%9.3f" % x
+            elif current_unit == "q_A^-1":
+                q_str = "Q:%9.3f" % x
+            elif current_unit == "d_A":
+                d_str = "d:%9.3f" % x
+        azi_str = "X: -"
+        return tth_str, d_str, q_str, azi_str
+
+    def pattern_plot_mouse_moved(self, x, _):
+        tth_str, d_str, q_str, azi_str = self.get_position_strings(x)
+        pos_widget = self.widget.pattern_footer_widget.mouse_unit_widget.cur_unit_widget
+        pos_widget.tth_lbl.setText(tth_str)
+        pos_widget.d_lbl.setText(d_str)
+        pos_widget.q_lbl.setText(q_str)
+        pos_widget.azi_lbl.setText(azi_str)
+
+    def update_clicked_pos_label(self, pos):
+        tth_str, d_str, q_str, azi_str = self.get_position_strings(pos)
+        pos_widget = (
+            self.widget.pattern_footer_widget.mouse_unit_widget.clicked_unit_widget
+        )
+        pos_widget.tth_lbl.setText(tth_str)
+        pos_widget.d_lbl.setText(d_str)
+        pos_widget.q_lbl.setText(q_str)
+        pos_widget.azi_lbl.setText(azi_str)
+
+    def update_clicked_azi_label(self, azi):
+        pos_widget = (
+            self.widget.pattern_footer_widget.mouse_unit_widget.clicked_unit_widget
+        )
+        pos_widget.azi_lbl.setText(f"X: {azi:.3f}")
+
     def pattern_clicked(self, x, _):
         self.widget.pattern_plot_widget.map_interactive_roi.setCenter(x)
 
@@ -303,3 +411,4 @@ class MapController(object):
         self.update_map()
         self.update_image()
         self.update_pattern()
+

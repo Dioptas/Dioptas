@@ -486,3 +486,41 @@ def test_clicking_image_updates_tth_and_azi(map_controller, dioptas_model):
 
     assert dioptas_model.clicked_tth != 0
     assert dioptas_model.clicked_azi != 0
+
+
+def test_pattern_mouse_move_displays_positions(
+    map_controller: MapController, dioptas_model: DioptasModel
+):
+    pattern_widget = map_controller.widget.pattern_plot_widget
+    pos_widget = (
+        map_controller.widget.pattern_footer_widget.mouse_unit_widget.cur_unit_widget
+    )
+    assert pos_widget.tth_lbl.text() == "2θ:"
+    pattern_widget.mouse_moved.emit(10, 20)
+    assert pos_widget.tth_lbl.text() == "2θ:%9.3f" % 10
+
+
+def test_img_mouse_move_displays_positions(
+    map_controller: MapController, dioptas_model: DioptasModel
+):
+    img_widget = map_controller.widget.img_plot_widget
+    pos_widget = (
+        map_controller.widget.pattern_footer_widget.mouse_unit_widget.cur_unit_widget
+    )
+    image_x = map_controller.widget.map_plot_control_widget.mouse_x_label
+    image_y = map_controller.widget.map_plot_control_widget.mouse_y_label
+    image_int = map_controller.widget.map_plot_control_widget.mouse_int_label
+    assert pos_widget.tth_lbl.text() == "2θ:"
+
+    img_widget.mouse_moved.emit(10, 20)
+    assert image_x.text() == "X: 10"
+    assert image_y.text() == "Y: 20"
+    assert image_int.text() == "I: 0"
+
+    load_calibration(map_controller)
+    dioptas_model.img_model.load(map_img_file_paths[0])
+    img_widget.mouse_moved.emit(100, 200)
+    tth = dioptas_model.calibration_model.get_two_theta_img(200, 100)
+    azi = dioptas_model.calibration_model.get_azi_img(200, 100)
+    assert pos_widget.tth_lbl.text() == "2θ:%9.3f" % np.rad2deg(tth)
+    assert pos_widget.azi_lbl.text() == "X:%9.3f" % np.rad2deg(azi)
