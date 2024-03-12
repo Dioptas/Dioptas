@@ -524,3 +524,28 @@ def test_img_mouse_move_displays_positions(
     azi = dioptas_model.calibration_model.get_azi_img(200, 100)
     assert pos_widget.tth_lbl.text() == "2θ:%9.3f" % np.rad2deg(tth)
     assert pos_widget.azi_lbl.text() == "X:%9.3f" % np.rad2deg(azi)
+
+
+def test_change_integration_unit(
+    map_controller: MapController, dioptas_model: DioptasModel
+):
+    pattern_widget = map_controller.widget.pattern_plot_widget
+    pattern_plot = pattern_widget.pattern_plot
+    mock_integrate_1d(map_controller)
+    load_calibration(map_controller)
+
+    assert dioptas_model.integration_unit == "2th_deg"
+    assert pattern_plot.getAxis("bottom").labelText == "2θ"
+    assert pattern_plot.getAxis("bottom").labelUnits == "°"
+
+    dioptas_model.integration_unit = "q_A^-1"
+    assert pattern_plot.getAxis("bottom").labelText == "Q"
+    assert pattern_plot.getAxis("bottom").labelUnits == "Å⁻¹"
+
+    dioptas_model.integration_unit = "d_A"
+    assert pattern_plot.getAxis("bottom").labelText == "d"
+    assert pattern_plot.getAxis("bottom").labelUnits == "Å"
+
+    dioptas_model.integration_unit = "2th_deg"
+    assert pattern_plot.getAxis("bottom").labelText == "2θ"
+    assert pattern_plot.getAxis("bottom").labelUnits == "°"

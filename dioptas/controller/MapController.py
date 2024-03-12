@@ -185,6 +185,19 @@ class MapController(object):
         )
         self.update_pattern_green_line(self.model.clicked_tth)
 
+        cur_unit = self.model.integration_unit
+        pattern_plot = self.widget.pattern_plot_widget.pattern_plot
+
+        if cur_unit == "2th_deg":
+            pattern_plot.setLabel("bottom", "2θ", "°")
+            pattern_plot.invertX(False)
+        elif cur_unit == "q_A^-1":
+            pattern_plot.setLabel("bottom", "Q", "Å⁻¹")
+            pattern_plot.invertX(False)
+        elif cur_unit == "d_A":
+            pattern_plot.setLabel("bottom", "d", "Å")
+            pattern_plot.invertX(True)
+
     def update_pattern_green_line(self, pos):
         if self.model.integration_unit == "2th_deg":
             self.widget.pattern_plot_widget.set_pos_line(pos)
@@ -411,4 +424,3 @@ class MapController(object):
         self.update_map()
         self.update_image()
         self.update_pattern()
-
