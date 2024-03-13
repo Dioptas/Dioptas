@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os, sys
+import os
 
 from ..utility import QtTest, click_button, delete_if_exists
 from mock import MagicMock
@@ -26,7 +26,6 @@ from mock import MagicMock
 from qtpy import QtWidgets
 
 from ...model.util.calc import convert_units
-import numpy as np
 
 from ...widgets.integration import IntegrationWidget
 from ...controller.integration.PatternController import PatternController

@@ -22,12 +22,13 @@ import pytest
 from pytest import approx
 import os
 import numpy as np
+from xypattern.auto_background import SmoothBrucknerBackground
 
 from ...model.PatternModel import PatternModel
 from ...model.util.PeakShapes import gaussian
 
 unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, '../data')
+data_path = os.path.join(unittest_path, "../data")
 
 
 @pytest.fixture
@@ -38,15 +39,15 @@ def pattern_model():
 def test_set_pattern(pattern_model: PatternModel):
     x = np.linspace(0.1, 15, 100)
     y = np.sin(x)
-    pattern_model.set_pattern(x, y, 'hoho')
+    pattern_model.set_pattern(x, y, "hoho")
     assert pattern_model.get_pattern().x == approx(x)
     assert pattern_model.get_pattern().y == approx(y)
-    assert pattern_model.get_pattern().name == 'hoho'
+    assert pattern_model.get_pattern().name == "hoho"
 
 
 def test_load_pattern(pattern_model: PatternModel):
-    pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
-    assert pattern_model.get_pattern().name == 'pattern_001'
+    pattern_model.load_pattern(os.path.join(data_path, "pattern_001.xy"))
+    assert pattern_model.get_pattern().name == "pattern_001"
     assert len(pattern_model.get_pattern().x) > 101
     assert len(pattern_model.get_pattern().y) > 101
 
@@ -68,7 +69,9 @@ def test_auto_background_subtraction(pattern_model: PatternModel):
     pattern_model.set_pattern(x, y_measurement)
 
     auto_background_subtraction_parameters = [2, 50, 50]
-    pattern_model.set_auto_background_subtraction(auto_background_subtraction_parameters)
+    pattern_model.set_auto_background_subtraction(
+        auto_background_subtraction_parameters
+    )
 
     x_spec, y_spec = pattern_model.pattern.data
 

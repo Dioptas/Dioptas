@@ -21,6 +21,8 @@
 import logging
 
 from math import sqrt
+
+from xypattern.pattern import SmoothBrucknerBackground
 from .util import Signal
 from .util.HelperModule import FileNameIterator, get_base_name
 from .util import Pattern
@@ -41,17 +43,17 @@ class PatternModel(object):
     def __init__(self):
         super(PatternModel, self).__init__()
         self.pattern = Pattern()
-        self.pattern_filename = ''
+        self.pattern_filename = ""
 
-        self.unit = ''
-        self.file_iteration_mode = 'number'
+        self.unit = ""
+        self.file_iteration_mode = "number"
         self.file_name_iterator = FileNameIterator()
 
         self._background_pattern = None
 
         self.pattern_changed = Signal()
 
-    def set_pattern(self, x, y, filename='', unit=''):
+    def set_pattern(self, x, y, filename="", unit=""):
         """
         set the current data pattern.
         :param x: x-values
@@ -74,7 +76,7 @@ class PatternModel(object):
         self.pattern_filename = filename
 
         skiprows = 0
-        if filename.endswith('.chi'):
+        if filename.endswith(".chi"):
             skiprows = 4
         self.pattern.load(filename, skiprows)
         self.file_name_iterator.update_filename(filename)
@@ -105,7 +107,9 @@ class PatternModel(object):
         Loads the next file from a sequel of filenames (e.g. *_001.xy --> *_002.xy)
         It assumes that the file numbers are at the end of the filename
         """
-        next_file_name = self.file_name_iterator.get_next_filename(mode=self.file_iteration_mode, step=step)
+        next_file_name = self.file_name_iterator.get_next_filename(
+            mode=self.file_iteration_mode, step=step
+        )
         if next_file_name is not None:
             self.load_pattern(next_file_name)
             return True
@@ -116,31 +120,33 @@ class PatternModel(object):
         Loads the previous file from a sequel of filenames (e.g. *_002.xy --> *_001.xy)
         It assumes that the file numbers are at the end of the filename
         """
-        next_file_name = self.file_name_iterator.get_previous_filename(mode=self.file_iteration_mode, step=step)
+        next_file_name = self.file_name_iterator.get_previous_filename(
+            mode=self.file_iteration_mode, step=step
+        )
         if next_file_name is not None:
             self.load_pattern(next_file_name)
             return True
         return False
 
     def set_file_iteration_mode(self, mode):
-        if mode == 'number':
-            self.file_iteration_mode = 'number'
+        if mode == "number":
+            self.file_iteration_mode = "number"
             self.file_name_iterator.create_timed_file_list = False
-        elif mode == 'time':
-            self.file_iteration_mode = 'time'
+        elif mode == "time":
+            self.file_iteration_mode = "time"
             self.file_name_iterator.create_timed_file_list = True
-            self.file_name_iterator.update_filename(self.filename)
+            self.file_name_iterator.update_filename(self.pattern_filename)
 
     @property
     def background_pattern(self):
         return self._background_pattern
 
     @background_pattern.setter
-    def background_pattern(self, pattern):
+    def background_pattern(self, pattern: Pattern | None):
         if pattern is not None:
             self.pattern.background_pattern = pattern
         else:
-            self.pattern.unset_background_pattern()
+            self.pattern.background_pattern = None
         self._background_pattern = pattern
         self.pattern_changed.emit()
 
@@ -151,12 +157,13 @@ class PatternModel(object):
         :param roi: array of size two with [x_min, x_max] specifying the range for the background subtraction
         will be performed
         """
-        self.pattern.set_auto_background_subtraction(parameters, roi)
+        self.pattern.auto_bkg_roi = roi
+        self.pattern_auto_bkg = SmoothBrucknerBackground(*parameters)
         self.pattern_changed.emit()
 
     def unset_auto_background_subtraction(self):
         """
         Disables auto background extraction and removal.
         """
-        self.pattern.unset_auto_background_subtraction()
+        self.pattern.auto_bkg = None
         self.pattern_changed.emit()
