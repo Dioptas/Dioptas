@@ -18,16 +18,7 @@ classifiers = [
     'Topic :: Scientific/Engineering :: Information Analysis',
 ]
 
-include = [
-    # C extensions must be included in the wheel distributions
-    {path = "dioptas/model/util/*.so", format = "wheel"},
-    {path = "dioptas/model/util/*.pyd", format = "wheel"},
-]
 exclude = ["dioptas/tests/*"] # Exclude tests from package
-
-[tool.poetry.build]
-script = "build.py"
-generate-setup-file = false
 
 [tool.poetry.scripts]
 dioptas = "dioptas:main"
@@ -40,7 +31,6 @@ style = "semver"
 
 [tool.poetry-dynamic-versioning.substitution]
 files = ["dioptas/__init__.py"]
-
 
 [tool.poetry.dependencies]
 python = "^3.8, <3.13"
@@ -78,8 +68,6 @@ scipy = [
 numexpr = "2.8.4"
 qt-material = "^2.14"
 
-[tool.poetry.dev-dependencies]
-cython = "^3.0.4"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^6.2.5"
@@ -87,5 +75,5 @@ pytest-qt = "*"
 mock = "^5.1.0"
 
 [build-system]
-requires = ["poetry-core", "cython", "setuptools", "poetry-dynamic-versioning"]
+requires = ["poetry-core", "poetry-dynamic-versioning"]
 build-backend = "poetry_dynamic_versioning.backend"
