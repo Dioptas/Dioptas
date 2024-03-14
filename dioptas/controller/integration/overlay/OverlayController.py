@@ -208,8 +208,8 @@ class OverlayController(object):
         :param row: selected row in the overlay table
         """
         if (
-            self.model.pattern_model.background_pattern
-            == self.model.overlay_model.overlays[row]
+            self.model.pattern_model.background_pattern is
+            self.model.overlay_model.overlays[row]
         ):
             self.overlay_widget.set_as_bkg_btn.setChecked(True)
         else:

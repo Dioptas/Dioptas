@@ -283,13 +283,23 @@ def test_setting_overlay_as_bkg_and_then_change_to_new_overlay_as_bkg(
 
     click_button(integration_widget.overlay_set_as_bkg_btn)
 
+    assert integration_widget.overlay_set_as_bkg_btn.isChecked()
+    assert (
+        dioptas_model.pattern.background_pattern is
+        dioptas_model.overlay_model.overlays[0]
+    )
     _, y = dioptas_model.pattern.data
     assert np.sum(y) == 0
 
     overlay_widget.select_overlay(1)
+    assert not integration_widget.overlay_set_as_bkg_btn.isChecked()
     overlay_widget.scale_sbs[1].setValue(2)
     click_button(integration_widget.overlay_set_as_bkg_btn)
 
+    assert (
+        dioptas_model.pattern.background_pattern is
+        dioptas_model.overlay_model.overlays[1]
+    )
     _, y = dioptas_model.pattern.data
     assert np.array_equal(y, -np.arange(10))
 
