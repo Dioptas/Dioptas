@@ -82,7 +82,9 @@ class PatternModel(object):
         self.file_name_iterator.update_filename(filename)
         self.pattern_changed.emit()
 
-    def save_pattern(self, filename, header=None, subtract_background=False):
+    def save_pattern(
+        self, filename: str, header: str = "", subtract_background: bool = False
+    ):
         """
         Saves the current data pattern.
         :param filename: where to save
