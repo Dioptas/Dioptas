@@ -76,3 +76,48 @@ def test_auto_background_subtraction(pattern_model: PatternModel):
     x_spec, y_spec = pattern_model.pattern.data
 
     assert np.sum(y_spec - y) == approx(0, abs=1e-9)
+
+
+def test_auto_background_subtraction_with_out_of_range_roi(pattern_model: PatternModel):
+    x = np.linspace(0, 24, 2500)
+    y = np.zeros(x.shape)
+    x_step = x[1] - x[0]
+    x_end = x[-1]
+
+    pattern_model.set_pattern(x, y)
+
+    auto_background_subtraction_parameters = [2, 50, 50]
+    pattern_model.set_auto_background_subtraction(
+        auto_background_subtraction_parameters, roi=[25, 26]
+    )
+
+    assert pattern_model.pattern.auto_bkg_roi == [
+        x_end - 1.5 * x_step,
+        x_end + x_step / 2,
+    ]
+
+    pattern_model.set_auto_background_subtraction(
+        auto_background_subtraction_parameters, roi=[50, 30]
+    )
+    assert pattern_model.pattern.auto_bkg_roi == [
+        x_end - 1.5 * x_step,
+        x_end + x_step / 2,
+    ]
+
+    pattern_model.set_auto_background_subtraction(
+        auto_background_subtraction_parameters, roi=[23, 30]
+    )
+    assert pattern_model.pattern.auto_bkg_roi == [23, x_end + x_step / 2]
+
+    pattern_model.set_auto_background_subtraction(
+        auto_background_subtraction_parameters, roi=[-10, 23]
+    )
+    assert pattern_model.pattern.auto_bkg_roi == [x[0] - x_step / 2, 23]
+
+    pattern_model.set_auto_background_subtraction(
+        auto_background_subtraction_parameters, roi=[-10, -3]
+    )
+    assert pattern_model.pattern.auto_bkg_roi == [
+        x[0] - x_step / 2,
+        x[0] + 1.5 * x_step,
+    ]
