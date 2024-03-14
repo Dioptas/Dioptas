@@ -158,7 +158,7 @@ class PatternModel(object):
         will be performed
         """
         self.pattern.auto_bkg_roi = roi
-        self.pattern_auto_bkg = SmoothBrucknerBackground(*parameters)
+        self.pattern.auto_bkg = SmoothBrucknerBackground(*parameters)
         self.pattern_changed.emit()
 
     def unset_auto_background_subtraction(self):
