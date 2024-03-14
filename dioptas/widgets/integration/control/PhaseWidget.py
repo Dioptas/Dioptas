@@ -23,8 +23,15 @@ import os
 
 from qtpy import QtWidgets, QtCore, QtGui
 
-from ...CustomWidgets import FlatButton, DoubleSpinBoxAlignRight, VerticalSpacerItem, NoRectDelegate, \
-    ListTableWidget, HorizontalLine, DoubleMultiplySpinBoxAlignRight
+from ...CustomWidgets import (
+    FlatButton,
+    DoubleSpinBoxAlignRight,
+    VerticalSpacerItem,
+    NoRectDelegate,
+    ListTableWidget,
+    HorizontalLine,
+    DoubleMultiplySpinBoxAlignRight,
+)
 
 from .... import icons_path
 
@@ -47,11 +54,11 @@ class PhaseWidget(QtWidgets.QWidget):
         self.edit_btn = FlatButton()
         self.delete_btn = FlatButton()
         self.clear_btn = FlatButton()
-        self.save_list_btn = QtWidgets.QPushButton('Save List')
-        self.load_list_btn = QtWidgets.QPushButton('Load List')
+        self.save_list_btn = QtWidgets.QPushButton("Save List")
+        self.load_list_btn = QtWidgets.QPushButton("Load List")
 
         self.button_widget = QtWidgets.QWidget(self)
-        self.button_widget.setObjectName('phase_control_button_widget')
+        self.button_widget.setObjectName("phase_control_button_widget")
         self._button_layout = QtWidgets.QVBoxLayout()
         self._button_layout.setContentsMargins(0, 0, 0, 0)
         self._button_layout.setSpacing(6)
@@ -74,11 +81,11 @@ class PhaseWidget(QtWidgets.QWidget):
 
         self.pressure_step_msb = DoubleMultiplySpinBoxAlignRight()
         self.temperature_step_msb = DoubleMultiplySpinBoxAlignRight()
-        self.apply_to_all_cb = QtWidgets.QCheckBox('apply to all')
+        self.apply_to_all_cb = QtWidgets.QCheckBox("apply to all")
 
-        self._parameter_layout.addWidget(QtWidgets.QLabel('P step'))
+        self._parameter_layout.addWidget(QtWidgets.QLabel("P step"))
         self._parameter_layout.addWidget(self.pressure_step_msb)
-        self._parameter_layout.addWidget(QtWidgets.QLabel('T Step'))
+        self._parameter_layout.addWidget(QtWidgets.QLabel("T Step"))
         self._parameter_layout.addWidget(self.temperature_step_msb)
         self._parameter_layout.addWidget(self.apply_to_all_cb)
         self._parameter_layout.addWidget(HorizontalLine())
@@ -91,17 +98,27 @@ class PhaseWidget(QtWidgets.QWidget):
         self._body_layout = QtWidgets.QHBoxLayout()
 
         self.phase_tw = ListTableWidget(columns=5)
-        self.phase_tw.setObjectName('phase_table_widget')
-        self.phase_tw.setHorizontalHeaderLabels(['', '', 'Name', 'P (GPa)', 'T (K)'])
+        self.phase_tw.setObjectName("phase_table_widget")
+        self.phase_tw.setHorizontalHeaderLabels(["", "", "Name", "P (GPa)", "T (K)"])
         self.phase_tw.horizontalHeader().setVisible(True)
         self.phase_tw.horizontalHeader().setStretchLastSection(False)
         self.phase_tw.setColumnWidth(0, 20)
         self.phase_tw.setColumnWidth(1, 25)
-        self.phase_tw.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.Fixed)
-        self.phase_tw.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.Fixed)
-        self.phase_tw.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
-        self.phase_tw.horizontalHeader().setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
-        self.phase_tw.horizontalHeader().setSectionResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
+        self.phase_tw.horizontalHeader().setSectionResizeMode(
+            0, QtWidgets.QHeaderView.Fixed
+        )
+        self.phase_tw.horizontalHeader().setSectionResizeMode(
+            1, QtWidgets.QHeaderView.Fixed
+        )
+        self.phase_tw.horizontalHeader().setSectionResizeMode(
+            2, QtWidgets.QHeaderView.Stretch
+        )
+        self.phase_tw.horizontalHeader().setSectionResizeMode(
+            3, QtWidgets.QHeaderView.ResizeToContents
+        )
+        self.phase_tw.horizontalHeader().setSectionResizeMode(
+            4, QtWidgets.QHeaderView.ResizeToContents
+        )
         self.phase_tw.setItemDelegate(NoRectDelegate())
         self._body_layout.addWidget(self.phase_tw, 10)
         self._body_layout.addWidget(self.parameter_widget, 0)
@@ -109,8 +126,8 @@ class PhaseWidget(QtWidgets.QWidget):
         self._layout.addLayout(self._body_layout)
 
         # label for alternative view:
-        self.phase_header_btn = FlatButton('Phase')
-        self.phase_header_btn.setObjectName('phase_header_btn')
+        self.phase_header_btn = FlatButton("Phase")
+        self.phase_header_btn.setObjectName("phase_header_btn")
         self.phase_header_btn.setEnabled(False)
         self.phase_header_btn.setVisible(False)
         self._main_layout = QtWidgets.QVBoxLayout()
@@ -137,16 +154,16 @@ class PhaseWidget(QtWidgets.QWidget):
     def style_widgets(self):
         icon_size = QtCore.QSize(17, 17)
 
-        self.add_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'open.ico')))
+        self.add_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "open.ico")))
         self.add_btn.setIconSize(icon_size)
 
-        self.edit_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'edit.png')))
+        self.edit_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "edit.png")))
         self.edit_btn.setIconSize(QtCore.QSize(14, 14))
 
-        self.delete_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'delete.png')))
+        self.delete_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "delete.png")))
         self.delete_btn.setIconSize(QtCore.QSize(12, 14))
 
-        self.clear_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'reset_dark.ico')))
+        self.clear_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "reset_dark.ico")))
         self.clear_btn.setIconSize(icon_size)
 
         def modify_btn_to_icon_size(btn):
@@ -162,8 +179,12 @@ class PhaseWidget(QtWidgets.QWidget):
         modify_btn_to_icon_size(self.clear_btn)
         modify_btn_to_icon_size(self.edit_btn)
 
-        self.phase_tw.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.MinimumExpanding)
-        self.parameter_widget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        self.phase_tw.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.MinimumExpanding
+        )
+        self.parameter_widget.setSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum
+        )
 
         step_txt_width = 80
 
@@ -183,13 +204,17 @@ class PhaseWidget(QtWidgets.QWidget):
         self.apply_to_all_cb.setChecked(True)
 
     def add_tooltips(self):
-        self.add_btn.setToolTip('Loads Phase(s) from jcpds or cif file(s)')
-        self.edit_btn.setToolTip('Edit selected Phase')
-        self.delete_btn.setToolTip('Removes currently selected phase')
-        self.clear_btn.setToolTip('Removes all phases')
-        self.apply_to_all_cb.setToolTip('Whether individual changes in P or T\nare applied to all other phases')
-        self.pressure_step_msb.setToolTip('Sets the step for the pressure spinboxes')
-        self.temperature_step_msb.setToolTip('Sets the step for the temperature spinboxes')
+        self.add_btn.setToolTip("Loads Phase(s) from jcpds or cif file(s)")
+        self.edit_btn.setToolTip("Edit selected Phase")
+        self.delete_btn.setToolTip("Removes currently selected phase")
+        self.clear_btn.setToolTip("Removes all phases")
+        self.apply_to_all_cb.setToolTip(
+            "Whether individual changes in P or T\nare applied to all other phases"
+        )
+        self.pressure_step_msb.setToolTip("Sets the step for the pressure spinboxes")
+        self.temperature_step_msb.setToolTip(
+            "Sets the step for the temperature spinboxes"
+        )
 
     # ###############################################################################################
     # Now comes all the phase tw stuff
@@ -224,7 +249,9 @@ class PhaseWidget(QtWidgets.QWidget):
         pressure_sb.setMaximum(9999999)
         pressure_sb.setValue(0)
         pressure_sb.setSingleStep(self.pressure_step_msb.value())
-        pressure_sb.valueChanged.connect(partial(self.pressure_sb_callback, pressure_sb))
+        pressure_sb.valueChanged.connect(
+            partial(self.pressure_sb_callback, pressure_sb)
+        )
         self.phase_tw.setCellWidget(current_rows, 3, pressure_sb)
         self.pressure_sbs.append(pressure_sb)
 
@@ -234,18 +261,25 @@ class PhaseWidget(QtWidgets.QWidget):
         temperature_sb.setMaximum(9999999)
         temperature_sb.setValue(300)
         temperature_sb.setSingleStep(self.temperature_step_msb.value())
-        temperature_sb.valueChanged.connect(partial(self.temperature_sb_callback, temperature_sb))
+        temperature_sb.valueChanged.connect(
+            partial(self.temperature_sb_callback, temperature_sb)
+        )
         self.phase_tw.setCellWidget(current_rows, 4, temperature_sb)
         self.temperature_sbs.append(temperature_sb)
 
-        self.phase_tw.setColumnWidth(0, 20)
-        self.phase_tw.setColumnWidth(1, 25)
         self.phase_tw.setRowHeight(current_rows, 25)
         self.select_phase(current_rows)
         self.phase_tw.blockSignals(False)
 
-        self.phase_tw.horizontalHeader().setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
-        self.phase_tw.horizontalHeader().setSectionResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
+    def update_phase_tw_column_sizes(self):
+        self.phase_tw.setColumnWidth(0, 20)
+        self.phase_tw.setColumnWidth(1, 25)
+        self.phase_tw.horizontalHeader().setSectionResizeMode(
+            3, QtWidgets.QHeaderView.ResizeToContents
+        )
+        self.phase_tw.horizontalHeader().setSectionResizeMode(
+            4, QtWidgets.QHeaderView.ResizeToContents
+        )
 
     def select_phase(self, ind):
         self.phase_tw.selectRow(ind)
@@ -300,7 +334,9 @@ class PhaseWidget(QtWidgets.QWidget):
         self.color_btn_clicked.emit(self.phase_color_btns.index(button), button)
 
     def phase_show_cb_changed(self, checkbox):
-        self.show_cb_state_changed.emit(self.phase_show_cbs.index(checkbox), checkbox.isChecked())
+        self.show_cb_state_changed.emit(
+            self.phase_show_cbs.index(checkbox), checkbox.isChecked()
+        )
 
     def phase_show_cb_set_checked(self, ind, state):
         checkbox = self.phase_show_cbs[ind]
@@ -311,7 +347,11 @@ class PhaseWidget(QtWidgets.QWidget):
         return checkbox.isChecked()
 
     def pressure_sb_callback(self, pressure_sb):
-        self.pressure_sb_value_changed.emit(self.pressure_sbs.index(pressure_sb), pressure_sb.value())
+        self.pressure_sb_value_changed.emit(
+            self.pressure_sbs.index(pressure_sb), pressure_sb.value()
+        )
 
     def temperature_sb_callback(self, temperature_sb):
-        self.temperature_sb_value_changed.emit(self.temperature_sbs.index(temperature_sb), temperature_sb.value())
+        self.temperature_sb_value_changed.emit(
+            self.temperature_sbs.index(temperature_sb), temperature_sb.value()
+        )

@@ -277,9 +277,14 @@ class OverlayWidget(QtWidgets.QWidget):
         self.overlay_tw.setCellWidget(current_rows, 4, offset_sb)
         self.offset_sbs.append(offset_sb)
 
+        self.overlay_tw.setRowHeight(current_rows, 25)
+        self.update_overlay_tw_column_sizes()
+        self.select_overlay(current_rows)
+        self.overlay_tw.blockSignals(False)
+
+    def update_overlay_tw_column_sizes(self):
         self.overlay_tw.setColumnWidth(0, 20)
         self.overlay_tw.setColumnWidth(1, 25)
-        self.overlay_tw.setRowHeight(current_rows, 25)
 
         self.overlay_tw.horizontalHeader().setSectionResizeMode(
             3, QtWidgets.QHeaderView.ResizeToContents
@@ -287,9 +292,6 @@ class OverlayWidget(QtWidgets.QWidget):
         self.overlay_tw.horizontalHeader().setSectionResizeMode(
             4, QtWidgets.QHeaderView.ResizeToContents
         )
-
-        self.select_overlay(current_rows)
-        self.overlay_tw.blockSignals(False)
 
     def select_overlay(self, ind):
         if self.overlay_tw.rowCount() > 0:
