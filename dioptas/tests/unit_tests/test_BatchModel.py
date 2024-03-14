@@ -2,12 +2,11 @@ import os
 import pytest
 
 import numpy as np
+from xypattern import Pattern
 
 from ...model.Configuration import Configuration
 from ...model.BatchModel import BatchModel, iterate_folder
-from ...model.util.Pattern import Pattern
 
-import gc
 from mock import MagicMock
 
 unittest_path = os.path.dirname(__file__)

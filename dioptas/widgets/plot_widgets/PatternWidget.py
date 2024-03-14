@@ -24,8 +24,9 @@ from qtpy import QtCore
 from pyqtgraph.exporters.ImageExporter import ImageExporter
 from pyqtgraph.exporters.SVGExporter import SVGExporter
 
+from xypattern import Pattern
+
 from dioptas.model.OverlayModel import Overlay
-from dioptas.model.util.Pattern import Pattern
 
 from .ExLegendItem import LegendItem
 

@@ -20,12 +20,12 @@
 
 from typing import Optional
 import logging
-
 from copy import copy
-import numpy as np
-from .util.HelperModule import calculate_color, rgb_to_hex
 
-from .util import Pattern
+import numpy as np
+from xypattern import Pattern
+
+from .util.HelperModule import calculate_color, rgb_to_hex
 from .util import Signal
 
 logger = logging.getLogger(__name__)

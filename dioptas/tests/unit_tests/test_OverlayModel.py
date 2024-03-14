@@ -24,7 +24,6 @@ import pytest
 from unittest.mock import MagicMock
 
 from ...model.OverlayModel import OverlayModel
-from ...model.util import Pattern
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, "../data")

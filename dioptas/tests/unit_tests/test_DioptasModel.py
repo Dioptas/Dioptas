@@ -23,9 +23,8 @@ import os
 import numpy as np
 import pytest
 from mock import MagicMock
+from xypattern import Pattern
 from xypattern.pattern import SmoothBrucknerBackground
-
-from ...model.util import Pattern
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, "../data")

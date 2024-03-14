@@ -20,17 +20,8 @@
 
 import logging
 
-import numpy as np
-from scipy.interpolate import interp1d
-
-from xypattern import Pattern as XYPattern
 from xypattern.combine import stitch_patterns
 
 logger = logging.getLogger(__name__)
-
-
-class Pattern(XYPattern):
-    pass
-
 
 combine_patterns = stitch_patterns

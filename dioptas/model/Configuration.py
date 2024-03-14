@@ -23,13 +23,12 @@ import numpy as np
 
 from copy import deepcopy
 
-import h5py
+from xypattern import Pattern
 from xypattern.pattern import SmoothBrucknerBackground
 
 from .util import Signal
 from .util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
 
-from .util import Pattern
 from .util.calc import convert_units
 from . import ImgModel, CalibrationModel, MaskModel, PatternModel, BatchModel
 from .MapModel2 import MapModel2

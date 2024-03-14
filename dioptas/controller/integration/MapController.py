@@ -22,13 +22,13 @@ import numpy as np
 from PIL import Image
 import re
 import os
+from xypattern import Pattern
 
 from .PhotoConfig import gsecars_photo
 from ...widgets.MapWidgets import Map2DWidget, SetupMapDialog, OpenBGImageDialog, MapErrorDialog
 from ...widgets.UtilityWidgets import save_file_dialog, open_files_dialog
 from ...widgets.MainWidget import IntegrationWidget
 from ...model.MapModel import MapModel
-from ...model.DioptasModel import DioptasModel, Pattern
 
 
 class MapController(object):

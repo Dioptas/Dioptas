@@ -22,9 +22,10 @@ import os
 import numpy as np
 import random
 
-from ...model import ImgModel, CalibrationModel, MaskModel
+from xypattern import Pattern
+
 from ...model.Configuration import Configuration
-from ...model.MapModel import MapModel, Map, Pattern, Roi, find_possible_dimensions
+from ...model.MapModel import MapModel, Map, Roi, find_possible_dimensions
 from ..utility import unittest_data_path
 
 jcpds_path = os.path.join(unittest_data_path, 'jcpds')

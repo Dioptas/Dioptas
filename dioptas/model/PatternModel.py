@@ -20,12 +20,11 @@
 
 import logging
 
-from math import sqrt
-
+from xypattern import Pattern
 from xypattern.pattern import SmoothBrucknerBackground
+
 from .util import Signal
 from .util.HelperModule import FileNameIterator, get_base_name
-from .util import Pattern
 
 logger = logging.getLogger(__name__)
 

@@ -17,13 +17,14 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import os
 import pytest
 from mock import MagicMock
 import numpy as np
 
-from ...model.util.Pattern import Pattern
 from qtpy import QtWidgets
+from xypattern import Pattern
 
 from ...controller.integration import BatchController
 

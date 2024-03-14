@@ -17,14 +17,16 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import os
 import numpy as np
 import pytest
 from pytest import approx
 
-from xypattern.auto_background import SmoothBrucknerBackground
+from xypattern import Pattern
 from xypattern.pattern import BkgNotInRangeError
-from ...model.util import Pattern
+from xypattern.auto_background import SmoothBrucknerBackground
+
 from ...model.util.PeakShapes import gaussian
 
 unittest_path = os.path.dirname(__file__)

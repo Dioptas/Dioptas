@@ -21,12 +21,13 @@
 import os
 from scipy.interpolate import interp2d
 import numpy as np
-
 import h5py
+
+from xypattern import Pattern
 
 from .util import Signal
 from .util import jcpds
-from .util.Pattern import Pattern, combine_patterns
+from .util.Pattern import combine_patterns
 from .Configuration import Configuration
 from . import (
     ImgModel,

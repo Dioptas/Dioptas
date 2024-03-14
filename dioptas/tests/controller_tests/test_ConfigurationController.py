@@ -19,7 +19,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import unittest
 from mock import MagicMock
 import gc
 
@@ -33,9 +32,10 @@ from ..utility import (
 )
 
 from qtpy import QtWidgets
+from xypattern import Pattern
 
 from ...controller.ConfigurationController import ConfigurationController
-from ...model.DioptasModel import DioptasModel, Pattern
+from ...model.DioptasModel import DioptasModel
 from ...widgets.ConfigurationWidget import ConfigurationWidget
 
 unittest_path = os.path.dirname(__file__)

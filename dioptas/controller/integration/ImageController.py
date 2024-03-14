@@ -24,12 +24,12 @@ import numpy as np
 from PIL import Image
 from qtpy import QtWidgets, QtCore
 import pyqtgraph as pg
+from xypattern import Pattern
 
 from ...widgets.UtilityWidgets import open_file_dialog, open_files_dialog, save_file_dialog
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...widgets.integration import IntegrationWidget
 from ...model.DioptasModel import DioptasModel
-from ...model.util.Pattern import Pattern
 from ...model.util.HelperModule import get_partial_index, get_partial_value
 
 from .EpicsController import EpicsController
