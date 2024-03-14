@@ -22,6 +22,7 @@ import numpy as np
 import pytest
 from pytest import approx
 
+from xypattern.auto_background import SmoothBrucknerBackground
 from xypattern.pattern import BkgNotInRangeError
 from ...model.util import Pattern
 from ...model.util.PeakShapes import gaussian
@@ -172,12 +173,13 @@ def test_automatic_background_subtraction():
 
     pattern = Pattern(x, y_measurement)
 
-    auto_background_subtraction_parameters = [2, 50, 50]
-    pattern.set_auto_background_subtraction(auto_background_subtraction_parameters)
+    pattern.auto_bkg = SmoothBrucknerBackground(
+        smooth_width=2, iterations=50, cheb_order=50
+    )
 
-    x_spec, y_spec = pattern.data
+    _, y_pattern = pattern.data
 
-    assert y_spec == approx(y, abs=1e-4)
+    assert y_pattern == approx(y, abs=1e-4)
 
 
 def test_automatic_background_subtraction_with_roi():
@@ -194,17 +196,18 @@ def test_automatic_background_subtraction_with_roi():
     y_bkg = x * 0.4 + 5.0
     y_measurement = y + y_bkg
 
-    roi = [1, 23]
-
     pattern = Pattern(x, y_measurement)
 
-    auto_background_subtraction_parameters = [2, 50, 50]
-    pattern.set_auto_background_subtraction(auto_background_subtraction_parameters, roi)
+    roi = [1, 23]
+    pattern.auto_bkg_roi = roi
+    pattern.auto_bkg = SmoothBrucknerBackground(
+        smooth_width=2, iterations=50, cheb_order=50
+    )
 
-    x_spec, y_spec = pattern.data
+    x_pattern, _ = pattern.data
 
-    assert x_spec[0] > roi[0]
-    assert x_spec[-1] < roi[1]
+    assert x_pattern[0] > roi[0]
+    assert x_pattern[-1] < roi[1]
 
 
 def test_setting_new_data():
