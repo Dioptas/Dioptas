@@ -24,10 +24,10 @@ import numpy as np
 import h5py
 
 from xypattern import Pattern
+from xypattern.combine import stitch_patterns
 
 from .util import Signal
 from .util import jcpds
-from .util.Pattern import combine_patterns
 from .Configuration import Configuration
 from . import (
     ImgModel,
@@ -448,7 +448,7 @@ class DioptasModel(object):
         if not self.combine_patterns:
             return self.pattern_model.pattern
         else:
-            return combine_patterns(
+            return stitch_patterns(
                 [
                     configuration.pattern_model.pattern
                     for configuration in self.configurations
