@@ -18,8 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import
-
 import pyqtgraph as pg
 from pyqtgraph import ViewBox
 from pyqtgraph.exporters.ImageExporter import ImageExporter
@@ -91,13 +89,17 @@ class ImgWidget(QtCore.QObject):
     def set_orientation(self, orientation):
         if orientation == "horizontal":
             self.img_histogram_LUT_vertical.hide()
+            self.img_histogram_LUT_vertical.deactivate()
             self.img_histogram_LUT_horizontal.show()
+            self.img_histogram_LUT_horizontal.activate()
             self.img_histogram_LUT_vertical.gradient = (
                 self.img_histogram_LUT_horizontal.gradient
             )
         elif orientation == "vertical":
             self.img_histogram_LUT_horizontal.hide()
+            self.img_histogram_LUT_horizontal.deactivate()
             self.img_histogram_LUT_vertical.show()
+            self.img_histogram_LUT_vertical.activate()
             self.img_histogram_LUT_horizontal.gradient = (
                 self.img_histogram_LUT_vertical.gradient
             )
@@ -303,7 +305,7 @@ class ImgWidget(QtCore.QObject):
         Gets the current state of the image widget, including the view range, histogram levels and normalization.
         :return: view range, histogram levels, histogram normalization
         """
-        view_range = self.img_view_box.viewRange()
+        view_range = self.img_view_box.targetRange()
         if self.orientation == "horizontal":
             hist_level = self.img_histogram_LUT_horizontal.getExpLevels()
             hist_normalization = self.img_histogram_LUT_horizontal.getNormalization()
@@ -319,7 +321,7 @@ class ImgWidget(QtCore.QObject):
         :param hist_level: histogram levels
         :param hist_normalization: histogram normalization
         """
-        self.img_view_box.setRange(xRange=view_range[0], yRange=view_range[1])
+        self.set_range(view_range[0], view_range[1])
         if self.orientation == "horizontal":
             self.img_histogram_LUT_horizontal.setLevels(*hist_level)
             self.img_histogram_LUT_horizontal.setNormalization(hist_normalization)

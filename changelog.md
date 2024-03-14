@@ -4,6 +4,10 @@
     - Complete GUI overhaul with a Material inspired design
     - Added a new Map Mode for exploring data collected in a 2D grid
     - Multiple files loaded can now be averaged (new batch mode average selection availlable)
+    - added the option to add custom "external actions" via providing json file upon start of Dioptas. This allows to
+      add custom actions to the main window, which can be used to start external programs or scripts. The commands will
+      be executed with two addidtional arguments, the path to the currently loaded image file and the current frame 
+      number. The external action buttons are appearing on the lower left of the main window.
 
 ## Bug Fixes
     - fixed some issues related to memory when using HDF5 files

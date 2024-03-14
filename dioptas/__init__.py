@@ -18,8 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import
-
 import os
 import sys
 from sys import platform as _platform
@@ -34,7 +32,7 @@ if "QT_API" not in os.environ:
 from qtpy import QtWidgets
 from qt_material import apply_stylesheet
 
-__version__ = "0.5.9"
+__version__ = "0.6.0-alpha.1"
 
 from .paths import resources_path, calibrants_path, icons_path, data_path, style_path
 from .excepthook import excepthook
@@ -44,7 +42,6 @@ from .controller.MainController import MainController
 
 theme_path = os.path.join(style_path, "dark_orange.xml")
 qss_path = os.path.join(style_path, "qt_material.css")
-css_out_path = os.path.join(style_path, "dioptas.css")
 
 def main():
     app = QtWidgets.QApplication([])
@@ -54,7 +51,6 @@ def main():
         theme=theme_path,
         css_file=qss_path,
         extra={"density_scale": -2},
-        save_as=css_out_path
     )
     # sys.excepthook = excepthook
     print("Dioptas {}".format(__version__))
@@ -75,4 +71,10 @@ def main():
                 icon_path=icons_path,
                 icon="icon",
             )
+        elif sys.argv[1].startswith("version"):
+            print(__version__)
+        elif sys.argv[1].endswith(".json"):
+            controller = MainController(config_file=sys.argv[1])
+            controller.show_window()
+            app.exec_()
     del app

@@ -18,16 +18,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import, print_function
-
 import pyqtgraph as pg
 import numpy as np
 from qtpy import QtCore
 from pyqtgraph.exporters.ImageExporter import ImageExporter
 from pyqtgraph.exporters.SVGExporter import SVGExporter
 
+from xypattern import Pattern
+
+from dioptas.model.OverlayModel import Overlay
+
 from .ExLegendItem import LegendItem
-from ...model.util.HelperModule import calculate_color
 
 
 class PatternWidget(QtCore.QObject):
@@ -50,8 +51,6 @@ class PatternWidget(QtCore.QObject):
         self.phases_vlines = []
 
         self.overlays = []
-        self.overlay_names = []
-        self.overlay_show = []
 
         self.plot_name = ""
 
@@ -146,8 +145,8 @@ class PatternWidget(QtCore.QObject):
         x_range = list(self.plot_item.dataBounds(0))
         y_range = list(self.plot_item.dataBounds(1))
 
-        for ind, overlay in enumerate(self.overlays):
-            if self.overlay_show[ind]:
+        for overlay in self.overlays:
+            if overlay in self.pattern_plot.items:
                 x_range_overlay = overlay.dataBounds(0)
                 y_range_overlay = overlay.dataBounds(1)
                 if x_range_overlay[0] < x_range[0]:
@@ -180,14 +179,13 @@ class PatternWidget(QtCore.QObject):
                 self.view_box.setRange(yRange=y_range, padding=0)
         self.emit_sig_range_changed()
 
-    def add_overlay(self, pattern, show=True):
+    def add_overlay(
+        self, pattern: Pattern, color: tuple[int, int, int], show: bool = True
+    ):
         x, y = pattern.data
-        color = calculate_color(len(self.overlays) + 1)
         self.overlays.append(
             pg.PlotDataItem(x, y, pen=pg.mkPen(color=color, width=1.5))
         )
-        self.overlay_names.append(pattern.name)
-        self.overlay_show.append(True)
         if show:
             self.pattern_plot.addItem(self.overlays[-1])
             self.legend.addItem(self.overlays[-1], pattern.name)
@@ -198,66 +196,38 @@ class PatternWidget(QtCore.QObject):
         self.pattern_plot.removeItem(self.overlays[ind])
         self.legend.removeItem(self.overlays[ind])
         self.overlays.remove(self.overlays[ind])
-        self.overlay_names.remove(self.overlay_names[ind])
-        self.overlay_show.remove(self.overlay_show[ind])
-        self.update_graph_range()
 
     def hide_overlay(self, ind):
+        if not self.overlays[ind] in self.pattern_plot.items:
+            return
         self.pattern_plot.removeItem(self.overlays[ind])
         self.legend.hideItem(ind + 1)
-        self.overlay_show[ind] = False
-        self.update_graph_range()
 
     def show_overlay(self, ind):
+        if self.overlays[ind] in self.pattern_plot.items:
+            return
         self.pattern_plot.addItem(self.overlays[ind])
         self.legend.showItem(ind + 1)
-        self.overlay_show[ind] = True
+
+    def update_overlay(self, ind: int, overlay: Overlay):
+        self.set_overlay_data(ind, overlay.x, overlay.y)
+        self.set_overlay_color(ind, overlay.color)
+        self.rename_overlay(ind, overlay.name)
+        if overlay.visible:
+            self.show_overlay(ind)
+        else:
+            self.hide_overlay(ind)
         self.update_graph_range()
 
-    def update_overlay(self, pattern, ind):
-        x, y = pattern.data
+    def set_overlay_data(self, ind, x, y):
         self.overlays[ind].setData(x, y)
-        self.update_graph_range()
 
-    def set_overlay_color(self, ind, color):
+    def set_overlay_color(self, ind: int, color):
         self.overlays[ind].setPen(pg.mkPen(color=color, width=1.5))
         self.legend.setItemColor(ind + 1, color)
 
-    def rename_overlay(self, ind, name):
+    def rename_overlay(self, ind: int, name: str):
         self.legend.renameItem(ind + 1, name)
-
-    def move_overlay_up(self, ind):
-        new_ind = ind - 1
-        self.overlays.insert(new_ind, self.overlays.pop(ind))
-        self.overlay_names.insert(new_ind, self.overlay_names.pop(ind))
-        self.overlay_show.insert(new_ind, self.overlay_show.pop(ind))
-
-        color = self.legend.legendItems[ind + 1][1].opts["color"]
-        label = self.legend.legendItems[ind + 1][1].text
-        self.legend.legendItems[ind + 1][1].setAttr(
-            "color", self.legend.legendItems[new_ind + 1][1].opts["color"]
-        )
-        self.legend.legendItems[ind + 1][1].setText(
-            self.legend.legendItems[new_ind + 1][1].text
-        )
-        self.legend.legendItems[new_ind + 1][1].setAttr("color", color)
-        self.legend.legendItems[new_ind + 1][1].setText(label)
-
-    def move_overlay_down(self, cur_ind):
-        self.overlays.insert(cur_ind + 1, self.overlays.pop(cur_ind))
-        self.overlay_names.insert(cur_ind + 1, self.overlay_names.pop(cur_ind))
-        self.overlay_show.insert(cur_ind + 1, self.overlay_show.pop(cur_ind))
-
-        color = self.legend.legendItems[cur_ind + 1][1].opts["color"]
-        label = self.legend.legendItems[cur_ind + 1][1].text
-        self.legend.legendItems[cur_ind + 1][1].setAttr(
-            "color", self.legend.legendItems[cur_ind + 2][1].opts["color"]
-        )
-        self.legend.legendItems[cur_ind + 1][1].setText(
-            self.legend.legendItems[cur_ind + 2][1].text
-        )
-        self.legend.legendItems[cur_ind + 2][1].setAttr("color", color)
-        self.legend.legendItems[cur_ind + 2][1].setText(label)
 
     def set_antialias(self, value):
         for overlay in self.overlays:

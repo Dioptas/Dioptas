@@ -23,8 +23,17 @@ import os
 
 from qtpy import QtWidgets, QtCore, QtGui
 
-from ...CustomWidgets import LabelAlignRight, FlatButton, CheckableFlatButton, DoubleSpinBoxAlignRight, \
-    VerticalSpacerItem, HorizontalSpacerItem, ListTableWidget, DoubleMultiplySpinBoxAlignRight, HorizontalLine
+from ...CustomWidgets import (
+    LabelAlignRight,
+    FlatButton,
+    CheckableFlatButton,
+    DoubleSpinBoxAlignRight,
+    VerticalSpacerItem,
+    HorizontalSpacerItem,
+    ListTableWidget,
+    DoubleMultiplySpinBoxAlignRight,
+    HorizontalLine,
+)
 from ...CustomWidgets import NoRectDelegate
 from .... import icons_path
 
@@ -44,7 +53,7 @@ class OverlayWidget(QtWidgets.QWidget):
         self._layout.setSpacing(5)
 
         self.button_widget = QtWidgets.QWidget(self)
-        self.button_widget.setObjectName('overlay_control_widget')
+        self.button_widget.setObjectName("overlay_control_widget")
         self._button_layout = QtWidgets.QVBoxLayout(self.button_widget)
         self._button_layout.setContentsMargins(0, 0, 0, 0)
         self._button_layout.setSpacing(6)
@@ -78,9 +87,9 @@ class OverlayWidget(QtWidgets.QWidget):
         self._step_layout = QtWidgets.QVBoxLayout()
         self._step_layout.setContentsMargins(0, 0, 0, 0)
         self._step_layout.setSpacing(4)
-        self._step_layout.addWidget(QtWidgets.QLabel('Scale Step'))
+        self._step_layout.addWidget(QtWidgets.QLabel("Scale Step"))
         self._step_layout.addWidget(self.scale_step_msb)
-        self._step_layout.addWidget(QtWidgets.QLabel('Offset Step'))
+        self._step_layout.addWidget(QtWidgets.QLabel("Offset Step"))
         self._step_layout.addWidget(self.offset_step_msb)
         self._step_gb.setLayout(self._step_layout)
         self._parameter_layout.addWidget(self._step_gb)
@@ -88,8 +97,8 @@ class OverlayWidget(QtWidgets.QWidget):
 
         self._waterfall_gb = QtWidgets.QWidget()
         self.waterfall_separation_msb = DoubleMultiplySpinBoxAlignRight()
-        self.waterfall_btn = QtWidgets.QPushButton('Waterfall')
-        self.waterfall_reset_btn = QtWidgets.QPushButton('Reset')
+        self.waterfall_btn = QtWidgets.QPushButton("Waterfall")
+        self.waterfall_reset_btn = QtWidgets.QPushButton("Reset")
 
         self._waterfall_layout = QtWidgets.QVBoxLayout()
         self._waterfall_layout.setContentsMargins(0, 0, 0, 0)
@@ -103,7 +112,7 @@ class OverlayWidget(QtWidgets.QWidget):
 
         self._parameter_layout.addItem(VerticalSpacerItem())
 
-        self.set_as_bkg_btn = QtWidgets.QPushButton('As Bkg')
+        self.set_as_bkg_btn = QtWidgets.QPushButton("As Bkg")
         self.set_as_bkg_btn.setCheckable(True)
         self._background_layout = QtWidgets.QHBoxLayout()
         self._background_layout.setContentsMargins(0, 0, 0, 0)
@@ -114,13 +123,25 @@ class OverlayWidget(QtWidgets.QWidget):
         self.parameter_widget.setLayout(self._parameter_layout)
 
         self.overlay_tw = ListTableWidget(columns=5)
-        self.overlay_tw.setObjectName('overlay_table_widget')
-        self.overlay_tw.setHorizontalHeaderLabels(['', '', 'Name', 'Scale', 'Offset'])
+        self.overlay_tw.setObjectName("overlay_table_widget")
+        self.overlay_tw.setHorizontalHeaderLabels(["", "", "Name", "Scale", "Offset"])
         self.overlay_tw.horizontalHeader().setVisible(True)
         self.overlay_tw.horizontalHeader().setStretchLastSection(False)
-        self.overlay_tw.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
-        self.overlay_tw.horizontalHeader().setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
-        self.overlay_tw.horizontalHeader().setSectionResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
+        self.overlay_tw.horizontalHeader().setSectionResizeMode(
+            0, QtWidgets.QHeaderView.Fixed
+        )
+        self.overlay_tw.horizontalHeader().setSectionResizeMode(
+            1, QtWidgets.QHeaderView.Fixed
+        )
+        self.overlay_tw.horizontalHeader().setSectionResizeMode(
+            2, QtWidgets.QHeaderView.Stretch
+        )
+        self.overlay_tw.horizontalHeader().setSectionResizeMode(
+            3, QtWidgets.QHeaderView.ResizeToContents
+        )
+        self.overlay_tw.horizontalHeader().setSectionResizeMode(
+            4, QtWidgets.QHeaderView.ResizeToContents
+        )
 
         self.overlay_tw.setColumnWidth(0, 20)
         self.overlay_tw.setColumnWidth(1, 25)
@@ -131,8 +152,8 @@ class OverlayWidget(QtWidgets.QWidget):
         self._layout.addWidget(self.parameter_widget, 0)
 
         # label for alternative view:
-        self.overlay_header_btn = QtWidgets.QPushButton('Overlay')
-        self.overlay_header_btn.setObjectName('overlay_header_btn')
+        self.overlay_header_btn = QtWidgets.QPushButton("Overlay")
+        self.overlay_header_btn.setObjectName("overlay_header_btn")
         self.overlay_header_btn.setEnabled(False)
         self.overlay_header_btn.setVisible(False)
         self._main_layout = QtWidgets.QVBoxLayout()
@@ -154,19 +175,21 @@ class OverlayWidget(QtWidgets.QWidget):
 
     def style_widgets(self):
         icon_size = QtCore.QSize(17, 17)
-        self.clear_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'reset_dark.ico')))
+        self.clear_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "reset_dark.ico")))
         self.clear_btn.setIconSize(icon_size)
 
-        self.add_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'open.ico')))
+        self.add_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "open.ico")))
         self.add_btn.setIconSize(icon_size)
 
-        self.delete_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'delete.png')))
+        self.delete_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "delete.png")))
         self.delete_btn.setIconSize(QtCore.QSize(12, 14))
 
-        self.move_up_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'arrow_up.ico')))
+        self.move_up_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "arrow_up.ico")))
         self.move_up_btn.setIconSize(icon_size)
 
-        self.move_down_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, 'arrow_down.ico')))
+        self.move_down_btn.setIcon(
+            QtGui.QIcon(os.path.join(icons_path, "arrow_down.ico"))
+        )
         self.move_down_btn.setIconSize(icon_size)
 
         def modify_btn_to_icon_size(btn):
@@ -197,7 +220,7 @@ class OverlayWidget(QtWidgets.QWidget):
         self.waterfall_separation_msb.setMinimum(0.01)
         self.waterfall_separation_msb.setValue(100.0)
 
-        self.set_as_bkg_btn.setStyleSheet('font-size: 11px')
+        self.set_as_bkg_btn.setStyleSheet("font-size: 11px")
         self.waterfall_btn.setFixedWidth(step_txt_width)
         self.waterfall_reset_btn.setFixedWidth(step_txt_width)
         self.set_as_bkg_btn.setFixedWidth(step_txt_width)
@@ -205,12 +228,12 @@ class OverlayWidget(QtWidgets.QWidget):
         self.overlay_header_btn.setStyleSheet("border-radius: 0px")
 
     def add_tooltips(self):
-        self.add_btn.setToolTip('Loads Overlay(s) from file(s)')
-        self.delete_btn.setToolTip('Removes currently selected overlay')
-        self.clear_btn.setToolTip('Removes all overlays')
-        self.set_as_bkg_btn.setToolTip('Set selected overlay as background')
-        self.waterfall_reset_btn.setToolTip('Reset waterfall separation')
-        self.waterfall_btn.setToolTip('Apply waterfall separation')
+        self.add_btn.setToolTip("Loads Overlay(s) from file(s)")
+        self.delete_btn.setToolTip("Removes currently selected overlay")
+        self.clear_btn.setToolTip("Removes all overlays")
+        self.set_as_bkg_btn.setToolTip("Set selected overlay as background")
+        self.waterfall_reset_btn.setToolTip("Reset waterfall separation")
+        self.waterfall_btn.setToolTip("Apply waterfall separation")
 
     def add_overlay(self, name, color):
         current_rows = self.overlay_tw.rowCount()
@@ -225,7 +248,7 @@ class OverlayWidget(QtWidgets.QWidget):
         self.show_cbs.append(show_cb)
 
         color_button = FlatButton()
-        color_button.setStyleSheet("background-color: " + color)
+        color_button.setStyleSheet(f"background-color: {color}; margin: 2px")
         color_button.clicked.connect(partial(self.color_btn_click, color_button))
         self.overlay_tw.setCellWidget(current_rows, 1, color_button)
         self.color_btns.append(color_button)
@@ -235,6 +258,7 @@ class OverlayWidget(QtWidgets.QWidget):
         self.overlay_tw.setItem(current_rows, 2, QtWidgets.QTableWidgetItem(name))
 
         scale_sb = DoubleSpinBoxAlignRight()
+        scale_sb.setFixedWidth(70)
         scale_sb.setMinimum(-9999999)
         scale_sb.setMaximum(9999999)
         scale_sb.setValue(1)
@@ -244,6 +268,7 @@ class OverlayWidget(QtWidgets.QWidget):
         self.scale_sbs.append(scale_sb)
 
         offset_sb = DoubleSpinBoxAlignRight()
+        offset_sb.setFixedWidth(80)
         offset_sb.setMinimum(-9999999)
         offset_sb.setMaximum(9999999)
         offset_sb.setValue(0)
@@ -252,15 +277,21 @@ class OverlayWidget(QtWidgets.QWidget):
         self.overlay_tw.setCellWidget(current_rows, 4, offset_sb)
         self.offset_sbs.append(offset_sb)
 
-        self.overlay_tw.setColumnWidth(0, 20)
-        self.overlay_tw.setColumnWidth(1, 25)
         self.overlay_tw.setRowHeight(current_rows, 25)
-
-        self.overlay_tw.horizontalHeader().setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
-        self.overlay_tw.horizontalHeader().setSectionResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
-
+        self.update_overlay_tw_column_sizes()
         self.select_overlay(current_rows)
         self.overlay_tw.blockSignals(False)
+
+    def update_overlay_tw_column_sizes(self):
+        self.overlay_tw.setColumnWidth(0, 20)
+        self.overlay_tw.setColumnWidth(1, 25)
+
+        self.overlay_tw.horizontalHeader().setSectionResizeMode(
+            3, QtWidgets.QHeaderView.ResizeToContents
+        )
+        self.overlay_tw.horizontalHeader().setSectionResizeMode(
+            4, QtWidgets.QHeaderView.ResizeToContents
+        )
 
     def select_overlay(self, ind):
         if self.overlay_tw.rowCount() > 0:
@@ -288,49 +319,13 @@ class OverlayWidget(QtWidgets.QWidget):
         else:
             self.select_overlay(self.overlay_tw.rowCount() - 1)
 
-    def move_overlay_up(self, ind):
-        new_ind = ind - 1
-        self.overlay_tw.blockSignals(True)
-        self.overlay_tw.insertRow(new_ind)
-        self.overlay_tw.setCellWidget(new_ind, 0, self.overlay_tw.cellWidget(ind + 1, 0))
-        self.overlay_tw.setCellWidget(new_ind, 1, self.overlay_tw.cellWidget(ind + 1, 1))
-        self.overlay_tw.setCellWidget(new_ind, 3, self.overlay_tw.cellWidget(ind + 1, 3))
-        self.overlay_tw.setCellWidget(new_ind, 4, self.overlay_tw.cellWidget(ind + 1, 4))
-        self.overlay_tw.setItem(new_ind, 2, self.overlay_tw.takeItem(ind + 1, 2))
-        self.overlay_tw.setCurrentCell(new_ind, 2)
-        self.overlay_tw.removeRow(ind + 1)
-        self.overlay_tw.setRowHeight(new_ind, 25)
-        self.overlay_tw.blockSignals(False)
-
-        self.color_btns.insert(new_ind, self.color_btns.pop(ind))
-        self.show_cbs.insert(new_ind, self.show_cbs.pop(ind))
-        self.scale_sbs.insert(new_ind, self.scale_sbs.pop(ind))
-        self.offset_sbs.insert(new_ind, self.offset_sbs.pop(ind))
-
-    def move_overlay_down(self, ind):
-        new_ind = ind + 2
-        self.overlay_tw.blockSignals(True)
-        self.overlay_tw.insertRow(new_ind)
-        self.overlay_tw.setCellWidget(new_ind, 0, self.overlay_tw.cellWidget(ind, 0))
-        self.overlay_tw.setCellWidget(new_ind, 1, self.overlay_tw.cellWidget(ind, 1))
-        self.overlay_tw.setCellWidget(new_ind, 3, self.overlay_tw.cellWidget(ind, 3))
-        self.overlay_tw.setCellWidget(new_ind, 4, self.overlay_tw.cellWidget(ind, 4))
-        self.overlay_tw.setItem(new_ind, 2, self.overlay_tw.takeItem(ind, 2))
-        self.overlay_tw.setCurrentCell(new_ind, 2)
-        self.overlay_tw.setRowHeight(new_ind, 25)
-        self.overlay_tw.removeRow(ind)
-        self.overlay_tw.blockSignals(False)
-
-        self.color_btns.insert(ind + 1, self.color_btns.pop(ind))
-        self.show_cbs.insert(ind + 1, self.show_cbs.pop(ind))
-        self.scale_sbs.insert(ind + 1, self.scale_sbs.pop(ind))
-        self.offset_sbs.insert(ind + 1, self.offset_sbs.pop(ind))
-
     def color_btn_click(self, button):
         self.color_btn_clicked.emit(self.color_btns.index(button), button)
 
     def show_cb_changed(self, checkbox):
-        self.show_cb_state_changed.emit(self.show_cbs.index(checkbox), checkbox.isChecked())
+        self.show_cb_state_changed.emit(
+            self.show_cbs.index(checkbox), checkbox.isChecked()
+        )
 
     def show_cb_set_checked(self, ind, state):
         checkbox = self.show_cbs[ind]
@@ -342,10 +337,20 @@ class OverlayWidget(QtWidgets.QWidget):
 
     def label_editingFinished(self, row, col):
         label_item = self.overlay_tw.item(row, col)
-        self.name_changed.emit(row, str(label_item.text()))
+        if label_item is not None:
+            self.name_changed.emit(row, str(label_item.text()))
+
+    def set_overlay_name(self, ind, label):
+        label_item = self.overlay_tw.item(ind, 2)
+        if label_item is not None:
+            label_item.setText(label)
 
     def scale_sb_callback(self, scale_sb):
-        self.scale_sb_value_changed.emit(self.scale_sbs.index(scale_sb), scale_sb.value())
+        self.scale_sb_value_changed.emit(
+            self.scale_sbs.index(scale_sb), scale_sb.value()
+        )
 
     def offset_sb_callback(self, offset_sb):
-        self.offset_sb_value_changed.emit(self.offset_sbs.index(offset_sb), offset_sb.value())
+        self.offset_sb_value_changed.emit(
+            self.offset_sbs.index(offset_sb), offset_sb.value()
+        )

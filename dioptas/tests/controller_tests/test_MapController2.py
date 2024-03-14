@@ -32,16 +32,13 @@ def dioptas_model():
 
 
 @pytest.fixture
-def map_controller(qapp, dioptas_model):
+def map_controller(qapp, dioptas_model: DioptasModel):
     """Fixture providing a MainController instance"""
     widget = MapWidget()
     model = dioptas_model
     controller = MapController(widget, model)
-    # controller.show_window()
     controller.widget.setAttribute(QtCore.Qt.WA_DeleteOnClose)
     QTest.qWaitForWindowExposed(controller.widget)
-    # controller.widget.activateWindow()
-    # controller.widget.raise_()
     try:
         yield controller
     finally:
@@ -49,7 +46,7 @@ def map_controller(qapp, dioptas_model):
 
 
 @pytest.fixture
-def map_model(map_controller):
+def map_model(map_controller) -> MapModel2:
     return map_controller.model.map_model
 
 
@@ -72,9 +69,16 @@ def mock_map_model(map_model: MapModel2):
     map_model.map_changed.emit()
 
 
+def mock_integrate_1d(map_controller: MapController):
+    map_controller.model.calibration_model.integrate_1d = MagicMock(
+        return_value=(np.arange(10), np.arange(10))
+    )
+
+
 def test_click_load_starts_creating_map(map_controller, map_model: MapModel2):
     map_model.load = MagicMock()
     mock_open_filenames(map_img_file_paths)
+    mock_integrate_1d(map_controller)
     map_controller.load_btn_clicked()
     map_model.load.assert_called_once_with(map_img_file_paths)
 
@@ -83,8 +87,32 @@ def test_click_load_empties_file_list_without_calibration(
     map_controller, map_model: MapModel2
 ):
     mock_open_filenames(map_img_file_paths)
+    QtWidgets.QMessageBox.critical = MagicMock()
     map_controller.load_btn_clicked()
 
+    assert map_controller.widget.control_widget.file_list.count() == 0
+    assert QtWidgets.QMessageBox.critical.assert_called_once
+
+
+def test_load_empty_filelist(map_controller, map_model: MapModel2):
+    mock_open_filenames([])
+    map_controller.load_btn_clicked()
+
+    assert map_controller.widget.control_widget.file_list.count() == 0
+
+
+def test_files_with_different_dimensions(map_controller, map_model: MapModel2):
+    load_calibration(map_controller)
+    mock_open_filenames(
+        [
+            os.path.join(data_path, "CeO2_Pilatus1M.tif"),
+            os.path.join(data_path, "image_001.tif"),
+        ]
+    )
+    QtWidgets.QMessageBox.critical = MagicMock()
+    map_controller.load_btn_clicked()
+    assert QtWidgets.QMessageBox.critical.assert_called_once
+    assert map_model.filepaths is None
     assert map_controller.widget.control_widget.file_list.count() == 0
 
 
@@ -92,13 +120,29 @@ def test_click_load_fills_file_list(map_controller, map_model: MapModel2):
     load_calibration(map_controller)
     assert map_controller.model.current_configuration.is_calibrated == True
     mock_open_filenames(map_img_file_paths)
+    mock_integrate_1d(map_controller)
     map_controller.load_btn_clicked()
 
     assert map_model.filepaths == map_img_file_paths
     assert map_controller.widget.control_widget.file_list.count() == len(
         map_img_file_paths
     )
-    assert map_controller.widget.control_widget.file_list.currentRow() == 0
+
+
+def test_mask_is_shown(map_controller):
+    img_model = map_controller.model.img_model
+    mask_model = map_controller.model.mask_model
+    img_model.load(map_img_file_paths[0])
+
+    map_controller.model.use_mask = True
+
+    mask = np.zeros_like(img_model.img_data, dtype=bool)
+    mask[0, 0] = True
+    mask_model.set_mask(mask)
+    img_model.img_changed.emit()
+
+    assert map_controller.widget.img_plot_widget.mask_data is not None
+    assert np.array_equal(map_controller.widget.img_plot_widget.mask_data, mask)
 
 
 def test_loading_files_plots_map(map_controller: MapController, map_model: MapModel2):
@@ -107,6 +151,7 @@ def test_loading_files_plots_map(map_controller: MapController, map_model: MapMo
     assert map_controller.widget.map_plot_widget.img_data is None
 
     mock_open_filenames(map_img_file_paths)
+    mock_integrate_1d(map_controller)
     map_controller.load_btn_clicked()
 
     plot_widget = map_controller.widget.map_plot_widget
@@ -123,6 +168,7 @@ def test_loading_files_also_plots_first_image(
     load_calibration(map_controller)
     assert map_controller.model.current_configuration.is_calibrated == True
     mock_open_filenames(map_img_file_paths)
+    mock_integrate_1d(map_controller)
     map_controller.load_btn_clicked()
 
     plot_widget = map_controller.widget.img_plot_widget
@@ -140,9 +186,9 @@ def test_loading_files_also_plots_first_image(
 def test_click_load_shows_error_if_not_calibrated(map_controller):
     mock_open_filenames(map_img_file_paths)
     assert map_controller.model.current_configuration.is_calibrated == False
+    QtWidgets.QMessageBox.critical = MagicMock()
     map_controller.load_btn_clicked()
-    map_widget = map_controller.widget
-    # TODO: decide what kind of error message and how to guide the user here
+    assert QtWidgets.QMessageBox.critical.assert_called_once
 
 
 def test_select_file_in_file_list_will_update_gui(map_controller):
@@ -166,10 +212,50 @@ def test_select_file_in_file_list_will_update_gui(map_controller):
     )
 
 
-def test_click_in_map_image_will_update_gui(map_controller):
+def test_mouse_click_item_in_map_plot_widget_updates_correctly(
+    map_controller, dioptas_model
+):
     load_calibration(map_controller)
     mock_open_filenames(map_img_file_paths)
     map_controller.load_btn_clicked()
+
+    click_x, click_y = map_controller.widget.map_plot_widget.mouse_click_item.getData()
+    assert click_x[0] == approx(0)
+    assert click_y[0] == approx(0)
+
+    map_controller.widget.control_widget.file_list.setCurrentRow(1)
+    # check that mouse click item in map_plot_widget has changed
+    click_x, click_y = map_controller.widget.map_plot_widget.mouse_click_item.getData()
+    assert click_x[0] == approx(1.5)
+    assert click_y[0] == approx(2.5)
+
+    # check that replotting does not change po
+    map_controller.widget.pattern_plot_widget.mouse_left_clicked.emit(10, 0)
+
+    click_x, click_y = map_controller.widget.map_plot_widget.mouse_click_item.getData()
+    assert click_x[0] == approx(1.5)
+    assert click_y[0] == approx(2.5)
+
+
+def test_select_file_in_file_list_integrates_1d_only_once(map_controller):
+    load_calibration(map_controller)
+    mock_open_filenames(map_img_file_paths[:2])
+    mock_integrate_1d(map_controller)
+    map_controller.load_btn_clicked()
+    load_call_count = map_controller.model.calibration_model.integrate_1d.call_count
+    map_controller.widget.control_widget.file_list.setCurrentRow(1)
+    assert (
+        map_controller.model.calibration_model.integrate_1d.call_count
+        == load_call_count + 1
+    )
+
+
+def test_click_in_map_image_will_update_gui(map_controller):
+    load_calibration(map_controller)
+    mock_open_filenames(map_img_file_paths)
+    mock_integrate_1d(map_controller)
+    map_controller.load_btn_clicked()
+    load_call_count = map_controller.model.calibration_model.integrate_1d.call_count
 
     # select second file in file list
     map_controller.widget.map_plot_widget.mouse_left_clicked.emit(2, 2)
@@ -178,6 +264,12 @@ def test_click_in_map_image_will_update_gui(map_controller):
         == map_img_file_paths[2]
     )
     assert map_controller.widget.control_widget.file_list.currentRow() == 2
+
+    # check that integrate_1d was called only once
+    assert (
+        map_controller.model.calibration_model.integrate_1d.call_count
+        == load_call_count + 1
+    )
 
 
 def test_click_in_pattern_will_update_region_of_interest(map_controller):
@@ -269,6 +361,7 @@ def test_map_dimension_cb_updates_correctly(map_controller, map_model):
 def test_changing_configuration_updates_gui(map_controller, dioptas_model):
     load_calibration(map_controller)
     mock_open_filenames(map_img_file_paths)
+    mock_integrate_1d(map_controller)
     map_controller.load_btn_clicked()
 
     map_config0 = map_controller.widget.map_plot_widget.img_data.copy()
@@ -302,3 +395,157 @@ def test_changing_configuration_updates_gui(map_controller, dioptas_model):
         for i in range(map_controller.widget.control_widget.file_list.count())
     ]
     assert items_text == list(reversed(map_img_file_names))
+
+
+def test_progress_dialog_is_shown(map_controller):
+    load_calibration(map_controller)
+    mock_open_filenames(map_img_file_paths)
+    mock_integrate_1d(map_controller)
+
+    QtWidgets.QProgressDialog.setValue = MagicMock()
+    map_controller.load_btn_clicked()
+
+    assert QtWidgets.QProgressDialog.setValue.call_count == len(map_img_file_paths)
+
+
+def test_phase_is_displayed(map_controller, dioptas_model):
+    load_calibration(map_controller)
+    mock_integrate_1d(map_controller)
+    mock_open_filenames(map_img_file_paths)
+    map_controller.load_btn_clicked()
+
+    pattern_widget = map_controller.widget.pattern_plot_widget
+
+    assert pattern_widget.phases == []
+
+    dioptas_model.phase_model.add_jcpds(os.path.join(data_path, "jcpds", "ar.jcpds"))
+    assert len(pattern_widget.phases) == 1
+
+
+def test_overlay_is_displayed(map_controller, dioptas_model: DioptasModel):
+    dioptas_model.overlay_model.add_overlay(np.arange(10), np.arange(10), "test")
+    pattern_widget = map_controller.widget.pattern_plot_widget
+
+    assert len(pattern_widget.overlays) == 1
+
+
+def test_green_line_in_pattern_plot(map_controller, dioptas_model):
+    pattern_widget = map_controller.widget.pattern_plot_widget
+
+    current_value = pattern_widget.get_pos_line()
+    assert current_value is 0
+
+    dioptas_model.clicked_tth_changed.emit(10)
+    assert dioptas_model.clicked_tth == 10
+    assert pattern_widget.get_pos_line() == 10
+
+    # change unit, so that position of the line needs to
+    # be in new unit
+    dioptas_model.integration_unit = "q_A^-1"
+    dioptas_model.clicked_tth_changed.emit(10)
+    assert dioptas_model.clicked_tth == 10
+    assert pattern_widget.get_pos_line() != 10
+
+
+def test_green_line_shown_in_image(map_controller, dioptas_model):
+    load_calibration(map_controller)
+    mock_open_filenames(map_img_file_paths[:1])
+    map_controller.load_btn_clicked()
+
+    img_widget = map_controller.widget.img_plot_widget
+    circle_plot_item = img_widget.circle_plot_items[0]
+    x, y = circle_plot_item.getData()
+    assert x is None
+    assert y is None
+
+    dioptas_model.clicked_tth_changed.emit(10)
+    x, y = circle_plot_item.getData()
+    assert len(x) > 0
+    assert len(y) > 0
+
+
+def test_green_line_shown_in_image_without_calibration(map_controller, dioptas_model):
+    img_widget = map_controller.widget.img_plot_widget
+    circle_plot_item = img_widget.circle_plot_items[0]
+
+    dioptas_model.clicked_tth_changed.emit(10)
+    x, y = circle_plot_item.getData()
+    assert x is None
+    assert y is None
+
+
+def test_clicking_image_updates_tth_and_azi(map_controller, dioptas_model):
+    load_calibration(map_controller)
+    mock_open_filenames(map_img_file_paths[:1])
+    map_controller.load_btn_clicked()
+
+    img_widget = map_controller.widget.img_plot_widget
+    assert dioptas_model.clicked_tth == 0
+    assert dioptas_model.clicked_azi == 0
+    img_widget.mouse_left_clicked.emit(100, 100)
+
+    assert dioptas_model.clicked_tth != 0
+    assert dioptas_model.clicked_azi != 0
+
+
+def test_pattern_mouse_move_displays_positions(
+    map_controller: MapController, dioptas_model: DioptasModel
+):
+    pattern_widget = map_controller.widget.pattern_plot_widget
+    pos_widget = (
+        map_controller.widget.pattern_footer_widget.mouse_unit_widget.cur_unit_widget
+    )
+    assert pos_widget.tth_lbl.text() == "2θ:"
+    pattern_widget.mouse_moved.emit(10, 20)
+    assert pos_widget.tth_lbl.text() == "2θ:%9.3f" % 10
+
+
+def test_img_mouse_move_displays_positions(
+    map_controller: MapController, dioptas_model: DioptasModel
+):
+    img_widget = map_controller.widget.img_plot_widget
+    pos_widget = (
+        map_controller.widget.pattern_footer_widget.mouse_unit_widget.cur_unit_widget
+    )
+    image_x = map_controller.widget.map_plot_control_widget.mouse_x_label
+    image_y = map_controller.widget.map_plot_control_widget.mouse_y_label
+    image_int = map_controller.widget.map_plot_control_widget.mouse_int_label
+    assert pos_widget.tth_lbl.text() == "2θ:"
+
+    img_widget.mouse_moved.emit(10, 20)
+    assert image_x.text() == "X: 10"
+    assert image_y.text() == "Y: 20"
+    assert image_int.text() == "I: 0"
+
+    load_calibration(map_controller)
+    dioptas_model.img_model.load(map_img_file_paths[0])
+    img_widget.mouse_moved.emit(100, 200)
+    tth = dioptas_model.calibration_model.get_two_theta_img(200, 100)
+    azi = dioptas_model.calibration_model.get_azi_img(200, 100)
+    assert pos_widget.tth_lbl.text() == "2θ:%9.3f" % np.rad2deg(tth)
+    assert pos_widget.azi_lbl.text() == "X:%9.3f" % np.rad2deg(azi)
+
+
+def test_change_integration_unit(
+    map_controller: MapController, dioptas_model: DioptasModel
+):
+    pattern_widget = map_controller.widget.pattern_plot_widget
+    pattern_plot = pattern_widget.pattern_plot
+    mock_integrate_1d(map_controller)
+    load_calibration(map_controller)
+
+    assert dioptas_model.integration_unit == "2th_deg"
+    assert pattern_plot.getAxis("bottom").labelText == "2θ"
+    assert pattern_plot.getAxis("bottom").labelUnits == "°"
+
+    dioptas_model.integration_unit = "q_A^-1"
+    assert pattern_plot.getAxis("bottom").labelText == "Q"
+    assert pattern_plot.getAxis("bottom").labelUnits == "Å⁻¹"
+
+    dioptas_model.integration_unit = "d_A"
+    assert pattern_plot.getAxis("bottom").labelText == "d"
+    assert pattern_plot.getAxis("bottom").labelUnits == "Å"
+
+    dioptas_model.integration_unit = "2th_deg"
+    assert pattern_plot.getAxis("bottom").labelText == "2θ"
+    assert pattern_plot.getAxis("bottom").labelUnits == "°"

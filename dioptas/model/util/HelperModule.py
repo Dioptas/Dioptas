@@ -49,7 +49,7 @@ class FileNameIterator(QtCore.QObject):
         else:
             self.complete_path = os.path.abspath(filename)
             self.directory, self.filename = os.path.split(self.complete_path)
-            self.acceptable_file_endings.append(self.filename.split('.')[-1])
+            self.acceptable_file_endings.append(self.filename.split(".")[-1])
 
     def _get_files_list(self):
         t1 = time.time()
@@ -61,7 +61,7 @@ class FileNameIterator(QtCore.QObject):
         paths = [os.path.join(self.directory, file) for file in files]
         file_list = [(os.path.getctime(path), path) for path in paths]
         self.filename_list = paths
-        print('Time needed  for getting files: {0}s.'.format(time.time() - t1))
+        print("Time needed  for getting files: {0}s.".format(time.time() - t1))
         return file_list
 
     def is_correct_file_type(self, filename):
@@ -75,7 +75,7 @@ class FileNameIterator(QtCore.QObject):
         self.ordered_file_list = self.file_list
         self.ordered_file_list.sort(key=lambda x: x[0])
 
-        print('Time needed  for ordering files: {0}s.'.format(time.time() - t1))
+        print("Time needed  for ordering files: {0}s.".format(time.time() - t1))
 
     def update_file_list(self):
         self.file_list = self._get_files_list()
@@ -83,7 +83,7 @@ class FileNameIterator(QtCore.QObject):
 
     def _iterate_file_number(self, path, step, pos=None):
         directory, file_str = os.path.split(path)
-        pattern = re.compile(r'\d+')
+        pattern = re.compile(r"\d+")
 
         match_iterator = pattern.finditer(file_str)
 
@@ -97,18 +97,20 @@ class FileNameIterator(QtCore.QObject):
                     left_str=file_str[:left_ind],
                     number=number,
                     len=right_ind - left_ind,
-                    right_str=file_str[right_ind:]
+                    right_str=file_str[right_ind:],
                 )
                 new_file_str_no_leading_zeros = "{left_str}{number}{right_str}".format(
                     left_str=file_str[:left_ind],
                     number=number,
-                    right_str=file_str[right_ind:]
+                    right_str=file_str[right_ind:],
                 )
                 new_complete_path = os.path.join(directory, new_file_str)
                 if os.path.exists(new_complete_path):
                     self.complete_path = new_complete_path
                     return new_complete_path
-                new_complete_path = os.path.join(directory, new_file_str_no_leading_zeros)
+                new_complete_path = os.path.join(
+                    directory, new_file_str_no_leading_zeros
+                )
                 if os.path.exists(new_complete_path):
                     self.complete_path = new_complete_path
                     return new_complete_path
@@ -116,7 +118,7 @@ class FileNameIterator(QtCore.QObject):
 
     def _iterate_folder_number(self, path, step, mec_mode=False):
         directory_str, file_str = os.path.split(path)
-        pattern = re.compile(r'\d+')
+        pattern = re.compile(r"\d+")
 
         match_iterator = pattern.finditer(directory_str)
 
@@ -129,12 +131,14 @@ class FileNameIterator(QtCore.QObject):
                 left_str=directory_str[:left_ind],
                 number=number,
                 len=right_ind - left_ind,
-                right_str=directory_str[right_ind:]
+                right_str=directory_str[right_ind:],
             )
             print(mec_mode)
             if mec_mode:
                 match_file_iterator = pattern.finditer(file_str)
-                for ind_file, match_file in enumerate(reversed(list(match_file_iterator))):
+                for ind_file, match_file in enumerate(
+                    reversed(list(match_file_iterator))
+                ):
                     if ind_file != 2:
                         continue
                     number_span = match_file.span()
@@ -145,7 +149,7 @@ class FileNameIterator(QtCore.QObject):
                         left_str=file_str[:left_ind],
                         number=number,
                         len=right_ind - left_ind,
-                        right_str=file_str[right_ind:]
+                        right_str=file_str[right_ind:],
                     )
                 new_complete_path = os.path.join(new_directory_str, new_file_str)
                 print(new_complete_path)
@@ -155,14 +159,14 @@ class FileNameIterator(QtCore.QObject):
                 self.complete_path = new_complete_path
                 return new_complete_path
 
-    def get_next_filename(self, step=1, filename=None, mode='number', pos=None):
+    def get_next_filename(self, step=1, filename=None, mode="number", pos=None):
         if filename is not None:
             self.complete_path = filename
 
         if self.complete_path is None:
             return None
 
-        if mode == 'time':
+        if mode == "time":
             time_stat = os.path.getctime(self.complete_path)
             cur_ind = self.ordered_file_list.index((time_stat, self.complete_path))
             # cur_ind = self.ordered_file_list.index(self.complete_path)
@@ -171,10 +175,10 @@ class FileNameIterator(QtCore.QObject):
                 return self.complete_path
             except IndexError:
                 return None
-        elif mode == 'number':
+        elif mode == "number":
             return self._iterate_file_number(self.complete_path, step, pos)
 
-    def get_previous_filename(self, step=1, filename=None, mode='number', pos=None):
+    def get_previous_filename(self, step=1, filename=None, mode="number", pos=None):
         """
         Tries to get the previous filename.
 
@@ -194,7 +198,7 @@ class FileNameIterator(QtCore.QObject):
         if self.complete_path is None:
             return None
 
-        if mode == 'time':
+        if mode == "time":
             time_stat = os.path.getctime(self.complete_path)
             cur_ind = self.ordered_file_list.index((time_stat, self.complete_path))
             # cur_ind = self.ordered_file_list.index(self.complete_path)
@@ -204,7 +208,7 @@ class FileNameIterator(QtCore.QObject):
                     return self.complete_path
                 except IndexError:
                     return None
-        elif mode == 'number':
+        elif mode == "number":
             return self._iterate_file_number(self.complete_path, -step, pos)
 
     def get_next_folder(self, filename=None, mec_mode=False):
@@ -227,18 +231,18 @@ class FileNameIterator(QtCore.QObject):
         self.complete_path = os.path.abspath(new_filename)
         new_directory, file_str = os.path.split(self.complete_path)
         try:
-            self.acceptable_file_endings.append(file_str.split('.')[-1])
+            self.acceptable_file_endings.append(file_str.split(".")[-1])
         except AttributeError:
             pass
         if self.directory != new_directory:
-            if self.directory is not None and self.directory != '':
+            if self.directory is not None and self.directory != "":
                 self.directory_watcher.removePath(self.directory)
             self.directory_watcher.addPath(new_directory)
             self.directory = new_directory
             if self.create_timed_file_list:
                 self.update_file_list()
 
-        if (self.create_timed_file_list and self.ordered_file_list == []):
+        if self.create_timed_file_list and self.ordered_file_list == []:
             self.update_file_list()
 
     def add_new_files_to_list(self):
@@ -247,9 +251,16 @@ class FileNameIterator(QtCore.QObject):
         :return:
         """
         cur_filename_list = os.listdir(self.directory)
-        cur_filename_list = [os.path.join(self.directory, filename) for filename in cur_filename_list if
-                             self.is_correct_file_type(filename)]
-        new_filename_list = [filename for filename in cur_filename_list if filename not in list(self.filename_list)]
+        cur_filename_list = [
+            os.path.join(self.directory, filename)
+            for filename in cur_filename_list
+            if self.is_correct_file_type(filename)
+        ]
+        new_filename_list = [
+            filename
+            for filename in cur_filename_list
+            if filename not in list(self.filename_list)
+        ]
         self.filename_list = cur_filename_list
         for filename in new_filename_list:
             creation_time = os.path.getctime(filename)
@@ -259,7 +270,9 @@ class FileNameIterator(QtCore.QObject):
                 else:
                     for ind in range(len(self.ordered_file_list)):
                         if creation_time < self.ordered_file_list[ind][0]:
-                            self.ordered_file_list.insert(ind, (creation_time, filename))
+                            self.ordered_file_list.insert(
+                                ind, (creation_time, filename)
+                            )
                             break
             else:
                 self.ordered_file_list.append((creation_time, filename))
@@ -275,8 +288,8 @@ def rotate_matrix_p90(matrix):
 
 def get_base_name(filename):
     str = os.path.basename(filename)
-    if '.' in str:
-        str = str.split('.')[:-1][0]
+    if "." in str:
+        str = str.split(".")[:-1][0]
     return str
 
 
@@ -285,6 +298,10 @@ def calculate_color(ind):
     v = 0.8
     h = (0.19 * (ind + 2)) % 1
     return np.array(hsv_to_rgb(h, s, v)) * 255
+
+
+def rgb_to_hex(rgb):
+    return "#%02x%02x%02x" % (int(rgb[0]), int(rgb[1]), int(rgb[2]))
 
 
 def convert_d_to_two_theta(d, wavelength):
@@ -331,7 +348,9 @@ def get_partial_value(array, ind):
     return value
 
 
-def reverse_interpolate_two_array(value1, array1, value2, array2, delta1=0.1, delta2=0.1):
+def reverse_interpolate_two_array(
+    value1, array1, value2, array2, delta1=0.1, delta2=0.1
+):
     """
     Tries to reverse interpolate two vales from two arrays with the same dimensions, and finds a common index
     for value1 and value2 in their respective arrays. the deltas define the search radius for a close value match
@@ -342,8 +361,12 @@ def reverse_interpolate_two_array(value1, array1, value2, array2, delta1=0.1, de
     tth_ind = np.argwhere(np.abs(array1 - value1) < delta1)
     azi_ind = np.argwhere(np.abs(array2 - value2) < delta2)
 
-    tth_ind_ravel = np.ravel_multi_index((tth_ind[:, 0], tth_ind[:, 1]), dims=array1.shape)
-    azi_ind_ravel = np.ravel_multi_index((azi_ind[:, 0], azi_ind[:, 1]), dims=array2.shape)
+    tth_ind_ravel = np.ravel_multi_index(
+        (tth_ind[:, 0], tth_ind[:, 1]), dims=array1.shape
+    )
+    azi_ind_ravel = np.ravel_multi_index(
+        (azi_ind[:, 0], azi_ind[:, 1]), dims=array2.shape
+    )
 
     common_ind_ravel = np.intersect1d(tth_ind_ravel, azi_ind_ravel)
     result_ind = np.unravel_index(common_ind_ravel, dims=array1.shape)

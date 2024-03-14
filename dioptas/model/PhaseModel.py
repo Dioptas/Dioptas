@@ -223,14 +223,14 @@ class PhaseModel(object):
         """
         Gets the line positions of phase with index ind in a specfic unit.
         :param ind: phase index
-        :param unit: unit for the positions, possible values: 'tth', 'q', 'd'
+        :param unit: unit for the positions, possible values: '2th_deg', 'q_A^-1', 'd_A'
         :param wavelength: wavelength in nm
         """
         positions = self.reflections[ind][:, 0]
-        if unit == 'q' or unit == 'tth':
+        if unit == 'q_A^-1' or unit == '2th_deg':
             positions = 2 * \
                         np.arcsin(wavelength / (2 * positions)) * 180.0 / np.pi
-            if unit == 'q':
+            if unit == 'q_A^-1':
                 positions = 4 * np.pi / wavelength * \
                             np.sin(positions / 360 * np.pi)
         return positions
@@ -273,7 +273,7 @@ class PhaseModel(object):
         return phase_line_intensities, baseline
 
     def get_rescaled_reflections(self, ind, pattern, x_range,
-                                 y_range, wavelength, unit='tth'):
+                                 y_range, wavelength, unit='2th_deg'):
 
         """
         Gets the phase line positions and intensities for a phase with index ind scaled to each other for a specific x
@@ -283,7 +283,7 @@ class PhaseModel(object):
         :param x_range: x range for which the relative intensities will be calculated
         :param y_range: y range for which the relative intensities will be calculated
         :param wavelength: wavelength in nm
-        :param unit: unit for the positions, possible values: 'tth', 'q', 'd'
+        :param unit: unit for the positions, possible values: '2th_deg', 'q_A^-1', 'd_A'
         :return: a tuple with: (array of positions, array of intensities, baseline value)
         """
         positions = self.get_phase_line_positions(ind, unit, wavelength)

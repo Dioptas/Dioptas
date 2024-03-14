@@ -17,14 +17,15 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import pytest
 import os
 from mock import MagicMock
 
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets
+from xypattern import Pattern
 
-from dioptas.tests.utility import enter_value_into_text_field, QtTest, click_button
-from dioptas.model.util.Pattern import Pattern
+from dioptas.tests.utility import enter_value_into_text_field, click_button
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, "data")

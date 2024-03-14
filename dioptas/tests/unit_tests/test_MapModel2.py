@@ -1,3 +1,4 @@
+from unittest.mock import MagicMock
 import pytest
 import os
 
@@ -6,13 +7,19 @@ from dioptas.model.MapModel2 import MapModel2
 from dioptas.tests.utility import unittest_data_path
 import numpy as np
 
-jcpds_path = os.path.join(unittest_data_path, 'jcpds')
-map_img_path = os.path.join(unittest_data_path, 'map')
-map_pattern_path = os.path.join(unittest_data_path, 'map', 'xy')
-map_img_file_names = [f for f in os.listdir(map_img_path) if os.path.isfile(os.path.join(map_img_path, f))]
-map_img_file_paths = [os.path.join(map_img_path, filename) for filename in map_img_file_names]
+jcpds_path = os.path.join(unittest_data_path, "jcpds")
+map_img_path = os.path.join(unittest_data_path, "map")
+map_pattern_path = os.path.join(unittest_data_path, "map", "xy")
+map_img_file_names = [
+    f for f in os.listdir(map_img_path) if os.path.isfile(os.path.join(map_img_path, f))
+]
+map_img_file_paths = [
+    os.path.join(map_img_path, filename) for filename in map_img_file_names
+]
 
-multi_file_img_path = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00000.nxs')
+multi_file_img_path = os.path.join(
+    unittest_data_path, "lambda", "testasapo1_1009_00002_m1_part00000.nxs"
+)
 
 
 @pytest.fixture
@@ -26,7 +33,9 @@ def map_model(configuration: Configuration) -> MapModel2:
 
 
 def test_create_map(map_model: MapModel2, configuration: Configuration):
-    configuration.calibration_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni"))
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
     map_model.load(map_img_file_paths)
     assert map_model.filepaths == map_img_file_paths
     assert len(map_model.pattern_intensities) == len(map_img_file_paths)
@@ -34,8 +43,35 @@ def test_create_map(map_model: MapModel2, configuration: Configuration):
     assert map_model.map.shape == (3, 3)
 
 
+def test_load_empty_filelist(map_model: MapModel2, configuration: Configuration):
+    with pytest.raises(ValueError):
+        map_model.load([])
+
+
+def test_load_files_with_different_dimensions(
+    map_model: MapModel2, configuration: Configuration
+):
+    file_paths = [
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.tif"),
+        os.path.join(unittest_data_path, "image_001.tif"),
+    ]
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    with pytest.raises(ValueError):
+        map_model.load(file_paths)
+    
+    assert map_model.filepaths is None
+    assert map_model.pattern_intensities is None
+    assert map_model.dimension is None
+    assert configuration.img_model.img_changed.blocked is False
+    assert configuration.trim_trailing_zeros is True
+
+
 def test_set_dimensions(map_model: MapModel2, configuration: Configuration):
-    configuration.calibration_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni"))
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
     map_model.load(map_img_file_paths[:6])
     assert len(map_model.pattern_intensities) == 6
     assert map_model.dimension == (2, 3)
@@ -51,7 +87,9 @@ def test_set_dimensions(map_model: MapModel2, configuration: Configuration):
 
 
 def test_set_wrong_dimensions(map_model: MapModel2, configuration: Configuration):
-    configuration.calibration_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni"))
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
     map_model.load(map_img_file_paths[:6])
     assert len(map_model.pattern_intensities) == 6
     assert map_model.dimension == (2, 3)
@@ -63,7 +101,9 @@ def test_set_wrong_dimensions(map_model: MapModel2, configuration: Configuration
 
 
 def test_set_different_window(map_model: MapModel2, configuration: Configuration):
-    configuration.calibration_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni"))
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
     map_model.load(map_img_file_paths[:6])
 
     map_model.set_window((15, 16))
@@ -74,7 +114,9 @@ def test_set_different_window(map_model: MapModel2, configuration: Configuration
 
 
 def test_get_point_information(map_model: MapModel2, configuration: Configuration):
-    configuration.calibration_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni"))
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
     map_model.load(map_img_file_paths[:6])
 
     assert map_model.dimension == (2, 3)
@@ -86,7 +128,9 @@ def test_get_point_information(map_model: MapModel2, configuration: Configuratio
 
 
 def test_use_multi_file_img(map_model: MapModel2, configuration: Configuration):
-    configuration.calibration_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni"))
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
     map_model.load([multi_file_img_path])
 
     img_model = configuration.img_model
@@ -94,3 +138,56 @@ def test_use_multi_file_img(map_model: MapModel2, configuration: Configuration):
     assert map_model.filepaths == [multi_file_img_path]
     assert img_model.series_max == 10
     assert map_model.pattern_intensities.shape[0] == 10
+
+
+def test_integrates_each_image_only_once(
+    map_model: MapModel2, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    x = np.linspace(0, 10, 100)
+    y = np.sin(x)
+    configuration.calibration_model.integrate_1d = MagicMock(return_value=(x, y))
+    map_model.load(map_img_file_paths)
+
+    assert configuration.calibration_model.integrate_1d.call_count == len(
+        map_img_file_paths
+    )
+
+
+def test_emits_point_integrated_signal(
+    map_model: MapModel2, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    # mock the integrate_1d method
+    x = np.linspace(0, 10, 100)
+    y = np.sin(x)
+    configuration.calibration_model.integrate_1d = MagicMock(return_value=(x, y))
+
+    listener = MagicMock()
+    map_model.point_integrated.connect(listener)
+
+    map_model.load(map_img_file_paths)
+    assert listener.call_count == 9
+    # assert listener.call_args_list == [(1), (2), (3), (4), (5), (6), (7), (8), (9)]
+
+
+def test_emits_point_integrated_signal_with_multiimage_file(
+    map_model: MapModel2, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    # mock the integrate_1d method
+    x = np.linspace(0, 10, 100)
+    y = np.sin(x)
+    configuration.calibration_model.integrate_1d = MagicMock(return_value=(x, y))
+
+    listener = MagicMock()
+    map_model.point_integrated.connect(listener)
+
+    map_model.load([multi_file_img_path])
+    assert listener.call_count == 10

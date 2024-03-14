@@ -1,0 +1,15 @@
+{
+  "external_actions":
+  [
+    {
+      "name": "Echo",
+      "command": "echo",
+      "arguments": ""
+    },
+    {
+      "name": "List files",
+      "command": "ls",
+      "arguments": ""
+    }
+  ]
+}

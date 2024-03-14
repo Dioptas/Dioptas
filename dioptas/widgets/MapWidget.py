@@ -23,7 +23,7 @@ from pyqtgraph import GraphicsLayoutWidget
 from dioptas.widgets.plot_widgets import PatternWidget
 from dioptas.widgets.plot_widgets.ImgWidget import IntegrationImgWidget
 
-from .CustomWidgets import HorizontalSpacerItem
+from .integration.CustomWidgets import MouseUnitCurrentAndClickedWidget
 
 
 class MapWidget(QtWidgets.QWidget):
@@ -55,6 +55,9 @@ class MapWidget(QtWidgets.QWidget):
         self.pattern_plot_widget = PatternWidget(self.pattern_pg_layout)
         self.pattern_plot_widget.show_map_interactive_roi()
 
+        self.pattern_footer_widget = PatternFooterWidget()
+        self.pattern_widget = QtWidgets.QWidget()
+
         self.control_widget = MapControlWidget()
 
     def create_layout(self):
@@ -68,15 +71,20 @@ class MapWidget(QtWidgets.QWidget):
         self._left_layout.addWidget(self.map_pg_layout)
         self._left_layout.addWidget(self.map_plot_control_widget)
 
-        self._upper_right_widget = QtWidgets.QWidget()
-        self._upper_right_widget.setLayout(self._upper_right_layout)
-        self._upper_right_layout.addWidget(self.img_pg_layout)
-        self._upper_right_layout.addWidget(self.control_widget)
+        self.upper_right_splitter = QtWidgets.QSplitter()
+        self.upper_right_splitter.setOrientation(QtCore.Qt.Horizontal)
+        self.upper_right_splitter.addWidget(self.img_pg_layout)
+        self.upper_right_splitter.addWidget(self.control_widget)
+
+        self._lower_right_layout = TightVBoxLayout()
+        self._lower_right_layout.addWidget(self.pattern_pg_layout)
+        self._lower_right_layout.addWidget(self.pattern_footer_widget)
+        self.pattern_widget.setLayout(self._lower_right_layout)
 
         self.vertical_splitter = QtWidgets.QSplitter(self)
         self.vertical_splitter.setOrientation(QtCore.Qt.Vertical)
-        self.vertical_splitter.addWidget(self._upper_right_widget)
-        self.vertical_splitter.addWidget(self.pattern_pg_layout)
+        self.vertical_splitter.addWidget(self.upper_right_splitter)
+        self.vertical_splitter.addWidget(self.pattern_widget)
 
         self.horizontal_splitter = QtWidgets.QSplitter()
         self.horizontal_splitter.setOrientation(QtCore.Qt.Horizontal)
@@ -116,6 +124,8 @@ class MapControlWidget(QtWidgets.QWidget):
 
     def create_layout(self):
         self._outer_layout = TightVBoxLayout()
+        self._outer_layout.setContentsMargins(0, 0, 0, 0)
+        self._outer_layout.setSpacing(5)
 
         self._outer_layout.addWidget(self.load_btn)
         self._outer_layout.addWidget(self.file_list)
@@ -149,16 +159,39 @@ class MapPlotControlWidget(QtWidgets.QWidget):
         self._mouse_pos_layout.addWidget(self.mouse_x_label)
         self._mouse_pos_layout.addWidget(self.mouse_y_label)
         self._mouse_pos_layout.addWidget(self.mouse_int_label)
-        self._mouse_pos_layout.addSpacerItem(HorizontalSpacerItem())
         self._left_layout.addLayout(self._mouse_pos_layout)
         self._left_layout.addWidget(self.filename_label)
-        self._outer_layout.addLayout(self._left_layout)
-        self._outer_layout.addSpacerItem(HorizontalSpacerItem())
         self._outer_layout.addWidget(QtWidgets.QLabel("Dim: "))
         self._outer_layout.addWidget(self.map_dimension_cb)
+        self._outer_layout.addStretch(1)
+        self._outer_layout.addLayout(self._left_layout)
         self.setLayout(self._outer_layout)
 
     def style_widgets(self):
-        self._outer_layout.setContentsMargins(6, 6, 0, 6)
-        self.mouse_x_label.setMinimumWidth(50)
-        self.mouse_y_label.setMinimumWidth(50)
+        self._outer_layout.setContentsMargins(6, 3, 0, 0)
+        self.mouse_x_label.setFixedWidth(50)
+        self.mouse_y_label.setFixedWidth(50)
+        self.mouse_int_label.setMinimumWidth(80)
+        self.setMinimumHeight(30)
+
+
+class PatternFooterWidget(QtWidgets.QWidget):
+    def __init__(self, *args, **kwargs):
+        super(PatternFooterWidget, self).__init__(*args, **kwargs)
+
+        self.create_widgets()
+        self.create_layout()
+        self.style_widgets()
+
+    def create_widgets(self):
+        self.mouse_unit_widget = MouseUnitCurrentAndClickedWidget()
+
+    def create_layout(self):
+        self._outer_layout = TightHBoxLayout()
+        self._outer_layout.addWidget(self.mouse_unit_widget)
+        self._outer_layout.addStretch(1)
+        self.setLayout(self._outer_layout)
+
+    def style_widgets(self):
+        self._outer_layout.setContentsMargins(6, 3, 6, 0)
+        self.setMinimumHeight(30)

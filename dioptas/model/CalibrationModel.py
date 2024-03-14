@@ -844,6 +844,10 @@ class CalibrationModel(object):
 
         :return  : two theta in radians
         """
+        if not isinstance(x, np.ndarray):
+            x = np.array([x])
+        if not isinstance(y, np.ndarray):
+            y = np.array([y])
         x *= self.supersampling_factor
         y *= self.supersampling_factor
 
@@ -861,6 +865,11 @@ class CalibrationModel(object):
 
         :return  : azimuth in radians
         """
+        # if float convert to np.array:
+        if not isinstance(x, np.ndarray):
+            x = np.array([x])
+        if not isinstance(y, np.ndarray):
+            y = np.array([y])
         x *= self.supersampling_factor
         y *= self.supersampling_factor
         return self.pattern_geometry.chi(x - 0.5, y - 0.5)[0]

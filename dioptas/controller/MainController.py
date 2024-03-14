@@ -21,6 +21,10 @@
 import os
 import json
 import datetime
+import threading
+import subprocess
+import shlex
+from functools import partial
 from sys import platform as _platform
 
 from qtpy import QtWidgets, QtCore
@@ -40,10 +44,15 @@ from dioptas import __version__
 
 class MainController(object):
     """
-    Creates a the main controller for Dioptas. Creates all the data objects and connects them with the other controllers
+    Creates the main controller for Dioptas. Creates all the data objects and connects them with the other controllers
     """
 
-    def __init__(self, use_settings=True, settings_directory="default"):
+    def __init__(self, use_settings=True, settings_directory="default", config_file=None):
+        """
+        :param use_settings: whether to use previously auto saved state of dioptas
+        :param settings_directory: directory where the settings are saved
+        :param config_file: a json file path with configuration, currently only used for quick_actions
+        """
         self.use_settings = use_settings
         self.widget = MainWidget()
 
@@ -64,6 +73,11 @@ class MainController(object):
         )
         self.map_controller = MapController(self.widget.map_widget, self.model)
 
+        self.calibration_controller.activate()
+        self.integration_controller.image_controller.deactivate()
+        self.map_controller.deactivate()
+        self.mask_controller.deactivate()
+
         self.configuration_controller = ConfigurationController(
             configuration_widget=self.widget.configuration_widget,
             dioptas_model=self.model,
@@ -81,6 +95,10 @@ class MainController(object):
         if use_settings:
             QtCore.QTimer.singleShot(0, self.load_default_settings)
             self.setup_backup_timer()
+
+        if config_file is not None:
+            self.configuration = json.load(open(config_file, "r"))
+            self.create_external_actions()
 
         self.current_tab_index = 0
 
@@ -103,7 +121,6 @@ class MainController(object):
         Creates subscriptions for changing tabs and also newly loaded files which will update the title of the main
                 window.
         """
-        self.widget.tabWidget.currentChanged.connect(self.tab_changed)
         self.widget.closeEvent = self.close_event
         self.widget.show_configuration_menu_btn.toggled.connect(
             self.widget.configuration_widget.setVisible
@@ -150,51 +167,42 @@ class MainController(object):
         old_index = self.current_tab_index
         self.current_tab_index = ind
 
-        # get the old view range
-        old_display_state = None
-        if old_index == 0:  # calibration tab
-            old_display_state = self.widget.calibration_widget.img_widget.get_display_state()
-        elif old_index == 1:  # mask tab
-            old_display_state = self.widget.mask_widget.img_widget.get_display_state()
-        elif old_index == 2: # integration tab
-            old_display_state = self.widget.integration_widget.img_widget.get_display_state()
-        elif old_index == 3: # map tab
-            old_display_state = self.widget.map_widget.img_plot_widget.get_display_state()
-
-        # update the GUI
-        if ind == 3:  # map tab
-            if old_display_state is not None:
-                self.widget.map_widget.img_plot_widget.set_display_state(*old_display_state)
-        elif ind == 2:  # integration tab
-            self.integration_controller.image_controller.plot_mask()
-            self.integration_controller.widget.calibration_lbl.setText(
-                self.model.calibration_model.calibration_name
-            )
-            self.integration_controller.widget.wavelength_lbl.setText(
-                "{:.4f}".format(self.model.calibration_model.wavelength * 1e10) + " A"
-            )
-            self.integration_controller.image_controller._auto_scale = False
-
-            if self.widget.integration_widget.img_mode == "Image":
-                self.integration_controller.image_controller.plot_img()
-
-            if self.model.use_mask:
+        # changing from mask tab will reintegrate the image
+        if old_index == 1:  # mask tab
+            if self.model.use_mask and self.model.calibration_model.is_calibrated:
                 self.model.current_configuration.integrate_image_1d()
                 if self.model.current_configuration.auto_integrate_cake:
                     self.model.current_configuration.integrate_image_2d()
+
+        # update the GUI
+        if ind == 2:  # integration tab
+            self.integration_controller.image_controller.update_image()
+
+        self.activate_mode(ind)
+        self.update_image_display_state(old_index, ind)
+
+    def activate_mode(self, mode_ind):
+        controllers = [
+            self.calibration_controller,
+            self.mask_controller,
+            self.integration_controller.image_controller,
+            self.map_controller
+        ]
+        for i, controller in enumerate(controllers):
+            if i == mode_ind:
+                controller.activate()
             else:
-                self.model.pattern_changed.emit()
-            if old_display_state is not None:
-                self.widget.integration_widget.img_widget.set_display_state(*old_display_state)
-        elif ind == 1:  # mask tab
-            self.mask_controller.plot_mask()
-            self.mask_controller.plot_image()
-            if old_display_state is not None:
-                self.widget.mask_widget.img_widget.set_display_state(*old_display_state)
-        elif ind == 0:  # calibration tab
-            self.calibration_controller.plot_mask()
-            if old_display_state is not None:
-                self.widget.calibration_widget.img_widget.set_display_state(*old_display_state)
+                controller.deactivate()
+
+    def update_image_display_state(self, old_index, new_index):
+        img_widgets = [
+            self.widget.calibration_widget.img_widget,
+            self.widget.mask_widget.img_widget,
+            self.widget.integration_widget.img_widget,
+            self.widget.map_widget.img_plot_widget
+        ]
+        old_display_state = img_widgets[old_index].get_display_state()
+        img_widgets[new_index].set_display_state(*old_display_state)
 
     def update_title(self):
         """
@@ -238,11 +246,11 @@ class MainController(object):
         if os.path.isfile(config_path):
             self.show_window()
             if QtWidgets.QMessageBox.Yes == QtWidgets.QMessageBox.question(
-                self.widget,
-                "Recovering previous state.",
-                "Should Dioptas recover your previous Work?",
-                QtWidgets.QMessageBox.Yes,
-                QtWidgets.QMessageBox.No,
+                    self.widget,
+                    "Recovering previous state.",
+                    "Should Dioptas recover your previous Work?",
+                    QtWidgets.QMessageBox.Yes,
+                    QtWidgets.QMessageBox.No,
             ):
                 self.model.load(os.path.join(self.settings_directory, "config.dio"))
             else:
@@ -323,10 +331,40 @@ class MainController(object):
 
     def reset_btn_clicked(self):
         if QtWidgets.QMessageBox.Yes == QtWidgets.QMessageBox.question(
-            self.widget,
-            "Resetting Dioptas.",
-            "Do you really want to reset Dioptas?\nAll unsaved work will be lost!",
-            QtWidgets.QMessageBox.Yes,
-            QtWidgets.QMessageBox.No,
+                self.widget,
+                "Resetting Dioptas.",
+                "Do you really want to reset Dioptas?\nAll unsaved work will be lost!",
+                QtWidgets.QMessageBox.Yes,
+                QtWidgets.QMessageBox.No,
         ):
             self.model.reset()
+
+    def create_external_actions(self):
+        self.widget.create_external_actions(self.configuration["external_actions"])
+        for action in self.configuration["external_actions"]:
+            self.widget.external_action_btns[action["name"]].clicked.connect(
+                partial(
+                    self.execute_action,
+                    action
+                )
+            )
+
+    def execute_action(self, action):
+        command = format(action["command"])
+        arguments = action["arguments"]
+        img_path = self.model.img_model.filename
+        frame_index = self.model.img_model.series_pos
+
+        combined_arguments = f"{arguments} \"{img_path}\" {frame_index}"
+        command_str = " ".join([command, combined_arguments])
+
+        # prepare command_str for Popen
+        args = shlex.split(command_str)
+
+        def run_command():
+            """Run the command with arguments pulse the image file path."""
+            subprocess.Popen(args, shell=True)
+
+        threading.Thread(target=run_command).start()
+
+        return command_str

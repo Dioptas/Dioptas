@@ -38,6 +38,7 @@ jobs:
 
     - name: Run tests
       run: |
+        poetry run py.test dioptas/tests/controller_tests/test_MainController.py
         poetry run py.test dioptas/tests/controller_tests/test_BackgroundController.py
         poetry run py.test dioptas/tests/controller_tests/test_CalibrationController.py
         poetry run py.test dioptas/tests/controller_tests/test_ConfigurationController.py

@@ -58,7 +58,7 @@ class PhaseController(object):
 
         self.cif_conversion_dialog = CifConversionParametersDialog(self.integration_widget)
 
-        self.phase_in_pattern_controller = PhaseInPatternController(self.integration_widget, dioptas_model)
+        self.phase_in_pattern_controller = PhaseInPatternController(self.integration_widget.pattern_widget, dioptas_model)
         self.phase_in_cake_controller = PhaseInCakeController(self.integration_widget, dioptas_model)
         self.phase_in_batch_controller = PhaseInBatchController(self.integration_widget.batch_widget, dioptas_model)
         self.jcpds_editor_controller = JcpdsEditorController(self.integration_widget, self.model)
@@ -195,7 +195,9 @@ class PhaseController(object):
                 self.add_btn_click_callback(filenames=phase)
                 row = self.phase_widget.phase_tw.rowCount() - 1
                 self.phase_widget.phase_show_cbs[row].setChecked(bool(use_flag))
-                self.phase_widget.phase_color_btns[row].setStyleSheet('background-color:' + color)
+                self.phase_widget.phase_color_btns[row].setStyleSheet(
+                    f"background-color: {color}; margin: 2px;"
+                )
                 self.pattern_widget.set_phase_color(row, color)
                 self.phase_widget.phase_tw.item(row, 2).setText(name)
                 self.phase_widget.set_phase_pressure(row, float(pressure))
@@ -222,7 +224,7 @@ class PhaseController(object):
                                                            self.phase_widget.phase_color_btns,
                                                            range(self.phase_widget.phase_tw.rowCount())):
                 phase_file.write(file_name + ',' + str(phase_cb.isChecked()) + ',' +
-                                 color_btn.styleSheet().replace('background-color:', '').replace(' ', '') + ',' +
+                                 color_btn.styleSheet().split(";")[0].replace('background-color:', '').replace(' ', '') + ',' +
                                  self.phase_widget.phase_tw.item(row, 2).text() + ',' +
                                  self.phase_widget.pressure_sbs[row].text() + ',' +
                                  self.phase_widget.temperature_sbs[row].text() + '\n')
@@ -251,7 +253,7 @@ class PhaseController(object):
         else:
             color = previous_color.toRgb()
         self.model.phase_model.set_color(ind, (color.red(), color.green(), color.blue()))
-        button.setStyleSheet('background-color:' + str(color.name()))
+        button.setStyleSheet(f"background-color: {color.name()}; margin: 2px;")
 
     def apply_to_all_callback(self):
         self.model.phase_model.same_conditions = self.phase_widget.apply_to_all_cb.isChecked()

@@ -35,7 +35,7 @@ from .CustomWidgets import (
     HorizontalLine,
 )
 
-from .. import style_path, icons_path
+from .. import icons_path
 
 
 class MainWidget(QtWidgets.QWidget):
@@ -51,6 +51,7 @@ class MainWidget(QtWidgets.QWidget):
 
         self._left_layout.addLayout(self._menu_layout)
         self._left_layout.addLayout(self._mode_layout)
+        self._left_layout.addLayout(self._external_actions_layout)
 
         self._outer_layout.addLayout(self._left_layout)
         self._outer_layout.addWidget(VerticalLine())
@@ -59,10 +60,6 @@ class MainWidget(QtWidgets.QWidget):
         self.configuration_widget = ConfigurationWidget(self)
         self.configuration_widget.setVisible(False)
         self._content_layout.addWidget(self.configuration_widget)
-
-        self.tabWidget = QtWidgets.QTabWidget()
-        self.tabWidget.setTabPosition(QtWidgets.QTabWidget.West)
-        self.tabWidget.setCurrentIndex(0)
 
         self._create_main_frame()
 
@@ -85,10 +82,13 @@ class MainWidget(QtWidgets.QWidget):
         self._content_layout.setContentsMargins(0, 6, 0, 0)
         self._left_layout.setContentsMargins(0, 0, 0, 0)
         self._left_layout.setSpacing(6)
+        self._external_actions_layout.setContentsMargins(6, 6, 6, 6)
+        self._external_actions_layout.setSpacing(6)
 
     def _create_layouts(self):
         self._outer_layout = QtWidgets.QHBoxLayout()
         self._left_layout = QtWidgets.QVBoxLayout()
+        self._external_actions_layout = QtWidgets.QVBoxLayout()
         self._content_layout = QtWidgets.QVBoxLayout()
         self._mode_layout = QtWidgets.QVBoxLayout()
 
@@ -131,9 +131,9 @@ class MainWidget(QtWidgets.QWidget):
         self._menu_layout.addWidget(self.menu_btn)
         self._menu_layout.addWidget(self.show_configuration_menu_btn)
 
-        self.save_btn = FlatButton("Save Project", self)
-        self.load_btn = FlatButton("Open Project", self)
-        self.reset_btn = FlatButton("Reset Project", self)
+        self.save_btn = FlatButton("Save Project")
+        self.load_btn = FlatButton("Open Project")
+        self.reset_btn = FlatButton("Reset Project")
 
     def _create_main_frame(self):
         self.main_frame = QtWidgets.QWidget(self)
@@ -157,6 +157,7 @@ class MainWidget(QtWidgets.QWidget):
         self.map_widget.setVisible(False)
 
         self._content_layout.addWidget(self.main_frame)
+        self._content_layout.setStretchFactor(self.main_frame, 100)
 
         self.style_widgets()
         self.add_tooltips()
@@ -175,6 +176,8 @@ class MainWidget(QtWidgets.QWidget):
         for btn in adjust_height_btns:
             btn.setHeight(button_height)
             btn.setWidth(button_width)
+
+        self.configuration_widget.setMaximumHeight(28)
 
     def _style_menu_btn(self):
         self.menu_btn.setFixedWidth(30)
@@ -196,7 +199,6 @@ class MainWidget(QtWidgets.QWidget):
 
     def add_menu_popup(self):
         self.menu_btn.clicked.connect(self.show_menu_popup)
-        self.show_menu_popup()
 
     def show_menu_popup(self):
         widget = MenuPopup(self, [self.load_btn, self.save_btn, self.reset_btn])
@@ -212,6 +214,13 @@ class MainWidget(QtWidgets.QWidget):
         self.calibration_mode_btn.setToolTip("Calibration Mode")
         self.mask_mode_btn.setToolTip("Mask Mode")
         self.integration_mode_btn.setToolTip("Integration Mode")
+
+    def create_external_actions(self, quick_actions):
+        self.external_action_btns = {}
+        for action in quick_actions:
+            btn = QtWidgets.QPushButton(action['name'])
+            self.external_action_btns[action['name']] = btn
+            self._external_actions_layout.addWidget(btn)
 
 
 class MenuPopup(QtWidgets.QFrame):

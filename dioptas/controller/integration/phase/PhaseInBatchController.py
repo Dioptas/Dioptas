@@ -11,13 +11,10 @@ class PhaseInBatchController(object):
     PhaseInBatchController handles all the interaction between the phase controls and the plotted lines in the cake view.
     """
 
-    def __init__(self, batch_widget, dioptas_model):
+    def __init__(self, batch_widget: BatchWidget, dioptas_model: DioptasModel):
         """
         :param batch_widget: Reference to an IntegrationWidget
         :param dioptas_model: reference to DioptasModel object
-
-        :type batch_widget: BatchWidget
-        :type dioptas_model: DioptasModel
         """
         self.model = dioptas_model
         self.phase_model = self.model.phase_model
@@ -57,7 +54,7 @@ class PhaseInBatchController(object):
         else:
             start_x, stop_x = self._get_x_range()
             cake_tth = self.model.batch_model.binning[start_x:stop_x]
-        reflections_tth = self.phase_model.get_phase_line_positions(ind, 'tth',
+        reflections_tth = self.phase_model.get_phase_line_positions(ind, '2th_deg',
                                                                     self.model.calibration_model.wavelength * 1e10)
         reflections_intensities = [reflex[1] for reflex in self.phase_model.reflections[ind]]
 
