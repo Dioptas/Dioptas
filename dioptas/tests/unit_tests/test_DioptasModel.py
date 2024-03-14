@@ -23,6 +23,7 @@ import os
 import numpy as np
 import pytest
 from mock import MagicMock
+from xypattern.pattern import SmoothBrucknerBackground
 
 from ...model.util import Pattern
 
@@ -172,6 +173,8 @@ def prepare_combined_patterns(model):
 
 def test_combine_patterns(dioptas_model):
     prepare_combined_patterns(dioptas_model)
+
+    assert dioptas_model.pattern is not None
     x3, y3 = dioptas_model.pattern.data
     assert np.min(x3) < 7
     assert np.max(x3) > 10
@@ -181,7 +184,7 @@ def test_save_combine_patterns(dioptas_model, tmp_path):
     prepare_combined_patterns(dioptas_model)
     file_path = os.path.join(tmp_path, "combined_pattern.xy")
     dioptas_model.pattern.save(file_path)
-    saved_pattern = Pattern().load(file_path)
+    saved_pattern = Pattern.from_file(file_path)
     x3, y3 = saved_pattern.data
     assert np.min(x3) < 7
     assert np.max(x3) > 10
@@ -257,7 +260,7 @@ def test_unit_change_with_auto_background_subtraction(dioptas_model):
     new_y = dioptas_model.pattern_model.pattern.y
     assert np.sum(y - new_y) != 0
 
-    x_bkg, y_bkg = dioptas_model.pattern_model.pattern.auto_background_pattern.data
+    x_bkg, _ = dioptas_model.pattern_model.pattern.auto_background_pattern.data
 
     # change the unit to q
     dioptas_model.integration_unit = "q_A^-1"
@@ -267,17 +270,16 @@ def test_unit_change_with_auto_background_subtraction(dioptas_model):
     x_max_q = np.max(x)
     assert x_max_q < x_max_2th
 
-    assert (
-        dioptas_model.pattern_model.pattern.auto_background_subtraction_parameters[0]
-        < 0.1
-    )
+    auto_bkg = dioptas_model.pattern_model.pattern.auto_bkg
+    assert type(auto_bkg) == SmoothBrucknerBackground
+    assert auto_bkg.smooth_width < 0.1
 
     # check that the background roi has changed
-    assert dioptas_model.pattern_model.pattern.auto_background_subtraction_roi != roi
-    assert dioptas_model.pattern_model.pattern.auto_background_subtraction
+    assert dioptas_model.pattern_model.pattern.auto_bkg_roi[1] != roi[1]
+    assert dioptas_model.pattern_model.pattern.auto_bkg is not None
 
     # check that the background pattern has changed:
-    x_bkg_2, y_bkg_2 = dioptas_model.pattern_model.pattern.auto_background_pattern.data
+    x_bkg_2, _ = dioptas_model.pattern_model.pattern.auto_background_pattern.data
     assert np.max(x_bkg) != np.max(x_bkg_2)
 
 

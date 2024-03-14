@@ -446,11 +446,12 @@ class DioptasModel(object):
         if not self.combine_patterns:
             return self.pattern_model.pattern
         else:
-            patterns = [
-                configuration.pattern_model.pattern
-                for configuration in self.configurations
-            ]
-            return combine_patterns(patterns)
+            return combine_patterns(
+                [
+                    configuration.pattern_model.pattern
+                    for configuration in self.configurations
+                ]
+            )
 
     @property
     def combine_patterns(self) -> bool:
