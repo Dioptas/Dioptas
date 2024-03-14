@@ -131,9 +131,10 @@ class ImageController(object):
         Plots the mask data.
         """
         if self.model.use_mask and self.widget.img_mode == 'Image':
+            self.widget.img_widget.activate_mask()
             self.widget.img_widget.plot_mask(self.model.mask_model.get_img())
         else:
-            self.widget.img_widget.plot_mask(np.zeros(self.model.mask_model.get_img().shape))
+            self.widget.img_widget.deactivate_mask()
 
     def update_mask_transparency(self):
         """

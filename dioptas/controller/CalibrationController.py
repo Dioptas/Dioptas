@@ -726,11 +726,10 @@ class CalibrationController(object):
         """
         state = self.widget.use_mask_cb.isChecked()
         if state:
+            self.widget.img_widget.activate_mask()
             self.widget.img_widget.plot_mask(self.model.mask_model.get_img())
         else:
-            self.widget.img_widget.plot_mask(
-                np.zeros(self.model.mask_model.get_img().shape)
-            )
+            self.widget.img_widget.deactivate_mask()
 
     def mask_transparent_status_changed(self, state):
         """
