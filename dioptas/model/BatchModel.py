@@ -7,9 +7,10 @@ import h5py
 import numpy as np
 from qtpy import QtCore
 from PIL import Image
+from xypattern.pattern import SmoothBrucknerBackground
 
-from .util import extract_background
-from .util.HelperModule import FileNameIterator
+from dioptas.model.util.Pattern import Pattern
+
 
 logger = logging.getLogger(__name__)
 
@@ -294,18 +295,18 @@ class BatchModel(QtCore.QObject):
         """
 
         bkg = np.zeros(self.data.shape)
+        auto_bkg = SmoothBrucknerBackground(*parameters)
         for i, y in enumerate(self.data):
-
             if callback_fn is not None:
                 if not callback_fn(i):
                     break
-            bkg[i] = extract_background(self.binning, y, *parameters)
+            bkg[i] = auto_bkg.extract_background(Pattern(self.binning, y))
         self.bkg = bkg
 
     def normalize(self, range_ind=(10, 30)):
         if self.data is None:
             return
-        average_intensities = np.mean(self.data[:, range_ind[0]:range_ind[1]], axis=1)
+        average_intensities = np.mean(self.data[:, range_ind[0] : range_ind[1]], axis=1)
         factors = average_intensities[0] / average_intensities
         self.data = (self.data.T * factors).T
 

@@ -3,7 +3,6 @@ import pytest
 
 import numpy as np
 
-from ...model.CalibrationModel import CalibrationModel
 from ...model.Configuration import Configuration
 from ...model.BatchModel import BatchModel, iterate_folder
 from ...model.util.Pattern import Pattern
@@ -12,12 +11,13 @@ import gc
 from mock import MagicMock
 
 unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, '../data')
-files = [os.path.join(data_path, 'lambda/testasapo1_1009_00002_m1_part00000.nxs'),
-         os.path.join(data_path, 'lambda/testasapo1_1009_00002_m1_part00001.nxs')]
+data_path = os.path.join(unittest_path, "../data")
+files = [
+    os.path.join(data_path, "lambda/testasapo1_1009_00002_m1_part00000.nxs"),
+    os.path.join(data_path, "lambda/testasapo1_1009_00002_m1_part00001.nxs"),
+]
 
-cal_file = os.path.join(data_path, 'lambda/L2.poni')
-
+cal_file = os.path.join(data_path, "lambda/L2.poni")
 
 
 @pytest.fixture()
@@ -25,14 +25,17 @@ def configuration():
     configuration = Configuration()
     yield configuration
 
+
 @pytest.fixture()
 def batch_model(configuration):
     configuration.calibration_model.load(cal_file)
     batch_model = BatchModel(configuration)
     batch_model.set_image_files(files)
 
-    pattern = Pattern().load(os.path.join(data_path, 'CeO2_Pilatus1M.xy'))
-    configuration.calibration_model.integrate_1d = MagicMock(return_value=(pattern.x, pattern.y))
+    pattern = Pattern.from_file(os.path.join(data_path, "CeO2_Pilatus1M.xy"))
+    configuration.calibration_model.integrate_1d = MagicMock(
+        return_value=(pattern.x, pattern.y)
+    )
     yield batch_model
 
 
