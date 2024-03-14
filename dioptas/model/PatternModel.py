@@ -159,19 +159,19 @@ class PatternModel(object):
         :param roi: array of size two with [x_min, x_max] specifying the range for the background subtraction
         will be performed
         """
-        roi = list(roi)
-        if roi[0] > roi[1]:
-            roi[0], roi[1] = roi[1], roi[0]
-
-        x, _ = self.pattern.original_data
         if roi is not None:
+            x, _ = self.pattern.original_data
+            roi = list(roi)
+
+            # make sure the roi is within the data range
+            if roi[0] > roi[1]:
+                roi[0], roi[1] = roi[1], roi[0]
             x_step = x[1] - x[0]
             roi[0] = roi[0] if roi[0] > x[0] else x[0] - x_step / 2
             roi[0] = roi[0] if roi[0] < x[-1] - 1.5 * x_step else x[-1] - 1.5 * x_step
             roi[1] = roi[1] if roi[1] < x[-1] else x[-1] + x_step / 2
             roi[1] = roi[1] if roi[1] > x[0] + 1.5 * x_step else x[0] + 1.5 * x_step
 
-        # only use the auto background subtraction if the roi is within the data range
         self.pattern.auto_bkg_roi = roi
         self.pattern.auto_bkg = SmoothBrucknerBackground(*parameters)
         self.pattern_changed.emit()
