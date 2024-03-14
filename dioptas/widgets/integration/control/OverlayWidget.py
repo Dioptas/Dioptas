@@ -258,6 +258,7 @@ class OverlayWidget(QtWidgets.QWidget):
         self.overlay_tw.setItem(current_rows, 2, QtWidgets.QTableWidgetItem(name))
 
         scale_sb = DoubleSpinBoxAlignRight()
+        scale_sb.setFixedWidth(70)
         scale_sb.setMinimum(-9999999)
         scale_sb.setMaximum(9999999)
         scale_sb.setValue(1)
@@ -267,6 +268,7 @@ class OverlayWidget(QtWidgets.QWidget):
         self.scale_sbs.append(scale_sb)
 
         offset_sb = DoubleSpinBoxAlignRight()
+        offset_sb.setFixedWidth(80)
         offset_sb.setMinimum(-9999999)
         offset_sb.setMaximum(9999999)
         offset_sb.setValue(0)
@@ -314,44 +316,6 @@ class OverlayWidget(QtWidgets.QWidget):
             self.select_overlay(ind)
         else:
             self.select_overlay(self.overlay_tw.rowCount() - 1)
-
-    # def move_overlay_up(self, ind):
-    #     new_ind = ind - 1
-    #     self.overlay_tw.blockSignals(True)
-    #     self.overlay_tw.insertRow(new_ind)
-    #     self.overlay_tw.setCellWidget(new_ind, 0, self.overlay_tw.cellWidget(ind + 1, 0))
-    #     self.overlay_tw.setCellWidget(new_ind, 1, self.overlay_tw.cellWidget(ind + 1, 1))
-    #     self.overlay_tw.setCellWidget(new_ind, 3, self.overlay_tw.cellWidget(ind + 1, 3))
-    #     self.overlay_tw.setCellWidget(new_ind, 4, self.overlay_tw.cellWidget(ind + 1, 4))
-    #     self.overlay_tw.setItem(new_ind, 2, self.overlay_tw.takeItem(ind + 1, 2))
-    #     self.overlay_tw.setCurrentCell(new_ind, 2)
-    #     self.overlay_tw.removeRow(ind + 1)
-    #     self.overlay_tw.setRowHeight(new_ind, 25)
-    #     self.overlay_tw.blockSignals(False)
-    #
-    #     self.color_btns.insert(new_ind, self.color_btns.pop(ind))
-    #     self.show_cbs.insert(new_ind, self.show_cbs.pop(ind))
-    #     self.scale_sbs.insert(new_ind, self.scale_sbs.pop(ind))
-    #     self.offset_sbs.insert(new_ind, self.offset_sbs.pop(ind))
-    #
-    # def move_overlay_down(self, ind):
-    #     new_ind = ind + 2
-    #     self.overlay_tw.blockSignals(True)
-    #     self.overlay_tw.insertRow(new_ind)
-    #     self.overlay_tw.setCellWidget(new_ind, 0, self.overlay_tw.cellWidget(ind, 0))
-    #     self.overlay_tw.setCellWidget(new_ind, 1, self.overlay_tw.cellWidget(ind, 1))
-    #     self.overlay_tw.setCellWidget(new_ind, 3, self.overlay_tw.cellWidget(ind, 3))
-    #     self.overlay_tw.setCellWidget(new_ind, 4, self.overlay_tw.cellWidget(ind, 4))
-    #     self.overlay_tw.setItem(new_ind, 2, self.overlay_tw.takeItem(ind, 2))
-    #     self.overlay_tw.setCurrentCell(new_ind, 2)
-    #     self.overlay_tw.setRowHeight(new_ind, 25)
-    #     self.overlay_tw.removeRow(ind)
-    #     self.overlay_tw.blockSignals(False)
-    #
-    #     self.color_btns.insert(ind + 1, self.color_btns.pop(ind))
-    #     self.show_cbs.insert(ind + 1, self.show_cbs.pop(ind))
-    #     self.scale_sbs.insert(ind + 1, self.scale_sbs.pop(ind))
-    #     self.offset_sbs.insert(ind + 1, self.offset_sbs.pop(ind))
 
     def color_btn_click(self, button):
         self.color_btn_clicked.emit(self.color_btns.index(button), button)

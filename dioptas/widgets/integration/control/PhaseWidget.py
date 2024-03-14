@@ -219,6 +219,7 @@ class PhaseWidget(QtWidgets.QWidget):
         self.phase_tw.setItem(current_rows, 2, name_item)
 
         pressure_sb = DoubleSpinBoxAlignRight()
+        pressure_sb.setFixedWidth(70)
         pressure_sb.setMinimum(-9999999)
         pressure_sb.setMaximum(9999999)
         pressure_sb.setValue(0)
@@ -228,6 +229,7 @@ class PhaseWidget(QtWidgets.QWidget):
         self.pressure_sbs.append(pressure_sb)
 
         temperature_sb = DoubleSpinBoxAlignRight()
+        temperature_sb.setFixedWidth(80)
         temperature_sb.setMinimum(-9999999)
         temperature_sb.setMaximum(9999999)
         temperature_sb.setValue(300)
