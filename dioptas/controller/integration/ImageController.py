@@ -385,7 +385,7 @@ class ImageController(object):
                 self.model.pattern_model.save_pattern(filename)
 
             # save the background subtracted filename
-            if self.model.pattern.has_background():
+            if self.model.pattern.auto_bkg is not None:
                 directory = os.path.join(working_directory, 'bkg_subtracted')
                 if not os.path.exists(directory):
                     os.mkdir(directory)
