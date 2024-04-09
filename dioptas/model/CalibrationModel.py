@@ -712,7 +712,7 @@ class CalibrationModel(object):
             else:
                 logger.error("Detector orientation is not supported: Saved .poni file is not compatible with pyFAI")
 
-        with open(filename, "a") as f:
+        with open(filename, "w") as f:
             PoniFile(poni_config).write(f)
 
         self.calibration_name = get_base_name(filename)
