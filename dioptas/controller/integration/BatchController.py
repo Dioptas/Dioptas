@@ -22,7 +22,7 @@ from glob import glob
 import os
 import typing
 
-from PyQt6.QtGui import QCloseEvent, QColorSpace, QMouseEvent
+from qtpy.QtGui import QCloseEvent, QColorSpace, QMouseEvent
 import numpy as np
 import h5py
 from qtpy import QtWidgets, QtCore
