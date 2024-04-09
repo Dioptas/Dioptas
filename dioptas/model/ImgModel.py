@@ -88,6 +88,9 @@ class ImgModel(object):
             {"name": "motors_info", "default": {}, "attribute": "motors_info"},
             {"name": "img_data_fabio", "default": None, "attribute": "_img_data_fabio"},
 
+            # Whether image data is flipped up-down when loaded (Defaut: None)
+            {"name": "img_data_flipud", "default": None, "attribute": "_img_data_flipud"},
+
             # current position in the loaded series of images, starting at 1
             {"name": "series_pos", "default": 1, "attribute": "series_pos"},
 
@@ -196,6 +199,7 @@ class ImgModel(object):
                 im.close()
                 return False
             data["img_data"] = np.array(im)[::-1]
+            data["img_data_flipud"] = True
             try:
                 data["file_info"] = self._get_file_info(im)
                 data["motors_info"] = self._get_motors_info(im)
@@ -215,7 +219,7 @@ class ImgModel(object):
         """
         if os.path.splitext(filename)[1].lower() == '.spe':
             spe = SpeFile(filename)
-            return {"img_data": spe.img}
+            return {"img_data": spe.img, "img_data_flipud": False}
         else:
             return None
 
@@ -231,6 +235,7 @@ class ImgModel(object):
             return {
                 "img_data_fabio": self.loader.fabio_image,
                 "img_data": self.loader.get_image(frame_index),
+                "img_data_flipud": True,
                 "series_max": self.loader.series_max,
                 "series_get_image": self.loader.get_image
             }
@@ -252,6 +257,7 @@ class ImgModel(object):
         if frame_index >= lambda_im.series_max:
             return None
         return {"img_data": lambda_im.get_image(frame_index),
+                "img_data_flipud": True,
                 "series_max": lambda_im.series_max,
                 "series_get_image": lambda_im.get_image}
 
@@ -270,6 +276,7 @@ class ImgModel(object):
         if frame_index >= karabo_file.series_max:
             return None
         return {"img_data": karabo_file.get_image(frame_index),
+                "img_data_flipud": False,
                 "series_max": karabo_file.series_max,
                 "series_get_image": karabo_file.get_image}
 
@@ -287,6 +294,7 @@ class ImgModel(object):
         self.selected_source = hdf5_image.image_sources[0]
 
         return {"img_data": hdf5_image.get_image(frame_index),
+                "img_data_flipud": False,
                 "series_max": hdf5_image.series_max,
                 "series_get_image": hdf5_image.get_image,
                 "sources": hdf5_image.image_sources,
@@ -574,6 +582,12 @@ class ImgModel(object):
         img_data = np.copy(self.raw_img_data)
         self._perform_img_transformations()
         return img_data
+
+    @property
+    def img_data_flipud(self):
+        """Whether or not image was flipped up-down during loading, or None if no image was loaded"""
+        return self._img_data_flipud
+
 
     def rotate_img_p90(self):
         """
