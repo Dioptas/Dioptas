@@ -683,6 +683,10 @@ class CalibrationModel(object):
         Loads a calibration file andsets all the calibration parameter.
         :param filename: filename for a *.poni calibration file
         """
+        if self.img_model.img_data_flipud is None:  # Make sure img_data_flipud is correctly set
+            logger.error("Cannot load .poni file without an opened image data file")
+            return
+
         poni_config = PoniFile(filename).as_dict()
         if not self._fix_poni_orientation(poni_config):
             logger.warning("Loading .poni file with an unexpected orientation: Calibration might be wrong!")
@@ -715,6 +719,10 @@ class CalibrationModel(object):
         Saves the current calibration parameters into a text file. Default extension is
         *.poni
         """
+        if self.img_model.img_data_flipud is None:  # Make sure img_data_flipud is correctly set
+            logger.error("Cannot save .poni file without an opened image data file")
+            return
+
         poni_config = self.cake_geometry.get_config()
         if not self._fix_poni_orientation(poni_config):
             logger.error("Detector orientation is not supported: Saved .poni file is not compatible with pyFAI")
