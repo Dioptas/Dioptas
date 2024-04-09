@@ -696,7 +696,7 @@ class CalibrationModel(object):
 
     def save(self, filename):
         """
-        Saves the current calibration parameters into a a text file. Default extension is
+        Saves the current calibration parameters into a text file. Default extension is
         *.poni
         """
         poni_config = self.cake_geometry.get_config()
