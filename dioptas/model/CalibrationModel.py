@@ -30,7 +30,10 @@ from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.blob_detection import BlobDetection
 from pyFAI.calibrant import Calibrant
 from pyFAI.detectors import Detector, ALL_DETECTORS, NexusDetector
+from pyFAI.detectors.orientation import Orientation
+
 from pyFAI.geometryRefinement import GeometryRefinement
+from pyFAI.io.ponifile import PoniFile
 from pyFAI.massif import Massif
 from skimage.measure import find_contours
 
@@ -655,10 +658,23 @@ class CalibrationModel(object):
         Loads a calibration file andsets all the calibration parameter.
         :param filename: filename for a *.poni calibration file
         """
+        poni_config = PoniFile(filename).as_dict()
+        if poni_config.get("poni_version", 1) >= 2.1 and "orientation" in poni_config["detector_config"]:
+            # Check orientation and patch it since pyFAI and Dioptas use different conventions:
+            # - Dioptas convention: origin at the top right when looking from the sample
+            # - Default pyFAI convention: origin at the bottom right when looking from the sample
+            orientation = poni_config["detector_config"]["orientation"]
+            if orientation == Orientation.TopRight:
+                poni_config["detector_config"]["orientation"] = Orientation.BottomRight
+            elif orientation == Orientation.BottomRight:
+                poni_config["detector_config"]["orientation"] = Orientation.TopRight
+            elif orientation != Orientation.Unspecified:
+                logger.warning("Loading .poni file with an unexpected orientation: Calibration might be wrong!")
+
         self.pattern_geometry = GeometryRefinement(
             wavelength=0.3344e-10, detector=self.detector, poni1=0, poni2=0
         )  # default params are necessary, otherwise fails...
-        self.pattern_geometry.load(filename)
+        self.pattern_geometry.set_config(poni_config)
         self.orig_pixel1 = self.pattern_geometry.pixel1
         self.orig_pixel2 = self.pattern_geometry.pixel2
 
@@ -683,7 +699,22 @@ class CalibrationModel(object):
         Saves the current calibration parameters into a a text file. Default extension is
         *.poni
         """
-        self.cake_geometry.save(filename)
+        poni_config = self.cake_geometry.get_config()
+        if poni_config.get("poni_version", 1) >= 2.1:
+            # Check orientation and patch it since pyFAI and Dioptas orientation conventions differ:
+            # - Dioptas convention: origin at the top right when looking from the sample
+            # - Default pyFAI convention: origin at the bottom right when looking from the sample
+            orientation = poni_config["detector_config"].pop("orientation", Orientation.Unspecified)
+            if orientation in (Orientation.Unspecified, Orientation.BottomRight):
+                poni_config["detector_config"]["orientation"] = Orientation.TopRight
+            elif orientation == Orientation.TopRight:
+                poni_config["detector_config"]["orientation"] = Orientation.BottomRight
+            else:
+                logger.error("Detector orientation is not supported: Saved .poni file is not compatible with pyFAI")
+
+        with open(filename, "a") as f:
+            PoniFile(poni_config).write(f)
+
         self.calibration_name = get_base_name(filename)
         self.filename = filename
 
