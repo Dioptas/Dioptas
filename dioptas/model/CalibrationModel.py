@@ -93,7 +93,7 @@ class CalibrationModel(object):
         self.is_calibrated = False
         self.use_mask = False
         self.filename = ""
-        self.calibration_name = "None"
+        self.calibration_name = ""
         self.polarization_factor = 0.99
         self.supersampling_factor = 1
         self.correct_solid_angle = True

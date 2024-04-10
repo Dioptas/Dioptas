@@ -125,3 +125,17 @@ def test_load_with_configuration(qapp, tmp_path):
             str(img_model.series_pos),
         ],
         shell=True)
+
+
+def test_title_is_shown_correctly(main_controller: MainController):
+    main_controller.model.img_model.load(os.path.join(data_path, "image_001.tif"))
+    title = main_controller.widget.windowTitle()
+    assert title.startswith("image_001.tif | Dioptas")
+    assert title.endswith("C. Prescher")
+
+    main_controller.model.calibration_model.load(os.path.join(data_path, "CeO2_Pilatus1M.poni"))
+    main_controller.model.img_changed.emit()
+    title = main_controller.widget.windowTitle()
+    assert title.startswith("image_001.tif, calibration: CeO2_Pilatus1M | Dioptas")
+    assert title.endswith("C. Prescher")
+

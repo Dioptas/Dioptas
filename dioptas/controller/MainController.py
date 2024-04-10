@@ -213,26 +213,23 @@ class MainController(object):
         pattern_filename = os.path.basename(self.model.pattern.filename)
         calibration_name = self.model.calibration_model.calibration_name
         year = datetime.datetime.now().year
-        str = "Dioptas " + __version__
+        dioptas_str = "Dioptas " + __version__ + " - © {} C. Prescher".format(year)
+
         if img_filename == "" and pattern_filename == "":
-            self.widget.setWindowTitle(str + " - © {} C. Prescher".format(year))
-            self.widget.integration_widget.img_frame.setWindowTitle(
-                str + " - © {} C. Prescher".format(year)
-            )
+            self.widget.setWindowTitle(dioptas_str)
+            self.widget.integration_widget.img_frame.setWindowTitle(dioptas_str)
             return
 
-        if img_filename != "" or pattern_filename != "":
-            str += " - ["
+        str = ""
         if img_filename != "":
             str += img_filename
         elif img_filename == "" and pattern_filename != "":
             str += pattern_filename
-        if not img_filename == pattern_filename:
+        if not img_filename == pattern_filename and pattern_filename != "":
             str += ", " + pattern_filename
-        if calibration_name is not None:
+        if calibration_name != "":
             str += ", calibration: " + calibration_name
-        str += "]"
-        str += " - © {} C. Prescher".format(year)
+        str += " | " + dioptas_str 
         self.widget.setWindowTitle(str)
         self.widget.integration_widget.img_frame.setWindowTitle(str)
 
