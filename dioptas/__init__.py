@@ -37,7 +37,7 @@ try:
 except ImportError:
     make_shortcut = None
 
-__version__ = "0.6.0-alpha.1"
+__version__ = "0.6.0"
 
 from .paths import resources_path, calibrants_path, icons_path, data_path, style_path
 from .excepthook import excepthook
@@ -56,7 +56,7 @@ def main():
         css_file=qss_path,
         extra={"density_scale": -2},
     )
-    # sys.excepthook = excepthook
+    sys.excepthook = excepthook
     print("Dioptas {}".format(__version__))
 
     if len(sys.argv) == 1:  # normal start
@@ -67,20 +67,23 @@ def main():
         if sys.argv[1] == "test":
             controller = MainController(use_settings=False)
             controller.show_window()
+
         elif sys.argv[1].startswith("makeshortcut"):
             if make_shortcut is None:
                 raise ImportError("pyshortcuts not installed.  Try `pip install pyshortcuts`")
-            bindir = "Scripts" if os.name == "nt" else "bin"
+            binary_dir = "Scripts" if os.name == "nt" else "bin"
             make_shortcut(
-                os.path.join(sys.exec_prefix, bindir, "dioptas"),
+                os.path.join(sys.exec_prefix, binary_dir, "dioptas"),
                 name = "Dioptas",
                 description="Dioptas 2D XRD {}".format(__version__),
                 icon=os.path.join(icons_path, "icon")
                 )
+
         elif sys.argv[1].startswith("version"):
             print(__version__)
-            controller = MainController(config_file=sys.argv[1])
+
         elif sys.argv[1].endswith(".json"):
+            controller = MainController(config_file=sys.argv[1])
             controller.show_window()
             app.exec_()
     del app
