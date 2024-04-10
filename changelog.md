@@ -1,4 +1,7 @@
-# 0.6.0 (under development)
+# 0.6.0 (10.04.2024)
+
+Codewise this is the biggest upgrade since the release of Dioptas. Over 3000 commits (changes) since 0.5.9
+have been made.
 
 ## New Features
     - Complete GUI overhaul with a Material inspired design
@@ -15,6 +18,7 @@
       not an error anymore
     - when the automatic refinement will not find any points it will show a critical message 
       box with this information and the program does not show an error
+    - many small improvements
     
 
 # 0.5.9 (stable 13.11.2023)
