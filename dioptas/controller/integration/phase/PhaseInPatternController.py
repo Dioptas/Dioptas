@@ -20,7 +20,7 @@
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ....model.DioptasModel import DioptasModel
-from ....widgets.integration.display import PatternWidget
+from ....widgets.plot_widgets import PatternWidget
 
 
 class PhaseInPatternController(object):
@@ -73,7 +73,7 @@ class PhaseInPatternController(object):
                 x_range,
                 y_range,
                 self.model.calibration_model.wavelength * 1e10,
-                self.model.integration_unit
+                self.model.integration_unit,
             )
         )
 
@@ -103,7 +103,7 @@ class PhaseInPatternController(object):
                 x_range,
                 y_range,
                 self.model.calibration_model.wavelength * 1e10,
-                self.model.integration_unit
+                self.model.integration_unit,
             )
         )
 

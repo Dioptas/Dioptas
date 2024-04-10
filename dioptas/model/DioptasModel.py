@@ -21,12 +21,13 @@
 import os
 from scipy.interpolate import interp2d
 import numpy as np
-
 import h5py
+
+from xypattern import Pattern
+from xypattern.combine import stitch_patterns
 
 from .util import Signal
 from .util import jcpds
-from .util.Pattern import Pattern, combine_patterns
 from .Configuration import Configuration
 from . import (
     ImgModel,
@@ -144,8 +145,9 @@ class DioptasModel(object):
             )  # need to fill the ind string, in order to keep it
             # ordered also for larger numbers of overlays
             ov.attrs["name"] = overlay.name
-            ov.create_dataset("x", overlay.original_x.shape, "f", overlay.original_x)
-            ov.create_dataset("y", overlay.original_y.shape, "f", overlay.original_y)
+            x, y = overlay.original_data
+            ov.create_dataset("x", x.shape, "f", x)
+            ov.create_dataset("y", y.shape, "f", y)
             ov.attrs["scaling"] = overlay.scaling
             ov.attrs["offset"] = overlay.offset
 
@@ -446,11 +448,12 @@ class DioptasModel(object):
         if not self.combine_patterns:
             return self.pattern_model.pattern
         else:
-            patterns = [
-                configuration.pattern_model.pattern
-                for configuration in self.configurations
-            ]
-            return combine_patterns(patterns)
+            return stitch_patterns(
+                [
+                    configuration.pattern_model.pattern
+                    for configuration in self.configurations
+                ]
+            )
 
     @property
     def combine_patterns(self) -> bool:

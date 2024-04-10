@@ -93,7 +93,7 @@ class CalibrationModel(object):
         self.is_calibrated = False
         self.use_mask = False
         self.filename = ""
-        self.calibration_name = "None"
+        self.calibration_name = ""
         self.polarization_factor = 0.99
         self.supersampling_factor = 1
         self.correct_solid_angle = True
@@ -844,6 +844,10 @@ class CalibrationModel(object):
 
         :return  : two theta in radians
         """
+        if not isinstance(x, np.ndarray):
+            x = np.array([x])
+        if not isinstance(y, np.ndarray):
+            y = np.array([y])
         x *= self.supersampling_factor
         y *= self.supersampling_factor
 
@@ -861,6 +865,11 @@ class CalibrationModel(object):
 
         :return  : azimuth in radians
         """
+        # if float convert to np.array:
+        if not isinstance(x, np.ndarray):
+            x = np.array([x])
+        if not isinstance(y, np.ndarray):
+            y = np.array([y])
         x *= self.supersampling_factor
         y *= self.supersampling_factor
         return self.pattern_geometry.chi(x - 0.5, y - 0.5)[0]

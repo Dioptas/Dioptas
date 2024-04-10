@@ -17,24 +17,27 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import os
 import numpy as np
 import pytest
 from pytest import approx
 
-from ...model.util.Pattern import BkgNotInRangeError
-from ...model.util import Pattern
+from xypattern import Pattern
+from xypattern.pattern import BkgNotInRangeError
+from xypattern.auto_background import SmoothBrucknerBackground
+
 from ...model.util.PeakShapes import gaussian
 
 unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, '../data')
+data_path = os.path.join(unittest_path, "../data")
 
 
 def test_loading_chi_file():
     spec = Pattern()
     x, y = spec.data
 
-    spec.load(os.path.join(data_path, 'pattern_001.chi'))
+    spec.load(os.path.join(data_path, "pattern_001.chi"))
     new_x, new_y = spec.data
 
     assert len(x) != len(new_x)
@@ -43,12 +46,13 @@ def test_loading_chi_file():
 
 def test_loading_invalid_file():
     pattern = Pattern()
-    assert -1 == pattern.load(os.path.join(data_path, 'wrong_file_format.txt'))
+    with pytest.raises(ValueError):
+        pattern.load(os.path.join(data_path, "wrong_file_format.txt"))
 
 
 def test_saving_a_file(tmp_path):
     x = np.linspace(-5, 5, 100)
-    y = x ** 2
+    y = x**2
     pattern = Pattern(x, y)
     filename = os.path.join(tmp_path, "test.dat")
     pattern.save(filename)
@@ -68,23 +72,23 @@ def test_plus_and_minus_operators():
 
     pattern3 = pattern1 + pattern2
     assert np.array_equal(pattern3.y, np.sin(x) * 2)
-    assert np.array_equal(pattern2.original_y, np.sin(x) * 1)
-    assert np.array_equal(pattern1.original_y, np.sin(x) * 1)
+    assert np.array_equal(pattern2._original_y, np.sin(x) * 1)
+    assert np.array_equal(pattern1._original_y, np.sin(x) * 1)
 
     pattern3 = pattern1 + pattern1
     assert np.array_equal(pattern3.y, np.sin(x) * 2)
-    assert np.array_equal(pattern1.original_y, np.sin(x) * 1)
-    assert np.array_equal(pattern1.original_y, np.sin(x) * 1)
+    assert np.array_equal(pattern1._original_y, np.sin(x) * 1)
+    assert np.array_equal(pattern1._original_y, np.sin(x) * 1)
 
     pattern3 = pattern2 - pattern1
     assert np.array_equal(pattern3.y, np.sin(x) * 0)
-    assert np.array_equal(pattern2.original_y, np.sin(x) * 1)
-    assert np.array_equal(pattern1.original_y, np.sin(x) * 1)
+    assert np.array_equal(pattern2._original_y, np.sin(x) * 1)
+    assert np.array_equal(pattern1._original_y, np.sin(x) * 1)
 
     pattern3 = pattern1 - pattern1
     assert np.array_equal(pattern3.y, np.sin(x) * 0)
-    assert np.array_equal(pattern1.original_y, np.sin(x) * 1)
-    assert np.array_equal(pattern1.original_y, np.sin(x) * 1)
+    assert np.array_equal(pattern1._original_y, np.sin(x) * 1)
+    assert np.array_equal(pattern1._original_y, np.sin(x) * 1)
 
 
 def test_plus_and_minus_operators_with_different_shapes():
@@ -115,7 +119,7 @@ def test_multiply_with_scalar_operator():
 
 def test_using_background_pattern():
     x = np.linspace(-5, 5, 100)
-    pattern_y = x ** 2
+    pattern_y = x**2
     bkg_y = x
 
     spec = Pattern(x, pattern_y)
@@ -130,7 +134,7 @@ def test_using_background_pattern():
 
 def test_using_background_pattern_with_different_spacing():
     x = np.linspace(-5, 5, 100)
-    pattern_y = x ** 2
+    pattern_y = x**2
     x_bkg = np.linspace(-5, 5, 99)
     bkg_y = x_bkg
 
@@ -171,12 +175,13 @@ def test_automatic_background_subtraction():
 
     pattern = Pattern(x, y_measurement)
 
-    auto_background_subtraction_parameters = [2, 50, 50]
-    pattern.set_auto_background_subtraction(auto_background_subtraction_parameters)
+    pattern.auto_bkg = SmoothBrucknerBackground(
+        smooth_width=2, iterations=50, cheb_order=50
+    )
 
-    x_spec, y_spec = pattern.data
+    _, y_pattern = pattern.data
 
-    assert y_spec == approx(y, abs=1e-4)
+    assert y_pattern == approx(y, abs=1e-4)
 
 
 def test_automatic_background_subtraction_with_roi():
@@ -193,17 +198,18 @@ def test_automatic_background_subtraction_with_roi():
     y_bkg = x * 0.4 + 5.0
     y_measurement = y + y_bkg
 
-    roi = [1, 23]
-
     pattern = Pattern(x, y_measurement)
 
-    auto_background_subtraction_parameters = [2, 50, 50]
-    pattern.set_auto_background_subtraction(auto_background_subtraction_parameters, roi)
+    roi = [1, 23]
+    pattern.auto_bkg_roi = roi
+    pattern.auto_bkg = SmoothBrucknerBackground(
+        smooth_width=2, iterations=50, cheb_order=50
+    )
 
-    x_spec, y_spec = pattern.data
+    x_pattern, _ = pattern.data
 
-    assert x_spec[0] > roi[0]
-    assert x_spec[-1] < roi[1]
+    assert x_pattern[0] > roi[0]
+    assert x_pattern[-1] < roi[1]
 
 
 def test_setting_new_data():
@@ -219,7 +225,7 @@ def test_setting_new_data():
 
 def test_using_len():
     x = np.linspace(0, 10, 234)
-    y = x ** 2
+    y = x**2
     spec = Pattern(x, y)
 
     assert len(spec) == 234

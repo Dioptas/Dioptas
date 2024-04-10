@@ -20,8 +20,9 @@ from qtpy import QtCore
 import numpy as np
 import re
 
+from xypattern import Pattern
+
 from .BatchModel import BatchModel
-from .util.Pattern import Pattern
 
 
 class MapModel(BatchModel):

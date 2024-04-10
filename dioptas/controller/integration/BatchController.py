@@ -20,7 +20,9 @@
 
 from glob import glob
 import os
+import typing
 
+from qtpy.QtGui import QCloseEvent, QColorSpace, QMouseEvent
 import numpy as np
 import h5py
 from qtpy import QtWidgets, QtCore
@@ -45,13 +47,10 @@ class BatchController(object):
     well as interaction with the image_view.
     """
 
-    def __init__(self, widget, dioptas_model):
+    def __init__(self, widget: IntegrationWidget, dioptas_model: DioptasModel):
         """
         :param widget: Reference to IntegrationView
         :param dioptas_model: Reference to DioptasModel object
-
-        :type widget: IntegrationWidget
-        :type dioptas_model: DioptasModel
         """
         self.widget = widget
         self.model = dioptas_model
@@ -217,9 +216,10 @@ class BatchController(object):
     def show_batch_frame(self):
         self.widget.batch_widget.raise_widget()
 
-    def close_batch_frame(self, event):
+    def close_batch_frame(self, a0: typing.Optional[QCloseEvent]) -> None:
         self.widget.batch_widget.hide()
-        event.ignore()
+        if a0 is not None:
+            a0.ignore()
 
     def set_3d_view_f(self):
         pg_layout = self.widget.batch_widget.surface_widget.surface_view.pg_layout
@@ -583,12 +583,12 @@ class BatchController(object):
                 self.min_val[scale] = val
         self.min_val["current"] = self.min_val[scale]
 
-    def change_scale_log(self, ev):
+    def change_scale_log(self, e: typing.Optional[QMouseEvent]):
         """
         Change scale to log. Edit hard minimum of image value
         """
         self.widget.batch_widget.options_widget.scale_log_btn.setChecked(True)
-        self.set_hard_minimum(ev, "log")
+        self.set_hard_minimum(e, "log")
         self.scale = np.log10
         self.plot_batch()
 
@@ -986,7 +986,7 @@ class BatchController(object):
         start_x = 0
         stop_x = self.model.batch_model.data.shape[1]
         if self.widget.batch_widget.options_widget.bkg_cut_btn.isChecked():
-            bkg_roi = self.model.pattern_model.pattern.auto_background_subtraction_roi
+            bkg_roi = self.model.pattern_model.pattern.auto_bkg_roi
             if bkg_roi is not None:
                 bkg_roi = self.convert_x_value(
                     np.array(bkg_roi),
@@ -1003,7 +1003,7 @@ class BatchController(object):
         """
         Update linear region of 2D-view to background roi
         """
-        bkg_roi = self.model.pattern_model.pattern.auto_background_subtraction_roi
+        bkg_roi = self.model.pattern_model.pattern.auto_bkg_roi
         if self.model.batch_model.binning is not None and bkg_roi is not None:
             bkg_roi = self.convert_x_value(
                 np.array(bkg_roi),
@@ -1068,7 +1068,7 @@ class BatchController(object):
                         f"{name}_{y:03d}{ext}"
                     )
 
-                    if self.model.pattern_model.pattern.auto_background_subtraction:
+                    if self.model.pattern_model.pattern.auto_bkg is not None:
                         bkg_directory = os.path.join(
                             os.path.dirname(filename), "bkg_subtracted"
                         )

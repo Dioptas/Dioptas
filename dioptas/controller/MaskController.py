@@ -33,7 +33,6 @@ from ..model.DioptasModel import DioptasModel
 
 
 class MaskController(object):
-
     DEFAULT_MASK_FILTER = 'Mask (*.mask)'
     FLIPUD_MASK_FILTER_PREFIX = 'Vertically flipped mask'
 
@@ -59,10 +58,6 @@ class MaskController(object):
 
     def create_signals(self):
         self.widget.img_widget.mouse_left_clicked.connect(self.process_click)
-
-        self.model.img_changed.connect(self.update_mask_dimension)
-        self.model.configuration_selected.connect(self.update_gui)
-
         self.widget.circle_btn.clicked.connect(self.activate_circle_btn)
         self.widget.rectangle_btn.clicked.connect(self.activate_rectangle_btn)
         self.widget.polygon_btn.clicked.connect(self.activate_polygon_btn)
@@ -89,6 +84,25 @@ class MaskController(object):
         self.widget.img_widget.mouse_moved.connect(self.show_img_mouse_position)
 
         self.widget.keyPressEvent = self.key_press_event
+
+        self.model.img_changed.connect(self.update_mask_dimension)
+        self.model.configuration_selected.connect(self.update_gui)
+
+    def activate_model_signals(self):
+        if not self.model.img_changed.has_listener(self.update_mask_dimension):
+            self.model.img_changed.connect(self.update_mask_dimension)
+        if not self.model.configuration_selected.has_listener(self.update_gui):
+            self.model.configuration_selected.connect(self.update_gui)
+
+    def activate(self):
+        self.activate_model_signals()
+        self.update_gui()
+
+    def deactivate(self):
+        if self.model.img_changed.has_listener(self.update_mask_dimension):
+            self.model.img_changed.disconnect(self.update_mask_dimension)
+        if self.model.configuration_selected.has_listener(self.update_gui):
+            self.model.configuration_selected.disconnect(self.update_gui)
 
     def update_mask_dimension(self):
         self.model.mask_model.set_dimension(self.model.img_model._img_data.shape)
@@ -268,7 +282,7 @@ class MaskController(object):
             self.widget.img_widget.mouse_moved.disconnect(self.arc_calc_and_preview)
             if (self.arc.vertices[0].x() == self.arc.vertices[2].x() and self.arc.vertices[0].y() == self.arc.vertices[
                 2].y()) or (self.arc.vertices[1].x() == self.arc.vertices[2].x() and self.arc.vertices[1].y() ==
-                self.arc.vertices[2].y()):
+                            self.arc.vertices[2].y()):
                 self.remove_bad_arc()
                 return
             self.widget.img_widget.mouse_moved.connect(self.arc_width_preview)
@@ -485,7 +499,7 @@ class MaskController(object):
         self.widget.pos_lbl.setText(str)
 
     def update_gui(self):
-        #transparency
+        # transparency
         if self.model.transparent_mask:
             self.widget.transparent_rb.setChecked(True)
             self.transparent_rb_click()
@@ -495,10 +509,3 @@ class MaskController(object):
 
         self.plot_mask()
         self.plot_image()
-
-
-
-if __name__ == "__main__":
-    app = QtWidgets.QApplication(sys.argv)
-    controller = MaskController()
-    app.exec_()

@@ -25,19 +25,15 @@ import unittest
 from ..utility import (
     QtTest,
     click_button,
-    delete_if_exists,
-    enter_value_into_text_field,
     delete_folder_if_exists,
 )
 
 import numpy as np
 
-from qtpy import QtWidgets, QtCore
-from qtpy.QtTest import QTest
-
+from qtpy import QtWidgets
 from mock import MagicMock
+from xypattern import Pattern
 
-from ...model.util.Pattern import Pattern
 from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
 from ...controller.integration import IntegrationController
@@ -198,7 +194,7 @@ class BatchIntegrationFunctionalTest(QtTest):
             widget=self.integration_widget, dioptas_model=self.model
         )
 
-        pattern = Pattern().load(os.path.join(data_path, "CeO2_Pilatus1M.xy"))
+        pattern = Pattern.from_file(os.path.join(data_path, "CeO2_Pilatus1M.xy"))
         self.model.calibration_model.integrate_1d = MagicMock(
             return_value=(pattern.x, pattern.y)
         )

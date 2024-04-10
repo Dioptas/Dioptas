@@ -77,4 +77,10 @@ def main():
                 description="Dioptas 2D XRD {}".format(__version__),
                 icon=os.path.join(icons_path, "icon")
                 )
+        elif sys.argv[1].startswith("version"):
+            print(__version__)
+            controller = MainController(config_file=sys.argv[1])
+        elif sys.argv[1].endswith(".json"):
+            controller.show_window()
+            app.exec_()
     del app

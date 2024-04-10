@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+
 # Dioptas - GUI program for fast processing of 2D X-ray diffraction data
 # Principal author: Clemens Prescher (clemens.prescher@gmail.com)
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
@@ -56,9 +56,7 @@ class CalibrationController(object):
         self.model = dioptas_model
 
         self.widget.set_start_values(self.model.calibration_model.start_values)
-        self._first_plot = True
         self.create_signals()
-        self.plot_image()
         self.load_detectors_list()
         self.load_calibrants_list()
 
@@ -133,6 +131,19 @@ class CalibrationController(object):
         self.widget.reset_transformations_btn.clicked.connect(
             self.reset_transformations_btn_clicked
         )
+
+    def activate(self):
+        if not self.model.img_changed.has_listener(self.plot_image):
+            self.model.img_changed.connect(self.plot_image)
+        self.update_img_plot()
+
+    def update_img_plot(self):
+        self.plot_image()
+        self.plot_mask()
+
+    def deactivate(self):
+        if self.model.img_changed.has_listener(self.plot_image):
+            self.model.img_changed.disconnect(self.plot_image)
 
     def rotate_m90_btn_clicked(self):
         self.model.calibration_model.rotate_detector_m90()
@@ -378,12 +389,11 @@ class CalibrationController(object):
         self.widget.calibrant_cb.setCurrentIndex(index)
         self.load_calibrant()
 
-    def plot_image(self):
+    def plot_image(self, autoscale=True):
         """
         Plots the current image loaded in img_data and autoscales the intensity.
-        :return:
         """
-        self.widget.img_widget.plot_image(self.model.img_data, True)
+        self.widget.img_widget.plot_image(self.model.img_data, autoscale)
         self.widget.set_img_filename(self.model.img_model.filename)
 
     def search_peaks(self, x, y):
@@ -716,11 +726,10 @@ class CalibrationController(object):
         """
         state = self.widget.use_mask_cb.isChecked()
         if state:
+            self.widget.img_widget.activate_mask()
             self.widget.img_widget.plot_mask(self.model.mask_model.get_img())
         else:
-            self.widget.img_widget.plot_mask(
-                np.zeros(self.model.mask_model.get_img().shape)
-            )
+            self.widget.img_widget.deactivate_mask()
 
     def mask_transparent_status_changed(self, state):
         """

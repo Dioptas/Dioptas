@@ -46,7 +46,7 @@ def map_controller(qapp, dioptas_model: DioptasModel):
 
 
 @pytest.fixture
-def map_model(map_controller):
+def map_model(map_controller) -> MapModel2:
     return map_controller.model.map_model
 
 
@@ -129,6 +129,22 @@ def test_click_load_fills_file_list(map_controller, map_model: MapModel2):
     )
 
 
+def test_mask_is_shown(map_controller):
+    img_model = map_controller.model.img_model
+    mask_model = map_controller.model.mask_model
+    img_model.load(map_img_file_paths[0])
+
+    map_controller.model.use_mask = True
+
+    mask = np.zeros_like(img_model.img_data, dtype=bool)
+    mask[0, 0] = True
+    mask_model.set_mask(mask)
+    img_model.img_changed.emit()
+
+    assert map_controller.widget.img_plot_widget.mask_data is not None
+    assert np.array_equal(map_controller.widget.img_plot_widget.mask_data, mask)
+
+
 def test_loading_files_plots_map(map_controller: MapController, map_model: MapModel2):
     load_calibration(map_controller)
     assert map_controller.model.current_configuration.is_calibrated == True
@@ -195,7 +211,10 @@ def test_select_file_in_file_list_will_update_gui(map_controller):
         map_controller.widget.img_plot_widget.img_data, current_img
     )
 
-def test_mouse_click_item_in_map_plot_widget_updates_correctly(map_controller, dioptas_model):
+
+def test_mouse_click_item_in_map_plot_widget_updates_correctly(
+    map_controller, dioptas_model
+):
     load_calibration(map_controller)
     mock_open_filenames(map_img_file_paths)
     map_controller.load_btn_clicked()
@@ -403,11 +422,18 @@ def test_phase_is_displayed(map_controller, dioptas_model):
     assert len(pattern_widget.phases) == 1
 
 
+def test_overlay_is_displayed(map_controller, dioptas_model: DioptasModel):
+    dioptas_model.overlay_model.add_overlay(np.arange(10), np.arange(10), "test")
+    pattern_widget = map_controller.widget.pattern_plot_widget
+
+    assert len(pattern_widget.overlays) == 1
+
+
 def test_green_line_in_pattern_plot(map_controller, dioptas_model):
     pattern_widget = map_controller.widget.pattern_plot_widget
 
     current_value = pattern_widget.get_pos_line()
-    assert current_value is 0 
+    assert current_value is 0
 
     dioptas_model.clicked_tth_changed.emit(10)
     assert dioptas_model.clicked_tth == 10
@@ -415,7 +441,7 @@ def test_green_line_in_pattern_plot(map_controller, dioptas_model):
 
     # change unit, so that position of the line needs to
     # be in new unit
-    dioptas_model.integration_unit = 'q_A^-1'
+    dioptas_model.integration_unit = "q_A^-1"
     dioptas_model.clicked_tth_changed.emit(10)
     assert dioptas_model.clicked_tth == 10
     assert pattern_widget.get_pos_line() != 10
@@ -425,22 +451,23 @@ def test_green_line_shown_in_image(map_controller, dioptas_model):
     load_calibration(map_controller)
     mock_open_filenames(map_img_file_paths[:1])
     map_controller.load_btn_clicked()
-    
+
     img_widget = map_controller.widget.img_plot_widget
     circle_plot_item = img_widget.circle_plot_items[0]
     x, y = circle_plot_item.getData()
     assert x is None
-    assert y is None 
+    assert y is None
 
     dioptas_model.clicked_tth_changed.emit(10)
     x, y = circle_plot_item.getData()
     assert len(x) > 0
-    assert len(y) > 0    
+    assert len(y) > 0
+
 
 def test_green_line_shown_in_image_without_calibration(map_controller, dioptas_model):
     img_widget = map_controller.widget.img_plot_widget
     circle_plot_item = img_widget.circle_plot_items[0]
-    
+
     dioptas_model.clicked_tth_changed.emit(10)
     x, y = circle_plot_item.getData()
     assert x is None
@@ -459,3 +486,66 @@ def test_clicking_image_updates_tth_and_azi(map_controller, dioptas_model):
 
     assert dioptas_model.clicked_tth != 0
     assert dioptas_model.clicked_azi != 0
+
+
+def test_pattern_mouse_move_displays_positions(
+    map_controller: MapController, dioptas_model: DioptasModel
+):
+    pattern_widget = map_controller.widget.pattern_plot_widget
+    pos_widget = (
+        map_controller.widget.pattern_footer_widget.mouse_unit_widget.cur_unit_widget
+    )
+    assert pos_widget.tth_lbl.text() == "2θ:"
+    pattern_widget.mouse_moved.emit(10, 20)
+    assert pos_widget.tth_lbl.text() == "2θ:%9.3f" % 10
+
+
+def test_img_mouse_move_displays_positions(
+    map_controller: MapController, dioptas_model: DioptasModel
+):
+    img_widget = map_controller.widget.img_plot_widget
+    pos_widget = (
+        map_controller.widget.pattern_footer_widget.mouse_unit_widget.cur_unit_widget
+    )
+    image_x = map_controller.widget.map_plot_control_widget.mouse_x_label
+    image_y = map_controller.widget.map_plot_control_widget.mouse_y_label
+    image_int = map_controller.widget.map_plot_control_widget.mouse_int_label
+    assert pos_widget.tth_lbl.text() == "2θ:"
+
+    img_widget.mouse_moved.emit(10, 20)
+    assert image_x.text() == "X: 10"
+    assert image_y.text() == "Y: 20"
+    assert image_int.text() == "I: 0"
+
+    load_calibration(map_controller)
+    dioptas_model.img_model.load(map_img_file_paths[0])
+    img_widget.mouse_moved.emit(100, 200)
+    tth = dioptas_model.calibration_model.get_two_theta_img(200, 100)
+    azi = dioptas_model.calibration_model.get_azi_img(200, 100)
+    assert pos_widget.tth_lbl.text() == "2θ:%9.3f" % np.rad2deg(tth)
+    assert pos_widget.azi_lbl.text() == "X:%9.3f" % np.rad2deg(azi)
+
+
+def test_change_integration_unit(
+    map_controller: MapController, dioptas_model: DioptasModel
+):
+    pattern_widget = map_controller.widget.pattern_plot_widget
+    pattern_plot = pattern_widget.pattern_plot
+    mock_integrate_1d(map_controller)
+    load_calibration(map_controller)
+
+    assert dioptas_model.integration_unit == "2th_deg"
+    assert pattern_plot.getAxis("bottom").labelText == "2θ"
+    assert pattern_plot.getAxis("bottom").labelUnits == "°"
+
+    dioptas_model.integration_unit = "q_A^-1"
+    assert pattern_plot.getAxis("bottom").labelText == "Q"
+    assert pattern_plot.getAxis("bottom").labelUnits == "Å⁻¹"
+
+    dioptas_model.integration_unit = "d_A"
+    assert pattern_plot.getAxis("bottom").labelText == "d"
+    assert pattern_plot.getAxis("bottom").labelUnits == "Å"
+
+    dioptas_model.integration_unit = "2th_deg"
+    assert pattern_plot.getAxis("bottom").labelText == "2θ"
+    assert pattern_plot.getAxis("bottom").labelUnits == "°"

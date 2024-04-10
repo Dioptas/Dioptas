@@ -23,15 +23,15 @@ import numpy as np
 
 from copy import deepcopy
 
-import h5py
+from xypattern import Pattern
+from xypattern.pattern import SmoothBrucknerBackground
 
 from .util import Signal
 from .util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
 
-from .util import Pattern
 from .util.calc import convert_units
 from . import ImgModel, CalibrationModel, MaskModel, PatternModel, BatchModel
-from .MapModel2 import MapModel2 
+from .MapModel2 import MapModel2
 from .CalibrationModel import DetectorModes
 
 
@@ -308,18 +308,13 @@ class Configuration(object):
         old_unit = self.integration_unit
         self._integration_unit = new_unit
 
-        auto_bg_subtraction = self.pattern_model.pattern.auto_background_subtraction
-        if auto_bg_subtraction:
-            self.pattern_model.pattern.auto_background_subtraction = False
+        self.pattern_model.pattern.transform_x(
+            lambda x: convert_units(
+                x, self.calibration_model.wavelength, old_unit, new_unit
+            )
+        )
 
         self.integrate_image_1d()
-
-        self.update_auto_background_parameters_unit(old_unit, new_unit)
-
-        if auto_bg_subtraction:
-            self.pattern_model.pattern.auto_background_subtraction = True
-            self.pattern_model.pattern.recalculate_pattern()
-            self.pattern_model.pattern_changed.emit()
 
     @property
     def correct_solid_angle(self):
@@ -332,41 +327,6 @@ class Configuration(object):
             self.integrate_image_1d()
         if self._auto_integrate_cake:
             self.integrate_image_2d()
-
-    def update_auto_background_parameters_unit(self, old_unit, new_unit):
-        """
-        This handles the changes for the auto background subtraction parameters in the PatternModel when the integration
-        unit is changed.
-        :param old_unit: possible values are '2th_deg', 'q_A^-1', 'd_A'
-        :param new_unit: possible values are '2th_deg', 'q_A^-1', 'd_A'
-        """
-        par_0 = convert_units(
-            self.pattern_model.pattern.auto_background_subtraction_parameters[0],
-            self.calibration_model.wavelength,
-            old_unit,
-            new_unit,
-        )
-        # Value of 0.1 let background subtraction algorithm work without crash.
-        if np.isnan(par_0):
-            par_0 = 0.1
-        self.pattern_model.pattern.auto_background_subtraction_parameters = (
-            par_0,
-            self.pattern_model.pattern.auto_background_subtraction_parameters[1],
-            self.pattern_model.pattern.auto_background_subtraction_parameters[2],
-        )
-
-        if self.pattern_model.pattern.auto_background_subtraction_roi is not None:
-            self.pattern_model.pattern.auto_background_subtraction_roi = convert_units(
-                self.pattern_model.pattern.auto_background_subtraction_roi[0],
-                self.calibration_model.wavelength,
-                old_unit,
-                new_unit,
-            ), convert_units(
-                self.pattern_model.pattern.auto_background_subtraction_roi[1],
-                self.calibration_model.wavelength,
-                old_unit,
-                new_unit,
-            )
 
     @property
     def is_calibrated(self) -> bool:
@@ -446,9 +406,9 @@ class Configuration(object):
         # integration parameters:
         general_information.attrs["integration_unit"] = self.integration_unit
         if self.integration_rad_points:
-            general_information.attrs[
-                "integration_num_points"
-            ] = self.integration_rad_points
+            general_information.attrs["integration_num_points"] = (
+                self.integration_rad_points
+            )
         else:
             general_information.attrs["integration_num_points"] = 0
 
@@ -465,9 +425,9 @@ class Configuration(object):
         general_information.attrs["transparent_mask"] = self.transparent_mask
 
         # auto save parameters
-        general_information.attrs[
-            "auto_save_integrated_pattern"
-        ] = self.auto_save_integrated_pattern
+        general_information.attrs["auto_save_integrated_pattern"] = (
+            self.auto_save_integrated_pattern
+        )
         formats = [
             n.encode("ascii", "ignore") for n in self.integrated_patterns_file_formats
         ]
@@ -574,9 +534,9 @@ class Configuration(object):
         if detector_mode == DetectorModes.PREDEFINED:
             detector_group.attrs["detector_name"] = self.calibration_model.detector.name
         elif detector_mode == DetectorModes.NEXUS:
-            detector_group.attrs[
-                "nexus_filename"
-            ] = self.calibration_model.detector.filename
+            detector_group.attrs["nexus_filename"] = (
+                self.calibration_model.detector.filename
+            )
 
         # save calibration model
         calibration_group = f.create_group("calibration_model")
@@ -587,7 +547,7 @@ class Configuration(object):
             base_filename = self.calibration_model.filename
             ext = "poni"
         calibration_group.attrs["calibration_filename"] = base_filename + "." + ext
-        pyfai_param, fit2d_param = self.calibration_model.get_calibration_parameter()
+        pyfai_param, _ = self.calibration_model.get_calibration_parameter()
         pfp = calibration_group.create_group("pyfai_parameters")
         for key in pyfai_param:
             try:
@@ -596,15 +556,15 @@ class Configuration(object):
                 pfp.attrs[key] = ""
         calibration_group.attrs["correct_solid_angle"] = self.correct_solid_angle
         if self.calibration_model.distortion_spline_filename is not None:
-            calibration_group.attrs[
-                "distortion_spline_filename"
-            ] = self.calibration_model.distortion_spline_filename
+            calibration_group.attrs["distortion_spline_filename"] = (
+                self.calibration_model.distortion_spline_filename
+            )
 
         # save background pattern and pattern model
         background_pattern_group = f.create_group("background_pattern")
         try:
-            background_pattern_x = self.pattern_model.background_pattern.original_x
-            background_pattern_y = self.pattern_model.background_pattern.original_y
+            background_pattern_x = self.pattern_model.background_pattern._original_x
+            background_pattern_y = self.pattern_model.background_pattern._original_y
         except (TypeError, AttributeError):
             background_pattern_x = None
             background_pattern_y = None
@@ -623,8 +583,8 @@ class Configuration(object):
 
         pattern_group = f.create_group("pattern")
         try:
-            pattern_x = self.pattern_model.pattern.original_x
-            pattern_y = self.pattern_model.pattern.original_y
+            pattern_x = self.pattern_model.pattern._original_x
+            pattern_y = self.pattern_model.pattern._original_y
         except (TypeError, AttributeError):
             pattern_x = None
             pattern_y = None
@@ -635,29 +595,25 @@ class Configuration(object):
             py[...] = pattern_y
         pattern_group.attrs["pattern_filename"] = self.pattern_model.pattern_filename
         pattern_group.attrs["unit"] = self.pattern_model.unit
-        pattern_group.attrs[
-            "file_iteration_mode"
-        ] = self.pattern_model.file_iteration_mode
-        if self.pattern_model.pattern.auto_background_subtraction:
+        pattern_group.attrs["file_iteration_mode"] = (
+            self.pattern_model.file_iteration_mode
+        )
+        if self.pattern_model.pattern.auto_bkg:
             pattern_group.attrs["auto_background_subtraction"] = True
             auto_background_group = pattern_group.create_group(
                 "auto_background_settings"
             )
-            auto_background_group.attrs[
-                "smoothing"
-            ] = self.pattern_model.pattern.auto_background_subtraction_parameters[0]
-            auto_background_group.attrs[
-                "iterations"
-            ] = self.pattern_model.pattern.auto_background_subtraction_parameters[1]
-            auto_background_group.attrs[
-                "poly_order"
-            ] = self.pattern_model.pattern.auto_background_subtraction_parameters[2]
-            auto_background_group.attrs[
-                "x_start"
-            ] = self.pattern_model.pattern.auto_background_subtraction_roi[0]
-            auto_background_group.attrs[
-                "x_end"
-            ] = self.pattern_model.pattern.auto_background_subtraction_roi[1]
+            auto_bkg = self.pattern_model.pattern.auto_bkg
+
+            if type(auto_bkg) == SmoothBrucknerBackground:
+                auto_background_group.attrs["smoothing"] = auto_bkg.smooth_width
+                auto_background_group.attrs["iterations"] = auto_bkg.iterations
+                auto_background_group.attrs["poly_order"] = auto_bkg.cheb_order
+
+            auto_bkg_roi = self.pattern_model.pattern.auto_bkg_roi
+            if auto_bkg_roi is not None:
+                auto_background_group.attrs["x_start"] = auto_bkg_roi[0]
+                auto_background_group.attrs["x_end"] = auto_bkg_roi[1]
         else:
             pattern_group.attrs["auto_background_subtraction"] = False
 
@@ -801,25 +757,14 @@ class Configuration(object):
             )
 
         if f.get("pattern").attrs["auto_background_subtraction"]:
-            bg_params = []
-            bg_roi = []
-            bg_params.append(
-                f.get("pattern").get("auto_background_settings").attrs["smoothing"]
-            )
-            bg_params.append(
-                f.get("pattern").get("auto_background_settings").attrs["iterations"]
-            )
-            bg_params.append(
-                f.get("pattern").get("auto_background_settings").attrs["poly_order"]
-            )
-            bg_roi.append(
-                f.get("pattern").get("auto_background_settings").attrs["x_start"]
-            )
-            bg_roi.append(
-                f.get("pattern").get("auto_background_settings").attrs["x_end"]
-            )
-            self.pattern_model.pattern.set_auto_background_subtraction(
-                bg_params, bg_roi, recalc_pattern=False
+            self.pattern_model.pattern.auto_bkg_roi = [
+                f.get("pattern").get("auto_background_settings").attrs["x_start"],
+                f.get("pattern").get("auto_background_settings").attrs["x_end"],
+            ]
+            self.pattern_model.pattern.auto_bkg = SmoothBrucknerBackground(
+                f.get("pattern").get("auto_background_settings").attrs["smoothing"],
+                f.get("pattern").get("auto_background_settings").attrs["iterations"],
+                f.get("pattern").get("auto_background_settings").attrs["poly_order"],
             )
 
         # load general configuration

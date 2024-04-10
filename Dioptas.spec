@@ -89,6 +89,7 @@ a = Analysis(['run.py'],
              binaries=binaries,
              datas=extra_datas,
              hiddenimports=['scipy.special._ufuncs_cxx', 'scipy._lib.messagestream', 'scipy.special.cython_special',
+                            'scipy.special._cdflib',
                             'skimage._shared.geometry', 'h5py.defs', 'h5py.utils', 'h5py.h5ac', 'h5py', 'h5py._proxy',
                             'pywt._extensions._cwt', 'pkg_resources.py2_warn'] +
                              fabio_hiddenimports + pyqtgraph_hiddenimports + pyFAI_hiddenimports,
