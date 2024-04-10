@@ -14,50 +14,42 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout Repository
+      uses: actions/checkout@v4
     - run: git fetch --prune --unshallow
 
-    - name: Use Miniconda
-      uses: s-weigand/setup-conda@v1
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
 
-    - name: switch to python=3.11 and install pip
-      run: conda install python=3.11 pip -y
+    - name: Setup Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'poetry'
 
+    - name: Install poetry dependencies
+      run: poetry install
 
-    - name: Install Pip Dependencies
-      run: |
-        pip install pycifrw pandas python-dateutil h5py scikit-image==0.19.3 pyqt6 future qtpy pyfai lmfit pyepics \
-                    pyinstaller cython watchdog h5py hdf5plugin pyqtgraph sharedmem \
-                    cython poetry poetry-dynamic-versioning
-      # we have to use scikit-image==0.19.3 because of a new loading mechanism in 0.20.0 which does currently not work
-      # with pyinstaller
+    - name: Install PyInstaller
+      run: poetry run pip install pyinstaller
 
-    - name: Update Pyinstaller Hooks
-      run: |
-        pip uninstall pyinstaller-hooks-contrib -y
-        git clone https://github.com/pyinstaller/pyinstaller-hooks-contrib.git
-        cd pyinstaller-hooks-contrib
-        python setup.py install
-        cd ..
-
-    - name: Compile Smooth Bruckner
-      run: cythonize -a -i dioptas/model/util/smooth_bruckner_cython.pyx
+    - name: Add Dynamic Versioning Plugin
+      run: poetry self add poetry-dynamic-versioning[plugin]
 
     - name: Update the Version
       run: poetry dynamic-versioning
 
     - name: Run Dioptas from source to test
-      run: python run.py test
+      run: poetry run python run.py test
 
     - name: Run PyInstaller
-      run: bash create_executable.sh
+      run: poetry run bash create_executable.sh
 
-#    - name: Clean Up Executable Folder
-#      run: |
-#        cd dist/Dioptas*
-#        cd Contents/MacOS
-#        rm QtQuick QtQml QtQmlModels QtNetwork QtWebSockets
-#        rm -r imageio matplotlib
+    - name: Clean Up Executable Folder
+      run: |
+        cd dist/Dioptas*.app
+        cd Contents/Resources
+        rm libopenblas.0.dylib
 
     - name: Run Dioptas Executable
       run: |
@@ -65,16 +57,11 @@ jobs:
         cd Contents/MacOS
         ./run_dioptas test
 
-    - name: Determine Folder Name
-      run: |
-        cd dist
-        echo "folder_name=$(ls | grep Dioptas)" >> $env:GITHUB_ENV
-
     - name: Upload Compressed App as Artifact to GitHub
       uses: actions/upload-artifact@v3
       with:
         name: DioptasMac
-        path: dist/Dioptas*
+        path: dist/Dioptas*.app
 
 #     DROPBOX UPLOAD
 #     disabled for now, since we can use the GitHub artifacts

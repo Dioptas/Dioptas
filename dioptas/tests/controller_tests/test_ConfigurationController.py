@@ -19,23 +19,28 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import unittest
 from mock import MagicMock
 import gc
 
 import numpy as np
 
-from ..utility import QtTest, delete_if_exists, click_button, enter_value_into_text_field
+from ..utility import (
+    QtTest,
+    delete_if_exists,
+    click_button,
+    enter_value_into_text_field,
+)
 
 from qtpy import QtWidgets
+from xypattern import Pattern
 
 from ...controller.ConfigurationController import ConfigurationController
-from ...model.DioptasModel import DioptasModel, Pattern
+from ...model.DioptasModel import DioptasModel
 from ...widgets.ConfigurationWidget import ConfigurationWidget
 
 unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, '../data')
-jcpds_path = os.path.join(data_path, 'jcpds')
+data_path = os.path.join(unittest_path, "../data")
+jcpds_path = os.path.join(data_path, "jcpds")
 
 
 class ConfigurationControllerTest(QtTest):
@@ -45,7 +50,7 @@ class ConfigurationControllerTest(QtTest):
         self.config_controller = ConfigurationController(
             configuration_widget=self.config_widget,
             dioptas_model=self.model,
-            controllers=[]
+            controllers=[],
         )
 
     def tearDown(self):
@@ -156,40 +161,68 @@ class ConfigurationControllerTest(QtTest):
 
         click_button(self.config_widget.next_file_btn)
 
-        self.assertEqual(os.path.abspath(self.model.configurations[0].img_model.filename),
-                         os.path.abspath(os.path.join(data_path, "image_002.tif")))
+        self.assertEqual(
+            os.path.abspath(self.model.configurations[0].img_model.filename),
+            os.path.abspath(os.path.join(data_path, "image_002.tif")),
+        )
 
-        self.assertEqual(self.model.configurations[1].img_model.filename,
-                         os.path.abspath(os.path.join(data_path, "image_002.tif")))
+        self.assertEqual(
+            self.model.configurations[1].img_model.filename,
+            os.path.abspath(os.path.join(data_path, "image_002.tif")),
+        )
 
         click_button(self.config_widget.previous_file_btn)
 
-        self.assertEqual(os.path.abspath(self.model.configurations[0].img_model.filename),
-                         os.path.abspath(os.path.join(data_path, "image_001.tif")))
+        self.assertEqual(
+            os.path.abspath(self.model.configurations[0].img_model.filename),
+            os.path.abspath(os.path.join(data_path, "image_001.tif")),
+        )
 
-        self.assertEqual(self.model.configurations[1].img_model.filename,
-                         os.path.abspath(os.path.join(data_path, "image_001.tif")))
+        self.assertEqual(
+            self.model.configurations[1].img_model.filename,
+            os.path.abspath(os.path.join(data_path, "image_001.tif")),
+        )
 
     def test_folder_browsing(self):
-        self.model.img_model.load(os.path.join(data_path, "FileIterator", "run1", "image_1.tif"))
+        self.model.img_model.load(
+            os.path.join(data_path, "FileIterator", "run1", "image_1.tif")
+        )
         self.model.add_configuration()
-        self.model.img_model.load(os.path.join(data_path, "FileIterator", "run1", "image_1.tif"))
+        self.model.img_model.load(
+            os.path.join(data_path, "FileIterator", "run1", "image_1.tif")
+        )
 
         click_button(self.config_widget.next_folder_btn)
 
-        self.assertEqual(self.model.configurations[0].img_model.filename,
-                         os.path.abspath(os.path.join(data_path, "FileIterator", "run2", "image_1.tif")))
+        self.assertEqual(
+            self.model.configurations[0].img_model.filename,
+            os.path.abspath(
+                os.path.join(data_path, "FileIterator", "run2", "image_1.tif")
+            ),
+        )
 
-        self.assertEqual(self.model.configurations[1].img_model.filename,
-                         os.path.abspath(os.path.join(data_path, "FileIterator", "run2", "image_1.tif")))
+        self.assertEqual(
+            self.model.configurations[1].img_model.filename,
+            os.path.abspath(
+                os.path.join(data_path, "FileIterator", "run2", "image_1.tif")
+            ),
+        )
 
         click_button(self.config_widget.previous_folder_btn)
 
-        self.assertEqual(self.model.configurations[0].img_model.filename,
-                         os.path.abspath(os.path.join(data_path, "FileIterator", "run1", "image_1.tif")))
+        self.assertEqual(
+            self.model.configurations[0].img_model.filename,
+            os.path.abspath(
+                os.path.join(data_path, "FileIterator", "run1", "image_1.tif")
+            ),
+        )
 
-        self.assertEqual(self.model.configurations[1].img_model.filename,
-                         os.path.abspath(os.path.join(data_path, "FileIterator", "run1", "image_1.tif")))
+        self.assertEqual(
+            self.model.configurations[1].img_model.filename,
+            os.path.abspath(
+                os.path.join(data_path, "FileIterator", "run1", "image_1.tif")
+            ),
+        )
 
     def test_save_combined_pattern(self):
         # prepare two patterns
@@ -208,12 +241,12 @@ class ConfigurationControllerTest(QtTest):
         self.model.combine_patterns = True
 
         # click the button
-        file_path = os.path.join(data_path, 'combined_pattern.xy')
+        file_path = os.path.join(data_path, "combined_pattern.xy")
         QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=file_path)
         click_button(self.config_widget.saved_combined_patterns_btn)
 
         # load and check that it worked
-        saved_pattern = Pattern().load(file_path)
-        x3, y3 = saved_pattern.data
+        saved_pattern = Pattern.from_file(file_path)
+        x3, _ = saved_pattern.data
         self.assertLess(np.min(x3), 7)
         self.assertGreater(np.max(x3), 10)

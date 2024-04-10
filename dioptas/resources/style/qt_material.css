@@ -1,0 +1,190 @@
+QWidget {{
+    color: #F1F1F1;
+}}
+QFrame {{
+    border: 0px solid #5B5B5B;
+}}
+
+QGroupBox {{
+    border: 1px solid {QTMATERIAL_SECONDARYCOLOR};
+}}
+
+QGroupBox::title {{
+    color: {QTMATERIAL_PRIMARYTEXTCOLOR};
+}}
+
+QComboBox {{
+    selection-background-color: {QTMATERIAL_SECONDARYCOLOR};
+}}
+
+QComboBox::item:selected {{
+    background-color: {QTMATERIAL_SECONDARYCOLOR};
+}}
+
+
+/* QPushButtons */
+
+
+QPushButton {{
+    border: none;
+    text-transform: none;
+    background-color: #253031;
+    border-radius: 5px;
+    font-weight: 550;
+}}
+
+QPushButton:flat {{
+    padding: 4px 8px;
+}}
+
+QPushButton:disabled {{
+    border: none;
+}}
+
+QPushButton:hover {{
+    border: 1px solid {QTMATERIAL_PRIMARYCOLOR};
+}}
+
+QPushButton:flat:checked {{
+    border: 1px solid  rgb(128, 75, 0);
+    background-color: transparent;
+    padding: 4px 6px;
+}}
+
+QPushButton:flat:hover {{
+    border: 1px solid {QTMATERIAL_PRIMARYCOLOR};
+    padding: 4px 6px;
+}}
+
+QPushButton:flat:checked:hover {{
+    border: 1px solid  {QTMATERIAL_PRIMARYCOLOR}; 
+    background-color: transparent;
+}}
+
+
+#menu_btn {{
+    border-radius: 15px;
+}}
+
+#menu_btn:hover {{
+    border-color: {QTMATERIAL_PRIMARYCOLOR};
+}}
+
+#menu_btn:pressed {{
+    background-color: {QTMATERIAL_PRIMARYCOLOR};
+}}
+
+#calibration_mode_btn, #mask_mode_btn, #integration_mode_btn, #map_mode_btn {{
+    border-radius: 0;
+    border: none;
+    background-color: transparent;
+}}
+
+#calibration_mode_btn:hover, #mask_mode_btn:hover, #integration_mode_btn:hover, #map_mode_btn:hover {{
+    border: none;
+    background-color: rgba(255, 149, 0, 0.1);
+    padding: 0px;
+}}
+
+#calibration_mode_btn:pressed, #mask_mode_btn:pressed, #integration_mode_btn:pressed, #map_mode_btn:pressed {{
+    background-color: rgba(255, 149, 0, 0.3);
+    padding: 0px;
+}}
+
+#calibration_mode_btn:checked, #mask_mode_btn:checked, #integration_mode_btn:checked, #map_mode_btn:checked {{
+    background-color: rgba(255, 149, 0, 0.2);
+    padding: 0px;
+}}
+
+#MenuTabWidgetMenu QPushButton, #batch_mode_widget QPushButton {{
+    border-radius: 0;
+    border: none;
+    background-color: transparent;
+    text-transform: uppercase;
+    color: {QTMATERIAL_PRIMARYTEXTCOLOR};
+    font-weight: bold;
+}} 
+
+#MenuTabWidgetMenu QPushButton:hover, #batch_mode_widget QPushButton:hover  {{
+    background-color: rgba(255, 149, 0, 0.1);
+    color: {QTMATERIAL_PRIMARYTEXTCOLOR};
+}}
+
+#MenuTabWidgetMenu QPushButton:checked, #batch_mode_widget QPushButton:checked {{
+    border-radius: 0;
+    background-color: rgba(255, 149, 0, 0.2);
+    color: {QTMATERIAL_PRIMARYTEXTCOLOR};
+}}
+
+#MenuTabWidgetMenu QPushButton:pressed, #batch_mode_widget QPushButton:pressed {{
+    border-radius: 0;
+    background-color: rgba(255, 149, 0, 0.3);
+    color: {QTMATERIAL_PRIMARYTEXTCOLOR};
+}}
+
+#overlay_header_btn, #phase_header_btn {{
+    border: none;
+    background-color: transparent;
+    text-transform: uppercase;
+    color: {QTMATERIAL_PRIMARYCOLOR};
+    font-weight: bold;
+    border-bottom: 2px solid {QTMATERIAL_PRIMARYCOLOR};
+}}
+
+QToolTip {{
+    background-color: {QTMATERIAL_SECONDARYCOLOR};
+    border-width: 0px;
+    color: {QTMATERIAL_PRIMARYTEXTCOLOR};
+}}
+
+/* QToolBox */
+
+QToolBox::tab {{
+    text-transform: none;
+    border-radius: 2;
+    background-color: {QTMATERIAL_SECONDARYCOLOR};
+    color: {QTMATERIAL_PRIMARYTEXTCOLOR};
+    font-weight: 550;
+}}
+
+QToolBox::tab:selected {{
+    background-color: {QTMATERIAL_SECONDARYCOLOR};
+    border: 1px solid  rgb(128, 75, 0);
+    color: {QTMATERIAL_PRIMARYTEXTCOLOR};
+}}
+
+
+/* QScrollBar */
+
+QScrollBar:vertical {{
+    border: none;
+    width: 8px;
+    margin: 0px 0px 0px 0px;
+}}
+
+QScrollBar::horizontal {{
+    width: 8px;
+}}
+
+QGroupBox {{
+    padding-top: 20px;
+    text-transform: none;
+    font-weight: 750;
+}}
+
+#mask_widget QPushButton, #calibration_widget QPushButton, #integration_widget QPushButton {{
+    height: 15px;
+}}
+
+QSplitter {{
+    width: 15px;
+    height: 15px;
+}}
+
+QComboBox QAbstractItemView {{
+    border: none;
+}}
+
+QListView::item:selected:focus {{
+    background-color: rgba(255, 149, 0, 0.1);
+}}

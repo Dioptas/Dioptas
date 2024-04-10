@@ -48,14 +48,29 @@ def test_show_img_mouse_position(batch_widget, batch_controller, load_proc_data)
     batch_widget.activate_stack_plot()
     batch_controller.show_img_mouse_position(10, 15)
 
-    assert batch_widget.position_widget.mouse_pos_widget.cur_pos_widget.x_pos_lbl.text() == 'Img: 15'
-    assert batch_widget.position_widget.mouse_pos_widget.cur_pos_widget.y_pos_lbl.text() == '2θ: 9.7'
-    assert batch_widget.position_widget.mouse_pos_widget.cur_pos_widget.int_lbl.text() == 'I: 0.1'
+    assert (
+        batch_widget.position_widget.mouse_pos_widget.cur_pos_widget.x_pos_lbl.text()
+        == "Img: 15"
+    )
+    assert (
+        batch_widget.position_widget.mouse_pos_widget.cur_pos_widget.y_pos_lbl.text()
+        == "2θ: 9.7"
+    )
+    assert (
+        batch_widget.position_widget.mouse_pos_widget.cur_pos_widget.int_lbl.text()
+        == "I: 0.1"
+    )
 
 
 def test_load_raw_data(batch_widget, batch_controller, batch_model, load_proc_data):
-    files = [os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00000.nxs'),
-             os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00001.nxs')]
+    files = [
+        os.path.join(
+            unittest_data_path, "lambda", "testasapo1_1009_00002_m1_part00000.nxs"
+        ),
+        os.path.join(
+            unittest_data_path, "lambda", "testasapo1_1009_00002_m1_part00001.nxs"
+        ),
+    ]
 
     QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=files)
     batch_controller.load_data()
@@ -74,10 +89,16 @@ def test_load_raw_data(batch_widget, batch_controller, batch_model, load_proc_da
     assert (batch_model.files == files).all()
 
 
-def test_load_proc_data(batch_widget, batch_controller, batch_model, dioptas_model, load_proc_data):
-    filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_proc.nxs')
+def test_load_proc_data(
+    batch_widget, batch_controller, batch_model, dioptas_model, load_proc_data
+):
+    filename = os.path.join(
+        unittest_data_path, "lambda", "testasapo1_1009_00002_proc.nxs"
+    )
     QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[filename])
-    dioptas_model.working_directories['image'] = os.path.join(unittest_data_path, 'lambda')
+    dioptas_model.working_directories["image"] = os.path.join(
+        unittest_data_path, "lambda"
+    )
     batch_controller.load_data()
 
     assert batch_model.data is not None
@@ -92,11 +113,19 @@ def test_load_proc_data(batch_widget, batch_controller, batch_model, dioptas_mod
     assert start == 0
     assert frame == "Frame(50/50):"
 
-    assert batch_widget.position_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.text() == 'Img: 0'
+    assert (
+        batch_widget.position_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.text()
+        == "Img: 0"
+    )
     assert batch_widget.position_widget.step_series_widget.slider.value() == 0
 
-    filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00000.nxs').split(
-        '/')[-1].split('\\')[-1]
+    filename = (
+        os.path.join(
+            unittest_data_path, "lambda", "testasapo1_1009_00002_m1_part00000.nxs"
+        )
+        .split("/")[-1]
+        .split("\\")[-1]
+    )
     assert filename in batch_widget.windowTitle()
 
 
@@ -109,8 +138,12 @@ def test_plot_batch_2d(batch_widget, batch_controller, batch_model, load_proc_da
     assert batch_widget.stack_plot_widget.img_view.img_data.shape == (31, 4038)
     assert batch_widget.stack_plot_widget.img_view._max_range
     assert batch_widget.stack_plot_widget.img_view.horizontal_line.value() == 0
-    assert batch_widget.stack_plot_widget.img_view.left_axis_cake.range[0] == pytest.approx(7.28502051, 0.01)
-    assert batch_widget.stack_plot_widget.img_view.left_axis_cake.range[1] == pytest.approx(42.7116293, 0.01)
+    assert batch_widget.stack_plot_widget.img_view.left_axis_cake.range[
+        0
+    ] == pytest.approx(7.28502051, 0.01)
+    assert batch_widget.stack_plot_widget.img_view.left_axis_cake.range[
+        1
+    ] == pytest.approx(42.7116293, 0.01)
 
 
 def test_plot_batch_3d(batch_widget, batch_controller, batch_model, load_proc_data):
@@ -132,10 +165,15 @@ def test_img_mouse_click(batch_widget, batch_controller, batch_model, load_proc_
     batch_controller.img_mouse_click(10, 15)
 
     assert batch_widget.surface_widget.surface_view.g_translate == 0
-    assert batch_widget.position_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.text() == 'Img: 15'
+    assert (
+        batch_widget.position_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.text()
+        == "Img: 15"
+    )
     assert batch_widget.position_widget.step_series_widget.slider.value() == 15
 
-    filename = os.path.join(unittest_data_path, 'lambda', 'testasapo1_1009_00002_m1_part00001.nxs')
+    filename = os.path.join(
+        unittest_data_path, "lambda", "testasapo1_1009_00002_m1_part00001.nxs"
+    )
     assert batch_widget.windowTitle() == f"Batch widget. {filename} - 5"
 
 
@@ -155,7 +193,10 @@ def test_plot_waterfall(batch_controller, dioptas_model, load_proc_data):
     batch_controller.plot_waterfall()
 
     assert len(dioptas_model.overlay_model.overlays) == 17
-    assert dioptas_model.overlay_model.overlays[0].name == 'testasapo1_1009_00002_m1_part00002.nxs, 4'
+    assert (
+        dioptas_model.overlay_model.overlays[0].name
+        == "testasapo1_1009_00002_m1_part00002.nxs, 4"
+    )
     assert dioptas_model.overlay_model.overlays[0]._pattern_x.shape == (10,)
 
 

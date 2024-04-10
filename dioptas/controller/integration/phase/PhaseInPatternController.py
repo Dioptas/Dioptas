@@ -18,12 +18,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from ....model.util.calc import convert_units
-from ....model.util.HelperModule import get_partial_index
-
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ....model.DioptasModel import DioptasModel
-from ....widgets.integration import IntegrationWidget
+from ....widgets.plot_widgets import PatternWidget
 
 
 class PhaseInPatternController(object):
@@ -31,17 +28,13 @@ class PhaseInPatternController(object):
     PhaseInPatternController handles all the interaction between the phases and the pattern view.
     """
 
-    def __init__(self, integration_widget, dioptas_model):
+    def __init__(self, pattern_widget: PatternWidget, dioptas_model: DioptasModel):
         """
         :param integration_widget: Reference to an IntegrationWidget
         :param dioptas_model: reference to DioptasModel object
-
-        :type integration_widget: IntegrationWidget
-        :type dioptas_model: DioptasModel
         """
         self.model = dioptas_model
-        self.integration_widget = integration_widget
-        self.pattern_widget = integration_widget.pattern_widget
+        self.pattern_widget = pattern_widget
 
         self.connect()
 
@@ -58,8 +51,12 @@ class PhaseInPatternController(object):
         self.model.phase_model.reflection_deleted.connect(self.reflection_deleted)
 
         # pattern signals
-        self.pattern_widget.view_box.sigRangeChangedManually.connect(self.update_all_phase_lines)
-        self.pattern_widget.pattern_plot.autoBtn.clicked.connect(self.update_all_phase_lines)
+        self.pattern_widget.view_box.sigRangeChangedManually.connect(
+            self.update_all_phase_lines
+        )
+        self.pattern_widget.pattern_plot.autoBtn.clicked.connect(
+            self.update_all_phase_lines
+        )
         self.model.pattern_changed.connect(self.pattern_data_changed)
 
     def add_phase_plot(self):
@@ -69,18 +66,24 @@ class PhaseInPatternController(object):
         axis_range = self.pattern_widget.pattern_plot.viewRange()
         x_range = axis_range[0]
         y_range = axis_range[1]
-        positions, intensities, baseline = \
+        positions, intensities, baseline = (
             self.model.phase_model.get_rescaled_reflections(
-                -1, self.model.pattern,
-                x_range, y_range,
+                -1,
+                self.model.pattern,
+                x_range,
+                y_range,
                 self.model.calibration_model.wavelength * 1e10,
-                self.get_unit())
+                self.model.integration_unit,
+            )
+        )
 
-        self.pattern_widget.add_phase(self.model.phase_model.phases[-1].name,
-                                      positions,
-                                      intensities,
-                                      baseline,
-                                      self.model.phase_model.phase_colors[-1])
+        self.pattern_widget.add_phase(
+            self.model.phase_model.phases[-1].name,
+            positions,
+            intensities,
+            baseline,
+            self.model.phase_model.phase_colors[-1],
+        )
 
     def update_phase_lines(self, ind, axis_range=None):
         """
@@ -93,14 +96,20 @@ class PhaseInPatternController(object):
 
         x_range = axis_range[0]
         y_range = axis_range[1]
-        positions, intensities, baseline = self.model.phase_model.get_rescaled_reflections(
-            ind, self.model.pattern,
-            x_range, y_range,
-            self.model.calibration_model.wavelength * 1e10,
-            self.get_unit()
+        positions, intensities, baseline = (
+            self.model.phase_model.get_rescaled_reflections(
+                ind,
+                self.model.pattern,
+                x_range,
+                y_range,
+                self.model.calibration_model.wavelength * 1e10,
+                self.model.integration_unit,
+            )
         )
 
-        self.pattern_widget.update_phase_intensities(ind, positions, intensities, y_range[0])
+        self.pattern_widget.update_phase_intensities(
+            ind, positions, intensities, y_range[0]
+        )
 
     def update_all_phase_lines(self):
         for ind in range(len(self.model.phase_model.phases)):
@@ -114,17 +123,19 @@ class PhaseInPatternController(object):
 
     def update_phase_legend(self, ind):
         name = self.model.phase_model.phases[ind].name
-        parameter_str = ''
-        pressure = self.model.phase_model.phases[ind].params['pressure']
-        temperature = self.model.phase_model.phases[ind].params['temperature']
+        parameter_str = ""
+        pressure = self.model.phase_model.phases[ind].params["pressure"]
+        temperature = self.model.phase_model.phases[ind].params["temperature"]
         if pressure != 0:
-            parameter_str += '{:0.2f} GPa '.format(pressure)
+            parameter_str += "{:0.2f} GPa ".format(pressure)
         if temperature != 0 and temperature != 298 and temperature is not None:
-            parameter_str += '{:0.2f} K '.format(temperature)
+            parameter_str += "{:0.2f} K ".format(temperature)
         self.pattern_widget.rename_phase(ind, parameter_str + name)
 
     def update_phase_color(self, ind):
-        self.pattern_widget.set_phase_color(ind, self.model.phase_model.phase_colors[ind])
+        self.pattern_widget.set_phase_color(
+            ind, self.model.phase_model.phase_colors[ind]
+        )
 
     def update_phase_visible(self, ind):
         if self.model.phase_model.phase_visible[ind]:
@@ -138,15 +149,3 @@ class PhaseInPatternController(object):
 
     def reflection_deleted(self, phase_ind, reflection_ind):
         self.pattern_widget.phases[phase_ind].delete_line(reflection_ind)
-
-    def get_unit(self):
-        """
-        returns the unit currently selected in the GUI
-                possible values: 'tth', 'q', 'd'
-        """
-        if self.integration_widget.pattern_tth_btn.isChecked():
-            return 'tth'
-        elif self.integration_widget.pattern_q_btn.isChecked():
-            return 'q'
-        elif self.integration_widget.pattern_d_btn.isChecked():
-            return 'd'

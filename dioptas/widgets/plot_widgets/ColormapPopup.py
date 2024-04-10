@@ -56,10 +56,8 @@ class ColormapPopup(QtWidgets.QFrame):
         self.setWindowTitle("Colormap configuration")
         self.setWindowFlags(QtCore.Qt.Popup)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        self.setStyleSheet(
-            pathlib.Path(style_path, "stylesheet.qss").read_text()
-        )
         self.setFrameStyle(QtWidgets.QFrame.Panel | QtWidgets.QFrame.Raised)
+        self.setWindowOpacity(0.95)
         self.setLineWidth(2)
 
         frameLayout = QtWidgets.QVBoxLayout(self)
@@ -69,6 +67,7 @@ class ColormapPopup(QtWidgets.QFrame):
         colormapGroupBox = QtWidgets.QGroupBox("Colormap", self)
         frameLayout.addWidget(colormapGroupBox)
         colormapLayout = QtWidgets.QFormLayout(colormapGroupBox)
+        colormapLayout.setContentsMargins(0, 6, 0, 0)
         colormapLayout.setLabelAlignment(QtCore.Qt.AlignRight)
 
         self._gradientComboBox = QtWidgets.QComboBox(self)
@@ -90,6 +89,7 @@ class ColormapPopup(QtWidgets.QFrame):
         rangeGroupBox = QtWidgets.QGroupBox("Range", self)
         frameLayout.addWidget(rangeGroupBox)
         rangeLayout = QtWidgets.QFormLayout(rangeGroupBox)
+        rangeLayout.setContentsMargins(0, 6, 0, 0)
         rangeLayout.setLabelAlignment(QtCore.Qt.AlignRight)
 
         self._minEdit = QtWidgets.QLineEdit(self)
@@ -115,6 +115,8 @@ class ColormapPopup(QtWidgets.QFrame):
         resetModeGroupBox = QtWidgets.QGroupBox("Reset Mode", self)
         frameLayout.addWidget(resetModeGroupBox)
         resetModesLayout = QtWidgets.QGridLayout(resetModeGroupBox)
+        resetModesLayout.setContentsMargins(0, 6, 0, 0)
+        resetModesLayout.setSpacing(0)
 
         self._resetButtonGroup = QtWidgets.QButtonGroup(self)
         for text, (mode, tooltip) in self._RESET_MODES.items():

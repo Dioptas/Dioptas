@@ -26,14 +26,14 @@ from dioptas.widgets.plot_widgets.utils import AutoLevel
 
 def test_default_mode():
     auto_level = AutoLevel()
-    data = np.arange(101)
+    data = np.arange(101).reshape(1, -1)
     range_ = auto_level.get_range(data)
     assert range_ == (1, 99)
 
 
 @pytest.mark.parametrize(
     "data",
-    [np.array([1, 2, 3]), np.array([np.inf, 3, 1, np.nan, -np.inf])],
+    [np.array([[1, 2, 3]]), np.array([[np.inf, 3, 1, np.nan, -np.inf]])],
 )
 def test_minmax_mode(data):
     auto_level = AutoLevel()
@@ -45,9 +45,11 @@ def test_minmax_mode(data):
 
 def test_mean3std_mode():
     auto_level = AutoLevel()
+    auto_level.filter_dummy = False
     auto_level.mode = "mean3std"
     data = np.ones(1000) * 100
     data[0:2] = 1, 1000
+    data.shape = 1, -1
     range_ = auto_level.get_range(data)
     mean, std = np.mean(data), np.std(data)
     assert range_ == (mean - 3 * std, mean + 3 * std)
@@ -56,7 +58,7 @@ def test_mean3std_mode():
 def test_mean3std_mode_clipped_to_minmax():
     auto_level = AutoLevel()
     auto_level.mode = "mean3std"
-    data = np.array([1, 2, 3, np.inf, np.nan, -np.inf])
+    data = np.array([[1, 2, 3, np.inf, np.nan, -np.inf]])
     range_ = auto_level.get_range(data)
     assert range_ == (1, 3)
 
@@ -68,7 +70,7 @@ def test_mean3std_mode_clipped_to_minmax():
 def test_percentil_mode(mode):
     auto_level = AutoLevel()
     auto_level.mode = mode
-    data = np.arange(101)
+    data = np.arange(101).reshape(1, -1)
     range_ = auto_level.get_range(data)
     assert range_ == (1, 99)
 
@@ -81,7 +83,7 @@ def test_none_data():
 
 def test_no_finite_data():
     auto_level = AutoLevel()
-    data = np.array([np.inf, np.nan, -np.inf])
+    data = np.array([[np.inf, np.nan, -np.inf]])
     range_ = auto_level.get_range(data)
     assert range_ is None
 
@@ -89,7 +91,7 @@ def test_no_finite_data():
 def test_unsupported_autoscale_mode():
     auto_level = AutoLevel()
     auto_level.mode = "unsupported"
-    data = np.array([1, 2, 3])
+    data = np.array([[1, 2, 3]])
     with pytest.raises(ValueError):
         range_ = auto_level.get_range(data)
 

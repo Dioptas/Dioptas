@@ -31,13 +31,10 @@ class PhaseInCakeController(object):
     PhaseInCakeController handles all the interaction between the phase controls and the plotted lines in the cake view.
     """
 
-    def __init__(self, integration_widget, dioptas_model):
+    def __init__(self, integration_widget: IntegrationWidget, dioptas_model: DioptasModel):
         """
         :param integration_widget: Reference to an IntegrationWidget
         :param dioptas_model: reference to DioptasModel object
-
-        :type integration_widget: IntegrationWidget
-        :type dioptas_model: DioptasModel
         """
         self.model = dioptas_model
         self.phase_model = self.model.phase_model
@@ -74,7 +71,7 @@ class PhaseInCakeController(object):
             cake_tth = self.model.calibration_model.tth
         else:
             cake_tth = self.model.cake_tth
-        reflections_tth = self.phase_model.get_phase_line_positions(ind, 'tth',
+        reflections_tth = self.phase_model.get_phase_line_positions(ind, '2th_deg',
                                                                     self.model.calibration_model.wavelength * 1e10)
         reflections_intensities = [reflex[1] for reflex in self.phase_model.reflections[ind]]
 

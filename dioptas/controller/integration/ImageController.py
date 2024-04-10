@@ -19,17 +19,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-from functools import partial
 
 import numpy as np
 from PIL import Image
 from qtpy import QtWidgets, QtCore
+import pyqtgraph as pg
+from xypattern import Pattern
 
 from ...widgets.UtilityWidgets import open_file_dialog, open_files_dialog, save_file_dialog
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...widgets.integration import IntegrationWidget
 from ...model.DioptasModel import DioptasModel
-from ...model.util.Pattern import Pattern
 from ...model.util.HelperModule import get_partial_index, get_partial_value
 
 from .EpicsController import EpicsController
@@ -41,13 +41,10 @@ class ImageController(object):
     well as interaction with the image_view.
     """
 
-    def __init__(self, widget, dioptas_model):
+    def __init__(self, widget: IntegrationWidget, dioptas_model: DioptasModel):
         """
-        :param widget: Reference to IntegrationView
+        :param widget: Reference to IntegrationWidget
         :param dioptas_model: Reference to DioptasModel object
-
-        :type widget: IntegrationWidget
-        :type dioptas_model: DioptasModel
         """
         self.widget = widget
         self.model = dioptas_model
@@ -63,15 +60,8 @@ class ImageController(object):
         self.horizontal_splitter_alternative_state = None
         self.horizontal_splitter_normal_state = None
 
-        self.initialize()
         self.create_signals()
         self.create_mouse_behavior()
-
-    def initialize(self):
-        self.update_img_control_widget()
-        self.plot_img()
-        self.plot_mask()
-        self.widget.img_widget.auto_level()
 
     def plot_img(self, auto_scale=None):
         """
@@ -122,6 +112,9 @@ class ImageController(object):
         shift_amount = self.widget.cake_shift_azimuth_sl.value()
         self.widget.cake_widget.plot_cake_integral(x, np.roll(y, shift_amount))
 
+    def _update_cake_integral(self):
+        self.plot_cake_integral()
+
     def save_cake_integral(self):
         img_filename, _ = os.path.splitext(os.path.basename(self.model.img_model.filename))
         filename = save_file_dialog(
@@ -138,9 +131,10 @@ class ImageController(object):
         Plots the mask data.
         """
         if self.model.use_mask and self.widget.img_mode == 'Image':
+            self.widget.img_widget.activate_mask()
             self.widget.img_widget.plot_mask(self.model.mask_model.get_img())
         else:
-            self.widget.img_widget.plot_mask(np.zeros(self.model.mask_model.get_img().shape))
+            self.widget.img_widget.deactivate_mask()
 
     def update_mask_transparency(self):
         """
@@ -190,15 +184,14 @@ class ImageController(object):
         ###
         # Image Widget cake specific controls
         self.widget.img_phases_btn.clicked.connect(self.toggle_show_phases)
-        self.widget.cake_shift_azimuth_sl.valueChanged.connect(partial(self.plot_cake, None))
-        self.widget.cake_shift_azimuth_sl.valueChanged.connect(self._update_cake_mouse_click_pos)
-        self.widget.cake_shift_azimuth_sl.valueChanged.connect(self.update_cake_azimuth_axis)
-        self.widget.cake_shift_azimuth_sl.valueChanged.connect(partial(self.plot_cake_integral, None))
+        self.widget.cake_shift_azimuth_sl.valueChanged.connect(self.cake_shift_changed)
         self.widget.integration_image_widget.cake_view.img_view_box.sigRangeChanged.connect(self.update_cake_axes_range)
-        self.widget.pattern_q_btn.clicked.connect(partial(self.set_cake_axis_unit, 'q_A^-1'))
-        self.widget.pattern_tth_btn.clicked.connect(partial(self.set_cake_axis_unit, '2th_deg'))
+        self.widget.pattern_q_btn.clicked.connect(self.set_cake_axis_to_q)
+        self.widget.pattern_tth_btn.clicked.connect(self.set_cake_axis_to_2th)
         self.widget.integration_control_widget.integration_options_widget.cake_integral_width_sb.valueChanged. \
-            connect(partial(self.plot_cake_integral, None))
+            connect(self._update_cake_integral)
+        self.widget.integration_control_widget.integration_options_widget.cake_integral_width_sb.editingFinished. \
+            connect(self._update_cake_integral)
         self.widget.integration_control_widget.integration_options_widget.cake_save_integral_btn.clicked. \
             connect(self.save_cake_integral)
 
@@ -213,10 +206,42 @@ class ImageController(object):
 
         self.widget.qa_save_img_btn.clicked.connect(self.save_img)
         self.widget.load_calibration_btn.clicked.connect(self.load_calibration)
+        self.widget.set_wavelnegth_btn.clicked.connect(self.set_wavelength)
 
         # signals
         self.widget.change_view_btn.clicked.connect(self.change_view_btn_clicked)
         self.widget.autoprocess_cb.toggled.connect(self.auto_process_cb_click)
+
+    def activate(self):
+        if self.widget.img_mode == 'Image':
+            if not self.model.img_changed.has_listener(self.plot_img):
+                self.model.img_changed.connect(self.plot_img)
+            if not self.model.img_changed.has_listener(self.plot_mask):
+                self.model.img_changed.connect(self.plot_mask)
+        elif self.widget.img_mode == 'Cake':
+            if not self.model.cake_changed.has_listener(self.plot_cake):
+                self.model.cake_changed.connect(self.plot_cake)
+        self.widget.calibration_lbl.setText(
+            self.model.calibration_model.calibration_name
+        )
+        self.widget.wavelength_lbl.setText(
+            "{:.4f}".format(self.model.calibration_model.wavelength * 1e10) + " A"
+        )
+
+    def update_image(self):
+        if self.widget.img_mode == 'Image':
+            self.plot_mask()
+            self.plot_img()
+        elif self.widget.img_mode == 'Cake':
+            self.plot_cake()
+
+    def deactivate(self):
+        if self.model.img_changed.has_listener(self.plot_img):
+            self.model.img_changed.disconnect(self.plot_img)
+        if self.plot_mask in self.model.img_changed.listeners:
+            self.model.img_changed.disconnect(self.plot_mask)
+        if self.plot_cake in self.model.cake_changed.listeners:
+            self.model.cake_changed.disconnect(self.plot_cake)
 
     def create_mouse_behavior(self):
         """
@@ -248,6 +273,15 @@ class ImageController(object):
                     self.model.img_model.load(str(filenames[0]))
                     for ind in range(1, len(filenames)):
                         self.model.img_model.add(filenames[ind])
+                    self.model.img_model.blockSignals(False)
+                    self.model.img_model.img_changed.emit()
+                if self.widget.img_batch_mode_average_rb.isChecked():
+                    self.model.img_model.blockSignals(True)
+                    self.model.img_model.load(str(filenames[0]))
+                    for ind in range(1, len(filenames)):
+                        self.model.img_model.add(filenames[ind])
+                    self.model.img_model._img_data = self.model.img_model._img_data / len(filenames)
+                    self.model.img_model._calculate_img_data()
                     self.model.img_model.blockSignals(False)
                     self.model.img_model.img_changed.emit()
                 elif self.widget.img_batch_mode_integrate_rb.isChecked():
@@ -351,7 +385,7 @@ class ImageController(object):
                 self.model.pattern_model.save_pattern(filename)
 
             # save the background subtracted filename
-            if self.model.pattern.has_background():
+            if self.model.pattern.auto_bkg is not None:
                 directory = os.path.join(working_directory, 'bkg_subtracted')
                 if not os.path.exists(directory):
                     os.mkdir(directory)
@@ -468,7 +502,7 @@ class ImageController(object):
         new_filename = str(self.widget.img_filename_txt.text())
         if os.path.exists(os.path.join(current_directory, new_filename)):
             try:
-                self.load_file(filename=os.path.join(current_directory, new_filename))
+                self.load_file(filename=os.path.join(current_directory, new_filename).replace('\\', '/'))
             except TypeError:
                 self.widget.img_filename_txt.setText(current_filename)
         else:
@@ -580,6 +614,12 @@ class ImageController(object):
         elif str(self.widget.img_phases_btn.text()) == 'Hide Phases':
             self.widget.integration_image_widget.cake_view.hide_all_cake_phases()
             self.widget.img_phases_btn.setText('Show Phases')
+
+    def cake_shift_changed(self):
+        self.plot_cake()
+        self._update_cake_mouse_click_pos()
+        self.update_cake_azimuth_axis()
+        self.plot_cake_integral(None)
 
     def activate_cake_mode(self):
         if self.model.calibration_model.cake_geometry is None:
@@ -732,11 +772,12 @@ class ImageController(object):
                 self.convert_x_value(min_tth, '2th_deg', 'q_A^-1'),
                 self.convert_x_value(max_tth, '2th_deg', 'q_A^-1'))
 
-    def set_cake_axis_unit(self, unit='2th_deg'):
-        if unit == '2th_deg':
-            self.widget.integration_image_widget.cake_view.bottom_axis_cake.setLabel(u'2θ', u'°')
-        elif unit == 'q_A^-1':
-            self.widget.integration_image_widget.cake_view.bottom_axis_cake.setLabel('Q', 'A<sup>-1</sup>')
+    def set_cake_axis_to_2th(self):
+        self.widget.integration_image_widget.cake_view.bottom_axis_cake.setLabel(u'2θ', u'°')
+        self.update_cake_x_axis()
+
+    def set_cake_axis_to_q(self):
+        self.widget.integration_image_widget.cake_view.bottom_axis_cake.setLabel('Q', 'A<sup>-1</sup>')
         self.update_cake_x_axis()
 
     def show_img_mouse_position(self, x, y):
@@ -926,6 +967,14 @@ class ImageController(object):
             self.model.calibration_model.load(filename)
             self.widget.calibration_lbl.setText(
                 self.model.calibration_model.calibration_name)
+            self.widget.wavelength_lbl.setText('{:.4f}'.format(self.model.calibration_model.wavelength * 1e10) + ' A')
+            self.model.img_model.img_changed.emit()
+
+    def set_wavelength(self):
+        wavelength, ok = QtWidgets.QInputDialog.getText(self.widget, 'Set Wavelength', 'Wavelength in Angstroms:')
+        if ok:
+            self.model.calibration_model.pattern_geometry.wavelength = float(wavelength) * 1e-10
+            self.widget.wavelength_lbl.setText('{:.4f}'.format(self.model.calibration_model.wavelength * 1e10) + ' A')
             self.model.img_model.img_changed.emit()
 
     def auto_process_cb_click(self):

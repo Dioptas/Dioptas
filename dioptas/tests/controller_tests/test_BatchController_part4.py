@@ -17,37 +17,46 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import os
 import pytest
 from mock import MagicMock
 import numpy as np
 
-from ...model.util.Pattern import Pattern
 from qtpy import QtWidgets
+from xypattern import Pattern
 
 from ...controller.integration import BatchController
-from .test_BatchController_part1 import *
 
 
-def test_save_xy_without_background_subtraction(batch_controller: BatchController, tmp_path):
+def test_save_xy_without_background_subtraction(
+    batch_controller: BatchController, tmp_path
+):
     batch_controller.model.batch_model.data = np.ones((22, 1000))
     batch_controller.model.batch_model.binning = np.arange(1000)
-    QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(tmp_path, "test.xy"))
+    QtWidgets.QFileDialog.getSaveFileName = MagicMock(
+        return_value=os.path.join(tmp_path, "test.xy")
+    )
     batch_controller.save_data()
 
     for i in range(len(batch_controller.model.batch_model.data)):
         assert os.path.exists(os.path.join(tmp_path, f"test_{i:03d}.xy"))
 
 
-def test_save_xy_with_background_subtraction(batch_controller: BatchController, tmp_path):
-    batch_controller.model.batch_model.data = np.ones((22, 1000))
-    batch_controller.model.batch_model.binning = np.arange(1000)
-    batch_controller.model.pattern_model.set_auto_background_subtraction(parameters=[2, 50, 50],
-                                                                         roi=[100, 800])
+def test_save_xy_with_background_subtraction(
+    batch_controller: BatchController, tmp_path
+):
+    batch_controller.model.batch_model.data = np.ones((22, 1001))
+    batch_controller.model.batch_model.binning = np.linspace(0, 10, 1001)
+    batch_controller.model.pattern_model.set_auto_background_subtraction(
+        parameters=[2, 50, 50], roi=[2, 8]
+    )
 
-    assert batch_controller.model.pattern_model.pattern.auto_background_subtraction
+    assert batch_controller.model.pattern_model.pattern.auto_bkg
 
-    QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(tmp_path, "test.xy"))
+    QtWidgets.QFileDialog.getSaveFileName = MagicMock(
+        return_value=os.path.join(tmp_path, "test.xy")
+    )
     batch_controller.save_data()
 
     # check that normal patterns are saved
@@ -61,14 +70,15 @@ def test_save_xy_with_background_subtraction(batch_controller: BatchController, 
     for i in range(len(batch_controller.model.batch_model.data)):
         assert os.path.exists(os.path.join(bkg_subtracted_path, f"test_{i:03d}.xy"))
 
-    pattern = Pattern()
-    pattern.load(os.path.join(tmp_path, f"test_011.xy"))
-    assert len(pattern.x) == 1000
-    assert len(pattern.y) == 1000
-    assert np.sum(pattern.y) == pytest.approx(1000)
-
+    # check that background subtracted patterns are saved with the reduced range
     bkg_subtracted_pattern = Pattern()
     bkg_subtracted_pattern.load(os.path.join(bkg_subtracted_path, f"test_011.xy"))
-    assert len(bkg_subtracted_pattern.x) == 701
-    assert len(bkg_subtracted_pattern.y) == 701
+    assert len(bkg_subtracted_pattern.x) == 599
+    assert len(bkg_subtracted_pattern.y) == 599
     assert np.sum(bkg_subtracted_pattern.y) == pytest.approx(0, abs=1e-10)
+
+    # check that originalfpytterns are saved with the full range
+    pattern = Pattern()
+    pattern.load(os.path.join(tmp_path, f"test_011.xy"))
+    assert len(pattern.x) == 1001
+    assert len(pattern.y) == 1001

@@ -68,22 +68,27 @@ class IntegrationControlWidget(QtWidgets.QWidget):
 
         self.orientation = QtCore.Qt.Horizontal  # other value is QtCore.Qt.Horizontal
 
-        self.tab_widget_1.addTab(self.img_control_widget, 'Image')
-        self.tab_widget_1.addTab(self.pattern_control_widget, 'Pattern')
-        self.tab_widget_1.addTab(self.overlay_control_widget, 'Overlay')
-        self.tab_widget_1.addTab(self.phase_control_widget, 'Phase')
-        self.tab_widget_1.addTab(self.corrections_control_widget, 'Cor')
-        self.tab_widget_1.addTab(self.background_control_widget, 'Bkg')
-        self.tab_widget_1.addTab(self.integration_options_widget, 'X')
+        self.tab_widget_1.addTab(self.img_control_widget, "Image")
+        self.tab_widget_1.addTab(self.pattern_control_widget, "Pattern")
+        self.tab_widget_1.addTab(self.overlay_control_widget, "Overlay")
+        self.tab_widget_1.addTab(self.phase_control_widget, "Phase")
+        self.tab_widget_1.addTab(self.corrections_control_widget, "Cor")
+        self.tab_widget_1.addTab(self.background_control_widget, "Bkg")
+        self.tab_widget_1.addTab(self.integration_options_widget, "X")
 
         self.tab_widget_1.setCurrentIndex(0)
 
     def update_tab_widget_1_sizes(self):
         for i in range(self.tab_widget_1.count()):
-            self.tab_widget_1.widget(i).setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
-        self.tab_widget_1.currentWidget().setSizePolicy(QtWidgets.QSizePolicy.Preferred,
-                                                        QtWidgets.QSizePolicy.Preferred)
-        self.tab_widget_1.currentWidget().resize(self.tab_widget_1.currentWidget().minimumSizeHint())
+            self.tab_widget_1.widget(i).setSizePolicy(
+                QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored
+            )
+        self.tab_widget_1.currentWidget().setSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred
+        )
+        self.tab_widget_1.currentWidget().resize(
+            self.tab_widget_1.currentWidget().minimumSizeHint()
+        )
         self.tab_widget_1.currentWidget().adjustSize()
 
     def horizontal_layout_1(self):
@@ -91,8 +96,8 @@ class IntegrationControlWidget(QtWidgets.QWidget):
 
         self.tab_widget_2.hide()
 
-        self.tab_widget_1.insertTab(2, self.overlay_control_widget, 'Overlay')
-        self.tab_widget_1.insertTab(3, self.phase_control_widget, 'Phase')
+        self.tab_widget_1.insertTab(2, self.overlay_control_widget, "Overlay")
+        self.tab_widget_1.insertTab(3, self.phase_control_widget, "Phase")
 
         self.overlay_control_widget.overlay_header_btn.hide()
         self.phase_control_widget.phase_header_btn.hide()
@@ -102,8 +107,10 @@ class IntegrationControlWidget(QtWidgets.QWidget):
 
         self.tab_widget_2.show()
 
-        self.tab_widget_2.addTab(self.overlay_control_widget, 'Overlay')
-        self.tab_widget_2.addTab(self.phase_control_widget, 'Phase')
+        self.tab_widget_2.addTab(self.overlay_control_widget, "Overlay")
+        self.tab_widget_2.addTab(self.phase_control_widget, "Phase")
+        widget_width = int(self.width() / 2)
+        self.horizontal_splitter.setSizes([widget_width, widget_width])
 
         self.overlay_control_widget.overlay_header_btn.hide()
         self.phase_control_widget.phase_header_btn.hide()
@@ -117,6 +124,8 @@ class IntegrationControlWidget(QtWidgets.QWidget):
 
         self.horizontal_splitter.setCollapsible(2, False)
         self.horizontal_splitter.setCollapsible(3, False)
+        widget_width = int(self.width() / 3)
+        self.horizontal_splitter.setSizes([widget_width, 0, widget_width, widget_width])
 
         self.overlay_control_widget.show()
         self.phase_control_widget.show()
@@ -137,7 +146,7 @@ class IntegrationControlWidget(QtWidgets.QWidget):
 
     def update_layout(self, force_layout=False):
         if self.orientation == QtCore.Qt.Horizontal:
-            if self.width() < 800:
+            if self.width() < 900:
                 if self.current_layout != 1 or force_layout:
                     self.horizontal_layout_1()
             elif self.width() > 1400:
@@ -148,6 +157,9 @@ class IntegrationControlWidget(QtWidgets.QWidget):
                     self.horizontal_layout_2()
         elif self.orientation == QtCore.Qt.Vertical:
             self.vertical_layout()
+
+        self.overlay_control_widget.update_overlay_tw_column_sizes()
+        self.phase_control_widget.update_phase_tw_column_sizes()
 
     def resizeEvent(self, a0: QtGui.QResizeEvent):
         self.update_layout()
@@ -169,11 +181,14 @@ class TabWidgetMinSize(QtWidgets.QTabWidget):
 
     def update_sizes(self):
         for i in range(self.count()):
-            self.widget(i).setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
+            self.widget(i).setSizePolicy(
+                QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored
+            )
 
         if self.currentWidget() is not None:
-            self.currentWidget().setSizePolicy(QtWidgets.QSizePolicy.Preferred,
-                                               QtWidgets.QSizePolicy.Preferred)
+            self.currentWidget().setSizePolicy(
+                QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred
+            )
             self.currentWidget().resize(self.currentWidget().minimumSizeHint())
             self.currentWidget().adjustSize()
 

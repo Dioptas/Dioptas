@@ -18,8 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import
-
 import os
 import sys
 from sys import platform as _platform
@@ -32,33 +30,60 @@ if "QT_API" not in os.environ:
         pass
 
 from qtpy import QtWidgets
+from qt_material import apply_stylesheet
 
-__version__ = "0.5.9"
+try:
+    from pyshortcuts import make_shortcut
+except ImportError:
+    make_shortcut = None
+
+__version__ = "0.6.0"
 
 from .paths import resources_path, calibrants_path, icons_path, data_path, style_path
 from .excepthook import excepthook
-from ._desktop_shortcuts import make_shortcut
 from .controller.MainController import MainController
 
 
+theme_path = os.path.join(style_path, "dark_orange.xml")
+qss_path = os.path.join(style_path, "qt_material.css")
+
 def main():
     app = QtWidgets.QApplication([])
+
+    apply_stylesheet(
+        app,
+        theme=theme_path,
+        css_file=qss_path,
+        extra={"density_scale": -2},
+    )
     sys.excepthook = excepthook
     print("Dioptas {}".format(__version__))
-
-    if _platform == "linux" or _platform == "linux2" or _platform == "win32" or _platform == 'cygwin':
-        app.setStyle('plastique')
 
     if len(sys.argv) == 1:  # normal start
         controller = MainController()
         controller.show_window()
         app.exec_()
     else:  # with command line arguments
-        if sys.argv[1] == 'test':
+        if sys.argv[1] == "test":
             controller = MainController(use_settings=False)
             controller.show_window()
-        elif sys.argv[1].startswith('makeshortcut'):
-            make_shortcut('Dioptas', 'dioptas.py', description='Dioptas 2D XRD {}'.format(__version__),
-                          icon_path=icons_path, icon='icon')
-    del app
 
+        elif sys.argv[1].startswith("makeshortcut"):
+            if make_shortcut is None:
+                raise ImportError("pyshortcuts not installed.  Try `pip install pyshortcuts`")
+            binary_dir = "Scripts" if os.name == "nt" else "bin"
+            make_shortcut(
+                os.path.join(sys.exec_prefix, binary_dir, "dioptas"),
+                name = "Dioptas",
+                description="Dioptas 2D XRD {}".format(__version__),
+                icon=os.path.join(icons_path, "icon")
+                )
+
+        elif sys.argv[1].startswith("version"):
+            print(__version__)
+
+        elif sys.argv[1].endswith(".json"):
+            controller = MainController(config_file=sys.argv[1])
+            controller.show_window()
+            app.exec_()
+    del app

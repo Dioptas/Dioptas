@@ -22,7 +22,6 @@ from ..utility import QtTest, click_button, click_checkbox
 import os
 import gc
 
-import numpy as np
 from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtTest import QTest
 from mock import MagicMock

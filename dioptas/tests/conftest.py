@@ -22,6 +22,22 @@ import weakref
 import pytest
 from qtpy import QtCore, QtWidgets
 from qtpy.QtTest import QTest
+from dioptas.controller import CalibrationController
+
+from dioptas.controller.MainController import MainController
+
+from dioptas.controller.integration import (
+    PhaseController,
+    PatternController,
+    BatchController,
+    BackgroundController,
+    IntegrationController,
+)
+from dioptas.controller.integration.ImageController import ImageController
+
+from dioptas.model.DioptasModel import DioptasModel
+from dioptas.widgets.integration import IntegrationWidget
+from dioptas.widgets.CalibrationWidget import CalibrationWidget
 
 
 @pytest.fixture(scope="session")
@@ -61,3 +77,93 @@ def qWidgetFactory(qapp):
         for widget in widgets:
             widget.close()
         qapp.processEvents()
+
+
+@pytest.fixture
+def main_controller(qapp):
+    """Fixture providing a MainController instance"""
+    controller = MainController(use_settings=False)
+    controller.show_window()
+    controller.widget.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+    QTest.qWaitForWindowExposed(controller.widget)
+    controller.widget.activateWindow()
+    controller.widget.raise_()
+    try:
+        yield controller
+    finally:
+        controller.widget.close()
+
+
+@pytest.fixture(scope="function")
+def dioptas_model():
+    model = DioptasModel()
+    yield model
+
+
+@pytest.fixture
+def phase_controller(integration_widget, dioptas_model):
+    return PhaseController(integration_widget, dioptas_model)
+
+
+@pytest.fixture
+def pattern_controller(integration_widget, dioptas_model):
+    return PatternController(integration_widget, dioptas_model)
+
+
+@pytest.fixture
+def integration_widget(qtbot):
+    widget = IntegrationWidget()
+    yield widget
+    widget.close()
+
+
+@pytest.fixture
+def calibration_widget(qtbot):
+    widget = CalibrationWidget()
+    yield widget
+    widget.close()
+
+
+@pytest.fixture
+def integration_controller(integration_widget, dioptas_model, qtbot):
+    return IntegrationController(widget=integration_widget, dioptas_model=dioptas_model)
+
+
+@pytest.fixture
+def batch_model(dioptas_model):
+    return dioptas_model.batch_model
+
+
+@pytest.fixture
+def batch_controller(integration_widget, dioptas_model):
+    return BatchController(integration_widget, dioptas_model)
+
+
+@pytest.fixture
+def batch_widget(integration_widget):
+    return integration_widget.batch_widget
+
+
+@pytest.fixture
+def background_controller(integration_widget, dioptas_model, qtbot):
+    return BackgroundController(integration_widget, dioptas_model)
+
+
+@pytest.fixture
+def image_controller(integration_widget, dioptas_model, qtbot):
+    return ImageController(integration_widget, dioptas_model)
+
+
+@pytest.fixture
+def calibration_controller(calibration_widget, dioptas_model, qtbot):
+    return CalibrationController(calibration_widget, dioptas_model)
+
+
+@pytest.fixture
+def calibration_model(dioptas_model):
+    return dioptas_model.calibration_model
+
+
+@pytest.fixture
+def img_model(dioptas_model):
+    return dioptas_model.img_model

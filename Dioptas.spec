@@ -67,10 +67,12 @@ pyqtgraph_hiddenimports += [
 import pyFAI
 import matplotlib
 import lib2to3
+import qt_material
 
 pyFAI_path = os.path.dirname(pyFAI.__file__)
 matplotlib_path = os.path.dirname(matplotlib.__file__)
 lib2to3_path = os.path.dirname(lib2to3.__file__)
+qt_material_path = os.path.dirname(qt_material.__file__)
 
 extra_datas = [
     ("dioptas/resources", "dioptas/resources"),
@@ -78,7 +80,8 @@ extra_datas = [
     (os.path.join(pyFAI_path, "utils"), "pyFAI/utils"),
     (os.path.join(lib2to3_path, 'Grammar.txt'), 'lib2to3/'),
     (os.path.join(lib2to3_path, 'PatternGrammar.txt'), 'lib2to3/'),
-    (os.path.join(site_packages_path, 'hdf5plugin', 'plugins'), os.path.join('hdf5plugin', 'plugins'))
+    (os.path.join(qt_material_path, 'fonts'), 'qt_material/fonts'),
+    (os.path.join(site_packages_path, 'hdf5plugin', 'plugins'), 'hdf5plugin/plugins'),
 ]
 
 a = Analysis(['run.py'],
@@ -86,12 +89,13 @@ a = Analysis(['run.py'],
              binaries=binaries,
              datas=extra_datas,
              hiddenimports=['scipy.special._ufuncs_cxx', 'scipy._lib.messagestream', 'scipy.special.cython_special',
+                            'scipy.special._cdflib',
                             'skimage._shared.geometry', 'h5py.defs', 'h5py.utils', 'h5py.h5ac', 'h5py', 'h5py._proxy',
                             'pywt._extensions._cwt', 'pkg_resources.py2_warn'] +
-                           fabio_hiddenimports + pyqtgraph_hiddenimports + pyFAI_hiddenimports,
+                             fabio_hiddenimports + pyqtgraph_hiddenimports + pyFAI_hiddenimports,
              hookspath=[],
              runtime_hooks=[],
-             excludes=['PyQt4', 'PySide'],
+             excludes=['PyQt4', 'PySide', 'pyepics'],
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
              cipher=block_cipher)
@@ -110,17 +114,10 @@ a.binaries = [x for x in a.binaries if not x[0].startswith("libtk")]
 
 exclude_datas = [
     "IPython",
-    #   "matplotlib",
-    #   "mpl-data", #needs to be included
-    #   "_MEI",
-    #   "docutils",
-    #   "pytz",
-    #   "lib",
+    "matplotlib/mpl-data",
     "include",
     "sphinx",
-    #   ".py",
     "tests",
-    "skimage",
     "alabaster",
     "boto",
     "jsonschema",
@@ -129,6 +126,9 @@ exclude_datas = [
     "requests",
     "qt4_plugins",
     "qt5_plugins"
+    "PyQt6/Qt6/translations",
+    "PyQt6/Qt6/plugins/imageformats",
+    "tcl/tzdata",
 ]
 
 for exclude_data in exclude_datas:

@@ -83,6 +83,24 @@ class Signal:
         self.listeners = WeakRefList()
         self.priority_listeners = WeakRefList()
 
+    def block(self):
+        """
+        Blocks the Signal from emitting.
+        """
+        self.blocked = True
+
+    def unblock(self):
+        """
+        Unblocks the Signal from emitting.
+        """
+        self.blocked = False
+
+    def has_listener(self, handle):
+        """
+        Returns True if the handle is in the list of listeners.
+        """
+        return handle in self.listeners or handle in self.priority_listeners
+
 
 class WeakRefList(list):
     """
@@ -101,6 +119,7 @@ class WeakRefList(list):
     >>> weak_ref_list.append(a.method)
     >>> weak_ref_list[0]()() == "lala"
     """
+
     def append(self, item):
         super(WeakRefList, self).append(self._ref(item))
 
@@ -118,3 +137,9 @@ class WeakRefList(list):
             return weakref.WeakMethod(item, self._remove_ref)
         else:
             return weakref.ref(item, self._remove_ref)
+
+    def __contains__(self, item):
+        for ref in self:
+            if ref() == item:
+                return True
+        return False

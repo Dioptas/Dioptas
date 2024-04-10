@@ -18,8 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import
-
 import pyqtgraph as pg
 from pyqtgraph import ViewBox
 from pyqtgraph.exporters.ImageExporter import ImageExporter
@@ -39,7 +37,7 @@ class ImgWidget(QtCore.QObject):
     mouse_left_clicked = QtCore.Signal(float, float)
     mouse_left_double_clicked = QtCore.Signal(float, float)
 
-    def __init__(self, pg_layout, orientation='vertical'):
+    def __init__(self, pg_layout, orientation="vertical"):
         super(ImgWidget, self).__init__()
         self.pg_layout = pg_layout
 
@@ -61,12 +59,14 @@ class ImgWidget(QtCore.QObject):
 
         self.img_histogram_LUT_horizontal = HistogramLUTItem(self.data_img_item)
         self.pg_layout.addItem(self.img_histogram_LUT_horizontal, row=0, col=1)
-        self.img_histogram_LUT_vertical = HistogramLUTItem(self.data_img_item, orientation='vertical')
+        self.img_histogram_LUT_vertical = HistogramLUTItem(
+            self.data_img_item, orientation="vertical"
+        )
         self.pg_layout.addItem(self.img_histogram_LUT_vertical, row=1, col=2)
 
     def create_mouse_click_item(self):
         self.mouse_click_item = pg.ScatterPlotItem()
-        self.mouse_click_item.setSymbol('+')
+        self.mouse_click_item.setSymbol("+")
         self.mouse_click_item.setSize(15)
         self.mouse_click_item.addPoints([0], [0])
         self.mouse_left_clicked.connect(self.set_mouse_click_position)
@@ -78,25 +78,37 @@ class ImgWidget(QtCore.QObject):
     def activate_mouse_click_item(self):
         if not self.mouse_click_item in self.img_view_box.addedItems:
             self.img_view_box.addItem(self.mouse_click_item)
-            self.mouse_click_item.setVisible(True)  # oddly this is needed for the line to be displayed correctly
+            self.mouse_click_item.setVisible(
+                True
+            )  # oddly this is needed for the line to be displayed correctly
 
     def deactivate_mouse_click_item(self):
         if self.mouse_click_item in self.img_view_box.addedItems:
             self.img_view_box.removeItem(self.mouse_click_item)
 
     def set_orientation(self, orientation):
-        if orientation == 'horizontal':
+        if orientation == "horizontal":
             self.img_histogram_LUT_vertical.hide()
+            self.img_histogram_LUT_vertical.deactivate()
             self.img_histogram_LUT_horizontal.show()
-            self.img_histogram_LUT_vertical.gradient = self.img_histogram_LUT_horizontal.gradient
-        elif orientation == 'vertical':
+            self.img_histogram_LUT_horizontal.activate()
+            self.img_histogram_LUT_vertical.gradient = (
+                self.img_histogram_LUT_horizontal.gradient
+            )
+        elif orientation == "vertical":
             self.img_histogram_LUT_horizontal.hide()
+            self.img_histogram_LUT_horizontal.deactivate()
             self.img_histogram_LUT_vertical.show()
-            self.img_histogram_LUT_horizontal.gradient = self.img_histogram_LUT_vertical.gradient
+            self.img_histogram_LUT_vertical.activate()
+            self.img_histogram_LUT_horizontal.gradient = (
+                self.img_histogram_LUT_vertical.gradient
+            )
         self.orientation = orientation
 
     def create_scatter_plot(self):
-        self.img_scatter_plot_item = pg.ScatterPlotItem(pen=pg.mkPen('w'), brush=pg.mkBrush('r'))
+        self.img_scatter_plot_item = pg.ScatterPlotItem(
+            pen=pg.mkPen("w"), brush=pg.mkBrush("r")
+        )
         self.img_view_box.addItem(self.img_scatter_plot_item)
 
     def plot_image(self, img_data, auto_level=False):
@@ -108,15 +120,17 @@ class ImgWidget(QtCore.QObject):
 
     def save_img(self, filename):
         exporter = ImageExporter(self.img_view_box)
-        exporter.parameters()['width'] = 2048
+        exporter.parameters()["width"] = 2048
         exporter.export(filename)
 
     def set_range(self, x_range, y_range):
         img_bounds = self.img_view_box.childrenBoundingRect()
-        if x_range[0] <= img_bounds.left() and \
-                x_range[1] >= img_bounds.right() and \
-                y_range[0] <= img_bounds.bottom() and \
-                y_range[1] >= img_bounds.top():
+        if (
+            x_range[0] <= img_bounds.left()
+            and x_range[1] >= img_bounds.right()
+            and y_range[0] <= img_bounds.bottom()
+            and y_range[1] >= img_bounds.top()
+        ):
             self.img_view_box.autoRange()
             self._max_range = True
             return
@@ -129,13 +143,16 @@ class ImgWidget(QtCore.QObject):
             return
 
         view_x_range, view_y_range = self.img_view_box.viewRange()
-        if view_x_range[1] > self.img_data.shape[0] and \
-                view_y_range[1] > self.img_data.shape[1]:
+        if (
+            view_x_range[1] > self.img_data.shape[0]
+            and view_y_range[1] > self.img_data.shape[1]
+        ):
             self.auto_range()
 
     def auto_level(self):
         colormap_range = utils.auto_level.get_range(
-            self.img_histogram_LUT_horizontal.getImageData(copy=False))
+            self.img_histogram_LUT_horizontal.getImageData(copy=False)
+        )
         if colormap_range is None:
             return
         self.img_histogram_LUT_vertical.setLevels(*colormap_range)
@@ -175,13 +192,15 @@ class ImgWidget(QtCore.QObject):
         self.img_view_box.wheelEvent = self.myWheelEvent
 
     def myMouseClickEvent(self, ev):
-        if ev.button() == QtCore.Qt.RightButton or \
-                (ev.button() == QtCore.Qt.LeftButton and
-                 ev.modifiers() & QtCore.Qt.ControlModifier):
+        if ev.button() == QtCore.Qt.RightButton or (
+            ev.button() == QtCore.Qt.LeftButton
+            and ev.modifiers() & QtCore.Qt.ControlModifier
+        ):
             view_range = np.array(self.img_view_box.viewRange()) * 2
             if self.img_data is not None:
-                if (view_range[0][1] - view_range[0][0]) > self.img_data.shape[1] and \
-                        (view_range[1][1] - view_range[1][0]) > self.img_data.shape[0]:
+                if (view_range[0][1] - view_range[0][0]) > self.img_data.shape[1] and (
+                    view_range[1][1] - view_range[1][0]
+                ) > self.img_data.shape[0]:
                     self.auto_range()
                 else:
                     self.img_view_box.scaleBy((2, 2))
@@ -207,32 +226,43 @@ class ImgWidget(QtCore.QObject):
         dif = pos - lastPos
         dif *= -1
         ## Ignore axes if mouse is disabled
-        mouseEnabled = np.array(self.img_view_box.state['mouseEnabled'], dtype=float)
+        mouseEnabled = np.array(self.img_view_box.state["mouseEnabled"], dtype=float)
         mask = mouseEnabled.copy()
         if axis is not None:
             mask[1 - axis] = 0.0
 
-        if ev.button() == QtCore.Qt.RightButton or \
-                (ev.button() == QtCore.Qt.LeftButton and \
-                 ev.modifiers() & QtCore.Qt.ControlModifier):
+        if ev.button() == QtCore.Qt.RightButton or (
+            ev.button() == QtCore.Qt.LeftButton
+            and ev.modifiers() & QtCore.Qt.ControlModifier
+        ):
             # determine the amount of translation
             tr = dif * mask
-            tr = self.img_view_box.mapToView(tr) - self.img_view_box.mapToView(pg.Point(0, 0))
+            tr = self.img_view_box.mapToView(tr) - self.img_view_box.mapToView(
+                pg.Point(0, 0)
+            )
             x = tr.x()
             y = tr.y()
 
             self.img_view_box.translateBy(x=x, y=y)
-            self.img_view_box.sigRangeChangedManually.emit(self.img_view_box.state['mouseEnabled'])
+            self.img_view_box.sigRangeChangedManually.emit(
+                self.img_view_box.state["mouseEnabled"]
+            )
         else:
-            if ev.isFinish():  ## This is the final move in the drag; change the view scale now
+            if (
+                ev.isFinish()
+            ):  ## This is the final move in the drag; change the view scale now
                 # print "finish"
                 self.img_view_box.rbScaleBox.hide()
                 # ax = QtCore.QRectF(Point(self.pressPos), Point(self.mousePos))
-                ax = QtCore.QRectF(pg.Point(ev.buttonDownPos(ev.button())), pg.Point(pos))
+                ax = QtCore.QRectF(
+                    pg.Point(ev.buttonDownPos(ev.button())), pg.Point(pos)
+                )
                 ax = self.img_view_box.childGroup.mapRectFromParent(ax)
                 self.img_view_box.showAxRect(ax)
                 self.img_view_box.axHistoryPointer += 1
-                self.img_view_box.axHistory = self.img_view_box.axHistory[:self.img_view_box.axHistoryPointer] + [ax]
+                self.img_view_box.axHistory = self.img_view_box.axHistory[
+                    : self.img_view_box.axHistoryPointer
+                ] + [ax]
                 self._max_range = False
             else:
                 ## update shape of scale box
@@ -245,8 +275,9 @@ class ImgWidget(QtCore.QObject):
         else:
             view_range = np.array(self.img_view_box.viewRange())
             if self.img_data is not None:
-                if (view_range[0][1] - view_range[0][0]) > self.img_data.shape[1] and \
-                        (view_range[1][1] - view_range[1][0]) > self.img_data.shape[0]:
+                if (view_range[0][1] - view_range[0][0]) > self.img_data.shape[1] and (
+                    view_range[1][1] - view_range[1][0]
+                ) > self.img_data.shape[0]:
                     self.auto_range()
                 else:
                     pg.ViewBox.wheelEvent(self.img_view_box, ev)
@@ -269,22 +300,55 @@ class ImgWidget(QtCore.QObject):
         """
         return self.data_img_item.boundingRect()
 
+    def get_display_state(self) -> tuple:
+        """
+        Gets the current state of the image widget, including the view range, histogram levels and normalization.
+        :return: view range, histogram levels, histogram normalization
+        """
+        view_range = self.img_view_box.targetRange()
+        if self.orientation == "horizontal":
+            hist_level = self.img_histogram_LUT_horizontal.getExpLevels()
+            hist_normalization = self.img_histogram_LUT_horizontal.getNormalization()
+        elif self.orientation == "vertical":
+            hist_level = self.img_histogram_LUT_vertical.getExpLevels()
+            hist_normalization = self.img_histogram_LUT_vertical.getNormalization()
+        return view_range, hist_level, hist_normalization
+
+    def set_display_state(self, view_range, hist_level, hist_normalization):
+        """
+        Sets the state of the image widget, including the view range, histogram levels and normalization.
+        :param view_range: view range
+        :param hist_level: histogram levels
+        :param hist_normalization: histogram normalization
+        """
+        self.set_range(view_range[0], view_range[1])
+        if self.orientation == "horizontal":
+            self.img_histogram_LUT_horizontal.setLevels(*hist_level)
+            self.img_histogram_LUT_horizontal.setNormalization(hist_normalization)
+        elif self.orientation == "vertical":
+            self.img_histogram_LUT_vertical.setLevels(*hist_level)
+            self.img_histogram_LUT_vertical.setNormalization(hist_normalization)
+
 
 class CalibrationCakeWidget(ImgWidget):
-    def __init__(self, pg_layout, orientation='vertical'):
+    def __init__(self, pg_layout, orientation="vertical"):
         super(CalibrationCakeWidget, self).__init__(pg_layout, orientation)
         self.img_view_box.setAspectLocked(False)
         self.create_vertical_line()
         self.mouse_left_clicked.connect(self.set_vertical_line_pos)
 
     def create_vertical_line(self):
-        self.vertical_line = pg.InfiniteLine(angle=90, pen=pg.mkPen(color=(0, 255, 0), width=2))
+        self.vertical_line = pg.InfiniteLine(
+            angle=90, pen=pg.mkPen(color=(0, 255, 0), width=2)
+        )
         self.activate_vertical_line()
 
     def activate_vertical_line(self):
         if not self.vertical_line in self.img_view_box.addedItems:
             self.img_view_box.addItem(self.vertical_line)
-            self.vertical_line.setVisible(True)  # oddly this is needed for the line to be displayed correctly
+            self.vertical_line.setVisible(
+                True
+            )  # oddly this is needed for the line to be displayed correctly
 
     def deactivate_vertical_line(self):
         if self.vertical_line in self.img_view_box.addedItems:
@@ -295,7 +359,7 @@ class CalibrationCakeWidget(ImgWidget):
 
 
 class MaskImgWidget(ImgWidget):
-    def __init__(self, pg_layout, orientation='vertical'):
+    def __init__(self, pg_layout, orientation="vertical"):
         super(MaskImgWidget, self).__init__(pg_layout, orientation)
         self.mask_img_item = pg.ImageItem()
         self.img_view_box.addItem(self.mask_img_item)
@@ -313,8 +377,9 @@ class MaskImgWidget(ImgWidget):
 
     def plot_mask(self, mask_data):
         self.mask_data = np.int16(mask_data)
-        self.mask_img_item.setImage(self.mask_data.T, autoRange=True, autoHistogramRange=True,
-                                    autoLevels=True)
+        self.mask_img_item.setImage(
+            self.mask_data.T, autoRange=True, autoHistogramRange=True, autoLevels=True
+        )
 
     def create_color_map(self, color):
         steps = np.array([0, 1])
@@ -323,7 +388,8 @@ class MaskImgWidget(ImgWidget):
         return color_map.getLookupTable(0.0, 1.0, 256, True)
 
     def set_mask_color(self, color=None):
-        if not color: color = [255, 0, 0, 255]
+        if not color:
+            color = [255, 0, 0, 255]
         self.mask_img_item.setLookupTable(self.create_color_map(color))
 
     def draw_circle(self, x=0, y=0):
@@ -353,7 +419,7 @@ class MaskImgWidget(ImgWidget):
 
 
 class IntegrationImgWidget(MaskImgWidget):
-    def __init__(self, pg_layout, orientation='vertical'):
+    def __init__(self, pg_layout, orientation="vertical"):
         super(IntegrationImgWidget, self).__init__(pg_layout, orientation)
         self.create_circle_plot_items()
         self.create_mouse_click_item()
@@ -365,11 +431,21 @@ class IntegrationImgWidget(MaskImgWidget):
         # this needs to be several because the lines can be interrupted by the edges of the image, otherwise
         # they would always create straight line around the image
         self.circle_plot_items = []
-        self.circle_plot_items.append(pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1)))
-        self.circle_plot_items.append(pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1)))
-        self.circle_plot_items.append(pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1)))
-        self.circle_plot_items.append(pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1)))
-        self.circle_plot_items.append(pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1)))
+        self.circle_plot_items.append(
+            pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1))
+        )
+        self.circle_plot_items.append(
+            pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1))
+        )
+        self.circle_plot_items.append(
+            pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1))
+        )
+        self.circle_plot_items.append(
+            pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1))
+        )
+        self.circle_plot_items.append(
+            pg.PlotDataItem(pen=pg.mkPen(color=(0, 255, 0, 255), width=1.1))
+        )
         for plot_item in self.circle_plot_items:
             self.img_view_box.addItem(plot_item)
 
@@ -428,7 +504,7 @@ class IntegrationImgWidget(MaskImgWidget):
 
 
 class IntegrationCakeWidget(CalibrationCakeWidget):
-    def __init__(self, pg_layout, orientation='vertical'):
+    def __init__(self, pg_layout, orientation="vertical"):
         super(IntegrationCakeWidget, self).__init__(pg_layout, orientation)
         self.img_view_box.setAspectLocked(False)
         self.create_mouse_click_item()
@@ -440,10 +516,10 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
         self.phases = []  # type: list[CakePhasePlot]
 
     def add_cake_axes(self):
-        self.left_axis_cake = pg.AxisItem('left')
-        self.bottom_axis_cake = pg.AxisItem('bottom')
-        self.bottom_axis_cake.setLabel(u'2θ', u'°')
-        self.left_axis_cake.setLabel(u'Azimuth', u'°')
+        self.left_axis_cake = pg.AxisItem("left")
+        self.bottom_axis_cake = pg.AxisItem("bottom")
+        self.bottom_axis_cake.setLabel("2θ", "°")
+        self.left_axis_cake.setLabel("Azimuth", "°")
 
         self.pg_layout.addItem(self.bottom_axis_cake, row=2, col=2)
         self.pg_layout.addItem(self.left_axis_cake, row=1, col=0)
@@ -458,10 +534,13 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
         self.pg_layout.addItem(cake_lut, 0, 2)
 
     def add_cake_integral(self):
-        self.cake_integral_item = pg.PlotDataItem([], [], pen=pg.mkPen(color='#FFF', width=1.5))
-        self.cake_integral_plot = self.pg_layout.addPlot(row=1, col=1, rowspan=2, colspan=1,
-                                                         labels={'bottom': 'Intensity'})
-        self.cake_integral_plot.hideAxis('left')
+        self.cake_integral_item = pg.PlotDataItem(
+            [], [], pen=pg.mkPen(color="#FFF", width=1.5)
+        )
+        self.cake_integral_plot = self.pg_layout.addPlot(
+            row=1, col=1, rowspan=2, colspan=1, labels={"bottom": "Intensity"}
+        )
+        self.cake_integral_plot.hideAxis("left")
         self.cake_integral_plot.addItem(self.cake_integral_item)
         self.cake_integral_plot.enableAutoRange(False)
         self.cake_integral_plot.buttonsHidden = True
@@ -488,7 +567,9 @@ class IntegrationCakeWidget(CalibrationCakeWidget):
         self.cake_integral_item.setData(y, x)
 
     def add_cake_phase(self, positions, intensities, color):
-        self.phases.append(CakePhasePlot(self.img_view_box, positions, intensities, color))
+        self.phases.append(
+            CakePhasePlot(self.img_view_box, positions, intensities, color)
+        )
 
     def del_cake_phase(self, ind):
         self.phases[ind].remove()
@@ -530,13 +611,15 @@ class IntegrationBatchWidget(IntegrationCakeWidget):
 
     """
 
-    def __init__(self, pg_layout, orientation='vertical'):
+    def __init__(self, pg_layout, orientation="vertical"):
         super(IntegrationBatchWidget, self).__init__(pg_layout, orientation)
         self.create_horizontal_line()
         self.mouse_left_clicked.connect(self.set_horizontal_line_pos)
-        self.linear_region_item = ModifiedLinearRegionItem([5, 20], pg.LinearRegionItem.Vertical, movable=False)
+        self.linear_region_item = ModifiedLinearRegionItem(
+            [5, 20], pg.LinearRegionItem.Vertical, movable=False
+        )
         self.x_bin_range = [0, None]  # Range of shown bins
-        self.pg_layout.removeItem(self.pg_layout.getItem(1, 2)) # remove the right LUT
+        self.pg_layout.removeItem(self.pg_layout.getItem(1, 2))  # remove the right LUT
 
     def plot_image(self, img_data, auto_level=False, x_bin_range=[0, None]):
         self.x_bin_range = x_bin_range
@@ -566,13 +649,17 @@ class IntegrationBatchWidget(IntegrationCakeWidget):
         pass
 
     def create_horizontal_line(self):
-        self.horizontal_line = pg.InfiniteLine(angle=0, pen=pg.mkPen(color=(0, 255, 0), width=2))
+        self.horizontal_line = pg.InfiniteLine(
+            angle=0, pen=pg.mkPen(color=(0, 255, 0), width=2)
+        )
         self.activate_horizontal_line()
 
     def activate_horizontal_line(self):
         if not self.horizontal_line in self.img_view_box.addedItems:
             self.img_view_box.addItem(self.horizontal_line)
-            self.horizontal_line.setVisible(True)  # oddly this is needed for the line to be displayed correctly
+            self.horizontal_line.setVisible(
+                True
+            )  # oddly this is needed for the line to be displayed correctly
 
     def deactivate_horizontal_line(self):
         if self.horizontal_line in self.img_view_box.addedItems:
@@ -595,7 +682,7 @@ class IntegrationBatchWidget(IntegrationCakeWidget):
 
         QtWidgets.QApplication.processEvents()
         exporter = ImageExporter(self.pg_layout.scene())
-        exporter.parameters()['width'] = 2048
+        exporter.parameters()["width"] = 2048
         exporter.export(filename)
 
         self.horizontal_line.show()
@@ -607,10 +694,10 @@ class IntegrationBatchWidget(IntegrationCakeWidget):
         """
         Describe axis of 2D plot
         """
-        self.left_axis_cake = pg.AxisItem('left')
-        self.bottom_axis_cake = pg.AxisItem('bottom')
-        self.bottom_axis_cake.setLabel(u'2θ', u'°')
-        self.left_axis_cake.setLabel(u'Image number', u'')
+        self.left_axis_cake = pg.AxisItem("left")
+        self.bottom_axis_cake = pg.AxisItem("bottom")
+        self.bottom_axis_cake.setLabel("2θ", "°")
+        self.left_axis_cake.setLabel("Image number", "")
 
         self.pg_layout.addItem(self.bottom_axis_cake, 2, 1)
         self.pg_layout.addItem(self.left_axis_cake, 1, 0)
@@ -677,14 +764,22 @@ class CakePhasePlot(object):
         Checks the number of lines visible (length of intensities and positions) in comparison to the number of lines
         from the jcpds (line_items). Then determines only shows the lines actually visible.
         """
-        self.line_visible[:len(self.intensities)] = [True] * len(self.intensities)
-        self.line_visible[len(self.intensities):] = [False] * (len(self.line_items) - len(self.intensities))
+        self.line_visible[: len(self.intensities)] = [True] * len(self.intensities)
+        self.line_visible[len(self.intensities) :] = [False] * (
+            len(self.line_items) - len(self.intensities)
+        )
 
         if self.visible:
             for ind, line_item in enumerate(self.line_items):
-                if not self.line_visible[ind] and line_item in self.plot_item.scene().items():
+                if (
+                    not self.line_visible[ind]
+                    and line_item in self.plot_item.scene().items()
+                ):
                     self.plot_item.removeItem(line_item)
-                if self.line_visible[ind] and line_item not in self.plot_item.scene().items():
+                if (
+                    self.line_visible[ind]
+                    and line_item not in self.plot_item.scene().items()
+                ):
                     self.plot_item.addItem(line_item)
 
     def update_pen(self, color=None):
@@ -708,7 +803,9 @@ class CakePhasePlot(object):
 
         for ind, line_item in enumerate(intensities):
             color = list(self.color) + [line_alphas[ind]]
-            pen = pg.mkPen(color=color, width=line_widths[ind], style=QtCore.Qt.SolidLine)
+            pen = pg.mkPen(
+                color=color, width=line_widths[ind], style=QtCore.Qt.SolidLine
+            )
             self.line_items[ind].setPen(pen)
 
     def hide(self):
@@ -779,7 +876,9 @@ class MyArc(QtWidgets.QGraphicsPolygonItem):
 
 class MyCircle(QtWidgets.QGraphicsEllipseItem):
     def __init__(self, x, y, radius, fill_color):
-        QtWidgets.QGraphicsEllipseItem.__init__(self, x - radius, y - radius, radius * 2, radius * 2)
+        QtWidgets.QGraphicsEllipseItem.__init__(
+            self, x - radius, y - radius, radius * 2, radius * 2
+        )
         self.radius = radius
         self.setPen(mask_pen)
         self.setBrush(QtGui.QBrush(fill_color))
@@ -789,7 +888,12 @@ class MyCircle(QtWidgets.QGraphicsEllipseItem):
 
     def set_size(self, x, y):
         self.radius = np.sqrt((x - self.center_x) ** 2 + (y - self.center_y) ** 2)
-        self.setRect(self.center_x - self.radius, self.center_y - self.radius, self.radius * 2, self.radius * 2)
+        self.setRect(
+            self.center_x - self.radius,
+            self.center_y - self.radius,
+            self.radius * 2,
+            self.radius * 2,
+        )
 
     def set_position(self, x, y):
         self.setRect(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
@@ -894,9 +998,15 @@ class RoiShade(object):
     def update_rects(self):
         roi_rect = self.roi.parentBounds()
         self.left_rect.setRect(0, 0, roi_rect.left(), self.img_shape[0])
-        self.right_rect.setRect(roi_rect.right(), 0, self.img_shape[1] - roi_rect.right(), self.img_shape[0])
-        self.top_rect.setRect(roi_rect.left(), roi_rect.bottom(), roi_rect.width(),
-                              self.img_shape[0] - roi_rect.bottom())
+        self.right_rect.setRect(
+            roi_rect.right(), 0, self.img_shape[1] - roi_rect.right(), self.img_shape[0]
+        )
+        self.top_rect.setRect(
+            roi_rect.left(),
+            roi_rect.bottom(),
+            roi_rect.width(),
+            self.img_shape[0] - roi_rect.bottom(),
+        )
         self.bottom_rect.setRect(roi_rect.left(), 0, roi_rect.width(), roi_rect.top())
 
     def activate_rects(self):
