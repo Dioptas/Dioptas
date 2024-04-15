@@ -958,6 +958,15 @@ class ImageController(object):
         return res
 
     def load_calibration(self):
+        if self.model.img_model.img_data_flipud is None:  # Make sure img_data_flipud is correctly set
+            QtWidgets.QMessageBox.critical(
+                self.widget,
+                "No image loaded!",
+                "Please load an image before loading the calibration.",
+                QtWidgets.QMessageBox.Ok,
+            )
+            return
+
         filename = open_file_dialog(
             self.widget, "Load calibration...",
             self.model.working_directories['calibration'],
