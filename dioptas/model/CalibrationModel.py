@@ -30,7 +30,10 @@ from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.blob_detection import BlobDetection
 from pyFAI.calibrant import Calibrant
 from pyFAI.detectors import Detector, ALL_DETECTORS, NexusDetector
+from pyFAI.detectors.orientation import Orientation
+
 from pyFAI.geometryRefinement import GeometryRefinement
+from pyFAI.io.ponifile import PoniFile
 from pyFAI.massif import Massif
 from skimage.measure import find_contours
 
@@ -650,15 +653,48 @@ class CalibrationModel(object):
         max_dist = np.sqrt(side1**2 + side2**2)
         return int(max_dist * max_dist_factor)
 
+    def _fix_poni_orientation(self, poni_config):
+        """Converts a poni config between pyFAI and Dioptas orientation conventions.
+
+        The poni_config passed as arguments is patched in-place.
+
+        - Dioptas convention: origin at the top right when looking from the sample (for most supported file formats)
+        - Default pyFAI convention: origin at the bottom right when looking from the sample
+
+        :param dict poni_config: pyFAI poni config to patch
+        :returns: True if poni orientation can be fixed, False otherwise
+        """
+        if poni_config.get("poni_version", 1) < 2.1 or not self.img_model.img_data_flipud:
+            return True  # Orientation not supported or image not flipped
+
+        orientation = poni_config["detector_config"].pop("orientation", Orientation.Unspecified)
+        if orientation in (Orientation.BottomRight, Orientation.Unspecified):
+            poni_config["detector_config"]["orientation"] = Orientation.TopRight
+            return True
+
+        if orientation == Orientation.TopRight:
+            poni_config["detector_config"]["orientation"] = Orientation.BottomRight
+            return True
+
+        return False  # Orientation fix not supported
+
     def load(self, filename):
         """
         Loads a calibration file andsets all the calibration parameter.
         :param filename: filename for a *.poni calibration file
         """
+        if self.img_model.img_data_flipud is None:  # Make sure img_data_flipud is correctly set
+            logger.error("Cannot load .poni file without an opened image data file")
+            return
+
+        poni_config = PoniFile(filename).as_dict()
+        if not self._fix_poni_orientation(poni_config):
+            logger.warning("Loading .poni file with an unexpected orientation: Calibration might be wrong!")
+
         self.pattern_geometry = GeometryRefinement(
             wavelength=0.3344e-10, detector=self.detector, poni1=0, poni2=0
         )  # default params are necessary, otherwise fails...
-        self.pattern_geometry.load(filename)
+        self.pattern_geometry.set_config(poni_config)
         self.orig_pixel1 = self.pattern_geometry.pixel1
         self.orig_pixel2 = self.pattern_geometry.pixel2
 
@@ -680,10 +716,20 @@ class CalibrationModel(object):
 
     def save(self, filename):
         """
-        Saves the current calibration parameters into a a text file. Default extension is
+        Saves the current calibration parameters into a text file. Default extension is
         *.poni
         """
-        self.cake_geometry.save(filename)
+        if self.img_model.img_data_flipud is None:  # Make sure img_data_flipud is correctly set
+            logger.error("Cannot save .poni file without an opened image data file")
+            return
+
+        poni_config = self.cake_geometry.get_config()
+        if not self._fix_poni_orientation(poni_config):
+            logger.error("Detector orientation is not supported: Saved .poni file is not compatible with pyFAI")
+
+        with open(filename, "w") as f:
+            PoniFile(poni_config).write(f)
+
         self.calibration_name = get_base_name(filename)
         self.filename = filename
 

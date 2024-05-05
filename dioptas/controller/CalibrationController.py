@@ -709,6 +709,15 @@ class CalibrationController(object):
         """
         Loads a '*.poni' file and updates the calibration data class
         """
+        if self.model.img_model.img_data_flipud is None:  # Make sure img_data_flipud is correctly set
+            QtWidgets.QMessageBox.critical(
+                self.widget,
+                "No image loaded!",
+                "Please load an image before loading the calibration.",
+                QtWidgets.QMessageBox.Ok,
+            )
+            return
+
         filename = open_file_dialog(
             self.widget,
             caption="Load calibration...",
@@ -848,6 +857,14 @@ class CalibrationController(object):
         Saves the current calibration in a file.
         :return:
         """
+        if self.model.img_model.img_data_flipud is None:  # Make sure img_data_flipud is correctly set
+            QtWidgets.QMessageBox.critical(
+                self.widget,
+                "No image loaded!",
+                "Please load an image before saving the calibration.",
+                QtWidgets.QMessageBox.Ok,
+            )
+            return
 
         filename = save_file_dialog(
             self.widget,
