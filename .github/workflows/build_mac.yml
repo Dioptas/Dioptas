@@ -11,6 +11,7 @@ jobs:
     runs-on: macos-latest
     env:
       folder_name: 'DioptasMac'
+      PYINSTALLER_COMPILE_BOOTLOADER: 1
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -31,7 +32,7 @@ jobs:
       run: poetry install
 
     - name: Install PyInstaller
-      run: poetry run pip install pyinstaller
+      run: poetry run pip install git+https://github.com/pyinstaller/pyinstaller.git@develop 
 
     - name: Add Dynamic Versioning Plugin
       run: poetry self add poetry-dynamic-versioning[plugin]
