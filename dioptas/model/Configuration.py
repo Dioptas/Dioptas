@@ -237,9 +237,11 @@ class Configuration(object):
                 + file_ending,
             )
             filename = filename.replace("\\", "/")
-            self.save_pattern(filename)
+            self.save_pattern(filename, subtract_background=False)
 
-        if self.pattern_model.pattern.has_background():
+        pattern = self.pattern_model.pattern
+
+        if pattern.background_pattern is not None or pattern.auto_bkg is not None:
             for file_ending in self.integrated_patterns_file_formats:
                 directory = os.path.join(
                     self.working_directories["pattern"], "bkg_subtracted"
