@@ -44,7 +44,7 @@ pandas = [
   ]
 psutil = "^5.9.5"
 PyCifRW = "^4.4.5"
-PyQt6 = "^6.5.1"
+PyQt6 = "^6.7"
 pyfai = "^2023.5.0"
 pyqtgraph = "^0.13.3"
 pyshortcuts = "^1.8.1"
