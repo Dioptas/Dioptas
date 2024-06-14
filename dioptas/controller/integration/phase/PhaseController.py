@@ -226,8 +226,8 @@ class PhaseController(object):
                 phase_file.write(file_name + ',' + str(phase_cb.isChecked()) + ',' +
                                  color_btn.styleSheet().split(";")[0].replace('background-color:', '').replace(' ', '') + ',' +
                                  self.phase_widget.phase_tw.item(row, 2).text() + ',' +
-                                 self.phase_widget.pressure_sbs[row].text() + ',' +
-                                 self.phase_widget.temperature_sbs[row].text() + '\n')
+                                 self.phase_widget.pressure_sbs[row].text().replace(',','.') + ',' +
+                                 self.phase_widget.temperature_sbs[row].text().replace(',','.') + '\n')
 
     def clear_phases(self):
         """
