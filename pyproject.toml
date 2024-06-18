@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dioptas"
-version = "0.6.0" # Will be overwritten by poetry-dynamic-versioning
+version = "0.6.1" # Will be overwritten by poetry-dynamic-versioning
 description = "GUI program for reduction and exploration of 2D X-ray diffraction data"
 authors = ["Clemens Prescher <clemens.prescher@gmail.com>"]
 license = "GPL-3.0"
