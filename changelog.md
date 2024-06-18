@@ -1,3 +1,13 @@
+# 0.6.1 (18.06.2024)
+
+## New Features
+  - maps can now be saved as png, tiff or txt files.
+
+## Bug Fixes
+  - fixes a problem which occured when saving a list of phases with non english locale setting 
+  (e.g. comma as decimal separator)
+  - autosaving integrated patterns with activated background subtraction is working again
+
 # 0.6.0 (10.04.2024)
 
 Codewise this is the biggest upgrade since the release of Dioptas. Over 3000 commits (changes) since 0.5.9

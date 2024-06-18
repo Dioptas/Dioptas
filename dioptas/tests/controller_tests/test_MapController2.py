@@ -60,6 +60,10 @@ def mock_open_filenames(filepaths):
     QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=filepaths)
 
 
+def mock_save_filename(filepath):
+    QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filepath)
+
+
 def mock_map_model(map_model: MapModel2):
     map_model.map = create_map(np.array([1, 2, 3, 4, 5, 6]), (2, 3))
     map_model.filepaths = map_img_file_paths
@@ -549,3 +553,15 @@ def test_change_integration_unit(
     dioptas_model.integration_unit = "2th_deg"
     assert pattern_plot.getAxis("bottom").labelText == "2θ"
     assert pattern_plot.getAxis("bottom").labelUnits == "°"
+
+
+@pytest.mark.parametrize("file_type", ["png", "tiff", "txt"])
+def test_save_map(map_controller, dioptas_model, tmp_path, file_type):
+    mock_map_model(dioptas_model.map_model)
+    map_widget = map_controller.widget
+
+    filename = tmp_path / f"test_map.{file_type}"
+    mock_save_filename(filename)
+
+    map_widget.map_plot_control_widget.save_map_btn.clicked.emit()
+    assert filename.exists()

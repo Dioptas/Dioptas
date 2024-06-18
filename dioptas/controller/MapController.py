@@ -17,6 +17,9 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+import os
+from PIL import Image
+
 import numpy as np
 from qtpy import QtWidgets
 
@@ -27,6 +30,7 @@ from dioptas.widgets.MapWidget import MapWidget
 from ..widgets.UtilityWidgets import get_progress_dialog, open_files_dialog
 from .integration.phase.PhaseInPatternController import PhaseInPatternController
 from .integration.overlay.OverlayInPatternController import OverlayInPatternController
+from ..widgets.UtilityWidgets import save_file_dialog
 
 
 class MapController(object):
@@ -50,6 +54,8 @@ class MapController(object):
             # needs to be its own function, to always recall the model.map_model
             # this ensures, that the currently selected configuration is used
         )
+        self.widget.map_plot_control_widget.save_map_btn.clicked.connect(self._save_map)
+
         self.widget.map_plot_widget.mouse_left_clicked.connect(self.map_point_selected)
         self.widget.pattern_plot_widget.mouse_left_clicked.connect(self.pattern_clicked)
         self.widget.pattern_plot_widget.map_interactive_roi.sigRegionChanged.connect(
@@ -120,6 +126,32 @@ class MapController(object):
         finally:
             self.model.map_model.point_integrated.disconnect(progressDialog.setValue)
             progressDialog.close()
+
+    def _save_map(self):
+        filename = save_file_dialog(
+            self.widget,
+            "Save Image.",
+            os.path.join(self.model.working_directories["image"]),
+            ("PNG Image (*.png);; TIFF Data (*.tiff);; Tabular Text (*.txt)"),
+        )
+
+        if filename == "":
+            return
+        else:
+            self.save_map(filename)
+
+    def save_map(self, filename: str):
+        if filename.endswith(".png"):
+            self.widget.map_plot_widget.save_img(filename)
+        elif filename.endswith(".tiff"):
+            data = self.model.map_model.map
+            max_uint32 = np.iinfo(np.uint32).max
+            normalized_data = (data - np.min(data)) / (np.max(data) - np.min(data))
+            normalized_data = (normalized_data * max_uint32).astype(np.uint32)
+            im = Image.fromarray(normalized_data)
+            im.save(filename)
+        elif filename.endswith(".txt"):
+            np.savetxt(filename, self.model.map_model.map, fmt="%d")
 
     def update_file_list(self):
         # get current items
