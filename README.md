@@ -29,6 +29,9 @@ The executable versions are self-contained folders, which do not need any python
 the program can be started by running the executable (e.g. Dioptas.exe or Dioptas). Under MacOS X the folder will 
 contain an app folder which can be double-clicked for starting. Please accept the security prompts.
 
+Unfortunately, I am currently unable to create working App for MacOS X. Users of this convoluted operation system need 
+to install dioptas using "pip" and then start it from the commandline. (see below)
+
 ### Code
 
 In order to make changes to the source code yourself or always get the latest development versions you need to install
