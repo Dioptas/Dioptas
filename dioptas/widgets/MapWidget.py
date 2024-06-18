@@ -24,6 +24,7 @@ from dioptas.widgets.plot_widgets import PatternWidget
 from dioptas.widgets.plot_widgets.ImgWidget import IntegrationImgWidget
 
 from .integration.CustomWidgets import MouseUnitCurrentAndClickedWidget
+from .CustomWidgets import SaveIconButton 
 
 
 class MapWidget(QtWidgets.QWidget):
@@ -145,6 +146,7 @@ class MapPlotControlWidget(QtWidgets.QWidget):
         self.style_widgets()
 
     def create_widgets(self):
+        self.save_map_btn = SaveIconButton()
         self.map_dimension_cb = QtWidgets.QComboBox()
         self.mouse_x_label = QtWidgets.QLabel("X: ")
         self.mouse_y_label = QtWidgets.QLabel("Y: ")
@@ -161,6 +163,7 @@ class MapPlotControlWidget(QtWidgets.QWidget):
         self._mouse_pos_layout.addWidget(self.mouse_int_label)
         self._left_layout.addLayout(self._mouse_pos_layout)
         self._left_layout.addWidget(self.filename_label)
+        self._outer_layout.addWidget(self.save_map_btn)
         self._outer_layout.addWidget(QtWidgets.QLabel("Dim: "))
         self._outer_layout.addWidget(self.map_dimension_cb)
         self._outer_layout.addStretch(1)
