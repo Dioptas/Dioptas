@@ -32,17 +32,21 @@ from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
 
 unittest_path = os.path.dirname(__file__)
-data_path = os.path.join(unittest_path, '../data')
-jcpds_path = os.path.join(data_path, 'jcpds')
+data_path = os.path.join(unittest_path, "../data")
+jcpds_path = os.path.join(data_path, "jcpds")
 
 
 class PhaseControllerTest(QtTest):
     def setUp(self):
         self.model = DioptasModel()
         self.model.calibration_model.is_calibrated = True
-        self.model.calibration_model.pattern_geometry.wavelength = 0.31E-10
-        self.model.calibration_model.integrate_1d = MagicMock(return_value=(self.model.calibration_model.tth,
-                                                                            self.model.calibration_model.int))
+        self.model.calibration_model.pattern_geometry.wavelength = 0.31e-10
+        self.model.calibration_model.integrate_1d = MagicMock(
+            return_value=(
+                self.model.calibration_model.tth,
+                self.model.calibration_model.int,
+            )
+        )
         self.widget = IntegrationWidget()
         self.widget.pattern_widget._auto_range = True
         self.phase_tw = self.widget.phase_tw
@@ -50,7 +54,7 @@ class PhaseControllerTest(QtTest):
 
         self.pattern_controller = PatternController(self.widget, self.model)
         self.controller = PhaseController(self.widget, self.model)
-        self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
+        self.model.pattern_model.load_pattern(os.path.join(data_path, "pattern_001.xy"))
 
     def tearDown(self):
         del self.pattern_controller
@@ -146,7 +150,9 @@ class PhaseControllerTest(QtTest):
         new_step = 5
         self.phase_widget.temperature_step_msb.setValue(new_step)
         for ind in range(6):
-            self.assertEqual(self.phase_widget.temperature_sbs[ind].singleStep(), new_step)
+            self.assertEqual(
+                self.phase_widget.temperature_sbs[ind].singleStep(), new_step
+            )
 
     def test_pressure_change(self):
         self.load_phases()
@@ -155,8 +161,10 @@ class PhaseControllerTest(QtTest):
         pressure = 200
         for ind in [0, 1, 3]:
             self.phase_widget.pressure_sbs[ind].setValue(pressure)
-            self.assertEqual(self.model.phase_model.phases[ind].params['pressure'], pressure)
-        self.assertEqual(self.model.phase_model.phases[2].params['pressure'], 0)
+            self.assertEqual(
+                self.model.phase_model.phases[ind].params["pressure"], pressure
+            )
+        self.assertEqual(self.model.phase_model.phases[2].params["pressure"], 0)
 
     def test_temperature_change(self):
         self.load_phases()
@@ -168,17 +176,21 @@ class PhaseControllerTest(QtTest):
             phase = self.model.phase_model.phases[ind]
             temperature += ind
 
-            self.assertEqual(self.phase_widget.temperature_sbs[ind].isEnabled(),
-                             phase.has_thermal_expansion())
+            self.assertEqual(
+                self.phase_widget.temperature_sbs[ind].isEnabled(),
+                phase.has_thermal_expansion(),
+            )
 
             if self.phase_widget.temperature_sbs[ind].isEnabled():
                 self.phase_widget.temperature_sbs[ind].setValue(temperature)
 
             if phase.has_thermal_expansion():
-                self.assertEqual(phase.params['temperature'], temperature)
-                self.assertEqual(self.phase_widget.get_phase_temperature(ind), temperature)
+                self.assertEqual(phase.params["temperature"], temperature)
+                self.assertEqual(
+                    self.phase_widget.get_phase_temperature(ind), temperature
+                )
             else:
-                self.assertEqual(phase.params['temperature'], 298)
+                self.assertEqual(phase.params["temperature"], 298)
                 self.assertEqual(self.phase_widget.get_phase_temperature(ind), 298)
 
     def test_pressure_auto_step_change(self):
@@ -216,7 +228,7 @@ class PhaseControllerTest(QtTest):
         self.load_phases()
 
         for ind, phase in enumerate(self.model.phase_model.phases):
-            self.assertEqual(phase.params['pressure'], pressure)
+            self.assertEqual(phase.params["pressure"], pressure)
             self.assertEqual(self.phase_widget.get_phase_pressure(ind), pressure)
 
     def test_to_not_show_lines_in_legend(self):
@@ -228,14 +240,18 @@ class PhaseControllerTest(QtTest):
     def test_save_and_load_phase_lists(self):
         # load some phases
         self.load_phases()
-        phase_list_file_name = 'phase_list.txt'
-        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=os.path.join(data_path, phase_list_file_name))
+        phase_list_file_name = "phase_list.txt"
+        QtWidgets.QFileDialog.getSaveFileName = MagicMock(
+            return_value=os.path.join(data_path, phase_list_file_name)
+        )
         click_button(self.widget.phase_save_list_btn)
         # make sure that phase list file was saved
         self.assertTrue(os.path.isfile(os.path.join(data_path, phase_list_file_name)))
 
         old_phase_list_length = self.widget.phase_tw.rowCount()
-        old_phase_list_data = [[0 for x in range(5)] for y in range(old_phase_list_length)]
+        old_phase_list_data = [
+            [0 for x in range(5)] for y in range(old_phase_list_length)
+        ]
         for row in range(self.widget.phase_tw.rowCount()):
             old_phase_list_data[row][2] = self.phase_tw.item(row, 2).text()
             old_phase_list_data[row][3] = self.phase_widget.pressure_sbs[row].text()
@@ -243,15 +259,24 @@ class PhaseControllerTest(QtTest):
 
         # clear and load the saved list to make sure all phases have been loaded
         click_button(self.widget.phase_clear_btn)
-        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=os.path.join(data_path, phase_list_file_name))
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(
+            return_value=os.path.join(data_path, phase_list_file_name)
+        )
         click_button(self.widget.phase_load_list_btn)
 
         self.assertEqual(self.widget.phase_tw.rowCount(), old_phase_list_length)
 
         for row in range(self.widget.phase_tw.rowCount()):
-            self.assertEqual(self.phase_tw.item(row, 2).text(), old_phase_list_data[row][2])
-            self.assertEqual(self.phase_widget.pressure_sbs[row].text(), old_phase_list_data[row][3])
-            self.assertEqual(self.phase_widget.temperature_sbs[row].text(), old_phase_list_data[row][4])
+            self.assertEqual(
+                self.phase_tw.item(row, 2).text(), old_phase_list_data[row][2]
+            )
+            self.assertEqual(
+                self.phase_widget.pressure_sbs[row].text(), old_phase_list_data[row][3]
+            )
+            self.assertEqual(
+                self.phase_widget.temperature_sbs[row].text(),
+                old_phase_list_data[row][4],
+            )
 
         # delete phase list file
         os.remove(os.path.join(data_path, phase_list_file_name))
@@ -280,26 +305,76 @@ class PhaseControllerTest(QtTest):
         the second color button to the fourth phase.
         """
         self.load_phases()
-        new_color = self.phase_widget.phase_color_btns[1].palette().color(QtGui.QPalette.Button)
+        new_color = (
+            self.phase_widget.phase_color_btns[1].palette().color(QtGui.QPalette.Button)
+        )
         QtWidgets.QColorDialog.getColor = MagicMock(return_value=new_color)
         click_button(self.phase_widget.phase_color_btns[3])
 
-        self.assertEqual(self.phase_widget.phase_color_btns[3].palette().color(QtGui.QPalette.Button), new_color)
+        self.assertEqual(
+            self.phase_widget.phase_color_btns[3]
+            .palette()
+            .color(QtGui.QPalette.Button),
+            new_color,
+        )
 
-        self.assertEqual(self.model.phase_model.phase_colors[3], (new_color.red(), new_color.green(), new_color.blue()))
+        self.assertEqual(
+            self.model.phase_model.phase_colors[3],
+            (new_color.red(), new_color.green(), new_color.blue()),
+        )
 
         phase_line_color = self.widget.pattern_widget.phases[3].pen.color()
-        phase_legend_color = self.widget.pattern_widget.phases_legend.legendItems[3][1].opts['color']
+        phase_legend_color = self.widget.pattern_widget.phases_legend.legendItems[3][
+            1
+        ].opts["color"]
         self.assertEqual(phase_line_color, new_color)
-        self.assertEqual(phase_legend_color, (new_color.red(), new_color.green(), new_color.blue()))
+        self.assertEqual(
+            phase_legend_color, (new_color.red(), new_color.green(), new_color.blue())
+        )
 
     def load_phases(self):
-        self.load_phase('ar.jcpds')
-        self.load_phase('ag.jcpds')
-        self.load_phase('au_Anderson.jcpds')
-        self.load_phase('mo.jcpds')
-        self.load_phase('pt.jcpds')
-        self.load_phase('re.jcpds')
+        self.load_phase("ar.jcpds")
+        self.load_phase("ag.jcpds")
+        self.load_phase("au_Anderson.jcpds")
+        self.load_phase("mo.jcpds")
+        self.load_phase("pt.jcpds")
+        self.load_phase("re.jcpds")
 
     def load_phase(self, filename):
         self.model.phase_model.add_jcpds(os.path.join(jcpds_path, filename))
+
+
+def test_save_phaselist(qapp, tmp_path):
+    integration_widget = IntegrationWidget()
+    model = DioptasModel()
+    model.calibration_model.is_calibrated = True
+    model.calibration_model.pattern_geometry.wavelength = 0.31e-10
+    model.calibration_model.integrate_1d = MagicMock(
+        return_value=(model.calibration_model.tth, model.calibration_model.int)
+    )
+
+    phase_controller = PhaseController(integration_widget, model)
+
+    model.phase_model.add_jcpds(os.path.join(jcpds_path, "ar.jcpds"))
+    model.phase_model.add_jcpds(os.path.join(jcpds_path, "ag.jcpds"))
+
+    QtWidgets.QFileDialog.getSaveFileName = MagicMock(
+        return_value=tmp_path / "test.txt"
+    )
+    phase_controller.save_btn_clicked_callback()
+    phase_controller.clear_phases()
+
+    assert len(model.phase_model.phases) == 0
+
+    QtWidgets.QFileDialog.getOpenFileName = MagicMock(
+        return_value=tmp_path / "test.txt"
+    )
+
+    phase_controller.load_list_btn_clicked_callback()
+
+    assert len(model.phase_model.phases) == 2
+
+
+def test_save_phaselist_with_german_locale(qapp, tmp_path):
+    QtCore.QLocale.setDefault(QtCore.QLocale(QtCore.QLocale.German))
+    test_save_phaselist(qapp, tmp_path)

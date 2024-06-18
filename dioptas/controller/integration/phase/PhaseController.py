@@ -43,7 +43,7 @@ class PhaseController(object):
     PhaseModel object.
     """
 
-    def __init__(self, integration_widget, dioptas_model):
+    def __init__(self, integration_widget: IntegrationWidget, dioptas_model: DioptasModel):
         """
         :param integration_widget: Reference to an IntegrationWidget
         :param dioptas_model: reference to DioptasModel object
@@ -226,8 +226,8 @@ class PhaseController(object):
                 phase_file.write(file_name + ',' + str(phase_cb.isChecked()) + ',' +
                                  color_btn.styleSheet().split(";")[0].replace('background-color:', '').replace(' ', '') + ',' +
                                  self.phase_widget.phase_tw.item(row, 2).text() + ',' +
-                                 self.phase_widget.pressure_sbs[row].text() + ',' +
-                                 self.phase_widget.temperature_sbs[row].text() + '\n')
+                                 str(self.phase_widget.pressure_sbs[row].value()) + ',' +
+                                 str(self.phase_widget.temperature_sbs[row].value()) + '\n')
 
     def clear_phases(self):
         """
