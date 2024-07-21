@@ -129,6 +129,7 @@ exclude_datas = [
     "PyQt6/Qt6/translations",
     "PyQt6/Qt6/plugins/imageformats",
     "tcl/tzdata",
+    "pyFAI/ext",
 ]
 
 for exclude_data in exclude_datas:
@@ -161,6 +162,9 @@ except FileNotFoundError:
 
 pyz = PYZ(a.pure, a.zipped_data,
           cipher=block_cipher)
+
+print("@@@ Datas @@@")
+print(a.datas)
 
 exe = EXE(pyz,
           a.scripts,
