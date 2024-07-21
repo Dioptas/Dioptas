@@ -80,7 +80,7 @@ extra_datas = [
     (os.path.join(pyFAI_path, "utils"), "pyFAI/utils"),
     (os.path.join(lib2to3_path, 'Grammar.txt'), 'lib2to3/'),
     (os.path.join(lib2to3_path, 'PatternGrammar.txt'), 'lib2to3/'),
-    (os.path.join(qt_material_path, 'fonts'), 'qt_material/fonts'),
+    (os.path.join(qt_material_path, 'fonts', 'roboto'), 'qt_material/fonts/roboto'),
     (os.path.join(site_packages_path, 'hdf5plugin', 'plugins'), 'hdf5plugin/plugins'),
 ]
 
