@@ -21,7 +21,7 @@
 import logging
 
 from xypattern import Pattern
-from xypattern.pattern import SmoothBrucknerBackground
+from xypattern.auto_background import SmoothBrucknerBackground
 
 from .util import Signal
 from .util.HelperModule import FileNameIterator, get_base_name

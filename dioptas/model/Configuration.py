@@ -24,7 +24,7 @@ import numpy as np
 from copy import deepcopy
 
 from xypattern import Pattern
-from xypattern.pattern import SmoothBrucknerBackground
+from xypattern.auto_background import SmoothBrucknerBackground
 
 from .util import Signal
 from .util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
