@@ -33,7 +33,7 @@ style = "semver"
 files = ["dioptas/__init__.py"]
 
 [tool.poetry.dependencies]
-python = "^3.8, <3.13"
+python = "^3.8, <3.14"
 EXtra-data = "^1.13.0"
 h5py = "^3.10.0"
 hdf5plugin = "^4.1.3"
