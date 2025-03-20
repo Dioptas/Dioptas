@@ -2222,29 +2222,31 @@ viz = ["matplotlib", "nc-time-axis", "seaborn"]
 
 [[package]]
 name = "xypattern"
-version = "1.1.2"
+version = "1.2.2"
 description = "Library for handling x-y pattern data."
 optional = false
-python-versions = ">=3.8,<3.13"
+python-versions = "<3.14,>=3.8"
 groups = ["main"]
-markers = "python_version < \"3.12\""
 files = [
-    {file = "xypattern-1.1.2-cp310-cp310-macosx_12_0_x86_64.whl", hash = "sha256:2f11e33d53f68dfc790bd257bec8d85f10fab6d7a19366dd05bee6386bdd30e2"},
-    {file = "xypattern-1.1.2-cp310-cp310-manylinux_2_35_x86_64.whl", hash = "sha256:ff458486043634950cc7f3fcd651ce5ae3b2a133eba52b9427254ee159bf5690"},
-    {file = "xypattern-1.1.2-cp310-cp310-win_amd64.whl", hash = "sha256:4f6ffd20c462f7b03321cea45011e2edbf4f9112f82be90fc365679ff4b1abf8"},
-    {file = "xypattern-1.1.2-cp311-cp311-macosx_12_0_x86_64.whl", hash = "sha256:8d39dc3c1b42b5bddd8d04f39f238d009a7f5965aa589fc37eef06f52e0117a3"},
-    {file = "xypattern-1.1.2-cp311-cp311-manylinux_2_35_x86_64.whl", hash = "sha256:8eb17870a35aa3706365533ba17d2e15f8ffa6e90dcc53533ebd18c9313da19c"},
-    {file = "xypattern-1.1.2-cp311-cp311-win_amd64.whl", hash = "sha256:83310c67388038c58bfb78307d75605bc630cc7122fc3030d432b8707f1dee81"},
-    {file = "xypattern-1.1.2-cp312-cp312-macosx_12_0_x86_64.whl", hash = "sha256:fca31bca21b1b491291475917c7de5701b0f817362f9a8df51c899c8b0569550"},
-    {file = "xypattern-1.1.2-cp312-cp312-manylinux_2_35_x86_64.whl", hash = "sha256:acc23c9573ad77d5589745b27eba1bda262d34380b5438eae9d7a460933728d4"},
-    {file = "xypattern-1.1.2-cp312-cp312-win_amd64.whl", hash = "sha256:e1e4d48b06027e81ccb584ba79536afe133d360a27bf1210558a9f7a35000d16"},
-    {file = "xypattern-1.1.2-cp38-cp38-macosx_12_0_x86_64.whl", hash = "sha256:585ab9dd1f17a48d6334f820c3c13c52ced4b4931796861b52c6dab8b5c2cdc5"},
-    {file = "xypattern-1.1.2-cp38-cp38-manylinux_2_35_x86_64.whl", hash = "sha256:e72655eb5af3d78fb80b2cf4136c7d5ad28aacc3597a07ee54c302fc9072862e"},
-    {file = "xypattern-1.1.2-cp38-cp38-win_amd64.whl", hash = "sha256:b9082f160800804074bcb0444d319371fea5e8dcf7adf96d8f39178466088717"},
-    {file = "xypattern-1.1.2-cp39-cp39-macosx_12_0_x86_64.whl", hash = "sha256:3560c6cb92034756561ee20184cfe140006b2e6aa77757f2f276e049ca6bcf6d"},
-    {file = "xypattern-1.1.2-cp39-cp39-manylinux_2_35_x86_64.whl", hash = "sha256:1ac0f700453dd3f9133b21639507381c90bd24f9708fa7ca2c407d8486d5f7d5"},
-    {file = "xypattern-1.1.2-cp39-cp39-win_amd64.whl", hash = "sha256:08c2ae85660b99b805874fb701551bb093fadbf4e2074d5b438e54ca5acea077"},
-    {file = "xypattern-1.1.2.tar.gz", hash = "sha256:1d5742f7c73ab03d278def475657df0733ab91cb0eb94ccf7e735efae0984b44"},
+    {file = "xypattern-1.2.2-cp310-cp310-macosx_14_0_arm64.whl", hash = "sha256:8d848e4f71acd1b50d0f9aab07f86efd74082f4ca9e3c6dc4e5907dda2cb91fb"},
+    {file = "xypattern-1.2.2-cp310-cp310-manylinux_2_39_x86_64.whl", hash = "sha256:679617452f54c6f822fc6b18e3fba8828579feece6dd5db5204fc644d921c796"},
+    {file = "xypattern-1.2.2-cp310-cp310-win_amd64.whl", hash = "sha256:459a172a0b65aaeccb234b1ba59ec82c5b0153fe34c024c496360853a7dc499d"},
+    {file = "xypattern-1.2.2-cp311-cp311-macosx_14_0_arm64.whl", hash = "sha256:031a7f224b582fd16e168833dd12c17ac40909b917971bf42204a7cf98fe8087"},
+    {file = "xypattern-1.2.2-cp311-cp311-manylinux_2_39_x86_64.whl", hash = "sha256:703fb36f21833eaf58d9b06d57e5f6b4e202616a46337881ba93c463bc4402ee"},
+    {file = "xypattern-1.2.2-cp311-cp311-win_amd64.whl", hash = "sha256:899ee687a14e375bea2d083e43c47daba21afaee46bfc74bee2dc30cada25f12"},
+    {file = "xypattern-1.2.2-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:dbeff40f804cdb1916d73147b8ba69caabb1ead2f13af6de9e129125dcb00681"},
+    {file = "xypattern-1.2.2-cp312-cp312-manylinux_2_39_x86_64.whl", hash = "sha256:968e2a999d9ea11f7dcb274fead4dfac7c51fdd24ad2f30d6645dc73b32396f4"},
+    {file = "xypattern-1.2.2-cp312-cp312-win_amd64.whl", hash = "sha256:b316a83f2f59a0094e5fbe8e9513f7b6ce509707eb85e59259a7d6dcae3eb633"},
+    {file = "xypattern-1.2.2-cp313-cp313-macosx_14_0_arm64.whl", hash = "sha256:48d3c92172b01a90f6ca4eabce463f755a410d07aa47f42c254f2d36878b4f05"},
+    {file = "xypattern-1.2.2-cp313-cp313-manylinux_2_39_x86_64.whl", hash = "sha256:222c1c1e878e1772e9a78d562ffb47737e3289e331542ed3271abfd80071d0d7"},
+    {file = "xypattern-1.2.2-cp313-cp313-win_amd64.whl", hash = "sha256:63b6466dd042e3e3275f86c4c12f51ed431c2f4262485986c6d1d127cdb95c5f"},
+    {file = "xypattern-1.2.2-cp38-cp38-macosx_14_0_arm64.whl", hash = "sha256:e052befd420e0e5b1d6e090554fed1e92e125f7bc0d8dbc74b7c6c58193555f2"},
+    {file = "xypattern-1.2.2-cp38-cp38-manylinux_2_39_x86_64.whl", hash = "sha256:d6688e8e41945532a40293fbfdd92d3ead852aa3ca7f17472cd7002548bccaa6"},
+    {file = "xypattern-1.2.2-cp38-cp38-win_amd64.whl", hash = "sha256:26b3659f2fb582be704ec87859ceac5f9604c31e132b88ce5053c794ece6a4ec"},
+    {file = "xypattern-1.2.2-cp39-cp39-macosx_14_0_arm64.whl", hash = "sha256:abce4f8b16c7f79042373e42976b5d4f1329cfe46933b7bd577c7286ef385fca"},
+    {file = "xypattern-1.2.2-cp39-cp39-manylinux_2_39_x86_64.whl", hash = "sha256:e08adfca386985a2f626101292f26326fb4f2707e13acdab4c13d5abfdf39b59"},
+    {file = "xypattern-1.2.2-cp39-cp39-win_amd64.whl", hash = "sha256:c23e62a7b6977f6e1a55aed4b26448245dba06106e3bd85d4e6171a87b8093db"},
+    {file = "xypattern-1.2.2.tar.gz", hash = "sha256:84d8077796ab169b8b7c971b0ec7536068021e357585657d1d15511d2973ebb1"},
 ]
 
 [package.dependencies]
@@ -2256,37 +2258,6 @@ scipy = [
     {version = ">=1.9.3,<2.0.0", markers = "python_version < \"3.10\""},
     {version = ">=1.11.3,<2.0.0", markers = "python_version >= \"3.10\""},
 ]
-
-[[package]]
-name = "xypattern"
-version = "1.2.1"
-description = "Library for handling x-y pattern data."
-optional = false
-python-versions = "<3.14,>=3.8"
-groups = ["main"]
-markers = "python_version >= \"3.12\""
-files = [
-    {file = "xypattern-1.2.1-cp310-cp310-macosx_14_0_arm64.whl", hash = "sha256:e2b72a9b580b08c6e7cfe941bd2605836f38f70e5d7d2672dbdcc14fe4ee5c7a"},
-    {file = "xypattern-1.2.1-cp310-cp310-manylinux_2_39_x86_64.whl", hash = "sha256:9e5df7695165045f8c447ef14ecf7421ddb150e664f46ba03a270679c4fed330"},
-    {file = "xypattern-1.2.1-cp310-cp310-win_amd64.whl", hash = "sha256:883f423f4b1c4f2ddc973f20745983f0bee4a287d80a56ddd9990b551434d659"},
-    {file = "xypattern-1.2.1-cp311-cp311-macosx_14_0_arm64.whl", hash = "sha256:0153a0035c3441cd817c9594f831e8a4fe1a6e525aa1f3004d352a67d5cd64b0"},
-    {file = "xypattern-1.2.1-cp311-cp311-manylinux_2_39_x86_64.whl", hash = "sha256:1fdb2958332c421beee1976d7cb81e24daeeda7b15f02412d9b33b08602f1faa"},
-    {file = "xypattern-1.2.1-cp311-cp311-win_amd64.whl", hash = "sha256:fd3651cbca6d8fb006fdc0aa146ce630c79fa90c9fbfa4935f10a5e755891323"},
-    {file = "xypattern-1.2.1-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:e4674aa70cc1c938f4b91439a12650dc8267b44c55812ce4cb2194d10819465d"},
-    {file = "xypattern-1.2.1-cp312-cp312-manylinux_2_39_x86_64.whl", hash = "sha256:df5b87f5505772f55206de98c6cca3ff8d26d6dbd8bb8f48b752dbc5e3f4d627"},
-    {file = "xypattern-1.2.1-cp312-cp312-win_amd64.whl", hash = "sha256:8fb6e70a0ad91119a56cff7caaf84add5c455cc8d5c5c04a05e4d9d213ee64b8"},
-    {file = "xypattern-1.2.1-cp38-cp38-macosx_14_0_arm64.whl", hash = "sha256:4d47a3575b57c3f275a5f5aaa11049672f1f0db2ca51b95d41edbdfa729b00b9"},
-    {file = "xypattern-1.2.1-cp38-cp38-manylinux_2_39_x86_64.whl", hash = "sha256:be1a5ea61e1265a7db212f62e2a9ac7d510337caac61abf447cd9b9102df0ccd"},
-    {file = "xypattern-1.2.1-cp38-cp38-win_amd64.whl", hash = "sha256:2b487b4656a714ce5d632364f40bc2d7362bfe488df026159135fd02a9d83df2"},
-    {file = "xypattern-1.2.1-cp39-cp39-macosx_14_0_arm64.whl", hash = "sha256:093de20aa3abe738673138a125dff6bdacfc9b84b9f8dced1b9d47c501793819"},
-    {file = "xypattern-1.2.1-cp39-cp39-manylinux_2_39_x86_64.whl", hash = "sha256:dc825d9f4dca2fd42d45308485721b660e402a6885939f86cf7391923fdb416c"},
-    {file = "xypattern-1.2.1-cp39-cp39-win_amd64.whl", hash = "sha256:f4b2aa38632b7e1136c32c4488ac187c2ebee1e15b7b52e0dbdd260d3f70a5f7"},
-    {file = "xypattern-1.2.1.tar.gz", hash = "sha256:7e3de94fbd853b91fa4f4cf24eb25476de3ca5e62791608567603d6e785fbf54"},
-]
-
-[package.dependencies]
-numpy = {version = ">=1.26.0,<2.0.0", markers = "python_version >= \"3.10\""}
-scipy = {version = ">=1.11.3,<2.0.0", markers = "python_version >= \"3.10\""}
 
 [[package]]
 name = "zipp"
@@ -2308,4 +2279,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.8, <3.14"
-content-hash = "e8457434454d2daf7dc95e1d625546aaa52a7c0b43bd2cc323ce861882d39705"
+content-hash = "b32b4e12d0c74c2e56d3bade0afed086d21ea2d907cb947298cb696955fa3c0b"
