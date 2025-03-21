@@ -1333,7 +1333,7 @@ description = "Python package for creating and manipulating graphs and networks"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "python_version == \"3.9\""
+markers = "python_version < \"3.10\""
 files = [
     {file = "networkx-3.2.1-py3-none-any.whl", hash = "sha256:f18c69adc97877c42332c170849c96cefa91881c99a7cb3e95b7c659ebdc1ec2"},
     {file = "networkx-3.2.1.tar.gz", hash = "sha256:9f1bb5cf3409bf324e0a722c20bdb4c20ee39bf1c30ce8ae499c8502b0b5e0c6"},
@@ -1755,40 +1755,40 @@ prettytable = "*"
 
 [[package]]
 name = "pyfai"
-version = "2023.9.0"
+version = "2023.5.0"
 description = "Python implementation of fast azimuthal integration"
 optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 files = [
-    {file = "pyfai-2023.9.0-cp310-cp310-macosx_10_9_arm64.whl", hash = "sha256:9523105263428697f996a14ac0c25047b00f3f16118027b893f03d3be911f4a4"},
-    {file = "pyfai-2023.9.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:b00c8badf7c067d9506c8958e8bd6429454ff1f49a180f921d463e8eba2d2164"},
-    {file = "pyfai-2023.9.0-cp310-cp310-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:6f3bbb630fd06262cd629efc0ea613344ac1facb2da997c3fa7c10c9f33bfd3a"},
-    {file = "pyfai-2023.9.0-cp310-cp310-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:7ace9231429119682ae39cbfa318f749edcc31681d895c900c1d0f2fed63cce5"},
-    {file = "pyfai-2023.9.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6f9fddde9f1000b46f59558d97bc1ba3cffd82b54f26697268a19c1791a83996"},
-    {file = "pyfai-2023.9.0-cp310-cp310-win_amd64.whl", hash = "sha256:4364bc543685ef6ad5d9cd766a0bbe61bbb3532cd0e91d7a80f7782bac0ed86f"},
-    {file = "pyfai-2023.9.0-cp311-cp311-macosx_10_9_arm64.whl", hash = "sha256:f4be023d9a324498a7be717b520e7f23aa024252f20296dd6debc9ab70cab273"},
-    {file = "pyfai-2023.9.0-cp311-cp311-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:d503786edd5f8ec1f52c5506a053c7ddbde1602a3911cdc66420418d61382380"},
-    {file = "pyfai-2023.9.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b636ee03c6cb5c1683e52cf968d72ef02afd01123dd5958a87dd737967fdb27c"},
-    {file = "pyfai-2023.9.0-cp311-cp311-win_amd64.whl", hash = "sha256:8347b1899f18ea6121f2a73b36a071a5d78663f20cb4b84457140c92e43737e6"},
-    {file = "pyfai-2023.9.0-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:e83c987297296fc46325871a33eeb6f52fd3f731de2d6f73b568c0193920bae8"},
-    {file = "pyfai-2023.9.0-cp37-cp37m-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:047dfbd8f1bd8f88945c16048008eef4937df9f941173afd8a35c56c3cab5b4f"},
-    {file = "pyfai-2023.9.0-cp37-cp37m-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:ddc9015ac9063a2b5a220bdb8562bf63e172c1f0b5e409ffde3390c32ca22bd1"},
-    {file = "pyfai-2023.9.0-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:23eec8600d3404dfded81e21538502ee5373c2cdbff6d98aa5fccea9e2c061c9"},
-    {file = "pyfai-2023.9.0-cp37-cp37m-win_amd64.whl", hash = "sha256:13b9e87cbd233604350fa23b5b2456086c65131074bf6f05ddd0e030f87e0837"},
-    {file = "pyfai-2023.9.0-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:b30320989a9b22405b56e54552801d70a103d549a562862c9b5b38006146ef7c"},
-    {file = "pyfai-2023.9.0-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:65faf0b6ae430dcec1c55bf41c5d1941b9f295bfcc719302797a08ca73b4b2c9"},
-    {file = "pyfai-2023.9.0-cp38-cp38-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:1c15080964cee6d4a3929ea5ebcd809e8ead16bfbb86ff61021b9385330f8d64"},
-    {file = "pyfai-2023.9.0-cp38-cp38-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:c715a9bc2ea414aad685eb64793c5b0c4358a038e39622309ce900f54ad3eba9"},
-    {file = "pyfai-2023.9.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:932c100e28d1939c371dd8849efa18b4bba7615564fb2092d263cf84dd25e03e"},
-    {file = "pyfai-2023.9.0-cp38-cp38-win_amd64.whl", hash = "sha256:079c2abee4c08b00a27875f55997a758ad97b38c5406b2348b0302e656d4c707"},
-    {file = "pyfai-2023.9.0-cp39-cp39-macosx_10_9_arm64.whl", hash = "sha256:2475dc3f6952a1faa646db5860d980a52976241418eae87e3b5f857435cee848"},
-    {file = "pyfai-2023.9.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:73d162df995dac0c110c87be56ee29fae3aa5411d8d9a93af6ee58cba83c7b34"},
-    {file = "pyfai-2023.9.0-cp39-cp39-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:88cce44bed247baefd4bc281a97eb5b1b0972d3ed82cfc97bb2f3e07fbf49a10"},
-    {file = "pyfai-2023.9.0-cp39-cp39-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:e9a0e766c9cd68644568a3944b2ff204a8817ce12cee5e4b85e9487a9709f95b"},
-    {file = "pyfai-2023.9.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:07600e46b58be1bd8ca7f1ec982d5afafe057b6be9dbec1734632ce2d5dfbe37"},
-    {file = "pyfai-2023.9.0-cp39-cp39-win_amd64.whl", hash = "sha256:07696391c695520324cda9463bcfc430231948859d1eba067d32198ba76d0e42"},
-    {file = "pyfai-2023.9.0.tar.gz", hash = "sha256:027c24622d4c55a00f17b796b6891560f7eb6b6d92b0e3877c97f65485ec1f3b"},
+    {file = "pyfai-2023.5.0-cp310-cp310-macosx_10_9_arm64.whl", hash = "sha256:a7da14d3968a8ca24d4330fa7dfa7ff86cf771a2fa0af56f37b7f1b97b367503"},
+    {file = "pyfai-2023.5.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:dafd25299fd65bfbc5a84a5f483f2d699336cb2562fa68148a0126478572d380"},
+    {file = "pyfai-2023.5.0-cp310-cp310-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:fd5a3a40ea327906ae0040f4495d0690bf9be23ba59c7d05bdf015c8b2169669"},
+    {file = "pyfai-2023.5.0-cp310-cp310-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:0edb71247b731ede6847353fab4d8e24409e51b401359d325cb9572437ef8d6b"},
+    {file = "pyfai-2023.5.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8b80a1e8b7c3eb4510d08999f583d1c4bd414daea6578df2c68c31184088cf08"},
+    {file = "pyfai-2023.5.0-cp310-cp310-win_amd64.whl", hash = "sha256:02e62c602acd91b00443aa1431f1e677dd6f6de5216892544fdb9aa317ceae34"},
+    {file = "pyfai-2023.5.0-cp311-cp311-macosx_10_9_arm64.whl", hash = "sha256:00fe714575939c939617b9dbca8303abf3e7e8529a2863f9e9ee905ce253c956"},
+    {file = "pyfai-2023.5.0-cp311-cp311-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:1155e591a4b5cd7f6b3e9f7a58bf5d980d1e126d22190d6c35ab793b7523f92c"},
+    {file = "pyfai-2023.5.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:db192e54e30c5d4ccb9014179a4884175e17427822033bbeac5da9087aef3326"},
+    {file = "pyfai-2023.5.0-cp311-cp311-win_amd64.whl", hash = "sha256:bcd9885b0c2171fff17860637a97ca4cb1862f1f0240293eb8f6ac24c55b05c0"},
+    {file = "pyfai-2023.5.0-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:5308e893615134295ad4d2479ab456e1f27ae55cc8fe9fefc8ab402ab49ebacc"},
+    {file = "pyfai-2023.5.0-cp37-cp37m-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:9e08f925828df0f610fdc78b7cbed6201e6aeb452088a04fac3dd627b797537b"},
+    {file = "pyfai-2023.5.0-cp37-cp37m-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:8cf49feefd89a1a27e65b34fde0d8f4807876ed7804abca3f276c471d8b2e73f"},
+    {file = "pyfai-2023.5.0-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:88ff16c5692a90acf523bac326808897a84c0b063e03177df10fb6aa91ea3d5a"},
+    {file = "pyfai-2023.5.0-cp37-cp37m-win_amd64.whl", hash = "sha256:927d9d00ad1123e0a9ebaea1f8c100aef23dd46baad86ebea772b4fe7cd3e67b"},
+    {file = "pyfai-2023.5.0-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:ba96cd51b3ead74529b8397a76beae91c08d89cb0dbd13724c3c469727288238"},
+    {file = "pyfai-2023.5.0-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:c786bb8d2fcc3a52a1bcdce0b5ee9ab16bd3488630b230cd26a67c2d2fe36440"},
+    {file = "pyfai-2023.5.0-cp38-cp38-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:ac00f6bbab8f5f14daf7467ffa7af0933a5ee5fa7ba9d827954b5dc7734c294e"},
+    {file = "pyfai-2023.5.0-cp38-cp38-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:26796dc0531a0a490b36ba1d67b7bf3d74d71de1926ca6b2660f0ada35090466"},
+    {file = "pyfai-2023.5.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5b2bfc143d4e2aed30d92274a6e549b10e2b39f1fa142ee07363caaecbd9ce97"},
+    {file = "pyfai-2023.5.0-cp38-cp38-win_amd64.whl", hash = "sha256:2c998f51ec7e1ac999805d0904b6b325b2587252382bd18f98a2b0bae72e14cc"},
+    {file = "pyfai-2023.5.0-cp39-cp39-macosx_10_9_arm64.whl", hash = "sha256:80305af243323498eb385fefa6c2df112e0c38426d2868dc8d736e68a8e8c697"},
+    {file = "pyfai-2023.5.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:1298c29a8169f57e290be37deebd499e1412945e731db83d40528b26dd9424ff"},
+    {file = "pyfai-2023.5.0-cp39-cp39-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:1a3b4ed9e31538587ff1b702eba2264d9b61a3ebef64ef289b70bf5c85a97f3f"},
+    {file = "pyfai-2023.5.0-cp39-cp39-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:804d978cca011e52ccc109fb45c79c034540419ddca2f3da506dd579413e816b"},
+    {file = "pyfai-2023.5.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:55cfc81382d4a8b0cf1adb070b9a978360ac921f508c4334526e975af7352dfa"},
+    {file = "pyfai-2023.5.0-cp39-cp39-win_amd64.whl", hash = "sha256:c7389a5e462ebb394dd4367914bcc78b54a5fc53cebb8d5411d0f15bac87728e"},
+    {file = "pyfai-2023.5.0.tar.gz", hash = "sha256:8c578a753340463b6c08e9949a07b5ee02f4920fe2b51f3afe8d4cf3d38234f9"},
 ]
 
 [package.dependencies]
@@ -2443,7 +2443,7 @@ description = "Read and write TIFF files"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "python_version == \"3.9\""
+markers = "python_version < \"3.10\""
 files = [
     {file = "tifffile-2024.8.30-py3-none-any.whl", hash = "sha256:8bc59a8f02a2665cd50a910ec64961c5373bee0b8850ec89d3b7b485bf7be7ad"},
     {file = "tifffile-2024.8.30.tar.gz", hash = "sha256:2c9508fe768962e30f87def61819183fb07692c258cb175b3c114828368485a4"},
@@ -2694,4 +2694,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.9, <3.14"
-content-hash = "59fcfab601cce93776535ee08d387dedbb7e64485f8dcdc3732b57178883abc7"
+content-hash = "6fb6bf8df24a1e08ba2d99e00ed2606dccf7e7544586e46f964e208db88189e7"
