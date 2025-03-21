@@ -65,7 +65,7 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
             self.file_types = set(file_types)
             self.patterns = ['*.' + file_type for file_type in file_types]
 
-        self.event_handler = PatternMatchingEventHandler(self.patterns)
+        self.event_handler = PatternMatchingEventHandler(patterns=self.patterns)
         self.event_handler.on_created = self.on_file_created
 
         self.active = False
@@ -82,6 +82,7 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
         event handle. We check whether the file is fully written by observing whether the file size changes. If the
         file size is not changing within 10ms, we assume that the file is fully written and emit the file_added signal.
         """
+        print("New file detected:" % event.src_path)
         file_path = os.path.abspath(event.src_path)
         file_size = -1
         while file_size != os.stat(file_path).st_size:
