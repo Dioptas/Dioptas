@@ -19,7 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-from scipy.interpolate import interp2d
+from scipy.interpolate import RegularGridInterpolator
 import numpy as np
 import h5py
 
@@ -368,14 +368,20 @@ class DioptasModel(object):
         azi = self._get_combined_cake_azi()
         combined_tth, combined_azi = np.meshgrid(tth, azi)
         combined_intensity = np.zeros(combined_azi.shape)
+
         for configuration in self.configurations:
-            cake_interp2d = interp2d(
-                configuration.calibration_model.cake_tth,
-                configuration.calibration_model.cake_azi,
-                configuration.calibration_model.cake_img,
+            cake_interp2d = RegularGridInterpolator(
+                (
+                    configuration.calibration_model.cake_tth,
+                    configuration.calibration_model.cake_azi,
+                ),
+                configuration.calibration_model.cake_img.T,
+                method="linear",
                 fill_value=0,
+                bounds_error=False,
             )
-            combined_intensity += cake_interp2d(tth, azi)
+            # TODO: check if it is correct to use tth, azi and not combined_tth and combined_azi
+            combined_intensity += cake_interp2d((tth, azi))
         self._cake_data = combined_intensity
 
     def _activate_cake(self):
