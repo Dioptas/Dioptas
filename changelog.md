@@ -1,3 +1,12 @@
+# 0.6.2 (in development)
+
+## New Features
+  - adding python 3.13 compatibility
+
+## Bugfixes
+  - fixes issues on some system with a newer watchdog installation (above 3.0)
+  - adds 'tiff' files to autoprocessing
+
 # 0.6.1 (18.06.2024)
 
 ## New Features

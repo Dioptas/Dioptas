@@ -32,7 +32,11 @@ from .util import Signal
 from dioptas.model.loader.spe import SpeFile
 from .util.NewFileWatcher import NewFileInDirectoryWatcher
 from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
-from .util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, TransferFunctionCorrection
+from .util.ImgCorrection import (
+    ImgCorrectionManager,
+    ImgCorrectionInterface,
+    TransferFunctionCorrection,
+)
 from dioptas.model.loader.LambdaLoader import LambdaImage
 from dioptas.model.loader.KaraboLoader import KaraboFile
 from dioptas.model.loader.hdf5Loader import Hdf5Image
@@ -56,10 +60,10 @@ class ImgModel(object):
 
     def __init__(self):
         super(ImgModel, self).__init__()
-        self.filename = ''
+        self.filename = ""
         self.img_transformations = []
 
-        self.file_iteration_mode = 'number'
+        self.file_iteration_mode = "number"
         self.file_name_iterator = FileNameIterator()
 
         self.series_pos = 1
@@ -71,7 +75,7 @@ class ImgModel(object):
         self._img_data_absorption_corrected = None
         self._img_data_background_subtracted_absorption_corrected = None
 
-        self.background_filename = ''
+        self.background_filename = ""
         self._background_data = None
         self._background_scaling = 1
         self._background_offset = 0
@@ -83,27 +87,30 @@ class ImgModel(object):
         # anything that gets loaded from an image file and needs to be reset if a file without these attributes is
         # loaded 2D array containing the current image
         self.loadable_data = [
-            {"name": "img_data", "default": np.zeros((2048, 2048)), "attribute": "_img_data"},
+            {
+                "name": "img_data",
+                "default": np.zeros((2048, 2048)),
+                "attribute": "_img_data",
+            },
             {"name": "file_info", "default": "", "attribute": "file_info"},
             {"name": "motors_info", "default": {}, "attribute": "motors_info"},
             {"name": "img_data_fabio", "default": None, "attribute": "_img_data_fabio"},
-
             # current position in the loaded series of images, starting at 1
             {"name": "series_pos", "default": 1, "attribute": "series_pos"},
-
             # maximum position/number of images in the loaded series, starting at 1
             {"name": "series_max", "default": 1, "attribute": "series_max"},
-
             # function to get an image in the current series. A function assigned to this attribute should take
             # a single parameter pos (position in the series starting at 0) and return a 2d array with the image data
-            {"name": "series_get_image", "default": None, "attribute": "series_get_image"},
-
+            {
+                "name": "series_get_image",
+                "default": None,
+                "attribute": "series_get_image",
+            },
             # list of sources for different image series within 1 file. This is used by an HDF5 file with several
             # datasets
             {"name": "sources", "default": None, "attribute": "sources"},
-
             # a function to select a source:
-            {"name": "select_source", "default": None, "attribute": "_select_source"}
+            {"name": "select_source", "default": None, "attribute": "_select_source"},
         ]
 
         # set the loadable attributes to their defaults
@@ -113,10 +120,26 @@ class ImgModel(object):
 
         # setting up autoprocess
         self._autoprocess = False
+        # TODO: watching a directory should be open to any file type - an extension should  be added when a 
+        # new file is loaded with a previous non-existing file extension
         self._directory_watcher = NewFileInDirectoryWatcher(
-            file_types=['img', 'sfrm', 'dm3', 'edf', 'xml',
-                        'cbf', 'kccd', 'msk', 'spr', 'tif',
-                        'mccd', 'mar3450', 'pnm', 'spe']
+            file_types=[
+                "img",
+                "sfrm",
+                "dm3",
+                "edf",
+                "xml",
+                "cbf",
+                "kccd",
+                "msk",
+                "spr",
+                "tif",
+                "tiff",
+                "mccd",
+                "mar3450",
+                "pnm",
+                "spe",
+            ]
         )
         self._directory_watcher.file_added.connect(self.load)
 
@@ -159,8 +182,14 @@ class ImgModel(object):
         :return: dictionary containing all retrieved file information. Look at "loadable data" for possible key names.
                  Present key names depend on applied image loader
         """
-        img_loaders = [self.load_PIL, self.load_spe, self.load_fabio, self.load_lambda, self.load_karabo,
-                       self.load_hdf5]
+        img_loaders = [
+            self.load_PIL,
+            self.load_spe,
+            self.load_fabio,
+            self.load_lambda,
+            self.load_karabo,
+            self.load_hdf5,
+        ]
 
         for loader in img_loaders:
             data = loader(filename, pos)
@@ -181,7 +210,9 @@ class ImgModel(object):
             if attribute["name"] in loaded_data:
                 self.__setattr__(attribute["attribute"], loaded_data[attribute["name"]])
             else:
-                self.__setattr__(attribute["attribute"], copy.copy(attribute["default"]))
+                self.__setattr__(
+                    attribute["attribute"], copy.copy(attribute["default"])
+                )
 
     def load_PIL(self, filename, *args):
         """
@@ -213,7 +244,7 @@ class ImgModel(object):
         :param filename: path to the image file to be loaded
         :return: dictionary with image_data, None if unsuccessful
         """
-        if os.path.splitext(filename)[1].lower() == '.spe':
+        if os.path.splitext(filename)[1].lower() == ".spe":
             spe = SpeFile(filename)
             return {"img_data": spe.img}
         else:
@@ -232,7 +263,7 @@ class ImgModel(object):
                 "img_data_fabio": self.loader.fabio_image,
                 "img_data": self.loader.get_image(frame_index),
                 "series_max": self.loader.series_max,
-                "series_get_image": self.loader.get_image
+                "series_get_image": self.loader.get_image,
             }
         except (IOError, fabio.fabioutils.NotGoodReader):
             return None
@@ -251,9 +282,11 @@ class ImgModel(object):
 
         if frame_index >= lambda_im.series_max:
             return None
-        return {"img_data": lambda_im.get_image(frame_index),
-                "series_max": lambda_im.series_max,
-                "series_get_image": lambda_im.get_image}
+        return {
+            "img_data": lambda_im.get_image(frame_index),
+            "series_max": lambda_im.series_max,
+            "series_get_image": lambda_im.get_image,
+        }
 
     def load_karabo(self, filename, frame_index=0):
         """
@@ -269,9 +302,11 @@ class ImgModel(object):
             return None
         if frame_index >= karabo_file.series_max:
             return None
-        return {"img_data": karabo_file.get_image(frame_index),
-                "series_max": karabo_file.series_max,
-                "series_get_image": karabo_file.get_image}
+        return {
+            "img_data": karabo_file.get_image(frame_index),
+            "series_max": karabo_file.series_max,
+            "series_get_image": karabo_file.get_image,
+        }
 
     def load_hdf5(self, filename, frame_index=0):
         """
@@ -286,12 +321,13 @@ class ImgModel(object):
         self.loader = hdf5_image
         self.selected_source = hdf5_image.image_sources[0]
 
-        return {"img_data": hdf5_image.get_image(frame_index),
-                "series_max": hdf5_image.series_max,
-                "series_get_image": hdf5_image.get_image,
-                "sources": hdf5_image.image_sources,
-                "select_source": hdf5_image.select_source
-                }
+        return {
+            "img_data": hdf5_image.get_image(frame_index),
+            "series_max": hdf5_image.series_max,
+            "series_get_image": hdf5_image.get_image,
+            "sources": hdf5_image.image_sources,
+            "select_source": hdf5_image.select_source,
+        }
 
     def select_source(self, source):
         """
@@ -362,7 +398,9 @@ class ImgModel(object):
 
         logger.info("Adding {0}.".format(filename))
 
-        if self._img_data.dtype == np.uint16:  # if dtype is only uint16 we will convert to 32 bit, so that more
+        if (
+            self._img_data.dtype == np.uint16
+        ):  # if dtype is only uint16 we will convert to 32 bit, so that more
             # additions are possible
             self._img_data = self._img_data.astype(np.uint32)
 
@@ -386,7 +424,7 @@ class ImgModel(object):
         """
         Resets the background data to None
         """
-        self.background_filename = ''
+        self.background_filename = ""
         self._background_data = None
         self._background_data_fabio = None
         self._calculate_img_data()
@@ -460,7 +498,9 @@ class ImgModel(object):
         :param pos:
         :param step: Defining how much you want to increment the file number. (default=1)
         """
-        next_file_name = self.file_name_iterator.get_next_filename(mode=self.file_iteration_mode, step=step, pos=pos)
+        next_file_name = self.file_name_iterator.get_next_filename(
+            mode=self.file_iteration_mode, step=step, pos=pos
+        )
         if next_file_name is not None:
             self.load(next_file_name)
 
@@ -470,8 +510,9 @@ class ImgModel(object):
         :param pos:
         :param step: Defining how much you want to decrement the file number. (default=1)
         """
-        previous_file_name = self.file_name_iterator.get_previous_filename(mode=self.file_iteration_mode,
-                                                                           step=step, pos=pos)
+        previous_file_name = self.file_name_iterator.get_previous_filename(
+            mode=self.file_iteration_mode, step=step, pos=pos
+        )
         if previous_file_name is not None:
             self.load(previous_file_name)
 
@@ -494,7 +535,9 @@ class ImgModel(object):
                             files change their during increment. (default = False)
         """
 
-        next_previous_name = self.file_name_iterator.get_previous_folder(mec_mode=mec_mode)
+        next_previous_name = self.file_name_iterator.get_previous_folder(
+            mec_mode=mec_mode
+        )
         if next_previous_name is not None:
             self.load(next_previous_name)
 
@@ -504,11 +547,11 @@ class ImgModel(object):
             * 'number' will increment or decrement based on numbers in the filename.
             * 'time' will increment or decrement based on creation time for the files.
         """
-        if mode == 'number':
-            self.file_iteration_mode = 'number'
+        if mode == "number":
+            self.file_iteration_mode = "number"
             self.file_name_iterator.create_timed_file_list = False
-        elif mode == 'time':
-            self.file_iteration_mode = 'time'
+        elif mode == "time":
+            self.file_iteration_mode = "time"
             self.file_name_iterator.create_timed_file_list = True
             self.file_name_iterator.update_filename(self.filename)
 
@@ -530,16 +573,23 @@ class ImgModel(object):
 
         # calculate the current _img_data
         if self._background_data is not None and not self._img_corrections.has_items():
-            self._img_data_background_subtracted = self._img_data - (self._background_scaling *
-                                                                     self._background_data +
-                                                                     self._background_offset)
+            self._img_data_background_subtracted = self._img_data - (
+                self._background_scaling * self._background_data
+                + self._background_offset
+            )
         elif self._background_data is None and self._img_corrections.has_items():
-            self._img_data_absorption_corrected = self._img_data / self._img_corrections.get_data()
+            self._img_data_absorption_corrected = (
+                self._img_data / self._img_corrections.get_data()
+            )
 
         elif self._background_data is not None and self._img_corrections.has_items():
-            self._img_data_background_subtracted_absorption_corrected = (self._img_data - (
-                    self._background_scaling * self._background_data + self._background_offset)) / \
-                                                                        self._img_corrections.get_data()
+            self._img_data_background_subtracted_absorption_corrected = (
+                self._img_data
+                - (
+                    self._background_scaling * self._background_data
+                    + self._background_offset
+                )
+            ) / self._img_corrections.get_data()
 
     @property
     def img_data(self):
@@ -555,14 +605,18 @@ class ImgModel(object):
         if self._background_data is None and not self._img_corrections.has_items():
             return self._img_data * self.factor
 
-        elif self._background_data is not None and not self._img_corrections.has_items():
+        elif (
+            self._background_data is not None and not self._img_corrections.has_items()
+        ):
             return self._img_data_background_subtracted * self.factor
 
         elif self._background_data is None and self._img_corrections.has_items():
             return self._img_data_absorption_corrected * self.factor
 
         elif self._background_data is not None and self._img_corrections.has_items():
-            return self._img_data_background_subtracted_absorption_corrected * self.factor
+            return (
+                self._img_data_background_subtracted_absorption_corrected * self.factor
+            )
 
     @property
     def raw_img_data(self):
@@ -741,16 +795,18 @@ class ImgModel(object):
         self.img_changed.emit()
 
     def enable_transfer_function(self):
-        if self.transfer_correction.get_data() is not None and \
-                self.get_img_correction('transfer') is None:
-            self.add_img_correction(self.transfer_correction, 'transfer')
-        if self.get_img_correction('transfer') is not None:
+        if (
+            self.transfer_correction.get_data() is not None
+            and self.get_img_correction("transfer") is None
+        ):
+            self.add_img_correction(self.transfer_correction, "transfer")
+        if self.get_img_correction("transfer") is not None:
             self._calculate_img_data()
             self.img_changed.emit()
 
     def disable_transfer_function(self):
-        if self.get_img_correction('transfer') is not None:
-            self.delete_img_correction('transfer')
+        if self.get_img_correction("transfer") is not None:
+            self.delete_img_correction("transfer")
 
     @property
     def img_corrections(self):
@@ -780,7 +836,7 @@ class ImgModel(object):
             if isinstance(tag, str):
                 new_line = str(tag) + "\n"
                 new_line = new_line.replace(":", ":\t", 1)
-                if 'TIFFImageDescription' in new_line:
+                if "TIFFImageDescription" in new_line:
                     end_result = new_line
                 else:
                     result += new_line
@@ -793,7 +849,7 @@ class ImgModel(object):
         result = {}
         tags = image.tag
 
-        useful_tags = ['Horizontal:', 'Vertical:', 'Focus:', 'Omega:']
+        useful_tags = ["Horizontal:", "Vertical:", "Focus:", "Omega:"]
 
         try:
             tag_values = tags.itervalues()
@@ -803,7 +859,7 @@ class ImgModel(object):
         for value in tag_values:
             for key in useful_tags:
                 if key in str(value):
-                    k, v = str(value[0]).split(':')
+                    k, v = str(value[0]).split(":")
                     result[str(k)] = float(v)
         return result
 
