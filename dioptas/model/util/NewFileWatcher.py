@@ -65,7 +65,7 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
             self.file_types = set(file_types)
             self.patterns = ['*.' + file_type for file_type in file_types]
 
-        self.event_handler = PatternMatchingEventHandler(self.patterns)
+        self.event_handler = PatternMatchingEventHandler(patterns=self.patterns)
         self.event_handler.on_created = self.on_file_created
 
         self.active = False
