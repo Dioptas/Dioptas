@@ -60,7 +60,7 @@ scipy = [
   { version = "^1.9.3", python = "<3.10" },
   { version = "^1.11.3", python = ">=3.10" }
 ]
-numexpr = "2.8.4"
+numexpr = "^2.10.2"
 qt-material = "^2.14"
 
 
