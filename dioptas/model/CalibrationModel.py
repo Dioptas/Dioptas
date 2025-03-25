@@ -26,7 +26,7 @@ from enum import Enum
 from copy import deepcopy
 
 import numpy as np
-from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
+from pyFAI.integrator.azimuthal import AzimuthalIntegrator
 from pyFAI.blob_detection import BlobDetection
 from pyFAI.calibrant import Calibrant
 from pyFAI.detectors import Detector, ALL_DETECTORS, NexusDetector
