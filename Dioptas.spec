@@ -4,6 +4,7 @@
 # Copyright (C) 2014-2019 GSECARS, University of Chicago, USA
 # Copyright (C) 2015-2018 Institute for Geology and Mineralogy, University of Cologne, Germany
 # Copyright (C) 2019-2020 DESY, Hamburg, Germany
+# Copyright (C) 2021-2025 University of Freiburg, Freiburg, Germany
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,84 +22,45 @@
 block_cipher = None
 
 import sys
-pristine_sys_module = list(sys.modules.keys())
 import os
+from sys import platform as _platform
+from PyInstaller.utils.hooks import collect_submodules
+
+pristine_sys_module = list(sys.modules.keys())
 
 folder = os.getcwd()
 
-from distutils.sysconfig import get_python_lib
-from sys import platform as _platform
-
-site_packages_path = get_python_lib()
-
-
-def get_libs(module_name, pristine=None, sieve=True):
-    """Track new modules which were imported
-    :param module_name: name of the module
-    :param pristine: list of modules previously loaded. By default, use all newly loaded
-    :param sieve: set to a string to sieve out on that string, module_name by default
-    :return: list of newly loaded modules
-    """
-    if pristine is None:
-        pristine = list(sys.modules.keys())
-    __import__(module_name)
-    new = [i for i in sys.modules if i not in pristine]
-    if sieve:
-        if isinstance(sieve, str):
-            module = sieve
-        else:
-            module = module_name
-        new = [i for i in new if i.startswith(module)]
-    return new
-
-
-binaries = []
-
-fabio_hiddenimports = get_libs("fabio")
-pyFAI_hiddenimports = get_libs("pyFAI.azimuthalIntegrator", sieve="pyFAI")
-pyqtgraph_hiddenimports = get_libs("pyqtgraph", sieve="pyqtgraph")
-
-pyqtgraph_hiddenimports += [
-    "pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5",
-    "pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyqt5",
-    "pyqtgraph.imageview.ImageViewTemplate_pyqt5"
-]
-
-import pyFAI
-import matplotlib
-import lib2to3
+import PyQt6 # needs to be imported before qt_material
 import qt_material
+import pyFAI
 
-pyFAI_path = os.path.dirname(pyFAI.__file__)
-matplotlib_path = os.path.dirname(matplotlib.__file__)
-lib2to3_path = os.path.dirname(lib2to3.__file__)
 qt_material_path = os.path.dirname(qt_material.__file__)
+pyFAI_path = os.path.dirname(pyFAI.__file__)
 
 extra_datas = [
     ("dioptas/resources", "dioptas/resources"),
     (os.path.join(pyFAI_path, "resources"), "pyFAI/resources"),
-    (os.path.join(pyFAI_path, "utils"), "pyFAI/utils"),
-    (os.path.join(lib2to3_path, 'Grammar.txt'), 'lib2to3/'),
-    (os.path.join(lib2to3_path, 'PatternGrammar.txt'), 'lib2to3/'),
-    (os.path.join(qt_material_path, 'fonts', 'roboto'), 'qt_material/fonts/roboto'),
-    (os.path.join(site_packages_path, 'hdf5plugin', 'plugins'), 'hdf5plugin/plugins'),
+    (os.path.join(qt_material_path, "fonts", "roboto"), "qt_material/fonts/roboto"),
 ]
 
-a = Analysis(['run.py'],
-             pathex=[folder],
-             binaries=binaries,
-             datas=extra_datas,
-             hiddenimports=['scipy.special._ufuncs_cxx', 'scipy._lib.messagestream', 'scipy.special.cython_special',
-                            'scipy.special._cdflib',
-                            'skimage._shared.geometry', 'h5py.defs', 'h5py.utils', 'h5py.h5ac', 'h5py', 'h5py._proxy',
-                            'pywt._extensions._cwt', 'pkg_resources.py2_warn'] +
-                             fabio_hiddenimports + pyqtgraph_hiddenimports + pyFAI_hiddenimports,
-             hookspath=[],
-             runtime_hooks=[],
-             excludes=['PyQt4', 'PySide', 'pyepics'],
-             win_no_prefer_redirects=False,
-             win_private_assemblies=False,
-             cipher=block_cipher)
+fabio_hiddenimports = collect_submodules("fabio")
+pyqtgraph_hiddenimports = collect_submodules("pyqtgraph")
+pyFAI_hiddenimports = collect_submodules("pyFAI")
+
+hiddenimports = fabio_hiddenimports + pyqtgraph_hiddenimports + pyFAI_hiddenimports
+
+a = Analysis(
+    ["run.py"],
+    pathex=[folder],
+    binaries=[],
+    datas=extra_datas,
+    hiddenimports=hiddenimports,
+    hookspath=[],
+    runtime_hooks=[],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=block_cipher,
+)
 
 # remove packages which are not needed by Dioptas
 # a.binaries = [x for x in a.binaries if not x[0].startswith("matplotlib")]
@@ -113,29 +75,14 @@ a.binaries = [x for x in a.binaries if not x[0].startswith("PySide")]
 a.binaries = [x for x in a.binaries if not x[0].startswith("libtk")]
 
 exclude_datas = [
-    "IPython",
-    "matplotlib/mpl-data",
-    "include",
-    "sphinx",
-    "tests",
-    "alabaster",
-    "boto",
-    "jsonschema",
-    "babel",
-    "idlelib",
-    "requests",
-    "qt4_plugins",
-    "qt5_plugins"
     "PyQt6/Qt6/translations",
     "PyQt6/Qt6/plugins/imageformats",
-    "tcl/tzdata",
-    "pyFAI/ext",
 ]
 
 for exclude_data in exclude_datas:
     a.datas = [x for x in a.datas if exclude_data not in x[0]]
 
-platform = ''
+platform = ""
 
 if _platform == "linux" or _platform == "linux2":
     platform = "Linux"
@@ -148,43 +95,48 @@ elif _platform == "darwin":
     name = "run_dioptas"
 
 # checking whether the platform is 64 or 32 bit
-if sys.maxsize > 2 ** 32:
+if sys.maxsize > 2**32:
     platform += "64"
 else:
     platform += "32"
 
 # getting the current version of Dioptas
 try:
-    with open(os.path.join('dioptas', '__version__'), 'r') as fp:
+    with open(os.path.join("dioptas", "__version__"), "r") as fp:
         __version__ = fp.readline()
 except FileNotFoundError:
     from dioptas import __version__
 
-pyz = PYZ(a.pure, a.zipped_data,
-          cipher=block_cipher)
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 print("@@@ Datas @@@")
 print(a.datas)
 
-exe = EXE(pyz,
-          a.scripts,
-          exclude_binaries=True,
-          name=name,
-          debug=False,
-          strip=False,
-          upx=True,
-          console=False,
-          icon="dioptas/resources/icons/icon.ico")
+exe = EXE(
+    pyz,
+    a.scripts,
+    exclude_binaries=True,
+    name=name,
+    debug=False,
+    strip=False,
+    upx=True,
+    console=False,
+    icon="dioptas/resources/icons/icon.ico",
+)
 
-coll = COLLECT(exe,
-               a.binaries,
-               a.zipfiles,
-               a.datas,
-               strip=False,
-               upx=True,
-               name='Dioptas_{}_{}'.format(platform, __version__))
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=True,
+    name="Dioptas_{}_{}".format(platform, __version__),
+)
 
 if _platform == "darwin":
-    app = BUNDLE(coll,
-                 name='Dioptas_{}.app'.format(__version__),
-                 icon='dioptas/resources/icons/icon.icns')
+    app = BUNDLE(
+        coll,
+        name="Dioptas_{}.app".format(__version__),
+        icon="dioptas/resources/icons/icon.icns",
+    )
