@@ -2,6 +2,7 @@
 
 ## New Features
   - adding python 3.13 compatibility
+  - compatibility with pyFAI 2025.3.0 - this includes a new poni file format and a new way of handling detector orientation. Resulting in transferability of poni files between Dioptas and scripts written with pyFAI without the need to flip the image upside down.
 
 ## Bugfixes
   - fixes issues on some system with a newer watchdog installation (above 3.0)
