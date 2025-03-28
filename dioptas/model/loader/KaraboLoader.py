@@ -44,4 +44,4 @@ class KaraboFile:
     def get_image(self, ind):
         sel = self.f.select(self.current_source, 'data.image.pixels')
         tid, data = sel.train_from_index(ind)
-        return data[self.current_source]['data.image.pixels']
+        return data[self.current_source]['data.image.pixels'][::-1]

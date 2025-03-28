@@ -36,7 +36,7 @@ class Hdf5Image:
         self.series_max = self.dataset.shape[0]
 
     def get_image(self, ind):
-        return self.dataset[ind]
+        return self.dataset[ind][::-1]
 
     def select_source(self, source):
         self.dataset = self.f[source]
