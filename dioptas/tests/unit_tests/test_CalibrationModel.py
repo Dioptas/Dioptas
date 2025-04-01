@@ -27,16 +27,14 @@ from mock import MagicMock
 
 from pyFAI import detectors
 from pyFAI.detectors import Detector
+from pyFAI.detectors.orientation import Orientation
 
 from ...model.CalibrationModel import (
-    CalibrationModel,
     NoPointsError,
     get_available_detectors,
     DetectorModes,
 )
-from ...model.ImgModel import ImgModel
 from ... import calibrants_path
-import gc
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, "../data")
@@ -76,6 +74,46 @@ def load_image_with_distortion(calibration_model):
 def load_LaB6_40keV_with_calibration(calibration_model):
     calibration_model.img_model.load(os.path.join(data_path, "image_001.tif"))
     calibration_model.load(os.path.join(data_path, "LaB6_40keV_MarCCD.poni"))
+
+
+def test_load_poni_file_without_orientation(calibration_model, tmp_path):
+    calibration_model.load(os.path.join(data_path, "LaB6_40keV_MarCCD.poni"))
+
+    poni_config = calibration_model.pattern_geometry.get_config()
+    orientation = poni_config["detector_config"].pop("orientation")
+
+    assert orientation == Orientation.BottomRight
+
+    # Save to temporary path instead of data_path
+    temp_poni_file = os.path.join(tmp_path, "LaB6_40keV_MarCCD_new_with_orientation.poni")
+    calibration_model.save(temp_poni_file)
+
+
+    # Check that the orientation is still BottomRight
+    calibration_model.load(temp_poni_file)
+
+    poni_config = calibration_model.pattern_geometry.get_config()
+    orientation = poni_config["detector_config"].pop("orientation")
+
+    assert orientation == Orientation.BottomRight
+
+    # Check that the orientation is TopRight in the poni file
+    from pyFAI.io.ponifile import PoniFile
+    poni_file = PoniFile(temp_poni_file)
+    poni_dict = poni_file.as_dict()
+    orientation = poni_dict["detector_config"]["orientation"]
+
+    assert orientation == Orientation.TopRight
+
+
+def test_load_poni_file_with_orientation(calibration_model):
+    poni_file = os.path.join(data_path, "LaB6_40keV_MarCCD_new_with_orientation.poni")
+    calibration_model.load(poni_file)
+
+    poni_config = calibration_model.pattern_geometry.get_config()
+    orientation = poni_config["detector_config"].pop("orientation")
+
+    assert orientation == Orientation.BottomRight
 
 
 def test_integration_with_supersampling(calibration_model):

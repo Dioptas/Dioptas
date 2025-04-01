@@ -7,7 +7,8 @@ import h5py
 import numpy as np
 from qtpy import QtCore
 from PIL import Image
-from xypattern.pattern import SmoothBrucknerBackground
+
+from xypattern.auto_background import SmoothBrucknerBackground
 from xypattern import Pattern
 
 logger = logging.getLogger(__name__)

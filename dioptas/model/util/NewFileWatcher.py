@@ -44,7 +44,10 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
         watcher.file_added.connect(callback_fcn)
 
     """
-    _file_added_qt = QtCore.Signal(str)  # used internally for inside of an qt application to avoid thread problems
+
+    _file_added_qt = QtCore.Signal(
+        str
+    )  # used internally for inside of an qt application to avoid thread problems
 
     def __init__(self, path=None, file_types=None, activate=False):
         """
@@ -60,12 +63,12 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
 
         if file_types is None:
             self.file_types = set([])
-            self.patterns = '*'
+            self.patterns = "*"
         else:
             self.file_types = set(file_types)
-            self.patterns = ['*.' + file_type for file_type in file_types]
+            self.patterns = ["*." + file_type for file_type in file_types]
 
-        self.event_handler = PatternMatchingEventHandler(self.patterns)
+        self.event_handler = PatternMatchingEventHandler(patterns=self.patterns)
         self.event_handler.on_created = self.on_file_created
 
         self.active = False
@@ -82,6 +85,7 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
         event handle. We check whether the file is fully written by observing whether the file size changes. If the
         file size is not changing within 10ms, we assume that the file is fully written and emit the file_added signal.
         """
+        print("New file detected: {}".format(event.src_path))
         file_path = os.path.abspath(event.src_path)
         file_size = -1
         while file_size != os.stat(file_path).st_size:
@@ -93,7 +97,9 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
     def activate(self):
         if not self.active:
             self.active = True
-            self.queue_thread = threading.Thread(target=self.process_events, daemon=True)
+            self.queue_thread = threading.Thread(
+                target=self.process_events, daemon=True
+            )
             self.queue_thread.start()
             self._start_observing()
 

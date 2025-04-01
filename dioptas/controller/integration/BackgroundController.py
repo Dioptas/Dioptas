@@ -22,7 +22,7 @@ import os
 
 import numpy as np
 from qtpy import QtWidgets
-from xypattern.pattern import SmoothBrucknerBackground
+from xypattern.auto_background import SmoothBrucknerBackground
 
 from ...widgets.UtilityWidgets import open_file_dialog, save_file_dialog
 from ...widgets.integration import IntegrationWidget

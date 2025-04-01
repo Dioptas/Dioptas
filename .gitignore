@@ -21,6 +21,7 @@ cloc-1.62.pl
 smooth_bruckner_cython.c
 smooth_bruckner_cython.html
 version.py
+.python-version
 
 log.txt
 .idea

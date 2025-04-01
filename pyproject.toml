@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dioptas"
-version = "0.6.1" # Will be overwritten by poetry-dynamic-versioning
+version = "0.7.0" # Will be overwritten by poetry-dynamic-versioning
 description = "GUI program for reduction and exploration of 2D X-ray diffraction data"
 authors = ["Clemens Prescher <clemens.prescher@gmail.com>"]
 license = "GPL-3.0"
@@ -33,31 +33,25 @@ style = "semver"
 files = ["dioptas/__init__.py"]
 
 [tool.poetry.dependencies]
-python = "^3.8, <3.13"
+python = "^3.9, <3.14"
 EXtra-data = "^1.13.0"
-h5py = "^3.10.0"
-hdf5plugin = "^4.1.3"
-lmfit = "^1.2.1"
-pandas = [
-  { version ="^2.1.1", python = ">3.9" },
-  { version ="^1.3.3", python = "<3.9" }
-  ]
+h5py = "^3.13.0"
+hdf5plugin = "^5.0.0"
+lmfit = "^1.3.3"
+pandas = "^2.1.1"
 psutil = "^5.9.5"
-PyCifRW = "^4.4.5"
-PyQt6 = "^6.7"
-pyfai = "^2023.5.0"
-pyqtgraph = "^0.13.3"
+PyCifRW = "^5.0.0"
+PyQt6 = "^6.8"
+pyfai = "2025.3.0"
+pyqtgraph = "^0.13.7"
 pyshortcuts = "^1.8.1"
-QtPy = "^2.3.1"
-scikit-image = [
-  {version = "^0.21.0", python = "<3.9"},
-  {version = "^0.22.0", python = ">=3.9"}
-]
+QtPy = "^2.4.3"
+scikit-image = "^0.22.0"
 sharedmem = "^0.3.8"
-watchdog = "^3.0.0"
+watchdog = "^6.0.0"
 pyopengl = "^3.1.7"
 pyopengl-accelerate = "^3.1.7"
-xypattern = "^1.1.2"
+xypattern = "^1.2.2"
 numpy = [
   { version = "^1.24.0", python = "<3.10" },
   { version = "^1.26.0", python = ">=3.10" }
@@ -66,7 +60,7 @@ scipy = [
   { version = "^1.9.3", python = "<3.10" },
   { version = "^1.11.3", python = ">=3.10" }
 ]
-numexpr = "2.8.4"
+numexpr = "^2.10.2"
 qt-material = "^2.14"
 
 

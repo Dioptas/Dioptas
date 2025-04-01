@@ -26,10 +26,10 @@ jobs:
         sudo apt-get update
         sudo apt-get install python3-opengl libgl1-mesa-dev libglib2.0-0
 
-    - name: Setup Python 3.11
+    - name: Setup Python 3.13
       uses: actions/setup-python@v4
       with:
-        python-version: '3.11'
+        python-version: '3.13'
         cache: 'poetry'
 
     - name: Install poetry dependencies

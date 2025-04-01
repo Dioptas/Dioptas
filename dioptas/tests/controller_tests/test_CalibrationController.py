@@ -323,6 +323,9 @@ class TestCalibrationController(QtTest):
             del model_calibration["splineFile"]
         if "max_shape" in model_calibration.keys():
             del model_calibration["max_shape"]
+        if "orientation" in model_calibration.keys():
+            del model_calibration["orientation"]
+
         current_displayed_calibration = self.widget.get_pyFAI_parameter()
         del current_displayed_calibration["polarization_factor"]
         self.assertEqual(model_calibration, current_displayed_calibration)
@@ -336,11 +339,12 @@ class TestCalibrationController(QtTest):
             del model_calibration["splineFile"]
         if "max_shape" in model_calibration.keys():
             del model_calibration["max_shape"]
+        if "orientation" in model_calibration.keys():
+            del model_calibration["orientation"]
         current_displayed_calibration = self.widget.get_pyFAI_parameter()
         del current_displayed_calibration["polarization_factor"]
-        self.assertEqual(model_calibration, current_displayed_calibration)
 
-        self.widget.get_pyFAI_parameter()
+        self.assertEqual(model_calibration, current_displayed_calibration)
 
     @unittest.skip("Does not work for unknown reasons")
     def test_calibrant_with_small_set_of_d_spacings(self):

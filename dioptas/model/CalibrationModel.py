@@ -26,11 +26,13 @@ from enum import Enum
 from copy import deepcopy
 
 import numpy as np
-from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
+from pyFAI.integrator.azimuthal import AzimuthalIntegrator
 from pyFAI.blob_detection import BlobDetection
 from pyFAI.calibrant import Calibrant
 from pyFAI.detectors import Detector, ALL_DETECTORS, NexusDetector
+from pyFAI.detectors.orientation import Orientation
 from pyFAI.geometryRefinement import GeometryRefinement
+from pyFAI.io.ponifile import PoniFile
 from pyFAI.massif import Massif
 from skimage.measure import find_contours
 
@@ -650,15 +652,26 @@ class CalibrationModel(object):
         max_dist = np.sqrt(side1**2 + side2**2)
         return int(max_dist * max_dist_factor)
 
-    def load(self, filename):
+    def load(self, poni_filename):
         """
         Loads a calibration file andsets all the calibration parameter.
-        :param filename: filename for a *.poni calibration file
+        :param poni_filename: filename for a *.poni calibration file
         """
+        poni_dict = PoniFile(poni_filename).as_dict()
+
+        if (
+            poni_dict.get("poni_version", 1) >= 2
+            and "orientation" in poni_dict["detector_config"]
+        ):
+            # Check orientation and patch it since pyFAI and Dioptas use different conventions:
+            # - Dioptas convention: origin at the top right when looking from the sample
+            # - Default pyFAI convention: origin at the bottom right when looking from the sample
+            poni_dict = poni_flipud(poni_dict)
+
         self.pattern_geometry = GeometryRefinement(
             wavelength=0.3344e-10, detector=self.detector, poni1=0, poni2=0
         )  # default params are necessary, otherwise fails...
-        self.pattern_geometry.load(filename)
+        self.pattern_geometry.set_config(poni_dict)
         self.orig_pixel1 = self.pattern_geometry.pixel1
         self.orig_pixel2 = self.pattern_geometry.pixel2
 
@@ -672,8 +685,8 @@ class CalibrationModel(object):
         else:
             self.reset_detector()
 
-        self.calibration_name = get_base_name(filename)
-        self.filename = filename
+        self.calibration_name = get_base_name(poni_filename)
+        self.filename = poni_filename
         self.is_calibrated = True
         self.create_cake_geometry()
         self.set_supersampling()
@@ -683,7 +696,12 @@ class CalibrationModel(object):
         Saves the current calibration parameters into a a text file. Default extension is
         *.poni
         """
-        self.cake_geometry.save(filename)
+        poni_config = self.cake_geometry.get_config()
+        poni_config = poni_flipud(poni_config)
+
+        with open(filename, "w") as f:
+            PoniFile(poni_config).write(f)
+
         self.calibration_name = get_base_name(filename)
         self.filename = filename
 
@@ -1015,6 +1033,28 @@ class CalibrationModel(object):
     def _reset_detector_mask(self):
         """resets and recalculates the mask. Transformations to shape and module size have to be performed before."""
         self.detector._mask = False
+
+
+def poni_flipud(poni_dict: dict) -> dict:
+    """
+    Flips the detector up-down orientation in a poni configuration dictionary. Changes the dictionary object in place.
+    :param poni_dict: poni configuration dictionary
+    :return: updated poni configuration dictionary
+    """
+    orientation = poni_dict["detector_config"]["orientation"]
+    if orientation in (Orientation.Unspecified, Orientation.BottomRight):
+        poni_dict["detector_config"]["orientation"] = Orientation.TopRight
+    elif orientation == Orientation.TopRight:
+        poni_dict["detector_config"]["orientation"] = Orientation.BottomRight
+    elif orientation == Orientation.BottomLeft:
+        poni_dict["detector_config"]["orientation"] = Orientation.TopLeft
+    elif orientation == Orientation.TopLeft:
+        poni_dict["detector_config"]["orientation"] = Orientation.BottomLeft
+    else:
+        logger.error(
+            "Detector orientation is not supported: Saved .poni file is not compatible with pyFAI"
+        )
+    return poni_dict
 
 
 class DetectorModes(Enum):
