@@ -1,4 +1,4 @@
-# 0.7.0 (in development)
+# 0.7.0 (stable 01.04.2025)
 
 ## New Features
 
@@ -9,8 +9,10 @@
 
 - fixes issues on some system with a newer watchdog installation (above 3.0)
 - adds 'tiff' files to autoprocessing
-- images in hdf5 files which can not be handled by fabio are now also loaded flipped upside down (as it is for all other file types). This ensures compatibility of orientation with Fit2D parameters. ATTENTION: This might change the orientation of your data and is a breaking change. If you load a calibration file from a version before 0.6.2 and want to keep the original orientation, you need to flip the image upside down manually. (This can be done by clicking the "Flip vertical" button in the calibration view under calibration parameters on the right. Once clicked the flipping will be applied to all images loaded from that point on).
+- images in hdf5 files which can not be handled by fabio are now also loaded flipped upside down (as it is for all other file types). This ensures compatibility of orientation with Fit2D parameters.
 - the same treatment as for hdf5 files is now also applied to karabo files.
+
+**ATTENTION**: This might change the orientation of your data and is a breaking change. If you load a calibration file created in a dioptas version prior to 0.7.0 in combination with hdf5 files (e.g. from ESRF) or karabo files (e.g. from EuXFEL) and want to keep the original orientation, you need to flip the image upside down manually. (This can be done by clicking the "Flip vertical" button in the calibration view under calibration parameters on the right. Once clicked the flipping will be applied to all images loaded from that point on).
 
 # 0.6.1 (18.06.2024)
 

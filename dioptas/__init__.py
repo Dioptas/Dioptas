@@ -37,7 +37,7 @@ try:
 except ImportError:
     make_shortcut = None
 
-__version__ = "0.6.1"
+__version__ = "0.7.0"
 
 from .paths import resources_path, calibrants_path, icons_path, data_path, style_path
 from .excepthook import excepthook
