@@ -21,18 +21,17 @@
 try:
     from extra_data import H5File
     from extra_data.exceptions import FileStructureError
+    extra_data_installed = True
 except ImportError:
-    karabo_installed = False
-else:
-    karabo_installed = True
+    extra_data_installed = False
 
-__all__ = ['KaraboFile', 'karabo_installed']
+__all__ = ['KaraboFile', 'extra_data_installed']
 
 
 class KaraboFile:
     def __init__(self, filename, source_ind=0):
-        if not karabo_installed:
-            raise IOError('karabo_data is required to load karabo h5 files')
+        if not extra_data_installed:
+            raise IOError('extra_data is required to load karabo h5 files')
         try:
             self.f = H5File(filename)
         except FileStructureError:
