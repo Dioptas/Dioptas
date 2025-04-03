@@ -1,3 +1,11 @@
+# 0.7.1 (stable 03.04.2025)
+
+## Bugfixes
+
+- fixes python 3.9 compatibility
+- fixes an issue with installation of a dependency of extra_data on windows (zlib-*). extra_data is now only installed on Linux. This means files generated directly by karabo at EUXFEL will not be able to be loaded in Dioptas on Windows and Mac OS X. The main reason is that extra_data is primarily developed for EuXFEL users using linux. They do not actively support other platforms.
+
+
 # 0.7.0 (stable 01.04.2025)
 
 ## New Features
