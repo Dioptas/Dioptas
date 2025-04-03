@@ -19,6 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import os
 from PIL import Image
+from typing import Optional
 
 import numpy as np
 from qtpy import QtWidgets
@@ -381,7 +382,7 @@ class MapController(object):
         pos_widget.azi_lbl.setText(f"X: {img_azi:.3f}")
 
     def get_position_strings(
-        self, x: float, current_unit: str | None = None
+        self, x: float, current_unit: Optional[str]
     ) -> tuple[str, str, str, str]:
         if current_unit is None:
             current_unit = self.model.integration_unit

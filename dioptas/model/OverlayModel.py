@@ -39,7 +39,10 @@ class Overlay(Pattern):
     index = 0
 
     def __init__(
-        self, x: np.ndarray | None = None, y: np.ndarray | None = None, name: str = ""
+        self,
+        x: Optional[np.ndarray],
+        y: Optional[np.ndarray],
+        name: str = "",
     ):
         super(Overlay, self).__init__(x, y, name)
         self.visible = True
