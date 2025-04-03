@@ -6,6 +6,9 @@ on: [push, pull_request]
 
 jobs:
   test:
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
     runs-on: ubuntu-latest
     env:
       QT_QPA_PLATFORM: offscreen
@@ -17,10 +20,10 @@ jobs:
     - name: Install poetry
       run: pip install poetry
 
-    - name: Setup Python 3.11
+    - name: Setup Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
-        python-version: '3.11'
+        python-version: ${{ matrix.python-version }}
         cache: 'poetry'
 
     - name: Install Apt Dependencies

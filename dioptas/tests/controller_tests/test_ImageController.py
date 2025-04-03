@@ -339,9 +339,9 @@ def test_circle_scatter_is_activated_correctly(
 def test_loading_series_karabo_file_shows_correct_gui(
     integration_widget, dioptas_model, image_controller
 ):
-    from dioptas.model.loader.KaraboLoader import karabo_installed
+    from dioptas.model.loader.KaraboLoader import extra_data_installed
 
-    if not karabo_installed:
+    if not extra_data_installed:
         return
     filename = os.path.join(unittest_data_path, "karabo_epix.h5")
     file_widget = (

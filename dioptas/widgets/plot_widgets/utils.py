@@ -156,7 +156,9 @@ class AutoLevel:
         self.filter_dummy: bool = True
         """Whether or not to filter detector dummy values"""
 
-    def get_range(self, data: Optional[np.ndarray]) -> Optional[tuple[float, float]]:
+    def get_range(
+        self, data: Optional[np.ndarray] = None
+    ) -> Optional[tuple[float, float]]:
         """Returns colormap range from data for current settings
 
         :param data: Data from which to compute colormap range
@@ -177,7 +179,9 @@ class AutoLevel:
             return func(filtered_data)
         match = self._PERCENTILE_REGEXP.match(self.mode)
         if match is not None:
-            return _percentile_auto_level(filtered_data, percentile=float(match["value"]))
+            return _percentile_auto_level(
+                filtered_data, percentile=float(match["value"])
+            )
         raise ValueError(f"Unsupported mode: {self.mode}")
 
 

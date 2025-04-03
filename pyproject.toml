@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dioptas"
-version = "0.7.0" # Will be overwritten by poetry-dynamic-versioning
+version = "0.7.1" # Will be overwritten by poetry-dynamic-versioning
 description = "GUI program for reduction and exploration of 2D X-ray diffraction data"
 authors = ["Clemens Prescher <clemens.prescher@gmail.com>"]
 license = "GPL-3.0"
@@ -34,7 +34,7 @@ files = ["dioptas/__init__.py"]
 
 [tool.poetry.dependencies]
 python = "^3.9, <3.14"
-EXtra-data = "^1.13.0"
+EXtra-data = { version = "^1.13.0", platform = "linux" }
 h5py = "^3.13.0"
 hdf5plugin = "^5.0.0"
 lmfit = "^1.3.3"

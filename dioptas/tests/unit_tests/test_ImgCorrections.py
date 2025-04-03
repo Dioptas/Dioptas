@@ -29,7 +29,7 @@ from ...model.util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInter
 from ...model.util.ImgCorrection import TransferFunctionCorrection, load_image
 from ..utility import unittest_data_path
 
-from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
+from pyFAI.integrator.azimuthal import AzimuthalIntegrator
 from ...model.util.ImgCorrection import CbnCorrection
 
 

@@ -486,8 +486,8 @@ class ProjectSaveLoadTest(QtTest):
 
     ####################################################################################################################
     def test_series_loading(self):
-        from dioptas.model.loader.KaraboLoader import karabo_installed
-        if not karabo_installed:
+        from dioptas.model.loader.KaraboLoader import extra_data_installed
+        if not extra_data_installed:
             return
         self.check_calibration = False
         self.save_and_load_configuration(self.prepare_series_file)
