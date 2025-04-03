@@ -19,6 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+from typing import Union
 
 from xypattern import Pattern
 from xypattern.auto_background import SmoothBrucknerBackground
@@ -143,7 +144,7 @@ class PatternModel(object):
         return self._background_pattern
 
     @background_pattern.setter
-    def background_pattern(self, pattern: Pattern | None):
+    def background_pattern(self, pattern: Union[Pattern, None]):
         if pattern is not None:
             self.pattern.background_pattern = pattern
         else:

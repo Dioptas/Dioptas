@@ -583,7 +583,7 @@ class BatchController(object):
                 self.min_val[scale] = val
         self.min_val["current"] = self.min_val[scale]
 
-    def change_scale_log(self, e: typing.Optional[QMouseEvent]):
+    def change_scale_log(self, e: typing.Optional[QMouseEvent] = None):
         """
         Change scale to log. Edit hard minimum of image value
         """
