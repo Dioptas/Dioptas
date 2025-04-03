@@ -382,7 +382,7 @@ class MapController(object):
         pos_widget.azi_lbl.setText(f"X: {img_azi:.3f}")
 
     def get_position_strings(
-        self, x: float, current_unit: Optional[str]
+        self, x: float, current_unit: Optional[str] = None
     ) -> tuple[str, str, str, str]:
         if current_unit is None:
             current_unit = self.model.integration_unit

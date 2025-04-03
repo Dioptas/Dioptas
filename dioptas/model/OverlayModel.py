@@ -40,8 +40,8 @@ class Overlay(Pattern):
 
     def __init__(
         self,
-        x: Optional[np.ndarray],
-        y: Optional[np.ndarray],
+        x: Optional[np.ndarray] = None,
+        y: Optional[np.ndarray] = None,
         name: str = "",
     ):
         super(Overlay, self).__init__(x, y, name)
