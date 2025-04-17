@@ -186,21 +186,8 @@ class CalibrationModel(object):
         self.cake_geometry = AzimuthalIntegrator(
             splineFile=self.distortion_spline_filename
         )
-
-        pyFAI_parameter = self.pattern_geometry.getPyFAI()
-        pyFAI_parameter["wavelength"] = self.pattern_geometry.wavelength
-
-        self.cake_geometry.setPyFAI(
-            dist=pyFAI_parameter["dist"],
-            poni1=pyFAI_parameter["poni1"],
-            poni2=pyFAI_parameter["poni2"],
-            rot1=pyFAI_parameter["rot1"],
-            rot2=pyFAI_parameter["rot2"],
-            rot3=pyFAI_parameter["rot3"],
-        )
-
+        self.cake_geometry.set_config(self.pattern_geometry.get_config())
         self.cake_geometry.detector = self.detector
-        self.cake_geometry.wavelength = pyFAI_parameter["wavelength"]
 
     def setup_peak_search_algorithm(self, algorithm, mask=None):
         """
@@ -806,6 +793,26 @@ class CalibrationModel(object):
         self.pattern_geometry.wavelength = pyFAI_parameter["wavelength"]
         self.create_cake_geometry()
         self.polarization_factor = pyFAI_parameter["polarization_factor"]
+        self.is_calibrated = True
+        self.set_supersampling()
+
+    def get_pyFAI_config(self) -> dict:
+        """
+        Returns the pyFAI configuration of the geometry refinement object. The pyFAI_config is a dictionary.
+        """
+        return self.pattern_geometry.get_config()
+
+    def set_pyFAI_config(self, pyFAI_config):
+        """
+        Updates the pyFAI configuration of the geometry refinement object. The pyFAI_config is the dicionary extracted
+        from a azimuthal integrator object using the get_config() method.
+        """
+        self.pattern_geometry.set_config(pyFAI_config)
+        self.detector.pixel1 = pyFAI_config["detector_config"]["pixel1"]
+        self.detector.pixel2 = pyFAI_config["detector_config"]["pixel2"]
+        self.orig_pixel1 = self.detector.pixel1
+        self.orig_pixel2 = self.detector.pixel2
+        self.create_cake_geometry()
         self.is_calibrated = True
         self.set_supersampling()
 
