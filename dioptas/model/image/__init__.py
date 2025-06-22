@@ -18,36 +18,33 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from .CalibrationModel import CalibrationModel
-from .image import (
-    ImageModel,
-    ImageDataManager,
-    ImageLoader,
-    FileNavigator,
-    ImageTransformer,
-    ImageCalculator,
-    AutoProcessor,
-)
-from .MaskModel import MaskModel
-from .PhaseModel import PhaseModel
-from .PatternModel import PatternModel
-from .OverlayModel import OverlayModel
-from .MapModel2 import MapModel2
-from .BatchModel import BatchModel
+"""
+Image processing package for Dioptas.
+
+This package contains all image-related functionality including:
+- Image data management
+- Image loading from various formats
+- Image transformations
+- Image corrections and processing
+- File navigation
+- Auto-processing
+"""
+
+from .ImageDataManager import ImageDataManager
+from .ImageLoader import ImageLoader
+from .FileNavigator import FileNavigator
+from .ImageTransformer import ImageTransformer
+from .ImageCorrector import ImageCalculator
+from .AutoProcessor import AutoProcessor
+from .ImageModel import ImageModel, BackgroundDimensionWrongException
 
 __all__ = [
-    "ImageModel",
-    "ImageDataManager",
-    "ImageLoader",
-    "FileNavigator",
-    "ImageTransformer",
-    "ImageCalculator",
-    "AutoProcessor",
-    "MaskModel",
-    "PhaseModel",
-    "PatternModel",
-    "OverlayModel",
-    "MapModel2",
-    "BatchModel",
-    "CalibrationModel",
-]
+    'ImageDataManager',
+    'ImageLoader', 
+    'FileNavigator',
+    'ImageTransformer',
+    'ImageCalculator',
+    'AutoProcessor',
+    'ImageModel',
+    'BackgroundDimensionWrongException',
+] 

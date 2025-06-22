@@ -27,7 +27,7 @@ from xypattern.auto_background import SmoothBrucknerBackground
 from ...widgets.UtilityWidgets import open_file_dialog, save_file_dialog
 from ...widgets.integration import IntegrationWidget
 from ...model.DioptasModel import DioptasModel
-from ...model.ImgModel import BackgroundDimensionWrongException
+from ...model.image import BackgroundDimensionWrongException
 
 
 class BackgroundController(object):

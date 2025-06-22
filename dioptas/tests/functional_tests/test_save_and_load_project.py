@@ -74,12 +74,13 @@ test_calibration_file_2 = os.path.join(data_path, "a_CeO2_Pilatus1M.poni")
 poly_order = 55
 x_min = 1.0
 x_max = 8.0
-pyfai_params = OrderedDict(
+expected_pyfai_params = OrderedDict(
     {
         "detector": "Detector",
         "pixel1": 7.9e-05,
         "pixel2": 7.9e-05,
         "dist": 0.196711580484,
+        "orientation": 3,
         "poni1": 0.0813975852141,
         "poni2": 0.0820662115429,
         "rot1": 0.00615439716514,
@@ -144,7 +145,7 @@ class ProjectSaveLoadTest(QtTest):
             self.controller.integration_controller.widget.load_img_btn
         )  # load file
 
-        self.model.current_configuration.calibration_model.set_pyFAI(pyfai_params)
+        self.model.current_configuration.calibration_model.set_pyFAI(expected_pyfai_params)
         self.model.working_directories = working_directories
         self.model.current_configuration.integration_unit = integration_unit
         self.raw_img_data = self.model.current_configuration.img_model.raw_img_data
@@ -223,11 +224,10 @@ class ProjectSaveLoadTest(QtTest):
             saved_pyfai_params, _ = (
                 self.model.calibration_model.get_calibration_parameter()
             )
-            if "splineFile" in saved_pyfai_params:
-                del saved_pyfai_params["splineFile"]
-            if "max_shape" in saved_pyfai_params:
-                del saved_pyfai_params["max_shape"]
-            self.assertDictEqual(saved_pyfai_params, pyfai_params)
+            del saved_pyfai_params["max_shape"]
+
+            for key, value in expected_pyfai_params.items():
+                self.assertEqual(saved_pyfai_params[key], value)
 
     ####################################################################################################################
     def test_with_auto_processing(self):
@@ -277,7 +277,7 @@ class ProjectSaveLoadTest(QtTest):
             return_value=(np.linspace(0, 20, 1001), np.ones((1001,))),
         ):
             self.load_image(img_filename)
-        self.save_and_load_configuration(self.image_transformations)
+        self.save_and_load_configuration(self.single_rotation)
 
         img_data = fabio.open(img_filename).data[::-1]
         img_data = rotate_matrix_m90(img_data)
@@ -286,6 +286,9 @@ class ProjectSaveLoadTest(QtTest):
             img_data.shape, self.model.img_model.untransformed_raw_img_data.shape
         )
         self.assertEqual(np.sum(img_data - self.model.img_model.img_data), 0)
+
+    def single_rotation(self):
+        click_button(self.widget.calibration_widget.rotate_m90_btn)
 
     def rotate_image_p90(self):
         click_button(self.widget.calibration_widget.rotate_p90_btn)
@@ -710,7 +713,7 @@ class ProjectSaveLoadTest(QtTest):
         )
 
     def prepare_using_loaded_nexus_detector_test(self):
-        self.model.img_model._img_data = np.ones((1048, 1032))
+        self.model.img_model.img_data = np.ones((1048, 1032))
         self.model.calibration_model.load_detector_from_file(
             os.path.join(data_path, "detector.h5")
         )

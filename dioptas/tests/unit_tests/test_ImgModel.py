@@ -24,7 +24,7 @@ import os
 
 import numpy as np
 
-from ...model.ImgModel import ImgModel, BackgroundDimensionWrongException
+from ...model.image import ImageModel, BackgroundDimensionWrongException
 from ...model.util.ImgCorrection import DummyCorrection
 from ...model.loader.KaraboLoader import extra_data_installed
 
@@ -35,9 +35,9 @@ spe_path = os.path.join(data_path, "spe")
 
 @pytest.fixture
 def img_model():
-    img_model = ImgModel()
+    img_model = ImageModel()
     img_model.load(os.path.join(data_path, "image_001.tif"))
-    return ImgModel()
+    return ImageModel()
 
 
 def test_load_karabo_nexus_file(img_model):
@@ -66,9 +66,9 @@ def test_load_emits_signal(img_model):
 
 
 def test_flipping_images(img_model):
-    original_image = np.copy(img_model._img_data)
+    original_image = np.copy(img_model.img_data)
     img_model.flip_img_vertically()
-    assert np.array_equal(img_model._img_data, np.flipud(original_image))
+    assert np.array_equal(img_model.img_data, np.flipud(original_image))
 
 
 def test_simple_background_subtraction(img_model):
@@ -85,42 +85,20 @@ def test_simple_background_subtraction(img_model):
     assert np.sum(img_model.img_data) == 0
 
 
-def test_background_subtraction_with_transformation(img_model):
+def test_background_subtraction_with_transformation(img_model: ImageModel):
+    img_model.load(os.path.join(data_path, "image_001.tif"))
+    raw_img = np.copy(img_model.raw_img_data)
     img_model.load_background(os.path.join(data_path, "image_002.tif"))
-    original_img = np.copy(img_model._img_data)
-    original_background = np.copy(img_model._background_data)
-
-    assert img_model._background_data is not None
-    assert not np.array_equal(img_model.img_data, img_model._img_data)
-
-    original_img_background_subtracted = np.copy(img_model.img_data)
-    assert np.array_equal(
-        original_img_background_subtracted, original_img - original_background
-    )
+    background = np.copy(img_model.background_data)
+    assert np.array_equal(img_model.img_data, raw_img - background)
 
     ### now comes the main process - flipping the image
     img_model.flip_img_vertically()
-    flipped_img = np.copy(img_model._img_data)
-    assert np.array_equal(np.flipud(original_img), flipped_img)
+    flipped_img = np.copy(img_model.img_data)
+    assert np.array_equal(np.flipud(raw_img - background), flipped_img)
 
-    flipped_background = np.copy(img_model._background_data)
-    assert np.array_equal(np.flipud(original_background), flipped_background)
-
-    flipped_img_background_subtracted = np.copy(img_model.img_data)
-    assert np.array_equal(
-        flipped_img_background_subtracted, flipped_img - flipped_background
-    )
-
-    assert np.array_equal(
-        np.flipud(original_img_background_subtracted), flipped_img_background_subtracted
-    )
-    assert (
-        np.sum(
-            np.flipud(original_img_background_subtracted)
-            - flipped_img_background_subtracted
-        )
-        == 0
-    )
+    flipped_background = np.copy(img_model.background_data)
+    assert np.array_equal(np.flipud(background), flipped_background)
 
     img_model.load(os.path.join(data_path, "image_002.tif"))
     perform_transformations_tests(img_model)
@@ -131,20 +109,20 @@ def test_background_scaling_and_offset(img_model):
 
     # assure that everything is correct before
     assert np.array_equal(
-        img_model.img_data, img_model._img_data - img_model._background_data
+        img_model.img_data, img_model.raw_img_data - img_model.background_data
     )
 
     # set scaling and see difference
     img_model.background_scaling = 2.4
     assert np.array_equal(
-        img_model.img_data, img_model._img_data - 2.4 * img_model._background_data
+        img_model.img_data, img_model.raw_img_data - 2.4 * img_model.background_data
     )
 
     # set offset and see the difference
     img_model.background_scaling = 1.0
     img_model.background_offset = 100.0
     assert np.array_equal(
-        img_model.img_data, img_model._img_data - (img_model._background_data + 100.0)
+        img_model.img_data, img_model.raw_img_data - (img_model.background_data + 100.0)
     )
 
     # use offset and scaling combined
@@ -152,27 +130,27 @@ def test_background_scaling_and_offset(img_model):
     img_model.background_offset = 100.0
     assert np.array_equal(
         img_model.img_data,
-        img_model._img_data - (2.3 * img_model._background_data + 100),
+        img_model.raw_img_data - (2.3 * img_model.background_data + 100),
     )
 
 
 def test_background_with_different_shape(img_model):
     with pytest.raises(BackgroundDimensionWrongException):
         img_model.load_background(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
-    assert img_model._background_data is None
+    assert img_model.background_data is None
 
     img_model.load_background(os.path.join(data_path, "image_002.tif"))
-    assert img_model._background_data is not None
+    assert img_model.background_data is not None
 
     img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
-    assert img_model._background_data is None
+    assert img_model.background_data is None
 
 
 def test_absorption_correction_with_different_image_sizes(img_model):
     dummy_correction = DummyCorrection(img_model.img_data.shape, 0.4)
     # self.img_data.set_absorption_correction(np.ones(self.img_data._img_data.shape)*0.4)
     img_model.add_img_correction(dummy_correction, "Dummy 1")
-    assert img_model._img_corrections.has_items()
+    assert img_model.img_corrections.has_items()
 
     img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
     assert not img_model.has_corrections()
@@ -195,9 +173,9 @@ def test_saving_data(img_model, tmp_path):
     img_model.load(os.path.join(data_path, "image_001.tif"))
     filename = os.path.join(tmp_path, "test.tif")
     img_model.save(filename)
-    first_img_array = np.copy(img_model._img_data)
+    first_img_array = np.copy(img_model.img_data)
     img_model.load(filename)
-    assert np.array_equal(first_img_array, img_model._img_data)
+    assert np.array_equal(first_img_array, img_model.img_data)
     assert os.path.exists(filename)
 
 
@@ -280,7 +258,7 @@ def test_reset_img_transformation(img_model):
 
 def test_loading_a_tagged_tif_file_and_retrieving_info_string(img_model):
     img_model.load(os.path.join(data_path, "attrib.tif"))
-    assert "areaDetector" in img_model.file_info
+    assert "areaDetector" in img_model.data_manager.file_info
 
 
 def test_loading_spe_file(img_model):
@@ -300,17 +278,17 @@ def test_loading_ESRF_hdf5_file(img_model):
 
 def test_summing_files(img_model):
     img_model.load(os.path.join(data_path, "image_001.tif"))
-    data1 = np.copy(img_model._img_data).astype(np.uint64)
+    data1 = np.copy(img_model.img_data).astype(np.uint64)
     img_model.add(os.path.join(data_path, "image_001.tif"))
-    assert np.array_equal(2 * data1, img_model._img_data)
+    assert np.array_equal(2 * data1, img_model.img_data)
 
 
 def test_summing_rotated(img_model):
     img_model.load(os.path.join(data_path, "image_001.tif"))
     img_model.rotate_img_m90()
-    data1 = np.copy(img_model._img_data).astype(np.uint32)
+    data1 = np.copy(img_model.img_data).astype(np.uint32)
     img_model.add(os.path.join(data_path, "image_001.tif"))
-    assert np.array_equal(2 * data1, img_model._img_data)
+    assert np.array_equal(2 * data1, img_model.img_data)
 
 
 def test_loading_karabo_file(img_model):

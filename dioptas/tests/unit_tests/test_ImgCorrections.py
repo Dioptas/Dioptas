@@ -32,6 +32,8 @@ from ..utility import unittest_data_path
 from pyFAI.integrator.azimuthal import AzimuthalIntegrator
 from ...model.util.ImgCorrection import CbnCorrection
 
+from ...model.image import ImageModel
+
 
 class DummyCorrection(ImgCorrectionInterface):
     def __init__(self, shape, number=1):
@@ -154,7 +156,6 @@ class CbnCorrectionTest(unittest.TestCase):
 
 
 from ...model.CalibrationModel import CalibrationModel
-from ...model.ImgModel import ImgModel
 from ...model.MaskModel import MaskModel
 from lmfit import Parameters, minimize, report_fit
 from scipy.ndimage import gaussian_filter1d
@@ -166,7 +167,7 @@ import matplotlib.pyplot as plt
 class CbnAbsorptionCorrectionOptimizationTest(unittest.TestCase):
     def setUp(self):
         # creating Data objects
-        self.img_data = ImgModel()
+        self.img_data = ImageModel()
         self.img_data.load("Data/CbnCorrectionOptimization/Mg2SiO4_091.tif")
         self.calibration_data = CalibrationModel(self.img_data)
         self.calibration_data.load("Data/CbnCorrectionOptimization/LaB6_40keV side.poni")

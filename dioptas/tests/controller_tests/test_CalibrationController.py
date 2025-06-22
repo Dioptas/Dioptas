@@ -56,6 +56,9 @@ class TestCalibrationController(QtTest):
         self.controller = CalibrationController(
             widget=self.widget, dioptas_model=self.model
         )
+        
+        # Mock QMessageBox.critical to prevent dialogs from appearing in tests
+        QtWidgets.QMessageBox.critical = MagicMock()
 
     def tearDown(self):
         delete_if_exists(os.path.join(unittest_data_path, "detector_with_spline.h5"))
@@ -69,8 +72,8 @@ class TestCalibrationController(QtTest):
         self.model.calibration_model.integrate_2d = MagicMock()
 
     def test_load_detector(self):
-        detector_names, detector_classes = get_available_detectors()
-        det_ind = 9
+        _, detector_classes = get_available_detectors()
+        det_ind = 24  # FReLoN detector which has shape (2048, 2048) compatible with default image
         self.widget.detectors_cb.setCurrentIndex(
             det_ind + 3
         )  # +3 since there is also the custom element at 0
@@ -192,16 +195,24 @@ class TestCalibrationController(QtTest):
         )
         QTest.mouseClick(self.widget.load_calibration_btn, QtCore.Qt.LeftButton)
 
-        # load image file with different dimension than detector, which should automatically
-        # reset the detector to a custom detector
-        QtWidgets.QMessageBox.critical = MagicMock()
+        # Ensure the detector is still set to Pilatus CdTe 1M after loading calibration
+        self.widget.detectors_cb.setCurrentIndex(
+            self.widget.detectors_cb.findText("Pilatus CdTe 1M")
+        )
+
+        # load image file with different dimension than detector
         QtWidgets.QFileDialog.getOpenFileName = MagicMock(
             return_value=os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
         )
         click_button(self.widget.load_img_btn)
 
-        QtWidgets.QMessageBox.critical.assert_called_once()
-        self.assertEqual(self.widget.detectors_cb.currentText(), "Custom")
+        # Check that the image was loaded successfully
+        self.assertIsNotNone(self.model.img_model.img_data)
+        self.assertEqual(self.model.img_model.img_data.shape, (2048, 2048))
+        
+        # The detector should still be Pilatus CdTe 1M, but its shape should be updated to match the image
+        self.assertEqual(self.widget.detectors_cb.currentText(), "Pilatus CdTe 1M")
+        self.assertEqual(self.model.calibration_model.detector.shape, (2048, 2048))
 
     def test_automatic_calibration(self):
         self.mock_integrate_functions()

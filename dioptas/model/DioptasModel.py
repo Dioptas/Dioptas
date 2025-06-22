@@ -30,7 +30,7 @@ from .util import Signal
 from .util import jcpds
 from .Configuration import Configuration
 from . import (
-    ImgModel,
+    ImageModel,
     CalibrationModel,
     MaskModel,
     PhaseModel,
@@ -99,7 +99,7 @@ class DioptasModel(object):
                 os.path.join(dioptas_config_folder, "transfer.poni")
             )
 
-        self.configurations[-1].img_model._img_data = (
+        self.configurations[-1].img_model.img_data = (
             self.current_configuration.img_model.img_data
         )
 
@@ -293,7 +293,7 @@ class DioptasModel(object):
         return self.configurations[self.configuration_ind]
 
     @property
-    def img_model(self) -> ImgModel:
+    def img_model(self) -> ImageModel:
         return self.configurations[self.configuration_ind].img_model
 
     @property

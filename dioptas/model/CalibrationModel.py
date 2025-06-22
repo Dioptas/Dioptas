@@ -37,7 +37,7 @@ from pyFAI.massif import Massif
 from skimage.measure import find_contours
 
 from .. import calibrants_path
-from .ImgModel import ImgModel
+from .image import ImageModel
 from .util import Signal
 from .util.HelperModule import (
     get_base_name,

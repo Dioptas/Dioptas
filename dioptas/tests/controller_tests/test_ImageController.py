@@ -50,7 +50,7 @@ def test_automatic_file_processing(
 
     click_checkbox(integration_widget.autoprocess_cb)
 
-    assert not dioptas_model.img_model._directory_watcher.signalsBlocked()
+    assert not dioptas_model.img_model.auto_processor._directory_watcher.signalsBlocked()
     assert integration_widget.autoprocess_cb.isChecked()
     assert dioptas_model.img_model.autoprocess
 
@@ -59,7 +59,7 @@ def test_automatic_file_processing(
         os.path.join(unittest_data_path, "image_003.tif"),
     )
 
-    dioptas_model.img_model._directory_watcher.file_added.emit(
+    dioptas_model.img_model.auto_processor._directory_watcher.file_added.emit(
         os.path.join(unittest_data_path, "image_003.tif")
     )
     assert "image_003.tif" == str(integration_widget.img_filename_txt.text())
@@ -394,10 +394,10 @@ def test_sources_are_updated_in_sources_combobox(
     dioptas_model.img_model.load(filename)
 
     assert file_widget.sources_cb.count() > 0
-    assert file_widget.sources_cb.count() == len(dioptas_model.img_model.sources)
+    assert file_widget.sources_cb.count() == len(dioptas_model.img_model.data_manager.sources)
 
     file_widget.sources_cb.setCurrentIndex(2)
-    assert file_widget.sources_cb.currentText() == dioptas_model.img_model.sources[2]
+    assert file_widget.sources_cb.currentText() == dioptas_model.img_model.data_manager.sources[2]
 
 
 def load_pilatus1M_image_and_calibration(dioptas_model: DioptasModel):

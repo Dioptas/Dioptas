@@ -58,10 +58,10 @@ class TestEpicsController(QtTest):
         self.assertEqual(self.move_widget.img_focus_lbl.text(), '')
         self.assertEqual(self.move_widget.img_omega_lbl.text(), '')
 
-        self.model.img_model.motors_info['Horizontal'] = 0.1
-        self.model.img_model.motors_info['Vertical'] = 0.2
-        self.model.img_model.motors_info['Focus'] = 0.3
-        self.model.img_model.motors_info['Omega'] = 0.4
+        self.model.img_model.data_manager.motors_info['Horizontal'] = 0.1
+        self.model.img_model.data_manager.motors_info['Vertical'] = 0.2
+        self.model.img_model.data_manager.motors_info['Focus'] = 0.3
+        self.model.img_model.data_manager.motors_info['Omega'] = 0.4
 
         self.epics_controller.update_image_position()
         self.assertEqual(str(self.move_widget.img_hor_lbl.text()), '0.100')
@@ -72,10 +72,10 @@ class TestEpicsController(QtTest):
     @patch('epics.caput')
     @patch('epics.caget', return_value=0.0)
     def test_move_stage(self, caget, caput):
-        self.model.img_model.motors_info['Horizontal'] = 0.1
-        self.model.img_model.motors_info['Vertical'] = 0.02
-        self.model.img_model.motors_info['Focus'] = 0.05
-        self.model.img_model.motors_info['Omega'] = 90
+        self.model.img_model.data_manager.motors_info['Horizontal'] = 0.1
+        self.model.img_model.data_manager.motors_info['Vertical'] = 0.02
+        self.model.img_model.data_manager.motors_info['Focus'] = 0.05
+        self.model.img_model.data_manager.motors_info['Omega'] = 90
 
         self.epics_controller.update_image_position()
 

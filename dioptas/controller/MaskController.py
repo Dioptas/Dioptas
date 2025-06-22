@@ -105,7 +105,7 @@ class MaskController(object):
             self.model.configuration_selected.disconnect(self.update_gui)
 
     def update_mask_dimension(self):
-        self.model.mask_model.set_dimension(self.model.img_model._img_data.shape)
+        self.model.mask_model.set_dimension(self.model.img_model.img_data.shape)
 
     def uncheck_all_btn(self, except_btn=None):
         buttons = [self.widget.circle_btn, self.widget.rectangle_btn, self.widget.polygon_btn,

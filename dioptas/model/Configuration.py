@@ -31,7 +31,7 @@ from .util import Signal
 from .util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
 
 from .util.calc import convert_units
-from . import ImgModel, CalibrationModel, MaskModel, PatternModel, BatchModel
+from . import ImageModel, CalibrationModel, MaskModel, PatternModel, BatchModel
 from .MapModel2 import MapModel2
 from .CalibrationModel import DetectorModes
 
@@ -46,7 +46,7 @@ class Configuration(object):
     def __init__(self, working_directories=None):
         super(Configuration, self).__init__()
 
-        self.img_model = ImgModel()
+        self.img_model = ImageModel()
         self.mask_model = MaskModel()
         self.calibration_model = CalibrationModel(self.img_model)
         self.pattern_model = PatternModel()
@@ -259,7 +259,7 @@ class Configuration(object):
         """
         Updates the shape of the mask in the MaskModel to the shape of the image in the ImageModel.
         """
-        self.mask_model.set_dimension(self.img_model._img_data.shape)
+        self.mask_model.set_dimension(self.img_model.img_data.shape)
 
     @property
     def integration_rad_points(self) -> int:
@@ -385,9 +385,9 @@ class Configuration(object):
         :rtype: Configuration
         """
         new_configuration = Configuration(self.working_directories)
-        new_configuration.img_model._img_data = self.img_model._img_data
-        new_configuration.img_model.img_transformations = deepcopy(
-            self.img_model.img_transformations
+        new_configuration.img_model.data_manager.img_data = self.img_model.data_manager.img_data
+        new_configuration.img_model.transformer.img_transformations = deepcopy(
+            self.img_model.transformer.img_transformations
         )
 
         new_configuration.calibration_model.set_pyFAI(
@@ -458,28 +458,28 @@ class Configuration(object):
 
         # save image model
         image_group = f.create_group("image_model")
-        image_group.attrs["auto_process"] = self.img_model.autoprocess
-        image_group.attrs["factor"] = self.img_model.factor
-        image_group.attrs["has_background"] = self.img_model.has_background()
-        image_group.attrs["background_filename"] = self.img_model.background_filename
-        image_group.attrs["background_offset"] = self.img_model.background_offset
-        image_group.attrs["background_scaling"] = self.img_model.background_scaling
-        if self.img_model.has_background():
-            background_data = self.img_model.untransformed_background_data
+        image_group.attrs["auto_process"] = self.img_model.auto_processor.autoprocess
+        image_group.attrs["factor"] = self.img_model.data_manager.factor
+        image_group.attrs["has_background"] = self.img_model.data_manager.has_background()
+        image_group.attrs["background_filename"] = self.img_model.data_manager.background_filename
+        image_group.attrs["background_offset"] = self.img_model.data_manager.background_offset
+        image_group.attrs["background_scaling"] = self.img_model.data_manager.background_scaling
+        if self.img_model.data_manager.has_background():
+            background_data = self.img_model.data_manager.background_data
             image_group.create_dataset(
                 "background_data", background_data.shape, "f", background_data
             )
 
-        image_group.attrs["series_max"] = self.img_model.series_max
-        image_group.attrs["series_pos"] = self.img_model.series_pos
+        image_group.attrs["series_max"] = self.img_model.data_manager.series_max
+        image_group.attrs["series_pos"] = self.img_model.data_manager.series_pos
 
         # image corrections
         corrections_group = image_group.create_group("corrections")
-        corrections_group.attrs["has_corrections"] = self.img_model.has_corrections()
+        corrections_group.attrs["has_corrections"] = self.img_model.corrector.has_corrections()
         for (
             correction,
             correction_object,
-        ) in self.img_model.img_corrections.corrections.items():
+        ) in self.img_model.corrector.img_corrections.corrections.items():
             if correction in ["cbn", "oiadac"]:
                 correction_data = correction_object.get_data()
                 imcd = corrections_group.create_dataset(
@@ -502,8 +502,8 @@ class Configuration(object):
                 response_ds.attrs["filename"] = params["response_filename"]
 
         # the actual image
-        image_group.attrs["filename"] = self.img_model.filename
-        current_raw_image = self.img_model.untransformed_raw_img_data
+        image_group.attrs["filename"] = self.img_model.data_manager.filename
+        current_raw_image = self.img_model.data_manager.img_data
 
         raw_image_data = image_group.create_dataset(
             "raw_image_data", current_raw_image.shape, dtype="f"
@@ -513,7 +513,7 @@ class Configuration(object):
         # image transformations
         transformations_group = image_group.create_group("image_transformations")
         for ind, transformation in enumerate(
-            self.img_model.get_transformations_string_list()
+            self.img_model.transformer.get_transformations_string_list()
         ):
             transformations_group.attrs[str(ind)] = transformation
 
@@ -710,39 +710,49 @@ class Configuration(object):
             pass
 
         # load img_model
-        self.img_model._img_data = np.copy(
+        self.img_model.data_manager.img_data = np.copy(
             f.get("image_model").get("raw_image_data")[...]
         )
         filename = f.get("image_model").attrs["filename"]
-        self.img_model.filename = filename
+        self.img_model.data_manager.filename = filename
+        self.img_model.navigator.update_filename(filename)
 
         try:
-            self.img_model.file_name_iterator.update_filename(filename)
-            self.img_model._directory_watcher.path = os.path.dirname(filename)
+            self.img_model.auto_processor.set_directory_path(os.path.dirname(filename))
         except EnvironmentError:
             pass
 
-        self.img_model.autoprocess = f.get("image_model").attrs["auto_process"]
-        self.img_model.autoprocess_changed.emit()
-        self.img_model.factor = f.get("image_model").attrs["factor"]
+        self.img_model.auto_processor.autoprocess = f.get("image_model").attrs["auto_process"]
+        self.img_model.auto_processor.autoprocess_changed.emit()
+        self.img_model.data_manager.factor = f.get("image_model").attrs["factor"]
 
         try:
-            self.img_model.series_max = f.get("image_model").attrs["series_max"]
-            self.img_model.series_pos = f.get("image_model").attrs["series_pos"]
+            self.img_model.data_manager.series_max = f.get("image_model").attrs["series_max"]
+            self.img_model.data_manager.series_pos = f.get("image_model").attrs["series_pos"]
+            
+            # Reload the original file to restore series functionality
+            # This is necessary because series_get_image function references cannot be serialized
+            if self.img_model.data_manager.series_max > 1 and os.path.exists(filename):
+                try:
+                    # Reload the file to restore series functionality
+                    self.img_model.load(filename, pos=self.img_model.data_manager.series_pos - 1)
+                except Exception:
+                    # If reloading fails, keep the loaded image data but series functionality will be limited
+                    pass
         except KeyError:
             pass
 
         if f.get("image_model").attrs["has_background"]:
-            self.img_model.background_data = np.copy(
+            self.img_model.data_manager.background_data = np.copy(
                 f.get("image_model").get("background_data")[...]
             )
-            self.img_model.background_filename = f.get("image_model").attrs[
+            self.img_model.data_manager.background_filename = f.get("image_model").attrs[
                 "background_filename"
             ]
-            self.img_model.background_scaling = f.get("image_model").attrs[
+            self.img_model.data_manager.background_scaling = f.get("image_model").attrs[
                 "background_scaling"
             ]
-            self.img_model.background_offset = f.get("image_model").attrs[
+            self.img_model.data_manager.background_offset = f.get("image_model").attrs[
                 "background_offset"
             ]
 
@@ -752,7 +762,7 @@ class Configuration(object):
         for key, transformation in transformation_group.attrs.items():
             transformation_list.append(transformation)
         self.calibration_model.load_transformations_string_list(transformation_list)
-        self.img_model.load_transformations_string_list(transformation_list)
+        self.img_model.transformer.load_transformations_string_list(transformation_list)
 
         # load roi data
         if f.get("image_model").attrs["has_roi"]:
@@ -843,7 +853,7 @@ class Configuration(object):
 
                     cbn_correction.set_params(params)
                     cbn_correction.update()
-                    self.img_model.add_img_correction(cbn_correction, name)
+                    self.img_model.corrector.add_img_correction(cbn_correction, name)
                 elif name == "oiadac":
                     tth_array = (
                         180.0 / np.pi * self.calibration_model.pattern_geometry.ttha
@@ -857,7 +867,7 @@ class Configuration(object):
 
                     oiadac.set_params(params)
                     oiadac.update()
-                    self.img_model.add_img_correction(oiadac, name)
+                    self.img_model.corrector.add_img_correction(oiadac, name)
                 elif name == "transfer":
                     params = {
                         "original_data": correction_group.get("original_data")[...],
@@ -870,8 +880,8 @@ class Configuration(object):
                         ).attrs["filename"],
                     }
 
-                    self.img_model.transfer_correction.set_params(params)
-                    self.img_model.enable_transfer_function()
+                    self.img_model.corrector.transfer_correction.set_params(params)
+                    self.img_model.corrector.enable_transfer_function()
 
         # autosave parameters
         self.auto_save_integrated_pattern = f.get("general_information").attrs[

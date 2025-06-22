@@ -246,7 +246,9 @@ def test_select_file_in_file_list_integrates_1d_only_once(map_controller):
     mock_open_filenames(map_img_file_paths[:2])
     mock_integrate_1d(map_controller)
     map_controller.load_btn_clicked()
+
     load_call_count = map_controller.model.calibration_model.integrate_1d.call_count
+
     map_controller.widget.control_widget.file_list.setCurrentRow(1)
     assert (
         map_controller.model.calibration_model.integrate_1d.call_count

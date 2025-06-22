@@ -45,7 +45,7 @@ def load_pilatus_1M(img_model):
 
 
 def load_small_image(img_model, shape=(10, 10)):
-    img_model._img_data = np.ones(shape)
+    img_model.img_data = np.ones(shape)
 
 
 def load_pilatus_1M_with_calibration(calibration_model):
@@ -308,7 +308,7 @@ def test_change_detector_after_loading_image_with_different_shapes_integrate_1d(
 def test_change_detector_after_loading_image_with_different_shapes_integrate_2d(
     calibration_model, img_model
 ):
-    img_model._img_data = np.ones((10, 13))
+    img_model.img_data = np.ones((10, 13))
     calibration_model.load(os.path.join(data_path, "CeO2_Pilatus1M.poni"))
     calibration_model.integrate_1d()
 
@@ -350,11 +350,12 @@ def test_find_peak(calibration_model, img_model):
     ]
 
     for data in points_and_pick_points:
-        img_model._img_data = np.zeros((300, 300))
+        new_img_data = np.zeros((300, 300))
 
         point = data[0]
         pick_point = data[1]
-        img_model._img_data[point[0], point[1]] = 100
+        new_img_data[point[0], point[1]] = 100
+        img_model.img_data = new_img_data
 
         peak_point = calibration_model.find_peak(pick_point[0], pick_point[1], 10, 0)
         assert peak_point[0][0] == point[0]

@@ -39,18 +39,16 @@ from dioptas.model.DioptasModel import DioptasModel
 from dioptas.widgets.integration import IntegrationWidget
 from dioptas.widgets.CalibrationWidget import CalibrationWidget
 
+import sys
+from PyQt6.QtWidgets import QApplication
 
-@pytest.fixture(scope="session")
+
+@pytest.fixture(scope="session", autouse=True)
 def qapp():
-    """Fixture ensuring QApplication is instanciated"""
-    app = QtWidgets.QApplication.instance()
+    app = QApplication.instance()
     if app is None:
-        app = QtWidgets.QApplication([])
-    try:
-        yield app
-    finally:
-        if app is not None:
-            app.closeAllWindows()
+        app = QApplication(sys.argv)
+    return app
 
 
 @pytest.fixture

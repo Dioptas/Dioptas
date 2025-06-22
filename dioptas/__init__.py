@@ -56,7 +56,7 @@ def main():
         css_file=qss_path,
         extra={"density_scale": -2},
     )
-    sys.excepthook = excepthook
+    # sys.excepthook = excepthook
     print("Dioptas {}".format(__version__))
 
     if len(sys.argv) == 1:  # normal start
