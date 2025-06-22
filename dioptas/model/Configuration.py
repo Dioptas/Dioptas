@@ -31,9 +31,12 @@ from .util import Signal
 from .util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
 
 from .util.calc import convert_units
-from . import ImageModel, CalibrationModel, MaskModel, PatternModel, BatchModel
+from . import CalibrationModel, MaskModel, PatternModel, BatchModel
 from .MapModel2 import MapModel2
 from .CalibrationModel import DetectorModes
+
+# Use the new refactored ImageModel components
+from .image import ImageModelAdapter
 
 
 class Configuration(object):
@@ -41,12 +44,16 @@ class Configuration(object):
     The configuration class contains a working combination of an ImgModel, PatternModel, MaskModel and CalibrationModel.
     It does handles the core data manipulation of Dioptas.
     The management of multiple Configurations is done by the DioptasModel.
+    
+    Note: This Configuration now uses the refactored ImageModelAdapter internally, which provides
+    the same interface as the old ImageModel but with improved state management and testability.
     """
 
     def __init__(self, working_directories=None):
         super(Configuration, self).__init__()
 
-        self.img_model = ImageModel()
+        # Use the new refactored ImageModel via adapter for backward compatibility
+        self.img_model = ImageModelAdapter()
         self.mask_model = MaskModel()
         self.calibration_model = CalibrationModel(self.img_model)
         self.pattern_model = PatternModel()
@@ -256,10 +263,10 @@ class Configuration(object):
                 self.save_pattern(filename, subtract_background=True)
 
     def update_mask_dimension(self):
-        """
-        Updates the shape of the mask in the MaskModel to the shape of the image in the ImageModel.
-        """
-        self.mask_model.set_dimension(self.img_model.img_data.shape)
+        if self.img_model.img_data is not None:
+            self.mask_model.set_dimension(self.img_model.img_data.shape)
+        else:
+            self.mask_model.set_dimension(None)
 
     @property
     def integration_rad_points(self) -> int:
@@ -385,15 +392,39 @@ class Configuration(object):
         :rtype: Configuration
         """
         new_configuration = Configuration(self.working_directories)
-        new_configuration.img_model.data_manager.img_data = self.img_model.data_manager.img_data
-        new_configuration.img_model.transformer.img_transformations = deepcopy(
-            self.img_model.transformer.img_transformations
-        )
+        # Use the state-based API for the image model
+        if hasattr(self.img_model, 'state') and hasattr(new_configuration.img_model, 'set_state'):
+            new_configuration.img_model.set_state(self.img_model.state)
+        else:
+            # fallback for legacy models (should not be needed)
+            new_configuration.img_model.data_manager.img_data = self.img_model.data_manager.img_data
+            new_configuration.img_model.transformer.img_transformations = deepcopy(
+                self.img_model.transformer.img_transformations
+            )
 
         new_configuration.calibration_model.set_pyFAI(
             self.calibration_model.get_calibration_parameter()[0]
         )
-        new_configuration.integrate_image_1d()
+
+        # Copy all relevant configuration properties
+        new_configuration.use_mask = self.use_mask
+        new_configuration.transparent_mask = self.transparent_mask
+        new_configuration._integration_rad_points = self._integration_rad_points
+        new_configuration._integration_unit = self._integration_unit
+        new_configuration._oned_azimuth_range = self._oned_azimuth_range
+        new_configuration.trim_trailing_zeros = self.trim_trailing_zeros
+        new_configuration._cake_azimuth_points = self._cake_azimuth_points
+        new_configuration._cake_azimuth_range = self._cake_azimuth_range
+        new_configuration._auto_integrate_pattern = self._auto_integrate_pattern
+        new_configuration._auto_integrate_cake = self._auto_integrate_cake
+        new_configuration.auto_save_integrated_pattern = self.auto_save_integrated_pattern
+        new_configuration.integrated_patterns_file_formats = deepcopy(self.integrated_patterns_file_formats)
+        if self.roi is not None:
+            new_configuration.roi = deepcopy(self.roi)
+
+        # Only integrate if image data is present
+        if new_configuration.img_model.img_data is not None:
+            new_configuration.integrate_image_1d()
 
         return new_configuration
 
@@ -630,6 +661,10 @@ class Configuration(object):
         """
 
         f = hdf5_group
+
+        # Block signals during loading to prevent shape mismatch dialogs
+        self.img_model.img_changed.block()
+        self.calibration_model.detector_reset.block()
 
         # disable all automatic functions
         self.auto_integrate_pattern = False
@@ -897,3 +932,7 @@ class Configuration(object):
             self.integrate_image_1d()
         else:
             self.pattern_model.pattern.recalculate_pattern()
+
+        # Unblock signals after loading is complete
+        self.img_model.img_changed.unblock()
+        self.calibration_model.detector_reset.unblock()

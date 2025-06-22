@@ -21,7 +21,7 @@
 import logging
 import os
 
-from ..util.HelperModule import FileNameIterator
+from .HelperModule import FileNameIterator
 
 logger = logging.getLogger(__name__)
 

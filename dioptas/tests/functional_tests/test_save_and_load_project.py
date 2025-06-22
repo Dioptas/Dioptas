@@ -659,6 +659,8 @@ class ProjectSaveLoadTest(QtTest):
         self.assertTrue(self.model.img_model.series_max > 1)
 
     def prepare_series_file(self):
+        # mock the critical Dialog
+        QtWidgets.QMessageBox.critical = MagicMock()
         self.model.img_model.load(os.path.join(data_path, "karabo_epix.h5"))
         self.assertTrue(self.model.img_model.series_max > 1)
 

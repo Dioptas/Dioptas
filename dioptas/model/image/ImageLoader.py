@@ -25,11 +25,11 @@ from PIL import Image
 import h5py
 import fabio
 
-from ..loader.spe import SpeFile
-from ..loader.LambdaLoader import LambdaImage
-from ..loader.KaraboLoader import KaraboFile
-from ..loader.hdf5Loader import Hdf5Image
-from ..loader.FabioLoader import FabioLoader
+from .loader.spe import SpeFile
+from .loader.LambdaLoader import LambdaImage
+from .loader.KaraboLoader import KaraboFile
+from .loader.hdf5Loader import Hdf5Image
+from .loader.FabioLoader import FabioLoader
 
 logger = logging.getLogger(__name__)
 

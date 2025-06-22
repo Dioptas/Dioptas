@@ -393,7 +393,8 @@ class CalibrationController(object):
         """
         Plots the current image loaded in img_data and autoscales the intensity.
         """
-        self.widget.img_widget.plot_image(self.model.img_data, autoscale)
+        if self.model.img_model.img_data is not None:
+            self.widget.img_widget.plot_image(self.model.img_model.img_data, autoscale)
         self.widget.set_img_filename(self.model.img_model.filename)
 
     def search_peaks(self, x, y):

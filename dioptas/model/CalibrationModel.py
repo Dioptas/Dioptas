@@ -310,8 +310,13 @@ class CalibrationModel(object):
         self.set_supersampling()
 
     def update_detector_shape(self):
-        self.detector.shape = self.img_model.img_data.shape
-        self.detector.max_shape = self.img_model.img_data.shape
+        if self.img_model.img_data is not None:
+            self.detector.shape = self.img_model.img_data.shape
+            self.detector.max_shape = self.img_model.img_data.shape
+        else:
+            # No image loaded yet, reset detector shape
+            self.detector.shape = None
+            self.detector.max_shape = None
 
     def set_fixed_values(self, fixed_values):
         """
@@ -372,11 +377,15 @@ class CalibrationModel(object):
         self.pattern_geometry.reset()
 
     def _check_detector_and_image_shape(self):
-        if self.detector.shape is not None:
-            if self.detector.shape != self.img_model.img_data.shape:
+        if self.img_model.img_data is not None:
+            if self.detector.shape is not None:
+                if self.detector.shape != self.img_model.img_data.shape:
+                    self.reset_detector()
+                    self.detector_reset.emit()
+            else:
                 self.reset_detector()
-                self.detector_reset.emit()
         else:
+            # No image data available, reset detector
             self.reset_detector()
 
     def _prepare_integration_mask(self, mask):

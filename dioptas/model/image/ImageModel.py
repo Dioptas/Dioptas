@@ -27,10 +27,10 @@ from PIL import Image
 from ..util import Signal
 from .ImageDataManager import ImageDataManager
 from .ImageLoader import ImageLoader
-from .FileNavigator import FileNavigator
+from ..util.FileNavigator import FileNavigator
 from .ImageTransformer import ImageTransformer
-from .ImageCorrector import ImageCalculator
-from .AutoProcessor import AutoProcessor
+from .ImageCalculator import ImageCalculator
+from ..util.AutoProcessor import AutoProcessor
 
 logger = logging.getLogger(__name__)
 

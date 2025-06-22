@@ -22,23 +22,75 @@
 Image processing package for Dioptas.
 
 This package contains all image-related functionality including:
-- Image data management
-- Image loading from various formats
-- Image transformations
-- Image corrections and processing
-- File navigation
-- Auto-processing
+- Image data management and loading
+- Image transformations and corrections
+- File navigation and auto-processing
+- State-based architecture with improved testability
+
+Package Structure:
+├── Core Components (New Architecture)
+│   ├── ImageState: Immutable state container
+│   ├── ImageCommands: Type-safe command operations
+│   ├── ImageModelRefactored: New model with explicit state access
+│   └── ImageModelAdapter: Backward compatibility adapter
+├── Legacy Components (Deprecated)
+│   ├── ImageModel: Original mixed state/logic model
+│   ├── ImageDataManager: Legacy data management
+│   ├── ImageLoader: Legacy image loading
+│   ├── ImageTransformer: Legacy transformations
+│   ├── ImageCorrector: Legacy corrections
+│   ├── FileNavigator: Legacy file navigation
+│   └── AutoProcessor: Legacy auto-processing
+└── Tests
+    ├── test_refactored.py: Core component tests
+    ├── test_adapter.py: Adapter compatibility tests
+    └── test_transfer_function.py: Transfer function tests
 """
 
+# =============================================================================
+# Core Components (New Architecture)
+# =============================================================================
+
+from .ImageState import ImageState
+from .ImageCommands import (
+    ImageCommandProcessor, 
+    RotationDirection, 
+    FlipDirection,
+    BackgroundDimensionWrongException as NewBackgroundDimensionWrongException
+)
+from .ImageModelRefactored import ImageModelRefactored
+from .ImageModelAdapter import ImageModelAdapter
+
+# =============================================================================
+# Legacy Components (Deprecated)
+# =============================================================================
+
+# Legacy data management and processing
 from .ImageDataManager import ImageDataManager
 from .ImageLoader import ImageLoader
-from .FileNavigator import FileNavigator
+from ..util.FileNavigator import FileNavigator
 from .ImageTransformer import ImageTransformer
-from .ImageCorrector import ImageCalculator
-from .AutoProcessor import AutoProcessor
+from .ImageCalculator import ImageCalculator
+from ..util.AutoProcessor import AutoProcessor
+
+# Legacy model (deprecated - use ImageModelAdapter instead)
 from .ImageModel import ImageModel, BackgroundDimensionWrongException
 
+# =============================================================================
+# Public API
+# =============================================================================
+
 __all__ = [
+    # Core components (recommended for new code)
+    'ImageState',
+    'ImageCommandProcessor',
+    'RotationDirection',
+    'FlipDirection',
+    'ImageModelRefactored',
+    'ImageModelAdapter',
+    'NewBackgroundDimensionWrongException',
+    
+    # Legacy components (deprecated - for backward compatibility)
     'ImageDataManager',
     'ImageLoader', 
     'FileNavigator',
@@ -47,4 +99,23 @@ __all__ = [
     'AutoProcessor',
     'ImageModel',
     'BackgroundDimensionWrongException',
-] 
+]
+
+# =============================================================================
+# Version and compatibility information
+# =============================================================================
+
+__version__ = "2.0.0"
+__architecture__ = "state-based"
+
+def get_architecture_info():
+    """Get information about the current architecture."""
+    return {
+        "version": __version__,
+        "architecture": __architecture__,
+        "recommended_model": "ImageModelRefactored",
+        "backward_compatible": "ImageModelAdapter",
+        "deprecated": "ImageModel",
+        "migration_guide": "docs/MIGRATION_GUIDE.md",
+        "benefits": "docs/REFACTORING_BENEFITS.md"
+    } 

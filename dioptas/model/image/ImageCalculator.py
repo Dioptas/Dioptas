@@ -75,7 +75,8 @@ class ImageCalculator:
             ) / self._img_corrections.get_data()
 
     def get_corrected_img_data(
-        self, img_data, background_data, background_scaling, background_offset, factor
+        self, img_data, background_data, background_scaling, background_offset, factor,
+        transfer_function_enabled=False, transfer_function_original_data=None, transfer_function_response_data=None
     ):
         """
         Get the corrected image data based on current corrections and background.
@@ -84,8 +85,24 @@ class ImageCalculator:
         :param background_scaling: background scaling factor
         :param background_offset: background offset
         :param factor: overall scaling factor
+        :param transfer_function_enabled: whether transfer function correction is enabled
+        :param transfer_function_original_data: original image data for transfer function
+        :param transfer_function_response_data: response image data for transfer function
         :return: corrected image data
         """
+        # Handle None img_data case
+        if img_data is None:
+            return None
+        
+        # Apply transfer function correction if enabled and data is available
+        if (transfer_function_enabled and 
+            transfer_function_original_data is not None and 
+            transfer_function_response_data is not None):
+            # Calculate transfer function data
+            transfer_data = transfer_function_response_data / transfer_function_original_data
+            # Apply transfer function correction
+            img_data = img_data / transfer_data
+        
         self._calculate_img_data(
             img_data, background_data, background_scaling, background_offset
         )

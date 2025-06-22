@@ -534,22 +534,22 @@ class ImageController(object):
         self.widget.img_step_series_widget.pos_validator.setTop(self.model.img_model.series_max)
         self.widget.img_step_series_widget.pos_txt.setText(str(self.model.img_model.series_pos))
 
-        self.widget.file_info_btn.setVisible(self.model.img_model.data_manager.file_info != "")
-        self.widget.move_btn.setVisible(len(self.model.img_model.data_manager.motors_info) > 0)
+        self.widget.file_info_btn.setVisible(self.model.img_model.state.file_info != "")
+        self.widget.move_btn.setVisible(len(self.model.img_model.state.motors_info) > 0)
 
-        self.widget.img_filename_txt.setText(os.path.basename(self.model.img_model.filename))
-        self.widget.img_directory_txt.setText(os.path.dirname(self.model.img_model.filename))
-        self.widget.file_info_widget.text_lbl.setText(self.model.img_model.data_manager.file_info)
+        self.widget.img_filename_txt.setText(os.path.basename(self.model.img_model.state.filename))
+        self.widget.img_directory_txt.setText(os.path.dirname(self.model.img_model.state.filename))
+        self.widget.file_info_widget.text_lbl.setText(self.model.img_model.state.file_info)
 
-        self.widget.image_control_widget.sources_widget.setVisible(not (self.model.img_model.data_manager.sources is None))
-        if self.model.img_model.data_manager.sources is not None:
+        self.widget.image_control_widget.sources_widget.setVisible(not (self.model.img_model.state.sources is None))
+        if self.model.img_model.state.sources is not None:
             sources_cb = self.widget.image_control_widget.sources_cb
             sources_cb.blockSignals(True)
             # remove all previous items:
             for _ in range(sources_cb.count()):
                 sources_cb.removeItem(0)
 
-            sources_cb.addItems(self.model.img_model.data_manager.sources)
+            sources_cb.addItems(self.model.img_model.state.sources)
             sources_cb.setCurrentText(self.model.img_model.selected_source)
             sources_cb.blockSignals(False)
 
