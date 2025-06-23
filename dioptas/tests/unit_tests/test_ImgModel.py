@@ -44,8 +44,6 @@ def test_load_karabo_nexus_file(img_model):
     img_model.load(os.path.join(data_path, "karabo_epix.h5"))
 
 
-
-
 def test_load_emits_signal(img_model):
     callback_fcn = MagicMock()
     img_model.img_changed.connect(callback_fcn)
@@ -191,12 +189,33 @@ def test_background_with_different_shape(img_model):
 
 
 def test_adding_absorption_correction(img_model):
-    img_model.add_img_correction(DummyCorrection(img_model.img_data.shape, 0.4), "Dummy 1")
+    original_image = np.copy(img_model.img_data)
+
+    img_model.add_img_correction(
+        DummyCorrection(img_model.img_data.shape, 0.1), "Dummy 1"
+    )
     assert len(img_model.state.corrections) == 1
-    assert img_model.state.corrections[0].shape == img_model.img_data.shape
-    assert img_model.state.corrections[0].correction == 0.4
-    assert img_model.state.corrections[0].name == "Dummy 1"
-    assert img_model.state.corrections[0].correction_type == "absorption"
+    state_corrections = img_model.state.corrections["Dummy 1"]
+    assert state_corrections.shape() == img_model.img_data.shape
+
+    new_image = img_model.img_data
+    assert np.allclose(original_image / 0.1, new_image)
+
+
+def test_adding_absroption_corrections(img_model):
+    img_model.add_img_correction(
+        DummyCorrection(img_model.img_data.shape, 0.4), "Dummy 1"
+    )
+    img_model.add_img_correction(
+        DummyCorrection(img_model.img_data.shape, 0.5), "Dummy 2"
+    )
+    assert len(img_model.state.corrections) == 2
+    state_corrections = img_model.state.corrections["Dummy 1"]
+    assert state_corrections["type"] == "DummyCorrection"
+    assert state_corrections["correction"].shape() == img_model.img_data.shape
+    state_corrections = img_model.state.corrections["Dummy 2"]
+    assert state_corrections["type"] == "DummyCorrection"
+    assert state_corrections["correction"].shape() == img_model.img_data.shape
 
 
 def test_absorption_correction_with_different_image_sizes(img_model):

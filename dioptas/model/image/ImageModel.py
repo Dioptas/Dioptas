@@ -152,7 +152,6 @@ class ImageModel:
         # Check if corrections are the same size as the image, if not reset corrections
         if new_state.corrections is not None:
             for _, correction in new_state.corrections.items():
-                print(correction)
                 if correction.shape() != new_state.raw_image_data.shape:
                     logger.warning(
                         f"Correction has different shape than image data, resetting correction."
@@ -320,16 +319,7 @@ class ImageModel:
     @property
     def img_data(self) -> Optional[np.ndarray]:
         """Get corrected image data (computed from state)."""
-        return self._command_processor.corrector.get_corrected_img_data(
-            self._state.raw_image_data,
-            self._state.background_data,
-            self._state.background_scaling,
-            self._state.background_offset,
-            self._state.factor,
-            self._state.transfer_function_enabled,
-            self._state.transfer_function_original_data,
-            self._state.transfer_function_response_data,
-        )
+        return self._command_processor.calculator.get_corrected_img_data(self._state)
 
     @property
     def raw_img_data(self) -> Optional[np.ndarray]:
@@ -394,7 +384,7 @@ class ImageModel:
     @property
     def img_corrections(self):
         """Get corrections from command processor."""
-        return self._command_processor.corrector.img_corrections
+        return self._state.corrections
 
     # State serialization methods
 
@@ -441,7 +431,7 @@ class ImageModel:
 
     def has_corrections(self) -> bool:
         """Check if corrections are active."""
-        return self._command_processor.corrector.has_corrections()
+        return len(self._state.corrections) > 0
 
     def get_transformations_string_list(self) -> list:
         """Get list of transformation names."""

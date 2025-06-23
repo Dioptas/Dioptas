@@ -34,13 +34,14 @@ import datetime
 import numpy as np
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any
+from ..util.ImgCorrection import ImgCorrectionInterface
 
 
 @dataclass(frozen=True)
 class ImageState:
     """
     Immutable state container for image data and metadata.
-    
+
     This class uses dataclass with frozen=True to ensure immutability.
     All state changes create new instances rather than modifying existing ones.
     """
@@ -70,7 +71,7 @@ class ImageState:
     transformations: List[str] = field(default_factory=list)
 
     # Corrections
-    corrections: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    corrections: Dict[str, ImgCorrectionInterface] = field(default_factory=dict)
 
     # Auto-processing
     autoprocess: bool = False
@@ -91,53 +92,55 @@ class ImageState:
     def to_dict(self) -> Dict[str, Any]:
         """
         Convert state to a dictionary for serialization.
-        
+
         Note: numpy arrays are converted to lists for JSON serialization.
         """
         state_dict = {}
-        
+
         # Copy all fields, handling numpy arrays specially
         for field_name, field_value in self.__dict__.items():
             if isinstance(field_value, np.ndarray):
                 state_dict[field_name] = field_value.tolist()
             else:
                 state_dict[field_name] = field_value
-        
+
         return state_dict
 
     @classmethod
-    def from_dict(cls, state_dict: Dict[str, Any]) -> 'ImageState':
+    def from_dict(cls, state_dict: Dict[str, Any]) -> "ImageState":
         """
         Create state from a dictionary (for deserialization).
-        
+
         Args:
             state_dict: Dictionary representation of state
-            
+
         Returns:
             New ImageState instance
         """
         # Convert lists back to numpy arrays where appropriate
         processed_dict = {}
         numpy_fields = {
-            'raw_image_data', 'background_data', 
-            'transfer_function_original_data', 'transfer_function_response_data'
+            "raw_image_data",
+            "background_data",
+            "transfer_function_original_data",
+            "transfer_function_response_data",
         }
-        
+
         for field_name, field_value in state_dict.items():
             if field_name in numpy_fields and field_value is not None:
                 processed_dict[field_name] = np.array(field_value)
             else:
                 processed_dict[field_name] = field_value
-        
+
         return cls(**processed_dict)
 
-    def copy(self, **kwargs) -> 'ImageState':
+    def copy(self, **kwargs) -> "ImageState":
         """
         Create a copy of this state with optional changes.
-        
+
         Args:
             **kwargs: Fields to change in the new state
-            
+
         Returns:
             New ImageState instance with the specified changes
         """

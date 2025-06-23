@@ -207,18 +207,20 @@ class ResetTransformationsCommand(ImageCommand):
 class AddCorrectionCommand(ImageCommand):
     """Command to add image correction."""
 
-    def __init__(self, corrector: ImageCalculator):
-        self.corrector = corrector
+    def __init__(self, calculator: ImageCalculator):
+        self.calculator = calculator
 
     def execute(
-        self, state: ImageState, correction: ImgCorrectionInterface, name: Optional[str] = None
+        self,
+        state: ImageState,
+        correction: ImgCorrectionInterface,
+        name: Optional[str] = None,
     ) -> ImageState:
         """Add correction and return updated state."""
-        # This would need to be implemented based on how corrections are serialized
-        # For now, we'll just update the corrections dict
         corrections = state.corrections.copy()
-        if name:
-            corrections[name] = correction
+
+        name = name or type(correction).__name__
+        corrections[name] = correction
 
         new_state = state.copy(corrections=corrections)
         return new_state
@@ -238,7 +240,7 @@ class ImageCommandProcessor:
     def __init__(self):
         self.loader = ImageLoader()
         self.transformer = ImageTransformer()
-        self.corrector = ImageCalculator()
+        self.calculator = ImageCalculator()
 
         # Initialize commands
         self._load_image = LoadImageCommand(self.loader)
@@ -247,7 +249,7 @@ class ImageCommandProcessor:
         self._rotate_image = RotateImageCommand(self.transformer)
         self._flip_image = FlipImageCommand(self.transformer)
         self._reset_transformations = ResetTransformationsCommand(self.transformer)
-        self._add_correction = AddCorrectionCommand(self.corrector)
+        self._add_correction = AddCorrectionCommand(self.calculator)
         self._set_parameter = SetParameterCommand()
 
     # Type-safe command methods
@@ -279,7 +281,10 @@ class ImageCommandProcessor:
         return self._reset_transformations.execute(state)
 
     def add_correction(
-        self, state: ImageState, correction: Any, name: Optional[str] = None
+        self,
+        state: ImageState,
+        correction: ImgCorrectionInterface,
+        name: Optional[str] = None,
     ) -> ImageState:
         """Add image correction."""
         return self._add_correction.execute(state, correction=correction, name=name)

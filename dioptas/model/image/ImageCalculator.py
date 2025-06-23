@@ -19,12 +19,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
+from typing import Optional
 
-from ..util import Signal
-from ..util.ImgCorrection import (
-    ImgCorrectionManager,
-    TransferFunctionCorrection,
-)
+from dioptas.model.image.ImageState import ImageState
+from ..util.ImgCorrection import ImgCorrectionInterface
 
 
 class ImageCalculator:
@@ -33,165 +31,104 @@ class ImageCalculator:
     Manages absorption corrections, transfer functions, and background subtraction.
     """
 
-    def __init__(self):
-        self._img_corrections = ImgCorrectionManager()
-        self.transfer_correction = TransferFunctionCorrection()
-
-        # Cached corrected data
-        self._img_data_background_subtracted = None
-        self._img_data_absorption_corrected = None
-        self._img_data_background_subtracted_absorption_corrected = None
-
-        # Signals
-        self.corrections_removed = Signal()
-
-    def _calculate_img_data(
-        self, img_data, background_data, background_scaling, background_offset
-    ):
+    def _calculate_img_data(self, state: ImageState) -> np.ndarray:
         """
         Calculates compound img_data based on the state of the object. This function is used internally to not compute
         those img arrays every time somebody requests the image data.
         """
-        # check that all data has the same dimensions
-        if background_data is not None:
-            if img_data.shape != background_data.shape:
-                background_data = None
-        if self._img_corrections.has_items():
-            if img_data.shape != self._img_corrections.shape:
-                self._img_corrections.clear()
-                self.transfer_correction.reset()
-                self.corrections_removed.emit()
+        self.check_background_shape(state)
+        self.check_corrections_shape(state)
 
         # calculate the current _img_data
-        if background_data is not None and not self._img_corrections.has_items():
-            img = img_data.astype(np.float32)
-            bkg = background_data.astype(np.float32)
-            bkg_scaled = float(background_scaling) * bkg
-            bkg_offset = float(background_offset)
+        img = state.raw_image_data.astype(np.float32)
+        bkg = (
+            state.background_data.astype(np.float32)
+            if state.background_data is not None
+            else None
+        )
 
-            self._img_data_background_subtracted = img - (bkg_scaled + bkg_offset)
+        img = self.subtract_background(
+            img,
+            bkg,
+            state.background_scaling,
+            state.background_offset,
+        )
+        img = self.apply_corrections(img, state.corrections)
 
-        elif background_data is None and self._img_corrections.has_items():
-            img = img_data.astype(np.float32)
-            corr = self._img_corrections.get_data().astype(np.float32)
-            self._img_data_absorption_corrected = img / corr
-
-        elif background_data is not None and self._img_corrections.has_items():
-            img = img_data.astype(np.float32)
-            bkg = background_data.astype(np.float32)
-            bkg_scaled = float(background_scaling) * bkg
-            bkg_offset = float(background_offset)
-
-            self._img_data_background_subtracted = img - (bkg_scaled + bkg_offset)
-            self._img_data_background_subtracted_absorption_corrected = (
-                self._img_data_background_subtracted / self._img_corrections.get_data()
+        if state.transfer_function_enabled:
+            img = self.apply_transfer_function(
+                img,
+                state.transfer_function_original_data,
+                state.transfer_function_response_data,
             )
+
+        return img
 
     def get_corrected_img_data(
         self,
-        img_data,
-        background_data,
-        background_scaling,
-        background_offset,
-        factor,
-        transfer_function_enabled=False,
-        transfer_function_original_data=None,
-        transfer_function_response_data=None,
-    ):
+        state: ImageState,
+    ) -> np.ndarray:
         """
         Get the corrected image data based on current corrections and background.
-        :param img_data: raw image data
-        :param background_data: background data
-        :param background_scaling: background scaling factor
-        :param background_offset: background offset
-        :param factor: overall scaling factor
-        :param transfer_function_enabled: whether transfer function correction is enabled
-        :param transfer_function_original_data: original image data for transfer function
-        :param transfer_function_response_data: response image data for transfer function
+        :param state: image state
         :return: corrected image data
         """
-        # Handle None img_data case
-        if img_data is None:
-            return None
+        return self._calculate_img_data(state)
 
-        # Apply transfer function correction if enabled and data is available
-        if (
-            transfer_function_enabled
-            and transfer_function_original_data is not None
-            and transfer_function_response_data is not None
-        ):
-            # Calculate transfer function data
-            transfer_data = (
-                transfer_function_response_data / transfer_function_original_data
-            )
-            # Apply transfer function correction
-            img_data = img_data / transfer_data
+    def apply_corrections(
+        self,
+        img_data: np.ndarray,
+        corrections: dict[str, ImgCorrectionInterface],
+    ) -> np.ndarray:
+        """
+        Apply corrections to the image data.
+        """
+        for correction in corrections.values():
+            img_data /= correction.get_data()
+        return img_data
 
-        self._calculate_img_data(
-            img_data, background_data, background_scaling, background_offset
+    def subtract_background(
+        self,
+        img_data: np.ndarray,
+        background_data: Optional[np.ndarray],
+        background_scaling: float = 1.0,
+        background_offset: float = 0.0,
+    ) -> np.ndarray:
+        """
+        Subtract background from the image data.
+        """
+        if background_data is None:
+            return img_data
+        return img_data - (background_scaling * background_data + background_offset)
+
+    def apply_transfer_function(
+        self,
+        img_data: np.ndarray,
+        transfer_function_original_data: np.ndarray,
+        transfer_function_response_data: np.ndarray,
+    ) -> np.ndarray:
+        """
+        Apply transfer function correction to the image data.
+        """
+        return (
+            img_data / transfer_function_response_data * transfer_function_original_data
         )
 
-        if background_data is None and not self._img_corrections.has_items():
-            return img_data * factor
-        elif background_data is not None and not self._img_corrections.has_items():
-            return self._img_data_background_subtracted * factor
-        elif background_data is None and self._img_corrections.has_items():
-            return self._img_data_absorption_corrected * factor
-        elif background_data is not None and self._img_corrections.has_items():
-            return self._img_data_background_subtracted_absorption_corrected * factor
+    def check_background_shape(self, state: ImageState) -> None:
+        """
+        Check that the background shape is the same as the image data shape.
+        If not, remove the background.
+        """
+        if state.background_data is not None:
+            if state.raw_image_data.shape != state.background_data.shape:
+                state.background_data = None
 
-    def add_img_correction(self, correction, name=None):
+    def check_corrections_shape(self, state: ImageState) -> None:
         """
-        Adds a correction to be applied to the image. Corrections are applied multiplicative for each pixel and after
-        each other, depending on the order of addition.
-        :param correction: An Object inheriting the ImgCorrectionInterface.
-        :type correction: ImgCorrectionInterface
-        :param name: correction can be given a name, to selectively delete or obtain later.
-        :type name: str
+        Check that the correction shape is the same as the image data shape.
+        If not, remove the correction with the wrong shape.
         """
-        self._img_corrections.add(correction, name)
-
-    def get_img_correction(self, name):
-        """
-        :param name: correction name which was specified during the addition of the image correction.
-        :return: the specified correction
-        """
-        return self._img_corrections.get_correction(name)
-
-    def delete_img_correction(self, name=None):
-        """
-        :param name: deletes a correction from the correction calculation with a specific name. if no name is specified
-         the last added correction is deleted.
-        """
-        self._img_corrections.delete(name)
-
-    def enable_transfer_function(self):
-        """Enable transfer function correction."""
-        if (
-            self.transfer_correction.get_data() is not None
-            and self.get_img_correction("transfer") is None
-        ):
-            self.add_img_correction(self.transfer_correction, "transfer")
-
-    def disable_transfer_function(self):
-        """Disable transfer function correction."""
-        if self.get_img_correction("transfer") is not None:
-            self.delete_img_correction("transfer")
-
-    @property
-    def img_corrections(self):
-        return self._img_corrections
-
-    def has_corrections(self):
-        """
-        :return: Whether the ImageCorrector object has active absorption corrections or not
-        """
-        return self._img_corrections.has_items()
-
-    def clear_corrections(self):
-        """
-        Clear all corrections and reset transfer correction.
-        """
-        self._img_corrections.clear()
-        self.transfer_correction.reset()
-        self.corrections_removed.emit()
+        if state.corrections:
+            for name, correction in state.corrections.items():
+                if correction.shape() != state.raw_image_data.shape:
+                    state.corrections.pop(name)

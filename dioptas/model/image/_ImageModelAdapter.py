@@ -391,7 +391,7 @@ class ImageModelAdapter:
     def corrector(self):
         """Access to corrector (for backward compatibility)."""
         warnings.warn("corrector access is deprecated. Use command processor instead.", DeprecationWarning, stacklevel=2)
-        return self._refactored_model._command_processor.corrector
+        return self._refactored_model._command_processor.calculator
     
     @property
     def auto_processor(self):
