@@ -16,7 +16,7 @@ from ..ImageCommands import (
     FlipDirection,
     BackgroundDimensionWrongException
 )
-from ..ImageModelRefactored import ImageModelRefactored
+from ..ImageModel import ImageModel
 
 
 def test_image_state():
@@ -93,7 +93,7 @@ def test_image_model_refactored():
     """Test ImageModelRefactored basic functionality."""
     print("Testing ImageModelRefactored...")
     
-    model = ImageModelRefactored()
+    model = ImageModel()
     
     # Test initial state
     initial_state = model.state

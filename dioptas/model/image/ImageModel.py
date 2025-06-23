@@ -19,121 +19,116 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
-
 import numpy as np
-from PIL import Image
-
+from typing import Optional, Dict, Any
 
 from ..util import Signal
-from .ImageDataManager import ImageDataManager
-from .ImageLoader import ImageLoader
+from .ImageState import ImageState
+from .ImageCommands import (
+    ImageCommandProcessor,
+    BackgroundDimensionWrongException,
+    RotationDirection,
+    FlipDirection,
+)
 from ..util.FileNavigator import FileNavigator
-from .ImageTransformer import ImageTransformer
-from .ImageCalculator import ImageCalculator
 from ..util.AutoProcessor import AutoProcessor
 
 logger = logging.getLogger(__name__)
 
 
-class ImageModel(object):
+class ImageModel:
     """
-    Main Image handling class. Supports several features:
-        - loading image files in any format using fabio
-        - iterating through files either by file number or time of creation
-        - image transformations like rotating and flipping
-        - setting a background image
-        - setting an absorption correction (img_data is divided by this)
+    Refactored ImageModel that makes state explicit and accessible.
 
-    In order to subscribe to changes of the data in the ImgModel, please use the img_changed QtSignal.
-    The Signal will be called every time the img_data has changed.
+    This version provides:
+    - Direct access to state via .state property
+    - Command-based operations that return new states
+    - Clear separation between state and operations
+    - Type-safe command interface
     """
 
     def __init__(self):
-        super(ImageModel, self).__init__()
+        # Initialize state
+        self._state = ImageState()
 
-        # Initialize components
-        self.data_manager = ImageDataManager()
-        self.loader = ImageLoader()
+        # Initialize command processor
+        self._command_processor = ImageCommandProcessor()
+
+        # Initialize components that handle external concerns
         self.navigator = FileNavigator()
-        self.transformer = ImageTransformer()
-        self.corrector = ImageCalculator()
-        self.auto_processor = AutoProcessor(load_callback=self.load)
+        self.auto_processor = AutoProcessor(load_callback=self._load_callback)
 
-        # Connect component signals
-        self._connect_components()
-
-        # Legacy attributes for backward compatibility
-        self.filename = self.data_manager.filename
-        self.img_transformations = self.transformer.img_transformations
-        self.file_iteration_mode = self.navigator.file_iteration_mode
-        self.file_name_iterator = self.navigator.file_name_iterator
-        self.series_pos = self.data_manager.series_pos
-        self.series_max = self.data_manager.series_max
-        self.selected_source = self.data_manager.selected_source
-        self.background_filename = self.data_manager.background_filename
-        self.transfer_correction = self.corrector.transfer_correction
-
-        # Main signals
+        # Signals
         self.img_changed = Signal()
         self.autoprocess_changed = Signal()
         self.transformations_changed = Signal()
         self.corrections_removed = Signal()
 
+        # Connect component signals
+        self._connect_components()
+
     def _connect_components(self):
         """Connect signals between components."""
-        self.data_manager.data_changed.connect(self._on_data_changed)
-        self.transformer.transformations_changed.connect(
-            self._on_transformations_changed
-        )
-        self.corrector.corrections_removed.connect(self._on_corrections_removed)
         self.auto_processor.autoprocess_changed.connect(self._on_autoprocess_changed)
-
-    def _on_data_changed(self):
-        """Handle data changes from data manager."""
-        self._update_legacy_attributes()
-        self.img_changed.emit()
-
-    def _on_transformations_changed(self):
-        """Handle transformation changes."""
-        self.img_transformations = self.transformer.img_transformations
-        self.transformations_changed.emit()
-
-    def _on_corrections_removed(self):
-        """Handle corrections removed."""
-        self.corrections_removed.emit()
 
     def _on_autoprocess_changed(self):
         """Handle autoprocess changes."""
         self.autoprocess_changed.emit()
 
-    def _update_legacy_attributes(self):
-        """Update legacy attributes for backward compatibility."""
-        self.filename = self.data_manager.filename
-        self.series_pos = self.data_manager.series_pos
-        self.series_max = self.data_manager.series_max
-        self.selected_source = self.data_manager.selected_source
-        self.background_filename = self.data_manager.background_filename
-        self.sources = self.data_manager.sources
-        self.file_info = self.data_manager.file_info
-        self.motors_info = self.data_manager.motors_info
+    def _load_callback(self, filename: str, pos: int = 0):
+        """Callback for auto-processor to load files."""
+        self.load(filename, pos)
 
-    def load(self, filename, pos=0):
-        """
-        Loads an image file in any format known by fabIO, PIL or HDF5. Automatically performs all previous img
-        transformations, recalculates background subtracted and absorption corrected image data.
-        The img_changed signal will be emitted after the process.
-        :param filename: path of the image file to be loaded
-        :param pos: position of image in the image file to be loaded
-        """
-        filename = str(filename)  # since it could also be QString
-        logger.info("Loading {0}.".format(filename))
+    def _update_state(self, new_state: ImageState):
+        """Update internal state and emit signals."""
+        old_state = self._state
+        self._state = new_state
 
-        # Update data manager
-        self.data_manager.filename = filename
+        # Emit signals based on what changed
+        if (
+            old_state.raw_image_data is not new_state.raw_image_data
+            or old_state.background_data is not new_state.background_data
+        ):
+            self.img_changed.emit()
 
-        # Load image data
-        image_file_data = self.loader.get_image_data(filename, pos)
-        self.data_manager.set_loadable_attributes(image_file_data)
+        if old_state.transformations != new_state.transformations:
+            self.transformations_changed.emit()
+
+        if old_state.corrections != new_state.corrections:
+            if len(new_state.corrections) < len(old_state.corrections):
+                self.corrections_removed.emit()
+
+    # State Access
+
+    @property
+    def state(self) -> ImageState:
+        """Get current state (read-only)."""
+        return self._state
+
+    def set_state(self, new_state: ImageState):
+        """Set state directly (for loading from saved state)."""
+        self._state = new_state
+
+        # Update components
+        self.navigator.update_filename(new_state.filename)
+        self.auto_processor.set_directory_path(new_state.directory_path)
+        self.auto_processor.autoprocess = new_state.autoprocess
+
+        # Apply transformations
+        self._state = self._apply_transformations(new_state)
+
+        # Emit signals
+        self.img_changed.emit()
+        self.transformations_changed.emit()
+        self.autoprocess_changed.emit()
+
+    # Command-based Operations (return new states)
+
+    def load(self, filename: str, pos: int = 0) -> ImageState:
+        """Load an image file and return new state."""
+        new_state = self._command_processor.load_image(
+            self._state, filename=filename, pos=pos
+        )
 
         # Update navigator
         self.navigator.update_filename(filename)
@@ -142,352 +137,323 @@ class ImageModel(object):
         )
 
         # Apply transformations
-        self._perform_img_transformations()
+        new_state = self._apply_transformations(new_state)
 
-        # Update series position
-        self.data_manager.series_pos = pos + 1
+        # Check if background is the same size as the image, if not reset background
+        if (
+            new_state.background_data is not None
+            and new_state.background_data.shape != new_state.raw_image_data.shape
+        ):
+            logger.warning(
+                f"Background data has different shape than image data, resetting background."
+            )
+            new_state = self._command_processor.reset_background(new_state)
 
-        # Update legacy attributes
-        self._update_legacy_attributes()
+        # Check if corrections are the same size as the image, if not reset corrections
+        if new_state.corrections is not None:
+            for _, correction in new_state.corrections.items():
+                print(correction)
+                if correction.shape() != new_state.raw_image_data.shape:
+                    logger.warning(
+                        f"Correction has different shape than image data, resetting correction."
+                    )
+                    new_state = self._command_processor.reset_corrections(new_state)
 
-        # self.img_changed.emit()
+        # Update internal state
+        self._update_state(new_state)
 
-    def get_image_data(self, filename, pos=0):
-        """Delegate to ImageLoader."""
-        return self.loader.get_image_data(filename, pos)
+        return new_state
 
-    def set_loadable_attributes(self, loaded_data):
-        """Delegate to ImageDataManager."""
-        self.data_manager.set_loadable_attributes(loaded_data)
-
-    def select_source(self, source):
-        """Select a source from available sources."""
-        self.data_manager.select_source(source)
-        self._perform_img_transformations()
-        self._calculate_img_data()
-        self.img_changed.emit()
-
-    def save(self, filename):
-        """
-        Saves the current file as another image file, the raw data is used for saving.
-        :param filename: name of the saved file, extensions defines the format, please see fabio library for reference
-        """
+    def load_background(self, filename: str) -> ImageState:
+        """Load background image and return new state."""
         try:
-            if hasattr(self.loader, "loader") and hasattr(
-                self.loader.loader, "fabio_image"
-            ):
-                self.loader.loader.fabio_image.save(filename)
-            else:
-                im_array = np.int32(np.copy(np.flipud(self.data_manager.img_data)))
-                im = Image.fromarray(im_array)
-                im.save(filename)
-        except Exception as e:
-            logger.error(f"Error saving file: {e}")
+            new_state = self._command_processor.load_background(
+                self._state, filename=filename
+            )
+            self._update_state(new_state)
+            return new_state
+        except BackgroundDimensionWrongException:
+            # Reset background and emit signal
+            new_state = self._state.copy(background_data=None)
+            self._update_state(new_state)
+            raise
 
-    def load_background(self, filename):
-        """
-        Loads an image file as background in any format known by fabIO. Automatically performs all previous img
-        transformations, recalculates background subtracted and absorption corrected image data.
-        The img_changed signal will be emitted after the process.
-        :param filename: path of the image file to be loaded
-        """
-        self.data_manager.background_filename = filename
+    def rotate_img_p90(self) -> ImageState:
+        """Rotate image by 90 degrees and return new state."""
+        new_state = self._command_processor.rotate_image(
+            self._state, direction=RotationDirection.PLUS_90
+        )
+        self._update_state(new_state)
+        return new_state
 
-        background_data = self.loader.get_image_data(filename)["img_data"]
-        self.data_manager.background_data = background_data
+    def rotate_img_m90(self) -> ImageState:
+        """Rotate image by -90 degrees and return new state."""
+        new_state = self._command_processor.rotate_image(
+            self._state, direction=RotationDirection.MINUS_90
+        )
+        self._update_state(new_state)
+        return new_state
 
-        # Apply transformations to background
-        self._perform_background_transformations()
+    def flip_img_horizontally(self) -> ImageState:
+        """Flip image horizontally and return new state."""
+        new_state = self._command_processor.flip_image(
+            self._state, direction=FlipDirection.HORIZONTAL
+        )
+        self._update_state(new_state)
+        return new_state
 
-        if self.data_manager.background_data.shape != self.data_manager.img_data.shape:
-            self.data_manager.background_data = None
-            self._calculate_img_data()
-            self.img_changed.emit()
-            raise BackgroundDimensionWrongException()
+    def flip_img_vertically(self) -> ImageState:
+        """Flip image vertically and return new state."""
+        new_state = self._command_processor.flip_image(
+            self._state, direction=FlipDirection.VERTICAL
+        )
+        self._update_state(new_state)
+        return new_state
 
-        self._calculate_img_data()
-        self.img_changed.emit()
+    def reset_transformations(self) -> ImageState:
+        """Reset transformations and return new state."""
+        new_state = self._command_processor.reset_transformations(self._state)
+        self._update_state(new_state)
+        return new_state
 
-    def add(self, filename):
-        """
-        Adds an image file in any format known by fabIO. Automatically performs all previous img transformations and
-        recalculates background subtracted and absorption corrected image data.
-        The img_changed signal will be emitted after the process.
-        :param filename: path of the image file to be loaded
-        """
-        filename = str(filename)  # since it could also be QString
+    def add_img_correction(self, correction, name=None) -> ImageState:
+        """Add image correction and return new state."""
+        new_state = self._command_processor.add_correction(
+            self._state, correction=correction, name=name
+        )
+        self._update_state(new_state)
+        return new_state
 
-        img_data = self.loader.get_image_data(filename)["img_data"]
+    def set_factor(self, factor: float) -> ImageState:
+        """Set processing factor and return new state."""
+        new_state = self._command_processor.set_factor(self._state, factor=factor)
+        self._update_state(new_state)
+        return new_state
 
-        # Apply transformations
-        for transformation in self.transformer.img_transformations:
-            img_data = transformation(img_data)
+    def set_background_scaling(self, scaling: float) -> ImageState:
+        """Set background scaling and return new state."""
+        new_state = self._command_processor.set_background_scaling(
+            self._state, scaling=scaling
+        )
+        self._update_state(new_state)
+        return new_state
 
-        if not self.data_manager.img_data.shape == img_data.shape:
-            return
+    def set_background_offset(self, offset: float) -> ImageState:
+        """Set background offset and return new state."""
+        new_state = self._command_processor.set_background_offset(
+            self._state, offset=offset
+        )
+        self._update_state(new_state)
+        return new_state
 
-        logger.info("Adding {0}.".format(filename))
+    def set_autoprocess(self, autoprocess: bool) -> ImageState:
+        """Set autoprocess flag and return new state."""
+        new_state = self._command_processor.set_autoprocess(
+            self._state, autoprocess=autoprocess
+        )
+        self._update_state(new_state)
+        self.auto_processor.autoprocess = autoprocess
+        return new_state
 
-        if self.data_manager.img_data.dtype == np.uint16:
-            self.data_manager.img_data = self.data_manager.img_data.astype(np.uint32)
+    # Transfer function methods
+    def enable_transfer_function(self) -> ImageState:
+        """Enable transfer function correction and return new state."""
+        new_state = self._command_processor.enable_transfer_function(self._state)
+        self._update_state(new_state)
+        return new_state
 
-        self.data_manager.img_data += img_data
+    def disable_transfer_function(self) -> ImageState:
+        """Disable transfer function correction and return new state."""
+        new_state = self._command_processor.disable_transfer_function(self._state)
+        self._update_state(new_state)
+        return new_state
 
-        self._calculate_img_data()
-        self.img_changed.emit()
+    def load_transfer_function_original(self, filename: str) -> ImageState:
+        """Load original image for transfer function and return new state."""
+        new_state = self._command_processor.load_transfer_function_original(
+            self._state, filename
+        )
+        self._update_state(new_state)
+        return new_state
 
-    def reset_background(self):
-        """Reset background data."""
-        self.data_manager.reset_background()
-        self.img_changed.emit()
+    def load_transfer_function_response(self, filename: str) -> ImageState:
+        """Load response image for transfer function and return new state."""
+        new_state = self._command_processor.load_transfer_function_response(
+            self._state, filename
+        )
+        self._update_state(new_state)
+        return new_state
 
-    def has_background(self):
-        """Check if background data is available."""
-        return self.data_manager.has_background()
+    def reset_transfer_function(self) -> ImageState:
+        """Reset transfer function data and return new state."""
+        new_state = self._command_processor.reset_transfer_function(self._state)
+        self._update_state(new_state)
+        return new_state
 
-    @property
-    def background_data(self):
-        return self.data_manager.background_data
+    # Navigation methods (delegate to navigator)
 
-    @background_data.setter
-    def background_data(self, new_data):
-        self.data_manager.background_data = new_data
-
-    @property
-    def untransformed_background_data(self):
-        """Get untransformed background data."""
-        # Reset transformations temporarily
-        original_transformations = self.transformer.img_transformations.copy()
-        self.transformer.img_transformations = []
-        background_data = np.copy(self.background_data)
-        self.transformer.img_transformations = original_transformations
-        return background_data
-
-    @property
-    def background_scaling(self):
-        return self.data_manager.background_scaling
-
-    @background_scaling.setter
-    def background_scaling(self, new_value):
-        self.data_manager.background_scaling = new_value
-
-    @property
-    def background_offset(self):
-        return self.data_manager.background_offset
-
-    @background_offset.setter
-    def background_offset(self, new_value):
-        self.data_manager.background_offset = new_value
-
-    def load_series_img(self, pos):
-        """Load image at specific position in series."""
-        self.data_manager.load_series_img(pos)
-        self._perform_img_transformations()
-        self._calculate_img_data()
-        self.img_changed.emit()
-
-    def load_next_file(self, step=1, pos=None):
+    def load_next_file(self, step=1, pos=None) -> Optional[ImageState]:
         """Load the next file based on iteration mode."""
         next_file_name = self.navigator.get_next_filename(step=step, pos=pos)
         if next_file_name is not None:
-            self.load(next_file_name)
+            return self.load(next_file_name)
+        return None
 
-    def load_previous_file(self, step=1, pos=None):
+    def load_previous_file(self, step=1, pos=None) -> Optional[ImageState]:
         """Load the previous file based on iteration mode."""
         previous_file_name = self.navigator.get_previous_filename(step=step, pos=pos)
         if previous_file_name is not None:
-            self.load(previous_file_name)
+            return self.load(previous_file_name)
+        return None
 
-    def load_next_folder(self, mec_mode=False):
-        """Load file in next folder."""
-        next_file_name = self.navigator.get_next_folder(mec_mode=mec_mode)
-        if next_file_name is not None:
-            self.load(next_file_name)
-
-    def load_previous_folder(self, mec_mode=False):
-        """Load file in previous folder."""
-        previous_file_name = self.navigator.get_previous_folder(mec_mode=mec_mode)
-        if previous_file_name is not None:
-            self.load(previous_file_name)
-
-    def set_file_iteration_mode(self, mode):
-        """Set file iteration mode."""
+    def set_file_iteration_mode(self, mode) -> ImageState:
+        """Set file iteration mode and return new state."""
         self.navigator.set_file_iteration_mode(mode)
-        self.file_iteration_mode = self.navigator.file_iteration_mode
+        new_state = self._command_processor.set_file_iteration_mode(
+            self._state, mode=mode
+        )
+        self._update_state(new_state)
+        return new_state
 
+    # Computed Properties (derived from state)
 
     @property
-    def img_data(self):
-        """Get corrected image data."""
-        return self.corrector.get_corrected_img_data(
-            self.data_manager.img_data,
-            self.data_manager.background_data,
-            self.data_manager.background_scaling,
-            self.data_manager.background_offset,
-            self.data_manager.factor,
+    def img_data(self) -> Optional[np.ndarray]:
+        """Get corrected image data (computed from state)."""
+        return self._command_processor.corrector.get_corrected_img_data(
+            self._state.raw_image_data,
+            self._state.background_data,
+            self._state.background_scaling,
+            self._state.background_offset,
+            self._state.factor,
+            self._state.transfer_function_enabled,
+            self._state.transfer_function_original_data,
+            self._state.transfer_function_response_data,
         )
-
-    @img_data.setter
-    def img_data(self, new_data):
-        self.data_manager.img_data = new_data
-        self._calculate_img_data()
-        self.img_changed.emit()
 
     @property
-    def raw_img_data(self):
-        """Get raw image data without corrections."""
-        return self.data_manager.img_data
+    def raw_img_data(self) -> Optional[np.ndarray]:
+        """Get raw image data from state."""
+        return self._state.raw_image_data
 
     @property
-    def untransformed_raw_img_data(self):
-        """Get untransformed raw image data."""
-        # Reset transformations temporarily
-        original_transformations = self.transformer.img_transformations.copy()
-        self.transformer.img_transformations = []
-        img_data = np.copy(self.raw_img_data)
-        self.transformer.img_transformations = original_transformations
-        return img_data
+    def background_data(self) -> Optional[np.ndarray]:
+        """Get background data from state."""
+        return self._state.background_data
 
-    def rotate_img_p90(self):
-        """Rotate image by 90 degrees."""
-        transformed_img, transformed_background = self.transformer.rotate_img_p90(
-            self.data_manager.img_data, self.data_manager.background_data
-        )
-        self.data_manager.img_data = transformed_img
-        if transformed_background is not None:
-            self.data_manager.background_data = transformed_background
-        self._calculate_img_data()
-        self.img_changed.emit()
+    @property
+    def factor(self) -> float:
+        """Get processing factor from state."""
+        return self._state.factor
 
-    def rotate_img_m90(self):
-        """Rotate image by -90 degrees."""
-        transformed_img, transformed_background = self.transformer.rotate_img_m90(
-            self.data_manager.img_data, self.data_manager.background_data
-        )
-        self.data_manager.img_data = transformed_img
-        if transformed_background is not None:
-            self.data_manager.background_data = transformed_background
-        self._calculate_img_data()
-        self.img_changed.emit()
+    @property
+    def autoprocess(self) -> bool:
+        """Get autoprocess flag from state."""
+        return self._state.autoprocess
 
-    def flip_img_horizontally(self):
-        """Flip image horizontally."""
-        transformed_img, transformed_background = (
-            self.transformer.flip_img_horizontally(
-                self.data_manager.img_data, self.data_manager.background_data
-            )
-        )
-        self.data_manager.img_data = transformed_img
-        if transformed_background is not None:
-            self.data_manager.background_data = transformed_background
-        self._calculate_img_data()
-        self.img_changed.emit()
+    @property
+    def filename(self) -> str:
+        """Get current filename from state."""
+        return self._state.filename
 
-    def flip_img_vertically(self):
-        """Flip image vertically."""
-        transformed_img, transformed_background = self.transformer.flip_img_vertically(
-            self.data_manager.img_data, self.data_manager.background_data
-        )
-        self.data_manager.img_data = transformed_img
-        if transformed_background is not None:
-            self.data_manager.background_data = transformed_background
-        self._calculate_img_data()
-        self.img_changed.emit()
+    @property
+    def series_pos(self) -> int:
+        """Get series position from state."""
+        return self._state.series_pos
 
-    def reset_transformations(self, img_changed=True):
-        """Reset all transformations."""
-        # Reset transformations on data
-        if self.data_manager.img_data is not None:
-            self.data_manager.img_data = self.transformer._reset_img_transformations(
-                self.data_manager.img_data
-            )
-        if self.data_manager.background_data is not None:
-            self.data_manager.background_data = (
-                self.transformer._reset_background_transformations(
-                    self.data_manager.background_data
-                )
-            )
+    @property
+    def series_max(self) -> int:
+        """Get series maximum from state."""
+        return self._state.series_max
 
-        self.transformer.reset_transformations()
-        self._calculate_img_data()
-        if img_changed:
-            self.img_changed.emit()
+    @property
+    def file_iteration_mode(self) -> str:
+        """Get file iteration mode from state."""
+        return self._state.file_iteration_mode
 
-    def _perform_img_transformations(self):
-        """Apply transformations to current image data."""
-        if self.data_manager.img_data is not None:
-            self.data_manager.img_data = self.transformer._perform_img_transformations(
-                self.data_manager.img_data
-            )
+    @property
+    def background_filename(self) -> str:
+        """Get background filename from state."""
+        return self._state.background_filename
 
-    def _perform_background_transformations(self):
-        """Apply transformations to background data."""
-        if self.data_manager.background_data is not None:
-            self.data_manager.background_data = (
-                self.transformer._perform_background_transformations(
-                    self.data_manager.background_data
-                )
-            )
+    @property
+    def background_scaling(self) -> float:
+        """Get background scaling from state."""
+        return self._state.background_scaling
 
-    def get_transformations_string_list(self):
-        """Get list of transformation names."""
-        return self.transformer.get_transformations_string_list()
+    @property
+    def background_offset(self) -> float:
+        """Get background offset from state."""
+        return self._state.background_offset
 
-    def load_transformations_string_list(self, transformations):
-        """Load transformations from string list."""
-        self.transformer.load_transformations_string_list(transformations)
-        self._perform_img_transformations()
-        self._perform_background_transformations()
-
-    def add_img_correction(self, correction, name=None):
-        """Add image correction."""
-        self.corrector.add_img_correction(correction, name)
-        self._calculate_img_data()
-        self.img_changed.emit()
-
-    def get_img_correction(self, name):
-        """Get image correction by name."""
-        return self.corrector.get_img_correction(name)
-
-    def delete_img_correction(self, name=None):
-        """Delete image correction."""
-        self.corrector.delete_img_correction(name)
-        self._calculate_img_data()
-        self.img_changed.emit()
-
-    def enable_transfer_function(self):
-        """Enable transfer function correction."""
-        self.corrector.enable_transfer_function()
-        self._calculate_img_data()
-        self.img_changed.emit()
-
-    def disable_transfer_function(self):
-        """Disable transfer function correction."""
-        self.corrector.disable_transfer_function()
+    @property
+    def img_transformations(self) -> list:
+        """Get transformation list from state."""
+        return self._state.transformations
 
     @property
     def img_corrections(self):
-        return self.corrector.img_corrections
+        """Get corrections from command processor."""
+        return self._command_processor.corrector.img_corrections
 
-    def has_corrections(self):
+    # State serialization methods
+
+    def get_state(self) -> ImageState:
+        """Get current state (alias for .state property)."""
+        return self._state
+
+    def _apply_transformations(self, state: ImageState) -> ImageState:
+        """Apply transformations to the given state."""
+        if state.raw_image_data is None:
+            return state
+
+        # Apply transformations to image data
+        transformed_img = state.raw_image_data.copy()
+        for transformation_name in state.transformations:
+            if transformation_name == "rotate_matrix_p90":
+                transformed_img = self._command_processor.transformer.rotate_img_p90(
+                    transformed_img, None
+                )[0]
+            elif transformation_name == "rotate_matrix_m90":
+                transformed_img = self._command_processor.transformer.rotate_img_m90(
+                    transformed_img, None
+                )[0]
+            elif transformation_name == "flipud":
+                transformed_img = np.flipud(transformed_img)
+            elif transformation_name == "fliplr":
+                transformed_img = np.fliplr(transformed_img)
+
+        # Apply transformations to background data
+        transformed_background = (
+            self._command_processor.transformer._perform_img_transformations(
+                state.background_data
+            )
+        )
+        return state.copy(
+            raw_image_data=transformed_img, background_data=transformed_background
+        )
+
+    # Legacy compatibility methods (for backward compatibility)
+
+    def has_background(self) -> bool:
+        """Check if background data is available."""
+        return self._state.background_data is not None
+
+    def has_corrections(self) -> bool:
         """Check if corrections are active."""
-        return self.corrector.has_corrections()
+        return self._command_processor.corrector.has_corrections()
 
-    @property
-    def autoprocess(self):
-        return self.auto_processor.autoprocess
+    def get_transformations_string_list(self) -> list:
+        """Get list of transformation names."""
+        return self._state.transformations
 
-    @autoprocess.setter
-    def autoprocess(self, new_val):
-        self.auto_processor.autoprocess = new_val
-
-    @property
-    def factor(self):
-        return self.data_manager.factor
-
-    @factor.setter
-    def factor(self, new_value):
-        self.data_manager.factor = new_value
+    def load_transformations_string_list(self, transformations) -> ImageState:
+        """Load transformations from string list and return new state."""
+        new_state = self._command_processor.set_transformations(
+            self._state, transformations=transformations
+        )
+        self._update_state(new_state)
+        return new_state
 
     def blockSignals(self, block=True):
         """Block all signals."""
@@ -495,13 +461,3 @@ class ImageModel(object):
             attr = getattr(self, member)
             if isinstance(attr, Signal):
                 attr.blocked = block
-
-    def _calculate_img_data(self):
-        """Trigger recalculation of corrected image data."""
-        # This method is called to ensure the corrector has the latest data
-        # The actual calculation happens in the img_data property getter
-        pass
-
-
-class BackgroundDimensionWrongException(Exception):
-    pass

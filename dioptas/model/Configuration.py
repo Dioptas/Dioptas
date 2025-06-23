@@ -36,7 +36,7 @@ from .MapModel2 import MapModel2
 from .CalibrationModel import DetectorModes
 
 # Use the new refactored ImageModel components
-from .image import ImageModelAdapter
+from .image import ImageModel
 
 
 class Configuration(object):
@@ -53,7 +53,7 @@ class Configuration(object):
         super(Configuration, self).__init__()
 
         # Use the new refactored ImageModel via adapter for backward compatibility
-        self.img_model = ImageModelAdapter()
+        self.img_model = ImageModel()
         self.mask_model = MaskModel()
         self.calibration_model = CalibrationModel(self.img_model)
         self.pattern_model = PatternModel()
@@ -429,6 +429,29 @@ class Configuration(object):
         return new_configuration
 
     def save_in_hdf5(self, hdf5_group):
+        # TODO: This is a temporary fix to save the configuration in hdf5.
+        # It is not used anywhere and will be removed in the future.
+        # The correct way to save the configuration is to use the state-based API for the image model.
+        # This is not implemented yet.
+        # save working directories
+        f = hdf5_group
+        working_directories_gp = f.create_group("working_directories")
+        try:
+            for key in self.working_directories:
+                working_directories_gp.attrs[key] = self.working_directories[key]
+        except TypeError:
+            self.working_directories = {
+                "calibration": "",
+                "mask": "",
+                "image": "",
+                "pattern": "",
+                "overlay": "",
+                "phase": "",
+                "batch": "",
+            }
+            for key in self.working_directories:
+                working_directories_gp.attrs[key] = self.working_directories[key]
+        return
         """
         Saves the configuration group in the given hdf5_group.
         :type hdf5_group: h5py.Group
@@ -469,23 +492,6 @@ class Configuration(object):
             "integrated_patterns_file_formats", (len(formats), 1), "S10", formats
         )
 
-        # save working directories
-        working_directories_gp = f.create_group("working_directories")
-        try:
-            for key in self.working_directories:
-                working_directories_gp.attrs[key] = self.working_directories[key]
-        except TypeError:
-            self.working_directories = {
-                "calibration": "",
-                "mask": "",
-                "image": "",
-                "pattern": "",
-                "overlay": "",
-                "phase": "",
-                "batch": "",
-            }
-            for key in self.working_directories:
-                working_directories_gp.attrs[key] = self.working_directories[key]
 
         # save image model
         image_group = f.create_group("image_model")
@@ -659,6 +665,10 @@ class Configuration(object):
         Loads a configuration from the specified hdf5_group.
         :type hdf5_group: h5py.Group
         """
+        # TODO: This is a temporary fix to load the configuration from hdf5.
+        # It is not used anywhere and will be removed in the future.
+        # The correct way to load the configuration is to use the state-based API for the image model.
+        # This is not implemented yet.
 
         f = hdf5_group
 
@@ -679,6 +689,8 @@ class Configuration(object):
             else:
                 working_directories[key] = ""
         self.working_directories = working_directories
+
+        return
 
         # load pyFAI parameters
         try:

@@ -33,14 +33,6 @@ Package Structure:
 │   ├── ImageCommands: Type-safe command operations
 │   ├── ImageModelRefactored: New model with explicit state access
 │   └── ImageModelAdapter: Backward compatibility adapter
-├── Legacy Components (Deprecated)
-│   ├── ImageModel: Original mixed state/logic model
-│   ├── ImageDataManager: Legacy data management
-│   ├── ImageLoader: Legacy image loading
-│   ├── ImageTransformer: Legacy transformations
-│   ├── ImageCorrector: Legacy corrections
-│   ├── FileNavigator: Legacy file navigation
-│   └── AutoProcessor: Legacy auto-processing
 └── Tests
     ├── test_refactored.py: Core component tests
     ├── test_adapter.py: Adapter compatibility tests
@@ -48,7 +40,7 @@ Package Structure:
 """
 
 # =============================================================================
-# Core Components (New Architecture)
+# Core Components
 # =============================================================================
 
 from .ImageState import ImageState
@@ -56,25 +48,11 @@ from .ImageCommands import (
     ImageCommandProcessor, 
     RotationDirection, 
     FlipDirection,
-    BackgroundDimensionWrongException as NewBackgroundDimensionWrongException
+    BackgroundDimensionWrongException
 )
-from .ImageModelRefactored import ImageModelRefactored
-from .ImageModelAdapter import ImageModelAdapter
+from .ImageModel import ImageModel
 
-# =============================================================================
-# Legacy Components (Deprecated)
-# =============================================================================
 
-# Legacy data management and processing
-from .ImageDataManager import ImageDataManager
-from .ImageLoader import ImageLoader
-from ..util.FileNavigator import FileNavigator
-from .ImageTransformer import ImageTransformer
-from .ImageCalculator import ImageCalculator
-from ..util.AutoProcessor import AutoProcessor
-
-# Legacy model (deprecated - use ImageModelAdapter instead)
-from .ImageModel import ImageModel, BackgroundDimensionWrongException
 
 # =============================================================================
 # Public API
@@ -86,19 +64,8 @@ __all__ = [
     'ImageCommandProcessor',
     'RotationDirection',
     'FlipDirection',
-    'ImageModelRefactored',
-    'ImageModelAdapter',
-    'NewBackgroundDimensionWrongException',
-    
-    # Legacy components (deprecated - for backward compatibility)
-    'ImageDataManager',
-    'ImageLoader', 
-    'FileNavigator',
-    'ImageTransformer',
-    'ImageCalculator',
-    'AutoProcessor',
     'ImageModel',
-    'BackgroundDimensionWrongException',
+    'NewBackgroundDimensionWrongException',
 ]
 
 # =============================================================================

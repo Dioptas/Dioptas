@@ -44,13 +44,13 @@ class ImageTransformer:
         """
         transformed_img = rotate_matrix_p90(img_data)
         transformed_background = None
-        
+
         if background_data is not None:
             transformed_background = rotate_matrix_p90(background_data)
 
         self.img_transformations.append(rotate_matrix_p90)
         self.transformations_changed.emit()
-        
+
         return transformed_img, transformed_background
 
     def rotate_img_m90(self, img_data, background_data=None):
@@ -63,13 +63,13 @@ class ImageTransformer:
         """
         transformed_img = rotate_matrix_m90(img_data)
         transformed_background = None
-        
+
         if background_data is not None:
             transformed_background = rotate_matrix_m90(background_data)
 
         self.img_transformations.append(rotate_matrix_m90)
         self.transformations_changed.emit()
-        
+
         return transformed_img, transformed_background
 
     def flip_img_horizontally(self, img_data, background_data=None):
@@ -82,13 +82,13 @@ class ImageTransformer:
         """
         transformed_img = np.fliplr(img_data)
         transformed_background = None
-        
+
         if background_data is not None:
             transformed_background = np.fliplr(background_data)
 
         self.img_transformations.append(np.fliplr)
         self.transformations_changed.emit()
-        
+
         return transformed_img, transformed_background
 
     def flip_img_vertically(self, img_data, background_data=None):
@@ -101,21 +101,28 @@ class ImageTransformer:
         """
         transformed_img = np.flipud(img_data)
         transformed_background = None
-        
+
         if background_data is not None:
             transformed_background = np.flipud(background_data)
 
         self.img_transformations.append(np.flipud)
         self.transformations_changed.emit()
-        
+
         return transformed_img, transformed_background
 
-    def reset_transformations(self):
+    def reset_img_transformations(self, img_data, background_data=None):
         """
-        Reverts all image transformations and resets the transformation stack.
+        Reset transformations on image data by applying inverse transformations.
+        :param img_data: image data to reset transformations on
+        :param background_data: background data to reset transformations on
+        :return: tuple of (reset_img_data, reset_background_data)
         """
+        reset_img = self._reset_img_transformations(img_data)
+        reset_background = None
+        if background_data is not None:
+            reset_background = self._reset_img_transformations(background_data)
         self.img_transformations = []
-        self.transformations_changed.emit()
+        return reset_img, reset_background
 
     def _reset_img_transformations(self, img_data):
         """
@@ -123,26 +130,10 @@ class ImageTransformer:
         :param img_data: image data to reset transformations on
         :return: reset image data
         """
-        reset_data = img_data.copy()
-        for transformation in reversed(self.img_transformations):
-            if transformation == rotate_matrix_p90:
-                reset_data = rotate_matrix_m90(reset_data)
-            elif transformation == rotate_matrix_m90:
-                reset_data = rotate_matrix_p90(reset_data)
-            else:
-                reset_data = transformation(reset_data)
-        return reset_data
-
-    def _reset_background_transformations(self, background_data):
-        """
-        Reset transformations on background data by applying inverse transformations.
-        :param background_data: background data to reset transformations on
-        :return: reset background data
-        """
-        if background_data is None:
+        if img_data is None:
             return None
-            
-        reset_data = background_data.copy()
+
+        reset_data = img_data.copy()
         for transformation in reversed(self.img_transformations):
             if transformation == rotate_matrix_p90:
                 reset_data = rotate_matrix_m90(reset_data)
@@ -154,25 +145,14 @@ class ImageTransformer:
 
     def _perform_img_transformations(self, img_data):
         """
-        Performs all saved image transformations on original image.
+        Performs all saved image transformations on image data.
         :param img_data: image data to transform
         :return: transformed image data
         """
-        transformed_data = img_data.copy()
-        for transformation in self.img_transformations:
-            transformed_data = transformation(transformed_data)
-        return transformed_data
-
-    def _perform_background_transformations(self, background_data):
-        """
-        Performs all saved image transformations on background image.
-        :param background_data: background data to transform
-        :return: transformed background data
-        """
-        if background_data is None:
+        if img_data is None:
             return None
-            
-        transformed_data = background_data.copy()
+
+        transformed_data = img_data.copy()
         for transformation in self.img_transformations:
             transformed_data = transformation(transformed_data)
         return transformed_data
@@ -202,4 +182,4 @@ class ImageTransformer:
                 self.img_transformations.append(rotate_matrix_m90)
             elif transformation == "rotate_matrix_p90":
                 self.img_transformations.append(rotate_matrix_p90)
-        self.transformations_changed.emit() 
+        self.transformations_changed.emit()

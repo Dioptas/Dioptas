@@ -21,12 +21,9 @@
 from .CalibrationModel import CalibrationModel
 from .image import (
     ImageModel,
-    ImageDataManager,
     ImageLoader,
-    FileNavigator,
     ImageTransformer,
     ImageCalculator,
-    AutoProcessor,
 )
 from .MaskModel import MaskModel
 from .PhaseModel import PhaseModel
@@ -37,7 +34,6 @@ from .BatchModel import BatchModel
 
 __all__ = [
     "ImageModel",
-    "ImageDataManager",
     "ImageLoader",
     "FileNavigator",
     "ImageTransformer",

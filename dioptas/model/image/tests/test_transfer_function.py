@@ -11,7 +11,7 @@ from unittest.mock import Mock, patch
 
 from ..ImageState import ImageState
 from ..ImageCommands import ImageCommandProcessor
-from ..ImageModelRefactored import ImageModelRefactored
+from ..ImageModel import ImageModel
 from ..ImageModelAdapter import ImageModelAdapter
 
 
@@ -95,7 +95,7 @@ def test_transfer_function_model():
     """Test transfer function in refactored model."""
     print("Testing transfer function in refactored model...")
     
-    model = ImageModelRefactored()
+    model = ImageModel()
     
     # Test enable/disable without data
     new_state = model.enable_transfer_function()

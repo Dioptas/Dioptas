@@ -27,6 +27,7 @@ from .ImageState import ImageState
 from .ImageLoader import ImageLoader
 from .ImageTransformer import ImageTransformer
 from .ImageCalculator import ImageCalculator
+from ..util.ImgCorrection import ImgCorrectionInterface
 
 logger = logging.getLogger(__name__)
 
@@ -92,10 +93,7 @@ class LoadBackgroundCommand(ImageCommand):
         background_data = self.loader.get_image_data(filename)["img_data"]
 
         # Apply transformations to background
-        if background_data is not None:
-            background_data = self.transformer._perform_background_transformations(
-                background_data
-            )
+        background_data = self.transformer._perform_img_transformations(background_data)
 
         # Check dimensions
         if (
@@ -110,6 +108,14 @@ class LoadBackgroundCommand(ImageCommand):
         )
 
         return new_state
+
+
+class ResetBackgroundCommand(ImageCommand):
+    """Command to reset background."""
+
+    def execute(self, state: ImageState) -> ImageState:
+        """Reset background and return updated state."""
+        return state.copy(background_data=None, background_filename=None)
 
 
 class RotateImageCommand(ImageCommand):
@@ -178,6 +184,26 @@ class FlipImageCommand(ImageCommand):
         return new_state
 
 
+class ResetTransformationsCommand(ImageCommand):
+    """Command to reset transformations."""
+
+    def __init__(self, transformer: ImageTransformer):
+        self.transformer = transformer
+
+    def execute(self, state: ImageState) -> ImageState:
+        """Reset transformations and return updated state."""
+
+        reset_img, reset_background = self.transformer.reset_img_transformations(
+            state.raw_image_data, state.background_data
+        )
+
+        return state.copy(
+            raw_image_data=reset_img,
+            background_data=reset_background,
+            transformations=self.transformer.get_transformations_string_list(),
+        )
+
+
 class AddCorrectionCommand(ImageCommand):
     """Command to add image correction."""
 
@@ -185,14 +211,14 @@ class AddCorrectionCommand(ImageCommand):
         self.corrector = corrector
 
     def execute(
-        self, state: ImageState, correction: Any, name: Optional[str] = None
+        self, state: ImageState, correction: ImgCorrectionInterface, name: Optional[str] = None
     ) -> ImageState:
         """Add correction and return updated state."""
         # This would need to be implemented based on how corrections are serialized
         # For now, we'll just update the corrections dict
         corrections = state.corrections.copy()
         if name:
-            corrections[name] = {"type": type(correction).__name__}
+            corrections[name] = correction
 
         new_state = state.copy(corrections=corrections)
         return new_state
@@ -217,8 +243,10 @@ class ImageCommandProcessor:
         # Initialize commands
         self._load_image = LoadImageCommand(self.loader)
         self._load_background = LoadBackgroundCommand(self.loader, self.transformer)
+        self._reset_background = ResetBackgroundCommand()
         self._rotate_image = RotateImageCommand(self.transformer)
         self._flip_image = FlipImageCommand(self.transformer)
+        self._reset_transformations = ResetTransformationsCommand(self.transformer)
         self._add_correction = AddCorrectionCommand(self.corrector)
         self._set_parameter = SetParameterCommand()
 
@@ -232,6 +260,10 @@ class ImageCommandProcessor:
         """Load background image."""
         return self._load_background.execute(state, filename=filename)
 
+    def reset_background(self, state: ImageState) -> ImageState:
+        """Reset background."""
+        return self._reset_background.execute(state)
+
     def rotate_image(
         self, state: ImageState, direction: RotationDirection
     ) -> ImageState:
@@ -241,6 +273,10 @@ class ImageCommandProcessor:
     def flip_image(self, state: ImageState, direction: FlipDirection) -> ImageState:
         """Flip image."""
         return self._flip_image.execute(state, direction=direction)
+
+    def reset_transformations(self, state: ImageState) -> ImageState:
+        """Reset transformations."""
+        return self._reset_transformations.execute(state)
 
     def add_correction(
         self, state: ImageState, correction: Any, name: Optional[str] = None
@@ -274,46 +310,54 @@ class ImageCommandProcessor:
         """Set file iteration mode and return new state."""
         return state.copy(file_iteration_mode=mode)
 
-    def set_transformations(self, state: ImageState, transformations: list) -> ImageState:
+    def set_transformations(
+        self, state: ImageState, transformations: list
+    ) -> ImageState:
         """Set transformations list and return new state."""
         return state.copy(transformations=transformations)
 
     # Transfer function commands
     def enable_transfer_function(self, state: ImageState) -> ImageState:
         """Enable transfer function correction and return new state."""
-        if (state.transfer_function_original_data is not None and 
-            state.transfer_function_response_data is not None):
+        if (
+            state.transfer_function_original_data is not None
+            and state.transfer_function_response_data is not None
+        ):
             return state.copy(transfer_function_enabled=True)
         return state
-    
+
     def disable_transfer_function(self, state: ImageState) -> ImageState:
         """Disable transfer function correction and return new state."""
         return state.copy(transfer_function_enabled=False)
-    
-    def load_transfer_function_original(self, state: ImageState, filename: str) -> ImageState:
+
+    def load_transfer_function_original(
+        self, state: ImageState, filename: str
+    ) -> ImageState:
         """Load original image for transfer function and return new state."""
         try:
             original_data = self.loader.get_image_data(filename)["img_data"]
             return state.copy(
                 transfer_function_original_filename=filename,
-                transfer_function_original_data=original_data
+                transfer_function_original_data=original_data,
             )
         except Exception as e:
             logger.error(f"Failed to load transfer function original image: {e}")
             return state
-    
-    def load_transfer_function_response(self, state: ImageState, filename: str) -> ImageState:
+
+    def load_transfer_function_response(
+        self, state: ImageState, filename: str
+    ) -> ImageState:
         """Load response image for transfer function and return new state."""
         try:
             response_data = self.loader.get_image_data(filename)["img_data"]
             return state.copy(
                 transfer_function_response_filename=filename,
-                transfer_function_response_data=response_data
+                transfer_function_response_data=response_data,
             )
         except Exception as e:
             logger.error(f"Failed to load transfer function response image: {e}")
             return state
-    
+
     def reset_transfer_function(self, state: ImageState) -> ImageState:
         """Reset transfer function data and return new state."""
         return state.copy(
@@ -321,7 +365,7 @@ class ImageCommandProcessor:
             transfer_function_original_filename=None,
             transfer_function_response_filename=None,
             transfer_function_original_data=None,
-            transfer_function_response_data=None
+            transfer_function_response_data=None,
         )
 
     # Legacy string-based interface (deprecated)

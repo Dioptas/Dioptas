@@ -31,7 +31,7 @@ import warnings
 from typing import Optional, Any
 
 from ..util import Signal
-from .ImageModelRefactored import ImageModelRefactored
+from .ImageModel import ImageModel
 from .ImageState import ImageState
 
 logger = logging.getLogger(__name__)
@@ -47,7 +47,7 @@ class ImageModelAdapter:
     
     def __init__(self):
         # Use the refactored model internally
-        self._refactored_model = ImageModelRefactored()
+        self._refactored_model = ImageModel()
         
         # Expose the same signals as the original ImageModel
         self.img_changed = self._refactored_model.img_changed

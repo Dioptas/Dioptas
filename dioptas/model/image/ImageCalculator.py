@@ -18,6 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import numpy as np
+
 from ..util import Signal
 from ..util.ImgCorrection import (
     ImgCorrectionManager,
@@ -62,21 +64,39 @@ class ImageCalculator:
 
         # calculate the current _img_data
         if background_data is not None and not self._img_corrections.has_items():
-            self._img_data_background_subtracted = img_data - (
-                background_scaling * background_data + background_offset
-            )
+            img = img_data.astype(np.float32)
+            bkg = background_data.astype(np.float32)
+            bkg_scaled = float(background_scaling) * bkg
+            bkg_offset = float(background_offset)
+
+            self._img_data_background_subtracted = img - (bkg_scaled + bkg_offset)
+
         elif background_data is None and self._img_corrections.has_items():
-            self._img_data_absorption_corrected = (
-                img_data / self._img_corrections.get_data()
-            )
+            img = img_data.astype(np.float32)
+            corr = self._img_corrections.get_data().astype(np.float32)
+            self._img_data_absorption_corrected = img / corr
+
         elif background_data is not None and self._img_corrections.has_items():
+            img = img_data.astype(np.float32)
+            bkg = background_data.astype(np.float32)
+            bkg_scaled = float(background_scaling) * bkg
+            bkg_offset = float(background_offset)
+
+            self._img_data_background_subtracted = img - (bkg_scaled + bkg_offset)
             self._img_data_background_subtracted_absorption_corrected = (
-                img_data - (background_scaling * background_data + background_offset)
-            ) / self._img_corrections.get_data()
+                self._img_data_background_subtracted / self._img_corrections.get_data()
+            )
 
     def get_corrected_img_data(
-        self, img_data, background_data, background_scaling, background_offset, factor,
-        transfer_function_enabled=False, transfer_function_original_data=None, transfer_function_response_data=None
+        self,
+        img_data,
+        background_data,
+        background_scaling,
+        background_offset,
+        factor,
+        transfer_function_enabled=False,
+        transfer_function_original_data=None,
+        transfer_function_response_data=None,
     ):
         """
         Get the corrected image data based on current corrections and background.
@@ -93,16 +113,20 @@ class ImageCalculator:
         # Handle None img_data case
         if img_data is None:
             return None
-        
+
         # Apply transfer function correction if enabled and data is available
-        if (transfer_function_enabled and 
-            transfer_function_original_data is not None and 
-            transfer_function_response_data is not None):
+        if (
+            transfer_function_enabled
+            and transfer_function_original_data is not None
+            and transfer_function_response_data is not None
+        ):
             # Calculate transfer function data
-            transfer_data = transfer_function_response_data / transfer_function_original_data
+            transfer_data = (
+                transfer_function_response_data / transfer_function_original_data
+            )
             # Apply transfer function correction
             img_data = img_data / transfer_data
-        
+
         self._calculate_img_data(
             img_data, background_data, background_scaling, background_offset
         )
