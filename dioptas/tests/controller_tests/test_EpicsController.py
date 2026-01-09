@@ -20,6 +20,7 @@
 
 from ..utility import QtTest
 from mock import MagicMock, patch
+import pytest
 
 from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
@@ -27,20 +28,43 @@ from ...controller.integration.EpicsController import EpicsController
 
 from qtpy import QtWidgets
 
-# mocking the functions which will block the unittest for some reason...
-QtWidgets.QApplication.processEvents = MagicMock()
-QtWidgets.QProgressDialog.setValue = MagicMock()
+# Check if epics module is available
+try:
+    import epics
+    EPICS_AVAILABLE = True
+except ImportError:
+    EPICS_AVAILABLE = False
 
 
 class TestEpicsController(QtTest):
 
     def setUp(self):
+        # Mock the functions which will block the unittest for some reason...
+        # Use patch to ensure proper cleanup
+        self.processEvents_patcher = patch.object(QtWidgets.QApplication, 'processEvents', MagicMock())
+        self.setValue_patcher = patch.object(QtWidgets.QProgressDialog, 'setValue', MagicMock())
+        self.processEvents_patcher.start()
+        self.setValue_patcher.start()
+
         self.integration_widget = IntegrationWidget()
         self.move_widget = self.integration_widget.move_widget
         self.setup_widget = self.integration_widget.move_widget.motors_setup_widget
         self.model = DioptasModel()
         self.epics_controller = EpicsController(self.integration_widget, self.model)
 
+    def tearDown(self):
+        # Stop the patchers to restore original behavior
+        self.processEvents_patcher.stop()
+        self.setValue_patcher.stop()
+
+        # Clean up widgets
+        self.integration_widget.close()
+        self.integration_widget.deleteLater()
+        del self.integration_widget
+        del self.model
+        del self.epics_controller
+
+    @pytest.mark.skipif(not EPICS_AVAILABLE, reason="epics module not installed")
     @patch('epics.caget', return_value=12.03)
     def test_update_motor_position(self, caget):
         self.epics_controller.update_current_motor_position()
@@ -69,6 +93,7 @@ class TestEpicsController(QtTest):
         self.assertEqual(str(self.move_widget.img_focus_lbl.text()), '0.300')
         self.assertEqual(str(self.move_widget.img_omega_lbl.text()), '0.400')
 
+    @pytest.mark.skipif(not EPICS_AVAILABLE, reason="epics module not installed")
     @patch('epics.caput')
     @patch('epics.caget', return_value=0.0)
     def test_move_stage(self, caget, caput):

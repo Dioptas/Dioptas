@@ -52,7 +52,12 @@ def qWidgetFactory(qapp):
 
     def createWidget(cls, *args, **kwargs):
         widget = cls(*args, **kwargs)
-        widget.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        # For Popup windows, remove the Popup flag to prevent automatic closing in tests
+        if widget.windowFlags() & QtCore.Qt.Popup:
+            widget.setWindowFlags(widget.windowFlags() & ~QtCore.Qt.Popup)
+        # Don't set WA_DeleteOnClose if widget already has it
+        if not widget.testAttribute(QtCore.Qt.WA_DeleteOnClose):
+            widget.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         widget.show()
         QTest.qWaitForWindowExposed(widget)
         widgets.add(widget)

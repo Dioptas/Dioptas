@@ -167,7 +167,7 @@ class AutoLevel:
         if data is None:
             return None
 
-        if self.filter_dummy:
+        if self.filter_dummy and data.ndim == 2:
             data = data[detector_gap_mask(data)]
 
         filtered_data = data[np.isfinite(data)]

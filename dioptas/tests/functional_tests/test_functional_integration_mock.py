@@ -20,6 +20,7 @@
 
 import pytest
 import os
+import numpy as np
 from mock import MagicMock
 
 from qtpy import QtWidgets
@@ -33,7 +34,7 @@ data_path = os.path.join(unittest_path, os.pardir, "data")
 
 @pytest.fixture
 def mock_integration(dioptas_model):
-    pattern = Pattern().load(os.path.join(data_path, "CeO2_Pilatus1M.xy"))
+    pattern = Pattern(x=np.linspace(0, 35, 2500), y=np.random.random(2500) * 1000)
     dioptas_model.calibration_model.integrate_1d = MagicMock(
         return_value=(pattern.x, pattern.y)
     )
@@ -204,3 +205,4 @@ def test_loading_multiple_images_and_batch_save_them(
 
     assert os.path.exists(os.path.join(tmp_path, "batch_image_001.tif"))
     assert os.path.exists(os.path.join(tmp_path, "batch_image_002.tif"))
+

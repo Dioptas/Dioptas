@@ -61,10 +61,44 @@ class JcpdsEditorFunctionalTest(QtTest):
         )
 
     def tearDown(self):
+        # Clean up controllers and widgets created in tests
+        if hasattr(self, 'main_controller'):
+            if hasattr(self.main_controller, 'widget'):
+                self.main_controller.widget.close()
+                self.main_controller.widget.deleteLater()
+            del self.main_controller
+
+        if hasattr(self, 'jcpds_controller'):
+            # Clean up the integration widget passed to the controller
+            if hasattr(self.jcpds_controller, 'integration_widget'):
+                self.jcpds_controller.integration_widget.close()
+                self.jcpds_controller.integration_widget.deleteLater()
+            if hasattr(self.jcpds_controller, 'jcpds_widget'):
+                self.jcpds_controller.jcpds_widget.close()
+                self.jcpds_controller.jcpds_widget.deleteLater()
+            del self.jcpds_controller
+
+        if hasattr(self, 'jcpds_editor_controller'):
+            if hasattr(self.jcpds_editor_controller, 'jcpds_widget'):
+                self.jcpds_editor_controller.jcpds_widget.close()
+                self.jcpds_editor_controller.jcpds_widget.deleteLater()
+            del self.jcpds_editor_controller
+
+        if hasattr(self, 'jcpds_widget'):
+            self.jcpds_widget.close()
+            self.jcpds_widget.deleteLater()
+            del self.jcpds_widget
+
+        # Process events to ensure widgets are cleaned up
+        QtWidgets.QApplication.processEvents()
+
         self.model.delete_configurations()
         del self.model
         # del self.jcpds
         gc.collect()
+
+        # Final event processing after garbage collection
+        QtWidgets.QApplication.processEvents()
 
     def enter_value_into_text_field(self, text_field, value):
         text_field.setText("")

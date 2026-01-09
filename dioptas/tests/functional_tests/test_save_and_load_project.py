@@ -115,6 +115,13 @@ class ProjectSaveLoadTest(QtTest):
         self.model.calibration_model.pattern_geometry.reset()
         self.model.disconnect_models()
 
+        # Close widgets before deletion
+        self.config_widget.close()
+        self.widget.integration_widget.close()
+        self.widget.mask_widget.close()
+        self.widget.calibration_widget.close()
+        self.widget.close()
+
         self.config_widget.deleteLater()
         self.widget.integration_widget.deleteLater()
         self.widget.integration_widget.integration_control_widget.deleteLater()
@@ -124,6 +131,9 @@ class ProjectSaveLoadTest(QtTest):
         self.widget.mask_widget.deleteLater()
         self.widget.calibration_widget.deleteLater()
         self.widget.deleteLater()
+
+        # Process events to ensure widgets are cleaned up
+        QtWidgets.QApplication.processEvents()
 
         del self.config_widget
         del self.widget.integration_widget.integration_control_widget
@@ -139,6 +149,9 @@ class ProjectSaveLoadTest(QtTest):
         del self.controller
         del self.model
         gc.collect()
+
+        # Process events again after deletion
+        QtWidgets.QApplication.processEvents()
 
     def load_image(self, file_name):
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(return_value=[file_name])

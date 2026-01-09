@@ -109,11 +109,13 @@ class ColormapPopup(QtWidgets.QFrame):
 
         self._minEdit = QtWidgets.QLineEdit(self)
         self._minEdit.setValidator(QtGui.QDoubleValidator(1, float("inf"), -1))
+        self._minEdit.setText("1")
         self._minEdit.editingFinished.connect(self._rangeChanged)
         rangeLayout.addRow("Min:", self._minEdit)
 
         self._maxEdit = QtWidgets.QLineEdit(self)
         self._maxEdit.setValidator(QtGui.QDoubleValidator(1, float("inf"), -1))
+        self._maxEdit.setText("1")
         self._maxEdit.editingFinished.connect(self._rangeChanged)
         rangeLayout.addRow("Max:", self._maxEdit)
 

@@ -24,7 +24,7 @@ import gc
 import unittest
 
 from qtpy import QtWidgets
-from mock import MagicMock
+from mock import MagicMock, patch
 
 from ..utility import enter_value_into_text_field
 
@@ -36,12 +36,15 @@ from ...widgets.integration import IntegrationWidget
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
-QtWidgets.QApplication.processEvents = MagicMock()
-
 
 class IntegrationBackgroundControllerTest(QtTest):
 
     def setUp(self):
+        # Mocking the function which will block the unittest for some reason...
+        # Use patch to ensure proper cleanup
+        self.processEvents_patcher = patch.object(QtWidgets.QApplication, 'processEvents', MagicMock())
+        self.processEvents_patcher.start()
+
         self.widget = IntegrationWidget()
         self.model = DioptasModel()
 
@@ -50,6 +53,12 @@ class IntegrationBackgroundControllerTest(QtTest):
         self.overlay_tw = self.widget.overlay_tw
 
     def tearDown(self):
+        # Stop the patcher to restore original behavior
+        self.processEvents_patcher.stop()
+
+        # Clean up widgets
+        self.widget.close()
+        self.widget.deleteLater()
         del self.pattern_controller
         del self.background_controller
         del self.widget

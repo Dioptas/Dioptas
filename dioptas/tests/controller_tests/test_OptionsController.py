@@ -23,7 +23,7 @@ import os
 import gc
 
 from qtpy import QtWidgets
-from mock import MagicMock
+from mock import MagicMock, patch
 
 from ..utility import enter_value_into_text_field, click_button
 
@@ -34,11 +34,14 @@ from ...widgets.integration import IntegrationWidget
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 
-QtWidgets.QApplication.processEvents = MagicMock()
-
 
 class OptionsControllerTest(QtTest):
     def setUp(self):
+        # Mocking the function which will block the unittest for some reason...
+        # Use patch to ensure proper cleanup
+        self.processEvents_patcher = patch.object(QtWidgets.QApplication, 'processEvents', MagicMock())
+        self.processEvents_patcher.start()
+
         self.widget = IntegrationWidget()
         self.options_widget = self.widget.integration_control_widget.integration_options_widget
         self.model = DioptasModel()
@@ -46,6 +49,12 @@ class OptionsControllerTest(QtTest):
         self.options_controller = OptionsController(self.widget, self.model)
 
     def tearDown(self):
+        # Stop the patcher to restore original behavior
+        self.processEvents_patcher.stop()
+
+        # Clean up widgets
+        self.widget.close()
+        self.widget.deleteLater()
         del self.options_controller
         del self.widget
         del self.model
