@@ -118,7 +118,8 @@ class MaskController(object):
         shapes = [self.rect, self.circle, self.polygon]
         for shape in shapes:
             if shape is not None:
-                self.widget.img_widget.img_view_box.removeItem(shape)
+                if shape.scene() == self.widget.img_widget.img_view_box.scene():
+                    self.widget.img_widget.img_view_box.removeItem(shape)
                 self.widget.img_widget.mouse_moved.disconnect(shape.set_size)
         self.rect = None
         self.circle = None
@@ -126,7 +127,8 @@ class MaskController(object):
 
         try:
             self.widget.img_widget.mouse_moved.disconnect(self.point.set_position)
-            self.widget.img_widget.img_view_box.removeItem(self.point)
+            if self.point.scene() == self.widget.img_widget.img_view_box.scene():
+                self.widget.img_widget.img_view_box.removeItem(self.point)
             self.point = None
         except AttributeError:
             pass
@@ -138,7 +140,8 @@ class MaskController(object):
                 self.widget.img_widget.mouse_moved.disconnect(self.arc_calc_and_preview)
             elif self.clicks == 3:
                 self.widget.img_widget.mouse_moved.disconnect(self.arc_width_preview)
-            self.widget.img_widget.img_view_box.removeItem(self.arc)
+            if self.arc.scene() == self.widget.img_widget.img_view_box.scene():
+                self.widget.img_widget.img_view_box.removeItem(self.arc)
             self.arc = None
 
     def activate_circle_btn(self):
@@ -222,7 +225,8 @@ class MaskController(object):
         elif self.clicks == 1:
             self.clicks = 0
             self.model.mask_model.mask_QGraphicsEllipseItem(self.circle)
-            self.widget.img_widget.img_view_box.removeItem(self.circle)
+            if self.circle.scene() == self.widget.img_widget.img_view_box.scene():
+                self.widget.img_widget.img_view_box.removeItem(self.circle)
             self.plot_mask()
             self.widget.img_widget.mouse_moved.disconnect(self.circle.set_size)
             self.circle = None
@@ -235,7 +239,8 @@ class MaskController(object):
         elif self.clicks == 1:
             self.clicks = 0
             self.model.mask_model.mask_QGraphicsRectItem(self.rect)
-            self.widget.img_widget.img_view_box.removeItem(self.rect)
+            if self.rect.scene() == self.widget.img_widget.img_view_box.scene():
+                self.widget.img_widget.img_view_box.removeItem(self.rect)
             self.plot_mask()
             self.widget.img_widget.mouse_moved.disconnect(self.rect.set_size)
             self.rect = None
@@ -291,7 +296,8 @@ class MaskController(object):
 
     def remove_bad_arc(self):
         self.clicks = 0
-        self.widget.img_widget.img_view_box.removeItem(self.arc)
+        if self.arc.scene() == self.widget.img_widget.img_view_box.scene():
+            self.widget.img_widget.img_view_box.removeItem(self.arc)
         self.arc = None
 
     def arc_calc_and_preview(self, x, y):
@@ -344,7 +350,8 @@ class MaskController(object):
         self.clicks = 0
         self.model.mask_model.mask_QGraphicsPolygonItem(self.polygon)
         self.plot_mask()
-        self.widget.img_widget.img_view_box.removeItem(self.polygon)
+        if self.polygon.scene() == self.widget.img_widget.img_view_box.scene():
+            self.widget.img_widget.img_view_box.removeItem(self.polygon)
         self.polygon = None
 
     def finish_arc(self):
@@ -353,7 +360,8 @@ class MaskController(object):
         self.arc.vertices = self.arc.arc_points
         self.model.mask_model.mask_QGraphicsPolygonItem(self.arc)
         self.plot_mask()
-        self.widget.img_widget.img_view_box.removeItem(self.arc)
+        if self.arc.scene() == self.widget.img_widget.img_view_box.scene():
+            self.widget.img_widget.img_view_box.removeItem(self.arc)
         self.arc = None
 
     def below_thresh_btn_click(self):

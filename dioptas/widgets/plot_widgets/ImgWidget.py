@@ -734,7 +734,8 @@ class CakePhasePlot(object):
         self.plot_item.blockSignals(False)
 
     def delete_line(self, ind=-1):
-        self.plot_item.removeItem(self.line_items[ind])
+        if self.line_items[ind].scene() == self.plot_item.scene():
+            self.plot_item.removeItem(self.line_items[ind])
         del self.line_items[ind]
         del self.line_visible[ind]
 
@@ -770,15 +771,16 @@ class CakePhasePlot(object):
         )
 
         if self.visible:
+            plot_scene = self.plot_item.scene()
             for ind, line_item in enumerate(self.line_items):
                 if (
                     not self.line_visible[ind]
-                    and line_item in self.plot_item.scene().items()
+                    and line_item.scene() == plot_scene
                 ):
                     self.plot_item.removeItem(line_item)
                 if (
                     self.line_visible[ind]
-                    and line_item not in self.plot_item.scene().items()
+                    and line_item.scene() != plot_scene
                 ):
                     self.plot_item.addItem(line_item)
 
@@ -813,7 +815,8 @@ class CakePhasePlot(object):
             self.visible = False
             for ind, line_item in enumerate(self.line_items):
                 if self.line_visible[ind]:
-                    self.plot_item.removeItem(line_item)
+                    if line_item.scene() == self.plot_item.scene():
+                        self.plot_item.removeItem(line_item)
 
     def show(self):
         if not self.visible:
@@ -825,7 +828,8 @@ class CakePhasePlot(object):
     def remove(self):
         for ind, item in enumerate(self.line_items):
             if self.line_visible[ind]:
-                self.plot_item.removeItem(item)
+                if item.scene() == self.plot_item.scene():
+                    self.plot_item.removeItem(item)
 
 
 mask_pen = QtGui.QPen(QtGui.QColor(255, 255, 255), 0.5)

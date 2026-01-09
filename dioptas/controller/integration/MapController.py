@@ -351,7 +351,9 @@ class MapController(object):
         for each_roi in self.map_widget.roi_list.selectedItems():
             for key in self.map_widget.map_roi:
                 if self.map_widget.map_roi[key]['List_Obj'] == each_roi:
-                    self.widget.pattern_widget.pattern_plot.removeItem(self.map_widget.map_roi[key]['Obj'])
+                    roi_item = self.map_widget.map_roi[key]['Obj']
+                    if roi_item.scene() == self.widget.pattern_widget.pattern_plot.scene():
+                        self.widget.pattern_widget.pattern_plot.removeItem(roi_item)
                     del self.map_widget.map_roi[key]
                     break
             self.map_widget.roi_list.takeItem(self.map_widget.roi_list.row(each_roi))
@@ -364,7 +366,9 @@ class MapController(object):
     def btn_roi_clear_clicked(self):
         self.map_widget.roi_list.clear()
         for key in self.map_widget.map_roi:
-            self.widget.pattern_widget.pattern_plot.removeItem(self.map_widget.map_roi[key]['Obj'])
+            roi_item = self.map_widget.map_roi[key]['Obj']
+            if roi_item.scene() == self.widget.pattern_widget.pattern_plot.scene():
+                self.widget.pattern_widget.pattern_plot.removeItem(roi_item)
         self.map_widget.map_roi.clear()
         self.map_widget.roi_num = 0
         self.toggle_map_widgets_enable(False)

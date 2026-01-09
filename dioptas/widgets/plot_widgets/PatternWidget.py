@@ -122,7 +122,8 @@ class PatternWidget(QtCore.QObject):
         self.pattern_plot.addItem(self.pos_line)
 
     def deactivate_pos_line(self):
-        self.pattern_plot.removeItem(self.pos_line)
+        if self.pos_line.scene() == self.pattern_plot.scene():
+            self.pattern_plot.removeItem(self.pos_line)
 
     def set_pos_line(self, x):
         self.pos_line.setPos(x)
@@ -193,14 +194,16 @@ class PatternWidget(QtCore.QObject):
         return color
 
     def remove_overlay(self, ind):
-        self.pattern_plot.removeItem(self.overlays[ind])
+        if self.overlays[ind].scene() == self.pattern_plot.scene():
+            self.pattern_plot.removeItem(self.overlays[ind])
         self.legend.removeItem(self.overlays[ind])
         self.overlays.remove(self.overlays[ind])
 
     def hide_overlay(self, ind):
         if not self.overlays[ind] in self.pattern_plot.items:
             return
-        self.pattern_plot.removeItem(self.overlays[ind])
+        if self.overlays[ind].scene() == self.pattern_plot.scene():
+            self.pattern_plot.removeItem(self.overlays[ind])
         self.legend.hideItem(ind + 1)
 
     def show_overlay(self, ind):
@@ -302,7 +305,8 @@ class PatternWidget(QtCore.QObject):
         return self.bkg_roi.getRegion()
 
     def hide_bkg_roi(self):
-        self.pattern_plot.removeItem(self.bkg_roi)
+        if self.bkg_roi.scene() == self.pattern_plot.scene():
+            self.pattern_plot.removeItem(self.bkg_roi)
 
     # map interactive linear region functions
     def show_map_interactive_roi(self):
@@ -312,7 +316,8 @@ class PatternWidget(QtCore.QObject):
         self.map_interactive_roi.setRegion((x_min, x_max))
 
     def hide_map_interactive_roi(self):
-        self.pattern_plot.removeItem(self.map_interactive_roi)
+        if self.map_interactive_roi.scene() == self.pattern_plot.scene():
+            self.pattern_plot.removeItem(self.map_interactive_roi)
 
     # saving the plot
     def save_png(self, filename):
@@ -494,7 +499,9 @@ class PhaseLinesPlot(object):
     def set_data(self, positions, name):
         # remove all old lines
         for item in self.line_items:
-            self.plot_item.removeItem(item)
+            # Only remove if item belongs to this scene
+            if item.scene() == self.plot_item.scene():
+                self.plot_item.removeItem(item)
 
         # create new ones on each Position:
         self.line_items = []
@@ -565,7 +572,10 @@ class PhasePlot(object):
         self.plot_item.blockSignals(False)
 
     def delete_line(self, ind=-1):
-        self.plot_item.removeItem(self.line_items[ind])
+        # Only remove if item belongs to this scene
+        item = self.line_items[ind]
+        if item.scene() == self.plot_item.scene():
+            self.plot_item.removeItem(item)
         del self.line_items[ind]
         del self.line_visible[ind]
 
@@ -591,7 +601,9 @@ class PhasePlot(object):
                         self.line_visible[ind] = True
                 else:
                     if self.line_visible[ind]:
-                        self.plot_item.removeItem(line_item)
+                        # Only remove if item belongs to this scene
+                        if line_item.scene() == self.plot_item.scene():
+                            self.plot_item.removeItem(line_item)
                         self.line_visible[ind] = False
 
     def set_color(self, color):
@@ -605,7 +617,9 @@ class PhasePlot(object):
             self.visible = False
             for ind, line_item in enumerate(self.line_items):
                 if self.line_visible[ind]:
-                    self.plot_item.removeItem(line_item)
+                    # Only remove if item belongs to this scene
+                    if line_item.scene() == self.plot_item.scene():
+                        self.plot_item.removeItem(line_item)
 
     def show(self):
         if not self.visible:
@@ -621,7 +635,9 @@ class PhasePlot(object):
             print("this phase had now lines in the appropriate region")
         for ind, item in enumerate(self.line_items):
             if self.line_visible[ind]:
-                self.plot_item.removeItem(item)
+                # Only remove if item belongs to this scene
+                if item.scene() == self.plot_item.scene():
+                    self.plot_item.removeItem(item)
 
 
 class ModifiedLinearRegionItem(pg.LinearRegionItem):
