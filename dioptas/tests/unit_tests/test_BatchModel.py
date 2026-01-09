@@ -31,7 +31,10 @@ def batch_model(configuration):
     batch_model = BatchModel(configuration)
     batch_model.set_image_files(files)
 
-    pattern = Pattern.from_file(os.path.join(data_path, "CeO2_Pilatus1M.xy"))
+    pattern = Pattern(
+            x=np.linspace(0, 10, 100),
+            y=np.random.random(100))
+
     configuration.calibration_model.integrate_1d = MagicMock(
         return_value=(pattern.x, pattern.y)
     )

@@ -311,13 +311,15 @@ class Configuration(object):
         old_unit = self.integration_unit
         self._integration_unit = new_unit
 
-        self.pattern_model.pattern.transform_x(
-            lambda x: convert_units(
-                x, self.calibration_model.wavelength, old_unit, new_unit
+        pattern = self.pattern_model.pattern
+        x = getattr(pattern, "x", None)
+        if x is not None and len(x) > 1:
+            pattern.transform_x(
+                lambda x: convert_units(
+                    x, self.calibration_model.wavelength, old_unit, new_unit
+                )
             )
-        )
-
-        self.integrate_image_1d()
+            self.integrate_image_1d()
 
     @property
     def correct_solid_angle(self):
@@ -659,19 +661,20 @@ class Configuration(object):
                 self.calibration_model.polarization_factor = f.get(
                     "calibration_model"
                 ).attrs["polarization_factor"]
-        except KeyError:
+        except (KeyError, ValueError):
             # if the version is not set, we assume that the pyFAI parameters are stored in the old way
             # pyFAI parameters are stored as attributes of the group
             # this is the old way of storing pyFAI parameters
             # and is kept for backwards compatibility
             pyfai_parameters = {}
-            for key, value in (
-                f.get("calibration_model").get("pyfai_parameters").attrs.items()
-            ):
-                pyfai_parameters[key] = value
+            pyfai_parameters_group = f.get("calibration_model").get("pyfai_parameters")
+            if pyfai_parameters_group is not None:
+                for key, value in pyfai_parameters_group.attrs.items():
+                    pyfai_parameters[key] = value
 
             try:
-                self.calibration_model.set_pyFAI(pyfai_parameters)
+                if pyfai_parameters:
+                    self.calibration_model.set_pyFAI(pyfai_parameters)
 
             except (KeyError, ValueError):
                 print("Problem with saved pyFAI calibration parameters")

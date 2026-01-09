@@ -194,7 +194,9 @@ class BatchIntegrationFunctionalTest(QtTest):
             widget=self.integration_widget, dioptas_model=self.model
         )
 
-        pattern = Pattern.from_file(os.path.join(data_path, "CeO2_Pilatus1M.xy"))
+        pattern = Pattern(
+            x=np.linspace(0, 35, 2500), y=np.random.rand(2500) * 1e4
+        )
         self.model.calibration_model.integrate_1d = MagicMock(
             return_value=(pattern.x, pattern.y)
         )

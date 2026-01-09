@@ -100,6 +100,7 @@ class ProjectSaveLoadTest(QtTest):
         self.config_widget = self.controller.widget.configuration_widget
         self.config_controller = self.controller.configuration_controller
         self.check_calibration = True
+        self.maxDiff = None
 
     def tearDown(self):
         delete_if_exists(os.path.join(data_path, "CeO2_Pilatus1M.chi"))
@@ -557,7 +558,7 @@ class ProjectSaveLoadTest(QtTest):
         self.save_and_load_configuration(
             self.activate_automatic_background_subtraction, mock_1d_integration=True
         )
-        self.assertGreater(self.model.pattern.auto_background_subtraction_roi[0], 9.0)
+        self.assertGreater(self.model.pattern.auto_bkg_roi[0], 9.0)
         self.assertTrue(self.widget.integration_widget.qa_bkg_pattern_btn.isChecked())
         self.assertGreater(
             float(self.widget.integration_widget.bkg_pattern_x_min_txt.text()), 9
@@ -577,7 +578,9 @@ class ProjectSaveLoadTest(QtTest):
         enter_value_into_text_field(
             self.widget.integration_widget.bkg_pattern_x_min_txt, "9"
         )
-        self.assertGreater(self.model.pattern.auto_background_subtraction_roi[0], 9)
+        print(self.model.pattern)
+        print(type(self.model.pattern))
+        self.assertAlmostEqual(self.model.pattern.auto_bkg_roi[0], 9)
 
     ####################################################################################################################
     def test_save_settings_on_closing(self):
