@@ -53,7 +53,7 @@ conda install dioptas
 
 ## Running the Program from source
 
-In order to run the program from source, the easiest way is to use the poetry package manager.
+In order to run the program from source, the easiest way is to use the uv package manager.
 Clone the repository from github and navigate to the repository:
 
 ```bash
@@ -68,31 +68,22 @@ If you want to use the latest stable release instead, switch to the `main` branc
 git checkout main
 ```
 
-Install the dependencies by running:
+Install uv and the dependencies by running:
 
 ```bash
-poetry install
+python -m pip install uv
+uv sync
 ```
 
-This will create a new environment with all the required python packages. The environment can be activated by running:
-
-```bash
-poetry shell
-```
+This will create a new environment with all the required python packages in `.venv`.
 
 Afterward the program can be started by running:
 
 ```bash
-dioptas
+uv run dioptas
 ```
 
-In order to run the program without activating the poetry shell environment use:
-
-```bash
-poetry run dioptas
-```
-
-In case you want to run the Dioptas from source without poetry, you need to install the required packages yourself.
+In order to run the program without uv, you need to install the required packages yourself.
 The packages are listed in the file `pyproject.toml`. The program can then be started by running:
 
 ```bash

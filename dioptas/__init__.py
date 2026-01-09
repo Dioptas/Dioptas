@@ -37,7 +37,14 @@ try:
 except ImportError:
     make_shortcut = None
 
-__version__ = "0.7.1"
+try:
+    from ._version import version as __version__
+except Exception:
+    try:
+        from importlib.metadata import version as _pkg_version
+        __version__ = _pkg_version("dioptas")
+    except Exception:
+        __version__ = "0.0.0"
 
 from .paths import resources_path, calibrants_path, icons_path, data_path, style_path
 from .excepthook import excepthook

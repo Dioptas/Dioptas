@@ -1,74 +1,74 @@
-[tool.poetry]
+[project]
 name = "dioptas"
-version = "0.7.1" # Will be overwritten by poetry-dynamic-versioning
+dynamic = ["version"]
 description = "GUI program for reduction and exploration of 2D X-ray diffraction data"
-authors = ["Clemens Prescher <clemens.prescher@gmail.com>"]
-license = "GPL-3.0"
 readme = "README.md"
-
+requires-python = ">=3.9,<3.14"
+license = { text = "GPL-3.0" }
+authors = [{ name = "Clemens Prescher", email = "clemens.prescher@gmail.com" }]
 classifiers = [
-    'Intended Audience :: Science/Research',
-    'Operating System :: OS Independent',
-    'Programming Language :: Python',
-    'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-    'Topic :: Scientific/Engineering',
-    'Topic :: Scientific/Engineering :: Physics',
-    'Topic :: Scientific/Engineering :: Chemistry',
-    'Topic :: Scientific/Engineering :: Visualization',
-    'Topic :: Scientific/Engineering :: Information Analysis',
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+dependencies = [
+    "EXtra-data>=1.13.0,<2.0; sys_platform == \"linux\"",
+    "h5py>=3.13.0,<4.0",
+    "hdf5plugin>=5.0.0,<6.0",
+    "lmfit>=1.3.3,<2.0",
+    "pandas>=2.1.1,<3.0",
+    "psutil>=5.9.5,<6.0",
+    "PyCifRW>=5.0.0,<6.0",
+    "PyQt6>=6.8,<7.0",
+    "pyfai==2025.3.0",
+    "pyqtgraph>=0.13.7,<0.14",
+    "pyshortcuts>=1.8.1,<2.0",
+    "QtPy>=2.4.3,<3.0",
+    "scikit-image>=0.22.0,<0.23",
+    "sharedmem>=0.3.8,<0.4",
+    "watchdog>=6.0.0,<7.0",
+    "pyopengl>=3.1.7,<4.0",
+    "pyopengl-accelerate>=3.1.7,<4.0",
+    "xypattern>=1.2.2,<2.0",
+    "numpy>=1.24.0,<2.0; python_version < \"3.10\"",
+    "numpy>=1.26.0,<2.0; python_version >= \"3.10\"",
+    "scipy>=1.9.3,<2.0; python_version < \"3.10\"",
+    "scipy>=1.11.3,<2.0; python_version >= \"3.10\"",
+    "numexpr>=2.10.2,<3.0",
+    "qt-material>=2.14,<3.0",
 ]
 
-exclude = ["dioptas/tests/*"] # Exclude tests from package
+[project.optional-dependencies]
+test = [
+    "pytest>=6.2.5,<7.0",
+    "pytest-qt",
+    "mock>=5.1.0,<6.0",
+]
 
-[tool.poetry.scripts]
+[project.scripts]
 dioptas = "dioptas:main"
 
-[tool.poetry-dynamic-versioning]
-enable = false
-vcs = "git"
-pattern = "default-unprefixed"
-style = "semver"
+[tool.setuptools]
+include-package-data = true
 
-[tool.poetry-dynamic-versioning.substitution]
-files = ["dioptas/__init__.py"]
+[tool.setuptools.package-data]
+dioptas = ["resources/**"]
 
-[tool.poetry.dependencies]
-python = "^3.9, <3.14"
-EXtra-data = { version = "^1.13.0", platform = "linux" }
-h5py = "^3.13.0"
-hdf5plugin = "^5.0.0"
-lmfit = "^1.3.3"
-pandas = "^2.1.1"
-psutil = "^5.9.5"
-PyCifRW = "^5.0.0"
-PyQt6 = "^6.8"
-pyfai = "2025.3.0"
-pyqtgraph = "^0.13.7"
-pyshortcuts = "^1.8.1"
-QtPy = "^2.4.3"
-scikit-image = "^0.22.0"
-sharedmem = "^0.3.8"
-watchdog = "^6.0.0"
-pyopengl = "^3.1.7"
-pyopengl-accelerate = "^3.1.7"
-xypattern = "^1.2.2"
-numpy = [
-  { version = "^1.24.0", python = "<3.10" },
-  { version = "^1.26.0", python = ">=3.10" }
-]
-scipy = [
-  { version = "^1.9.3", python = "<3.10" },
-  { version = "^1.11.3", python = ">=3.10" }
-]
-numexpr = "^2.10.2"
-qt-material = "^2.14"
-
-
-[tool.poetry.group.test.dependencies]
-pytest = "^6.2.5"
-pytest-qt = "*"
-mock = "^5.1.0"
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["dioptas*"]
+exclude = ["dioptas.tests*"]
 
 [build-system]
-requires = ["poetry-core", "poetry-dynamic-versioning"]
-build-backend = "poetry_dynamic_versioning.backend"
+requires = ["setuptools>=68", "setuptools_scm[toml]>=8", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+version_file = "dioptas/_version.py"
+fallback_version = "0.7.2.dev"

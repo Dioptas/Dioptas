@@ -19,32 +19,26 @@ jobs:
       uses: actions/checkout@v4
     - run: git fetch --prune --unshallow
 
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-
     - name: Setup Python 3.13
       uses: actions/setup-python@v4
       with:
         python-version: '3.13'
-        cache: 'poetry'
+        cache: 'pip'
 
-    - name: Install poetry dependencies
-      run: poetry install
+    - name: Install uv
+      run: python -m pip install --upgrade pip uv
+
+    - name: Install dependencies
+      run: uv sync --extra test
 
     - name: Install PyInstaller
-      run: poetry run pip install git+https://github.com/pyinstaller/pyinstaller.git@develop 
-
-    - name: Add Dynamic Versioning Plugin
-      run: poetry self add poetry-dynamic-versioning[plugin]
-
-    - name: Update the Version
-      run: poetry dynamic-versioning
+      run: uv pip install git+https://github.com/pyinstaller/pyinstaller.git@develop 
 
     - name: Run Dioptas from source to test
-      run: poetry run python run.py test
+      run: uv run python run.py test
 
     - name: Run PyInstaller
-      run: poetry run bash create_executable.sh
+      run: uv run bash create_executable.sh
 
     # - name: Clean Up Executable Folder
     #   run: |

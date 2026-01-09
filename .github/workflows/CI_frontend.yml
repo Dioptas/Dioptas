@@ -17,14 +17,14 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Install poetry
-      run: pip install poetry
-
     - name: Setup Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-        cache: 'poetry'
+        cache: 'pip'
+
+    - name: Install uv
+      run: python -m pip install --upgrade pip uv
 
     - name: Install Apt Dependencies
       run: |
@@ -33,29 +33,29 @@ jobs:
           libxcb-keysyms1-dev libxcb-image0-dev libxcb-icccm4-dev libxcb-sync0-dev libxcb-xfixes0-dev \
           libxcb-shape0-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-cursor0 libopengl0
 
-    - name: Install poetry dependencies
-      run: poetry install
+    - name: Install dependencies
+      run: uv sync --extra test
 
     - name: Install pyepics
-      run: poetry run pip install pyepics
+      run: uv pip install pyepics
 
     - name: Run tests
       run: |
-        poetry run py.test dioptas/tests/controller_tests/test_MainController.py
-        poetry run py.test dioptas/tests/controller_tests/test_BackgroundController.py
-        poetry run py.test dioptas/tests/controller_tests/test_CalibrationController.py
-        poetry run py.test dioptas/tests/controller_tests/test_ConfigurationController.py
-        poetry run py.test dioptas/tests/controller_tests/test_CorrectionController.py
-        poetry run py.test dioptas/tests/controller_tests/test_EpicsController.py
-        poetry run py.test dioptas/tests/controller_tests/test_ImageController.py
-        poetry run py.test dioptas/tests/controller_tests/test_IntegrationBackgroundController.py
-        poetry run py.test dioptas/tests/controller_tests/test_IntegrationController.py
-        poetry run py.test dioptas/tests/controller_tests/test_JcpdsEditorController.py
-        poetry run py.test dioptas/tests/controller_tests/test_MaskController.py
-        poetry run py.test dioptas/tests/controller_tests/test_MapController2.py
-        poetry run py.test dioptas/tests/controller_tests/test_OptionsController.py
-        poetry run py.test dioptas/tests/controller_tests/test_OverlayController.py
-        poetry run py.test dioptas/tests/controller_tests/test_PatternController.py
-        poetry run py.test dioptas/tests/controller_tests/test_PhaseController.py
-        poetry run py.test dioptas/tests/controller_tests/test_PhaseInCakeController.py
-        poetry run py.test dioptas/tests/controller_tests/test_PhaseInPatternController.py
+        uv run pytest dioptas/tests/controller_tests/test_MainController.py
+        uv run pytest dioptas/tests/controller_tests/test_BackgroundController.py
+        uv run pytest dioptas/tests/controller_tests/test_CalibrationController.py
+        uv run pytest dioptas/tests/controller_tests/test_ConfigurationController.py
+        uv run pytest dioptas/tests/controller_tests/test_CorrectionController.py
+        uv run pytest dioptas/tests/controller_tests/test_EpicsController.py
+        uv run pytest dioptas/tests/controller_tests/test_ImageController.py
+        uv run pytest dioptas/tests/controller_tests/test_IntegrationBackgroundController.py
+        uv run pytest dioptas/tests/controller_tests/test_IntegrationController.py
+        uv run pytest dioptas/tests/controller_tests/test_JcpdsEditorController.py
+        uv run pytest dioptas/tests/controller_tests/test_MaskController.py
+        uv run pytest dioptas/tests/controller_tests/test_MapController2.py
+        uv run pytest dioptas/tests/controller_tests/test_OptionsController.py
+        uv run pytest dioptas/tests/controller_tests/test_OverlayController.py
+        uv run pytest dioptas/tests/controller_tests/test_PatternController.py
+        uv run pytest dioptas/tests/controller_tests/test_PhaseController.py
+        uv run pytest dioptas/tests/controller_tests/test_PhaseInCakeController.py
+        uv run pytest dioptas/tests/controller_tests/test_PhaseInPatternController.py
