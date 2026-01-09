@@ -313,6 +313,11 @@ class Configuration(object):
 
         pattern = self.pattern_model.pattern
         x = getattr(pattern, "x", None)
+        valid_units = {"2th_deg", "q_A^-1", "d_A"}
+        if old_unit not in valid_units or new_unit not in valid_units:
+            return
+        if old_unit == new_unit:
+            return
         if x is not None and len(x) > 1:
             pattern.transform_x(
                 lambda x: convert_units(

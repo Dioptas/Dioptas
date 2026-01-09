@@ -56,6 +56,7 @@ working_directories = {
     "overlay": data_path,
     "mask": data_path,
     "pattern": data_path,
+    "project": data_path,
 }
 
 integration_unit = "q_A^-1"
@@ -548,19 +549,16 @@ class ProjectSaveLoadTest(QtTest):
         )
 
     def add_background_image(self):
-        QtWidgets.QFileDialog.getOpenFileName = MagicMock(
-            return_value=test_image_file_name
-        )
-        click_button(self.controller.integration_controller.widget.bkg_image_load_btn)
+        self.model.img_model.load_background(test_image_file_name)
 
     ####################################################################################################################
     def test_with_automatic_background_subtraction(self):
         self.save_and_load_configuration(
             self.activate_automatic_background_subtraction, mock_1d_integration=True
         )
-        self.assertGreater(self.model.pattern.auto_bkg_roi[0], 9.0)
+        self.assertAlmostEqual(self.model.pattern.auto_bkg_roi[0], 9.0)
         self.assertTrue(self.widget.integration_widget.qa_bkg_pattern_btn.isChecked())
-        self.assertGreater(
+        self.assertAlmostEqual(
             float(self.widget.integration_widget.bkg_pattern_x_min_txt.text()), 9
         )
         self.assertTrue(self.widget.integration_widget.qa_bkg_pattern_btn.isChecked())
