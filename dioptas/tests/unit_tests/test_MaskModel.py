@@ -153,6 +153,13 @@ def test_find_center_of_circle_from_three_points(mask_model):
     assert pytest.approx(y0) == mask_model.center_for_arc.y()
 
 
+def test_find_center_of_circle_from_three_points_collinear(mask_model):
+    p1 = QtCore.QPointF(0.0, 0.0)
+    p2 = QtCore.QPointF(1.0, 1.0)
+    p3 = QtCore.QPointF(2.0, 2.0)
+    assert mask_model.find_center_of_circle_from_three_points(p1, p2, p3) is None
+
+
 def test_find_radius_of_circle_from_center_and_point(mask_model):
     x0 = 2.0
     y0 = 3.5

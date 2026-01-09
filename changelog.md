@@ -3,6 +3,7 @@
 ## Bugfixes
 
 - orientation from ponifiles is now correctly saved in a dioptas project file - thus, upon reloading it still works
+- masking an arc is now more robust and will not cause error messages with particular inputs (e.g. along a perfect line)
 
 ## Build
 

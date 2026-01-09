@@ -290,6 +290,12 @@ class MaskController(object):
                             self.arc.vertices[2].y()):
                 self.remove_bad_arc()
                 return
+            arc_center = self.model.mask_model.find_center_of_circle_from_three_points(
+                self.arc.vertices[0], self.arc.vertices[1], self.arc.vertices[2]
+            )
+            if arc_center is None:
+                self.remove_bad_arc()
+                return
             self.widget.img_widget.mouse_moved.connect(self.arc_width_preview)
         elif self.clicks == 4:
             self.finish_arc()
@@ -304,6 +310,8 @@ class MaskController(object):
         v = self.arc.vertices
         new_v = QtCore.QPointF(x, y)
         arc_center = self.model.mask_model.find_center_of_circle_from_three_points(v[0], v[1], new_v)
+        if arc_center is None:
+            return
         arc_r = self.model.mask_model.find_radius_of_circle_from_center_and_point(arc_center, new_v)
         self.arc.arc_center = arc_center
         self.arc.arc_radius = arc_r
@@ -318,6 +326,8 @@ class MaskController(object):
 
     def arc_width_preview(self, x, y):
         arc_center = self.arc.arc_center
+        if arc_center is None:
+            return
         arc_r = self.arc.arc_radius
         phi_range = self.arc.phi_range
         width = abs(arc_r - sqrt((x - arc_center.x()) ** 2 + (y - arc_center.y()) ** 2))

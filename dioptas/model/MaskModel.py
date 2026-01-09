@@ -317,20 +317,16 @@ class MaskModel(object):
         xa, ya = a.x(), a.y()
         xb, yb = b.x(), b.y()
         xc, yc = c.x(), c.y()
-        # if (xa == xb and ya == yb) or (xa == xc and ya == yc) or (xb == xc and yb == yc):
-        #     return None
-        mid_ab_x = (xa + xb) / 2.0
-        mid_ab_y = (ya + yb) / 2.0
-        mid_bc_x = (xb + xc) / 2.0
-        mid_bc_y = (yb + yc) / 2.0
-        slope_ab = (yb - ya) / (xb - xa)
-        slope_bc = (yc - yb) / (xc - xb)
-        slope_p_ab = -1.0 / slope_ab
-        slope_p_bc = -1.0 / slope_bc
-        b_p_ab = mid_ab_y - slope_p_ab * mid_ab_x
-        b_p_bc = mid_bc_y - slope_p_bc * mid_bc_x
-        x0 = (b_p_bc - b_p_ab) / (slope_p_ab - slope_p_bc)
-        y0 = slope_p_ab * x0 + b_p_ab
+        # Robust circumcenter calculation; returns None for collinear/degenerate points.
+        denom = 2.0 * (xa * (yb - yc) + xb * (yc - ya) + xc * (ya - yb))
+        if abs(denom) < 1e-12:
+            return None
+
+        xa2_ya2 = xa * xa + ya * ya
+        xb2_yb2 = xb * xb + yb * yb
+        xc2_yc2 = xc * xc + yc * yc
+        x0 = (xa2_ya2 * (yb - yc) + xb2_yb2 * (yc - ya) + xc2_yc2 * (ya - yb)) / denom
+        y0 = (xa2_ya2 * (xc - xb) + xb2_yb2 * (xa - xc) + xc2_yc2 * (xb - xa)) / denom
         self.center_for_arc = QtCore.QPointF(x0, y0)
         return self.center_for_arc
 
