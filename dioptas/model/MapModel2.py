@@ -174,14 +174,18 @@ class MapModel2:
         self.map = create_map(self.window_intensities, self.dimension)
         self.map_changed.emit()
 
-    def get_point_info(self, row_index: float, column_index: float) -> MapPointInfo:
+    def get_point_info(self, row_index: int, column_index: int) -> MapPointInfo | None:
         """Returns the point info for the specified row and column index"""
         if self.dimension is None:
             return None
         ind = self.get_point_index(row_index, column_index)
+        if ind is None:
+            return None
+        if ind > len(self.point_infos) - 1:
+            return None
         return self.point_infos[ind]
 
-    def get_point_index(self, row_index: int, column_index: int) -> int:
+    def get_point_index(self, row_index: int, column_index: int) -> int | None:
         """Returns the point index inside the list of integrated images for the specified row and column index"""
         if self.dimension is None:
             return None

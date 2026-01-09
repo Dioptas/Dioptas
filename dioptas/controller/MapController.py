@@ -320,6 +320,10 @@ class MapController(object):
         )
 
         point_info = self.model.map_model.get_point_info(row, col)
+        if point_info is None:
+            self.widget.map_plot_control_widget.filename_label.setText(f"")
+            return
+
         if point_info.frame_index == 0:
             self.widget.map_plot_control_widget.filename_label.setText(
                 f"{point_info.filename}"

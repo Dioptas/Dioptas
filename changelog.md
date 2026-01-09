@@ -4,6 +4,7 @@
 
 - orientation from ponifiles is now correctly saved in a dioptas project file - thus, upon reloading it still works
 - masking an arc is now more robust and will not cause error messages
+- mouse hovering over not-yet-integrated pixels in the map will not cause an error anymore
 
 ## Build
 
