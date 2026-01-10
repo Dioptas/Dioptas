@@ -1,4 +1,4 @@
-# 0.7.2 (in development)
+# 0.7.2 (stable 10.01.2026)
 
 ## Bugfixes
 
