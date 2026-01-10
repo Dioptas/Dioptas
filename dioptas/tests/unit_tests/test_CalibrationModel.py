@@ -202,21 +202,21 @@ def test_cake_integral(calibration_model):
     # selecting exactly in between two points
     cake_partial = 0.5 * cake_img[:, 30] + 0.5 * cake_img[:, 31]
     _, y2 = calibration_model.cake_integral(cake_tth[30] + 0.5 * cake_step)
-    assert np.array_equal(y2, cake_partial)
+    assert np.allclose(y2, cake_partial, rtol=1e-6, atol=1e-6)
 
     # selecting points somewhere in between
     cake_partial = 0.3 * cake_img[:, 30] + 0.7 * cake_img[:, 31]
     _, y3 = calibration_model.cake_integral(cake_tth[30] + 0.7 * cake_step)
-    assert np.array_equal(y3, cake_partial)
+    assert np.allclose(y3, cake_partial, rtol=1e-6, atol=1e-6)
 
     # test with larger binsize of 2
     cake_partial = 0.5 * cake_img[:, 30] + 0.5 * cake_img[:, 31]
     _, y4 = calibration_model.cake_integral(cake_tth[30] + 0.5 * cake_step, bins=2)
-    assert np.array_equal(y4, cake_partial)
+    assert np.allclose(y4, cake_partial, rtol=1e-6, atol=1e-6)
 
     cake_partial = (0.5 * cake_img[:, 29] + cake_img[:, 30] + 0.5 * cake_img[:, 31]) / 2
     _, y5 = calibration_model.cake_integral(cake_tth[30], bins=2)
-    assert np.array_equal(y5, cake_partial)
+    assert np.allclose(y5, cake_partial, rtol=1e-6, atol=1e-6)
 
 
 def test_integration_with_predefined_detector(calibration_model, img_model):

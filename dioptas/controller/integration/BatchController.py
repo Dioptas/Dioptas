@@ -562,7 +562,7 @@ class BatchController(object):
                 return False
             progress_dialog.setValue(current_index)
             QtWidgets.QApplication.processEvents()
-            return ~progress_dialog.wasCanceled()
+            return not progress_dialog.wasCanceled()
 
         parameters = (
             self.widget.integration_control_widget.background_control_widget.get_bkg_pattern_parameters()
@@ -1453,7 +1453,7 @@ class BatchController(object):
                 return False
             progress_dialog.setValue(current_index)
             QtWidgets.QApplication.processEvents()
-            return ~progress_dialog.wasCanceled()
+            return not progress_dialog.wasCanceled()
 
         self.model.batch_model.integrate_raw_data(
             start,

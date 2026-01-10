@@ -87,9 +87,18 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
         """
         print("New file detected: {}".format(event.src_path))
         file_path = os.path.abspath(event.src_path)
-        file_size = -1
-        while file_size != os.stat(file_path).st_size:
+        try:
             file_size = os.stat(file_path).st_size
+        except FileNotFoundError:
+            return
+        while True:
+            try:
+                new_size = os.stat(file_path).st_size
+            except FileNotFoundError:
+                return
+            if new_size == file_size:
+                break
+            file_size = new_size
             time.sleep(0.01)
 
         self.filepath_queue.put(os.path.abspath(file_path))

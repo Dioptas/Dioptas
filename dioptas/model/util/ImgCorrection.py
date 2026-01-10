@@ -167,15 +167,25 @@ class CbnCorrection(ImgCorrectionInterface):
             r2 = np.sqrt(r2 ** 2 + self._center_offset ** 2 - 2 * r2 * self._center_offset * np.cos(beta))
 
         # defining rotation matrices for the diamond anvil cell
-        Rx = np.matrix([[1, 0, 0],
-                        [0, np.cos(tilt_rotation), -np.sin(tilt_rotation)],
-                        [0, np.sin(tilt_rotation), np.cos(tilt_rotation)]])
+        Rx = np.array(
+            [
+                [1, 0, 0],
+                [0, np.cos(tilt_rotation), -np.sin(tilt_rotation)],
+                [0, np.sin(tilt_rotation), np.cos(tilt_rotation)],
+            ],
+            dtype=float,
+        )
 
-        Ry = np.matrix([[np.cos(tilt), 0, np.sin(tilt)],
-                        [0, 1, 0],
-                        [-np.sin(tilt), 0, np.cos(tilt)]])
+        Ry = np.array(
+            [
+                [np.cos(tilt), 0, np.sin(tilt)],
+                [0, 1, 0],
+                [-np.sin(tilt), 0, np.cos(tilt)],
+            ],
+            dtype=float,
+        )
 
-        dac_vector = np.array(Rx * Ry * np.matrix([1, 0, 0]).T)
+        dac_vector = Rx @ Ry @ np.array([1.0, 0.0, 0.0], dtype=float)
 
         # calculating a diffraction vector for each pixel
         diffraction_vec = np.array([np.cos(two_theta),
@@ -288,8 +298,10 @@ class ObliqueAngleDetectorAbsorptionCorrection(ImgCorrectionInterface):
                     np.cos(np.pi - self.azi_array + rotation_rad)))
 
         attenuation_constant = 1.0 / self.absorption_length
-        absorption_correction = (1 - np.exp(-attenuation_constant * path_length)) / \
-                                (1 - np.exp(-attenuation_constant * self.detector_thickness))
+        with np.errstate(over="ignore", divide="ignore", invalid="ignore"):
+            absorption_correction = (1 - np.exp(-attenuation_constant * path_length)) / (
+                1 - np.exp(-attenuation_constant * self.detector_thickness)
+            )
 
         self._data = absorption_correction
 

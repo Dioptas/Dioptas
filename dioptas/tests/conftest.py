@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import weakref
 import pytest
 
@@ -82,8 +83,6 @@ def main_controller(qapp):
     controller.show_window()
     controller.widget.setAttribute(QtCore.Qt.WA_DeleteOnClose)
     QTest.qWaitForWindowExposed(controller.widget)
-    controller.widget.activateWindow()
-    controller.widget.raise_()
     try:
         yield controller
     finally:
