@@ -116,7 +116,7 @@ class cosmicsimage:
         # In lacosmiciteration() we work on this guy
         self.cleanarray = self.rawarray.copy()
         # All False, no cosmics yet
-        self.mask = np.cast['bool'](np.zeros(self.rawarray.shape))
+        self.mask = np.asarray(np.zeros(self.rawarray.shape), dtype=bool)
 
         self.gain = gain
         self.readnoise = readnoise
@@ -242,12 +242,12 @@ class cosmicsimage:
         # print cosmicindices
 
         # We put cosmic ray pixels to np.Inf to flag them :
-        self.cleanarray[mask] = np.Inf
+        self.cleanarray[mask] = np.inf
 
         # Now we want to have a 2 pixel frame of Inf padding around our image.
         w = self.cleanarray.shape[0]
         h = self.cleanarray.shape[1]
-        padarray = np.zeros((w + 4, h + 4)) + np.Inf
+        padarray = np.zeros((w + 4, h + 4)) + np.inf
         # that copy is important, we need 2 independent arrays
         padarray[2:w + 2, 2:h + 2] = self.cleanarray.copy()
 
@@ -255,7 +255,7 @@ class cosmicsimage:
         # Now in this copy called padarray, we also put the saturated stars to
         # np.Inf, if available :
         if self.satstars is not None:
-            padarray[2:w + 2, 2:h + 2][self.satstars] = np.Inf
+            padarray[2:w + 2, 2:h + 2][self.satstars] = np.inf
             # Viva python, I tested this one, it works...
 
         # A loop through every cosmic pixel :
@@ -267,7 +267,7 @@ class cosmicsimage:
             # print cutout
             # Now we have our 25 pixels, some of them are np.Inf, and we want
             # to take the median
-            goodcutout = cutout[cutout != np.Inf]
+            goodcutout = cutout[cutout != np.inf]
             # print len(goodcutout)
 
             if len(goodcutout) >= 25:
@@ -374,7 +374,7 @@ class cosmicsimage:
                 # we add thisisland to the mask
                 outmask = np.logical_or(outmask, thisisland)
 
-        self.satstars = np.cast['bool'](outmask)
+        self.satstars = np.asarray(outmask, dtype=bool)
 
         if verbose:
             print()
@@ -541,8 +541,10 @@ class cosmicsimage:
 
         # We grow these cosmics a first time to determine the immediate
         # neighborhod  :
-        growcosmics = np.cast['bool'](
-            signal.convolve2d(np.cast['float32'](cosmics), growkernel, mode="same", boundary="symm"))
+        growcosmics = np.asarray(
+            signal.convolve2d(np.asarray(cosmics, dtype=np.float32), growkernel, mode="same", boundary="symm"),
+            dtype=bool,
+        )
 
         # From this grown set, we keep those that have sp > sigmalim
         # so obviously not requiring sp/f > objlim, otherwise it would be
@@ -552,8 +554,10 @@ class cosmicsimage:
         # Now we repeat this procedure, but lower the detection limit to
         # sigmalimlow :
 
-        finalsel = np.cast['bool'](
-            signal.convolve2d(np.cast['float32'](growcosmics), growkernel, mode="same", boundary="symm"))
+        finalsel = np.asarray(
+            signal.convolve2d(np.asarray(growcosmics, dtype=np.float32), growkernel, mode="same", boundary="symm"),
+            dtype=bool,
+        )
         finalsel = np.logical_and(sp > self.sigcliplow, finalsel)
 
         # Again, we have to kick out pixels on saturated stars :

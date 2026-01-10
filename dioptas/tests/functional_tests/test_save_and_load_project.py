@@ -20,6 +20,8 @@
 
 import os
 import gc
+import tempfile
+import uuid
 from collections import OrderedDict
 
 import numpy as np
@@ -45,9 +47,6 @@ from ... import calibrants_path
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, "../data")
 jcpds_path = os.path.join(data_path, "jcpds")
-
-# shared settings for save and load tests
-config_file_path = os.path.join(data_path, "test_save_load.hdf5")
 
 working_directories = {
     "image": data_path,
@@ -102,11 +101,15 @@ class ProjectSaveLoadTest(QtTest):
         self.config_controller = self.controller.configuration_controller
         self.check_calibration = True
         self.maxDiff = None
+        self.config_file_path = os.path.join(
+            tempfile.gettempdir(),
+            f"dioptas_test_save_load_{os.getpid()}_{uuid.uuid4().hex}.hdf5",
+        )
 
     def tearDown(self):
         delete_if_exists(os.path.join(data_path, "CeO2_Pilatus1M.chi"))
         delete_if_exists(os.path.join(data_path, "CeO2_Pilatus1M.xy"))
-        delete_if_exists(config_file_path)
+        delete_if_exists(self.config_file_path)
         self.resetState()
 
     def resetState(self):
@@ -167,6 +170,7 @@ class ProjectSaveLoadTest(QtTest):
     def save_and_load_configuration(
         self, prepare_function, intermediate_function=None, mock_1d_integration=True
     ):
+        saved_config_file_path = self.config_file_path
         if mock_1d_integration:
             with patch.object(
                 CalibrationModel,
@@ -188,6 +192,7 @@ class ProjectSaveLoadTest(QtTest):
                 }
                 self.resetState()
                 self.setUp()
+                self.config_file_path = saved_config_file_path
                 if intermediate_function:
                     intermediate_function()
 
@@ -208,20 +213,23 @@ class ProjectSaveLoadTest(QtTest):
             }
             self.resetState()
             self.setUp()
+            self.config_file_path = saved_config_file_path
             if intermediate_function:
                 intermediate_function()
 
             self.load_configuration()
 
-        delete_if_exists(config_file_path)
+        delete_if_exists(self.config_file_path)
 
     def disable_calibration_check(self):
         self.check_calibration = False
 
     def save_configuration(self):
-        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=config_file_path)
+        QtWidgets.QFileDialog.getSaveFileName = MagicMock(
+            return_value=self.config_file_path
+        )
         click_button(self.widget.save_btn)
-        self.assertTrue(os.path.isfile(config_file_path))
+        self.assertTrue(os.path.isfile(self.config_file_path))
 
     def load_configuration(self):
         self.model.working_directories = {
@@ -230,7 +238,9 @@ class ProjectSaveLoadTest(QtTest):
             "image": "",
             "pattern": "",
         }
-        QtWidgets.QFileDialog.getOpenFileName = MagicMock(return_value=config_file_path)
+        QtWidgets.QFileDialog.getOpenFileName = MagicMock(
+            return_value=self.config_file_path
+        )
         click_button(self.widget.load_btn)
         saved_working_directories = self.model.working_directories
         self.assertDictEqual(saved_working_directories, working_directories)

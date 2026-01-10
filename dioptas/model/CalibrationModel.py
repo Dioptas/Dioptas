@@ -260,7 +260,7 @@ class CalibrationModel(object):
         sub_data = np.array(
             self.img_model.img_data.ravel()[np.where(mask.ravel())], dtype=np.float64
         )
-        sub_data[np.where(sub_data > upper_limit)] = np.NaN
+        sub_data[np.where(sub_data > upper_limit)] = np.nan
         mean = np.nanmean(sub_data)
         std = np.nanstd(sub_data)
 
