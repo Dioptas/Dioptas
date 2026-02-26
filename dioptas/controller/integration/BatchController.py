@@ -1441,8 +1441,7 @@ class BatchController(object):
                 self.widget.batch_widget.position_widget.step_series_widget.get_image_range()
             )
 
-        n_int = (stop - start) / step
-        n_total = int(n_int)
+        n_total = len(range(start, stop + 1, step))
         progress_dialog = get_progress_dialog(
             "Integrating multiple images.",
             "Abort Integration",
@@ -1451,9 +1450,9 @@ class BatchController(object):
         )
         progress_dialog.setMinimumDuration(0)
         progress_dialog.setWindowModality(QtCore.Qt.ApplicationModal)
-        progress_dialog.findChild(QtWidgets.QLabel).setAlignment(
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
-        )
+        label = progress_dialog.label()
+        if label is not None:
+            label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
         t_start = time.time()
 
