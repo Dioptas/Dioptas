@@ -234,7 +234,6 @@ class BatchModel(QtCore.QObject):
         """
         Integrate images from given file
 
-        :param num_points: Numbers of radial bins
         :param start: Start image index from integration
         :param stop: Stop image index from integration
         :param step: Step along images to integrate
@@ -254,46 +253,48 @@ class BatchModel(QtCore.QObject):
             mask = self.configuration.mask_model.get_mask()
             self.used_mask_shape = mask.shape
 
+        # Block img_changed to prevent auto-integration and GUI updates
         self.configuration.img_model.blockSignals(True)
-        for index in range(start, stop, step):
-            if use_all:
-                file_index, pos = self.pos_map_all[index]
-            else:
-                file_index, pos = self.pos_map[index]
-            if file_index != current_file:
-                current_file = file_index
-                self.configuration.calibration_model.img_model.load(
-                    self.files[file_index]
+        try:
+            for index in range(start, stop, step):
+                if use_all:
+                    file_index, pos = self.pos_map_all[index]
+                else:
+                    file_index, pos = self.pos_map[index]
+                if file_index != current_file:
+                    current_file = file_index
+                    self.configuration.calibration_model.img_model.load(
+                        self.files[file_index]
+                    )
+
+                self.configuration.img_model.load_series_img(pos + 1)
+                self.configuration.mask_model.set_dimension(
+                    self.configuration.img_model.img_data.shape
                 )
 
-            self.configuration.img_model.load_series_img(pos + 1)
-            self.configuration.mask_model.set_dimension(
-                self.configuration.img_model.img_data.shape
-            )
+                binning, intensity = self.configuration.integrate_image_1d(
+                    update_pattern_model=False
+                )
+                image_counter += 1
+                pos_map.append((file_index, pos))
+                intensity_data.append(intensity)
+                binning_data.append(binning)
 
-            binning, intensity = self.configuration.integrate_image_1d()
-            image_counter += 1
-            pos_map.append((file_index, pos))
-            intensity_data.append(intensity)
-            binning_data.append(binning)
-
-            if callback_fn is not None:
-                if not callback_fn(image_counter):
-                    break
-
-        self.configuration.img_model.blockSignals(False)
+                if callback_fn is not None:
+                    if not callback_fn(image_counter):
+                        break
+        finally:
+            self.configuration.img_model.blockSignals(False)
 
         # deal with different x lengths due to trimmed zeros:
-        binning_lengths = [len(binning) for binning in binning_data]
+        binning_lengths = [len(b) for b in binning_data]
         binning_max_length_ind = np.argmax(binning_lengths)
         binning_max_length = binning_lengths[binning_max_length_ind]
         binning = binning_data[binning_max_length_ind]
 
-        for ind in range(len(intensity_data)):
-            intensity_data[ind] = np.append(
-                intensity_data[ind],
-                np.zeros((binning_max_length - binning_lengths[ind], 1)),
-            )
+        padded_data = np.zeros((len(intensity_data), binning_max_length))
+        for ind, intensity in enumerate(intensity_data):
+            padded_data[ind, : len(intensity)] = intensity
 
         # finish and save everything
 
@@ -301,7 +302,7 @@ class BatchModel(QtCore.QObject):
             self.used_calibration = self.configuration.calibration_model.filename
         self.pos_map = np.array(pos_map)
         self.binning = np.array(binning)
-        self.data = np.array(intensity_data)
+        self.data = padded_data
         self.bkg = None
         self.n_img = self.data.shape[0]
 
