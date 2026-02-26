@@ -424,10 +424,7 @@ class CalibrationModel(object):
         :param trim_zeros: if True, the trailing zeros in the integration will be trimmed
         :return: tth, intensity
         """
-        if (
-            np.sum(mask)
-            == self.img_model.img_data.shape[0] * self.img_model.img_data.shape[1]
-        ):
+        if mask is not None and np.all(mask):
             # do not perform integration if the image is completely masked...
             return self.tth, self.int
 

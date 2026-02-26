@@ -95,10 +95,13 @@ class Configuration(object):
         self.img_model.img_changed.connect(self.update_mask_dimension)
         self.img_model.img_changed.connect(self.integrate_image_1d)
 
-    def integrate_image_1d(self):
+    def integrate_image_1d(self, update_pattern_model=True):
         """
         Integrates the image in the ImageModel to a Pattern. Will also automatically save the integrated pattern, if
         auto_save_integrated is True.
+
+        :param update_pattern_model: If True, updates pattern_model and emits pattern_changed signal.
+            Set to False during batch/map integration to avoid unnecessary GUI updates.
         """
         if self.calibration_model.is_calibrated:
             if self.use_mask:
@@ -116,12 +119,13 @@ class Configuration(object):
                 trim_zeros=self.trim_trailing_zeros,
             )
 
-            self.pattern_model.set_pattern(
-                x, y, self.img_model.filename, unit=self.integration_unit
-            )  #
+            if update_pattern_model:
+                self.pattern_model.set_pattern(
+                    x, y, self.img_model.filename, unit=self.integration_unit
+                )
 
-            if self.auto_save_integrated_pattern:
-                self._auto_save_patterns()
+                if self.auto_save_integrated_pattern:
+                    self._auto_save_patterns()
 
             return x, y
 

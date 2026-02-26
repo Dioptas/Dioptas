@@ -20,6 +20,7 @@
 
 from glob import glob
 import os
+import time
 import typing
 
 from qtpy.QtGui import QCloseEvent, QColorSpace, QMouseEvent
@@ -1440,18 +1441,32 @@ class BatchController(object):
                 self.widget.batch_widget.position_widget.step_series_widget.get_image_range()
             )
 
-        n_int = (stop - start) / step
+        n_total = len(range(start, stop + 1, step))
         progress_dialog = get_progress_dialog(
             "Integrating multiple images.",
             "Abort Integration",
-            n_int,
+            n_total,
             self.widget.batch_widget,
         )
+        progress_dialog.setMinimumDuration(0)
+        progress_dialog.setWindowModality(QtCore.Qt.ApplicationModal)
+        label = progress_dialog.findChild(QtWidgets.QLabel)
+        if label is not None:
+            label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+
+        t_start = time.time()
 
         def callback_fn(current_index):
             if progress_dialog.wasCanceled():
                 return False
             progress_dialog.setValue(current_index)
+            elapsed = time.time() - t_start
+            rate = current_index / elapsed if elapsed > 0 else 0
+            progress_dialog.setLabelText(
+                f"Image {current_index} of {n_total}\n"
+                f"{elapsed:.1f}s elapsed\n"
+                f"{rate:.1f} img/s"
+            )
             QtWidgets.QApplication.processEvents()
             return not progress_dialog.wasCanceled()
 
