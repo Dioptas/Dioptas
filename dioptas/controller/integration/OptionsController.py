@@ -45,12 +45,26 @@ class OptionsController(object):
 
         self.model = dioptas_model
 
+        self._setup_dioptrin_checkbox()
         self.connect_signals()
+
+    def _setup_dioptrin_checkbox(self):
+        try:
+            import dioptrin  # noqa: F401
+
+            self._dioptrin_available = True
+        except ImportError:
+            self._dioptrin_available = False
+            self.options_widget.use_dioptrin_cb.setEnabled(False)
+            self.options_widget.use_dioptrin_cb.setToolTip(
+                "dioptrin package not installed"
+            )
 
     def connect_signals(self):
         self.options_widget.correct_solid_angle_cb.stateChanged.connect(self.correct_solid_angle_cb_clicked)
         self.model.configuration_selected.connect(self.update_gui)
         self.model.pattern_changed.connect(self.update_gui)
+        self.options_widget.use_dioptrin_cb.toggled.connect(self._use_dioptrin_toggled)
 
         self.options_widget.cake_azimuth_points_sb.valueChanged.connect(self.cake_azimuth_points_changed)
         self.options_widget.cake_azimuth_min_txt.editingFinished.connect(self.cake_azimuth_range_changed)
@@ -61,6 +75,15 @@ class OptionsController(object):
         self.options_widget.oned_azimuth_min_txt.editingFinished.connect(self.oned_azimuth_range_changed)
         self.options_widget.oned_azimuth_max_txt.editingFinished.connect(self.oned_azimuth_range_changed)
 
+    def _use_dioptrin_toggled(self, checked):
+        self.model.calibration_model.use_dioptrin = checked
+        if checked and self.model.calibration_model.is_calibrated:
+            self.model.calibration_model._create_dioptrin_integrator()
+        if self.model.calibration_model.is_calibrated:
+            self.model.current_configuration.integrate_image_1d()
+            if self.model.current_configuration._auto_integrate_cake:
+                self.model.current_configuration.integrate_image_2d()
+
     def correct_solid_angle_cb_clicked(self):
         self.model.current_configuration.correct_solid_angle = self.options_widget.correct_solid_angle_cb.isChecked()
 
@@ -70,6 +93,10 @@ class OptionsController(object):
         self.options_widget.correct_solid_angle_cb.blockSignals(True)
         self.options_widget.correct_solid_angle_cb.setChecked(int(self.model.current_configuration.correct_solid_angle))
         self.options_widget.correct_solid_angle_cb.blockSignals(False)
+
+        self.options_widget.use_dioptrin_cb.blockSignals(True)
+        self.options_widget.use_dioptrin_cb.setChecked(self.model.calibration_model.use_dioptrin)
+        self.options_widget.use_dioptrin_cb.blockSignals(False)
 
         self.options_widget.bin_count_txt.blockSignals(True)
         self.options_widget.bin_count_txt.setText("{:1.0f}".format(self.model.calibration_model.num_points))

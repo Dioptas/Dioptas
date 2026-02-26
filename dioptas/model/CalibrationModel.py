@@ -117,6 +117,36 @@ class CalibrationModel(object):
 
         self.detector_reset = Signal()
 
+        self.use_dioptrin = False
+        self._dioptrin_integrator = None
+
+    def _get_poni_dict(self):
+        return {
+            "pixel1": self.orig_pixel1,
+            "pixel2": self.orig_pixel2,
+            "distance": self.pattern_geometry.dist,
+            "poni1": self.pattern_geometry.poni1,
+            "poni2": self.pattern_geometry.poni2,
+            "rot1": self.pattern_geometry.rot1,
+            "rot2": self.pattern_geometry.rot2,
+            "rot3": self.pattern_geometry.rot3,
+            "wavelength": self.pattern_geometry.wavelength,
+        }
+
+    def _create_dioptrin_integrator(self):
+        try:
+            import dioptrin
+
+            self._dioptrin_integrator = dioptrin.Integrator.from_poni_dict(
+                self._get_poni_dict(),
+                method="pixel_split",
+                polarization_factor=self.polarization_factor,
+                unit="2th_deg",
+            )
+        except ImportError:
+            self._dioptrin_integrator = None
+            self.use_dioptrin = False
+
     def find_peaks_automatic(self, x, y, peak_ind):
         """
         Searches peaks by using the Massif algorithm
@@ -188,6 +218,8 @@ class CalibrationModel(object):
         )
         self.cake_geometry.set_config(self.pattern_geometry.get_config())
         self.cake_geometry.detector = self.detector
+        if self.use_dioptrin:
+            self._create_dioptrin_integrator()
 
     def setup_peak_search_algorithm(self, algorithm, mask=None):
         """
@@ -438,6 +470,63 @@ class CalibrationModel(object):
 
         self._check_detector_and_image_shape()
         mask = self._prepare_integration_mask(mask)
+
+        if self.use_dioptrin and self._dioptrin_integrator is not None:
+            dioptrin_supported = unit in ("2th_deg", "q_A^-1", "q_nm^-1", "d_A")
+            needs_pyFAI = (
+                (azi_range is not None)
+                or (not self.correct_solid_angle)
+                or (not dioptrin_supported)
+            )
+            if not needs_pyFAI:
+                img_data = np.ascontiguousarray(
+                    self.img_model.img_data, dtype=np.float64
+                )
+
+                if num_points is None:
+                    num_points = self.calculate_number_of_pattern_points(
+                        img_data.shape, 2
+                    )
+                self.num_points = num_points
+
+                if self.supersampling_factor > 1:
+                    self._dioptrin_integrator.set_method(
+                        "supersampled", n_ss=self.supersampling_factor
+                    )
+                else:
+                    self._dioptrin_integrator.set_method("pixel_split")
+
+                dioptrin_unit = "2th_deg" if unit == "d_A" else unit
+                self._dioptrin_integrator.set_unit(dioptrin_unit)
+                self._dioptrin_integrator.set_mask(
+                    mask.astype(np.uint8) if mask is not None else None
+                )
+                self._dioptrin_integrator.set_polarization_factor(polarization_factor)
+
+                t1 = time.time()
+                result = self._dioptrin_integrator.integrate1d(img_data, num_points)
+                self.tth = np.array(result.radial)
+                self.int = np.array(result.intensity)
+
+                if unit == "d_A":
+                    self.tth = (
+                        self.pattern_geometry.wavelength
+                        / (2 * np.sin(self.tth / 360 * np.pi))
+                        * 1e10
+                    )
+
+                logger.info(
+                    "1d integration (dioptrin) of {0}: {1}s.".format(
+                        os.path.basename(self.img_model.filename), time.time() - t1
+                    )
+                )
+
+                if np.sum(self.int) != 0 and trim_zeros:
+                    self.tth, self.int = trim_trailing_zeros(self.tth, self.int)
+
+                return self.tth, self.int
+
+        # pyFAI path
         img_data, mask = self._prepare_integration_super_sampling(mask)
 
         if num_points is None:
@@ -536,6 +625,65 @@ class CalibrationModel(object):
 
         self._check_detector_and_image_shape()
         mask = self._prepare_integration_mask(mask)
+
+        if self.use_dioptrin and self._dioptrin_integrator is not None:
+            dioptrin_supported = unit in ("2th_deg", "q_A^-1", "q_nm^-1")
+            needs_pyFAI = (not self.correct_solid_angle) or (not dioptrin_supported)
+            if not needs_pyFAI:
+                img_data = np.ascontiguousarray(
+                    self.img_model.img_data, dtype=np.float64
+                )
+
+                if rad_points is None:
+                    rad_points = self.calculate_number_of_pattern_points(
+                        img_data.shape, 2
+                    )
+                self.num_points = rad_points
+
+                if self.supersampling_factor > 1:
+                    self._dioptrin_integrator.set_method(
+                        "supersampled", n_ss=self.supersampling_factor
+                    )
+                else:
+                    self._dioptrin_integrator.set_method("pixel_split")
+
+                self._dioptrin_integrator.set_unit(unit)
+                self._dioptrin_integrator.set_mask(
+                    mask.astype(np.uint8) if mask is not None else None
+                )
+                self._dioptrin_integrator.set_polarization_factor(polarization_factor)
+
+                azi_range_rad = None
+                if azimuth_range is not None:
+                    azi_range_rad = (
+                        np.radians(azimuth_range[0]),
+                        np.radians(azimuth_range[1]),
+                    )
+
+                t1 = time.time()
+                result = self._dioptrin_integrator.integrate2d(
+                    img_data, rad_points, azimuth_points,
+                    azimuthal_range=azi_range_rad,
+                )
+
+                self.cake_img = np.array(result.intensity).reshape(
+                    azimuth_points, rad_points
+                )
+                self.cake_tth = (
+                    np.array(result.radial) if result.radial is not None else None
+                )
+                self.cake_azi = (
+                    np.array(result.azimuthal) if result.azimuthal is not None else None
+                )
+
+                logger.info(
+                    "2d integration (dioptrin) of {0}: {1}s.".format(
+                        os.path.basename(self.img_model.filename), time.time() - t1
+                    )
+                )
+                return self.cake_img
+
+        # pyFAI path
         img_data, mask = self._prepare_integration_super_sampling(mask)
 
         if rad_points is None:
@@ -699,6 +847,8 @@ class CalibrationModel(object):
         self.is_calibrated = True
         self.create_cake_geometry()
         self.set_supersampling()
+        if self.use_dioptrin:
+            self._create_dioptrin_integrator()
 
     def save(self, filename):
         """
@@ -817,6 +967,8 @@ class CalibrationModel(object):
         self.polarization_factor = pyFAI_parameter["polarization_factor"]
         self.is_calibrated = True
         self.set_supersampling()
+        if self.use_dioptrin:
+            self._create_dioptrin_integrator()
 
     def get_pyFAI_config(self) -> dict:
         """
@@ -859,6 +1011,8 @@ class CalibrationModel(object):
         self.create_cake_geometry()
         self.is_calibrated = True
         self.set_supersampling()
+        if self.use_dioptrin:
+            self._create_dioptrin_integrator()
 
     def load_distortion(self, spline_filename):
         self.distortion_spline_filename = spline_filename

@@ -88,10 +88,13 @@ class OptionsWidget(QtWidgets.QWidget):
         self._integration_gb_layout.addWidget(LabelAlignRight("Supersampling:"), 3, 0)
         self._integration_gb_layout.addWidget(self.supersampling_sb, 3, 1)
 
+        self.use_dioptrin_cb = QtWidgets.QCheckBox("Use Dioptrin")
+        self._integration_gb_layout.addWidget(self.use_dioptrin_cb, 4, 1)
+
         self._integration_gb_layout.setRowStretch(0, 0)
         self._integration_gb_layout.setRowStretch(1, 0)
         self._integration_gb_layout.setRowStretch(2, 0)
-        self._integration_gb_layout.setRowStretch(5, 1)
+        self._integration_gb_layout.setRowStretch(6, 1)
         self._integration_gb_layout.setColumnStretch(0, 0)
         self._integration_gb_layout.setColumnStretch(1, 0)
         self._integration_gb_layout.setColumnStretch(2, 0)
