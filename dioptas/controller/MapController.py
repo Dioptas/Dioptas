@@ -112,7 +112,7 @@ class MapController(object):
         )
         progressDialog.setMinimumDuration(0)
         progressDialog.setWindowModality(QtCore.Qt.ApplicationModal)
-        label = progressDialog.label()
+        label = progressDialog.findChild(QtWidgets.QLabel)
         if label is not None:
             label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 

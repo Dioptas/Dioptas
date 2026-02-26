@@ -1450,7 +1450,7 @@ class BatchController(object):
         )
         progress_dialog.setMinimumDuration(0)
         progress_dialog.setWindowModality(QtCore.Qt.ApplicationModal)
-        label = progress_dialog.label()
+        label = progress_dialog.findChild(QtWidgets.QLabel)
         if label is not None:
             label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
