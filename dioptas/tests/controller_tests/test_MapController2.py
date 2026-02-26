@@ -84,7 +84,8 @@ def test_click_load_starts_creating_map(map_controller, map_model: MapModel2):
     mock_open_filenames(map_img_file_paths)
     mock_integrate_1d(map_controller)
     map_controller.load_btn_clicked()
-    map_model.load.assert_called_once_with(map_img_file_paths)
+    map_model.load.assert_called_once()
+    assert map_model.load.call_args[0][0] == map_img_file_paths
 
 
 def test_click_load_empties_file_list_without_calibration(

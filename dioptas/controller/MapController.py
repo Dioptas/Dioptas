@@ -18,11 +18,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import os
+import time
 from PIL import Image
 from typing import Optional
 
 import numpy as np
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtCore
 
 from dioptas.model.DioptasModel import DioptasModel
 from dioptas.model.util.calc import convert_units
@@ -107,24 +108,38 @@ class MapController(object):
             return
 
         progressDialog = get_progress_dialog(
-            "Loading image data", "Abort Integration", 100, self.widget.map_pg_layout
+            "Integrating image data...", "Abort Integration", 100, self.widget.map_pg_layout
+        )
+        progressDialog.setMinimumDuration(0)
+        progressDialog.setWindowModality(QtCore.Qt.ApplicationModal)
+        progressDialog.findChild(QtWidgets.QLabel).setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
         )
 
-        def update_progress_dialog(value):
-            progress_value = int(value / len(filenames) * 100)
-            progressDialog.setValue(progress_value)
-            QtWidgets.QApplication.processEvents()
+        t_start = time.time()
 
-        self.model.map_model.point_integrated.connect(update_progress_dialog)
+        def callback_fn(current, n_total):
+            if progressDialog.wasCanceled():
+                return False
+            progressDialog.setValue(int(current / n_total * 100))
+            elapsed = time.time() - t_start
+            rate = current / elapsed if elapsed > 0 else 0
+            progressDialog.setLabelText(
+                f"Image {current} of {n_total}\n"
+                f"{elapsed:.1f}s elapsed\n"
+                f"{rate:.1f} img/s"
+            )
+            QtWidgets.QApplication.processEvents()
+            return not progressDialog.wasCanceled()
+
         try:
-            self.model.map_model.load(filenames)
+            self.model.map_model.load(filenames, callback_fn=callback_fn)
             self.model.map_model.select_point(0, 0)
         except ValueError as e:
             QtWidgets.QMessageBox.critical(
                 self.widget, "Error loading image data.", str(e)
             )
         finally:
-            self.model.map_model.point_integrated.disconnect(progressDialog.setValue)
             progressDialog.close()
 
     def _save_map(self):

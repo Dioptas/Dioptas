@@ -65,14 +65,14 @@ class MapModel2:
         self.possible_dimensions = None
         self.map = None
 
-    def load(self, filepaths: list[str]):
+    def load(self, filepaths: list[str], callback_fn=None):
         """Loads a list of files, integrates them and creates a map"""
         if len(filepaths) == 0:
             raise ValueError("No files to load")
 
         self.filepaths = filepaths
 
-        self.integrate()
+        self.integrate(callback_fn=callback_fn)
 
         if self.window is None:
             self.window = get_center_window(self.pattern_x)
@@ -91,7 +91,7 @@ class MapModel2:
         self.map = create_map(self.window_intensities, self.dimension)
         self.map_changed.emit()
 
-    def integrate(self):
+    def integrate(self, callback_fn=None):
         """Integrates all files in the filepaths list and stores the results"""
         if not self.configuration.calibration_model.is_calibrated:
             raise ValueError("Detector geometry is not calibrated")
@@ -110,7 +110,7 @@ class MapModel2:
         self.configuration.img_model.img_changed.blocked = True
 
         try:
-            self._integrate()
+            self._integrate(callback_fn=callback_fn)
         except Exception as e:
             self._reset()
             raise e
@@ -119,15 +119,24 @@ class MapModel2:
             self.configuration.trim_trailing_zeros = trim_trailing_zeros_backup
             self.configuration.img_model.img_changed.blocked = False
 
-    def _integrate(self):
+    def _integrate(self, callback_fn=None):
+        frame_count = 0
+        n_total = None
+
         for file_ind, filepath in enumerate(self.filepaths):
             self.configuration.img_model.load(filepath)
 
-            for frame_ind in range(self.configuration.img_model.series_max):
-                self.configuration.img_model.load_series_img(frame_ind + 1)
-                x, y = self.configuration.integrate_image_1d()
+            series_max = self.configuration.img_model.series_max
+            if n_total is None:
+                n_total = len(self.filepaths) * series_max
 
-                if file_ind == 0:
+            for frame_ind in range(series_max):
+                self.configuration.img_model.load_series_img(frame_ind + 1)
+                x, y = self.configuration.integrate_image_1d(
+                    update_pattern_model=False
+                )
+
+                if file_ind == 0 and frame_ind == 0:
                     self.pattern_x = x
                 else:
                     if len(x) != len(self.pattern_x):
@@ -138,9 +147,15 @@ class MapModel2:
                 self.point_infos.append(MapPointInfo(filepath, frame_ind))
                 self.pattern_intensities.append(y)
 
+                frame_count += 1
                 self.point_integrated.emit(
-                    file_ind + (frame_ind + 1) / self.configuration.img_model.series_max
+                    file_ind + (frame_ind + 1) / series_max
                 )
+
+                if callback_fn is not None and not callback_fn(frame_count, n_total):
+                    self.pattern_intensities = np.array(self.pattern_intensities)
+                    return
+
         self.pattern_intensities = np.array(self.pattern_intensities)
 
     def _reset(self):

@@ -249,7 +249,7 @@ def get_progress_dialog(
         message, abort_text, 0, int(num_points), parent=parent
     )
     progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
-    progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+    progress_dialog.setWindowFlags(QtCore.Qt.Dialog | QtCore.Qt.FramelessWindowHint)
     pos = parent.rect().center()
     progress_dialog.move(
         int(pos.x() - progress_dialog.width() / 2), int(pos.y() - progress_dialog.height() / 2)
