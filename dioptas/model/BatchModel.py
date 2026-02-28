@@ -241,17 +241,31 @@ class BatchModel(QtCore.QObject):
         :param callback_fn: callback function which is called each iteration with the current image number as parameter,
                             if it returns False the integration will be aborted.
         """
-        intensity_data = []
-        binning_data = []
-        pos_map = []
-        image_counter = 0
-        current_file = ""
-
         if self.configuration.use_mask:
             if self.configuration.mask_model.filename != "":
                 self.used_mask = self.configuration.mask_model.filename
             mask = self.configuration.mask_model.get_mask()
             self.used_mask_shape = mask.shape
+
+        cal = self.configuration.calibration_model
+        unit = self.configuration.integration_unit
+        azi_range = self.configuration.oned_azimuth_range
+
+        if cal.can_use_dioptrin_batch(unit, azi_range):
+            self._integrate_raw_data_dioptrin_batch(
+                start, stop, step, use_all, callback_fn
+            )
+        else:
+            self._integrate_raw_data_pyFAI(start, stop, step, use_all, callback_fn)
+
+    def _integrate_raw_data_pyFAI(
+        self, start, stop, step, use_all=False, callback_fn=None
+    ):
+        intensity_data = []
+        binning_data = []
+        pos_map = []
+        image_counter = 0
+        current_file = ""
 
         # Block img_changed to prevent auto-integration and GUI updates
         self.configuration.img_model.blockSignals(True)
@@ -303,6 +317,111 @@ class BatchModel(QtCore.QObject):
         self.pos_map = np.array(pos_map)
         self.binning = np.array(binning)
         self.data = padded_data
+        self.bkg = None
+        self.n_img = self.data.shape[0]
+
+    def _integrate_raw_data_dioptrin_batch(
+        self, start, stop, step, use_all=False, callback_fn=None
+    ):
+        """Load frames through ImgModel, integrate via batch1d_iter with generator."""
+        cal = self.configuration.calibration_model
+        unit = self.configuration.integration_unit
+        num_points = self.configuration.integration_rad_points
+
+        if self.configuration.use_mask:
+            mask = self.configuration.mask_model.get_mask()
+        elif self.configuration.mask_model.roi is not None:
+            mask = self.configuration.mask_model.roi_mask
+        else:
+            mask = None
+
+        indices = list(range(start, stop, step))
+        source = self.pos_map_all if use_all else self.pos_map
+
+        # Configure integrator: load one image to get shape
+        first_file_index = source[indices[0]][0]
+        self.configuration.img_model.blockSignals(True)
+        try:
+            self.configuration.calibration_model.img_model.load(
+                self.files[first_file_index]
+            )
+            self.configuration.mask_model.set_dimension(
+                self.configuration.img_model.img_data.shape
+            )
+            img_shape = self.configuration.img_model.img_data.shape
+            num_points = cal.sync_dioptrin_for_batch(mask, unit, num_points, img_shape)
+
+            # Build pos_map for all indices
+            all_pos_map = [(source[i][0], source[i][1]) for i in indices]
+
+            intensity_data = []
+            pos_map = []
+            binning = None
+            aborted = False
+
+            current_file = ""
+
+            def frame_generator():
+                nonlocal current_file
+                for index in indices:
+                    if aborted:
+                        return
+                    file_index, pos = source[index]
+                    if file_index != current_file:
+                        current_file = file_index
+                        self.configuration.calibration_model.img_model.load(
+                            self.files[file_index]
+                        )
+                    self.configuration.img_model.load_series_img(pos + 1)
+                    self.configuration.mask_model.set_dimension(
+                        self.configuration.img_model.img_data.shape
+                    )
+                    yield np.ascontiguousarray(
+                        self.configuration.img_model.img_data, dtype=np.float64
+                    )
+
+            result_iter = cal.dioptrin_batch1d_iter(frame_generator(), num_points)
+
+            for i, result in enumerate(result_iter):
+                if not result.is_ok():
+                    raise RuntimeError(
+                        f"Dioptrin batch integration failed: {result.error}"
+                    )
+
+                x = np.array(result.result.radial)
+                y = np.array(result.result.intensity)
+
+                if binning is None:
+                    binning = x
+                intensity_data.append(y)
+                pos_map.append(all_pos_map[i])
+
+                if callback_fn is not None:
+                    if not callback_fn(i + 1):
+                        aborted = True
+                        break
+        finally:
+            self.configuration.img_model.blockSignals(False)
+
+        self._finalize_batch_results(cal, intensity_data, pos_map, binning, unit)
+
+    def _finalize_batch_results(self, cal, intensity_data, pos_map, binning, unit):
+        """Store batch integration results."""
+        if not intensity_data:
+            return
+
+        if unit == "d_A":
+            binning = (
+                cal.pattern_geometry.wavelength
+                / (2 * np.sin(binning / 360 * np.pi))
+                * 1e10
+            )
+
+        if self.configuration.calibration_model.filename != "":
+            self.used_calibration = self.configuration.calibration_model.filename
+        self.pos_map = np.array(pos_map)
+        self.binning = np.array(binning)
+        self.data = np.array(intensity_data)
         self.bkg = None
         self.n_img = self.data.shape[0]
 

@@ -74,6 +74,9 @@ class MapModel2:
 
         self.integrate(callback_fn=callback_fn)
 
+        if len(self.pattern_intensities) == 0:
+            return
+
         if self.window is None:
             self.window = get_center_window(self.pattern_x)
 
@@ -120,6 +123,16 @@ class MapModel2:
             self.configuration.img_model.img_changed.blocked = False
 
     def _integrate(self, callback_fn=None):
+        cal = self.configuration.calibration_model
+        unit = self.configuration.integration_unit
+        azi_range = self.configuration.oned_azimuth_range
+
+        if cal.can_use_dioptrin_batch(unit, azi_range):
+            self._integrate_dioptrin_batch(callback_fn=callback_fn)
+        else:
+            self._integrate_pyFAI(callback_fn=callback_fn)
+
+    def _integrate_pyFAI(self, callback_fn=None):
         frame_count = 0
         n_total = None
 
@@ -157,6 +170,83 @@ class MapModel2:
                     return
 
         self.pattern_intensities = np.array(self.pattern_intensities)
+
+    def _integrate_dioptrin_batch(self, callback_fn=None):
+        """Load frames through ImgModel, integrate via batch1d_iter with generator."""
+        cal = self.configuration.calibration_model
+        unit = self.configuration.integration_unit
+        num_points = self.configuration.integration_rad_points
+
+        if self.configuration.use_mask:
+            mask = self.configuration.mask_model.get_mask()
+        elif self.configuration.mask_model.roi is not None:
+            mask = self.configuration.mask_model.roi_mask
+        else:
+            mask = None
+
+        # Load first file to get shape and configure integrator
+        self.configuration.img_model.load(self.filepaths[0])
+        img_shape = self.configuration.img_model.img_data.shape
+        num_points = cal.sync_dioptrin_for_batch(mask, unit, num_points, img_shape)
+
+        # Build point_infos list and count total frames
+        all_infos = []
+        for filepath in self.filepaths:
+            self.configuration.img_model.load(filepath)
+            for frame_ind in range(self.configuration.img_model.series_max):
+                all_infos.append(MapPointInfo(filepath, frame_ind))
+        n_total = len(all_infos)
+
+        aborted = False
+
+        def frame_generator():
+            for filepath in self.filepaths:
+                if aborted:
+                    return
+                self.configuration.img_model.load(filepath)
+                for frame_ind in range(self.configuration.img_model.series_max):
+                    if aborted:
+                        return
+                    self.configuration.img_model.load_series_img(frame_ind + 1)
+                    yield np.ascontiguousarray(
+                        self.configuration.img_model.img_data, dtype=np.float64
+                    )
+
+        result_iter = cal.dioptrin_batch1d_iter(frame_generator(), num_points)
+
+        for i, result in enumerate(result_iter):
+            if not result.is_ok():
+                raise RuntimeError(
+                    f"Dioptrin batch integration failed: {result.error}"
+                )
+
+            x = np.array(result.result.radial)
+            y = np.array(result.result.intensity)
+            frame_count = i + 1
+
+            if frame_count == 1:
+                self.pattern_x = x
+            else:
+                if len(x) != len(self.pattern_x):
+                    raise ValueError(
+                        "The integrated patterns have different length, "
+                        "this is not supported"
+                    )
+
+            self.point_infos.append(all_infos[i])
+            self.pattern_intensities.append(y)
+            self.point_integrated.emit(frame_count)
+
+            if callback_fn is not None and not callback_fn(frame_count, n_total):
+                aborted = True
+                break
+
+        self.pattern_intensities = np.array(self.pattern_intensities)
+
+        if unit == "d_A":
+            self.pattern_x = _convert_tth_to_d(
+                self.pattern_x, cal.pattern_geometry.wavelength
+            )
 
     def _reset(self):
         self.filepaths = None
@@ -310,3 +400,8 @@ def create_map(data: np.ndarray, dimension: tuple[int, int]) -> np.ndarray:
     """
     new_data = np.copy(data)
     return np.reshape(new_data, dimension)
+
+
+def _convert_tth_to_d(tth_array, wavelength):
+    """Convert two-theta (degrees) to d-spacing (Angstrom)."""
+    return wavelength / (2 * np.sin(tth_array / 360 * np.pi)) * 1e10

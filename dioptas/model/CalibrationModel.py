@@ -117,8 +117,13 @@ class CalibrationModel(object):
 
         self.detector_reset = Signal()
 
-        self.use_dioptrin = False
         self._dioptrin_integrator = None
+        self.dioptrin_num_workers = 10
+        try:
+            import dioptrin  # noqa: F401
+            self.use_dioptrin = True
+        except ImportError:
+            self.use_dioptrin = False
 
     def _get_poni_dict(self):
         return {
@@ -146,6 +151,58 @@ class CalibrationModel(object):
         except ImportError:
             self._dioptrin_integrator = None
             self.use_dioptrin = False
+
+    def can_use_dioptrin_batch(self, unit, azi_range=None):
+        """Check whether dioptrin batch integration can be used for the given parameters."""
+        if not self.use_dioptrin:
+            return False
+        if self._dioptrin_integrator is None:
+            return False
+        if azi_range is not None:
+            return False
+        if not self.correct_solid_angle:
+            return False
+        if unit not in ("2th_deg", "q_A^-1", "q_nm^-1", "d_A"):
+            return False
+        return True
+
+    def sync_dioptrin_for_batch(self, mask, unit, num_points, img_shape):
+        """Configure the dioptrin integrator once before a batch run.
+
+        Sets method, unit, mask, and polarization. Resolves num_points
+        if None. Returns the resolved num_points.
+        """
+        if self.supersampling_factor > 1:
+            self._dioptrin_integrator.set_method(
+                "supersampled", n_ss=self.supersampling_factor
+            )
+        else:
+            self._dioptrin_integrator.set_method("pixel_split")
+
+        dioptrin_unit = "2th_deg" if unit == "d_A" else unit
+        self._dioptrin_integrator.set_unit(dioptrin_unit)
+
+        mask = self._prepare_integration_mask(mask)
+        self._dioptrin_integrator.set_mask(
+            mask.astype(np.uint8) if mask is not None else None
+        )
+        self._dioptrin_integrator.set_polarization_factor(self.polarization_factor)
+
+        if num_points is None:
+            num_points = self.calculate_number_of_pattern_points(img_shape, 2)
+        return num_points
+
+    def dioptrin_batch1d(self, images, num_points):
+        """Run dioptrin batch 1D integration on a list of file paths or numpy arrays."""
+        return self._dioptrin_integrator.batch1d(
+            images, num_points, num_workers=self.dioptrin_num_workers
+        )
+
+    def dioptrin_batch1d_iter(self, images, num_points):
+        """Run streaming dioptrin batch 1D integration (supports generators)."""
+        return self._dioptrin_integrator.batch1d_iter(
+            images, num_points, num_workers=self.dioptrin_num_workers
+        )
 
     def find_peaks_automatic(self, x, y, peak_ind):
         """
