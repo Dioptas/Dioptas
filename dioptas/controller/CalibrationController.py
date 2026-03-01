@@ -296,9 +296,9 @@ class CalibrationController(object):
         )
 
     def _update_spline_in_gui(self):
-        if self.model.calibration_model.detector.splineFile is not None:
+        if self.model.calibration_model.detector.splinefile is not None:
             self.widget.spline_filename_txt.setText(
-                os.path.basename(self.model.calibration_model.detector.splineFile)
+                os.path.basename(self.model.calibration_model.detector.splinefile)
             )
         elif not self.model.calibration_model.detector.uniform_pixel:
             self.widget.spline_filename_txt.setText("from Detector")

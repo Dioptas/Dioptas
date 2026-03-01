@@ -248,8 +248,8 @@ class ProjectSaveLoadTest(QtTest):
             saved_pyfai_params, _ = (
                 self.model.calibration_model.get_calibration_parameter()
             )
-            if "splineFile" in saved_pyfai_params:
-                del saved_pyfai_params["splineFile"]
+            for key in ("splineFile", "splinefile"):
+                saved_pyfai_params.pop(key, None)
             if "max_shape" in saved_pyfai_params:
                 del saved_pyfai_params["max_shape"]
             self.assertDictEqual(saved_pyfai_params, pyfai_params)

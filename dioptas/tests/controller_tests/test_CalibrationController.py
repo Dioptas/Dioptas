@@ -178,8 +178,8 @@ class TestCalibrationController(QtTest):
     def test_load_detector_with_distortion(self):
         # create detector and save it
         spline_detector = detectors.Detector()
-        spline_detector.set_splineFile(
-            os.path.join(unittest_data_path, "distortion", "f4mnew.spline")
+        spline_detector.splinefile = os.path.join(
+            unittest_data_path, "distortion", "f4mnew.spline"
         )
         spline_detector.save(
             os.path.join(unittest_data_path, "detector_with_spline.h5")
@@ -332,12 +332,8 @@ class TestCalibrationController(QtTest):
             0
         ].calibration_model.pattern_geometry.getPyFAI()
         del model_calibration["detector"]
-        if "splineFile" in model_calibration.keys():
-            del model_calibration["splineFile"]
-        if "max_shape" in model_calibration.keys():
-            del model_calibration["max_shape"]
-        if "orientation" in model_calibration.keys():
-            del model_calibration["orientation"]
+        for key in ("splineFile", "splinefile", "max_shape", "orientation"):
+            model_calibration.pop(key, None)
 
         current_displayed_calibration = self.widget.get_pyFAI_parameter()
         del current_displayed_calibration["polarization_factor"]
@@ -348,12 +344,8 @@ class TestCalibrationController(QtTest):
             1
         ].calibration_model.pattern_geometry.getPyFAI()
         del model_calibration["detector"]
-        if "splineFile" in model_calibration.keys():
-            del model_calibration["splineFile"]
-        if "max_shape" in model_calibration.keys():
-            del model_calibration["max_shape"]
-        if "orientation" in model_calibration.keys():
-            del model_calibration["orientation"]
+        for key in ("splineFile", "splinefile", "max_shape", "orientation"):
+            model_calibration.pop(key, None)
         current_displayed_calibration = self.widget.get_pyFAI_parameter()
         del current_displayed_calibration["polarization_factor"]
 

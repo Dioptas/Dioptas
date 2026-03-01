@@ -271,7 +271,7 @@ class CalibrationModel(object):
 
     def create_cake_geometry(self):
         self.cake_geometry = AzimuthalIntegrator(
-            splineFile=self.distortion_spline_filename
+            splinefile=self.distortion_spline_filename
         )
         self.cake_geometry.set_config(self.pattern_geometry.get_config())
         self.cake_geometry.detector = self.detector
@@ -422,7 +422,7 @@ class CalibrationModel(object):
             wavelength=self.start_values["wavelength"],
             detector=self.detector,
             calibrant=self.calibrant,
-            splineFile=self.distortion_spline_filename,
+            splinefile=self.distortion_spline_filename,
         )
 
         self.refine()
@@ -822,7 +822,7 @@ class CalibrationModel(object):
         return self.create_point_array(self.points, self.points_index)
 
     def get_calibration_parameter(self):
-        pyFAI_parameter = self.pattern_geometry.getPyFAI()
+        pyFAI_parameter = self.pattern_geometry.get_config()
         pyFAI_parameter["polarization_factor"] = self.polarization_factor
         try:
             fit2d_obj = self.pattern_geometry.getFit2D()
@@ -1089,16 +1089,16 @@ class CalibrationModel(object):
 
     def load_distortion(self, spline_filename):
         self.distortion_spline_filename = spline_filename
-        self.pattern_geometry.set_splineFile(spline_filename)
+        self.pattern_geometry.splinefile = spline_filename
         if self.cake_geometry:
-            self.cake_geometry.set_splineFile(spline_filename)
+            self.cake_geometry.splinefile = spline_filename
 
     def reset_distortion_correction(self):
         self.distortion_spline_filename = None
-        self.detector.set_splineFile(None)
-        self.pattern_geometry.set_splineFile(None)
+        self.detector.splinefile = None
+        self.pattern_geometry.splinefile = None
         if self.cake_geometry:
-            self.cake_geometry.set_splineFile(None)
+            self.cake_geometry.splinefile = None
 
     def set_supersampling(self, factor=None):
         """

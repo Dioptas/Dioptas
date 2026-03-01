@@ -604,8 +604,8 @@ def test_load_detector_from_file(calibration_model):
 def test_load_detector_with_spline_file(calibration_model, tmp_path):
     # create detector and save it
     spline_detector = Detector()
-    spline_detector.set_splineFile(
-        os.path.join(data_path, "distortion", "f4mnew.spline")
+    spline_detector.splinefile = os.path.join(
+        data_path, "distortion", "f4mnew.spline"
     )
     spline_detector.save(os.path.join(tmp_path, "detector_with_spline.h5"))
 
