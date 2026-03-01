@@ -149,6 +149,7 @@ def test_integrates_each_image_only_once(
     x = np.linspace(0, 10, 100)
     y = np.sin(x)
     configuration.calibration_model.integrate_1d = MagicMock(return_value=(x, y))
+    configuration.calibration_model.can_use_dioptrin_batch = MagicMock(return_value=False)
     map_model.load(map_img_file_paths)
 
     assert configuration.calibration_model.integrate_1d.call_count == len(

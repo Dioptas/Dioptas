@@ -36,6 +36,17 @@ from .MapModel2 import MapModel2
 from .CalibrationModel import DetectorModes
 
 
+def _json_numpy_default(obj):
+    """JSON encoder default for numpy int/float types."""
+    if isinstance(obj, np.integer):
+        return int(obj)
+    if isinstance(obj, np.floating):
+        return float(obj)
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
+
+
 class Configuration(object):
     """
     The configuration class contains a working combination of an ImgModel, PatternModel, MaskModel and CalibrationModel.
@@ -566,7 +577,9 @@ class Configuration(object):
         calibration_group.attrs["calibration_filename"] = base_filename + "." + ext
 
         pyfai_config = self.calibration_model.pattern_geometry.get_config()
-        calibration_group.attrs["pyfai_parameters"] = json.dumps(pyfai_config)
+        calibration_group.attrs["pyfai_parameters"] = json.dumps(
+            pyfai_config, default=_json_numpy_default
+        )
         calibration_group.attrs["polarization_factor"] = (
             self.calibration_model.polarization_factor
         )
@@ -844,10 +857,10 @@ class Configuration(object):
                     params[param] = val
                 if name == "cbn":
                     tth_array = (
-                        180.0 / np.pi * self.calibration_model.pattern_geometry.ttha
+                        180.0 / np.pi * self.calibration_model.tth_array
                     )
                     azi_array = (
-                        180.0 / np.pi * self.calibration_model.pattern_geometry.chia
+                        180.0 / np.pi * self.calibration_model.azi_array
                     )
                     cbn_correction = CbnCorrection(
                         tth_array=tth_array, azi_array=azi_array
@@ -858,10 +871,10 @@ class Configuration(object):
                     self.img_model.add_img_correction(cbn_correction, name)
                 elif name == "oiadac":
                     tth_array = (
-                        180.0 / np.pi * self.calibration_model.pattern_geometry.ttha
+                        180.0 / np.pi * self.calibration_model.tth_array
                     )
                     azi_array = (
-                        180.0 / np.pi * self.calibration_model.pattern_geometry.chia
+                        180.0 / np.pi * self.calibration_model.azi_array
                     )
                     oiadac = ObliqueAngleDetectorAbsorptionCorrection(
                         tth_array=tth_array, azi_array=azi_array

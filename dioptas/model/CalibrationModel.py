@@ -118,7 +118,7 @@ class CalibrationModel(object):
         self.detector_reset = Signal()
 
         self._dioptrin_integrator = None
-        self.dioptrin_num_workers = 10
+        self.dioptrin_num_workers = max((os.cpu_count() or 4) - 1, 1)
         try:
             import dioptrin  # noqa: F401
             self.use_dioptrin = True
@@ -685,7 +685,8 @@ class CalibrationModel(object):
 
         if self.use_dioptrin and self._dioptrin_integrator is not None:
             dioptrin_supported = unit in ("2th_deg", "q_A^-1", "q_nm^-1")
-            needs_pyFAI = (not self.correct_solid_angle) or (not dioptrin_supported)
+            wrapping_azi = azimuth_range is not None and azimuth_range[0] > azimuth_range[1]
+            needs_pyFAI = (not self.correct_solid_angle) or (not dioptrin_supported) or wrapping_azi
             if not needs_pyFAI:
                 img_data = np.ascontiguousarray(
                     self.img_model.img_data, dtype=np.float64
@@ -726,12 +727,26 @@ class CalibrationModel(object):
                 self.cake_img = np.array(result.intensity).reshape(
                     azimuth_points, rad_points
                 )
-                self.cake_tth = (
-                    np.array(result.radial) if result.radial is not None else None
-                )
-                self.cake_azi = (
-                    np.array(result.azimuthal) if result.azimuthal is not None else None
-                )
+                if result.radial is not None:
+                    self.cake_tth = np.array(result.radial)
+                else:
+                    tth_arr = self.cake_geometry.center_array(
+                        img_data.shape, unit=unit
+                    )
+                    tth_min, tth_max = tth_arr.min(), tth_arr.max()
+                    half_step = (tth_max - tth_min) / rad_points / 2
+                    self.cake_tth = np.linspace(
+                        tth_min + half_step, tth_max - half_step, rad_points
+                    )
+                if result.azimuthal is not None:
+                    self.cake_azi = np.array(result.azimuthal)
+                else:
+                    azi_min = azimuth_range[0] if azimuth_range else -180.0
+                    azi_max = azimuth_range[1] if azimuth_range else 180.0
+                    half_step = (azi_max - azi_min) / azimuth_points / 2
+                    self.cake_azi = np.linspace(
+                        azi_min + half_step, azi_max - half_step, azimuth_points
+                    )
 
                 logger.info(
                     "2d integration (dioptrin) of {0}: {1}s.".format(
@@ -810,7 +825,8 @@ class CalibrationModel(object):
         pyFAI_parameter = self.pattern_geometry.getPyFAI()
         pyFAI_parameter["polarization_factor"] = self.polarization_factor
         try:
-            fit2d_parameter = self.pattern_geometry.getFit2D()
+            fit2d_obj = self.pattern_geometry.getFit2D()
+            fit2d_parameter = dict(fit2d_obj)
             fit2d_parameter["polarization_factor"] = self.polarization_factor
         except TypeError:
             fit2d_parameter = None
@@ -1154,8 +1170,20 @@ class CalibrationModel(object):
         y *= self.supersampling_factor
         return self.pattern_geometry.chi(x - 0.5, y - 0.5)[0]
 
+    @property
+    def tth_array(self):
+        """Two theta array for the current image shape in radians."""
+        shape = self.img_model.img_data.shape
+        return self.pattern_geometry.center_array(shape, unit="2th_rad")
+
+    @property
+    def azi_array(self):
+        """Azimuthal (chi) array for the current image shape in radians."""
+        shape = self.img_model.img_data.shape
+        return self.pattern_geometry.center_array(shape, unit="chi_rad")
+
     def get_two_theta_array(self):
-        return self.pattern_geometry.twoThetaArray(self.img_model.img_data.shape)[
+        return self.tth_array[
             :: self.supersampling_factor, :: self.supersampling_factor
         ]
 
@@ -1169,7 +1197,7 @@ class CalibrationModel(object):
         :return:
             tuple of index 1 and 2
         """
-        tth_ind = find_contours(self.pattern_geometry.ttha, tth)
+        tth_ind = find_contours(self.tth_array, tth)
         if len(tth_ind) == 0:
             return []
         tth_ind = np.vstack(tth_ind)

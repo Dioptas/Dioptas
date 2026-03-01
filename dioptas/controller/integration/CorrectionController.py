@@ -187,10 +187,10 @@ class CorrectionController(object):
             anvil_absorption_length = self.widget.cbn_param_tw.cellWidget(9, 1).value()
 
             tth_array = (
-                180.0 / np.pi * self.model.calibration_model.pattern_geometry.ttha
+                180.0 / np.pi * self.model.calibration_model.tth_array
             )
             azi_array = (
-                180.0 / np.pi * self.model.calibration_model.pattern_geometry.chia
+                180.0 / np.pi * self.model.calibration_model.azi_array
             )
 
             new_cbn_correction = CbnCorrection(
@@ -283,8 +283,8 @@ class CorrectionController(object):
             detector_tilt = fit2d_parameter["tilt"]
             detector_tilt_rotation = fit2d_parameter["tiltPlanRotation"]
 
-            tth_array = self.model.calibration_model.pattern_geometry.ttha
-            azi_array = self.model.calibration_model.pattern_geometry.chia
+            tth_array = self.model.calibration_model.tth_array
+            azi_array = self.model.calibration_model.azi_array
             import time
 
             t1 = time.time()

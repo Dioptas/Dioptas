@@ -884,6 +884,25 @@ class ImgModel(object):
         self._factor = new_value
         self.img_changed.emit()
 
+    def get_img_data_float64(self):
+        """Return current image data as a contiguous float64 array.
+
+        Convenience method used by batch/map integration pipelines.
+        """
+        return np.ascontiguousarray(self.img_data, dtype=np.float64)
+
+    def _apply_frame_pipeline(self, raw_frame):
+        """Apply transformations and corrections to a raw frame.
+
+        Sets internal state and returns the processed image as contiguous
+        float64.  Used by batch processing to bypass the series position
+        check and signal emission of :meth:`load_series_img`.
+        """
+        self._img_data = raw_frame
+        self._perform_img_transformations()
+        self._calculate_img_data()
+        return np.ascontiguousarray(self.img_data, dtype=np.float64)
+
     def blockSignals(self, block=True):
         for member in vars(self):
             attr = getattr(self, member)

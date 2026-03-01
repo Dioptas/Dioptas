@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import os.path
+import time
 
 import numpy as np
 from dioptas.model.util.signal import Signal
@@ -135,6 +136,7 @@ class MapModel2:
     def _integrate_pyFAI(self, callback_fn=None):
         frame_count = 0
         n_total = None
+        last_callback_time = time.monotonic()
 
         for file_ind, filepath in enumerate(self.filepaths):
             self.configuration.img_model.load(filepath)
@@ -165,14 +167,23 @@ class MapModel2:
                     file_ind + (frame_ind + 1) / series_max
                 )
 
-                if callback_fn is not None and not callback_fn(frame_count, n_total):
-                    self.pattern_intensities = np.array(self.pattern_intensities)
-                    return
+                now = time.monotonic()
+                if callback_fn is not None and now - last_callback_time > 0.1:
+                    last_callback_time = now
+                    if not callback_fn(frame_count, n_total):
+                        self.pattern_intensities = np.array(self.pattern_intensities)
+                        return
+
+        # Final callback to ensure progress reaches 100%
+        if callback_fn is not None:
+            callback_fn(frame_count, n_total)
 
         self.pattern_intensities = np.array(self.pattern_intensities)
 
     def _integrate_dioptrin_batch(self, callback_fn=None):
         """Load frames through ImgModel, integrate via batch1d_iter with generator."""
+        from dioptas.model.loader.hdf5Loader import Hdf5Image
+
         cal = self.configuration.calibration_model
         unit = self.configuration.integration_unit
         num_points = self.configuration.integration_rad_points
@@ -193,6 +204,12 @@ class MapModel2:
         all_infos = []
         for filepath in self.filepaths:
             self.configuration.img_model.load(filepath)
+            if self.configuration.img_model.img_data.shape != img_shape:
+                raise ValueError(
+                    f"Image {filepath} has shape "
+                    f"{self.configuration.img_model.img_data.shape}, expected "
+                    f"{img_shape}"
+                )
             for frame_ind in range(self.configuration.img_model.series_max):
                 all_infos.append(MapPointInfo(filepath, frame_ind))
         n_total = len(all_infos)
@@ -200,21 +217,60 @@ class MapModel2:
         aborted = False
 
         def frame_generator():
+            img = self.configuration.img_model
+            # Fast path: no transformations/corrections → yield directly
+            # from parallel decompressor (matches benchmark performance)
+            fast_path = (
+                not img.img_transformations
+                and img._background_data is None
+                and not img._img_corrections.has_items()
+                and img._factor == 1
+            )
             for filepath in self.filepaths:
                 if aborted:
                     return
-                self.configuration.img_model.load(filepath)
-                for frame_ind in range(self.configuration.img_model.series_max):
-                    if aborted:
-                        return
-                    self.configuration.img_model.load_series_img(frame_ind + 1)
-                    yield np.ascontiguousarray(
-                        self.configuration.img_model.img_data, dtype=np.float64
-                    )
+                # Try to open HDF5 files directly with Hdf5Image for
+                # parallel bitshuffle decompression. ImgModel may use
+                # FabioLoader for HDF5 files (fabio is tried first),
+                # which does not support parallel decompression.
+                hdf5_loader = None
+                try:
+                    hdf5_loader = Hdf5Image(filepath)
+                except Exception:
+                    pass
+
+                if hdf5_loader is not None and hdf5_loader._is_bitshuffle:
+                    if fast_path:
+                        for frame in hdf5_loader.gen_frames():
+                            if aborted:
+                                return
+                            yield frame
+                    else:
+                        for raw_frame in hdf5_loader.gen_frames():
+                            if aborted:
+                                return
+                            yield img._apply_frame_pipeline(raw_frame)
+                else:
+                    if hdf5_loader is not None:
+                        hdf5_loader.f.close()
+                    img.load(filepath)
+                    for frame_ind in range(img.series_max):
+                        if aborted:
+                            return
+                        img.load_series_img(frame_ind + 1)
+                        yield img.get_img_data_float64()
 
         result_iter = cal.dioptrin_batch1d_iter(frame_generator(), num_points)
 
+        last_callback_time = time.monotonic()
+        frame_count = 0
         for i, result in enumerate(result_iter):
+            if aborted:
+                # Drain remaining pre-fetched results from dioptrin without
+                # processing them. This ensures the iterator is fully
+                # consumed so cleanup doesn't crash on worker threads.
+                continue
+
             if not result.is_ok():
                 raise RuntimeError(
                     f"Dioptrin batch integration failed: {result.error}"
@@ -235,11 +291,21 @@ class MapModel2:
 
             self.point_infos.append(all_infos[i])
             self.pattern_intensities.append(y)
+
             self.point_integrated.emit(frame_count)
 
-            if callback_fn is not None and not callback_fn(frame_count, n_total):
-                aborted = True
-                break
+            # Throttle callback to avoid GUI overhead dominating throughput
+            now = time.monotonic()
+            if callback_fn is not None and now - last_callback_time > 0.1:
+                last_callback_time = now
+                if not callback_fn(frame_count, n_total):
+                    aborted = True
+                    # Don't break — let the for loop drain remaining
+                    # pre-fetched results so dioptrin shuts down cleanly.
+
+        # Final callback to ensure progress reaches 100%
+        if callback_fn is not None and not aborted:
+            callback_fn(frame_count, n_total)
 
         self.pattern_intensities = np.array(self.pattern_intensities)
 

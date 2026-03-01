@@ -3,7 +3,7 @@ name = "dioptas"
 dynamic = ["version"]
 description = "GUI program for reduction and exploration of 2D X-ray diffraction data"
 readme = "README.md"
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.11,<3.14"
 license = { text = "GPL-3.0" }
 authors = [{ name = "Clemens Prescher", email = "clemens.prescher@gmail.com" }]
 classifiers = [
@@ -26,23 +26,22 @@ dependencies = [
     "psutil>=5.9.5,<6.0",
     "PyCifRW>=5.0.0,<6.0",
     "PyQt6>=6.8,<7.0",
-    "pyfai==2025.3.0",
+    "pyfai>=2025.12.1",
     "pyqtgraph>=0.13.7,<0.14",
     "pyshortcuts>=1.8.1,<2.0",
     "QtPy>=2.4.3,<3.0",
-    "scikit-image>=0.22.0,<0.23; python_version == \"3.10\"",
-    "scikit-image>=0.26.0,<0.27; python_version >= \"3.11\"",
+    "scikit-image>=0.26.0,<0.27",
     "sharedmem>=0.3.8,<0.4",
     "watchdog>=6.0.0,<7.0",
     "pyopengl>=3.1.7,<4.0",
     "pyopengl-accelerate>=3.1.7,<4.0",
     "xypattern>=1.2.2,<2.0",
-    "numpy>=1.26.0,<2.0; python_version == \"3.10\"",
-    "numpy>=2.0,<3.0; python_version >= \"3.11\"",
-    "scipy>=1.11.3,<2.0; python_version == \"3.10\"",
-    "scipy>=1.16.3,<2.0; python_version >= \"3.11\"",
+    "numpy>=2.0,<3.0",
+    "scipy>=1.16.3,<2.0",
     "numexpr>=2.10.2,<3.0",
     "qt-material>=2.14,<3.0",
+    "dioptrin",
+    "bitshuffle>=0.5.1",
 ]
 
 [project.optional-dependencies]
@@ -74,3 +73,6 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools_scm]
 version_file = "dioptas/_version.py"
 fallback_version = "0.7.2"
+
+[tool.uv.sources]
+dioptrin = { path = "../dioptrin", editable = true }

@@ -82,7 +82,7 @@ class PatternControllerTest(QtTest):
         self.assertTrue(self.widget.pattern_d_btn.isChecked())
         self.assertEqual(
             self.widget.pattern_widget.pattern_plot.getAxis("bottom").labelString(),
-            "<span style='color: #ffffff'>d (kÅ)</span>",
+            "<span style='color: #ffffff'>d (Å)</span>",
         )
 
     def test_save_pattern_without_background(self):

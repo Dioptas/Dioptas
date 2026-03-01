@@ -324,6 +324,8 @@ class BatchModel(QtCore.QObject):
         self, start, stop, step, use_all=False, callback_fn=None
     ):
         """Load frames through ImgModel, integrate via batch1d_iter with generator."""
+        from dioptas.model.loader.hdf5Loader import Hdf5Image
+
         cal = self.configuration.calibration_model
         unit = self.configuration.integration_unit
         num_points = self.configuration.integration_rad_points
@@ -363,6 +365,17 @@ class BatchModel(QtCore.QObject):
 
             def frame_generator():
                 nonlocal current_file
+                img = self.configuration.img_model
+                frame_iter = None
+                next_frame_pos = 0
+
+                fast_path = (
+                    not img.img_transformations
+                    and img._background_data is None
+                    and not img._img_corrections.has_items()
+                    and img._factor == 1
+                )
+
                 for index in indices:
                     if aborted:
                         return
@@ -372,13 +385,30 @@ class BatchModel(QtCore.QObject):
                         self.configuration.calibration_model.img_model.load(
                             self.files[file_index]
                         )
-                    self.configuration.img_model.load_series_img(pos + 1)
-                    self.configuration.mask_model.set_dimension(
-                        self.configuration.img_model.img_data.shape
-                    )
-                    yield np.ascontiguousarray(
-                        self.configuration.img_model.img_data, dtype=np.float64
-                    )
+                        self.configuration.mask_model.set_dimension(
+                            img.img_data.shape
+                        )
+                        # Set up parallel generator for bitshuffle files
+                        loader = getattr(img, "loader", None)
+                        if isinstance(loader, Hdf5Image) and loader._is_bitshuffle:
+                            frame_iter = iter(loader.gen_frames())
+                            next_frame_pos = 0
+                        else:
+                            frame_iter = None
+
+                    if frame_iter is not None:
+                        # Advance parallel generator to requested position
+                        frame = None
+                        while next_frame_pos <= pos:
+                            frame = next(frame_iter)
+                            next_frame_pos += 1
+                        if fast_path:
+                            yield frame
+                        else:
+                            yield img._apply_frame_pipeline(frame)
+                    else:
+                        img.load_series_img(pos + 1)
+                        yield img.get_img_data_float64()
 
             result_iter = cal.dioptrin_batch1d_iter(frame_generator(), num_points)
 

@@ -260,7 +260,7 @@ class MapController(object):
             return
 
         self.widget.img_plot_widget.set_circle_line(
-            self.model.calibration_model.pattern_geometry.ttha, np.deg2rad(pos)
+            self.model.calibration_model.tth_array, np.deg2rad(pos)
         )
 
     def file_list_row_changed(self, row):

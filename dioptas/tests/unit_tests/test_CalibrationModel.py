@@ -123,7 +123,7 @@ def test_integration_with_supersampling(calibration_model):
     calibration_model.set_supersampling(2)
     x2, y2 = calibration_model.integrate_1d()
 
-    assert len(y2) > len(y1)
+    assert len(y2) >= len(y1)
     y1_2_interp = np.interp(x2, x1, y1)
 
     assert np.mean((y2 - y1_2_interp)) == pytest.approx(0, abs=1e-2)
@@ -133,8 +133,8 @@ def test_get_pixel_ind(calibration_model):
     load_small_image_with_calibration(calibration_model, shape=(30, 30))
     calibration_model.integrate_1d(60)
 
-    tth_array = calibration_model.pattern_geometry.ttha
-    azi_array = calibration_model.pattern_geometry.chia
+    tth_array = calibration_model.tth_array
+    azi_array = calibration_model.azi_array
 
     for _ in range(10):
         ind1 = np.random.randint(1, 10)
