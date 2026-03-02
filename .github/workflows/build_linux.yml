@@ -41,7 +41,7 @@ jobs:
         DIOPTRIN_TOKEN: ${{ secrets.DIOPTRIN_TOKEN }}
         GH_TOKEN: ${{ secrets.DIOPTRIN_TOKEN }}
       run: |
-        gh release download --repo CPrescher/Dioptrin --pattern "*cp313*manylinux*.whl" --dir /tmp/dioptrin_wheels
+        gh release download --repo CPrescher/Dioptrin --pattern "*cp313*manylinux*x86_64*.whl" --dir /tmp/dioptrin_wheels
         uv pip install /tmp/dioptrin_wheels/*.whl
 
     - name: Install PyInstaller
