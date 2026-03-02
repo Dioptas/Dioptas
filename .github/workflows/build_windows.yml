@@ -30,8 +30,9 @@ jobs:
       run: uv sync --extra test
 
     - name: Install dioptrin
-      if: ${{ env.GH_TOKEN != '' }}
+      if: ${{ env.DIOPTRIN_TOKEN != '' }}
       env:
+        DIOPTRIN_TOKEN: ${{ secrets.DIOPTRIN_TOKEN }}
         GH_TOKEN: ${{ secrets.DIOPTRIN_TOKEN }}
       run: |
         gh release download --repo CPrescher/Dioptrin --pattern "*.whl" --dir ${{ runner.temp }}/dioptrin_wheels
