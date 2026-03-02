@@ -40,7 +40,6 @@ dependencies = [
     "scipy>=1.16.3,<2.0",
     "numexpr>=2.10.2,<3.0",
     "qt-material>=2.14,<3.0",
-    "dioptrin",
     "bitshuffle>=0.5.1",
 ]
 
@@ -74,5 +73,3 @@ build-backend = "setuptools.build_meta"
 version_file = "dioptas/_version.py"
 fallback_version = "0.7.2"
 
-[tool.uv.sources]
-dioptrin = { path = "../dioptrin", editable = true }

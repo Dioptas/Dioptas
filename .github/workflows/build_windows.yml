@@ -29,6 +29,12 @@ jobs:
     - name: Install dependencies
       run: uv sync --extra test
 
+    - name: Install dioptrin
+      if: ${{ env.DIOPTRIN_TOKEN != '' }}
+      env:
+        DIOPTRIN_TOKEN: ${{ secrets.DIOPTRIN_TOKEN }}
+      run: uv pip install git+https://${DIOPTRIN_TOKEN}@github.com/CPrescher/Dioptrin.git
+
     - name: Install PyInstaller
       run: uv pip install pyinstaller
 
