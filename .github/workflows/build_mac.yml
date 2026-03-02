@@ -11,7 +11,6 @@ jobs:
     runs-on: macos-latest
     env:
       folder_name: 'DioptasMac'
-      PYINSTALLER_COMPILE_BOOTLOADER: 1
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -41,7 +40,7 @@ jobs:
         uv pip install /tmp/dioptrin_wheels/*.whl
 
     - name: Install PyInstaller
-      run: uv pip install git+https://github.com/pyinstaller/pyinstaller.git@develop 
+      run: uv pip install pyinstaller
 
     - name: Run Dioptas from source to test
       run: uv run python run.py test
@@ -54,6 +53,9 @@ jobs:
     #     cd dist/Dioptas*.app
     #     cd Contents/Resources
     #     rm libopenblas.0.dylib
+
+    - name: Ad-hoc Codesign App Bundle
+      run: codesign --force --deep --sign - dist/Dioptas*.app
 
     - name: Run Dioptas Executable
       run: |

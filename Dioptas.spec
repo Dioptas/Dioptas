@@ -119,7 +119,7 @@ exe = EXE(
     name=name,
     debug=False,
     strip=False,
-    upx=True,
+    upx=False,
     console=False,
     icon="dioptas/resources/icons/icon.ico",
 )
@@ -130,7 +130,7 @@ coll = COLLECT(
     a.zipfiles,
     a.datas,
     strip=False,
-    upx=True,
+    upx=False,
     name="Dioptas_{}_{}".format(platform, __version__),
 )
 
@@ -139,4 +139,5 @@ if _platform == "darwin":
         coll,
         name="Dioptas_{}.app".format(__version__),
         icon="dioptas/resources/icons/icon.icns",
+        bundle_identifier="com.dioptas.Dioptas",
     )
