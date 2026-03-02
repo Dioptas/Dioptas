@@ -15,7 +15,8 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     - uses: actions/checkout@v4
-    - run: git fetch --prune --unshallow
+      with:
+        fetch-depth: 0
 
     - name: Setup Python 3.13
       uses: actions/setup-python@v4
