@@ -36,10 +36,12 @@ jobs:
       run: uv sync --extra test
 
     - name: Install dioptrin
-      if: ${{ env.DIOPTRIN_TOKEN != '' }}
+      if: ${{ secrets.DIOPTRIN_TOKEN != '' }}
       env:
-        DIOPTRIN_TOKEN: ${{ secrets.DIOPTRIN_TOKEN }}
-      run: uv pip install git+https://${DIOPTRIN_TOKEN}@github.com/CPrescher/Dioptrin.git
+        GH_TOKEN: ${{ secrets.DIOPTRIN_TOKEN }}
+      run: |
+        gh release download --repo CPrescher/Dioptrin --pattern "*.whl" --dir /tmp/dioptrin_wheels
+        uv pip install /tmp/dioptrin_wheels/*.whl
 
     - name: Install PyInstaller
       run: uv pip install pyinstaller
