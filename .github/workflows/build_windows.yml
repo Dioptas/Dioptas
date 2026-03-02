@@ -30,7 +30,7 @@ jobs:
       run: uv sync --extra test
 
     - name: Install dioptrin
-      if: ${{ secrets.DIOPTRIN_TOKEN != '' }}
+      if: ${{ env.GH_TOKEN != '' }}
       env:
         GH_TOKEN: ${{ secrets.DIOPTRIN_TOKEN }}
       run: |
