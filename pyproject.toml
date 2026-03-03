@@ -4,13 +4,13 @@ dynamic = ["version"]
 description = "GUI program for reduction and exploration of 2D X-ray diffraction data"
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
-license = { text = "GPL-3.0" }
+license = { text = "MIT" }
 authors = [{ name = "Clemens Prescher", email = "clemens.prescher@gmail.com" }]
 classifiers = [
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "License :: OSI Approved :: MIT License",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Scientific/Engineering :: Chemistry",
