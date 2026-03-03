@@ -24,8 +24,13 @@ https://github.com/Dioptas/Dioptas/releases
 
 The executable versions are self-contained folders, which do not need any python installation.
 Under Windows and Linux the program can be started by running the executable (e.g. Dioptas.exe or Dioptas).
-Under MacOS X the folder will contain an app folder which needs to be right-clicked and selected "Open" to start the program.
-Accepting the security prompts is required.
+Under MacOS X the download will contain a `.tar.gz` archive. Extract it first, then right-click the `.app` folder and select "Open" to start the program.
+
+If macOS shows a warning that the app "cannot be verified", you need to remove the quarantine attribute by running the following command in the Terminal:
+
+```bash
+find Dioptas_*.app -exec xattr -c {} \;
+```
 
 ### Python Package
 
