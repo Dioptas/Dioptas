@@ -39,8 +39,11 @@ class MapController(object):
             # this ensures, that the currently selected configuration is used
         )
         self.widget.map_plot_control_widget.save_map_btn.clicked.connect(self._save_map)
-        self.widget.map_plot_control_widget.smooth_btn.toggled.connect(
-            self.widget.map_plot_widget.data_img_item.setSmooth
+        self.widget.map_image_frame.smooth_btn.toggled.connect(
+            self._smooth_toggled
+        )
+        self.widget.map_image_frame.smooth_slider.valueChanged.connect(
+            self._smooth_slider_changed
         )
 
         self.widget.map_plot_widget.mouse_left_clicked.connect(self.map_point_selected)
@@ -70,6 +73,20 @@ class MapController(object):
 
         self.model.pattern_changed.connect(self.update_pattern)
         self.activate_model_signals()
+
+    def _smooth_toggled(self, checked: bool):
+        self.widget.map_image_frame.smooth_slider.setVisible(checked)
+        self.widget.map_image_frame.smooth_label.setVisible(checked)
+        if checked:
+            factor = self.widget.map_image_frame.smooth_slider.value()
+        else:
+            factor = 1
+        self.widget.map_plot_widget.data_img_item.setSmoothFactor(factor)
+
+    def _smooth_slider_changed(self, value: int):
+        self.widget.map_image_frame.smooth_label.setText(str(value))
+        if self.widget.map_image_frame.smooth_btn.isChecked():
+            self.widget.map_plot_widget.data_img_item.setSmoothFactor(value)
 
     def activate(self):
         self.activate_model_signals()

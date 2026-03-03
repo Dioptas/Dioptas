@@ -7,7 +7,8 @@ from typing import Optional
 
 import numpy as np
 import pyqtgraph as pg
-from qtpy.QtGui import QPainter
+from qtpy.QtGui import QTransform
+from scipy.ndimage import zoom
 
 
 class Normalization:
@@ -102,16 +103,20 @@ class NormalizedImageItem(pg.ImageItem):
         super().__init__(*args, **kwargs)
         self.__normalization = "linear"
         self.__rawImage = None
-        self._smooth = False
+        self._smooth_factor = 1
 
-    def setSmooth(self, smooth: bool):
-        self._smooth = smooth
-        self.update()
+    def setSmoothFactor(self, factor: int):
+        """Set the upscaling zoom factor for smoothing.
 
-    def paint(self, p, *args):
-        if self._smooth:
-            p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
-        super().paint(p, *args)
+        factor <= 1 means no smoothing (original data).
+        factor > 1 upscales via scipy.ndimage.zoom with cubic interpolation.
+        """
+        factor = max(1, int(factor))
+        if factor == self._smooth_factor:
+            return
+        self._smooth_factor = factor
+        if self.__rawImage is not None and self.__rawImage.size > 0:
+            self.setImage(self.__rawImage)
 
     @classmethod
     def supportedNormalizations(cls) -> tuple[str]:
@@ -163,6 +168,20 @@ class NormalizedImageItem(pg.ImageItem):
 
         self.__rawImage = image
         normalizedImage = self._getNorm().apply(image)
+
+        if self._smooth_factor > 1:
+            normalizedImage = zoom(
+                normalizedImage, self._smooth_factor, order=3
+            )
+            self.resetTransform()
+            self.setTransform(
+                QTransform.fromScale(
+                    1.0 / self._smooth_factor, 1.0 / self._smooth_factor
+                )
+            )
+        else:
+            self.resetTransform()
+
         return super().setImage(normalizedImage, *args, **kwargs)
 
     def getLevels(self):

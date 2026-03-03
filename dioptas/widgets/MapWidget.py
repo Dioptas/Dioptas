@@ -6,7 +6,7 @@ from dioptas.widgets.plot_widgets import PatternWidget
 from dioptas.widgets.plot_widgets.ImgWidget import IntegrationImgWidget
 
 from .integration.CustomWidgets import MouseUnitCurrentAndClickedWidget
-from .CustomWidgets import SaveIconButton, CheckableFlatButton
+from .CustomWidgets import SaveIconButton, CheckableFlatButton, HorizontalSpacerItem
 
 
 class MapWidget(QtWidgets.QWidget):
@@ -25,6 +25,7 @@ class MapWidget(QtWidgets.QWidget):
         self.map_plot_widget = IntegrationImgWidget(
             self.map_pg_layout, orientation="horizontal"
         )
+        self.map_image_frame = MapImageFrame(self.map_pg_layout)
 
         self.img_pg_layout = GraphicsLayoutWidget()
         self.img_plot_widget = IntegrationImgWidget(
@@ -51,7 +52,7 @@ class MapWidget(QtWidgets.QWidget):
 
         self._left_widget = QtWidgets.QWidget()
         self._left_widget.setLayout(self._left_layout)
-        self._left_layout.addWidget(self.map_pg_layout)
+        self._left_layout.addWidget(self.map_image_frame)
         self._left_layout.addWidget(self.map_plot_control_widget)
 
         self.upper_right_splitter = QtWidgets.QSplitter()
@@ -93,6 +94,66 @@ class TightVBoxLayout(QtWidgets.QVBoxLayout):
         self.setSpacing(0)
 
 
+class MapImageFrame(QtWidgets.QWidget):
+    """Frame wrapping the map plot with a black control bar matching integration widget style."""
+
+    def __init__(self, map_pg_layout: GraphicsLayoutWidget, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.frame = QtWidgets.QWidget()
+        self.frame.setObjectName('map_image_frame')
+
+        self.map_pg_layout = map_pg_layout
+
+        self.smooth_btn = CheckableFlatButton("Smooth")
+        self.smooth_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.smooth_slider.setRange(2, 10)
+        self.smooth_slider.setValue(5)
+        self.smooth_slider.setVisible(False)
+        self.smooth_label = QtWidgets.QLabel("5")
+        self.smooth_label.setFixedWidth(20)
+        self.smooth_label.setVisible(False)
+
+        self._control_layout = QtWidgets.QHBoxLayout()
+        self._control_layout.setContentsMargins(6, 2, 6, 2)
+        self._control_layout.setSpacing(6)
+        self._control_layout.addWidget(self.smooth_btn)
+        self._control_layout.addWidget(self.smooth_slider)
+        self._control_layout.addWidget(self.smooth_label)
+        self._control_layout.addSpacerItem(HorizontalSpacerItem())
+
+        self._frame_layout = QtWidgets.QVBoxLayout()
+        self._frame_layout.setContentsMargins(0, 0, 0, 0)
+        self._frame_layout.setSpacing(0)
+        self._frame_layout.addWidget(self.map_pg_layout)
+        self._frame_layout.addLayout(self._control_layout)
+        self.frame.setLayout(self._frame_layout)
+
+        self._layout = QtWidgets.QVBoxLayout()
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(0)
+        self._layout.addWidget(self.frame)
+        self.setLayout(self._layout)
+
+        self.setStyleSheet("""
+            #map_image_frame {
+                background: black;
+            }
+            #map_image_frame QPushButton {
+                padding-top: 2px;
+                padding-bottom: 2px;
+                padding-left: 5px;
+                padding-right: 5px;
+            }
+            #map_image_frame QSlider {
+                background: transparent;
+            }
+            #map_image_frame QLabel {
+                background: transparent;
+            }
+        """)
+
+
 class MapControlWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super(MapControlWidget, self).__init__(*args, **kwargs)
@@ -130,7 +191,6 @@ class MapPlotControlWidget(QtWidgets.QWidget):
     def create_widgets(self):
         self.save_map_btn = SaveIconButton()
         self.map_dimension_cb = QtWidgets.QComboBox()
-        self.smooth_btn = CheckableFlatButton("Smooth")
         self.mouse_x_label = QtWidgets.QLabel("X: ")
         self.mouse_y_label = QtWidgets.QLabel("Y: ")
         self.mouse_int_label = QtWidgets.QLabel("I: ")
@@ -149,7 +209,6 @@ class MapPlotControlWidget(QtWidgets.QWidget):
         self._outer_layout.addWidget(self.save_map_btn)
         self._outer_layout.addWidget(QtWidgets.QLabel("Dim: "))
         self._outer_layout.addWidget(self.map_dimension_cb)
-        self._outer_layout.addWidget(self.smooth_btn)
         self._outer_layout.addStretch(1)
         self._outer_layout.addLayout(self._left_layout)
         self.setLayout(self._outer_layout)
