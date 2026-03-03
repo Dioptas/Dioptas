@@ -54,7 +54,36 @@ from .controller.MainController import MainController
 theme_path = os.path.join(style_path, "dark_orange.xml")
 qss_path = os.path.join(style_path, "qt_material.css")
 
+_dioptrin_available = False
+
+
+def _check_dioptrin_license():
+    """Check dioptrin license at startup. Returns True if usable."""
+    try:
+        import dioptrin
+
+        dioptrin.validate_license()
+        return True
+    except ImportError:
+        return False
+    except dioptrin.LicenseNotFoundError:
+        return False
+    except dioptrin.LicenseExpiredError:
+        QtWidgets.QMessageBox.warning(
+            None,
+            "Dioptrin License Expired",
+            "Your Dioptrin license has expired. "
+            "Dioptas will use pyFAI for integration.\n\n"
+            "Please renew your license to continue using Dioptrin.",
+        )
+        return False
+    except dioptrin.LicenseError:
+        return False
+
+
 def main():
+    global _dioptrin_available
+
     app = QtWidgets.QApplication([])
 
     apply_stylesheet(
@@ -65,6 +94,8 @@ def main():
     )
     sys.excepthook = excepthook
     print("Dioptas {}".format(__version__))
+
+    _dioptrin_available = _check_dioptrin_license()
 
     if len(sys.argv) == 1:  # normal start
         controller = MainController()

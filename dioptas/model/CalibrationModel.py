@@ -119,11 +119,8 @@ class CalibrationModel(object):
 
         self._dioptrin_integrator = None
         self.dioptrin_num_workers = max((os.cpu_count() or 4) - 1, 1)
-        try:
-            import dioptrin  # noqa: F401
-            self.use_dioptrin = True
-        except ImportError:
-            self.use_dioptrin = False
+        import dioptas
+        self.use_dioptrin = dioptas._dioptrin_available
 
     def _get_poni_dict(self):
         return {
@@ -148,7 +145,7 @@ class CalibrationModel(object):
                 polarization_factor=self.polarization_factor,
                 unit="2th_deg",
             )
-        except ImportError:
+        except Exception:
             self._dioptrin_integrator = None
             self.use_dioptrin = False
 

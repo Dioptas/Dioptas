@@ -590,26 +590,29 @@ def _create_dioptrin_integrator(snapshot):
     across threads. A new integrator is created from the poni_dict and
     configured with the same settings that sync_dioptrin_for_batch would apply.
     """
-    import dioptrin
+    try:
+        import dioptrin
 
-    integrator = dioptrin.Integrator.from_poni_dict(
-        snapshot.poni_dict,
-        method="pixel_split",
-        polarization_factor=snapshot.polarization_factor,
-        unit="2th_deg",
-    )
+        integrator = dioptrin.Integrator.from_poni_dict(
+            snapshot.poni_dict,
+            method="pixel_split",
+            polarization_factor=snapshot.polarization_factor,
+            unit="2th_deg",
+        )
 
-    # Apply same configuration as CalibrationModel.sync_dioptrin_for_batch
-    if snapshot.supersampling_factor > 1:
-        integrator.set_method("supersampled", n_ss=snapshot.supersampling_factor)
-    else:
-        integrator.set_method("pixel_split")
+        # Apply same configuration as CalibrationModel.sync_dioptrin_for_batch
+        if snapshot.supersampling_factor > 1:
+            integrator.set_method("supersampled", n_ss=snapshot.supersampling_factor)
+        else:
+            integrator.set_method("pixel_split")
 
-    dioptrin_unit = "2th_deg" if snapshot.unit == "d_A" else snapshot.unit
-    integrator.set_unit(dioptrin_unit)
+        dioptrin_unit = "2th_deg" if snapshot.unit == "d_A" else snapshot.unit
+        integrator.set_unit(dioptrin_unit)
 
-    mask = snapshot.mask_data
-    integrator.set_mask(mask.astype(np.uint8) if mask is not None else None)
-    integrator.set_polarization_factor(snapshot.polarization_factor)
+        mask = snapshot.mask_data
+        integrator.set_mask(mask.astype(np.uint8) if mask is not None else None)
+        integrator.set_polarization_factor(snapshot.polarization_factor)
 
-    return integrator
+        return integrator
+    except Exception:
+        return None

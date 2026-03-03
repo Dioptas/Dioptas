@@ -49,16 +49,11 @@ class OptionsController(object):
         self.connect_signals()
 
     def _setup_dioptrin_checkbox(self):
-        try:
-            import dioptrin  # noqa: F401
+        import dioptas
 
-            self._dioptrin_available = True
-        except ImportError:
-            self._dioptrin_available = False
-            self.options_widget.use_dioptrin_cb.setEnabled(False)
-            self.options_widget.use_dioptrin_cb.setToolTip(
-                "dioptrin package not installed"
-            )
+        self._dioptrin_available = dioptas._dioptrin_available
+        if not self._dioptrin_available:
+            self.options_widget.use_dioptrin_cb.setVisible(False)
 
     def connect_signals(self):
         self.options_widget.correct_solid_angle_cb.stateChanged.connect(self.correct_solid_angle_cb_clicked)
