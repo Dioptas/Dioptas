@@ -435,6 +435,38 @@ class BatchModel(QtCore.QObject):
 
         self._finalize_batch_results(cal, intensity_data, pos_map, binning, unit)
 
+    def set_integration_results(self, results: dict):
+        """Apply pre-computed integration results (from IntegrationWorker).
+
+        Accepts both pyFAI-style results (``binning_data`` with variable-length
+        arrays) and dioptrin-style results (``binning`` with a single array).
+        """
+        intensity_data = results["intensity_data"]
+        pos_map = results["pos_map"]
+
+        if "binning_data" in results:
+            # pyFAI path: variable-length arrays, need padding
+            binning_data = results["binning_data"]
+            binning_lengths = [len(b) for b in binning_data]
+            max_len_ind = int(np.argmax(binning_lengths))
+            max_len = binning_lengths[max_len_ind]
+            binning = binning_data[max_len_ind]
+
+            padded = np.zeros((len(intensity_data), max_len))
+            for i, intensity in enumerate(intensity_data):
+                padded[i, : len(intensity)] = intensity
+            intensity_data = padded
+        else:
+            # dioptrin path: uniform-length arrays
+            binning = results["binning"]
+            intensity_data = np.array(intensity_data)
+
+        self.pos_map = np.array(pos_map)
+        self.binning = np.array(binning)
+        self.data = intensity_data
+        self.bkg = None
+        self.n_img = self.data.shape[0]
+
     def _finalize_batch_results(self, cal, intensity_data, pos_map, binning, unit):
         """Store batch integration results."""
         if not intensity_data:

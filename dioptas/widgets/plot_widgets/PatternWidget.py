@@ -41,6 +41,7 @@ class PatternWidget(QtCore.QObject):
             labels={"left": "Intensity", "bottom": "2 Theta"}
         )
         self.pattern_plot.setLabel("bottom", "2θ", "°")
+        self.pattern_plot.getAxis("bottom").enableAutoSIPrefix(False)
         self.pattern_plot.enableAutoRange(False)
         self.pattern_plot.buttonsHidden = True
         self.view_box = self.pattern_plot.vb

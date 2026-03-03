@@ -410,8 +410,9 @@ def test_progress_dialog_is_shown(map_controller):
     QtWidgets.QProgressDialog.setValue = MagicMock()
     map_controller.load_btn_clicked()
 
-    # Progress dialog should be updated during image loading (at least once per image)
-    assert QtWidgets.QProgressDialog.setValue.call_count >= len(map_img_file_paths)
+    # Progress dialog should be updated at least once (callbacks are throttled to
+    # avoid GUI overhead, so the count may be less than the number of images)
+    assert QtWidgets.QProgressDialog.setValue.call_count >= 1
 
 
 def test_phase_is_displayed(map_controller, dioptas_model):

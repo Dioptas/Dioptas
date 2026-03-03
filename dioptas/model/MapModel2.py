@@ -296,6 +296,40 @@ class MapModel2:
                 self.pattern_x, cal.pattern_geometry.wavelength
             )
 
+    def set_integration_results(
+        self,
+        pattern_x,
+        pattern_intensities,
+        point_infos: list[MapPointInfo],
+        filepaths: list[str],
+    ):
+        """Sets pre-computed integration results and rebuilds the map.
+
+        This allows populating the model without re-integrating, e.g. when
+        results were computed in a worker thread.
+        """
+        self.pattern_x = pattern_x
+        self.pattern_intensities = pattern_intensities
+        self.point_infos = point_infos
+        self.filepaths = filepaths
+
+        if self.window is None:
+            self.window = get_center_window(self.pattern_x)
+
+        self.window_intensities = get_window_intensities(
+            self.pattern_x, self.pattern_intensities, self.window
+        )
+
+        self.possible_dimensions = find_possible_dimensions(
+            len(self.window_intensities)
+        )
+
+        if self.dimension is None or self.dimension not in self.possible_dimensions:
+            self.dimension = self.possible_dimensions[0]
+
+        self.map = create_map(self.window_intensities, self.dimension)
+        self.map_changed.emit()
+
     def _reset(self):
         self.filepaths = None
         self.point_infos = []
