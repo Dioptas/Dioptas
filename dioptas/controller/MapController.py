@@ -5,6 +5,7 @@ from PIL import Image
 from typing import Optional
 
 import numpy as np
+import pyqtgraph as pg
 from qtpy import QtWidgets, QtCore
 
 from dioptas.model.DioptasModel import DioptasModel
@@ -21,6 +22,8 @@ class MapController(object):
     def __init__(self, widget: MapWidget, dioptas_model: DioptasModel):
         self.widget = widget
         self.model = dioptas_model
+
+        self._contour_items: list[pg.IsocurveItem] = []
 
         self.phase_in_pattern_controller = PhaseInPatternController(
             self.widget.pattern_plot_widget, self.model
@@ -44,6 +47,12 @@ class MapController(object):
         )
         self.widget.map_image_frame.smooth_slider.valueChanged.connect(
             self._smooth_slider_changed
+        )
+        self.widget.map_image_frame.contour_btn.toggled.connect(
+            self._contour_toggled
+        )
+        self.widget.map_image_frame.contour_slider.valueChanged.connect(
+            self._contour_slider_changed
         )
 
         self.widget.map_plot_widget.mouse_left_clicked.connect(self.map_point_selected)
@@ -87,6 +96,42 @@ class MapController(object):
         self.widget.map_image_frame.smooth_label.setText(str(value))
         if self.widget.map_image_frame.smooth_btn.isChecked():
             self.widget.map_plot_widget.data_img_item.setSmoothFactor(value)
+
+    def _contour_slider_changed(self, value: int):
+        self.widget.map_image_frame.contour_label.setText(str(value))
+        if self.widget.map_image_frame.contour_btn.isChecked():
+            self._update_contours()
+
+    def _contour_toggled(self, checked: bool):
+        self.widget.map_image_frame.contour_slider.setVisible(checked)
+        self.widget.map_image_frame.contour_label.setVisible(checked)
+        if checked:
+            self._update_contours()
+        else:
+            self._clear_contours()
+
+    def _update_contours(self):
+        self._clear_contours()
+        if self.model.map_model.map is None:
+            return
+        data = np.flipud(self.model.map_model.map).T
+        num_levels = self.widget.map_image_frame.contour_slider.value()
+        d_min, d_max = float(data.min()), float(data.max())
+        if d_min == d_max:
+            return
+        levels = np.linspace(d_min, d_max, num_levels + 2)[1:-1]
+        pen = pg.mkPen(color=(255, 255, 255, 128), width=1)
+        view_box = self.widget.map_plot_widget.img_view_box
+        for level in levels:
+            item = pg.IsocurveItem(data=data, level=level, pen=pen)
+            view_box.addItem(item)
+            self._contour_items.append(item)
+
+    def _clear_contours(self):
+        view_box = self.widget.map_plot_widget.img_view_box
+        for item in self._contour_items:
+            view_box.removeItem(item)
+        self._contour_items.clear()
 
     def activate(self):
         self.activate_model_signals()
@@ -191,11 +236,14 @@ class MapController(object):
         if self.model.map_model.map is None:
             # clear image
             self.widget.map_plot_widget.plot_image(np.array([[], []]))
+            self._clear_contours()
         else:
             self.widget.map_plot_widget.plot_image(
                 np.flipud(self.model.map_model.map), auto_level=True
             )
             self.update_dimension_cb()
+            if self.widget.map_image_frame.contour_btn.isChecked():
+                self._update_contours()
 
     def update_dimension_cb(self):
         dim_cb = self.widget.map_plot_control_widget.map_dimension_cb
