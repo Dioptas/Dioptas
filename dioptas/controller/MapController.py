@@ -7,6 +7,8 @@ from typing import Optional
 import numpy as np
 import pyqtgraph as pg
 from qtpy import QtWidgets, QtCore
+from qtpy.QtGui import QTransform
+from scipy.ndimage import zoom
 
 from dioptas.model.DioptasModel import DioptasModel
 from dioptas.model.util.calc import convert_units
@@ -110,11 +112,15 @@ class MapController(object):
         else:
             self._clear_contours()
 
+    _CONTOUR_UPSAMPLE = 3
+
     def _update_contours(self):
         self._clear_contours()
         if self.model.map_model.map is None:
             return
         data = np.flipud(self.model.map_model.map).T
+        factor = self._CONTOUR_UPSAMPLE
+        data = zoom(data.astype(float), factor, order=3)
         num_levels = self.widget.map_image_frame.contour_slider.value()
         d_min, d_max = float(data.min()), float(data.max())
         if d_min == d_max:
@@ -122,8 +128,10 @@ class MapController(object):
         levels = np.linspace(d_min, d_max, num_levels + 2)[1:-1]
         pen = pg.mkPen(color=(255, 255, 255, 128), width=1)
         view_box = self.widget.map_plot_widget.img_view_box
+        scale = QTransform.fromScale(1.0 / factor, 1.0 / factor)
         for level in levels:
             item = pg.IsocurveItem(data=data, level=level, pen=pen)
+            item.setTransform(scale)
             view_box.addItem(item)
             self._contour_items.append(item)
 
