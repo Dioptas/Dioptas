@@ -39,6 +39,9 @@ class MapController(object):
             # this ensures, that the currently selected configuration is used
         )
         self.widget.map_plot_control_widget.save_map_btn.clicked.connect(self._save_map)
+        self.widget.map_plot_control_widget.smooth_btn.toggled.connect(
+            self.widget.map_plot_widget.data_img_item.setSmooth
+        )
 
         self.widget.map_plot_widget.mouse_left_clicked.connect(self.map_point_selected)
         self.widget.pattern_plot_widget.mouse_left_clicked.connect(self.pattern_clicked)

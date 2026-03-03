@@ -7,6 +7,7 @@ from typing import Optional
 
 import numpy as np
 import pyqtgraph as pg
+from qtpy.QtGui import QPainter
 
 
 class Normalization:
@@ -101,6 +102,16 @@ class NormalizedImageItem(pg.ImageItem):
         super().__init__(*args, **kwargs)
         self.__normalization = "linear"
         self.__rawImage = None
+        self._smooth = False
+
+    def setSmooth(self, smooth: bool):
+        self._smooth = smooth
+        self.update()
+
+    def paint(self, p, *args):
+        if self._smooth:
+            p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+        super().paint(p, *args)
 
     @classmethod
     def supportedNormalizations(cls) -> tuple[str]:

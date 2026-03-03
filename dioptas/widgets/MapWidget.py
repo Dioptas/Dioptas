@@ -6,7 +6,7 @@ from dioptas.widgets.plot_widgets import PatternWidget
 from dioptas.widgets.plot_widgets.ImgWidget import IntegrationImgWidget
 
 from .integration.CustomWidgets import MouseUnitCurrentAndClickedWidget
-from .CustomWidgets import SaveIconButton 
+from .CustomWidgets import SaveIconButton, CheckableFlatButton
 
 
 class MapWidget(QtWidgets.QWidget):
@@ -130,6 +130,7 @@ class MapPlotControlWidget(QtWidgets.QWidget):
     def create_widgets(self):
         self.save_map_btn = SaveIconButton()
         self.map_dimension_cb = QtWidgets.QComboBox()
+        self.smooth_btn = CheckableFlatButton("Smooth")
         self.mouse_x_label = QtWidgets.QLabel("X: ")
         self.mouse_y_label = QtWidgets.QLabel("Y: ")
         self.mouse_int_label = QtWidgets.QLabel("I: ")
@@ -148,6 +149,7 @@ class MapPlotControlWidget(QtWidgets.QWidget):
         self._outer_layout.addWidget(self.save_map_btn)
         self._outer_layout.addWidget(QtWidgets.QLabel("Dim: "))
         self._outer_layout.addWidget(self.map_dimension_cb)
+        self._outer_layout.addWidget(self.smooth_btn)
         self._outer_layout.addStretch(1)
         self._outer_layout.addLayout(self._left_layout)
         self.setLayout(self._outer_layout)
