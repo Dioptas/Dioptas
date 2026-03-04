@@ -91,13 +91,13 @@ def main():
         elif sys.argv[1].startswith("makeshortcut"):
             if make_shortcut is None:
                 raise ImportError("pyshortcuts not installed.  Try `pip install pyshortcuts`")
-            binary_dir = "Scripts" if os.name == "nt" else "bin"
             make_shortcut(
-                os.path.join(sys.exec_prefix, binary_dir, "dioptas"),
-                name = "Dioptas",
+                "-m dioptas",
+                name="Dioptas",
                 description="Dioptas 2D XRD {}".format(__version__),
-                icon=os.path.join(icons_path, "icon")
-                )
+                icon=os.path.join(icons_path, "icon"),
+                terminal=False,
+            )
 
         elif sys.argv[1].startswith("version"):
             print(__version__)
