@@ -1,9 +1,10 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 import pytest
 import os
 
 from dioptas.model.Configuration import Configuration
 from dioptas.model.MapModel import MapModel
+from dioptas.model.util.integration import iter_frames_sequential
 from dioptas.tests.utility import unittest_data_path
 import numpy as np
 
@@ -192,3 +193,26 @@ def test_emits_point_integrated_signal_with_multiimage_file(
 
     map_model.load([multi_file_img_path])
     assert listener.call_count == 10
+
+
+def test_iter_frames_sequential_bitshuffle_shape_mismatch(configuration: Configuration):
+    """Bitshuffle HDF5 path in iter_frames_sequential must reject shape mismatches."""
+    img_model = configuration.img_model
+
+    expected_shape = (2048, 2048)
+    wrong_shape = (3262, 3108)
+
+    mock_loader = MagicMock()
+    mock_loader.gen_frames.return_value = iter([np.zeros(wrong_shape)])
+
+    with patch(
+        "dioptas.model.util.integration.try_open_bitshuffle_hdf5",
+        return_value=mock_loader,
+    ):
+        gen = iter_frames_sequential(
+            img_model,
+            ["/fake/file.h5"],
+            img_shape=expected_shape,
+        )
+        with pytest.raises(ValueError, match="expected"):
+            next(gen)

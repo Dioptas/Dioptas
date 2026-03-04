@@ -6,6 +6,8 @@ integration logic shared between map and batch processing.
 """
 from __future__ import annotations
 
+import os
+
 import numpy as np
 
 
@@ -73,9 +75,17 @@ def iter_frames_sequential(img_model, filepaths, *, img_shape, abort_check=None,
         hdf5_loader = try_open_bitshuffle_hdf5(filepath)
 
         if hdf5_loader is not None:
+            shape_checked = False
             for frame_ind, raw_frame in enumerate(hdf5_loader.gen_frames()):
                 if abort_check and abort_check():
                     return
+                if not shape_checked:
+                    if raw_frame.shape != img_shape:
+                        raise ValueError(
+                            f"Image '{os.path.basename(filepath)}' has shape "
+                            f"{raw_frame.shape}, expected {img_shape}"
+                        )
+                    shape_checked = True
                 if on_frame:
                     on_frame(filepath, frame_ind)
                 yield _apply_frame(img_model, raw_frame, fast_path)
@@ -83,9 +93,8 @@ def iter_frames_sequential(img_model, filepaths, *, img_shape, abort_check=None,
             img_model.load(filepath)
             if img_model.img_data.shape != img_shape:
                 raise ValueError(
-                    f"Image {filepath} has shape "
-                    f"{img_model.img_data.shape}, expected "
-                    f"{img_shape}"
+                    f"Image '{os.path.basename(filepath)}' has shape "
+                    f"{img_model.img_data.shape}, expected {img_shape}"
                 )
             for frame_ind in range(img_model.series_max):
                 if abort_check and abort_check():

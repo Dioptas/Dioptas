@@ -608,3 +608,22 @@ def test_calibrate_without_points(calibration_model):
 def test_refine_without_points(calibration_model):
     with pytest.raises(NoPointsError):
         calibration_model.refine()
+
+
+def test_dioptrin_integrator_recreated_on_image_shape_change(calibration_model, img_model):
+    """Switching to an image with a different shape must recreate the dioptrin integrator."""
+    load_pilatus_1M_with_calibration(calibration_model)
+
+    calibration_model.use_dioptrin = True
+    calibration_model._dioptrin_integrator = MagicMock()
+    calibration_model._create_dioptrin_integrator = MagicMock()
+
+    # Loading an image with a different shape should trigger recreation
+    img_model.load(os.path.join(data_path, "image_001.tif"))
+    calibration_model._create_dioptrin_integrator.assert_called_once()
+
+    # Loading an image with the same shape should NOT trigger recreation
+    calibration_model._create_dioptrin_integrator.reset_mock()
+    img_model._img_data = np.ones(img_model.img_data.shape)
+    img_model.img_changed.emit()
+    calibration_model._create_dioptrin_integrator.assert_not_called()

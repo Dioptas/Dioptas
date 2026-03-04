@@ -121,6 +121,22 @@ def test_files_with_different_dimensions(map_controller, map_model: MapModel):
     assert map_controller.widget.control_widget.file_list.count() == 0
 
 
+def test_files_with_different_dimensions_shows_error_dialog(
+    map_controller, map_model: MapModel
+):
+    """RuntimeError from dioptrin shape mismatch is caught and shown as error dialog."""
+    mock_open_filenames(map_img_file_paths)
+    map_model.load = MagicMock(
+        side_effect=RuntimeError("mask dim1 mismatch: mask = 2048, data = 3262")
+    )
+    QtWidgets.QMessageBox.critical = MagicMock()
+    map_controller.load_btn_clicked()
+    QtWidgets.QMessageBox.critical.assert_called_once()
+    assert "mask dim1 mismatch" in str(
+        QtWidgets.QMessageBox.critical.call_args
+    )
+
+
 def test_click_load_fills_file_list(map_controller, map_model: MapModel):
     load_calibration(map_controller)
     assert map_controller.model.current_configuration.is_calibrated == True

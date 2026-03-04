@@ -444,6 +444,8 @@ class CalibrationModel(object):
             if self.detector.shape != self.img_model.img_data.shape:
                 self.reset_detector()
                 self.detector_reset.emit()
+                if self.use_dioptrin and self._dioptrin_integrator is not None:
+                    self._create_dioptrin_integrator()
         else:
             self.reset_detector()
 
@@ -506,6 +508,8 @@ class CalibrationModel(object):
 
         self._check_detector_and_image_shape()
         mask = self._prepare_integration_mask(mask)
+        if mask is not None and mask.shape != self.img_model.img_data.shape:
+            mask = None
 
         if self.use_dioptrin and self._dioptrin_integrator is not None:
             dioptrin_supported = unit in ("2th_deg", "q_A^-1", "q_nm^-1", "d_A")
@@ -661,6 +665,8 @@ class CalibrationModel(object):
 
         self._check_detector_and_image_shape()
         mask = self._prepare_integration_mask(mask)
+        if mask is not None and mask.shape != self.img_model.img_data.shape:
+            mask = None
 
         if self.use_dioptrin and self._dioptrin_integrator is not None:
             dioptrin_supported = unit in ("2th_deg", "q_A^-1", "q_nm^-1")

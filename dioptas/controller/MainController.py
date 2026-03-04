@@ -231,7 +231,14 @@ class MainController(object):
                     QtWidgets.QMessageBox.Yes,
                     QtWidgets.QMessageBox.No,
             ):
-                self.model.load(os.path.join(self.settings_directory, "config.dio"))
+                try:
+                    self.model.load(os.path.join(self.settings_directory, "config.dio"))
+                except Exception as e:
+                    QtWidgets.QMessageBox.critical(
+                        self.widget,
+                        "Error restoring previous state.",
+                        str(e),
+                    )
             else:
                 self.load_directories()
 

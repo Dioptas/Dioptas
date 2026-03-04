@@ -190,7 +190,7 @@ class MapController(object):
         try:
             self.model.map_model.load(filenames, callback_fn=callback_fn)
             self.model.map_model.select_point(0, 0)
-        except ValueError as e:
+        except Exception as e:
             QtWidgets.QMessageBox.critical(
                 self.widget, "Error loading image data.", str(e)
             )
