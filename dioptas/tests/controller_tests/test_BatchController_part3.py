@@ -121,10 +121,10 @@ def test_update_y_axis(batch_controller, batch_widget, load_proc_data):
     batch_controller.update_y_axis()
     assert batch_widget.stack_plot_widget.img_view.left_axis_cake.range[
         0
-    ] == pytest.approx(2.904, 0.1)
+    ] == pytest.approx(3.511, abs=0.1)
     assert batch_widget.stack_plot_widget.img_view.left_axis_cake.range[
         1
-    ] == pytest.approx(30.321324, 0.01)
+    ] == pytest.approx(29.678, abs=0.1)
 
 
 def test_click_in_2d_widget_sends_clicked_change(

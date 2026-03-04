@@ -322,12 +322,16 @@ def get_partial_value(array, ind):
     :param array: list or numpy array
     :param ind: float index for which to get value
     """
-    if ind < 0 or ind > len(array):
+    ind = np.asarray(ind).item()
+    if ind < 0 or ind > len(array) - 1:
         return None
 
-    step = array[int(np.floor(ind)) + 1] - array[int(np.floor(ind))]
-    value = array[int(np.floor(ind))] + (ind - np.floor(ind)) * step
-    return value
+    floor_ind = int(np.floor(ind))
+    if floor_ind == len(array) - 1:
+        return float(array[floor_ind])
+    step = array[floor_ind + 1] - array[floor_ind]
+    value = array[floor_ind] + (ind - floor_ind) * step
+    return float(value)
 
 
 def reverse_interpolate_two_array(
