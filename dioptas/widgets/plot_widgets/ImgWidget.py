@@ -358,6 +358,9 @@ class MaskImgWidget(ImgWidget):
             self.img_view_box.removeItem(self.mask_img_item)
 
     def plot_mask(self, mask_data):
+        if self.img_data is not None and mask_data.shape != self.img_data.shape:
+            self.deactivate_mask()
+            return
         self.mask_data = np.int16(mask_data)
         self.mask_img_item.setImage(
             self.mask_data.T, autoRange=True, autoHistogramRange=True, autoLevels=True
