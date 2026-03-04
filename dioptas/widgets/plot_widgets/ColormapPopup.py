@@ -124,11 +124,15 @@ class ColormapPopup(QtWidgets.QFrame):
         resetModesLayout.setContentsMargins(0, 6, 0, 0)
         resetModesLayout.setSpacing(0)
 
+        current_mode, current_percentile = self._parse_auto_level_mode(
+            utils.auto_level.mode
+        )
+
         self._resetButtonGroup = QtWidgets.QButtonGroup(self)
         for text, (mode, tooltip) in self._RESET_MODES.items():
             radioButton = QtWidgets.QRadioButton(text, self)
             radioButton.setToolTip(tooltip)
-            radioButton.setChecked(mode == "percentile")
+            radioButton.setChecked(mode == current_mode)
             self._resetButtonGroup.addButton(radioButton)
             resetModesLayout.addWidget(radioButton)
 
@@ -141,7 +145,7 @@ class ColormapPopup(QtWidgets.QFrame):
                 )
                 self._percentileSlider.setRange(0, self._PERCENTILE_SLIDER_STEPS)
                 self._percentileSlider.setValue(
-                    self._percentile_to_slider(0.4)
+                    self._percentile_to_slider(current_percentile)
                 )
                 self._percentileSlider.setToolTip("Adjust clipping percentile")
                 self._percentileSlider.valueChanged.connect(
@@ -283,6 +287,23 @@ class ColormapPopup(QtWidgets.QFrame):
                 return f"{percentile}percentile"
             return mode
         return "percentile"  # Fallback
+
+    @staticmethod
+    def _parse_auto_level_mode(mode: str) -> tuple[str, float]:
+        """Parse an AutoLevel mode string into (reset_mode, percentile).
+
+        Returns e.g. ("percentile", 1.5) for "1.5percentile",
+        ("minmax", 0.4) for "minmax", ("percentile", 0.4) for "default".
+        """
+        import re
+
+        match = re.match(r"(\d+(?:\.\d*)?)percentile", mode)
+        if match is not None:
+            return "percentile", float(match.group(1))
+        if mode in ("minmax", "mean3std"):
+            return mode, 0.4
+        # "default" or unknown → percentile with default value
+        return "percentile", 0.4
 
     def _percentile_to_slider(self, percentile: float) -> int:
         """Convert a percentile value to slider position (logarithmic)."""
