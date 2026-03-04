@@ -1,3 +1,35 @@
+# 0.8.0 (stable 04.03.2026)
+
+## New Features
+
+- map state (positions, integrated data) is now saved and restored in .dio project files
+- added "Reintegrate" checkbox to map widget
+- added contour line overlay to map image with smooth cubic upsampling
+- added smooth/interpolated map image toggle with adjustable zoom-based smoothing
+- added log/sqrt y-axis scaling toggles for pattern plot
+- added autoscale toggle button to map image
+- added "Match intensity" right-click context menu to overlay table for automatic overlay scaling to match the current pattern
+- overlay scale and offset step spinboxes now allow finer steps (down to 0.0001) and display only significant digits
+- improved default intensity scaling of images - based on percentile values instead of min/max to avoid outliers dominating the scaling
+- colormap popup now introduces a percentile-based slider to adjust this percentile scale
+- improved batch integration progress dialog
+- added Dioptrin as alternative integration backend for significantly faster integration performance, including parallel bitshuffle decompression for hdf5 files (this requires Dioptrin license)
+
+## Bugfixes
+
+- frame navigation in multi-frame files (HDF5, etc.) now works after loading a project
+- desktop shortcut creation now works on macOS
+- stale mask is hidden when image shape changes
+- mask is correctly fetched after loading first file in map batch integration
+- resolved pyFAI 2025.10 deprecation warnings
+- fixed image shape mismatch handling to prevent crashes
+
+## Other
+
+- relicensed from GPL-3.0 to MIT
+- removed legacy MapModel and renamed MapModel2 to MapModel
+- upgraded Pillow to fix CVE-2026-25990
+
 # 0.7.2 (stable 10.01.2026)
 
 ## Bugfixes
