@@ -122,10 +122,10 @@ def test_plot_batch_2d(batch_widget, batch_controller, batch_model, load_proc_da
     assert batch_widget.stack_plot_widget.img_view.horizontal_line.value() == 0
     assert batch_widget.stack_plot_widget.img_view.left_axis_cake.range[
         0
-    ] == pytest.approx(7.28502051, 0.1)
+    ] == pytest.approx(8.0766, abs=0.1)
     assert batch_widget.stack_plot_widget.img_view.left_axis_cake.range[
         1
-    ] == pytest.approx(42.7116293, 0.01)
+    ] == pytest.approx(41.8757, abs=0.1)
 
 
 def test_plot_batch_3d(batch_widget, batch_controller, batch_model, load_proc_data):

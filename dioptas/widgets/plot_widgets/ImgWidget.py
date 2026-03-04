@@ -598,8 +598,8 @@ class IntegrationBatchWidget(IntegrationCakeWidget):
 
     """
 
-    def __init__(self, pg_layout, orientation="vertical"):
-        super(IntegrationBatchWidget, self).__init__(pg_layout, orientation)
+    def __init__(self, pg_layout, orientation="vertical", padding=0.01):
+        super(IntegrationBatchWidget, self).__init__(pg_layout, orientation, padding)
         self.create_horizontal_line()
         self.mouse_left_clicked.connect(self.set_horizontal_line_pos)
         self.linear_region_item = ModifiedLinearRegionItem(
