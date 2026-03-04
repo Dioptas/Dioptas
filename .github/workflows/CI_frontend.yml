@@ -52,7 +52,7 @@ jobs:
         uv run pytest dioptas/tests/controller_tests/test_IntegrationController.py
         uv run pytest dioptas/tests/controller_tests/test_JcpdsEditorController.py
         uv run pytest dioptas/tests/controller_tests/test_MaskController.py
-        uv run pytest dioptas/tests/controller_tests/test_MapController2.py
+        uv run pytest dioptas/tests/controller_tests/test_MapController.py
         uv run pytest dioptas/tests/controller_tests/test_OptionsController.py
         uv run pytest dioptas/tests/controller_tests/test_OverlayController.py
         uv run pytest dioptas/tests/controller_tests/test_PatternController.py
