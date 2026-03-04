@@ -26,6 +26,7 @@ class MapController(object):
         self.model = dioptas_model
 
         self._contour_items: list[pg.IsocurveItem] = []
+        self._setting_levels = False
 
         self.phase_in_pattern_controller = PhaseInPatternController(
             self.widget.pattern_plot_widget, self.model
@@ -77,6 +78,12 @@ class MapController(object):
             self.img_plot_left_clicked
         )
         self.widget.img_plot_widget.mouse_moved.connect(self.img_plot_mouse_moved)
+        self.widget.img_autoscale_btn.clicked.connect(
+            self._img_autoscale_btn_clicked
+        )
+        self.widget.img_plot_widget.img_histogram_LUT_horizontal.sigLevelChangeFinished.connect(
+            self._img_levels_manually_changed
+        )
 
         self.model.map_model.map_changed.connect(self.update_map)
         self.model.map_model.map_changed.connect(self.update_file_list)
@@ -166,6 +173,16 @@ class MapController(object):
             ind = self.widget.control_widget.file_list.currentRow()
             if ind >= 0:
                 self._set_stored_pattern(ind)
+
+    def _img_autoscale_btn_clicked(self):
+        if self.widget.img_autoscale_btn.isChecked():
+            self._setting_levels = True
+            self.widget.img_plot_widget.auto_level()
+            self._setting_levels = False
+
+    def _img_levels_manually_changed(self, *args):
+        if not self._setting_levels:
+            self.widget.img_autoscale_btn.setChecked(False)
 
     def _apply_auto_integrate(self):
         checked = self.widget.control_widget.reintegrate_cb.isChecked()
@@ -301,12 +318,14 @@ class MapController(object):
 
     def update_image(self):
         if self.model.img_model.img_data is None:
-            # clear image
             self.widget.img_plot_widget.plot_image(np.array([[], []]))
         else:
+            auto_level = self.widget.img_autoscale_btn.isChecked()
+            self._setting_levels = True
             self.widget.img_plot_widget.plot_image(
-                self.model.img_model.img_data, auto_level=True
+                self.model.img_model.img_data, auto_level=auto_level
             )
+            self._setting_levels = False
             self.plot_mask()
 
     def plot_mask(self):

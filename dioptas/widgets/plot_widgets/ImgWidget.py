@@ -19,9 +19,10 @@ class ImgWidget(QtCore.QObject):
     mouse_left_clicked = QtCore.Signal(float, float)
     mouse_left_double_clicked = QtCore.Signal(float, float)
 
-    def __init__(self, pg_layout, orientation="vertical"):
+    def __init__(self, pg_layout, orientation="vertical", padding=0.01):
         super(ImgWidget, self).__init__()
         self.pg_layout = pg_layout
+        self._padding = padding
 
         self.create_graphics()
         self.set_orientation(orientation)
@@ -35,6 +36,7 @@ class ImgWidget(QtCore.QObject):
 
     def create_graphics(self):
         self.img_view_box = self.pg_layout.addViewBox(row=1, col=1)  # type: ViewBox
+        self.img_view_box.setDefaultPadding(self._padding)
 
         self.data_img_item = NormalizedImageItem()
         self.img_view_box.addItem(self.data_img_item)
@@ -313,8 +315,8 @@ class ImgWidget(QtCore.QObject):
 
 
 class CalibrationCakeWidget(ImgWidget):
-    def __init__(self, pg_layout, orientation="vertical"):
-        super(CalibrationCakeWidget, self).__init__(pg_layout, orientation)
+    def __init__(self, pg_layout, orientation="vertical", padding=0.01):
+        super(CalibrationCakeWidget, self).__init__(pg_layout, orientation, padding)
         self.img_view_box.setAspectLocked(False)
         self.create_vertical_line()
         self.mouse_left_clicked.connect(self.set_vertical_line_pos)
@@ -341,8 +343,8 @@ class CalibrationCakeWidget(ImgWidget):
 
 
 class MaskImgWidget(ImgWidget):
-    def __init__(self, pg_layout, orientation="vertical"):
-        super(MaskImgWidget, self).__init__(pg_layout, orientation)
+    def __init__(self, pg_layout, orientation="vertical", padding=0.01):
+        super(MaskImgWidget, self).__init__(pg_layout, orientation, padding)
         self.mask_img_item = pg.ImageItem()
         self.img_view_box.addItem(self.mask_img_item)
         self.img_view_box.setAspectLocked(True)
@@ -404,8 +406,8 @@ class MaskImgWidget(ImgWidget):
 
 
 class IntegrationImgWidget(MaskImgWidget):
-    def __init__(self, pg_layout, orientation="vertical"):
-        super(IntegrationImgWidget, self).__init__(pg_layout, orientation)
+    def __init__(self, pg_layout, orientation="vertical", padding=0.01):
+        super(IntegrationImgWidget, self).__init__(pg_layout, orientation, padding)
         self.create_circle_plot_items()
         self.create_mouse_click_item()
         self.create_roi_item()
@@ -489,8 +491,8 @@ class IntegrationImgWidget(MaskImgWidget):
 
 
 class IntegrationCakeWidget(CalibrationCakeWidget):
-    def __init__(self, pg_layout, orientation="vertical"):
-        super(IntegrationCakeWidget, self).__init__(pg_layout, orientation)
+    def __init__(self, pg_layout, orientation="vertical", padding=0.01):
+        super(IntegrationCakeWidget, self).__init__(pg_layout, orientation, padding)
         self.img_view_box.setAspectLocked(False)
         self.create_mouse_click_item()
         self.add_cake_axes()

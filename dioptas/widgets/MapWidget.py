@@ -29,8 +29,15 @@ class MapWidget(QtWidgets.QWidget):
 
         self.img_pg_layout = GraphicsLayoutWidget()
         self.img_plot_widget = IntegrationImgWidget(
-            self.img_pg_layout, orientation="horizontal"
+            self.img_pg_layout, orientation="horizontal", padding=0
         )
+        self.img_autoscale_btn = CheckableFlatButton("A", self.img_pg_layout)
+        self.img_autoscale_btn.setChecked(True)
+        self.img_autoscale_btn.setToolTip("Auto-scale image intensity")
+        self.img_autoscale_btn.setFixedSize(22, 22)
+        self.img_autoscale_btn.raise_()
+        self.img_pg_layout.installEventFilter(self)
+
         self.map_plot_control_widget = (
             MapPlotControlWidget()
         )  # widget below the map image
@@ -43,6 +50,14 @@ class MapWidget(QtWidgets.QWidget):
         self.pattern_widget = QtWidgets.QWidget()
 
         self.control_widget = MapControlWidget()
+
+    def eventFilter(self, obj, event):
+        if obj is self.img_pg_layout and event.type() == QtCore.QEvent.Resize:
+            self.img_autoscale_btn.move(
+                self.img_pg_layout.width() - self.img_autoscale_btn.width() - 5,
+                self.img_pg_layout.height() - self.img_autoscale_btn.height() - 5,
+            )
+        return super().eventFilter(obj, event)
 
     def create_layout(self):
         self._outer_layout = TightHBoxLayout()
