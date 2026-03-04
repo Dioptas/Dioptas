@@ -99,15 +99,27 @@ class DoubleSpinBoxAlignRight(QtWidgets.QDoubleSpinBox):
     def __init__(self, *args, **kwargs):
         super(DoubleSpinBoxAlignRight, self).__init__(*args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignRight)
+        self.setDecimals(10)
+
+    def textFromValue(self, value):
+        if value == 0:
+            return "0"
+        return f"{value:g}"
 
 
 class DoubleMultiplySpinBoxAlignRight(QtWidgets.QDoubleSpinBox):
     def __init__(self, *args, **kwargs):
         super(DoubleMultiplySpinBoxAlignRight, self).__init__(*args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignRight)
+        self.setDecimals(10)
 
     def stepBy(self, p_int):
         self.setValue(self.calc_new_step(self.value(), p_int))
+
+    def textFromValue(self, value):
+        if value == 0:
+            return "0"
+        return f"{value:g}"
 
     def calc_new_step(self, value, p_int):
         pow10floor = 10 ** floor(log10(value))

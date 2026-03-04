@@ -196,11 +196,11 @@ class OverlayWidget(QtWidgets.QWidget):
         self.waterfall_separation_msb.setFixedWidth(step_txt_width)
 
         self.scale_step_msb.setMaximum(10.0)
-        self.scale_step_msb.setMinimum(0.01)
+        self.scale_step_msb.setMinimum(0.0001)
         self.scale_step_msb.setValue(0.01)
 
         self.offset_step_msb.setMaximum(100000.0)
-        self.offset_step_msb.setMinimum(0.01)
+        self.offset_step_msb.setMinimum(0.0001)
         self.offset_step_msb.setValue(100.0)
 
         self.waterfall_separation_msb.setMaximum(100000.0)
