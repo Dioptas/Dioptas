@@ -2,6 +2,7 @@ import logging
 import os
 import re
 import pathlib
+import time
 
 import h5py
 import numpy as np
@@ -268,7 +269,8 @@ class BatchModel(QtCore.QObject):
         current_file = ""
 
         # Block img_changed to prevent auto-integration and GUI updates
-        self.configuration.img_model.blockSignals(True)
+        self.configuration.img_model.img_changed.blocked = True
+        last_callback_time = time.monotonic()
         try:
             for index in range(start, stop, step):
                 if use_all:
@@ -280,11 +282,11 @@ class BatchModel(QtCore.QObject):
                     self.configuration.calibration_model.img_model.load(
                         self.files[file_index]
                     )
+                    self.configuration.mask_model.set_dimension(
+                        self.configuration.img_model.img_data.shape
+                    )
 
                 self.configuration.img_model.load_series_img(pos + 1)
-                self.configuration.mask_model.set_dimension(
-                    self.configuration.img_model.img_data.shape
-                )
 
                 binning, intensity = self.configuration.integrate_image_1d(
                     update_pattern_model=False
@@ -294,11 +296,13 @@ class BatchModel(QtCore.QObject):
                 intensity_data.append(intensity)
                 binning_data.append(binning)
 
-                if callback_fn is not None:
+                now = time.monotonic()
+                if callback_fn is not None and now - last_callback_time > 0.1:
+                    last_callback_time = now
                     if not callback_fn(image_counter):
                         break
         finally:
-            self.configuration.img_model.blockSignals(False)
+            self.configuration.img_model.img_changed.blocked = False
 
         # deal with different x lengths due to trimmed zeros:
         binning_lengths = [len(b) for b in binning_data]
@@ -342,7 +346,7 @@ class BatchModel(QtCore.QObject):
 
         # Configure integrator: load one image to get shape
         first_file_index = source[indices[0]][0]
-        self.configuration.img_model.blockSignals(True)
+        self.configuration.img_model.img_changed.blocked = True
         try:
             self.configuration.calibration_model.img_model.load(
                 self.files[first_file_index]
@@ -373,6 +377,7 @@ class BatchModel(QtCore.QObject):
 
             result_iter = cal.dioptrin_batch1d_iter(frame_generator(), num_points)
 
+            last_callback_time = time.monotonic()
             for i, result in enumerate(result_iter):
                 if not result.is_ok():
                     raise RuntimeError(
@@ -387,12 +392,14 @@ class BatchModel(QtCore.QObject):
                 intensity_data.append(y)
                 pos_map.append(all_pos_map[i])
 
-                if callback_fn is not None:
+                now = time.monotonic()
+                if callback_fn is not None and now - last_callback_time > 0.1:
+                    last_callback_time = now
                     if not callback_fn(i + 1):
                         aborted = True
                         break
         finally:
-            self.configuration.img_model.blockSignals(False)
+            self.configuration.img_model.img_changed.blocked = False
 
         self._finalize_batch_results(cal, intensity_data, pos_map, binning, unit)
 

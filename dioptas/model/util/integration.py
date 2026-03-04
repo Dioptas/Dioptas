@@ -52,6 +52,38 @@ def _apply_frame(img_model, raw_frame, fast_path: bool):
     return img_model._apply_frame_pipeline(raw_frame)
 
 
+def _open_file_frames(filepath, img_model, fast_path, *, load=False):
+    """Open *filepath* and return a generator yielding processed frames.
+
+    Tries bitshuffle HDF5 parallel decompression first for fast frame
+    iteration; falls back to ``img_model.load`` +
+    ``img_model.load_series_img`` per frame.
+
+    When *load* is True, ``img_model.load(filepath)`` is always called
+    so that img_model state (img_data, series_max, etc.) reflects the
+    file.  This is needed when callers rely on img_model metadata
+    (e.g. for mask dimension).
+    """
+    hdf5_loader = try_open_bitshuffle_hdf5(filepath)
+    if hdf5_loader is not None:
+        if load:
+            img_model.load(filepath)
+
+        def bitshuffle_gen():
+            for raw in hdf5_loader.gen_frames():
+                yield _apply_frame(img_model, raw, fast_path)
+        return bitshuffle_gen()
+
+    # Fallback: always loads through img_model
+    img_model.load(filepath)
+
+    def fallback_gen():
+        for i in range(img_model.series_max):
+            img_model.load_series_img(i + 1)
+            yield img_model.get_img_data_float64()
+    return fallback_gen()
+
+
 def iter_frames_sequential(img_model, filepaths, *, img_shape, abort_check=None, on_frame=None):
     """Yield image frames from *filepaths* sequentially.
 
@@ -72,37 +104,19 @@ def iter_frames_sequential(img_model, filepaths, *, img_shape, abort_check=None,
         if abort_check and abort_check():
             return
 
-        hdf5_loader = try_open_bitshuffle_hdf5(filepath)
+        frame_iter = _open_file_frames(filepath, img_model, fast_path)
 
-        if hdf5_loader is not None:
-            shape_checked = False
-            for frame_ind, raw_frame in enumerate(hdf5_loader.gen_frames()):
-                if abort_check and abort_check():
-                    return
-                if not shape_checked:
-                    if raw_frame.shape != img_shape:
-                        raise ValueError(
-                            f"Image '{os.path.basename(filepath)}' has shape "
-                            f"{raw_frame.shape}, expected {img_shape}"
-                        )
-                    shape_checked = True
-                if on_frame:
-                    on_frame(filepath, frame_ind)
-                yield _apply_frame(img_model, raw_frame, fast_path)
-        else:
-            img_model.load(filepath)
-            if img_model.img_data.shape != img_shape:
+        for frame_ind, frame in enumerate(frame_iter):
+            if abort_check and abort_check():
+                return
+            if frame_ind == 0 and frame.shape != img_shape:
                 raise ValueError(
                     f"Image '{os.path.basename(filepath)}' has shape "
-                    f"{img_model.img_data.shape}, expected {img_shape}"
+                    f"{frame.shape}, expected {img_shape}"
                 )
-            for frame_ind in range(img_model.series_max):
-                if abort_check and abort_check():
-                    return
-                if on_frame:
-                    on_frame(filepath, frame_ind)
-                img_model.load_series_img(frame_ind + 1)
-                yield img_model.get_img_data_float64()
+            if on_frame:
+                on_frame(filepath, frame_ind)
+            yield frame
 
 
 def iter_frames_indexed(img_model, files, source, indices, *, mask_model=None, abort_check=None):
@@ -120,8 +134,6 @@ def iter_frames_indexed(img_model, files, source, indices, *, mask_model=None, a
         mask_model: optional MaskModel — its dimension is updated on file change.
         abort_check: callable returning True when processing should stop.
     """
-    from dioptas.model.loader.hdf5Loader import Hdf5Image
-
     fast_path = detect_fast_path(img_model)
     current_file = ""
     frame_iter = None
@@ -133,27 +145,19 @@ def iter_frames_indexed(img_model, files, source, indices, *, mask_model=None, a
         file_index, pos = source[index]
         if file_index != current_file:
             current_file = file_index
-            img_model.load(files[file_index])
+            frame_iter = _open_file_frames(
+                files[file_index], img_model, fast_path, load=True,
+            )
             if mask_model is not None:
                 mask_model.set_dimension(img_model.img_data.shape)
+            next_frame_pos = 0
 
-            loader = getattr(img_model, "loader", None)
-            if isinstance(loader, Hdf5Image) and loader._is_bitshuffle:
-                frame_iter = iter(loader.gen_frames())
-                next_frame_pos = 0
-            else:
-                frame_iter = None
-
-        if frame_iter is not None:
-            # Advance parallel generator to the requested position
-            frame = None
-            while next_frame_pos <= pos:
-                frame = next(frame_iter)
-                next_frame_pos += 1
-            yield _apply_frame(img_model, frame, fast_path)
-        else:
-            img_model.load_series_img(pos + 1)
-            yield img_model.get_img_data_float64()
+        # Advance to requested position
+        frame = None
+        while next_frame_pos <= pos:
+            frame = next(frame_iter)
+            next_frame_pos += 1
+        yield frame
 
 
 def convert_tth_to_d(tth_array, wavelength):
