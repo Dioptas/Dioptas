@@ -466,6 +466,9 @@ class ImgModel(object):
         if self.series_pos == pos:
             return
 
+        if self.series_get_image is None:
+            self._reload_series_file()
+
         self.series_pos = pos
         self._img_data = self.series_get_image(pos - 1)
 
@@ -473,6 +476,20 @@ class ImgModel(object):
         self._calculate_img_data()
 
         self.img_changed.emit()
+
+    def _reload_series_file(self):
+        """Re-opens the current file to restore the series_get_image function,
+        e.g. after loading a project where only pixel data was saved."""
+        if not self.filename or not os.path.exists(self.filename):
+            return
+        image_file_data = self.get_image_data(self.filename, self.series_pos - 1)
+        if image_file_data and "series_get_image" in image_file_data:
+            self.series_get_image = image_file_data["series_get_image"]
+            self.series_max = image_file_data.get("series_max", self.series_max)
+            if "sources" in image_file_data:
+                self.sources = image_file_data["sources"]
+            if "select_source" in image_file_data:
+                self._select_source = image_file_data["select_source"]
 
     def load_next_file(self, step=1, pos=None):
         """
