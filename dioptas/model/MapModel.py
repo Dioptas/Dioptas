@@ -4,6 +4,7 @@ from __future__ import annotations
 import os.path
 import time
 
+import h5py
 import numpy as np
 from dioptas.model.util.signal import Signal
 
@@ -374,8 +375,69 @@ class MapModel:
             point_info.frame_index,
         )
 
+    def save_in_hdf5(self, hdf5_group):
+        """Save map state into the given HDF5 group. Skips if no map data."""
+        if self.filepaths is None:
+            return
 
-def get_center_window(x, window_range=3) -> list[float, float]:
+        g = hdf5_group.create_group("map")
+        g.create_dataset("pattern_x", data=self.pattern_x)
+        g.create_dataset("pattern_intensities", data=self.pattern_intensities)
+        g.create_dataset("window", data=np.array(self.window, dtype="f8"))
+        g.create_dataset("dimension", data=np.array(self.dimension, dtype="i"))
+
+        dt = h5py.string_dtype()
+        g.create_dataset("filepaths", data=self.filepaths, dtype=dt)
+
+        pi_group = g.create_group("point_infos")
+        pi_filepaths = [p.filepath for p in self.point_infos]
+        pi_frame_indices = [p.frame_index for p in self.point_infos]
+        pi_group.create_dataset("filepaths", data=pi_filepaths, dtype=dt)
+        pi_group.create_dataset("frame_indices", data=pi_frame_indices)
+
+    def load_from_hdf5(self, hdf5_group):
+        """Restore map state from the given HDF5 group."""
+        if "map" not in hdf5_group:
+            return
+
+        g = hdf5_group["map"]
+        pattern_x = g["pattern_x"][...]
+        pattern_intensities = g["pattern_intensities"][...]
+        filepaths = [fp.decode() if isinstance(fp, bytes) else fp for fp in g["filepaths"][...]]
+
+        pi_fps = g["point_infos"]["filepaths"][...]
+        pi_fis = g["point_infos"]["frame_indices"][...]
+        point_infos = [
+            MapPointInfo(
+                fp.decode() if isinstance(fp, bytes) else fp,
+                int(fi),
+            )
+            for fp, fi in zip(pi_fps, pi_fis)
+        ]
+
+        window = tuple(g["window"][...])
+        dimension = tuple(g["dimension"][...])
+
+        # Set window and dimension before set_integration_results so it
+        # uses the saved values instead of computing defaults that may not
+        # match the data after an HDF5 round-trip.
+        self.window = window
+        self.dimension = dimension
+
+        # Block map_changed during restore — it is a class-level signal
+        # shared by all instances, so emitting here would trigger handlers
+        # connected via other instances (e.g. MapController) while
+        # DioptasModel.configurations is still empty during load.
+        self.map_changed.blocked = True
+        try:
+            self.set_integration_results(
+                pattern_x, pattern_intensities, point_infos, filepaths
+            )
+        finally:
+            self.map_changed.blocked = False
+
+
+def get_center_window(x, window_range=3) -> list[float]:
     """
     Estimates a window of [x_min, x_max] centered in the x value list.
     :param x: a numpy array
@@ -414,7 +476,7 @@ def get_window_intensities(
     return np.sum(intensities[:, indices], axis=1)
 
 
-def find_possible_dimensions(num_points: int) -> list[(int, int)]:
+def find_possible_dimensions(num_points: int) -> list[tuple[int, int]]:
     """
     Finds the possible dimension for a map with a given number of points
     :param num_points: number of points for the map

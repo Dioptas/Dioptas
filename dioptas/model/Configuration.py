@@ -629,6 +629,9 @@ class Configuration(object):
         else:
             pattern_group.attrs["auto_background_subtraction"] = False
 
+        # save map model
+        self.map_model.save_in_hdf5(f)
+
     def load_from_hdf5(self, hdf5_group):
         """
         Loads a configuration from the specified hdf5_group.
@@ -894,3 +897,6 @@ class Configuration(object):
             self.integrate_image_1d()
         else:
             self.pattern_model.pattern.recalculate_pattern()
+
+        # load map model
+        self.map_model.load_from_hdf5(f)

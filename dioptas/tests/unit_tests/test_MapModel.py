@@ -1,6 +1,9 @@
 from unittest.mock import MagicMock, patch
+import tempfile
 import pytest
 import os
+
+import h5py
 
 from dioptas.model.Configuration import Configuration
 from dioptas.model.MapModel import MapModel
@@ -216,3 +219,59 @@ def test_iter_frames_sequential_bitshuffle_shape_mismatch(configuration: Configu
         )
         with pytest.raises(ValueError, match="expected"):
             next(gen)
+
+
+def test_save_load_hdf5_round_trip(map_model: MapModel, configuration: Configuration):
+    """Map state survives a save/load round-trip through HDF5."""
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths)
+
+    # tweak window and dimension so we verify they are restored
+    map_model.set_window((15, 20))
+    map_model.set_dimension((3, 3))
+
+    with tempfile.NamedTemporaryFile(suffix=".h5", delete=False) as tmp:
+        tmp_path = tmp.name
+
+    try:
+        # save
+        with h5py.File(tmp_path, "w") as f:
+            map_model.save_in_hdf5(f)
+
+        # load into a fresh model
+        new_model = MapModel(configuration)
+        with h5py.File(tmp_path, "r") as f:
+            new_model.load_from_hdf5(f)
+
+        np.testing.assert_array_equal(new_model.pattern_x, map_model.pattern_x)
+        np.testing.assert_array_equal(
+            new_model.pattern_intensities, map_model.pattern_intensities
+        )
+        assert new_model.filepaths == map_model.filepaths
+        assert len(new_model.point_infos) == len(map_model.point_infos)
+        for a, b in zip(new_model.point_infos, map_model.point_infos):
+            assert a.filepath == b.filepath
+            assert a.frame_index == b.frame_index
+        assert new_model.window == pytest.approx(map_model.window)
+        assert new_model.dimension == map_model.dimension
+        np.testing.assert_array_equal(new_model.map, map_model.map)
+    finally:
+        os.unlink(tmp_path)
+
+
+def test_load_hdf5_without_map_group(map_model: MapModel):
+    """Loading from an HDF5 file with no 'map' group is a no-op."""
+    with tempfile.NamedTemporaryFile(suffix=".h5", delete=False) as tmp:
+        tmp_path = tmp.name
+
+    try:
+        with h5py.File(tmp_path, "w") as f:
+            pass  # empty file
+
+        map_model.load_from_hdf5(h5py.File(tmp_path, "r"))
+        assert map_model.filepaths is None
+        assert map_model.map is None
+    finally:
+        os.unlink(tmp_path)
