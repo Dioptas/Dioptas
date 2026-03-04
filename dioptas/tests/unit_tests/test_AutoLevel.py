@@ -8,9 +8,10 @@ from dioptas.widgets.plot_widgets.utils import AutoLevel
 
 def test_default_mode():
     auto_level = AutoLevel()
-    data = np.arange(101).reshape(1, -1)
+    data = np.arange(1001).reshape(1, -1)
     range_ = auto_level.get_range(data)
-    assert range_ == (1, 99)
+    # Default uses 0.4th / 99.6th percentile
+    assert range_ == (4.0, 996.0)
 
 
 @pytest.mark.parametrize(

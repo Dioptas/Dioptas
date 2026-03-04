@@ -8,30 +8,12 @@ import numpy as np
 
 
 def _default_auto_level(data: np.ndarray) -> tuple[float, float]:
-    """Compute colormap range from data through histogram
+    """Compute colormap range using the 0.4th and 99.6th percentile.
 
     :param data: Data from which to compute levels
     :returns: (lower limit, upper limit)
     """
-    counts, bin_edges = np.histogram(data, bins=3000)
-    left_edges = bin_edges[:-1]
-    left_edges = left_edges[np.where(counts > 0)]
-    counts = counts[np.where(counts > 0)]
-
-    hist_y_cumsum = np.cumsum(counts)
-    hist_y_sum = np.sum(counts)
-
-    max_ind = np.where(hist_y_cumsum < (0.996 * hist_y_sum))
-    min_level = np.mean(left_edges[:2])
-
-    if len(max_ind[0]):
-        max_level = left_edges[max_ind[0][-1]]
-    else:
-        max_level = 0.5 * np.max(left_edges)
-
-    if len(left_edges[left_edges > 0]) > 0:
-        min_level = max(min_level, np.nanmin(left_edges[left_edges > 0]))
-    return min_level, max_level
+    return _percentile_auto_level(data, percentile=0.4)
 
 
 def _minmax_auto_level(data: np.ndarray) -> tuple[float, float]:

@@ -101,36 +101,38 @@ def testResetMode(qWidgetFactory):
     colormapPopup.setData(np.arange(101))
 
     buttons = colormapPopup._resetButtonGroup.buttons()
-    defaultButton, minmaxButton, mean3stdButton, percentileButton = buttons
+    percentileButton, minmaxButton, mean3stdButton = buttons
 
-    assert colormapPopup._resetButtonGroup.checkedButton() == defaultButton
+    # Default is Percentile with slider at 0.4%
+    assert colormapPopup._resetButtonGroup.checkedButton() == percentileButton
     mode = colormapPopup._getResetMode()
-    assert mode == "default"
+    assert mode == "0.4percentile"
 
     QTest.mouseClick(colormapPopup._autoscaleButton, QtCore.Qt.LeftButton)
     range_ = colormapPopup.getRange()
-    assert range_ == (1, 99)
+    assert range_ == (0.4, 99.6)
 
-    QTest.mouseClick(minmaxButton, QtCore.Qt.LeftButton)
+    minmaxButton.click()
     mode = colormapPopup._getResetMode()
     range_ = colormapPopup.getRange()
     assert mode == "minmax"
     assert range_ == (0, 100)
+    assert not colormapPopup._percentileSlider.isVisible()
 
-    QTest.mouseClick(percentileButton, QtCore.Qt.LeftButton)
+    # Move slider to ~1% and switch back to percentile
+    colormapPopup._percentileSlider.setValue(
+        colormapPopup._percentile_to_slider(1.0)
+    )
+    percentileButton.click()
     mode = colormapPopup._getResetMode()
+    assert "percentile" in mode
     range_ = colormapPopup.getRange()
-    assert mode == "1percentile"
-    assert range_ == (1, 99)
+    assert np.allclose(range_, (1.0, 99.0), atol=0.1)
+    assert colormapPopup._percentileSlider.isVisible()
 
-    QTest.mouseClick(mean3stdButton, QtCore.Qt.LeftButton)
+    mean3stdButton.click()
     mode = colormapPopup._getResetMode()
     range_ = colormapPopup.getRange()
     assert mode == "mean3std"
     assert range_ == (0, 100)
-
-    QTest.mouseClick(defaultButton, QtCore.Qt.LeftButton)
-    mode = colormapPopup._getResetMode()
-    range_ = colormapPopup.getRange()
-    assert mode == "default"
-    assert range_ == (1, 99)
+    assert not colormapPopup._percentileSlider.isVisible()
