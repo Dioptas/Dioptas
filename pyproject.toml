@@ -71,5 +71,5 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 version_file = "dioptas/_version.py"
-fallback_version = "0.7.2"
+fallback_version = "0.8.0"
 
