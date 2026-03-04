@@ -21,7 +21,7 @@ from . import (
     MapModel,
     BatchModel,
 )
-from .MapModel2 import MapModel2
+from .MapModel import MapModel
 from .. import __version__
 
 
@@ -303,7 +303,7 @@ class DioptasModel(object):
         return self.configurations[self.configuration_ind].batch_model
 
     @property
-    def map_model(self) -> MapModel2:
+    def map_model(self) -> MapModel:
         return self.configurations[self.configuration_ind].map_model
 
     @property

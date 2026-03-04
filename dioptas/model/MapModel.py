@@ -1,363 +1,422 @@
 # SPDX-License-Identifier: MIT
+from __future__ import annotations
 
-from qtpy import QtCore
+import os.path
+import time
+
 import numpy as np
-import re
+from dioptas.model.util.signal import Signal
 
-from xypattern import Pattern
+from typing import TYPE_CHECKING
 
-from .BatchModel import BatchModel
+if TYPE_CHECKING:
+    from .Configuration import Configuration
 
 
-class MapModel(BatchModel):
-    """
-    Model for 2D maps from multiple pattern.
-    """
-    map_changed = QtCore.Signal()
-    map_cleared = QtCore.Signal()
-    map_problem = QtCore.Signal()
-    roi_problem = QtCore.Signal()
+class MapPointInfo:
+    filename: str
+    frame_index: int
 
-    def __init__(self, configuration):
-        super(MapModel, self).__init__(configuration)
+    def __init__(self, filepath, frame_index=0):
+        self.filepath = filepath
+        self.filename = os.path.basename(filepath)
+        self.frame_index = frame_index
 
-        self.map = Map()
-        self.theta_center = 5.9
-        self.theta_range = 0.
 
-        self.rois = []
-        self.roi_math = ''
+class MapModel:
+    map_changed = Signal()
 
-        self.possible_dimensions = []
-        self.dimension_index = 0
+    # point_integrated is emitted with the index of the integrated point
+    # it will be a fractional number, when the image file contains multiple frames
+    point_integrated = Signal(float)
 
-        # Background for image
-        self.bg_image = np.zeros([1920, 1200])
-
-    def reset(self):
-        self.reset_data()
-        self.map.reset()
-        self.reset_rois()
-        self.possible_dimensions = []
-        self.map_cleared.emit()
-
-    def load_img_map(self, filenames, callback_fn=None):
-        self.set_image_files(filenames)
-        self.integrate_raw_data(0, len(filenames), 1, use_all=True, callback_fn=callback_fn)
-
-        self.configuration.img_model.blockSignals(True)
-
-        for n in range(self.data.shape[0]):
-            self.add_map_point(None, Pattern(self.binning, self.data[n, :]), img_filename=filenames[n])
-
-        self.possible_dimensions = find_possible_dimensions(self.data.shape[0])
-        self.map.set_manual_positions(0, 0, 1, 1, self.possible_dimensions[0][0], self.possible_dimensions[0][1], True)
-
-        self.configuration.img_model.blockSignals(False)
-
-    def add_map_point(self, pattern_filename, pattern, position=None, img_filename=None):
+    def __init__(self, configuration: "Configuration"):
         """
-        Adds a Point to the map.
-        :param pattern_filename: filename of the corresponding map
-        :param pattern: Pattern object containing the x and y values of the integrated pattern
-        :type pattern: Pattern
-        :param position: tuple with x and y position
-        :param img_filename: corresponding img filename
+        Creates a new map-model. The configuration specified will serve as
+        integrator for the processed files.
+        :param configuration: Configuration to be used for integration
         """
-        self.map.add_point(pattern_filename, pattern, position, img_filename)
+        super().__init__()
+        self.configuration = configuration
+        self.filepaths = None
+        self.point_infos = []
+        self.pattern_intensities = None
+        self.pattern_x = None
+        self.window = None
+        self.window_intensities = None
+        self.dimension = None
+        self.possible_dimensions = None
+        self.map = None
 
-    def add_roi(self, start, end, name=''):
-        self.rois.append(Roi(start, end, name))
+    def load(self, filepaths: list[str], callback_fn=None):
+        """Loads a list of files, integrates them and creates a map"""
+        if len(filepaths) == 0:
+            raise ValueError("No files to load")
 
-    def reset_rois(self):
-        self.rois = []
-        self.roi_math = ''
+        self.filepaths = filepaths
 
-    def calculate_map_data(self):
-        """
-        Calculates the ROI math and creates the map image.
-        """
-        self.map.prepare()
+        self.integrate(callback_fn=callback_fn)
 
-        for point in self.map:
-            sum_roi = {}
-            for roi in self.rois:
-                indices_in_roi = roi.ind_in_roi(point.x_data)
-                sum_roi[roi.name] = np.sum(point.y_data[indices_in_roi])
+        if len(self.pattern_intensities) == 0:
+            return
 
-            try:
-                current_math = self.calculate_roi_math(sum_roi)
-            except SyntaxError:  # needed in case of problem with math
-                return
+        if self.window is None:
+            self.window = get_center_window(self.pattern_x)
 
-            self.map.set_image_intensity(point.position, current_math)
+        self.window_intensities = get_window_intensities(
+            self.pattern_x, self.pattern_intensities, self.window
+        )
+
+        self.possible_dimensions = find_possible_dimensions(
+            len(self.window_intensities)
+        )
+
+        if self.dimension is None or self.dimension not in self.possible_dimensions:
+            self.dimension = self.possible_dimensions[0]
+
+        self.map = create_map(self.window_intensities, self.dimension)
         self.map_changed.emit()
 
-    def create_simple_summing_roi_math(self):
-        """
-        Sets the roi_math to be summing of all ROIs.
-        """
-        self.roi_math = '+'.join([roi.name for roi in self.rois])
+    def integrate(self, callback_fn=None):
+        """Integrates all files in the filepaths list and stores the results"""
+        if not self.configuration.calibration_model.is_calibrated:
+            raise ValueError("Detector geometry is not calibrated")
 
-    def check_roi_math(self):
-        """
-        Returns: False if a ROI in the math string is missing from the Rois
-        """
-        names_in_roi_math = re.findall('([a-zA-Z]+)', self.roi_math)
-        for name in names_in_roi_math:
-            if name not in [roi.name for roi in self.rois]:
-                return False
-        return True
+        # initialize data structures
+        self.pattern_x = []
+        self.pattern_intensities = []
+        self.point_infos = []
 
-    def calculate_roi_math(self, sum_int):
-        """
-        Evaluates current_roi_math by replacing each ROI name with the sum of the values in that range
-        :param sum_int: dictionary with ROI names as key and there respective integral sums as values
-        :return: the result of the roi_math equation
-        """
-        if self.roi_math == '':
-            self.create_simple_summing_roi_math()
-        current_roi_math = self.roi_math
-        for roi_letter in sum_int:
-            current_roi_math = current_roi_math.replace(roi_letter, str(sum_int[roi_letter]))
-        return eval(current_roi_math)
+        # disable trimming trailing zeros for integration, otherwise the
+        # integration will result in patterns with different length, which
+        # will cause problems when creating the map
+        trim_trailing_zeros_backup = self.configuration.trim_trailing_zeros
+        self.configuration.trim_trailing_zeros = False
 
-    def is_empty(self):
-        return len(self.map) == 0
+        self.configuration.img_model.img_changed.blocked = True
 
+        try:
+            self._integrate(callback_fn=callback_fn)
+        except Exception as e:
+            self._reset()
+            raise e
+        finally:
+            # reset model to previous state
+            self.configuration.trim_trailing_zeros = trim_trailing_zeros_backup
+            self.configuration.img_model.img_changed.blocked = False
 
-class Map:
-    def __init__(self):
-        self.points = []  # list of MapPoints
-        self.sorted_points = []  # list of (points index, x, y)
-        self.sorted_map = []  # list of point indices, xs, ys (has a length of 3)
+    def _integrate(self, callback_fn=None):
+        cal = self.configuration.calibration_model
+        unit = self.configuration.integration_unit
+        azi_range = self.configuration.oned_azimuth_range
 
-        self.px_per_point_x = 100
-        self.px_per_point_y = 100
-
-    def add_point(self, pattern_filename, pattern, position=None, img_filename=None):
-        """
-        Adds a Point to the map
-        :param pattern_filename: filename of the corresponding map
-        :param pattern: Pattern object containing the x and y values of the integrated pattern
-        :type pattern: Pattern
-        :param position: tuple with x and y position
-        :param img_filename: corresponding img filename
-        """
-        self.points.append(MapPoint(pattern_filename, pattern, position, img_filename))
-
-    def prepare(self):
-        """
-        Prepares the map for inserting intensities
-        """
-        self._sort_points()
-        self._get_map_dimensions()
-        self._create_empty_map()
-
-    def _sort_points(self):
-        """
-        Sorts the current points according to x and y positions and saves them in the sorted_points variable.
-        """
-        datalist = []
-        for ind, point in enumerate(self.points):
-            datalist.append([ind, point.position[0], point.position[1]])
-
-        self.sorted_points = sorted(datalist, key=lambda x: (x[1], x[2]))
-        self.sorted_map = [[row[i] for row in self.sorted_points] for i in range(len(self.sorted_points[1]))]
-
-    def _get_map_dimensions(self):
-        """
-        Uses the sorted points and map to estimate minimum x and y position, the differences between points
-        """
-        self.min_x = self.sorted_map[1][0]
-        self.min_y = self.sorted_map[2][0]
-
-        self.num_x = self.sorted_map[2].count(self.min_y)
-        self.num_y = self.sorted_map[1].count(self.min_x)
-
-        self.diff_x = self.sorted_points[self.num_y][1] - self.sorted_points[0][1]
-        self.diff_y = self.sorted_points[1][2] - self.sorted_points[0][2]
-
-    def _create_empty_map(self):
-        """
-        Uses the estimated map dimension to calculate
-        """
-        self.hor_size = self.px_per_point_x * self.num_x
-        self.ver_size = self.px_per_point_y * self.num_y
-
-        self.um_per_px_in_x = self.diff_x / self.px_per_point_x
-        self.um_per_px_in_y = self.diff_y / self.px_per_point_y
-
-        self.new_image = np.zeros([self.hor_size, self.ver_size])
-
-    def all_positions_defined(self):
-        for point in self.points:
-            if point.position is None:
-                return False
-        return True
-
-    def sort_points_by_name(self):
-        """
-        Returns:
-            sorted_datalist: a list of all the map files, sorted by natural filename
-        """
-        return sorted(self.points, key=lambda point: [int(t) if t.isdigit() else t.lower() for t in
-                                                      re.split('(\\d+)', point.pattern_filename)])
-
-    def set_manual_positions(self, min_x, min_y, diff_x, diff_y, num_x, num_y, is_hor_first):
-        """
-        Args:
-            min_x: Horizontal minimum position
-            min_y: Vertical minimum position
-            diff_x: Step in horizontal
-            diff_y: Step in vertical
-            num_x: Number of horizontal positions
-            num_y: Number of vertical positions
-            is_hor_first: True of horizontal changes first between files, False if vertical
-
-        """
-        x_grid = np.linspace(min_x, min_x + diff_x * (num_x - 1), num_x)
-        y_grid = np.linspace(min_y, min_y + diff_y * (num_y - 1), num_y)
-
-        ind = 0
-        if is_hor_first:
-            for y in y_grid:
-                for x in x_grid:
-                    self.points[ind].position = (x, y)
-                    ind += 1
+        if cal.can_use_dioptrin_batch(unit, azi_range):
+            self._integrate_dioptrin_batch(callback_fn=callback_fn)
         else:
-            for x in x_grid:
-                for y in y_grid:
-                    self.points[ind].position = (x, y)
-                    ind += 1
+            self._integrate_pyFAI(callback_fn=callback_fn)
 
-        self.min_x = min_x
-        self.min_y = min_y
+    def _integrate_pyFAI(self, callback_fn=None):
+        frame_count = 0
+        n_total = None
+        last_callback_time = time.monotonic()
 
-        self.num_x = num_x
-        self.num_y = num_y
+        for file_ind, filepath in enumerate(self.filepaths):
+            self.configuration.img_model.load(filepath)
 
-        self.diff_x = diff_x
-        self.diff_y = diff_y
+            series_max = self.configuration.img_model.series_max
+            if n_total is None:
+                n_total = len(self.filepaths) * series_max
 
-        self._create_empty_map()
-        self.positions_set_manually = True
+            for frame_ind in range(series_max):
+                self.configuration.img_model.load_series_img(frame_ind + 1)
+                x, y = self.configuration.integrate_image_1d(
+                    update_pattern_model=False
+                )
 
-    def set_image_intensity(self, position, intensity):
-        range_hor = self.pos_to_range(position[0], self.min_x, self.px_per_point_x, self.diff_x)
-        range_ver = self.pos_to_range(position[1], self.min_y, self.px_per_point_y, self.diff_y)
-        self.new_image[range_hor, range_ver] = intensity
+                if file_ind == 0 and frame_ind == 0:
+                    self.pattern_x = x
+                else:
+                    if len(x) != len(self.pattern_x):
+                        raise ValueError(
+                            "The integrated patterns have different length, this is not supported"
+                        )
 
-    def pos_to_range(self, pos, min_pos, px_per_point, diff_pos):
+                self.point_infos.append(MapPointInfo(filepath, frame_ind))
+                self.pattern_intensities.append(y)
+
+                frame_count += 1
+                self.point_integrated.emit(
+                    file_ind + (frame_ind + 1) / series_max
+                )
+
+                now = time.monotonic()
+                if callback_fn is not None and now - last_callback_time > 0.1:
+                    last_callback_time = now
+                    if not callback_fn(frame_count, n_total):
+                        self.pattern_intensities = np.array(self.pattern_intensities)
+                        return
+
+        # Final callback to ensure progress reaches 100%
+        if callback_fn is not None:
+            callback_fn(frame_count, n_total)
+
+        self.pattern_intensities = np.array(self.pattern_intensities)
+
+    def _integrate_dioptrin_batch(self, callback_fn=None):
+        """Load frames through ImgModel, integrate via batch1d_iter with generator."""
+        from dioptas.model.util.integration import iter_frames_sequential, convert_tth_to_d
+
+        cal = self.configuration.calibration_model
+        unit = self.configuration.integration_unit
+        num_points = self.configuration.integration_rad_points
+
+        if self.configuration.use_mask:
+            mask = self.configuration.mask_model.get_mask()
+        elif self.configuration.mask_model.roi is not None:
+            mask = self.configuration.mask_model.roi_mask
+        else:
+            mask = None
+
+        # Load first file to get shape and configure integrator
+        self.configuration.img_model.load(self.filepaths[0])
+        img_shape = self.configuration.img_model.img_data.shape
+        first_series_max = self.configuration.img_model.series_max
+        num_points = cal.sync_dioptrin_for_batch(mask, unit, num_points, img_shape)
+
+        # Estimate total frames from first file; refined if files differ
+        n_total = len(self.filepaths) * first_series_max
+
+        aborted = False
+        # Built lazily by frame generator; consumed in result loop
+        all_infos = []
+
+        def frame_generator():
+            yield from iter_frames_sequential(
+                self.configuration.img_model,
+                self.filepaths,
+                img_shape=img_shape,
+                abort_check=lambda: aborted,
+                on_frame=lambda fp, fi: all_infos.append(MapPointInfo(fp, fi)),
+            )
+
+        result_iter = cal.dioptrin_batch1d_iter(frame_generator(), num_points)
+
+        last_callback_time = time.monotonic()
+        frame_count = 0
+        for i, result in enumerate(result_iter):
+            if aborted:
+                # Drain remaining pre-fetched results from dioptrin without
+                # processing them. This ensures the iterator is fully
+                # consumed so cleanup doesn't crash on worker threads.
+                continue
+
+            if not result.is_ok():
+                raise RuntimeError(
+                    f"Dioptrin batch integration failed: {result.error}"
+                )
+
+            x = np.array(result.result.radial)
+            y = np.array(result.result.intensity)
+            frame_count = i + 1
+
+            if frame_count == 1:
+                self.pattern_x = x
+            else:
+                if len(x) != len(self.pattern_x):
+                    raise ValueError(
+                        "The integrated patterns have different length, "
+                        "this is not supported"
+                    )
+
+            self.point_infos.append(all_infos[i])
+            self.pattern_intensities.append(y)
+
+            self.point_integrated.emit(frame_count)
+
+            # Throttle callback to avoid GUI overhead dominating throughput
+            now = time.monotonic()
+            if callback_fn is not None and now - last_callback_time > 0.1:
+                last_callback_time = now
+                if not callback_fn(frame_count, n_total):
+                    aborted = True
+                    # Don't break — let the for loop drain remaining
+                    # pre-fetched results so dioptrin shuts down cleanly.
+
+        # Final callback to ensure progress reaches 100%
+        if callback_fn is not None and not aborted:
+            callback_fn(frame_count, n_total)
+
+        self.pattern_intensities = np.array(self.pattern_intensities)
+
+        if unit == "d_A":
+            self.pattern_x = convert_tth_to_d(
+                self.pattern_x, cal.pattern_geometry.wavelength
+            )
+
+    def set_integration_results(
+        self,
+        pattern_x,
+        pattern_intensities,
+        point_infos: list[MapPointInfo],
+        filepaths: list[str],
+    ):
+        """Sets pre-computed integration results and rebuilds the map.
+
+        This allows populating the model without re-integrating, e.g. when
+        results were computed in a worker thread.
         """
-        Args:
-            pos: x or y position of point
-            min_pos: minimum x or y value map position
-            px_per_point: pixels to draw for each map point in the corresponding direction
-            diff_pos: difference in corresponding direction between subsequent map files
-        Returns:
-            pos_range: a slice with the start and end pixels for drawing the current map file
+        self.pattern_x = pattern_x
+        self.pattern_intensities = pattern_intensities
+        self.point_infos = point_infos
+        self.filepaths = filepaths
+
+        if self.window is None:
+            self.window = get_center_window(self.pattern_x)
+
+        self.window_intensities = get_window_intensities(
+            self.pattern_x, self.pattern_intensities, self.window
+        )
+
+        self.possible_dimensions = find_possible_dimensions(
+            len(self.window_intensities)
+        )
+
+        if self.dimension is None or self.dimension not in self.possible_dimensions:
+            self.dimension = self.possible_dimensions[0]
+
+        self.map = create_map(self.window_intensities, self.dimension)
+        self.map_changed.emit()
+
+    def _reset(self):
+        self.filepaths = None
+        self.point_infos = []
+        self.pattern_intensities = None
+        self.pattern_x = None
+        self.dimension = None
+        self.possible_dimensions = None
+        self.map = None
+        self.map_changed.emit()
+
+    def set_window(self, window: tuple[float, float]):
+        """Sets the window in the pattern for generating the map
+        :param window: tuple/list of lower value and upper value of the window
         """
-        range_start = round((pos - min_pos) / diff_pos * px_per_point)
-        range_end = round(range_start + px_per_point)
-        pos_range = slice(int(range_start), int(range_end))
-        return pos_range
+        self.window = window
+        if self.pattern_x is None:
+            return
+        self.window_intensities = get_window_intensities(
+            self.pattern_x, self.pattern_intensities, self.window
+        )
+        self.map = create_map(self.window_intensities, self.dimension)
+        self.map_changed.emit()
 
-    def position_from_xy(self, x, y):
-        """gives the position in units for a point clicked in the x, y space"""
-        hor = self.min_x + x // self.px_per_point_x * self.diff_x
-        ver = self.min_y + y // self.px_per_point_y * self.diff_y
-        return hor, ver
+    def set_dimension(self, dimension: tuple[float, float]):
+        """Sets the dimension of the map"""
+        if dimension not in self.possible_dimensions:
+            return
+        self.dimension = dimension
+        self.map = create_map(self.window_intensities, self.dimension)
+        self.map_changed.emit()
 
-    def filenames_from_position(self, pos):
+    def get_point_info(self, row_index: int, column_index: int) -> MapPointInfo | None:
+        """Returns the point info for the specified row and column index"""
+        if self.dimension is None:
+            return None
+        ind = self.get_point_index(row_index, column_index)
+        if ind is None:
+            return None
+        if ind > len(self.point_infos) - 1:
+            return None
+        return self.point_infos[ind]
+
+    def get_point_index(self, row_index: int, column_index: int) -> int | None:
+        """Returns the point index inside the list of integrated images for the specified row and column index"""
+        if self.dimension is None:
+            return None
+        return int(column_index + self.dimension[1] * row_index)
+
+    def get_point_coordinates(self, index: int) -> tuple[int, int]:
+        """Returns the row and column index for the specified point index"""
+        if self.dimension is None:
+            return None
+        return divmod(index, self.dimension[1])
+
+    def get_filenames(self) -> list[str]:
+        """Returns a list of filenames for the integrated images, it will add the frame index if it is not 0"""
+        filenames = []
+        for point_info in self.point_infos:
+            if point_info.frame_index == 0:
+                filenames.append(point_info.filename)
+            else:
+                filenames.append(f"{point_info.filename}:{point_info.frame_index}")
+        return filenames
+
+    def select_point(self, row_index: int, column_index: int):
+        """Selects the point at the specified row and column index, will trigger a load of the image through the
+        configuration. Thus the image_changed signal will be sent to all listeners"""
+        point_ind = self.get_point_index(row_index, column_index)
+        if point_ind is None:
+            return
+        self.select_point_by_index(point_ind)
+
+    def select_point_by_index(self, index: int):
+        """Selects the point at the specified index (considering the list of images), will trigger a load of the
+        image through the configuration. Thus the image_changed signal will be sent to all listeners
         """
-        Gives the filenames for a certain position in the map
-        :param pos: tuple horizontal and vertical position
-        :return: (pattern_filename, image_filename)
-        """
-        for point in self.points:
-            if abs(float(point.position[0]) - pos[0]) < 2E-4 and \
-                    abs(point.position[1] - pos[1]) < 2E-4:
-                return point.pattern_filename, point.img_filename
-        return None, None
-        # dist_sqr = {}
-        # for filename, filedata in self.map_model.map_data.items():
-        #     dist_sqr[filename] = abs(float(filedata['pos_hor']) - hor) ** 2 + abs(float(filedata['pos_ver']) - ver) ** 2
-        #
-        # return min(dist_sqr, key=dist_sqr.get)
-
-    def is_empty(self):
-        return len(self.points) == 0
-
-    def __getitem__(self, index):
-        return self.points[index]
-
-    def __len__(self):
-        return len(self.points)
-
-    def reset(self):
-        self.points = []
-        self.sorted_points = []
-        self.sorted_map = []
+        if index < 0 or index >= len(self.point_infos):
+            return
+        point_info = self.point_infos[index]
+        self.configuration.img_model.load(
+            point_info.filepath,
+            point_info.frame_index,
+        )
 
 
-class MapPoint:
-    def __init__(self, pattern_filename, pattern, position=None, img_filename=None):
-        """
-        Defines a point in a map.
-        :param pattern_filename: corresponding pattern filename
-        :param pattern: corresponding pattern
-        :type pattern: Pattern
-        :param position: tuple with the position of the map (x, y)
-        :param img_filename: corresponding image filename
-        """
-        self.pattern_filename = pattern_filename
-        self.x_data = pattern.x
-        self.y_data = pattern.y
-        self.position = position
-        self.img_filename = img_filename
+def get_center_window(x, window_range=3) -> list[float, float]:
+    """
+    Estimates a window of [x_min, x_max] centered in the x value list.
+    :param x: a numpy array
+    :param window_range: the window will be estimated with +- range * x_step
+    :return: windows with [x_min, x_max]
+    """
+    window_center = x[int(len(x) / 2)]
+    x_step = np.mean(np.diff(x))
+    return [
+        window_center - window_range * x_step,
+        window_center + window_range * x_step,
+    ]
 
 
-class Roi:
-    def __init__(self, start, end, name=None):
-        """
-        Defines a ROI
-        :param start: start_value of the ROI
-        :param end: end_value of the ROI
-        :param name: name of the ROI
-        """
-        self.start = start
-        self.end = end
-        self.name = name
-
-    def is_in_roi(self, x):
-        """
-        whether value x is in the ROI
-        :param x: x-value
-        :type x: float
-        :return: True or False
-        :rtype: bool
-        """
-        return self.start < x < self.end
-
-    def ind_in_roi(self, x_array):
-        """
-        Gets the indices of a numpy array which are in the ROI
-        :param x_array: a numpy array
-        :return: list of indices
-        """
-        return np.where((x_array > self.start) & (x_array < self.end))[0]
-
-    @property
-    def center(self):
-        return self.range / 2 + self.start
-
-    @property
-    def range(self):
-        return self.end - self.start
+def ind_in_window(x_array, window: tuple[float, float]) -> np.ndarray:
+    """
+    Gets the indices of a numpy array which are in the window
+    :param x_array: a numpy array
+    :param window: tuple/list of lower value and upper value of the window
+    :return: list of indices
+    """
+    return np.where((x_array > window[0]) & (x_array < window[1]))[0]
 
 
-def find_possible_dimensions(num_points):
+def get_window_intensities(
+    pattern_x, intensities, window: tuple[float, float]
+) -> np.ndarray:
+    """
+    Estimates the intensities inside the specified window
+    :param pattern_x: a numpy array of x values from the pattern
+    :param intensities: a 2D numpy array holding the intensities of all patterns
+    :param window: tuple/list of lower value and upper value of the summing window
+    :return: an 1D array containing the sum of  intensities inside the window for each pattern
+    """
+    indices = ind_in_window(pattern_x, window)
+    return np.sum(intensities[:, indices], axis=1)
+
+
+def find_possible_dimensions(num_points: int) -> list[(int, int)]:
+    """
+    Finds the possible dimension for a map with a given number of points
+    :param num_points: number of points for the map
+    :return: list of dimension pairs (x-dimension, y-dimension)
+    """
     dimension_pairs = []
     for n in range(1, int(np.floor(np.sqrt(num_points + 1))) + 1):
         if num_points % n == 0:
@@ -366,5 +425,19 @@ def find_possible_dimensions(num_points):
             dimension_pairs.append((dim1, dim2))
             if dim1 != dim2:
                 dimension_pairs.append((dim2, dim1))
-    dimension_pairs.sort(key=lambda x: ((x[0]+x[1])/2 - np.sqrt(num_points)) ** 2)
+    dimension_pairs.sort(key=lambda x: ((x[0] + x[1]) / 2 - np.sqrt(num_points)) ** 2)
     return dimension_pairs
+
+
+def create_map(data: np.ndarray, dimension: tuple[int, int]) -> np.ndarray:
+    """
+    Creates a new map from the given 1D array and specified dimension. It will
+    always create a copy of the data.
+    :param data: input data for creating the map
+    :param dimension: tuple of integers giving the shape of the map
+    :return: numpy array with the reorganized data
+    """
+    new_data = np.copy(data)
+    return np.reshape(new_data, dimension)
+
+

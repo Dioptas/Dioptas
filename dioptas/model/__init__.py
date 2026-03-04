@@ -6,5 +6,5 @@ from .MaskModel import MaskModel
 from .PhaseModel import PhaseModel
 from .PatternModel import PatternModel
 from .OverlayModel import OverlayModel
-from .MapModel2 import MapModel2
+from .MapModel import MapModel
 from .BatchModel import BatchModel

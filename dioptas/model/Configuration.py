@@ -14,7 +14,7 @@ from .util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCor
 
 from .util.calc import convert_units
 from . import ImgModel, CalibrationModel, MaskModel, PatternModel, BatchModel
-from .MapModel2 import MapModel2
+from .MapModel import MapModel
 from .CalibrationModel import DetectorModes
 
 
@@ -45,7 +45,7 @@ class Configuration(object):
         self.pattern_model = PatternModel()
 
         self.batch_model = BatchModel(self)
-        self.map_model = MapModel2(self)
+        self.map_model = MapModel(self)
 
         if working_directories is None:
             self.working_directories = {

@@ -9,7 +9,7 @@ from mock import MagicMock
 from dioptas.controller.MapController import MapController
 from dioptas.model.DioptasModel import DioptasModel
 
-from dioptas.model.MapModel2 import MapModel2, MapPointInfo, create_map
+from dioptas.model.MapModel import MapModel, MapPointInfo, create_map
 from dioptas.widgets.MapWidget import MapWidget
 from dioptas.widgets.plot_widgets.PatternWidget import SymmetricModifiedLinearRegionItem
 
@@ -46,7 +46,7 @@ def map_controller(qapp, dioptas_model: DioptasModel):
 
 
 @pytest.fixture
-def map_model(map_controller) -> MapModel2:
+def map_model(map_controller) -> MapModel:
     return map_controller.model.map_model
 
 
@@ -64,7 +64,7 @@ def mock_save_filename(filepath):
     QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=filepath)
 
 
-def mock_map_model(map_model: MapModel2):
+def mock_map_model(map_model: MapModel):
     map_model.map = create_map(np.array([1, 2, 3, 4, 5, 6]), (2, 3))
     map_model.filepaths = map_img_file_paths
     map_model.possible_dimensions = [(1, 6), (2, 3), (3, 2), (6, 1)]
@@ -79,7 +79,7 @@ def mock_integrate_1d(map_controller: MapController):
     )
 
 
-def test_click_load_starts_creating_map(map_controller, map_model: MapModel2):
+def test_click_load_starts_creating_map(map_controller, map_model: MapModel):
     map_model.load = MagicMock()
     mock_open_filenames(map_img_file_paths)
     mock_integrate_1d(map_controller)
@@ -89,7 +89,7 @@ def test_click_load_starts_creating_map(map_controller, map_model: MapModel2):
 
 
 def test_click_load_empties_file_list_without_calibration(
-    map_controller, map_model: MapModel2
+    map_controller, map_model: MapModel
 ):
     mock_open_filenames(map_img_file_paths)
     QtWidgets.QMessageBox.critical = MagicMock()
@@ -99,14 +99,14 @@ def test_click_load_empties_file_list_without_calibration(
     assert QtWidgets.QMessageBox.critical.assert_called_once
 
 
-def test_load_empty_filelist(map_controller, map_model: MapModel2):
+def test_load_empty_filelist(map_controller, map_model: MapModel):
     mock_open_filenames([])
     map_controller.load_btn_clicked()
 
     assert map_controller.widget.control_widget.file_list.count() == 0
 
 
-def test_files_with_different_dimensions(map_controller, map_model: MapModel2):
+def test_files_with_different_dimensions(map_controller, map_model: MapModel):
     load_calibration(map_controller)
     mock_open_filenames(
         [
@@ -121,7 +121,7 @@ def test_files_with_different_dimensions(map_controller, map_model: MapModel2):
     assert map_controller.widget.control_widget.file_list.count() == 0
 
 
-def test_click_load_fills_file_list(map_controller, map_model: MapModel2):
+def test_click_load_fills_file_list(map_controller, map_model: MapModel):
     load_calibration(map_controller)
     assert map_controller.model.current_configuration.is_calibrated == True
     mock_open_filenames(map_img_file_paths)
@@ -150,7 +150,7 @@ def test_mask_is_shown(map_controller):
     assert np.array_equal(map_controller.widget.img_plot_widget.mask_data, mask)
 
 
-def test_loading_files_plots_map(map_controller: MapController, map_model: MapModel2):
+def test_loading_files_plots_map(map_controller: MapController, map_model: MapModel):
     load_calibration(map_controller)
     assert map_controller.model.current_configuration.is_calibrated == True
     assert map_controller.widget.map_plot_widget.img_data is None
@@ -168,7 +168,7 @@ def test_loading_files_plots_map(map_controller: MapController, map_model: MapMo
 
 
 def test_loading_files_also_plots_first_image(
-    map_controller: MapController, map_model: MapModel2
+    map_controller: MapController, map_model: MapModel
 ):
     load_calibration(map_controller)
     assert map_controller.model.current_configuration.is_calibrated == True

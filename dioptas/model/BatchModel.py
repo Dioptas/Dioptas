@@ -324,7 +324,7 @@ class BatchModel(QtCore.QObject):
         self, start, stop, step, use_all=False, callback_fn=None
     ):
         """Load frames through ImgModel, integrate via batch1d_iter with generator."""
-        from dioptas.model.loader.hdf5Loader import Hdf5Image
+        from dioptas.model.util.integration import iter_frames_indexed
 
         cal = self.configuration.calibration_model
         unit = self.configuration.integration_unit
@@ -361,54 +361,15 @@ class BatchModel(QtCore.QObject):
             binning = None
             aborted = False
 
-            current_file = ""
-
             def frame_generator():
-                nonlocal current_file
-                img = self.configuration.img_model
-                frame_iter = None
-                next_frame_pos = 0
-
-                fast_path = (
-                    not img.img_transformations
-                    and img._background_data is None
-                    and not img._img_corrections.has_items()
-                    and img._factor == 1
+                yield from iter_frames_indexed(
+                    self.configuration.img_model,
+                    self.files,
+                    source,
+                    indices,
+                    mask_model=self.configuration.mask_model,
+                    abort_check=lambda: aborted,
                 )
-
-                for index in indices:
-                    if aborted:
-                        return
-                    file_index, pos = source[index]
-                    if file_index != current_file:
-                        current_file = file_index
-                        self.configuration.calibration_model.img_model.load(
-                            self.files[file_index]
-                        )
-                        self.configuration.mask_model.set_dimension(
-                            img.img_data.shape
-                        )
-                        # Set up parallel generator for bitshuffle files
-                        loader = getattr(img, "loader", None)
-                        if isinstance(loader, Hdf5Image) and loader._is_bitshuffle:
-                            frame_iter = iter(loader.gen_frames())
-                            next_frame_pos = 0
-                        else:
-                            frame_iter = None
-
-                    if frame_iter is not None:
-                        # Advance parallel generator to requested position
-                        frame = None
-                        while next_frame_pos <= pos:
-                            frame = next(frame_iter)
-                            next_frame_pos += 1
-                        if fast_path:
-                            yield frame
-                        else:
-                            yield img._apply_frame_pipeline(frame)
-                    else:
-                        img.load_series_img(pos + 1)
-                        yield img.get_img_data_float64()
 
             result_iter = cal.dioptrin_batch1d_iter(frame_generator(), num_points)
 
@@ -436,7 +397,7 @@ class BatchModel(QtCore.QObject):
         self._finalize_batch_results(cal, intensity_data, pos_map, binning, unit)
 
     def set_integration_results(self, results: dict):
-        """Apply pre-computed integration results (from IntegrationWorker).
+        """Apply pre-computed integration results.
 
         Accepts both pyFAI-style results (``binning_data`` with variable-length
         arrays) and dioptrin-style results (``binning`` with a single array).
@@ -469,15 +430,13 @@ class BatchModel(QtCore.QObject):
 
     def _finalize_batch_results(self, cal, intensity_data, pos_map, binning, unit):
         """Store batch integration results."""
+        from dioptas.model.util.integration import convert_tth_to_d
+
         if not intensity_data:
             return
 
         if unit == "d_A":
-            binning = (
-                cal.pattern_geometry.wavelength
-                / (2 * np.sin(binning / 360 * np.pi))
-                * 1e10
-            )
+            binning = convert_tth_to_d(binning, cal.pattern_geometry.wavelength)
 
         if self.configuration.calibration_model.filename != "":
             self.used_calibration = self.configuration.calibration_model.filename
