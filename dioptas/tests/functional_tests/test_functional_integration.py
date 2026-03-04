@@ -2,6 +2,7 @@
 
 import gc
 import os
+import tempfile
 import unittest
 
 from ..utility import (
@@ -253,10 +254,13 @@ class BatchIntegrationFunctionalTest(QtTest):
             os.remove(filepath)
 
     def test_save_load_reintegrate(self):
-        self.save_pattern(os.path.join(data_path, "Test_spec.nxs"))
+        tmp = tempfile.NamedTemporaryFile(suffix=".nxs", delete=False)
+        tmp.close()
+        self.addCleanup(os.unlink, tmp.name)
+        self.save_pattern(tmp.name)
 
         QtWidgets.QFileDialog.getOpenFileNames = MagicMock(
-            return_value=[os.path.join(data_path, "Test_spec.nxs")]
+            return_value=[tmp.name]
         )
         click_button(self.integration_widget.batch_widget.file_control_widget.load_btn)
 
