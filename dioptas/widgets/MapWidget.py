@@ -179,6 +179,11 @@ class MapControlWidget(QtWidgets.QWidget):
     def create_widgets(self):
         self.load_btn = QtWidgets.QPushButton("Load")
         self.file_list = QtWidgets.QListWidget()
+        self.reintegrate_cb = QtWidgets.QCheckBox("Reintegrate")
+        self.reintegrate_cb.setToolTip(
+            "Re-integrate the pattern when selecting a new image.\nApplying all current integration settings to the new pattern."
+        )
+        self.reintegrate_cb.setChecked(False)
 
     def create_layout(self):
         self._outer_layout = TightVBoxLayout()
@@ -187,6 +192,7 @@ class MapControlWidget(QtWidgets.QWidget):
 
         self._outer_layout.addWidget(self.load_btn)
         self._outer_layout.addWidget(self.file_list)
+        self._outer_layout.addWidget(self.reintegrate_cb)
 
         self.setLayout(self._outer_layout)
 

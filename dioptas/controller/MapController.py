@@ -43,6 +43,9 @@ class MapController(object):
             # needs to be its own function, to always recall the model.map_model
             # this ensures, that the currently selected configuration is used
         )
+        self.widget.control_widget.reintegrate_cb.toggled.connect(
+            self._auto_integrate_toggled
+        )
         self.widget.map_plot_control_widget.save_map_btn.clicked.connect(self._save_map)
         self.widget.map_image_frame.smooth_btn.toggled.connect(
             self._smooth_toggled
@@ -143,6 +146,7 @@ class MapController(object):
 
     def activate(self):
         self.activate_model_signals()
+        self._apply_auto_integrate()
         self.configuration_selected()
 
     def activate_model_signals(self):
@@ -152,6 +156,34 @@ class MapController(object):
     def deactivate(self):
         self.model.img_changed.disconnect(self.update_image)
         self.model.configuration_selected.disconnect(self.configuration_selected)
+        self.model.current_configuration.auto_integrate_pattern = True
+
+    def _auto_integrate_toggled(self, checked):
+        self.model.current_configuration.auto_integrate_pattern = checked
+        if checked:
+            self.model.current_configuration.integrate_image_1d()
+        else:
+            ind = self.widget.control_widget.file_list.currentRow()
+            if ind >= 0:
+                self._set_stored_pattern(ind)
+
+    def _apply_auto_integrate(self):
+        checked = self.widget.control_widget.reintegrate_cb.isChecked()
+        self.model.current_configuration.auto_integrate_pattern = checked
+
+    def _set_stored_pattern(self, index):
+        """Set pattern from stored map data when reintegrate is off."""
+        if self.widget.control_widget.reintegrate_cb.isChecked():
+            return
+        map_model = self.model.map_model
+        if map_model.pattern_x is None or map_model.pattern_intensities is None:
+            return
+        x = map_model.pattern_x
+        y = map_model.pattern_intensities[index]
+        filename = self.model.img_model.filename
+        self.model.current_configuration.pattern_model.set_pattern(
+            x, y, filename, unit=self.model.integration_unit
+        )
 
     def load_btn_clicked(self):
         filenames = open_files_dialog(
@@ -323,6 +355,7 @@ class MapController(object):
 
     def file_list_row_changed(self, row):
         self.model.map_model.select_point_by_index(row)
+        self._set_stored_pattern(row)
         row, col = self.model.map_model.get_point_coordinates(row)
         map_shape = self.model.map_model.map.shape
         self.widget.map_plot_widget.set_mouse_click_position(
@@ -354,6 +387,7 @@ class MapController(object):
 
         self.model.map_model.select_point(row, col)
         ind = self.model.map_model.get_point_index(row, col)
+        self._set_stored_pattern(ind)
 
         self.widget.control_widget.file_list.blockSignals(True)
         self.widget.control_widget.file_list.setCurrentRow(ind)
