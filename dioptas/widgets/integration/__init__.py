@@ -218,6 +218,8 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.qa_bkg_pattern_btn = pattern_widget.background_btn
         self.qa_bkg_pattern_inspect_btn = pattern_widget.background_inspect_btn
         self.antialias_btn = pattern_widget.antialias_btn
+        self.pattern_log_btn = pattern_widget.log_btn
+        self.pattern_sqrt_btn = pattern_widget.sqrt_btn
         self.pattern_auto_range_btn = pattern_widget.auto_range_btn
         self.pattern_widget = pattern_widget.pattern_view
 

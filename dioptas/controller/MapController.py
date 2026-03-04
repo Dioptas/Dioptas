@@ -61,6 +61,13 @@ class MapController(object):
             self._contour_slider_changed
         )
 
+        self.widget.pattern_footer_widget.log_btn.clicked.connect(
+            self._y_scale_log_clicked
+        )
+        self.widget.pattern_footer_widget.sqrt_btn.clicked.connect(
+            self._y_scale_sqrt_clicked
+        )
+
         self.widget.map_plot_widget.mouse_left_clicked.connect(self.map_point_selected)
         self.widget.pattern_plot_widget.mouse_left_clicked.connect(self.pattern_clicked)
         self.widget.pattern_plot_widget.map_interactive_roi.sigRegionChanged.connect(
@@ -580,6 +587,20 @@ class MapController(object):
     def pattern_roi_changed(self, interactive_roi):
         region = interactive_roi.getRegion()
         self.model.map_model.set_window(region)
+
+    def _y_scale_log_clicked(self):
+        if self.widget.pattern_footer_widget.log_btn.isChecked():
+            self.widget.pattern_footer_widget.sqrt_btn.setChecked(False)
+            self.widget.pattern_plot_widget.set_y_scale("log")
+        else:
+            self.widget.pattern_plot_widget.set_y_scale("linear")
+
+    def _y_scale_sqrt_clicked(self):
+        if self.widget.pattern_footer_widget.sqrt_btn.isChecked():
+            self.widget.pattern_footer_widget.log_btn.setChecked(False)
+            self.widget.pattern_plot_widget.set_y_scale("sqrt")
+        else:
+            self.widget.pattern_plot_widget.set_y_scale("linear")
 
     def configuration_selected(self):
         self.update_file_list()

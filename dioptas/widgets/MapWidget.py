@@ -267,11 +267,15 @@ class PatternFooterWidget(QtWidgets.QWidget):
 
     def create_widgets(self):
         self.mouse_unit_widget = MouseUnitCurrentAndClickedWidget()
+        self.log_btn = CheckableFlatButton('Log')
+        self.sqrt_btn = CheckableFlatButton(u'\u221a')
 
     def create_layout(self):
         self._outer_layout = TightHBoxLayout()
         self._outer_layout.addWidget(self.mouse_unit_widget)
         self._outer_layout.addStretch(1)
+        self._outer_layout.addWidget(self.log_btn)
+        self._outer_layout.addWidget(self.sqrt_btn)
         self.setLayout(self._outer_layout)
 
     def style_widgets(self):

@@ -115,6 +115,10 @@ class PatternController(object):
             self.widget.pattern_widget.set_antialias
         )
 
+        # pattern_plot y-scale toggles
+        self.widget.pattern_log_btn.clicked.connect(self._y_scale_log_clicked)
+        self.widget.pattern_sqrt_btn.clicked.connect(self._y_scale_sqrt_clicked)
+
         self.widget.pattern_header_xy_cb.clicked.connect(
             self.update_pattern_file_endings
         )
@@ -443,6 +447,20 @@ class PatternController(object):
             elif ev.key() == QtCore.Qt.Key_Right:
                 new_pos = pos + step
             self.model.clicked_tth_changed.emit(new_pos)
+
+    def _y_scale_log_clicked(self):
+        if self.widget.pattern_log_btn.isChecked():
+            self.widget.pattern_sqrt_btn.setChecked(False)
+            self.widget.pattern_widget.set_y_scale("log")
+        else:
+            self.widget.pattern_widget.set_y_scale("linear")
+
+    def _y_scale_sqrt_clicked(self):
+        if self.widget.pattern_sqrt_btn.isChecked():
+            self.widget.pattern_log_btn.setChecked(False)
+            self.widget.pattern_widget.set_y_scale("sqrt")
+        else:
+            self.widget.pattern_widget.set_y_scale("linear")
 
     def update_gui(self):
         if self.model.current_configuration.integration_unit == "2th_deg":

@@ -28,6 +28,12 @@ class PatternWidget(QtCore.QObject):
         self.modify_mouse_behavior()
 
         self._auto_range = True
+        self._y_scale = "linear"
+
+        # Store original (untransformed) y-data for re-plotting on scale change
+        self._orig_y = np.array([])
+        self._orig_bkg_y = np.array([])
+        self._orig_overlay_y = []  # list parallel to self.overlays
 
         self.phases = []  # type: list[PhasePlot]
         self.phases_vlines = []
@@ -98,6 +104,50 @@ class PatternWidget(QtCore.QObject):
         if self._auto_range is True:
             self.update_graph_range()
 
+    def _transform_y(self, y):
+        if self._y_scale == "log":
+            return np.log10(np.clip(y, a_min=1e-10, a_max=None))
+        elif self._y_scale == "sqrt":
+            return np.sqrt(np.clip(y, a_min=0, a_max=None))
+        return y
+
+    def _update_y_axis_label(self):
+        if self._y_scale == "log":
+            self.pattern_plot.setLabel("left", "log(Intensity)")
+        elif self._y_scale == "sqrt":
+            self.pattern_plot.setLabel("left", "sqrt(Intensity)")
+        else:
+            self.pattern_plot.setLabel("left", "Intensity")
+
+    def set_y_scale(self, mode):
+        if mode not in ("linear", "log", "sqrt"):
+            return
+        if mode == self._y_scale:
+            return
+        self._y_scale = mode
+        self._update_y_axis_label()
+        self._replot_all_transformed()
+
+    def _replot_all_transformed(self):
+        # Re-transform main plot
+        x_data = self.plot_item.getData()[0]
+        if x_data is not None and len(self._orig_y) > 0:
+            self.plot_item.setData(x_data, self._transform_y(self._orig_y))
+
+        # Re-transform background
+        bkg_x = self.bkg_item.getData()[0]
+        if bkg_x is not None and len(self._orig_bkg_y) > 0:
+            self.bkg_item.setData(bkg_x, self._transform_y(self._orig_bkg_y))
+
+        # Re-transform overlays
+        for ind, overlay in enumerate(self.overlays):
+            if ind < len(self._orig_overlay_y):
+                ox = overlay.getData()[0]
+                if ox is not None and len(self._orig_overlay_y[ind]) > 0:
+                    overlay.setData(ox, self._transform_y(self._orig_overlay_y[ind]))
+
+        self.update_graph_range()
+
     def create_pos_line(self):
         self.pos_line = pg.InfiniteLine(
             pen=pg.mkPen(color=(0, 255, 0), width=1.5, style=QtCore.Qt.DashLine)
@@ -115,7 +165,8 @@ class PatternWidget(QtCore.QObject):
         return self.pos_line.value()
 
     def plot_data(self, x, y, name=None):
-        self.plot_item.setData(x, y)
+        self._orig_y = np.asarray(y)
+        self.plot_item.setData(x, self._transform_y(self._orig_y))
         if name is not None:
             self.legend.legendItems[0][1].setText(name)
             self.plot_name = name
@@ -123,7 +174,8 @@ class PatternWidget(QtCore.QObject):
         self.update_graph_range()
 
     def plot_bkg(self, x, y):
-        self.bkg_item.setData(x, y)
+        self._orig_bkg_y = np.asarray(y)
+        self.bkg_item.setData(x, self._transform_y(self._orig_bkg_y) if len(self._orig_bkg_y) > 0 else y)
 
     def update_graph_range(self):
         x_range = list(self.plot_item.dataBounds(0))
@@ -167,8 +219,10 @@ class PatternWidget(QtCore.QObject):
         self, pattern: Pattern, color: tuple[int, int, int], show: bool = True
     ):
         x, y = pattern.data
+        orig_y = np.asarray(y)
+        self._orig_overlay_y.append(orig_y)
         self.overlays.append(
-            pg.PlotDataItem(x, y, pen=pg.mkPen(color=color, width=1.5))
+            pg.PlotDataItem(x, self._transform_y(orig_y), pen=pg.mkPen(color=color, width=1.5))
         )
         if show:
             self.pattern_plot.addItem(self.overlays[-1])
@@ -181,6 +235,7 @@ class PatternWidget(QtCore.QObject):
             self.pattern_plot.removeItem(self.overlays[ind])
         self.legend.removeItem(self.overlays[ind])
         self.overlays.remove(self.overlays[ind])
+        del self._orig_overlay_y[ind]
 
     def hide_overlay(self, ind):
         if not self.overlays[ind] in self.pattern_plot.items:
@@ -206,7 +261,9 @@ class PatternWidget(QtCore.QObject):
         self.update_graph_range()
 
     def set_overlay_data(self, ind, x, y):
-        self.overlays[ind].setData(x, y)
+        orig_y = np.asarray(y)
+        self._orig_overlay_y[ind] = orig_y
+        self.overlays[ind].setData(x, self._transform_y(orig_y))
 
     def set_overlay_color(self, ind: int, color):
         self.overlays[ind].setPen(pg.mkPen(color=color, width=1.5))
