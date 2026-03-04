@@ -180,25 +180,18 @@ class MapModel2:
         # Load first file to get shape and configure integrator
         self.configuration.img_model.load(self.filepaths[0])
         img_shape = self.configuration.img_model.img_data.shape
+        first_series_max = self.configuration.img_model.series_max
         num_points = cal.sync_dioptrin_for_batch(mask, unit, num_points, img_shape)
 
-        # Build point_infos list and count total frames
-        all_infos = []
-        for filepath in self.filepaths:
-            self.configuration.img_model.load(filepath)
-            if self.configuration.img_model.img_data.shape != img_shape:
-                raise ValueError(
-                    f"Image {filepath} has shape "
-                    f"{self.configuration.img_model.img_data.shape}, expected "
-                    f"{img_shape}"
-                )
-            for frame_ind in range(self.configuration.img_model.series_max):
-                all_infos.append(MapPointInfo(filepath, frame_ind))
-        n_total = len(all_infos)
+        # Estimate total frames from first file; refined if files differ
+        n_total = len(self.filepaths) * first_series_max
 
         aborted = False
+        # Built lazily by frame_generator; consumed in result loop
+        all_infos = []
 
         def frame_generator():
+            nonlocal n_total
             img = self.configuration.img_model
             # Fast path: no transformations/corrections → yield directly
             # from parallel decompressor (matches benchmark performance)
@@ -222,6 +215,9 @@ class MapModel2:
                     pass
 
                 if hdf5_loader is not None and hdf5_loader._is_bitshuffle:
+                    n_frames = hdf5_loader.series_max
+                    for frame_ind in range(n_frames):
+                        all_infos.append(MapPointInfo(filepath, frame_ind))
                     if fast_path:
                         for frame in hdf5_loader.gen_frames():
                             if aborted:
@@ -236,9 +232,16 @@ class MapModel2:
                     if hdf5_loader is not None:
                         hdf5_loader.f.close()
                     img.load(filepath)
+                    if img.img_data.shape != img_shape:
+                        raise ValueError(
+                            f"Image {filepath} has shape "
+                            f"{img.img_data.shape}, expected "
+                            f"{img_shape}"
+                        )
                     for frame_ind in range(img.series_max):
                         if aborted:
                             return
+                        all_infos.append(MapPointInfo(filepath, frame_ind))
                         img.load_series_img(frame_ind + 1)
                         yield img.get_img_data_float64()
 
