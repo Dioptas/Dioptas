@@ -162,6 +162,8 @@ class CalibrationModel(object):
         self._dioptrin_integrator.set_unit(dioptrin_unit)
 
         mask = self._prepare_integration_mask(mask)
+        if mask is not None and mask.shape != img_shape:
+            mask = None
         self._dioptrin_integrator.set_mask(
             mask.astype(np.uint8) if mask is not None else None
         )

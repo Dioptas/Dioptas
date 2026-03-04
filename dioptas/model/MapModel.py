@@ -170,6 +170,13 @@ class MapModel:
         unit = self.configuration.integration_unit
         num_points = self.configuration.integration_rad_points
 
+        # Load first file to get shape and configure integrator.
+        # The mask must be fetched AFTER loading so that
+        # update_mask_dimension has resized it to match the image.
+        self.configuration.img_model.load(self.filepaths[0])
+        img_shape = self.configuration.img_model.img_data.shape
+        first_series_max = self.configuration.img_model.series_max
+
         if self.configuration.use_mask:
             mask = self.configuration.mask_model.get_mask()
         elif self.configuration.mask_model.roi is not None:
@@ -177,10 +184,6 @@ class MapModel:
         else:
             mask = None
 
-        # Load first file to get shape and configure integrator
-        self.configuration.img_model.load(self.filepaths[0])
-        img_shape = self.configuration.img_model.img_data.shape
-        first_series_max = self.configuration.img_model.series_max
         num_points = cal.sync_dioptrin_for_batch(mask, unit, num_points, img_shape)
 
         # Estimate total frames from first file; refined if files differ
