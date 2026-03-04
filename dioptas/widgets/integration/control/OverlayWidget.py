@@ -26,6 +26,7 @@ class OverlayWidget(QtWidgets.QWidget):
     name_changed = QtCore.Signal(int, str)
     scale_sb_value_changed = QtCore.Signal(int, float)
     offset_sb_value_changed = QtCore.Signal(int, float)
+    match_intensity_requested = QtCore.Signal(int)
 
     def __init__(self):
         super(OverlayWidget, self).__init__()
@@ -129,6 +130,10 @@ class OverlayWidget(QtWidgets.QWidget):
         self.overlay_tw.setColumnWidth(1, 25)
         self.overlay_tw.cellChanged.connect(self.label_editingFinished)
         self.overlay_tw.setItemDelegate(NoRectDelegate())
+        self.overlay_tw.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.overlay_tw.customContextMenuRequested.connect(
+            self._show_overlay_context_menu
+        )
 
         self._layout.addWidget(self.overlay_tw, 10)
         self._layout.addWidget(self.parameter_widget, 0)
@@ -336,3 +341,13 @@ class OverlayWidget(QtWidgets.QWidget):
         self.offset_sb_value_changed.emit(
             self.offset_sbs.index(offset_sb), offset_sb.value()
         )
+
+    def _show_overlay_context_menu(self, pos):
+        row = self.overlay_tw.rowAt(pos.y())
+        if row < 0:
+            return
+        menu = QtWidgets.QMenu(self)
+        match_action = menu.addAction("Match intensity")
+        action = menu.exec_(self.overlay_tw.viewport().mapToGlobal(pos))
+        if action == match_action:
+            self.match_intensity_requested.emit(row)

@@ -2,6 +2,7 @@
 
 import os
 
+import numpy as np
 from qtpy import QtWidgets, QtGui
 from ....widgets.UtilityWidgets import open_files_dialog
 
@@ -72,6 +73,10 @@ class OverlayController(object):
 
         self.overlay_widget.overlay_tw.horizontalHeader().sectionClicked.connect(
             self.overlay_tw_header_section_clicked
+        )
+
+        self.overlay_widget.match_intensity_requested.connect(
+            self.match_intensity
         )
 
         # creating the quick-actions signals
@@ -340,3 +345,34 @@ class OverlayController(object):
         # assign the the opposite to all checkboxes
         for cb in self.overlay_widget.show_cbs:
             cb.setChecked(not current_checkbox_state)
+
+    def match_intensity(self, ind):
+        overlay = self.model.overlay_model.overlays[ind]
+        pattern_x, pattern_y = self.model.pattern.data
+
+        overlay_x = overlay._original_x
+        overlay_y = overlay._original_y
+
+        if len(overlay_x) == 0 or len(pattern_x) == 0:
+            return
+
+        # find overlapping x-range
+        x_min = max(overlay_x.min(), pattern_x.min())
+        x_max = min(overlay_x.max(), pattern_x.max())
+        if x_min >= x_max:
+            return
+
+        # interpolate overlay onto pattern x-grid within overlap
+        mask = (pattern_x >= x_min) & (pattern_x <= x_max)
+        pattern_x_overlap = pattern_x[mask]
+        pattern_y_overlap = pattern_y[mask]
+        overlay_y_interp = np.interp(pattern_x_overlap, overlay_x, overlay_y)
+
+        denom = overlay_y_interp @ overlay_y_interp
+        if denom == 0:
+            return
+
+        scale = (overlay_y_interp @ pattern_y_overlap) / denom
+
+        self.model.overlay_model.set_overlay_offset(ind, 0)
+        self.model.overlay_model.set_overlay_scaling(ind, scale)
