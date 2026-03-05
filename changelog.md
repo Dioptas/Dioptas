@@ -1,3 +1,9 @@
+# 0.8.1 (stable 05.03.2026)
+
+## Bugfixes
+
+- fixed parallel bitshuffle decompression failing for HDF5 files with multi-byte dtypes (e.g. int32) — the chunk header block size was incorrectly passed in bytes instead of elements, causing map loading to crash
+
 # 0.8.0 (stable 04.03.2026)
 
 ## New Features
