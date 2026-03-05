@@ -30,7 +30,8 @@ def _decompress_bitshuffle_lz4(raw_bytes, shape, dtype):
     This runs inside a thread pool worker so the flip + type conversion
     happen in parallel across frames.
     """
-    block_size = struct.unpack(">I", raw_bytes[8:12])[0]
+    block_size_bytes = struct.unpack(">I", raw_bytes[8:12])[0]
+    block_size = block_size_bytes // np.dtype(dtype).itemsize
     buf = np.frombuffer(raw_bytes, dtype=np.uint8, offset=12)
     frame = bitshuffle.decompress_lz4(buf, shape, dtype, block_size)
     return np.ascontiguousarray(frame[::-1], dtype=np.float64)
