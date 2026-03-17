@@ -241,6 +241,19 @@ class CalibrationModel(object):
         self.points = []
         self.points_index = []
 
+    def remove_peaks_by_ring(self, ring_ind):
+        """Removes all peaks belonging to the specified ring index."""
+        filtered = [
+            (p, i)
+            for p, i in zip(self.points, self.points_index)
+            if i != ring_ind
+        ]
+        if filtered:
+            self.points, self.points_index = map(list, zip(*filtered))
+        else:
+            self.points = []
+            self.points_index = []
+
     def remove_last_peak(self):
         if self.points:
             num_points = int(

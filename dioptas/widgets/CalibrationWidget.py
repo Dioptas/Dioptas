@@ -95,6 +95,7 @@ class CalibrationWidget(QtWidgets.QWidget):
         self.search_size_sb = peak_selection_gb.search_size_sb
         self.automatic_peak_num_inc_cb = peak_selection_gb.automatic_peak_num_inc_cb
         self.clear_peaks_btn = peak_selection_gb.clear_peaks_btn
+        self.clear_ring_btn = peak_selection_gb.clear_ring_btn
         self.undo_peaks_btn = peak_selection_gb.undo_peaks_btn
 
         self.f2_update_btn = self.calibration_control_widget.fit2d_parameters_widget.update_btn
@@ -559,11 +560,13 @@ class PeakSelectionGroupBox(QtWidgets.QGroupBox):
                                                    QtWidgets.QSizePolicy.Minimum), 4, 2, 1, 2)
 
         self.undo_peaks_btn = QtWidgets.QPushButton("Undo")
-        self.clear_peaks_btn = QtWidgets.QPushButton("Clear All Peaks")
+        self.clear_ring_btn = QtWidgets.QPushButton("Clear Ring")
+        self.clear_peaks_btn = QtWidgets.QPushButton("Clear All")
 
         self._peak_btn_layout = QtWidgets.QHBoxLayout()
         self._peak_btn_layout.setSpacing(6)
         self._peak_btn_layout.addWidget(self.undo_peaks_btn)
+        self._peak_btn_layout.addWidget(self.clear_ring_btn)
         self._peak_btn_layout.addWidget(self.clear_peaks_btn)
         self._layout.addLayout(self._peak_btn_layout, 5, 0, 1, 4)
 

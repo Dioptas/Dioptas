@@ -4,6 +4,7 @@ import os
 from qtpy import QtWidgets, QtCore
 
 import numpy as np
+import pyqtgraph as pg
 
 from ..widgets.UtilityWidgets import open_file_dialog, save_file_dialog
 from .. import calibrants_path
@@ -81,7 +82,9 @@ class CalibrationController(object):
         self.widget.refine_btn.clicked.connect(self.refine)
 
         self.widget.clear_peaks_btn.clicked.connect(self.clear_peaks)
+        self.widget.clear_ring_btn.clicked.connect(self.clear_current_ring)
         self.widget.undo_peaks_btn.clicked.connect(self.undo_peaks_btn_clicked)
+        self.widget.peak_num_sb.valueChanged.connect(self.plot_points)
 
         self.widget.load_spline_btn.clicked.connect(self.load_spline_btn_click)
         self.widget.spline_reset_btn.clicked.connect(self.reset_spline_btn_click)
@@ -418,22 +421,28 @@ class CalibrationController(object):
             if self.widget.automatic_peak_num_inc_cb.isChecked():
                 self.widget.peak_num_sb.setValue(peak_ind + 1)
 
-    def plot_points(self, points=None):
+    def plot_points(self, _=None):
         """
-        Plots points into the image view.
-        :param points:
-            list of points, whereby a point is a [x,y] element. If it is none it will plot the points stored in the
-            calibration_data
+        Plots all picked peaks into the image view. Peaks belonging to the
+        currently selected ring are highlighted in a different color.
         """
-        if points is None:
-            try:
-                points = self.model.calibration_model.get_point_array()
-            except IndexError:
-                points = []
-        if len(points):
-            self.widget.img_widget.add_scatter_data(
-                points[:, 0] + 0.5, points[:, 1] + 0.5
-            )
+        try:
+            points = self.model.calibration_model.get_point_array()
+        except IndexError:
+            return
+        if len(points) == 0:
+            return
+        current_ring = self.widget.peak_num_sb.value() - 1
+        brushes = []
+        for ring_ind in points[:, 2]:
+            if int(ring_ind) == current_ring:
+                brushes.append(pg.mkBrush(255, 140, 0, 255))
+            else:
+                brushes.append(pg.mkBrush(255, 0, 0, 255))
+        self.widget.img_widget.clear_scatter_plot()
+        self.widget.img_widget.img_scatter_plot_item.addPoints(
+            x=points[:, 1] + 0.5, y=points[:, 0] + 0.5, brush=brushes
+        )
 
     def clear_peaks(self):
         """
@@ -442,6 +451,14 @@ class CalibrationController(object):
         self.model.calibration_model.clear_peaks()
         self.widget.img_widget.clear_scatter_plot()
         self.widget.peak_num_sb.setValue(1)
+
+    def clear_current_ring(self):
+        """
+        Deletes all peaks for the currently selected ring.
+        """
+        ring_ind = self.widget.peak_num_sb.value() - 1
+        self.model.calibration_model.remove_peaks_by_ring(ring_ind)
+        self.plot_points()
 
     def undo_peaks_btn_clicked(self):
         """
