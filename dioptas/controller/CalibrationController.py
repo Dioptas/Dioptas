@@ -53,6 +53,7 @@ class CalibrationController(object):
         self.model.configuration_selected.connect(
             self.update_detector_parameters_in_view
         )
+        self.model.configuration_selected.connect(self.update_mask_gui)
         self.model.calibration_model.detector_reset.connect(
             self.update_detector_parameters_in_view
         )
@@ -701,6 +702,15 @@ class CalibrationController(object):
             self.model.working_directories["calibration"] = os.path.dirname(filename)
             self.model.calibration_model.load(filename)
             self.update_all(integrate=self.model.img_model.filename != "")
+
+    def update_mask_gui(self):
+        """
+        Updates the mask checkbox and transparency state from the current
+        configuration, then replots the mask.
+        """
+        self.widget.use_mask_cb.setChecked(bool(self.model.use_mask))
+        self.widget.mask_transparent_cb.setChecked(bool(self.model.transparent_mask))
+        self.plot_mask()
 
     def plot_mask(self):
         """
