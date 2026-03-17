@@ -52,6 +52,9 @@ class DioptasModel(object):
         self.configurations[0].calibration_model.detector_reset.connect(
             self.invalidate_multi_geometry
         )
+        self.configurations[0].calibration_model.parameters_changed.connect(
+            self.invalidate_multi_geometry
+        )
 
         self.configuration_added = Signal()
         self.configuration_selected = Signal(int)  # new index
@@ -96,6 +99,9 @@ class DioptasModel(object):
         self.configurations[-1].calibration_model.detector_reset.connect(
             self.invalidate_multi_geometry
         )
+        self.configurations[-1].calibration_model.parameters_changed.connect(
+            self.invalidate_multi_geometry
+        )
 
         self.select_configuration(len(self.configurations) - 1)
         self.invalidate_multi_geometry()
@@ -109,6 +115,9 @@ class DioptasModel(object):
             return
         ind = self.configuration_ind
         self.configurations[ind].calibration_model.detector_reset.disconnect(
+            self.invalidate_multi_geometry
+        )
+        self.configurations[ind].calibration_model.parameters_changed.disconnect(
             self.invalidate_multi_geometry
         )
         self.disconnect_models()

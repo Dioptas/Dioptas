@@ -98,6 +98,7 @@ class CalibrationModel(object):
         self.img_model.img_changed.connect(self._check_detector_and_image_shape)
 
         self.detector_reset = Signal()
+        self.parameters_changed = Signal()
 
         self._dioptrin_integrator = None
         self.dioptrin_num_workers = max((os.cpu_count() or 4) - 1, 1)
@@ -427,6 +428,7 @@ class CalibrationModel(object):
         self.set_supersampling()
         # reset the integrator (not the geometric parameters)
         self.pattern_geometry.reset()
+        self.parameters_changed.emit()
 
     def refine(self):
         if len(self.points) == 0:
@@ -922,6 +924,7 @@ class CalibrationModel(object):
         self.set_supersampling()
         if self.use_dioptrin:
             self._create_dioptrin_integrator()
+        self.parameters_changed.emit()
 
     def save(self, filename):
         """
@@ -1014,6 +1017,7 @@ class CalibrationModel(object):
         self.orig_pixel2 = fit2d_parameter["pixelY"] * 1e-6
         self.is_calibrated = True
         self.set_supersampling()
+        self.parameters_changed.emit()
 
     def set_pyFAI(self, pyFAI_parameter):
         """
@@ -1042,6 +1046,7 @@ class CalibrationModel(object):
         self.set_supersampling()
         if self.use_dioptrin:
             self._create_dioptrin_integrator()
+        self.parameters_changed.emit()
 
     def get_pyFAI_config(self) -> dict:
         """
