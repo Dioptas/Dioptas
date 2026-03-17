@@ -192,6 +192,38 @@ def test_combine_cakes(dioptas_model):
     assert not np.array_equal(dioptas_model.cake_data, cake2)
 
 
+def test_combine_patterns_after_image_shape_change(dioptas_model):
+    """Loading a differently-sized image should invalidate the MultiGeometry
+    cache so that combined integration still works without errors."""
+    # set up two configurations with the same image
+    dioptas_model.calibration_model.load(
+        os.path.join(data_path, "CeO2_Pilatus1M.poni")
+    )
+    dioptas_model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
+
+    dioptas_model.add_configuration()
+    dioptas_model.calibration_model.load(
+        os.path.join(data_path, "CeO2_Pilatus1M_2.poni")
+    )
+    dioptas_model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
+
+    dioptas_model.combine_patterns = True
+    x_before, _ = dioptas_model.pattern.data
+    assert len(x_before) > 0
+
+    # now load a differently-sized image+calibration into one configuration
+    dioptas_model.select_configuration(0)
+    dioptas_model.calibration_model.load(
+        os.path.join(data_path, "LaB6_40keV_MarCCD.poni")
+    )
+    dioptas_model.img_model.load(os.path.join(data_path, "LaB6_40keV_MarCCD.tif"))
+
+    # combined pattern should still work and produce a different result
+    x_after, _ = dioptas_model.pattern.data
+    assert len(x_after) > 0
+    assert not np.array_equal(x_before, x_after)
+
+
 def test_setting_factors(dioptas_model):
     dioptas_model.img_model.load(os.path.join(data_path, "image_001.tif"))
     data1 = np.copy(dioptas_model.img_data)

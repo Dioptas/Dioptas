@@ -49,6 +49,10 @@ class DioptasModel(object):
         self._multi_geometry = None
         self._multi_geometry_unit = None
 
+        self.configurations[0].calibration_model.detector_reset.connect(
+            self.invalidate_multi_geometry
+        )
+
         self.configuration_added = Signal()
         self.configuration_selected = Signal(int)  # new index
         self.configuration_removed = Signal(int)  # removed index
@@ -89,6 +93,9 @@ class DioptasModel(object):
         self.configurations[-1].img_model._img_data = (
             self.current_configuration.img_model.img_data
         )
+        self.configurations[-1].calibration_model.detector_reset.connect(
+            self.invalidate_multi_geometry
+        )
 
         self.select_configuration(len(self.configurations) - 1)
         self.invalidate_multi_geometry()
@@ -101,6 +108,9 @@ class DioptasModel(object):
         if len(self.configurations) == 1:
             return
         ind = self.configuration_ind
+        self.configurations[ind].calibration_model.detector_reset.disconnect(
+            self.invalidate_multi_geometry
+        )
         self.disconnect_models()
         del self.configurations[ind]
         if ind == len(self.configurations) or ind == -1:
@@ -188,6 +198,9 @@ class DioptasModel(object):
         for ind, configuration_group in f.get("configurations").items():
             configuration = Configuration()
             configuration.load_from_hdf5(configuration_group)
+            configuration.calibration_model.detector_reset.connect(
+                self.invalidate_multi_geometry
+            )
             self.configurations.append(configuration)
         self.configuration_ind = f.get("configurations").attrs["selected_configuration"]
 
@@ -540,6 +553,9 @@ class DioptasModel(object):
         self.disconnect_models()
         self.delete_configurations()
         self.configurations = [Configuration()]
+        self.configurations[0].calibration_model.detector_reset.connect(
+            self.invalidate_multi_geometry
+        )
         self.configuration_ind = 0
         self.overlay_model.reset()
         self.phase_model.reset()
