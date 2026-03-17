@@ -1,3 +1,9 @@
+# 0.8.2 (stable 17.03.2026)
+
+## Improvements
+
+- use pyFAI MultiGeometry for combining patterns and cakes across multiple configurations, replacing the previous stitching/interpolation approach with proper weighted averaging
+
 # 0.8.1 (stable 05.03.2026)
 
 ## Bugfixes
