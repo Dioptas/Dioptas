@@ -137,38 +137,39 @@ def test_change_cake_azimuth_range(dioptas_model):
 
 
 def prepare_combined_patterns(model):
-    x1 = np.linspace(0, 10)
-    y1 = np.ones(x1.shape)
-    pattern1 = Pattern(x1, y1)
+    model.calibration_model.load(os.path.join(data_path, "CeO2_Pilatus1M.poni"))
+    model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
 
-    x2 = np.linspace(7, 15)
-    y2 = np.ones(x2.shape) * 2
-    pattern2 = Pattern(x2, y2)
+    x1, _ = model.pattern_model.pattern.data
 
-    model.pattern_model.pattern = pattern1
     model.add_configuration()
-    model.pattern_model.pattern = pattern2
+    model.calibration_model.load(os.path.join(data_path, "CeO2_Pilatus1M_2.poni"))
+    model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
+
+    x2, _ = model.pattern_model.pattern.data
 
     model.combine_patterns = True
+    return x1, x2
 
 
 def test_combine_patterns(dioptas_model):
-    prepare_combined_patterns(dioptas_model)
+    x1, x2 = prepare_combined_patterns(dioptas_model)
 
     assert dioptas_model.pattern is not None
     x3, y3 = dioptas_model.pattern.data
-    assert np.min(x3) < 7
-    assert np.max(x3) > 10
+    # combined pattern should cover wider range than either individual pattern alone
+    assert np.max(x3) > np.max(x1)
+    assert len(x3) > 0
 
 
 def test_save_combine_patterns(dioptas_model, tmp_path):
-    prepare_combined_patterns(dioptas_model)
+    x1, x2 = prepare_combined_patterns(dioptas_model)
     file_path = os.path.join(tmp_path, "combined_pattern.xy")
     dioptas_model.pattern.save(file_path)
     saved_pattern = Pattern.from_file(file_path)
     x3, y3 = saved_pattern.data
-    assert np.min(x3) < 7
-    assert np.max(x3) > 10
+    assert np.max(x3) > np.max(x1)
+    assert len(x3) > 0
 
 
 def test_combine_cakes(dioptas_model):

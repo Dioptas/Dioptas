@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: MIT
 
 import os
-from scipy.interpolate import RegularGridInterpolator
 import numpy as np
 import h5py
 
+from pyFAI.multi_geometry import MultiGeometry
+
 from xypattern import Pattern
-from xypattern.combine import stitch_patterns
 
 from .util import Signal
 from .util import jcpds
@@ -43,6 +43,11 @@ class DioptasModel(object):
         self._combine_patterns = False
         self._combine_cakes = False
         self._cake_data = None
+        self._cake_tth = None
+        self._cake_azi = None
+
+        self._multi_geometry = None
+        self._multi_geometry_unit = None
 
         self.configuration_added = Signal()
         self.configuration_selected = Signal(int)  # new index
@@ -86,6 +91,7 @@ class DioptasModel(object):
         )
 
         self.select_configuration(len(self.configurations) - 1)
+        self.invalidate_multi_geometry()
         self.configuration_added.emit()
 
     def remove_configuration(self):
@@ -100,6 +106,7 @@ class DioptasModel(object):
         if ind == len(self.configurations) or ind == -1:
             self.configuration_ind = len(self.configurations) - 1
         self.connect_models()
+        self.invalidate_multi_geometry()
         self.configuration_removed.emit(self.configuration_ind)
 
     def save(self, filename):
@@ -185,6 +192,7 @@ class DioptasModel(object):
         self.configuration_ind = f.get("configurations").attrs["selected_configuration"]
 
         self.connect_models()
+        self.invalidate_multi_geometry()
         self.configuration_added.emit()
         self.select_configuration(self.configuration_ind)
 
@@ -341,107 +349,12 @@ class DioptasModel(object):
         else:
             return self._cake_data
 
-    def calculate_combined_cake(self):
-        """
-        Combines cakes from all configurations into one large cake.
-        """
-        self._activate_cake()
-        tth = self._get_combined_cake_tth()
-        azi = self._get_combined_cake_azi()
-        combined_tth, combined_azi = np.meshgrid(tth, azi)
-        combined_intensity = np.zeros(combined_azi.shape)
-
-        for configuration in self.configurations:
-            cake_interp2d = RegularGridInterpolator(
-                (
-                    configuration.calibration_model.cake_tth,
-                    configuration.calibration_model.cake_azi,
-                ),
-                configuration.calibration_model.cake_img.T,
-                method="linear",
-                fill_value=0,
-                bounds_error=False,
-            )
-            # TODO: check if it is correct to use tth, azi and not combined_tth and combined_azi
-            combined_intensity += cake_interp2d((tth, azi))
-        self._cake_data = combined_intensity
-
-    def _activate_cake(self):
-        """
-        Activates cake integration in all configurations.
-        """
-        for configuration in self.configurations:
-            if not configuration.auto_integrate_cake:
-                configuration.auto_integrate_cake = True
-                configuration.integrate_image_2d()
-
-    def _get_cake_tth_range(self):
-        """
-        Gives the range of two theta values of all cakes in the different configurations.
-        :return: (minimum two theta, maximum two theta)
-        """
-        self._activate_cake()
-        min_tth = []
-        max_tth = []
-        for ind in range(len(self.configurations)):
-            min_tth.append(np.min(self.configurations[ind].calibration_model.cake_tth))
-            max_tth.append(np.max(self.configurations[ind].calibration_model.cake_tth))
-        return np.min(min_tth), np.max(max_tth)
-
-    def _get_cake_azi_range(self):
-        """
-        Gives the range of azimuth values of all cakes in the different configurations.
-        :return: (minimum azimuth, maximum azimuth)
-        """
-        self._activate_cake()
-        min_azi = []
-        max_azi = []
-        for ind in range(len(self.configurations)):
-            min_azi.append(np.min(self.configurations[ind].calibration_model.cake_azi))
-            max_azi.append(np.max(self.configurations[ind].calibration_model.cake_azi))
-        return np.min(min_azi), np.max(max_azi)
-
-    def _get_combined_cake_tth(self):
-        """
-        Gives an 1d array of two theta values which covers the two theta range of the cakes in all configurations.
-        :return: two theta array
-        """
-        min_tth, max_tth = self._get_cake_tth_range()
-        return np.linspace(min_tth, max_tth, 2048)
-
-    def _get_combined_cake_azi(self):
-        """
-        Gives an 1d array of azimuth values which covers the azimuth range of the cakes in all configurations.
-        :return: two theta array
-        """
-        min_azi, max_azi = self._get_cake_azi_range()
-        return np.linspace(min_azi, max_azi, 2048)
-
-    @property
-    def cake_tth(self):
-        if not self.combine_cakes:
-            return self.calibration_model.cake_tth
-        else:
-            return self._get_combined_cake_tth()
-
-    @property
-    def cake_azi(self):
-        if not self.combine_cakes:
-            return self.calibration_model.cake_azi
-        else:
-            return self._get_combined_cake_azi()
-
     @property
     def pattern(self) -> Pattern:
         if not self.combine_patterns:
             return self.pattern_model.pattern
         else:
-            return stitch_patterns(
-                [
-                    configuration.pattern_model.pattern
-                    for configuration in self.configurations
-                ]
-            )
+            return self._integrate_combined_1d()
 
     @property
     def combine_patterns(self) -> bool:
@@ -478,6 +391,146 @@ class DioptasModel(object):
                 configuration.cake_changed.disconnect(self.calculate_combined_cake)
         self.cake_changed.emit()
 
+    def _get_multi_geometry(self, unit="2th_deg"):
+        """
+        Returns a cached pyFAI MultiGeometry from all configurations' geometries.
+        The MultiGeometry is recreated only when the unit changes or when invalidated.
+        :param unit: radial unit for integration
+        :return: MultiGeometry instance
+        """
+        if self._multi_geometry is None or self._multi_geometry_unit != unit:
+            ais = [
+                config.calibration_model.pattern_geometry
+                for config in self.configurations
+            ]
+            self._multi_geometry = MultiGeometry(ais, unit=unit)
+            self._multi_geometry_unit = unit
+        return self._multi_geometry
+
+    def invalidate_multi_geometry(self):
+        """Invalidates the cached MultiGeometry so it is recreated on next use."""
+        self._multi_geometry = None
+        self._multi_geometry_unit = None
+
+    def _get_lst_data_and_masks(self):
+        """
+        Collects image data and masks from all configurations.
+        :return: (lst_data, lst_mask) tuple of lists
+        """
+        lst_data = []
+        lst_mask = []
+        for configuration in self.configurations:
+            lst_data.append(configuration.img_model.img_data)
+            if configuration.use_mask:
+                lst_mask.append(configuration.mask_model.get_mask())
+            elif configuration.mask_model.roi is not None:
+                lst_mask.append(configuration.mask_model.roi_mask)
+            else:
+                lst_mask.append(None)
+        return lst_data, lst_mask
+
+    def _integrate_combined_1d(self) -> Pattern:
+        """
+        Uses pyFAI MultiGeometry to integrate all configurations into a single 1D pattern.
+        """
+        unit = self.integration_unit
+        mg_unit = "2th_deg" if unit == "d_A" else unit
+
+        mg = self._get_multi_geometry(unit=mg_unit)
+        # Reset cached ranges so they're recalculated if geometry changed
+        mg.radial_range = None
+        mg.azimuth_range = None
+
+        lst_data, lst_mask = self._get_lst_data_and_masks()
+
+        num_points = self.current_configuration.integration_rad_points
+        if num_points is None:
+            num_points = self.calibration_model.calculate_number_of_pattern_points(
+                self.img_model.img_data.shape, 2
+            )
+
+        polarization_factor = self.calibration_model.polarization_factor
+        correct_solid_angle = self.calibration_model.correct_solid_angle
+
+        result = mg.integrate1d(
+            lst_data,
+            npt=num_points,
+            correctSolidAngle=correct_solid_angle,
+            polarization_factor=polarization_factor,
+            lst_mask=lst_mask,
+        )
+
+        x = result.radial
+        y = result.intensity
+
+        if unit == "d_A":
+            wavelength = self.calibration_model.pattern_geometry.wavelength
+            x = wavelength / (2 * np.sin(x / 360 * np.pi)) * 1e10
+
+        return Pattern(x, y)
+
+    def calculate_combined_cake(self):
+        """
+        Uses pyFAI MultiGeometry to combine cakes from all configurations.
+        """
+        self._activate_cake()
+
+        unit = self.integration_unit
+        mg_unit = "2th_deg" if unit == "d_A" else unit
+
+        mg = self._get_multi_geometry(unit=mg_unit)
+        # Reset cached ranges so they're recalculated if geometry changed
+        mg.radial_range = None
+        mg.azimuth_range = None
+
+        lst_data, lst_mask = self._get_lst_data_and_masks()
+
+        num_points = self.current_configuration.integration_rad_points
+        if num_points is None:
+            num_points = self.calibration_model.calculate_number_of_pattern_points(
+                self.img_model.img_data.shape, 2
+            )
+
+        azimuth_points = self.current_configuration.cake_azimuth_points
+        polarization_factor = self.calibration_model.polarization_factor
+        correct_solid_angle = self.calibration_model.correct_solid_angle
+
+        result = mg.integrate2d(
+            lst_data,
+            npt_rad=num_points,
+            npt_azim=azimuth_points,
+            correctSolidAngle=correct_solid_angle,
+            polarization_factor=polarization_factor,
+            lst_mask=lst_mask,
+        )
+
+        self._cake_data = result.intensity
+        self._cake_tth = result.radial
+        self._cake_azi = result.azimuthal
+
+    def _activate_cake(self):
+        """
+        Activates cake integration in all configurations.
+        """
+        for configuration in self.configurations:
+            if not configuration.auto_integrate_cake:
+                configuration.auto_integrate_cake = True
+                configuration.integrate_image_2d()
+
+    @property
+    def cake_tth(self):
+        if not self.combine_cakes:
+            return self.calibration_model.cake_tth
+        else:
+            return self._cake_tth
+
+    @property
+    def cake_azi(self):
+        if not self.combine_cakes:
+            return self.calibration_model.cake_azi
+        else:
+            return self._cake_azi
+
     def reset(self):
         """
         Resets the state of the model. It only remembers the current working directories of the currently selected
@@ -490,6 +543,7 @@ class DioptasModel(object):
         self.configuration_ind = 0
         self.overlay_model.reset()
         self.phase_model.reset()
+        self.invalidate_multi_geometry()
         self.connect_models()
         self.working_directories = working_directories
         self.configuration_removed.emit(0)

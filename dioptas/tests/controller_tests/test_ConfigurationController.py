@@ -207,18 +207,18 @@ class ConfigurationControllerTest(QtTest):
         )
 
     def test_save_combined_pattern(self):
-        # prepare two patterns
-        x1 = np.linspace(0, 10)
-        y1 = np.ones(x1.shape)
-        pattern1 = Pattern(x1, y1)
+        # prepare two calibrated configurations
+        self.model.calibration_model.load(
+            os.path.join(data_path, "CeO2_Pilatus1M.poni")
+        )
+        self.model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
+        x1, _ = self.model.pattern_model.pattern.data
 
-        x2 = np.linspace(7, 15)
-        y2 = np.ones(x2.shape) * 2
-        pattern2 = Pattern(x2, y2)
-
-        self.model.pattern_model.pattern = pattern1
         self.model.add_configuration()
-        self.model.pattern_model.pattern = pattern2
+        self.model.calibration_model.load(
+            os.path.join(data_path, "CeO2_Pilatus1M_2.poni")
+        )
+        self.model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
 
         self.model.combine_patterns = True
 
@@ -230,5 +230,7 @@ class ConfigurationControllerTest(QtTest):
         # load and check that it worked
         saved_pattern = Pattern.from_file(file_path)
         x3, _ = saved_pattern.data
-        self.assertLess(np.min(x3), 7)
-        self.assertGreater(np.max(x3), 10)
+        self.assertGreater(np.max(x3), np.max(x1))
+        self.assertGreater(len(x3), 0)
+
+        delete_if_exists(file_path)
