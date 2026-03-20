@@ -61,6 +61,7 @@ class DioptasModel(object):
         self.configuration_removed = Signal(int)  # removed index
 
         self.img_changed = Signal()
+        self.mask_changed = Signal()
         self.pattern_changed = Signal()
         self.cake_changed = Signal()
         self.enabled_phases_in_cake = Signal()
@@ -270,6 +271,7 @@ class DioptasModel(object):
             if self.combine_cakes:
                 self.current_configuration.auto_integrate_cake = False
             self.img_changed.emit()
+            self.mask_changed.emit()
             self.current_configuration.auto_integrate_pattern = True
             if self.combine_cakes:
                 self.current_configuration.auto_integrate_cake = True
@@ -281,6 +283,7 @@ class DioptasModel(object):
         Disconnects signals of the currently selected configuration.
         """
         self.img_model.img_changed.disconnect(self.img_changed)
+        self.mask_model.mask_changed.disconnect(self.mask_changed)
         self.pattern_model.pattern_changed.disconnect(self.pattern_changed)
         self.current_configuration.cake_changed.disconnect(self.cake_changed)
 
@@ -289,6 +292,7 @@ class DioptasModel(object):
         Connects signals of the currently selected configuration
         """
         self.img_model.img_changed.connect(self.img_changed, priority=True)
+        self.mask_model.mask_changed.connect(self.mask_changed)
         self.pattern_model.pattern_changed.connect(self.pattern_changed)
         self.current_configuration.cake_changed.connect(self.cake_changed)
 

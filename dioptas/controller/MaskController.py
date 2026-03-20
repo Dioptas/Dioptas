@@ -67,16 +67,26 @@ class MaskController(object):
 
         self.widget.keyPressEvent = self.key_press_event
 
-        self.model.img_changed.connect(self.update_gui)
+        self.model.img_changed.connect(self.plot_image)
+        self.model.mask_changed.connect(self.plot_mask)
+        self.model.configuration_selected.connect(self.update_gui)
 
     def activate(self):
-        if not self.model.img_changed.has_listener(self.update_gui):
-            self.model.img_changed.connect(self.update_gui)
+        if not self.model.img_changed.has_listener(self.plot_image):
+            self.model.img_changed.connect(self.plot_image)
+        if not self.model.mask_changed.has_listener(self.plot_mask):
+            self.model.mask_changed.connect(self.plot_mask)
+        if not self.model.configuration_selected.has_listener(self.update_gui):
+            self.model.configuration_selected.connect(self.update_gui)
         self.update_gui()
 
     def deactivate(self):
-        if self.model.img_changed.has_listener(self.update_gui):
-            self.model.img_changed.disconnect(self.update_gui)
+        if self.model.img_changed.has_listener(self.plot_image):
+            self.model.img_changed.disconnect(self.plot_image)
+        if self.model.mask_changed.has_listener(self.plot_mask):
+            self.model.mask_changed.disconnect(self.plot_mask)
+        if self.model.configuration_selected.has_listener(self.update_gui):
+            self.model.configuration_selected.disconnect(self.update_gui)
 
     def uncheck_all_btn(self, except_btn=None):
         buttons = [self.widget.circle_btn, self.widget.rectangle_btn, self.widget.polygon_btn,
@@ -489,8 +499,6 @@ class MaskController(object):
         self.widget.pos_lbl.setText(str)
 
     def update_gui(self):
-        self.model.mask_model.set_dimension(self.model.img_model._img_data.shape)
-
         # transparency
         if self.model.transparent_mask:
             self.widget.transparent_rb.setChecked(True)

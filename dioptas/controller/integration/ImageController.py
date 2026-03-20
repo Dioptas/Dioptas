@@ -134,7 +134,7 @@ class ImageController(object):
         self.model.img_changed.connect(self.update_img_control_widget)
 
         self.model.img_changed.connect(self.plot_img)
-        self.model.img_changed.connect(self.plot_mask)
+        self.model.mask_changed.connect(self.plot_mask)
 
         """
         Creates all the connections of the GUI elements.
@@ -198,8 +198,8 @@ class ImageController(object):
         if self.widget.img_mode == 'Image':
             if not self.model.img_changed.has_listener(self.plot_img):
                 self.model.img_changed.connect(self.plot_img)
-            if not self.model.img_changed.has_listener(self.plot_mask):
-                self.model.img_changed.connect(self.plot_mask)
+            if not self.model.mask_changed.has_listener(self.plot_mask):
+                self.model.mask_changed.connect(self.plot_mask)
         elif self.widget.img_mode == 'Cake':
             if not self.model.cake_changed.has_listener(self.plot_cake):
                 self.model.cake_changed.connect(self.plot_cake)
@@ -222,8 +222,8 @@ class ImageController(object):
     def deactivate(self):
         if self.model.img_changed.has_listener(self.plot_img):
             self.model.img_changed.disconnect(self.plot_img)
-        if self.model.img_changed.has_listener(self.plot_mask):
-            self.model.img_changed.disconnect(self.plot_mask)
+        if self.model.mask_changed.has_listener(self.plot_mask):
+            self.model.mask_changed.disconnect(self.plot_mask)
         if self.model.cake_changed.has_listener(self.plot_cake):
             self.model.cake_changed.disconnect(self.plot_cake)
 

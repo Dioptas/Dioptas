@@ -47,7 +47,8 @@ class CalibrationController(object):
         """
         Connects the GUI signals to the appropriate Controller methods.
         """
-        self.model.img_changed.connect(self.update_img_plot)
+        self.model.img_changed.connect(self.plot_image)
+        self.model.mask_changed.connect(self.update_mask_gui)
         self.model.configuration_selected.connect(
             self.update_calibration_parameter_in_view
         )
@@ -118,17 +119,18 @@ class CalibrationController(object):
         )
 
     def activate(self):
-        if not self.model.img_changed.has_listener(self.update_img_plot):
-            self.model.img_changed.connect(self.update_img_plot)
-        self.update_img_plot()
-
-    def update_img_plot(self):
+        if not self.model.img_changed.has_listener(self.plot_image):
+            self.model.img_changed.connect(self.plot_image)
+        if not self.model.mask_changed.has_listener(self.update_mask_gui):
+            self.model.mask_changed.connect(self.update_mask_gui)
         self.plot_image()
         self.update_mask_gui()
 
     def deactivate(self):
-        if self.model.img_changed.has_listener(self.update_img_plot):
-            self.model.img_changed.disconnect(self.update_img_plot)
+        if self.model.img_changed.has_listener(self.plot_image):
+            self.model.img_changed.disconnect(self.plot_image)
+        if self.model.mask_changed.has_listener(self.update_mask_gui):
+            self.model.mask_changed.disconnect(self.update_mask_gui)
 
     def rotate_m90_btn_clicked(self):
         self.model.calibration_model.rotate_detector_m90()

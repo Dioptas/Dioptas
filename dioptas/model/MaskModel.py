@@ -10,6 +10,7 @@ from qtpy import QtCore
 from math import sqrt, atan2, cos, sin
 
 from .util.cosmics import cosmicsimage
+from .util import Signal
 
 
 class MaskModel(object):
@@ -24,10 +25,13 @@ class MaskModel(object):
         self._undo_deque = deque(maxlen=50)
         self._redo_deque = deque(maxlen=50)
 
+        self.mask_changed = Signal()
+
     def set_dimension(self, mask_dimension):
         if not np.array_equal(mask_dimension, self.mask_dimension):
             self.mask_dimension = mask_dimension
             self.reset_dimension()
+            self.mask_changed.emit()
 
     def reset_dimension(self):
         if self.mask_dimension is not None:
@@ -74,6 +78,7 @@ class MaskModel(object):
             old_data = self._undo_deque.pop()
             self._redo_deque.append(np.copy(self._mask_data))
             self._mask_data = old_data
+            self.mask_changed.emit()
         except IndexError:
             pass
 
@@ -82,16 +87,19 @@ class MaskModel(object):
             new_data = self._redo_deque.pop()
             self._undo_deque.append(np.copy(self._mask_data))
             self._mask_data = new_data
+            self.mask_changed.emit()
         except IndexError:
             pass
 
     def mask_below_threshold(self, img_data, threshold):
         self.update_deque()
         self._mask_data += (img_data < threshold)
+        self.mask_changed.emit()
 
     def mask_above_threshold(self, img_data, threshold):
         self.update_deque()
         self._mask_data += (img_data > threshold)
+        self.mask_changed.emit()
 
     def mask_QGraphicsRectItem(self, QGraphicsRectItem):
         rect = QGraphicsRectItem.rect()
@@ -151,6 +159,7 @@ class MaskModel(object):
 
         x_ind1, x_ind2, y_ind1, y_ind2 = int(x_ind1), int(x_ind2), int(y_ind1), int(y_ind2)
         self._mask_data[x_ind1:x_ind2, y_ind1:y_ind2] = self.mode
+        self.mask_changed.emit()
 
     def mask_polygon(self, x, y):
         """
@@ -161,6 +170,7 @@ class MaskModel(object):
         self.update_deque()
         rr, cc = skimage.draw.polygon(y, x, self._mask_data.shape)
         self._mask_data[rr, cc] = self.mode
+        self.mask_changed.emit()
 
     def mask_ellipse(self, cx, cy, x_radius, y_radius):
         """
@@ -172,6 +182,7 @@ class MaskModel(object):
         rr, cc = skimage.draw.ellipse(
             cy, cx, y_radius, x_radius, shape=self._mask_data.shape)
         self._mask_data[rr, cc] = self.mode
+        self.mask_changed.emit()
 
     def grow(self):
         self.update_deque()
@@ -179,6 +190,7 @@ class MaskModel(object):
         self._mask_data[:-1, :] = np.logical_or(self._mask_data[:-1, :], self._mask_data[1:, :])
         self._mask_data[:, 1:] = np.logical_or(self._mask_data[:, 1:], self._mask_data[:, :-1])
         self._mask_data[:, :-1] = np.logical_or(self._mask_data[:, :-1], self._mask_data[:, 1:])
+        self.mask_changed.emit()
 
     def shrink(self):
         self.update_deque()
@@ -186,14 +198,17 @@ class MaskModel(object):
         self._mask_data[:-1, :] = np.logical_and(self._mask_data[:-1, :], self._mask_data[1:, :])
         self._mask_data[:, 1:] = np.logical_and(self._mask_data[:, 1:], self._mask_data[:, :-1])
         self._mask_data[:, :-1] = np.logical_and(self._mask_data[:, :-1], self._mask_data[:, 1:])
+        self.mask_changed.emit()
 
     def invert_mask(self):
         self.update_deque()
         self._mask_data = np.logical_not(self._mask_data)
+        self.mask_changed.emit()
 
     def clear_mask(self):
         self.update_deque()
         self._mask_data[:, :] = False
+        self.mask_changed.emit()
 
     def remove_cosmic(self, img):
         self.update_deque()
@@ -203,6 +218,7 @@ class MaskModel(object):
             test.lacosmiciteration(True)
             test.clean()
             self._mask_data = np.logical_or(self._mask_data, np.array(test.mask, dtype='bool'))
+        self.mask_changed.emit()
 
     def set_mode(self, mode):
         """
@@ -213,6 +229,7 @@ class MaskModel(object):
     def set_mask(self, mask_data):
         self.update_deque()
         self._mask_data = mask_data
+        self.mask_changed.emit()
 
     def save_mask(self, filename: str, flipud: bool = False):
         """Save current mask to file
