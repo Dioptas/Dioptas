@@ -83,6 +83,44 @@ def test_shrink_mask(mask_model):
     assert np.sum(mask_model._mask_data) == 0
 
 
+def test_threshold_mask_mode(mask_model):
+    """Threshold masking should respect the mask/unmask mode."""
+    img_data = np.zeros((10, 10))
+    img_data[0:5, :] = 10  # top half bright
+    img_data[5:10, :] = 1  # bottom half dim
+
+    # mask mode (default): mask_below_threshold should set matching pixels to True
+    mask_model.set_mode(True)
+    mask_model.mask_below_threshold(img_data, 5)
+    assert np.all(mask_model._mask_data[5:10, :])  # dim pixels masked
+    assert not np.any(mask_model._mask_data[0:5, :])  # bright pixels not masked
+
+    # unmask mode: mask_below_threshold should set matching pixels to False
+    mask_model.set_mode(False)
+    mask_model.mask_below_threshold(img_data, 5)
+    assert not np.any(mask_model._mask_data[5:10, :])  # dim pixels unmasked
+    assert not np.any(mask_model._mask_data[0:5, :])  # bright pixels unchanged
+
+
+def test_threshold_above_mask_mode(mask_model):
+    """mask_above_threshold should respect the mask/unmask mode."""
+    img_data = np.zeros((10, 10))
+    img_data[0:5, :] = 10
+    img_data[5:10, :] = 1
+
+    # mask mode: mask pixels above threshold
+    mask_model.set_mode(True)
+    mask_model.mask_above_threshold(img_data, 5)
+    assert np.all(mask_model._mask_data[0:5, :])  # bright pixels masked
+    assert not np.any(mask_model._mask_data[5:10, :])  # dim pixels not masked
+
+    # unmask mode: unmask pixels above threshold
+    mask_model.set_mode(False)
+    mask_model.mask_above_threshold(img_data, 5)
+    assert not np.any(mask_model._mask_data[0:5, :])  # bright pixels unmasked
+    assert not np.any(mask_model._mask_data[5:10, :])  # dim pixels unchanged
+
+
 @pytest.mark.parametrize("flipud", [False, True])
 @pytest.mark.parametrize("extension", [".mask", ".npy", ".edf"])
 def test_saving_and_loading(mask_model, tmp_path, extension, flipud):

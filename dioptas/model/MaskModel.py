@@ -93,12 +93,12 @@ class MaskModel(object):
 
     def mask_below_threshold(self, img_data, threshold):
         self.update_deque()
-        self._mask_data += (img_data < threshold)
+        self._mask_data[img_data < threshold] = self.mode
         self.mask_changed.emit()
 
     def mask_above_threshold(self, img_data, threshold):
         self.update_deque()
-        self._mask_data += (img_data > threshold)
+        self._mask_data[img_data > threshold] = self.mode
         self.mask_changed.emit()
 
     def mask_QGraphicsRectItem(self, QGraphicsRectItem):
