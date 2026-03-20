@@ -1,0 +1,221 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+
+jobs:
+  build_linux:
+    runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Install Apt Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install python3-opengl libgl1-mesa-dev libglib2.0-0
+
+    - name: Setup Python 3.13
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+
+    - name: Install uv
+      run: python -m pip install --upgrade pip uv
+
+    - name: Install dependencies
+      run: uv sync --extra test
+
+    - name: Install dioptrin
+      if: ${{ env.DIOPTRIN_TOKEN != '' }}
+      env:
+        DIOPTRIN_TOKEN: ${{ secrets.DIOPTRIN_TOKEN }}
+        GH_TOKEN: ${{ secrets.DIOPTRIN_TOKEN }}
+      run: |
+        gh release download --repo CPrescher/Dioptrin --pattern "*cp313*manylinux*x86_64*.whl" --dir /tmp/dioptrin_wheels
+        uv pip install /tmp/dioptrin_wheels/*.whl
+
+    - name: Install PyInstaller
+      run: uv pip install pyinstaller
+
+    - name: Run Dioptas from source to test
+      run: uv run python run.py test
+
+    - name: Run PyInstaller
+      run: uv run bash create_executable.sh
+
+    - name: Run Dioptas from newly created executable to test
+      run: |
+        cd dist/Dioptas*
+        xvfb-run -e /dev/stdout ./Dioptas test
+
+    - name: Compress executable
+      run: |
+        cd dist
+        DIOPTAS_FOLDER=$(ls -d Dioptas*)
+        tar -czf Dioptas_Linux.tar.gz "$DIOPTAS_FOLDER"
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-executable
+        path: dist/Dioptas_Linux.tar.gz
+
+  build_windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Python 3.13
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+
+    - name: Install uv
+      run: python -m pip install --upgrade pip uv
+
+    - name: Install dependencies
+      run: uv sync --extra test
+
+    - name: Install dioptrin
+      if: ${{ env.DIOPTRIN_TOKEN != '' }}
+      shell: bash
+      env:
+        DIOPTRIN_TOKEN: ${{ secrets.DIOPTRIN_TOKEN }}
+        GH_TOKEN: ${{ secrets.DIOPTRIN_TOKEN }}
+      run: |
+        gh release download --repo CPrescher/Dioptrin --pattern "*cp313*win*.whl" --dir "${{ runner.temp }}/dioptrin_wheels"
+        uv pip install "${{ runner.temp }}"/dioptrin_wheels/*.whl
+
+    - name: Install PyInstaller
+      run: uv pip install pyinstaller
+
+    - name: Run Dioptas from source to test
+      run: uv run python run.py test
+
+    - name: Run PyInstaller
+      shell: cmd
+      run: uv run pyinstaller Dioptas.spec
+
+    - name: Run Dioptas Executable from Dist Folder
+      shell: cmd
+      run: |
+        cd dist\Dioptas*
+        Dioptas.exe test
+
+    - name: Compress executable
+      run: |
+        cd dist
+        $folderName = (Get-ChildItem -Directory -Filter "Dioptas*").Name
+        Compress-Archive -Path $folderName -DestinationPath "Dioptas_Windows.zip"
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-executable
+        path: dist/Dioptas_Windows.zip
+
+  build_macos:
+    runs-on: macos-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Python 3.13
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+
+    - name: Install uv
+      run: python -m pip install --upgrade pip uv
+
+    - name: Install dependencies
+      run: uv sync --extra test
+
+    - name: Install dioptrin
+      if: ${{ env.DIOPTRIN_TOKEN != '' }}
+      env:
+        DIOPTRIN_TOKEN: ${{ secrets.DIOPTRIN_TOKEN }}
+        GH_TOKEN: ${{ secrets.DIOPTRIN_TOKEN }}
+      run: |
+        gh release download --repo CPrescher/Dioptrin --pattern "*cp313*arm64*.whl" --dir /tmp/dioptrin_wheels
+        uv pip install /tmp/dioptrin_wheels/*.whl
+
+    - name: Install PyInstaller
+      run: uv pip install pyinstaller
+
+    - name: Run Dioptas from source to test
+      run: uv run python run.py test
+
+    - name: Run PyInstaller
+      run: uv run bash create_executable.sh
+
+    - name: Ad-hoc Codesign App Bundle
+      run: codesign --force --deep --sign - dist/Dioptas*.app
+
+    - name: Run Dioptas Executable
+      run: |
+        cd dist/Dioptas*
+        cd Contents/MacOS
+        ./run_dioptas test
+
+    - name: Compress executable
+      run: |
+        cd dist
+        tar -czf Dioptas_MacOS.tar.gz Dioptas*.app
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-executable
+        path: dist/Dioptas_MacOS.tar.gz
+
+  create_release:
+    needs: [build_linux, build_windows, build_macos]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Extract changelog for this version
+      id: changelog
+      run: |
+        TAG="${GITHUB_REF#refs/tags/}"
+        # Extract the section for this version from changelog.md
+        # Matches from "# X.Y.Z" until the next "# " header
+        BODY=$(awk "/^# ${TAG} /{found=1; next} /^# [0-9]/{if(found) exit} found{print}" changelog.md)
+        # Write to file to preserve multiline content
+        echo "$BODY" > release_notes.md
+        echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Create GitHub Release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        TAG="${{ steps.changelog.outputs.tag }}"
+        gh release create "$TAG" \
+          --title "Dioptas $TAG" \
+          --notes-file release_notes.md \
+          artifacts/linux-executable/Dioptas_Linux.tar.gz \
+          artifacts/windows-executable/Dioptas_Windows.zip \
+          artifacts/macos-executable/Dioptas_MacOS.tar.gz
