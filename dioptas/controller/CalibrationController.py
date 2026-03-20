@@ -732,7 +732,7 @@ class CalibrationController(object):
 
     def use_mask_cb_changed(self):
         self.model.use_mask = self.widget.use_mask_cb.isChecked()
-        self.plot_mask()
+        self.model.mask_changed.emit()
 
     def plot_mask(self):
         """
