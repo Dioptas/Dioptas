@@ -499,6 +499,8 @@ class MaskController(object):
         self.widget.pos_lbl.setText(str)
 
     def update_gui(self):
+        self.plot_image()
+
         # transparency
         if self.model.transparent_mask:
             self.widget.transparent_rb.setChecked(True)
@@ -508,4 +510,3 @@ class MaskController(object):
             self.fill_rb_click()
 
         self.plot_mask()
-        self.plot_image()
