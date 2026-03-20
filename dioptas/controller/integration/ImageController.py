@@ -209,6 +209,8 @@ class ImageController(object):
         self.widget.wavelength_lbl.setText(
             "{:.4f}".format(self.model.calibration_model.wavelength * 1e10) + " A"
         )
+        self.update_mask_mode()
+        self.plot_mask()
 
     def update_image(self):
         if self.widget.img_mode == 'Image':
@@ -220,9 +222,9 @@ class ImageController(object):
     def deactivate(self):
         if self.model.img_changed.has_listener(self.plot_img):
             self.model.img_changed.disconnect(self.plot_img)
-        if self.plot_mask in self.model.img_changed.listeners:
+        if self.model.img_changed.has_listener(self.plot_mask):
             self.model.img_changed.disconnect(self.plot_mask)
-        if self.plot_cake in self.model.cake_changed.listeners:
+        if self.model.cake_changed.has_listener(self.plot_cake):
             self.model.cake_changed.disconnect(self.plot_cake)
 
     def create_mouse_behavior(self):
