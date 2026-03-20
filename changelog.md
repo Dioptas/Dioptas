@@ -1,3 +1,26 @@
+# 0.8.3 (stable 20.03.2026)
+
+## New Features
+
+- added mask_changed signal to MaskModel, decoupling mask display updates from image updates across all modes
+- calibration peak picking now highlights peaks belonging to the currently selected ring in a different color
+- added "Clear Ring" button in calibration mode to delete all picked peaks for the current ring
+- calibration mode "use mask" checkbox now sets the per-configuration use_mask flag, keeping it in sync with integration mode
+
+## Bugfixes
+
+- fixed mask display not updating correctly when switching configurations in mask, calibration, and integration modes
+- fixed mask checkbox and transparency state not syncing when switching configurations in calibration mode
+- fixed mask disappearing when switching to mask mode due to stale image data on the widget
+- fixed threshold masking (above/below) ignoring the mask/unmask radio button selection
+- fixed mask data being destroyed when switching configurations due to unnecessary dimension reset
+- fixed MultiGeometry cache not invalidating when calibration parameters or detector shape changed
+
+## Other
+
+- added CI release workflow that creates GitHub releases with executables on tag push
+- existing build workflows now only run on branch pushes to avoid duplicate builds on tags
+
 # 0.8.2 (stable 17.03.2026)
 
 ## Improvements
