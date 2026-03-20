@@ -97,7 +97,7 @@ class CalibrationController(object):
         self.widget.pf_distance_cb.stateChanged.connect(self.distance_cb_changed)
         self.widget.sv_distance_cb.stateChanged.connect(self.distance_cb_changed)
 
-        self.widget.use_mask_cb.stateChanged.connect(self.plot_mask)
+        self.widget.use_mask_cb.stateChanged.connect(self.use_mask_cb_changed)
         self.widget.mask_transparent_cb.stateChanged.connect(
             self.mask_transparent_status_changed
         )
@@ -728,6 +728,10 @@ class CalibrationController(object):
         """
         self.widget.use_mask_cb.setChecked(bool(self.model.use_mask))
         self.widget.mask_transparent_cb.setChecked(bool(self.model.transparent_mask))
+        self.plot_mask()
+
+    def use_mask_cb_changed(self):
+        self.model.use_mask = self.widget.use_mask_cb.isChecked()
         self.plot_mask()
 
     def plot_mask(self):
