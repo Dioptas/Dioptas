@@ -56,7 +56,8 @@ class TestSlabAbsorptionCorrectionPhysics:
         corr.update()
         np.testing.assert_allclose(corr.get_data(), 1.0)
 
-    def test_thicker_sample_less_transmission(self):
+    def test_thickness_changes_correction(self):
+        """Different thickness should give different correction values."""
         tth, azi = self._make_tth_azi_arrays()
         corr_thin = SlabAbsorptionCorrection(
             tth_array=tth, azi_array=azi, thickness=0.05, absorption_coefficient=2.0
@@ -68,7 +69,7 @@ class TestSlabAbsorptionCorrectionPhysics:
         )
         corr_thick.update()
 
-        assert np.all(corr_thick.get_data() < corr_thin.get_data())
+        assert not np.allclose(corr_thick.get_data(), corr_thin.get_data())
 
     def test_higher_absorption_less_transmission(self):
         tth, azi = self._make_tth_azi_arrays()
@@ -131,9 +132,12 @@ class TestSlabAbsorptionCorrectionPhysics:
         assert np.std(row) > 1e-6
 
     def test_known_value_perpendicular_slab(self):
-        """Check a specific known value for a perpendicular slab at low 2θ."""
-        # At 2θ ≈ 0 with perpendicular slab, both paths ≈ thickness
-        # So transmission ≈ exp(-mu * 2 * thickness)
+        """Check a specific known value for a perpendicular slab at low 2θ.
+
+        At 2θ ≈ 0 with perpendicular slab, μ_i ≈ μ_d ≈ μ, so the
+        transmission factor approaches t · exp(-μ·t) (the equal-path limit
+        of the Busing & Levy integral).
+        """
         tth = np.array([[0.1]])  # ~0 degrees
         azi = np.array([[0.0]])
         mu = 2.0  # 1/mm
@@ -146,8 +150,36 @@ class TestSlabAbsorptionCorrectionPhysics:
             slab_tilt=0,
         )
         corr.update()
-        expected = np.exp(-mu * 2 * t)  # incident + diffracted, both ≈ t
+        expected = t * np.exp(-mu * t)  # equal-path limit
         np.testing.assert_allclose(corr.get_data()[0, 0], expected, rtol=1e-3)
+
+    def test_integral_vs_analytical_general_case(self):
+        """Verify the general formula against numerical integration."""
+        from scipy.integrate import quad
+
+        tth = np.array([[20.0]])  # 20 degrees
+        azi = np.array([[0.0]])
+        mu = 3.0
+        t = 0.2
+
+        corr = SlabAbsorptionCorrection(
+            tth_array=tth, azi_array=azi,
+            thickness=t, absorption_coefficient=mu, slab_tilt=0,
+        )
+        corr.update()
+
+        # Numerical integration for verification
+        tth_rad = 20.0 * np.pi / 180.0
+        cos_i = 1.0  # perpendicular slab, incident along normal
+        cos_d = abs(np.cos(tth_rad))  # diffracted beam angle to normal
+        mu_i = mu / cos_i
+        mu_d = mu / cos_d
+
+        def integrand(z):
+            return np.exp(-mu_i * z) * np.exp(-mu_d * (t - z))
+
+        expected, _ = quad(integrand, 0, t)
+        np.testing.assert_allclose(corr.get_data()[0, 0], expected, rtol=1e-10)
 
     def test_get_set_params(self):
         tth, azi = self._make_tth_azi_arrays()

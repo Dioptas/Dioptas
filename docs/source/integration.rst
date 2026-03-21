@@ -226,8 +226,35 @@ Slab Sample Absorption Correction
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Corrects for absorption in a flat slab sample (e.g., a pressed pellet or foil) in transmission geometry.
-The correction accounts for the varying path length through the sample as a function of diffraction angle
-and azimuth. The absorption coefficient is calculated automatically from the sample composition
+The correction accounts for the fact that scattering occurs at every depth within the sample, not just
+at the surface.
+
+The transmission factor is obtained by integrating over the scattering depth :math:`z` within the slab
+of thickness :math:`t` (Busing & Levy, 1957; *Acta Cryst.* **10**, 180–182):
+
+.. math::
+
+    A^*(2\theta, \varphi) = \int_0^t \exp(-\mu_i \cdot z) \cdot \exp\bigl(-\mu_d \cdot (t - z)\bigr)\, dz
+
+where the effective linear absorption coefficients along the incident and diffracted beam paths are:
+
+.. math::
+
+    \mu_i = \frac{\mu}{\cos \alpha_i}, \quad
+    \mu_d = \frac{\mu}{\cos \alpha_d}
+
+with :math:`\alpha_i` and :math:`\alpha_d` the angles between the respective beams and the slab normal.
+
+This integral has a closed-form solution:
+
+.. math::
+
+    A^* = \begin{cases}
+        \dfrac{\exp(-\mu_i t) - \exp(-\mu_d t)}{\mu_d - \mu_i} & \text{when } \mu_i \neq \mu_d \\[8pt]
+        t \cdot \exp(-\mu_i t) & \text{when } \mu_i = \mu_d
+    \end{cases}
+
+The absorption coefficient :math:`\mu` is calculated automatically from the sample composition
 and the calibration wavelength. Parameters:
 
 - *Formula*: Chemical formula of the sample (e.g., ``CeO2``, ``Fe2O3``)

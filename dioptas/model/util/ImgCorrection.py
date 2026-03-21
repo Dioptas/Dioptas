@@ -365,18 +365,31 @@ class SlabAbsorptionCorrection(ImgCorrectionInterface):
     """Absorption correction for a flat slab sample in transmission geometry.
 
     Calculates the transmission factor for X-rays passing through a flat
-    sample of given thickness and composition. The path length through the
-    sample depends on 2θ, azimuth, and the slab orientation.
+    sample of given thickness and composition, integrating over all possible
+    scattering depths within the slab.
 
-    The incident beam travels through the slab and is diffracted. Both the
-    incident and diffracted beam paths through the sample contribute to
-    absorption. For a slab with normal along the beam direction:
-        - Incident path: t / cos(α_in)
-        - Diffracted path depends on 2θ and the slab normal
+    For a slab of thickness t with linear absorption coefficient μ, the
+    effective linear absorption coefficients along the incident and diffracted
+    beam paths are:
 
-    The correction factor (transmission) is calculated as:
-        A = exp(-μ · L_total)
-    where L_total is the total path length through the slab.
+        μ_i = μ / cos(α_i)     (incident beam)
+        μ_d = μ / cos(α_d)     (diffracted beam)
+
+    where α_i and α_d are the angles between the respective beams and the
+    slab normal.
+
+    The transmission factor is obtained by integrating over the scattering
+    depth z:
+
+        A*(2θ,φ) = ∫₀ᵗ exp(-μ_i·z) · exp(-μ_d·(t-z)) dz
+
+    which evaluates to:
+
+        A* = [exp(-μ_i·t) - exp(-μ_d·t)] / (μ_d - μ_i)    when μ_i ≠ μ_d
+        A* = t · exp(-μ_i·t)                                when μ_i = μ_d
+
+    Reference: Busing, W. R. & Levy, H. A. (1957). Acta Cryst. 10, 180-182.
+    See also: International Tables for Crystallography, Vol. C, Section 6.3.
 
     The tth_array and azi_array should be in degrees (consistent with
     CbnCorrection and ObliqueAngleDetectorAbsorptionCorrection).
@@ -470,18 +483,32 @@ class SlabAbsorptionCorrection(ImgCorrectionInterface):
         # Avoid division by zero
         cos_diffracted = np.maximum(cos_diffracted, 1e-10)
 
-        # Path lengths through the slab
-        path_incident = t / cos_incident
-        path_diffracted = t / cos_diffracted
+        # Effective linear absorption coefficients along each beam path
+        mu_i = mu / cos_incident      # incident beam
+        mu_d = mu / cos_diffracted    # diffracted beam
 
-        # Total transmission factor
-        # For the general case with different incident and diffracted paths:
-        # A = [exp(-mu*L_in) - exp(-mu*L_diff)] / [mu * (L_diff - L_in)]
-        # when L_in ≈ L_diff (nearly perpendicular slab):
-        # A = exp(-mu*L) * L * mu / (exp terms)
-        # Simplified: just multiply incident and diffracted transmissions
-        # since the sample is thin and we're in transmission geometry
-        self._data = np.exp(-mu * (path_incident + path_diffracted))
+        # Transmission factor by integrating over scattering depth z:
+        #   A* = ∫₀ᵗ exp(-μ_i·z) · exp(-μ_d·(t-z)) dz
+        #
+        # Solution (Busing & Levy, 1957):
+        #   A* = [exp(-μ_i·t) - exp(-μ_d·t)] / (μ_d - μ_i)   when μ_i ≠ μ_d
+        #   A* = t · exp(-μ_i·t)                               when μ_i = μ_d
+        if mu == 0 or t == 0:
+            self._data = np.ones_like(two_theta)
+            return
+
+        exp_i = np.exp(-mu_i * t)
+        exp_d = np.exp(-mu_d * t)
+        delta_mu = mu_d - mu_i
+
+        # Use the general formula where |delta_mu| is large enough,
+        # and the limit form where mu_i ≈ mu_d to avoid numerical issues
+        nearly_equal = np.abs(delta_mu) < 1e-10 * mu
+        self._data = np.where(
+            nearly_equal,
+            t * exp_i,
+            (exp_i - exp_d) / delta_mu,
+        )
 
 class DummyCorrection(ImgCorrectionInterface):
     """

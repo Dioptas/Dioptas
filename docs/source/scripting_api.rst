@@ -201,8 +201,10 @@ Correction for detector absorption at oblique incidence angles:
 Slab Sample Absorption Correction
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Absorption correction for a flat slab sample in transmission geometry. The absorption
-coefficient is calculated automatically from the chemical formula and the calibration wavelength:
+Absorption correction for a flat slab sample in transmission geometry, using the
+depth-integrated formula of Busing & Levy (1957, *Acta Cryst.* **10**, 180–182).
+The absorption coefficient is calculated automatically from the chemical formula and
+the calibration wavelength:
 
 .. code-block:: python
 
