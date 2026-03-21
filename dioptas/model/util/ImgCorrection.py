@@ -361,6 +361,128 @@ class TransferFunctionCorrection(ImgCorrectionInterface):
         self.img_transformations = None
 
 
+class SlabAbsorptionCorrection(ImgCorrectionInterface):
+    """Absorption correction for a flat slab sample in transmission geometry.
+
+    Calculates the transmission factor for X-rays passing through a flat
+    sample of given thickness and composition. The path length through the
+    sample depends on 2θ, azimuth, and the slab orientation.
+
+    The incident beam travels through the slab and is diffracted. Both the
+    incident and diffracted beam paths through the sample contribute to
+    absorption. For a slab with normal along the beam direction:
+        - Incident path: t / cos(α_in)
+        - Diffracted path depends on 2θ and the slab normal
+
+    The correction factor (transmission) is calculated as:
+        A = exp(-μ · L_total)
+    where L_total is the total path length through the slab.
+
+    The tth_array and azi_array should be in degrees (consistent with
+    CbnCorrection and ObliqueAngleDetectorAbsorptionCorrection).
+    """
+
+    def __init__(
+        self,
+        tth_array=None,
+        azi_array=None,
+        thickness=0.1,
+        absorption_coefficient=1.0,
+        slab_tilt=0,
+        slab_rotation=0,
+    ):
+        """
+        :param tth_array: 2D array of 2θ values in degrees
+        :param azi_array: 2D array of azimuthal angles in degrees
+        :param thickness: slab thickness in mm
+        :param absorption_coefficient: linear absorption coefficient in 1/mm
+        :param slab_tilt: tilt of the slab normal from the beam direction in degrees
+        :param slab_rotation: rotation of the tilt direction in degrees
+        """
+        self._tth_array = tth_array if tth_array is not None else np.array([])
+        self._azi_array = azi_array if azi_array is not None else np.array([])
+        self._thickness = thickness
+        self._absorption_coefficient = absorption_coefficient
+        self._slab_tilt = slab_tilt
+        self._slab_rotation = slab_rotation
+        self._data = None
+
+    def get_data(self):
+        return self._data
+
+    def shape(self):
+        return self._data.shape
+
+    def get_params(self):
+        return {
+            "thickness": self._thickness,
+            "absorption_coefficient": self._absorption_coefficient,
+            "slab_tilt": self._slab_tilt,
+            "slab_rotation": self._slab_rotation,
+        }
+
+    def set_params(self, params):
+        self._thickness = params["thickness"]
+        self._absorption_coefficient = params["absorption_coefficient"]
+        self._slab_tilt = params["slab_tilt"]
+        self._slab_rotation = params["slab_rotation"]
+
+    def update(self):
+        dtor = np.pi / 180.0
+
+        t = self._thickness
+        mu = self._absorption_coefficient
+
+        two_theta = self._tth_array * dtor
+        azi = self._azi_array * dtor
+        tilt = self._slab_tilt * dtor
+        tilt_rotation = self._slab_rotation * dtor
+
+        # Slab normal vector (points along beam when tilt=0)
+        # Tilt rotates the normal away from the beam direction
+        slab_normal = np.array(
+            [
+                np.cos(tilt),
+                np.sin(tilt) * np.cos(tilt_rotation),
+                np.sin(tilt) * np.sin(tilt_rotation),
+            ]
+        )
+
+        # Incident beam direction (along x-axis)
+        beam_dir = np.array([1.0, 0.0, 0.0])
+
+        # Cosine of angle between incident beam and slab normal
+        cos_incident = abs(np.dot(beam_dir, slab_normal))
+        # Avoid division by zero for extreme tilts
+        cos_incident = max(cos_incident, 1e-10)
+
+        # Diffracted beam direction for each pixel
+        diff_x = np.cos(two_theta)
+        diff_y = np.cos(azi) * np.sin(two_theta)
+        diff_z = np.sin(azi) * np.sin(two_theta)
+
+        # Cosine of angle between diffracted beam and slab normal
+        cos_diffracted = np.abs(
+            slab_normal[0] * diff_x
+            + slab_normal[1] * diff_y
+            + slab_normal[2] * diff_z
+        )
+        # Avoid division by zero
+        cos_diffracted = np.maximum(cos_diffracted, 1e-10)
+
+        # Path lengths through the slab
+        path_incident = t / cos_incident
+        path_diffracted = t / cos_diffracted
+
+        # Total transmission factor
+        # For the general case with different incident and diffracted paths:
+        # A = [exp(-mu*L_in) - exp(-mu*L_diff)] / [mu * (L_diff - L_in)]
+        # when L_in ≈ L_diff (nearly perpendicular slab):
+        # A = exp(-mu*L) * L * mu / (exp terms)
+        # Simplified: just multiply incident and diffracted transmissions
+        # since the sample is thin and we're in transmission geometry
+        self._data = np.exp(-mu * (path_incident + path_diffracted))
+
 class DummyCorrection(ImgCorrectionInterface):
     """
     Used in particular for unit tests

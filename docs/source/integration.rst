@@ -222,6 +222,24 @@ Click **Plot** to visualize the correction.
     Remove such backgrounds before applying this correction.
 
 
+Slab Sample Absorption Correction
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Corrects for absorption in a flat slab sample (e.g., a pressed pellet or foil) in transmission geometry.
+The correction accounts for the varying path length through the sample as a function of diffraction angle
+and azimuth. The absorption coefficient is calculated automatically from the sample composition
+and the calibration wavelength. Parameters:
+
+- *Formula*: Chemical formula of the sample (e.g., ``CeO2``, ``Fe2O3``)
+- *Density*: Material density in g/cm³ (optional for known materials)
+- *Thickness*: Slab thickness in mm
+- *Slab Tilt*: Tilt of the slab normal from the beam direction (degrees)
+- *Slab Rotation*: Rotation of the tilt direction (degrees)
+
+For a slab perpendicular to the beam (no tilt), the correction is azimuthally symmetric.
+Tilting the slab breaks this symmetry, as different azimuthal directions have different path lengths.
+
+
 Transfer Function Correction
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

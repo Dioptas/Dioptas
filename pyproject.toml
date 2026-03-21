@@ -41,6 +41,7 @@ dependencies = [
     "numexpr>=2.10.2,<3.0",
     "qt-material>=2.14,<3.0",
     "bitshuffle>=0.5.1",
+    "xraydb>=4.5.8",
 ]
 
 [project.optional-dependencies]

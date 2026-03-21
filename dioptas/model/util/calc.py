@@ -3,6 +3,45 @@
 import numpy as np
 
 
+_HC_EV_M = 6.62607015e-34 * 299792458.0 / 1.602176634e-19  # h*c in eV·m
+
+
+def wavelength_to_energy(wavelength_m):
+    """Convert wavelength in meters to energy in eV.
+
+    :param wavelength_m: wavelength in meters
+    :returns: energy in eV
+    """
+    return _HC_EV_M / wavelength_m
+
+
+def energy_to_wavelength(energy_eV):
+    """Convert energy in eV to wavelength in meters.
+
+    :param energy_eV: energy in eV
+    :returns: wavelength in meters
+    """
+    return _HC_EV_M / energy_eV
+
+
+def calculate_mu(formula, energy_eV, density=None):
+    """Calculate linear absorption coefficient using xraydb.
+
+    :param formula: chemical formula string (e.g. 'CeO2', 'Au', 'Fe2O3')
+    :param energy_eV: X-ray energy in eV
+    :param density: material density in g/cm³. If None, xraydb uses
+        its built-in density for known materials.
+    :returns: linear absorption coefficient in 1/mm
+    """
+    import xraydb
+
+    kwargs = {}
+    if density is not None:
+        kwargs["density"] = density
+    mu_per_cm = xraydb.material_mu(formula, energy_eV, **kwargs)
+    return mu_per_cm / 10.0  # convert 1/cm to 1/mm
+
+
 def convert_units(value, wavelength, previous_unit, new_unit):
     """
     Converts a value from a unit into a new unit

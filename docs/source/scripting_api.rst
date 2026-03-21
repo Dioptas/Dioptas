@@ -198,6 +198,30 @@ Correction for detector absorption at oblique incidence angles:
         absorption_length=0.0076,
     )
 
+Slab Sample Absorption Correction
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Absorption correction for a flat slab sample in transmission geometry. The absorption
+coefficient is calculated automatically from the chemical formula and the calibration wavelength:
+
+.. code-block:: python
+
+    # Correct for a 0.1 mm CeO2 pellet
+    p.add_slab_absorption_correction(
+        formula="CeO2",
+        density=7.22,       # g/cm³ (optional for known materials)
+        thickness=0.1,      # mm
+    )
+
+    # Tilted slab
+    p.add_slab_absorption_correction(
+        formula="Fe2O3",
+        density=5.24,
+        thickness=0.2,
+        slab_tilt=10,       # degrees from beam normal
+        slab_rotation=45,   # degrees
+    )
+
 Remove all corrections:
 
 .. code-block:: python
@@ -322,6 +346,9 @@ Complete Example
     # Set integration parameters
     p.integration_unit = "q_A^-1"
     p.integration_num_points = 2000
+
+    # Correct for sample absorption (0.2 mm Fe2O3 pellet)
+    p.add_slab_absorption_correction(formula="Fe2O3", density=5.24, thickness=0.2)
 
     # Enable pattern background subtraction
     p.set_pattern_background_subtraction(smoothing=100, iterations=50)
