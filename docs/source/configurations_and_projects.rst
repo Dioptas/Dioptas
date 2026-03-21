@@ -15,36 +15,50 @@ Configurations
 
     Location of configuration controls.
 
-Configuration are used to handle experimental setups with multiple detectors in one Dioptas instance. A configuration
-contains the calibration information, loaded image, image corrections, mask, integrated pattern and background
-corrections. Overlays and phases are not handled in configurations and are global. By default the configuration control
-panel (:numref:`configuration_controls`) is hidden and only one configuration is active (single Detector mode).
-To enable the panel, please click the **C** button on the upper left corner of Dioptas. In principle, Dioptas can handle
-infinite configurations, however, this also means a lot of RAM usage.
+Configurations are used to handle experimental setups with multiple detectors in a single Dioptas instance.
+A configuration contains the calibration, loaded image, image corrections, mask, integrated pattern, and
+background settings.
+Overlays and phases are **not** part of configurations — they are global across all configurations.
 
-A configuration can be added or removed by the **+** and **-** buttons. Each added will be subsequently numbered and
-can be selected by the buttons to the left of the **-** button. After adding a a new configuration the configuration
-will be empty and needs to be newly calibrated for the wanted detector geometry.
+By default, the configuration control panel (:numref:`configuration_controls`) is hidden and only one
+configuration is active (single detector mode).
+To show the panel, click the **C** button in the upper left corner of Dioptas.
+Dioptas can handle any number of configurations, though each one uses additional memory.
 
-The *File* and *Folder* controls in the middle of the configuration panel enable combined file browsing for all
-configurations, whereas the Pos textfield defines the position of the number in the string. By using the "**<**" and
-"**>**" buttons the next or previous image in each configuration will be loaded.
 
-This is also true for the similar *Folder* "**<**" and "**>**" buttons.
-Here Dioptas supposes that the actual filenames stay the same, but the images are saved in subsequently indexed folders,
-like e.g. "run101", "run102".
-The MEC checkbox enables a special mode for the matters at extreme conditions beamline at LCLS where both, the folder
-and the filenames have the run number included.
+Managing Configurations
+~~~~~~~~~~~~~~~~~~~~~~~
 
-The Factor Input is an intensity scaling factor for the image in the configuration, so that different configurations can
-be compared where the detector response is not equal.
+- **+** button: Add a new configuration. The new configuration inherits the calibration from the current one.
+- **-** button: Remove the current configuration.
+- **Numbered buttons**: Switch between configurations.
 
-**Combine Patterns**:Attempts to combine integrated patterns from all configurations, when selected.
-    If there is overlap between the different configurations, the intensity will be averaged.
+Each configuration is independent — it has its own image, calibration, mask, and corrections.
 
-**Combine Cakes**: Attempts to combine integrated cakes from all configurations, when selected.
-    If there is overlap between the different configurations (which is in principle not possible in a multi detector
-    setup), the intensity will be averaged.
+
+Combined File Browsing
+~~~~~~~~~~~~~~~~~~~~~~
+
+The **File** and **Folder** controls in the configuration panel enable synchronized file browsing
+across all configurations:
+
+- The **<** and **>** buttons load the next/previous image in each configuration simultaneously.
+- The **Pos** field specifies which number in the filename to iterate (useful for filenames with
+  multiple numbers).
+- The **Folder** buttons navigate between sequentially numbered folders (e.g., ``run101``, ``run102``).
+- The **MEC** checkbox enables a special mode for the MEC beamline at LCLS where both folder and
+  filenames contain run numbers.
+
+The **Factor** input scales the image intensity for a configuration, allowing comparison between
+detectors with different sensitivities.
+
+
+Combining Patterns and Cakes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- **Combine Patterns**: Combines integrated patterns from all configurations using pyFAI's MultiGeometry
+  for proper weighted averaging. Overlapping regions are correctly handled.
+- **Combine Cakes**: Combines 2D cake images from all configurations similarly.
 
 
 Dioptas Projects
@@ -56,29 +70,47 @@ Dioptas Projects
     :align: center
     :width: 600 px
 
-    Location of the project controls
+    Location of the project controls.
 
 
-The state of Dioptas including the different configurations with image, mask, image corrections, background corrections
-overlays and phases can be open and saved in projects. This is very useful in case you want to continue working on a
-project another day. The controls for this are in the upper left of the Dioptas window (see :numref:`project_controls`).
-The Dioptas project files have a \*.dio extension and are basically HDF5 under the hood. Thus, can the data can be also
-opened or edited with any HDF5 viewer.
+The complete state of Dioptas — all configurations with their images, masks, calibrations, corrections,
+background settings, as well as overlays and phases — can be saved and restored as project files.
+This allows you to continue work on a different day or share your analysis setup.
+
+Project files use the ``.dio`` extension and are HDF5 files under the hood, so they can also be
+inspected with any HDF5 viewer.
+
+The project controls are in the upper left of the Dioptas window (:numref:`project_controls`):
 
 .. image:: images/open_icon.png
     :align: left
 
-Opens a file browser where you can select a Dioptas project (\*.dio) to open.
+**Open**: Load a Dioptas project (``.dio``) file, restoring the complete state.
 
 
 .. image:: images/save_icon.png
     :align: left
 
-Saves the current state of Dioptas into a Dioptas project (\*.dio).
+**Save**: Save the current state to a ``.dio`` project file.
 
 
 .. image:: images/erase_icon.png
     :align: left
 
-Resets the current state of Dioptas. This means all phases, overlays, and configurations will be deleted and you can
-start from a new fresh Dioptas.
+**Reset**: Clear everything and start fresh — all phases, overlays, and configurations are removed.
+
+
+Using Projects with the Scripting API
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Project files can also be loaded by the :doc:`scripting API <scripting_api>` for headless batch processing:
+
+.. code-block:: python
+
+    from dioptas.pipeline import Pipeline
+
+    p = Pipeline.from_project("experiment.dio")
+    patterns = p.integrate_batch("data/*.tif")
+
+This restores the full setup (calibration, mask, corrections, orientation) and enables integration
+without the GUI. See :doc:`scripting_api` for details.

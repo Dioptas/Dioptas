@@ -1,4 +1,5 @@
 .. sectnum::
+   :start: 7
 
 Scripting API
 =============

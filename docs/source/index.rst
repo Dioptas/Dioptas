@@ -15,4 +15,5 @@ Welcome to Dioptas's documentation!
    mask
    integration
    configurations_and_projects
+   map
    scripting_api

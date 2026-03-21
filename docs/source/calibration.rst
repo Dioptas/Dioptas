@@ -3,49 +3,51 @@
 
 Calibration Procedure
 =====================
-Make sure you are in the calibration mode, which should be selected on the left side of the window.
+Make sure you are in the Calibration mode, selected via the **CALIB** button on the left side of the window.
 
 Preparation
 ~~~~~~~~~~~
 
-Load the calibration image by clicking the "*Load file*" button on the upper right side of the window.
-Now you can insert the starting values for the calibration in the menu on the right.
-The calibration procedure will estimate distance and center position of the x-ray, as well as detector rotation.
-For this procedure the wavelength and pixel width/height have to be defined based on the experimental setup and detector
-used.
-Please choose the correct calibrant from the Calibrant drop-down list.
-In case your calibrant is not available, your own calibrant can be added in the dioptas/calibrants folder as a text file
-containing a list of d-spacings, Dioptas will automatically have this calibrant available in the combobox after a
-restart.
-Different detector orientations can be accommodated by rotation or flipping the image.
-These image transformations will be applied to all subsequent loaded images in the calibration module and in the
-integration module.
+Load the calibration image by clicking the "**Load File**" button on the upper right side of the window.
+Enter the starting values for the calibration in the panel on the right.
+The calibration procedure will estimate distance and center position of the X-ray beam, as well as detector rotation.
+The wavelength and pixel width/height must be defined based on your experimental setup and detector.
+
+Choose the correct calibrant from the **Calibrant** drop-down list.
+If your calibrant is not available, you can add your own by placing a text file containing a list of d-spacings
+in the ``dioptas/calibrants`` folder. Dioptas will automatically make this calibrant available after a restart.
+
+Different detector orientations can be accommodated by rotating or flipping the image using the
+**Rotate +90**, **Rotate -90**, **Flip horizontal**, and **Flip vertical** buttons.
+These image transformations will be applied to all subsequently loaded images across all modules.
+
+You can also load a predefined detector from pyFAI's detector database or from a NeXus detector definition file.
 
 .. figure:: images/start_values.png
    :align: center
    :width: 300 px
 
-   Start values for calibration
+   Start values for calibration.
+
 
 Peak Picking
 ~~~~~~~~~~~~
 
-In order for Dioptas to find the correct geometry it needs an initial guess for the position of some of the rings.
-This is done by selecting several peaks on each diffraction ring.
-The parameters for peak selection are given in the "*Peak Selection*" section on the right site of the calibration
-module, when "*Calibration Parameters*" is selected.
+In order for Dioptas to find the correct geometry, it needs initial guesses for the positions of diffraction rings.
+This is done by selecting peaks on each ring.
+The parameters for peak selection are given in the "**Peak Selection**" section on the right side of the calibration
+module when "**Calibration Parameters**" is selected.
 
 .. figure:: images/peak_selection.png
    :align: center
    :width: 300 px
 
-   Peak Selection Options
+   Peak Selection Options.
 
-By default automatic peak search is selected, which tries to automatically find peaks on a clicked ring.
-To search on the first ring please click on it with the left mouse button.
-In case it is very difficult to "hit" the ring with the mouse you can just zoom in by using the drag-zoom or mouse-wheel
-zoom.
-If the peak search was successful it should look like this:
+By default, **automatic peak search** is selected, which tries to automatically find peaks along a clicked ring.
+To search on the first ring, click on it with the left mouse button.
+If it is difficult to click on the ring, zoom in using drag-zoom or the mouse wheel.
+If the peak search was successful, the found peaks will be highlighted:
 
 .. figure:: images/peak_selection2.png
     :align:  center
@@ -53,97 +55,83 @@ If the peak search was successful it should look like this:
 
     LaB\ :sub:`6` \  2D diffraction image with the first ring selected.
 
-If the automatic peak searching fails (when Dioptas fails to select other peaks on the first diffraction ring) there are
-several available options:
+If the automatic peak search fails, several options are available:
 
-* perform the automatic peak search on a different ring.
+* Perform the automatic peak search on a different ring:
 
-  - change the "*Current Ring Number*"
-  - and select the a peak on this ring
+  - Change the "**Current Ring Number**"
+  - Click on the desired ring
 
-* choose "*single peak search*", which will search the highest intensity peak around the click position, whereby the
-    size of the search area is defined byt the *search size*
+* Choose "**single peak search**", which finds the highest intensity peak around the click position.
+  The search area size is defined by the **search size** parameter.
 
-  - then search one peak for one diffraction ring (the current peak number will automatically increase)
-  - or deselect the automatic increase checkbox and click several spots on the first ring, or any ring you like (with
-    the corresponding peak number selected)
+  - Search one peak per ring (the ring number auto-increments), or
+  - Deselect auto-increment and click multiple spots on any ring
+
+* Use **Clear Ring** to delete all peaks for the currently selected ring number, or
+  **Clear All Peaks** to start over completely.
+
+The selected ring's peaks are highlighted in the image to help verify the selection.
+
 
 The Calibration and Refinement Process
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-After the peaks/ring(s) have been selected we can start the calibration procedure.
-This is done by clicking the "*Calibrate*" Button on the lower left of the interface.
-This will calculate the geometric parameters based on the current peak selection and then automatically refine the
-calibration parameters.
+After peaks/rings have been selected, start the calibration by clicking the "**Calibrate**" button
+on the lower left of the interface.
+This calculates the geometric parameters based on the peak selection and then automatically refines them.
 
-After refinement Dioptas will automatically create a 360 degree cake image and an integrated pattern.
-When the procedure is finished it will jump to the "*Cake*" tab (top tab-bar above the image) and show the cake image.
-In this image you can easily check if the calibration was successful (by checking if the cake lines are straight).
-Additionally, the pattern is plotted with calculated calibrant positions in the "*Pattern*" Tab.
-All peak maxima should coincide with phase line positions.
-The resulting calibration parameters are shown by clicking the **pyFAI parameters** or **Fit2d Parameters** tabs in the
+After refinement, Dioptas creates a 360-degree cake image and an integrated pattern.
+It will switch to the "**Cake**" tab (above the image) to show the cake image.
+In this view you can verify the calibration by checking if the cake lines are straight.
+The "**Pattern**" tab shows the integrated pattern with calculated calibrant line positions — all peak maxima
+should coincide with the phase lines.
+
+The resulting calibration parameters are shown under the **pyFAI Parameters** or **Fit2D Parameters** tabs in the
 right control panel.
-The current calibration parameters can be saved by clicking the **Save Calibration** button on the lower right of the
-user interface.
-To fast reuse the a calibration, the calibration can be reloaded by clicking **Load Calibration**.
+Save the calibration by clicking **Save Calibration** (saves a ``.poni`` file).
+To reuse a calibration, load it with **Load Calibration**.
 
-
-If the calibration failed, either the start values are wrong, the initial peak selection was faulty or the refinement
-parameters need to be adjusted.
-For a new peak selection, just click "clear all peaks" and start the the peak selection again, make sure that current
-peak number belongs to the corresponding clicked ring.
-The meaning of each of the refinement options are explained in the next section.
 
 Refinement Options
 __________________
 
-The refinement options are defined on the right control panel of the Calibration module, when "Calibration Parameters"
-is selected.
+The refinement options are in the right control panel when "Calibration Parameters" is selected.
 
 .. figure:: images/refinement_options.png
     :align: center
     :width: 300 px
 
-    Available options for calibration refinement
+    Available options for calibration refinement.
 
-There are several options available:
+Available options:
 
-- *automatic refinement:*
-    Defines if Dioptas should search for peaks by itself after using the initially selected peaks.
-    When this option is deselected only the selected peaks are used for calculating the detector calibration.
+- *Automatic refinement:*
+    When enabled, Dioptas searches for additional peaks automatically after the initial calibration.
+    When disabled, only the manually selected peaks are used.
 
-- *use mask/transparent:*
-    The refinement can be constraint to a certain image area by using a mask previously defined in the mask module.
-    The image of the mask can be made transparent to be able to "look behind"
+- *Use mask / transparent:*
+    Constrain the refinement to a certain image area using a mask previously defined in the Mask module.
+    The mask can be made transparent to see the image underneath.
 
-- *Peaksearch algorithm:*
-    The algorithm used for searching peaks on the ring.
-    The standard algorithm is "Massif" although "Blob" detection may give better results in some cases.
+- *Peak search algorithm:*
+    The algorithm used for finding peaks on rings.
+    "Massif" is the default; "Blob" detection may give better results in some cases.
 
 - *Delta 2th:*
-    This is the +- search range used for automatic peak search for each ring.
-    The center value depends on the values, estimated by the calibration procedure, so ultimately by the initial choice
-    of predefined peaks (Peak selection)
+    The ± search range for automatic peak search around each ring.
+    The center value is estimated from the calibration procedure.
 
 - *Intensity Min factor:*
-    This factor determines how many times the peak intensity has to be higher than the mean value of the search area
-    (within the delta 2th value) for each individual ring.
-    The lower this value is the more peaks will be selected, however, also the likelihood of selecting wrong background
-    peaks increase.
-    The default value is 3, which is good for rather spotty patterns.
-    If your calibration image has perfect diffraction rings, this value needs to be reduced to about 1-1.5.
+    How many times the peak intensity must exceed the mean intensity of the search area.
+    Lower values find more peaks but risk selecting background noise.
+    Default is 3 (good for spotty patterns). For smooth rings, reduce to 1–1.5.
 
 - *Intensity Max:*
-    A threshold value which excludes all peaks above this value.
-    The default value is 55000 which is good for 16 bit detectors.
-    In case a detector with more levels is used this value needs to be adjusted.
+    Excludes peaks above this intensity. Default 55000 (suitable for 16-bit detectors).
+    Adjust for detectors with higher dynamic range.
 
 - *Number of rings:*
-    The number of rings on which peaks are searched.
-    This should be chosen based on the number of visible rings in the calibration image.
-    For an optimal calibration all visible rings should be used.
+    How many rings to search for peaks on. Use all visible rings for optimal calibration.
 
-
-If the calibration/refinement fails you can in principle play with all parameters.
-However, the most common adjustments are the number of rings and the *Intensity Min factor*.
-
+If calibration fails, the most common adjustments are the number of rings and the Intensity Min factor.
