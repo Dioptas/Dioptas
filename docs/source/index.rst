@@ -15,3 +15,4 @@ Welcome to Dioptas's documentation!
    mask
    integration
    configurations_and_projects
+   scripting_api

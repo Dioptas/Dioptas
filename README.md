@@ -94,3 +94,27 @@ The packages are listed in the file `pyproject.toml`. The program can then be st
 ```bash
 python run.py
 ```
+
+## Scripting API
+
+Dioptas can also be used as a Python library for headless integration from scripts and Jupyter notebooks.
+Set up your experiment in the GUI, save a `.dio` project file, then use it in code:
+
+```python
+from dioptas.pipeline import Pipeline
+
+# Load full setup (calibration, mask, corrections, etc.) from a project file
+p = Pipeline.from_project("experiment.dio")
+
+# Override the mask if needed
+p.load_mask("new_beamstop.mask")
+
+# Integrate a single image
+pattern = p.integrate("sample_001.tiff")
+pattern.save("sample_001.xy")
+
+# Batch integrate with a glob pattern
+patterns = p.integrate_batch("data/sample_*.tif")
+```
+
+See the [scripting API documentation](docs/source/scripting_api.rst) for the full reference.
