@@ -8,7 +8,9 @@ from qtpy import QtWidgets
 from ...model.util.ImgCorrection import (
     CbnCorrection,
     ObliqueAngleDetectorAbsorptionCorrection,
+    SlabAbsorptionCorrection,
 )
+from ...model.util.calc import calculate_mu, wavelength_to_energy
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...widgets.integration import IntegrationWidget
@@ -51,6 +53,15 @@ class CorrectionController(object):
                 self.oiadac_groupbox_changed
             )
         self.widget.oiadac_plot_btn.clicked.connect(self.oiadac_plot_btn_clicked)
+
+        # slab correction
+        self.widget.slab_groupbox.clicked.connect(self.slab_groupbox_changed)
+        for row_ind in range(self.widget.slab_param_tw.rowCount()):
+            self.widget.slab_param_tw.cellWidget(row_ind, 1).editingFinished.connect(
+                self.slab_groupbox_changed
+            )
+        self.widget.slab_formula_txt.editingFinished.connect(self.slab_groupbox_changed)
+        self.widget.slab_plot_btn.clicked.connect(self.slab_plot_btn_clicked)
 
         # transfer correction
         self.widget.transfer_load_original_btn.clicked.connect(
@@ -138,6 +149,8 @@ class CorrectionController(object):
         self.widget.transfer_gb.setChecked(False)
         self.widget.transfer_original_filename_lbl.setText("None")
         self.widget.transfer_response_filename_lbl.setText("None")
+        self.widget.slab_groupbox.setChecked(False)
+        self.widget.slab_mu_lbl.setText("μ:")
         QtWidgets.QMessageBox.critical(
             self.widget,
             "Shape Mismatch",
@@ -213,6 +226,7 @@ class CorrectionController(object):
             )
             self.widget.cbn_plot_btn.setText("Back")
             self.widget.oiadac_plot_btn.setText("Plot")
+            self.widget.slab_plot_btn.setText("Plot")
         else:
             self.widget.cbn_plot_btn.setText("Plot")
             self.reset_img_widget()
@@ -300,6 +314,7 @@ class CorrectionController(object):
             )
             self.widget.oiadac_plot_btn.setText("Back")
             self.widget.cbn_plot_btn.setText("Plot")
+            self.widget.slab_plot_btn.setText("Plot")
         else:
             self.widget.oiadac_plot_btn.setText("Plot")
             self.reset_img_widget()
@@ -309,6 +324,18 @@ class CorrectionController(object):
             self.model.cake_changed.emit()
         elif self.widget.img_mode == "Image":
             self.model.img_changed.emit()
+
+    def update_slab_widgets(self):
+        correction = self.model.img_model.img_corrections.get_correction("slab")
+        if correction is None:
+            return
+        params = correction.get_params()
+        self.widget.slab_param_tw.cellWidget(1, 1).setText(str(params["thickness"]))
+        self.widget.slab_param_tw.cellWidget(2, 1).setText(str(params["slab_tilt"]))
+        self.widget.slab_param_tw.cellWidget(3, 1).setText(str(params["slab_rotation"]))
+        mu = params["absorption_coefficient"]
+        self.widget.slab_mu_lbl.setText(f"μ: {mu:.4f} 1/mm")
+        self.widget.slab_groupbox.setChecked(True)
 
     def update_oiadac_widgets(self):
         params = self.model.img_model.img_corrections.get_correction(
@@ -322,6 +349,83 @@ class CorrectionController(object):
         )
         self.widget.oiadac_groupbox.setChecked(True)
 
+    def slab_groupbox_changed(self):
+        if not self.model.calibration_model.is_calibrated:
+            self.widget.slab_groupbox.setChecked(False)
+            QtWidgets.QMessageBox.critical(
+                self.widget,
+                "ERROR",
+                "Please calibrate the geometry first or load an existent calibration file. "
+                + "The slab absorption correction needs a calibrated geometry.",
+            )
+            return
+
+        if self.widget.slab_groupbox.isChecked():
+            formula = self.widget.slab_formula_txt.text().strip()
+            if not formula:
+                self.widget.slab_groupbox.setChecked(False)
+                return
+
+            density = self.widget.slab_param_tw.cellWidget(0, 1).value()
+            thickness = self.widget.slab_param_tw.cellWidget(1, 1).value()
+            slab_tilt = self.widget.slab_param_tw.cellWidget(2, 1).value()
+            slab_rotation = self.widget.slab_param_tw.cellWidget(3, 1).value()
+
+            # Calculate mu from formula + density + wavelength
+            wavelength_m = self.model.calibration_model.wavelength
+            energy_eV = wavelength_to_energy(wavelength_m)
+            try:
+                mu = calculate_mu(formula, energy_eV, density=density if density > 0 else None)
+            except Exception as e:
+                self.widget.slab_groupbox.setChecked(False)
+                self.widget.slab_mu_lbl.setText("μ:")
+                QtWidgets.QMessageBox.critical(
+                    self.widget,
+                    "Invalid Formula",
+                    f"Could not calculate absorption coefficient:\n{e}",
+                )
+                return
+
+            self.widget.slab_mu_lbl.setText(f"μ: {mu:.4f} 1/mm")
+
+            tth_array = 180.0 / np.pi * self.model.calibration_model.tth_array
+            azi_array = 180.0 / np.pi * self.model.calibration_model.azi_array
+
+            new_correction = SlabAbsorptionCorrection(
+                tth_array=tth_array,
+                azi_array=azi_array,
+                thickness=thickness,
+                absorption_coefficient=mu,
+                slab_tilt=slab_tilt,
+                slab_rotation=slab_rotation,
+            )
+            new_correction.update()
+            try:
+                self.model.img_model.delete_img_correction("slab")
+            except KeyError:
+                pass
+            self.model.img_model.add_img_correction(new_correction, "slab")
+        else:
+            try:
+                self.model.img_model.delete_img_correction("slab")
+            except KeyError:
+                pass
+            self.widget.slab_mu_lbl.setText("μ:")
+
+    def slab_plot_btn_clicked(self):
+        if str(self.widget.slab_plot_btn.text()) == "Plot":
+            correction = self.model.img_model.img_corrections.get_correction("slab")
+            if correction is not None:
+                self.widget.img_widget.plot_image(correction.get_data(), True)
+                self.widget.slab_plot_btn.setText("Back")
+                self.widget.cbn_plot_btn.setText("Plot")
+                self.widget.oiadac_plot_btn.setText("Plot")
+            else:
+                self.widget.slab_plot_btn.setChecked(False)
+        else:
+            self.widget.slab_plot_btn.setText("Plot")
+            self.reset_img_widget()
+
     def reset_plot_btns(self):
         self.widget.oiadac_plot_btn.setText("Plot")
         self.widget.oiadac_plot_btn.setChecked(False)
@@ -329,6 +433,8 @@ class CorrectionController(object):
         self.widget.cbn_plot_btn.setChecked(False)
         self.widget.transfer_plot_btn.setText("Plot")
         self.widget.transfer_plot_btn.setChecked(False)
+        self.widget.slab_plot_btn.setText("Plot")
+        self.widget.slab_plot_btn.setChecked(False)
 
     def update_gui(self):
         if self.model.img_model.get_img_correction("cbn") is not None:
@@ -354,3 +460,12 @@ class CorrectionController(object):
             # self.widget.transfer_gb.blockSignals(False)
         else:
             self.widget.transfer_gb.setChecked(False)
+
+        if self.model.img_model.get_img_correction("slab") is not None:
+            self.update_slab_widgets()
+            self.widget.slab_groupbox.blockSignals(True)
+            self.widget.slab_groupbox.setChecked(True)
+            self.widget.slab_groupbox.blockSignals(False)
+        else:
+            self.widget.slab_groupbox.setChecked(False)
+            self.widget.slab_mu_lbl.setText("μ:")

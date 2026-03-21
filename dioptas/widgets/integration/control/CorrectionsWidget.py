@@ -29,12 +29,16 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.create_transfer_widgets()
         self.create_transfer_layout()
 
+        self.create_slab_correction_widgets()
+        self.create_slab_correction_layout()
+
         self.setLayout(self._layout)
 
         self.menu_tab_widget = MenuTabWidget()
         self.menu_tab_widget.add_tab("cBN Seat", self.cbn_seat_gb)
         self.menu_tab_widget.add_tab("Inc. Abs.", self.oiadac_gb)
         self.menu_tab_widget.add_tab("Transfer", self.transfer_gb)
+        self.menu_tab_widget.add_tab("Slab Abs.", self.slab_gb)
         self.menu_tab_widget.select_tab(0)
 
         self._layout.addWidget(self.menu_tab_widget)
@@ -167,6 +171,54 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self._transfer_layout.setRowStretch(2, 1)
         self.transfer_gb.setLayout(self._transfer_layout)
 
+    def create_slab_correction_widgets(self):
+        self.slab_gb = QtWidgets.QGroupBox("Slab Absorption Correction")
+        self.slab_plot_btn = CheckableButton("Plot")
+
+        self.slab_formula_txt = QtWidgets.QLineEdit("CeO2")
+        self.slab_formula_txt.setPlaceholderText("e.g. CeO2, Fe2O3, Au")
+
+        self.slab_param_tw = ListTableWidget()
+        self.slab_param_tw.setColumnCount(3)
+        self.slab_param_tw.horizontalHeader().setSectionResizeMode(
+            1, QtWidgets.QHeaderView.Stretch
+        )
+        self.slab_param_tw.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
+
+        slab_parameters = [
+            ["Density", 7.22, "g/cm³"],
+            ["Thickness", 0.1, "mm"],
+            ["Slab tilt", 0.0, "°"],
+            ["Slab rotation", 0.0, "°"],
+        ]
+        for param in slab_parameters:
+            self.add_param_to_tw(self.slab_param_tw, *param)
+
+        self.slab_mu_lbl = QtWidgets.QLabel("μ:")
+
+    def create_slab_correction_layout(self):
+        self._slab_layout = QtWidgets.QVBoxLayout()
+        self._slab_layout.setSpacing(5)
+
+        # Formula row
+        formula_layout = QtWidgets.QHBoxLayout()
+        formula_layout.addWidget(QtWidgets.QLabel("Formula:"))
+        formula_layout.addWidget(self.slab_formula_txt)
+        self._slab_layout.addLayout(formula_layout)
+
+        # Parameters + plot button
+        params_layout = QtWidgets.QHBoxLayout()
+        params_layout.addWidget(self.slab_param_tw)
+
+        right_layout = QtWidgets.QVBoxLayout()
+        right_layout.addWidget(self.slab_plot_btn)
+        right_layout.addWidget(self.slab_mu_lbl)
+        right_layout.addStretch()
+        params_layout.addLayout(right_layout)
+
+        self._slab_layout.addLayout(params_layout)
+        self.slab_gb.setLayout(self._slab_layout)
+
     def style_widgets(self):
         self.cbn_seat_gb.setCheckable(True)
         self.cbn_seat_gb.setChecked(False)
@@ -174,6 +226,8 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.oiadac_gb.setChecked(False)
         self.transfer_gb.setCheckable(True)
         self.transfer_gb.setChecked(False)
+        self.slab_gb.setCheckable(True)
+        self.slab_gb.setChecked(False)
 
         self.setStyleSheet(
             """

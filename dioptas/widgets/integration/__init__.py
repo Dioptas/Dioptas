@@ -158,6 +158,11 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.transfer_plot_btn = corrections_control_widget.transfer_plot_btn
         self.transfer_original_filename_lbl = corrections_control_widget.transfer_original_filename_lbl
         self.transfer_response_filename_lbl = corrections_control_widget.transfer_response_filename_lbl
+        self.slab_groupbox = corrections_control_widget.slab_gb
+        self.slab_formula_txt = corrections_control_widget.slab_formula_txt
+        self.slab_param_tw = corrections_control_widget.slab_param_tw
+        self.slab_mu_lbl = corrections_control_widget.slab_mu_lbl
+        self.slab_plot_btn = corrections_control_widget.slab_plot_btn
 
         background_control_widget = self.integration_control_widget.background_control_widget
         self.bkg_image_load_btn = background_control_widget.load_image_btn
