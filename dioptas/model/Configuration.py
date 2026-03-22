@@ -10,7 +10,14 @@ from xypattern import Pattern
 from xypattern.auto_background import SmoothBrucknerBackground
 
 from .util import Signal
-from .util.ImgCorrection import CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection
+from .util.ImgCorrection import (
+    CbnCorrection,
+    ObliqueAngleDetectorAbsorptionCorrection,
+    SlabAbsorptionCorrection,
+    CylinderAbsorptionCorrection,
+    SphereAbsorptionCorrection,
+    PlateAbsorptionCorrection,
+)
 
 from .util.calc import convert_units
 from . import ImgModel, CalibrationModel, MaskModel, PatternModel, BatchModel
@@ -484,7 +491,7 @@ class Configuration(object):
             correction,
             correction_object,
         ) in self.img_model.img_corrections.corrections.items():
-            if correction in ["cbn", "oiadac"]:
+            if correction in ["cbn", "oiadac", "slab", "cylinder", "sphere", "plate"]:
                 correction_data = correction_object.get_data()
                 imcd = corrections_group.create_dataset(
                     correction, correction_data.shape, "f", correction_data
@@ -878,6 +885,25 @@ class Configuration(object):
                     oiadac.set_params(params)
                     oiadac.update()
                     self.img_model.add_img_correction(oiadac, name)
+                elif name in ("slab", "cylinder", "sphere", "plate"):
+                    tth_array = (
+                        180.0 / np.pi * self.calibration_model.tth_array
+                    )
+                    azi_array = (
+                        180.0 / np.pi * self.calibration_model.azi_array
+                    )
+                    correction_classes = {
+                        "slab": SlabAbsorptionCorrection,
+                        "cylinder": CylinderAbsorptionCorrection,
+                        "sphere": SphereAbsorptionCorrection,
+                        "plate": PlateAbsorptionCorrection,
+                    }
+                    correction_obj = correction_classes[name](
+                        tth_array=tth_array, azi_array=azi_array
+                    )
+                    correction_obj.set_params(params)
+                    correction_obj.update()
+                    self.img_model.add_img_correction(correction_obj, name)
                 elif name == "transfer":
                     params = {
                         "original_data": correction_group.get("original_data")[...],

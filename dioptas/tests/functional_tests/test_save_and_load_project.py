@@ -818,3 +818,95 @@ class ProjectSaveLoadTest(QtTest):
         self.load_phase("ar.jcpds")
         self.model.phase_model.set_color(0, np.array([255, 0, 0]))
         self.model.phase_model.set_phase_visible(0, False)
+
+    ####################################################################################################################
+    def test_with_slab_correction(self):
+        self.save_and_load_configuration(
+            self.slab_correction_settings, mock_1d_integration=False
+        )
+        correction = self.model.img_model.img_corrections.corrections["slab"]
+        self.assertAlmostEqual(correction._thickness, 0.5)
+        self.assertAlmostEqual(correction._absorption_coefficient, 2.0)
+
+    def slab_correction_settings(self):
+        from ...model.util.ImgCorrection import SlabAbsorptionCorrection
+
+        tth_array = 180.0 / np.pi * self.model.calibration_model.tth_array
+        azi_array = 180.0 / np.pi * self.model.calibration_model.azi_array
+        correction = SlabAbsorptionCorrection(
+            tth_array=tth_array,
+            azi_array=azi_array,
+            thickness=0.5,
+            absorption_coefficient=2.0,
+        )
+        correction.update()
+        self.model.img_model.add_img_correction(correction, "slab")
+
+    ####################################################################################################################
+    def test_with_cylinder_correction(self):
+        self.save_and_load_configuration(
+            self.cylinder_correction_settings, mock_1d_integration=False
+        )
+        correction = self.model.img_model.img_corrections.corrections["cylinder"]
+        self.assertAlmostEqual(correction._radius, 0.3)
+        self.assertAlmostEqual(correction._absorption_coefficient, 1.5)
+
+    def cylinder_correction_settings(self):
+        from ...model.util.ImgCorrection import CylinderAbsorptionCorrection
+
+        tth_array = 180.0 / np.pi * self.model.calibration_model.tth_array
+        azi_array = 180.0 / np.pi * self.model.calibration_model.azi_array
+        correction = CylinderAbsorptionCorrection(
+            tth_array=tth_array,
+            azi_array=azi_array,
+            radius=0.3,
+            absorption_coefficient=1.5,
+        )
+        correction.update()
+        self.model.img_model.add_img_correction(correction, "cylinder")
+
+    ####################################################################################################################
+    def test_with_sphere_correction(self):
+        self.save_and_load_configuration(
+            self.sphere_correction_settings, mock_1d_integration=False
+        )
+        correction = self.model.img_model.img_corrections.corrections["sphere"]
+        self.assertAlmostEqual(correction._radius, 0.2)
+        self.assertAlmostEqual(correction._absorption_coefficient, 3.0)
+
+    def sphere_correction_settings(self):
+        from ...model.util.ImgCorrection import SphereAbsorptionCorrection
+
+        tth_array = 180.0 / np.pi * self.model.calibration_model.tth_array
+        azi_array = 180.0 / np.pi * self.model.calibration_model.azi_array
+        correction = SphereAbsorptionCorrection(
+            tth_array=tth_array,
+            azi_array=azi_array,
+            radius=0.2,
+            absorption_coefficient=3.0,
+        )
+        correction.update()
+        self.model.img_model.add_img_correction(correction, "sphere")
+
+    ####################################################################################################################
+    def test_with_plate_correction(self):
+        self.save_and_load_configuration(
+            self.plate_correction_settings, mock_1d_integration=False
+        )
+        correction = self.model.img_model.img_corrections.corrections["plate"]
+        self.assertAlmostEqual(correction._thickness, 1.5)
+        self.assertAlmostEqual(correction._absorption_coefficient, 0.8)
+
+    def plate_correction_settings(self):
+        from ...model.util.ImgCorrection import PlateAbsorptionCorrection
+
+        tth_array = 180.0 / np.pi * self.model.calibration_model.tth_array
+        azi_array = 180.0 / np.pi * self.model.calibration_model.azi_array
+        correction = PlateAbsorptionCorrection(
+            tth_array=tth_array,
+            azi_array=azi_array,
+            thickness=1.5,
+            absorption_coefficient=0.8,
+        )
+        correction.update()
+        self.model.img_model.add_img_correction(correction, "plate")
