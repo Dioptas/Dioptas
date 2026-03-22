@@ -318,19 +318,26 @@ class Pipeline:
         formula: str,
         density: float = None,
         radius: float = 0.1,
+        full_illumination: bool = False,
     ) -> None:
         """Add a spherical sample absorption correction.
 
-        Calculates the absorption correction for a spherical sample by
-        numerically integrating over the illuminated volume. Due to
-        spherical symmetry, the correction depends only on 2θ (no
-        orientation parameters needed).
+        Calculates the absorption correction for a spherical sample.
+        Due to spherical symmetry, the correction depends only on 2θ
+        (no orientation parameters needed).
+
+        Two illumination modes are supported:
+        - Pencil beam (default): beam is much smaller than the sphere.
+          Typical for synchrotron experiments (2-10 μm beam, ~1 mm sample).
+        - Full illumination: beam is larger than the sphere.
 
         Requires calibration to be loaded first.
 
         :param formula: chemical formula (e.g. 'CeO2', 'Au', 'Fe2O3')
         :param density: material density in g/cm³ (None to use xraydb default)
         :param radius: sphere radius in mm
+        :param full_illumination: if True, beam illuminates the full sphere;
+            if False (default), pencil beam through the center
         """
         if not self.is_calibrated:
             raise RuntimeError("Calibration must be loaded before adding corrections")
@@ -350,6 +357,7 @@ class Pipeline:
             azi_array=azi_array,
             radius=radius,
             absorption_coefficient=mu,
+            full_illumination=full_illumination,
         )
         correction.update()
         self._configuration.img_model.add_img_correction(correction, "sphere")

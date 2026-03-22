@@ -244,14 +244,24 @@ Sphere Sample Absorption Correction
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Absorption correction for a spherical sample. Due to spherical symmetry,
-only depends on 2θ (no orientation parameters needed):
+only depends on 2θ (no orientation parameters needed). Supports pencil beam
+(default, for synchrotron) and full illumination modes:
 
 .. code-block:: python
 
+    # Pencil beam (default) — beam << sphere (synchrotron)
     p.add_sphere_absorption_correction(
         formula="Fe2O3",
         density=5.24,
-        radius=0.1,         # mm
+        radius=0.5,         # mm
+    )
+
+    # Full illumination — beam >> sphere
+    p.add_sphere_absorption_correction(
+        formula="Fe2O3",
+        density=5.24,
+        radius=0.05,
+        full_illumination=True,
     )
 
 Remove all corrections:

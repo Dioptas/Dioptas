@@ -301,22 +301,29 @@ Sphere Sample Absorption Correction
 
 Corrects for absorption in a spherical sample in transmission geometry. Due to the
 spherical symmetry around the beam axis, the correction depends only on :math:`2\theta`
-(not on azimuth), making it very efficient to compute.
+(not on azimuth), making it very efficient to compute. No orientation parameters are needed.
 
-The transmission factor is calculated by integrating over the sphere volume using
-cylindrical coordinates :math:`(x, \rho)`:
+Two illumination modes are supported:
+
+**Pencil beam** (default): For synchrotron experiments where the beam (2–10 μm) is much
+smaller than the sample (~1 mm ball). Integrates along the beam path through the sphere center:
 
 .. math::
 
-    A^*(2\theta) = \frac{\iint \exp\bigl(-\mu \cdot (l_\text{in} + l_\text{out})\bigr) \cdot \rho\, d\rho\, dx}{\iint \rho\, d\rho\, dx}
+    A^*(2\theta) = \frac{1}{2R} \int_{-R}^{R} \exp\bigl(-\mu \cdot (l_\text{in}(x) + l_\text{out}(x, 2\theta))\bigr)\, dx
 
-No orientation parameters are needed (the sphere is symmetric).
+where :math:`l_\text{in}(x) = x + R` and
+:math:`l_\text{out}(x, 2\theta) = -x \cos 2\theta + \sqrt{R^2 - x^2 \sin^2 2\theta}`.
+
+**Full illumination**: For cases where the beam is larger than the sphere. Integrates over
+the full cross-section using cylindrical coordinates weighted by :math:`\rho`.
 
 Parameters:
 
 - *Formula*: Chemical formula of the sample
 - *Density*: Material density in g/cm³ (optional for known materials)
 - *Radius*: Sphere radius in mm
+- *Full illumination*: Toggle between pencil beam and full illumination modes
 
 
 Transfer Function Correction

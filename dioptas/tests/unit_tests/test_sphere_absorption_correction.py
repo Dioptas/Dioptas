@@ -103,6 +103,39 @@ class TestSphereAbsorptionCorrectionPhysics:
         avg = data.mean(axis=1)
         assert np.std(avg) > 1e-6
 
+    def test_full_illumination_mode(self):
+        """Full illumination mode should give different results than pencil beam."""
+        tth, azi = self._make_tth_azi_arrays()
+        corr_pencil = SphereAbsorptionCorrection(
+            tth_array=tth, azi_array=azi, radius=0.1,
+            absorption_coefficient=3.0, full_illumination=False,
+        )
+        corr_pencil.update()
+
+        corr_full = SphereAbsorptionCorrection(
+            tth_array=tth, azi_array=azi, radius=0.1,
+            absorption_coefficient=3.0, full_illumination=True,
+        )
+        corr_full.update()
+
+        # Both should give valid corrections
+        assert np.all(corr_full.get_data() > 0)
+        assert np.all(corr_full.get_data() <= 1)
+        # But they should differ
+        assert not np.allclose(corr_pencil.get_data(), corr_full.get_data())
+
+    def test_full_illumination_azimuthally_symmetric(self):
+        """Full illumination mode should also be azimuthally symmetric."""
+        tth, azi = self._make_tth_azi_arrays()
+        corr = SphereAbsorptionCorrection(
+            tth_array=tth, azi_array=azi, radius=0.1,
+            absorption_coefficient=3.0, full_illumination=True,
+        )
+        corr.update()
+        data = corr.get_data()
+        for row in data:
+            np.testing.assert_allclose(row, row[0], rtol=1e-4)
+
     def test_get_set_params(self):
         tth, azi = self._make_tth_azi_arrays()
         corr = SphereAbsorptionCorrection(
@@ -119,7 +152,9 @@ class TestSphereAbsorptionCorrectionPhysics:
         np.testing.assert_allclose(corr.get_data(), corr2.get_data())
 
     def test_numerical_integration_reference(self):
-        """Verify against brute-force 3D integration for one 2θ value."""
+        """Verify against scipy numerical integration along the beam path."""
+        from scipy.integrate import quad
+
         R = 0.1
         mu = 3.0
         tth_deg = 15.0
@@ -129,35 +164,24 @@ class TestSphereAbsorptionCorrectionPhysics:
 
         corr = SphereAbsorptionCorrection(
             tth_array=tth, azi_array=azi,
-            radius=R, absorption_coefficient=mu, n_grid=100,
+            radius=R, absorption_coefficient=mu, n_points=1000,
         )
         corr.update()
 
-        # Brute-force 3D grid reference
-        n = 80
-        g = np.linspace(-R * 0.999, R * 0.999, n)
-        gx, gy, gz = np.meshgrid(g, g, g, indexing="ij")
-        inside = gx**2 + gy**2 + gz**2 < R**2
-        gx = gx[inside]
-        gy = gy[inside]
-        gz = gz[inside]
-
+        # Reference: integrate along beam path through sphere center
         tth_rad = tth_deg * np.pi / 180
-        dx, dy, dz = np.cos(tth_rad), np.sin(tth_rad), 0.0
+        cos2th = np.cos(tth_rad)
+        sin2th2 = np.sin(tth_rad) ** 2
 
-        total = 0.0
-        for i in range(len(gx)):
-            x0, y0, z0 = gx[i], gy[i], gz[i]
-            l_in = x0 + np.sqrt(R**2 - y0**2 - z0**2)
+        def integrand(x):
+            l_in = x + R
+            l_out = -x * cos2th + np.sqrt(R**2 - x**2 * sin2th2)
+            return np.exp(-mu * (l_in + l_out))
 
-            b = x0 * dx + y0 * dy + z0 * dz
-            c = x0**2 + y0**2 + z0**2 - R**2
-            t_exit = -b + np.sqrt(max(b**2 - c, 0))
+        expected, _ = quad(integrand, -R, R)
+        expected /= 2 * R  # normalize by path length
 
-            total += np.exp(-mu * (l_in + t_exit))
-
-        expected = total / len(gx)
-        np.testing.assert_allclose(corr.get_data()[0, 0], expected, rtol=0.05)
+        np.testing.assert_allclose(corr.get_data()[0, 0], expected, rtol=1e-4)
 
 
 class TestSphereCorrectionInPipeline:
