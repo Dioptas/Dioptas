@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from ...model.util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, \
-    ObliqueAngleDetectorAbsorptionCorrection
+    ObliqueAngleDetectorAbsorptionCorrection, PlateAbsorptionCorrection
 from ...model.util.ImgCorrection import TransferFunctionCorrection, load_image
 from ..utility import unittest_data_path
 
@@ -133,6 +133,98 @@ class CbnCorrectionTest(unittest.TestCase):
         cbn_correction_data = cbn_correction.get_data()
         self.assertGreater(np.sum(cbn_correction_data), 0)
         self.assertEqual(cbn_correction_data.shape, self.dummy_img.shape)
+
+
+class PlateAbsorptionCorrectionTest(unittest.TestCase):
+    def setUp(self):
+        image_shape = [2048, 2048]
+        detector_distance = 200  # mm
+        wavelength = 0.31  # angstrom
+        center_x = 1024
+        center_y = 1024
+        pixel_size = 79  # um
+        dummy_tth = np.linspace(0, 35, 2000)
+        dummy_int = np.ones(dummy_tth.shape)
+        self.geometry = AzimuthalIntegrator()
+        self.geometry.setFit2D(directDist=detector_distance,
+                               centerX=center_x,
+                               centerY=center_y,
+                               tilt=0,
+                               tiltPlanRotation=0,
+                               pixelX=pixel_size,
+                               pixelY=pixel_size)
+        self.geometry.wavelength = wavelength / 1e10
+        self.dummy_img = self.geometry.calcfrom1d(dummy_tth, dummy_int, shape=image_shape, correctSolidAngle=True)
+
+        self.tth_array = self.geometry.twoThetaArray(image_shape)
+        self.azi_array = self.geometry.chiArray(image_shape)
+
+    def tearDown(self):
+        del self.tth_array
+        del self.azi_array
+        del self.dummy_img
+        del self.geometry
+        gc.collect()
+
+    def test_calculates_correctly(self):
+        correction = PlateAbsorptionCorrection(
+            self.tth_array, self.azi_array,
+            thickness=2.0,
+            absorption_coefficient=0.5,
+        )
+        correction.update()
+        data = correction.get_data()
+        self.assertGreater(np.sum(data), 0)
+        self.assertEqual(data.shape, self.dummy_img.shape)
+        # All values should be between 0 and 1 (absorption reduces intensity)
+        self.assertTrue(np.all(data > 0))
+        self.assertTrue(np.all(data <= 1))
+
+    def test_zero_thickness_gives_unity(self):
+        correction = PlateAbsorptionCorrection(
+            self.tth_array, self.azi_array,
+            thickness=0,
+            absorption_coefficient=0.5,
+        )
+        correction.update()
+        np.testing.assert_array_equal(correction.get_data(), np.ones_like(self.tth_array))
+
+    def test_zero_mu_gives_unity(self):
+        correction = PlateAbsorptionCorrection(
+            self.tth_array, self.azi_array,
+            thickness=2.0,
+            absorption_coefficient=0,
+        )
+        correction.update()
+        np.testing.assert_array_equal(correction.get_data(), np.ones_like(self.tth_array))
+
+    def test_higher_mu_gives_lower_transmission(self):
+        correction_low = PlateAbsorptionCorrection(
+            self.tth_array, self.azi_array,
+            thickness=2.0,
+            absorption_coefficient=0.1,
+        )
+        correction_low.update()
+
+        correction_high = PlateAbsorptionCorrection(
+            self.tth_array, self.azi_array,
+            thickness=2.0,
+            absorption_coefficient=1.0,
+        )
+        correction_high.update()
+
+        self.assertTrue(np.all(correction_high.get_data() < correction_low.get_data()))
+
+    def test_equality(self):
+        c1 = PlateAbsorptionCorrection(
+            self.tth_array, self.azi_array, thickness=2.0, absorption_coefficient=0.5)
+        c2 = PlateAbsorptionCorrection(
+            self.tth_array, self.azi_array, thickness=2.0, absorption_coefficient=0.5)
+        self.assertEqual(c1, c2)
+
+        c3 = PlateAbsorptionCorrection(
+            self.tth_array, self.azi_array, thickness=3.0, absorption_coefficient=0.5)
+        self.assertNotEqual(c1, c3)
 
 
 from ...model.CalibrationModel import CalibrationModel

@@ -175,6 +175,11 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.sphere_param_tw = corrections_control_widget.sphere_param_tw
         self.sphere_mu_lbl = corrections_control_widget.sphere_mu_lbl
         self.sphere_plot_btn = corrections_control_widget.sphere_plot_btn
+        self.plate_groupbox = corrections_control_widget.plate_gb
+        self.plate_formula_txt = corrections_control_widget.plate_formula_txt
+        self.plate_param_tw = corrections_control_widget.plate_param_tw
+        self.plate_mu_lbl = corrections_control_widget.plate_mu_lbl
+        self.plate_plot_btn = corrections_control_widget.plate_plot_btn
 
         background_control_widget = self.integration_control_widget.background_control_widget
         self.bkg_image_load_btn = background_control_widget.load_image_btn

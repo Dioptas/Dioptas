@@ -996,6 +996,128 @@ class SphereAbsorptionCorrection(ImgCorrectionInterface):
         )
 
 
+class PlateAbsorptionCorrection(ImgCorrectionInterface):
+    """Absorption correction for a flat absorber plate after the sample.
+
+    Models a flat plate (e.g. diamond anvil window) between the sample and
+    detector. Each diffracted beam passes through the plate at an angle
+    determined by its 2θ/azimuth and the plate orientation.
+
+    The transmission factor is simply:
+
+        T(2θ,φ) = exp(-μ · t / cos(θ_plate))
+
+    where θ_plate is the angle between the diffracted beam and the plate
+    normal, t is the plate thickness, and μ is the linear absorption
+    coefficient.
+
+    The tth_array and azi_array should be in degrees.
+    """
+
+    def __init__(
+        self,
+        tth_array=None,
+        azi_array=None,
+        thickness=2.0,
+        absorption_coefficient=1.0,
+        plate_tilt=0,
+        plate_rotation=0,
+    ):
+        """
+        :param tth_array: 2D array of 2θ values in degrees
+        :param azi_array: 2D array of azimuthal angles in degrees
+        :param thickness: plate thickness in mm
+        :param absorption_coefficient: linear absorption coefficient in 1/mm
+        :param plate_tilt: tilt of the plate normal from the beam direction in degrees
+        :param plate_rotation: rotation of the tilt direction in degrees
+        """
+        self._tth_array = tth_array if tth_array is not None else np.array([])
+        self._azi_array = azi_array if azi_array is not None else np.array([])
+        self._thickness = thickness
+        self._absorption_coefficient = absorption_coefficient
+        self._plate_tilt = plate_tilt
+        self._plate_rotation = plate_rotation
+        self._data = None
+
+    def get_data(self):
+        return self._data
+
+    def shape(self):
+        return self._data.shape
+
+    def get_params(self):
+        return {
+            "thickness": self._thickness,
+            "absorption_coefficient": self._absorption_coefficient,
+            "plate_tilt": self._plate_tilt,
+            "plate_rotation": self._plate_rotation,
+        }
+
+    def set_params(self, params):
+        self._thickness = params["thickness"]
+        self._absorption_coefficient = params["absorption_coefficient"]
+        self._plate_tilt = params["plate_tilt"]
+        self._plate_rotation = params["plate_rotation"]
+
+    def update(self):
+        dtor = np.pi / 180.0
+
+        t = self._thickness
+        mu = self._absorption_coefficient
+
+        two_theta = self._tth_array * dtor
+        azi = self._azi_array * dtor
+        tilt = self._plate_tilt * dtor
+        tilt_rotation = self._plate_rotation * dtor
+
+        if mu == 0 or t == 0:
+            self._data = np.ones_like(two_theta)
+            return
+
+        # Plate normal vector (points along beam when tilt=0)
+        plate_normal = np.array(
+            [
+                np.cos(tilt),
+                np.sin(tilt) * np.cos(tilt_rotation),
+                np.sin(tilt) * np.sin(tilt_rotation),
+            ]
+        )
+
+        # Diffracted beam direction for each pixel
+        diff_x = np.cos(two_theta)
+        diff_y = np.cos(azi) * np.sin(two_theta)
+        diff_z = np.sin(azi) * np.sin(two_theta)
+
+        # Cosine of angle between diffracted beam and plate normal
+        cos_angle = np.abs(
+            plate_normal[0] * diff_x
+            + plate_normal[1] * diff_y
+            + plate_normal[2] * diff_z
+        )
+        cos_angle = np.maximum(cos_angle, 1e-10)
+
+        # Path length through plate and transmission
+        path_length = t / cos_angle
+        self._data = np.exp(-mu * path_length)
+
+    def __eq__(self, other):
+        if not isinstance(other, PlateAbsorptionCorrection):
+            return False
+        if self._thickness != other._thickness:
+            return False
+        if self._absorption_coefficient != other._absorption_coefficient:
+            return False
+        if self._plate_tilt != other._plate_tilt:
+            return False
+        if self._plate_rotation != other._plate_rotation:
+            return False
+        if not np.array_equal(self._tth_array, other._tth_array):
+            return False
+        if not np.array_equal(self._azi_array, other._azi_array):
+            return False
+        return True
+
+
 class DummyCorrection(ImgCorrectionInterface):
     """
     Used in particular for unit tests

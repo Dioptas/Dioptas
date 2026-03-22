@@ -38,6 +38,9 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.create_sphere_correction_widgets()
         self.create_sphere_correction_layout()
 
+        self.create_plate_correction_widgets()
+        self.create_plate_correction_layout()
+
         self.setLayout(self._layout)
 
         self.menu_tab_widget = MenuTabWidget()
@@ -47,6 +50,7 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.menu_tab_widget.add_tab("Slab", self.slab_gb)
         self.menu_tab_widget.add_tab("Cylinder", self.cylinder_gb)
         self.menu_tab_widget.add_tab("Sphere", self.sphere_gb)
+        self.menu_tab_widget.add_tab("Plate", self.plate_gb)
         self.menu_tab_widget.select_tab(0)
 
         self._layout.addWidget(self.menu_tab_widget)
@@ -105,10 +109,22 @@ class CorrectionsWidget(QtWidgets.QWidget):
 
         tw.blockSignals(False)
 
-    def create_cbn_correction_layout(self):
-        self._cbn_seat_layout = QtWidgets.QHBoxLayout()
-        self._cbn_seat_layout.setSpacing(5)
+    @staticmethod
+    def _create_description_label(text):
+        lbl = QtWidgets.QLabel(text)
+        lbl.setWordWrap(True)
+        lbl.setStyleSheet("QLabel { color: gray; }")
+        return lbl
 
+    def create_cbn_correction_layout(self):
+        self._cbn_seat_outer_layout = QtWidgets.QVBoxLayout()
+        self._cbn_seat_outer_layout.setSpacing(5)
+        self._cbn_seat_outer_layout.addWidget(self._create_description_label(
+            "Absorption by diamond anvil and cBN seat in a DAC, "
+            "modeling the conical seat geometry."
+        ))
+
+        self._cbn_seat_layout = QtWidgets.QHBoxLayout()
         self._cbn_seat_layout.addWidget(self.cbn_param_tw)
 
         self._cbn_seat_right_layout = QtWidgets.QVBoxLayout()
@@ -116,7 +132,8 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self._cbn_seat_right_layout.addStretch()
         self._cbn_seat_layout.addLayout(self._cbn_seat_right_layout)
 
-        self.cbn_seat_gb.setLayout(self._cbn_seat_layout)
+        self._cbn_seat_outer_layout.addLayout(self._cbn_seat_layout)
+        self.cbn_seat_gb.setLayout(self._cbn_seat_outer_layout)
 
     def create_oiadac_widgets(self):
         self.oiadac_gb = QtWidgets.QGroupBox("Detector Incidence Absorption Correction")
@@ -143,9 +160,14 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.oiadac_plot_btn = CheckableButton("Plot")
 
     def create_oiadac_layout(self):
-        self._oiadac_layout = QtWidgets.QHBoxLayout()
-        self._oiadac_layout.setSpacing(5)
+        self._oiadac_outer_layout = QtWidgets.QVBoxLayout()
+        self._oiadac_outer_layout.setSpacing(5)
+        self._oiadac_outer_layout.addWidget(self._create_description_label(
+            "Corrects for oblique incidence angle absorption in the detector material "
+            "(e.g. CdTe, Si)."
+        ))
 
+        self._oiadac_layout = QtWidgets.QHBoxLayout()
         self._oiadac_layout.addWidget(self.oiadac_param_tw)
 
         self._oiadac_right_layout = QtWidgets.QVBoxLayout()
@@ -153,7 +175,8 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self._oiadac_right_layout.addStretch()
         self._oiadac_layout.addLayout(self._oiadac_right_layout)
 
-        self.oiadac_gb.setLayout(self._oiadac_layout)
+        self._oiadac_outer_layout.addLayout(self._oiadac_layout)
+        self.oiadac_gb.setLayout(self._oiadac_outer_layout)
 
     def create_transfer_widgets(self):
         self.transfer_gb = QtWidgets.QGroupBox("Transfer Correction")
@@ -164,6 +187,13 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.transfer_plot_btn = CheckableButton("Plot")
 
     def create_transfer_layout(self):
+        self._transfer_outer_layout = QtWidgets.QVBoxLayout()
+        self._transfer_outer_layout.setSpacing(5)
+        self._transfer_outer_layout.addWidget(self._create_description_label(
+            "Pixel-by-pixel correction using a measured detector response "
+            "(ratio of original to response image)."
+        ))
+
         self._transfer_layout = QtWidgets.QGridLayout()
         self._transfer_layout.setSpacing(5)
         self._transfer_layout.addWidget(self.transfer_load_original_btn, 0, 0)
@@ -177,7 +207,9 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self._transfer_layout.setRowStretch(0, 0)
         self._transfer_layout.setRowStretch(1, 0)
         self._transfer_layout.setRowStretch(2, 1)
-        self.transfer_gb.setLayout(self._transfer_layout)
+
+        self._transfer_outer_layout.addLayout(self._transfer_layout)
+        self.transfer_gb.setLayout(self._transfer_outer_layout)
 
     def create_slab_correction_widgets(self):
         self.slab_gb = QtWidgets.QGroupBox("Slab Absorption Correction")
@@ -207,6 +239,11 @@ class CorrectionsWidget(QtWidgets.QWidget):
     def create_slab_correction_layout(self):
         self._slab_layout = QtWidgets.QVBoxLayout()
         self._slab_layout.setSpacing(5)
+
+        self._slab_layout.addWidget(self._create_description_label(
+            "Sample self-absorption for a flat slab in transmission geometry. "
+            "Integrates absorption over the scattering depth within the sample."
+        ))
 
         # Formula row
         formula_layout = QtWidgets.QHBoxLayout()
@@ -278,6 +315,11 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self._cylinder_layout = QtWidgets.QVBoxLayout()
         self._cylinder_layout.setSpacing(5)
 
+        self._cylinder_layout.addWidget(self._create_description_label(
+            "Sample self-absorption for a cylindrical sample (e.g. in a capillary), "
+            "with optional container wall absorption."
+        ))
+
         # Sample formula row
         formula_layout = QtWidgets.QHBoxLayout()
         formula_layout.addWidget(QtWidgets.QLabel("Formula:"))
@@ -335,6 +377,10 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self._sphere_layout = QtWidgets.QVBoxLayout()
         self._sphere_layout.setSpacing(5)
 
+        self._sphere_layout.addWidget(self._create_description_label(
+            "Sample self-absorption for a spherical sample."
+        ))
+
         # Formula row
         formula_layout = QtWidgets.QHBoxLayout()
         formula_layout.addWidget(QtWidgets.QLabel("Formula:"))
@@ -354,6 +400,59 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self._sphere_layout.addLayout(params_layout)
         self.sphere_gb.setLayout(self._sphere_layout)
 
+    def create_plate_correction_widgets(self):
+        self.plate_gb = QtWidgets.QGroupBox("Plate Absorption Correction")
+        self.plate_plot_btn = CheckableButton("Plot")
+
+        self.plate_formula_txt = QtWidgets.QLineEdit("C")
+        self.plate_formula_txt.setPlaceholderText("e.g. C (diamond), SiO2")
+
+        self.plate_param_tw = ListTableWidget()
+        self.plate_param_tw.setColumnCount(3)
+        self.plate_param_tw.horizontalHeader().setSectionResizeMode(
+            1, QtWidgets.QHeaderView.Stretch
+        )
+        self.plate_param_tw.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
+
+        plate_parameters = [
+            ["Density", 3.51, "g/cm³"],
+            ["Thickness", 2.0, "mm"],
+            ["Plate tilt", 0.0, "°"],
+            ["Plate rotation", 0.0, "°"],
+        ]
+        for param in plate_parameters:
+            self.add_param_to_tw(self.plate_param_tw, *param)
+
+        self.plate_mu_lbl = QtWidgets.QLabel("μ:")
+
+    def create_plate_correction_layout(self):
+        self._plate_layout = QtWidgets.QVBoxLayout()
+        self._plate_layout.setSpacing(5)
+
+        self._plate_layout.addWidget(self._create_description_label(
+            "Absorption by a flat plate between sample and detector "
+            "(e.g. diamond anvil window, Be window). No scattering depth integration."
+        ))
+
+        # Formula row
+        formula_layout = QtWidgets.QHBoxLayout()
+        formula_layout.addWidget(QtWidgets.QLabel("Formula:"))
+        formula_layout.addWidget(self.plate_formula_txt)
+        self._plate_layout.addLayout(formula_layout)
+
+        # Parameters + plot button
+        params_layout = QtWidgets.QHBoxLayout()
+        params_layout.addWidget(self.plate_param_tw)
+
+        right_layout = QtWidgets.QVBoxLayout()
+        right_layout.addWidget(self.plate_plot_btn)
+        right_layout.addWidget(self.plate_mu_lbl)
+        right_layout.addStretch()
+        params_layout.addLayout(right_layout)
+
+        self._plate_layout.addLayout(params_layout)
+        self.plate_gb.setLayout(self._plate_layout)
+
     def style_widgets(self):
         self.cbn_seat_gb.setCheckable(True)
         self.cbn_seat_gb.setChecked(False)
@@ -367,6 +466,8 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.cylinder_gb.setChecked(False)
         self.sphere_gb.setCheckable(True)
         self.sphere_gb.setChecked(False)
+        self.plate_gb.setCheckable(True)
+        self.plate_gb.setChecked(False)
 
         self.setStyleSheet(
             """
