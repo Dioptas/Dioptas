@@ -296,6 +296,29 @@ Parameters:
 - *Radius*: Cylinder radius in mm
 
 
+Sphere Sample Absorption Correction
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Corrects for absorption in a spherical sample in transmission geometry. Due to the
+spherical symmetry around the beam axis, the correction depends only on :math:`2\theta`
+(not on azimuth), making it very efficient to compute.
+
+The transmission factor is calculated by integrating over the sphere volume using
+cylindrical coordinates :math:`(x, \rho)`:
+
+.. math::
+
+    A^*(2\theta) = \frac{\iint \exp\bigl(-\mu \cdot (l_\text{in} + l_\text{out})\bigr) \cdot \rho\, d\rho\, dx}{\iint \rho\, d\rho\, dx}
+
+No orientation parameters are needed (the sphere is symmetric).
+
+Parameters:
+
+- *Formula*: Chemical formula of the sample
+- *Density*: Material density in g/cm³ (optional for known materials)
+- *Radius*: Sphere radius in mm
+
+
 Transfer Function Correction
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

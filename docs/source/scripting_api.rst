@@ -240,6 +240,20 @@ integration over the illuminated cross-section (Paalman & Pings, 1962, *J. Appl.
         radius=0.15,        # mm
     )
 
+Sphere Sample Absorption Correction
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Absorption correction for a spherical sample. Due to spherical symmetry,
+only depends on 2θ (no orientation parameters needed):
+
+.. code-block:: python
+
+    p.add_sphere_absorption_correction(
+        formula="Fe2O3",
+        density=5.24,
+        radius=0.1,         # mm
+    )
+
 Remove all corrections:
 
 .. code-block:: python

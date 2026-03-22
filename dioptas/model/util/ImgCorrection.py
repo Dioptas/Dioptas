@@ -756,6 +756,133 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         self._data = interp(points).reshape(tth_full.shape)
 
 
+class SphereAbsorptionCorrection(ImgCorrectionInterface):
+    """Absorption correction for a spherical sample in transmission geometry.
+
+    Calculates the transmission factor for X-rays passing through a
+    spherical sample by numerically integrating the absorption over the
+    illuminated volume.
+
+    Due to the spherical symmetry around the beam axis, the correction
+    depends only on 2θ and not on the azimuthal angle. This makes the
+    computation very efficient — only a 1D function of 2θ needs to be
+    computed and then mapped to the full detector image.
+
+    The integration uses cylindrical coordinates (x, ρ) where x is along
+    the beam and ρ is the radial distance from the beam axis. Each (x, ρ)
+    point represents a ring of scattering points weighted by ρ:
+
+        A*(2θ) = ∫∫ exp(-μ·(l_in + l_out)) · ρ dρ dx / ∫∫ ρ dρ dx
+
+    No orientation parameters are needed (it's a sphere).
+
+    The tth_array and azi_array should be in degrees (consistent with
+    other corrections in Dioptas).
+    """
+
+    def __init__(
+        self,
+        tth_array=None,
+        azi_array=None,
+        radius=0.1,
+        absorption_coefficient=1.0,
+        n_grid=50,
+    ):
+        """
+        :param tth_array: 2D array of 2θ values in degrees
+        :param azi_array: 2D array of azimuthal angles in degrees
+        :param radius: sphere radius in mm
+        :param absorption_coefficient: linear absorption coefficient in 1/mm
+        :param n_grid: grid resolution for the numerical integration
+        """
+        self._tth_array = tth_array if tth_array is not None else np.array([])
+        self._azi_array = azi_array if azi_array is not None else np.array([])
+        self._radius = radius
+        self._absorption_coefficient = absorption_coefficient
+        self._n_grid = n_grid
+        self._data = None
+
+    def get_data(self):
+        return self._data
+
+    def shape(self):
+        return self._data.shape
+
+    def get_params(self):
+        return {
+            "radius": self._radius,
+            "absorption_coefficient": self._absorption_coefficient,
+        }
+
+    def set_params(self, params):
+        self._radius = params["radius"]
+        self._absorption_coefficient = params["absorption_coefficient"]
+
+    def update(self):
+        dtor = np.pi / 180.0
+        R = self._radius
+        mu = self._absorption_coefficient
+        tth_full = self._tth_array * dtor
+
+        if mu == 0 or R == 0:
+            self._data = np.ones_like(tth_full)
+            return
+
+        # Create 2D grid in (x, rho) using cylindrical symmetry.
+        # x is along beam, rho is radial distance from beam axis.
+        # Points must satisfy x² + ρ² < R².
+        g = np.linspace(-R * 0.999, R * 0.999, self._n_grid)
+        gx, grho = np.meshgrid(g, g)
+        inside = gx**2 + grho**2 < R**2
+        # Only use positive rho (symmetry), weighted by rho
+        inside &= grho > 0
+        gx = gx[inside]
+        grho = grho[inside]
+
+        if len(gx) == 0:
+            self._data = np.ones_like(tth_full)
+            return
+
+        # Incident path: beam along x, enters at x = -sqrt(R² - ρ²)
+        l_in = gx + np.sqrt(R**2 - grho**2)  # shape: (n_points,)
+
+        # Compute A*(2θ) on a 1D grid of 2θ values
+        tth_min = max(tth_full.min(), 0.001)
+        tth_max = tth_full.max() + 0.001
+        n_tth = 500
+        tth_grid = np.linspace(tth_min, tth_max, n_tth)
+
+        # For each 2θ, pick φ=0 (result is φ-independent by symmetry).
+        # Diffracted beam: d = (cos(2θ), sin(2θ), 0)
+        # Scattering point: P = (x, rho, 0) in cylindrical -> (x, rho, 0) in 3D
+        # Exit: |P + t·d|² = R²
+        # t² + 2t(x·cos2θ + ρ·sin2θ) + (x² + ρ² - R²) = 0
+        cos_tth = np.cos(tth_grid)  # shape: (n_tth,)
+        sin_tth = np.sin(tth_grid)
+
+        correction_1d = np.zeros(n_tth)
+        weight_sum = np.sum(grho)  # rho-weighted normalization
+
+        for i in range(len(gx)):
+            x0, rho0 = gx[i], grho[i]
+
+            # Quadratic coefficients for exit
+            b = x0 * cos_tth + rho0 * sin_tth
+            c = x0**2 + rho0**2 - R**2
+
+            discriminant = np.maximum(b**2 - c, 0)
+            t_exit = -b + np.sqrt(discriminant)
+
+            correction_1d += grho[i] * np.exp(-mu * (l_in[i] + t_exit))
+
+        correction_1d /= weight_sum
+
+        # Interpolate to the full detector
+        self._data = np.interp(tth_full.ravel(), tth_grid, correction_1d).reshape(
+            tth_full.shape
+        )
+
+
 class DummyCorrection(ImgCorrectionInterface):
     """
     Used in particular for unit tests
