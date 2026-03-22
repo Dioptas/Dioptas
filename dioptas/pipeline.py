@@ -273,23 +273,31 @@ class Pipeline:
         axis_tilt: float = 0,
         axis_rotation: float = 0,
         beam_width: float = 0,
+        container_formula: str = None,
+        container_density: float = None,
+        wall_thickness: float = 0,
     ) -> None:
         """Add a cylindrical sample absorption correction.
 
         Calculates the absorption correction for a cylindrical sample
-        (e.g., a capillary). The absorption coefficient is calculated
-        from the chemical formula and calibration wavelength.
+        (e.g., a capillary), optionally including a container (e.g.,
+        glass capillary wall). The absorption coefficients are calculated
+        from the chemical formulas and calibration wavelength.
 
         Requires calibration to be loaded first.
 
-        :param formula: chemical formula (e.g. 'CeO2', 'Au', 'Fe2O3')
-        :param density: material density in g/cm³ (None to use xraydb default)
-        :param radius: cylinder radius in mm
+        :param formula: sample chemical formula (e.g. 'CeO2', 'Au')
+        :param density: sample density in g/cm³ (None to use xraydb default)
+        :param radius: sample cylinder radius (inner radius) in mm
         :param axis_tilt: tilt of cylinder axis from vertical (degrees).
             0 = vertical (perpendicular to beam), 90 = along beam.
         :param axis_rotation: rotation of tilt around beam axis (degrees)
         :param beam_width: beam diameter in mm. 0 = pencil beam (default),
             >= 2*radius = full illumination.
+        :param container_formula: container chemical formula (e.g. 'SiO2'
+            for glass). None = no container correction (default).
+        :param container_density: container density in g/cm³
+        :param wall_thickness: container wall thickness in mm
         """
         if not self.is_calibrated:
             raise RuntimeError("Calibration must be loaded before adding corrections")
@@ -304,6 +312,12 @@ class Pipeline:
         energy_eV = wavelength_to_energy(wavelength_m)
         mu = calculate_mu(formula, energy_eV, density=density)
 
+        mu_container = 0
+        if container_formula is not None and wall_thickness > 0:
+            mu_container = calculate_mu(
+                container_formula, energy_eV, density=container_density
+            )
+
         correction = CylinderAbsorptionCorrection(
             tth_array=tth_array,
             azi_array=azi_array,
@@ -312,6 +326,8 @@ class Pipeline:
             axis_tilt=axis_tilt,
             axis_rotation=axis_rotation,
             beam_width=beam_width,
+            container_absorption_coefficient=mu_container,
+            wall_thickness=wall_thickness,
         )
         correction.update()
         self._configuration.img_model.add_img_correction(correction, "cylinder")

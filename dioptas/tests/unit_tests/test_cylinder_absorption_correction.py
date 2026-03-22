@@ -197,6 +197,80 @@ class TestCylinderAbsorptionCorrectionPhysics:
         corr.update()
         np.testing.assert_allclose(corr.get_data(), corr2.get_data())
 
+    def test_container_increases_absorption(self):
+        """Adding a container wall should increase total absorption."""
+        tth, azi = self._make_tth_azi_arrays()
+        corr_no_wall = CylinderAbsorptionCorrection(
+            tth_array=tth, azi_array=azi, radius=0.15,
+            absorption_coefficient=3.0,
+        )
+        corr_no_wall.update()
+
+        corr_with_wall = CylinderAbsorptionCorrection(
+            tth_array=tth, azi_array=azi, radius=0.15,
+            absorption_coefficient=3.0,
+            container_absorption_coefficient=2.0,
+            wall_thickness=0.01,
+        )
+        corr_with_wall.update()
+
+        # Container adds absorption, so transmission should be lower
+        assert corr_with_wall.get_data().mean() < corr_no_wall.get_data().mean()
+
+    def test_zero_wall_thickness_no_effect(self):
+        """Zero wall thickness should give same result as no container."""
+        tth, azi = self._make_tth_azi_arrays()
+        corr_no_wall = CylinderAbsorptionCorrection(
+            tth_array=tth, azi_array=azi, radius=0.15,
+            absorption_coefficient=3.0,
+        )
+        corr_no_wall.update()
+
+        corr_zero_wall = CylinderAbsorptionCorrection(
+            tth_array=tth, azi_array=azi, radius=0.15,
+            absorption_coefficient=3.0,
+            container_absorption_coefficient=5.0,
+            wall_thickness=0,
+        )
+        corr_zero_wall.update()
+
+        np.testing.assert_allclose(
+            corr_no_wall.get_data(), corr_zero_wall.get_data()
+        )
+
+    def test_thicker_wall_more_absorption(self):
+        """Thicker container wall should give more absorption."""
+        tth, azi = self._make_tth_azi_arrays()
+        corr_thin = CylinderAbsorptionCorrection(
+            tth_array=tth, azi_array=azi, radius=0.15,
+            absorption_coefficient=3.0,
+            container_absorption_coefficient=2.0,
+            wall_thickness=0.005,
+        )
+        corr_thin.update()
+
+        corr_thick = CylinderAbsorptionCorrection(
+            tth_array=tth, azi_array=azi, radius=0.15,
+            absorption_coefficient=3.0,
+            container_absorption_coefficient=2.0,
+            wall_thickness=0.05,
+        )
+        corr_thick.update()
+
+        assert corr_thick.get_data().mean() < corr_thin.get_data().mean()
+
+    def test_container_params_in_get_set(self):
+        tth, azi = self._make_tth_azi_arrays()
+        corr = CylinderAbsorptionCorrection(
+            tth_array=tth, azi_array=azi, radius=0.15,
+            absorption_coefficient=3.0,
+            container_absorption_coefficient=2.5,
+            wall_thickness=0.01,
+        )
+        params = corr.get_params()
+        assert params["container_absorption_coefficient"] == 2.5
+        assert params["wall_thickness"] == 0.01
+
     def test_numerical_integration_reference_full(self):
         """Verify full illumination mode against brute-force integration."""
         R = 0.15
@@ -279,6 +353,15 @@ class TestCylinderCorrectionInPipeline:
         p = Pipeline()
         with pytest.raises(RuntimeError, match="Calibration must be loaded"):
             p.add_cylinder_absorption_correction(formula="Au", radius=0.1)
+
+    def test_cylinder_with_container(self, calibrated_pipeline):
+        calibrated_pipeline.integrate(test_image)
+        calibrated_pipeline.add_cylinder_absorption_correction(
+            formula="SiO2", density=2.65, radius=0.1,
+            container_formula="SiO2", container_density=2.23,
+            wall_thickness=0.01,
+        )
+        assert calibrated_pipeline.img_model.has_corrections()
 
     def test_clear_cylinder_correction(self, calibrated_pipeline):
         calibrated_pipeline.integrate(test_image)

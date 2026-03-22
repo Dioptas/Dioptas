@@ -547,6 +547,8 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         axis_tilt=0,
         axis_rotation=0,
         beam_width=0,
+        container_absorption_coefficient=0,
+        wall_thickness=0,
         n_points=200,
         n_tth=200,
         n_azi=180,
@@ -554,8 +556,8 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         """
         :param tth_array: 2D array of 2θ values in degrees
         :param azi_array: 2D array of azimuthal angles in degrees
-        :param radius: cylinder radius in mm
-        :param absorption_coefficient: linear absorption coefficient in 1/mm
+        :param radius: sample cylinder radius (inner radius) in mm
+        :param absorption_coefficient: sample linear absorption coefficient in 1/mm
         :param axis_tilt: tilt of the cylinder axis from vertical (degrees).
             0 = vertical (perpendicular to beam), 90 = along beam.
         :param axis_rotation: rotation of the tilt direction in degrees,
@@ -563,6 +565,10 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
             90° = vertical (up), when looking along the beam direction
         :param beam_width: beam width/diameter in mm. 0 = pencil beam
             (default), >= 2*radius = full illumination.
+        :param container_absorption_coefficient: container (e.g. glass
+            capillary) linear absorption coefficient in 1/mm. 0 = no
+            container correction (default).
+        :param wall_thickness: container wall thickness in mm.
         :param n_points: grid resolution for integration
         :param n_tth: number of 2θ points in the interpolation grid
         :param n_azi: number of azimuth points in the interpolation grid
@@ -574,6 +580,8 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         self._axis_tilt = axis_tilt
         self._axis_rotation = axis_rotation
         self._beam_width = beam_width
+        self._container_absorption_coefficient = container_absorption_coefficient
+        self._wall_thickness = wall_thickness
         self._n_points = n_points
         self._n_tth = n_tth
         self._n_azi = n_azi
@@ -592,6 +600,8 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
             "axis_tilt": self._axis_tilt,
             "axis_rotation": self._axis_rotation,
             "beam_width": self._beam_width,
+            "container_absorption_coefficient": self._container_absorption_coefficient,
+            "wall_thickness": self._wall_thickness,
         }
 
     def set_params(self, params):
@@ -600,6 +610,10 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         self._axis_tilt = params["axis_tilt"]
         self._axis_rotation = params["axis_rotation"]
         self._beam_width = params.get("beam_width", 0)
+        self._container_absorption_coefficient = params.get(
+            "container_absorption_coefficient", 0
+        )
+        self._wall_thickness = params.get("wall_thickness", 0)
 
     @staticmethod
     def _build_cylinder_basis(axis_tilt_rad, axis_rotation_rad):
@@ -682,9 +696,13 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         diff_u, diff_v = self._project_to_cross_section(diff_3d, cyl_u, cyl_v)
         diff_proj_len = np.maximum(np.sqrt(diff_u**2 + diff_v**2), 1e-30)
 
+        R_outer = R + self._wall_thickness if self._wall_thickness > 0 else 0
+        mu_container = self._container_absorption_coefficient
+
         correction_table = self._compute_correction(
             R, mu, beam_u_n, beam_v_n, beam_proj_len,
             diff_u, diff_v, diff_proj_len,
+            R_outer, mu_container,
         )
 
         # Interpolate to the full detector grid
@@ -699,13 +717,52 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         points = np.stack([tth_full.ravel(), azi_wrapped.ravel()], axis=-1)
         self._data = interp(points).reshape(tth_full.shape)
 
+    @staticmethod
+    def _chord_length_through_shell(u0, v0, du, dv, R_inner, R_outer):
+        """Compute the path length through a cylindrical shell.
+
+        For a ray starting at (u0, v0) in direction (du, dv), compute
+        the total path length through the shell between R_inner and R_outer.
+        The ray may cross the shell on entry and/or exit side.
+
+        Returns the total path in projected coordinates (divide by
+        proj_len for 3D path).
+        """
+        a = du**2 + dv**2
+
+        # Intersections with outer cylinder (R_outer)
+        b_out = u0 * du + v0 * dv
+        c_out = u0**2 + v0**2 - R_outer**2
+        disc_out = np.maximum(b_out**2 - a * c_out, 0)
+        sqrt_disc_out = np.sqrt(disc_out)
+        t_out_entry = (-b_out - sqrt_disc_out) / np.maximum(a, 1e-30)
+        t_out_exit = (-b_out + sqrt_disc_out) / np.maximum(a, 1e-30)
+
+        # Intersections with inner cylinder (R_inner)
+        b_in = b_out  # same
+        c_in = u0**2 + v0**2 - R_inner**2
+        disc_in = b_in**2 - a * c_in
+        has_inner = disc_in > 0
+        sqrt_disc_in = np.sqrt(np.maximum(disc_in, 0))
+        t_in_entry = (-b_in - sqrt_disc_in) / np.maximum(a, 1e-30)
+        t_in_exit = (-b_in + sqrt_disc_in) / np.maximum(a, 1e-30)
+
+        # Path through shell = path through outer - path through inner (if it crosses inner)
+        path_outer = t_out_exit - t_out_entry
+        path_inner = np.where(has_inner, t_in_exit - t_in_entry, 0)
+        return path_outer - path_inner
+
     def _compute_correction(self, R, mu, beam_u_n, beam_v_n, beam_proj_len,
-                            diff_u, diff_v, diff_proj_len):
+                            diff_u, diff_v, diff_proj_len,
+                            R_outer, mu_container):
         """Compute correction by integrating over beam footprint in cross-section.
 
         For beam_width=0 (pencil beam): integrates along a line through center.
         For beam_width>=2R (full illumination): integrates over full cross-section.
         For intermediate values: integrates over the beam footprint within the cylinder.
+
+        When R_outer > 0 and mu_container > 0, the absorption through the
+        container wall is included for both incident and diffracted beams.
         """
         # Perpendicular direction to beam in cross-section plane
         perp_u = -beam_v_n
@@ -713,6 +770,7 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
 
         n = self._n_points
         beam_half = self._beam_width / 2.0
+        has_container = R_outer > R and mu_container > 0
 
         if self._beam_width <= 0:
             # Pencil beam: 1D grid along beam through center
@@ -729,7 +787,7 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
             gu = sb.ravel() * beam_u_n + sp.ravel() * perp_u
             gv = sb.ravel() * beam_v_n + sp.ravel() * perp_v
 
-        # Filter to points inside the cylinder
+        # Filter to points inside the sample cylinder
         inside = gu**2 + gv**2 < R**2
         gu = gu[inside]
         gv = gv[inside]
@@ -737,24 +795,57 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         if len(gu) == 0:
             return np.ones_like(diff_u)
 
-        # Incident path lengths
+        # Incident path lengths through sample
         b_dot_g = gu * beam_u_n + gv * beam_v_n
         g_r2 = gu**2 + gv**2 - R**2
         disc_in = np.maximum(b_dot_g**2 - g_r2, 0)
         s_entry = b_dot_g + np.sqrt(disc_in)
-        l_in = s_entry / beam_proj_len
+        l_in_sample = s_entry / beam_proj_len
+
+        # Incident container path: depends on where the beam enters.
+        # For each scattering point, the perpendicular offset from the
+        # beam center determines the chord through the shell.
+        if has_container:
+            # Perpendicular distance of each grid point from beam axis
+            perp_dist = gu * perp_u + gv * perp_v
+            # Point on the beam axis at this perpendicular offset
+            entry_u = perp_dist * perp_u
+            entry_v = perp_dist * perp_v
+            l_in_container = self._chord_length_through_shell(
+                entry_u, entry_v,
+                np.full_like(entry_u, beam_u_n),
+                np.full_like(entry_v, beam_v_n),
+                R, R_outer,
+            ) / beam_proj_len
+        else:
+            l_in_container = np.zeros(len(gu))
 
         # Accumulate over grid points
         accumulator = np.zeros_like(diff_u)
         for i in range(len(gu)):
             u0, v0 = gu[i], gv[i]
+
+            # Diffracted beam exit from sample
             a = diff_u**2 + diff_v**2
             b = u0 * diff_u + v0 * diff_v
             c = u0**2 + v0**2 - R**2
             discriminant = np.maximum(b**2 - a * c, 0)
             t_exit_proj = (-b + np.sqrt(discriminant)) / np.maximum(a, 1e-30)
-            l_out = t_exit_proj / diff_proj_len
-            accumulator += np.exp(-mu * (l_in[i] + l_out))
+            l_out_sample = t_exit_proj / diff_proj_len
+
+            # Container path for diffracted beam
+            if has_container:
+                l_out_container = self._chord_length_through_shell(
+                    u0, v0, diff_u, diff_v, R, R_outer,
+                ) / diff_proj_len
+            else:
+                l_out_container = 0
+
+            total_absorption = (
+                mu * (l_in_sample[i] + l_out_sample)
+                + mu_container * (l_in_container[i] + l_out_container)
+            )
+            accumulator += np.exp(-total_absorption)
 
         return accumulator / len(gu)
 

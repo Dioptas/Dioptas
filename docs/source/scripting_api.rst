@@ -248,6 +248,16 @@ integration over the beam footprint (Paalman & Pings, 1962, *J. Appl. Phys.* **3
         beam_width=0.05,    # mm
     )
 
+    # With glass capillary container
+    p.add_cylinder_absorption_correction(
+        formula="LaB6",
+        density=4.72,
+        radius=0.1,
+        container_formula="SiO2",   # borosilicate glass
+        container_density=2.23,
+        wall_thickness=0.01,        # mm
+    )
+
 Sphere Sample Absorption Correction
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

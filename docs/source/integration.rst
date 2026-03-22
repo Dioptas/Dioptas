@@ -297,6 +297,15 @@ Parameters:
 - *Beam width*: Beam diameter in mm. 0 = pencil beam (default), larger values
   illuminate more of the cylinder cross-section
 
+Optionally, a cylindrical container (e.g., glass capillary wall) can be included:
+
+- *Container formula*: Chemical formula of the container material (e.g., ``SiO2``)
+- *Container density*: Container density in g/cm³
+- *Wall thickness*: Container wall thickness in mm
+
+The container absorption is computed for both incident and diffracted beams passing
+through the cylindrical shell between the sample radius and the outer radius.
+
 
 Sphere Sample Absorption Correction
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
