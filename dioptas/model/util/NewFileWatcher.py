@@ -6,15 +6,13 @@ import threading
 
 import queue
 
-from qtpy import QtCore
-
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 
 from . import Signal
 
 
-class NewFileInDirectoryWatcher(QtCore.QObject):
+class NewFileInDirectoryWatcher:
     """
     This class watches a given filepath for any new files with a given file extension added to it.
 
@@ -27,17 +25,12 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
 
     """
 
-    _file_added_qt = QtCore.Signal(
-        str
-    )  # used internally for inside of an qt application to avoid thread problems
-
     def __init__(self, path=None, file_types=None, activate=False):
         """
         :param path: path to folder which will be watched
         :param file_types: list of file types which will be watched for, e.g. ['.tif', '.jpeg']
         :param activate: whether the Watcher will already emit signals
         """
-        super(NewFileInDirectoryWatcher, self).__init__()
 
         if path is None:
             path = os.getcwd()
@@ -58,7 +51,6 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
             self.activate()
 
         self.file_added = Signal(str)  # to be used signal from outside
-        self._file_added_qt.connect(self.file_added.emit)
         self.filepath_queue = queue.Queue()
 
     def on_file_created(self, event):
@@ -131,10 +123,7 @@ class NewFileInDirectoryWatcher(QtCore.QObject):
                 time.sleep(0.05)
                 continue
 
-            if QtCore.QCoreApplication.instance() is not None:
-                self._file_added_qt.emit(file_path)
-            else:
-                self.file_added.emit(file_path)
+            self.file_added.emit(file_path)
 
     def __del__(self):
         """Stop the observer thread when the object is deleted."""

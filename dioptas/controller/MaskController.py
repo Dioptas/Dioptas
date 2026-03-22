@@ -303,7 +303,8 @@ class MaskController(object):
         arc_points_b = self.model.mask_model.calc_arc_points_from_angles(arc_center, arc_r, -1, phi_range)
         arc_points = arc_points_a + list(reversed(arc_points_b))
 
-        self.arc.preview_arc(arc_points)
+        qt_arc_points = [QtCore.QPointF(p.x(), p.y()) for p in arc_points]
+        self.arc.preview_arc(qt_arc_points)
 
     def arc_width_preview(self, x, y):
         arc_center = self.arc.arc_center
@@ -317,7 +318,8 @@ class MaskController(object):
         arc_points_b = self.model.mask_model.calc_arc_points_from_angles(arc_center, arc_r, width, phi_range)
         arc_points = arc_points_a + list(reversed(arc_points_b))
         self.arc.arc_points = arc_points
-        self.arc.preview_arc(arc_points)
+        qt_arc_points = [QtCore.QPointF(p.x(), p.y()) for p in arc_points]
+        self.arc.preview_arc(qt_arc_points)
 
     def update_shape_preview_fill_color(self):
         try:

@@ -962,7 +962,20 @@ class ImageController(object):
             self.model.img_model.img_changed.emit()
 
     def auto_process_cb_click(self):
-        self.model.img_model.autoprocess = self.widget.autoprocess_cb.isChecked()
+        enable = self.widget.autoprocess_cb.isChecked()
+        if enable:
+            self.model.img_model._directory_watcher.file_added.connect(
+                self._on_autoprocess_file_added
+            )
+        else:
+            self.model.img_model._directory_watcher.file_added.disconnect(
+                self._on_autoprocess_file_added
+            )
+        self.model.img_model.autoprocess = enable
+
+    def _on_autoprocess_file_added(self, filepath):
+        """Handle file_added signal from background thread by dispatching load to the main Qt thread."""
+        QtCore.QTimer.singleShot(0, lambda: self.model.img_model.load(filepath))
 
     def save_img(self, filename=None):
         if not filename:

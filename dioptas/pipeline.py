@@ -31,21 +31,6 @@ import numpy as np
 from xypattern import Pattern
 
 
-def _ensure_app():
-    """Ensure a QCoreApplication exists for headless use.
-
-    Some model classes (ImgModel) use Qt objects internally
-    (FileNameIterator, NewFileInDirectoryWatcher) that require
-    a QCoreApplication instance.
-    """
-    from qtpy import QtWidgets, QtCore
-
-    app = QtWidgets.QApplication.instance()
-    if app is None:
-        app = QtCore.QCoreApplication([])
-    return app
-
-
 class Pipeline:
     """Headless API for Dioptas XRD image processing.
 
@@ -60,8 +45,6 @@ class Pipeline:
         Configure manually via :meth:`load_calibration`,
         :meth:`load_mask`, etc.
         """
-        self._app = _ensure_app()
-
         from dioptas.model.Configuration import Configuration
 
         self._configuration = Configuration()

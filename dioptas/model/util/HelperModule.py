@@ -6,19 +6,39 @@ import re
 import time
 
 import numpy as np
-from qtpy import QtCore
 from colorsys import hsv_to_rgb
 
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
-class FileNameIterator(QtCore.QObject):
+
+class _DirectoryChangeHandler(FileSystemEventHandler):
+    """Watchdog handler that calls a callback on any directory change."""
+
+    def __init__(self, callback):
+        super().__init__()
+        self._callback = callback
+
+    def on_any_event(self, event):
+        self._callback()
+
+
+# Shared observer for all FileNameIterator instances.
+# FSEvents on macOS does not allow multiple observers watching the same path,
+# so we use a single Observer and schedule/unschedule individual watches.
+_shared_observer = Observer()
+_shared_observer.daemon = True
+_shared_observer.start()
+
+
+class FileNameIterator:
     # TODO create an File Index and then just get the next files according to this.
     # Otherwise searching a network is always to slow...
 
     def __init__(self, filename=None):
-        super(FileNameIterator, self).__init__()
         self.acceptable_file_endings = []
-        self.directory_watcher = QtCore.QFileSystemWatcher()
-        self.directory_watcher.directoryChanged.connect(self.add_new_files_to_list)
+        self._watch = None
+        self._dir_handler = _DirectoryChangeHandler(self.add_new_files_to_list)
         self.create_timed_file_list = False
 
         if filename is None:
@@ -217,15 +237,31 @@ class FileNameIterator(QtCore.QObject):
         except AttributeError:
             pass
         if self.directory != new_directory:
-            if self.directory is not None and self.directory != "":
-                self.directory_watcher.removePath(self.directory)
-            self.directory_watcher.addPath(new_directory)
+            self._stop_observing()
             self.directory = new_directory
+            self._start_observing()
             if self.create_timed_file_list:
                 self.update_file_list()
 
         if self.create_timed_file_list and self.ordered_file_list == []:
             self.update_file_list()
+
+    def _start_observing(self):
+        if self.directory and os.path.isdir(self.directory):
+            self._watch = _shared_observer.schedule(
+                self._dir_handler, self.directory, recursive=False
+            )
+
+    def _stop_observing(self):
+        if self._watch is not None:
+            try:
+                _shared_observer.unschedule(self._watch)
+            except KeyError:
+                pass
+            self._watch = None
+
+    def __del__(self):
+        self._stop_observing()
 
     def add_new_files_to_list(self):
         """

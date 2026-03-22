@@ -6,7 +6,6 @@ import time
 
 import h5py
 import numpy as np
-from qtpy import QtCore
 from PIL import Image
 
 from xypattern.auto_background import SmoothBrucknerBackground
@@ -15,13 +14,12 @@ from xypattern import Pattern
 logger = logging.getLogger(__name__)
 
 
-class BatchModel(QtCore.QObject):
+class BatchModel:
     """
     Class describe a model for batch integration
     """
 
     def __init__(self, configuration):
-        super(BatchModel, self).__init__()
 
         self.data = None
         self.bkg = None

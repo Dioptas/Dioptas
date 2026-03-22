@@ -123,8 +123,6 @@ class ImgModel(object):
                 "spe",
             ]
         )
-        self._directory_watcher.file_added.connect(self.load)
-
         # define the signals
         self.img_changed = Signal()
         self.autoprocess_changed = Signal()

@@ -32,7 +32,6 @@ def test_automatic_file_processing(
 
     click_checkbox(integration_widget.autoprocess_cb)
 
-    assert not dioptas_model.img_model._directory_watcher.signalsBlocked()
     assert integration_widget.autoprocess_cb.isChecked()
     assert dioptas_model.img_model.autoprocess
 
@@ -44,8 +43,8 @@ def test_automatic_file_processing(
     dioptas_model.img_model._directory_watcher.file_added.emit(
         os.path.join(unittest_data_path, "image_003.tif")
     )
-    assert "image_003.tif" == str(integration_widget.img_filename_txt.text())
     qapp.processEvents()
+    assert "image_003.tif" == str(integration_widget.img_filename_txt.text())
 
     # clean up
     os.remove(os.path.join(unittest_data_path, "image_003.tif"))
