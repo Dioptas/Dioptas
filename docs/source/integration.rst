@@ -294,6 +294,8 @@ Parameters:
 - *Formula*: Chemical formula of the sample (e.g., ``SiO2``, ``LaB6``)
 - *Density*: Material density in g/cm³ (optional for known materials)
 - *Radius*: Cylinder radius in mm
+- *Beam width*: Beam diameter in mm. 0 = pencil beam (default), larger values
+  illuminate more of the cylinder cross-section
 
 
 Sphere Sample Absorption Correction
@@ -323,7 +325,8 @@ Parameters:
 - *Formula*: Chemical formula of the sample
 - *Density*: Material density in g/cm³ (optional for known materials)
 - *Radius*: Sphere radius in mm
-- *Full illumination*: Toggle between pencil beam and full illumination modes
+- *Beam width*: Beam diameter in mm. 0 = pencil beam (default), larger values
+  illuminate more of the sphere cross-section
 
 
 Transfer Function Correction

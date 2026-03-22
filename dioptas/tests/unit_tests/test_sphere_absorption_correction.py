@@ -103,18 +103,18 @@ class TestSphereAbsorptionCorrectionPhysics:
         avg = data.mean(axis=1)
         assert np.std(avg) > 1e-6
 
-    def test_full_illumination_mode(self):
+    def test_finite_beam_width(self):
         """Full illumination mode should give different results than pencil beam."""
         tth, azi = self._make_tth_azi_arrays()
         corr_pencil = SphereAbsorptionCorrection(
             tth_array=tth, azi_array=azi, radius=0.1,
-            absorption_coefficient=3.0, full_illumination=False,
+            absorption_coefficient=3.0, beam_width=0,
         )
         corr_pencil.update()
 
         corr_full = SphereAbsorptionCorrection(
             tth_array=tth, azi_array=azi, radius=0.1,
-            absorption_coefficient=3.0, full_illumination=True,
+            absorption_coefficient=3.0, beam_width=1.0,
         )
         corr_full.update()
 
@@ -124,12 +124,12 @@ class TestSphereAbsorptionCorrectionPhysics:
         # But they should differ
         assert not np.allclose(corr_pencil.get_data(), corr_full.get_data())
 
-    def test_full_illumination_azimuthally_symmetric(self):
+    def test_finite_beam_azimuthally_symmetric(self):
         """Full illumination mode should also be azimuthally symmetric."""
         tth, azi = self._make_tth_azi_arrays()
         corr = SphereAbsorptionCorrection(
             tth_array=tth, azi_array=azi, radius=0.1,
-            absorption_coefficient=3.0, full_illumination=True,
+            absorption_coefficient=3.0, beam_width=1.0,
         )
         corr.update()
         data = corr.get_data()

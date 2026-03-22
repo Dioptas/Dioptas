@@ -515,21 +515,15 @@ class SlabAbsorptionCorrection(ImgCorrectionInterface):
 class CylinderAbsorptionCorrection(ImgCorrectionInterface):
     """Absorption correction for a cylindrical sample in transmission geometry.
 
-    Supports two illumination modes controlled by the ``full_illumination``
-    parameter:
-
-    **Pencil beam mode** (``full_illumination=False``, default):
-    Assumes the beam is much smaller than the cylinder (typical for
-    synchrotron experiments). Integrates along the beam path through the
-    cylinder center in the cross-section plane.
-
-    **Full illumination mode** (``full_illumination=True``):
-    Assumes the beam illuminates the full cylinder cross-section.
-    Integrates over all scattering points in the cross-section.
-
-    In both modes, the transmission factor is:
+    Calculates the transmission factor by integrating the absorption over
+    the beam footprint within the cylinder cross-section:
 
         A*(2θ,φ) = average of exp(-μ·(l_in + l_out))
+
+    The beam width controls how much of the cross-section is illuminated:
+    - beam_width=0 (default): pencil beam through center (synchrotron case)
+    - beam_width >= 2*radius: full illumination (lab source case)
+    - intermediate values: partial illumination
 
     The cylinder axis orientation is defined by two angles:
     - axis_tilt: angle of the cylinder axis from the z-axis (vertical)
@@ -552,7 +546,7 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         absorption_coefficient=1.0,
         axis_tilt=0,
         axis_rotation=0,
-        full_illumination=False,
+        beam_width=0,
         n_points=200,
         n_tth=200,
         n_azi=180,
@@ -567,10 +561,9 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         :param axis_rotation: rotation of the tilt direction in degrees,
             following pyFAI's azimuthal (chi) convention: 0° = horizontal,
             90° = vertical (up), when looking along the beam direction
-        :param full_illumination: if True, beam illuminates the full
-            cross-section; if False (default), pencil beam through center
-        :param n_points: number of integration points (along beam for pencil
-            mode, grid resolution for full illumination mode)
+        :param beam_width: beam width/diameter in mm. 0 = pencil beam
+            (default), >= 2*radius = full illumination.
+        :param n_points: grid resolution for integration
         :param n_tth: number of 2θ points in the interpolation grid
         :param n_azi: number of azimuth points in the interpolation grid
         """
@@ -580,7 +573,7 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         self._absorption_coefficient = absorption_coefficient
         self._axis_tilt = axis_tilt
         self._axis_rotation = axis_rotation
-        self._full_illumination = full_illumination
+        self._beam_width = beam_width
         self._n_points = n_points
         self._n_tth = n_tth
         self._n_azi = n_azi
@@ -598,7 +591,7 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
             "absorption_coefficient": self._absorption_coefficient,
             "axis_tilt": self._axis_tilt,
             "axis_rotation": self._axis_rotation,
-            "full_illumination": self._full_illumination,
+            "beam_width": self._beam_width,
         }
 
     def set_params(self, params):
@@ -606,7 +599,7 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         self._absorption_coefficient = params["absorption_coefficient"]
         self._axis_tilt = params["axis_tilt"]
         self._axis_rotation = params["axis_rotation"]
-        self._full_illumination = params.get("full_illumination", False)
+        self._beam_width = params.get("beam_width", 0)
 
     @staticmethod
     def _build_cylinder_basis(axis_tilt_rad, axis_rotation_rad):
@@ -689,16 +682,10 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         diff_u, diff_v = self._project_to_cross_section(diff_3d, cyl_u, cyl_v)
         diff_proj_len = np.maximum(np.sqrt(diff_u**2 + diff_v**2), 1e-30)
 
-        if self._full_illumination:
-            correction_table = self._compute_full_illumination(
-                R, mu, beam_u_n, beam_v_n, beam_proj_len,
-                diff_u, diff_v, diff_proj_len,
-            )
-        else:
-            correction_table = self._compute_pencil_beam(
-                R, mu, beam_u_n, beam_v_n, beam_proj_len,
-                diff_u, diff_v, diff_proj_len,
-            )
+        correction_table = self._compute_correction(
+            R, mu, beam_u_n, beam_v_n, beam_proj_len,
+            diff_u, diff_v, diff_proj_len,
+        )
 
         # Interpolate to the full detector grid
         interp = RegularGridInterpolator(
@@ -712,54 +699,37 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         points = np.stack([tth_full.ravel(), azi_wrapped.ravel()], axis=-1)
         self._data = interp(points).reshape(tth_full.shape)
 
-    def _compute_pencil_beam(self, R, mu, beam_u_n, beam_v_n, beam_proj_len,
-                             diff_u, diff_v, diff_proj_len):
-        """Pencil beam through cylinder center (beam << cylinder).
+    def _compute_correction(self, R, mu, beam_u_n, beam_v_n, beam_proj_len,
+                            diff_u, diff_v, diff_proj_len):
+        """Compute correction by integrating over beam footprint in cross-section.
 
-        Integrates along the beam path through the center of the
-        cross-section. Points are parameterized as (s·beam_u_n, s·beam_v_n)
-        for s in [-R, R] (projected coords), with 3D path length s/beam_proj_len.
+        For beam_width=0 (pencil beam): integrates along a line through center.
+        For beam_width>=2R (full illumination): integrates over full cross-section.
+        For intermediate values: integrates over the beam footprint within the cylinder.
         """
+        # Perpendicular direction to beam in cross-section plane
+        perp_u = -beam_v_n
+        perp_v = beam_u_n
+
         n = self._n_points
-        s = np.linspace(-R * 0.9999, R * 0.9999, n)
-        # Filter to points inside the cylinder cross-section
-        gu = s * beam_u_n
-        gv = s * beam_v_n
-        inside = gu**2 + gv**2 < R**2
-        gu = gu[inside]
-        gv = gv[inside]
-        s = s[inside]
+        beam_half = self._beam_width / 2.0
 
-        if len(gu) == 0:
-            return np.ones_like(diff_u)
+        if self._beam_width <= 0:
+            # Pencil beam: 1D grid along beam through center
+            s = np.linspace(-R * 0.9999, R * 0.9999, n)
+            gu = s * beam_u_n
+            gv = s * beam_v_n
+        else:
+            # 2D grid: along beam × across beam (within beam_width)
+            s_beam = np.linspace(-R * 0.999, R * 0.999, n)
+            half = min(beam_half, R * 0.999)
+            n_perp = max(int(n * half / R), 5)
+            s_perp = np.linspace(-half, half, n_perp)
+            sb, sp = np.meshgrid(s_beam, s_perp)
+            gu = sb.ravel() * beam_u_n + sp.ravel() * perp_u
+            gv = sb.ravel() * beam_v_n + sp.ravel() * perp_v
 
-        # Incident path: distance from entry to scattering point
-        # Entry is at s = -sqrt(R² - (perpendicular component)²) in projected coords
-        # Since beam goes through center: entry at s_entry, l_in = (s - s_entry) / beam_proj_len
-        b_dot_g = gu * beam_u_n + gv * beam_v_n
-        g_r2 = gu**2 + gv**2 - R**2
-        disc_in = np.maximum(b_dot_g**2 - g_r2, 0)
-        s_entry = b_dot_g + np.sqrt(disc_in)
-        l_in = s_entry / beam_proj_len
-
-        accumulator = np.zeros_like(diff_u)
-        for i in range(len(gu)):
-            u0, v0 = gu[i], gv[i]
-            a = diff_u**2 + diff_v**2
-            b = u0 * diff_u + v0 * diff_v
-            c = u0**2 + v0**2 - R**2
-            discriminant = np.maximum(b**2 - a * c, 0)
-            t_exit_proj = (-b + np.sqrt(discriminant)) / np.maximum(a, 1e-30)
-            l_out = t_exit_proj / diff_proj_len
-            accumulator += np.exp(-mu * (l_in[i] + l_out))
-
-        return accumulator / len(gu)
-
-    def _compute_full_illumination(self, R, mu, beam_u_n, beam_v_n, beam_proj_len,
-                                   diff_u, diff_v, diff_proj_len):
-        """Full illumination (beam >> cylinder), integrates over cross-section."""
-        g = np.linspace(-R, R, max(self._n_points, 30))
-        gu, gv = np.meshgrid(g, g)
+        # Filter to points inside the cylinder
         inside = gu**2 + gv**2 < R**2
         gu = gu[inside]
         gv = gv[inside]
@@ -774,6 +744,7 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         s_entry = b_dot_g + np.sqrt(disc_in)
         l_in = s_entry / beam_proj_len
 
+        # Accumulate over grid points
         accumulator = np.zeros_like(diff_u)
         for i in range(len(gu)):
             u0, v0 = gu[i], gv[i]
@@ -791,13 +762,15 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
 class SphereAbsorptionCorrection(ImgCorrectionInterface):
     """Absorption correction for a spherical sample in transmission geometry.
 
-    Supports two illumination modes controlled by the ``full_illumination``
-    parameter:
+    Calculates the transmission factor by integrating the absorption over
+    the beam footprint within the sphere:
 
-    **Pencil beam mode** (``full_illumination=False``, default):
-    Assumes the beam is much smaller than the sphere (typical for
-    synchrotron experiments with 2–10 μm beams on ~1 mm ball samples).
-    Integrates along the beam path through the sphere center:
+    - beam_width=0 (default): pencil beam through sphere center. Typical
+      for synchrotron experiments (2–10 μm beam, ~1 mm sample).
+    - beam_width >= 2*radius: full illumination of the sphere.
+    - intermediate values: partial illumination.
+
+    For a pencil beam, the 1D integral along the beam path is:
 
         A*(2θ) = (1/2R) ∫_{-R}^{R} exp(-μ·(l_in(x) + l_out(x, 2θ))) dx
 
@@ -805,15 +778,8 @@ class SphereAbsorptionCorrection(ImgCorrectionInterface):
         l_in(x) = x + R
         l_out(x, 2θ) = -x·cos(2θ) + √(R² - x²·sin²(2θ))
 
-    **Full illumination mode** (``full_illumination=True``):
-    Assumes the beam is larger than the sphere, illuminating the
-    entire cross-section. Integrates over the sphere volume using
-    cylindrical coordinates (x, ρ) weighted by ρ:
-
-        A*(2θ) = ∫∫ exp(-μ·(l_in + l_out)) · ρ dρ dx / ∫∫ ρ dρ dx
-
-    In both modes, the correction depends only on 2θ (not azimuth)
-    due to spherical symmetry. No orientation parameters are needed.
+    Due to spherical symmetry, the correction depends only on 2θ (not
+    azimuth). No orientation parameters are needed.
 
     The tth_array and azi_array should be in degrees (consistent with
     other corrections in Dioptas).
@@ -825,7 +791,7 @@ class SphereAbsorptionCorrection(ImgCorrectionInterface):
         azi_array=None,
         radius=0.1,
         absorption_coefficient=1.0,
-        full_illumination=False,
+        beam_width=0,
         n_points=500,
     ):
         """
@@ -833,16 +799,15 @@ class SphereAbsorptionCorrection(ImgCorrectionInterface):
         :param azi_array: 2D array of azimuthal angles in degrees
         :param radius: sphere radius in mm
         :param absorption_coefficient: linear absorption coefficient in 1/mm
-        :param full_illumination: if True, beam illuminates the full sphere;
-            if False (default), pencil beam through the center
-        :param n_points: number of integration points (along beam for pencil
-            mode, grid resolution for full illumination mode)
+        :param beam_width: beam width/diameter in mm. 0 = pencil beam
+            (default), >= 2*radius = full illumination.
+        :param n_points: number of integration points
         """
         self._tth_array = tth_array if tth_array is not None else np.array([])
         self._azi_array = azi_array if azi_array is not None else np.array([])
         self._radius = radius
         self._absorption_coefficient = absorption_coefficient
-        self._full_illumination = full_illumination
+        self._beam_width = beam_width
         self._n_points = n_points
         self._data = None
 
@@ -856,13 +821,13 @@ class SphereAbsorptionCorrection(ImgCorrectionInterface):
         return {
             "radius": self._radius,
             "absorption_coefficient": self._absorption_coefficient,
-            "full_illumination": self._full_illumination,
+            "beam_width": self._beam_width,
         }
 
     def set_params(self, params):
         self._radius = params["radius"]
         self._absorption_coefficient = params["absorption_coefficient"]
-        self._full_illumination = params.get("full_illumination", False)
+        self._beam_width = params.get("beam_width", 0)
 
     def update(self):
         dtor = np.pi / 180.0
@@ -880,61 +845,64 @@ class SphereAbsorptionCorrection(ImgCorrectionInterface):
         n_tth = 500
         tth_grid = np.linspace(tth_min, tth_max, n_tth)
 
-        if self._full_illumination:
-            correction_1d = self._compute_full_illumination(R, mu, tth_grid)
+        # Build 2D grid of (x, rho) points within the beam footprint.
+        # x is along beam, rho is radial distance from beam axis.
+        # For a pencil beam (beam_width=0): only rho=0 (1D along x).
+        # For finite beam: grid of (x, rho) with rho up to beam_width/2.
+        # For full illumination (beam_width >= 2R): rho up to R.
+        beam_half = self._beam_width / 2.0
+
+        if self._beam_width <= 0:
+            # Pencil beam: 1D along x
+            x = np.linspace(-R * 0.9999, R * 0.9999, self._n_points)
+            rho = np.zeros_like(x)
+            weights = np.ones_like(x)
         else:
-            correction_1d = self._compute_pencil_beam(R, mu, tth_grid)
+            # 2D grid in (x, rho) with rho weighted
+            rho_max = min(beam_half, R * 0.999)
+            n_rho = max(int(self._n_points * rho_max / R), 5)
+            g_x = np.linspace(-R * 0.999, R * 0.999, self._n_points)
+            g_rho = np.linspace(0, rho_max, n_rho)
+            gx, grho = np.meshgrid(g_x, g_rho)
+            gx = gx.ravel()
+            grho = grho.ravel()
+            # Filter to inside sphere
+            inside = gx**2 + grho**2 < R**2
+            x = gx[inside]
+            rho = grho[inside]
+            # Weight by rho for cylindrical symmetry (rho=0 has weight ~0)
+            weights = np.maximum(rho, rho[rho > 0].min() * 0.1)
+
+        if len(x) == 0:
+            self._data = np.ones_like(tth_full)
+            return
+
+        # Incident path: beam along x, enters at x = -sqrt(R² - ρ²)
+        l_in = x + np.sqrt(R**2 - rho**2)
+
+        cos_tth = np.cos(tth_grid)
+        sin_tth = np.sin(tth_grid)
+
+        # For each point, diffracted beam exits the sphere.
+        # Point P = (x, rho, 0), beam direction d = (cos2θ, sin2θ, 0)
+        # |P + t·d|² = R² → t² + 2t(x·cos2θ + ρ·sin2θ) + (x² + ρ² - R²) = 0
+        correction_1d = np.zeros_like(tth_grid)
+        weight_sum = np.sum(weights)
+
+        for i in range(len(x)):
+            x0, rho0 = x[i], rho[i]
+            b = x0 * cos_tth + rho0 * sin_tth
+            c = x0**2 + rho0**2 - R**2
+            discriminant = np.maximum(b**2 - c, 0)
+            t_exit = -b + np.sqrt(discriminant)
+            correction_1d += weights[i] * np.exp(-mu * (l_in[i] + t_exit))
+
+        correction_1d /= weight_sum
 
         # Interpolate to the full detector
         self._data = np.interp(tth_full.ravel(), tth_grid, correction_1d).reshape(
             tth_full.shape
         )
-
-    def _compute_pencil_beam(self, R, mu, tth_grid):
-        """Pencil beam through sphere center (beam << sphere)."""
-        x = np.linspace(-R * 0.9999, R * 0.9999, self._n_points)
-        l_in = x + R
-
-        cos_tth = np.cos(tth_grid)
-        sin2_tth = np.sin(tth_grid) ** 2
-
-        x_col = x[:, np.newaxis]
-        discriminant = np.maximum(R**2 - x_col**2 * sin2_tth, 0)
-        l_out = -x_col * cos_tth + np.sqrt(discriminant)
-
-        integrand = np.exp(-mu * (l_in[:, np.newaxis] + l_out))
-        return np.mean(integrand, axis=0)
-
-    def _compute_full_illumination(self, R, mu, tth_grid):
-        """Full illumination (beam >> sphere), integrates over cross-section."""
-        n = self._n_points
-        # Use a 2D grid in (x, rho) with cylindrical symmetry
-        g = np.linspace(-R * 0.999, R * 0.999, max(n, 50))
-        gx, grho = np.meshgrid(g, g)
-        inside = (gx**2 + grho**2 < R**2) & (grho > 0)
-        gx = gx[inside]
-        grho = grho[inside]
-
-        if len(gx) == 0:
-            return np.ones_like(tth_grid)
-
-        l_in = gx + np.sqrt(R**2 - grho**2)
-
-        cos_tth = np.cos(tth_grid)
-        sin_tth = np.sin(tth_grid)
-
-        correction_1d = np.zeros_like(tth_grid)
-        weight_sum = np.sum(grho)
-
-        for i in range(len(gx)):
-            x0, rho0 = gx[i], grho[i]
-            b = x0 * cos_tth + rho0 * sin_tth
-            c = x0**2 + rho0**2 - R**2
-            discriminant = np.maximum(b**2 - c, 0)
-            t_exit = -b + np.sqrt(discriminant)
-            correction_1d += grho[i] * np.exp(-mu * (l_in[i] + t_exit))
-
-        return correction_1d / weight_sum
 
 
 class DummyCorrection(ImgCorrectionInterface):

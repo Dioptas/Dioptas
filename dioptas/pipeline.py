@@ -272,17 +272,13 @@ class Pipeline:
         radius: float = 0.15,
         axis_tilt: float = 0,
         axis_rotation: float = 0,
-        full_illumination: bool = False,
+        beam_width: float = 0,
     ) -> None:
         """Add a cylindrical sample absorption correction.
 
         Calculates the absorption correction for a cylindrical sample
         (e.g., a capillary). The absorption coefficient is calculated
         from the chemical formula and calibration wavelength.
-
-        Two illumination modes are supported:
-        - Pencil beam (default): beam is much smaller than the cylinder.
-        - Full illumination: beam is larger than the cylinder.
 
         Requires calibration to be loaded first.
 
@@ -292,8 +288,8 @@ class Pipeline:
         :param axis_tilt: tilt of cylinder axis from vertical (degrees).
             0 = vertical (perpendicular to beam), 90 = along beam.
         :param axis_rotation: rotation of tilt around beam axis (degrees)
-        :param full_illumination: if True, beam illuminates the full
-            cross-section; if False (default), pencil beam through center
+        :param beam_width: beam diameter in mm. 0 = pencil beam (default),
+            >= 2*radius = full illumination.
         """
         if not self.is_calibrated:
             raise RuntimeError("Calibration must be loaded before adding corrections")
@@ -315,7 +311,7 @@ class Pipeline:
             absorption_coefficient=mu,
             axis_tilt=axis_tilt,
             axis_rotation=axis_rotation,
-            full_illumination=full_illumination,
+            beam_width=beam_width,
         )
         correction.update()
         self._configuration.img_model.add_img_correction(correction, "cylinder")
@@ -325,7 +321,7 @@ class Pipeline:
         formula: str,
         density: float = None,
         radius: float = 0.1,
-        full_illumination: bool = False,
+        beam_width: float = 0,
     ) -> None:
         """Add a spherical sample absorption correction.
 
@@ -333,18 +329,13 @@ class Pipeline:
         Due to spherical symmetry, the correction depends only on 2θ
         (no orientation parameters needed).
 
-        Two illumination modes are supported:
-        - Pencil beam (default): beam is much smaller than the sphere.
-          Typical for synchrotron experiments (2-10 μm beam, ~1 mm sample).
-        - Full illumination: beam is larger than the sphere.
-
         Requires calibration to be loaded first.
 
         :param formula: chemical formula (e.g. 'CeO2', 'Au', 'Fe2O3')
         :param density: material density in g/cm³ (None to use xraydb default)
         :param radius: sphere radius in mm
-        :param full_illumination: if True, beam illuminates the full sphere;
-            if False (default), pencil beam through the center
+        :param beam_width: beam diameter in mm. 0 = pencil beam (default),
+            >= 2*radius = full illumination.
         """
         if not self.is_calibrated:
             raise RuntimeError("Calibration must be loaded before adding corrections")
@@ -364,7 +355,7 @@ class Pipeline:
             azi_array=azi_array,
             radius=radius,
             absorption_coefficient=mu,
-            full_illumination=full_illumination,
+            beam_width=beam_width,
         )
         correction.update()
         self._configuration.img_model.add_img_correction(correction, "sphere")

@@ -146,13 +146,13 @@ class TestCylinderAbsorptionCorrectionPhysics:
         tth, azi = self._make_tth_azi_arrays()
         corr_pencil = CylinderAbsorptionCorrection(
             tth_array=tth, azi_array=azi, radius=0.15,
-            absorption_coefficient=3.0, full_illumination=False,
+            absorption_coefficient=3.0, beam_width=0,
         )
         corr_pencil.update()
 
         corr_full = CylinderAbsorptionCorrection(
             tth_array=tth, azi_array=azi, radius=0.15,
-            absorption_coefficient=3.0, full_illumination=True,
+            absorption_coefficient=3.0, beam_width=1.0,
         )
         corr_full.update()
 
@@ -210,7 +210,7 @@ class TestCylinderAbsorptionCorrectionPhysics:
         corr = CylinderAbsorptionCorrection(
             tth_array=tth, azi_array=azi,
             radius=R, absorption_coefficient=mu,
-            full_illumination=True,
+            beam_width=1.0,
             n_points=50,  # high resolution for reference
         )
         corr.update()

@@ -228,40 +228,48 @@ Cylinder Sample Absorption Correction
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Absorption correction for a cylindrical sample (e.g., a capillary), using numerical
-integration over the illuminated cross-section (Paalman & Pings, 1962, *J. Appl. Phys.* **33**,
-2635–2639):
+integration over the beam footprint (Paalman & Pings, 1962, *J. Appl. Phys.* **33**,
+2635–2639). The ``beam_width`` parameter controls the illuminated area:
 
 .. code-block:: python
 
-    # Correct for a 0.15 mm radius SiO2 capillary
+    # Pencil beam (default) — synchrotron
     p.add_cylinder_absorption_correction(
         formula="SiO2",
         density=2.65,
         radius=0.15,        # mm
     )
 
+    # Finite beam — 50 μm beam on 200 μm capillary
+    p.add_cylinder_absorption_correction(
+        formula="SiO2",
+        density=2.65,
+        radius=0.1,
+        beam_width=0.05,    # mm
+    )
+
 Sphere Sample Absorption Correction
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Absorption correction for a spherical sample. Due to spherical symmetry,
-only depends on 2θ (no orientation parameters needed). Supports pencil beam
-(default, for synchrotron) and full illumination modes:
+only depends on 2θ (no orientation parameters needed). The ``beam_width``
+parameter controls the illuminated area:
 
 .. code-block:: python
 
-    # Pencil beam (default) — beam << sphere (synchrotron)
+    # Pencil beam (default) — synchrotron
     p.add_sphere_absorption_correction(
         formula="Fe2O3",
         density=5.24,
         radius=0.5,         # mm
     )
 
-    # Full illumination — beam >> sphere
+    # Finite beam — 50 μm beam on 1 mm sphere
     p.add_sphere_absorption_correction(
         formula="Fe2O3",
         density=5.24,
-        radius=0.05,
-        full_illumination=True,
+        radius=0.5,
+        beam_width=0.05,    # mm
     )
 
 Remove all corrections:
