@@ -107,14 +107,68 @@ class TestCylinderAbsorptionCorrectionPhysics:
         row = data[25]  # pick a row at ~15 degrees 2θ
         assert np.std(row) > 1e-6
 
+    def test_tilted_axis_changes_correction(self):
+        """Tilting the cylinder axis should change the correction."""
+        tth, azi = self._make_tth_azi_arrays()
+        corr_vertical = CylinderAbsorptionCorrection(
+            tth_array=tth, azi_array=azi, radius=0.15,
+            absorption_coefficient=3.0, axis_tilt=0,
+        )
+        corr_vertical.update()
+
+        corr_tilted = CylinderAbsorptionCorrection(
+            tth_array=tth, azi_array=azi, radius=0.15,
+            absorption_coefficient=3.0, axis_tilt=30,
+        )
+        corr_tilted.update()
+
+        assert not np.allclose(corr_vertical.get_data(), corr_tilted.get_data())
+
+    def test_rotation_changes_correction(self):
+        """Rotating the tilt direction should change the correction."""
+        tth, azi = self._make_tth_azi_arrays()
+        corr_0 = CylinderAbsorptionCorrection(
+            tth_array=tth, azi_array=azi, radius=0.15,
+            absorption_coefficient=3.0, axis_tilt=30, axis_rotation=0,
+        )
+        corr_0.update()
+
+        corr_90 = CylinderAbsorptionCorrection(
+            tth_array=tth, azi_array=azi, radius=0.15,
+            absorption_coefficient=3.0, axis_tilt=30, axis_rotation=90,
+        )
+        corr_90.update()
+
+        assert not np.allclose(corr_0.get_data(), corr_90.get_data())
+
+    def test_zero_tilt_rotation_invariant(self):
+        """With no tilt, rotation should not matter."""
+        tth, azi = self._make_tth_azi_arrays()
+        corr_0 = CylinderAbsorptionCorrection(
+            tth_array=tth, azi_array=azi, radius=0.15,
+            absorption_coefficient=3.0, axis_tilt=0, axis_rotation=0,
+        )
+        corr_0.update()
+
+        corr_45 = CylinderAbsorptionCorrection(
+            tth_array=tth, azi_array=azi, radius=0.15,
+            absorption_coefficient=3.0, axis_tilt=0, axis_rotation=45,
+        )
+        corr_45.update()
+
+        np.testing.assert_allclose(corr_0.get_data(), corr_45.get_data(), rtol=1e-5)
+
     def test_get_set_params(self):
         tth, azi = self._make_tth_azi_arrays()
         corr = CylinderAbsorptionCorrection(
-            tth_array=tth, azi_array=azi, radius=0.2, absorption_coefficient=3.5
+            tth_array=tth, azi_array=azi, radius=0.2,
+            absorption_coefficient=3.5, axis_tilt=15, axis_rotation=30,
         )
         params = corr.get_params()
         assert params["radius"] == 0.2
         assert params["absorption_coefficient"] == 3.5
+        assert params["axis_tilt"] == 15
+        assert params["axis_rotation"] == 30
 
         corr2 = CylinderAbsorptionCorrection(tth_array=tth, azi_array=azi)
         corr2.set_params(params)

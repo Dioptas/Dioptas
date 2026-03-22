@@ -270,6 +270,8 @@ class Pipeline:
         formula: str,
         density: float = None,
         radius: float = 0.15,
+        axis_tilt: float = 0,
+        axis_rotation: float = 0,
     ) -> None:
         """Add a cylindrical sample absorption correction.
 
@@ -283,6 +285,9 @@ class Pipeline:
         :param formula: chemical formula (e.g. 'CeO2', 'Au', 'Fe2O3')
         :param density: material density in g/cm³ (None to use xraydb default)
         :param radius: cylinder radius in mm
+        :param axis_tilt: tilt of cylinder axis from vertical (degrees).
+            0 = vertical (perpendicular to beam), 90 = along beam.
+        :param axis_rotation: rotation of tilt around beam axis (degrees)
         """
         if not self.is_calibrated:
             raise RuntimeError("Calibration must be loaded before adding corrections")
@@ -302,6 +307,8 @@ class Pipeline:
             azi_array=azi_array,
             radius=radius,
             absorption_coefficient=mu,
+            axis_tilt=axis_tilt,
+            axis_rotation=axis_rotation,
         )
         correction.update()
         self._configuration.img_model.add_img_correction(correction, "cylinder")

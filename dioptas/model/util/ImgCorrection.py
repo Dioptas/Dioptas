@@ -410,7 +410,9 @@ class SlabAbsorptionCorrection(ImgCorrectionInterface):
         :param thickness: slab thickness in mm
         :param absorption_coefficient: linear absorption coefficient in 1/mm
         :param slab_tilt: tilt of the slab normal from the beam direction in degrees
-        :param slab_rotation: rotation of the tilt direction in degrees
+        :param slab_rotation: rotation of the tilt direction in degrees,
+            following pyFAI's azimuthal (chi) convention: 0° = horizontal,
+            90° = vertical (up), when looking along the beam direction
         """
         self._tth_array = tth_array if tth_array is not None else np.array([])
         self._azi_array = azi_array if azi_array is not None else np.array([])
@@ -517,7 +519,7 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
     cylindrical sample (e.g., a capillary) by numerically integrating
     the absorption over the illuminated cross-section.
 
-    For each scattering point (x₀, y₀) inside the cylinder cross-section,
+    For each scattering point inside the cylinder cross-section,
     the incident and diffracted beam path lengths through the cylinder are
     computed. The transmission factor is:
 
@@ -526,6 +528,12 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
     where S is the cross-sectional area, l_in is the incident beam path
     to the scattering point, and l_out is the diffracted beam path from
     the scattering point to the cylinder surface.
+
+    The cylinder axis orientation is defined by two angles:
+    - axis_tilt: angle of the cylinder axis from the z-axis (vertical)
+      in degrees. 0° = vertical (perpendicular to beam), 90° = along beam.
+    - axis_rotation: rotation of the tilt direction around the beam axis
+      in degrees.
 
     The integration is performed on a discrete grid of points inside the
     cylinder, and the result is computed on a coarse (2θ, φ) grid then
@@ -544,6 +552,8 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         azi_array=None,
         radius=0.15,
         absorption_coefficient=1.0,
+        axis_tilt=0,
+        axis_rotation=0,
         n_cross_section=30,
         n_tth=200,
         n_azi=180,
@@ -553,6 +563,11 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         :param azi_array: 2D array of azimuthal angles in degrees
         :param radius: cylinder radius in mm
         :param absorption_coefficient: linear absorption coefficient in 1/mm
+        :param axis_tilt: tilt of the cylinder axis from vertical (degrees).
+            0 = vertical (perpendicular to beam), 90 = along beam.
+        :param axis_rotation: rotation of the tilt direction in degrees,
+            following pyFAI's azimuthal (chi) convention: 0° = horizontal,
+            90° = vertical (up), when looking along the beam direction
         :param n_cross_section: grid resolution for the cylinder cross-section
         :param n_tth: number of 2θ points in the interpolation grid
         :param n_azi: number of azimuth points in the interpolation grid
@@ -561,6 +576,8 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         self._azi_array = azi_array if azi_array is not None else np.array([])
         self._radius = radius
         self._absorption_coefficient = absorption_coefficient
+        self._axis_tilt = axis_tilt
+        self._axis_rotation = axis_rotation
         self._n_cross_section = n_cross_section
         self._n_tth = n_tth
         self._n_azi = n_azi
@@ -576,11 +593,35 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         return {
             "radius": self._radius,
             "absorption_coefficient": self._absorption_coefficient,
+            "axis_tilt": self._axis_tilt,
+            "axis_rotation": self._axis_rotation,
         }
 
     def set_params(self, params):
         self._radius = params["radius"]
         self._absorption_coefficient = params["absorption_coefficient"]
+        self._axis_tilt = params["axis_tilt"]
+        self._axis_rotation = params["axis_rotation"]
+
+    @staticmethod
+    def _project_to_cross_section(direction_3d, cyl_axis, cyl_u, cyl_v):
+        """Project a 3D direction onto the cylinder cross-section plane.
+
+        Returns the projected 2D components (u, v) and the component along
+        the cylinder axis. The actual 3D path through the cylinder for a
+        distance t along the projected direction corresponds to a 3D
+        distance of t / sin(angle_to_axis), but since we solve for the
+        exit in the projected plane, t already gives the correct 3D distance.
+
+        :param direction_3d: 3D direction vector(s), shape (3,) or (3, ...)
+        :param cyl_axis: cylinder axis unit vector, shape (3,)
+        :param cyl_u: first cross-section basis vector, shape (3,)
+        :param cyl_v: second cross-section basis vector, shape (3,)
+        :returns: (du, dv) components in the cross-section plane
+        """
+        du = np.tensordot(cyl_u, direction_3d, axes=([0], [0]))
+        dv = np.tensordot(cyl_v, direction_3d, axes=([0], [0]))
+        return du, dv
 
     def update(self):
         from scipy.interpolate import RegularGridInterpolator
@@ -595,52 +636,114 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
             self._data = np.ones_like(tth_full)
             return
 
-        # Create grid of points inside the cylinder cross-section
+        # --- Define cylinder axis and cross-section coordinate system ---
+        # Default cylinder axis is along z (vertical, perpendicular to beam).
+        # axis_tilt rotates it from z toward the beam (x), and axis_rotation
+        # rotates that tilt direction around z.
+        tilt = self._axis_tilt * dtor
+        rot = self._axis_rotation * dtor
+
+        # Cylinder axis vector
+        cyl_axis = np.array([
+            np.sin(tilt) * np.cos(rot),
+            np.sin(tilt) * np.sin(rot),
+            np.cos(tilt),
+        ])
+
+        # Build orthonormal basis for the cross-section plane.
+        # Choose cyl_u perpendicular to both cyl_axis and a reference vector.
+        # Use z-axis as reference, unless cyl_axis is nearly parallel to z.
+        ref = np.array([0.0, 0.0, 1.0])
+        if abs(np.dot(cyl_axis, ref)) > 0.99:
+            ref = np.array([0.0, 1.0, 0.0])
+        cyl_u = np.cross(cyl_axis, ref)
+        cyl_u /= np.linalg.norm(cyl_u)
+        cyl_v = np.cross(cyl_axis, cyl_u)
+        cyl_v /= np.linalg.norm(cyl_v)
+
+        # --- Project incident beam onto cross-section plane ---
+        beam_dir = np.array([1.0, 0.0, 0.0])
+        beam_u = np.dot(cyl_u, beam_dir)
+        beam_v = np.dot(cyl_v, beam_dir)
+        beam_proj_len = np.sqrt(beam_u**2 + beam_v**2)
+
+        if beam_proj_len < 1e-10:
+            # Beam is along the cylinder axis — no cross-section to integrate
+            self._data = np.ones_like(tth_full)
+            return
+
+        # Normalize projected beam direction
+        beam_u_n = beam_u / beam_proj_len
+        beam_v_n = beam_v / beam_proj_len
+
+        # --- Create grid of points inside the cylinder cross-section ---
         g = np.linspace(-R, R, self._n_cross_section)
-        gx, gy = np.meshgrid(g, g)
-        inside = gx**2 + gy**2 < R**2
-        gx = gx[inside]
-        gy = gy[inside]
-        n_points = len(gx)
+        gu, gv = np.meshgrid(g, g)
+        inside = gu**2 + gv**2 < R**2
+        gu = gu[inside]
+        gv = gv[inside]
+        n_points = len(gu)
 
         if n_points == 0:
             self._data = np.ones_like(tth_full)
             return
 
-        # Precompute incident path lengths for each grid point
-        # Beam along x-axis, cylinder axis along z
-        # Entry point: (-sqrt(R^2 - y^2), y), so l_in = x + sqrt(R^2 - y^2)
-        l_in = gx + np.sqrt(R**2 - gy**2)
+        # --- Incident path lengths ---
+        # For each grid point, find where the incident beam enters the cylinder.
+        # Parameterize: point = (u0 - s*beam_u_n, v0 - s*beam_v_n)
+        # Solve u² + v² = R² for s (going backwards from the point).
+        # (u0 - s*bu)² + (v0 - s*bv)² = R²
+        # s² - 2s(u0*bu + v0*bv) + (u0² + v0² - R²) = 0
+        # The 3D path length is s / beam_proj_len (because projected direction
+        # has length beam_proj_len relative to the 3D unit direction).
+        b_dot_g = gu * beam_u_n + gv * beam_v_n
+        g_r2 = gu**2 + gv**2 - R**2
+        disc_in = np.maximum(b_dot_g**2 - g_r2, 0)
+        s_entry = b_dot_g + np.sqrt(disc_in)  # distance back to entry in projected coords
+        l_in = s_entry / beam_proj_len  # 3D path length
 
-        # Compute correction on a coarse (2θ, azi) grid
+        # --- Compute correction on a coarse (2θ, azi) grid ---
         tth_min = max(tth_full.min(), 0.001)
         tth_max = tth_full.max() + 0.001
         tth_grid = np.linspace(tth_min, tth_max, self._n_tth)
         azi_grid = np.linspace(0, 2 * np.pi, self._n_azi)
 
         tth_2d, azi_2d = np.meshgrid(tth_grid, azi_grid, indexing="ij")
-        dx = np.cos(tth_2d)
-        dy = np.cos(azi_2d) * np.sin(tth_2d)
 
-        # Accumulate transmission over all grid points
+        # Diffracted beam 3D directions
+        diff_3d = np.array([
+            np.cos(tth_2d),
+            np.cos(azi_2d) * np.sin(tth_2d),
+            np.sin(azi_2d) * np.sin(tth_2d),
+        ])
+
+        # Project diffracted beam onto cross-section plane
+        diff_u, diff_v = self._project_to_cross_section(
+            diff_3d, cyl_axis, cyl_u, cyl_v
+        )
+        diff_proj_len = np.sqrt(diff_u**2 + diff_v**2)
+        diff_proj_len = np.maximum(diff_proj_len, 1e-30)
+
+        # --- Accumulate transmission over all grid points ---
         accumulator = np.zeros((self._n_tth, self._n_azi))
         for i in range(n_points):
-            x0, y0 = gx[i], gy[i]
+            u0, v0 = gu[i], gv[i]
 
-            # Solve quadratic for diffracted beam exit:
-            # (x0 + t*dx)^2 + (y0 + t*dy)^2 = R^2
-            a = dx**2 + dy**2
-            b = x0 * dx + y0 * dy
-            c = x0**2 + y0**2 - R**2
+            # Solve for diffracted beam exit in projected coords:
+            # (u0 + t*du)² + (v0 + t*dv)² = R²
+            a = diff_u**2 + diff_v**2
+            b = u0 * diff_u + v0 * diff_v
+            c = u0**2 + v0**2 - R**2
 
             discriminant = np.maximum(b**2 - a * c, 0)
-            t_exit = (-b + np.sqrt(discriminant)) / np.maximum(a, 1e-30)
+            t_exit_proj = (-b + np.sqrt(discriminant)) / np.maximum(a, 1e-30)
+            l_out = t_exit_proj / diff_proj_len  # 3D path length
 
-            accumulator += np.exp(-mu * (l_in[i] + t_exit))
+            accumulator += np.exp(-mu * (l_in[i] + l_out))
 
         correction_table = accumulator / n_points
 
-        # Interpolate to the full detector grid
+        # --- Interpolate to the full detector grid ---
         interp = RegularGridInterpolator(
             (tth_grid, azi_grid),
             correction_table,
@@ -648,7 +751,6 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
             bounds_error=False,
             fill_value=None,
         )
-        # Wrap azi to [0, 2π) for interpolation
         azi_wrapped = azi_full % (2 * np.pi)
         points = np.stack([tth_full.ravel(), azi_wrapped.ravel()], axis=-1)
         self._data = interp(points).reshape(tth_full.shape)
