@@ -293,7 +293,11 @@ Parameters:
 
 - *Formula*: Chemical formula of the sample (e.g., ``SiO2``, ``LaB6``)
 - *Density*: Material density in g/cm³ (optional for known materials)
-- *Radius*: Cylinder radius in mm
+- *Radius*: Sample cylinder radius (inner radius) in mm
+- *Axis Tilt*: Tilt of the cylinder axis from vertical (degrees).
+  0 = vertical (perpendicular to beam), 90 = along beam.
+- *Axis Rotation*: Rotation of the tilt direction (degrees),
+  following pyFAI's azimuthal convention.
 - *Beam width*: Beam diameter in mm. 0 = pencil beam (default), larger values
   illuminate more of the cylinder cross-section
 
@@ -314,10 +318,11 @@ Corrects for absorption in a spherical sample in transmission geometry. Due to t
 spherical symmetry around the beam axis, the correction depends only on :math:`2\theta`
 (not on azimuth), making it very efficient to compute. No orientation parameters are needed.
 
-Two illumination modes are supported:
+The beam width controls the illumination: a pencil beam (default, beam width = 0) integrates
+along the beam path through the sphere center, which is appropriate for synchrotron experiments
+(2–10 μm beam on ~1 mm ball). Larger beam widths integrate over more of the cross-section.
 
-**Pencil beam** (default): For synchrotron experiments where the beam (2–10 μm) is much
-smaller than the sample (~1 mm ball). Integrates along the beam path through the sphere center:
+For the pencil beam case, the 1D integral along the beam path is:
 
 .. math::
 
@@ -325,9 +330,6 @@ smaller than the sample (~1 mm ball). Integrates along the beam path through the
 
 where :math:`l_\text{in}(x) = x + R` and
 :math:`l_\text{out}(x, 2\theta) = -x \cos 2\theta + \sqrt{R^2 - x^2 \sin^2 2\theta}`.
-
-**Full illumination**: For cases where the beam is larger than the sphere. Integrates over
-the full cross-section using cylindrical coordinates weighted by :math:`\rho`.
 
 Parameters:
 
