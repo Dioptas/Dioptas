@@ -141,6 +141,27 @@ class TestCylinderAbsorptionCorrectionPhysics:
 
         assert not np.allclose(corr_0.get_data(), corr_90.get_data())
 
+    def test_pencil_beam_default(self):
+        """Default mode should be pencil beam (different from full illumination)."""
+        tth, azi = self._make_tth_azi_arrays()
+        corr_pencil = CylinderAbsorptionCorrection(
+            tth_array=tth, azi_array=azi, radius=0.15,
+            absorption_coefficient=3.0, full_illumination=False,
+        )
+        corr_pencil.update()
+
+        corr_full = CylinderAbsorptionCorrection(
+            tth_array=tth, azi_array=azi, radius=0.15,
+            absorption_coefficient=3.0, full_illumination=True,
+        )
+        corr_full.update()
+
+        # Both should give valid corrections
+        assert np.all(corr_pencil.get_data() > 0)
+        assert np.all(corr_full.get_data() > 0)
+        # But they should differ
+        assert not np.allclose(corr_pencil.get_data(), corr_full.get_data())
+
     def test_zero_tilt_rotation_invariant(self):
         """With no tilt, rotation should not matter."""
         tth, azi = self._make_tth_azi_arrays()
@@ -176,8 +197,8 @@ class TestCylinderAbsorptionCorrectionPhysics:
         corr.update()
         np.testing.assert_allclose(corr.get_data(), corr2.get_data())
 
-    def test_numerical_integration_reference(self):
-        """Verify against a brute-force numerical integration for one pixel."""
+    def test_numerical_integration_reference_full(self):
+        """Verify full illumination mode against brute-force integration."""
         R = 0.15
         mu = 3.0
         tth_deg = 15.0
@@ -189,7 +210,8 @@ class TestCylinderAbsorptionCorrectionPhysics:
         corr = CylinderAbsorptionCorrection(
             tth_array=tth, azi_array=azi,
             radius=R, absorption_coefficient=mu,
-            n_cross_section=50,  # high resolution for reference
+            full_illumination=True,
+            n_points=50,  # high resolution for reference
         )
         corr.update()
 

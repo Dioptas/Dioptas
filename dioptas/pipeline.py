@@ -272,13 +272,17 @@ class Pipeline:
         radius: float = 0.15,
         axis_tilt: float = 0,
         axis_rotation: float = 0,
+        full_illumination: bool = False,
     ) -> None:
         """Add a cylindrical sample absorption correction.
 
         Calculates the absorption correction for a cylindrical sample
-        (e.g., a capillary) by numerically integrating over the illuminated
-        cross-section. The absorption coefficient is calculated from the
-        chemical formula and calibration wavelength.
+        (e.g., a capillary). The absorption coefficient is calculated
+        from the chemical formula and calibration wavelength.
+
+        Two illumination modes are supported:
+        - Pencil beam (default): beam is much smaller than the cylinder.
+        - Full illumination: beam is larger than the cylinder.
 
         Requires calibration to be loaded first.
 
@@ -288,6 +292,8 @@ class Pipeline:
         :param axis_tilt: tilt of cylinder axis from vertical (degrees).
             0 = vertical (perpendicular to beam), 90 = along beam.
         :param axis_rotation: rotation of tilt around beam axis (degrees)
+        :param full_illumination: if True, beam illuminates the full
+            cross-section; if False (default), pencil beam through center
         """
         if not self.is_calibrated:
             raise RuntimeError("Calibration must be loaded before adding corrections")
@@ -309,6 +315,7 @@ class Pipeline:
             absorption_coefficient=mu,
             axis_tilt=axis_tilt,
             axis_rotation=axis_rotation,
+            full_illumination=full_illumination,
         )
         correction.update()
         self._configuration.img_model.add_img_correction(correction, "cylinder")
