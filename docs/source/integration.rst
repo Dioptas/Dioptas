@@ -267,6 +267,35 @@ For a slab perpendicular to the beam (no tilt), the correction is azimuthally sy
 Tilting the slab breaks this symmetry, as different azimuthal directions have different path lengths.
 
 
+Cylinder Sample Absorption Correction
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Corrects for absorption in a cylindrical sample (e.g., a capillary) in transmission geometry.
+Unlike the slab correction, the path length through a cylinder varies across the illuminated
+cross-section, so the transmission factor must be computed by numerically integrating over all
+scattering points within the cylinder:
+
+.. math::
+
+    A^*(2\theta, \varphi) = \frac{1}{S} \iint \exp\bigl(-\mu \cdot (l_\text{in} + l_\text{out})\bigr)\, dA
+
+where :math:`S` is the cross-sectional area, :math:`l_\text{in}` is the incident beam path to the
+scattering point, and :math:`l_\text{out}` is the diffracted beam path from the scattering point to
+the cylinder surface.
+
+The integration is performed on a discrete grid of points inside the cylinder cross-section.
+For performance, the correction is computed on a coarse :math:`(2\theta, \varphi)` grid and
+interpolated to the full detector image.
+
+Reference: Paalman, H. H. & Pings, C. J. (1962). *J. Appl. Phys.* **33**, 2635–2639.
+
+Parameters:
+
+- *Formula*: Chemical formula of the sample (e.g., ``SiO2``, ``LaB6``)
+- *Density*: Material density in g/cm³ (optional for known materials)
+- *Radius*: Cylinder radius in mm
+
+
 Transfer Function Correction
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

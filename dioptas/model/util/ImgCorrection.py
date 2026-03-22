@@ -510,6 +510,150 @@ class SlabAbsorptionCorrection(ImgCorrectionInterface):
             (exp_i - exp_d) / delta_mu,
         )
 
+class CylinderAbsorptionCorrection(ImgCorrectionInterface):
+    """Absorption correction for a cylindrical sample in transmission geometry.
+
+    Calculates the transmission factor for X-rays passing through a
+    cylindrical sample (e.g., a capillary) by numerically integrating
+    the absorption over the illuminated cross-section.
+
+    For each scattering point (x₀, y₀) inside the cylinder cross-section,
+    the incident and diffracted beam path lengths through the cylinder are
+    computed. The transmission factor is:
+
+        A*(2θ,φ) = (1/S) ∫∫ exp(-μ·(l_in + l_out)) dA
+
+    where S is the cross-sectional area, l_in is the incident beam path
+    to the scattering point, and l_out is the diffracted beam path from
+    the scattering point to the cylinder surface.
+
+    The integration is performed on a discrete grid of points inside the
+    cylinder, and the result is computed on a coarse (2θ, φ) grid then
+    interpolated to the full detector image for performance.
+
+    Reference: Paalman, H. H. & Pings, C. J. (1962). J. Appl. Phys. 33,
+    2635-2639.
+
+    The tth_array and azi_array should be in degrees (consistent with
+    other corrections in Dioptas).
+    """
+
+    def __init__(
+        self,
+        tth_array=None,
+        azi_array=None,
+        radius=0.15,
+        absorption_coefficient=1.0,
+        n_cross_section=30,
+        n_tth=200,
+        n_azi=180,
+    ):
+        """
+        :param tth_array: 2D array of 2θ values in degrees
+        :param azi_array: 2D array of azimuthal angles in degrees
+        :param radius: cylinder radius in mm
+        :param absorption_coefficient: linear absorption coefficient in 1/mm
+        :param n_cross_section: grid resolution for the cylinder cross-section
+        :param n_tth: number of 2θ points in the interpolation grid
+        :param n_azi: number of azimuth points in the interpolation grid
+        """
+        self._tth_array = tth_array if tth_array is not None else np.array([])
+        self._azi_array = azi_array if azi_array is not None else np.array([])
+        self._radius = radius
+        self._absorption_coefficient = absorption_coefficient
+        self._n_cross_section = n_cross_section
+        self._n_tth = n_tth
+        self._n_azi = n_azi
+        self._data = None
+
+    def get_data(self):
+        return self._data
+
+    def shape(self):
+        return self._data.shape
+
+    def get_params(self):
+        return {
+            "radius": self._radius,
+            "absorption_coefficient": self._absorption_coefficient,
+        }
+
+    def set_params(self, params):
+        self._radius = params["radius"]
+        self._absorption_coefficient = params["absorption_coefficient"]
+
+    def update(self):
+        from scipy.interpolate import RegularGridInterpolator
+
+        dtor = np.pi / 180.0
+        R = self._radius
+        mu = self._absorption_coefficient
+        tth_full = self._tth_array * dtor
+        azi_full = self._azi_array * dtor
+
+        if mu == 0 or R == 0:
+            self._data = np.ones_like(tth_full)
+            return
+
+        # Create grid of points inside the cylinder cross-section
+        g = np.linspace(-R, R, self._n_cross_section)
+        gx, gy = np.meshgrid(g, g)
+        inside = gx**2 + gy**2 < R**2
+        gx = gx[inside]
+        gy = gy[inside]
+        n_points = len(gx)
+
+        if n_points == 0:
+            self._data = np.ones_like(tth_full)
+            return
+
+        # Precompute incident path lengths for each grid point
+        # Beam along x-axis, cylinder axis along z
+        # Entry point: (-sqrt(R^2 - y^2), y), so l_in = x + sqrt(R^2 - y^2)
+        l_in = gx + np.sqrt(R**2 - gy**2)
+
+        # Compute correction on a coarse (2θ, azi) grid
+        tth_min = max(tth_full.min(), 0.001)
+        tth_max = tth_full.max() + 0.001
+        tth_grid = np.linspace(tth_min, tth_max, self._n_tth)
+        azi_grid = np.linspace(0, 2 * np.pi, self._n_azi)
+
+        tth_2d, azi_2d = np.meshgrid(tth_grid, azi_grid, indexing="ij")
+        dx = np.cos(tth_2d)
+        dy = np.cos(azi_2d) * np.sin(tth_2d)
+
+        # Accumulate transmission over all grid points
+        accumulator = np.zeros((self._n_tth, self._n_azi))
+        for i in range(n_points):
+            x0, y0 = gx[i], gy[i]
+
+            # Solve quadratic for diffracted beam exit:
+            # (x0 + t*dx)^2 + (y0 + t*dy)^2 = R^2
+            a = dx**2 + dy**2
+            b = x0 * dx + y0 * dy
+            c = x0**2 + y0**2 - R**2
+
+            discriminant = np.maximum(b**2 - a * c, 0)
+            t_exit = (-b + np.sqrt(discriminant)) / np.maximum(a, 1e-30)
+
+            accumulator += np.exp(-mu * (l_in[i] + t_exit))
+
+        correction_table = accumulator / n_points
+
+        # Interpolate to the full detector grid
+        interp = RegularGridInterpolator(
+            (tth_grid, azi_grid),
+            correction_table,
+            method="linear",
+            bounds_error=False,
+            fill_value=None,
+        )
+        # Wrap azi to [0, 2π) for interpolation
+        azi_wrapped = azi_full % (2 * np.pi)
+        points = np.stack([tth_full.ravel(), azi_wrapped.ravel()], axis=-1)
+        self._data = interp(points).reshape(tth_full.shape)
+
+
 class DummyCorrection(ImgCorrectionInterface):
     """
     Used in particular for unit tests

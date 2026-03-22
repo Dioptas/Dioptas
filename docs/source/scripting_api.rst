@@ -224,6 +224,22 @@ the calibration wavelength:
         slab_rotation=45,   # degrees
     )
 
+Cylinder Sample Absorption Correction
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Absorption correction for a cylindrical sample (e.g., a capillary), using numerical
+integration over the illuminated cross-section (Paalman & Pings, 1962, *J. Appl. Phys.* **33**,
+2635–2639):
+
+.. code-block:: python
+
+    # Correct for a 0.15 mm radius SiO2 capillary
+    p.add_cylinder_absorption_correction(
+        formula="SiO2",
+        density=2.65,
+        radius=0.15,        # mm
+    )
+
 Remove all corrections:
 
 .. code-block:: python

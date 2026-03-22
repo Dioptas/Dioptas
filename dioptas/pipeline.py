@@ -265,6 +265,47 @@ class Pipeline:
         correction.update()
         self._configuration.img_model.add_img_correction(correction, "slab")
 
+    def add_cylinder_absorption_correction(
+        self,
+        formula: str,
+        density: float = None,
+        radius: float = 0.15,
+    ) -> None:
+        """Add a cylindrical sample absorption correction.
+
+        Calculates the absorption correction for a cylindrical sample
+        (e.g., a capillary) by numerically integrating over the illuminated
+        cross-section. The absorption coefficient is calculated from the
+        chemical formula and calibration wavelength.
+
+        Requires calibration to be loaded first.
+
+        :param formula: chemical formula (e.g. 'CeO2', 'Au', 'Fe2O3')
+        :param density: material density in g/cm³ (None to use xraydb default)
+        :param radius: cylinder radius in mm
+        """
+        if not self.is_calibrated:
+            raise RuntimeError("Calibration must be loaded before adding corrections")
+
+        from dioptas.model.util.ImgCorrection import CylinderAbsorptionCorrection
+        from dioptas.model.util.calc import wavelength_to_energy, calculate_mu
+
+        tth_array = 180.0 / np.pi * self._configuration.calibration_model.tth_array
+        azi_array = 180.0 / np.pi * self._configuration.calibration_model.azi_array
+
+        wavelength_m = self._configuration.calibration_model.wavelength
+        energy_eV = wavelength_to_energy(wavelength_m)
+        mu = calculate_mu(formula, energy_eV, density=density)
+
+        correction = CylinderAbsorptionCorrection(
+            tth_array=tth_array,
+            azi_array=azi_array,
+            radius=radius,
+            absorption_coefficient=mu,
+        )
+        correction.update()
+        self._configuration.img_model.add_img_correction(correction, "cylinder")
+
     def clear_corrections(self) -> None:
         """Remove all image corrections."""
         self._configuration.img_model.img_corrections.clear()
