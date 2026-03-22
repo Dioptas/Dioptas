@@ -776,3 +776,45 @@ class ProjectSaveLoadTest(QtTest):
             os.path.join(data_path, "CeO2_Pilatus1M.poni")
         )
         self.model.calibration_model.polarization_factor = -0.1
+
+    ####################################################################################################################
+    def test_supersampling_factor(self):
+        self.save_and_load_configuration(
+            self.supersampling_settings,
+            intermediate_function=self.disable_calibration_check,
+        )
+        self.assertEqual(
+            self.model.calibration_model.supersampling_factor, 2
+        )
+
+    def supersampling_settings(self):
+        self.model.calibration_model.set_supersampling(2)
+
+    ####################################################################################################################
+    def test_overlay_color_and_visibility(self):
+        self.save_and_load_configuration(self.overlay_color_visibility_settings)
+        self.assertEqual(self.model.overlay_model.overlays[0].color, "#ff0000")
+        self.assertFalse(self.model.overlay_model.overlays[0].visible)
+        self.assertEqual(self.model.overlay_model.overlays[1].color, "#00ff00")
+        self.assertTrue(self.model.overlay_model.overlays[1].visible)
+
+    def overlay_color_visibility_settings(self):
+        self.controller.integration_controller.widget.qa_set_as_overlay_btn.click()
+        self.controller.integration_controller.widget.qa_set_as_overlay_btn.click()
+        self.model.overlay_model.set_overlay_color(0, "#ff0000")
+        self.model.overlay_model.set_overlay_visible(0, False)
+        self.model.overlay_model.set_overlay_color(1, "#00ff00")
+        self.model.overlay_model.set_overlay_visible(1, True)
+
+    ####################################################################################################################
+    def test_phase_color_and_visibility(self):
+        self.save_and_load_configuration(self.phase_color_visibility_settings)
+        np.testing.assert_array_almost_equal(
+            self.model.phase_model.phase_colors[0], [255, 0, 0]
+        )
+        self.assertFalse(self.model.phase_model.phase_visible[0])
+
+    def phase_color_visibility_settings(self):
+        self.load_phase("ar.jcpds")
+        self.model.phase_model.set_color(0, np.array([255, 0, 0]))
+        self.model.phase_model.set_phase_visible(0, False)

@@ -159,6 +159,8 @@ class DioptasModel(object):
             ov.create_dataset("y", y.shape, "f", y)
             ov.attrs["scaling"] = overlay.scaling
             ov.attrs["offset"] = overlay.offset
+            ov.attrs["color"] = overlay.color
+            ov.attrs["visible"] = overlay.visible
 
         # save phases
         phases_group = f.create_group("phases")
@@ -166,6 +168,8 @@ class DioptasModel(object):
             phase_group = phases_group.create_group(str(ind))
             phase_group.attrs["name"] = phase._name
             phase_group.attrs["filename"] = phase._filename
+            phase_group.attrs["color"] = self.phase_model.phase_colors[ind]
+            phase_group.attrs["visible"] = self.phase_model.phase_visible[ind]
             phase_parameter_group = phase_group.create_group("params")
             for key in phase.params:
                 if key == "comments":
@@ -241,6 +245,16 @@ class DioptasModel(object):
             )
             self.phase_model.phase_files.append(new_jcpds.filename)
             self.phase_model.add_jcpds_object(new_jcpds)
+            phase_ind = len(self.phase_model.phases) - 1
+            try:
+                self.phase_model.set_color(
+                    phase_ind, np.array(phase_group.attrs["color"])
+                )
+                self.phase_model.set_phase_visible(
+                    phase_ind, bool(phase_group.attrs["visible"])
+                )
+            except KeyError:
+                pass
 
         # load overlay model
         for ind, overlay_group in f.get("overlays").items():
@@ -254,6 +268,15 @@ class DioptasModel(object):
             self.overlay_model.set_overlay_scaling(
                 index, overlay_group.attrs["scaling"]
             )
+            try:
+                self.overlay_model.set_overlay_color(
+                    index, overlay_group.attrs["color"]
+                )
+                self.overlay_model.set_overlay_visible(
+                    index, bool(overlay_group.attrs["visible"])
+                )
+            except KeyError:
+                pass
 
         f.close()
 

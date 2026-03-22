@@ -567,6 +567,9 @@ class Configuration(object):
         )
 
         calibration_group.attrs["correct_solid_angle"] = self.correct_solid_angle
+        calibration_group.attrs["supersampling_factor"] = (
+            self.calibration_model.supersampling_factor
+        )
         if self.calibration_model.distortion_spline_filename is not None:
             calibration_group.attrs["distortion_spline_filename"] = (
                 self.calibration_model.distortion_spline_filename
@@ -696,6 +699,13 @@ class Configuration(object):
             self.correct_solid_angle = f.get("calibration_model").attrs[
                 "correct_solid_angle"
             ]
+        except KeyError:
+            pass
+
+        try:
+            self.calibration_model.set_supersampling(
+                int(f.get("calibration_model").attrs["supersampling_factor"])
+            )
         except KeyError:
             pass
 
