@@ -163,6 +163,18 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.slab_param_tw = corrections_control_widget.slab_param_tw
         self.slab_mu_lbl = corrections_control_widget.slab_mu_lbl
         self.slab_plot_btn = corrections_control_widget.slab_plot_btn
+        self.cylinder_groupbox = corrections_control_widget.cylinder_gb
+        self.cylinder_formula_txt = corrections_control_widget.cylinder_formula_txt
+        self.cylinder_param_tw = corrections_control_widget.cylinder_param_tw
+        self.cylinder_container_formula_txt = corrections_control_widget.cylinder_container_formula_txt
+        self.cylinder_container_param_tw = corrections_control_widget.cylinder_container_param_tw
+        self.cylinder_mu_lbl = corrections_control_widget.cylinder_mu_lbl
+        self.cylinder_plot_btn = corrections_control_widget.cylinder_plot_btn
+        self.sphere_groupbox = corrections_control_widget.sphere_gb
+        self.sphere_formula_txt = corrections_control_widget.sphere_formula_txt
+        self.sphere_param_tw = corrections_control_widget.sphere_param_tw
+        self.sphere_mu_lbl = corrections_control_widget.sphere_mu_lbl
+        self.sphere_plot_btn = corrections_control_widget.sphere_plot_btn
 
         background_control_widget = self.integration_control_widget.background_control_widget
         self.bkg_image_load_btn = background_control_widget.load_image_btn

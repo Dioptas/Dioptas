@@ -32,13 +32,21 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.create_slab_correction_widgets()
         self.create_slab_correction_layout()
 
+        self.create_cylinder_correction_widgets()
+        self.create_cylinder_correction_layout()
+
+        self.create_sphere_correction_widgets()
+        self.create_sphere_correction_layout()
+
         self.setLayout(self._layout)
 
         self.menu_tab_widget = MenuTabWidget()
         self.menu_tab_widget.add_tab("cBN Seat", self.cbn_seat_gb)
         self.menu_tab_widget.add_tab("Inc. Abs.", self.oiadac_gb)
         self.menu_tab_widget.add_tab("Transfer", self.transfer_gb)
-        self.menu_tab_widget.add_tab("Slab Abs.", self.slab_gb)
+        self.menu_tab_widget.add_tab("Slab", self.slab_gb)
+        self.menu_tab_widget.add_tab("Cylinder", self.cylinder_gb)
+        self.menu_tab_widget.add_tab("Sphere", self.sphere_gb)
         self.menu_tab_widget.select_tab(0)
 
         self._layout.addWidget(self.menu_tab_widget)
@@ -219,6 +227,133 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self._slab_layout.addLayout(params_layout)
         self.slab_gb.setLayout(self._slab_layout)
 
+    def create_cylinder_correction_widgets(self):
+        self.cylinder_gb = QtWidgets.QGroupBox("Cylinder Absorption Correction")
+        self.cylinder_plot_btn = CheckableButton("Plot")
+
+        self.cylinder_formula_txt = QtWidgets.QLineEdit("SiO2")
+        self.cylinder_formula_txt.setPlaceholderText("e.g. SiO2, LaB6")
+
+        self.cylinder_param_tw = ListTableWidget()
+        self.cylinder_param_tw.setColumnCount(3)
+        self.cylinder_param_tw.horizontalHeader().setSectionResizeMode(
+            1, QtWidgets.QHeaderView.Stretch
+        )
+        self.cylinder_param_tw.setSelectionMode(
+            QtWidgets.QAbstractItemView.NoSelection
+        )
+
+        cylinder_parameters = [
+            ["Density", 2.65, "g/cm³"],
+            ["Radius", 0.15, "mm"],
+            ["Axis tilt", 0.0, "°"],
+            ["Axis rotation", 0.0, "°"],
+            ["Beam width", 0.0, "mm"],
+        ]
+        for param in cylinder_parameters:
+            self.add_param_to_tw(self.cylinder_param_tw, *param)
+
+        # Container sub-section
+        self.cylinder_container_formula_txt = QtWidgets.QLineEdit("")
+        self.cylinder_container_formula_txt.setPlaceholderText("e.g. SiO2 (glass)")
+
+        self.cylinder_container_param_tw = ListTableWidget()
+        self.cylinder_container_param_tw.setColumnCount(3)
+        self.cylinder_container_param_tw.horizontalHeader().setSectionResizeMode(
+            1, QtWidgets.QHeaderView.Stretch
+        )
+        self.cylinder_container_param_tw.setSelectionMode(
+            QtWidgets.QAbstractItemView.NoSelection
+        )
+        container_params = [
+            ["Container density", 2.23, "g/cm³"],
+            ["Wall thickness", 0.01, "mm"],
+        ]
+        for param in container_params:
+            self.add_param_to_tw(self.cylinder_container_param_tw, *param)
+
+        self.cylinder_mu_lbl = QtWidgets.QLabel("μ:")
+
+    def create_cylinder_correction_layout(self):
+        self._cylinder_layout = QtWidgets.QVBoxLayout()
+        self._cylinder_layout.setSpacing(5)
+
+        # Sample formula row
+        formula_layout = QtWidgets.QHBoxLayout()
+        formula_layout.addWidget(QtWidgets.QLabel("Formula:"))
+        formula_layout.addWidget(self.cylinder_formula_txt)
+        self._cylinder_layout.addLayout(formula_layout)
+
+        # Sample parameters + plot/mu
+        params_layout = QtWidgets.QHBoxLayout()
+        params_layout.addWidget(self.cylinder_param_tw)
+
+        right_layout = QtWidgets.QVBoxLayout()
+        right_layout.addWidget(self.cylinder_plot_btn)
+        right_layout.addWidget(self.cylinder_mu_lbl)
+        right_layout.addStretch()
+        params_layout.addLayout(right_layout)
+        self._cylinder_layout.addLayout(params_layout)
+
+        # Container section
+        container_formula_layout = QtWidgets.QHBoxLayout()
+        container_formula_layout.addWidget(QtWidgets.QLabel("Container:"))
+        container_formula_layout.addWidget(self.cylinder_container_formula_txt)
+        self._cylinder_layout.addLayout(container_formula_layout)
+
+        self._cylinder_layout.addWidget(self.cylinder_container_param_tw)
+
+        self.cylinder_gb.setLayout(self._cylinder_layout)
+
+    def create_sphere_correction_widgets(self):
+        self.sphere_gb = QtWidgets.QGroupBox("Sphere Absorption Correction")
+        self.sphere_plot_btn = CheckableButton("Plot")
+
+        self.sphere_formula_txt = QtWidgets.QLineEdit("Fe2O3")
+        self.sphere_formula_txt.setPlaceholderText("e.g. Fe2O3, Au")
+
+        self.sphere_param_tw = ListTableWidget()
+        self.sphere_param_tw.setColumnCount(3)
+        self.sphere_param_tw.horizontalHeader().setSectionResizeMode(
+            1, QtWidgets.QHeaderView.Stretch
+        )
+        self.sphere_param_tw.setSelectionMode(
+            QtWidgets.QAbstractItemView.NoSelection
+        )
+
+        sphere_parameters = [
+            ["Density", 5.24, "g/cm³"],
+            ["Radius", 0.5, "mm"],
+            ["Beam width", 0.0, "mm"],
+        ]
+        for param in sphere_parameters:
+            self.add_param_to_tw(self.sphere_param_tw, *param)
+
+        self.sphere_mu_lbl = QtWidgets.QLabel("μ:")
+
+    def create_sphere_correction_layout(self):
+        self._sphere_layout = QtWidgets.QVBoxLayout()
+        self._sphere_layout.setSpacing(5)
+
+        # Formula row
+        formula_layout = QtWidgets.QHBoxLayout()
+        formula_layout.addWidget(QtWidgets.QLabel("Formula:"))
+        formula_layout.addWidget(self.sphere_formula_txt)
+        self._sphere_layout.addLayout(formula_layout)
+
+        # Parameters + plot/mu
+        params_layout = QtWidgets.QHBoxLayout()
+        params_layout.addWidget(self.sphere_param_tw)
+
+        right_layout = QtWidgets.QVBoxLayout()
+        right_layout.addWidget(self.sphere_plot_btn)
+        right_layout.addWidget(self.sphere_mu_lbl)
+        right_layout.addStretch()
+        params_layout.addLayout(right_layout)
+
+        self._sphere_layout.addLayout(params_layout)
+        self.sphere_gb.setLayout(self._sphere_layout)
+
     def style_widgets(self):
         self.cbn_seat_gb.setCheckable(True)
         self.cbn_seat_gb.setChecked(False)
@@ -228,6 +363,10 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.transfer_gb.setChecked(False)
         self.slab_gb.setCheckable(True)
         self.slab_gb.setChecked(False)
+        self.cylinder_gb.setCheckable(True)
+        self.cylinder_gb.setChecked(False)
+        self.sphere_gb.setCheckable(True)
+        self.sphere_gb.setChecked(False)
 
         self.setStyleSheet(
             """
