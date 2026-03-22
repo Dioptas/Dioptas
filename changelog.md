@@ -1,3 +1,25 @@
+# 0.8.4 (in development)
+
+## New Features
+
+- added headless scripting API (`dioptas.pipeline.Pipeline`) for integration from Python scripts and Jupyter notebooks — load full setup from `.dio` project files, integrate single or batch images without the GUI
+- added slab sample absorption correction with depth-integrated Busing & Levy (1957) formula — supports tilted slabs, automatic μ calculation from chemical formula via xraydb
+- added cylinder sample absorption correction with numerical integration over beam footprint (Paalman & Pings, 1962) — supports axis orientation, variable beam width (pencil beam to full illumination), and optional glass capillary container correction
+- added sphere sample absorption correction with pencil beam and finite beam modes — appropriate for synchrotron experiments with small beams on large ball samples
+- added beam_width parameter to cylinder and sphere corrections for continuous control between pencil beam and full illumination
+- added xraydb dependency for automatic calculation of linear absorption coefficients from chemical formula and X-ray energy
+- added general utility functions `wavelength_to_energy`, `energy_to_wavelength`, and `calculate_mu` in `model/util/calc.py`
+- added GUI tabs for slab, cylinder, and sphere corrections in the Corrections panel with formula input, automatic μ calculation, and Plot button
+
+## Documentation
+
+- rewrote all documentation pages for v0.8.3 with updated content covering Map module, batch processing, Log/Sqrt scaling, Transfer Function correction, and all new features
+- captured fresh screenshots with current dark material theme
+- added new Map module documentation page
+- added Scripting API documentation page with full reference and examples
+- added `.readthedocs.yaml` and switched to sphinx_rtd_theme for ReadTheDocs builds
+- added equations and references (Busing & Levy 1957, Paalman & Pings 1962) to absorption correction documentation
+
 # 0.8.3 (stable 20.03.2026)
 
 ## New Features
