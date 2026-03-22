@@ -6,11 +6,11 @@ import fabio
 import numpy as np
 import skimage.draw
 from PIL import Image
-from qtpy import QtCore
 from math import sqrt, atan2, cos, sin
 
 from .util.cosmics import cosmicsimage
 from .util import Signal
+from .util.point import Point
 
 
 class MaskModel(object):
@@ -229,6 +229,7 @@ class MaskModel(object):
     def set_mask(self, mask_data):
         self.update_deque()
         self._mask_data = mask_data
+        self.mask_dimension = mask_data.shape
         self.mask_changed.emit()
 
     def save_mask(self, filename: str, flipud: bool = False):
@@ -326,7 +327,7 @@ class MaskModel(object):
         xc2_yc2 = xc * xc + yc * yc
         x0 = (xa2_ya2 * (yb - yc) + xb2_yb2 * (yc - ya) + xc2_yc2 * (ya - yb)) / denom
         y0 = (xa2_ya2 * (xc - xb) + xb2_yb2 * (xa - xc) + xc2_yc2 * (xb - xa)) / denom
-        self.center_for_arc = QtCore.QPointF(x0, y0)
+        self.center_for_arc = Point(x0, y0)
         return self.center_for_arc
 
     @staticmethod
@@ -359,5 +360,5 @@ class MaskModel(object):
         for phi in phi_range:
             xn = p0.x() + (r - width) * cos(phi)
             yn = p0.y() + (r - width) * sin(phi)
-            p.append(QtCore.QPointF(xn, yn))
+            p.append(Point(xn, yn))
         return p

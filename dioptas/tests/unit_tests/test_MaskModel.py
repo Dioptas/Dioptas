@@ -5,9 +5,9 @@ import numpy as np
 from math import cos, sin
 
 import pytest
-from qtpy import QtCore
 
 from ...model.MaskModel import MaskModel
+from ...model.util.point import Point
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
@@ -165,28 +165,28 @@ def test_find_center_of_circle_from_three_points(mask_model):
     phi1 = 0.1
     phi2 = 1.3
     phi3 = 6.0
-    p1 = QtCore.QPointF(x0 + r * cos(phi1), y0 + r * sin(phi1))
-    p2 = QtCore.QPointF(x0 + r * cos(phi2), y0 + r * sin(phi2))
-    p3 = QtCore.QPointF(x0 + r * cos(phi3), y0 + r * sin(phi3))
+    p1 = Point(x0 + r * cos(phi1), y0 + r * sin(phi1))
+    p2 = Point(x0 + r * cos(phi2), y0 + r * sin(phi2))
+    p3 = Point(x0 + r * cos(phi3), y0 + r * sin(phi3))
     mask_model.find_center_of_circle_from_three_points(p1, p2, p3)
     assert pytest.approx(x0) == mask_model.center_for_arc.x()
     assert pytest.approx(y0) == mask_model.center_for_arc.y()
 
 
 def test_find_center_of_circle_from_three_points_collinear(mask_model):
-    p1 = QtCore.QPointF(0.0, 0.0)
-    p2 = QtCore.QPointF(1.0, 1.0)
-    p3 = QtCore.QPointF(2.0, 2.0)
+    p1 = Point(0.0, 0.0)
+    p2 = Point(1.0, 1.0)
+    p3 = Point(2.0, 2.0)
     assert mask_model.find_center_of_circle_from_three_points(p1, p2, p3) is None
 
 
 def test_find_radius_of_circle_from_center_and_point(mask_model):
     x0 = 2.0
     y0 = 3.5
-    p0 = QtCore.QPointF(x0, y0)
+    p0 = Point(x0, y0)
     r = 1.2
     phi1 = 0.1
-    p1 = QtCore.QPointF(x0 + r * cos(phi1), y0 + r * sin(phi1))
+    p1 = Point(x0 + r * cos(phi1), y0 + r * sin(phi1))
     rcalc = mask_model.find_radius_of_circle_from_center_and_point(p0, p1)
     assert r == rcalc
 
@@ -195,19 +195,42 @@ def test_find_n_points_on_arc_from_three_points(mask_model):
     n = 50
     x0 = 2.0
     y0 = 3.5
-    p0 = QtCore.QPointF(x0, y0)
+    p0 = Point(x0, y0)
     r = 1.2
     width = 0
 
     phi1 = 0.1
     phi2 = 1.3
     phi3 = -0.2
-    p1 = QtCore.QPointF(x0 + r * cos(phi1), y0 + r * sin(phi1))
-    p2 = QtCore.QPointF(x0 + r * cos(phi2), y0 + r * sin(phi2))
-    p3 = QtCore.QPointF(x0 + r * cos(phi3), y0 + r * sin(phi3))
+    p1 = Point(x0 + r * cos(phi1), y0 + r * sin(phi1))
+    p2 = Point(x0 + r * cos(phi2), y0 + r * sin(phi2))
+    p3 = Point(x0 + r * cos(phi3), y0 + r * sin(phi3))
 
     n_angles = mask_model.find_n_angles_on_arc_from_three_points_around_p0(p0, p1, p2, p3, n)
     n_points = mask_model.calc_arc_points_from_angles(p0, r, width, n_angles)
     for p in n_points:
         rcalc = mask_model.find_radius_of_circle_from_center_and_point(p0, p)
         assert r == pytest.approx(rcalc, abs=1e-6)
+
+
+def test_set_mask_updates_dimension():
+    """Regression test: set_mask must update mask_dimension so that a
+    subsequent set_dimension call with the same shape does not reset the mask.
+    This reproduces a bug where loading a .dio project file would set mask data
+    via set_mask without updating mask_dimension, causing the mask to be
+    cleared the first time an image correction was enabled."""
+    mask_model = MaskModel(mask_dimension=(2048, 2048))
+
+    # Simulate loading mask from a .dio file with a different image size
+    mask_data = np.zeros((1043, 981), dtype=bool)
+    mask_data[100:200, 300:400] = True
+    mask_model.set_mask(mask_data)
+
+    assert mask_model.mask_dimension == (1043, 981)
+    assert np.sum(mask_model.get_img()) == 100 * 100
+
+    # Simulate what update_mask_dimension does when img_changed fires
+    mask_model.set_dimension((1043, 981))
+
+    # Mask must be preserved — not reset to zeros
+    assert np.sum(mask_model.get_img()) == 100 * 100
