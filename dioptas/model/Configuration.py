@@ -431,11 +431,11 @@ class Configuration:
         general_information.attrs["auto_save_integrated_pattern"] = (
             self.auto_save_integrated_pattern
         )
-        formats = [
-            n.encode("ascii", "ignore") for n in self.integrated_patterns_file_formats
-        ]
+        dt = h5py.string_dtype()
         general_information.create_dataset(
-            "integrated_patterns_file_formats", (len(formats), 1), "S10", formats
+            "integrated_patterns_file_formats",
+            data=self.integrated_patterns_file_formats,
+            dtype=dt,
         )
 
         # save working directories
@@ -912,7 +912,11 @@ class Configuration:
         for file_format in f.get("general_information").get(
             "integrated_patterns_file_formats"
         ):
-            self.integrated_patterns_file_formats.append(file_format[0].decode("utf-8"))
+            # Handle both old ASCII fixed-length (S10) and new variable-length UTF-8 strings
+            val = file_format[0] if hasattr(file_format, '__getitem__') else file_format
+            if isinstance(val, bytes):
+                val = val.decode("utf-8")
+            self.integrated_patterns_file_formats.append(str(val))
 
         if self.calibration_model.is_calibrated:
             self.integrate_image_1d()

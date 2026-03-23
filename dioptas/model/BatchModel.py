@@ -96,7 +96,11 @@ class BatchModel:
         self.data = data_file["data"][()]
         self.binning = data_file["binning"][()]
         self.file_map = data_file["file_map"][()]
-        self.files = data_file["files"][()].astype("U")
+        raw_files = data_file["files"][()]
+        if hasattr(raw_files, 'astype'):
+            self.files = np.array([f.decode() if isinstance(f, bytes) else str(f) for f in raw_files.flat])
+        else:
+            self.files = np.array([str(f) for f in raw_files])
         self.pos_map = data_file["pos_map"][()]
         self.n_img = self.data.shape[0]
         self.n_img_all = self.data.shape[0]
@@ -137,7 +141,8 @@ class BatchModel:
                 return
 
             self.file_map = data_file["processed/process/file_map"][()]
-            self.files = data_file["processed/process/files"][()].astype("U")
+            raw_files = data_file["processed/process/files"][()]
+            self.files = np.array([f.decode() if isinstance(f, bytes) else str(f) for f in raw_files.flat])
             self.pos_map = data_file["processed/process/pos_map"][()]
 
             if isinstance(data_file["processed/process/cal_file"][()], bytes):
@@ -207,7 +212,8 @@ class BatchModel:
 
             nxprocess.create_dataset("pos_map", data=self.pos_map)
             nxprocess.create_dataset("file_map", data=self.file_map)
-            nxprocess.create_dataset("files", data=self.files.astype("S"))
+            dt = h5py.string_dtype()
+            nxprocess.create_dataset("files", data=list(self.files), dtype=dt)
 
     def save_as_csv(self, filename: str) -> None:
         """Save diffraction patterns to 3-columns csv file."""
