@@ -359,6 +359,45 @@ class Pipeline:
         correction.update()
         self._configuration.img_model.add_img_correction(correction, "sphere")
 
+    def add_plate_absorption_correction(
+        self,
+        formula: str,
+        density: float = None,
+        thickness: float = 0.1,
+    ) -> None:
+        """Add a flat plate sample absorption correction.
+
+        Calculates the absorption correction for a flat plate sample
+        (e.g., a thin film or pellet) in the Debye-Scherrer geometry.
+
+        Requires calibration to be loaded first.
+
+        :param formula: chemical formula (e.g. 'CeO2', 'Au', 'Fe2O3')
+        :param density: material density in g/cm³ (None to use xraydb default)
+        :param thickness: plate thickness in mm
+        """
+        if not self.is_calibrated:
+            raise RuntimeError("Calibration must be loaded before adding corrections")
+
+        from dioptas.model.util.ImgCorrection import PlateAbsorptionCorrection
+        from dioptas.model.util.calc import wavelength_to_energy, calculate_mu
+
+        tth_array = 180.0 / np.pi * self._configuration.calibration_model.tth_array
+        azi_array = 180.0 / np.pi * self._configuration.calibration_model.azi_array
+
+        wavelength_m = self._configuration.calibration_model.wavelength
+        energy_eV = wavelength_to_energy(wavelength_m)
+        mu = calculate_mu(formula, energy_eV, density=density)
+
+        correction = PlateAbsorptionCorrection(
+            tth_array=tth_array,
+            azi_array=azi_array,
+            thickness=thickness,
+            absorption_coefficient=mu,
+        )
+        correction.update()
+        self._configuration.img_model.add_img_correction(correction, "plate")
+
     def clear_corrections(self) -> None:
         """Remove all image corrections."""
         self._configuration.img_model.img_corrections.clear()

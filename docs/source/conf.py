@@ -17,9 +17,9 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+import os
+import sys
+sys.path.insert(0, os.path.abspath('../..'))
 
 
 # -- General configuration ------------------------------------------------
@@ -31,7 +31,61 @@
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.mathjax']
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.mathjax',
+]
+
+# -- Autodoc settings -----------------------------------------------------
+
+# Mock heavy dependencies that are not available on ReadTheDocs.
+# Only mock packages that are not installed (so local builds work normally).
+_ALL_MOCK_IMPORTS = [
+    'fabio',
+    'h5py',
+    'hdf5plugin',
+    'lmfit',
+    'numexpr',
+    'numpy',
+    'pandas',
+    'PIL',
+    'psutil',
+    'pyFAI',
+    'pyqtgraph',
+    'PyQt6',
+    'qtpy',
+    'qt_material',
+    'scipy',
+    'skimage',
+    'watchdog',
+    'xypattern',
+    'bitshuffle',
+    'xraydb',
+    'CifFile',
+    'pyepics',
+    'pyshortcuts',
+    'sharedmem',
+    'tqdm',
+    'extra_data',
+    'dioptrin',
+]
+autodoc_mock_imports = []
+for _mod in _ALL_MOCK_IMPORTS:
+    try:
+        __import__(_mod)
+    except ImportError:
+        autodoc_mock_imports.append(_mod)
+autodoc_member_order = 'bysource'
+autodoc_default_options = {
+    'members': True,
+    'show-inheritance': True,
+}
+
+# -- Napoleon settings (Google/NumPy docstrings) --------------------------
+napoleon_google_docstring = True
+napoleon_numpy_docstring = True
+napoleon_include_init_with_doc = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -68,7 +122,7 @@ release = '0.8.3'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -98,7 +152,7 @@ html_theme = 'sphinx_rtd_theme'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = []
 
 
 # options for the figure numbers

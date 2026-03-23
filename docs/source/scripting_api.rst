@@ -282,6 +282,22 @@ parameter controls the illuminated area:
         beam_width=0.05,    # mm
     )
 
+Plate Sample Absorption Correction
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Absorption correction for a flat plate sample (e.g., a thin film or pellet)
+in the Debye–Scherrer geometry. The correction uses an analytical formula
+derived from the transmission through a flat slab at varying diffraction
+angles:
+
+.. code-block:: python
+
+    p.add_plate_absorption_correction(
+        formula="CeO2",
+        density=7.22,       # g/cm³ (optional for known materials)
+        thickness=0.1,      # mm
+    )
+
 Remove all corrections:
 
 .. code-block:: python
@@ -386,7 +402,7 @@ For advanced use cases, you can access the underlying Dioptas model objects dire
     p.configuration       # Configuration - the full bundled configuration
 
 This gives you access to all the functionality of the Dioptas model layer. See the
-:doc:`CLAUDE.md <../../CLAUDE>` or the source code for details on the model API.
+:doc:`API reference <api_reference>` or the source code for details.
 
 
 Complete Example

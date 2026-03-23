@@ -17,3 +17,4 @@ Welcome to Dioptas's documentation!
    configurations_and_projects
    map
    scripting_api
+   api_reference
