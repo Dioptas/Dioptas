@@ -393,7 +393,7 @@ class LogarithmRegionItem(LinearRegionItem):
     def __contains__(
             self, values=[0, 1], orientation=None, brush=None, movable=True, bounds=None
     ):
-        super(LogarithmRegionItem, self).__init__(
+        super().__init__(
             values, orientation, brush, movable, bounds
         )
 

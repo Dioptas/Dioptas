@@ -30,7 +30,7 @@ from .. import __version__
 logger = logging.getLogger(__name__)
 
 
-class DioptasModel(object):
+class DioptasModel:
     """Handles all the data used in Dioptas.
 
     Image, Calibration and Mask are handled by so called configurations.
@@ -38,7 +38,7 @@ class DioptasModel(object):
     """
 
     def __init__(self) -> None:
-        super(DioptasModel, self).__init__()
+        super().__init__()
         self.configurations: list[Configuration] = []
         self.configuration_ind: int = 0
         self.configurations.append(Configuration())

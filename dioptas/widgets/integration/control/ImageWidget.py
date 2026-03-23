@@ -9,7 +9,7 @@ from ..CustomWidgets import BrowseFileWidget
 
 class ImageWidget(QtWidgets.QWidget):
     def __init__(self):
-        super(ImageWidget, self).__init__()
+        super().__init__()
 
         self._create_widgets()
         self._create_layout()

@@ -27,7 +27,7 @@ from dioptas import __version__
 logger = logging.getLogger(__name__)
 
 
-class MainController(object):
+class MainController:
     """
     Creates the main controller for Dioptas. Creates all the data objects and connects them with the other controllers
     """

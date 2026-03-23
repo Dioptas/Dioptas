@@ -25,7 +25,7 @@ with open(os.path.join(data_path, "periodic_table.json")) as f:
     PERIODIC_TABLE = json.load(f)
 
 
-class CifConverter(object):
+class CifConverter:
     # Tolerance in which to treat two peaks as having the same two theta.
     TWO_THETA_TOL: float = 1e-5
 
@@ -286,7 +286,7 @@ def get_unique_families(hkls: list[tuple[int, ...]]) -> dict[tuple[int, ...], in
     return unique
 
 
-class CifPhase(object):
+class CifPhase:
     """
     Phase created from a cif dictionary (a cif file can have several phases which can be read as a list by PyCifRw)
 

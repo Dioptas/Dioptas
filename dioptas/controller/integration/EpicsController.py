@@ -13,7 +13,7 @@ from ...widgets.integration import IntegrationWidget
 from ...model.DioptasModel import DioptasModel
 
 
-class EpicsController(object):
+class EpicsController:
 
     def __init__(self, widget, dioptas_model):
         """

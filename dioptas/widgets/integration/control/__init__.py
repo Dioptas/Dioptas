@@ -13,7 +13,7 @@ from .OptionsWidget import OptionsWidget
 
 class IntegrationControlWidget(QtWidgets.QWidget):
     def __init__(self):
-        super(IntegrationControlWidget, self).__init__()
+        super().__init__()
 
         self._layout = QtWidgets.QHBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
@@ -145,7 +145,7 @@ class IntegrationControlWidget(QtWidgets.QWidget):
 
     def resizeEvent(self, a0: QtGui.QResizeEvent):
         self.update_layout()
-        super(IntegrationControlWidget, self).resizeEvent(a0)
+        super().resizeEvent(a0)
 
     def setOrientation(self, a0):
         """
@@ -158,7 +158,7 @@ class IntegrationControlWidget(QtWidgets.QWidget):
 
 class TabWidgetMinSize(QtWidgets.QTabWidget):
     def __init__(self):
-        super(TabWidgetMinSize, self).__init__()
+        super().__init__()
         self.currentChanged.connect(self.update_sizes)
 
     def update_sizes(self):
@@ -176,4 +176,4 @@ class TabWidgetMinSize(QtWidgets.QTabWidget):
 
     def setCurrentIndex(self, p_int):
         self.update_sizes()
-        super(TabWidgetMinSize, self).setCurrentIndex(p_int)
+        super().setCurrentIndex(p_int)

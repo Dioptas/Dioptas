@@ -12,7 +12,7 @@ from .... import icons_path
 
 class IntegrationPatternWidget(QtWidgets.QWidget):
     def __init__(self):
-        super(IntegrationPatternWidget, self).__init__()
+        super().__init__()
 
         self.frame = QtWidgets.QWidget()
         self.frame.setObjectName('pattern_frame')

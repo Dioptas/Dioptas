@@ -27,7 +27,7 @@ from ...widgets.integration import IntegrationWidget
 from ...model.DioptasModel import DioptasModel
 
 
-class BatchController(object):
+class BatchController:
     """
     The class manages the Image actions in the batch integration Window. It connects the file actions, as
     well as interaction with the image_view.

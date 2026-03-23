@@ -11,7 +11,7 @@ from ...model.util.HelperModule import convert_d_to_two_theta
 
 class JcpdsEditorWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
-        super(JcpdsEditorWidget, self).__init__(parent)
+        super().__init__(parent)
 
         self.setWindowTitle('Dioptas - JCPDS Editor')
 
@@ -403,7 +403,7 @@ class ReflectionTableModel(QtCore.QAbstractTableModel):
     reflection_edited = QtCore.Signal(int, int, str)  # row, column, value
 
     def __init__(self, reflections=None, wavelength=None):
-        super(ReflectionTableModel, self).__init__()
+        super().__init__()
         self.wavelength = wavelength
         if reflections is not None:
             self.reflections = reflections

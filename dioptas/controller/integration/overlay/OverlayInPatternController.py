@@ -5,7 +5,7 @@ from dioptas.model.OverlayModel import OverlayModel
 from dioptas.widgets.plot_widgets import PatternWidget
 
 
-class OverlayInPatternController(object):
+class OverlayInPatternController:
     def __init__(self, pattern_widget: PatternWidget, overlay_model: OverlayModel):
         self.model = overlay_model
         self.pattern_widget = pattern_widget

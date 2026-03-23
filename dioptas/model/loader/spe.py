@@ -15,7 +15,7 @@ from dateutil import parser
 logger = logging.getLogger(__name__)
 
 
-class SpeFile(object):
+class SpeFile:
     """Implements the SPE_File class for loading princeton instrument binary SPE files into Python
     works for version 2 and version 3 files.
 

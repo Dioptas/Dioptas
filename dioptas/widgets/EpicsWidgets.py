@@ -7,7 +7,7 @@ from .CustomWidgets import FlatButton, LabelAlignRight
 
 class MoveStageWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
-        super(MoveStageWidget, self).__init__(parent)
+        super().__init__(parent)
         self.setWindowTitle("Move")
         self.setGeometry(400, 400, 280, 180)
 
@@ -90,7 +90,7 @@ class MoveStageWidget(QtWidgets.QWidget):
 
 class MotorsSetup(QtWidgets.QWidget):
     def __init__(self, parent=None):
-        super(MotorsSetup, self).__init__(parent)
+        super().__init__(parent)
 
         self.setWindowTitle("Motors setup")
 

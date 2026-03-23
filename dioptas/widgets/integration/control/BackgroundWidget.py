@@ -17,7 +17,7 @@ from ...CustomWidgets import (
 
 class BackgroundWidget(QtWidgets.QWidget):
     def __init__(self):
-        super(BackgroundWidget, self).__init__()
+        super().__init__()
 
         self._layout = QtWidgets.QHBoxLayout()
         self._layout.setContentsMargins(0, 5, 0, 0)

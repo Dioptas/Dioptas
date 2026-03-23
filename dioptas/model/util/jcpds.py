@@ -75,7 +75,7 @@ class jcpds_reflection:
 
 class MyDict(dict):
     def __init__(self) -> None:
-        super(MyDict, self).__init__()
+        super().__init__()
         self.setdefault('modified', False)
 
     def __setitem__(self, key: str, value: Any) -> None:
@@ -83,10 +83,10 @@ class MyDict(dict):
                    'symmetry', 'k0', 'k0p0', 'dk0dt', 'dk0pdt',
                    'alpha_t0', 'd_alpha_dt', 'reflections']:
             self.__setitem__('modified', True)
-        super(MyDict, self).__setitem__(key, value)
+        super().__setitem__(key, value)
 
 
-class jcpds(object):
+class jcpds:
     def __init__(self) -> None:
         self._filename: str = ''
         self._name: str = ''

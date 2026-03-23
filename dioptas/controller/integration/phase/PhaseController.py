@@ -19,7 +19,7 @@ from ....widgets.integration import IntegrationWidget
 from ....widgets.UtilityWidgets import CifConversionParametersDialog
 
 
-class PhaseController(object):
+class PhaseController:
     """
     PhaseController handles all the interaction between the phase controls in the Integration View and the
     PhaseModel object.

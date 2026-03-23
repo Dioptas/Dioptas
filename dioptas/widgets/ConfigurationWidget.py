@@ -19,7 +19,7 @@ class ConfigurationWidget(QtWidgets.QWidget):
     configuration_selected = QtCore.Signal(int)  # configuration index
 
     def __init__(self, parent=None):
-        super(ConfigurationWidget, self).__init__(parent)
+        super().__init__(parent)
         self.btn_size = QtCore.QSize(20, 20)
 
         self.create_widgets()

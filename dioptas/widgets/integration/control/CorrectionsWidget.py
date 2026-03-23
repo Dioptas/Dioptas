@@ -15,7 +15,7 @@ from ...CustomWidgets import (
 
 class CorrectionsWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
-        super(CorrectionsWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self._layout = QtWidgets.QHBoxLayout()
         self._layout.setContentsMargins(0, 5, 0, 0)

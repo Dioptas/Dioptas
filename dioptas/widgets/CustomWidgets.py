@@ -10,12 +10,12 @@ from .. import icons_path
 
 class NumberTextField(QtWidgets.QLineEdit):
     def __init__(self, *args, **kwargs):
-        super(NumberTextField, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.setValidator(QtGui.QDoubleValidator())
         self.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
     def text(self):
-        return super(NumberTextField, self).text().replace(",", ".")
+        return super().text().replace(",", ".")
 
     def value(self):
         return float(self.text())
@@ -23,20 +23,20 @@ class NumberTextField(QtWidgets.QLineEdit):
 
 class IntegerTextField(QtWidgets.QLineEdit):
     def __init__(self, *args, **kwargs):
-        super(IntegerTextField, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.setValidator(QtGui.QIntValidator())
         self.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
 
 class LabelAlignRight(QtWidgets.QLabel):
     def __init__(self, *args, **kwargs):
-        super(LabelAlignRight, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
 
 class LabelExpandable(QtWidgets.QLineEdit):
     def __init__(self, *args, **kwargs):
-        super(LabelExpandable, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.setStyleSheet(
             """
             color: #F1F1F1;
@@ -50,7 +50,7 @@ class CleanLooksComboBox(QtWidgets.QComboBox):
     cleanlooks = QtWidgets.QStyleFactory.create("motif")
 
     def __init__(self, *args, **kwargs):
-        super(CleanLooksComboBox, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.setStyle(CleanLooksComboBox.cleanlooks)
         self.setLineEdit(CleanLooksLineEdit())
         self.lineEdit().clicked.connect(self.showPopup)
@@ -59,10 +59,10 @@ class CleanLooksComboBox(QtWidgets.QComboBox):
     def showPopup(self):
         if time.time() - self.popup_closed_time > 0.01:
             # prevents showing popup immediately after closing by clicking onto lineEdit.
-            super(CleanLooksComboBox, self).showPopup()
+            super().showPopup()
 
     def hidePopup(self):
-        super(CleanLooksComboBox, self).hidePopup()
+        super().hidePopup()
         self.popup_closed_time = time.time()
 
 
@@ -70,7 +70,7 @@ class CleanLooksLineEdit(QtWidgets.QLineEdit):
     clicked = QtCore.Signal()
 
     def __init__(self, *args, **kwargs):
-        super(CleanLooksLineEdit, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.installEventFilter(self)
         self.setReadOnly(True)
         self.setStyleSheet(
@@ -86,18 +86,18 @@ class CleanLooksLineEdit(QtWidgets.QLineEdit):
             return True
         if event.type() == QtCore.QEvent.MouseMove:
             return True
-        return super(CleanLooksLineEdit, self).eventFilter(obj, event)
+        return super().eventFilter(obj, event)
 
 
 class SpinBoxAlignRight(QtWidgets.QSpinBox):
     def __init__(self, *args, **kwargs):
-        super(SpinBoxAlignRight, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignRight)
 
 
 class DoubleSpinBoxAlignRight(QtWidgets.QDoubleSpinBox):
     def __init__(self, *args, **kwargs):
-        super(DoubleSpinBoxAlignRight, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignRight)
         self.setDecimals(10)
 
@@ -109,7 +109,7 @@ class DoubleSpinBoxAlignRight(QtWidgets.QDoubleSpinBox):
 
 class DoubleMultiplySpinBoxAlignRight(QtWidgets.QDoubleSpinBox):
     def __init__(self, *args, **kwargs):
-        super(DoubleMultiplySpinBoxAlignRight, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.setAlignment(QtCore.Qt.AlignRight)
         self.setDecimals(10)
 
@@ -157,7 +157,7 @@ class ConservativeSpinBox(QtWidgets.QSpinBox):
     valueChanged = QtCore.Signal()
 
     def __init__(self):
-        super(QtWidgets.QSpinBox, self).__init__()
+        super().__init__()
 
         self.lineEdit().editingFinished.connect(self.valueChanged)
         self.lineEdit().setAlignment(QtCore.Qt.AlignRight)
@@ -191,7 +191,7 @@ class ConservativeSpinBox(QtWidgets.QSpinBox):
 
 class FlatButton(QtWidgets.QPushButton):
     def __init__(self, *args):
-        super(FlatButton, self).__init__(*args)
+        super().__init__(*args)
         self.setFlat(True)
 
     def setHeight(self, height):
@@ -205,19 +205,19 @@ class FlatButton(QtWidgets.QPushButton):
 
 class CheckableButton(QtWidgets.QPushButton):
     def __init__(self, *args):
-        super(CheckableButton, self).__init__(*args)
+        super().__init__(*args)
         self.setCheckable(True)
 
 
 class CheckableFlatButton(FlatButton):
     def __init__(self, *args):
-        super(CheckableFlatButton, self).__init__(*args)
+        super().__init__(*args)
         self.setCheckable(True)
 
 
 class DarkCheckableFlatButton(QtWidgets.QPushButton):
     def __init__(self, *args):
-        super(DarkCheckableFlatButton, self).__init__(*args)
+        super().__init__(*args)
         self.setObjectName("dark_checkable_flat_btn")
         self.setCheckable(True)
         self.setFlat(True)
@@ -233,7 +233,7 @@ class DarkCheckableFlatButton(QtWidgets.QPushButton):
 
 class RotatedCheckableFlatButton(CheckableFlatButton):
     def __init__(self, *args):
-        super(RotatedCheckableFlatButton, self).__init__(*args)
+        super().__init__(*args)
 
     def paintEvent(self, event):
         painter = QtWidgets.QStylePainter(self)
@@ -242,12 +242,12 @@ class RotatedCheckableFlatButton(CheckableFlatButton):
         painter.drawControl(QtWidgets.QStyle.CE_PushButton, self.getSyleOptions())
 
     def minimumSizeHint(self):
-        size = super(RotatedCheckableFlatButton, self).minimumSizeHint()
+        size = super().minimumSizeHint()
         size.transpose()
         return size
 
     def sizeHint(self):
-        size = super(RotatedCheckableFlatButton, self).sizeHint()
+        size = super().sizeHint()
         size.transpose()
         return size
 
@@ -280,25 +280,25 @@ class RotatedCheckableFlatButton(CheckableFlatButton):
 
 class SaveIconButton(FlatButton):
     def __init__(self):
-        super(SaveIconButton, self).__init__()
+        super().__init__()
         self.setIcon(QtGui.QIcon(os.path.join(icons_path, "save.ico")))
 
 
 class OpenIconButton(FlatButton):
     def __init__(self):
-        super(OpenIconButton, self).__init__()
+        super().__init__()
         self.setIcon(QtGui.QIcon(os.path.join(icons_path, "open.ico")))
 
 
 class ResetIconButton(FlatButton):
     def __init__(self):
-        super(ResetIconButton, self).__init__()
+        super().__init__()
         self.setIcon(QtGui.QIcon(os.path.join(icons_path, "reset.ico")))
 
 
 class HorizontalLine(QtWidgets.QFrame):
     def __init__(self):
-        super(HorizontalLine, self).__init__()
+        super().__init__()
         self.setFrameShape(QtWidgets.QFrame.HLine)
         self.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.setFixedHeight(1)
@@ -306,7 +306,7 @@ class HorizontalLine(QtWidgets.QFrame):
 
 class VerticalLine(QtWidgets.QFrame):
     def __init__(self):
-        super(VerticalLine, self).__init__()
+        super().__init__()
         self.setFrameShape(QtWidgets.QFrame.VLine)
         self.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.setFixedWidth(1)
@@ -314,7 +314,7 @@ class VerticalLine(QtWidgets.QFrame):
 
 class ListTableWidget(QtWidgets.QTableWidget):
     def __init__(self, columns=3):
-        super(ListTableWidget, self).__init__()
+        super().__init__()
 
         self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
@@ -327,7 +327,7 @@ class ListTableWidget(QtWidgets.QTableWidget):
 
 class NoRectDelegate(QtWidgets.QItemDelegate):
     def __init__(self):
-        super(NoRectDelegate, self).__init__()
+        super().__init__()
 
     def drawFocus(self, painter, option, rect):
         option.state &= ~QtWidgets.QStyle.State_HasFocus
@@ -363,7 +363,7 @@ class MenuTabWidget(QtWidgets.QWidget):
     """
 
     def __init__(self, *args, **kwargs):
-        super(MenuTabWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self._layout = QtWidgets.QHBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)

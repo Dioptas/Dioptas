@@ -12,7 +12,7 @@ from ...model.DioptasModel import DioptasModel
 from ...model.ImgModel import BackgroundDimensionWrongException
 
 
-class BackgroundController(object):
+class BackgroundController:
     """
     The IntegrationImageController manages the Image actions in the Integration Window. It connects the file actions, as
     well as interaction with the image_view.

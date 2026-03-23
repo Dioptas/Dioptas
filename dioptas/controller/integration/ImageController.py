@@ -20,7 +20,7 @@ from .EpicsController import EpicsController
 logger = logging.getLogger(__name__)
 
 
-class ImageController(object):
+class ImageController:
     """
     The ImageController manages the Image actions in the Integration Window. It connects the file actions, as
     well as interaction with the image_view.

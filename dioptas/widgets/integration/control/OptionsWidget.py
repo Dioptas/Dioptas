@@ -16,7 +16,7 @@ from ...CustomWidgets import (
 
 class OptionsWidget(QtWidgets.QWidget):
     def __init__(self):
-        super(OptionsWidget, self).__init__()
+        super().__init__()
 
         self.create_integration_gb()
         self.create_cake_gb()

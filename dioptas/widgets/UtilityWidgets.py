@@ -12,7 +12,7 @@ class CifConversionParametersDialog(QtWidgets.QDialog):
     """
 
     def __init__(self, parent):
-        super(CifConversionParametersDialog, self).__init__()
+        super().__init__()
 
         self._parent = parent
         self._create_widgets()
@@ -110,12 +110,12 @@ class CifConversionParametersDialog(QtWidgets.QDialog):
             self._parent.window().rect().center()
         )
         self.move(parent_center.x() - 101, parent_center.y() - 48)
-        super(CifConversionParametersDialog, self).exec_()
+        super().exec_()
 
 
 class FileInfoWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
-        super(FileInfoWidget, self).__init__(parent)
+        super().__init__(parent)
         self.setWindowTitle("File Info")
 
         self.text_lbl = QtWidgets.QLabel()
@@ -150,7 +150,7 @@ class FileInfoWidget(QtWidgets.QWidget):
 
 class ErrorMessageBox(QtWidgets.QDialog):
     def __init__(self, *args, **kwargs):
-        super(ErrorMessageBox, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.setWindowTitle("OOOPS! An error occurred!")
 
         self.text_lbl = QtWidgets.QLabel()

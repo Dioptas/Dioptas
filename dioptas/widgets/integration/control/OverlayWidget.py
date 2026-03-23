@@ -29,7 +29,7 @@ class OverlayWidget(QtWidgets.QWidget):
     match_intensity_requested = QtCore.Signal(int)
 
     def __init__(self):
-        super(OverlayWidget, self).__init__()
+        super().__init__()
 
         self._layout = QtWidgets.QHBoxLayout()
         self._layout.setContentsMargins(5, 5, 5, 5)

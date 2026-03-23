@@ -20,7 +20,7 @@ class PatternWidget(QtCore.QObject):
     auto_range_status_changed = QtCore.Signal(bool)
 
     def __init__(self, pg_layout):
-        super(PatternWidget, self).__init__()
+        super().__init__()
         self.pg_layout = pg_layout
         self.create_graphics()
         self.create_main_plot()
@@ -519,7 +519,7 @@ class PatternWidget(QtCore.QObject):
             self.emit_sig_range_changed()
 
 
-class PhaseLinesPlot(object):
+class PhaseLinesPlot:
     def __init__(
         self,
         plot_item,
@@ -552,7 +552,7 @@ class PhaseLinesPlot(object):
             self.plot_item.addItem(self.line_items[ind])
 
 
-class PhasePlot(object):
+class PhasePlot:
     num_phases = 0
 
     def __init__(
@@ -682,7 +682,7 @@ class PhasePlot(object):
 
 class ModifiedLinearRegionItem(pg.LinearRegionItem):
     def __init__(self, *args, **kwargs):
-        super(ModifiedLinearRegionItem, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def mouseDragEvent(self, ev):
         return
@@ -693,7 +693,7 @@ class ModifiedLinearRegionItem(pg.LinearRegionItem):
 
 class SymmetricModifiedLinearRegionItem(pg.LinearRegionItem):
     def __init__(self, *args, **kwargs):
-        super(SymmetricModifiedLinearRegionItem, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.center = (
             self.lines[1].getXPos() - self.lines[0].getXPos()
         ) / 2 + self.lines[0].getXPos()

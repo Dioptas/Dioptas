@@ -8,7 +8,7 @@ from ..widgets.ConfigurationWidget import ConfigurationWidget
 from ..model.DioptasModel import DioptasModel
 
 
-class ConfigurationController(object):
+class ConfigurationController:
     """
     Deals with all the signal handling and model upgrades related to be using multiple configurations.
     """

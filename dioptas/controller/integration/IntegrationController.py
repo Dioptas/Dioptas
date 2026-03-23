@@ -24,7 +24,7 @@ pg.setConfigOption('foreground', 'w')
 pg.setConfigOption('antialias', True)
 
 
-class IntegrationController(object):
+class IntegrationController:
     """
     This controller hosts all the Subcontroller of the integration tab.
     """

@@ -21,7 +21,7 @@ class CalibrationWidget(QtWidgets.QWidget):
     """
 
     def __init__(self, *args, **kwargs):
-        super(CalibrationWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.setObjectName('calibration_widget')
 
@@ -292,7 +292,7 @@ class CalibrationWidget(QtWidgets.QWidget):
 
 class CalibrationDisplayWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
-        super(CalibrationDisplayWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self._layout = QtWidgets.QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
@@ -335,7 +335,7 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
 
 class CalibrationControlWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
-        super(CalibrationControlWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self._layout = QtWidgets.QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
@@ -382,7 +382,7 @@ class CalibrationControlWidget(QtWidgets.QWidget):
 
 class CalibrationParameterWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
-        super(CalibrationParameterWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self._layout = QtWidgets.QVBoxLayout(self)
 
@@ -405,7 +405,7 @@ class CalibrationParameterWidget(QtWidgets.QWidget):
 
 class DetectorGroupbox(QtWidgets.QGroupBox):
     def __init__(self, *args, **kwargs):
-        super(DetectorGroupbox, self).__init__('Detector', *args, **kwargs)
+        super().__init__('Detector', *args, **kwargs)
 
         self._layout = QtWidgets.QVBoxLayout(self)
 
@@ -469,7 +469,7 @@ class DetectorGroupbox(QtWidgets.QGroupBox):
 
 class StartValuesGroupBox(QtWidgets.QGroupBox):
     def __init__(self, *args, **kwargs):
-        super(StartValuesGroupBox, self).__init__('Start values', *args, **kwargs)
+        super().__init__('Start values', *args, **kwargs)
 
         self._layout = QtWidgets.QVBoxLayout(self)
 
@@ -526,7 +526,7 @@ class StartValuesGroupBox(QtWidgets.QGroupBox):
 
 class PeakSelectionGroupBox(QtWidgets.QGroupBox):
     def __init__(self):
-        super(PeakSelectionGroupBox, self).__init__('Peak Selection')
+        super().__init__('Peak Selection')
 
         self._layout = QtWidgets.QGridLayout()
         self._layout.setVerticalSpacing(3)
@@ -575,7 +575,7 @@ class PeakSelectionGroupBox(QtWidgets.QGroupBox):
 
 class RefinementOptionsGroupBox(QtWidgets.QGroupBox):
     def __init__(self):
-        super(RefinementOptionsGroupBox, self).__init__('Refinement Options')
+        super().__init__('Refinement Options')
 
         self._layout = QtWidgets.QGridLayout()
         self._layout.setSpacing(3)
@@ -620,7 +620,7 @@ class RefinementOptionsGroupBox(QtWidgets.QGroupBox):
 
 class PyfaiParametersWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
-        super(PyfaiParametersWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self._layout = QtWidgets.QGridLayout()
 
@@ -700,7 +700,7 @@ class PyfaiParametersWidget(QtWidgets.QWidget):
 
 class Fit2dParametersWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
-        super(Fit2dParametersWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self._layout = QtWidgets.QGridLayout()
 

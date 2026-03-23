@@ -24,7 +24,7 @@ from ...model.DioptasModel import DioptasModel
 logger = logging.getLogger(__name__)
 
 
-class CorrectionController(object):
+class CorrectionController:
     """
     The CorrectionController manages the Correction controls in the integration window.
     """

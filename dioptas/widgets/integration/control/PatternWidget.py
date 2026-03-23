@@ -8,7 +8,7 @@ from ..CustomWidgets import BrowseFileWidget
 
 class PatternWidget(QtWidgets.QWidget):
     def __init__(self):
-        super(PatternWidget, self).__init__()
+        super().__init__()
 
         self._layout = QtWidgets.QVBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)

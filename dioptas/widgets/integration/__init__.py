@@ -25,7 +25,7 @@ class IntegrationWidget(QtWidgets.QWidget):
     """
 
     def __init__(self, *args, **kwargs):
-        super(IntegrationWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.setObjectName('integration_widget')
 

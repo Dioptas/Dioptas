@@ -82,16 +82,16 @@ class WeakRefList(list):
     """
 
     def append(self, item: Callable[..., Any]) -> None:
-        super(WeakRefList, self).append(self._ref(item))
+        super().append(self._ref(item))
 
     def remove(self, item: Callable[..., Any]) -> None:
-        super(WeakRefList, self).remove(self._ref(item))
+        super().remove(self._ref(item))
 
     def insert(self, index: int, item: Callable[..., Any]) -> None:
-        super(WeakRefList, self).insert(index, self._ref(item))
+        super().insert(index, self._ref(item))
 
     def _remove_ref(self, ref: weakref.ref) -> None:
-        super(WeakRefList, self).remove(ref)
+        super().remove(ref)
 
     def _ref(self, item: Callable[..., Any]) -> weakref.ref:
         if inspect.ismethod(item):

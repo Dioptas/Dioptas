@@ -9,7 +9,7 @@ from ..CustomWidgets import LabelAlignRight, FlatButton, CleanLooksComboBox
 
 class MouseCurrentAndClickedWidget(QtWidgets.QWidget):
     def __init__(self, clicked_color):
-        super(MouseCurrentAndClickedWidget, self).__init__()
+        super().__init__()
 
         self._layout = QtWidgets.QVBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
@@ -26,7 +26,7 @@ class MouseCurrentAndClickedWidget(QtWidgets.QWidget):
 
 class MousePositionWidget(QtWidgets.QWidget):
     def __init__(self, color=None):
-        super(MousePositionWidget, self).__init__()
+        super().__init__()
 
         self._layout = QtWidgets.QHBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
@@ -59,7 +59,7 @@ class MousePositionWidget(QtWidgets.QWidget):
 
 class MouseUnitCurrentAndClickedWidget(QtWidgets.QWidget):
     def __init__(self, clicked_color=CLICKED_COLOR):
-        super(MouseUnitCurrentAndClickedWidget, self).__init__()
+        super().__init__()
         self._layout = QtWidgets.QVBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(0)
@@ -75,7 +75,7 @@ class MouseUnitCurrentAndClickedWidget(QtWidgets.QWidget):
 
 class MouseUnitWidget(QtWidgets.QWidget):
     def __init__(self, color=None):
-        super(MouseUnitWidget, self).__init__()
+        super().__init__()
 
         self._layout = QtWidgets.QHBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
@@ -111,7 +111,7 @@ class MouseUnitWidget(QtWidgets.QWidget):
 
 class BrowseFileWidget(QtWidgets.QWidget):
     def __init__(self, files, checkbox_text):
-        super(BrowseFileWidget, self).__init__()
+        super().__init__()
 
         self._layout = QtWidgets.QGridLayout()
         self._layout.setContentsMargins(0, 5, 5, 0)
@@ -176,7 +176,7 @@ class StepWidget(QtWidgets.QWidget):
     iteration_name = ""
 
     def __init__(self):
-        super(StepWidget, self).__init__()
+        super().__init__()
         self.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
 
         self._layout = QtWidgets.QGridLayout()
@@ -220,7 +220,7 @@ class StepFileWidget(StepWidget):
     iteration_name = "file"
 
     def __init__(self):
-        super(StepFileWidget, self).__init__()
+        super().__init__()
         self.browse_by_name_rb = QtWidgets.QRadioButton("By Name")
         self.browse_by_name_rb.setChecked(True)
         self.browse_by_time_rb = QtWidgets.QRadioButton("By Time")
@@ -239,7 +239,7 @@ class StepFrameWidget(StepWidget):
     iteration_name = "frame"
 
     def __init__(self):
-        super(StepFrameWidget, self).__init__()
+        super().__init__()
         self.pos_txt = QtWidgets.QLineEdit()
         self.pos_validator = QtGui.QIntValidator(1, 1)
         self.pos_txt.setValidator(self.pos_validator)

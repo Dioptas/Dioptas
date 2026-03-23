@@ -31,7 +31,7 @@ from dioptas.model.loader.FabioLoader import FabioLoader
 logger = logging.getLogger(__name__)
 
 
-class ImgModel(object):
+class ImgModel:
     """
     Main Image handling class. Supports several features:
         - loading image files in any format using fabio
@@ -45,7 +45,7 @@ class ImgModel(object):
     """
 
     def __init__(self) -> None:
-        super(ImgModel, self).__init__()
+        super().__init__()
         self.filename: str = ""
         self.img_transformations: list[Callable[[np.ndarray], np.ndarray]] = []
 

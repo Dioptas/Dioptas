@@ -15,7 +15,7 @@ class MapWidget(QtWidgets.QWidget):
     """
 
     def __init__(self, *args, **kwargs):
-        super(MapWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.create_widgets()
         self.create_layout()
@@ -97,14 +97,14 @@ class MapWidget(QtWidgets.QWidget):
 
 class TightHBoxLayout(QtWidgets.QHBoxLayout):
     def __init__(self, *args, **kwargs):
-        super(TightHBoxLayout, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.setContentsMargins(0, 0, 0, 0)
         self.setSpacing(0)
 
 
 class TightVBoxLayout(QtWidgets.QVBoxLayout):
     def __init__(self, *args, **kwargs):
-        super(TightVBoxLayout, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.setContentsMargins(0, 0, 0, 0)
         self.setSpacing(0)
 
@@ -185,7 +185,7 @@ class MapImageFrame(QtWidgets.QWidget):
 
 class MapControlWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
-        super(MapControlWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.create_widgets()
         self.create_layout()
@@ -217,7 +217,7 @@ class MapControlWidget(QtWidgets.QWidget):
 
 class MapPlotControlWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
-        super(MapPlotControlWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.create_widgets()
         self.create_layout()
@@ -259,7 +259,7 @@ class MapPlotControlWidget(QtWidgets.QWidget):
 
 class PatternFooterWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
-        super(PatternFooterWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.create_widgets()
         self.create_layout()

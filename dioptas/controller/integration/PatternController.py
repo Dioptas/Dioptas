@@ -13,7 +13,7 @@ from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
 
 
-class PatternController(object):
+class PatternController:
     """
     IntegrationPatternController handles all the interaction from the IntegrationView with the pattern data.
     It manages the auto integration of image files to  in addition to pattern browsing and changing of units

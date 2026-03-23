@@ -31,7 +31,7 @@ class BatchWidget(QtWidgets.QWidget):
     """
 
     def __init__(self, parent=None):
-        super(BatchWidget, self).__init__(parent)
+        super().__init__(parent)
 
         self.frame = QtWidgets.QWidget()
         self.frame.setObjectName("batch_frame")
@@ -195,7 +195,7 @@ class BatchFileViewWidget(QtWidgets.QWidget):
     iteration_name = ""
 
     def __init__(self):
-        super(BatchFileViewWidget, self).__init__()
+        super().__init__()
 
         self._layout = QtWidgets.QVBoxLayout()
         self._file_lbl_widget = QtWidgets.QWidget()
@@ -266,7 +266,7 @@ class BatchFileViewWidget(QtWidgets.QWidget):
 
 class BatchFileControlWidget(QtWidgets.QWidget):
     def __init__(self):
-        super(BatchFileControlWidget, self).__init__()
+        super().__init__()
         self._layout = QtWidgets.QHBoxLayout()
         self._layout.setSizeConstraint(QtWidgets.QLayout.SetMinimumSize)
 
@@ -304,7 +304,7 @@ class BatchFileControlWidget(QtWidgets.QWidget):
 
 class BatchModeWidget(QtWidgets.QWidget):
     def __init__(self):
-        super(BatchModeWidget, self).__init__()
+        super().__init__()
         self.setObjectName("batch_mode_widget")
         self._layout = QtWidgets.QHBoxLayout()
 
@@ -341,7 +341,7 @@ class BatchModeWidget(QtWidgets.QWidget):
 
 class BatchStackWidget(QtWidgets.QWidget):
     def __init__(self):
-        super(BatchStackWidget, self).__init__()
+        super().__init__()
 
         self._layout = QtWidgets.QHBoxLayout()
 
@@ -357,7 +357,7 @@ class BatchStackWidget(QtWidgets.QWidget):
 
 class BatchOptionsWidget(QtWidgets.QWidget):
     def __init__(self):
-        super(BatchOptionsWidget, self).__init__()
+        super().__init__()
         self._layout = QtWidgets.QVBoxLayout()
 
         self.tth_btn = CheckableFlatButton("2θ")
@@ -423,7 +423,7 @@ class BatchOptionsWidget(QtWidgets.QWidget):
 
 class BatchSurfaceWidget(QtWidgets.QWidget):
     def __init__(self):
-        super(BatchSurfaceWidget, self).__init__()
+        super().__init__()
 
         self._layout = QtWidgets.QHBoxLayout()
         self.control_widget = BatchSurfaceViewNavigationWidget()
@@ -440,7 +440,7 @@ class BatchSurfaceWidget(QtWidgets.QWidget):
 
 class BatchSurfaceViewNavigationWidget(QtWidgets.QWidget):
     def __init__(self):
-        super(BatchSurfaceViewNavigationWidget, self).__init__()
+        super().__init__()
 
         self._layout = QtWidgets.QVBoxLayout()
 
@@ -538,7 +538,7 @@ class BatchSurfaceViewNavigationWidget(QtWidgets.QWidget):
 
 class BatchControlWidget(QtWidgets.QWidget):
     def __init__(self):
-        super(BatchControlWidget, self).__init__()
+        super().__init__()
         self.integrate_btn = FlatButton("Integrate")
         self.load_proc_btn = FlatButton("Load proc data")
 
@@ -579,7 +579,7 @@ class BatchControlWidget(QtWidgets.QWidget):
 
 class BatchImgPositionWidget(QtWidgets.QWidget):
     def __init__(self):
-        super(BatchImgPositionWidget, self).__init__()
+        super().__init__()
 
         self._layout = QtWidgets.QHBoxLayout()
 
@@ -620,7 +620,7 @@ class StepBatchWidget(QtWidgets.QWidget):
     iteration_name = ""
 
     def __init__(self):
-        super(StepBatchWidget, self).__init__()
+        super().__init__()
         self.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
 
         self.small_btn_max_width = 50

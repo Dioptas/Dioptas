@@ -5,7 +5,7 @@ from ....model.DioptasModel import DioptasModel
 from ....widgets.plot_widgets import PatternWidget
 
 
-class PhaseInPatternController(object):
+class PhaseInPatternController:
     """
     PhaseInPatternController handles all the interaction between the phases and the pattern view.
     """

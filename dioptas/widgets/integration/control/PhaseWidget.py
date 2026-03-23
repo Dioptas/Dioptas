@@ -26,7 +26,7 @@ class PhaseWidget(QtWidgets.QWidget):
     temperature_sb_value_changed = QtCore.Signal(int, float)
 
     def __init__(self):
-        super(PhaseWidget, self).__init__()
+        super().__init__()
 
         self._layout = QtWidgets.QHBoxLayout()
         self._layout.setContentsMargins(5, 5, 5, 5)

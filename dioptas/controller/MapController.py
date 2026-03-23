@@ -20,7 +20,7 @@ from .integration.overlay.OverlayInPatternController import OverlayInPatternCont
 from ..widgets.UtilityWidgets import save_file_dialog
 
 
-class MapController(object):
+class MapController:
     def __init__(self, widget: MapWidget, dioptas_model: DioptasModel):
         self.widget = widget
         self.model = dioptas_model

@@ -11,7 +11,7 @@ from ....widgets.integration import IntegrationWidget
 from ....model.DioptasModel import DioptasModel
 
 
-class OverlayController(object):
+class OverlayController:
     """
     IntegrationOverlayController handles all the interaction between the Overlay controls of the integration view and
     the corresponding overlay data in the Pattern Model.

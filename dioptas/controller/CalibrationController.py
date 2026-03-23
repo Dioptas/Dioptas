@@ -23,7 +23,7 @@ from ..model.CalibrationModel import (
 logger = logging.getLogger(__name__)
 
 
-class CalibrationController(object):
+class CalibrationController:
     """
     CalibrationController handles all the interaction between the CalibrationView and the CalibrationData class
     """

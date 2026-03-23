@@ -34,10 +34,10 @@ from .util.calc import supersample_image, trim_trailing_zeros
 logger = logging.getLogger(__name__)
 
 
-class CalibrationModel(object):
+class CalibrationModel:
 
     def __init__(self, img_model: ImgModel | None = None) -> None:
-        super(CalibrationModel, self).__init__()
+        super().__init__()
         self.img_model: ImgModel | None = img_model
         self.points: list[np.ndarray] = []
         self.points_index: list[int] = []
@@ -1332,7 +1332,7 @@ class NoPointsError(Exception):
     pass
 
 
-class DummyStdOut(object):
+class DummyStdOut:
     @classmethod
     def write(cls, *args: Any, **kwargs: Any) -> None:
         pass

@@ -20,7 +20,7 @@ class ImgWidget(QtCore.QObject):
     mouse_left_double_clicked = QtCore.Signal(float, float)
 
     def __init__(self, pg_layout, orientation="vertical", padding=0.01):
-        super(ImgWidget, self).__init__()
+        super().__init__()
         self.pg_layout = pg_layout
         self._padding = padding
 
@@ -316,7 +316,7 @@ class ImgWidget(QtCore.QObject):
 
 class CalibrationCakeWidget(ImgWidget):
     def __init__(self, pg_layout, orientation="vertical", padding=0.01):
-        super(CalibrationCakeWidget, self).__init__(pg_layout, orientation, padding)
+        super().__init__(pg_layout, orientation, padding)
         self.img_view_box.setAspectLocked(False)
         self.create_vertical_line()
         self.mouse_left_clicked.connect(self.set_vertical_line_pos)
@@ -344,7 +344,7 @@ class CalibrationCakeWidget(ImgWidget):
 
 class MaskImgWidget(ImgWidget):
     def __init__(self, pg_layout, orientation="vertical", padding=0.01):
-        super(MaskImgWidget, self).__init__(pg_layout, orientation, padding)
+        super().__init__(pg_layout, orientation, padding)
         self.mask_img_item = pg.ImageItem()
         self.img_view_box.addItem(self.mask_img_item)
         self.img_view_box.setAspectLocked(True)
@@ -407,7 +407,7 @@ class MaskImgWidget(ImgWidget):
 
 class IntegrationImgWidget(MaskImgWidget):
     def __init__(self, pg_layout, orientation="vertical", padding=0.01):
-        super(IntegrationImgWidget, self).__init__(pg_layout, orientation, padding)
+        super().__init__(pg_layout, orientation, padding)
         self.create_circle_plot_items()
         self.create_mouse_click_item()
         self.create_roi_item()
@@ -492,7 +492,7 @@ class IntegrationImgWidget(MaskImgWidget):
 
 class IntegrationCakeWidget(CalibrationCakeWidget):
     def __init__(self, pg_layout, orientation="vertical", padding=0.01):
-        super(IntegrationCakeWidget, self).__init__(pg_layout, orientation, padding)
+        super().__init__(pg_layout, orientation, padding)
         self.img_view_box.setAspectLocked(False)
         self.create_mouse_click_item()
         self.add_cake_axes()
@@ -599,7 +599,7 @@ class IntegrationBatchWidget(IntegrationCakeWidget):
     """
 
     def __init__(self, pg_layout, orientation="vertical", padding=0.01):
-        super(IntegrationBatchWidget, self).__init__(pg_layout, orientation, padding)
+        super().__init__(pg_layout, orientation, padding)
         self.create_horizontal_line()
         self.mouse_left_clicked.connect(self.set_horizontal_line_pos)
         self.linear_region_item = ModifiedLinearRegionItem(
@@ -690,7 +690,7 @@ class IntegrationBatchWidget(IntegrationCakeWidget):
         self.pg_layout.addItem(self.left_axis_cake, 1, 0)
 
 
-class CakePhasePlot(object):
+class CakePhasePlot:
     def __init__(self, plot_item, positions, intensities, color):
         self.plot_item = plot_item
         self.visible = True
@@ -932,7 +932,7 @@ class MyRectangle(QtWidgets.QGraphicsRectItem):
 
 class MyROI(pg.ROI):
     def __init__(self, pos, size, pen, img_shape=(2048, 2048)):
-        super(MyROI, self).__init__(pos, size, pen=pen)
+        super().__init__(pos, size, pen=pen)
         self.img_shape = img_shape
         self.base_mask = np.ones(img_shape)
         self.roi_mask = np.copy(self.base_mask)
@@ -962,7 +962,7 @@ class MyROI(pg.ROI):
         self.setSize(size)
 
 
-class RoiShade(object):
+class RoiShade:
     def __init__(self, view_box, roi, img_shape=(2048, 2048)):
         self.view_box = view_box
         self.img_shape = img_shape

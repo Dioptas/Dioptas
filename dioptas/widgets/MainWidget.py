@@ -22,7 +22,7 @@ from .. import icons_path
 
 class MainWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
-        super(MainWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self._create_layouts()
 
@@ -207,7 +207,7 @@ class MainWidget(QtWidgets.QWidget):
 
 class MenuPopup(QtWidgets.QFrame):
     def __init__(self, parent=None, menu_items=None):
-        super(MenuPopup, self).__init__(parent)
+        super().__init__(parent)
         self.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.setFrameShadow(QtWidgets.QFrame.Raised)
         self.setLineWidth(1)

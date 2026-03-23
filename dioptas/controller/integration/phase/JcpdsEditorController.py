@@ -38,7 +38,7 @@ class JcpdsEditorController(QtCore.QObject):
         :type dioptas_model: DioptasModel
         :type jcpds_phase: jcpds
         """
-        super(JcpdsEditorController, self).__init__()
+        super().__init__()
         self.integration_widget = integration_widget
         self.jcpds_widget = JcpdsEditorWidget(integration_widget)
         self.phase_widget = self.integration_widget.phase_widget

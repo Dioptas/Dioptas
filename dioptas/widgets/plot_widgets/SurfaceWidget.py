@@ -13,7 +13,7 @@ class SurfaceWidget(QtWidgets.QWidget):
     iteration_name = ''
 
     def __init__(self):
-        super(SurfaceWidget, self).__init__()
+        super().__init__()
 
         self.lut_pg_layout = GraphicsLayoutWidget()
         self.pg_layout = GLViewWidget()

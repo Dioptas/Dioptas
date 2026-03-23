@@ -9,7 +9,7 @@ from .. import CLICKED_COLOR
 
 class IntegrationStatusWidget(QtWidgets.QWidget):
     def __init__(self):
-        super(IntegrationStatusWidget, self).__init__()
+        super().__init__()
 
         self._layout = QtWidgets.QHBoxLayout()
         self._layout.setContentsMargins(6, 3, 6, 0)

@@ -8,7 +8,7 @@ from ....widgets.integration import IntegrationWidget
 from ....widgets.plot_widgets.ImgWidget import IntegrationImgWidget
 
 
-class PhaseInCakeController(object):
+class PhaseInCakeController:
     """
     PhaseInCakeController handles all the interaction between the phase controls and the plotted lines in the cake view.
     """

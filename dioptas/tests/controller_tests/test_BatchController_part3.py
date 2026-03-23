@@ -20,7 +20,7 @@ def test_set_unit(
     batch_widget.activate_stack_plot()
     bottom_axis = batch_widget.stack_plot_widget.img_view.bottom_axis_cake
 
-    class DummyViewRect(object):
+    class DummyViewRect:
         _width = 3500
         _left = 5
 

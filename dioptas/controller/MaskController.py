@@ -14,7 +14,7 @@ from ..widgets.MaskWidget import MaskWidget
 from ..model.DioptasModel import DioptasModel
 
 
-class MaskController(object):
+class MaskController:
     DEFAULT_MASK_FILTER = 'Mask (*.mask)'
     FLIPUD_MASK_FILTER_PREFIX = 'Vertically flipped mask'
 
