@@ -4,11 +4,13 @@ import logging
 import os
 import struct
 from collections import deque
+from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 
 import h5py
 import hdf5plugin
 import numpy as np
+import numpy.typing as npt
 
 try:
     import bitshuffle
@@ -20,10 +22,14 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 BITSHUFFLE_FILTER_ID = 32008
-_NUM_CPUS = max((os.cpu_count() or 4) - 1, 1)
+_NUM_CPUS: int = max((os.cpu_count() or 4) - 1, 1)
 
 
-def _decompress_bitshuffle_lz4(raw_bytes, shape, dtype):
+def _decompress_bitshuffle_lz4(
+    raw_bytes: bytes,
+    shape: tuple[int, ...],
+    dtype: np.dtype,
+) -> npt.NDArray[np.float64]:
     """Decompress a single bitshuffle-LZ4 compressed chunk and return as
     contiguous float64 with vertical flip applied.
 
@@ -37,7 +43,7 @@ def _decompress_bitshuffle_lz4(raw_bytes, shape, dtype):
     return np.ascontiguousarray(frame[::-1], dtype=np.float64)
 
 
-def _is_bitshuffle_compressed(dataset):
+def _is_bitshuffle_compressed(dataset: h5py.Dataset) -> bool:
     """Check if an HDF5 dataset uses bitshuffle compression."""
     if not HAS_BITSHUFFLE:
         return False
@@ -54,37 +60,34 @@ def _is_bitshuffle_compressed(dataset):
 
 
 class Hdf5Image:
-    def __init__(self, filename):
-        """
-        Loads an Hdf5 image produced by ESRF
-        :param filename: path to the hdf5 file to be loaded
-        """
+    def __init__(self, filename: str) -> None:
+        """Loads an Hdf5 image produced by ESRF."""
+        self.filename: str = filename
+        self.f: h5py.File = h5py.File(filename, "r")
+        self.image_sources: list[str] = find_image_sources(self.f)
 
-        self.filename = filename
-        self.f = h5py.File(filename, "r")
-        self.image_sources = find_image_sources(self.f)
+        self.dataset: h5py.Dataset = self.f[self.image_sources[0]]
+        self.series_max: int = self.dataset.shape[0]
+        self._is_bitshuffle: bool = _is_bitshuffle_compressed(self.dataset)
 
-        self.dataset = self.f[self.image_sources[0]]
-        self.series_max = self.dataset.shape[0]
-        self._is_bitshuffle = _is_bitshuffle_compressed(self.dataset)
-
-    def get_image(self, ind):
+    def get_image(self, ind: int) -> npt.NDArray:
         return self.dataset[ind][::-1]
 
-    def select_source(self, source):
+    def select_source(self, source: str) -> None:
         self.dataset = self.f[source]
         self.series_max = self.dataset.shape[0]
         self._is_bitshuffle = _is_bitshuffle_compressed(self.dataset)
 
-    def gen_frames(self, n_frames=None, decomp_workers=_NUM_CPUS):
+    def gen_frames(
+        self,
+        n_frames: int | None = None,
+        decomp_workers: int = _NUM_CPUS,
+    ) -> Iterator[npt.NDArray[np.float64]]:
         """Generator yielding all frames as contiguous float64 arrays.
 
         For bitshuffle-compressed datasets, decompression, vertical flip, and
         float64 conversion all happen in parallel worker threads.  For other
         datasets, frames are read sequentially through h5py.
-
-        :param n_frames: number of frames to yield (default: all)
-        :param decomp_workers: number of parallel decompression threads
         """
         n = self.series_max if n_frames is None else min(n_frames, self.series_max)
 
@@ -96,7 +99,11 @@ class Hdf5Image:
                     self.dataset[i][::-1], dtype=np.float64
                 )
 
-    def _gen_frames_parallel(self, n_frames, decomp_workers=_NUM_CPUS):
+    def _gen_frames_parallel(
+        self,
+        n_frames: int,
+        decomp_workers: int = _NUM_CPUS,
+    ) -> Iterator[npt.NDArray[np.float64]]:
         """Read raw chunks and decompress bitshuffle-LZ4 in parallel threads.
 
         Each worker decompresses a chunk, applies the vertical flip, and
@@ -118,8 +125,8 @@ class Hdf5Image:
             )
 
         with ThreadPoolExecutor(max_workers=decomp_workers) as pool:
-            pending = deque()
-            idx = 0
+            pending: deque = deque()
+            idx: int = 0
 
             # Fill initial window
             while idx < n_frames and len(pending) < decomp_workers:
@@ -144,10 +151,10 @@ class Hdf5Image:
                     idx += 1
 
 
-def find_image_sources(hd5_file):
-    image_paths = []
+def find_image_sources(hd5_file: h5py.File) -> list[str]:
+    image_paths: list[str] = []
 
-    def traverse_groups(group, parent_path=""):
+    def traverse_groups(group: h5py.File | h5py.Group | h5py.Dataset, parent_path: str = "") -> None:
         if isinstance(group, h5py.Dataset):
             if len(group.shape) >= 3:
                 image_paths.append(parent_path)

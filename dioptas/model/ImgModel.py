@@ -1,8 +1,12 @@
 # SPDX-License-Identifier: MIT
 
+from __future__ import annotations
+
 import logging
 import os
 import copy
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 from PIL import Image
@@ -40,35 +44,35 @@ class ImgModel(object):
     The Signal will be called every time the img_data has changed.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(ImgModel, self).__init__()
-        self.filename = ""
-        self.img_transformations = []
+        self.filename: str = ""
+        self.img_transformations: list[Callable[[np.ndarray], np.ndarray]] = []
 
-        self.file_iteration_mode = "number"
-        self.file_name_iterator = FileNameIterator()
+        self.file_iteration_mode: str = "number"
+        self.file_name_iterator: FileNameIterator = FileNameIterator()
 
-        self.series_pos = 1
-        self.series_max = 1
-        self.selected_source = None
+        self.series_pos: int = 1
+        self.series_max: int = 1
+        self.selected_source: str | None = None
 
-        self._img_data = None
-        self._img_data_background_subtracted = None
-        self._img_data_absorption_corrected = None
-        self._img_data_background_subtracted_absorption_corrected = None
+        self._img_data: np.ndarray | None = None
+        self._img_data_background_subtracted: np.ndarray | None = None
+        self._img_data_absorption_corrected: np.ndarray | None = None
+        self._img_data_background_subtracted_absorption_corrected: np.ndarray | None = None
 
-        self.background_filename = ""
-        self._background_data = None
-        self._background_scaling = 1
-        self._background_offset = 0
+        self.background_filename: str = ""
+        self._background_data: np.ndarray | None = None
+        self._background_scaling: float = 1
+        self._background_offset: float = 0
 
-        self._factor = 1
+        self._factor: float = 1
 
-        self.transfer_correction = TransferFunctionCorrection()
+        self.transfer_correction: TransferFunctionCorrection = TransferFunctionCorrection()
 
         # anything that gets loaded from an image file and needs to be reset if a file without these attributes is
         # loaded 2D array containing the current image
-        self.loadable_data = [
+        self.loadable_data: list[dict[str, Any]] = [
             {
                 "name": "img_data",
                 "default": np.zeros((2048, 2048)),
@@ -98,13 +102,21 @@ class ImgModel(object):
         # set the loadable attributes to their defaults
         self.set_loadable_attributes({})
 
-        self._img_corrections = ImgCorrectionManager()
+        self.file_info: str
+        self.motors_info: dict[str, float]
+        self._img_data_fabio: Any
+        self.series_get_image: Callable[[int], np.ndarray] | None
+        self.sources: list[str] | None
+        self._select_source: Callable[[str], None] | None
+        self.loader: FabioLoader | Hdf5Image | None = None
+
+        self._img_corrections: ImgCorrectionManager = ImgCorrectionManager()
 
         # setting up autoprocess
-        self._autoprocess = False
-        # TODO: watching a directory should be open to any file type - an extension should  be added when a 
+        self._autoprocess: bool = False
+        # TODO: watching a directory should be open to any file type - an extension should  be added when a
         # new file is loaded with a previous non-existing file extension
-        self._directory_watcher = NewFileInDirectoryWatcher(
+        self._directory_watcher: NewFileInDirectoryWatcher = NewFileInDirectoryWatcher(
             file_types=[
                 "img",
                 "sfrm",
@@ -124,18 +136,16 @@ class ImgModel(object):
             ]
         )
         # define the signals
-        self.img_changed = Signal()
-        self.autoprocess_changed = Signal()
-        self.transformations_changed = Signal()
-        self.corrections_removed = Signal()
+        self.img_changed: Signal = Signal()
+        self.autoprocess_changed: Signal = Signal()
+        self.transformations_changed: Signal = Signal()
+        self.corrections_removed: Signal = Signal()
 
-    def load(self, filename, pos=0):
+    def load(self, filename: str, pos: int = 0) -> None:
         """
         Loads an image file in any format known by fabIO, PIL or HDF5. Automatically performs all previous img
         transformations, recalculates background subtracted and absorption corrected image data.
         The img_changed signal will be emitted after the process.
-        :param filename: path of the image file to be loaded
-        :param pos: position of image in the image file to be loaded
         """
         filename = str(filename)  # since it could also be QString
         logger.info("Loading {0}.".format(filename))
@@ -153,14 +163,10 @@ class ImgModel(object):
 
         self.img_changed.emit()
 
-    def get_image_data(self, filename, pos=0):
+    def get_image_data(self, filename: str, pos: int = 0) -> dict[str, Any]:
         """
         Tries to load the given file using different image loader libraries and returns a dictionary containing all
         retrieved file data.
-        :param filename: string containing a path to an image file
-        :param pos: position of image in the image file to be loaded
-        :return: dictionary containing all retrieved file information. Look at "loadable data" for possible key names.
-                 Present key names depend on applied image loader
         """
         img_loaders = [
             self.load_PIL,
@@ -178,13 +184,10 @@ class ImgModel(object):
         else:
             raise IOError("No handler found for given image with filename: " + filename)
 
-    def set_loadable_attributes(self, loaded_data):
+    def set_loadable_attributes(self, loaded_data: dict[str, Any]) -> None:
         """
         Sets all attributes that change with the loading of an image to either their defaults or a given value.
         This assures that no leftover data will be kept when it is not overwritten by the new image.
-        :param loaded_data: dictionary containing values to be loaded into the attributes corresponding to their keys.
-                            Possible key names and attribute names they will be loaded to are specified in
-                            "loadable_data"
         """
         for attribute in self.loadable_data:
             if attribute["name"] in loaded_data:
@@ -194,11 +197,9 @@ class ImgModel(object):
                     attribute["attribute"], copy.copy(attribute["default"])
                 )
 
-    def load_PIL(self, filename, *args):
+    def load_PIL(self, filename: str, *args: Any) -> dict[str, Any] | None:
         """
-        Loads an image using the PIL library. Also returns file and motor info if present
-        :param filename: path to the image file to be loaded
-        :return: dictionary with image_data and file_info and motors_info if present. None if unsuccessful
+        Loads an image using the PIL library. Also returns file and motor info if present.
         """
         data = {}
         try:
@@ -218,25 +219,16 @@ class ImgModel(object):
         except IOError:
             return None
 
-    def load_spe(self, filename, *args):
-        """
-        Loads an image using the builtin spe library.
-        :param filename: path to the image file to be loaded
-        :return: dictionary with image_data, None if unsuccessful
-        """
+    def load_spe(self, filename: str, *args: Any) -> dict[str, Any] | None:
+        """Loads an image using the builtin spe library."""
         if os.path.splitext(filename)[1].lower() == ".spe":
             spe = SpeFile(filename)
             return {"img_data": spe.img}
         else:
             return None
 
-    def load_fabio(self, filename, frame_index=0):
-        """
-        Loads an image using the fabio library.
-        :param filename: path to the image file to be loaded
-        :param frame_index: frame index of the image file to be loaded inside of multi-frame file
-        :return: dictionary with image_data and image_data_fabio, None if unsuccessful
-        """
+    def load_fabio(self, filename: str, frame_index: int = 0) -> dict[str, Any] | None:
+        """Loads an image using the fabio library."""
         try:
             self.loader = FabioLoader(filename)
             return {
@@ -248,13 +240,8 @@ class ImgModel(object):
         except (IOError, fabio.fabioutils.NotGoodReader):
             return None
 
-    def load_lambda(self, filename, frame_index=0):
-        """
-        loads an image made by a lambda detector using the builtin lambda library.
-        :param filename: path to the image file to be loaded
-        :param frame_index: frame index of the image file to be loaded inside of multi-frame file
-        :return: dictionary with img_data, series_max and series_get_image, None if unsuccessful
-        """
+    def load_lambda(self, filename: str, frame_index: int = 0) -> dict[str, Any] | None:
+        """Loads an image made by a lambda detector using the builtin lambda library."""
         try:
             lambda_im = LambdaImage(filename)
         except IOError:
@@ -268,14 +255,8 @@ class ImgModel(object):
             "series_get_image": lambda_im.get_image,
         }
 
-    def load_karabo(self, filename, frame_index=0):
-        """
-        Loads an Imageseries created from within the karabo-framework at XFEL.
-        :param filename: path to the *.h5 karabo file
-        :param frame_index: position of image in the image file to be loaded
-        :return: dictionary with img_data of the first train_id, series_start, series_max and series_get_image,
-                 None if unsuccessful
-        """
+    def load_karabo(self, filename: str, frame_index: int = 0) -> dict[str, Any] | None:
+        """Loads an Imageseries created from within the karabo-framework at XFEL."""
         try:
             karabo_file = KaraboFile(filename)
         except IOError:
@@ -288,14 +269,8 @@ class ImgModel(object):
             "series_get_image": karabo_file.get_image,
         }
 
-    def load_hdf5(self, filename, frame_index=0):
-        """
-        Loads an ESRF hdf5 file
-        :param filename: filename with path to *.h5 ESRF file
-        :param frame_index: frame index for multi-image file
-        :return: dictionary with img_data of the first image in the first source, dataset_list, series_max, and
-                 series_get_image
-        """
+    def load_hdf5(self, filename: str, frame_index: int = 0) -> dict[str, Any]:
+        """Loads an ESRF hdf5 file."""
 
         hdf5_image = Hdf5Image(filename)
         self.loader = hdf5_image
@@ -309,11 +284,8 @@ class ImgModel(object):
             "select_source": hdf5_image.select_source,
         }
 
-    def select_source(self, source):
-        """
-        Selects a source from the available sources and loads updates the current image in the model.
-        :param source: string for source (check sources for available strings for the corresponding file)
-        """
+    def select_source(self, source: str) -> None:
+        """Selects a source from the available sources and loads updates the current image in the model."""
         self._select_source(source)
         self.selected_source = source
         self.series_max = self.loader.series_max
@@ -325,11 +297,8 @@ class ImgModel(object):
 
         self.img_changed.emit()
 
-    def save(self, filename):
-        """
-        Saves the current file as another image file, the raw data is used for saving.
-        :param filename: name of the saved file, extensions defines the format, please see fabio library for reference
-        """
+    def save(self, filename: str) -> None:
+        """Saves the current file as another image file, the raw data is used for saving."""
         logger.info("Saving image to %s", filename)
         try:
             self._img_data_fabio.save(filename)
@@ -338,12 +307,11 @@ class ImgModel(object):
             im = Image.fromarray(im_array)
             im.save(filename)
 
-    def load_background(self, filename):
+    def load_background(self, filename: str) -> None:
         """
         Loads an image file as background in any format known by fabIO. Automatically performs all previous img
         transformations, recalculates background subtracted and absorption corrected image data.
         The img_changed signal will be emitted after the process.
-        :param filename: path of the image file to be loaded
         """
         logger.info("Loading background image: %s", filename)
         self.background_filename = filename
@@ -361,12 +329,11 @@ class ImgModel(object):
         self._calculate_img_data()
         self.img_changed.emit()
 
-    def add(self, filename):
+    def add(self, filename: str) -> None:
         """
         Adds an image file in any format known by fabIO. Automatically performs all previous img transformations and
         recalculates background subtracted and absorption corrected image data.
         The img_changed signal will be emitted after the process.
-        :param filename: path of the image file to be loaded
         """
         filename = str(filename)  # since it could also be QString
 
@@ -391,77 +358,71 @@ class ImgModel(object):
         self._calculate_img_data()
         self.img_changed.emit()
 
-    def _image_and_background_shape_equal(self):
-        """
-        Tests if the original image and original background image have the same shape
-        :return: Boolean
-        """
+    def _image_and_background_shape_equal(self) -> bool:
+        """Tests if the original image and original background image have the same shape."""
         if self._background_data is None:
             return True
         if self._background_data.shape == self._img_data.shape:
             return True
         return False
 
-    def _reset_background(self):
-        """
-        Resets the background data to None
-        """
+    def _reset_background(self) -> None:
+        """Resets the background data to None."""
         self.background_filename = ""
         self._background_data = None
         self._background_data_fabio = None
         self._calculate_img_data()
 
-    def reset_background(self):
+    def reset_background(self) -> None:
         logger.debug("Resetting background image")
         self._reset_background()
         self.img_changed.emit()
 
-    def has_background(self):
+    def has_background(self) -> bool:
         return self._background_data is not None
 
     @property
-    def background_data(self):
+    def background_data(self) -> np.ndarray | None:
         return self._background_data
 
     @property
-    def untransformed_background_data(self):
+    def untransformed_background_data(self) -> np.ndarray:
         self._reset_background_transformations()
         background_data = np.copy(self.background_data)
         self._perform_background_transformations()
         return background_data
 
     @background_data.setter
-    def background_data(self, new_data):
+    def background_data(self, new_data: np.ndarray | None) -> None:
         self._background_data = new_data
         self._calculate_img_data()
         self.img_changed.emit()
 
     @property
-    def background_scaling(self):
+    def background_scaling(self) -> float:
         return self._background_scaling
 
     @background_scaling.setter
-    def background_scaling(self, new_value):
+    def background_scaling(self, new_value: float) -> None:
         self._background_scaling = new_value
         self._calculate_img_data()
         self.img_changed.emit()
 
     @property
-    def background_offset(self):
+    def background_offset(self) -> float:
         return self._background_offset
 
     @background_offset.setter
-    def background_offset(self, new_value):
+    def background_offset(self, new_value: float) -> None:
         self._background_offset = new_value
         self._calculate_img_data()
         self.img_changed.emit()
 
-    def load_series_img(self, pos):
+    def load_series_img(self, pos: int) -> None:
         """
-        Takes a position in  the series to load, sanitizes it and puts the result from the function assigned to
+        Takes a position in the series to load, sanitizes it and puts the result from the function assigned to
         series_get_image into _img_data. series_get_image gets called with a position starting from 0, all other series
         pos values start at one as shown to the user.
-        :param pos: Image position in the series to load, starting at 1
         """
         logger.debug("Loading series image at position %d", pos)
         pos = min(max(pos, 1), self.series_max)
@@ -479,7 +440,7 @@ class ImgModel(object):
 
         self.img_changed.emit()
 
-    def _reload_series_file(self):
+    def _reload_series_file(self) -> None:
         """Re-opens the current file to restore the series_get_image function,
         e.g. after loading a project where only pixel data was saved."""
         if not self.filename or not os.path.exists(self.filename):
@@ -493,47 +454,40 @@ class ImgModel(object):
             if "select_source" in image_file_data:
                 self._select_source = image_file_data["select_source"]
 
-    def load_next_file(self, step=1, pos=None):
-        """
-        Loads the next file based on the current iteration mode and the step you specify.
-        :param pos:
-        :param step: Defining how much you want to increment the file number. (default=1)
-        """
+    def load_next_file(self, step: int = 1, pos: int | None = None) -> None:
+        """Loads the next file based on the current iteration mode and the step you specify."""
         next_file_name = self.file_name_iterator.get_next_filename(
             mode=self.file_iteration_mode, step=step, pos=pos
         )
         if next_file_name is not None:
             self.load(next_file_name)
 
-    def load_previous_file(self, step=1, pos=None):
-        """
-        Loads the previous file based on the current iteration mode and the step specified
-        :param pos:
-        :param step: Defining how much you want to decrement the file number. (default=1)
-        """
+    def load_previous_file(self, step: int = 1, pos: int | None = None) -> None:
+        """Loads the previous file based on the current iteration mode and the step specified."""
         previous_file_name = self.file_name_iterator.get_previous_filename(
             mode=self.file_iteration_mode, step=step, pos=pos
         )
         if previous_file_name is not None:
             self.load(previous_file_name)
 
-    def load_next_folder(self, mec_mode=False):
+    def load_next_folder(self, mec_mode: bool = False) -> None:
         """
         Loads a file with the current filename in the next folder, whereby the folder has to be iteratable by numbers.
-        :param mec_mode:    Boolean which enables specific mode for MEC beamline at SLAC, where the folders and the
-                            files change their during increment. (default = False)
 
+        :param mec_mode: enables specific mode for MEC beamline at SLAC, where the folders and the
+                         files change during increment.
         """
         next_file_name = self.file_name_iterator.get_next_folder(mec_mode=mec_mode)
         if next_file_name is not None:
             self.load(next_file_name)
 
-    def load_previous_folder(self, mec_mode=False):
+    def load_previous_folder(self, mec_mode: bool = False) -> None:
         """
         Loads a file with the current filename in the previous folder, whereby the folder has to be iteratable by
         numbers.
-        :param mec_mode:    Boolean which enables specific mode for MEC beamline at SLAC, where the folders and the
-                            files change their during increment. (default = False)
+
+        :param mec_mode: enables specific mode for MEC beamline at SLAC, where the folders and the
+                         files change during increment.
         """
 
         next_previous_name = self.file_name_iterator.get_previous_folder(
@@ -542,7 +496,7 @@ class ImgModel(object):
         if next_previous_name is not None:
             self.load(next_previous_name)
 
-    def set_file_iteration_mode(self, mode):
+    def set_file_iteration_mode(self, mode: str) -> None:
         """
         Sets the file iteration mode for the load_next_file and load_previous_file functions. Possible modes:
             * 'number' will increment or decrement based on numbers in the filename.
@@ -556,7 +510,7 @@ class ImgModel(object):
             self.file_name_iterator.create_timed_file_list = True
             self.file_name_iterator.update_filename(self.filename)
 
-    def _calculate_img_data(self):
+    def _calculate_img_data(self) -> None:
         """
         Calculates compound img_data based on the state of the object. This function is used internally to not compute
         those img arrays every time somebody requests the image data by get_img_data() and img_data.
@@ -593,12 +547,11 @@ class ImgModel(object):
             ) / self._img_corrections.get_data()
 
     @property
-    def img_data(self):
+    def img_data(self) -> np.ndarray | None:
         """
-        :return:
-            The image based on the current state of the ImgData object. It will apply all image correction as well as
-            background subtraction. in case you want the raw data without corrections, please use the
-            raw_img_data property.
+        The image based on the current state of the ImgData object. It will apply all image correction as well as
+        background subtraction. In case you want the raw data without corrections, please use the
+        raw_img_data property.
         """
         # if self._img_data is None:
         #     return None
@@ -620,17 +573,17 @@ class ImgModel(object):
             )
 
     @property
-    def raw_img_data(self):
+    def raw_img_data(self) -> np.ndarray | None:
         return self._img_data
 
     @property
-    def untransformed_raw_img_data(self):
+    def untransformed_raw_img_data(self) -> np.ndarray:
         self._reset_img_transformations()
         img_data = np.copy(self.raw_img_data)
         self._perform_img_transformations()
         return img_data
 
-    def rotate_img_p90(self):
+    def rotate_img_p90(self) -> None:
         """
         Rotates the image by 90 degree and updates the background accordingly (does not effect absorption correction).
         The transformation is saved and applied to every new image and background image loaded.
@@ -648,7 +601,7 @@ class ImgModel(object):
         self._calculate_img_data()
         self.img_changed.emit()
 
-    def rotate_img_m90(self):
+    def rotate_img_m90(self) -> None:
         """
         Rotates the image by -90 degree and updates the background accordingly (does not effect absorption correction).
         The transformation is saved and applied to every new image and background image loaded.
@@ -664,7 +617,7 @@ class ImgModel(object):
         self._calculate_img_data()
         self.img_changed.emit()
 
-    def flip_img_horizontally(self):
+    def flip_img_horizontally(self) -> None:
         """
         Flips image about a horizontal axis and updates the background accordingly (does not effect absorption
         correction). The transformation is saved and applied to every new image and background image loaded.
@@ -680,7 +633,7 @@ class ImgModel(object):
         self._calculate_img_data()
         self.img_changed.emit()
 
-    def flip_img_vertically(self):
+    def flip_img_vertically(self) -> None:
         """
         Flips image about a vertical axis and updates the background accordingly (does not effect absorption
         correction). The transformation is saved and applied to every new image and background image loaded.
@@ -696,7 +649,7 @@ class ImgModel(object):
         self._calculate_img_data()
         self.img_changed.emit()
 
-    def reset_transformations(self, img_changed=True):
+    def reset_transformations(self, img_changed: bool = True) -> None:
         """
         Reverts all image transformations and resets the transformation stack.
         The img_changed signal will be emitted after the process, if set to true.
@@ -712,7 +665,7 @@ class ImgModel(object):
         if img_changed:
             self.img_changed.emit()
 
-    def _reset_img_transformations(self):
+    def _reset_img_transformations(self) -> None:
         for transformation in reversed(self.img_transformations):
             if transformation == rotate_matrix_p90:
                 self._img_data = rotate_matrix_m90(self._img_data)
@@ -721,7 +674,7 @@ class ImgModel(object):
             else:
                 self._img_data = transformation(self._img_data)
 
-    def _reset_background_transformations(self):
+    def _reset_background_transformations(self) -> None:
         if self._background_data is None:
             return
 
@@ -733,28 +686,24 @@ class ImgModel(object):
             else:
                 self._background_data = transformation(self._background_data)
 
-    def _perform_img_transformations(self):
-        """
-        Performs all saved image transformation on original image.
-        """
+    def _perform_img_transformations(self) -> None:
+        """Performs all saved image transformation on original image."""
         for transformation in self.img_transformations:
             self._img_data = transformation(self._img_data)
 
-    def _perform_background_transformations(self):
-        """
-        Performs all saved image transformation on background image.
-        """
+    def _perform_background_transformations(self) -> None:
+        """Performs all saved image transformation on background image."""
         if self._background_data is not None:
             for transformation in self.img_transformations:
                 self._background_data = transformation(self._background_data)
 
-    def get_transformations_string_list(self):
+    def get_transformations_string_list(self) -> list[str]:
         transformation_list = []
         for transformation in self.img_transformations:
             transformation_list.append(transformation.__name__)
         return transformation_list
 
-    def load_transformations_string_list(self, transformations):
+    def load_transformations_string_list(self, transformations: list[str]) -> None:
         self._reset_img_transformations()
         self._reset_background_transformations()
         self.img_transformations = []
@@ -770,39 +719,29 @@ class ImgModel(object):
         self._perform_img_transformations()
         self._perform_background_transformations()
 
-    def add_img_correction(self, correction, name=None):
+    def add_img_correction(self, correction: ImgCorrectionInterface, name: str | None = None) -> None:
         """
         Adds a correction to be applied to the image. Corrections are applied multiplicative for each pixel and after
         each other, depending on the order of addition.
-        :param external:
-        :param correction: An Object inheriting the ImgCorrectionInterface.
-        :type correction: ImgCorrectionInterface
-        :param name: correction can be given a name, to selectively delete or obtain later.
-        :type name: str
         """
         logger.info("Adding image correction: %s", name)
         self._img_corrections.add(correction, name)
         self._calculate_img_data()
         self.img_changed.emit()
 
-    def get_img_correction(self, name):
-        """
-        :param name: correction name which was specified during the addition of the image correction.
-        :return: the specified correction
-        """
+    def get_img_correction(self, name: str) -> ImgCorrectionInterface | None:
+        """Returns the correction with the specified name."""
         return self._img_corrections.get_correction(name)
 
-    def delete_img_correction(self, name=None):
-        """
-        :param name: deletes a correction from the correction calculation with a specific name. if no name is specified
-         the last added correction is deleted.
-        """
+    def delete_img_correction(self, name: str | None = None) -> None:
+        """Deletes a correction from the correction calculation. If no name is specified, the last added
+        correction is deleted."""
         logger.info("Deleting image correction: %s", name)
         self._img_corrections.delete(name)
         self._calculate_img_data()
         self.img_changed.emit()
 
-    def enable_transfer_function(self):
+    def enable_transfer_function(self) -> None:
         if (
             self.transfer_correction.get_data() is not None
             and self.get_img_correction("transfer") is None
@@ -812,24 +751,20 @@ class ImgModel(object):
             self._calculate_img_data()
             self.img_changed.emit()
 
-    def disable_transfer_function(self):
+    def disable_transfer_function(self) -> None:
         if self.get_img_correction("transfer") is not None:
             self.delete_img_correction("transfer")
 
     @property
-    def img_corrections(self):
+    def img_corrections(self) -> ImgCorrectionManager:
         return self._img_corrections
 
-    def has_corrections(self):
-        """
-        :return: Whether the ImgData object has active absorption corrections or not
-        """
+    def has_corrections(self) -> bool:
+        """Returns whether the ImgData object has active absorption corrections or not."""
         return self._img_corrections.has_items()
 
-    def _get_file_info(self, image):
-        """
-        reads the file info from tif_tags and returns a file info
-        """
+    def _get_file_info(self, image: Image.Image) -> str:
+        """Reads the file info from tif_tags and returns a file info."""
         result = ""
         end_result = ""
         tags = image.tag
@@ -850,10 +785,8 @@ class ImgModel(object):
                     result += new_line
         return result + end_result
 
-    def _get_motors_info(self, image):
-        """
-        reads the file info from tif_tags and returns positions of vertical, horizontal, focus and omega motors
-        """
+    def _get_motors_info(self, image: Image.Image) -> dict[str, float]:
+        """Reads the file info from tif_tags and returns positions of vertical, horizontal, focus and omega motors."""
         result = {}
         tags = image.tag
 
@@ -872,11 +805,11 @@ class ImgModel(object):
         return result
 
     @property
-    def autoprocess(self):
+    def autoprocess(self) -> bool:
         return self._autoprocess
 
     @autoprocess.setter
-    def autoprocess(self, new_val):
+    def autoprocess(self, new_val: bool) -> None:
         self._autoprocess = new_val
         if new_val:
             self._directory_watcher.activate()
@@ -884,22 +817,22 @@ class ImgModel(object):
             self._directory_watcher.deactivate()
 
     @property
-    def factor(self):
+    def factor(self) -> float:
         return self._factor
 
     @factor.setter
-    def factor(self, new_value):
+    def factor(self, new_value: float) -> None:
         self._factor = new_value
         self.img_changed.emit()
 
-    def get_img_data_float64(self):
+    def get_img_data_float64(self) -> np.ndarray:
         """Return current image data as a contiguous float64 array.
 
         Convenience method used by batch/map integration pipelines.
         """
         return np.ascontiguousarray(self.img_data, dtype=np.float64)
 
-    def _apply_frame_pipeline(self, raw_frame):
+    def _apply_frame_pipeline(self, raw_frame: np.ndarray) -> np.ndarray:
         """Apply transformations and corrections to a raw frame.
 
         Sets internal state and returns the processed image as contiguous
@@ -911,7 +844,7 @@ class ImgModel(object):
         self._calculate_img_data()
         return np.ascontiguousarray(self.img_data, dtype=np.float64)
 
-    def blockSignals(self, block=True):
+    def blockSignals(self, block: bool = True) -> None:
         for member in vars(self):
             attr = getattr(self, member)
             if isinstance(attr, Signal):

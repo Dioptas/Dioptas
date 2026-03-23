@@ -6,32 +6,20 @@ import numpy as np
 _HC_EV_M = 6.62607015e-34 * 299792458.0 / 1.602176634e-19  # h*c in eV·m
 
 
-def wavelength_to_energy(wavelength_m):
-    """Convert wavelength in meters to energy in eV.
-
-    :param wavelength_m: wavelength in meters
-    :returns: energy in eV
-    """
+def wavelength_to_energy(wavelength_m: float) -> float:
+    """Convert wavelength in meters to energy in eV."""
     return _HC_EV_M / wavelength_m
 
 
-def energy_to_wavelength(energy_eV):
-    """Convert energy in eV to wavelength in meters.
-
-    :param energy_eV: energy in eV
-    :returns: wavelength in meters
-    """
+def energy_to_wavelength(energy_eV: float) -> float:
+    """Convert energy in eV to wavelength in meters."""
     return _HC_EV_M / energy_eV
 
 
-def calculate_mu(formula, energy_eV, density=None):
+def calculate_mu(formula: str, energy_eV: float, density: float | None = None) -> float:
     """Calculate linear absorption coefficient using xraydb.
 
-    :param formula: chemical formula string (e.g. 'CeO2', 'Au', 'Fe2O3')
-    :param energy_eV: X-ray energy in eV
-    :param density: material density in g/cm³. If None, xraydb uses
-        its built-in density for known materials.
-    :returns: linear absorption coefficient in 1/mm
+    Returns the linear absorption coefficient in 1/mm.
     """
     import xraydb
 
@@ -42,14 +30,16 @@ def calculate_mu(formula, energy_eV, density=None):
     return mu_per_cm / 10.0  # convert 1/cm to 1/mm
 
 
-def convert_units(value, wavelength, previous_unit, new_unit):
-    """
-    Converts a value from a unit into a new unit
-    :param value: value in old unit
-    :param wavelength: in Angstrom
-    :param previous_unit: possible values are '2th_deg', 'q_A^-1', 'd_A'
-    :param new_unit: possible values are '2th_deg', 'q_A^-1', 'd_A'
-    :return: new value or None if unit does not exist
+def convert_units(
+    value: float | np.ndarray,
+    wavelength: float,
+    previous_unit: str,
+    new_unit: str,
+) -> float | np.ndarray | None:
+    """Converts a value between units.
+
+    Supported units: ``'2th_deg'``, ``'q_A^-1'``, ``'d_A'``.
+    *wavelength* is in Angstrom.  Returns None if the unit is unknown.
     """
     if previous_unit == '2th_deg':
         tth = value
@@ -74,13 +64,8 @@ def convert_units(value, wavelength, previous_unit, new_unit):
     return res
 
 
-def supersample_image(img_data, factor):
-    """
-    Creates a supersampled array from img_data.
-    :param img_data: image array
-    :param factor: int - supersampling factor
-    :return: supersampled image
-    """
+def supersample_image(img_data: np.ndarray, factor: int) -> np.ndarray:
+    """Creates a supersampled array from *img_data*."""
     if factor > 1:
         img_data_supersampled = np.zeros((img_data.shape[0] * factor,
                                           img_data.shape[1] * factor))
@@ -93,14 +78,10 @@ def supersample_image(img_data, factor):
         return img_data
 
 
-def trim_trailing_zeros(x, y):
-    """
-    Trims the trailing zeros of a x, y pattern
-    :param x: x-values
-    :param y: y-values
-    :return: trimmed x, y values as tuple (x, y)
-    """
-
+def trim_trailing_zeros(
+    x: np.ndarray, y: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Trims trailing zeros from a pattern."""
     y_trim = np.trim_zeros(y, 'b')
     x_trim = x[:len(y_trim)]
 

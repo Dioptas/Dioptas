@@ -4,9 +4,11 @@
 
 import datetime
 import logging
-from xml.dom.minidom import parseString
+from io import BufferedReader
+from xml.dom.minidom import Document, parseString
 
 import numpy as np
+import numpy.typing as npt
 from numpy.polynomial.polynomial import polyval
 from dateutil import parser
 
@@ -33,23 +35,45 @@ class SpeFile(object):
     the data will be automatically loaded and all important parameters and the data
     can be requested from the object.
     """
-    def __init__(self, filename, debug=False):
-        """Opens the PI SPE file and loads its content
+    def __init__(self, filename: str, debug: bool = False) -> None:
+        """Opens the PI SPE file and loads its content.
 
-        :param filename: filename of the PI SPE to open
-        :param debug: if set to true, will automatically save <filename>.xml files for version 3 spe files in the spe
-        directory
+        If *debug* is True, automatically saves ``<filename>.xml`` files for
+        version 3 SPE files in the SPE directory.
         """
-        """"""
-        self.filename = filename
-        self.debug = debug
-        self._fid = open(filename, 'rb')
+        self.filename: str = filename
+        self.debug: bool = debug
+        self._fid: BufferedReader = open(filename, 'rb')
+        self._xdim: np.int64
+        self._ydim: np.int64
+        self._data_type: int
+        self.xml_offset: int
+        self.num_frames: int
+        self.exposure_time: float
+        self.img: npt.NDArray | list[npt.NDArray]
+        self.date_time: datetime.datetime
+        self.x_calibration: npt.NDArray[np.float64]
+        self.xml_string: str
+        self.dom: Document
+        self.detector: str
+        self.grating: str
+        self.center_wavelength: float
+        self.roi_modus: str
+        self.roi_x: int
+        self.roi_y: int
+        self.roi_width: int | np.int64
+        self.roi_height: int | np.int64
+        self.roi_x_binning: int
+        self.roi_y_binning: int
+        self.file_size: int
+        self._num_combined_frames: int
+        self.num_frames_combined: int
         self._read_parameter()
         self._read_img()
         self._fid.close()
 
-    def _read_parameter(self):
-        """Reads in size and datatype. Decides wether it should check in the binary
+    def _read_parameter(self) -> None:
+        """Reads in size and datatype. Decides whether it should check in the binary
         header (version 2) or in the xml-footer for the experimental parameters"""
         self._read_size()
         self._read_datatype()
@@ -60,13 +84,13 @@ class SpeFile(object):
         else:
             self._read_parameter_from_dom()
 
-    def _read_size(self):
-        """reads the dimensions of the Model from the header into the object
+    def _read_size(self) -> None:
+        """Reads the dimensions of the Model from the header into the object
         resulting object parameters are _xdim and _ydim"""
         self._xdim = np.int64(self._read_at(42, 1, np.int16)[0])
         self._ydim = np.int64(self._read_at(656, 1, np.int16)[0])
 
-    def _read_parameter_from_header(self):
+    def _read_parameter_from_header(self) -> None:
         """High level function which calls all the read_"parameter" function
         that are reading information from the binary header.
         """
@@ -80,7 +104,7 @@ class SpeFile(object):
         self._read_num_frames_from_header()
         self._read_num_combined_frames_from_header()
 
-    def _read_parameter_from_dom(self):
+    def _read_parameter_from_dom(self) -> None:
         """High level function which calls all the read_"parameter" function
         that are reading information from the xml footer.
         """
@@ -97,7 +121,7 @@ class SpeFile(object):
         self._read_num_frames_from_header()
         self._read_num_combined_frames_from_dom()
 
-    def _read_date_time_from_header(self):
+    def _read_date_time_from_header(self) -> None:
         """Reads the collection time from the header into the date_time field"""
         rawdate = self._read_at(20, 9, np.int8)
         rawtime = self._read_at(172, 6, np.int8)
@@ -110,46 +134,46 @@ class SpeFile(object):
             # runs without problems...
             self.date_time = datetime.datetime(1, 1, 1)
 
-    def _read_calibration_from_header(self):
+    def _read_calibration_from_header(self) -> None:
         """Reads the calibration from the header into the x_calibration field"""
         x_polynocoeff = self._read_at(3263, 6, np.double)
         x_val = np.arange(self._xdim) + 1
         self.x_calibration = np.array(polyval(x_val, x_polynocoeff))
 
-    def _read_exposure_from_header(self):
+    def _read_exposure_from_header(self) -> None:
         """Reads the exposure time from the header into the exposure_time field"""
         self.exposure_time = self._read_at(10, 1, np.float32)
         self.exposure_time = self.exposure_time[0]
 
-    def _read_detector_from_header(self):
+    def _read_detector_from_header(self) -> None:
         """Sets the detector value to unspecified, because the detector is not
         specified in the binary header. Only in the xml footer of version 3 SPE
         files """
         self.detector = 'unspecified'
 
-    def _read_grating_from_header(self):
+    def _read_grating_from_header(self) -> None:
         """Reads grating position from the header into the grating field"""
         self.grating = str(self._read_at(650, 1, np.float32)[0])
 
-    def _read_center_wavelength_from_header(self):
+    def _read_center_wavelength_from_header(self) -> None:
         """Reads center wavelength position from the header into the center_wavelength field"""
         self.center_wavelength = float(self._read_at(72, 1, np.float32)[0])
 
-    def _read_roi_from_header(self):
+    def _read_roi_from_header(self) -> None:
         return
 
-    def _read_num_frames_from_header(self):
+    def _read_num_frames_from_header(self) -> None:
         self.num_frames = self._read_at(1446, 1, np.int32)[0]
 
-    def _read_num_combined_frames_from_header(self):
+    def _read_num_combined_frames_from_header(self) -> None:
         self._num_combined_frames = 1
 
-    def _create_dom_from_xml(self):
+    def _create_dom_from_xml(self) -> None:
         """Creates a DOM representation of the xml footer and saves it in the
         dom field"""
         self.dom = parseString(self.xml_string)
 
-    def _get_xml_string(self):
+    def _get_xml_string(self) -> None:
         """Reads out the xml string from the file end"""
         xml_size = self.get_file_size() - self.xml_offset
         xml = self._read_at(self.xml_offset, xml_size, np.byte)
@@ -160,13 +184,13 @@ class SpeFile(object):
                 fid.write(line)
             fid.close()
 
-    def _read_date_time_from_dom(self):
+    def _read_date_time_from_dom(self) -> None:
         """Reads the time of collection and saves it date_time field"""
         date_time_str = self.dom.getElementsByTagName('Origin')[0].getAttribute('created')
         self.date_time = parser.parse(date_time_str)
 
-    def _read_calibration_from_dom(self):
-        """Reads the x calibration of the image from the xml footer and saves 
+    def _read_calibration_from_dom(self) -> None:
+        """Reads the x calibration of the image from the xml footer and saves
         it in the x_calibration field"""
         spe_format = self.dom.childNodes[0]
         calibrations = spe_format.getElementsByTagName('Calibrations')[0]
@@ -178,16 +202,13 @@ class SpeFile(object):
         except IndexError:
             logger.info("No element WaveLengthMapping in SPE File. Not calibrating x units")
 
-    def _read_exposure_from_dom(self):
-        """Reads th exposure time of the experiment into the exposure_time field"""
+    def _read_exposure_from_dom(self) -> None:
+        """Reads the exposure time of the experiment into the exposure_time field"""
         if len(self.dom.getElementsByTagName('Experiment')) != 1:  # check if it is a real v3.0 file
             if len(self.dom.getElementsByTagName('ShutterTiming')) == 1:  # check if it is a pixis detector
                 self._exposure_time = self.dom.getElementsByTagName('ExposureTime')[0].childNodes[0]
                 self.exposure_time = float(self._exposure_time.toxml()) / 1000.0
             else:
-                # self._exposure_time = self.dom.getElementsByTagName('ReadoutControl')[0]. \
-                #     getElementsByTagName('Time')[0].childNodes[0].nodeValue
-                # self._exposure_time = float(self._exposure_time)/1000000000
                 self._exposure_time = self.dom.getElementsByTagName('Gating')[0]. \
                     getElementsByTagName('RepetitiveGate')[0].getElementsByTagName('Pulse')[0].getAttribute('width')
                 self._exposure_time = float(self._exposure_time)/1000000000
@@ -200,7 +221,7 @@ class SpeFile(object):
                 getElementsByTagName('Exposure')[0].attributes["value"].value
             self.exposure_time = float(self._exposure_time.split()[0])
 
-    def _read_detector_from_dom(self):
+    def _read_detector_from_dom(self) -> None:
         """Reads the detector information from the dom object"""
         self._camera = self.dom.getElementsByTagName('Camera')
         if len(self._camera) >= 1:
@@ -208,7 +229,7 @@ class SpeFile(object):
         else:
             self.detector = 'unspecified'
 
-    def _read_grating_from_dom(self):
+    def _read_grating_from_dom(self) -> None:
         """Reads the type of grating from the dom Model"""
         try:
             self._grating = self.dom.getElementsByTagName('Devices')[0]. \
@@ -219,7 +240,7 @@ class SpeFile(object):
         except IndexError:
             self._read_grating_from_header()
 
-    def _read_center_wavelength_from_dom(self):
+    def _read_center_wavelength_from_dom(self) -> None:
         """Reads the center wavelength from the dom Model and saves it center_wavelength field"""
         try:
             self._center_wavelength = self.dom.getElementsByTagName('Devices')[0]. \
@@ -231,7 +252,7 @@ class SpeFile(object):
         except IndexError:
             self._read_center_wavelength_from_header()
 
-    def _read_roi_from_dom(self):
+    def _read_roi_from_dom(self) -> None:
         """Reads the ROIs information defined in the SPE file.
         Depending on the modus it will read out:
         For CustomRegions
@@ -269,7 +290,7 @@ class SpeFile(object):
             self.roi_width = self._xdim
             self.roi_height = self._ydim
 
-    def _read_num_combined_frames_from_dom(self):
+    def _read_num_combined_frames_from_dom(self) -> None:
         try:
             self.frame_combination = self.dom.getElementsByTagName('Experiment')[0]. \
                 getElementsByTagName('Devices')[0]. \
@@ -280,25 +301,25 @@ class SpeFile(object):
         except IndexError:
             self._read_num_combined_frames_from_header()
 
-    def _select_wavelength_from_roi(self):
+    def _select_wavelength_from_roi(self) -> None:
         try:
             self.x_calibration = self.x_calibration[self.roi_x: self.roi_x + self.roi_width]
         except AttributeError:
             logger.warning("SPE file has bad wavelength/ROI data")
 
-    def _read_datatype(self):
+    def _read_datatype(self) -> None:
         self._data_type = self._read_at(108, 1, np.uint16)[0]
 
-    def _read_at(self, pos, size, ntype):
+    def _read_at(self, pos: int | float, size: int | float, ntype: type) -> npt.NDArray:
         pos = int(pos)
         size = int(size)
         self._fid.seek(pos)
         return np.fromfile(self._fid, ntype, size)
 
-    def _read_img(self):
+    def _read_img(self) -> None:
         self.img = self._read_frame(4100)
         if self.num_frames > 1:
-            img_temp = []
+            img_temp: list[npt.NDArray] = []
             img_temp.append(self.img)
             for n in range(self.num_frames - 1):
                 img_temp.append(self._read_frame())
@@ -306,7 +327,7 @@ class SpeFile(object):
         if type(self.img) == list:
             self.img = self.img[0]
 
-    def _read_frame(self, pos=None):
+    def _read_frame(self, pos: int | None = None) -> npt.NDArray:
         """Reads in a frame at a specific binary position. The following parameters have to
         be predefined before calling this function:
         datatype - either 0,1,2,3,8 for float32, int32, int16, uint16 or uint32 (datatypes can be found on page 10 in
@@ -327,13 +348,9 @@ class SpeFile(object):
             img = self._read_at(pos, self._xdim * self._ydim, np.uint32)
         return img.reshape((self._ydim, self._xdim))
 
-    def get_index_from(self, wavelength):
-        """
-        calculating image index for a given index
-        :param wavelength: wavelength in nm
-        :return: index
-        """
-        result = []
+    def get_index_from(self, wavelength: float | npt.NDArray[np.float64]) -> int | npt.NDArray[np.int_]:
+        """Calculate image index for a given wavelength (nm)."""
+        result: list[int] = []
         xdata = self.x_calibration
         try:
             for w in wavelength:
@@ -354,25 +371,25 @@ class SpeFile(object):
                                 (xdata[base_ind + 1] - xdata[base_ind]) \
                                 + base_ind))
 
-    def get_wavelength_from(self, index):
+    def get_wavelength_from(self, index: int | list[int]) -> float | npt.NDArray[np.float64]:
         if isinstance(index, list):
-            result = []
+            result: list[float] = []
             for c in index:
                 result.append(self.x_calibration[c])
             return np.array(result)
         else:
             return self.x_calibration[index]
 
-    def get_dimension(self):
+    def get_dimension(self) -> tuple[np.int64, np.int64]:
         """Returns (xdim, ydim)"""
         return (self._xdim, self._ydim)
 
-    def get_roi(self):
+    def get_roi(self) -> list[int | np.int64]:
         """Returns the ROI which was defined by WinSpec or Lightfield for datacollection"""
         return [self.roi_x, self.roi_x + self.roi_width - 1,
                 self.roi_y, self.roi_y + self.roi_height - 1]
 
-    def get_file_size(self):
+    def get_file_size(self) -> int:
         self._fid.seek(0, 2)
         self.file_size = self._fid.tell()
         return self.file_size

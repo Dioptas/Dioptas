@@ -33,13 +33,18 @@ Modifications:
           taken over from the previous state of the object)
 
 """
+from __future__ import annotations
+
 import logging
 
 logger = logging.getLogger(__name__)
 
 import string
+from typing import Any
+
 import numpy as np
-from scipy.optimize import minimize
+from numpy.typing import NDArray
+from scipy.optimize import minimize, OptimizeResult
 import os
 
 
@@ -56,24 +61,24 @@ class jcpds_reflection:
 
     """
 
-    def __init__(self, h=0., k=0., l=0., intensity=0., d=0.):
-        self.d0 = d
-        self.d = d
-        self.intensity = intensity
-        self.h = h
-        self.k = k
-        self.l = l
+    def __init__(self, h: float = 0., k: float = 0., l: float = 0., intensity: float = 0., d: float = 0.) -> None:
+        self.d0: float = d
+        self.d: float = d
+        self.intensity: float = intensity
+        self.h: float = h
+        self.k: float = k
+        self.l: float = l
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "{:2d},{:2d},{:2d}\t{:.2f}\t{:.3f}".format(self.h, self.k, self.l, self.intensity, self.d0)
 
 
 class MyDict(dict):
-    def __init__(self):
+    def __init__(self) -> None:
         super(MyDict, self).__init__()
         self.setdefault('modified', False)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any) -> None:
         if key in ['comments', 'a0', 'b0', 'c0', 'alpha0', 'beta0', 'gamma0',
                    'symmetry', 'k0', 'k0p0', 'dk0dt', 'dk0pdt',
                    'alpha_t0', 'd_alpha_dt', 'reflections']:
@@ -82,10 +87,10 @@ class MyDict(dict):
 
 
 class jcpds(object):
-    def __init__(self):
-        self._filename = ''
-        self._name = ''
-        self.params = MyDict()
+    def __init__(self) -> None:
+        self._filename: str = ''
+        self._name: str = ''
+        self.params: MyDict = MyDict()
         self.params['version'] = 0
         self.params['comments'] = []
         self.params['symmetry'] = ''
@@ -113,15 +118,12 @@ class jcpds(object):
         self.params['v'] = 0.
         self.params['pressure'] = 0.
         self.params['temperature'] = 298.
-        self.reflections = []
+        self.reflections: list[jcpds_reflection] = []
         self.params['modified'] = False
 
-    def load_file(self, filename):
+    def load_file(self, filename: str) -> None:
         """
         Reads a JCPDS file into the JCPDS object.
-
-        Inputs:
-           file:  The name of the file to read.
 
         Procedure:
            This procedure read the JCPDS file.  There are several versions of the
@@ -317,12 +319,9 @@ class jcpds(object):
         #             ': calculated D ', r.d, \
         #             ') differs by more than 0.1% from input D (', r.d0, ')'))
 
-    def save_file(self, filename):
+    def save_file(self, filename: str) -> None:
         """
         Writes a JCPDS object to a file.
-
-        Inputs:
-           filename:  The name of the file to written.
 
         Procedure:
            This procedure writes a JCPDS file.  It always writes files in the
@@ -366,7 +365,7 @@ class jcpds(object):
 
         self.params['modified'] = False
 
-    def reload_file(self):
+    def reload_file(self) -> None:
         pressure = self.params['pressure']
         temperature = self.params['temperature']
         self.load_file(self._filename)
@@ -382,41 +381,31 @@ class jcpds(object):
     #     super(jcpds, self).__setattr__(key, value)
 
     @property
-    def filename(self):
+    def filename(self) -> str:
         if self.params['modified']:
             return self._filename + '*'
         else:
             return self._filename
 
     @filename.setter
-    def filename(self, value):
+    def filename(self, value: str) -> None:
         self._filename = value
 
     @property
-    def name(self):
+    def name(self) -> str:
         if self.params['modified']:
             return self._name + '*'
         else:
             return self._name
 
     @name.setter
-    def name(self, value):
+    def name(self, value: str) -> None:
         self._name = value
 
-    def compute_v0(self):
+    def compute_v0(self) -> None:
         """
         Computes the unit cell volume of the material at zero pressure and
         temperature from the unit cell parameters.
-
-        Procedure:
-           This procedure computes the unit cell volume from the unit cell
-           parameters.
-
-        Example:
-           Compute the zero pressure and temperature unit cell volume of alumina
-           j = jcpds()
-           j.read_file('alumina.jcpds')
-           j.compute_v0()
         """
         if self.params['symmetry'] == 'CUBIC':
             self.params['b0'] = self.params['a0']
@@ -465,19 +454,10 @@ class jcpds(object):
                                            np.cos(self.params['beta0'] * dtor) *
                                            np.cos(self.params['gamma0'] * dtor))))
 
-    def compute_volume(self, pressure=None, temperature=None):
+    def compute_volume(self, pressure: float | None = None, temperature: float | None = None) -> None:
         """
         Computes the unit cell volume of the material.
         It can compute volumes at different pressures and temperatures.
-
-        Keywords:
-           pressure:
-              The pressure in GPa.  If not present then the pressure is
-              assumed to be 0.
-
-           temperature:
-              The temperature in K.  If not present or zero, then the
-              temperature is assumed to be 298K, i.e. room temperature.
 
         Procedure:
            This procedure computes the unit cell volume.  It starts with the
@@ -489,13 +469,6 @@ class jcpds(object):
               3) Computes the volume at the specified pressure if K0 is non-zero.
                  The routine uses the IDL function FX_ROOT to solve the third
                  order Birch-Murnaghan equation of state.
-
-        Example:
-           Compute the unit cell volume of alumina at 100 GPa and 2500 K.
-           j = jcpds()
-           j.read_file('alumina.jcpds')
-           j.compute_volume(100, 2500)
-
         """
         if pressure is None:
             pressure = self.params['pressure']
@@ -539,42 +512,23 @@ class jcpds(object):
                     raise ArithmeticError("minimize didn't find a minimum!\n" + str(res))
                 self.params['v'] = self.params['v0'] / float(res.x[0])
 
-    def bm3_inverse(self, v0_v, k0, k0p, pressure):
+    def bm3_inverse(self, v0_v: float, k0: float, k0p: float, pressure: float) -> float:
         """
         Returns the value of the third order Birch-Murnaghan equation minus
-        pressure.  It is used to solve for V0/V for a given
-           P, K0 and K0'.
-
-        Inputs:
-           v0_v:   The ratio of the zero pressure volume to the high pressure
-                   volume
-        Outputs:
-           This function returns the value of the third order Birch-Murnaghan
-           equation minus pressure.  \
+        pressure.  It is used to solve for V0/V for a given P, K0 and K0'.
 
         Procedure:
            This procedure simply computes the pressure using V0/V, K0 and K0',
            and then subtracts the input pressure.
-
-        Example:
-           Compute the difference of the calculated pressure and 100 GPa for
-           V0/V=1.3 for alumina
-           jcpds = obj_new('JCPDS')
-           jcpds->read_file,  'alumina.jcpds'
-           common bm3_common mod_pressure, k0, k0p
-           mod_pressure=100
-           k0 = 100
-           k0p = 4.
-           diff = jcpds_bm3_inverse(1.3)
         """
 
         return (1.5 * k0 * (v0_v ** (7. / 3.) - v0_v ** (5. / 3.)) *
                 (1 + 0.75 * (k0p - 4.) * (v0_v ** (2. / 3.) - 1.0)) -
                 pressure) ** 2
 
-    def compute_d0(self):
+    def compute_d0(self) -> None:
         """
-        computes d0 values for the based on the the current lattice parameters
+        Computes d0 values based on the current lattice parameters.
         """
         a = self.params['a0']
         b = self.params['b0']
@@ -634,22 +588,10 @@ class jcpds(object):
         for ind in range(len(self.reflections)):
             self.reflections[ind].d0 = d_spacings[ind]
 
-    def compute_d(self, pressure=None, temperature=None):
+    def compute_d(self, pressure: float | None = None, temperature: float | None = None) -> None:
         """
         Computes the D spacings of the material.
         It can compute D spacings at different pressures and temperatures.
-
-        Keywords:
-           pressure:
-              The pressure in GPa.  If not present then the pressure is
-              assumed to be 0.
-
-           temperature:
-              The temperature in K.  If not present or zero, then the
-              temperature is assumed to be 298K, i.e. room temperature.
-
-        Outputs:
-           None.  The D spacing information in the JCPDS object is calculated.
 
         Procedure:
             This procedure first calls jcpds.compute_volume().
@@ -657,18 +599,6 @@ class jcpds(object):
             the cube root of the fractional change in the volume.
             Using the equations for the each symmetry class it then computes the
             change in D spacing of each reflection.
-
-        Example:
-           Compute the D spacings of alumina at 100 GPa and 2500 K.
-           j=jcpds()
-           j.read_file('alumina.jcpds')
-           j.compute_d(100, 2500)
-           refl = j.get_reflections()
-           for r in refl:
-              # Print out the D spacings at ambient conditions
-              print, r.d0
-              # Print out the D spacings at high pressure and temperature
-              print, r.d
         """
         self.compute_volume(pressure, temperature)
 
@@ -736,23 +666,23 @@ class jcpds(object):
         for ind in range(len(self.reflections)):
             self.reflections[ind].d = d_spacings[ind]
 
-    def add_reflection(self, h=0., k=0., l=0., intensity=0., d=0.):
+    def add_reflection(self, h: float = 0., k: float = 0., l: float = 0., intensity: float = 0., d: float = 0.) -> None:
         new_reflection = jcpds_reflection(h, k, l, intensity, d)
         self.reflections.append(new_reflection)
         self.params['modified'] = True
 
-    def delete_reflection(self, ind):
+    def delete_reflection(self, ind: int) -> None:
         del self.reflections[ind]
         self.params['modified'] = True
 
-    def get_reflections(self):
+    def get_reflections(self) -> list[jcpds_reflection]:
         """
         Returns the information for each reflection for the material.
-        This information is an array of elements of class jcpds_reflection
+        This information is an array of elements of class jcpds_reflection.
         """
         return self.reflections
 
-    def reorder_reflections_by_index(self, ind_list, reversed_toggle=False):
+    def reorder_reflections_by_index(self, ind_list: NDArray[np.intp] | list[int], reversed_toggle: bool = False) -> None:
         if reversed_toggle:
             ind_list = ind_list[::-1]
         new_reflections = []
@@ -763,49 +693,49 @@ class jcpds(object):
         self.reflections = new_reflections
         self.params['modified'] = modified_flag
 
-    def sort_reflections_by_h(self, reversed_toggle=False):
+    def sort_reflections_by_h(self, reversed_toggle: bool = False) -> None:
         h_list = []
         for reflection in self.reflections:
             h_list.append(reflection.h)
         sorted_ind = np.argsort(h_list)
         self.reorder_reflections_by_index(sorted_ind, reversed_toggle)
 
-    def sort_reflections_by_k(self, reversed_toggle=False):
+    def sort_reflections_by_k(self, reversed_toggle: bool = False) -> None:
         k_list = []
         for reflection in self.reflections:
             k_list.append(reflection.k)
         sorted_ind = np.argsort(k_list)
         self.reorder_reflections_by_index(sorted_ind, reversed_toggle)
 
-    def sort_reflections_by_l(self, reversed_toggle=False):
+    def sort_reflections_by_l(self, reversed_toggle: bool = False) -> None:
         l_list = []
         for reflection in self.reflections:
             l_list.append(reflection.l)
         sorted_ind = np.argsort(l_list)
         self.reorder_reflections_by_index(sorted_ind, reversed_toggle)
 
-    def sort_reflections_by_intensity(self, reversed_toggle=False):
+    def sort_reflections_by_intensity(self, reversed_toggle: bool = False) -> None:
         intensity_list = []
         for reflection in self.reflections:
             intensity_list.append(reflection.intensity)
         sorted_ind = np.argsort(intensity_list)
         self.reorder_reflections_by_index(sorted_ind, reversed_toggle)
 
-    def sort_reflections_by_d(self, reversed_toggle=False):
+    def sort_reflections_by_d(self, reversed_toggle: bool = False) -> None:
         d_list = []
         for reflection in self.reflections:
             d_list.append(reflection.d0)
         sorted_ind = np.argsort(d_list)
         self.reorder_reflections_by_index(sorted_ind, reversed_toggle)
 
-    def has_thermal_expansion(self):
+    def has_thermal_expansion(self) -> bool:
         return (self.params['alpha_t0'] != 0) or (self.params['d_alpha_dt'] != 0)
 
 
-def lookup_jcpds_line(in_string,
-                      pressure=0.,
-                      temperature=0.,
-                      path=os.getenv('JCPDS_PATH')):
+def lookup_jcpds_line(in_string: str,
+                      pressure: float = 0.,
+                      temperature: float = 0.,
+                      path: str | None = os.getenv('JCPDS_PATH')) -> float | None:
     """
     Returns the d-spacing in Angstroms for a particular lattice plane.
 
@@ -831,11 +761,6 @@ def lookup_jcpds_line(in_string,
        temperature:
            The temperature at which to compute the d-spacing.  Not yet
            implemented.  Room-temperature d-spacing is always returned.
-
-    Outputs:
-       This function returns the d-spacing of the specified lattice plane.
-       If the input is invalid, e.g. non-existent compound or plane, then the
-       function returns None.
 
     Restrictions:
        This function attempts to locate the file 'Compound.jcpds', where

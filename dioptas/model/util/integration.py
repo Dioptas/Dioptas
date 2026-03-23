@@ -8,13 +8,21 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Callable, Iterator
+from typing import TYPE_CHECKING
 
 import numpy as np
+import numpy.typing as npt
+
+if TYPE_CHECKING:
+    from dioptas.model.ImgModel import ImgModel
+    from dioptas.model.MaskModel import MaskModel
+    from dioptas.model.loader.hdf5Loader import Hdf5Image
 
 logger = logging.getLogger(__name__)
 
 
-def detect_fast_path(img_model) -> bool:
+def detect_fast_path(img_model: ImgModel) -> bool:
     """Check whether the img_model can bypass transformations/corrections.
 
     When True, raw frames from HDF5 bitshuffle parallel decompression can
@@ -28,7 +36,7 @@ def detect_fast_path(img_model) -> bool:
     )
 
 
-def try_open_bitshuffle_hdf5(filepath):
+def try_open_bitshuffle_hdf5(filepath: str) -> Hdf5Image | None:
     """Try to open *filepath* as a bitshuffle-compressed HDF5.
 
     Returns an ``Hdf5Image`` instance if the file is a bitshuffle HDF5,
@@ -49,14 +57,24 @@ def try_open_bitshuffle_hdf5(filepath):
     return None
 
 
-def _apply_frame(img_model, raw_frame, fast_path: bool):
+def _apply_frame(
+    img_model: ImgModel,
+    raw_frame: npt.NDArray[np.float64],
+    fast_path: bool,
+) -> npt.NDArray[np.float64]:
     """Apply the img_model frame pipeline if *fast_path* is False."""
     if fast_path:
         return raw_frame
     return img_model._apply_frame_pipeline(raw_frame)
 
 
-def _open_file_frames(filepath, img_model, fast_path, *, load=False):
+def _open_file_frames(
+    filepath: str,
+    img_model: ImgModel,
+    fast_path: bool,
+    *,
+    load: bool = False,
+) -> Iterator[npt.NDArray[np.float64]]:
     """Open *filepath* and return a generator yielding processed frames.
 
     Tries bitshuffle HDF5 parallel decompression first for fast frame
@@ -73,7 +91,7 @@ def _open_file_frames(filepath, img_model, fast_path, *, load=False):
         if load:
             img_model.load(filepath)
 
-        def bitshuffle_gen():
+        def bitshuffle_gen() -> Iterator[npt.NDArray[np.float64]]:
             for raw in hdf5_loader.gen_frames():
                 yield _apply_frame(img_model, raw, fast_path)
         return bitshuffle_gen()
@@ -81,26 +99,25 @@ def _open_file_frames(filepath, img_model, fast_path, *, load=False):
     # Fallback: always loads through img_model
     img_model.load(filepath)
 
-    def fallback_gen():
+    def fallback_gen() -> Iterator[npt.NDArray[np.float64]]:
         for i in range(img_model.series_max):
             img_model.load_series_img(i + 1)
             yield img_model.get_img_data_float64()
     return fallback_gen()
 
 
-def iter_frames_sequential(img_model, filepaths, *, img_shape, abort_check=None, on_frame=None):
+def iter_frames_sequential(
+    img_model: ImgModel,
+    filepaths: list[str],
+    *,
+    img_shape: tuple[int, ...],
+    abort_check: Callable[[], bool] | None = None,
+    on_frame: Callable[[str, int], None] | None = None,
+) -> Iterator[npt.NDArray[np.float64]]:
     """Yield image frames from *filepaths* sequentially.
 
     Used by MapModel for map integration.  Tries bitshuffle HDF5 parallel
     decompression first, falls back to standard loading via ``img_model``.
-
-    Args:
-        img_model: ImgModel instance for loading/processing frames.
-        filepaths: list of file paths to iterate over.
-        img_shape: expected image shape — raises ValueError on mismatch.
-        abort_check: callable returning True when processing should stop.
-        on_frame: ``on_frame(filepath, frame_index)`` called before each
-            frame is yielded; use this to collect per-frame metadata.
     """
     fast_path = detect_fast_path(img_model)
 
@@ -123,25 +140,25 @@ def iter_frames_sequential(img_model, filepaths, *, img_shape, abort_check=None,
             yield frame
 
 
-def iter_frames_indexed(img_model, files, source, indices, *, mask_model=None, abort_check=None):
+def iter_frames_indexed(
+    img_model: ImgModel,
+    files: npt.NDArray | list[str],
+    source: npt.NDArray,
+    indices: list[int] | npt.NDArray[np.int_],
+    *,
+    mask_model: MaskModel | None = None,
+    abort_check: Callable[[], bool] | None = None,
+) -> Iterator[npt.NDArray[np.float64]]:
     """Yield image frames at specific ``(file_index, frame_pos)`` positions.
 
     Used by BatchModel for batch integration with ``pos_map`` indexing.
     When a bitshuffle HDF5 is detected, uses parallel decompression with
     forward-seeking to the requested frame position.
-
-    Args:
-        img_model: ImgModel instance for loading/processing frames.
-        files: array of file paths (indexed by ``file_index``).
-        source: position-map array of ``(file_index, frame_pos)`` entries.
-        indices: list of indices into *source* to process.
-        mask_model: optional MaskModel — its dimension is updated on file change.
-        abort_check: callable returning True when processing should stop.
     """
-    fast_path = detect_fast_path(img_model)
-    current_file = ""
-    frame_iter = None
-    next_frame_pos = 0
+    fast_path: bool = detect_fast_path(img_model)
+    current_file: str | int = ""
+    frame_iter: Iterator[npt.NDArray[np.float64]] | None = None
+    next_frame_pos: int = 0
 
     for index in indices:
         if abort_check and abort_check():
@@ -157,13 +174,16 @@ def iter_frames_indexed(img_model, files, source, indices, *, mask_model=None, a
             next_frame_pos = 0
 
         # Advance to requested position
-        frame = None
+        frame: npt.NDArray[np.float64] | None = None
         while next_frame_pos <= pos:
             frame = next(frame_iter)
             next_frame_pos += 1
         yield frame
 
 
-def convert_tth_to_d(tth_array, wavelength):
+def convert_tth_to_d(
+    tth_array: npt.NDArray[np.float64],
+    wavelength: float,
+) -> npt.NDArray[np.float64]:
     """Convert two-theta (degrees) to d-spacing (Angstrom)."""
     return wavelength / (2 * np.sin(tth_array / 360 * np.pi)) * 1e10

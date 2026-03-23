@@ -1,13 +1,15 @@
 # SPDX-License-Identifier: MIT
 
+from __future__ import annotations
+
 import logging
 from collections import deque
+from math import sqrt, atan2, cos, sin
 
 import fabio
 import numpy as np
 import skimage.draw
 from PIL import Image
-from math import sqrt, atan2, cos, sin
 
 from .util.cosmics import cosmicsimage
 from .util import Signal
@@ -16,34 +18,34 @@ from .util.point import Point
 logger = logging.getLogger(__name__)
 
 
-class MaskModel(object):
-    def __init__(self, mask_dimension=(2048, 2048)):
-        self.mask_dimension = mask_dimension
+class MaskModel:
+    def __init__(self, mask_dimension: tuple[int, int] = (2048, 2048)) -> None:
+        self.mask_dimension: tuple[int, int] = mask_dimension
         self.reset_dimension()
-        self.filename = ''
-        self.mode = True
-        self.roi = None
+        self.filename: str = ''
+        self.mode: bool = True
+        self.roi: tuple[int, int, int, int] | None = None
 
-        self._mask_data = np.zeros(self.mask_dimension, dtype=bool)
-        self._undo_deque = deque(maxlen=50)
-        self._redo_deque = deque(maxlen=50)
+        self._mask_data: np.ndarray = np.zeros(self.mask_dimension, dtype=bool)
+        self._undo_deque: deque[np.ndarray] = deque(maxlen=50)
+        self._redo_deque: deque[np.ndarray] = deque(maxlen=50)
 
-        self.mask_changed = Signal()
+        self.mask_changed: Signal = Signal()
 
-    def set_dimension(self, mask_dimension):
+    def set_dimension(self, mask_dimension: tuple[int, int]) -> None:
         if not np.array_equal(mask_dimension, self.mask_dimension):
             self.mask_dimension = mask_dimension
             self.reset_dimension()
             self.mask_changed.emit()
 
-    def reset_dimension(self):
+    def reset_dimension(self) -> None:
         if self.mask_dimension is not None:
             self._mask_data = np.zeros(self.mask_dimension, dtype=bool)
             self._undo_deque = deque(maxlen=50)
             self._redo_deque = deque(maxlen=50)
 
     @property
-    def roi_mask(self):
+    def roi_mask(self) -> np.ndarray | None:
         if self.roi is not None:
             roi_mask = np.ones(self.mask_dimension)
             x1, x2, y1, y2 = self.roi
@@ -58,25 +60,24 @@ class MaskModel(object):
         else:
             return None
 
-    def get_mask(self):
+    def get_mask(self) -> np.ndarray:
         if self.roi is None:
             return self._mask_data
         elif self.roi is not None:
             return np.logical_or(self._mask_data, self.roi_mask)
 
-    def get_img(self):
+    def get_img(self) -> np.ndarray:
         return self._mask_data
 
-    def update_deque(self):
-        """
-        Saves the current mask data into a deque, which can be popped later
+    def update_deque(self) -> None:
+        """Saves the current mask data into a deque, which can be popped later
         to provide an undo/redo feature.
-        When performing a new action the old redo steps will be cleared..._
+        When performing a new action the old redo steps will be cleared.
         """
         self._undo_deque.append(np.copy(self._mask_data))
         self._redo_deque.clear()
 
-    def undo(self):
+    def undo(self) -> None:
         try:
             old_data = self._undo_deque.pop()
             self._redo_deque.append(np.copy(self._mask_data))
@@ -85,7 +86,7 @@ class MaskModel(object):
         except IndexError:
             pass
 
-    def redo(self):
+    def redo(self) -> None:
         try:
             new_data = self._redo_deque.pop()
             self._undo_deque.append(np.copy(self._mask_data))
@@ -94,26 +95,25 @@ class MaskModel(object):
         except IndexError:
             pass
 
-    def mask_below_threshold(self, img_data, threshold):
+    def mask_below_threshold(self, img_data: np.ndarray, threshold: float) -> None:
         logger.debug("Masking below threshold: %s", threshold)
         self.update_deque()
         self._mask_data[img_data < threshold] = self.mode
         self.mask_changed.emit()
 
-    def mask_above_threshold(self, img_data, threshold):
+    def mask_above_threshold(self, img_data: np.ndarray, threshold: float) -> None:
         logger.debug("Masking above threshold: %s", threshold)
         self.update_deque()
         self._mask_data[img_data > threshold] = self.mode
         self.mask_changed.emit()
 
-    def mask_QGraphicsRectItem(self, QGraphicsRectItem):
+    def mask_QGraphicsRectItem(self, QGraphicsRectItem: object) -> None:
         rect = QGraphicsRectItem.rect()
         self.mask_rect(rect.top(), rect.left(), rect.height(), rect.width())
 
-    def mask_QGraphicsPolygonItem(self, QGraphicsPolygonItem):
-        """
-        Masks a polygon given by a QGraphicsPolygonItem from the QtWidgets Library.
-        Uses the sklimage.draw.polygon function.
+    def mask_QGraphicsPolygonItem(self, QGraphicsPolygonItem: object) -> None:
+        """Masks a polygon given by a QGraphicsPolygonItem from the QtWidgets Library.
+        Uses the skimage.draw.polygon function.
         """
 
         # get polygon points
@@ -126,9 +126,8 @@ class MaskModel(object):
             y[i] = point.y()
         self.mask_polygon(x, y)
 
-    def mask_QGraphicsEllipseItem(self, QGraphicsEllipseItem):
-        """
-        Masks an Ellipse given by a QGraphicsEllipseItem from the QtWidgets
+    def mask_QGraphicsEllipseItem(self, QGraphicsEllipseItem: object) -> None:
+        """Masks an Ellipse given by a QGraphicsEllipseItem from the QtWidgets
         Library. Uses the skimage.draw.ellipse function.
         """
         bounding_rect = QGraphicsEllipseItem.rect()
@@ -138,9 +137,8 @@ class MaskModel(object):
         y_radius = bounding_rect.height() * 0.5
         self.mask_ellipse(int(cx), int(cy), int(x_radius), int(y_radius))
 
-    def mask_rect(self, x, y, width, height):
-        """
-        Masks a rectangle. x and y parameters are the upper left corner
+    def mask_rect(self, x: float, y: float, width: float, height: float) -> None:
+        """Masks a rectangle. x and y parameters are the upper left corner
         of the rectangle.
         """
         logger.debug("Masking rectangle at (%s, %s) size %sx%s", x, y, width, height)
@@ -167,9 +165,8 @@ class MaskModel(object):
         self._mask_data[x_ind1:x_ind2, y_ind1:y_ind2] = self.mode
         self.mask_changed.emit()
 
-    def mask_polygon(self, x, y):
-        """
-        Masks the a polygon with given vertices. x and y are lists of
+    def mask_polygon(self, x: np.ndarray, y: np.ndarray) -> None:
+        """Masks a polygon with given vertices. x and y are arrays of
         the polygon vertices. Uses the draw.polygon implementation of
         the skimage library.
         """
@@ -179,11 +176,9 @@ class MaskModel(object):
         self._mask_data[rr, cc] = self.mode
         self.mask_changed.emit()
 
-    def mask_ellipse(self, cx, cy, x_radius, y_radius):
-        """
-        Masks an ellipse with center coordinates (cx, cy) and the radii
-        given. Uses the draw.ellipse implementation of
-        the skimage library.
+    def mask_ellipse(self, cx: int, cy: int, x_radius: int, y_radius: int) -> None:
+        """Masks an ellipse with center coordinates (cx, cy) and the radii
+        given. Uses the draw.ellipse implementation of the skimage library.
         """
         logger.debug("Masking ellipse at (%.1f, %.1f)", cx, cy)
         self.update_deque()
@@ -192,7 +187,7 @@ class MaskModel(object):
         self._mask_data[rr, cc] = self.mode
         self.mask_changed.emit()
 
-    def grow(self):
+    def grow(self) -> None:
         logger.debug("Growing mask")
         self.update_deque()
         self._mask_data[1:, :] = np.logical_or(self._mask_data[1:, :], self._mask_data[:-1, :])
@@ -201,7 +196,7 @@ class MaskModel(object):
         self._mask_data[:, :-1] = np.logical_or(self._mask_data[:, :-1], self._mask_data[:, 1:])
         self.mask_changed.emit()
 
-    def shrink(self):
+    def shrink(self) -> None:
         logger.debug("Shrinking mask")
         self.update_deque()
         self._mask_data[1:, :] = np.logical_and(self._mask_data[1:, :], self._mask_data[:-1, :])
@@ -210,19 +205,19 @@ class MaskModel(object):
         self._mask_data[:, :-1] = np.logical_and(self._mask_data[:, :-1], self._mask_data[:, 1:])
         self.mask_changed.emit()
 
-    def invert_mask(self):
+    def invert_mask(self) -> None:
         logger.debug("Inverting mask")
         self.update_deque()
         self._mask_data = np.logical_not(self._mask_data)
         self.mask_changed.emit()
 
-    def clear_mask(self):
+    def clear_mask(self) -> None:
         logger.debug("Clearing mask")
         self.update_deque()
         self._mask_data[:, :] = False
         self.mask_changed.emit()
 
-    def remove_cosmic(self, img):
+    def remove_cosmic(self, img: np.ndarray) -> None:
         self.update_deque()
         test = cosmicsimage(img, sigclip=3.0, objlim=3.0)
         num = 2
@@ -232,24 +227,18 @@ class MaskModel(object):
             self._mask_data = np.logical_or(self._mask_data, np.array(test.mask, dtype='bool'))
         self.mask_changed.emit()
 
-    def set_mode(self, mode):
-        """
-        sets the mode to unmask or mask which equals mode = False or True
-        """
+    def set_mode(self, mode: bool) -> None:
+        """Sets the mode to unmask or mask which equals mode = False or True."""
         self.mode = mode
 
-    def set_mask(self, mask_data):
+    def set_mask(self, mask_data: np.ndarray) -> None:
         self.update_deque()
         self._mask_data = mask_data
         self.mask_dimension = mask_data.shape
         self.mask_changed.emit()
 
-    def save_mask(self, filename: str, flipud: bool = False):
-        """Save current mask to file
-
-        :param filename: Path of the file to write
-        :param flipud: True to apply a vertical flip before saving the mask
-        """
+    def save_mask(self, filename: str, flipud: bool = False) -> None:
+        """Save current mask to file."""
         logger.info("Saving mask to %s", filename)
         im_array = np.int8(self.get_img())
         if flipud:
@@ -273,11 +262,7 @@ class MaskModel(object):
 
     @staticmethod
     def read_mask_file(filename: str, flipud: bool = False) -> np.ndarray:
-        """Load an image mask from file.
-
-        :param filename: Path to the file to read
-        :param flipud: True to apply a vertical flip to the mask
-        """
+        """Load an image mask from file."""
         if filename.endswith('.npy'):
             data = np.load(filename)
         elif filename.endswith('.edf'):
@@ -292,12 +277,8 @@ class MaskModel(object):
             data = np.flipud(data)
         return data
 
-    def load_mask(self, filename: str, flipud: bool = False):
-        """Load mask from file and replace the current one
-
-        :param filename: Path to the file to read
-        :param flipud: True to apply a vertical flip to the loaded mask
-        """
+    def load_mask(self, filename: str, flipud: bool = False) -> bool:
+        """Load mask from file and replace the current one."""
         logger.info("Loading mask from %s", filename)
         data = self.read_mask_file(filename, flipud)
 
@@ -309,12 +290,8 @@ class MaskModel(object):
             return True
         return False
 
-    def add_mask(self, filename: str, flipud: bool = False):
-        """Combine mask loaded from file with the current one
-
-        :param filename: Path to the file to read
-        :param flipud: True to apply a vertical flip to the loaded mask
-        """
+    def add_mask(self, filename: str, flipud: bool = False) -> bool:
+        """Combine mask loaded from file with the current one."""
         logger.info("Adding mask from %s", filename)
         data = self.read_mask_file(filename, flipud)
 
@@ -323,12 +300,14 @@ class MaskModel(object):
             return True
         return False
 
-    def _add_mask(self, mask_data):
+    def _add_mask(self, mask_data: np.ndarray) -> None:
         self.update_deque()
         self._mask_data = np.logical_or(self._mask_data,
                                         np.array(mask_data, dtype='bool'))
 
-    def find_center_of_circle_from_three_points(self, a, b, c):
+    def find_center_of_circle_from_three_points(
+        self, a: Point, b: Point, c: Point
+    ) -> Point | None:
         xa, ya = a.x(), a.y()
         xb, yb = b.x(), b.y()
         xc, yc = c.x(), c.y()
@@ -346,11 +325,13 @@ class MaskModel(object):
         return self.center_for_arc
 
     @staticmethod
-    def find_radius_of_circle_from_center_and_point(p0, a):
+    def find_radius_of_circle_from_center_and_point(p0: Point, a: Point) -> float:
         r = sqrt((a.x() - p0.x()) ** 2 + (a.y() - p0.y()) ** 2)
         return r
 
-    def find_n_angles_on_arc_from_three_points_around_p0(self, p0, pa, pb, pc, n):
+    def find_n_angles_on_arc_from_three_points_around_p0(
+        self, p0: Point, pa: Point, pb: Point, pc: Point, n: int
+    ) -> np.ndarray | None:
         phi_a = self.calc_angle_from_center_and_point(p0, pa)
         phi_b = self.calc_angle_from_center_and_point(p0, pb)
         phi_c = self.calc_angle_from_center_and_point(p0, pc)
@@ -365,12 +346,14 @@ class MaskModel(object):
         return phi_range
 
     @staticmethod
-    def calc_angle_from_center_and_point(p0, pa):
+    def calc_angle_from_center_and_point(p0: Point, pa: Point) -> float:
         phi = atan2(pa.y() - p0.y(), pa.x() - p0.x())
         return phi
 
     @staticmethod
-    def calc_arc_points_from_angles(p0, r, width, phi_range):
+    def calc_arc_points_from_angles(
+        p0: Point, r: float, width: float, phi_range: np.ndarray
+    ) -> list[Point]:
         p = []
         for phi in phi_range:
             xn = p0.x() + (r - width) * cos(phi)

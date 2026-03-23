@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: MIT
 
+from __future__ import annotations
+
 import logging
 import os
 import numpy as np
@@ -29,28 +31,29 @@ logger = logging.getLogger(__name__)
 
 
 class DioptasModel(object):
-    """
-    Handles all the data used in Dioptas. Image, Calibration and Mask are handled by so called configurations.
+    """Handles all the data used in Dioptas.
+
+    Image, Calibration and Mask are handled by so called configurations.
     Patterns and overlays are global and always the same, no matter which configuration is selected.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(DioptasModel, self).__init__()
-        self.configurations = []
-        self.configuration_ind = 0
+        self.configurations: list[Configuration] = []
+        self.configuration_ind: int = 0
         self.configurations.append(Configuration())
 
-        self._overlay_model = OverlayModel()
-        self._phase_model = PhaseModel()
+        self._overlay_model: OverlayModel = OverlayModel()
+        self._phase_model: PhaseModel = PhaseModel()
 
-        self._combine_patterns = False
-        self._combine_cakes = False
-        self._cake_data = None
-        self._cake_tth = None
-        self._cake_azi = None
+        self._combine_patterns: bool = False
+        self._combine_cakes: bool = False
+        self._cake_data: np.ndarray | None = None
+        self._cake_tth: np.ndarray | None = None
+        self._cake_azi: np.ndarray | None = None
 
-        self._multi_geometry = None
-        self._multi_geometry_unit = None
+        self._multi_geometry: MultiGeometry | None = None
+        self._multi_geometry_unit: str | None = None
 
         self.configurations[0].calibration_model.detector_reset.connect(
             self.invalidate_multi_geometry
@@ -59,30 +62,30 @@ class DioptasModel(object):
             self.invalidate_multi_geometry
         )
 
-        self.configuration_added = Signal()
-        self.configuration_selected = Signal(int)  # new index
-        self.configuration_removed = Signal(int)  # removed index
+        self.configuration_added: Signal = Signal()
+        self.configuration_selected: Signal = Signal(int)  # new index
+        self.configuration_removed: Signal = Signal(int)  # removed index
 
-        self.img_changed = Signal()
-        self.mask_changed = Signal()
-        self.pattern_changed = Signal()
-        self.cake_changed = Signal()
-        self.enabled_phases_in_cake = Signal()
+        self.img_changed: Signal = Signal()
+        self.mask_changed: Signal = Signal()
+        self.pattern_changed: Signal = Signal()
+        self.cake_changed: Signal = Signal()
+        self.enabled_phases_in_cake: Signal = Signal()
 
-        self.clicked_tth = 0
-        self.clicked_azi = 0
+        self.clicked_tth: float = 0
+        self.clicked_azi: float = 0
 
-        self.clicked_tth_changed = Signal()
-        self.clicked_azi_changed = Signal()
+        self.clicked_tth_changed: Signal = Signal()
+        self.clicked_azi_changed: Signal = Signal()
         self.clicked_tth_changed.connect(self.update_clicked_tth)
         self.clicked_azi_changed.connect(self.update_clicked_azi)
 
         self.connect_models()
 
-    def add_configuration(self):
-        """
-        Adds a new configuration to the list of configurations. The new configuration will have the same working
-        directories as the currently selected.
+    def add_configuration(self) -> None:
+        """Adds a new configuration to the list of configurations.
+
+        The new configuration will have the same working directories as the currently selected.
         """
         logger.info("Adding new configuration")
         self.configurations.append(Configuration(self.working_directories))
@@ -112,10 +115,8 @@ class DioptasModel(object):
         self.invalidate_multi_geometry()
         self.configuration_added.emit()
 
-    def remove_configuration(self):
-        """
-        Removes the currently selected configuration.
-        """
+    def remove_configuration(self) -> None:
+        """Removes the currently selected configuration."""
         logger.info("Removing configuration")
         if len(self.configurations) == 1:
             return
@@ -134,10 +135,10 @@ class DioptasModel(object):
         self.invalidate_multi_geometry()
         self.configuration_removed.emit(self.configuration_ind)
 
-    def save(self, filename):
-        """
-        Saves the current state of the model in a h5py file. file-ending can be chosen as wanted. Usually Dioptas
-        projects are saved as *.dio files.
+    def save(self, filename: str) -> None:
+        """Saves the current state of the model in a h5py file.
+
+        File-ending can be chosen as wanted. Usually Dioptas projects are saved as *.dio files.
         """
         logger.info("Saving project to %s", filename)
         f = h5py.File(filename, "w")
@@ -196,10 +197,8 @@ class DioptasModel(object):
         f.flush()
         f.close()
 
-    def load(self, filename):
-        """
-        Loads a previously saved model (see save function) from an h5py file.
-        """
+    def load(self, filename: str) -> None:
+        """Loads a previously saved model (see save function) from an h5py file."""
         logger.info("Loading project from %s", filename)
         self.disconnect_models()
 
@@ -287,10 +286,10 @@ class DioptasModel(object):
 
         f.close()
 
-    def select_configuration(self, ind):
-        """
-        Selects a configuration specified by the ind(ex) as current model. This will reemit all needed signals, so that
-        the GUI can update accordingly
+    def select_configuration(self, ind: int) -> None:
+        """Selects a configuration specified by the index as current model.
+
+        This will reemit all needed signals, so that the GUI can update accordingly.
         """
         if 0 <= ind < len(self.configurations):
             self.disconnect_models()
@@ -308,30 +307,26 @@ class DioptasModel(object):
             self.pattern_changed.emit()
             self.cake_changed.emit()
 
-    def disconnect_models(self):
-        """
-        Disconnects signals of the currently selected configuration.
-        """
+    def disconnect_models(self) -> None:
+        """Disconnects signals of the currently selected configuration."""
         self.img_model.img_changed.disconnect(self.img_changed)
         self.mask_model.mask_changed.disconnect(self.mask_changed)
         self.pattern_model.pattern_changed.disconnect(self.pattern_changed)
         self.current_configuration.cake_changed.disconnect(self.cake_changed)
 
-    def connect_models(self):
-        """
-        Connects signals of the currently selected configuration
-        """
+    def connect_models(self) -> None:
+        """Connects signals of the currently selected configuration."""
         self.img_model.img_changed.connect(self.img_changed, priority=True)
         self.mask_model.mask_changed.connect(self.mask_changed)
         self.pattern_model.pattern_changed.connect(self.pattern_changed)
         self.current_configuration.cake_changed.connect(self.cake_changed)
 
     @property
-    def working_directories(self):
+    def working_directories(self) -> dict[str, str]:
         return self.current_configuration.working_directories
 
     @working_directories.setter
-    def working_directories(self, new):
+    def working_directories(self, new: dict[str, str]) -> None:
         self.current_configuration.working_directories = new
 
     @property
@@ -375,15 +370,15 @@ class DioptasModel(object):
         return self.configurations[self.configuration_ind].use_mask
 
     @use_mask.setter
-    def use_mask(self, new_val):
+    def use_mask(self, new_val: bool) -> None:
         self.configurations[self.configuration_ind].use_mask = new_val
 
     @property
-    def transparent_mask(self):
+    def transparent_mask(self) -> bool:
         return self.configurations[self.configuration_ind].transparent_mask
 
     @transparent_mask.setter
-    def transparent_mask(self, new_val):
+    def transparent_mask(self, new_val: bool) -> None:
         self.configurations[self.configuration_ind].transparent_mask = new_val
 
     @property
@@ -391,7 +386,7 @@ class DioptasModel(object):
         return self.current_configuration.integration_unit
 
     @integration_unit.setter
-    def integration_unit(self, new_val):
+    def integration_unit(self, new_val: str) -> None:
         self.current_configuration.integration_unit = new_val
 
     @property
@@ -417,26 +412,20 @@ class DioptasModel(object):
         return self._combine_patterns
 
     @combine_patterns.setter
-    def combine_patterns(self, new_val):
+    def combine_patterns(self, new_val: bool) -> None:
         self._combine_patterns = new_val
         self.pattern_changed.emit()
 
-    def save_combined_pattern(self, filename):
-        """
-        Saves the current integrated pattern
-        :param filename: where to save the file
-        """
+    def save_combined_pattern(self, filename: str) -> None:
+        """Saves the current integrated pattern."""
         self.pattern.save(filename, unit=self.integration_unit)
 
     @property
-    def combine_cakes(self):
-        """
-        :rtype: bool
-        """
+    def combine_cakes(self) -> bool:
         return self._combine_cakes
 
     @combine_cakes.setter
-    def combine_cakes(self, new_val):
+    def combine_cakes(self, new_val: bool) -> None:
         self._combine_cakes = new_val
         if new_val:
             for configuration in self.configurations:
@@ -447,12 +436,10 @@ class DioptasModel(object):
                 configuration.cake_changed.disconnect(self.calculate_combined_cake)
         self.cake_changed.emit()
 
-    def _get_multi_geometry(self, unit="2th_deg"):
-        """
-        Returns a cached pyFAI MultiGeometry from all configurations' geometries.
+    def _get_multi_geometry(self, unit: str = "2th_deg") -> MultiGeometry:
+        """Returns a cached pyFAI MultiGeometry from all configurations' geometries.
+
         The MultiGeometry is recreated only when the unit changes or when invalidated.
-        :param unit: radial unit for integration
-        :return: MultiGeometry instance
         """
         if self._multi_geometry is None or self._multi_geometry_unit != unit:
             ais = [
@@ -463,18 +450,15 @@ class DioptasModel(object):
             self._multi_geometry_unit = unit
         return self._multi_geometry
 
-    def invalidate_multi_geometry(self):
+    def invalidate_multi_geometry(self) -> None:
         """Invalidates the cached MultiGeometry so it is recreated on next use."""
         self._multi_geometry = None
         self._multi_geometry_unit = None
 
-    def _get_lst_data_and_masks(self):
-        """
-        Collects image data and masks from all configurations.
-        :return: (lst_data, lst_mask) tuple of lists
-        """
-        lst_data = []
-        lst_mask = []
+    def _get_lst_data_and_masks(self) -> tuple[list[np.ndarray], list[np.ndarray | None]]:
+        """Collects image data and masks from all configurations."""
+        lst_data: list[np.ndarray] = []
+        lst_mask: list[np.ndarray | None] = []
         for configuration in self.configurations:
             lst_data.append(configuration.img_model.img_data)
             if configuration.use_mask:
@@ -486,9 +470,7 @@ class DioptasModel(object):
         return lst_data, lst_mask
 
     def _integrate_combined_1d(self) -> Pattern:
-        """
-        Uses pyFAI MultiGeometry to integrate all configurations into a single 1D pattern.
-        """
+        """Uses pyFAI MultiGeometry to integrate all configurations into a single 1D pattern."""
         unit = self.integration_unit
         mg_unit = "2th_deg" if unit == "d_A" else unit
 
@@ -525,10 +507,8 @@ class DioptasModel(object):
 
         return Pattern(x, y)
 
-    def calculate_combined_cake(self):
-        """
-        Uses pyFAI MultiGeometry to combine cakes from all configurations.
-        """
+    def calculate_combined_cake(self) -> None:
+        """Uses pyFAI MultiGeometry to combine cakes from all configurations."""
         self._activate_cake()
 
         unit = self.integration_unit
@@ -564,32 +544,31 @@ class DioptasModel(object):
         self._cake_tth = result.radial
         self._cake_azi = result.azimuthal
 
-    def _activate_cake(self):
-        """
-        Activates cake integration in all configurations.
-        """
+    def _activate_cake(self) -> None:
+        """Activates cake integration in all configurations."""
         for configuration in self.configurations:
             if not configuration.auto_integrate_cake:
                 configuration.auto_integrate_cake = True
                 configuration.integrate_image_2d()
 
     @property
-    def cake_tth(self):
+    def cake_tth(self) -> np.ndarray | None:
         if not self.combine_cakes:
             return self.calibration_model.cake_tth
         else:
             return self._cake_tth
 
     @property
-    def cake_azi(self):
+    def cake_azi(self) -> np.ndarray | None:
         if not self.combine_cakes:
             return self.calibration_model.cake_azi
         else:
             return self._cake_azi
 
-    def reset(self):
-        """
-        Resets the state of the model. It only remembers the current working directories of the currently selected
+    def reset(self) -> None:
+        """Resets the state of the model.
+
+        It only remembers the current working directories of the currently selected
         configuration. Everything else including all configurations is deleted.
         """
         working_directories = self.working_directories
@@ -610,10 +589,8 @@ class DioptasModel(object):
         self.img_model.img_changed.emit()
         self.pattern_model.pattern_changed.emit()
 
-    def delete_configurations(self):
-        """
-        Deletes all configurations currently present in the model.
-        """
+    def delete_configurations(self) -> None:
+        """Deletes all configurations currently present in the model."""
         for configuration in self.configurations:
             configuration.calibration_model.pattern_geometry.reset()
             if configuration.calibration_model.cake_geometry is not None:
@@ -624,79 +601,76 @@ class DioptasModel(object):
             del configuration.mask_model
         del self.configurations
 
-    def _setup_multiple_file_loading(self):
-        """
-        Performs tasks before multiple configuration load the next image. This is in particular to prevent multiple
-        integrations, if only one is needed.
+    def _setup_multiple_file_loading(self) -> None:
+        """Performs tasks before multiple configurations load the next image.
+
+        This is in particular to prevent multiple integrations, if only one is needed.
         """
         if self.combine_cakes:
             for configuration in self.configurations:
                 configuration.cake_changed.disconnect(self.calculate_combined_cake)
 
-    def _teardown_multiple_file_loading(self):
-        """
-        Performs everything after all configurations have loaded a new image.
-        :return:
-        """
+    def _teardown_multiple_file_loading(self) -> None:
+        """Performs everything after all configurations have loaded a new image."""
         if self.combine_cakes:
             for configuration in self.configurations:
                 configuration.cake_changed.connect(self.calculate_combined_cake)
             self.calculate_combined_cake()
 
-    def next_image(self, pos=None):
-        """
-        Loads the next image for each configuration if it exists.
-        :param pos: the position of the number in terms of numbers present in the filename string (not string position).
+    def next_image(self, pos: int | None = None) -> None:
+        """Loads the next image for each configuration if it exists.
+
+        The pos parameter is the position of the number in terms of numbers present
+        in the filename string (not string position).
         """
         self._setup_multiple_file_loading()
         for configuration in self.configurations:
             configuration.img_model.load_next_file(pos=pos)
         self._teardown_multiple_file_loading()
 
-    def previous_image(self, pos=None):
-        """
-        Loads the previous image for each configuration if it exists.
-        :param pos: the position of the number in terms of numbers present in the filename string (not string position).
+    def previous_image(self, pos: int | None = None) -> None:
+        """Loads the previous image for each configuration if it exists.
+
+        The pos parameter is the position of the number in terms of numbers present
+        in the filename string (not string position).
         """
         self._setup_multiple_file_loading()
         for configuration in self.configurations:
             configuration.img_model.load_previous_file(pos=pos)
         self._teardown_multiple_file_loading()
 
-    def next_folder(self, mec_mode=False):
-        """
-        Loads an image in the next folder with the same filename. This assumes that the folders are sorted with run
-        numbers, e.g. run101, run102, etc.
-        :param mec_mode: flag for a special mode for the MEC beamline at LCLS-SLAC where it takes into account that also the
-                         filenames have the run number included.
-        :type mec_mode: bool
+    def next_folder(self, mec_mode: bool = False) -> None:
+        """Loads an image in the next folder with the same filename.
+
+        This assumes that the folders are sorted with run numbers, e.g. run101, run102, etc.
+        If mec_mode is True, accounts for the MEC beamline at LCLS-SLAC where filenames
+        also include the run number.
         """
         self._setup_multiple_file_loading()
         for configuration in self.configurations:
             configuration.img_model.load_next_folder(mec_mode=mec_mode)
         self._teardown_multiple_file_loading()
 
-    def previous_folder(self, mec_mode=False):
-        """
-        Loads an image in the previous folder with the same filename. This assumes that the folders are sorted with run
-        numbers, e.g. run101, run102, etc.
-        :param mec_mode: flag for a special mode for the MEC beamline at LCLS-SLAC where it takes into account that also the
-                         filenames have the run number included.
-        :type mec_mode: bool
+    def previous_folder(self, mec_mode: bool = False) -> None:
+        """Loads an image in the previous folder with the same filename.
+
+        This assumes that the folders are sorted with run numbers, e.g. run101, run102, etc.
+        If mec_mode is True, accounts for the MEC beamline at LCLS-SLAC where filenames
+        also include the run number.
         """
         self._setup_multiple_file_loading()
         for configuration in self.configurations:
             configuration.img_model.load_previous_folder(mec_mode=mec_mode)
         self._teardown_multiple_file_loading()
 
-    def blockSignals(self, block=True):
+    def blockSignals(self, block: bool = True) -> None:
         for member in vars(self):
             attr = getattr(self, member)
             if isinstance(attr, Signal):
                 attr.blocked = block
 
-    def update_clicked_tth(self, tth):
+    def update_clicked_tth(self, tth: float) -> None:
         self.clicked_tth = tth
 
-    def update_clicked_azi(self, azi):
+    def update_clicked_azi(self, azi: float) -> None:
         self.clicked_azi = azi

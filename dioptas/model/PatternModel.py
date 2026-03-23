@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Union
 
+import numpy as np
 from xypattern import Pattern
 from xypattern.auto_background import SmoothBrucknerBackground
 
@@ -12,7 +12,7 @@ from .util.HelperModule import FileNameIterator, get_base_name
 logger = logging.getLogger(__name__)
 
 
-class PatternModel(object):
+class PatternModel:
     """
     Main Pattern handling class. Supporting:
         - setting background pattern
@@ -22,38 +22,35 @@ class PatternModel(object):
     all changes to the internal data throw a pattern_changed signal.
     """
 
-    def __init__(self):
-        super(PatternModel, self).__init__()
-        self.pattern = Pattern()
-        self.pattern_filename = ""
+    def __init__(self) -> None:
+        super().__init__()
+        self.pattern: Pattern = Pattern()
+        self.pattern_filename: str = ""
 
-        self.unit = ""
-        self.file_iteration_mode = "number"
-        self.file_name_iterator = FileNameIterator()
+        self.unit: str = ""
+        self.file_iteration_mode: str = "number"
+        self.file_name_iterator: FileNameIterator = FileNameIterator()
 
-        self._background_pattern = None
+        self._background_pattern: Pattern | None = None
 
-        self.pattern_changed = Signal()
+        self.pattern_changed: Signal = Signal()
 
-    def set_pattern(self, x, y, filename="", unit=""):
-        """
-        set the current data pattern.
-        :param x: x-values
-        :param y: y-values
-        :param filename: name for the pattern, defaults to ''
-        :param unit: unit for the x values
-        """
+    def set_pattern(
+        self,
+        x: np.ndarray,
+        y: np.ndarray,
+        filename: str = "",
+        unit: str = "",
+    ) -> None:
+        """Set the current data pattern."""
         self.pattern_filename = filename
         self.pattern.data = (x, y)
         self.pattern.name = get_base_name(filename)
         self.unit = unit
         self.pattern_changed.emit()
 
-    def load_pattern(self, filename):
-        """
-        Loads a pattern from a tabular pattern file (2 column txt file)
-        :param filename: filename of the data file
-        """
+    def load_pattern(self, filename: str) -> None:
+        """Loads a pattern from a tabular pattern file (2 column txt file)."""
         logger.info("Load pattern: {0}".format(filename))
         self.pattern_filename = filename
 
@@ -66,28 +63,21 @@ class PatternModel(object):
 
     def save_pattern(
         self, filename: str, header: str = "", subtract_background: bool = False
-    ):
-        """
-        Saves the current data pattern.
-        :param filename: where to save
-        :param header: you can specify any specific header
-        :param subtract_background: whether the background set will be used for saving or not
-        """
+    ) -> None:
+        """Saves the current data pattern."""
         logger.info("Saving pattern to %s", filename)
         self.pattern.save(filename, header, subtract_background, self.unit)
 
-    def save_auto_background_as_pattern(self, filename, header=None):
-        """
-        Saves the current automatic extracted background data pattern to file
-        :param filename: where to save
-        :param header: you can specify any specific header
-        """
+    def save_auto_background_as_pattern(
+        self, filename: str, header: str | None = None
+    ) -> None:
+        """Saves the current automatic extracted background data pattern to file."""
         self.pattern.auto_background_pattern.save(filename, header, unit=self.unit)
 
-    def get_pattern(self):
+    def get_pattern(self) -> Pattern:
         return self.pattern
 
-    def load_next_file(self, step=1):
+    def load_next_file(self, step: int = 1) -> bool:
         """
         Loads the next file from a sequel of filenames (e.g. *_001.xy --> *_002.xy)
         It assumes that the file numbers are at the end of the filename
@@ -100,7 +90,7 @@ class PatternModel(object):
             return True
         return False
 
-    def load_previous_file(self, step=1):
+    def load_previous_file(self, step: int = 1) -> bool:
         """
         Loads the previous file from a sequel of filenames (e.g. *_002.xy --> *_001.xy)
         It assumes that the file numbers are at the end of the filename
@@ -113,7 +103,7 @@ class PatternModel(object):
             return True
         return False
 
-    def set_file_iteration_mode(self, mode):
+    def set_file_iteration_mode(self, mode: str) -> None:
         if mode == "number":
             self.file_iteration_mode = "number"
             self.file_name_iterator.create_timed_file_list = False
@@ -123,11 +113,11 @@ class PatternModel(object):
             self.file_name_iterator.update_filename(self.pattern_filename)
 
     @property
-    def background_pattern(self):
+    def background_pattern(self) -> Pattern | None:
         return self._background_pattern
 
     @background_pattern.setter
-    def background_pattern(self, pattern: Union[Pattern, None]):
+    def background_pattern(self, pattern: Pattern | None) -> None:
         if pattern is not None:
             self.pattern.background_pattern = pattern
         else:
@@ -135,12 +125,16 @@ class PatternModel(object):
         self._background_pattern = pattern
         self.pattern_changed.emit()
 
-    def set_auto_background_subtraction(self, parameters, roi=None):
+    def set_auto_background_subtraction(
+        self,
+        parameters: list[float],
+        roi: list[float] | None = None,
+    ) -> None:
         """
-        Enables auto background extraction and removal from the data pattern
-        :param parameters: array of parameters with [window_width, iterations, polynomial_order]
-        :param roi: array of size two with [x_min, x_max] specifying the range for the background subtraction
-        will be performed
+        Enables auto background extraction and removal from the data pattern.
+
+        parameters is [window_width, iterations, polynomial_order].
+        roi is [x_min, x_max] specifying the range for background subtraction.
         """
         logger.info("Setting auto background subtraction with parameters: %s", parameters)
         if roi is not None:
@@ -160,10 +154,8 @@ class PatternModel(object):
         self.pattern.auto_bkg = SmoothBrucknerBackground(*parameters)
         self.pattern_changed.emit()
 
-    def unset_auto_background_subtraction(self):
-        """
-        Disables auto background extraction and removal.
-        """
+    def unset_auto_background_subtraction(self) -> None:
+        """Disables auto background extraction and removal."""
         logger.info("Unsetting auto background subtraction")
         self.pattern.auto_bkg = None
         self.pattern_changed.emit()

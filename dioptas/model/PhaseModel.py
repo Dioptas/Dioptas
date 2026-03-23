@@ -3,6 +3,7 @@
 import logging
 
 import numpy as np
+from xypattern import Pattern
 
 from .util import Signal
 from .util.jcpds import jcpds, jcpds_reflection
@@ -13,41 +14,38 @@ logger = logging.getLogger(__name__)
 
 
 class PhaseLoadError(Exception):
-    def __init__(self, filename):
-        super(PhaseLoadError, self).__init__()
-        self.filename = filename
+    def __init__(self, filename: str) -> None:
+        super().__init__()
+        self.filename: str = filename
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Could not load {0} as jcpds file".format(self.filename)
 
 
-class PhaseModel(object):
+class PhaseModel:
 
-    num_phases = 0
+    num_phases: int = 0
 
-    def __init__(self):
-        super(PhaseModel, self).__init__()
-        self.phases = []  # type: list[jcpds]
-        self.reflections = []
-        self.phase_files = []
-        self.phase_colors = []
-        self.phase_visible = []
+    def __init__(self) -> None:
+        super().__init__()
+        self.phases: list[jcpds] = []
+        self.reflections: list[np.ndarray] = []
+        self.phase_files: list[str] = []
+        self.phase_colors: list[np.ndarray] = []
+        self.phase_visible: list[bool] = []
 
-        self.same_conditions = True
+        self.same_conditions: bool = True
 
-        self.phase_added = Signal()
-        self.phase_removed = Signal(int)  # phase ind
-        self.phase_changed = Signal(int)  # phase ind
-        self.phase_reloaded = Signal(int)  # phase ind
+        self.phase_added: Signal = Signal()
+        self.phase_removed: Signal = Signal(int)  # phase ind
+        self.phase_changed: Signal = Signal(int)  # phase ind
+        self.phase_reloaded: Signal = Signal(int)  # phase ind
 
-        self.reflection_added = Signal(int)
-        self.reflection_deleted = Signal(int, int)  # phase index, reflection index
+        self.reflection_added: Signal = Signal(int)
+        self.reflection_deleted: Signal = Signal(int, int)  # phase index, reflection index
 
-    def add_jcpds(self, filename):
-        """
-        Adds a jcpds file
-        :param filename: filename of the jcpds file
-        """
+    def add_jcpds(self, filename: str) -> None:
+        """Adds a jcpds file."""
         logger.info("Adding JCPDS phase: %s", filename)
         try:
             jcpds_object = jcpds()
@@ -57,13 +55,15 @@ class PhaseModel(object):
         except (ZeroDivisionError, UnboundLocalError, ValueError):
             raise PhaseLoadError(filename)
 
-    def add_cif(self, filename, intensity_cutoff=0.5, minimum_d_spacing=0.5):
+    def add_cif(
+        self,
+        filename: str,
+        intensity_cutoff: float = 0.5,
+        minimum_d_spacing: float = 0.5,
+    ) -> None:
         """
-        Adds a cif file. Internally it is converted to a jcpds format. It calculates the intensities for all of the
-        reflections based on the atomic positions
-        :param filename: name of the cif file
-        :param intensity_cutoff: all reflections added to the jcpds will have larger intensity in % (0-100)
-        :param minimum_d_spacing: all reflections added to the jcpds will have larger d spacing than specified here
+        Adds a cif file. Internally it is converted to a jcpds format. It calculates
+        the intensities for all of the reflections based on the atomic positions.
         """
         logger.info("Adding CIF phase: %s", filename)
         try:
@@ -75,12 +75,8 @@ class PhaseModel(object):
             logger.warning("Failed to load CIF file %s: %s", filename, e)
             raise PhaseLoadError(filename)
 
-    def add_jcpds_object(self, jcpds_object):
-        """
-        Adds a jcpds object to the phase list.
-        :param jcpds_object: jcpds object
-        :type jcpds_object: jcpds
-        """
+    def add_jcpds_object(self, jcpds_object: jcpds) -> None:
+        """Adds a jcpds object to the phase list."""
         self.phases.append(jcpds_object)
         self.reflections.append([])
         self.phase_colors.append(calculate_color(PhaseModel.num_phases + 9))
@@ -94,18 +90,14 @@ class PhaseModel(object):
         self.phase_added.emit()
         self.phase_changed.emit(len(self.phases) - 1)
 
-    def save_phase_as(self, ind, filename):
-        """
-        Save the phase specified with ind as a jcpds file.
-        """
+    def save_phase_as(self, ind: int, filename: str) -> None:
+        """Save the phase specified with ind as a jcpds file."""
         logger.info("Saving phase %d to %s", ind, filename)
         self.phases[ind].save_file(filename)
         self.phase_changed.emit(ind)
 
-    def del_phase(self, ind):
-        """
-        Deletes the a phase with index ind from the phase list
-        """
+    def del_phase(self, ind: int) -> None:
+        """Deletes a phase with index ind from the phase list."""
         logger.info("Deleting phase %d", ind)
         del self.phases[ind]
         del self.reflections[ind]
@@ -114,10 +106,8 @@ class PhaseModel(object):
         del self.phase_visible[ind]
         self.phase_removed.emit(ind)
 
-    def reload(self, ind):
-        """
-        Reloads a phase specified by index ind from it's original source filename
-        """
+    def reload(self, ind: int) -> None:
+        """Reloads a phase specified by index ind from its original source filename."""
         logger.info("Reloading phase %d", ind)
         self.clear_reflections(ind)
         self.phases[ind].reload_file()
@@ -126,10 +116,10 @@ class PhaseModel(object):
         self.get_lines_d(ind)
         self.phase_changed.emit(ind)
 
-    def set_pressure(self, ind, pressure):
+    def set_pressure(self, ind: int, pressure: float) -> None:
         """
-        Sets the pressure of a phase with index ind. In case same_conditions is true, all phase pressures will be
-        updated.
+        Sets the pressure of a phase with index ind. In case same_conditions is true,
+        all phase pressures will be updated.
         """
         logger.debug("Setting pressure for phase %d to %.2f GPa", ind, pressure)
         if self.same_conditions:
@@ -140,14 +130,14 @@ class PhaseModel(object):
             self._set_pressure(ind, pressure)
             self.phase_changed.emit(ind)
 
-    def _set_pressure(self, ind, pressure):
+    def _set_pressure(self, ind: int, pressure: float) -> None:
         self.phases[ind].compute_d(pressure=pressure)
         self.get_lines_d(ind)
 
-    def set_temperature(self, ind, temperature):
+    def set_temperature(self, ind: int, temperature: float) -> None:
         """
-        Sets the temperature of a phase with index ind. In case same_conditions is true, all phase temperatures will be
-        updated.
+        Sets the temperature of a phase with index ind. In case same_conditions is true,
+        all phase temperatures will be updated.
         """
         logger.debug("Setting temperature for phase %d to %.1f K", ind, temperature)
         if self.same_conditions:
@@ -158,20 +148,22 @@ class PhaseModel(object):
             self._set_temperature(ind, temperature)
             self.phase_changed.emit(ind)
 
-    def _set_temperature(self, ind, temperature):
+    def _set_temperature(self, ind: int, temperature: float) -> None:
         if self.phases[ind].has_thermal_expansion():
             self.phases[ind].compute_d(temperature=temperature)
             self.get_lines_d(ind)
 
-    def set_pressure_temperature(self, ind, pressure, temperature):
+    def set_pressure_temperature(
+        self, ind: int, pressure: float, temperature: float
+    ) -> None:
         self.phases[ind].compute_d(temperature=temperature, pressure=pressure)
         self.get_lines_d(ind)
         self.phase_changed.emit(ind)
 
-    def set_param(self, ind, param, value):
+    def set_param(self, ind: int, param: str, value: float) -> None:
         """
-        Sets one of the jcpds parameters for the phase with index ind to a certain value. Automatically emits the
-        phase_changed signal.
+        Sets one of the jcpds parameters for the phase with index ind to a certain value.
+        Automatically emits the phase_changed signal.
         """
 
         self.phases[ind].params[param] = value
@@ -181,25 +173,20 @@ class PhaseModel(object):
         self.get_lines_d(ind)
         self.phase_changed.emit(ind)
 
-    def set_color(self, ind, color):
-        """
-        Changes the color of the phase with index ind.
-        :param ind: index of phase
-        :param color: tuple with RGB values (0-255)
-        """
+    def set_color(self, ind: int, color: tuple[int, int, int]) -> None:
+        """Changes the color of the phase with index ind."""
         self.phase_colors[ind] = color
         self.phase_changed.emit(ind)
 
-    def set_phase_visible(self, ind, bool):
-        """
-        Sets the visible flag (bool) for phase with index ind.
-        """
+    def set_phase_visible(self, ind: int, bool: bool) -> None:
+        """Sets the visible flag for phase with index ind."""
         self.phase_visible[ind] = bool
         self.phase_changed.emit(ind)
 
-    def get_lines_d(self, ind):
+    def get_lines_d(self, ind: int) -> np.ndarray:
         """
-        Gets the reflections from the phase with index ind and saves them in a two-dimensional array.
+        Gets the reflections from the phase with index ind and saves them in a
+        two-dimensional array.
         """
         reflections = self.phases[ind].get_reflections()
         res = np.zeros((len(reflections), 5))
@@ -212,12 +199,13 @@ class PhaseModel(object):
         self.reflections[ind] = res
         return res
 
-    def get_phase_line_positions(self, ind, unit, wavelength):
-        """
-        Gets the line positions of phase with index ind in a specfic unit.
-        :param ind: phase index
-        :param unit: unit for the positions, possible values: '2th_deg', 'q_A^-1', 'd_A'
-        :param wavelength: wavelength in nm
+    def get_phase_line_positions(
+        self, ind: int, unit: str, wavelength: float
+    ) -> np.ndarray:
+        """Gets the line positions of phase with index ind in a specific unit.
+
+        unit can be '2th_deg', 'q_A^-1', or 'd_A'.
+        wavelength is in nm.
         """
         positions = self.reflections[ind][:, 0]
         if unit == 'q_A^-1' or unit == '2th_deg':
@@ -228,16 +216,19 @@ class PhaseModel(object):
                             np.sin(positions / 360 * np.pi)
         return positions
 
-    def get_phase_line_intensities(self, ind, positions, pattern, x_range, y_range):
+    def get_phase_line_intensities(
+        self,
+        ind: int,
+        positions: np.ndarray,
+        pattern: Pattern,
+        x_range: tuple[float, float],
+        y_range: tuple[float, float],
+    ) -> tuple[np.ndarray | list, float]:
         """
-        Gets the phase line intensities scaled to each other for a specific x and y range and also a maximum intensity
-        based on a specific pattern.
-        :param ind: phase index
-        :param positions: positions of the lines
-        :param pattern: pattern with what it will be plotted
-        :param x_range: x range for which the relative intensities will be calculated
-        :param y_range: y range for which the relative intensities will be calculated
-        :return: array of intensities, baseline representing the start for the lines
+        Gets the phase line intensities scaled to each other for a specific x and y
+        range and also a maximum intensity based on a specific pattern.
+
+        Returns (array of intensities, baseline representing the start for the lines).
         """
         x, y = pattern.data
         if len(y) != 0:
@@ -265,66 +256,61 @@ class PhaseModel(object):
         phase_line_intensities = scale_factor * self.reflections[ind][:, 1] + baseline
         return phase_line_intensities, baseline
 
-    def get_rescaled_reflections(self, ind, pattern, x_range,
-                                 y_range, wavelength, unit='2th_deg'):
-
+    def get_rescaled_reflections(
+        self,
+        ind: int,
+        pattern: Pattern,
+        x_range: tuple[float, float],
+        y_range: tuple[float, float],
+        wavelength: float,
+        unit: str = '2th_deg',
+    ) -> tuple[np.ndarray, np.ndarray | list, float]:
         """
-        Gets the phase line positions and intensities for a phase with index ind scaled to each other for a specific x
-        and y range and also a maximum intensity based on a specific pattern.
-        :param ind: phase index
-        :param pattern: pattern with what it will be plotted
-        :param x_range: x range for which the relative intensities will be calculated
-        :param y_range: y range for which the relative intensities will be calculated
-        :param wavelength: wavelength in nm
-        :param unit: unit for the positions, possible values: '2th_deg', 'q_A^-1', 'd_A'
-        :return: a tuple with: (array of positions, array of intensities, baseline value)
+        Gets the phase line positions and intensities for a phase with index ind scaled
+        to each other for a specific x and y range and also a maximum intensity based on
+        a specific pattern.
+
+        Returns (positions, intensities, baseline).
         """
         positions = self.get_phase_line_positions(ind, unit, wavelength)
 
         intensities, baseline = self.get_phase_line_intensities(ind, positions, pattern, x_range, y_range)
         return positions, intensities, baseline
 
-    def add_reflection(self, ind):
-        """
-        Adds an empty reflection to the reflection table of a phase with index ind
-        """
+    def add_reflection(self, ind: int) -> None:
+        """Adds an empty reflection to the reflection table of a phase with index ind."""
         self.phases[ind].add_reflection()
         self.get_lines_d(ind)
         self.reflection_added.emit(ind)
 
-    def delete_reflection(self, phase_ind, reflection_ind):
-        """
-        Deletes a reflection from a phase with index phase index.
-        """
+    def delete_reflection(self, phase_ind: int, reflection_ind: int) -> None:
+        """Deletes a reflection from a phase with the given phase index."""
         self.phases[phase_ind].delete_reflection(reflection_ind)
         self.get_lines_d(phase_ind)
         self.reflection_deleted.emit(phase_ind, reflection_ind)
         self.phase_changed.emit(phase_ind)
 
-    def delete_multiple_reflections(self, phase_ind, indices):
-        """
-        Deletes multiple reflection from a phase with index phase index.
-        """
+    def delete_multiple_reflections(
+        self, phase_ind: int, indices: list[int] | np.ndarray
+    ) -> None:
+        """Deletes multiple reflections from a phase with the given phase index."""
         indices = np.array(sorted(indices))
         for reflection_ind in indices:
             self.delete_reflection(phase_ind, reflection_ind)
             indices -= 1
 
-    def clear_reflections(self, phase_ind):
-        """
-        Deletes all reflections from a phase with index phase_ind
-        """
+    def clear_reflections(self, phase_ind: int) -> None:
+        """Deletes all reflections from a phase with index phase_ind."""
         for ind in range(len(self.phases[phase_ind].reflections)):
             self.delete_reflection(phase_ind, 0)
 
-    def update_reflection(self, phase_ind, reflection_ind, reflection):
-        """
-        Updates the reflection of a phase with a new jcpds_reflection
-        :param phase_ind: index of the phase
-        :param reflection_ind: index of the refection
-        :param reflection: updated reflection
-        :type reflection: jcpds_reflection
-        """
+    def update_reflection(
+        self,
+        phase_ind: int,
+        reflection_ind: int,
+        reflection: jcpds_reflection,
+    ) -> None:
+        """Updates the reflection of a phase with a new jcpds_reflection."""
         self.phases[phase_ind].reflections[reflection_ind] = reflection
         self.phases[phase_ind].params['modified'] = True
         self.phases[phase_ind].compute_d0()
@@ -332,9 +318,7 @@ class PhaseModel(object):
         self.get_lines_d(phase_ind)
         self.phase_changed.emit(phase_ind)
 
-    def reset(self):
-        """
-        Deletes all phases within the phase model.
-        """
+    def reset(self) -> None:
+        """Deletes all phases within the phase model."""
         for ind in range(len(self.phases)):
             self.del_phase(0)

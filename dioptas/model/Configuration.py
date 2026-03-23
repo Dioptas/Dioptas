@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: MIT
 
+from __future__ import annotations
+
 import logging
 import os
 import numpy as np
@@ -25,10 +27,12 @@ from . import ImgModel, CalibrationModel, MaskModel, PatternModel, BatchModel
 from .MapModel import MapModel
 from .CalibrationModel import DetectorModes
 
+import h5py
+
 logger = logging.getLogger(__name__)
 
 
-def _json_numpy_default(obj):
+def _json_numpy_default(obj: object) -> int | float | list:
     """JSON encoder default for numpy int/float types."""
     if isinstance(obj, np.integer):
         return int(obj)
@@ -39,26 +43,26 @@ def _json_numpy_default(obj):
     raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
 
-class Configuration(object):
+class Configuration:
     """
     The configuration class contains a working combination of an ImgModel, PatternModel, MaskModel and CalibrationModel.
     It does handles the core data manipulation of Dioptas.
     The management of multiple Configurations is done by the DioptasModel.
     """
 
-    def __init__(self, working_directories=None):
-        super(Configuration, self).__init__()
+    def __init__(self, working_directories: dict[str, str] | None = None) -> None:
+        super().__init__()
 
-        self.img_model = ImgModel()
-        self.mask_model = MaskModel()
-        self.calibration_model = CalibrationModel(self.img_model)
-        self.pattern_model = PatternModel()
+        self.img_model: ImgModel = ImgModel()
+        self.mask_model: MaskModel = MaskModel()
+        self.calibration_model: CalibrationModel = CalibrationModel(self.img_model)
+        self.pattern_model: PatternModel = PatternModel()
 
-        self.batch_model = BatchModel(self)
-        self.map_model = MapModel(self)
+        self.batch_model: BatchModel = BatchModel(self)
+        self.map_model: MapModel = MapModel(self)
 
         if working_directories is None:
-            self.working_directories = {
+            self.working_directories: dict[str, str] = {
                 "calibration": "",
                 "mask": "",
                 "image": os.path.expanduser("~"),
@@ -70,35 +74,33 @@ class Configuration(object):
         else:
             self.working_directories = working_directories
 
-        self.use_mask = False
+        self.use_mask: bool = False
 
-        self.transparent_mask = False
+        self.transparent_mask: bool = False
 
-        self._integration_rad_points = None
-        self._integration_unit = "2th_deg"
-        self._oned_azimuth_range = None
-        self.trim_trailing_zeros = True
+        self._integration_rad_points: int | None = None
+        self._integration_unit: str = "2th_deg"
+        self._oned_azimuth_range: list[float] | None = None
+        self.trim_trailing_zeros: bool = True
 
-        self._cake_azimuth_points = 360
-        self._cake_azimuth_range = None
+        self._cake_azimuth_points: int = 360
+        self._cake_azimuth_range: list[float] | None = None
 
-        self._auto_integrate_pattern = True
-        self._auto_integrate_cake = False
+        self._auto_integrate_pattern: bool = True
+        self._auto_integrate_cake: bool = False
 
-        self.auto_save_integrated_pattern = False
-        self.integrated_patterns_file_formats = [".xy"]
+        self.auto_save_integrated_pattern: bool = False
+        self.integrated_patterns_file_formats: list[str] = [".xy"]
 
-        self.cake_changed = Signal()
+        self.cake_changed: Signal = Signal()
         self._connect_signals()
 
-    def _connect_signals(self):
-        """
-        Connects the img_changed signal to responding functions.
-        """
+    def _connect_signals(self) -> None:
+        """Connects the img_changed signal to responding functions."""
         self.img_model.img_changed.connect(self.update_mask_dimension)
         self.img_model.img_changed.connect(self.integrate_image_1d)
 
-    def integrate_image_1d(self, update_pattern_model=True):
+    def integrate_image_1d(self, update_pattern_model: bool = True) -> tuple[np.ndarray, np.ndarray] | None:
         """
         Integrates the image in the ImageModel to a Pattern. Will also automatically save the integrated pattern, if
         auto_save_integrated is True.
@@ -133,10 +135,8 @@ class Configuration(object):
 
             return x, y
 
-    def integrate_image_2d(self):
-        """
-        Integrates the image in the ImageModel to a Cake.
-        """
+    def integrate_image_2d(self) -> None:
+        """Integrates the image in the ImageModel to a Cake."""
         logger.debug("Integrating image 2D (cake)")
         if self.use_mask:
             mask = self.mask_model.get_mask()
@@ -154,12 +154,10 @@ class Configuration(object):
 
         self.cake_changed.emit()
 
-    def save_pattern(self, filename=None, subtract_background=False):
+    def save_pattern(self, filename: str | None = None, subtract_background: bool = False) -> None:
         """
         Saves the current integrated pattern. The format depends on the file ending. Possible file formats:
             [*.xy, *.chi, *.dat, *.fxye]
-        :param filename: where to save the file
-        :param subtract_background: flat whether the pattern should be saved with or without subtracted background
         """
         logger.info("Saving pattern to %s", filename)
         if filename is None:
@@ -182,7 +180,7 @@ class Configuration(object):
                 filename, subtract_background=subtract_background
             )
 
-    def save_background_pattern(self, filename=None):
+    def save_background_pattern(self, filename: str | None = None) -> None:
         """
         Saves the current fit background as a pattern. The format depends on the file ending. Possible file formats:
             [*.xy, *.chi, *.dat, *.fxye]
@@ -202,20 +200,14 @@ class Configuration(object):
             self.pattern_model.save_pattern(filename)
 
     def _create_xy_header(self) -> str:
-        """
-        Creates the header for the xy file format (contains information about calibration parameters).
-        :return: header string
-        """
+        """Creates the header for the xy file format (contains information about calibration parameters)."""
         header = self.calibration_model.create_file_header()
         header = header.replace("\r\n", "\n")
         header = header + "\n#\n# " + self._integration_unit + "\t I"
         return header
 
-    def _create_fxye_header(self, filename) -> str:
-        """
-        Creates the header for the fxye file format (used by GSAS and GSAS-II) containing the calibration information
-        :return: header string
-        """
+    def _create_fxye_header(self, filename: str) -> str:
+        """Creates the header for the fxye file format (used by GSAS and GSAS-II) containing the calibration information."""
         header = "Generated file " + filename + " using DIOPTAS\n"
         header = header + self.calibration_model.create_file_header()
         unit = self._integration_unit
@@ -235,7 +227,7 @@ class Configuration(object):
         )
         return header
 
-    def _auto_save_patterns(self):
+    def _auto_save_patterns(self) -> None:
         """
         Saves the current pattern in the pattern working directory (specified in self.working_directories['pattern'].
         When background subtraction is enabled in the pattern model the pattern will be saved with background
@@ -265,18 +257,16 @@ class Configuration(object):
                 filename = filename.replace("\\", "/")
                 self.save_pattern(filename, subtract_background=True)
 
-    def update_mask_dimension(self):
-        """
-        Updates the shape of the mask in the MaskModel to the shape of the image in the ImageModel.
-        """
+    def update_mask_dimension(self) -> None:
+        """Updates the shape of the mask in the MaskModel to the shape of the image in the ImageModel."""
         self.mask_model.set_dimension(self.img_model._img_data.shape)
 
     @property
-    def integration_rad_points(self) -> int:
+    def integration_rad_points(self) -> int | None:
         return self._integration_rad_points
 
     @integration_rad_points.setter
-    def integration_rad_points(self, new_value: int):
+    def integration_rad_points(self, new_value: int | None) -> None:
         self._integration_rad_points = new_value
         self.integrate_image_1d()
         if self.auto_integrate_cake:
@@ -287,27 +277,27 @@ class Configuration(object):
         return self._cake_azimuth_points
 
     @cake_azimuth_points.setter
-    def cake_azimuth_points(self, new_value):
+    def cake_azimuth_points(self, new_value: int) -> None:
         self._cake_azimuth_points = new_value
         if self.auto_integrate_cake:
             self.integrate_image_2d()
 
     @property
-    def cake_azimuth_range(self):
+    def cake_azimuth_range(self) -> list[float] | None:
         return self._cake_azimuth_range
 
     @cake_azimuth_range.setter
-    def cake_azimuth_range(self, new_value):
+    def cake_azimuth_range(self, new_value: list[float] | None) -> None:
         self._cake_azimuth_range = new_value
         if self.auto_integrate_cake:
             self.integrate_image_2d()
 
     @property
-    def oned_azimuth_range(self):
+    def oned_azimuth_range(self) -> list[float] | None:
         return self._oned_azimuth_range
 
     @oned_azimuth_range.setter
-    def oned_azimuth_range(self, new_value):
+    def oned_azimuth_range(self, new_value: list[float] | None) -> None:
         self._oned_azimuth_range = new_value
         if self.auto_integrate_pattern:
             self.integrate_image_1d()
@@ -317,7 +307,7 @@ class Configuration(object):
         return self._integration_unit
 
     @integration_unit.setter
-    def integration_unit(self, new_unit: str):
+    def integration_unit(self, new_unit: str) -> None:
         old_unit = self.integration_unit
         self._integration_unit = new_unit
 
@@ -337,11 +327,11 @@ class Configuration(object):
             self.integrate_image_1d()
 
     @property
-    def correct_solid_angle(self):
+    def correct_solid_angle(self) -> bool:
         return self.calibration_model.correct_solid_angle
 
     @correct_solid_angle.setter
-    def correct_solid_angle(self, new_val):
+    def correct_solid_angle(self, new_val: bool) -> None:
         self.calibration_model.correct_solid_angle = new_val
         if self.auto_integrate_pattern:
             self.integrate_image_1d()
@@ -357,7 +347,7 @@ class Configuration(object):
         return self._auto_integrate_cake
 
     @auto_integrate_cake.setter
-    def auto_integrate_cake(self, new_value):
+    def auto_integrate_cake(self, new_value: bool) -> None:
         if self._auto_integrate_cake == new_value:
             return
 
@@ -372,7 +362,7 @@ class Configuration(object):
         return self._auto_integrate_pattern
 
     @auto_integrate_pattern.setter
-    def auto_integrate_pattern(self, new_value):
+    def auto_integrate_pattern(self, new_value: bool) -> None:
         if self._auto_integrate_pattern == new_value:
             return
 
@@ -387,20 +377,16 @@ class Configuration(object):
         return self.calibration_model.cake_img
 
     @property
-    def roi(self):
+    def roi(self) -> tuple[int, ...] | None:
         return self.mask_model.roi
 
     @roi.setter
-    def roi(self, new_val):
+    def roi(self, new_val: tuple[int, ...] | None) -> None:
         self.mask_model.roi = new_val
         self.integrate_image_1d()
 
-    def copy(self) -> "Configuration":
-        """
-        Creates a copy of the current configuration directory
-        :return: copied configuration
-        :rtype: Configuration
-        """
+    def copy(self) -> Configuration:
+        """Creates a copy of the current configuration."""
         new_configuration = Configuration(self.working_directories)
         new_configuration.img_model._img_data = self.img_model._img_data
         new_configuration.img_model.img_transformations = deepcopy(
@@ -414,11 +400,8 @@ class Configuration(object):
 
         return new_configuration
 
-    def save_in_hdf5(self, hdf5_group):
-        """
-        Saves the configuration group in the given hdf5_group.
-        :type hdf5_group: h5py.Group
-        """
+    def save_in_hdf5(self, hdf5_group: h5py.Group) -> None:
+        """Saves the configuration group in the given hdf5_group."""
 
         f = hdf5_group
         # save general information
@@ -648,11 +631,8 @@ class Configuration(object):
         # save map model
         self.map_model.save_in_hdf5(f)
 
-    def load_from_hdf5(self, hdf5_group):
-        """
-        Loads a configuration from the specified hdf5_group.
-        :type hdf5_group: h5py.Group
-        """
+    def load_from_hdf5(self, hdf5_group: h5py.Group) -> None:
+        """Loads a configuration from the specified hdf5_group."""
 
         f = hdf5_group
 
@@ -662,7 +642,7 @@ class Configuration(object):
         self.auto_save_integrated_pattern = False
 
         # get working directories
-        working_directories = {}
+        working_directories: dict[str, str] = {}
         for key, value in f.get("working_directories").attrs.items():
             if os.path.isdir(value):
                 working_directories[key] = value
@@ -689,7 +669,7 @@ class Configuration(object):
             # pyFAI parameters are stored as attributes of the group
             # this is the old way of storing pyFAI parameters
             # and is kept for backwards compatibility
-            pyfai_parameters = {}
+            pyfai_parameters: dict[str, object] = {}
             pyfai_parameters_group = f.get("calibration_model").get("pyfai_parameters")
             if pyfai_parameters_group is not None:
                 for key, value in pyfai_parameters_group.attrs.items():
@@ -780,7 +760,7 @@ class Configuration(object):
 
         # load image transformations
         transformation_group = f.get("image_model").get("image_transformations")
-        transformation_list = []
+        transformation_list: list[str] = []
         for key, transformation in transformation_group.attrs.items():
             transformation_list.append(transformation)
         self.calibration_model.load_transformations_string_list(transformation_list)

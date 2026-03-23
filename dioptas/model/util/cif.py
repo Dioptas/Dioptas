@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: MIT
+from __future__ import annotations
 
 import os
 import itertools
@@ -12,6 +13,7 @@ from ... import data_path
 import logging
 
 import numpy as np
+from numpy.typing import NDArray
 import json
 
 logger = logging.getLogger(__name__)
@@ -25,26 +27,19 @@ with open(os.path.join(data_path, "periodic_table.json")) as f:
 
 class CifConverter(object):
     # Tolerance in which to treat two peaks as having the same two theta.
-    TWO_THETA_TOL = 1e-5
+    TWO_THETA_TOL: float = 1e-5
 
-    def __init__(self, wavelength, min_d_spacing=0.5, min_intensity=0.5):
+    def __init__(self, wavelength: float, min_d_spacing: float = 0.5, min_intensity: float = 0.5) -> None:
         """
         Calculates the x-ray diffraction intensities for a specific cif phase.
-        :param wavelength: Wavelength for the two theta calculation
-        :param min_d_spacing: all calculated reflections will have a d-spacing above this value
-        :param min_intensity: all calculated reflections will have an intensity greater than this value
-        :return:
         """
-        self.wavelength = wavelength
-        self.min_d_spacing = min_d_spacing
-        self.min_intensity = min_intensity
+        self.wavelength: float = wavelength
+        self.min_d_spacing: float = min_d_spacing
+        self.min_intensity: float = min_intensity
 
-    def convert_cif_to_jcpds(self, filename):
+    def convert_cif_to_jcpds(self, filename: str) -> jcpds:
         """
-        Reads a cif file and returns a jcpds with correct reflection and intensities
-        :param filename:  cif filename
-        :return: converted jcpds object
-        :rtype: jcpds
+        Reads a cif file and returns a jcpds with correct reflection and intensities.
         """
         file_url = 'file:' + pathname2url(filename)
         cif_file = ReadCif(file_url)
@@ -56,13 +51,10 @@ class CifConverter(object):
 
         return jcpds_phase
 
-    def convert_cif_phase_to_jcpds(self, cif_phase):
+    def convert_cif_phase_to_jcpds(self, cif_phase: CifPhase) -> jcpds:
         """
-        Converts a CifPhase into a jcpds object by calculating the intensities and multiplicities for all reflections
-        :param cif_phase: input CifPhase
-        :type cif_phase: CifPhase
-        :return: converted jcpds object
-        :rtype: jcpds
+        Converts a CifPhase into a jcpds object by calculating the intensities
+        and multiplicities for all reflections.
         """
         reflections = self._calculate_hkl_within_sphere_and_min_d_spacing(cif_phase)
         xrd_reflections = self._calculate_reflection_intensities(cif_phase, reflections)
@@ -76,13 +68,11 @@ class CifConverter(object):
                                        reflection.d_spacing)
         return jcpds_phase
 
-    def _create_jcpds_from_cif_parameters(self, cif_phase):
+    def _create_jcpds_from_cif_parameters(self, cif_phase: CifPhase) -> jcpds:
         """
-        Creates a jcpds object from a cif_phase using cell parameters, symmetries, and file information. Does not
-        calculate intensities for any reflection e.g. the jcpds will have 0 reflections
-        :param cif_phase:
-        :type cif_phase: CifPhase
-        :return:
+        Creates a jcpds object from a cif_phase using cell parameters, symmetries,
+        and file information. Does not calculate intensities for any reflection
+        e.g. the jcpds will have 0 reflections.
         """
         jcpds_phase = jcpds()
 
@@ -98,12 +88,10 @@ class CifConverter(object):
 
         return jcpds_phase
 
-    def _calculate_hkl_within_sphere_and_min_d_spacing(self, cif_phase):
+    def _calculate_hkl_within_sphere_and_min_d_spacing(self, cif_phase: CifPhase) -> list[Reflection]:
         """
-        Generates a list of hkl reflections which can satisfy the diffraction condition using the given wavelength and
-        also the minimum d spacing
-        :return: list of reflections
-        :rtype: list[Reflection]
+        Generates a list of hkl reflections which can satisfy the diffraction condition
+        using the given wavelength and also the minimum d spacing.
         """
         max_h = np.floor(2 * cif_phase.a / self.wavelength)
         max_k = np.floor(2 * cif_phase.b / self.wavelength)
@@ -128,12 +116,7 @@ class CifConverter(object):
 
         return reflections
 
-    def _calculate_reflection_intensities(self, cif_phase, base_reflections):
-        """
-        :param cif_phase:
-        :param base_reflections:
-        :return:
-        """
+    def _calculate_reflection_intensities(self, cif_phase: CifPhase, base_reflections: list[Reflection]) -> list[Reflection]:
         # provide atom parameters as lists
         atom_numbers = []
         form_coefficients = []
@@ -210,20 +193,20 @@ class CifConverter(object):
 
 
 class Reflection:
-    def __init__(self, h, k, l, d_spacing, intensity=None, multiplicity=1):
-        self.h = h
-        self.k = k
-        self.l = l
-        self.multiplicity = multiplicity
-        self.d_spacing = d_spacing
-        self.intensity = intensity
+    def __init__(self, h: int, k: int, l: int, d_spacing: float, intensity: float | None = None, multiplicity: int = 1) -> None:
+        self.h: int = h
+        self.k: int = k
+        self.l: int = l
+        self.multiplicity: int = multiplicity
+        self.d_spacing: float = d_spacing
+        self.intensity: float | None = intensity
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "({},{},{}) x {} {:.5f} - {}".format(self.h, self.k, self.l, self.multiplicity,
                                                     self.d_spacing, self.intensity)
 
 
-def compute_d_hkl(h, k, l, cif_phase):
+def compute_d_hkl(h: NDArray[np.floating], k: NDArray[np.floating], l: NDArray[np.floating], cif_phase: CifPhase) -> NDArray[np.floating]:
     a = cif_phase.a
     b = cif_phase.b
     c = cif_phase.c
@@ -271,25 +254,25 @@ def compute_d_hkl(h, k, l, cif_phase):
     return d_spacings
 
 
-def get_unique_families(hkls):
+def get_unique_families(hkls: list[tuple[int, ...]]) -> dict[tuple[int, ...], int]:
     """
     Returns unique families of Miller indices. Families must be permutations
     of each other.
 
     Args:
-        hkls ([h, k, l]): List of Miller indices.
+        hkls: List of Miller indices as tuples.
 
     Returns:
-        {hkl: multiplicity}: A dict with unique hkl and multiplicity.
+        A dict with unique hkl and multiplicity.
     """
 
     # TODO: Definitely can be sped up.
-    def is_perm(hkl1, hkl2):
+    def is_perm(hkl1: tuple[int, ...], hkl2: tuple[int, ...]) -> bool:
         h1 = map(abs, hkl1)
         h2 = map(abs, hkl2)
         return all([i == j for i, j in zip(sorted(h1), sorted(h2))])
 
-    unique = {}
+    unique: dict[tuple[int, ...], int] = {}
     for hkl1 in hkls:
         found = False
         for hkl2 in unique.keys():
@@ -310,37 +293,32 @@ class CifPhase(object):
     This automatically creates symmetry equivalent position of atoms for further processing of the file.
     """
 
-    def __init__(self, cif_dictionary):
-        """
+    def __init__(self, cif_dictionary: dict) -> None:
+        self.cif_dictionary: dict = cif_dictionary
 
-        :param cif_dictionary:
-        :return:
-        """
-        self.cif_dictionary = cif_dictionary
+        self.a: float = convert_cif_number_to_float(cif_dictionary['_cell_length_a'])
+        self.b: float = convert_cif_number_to_float(cif_dictionary['_cell_length_b'])
+        self.c: float = convert_cif_number_to_float(cif_dictionary['_cell_length_c'])
 
-        self.a = convert_cif_number_to_float(cif_dictionary['_cell_length_a'])
-        self.b = convert_cif_number_to_float(cif_dictionary['_cell_length_b'])
-        self.c = convert_cif_number_to_float(cif_dictionary['_cell_length_c'])
-
-        self.alpha = convert_cif_number_to_float(cif_dictionary['_cell_angle_alpha'])
-        self.beta = convert_cif_number_to_float(cif_dictionary['_cell_angle_beta'])
-        self.gamma = convert_cif_number_to_float(cif_dictionary['_cell_angle_gamma'])
+        self.alpha: float = convert_cif_number_to_float(cif_dictionary['_cell_angle_alpha'])
+        self.beta: float = convert_cif_number_to_float(cif_dictionary['_cell_angle_beta'])
+        self.gamma: float = convert_cif_number_to_float(cif_dictionary['_cell_angle_gamma'])
 
         if '_cell_volume' in cif_dictionary.keys():
-            self.volume = convert_cif_number_to_float(cif_dictionary['_cell_volume'])
+            self.volume: float = convert_cif_number_to_float(cif_dictionary['_cell_volume'])
         else:
             self.volume = calculate_cell_volume(self.a, self.b, self.c,
                                                 np.deg2rad(self.alpha), np.deg2rad(self.beta), np.deg2rad(self.gamma))
 
         if '_symmetry_space_group_name_h-m' in cif_dictionary.keys():
-            self.space_group = cif_dictionary['_symmetry_space_group_name_h-m']
+            self.space_group: str | None = cif_dictionary['_symmetry_space_group_name_h-m']
         elif '_symmetry_space_group_name_h-m_alt' in cif_dictionary.keys():
             self.space_group = cif_dictionary['_symmetry_space_group_name_h-m_alt']
         else:
             self.space_group = None
 
         if '_symmetry_Int_Tables_number'.lower() in cif_dictionary.keys():
-            self.space_group_number = cif_dictionary.get('_symmetry_Int_Tables_number'.lower())
+            self.space_group_number: int | None = cif_dictionary.get('_symmetry_Int_Tables_number'.lower())
         elif '_space_group_IT_number'.lower() in cif_dictionary.keys():
             self.space_group_number = cif_dictionary.get('_space_group_IT_number'.lower())
         else:
@@ -349,40 +327,40 @@ class CifPhase(object):
         if self.space_group_number is not None:
             self.space_group_number = int(self.space_group_number)
 
-        self.symmetry = self.get_symmetry_from_space_group_number(self.space_group_number)
+        self.symmetry: str = self.get_symmetry_from_space_group_number(self.space_group_number)
 
-        self.comments = ''
+        self.comments: str = ''
         self.read_file_information()
 
         if '_symmetry_equiv_pos_as_xyz' in cif_dictionary.keys():
-            self.symmetry_operations = cif_dictionary['_symmetry_equiv_pos_as_xyz']
+            self.symmetry_operations: list[str] = cif_dictionary['_symmetry_equiv_pos_as_xyz']
         elif '_space_group_symop_operation_xyz' in cif_dictionary.keys():
             self.symmetry_operations = cif_dictionary['_space_group_symop_operation_xyz']
 
         for i in range(len(self.symmetry_operations)):
             self.symmetry_operations[i] = self.symmetry_operations[i].replace("/", "./")
 
-        self._atom_labels = cif_dictionary['_atom_site_label']
-        self._atom_x = [float(convert_cif_number_to_float(s)) for s in cif_dictionary['_atom_site_fract_x']]
-        self._atom_y = [float(convert_cif_number_to_float(s)) for s in cif_dictionary['_atom_site_fract_y']]
-        self._atom_z = [float(convert_cif_number_to_float(s)) for s in cif_dictionary['_atom_site_fract_z']]
+        self._atom_labels: list[str] = cif_dictionary['_atom_site_label']
+        self._atom_x: list[float] = [float(convert_cif_number_to_float(s)) for s in cif_dictionary['_atom_site_fract_x']]
+        self._atom_y: list[float] = [float(convert_cif_number_to_float(s)) for s in cif_dictionary['_atom_site_fract_y']]
+        self._atom_z: list[float] = [float(convert_cif_number_to_float(s)) for s in cif_dictionary['_atom_site_fract_z']]
         if '_atom_site_occupancy' in cif_dictionary.keys():
-            self._atom_occupancy = [float(convert_cif_number_to_float(s)) for s in
+            self._atom_occupancy: list[float] = [float(convert_cif_number_to_float(s)) for s in
                                     cif_dictionary['_atom_site_occupancy']]
         else:
             self._atom_occupancy = [1] * len(self._atom_labels)
 
-        # Create a list of 4-tuples, where each tuple is an atom:
-        # [ ('Si', 0.4697, 0.0, 0.0),  ('O', 0.4135, 0.2669, 0.1191),  ... ]
-        self.atoms = [(self._atom_labels[i], self._atom_x[i], self._atom_y[i], self._atom_z[i],
-                       self._atom_occupancy[i]) for i in range(len(self._atom_labels))]
+        # Create a list of 5-tuples, where each tuple is an atom:
+        # [ ('Si', 0.4697, 0.0, 0.0, 1.0),  ('O', 0.4135, 0.2669, 0.1191, 1.0),  ... ]
+        self.atoms: list[tuple[str, float, float, float, float]] = [
+            (self._atom_labels[i], self._atom_x[i], self._atom_y[i], self._atom_z[i],
+             self._atom_occupancy[i]) for i in range(len(self._atom_labels))
+        ]
         self.clean_atoms()
         self.generate_symmetry_equivalents()
 
-    def clean_atoms(self):
-        """
-        Cleaning all atom labels and check atom positions
-        """
+    def clean_atoms(self) -> None:
+        """Cleaning all atom labels and check atom positions."""
         for i in range(len(self.atoms)):
             (name, xn, yn, zn, occu) = self.atoms[i]
             xn = (xn + 10.0) % 1.0
@@ -391,7 +369,7 @@ class CifPhase(object):
             name = self.convert_element(name)
             self.atoms[i] = (name, xn, yn, zn, occu)
 
-    def generate_symmetry_equivalents(self):
+    def generate_symmetry_equivalents(self) -> None:
         # The CIF file consists of a few atom positions plus several "symmetry
         # operations" that indicate the other atom positions within the unit cell.  So
         # using these operations, create copies of the atoms until no new copies can be
@@ -427,7 +405,7 @@ class CifPhase(object):
 
                 # If the atom is new, add it to the list!
                 if (new_atom):
-                    self.atoms.append((label, xn, yn, zn, occu))  # add a 4-tuple
+                    self.atoms.append((label, xn, yn, zn, occu))  # add a 5-tuple
 
             # Update the loop iterator.
             i += 1
@@ -436,10 +414,8 @@ class CifPhase(object):
         self.atoms = sorted(self.atoms, key=lambda at: at[0])
         self.atoms.reverse()
 
-    def convert_element(self, label):
-        """
-        Convert atom labels such as 'Oa1' into 'O'.
-        """
+    def convert_element(self, label: str) -> str:
+        """Convert atom labels such as 'Oa1' into 'O'."""
 
         elem2 = ['He', 'Li', 'Be', 'Ne', 'Na', 'Mg', 'Al', 'Si', 'Cl', 'Ar', 'Ca', 'Sc', 'Ti',
                  'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr',
@@ -460,7 +436,7 @@ class CifPhase(object):
         logger.warning('Could not convert "%s" into element name', label)
         return label
 
-    def get_symmetry_from_space_group_number(self, number):
+    def get_symmetry_from_space_group_number(self, number: int | None) -> str:
         if number is not None:
             if number in [146, 148, 155, 160, 161, 166, 167]:
                 if self.a != self.c:
@@ -503,10 +479,8 @@ class CifPhase(object):
                 return 'MONOCLINIC'
         return 'TRICLINIC'
 
-    def read_file_information(self):
-        """
-        Reads in all the header information and tries to build a good description of the phase.
-        """
+    def read_file_information(self) -> None:
+        """Reads in all the header information and tries to build a good description of the phase."""
         if self.cif_dictionary.get('_chemical_formula_structural'):
             self.comments += self.cif_dictionary['_chemical_formula_structural'].replace(" ", "")
         elif self.cif_dictionary.get('_chemical_formula_analytical'):
@@ -539,32 +513,24 @@ class CifPhase(object):
             self.comments += self.cif_dictionary['_database_code_amcsd']
 
 
-def number_between(number, low, high):
-    """
-    Tests if a number is in between low and high, whereby low and high are included  [low, high]
-    :return: Boolean result for the result
-    """
+def number_between(number: int, low: int, high: int) -> bool:
+    """Tests if a number is in between low and high, inclusive [low, high]."""
     if low <= number <= high:
         return True
     return False
 
 
-def convert_cif_number_to_float(cif_number):
+def convert_cif_number_to_float(cif_number: str) -> float:
     return float(cif_number.split('(')[0])
 
 
-def calculate_cell_volume(a, b, c, alpha, beta, gamma):
+def calculate_cell_volume(a: float, b: float, c: float, alpha: float, beta: float, gamma: float) -> float:
     """
-    Calculates the cell volume using formula: 
+    Calculates the cell volume.
+
     V = a*b*c*sqrt(1 + 2*cos(alpha)*cos(beta)*cos(gamma)-cos^2(alpha)-cos^2(beta)-cos^2(gamma))
 
-    :param a: lattice parameter a
-    :param b: lattice parameter b
-    :param c: lattice parameter c
-    :param alpha: lattice angle alpha in radians
-    :param beta: lattice angle beta in radians
-    :param gamma: lattice angle gamma in radians
-    :return: cell volume
+    Alpha, beta, gamma are in radians.
     """
     base = a * b * c
     part1 = np.cos(alpha) * np.cos(beta) * np.cos(gamma)

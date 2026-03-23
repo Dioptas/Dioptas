@@ -1,17 +1,21 @@
 # SPDX-License-Identifier: MIT
 
+from __future__ import annotations
+
+from collections.abc import Callable
+
 import numpy as np
 import fabio
 from PIL import Image
 
 
-class ImgCorrectionManager(object):
-    def __init__(self, img_shape=None):
-        self._corrections = {}
-        self._ind = 0
-        self.shape = img_shape
+class ImgCorrectionManager:
+    def __init__(self, img_shape: tuple[int, ...] | None = None) -> None:
+        self._corrections: dict[str | int, ImgCorrectionInterface] = {}
+        self._ind: int = 0
+        self.shape: tuple[int, ...] | None = img_shape
 
-    def add(self, img_correction, name=None):
+    def add(self, img_correction: ImgCorrectionInterface, name: str | None = None) -> bool:
         if self.shape is None:
             self.shape = img_correction.shape()
 
@@ -23,10 +27,10 @@ class ImgCorrectionManager(object):
             return True
         return False
 
-    def has_items(self):
+    def has_items(self) -> bool:
         return len(self._corrections) != 0
 
-    def delete(self, name=None):
+    def delete(self, name: str | int | None = None) -> None:
         if name is None:
             if self._ind == 0:
                 return
@@ -36,12 +40,12 @@ class ImgCorrectionManager(object):
         if len(self._corrections) == 0:
             self.clear()
 
-    def clear(self):
+    def clear(self) -> None:
         self._corrections = {}
         self.shape = None
         self._ind = 0
 
-    def get_data(self):
+    def get_data(self) -> np.ndarray | None:
         if len(self._corrections) == 0:
             return None
 
@@ -50,54 +54,63 @@ class ImgCorrectionManager(object):
             res *= correction.get_data()
         return res
 
-    def get_correction(self, name):
+    def get_correction(self, name: str | int) -> ImgCorrectionInterface | None:
         try:
             return self._corrections[name]
         except KeyError:
             return None
 
     @property
-    def corrections(self):
+    def corrections(self) -> dict[str | int, ImgCorrectionInterface]:
         return self._corrections
 
 
-class ImgCorrectionInterface(object):
-    def get_data(self):
+class ImgCorrectionInterface:
+    def get_data(self) -> np.ndarray:
         raise NotImplementedError
 
-    def shape(self):
+    def shape(self) -> tuple[int, ...]:
         raise NotImplementedError
 
 
 class CbnCorrection(ImgCorrectionInterface):
-    def __init__(self, tth_array=[], azi_array=[],
-                 diamond_thickness=2.0, seat_thickness=5.0,
-                 small_cbn_seat_radius=0.5, large_cbn_seat_radius=2.0,
-                 tilt=0, tilt_rotation=0,
-                 diamond_abs_length=13.7, cbn_abs_length=14.05,
-                 center_offset=0, center_offset_angle=0):
-        self._tth_array = tth_array
-        self._azi_array = azi_array
-        self._diamond_thickness = diamond_thickness
-        self._seat_thickness = seat_thickness
-        self._small_cbn_seat_radius = small_cbn_seat_radius
-        self._large_cbn_seat_radius = large_cbn_seat_radius
-        self._tilt = tilt
-        self._tilt_rotation = tilt_rotation
-        self._diamond_abs_length = diamond_abs_length
-        self._seat_abs_length = cbn_abs_length
-        self._center_offset = center_offset
-        self._center_offset_angle = center_offset_angle
+    def __init__(
+        self,
+        tth_array: np.ndarray = [],
+        azi_array: np.ndarray = [],
+        diamond_thickness: float = 2.0,
+        seat_thickness: float = 5.0,
+        small_cbn_seat_radius: float = 0.5,
+        large_cbn_seat_radius: float = 2.0,
+        tilt: float = 0,
+        tilt_rotation: float = 0,
+        diamond_abs_length: float = 13.7,
+        cbn_abs_length: float = 14.05,
+        center_offset: float = 0,
+        center_offset_angle: float = 0,
+    ) -> None:
+        self._tth_array: np.ndarray = tth_array
+        self._azi_array: np.ndarray = azi_array
+        self._diamond_thickness: float = diamond_thickness
+        self._seat_thickness: float = seat_thickness
+        self._small_cbn_seat_radius: float = small_cbn_seat_radius
+        self._large_cbn_seat_radius: float = large_cbn_seat_radius
+        self._tilt: float = tilt
+        self._tilt_rotation: float = tilt_rotation
+        self._diamond_abs_length: float = diamond_abs_length
+        self._seat_abs_length: float = cbn_abs_length
+        self._center_offset: float = center_offset
+        self._center_offset_angle: float = center_offset_angle
 
-        self._data = None
+        self._data: np.ndarray | None = None
 
-    def get_data(self):
+    def get_data(self) -> np.ndarray | None:
         return self._data
 
-    def shape(self):
+    def shape(self) -> tuple[int, ...]:
         return self._data.shape
 
-    def get_params(self):
+    def get_params(self) -> dict[str, float]:
         return {'diamond_thickness': self._diamond_thickness,
                 'seat_thickness': self._seat_thickness,
                 'small_cbn_seat_radius': self._small_cbn_seat_radius,
@@ -109,7 +122,7 @@ class CbnCorrection(ImgCorrectionInterface):
                 'center_offset': self._center_offset,
                 'center_offset_angle': self._center_offset_angle}
 
-    def set_params(self, params):
+    def set_params(self, params: dict[str, float]) -> None:
         self._diamond_thickness = params['diamond_thickness']
         self._seat_thickness = params['seat_thickness']
         self._small_cbn_seat_radius = params['small_cbn_seat_radius']
@@ -121,7 +134,7 @@ class CbnCorrection(ImgCorrectionInterface):
         self._center_offset = params['center_offset']
         self._center_offset_angle = params['center_offset_angle']
 
-    def update(self):
+    def update(self) -> None:
 
         # diam - diamond thickness
         # ds - seat thickness
@@ -210,7 +223,7 @@ class CbnCorrection(ImgCorrectionInterface):
         # combine both, diamond and seat absorption correction
         self._data = abs_diamond * abs_seat
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, CbnCorrection):
             return False
         if self._diamond_thickness != other._diamond_thickness:
@@ -241,37 +254,45 @@ class CbnCorrection(ImgCorrectionInterface):
 
 
 class ObliqueAngleDetectorAbsorptionCorrection(ImgCorrectionInterface):
-    def __init__(self, tth_array, azi_array, detector_thickness=40, absorption_length=150, tilt=0, rotation=0):
-        self.tth_array = tth_array
-        self.azi_array = azi_array
-        self.detector_thickness = detector_thickness
-        self.absorption_length = absorption_length
-        self.tilt = tilt
-        self.rotation = rotation
+    def __init__(
+        self,
+        tth_array: np.ndarray,
+        azi_array: np.ndarray,
+        detector_thickness: float = 40,
+        absorption_length: float = 150,
+        tilt: float = 0,
+        rotation: float = 0,
+    ) -> None:
+        self.tth_array: np.ndarray = tth_array
+        self.azi_array: np.ndarray = azi_array
+        self.detector_thickness: float = detector_thickness
+        self.absorption_length: float = absorption_length
+        self.tilt: float = tilt
+        self.rotation: float = rotation
 
-        self._data = None
+        self._data: np.ndarray | None = None
         self.update()
 
-    def get_params(self):
+    def get_params(self) -> dict[str, float]:
         return {'detector_thickness': self.detector_thickness,
                 'absorption_length': self.absorption_length,
                 'tilt': self.tilt,
                 'rotation': self.rotation
                 }
 
-    def set_params(self, params):
+    def set_params(self, params: dict[str, float]) -> None:
         self.detector_thickness = params['detector_thickness']
         self.absorption_length = params['absorption_length']
         self.tilt = params['tilt']
         self.rotation = params['rotation']
 
-    def get_data(self):
+    def get_data(self) -> np.ndarray | None:
         return self._data
 
-    def shape(self):
+    def shape(self) -> tuple[int, ...]:
         return self._data.shape
 
-    def update(self):
+    def update(self) -> None:
         tilt_rad = self.tilt / 180.0 * np.pi
         rotation_rad = self.rotation / 180.0 * np.pi
 
@@ -289,55 +310,57 @@ class ObliqueAngleDetectorAbsorptionCorrection(ImgCorrectionInterface):
 
 
 class TransferFunctionCorrection(ImgCorrectionInterface):
-    def __init__(self, original_filename=None, response_filename=None, img_transformations=None):
-        self.original_filename = None
-        self.response_filename = None
-        self.original_data = None
-        self.response_data = None
-        self.transfer_data = None
+    def __init__(
+        self,
+        original_filename: str | None = None,
+        response_filename: str | None = None,
+        img_transformations: list[Callable[[np.ndarray], np.ndarray]] | None = None,
+    ) -> None:
+        self.original_filename: str | None = None
+        self.response_filename: str | None = None
+        self.original_data: np.ndarray | None = None
+        self.response_data: np.ndarray | None = None
+        self.transfer_data: np.ndarray | None = None
 
-        self.img_transformations = img_transformations
+        self.img_transformations: list[Callable[[np.ndarray], np.ndarray]] | None = img_transformations
 
         if original_filename:
             self.load_original_image(original_filename)
         if response_filename:
             self.load_response_image(response_filename)
 
-    def load_original_image(self, img_filename):
+    def load_original_image(self, img_filename: str) -> None:
         self.original_filename = img_filename
         self.original_data = load_image(img_filename)
         if self.response_filename:
             self.calculate_transfer_data()
 
-    def load_response_image(self, img_filename):
+    def load_response_image(self, img_filename: str) -> None:
         self.response_filename = img_filename
         self.response_data = load_image(img_filename)
         if self.original_filename:
             self.calculate_transfer_data()
 
-    def set_img_transformations(self, img_transformations):
-        """
-        sets the image transformations
-        :param img_transformations:
-        """
+    def set_img_transformations(self, img_transformations: list[Callable[[np.ndarray], np.ndarray]]) -> None:
+        """Sets the image transformations."""
         self.img_transformations = img_transformations
         if self.response_filename and self.original_filename:
             self.calculate_transfer_data()
 
-    def calculate_transfer_data(self):
+    def calculate_transfer_data(self) -> None:
         transfer_data = self.response_data / self.original_data
         if self.img_transformations:
             for transformation in self.img_transformations:
                 transfer_data = transformation(transfer_data)
         self.transfer_data = transfer_data
 
-    def get_data(self):
+    def get_data(self) -> np.ndarray | None:
         return self.transfer_data
 
-    def shape(self):
+    def shape(self) -> tuple[int, ...]:
         return self.transfer_data.shape
 
-    def get_params(self):
+    def get_params(self) -> dict[str, str | np.ndarray | None]:
         return {
             'original_filename': self.original_filename,
             'response_filename': self.response_filename,
@@ -345,14 +368,14 @@ class TransferFunctionCorrection(ImgCorrectionInterface):
             'response_data': self.response_data,
         }
 
-    def set_params(self, params):
+    def set_params(self, params: dict[str, str | np.ndarray | None]) -> None:
         self.original_filename = params['original_filename']
         self.response_filename = params['response_filename']
         self.original_data = params['original_data']
         self.response_data = params['response_data']
         self.calculate_transfer_data()
 
-    def reset(self):
+    def reset(self) -> None:
         self.original_filename = None
         self.response_filename = None
         self.original_data = None
@@ -368,25 +391,25 @@ class SlabAbsorptionCorrection(ImgCorrectionInterface):
     sample of given thickness and composition, integrating over all possible
     scattering depths within the slab.
 
-    For a slab of thickness t with linear absorption coefficient μ, the
+    For a slab of thickness t with linear absorption coefficient \u03bc, the
     effective linear absorption coefficients along the incident and diffracted
     beam paths are:
 
-        μ_i = μ / cos(α_i)     (incident beam)
-        μ_d = μ / cos(α_d)     (diffracted beam)
+        \u03bc_i = \u03bc / cos(\u03b1_i)     (incident beam)
+        \u03bc_d = \u03bc / cos(\u03b1_d)     (diffracted beam)
 
-    where α_i and α_d are the angles between the respective beams and the
+    where \u03b1_i and \u03b1_d are the angles between the respective beams and the
     slab normal.
 
     The transmission factor is obtained by integrating over the scattering
     depth z:
 
-        A*(2θ,φ) = ∫₀ᵗ exp(-μ_i·z) · exp(-μ_d·(t-z)) dz
+        A*(2\u03b8,\u03c6) = \u222b\u2080\u1d57 exp(-\u03bc_i\u00b7z) \u00b7 exp(-\u03bc_d\u00b7(t-z)) dz
 
     which evaluates to:
 
-        A* = [exp(-μ_i·t) - exp(-μ_d·t)] / (μ_d - μ_i)    when μ_i ≠ μ_d
-        A* = t · exp(-μ_i·t)                                when μ_i = μ_d
+        A* = [exp(-\u03bc_i\u00b7t) - exp(-\u03bc_d\u00b7t)] / (\u03bc_d - \u03bc_i)    when \u03bc_i \u2260 \u03bc_d
+        A* = t \u00b7 exp(-\u03bc_i\u00b7t)                                when \u03bc_i = \u03bc_d
 
     Reference: Busing, W. R. & Levy, H. A. (1957). Acta Cryst. 10, 180-182.
     See also: International Tables for Crystallography, Vol. C, Section 6.3.
@@ -397,38 +420,38 @@ class SlabAbsorptionCorrection(ImgCorrectionInterface):
 
     def __init__(
         self,
-        tth_array=None,
-        azi_array=None,
-        thickness=0.1,
-        absorption_coefficient=1.0,
-        slab_tilt=0,
-        slab_rotation=0,
-    ):
+        tth_array: np.ndarray | None = None,
+        azi_array: np.ndarray | None = None,
+        thickness: float = 0.1,
+        absorption_coefficient: float = 1.0,
+        slab_tilt: float = 0,
+        slab_rotation: float = 0,
+    ) -> None:
         """
-        :param tth_array: 2D array of 2θ values in degrees
+        :param tth_array: 2D array of 2\u03b8 values in degrees
         :param azi_array: 2D array of azimuthal angles in degrees
         :param thickness: slab thickness in mm
         :param absorption_coefficient: linear absorption coefficient in 1/mm
         :param slab_tilt: tilt of the slab normal from the beam direction in degrees
         :param slab_rotation: rotation of the tilt direction in degrees,
-            following pyFAI's azimuthal (chi) convention: 0° = horizontal,
-            90° = vertical (up), when looking along the beam direction
+            following pyFAI's azimuthal (chi) convention: 0\u00b0 = horizontal,
+            90\u00b0 = vertical (up), when looking along the beam direction
         """
-        self._tth_array = tth_array if tth_array is not None else np.array([])
-        self._azi_array = azi_array if azi_array is not None else np.array([])
-        self._thickness = thickness
-        self._absorption_coefficient = absorption_coefficient
-        self._slab_tilt = slab_tilt
-        self._slab_rotation = slab_rotation
-        self._data = None
+        self._tth_array: np.ndarray = tth_array if tth_array is not None else np.array([])
+        self._azi_array: np.ndarray = azi_array if azi_array is not None else np.array([])
+        self._thickness: float = thickness
+        self._absorption_coefficient: float = absorption_coefficient
+        self._slab_tilt: float = slab_tilt
+        self._slab_rotation: float = slab_rotation
+        self._data: np.ndarray | None = None
 
-    def get_data(self):
+    def get_data(self) -> np.ndarray | None:
         return self._data
 
-    def shape(self):
+    def shape(self) -> tuple[int, ...]:
         return self._data.shape
 
-    def get_params(self):
+    def get_params(self) -> dict[str, float]:
         return {
             "thickness": self._thickness,
             "absorption_coefficient": self._absorption_coefficient,
@@ -436,13 +459,13 @@ class SlabAbsorptionCorrection(ImgCorrectionInterface):
             "slab_rotation": self._slab_rotation,
         }
 
-    def set_params(self, params):
+    def set_params(self, params: dict[str, float]) -> None:
         self._thickness = params["thickness"]
         self._absorption_coefficient = params["absorption_coefficient"]
         self._slab_tilt = params["slab_tilt"]
         self._slab_rotation = params["slab_rotation"]
 
-    def update(self):
+    def update(self) -> None:
         dtor = np.pi / 180.0
 
         t = self._thickness
@@ -490,11 +513,11 @@ class SlabAbsorptionCorrection(ImgCorrectionInterface):
         mu_d = mu / cos_diffracted    # diffracted beam
 
         # Transmission factor by integrating over scattering depth z:
-        #   A* = ∫₀ᵗ exp(-μ_i·z) · exp(-μ_d·(t-z)) dz
+        #   A* = \u222b\u2080\u1d57 exp(-\u03bc_i\u00b7z) \u00b7 exp(-\u03bc_d\u00b7(t-z)) dz
         #
         # Solution (Busing & Levy, 1957):
-        #   A* = [exp(-μ_i·t) - exp(-μ_d·t)] / (μ_d - μ_i)   when μ_i ≠ μ_d
-        #   A* = t · exp(-μ_i·t)                               when μ_i = μ_d
+        #   A* = [exp(-\u03bc_i\u00b7t) - exp(-\u03bc_d\u00b7t)] / (\u03bc_d - \u03bc_i)   when \u03bc_i \u2260 \u03bc_d
+        #   A* = t \u00b7 exp(-\u03bc_i\u00b7t)                               when \u03bc_i = \u03bc_d
         if mu == 0 or t == 0:
             self._data = np.ones_like(two_theta)
             return
@@ -504,7 +527,7 @@ class SlabAbsorptionCorrection(ImgCorrectionInterface):
         delta_mu = mu_d - mu_i
 
         # Use the general formula where |delta_mu| is large enough,
-        # and the limit form where mu_i ≈ mu_d to avoid numerical issues
+        # and the limit form where mu_i \u2248 mu_d to avoid numerical issues
         nearly_equal = np.abs(delta_mu) < 1e-10 * mu
         self._data = np.where(
             nearly_equal,
@@ -518,7 +541,7 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
     Calculates the transmission factor by integrating the absorption over
     the beam footprint within the cylinder cross-section:
 
-        A*(2θ,φ) = average of exp(-μ·(l_in + l_out))
+        A*(2\u03b8,\u03c6) = average of exp(-\u03bc\u00b7(l_in + l_out))
 
     The beam width controls how much of the cross-section is illuminated:
     - beam_width=0 (default): pencil beam through center (synchrotron case)
@@ -527,7 +550,7 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
 
     The cylinder axis orientation is defined by two angles:
     - axis_tilt: angle of the cylinder axis from the z-axis (vertical)
-      in degrees. 0° = vertical (perpendicular to beam), 90° = along beam.
+      in degrees. 0\u00b0 = vertical (perpendicular to beam), 90\u00b0 = along beam.
     - axis_rotation: rotation of the tilt direction around the beam axis
       in degrees, following pyFAI's azimuthal (chi) convention.
 
@@ -540,29 +563,29 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
 
     def __init__(
         self,
-        tth_array=None,
-        azi_array=None,
-        radius=0.15,
-        absorption_coefficient=1.0,
-        axis_tilt=0,
-        axis_rotation=0,
-        beam_width=0,
-        container_absorption_coefficient=0,
-        wall_thickness=0,
-        n_points=200,
-        n_tth=200,
-        n_azi=180,
-    ):
+        tth_array: np.ndarray | None = None,
+        azi_array: np.ndarray | None = None,
+        radius: float = 0.15,
+        absorption_coefficient: float = 1.0,
+        axis_tilt: float = 0,
+        axis_rotation: float = 0,
+        beam_width: float = 0,
+        container_absorption_coefficient: float = 0,
+        wall_thickness: float = 0,
+        n_points: int = 200,
+        n_tth: int = 200,
+        n_azi: int = 180,
+    ) -> None:
         """
-        :param tth_array: 2D array of 2θ values in degrees
+        :param tth_array: 2D array of 2\u03b8 values in degrees
         :param azi_array: 2D array of azimuthal angles in degrees
         :param radius: sample cylinder radius (inner radius) in mm
         :param absorption_coefficient: sample linear absorption coefficient in 1/mm
         :param axis_tilt: tilt of the cylinder axis from vertical (degrees).
             0 = vertical (perpendicular to beam), 90 = along beam.
         :param axis_rotation: rotation of the tilt direction in degrees,
-            following pyFAI's azimuthal (chi) convention: 0° = horizontal,
-            90° = vertical (up), when looking along the beam direction
+            following pyFAI's azimuthal (chi) convention: 0\u00b0 = horizontal,
+            90\u00b0 = vertical (up), when looking along the beam direction
         :param beam_width: beam width/diameter in mm. 0 = pencil beam
             (default), >= 2*radius = full illumination.
         :param container_absorption_coefficient: container (e.g. glass
@@ -570,30 +593,30 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
             container correction (default).
         :param wall_thickness: container wall thickness in mm.
         :param n_points: grid resolution for integration
-        :param n_tth: number of 2θ points in the interpolation grid
+        :param n_tth: number of 2\u03b8 points in the interpolation grid
         :param n_azi: number of azimuth points in the interpolation grid
         """
-        self._tth_array = tth_array if tth_array is not None else np.array([])
-        self._azi_array = azi_array if azi_array is not None else np.array([])
-        self._radius = radius
-        self._absorption_coefficient = absorption_coefficient
-        self._axis_tilt = axis_tilt
-        self._axis_rotation = axis_rotation
-        self._beam_width = beam_width
-        self._container_absorption_coefficient = container_absorption_coefficient
-        self._wall_thickness = wall_thickness
-        self._n_points = n_points
-        self._n_tth = n_tth
-        self._n_azi = n_azi
-        self._data = None
+        self._tth_array: np.ndarray = tth_array if tth_array is not None else np.array([])
+        self._azi_array: np.ndarray = azi_array if azi_array is not None else np.array([])
+        self._radius: float = radius
+        self._absorption_coefficient: float = absorption_coefficient
+        self._axis_tilt: float = axis_tilt
+        self._axis_rotation: float = axis_rotation
+        self._beam_width: float = beam_width
+        self._container_absorption_coefficient: float = container_absorption_coefficient
+        self._wall_thickness: float = wall_thickness
+        self._n_points: int = n_points
+        self._n_tth: int = n_tth
+        self._n_azi: int = n_azi
+        self._data: np.ndarray | None = None
 
-    def get_data(self):
+    def get_data(self) -> np.ndarray | None:
         return self._data
 
-    def shape(self):
+    def shape(self) -> tuple[int, ...]:
         return self._data.shape
 
-    def get_params(self):
+    def get_params(self) -> dict[str, float]:
         return {
             "radius": self._radius,
             "absorption_coefficient": self._absorption_coefficient,
@@ -604,7 +627,7 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
             "wall_thickness": self._wall_thickness,
         }
 
-    def set_params(self, params):
+    def set_params(self, params: dict[str, float]) -> None:
         self._radius = params["radius"]
         self._absorption_coefficient = params["absorption_coefficient"]
         self._axis_tilt = params["axis_tilt"]
@@ -616,7 +639,9 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         self._wall_thickness = params.get("wall_thickness", 0)
 
     @staticmethod
-    def _build_cylinder_basis(axis_tilt_rad, axis_rotation_rad):
+    def _build_cylinder_basis(
+        axis_tilt_rad: float, axis_rotation_rad: float
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Build orthonormal basis for the cylinder cross-section plane.
 
         Returns (cyl_axis, cyl_u, cyl_v) where cyl_axis is the cylinder
@@ -642,13 +667,15 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         return cyl_axis, cyl_u, cyl_v
 
     @staticmethod
-    def _project_to_cross_section(direction_3d, cyl_u, cyl_v):
+    def _project_to_cross_section(
+        direction_3d: np.ndarray, cyl_u: np.ndarray, cyl_v: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Project 3D direction(s) onto the cylinder cross-section plane."""
         du = np.tensordot(cyl_u, direction_3d, axes=([0], [0]))
         dv = np.tensordot(cyl_v, direction_3d, axes=([0], [0]))
         return du, dv
 
-    def update(self):
+    def update(self) -> None:
         from scipy.interpolate import RegularGridInterpolator
 
         dtor = np.pi / 180.0
@@ -680,7 +707,7 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         beam_u_n = beam_u / beam_proj_len
         beam_v_n = beam_v / beam_proj_len
 
-        # Compute on a coarse (2θ, azi) grid
+        # Compute on a coarse (2\u03b8, azi) grid
         tth_min = max(tth_full.min(), 0.001)
         tth_max = tth_full.max() + 0.001
         tth_grid = np.linspace(tth_min, tth_max, self._n_tth)
@@ -718,7 +745,14 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         self._data = interp(points).reshape(tth_full.shape)
 
     @staticmethod
-    def _chord_length_through_shell(u0, v0, du, dv, R_inner, R_outer):
+    def _chord_length_through_shell(
+        u0: np.ndarray,
+        v0: np.ndarray,
+        du: np.ndarray,
+        dv: np.ndarray,
+        R_inner: float,
+        R_outer: float,
+    ) -> np.ndarray:
         """Compute the path length through a cylindrical shell.
 
         For a ray starting at (u0, v0) in direction (du, dv), compute
@@ -752,9 +786,19 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
         path_inner = np.where(has_inner, t_in_exit - t_in_entry, 0)
         return path_outer - path_inner
 
-    def _compute_correction(self, R, mu, beam_u_n, beam_v_n, beam_proj_len,
-                            diff_u, diff_v, diff_proj_len,
-                            R_outer, mu_container):
+    def _compute_correction(
+        self,
+        R: float,
+        mu: float,
+        beam_u_n: float,
+        beam_v_n: float,
+        beam_proj_len: float,
+        diff_u: np.ndarray,
+        diff_v: np.ndarray,
+        diff_proj_len: np.ndarray,
+        R_outer: float,
+        mu_container: float,
+    ) -> np.ndarray:
         """Compute correction by integrating over beam footprint in cross-section.
 
         For beam_width=0 (pencil beam): integrates along a line through center.
@@ -778,7 +822,7 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
             gu = s * beam_u_n
             gv = s * beam_v_n
         else:
-            # 2D grid: along beam × across beam (within beam_width)
+            # 2D grid: along beam x across beam (within beam_width)
             s_beam = np.linspace(-R * 0.999, R * 0.999, n)
             half = min(beam_half, R * 0.999)
             n_perp = max(int(n * half / R), 5)
@@ -857,19 +901,19 @@ class SphereAbsorptionCorrection(ImgCorrectionInterface):
     the beam footprint within the sphere:
 
     - beam_width=0 (default): pencil beam through sphere center. Typical
-      for synchrotron experiments (2–10 μm beam, ~1 mm sample).
+      for synchrotron experiments (2-10 \u03bcm beam, ~1 mm sample).
     - beam_width >= 2*radius: full illumination of the sphere.
     - intermediate values: partial illumination.
 
     For a pencil beam, the 1D integral along the beam path is:
 
-        A*(2θ) = (1/2R) ∫_{-R}^{R} exp(-μ·(l_in(x) + l_out(x, 2θ))) dx
+        A*(2\u03b8) = (1/2R) \u222b_{-R}^{R} exp(-\u03bc\u00b7(l_in(x) + l_out(x, 2\u03b8))) dx
 
     where:
         l_in(x) = x + R
-        l_out(x, 2θ) = -x·cos(2θ) + √(R² - x²·sin²(2θ))
+        l_out(x, 2\u03b8) = -x\u00b7cos(2\u03b8) + \u221a(R\u00b2 - x\u00b2\u00b7sin\u00b2(2\u03b8))
 
-    Due to spherical symmetry, the correction depends only on 2θ (not
+    Due to spherical symmetry, the correction depends only on 2\u03b8 (not
     azimuth). No orientation parameters are needed.
 
     The tth_array and azi_array should be in degrees (consistent with
@@ -878,15 +922,15 @@ class SphereAbsorptionCorrection(ImgCorrectionInterface):
 
     def __init__(
         self,
-        tth_array=None,
-        azi_array=None,
-        radius=0.1,
-        absorption_coefficient=1.0,
-        beam_width=0,
-        n_points=500,
-    ):
+        tth_array: np.ndarray | None = None,
+        azi_array: np.ndarray | None = None,
+        radius: float = 0.1,
+        absorption_coefficient: float = 1.0,
+        beam_width: float = 0,
+        n_points: int = 500,
+    ) -> None:
         """
-        :param tth_array: 2D array of 2θ values in degrees
+        :param tth_array: 2D array of 2\u03b8 values in degrees
         :param azi_array: 2D array of azimuthal angles in degrees
         :param radius: sphere radius in mm
         :param absorption_coefficient: linear absorption coefficient in 1/mm
@@ -894,33 +938,33 @@ class SphereAbsorptionCorrection(ImgCorrectionInterface):
             (default), >= 2*radius = full illumination.
         :param n_points: number of integration points
         """
-        self._tth_array = tth_array if tth_array is not None else np.array([])
-        self._azi_array = azi_array if azi_array is not None else np.array([])
-        self._radius = radius
-        self._absorption_coefficient = absorption_coefficient
-        self._beam_width = beam_width
-        self._n_points = n_points
-        self._data = None
+        self._tth_array: np.ndarray = tth_array if tth_array is not None else np.array([])
+        self._azi_array: np.ndarray = azi_array if azi_array is not None else np.array([])
+        self._radius: float = radius
+        self._absorption_coefficient: float = absorption_coefficient
+        self._beam_width: float = beam_width
+        self._n_points: int = n_points
+        self._data: np.ndarray | None = None
 
-    def get_data(self):
+    def get_data(self) -> np.ndarray | None:
         return self._data
 
-    def shape(self):
+    def shape(self) -> tuple[int, ...]:
         return self._data.shape
 
-    def get_params(self):
+    def get_params(self) -> dict[str, float]:
         return {
             "radius": self._radius,
             "absorption_coefficient": self._absorption_coefficient,
             "beam_width": self._beam_width,
         }
 
-    def set_params(self, params):
+    def set_params(self, params: dict[str, float]) -> None:
         self._radius = params["radius"]
         self._absorption_coefficient = params["absorption_coefficient"]
         self._beam_width = params.get("beam_width", 0)
 
-    def update(self):
+    def update(self) -> None:
         dtor = np.pi / 180.0
         R = self._radius
         mu = self._absorption_coefficient
@@ -930,7 +974,7 @@ class SphereAbsorptionCorrection(ImgCorrectionInterface):
             self._data = np.ones_like(tth_full)
             return
 
-        # Compute A*(2θ) on a 1D grid
+        # Compute A*(2\u03b8) on a 1D grid
         tth_min = max(tth_full.min(), 0.001)
         tth_max = tth_full.max() + 0.001
         n_tth = 500
@@ -968,15 +1012,15 @@ class SphereAbsorptionCorrection(ImgCorrectionInterface):
             self._data = np.ones_like(tth_full)
             return
 
-        # Incident path: beam along x, enters at x = -sqrt(R² - ρ²)
+        # Incident path: beam along x, enters at x = -sqrt(R\u00b2 - \u03c1\u00b2)
         l_in = x + np.sqrt(R**2 - rho**2)
 
         cos_tth = np.cos(tth_grid)
         sin_tth = np.sin(tth_grid)
 
         # For each point, diffracted beam exits the sphere.
-        # Point P = (x, rho, 0), beam direction d = (cos2θ, sin2θ, 0)
-        # |P + t·d|² = R² → t² + 2t(x·cos2θ + ρ·sin2θ) + (x² + ρ² - R²) = 0
+        # Point P = (x, rho, 0), beam direction d = (cos2\u03b8, sin2\u03b8, 0)
+        # |P + t\u00b7d|\u00b2 = R\u00b2 \u2192 t\u00b2 + 2t(x\u00b7cos2\u03b8 + \u03c1\u00b7sin2\u03b8) + (x\u00b2 + \u03c1\u00b2 - R\u00b2) = 0
         correction_1d = np.zeros_like(tth_grid)
         weight_sum = np.sum(weights)
 
@@ -1001,14 +1045,14 @@ class PlateAbsorptionCorrection(ImgCorrectionInterface):
 
     Models a flat plate (e.g. diamond anvil window) between the sample and
     detector. Each diffracted beam passes through the plate at an angle
-    determined by its 2θ/azimuth and the plate orientation.
+    determined by its 2\u03b8/azimuth and the plate orientation.
 
     The transmission factor is simply:
 
-        T(2θ,φ) = exp(-μ · t / cos(θ_plate))
+        T(2\u03b8,\u03c6) = exp(-\u03bc \u00b7 t / cos(\u03b8_plate))
 
-    where θ_plate is the angle between the diffracted beam and the plate
-    normal, t is the plate thickness, and μ is the linear absorption
+    where \u03b8_plate is the angle between the diffracted beam and the plate
+    normal, t is the plate thickness, and \u03bc is the linear absorption
     coefficient.
 
     The tth_array and azi_array should be in degrees.
@@ -1016,36 +1060,36 @@ class PlateAbsorptionCorrection(ImgCorrectionInterface):
 
     def __init__(
         self,
-        tth_array=None,
-        azi_array=None,
-        thickness=2.0,
-        absorption_coefficient=1.0,
-        plate_tilt=0,
-        plate_rotation=0,
-    ):
+        tth_array: np.ndarray | None = None,
+        azi_array: np.ndarray | None = None,
+        thickness: float = 2.0,
+        absorption_coefficient: float = 1.0,
+        plate_tilt: float = 0,
+        plate_rotation: float = 0,
+    ) -> None:
         """
-        :param tth_array: 2D array of 2θ values in degrees
+        :param tth_array: 2D array of 2\u03b8 values in degrees
         :param azi_array: 2D array of azimuthal angles in degrees
         :param thickness: plate thickness in mm
         :param absorption_coefficient: linear absorption coefficient in 1/mm
         :param plate_tilt: tilt of the plate normal from the beam direction in degrees
         :param plate_rotation: rotation of the tilt direction in degrees
         """
-        self._tth_array = tth_array if tth_array is not None else np.array([])
-        self._azi_array = azi_array if azi_array is not None else np.array([])
-        self._thickness = thickness
-        self._absorption_coefficient = absorption_coefficient
-        self._plate_tilt = plate_tilt
-        self._plate_rotation = plate_rotation
-        self._data = None
+        self._tth_array: np.ndarray = tth_array if tth_array is not None else np.array([])
+        self._azi_array: np.ndarray = azi_array if azi_array is not None else np.array([])
+        self._thickness: float = thickness
+        self._absorption_coefficient: float = absorption_coefficient
+        self._plate_tilt: float = plate_tilt
+        self._plate_rotation: float = plate_rotation
+        self._data: np.ndarray | None = None
 
-    def get_data(self):
+    def get_data(self) -> np.ndarray | None:
         return self._data
 
-    def shape(self):
+    def shape(self) -> tuple[int, ...]:
         return self._data.shape
 
-    def get_params(self):
+    def get_params(self) -> dict[str, float]:
         return {
             "thickness": self._thickness,
             "absorption_coefficient": self._absorption_coefficient,
@@ -1053,13 +1097,13 @@ class PlateAbsorptionCorrection(ImgCorrectionInterface):
             "plate_rotation": self._plate_rotation,
         }
 
-    def set_params(self, params):
+    def set_params(self, params: dict[str, float]) -> None:
         self._thickness = params["thickness"]
         self._absorption_coefficient = params["absorption_coefficient"]
         self._plate_tilt = params["plate_tilt"]
         self._plate_rotation = params["plate_rotation"]
 
-    def update(self):
+    def update(self) -> None:
         dtor = np.pi / 180.0
 
         t = self._thickness
@@ -1100,7 +1144,7 @@ class PlateAbsorptionCorrection(ImgCorrectionInterface):
         path_length = t / cos_angle
         self._data = np.exp(-mu * path_length)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, PlateAbsorptionCorrection):
             return False
         if self._thickness != other._thickness:
@@ -1119,22 +1163,20 @@ class PlateAbsorptionCorrection(ImgCorrectionInterface):
 
 
 class DummyCorrection(ImgCorrectionInterface):
-    """
-    Used in particular for unit tests
-    """
+    """Used in particular for unit tests."""
 
-    def __init__(self, shape, number=1):
-        self._data = np.ones(shape) * number
-        self._shape = shape
+    def __init__(self, shape: tuple[int, ...], number: float = 1) -> None:
+        self._data: np.ndarray = np.ones(shape) * number
+        self._shape: tuple[int, ...] = shape
 
-    def get_data(self):
+    def get_data(self) -> np.ndarray:
         return self._data
 
-    def shape(self):
+    def shape(self) -> tuple[int, ...]:
         return self._shape
 
 
-def load_image(filename):
+def load_image(filename: str) -> np.ndarray:
     try:
         im = Image.open(filename)
         img_data = np.array(im)[::-1]
@@ -1145,9 +1187,9 @@ def load_image(filename):
     return img_data
 
 
-def vector_len(vec):
+def vector_len(vec: np.ndarray) -> np.ndarray:
     return np.sqrt(vec[0] ** 2 + vec[1] ** 2 + vec[2] ** 2)
 
 
-def dot_product(vec1, vec2):
+def dot_product(vec1: np.ndarray, vec2: np.ndarray) -> np.ndarray:
     return vec1[0] * vec2[0] + vec1[1] * vec2[1] + vec1[2] * vec2[2]
