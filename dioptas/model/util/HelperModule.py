@@ -254,7 +254,7 @@ class FileNameIterator:
         try:
             self.acceptable_file_endings.append(file_str.split(".")[-1])
         except AttributeError:
-            pass
+            logger.debug("Observer not initialized, skipping stop")
         if self.directory != new_directory:
             self._stop_observing()
             self.directory = new_directory
@@ -276,7 +276,7 @@ class FileNameIterator:
             try:
                 _shared_observer.unschedule(self._watch)
             except KeyError:
-                pass
+                logger.debug("Observer watch not found, skipping unwatch")
             self._watch = None
 
     def __del__(self) -> None:

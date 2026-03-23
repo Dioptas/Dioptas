@@ -61,13 +61,13 @@ class LambdaImage:
                 try:
                     lambda_files.append(h5py.File(f_name, "r"))
                 except OSError:
-                    pass
+                    logger.debug("Could not open Lambda module file: %s", f_name)
         else:
             for moduleIndex in filenumber_list:
                 try:
                     lambda_files.append(h5py.File(re.sub(regex_in, regex_out.format(moduleIndex), filename), "r"))
                 except OSError:
-                    pass
+                    logger.debug("Could not open Lambda module file %d", moduleIndex)
 
         self.file_list: list[str] | None = file_list
         self.full_img_data: list[h5py.Dataset] = [imageFile[data_path] for imageFile in lambda_files]

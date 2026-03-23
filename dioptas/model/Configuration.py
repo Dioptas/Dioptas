@@ -692,14 +692,14 @@ class Configuration:
                 "correct_solid_angle"
             ]
         except KeyError:
-            pass
+            logger.debug("Optional field 'correct_solid_angle' not found in project file")
 
         try:
             self.calibration_model.set_supersampling(
                 int(f.get("calibration_model").attrs["supersampling_factor"])
             )
         except KeyError:
-            pass
+            logger.debug("Optional field 'integration_unit' not found in project file")
 
         try:
             distortion_spline_filename = f.get("calibration_model").attrs[
@@ -707,7 +707,7 @@ class Configuration:
             ]
             self.calibration_model.load_distortion(distortion_spline_filename)
         except KeyError:
-            pass
+            logger.debug("Optional field 'integration_rad_points' not found in project file")
 
         # load detector definition
         try:
@@ -732,7 +732,7 @@ class Configuration:
             self.img_model.file_name_iterator.update_filename(filename)
             self.img_model._directory_watcher.path = os.path.dirname(filename)
         except EnvironmentError:
-            pass
+            logger.warning("Could not load mask file from project")
 
         self.img_model.autoprocess = f.get("image_model").attrs["auto_process"]
         self.img_model.autoprocess_changed.emit()
@@ -742,7 +742,7 @@ class Configuration:
             self.img_model.series_max = f.get("image_model").attrs["series_max"]
             self.img_model.series_pos = f.get("image_model").attrs["series_pos"]
         except KeyError:
-            pass
+            logger.debug("Optional field 'supersampling_factor' not found in project file")
 
         if f.get("image_model").attrs["has_background"]:
             self.img_model.background_data = np.copy(
@@ -818,8 +818,8 @@ class Configuration:
             self.cake_azimuth_points = f.get("general_information").attrs[
                 "cake_azimuth_points"
             ]
-        except KeyError as e:
-            pass
+        except KeyError:
+            logger.debug("Optional azimuth range not found in project file")
         try:
             if f.get("general_information").attrs["cake_azimuth_range"] == "None":
                 self.cake_azimuth_range = None
@@ -827,8 +827,8 @@ class Configuration:
                 self.cake_azimuth_range = f.get("general_information").attrs[
                     "cake_azimuth_range"
                 ]
-        except KeyError as e:
-            pass
+        except KeyError:
+            logger.debug("Optional cake azimuth range not found in project file")
 
         # mask parameters
         self.use_mask = f.get("general_information").attrs["use_mask"]

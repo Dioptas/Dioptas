@@ -260,7 +260,7 @@ class DioptasModel(object):
                     phase_ind, bool(phase_group.attrs["visible"])
                 )
             except KeyError:
-                pass
+                logger.debug("Optional phase data not found in project file")
 
         # load overlay model
         for ind, overlay_group in f.get("overlays").items():
@@ -282,7 +282,7 @@ class DioptasModel(object):
                     index, bool(overlay_group.attrs["visible"])
                 )
             except KeyError:
-                pass
+                logger.debug("Optional overlay data not found in project file")
 
         f.close()
 

@@ -362,7 +362,7 @@ class SpeFile(object):
                                                    + base_ind)))
                     else:
                         result.append(base_ind)
-                except:
+                except (ValueError, IndexError, TypeError):
                     result.append(0)
             return np.array(result)
         except TypeError:

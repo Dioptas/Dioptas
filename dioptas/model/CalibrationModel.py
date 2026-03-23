@@ -127,6 +127,7 @@ class CalibrationModel(object):
             )
         except Exception:
             self._dioptrin_integrator = None
+            logger.info("Dioptrin integrator not available, using pyFAI")
             self.use_dioptrin = False
 
     def can_use_dioptrin_batch(self, unit: str, azi_range: tuple[float, float] | None = None) -> bool:
