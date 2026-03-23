@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 
+import logging
 import os
 from qtpy import QtWidgets, QtCore
 
@@ -18,6 +19,8 @@ from ..model.CalibrationModel import (
     get_available_detectors,
     DetectorModes,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class CalibrationController(object):
@@ -195,6 +198,7 @@ class CalibrationController(object):
         """
         Loads an image file.
         """
+        logger.info("Loading calibration image")
         filename = open_file_dialog(
             self.widget,
             caption="Load Calibration Image",
@@ -531,6 +535,7 @@ class CalibrationController(object):
         """
         Performs calibration based on the previously inputted/searched peaks and start values.
         """
+        logger.info("Starting calibration")
         if len(self.model.calibration_model.points) == 0:
             QtWidgets.QMessageBox.critical(
                 self.widget,
@@ -557,6 +562,7 @@ class CalibrationController(object):
         self.update_calibration_parameter_in_view()
 
     def refine(self):
+        logger.info("Refining calibration")
         self.model.calibration_model.set_fixed_values(self.widget.get_fixed_values())
 
         if self.widget.options_automatic_refinement_cb.isChecked():
@@ -657,8 +663,8 @@ class CalibrationController(object):
             self.model.calibration_model.refine()
             self.plot_points()
         else:
-            print(
-                "Did not find any Points with the specified parameters for the first two rings!"
+            logger.warning(
+                "Did not find any points with the specified parameters for the first two rings"
             )
 
         progress_dialog.setValue(2)
@@ -684,7 +690,7 @@ class CalibrationController(object):
                 QtWidgets.QApplication.processEvents()
                 self.model.calibration_model.refine()
             else:
-                print("Did not find enough points with the specified parameters!")
+                logger.warning("Did not find enough points with the specified parameters")
             progress_dialog.setLabelText(
                 "Refining Calibration. \n" "Finding peaks on Ring {0}.".format(i + 3)
             )
@@ -710,6 +716,7 @@ class CalibrationController(object):
         """
         Loads a '*.poni' file and updates the calibration data class
         """
+        logger.info("Loading calibration file")
         filename = open_file_dialog(
             self.widget,
             caption="Load calibration...",
@@ -862,6 +869,7 @@ class CalibrationController(object):
         Saves the current calibration in a file.
         :return:
         """
+        logger.info("Saving calibration file")
 
         filename = save_file_dialog(
             self.widget,

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 from __future__ import annotations
 
+import logging
 import os.path
 import time
 
@@ -12,6 +13,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .Configuration import Configuration
+
+logger = logging.getLogger(__name__)
 
 
 class MapPointInfo:
@@ -51,6 +54,7 @@ class MapModel:
 
     def load(self, filepaths: list[str], callback_fn=None):
         """Loads a list of files, integrates them and creates a map"""
+        logger.info("Loading map data from %d files", len(filepaths))
         if len(filepaths) == 0:
             raise ValueError("No files to load")
 
@@ -80,6 +84,7 @@ class MapModel:
 
     def integrate(self, callback_fn=None):
         """Integrates all files in the filepaths list and stores the results"""
+        logger.info("Integrating map data")
         if not self.configuration.calibration_model.is_calibrated:
             raise ValueError("Detector geometry is not calibrated")
 

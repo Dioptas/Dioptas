@@ -1,11 +1,15 @@
 # SPDX-License-Identifier: MIT
 
+import logging
+
 import numpy as np
 
 from .util import Signal
 from .util.jcpds import jcpds, jcpds_reflection
 from .util.cif import CifConverter
 from .util.HelperModule import calculate_color
+
+logger = logging.getLogger(__name__)
 
 
 class PhaseLoadError(Exception):
@@ -44,6 +48,7 @@ class PhaseModel(object):
         Adds a jcpds file
         :param filename: filename of the jcpds file
         """
+        logger.info("Adding JCPDS phase: %s", filename)
         try:
             jcpds_object = jcpds()
             jcpds_object.load_file(filename)
@@ -60,13 +65,14 @@ class PhaseModel(object):
         :param intensity_cutoff: all reflections added to the jcpds will have larger intensity in % (0-100)
         :param minimum_d_spacing: all reflections added to the jcpds will have larger d spacing than specified here
         """
+        logger.info("Adding CIF phase: %s", filename)
         try:
             cif_converter = CifConverter(0.31, minimum_d_spacing, intensity_cutoff)
             jcpds_object = cif_converter.convert_cif_to_jcpds(filename)
             self.phase_files.append(filename)
             self.add_jcpds_object(jcpds_object)
         except (ZeroDivisionError, UnboundLocalError, ValueError) as e:
-            print(e)
+            logger.warning("Failed to load CIF file %s: %s", filename, e)
             raise PhaseLoadError(filename)
 
     def add_jcpds_object(self, jcpds_object):
@@ -92,6 +98,7 @@ class PhaseModel(object):
         """
         Save the phase specified with ind as a jcpds file.
         """
+        logger.info("Saving phase %d to %s", ind, filename)
         self.phases[ind].save_file(filename)
         self.phase_changed.emit(ind)
 
@@ -99,6 +106,7 @@ class PhaseModel(object):
         """
         Deletes the a phase with index ind from the phase list
         """
+        logger.info("Deleting phase %d", ind)
         del self.phases[ind]
         del self.reflections[ind]
         del self.phase_files[ind]
@@ -110,6 +118,7 @@ class PhaseModel(object):
         """
         Reloads a phase specified by index ind from it's original source filename
         """
+        logger.info("Reloading phase %d", ind)
         self.clear_reflections(ind)
         self.phases[ind].reload_file()
         for _ in range(len(self.phases[ind].reflections)):
@@ -122,6 +131,7 @@ class PhaseModel(object):
         Sets the pressure of a phase with index ind. In case same_conditions is true, all phase pressures will be
         updated.
         """
+        logger.debug("Setting pressure for phase %d to %.2f GPa", ind, pressure)
         if self.same_conditions:
             for j in range(len(self.phases)):
                 self._set_pressure(j, pressure)
@@ -139,6 +149,7 @@ class PhaseModel(object):
         Sets the temperature of a phase with index ind. In case same_conditions is true, all phase temperatures will be
         updated.
         """
+        logger.debug("Setting temperature for phase %d to %.1f K", ind, temperature)
         if self.same_conditions:
             for j in range(len(self.phases)):
                 self._set_temperature(j, temperature)

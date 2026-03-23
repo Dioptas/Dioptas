@@ -59,6 +59,7 @@ class OverlayModel(object):
         :param y: y-values
         :param name: name of overlay to be used for displaying etc.
         """
+        logger.info("Adding overlay: %s", name)
         self.add_overlay_pattern(Overlay(x, y, name))
         return self.overlays[-1]
 
@@ -75,6 +76,7 @@ class OverlayModel(object):
         Reads a 2-column (x,y) text file and adds it as overlay to the list of overlays
         :param filename: path of the file to be loaded
         """
+        logger.info("Adding overlay from file: %s", filename)
         pattern = Overlay.from_file(filename)
         self.add_overlay_pattern(pattern)
 
@@ -83,6 +85,7 @@ class OverlayModel(object):
         Removes an overlay from the list of overlays
         :param ind: index of the overlay
         """
+        logger.info("Removing overlay %d", ind)
         if ind >= 0:
             del self.overlays[ind]
             self.overlay_removed.emit(ind)

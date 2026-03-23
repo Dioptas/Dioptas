@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 import os
+import logging
 import json
 import datetime
 import threading
@@ -22,6 +23,8 @@ from .ConfigurationController import ConfigurationController
 from .MapController import MapController
 
 from dioptas import __version__
+
+logger = logging.getLogger(__name__)
 
 
 class MainController(object):
@@ -148,6 +151,7 @@ class MainController(object):
 
         old_index = self.current_tab_index
         self.current_tab_index = ind
+        logger.info("Switched to %s mode", ["calibration", "mask", "integration", "map"][ind])
 
         # changing from mask tab will reintegrate the image
         if old_index == 1:  # mask tab
@@ -233,7 +237,9 @@ class MainController(object):
             ):
                 try:
                     self.model.load(os.path.join(self.settings_directory, "config.dio"))
+                    logger.info("Restored previous session from %s", config_path)
                 except Exception as e:
+                    logger.error("Failed to restore previous state: %s", e)
                     QtWidgets.QMessageBox.critical(
                         self.widget,
                         "Error restoring previous state.",
@@ -274,6 +280,7 @@ class MainController(object):
         """
         Intervention of the Dioptas close event to save settings before closing the Program.
         """
+        logger.info("Closing Dioptas")
         if self.use_settings:
             self.save_default_settings()
             self.save_directories()
@@ -295,6 +302,7 @@ class MainController(object):
         )
 
         if filename is not None and filename != "":
+            logger.info("Saving project to %s", filename)
             self.model.save(filename)
             self.model.working_directories["project"] = os.path.dirname(filename)
 
@@ -312,6 +320,7 @@ class MainController(object):
             filter="Dioptas Project (*.dio)",
         )
         if filename is not None and filename != "":
+            logger.info("Loading project from %s", filename)
             self.model.load(filename)
             self.model.working_directories["project"] = os.path.dirname(filename)
 

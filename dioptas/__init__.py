@@ -1,8 +1,15 @@
 # SPDX-License-Identifier: MIT
 
+import logging
 import os
 import sys
 from sys import platform as _platform
+
+from .log import setup_logging
+
+setup_logging()
+
+logger = logging.getLogger(__name__)
 
 # If QT_API is not set, use PyQt6 by default
 if "QT_API" not in os.environ:
@@ -75,7 +82,7 @@ def main():
         extra={"density_scale": -2},
     )
     sys.excepthook = excepthook
-    print("Dioptas {}".format(__version__))
+    logger.info("Dioptas %s", __version__)
 
     _dioptrin_available = _check_dioptrin_license()
 

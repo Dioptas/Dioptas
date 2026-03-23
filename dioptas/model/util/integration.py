@@ -6,9 +6,12 @@ integration logic shared between map and batch processing.
 """
 from __future__ import annotations
 
+import logging
 import os
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 def detect_fast_path(img_model) -> bool:
@@ -36,6 +39,7 @@ def try_open_bitshuffle_hdf5(filepath):
     try:
         loader = Hdf5Image(filepath)
     except Exception:
+        logger.debug("File %s is not a bitshuffle HDF5", filepath)
         return None
 
     if loader._is_bitshuffle:

@@ -330,6 +330,7 @@ class ImgModel(object):
         Saves the current file as another image file, the raw data is used for saving.
         :param filename: name of the saved file, extensions defines the format, please see fabio library for reference
         """
+        logger.info("Saving image to %s", filename)
         try:
             self._img_data_fabio.save(filename)
         except AttributeError:
@@ -344,6 +345,7 @@ class ImgModel(object):
         The img_changed signal will be emitted after the process.
         :param filename: path of the image file to be loaded
         """
+        logger.info("Loading background image: %s", filename)
         self.background_filename = filename
 
         self._background_data = self.get_image_data(filename)["img_data"]
@@ -410,6 +412,7 @@ class ImgModel(object):
         self._calculate_img_data()
 
     def reset_background(self):
+        logger.debug("Resetting background image")
         self._reset_background()
         self.img_changed.emit()
 
@@ -460,6 +463,7 @@ class ImgModel(object):
         pos values start at one as shown to the user.
         :param pos: Image position in the series to load, starting at 1
         """
+        logger.debug("Loading series image at position %d", pos)
         pos = min(max(pos, 1), self.series_max)
         if self.series_pos == pos:
             return
@@ -632,6 +636,7 @@ class ImgModel(object):
         The transformation is saved and applied to every new image and background image loaded.
         The img_changed signal will be emitted after the process.
         """
+        logger.debug("Rotating image +90°")
         self._img_data = rotate_matrix_p90(self._img_data)
 
         if self._background_data is not None:
@@ -649,6 +654,7 @@ class ImgModel(object):
         The transformation is saved and applied to every new image and background image loaded.
         The img_changed signal will be emitted after the process.
         """
+        logger.debug("Rotating image -90°")
         self._img_data = rotate_matrix_m90(self._img_data)
         if self._background_data is not None:
             self._background_data = rotate_matrix_m90(self._background_data)
@@ -664,6 +670,7 @@ class ImgModel(object):
         correction). The transformation is saved and applied to every new image and background image loaded.
         The img_changed signal will be emitted after the process.
         """
+        logger.debug("Flipping image horizontally")
         self._img_data = np.fliplr(self._img_data)
         if self._background_data is not None:
             self._background_data = np.fliplr(self._background_data)
@@ -679,6 +686,7 @@ class ImgModel(object):
         correction). The transformation is saved and applied to every new image and background image loaded.
         The img_changed signal will be emitted after the process.
         """
+        logger.debug("Flipping image vertically")
         self._img_data = np.flipud(self._img_data)
         if self._background_data is not None:
             self._background_data = np.flipud(self._background_data)
@@ -693,6 +701,7 @@ class ImgModel(object):
         Reverts all image transformations and resets the transformation stack.
         The img_changed signal will be emitted after the process, if set to true.
         """
+        logger.debug("Resetting all image transformations")
         self._reset_img_transformations()
         self._reset_background_transformations()
 
@@ -771,6 +780,7 @@ class ImgModel(object):
         :param name: correction can be given a name, to selectively delete or obtain later.
         :type name: str
         """
+        logger.info("Adding image correction: %s", name)
         self._img_corrections.add(correction, name)
         self._calculate_img_data()
         self.img_changed.emit()
@@ -787,6 +797,7 @@ class ImgModel(object):
         :param name: deletes a correction from the correction calculation with a specific name. if no name is specified
          the last added correction is deleted.
         """
+        logger.info("Deleting image correction: %s", name)
         self._img_corrections.delete(name)
         self._calculate_img_data()
         self.img_changed.emit()

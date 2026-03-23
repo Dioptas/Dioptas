@@ -9,8 +9,12 @@ from CifFile import ReadCif
 from .jcpds import jcpds
 from ... import data_path
 
+import logging
+
 import numpy as np
 import json
+
+logger = logging.getLogger(__name__)
 
 with open(os.path.join(data_path, "atomic_scattering_params.json")) as f:
     ATOMIC_SCATTERING_PARAMS = json.load(f)
@@ -453,7 +457,7 @@ class CifPhase(object):
         if (label[0] in elem1):
             return label[0]
 
-        print('WARNING: could not convert "%s" into element name!' % label)
+        logger.warning('Could not convert "%s" into element name', label)
         return label
 
     def get_symmetry_from_space_group_number(self, number):

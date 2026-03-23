@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 
+import logging
 from collections import deque
 
 import fabio
@@ -11,6 +12,8 @@ from math import sqrt, atan2, cos, sin
 from .util.cosmics import cosmicsimage
 from .util import Signal
 from .util.point import Point
+
+logger = logging.getLogger(__name__)
 
 
 class MaskModel(object):
@@ -92,11 +95,13 @@ class MaskModel(object):
             pass
 
     def mask_below_threshold(self, img_data, threshold):
+        logger.debug("Masking below threshold: %s", threshold)
         self.update_deque()
         self._mask_data[img_data < threshold] = self.mode
         self.mask_changed.emit()
 
     def mask_above_threshold(self, img_data, threshold):
+        logger.debug("Masking above threshold: %s", threshold)
         self.update_deque()
         self._mask_data[img_data > threshold] = self.mode
         self.mask_changed.emit()
@@ -138,6 +143,7 @@ class MaskModel(object):
         Masks a rectangle. x and y parameters are the upper left corner
         of the rectangle.
         """
+        logger.debug("Masking rectangle at (%s, %s) size %sx%s", x, y, width, height)
         self.update_deque()
         if width > 0:
             x_ind1 = np.round(x)
@@ -167,6 +173,7 @@ class MaskModel(object):
         the polygon vertices. Uses the draw.polygon implementation of
         the skimage library.
         """
+        logger.debug("Masking polygon with %d vertices", len(x))
         self.update_deque()
         rr, cc = skimage.draw.polygon(y, x, self._mask_data.shape)
         self._mask_data[rr, cc] = self.mode
@@ -178,6 +185,7 @@ class MaskModel(object):
         given. Uses the draw.ellipse implementation of
         the skimage library.
         """
+        logger.debug("Masking ellipse at (%.1f, %.1f)", cx, cy)
         self.update_deque()
         rr, cc = skimage.draw.ellipse(
             cy, cx, y_radius, x_radius, shape=self._mask_data.shape)
@@ -185,6 +193,7 @@ class MaskModel(object):
         self.mask_changed.emit()
 
     def grow(self):
+        logger.debug("Growing mask")
         self.update_deque()
         self._mask_data[1:, :] = np.logical_or(self._mask_data[1:, :], self._mask_data[:-1, :])
         self._mask_data[:-1, :] = np.logical_or(self._mask_data[:-1, :], self._mask_data[1:, :])
@@ -193,6 +202,7 @@ class MaskModel(object):
         self.mask_changed.emit()
 
     def shrink(self):
+        logger.debug("Shrinking mask")
         self.update_deque()
         self._mask_data[1:, :] = np.logical_and(self._mask_data[1:, :], self._mask_data[:-1, :])
         self._mask_data[:-1, :] = np.logical_and(self._mask_data[:-1, :], self._mask_data[1:, :])
@@ -201,11 +211,13 @@ class MaskModel(object):
         self.mask_changed.emit()
 
     def invert_mask(self):
+        logger.debug("Inverting mask")
         self.update_deque()
         self._mask_data = np.logical_not(self._mask_data)
         self.mask_changed.emit()
 
     def clear_mask(self):
+        logger.debug("Clearing mask")
         self.update_deque()
         self._mask_data[:, :] = False
         self.mask_changed.emit()
@@ -238,6 +250,7 @@ class MaskModel(object):
         :param filename: Path of the file to write
         :param flipud: True to apply a vertical flip before saving the mask
         """
+        logger.info("Saving mask to %s", filename)
         im_array = np.int8(self.get_img())
         if flipud:
             im_array = np.flipud(im_array)
@@ -285,6 +298,7 @@ class MaskModel(object):
         :param filename: Path to the file to read
         :param flipud: True to apply a vertical flip to the loaded mask
         """
+        logger.info("Loading mask from %s", filename)
         data = self.read_mask_file(filename, flipud)
 
         if self.mask_dimension == data.shape:
@@ -301,6 +315,7 @@ class MaskModel(object):
         :param filename: Path to the file to read
         :param flipud: True to apply a vertical flip to the loaded mask
         """
+        logger.info("Adding mask from %s", filename)
         data = self.read_mask_file(filename, flipud)
 
         if self.get_mask().shape == data.shape:

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 from glob import glob
+import logging
 import os
 import time
 import typing
@@ -18,6 +19,8 @@ from ...widgets.UtilityWidgets import (
     save_file_dialog,
 )
 from ...widgets.integration.BatchWidget import open_gl
+
+logger = logging.getLogger(__name__)
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...widgets.integration import IntegrationWidget
@@ -860,7 +863,7 @@ class BatchController(object):
                 ]
                 self.model.batch_model.set_image_files(filenames)
             except IOError:
-                print("Raw images are not found")
+                logger.warning("Raw images are not found")
 
         self.model.img_model.blockSignals(False)
         files = self.model.batch_model.files

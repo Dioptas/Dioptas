@@ -73,6 +73,7 @@ class PatternModel(object):
         :param header: you can specify any specific header
         :param subtract_background: whether the background set will be used for saving or not
         """
+        logger.info("Saving pattern to %s", filename)
         self.pattern.save(filename, header, subtract_background, self.unit)
 
     def save_auto_background_as_pattern(self, filename, header=None):
@@ -141,6 +142,7 @@ class PatternModel(object):
         :param roi: array of size two with [x_min, x_max] specifying the range for the background subtraction
         will be performed
         """
+        logger.info("Setting auto background subtraction with parameters: %s", parameters)
         if roi is not None:
             x, _ = self.pattern.original_data
             roi = list(roi)
@@ -162,5 +164,6 @@ class PatternModel(object):
         """
         Disables auto background extraction and removal.
         """
+        logger.info("Unsetting auto background subtraction")
         self.pattern.auto_bkg = None
         self.pattern_changed.emit()

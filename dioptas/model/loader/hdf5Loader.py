@@ -49,7 +49,7 @@ def _is_bitshuffle_compressed(dataset):
             if filter_info[0] == BITSHUFFLE_FILTER_ID:
                 return True
     except Exception:
-        pass
+        logger.debug("Could not check bitshuffle filter for dataset")
     return False
 
 

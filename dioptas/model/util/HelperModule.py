@@ -1,12 +1,15 @@
 # SPDX-License-Identifier: MIT
 
 
+import logging
 import os
 import re
 import time
 
 import numpy as np
 from colorsys import hsv_to_rgb
+
+logger = logging.getLogger(__name__)
 
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
@@ -63,7 +66,7 @@ class FileNameIterator:
         paths = [os.path.join(self.directory, file) for file in files]
         file_list = [(os.path.getctime(path), path) for path in paths]
         self.filename_list = paths
-        print("Time needed  for getting files: {0}s.".format(time.time() - t1))
+        logger.debug("Time needed for getting files: %.3fs", time.time() - t1)
         return file_list
 
     def is_correct_file_type(self, filename):
@@ -77,7 +80,7 @@ class FileNameIterator:
         self.ordered_file_list = self.file_list
         self.ordered_file_list.sort(key=lambda x: x[0])
 
-        print("Time needed  for ordering files: {0}s.".format(time.time() - t1))
+        logger.debug("Time needed for ordering files: %.3fs", time.time() - t1)
 
     def update_file_list(self):
         self.file_list = self._get_files_list()
@@ -135,7 +138,7 @@ class FileNameIterator:
                 len=right_ind - left_ind,
                 right_str=directory_str[right_ind:],
             )
-            print(mec_mode)
+            logger.debug("MEC mode: %s", mec_mode)
             if mec_mode:
                 match_file_iterator = pattern.finditer(file_str)
                 for ind_file, match_file in enumerate(
@@ -154,7 +157,7 @@ class FileNameIterator:
                         right_str=file_str[right_ind:],
                     )
                 new_complete_path = os.path.join(new_directory_str, new_file_str)
-                print(new_complete_path)
+                logger.debug("New complete path: %s", new_complete_path)
             else:
                 new_complete_path = os.path.join(new_directory_str, file_str)
             if os.path.exists(new_complete_path):
@@ -403,7 +406,7 @@ def reverse_interpolate_two_array(
         tth_ind = np.argwhere(np.abs(array1[result_ind] - value1) < delta1)
         azi_ind = np.argwhere(np.abs(array2[result_ind] - value2) < delta2)
 
-        print(result_ind)
+        logger.debug("result_ind: %s", result_ind)
 
         common_ind = np.intersect1d(tth_ind, azi_ind)
         result_ind = (result_ind[0][common_ind], result_ind[1][common_ind])

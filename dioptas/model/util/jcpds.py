@@ -871,7 +871,7 @@ def lookup_jcpds_line(in_string,
         if len(nums[0]) == 3:
             try:
                 hkl = (int(nums[0][0]), int(nums[0][1]), int(nums[0][2]))
-            except:
+            except (ValueError, IndexError):
                 return None
         else:
             return None
@@ -889,5 +889,5 @@ def lookup_jcpds_line(in_string,
             if r.h == hkl[0] and r.k == hkl[1] and r.l == hkl[2]:
                 return r.d0
         return None
-    except:
+    except Exception:
         return None

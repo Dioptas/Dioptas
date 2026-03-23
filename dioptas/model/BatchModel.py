@@ -61,6 +61,7 @@ class BatchModel:
 
         :param files: List of file names including path
         """
+        logger.info("Setting %d image files for batch processing", len(files))
         if files is None:
             return
         pos_map = []
@@ -122,6 +123,7 @@ class BatchModel:
         Load diffraction patterns and metadata from h5 file
 
         """
+        logger.info("Loading processed batch data from %s", filename)
         with h5py.File(filename, "r") as data_file:
             # ToDo To be removed
             if "processed/result" not in data_file:
@@ -170,6 +172,7 @@ class BatchModel:
         """
         Save diffraction patterns to h5 file
         """
+        logger.info("Saving processed batch data to %s", filename)
         if os.path.dirname(filename) != "":
             os.makedirs(os.path.dirname(filename), exist_ok=True)
         with h5py.File(filename, mode="w") as f:
@@ -240,6 +243,7 @@ class BatchModel:
         :param callback_fn: callback function which is called each iteration with the current image number as parameter,
                             if it returns False the integration will be aborted.
         """
+        logger.info("Batch integrating raw data: frames %d to %d, step %d", start, stop, step)
         if self.configuration.use_mask:
             if self.configuration.mask_model.filename != "":
                 self.used_mask = self.configuration.mask_model.filename

@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 
+import logging
 import os
 import numpy as np
 import h5py
@@ -23,6 +24,8 @@ from . import (
 )
 from .MapModel import MapModel
 from .. import __version__
+
+logger = logging.getLogger(__name__)
 
 
 class DioptasModel(object):
@@ -81,6 +84,7 @@ class DioptasModel(object):
         Adds a new configuration to the list of configurations. The new configuration will have the same working
         directories as the currently selected.
         """
+        logger.info("Adding new configuration")
         self.configurations.append(Configuration(self.working_directories))
 
         if self.current_configuration.calibration_model.is_calibrated:
@@ -112,6 +116,7 @@ class DioptasModel(object):
         """
         Removes the currently selected configuration.
         """
+        logger.info("Removing configuration")
         if len(self.configurations) == 1:
             return
         ind = self.configuration_ind
@@ -134,6 +139,7 @@ class DioptasModel(object):
         Saves the current state of the model in a h5py file. file-ending can be chosen as wanted. Usually Dioptas
         projects are saved as *.dio files.
         """
+        logger.info("Saving project to %s", filename)
         f = h5py.File(filename, "w")
 
         f.attrs["__version__"] = __version__
@@ -194,6 +200,7 @@ class DioptasModel(object):
         """
         Loads a previously saved model (see save function) from an h5py file.
         """
+        logger.info("Loading project from %s", filename)
         self.disconnect_models()
 
         f = h5py.File(filename, "r")

@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 
+import logging
 import os
 import numpy as np
 import json
@@ -23,6 +24,8 @@ from .util.calc import convert_units
 from . import ImgModel, CalibrationModel, MaskModel, PatternModel, BatchModel
 from .MapModel import MapModel
 from .CalibrationModel import DetectorModes
+
+logger = logging.getLogger(__name__)
 
 
 def _json_numpy_default(obj):
@@ -103,6 +106,7 @@ class Configuration(object):
         :param update_pattern_model: If True, updates pattern_model and emits pattern_changed signal.
             Set to False during batch/map integration to avoid unnecessary GUI updates.
         """
+        logger.debug("Integrating image 1D")
         if self.calibration_model.is_calibrated:
             if self.use_mask:
                 mask = self.mask_model.get_mask()
@@ -133,6 +137,7 @@ class Configuration(object):
         """
         Integrates the image in the ImageModel to a Cake.
         """
+        logger.debug("Integrating image 2D (cake)")
         if self.use_mask:
             mask = self.mask_model.get_mask()
         elif self.mask_model.roi is not None:
@@ -156,6 +161,7 @@ class Configuration(object):
         :param filename: where to save the file
         :param subtract_background: flat whether the pattern should be saved with or without subtracted background
         """
+        logger.info("Saving pattern to %s", filename)
         if filename is None:
             filename = self.img_model.filename
 
@@ -694,8 +700,7 @@ class Configuration(object):
                     self.calibration_model.set_pyFAI(pyfai_parameters)
 
             except (KeyError, ValueError):
-                print("Problem with saved pyFAI calibration parameters")
-                pass
+                logger.warning("Problem with saved pyFAI calibration parameters")
 
         filename = f.get("calibration_model").attrs["calibration_filename"]
         (_, base_name) = os.path.split(filename)

@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 
+import logging
 import os
 import time
 import threading
@@ -10,6 +11,8 @@ from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 
 from . import Signal
+
+logger = logging.getLogger(__name__)
 
 
 class NewFileInDirectoryWatcher:
@@ -59,7 +62,7 @@ class NewFileInDirectoryWatcher:
         event handle. We check whether the file is fully written by observing whether the file size changes. If the
         file size is not changing within 10ms, we assume that the file is fully written and emit the file_added signal.
         """
-        print("New file detected: {}".format(event.src_path))
+        logger.info("New file detected: %s", event.src_path)
         file_path = os.path.abspath(event.src_path)
         try:
             file_size = os.stat(file_path).st_size

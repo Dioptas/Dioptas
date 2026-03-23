@@ -30,7 +30,6 @@ from .util.HelperModule import (
 from .util.calc import supersample_image, trim_trailing_zeros
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 class CalibrationModel(object):
@@ -198,6 +197,7 @@ class CalibrationModel(object):
         :return:
             array of points found
         """
+        logger.info("Auto-finding peaks at (%.1f, %.1f) for ring %d", x, y, peak_ind)
         massif = Massif(self.img_model.img_data, median_prefilter=False)
         cur_peak_points = massif.find_peaks(
             (int(np.round(x)), int(np.round(y))), stdout=DummyStdOut()
@@ -222,6 +222,7 @@ class CalibrationModel(object):
         :return:
             point found (as array)
         """
+        logger.debug("Finding peak at (%.1f, %.1f), search_size=%d, ring %d", x, y, search_size, peak_ind)
         left_ind = int(np.round(x - search_size * 0.5))
         if left_ind < 0:
             left_ind = 0
@@ -239,6 +240,7 @@ class CalibrationModel(object):
         return np.array([np.array((x_ind, y_ind))])
 
     def clear_peaks(self):
+        logger.info("Clearing all calibration peaks")
         self.points = []
         self.points_index = []
 
@@ -374,6 +376,7 @@ class CalibrationModel(object):
         self.pattern_geometry.reset()
 
     def set_calibrant(self, filename):
+        logger.info("Setting calibrant: %s", filename)
         self.calibrant = Calibrant()
         self.calibrant.load_file(filename)
         self.pattern_geometry.calibrant = self.calibrant
@@ -407,6 +410,7 @@ class CalibrationModel(object):
         self.fixed_values = fixed_values
 
     def calibrate(self):
+        logger.info("Starting calibration")
         if len(self.points) == 0:
             raise NoPointsError("No starting points for calibration found.")
 
@@ -431,6 +435,7 @@ class CalibrationModel(object):
         self.parameters_changed.emit()
 
     def refine(self):
+        logger.info("Refining calibration")
         if len(self.points) == 0:
             raise NoPointsError("No points for refinement found.")
 
@@ -889,6 +894,7 @@ class CalibrationModel(object):
         Loads a calibration file andsets all the calibration parameter.
         :param poni_filename: filename for a *.poni calibration file
         """
+        logger.info("Loading calibration from %s", poni_filename)
         poni_dict = PoniFile(poni_filename).as_dict()
 
         if (
@@ -931,6 +937,7 @@ class CalibrationModel(object):
         Saves the current calibration parameters into a a text file. Default extension is
         *.poni
         """
+        logger.info("Saving calibration to %s", filename)
         poni_config = self.cake_geometry.get_config()
         poni_config = poni_flipud(poni_config)
 
@@ -941,6 +948,7 @@ class CalibrationModel(object):
         self.filename = filename
 
     def load_detector(self, name):
+        logger.info("Loading detector: %s", name)
         self.detector_mode = DetectorModes.PREDEFINED
         names, classes = get_available_detectors()
         detector_ind = names.index(name)
@@ -948,6 +956,7 @@ class CalibrationModel(object):
         self._load_detector(classes[detector_ind]())
 
     def load_detector_from_file(self, filename):
+        logger.info("Loading detector from file: %s", filename)
         self.detector_mode = DetectorModes.NEXUS
         self._load_detector(NexusDetector(filename))
 
@@ -1093,6 +1102,7 @@ class CalibrationModel(object):
             self._create_dioptrin_integrator()
 
     def load_distortion(self, spline_filename):
+        logger.info("Loading distortion spline: %s", spline_filename)
         self.distortion_spline_filename = spline_filename
         self.pattern_geometry.splinefile = spline_filename
         if self.cake_geometry:
@@ -1116,6 +1126,7 @@ class CalibrationModel(object):
         3       9
         4       16
         """
+        logger.info("Setting supersampling factor to %s", factor)
         if factor is None:
             factor = self.supersampling_factor
 

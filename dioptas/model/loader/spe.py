@@ -3,11 +3,14 @@
 
 
 import datetime
+import logging
 from xml.dom.minidom import parseString
 
 import numpy as np
 from numpy.polynomial.polynomial import polyval
 from dateutil import parser
+
+logger = logging.getLogger(__name__)
 
 
 class SpeFile(object):
@@ -173,7 +176,7 @@ class SpeFile(object):
             wavelength_values = wavelengths.childNodes[0]
             self.x_calibration = np.array([float(i) for i in wavelength_values.toxml().split(',')])
         except IndexError:
-            print("No element WaveLengthMapping in SPE File. Not calibrating x units")
+            logger.info("No element WaveLengthMapping in SPE File. Not calibrating x units")
 
     def _read_exposure_from_dom(self):
         """Reads th exposure time of the experiment into the exposure_time field"""
@@ -281,7 +284,7 @@ class SpeFile(object):
         try:
             self.x_calibration = self.x_calibration[self.roi_x: self.roi_x + self.roi_width]
         except AttributeError:
-            print("SPE File bad!")
+            logger.warning("SPE file has bad wavelength/ROI data")
 
     def _read_datatype(self):
         self._data_type = self._read_at(108, 1, np.uint16)[0]

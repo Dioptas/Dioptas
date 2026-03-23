@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 
+import logging
 import os
 
 import numpy as np
@@ -15,6 +16,8 @@ from ...model.DioptasModel import DioptasModel
 from ...model.util.HelperModule import get_partial_index, get_partial_value
 
 from .EpicsController import EpicsController
+
+logger = logging.getLogger(__name__)
 
 
 class ImageController(object):
@@ -435,7 +438,7 @@ class ImageController(object):
             integration_unit = 'd_A'
         else:
             # in case something weird happened
-            print('No correct integration unit selected')
+            logger.warning("No correct integration unit selected")
             return
 
         if not self.widget.automatic_binning_cb.isChecked():

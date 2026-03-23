@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 
+import logging
 import numpy as np
 import time
 import os
@@ -19,6 +20,8 @@ from ...model.util.calc import calculate_mu, wavelength_to_energy
 from ...widgets.integration import IntegrationWidget
 from ...widgets.UtilityWidgets import open_file_dialog
 from ...model.DioptasModel import DioptasModel
+
+logger = logging.getLogger(__name__)
 
 
 class CorrectionController(object):
@@ -246,10 +249,9 @@ class CorrectionController(object):
             if not new_cbn_correction == self.model.img_model.get_img_correction("cbn"):
                 t1 = time.time()
                 new_cbn_correction.update()
-                print(
-                    "Time needed for correction calculation: {0}".format(
-                        time.time() - t1
-                    )
+                logger.info(
+                    "Time needed for cBN correction calculation: %.3fs",
+                    time.time() - t1,
                 )
                 try:
                     self.model.img_model.delete_img_correction("cbn")
@@ -337,8 +339,9 @@ class CorrectionController(object):
                 tilt=detector_tilt,
                 rotation=detector_tilt_rotation,
             )
-            print(
-                "Time needed for correction calculation: {0}".format(time.time() - t1)
+            logger.info(
+                "Time needed for OIADAC correction calculation: %.3fs",
+                time.time() - t1,
             )
             try:
                 self.model.img_model.delete_img_correction("oiadac")

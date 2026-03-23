@@ -1,8 +1,12 @@
 # SPDX-License-Identifier: MIT
 
+import logging
+
 import numpy as np
 import h5py
 import re
+
+logger = logging.getLogger(__name__)
 
 
 def first(array):
@@ -17,7 +21,7 @@ def first(array):
         if isinstance(array, np.ndarray) and len(array) == 1:
             return array[0]
     except Exception:
-        pass
+        logger.debug("Could not extract single element from array, using full slice")
     return array[...]
 
 
