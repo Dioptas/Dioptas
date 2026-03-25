@@ -821,12 +821,11 @@ class Configuration:
         except KeyError:
             logger.debug("Optional azimuth range not found in project file")
         try:
-            if f.get("general_information").attrs["cake_azimuth_range"] == "None":
+            cake_azimuth_range_val = f.get("general_information").attrs["cake_azimuth_range"]
+            if isinstance(cake_azimuth_range_val, str) and cake_azimuth_range_val == "None":
                 self.cake_azimuth_range = None
             else:
-                self.cake_azimuth_range = f.get("general_information").attrs[
-                    "cake_azimuth_range"
-                ]
+                self.cake_azimuth_range = list(cake_azimuth_range_val)
         except KeyError:
             logger.debug("Optional cake azimuth range not found in project file")
 
@@ -913,7 +912,10 @@ class Configuration:
             "integrated_patterns_file_formats"
         ):
             # Handle both old ASCII fixed-length (S10) and new variable-length UTF-8 strings
-            val = file_format[0] if hasattr(file_format, '__getitem__') else file_format
+            if isinstance(file_format, np.ndarray):
+                val = file_format[0]
+            else:
+                val = file_format
             if isinstance(val, bytes):
                 val = val.decode("utf-8")
             self.integrated_patterns_file_formats.append(str(val))

@@ -26,3 +26,322 @@ def test_auto_save_background_subtracted_pattern(tmp_path):
     assert os.path.exists(os.path.join(tmp_path, "image_001.xy"))
     assert os.path.exists(os.path.join(tmp_path, "bkg_subtracted", "image_001.xy"))
 
+
+# ---------------------------------------------------------------------------
+# Property getter/setter tests
+# ---------------------------------------------------------------------------
+
+
+def test_integration_rad_points_property():
+    config = Configuration()
+    assert config.integration_rad_points is None
+    config._integration_rad_points = 1500
+    assert config.integration_rad_points == 1500
+
+
+def test_oned_azimuth_range_property():
+    config = Configuration()
+    assert config.oned_azimuth_range is None
+    config._oned_azimuth_range = [0.0, 180.0]
+    assert config.oned_azimuth_range == [0.0, 180.0]
+    config._oned_azimuth_range = None
+    assert config.oned_azimuth_range is None
+
+
+def test_cake_azimuth_range_property():
+    config = Configuration()
+    assert config.cake_azimuth_range is None
+    config._cake_azimuth_range = [-180.0, 180.0]
+    assert config.cake_azimuth_range == [-180.0, 180.0]
+    config._cake_azimuth_range = None
+    assert config.cake_azimuth_range is None
+
+
+def test_integration_unit_property():
+    config = Configuration()
+    assert config.integration_unit == "2th_deg"
+    config._integration_unit = "q_A^-1"
+    assert config.integration_unit == "q_A^-1"
+
+
+def test_correct_solid_angle_property():
+    config = Configuration()
+    original = config.correct_solid_angle
+    config.calibration_model.correct_solid_angle = not original
+    assert config.correct_solid_angle == (not original)
+
+
+def test_auto_integrate_cake_property():
+    config = Configuration()
+    assert config.auto_integrate_cake is False
+    config.auto_integrate_cake = True
+    assert config.auto_integrate_cake is True
+    # setting same value again should be a no-op
+    config.auto_integrate_cake = True
+    assert config.auto_integrate_cake is True
+    config.auto_integrate_cake = False
+    assert config.auto_integrate_cake is False
+
+
+def test_auto_integrate_pattern_property():
+    config = Configuration()
+    assert config.auto_integrate_pattern is True
+    config.auto_integrate_pattern = False
+    assert config.auto_integrate_pattern is False
+    # setting same value again should be a no-op
+    config.auto_integrate_pattern = False
+    assert config.auto_integrate_pattern is False
+    config.auto_integrate_pattern = True
+    assert config.auto_integrate_pattern is True
+
+
+def test_auto_save_integrated_pattern_property():
+    config = Configuration()
+    assert config.auto_save_integrated_pattern is False
+    config.auto_save_integrated_pattern = True
+    assert config.auto_save_integrated_pattern is True
+
+
+# ---------------------------------------------------------------------------
+# Integration tests
+# ---------------------------------------------------------------------------
+
+def _load_calibrated_config():
+    """Helper: return a Configuration with calibration and image loaded."""
+    config = Configuration()
+    config.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    config.img_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.tif"))
+    return config
+
+
+def test_integrate_image_2d():
+    config = _load_calibrated_config()
+    config.integrate_image_2d()
+    assert config.cake_img is not None
+    assert config.cake_img.shape[0] > 0
+    assert config.cake_img.shape[1] > 0
+
+
+# ---------------------------------------------------------------------------
+# save_pattern tests
+# ---------------------------------------------------------------------------
+
+def test_save_pattern_xy(tmp_path):
+    config = _load_calibrated_config()
+    config.integrate_image_1d()
+    out = os.path.join(tmp_path, "output.xy")
+    config.save_pattern(out)
+    assert os.path.exists(out)
+    assert os.path.getsize(out) > 0
+
+
+def test_save_pattern_fxye(tmp_path):
+    config = _load_calibrated_config()
+    config.integrate_image_1d()
+    out = os.path.join(tmp_path, "output.fxye")
+    config.save_pattern(out)
+    assert os.path.exists(out)
+    assert os.path.getsize(out) > 0
+
+
+def test_save_pattern_chi(tmp_path):
+    config = _load_calibrated_config()
+    config.integrate_image_1d()
+    out = os.path.join(tmp_path, "output.chi")
+    config.save_pattern(out)
+    assert os.path.exists(out)
+
+
+# ---------------------------------------------------------------------------
+# Header creation tests
+# ---------------------------------------------------------------------------
+
+def test_create_xy_header():
+    config = _load_calibrated_config()
+    header = config._create_xy_header()
+    assert isinstance(header, str)
+    assert len(header) > 0
+    assert "2th_deg" in header
+
+
+def test_create_fxye_header():
+    config = _load_calibrated_config()
+    header = config._create_fxye_header("test.fxye")
+    assert isinstance(header, str)
+    assert len(header) > 0
+    assert "DIOPTAS" in header
+    assert "FXYE" in header
+
+
+def test_create_fxye_header_q_unit():
+    config = _load_calibrated_config()
+    config._integration_unit = "q_A^-1"
+    header = config._create_fxye_header("test.fxye")
+    assert "CONQ" in header
+
+
+# ---------------------------------------------------------------------------
+# copy() test
+# ---------------------------------------------------------------------------
+
+def test_copy():
+    config = _load_calibrated_config()
+    config.working_directories["pattern"] = "/some/path"
+    copied = config.copy()
+    # image data should match
+    import numpy as np
+    np.testing.assert_array_equal(copied.img_model._img_data, config.img_model._img_data)
+    # calibration should be set
+    assert copied.calibration_model.is_calibrated
+    # working directories should be shared
+    assert copied.working_directories["pattern"] == "/some/path"
+
+
+# ---------------------------------------------------------------------------
+# update_mask_dimension test
+# ---------------------------------------------------------------------------
+
+def test_update_mask_dimension():
+    config = Configuration()
+    config.img_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.tif"))
+    img_shape = config.img_model._img_data.shape
+    mask_shape = config.mask_model.get_mask().shape
+    assert mask_shape == img_shape
+
+
+# ---------------------------------------------------------------------------
+# HDF5 round-trip test
+# ---------------------------------------------------------------------------
+
+def test_save_and_load_hdf5_round_trip(tmp_path):
+    import h5py
+    import numpy as np
+
+    # Set up a fully configured Configuration
+    config = _load_calibrated_config()
+    config.integrate_image_1d()
+
+    config.use_mask = True
+    config.transparent_mask = True
+    config._integration_unit = "q_A^-1"
+    config._integration_rad_points = 2000
+    config._cake_azimuth_points = 180
+    config._cake_azimuth_range = [-90.0, 90.0]
+    config.auto_save_integrated_pattern = True
+    config.integrated_patterns_file_formats = [".xy", ".fxye"]
+
+    config.working_directories["calibration"] = str(tmp_path)
+    config.working_directories["mask"] = str(tmp_path)
+    config.working_directories["pattern"] = str(tmp_path)
+
+    # Create a mask with some pixels masked
+    mask = np.zeros(config.img_model._img_data.shape, dtype=bool)
+    mask[0:10, 0:10] = True
+    config.mask_model.set_mask(mask)
+
+    # Add a correction (oiadac is lightweight)
+    from dioptas.model.util.ImgCorrection import ObliqueAngleDetectorAbsorptionCorrection
+    tth_array = 180.0 / np.pi * config.calibration_model.tth_array
+    azi_array = 180.0 / np.pi * config.calibration_model.azi_array
+    oiadac = ObliqueAngleDetectorAbsorptionCorrection(
+        tth_array=tth_array, azi_array=azi_array
+    )
+    oiadac.set_params({"detector_thickness": 0.03, "absorption_length": 0.3, "tilt": 0.0, "rotation": 0.0})
+    oiadac.update()
+    config.img_model.add_img_correction(oiadac, "oiadac")
+
+    # Save to HDF5
+    hdf5_path = os.path.join(tmp_path, "test_project.h5")
+    with h5py.File(hdf5_path, "w") as f:
+        group = f.create_group("config")
+        config.save_in_hdf5(group)
+
+    # Load into fresh Configuration
+    loaded = Configuration()
+    with h5py.File(hdf5_path, "r") as f:
+        group = f["config"]
+        loaded.load_from_hdf5(group)
+
+    # Verify general information
+    assert loaded.integration_unit == "q_A^-1"
+    assert loaded.integration_rad_points == 2000
+    assert loaded.use_mask == True
+    assert loaded.transparent_mask == True
+    assert loaded.auto_save_integrated_pattern == True
+    assert loaded.integrated_patterns_file_formats == [".xy", ".fxye"]
+    assert loaded.cake_azimuth_points == 180
+    assert loaded.cake_azimuth_range is not None
+    np.testing.assert_allclose(loaded.cake_azimuth_range, [-90.0, 90.0])
+
+    # Verify working directories (they may be empty strings if dirs don't exist on load,
+    # but tmp_path should still exist during test)
+    assert loaded.working_directories["calibration"] == str(tmp_path)
+    assert loaded.working_directories["mask"] == str(tmp_path)
+    assert loaded.working_directories["pattern"] == str(tmp_path)
+
+    # Verify calibration
+    assert loaded.calibration_model.is_calibrated
+
+    # Verify image data shape
+    assert loaded.img_model._img_data.shape == config.img_model._img_data.shape
+    np.testing.assert_array_almost_equal(
+        loaded.img_model._img_data, config.img_model._img_data, decimal=3
+    )
+
+    # Verify mask
+    loaded_mask = loaded.mask_model.get_mask()
+    assert loaded_mask[0, 0] == True
+    assert loaded_mask.shape == mask.shape
+
+    # Verify correction was loaded
+    assert loaded.img_model.has_corrections()
+
+    # Verify pattern was loaded
+    assert loaded.pattern_model.pattern is not None
+
+
+def test_save_and_load_hdf5_no_corrections(tmp_path):
+    """Round-trip without corrections or background to cover default branches."""
+    import h5py
+    import numpy as np
+
+    config = _load_calibrated_config()
+    config.integrate_image_1d()
+
+    hdf5_path = os.path.join(tmp_path, "test_minimal.h5")
+    with h5py.File(hdf5_path, "w") as f:
+        group = f.create_group("config")
+        config.save_in_hdf5(group)
+
+    loaded = Configuration()
+    with h5py.File(hdf5_path, "r") as f:
+        group = f["config"]
+        loaded.load_from_hdf5(group)
+
+    assert loaded.calibration_model.is_calibrated
+    assert loaded.img_model._img_data.shape == config.img_model._img_data.shape
+    assert loaded.integration_unit == "2th_deg"
+
+
+def test_save_and_load_hdf5_with_cake_azimuth_range_none(tmp_path):
+    """Verify that cake_azimuth_range=None round-trips correctly."""
+    import h5py
+
+    config = _load_calibrated_config()
+    config.integrate_image_1d()
+    config._cake_azimuth_range = None
+
+    hdf5_path = os.path.join(tmp_path, "test_cake_none.h5")
+    with h5py.File(hdf5_path, "w") as f:
+        group = f.create_group("config")
+        config.save_in_hdf5(group)
+
+    loaded = Configuration()
+    with h5py.File(hdf5_path, "r") as f:
+        group = f["config"]
+        loaded.load_from_hdf5(group)
+
+    assert loaded.cake_azimuth_range is None
+

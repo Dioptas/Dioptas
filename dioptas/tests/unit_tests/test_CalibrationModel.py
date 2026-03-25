@@ -627,3 +627,239 @@ def test_dioptrin_integrator_recreated_on_image_shape_change(calibration_model, 
     img_model._img_data = np.ones(img_model.img_data.shape)
     img_model.img_changed.emit()
     calibration_model._create_dioptrin_integrator.assert_not_called()
+
+
+def test_clear_peaks(calibration_model, img_model):
+    load_pilatus_1M(img_model)
+    calibration_model.find_peaks_automatic(517.664434674, 646, 0)
+    calibration_model.find_peaks_automatic(667.380513299, 525.252854758, 1)
+    assert len(calibration_model.points) == 2
+    assert len(calibration_model.points_index) == 2
+
+    calibration_model.clear_peaks()
+    assert calibration_model.points == []
+    assert calibration_model.points_index == []
+
+
+def test_remove_peaks_by_ring(calibration_model, img_model):
+    load_pilatus_1M(img_model)
+    calibration_model.find_peaks_automatic(517.664434674, 646, 0)
+    calibration_model.find_peaks_automatic(667.380513299, 525.252854758, 1)
+    calibration_model.find_peaks_automatic(671.110095329, 473.571503774, 0)
+    assert len(calibration_model.points) == 3
+    assert calibration_model.points_index == [0, 1, 0]
+
+    calibration_model.remove_peaks_by_ring(0)
+    assert len(calibration_model.points) == 1
+    assert calibration_model.points_index == [1]
+
+
+def test_remove_peaks_by_ring_all(calibration_model, img_model):
+    """Removing all peaks by ring leaves empty lists."""
+    load_pilatus_1M(img_model)
+    calibration_model.find_peaks_automatic(517.664434674, 646, 0)
+    calibration_model.find_peaks_automatic(671.110095329, 473.571503774, 0)
+
+    calibration_model.remove_peaks_by_ring(0)
+    assert calibration_model.points == []
+    assert calibration_model.points_index == []
+
+
+def test_remove_last_peak(calibration_model, img_model):
+    load_pilatus_1M(img_model)
+    calibration_model.find_peaks_automatic(517.664434674, 646, 0)
+    calibration_model.find_peaks_automatic(667.380513299, 525.252854758, 1)
+    assert len(calibration_model.points) == 2
+
+    num_removed = calibration_model.remove_last_peak()
+    assert num_removed is not None
+    assert num_removed > 0
+    assert len(calibration_model.points) == 1
+    assert calibration_model.points_index == [0]
+
+
+def test_remove_last_peak_empty(calibration_model):
+    """Removing last peak when no peaks exist returns None."""
+    result = calibration_model.remove_last_peak()
+    assert result is None
+
+
+def test_set_pixel_size(calibration_model):
+    calibration_model.set_pixel_size((200e-6, 300e-6))
+    assert calibration_model.orig_pixel1 == 200e-6
+    assert calibration_model.orig_pixel2 == 300e-6
+    assert calibration_model.detector.pixel1 == 200e-6
+    assert calibration_model.detector.pixel2 == 300e-6
+
+
+def test_set_fixed_values(calibration_model):
+    fixed = {"rot1": 0.001, "poni1": 0.32}
+    calibration_model.set_fixed_values(fixed)
+    assert calibration_model.fixed_values == fixed
+    assert calibration_model.fixed_values["rot1"] == 0.001
+    assert calibration_model.fixed_values["poni1"] == 0.32
+
+
+def test_create_cake_geometry(calibration_model):
+    calibration_model.load(os.path.join(data_path, "CeO2_Pilatus1M.poni"))
+    assert calibration_model.cake_geometry is not None
+
+    # Verify cake_geometry has matching config
+    cake_dist = calibration_model.cake_geometry.dist
+    pattern_dist = calibration_model.pattern_geometry.dist
+    assert cake_dist == pytest.approx(pattern_dist)
+
+
+def test_load_distortion_sets_attribute(calibration_model):
+    calibration_model.load(os.path.join(data_path, "CeO2_Pilatus1M.poni"))
+    spline_path = os.path.join(data_path, "distortion", "f4mnew.spline")
+    calibration_model.load_distortion(spline_path)
+
+    assert calibration_model.distortion_spline_filename == spline_path
+    # pyFAI normalizes the path, so compare with os.path.normpath
+    assert os.path.normpath(calibration_model.pattern_geometry.splinefile) == os.path.normpath(spline_path)
+    assert os.path.normpath(calibration_model.cake_geometry.splinefile) == os.path.normpath(spline_path)
+
+
+def test_reset_distortion_correction(calibration_model):
+    calibration_model.load(os.path.join(data_path, "CeO2_Pilatus1M.poni"))
+    spline_path = os.path.join(data_path, "distortion", "f4mnew.spline")
+    calibration_model.load_distortion(spline_path)
+
+    calibration_model.reset_distortion_correction()
+    assert calibration_model.distortion_spline_filename is None
+    assert calibration_model.pattern_geometry.splinefile is None
+    assert calibration_model.cake_geometry.splinefile is None
+
+
+def test_save_and_reload(calibration_model, tmp_path):
+    calibration_model.load(os.path.join(data_path, "CeO2_Pilatus1M.poni"))
+    original_dist = calibration_model.pattern_geometry.dist
+    original_poni1 = calibration_model.pattern_geometry.poni1
+
+    save_path = os.path.join(tmp_path, "test_save.poni")
+    calibration_model.save(save_path)
+    assert os.path.exists(save_path)
+    assert calibration_model.calibration_name == "test_save"
+    assert calibration_model.filename == save_path
+
+    # Reload and verify parameters match
+    calibration_model.load(save_path)
+    assert calibration_model.pattern_geometry.dist == pytest.approx(original_dist)
+    assert calibration_model.pattern_geometry.poni1 == pytest.approx(original_poni1)
+
+
+def test_get_calibration_parameter(calibration_model):
+    calibration_model.load(os.path.join(data_path, "CeO2_Pilatus1M.poni"))
+    pyFAI_params, fit2d_params = calibration_model.get_calibration_parameter()
+
+    expected_keys = [
+        "pixel1", "pixel2", "dist", "poni1", "poni2",
+        "rot1", "rot2", "rot3", "wavelength", "polarization_factor",
+    ]
+    for key in expected_keys:
+        assert key in pyFAI_params, f"Missing key: {key}"
+
+    assert pyFAI_params["dist"] > 0
+    assert pyFAI_params["wavelength"] > 0
+
+    assert fit2d_params is not None
+    assert "wavelength" in fit2d_params
+    assert "polarization_factor" in fit2d_params
+
+
+def test_set_supersampling_changes_pixel_size(calibration_model):
+    calibration_model.load(os.path.join(data_path, "CeO2_Pilatus1M.poni"))
+    orig_pixel1 = calibration_model.orig_pixel1
+    orig_pixel2 = calibration_model.orig_pixel2
+
+    calibration_model.set_supersampling(2)
+    assert calibration_model.supersampling_factor == 2
+    assert calibration_model.detector.pixel1 == pytest.approx(orig_pixel1 / 2.0)
+    assert calibration_model.detector.pixel2 == pytest.approx(orig_pixel2 / 2.0)
+
+    # Original pixel sizes should be unchanged
+    assert calibration_model.orig_pixel1 == pytest.approx(orig_pixel1)
+    assert calibration_model.orig_pixel2 == pytest.approx(orig_pixel2)
+
+    # Reset back to 1
+    calibration_model.set_supersampling(1)
+    assert calibration_model.detector.pixel1 == pytest.approx(orig_pixel1)
+    assert calibration_model.detector.pixel2 == pytest.approx(orig_pixel2)
+
+
+def test_tth_array_and_azi_array_shape(calibration_model):
+    load_small_image_with_calibration(calibration_model, shape=(15, 20))
+    tth = calibration_model.tth_array
+    azi = calibration_model.azi_array
+
+    assert tth.shape == (15, 20)
+    assert azi.shape == (15, 20)
+
+
+def test_integrate_1d_d_spacing(calibration_model):
+    load_small_image_with_calibration(calibration_model, shape=(10, 10))
+    x_tth, _ = calibration_model.integrate_1d(unit="2th_deg")
+    x_d, _ = calibration_model.integrate_1d(unit="d_A")
+
+    # d-spacing values should be positive and different from 2theta
+    assert np.all(x_d > 0)
+    # d-spacing is typically larger values (Angstrom) in a different range than 2theta (degrees)
+    assert not np.allclose(x_tth, x_d)
+
+
+def test_load_transformations_string_list(calibration_model, img_model):
+    load_small_image_with_calibration(calibration_model, shape=(10, 12))
+    original_pixel1 = calibration_model.detector.pixel1
+    original_pixel2 = calibration_model.detector.pixel2
+    original_shape = calibration_model.detector.shape
+
+    calibration_model.load_transformations_string_list(["rotate_matrix_m90"])
+    # After m90 rotation, shape should be swapped
+    if original_shape is not None:
+        new_shape = calibration_model.detector.shape
+        assert new_shape == (original_shape[1], original_shape[0])
+
+    # Reset and try multiple transformations
+    calibration_model.reset_transformations()
+    calibration_model.load_transformations_string_list(["flipud", "fliplr"])
+    # Flips should not change shape or pixel size
+    assert calibration_model.detector.pixel1 == pytest.approx(original_pixel1)
+    assert calibration_model.detector.pixel2 == pytest.approx(original_pixel2)
+
+
+def test_swap_detector_shape(calibration_model, img_model):
+    load_small_image_with_calibration(calibration_model, shape=(10, 12))
+    original_pixel1 = calibration_model.detector.pixel1
+    original_pixel2 = calibration_model.detector.pixel2
+
+    calibration_model.swap_detector_shape()
+    # Pixel sizes should be swapped
+    assert calibration_model.detector.pixel1 == pytest.approx(original_pixel2)
+    assert calibration_model.detector.pixel2 == pytest.approx(original_pixel1)
+
+
+def test_rotate_detector_m90_and_p90(calibration_model, img_model):
+    load_small_image_with_calibration(calibration_model, shape=(10, 12))
+    orig_shape = calibration_model.detector.shape
+
+    calibration_model.rotate_detector_m90()
+    if orig_shape is not None:
+        assert calibration_model.detector.shape == (orig_shape[1], orig_shape[0])
+
+    # Rotating p90 should swap back
+    calibration_model.rotate_detector_p90()
+    if orig_shape is not None:
+        assert calibration_model.detector.shape == orig_shape
+
+
+def test_flip_detector_horizontally_and_vertically(calibration_model, img_model):
+    load_small_image_with_calibration(calibration_model, shape=(10, 10))
+    original_pixel1 = calibration_model.detector.pixel1
+
+    calibration_model.flip_detector_horizontally()
+    # Flip should not change pixel sizes
+    assert calibration_model.detector.pixel1 == pytest.approx(original_pixel1)
+
+    calibration_model.flip_detector_vertically()
+    assert calibration_model.detector.pixel1 == pytest.approx(original_pixel1)
