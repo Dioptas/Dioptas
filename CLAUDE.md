@@ -53,7 +53,7 @@ uv run pytest dioptas/tests/unit_tests/test_DioptasModel.py
 # Run a specific test function
 uv run pytest dioptas/tests/unit_tests/test_DioptasModel.py::test_specific_function
 
-# Note: pytest is configured with -sv flags (verbose output) in pytest.ini
+# Note: pytest is configured with -v --tb=short in pytest.ini
 ```
 
 ### Building Executables
@@ -223,3 +223,28 @@ When exploring the codebase, note that complex features are split across matchin
 - Main development branch: `develop`
 - Stable releases: `main` branch
 - Default branch when cloning is `develop`
+
+## Release Process
+
+To create a new release (e.g., `0.8.4`):
+
+1. **Update changelog**: Edit `changelog.md` — change `(in development)` to the release date, e.g., `(25.03.2026)`
+2. **Update version references**:
+   - `docs/source/conf.py`: Update `version` and `release` strings
+   - `pyproject.toml`: Update `fallback_version` under `[tool.setuptools_scm]`
+3. **Commit on develop**: `git commit -m "release: Dioptas X.Y.Z"`
+4. **Push develop**: `git push`
+5. **Merge to main**: `git checkout main && git pull && git merge develop && git push origin main`
+6. **Tag on main**: `git tag X.Y.Z && git push origin X.Y.Z`
+7. **Switch back**: `git checkout develop`
+
+The tag push triggers the `release.yml` workflow which:
+- Builds executables for Linux, Windows, and macOS (with optional Dioptrin)
+- Builds the Python wheel
+- Extracts the changelog section for this version
+- Creates a GitHub release with executables attached
+- Publishes to PyPI via trusted publishing
+
+**Important**: The tag must be on `main`, not `develop`. The tag format is `X.Y.Z` (no `v` prefix).
+
+After release, add a new `# X.Y.Z+1 (in development)` section to the top of `changelog.md` on `develop`.
