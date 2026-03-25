@@ -41,21 +41,4 @@ jobs:
 
     - name: Run tests
       run: |
-        uv run pytest dioptas/tests/controller_tests/test_MainController.py
-        uv run pytest dioptas/tests/controller_tests/test_BackgroundController.py
-        uv run pytest dioptas/tests/controller_tests/test_CalibrationController.py
-        uv run pytest dioptas/tests/controller_tests/test_ConfigurationController.py
-        uv run pytest dioptas/tests/controller_tests/test_CorrectionController.py
-        uv run pytest dioptas/tests/controller_tests/test_EpicsController.py
-        uv run pytest dioptas/tests/controller_tests/test_ImageController.py
-        uv run pytest dioptas/tests/controller_tests/test_IntegrationBackgroundController.py
-        uv run pytest dioptas/tests/controller_tests/test_IntegrationController.py
-        uv run pytest dioptas/tests/controller_tests/test_JcpdsEditorController.py
-        uv run pytest dioptas/tests/controller_tests/test_MaskController.py
-        uv run pytest dioptas/tests/controller_tests/test_MapController.py
-        uv run pytest dioptas/tests/controller_tests/test_OptionsController.py
-        uv run pytest dioptas/tests/controller_tests/test_OverlayController.py
-        uv run pytest dioptas/tests/controller_tests/test_PatternController.py
-        uv run pytest dioptas/tests/controller_tests/test_PhaseController.py
-        uv run pytest dioptas/tests/controller_tests/test_PhaseInCakeController.py
-        uv run pytest dioptas/tests/controller_tests/test_PhaseInPatternController.py
+        uv run pytest dioptas/tests/controller_tests/ --ignore=dioptas/tests/controller_tests/test_BatchController_part1.py --ignore=dioptas/tests/controller_tests/test_BatchController_part2.py --ignore=dioptas/tests/controller_tests/test_BatchController_part3.py --ignore=dioptas/tests/controller_tests/test_BatchController_part4.py -p no:forked

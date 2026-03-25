@@ -2,6 +2,7 @@
 
 import os
 import weakref
+
 import pytest
 
 
@@ -161,3 +162,39 @@ def calibration_model(dioptas_model):
 @pytest.fixture
 def img_model(dioptas_model):
     return dioptas_model.img_model
+
+
+# --- Shared test data paths ---
+
+data_path = os.path.join(os.path.dirname(__file__), "data")
+
+
+@pytest.fixture(scope="session")
+def test_data_path():
+    """Path to the shared test data directory."""
+    return data_path
+
+
+# --- Calibrated model fixtures (function-scoped for isolation) ---
+
+
+@pytest.fixture
+def calibrated_model():
+    """A DioptasModel with CeO2 Pilatus1M calibration and image loaded."""
+    from dioptas.model.DioptasModel import DioptasModel
+
+    model = DioptasModel()
+    model.calibration_model.load(os.path.join(data_path, "CeO2_Pilatus1M.poni"))
+    model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
+    return model
+
+
+@pytest.fixture
+def calibrated_config():
+    """A Configuration with CeO2 Pilatus1M calibration and image loaded."""
+    from dioptas.model.Configuration import Configuration
+
+    config = Configuration()
+    config.calibration_model.load(os.path.join(data_path, "CeO2_Pilatus1M.poni"))
+    config.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
+    return config
