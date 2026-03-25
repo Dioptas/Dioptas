@@ -186,6 +186,31 @@ jobs:
         name: macos-executable
         path: dist/Dioptas_MacOS.tar.gz
 
+  build_package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.13"
+          cache: 'pip'
+
+      - name: Install uv
+        run: python -m pip install --upgrade pip uv
+
+      - name: Build Package
+        run: uv build
+
+      - name: Upload wheels to artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels
+          path: dist/*
+
   create_release:
     needs: [build_linux, build_windows, build_macos]
     runs-on: ubuntu-latest
@@ -219,3 +244,24 @@ jobs:
           artifacts/linux-executable/Dioptas_Linux.tar.gz \
           artifacts/windows-executable/Dioptas_Windows.zip \
           artifacts/macos-executable/Dioptas_MacOS.tar.gz
+
+  pypi-publish:
+    name: Upload release to PyPI
+    needs: [build_package, create_release]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/dioptas/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels
+          path: dist
+
+      - name: Check the dist folder
+        run: ls -la dist
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
