@@ -1,4 +1,4 @@
-# 0.8.4 (in development)
+# 0.8.4 (25.03.2026)
 
 ## New Features
 
@@ -6,10 +6,36 @@
 - added slab sample absorption correction with depth-integrated Busing & Levy (1957) formula — supports tilted slabs, automatic μ calculation from chemical formula via xraydb
 - added cylinder sample absorption correction with numerical integration over beam footprint (Paalman & Pings, 1962) — supports axis orientation, variable beam width (pencil beam to full illumination), and optional glass capillary container correction
 - added sphere sample absorption correction with pencil beam and finite beam modes — appropriate for synchrotron experiments with small beams on large ball samples
+- added plate sample absorption correction for flat plate samples in Debye-Scherrer geometry
 - added beam_width parameter to cylinder and sphere corrections for continuous control between pencil beam and full illumination
 - added xraydb dependency for automatic calculation of linear absorption coefficients from chemical formula and X-ray energy
-- added general utility functions `wavelength_to_energy`, `energy_to_wavelength`, and `calculate_mu` in `model/util/calc.py`
-- added GUI tabs for slab, cylinder, and sphere corrections in the Corrections panel with formula input, automatic μ calculation, and Plot button
+- added GUI tabs for slab, cylinder, sphere, and plate corrections in the Corrections panel with formula input, automatic μ calculation, and Plot button
+- added centralized logging system with in-memory ring buffer — recent activity log is shown in crash dialog for better bug reports; configurable via `DIOPTAS_LOG_LEVEL` and `DIOPTAS_LOG_FILE` environment variables
+- save/load all absorption corrections (slab, cylinder, sphere, plate), supersampling factor, and overlay/phase colors and visibility in `.dio` project files
+
+## Bugfixes
+
+- fixed non-ASCII (Chinese, accented, etc.) characters in file paths — batch processing and project save/load now correctly preserve Unicode filenames via UTF-8 HDF5 strings
+- fixed mask cleared when enabling correction after loading `.dio` project
+- fixed `cake_azimuth_range` comparison crash on numpy arrays when loading projects
+- fixed file format loading returning byte ordinals instead of characters in project files
+- improved error handling: replaced silent `except: pass` blocks with proper logging across the model layer, narrowed bare `except:` to specific exception types
+
+## Code Quality
+
+- added type hints to the entire model layer (23 files) — all method signatures, instance attributes, and return types annotated with Python 3.11+ syntax
+- modernized class definitions across the entire codebase (55 files) — replaced `class Foo(object):` with `class Foo:` and `super(ClassName, self)` with `super()`
+- removed Qt dependencies from the model layer
+- cleaned up docstrings: removed redundant `:type:` and `:param X: type` annotations where type hints are now in the signature
+
+## Testing
+
+- added pytest-cov for test coverage reporting in CI
+- increased model layer test coverage from 70% to 78% with 120 new unit tests
+- added 7 unit tests for Unicode file path handling
+- dropped Python 3.9/3.10 from CI matrix (unsupported since `requires-python >= 3.11`)
+- consolidated CI_frontend into single pytest invocation for faster runs
+- changed pytest default from `-sv` (noisy) to `-v --tb=short` (clean)
 
 ## Documentation
 
@@ -17,6 +43,7 @@
 - captured fresh screenshots with current dark material theme
 - added new Map module documentation page
 - added Scripting API documentation page with full reference and examples
+- added auto-generated API reference using Sphinx autodoc for Pipeline, all model classes, corrections, and utilities
 - added `.readthedocs.yaml` and switched to sphinx_rtd_theme for ReadTheDocs builds
 - added equations and references (Busing & Levy 1957, Paalman & Pings 1962) to absorption correction documentation
 
