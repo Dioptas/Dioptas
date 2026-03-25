@@ -4,6 +4,7 @@ import os
 import numpy as np
 from math import cos, sin
 
+import fabio
 import pytest
 
 from ...model.MaskModel import MaskModel
@@ -211,6 +212,296 @@ def test_find_n_points_on_arc_from_three_points(mask_model):
     for p in n_points:
         rcalc = mask_model.find_radius_of_circle_from_center_and_point(p0, p)
         assert r == pytest.approx(rcalc, abs=1e-6)
+
+
+def test_roi_mask_with_negative_clamping():
+    """roi_mask should clamp negative x1/y1 to 0."""
+    mask_model = MaskModel(mask_dimension=(100, 100))
+    mask_model.roi = [-5, 50, -10, 60]
+    roi = mask_model.roi_mask
+    assert roi is not None
+    # The region [0:50, 0:60] should be 0 (inside ROI), rest should be 1
+    assert roi[0, 0] == 0
+    assert roi[49, 59] == 0
+    assert roi[50, 60] == 1
+    assert roi[99, 99] == 1
+
+
+def test_roi_mask_returns_none_when_no_roi():
+    """roi_mask should return None when roi is not set."""
+    mask_model = MaskModel(mask_dimension=(100, 100))
+    assert mask_model.roi_mask is None
+
+
+def test_undo_restores_previous_state(mask_model):
+    """undo() should restore the mask to its previous state."""
+    assert np.sum(mask_model._mask_data) == 0
+    mask_model.mask_ellipse(5, 5, 3, 3)
+    assert np.sum(mask_model._mask_data) > 0
+    mask_model.undo()
+    assert np.sum(mask_model._mask_data) == 0
+
+
+def test_redo_restores_undone_state(mask_model):
+    """redo() should restore a state that was undone."""
+    mask_model.mask_ellipse(5, 5, 3, 3)
+    masked_count = np.sum(mask_model._mask_data)
+    mask_model.undo()
+    assert np.sum(mask_model._mask_data) == 0
+    mask_model.redo()
+    assert np.sum(mask_model._mask_data) == masked_count
+
+
+def test_undo_on_empty_deque_does_nothing(mask_model):
+    """undo() on empty deque should not raise and should not change mask."""
+    original = np.copy(mask_model._mask_data)
+    mask_model.undo()
+    assert np.array_equal(mask_model._mask_data, original)
+
+
+def test_redo_on_empty_deque_does_nothing(mask_model):
+    """redo() on empty deque should not raise and should not change mask."""
+    original = np.copy(mask_model._mask_data)
+    mask_model.redo()
+    assert np.array_equal(mask_model._mask_data, original)
+
+
+class _SignalCounter:
+    """Helper to count signal emissions (prevents GC of weak-ref callbacks)."""
+    def __init__(self):
+        self.count = 0
+
+    def __call__(self):
+        self.count += 1
+
+
+def test_undo_emits_signal(mask_model):
+    """undo() should emit mask_changed signal."""
+    mask_model.mask_ellipse(5, 5, 3, 3)
+    counter = _SignalCounter()
+    mask_model.mask_changed.connect(counter)
+    mask_model.undo()
+    assert counter.count == 1
+
+
+def test_redo_emits_signal(mask_model):
+    """redo() should emit mask_changed signal."""
+    mask_model.mask_ellipse(5, 5, 3, 3)
+    mask_model.undo()
+    counter = _SignalCounter()
+    mask_model.mask_changed.connect(counter)
+    mask_model.redo()
+    assert counter.count == 1
+
+
+class _MockRect:
+    """Minimal mock for QRectF-like objects."""
+    def __init__(self, x, y, w, h):
+        self._x, self._y, self._w, self._h = x, y, w, h
+
+    def top(self):
+        return self._y
+
+    def left(self):
+        return self._x
+
+    def height(self):
+        return self._h
+
+    def width(self):
+        return self._w
+
+    def center(self):
+        return Point(self._x + self._w / 2, self._y + self._h / 2)
+
+
+class _MockRectItem:
+    def __init__(self, x, y, w, h):
+        self._rect = _MockRect(x, y, w, h)
+
+    def rect(self):
+        return self._rect
+
+
+class _MockEllipseItem:
+    def __init__(self, x, y, w, h):
+        self._rect = _MockRect(x, y, w, h)
+
+    def rect(self):
+        return self._rect
+
+
+class _MockPolygonItem:
+    def __init__(self, points):
+        self.vertices = points
+
+
+def test_mask_QGraphicsRectItem():
+    mask_model = MaskModel(mask_dimension=(100, 100))
+    item = _MockRectItem(10, 20, 30, 40)
+    mask_model.mask_QGraphicsRectItem(item)
+    # rect masks from (top, left) = (20, 10) with (height, width) = (40, 30)
+    assert mask_model._mask_data[20, 10]
+    assert mask_model._mask_data[59, 39]
+    assert not mask_model._mask_data[0, 0]
+
+
+def test_mask_QGraphicsPolygonItem():
+    mask_model = MaskModel(mask_dimension=(100, 100))
+    # Triangle covering a known region
+    points = [Point(10, 10), Point(10, 30), Point(30, 10)]
+    item = _MockPolygonItem(points)
+    mask_model.mask_QGraphicsPolygonItem(item)
+    # Center of triangle should be masked
+    assert mask_model._mask_data[15, 15]
+    # Far corner should not be masked
+    assert not mask_model._mask_data[90, 90]
+
+
+def test_mask_QGraphicsEllipseItem():
+    mask_model = MaskModel(mask_dimension=(100, 100))
+    # Ellipse bounding rect at (20, 30) with width=40, height=20
+    item = _MockEllipseItem(20, 30, 40, 20)
+    mask_model.mask_QGraphicsEllipseItem(item)
+    # Center of ellipse (cx=40, cy=40) should be masked
+    assert mask_model._mask_data[40, 40]
+    assert not mask_model._mask_data[0, 0]
+
+
+def test_mask_rect_negative_width_height():
+    """mask_rect with negative width/height should swap indices."""
+    mask_model = MaskModel(mask_dimension=(100, 100))
+    # Negative width and height: effectively masks rect from (20,30) to (50,60)
+    mask_model.mask_rect(50, 60, -30, -30)
+    assert mask_model._mask_data[25, 35]
+    assert not mask_model._mask_data[0, 0]
+
+
+def test_mask_rect_boundary_clamping():
+    """mask_rect should clamp negative start indices to 0."""
+    mask_model = MaskModel(mask_dimension=(100, 100))
+    mask_model.mask_rect(-5, -5, 20, 20)
+    assert mask_model._mask_data[0, 0]
+    assert mask_model._mask_data[14, 14]
+
+
+def test_mask_polygon():
+    """mask_polygon should mask interior pixels of a polygon."""
+    mask_model = MaskModel(mask_dimension=(100, 100))
+    x = np.array([10, 10, 50, 50], dtype=float)
+    y = np.array([10, 50, 50, 10], dtype=float)
+    mask_model.mask_polygon(x, y)
+    assert mask_model._mask_data[30, 30]
+    assert not mask_model._mask_data[0, 0]
+    assert not mask_model._mask_data[99, 99]
+
+
+def test_invert_mask():
+    """invert_mask should flip all mask values."""
+    mask_model = MaskModel(mask_dimension=(100, 100))
+    assert np.sum(mask_model._mask_data) == 0
+    mask_model.invert_mask()
+    assert np.all(mask_model._mask_data)
+    mask_model.invert_mask()
+    assert not np.any(mask_model._mask_data)
+
+
+def test_remove_cosmic():
+    """remove_cosmic should detect bright pixel spikes."""
+    mask_model = MaskModel(mask_dimension=(100, 100))
+    img = np.random.normal(100, 5, (100, 100)).astype(np.float64)
+    # Insert a cosmic ray (extreme bright pixel)
+    img[50, 50] = 100000
+    mask_model.remove_cosmic(img)
+    assert mask_model._mask_data[50, 50]
+
+
+def test_save_mask_npy(tmp_path):
+    mask_model = MaskModel(mask_dimension=(50, 50))
+    mask_model._mask_data[10:20, 10:20] = True
+    filename = str(tmp_path / "mask.npy")
+    mask_model.save_mask(filename)
+    loaded = np.load(filename)
+    assert np.array_equal(loaded, np.int8(mask_model.get_img()))
+
+
+def test_save_mask_tif(tmp_path):
+    mask_model = MaskModel(mask_dimension=(50, 50))
+    mask_model._mask_data[10:20, 10:20] = True
+    filename = str(tmp_path / "mask.tif")
+    mask_model.save_mask(filename)
+    assert os.path.exists(filename)
+
+
+def test_read_mask_file_edf(tmp_path):
+    """read_mask_file should load .edf format."""
+    mask_data = np.zeros((50, 50), dtype=np.int8)
+    mask_data[10:20, 10:20] = 1
+    filename = str(tmp_path / "mask.edf")
+    fabio.edfimage.EdfImage(mask_data).write(filename)
+    loaded = MaskModel.read_mask_file(filename)
+    assert np.array_equal(loaded, mask_data)
+
+
+def test_load_mask_dimension_mismatch(tmp_path):
+    """load_mask should return False when dimensions don't match."""
+    mask_model = MaskModel(mask_dimension=(100, 100))
+    # Save a mask with different dimensions
+    small_mask = np.zeros((50, 50), dtype=np.int8)
+    filename = str(tmp_path / "small_mask.npy")
+    np.save(filename, small_mask)
+    result = mask_model.load_mask(filename)
+    assert result is False
+
+
+def test_load_mask_matching_dimensions(tmp_path):
+    """load_mask should return True and load data when dimensions match."""
+    mask_model = MaskModel(mask_dimension=(50, 50))
+    mask_data = np.zeros((50, 50), dtype=np.int8)
+    mask_data[5:15, 5:15] = 1
+    filename = str(tmp_path / "mask.npy")
+    np.save(filename, mask_data)
+    result = mask_model.load_mask(filename)
+    assert result is True
+    assert np.sum(mask_model._mask_data) == 100
+
+
+def test_add_mask(tmp_path):
+    """add_mask should combine loaded mask with current mask."""
+    mask_model = MaskModel(mask_dimension=(50, 50))
+    mask_model._mask_data[0:10, 0:10] = True  # existing mask
+
+    additional = np.zeros((50, 50), dtype=np.int8)
+    additional[40:50, 40:50] = 1
+    filename = str(tmp_path / "add.npy")
+    np.save(filename, additional)
+
+    result = mask_model.add_mask(filename)
+    assert result is True
+    assert mask_model._mask_data[5, 5]    # original region
+    assert mask_model._mask_data[45, 45]  # added region
+
+
+def test_add_mask_dimension_mismatch(tmp_path):
+    """add_mask should return False when dimensions don't match."""
+    mask_model = MaskModel(mask_dimension=(100, 100))
+    small = np.zeros((50, 50), dtype=np.int8)
+    filename = str(tmp_path / "small.npy")
+    np.save(filename, small)
+    result = mask_model.add_mask(filename)
+    assert result is False
+
+
+def test_find_n_angles_on_arc_equal_angles_returns_none(mask_model):
+    """When all three points are at the same angle, should return None."""
+    p0 = Point(0.0, 0.0)
+    pa = Point(1.0, 0.0)
+    pb = Point(1.0, 0.0)
+    pc = Point(1.0, 0.0)
+    result = mask_model.find_n_angles_on_arc_from_three_points_around_p0(
+        p0, pa, pb, pc, 10
+    )
+    assert result is None
 
 
 def test_set_mask_updates_dimension():

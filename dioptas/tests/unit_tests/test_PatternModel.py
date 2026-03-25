@@ -4,6 +4,7 @@ import pytest
 from pytest import approx
 import os
 import numpy as np
+from xypattern import Pattern
 from xypattern.auto_background import SmoothBrucknerBackground
 
 from ...model.PatternModel import PatternModel
@@ -103,3 +104,108 @@ def test_auto_background_subtraction_with_out_of_range_roi(pattern_model: Patter
         x[0] - x_step / 2,
         x[0] + 1.5 * x_step,
     ]
+
+
+def test_load_chi_pattern(pattern_model: PatternModel):
+    """Loading a .chi file should skip the first 4 header rows."""
+    pattern_model.load_pattern(os.path.join(data_path, "pattern_001.chi"))
+    assert pattern_model.get_pattern().name == "pattern_001"
+    assert len(pattern_model.get_pattern().x) > 0
+    assert len(pattern_model.get_pattern().y) > 0
+
+
+def test_save_auto_background_as_pattern(pattern_model: PatternModel, tmp_path):
+    """Saving the auto background pattern should create a valid file."""
+    x = np.linspace(0, 24, 2500)
+    y = x * 0.4 + 5.0 + gaussian(x, 10, 3, 0.1)
+    pattern_model.set_pattern(x, y)
+    pattern_model.set_auto_background_subtraction([2, 50, 50])
+
+    save_path = str(tmp_path / "auto_bkg.xy")
+    pattern_model.save_auto_background_as_pattern(save_path, header="")
+    assert os.path.exists(save_path)
+
+    saved = np.loadtxt(save_path)
+    assert saved.shape[0] > 0
+    assert saved.shape[1] == 2
+
+
+def test_load_next_file(pattern_model: PatternModel):
+    """Loading next file should advance from pattern_001 to pattern_002."""
+    pattern_model.load_pattern(os.path.join(data_path, "pattern_001.xy"))
+    assert pattern_model.get_pattern().name == "pattern_001"
+
+    result = pattern_model.load_next_file()
+    assert result is True
+    assert pattern_model.get_pattern().name == "pattern_002"
+
+
+def test_load_next_file_returns_false_at_end(pattern_model: PatternModel):
+    """Loading next file should return False when there is no next file."""
+    pattern_model.load_pattern(os.path.join(data_path, "pattern_002.xy"))
+    result = pattern_model.load_next_file()
+    assert result is False
+
+
+def test_load_previous_file(pattern_model: PatternModel):
+    """Loading previous file should go back from pattern_002 to pattern_001."""
+    pattern_model.load_pattern(os.path.join(data_path, "pattern_002.xy"))
+    assert pattern_model.get_pattern().name == "pattern_002"
+
+    result = pattern_model.load_previous_file()
+    assert result is True
+    assert pattern_model.get_pattern().name == "pattern_001"
+
+
+def test_load_previous_file_returns_false_at_start(pattern_model: PatternModel):
+    """Loading previous file should return False when there is no previous file."""
+    pattern_model.load_pattern(os.path.join(data_path, "pattern_001.xy"))
+    result = pattern_model.load_previous_file()
+    assert result is False
+
+
+def test_set_file_iteration_mode_number(pattern_model: PatternModel):
+    """Setting file iteration mode to 'number' should update the mode."""
+    pattern_model.set_file_iteration_mode("number")
+    assert pattern_model.file_iteration_mode == "number"
+    assert pattern_model.file_name_iterator.create_timed_file_list is False
+
+
+def test_set_file_iteration_mode_time(pattern_model: PatternModel):
+    """Setting file iteration mode to 'time' should update the mode and rebuild file list."""
+    pattern_model.load_pattern(os.path.join(data_path, "pattern_001.xy"))
+    pattern_model.set_file_iteration_mode("time")
+    assert pattern_model.file_iteration_mode == "time"
+    assert pattern_model.file_name_iterator.create_timed_file_list is True
+
+
+def test_background_pattern_setter(pattern_model: PatternModel):
+    """Setting a background pattern should apply it to the internal pattern."""
+    x = np.linspace(0, 10, 100)
+    y = np.ones(100) * 10
+    pattern_model.set_pattern(x, y)
+
+    bkg = Pattern(x, np.ones(100) * 3)
+    pattern_model.background_pattern = bkg
+
+    assert pattern_model.background_pattern is bkg
+    assert pattern_model.pattern.background_pattern is bkg
+    _, y_subtracted = pattern_model.pattern.data
+    assert y_subtracted == approx(np.ones(100) * 7)
+
+
+def test_background_pattern_setter_clear(pattern_model: PatternModel):
+    """Setting the background pattern to None should clear it."""
+    x = np.linspace(0, 10, 100)
+    y = np.ones(100) * 10
+    pattern_model.set_pattern(x, y)
+
+    bkg = Pattern(x, np.ones(100) * 3)
+    pattern_model.background_pattern = bkg
+    assert pattern_model.background_pattern is not None
+
+    pattern_model.background_pattern = None
+    assert pattern_model.background_pattern is None
+    assert pattern_model.pattern.background_pattern is None
+    _, y_data = pattern_model.pattern.data
+    assert y_data == approx(np.ones(100) * 10)
