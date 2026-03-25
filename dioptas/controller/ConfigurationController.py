@@ -65,7 +65,8 @@ class ConfigurationController:
         filename = save_file_dialog(
             self.widget, "Save Combined Pattern Data.",
             os.path.join(self.model.working_directories['pattern'],
-                         img_filename + '_combined.dat'), ('.dat'))
+                         img_filename + '_combined.xy'),
+            'Data (*.xy);;Data (*.chi);;Data (*.dat);;GSAS (*.fxye)')
 
         if filename != '':
             self.model.save_combined_pattern(filename)

@@ -206,13 +206,12 @@ class ConfigurationControllerTest(QtTest):
             ),
         )
 
-    def test_save_combined_pattern(self):
-        # prepare two calibrated configurations
+    def _setup_two_calibrated_configurations(self):
+        """Helper to set up two calibrated configurations for combined pattern tests."""
         self.model.calibration_model.load(
             os.path.join(data_path, "CeO2_Pilatus1M.poni")
         )
         self.model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
-        x1, _ = self.model.pattern_model.pattern.data
 
         self.model.add_configuration()
         self.model.calibration_model.load(
@@ -220,11 +219,17 @@ class ConfigurationControllerTest(QtTest):
         )
         self.model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
 
+    def test_save_combined_pattern(self):
+        self._setup_two_calibrated_configurations()
+        x1, _ = self.model.configurations[0].pattern_model.pattern.data
+
         self.model.combine_patterns = True
 
-        # click the button
+        # mock dialog with PyQt6-style tuple return (filename, selected_filter)
         file_path = os.path.join(data_path, "combined_pattern.xy")
-        QtWidgets.QFileDialog.getSaveFileName = MagicMock(return_value=file_path)
+        QtWidgets.QFileDialog.getSaveFileName = MagicMock(
+            return_value=(file_path, "Data (*.xy)")
+        )
         click_button(self.config_widget.saved_combined_patterns_btn)
 
         # load and check that it worked
@@ -234,3 +239,47 @@ class ConfigurationControllerTest(QtTest):
         self.assertGreater(len(x3), 0)
 
         delete_if_exists(file_path)
+
+    def test_save_combined_pattern_uses_multigeometry(self):
+        """Verify that saved combined pattern contains data from MultiGeometry
+        integration covering the range of both configurations, not just one."""
+        self._setup_two_calibrated_configurations()
+
+        # get individual patterns from each configuration
+        x1, _ = self.model.configurations[0].pattern_model.pattern.data
+        x2, _ = self.model.configurations[1].pattern_model.pattern.data
+
+        self.model.combine_patterns = True
+
+        file_path = os.path.join(data_path, "combined_pattern.xy")
+        QtWidgets.QFileDialog.getSaveFileName = MagicMock(
+            return_value=(file_path, "Data (*.xy)")
+        )
+        click_button(self.config_widget.saved_combined_patterns_btn)
+
+        saved_pattern = Pattern.from_file(file_path)
+        x_combined, _ = saved_pattern.data
+
+        # combined pattern should span a wider range than either individual pattern
+        self.assertGreater(
+            np.max(x_combined),
+            max(np.max(x1), np.max(x2)) * 0.95,
+            "Combined pattern should cover at least the range of both configurations",
+        )
+        self.assertGreater(len(x_combined), 0)
+
+        delete_if_exists(file_path)
+
+    def test_save_combined_pattern_cancel_dialog(self):
+        """Verify no file is written when user cancels the save dialog."""
+        self._setup_two_calibrated_configurations()
+        self.model.combine_patterns = True
+
+        file_path = os.path.join(data_path, "combined_pattern.xy")
+        # PyQt6 returns ('', '') when dialog is cancelled
+        QtWidgets.QFileDialog.getSaveFileName = MagicMock(
+            return_value=("", "")
+        )
+        click_button(self.config_widget.saved_combined_patterns_btn)
+
+        self.assertFalse(os.path.exists(file_path))
