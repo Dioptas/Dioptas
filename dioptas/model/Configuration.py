@@ -561,11 +561,21 @@ class Configuration:
         else:
             image_group.attrs["has_roi"] = False
 
-        # save mask model
+        # save mask model (only user-drawn mask, not plugin-generated masks)
         mask_group = f.create_group("mask")
-        current_mask = self.mask_model.get_mask()
+        current_mask = self.mask_model.get_img()
         mask_data = mask_group.create_dataset("data", current_mask.shape, dtype=bool)
         mask_data[...] = current_mask
+
+        # save mask plugin state
+        plugin_group = mask_group.create_group("plugins")
+        for name in self.mask_plugin_manager.plugin_names:
+            entry = self.mask_plugin_manager.plugins[name]
+            pg = plugin_group.create_group(name)
+            pg.attrs["enabled"] = entry.enabled
+            settings = entry.plugin.get_settings()
+            if settings:
+                pg.attrs["settings"] = json.dumps(settings, default=_json_numpy_default)
 
         # save detector information
         detector_group = f.create_group("detector")
@@ -809,6 +819,20 @@ class Configuration:
 
         # load mask model
         self.mask_model.set_mask(np.copy(f.get("mask").get("data")[...]))
+
+        # load mask plugin state
+        mask_group = f.get("mask")
+        if mask_group is not None and "plugins" in mask_group:
+            plugin_group = mask_group["plugins"]
+            for name in plugin_group:
+                pg = plugin_group[name]
+                if name in self.mask_plugin_manager.plugins:
+                    enabled = bool(pg.attrs.get("enabled", False))
+                    settings_json = pg.attrs.get("settings")
+                    if settings_json:
+                        settings = json.loads(settings_json)
+                        self.mask_plugin_manager.update_plugin_settings(name, settings)
+                    self.mask_plugin_manager.set_enabled(name, enabled)
 
         # load pattern model
         if f.get("pattern").get("x") and f.get("pattern").get("y"):
