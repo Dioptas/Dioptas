@@ -397,6 +397,26 @@ def test_move_single_overlay_one_step_down(
     assert integration_widget.overlay_tw.currentRow() == 4
 
 
+def test_move_overlay_preserves_checkbox_state(
+    overlay_controller: OverlayController,
+    integration_widget: IntegrationWidget,
+    dioptas_model: DioptasModel,
+):
+    overlay_widget = integration_widget.overlay_widget
+    load_overlays(dioptas_model.overlay_model)
+
+    # uncheck overlay 3
+    overlay_widget.show_cbs[3].setChecked(False)
+    assert not dioptas_model.overlay_model.overlays[3].visible
+
+    # move overlay 3 up — the unchecked state should follow it to row 2
+    overlay_widget.select_overlay(3)
+    click_button(overlay_widget.move_up_btn)
+
+    assert not overlay_widget.show_cbs[2].isChecked()
+    assert overlay_widget.show_cbs[3].isChecked()
+
+
 def test_bulk_change_visibility_of_overlays(
     overlay_controller: OverlayController,
     integration_widget: IntegrationWidget,

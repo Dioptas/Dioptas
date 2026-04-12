@@ -19,6 +19,7 @@
 - fixed mask cleared when enabling correction after loading `.dio` project
 - fixed `cake_azimuth_range` comparison crash on numpy arrays when loading projects
 - fixed file format loading returning byte ordinals instead of characters in project files
+- fixed overlay visibility checkbox not updating when moving overlays up or down
 - improved error handling: replaced silent `except: pass` blocks with proper logging across the model layer, narrowed bare `except:` to specific exception types
 
 ## Code Quality

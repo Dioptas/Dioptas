@@ -265,6 +265,10 @@ class OverlayController:
         overlay = self.model.overlay_model.overlays[ind]
         self.overlay_widget.set_overlay_name(ind, overlay.name)
 
+        self.overlay_widget.show_cbs[ind].blockSignals(True)
+        self.overlay_widget.show_cbs[ind].setChecked(overlay.visible)
+        self.overlay_widget.show_cbs[ind].blockSignals(False)
+
     def waterfall_btn_click_callback(self):
         separation = self.overlay_widget.waterfall_separation_msb.value()
         self.model.overlay_model.overlay_waterfall(separation)
