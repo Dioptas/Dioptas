@@ -1,3 +1,24 @@
+# 0.8.5 (in development)
+
+## New Features
+
+- added mask plugin system for extensible automated masking — supports static (per-shape) and dynamic (per-image) plugins with configurable settings, discoverable via Python entry points or `~/.dioptas/plugins/masks/` directory
+- added built-in Threshold Mask plugin for masking pixels above/below configurable intensity limits
+- added built-in Cosmic Ray Mask plugin for detecting cosmic ray artifacts using local z-score statistics with iterative filtering
+- added flat field correction support for compensating pixel-to-pixel sensitivity variations
+- plugin settings dialogs show algorithm description, masked pixel count, and update the mask live as parameters are changed
+
+## Bugfixes
+
+- fixed mask plugin overlays not showing in Integration and Calibration views
+- fixed project save baking dynamic plugin masks into the static mask data — now only saves user-drawn mask and persists plugin enabled state and settings separately
+- fixed plugin checkbox state not updating after loading a project
+- fixed calibration peak search not using plugin masks
+
+## Documentation
+
+- added Mask Plugins documentation page with plugin authoring guide, installation methods, settings schema reference, and API reference
+
 # 0.8.4 (25.03.2026)
 
 ## New Features
