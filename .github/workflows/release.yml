@@ -68,7 +68,7 @@ jobs:
     - name: Create AppImage
       run: |
         cd dist
-        DIOPTAS_FOLDER=$(ls -d Dioptas_*)
+        DIOPTAS_FOLDER=$(ls -d Dioptas_Linux*/ | head -1 | sed 's|/$||')
 
         # Download appimagetool
         wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
