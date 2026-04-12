@@ -47,6 +47,10 @@ class CosmicRayMaskPlugin(MaskPluginBase):
                 "min": 1.0,
                 "max": 50.0,
                 "decimals": 1,
+                "description": (
+                    "Number of standard deviations above the local mean for a pixel "
+                    "to be flagged as a cosmic ray. Higher values are more conservative."
+                ),
             },
             "window_size": {
                 "type": "int",
@@ -54,6 +58,10 @@ class CosmicRayMaskPlugin(MaskPluginBase):
                 "label": "Window size",
                 "min": 3,
                 "max": 51,
+                "description": (
+                    "Size of the local neighborhood window (in pixels) used to "
+                    "calculate mean and standard deviation. Should be odd."
+                ),
             },
             "iterations": {
                 "type": "int",
@@ -61,6 +69,11 @@ class CosmicRayMaskPlugin(MaskPluginBase):
                 "label": "Iterations",
                 "min": 1,
                 "max": 10,
+                "description": (
+                    "Number of detection passes. Each pass removes found cosmic rays "
+                    "before the next, catching fainter artifacts revealed by removal "
+                    "of bright ones."
+                ),
             },
             "min_intensity": {
                 "type": "float",
@@ -69,6 +82,11 @@ class CosmicRayMaskPlugin(MaskPluginBase):
                 "min": 0.0,
                 "max": 1e12,
                 "decimals": 1,
+                "description": (
+                    "Minimum absolute pixel intensity to consider as a cosmic ray. "
+                    "Pixels below this value are never flagged, regardless of their "
+                    "local z-score."
+                ),
             },
         }
 

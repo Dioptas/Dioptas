@@ -77,8 +77,14 @@ class MaskPluginSettingsDialog(QtWidgets.QDialog):
             value = current_settings.get(key, spec.get("default"))
 
             widget = self._create_widget(param_type, spec, value)
+            description = spec.get("description")
+            if description:
+                widget.setToolTip(description)
             self._widgets[key] = widget
-            layout.addRow(label, widget)
+            label_widget = QtWidgets.QLabel(label)
+            if description:
+                label_widget.setToolTip(description)
+            layout.addRow(label_widget, widget)
 
         button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.StandardButton.Ok

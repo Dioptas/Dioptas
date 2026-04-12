@@ -37,6 +37,7 @@ class ThresholdMaskPlugin(MaskPluginBase):
                 "type": "bool",
                 "default": True,
                 "label": "Mask above",
+                "description": "Enable masking of pixels with intensity above the upper threshold.",
             },
             "above_value": {
                 "type": "float",
@@ -45,11 +46,13 @@ class ThresholdMaskPlugin(MaskPluginBase):
                 "min": -1e12,
                 "max": 1e12,
                 "decimals": 1,
+                "description": "Pixels with intensity above this value will be masked.",
             },
             "below_enabled": {
                 "type": "bool",
                 "default": False,
                 "label": "Mask below",
+                "description": "Enable masking of pixels with intensity below the lower threshold.",
             },
             "below_value": {
                 "type": "float",
@@ -58,6 +61,7 @@ class ThresholdMaskPlugin(MaskPluginBase):
                 "min": -1e12,
                 "max": 1e12,
                 "decimals": 1,
+                "description": "Pixels with intensity below this value will be masked.",
             },
         }
 

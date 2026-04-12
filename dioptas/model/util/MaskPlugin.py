@@ -54,6 +54,7 @@ class MaskPluginBase:
         - 'type': 'float', 'int', 'bool', or 'str'
         - 'default': default value
         - 'label': display label
+        - 'description' (optional): tooltip text explaining the parameter
         - 'min' / 'max' (optional, for numeric types)
         """
         return None

@@ -105,8 +105,11 @@ Supported setting types:
      - QLineEdit
      -
 
-Each setting dict must include ``type``, ``default``, and ``label``. The ``min``/``max`` keys
-are optional and only apply to numeric types.
+Each setting dict must include ``type``, ``default``, and ``label``. Optional keys:
+
+- ``description``: tooltip text shown when hovering over the label or widget, explaining what the parameter does
+- ``min`` / ``max``: bounds for numeric types
+- ``decimals``: decimal places for float spinboxes
 
 
 Installing Plugins
