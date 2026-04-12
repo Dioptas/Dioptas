@@ -646,7 +646,7 @@ class CalibrationController:
         self.model.calibration_model.setup_peak_search_algorithm(algorithm)
 
         if self.widget.use_mask_cb.isChecked():
-            mask = self.model.mask_model.get_img()
+            mask = self.model.mask_model.get_mask()
         else:
             mask = None
 
@@ -748,7 +748,7 @@ class CalibrationController:
         state = self.widget.use_mask_cb.isChecked()
         if state:
             self.widget.img_widget.activate_mask()
-            self.widget.img_widget.plot_mask(self.model.mask_model.get_img())
+            self.widget.img_widget.plot_mask(self.model.mask_model.get_display_mask())
         else:
             self.widget.img_widget.deactivate_mask()
 

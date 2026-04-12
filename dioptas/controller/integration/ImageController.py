@@ -117,7 +117,7 @@ class ImageController:
         """
         if self.model.use_mask and self.widget.img_mode == 'Image':
             self.widget.img_widget.activate_mask()
-            self.widget.img_widget.plot_mask(self.model.mask_model.get_img())
+            self.widget.img_widget.plot_mask(self.model.mask_model.get_display_mask())
         else:
             self.widget.img_widget.deactivate_mask()
 
