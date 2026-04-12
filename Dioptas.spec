@@ -33,14 +33,17 @@ folder = os.getcwd()
 import PyQt6 # needs to be imported before qt_material
 import qt_material
 import pyFAI
+import xraydb
 
 qt_material_path = os.path.dirname(qt_material.__file__)
 pyFAI_path = os.path.dirname(pyFAI.__file__)
+xraydb_path = os.path.dirname(xraydb.__file__)
 
 extra_datas = [
     ("dioptas/resources", "dioptas/resources"),
     (os.path.join(pyFAI_path, "resources"), "pyFAI/resources"),
     (os.path.join(qt_material_path, "fonts", "roboto"), "qt_material/fonts/roboto"),
+    (os.path.join(xraydb_path, "xraydb.sqlite"), "xraydb"),
 ]
 
 fabio_hiddenimports = collect_submodules("fabio")
