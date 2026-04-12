@@ -7,6 +7,7 @@ from .plot_widgets import MaskImgWidget
 
 from .CustomWidgets import NumberTextField, LabelAlignRight, SpinBoxAlignRight, HorizontalSpacerItem, \
     CheckableButton, VerticalSpacerItem, HorizontalLine
+from .MaskPluginWidget import MaskPluginWidget
 
 
 class MaskWidget(QtWidgets.QWidget):
@@ -114,6 +115,14 @@ class MaskWidget(QtWidgets.QWidget):
         self._control_layout.addWidget(self.cosmic_btn)
 
         self._control_layout.addWidget(HorizontalLine())
+
+        self.plugin_widget = MaskPluginWidget()
+        self._control_layout.addWidget(self.plugin_widget)
+        self._plugin_separator = HorizontalLine()
+        self._control_layout.addWidget(self._plugin_separator)
+        # Hide plugin section until plugins are registered
+        self.plugin_widget.hide()
+        self._plugin_separator.hide()
 
         self._visibility_widget = QtWidgets.QWidget()
         self._visibility_layout = QtWidgets.QHBoxLayout()

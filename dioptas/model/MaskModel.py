@@ -32,10 +32,14 @@ class MaskModel:
 
         self.mask_changed: Signal = Signal()
 
+        self.mask_plugin_manager = None  # set by Configuration
+
     def set_dimension(self, mask_dimension: tuple[int, int]) -> None:
         if not np.array_equal(mask_dimension, self.mask_dimension):
             self.mask_dimension = mask_dimension
             self.reset_dimension()
+            if self.mask_plugin_manager is not None:
+                self.mask_plugin_manager.update_shape(mask_dimension)
             self.mask_changed.emit()
 
     def reset_dimension(self) -> None:
@@ -61,13 +65,26 @@ class MaskModel:
             return None
 
     def get_mask(self) -> np.ndarray:
-        if self.roi is None:
-            return self._mask_data
-        elif self.roi is not None:
-            return np.logical_or(self._mask_data, self.roi_mask)
+        """Return combined mask: user-drawn + plugins + roi. Used for integration."""
+        mask = self._mask_data
+        mask = self._apply_plugin_masks(mask)
+        if self.roi is not None:
+            mask = np.logical_or(mask, self.roi_mask)
+        return mask
+
+    def get_display_mask(self) -> np.ndarray:
+        """Return mask for display: user-drawn + plugins (no roi). Used by mask view."""
+        return self._apply_plugin_masks(self._mask_data)
 
     def get_img(self) -> np.ndarray:
         return self._mask_data
+
+    def _apply_plugin_masks(self, mask: np.ndarray) -> np.ndarray:
+        if self.mask_plugin_manager is not None:
+            plugin_mask = self.mask_plugin_manager.get_combined_mask()
+            if plugin_mask is not None:
+                mask = np.logical_or(mask, plugin_mask)
+        return mask
 
     def update_deque(self) -> None:
         """Saves the current mask data into a deque, which can be popped later

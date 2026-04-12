@@ -342,6 +342,10 @@ class DioptasModel:
         return self.configurations[self.configuration_ind].mask_model
 
     @property
+    def mask_plugin_manager(self):
+        return self.configurations[self.configuration_ind].mask_plugin_manager
+
+    @property
     def calibration_model(self) -> CalibrationModel:
         return self.configurations[self.configuration_ind].calibration_model
 

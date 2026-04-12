@@ -85,3 +85,14 @@ File Handling
 
 - *Add Mask*:
     Loads a mask and combines it with the current mask (logical OR).
+
+
+Mask Plugins
+------------
+
+Dioptas supports mask plugins for automated masking (e.g., dead pixel maps, hot pixel detection).
+If any plugins are installed, they appear in the control panel between the Cosmic Removal button
+and the visibility toggles. Each plugin has a checkbox to enable/disable it and an optional
+settings button.
+
+See :doc:`mask_plugins` for details on writing and installing plugins.

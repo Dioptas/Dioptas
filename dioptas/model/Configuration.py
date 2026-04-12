@@ -24,6 +24,8 @@ from .util.ImgCorrection import (
 
 from .util.calc import convert_units
 from . import ImgModel, CalibrationModel, MaskModel, PatternModel, BatchModel
+from .MaskPluginManager import MaskPluginManager
+from .util.plugin_discovery import discover_mask_plugins
 from .MapModel import MapModel
 from .CalibrationModel import DetectorModes
 
@@ -55,6 +57,9 @@ class Configuration:
 
         self.img_model: ImgModel = ImgModel()
         self.mask_model: MaskModel = MaskModel()
+        self.mask_plugin_manager: MaskPluginManager = MaskPluginManager()
+        self.mask_model.mask_plugin_manager = self.mask_plugin_manager
+        self._register_mask_plugins()
         self.calibration_model: CalibrationModel = CalibrationModel(self.img_model)
         self.pattern_model: PatternModel = PatternModel()
 
@@ -98,7 +103,24 @@ class Configuration:
     def _connect_signals(self) -> None:
         """Connects the img_changed signal to responding functions."""
         self.img_model.img_changed.connect(self.update_mask_dimension)
+        self.img_model.img_changed.connect(self._update_plugin_masks)
         self.img_model.img_changed.connect(self.integrate_image_1d)
+        self.mask_plugin_manager.mask_changed.connect(
+            self.mask_model.mask_changed.emit
+        )
+
+    def _update_plugin_masks(self) -> None:
+        """Update dynamic mask plugins with the current image data."""
+        if self.img_model.img_data is not None:
+            self.mask_plugin_manager.update_image(self.img_model.img_data)
+
+    def _register_mask_plugins(self) -> None:
+        """Discover and register mask plugins."""
+        for plugin_cls in discover_mask_plugins():
+            try:
+                self.mask_plugin_manager.register(plugin_cls())
+            except Exception:
+                logger.exception("Failed to instantiate mask plugin: %s", plugin_cls)
 
     def integrate_image_1d(self, update_pattern_model: bool = True) -> tuple[np.ndarray, np.ndarray] | None:
         """
@@ -500,6 +522,14 @@ class Configuration:
                     "response_data", response_data.shape, "f", response_data
                 )
                 response_ds.attrs["filename"] = params["response_filename"]
+            elif correction == "flat_field":
+                params = correction_object.get_params()
+                ff_group = corrections_group.create_group("flat_field")
+                raw_data = params["raw_data"]
+                ff_ds = ff_group.create_dataset(
+                    "raw_data", raw_data.shape, "f", raw_data
+                )
+                ff_ds.attrs["filename"] = params["filename"]
 
         # the actual image
         image_group.attrs["filename"] = self.img_model.filename
@@ -902,6 +932,13 @@ class Configuration:
 
                     self.img_model.transfer_correction.set_params(params)
                     self.img_model.enable_transfer_function()
+                elif name == "flat_field":
+                    params = {
+                        "raw_data": correction_group.get("raw_data")[...],
+                        "filename": correction_group.get("raw_data").attrs["filename"],
+                    }
+                    self.img_model.flat_field_correction.set_params(params)
+                    self.img_model.enable_flat_field()
 
         # autosave parameters
         self.auto_save_integrated_pattern = f.get("general_information").attrs[

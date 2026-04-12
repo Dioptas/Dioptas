@@ -1,0 +1,361 @@
+# SPDX-License-Identifier: MIT
+
+import os
+import tempfile
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+from ...model.util.MaskPlugin import MaskPluginBase
+from ...model.MaskPluginManager import MaskPluginManager, MaskPluginEntry
+from ...model.MaskModel import MaskModel
+from ...model.util.plugin_discovery import _discover_from_directory
+
+
+# -- Test plugins --
+
+
+class StaticThresholdPlugin(MaskPluginBase):
+    name = "Static Threshold"
+    is_dynamic = False
+
+    def __init__(self, threshold=100):
+        self.threshold = threshold
+
+    def compute_mask(self, img_data):
+        return img_data > self.threshold
+
+    def get_settings_schema(self):
+        return {"threshold": {"type": "float", "default": 100, "label": "Threshold"}}
+
+    def update_settings(self, settings):
+        self.threshold = settings.get("threshold", self.threshold)
+
+    def get_settings(self):
+        return {"threshold": self.threshold}
+
+
+class DynamicMeanPlugin(MaskPluginBase):
+    name = "Dynamic Mean"
+    is_dynamic = True
+
+    def compute_mask(self, img_data):
+        return img_data > img_data.mean()
+
+
+class NoSettingsPlugin(MaskPluginBase):
+    name = "No Settings"
+    is_dynamic = False
+
+    def compute_mask(self, img_data):
+        mask = np.zeros(img_data.shape, dtype=bool)
+        mask[0, :] = True
+        return mask
+
+
+class BrokenPlugin(MaskPluginBase):
+    name = "Broken"
+    is_dynamic = False
+
+    def compute_mask(self, img_data):
+        raise ValueError("I am broken")
+
+
+class WrongShapePlugin(MaskPluginBase):
+    name = "Wrong Shape"
+    is_dynamic = False
+
+    def compute_mask(self, img_data):
+        return np.zeros((1, 1), dtype=bool)
+
+
+# -- Fixtures --
+
+
+@pytest.fixture
+def manager():
+    return MaskPluginManager()
+
+
+@pytest.fixture
+def img_data():
+    return np.random.rand(100, 100) * 200
+
+
+# -- MaskPluginBase tests --
+
+
+def test_base_class_has_settings():
+    plugin = StaticThresholdPlugin()
+    assert plugin.has_settings
+    assert plugin.get_settings_schema() is not None
+
+    plugin2 = NoSettingsPlugin()
+    assert not plugin2.has_settings
+    assert plugin2.get_settings_schema() is None
+
+
+def test_base_class_not_implemented():
+    plugin = MaskPluginBase()
+    with pytest.raises(NotImplementedError):
+        plugin.compute_mask(np.zeros((10, 10)))
+
+
+# -- MaskPluginManager tests --
+
+
+def test_register_plugin(manager):
+    plugin = StaticThresholdPlugin()
+    manager.register(plugin)
+    assert "Static Threshold" in manager.plugin_names
+    assert manager.get_plugin("Static Threshold") is plugin
+
+
+def test_register_duplicate_skipped(manager):
+    manager.register(StaticThresholdPlugin())
+    manager.register(StaticThresholdPlugin())
+    assert len(manager.plugin_names) == 1
+
+
+def test_unregister_plugin(manager):
+    manager.register(StaticThresholdPlugin())
+    manager.unregister("Static Threshold")
+    assert "Static Threshold" not in manager.plugin_names
+
+
+def test_enable_disable(manager, img_data):
+    manager.register(StaticThresholdPlugin(threshold=100))
+    manager.update_image(img_data)
+
+    assert not manager.is_enabled("Static Threshold")
+    assert manager.get_combined_mask() is None
+
+    manager.set_enabled("Static Threshold", True)
+    assert manager.is_enabled("Static Threshold")
+
+    combined = manager.get_combined_mask()
+    assert combined is not None
+    expected = img_data > 100
+    np.testing.assert_array_equal(combined, expected)
+
+    manager.set_enabled("Static Threshold", False)
+    assert manager.get_combined_mask() is None
+
+
+def test_dynamic_plugin_recomputes(manager):
+    manager.register(DynamicMeanPlugin())
+    manager.set_enabled("Dynamic Mean", True)
+
+    img1 = np.zeros((50, 50))
+    img1[0, 0] = 100
+    manager.update_image(img1)
+
+    mask1 = manager.get_combined_mask()
+    assert mask1 is not None
+    assert mask1[0, 0] == True  # 100 > mean
+    assert mask1[1, 1] == False
+
+    img2 = np.ones((50, 50)) * 50
+    img2[0, 0] = 0
+    manager.update_image(img2)
+
+    mask2 = manager.get_combined_mask()
+    assert mask2[0, 0] == False  # 0 < mean(~50)
+
+
+def test_static_plugin_caches(manager):
+    plugin = StaticThresholdPlugin(threshold=100)
+    manager.register(plugin)
+    manager.set_enabled("Static Threshold", True)
+
+    img1 = np.ones((50, 50)) * 200
+    manager.update_image(img1)
+    mask1 = manager.get_combined_mask().copy()
+
+    # Same shape, different data — static should NOT recompute
+    img2 = np.zeros((50, 50))
+    manager.update_image(img2)
+    mask2 = manager.get_combined_mask()
+    np.testing.assert_array_equal(mask1, mask2)
+
+
+def test_static_plugin_recomputes_on_shape_change(manager):
+    plugin = StaticThresholdPlugin(threshold=100)
+    manager.register(plugin)
+    manager.set_enabled("Static Threshold", True)
+
+    manager.update_image(np.ones((50, 50)) * 200)
+    assert manager.get_combined_mask().shape == (50, 50)
+
+    manager.update_image(np.ones((30, 30)) * 200)
+    assert manager.get_combined_mask().shape == (30, 30)
+
+
+def test_combine_multiple_plugins(manager, img_data):
+    manager.register(StaticThresholdPlugin(threshold=150))
+    manager.register(NoSettingsPlugin())
+    manager.set_enabled("Static Threshold", True)
+    manager.set_enabled("No Settings", True)
+    manager.update_image(img_data)
+
+    combined = manager.get_combined_mask()
+    expected = np.logical_or(img_data > 150, np.arange(100) == 0)  # row 0 masked
+    # check row 0 is fully masked
+    assert np.all(combined[0, :])
+
+
+def test_broken_plugin_gets_disabled(manager, img_data):
+    manager.register(BrokenPlugin())
+    manager.set_enabled("Broken", True)
+    manager.update_image(img_data)
+
+    assert not manager.is_enabled("Broken")
+    assert manager.get_combined_mask() is None
+
+
+def test_wrong_shape_plugin_ignored(manager):
+    manager.register(WrongShapePlugin())
+    manager.set_enabled("Wrong Shape", True)
+    manager.update_image(np.zeros((50, 50)))
+
+    assert manager.get_combined_mask() is None
+
+
+def test_update_settings(manager, img_data):
+    manager.register(StaticThresholdPlugin(threshold=100))
+    manager.set_enabled("Static Threshold", True)
+    manager.update_image(img_data)
+
+    mask_before = manager.get_combined_mask().copy()
+    manager.update_plugin_settings("Static Threshold", {"threshold": 50})
+    mask_after = manager.get_combined_mask()
+
+    # Lower threshold means more pixels masked
+    assert mask_after.sum() >= mask_before.sum()
+
+
+def test_mask_changed_signal(manager, img_data):
+    class Listener:
+        def __init__(self):
+            self.calls = 0
+
+        def on_changed(self):
+            self.calls += 1
+
+    listener = Listener()
+    manager.mask_changed.connect(listener.on_changed)
+
+    manager.register(StaticThresholdPlugin())
+    manager.set_enabled("Static Threshold", True)
+    assert listener.calls >= 1
+
+    listener.calls = 0
+    manager.update_image(img_data)
+    assert listener.calls >= 1
+
+
+# -- MaskModel integration tests --
+
+
+def test_mask_model_get_mask_includes_plugins():
+    model = MaskModel(mask_dimension=(50, 50))
+    manager = MaskPluginManager()
+    model.mask_plugin_manager = manager
+
+    manager.register(NoSettingsPlugin())
+    manager.set_enabled("No Settings", True)
+    manager.update_image(np.zeros((50, 50)))
+
+    mask = model.get_mask()
+    assert np.all(mask[0, :])  # row 0 masked by plugin
+    assert not np.any(mask[1:, :])  # rest unmasked
+
+
+def test_mask_model_get_display_mask():
+    model = MaskModel(mask_dimension=(50, 50))
+    manager = MaskPluginManager()
+    model.mask_plugin_manager = manager
+
+    manager.register(NoSettingsPlugin())
+    manager.set_enabled("No Settings", True)
+    manager.update_image(np.zeros((50, 50)))
+
+    display = model.get_display_mask()
+    assert np.all(display[0, :])
+
+    # get_img still returns only user-drawn mask
+    assert not np.any(model.get_img())
+
+
+def test_mask_model_get_mask_combines_user_and_plugin():
+    model = MaskModel(mask_dimension=(50, 50))
+    manager = MaskPluginManager()
+    model.mask_plugin_manager = manager
+
+    # Plugin masks row 0
+    manager.register(NoSettingsPlugin())
+    manager.set_enabled("No Settings", True)
+    manager.update_image(np.zeros((50, 50)))
+
+    # User masks a rectangle at row 1
+    model.mask_rect(1, 0, 1, 50)
+
+    mask = model.get_mask()
+    assert np.all(mask[0, :])  # plugin
+    assert np.all(mask[1, :])  # user
+
+
+def test_mask_model_without_plugin_manager():
+    """Ensure backward compatibility when no plugin manager is set."""
+    model = MaskModel(mask_dimension=(50, 50))
+    assert model.mask_plugin_manager is None
+
+    mask = model.get_mask()
+    assert mask.shape == (50, 50)
+    assert not np.any(mask)
+
+
+# -- Plugin discovery tests --
+
+
+def test_discover_from_directory():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        plugin_file = Path(tmpdir) / "test_plugin.py"
+        plugin_file.write_text(
+            """
+import numpy as np
+from dioptas.model.util.MaskPlugin import MaskPluginBase
+
+class TestDiscoveredPlugin(MaskPluginBase):
+    name = "Discovered Plugin"
+    is_dynamic = False
+
+    def compute_mask(self, img_data):
+        return np.zeros(img_data.shape, dtype=bool)
+"""
+        )
+
+        plugins = _discover_from_directory(Path(tmpdir))
+        assert len(plugins) == 1
+        assert plugins[0].name == "Discovered Plugin"
+
+
+def test_discover_from_empty_directory():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        plugins = _discover_from_directory(Path(tmpdir))
+        assert len(plugins) == 0
+
+
+def test_discover_from_nonexistent_directory():
+    plugins = _discover_from_directory(Path("/nonexistent/path"))
+    assert len(plugins) == 0
+
+
+def test_discover_skips_broken_files():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        plugin_file = Path(tmpdir) / "broken.py"
+        plugin_file.write_text("raise ImportError('broken')")
+
+        plugins = _discover_from_directory(Path(tmpdir))
+        assert len(plugins) == 0

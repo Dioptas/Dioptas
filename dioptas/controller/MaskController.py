@@ -8,6 +8,7 @@ from math import sqrt
 import numpy as np
 
 from ..widgets.UtilityWidgets import open_file_dialog, save_file_dialog
+from ..widgets.MaskPluginWidget import MaskPluginSettingsDialog
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ..widgets.MaskWidget import MaskWidget
@@ -31,6 +32,7 @@ class MaskController:
         self.state = None
         self.clicks = 0
         self.create_signals()
+        self._setup_plugins()
 
         self.rect = None
         self.circle = None
@@ -70,6 +72,53 @@ class MaskController:
         self.model.img_changed.connect(self.plot_image)
         self.model.mask_changed.connect(self.plot_mask)
         self.model.configuration_selected.connect(self.update_gui)
+
+    def _setup_plugins(self):
+        """Populate plugin widget and connect signals."""
+        manager = self.model.mask_plugin_manager
+        if not manager.plugin_names:
+            return
+
+        self.widget.plugin_widget.show()
+        self.widget._plugin_separator.show()
+
+        for name in manager.plugin_names:
+            plugin = manager.get_plugin(name)
+            checkbox, settings_btn = self.widget.plugin_widget.add_plugin_row(
+                name, plugin.has_settings
+            )
+            checkbox.toggled.connect(
+                lambda checked, n=name: self._on_plugin_toggled(n, checked)
+            )
+            if settings_btn is not None:
+                settings_btn.clicked.connect(
+                    lambda _, n=name: self._on_plugin_settings(n)
+                )
+
+        manager.mask_changed.connect(self.plot_mask)
+
+    def _on_plugin_toggled(self, name, checked):
+        self.model.mask_plugin_manager.set_enabled(name, checked)
+        self.plot_mask()
+
+    def _on_plugin_settings(self, name):
+        plugin = self.model.mask_plugin_manager.get_plugin(name)
+        if plugin is None:
+            return
+        schema = plugin.get_settings_schema()
+        if schema is None:
+            return
+        dialog = MaskPluginSettingsDialog(
+            name, schema, plugin.get_settings(), parent=self.widget
+        )
+        dialog.settings_changed.connect(
+            lambda settings, n=name: self._apply_plugin_settings(n, settings)
+        )
+        dialog.exec()
+
+    def _apply_plugin_settings(self, name, settings):
+        self.model.mask_plugin_manager.update_plugin_settings(name, settings)
+        self.plot_mask()
 
     def activate(self):
         if not self.model.img_changed.has_listener(self.plot_image):
@@ -447,7 +496,7 @@ class MaskController:
 
     def plot_mask(self):
         self.widget.img_widget.activate_mask()
-        self.widget.img_widget.plot_mask(self.model.mask_model.get_img())
+        self.widget.img_widget.plot_mask(self.model.mask_model.get_display_mask())
 
     def key_press_event(self, ev):
         if self.state == "point":

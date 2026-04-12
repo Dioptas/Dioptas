@@ -17,4 +17,5 @@ Welcome to Dioptas's documentation!
    configurations_and_projects
    map
    scripting_api
+   mask_plugins
    api_reference
