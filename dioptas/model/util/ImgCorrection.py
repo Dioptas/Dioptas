@@ -384,6 +384,77 @@ class TransferFunctionCorrection(ImgCorrectionInterface):
         self.img_transformations = None
 
 
+class FlatFieldCorrection(ImgCorrectionInterface):
+    """Flat field correction for non-uniform detector pixel response.
+
+    Divides the image by a normalized flat field image to compensate for
+    pixel-to-pixel sensitivity variations. The flat field image is normalized
+    by its mean so the correction preserves the overall intensity scale.
+    """
+
+    def __init__(
+        self,
+        filename: str | None = None,
+        img_transformations: list[Callable[[np.ndarray], np.ndarray]] | None = None,
+    ) -> None:
+        self.filename: str | None = None
+        self.raw_data: np.ndarray | None = None
+        self.data: np.ndarray | None = None
+        self.img_transformations: list[Callable[[np.ndarray], np.ndarray]] | None = (
+            img_transformations
+        )
+
+        if filename:
+            self.load(filename)
+
+    def load(self, filename: str) -> None:
+        self.filename = filename
+        self.raw_data = load_image(filename).astype(np.float64)
+        self._calculate()
+
+    def set_img_transformations(
+        self, img_transformations: list[Callable[[np.ndarray], np.ndarray]]
+    ) -> None:
+        self.img_transformations = img_transformations
+        if self.raw_data is not None:
+            self._calculate()
+
+    def _calculate(self) -> None:
+        data = self.raw_data.copy()
+        if self.img_transformations:
+            for transformation in self.img_transformations:
+                data = transformation(data)
+        mean_val = np.mean(data)
+        if mean_val != 0:
+            data = data / mean_val
+        # Avoid division by zero in the correction
+        data[data == 0] = 1.0
+        self.data = data
+
+    def get_data(self) -> np.ndarray | None:
+        return self.data
+
+    def shape(self) -> tuple[int, ...]:
+        return self.data.shape
+
+    def get_params(self) -> dict[str, str | np.ndarray | None]:
+        return {
+            "filename": self.filename,
+            "raw_data": self.raw_data,
+        }
+
+    def set_params(self, params: dict[str, str | np.ndarray | None]) -> None:
+        self.filename = params["filename"]
+        self.raw_data = params["raw_data"]
+        self._calculate()
+
+    def reset(self) -> None:
+        self.filename = None
+        self.raw_data = None
+        self.data = None
+        self.img_transformations = None
+
+
 class SlabAbsorptionCorrection(ImgCorrectionInterface):
     """Absorption correction for a flat slab sample in transmission geometry.
 

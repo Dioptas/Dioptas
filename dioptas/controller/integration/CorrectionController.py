@@ -101,6 +101,13 @@ class CorrectionController:
         self.widget.plate_formula_txt.editingFinished.connect(self.plate_groupbox_changed)
         self.widget.plate_plot_btn.clicked.connect(self.plate_plot_btn_clicked)
 
+        # flat field correction
+        self.widget.flat_field_load_btn.clicked.connect(
+            self.flat_field_load_btn_clicked
+        )
+        self.widget.flat_field_plot_btn.clicked.connect(self.flat_field_plot_btn_clicked)
+        self.widget.flat_field_gb.toggled.connect(self.flat_field_gb_toggled)
+
         # transfer correction
         self.widget.transfer_load_original_btn.clicked.connect(
             self.transfer_load_original_btn_clicked
@@ -181,12 +188,55 @@ class CorrectionController:
         else:
             self.model.img_model.disable_transfer_function()
 
+    def flat_field_load_btn_clicked(self):
+        filename = open_file_dialog(
+            self.widget,
+            caption="Load Flat Field Image",
+            directory=self.model.working_directories["image"],
+        )
+        if filename != "":
+            self.widget.flat_field_filename_lbl.setText(
+                os.path.basename(filename)
+            )
+            self.model.img_model.flat_field_correction.load(filename)
+            self.widget.flat_field_gb.setChecked(True)
+            self.model.img_model.enable_flat_field()
+
+    def flat_field_plot_btn_clicked(self):
+        if self.widget.flat_field_plot_btn.isChecked():
+            flat_field_data = self.model.img_model.flat_field_correction.get_data()
+            if flat_field_data is not None:
+                self.widget.img_widget.plot_image(flat_field_data, auto_level=True)
+                self.widget.flat_field_plot_btn.setText("Back")
+            else:
+                self.widget.flat_field_plot_btn.setChecked(False)
+        else:
+            self.widget.flat_field_plot_btn.setText("Plot")
+            self.reset_img_widget()
+
+    def flat_field_gb_toggled(self):
+        if self.widget.flat_field_gb.isChecked():
+            self.model.img_model.enable_flat_field()
+        else:
+            self.model.img_model.disable_flat_field()
+
+    def update_flat_field_widgets(self):
+        filename = self.model.img_model.flat_field_correction.filename
+        if filename is not None:
+            self.widget.flat_field_filename_lbl.setText(
+                os.path.basename(filename)
+            )
+        else:
+            self.widget.flat_field_filename_lbl.setText("None")
+
     def corrections_removed(self):
         self.widget.cbn_groupbox.setChecked(False)
         self.widget.oiadac_groupbox.setChecked(False)
         self.widget.transfer_gb.setChecked(False)
         self.widget.transfer_original_filename_lbl.setText("None")
         self.widget.transfer_response_filename_lbl.setText("None")
+        self.widget.flat_field_gb.setChecked(False)
+        self.widget.flat_field_filename_lbl.setText("None")
         self.widget.slab_groupbox.setChecked(False)
         self.widget.slab_mu_lbl.setText("μ:")
         self.widget.cylinder_groupbox.setChecked(False)
@@ -273,6 +323,7 @@ class CorrectionController:
             self.widget.cylinder_plot_btn.setText("Plot")
             self.widget.sphere_plot_btn.setText("Plot")
             self.widget.plate_plot_btn.setText("Plot")
+            self.widget.flat_field_plot_btn.setText("Plot")
         else:
             self.widget.cbn_plot_btn.setText("Plot")
             self.reset_img_widget()
@@ -365,6 +416,7 @@ class CorrectionController:
             self.widget.cylinder_plot_btn.setText("Plot")
             self.widget.sphere_plot_btn.setText("Plot")
             self.widget.plate_plot_btn.setText("Plot")
+            self.widget.flat_field_plot_btn.setText("Plot")
         else:
             self.widget.oiadac_plot_btn.setText("Plot")
             self.reset_img_widget()
@@ -473,6 +525,7 @@ class CorrectionController:
                 self.widget.cylinder_plot_btn.setText("Plot")
                 self.widget.sphere_plot_btn.setText("Plot")
                 self.widget.plate_plot_btn.setText("Plot")
+                self.widget.flat_field_plot_btn.setText("Plot")
             else:
                 self.widget.slab_plot_btn.setChecked(False)
         else:
@@ -569,6 +622,7 @@ class CorrectionController:
                 self.widget.slab_plot_btn.setText("Plot")
                 self.widget.sphere_plot_btn.setText("Plot")
                 self.widget.plate_plot_btn.setText("Plot")
+                self.widget.flat_field_plot_btn.setText("Plot")
             else:
                 self.widget.cylinder_plot_btn.setChecked(False)
         else:
@@ -658,6 +712,7 @@ class CorrectionController:
                 self.widget.slab_plot_btn.setText("Plot")
                 self.widget.cylinder_plot_btn.setText("Plot")
                 self.widget.plate_plot_btn.setText("Plot")
+                self.widget.flat_field_plot_btn.setText("Plot")
             else:
                 self.widget.sphere_plot_btn.setChecked(False)
         else:
@@ -748,6 +803,7 @@ class CorrectionController:
                 self.widget.slab_plot_btn.setText("Plot")
                 self.widget.cylinder_plot_btn.setText("Plot")
                 self.widget.sphere_plot_btn.setText("Plot")
+                self.widget.flat_field_plot_btn.setText("Plot")
             else:
                 self.widget.plate_plot_btn.setChecked(False)
         else:
@@ -781,6 +837,8 @@ class CorrectionController:
         self.widget.sphere_plot_btn.setChecked(False)
         self.widget.plate_plot_btn.setText("Plot")
         self.widget.plate_plot_btn.setChecked(False)
+        self.widget.flat_field_plot_btn.setText("Plot")
+        self.widget.flat_field_plot_btn.setChecked(False)
 
     def update_gui(self):
         if self.model.img_model.get_img_correction("cbn") is not None:
@@ -842,3 +900,9 @@ class CorrectionController:
         else:
             self.widget.plate_groupbox.setChecked(False)
             self.widget.plate_mu_lbl.setText("μ:")
+
+        if self.model.img_model.get_img_correction("flat_field") is not None:
+            self.update_flat_field_widgets()
+            self.widget.flat_field_gb.setChecked(True)
+        else:
+            self.widget.flat_field_gb.setChecked(False)

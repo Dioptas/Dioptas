@@ -8,7 +8,7 @@ import pytest
 
 from ...model.util.ImgCorrection import ImgCorrectionManager, ImgCorrectionInterface, \
     ObliqueAngleDetectorAbsorptionCorrection, PlateAbsorptionCorrection
-from ...model.util.ImgCorrection import TransferFunctionCorrection, load_image
+from ...model.util.ImgCorrection import TransferFunctionCorrection, FlatFieldCorrection, load_image
 from ..utility import unittest_data_path
 
 from pyFAI.integrator.azimuthal import AzimuthalIntegrator
@@ -420,3 +420,60 @@ class TransferFunctionCorrectionTest(unittest.TestCase):
         transfer_data = self.transfer_correction.get_data()
         self.assertEqual(transfer_data.shape, tuple(np.flip(self.original_data.shape)))
         self.assertEqual(transfer_data.shape, tuple(np.flip(self.response_data.shape)))
+
+
+class FlatFieldCorrectionTest(unittest.TestCase):
+    def setUp(self):
+        self.flat_field_filename = os.path.join(
+            unittest_data_path, "TransferCorrection", "original.tif"
+        )
+        self.flat_field_data = load_image(self.flat_field_filename)
+
+    def test_load_and_normalize(self):
+        correction = FlatFieldCorrection(self.flat_field_filename)
+        data = correction.get_data()
+        self.assertEqual(data.shape, self.flat_field_data.shape)
+        # Mean of normalized correction should be ~1
+        self.assertAlmostEqual(np.mean(data), 1.0, places=5)
+
+    def test_shape(self):
+        correction = FlatFieldCorrection(self.flat_field_filename)
+        self.assertEqual(correction.shape(), self.flat_field_data.shape)
+
+    def test_no_zeros_in_correction(self):
+        """Pixels that were zero in the raw flat field should be set to 1.0 to avoid division by zero."""
+        correction = FlatFieldCorrection()
+        correction.raw_data = np.array([[0.0, 2.0], [3.0, 1.0]])
+        correction._calculate()
+        data = correction.get_data()
+        # The zero pixel should have been replaced with 1.0
+        self.assertEqual(data[0, 0], 1.0)
+        # No zeros should remain
+        self.assertTrue(np.all(data != 0))
+
+    def test_reset(self):
+        correction = FlatFieldCorrection(self.flat_field_filename)
+        correction.reset()
+        self.assertIsNone(correction.get_data())
+        self.assertIsNone(correction.filename)
+
+    def test_get_and_set_params(self):
+        correction = FlatFieldCorrection(self.flat_field_filename)
+        params = correction.get_params()
+        self.assertEqual(params["filename"], self.flat_field_filename)
+        self.assertIsNotNone(params["raw_data"])
+
+        new_correction = FlatFieldCorrection()
+        new_correction.set_params(params)
+        np.testing.assert_array_equal(
+            correction.get_data(), new_correction.get_data()
+        )
+
+    def test_apply_img_transformations(self):
+        from ...model.util.HelperModule import rotate_matrix_m90
+
+        correction = FlatFieldCorrection(self.flat_field_filename)
+        original_shape = correction.shape()
+        correction.set_img_transformations([np.fliplr, rotate_matrix_m90])
+        data = correction.get_data()
+        self.assertEqual(data.shape, tuple(np.flip(original_shape)))

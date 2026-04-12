@@ -41,6 +41,9 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.create_plate_correction_widgets()
         self.create_plate_correction_layout()
 
+        self.create_flat_field_widgets()
+        self.create_flat_field_layout()
+
         self.setLayout(self._layout)
 
         self.menu_tab_widget = MenuTabWidget()
@@ -51,6 +54,7 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.menu_tab_widget.add_tab("Cylinder", self.cylinder_gb)
         self.menu_tab_widget.add_tab("Sphere", self.sphere_gb)
         self.menu_tab_widget.add_tab("Plate", self.plate_gb)
+        self.menu_tab_widget.add_tab("Flat Field", self.flat_field_gb)
         self.menu_tab_widget.select_tab(0)
 
         self._layout.addWidget(self.menu_tab_widget)
@@ -453,6 +457,34 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self._plate_layout.addLayout(params_layout)
         self.plate_gb.setLayout(self._plate_layout)
 
+    def create_flat_field_widgets(self):
+        self.flat_field_gb = QtWidgets.QGroupBox("Flat Field Correction")
+        self.flat_field_load_btn = QtWidgets.QPushButton("Load Flat Field")
+        self.flat_field_filename_lbl = QtWidgets.QLabel("None")
+        self.flat_field_plot_btn = CheckableButton("Plot")
+
+    def create_flat_field_layout(self):
+        self._flat_field_outer_layout = QtWidgets.QVBoxLayout()
+        self._flat_field_outer_layout.setSpacing(5)
+        self._flat_field_outer_layout.addWidget(self._create_description_label(
+            "Pixel-by-pixel sensitivity correction using a uniform illumination "
+            "(flat field) image. The flat field is normalized by its mean."
+        ))
+
+        self._flat_field_layout = QtWidgets.QGridLayout()
+        self._flat_field_layout.setSpacing(5)
+        self._flat_field_layout.addWidget(self.flat_field_load_btn, 0, 0)
+        self._flat_field_layout.addWidget(self.flat_field_filename_lbl, 0, 1)
+        self._flat_field_layout.addWidget(self.flat_field_plot_btn, 0, 2)
+        self._flat_field_layout.setColumnStretch(0, 0)
+        self._flat_field_layout.setColumnStretch(1, 1)
+        self._flat_field_layout.setColumnStretch(2, 0)
+        self._flat_field_layout.setRowStretch(0, 0)
+        self._flat_field_layout.setRowStretch(1, 1)
+
+        self._flat_field_outer_layout.addLayout(self._flat_field_layout)
+        self.flat_field_gb.setLayout(self._flat_field_outer_layout)
+
     def style_widgets(self):
         self.cbn_seat_gb.setCheckable(True)
         self.cbn_seat_gb.setChecked(False)
@@ -468,6 +500,8 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.sphere_gb.setChecked(False)
         self.plate_gb.setCheckable(True)
         self.plate_gb.setChecked(False)
+        self.flat_field_gb.setCheckable(True)
+        self.flat_field_gb.setChecked(False)
 
         self.setStyleSheet(
             """

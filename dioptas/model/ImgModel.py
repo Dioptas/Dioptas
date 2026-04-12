@@ -22,6 +22,7 @@ from .util.ImgCorrection import (
     ImgCorrectionManager,
     ImgCorrectionInterface,
     TransferFunctionCorrection,
+    FlatFieldCorrection,
 )
 from dioptas.model.loader.LambdaLoader import LambdaImage
 from dioptas.model.loader.KaraboLoader import KaraboFile
@@ -69,6 +70,7 @@ class ImgModel:
         self._factor: float = 1
 
         self.transfer_correction: TransferFunctionCorrection = TransferFunctionCorrection()
+        self.flat_field_correction: FlatFieldCorrection = FlatFieldCorrection()
 
         # anything that gets loaded from an image file and needs to be reset if a file without these attributes is
         # loaded 2D array containing the current image
@@ -140,6 +142,8 @@ class ImgModel:
         self.autoprocess_changed: Signal = Signal()
         self.transformations_changed: Signal = Signal()
         self.corrections_removed: Signal = Signal()
+
+        self.transformations_changed.connect(self._update_correction_transformations)
 
     def load(self, filename: str, pos: int = 0) -> None:
         """
@@ -524,6 +528,7 @@ class ImgModel:
             if self._img_data.shape != self._img_corrections.shape:
                 self._img_corrections.clear()
                 self.transfer_correction.reset()
+                self.flat_field_correction.reset()
                 self.corrections_removed.emit()
 
         # calculate the current _img_data
@@ -665,6 +670,10 @@ class ImgModel:
         if img_changed:
             self.img_changed.emit()
 
+    def _update_correction_transformations(self) -> None:
+        self.transfer_correction.set_img_transformations(self.img_transformations)
+        self.flat_field_correction.set_img_transformations(self.img_transformations)
+
     def _reset_img_transformations(self) -> None:
         for transformation in reversed(self.img_transformations):
             if transformation == rotate_matrix_p90:
@@ -754,6 +763,20 @@ class ImgModel:
     def disable_transfer_function(self) -> None:
         if self.get_img_correction("transfer") is not None:
             self.delete_img_correction("transfer")
+
+    def enable_flat_field(self) -> None:
+        if (
+            self.flat_field_correction.get_data() is not None
+            and self.get_img_correction("flat_field") is None
+        ):
+            self.add_img_correction(self.flat_field_correction, "flat_field")
+        if self.get_img_correction("flat_field") is not None:
+            self._calculate_img_data()
+            self.img_changed.emit()
+
+    def disable_flat_field(self) -> None:
+        if self.get_img_correction("flat_field") is not None:
+            self.delete_img_correction("flat_field")
 
     @property
     def img_corrections(self) -> ImgCorrectionManager:

@@ -180,6 +180,10 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.plate_param_tw = corrections_control_widget.plate_param_tw
         self.plate_mu_lbl = corrections_control_widget.plate_mu_lbl
         self.plate_plot_btn = corrections_control_widget.plate_plot_btn
+        self.flat_field_gb = corrections_control_widget.flat_field_gb
+        self.flat_field_load_btn = corrections_control_widget.flat_field_load_btn
+        self.flat_field_filename_lbl = corrections_control_widget.flat_field_filename_lbl
+        self.flat_field_plot_btn = corrections_control_widget.flat_field_plot_btn
 
         background_control_widget = self.integration_control_widget.background_control_widget
         self.bkg_image_load_btn = background_control_widget.load_image_btn
