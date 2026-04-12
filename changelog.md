@@ -1,4 +1,4 @@
-# 0.8.5 (in development)
+# 0.8.5 (12.04.2026)
 
 ## New Features
 
@@ -7,6 +7,7 @@
 - added built-in Cosmic Ray Mask plugin for detecting cosmic ray artifacts using local z-score statistics with iterative filtering
 - added flat field correction support for compensating pixel-to-pixel sensitivity variations
 - plugin settings dialogs show algorithm description, masked pixel count, and update the mask live as parameters are changed
+- added startup update checker that notifies users when a new Dioptas version is available on GitHub
 
 ## Bugfixes
 
@@ -14,6 +15,13 @@
 - fixed project save baking dynamic plugin masks into the static mask data — now only saves user-drawn mask and persists plugin enabled state and settings separately
 - fixed plugin checkbox state not updating after loading a project
 - fixed calibration peak search not using plugin masks
+- fixed xraydb.sqlite not included in PyInstaller bundle, causing all absorption corrections to fail in released executables
+
+## Distribution
+
+- added Windows installer (Inno Setup) — no admin required, installs to user AppData
+- added macOS DMG installer with drag-to-Applications layout
+- added Linux AppImage for single-file portable distribution
 
 ## Documentation
 
