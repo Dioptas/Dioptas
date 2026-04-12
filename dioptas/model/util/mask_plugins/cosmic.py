@@ -21,6 +21,13 @@ class CosmicRayMaskPlugin(MaskPluginBase):
     """
 
     name = "Cosmic Ray Mask"
+    description = (
+        "Detects cosmic ray artifacts by comparing each pixel's intensity to "
+        "local statistics (mean and standard deviation) in a sliding window. "
+        "Pixels significantly brighter than their neighborhood are flagged. "
+        "Runs iteratively to catch fainter artifacts revealed after removing "
+        "bright ones."
+    )
     is_dynamic = True
 
     def __init__(self):

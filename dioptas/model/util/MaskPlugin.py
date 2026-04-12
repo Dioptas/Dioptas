@@ -37,6 +37,7 @@ class MaskPluginBase:
     """
 
     name: str = "Unnamed Plugin"
+    description: str = ""
     is_dynamic: bool = False
 
     def compute_mask(self, img_data: np.ndarray) -> np.ndarray:

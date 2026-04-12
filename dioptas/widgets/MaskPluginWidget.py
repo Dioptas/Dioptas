@@ -61,15 +61,37 @@ class MaskPluginSettingsDialog(QtWidgets.QDialog):
 
     settings_changed = QtCore.Signal(dict)
 
-    def __init__(self, plugin_name: str, schema: dict, current_settings: dict, parent=None):
+    def __init__(
+        self,
+        plugin_name: str,
+        schema: dict,
+        current_settings: dict,
+        plugin_description: str = "",
+        info_text: str = "",
+        parent=None,
+    ):
         super().__init__(parent)
         self.setWindowTitle(f"{plugin_name} Settings")
-        self.setMinimumWidth(250)
+        self.setMinimumWidth(300)
 
         self._schema = schema
         self._widgets: dict[str, QtWidgets.QWidget] = {}
 
-        layout = QtWidgets.QFormLayout(self)
+        layout = QtWidgets.QVBoxLayout(self)
+
+        if plugin_description:
+            desc_label = QtWidgets.QLabel(plugin_description)
+            desc_label.setWordWrap(True)
+            desc_label.setStyleSheet("color: gray; margin-bottom: 6px;")
+            layout.addWidget(desc_label)
+
+        if info_text:
+            info_label = QtWidgets.QLabel(info_text)
+            info_label.setWordWrap(True)
+            info_label.setStyleSheet("font-weight: bold; margin-bottom: 6px;")
+            layout.addWidget(info_label)
+
+        form_layout = QtWidgets.QFormLayout()
 
         for key, spec in schema.items():
             label = spec.get("label", key)
@@ -77,6 +99,7 @@ class MaskPluginSettingsDialog(QtWidgets.QDialog):
             value = current_settings.get(key, spec.get("default"))
 
             widget = self._create_widget(param_type, spec, value)
+            self._connect_live_update(widget, param_type)
             description = spec.get("description")
             if description:
                 widget.setToolTip(description)
@@ -84,7 +107,9 @@ class MaskPluginSettingsDialog(QtWidgets.QDialog):
             label_widget = QtWidgets.QLabel(label)
             if description:
                 label_widget.setToolTip(description)
-            layout.addRow(label_widget, widget)
+            form_layout.addRow(label_widget, widget)
+
+        layout.addLayout(form_layout)
 
         button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.StandardButton.Ok
@@ -92,7 +117,7 @@ class MaskPluginSettingsDialog(QtWidgets.QDialog):
         )
         button_box.accepted.connect(self._on_accept)
         button_box.rejected.connect(self.reject)
-        layout.addRow(button_box)
+        layout.addWidget(button_box)
 
     def _create_widget(self, param_type: str, spec: dict, value) -> QtWidgets.QWidget:
         if param_type == "float":
@@ -141,6 +166,18 @@ class MaskPluginSettingsDialog(QtWidgets.QDialog):
             else:
                 values[key] = widget.text()
         return values
+
+    def _connect_live_update(self, widget: QtWidgets.QWidget, param_type: str) -> None:
+        """Connect widget change signals for immediate feedback."""
+        if param_type in ("float", "int"):
+            widget.valueChanged.connect(self._on_value_changed)
+        elif param_type == "bool":
+            widget.toggled.connect(self._on_value_changed)
+        elif param_type == "str":
+            widget.editingFinished.connect(self._on_value_changed)
+
+    def _on_value_changed(self, *_args):
+        self.settings_changed.emit(self._get_values())
 
     def _on_accept(self):
         self.settings_changed.emit(self._get_values())

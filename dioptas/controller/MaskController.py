@@ -108,17 +108,40 @@ class MaskController:
         schema = plugin.get_settings_schema()
         if schema is None:
             return
+
+        manager = self.model.mask_plugin_manager
+        old_settings = plugin.get_settings().copy()
+
+        info_text = self._get_plugin_info_text(name)
         dialog = MaskPluginSettingsDialog(
-            name, schema, plugin.get_settings(), parent=self.widget
+            name,
+            schema,
+            plugin.get_settings(),
+            plugin_description=plugin.description,
+            info_text=info_text,
+            parent=self.widget,
         )
         dialog.settings_changed.connect(
             lambda settings, n=name: self._apply_plugin_settings(n, settings)
         )
-        dialog.exec()
+        result = dialog.exec()
+
+        if result != dialog.DialogCode.Accepted:
+            # Restore old settings on cancel
+            self._apply_plugin_settings(name, old_settings)
 
     def _apply_plugin_settings(self, name, settings):
         self.model.mask_plugin_manager.update_plugin_settings(name, settings)
         self.plot_mask()
+
+    def _get_plugin_info_text(self, name):
+        entry = self.model.mask_plugin_manager.plugins.get(name)
+        if entry is None or entry.cached_mask is None:
+            return ""
+        n_masked = int(entry.cached_mask.sum())
+        n_total = entry.cached_mask.size
+        pct = 100.0 * n_masked / n_total if n_total > 0 else 0
+        return f"Masked pixels: {n_masked:,} ({pct:.2f}%)"
 
     def activate(self):
         if not self.model.img_changed.has_listener(self.plot_image):

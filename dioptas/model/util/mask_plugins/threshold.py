@@ -15,6 +15,10 @@ class ThresholdMaskPlugin(MaskPluginBase):
     """
 
     name = "Threshold Mask"
+    description = (
+        "Masks pixels with intensity outside a configurable range. "
+        "Useful for removing hot pixels, dead pixels, or saturated detector regions."
+    )
     is_dynamic = True
 
     def __init__(self):
