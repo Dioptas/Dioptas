@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Dioptas
+Comment=Fast analysis of powder X-ray diffraction images
+Exec=Dioptas
+Icon=dioptas
+Type=Application
+Categories=Science;Physics;Education;
+Terminal=false

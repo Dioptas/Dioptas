@@ -23,6 +23,7 @@ from .ConfigurationController import ConfigurationController
 from .MapController import MapController
 
 from dioptas import __version__
+from ..model.UpdateChecker import check_for_update
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +87,54 @@ class MainController:
             self.create_external_actions()
 
         self.current_tab_index = 0
+
+        if use_settings:
+            self._check_for_update()
+
+    def _check_for_update(self):
+        """Run update check in a background thread to avoid blocking startup."""
+
+        def _do_check():
+            result = check_for_update(__version__)
+            if result is not None:
+                self._update_result = result
+
+        def _on_check_finished():
+            result = getattr(self, "_update_result", None)
+            if result is not None:
+                self._show_update_notification(result["version"], result["url"])
+
+        self._update_thread = threading.Thread(target=_do_check, daemon=True)
+        self._update_timer = QtCore.QTimer(self.widget)
+        self._update_timer.setSingleShot(True)
+        self._update_timer.setInterval(500)
+        self._update_timer.timeout.connect(
+            lambda: (
+                _on_check_finished()
+                if not self._update_thread.is_alive()
+                else self._update_timer.start(500)
+            )
+        )
+        self._update_thread.start()
+        self._update_timer.start(500)
+
+    def _show_update_notification(self, version: str, url: str):
+        from qtpy.QtGui import QDesktopServices
+        from qtpy.QtCore import QUrl
+
+        msg = QtWidgets.QMessageBox(self.widget)
+        msg.setIcon(QtWidgets.QMessageBox.Information)
+        msg.setWindowTitle("Update Available")
+        msg.setText(
+            f"Dioptas {version} is available (you have {__version__})."
+        )
+        msg.setInformativeText("Would you like to open the download page?")
+        msg.setStandardButtons(
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+        )
+        msg.setDefaultButton(QtWidgets.QMessageBox.Yes)
+        if msg.exec_() == QtWidgets.QMessageBox.Yes:
+            QDesktopServices.openUrl(QUrl(url))
 
     def show_window(self):
         """

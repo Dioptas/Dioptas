@@ -65,11 +65,42 @@ jobs:
         DIOPTAS_FOLDER=$(ls -d Dioptas*)
         tar -czf Dioptas_Linux.tar.gz "$DIOPTAS_FOLDER"
 
+    - name: Create AppImage
+      run: |
+        cd dist
+        DIOPTAS_FOLDER=$(ls -d Dioptas_*)
+
+        # Download appimagetool
+        wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
+        chmod +x appimagetool
+
+        # Build AppDir structure
+        mkdir -p Dioptas.AppDir/usr/bin
+        mkdir -p Dioptas.AppDir/usr/share/icons/hicolor/256x256/apps
+        cp -r "$DIOPTAS_FOLDER"/* Dioptas.AppDir/usr/bin/
+        cp ../installer/linux/Dioptas.desktop Dioptas.AppDir/
+        cp ../dioptas/resources/icons/icon.png Dioptas.AppDir/dioptas.png
+        cp ../dioptas/resources/icons/icon.png Dioptas.AppDir/usr/share/icons/hicolor/256x256/apps/dioptas.png
+
+        # Create AppRun
+        cat > Dioptas.AppDir/AppRun <<'APPRUN'
+#!/bin/bash
+SELF=$(readlink -f "$0")
+HERE=${SELF%/*}
+exec "${HERE}/usr/bin/Dioptas" "$@"
+APPRUN
+        chmod +x Dioptas.AppDir/AppRun
+
+        # Build AppImage
+        ARCH=x86_64 ./appimagetool Dioptas.AppDir Dioptas_Linux.AppImage
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: linux-executable
-        path: dist/Dioptas_Linux.tar.gz
+        path: |
+          dist/Dioptas_Linux.tar.gz
+          dist/Dioptas_Linux.AppImage
 
   build_windows:
     runs-on: windows-latest
@@ -122,11 +153,19 @@ jobs:
         $folderName = (Get-ChildItem -Directory -Filter "Dioptas*").Name
         Compress-Archive -Path $folderName -DestinationPath "Dioptas_Windows.zip"
 
+    - name: Create Windows Installer
+      run: |
+        $folderName = (Get-ChildItem -Directory -Path dist -Filter "Dioptas*").FullName
+        $tag = "${{ github.ref_name }}"
+        iscc /DDioptasVersion=$tag /DDioptasFolder=$folderName installer\windows\dioptas.iss
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: windows-executable
-        path: dist/Dioptas_Windows.zip
+        path: |
+          dist/Dioptas_Windows.zip
+          dist/Dioptas_*_Setup.exe
 
   build_macos:
     runs-on: macos-latest
@@ -180,11 +219,33 @@ jobs:
         cd dist
         tar -czf Dioptas_MacOS.tar.gz Dioptas*.app
 
+    - name: Create DMG
+      run: |
+        brew install create-dmg
+        cd dist
+        APP_NAME=$(ls -d Dioptas*.app)
+        create-dmg \
+          --volname "Dioptas" \
+          --volicon "../dioptas/resources/icons/icon.icns" \
+          --window-pos 200 120 \
+          --window-size 600 400 \
+          --icon-size 100 \
+          --icon "$APP_NAME" 150 190 \
+          --app-drop-link 450 190 \
+          --no-internet-enable \
+          "Dioptas_MacOS.dmg" \
+          "$APP_NAME" || true
+        # create-dmg returns non-zero when it can't set custom icon positions
+        # in CI (no GUI session), but the DMG is still created correctly
+        test -f Dioptas_MacOS.dmg
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: macos-executable
-        path: dist/Dioptas_MacOS.tar.gz
+        path: |
+          dist/Dioptas_MacOS.tar.gz
+          dist/Dioptas_MacOS.dmg
 
   build_package:
     runs-on: ubuntu-latest
@@ -242,8 +303,11 @@ jobs:
           --title "Dioptas $TAG" \
           --notes-file release_notes.md \
           artifacts/linux-executable/Dioptas_Linux.tar.gz \
+          artifacts/linux-executable/Dioptas_Linux.AppImage \
           artifacts/windows-executable/Dioptas_Windows.zip \
-          artifacts/macos-executable/Dioptas_MacOS.tar.gz
+          artifacts/windows-executable/Dioptas_*_Setup.exe \
+          artifacts/macos-executable/Dioptas_MacOS.tar.gz \
+          artifacts/macos-executable/Dioptas_MacOS.dmg
 
   pypi-publish:
     name: Upload release to PyPI
