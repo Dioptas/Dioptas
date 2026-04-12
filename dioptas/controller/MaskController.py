@@ -560,4 +560,15 @@ class MaskController:
             self.widget.fill_rb.setChecked(True)
             self.fill_rb_click()
 
+        self._update_plugin_checkboxes()
         self.plot_mask()
+
+    def _update_plugin_checkboxes(self):
+        """Sync plugin checkbox states with the model."""
+        manager = self.model.mask_plugin_manager
+        for name in self.widget.plugin_widget.plugin_names:
+            row = self.widget.plugin_widget.get_row(name)
+            if row is not None:
+                row.checkbox.blockSignals(True)
+                row.checkbox.setChecked(manager.is_enabled(name))
+                row.checkbox.blockSignals(False)
