@@ -26,6 +26,7 @@ from .util.calc import convert_units
 from . import ImgModel, CalibrationModel, MaskModel, PatternModel, BatchModel
 from .MaskPluginManager import MaskPluginManager
 from .util.plugin_discovery import discover_mask_plugins
+from .util.mask_plugins import BUILTIN_MASK_PLUGINS
 from .MapModel import MapModel
 from .CalibrationModel import DetectorModes
 
@@ -115,7 +116,13 @@ class Configuration:
             self.mask_plugin_manager.update_image(self.img_model.img_data)
 
     def _register_mask_plugins(self) -> None:
-        """Discover and register mask plugins."""
+        """Register built-in and discovered mask plugins."""
+        for plugin_cls in BUILTIN_MASK_PLUGINS:
+            try:
+                self.mask_plugin_manager.register(plugin_cls())
+            except Exception:
+                logger.exception("Failed to instantiate built-in mask plugin: %s", plugin_cls)
+
         for plugin_cls in discover_mask_plugins():
             try:
                 self.mask_plugin_manager.register(plugin_cls())
