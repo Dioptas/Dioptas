@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="260" height="340" viewBox="0 0 260 340" preserveAspectRatio="xMinYMin meet">
   <style>
-    text { font-family: sans-serif; fill: #ccc; }
+    text { font-family: Arial; fill: #ccc; }
     .title { font-size: 10px; font-weight: bold; fill: #aaa; }
     .label { font-size: 9px; fill: #aaa; }
     .angle { font-size: 9px; fill: #ff9800; }
