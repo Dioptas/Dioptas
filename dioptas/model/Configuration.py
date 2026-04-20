@@ -113,7 +113,39 @@ class Configuration:
     def _update_plugin_masks(self) -> None:
         """Update dynamic mask plugins with the current image data."""
         if self.img_model.img_data is not None:
+            self._update_plugin_geometry()
             self.mask_plugin_manager.update_image(self.img_model.img_data)
+
+    def _update_plugin_geometry(self) -> None:
+        """Build GeometryContext from calibration and pass to plugin manager."""
+        from .util.MaskPlugin import GeometryContext
+
+        if not self.calibration_model.is_calibrated:
+            self.mask_plugin_manager.update_geometry(None)
+            return
+
+        try:
+            geo = self.calibration_model.pattern_geometry
+            img_shape = self.img_model.img_data.shape
+            geometry = GeometryContext(
+                tth_array=geo.center_array(img_shape, unit="2th_rad"),
+                azi_array=geo.center_array(img_shape, unit="chi_rad"),
+                dist=geo.dist,
+                wavelength=geo.wavelength,
+                poni1=geo.poni1,
+                poni2=geo.poni2,
+                rot1=geo.rot1,
+                rot2=geo.rot2,
+                rot3=geo.rot3,
+                pixel1=geo.detector.pixel1,
+                pixel2=geo.detector.pixel2,
+            )
+            self.mask_plugin_manager.update_geometry(geometry)
+        except Exception:
+            logger.debug(
+                "Failed to build geometry context for mask plugins", exc_info=True
+            )
+            self.mask_plugin_manager.update_geometry(None)
 
     def _register_mask_plugins(self) -> None:
         """Register built-in and discovered mask plugins."""

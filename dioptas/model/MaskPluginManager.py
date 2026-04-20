@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from .util import Signal
-from .util.MaskPlugin import MaskPluginBase
+from .util.MaskPlugin import MaskPluginBase, GeometryContext
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +27,7 @@ class MaskPluginManager:
         self._plugins: dict[str, MaskPluginEntry] = {}
         self._current_shape: tuple[int, int] | None = None
         self._current_img_data: np.ndarray | None = None
+        self._geometry: GeometryContext | None = None
         self.mask_changed: Signal = Signal()
 
     def register(self, plugin: MaskPluginBase) -> None:
@@ -93,6 +94,23 @@ class MaskPluginManager:
         if changed:
             self.mask_changed.emit()
 
+    def update_geometry(self, geometry: GeometryContext | None) -> None:
+        """Called when calibration geometry changes. Recomputes geometry-aware plugins."""
+        self._geometry = geometry
+
+        changed = False
+        for entry in self._plugins.values():
+            if not entry.plugin.needs_geometry or not entry.enabled:
+                continue
+            if self._current_img_data is not None:
+                if self._compute_plugin_mask(entry):
+                    changed = True
+            else:
+                entry.cached_mask = None
+
+        if changed:
+            self.mask_changed.emit()
+
     def update_shape(self, shape: tuple[int, int]) -> None:
         """Called when mask dimensions change. Invalidates static caches."""
         if shape != self._current_shape:
@@ -126,7 +144,10 @@ class MaskPluginManager:
     def _compute_plugin_mask(self, entry: MaskPluginEntry) -> bool:
         """Compute mask for a single plugin. Returns True if successful."""
         try:
-            mask = entry.plugin.compute_mask(self._current_img_data)
+            if entry.plugin.needs_geometry:
+                mask = entry.plugin.compute_mask(self._current_img_data, self._geometry)
+            else:
+                mask = entry.plugin.compute_mask(self._current_img_data)
             if mask.shape != self._current_shape:
                 logger.warning(
                     "Plugin '%s' returned mask with shape %s, expected %s. Skipping.",

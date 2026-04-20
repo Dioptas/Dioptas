@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from ...model.util.MaskPlugin import MaskPluginBase
+from ...model.util.MaskPlugin import MaskPluginBase, GeometryContext
 from ...model.MaskPluginManager import MaskPluginManager, MaskPluginEntry
 from ...model.MaskModel import MaskModel
 from ...model.util.plugin_discovery import _discover_from_directory
@@ -68,6 +68,50 @@ class WrongShapePlugin(MaskPluginBase):
 
     def compute_mask(self, img_data):
         return np.zeros((1, 1), dtype=bool)
+
+
+class GeometryAwarePlugin(MaskPluginBase):
+    name = "Geometry Aware"
+    needs_geometry = True
+    is_dynamic = True
+
+    def __init__(self, tth_threshold=0.5):
+        self.tth_threshold = tth_threshold
+
+    def compute_mask(self, img_data, geometry=None):
+        if geometry is None:
+            return np.zeros(img_data.shape, dtype=bool)
+        return geometry.tth_array > self.tth_threshold
+
+
+class GeometryAwareStaticPlugin(MaskPluginBase):
+    name = "Geometry Static"
+    needs_geometry = True
+    is_dynamic = False
+
+    def compute_mask(self, img_data, geometry=None):
+        if geometry is None:
+            return np.zeros(img_data.shape, dtype=bool)
+        return geometry.tth_array > 1.0
+
+
+def _make_geometry(shape=(100, 100)):
+    """Create a simple GeometryContext for testing."""
+    tth = np.linspace(0, 1.0, shape[0] * shape[1]).reshape(shape)
+    azi = np.linspace(-np.pi, np.pi, shape[0] * shape[1]).reshape(shape)
+    return GeometryContext(
+        tth_array=tth,
+        azi_array=azi,
+        dist=0.2,
+        wavelength=0.3344e-10,
+        poni1=0.05,
+        poni2=0.05,
+        rot1=0.0,
+        rot2=0.0,
+        rot3=0.0,
+        pixel1=75e-6,
+        pixel2=75e-6,
+    )
 
 
 # -- Fixtures --
@@ -359,3 +403,97 @@ def test_discover_skips_broken_files():
 
         plugins = _discover_from_directory(Path(tmpdir))
         assert len(plugins) == 0
+
+
+# -- Geometry-aware plugin tests --
+
+
+def test_geometry_aware_plugin_without_geometry(manager, img_data):
+    """Geometry-aware plugin returns empty mask when no geometry available."""
+    manager.register(GeometryAwarePlugin())
+    manager.set_enabled("Geometry Aware", True)
+    manager.update_image(img_data)
+
+    mask = manager.get_combined_mask()
+    assert mask is not None
+    assert not np.any(mask)
+
+
+def test_geometry_aware_plugin_with_geometry(manager, img_data):
+    """Geometry-aware plugin uses geometry context for masking."""
+    plugin = GeometryAwarePlugin(tth_threshold=0.5)
+    manager.register(plugin)
+    manager.set_enabled("Geometry Aware", True)
+
+    geometry = _make_geometry(img_data.shape)
+    manager.update_geometry(geometry)
+    manager.update_image(img_data)
+
+    mask = manager.get_combined_mask()
+    assert mask is not None
+    expected = geometry.tth_array > 0.5
+    np.testing.assert_array_equal(mask, expected)
+
+
+def test_geometry_update_recomputes_geometry_plugins(manager, img_data):
+    """Updating geometry triggers recomputation of geometry-aware plugins."""
+    plugin = GeometryAwarePlugin(tth_threshold=0.5)
+    manager.register(plugin)
+    manager.set_enabled("Geometry Aware", True)
+    manager.update_image(img_data)
+
+    # Initially no geometry — mask is all False
+    assert not np.any(manager.get_combined_mask())
+
+    # Provide geometry — mask should now reflect tth > 0.5
+    geometry = _make_geometry(img_data.shape)
+    manager.update_geometry(geometry)
+
+    mask = manager.get_combined_mask()
+    expected = geometry.tth_array > 0.5
+    np.testing.assert_array_equal(mask, expected)
+
+
+def test_geometry_update_does_not_affect_non_geometry_plugins(manager, img_data):
+    """Non-geometry plugins are unaffected by geometry updates."""
+    manager.register(StaticThresholdPlugin(threshold=100))
+    manager.set_enabled("Static Threshold", True)
+    manager.update_image(img_data)
+
+    mask_before = manager.get_combined_mask().copy()
+
+    geometry = _make_geometry(img_data.shape)
+    manager.update_geometry(geometry)
+
+    mask_after = manager.get_combined_mask()
+    np.testing.assert_array_equal(mask_before, mask_after)
+
+
+def test_geometry_none_clears_geometry(manager, img_data):
+    """Setting geometry to None makes geometry plugins return empty mask."""
+    plugin = GeometryAwarePlugin(tth_threshold=0.5)
+    manager.register(plugin)
+    manager.set_enabled("Geometry Aware", True)
+
+    geometry = _make_geometry(img_data.shape)
+    manager.update_geometry(geometry)
+    manager.update_image(img_data)
+
+    assert np.any(manager.get_combined_mask())
+
+    # Clear geometry
+    manager.update_geometry(None)
+    manager.update_image(img_data)
+
+    assert not np.any(manager.get_combined_mask())
+
+
+def test_geometry_context_dataclass():
+    """GeometryContext stores all expected fields."""
+    geo = _make_geometry((50, 50))
+    assert geo.tth_array.shape == (50, 50)
+    assert geo.azi_array.shape == (50, 50)
+    assert geo.dist == 0.2
+    assert geo.wavelength == 0.3344e-10
+    assert geo.pixel1 == 75e-6
+    assert geo.pixel2 == 75e-6
