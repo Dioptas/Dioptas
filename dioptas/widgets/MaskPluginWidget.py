@@ -147,6 +147,14 @@ class MaskPluginSettingsDialog(QtWidgets.QDialog):
                 widget.setChecked(bool(value))
             return widget
 
+        elif param_type == "choice":
+            widget = QtWidgets.QComboBox()
+            choices = spec.get("choices", [])
+            widget.addItems(choices)
+            if value is not None and value in choices:
+                widget.setCurrentText(str(value))
+            return widget
+
         else:  # str or unknown
             widget = QtWidgets.QLineEdit()
             if value is not None:
@@ -163,6 +171,8 @@ class MaskPluginSettingsDialog(QtWidgets.QDialog):
                 values[key] = widget.value()
             elif param_type == "bool":
                 values[key] = widget.isChecked()
+            elif param_type == "choice":
+                values[key] = widget.currentText()
             else:
                 values[key] = widget.text()
         return values
@@ -173,6 +183,8 @@ class MaskPluginSettingsDialog(QtWidgets.QDialog):
             widget.valueChanged.connect(self._on_value_changed)
         elif param_type == "bool":
             widget.toggled.connect(self._on_value_changed)
+        elif param_type == "choice":
+            widget.currentTextChanged.connect(self._on_value_changed)
         elif param_type == "str":
             widget.editingFinished.connect(self._on_value_changed)
 
