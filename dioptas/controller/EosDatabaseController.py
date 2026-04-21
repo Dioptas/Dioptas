@@ -144,6 +144,8 @@ class EosDatabaseController:
 
         try:
             jcpds_obj = self._build_jcpds(self._current_material, eos)
+            # phase_files must stay in sync with phases list — PhaseController reads phase_files[-1]
+            self.model.phase_model.phase_files.append(jcpds_obj._filename)
             self.model.phase_model.add_jcpds_object(jcpds_obj)
             name = self._current_material.get("name") or self._current_material.get("formula", "material")
             logger.info("Loaded phase from EoS database: %s", name)
