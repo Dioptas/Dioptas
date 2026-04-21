@@ -31,8 +31,10 @@ class EosDatabaseWidget(QtWidgets.QWidget):
 
         # --- Materials table ---
         self.materials_table = QtWidgets.QTableWidget()
-        self.materials_table.setColumnCount(3)
-        self.materials_table.setHorizontalHeaderLabels(["Name", "Formula", "Symmetry"])
+        self.materials_table.setColumnCount(6)
+        self.materials_table.setHorizontalHeaderLabels(
+            ["Name", "Chemistry", "Space Group", "α (°)", "β (°)", "γ (°)"]
+        )
         self.materials_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.materials_table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
         self.materials_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)

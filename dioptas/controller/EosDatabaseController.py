@@ -168,6 +168,12 @@ class EosDatabaseController:
             table.setItem(row, 0, QtWidgets.QTableWidgetItem(mat.get("name", "")))
             table.setItem(row, 1, QtWidgets.QTableWidgetItem(mat.get("formula", "")))
             table.setItem(row, 2, QtWidgets.QTableWidgetItem(mat.get("symmetry", "")))
+            alpha = mat.get("alpha")
+            beta = mat.get("beta")
+            gamma = mat.get("gamma")
+            table.setItem(row, 3, QtWidgets.QTableWidgetItem(f"{alpha:.1f}" if alpha else ""))
+            table.setItem(row, 4, QtWidgets.QTableWidgetItem(f"{beta:.1f}" if beta else ""))
+            table.setItem(row, 5, QtWidgets.QTableWidgetItem(f"{gamma:.1f}" if gamma else ""))
         table.resizeColumnsToContents()
 
     def _populate_eos_table(self, eos_list):
