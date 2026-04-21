@@ -9,6 +9,7 @@ from .CalibrationWidget import CalibrationWidget
 from .MaskWidget import MaskWidget
 from .integration import IntegrationWidget
 from .MapWidget import MapWidget
+from .EosDatabaseWidget import EosDatabaseWidget
 from .CustomWidgets import (
     VerticalSpacerItem,
     CheckableFlatButton,
@@ -86,10 +87,14 @@ class MainWidget(QtWidgets.QWidget):
         self.map_mode_btn = CheckableFlatButton("MAP", self)
         self.map_mode_btn.setObjectName("map_mode_btn")
 
+        self.eos_database_mode_btn = CheckableFlatButton("EOS\nDB", self)
+        self.eos_database_mode_btn.setObjectName("eos_database_mode_btn")
+
         self.mode_btn_group.addButton(self.calibration_mode_btn)
         self.mode_btn_group.addButton(self.mask_mode_btn)
         self.mode_btn_group.addButton(self.integration_mode_btn)
         self.mode_btn_group.addButton(self.map_mode_btn)
+        self.mode_btn_group.addButton(self.eos_database_mode_btn)
 
         self._mode_layout.addWidget(self.calibration_mode_btn)
         self._mode_layout.addWidget(HorizontalLine())
@@ -98,6 +103,8 @@ class MainWidget(QtWidgets.QWidget):
         self._mode_layout.addWidget(self.integration_mode_btn)
         self._mode_layout.addWidget(HorizontalLine())
         self._mode_layout.addWidget(self.map_mode_btn)
+        self._mode_layout.addWidget(HorizontalLine())
+        self._mode_layout.addWidget(self.eos_database_mode_btn)
         self._mode_layout.addSpacerItem(VerticalSpacerItem())
 
     def _create_menu(self):
@@ -128,15 +135,18 @@ class MainWidget(QtWidgets.QWidget):
         self.mask_widget = MaskWidget(self)
         self.integration_widget = IntegrationWidget(self)
         self.map_widget = MapWidget(self)
+        self.eos_database_widget = EosDatabaseWidget(self)
 
         self._layout_main_frame.addWidget(self.calibration_widget)
         self._layout_main_frame.addWidget(self.mask_widget)
         self._layout_main_frame.addWidget(self.integration_widget)
         self._layout_main_frame.addWidget(self.map_widget)
+        self._layout_main_frame.addWidget(self.eos_database_widget)
 
         self.mask_widget.setVisible(False)
         self.integration_widget.setVisible(False)
         self.map_widget.setVisible(False)
+        self.eos_database_widget.setVisible(False)
 
         self._content_layout.addWidget(self.main_frame)
         self._content_layout.setStretchFactor(self.main_frame, 100)
@@ -173,6 +183,7 @@ class MainWidget(QtWidgets.QWidget):
             self.mask_mode_btn,
             self.integration_mode_btn,
             self.map_mode_btn,
+            self.eos_database_mode_btn,
         ]
         for btn in mode_btns:
             # btn.setCheckable(True)
@@ -196,6 +207,7 @@ class MainWidget(QtWidgets.QWidget):
         self.calibration_mode_btn.setToolTip("Calibration Mode")
         self.mask_mode_btn.setToolTip("Mask Mode")
         self.integration_mode_btn.setToolTip("Integration Mode")
+        self.eos_database_mode_btn.setToolTip("EoS Materials Database")
 
     def create_external_actions(self, quick_actions):
         self.external_action_btns = {}
