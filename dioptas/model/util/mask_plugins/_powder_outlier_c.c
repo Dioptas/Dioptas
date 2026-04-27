@@ -5,6 +5,7 @@
  *
  * Provides both mean/std and median/MAD methods.
  * Supports equal-width binning (variable bin sizes) via bin_indices.
+ * Uses OpenMP for parallel bin processing when available.
  */
 
 #define PY_SSIZE_T_CLEAN
@@ -13,6 +14,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 
 /* ---- Quickselect (introselect variant) ---- */
@@ -193,10 +198,9 @@ compute_outlier_mask_binned(PyObject *self, PyObject *args)
     int total_binned = offsets[num_bins];
     double *bin_vals = (double *)malloc(total_binned * sizeof(double));
     int *bin_pix_idx = (int *)malloc(total_binned * sizeof(int));
-    double *work = (double *)malloc(max_bin * sizeof(double));
-    if (!bin_vals || !bin_pix_idx || !work) {
+    if (!bin_vals || !bin_pix_idx) {
         free(bin_counts); free(offsets);
-        free(bin_vals); free(bin_pix_idx); free(work);
+        free(bin_vals); free(bin_pix_idx);
         Py_DECREF(mask_arr);
         return PyErr_NoMemory();
     }
@@ -213,22 +217,28 @@ compute_outlier_mask_binned(PyObject *self, PyObject *args)
         }
     }
 
-    /* Phase 3: process each bin */
+    /* Phase 3: process each bin (parallel when OpenMP available) */
+    #pragma omp parallel for schedule(dynamic)
     for (int b = 0; b < num_bins; b++) {
         Py_ssize_t bsize = (Py_ssize_t)bin_counts[b];
-        process_bin(
-            bin_vals + offsets[b],
-            bin_pix_idx + offsets[b],
-            bsize, esdmul, use_median,
-            work, mask
-        );
+        if (bsize < 3) continue;
+        /* Each thread gets its own work buffer on the stack or heap */
+        double *twork = (double *)malloc(bsize * sizeof(double));
+        if (twork) {
+            process_bin(
+                bin_vals + offsets[b],
+                bin_pix_idx + offsets[b],
+                bsize, esdmul, use_median,
+                twork, mask
+            );
+            free(twork);
+        }
     }
 
     free(bin_counts);
     free(offsets);
     free(bin_vals);
     free(bin_pix_idx);
-    free(work);
 
     return (PyObject *)mask_arr;
 }
