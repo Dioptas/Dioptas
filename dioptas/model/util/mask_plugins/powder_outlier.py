@@ -58,7 +58,10 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
         self._cached_geometry_id: int | None = None
 
     def compute_mask(
-        self, img_data: np.ndarray, geometry: GeometryContext | None = None
+        self,
+        img_data: np.ndarray,
+        geometry: GeometryContext | None = None,
+        existing_mask: np.ndarray | None = None,
     ) -> np.ndarray:
         if geometry is None:
             return np.zeros(img_data.shape, dtype=bool)
@@ -66,6 +69,7 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
         return _compute_powder_outlier_mask(
             img_data,
             geometry=geometry,
+            existing_mask=existing_mask,
             esdmul=self.esdmul,
             num_bins=self.num_bins,
             method=self.method,
@@ -208,12 +212,13 @@ def _compute_bin_indices(tth_array: np.ndarray, num_bins: int) -> np.ndarray:
 def _compute_powder_outlier_mask(
     img_data: np.ndarray,
     geometry: GeometryContext,
-    esdmul: float,
-    num_bins: int,
-    method: str,
-    iterations: int,
-    smooth_sigma: float,
-    smooth_threshold: float,
+    existing_mask: np.ndarray | None = None,
+    esdmul: float = 3.0,
+    num_bins: int = 445,
+    method: str = "median",
+    iterations: int = 1,
+    smooth_sigma: float = 2.5,
+    smooth_threshold: float = 0.8,
     plugin: PowderDiffSpotMaskPlugin | None = None,
     num_threads: int = 0,
 ) -> np.ndarray:
@@ -225,6 +230,8 @@ def _compute_powder_outlier_mask(
 
     :param img_data: Raw image data (must not be normalized).
     :param geometry: Calibration geometry context.
+    :param existing_mask: User-drawn mask (detector gaps, etc.). Pre-masked
+        pixels are excluded from per-bin statistics. None means no mask.
     :param esdmul: Threshold multiplier (sigma or MAD units).
     :param num_bins: Number of 2-theta bins.
     :param method: "mean" for mean+std, "median" for median+MAD.
@@ -243,6 +250,12 @@ def _compute_powder_outlier_mask(
     else:
         bin_indices = _compute_bin_indices(geometry.tth_array, num_bins)
 
+    # Exclude pre-masked pixels by setting their bin index to -1.
+    # The C code and Python fallback skip pixels with bin < 0.
+    if existing_mask is not None:
+        bin_indices = bin_indices.copy()
+        bin_indices[existing_mask.ravel().astype(bool)] = -1
+
     use_median = method == "median"
 
     # Try C extension first
@@ -259,25 +272,43 @@ def _compute_powder_outlier_mask(
 
     # Post-process: Gaussian smooth + threshold to merge nearby spots
     if smooth_sigma > 0:
-        mask = _smooth_mask(mask, smooth_sigma, smooth_threshold)
+        exclude = existing_mask.ravel().astype(bool) if existing_mask is not None else None
+        mask = _smooth_mask(mask, smooth_sigma, smooth_threshold, exclude)
 
     return mask
 
 
 def _smooth_mask(
-    mask: np.ndarray, sigma: float, threshold: float
+    mask: np.ndarray,
+    sigma: float,
+    threshold: float,
+    exclude: np.ndarray | None = None,
 ) -> np.ndarray:
-    """Apply Gaussian smoothing and threshold. Uses OpenCV when available."""
+    """Apply Gaussian smoothing and threshold. Uses OpenCV when available.
+
+    :param mask: Binary mask from outlier detection.
+    :param sigma: Gaussian smoothing sigma.
+    :param threshold: Binarization threshold after smoothing.
+    :param exclude: Flat boolean array of pixels to exclude (e.g., detector gaps).
+        These pixels are zeroed before smoothing and excluded from the result,
+        preventing gap edges from bleeding into neighboring regions.
+    """
+    mask_float = mask.astype(np.float32)
+    if exclude is not None:
+        mask_float.ravel()[exclude] = 0
+
     if _cv2 is not None:
-        mask32 = mask.astype(np.float32)
         ksize = int(np.ceil(sigma * 6)) | 1
-        smoothed = _cv2.GaussianBlur(mask32, (ksize, ksize), sigma)
-        return smoothed > threshold
+        smoothed = _cv2.GaussianBlur(mask_float, (ksize, ksize), sigma)
     else:
         from scipy.ndimage import gaussian_filter
 
-        smoothed = gaussian_filter(mask.astype(np.float64), sigma=sigma)
-        return smoothed > threshold
+        smoothed = gaussian_filter(mask_float, sigma=sigma)
+
+    result = smoothed > threshold
+    if exclude is not None:
+        result.ravel()[exclude] = False
+    return result
 
 
 def _compute_python_fallback(

@@ -23,7 +23,7 @@ class StaticThresholdPlugin(MaskPluginBase):
     def __init__(self, threshold=100):
         self.threshold = threshold
 
-    def compute_mask(self, img_data):
+    def compute_mask(self, img_data, existing_mask=None, **kwargs):
         return img_data > self.threshold
 
     def get_settings_schema(self):
@@ -40,7 +40,7 @@ class DynamicMeanPlugin(MaskPluginBase):
     name = "Dynamic Mean"
     is_dynamic = True
 
-    def compute_mask(self, img_data):
+    def compute_mask(self, img_data, existing_mask=None, **kwargs):
         return img_data > img_data.mean()
 
 
@@ -48,7 +48,7 @@ class NoSettingsPlugin(MaskPluginBase):
     name = "No Settings"
     is_dynamic = False
 
-    def compute_mask(self, img_data):
+    def compute_mask(self, img_data, existing_mask=None, **kwargs):
         mask = np.zeros(img_data.shape, dtype=bool)
         mask[0, :] = True
         return mask
@@ -58,7 +58,7 @@ class BrokenPlugin(MaskPluginBase):
     name = "Broken"
     is_dynamic = False
 
-    def compute_mask(self, img_data):
+    def compute_mask(self, img_data, existing_mask=None, **kwargs):
         raise ValueError("I am broken")
 
 
@@ -66,7 +66,7 @@ class WrongShapePlugin(MaskPluginBase):
     name = "Wrong Shape"
     is_dynamic = False
 
-    def compute_mask(self, img_data):
+    def compute_mask(self, img_data, existing_mask=None, **kwargs):
         return np.zeros((1, 1), dtype=bool)
 
 
@@ -78,7 +78,7 @@ class GeometryAwarePlugin(MaskPluginBase):
     def __init__(self, tth_threshold=0.5):
         self.tth_threshold = tth_threshold
 
-    def compute_mask(self, img_data, geometry=None):
+    def compute_mask(self, img_data, geometry=None, existing_mask=None, **kwargs):
         if geometry is None:
             return np.zeros(img_data.shape, dtype=bool)
         return geometry.tth_array > self.tth_threshold
@@ -89,7 +89,7 @@ class GeometryAwareStaticPlugin(MaskPluginBase):
     needs_geometry = True
     is_dynamic = False
 
-    def compute_mask(self, img_data, geometry=None):
+    def compute_mask(self, img_data, geometry=None, existing_mask=None, **kwargs):
         if geometry is None:
             return np.zeros(img_data.shape, dtype=bool)
         return geometry.tth_array > 1.0

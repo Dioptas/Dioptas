@@ -36,7 +36,7 @@ class CosmicRayMaskPlugin(MaskPluginBase):
         self.iterations = 2
         self.min_intensity = 100.0
 
-    def compute_mask(self, img_data: np.ndarray) -> np.ndarray:
+    def compute_mask(self, img_data: np.ndarray, existing_mask: np.ndarray | None = None, **kwargs) -> np.ndarray:
         return _detect_cosmic_rays_iterative(
             img_data,
             sigma=self.sigma,

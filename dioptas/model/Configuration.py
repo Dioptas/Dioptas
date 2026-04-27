@@ -114,7 +114,12 @@ class Configuration:
         """Update dynamic mask plugins with the current image data."""
         if self.img_model.img_data is not None:
             self._update_plugin_geometry()
-            self.mask_plugin_manager.update_image(self.img_model.img_data)
+            # Pass user-drawn mask so plugins can exclude pre-masked pixels
+            # (e.g., detector gaps) from their statistics.
+            user_mask = self.mask_model.get_img()
+            self.mask_plugin_manager.update_image(
+                self.img_model.img_data, existing_mask=user_mask
+            )
 
     def _update_plugin_geometry(self) -> None:
         """Build GeometryContext from calibration and pass to plugin manager."""

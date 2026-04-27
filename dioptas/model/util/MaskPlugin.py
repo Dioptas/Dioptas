@@ -103,13 +103,19 @@ class MaskPluginBase:
     needs_geometry: bool = False
 
     def compute_mask(
-        self, img_data: np.ndarray, geometry: GeometryContext | None = None
+        self,
+        img_data: np.ndarray,
+        geometry: GeometryContext | None = None,
+        existing_mask: np.ndarray | None = None,
     ) -> np.ndarray:
         """Compute and return a boolean mask array.
 
         :param img_data: The current image data array.
         :param geometry: Calibration geometry context, or None if not calibrated.
             Only passed when the plugin declares ``needs_geometry = True``.
+        :param existing_mask: User-drawn mask (detector gaps, manual masks), or None.
+            True = pixel is already masked. Plugins can use this to exclude
+            pre-masked pixels from statistics (e.g., detector gaps).
         :returns: Boolean array with same shape as img_data. True = masked pixel.
         """
         raise NotImplementedError
