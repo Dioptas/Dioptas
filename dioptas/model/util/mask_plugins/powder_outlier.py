@@ -5,11 +5,15 @@ from __future__ import annotations
 import logging
 
 import numpy as np
-from scipy.ndimage import gaussian_filter
 
 from ..MaskPlugin import MaskPluginBase, GeometryContext
 
 logger = logging.getLogger(__name__)
+
+try:
+    import cv2 as _cv2
+except ImportError:
+    _cv2 = None
 
 try:
     from ._powder_outlier_c import compute_outlier_mask as _c_compute
@@ -254,10 +258,25 @@ def _compute_powder_outlier_mask(
 
     # Post-process: Gaussian smooth + threshold to merge nearby spots
     if smooth_sigma > 0:
-        smoothed = gaussian_filter(mask.astype(np.float64), sigma=smooth_sigma)
-        mask = smoothed > smooth_threshold
+        mask = _smooth_mask(mask, smooth_sigma, smooth_threshold)
 
     return mask
+
+
+def _smooth_mask(
+    mask: np.ndarray, sigma: float, threshold: float
+) -> np.ndarray:
+    """Apply Gaussian smoothing and threshold. Uses OpenCV when available."""
+    if _cv2 is not None:
+        mask32 = mask.astype(np.float32)
+        ksize = int(np.ceil(sigma * 6)) | 1
+        smoothed = _cv2.GaussianBlur(mask32, (ksize, ksize), sigma)
+        return smoothed > threshold
+    else:
+        from scipy.ndimage import gaussian_filter
+
+        smoothed = gaussian_filter(mask.astype(np.float64), sigma=sigma)
+        return smoothed > threshold
 
 
 def _compute_python_fallback(
