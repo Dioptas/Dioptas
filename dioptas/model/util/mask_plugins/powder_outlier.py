@@ -36,7 +36,7 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
     Algorithm inspired by XRD-Powder-Mask by Albert Vong.
     """
 
-    name = "Powder Diffraction Spot Mask"
+    name = "Spot Mask"
     description = (
         "Masks single-crystal spots and intensity outliers in powder diffraction "
         "images by binning pixels by 2-theta and flagging those that deviate "

@@ -237,7 +237,7 @@ class TestPowderOutlierPlugin:
         geometry = _make_geometry(shape)
         img, _ = _make_powder_image(shape, geometry)
 
-        manager.set_enabled("Powder Diffraction Spot Mask", True)
+        manager.set_enabled("Spot Mask", True)
         manager.update_geometry(geometry)
         manager.update_image(img)
 
