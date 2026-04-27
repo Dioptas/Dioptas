@@ -213,16 +213,16 @@ class TestPowderOutlierPlugin:
     def test_settings_roundtrip(self):
         plugin = PowderDiffSpotMaskPlugin()
         plugin.update_settings({
-            "method": "median",
-            "esdmul": 3.0,
+            "method": "mean",
+            "esdmul": 5.0,
             "num_bins": 512,
             "iterations": 2,
             "smooth_sigma": 2.0,
             "smooth_threshold": 0.3,
         })
         settings = plugin.get_settings()
-        assert settings["method"] == "median"
-        assert settings["esdmul"] == 3.0
+        assert settings["method"] == "mean"
+        assert settings["esdmul"] == 5.0
         assert settings["num_bins"] == 512
         assert settings["iterations"] == 2
         assert settings["smooth_sigma"] == 2.0

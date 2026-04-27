@@ -42,12 +42,12 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
     is_dynamic = True
 
     def __init__(self):
-        self.esdmul = 5.0
-        self.num_bins = 1024
-        self.method = "mean"  # "mean" (fast) or "median" (robust)
+        self.esdmul = 3.0
+        self.num_bins = 445
+        self.method = "median"  # "mean" (fast) or "median" (robust)
         self.iterations = 1
-        self.smooth_sigma = 1.0
-        self.smooth_threshold = 0.5
+        self.smooth_sigma = 2.5
+        self.smooth_threshold = 0.8
 
         # Cached geometry-derived data (recomputed only when geometry changes)
         self._cached_tth_sort_idx: np.ndarray | None = None
@@ -75,19 +75,18 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
         return {
             "method": {
                 "type": "choice",
-                "default": "mean",
+                "default": "median",
                 "label": "Method",
-                "choices": ["mean", "median"],
+                "choices": ["median", "mean"],
                 "description": (
                     "Statistical method for outlier detection. "
-                    "'mean' uses mean + k×std (fast, ~8ms for 2k images). "
-                    "'median' uses median + k×MAD (more robust to heavy "
-                    "contamination, ~60ms for 2k images)."
+                    "'median' uses median + k×MAD (robust, recommended). "
+                    "'mean' uses mean + k×std (faster but less sensitive)."
                 ),
             },
             "esdmul": {
                 "type": "float",
-                "default": 5.0,
+                "default": 3.0,
                 "label": "Sigma multiplier",
                 "min": 1.0,
                 "max": 50.0,
@@ -100,7 +99,7 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
             },
             "num_bins": {
                 "type": "int",
-                "default": 1024,
+                "default": 445,
                 "label": "Number of 2θ bins",
                 "min": 64,
                 "max": 8192,
@@ -125,7 +124,7 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
             },
             "smooth_sigma": {
                 "type": "float",
-                "default": 1.0,
+                "default": 2.5,
                 "label": "Smooth sigma (px)",
                 "min": 0.0,
                 "max": 10.0,
@@ -138,7 +137,7 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
             },
             "smooth_threshold": {
                 "type": "float",
-                "default": 0.5,
+                "default": 0.8,
                 "label": "Smooth threshold",
                 "min": 0.01,
                 "max": 1.0,
