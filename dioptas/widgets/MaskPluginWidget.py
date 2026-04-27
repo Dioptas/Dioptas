@@ -5,6 +5,36 @@ from __future__ import annotations
 from qtpy import QtWidgets, QtCore, QtGui
 
 
+class _InfoIcon(QtWidgets.QLabel):
+    """Small circled 'i' icon that shows a tooltip immediately on hover."""
+
+    def __init__(self, tooltip: str, parent=None):
+        super().__init__(parent)
+        self.setToolTip(tooltip)
+        self.setCursor(QtCore.Qt.CursorShape.WhatsThisCursor)
+
+        # Draw a circled "i" as a pixmap
+        size = 16
+        pixmap = QtGui.QPixmap(size, size)
+        pixmap.fill(QtCore.Qt.GlobalColor.transparent)
+        painter = QtGui.QPainter(pixmap)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        painter.setPen(QtGui.QPen(QtGui.QColor(120, 120, 120), 1.2))
+        painter.drawEllipse(1, 1, size - 3, size - 3)
+        font = painter.font()
+        font.setBold(True)
+        font.setPixelSize(11)
+        painter.setFont(font)
+        painter.drawText(pixmap.rect(), QtCore.Qt.AlignmentFlag.AlignCenter, "i")
+        painter.end()
+        self.setPixmap(pixmap)
+
+    def enterEvent(self, event):
+        pos = self.mapToGlobal(QtCore.QPoint(self.width(), 0))
+        QtWidgets.QToolTip.showText(pos, self.toolTip(), self)
+        super().enterEvent(event)
+
+
 class MaskPluginWidget(QtWidgets.QWidget):
     """Widget section showing mask plugin enable/settings controls."""
 
@@ -100,14 +130,23 @@ class MaskPluginSettingsDialog(QtWidgets.QDialog):
 
             widget = self._create_widget(param_type, spec, value)
             self._connect_live_update(widget, param_type)
+            self._widgets[key] = widget
+
             description = spec.get("description")
             if description:
-                widget.setToolTip(description)
-            self._widgets[key] = widget
-            label_widget = QtWidgets.QLabel(label)
-            if description:
-                label_widget.setToolTip(description)
-            form_layout.addRow(label_widget, widget)
+                row_widget = QtWidgets.QWidget()
+                row_layout = QtWidgets.QHBoxLayout(row_widget)
+                row_layout.setContentsMargins(0, 0, 0, 0)
+                row_layout.setSpacing(4)
+                row_layout.addWidget(widget, stretch=1)
+                info_icon = _InfoIcon(
+                    f"<p style='max-width:300px;'>{description}</p>",
+                )
+                info_icon.setFixedSize(16, 16)
+                row_layout.addWidget(info_icon)
+                form_layout.addRow(label, row_widget)
+            else:
+                form_layout.addRow(label, widget)
 
         layout.addLayout(form_layout)
 
