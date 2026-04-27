@@ -21,6 +21,9 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Install OpenMP
+      run: brew install libomp
+
     - name: Setup Python 3.13
       uses: actions/setup-python@v4
       with:

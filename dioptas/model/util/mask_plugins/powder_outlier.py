@@ -215,6 +215,7 @@ def _compute_powder_outlier_mask(
     smooth_sigma: float,
     smooth_threshold: float,
     plugin: PowderDiffSpotMaskPlugin | None = None,
+    num_threads: int = 0,
 ) -> np.ndarray:
     """Core algorithm: bin by 2-theta, detect outliers.
 
@@ -231,6 +232,7 @@ def _compute_powder_outlier_mask(
     :param smooth_sigma: Gaussian smoothing sigma for post-processing.
     :param smooth_threshold: Threshold after smoothing.
     :param plugin: Plugin instance for caching (optional).
+    :param num_threads: Max OpenMP threads (0 = all available, 1 = single-threaded).
     :returns: Boolean mask (True = masked/outlier pixel).
     """
     img_flat = np.ascontiguousarray(img_data.ravel(), dtype=np.float64)
@@ -246,7 +248,7 @@ def _compute_powder_outlier_mask(
     # Try C extension first
     if _c_compute_binned is not None:
         mask_flat = _c_compute_binned(
-            img_flat, bin_indices, num_bins, esdmul, use_median
+            img_flat, bin_indices, num_bins, esdmul, use_median, num_threads
         )
         mask = mask_flat.astype(bool).reshape(img_data.shape)
     else:

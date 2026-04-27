@@ -9,14 +9,21 @@ from setuptools import Extension, setup
 
 
 def _openmp_flags():
-    """Detect OpenMP availability and return (compile_flags, link_flags)."""
+    """Detect OpenMP availability and return (compile_flags, link_flags).
+
+    Set DIOPTAS_NO_OPENMP=1 to disable OpenMP (e.g., for PyInstaller builds
+    where the OpenMP runtime library would need to be bundled separately).
+    """
+    if os.environ.get("DIOPTAS_NO_OPENMP", ""):
+        return [], []
+
     if sys.platform == "darwin":
         # macOS: check for Homebrew libomp
         for prefix in ["/opt/homebrew/opt/libomp", "/usr/local/opt/libomp"]:
             if os.path.isdir(prefix):
                 return (
                     ["-Xpreprocessor", "-fopenmp", f"-I{prefix}/include"],
-                    ["-L{}/lib".format(prefix), "-lomp"],
+                    [f"-L{prefix}/lib", "-lomp"],
                 )
         return [], []
     elif sys.platform == "win32":

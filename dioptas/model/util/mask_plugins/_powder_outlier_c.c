@@ -120,7 +120,7 @@ static void process_bin(
 
 
 /*
- * compute_outlier_mask_binned(img, bin_indices, num_bins, esdmul, use_median)
+ * compute_outlier_mask_binned(img, bin_indices, num_bins, esdmul, use_median, num_threads)
  *
  * Equal-width binning: each pixel has a pre-computed bin index.
  *
@@ -129,6 +129,7 @@ static void process_bin(
  * num_bins:     number of bins
  * esdmul:       threshold multiplier
  * use_median:   True for median/MAD, False for mean/std
+ * num_threads:  max OpenMP threads (0 = use default/all available)
  *
  * Returns: 1D uint8 mask array (1 = outlier), same length as img.
  */
@@ -136,13 +137,13 @@ static PyObject *
 compute_outlier_mask_binned(PyObject *self, PyObject *args)
 {
     PyArrayObject *img_arr, *bin_idx_arr;
-    int num_bins, use_median;
+    int num_bins, use_median, num_threads;
     double esdmul;
 
-    if (!PyArg_ParseTuple(args, "O!O!idp",
+    if (!PyArg_ParseTuple(args, "O!O!idpi",
                           &PyArray_Type, &img_arr,
                           &PyArray_Type, &bin_idx_arr,
-                          &num_bins, &esdmul, &use_median))
+                          &num_bins, &esdmul, &use_median, &num_threads))
         return NULL;
 
     if (PyArray_NDIM(img_arr) != 1 ||
@@ -218,6 +219,13 @@ compute_outlier_mask_binned(PyObject *self, PyObject *args)
     }
 
     /* Phase 3: process each bin (parallel when OpenMP available) */
+#ifdef _OPENMP
+    {
+        int nt = num_threads;
+        if (nt <= 0) nt = omp_get_max_threads();
+        omp_set_num_threads(nt);
+    }
+#endif
     #pragma omp parallel for schedule(dynamic)
     for (int b = 0; b < num_bins; b++) {
         Py_ssize_t bsize = (Py_ssize_t)bin_counts[b];
@@ -252,7 +260,8 @@ static PyMethodDef methods[] = {
      "    bin_indices: 1D int32 bin index per pixel\n"
      "    num_bins: number of bins\n"
      "    esdmul: threshold in sigma/MAD units\n"
-     "    use_median: True for median/MAD, False for mean/std\n"},
+     "    use_median: True for median/MAD, False for mean/std\n"
+     "    num_threads: max OpenMP threads (0 = all available, 1 = single-threaded)\n"},
     {NULL, NULL, 0, NULL}
 };
 
