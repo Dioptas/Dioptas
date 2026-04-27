@@ -245,7 +245,7 @@ class TestPowderOutlierPlugin:
         assert mask is not None
         assert mask.shape == shape
 
-    def test_sort_index_caching(self):
+    def test_bin_index_caching(self):
         plugin = PowderDiffSpotMaskPlugin()
         shape = (100, 100)
         geometry = _make_geometry(shape)
@@ -256,7 +256,7 @@ class TestPowderOutlierPlugin:
 
         # First call computes and caches
         plugin.compute_mask(img, geometry=geometry)
-        assert plugin._cached_tth_sort_idx is not None
+        assert plugin._cached_bin_indices is not None
 
         # Second call with same geometry uses cache
         cached_id = plugin._cached_geometry_id

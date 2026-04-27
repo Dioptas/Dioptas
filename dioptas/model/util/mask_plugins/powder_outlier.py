@@ -16,9 +16,9 @@ except ImportError:
     _cv2 = None
 
 try:
-    from ._powder_outlier_c import compute_outlier_mask as _c_compute
+    from ._powder_outlier_c import compute_outlier_mask_binned as _c_compute_binned
 except ImportError:
-    _c_compute = None
+    _c_compute_binned = None
 
 
 class PowderDiffSpotMaskPlugin(MaskPluginBase):
@@ -53,8 +53,8 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
         self.smooth_sigma = 2.5
         self.smooth_threshold = 0.8
 
-        # Cached geometry-derived data (recomputed only when geometry changes)
-        self._cached_tth_sort_idx: np.ndarray | None = None
+        # Cached geometry-derived data (recomputed only when geometry/bins change)
+        self._cached_bin_indices: np.ndarray | None = None
         self._cached_geometry_id: int | None = None
 
     def compute_mask(
@@ -164,7 +164,7 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
         self.smooth_threshold = settings.get("smooth_threshold", self.smooth_threshold)
         # Invalidate cache if num_bins changed
         if self.num_bins != old_num_bins:
-            self._cached_tth_sort_idx = None
+            self._cached_bin_indices = None
             self._cached_geometry_id = None
 
     def get_settings(self) -> dict:
@@ -178,18 +178,31 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
         }
 
 
-def _get_sort_index(
-    plugin: PowderDiffSpotMaskPlugin, geometry: GeometryContext
+def _get_bin_indices(
+    plugin: PowderDiffSpotMaskPlugin, geometry: GeometryContext, num_bins: int
 ) -> np.ndarray:
-    """Get or compute the 2-theta sort index, caching it on the plugin."""
+    """Get or compute equal-width bin indices, caching on the plugin."""
     geo_id = id(geometry.tth_array)
-    if plugin._cached_geometry_id == geo_id and plugin._cached_tth_sort_idx is not None:
-        return plugin._cached_tth_sort_idx
+    if (plugin._cached_geometry_id == geo_id
+            and plugin._cached_bin_indices is not None
+            and plugin.num_bins == num_bins):
+        return plugin._cached_bin_indices
 
-    tth_sort_idx = np.argsort(geometry.tth_array.ravel())
-    plugin._cached_tth_sort_idx = tth_sort_idx
+    bin_indices = _compute_bin_indices(geometry.tth_array, num_bins)
+    plugin._cached_bin_indices = bin_indices
     plugin._cached_geometry_id = geo_id
-    return tth_sort_idx
+    return bin_indices
+
+
+def _compute_bin_indices(tth_array: np.ndarray, num_bins: int) -> np.ndarray:
+    """Compute equal-width bin indices from 2-theta array."""
+    tth_flat = tth_array.ravel()
+    tth_min = np.nanmin(tth_flat)
+    tth_max = np.nanmax(tth_flat)
+    dtth = (tth_max - tth_min) / num_bins
+    bin_indices = ((tth_flat - tth_min) / dtth).astype(np.int32)
+    np.clip(bin_indices, 0, num_bins - 1, out=bin_indices)
+    return bin_indices
 
 
 def _compute_powder_outlier_mask(
@@ -205,9 +218,9 @@ def _compute_powder_outlier_mask(
 ) -> np.ndarray:
     """Core algorithm: bin by 2-theta, detect outliers.
 
-    Uses equal-count bins (sorted by 2-theta) for optimal statistical power.
-    The sort index is cached on the plugin instance so it's only computed once
-    per geometry change.
+    Uses equal-width 2-theta bins matching the original XRD-Powder-Mask
+    algorithm. The bin indices are cached on the plugin instance so they're
+    only computed once per geometry change.
 
     :param img_data: Raw image data (must not be normalized).
     :param geometry: Calibration geometry context.
@@ -220,40 +233,26 @@ def _compute_powder_outlier_mask(
     :param plugin: Plugin instance for caching (optional).
     :returns: Boolean mask (True = masked/outlier pixel).
     """
-    img_flat = img_data.ravel().astype(np.float64)
-    n_pixels = img_flat.size
+    img_flat = np.ascontiguousarray(img_data.ravel(), dtype=np.float64)
 
-    # Get cached sort index or compute it
+    # Get cached bin indices or compute them
     if plugin is not None:
-        tth_sort_idx = _get_sort_index(plugin, geometry)
+        bin_indices = _get_bin_indices(plugin, geometry, num_bins)
     else:
-        tth_sort_idx = np.argsort(geometry.tth_array.ravel())
-
-    # Equal-count bins: trim to evenly divisible size
-    pixels_per_bin = n_pixels // num_bins
-    if pixels_per_bin < 3:
-        return np.zeros(img_data.shape, dtype=bool)
-    n_used = pixels_per_bin * num_bins
-
-    # Sort image values by 2-theta order
-    sorted_img = img_flat[tth_sort_idx[:n_used]]
+        bin_indices = _compute_bin_indices(geometry.tth_array, num_bins)
 
     use_median = method == "median"
 
-    # Try C extension first (single-pass, fastest)
-    if _c_compute is not None:
-        sorted_contiguous = np.ascontiguousarray(sorted_img)
-        mask_sorted = _c_compute(
-            sorted_contiguous, num_bins, pixels_per_bin, esdmul, use_median
+    # Try C extension first
+    if _c_compute_binned is not None:
+        mask_flat = _c_compute_binned(
+            img_flat, bin_indices, num_bins, esdmul, use_median
         )
-        mask_flat = np.zeros(n_pixels, dtype=np.uint8)
-        mask_flat[tth_sort_idx[:n_used]] = mask_sorted
         mask = mask_flat.astype(bool).reshape(img_data.shape)
     else:
-        # Python fallback
         mask = _compute_python_fallback(
-            sorted_img, tth_sort_idx, n_pixels, num_bins, pixels_per_bin,
-            n_used, esdmul, use_median, iterations, img_data.shape,
+            img_flat, bin_indices, num_bins,
+            esdmul, use_median, iterations, img_data.shape,
         )
 
     # Post-process: Gaussian smooth + threshold to merge nearby spots
@@ -280,60 +279,53 @@ def _smooth_mask(
 
 
 def _compute_python_fallback(
-    sorted_img: np.ndarray,
-    tth_sort_idx: np.ndarray,
-    n_pixels: int,
+    img_flat: np.ndarray,
+    bin_indices: np.ndarray,
     num_bins: int,
-    pixels_per_bin: int,
-    n_used: int,
     esdmul: float,
     use_median: bool,
     iterations: int,
     img_shape: tuple[int, ...],
 ) -> np.ndarray:
     """Pure Python/NumPy fallback when C extension is unavailable."""
-    binned = sorted_img.reshape(num_bins, pixels_per_bin)
+    mask = np.zeros(len(img_flat), dtype=bool)
 
-    if use_median:
-        # Median + MAD via np.partition
-        mid = pixels_per_bin // 2
-        binned_copy = binned.copy()
-        np.partition(binned_copy, mid, axis=1)
-        bin_center = binned_copy[:, mid]
-        abs_dev = np.abs(binned - bin_center[:, np.newaxis])
-        abs_dev_copy = abs_dev.copy()
-        np.partition(abs_dev_copy, mid, axis=1)
-        bin_spread = abs_dev_copy[:, mid] * 1.4826  # MAD to std scale
-        # When MAD is 0 (uniform bin), use std as fallback spread estimate
-        zero_spread = bin_spread == 0
-        if np.any(zero_spread):
-            bin_std_fallback = binned[zero_spread].std(axis=1)
-            bin_spread[zero_spread] = bin_std_fallback
-        threshold_per_bin = bin_center + esdmul * bin_spread
-        mask_2d = binned > threshold_per_bin[:, np.newaxis]
-        mask_2d &= (bin_spread > 0)[:, np.newaxis]
-    elif iterations <= 1:
-        # Fast path: single-pass mean + std
-        bin_mean = binned.mean(axis=1)
-        bin_std = binned.std(axis=1)
-        threshold_per_bin = bin_mean + esdmul * bin_std
-        mask_2d = binned > threshold_per_bin[:, np.newaxis]
-        mask_2d &= (bin_std > 0)[:, np.newaxis]
-    else:
-        # Sigma-clipping: iteratively exclude outliers from statistics
-        valid = np.ones((num_bins, pixels_per_bin), dtype=bool)
-        mask_2d = np.zeros((num_bins, pixels_per_bin), dtype=bool)
+    for b in range(num_bins):
+        bin_mask = bin_indices == b
+        bin_vals = img_flat[bin_mask]
+        n = len(bin_vals)
+        if n < 3:
+            continue
 
-        for _ in range(iterations):
-            masked_binned = np.where(valid, binned, np.nan)
-            bin_mean = np.nanmean(masked_binned, axis=1)
-            bin_std = np.nanstd(masked_binned, axis=1)
-            threshold_per_bin = bin_mean + esdmul * bin_std
-            new_outliers = binned > threshold_per_bin[:, np.newaxis]
-            new_outliers &= (bin_std > 0)[:, np.newaxis]
-            valid &= ~new_outliers
-            mask_2d |= new_outliers
+        if use_median:
+            center = np.median(bin_vals)
+            spread = np.median(np.abs(bin_vals - center)) * 1.4826
+            if spread <= 0:
+                spread = np.std(bin_vals)
+        else:
+            center = np.mean(bin_vals)
+            spread = np.std(bin_vals)
 
-    mask_flat = np.zeros(n_pixels, dtype=bool)
-    mask_flat[tth_sort_idx[:n_used]] = mask_2d.ravel()
-    return mask_flat.reshape(img_shape)
+        if spread <= 0:
+            continue
+
+        if iterations > 1 and not use_median:
+            # Sigma-clipping for mean/std method
+            valid = np.ones(n, dtype=bool)
+            for _ in range(iterations):
+                v = bin_vals[valid]
+                if len(v) < 3:
+                    break
+                c = np.mean(v)
+                s = np.std(v)
+                if s <= 0:
+                    break
+                new_outliers = bin_vals > c + esdmul * s
+                valid &= ~new_outliers
+            outliers = ~valid
+        else:
+            outliers = bin_vals > center + esdmul * spread
+
+        mask[bin_mask] = outliers
+
+    return mask.reshape(img_shape)
