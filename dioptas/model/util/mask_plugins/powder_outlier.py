@@ -50,8 +50,8 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
         self.num_bins = 445
         self.method = "median"  # "mean" (fast) or "median" (robust)
         self.iterations = 1
-        self.smooth_sigma = 2.5
-        self.smooth_threshold = 0.8
+        self.smooth_sigma = 1.0
+        self.smooth_threshold = 0.3
 
         # Cached geometry-derived data (recomputed only when geometry/bins change)
         self._cached_bin_indices: np.ndarray | None = None
@@ -132,7 +132,7 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
             },
             "smooth_sigma": {
                 "type": "float",
-                "default": 2.5,
+                "default": 1.0,
                 "label": "Smooth sigma (px)",
                 "min": 0.0,
                 "max": 10.0,
@@ -145,7 +145,7 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
             },
             "smooth_threshold": {
                 "type": "float",
-                "default": 0.8,
+                "default": 0.3,
                 "label": "Smooth threshold",
                 "min": 0.01,
                 "max": 1.0,
@@ -272,31 +272,14 @@ def _compute_powder_outlier_mask(
 
     # Post-process: Gaussian smooth + threshold to merge nearby spots
     if smooth_sigma > 0:
-        exclude = existing_mask.ravel().astype(bool) if existing_mask is not None else None
-        mask = _smooth_mask(mask, smooth_sigma, smooth_threshold, exclude)
+        mask = _smooth_mask(mask, smooth_sigma, smooth_threshold)
 
     return mask
 
 
-def _smooth_mask(
-    mask: np.ndarray,
-    sigma: float,
-    threshold: float,
-    exclude: np.ndarray | None = None,
-) -> np.ndarray:
-    """Apply Gaussian smoothing and threshold. Uses OpenCV when available.
-
-    :param mask: Binary mask from outlier detection.
-    :param sigma: Gaussian smoothing sigma.
-    :param threshold: Binarization threshold after smoothing.
-    :param exclude: Flat boolean array of pixels to exclude (e.g., detector gaps).
-        These pixels are zeroed before smoothing and excluded from the result,
-        preventing gap edges from bleeding into neighboring regions.
-    """
+def _smooth_mask(mask: np.ndarray, sigma: float, threshold: float) -> np.ndarray:
+    """Apply Gaussian smoothing and threshold. Uses OpenCV when available."""
     mask_float = mask.astype(np.float32)
-    if exclude is not None:
-        mask_float.ravel()[exclude] = 0
-
     if _cv2 is not None:
         ksize = int(np.ceil(sigma * 6)) | 1
         smoothed = _cv2.GaussianBlur(mask_float, (ksize, ksize), sigma)
@@ -304,11 +287,7 @@ def _smooth_mask(
         from scipy.ndimage import gaussian_filter
 
         smoothed = gaussian_filter(mask_float, sigma=sigma)
-
-    result = smoothed > threshold
-    if exclude is not None:
-        result.ravel()[exclude] = False
-    return result
+    return smoothed > threshold
 
 
 def _compute_python_fallback(
