@@ -99,6 +99,7 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
                 "min": 1.0,
                 "max": 50.0,
                 "decimals": 1,
+                "step": 0.1,
                 "description": (
                     "Number of standard deviations (or MADs) above the bin "
                     "center for a pixel to be flagged as an outlier. Lower "
@@ -111,6 +112,7 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
                 "label": "Number of 2θ bins",
                 "min": 64,
                 "max": 8192,
+                "step": 20,
                 "description": (
                     "Number of angular bins to divide the 2-theta range into. "
                     "More bins give finer angular resolution but fewer pixels per "
@@ -137,6 +139,7 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
                 "min": 0.0,
                 "max": 10.0,
                 "decimals": 1,
+                "step": 0.1,
                 "description": (
                     "Gaussian smoothing sigma applied to the raw binary mask "
                     "before thresholding. Merges nearby flagged pixels into "
@@ -150,6 +153,7 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
                 "min": 0.01,
                 "max": 1.0,
                 "decimals": 2,
+                "step": 0.01,
                 "description": (
                     "Threshold applied after Gaussian smoothing. Pixels with "
                     "smoothed values above this are included in the final mask. "

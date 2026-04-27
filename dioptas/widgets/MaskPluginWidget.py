@@ -127,6 +127,8 @@ class MaskPluginSettingsDialog(QtWidgets.QDialog):
                 spec.get("min", -1e12),
                 spec.get("max", 1e12),
             )
+            if "step" in spec:
+                widget.setSingleStep(spec["step"])
             if value is not None:
                 widget.setValue(float(value))
             return widget
@@ -137,6 +139,8 @@ class MaskPluginSettingsDialog(QtWidgets.QDialog):
                 spec.get("min", -2**31),
                 spec.get("max", 2**31 - 1),
             )
+            if "step" in spec:
+                widget.setSingleStep(spec["step"])
             if value is not None:
                 widget.setValue(int(value))
             return widget
