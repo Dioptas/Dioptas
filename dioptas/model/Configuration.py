@@ -60,6 +60,7 @@ class Configuration:
         self.mask_model: MaskModel = MaskModel()
         self.mask_plugin_manager: MaskPluginManager = MaskPluginManager()
         self.mask_model.mask_plugin_manager = self.mask_plugin_manager
+        self._last_user_mask_sum: int = -1
         self._register_mask_plugins()
         self.calibration_model: CalibrationModel = CalibrationModel(self.img_model)
         self.pattern_model: PatternModel = PatternModel()
@@ -120,6 +121,20 @@ class Configuration:
             self.mask_plugin_manager.update_image(
                 self.img_model.img_data, existing_mask=user_mask
             )
+            self._last_user_mask_sum = int(user_mask.sum())
+
+    def update_plugin_existing_mask(self) -> None:
+        """Recompute plugin masks if the user-drawn mask changed.
+
+        Called by the MaskController after mask operations. Only triggers a
+        full plugin recomputation if the user mask actually changed, avoiding
+        redundant work when called from plugin-triggered mask_changed signals.
+        """
+        if self.img_model.img_data is None:
+            return
+        current_sum = int(self.mask_model.get_img().sum())
+        if current_sum != self._last_user_mask_sum:
+            self._update_plugin_masks()
 
     def _update_plugin_geometry(self) -> None:
         """Build GeometryContext from calibration and pass to plugin manager."""

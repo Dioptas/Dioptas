@@ -518,6 +518,7 @@ class MaskController:
                                                'the same shape. Mask could not be added.')
 
     def plot_mask(self):
+        self.model.current_configuration.update_plugin_existing_mask()
         self.widget.img_widget.activate_mask()
         self.widget.img_widget.plot_mask(self.model.mask_model.get_display_mask())
 
