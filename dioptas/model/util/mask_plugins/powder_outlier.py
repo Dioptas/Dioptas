@@ -276,14 +276,33 @@ def _compute_powder_outlier_mask(
 
     # Post-process: Gaussian smooth + threshold to merge nearby spots
     if smooth_sigma > 0:
-        mask = _smooth_mask(mask, smooth_sigma, smooth_threshold)
+        gap = existing_mask.astype(bool) if existing_mask is not None else None
+        mask = _smooth_mask(mask, smooth_sigma, smooth_threshold, gap)
 
     return mask
 
 
-def _smooth_mask(mask: np.ndarray, sigma: float, threshold: float) -> np.ndarray:
-    """Apply Gaussian smoothing and threshold. Uses OpenCV when available."""
-    mask_float = mask.astype(np.float32)
+def _smooth_mask(
+    mask: np.ndarray, sigma: float, threshold: float, gap: np.ndarray | None = None
+) -> np.ndarray:
+    """Apply Gaussian smoothing and threshold.
+
+    When a gap mask is provided, detected spots are dilated into gap pixels
+    before smoothing so that the Gaussian kernel sees continuous mask values
+    at gap edges. This prevents spots adjacent to gaps from being eroded
+    regardless of sigma/threshold settings.
+    """
+    if gap is not None and np.any(gap):
+        from scipy.ndimage import binary_dilation
+
+        n_iter = max(int(np.ceil(sigma * 3)), 1)
+        dilated = binary_dilation(mask, iterations=n_iter)
+        mask_filled = mask.copy()
+        mask_filled[gap] = dilated[gap]
+        mask_float = mask_filled.astype(np.float32)
+    else:
+        mask_float = mask.astype(np.float32)
+
     if _cv2 is not None:
         ksize = int(np.ceil(sigma * 6)) | 1
         smoothed = _cv2.GaussianBlur(mask_float, (ksize, ksize), sigma)
@@ -291,7 +310,11 @@ def _smooth_mask(mask: np.ndarray, sigma: float, threshold: float) -> np.ndarray
         from scipy.ndimage import gaussian_filter
 
         smoothed = gaussian_filter(mask_float, sigma=sigma)
-    return smoothed > threshold
+
+    result = smoothed > threshold
+    if gap is not None:
+        result[gap] = False
+    return result
 
 
 def _compute_python_fallback(
