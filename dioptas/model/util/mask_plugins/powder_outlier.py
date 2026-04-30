@@ -291,15 +291,26 @@ def _smooth_mask(
     before smoothing so that the Gaussian kernel sees continuous mask values
     at gap edges. This prevents spots adjacent to gaps from being eroded
     regardless of sigma/threshold settings.
+
+    The result is restricted to within the smoothing radius of an originally
+    detected pixel, so the gap-fill values cannot bleed across narrow gaps to
+    create false detections on the other side.
     """
     if gap is not None and np.any(gap):
         from scipy.ndimage import binary_dilation
 
-        n_iter = max(int(np.ceil(sigma * 3)), 1)
-        dilated = binary_dilation(mask, iterations=n_iter)
+        # Deep dilation into gap so the Gaussian kernel sees continuous values
+        # at gap edges (no erosion of spots adjacent to gaps).
+        fill_iter = max(int(np.ceil(sigma * 3)), 1)
+        deep_dilated = binary_dilation(mask, iterations=fill_iter)
         mask_filled = mask.copy()
-        mask_filled[gap] = dilated[gap]
+        mask_filled[gap] = deep_dilated[gap]
         mask_float = mask_filled.astype(np.float32)
+        # Tighter dilation for the output reach: smoothing of a spot only
+        # extends ~sigma pixels past its edge before falling below threshold.
+        # Limiting the result to this reach prevents gap-fill bleed-through.
+        reach_iter = max(int(np.round(sigma)), 1)
+        reach = binary_dilation(mask, iterations=reach_iter)
     else:
         mask_float = mask.astype(np.float32)
 
@@ -313,6 +324,10 @@ def _smooth_mask(
 
     result = smoothed > threshold
     if gap is not None:
+        # Restrict to within the smoothing reach of a detected pixel, so the
+        # gap-fill values cannot bleed across narrow gaps to create false
+        # detections on the other side.
+        result &= reach
         result[gap] = False
     return result
 
