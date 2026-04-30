@@ -118,10 +118,12 @@ class Configuration:
             # Pass user-drawn mask so plugins can exclude pre-masked pixels
             # (e.g., detector gaps) from their statistics.
             user_mask = self.mask_model.get_img()
+            # Update before calling update_image to break the cycle:
+            # update_image -> mask_changed -> plot_mask -> update_plugin_existing_mask.
+            self._last_user_mask_sum = int(user_mask.sum())
             self.mask_plugin_manager.update_image(
                 self.img_model.img_data, existing_mask=user_mask
             )
-            self._last_user_mask_sum = int(user_mask.sum())
 
     def update_plugin_existing_mask(self) -> None:
         """Recompute plugin masks if the user-drawn mask changed.

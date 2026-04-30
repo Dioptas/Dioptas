@@ -125,3 +125,29 @@ class MaskControllerTest(QtTest):
 
     def test_apply_cosmic_removal(self):
         click_button(self.mask_widget.cosmic_btn)
+
+    def test_drawing_mask_with_dynamic_plugin_enabled_does_not_recurse(self):
+        """Regression: drawing a mask while a dynamic plugin is enabled should
+        not cause infinite recursion via mask_changed -> plot_mask cycles."""
+        # Load an image so plugins can compute
+        self.model.img_model._img_data = np.random.rand(2048, 2048).astype(np.float64) * 1000
+        self.model.img_model.img_changed.emit()
+
+        # Enable a dynamic plugin (Cosmic Ray)
+        self.model.mask_plugin_manager.set_enabled('Cosmic Ray Mask', True)
+
+        # Draw a rectangle: this used to recurse because plugin recompute
+        # emitted mask_changed -> plot_mask -> recompute -> ...
+        import sys
+        old_limit = sys.getrecursionlimit()
+        sys.setrecursionlimit(200)
+        try:
+            self.model.mask_model.mask_rect(10, 10, 20, 20)
+            self.mask_controller.plot_mask()
+            self.model.mask_model.mask_rect(50, 50, 30, 30)
+            self.mask_controller.plot_mask()
+        finally:
+            sys.setrecursionlimit(old_limit)
+
+        # Both rectangles should be in the user mask
+        assert self.model.mask_model.get_img().sum() > 0
