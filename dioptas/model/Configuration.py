@@ -114,13 +114,14 @@ class Configuration:
     def _update_plugin_masks(self) -> None:
         """Update dynamic mask plugins with the current image data."""
         if self.img_model.img_data is not None:
-            self._update_plugin_geometry()
             # Pass user-drawn mask so plugins can exclude pre-masked pixels
             # (e.g., detector gaps) from their statistics.
             user_mask = self.mask_model.get_img()
-            # Update before calling update_image to break the cycle:
-            # update_image -> mask_changed -> plot_mask -> update_plugin_existing_mask.
+            # Update sum FIRST: any signals emitted from update_geometry or
+            # update_image will trigger plot_mask -> update_plugin_existing_mask,
+            # which must see the current sum to break the recursion cycle.
             self._last_user_mask_sum = int(user_mask.sum())
+            self._update_plugin_geometry()
             self.mask_plugin_manager.update_image(
                 self.img_model.img_data, existing_mask=user_mask
             )

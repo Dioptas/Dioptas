@@ -151,3 +151,41 @@ class MaskControllerTest(QtTest):
 
         # Both rectangles should be in the user mask
         assert self.model.mask_model.get_img().sum() > 0
+
+    def test_drawing_mask_with_geometry_plugin_enabled_does_not_recurse(self):
+        """Regression: drawing a mask while a geometry-aware plugin is enabled
+        should not recurse. update_geometry emits mask_changed before update_image
+        does, so the user mask sum must be updated first."""
+        from ...model.util.MaskPlugin import MaskPluginBase, GeometryContext
+
+        class TestGeoPlugin(MaskPluginBase):
+            name = "Test Geo Plugin"
+            needs_geometry = True
+            is_dynamic = True
+
+            def compute_mask(self, img_data, geometry=None, existing_mask=None, **kwargs):
+                return np.zeros(img_data.shape, dtype=bool)
+
+        # Provide a fake geometry so update_geometry actually computes
+        self.model.mask_plugin_manager._geometry = GeometryContext(
+            tth_array=np.zeros((100, 100)), azi_array=np.zeros((100, 100)),
+            dist=0.2, wavelength=1e-10, poni1=0.05, poni2=0.05,
+            rot1=0, rot2=0, rot3=0, pixel1=75e-6, pixel2=75e-6,
+        )
+        self.model.mask_plugin_manager.register(TestGeoPlugin())
+        self.model.img_model._img_data = np.random.rand(100, 100).astype(np.float64) * 1000
+        self.model.img_model.img_changed.emit()
+        self.model.mask_plugin_manager.set_enabled('Test Geo Plugin', True)
+
+        import sys
+        old_limit = sys.getrecursionlimit()
+        sys.setrecursionlimit(200)
+        try:
+            self.model.mask_model.mask_rect(10, 10, 20, 20)
+            self.mask_controller.plot_mask()
+            self.model.mask_model.mask_rect(50, 50, 30, 30)
+            self.mask_controller.plot_mask()
+        finally:
+            sys.setrecursionlimit(old_limit)
+
+        assert self.model.mask_model.get_img().sum() > 0
