@@ -208,6 +208,7 @@ class PatternController:
         )
 
         if filename != "":
+            self.model.working_directories["pattern"] = os.path.dirname(filename)
             if filename.endswith(".png"):
                 self.widget.pattern_widget.save_png(filename)
             elif filename.endswith(".svg"):

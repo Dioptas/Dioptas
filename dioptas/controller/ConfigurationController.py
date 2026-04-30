@@ -69,6 +69,7 @@ class ConfigurationController:
             'Data (*.xy);;Data (*.chi);;Data (*.dat);;GSAS (*.fxye)')
 
         if filename != '':
+            self.model.working_directories['pattern'] = os.path.dirname(filename)
             self.model.save_combined_pattern(filename)
 
     def combine_cakes_btn_clicked(self):
