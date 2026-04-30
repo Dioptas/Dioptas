@@ -1,3 +1,19 @@
+# 0.8.6 (in development)
+
+## New Features
+
+- added Spot Mask plugin for detecting and masking single-crystal diffraction spots in powder data using per-2θ-bin median+MAD outlier statistics, with optional fast mean+std method (algorithm based on AlbertVong/XRD-Powder-Mask)
+- added geometry support to the mask plugin interface — plugins can declare `needs_geometry = True` to receive calibration parameters (2θ/azimuth arrays, beam center, wavelength, etc.)
+- mask plugins can now receive the user-drawn mask via `existing_mask` to exclude pre-masked pixels (e.g., detector gaps) from their statistics
+- added info icons next to plugin settings parameters with instant-on-hover descriptions
+
+## Bugfixes
+
+- fixed Save Pattern and Save Combined Pattern dialogs not remembering the last directory between saves
+- fixed plugins not recomputing when the user draws a new mask (detector gaps were ignored until next image load)
+- fixed infinite recursion when drawing masks with dynamic or geometry-aware plugins enabled
+- fixed Spot Mask bleeding across narrow detector gaps when smoothing parameters were tuned aggressively
+
 # 0.8.5 (12.04.2026)
 
 ## New Features
