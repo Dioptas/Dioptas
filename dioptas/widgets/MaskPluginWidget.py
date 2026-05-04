@@ -48,12 +48,12 @@ class MaskPluginWidget(QtWidgets.QWidget):
 
     def add_plugin_row(
         self, name: str, has_settings: bool = False
-    ) -> tuple[QtWidgets.QCheckBox, QtWidgets.QPushButton | None]:
-        """Add a row for a plugin. Returns (checkbox, settings_btn or None)."""
+    ) -> tuple[QtWidgets.QCheckBox, QtWidgets.QPushButton | None, QtWidgets.QPushButton]:
+        """Add a row for a plugin. Returns (checkbox, settings_btn or None, imprint_btn)."""
         row = _PluginRow(name, has_settings, self)
         self._plugin_rows[name] = row
         self._layout.addWidget(row)
-        return row.checkbox, row.settings_btn
+        return row.checkbox, row.settings_btn, row.imprint_btn
 
     def get_row(self, name: str) -> _PluginRow | None:
         return self._plugin_rows.get(name)
@@ -84,6 +84,15 @@ class _PluginRow(QtWidgets.QWidget):
             self.settings_btn.setFixedSize(24, 24)
             self.settings_btn.setToolTip(f"Settings for {name}")
             layout.addWidget(self.settings_btn)
+
+        self.imprint_btn = QtWidgets.QPushButton("Imprint")
+        self.imprint_btn.setFixedHeight(24)
+        self.imprint_btn.setToolTip(
+            f"Bake the current {name} mask into the user-drawn mask "
+            f"and disable the plugin."
+        )
+        self.imprint_btn.setEnabled(False)  # only enabled when plugin is on
+        layout.addWidget(self.imprint_btn)
 
 
 class MaskPluginSettingsDialog(QtWidgets.QDialog):

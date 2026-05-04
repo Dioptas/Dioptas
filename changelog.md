@@ -6,6 +6,7 @@
 - added geometry support to the mask plugin interface — plugins can declare `needs_geometry = True` to receive calibration parameters (2θ/azimuth arrays, beam center, wavelength, etc.)
 - mask plugins can now receive the user-drawn mask via `existing_mask` to exclude pre-masked pixels (e.g., detector gaps) from their statistics
 - added info icons next to plugin settings parameters with instant-on-hover descriptions
+- added imprint button to each plugin row that bakes the current plugin mask into the user-drawn mask and disables the plugin
 
 ## Bugfixes
 

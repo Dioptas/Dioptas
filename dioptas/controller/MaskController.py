@@ -84,7 +84,7 @@ class MaskController:
 
         for name in manager.plugin_names:
             plugin = manager.get_plugin(name)
-            checkbox, settings_btn = self.widget.plugin_widget.add_plugin_row(
+            checkbox, settings_btn, imprint_btn = self.widget.plugin_widget.add_plugin_row(
                 name, plugin.has_settings
             )
             checkbox.toggled.connect(
@@ -94,11 +94,36 @@ class MaskController:
                 settings_btn.clicked.connect(
                     lambda _, n=name: self._on_plugin_settings(n)
                 )
+            imprint_btn.clicked.connect(
+                lambda _, n=name: self._on_plugin_imprint(n)
+            )
 
         manager.mask_changed.connect(self.plot_mask)
 
     def _on_plugin_toggled(self, name, checked):
         self.model.mask_plugin_manager.set_enabled(name, checked)
+        row = self.widget.plugin_widget.get_row(name)
+        if row is not None:
+            row.imprint_btn.setEnabled(checked)
+        self.plot_mask()
+
+    def _on_plugin_imprint(self, name):
+        """Bake the current plugin mask into the user-drawn mask, then disable it."""
+        manager = self.model.mask_plugin_manager
+        entry = manager.plugins.get(name)
+        if entry is None or entry.cached_mask is None:
+            return
+        # OR the plugin mask into the user-drawn mask
+        plugin_mask = entry.cached_mask
+        user_mask = self.model.mask_model.get_img()
+        combined = np.logical_or(user_mask, plugin_mask)
+        self.model.mask_model.set_mask(combined)
+        # Disable the plugin (the mask is now part of the user mask)
+        row = self.widget.plugin_widget.get_row(name)
+        if row is not None:
+            row.checkbox.setChecked(False)
+        else:
+            manager.set_enabled(name, False)
         self.plot_mask()
 
     def _on_plugin_settings(self, name):
@@ -593,6 +618,8 @@ class MaskController:
         for name in self.widget.plugin_widget.plugin_names:
             row = self.widget.plugin_widget.get_row(name)
             if row is not None:
+                enabled = manager.is_enabled(name)
                 row.checkbox.blockSignals(True)
-                row.checkbox.setChecked(manager.is_enabled(name))
+                row.checkbox.setChecked(enabled)
                 row.checkbox.blockSignals(False)
+                row.imprint_btn.setEnabled(enabled)

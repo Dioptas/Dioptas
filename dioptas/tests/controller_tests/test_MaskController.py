@@ -152,6 +152,41 @@ class MaskControllerTest(QtTest):
         # Both rectangles should be in the user mask
         assert self.model.mask_model.get_img().sum() > 0
 
+    def test_imprint_bakes_plugin_mask_into_user_mask(self):
+        """The imprint button should OR the plugin's current mask into the
+        user-drawn mask and disable the plugin."""
+        # Load an image so the plugin can compute
+        self.model.img_model._img_data = np.random.rand(100, 100).astype(np.float64) * 1e6
+        self.model.img_model.img_changed.emit()
+
+        # Enable cosmic ray plugin via the GUI checkbox (so imprint btn updates)
+        row = self.mask_widget.plugin_widget.get_row('Cosmic Ray Mask')
+        self.assertIsNotNone(row)
+        row.checkbox.setChecked(True)
+        self.mask_controller.plot_mask()
+
+        # Get the plugin mask before imprint
+        manager = self.model.mask_plugin_manager
+        plugin_mask = manager.get_combined_mask()
+        if plugin_mask is None or plugin_mask.sum() == 0:
+            self.skipTest("Plugin produced no mask on this synthetic data")
+        plugin_pixels = plugin_mask.sum()
+
+        # User mask should be empty initially
+        self.assertEqual(self.model.mask_model.get_img().sum(), 0)
+
+        # Click imprint
+        self.assertTrue(row.imprint_btn.isEnabled())
+        QTest.mouseClick(row.imprint_btn, QtCore.Qt.LeftButton)
+
+        # Plugin should be disabled
+        self.assertFalse(manager.is_enabled('Cosmic Ray Mask'))
+        self.assertFalse(row.checkbox.isChecked())
+        self.assertFalse(row.imprint_btn.isEnabled())
+
+        # User mask should now contain the plugin pixels
+        self.assertEqual(int(self.model.mask_model.get_img().sum()), int(plugin_pixels))
+
     def test_drawing_mask_with_geometry_plugin_enabled_does_not_recurse(self):
         """Regression: drawing a mask while a geometry-aware plugin is enabled
         should not recurse. update_geometry emits mask_changed before update_image
