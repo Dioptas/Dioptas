@@ -29,6 +29,10 @@ class MaskModel:
         self._mask_data: np.ndarray = np.zeros(self.mask_dimension, dtype=bool)
         self._undo_deque: deque[np.ndarray] = deque(maxlen=50)
         self._redo_deque: deque[np.ndarray] = deque(maxlen=50)
+        # Parallel deques tracking which plugin (if any) was imprinted at each
+        # undo step. None for regular mask actions; plugin name for imprints.
+        self._imprint_undo: deque[str | None] = deque(maxlen=50)
+        self._imprint_redo: deque[str | None] = deque(maxlen=50)
 
         self.mask_changed: Signal = Signal()
 
@@ -47,6 +51,8 @@ class MaskModel:
             self._mask_data = np.zeros(self.mask_dimension, dtype=bool)
             self._undo_deque = deque(maxlen=50)
             self._redo_deque = deque(maxlen=50)
+            self._imprint_undo = deque(maxlen=50)
+            self._imprint_redo = deque(maxlen=50)
 
     @property
     def roi_mask(self) -> np.ndarray | None:
@@ -92,13 +98,20 @@ class MaskModel:
         When performing a new action the old redo steps will be cleared.
         """
         self._undo_deque.append(np.copy(self._mask_data))
+        self._imprint_undo.append(None)
         self._redo_deque.clear()
+        self._imprint_redo.clear()
 
     def undo(self) -> None:
         try:
             old_data = self._undo_deque.pop()
+            imprint_name = self._imprint_undo.pop() if self._imprint_undo else None
             self._redo_deque.append(np.copy(self._mask_data))
+            self._imprint_redo.append(imprint_name)
             self._mask_data = old_data
+            # Re-enable any plugin that was disabled by this imprint step.
+            if imprint_name and self.mask_plugin_manager is not None:
+                self.mask_plugin_manager.set_enabled(imprint_name, True)
             self.mask_changed.emit()
         except IndexError:
             pass
@@ -106,11 +119,37 @@ class MaskModel:
     def redo(self) -> None:
         try:
             new_data = self._redo_deque.pop()
+            imprint_name = self._imprint_redo.pop() if self._imprint_redo else None
             self._undo_deque.append(np.copy(self._mask_data))
+            self._imprint_undo.append(imprint_name)
             self._mask_data = new_data
+            # Re-disable any plugin that was disabled by this imprint step.
+            if imprint_name and self.mask_plugin_manager is not None:
+                self.mask_plugin_manager.set_enabled(imprint_name, False)
             self.mask_changed.emit()
         except IndexError:
             pass
+
+    def imprint_plugin_mask(self, plugin_name: str) -> None:
+        """Bake a plugin's current mask into the user-drawn mask and disable it.
+
+        The action is recorded as a single undo step: undoing it restores the
+        previous user mask AND re-enables the plugin.
+        """
+        if self.mask_plugin_manager is None:
+            return
+        entry = self.mask_plugin_manager.plugins.get(plugin_name)
+        if entry is None or entry.cached_mask is None:
+            return
+        # Record snapshot tagged with the plugin name so undo can re-enable it.
+        self._undo_deque.append(np.copy(self._mask_data))
+        self._imprint_undo.append(plugin_name)
+        self._redo_deque.clear()
+        self._imprint_redo.clear()
+        # Apply the imprint and disable the plugin.
+        self._mask_data = np.logical_or(self._mask_data, entry.cached_mask)
+        self.mask_plugin_manager.set_enabled(plugin_name, False)
+        self.mask_changed.emit()
 
     def mask_below_threshold(self, img_data: np.ndarray, threshold: float) -> None:
         logger.debug("Masking below threshold: %s", threshold)

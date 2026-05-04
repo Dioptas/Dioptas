@@ -497,3 +497,120 @@ def test_geometry_context_dataclass():
     assert geo.wavelength == 0.3344e-10
     assert geo.pixel1 == 75e-6
     assert geo.pixel2 == 75e-6
+
+
+# -- Plugin imprint tests --
+
+
+def test_imprint_bakes_mask_and_disables_plugin():
+    """imprint_plugin_mask ORs the plugin mask into _mask_data and disables the plugin."""
+    model = MaskModel(mask_dimension=(50, 50))
+    manager = MaskPluginManager()
+    model.mask_plugin_manager = manager
+
+    plugin = NoSettingsPlugin()  # masks row 0
+    manager.register(plugin)
+    manager.update_image(np.zeros((50, 50)))
+    manager.set_enabled("No Settings", True)
+
+    assert model.get_img().sum() == 0
+    model.imprint_plugin_mask("No Settings")
+    assert model.get_img().sum() == 50  # row 0 baked in
+    assert not manager.is_enabled("No Settings")
+
+
+def test_imprint_undo_redo_restores_plugin_state():
+    """Undoing an imprint re-enables the plugin; redo disables it again."""
+    model = MaskModel(mask_dimension=(50, 50))
+    manager = MaskPluginManager()
+    model.mask_plugin_manager = manager
+
+    plugin = NoSettingsPlugin()
+    manager.register(plugin)
+    manager.update_image(np.zeros((50, 50)))
+    manager.set_enabled("No Settings", True)
+
+    model.imprint_plugin_mask("No Settings")
+    assert not manager.is_enabled("No Settings")
+    assert model.get_img().sum() == 50
+
+    model.undo()
+    assert manager.is_enabled("No Settings")
+    assert model.get_img().sum() == 0
+
+    model.redo()
+    assert not manager.is_enabled("No Settings")
+    assert model.get_img().sum() == 50
+
+
+def test_imprint_multiple_plugins_undo_in_lifo_order():
+    """Imprinting multiple plugins and undoing reverses each one in LIFO order."""
+    model = MaskModel(mask_dimension=(50, 50))
+    manager = MaskPluginManager()
+    model.mask_plugin_manager = manager
+
+    class A(MaskPluginBase):
+        name = "A"
+        is_dynamic = True
+        def compute_mask(self, img_data, existing_mask=None, **kwargs):
+            m = np.zeros(img_data.shape, dtype=bool)
+            m[0:5, :] = True
+            return m
+
+    class B(MaskPluginBase):
+        name = "B"
+        is_dynamic = True
+        def compute_mask(self, img_data, existing_mask=None, **kwargs):
+            m = np.zeros(img_data.shape, dtype=bool)
+            m[45:50, :] = True
+            return m
+
+    manager.register(A())
+    manager.register(B())
+    manager.update_image(np.zeros((50, 50)))
+    manager.set_enabled("A", True)
+    manager.set_enabled("B", True)
+
+    model.imprint_plugin_mask("A")
+    assert model.get_img().sum() == 250  # 5 rows
+    assert not manager.is_enabled("A")
+    assert manager.is_enabled("B")
+
+    model.imprint_plugin_mask("B")
+    assert model.get_img().sum() == 500  # 10 rows total
+    assert not manager.is_enabled("A")
+    assert not manager.is_enabled("B")
+
+    # Undo B first (LIFO)
+    model.undo()
+    assert model.get_img().sum() == 250
+    assert not manager.is_enabled("A")
+    assert manager.is_enabled("B")
+
+    # Then A
+    model.undo()
+    assert model.get_img().sum() == 0
+    assert manager.is_enabled("A")
+    assert manager.is_enabled("B")
+
+
+def test_imprint_then_draw_then_undo_skips_plugin_reenable():
+    """A regular mask draw between imprints should not re-enable plugins on undo."""
+    model = MaskModel(mask_dimension=(50, 50))
+    manager = MaskPluginManager()
+    model.mask_plugin_manager = manager
+
+    plugin = NoSettingsPlugin()
+    manager.register(plugin)
+    manager.update_image(np.zeros((50, 50)))
+    manager.set_enabled("No Settings", True)
+
+    model.imprint_plugin_mask("No Settings")
+    model.mask_rect(10, 10, 5, 5)  # regular draw
+
+    # Undoing the draw should NOT touch the plugin
+    model.undo()
+    assert not manager.is_enabled("No Settings")
+    # Undoing the imprint SHOULD re-enable the plugin
+    model.undo()
+    assert manager.is_enabled("No Settings")

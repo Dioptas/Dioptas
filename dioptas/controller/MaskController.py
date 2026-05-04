@@ -109,21 +109,14 @@ class MaskController:
 
     def _on_plugin_imprint(self, name):
         """Bake the current plugin mask into the user-drawn mask, then disable it."""
-        manager = self.model.mask_plugin_manager
-        entry = manager.plugins.get(name)
-        if entry is None or entry.cached_mask is None:
-            return
-        # OR the plugin mask into the user-drawn mask
-        plugin_mask = entry.cached_mask
-        user_mask = self.model.mask_model.get_img()
-        combined = np.logical_or(user_mask, plugin_mask)
-        self.model.mask_model.set_mask(combined)
-        # Disable the plugin (the mask is now part of the user mask)
+        self.model.mask_model.imprint_plugin_mask(name)
+        # Sync GUI with the now-disabled plugin
         row = self.widget.plugin_widget.get_row(name)
         if row is not None:
+            row.checkbox.blockSignals(True)
             row.checkbox.setChecked(False)
-        else:
-            manager.set_enabled(name, False)
+            row.checkbox.blockSignals(False)
+            row.imprint_btn.setEnabled(False)
         self.plot_mask()
 
     def _on_plugin_settings(self, name):
@@ -272,10 +265,12 @@ class MaskController:
 
     def undo_btn_click(self):
         self.model.mask_model.undo()
+        self._update_plugin_checkboxes()
         self.plot_mask()
 
     def redo_btn_click(self):
         self.model.mask_model.redo()
+        self._update_plugin_checkboxes()
         self.plot_mask()
 
     def plot_image(self):
