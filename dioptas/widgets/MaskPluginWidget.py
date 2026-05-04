@@ -85,11 +85,11 @@ class _PluginRow(QtWidgets.QWidget):
             self.settings_btn.setToolTip(f"Settings for {name}")
             layout.addWidget(self.settings_btn)
 
-        self.imprint_btn = QtWidgets.QPushButton("Imprint")
-        self.imprint_btn.setFixedHeight(24)
+        self.imprint_btn = QtWidgets.QPushButton("I")
+        self.imprint_btn.setFixedSize(24, 24)
         self.imprint_btn.setToolTip(
-            f"Bake the current {name} mask into the user-drawn mask "
-            f"and disable the plugin."
+            f"Imprint — bake the current {name} mask into the user-drawn "
+            f"mask and disable the plugin."
         )
         self.imprint_btn.setEnabled(False)  # only enabled when plugin is on
         layout.addWidget(self.imprint_btn)
