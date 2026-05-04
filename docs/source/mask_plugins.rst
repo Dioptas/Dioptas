@@ -9,7 +9,16 @@ image data. Plugins can be **static** (computed once per image shape) or **dynam
 for every new image).
 
 Mask plugins are discovered automatically at startup and appear in the Mask module control panel,
-where each plugin has a checkbox to enable/disable it and an optional settings button.
+where each plugin has a checkbox to enable/disable it, an optional settings button, and an
+**Imprint** button.
+
+The Imprint button bakes the plugin's current output into the user-drawn mask and disables the
+plugin in one step. This is useful for freezing a dynamic plugin's result so subsequent
+analyses don't depend on the plugin's parameters or runtime — and so the next plugin run isn't
+biased by the previously imprinted pixels (since plugins receive the user-drawn mask via
+``existing_mask`` and use it to exclude pre-masked pixels from their statistics). Imprinting
+is fully undoable: pressing undo restores the previous user mask **and** re-enables the
+plugin.
 
 
 Writing a Mask Plugin
@@ -147,22 +156,26 @@ Supported setting types:
      - Extra keys
    * - ``"float"``
      - QDoubleSpinBox
-     - ``min``, ``max``, ``decimals``
+     - ``min``, ``max``, ``decimals``, ``step``
    * - ``"int"``
      - QSpinBox
-     - ``min``, ``max``
+     - ``min``, ``max``, ``step``
    * - ``"bool"``
      - QCheckBox
      -
+   * - ``"choice"``
+     - QComboBox
+     - ``choices`` (list of strings, **required**)
    * - ``"str"``
      - QLineEdit
      -
 
 Each setting dict must include ``type``, ``default``, and ``label``. Optional keys:
 
-- ``description``: tooltip text shown when hovering over the label or widget, explaining what the parameter does
+- ``description``: shown in a popup next to the parameter (hover over the (i) icon)
 - ``min`` / ``max``: bounds for numeric types
 - ``decimals``: decimal places for float spinboxes
+- ``step``: increment used by the spinbox arrows / scroll wheel
 
 
 Installing Plugins
@@ -251,7 +264,7 @@ Plugin API Reference
       If ``True``, the plugin's ``compute_mask`` receives a ``GeometryContext`` as the second
       argument. Default is ``False``.
 
-   .. method:: compute_mask(img_data: numpy.ndarray, geometry: GeometryContext | None = None) -> numpy.ndarray
+   .. method:: compute_mask(img_data, geometry=None, existing_mask=None, **kwargs) -> numpy.ndarray
 
       **Required.** Compute and return a boolean mask. ``True`` means the pixel is masked
       (excluded from integration).
@@ -259,7 +272,14 @@ Plugin API Reference
       :param img_data: The current image data as a 2D NumPy array.
       :param geometry: Calibration geometry (only passed when ``needs_geometry = True``).
          ``None`` if detector is not calibrated.
+      :param existing_mask: User-drawn mask (detector gaps, manual masks). ``True`` means
+         the pixel is already masked. Plugins can use this to exclude pre-masked pixels
+         from their statistics — useful for ignoring detector gaps when computing
+         per-bin medians or local means.
       :returns: Boolean array with the same shape as *img_data*.
+
+      Always accept ``**kwargs`` so future versions can pass additional context without
+      breaking existing plugins.
 
    .. method:: get_settings_schema() -> dict | None
 
