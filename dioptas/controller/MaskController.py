@@ -79,6 +79,7 @@ class MaskController:
         if not manager.plugin_names:
             return
 
+        self.widget._plugin_header.show()
         self.widget.plugin_widget.show()
         self.widget._plugin_separator.show()
 

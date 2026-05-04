@@ -116,11 +116,17 @@ class MaskWidget(QtWidgets.QWidget):
 
         self._control_layout.addWidget(HorizontalLine())
 
+        self._plugin_header = QtWidgets.QLabel("Automatic Masking Plugins")
+        self._plugin_header.setStyleSheet(
+            "font-weight: bold; color: gray; margin-top: 4px;"
+        )
+        self._control_layout.addWidget(self._plugin_header)
         self.plugin_widget = MaskPluginWidget()
         self._control_layout.addWidget(self.plugin_widget)
         self._plugin_separator = HorizontalLine()
         self._control_layout.addWidget(self._plugin_separator)
         # Hide plugin section until plugins are registered
+        self._plugin_header.hide()
         self.plugin_widget.hide()
         self._plugin_separator.hide()
 
