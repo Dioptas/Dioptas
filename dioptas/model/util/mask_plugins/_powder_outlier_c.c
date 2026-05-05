@@ -226,8 +226,11 @@ compute_outlier_mask_binned(PyObject *self, PyObject *args)
         omp_set_num_threads(nt);
     }
 #endif
+    /* Loop counter declared outside the for: MSVC's OpenMP 2.0 rejects
+     * C99-style "for (int b = 0; ...)" inside #pragma omp for. */
+    int b;
     #pragma omp parallel for schedule(dynamic)
-    for (int b = 0; b < num_bins; b++) {
+    for (b = 0; b < num_bins; b++) {
         Py_ssize_t bsize = (Py_ssize_t)bin_counts[b];
         if (bsize < 3) continue;
         /* Each thread gets its own work buffer on the stack or heap */

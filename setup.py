@@ -35,12 +35,16 @@ def _openmp_flags():
 
 omp_cflags, omp_ldflags = _openmp_flags()
 
+# MSVC already adds /O2 in release builds and rejects "-O3" with a warning,
+# so only pass the GCC/Clang optimization flag on non-Windows platforms.
+optimize_cflags = [] if sys.platform == "win32" else ["-O3"]
+
 extensions = [
     Extension(
         "dioptas.model.util.mask_plugins._powder_outlier_c",
         sources=["dioptas/model/util/mask_plugins/_powder_outlier_c.c"],
         include_dirs=[np.get_include()],
-        extra_compile_args=["-O3"] + omp_cflags,
+        extra_compile_args=optimize_cflags + omp_cflags,
         extra_link_args=omp_ldflags,
     ),
 ]
