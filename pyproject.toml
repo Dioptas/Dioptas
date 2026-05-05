@@ -75,6 +75,18 @@ build-backend = "setuptools.build_meta"
 version_file = "dioptas/_version.py"
 fallback_version = "0.8.5"
 
+[tool.cibuildwheel]
+# Project requires Python >=3.11,<3.14
+build = "cp311-* cp312-* cp313-*"
+# Skip Alpine, 32-bit Linux, PyPy, and Windows ARM64 (no PyQt6 wheel)
+skip = "*-musllinux_* *-manylinux_i686 pp* *-win_arm64"
+build-verbosity = 1
+environment = { DIOPTAS_REQUIRE_C_EXT = "1" }
+
+[tool.cibuildwheel.macos]
+# Match numpy's deployment target so the wheel installs on supported macOS versions.
+environment = { DIOPTAS_REQUIRE_C_EXT = "1", MACOSX_DEPLOYMENT_TARGET = "11.0" }
+
 [tool.coverage.run]
 source = ["dioptas"]
 omit = [

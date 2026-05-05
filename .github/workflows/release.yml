@@ -292,7 +292,51 @@ jobs:
           dist/Dioptas_MacOS.tar.gz
           dist/Dioptas_MacOS.dmg
 
-  build_package:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install OpenMP (macOS)
+        if: runner.os == 'macOS'
+        run: brew install libomp
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v3.4.1
+
+      - name: Verify each wheel contains the C extension
+        shell: bash
+        run: |
+          shopt -s nullglob
+          wheels=(wheelhouse/*.whl)
+          if [ ${#wheels[@]} -eq 0 ]; then
+            echo "ERROR: cibuildwheel produced no wheels"
+            exit 1
+          fi
+          for wheel in "${wheels[@]}"; do
+            if ! unzip -l "$wheel" | grep -qE '_powder_outlier_c\.[^/[:space:]]+\.(so|pyd)$'; then
+              echo "ERROR: $wheel does not contain _powder_outlier_c"
+              unzip -l "$wheel" | grep -i powder || true
+              exit 1
+            fi
+          done
+          echo "All ${#wheels[@]} wheel(s) contain the C extension."
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}
+          path: wheelhouse/*.whl
+
+  build_sdist:
+    name: Build sdist
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -303,19 +347,17 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: "3.13"
-          cache: 'pip'
 
-      - name: Install uv
-        run: python -m pip install --upgrade pip uv
+      - name: Build sdist
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build --sdist
 
-      - name: Build Package
-        run: uv build
-
-      - name: Upload wheels to artifact
+      - name: Upload sdist
         uses: actions/upload-artifact@v4
         with:
-          name: wheels
-          path: dist/*
+          name: sdist
+          path: dist/*.tar.gz
 
   create_release:
     needs: [build_linux, build_windows, build_macos]
@@ -356,7 +398,7 @@ jobs:
 
   pypi-publish:
     name: Upload release to PyPI
-    needs: [build_package, create_release]
+    needs: [build_wheels, build_sdist, create_release]
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -364,9 +406,17 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download wheels
+        uses: actions/download-artifact@v4
         with:
-          name: wheels
+          pattern: wheels-*
+          path: dist
+          merge-multiple: true
+
+      - name: Download sdist
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
           path: dist
 
       - name: Check the dist folder
