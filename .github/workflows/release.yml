@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       QT_QPA_PLATFORM: offscreen
+      DIOPTAS_REQUIRE_C_EXT: "1"
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
@@ -36,6 +37,9 @@ jobs:
     - name: Install dependencies
       run: uv sync --extra test
 
+    - name: Verify C extension built
+      run: uv run python -c "from dioptas.model.util.mask_plugins.powder_outlier import _c_compute_binned; assert _c_compute_binned is not None, 'C extension was not built'"
+
     - name: Install dioptrin
       if: ${{ env.DIOPTRIN_TOKEN != '' }}
       env:
@@ -53,6 +57,17 @@ jobs:
 
     - name: Run PyInstaller
       run: uv run bash create_executable.sh
+
+    - name: Verify C extension bundled
+      shell: bash
+      run: |
+        matches=$(find dist -name '_powder_outlier_c*' || true)
+        if [ -z "$matches" ]; then
+          echo "ERROR: _powder_outlier_c not found in PyInstaller bundle"
+          exit 1
+        fi
+        echo "Found C extension in bundle:"
+        echo "$matches"
 
     - name: Run Dioptas from newly created executable to test
       run: |
@@ -99,6 +114,8 @@ jobs:
 
   build_windows:
     runs-on: windows-latest
+    env:
+      DIOPTAS_REQUIRE_C_EXT: "1"
     steps:
     - uses: actions/checkout@v4
       with:
@@ -115,6 +132,9 @@ jobs:
 
     - name: Install dependencies
       run: uv sync --extra test
+
+    - name: Verify C extension built
+      run: uv run python -c "from dioptas.model.util.mask_plugins.powder_outlier import _c_compute_binned; assert _c_compute_binned is not None, 'C extension was not built'"
 
     - name: Install dioptrin
       if: ${{ env.DIOPTRIN_TOKEN != '' }}
@@ -135,6 +155,17 @@ jobs:
     - name: Run PyInstaller
       shell: cmd
       run: uv run pyinstaller Dioptas.spec
+
+    - name: Verify C extension bundled
+      shell: bash
+      run: |
+        matches=$(find dist -name '_powder_outlier_c*' || true)
+        if [ -z "$matches" ]; then
+          echo "ERROR: _powder_outlier_c not found in PyInstaller bundle"
+          exit 1
+        fi
+        echo "Found C extension in bundle:"
+        echo "$matches"
 
     - name: Run Dioptas Executable from Dist Folder
       shell: cmd
@@ -164,6 +195,8 @@ jobs:
 
   build_macos:
     runs-on: macos-latest
+    env:
+      DIOPTAS_REQUIRE_C_EXT: "1"
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
@@ -185,6 +218,9 @@ jobs:
     - name: Install dependencies
       run: uv sync --extra test
 
+    - name: Verify C extension built
+      run: uv run python -c "from dioptas.model.util.mask_plugins.powder_outlier import _c_compute_binned; assert _c_compute_binned is not None, 'C extension was not built'"
+
     - name: Install dioptrin
       if: ${{ env.DIOPTRIN_TOKEN != '' }}
       env:
@@ -202,6 +238,17 @@ jobs:
 
     - name: Run PyInstaller
       run: uv run bash create_executable.sh
+
+    - name: Verify C extension bundled
+      shell: bash
+      run: |
+        matches=$(find dist -name '_powder_outlier_c*' || true)
+        if [ -z "$matches" ]; then
+          echo "ERROR: _powder_outlier_c not found in PyInstaller bundle"
+          exit 1
+        fi
+        echo "Found C extension in bundle:"
+        echo "$matches"
 
     - name: Ad-hoc Codesign App Bundle
       run: codesign --force --deep --sign - dist/Dioptas*.app

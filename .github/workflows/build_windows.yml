@@ -13,6 +13,7 @@ jobs:
     runs-on: windows-latest
     env:
       folder_name: 'DioptasWin'
+      DIOPTAS_REQUIRE_C_EXT: "1"
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -31,6 +32,9 @@ jobs:
 
     - name: Install dependencies
       run: uv sync --extra test
+
+    - name: Verify C extension built
+      run: uv run python -c "from dioptas.model.util.mask_plugins.powder_outlier import _c_compute_binned; assert _c_compute_binned is not None, 'C extension was not built'"
 
     - name: Install dioptrin
       if: ${{ env.DIOPTRIN_TOKEN != '' }}
@@ -51,6 +55,17 @@ jobs:
     - name: Run PyInstaller
       shell: cmd
       run: uv run pyinstaller Dioptas.spec
+
+    - name: Verify C extension bundled
+      shell: bash
+      run: |
+        matches=$(find dist -name '_powder_outlier_c*' || true)
+        if [ -z "$matches" ]; then
+          echo "ERROR: _powder_outlier_c not found in PyInstaller bundle"
+          exit 1
+        fi
+        echo "Found C extension in bundle:"
+        echo "$matches"
 
     - name: Run Dioptas Executable from Dist Folder
       shell: cmd

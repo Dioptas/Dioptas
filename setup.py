@@ -6,6 +6,7 @@ import sys
 
 import numpy as np
 from setuptools import Extension, setup
+from setuptools.command.build_ext import build_ext
 
 
 def _openmp_flags():
@@ -49,4 +50,38 @@ extensions = [
     ),
 ]
 
-setup(ext_modules=extensions)
+
+class OptionalBuildExt(build_ext):
+    """Build C extensions, falling back to a pure-Python install on failure.
+
+    The Spot Mask plugin has a NumPy fallback (see
+    dioptas/model/util/mask_plugins/powder_outlier.py), so users on
+    platforms without a working C toolchain can still ``pip install dioptas``
+    and use a slower implementation rather than failing outright.
+
+    Set ``DIOPTAS_REQUIRE_C_EXT=1`` to make a build failure fatal — used by
+    CI when producing wheels and PyInstaller bundles that *must* include the
+    fast path.
+    """
+
+    def run(self):
+        try:
+            super().run()
+        except Exception as exc:
+            if os.environ.get("DIOPTAS_REQUIRE_C_EXT"):
+                raise
+            print(
+                f"WARNING: C extension build skipped ({exc}); "
+                "the Spot Mask plugin will fall back to a slower NumPy implementation."
+            )
+
+    def build_extension(self, ext):
+        try:
+            super().build_extension(ext)
+        except Exception as exc:
+            if os.environ.get("DIOPTAS_REQUIRE_C_EXT"):
+                raise
+            print(f"WARNING: skipping extension {ext.name}: {exc}")
+
+
+setup(ext_modules=extensions, cmdclass={"build_ext": OptionalBuildExt})
