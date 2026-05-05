@@ -3,6 +3,12 @@
 A GUI program for fast analysis of powder X-ray diffraction Images. It provides the capability of calibrating,
 creating masks, having pattern overlays and showing phase lines.
 
+## Documentation
+
+The full user manual is hosted on Read the Docs:
+
+https://dioptas.readthedocs.io/
+
 ## Maintainer
 
 Clemens Prescher (clemens.prescher@gmail.com)
