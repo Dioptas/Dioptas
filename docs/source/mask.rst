@@ -70,7 +70,7 @@ Control Buttons
 
 - *Undo/Redo*:
     Undo or redo mask actions. Up to 50 actions can be undone.
-    Keyboard shortcuts: **Z** for undo, **Y** for redo.
+    Keyboard shortcuts: **Ctrl/Cmd + Z** for undo, **Ctrl/Cmd + Y** for redo.
 
 
 File Handling

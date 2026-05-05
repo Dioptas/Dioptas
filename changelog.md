@@ -7,6 +7,7 @@
 - mask plugins can now receive the user-drawn mask via `existing_mask` to exclude pre-masked pixels (e.g., detector gaps) from their statistics
 - added info icons next to plugin settings parameters with instant-on-hover descriptions
 - added imprint button to each plugin row that bakes the current plugin mask into the user-drawn mask and disables the plugin (full undo/redo support — undoing an imprint reverts the mask and re-enables the plugin)
+- added Ctrl/Cmd + Left/Right keyboard shortcut to load previous/next image in all modules; the existing pattern position-line shortcut in Integration mode now requires the Alt modifier (Alt + Left/Right, with Shift or Ctrl/Cmd for ×10 or fractional steps)
 
 ## Bugfixes
 

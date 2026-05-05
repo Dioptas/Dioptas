@@ -435,6 +435,9 @@ class PatternController:
 
     def key_press_event(self, ev):
         if (ev.key() == QtCore.Qt.Key_Left) or (ev.key() == QtCore.Qt.Key_Right):
+            if not (ev.modifiers() & QtCore.Qt.AltModifier):
+                ev.ignore()
+                return
             pos = self.widget.pattern_widget.get_pos_line()
             step = np.min(np.diff(self.model.pattern.data[0]))
             if ev.modifiers() & QtCore.Qt.ControlModifier:

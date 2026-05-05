@@ -78,7 +78,10 @@ Keyboard Shortcuts
 
 Several keyboard shortcuts are available throughout the application:
 
-- *Right/Left Arrow Keys:* Load next/previous image
-- *Q/W Keys:* Decrease/increase point mask size (in Mask module)
-- *Z Key:* Undo last mask action (in Mask module)
-- *Y Key:* Redo last mask action (in Mask module)
+- *Ctrl/Cmd + Left/Right Arrow Keys:* Load the previous/next image. Available in all modules.
+- *Alt + Left/Right Arrow Keys (Integration module):* Move the position line on the pattern
+  by one data point. Hold **Shift** as well to step by 10 points; hold **Ctrl/Cmd** as well
+  to take a fractional (1/20th) step.
+- *Q/W Keys (Mask module):* Decrease/increase point mask size.
+- *Ctrl/Cmd + Z (Mask module):* Undo last mask action.
+- *Ctrl/Cmd + Y (Mask module):* Redo last mask action.
