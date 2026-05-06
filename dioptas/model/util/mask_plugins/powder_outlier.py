@@ -296,7 +296,9 @@ def _smooth_mask(
     detected pixel, so the gap-fill values cannot bleed across narrow gaps to
     create false detections on the other side.
     """
-    if gap is not None and np.any(gap):
+    gap_active = gap is not None and np.any(gap)
+
+    if gap_active:
         from scipy.ndimage import binary_dilation
 
         # Deep dilation into gap so the Gaussian kernel sees continuous values
@@ -323,7 +325,7 @@ def _smooth_mask(
         smoothed = gaussian_filter(mask_float, sigma=sigma)
 
     result = smoothed > threshold
-    if gap is not None:
+    if gap_active:
         # Restrict to within the smoothing reach of a detected pixel, so the
         # gap-fill values cannot bleed across narrow gaps to create false
         # detections on the other side.

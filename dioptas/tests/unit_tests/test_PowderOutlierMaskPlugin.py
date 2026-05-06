@@ -129,6 +129,27 @@ class TestPowderOutlierAlgorithm:
         # Smoothing expands the cluster footprint into neighboring pixels
         assert mask_smooth.sum() > mask_no_smooth[49:53, 49:53].sum()
 
+    def test_smoothing_with_empty_existing_mask(self):
+        """Regression: empty (all-zero) existing_mask must not trip the
+        gap-cleanup path in _smooth_mask (UnboundLocalError on `reach`)."""
+        shape = (50, 50)
+        geometry = _make_geometry(shape)
+        img, _ = _make_powder_image(shape, geometry)
+        empty_mask = np.zeros(shape, dtype=np.uint8)
+
+        mask = _compute_powder_outlier_mask(
+            img,
+            geometry=geometry,
+            esdmul=3.0,
+            num_bins=20,
+            method="mean",
+            iterations=1,
+            smooth_sigma=2.0,
+            smooth_threshold=0.1,
+            existing_mask=empty_mask,
+        )
+        assert mask.shape == shape
+
     def test_more_bins_gives_finer_resolution(self):
         shape = (100, 100)
         geometry = _make_geometry(shape)

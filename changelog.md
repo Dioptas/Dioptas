@@ -15,6 +15,7 @@
 - fixed plugins not recomputing when the user draws a new mask (detector gaps were ignored until next image load)
 - fixed infinite recursion when drawing masks with dynamic or geometry-aware plugins enabled
 - fixed Spot Mask bleeding across narrow detector gaps when smoothing parameters were tuned aggressively
+- fixed Spot Mask raising `UnboundLocalError` and disabling itself when smoothing was enabled and the user mask was empty
 
 # 0.8.5 (12.04.2026)
 
