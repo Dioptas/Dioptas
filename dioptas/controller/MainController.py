@@ -21,7 +21,6 @@ from .integration import IntegrationController
 from .MaskController import MaskController
 from .ConfigurationController import ConfigurationController
 from .MapController import MapController
-from .EosDatabaseController import EosDatabaseController
 
 from dioptas import __version__
 from ..model.UpdateChecker import check_for_update
@@ -59,9 +58,6 @@ class MainController:
             self.widget.integration_widget, self.model
         )
         self.map_controller = MapController(self.widget.map_widget, self.model)
-        self.eos_database_controller = EosDatabaseController(
-            self.widget.eos_database_widget, self.model
-        )
 
         self.calibration_controller.activate()
         self.integration_controller.image_controller.deactivate()
@@ -172,10 +168,6 @@ class MainController:
             self.widget.integration_widget.setVisible
         )
         self.widget.map_mode_btn.toggled.connect(self.widget.map_widget.setVisible)
-        self.widget.eos_database_mode_btn.toggled.connect(
-            self.widget.eos_database_widget.setVisible
-        )
-
         self.widget.mode_btn_group.buttonToggled.connect(self.tab_changed)
 
         self.model.img_changed.connect(self.update_title)
@@ -199,8 +191,6 @@ class MainController:
             ind = 2
         elif self.widget.map_mode_btn.isChecked():
             ind = 3
-        elif self.widget.eos_database_mode_btn.isChecked():
-            ind = 4
         else:
             return
 
@@ -209,7 +199,7 @@ class MainController:
 
         old_index = self.current_tab_index
         self.current_tab_index = ind
-        logger.info("Switched to %s mode", ["calibration", "mask", "integration", "map", "eos_database"][ind])
+        logger.info("Switched to %s mode", ["calibration", "mask", "integration", "map"][ind])
 
         # changing from mask tab will reintegrate the image
         if old_index == 1:  # mask tab
@@ -231,7 +221,6 @@ class MainController:
             self.mask_controller,
             self.integration_controller.image_controller,
             self.map_controller,
-            self.eos_database_controller,
         ]
         for i, controller in enumerate(controllers):
             if i == mode_ind:
@@ -240,9 +229,6 @@ class MainController:
                 controller.deactivate()
 
     def update_image_display_state(self, old_index, new_index):
-        # EOS DB panel (index 4) has no image widget — skip state transfer if either side is EOS DB
-        if old_index == 4 or new_index == 4:
-            return
         img_widgets = [
             self.widget.calibration_widget.img_widget,
             self.widget.mask_widget.img_widget,

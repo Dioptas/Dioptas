@@ -33,6 +33,7 @@ class PhaseWidget(QtWidgets.QWidget):
         self._layout.setSpacing(5)
 
         self.add_btn = FlatButton()
+        self.browse_db_btn = FlatButton()
         self.edit_btn = FlatButton()
         self.delete_btn = FlatButton()
         self.clear_btn = FlatButton()
@@ -46,6 +47,7 @@ class PhaseWidget(QtWidgets.QWidget):
         self._button_layout.setSpacing(6)
 
         self._button_layout.addWidget(self.add_btn)
+        self._button_layout.addWidget(self.browse_db_btn)
         self._button_layout.addWidget(self.edit_btn)
         self._button_layout.addWidget(HorizontalLine())
         self._button_layout.addWidget(self.delete_btn)
@@ -157,9 +159,14 @@ class PhaseWidget(QtWidgets.QWidget):
             btn.setMaximumWidth(button_width)
 
         modify_btn_to_icon_size(self.add_btn)
+        modify_btn_to_icon_size(self.browse_db_btn)
         modify_btn_to_icon_size(self.delete_btn)
         modify_btn_to_icon_size(self.clear_btn)
         modify_btn_to_icon_size(self.edit_btn)
+
+        # Label the DB button with text since there is no dedicated icon
+        self.browse_db_btn.setText("DB")
+        self.browse_db_btn.setStyleSheet("font-size: 9px; font-weight: bold;")
 
         self.phase_tw.setSizePolicy(
             QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.MinimumExpanding
@@ -187,6 +194,7 @@ class PhaseWidget(QtWidgets.QWidget):
 
     def add_tooltips(self):
         self.add_btn.setToolTip("Loads Phase(s) from jcpds or cif file(s)")
+        self.browse_db_btn.setToolTip("Browse EoS Material Database")
         self.edit_btn.setToolTip("Edit selected Phase")
         self.delete_btn.setToolTip("Removes currently selected phase")
         self.clear_btn.setToolTip("Removes all phases")

@@ -53,6 +53,7 @@ class PhaseController:
     def create_signals(self):
         # Button Callbacks
         self.phase_widget.add_btn.clicked.connect(self.add_btn_click_callback)
+        self.phase_widget.browse_db_btn.clicked.connect(self.browse_db_btn_click_callback)
         self.phase_widget.delete_btn.clicked.connect(self.delete_btn_click_callback)
         self.phase_widget.clear_btn.clicked.connect(self.clear_phases)
         self.phase_widget.save_list_btn.clicked.connect(self.save_btn_clicked_callback)
@@ -114,6 +115,21 @@ class PhaseController:
                     break
             progress_dialog.close()
             QtWidgets.QApplication.processEvents()
+
+    def browse_db_btn_click_callback(self):
+        """Open the EoS Database browser dialog and load the chosen material as a phase."""
+        from ....widgets.EosDatabaseDialog import EosDatabaseDialog
+        dialog = EosDatabaseDialog(
+            parent=self.integration_widget,
+            api_url=getattr(self, "_last_db_url", "http://localhost:8000"),
+        )
+        if dialog.exec_() == EosDatabaseDialog.Accepted and dialog.result_phase:
+            jcpds_obj, filename = dialog.result_phase
+            # Remember API URL for next time
+            self._last_db_url = dialog.api_url_input.text().strip()
+            # Sync phase_files so PhaseController.phase_added() can read [-1]
+            self.model.phase_model.phase_files.append(filename)
+            self.model.phase_model.add_jcpds_object(jcpds_obj)
 
     def _add_phase(self, filename):
         try:
