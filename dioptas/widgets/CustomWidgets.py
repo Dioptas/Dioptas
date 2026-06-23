@@ -323,6 +323,10 @@ class ListTableWidget(QtWidgets.QTableWidget):
         self.verticalHeader().setVisible(False)
         self.horizontalHeader().setStretchLastSection(True)
         self.setShowGrid(False)
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setSizeAdjustPolicy(
+            QtWidgets.QAbstractScrollArea.AdjustToContents
+        )
 
 
 class NoRectDelegate(QtWidgets.QItemDelegate):
@@ -397,14 +401,31 @@ class MenuTabWidget(QtWidgets.QWidget):
         :param widget: The widget that should be shown when the tab is selected.
         """
         btn = CheckableFlatButton(title)
-        btn.clicked.connect(lambda: self.show_tab(widget))
         btn.setFixedHeight(30)
+        btn.setProperty("tab_title", title)
         self.menu_btns.append(btn)
         self._menu_button_group.addButton(btn)
         self._menu_btn_layout.addWidget(btn)
-        self.tab_widgets.append(widget)
-        self._layout.addWidget(widget)
-        widget.hide()
+
+        scroll_area = QtWidgets.QScrollArea()
+        scroll_area.setWidget(widget)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QtWidgets.QFrame.NoFrame)
+
+        btn.clicked.connect(lambda: self.show_tab(scroll_area))
+        self.tab_widgets.append(scroll_area)
+        self._layout.addWidget(scroll_area)
+        scroll_area.hide()
+
+        # If the widget is a QGroupBox, update the tab button to indicate
+        # when the correction is enabled (toggled signal works even if
+        # setCheckable is called later)
+        if isinstance(widget, QtWidgets.QGroupBox):
+            widget.toggled.connect(
+                lambda checked, b=btn, t=title: b.setText(
+                    "\u2022 " + t if checked else t
+                )
+            )
 
         if len(self.menu_btns) == 1:
             self.select_tab(0)

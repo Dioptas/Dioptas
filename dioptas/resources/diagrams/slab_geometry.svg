@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="220" viewBox="0 0 260 220">
+  <style>
+    text { font-family: Arial; fill: #ccc; }
+    .title { font-size: 10px; font-weight: bold; fill: #aaa; }
+    .label { font-size: 9px; fill: #aaa; }
+    .angle { font-size: 9px; fill: #ff9800; }
+    .dim { font-size: 8px; fill: #888; }
+  </style>
+
+  <!-- === SIDE VIEW (top half) === -->
+  <text x="5" y="12" class="title">Top view (rotation = 0°, tilt shown):</text>
+
+  <!-- Beam arrow -->
+  <line x1="10" y1="65" x2="68" y2="65" stroke="#4fc3f7" stroke-width="2"/>
+  <polygon points="68,65 62,61 62,69" fill="#4fc3f7"/>
+  <text x="15" y="58" class="label" fill="#4fc3f7">beam (x)</text>
+
+  <!-- Slab at tilt=0 (perpendicular to beam, faint) -->
+  <line x1="95" y1="30" x2="95" y2="100" stroke="#666" stroke-width="1" stroke-dasharray="3,3"/>
+
+  <!-- Slab tilted 20° (positive tilt at rot=0: normal tilts toward +y = down in top view) -->
+  <g transform="translate(120,65) rotate(20)">
+    <rect x="-3" y="-38" width="6" height="76" fill="#ff9800" fill-opacity="0.2" stroke="#ff9800" stroke-width="1.5"/>
+  </g>
+
+  <!-- Slab normal for tilted slab (points down-right: toward +x and +y) -->
+  <line x1="120" y1="65" x2="168" y2="77" stroke="#ff9800" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <polygon points="168,77 161,77 163,72" fill="#ff9800"/>
+  <text x="170" y="82" class="label" fill="#ff9800">n</text>
+  <text x="130" y="90" class="angle">tilt=20°</text>
+
+  <!-- Beam extension for angle ref -->
+  <line x1="95" y1="65" x2="175" y2="65" stroke="#4fc3f7" stroke-width="0.7" stroke-dasharray="2,3" opacity="0.4"/>
+
+  <!-- Tilt angle arc -->
+  <path d="M 148,65 A 28,28 0 0,1 152,72" fill="none" stroke="#ff9800" stroke-width="1.2"/>
+
+  <!-- y-axis label (perpendicular in top view) -->
+  <line x1="190" y1="65" x2="190" y2="30" stroke="#aaa" stroke-width="0.8" stroke-dasharray="2,2" opacity="0.4"/>
+  <polygon points="190,30 187,35 193,35" fill="#aaa" opacity="0.5"/>
+  <text x="193" y="33" class="label">y</text>
+
+  <!-- Diffracted beam -->
+  <line x1="120" y1="65" x2="190" y2="32" stroke="#aaa" stroke-width="1"/>
+  <polygon points="190,32 184,35 186,40" fill="#aaa"/>
+  <text x="175" y="28" class="label">2&#x3b8;</text>
+
+  <!-- === FRONT VIEW (bottom half) === -->
+  <text x="5" y="130" class="title">Front view (looking along beam toward detector):</text>
+
+  <!-- Circle representing the azimuthal plane -->
+  <circle cx="80" cy="178" r="30" fill="none" stroke="#555" stroke-width="0.8"/>
+
+  <!-- Beam coming toward us (dot) -->
+  <circle cx="80" cy="178" r="2.5" fill="#4fc3f7"/>
+  <circle cx="80" cy="178" r="5" fill="none" stroke="#4fc3f7" stroke-width="0.8"/>
+  <text x="42" y="192" class="label" fill="#4fc3f7">beam (x)</text>
+
+  <!-- y-axis (horizontal right) -->
+  <line x1="80" y1="178" x2="120" y2="178" stroke="#aaa" stroke-width="1"/>
+  <polygon points="120,178 116,175 116,181" fill="#aaa"/>
+  <text x="122" y="182" class="label">y</text>
+
+  <!-- z-axis (vertical up) -->
+  <line x1="80" y1="178" x2="80" y2="140" stroke="#aaa" stroke-width="1"/>
+  <polygon points="80,140 77,144 83,144" fill="#aaa"/>
+  <text x="83" y="142" class="label">z</text>
+
+  <!-- Rotation=0 direction (along y, horizontal) -->
+  <line x1="80" y1="178" x2="115" y2="178" stroke="#ff9800" stroke-width="2" opacity="0.6"/>
+  <text x="100" y="194" class="angle">rot=0°</text>
+
+  <!-- Rotation=90 direction (along z, up) -->
+  <line x1="80" y1="178" x2="80" y2="145" stroke="#ff9800" stroke-width="1" stroke-dasharray="3,2" opacity="0.4"/>
+  <text x="38" y="150" class="angle">rot=90°</text>
+
+  <!-- Rotation arc arrow -->
+  <path d="M 102,178 A 22,22 0 0,0 80,156" fill="none" stroke="#ff9800" stroke-width="1.2"/>
+  <polygon points="80,156 83,161 77,161" fill="#ff9800"/>
+
+  <!-- Legend -->
+  <text x="145" y="150" class="label">rotation: direction of tilt,</text>
+  <text x="145" y="162" class="label">measured from y-axis</text>
+  <text x="145" y="174" class="label">toward z-axis (CCW</text>
+  <text x="145" y="186" class="label">looking along beam)</text>
+  <text x="145" y="202" class="label">tilt=0°: slab &#x22a5; to beam</text>
+  <text x="145" y="214" class="label">rotation is around beam axis</text>
+</svg>

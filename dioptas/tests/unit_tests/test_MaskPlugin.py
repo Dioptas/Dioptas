@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from ...model.util.MaskPlugin import MaskPluginBase
+from ...model.util.MaskPlugin import MaskPluginBase, GeometryContext
 from ...model.MaskPluginManager import MaskPluginManager, MaskPluginEntry
 from ...model.MaskModel import MaskModel
 from ...model.util.plugin_discovery import _discover_from_directory
@@ -23,7 +23,7 @@ class StaticThresholdPlugin(MaskPluginBase):
     def __init__(self, threshold=100):
         self.threshold = threshold
 
-    def compute_mask(self, img_data):
+    def compute_mask(self, img_data, existing_mask=None, **kwargs):
         return img_data > self.threshold
 
     def get_settings_schema(self):
@@ -40,7 +40,7 @@ class DynamicMeanPlugin(MaskPluginBase):
     name = "Dynamic Mean"
     is_dynamic = True
 
-    def compute_mask(self, img_data):
+    def compute_mask(self, img_data, existing_mask=None, **kwargs):
         return img_data > img_data.mean()
 
 
@@ -48,7 +48,7 @@ class NoSettingsPlugin(MaskPluginBase):
     name = "No Settings"
     is_dynamic = False
 
-    def compute_mask(self, img_data):
+    def compute_mask(self, img_data, existing_mask=None, **kwargs):
         mask = np.zeros(img_data.shape, dtype=bool)
         mask[0, :] = True
         return mask
@@ -58,7 +58,7 @@ class BrokenPlugin(MaskPluginBase):
     name = "Broken"
     is_dynamic = False
 
-    def compute_mask(self, img_data):
+    def compute_mask(self, img_data, existing_mask=None, **kwargs):
         raise ValueError("I am broken")
 
 
@@ -66,8 +66,52 @@ class WrongShapePlugin(MaskPluginBase):
     name = "Wrong Shape"
     is_dynamic = False
 
-    def compute_mask(self, img_data):
+    def compute_mask(self, img_data, existing_mask=None, **kwargs):
         return np.zeros((1, 1), dtype=bool)
+
+
+class GeometryAwarePlugin(MaskPluginBase):
+    name = "Geometry Aware"
+    needs_geometry = True
+    is_dynamic = True
+
+    def __init__(self, tth_threshold=0.5):
+        self.tth_threshold = tth_threshold
+
+    def compute_mask(self, img_data, geometry=None, existing_mask=None, **kwargs):
+        if geometry is None:
+            return np.zeros(img_data.shape, dtype=bool)
+        return geometry.tth_array > self.tth_threshold
+
+
+class GeometryAwareStaticPlugin(MaskPluginBase):
+    name = "Geometry Static"
+    needs_geometry = True
+    is_dynamic = False
+
+    def compute_mask(self, img_data, geometry=None, existing_mask=None, **kwargs):
+        if geometry is None:
+            return np.zeros(img_data.shape, dtype=bool)
+        return geometry.tth_array > 1.0
+
+
+def _make_geometry(shape=(100, 100)):
+    """Create a simple GeometryContext for testing."""
+    tth = np.linspace(0, 1.0, shape[0] * shape[1]).reshape(shape)
+    azi = np.linspace(-np.pi, np.pi, shape[0] * shape[1]).reshape(shape)
+    return GeometryContext(
+        tth_array=tth,
+        azi_array=azi,
+        dist=0.2,
+        wavelength=0.3344e-10,
+        poni1=0.05,
+        poni2=0.05,
+        rot1=0.0,
+        rot2=0.0,
+        rot3=0.0,
+        pixel1=75e-6,
+        pixel2=75e-6,
+    )
 
 
 # -- Fixtures --
@@ -359,3 +403,214 @@ def test_discover_skips_broken_files():
 
         plugins = _discover_from_directory(Path(tmpdir))
         assert len(plugins) == 0
+
+
+# -- Geometry-aware plugin tests --
+
+
+def test_geometry_aware_plugin_without_geometry(manager, img_data):
+    """Geometry-aware plugin returns empty mask when no geometry available."""
+    manager.register(GeometryAwarePlugin())
+    manager.set_enabled("Geometry Aware", True)
+    manager.update_image(img_data)
+
+    mask = manager.get_combined_mask()
+    assert mask is not None
+    assert not np.any(mask)
+
+
+def test_geometry_aware_plugin_with_geometry(manager, img_data):
+    """Geometry-aware plugin uses geometry context for masking."""
+    plugin = GeometryAwarePlugin(tth_threshold=0.5)
+    manager.register(plugin)
+    manager.set_enabled("Geometry Aware", True)
+
+    geometry = _make_geometry(img_data.shape)
+    manager.update_geometry(geometry)
+    manager.update_image(img_data)
+
+    mask = manager.get_combined_mask()
+    assert mask is not None
+    expected = geometry.tth_array > 0.5
+    np.testing.assert_array_equal(mask, expected)
+
+
+def test_geometry_update_recomputes_geometry_plugins(manager, img_data):
+    """Updating geometry triggers recomputation of geometry-aware plugins."""
+    plugin = GeometryAwarePlugin(tth_threshold=0.5)
+    manager.register(plugin)
+    manager.set_enabled("Geometry Aware", True)
+    manager.update_image(img_data)
+
+    # Initially no geometry — mask is all False
+    assert not np.any(manager.get_combined_mask())
+
+    # Provide geometry — mask should now reflect tth > 0.5
+    geometry = _make_geometry(img_data.shape)
+    manager.update_geometry(geometry)
+
+    mask = manager.get_combined_mask()
+    expected = geometry.tth_array > 0.5
+    np.testing.assert_array_equal(mask, expected)
+
+
+def test_geometry_update_does_not_affect_non_geometry_plugins(manager, img_data):
+    """Non-geometry plugins are unaffected by geometry updates."""
+    manager.register(StaticThresholdPlugin(threshold=100))
+    manager.set_enabled("Static Threshold", True)
+    manager.update_image(img_data)
+
+    mask_before = manager.get_combined_mask().copy()
+
+    geometry = _make_geometry(img_data.shape)
+    manager.update_geometry(geometry)
+
+    mask_after = manager.get_combined_mask()
+    np.testing.assert_array_equal(mask_before, mask_after)
+
+
+def test_geometry_none_clears_geometry(manager, img_data):
+    """Setting geometry to None makes geometry plugins return empty mask."""
+    plugin = GeometryAwarePlugin(tth_threshold=0.5)
+    manager.register(plugin)
+    manager.set_enabled("Geometry Aware", True)
+
+    geometry = _make_geometry(img_data.shape)
+    manager.update_geometry(geometry)
+    manager.update_image(img_data)
+
+    assert np.any(manager.get_combined_mask())
+
+    # Clear geometry
+    manager.update_geometry(None)
+    manager.update_image(img_data)
+
+    assert not np.any(manager.get_combined_mask())
+
+
+def test_geometry_context_dataclass():
+    """GeometryContext stores all expected fields."""
+    geo = _make_geometry((50, 50))
+    assert geo.tth_array.shape == (50, 50)
+    assert geo.azi_array.shape == (50, 50)
+    assert geo.dist == 0.2
+    assert geo.wavelength == 0.3344e-10
+    assert geo.pixel1 == 75e-6
+    assert geo.pixel2 == 75e-6
+
+
+# -- Plugin imprint tests --
+
+
+def test_imprint_bakes_mask_and_disables_plugin():
+    """imprint_plugin_mask ORs the plugin mask into _mask_data and disables the plugin."""
+    model = MaskModel(mask_dimension=(50, 50))
+    manager = MaskPluginManager()
+    model.mask_plugin_manager = manager
+
+    plugin = NoSettingsPlugin()  # masks row 0
+    manager.register(plugin)
+    manager.update_image(np.zeros((50, 50)))
+    manager.set_enabled("No Settings", True)
+
+    assert model.get_img().sum() == 0
+    model.imprint_plugin_mask("No Settings")
+    assert model.get_img().sum() == 50  # row 0 baked in
+    assert not manager.is_enabled("No Settings")
+
+
+def test_imprint_undo_redo_restores_plugin_state():
+    """Undoing an imprint re-enables the plugin; redo disables it again."""
+    model = MaskModel(mask_dimension=(50, 50))
+    manager = MaskPluginManager()
+    model.mask_plugin_manager = manager
+
+    plugin = NoSettingsPlugin()
+    manager.register(plugin)
+    manager.update_image(np.zeros((50, 50)))
+    manager.set_enabled("No Settings", True)
+
+    model.imprint_plugin_mask("No Settings")
+    assert not manager.is_enabled("No Settings")
+    assert model.get_img().sum() == 50
+
+    model.undo()
+    assert manager.is_enabled("No Settings")
+    assert model.get_img().sum() == 0
+
+    model.redo()
+    assert not manager.is_enabled("No Settings")
+    assert model.get_img().sum() == 50
+
+
+def test_imprint_multiple_plugins_undo_in_lifo_order():
+    """Imprinting multiple plugins and undoing reverses each one in LIFO order."""
+    model = MaskModel(mask_dimension=(50, 50))
+    manager = MaskPluginManager()
+    model.mask_plugin_manager = manager
+
+    class A(MaskPluginBase):
+        name = "A"
+        is_dynamic = True
+        def compute_mask(self, img_data, existing_mask=None, **kwargs):
+            m = np.zeros(img_data.shape, dtype=bool)
+            m[0:5, :] = True
+            return m
+
+    class B(MaskPluginBase):
+        name = "B"
+        is_dynamic = True
+        def compute_mask(self, img_data, existing_mask=None, **kwargs):
+            m = np.zeros(img_data.shape, dtype=bool)
+            m[45:50, :] = True
+            return m
+
+    manager.register(A())
+    manager.register(B())
+    manager.update_image(np.zeros((50, 50)))
+    manager.set_enabled("A", True)
+    manager.set_enabled("B", True)
+
+    model.imprint_plugin_mask("A")
+    assert model.get_img().sum() == 250  # 5 rows
+    assert not manager.is_enabled("A")
+    assert manager.is_enabled("B")
+
+    model.imprint_plugin_mask("B")
+    assert model.get_img().sum() == 500  # 10 rows total
+    assert not manager.is_enabled("A")
+    assert not manager.is_enabled("B")
+
+    # Undo B first (LIFO)
+    model.undo()
+    assert model.get_img().sum() == 250
+    assert not manager.is_enabled("A")
+    assert manager.is_enabled("B")
+
+    # Then A
+    model.undo()
+    assert model.get_img().sum() == 0
+    assert manager.is_enabled("A")
+    assert manager.is_enabled("B")
+
+
+def test_imprint_then_draw_then_undo_skips_plugin_reenable():
+    """A regular mask draw between imprints should not re-enable plugins on undo."""
+    model = MaskModel(mask_dimension=(50, 50))
+    manager = MaskPluginManager()
+    model.mask_plugin_manager = manager
+
+    plugin = NoSettingsPlugin()
+    manager.register(plugin)
+    manager.update_image(np.zeros((50, 50)))
+    manager.set_enabled("No Settings", True)
+
+    model.imprint_plugin_mask("No Settings")
+    model.mask_rect(10, 10, 5, 5)  # regular draw
+
+    # Undoing the draw should NOT touch the plugin
+    model.undo()
+    assert not manager.is_enabled("No Settings")
+    # Undoing the imprint SHOULD re-enable the plugin
+    model.undo()
+    assert manager.is_enabled("No Settings")
