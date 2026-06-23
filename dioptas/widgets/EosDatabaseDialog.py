@@ -69,11 +69,12 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         self.all_btn = FlatButton("All")
 
         # Materials table
+        # Note: lattice angles (α/β/γ) are intentionally not shown here —
+        # they vary with pressure/temperature via the EoS, and are only
+        # meaningful once a phase is loaded into Dioptas' own phase editor.
         self.materials_table = QtWidgets.QTableWidget()
-        self.materials_table.setColumnCount(6)
-        self.materials_table.setHorizontalHeaderLabels(
-            ["Name", "Chemistry", "Space Group", "α (°)", "β (°)", "γ (°)"]
-        )
+        self.materials_table.setColumnCount(2)
+        self.materials_table.setHorizontalHeaderLabels(["Material", "Space Group"])
         self.materials_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.materials_table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
         self.materials_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
@@ -105,11 +106,11 @@ class EosDatabaseDialog(QtWidgets.QDialog):
 
         # Format selector
         self.fmt_jcpds_rb = QtWidgets.QRadioButton("JCPDS")
-        self.fmt_toml_rb = QtWidgets.QRadioButton("TOML (.eosmat)")
+        self.fmt_eosmat_rb = QtWidgets.QRadioButton("Save as .eosmat")
         self.fmt_jcpds_rb.setChecked(True)
         self.fmt_group = QtWidgets.QButtonGroup()
         self.fmt_group.addButton(self.fmt_jcpds_rb)
-        self.fmt_group.addButton(self.fmt_toml_rb)
+        self.fmt_group.addButton(self.fmt_eosmat_rb)
 
         # Action buttons
         self.load_btn = QtWidgets.QPushButton("Load as Phase")
@@ -159,7 +160,7 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         bottom = QtWidgets.QHBoxLayout()
         bottom.addWidget(QtWidgets.QLabel("Save format:"))
         bottom.addWidget(self.fmt_jcpds_rb)
-        bottom.addWidget(self.fmt_toml_rb)
+        bottom.addWidget(self.fmt_eosmat_rb)
         bottom.addStretch()
         bottom.addWidget(self.load_btn)
         bottom.addWidget(self.close_btn)
@@ -279,15 +280,14 @@ class EosDatabaseDialog(QtWidgets.QDialog):
             from ..eos_formats import build_jcpds, write_eosmat
             jcpds_obj = build_jcpds(self._current_material, eos)
 
-            if self.fmt_toml_rb.isChecked():
-                # Save a .eosmat file alongside phase loading
+            if self.fmt_eosmat_rb.isChecked():
                 name = (
                     self._current_material.get("name")
                     or self._current_material.get("formula", "material")
                 )
                 dest, _ = QtWidgets.QFileDialog.getSaveFileName(
                     self,
-                    "Save TOML material file",
+                    "Save .eosmat material file",
                     f"{name}.eosmat",
                     "EoS material (*.eosmat);;All files (*)",
                 )
@@ -308,14 +308,13 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         t = self.materials_table
         t.setRowCount(len(materials))
         for r, m in enumerate(materials):
-            t.setItem(r, 0, QtWidgets.QTableWidgetItem(m.get("name", "")))
-            t.setItem(r, 1, QtWidgets.QTableWidgetItem(m.get("formula", "")))
-            t.setItem(r, 2, QtWidgets.QTableWidgetItem(m.get("symmetry", "")))
-            for col, key in enumerate(("alpha", "beta", "gamma"), start=3):
-                val = m.get(key)
-                t.setItem(r, col, QtWidgets.QTableWidgetItem(
-                    f"{val:.1f}" if val else ""
-                ))
+            name = m.get("name", "")
+            formula = m.get("formula", "")
+            # Name and formula are the same concept for most entries — only
+            # show both when they actually differ (e.g. "Gold (Au)").
+            label = name if name == formula or not formula else f"{name} ({formula})"
+            t.setItem(r, 0, QtWidgets.QTableWidgetItem(label))
+            t.setItem(r, 1, QtWidgets.QTableWidgetItem(m.get("symmetry", "")))
         t.resizeColumnsToContents()
 
     def _fill_eos(self, eos_list):

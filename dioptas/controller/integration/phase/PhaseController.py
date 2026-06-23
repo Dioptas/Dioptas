@@ -140,6 +140,13 @@ class PhaseController:
                 self.model.phase_model.add_cif(filename,
                                                self.cif_conversion_dialog.int_cutoff,
                                                self.cif_conversion_dialog.min_d_spacing)
+            elif filename.endswith(".eosmat"):
+                from ....eos_formats import read_eosmat, build_jcpds
+                material, eos = read_eosmat(filename)
+                jcpds_obj = build_jcpds(material, eos)
+                jcpds_obj._filename = filename
+                self.model.phase_model.phase_files.append(filename)
+                self.model.phase_model.add_jcpds_object(jcpds_obj)
         except PhaseLoadError as e:
             self.integration_widget.show_error_msg(
                 'Could not load:\n\n{}.\n\nPlease check if the format of the input file is correct.'. \
