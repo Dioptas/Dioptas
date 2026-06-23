@@ -10,9 +10,10 @@ from typing import Generator
 class Settings(BaseSettings):
     """Application settings loaded from environment variables"""
     database_url: str = "postgresql://user:password@localhost:5432/eos_db"
-    
+
     class Config:
         env_file = ".env"
+        extra = "ignore"  # .env also has API_HOST/API_PORT/etc for main.py
 
 
 settings = Settings()

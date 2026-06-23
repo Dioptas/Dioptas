@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session
 sys.path.append(str(Path(__file__).parent.parent))
 
 from app.database import SessionLocal, init_db
-from app import crud, schemas
+from app import crud, schemas, models
+from refit_eos_types import refit_from_bm3
 
 # Common-name -> chemical formula lookup. The JCPDS COMMENT field holds a
 # human-readable name (e.g. "Gold (04-0783, shock wave)"), not a formula —
@@ -307,28 +308,53 @@ def import_jcpds_file(db: Session, filepath: Path, verbose: bool = True):
             if v0:
                 # Extract reference from comment or filename
                 reference = data['eos'].get('reference') or data.get('comment') or f"From {filepath.name}"
-                
-                # Create BM2, BM3, and Vinet EoS (all use same K0, K0', V0)
-                eos_types = [
-                    ('Birch-Murnaghan', 2),
-                    ('Birch-Murnaghan', 3),
-                    ('Vinet', None),
+                bm3_k0 = data['eos']['k0']
+                bm3_k0_prime = data['eos']['k0_prime']
+
+                # JCPDS only ever gives us one (K0, K0') pair, explicitly fit
+                # for 3rd-order Birch-Murnaghan. Rather than copying those
+                # numbers into BM2/Vinet rows (which would misrepresent them
+                # as independent fits), re-fit each form against the P-V
+                # curve the BM3 parameters imply.
+                fits = refit_from_bm3(v0, bm3_k0, bm3_k0_prime)
+                eos_specs = [
+                    ('Birch-Murnaghan', 2, fits['BM2'][0], 4.0),
+                    ('Birch-Murnaghan', 3, bm3_k0, bm3_k0_prime),
+                    ('Vinet', None, fits['Vinet'][0], fits['Vinet'][1]),
                 ]
-                
+
+                import_note = f"Imported from {filepath.name}"
                 created_eos = []
-                for eos_type, order in eos_types:
+                for eos_type, order, k0, k0_prime in eos_specs:
+                    # Idempotency: re-running the import on the same file
+                    # must not create duplicate rows.
+                    already_exists = (
+                        db.query(models.EoSParameters)
+                        .filter(
+                            models.EoSParameters.material_id == material.id,
+                            models.EoSParameters.eos_type == eos_type,
+                            models.EoSParameters.eos_order == order,
+                            models.EoSParameters.notes == import_note,
+                        )
+                        .first()
+                    )
+                    if already_exists:
+                        if verbose:
+                            print(f"  Skipping {eos_type} (order={order}): already imported")
+                        continue
+
                     eos_create = schemas.EoSParametersCreate(
                         material_id=material.id,
                         eos_type=eos_type,
                         eos_order=order,
                         reference=reference,
                         v0=v0,
-                        k0=data['eos']['k0'],
-                        k0_prime=data['eos']['k0_prime'],
+                        k0=k0,
+                        k0_prime=k0_prime,
                         alpha0=data['eos'].get('alpha0'),
-                        notes=f"Imported from {filepath.name}"
+                        notes=import_note
                     )
-                    
+
                     eos = crud.create_eos(db, eos_create)
                     created_eos.append(eos)
                 

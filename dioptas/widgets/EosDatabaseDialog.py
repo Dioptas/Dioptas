@@ -34,6 +34,7 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         self.setWindowTitle("EoS Material Database")
         self.setMinimumSize(680, 520)
         self.setModal(True)
+        self.setWindowModality(QtCore.Qt.ApplicationModal)
 
         self._api_url = api_url
         self._client = None
@@ -46,6 +47,18 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         self._create_layout()
         self._connect_signals()
         self._try_connect()
+
+    def showEvent(self, event):
+        """
+        On macOS, a QDialog shown via exec_() from a button click can come
+        up without keyboard focus actually landing on a child widget — the
+        text fields look interactive but don't accept clicks/typing until
+        the window is explicitly activated. Force it here.
+        """
+        super().showEvent(event)
+        self.raise_()
+        self.activateWindow()
+        self.search_input.setFocus(QtCore.Qt.OtherFocusReason)
 
     # ------------------------------------------------------------------
     # Widget creation
@@ -259,13 +272,18 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         if not v0:
             self.verify_lbl.setText("V0 not available for this EoS.")
             return
-        test_volume = float(v0) * 0.95      # 5 % compression
+        # This is a sanity-check test point, not a correction of V0: we pick
+        # an arbitrary 5%-compressed volume and ask Peritheos what pressure
+        # this EoS predicts there. V0 itself never changes.
+        test_volume = float(v0) * 0.95
         try:
             p = self._client.calculate_pressure(
                 eos["id"], volume=test_volume, temperature=298.15
             )
             self.verify_lbl.setText(
-                f"✓ Peritheos: V = {test_volume:.3f} Å³ (0.95 V₀)  →  P = {p:.2f} GPa"
+                f"✓ Sanity check — at 5% compression (test volume "
+                f"{test_volume:.3f} Å³, i.e. 0.95×V₀), this EoS predicts "
+                f"P = {p:.2f} GPa. (V₀ itself is unchanged: {float(v0):.3f} Å³.)"
             )
             self.verify_lbl.setStyleSheet("color: green;")
         except Exception as e:
