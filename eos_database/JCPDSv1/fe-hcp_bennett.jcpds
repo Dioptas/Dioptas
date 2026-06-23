@@ -1,0 +1,17 @@
+VERSION: 4
+COMMENT: iron (hcp phase -- 19.2 GPa modified to P=0) (JCPDS 34-529 ) EOS from Mao et al 90
+K0:       165.000
+K0P:       5.33000
+SYMMETRY: HEXAGONAL
+A:       2.527
+C:       4.0426
+ALPHAT:      0.000000
+DIHKL:   2.1200     20.    1.00    0.00    0.00
+DIHKL:   1.9700     80.    0.00    0.00    2.00
+DIHKL:   1.8400    100.    1.00    0.00    1.00
+DIHKL:   1.4400     10.    1.00    0.00    2.00
+DIHKL:   1.2340     10.    1.00    1.00    0.00
+DIHKL:   1.1130     10.    1.00    0.00    3.00
+DIHKL:   1.0941	  10.	   2.00    0.00    0.00
+DIHKL:   1.0561     10.    2.00    0.00    1.00
+DIHKL:   1.0713     10.    1.00    1.00    2.00

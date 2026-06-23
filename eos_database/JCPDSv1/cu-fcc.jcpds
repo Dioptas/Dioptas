@@ -1,0 +1,10 @@
+VERSION: 4
+COMMENT: Copper FCC (JCPDS 04-0836)
+SYMMETRY: CUBIC
+A:      3.615
+ALPHAT:      0.000000
+DIHKL:   2.088     100.    1.00    1.00    1.00
+DIHKL:   1.808      46.    2.00    0.00    0.00
+DIHKL:   1.278      20.    2.00    2.00    0.00
+DIHKL:   1.09       17.    3.00    1.00    1.00
+DIHKL:   1.0436      5.    2.00    2.00    2.00

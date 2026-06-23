@@ -1,0 +1,14 @@
+VERSION:  4
+COMMENT:  Graphite(JCPDS 41-1487, EOS from Kern, Georg 1998 thesis for hBN)
+K0:       28.
+K0P:      5.0
+SYMMETRY: HEXAGONAL
+A:        2.4704
+C:        6.7244
+ALPHAT:   0.000001
+DIHKL:    3.38       100     0   0   2
+DIHKL:    2.139        2     1   0   0
+DIHKL:    2.039        6     1   0   1
+DIHKL:    1.681        4     0   0   4
+DIHKL:    1.234        3     1   1   0
+DIHKL:    1.1604       3     1   1   2

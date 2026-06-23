@@ -1,0 +1,28 @@
+VERSION:  4
+COMMENT:  B4C (JCPDS 6-0555, EOS from Murli Manhnani)
+K0:       240.
+K0P:      4.0
+SYMMETRY: HEXAGONAL
+A:        5.61
+C:        12.07
+ALPHAT:   0.00002
+DIHKL:    4.49         30     1   0   1
+DIHKL:    4.02         40     0   0   3
+DIHKL:    3.79         70     0   1   2
+DIHKL:    2.81         30     1   1   0
+DIHKL:    2.57         80     1   0   4
+DIHKL:    2.38        100     0   2   1
+DIHKL:    2.30         10     1   1   3
+DIHKL:    2.02         10     0   0   6
+DIHKL:    1.82         10     2   1   1
+DIHKL:    1.714        30     2   0   5
+DIHKL:    1.637        10     1   1   6
+DIHKL:    1.628        10     1   0   7
+DIHKL:    1.505        20     3   0   3
+DIHKL:    1.463        30     1   2   5
+DIHKL:    1.446        30     0   1   8
+DIHKL:    1.407        30     0   2   7
+DIHKL:    1.403        30     2   2   0
+DIHKL:    1.345        20     0   0   9
+DIHKL:    1.342        20     1   3   1
+DIHKL:    1.326        20     2   2   3
