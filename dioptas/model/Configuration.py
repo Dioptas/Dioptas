@@ -60,6 +60,7 @@ class Configuration:
         self.mask_model: MaskModel = MaskModel()
         self.mask_plugin_manager: MaskPluginManager = MaskPluginManager()
         self.mask_model.mask_plugin_manager = self.mask_plugin_manager
+        self._last_user_mask_sum: int = -1
         self._register_mask_plugins()
         self.calibration_model: CalibrationModel = CalibrationModel(self.img_model)
         self.pattern_model: PatternModel = PatternModel()
@@ -113,7 +114,61 @@ class Configuration:
     def _update_plugin_masks(self) -> None:
         """Update dynamic mask plugins with the current image data."""
         if self.img_model.img_data is not None:
-            self.mask_plugin_manager.update_image(self.img_model.img_data)
+            # Pass user-drawn mask so plugins can exclude pre-masked pixels
+            # (e.g., detector gaps) from their statistics.
+            user_mask = self.mask_model.get_img()
+            # Update sum FIRST: any signals emitted from update_geometry or
+            # update_image will trigger plot_mask -> update_plugin_existing_mask,
+            # which must see the current sum to break the recursion cycle.
+            self._last_user_mask_sum = int(user_mask.sum())
+            self._update_plugin_geometry()
+            self.mask_plugin_manager.update_image(
+                self.img_model.img_data, existing_mask=user_mask
+            )
+
+    def update_plugin_existing_mask(self) -> None:
+        """Recompute plugin masks if the user-drawn mask changed.
+
+        Called by the MaskController after mask operations. Only triggers a
+        full plugin recomputation if the user mask actually changed, avoiding
+        redundant work when called from plugin-triggered mask_changed signals.
+        """
+        if self.img_model.img_data is None:
+            return
+        current_sum = int(self.mask_model.get_img().sum())
+        if current_sum != self._last_user_mask_sum:
+            self._update_plugin_masks()
+
+    def _update_plugin_geometry(self) -> None:
+        """Build GeometryContext from calibration and pass to plugin manager."""
+        from .util.MaskPlugin import GeometryContext
+
+        if not self.calibration_model.is_calibrated:
+            self.mask_plugin_manager.update_geometry(None)
+            return
+
+        try:
+            geo = self.calibration_model.pattern_geometry
+            img_shape = self.img_model.img_data.shape
+            geometry = GeometryContext(
+                tth_array=geo.center_array(img_shape, unit="2th_rad"),
+                azi_array=geo.center_array(img_shape, unit="chi_rad"),
+                dist=geo.dist,
+                wavelength=geo.wavelength,
+                poni1=geo.poni1,
+                poni2=geo.poni2,
+                rot1=geo.rot1,
+                rot2=geo.rot2,
+                rot3=geo.rot3,
+                pixel1=geo.detector.pixel1,
+                pixel2=geo.detector.pixel2,
+            )
+            self.mask_plugin_manager.update_geometry(geometry)
+        except Exception:
+            logger.debug(
+                "Failed to build geometry context for mask plugins", exc_info=True
+            )
+            self.mask_plugin_manager.update_geometry(None)
 
     def _register_mask_plugins(self) -> None:
         """Register built-in and discovered mask plugins."""

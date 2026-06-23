@@ -27,7 +27,7 @@ class ThresholdMaskPlugin(MaskPluginBase):
         self.below_enabled = False
         self.below_value = 0.0
 
-    def compute_mask(self, img_data: np.ndarray) -> np.ndarray:
+    def compute_mask(self, img_data: np.ndarray, existing_mask: np.ndarray | None = None, **kwargs) -> np.ndarray:
         mask = np.zeros(img_data.shape, dtype=bool)
         if self.above_enabled:
             mask |= img_data > self.above_value

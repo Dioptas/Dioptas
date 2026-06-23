@@ -10,7 +10,7 @@ import shlex
 from functools import partial
 from sys import platform as _platform
 
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 
 from ..widgets.MainWidget import MainWidget
 from ..model.DioptasModel import DioptasModel
@@ -176,6 +176,19 @@ class MainController:
         self.widget.save_btn.clicked.connect(self.save_btn_clicked)
         self.widget.load_btn.clicked.connect(self.load_btn_clicked)
         self.widget.reset_btn.clicked.connect(self.reset_btn_clicked)
+
+        self._next_image_shortcut = QtGui.QShortcut(
+            QtGui.QKeySequence("Ctrl+Right"), self.widget
+        )
+        self._next_image_shortcut.activated.connect(
+            lambda: self.model.next_image()
+        )
+        self._previous_image_shortcut = QtGui.QShortcut(
+            QtGui.QKeySequence("Ctrl+Left"), self.widget
+        )
+        self._previous_image_shortcut.activated.connect(
+            lambda: self.model.previous_image()
+        )
 
     def tab_changed(self):
         """

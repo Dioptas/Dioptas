@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MIT
 
-from qtpy import QtWidgets, QtCore
+import os
+
+from qtpy import QtWidgets, QtCore, QtGui, QtSvg
 
 from ...CustomWidgets import (
     HorizontalSpacerItem,
@@ -11,6 +13,7 @@ from ...CustomWidgets import (
     CheckableFlatButton,
     VerticalSpacerItem,
 )
+from dioptas.paths import diagrams_path
 
 
 class CorrectionsWidget(QtWidgets.QWidget):
@@ -118,6 +121,22 @@ class CorrectionsWidget(QtWidgets.QWidget):
         lbl = QtWidgets.QLabel(text)
         lbl.setWordWrap(True)
         lbl.setStyleSheet("QLabel { color: gray; }")
+        return lbl
+
+    @staticmethod
+    def _create_diagram_label(svg_filename):
+        """Create a QLabel displaying an SVG diagram from the diagrams directory."""
+        svg_path = os.path.join(diagrams_path, svg_filename)
+        renderer = QtSvg.QSvgRenderer(svg_path)
+        size = renderer.defaultSize()
+        pixmap = QtGui.QPixmap(size)
+        pixmap.fill(QtCore.Qt.transparent)
+        painter = QtGui.QPainter(pixmap)
+        renderer.render(painter)
+        painter.end()
+        lbl = QtWidgets.QLabel()
+        lbl.setPixmap(pixmap)
+        lbl.setFixedSize(size)
         return lbl
 
     def create_cbn_correction_layout(self):
@@ -266,6 +285,7 @@ class CorrectionsWidget(QtWidgets.QWidget):
         params_layout.addLayout(right_layout)
 
         self._slab_layout.addLayout(params_layout)
+        self._slab_layout.addWidget(self._create_diagram_label("slab_geometry.svg"))
         self.slab_gb.setLayout(self._slab_layout)
 
     def create_cylinder_correction_widgets(self):
@@ -348,6 +368,8 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self._cylinder_layout.addLayout(container_formula_layout)
 
         self._cylinder_layout.addWidget(self.cylinder_container_param_tw)
+
+        self._cylinder_layout.addWidget(self._create_diagram_label("cylinder_geometry.svg"))
 
         self.cylinder_gb.setLayout(self._cylinder_layout)
 
@@ -444,7 +466,7 @@ class CorrectionsWidget(QtWidgets.QWidget):
         formula_layout.addWidget(self.plate_formula_txt)
         self._plate_layout.addLayout(formula_layout)
 
-        # Parameters + plot button
+        # Parameters + plot button + diagram
         params_layout = QtWidgets.QHBoxLayout()
         params_layout.addWidget(self.plate_param_tw)
 
@@ -455,6 +477,7 @@ class CorrectionsWidget(QtWidgets.QWidget):
         params_layout.addLayout(right_layout)
 
         self._plate_layout.addLayout(params_layout)
+        self._plate_layout.addWidget(self._create_diagram_label("plate_geometry.svg"))
         self.plate_gb.setLayout(self._plate_layout)
 
     def create_flat_field_widgets(self):

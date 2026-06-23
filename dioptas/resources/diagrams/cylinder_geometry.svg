@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="340" viewBox="0 0 260 340" preserveAspectRatio="xMinYMin meet">
+  <style>
+    text { font-family: Arial; fill: #ccc; }
+    .title { font-size: 10px; font-weight: bold; fill: #aaa; }
+    .label { font-size: 9px; fill: #aaa; }
+    .angle { font-size: 9px; fill: #ff9800; }
+    .dim { font-size: 8px; fill: #888; }
+  </style>
+
+  <!-- === EXAMPLE 1: Vertical capillary (side view, x-z plane) === -->
+  <text x="5" y="12" class="title">Vertical capillary (side view, tilt=20°, rot=0°):</text>
+
+  <!-- Beam arrow -->
+  <line x1="10" y1="60" x2="58" y2="60" stroke="#4fc3f7" stroke-width="2"/>
+  <polygon points="58,60 52,56 52,64" fill="#4fc3f7"/>
+  <text x="12" y="53" class="label" fill="#4fc3f7">beam (x)</text>
+
+  <!-- Capillary (slightly tilted 20° from vertical) -->
+  <g transform="translate(105,60) rotate(20)">
+    <ellipse cx="0" cy="-35" rx="7" ry="3" fill="none" stroke="#ff9800" stroke-width="1.2" opacity="0.5"/>
+    <line x1="-7" y1="-35" x2="-7" y2="35" stroke="#ff9800" stroke-width="1.2"/>
+    <line x1="7" y1="-35" x2="7" y2="35" stroke="#ff9800" stroke-width="1.2"/>
+    <ellipse cx="0" cy="35" rx="7" ry="3" fill="#ff9800" fill-opacity="0.15" stroke="#ff9800" stroke-width="1.2"/>
+  </g>
+
+  <!-- Axis arrow (tilted) -->
+  <line x1="105" y1="60" x2="118" y2="21" stroke="#ff9800" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <polygon points="118,21 114,27 119,26" fill="#ff9800"/>
+  <text x="121" y="21" class="label" fill="#ff9800">axis</text>
+
+  <!-- Vertical ref (z) -->
+  <line x1="105" y1="60" x2="105" y2="17" stroke="#aaa" stroke-width="0.8" stroke-dasharray="2,3" opacity="0.5"/>
+  <text x="96" y="15" class="label">z</text>
+
+  <!-- Tilt arc -->
+  <path d="M 105,35 A 25,25 0 0,1 111,37" fill="none" stroke="#ff9800" stroke-width="1.2"/>
+  <text x="113" y="37" class="angle">tilt=20°</text>
+
+  <!-- === EXAMPLE 2: Horizontal capillary / side arm === -->
+  <text x="5" y="138" class="title">Side-arm capillary (top view, tilt=90°, rot=90°):</text>
+
+  <!-- Beam arrow -->
+  <line x1="10" y1="180" x2="58" y2="180" stroke="#4fc3f7" stroke-width="2"/>
+  <polygon points="58,180 52,176 52,184" fill="#4fc3f7"/>
+  <text x="12" y="173" class="label" fill="#4fc3f7">beam (x)</text>
+
+  <!-- Horizontal capillary (perpendicular to beam, axis along y = vertical in top view) -->
+  <g transform="translate(105,180)">
+    <ellipse cx="0" cy="-30" rx="7" ry="3" fill="none" stroke="#ff9800" stroke-width="1.2" opacity="0.5"/>
+    <line x1="-7" y1="-30" x2="-7" y2="30" stroke="#ff9800" stroke-width="1.2"/>
+    <line x1="7" y1="-30" x2="7" y2="30" stroke="#ff9800" stroke-width="1.2"/>
+    <ellipse cx="0" cy="30" rx="7" ry="3" fill="#ff9800" fill-opacity="0.15" stroke="#ff9800" stroke-width="1.2"/>
+  </g>
+
+  <!-- Axis arrow (along y = upward in top view) -->
+  <line x1="105" y1="180" x2="105" y2="142" stroke="#ff9800" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <polygon points="105,142 102,148 108,148" fill="#ff9800"/>
+  <text x="108" y="146" class="label" fill="#ff9800">axis (y)</text>
+
+  <!-- === FRONT VIEW (bottom portion) === -->
+  <text x="5" y="220" class="title">Front view (looking along beam) — rotation:</text>
+
+  <!-- Circle -->
+  <circle cx="75" cy="280" r="30" fill="none" stroke="#555" stroke-width="0.8"/>
+
+  <!-- Beam toward viewer -->
+  <circle cx="75" cy="280" r="2.5" fill="#4fc3f7"/>
+  <circle cx="75" cy="280" r="5" fill="none" stroke="#4fc3f7" stroke-width="0.8"/>
+  <text x="40" y="294" class="label" fill="#4fc3f7">beam (x)</text>
+
+  <!-- y-axis -->
+  <line x1="75" y1="280" x2="115" y2="280" stroke="#aaa" stroke-width="1"/>
+  <polygon points="115,280 111,277 111,283" fill="#aaa"/>
+  <text x="117" y="284" class="label">y</text>
+
+  <!-- z-axis -->
+  <line x1="75" y1="280" x2="75" y2="242" stroke="#aaa" stroke-width="1"/>
+  <polygon points="75,242 72,246 78,246" fill="#aaa"/>
+  <text x="78" y="245" class="label">z</text>
+
+  <!-- Axis at tilt=0 (along z, thick orange) -->
+  <line x1="75" y1="280" x2="75" y2="248" stroke="#ff9800" stroke-width="2.5" opacity="0.5"/>
+  <text x="32" y="248" class="angle">axis at tilt=0°</text>
+
+  <!-- rot=90° direction: toward y (to the right) -->
+  <line x1="75" y1="280" x2="108" y2="280" stroke="#ff9800" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.5"/>
+
+  <!-- Rotation arc (from z toward y, CW) -->
+  <path d="M 75,258 A 22,22 0 0,1 97,280" fill="none" stroke="#ff9800" stroke-width="1.2"/>
+  <polygon points="97,280 93,275 93,281" fill="#ff9800"/>
+
+  <!-- Legend (all on the right) -->
+  <text x="135" y="240" class="label">rotation defines which</text>
+  <text x="135" y="252" class="label">direction the axis tilts.</text>
+  <text x="135" y="270" class="label">rot=0°: toward beam (x)</text>
+  <text x="135" y="282" class="label">rot=90°: sideways (y)</text>
+  <text x="135" y="300" class="label">rotation is around z-axis</text>
+
+  <!-- rot labels near diagram -->
+  <text x="98" y="296" class="angle">rot=90°</text>
+  <text x="55" y="310" class="angle">rot=0° (into page)</text>
+</svg>

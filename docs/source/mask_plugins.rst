@@ -9,7 +9,16 @@ image data. Plugins can be **static** (computed once per image shape) or **dynam
 for every new image).
 
 Mask plugins are discovered automatically at startup and appear in the Mask module control panel,
-where each plugin has a checkbox to enable/disable it and an optional settings button.
+where each plugin has a checkbox to enable/disable it, an optional settings button, and an
+**Imprint** button.
+
+The Imprint button bakes the plugin's current output into the user-drawn mask and disables the
+plugin in one step. This is useful for freezing a dynamic plugin's result so subsequent
+analyses don't depend on the plugin's parameters or runtime — and so the next plugin run isn't
+biased by the previously imprinted pixels (since plugins receive the user-drawn mask via
+``existing_mask`` and use it to exclude pre-masked pixels from their statistics). Imprinting
+is fully undoable: pressing undo restores the previous user mask **and** re-enables the
+plugin.
 
 
 Writing a Mask Plugin
@@ -47,6 +56,59 @@ Static vs Dynamic Plugins
 
 - **Dynamic** (``is_dynamic = True``): The mask is recomputed every time a new image is loaded.
   Use this for content-dependent masks (e.g., hot pixel detection, threshold filtering).
+
+
+Geometry-Aware Plugins
+~~~~~~~~~~~~~~~~~~~~~~
+
+Plugins that need calibration geometry (e.g., 2-theta maps, beam center, wavelength) should set
+``needs_geometry = True``. Their ``compute_mask`` receives a second argument — a
+:class:`~dioptas.model.util.MaskPlugin.GeometryContext` object, or ``None`` if no calibration
+is available.
+
+.. code-block:: python
+
+    from dioptas.model.util.MaskPlugin import MaskPluginBase, GeometryContext
+
+    class PowderRingOutlierMask(MaskPluginBase):
+        name = "Powder Ring Outlier Mask"
+        needs_geometry = True
+        is_dynamic = True
+
+        def compute_mask(self, img_data, geometry=None):
+            if geometry is None:
+                # No calibration available — cannot compute
+                return np.zeros(img_data.shape, dtype=bool)
+
+            # geometry.tth_array: 2-theta per pixel (radians)
+            # geometry.azi_array: azimuthal angle per pixel (radians)
+            # geometry.dist, geometry.wavelength, etc.
+            ...
+
+The ``GeometryContext`` dataclass provides:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Attribute
+     - Description
+   * - ``tth_array``
+     - Two-theta per pixel (radians), same shape as image
+   * - ``azi_array``
+     - Azimuthal (chi) angle per pixel (radians), same shape as image
+   * - ``dist``
+     - Sample-to-detector distance (meters)
+   * - ``wavelength``
+     - X-ray wavelength (meters)
+   * - ``poni1``, ``poni2``
+     - Point of normal incidence / beam center (meters)
+   * - ``rot1``, ``rot2``, ``rot3``
+     - Detector rotations (radians)
+   * - ``pixel1``, ``pixel2``
+     - Pixel sizes (meters)
+
+Geometry is automatically updated when calibration changes. If the detector is not calibrated,
+``geometry`` will be ``None`` — plugins must handle this gracefully (e.g., return an empty mask).
 
 
 Adding Settings
@@ -94,22 +156,26 @@ Supported setting types:
      - Extra keys
    * - ``"float"``
      - QDoubleSpinBox
-     - ``min``, ``max``, ``decimals``
+     - ``min``, ``max``, ``decimals``, ``step``
    * - ``"int"``
      - QSpinBox
-     - ``min``, ``max``
+     - ``min``, ``max``, ``step``
    * - ``"bool"``
      - QCheckBox
      -
+   * - ``"choice"``
+     - QComboBox
+     - ``choices`` (list of strings, **required**)
    * - ``"str"``
      - QLineEdit
      -
 
 Each setting dict must include ``type``, ``default``, and ``label``. Optional keys:
 
-- ``description``: tooltip text shown when hovering over the label or widget, explaining what the parameter does
+- ``description``: shown in a popup next to the parameter (hover over the (i) icon)
 - ``min`` / ``max``: bounds for numeric types
 - ``decimals``: decimal places for float spinboxes
+- ``step``: increment used by the spinbox arrows / scroll wheel
 
 
 Installing Plugins
@@ -192,13 +258,28 @@ Plugin API Reference
       If ``False`` (default), the mask is cached and only recomputed when the image shape changes.
       If ``True``, the mask is recomputed on every new image.
 
-   .. method:: compute_mask(img_data: numpy.ndarray) -> numpy.ndarray
+   .. attribute:: needs_geometry
+      :type: bool
+
+      If ``True``, the plugin's ``compute_mask`` receives a ``GeometryContext`` as the second
+      argument. Default is ``False``.
+
+   .. method:: compute_mask(img_data, geometry=None, existing_mask=None, **kwargs) -> numpy.ndarray
 
       **Required.** Compute and return a boolean mask. ``True`` means the pixel is masked
       (excluded from integration).
 
       :param img_data: The current image data as a 2D NumPy array.
+      :param geometry: Calibration geometry (only passed when ``needs_geometry = True``).
+         ``None`` if detector is not calibrated.
+      :param existing_mask: User-drawn mask (detector gaps, manual masks). ``True`` means
+         the pixel is already masked. Plugins can use this to exclude pre-masked pixels
+         from their statistics — useful for ignoring detector gaps when computing
+         per-bin medians or local means.
       :returns: Boolean array with the same shape as *img_data*.
+
+      Always accept ``**kwargs`` so future versions can pass additional context without
+      breaking existing plugins.
 
    .. method:: get_settings_schema() -> dict | None
 

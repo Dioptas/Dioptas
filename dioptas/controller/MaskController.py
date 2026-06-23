@@ -79,12 +79,13 @@ class MaskController:
         if not manager.plugin_names:
             return
 
+        self.widget._plugin_header.show()
         self.widget.plugin_widget.show()
         self.widget._plugin_separator.show()
 
         for name in manager.plugin_names:
             plugin = manager.get_plugin(name)
-            checkbox, settings_btn = self.widget.plugin_widget.add_plugin_row(
+            checkbox, settings_btn, imprint_btn = self.widget.plugin_widget.add_plugin_row(
                 name, plugin.has_settings
             )
             checkbox.toggled.connect(
@@ -94,11 +95,29 @@ class MaskController:
                 settings_btn.clicked.connect(
                     lambda _, n=name: self._on_plugin_settings(n)
                 )
+            imprint_btn.clicked.connect(
+                lambda _, n=name: self._on_plugin_imprint(n)
+            )
 
         manager.mask_changed.connect(self.plot_mask)
 
     def _on_plugin_toggled(self, name, checked):
         self.model.mask_plugin_manager.set_enabled(name, checked)
+        row = self.widget.plugin_widget.get_row(name)
+        if row is not None:
+            row.imprint_btn.setEnabled(checked)
+        self.plot_mask()
+
+    def _on_plugin_imprint(self, name):
+        """Bake the current plugin mask into the user-drawn mask, then disable it."""
+        self.model.mask_model.imprint_plugin_mask(name)
+        # Sync GUI with the now-disabled plugin
+        row = self.widget.plugin_widget.get_row(name)
+        if row is not None:
+            row.checkbox.blockSignals(True)
+            row.checkbox.setChecked(False)
+            row.checkbox.blockSignals(False)
+            row.imprint_btn.setEnabled(False)
         self.plot_mask()
 
     def _on_plugin_settings(self, name):
@@ -247,10 +266,12 @@ class MaskController:
 
     def undo_btn_click(self):
         self.model.mask_model.undo()
+        self._update_plugin_checkboxes()
         self.plot_mask()
 
     def redo_btn_click(self):
         self.model.mask_model.redo()
+        self._update_plugin_checkboxes()
         self.plot_mask()
 
     def plot_image(self):
@@ -518,6 +539,7 @@ class MaskController:
                                                'the same shape. Mask could not be added.')
 
     def plot_mask(self):
+        self.model.current_configuration.update_plugin_existing_mask()
         self.widget.img_widget.activate_mask()
         self.widget.img_widget.plot_mask(self.model.mask_model.get_display_mask())
 
@@ -592,6 +614,8 @@ class MaskController:
         for name in self.widget.plugin_widget.plugin_names:
             row = self.widget.plugin_widget.get_row(name)
             if row is not None:
+                enabled = manager.is_enabled(name)
                 row.checkbox.blockSignals(True)
-                row.checkbox.setChecked(manager.is_enabled(name))
+                row.checkbox.setChecked(enabled)
                 row.checkbox.blockSignals(False)
+                row.imprint_btn.setEnabled(enabled)

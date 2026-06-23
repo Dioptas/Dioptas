@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from .util import Signal
-from .util.MaskPlugin import MaskPluginBase
+from .util.MaskPlugin import MaskPluginBase, GeometryContext
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +27,8 @@ class MaskPluginManager:
         self._plugins: dict[str, MaskPluginEntry] = {}
         self._current_shape: tuple[int, int] | None = None
         self._current_img_data: np.ndarray | None = None
+        self._geometry: GeometryContext | None = None
+        self._existing_mask: np.ndarray | None = None
         self.mask_changed: Signal = Signal()
 
     def register(self, plugin: MaskPluginBase) -> None:
@@ -72,9 +74,17 @@ class MaskPluginManager:
 
         self.mask_changed.emit()
 
-    def update_image(self, img_data: np.ndarray) -> None:
-        """Called when a new image is loaded. Recomputes dynamic plugin masks."""
+    def update_image(
+        self, img_data: np.ndarray, existing_mask: np.ndarray | None = None
+    ) -> None:
+        """Called when a new image is loaded. Recomputes dynamic plugin masks.
+
+        :param img_data: The current image data array.
+        :param existing_mask: User-drawn mask (detector gaps, etc.) passed to
+            plugins that declare ``needs_existing_mask = True``.
+        """
         self._current_img_data = img_data
+        self._existing_mask = existing_mask
         new_shape = img_data.shape[:2]
         shape_changed = new_shape != self._current_shape
         self._current_shape = new_shape
@@ -89,6 +99,23 @@ class MaskPluginManager:
             if entry.plugin.is_dynamic or shape_changed or entry.cached_mask is None:
                 if self._compute_plugin_mask(entry):
                     changed = True
+
+        if changed:
+            self.mask_changed.emit()
+
+    def update_geometry(self, geometry: GeometryContext | None) -> None:
+        """Called when calibration geometry changes. Recomputes geometry-aware plugins."""
+        self._geometry = geometry
+
+        changed = False
+        for entry in self._plugins.values():
+            if not entry.plugin.needs_geometry or not entry.enabled:
+                continue
+            if self._current_img_data is not None:
+                if self._compute_plugin_mask(entry):
+                    changed = True
+            else:
+                entry.cached_mask = None
 
         if changed:
             self.mask_changed.emit()
@@ -126,7 +153,10 @@ class MaskPluginManager:
     def _compute_plugin_mask(self, entry: MaskPluginEntry) -> bool:
         """Compute mask for a single plugin. Returns True if successful."""
         try:
-            mask = entry.plugin.compute_mask(self._current_img_data)
+            kwargs = {"existing_mask": self._existing_mask}
+            if entry.plugin.needs_geometry:
+                kwargs["geometry"] = self._geometry
+            mask = entry.plugin.compute_mask(self._current_img_data, **kwargs)
             if mask.shape != self._current_shape:
                 logger.warning(
                     "Plugin '%s' returned mask with shape %s, expected %s. Skipping.",
