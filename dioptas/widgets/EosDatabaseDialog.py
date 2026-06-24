@@ -6,12 +6,18 @@ Opens as a compact modal from the Phase panel.
 import os
 import tempfile
 import logging
+import threading
 
 from qtpy import QtWidgets, QtCore, QtGui
 
 from .CustomWidgets import FlatButton, HorizontalLine
 
 logger = logging.getLogger(__name__)
+
+# Default API the dialog connects to on open. This is the hosted (Render)
+# deployment, so users don't need to run anything locally. The field stays
+# editable — point it at http://localhost:8000 to use a local API instead.
+DEFAULT_API_URL = "https://dioptas.onrender.com"
 
 # Chemical element aliases for friendlier search
 _ELEMENT_ALIASES = {
@@ -29,7 +35,7 @@ class EosDatabaseDialog(QtWidgets.QDialog):
     a selected material as a Dioptas phase.
     """
 
-    def __init__(self, parent=None, api_url: str = "http://localhost:8000"):
+    def __init__(self, parent=None, api_url: str = DEFAULT_API_URL):
         super().__init__(parent)
         self.setWindowTitle("EoS Material Database")
         self.setMinimumSize(680, 520)
@@ -67,8 +73,8 @@ class EosDatabaseDialog(QtWidgets.QDialog):
     def _create_widgets(self):
         # Connection bar
         self.api_url_input = QtWidgets.QLineEdit(self._api_url)
-        self.api_url_input.setPlaceholderText("http://localhost:8000")
-        self.api_url_input.setMaximumWidth(240)
+        self.api_url_input.setPlaceholderText(DEFAULT_API_URL)
+        self.api_url_input.setMaximumWidth(260)
         self.connect_btn = FlatButton("Connect")
         self.status_lbl = QtWidgets.QLabel("Connecting…")
         self.status_lbl.setStyleSheet("color: gray; font-style: italic;")
@@ -204,21 +210,59 @@ class EosDatabaseDialog(QtWidgets.QDialog):
     # ------------------------------------------------------------------
 
     def _try_connect(self):
-        """Attempt auto-connect on open."""
+        """Auto-connect on open."""
         self._on_connect()
 
     def _on_connect(self):
-        url = self.api_url_input.text().strip() or "http://localhost:8000"
-        try:
-            from ..eos_client import EoSClient, EoSClientError
-            self._EoSClientError = EoSClientError
-            self._client = EoSClient(url)
-            self._client.list_materials(limit=1)           # connectivity check
+        """
+        Connect to the API on a background thread so the UI stays responsive
+        — the hosted (Render) free tier can take ~30 s to wake from idle, and
+        a synchronous request would freeze Dioptas for that whole time.
+        """
+        url = self.api_url_input.text().strip() or DEFAULT_API_URL
+        self._set_status(
+            f"Connecting to {url} … (first connect may take ~30 s if the "
+            f"server was idle)", "gray")
+        self.connect_btn.setEnabled(False)
+
+        from ..eos_client import EoSClient, EoSClientError
+        self._EoSClientError = EoSClientError
+        # Generous timeout to survive Render free-tier cold starts.
+        client = EoSClient(url, timeout=90)
+
+        self._connect_result = {}
+
+        def _worker():
+            try:
+                client.list_materials(limit=1)   # connectivity check
+                self._connect_result["client"] = client
+            except Exception as e:               # noqa: BLE001 - reported to UI
+                self._connect_result["error"] = str(e)
+
+        self._connect_thread = threading.Thread(target=_worker, daemon=True)
+        self._connect_thread.start()
+
+        self._connect_timer = QtCore.QTimer(self)
+        self._connect_timer.setInterval(200)
+        self._connect_timer.timeout.connect(self._poll_connect)
+        self._connect_timer.start()
+
+    def _poll_connect(self):
+        """Check the background connect thread and update the UI when done."""
+        if self._connect_thread.is_alive():
+            return
+        self._connect_timer.stop()
+        self.connect_btn.setEnabled(True)
+
+        url = self.api_url_input.text().strip() or DEFAULT_API_URL
+        if "client" in self._connect_result:
+            self._client = self._connect_result["client"]
             self._set_status(f"Connected: {url}", "green")
             self._on_load_all()
-        except Exception as e:
+        else:
             self._client = None
-            self._set_status(f"Connection failed: {e}", "red")
+            err = self._connect_result.get("error", "unknown error")
+            self._set_status(f"Connection failed: {err}", "red")
 
     def _on_search(self):
         if not self._check_connected():

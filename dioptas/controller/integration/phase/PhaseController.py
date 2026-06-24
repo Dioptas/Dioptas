@@ -119,10 +119,10 @@ class PhaseController:
 
     def browse_db_btn_click_callback(self):
         """Open the EoS Database browser dialog and load the chosen material as a phase."""
-        from ....widgets.EosDatabaseDialog import EosDatabaseDialog
+        from ....widgets.EosDatabaseDialog import EosDatabaseDialog, DEFAULT_API_URL
         dialog = EosDatabaseDialog(
             parent=self.integration_widget,
-            api_url=getattr(self, "_last_db_url", "http://localhost:8000"),
+            api_url=getattr(self, "_last_db_url", DEFAULT_API_URL),
         )
         if dialog.exec_() == EosDatabaseDialog.Accepted and dialog.result_phase:
             jcpds_obj, filename = dialog.result_phase
