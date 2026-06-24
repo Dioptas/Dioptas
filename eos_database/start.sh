@@ -1,15 +1,26 @@
 #!/bin/bash
-# Production entrypoint for hosted deployment (Render / Railway / Fly.io).
+# Universal entrypoint — works both for local docker-compose and for cloud
+# hosts (Render / Railway / Fly.io).
 #
-# Unlike wait-for-db.sh (used by local docker-compose), this does NOT wait
-# for a local "db" container — the database is Neon, already running and
-# reachable via DATABASE_URL. It also binds to the host-provided $PORT and
-# runs without --reload.
+# Local compose points DATABASE_URL at the "db" container, which starts at
+# the same time and needs a moment to come up — so we wait for it. Cloud
+# hosts point DATABASE_URL at Neon, which is already running, so we skip the
+# wait (there is no "db" host there — waiting would hang forever, which is
+# exactly the "no open ports detected" failure).
 set -e
 
-# Ensure tables exist (idempotent — create_all is a no-op if they're there).
-# Non-fatal: the data already lives in Neon, so a transient init hiccup
-# shouldn't take the whole web service down.
+case "${DATABASE_URL:-}" in
+  *@db:*)
+    echo "Local Postgres detected — waiting for it to be ready..."
+    until pg_isready -h db -U eos_user > /dev/null 2>&1; do
+      echo "Waiting..."
+      sleep 2
+    done
+    echo "Local PostgreSQL ready."
+    ;;
+esac
+
+# Ensure tables exist (idempotent). Non-fatal: data already lives in the DB.
 python scripts/init_db.py || echo "Warning: init_db did not complete; continuing to serve"
 
 echo "Starting API server on port ${PORT:-8000}..."

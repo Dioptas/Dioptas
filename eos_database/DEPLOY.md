@@ -19,7 +19,8 @@ database via the `DATABASE_URL` environment variable.
 3. Configure the service:
    - **Root Directory:** `eos_database`
    - **Runtime / Language:** `Docker`
-   - **Docker Command** (override the default): `./start.sh`
+   - **Docker Command:** leave blank — the image already defaults to
+     `start.sh`, which binds to Render's `$PORT` and connects to Neon.
    - **Instance Type:** `Free`
 
 4. Open the **Environment** section and add one variable:

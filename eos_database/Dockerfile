@@ -22,12 +22,14 @@ COPY app/ ./app/
 COPY scripts/ ./scripts/
 COPY client/ ./client/
 
-# Copy initialization script
+# Copy startup scripts
 COPY wait-for-db.sh /app/wait-for-db.sh
-RUN chmod +x /app/wait-for-db.sh
+COPY start.sh /app/start.sh
+RUN chmod +x /app/wait-for-db.sh /app/start.sh
 
-# Expose port
+# Expose port (informational; on cloud hosts the app binds to $PORT)
 EXPOSE 8000
 
-# Run application with wait-for-db script
-CMD ["/app/wait-for-db.sh"]
+# Universal entrypoint: waits for a local "db" container if DATABASE_URL
+# points at one, otherwise (e.g. Neon) starts immediately and binds to $PORT.
+CMD ["/app/start.sh"]
