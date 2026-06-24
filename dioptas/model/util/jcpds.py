@@ -118,6 +118,11 @@ class jcpds:
         self.params['v'] = 0.
         self.params['pressure'] = 0.
         self.params['temperature'] = 298.
+        # Equation of state used to compute volume at pressure. Defaults to
+        # 3rd-order Birch-Murnaghan, which is what legacy JCPDS files imply.
+        # When a phase comes from the EoS database it may instead be BM2,
+        # VINET, or HOLZAPFEL — see _solve_volume_at_pressure.
+        self.params['eos_type'] = 'BM3'
         self.reflections: list[jcpds_reflection] = []
         self.params['modified'] = False
 
@@ -505,12 +510,52 @@ class jcpds:
             else:
                 self.mod_pressure = pressure - \
                                     self.params['alpha_t'] * k0 * (temperature - 298.)
-                res = minimize(self.bm3_inverse, 1.,
-                               args=(k0, k0p, self.mod_pressure),
-                               method='Nelder-Mead')
-                if not res.success:
-                    raise ArithmeticError("minimize didn't find a minimum!\n" + str(res))
-                self.params['v'] = self.params['v0'] / float(res.x[0])
+                self.params['v'] = self._solve_volume_at_pressure(
+                    k0, k0p, self.mod_pressure)
+
+    def _solve_volume_at_pressure(self, k0: float, k0p: float, pressure: float) -> float:
+        """
+        Solve for the unit-cell volume at the given (thermal-corrected)
+        pressure using the configured equation of state.
+
+        The Peritheos library is used as the live calculation engine,
+        dispatching on ``params['eos_type']`` (BM2 / BM3 / VINET /
+        HOLZAPFEL). If Peritheos is unavailable, or the EoS cannot be
+        constructed (e.g. Holzapfel without n/Z), it falls back to the
+        legacy 3rd-order Birch-Murnaghan solver, which the test suite
+        cross-validates against Peritheos' BM3.
+        """
+        eos_type = str(self.params.get('eos_type', 'BM3')).upper()
+        try:
+            from .eos_phase import EosPhase
+            eos = EosPhase(
+                eos_type=eos_type,
+                v0=self.params['v0'],
+                k0=k0,
+                k0_prime=k0p,
+                n=self.params.get('n'),
+                z=self.params.get('z'),
+            )
+            return eos.volume(pressure)
+        except Exception as e:
+            logger.warning(
+                "Peritheos EoS '%s' unavailable or failed (%s); "
+                "falling back to legacy BM3.", eos_type, e)
+            return self._legacy_bm3_volume(k0, k0p, pressure)
+
+    def _legacy_bm3_volume(self, k0: float, k0p: float, pressure: float) -> float:
+        """
+        Original Dioptas 3rd-order Birch-Murnaghan solve (scipy minimize on
+        the squared pressure residual). Retained as a Peritheos-free
+        fallback and as the independent reference in the cross-validation
+        tests.
+        """
+        res = minimize(self.bm3_inverse, 1.,
+                       args=(k0, k0p, pressure),
+                       method='Nelder-Mead')
+        if not res.success:
+            raise ArithmeticError("minimize didn't find a minimum!\n" + str(res))
+        return self.params['v0'] / float(res.x[0])
 
     def bm3_inverse(self, v0_v: float, k0: float, k0p: float, pressure: float) -> float:
         """

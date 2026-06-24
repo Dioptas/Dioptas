@@ -47,6 +47,25 @@ import datetime
 from typing import Optional, Dict, List, Tuple
 
 
+def eos_engine_type(eos: Dict) -> str:
+    """
+    Map a database EoS record to the engine type understood by EosPhase /
+    jcpds (one of BM2, BM3, VINET, HOLZAPFEL).
+
+    The database stores ``eos_type`` as a human label ("Birch-Murnaghan",
+    "Vinet", "Holzapfel") plus an ``eos_order`` (2/3) for Birch-Murnaghan.
+    """
+    label = (eos.get("eos_type") or "").lower()
+    if "vinet" in label:
+        return "VINET"
+    if "holzapfel" in label:
+        return "HOLZAPFEL"
+    # Birch-Murnaghan (or unknown) — distinguish 2nd vs 3rd order
+    if eos.get("eos_order") == 2:
+        return "BM2"
+    return "BM3"
+
+
 # ---------------------------------------------------------------------------
 # jcpds object builder (unchanged — used regardless of save format)
 # ---------------------------------------------------------------------------
@@ -93,6 +112,12 @@ def build_jcpds(material: Dict, eos: Optional[Dict] = None):
         obj.params["k0p"]      = obj.params["k0p0"]
         obj.params["alpha_t0"] = float(eos.get("alpha0")    or 0)
         obj.params["dk0dt"]    = float(eos.get("dK_dT")     or 0)
+        # Tell the live engine which EoS to use for volume-at-pressure.
+        obj.params["eos_type"] = eos_engine_type(eos)
+        if eos.get("n") is not None:
+            obj.params["n"] = float(eos["n"])
+        if eos.get("Z") is not None:
+            obj.params["z"] = int(eos["Z"])
         v0 = eos.get("v0")
         if v0:
             obj.params["v0"] = float(v0)
@@ -142,6 +167,8 @@ def write_eosmat(path: str, material: Dict, eos: Optional[Dict] = None) -> None:
 
     if eos:
         lines.append(f'EOS_TYPE   {eos.get("eos_type", "")}')
+        if eos.get("eos_order") is not None:
+            lines.append(f'EOS_ORDER  {eos.get("eos_order")}')
         lines.append(f'REFERENCE  {eos.get("reference") or ""}')
         lines.append(f'V0         {_num(eos.get("v0"))}   # Å³')
         lines.append(f'K0         {_num(eos.get("k0"))}   # GPa')
@@ -217,6 +244,8 @@ def read_eosmat(path: str) -> Tuple[Dict, Optional[Dict]]:
                 material[key.lower()] = float(value)
             elif key == "EOS_TYPE":
                 eos["eos_type"] = value
+            elif key == "EOS_ORDER":
+                eos["eos_order"] = int(float(value))
             elif key == "REFERENCE":
                 eos["reference"] = value
             elif key == "V0":
