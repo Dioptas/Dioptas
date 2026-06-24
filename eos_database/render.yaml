@@ -1,0 +1,24 @@
+# Render.com deployment blueprint for the EoS Database API.
+#
+# This serves the FastAPI app publicly, backed by the existing Neon
+# Postgres database (the data is already there — this only exposes the API).
+#
+# To use as a Blueprint, this file must sit at the repository root. If you
+# prefer to keep it here under eos_database/, deploy via the Render
+# dashboard instead (see DEPLOY.md) — the settings below map 1:1 to the
+# dashboard fields.
+services:
+  - type: web
+    name: eos-database-api
+    runtime: docker
+    rootDir: eos_database
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: ./start.sh
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      # Set this in the Render dashboard (Environment tab) — do NOT commit
+      # the Neon connection string. sync:false keeps it out of the repo.
+      - key: DATABASE_URL
+        sync: false
