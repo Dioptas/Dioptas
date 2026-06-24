@@ -11,7 +11,6 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from app.database import SessionLocal, init_db
 from app import crud, schemas, models
-from refit_eos_types import refit_from_bm3
 
 # Common-name -> chemical formula lookup. The JCPDS COMMENT field holds a
 # human-readable name (e.g. "Gold (04-0783, shock wave)"), not a formula —
@@ -311,16 +310,15 @@ def import_jcpds_file(db: Session, filepath: Path, verbose: bool = True):
                 bm3_k0 = data['eos']['k0']
                 bm3_k0_prime = data['eos']['k0_prime']
 
-                # JCPDS only ever gives us one (K0, K0') pair, explicitly fit
-                # for 3rd-order Birch-Murnaghan. Rather than copying those
-                # numbers into BM2/Vinet rows (which would misrepresent them
-                # as independent fits), re-fit each form against the P-V
-                # curve the BM3 parameters imply.
-                fits = refit_from_bm3(v0, bm3_k0, bm3_k0_prime)
+                # K0 and K0' are zero-pressure material properties, not owned
+                # by any one EoS form. We store the same JCPDS values for each
+                # type and let the equation itself differ — BM2, BM3 and Vinet
+                # then extrapolate to high pressure differently (computed live
+                # by Peritheos). BM2 is the K0'=4 truncation by definition.
                 eos_specs = [
-                    ('Birch-Murnaghan', 2, fits['BM2'][0], 4.0),
+                    ('Birch-Murnaghan', 2, bm3_k0, 4.0),
                     ('Birch-Murnaghan', 3, bm3_k0, bm3_k0_prime),
-                    ('Vinet', None, fits['Vinet'][0], fits['Vinet'][1]),
+                    ('Vinet', None, bm3_k0, bm3_k0_prime),
                 ]
 
                 import_note = f"Imported from {filepath.name}"
