@@ -65,6 +65,7 @@ class PhaseController:
 
         self.phase_widget.pressure_sb_value_changed.connect(self.model.phase_model.set_pressure)
         self.phase_widget.temperature_sb_value_changed.connect(self.model.phase_model.set_temperature)
+        self.phase_widget.eos_type_changed.connect(self.model.phase_model.set_eos_type)
 
         # Color and State
         self.phase_widget.color_btn_clicked.connect(self.color_btn_clicked)
@@ -156,6 +157,11 @@ class PhaseController:
         color = self.model.phase_model.phase_colors[-1]
         self.phase_widget.add_phase(get_base_name(self.model.phase_model.phase_files[-1]),
                                     '#%02x%02x%02x' % (int(color[0]), int(color[1]), int(color[2])))
+        # Reflect the phase's actual equation of state in its dropdown
+        # (database phases may be BM2 / Vinet / Holzapfel, not just BM3).
+        last = len(self.model.phase_model.phases) - 1
+        self.phase_widget.set_phase_eos_type(
+            last, self.model.phase_model.get_eos_type(last))
 
     def phase_changed(self, ind):
         phase_name = get_base_name(self.model.phase_model.phases[ind].filename)

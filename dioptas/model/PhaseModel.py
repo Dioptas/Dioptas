@@ -173,6 +173,22 @@ class PhaseModel:
         self.get_lines_d(ind)
         self.phase_changed.emit(ind)
 
+    def set_eos_type(self, ind: int, eos_type: str) -> None:
+        """
+        Changes the equation of state used by the phase with index ind
+        (e.g. 'BM2', 'BM3', 'VINET', 'HOLZAPFEL') and recomputes its line
+        positions at the current pressure/temperature.
+        """
+        logger.debug("Setting EoS type for phase %d to %s", ind, eos_type)
+        self.phases[ind].params['eos_type'] = eos_type
+        self.phases[ind].compute_d()
+        self.get_lines_d(ind)
+        self.phase_changed.emit(ind)
+
+    def get_eos_type(self, ind: int) -> str:
+        """Returns the equation-of-state type of the phase with index ind."""
+        return str(self.phases[ind].params.get('eos_type', 'BM3'))
+
     def set_color(self, ind: int, color: tuple[int, int, int]) -> None:
         """Changes the color of the phase with index ind."""
         self.phase_colors[ind] = color
