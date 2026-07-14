@@ -25,6 +25,7 @@ class PhaseWidget(QtWidgets.QWidget):
     pressure_sb_value_changed = QtCore.Signal(int, float)
     temperature_sb_value_changed = QtCore.Signal(int, float)
     eos_type_changed = QtCore.Signal(int, str)
+    reference_changed = QtCore.Signal(int, int)  # phase row, reference index
 
     # Equation-of-state types selectable per phase. Display label -> engine key.
     # BM2/BM3/Vinet work directly from V0/K0/K0'. Holzapfel additionally
@@ -91,10 +92,10 @@ class PhaseWidget(QtWidgets.QWidget):
 
         self._body_layout = QtWidgets.QHBoxLayout()
 
-        self.phase_tw = ListTableWidget(columns=6)
+        self.phase_tw = ListTableWidget(columns=7)
         self.phase_tw.setObjectName("phase_table_widget")
         self.phase_tw.setHorizontalHeaderLabels(
-            ["", "", "Name", "EoS", "P (GPa)", "T (K)"])
+            ["", "", "Name", "Ref", "EoS", "P (GPa)", "T (K)"])
         self.phase_tw.horizontalHeader().setVisible(True)
         self.phase_tw.horizontalHeader().setStretchLastSection(False)
         self.phase_tw.setColumnWidth(0, 20)
@@ -116,6 +117,9 @@ class PhaseWidget(QtWidgets.QWidget):
         )
         self.phase_tw.horizontalHeader().setSectionResizeMode(
             5, QtWidgets.QHeaderView.ResizeToContents
+        )
+        self.phase_tw.horizontalHeader().setSectionResizeMode(
+            6, QtWidgets.QHeaderView.ResizeToContents
         )
         self.phase_tw.setItemDelegate(NoRectDelegate())
         self._body_layout.addWidget(self.phase_tw, 10)
@@ -147,6 +151,7 @@ class PhaseWidget(QtWidgets.QWidget):
         self.pressure_sbs = []
         self.temperature_sbs = []
         self.eos_type_cbs = []
+        self.reference_cbs = []
 
         self.show_parameter_in_pattern = True
 
@@ -248,6 +253,19 @@ class PhaseWidget(QtWidgets.QWidget):
         name_item.setTextAlignment(int(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter))
         self.phase_tw.setItem(current_rows, 2, name_item)
 
+        reference_cb = QtWidgets.QComboBox()
+        reference_cb.addItem("—")
+        reference_cb.setEnabled(False)   # enabled when references exist
+        reference_cb.setMaximumWidth(220)
+        reference_cb.setToolTip("Literature reference for the EoS parameters.\n"
+                                "Switching applies that fit's K0/K0'/V0 and\n"
+                                "recomputes the phase lines.")
+        reference_cb.currentIndexChanged.connect(
+            partial(self.reference_cb_callback, reference_cb)
+        )
+        self.phase_tw.setCellWidget(current_rows, 3, reference_cb)
+        self.reference_cbs.append(reference_cb)
+
         eos_type_cb = QtWidgets.QComboBox()
         for label, _key in self.EOS_TYPES:
             eos_type_cb.addItem(label)
@@ -257,7 +275,7 @@ class PhaseWidget(QtWidgets.QWidget):
         eos_type_cb.currentIndexChanged.connect(
             partial(self.eos_type_cb_callback, eos_type_cb)
         )
-        self.phase_tw.setCellWidget(current_rows, 3, eos_type_cb)
+        self.phase_tw.setCellWidget(current_rows, 4, eos_type_cb)
         self.eos_type_cbs.append(eos_type_cb)
 
         pressure_sb = DoubleSpinBoxAlignRight()
@@ -269,7 +287,7 @@ class PhaseWidget(QtWidgets.QWidget):
         pressure_sb.valueChanged.connect(
             partial(self.pressure_sb_callback, pressure_sb)
         )
-        self.phase_tw.setCellWidget(current_rows, 4, pressure_sb)
+        self.phase_tw.setCellWidget(current_rows, 5, pressure_sb)
         self.pressure_sbs.append(pressure_sb)
 
         temperature_sb = DoubleSpinBoxAlignRight()
@@ -281,7 +299,7 @@ class PhaseWidget(QtWidgets.QWidget):
         temperature_sb.valueChanged.connect(
             partial(self.temperature_sb_callback, temperature_sb)
         )
-        self.phase_tw.setCellWidget(current_rows, 5, temperature_sb)
+        self.phase_tw.setCellWidget(current_rows, 6, temperature_sb)
         self.temperature_sbs.append(temperature_sb)
 
         self.phase_tw.setRowHeight(current_rows, 25)
@@ -299,6 +317,9 @@ class PhaseWidget(QtWidgets.QWidget):
         )
         self.phase_tw.horizontalHeader().setSectionResizeMode(
             5, QtWidgets.QHeaderView.ResizeToContents
+        )
+        self.phase_tw.horizontalHeader().setSectionResizeMode(
+            6, QtWidgets.QHeaderView.ResizeToContents
         )
 
     def select_phase(self, ind):
@@ -324,6 +345,7 @@ class PhaseWidget(QtWidgets.QWidget):
         del self.temperature_sbs[ind]
         del self.pressure_sbs[ind]
         del self.eos_type_cbs[ind]
+        del self.reference_cbs[ind]
 
         if self.phase_tw.rowCount() > ind:
             self.select_phase(ind)
@@ -365,6 +387,23 @@ class PhaseWidget(QtWidgets.QWidget):
         label = self.eos_type_cbs[ind].currentText()
         return next((key for lbl, key in self.EOS_TYPES if lbl == label), "BM3")
 
+    def set_phase_references(self, ind, labels, current_index=0):
+        """
+        Fill the Ref dropdown of row ind with the available literature
+        references. With no labels (legacy jcpds files) it stays disabled.
+        """
+        cb = self.reference_cbs[ind]
+        cb.blockSignals(True)
+        cb.clear()
+        if labels:
+            cb.addItems(labels)
+            cb.setCurrentIndex(min(current_index, len(labels) - 1))
+            cb.setEnabled(len(labels) > 1)
+        else:
+            cb.addItem("—")
+            cb.setEnabled(False)
+        cb.blockSignals(False)
+
     def phase_color_btn_click(self, button):
         self.color_btn_clicked.emit(self.phase_color_btns.index(button), button)
 
@@ -396,3 +435,7 @@ class PhaseWidget(QtWidgets.QWidget):
         label = eos_type_cb.currentText()
         key = next((k for lbl, k in self.EOS_TYPES if lbl == label), "BM3")
         self.eos_type_changed.emit(ind, key)
+
+    def reference_cb_callback(self, reference_cb):
+        ind = self.reference_cbs.index(reference_cb)
+        self.reference_changed.emit(ind, reference_cb.currentIndex())

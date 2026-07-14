@@ -189,6 +189,54 @@ class PhaseModel:
         """Returns the equation-of-state type of the phase with index ind."""
         return str(self.phases[ind].params.get('eos_type', 'BM3'))
 
+    def set_eos_reference(self, ind: int, ref_ind: int) -> None:
+        """
+        Switches the phase with index ind to another of its EoS records
+        (different literature reference for the same material). Applies
+        that record's K0/K0'/V0 etc., renames the phase to
+        "<chemistry> (<reference>)", and recomputes the line positions at
+        the current pressure/temperature.
+
+        The records are stored on the jcpds object by
+        eos_formats.build_jcpds when a phase is loaded from the EoS
+        database; legacy jcpds files have none, so this is a no-op there.
+        """
+        phase = self.phases[ind]
+        records = getattr(phase, 'eos_records', [])
+        if not 0 <= ref_ind < len(records):
+            return
+        record = records[ref_ind]
+        logger.debug("Switching phase %d to EoS reference '%s'",
+                     ind, record.reference)
+
+        phase.eos_current_index = ref_ind
+        phase.params['k0'] = record.k0 or 0.
+        phase.params['k0p0'] = record.k0_prime or 0.
+        phase.params['k0p'] = phase.params['k0p0']
+        phase.params['alpha_t0'] = record.alpha0 or 0.
+        phase.params['dk0dt'] = record.dK_dT or 0.
+        phase.params['eos_type'] = record.engine_type
+        if record.v0:
+            phase.params['v0'] = record.v0
+
+        # Rename: chemistry + newly selected reference
+        chemistry = getattr(phase, 'chemistry', None) or phase.name
+        labels = getattr(phase, 'eos_record_labels', [])
+        label = labels[ref_ind] if ref_ind < len(labels) else record.reference
+        new_name = f"{chemistry} ({label})" if label else chemistry
+        phase._name = new_name
+        phase._filename = new_name
+        self.phase_files[ind] = new_name
+
+        phase.compute_d()  # recompute at the phase's current P and T
+        phase.params['modified'] = False
+        self.get_lines_d(ind)
+        self.phase_changed.emit(ind)
+
+    def get_eos_reference_labels(self, ind: int) -> list:
+        """Reference labels available for the phase with index ind."""
+        return list(getattr(self.phases[ind], 'eos_record_labels', []))
+
     def set_color(self, ind: int, color: tuple[int, int, int]) -> None:
         """Changes the color of the phase with index ind."""
         self.phase_colors[ind] = color

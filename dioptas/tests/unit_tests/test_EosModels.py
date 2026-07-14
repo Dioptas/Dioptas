@@ -74,6 +74,33 @@ def test_build_jcpds_names_phase_with_chemistry_and_reference(gold_material, gol
     assert len(phase.reflections) == 2
 
 
+def test_reference_switch_updates_parameters_and_name(gold_material, gold_eos):
+    from ...model.PhaseModel import PhaseModel
+
+    other_eos = EosParameters(
+        eos_type="Birch-Murnaghan", eos_order=3,
+        reference="Gold (04-0783, shock wave)",
+        v0=68.227, k0=120.8, k0_prime=4.84,
+    )
+    phase = build_jcpds(gold_material, gold_eos,
+                        all_eos=[gold_eos, other_eos])
+    assert phase.eos_record_labels == ["Anderson et al 1989",
+                                       "04-0783, shock wave"]
+
+    model = PhaseModel()
+    model.phase_files.append(phase._filename)
+    model.add_jcpds_object(phase)
+
+    model.set_eos_reference(0, 1)   # switch to the shock-wave reference
+    assert model.phases[0].params["k0"] == pytest.approx(120.8)
+    assert model.phases[0].params["v0"] == pytest.approx(68.227)
+    assert model.phases[0].name == "Au (04-0783, shock wave)"
+
+    model.set_eos_reference(0, 0)   # and back
+    assert model.phases[0].params["k0"] == pytest.approx(166.65)
+    assert model.phases[0].name == "Au (Anderson et al 1989)"
+
+
 def test_eosmat_round_trip(tmp_path, gold_material, gold_eos):
     path = str(tmp_path / "gold.eosmat")
     write_eosmat(path, gold_material, gold_eos)

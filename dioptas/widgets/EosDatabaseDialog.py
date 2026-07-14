@@ -346,7 +346,10 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         eos = self._selected_eos()
         try:
             from ..eos_formats import build_jcpds, write_eosmat
-            jcpds_obj = build_jcpds(self._current_material, eos)
+            # Pass every EoS record so the phase's Ref dropdown can switch
+            # between literature references later.
+            jcpds_obj = build_jcpds(self._current_material, eos,
+                                    all_eos=self._eos_list)
 
             if self.fmt_eosmat_rb.isChecked():
                 name = (self._current_material.formula

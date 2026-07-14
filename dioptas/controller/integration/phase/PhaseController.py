@@ -66,6 +66,7 @@ class PhaseController:
         self.phase_widget.pressure_sb_value_changed.connect(self.model.phase_model.set_pressure)
         self.phase_widget.temperature_sb_value_changed.connect(self.model.phase_model.set_temperature)
         self.phase_widget.eos_type_changed.connect(self.model.phase_model.set_eos_type)
+        self.phase_widget.reference_changed.connect(self.model.phase_model.set_eos_reference)
 
         # Color and State
         self.phase_widget.color_btn_clicked.connect(self.color_btn_clicked)
@@ -162,6 +163,13 @@ class PhaseController:
         last = len(self.model.phase_model.phases) - 1
         self.phase_widget.set_phase_eos_type(
             last, self.model.phase_model.get_eos_type(last))
+        # Fill the reference dropdown with all EoS records of the material
+        # (database phases only; legacy jcpds files have none).
+        phase = self.model.phase_model.phases[last]
+        self.phase_widget.set_phase_references(
+            last,
+            self.model.phase_model.get_eos_reference_labels(last),
+            getattr(phase, 'eos_current_index', 0))
 
     def phase_changed(self, ind):
         phase_name = get_base_name(self.model.phase_model.phases[ind].filename)
@@ -170,6 +178,9 @@ class PhaseController:
         self.phase_widget.rename_phase(ind, phase_name)
         self.phase_widget.set_phase_pressure(ind, self.model.phase_model.phases[ind].params['pressure'])
         self.phase_widget.set_phase_temperature(ind, self.model.phase_model.phases[ind].params['temperature'])
+        # Keep the EoS dropdown in sync (a reference switch can change it,
+        # e.g. selecting a Vinet record)
+        self.phase_widget.set_phase_eos_type(ind, self.model.phase_model.get_eos_type(ind))
         self.phase_widget.temperature_sbs[ind].setEnabled(int(self.model.phase_model.phases[ind].has_thermal_expansion()))
 
     def delete_btn_click_callback(self):

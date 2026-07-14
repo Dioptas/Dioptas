@@ -60,11 +60,16 @@ def _as_eos(eos: Union[EosParameters, dict, None]) -> Optional[EosParameters]:
 # ---------------------------------------------------------------------------
 
 def build_jcpds(material: Union[Material, dict],
-                eos: Union[EosParameters, dict, None] = None):
+                eos: Union[EosParameters, dict, None] = None,
+                all_eos: Optional[list] = None):
     """
     Build a Dioptas ``jcpds`` object from a Material (+ optional
     EosParameters). The phase is named "<formula> (<reference>)" so both
     the chemistry and the literature source are visible in the phase list.
+
+    When ``all_eos`` is given (every EoS record of the material), they are
+    stored on the phase so the user can switch between references from the
+    phase table later (PhaseModel.set_eos_reference).
     """
     from .model.util.jcpds import jcpds, jcpds_reflection
 
@@ -124,6 +129,22 @@ def build_jcpds(material: Union[Material, dict],
             h=peak.h, k=peak.k, l=peak.l,
             intensity=peak.intensity, d=peak.d_spacing,
         ))
+
+    # All EoS records of this material, for the per-phase reference
+    # switcher. Stored as plain attributes (not in params, which only
+    # holds numbers/strings for the jcpds file format).
+    records = [_as_eos(e) for e in (all_eos if all_eos else
+                                    ([eos] if eos is not None else []))]
+    obj.chemistry = chemistry
+    obj.eos_records = records
+    obj.eos_record_labels = [_short_reference(e.reference, material)
+                             for e in records]
+    obj.eos_current_index = 0
+    if eos is not None:
+        for i, rec in enumerate(records):
+            if rec.id is not None and rec.id == eos.id:
+                obj.eos_current_index = i
+                break
 
     obj.params["modified"] = False
     return obj

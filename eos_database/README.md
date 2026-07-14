@@ -1,170 +1,106 @@
-# Equation of State Database System
+# EoS Database
 
-## Project Overview
+A database of equation-of-state (EoS) parameters and diffraction data for
+high-pressure crystallography, with a REST API used directly by Dioptas.
+Everything is Python.
 
-This system provides a searchable database of equation of state (EoS) parameters for high-pressure crystallography, with (future) integration into Dioptas for pressure calculations.
-
-## Features
-
-- **Database**: PostgreSQL used for storing EoS parameters from scientific publications 
-- **API**: FastAPI-based REST API for querying and calculating pressures
-- **Web Interface**: Searchable web UI for browsing materials
-- **Dioptas Integration**: Python API for direct integration (not implemented yet)
-
-## System Architecture (for now i am doing everything in a locker database with basic python syntaxes for plotting)
+## Architecture
 
 ```
-┌─────────────────┐
-│  Dioptas (GUI)  │
-└────────┬────────┘
-         │
-         ├─────────── Python API calls
-         │
-┌────────▼─────────┐
-│  FastAPI Server  │
-│  - REST endpoints │
-│  - EoS calculator│
-└────────┬─────────┘
-         │
-┌────────▼─────────┐
-│   UI in HTML
-│    
-└──────────────────┘
+Dioptas (DB button in the Phase panel)
+   │  HTTPS
+   ▼
+FastAPI  (this folder — hosted on Render, or run locally)
+   │  SQL
+   ▼
+Neon Postgres  (remote database, single source of truth)
 ```
 
-## Database Schema
+- **Hosted API:** https://dioptas.onrender.com (Dioptas connects to it by
+  default; interactive docs at `/docs`)
+- The EoS *calculations* (BM2, BM3, Vinet, Holzapfel) run inside Dioptas
+  via the [Peritheos](https://github.com/CPrescher/peritheos) library.
 
-### Materials Table
-- `id`: UUID (primary key)
-- `name`: String (e.g., "Gold", "MgO")
-- `formula`: String (e.g., "Au", "MgO")
-- `symmetry`: String (e.g., "CUBIC", "HEXAGONAL")
-- `lattice_parameters`: JSONB (a, b, c, alpha, beta, gamma)
-- `created_at`: Timestamp
+## Database structure
 
-### EoS Parameters Table
-- `id`: UUID (primary key)
-- `material_id`: UUID (foreign key)
-- `eos_type`: String (e.g., "Birch-Murnaghan", "Vinet", "Murnaghan")
-- `reference`: String (publication info)
-- `v0`: Float (zero-pressure volume in ų)
-- `k0`: Float (bulk modulus in GPa)
-- `k0_prime`: Float (pressure derivative of K0)
-- `k0_double_prime`: Float (optional, second derivative)
-- `alpha0`: Float (thermal expansion coefficient)
-- `temperature`: Float (reference temperature in K)
-- `parameters`: JSONB (additional EoS-specific parameters)
-- `created_at`: Timestamp
+Three tables:
 
-### Diffraction Peaks Table (from JCPDS)
-- `id`: UUID (primary key)
-- `material_id`: UUID (foreign key)
-- `d_spacing`: Float (in Angstroms)
-- `intensity`: Float (relative intensity)
-- `h`, `k`, `l`: Integer (Miller indices)
+**materials** — one row per material
+| field | meaning |
+|---|---|
+| name, formula | e.g. "Gold", "Au" |
+| symmetry | space-group system (CUBIC, HEXAGONAL, …) |
+| a, b, c, alpha, beta, gamma | zero-pressure lattice parameters (Å, °) |
+| formula_units_per_cell | crystallographic Z (e.g. 4 for fcc Au) — needed by the Holzapfel EoS |
 
-## Supported Equation of State Types
+**eos_parameters** — one row per (material × EoS type × literature reference)
+| field | meaning |
+|---|---|
+| eos_type, eos_order | Birch-Murnaghan (order 2 or 3), Vinet |
+| reference | literature source of the fit |
+| v0 | zero-pressure unit-cell volume (Å³) |
+| k0, k0_prime | bulk modulus (GPa) and its pressure derivative |
+| alpha0, dK_dT | thermal expansion (K⁻¹), temperature derivative of K0 (GPa/K) |
 
-1. **Birch-Murnaghan (2nd, 3rd, 4th order)**
-   - Most commonly used
-   - Based on finite strain theory
-   - 3rd one is the most common
-   
-2. **Vinet**
-   - Better for high compressions
-   - Universal EoS
+K0/K0′ are zero-pressure material properties: the same published values
+are stored for each EoS type, and the different equations extrapolate to
+high pressure differently (BM2 fixes K0′ = 4 by definition).
 
-3. **Murnaghan**
-   - Simple linear K(P) relationship
-   - Good for compressions up to ~10%
+**diffraction_peaks** — one row per peak: h, k, l, d_spacing (Å), intensity.
 
-4. **Natural Strain (Poirier-Tarantola)**
-   - Logarithmic strain definition
+In Dioptas these map onto the pydantic models in `dioptas/eos_models.py`
+(`Material` → `Lattice`/`Peak`, and `EosParameters`).
 
-## API Endpoints
+## Folder layout
 
-### Materials
-- `GET /api/v1/materials` - List all materials (with filtering)
-- `GET /api/v1/materials/{id}` - Get specific material
-- `POST /api/v1/materials` - Create new material
-- `PUT /api/v1/materials/{id}` - Update material
-- `DELETE /api/v1/materials/{id}` - Delete material
-
-### EoS Parameters
-- `GET /api/v1/eos` - List all EoS (with filtering by material, type, reference)
-- `GET /api/v1/eos/{id}` - Get specific EoS
-- `POST /api/v1/eos` - Create new EoS entry
-- `PUT /api/v1/eos/{id}` - Update EoS
-- `DELETE /api/v1/eos/{id}` - Delete EoS
-
-### Calculations
-- `POST /api/v1/calculate/pressure` - Calculate pressure from volume
-- `POST /api/v1/calculate/volume` - Calculate volume from pressure
-- `POST /api/v1/calculate/bulk_modulus` - Calculate K at given P
-
-### Search
-- `GET /api/v1/search?q={query}` - Full-text search across materials and references
-
-## Installation
-
-### Prerequisites
-- Python 3.10+
-- PostgreSQL database 
-- Docker (optional, for local development)
-
-### Setup Steps
-
-API will be available at `http://localhost:8000`
-API docs at `http://localhost:8000/docs`. It looks incomprehensible, I don't like the way the strings are displayed in API
-
-==CHECK QUICkSTART.md for the instructions on how to run this==
-
-
-## Development
-
-### Project Structure
 ```
 eos_database/
-├── app/
-│   ├── main.py              # FastAPI application
-│   ├── models.py            # SQLAlchemy models
-│   ├── schemas.py           # Pydantic schemas used for data validation
-│   ├── crud.py              # Database operations
-│   ├── calculations.py      # EoS calculation functions/ based on peritheos and expanded
-│   └── api/
-│       └── v1/
-│           ├── materials.py
-│           ├── eos.py
-│           └── calculations.py
+├── app/                FastAPI application
+│   ├── main.py         API endpoints (/api/v1/materials, /eos, /calculate, /search)
+│   ├── models.py       SQLAlchemy tables (the schema above)
+│   ├── schemas.py      pydantic request/response models
+│   ├── crud.py         database queries
+│   ├── calculations.py EoS math for the /calculate endpoints (Peritheos)
+│   └── database.py     connection handling (.env → DATABASE_URL)
 ├── scripts/
-│   ├── init_db.py          # Database initialization
-│   └── import_jcpds.py     # JCPDS file import
-├── client/
-│   └── eos_client.py       # Python client library
-├── tests/
-├── docker-compose.yml  # remove version if it acts weird
-├── Dockerfile
-├── requirements.txt
-├── QUICKSTART.md
-└── README.md
+│   ├── import_jcpds.py         import .jcpds files (idempotent)
+│   ├── init_db.py              create tables
+│   └── add_holzapfel_data.py   fill formula_units_per_cell
+├── client/eos_client.py  Python client (also bundled in Dioptas)
+├── JCPDSv1/              30 original .jcpds source files (kept as reference)
+├── run_api.py            run the API locally
+└── requirements.txt
 ```
 
-### Running Tests
+## Running locally
+
 ```
-pytest tests/
+cd eos_database
+pip install -r requirements.txt
+python run_api.py            # serves http://localhost:8000
 ```
 
-## References
+Configuration: copy `.env.example` to `.env` and set `DATABASE_URL`
+(the Neon connection string). Running locally is optional — Dioptas uses
+the hosted API by default.
 
-- Angel, R.J. (2000). "Equations of State". Reviews in Mineralogy and Geochemistry, 41(1), 35-59.
-- Birch-Murnaghan equation: [equations in PDF]
-- Dioptas: https://www.clemensprescher.com/programs/dioptas
-- Peritheos: https://github.com/CPrescher/peritheos/tree/main
+## Importing data
 
-## Contributing
+```
+python scripts/import_jcpds.py JCPDSv1/
+```
 
-See CONTRIBUTING.md
+Safe to re-run: existing records are skipped. For each material the
+importer stores BM2, BM3 and Vinet rows from the file's published
+V0/K0/K0′.
 
-## License
+## File formats
 
-MIT License
+- **.jcpds** — legacy input format (kept for reference and verification)
+- **.eosmat** — export format written by Dioptas: plain `KEY value` lines
+  with `#` comments and a single documented peak-table header instead of
+  repeated `DIHKL` keywords. Can be re-imported through the Phase panel.
+
+## Deployment
+
+See [DEPLOY.md](DEPLOY.md) — Render, native Python runtime, no Docker.
