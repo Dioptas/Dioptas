@@ -74,6 +74,21 @@ def test_build_jcpds_names_phase_with_chemistry_and_reference(gold_material, gol
     assert len(phase.reflections) == 2
 
 
+def test_short_reference_keeps_multiple_paren_groups():
+    from ...eos_formats import _short_reference
+
+    fe = Material(name="Fe", formula="Fe")
+    # Two paren groups: the outer strip must NOT mangle this into
+    # "bcc) (JCPDS 6-0696, EOS from ?"
+    ref = _short_reference("Fe (bcc)  (JCPDS 6-0696, EOS from ?)", fe)
+    assert ref == "(bcc)  (JCPDS 6-0696, EOS from ?)"
+
+    gold = Material(name="Gold", formula="Au")
+    # A single balanced group still gets unwrapped
+    assert _short_reference("Gold (04-0783, shock wave)", gold) == \
+        "04-0783, shock wave"
+
+
 def test_reference_switch_updates_parameters_and_name(gold_material, gold_eos):
     from ...model.PhaseModel import PhaseModel
 

@@ -293,8 +293,21 @@ def _short_reference(reference: str, material: Material) -> str:
     for prefix in (material.name, material.formula):
         if prefix and ref.lower().startswith(prefix.lower()):
             ref = ref[len(prefix):].strip()
+    # Strip enclosing parentheses only when they are one balanced pair —
+    # "(bcc) (JCPDS 6-0696)" must NOT become "bcc) (JCPDS 6-0696".
     if ref.startswith("(") and ref.endswith(")"):
-        ref = ref[1:-1].strip()
+        depth = 0
+        balanced = True
+        for ch in ref[1:-1]:
+            if ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+                if depth < 0:
+                    balanced = False
+                    break
+        if balanced and depth == 0:
+            ref = ref[1:-1].strip()
     return ref
 
 

@@ -251,6 +251,7 @@ class PhaseWidget(QtWidgets.QWidget):
         name_item = QtWidgets.QTableWidgetItem(name)
         name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
         name_item.setTextAlignment(int(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter))
+        name_item.setToolTip(name)   # full name on hover (column may truncate)
         self.phase_tw.setItem(current_rows, 2, name_item)
 
         reference_cb = QtWidgets.QComboBox()
@@ -355,6 +356,7 @@ class PhaseWidget(QtWidgets.QWidget):
     def rename_phase(self, ind, name):
         name_item = self.phase_tw.item(ind, 2)
         name_item.setText(name)
+        name_item.setToolTip(name)
 
     def set_phase_temperature(self, ind, temperature):
         pass
@@ -397,10 +399,20 @@ class PhaseWidget(QtWidgets.QWidget):
         cb.clear()
         if labels:
             cb.addItems(labels)
+            # Full reference on hover, for each dropdown item and the box
+            # itself — the visible box is width-limited, references aren't.
+            for i, label in enumerate(labels):
+                cb.setItemData(i, label, QtCore.Qt.ToolTipRole)
             cb.setCurrentIndex(min(current_index, len(labels) - 1))
+            cb.setToolTip(cb.currentText())
             cb.setEnabled(len(labels) > 1)
+            # Let the opened popup be as wide as the longest reference,
+            # independent of the (narrow) box width.
+            popup_width = cb.view().sizeHintForColumn(0) + 24
+            cb.view().setMinimumWidth(popup_width)
         else:
             cb.addItem("—")
+            cb.setToolTip("No alternative references (legacy jcpds file)")
             cb.setEnabled(False)
         cb.blockSignals(False)
 
@@ -438,4 +450,5 @@ class PhaseWidget(QtWidgets.QWidget):
 
     def reference_cb_callback(self, reference_cb):
         ind = self.reference_cbs.index(reference_cb)
+        reference_cb.setToolTip(reference_cb.currentText())
         self.reference_changed.emit(ind, reference_cb.currentIndex())
