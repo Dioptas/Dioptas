@@ -27,12 +27,13 @@ class PhaseWidget(QtWidgets.QWidget):
     eos_type_changed = QtCore.Signal(int, str)
 
     # Equation-of-state types selectable per phase. Display label -> engine key.
-    # These all work directly from the JCPDS parameters (V0, K0, K0') in the
-    # per-unit-cell Å³ convention Dioptas uses. Holzapfel is intentionally
-    # excluded: Peritheos formulates it in molar volume (cm³/mol) and needs
-    # electron-count parameters (n, Z) for its Fermi-gas term, which JCPDS
-    # files don't provide — see eos_phase.py, which retains the capability.
-    EOS_TYPES = [("BM2", "BM2"), ("BM3", "BM3"), ("Vinet", "VINET")]
+    # BM2/BM3/Vinet work directly from V0/K0/K0'. Holzapfel additionally
+    # needs the chemical formula (for n and Z) and the number of formula
+    # units per cell — EosPhase converts the unit-cell volume to the molar
+    # volume Peritheos expects. Phases loaded from the EoS database carry
+    # this data; legacy .jcpds files fall back to BM3 with a warning.
+    EOS_TYPES = [("BM2", "BM2"), ("BM3", "BM3"),
+                 ("Vinet", "VINET"), ("Holzapfel", "HOLZAPFEL")]
 
     def __init__(self):
         super().__init__()

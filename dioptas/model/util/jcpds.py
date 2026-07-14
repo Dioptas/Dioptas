@@ -535,6 +535,7 @@ class jcpds:
                 k0_prime=k0p,
                 n=self.params.get('n'),
                 z=self.params.get('z'),
+                formula_units_per_cell=self.params.get('zc'),
             )
             return eos.volume(pressure)
         except Exception as e:

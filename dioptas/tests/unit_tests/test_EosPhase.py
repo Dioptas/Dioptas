@@ -64,6 +64,39 @@ def test_eos_phase_rejects_unknown_type():
 
 
 # ---------------------------------------------------------------------------
+# Holzapfel: unit conversion (Å³/cell <-> molar volume) and physicality
+# ---------------------------------------------------------------------------
+
+def test_holzapfel_roundtrip_and_physicality():
+    # Gold: formula Au -> n=1, Z=79; fcc -> 4 formula units per cell.
+    eos = EosPhase(
+        eos_type="HOLZAPFEL", v0=67.85, k0=167.0, k0_prime=6.0,
+        n=1, z=79, formula_units_per_cell=4,
+    )
+    # At zero pressure the volume must be V0 (in Å³ per cell, unconverted)
+    assert eos.volume(0.0) == pytest.approx(67.85, rel=1e-4)
+    # Compression must reduce the volume, and P(V(P)) must round-trip
+    v_50 = eos.volume(50.0)
+    assert v_50 < 67.85
+    assert eos.pressure(v_50) == pytest.approx(50.0, abs=1e-2)
+
+
+def test_holzapfel_close_to_bm3_at_moderate_pressure():
+    # All EoS forms share V0/K0/K0', so at moderate compression Holzapfel
+    # should be in the same ballpark as BM3 (they diverge at high P).
+    kwargs = dict(v0=67.85, k0=167.0, k0_prime=6.0)
+    v_bm3 = EosPhase(eos_type="BM3", **kwargs).volume(30.0)
+    v_holz = EosPhase(eos_type="HOLZAPFEL", n=1, z=79,
+                      formula_units_per_cell=4, **kwargs).volume(30.0)
+    assert v_holz == pytest.approx(v_bm3, rel=0.02)
+
+
+def test_holzapfel_requires_cell_data():
+    with pytest.raises(ValueError):
+        EosPhase(eos_type="HOLZAPFEL", v0=67.85, k0=167.0, k0_prime=6.0)
+
+
+# ---------------------------------------------------------------------------
 # Live integration: compute_volume() dispatches on eos_type via Peritheos
 # ---------------------------------------------------------------------------
 

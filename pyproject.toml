@@ -44,6 +44,7 @@ dependencies = [
     "xraydb>=4.5.8",
     "requests>=2.33.1",
     "peritheos",
+    "pydantic>=2.13.4",
 ]
 
 [project.optional-dependencies]

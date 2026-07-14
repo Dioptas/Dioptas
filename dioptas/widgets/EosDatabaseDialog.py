@@ -11,6 +11,7 @@ import threading
 from qtpy import QtWidgets, QtCore, QtGui
 
 from .CustomWidgets import FlatButton, HorizontalLine
+from ..eos_models import Material, EosParameters
 
 logger = logging.getLogger(__name__)
 
@@ -274,7 +275,8 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         # Expand common name → formula
         query = _ELEMENT_ALIASES.get(raw.lower(), raw)
         try:
-            self._materials = self._client.search_material(query)
+            self._materials = [Material.from_api(m)
+                               for m in self._client.search_material(query)]
             self._fill_materials(self._materials)
         except Exception as e:
             self._show_err("Search failed", e)
@@ -283,7 +285,8 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         if not self._check_connected():
             return
         try:
-            self._materials = self._client.list_materials(limit=200)
+            self._materials = [Material.from_api(m)
+                               for m in self._client.list_materials(limit=200)]
             self._fill_materials(self._materials)
         except Exception as e:
             self._show_err("Could not load materials", e)
@@ -298,9 +301,12 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         if row >= len(self._materials):
             return
         try:
-            mat_id = self._materials[row]["id"]
-            self._current_material = self._client.get_material(mat_id)
-            self._eos_list = self._client.list_eos(material_id=mat_id)
+            mat_id = self._materials[row].id
+            # Full record (includes diffraction peaks)
+            self._current_material = Material.from_api(
+                self._client.get_material(mat_id))
+            self._eos_list = [EosParameters.from_api(e)
+                              for e in self._client.list_eos(material_id=mat_id)]
             self._fill_eos(self._eos_list)
             self.load_btn.setEnabled(True)
             self.verify_btn.setEnabled(bool(self._eos_list))
@@ -312,17 +318,17 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         eos = self._selected_eos()
         if eos is None:
             return
-        v0 = eos.get("v0")
-        if not v0:
+        if not eos.v0:
             self.verify_lbl.setText("V0 not available for this EoS.")
             return
         # This is a sanity-check test point, not a correction of V0: we pick
         # an arbitrary 5%-compressed volume and ask Peritheos what pressure
         # this EoS predicts there. V0 itself never changes.
-        test_volume = float(v0) * 0.95
+        v0 = eos.v0
+        test_volume = v0 * 0.95
         try:
             p = self._client.calculate_pressure(
-                eos["id"], volume=test_volume, temperature=298.15
+                eos.id, volume=test_volume, temperature=298.15
             )
             self.verify_lbl.setText(
                 f"✓ Sanity check — at 5% compression (test volume "
@@ -343,10 +349,8 @@ class EosDatabaseDialog(QtWidgets.QDialog):
             jcpds_obj = build_jcpds(self._current_material, eos)
 
             if self.fmt_eosmat_rb.isChecked():
-                name = (
-                    self._current_material.get("name")
-                    or self._current_material.get("formula", "material")
-                )
+                name = (self._current_material.formula
+                        or self._current_material.name or "material")
                 dest, _ = QtWidgets.QFileDialog.getSaveFileName(
                     self,
                     "Save .eosmat material file",
@@ -370,33 +374,25 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         t = self.materials_table
         t.setRowCount(len(materials))
         for r, m in enumerate(materials):
-            name = m.get("name", "")
-            formula = m.get("formula", "")
-            # Name and formula are the same concept for most entries — only
-            # show both when they actually differ (e.g. "Gold (Au)").
-            label = name if name == formula or not formula else f"{name} ({formula})"
-            t.setItem(r, 0, QtWidgets.QTableWidgetItem(label))
-            t.setItem(r, 1, QtWidgets.QTableWidgetItem(m.get("symmetry", "")))
+            t.setItem(r, 0, QtWidgets.QTableWidgetItem(m.display_name))
+            t.setItem(r, 1, QtWidgets.QTableWidgetItem(m.lattice.symmetry))
         t.resizeColumnsToContents()
 
     def _fill_eos(self, eos_list):
         t = self.eos_table
         t.setRowCount(len(eos_list))
         for r, e in enumerate(eos_list):
-            t.setItem(r, 0, QtWidgets.QTableWidgetItem(e.get("eos_type", "")))
-            t.setItem(r, 1, QtWidgets.QTableWidgetItem(e.get("reference") or ""))
-            k0 = e.get("k0")
+            type_label = e.eos_type
+            if e.eos_order is not None:
+                type_label += f" ({e.eos_order})"
+            t.setItem(r, 0, QtWidgets.QTableWidgetItem(type_label))
+            t.setItem(r, 1, QtWidgets.QTableWidgetItem(e.reference))
             t.setItem(r, 2, QtWidgets.QTableWidgetItem(
-                f"{k0:.1f}" if k0 is not None else ""
-            ))
-            k0p = e.get("k0_prime")
+                f"{e.k0:.1f}" if e.k0 is not None else ""))
             t.setItem(r, 3, QtWidgets.QTableWidgetItem(
-                f"{k0p:.2f}" if k0p is not None else ""
-            ))
-            v0 = e.get("v0")
+                f"{e.k0_prime:.2f}" if e.k0_prime is not None else ""))
             t.setItem(r, 4, QtWidgets.QTableWidgetItem(
-                f"{v0:.3f}" if v0 is not None else ""
-            ))
+                f"{e.v0:.3f}" if e.v0 is not None else ""))
         t.resizeColumnsToContents()
         if eos_list:
             t.selectRow(0)

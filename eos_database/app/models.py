@@ -31,7 +31,11 @@ class Material(Base):
     alpha = Column(Float)  # degrees
     beta = Column(Float)
     gamma = Column(Float)
-    
+
+    # Formula units per unit cell (crystallographic Z), e.g. 4 for fcc Au.
+    # Needed to convert unit-cell volume to molar volume (Holzapfel EoS).
+    formula_units_per_cell = Column(Integer)
+
     # Additional metadata
     notes = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)

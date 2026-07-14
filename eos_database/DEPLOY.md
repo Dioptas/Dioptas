@@ -1,58 +1,50 @@
-# Deploying the EoS Database API publicly
+# Running and deploying the EoS Database API (Python only)
 
-The Neon Postgres database is already remote and holds all the data
-(21 materials, EoS parameters, diffraction peaks). What this guide does is
-put the **API** (the FastAPI server Dioptas talks to) on a public URL, so
-anyone — e.g. your professor — can point Dioptas at it without running
-Docker locally.
+Everything here is plain Python — no Docker, no shell scripts.
+The data lives in Neon Postgres (remote); this API is just the FastAPI
+layer Dioptas talks to.
 
-We use **Render.com** (free tier). The API connects to the same Neon
-database via the `DATABASE_URL` environment variable.
+## Run locally
 
-## Steps (Render dashboard)
+```
+cd eos_database
+pip install -r requirements.txt
+python run_api.py
+```
 
-1. Go to <https://render.com> and sign up (free). Connect your GitHub
-   account when prompted.
+Set the database connection in a `.env` file in this directory
+(copy `.env.example` and fill in the Neon `DATABASE_URL`). The API is then
+available at http://localhost:8000 and the interactive docs at
+http://localhost:8000/docs.
 
-2. **New + → Web Service** → pick the **`TheWarid0/Dioptas`** repository.
+Note: running a local API is optional — Dioptas connects to the hosted
+one at https://dioptas.onrender.com by default.
 
-3. Configure the service:
+## Deploy on Render (native Python runtime)
+
+Render can run the API directly as a Python service — no Dockerfile:
+
+1. Render dashboard → **New → Web Service** → pick the `TheWarid0/Dioptas`
+   repository.
+2. Configure:
    - **Root Directory:** `eos_database`
-   - **Runtime / Language:** `Docker`
-   - **Docker Command:** leave blank — the image already defaults to
-     `start.sh`, which binds to Render's `$PORT` and connects to Neon.
+   - **Runtime / Language:** `Python 3`
+   - **Build Command:** `pip install -r requirements.txt`
+   - **Start Command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
    - **Instance Type:** `Free`
+3. Under **Environment**, add `DATABASE_URL` = the Neon connection string
+   (mark it secret — never commit it).
+4. Deploy. Test at `https://<your-service>.onrender.com/health`.
 
-4. Open the **Environment** section and add one variable:
-   - **Key:** `DATABASE_URL`
-   - **Value:** your Neon connection string
-     (`postgresql://...@...neon.tech/neondb?sslmode=require`)
-   - Mark it secret. **Do not** commit this string to the repo.
-
-5. Click **Create Web Service**. Render builds the Docker image (installs
-   Peritheos from git — takes a few minutes the first time) and deploys.
-
-6. When it's live you get a public URL, e.g.
-   `https://eos-database-api.onrender.com`. Test it:
-   ```
-   https://eos-database-api.onrender.com/health        → {"status":"healthy"}
-   https://eos-database-api.onrender.com/api/v1/materials?search=Au
-   ```
-
-## Using it from Dioptas
-
-In the EoS Database dialog (Phase panel → **DB**), replace
-`http://localhost:8000` with your Render URL and click **Connect**.
+**If the existing service was created as a Docker service:** Render can't
+switch a service's runtime in place. Create a new Web Service with the
+settings above (it can reuse the same repo), confirm it works, then delete
+the old one. If you want to keep the `dioptas.onrender.com` name, delete
+the old service first, then name the new one `dioptas`.
 
 ## Notes
 
-- **Cold starts:** the free tier spins the service down after ~15 min of
-  inactivity. The first request after idle takes ~30–60 s to wake up; after
-  that it's fast. Fine for occasional/demo use; upgrade to a paid instance
-  if you need it always-on.
-- **Same database for everyone:** because all instances point at the same
-  Neon `DATABASE_URL`, the hosted API and any local `docker compose` setup
-  serve identical data.
-- **Blueprint alternative:** `render.yaml` in this folder encodes the same
-  settings. To use Render's one-click Blueprint flow instead of the
-  dashboard, move it to the repository root.
+- Free tier idles after ~15 min; the first request after idle takes
+  ~30–60 s to wake. Dioptas' DB dialog connects on a background thread, so
+  the app never freezes while waiting.
+- Everyone (hosted API, any local API) reads the same Neon database.

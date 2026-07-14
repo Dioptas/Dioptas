@@ -44,6 +44,8 @@ class MaterialBase(BaseModel):
     alpha: Optional[float] = Field(None, description="Lattice angle alpha (°)")
     beta: Optional[float] = Field(None, description="Lattice angle beta (°)")
     gamma: Optional[float] = Field(None, description="Lattice angle gamma (°)")
+    formula_units_per_cell: Optional[int] = Field(
+        None, description="Formula units per unit cell (crystallographic Z)")
     notes: Optional[str] = None
 
 
