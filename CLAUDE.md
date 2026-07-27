@@ -56,6 +56,11 @@ uv run pytest dioptas/tests/unit_tests/test_DioptasModel.py::test_specific_funct
 # Note: pytest is configured with -v --tb=short in pytest.ini
 ```
 
+GUI tests run headless by default: `dioptas/tests/conftest.py` sets
+`QT_QPA_PLATFORM=offscreen` so test windows don't pop up and steal focus (same
+as CI). To watch the tests in real windows, run with `DIOPTAS_TEST_GUI=1`, or
+set `QT_QPA_PLATFORM` explicitly to override.
+
 ### Building Executables
 
 ```bash
