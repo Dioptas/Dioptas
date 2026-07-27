@@ -1,4 +1,4 @@
-# 0.8.6 (in development)
+# 0.8.6 (27.07.2026)
 
 ## New Features
 
@@ -8,6 +8,8 @@
 - added info icons next to plugin settings parameters with instant-on-hover descriptions
 - added imprint button to each plugin row that bakes the current plugin mask into the user-drawn mask and disables the plugin (full undo/redo support — undoing an imprint reverts the mask and re-enables the plugin)
 - added Ctrl/Cmd + Left/Right keyboard shortcut to load previous/next image in all modules; the existing pattern position-line shortcut in Integration mode now requires the Alt modifier (Alt + Left/Right, with Shift or Ctrl/Cmd for ×10 or fractional steps)
+- added geometry diagrams to the slab, cylinder, and plate absorption correction tabs illustrating beam direction, tilt/rotation conventions, and the coordinate system
+- correction tabs now show a bullet indicator when the corresponding correction is enabled, making active corrections visible without switching tabs
 
 ## Bugfixes
 
@@ -16,6 +18,11 @@
 - fixed infinite recursion when drawing masks with dynamic or geometry-aware plugins enabled
 - fixed Spot Mask bleeding across narrow detector gaps when smoothing parameters were tuned aggressively
 - fixed Spot Mask raising `UnboundLocalError` and disabling itself when smoothing was enabled and the user mask was empty
+
+## Distribution
+
+- PyPI releases now ship binary wheels for Linux, Windows, and macOS (x86_64 and arm64) on Python 3.11–3.13, so the accelerated Spot Mask C extension is available without a compiler
+- the C extension build is now optional when installing from source — `pip install dioptas` falls back to the pure NumPy implementation if no compiler is available
 
 # 0.8.5 (12.04.2026)
 
