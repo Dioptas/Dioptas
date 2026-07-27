@@ -1,5 +1,9 @@
 # 0.8.7 (in development)
 
+## Distribution
+
+- updated pillow (12.3.0), lxml (6.1.1), pygments (2.20.0) and setuptools (83.0.0) to resolve security advisories
+
 # 0.8.6 (27.07.2026)
 
 ## New Features
