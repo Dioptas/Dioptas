@@ -1,3 +1,5 @@
+# 0.8.7 (in development)
+
 # 0.8.6 (27.07.2026)
 
 ## New Features
