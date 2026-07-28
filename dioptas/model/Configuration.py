@@ -14,6 +14,7 @@ from xypattern.auto_background import SmoothBrucknerBackground
 
 from .util import Signal
 from .state import (
+    CalibrationParams,
     ConfigurationParams,
     ImgParams,
     MaskParams,
@@ -683,6 +684,7 @@ class Configuration:
 
         # save calibration model
         calibration_group = f.create_group("calibration_model")
+        save_params(calibration_group, self.calibration_model.params)
         # version 2.0 is used to indicate that the pyFAI parameters are stored as a json string
         calibration_group.attrs["version"] = "2.0"
 
@@ -1106,6 +1108,19 @@ class Configuration:
         saved_mask_params = load_params(f.get("mask"), MaskParams)
         if saved_mask_params is not None:
             self.mask_model.params.mode = saved_mask_params.mode
+
+        # calibration workflow settings absent from the legacy layout;
+        # use_dioptrin / dioptrin_num_workers are machine-specific and are
+        # deliberately NOT restored from project files
+        saved_calibration_params = load_params(
+            f.get("calibration_model"), CalibrationParams
+        )
+        if saved_calibration_params is not None:
+            calibration_params = self.calibration_model.params
+            calibration_params.start_values = saved_calibration_params.start_values
+            calibration_params.fit_wavelength = saved_calibration_params.fit_wavelength
+            calibration_params.fixed_values = saved_calibration_params.fixed_values
+            calibration_params.use_mask = saved_calibration_params.use_mask
 
         if self.calibration_model.is_calibrated:
             self.integrate_image_1d()

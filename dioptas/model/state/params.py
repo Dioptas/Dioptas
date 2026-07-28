@@ -23,6 +23,7 @@ from typing import ClassVar
 from psygnal import SignalGroupDescriptor
 
 __all__ = [
+    "CalibrationParams",
     "ConfigurationParams",
     "ImgParams",
     "MaskParams",
@@ -84,6 +85,45 @@ class ImgParams:
 
     #: how prev/next iterate through files: "number" or "time"
     file_iteration_mode: str = "number"
+
+
+@dataclass
+class CalibrationParams:
+    """User-settable parameters of a CalibrationModel.
+
+    Owned by :class:`dioptas.model.CalibrationModel.CalibrationModel`; the
+    model's properties delegate here. The pyFAI geometry, detector and
+    calibrant objects are calibration *data* and stay in the model — only
+    plain settings live here.
+
+    ``use_dioptrin`` and ``dioptrin_num_workers`` are machine-specific:
+    they are saved with the params document but deliberately not restored
+    from project files (their effective defaults depend on the machine the
+    project is opened on).
+    """
+
+    events: ClassVar[SignalGroupDescriptor] = SignalGroupDescriptor()
+
+    start_values: dict[str, float] = field(
+        default_factory=lambda: {
+            "dist": 200e-3,
+            "wavelength": 0.3344e-10,
+            "polarization_factor": 0.99,
+        }
+    )
+    fit_wavelength: bool = False
+    #: parameters held fixed during refinement (e.g. "dist", "rot1") and
+    #: the values they are pinned to
+    fixed_values: dict[str, float] = field(default_factory=dict)
+    use_mask: bool = False
+
+    polarization_factor: float = 0.99
+    supersampling_factor: int = 1
+    correct_solid_angle: bool = True
+    distortion_spline_filename: str | None = None
+
+    use_dioptrin: bool = False
+    dioptrin_num_workers: int = 1
 
 
 @dataclass

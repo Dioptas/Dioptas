@@ -48,6 +48,7 @@ class OptionsController:
             self.options_widget.correct_solid_angle_cb,
             configuration,
             "correct_solid_angle",
+            event_field="calibration.correct_solid_angle",
         )
         self.binder.bind_spinbox(
             self.options_widget.cake_azimuth_points_sb,
@@ -81,6 +82,7 @@ class OptionsController:
                 self.model.calibration_model.use_dioptrin
             ),
             self.options_widget.use_dioptrin_cb,
+            field="calibration.use_dioptrin",
         )
 
     def connect_signals(self):

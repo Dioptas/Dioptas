@@ -312,3 +312,32 @@ def test_mask_params_defaults_and_events():
     params.events.mode.connect(lambda new, old: got.append((new, old)))
     params.mode = False
     assert got == [(False, True)]
+
+
+# ---------------------------------------------------------------------------
+# CalibrationParams
+# ---------------------------------------------------------------------------
+
+from dioptas.model.state import CalibrationParams
+
+
+def test_calibration_params_defaults_and_events():
+    params = CalibrationParams()
+    assert params.polarization_factor == 0.99
+    assert params.correct_solid_angle is True
+    assert params.start_values["dist"] == 200e-3
+    assert params.fixed_values == {}
+
+    got = []
+    params.events.polarization_factor.connect(lambda new, old: got.append(new))
+    params.polarization_factor = 0.5
+    assert got == [0.5]
+
+
+def test_calibration_params_instances_do_not_share_dicts():
+    a = CalibrationParams()
+    b = CalibrationParams()
+    a.start_values["dist"] = 1.0
+    a.fixed_values["rot1"] = 0.5
+    assert b.start_values["dist"] == 200e-3
+    assert b.fixed_values == {}

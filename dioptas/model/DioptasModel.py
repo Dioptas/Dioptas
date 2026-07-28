@@ -379,6 +379,9 @@ class DioptasModel:
         self.mask_model.params.events.disconnect(
             self._on_mask_params_event, missing_ok=True
         )
+        self.calibration_model.params.events.disconnect(
+            self._on_calibration_params_event, missing_ok=True
+        )
 
     def connect_models(self) -> None:
         """Connects signals of the currently selected configuration."""
@@ -392,6 +395,9 @@ class DioptasModel:
         self.img_model.params.events.connect(self._on_img_params_event)
         self.pattern_model.params.events.connect(self._on_pattern_params_event)
         self.mask_model.params.events.connect(self._on_mask_params_event)
+        self.calibration_model.params.events.connect(
+            self._on_calibration_params_event
+        )
 
     def _on_configuration_params_event(self, info) -> None:
         """Forwards a psygnal EmissionInfo from the current configuration's
@@ -415,6 +421,12 @@ class DioptasModel:
     def _on_mask_params_event(self, info) -> None:
         new, old = info.args
         self.configuration_params_changed.emit("mask." + info.signal.name, new, old)
+
+    def _on_calibration_params_event(self, info) -> None:
+        new, old = info.args
+        self.configuration_params_changed.emit(
+            "calibration." + info.signal.name, new, old
+        )
 
     @property
     def working_directories(self) -> dict[str, str]:
