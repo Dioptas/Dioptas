@@ -450,3 +450,53 @@ class MenuTabWidget(QtWidgets.QWidget):
         Set the width of the menu on the left.
         """
         self._menu_btn_widget.setFixedWidth(width)
+
+
+class ParameterFormWidget(QtWidgets.QWidget):
+    """A form of (label, number field, unit) rows with by-name access.
+
+    Replaces parameter tables: fields are addressed by parameter name
+    instead of row index, so controllers cannot mix up rows. ``changed``
+    is emitted when the user finishes editing any field; programmatic
+    ``set_value`` does not emit.
+    """
+
+    changed = QtCore.Signal()
+
+    def __init__(self, parameters=None):
+        """
+        :param parameters: iterable of (name, label, default, unit) tuples
+        """
+        super().__init__()
+        self._fields = {}
+        self._grid = QtWidgets.QGridLayout()
+        self._grid.setContentsMargins(0, 0, 0, 0)
+        self._grid.setSpacing(5)
+        self._grid.setColumnStretch(1, 1)
+        self.setLayout(self._grid)
+        for parameter in parameters or []:
+            self.add_parameter(*parameter)
+
+    def add_parameter(self, name, label, default, unit=""):
+        row = len(self._fields)
+        field = NumberTextField("{:g}".format(default))
+        field.editingFinished.connect(self.changed)
+        self._grid.addWidget(LabelAlignRight(label + ":"), row, 0)
+        self._grid.addWidget(field, row, 1)
+        self._grid.addWidget(QtWidgets.QLabel(unit), row, 2)
+        self._fields[name] = field
+
+    def field(self, name):
+        return self._fields[name]
+
+    def value(self, name):
+        return self._fields[name].value()
+
+    def set_value(self, name, value):
+        self._fields[name].setText(str(value))
+
+    def values(self):
+        return {name: field.value() for name, field in self._fields.items()}
+
+    def parameter_names(self):
+        return list(self._fields)

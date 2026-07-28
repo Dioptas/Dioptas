@@ -41,7 +41,7 @@ class SphereCorrectionControllerTest(QtTest):
 
     def _enable_sphere_correction(self, formula="Fe2O3", density=5.24):
         self.correction_widget.sphere_formula_txt.setText(formula)
-        self.correction_widget.sphere_param_tw.cellWidget(0, 1).setText(str(density))
+        self.correction_widget.sphere_param_form.set_value("density", density)
         self.correction_widget.sphere_gb.setChecked(True)
         self.correction_controller.sphere_groupbox_changed()
 
@@ -114,7 +114,7 @@ class SphereCorrectionControllerTest(QtTest):
         )
 
         # Change radius
-        self.correction_widget.sphere_param_tw.cellWidget(1, 1).setText("1.0")
+        self.correction_widget.sphere_param_form.set_value("radius", 1.0)
         self.correction_controller.sphere_groupbox_changed()
 
         correction_after = (

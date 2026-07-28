@@ -46,58 +46,37 @@ class CorrectionController:
     def create_signals(self):
         # cbn correction
         self.widget.cbn_groupbox.clicked.connect(self.cbn_groupbox_changed)
-        for row_ind in range(self.widget.cbn_param_tw.rowCount()):
-            self.widget.cbn_param_tw.cellWidget(row_ind, 1).editingFinished.connect(
-                self.cbn_groupbox_changed
-            )
+        self.widget.cbn_param_form.changed.connect(self.cbn_groupbox_changed)
         self.widget.cbn_plot_btn.clicked.connect(self.cbn_plot_correction_btn_clicked)
 
         # oiadac correction
         self.widget.oiadac_groupbox.clicked.connect(self.oiadac_groupbox_changed)
-        for row_ind in range(self.widget.oiadac_param_tw.rowCount()):
-            self.widget.oiadac_param_tw.cellWidget(row_ind, 1).editingFinished.connect(
-                self.oiadac_groupbox_changed
-            )
+        self.widget.oiadac_param_form.changed.connect(self.oiadac_groupbox_changed)
         self.widget.oiadac_plot_btn.clicked.connect(self.oiadac_plot_btn_clicked)
 
         # slab correction
         self.widget.slab_groupbox.clicked.connect(self.slab_groupbox_changed)
-        for row_ind in range(self.widget.slab_param_tw.rowCount()):
-            self.widget.slab_param_tw.cellWidget(row_ind, 1).editingFinished.connect(
-                self.slab_groupbox_changed
-            )
+        self.widget.slab_param_form.changed.connect(self.slab_groupbox_changed)
         self.widget.slab_formula_txt.editingFinished.connect(self.slab_groupbox_changed)
         self.widget.slab_plot_btn.clicked.connect(self.slab_plot_btn_clicked)
 
         # cylinder correction
         self.widget.cylinder_groupbox.clicked.connect(self.cylinder_groupbox_changed)
-        for row_ind in range(self.widget.cylinder_param_tw.rowCount()):
-            self.widget.cylinder_param_tw.cellWidget(row_ind, 1).editingFinished.connect(
-                self.cylinder_groupbox_changed
-            )
+        self.widget.cylinder_param_form.changed.connect(self.cylinder_groupbox_changed)
         self.widget.cylinder_formula_txt.editingFinished.connect(self.cylinder_groupbox_changed)
         self.widget.cylinder_container_formula_txt.editingFinished.connect(self.cylinder_groupbox_changed)
-        for row_ind in range(self.widget.cylinder_container_param_tw.rowCount()):
-            self.widget.cylinder_container_param_tw.cellWidget(row_ind, 1).editingFinished.connect(
-                self.cylinder_groupbox_changed
-            )
+        self.widget.cylinder_container_param_form.changed.connect(self.cylinder_groupbox_changed)
         self.widget.cylinder_plot_btn.clicked.connect(self.cylinder_plot_btn_clicked)
 
         # sphere correction
         self.widget.sphere_groupbox.clicked.connect(self.sphere_groupbox_changed)
-        for row_ind in range(self.widget.sphere_param_tw.rowCount()):
-            self.widget.sphere_param_tw.cellWidget(row_ind, 1).editingFinished.connect(
-                self.sphere_groupbox_changed
-            )
+        self.widget.sphere_param_form.changed.connect(self.sphere_groupbox_changed)
         self.widget.sphere_formula_txt.editingFinished.connect(self.sphere_groupbox_changed)
         self.widget.sphere_plot_btn.clicked.connect(self.sphere_plot_btn_clicked)
 
         # plate correction
         self.widget.plate_groupbox.clicked.connect(self.plate_groupbox_changed)
-        for row_ind in range(self.widget.plate_param_tw.rowCount()):
-            self.widget.plate_param_tw.cellWidget(row_ind, 1).editingFinished.connect(
-                self.plate_groupbox_changed
-            )
+        self.widget.plate_param_form.changed.connect(self.plate_groupbox_changed)
         self.widget.plate_formula_txt.editingFinished.connect(self.plate_groupbox_changed)
         self.widget.plate_plot_btn.clicked.connect(self.plate_plot_btn_clicked)
 
@@ -264,16 +243,17 @@ class CorrectionController:
             return
 
         if self.widget.cbn_groupbox.isChecked():
-            diamond_thickness = self.widget.cbn_param_tw.cellWidget(0, 1).value()
-            seat_thickness = self.widget.cbn_param_tw.cellWidget(1, 1).value()
-            inner_seat_radius = self.widget.cbn_param_tw.cellWidget(2, 1).value()
-            outer_seat_radius = self.widget.cbn_param_tw.cellWidget(3, 1).value()
-            tilt = self.widget.cbn_param_tw.cellWidget(4, 1).value()
-            tilt_rotation = self.widget.cbn_param_tw.cellWidget(5, 1).value()
-            center_offset = self.widget.cbn_param_tw.cellWidget(6, 1).value()
-            center_offset_angle = self.widget.cbn_param_tw.cellWidget(7, 1).value()
-            seat_absorption_length = self.widget.cbn_param_tw.cellWidget(8, 1).value()
-            anvil_absorption_length = self.widget.cbn_param_tw.cellWidget(9, 1).value()
+            form = self.widget.cbn_param_form
+            diamond_thickness = form.value("anvil_thickness")
+            seat_thickness = form.value("seat_thickness")
+            inner_seat_radius = form.value("inner_seat_radius")
+            outer_seat_radius = form.value("outer_seat_radius")
+            tilt = form.value("cell_tilt")
+            tilt_rotation = form.value("cell_tilt_rotation")
+            center_offset = form.value("center_offset")
+            center_offset_angle = form.value("center_offset_rotation")
+            anvil_absorption_length = form.value("anvil_absorption_length")
+            seat_absorption_length = form.value("seat_absorption_length")
 
             tth_array = (
                 180.0 / np.pi * self.model.calibration_model.tth_array
@@ -330,28 +310,17 @@ class CorrectionController:
 
     def update_cbn_widgets(self):
         params = self.model.img_model.img_corrections.get_correction("cbn").get_params()
-        self.widget.cbn_param_tw.cellWidget(0, 1).setText(
-            str(params["diamond_thickness"])
-        )
-        self.widget.cbn_param_tw.cellWidget(1, 1).setText(str(params["seat_thickness"]))
-        self.widget.cbn_param_tw.cellWidget(2, 1).setText(
-            str(params["small_cbn_seat_radius"])
-        )
-        self.widget.cbn_param_tw.cellWidget(3, 1).setText(
-            str(params["large_cbn_seat_radius"])
-        )
-        self.widget.cbn_param_tw.cellWidget(4, 1).setText(str(params["tilt"]))
-        self.widget.cbn_param_tw.cellWidget(5, 1).setText(str(params["tilt_rotation"]))
-        self.widget.cbn_param_tw.cellWidget(6, 1).setText(
-            str(params["diamond_abs_length"])
-        )
-        self.widget.cbn_param_tw.cellWidget(7, 1).setText(
-            str(params["seat_abs_length"])
-        )
-        self.widget.cbn_param_tw.cellWidget(8, 1).setText(str(params["center_offset"]))
-        self.widget.cbn_param_tw.cellWidget(9, 1).setText(
-            str(params["center_offset_angle"])
-        )
+        form = self.widget.cbn_param_form
+        form.set_value("anvil_thickness", params["diamond_thickness"])
+        form.set_value("seat_thickness", params["seat_thickness"])
+        form.set_value("inner_seat_radius", params["small_cbn_seat_radius"])
+        form.set_value("outer_seat_radius", params["large_cbn_seat_radius"])
+        form.set_value("cell_tilt", params["tilt"])
+        form.set_value("cell_tilt_rotation", params["tilt_rotation"])
+        form.set_value("center_offset", params["center_offset"])
+        form.set_value("center_offset_rotation", params["center_offset_angle"])
+        form.set_value("anvil_absorption_length", params["diamond_abs_length"])
+        form.set_value("seat_absorption_length", params["seat_abs_length"])
         self.widget.cbn_groupbox.setChecked(True)
 
     def oiadac_groupbox_changed(self):
@@ -367,8 +336,8 @@ class CorrectionController:
             return
 
         if self.widget.oiadac_groupbox.isChecked():
-            detector_thickness = self.widget.oiadac_param_tw.cellWidget(0, 1).value()
-            absorption_length = self.widget.oiadac_param_tw.cellWidget(1, 1).value()
+            detector_thickness = self.widget.oiadac_param_form.value("detector_thickness")
+            absorption_length = self.widget.oiadac_param_form.value("detector_absorption_length")
 
             _, fit2d_parameter = (
                 self.model.calibration_model.get_calibration_parameter()
@@ -432,9 +401,9 @@ class CorrectionController:
         if correction is None:
             return
         params = correction.get_params()
-        self.widget.slab_param_tw.cellWidget(1, 1).setText(str(params["thickness"]))
-        self.widget.slab_param_tw.cellWidget(2, 1).setText(str(params["slab_tilt"]))
-        self.widget.slab_param_tw.cellWidget(3, 1).setText(str(params["slab_rotation"]))
+        self.widget.slab_param_form.set_value("thickness", params["thickness"])
+        self.widget.slab_param_form.set_value("slab_tilt", params["slab_tilt"])
+        self.widget.slab_param_form.set_value("slab_rotation", params["slab_rotation"])
         mu = params["absorption_coefficient"]
         self.widget.slab_mu_lbl.setText(f"μ: {mu:.4f} 1/mm")
         self.widget.slab_groupbox.setChecked(True)
@@ -443,11 +412,11 @@ class CorrectionController:
         params = self.model.img_model.img_corrections.get_correction(
             "oiadac"
         ).get_params()
-        self.widget.oiadac_param_tw.cellWidget(0, 1).setText(
-            str(params["detector_thickness"])
+        self.widget.oiadac_param_form.set_value(
+            "detector_thickness", params["detector_thickness"]
         )
-        self.widget.oiadac_param_tw.cellWidget(1, 1).setText(
-            str(params["absorption_length"])
+        self.widget.oiadac_param_form.set_value(
+            "detector_absorption_length", params["absorption_length"]
         )
         self.widget.oiadac_groupbox.setChecked(True)
 
@@ -468,10 +437,10 @@ class CorrectionController:
                 self.widget.slab_groupbox.setChecked(False)
                 return
 
-            density = self.widget.slab_param_tw.cellWidget(0, 1).value()
-            thickness = self.widget.slab_param_tw.cellWidget(1, 1).value()
-            slab_tilt = self.widget.slab_param_tw.cellWidget(2, 1).value()
-            slab_rotation = self.widget.slab_param_tw.cellWidget(3, 1).value()
+            density = self.widget.slab_param_form.value("density")
+            thickness = self.widget.slab_param_form.value("thickness")
+            slab_tilt = self.widget.slab_param_form.value("slab_tilt")
+            slab_rotation = self.widget.slab_param_form.value("slab_rotation")
 
             # Calculate mu from formula + density + wavelength
             wavelength_m = self.model.calibration_model.wavelength
@@ -549,11 +518,11 @@ class CorrectionController:
                 self.widget.cylinder_groupbox.setChecked(False)
                 return
 
-            density = self.widget.cylinder_param_tw.cellWidget(0, 1).value()
-            radius = self.widget.cylinder_param_tw.cellWidget(1, 1).value()
-            axis_tilt = self.widget.cylinder_param_tw.cellWidget(2, 1).value()
-            axis_rotation = self.widget.cylinder_param_tw.cellWidget(3, 1).value()
-            beam_width = self.widget.cylinder_param_tw.cellWidget(4, 1).value()
+            density = self.widget.cylinder_param_form.value("density")
+            radius = self.widget.cylinder_param_form.value("radius")
+            axis_tilt = self.widget.cylinder_param_form.value("axis_tilt")
+            axis_rotation = self.widget.cylinder_param_form.value("axis_rotation")
+            beam_width = self.widget.cylinder_param_form.value("beam_width")
 
             wavelength_m = self.model.calibration_model.wavelength
             energy_eV = wavelength_to_energy(wavelength_m)
@@ -571,9 +540,9 @@ class CorrectionController:
             # Container parameters
             container_formula = self.widget.cylinder_container_formula_txt.text().strip()
             mu_container = 0
-            wall_thickness = self.widget.cylinder_container_param_tw.cellWidget(1, 1).value()
+            wall_thickness = self.widget.cylinder_container_param_form.value("wall_thickness")
             if container_formula and wall_thickness > 0:
-                container_density = self.widget.cylinder_container_param_tw.cellWidget(0, 1).value()
+                container_density = self.widget.cylinder_container_param_form.value("container_density")
                 try:
                     mu_container = calculate_mu(
                         container_formula, energy_eV,
@@ -634,10 +603,10 @@ class CorrectionController:
         if correction is None:
             return
         params = correction.get_params()
-        self.widget.cylinder_param_tw.cellWidget(1, 1).setText(str(params["radius"]))
-        self.widget.cylinder_param_tw.cellWidget(2, 1).setText(str(params["axis_tilt"]))
-        self.widget.cylinder_param_tw.cellWidget(3, 1).setText(str(params["axis_rotation"]))
-        self.widget.cylinder_param_tw.cellWidget(4, 1).setText(str(params["beam_width"]))
+        self.widget.cylinder_param_form.set_value("radius", params["radius"])
+        self.widget.cylinder_param_form.set_value("axis_tilt", params["axis_tilt"])
+        self.widget.cylinder_param_form.set_value("axis_rotation", params["axis_rotation"])
+        self.widget.cylinder_param_form.set_value("beam_width", params["beam_width"])
         mu = params["absorption_coefficient"]
         self.widget.cylinder_mu_lbl.setText(f"μ: {mu:.4f} 1/mm")
         self.widget.cylinder_groupbox.setChecked(True)
@@ -659,9 +628,9 @@ class CorrectionController:
                 self.widget.sphere_groupbox.setChecked(False)
                 return
 
-            density = self.widget.sphere_param_tw.cellWidget(0, 1).value()
-            radius = self.widget.sphere_param_tw.cellWidget(1, 1).value()
-            beam_width = self.widget.sphere_param_tw.cellWidget(2, 1).value()
+            density = self.widget.sphere_param_form.value("density")
+            radius = self.widget.sphere_param_form.value("radius")
+            beam_width = self.widget.sphere_param_form.value("beam_width")
 
             wavelength_m = self.model.calibration_model.wavelength
             energy_eV = wavelength_to_energy(wavelength_m)
@@ -724,8 +693,8 @@ class CorrectionController:
         if correction is None:
             return
         params = correction.get_params()
-        self.widget.sphere_param_tw.cellWidget(1, 1).setText(str(params["radius"]))
-        self.widget.sphere_param_tw.cellWidget(2, 1).setText(str(params["beam_width"]))
+        self.widget.sphere_param_form.set_value("radius", params["radius"])
+        self.widget.sphere_param_form.set_value("beam_width", params["beam_width"])
         mu = params["absorption_coefficient"]
         self.widget.sphere_mu_lbl.setText(f"μ: {mu:.4f} 1/mm")
         self.widget.sphere_groupbox.setChecked(True)
@@ -747,10 +716,10 @@ class CorrectionController:
                 self.widget.plate_groupbox.setChecked(False)
                 return
 
-            density = self.widget.plate_param_tw.cellWidget(0, 1).value()
-            thickness = self.widget.plate_param_tw.cellWidget(1, 1).value()
-            plate_tilt = self.widget.plate_param_tw.cellWidget(2, 1).value()
-            plate_rotation = self.widget.plate_param_tw.cellWidget(3, 1).value()
+            density = self.widget.plate_param_form.value("density")
+            thickness = self.widget.plate_param_form.value("thickness")
+            plate_tilt = self.widget.plate_param_form.value("plate_tilt")
+            plate_rotation = self.widget.plate_param_form.value("plate_rotation")
 
             wavelength_m = self.model.calibration_model.wavelength
             energy_eV = wavelength_to_energy(wavelength_m)
@@ -815,9 +784,9 @@ class CorrectionController:
         if correction is None:
             return
         params = correction.get_params()
-        self.widget.plate_param_tw.cellWidget(1, 1).setText(str(params["thickness"]))
-        self.widget.plate_param_tw.cellWidget(2, 1).setText(str(params["plate_tilt"]))
-        self.widget.plate_param_tw.cellWidget(3, 1).setText(str(params["plate_rotation"]))
+        self.widget.plate_param_form.set_value("thickness", params["thickness"])
+        self.widget.plate_param_form.set_value("plate_tilt", params["plate_tilt"])
+        self.widget.plate_param_form.set_value("plate_rotation", params["plate_rotation"])
         mu = params["absorption_coefficient"]
         self.widget.plate_mu_lbl.setText(f"μ: {mu:.4f} 1/mm")
         self.widget.plate_groupbox.setChecked(True)
@@ -843,60 +812,46 @@ class CorrectionController:
     def update_gui(self):
         if self.model.img_model.get_img_correction("cbn") is not None:
             self.update_cbn_widgets()
-            self.widget.cbn_groupbox.blockSignals(True)
             self.widget.cbn_groupbox.setChecked(True)
-            self.widget.cbn_groupbox.blockSignals(False)
         else:
             self.widget.cbn_groupbox.setChecked(False)
 
         if self.model.img_model.get_img_correction("oiadac") is not None:
             self.update_oiadac_widgets()
-            self.widget.oiadac_groupbox.blockSignals(True)
             self.widget.oiadac_groupbox.setChecked(True)
-            self.widget.oiadac_groupbox.blockSignals(False)
         else:
             self.widget.oiadac_groupbox.setChecked(False)
 
         if self.model.img_model.get_img_correction("transfer") is not None:
             self.update_transfer_widgets()
-            # self.widget.transfer_gb.blockSignals(True)
             self.widget.transfer_gb.setChecked(True)
-            # self.widget.transfer_gb.blockSignals(False)
         else:
             self.widget.transfer_gb.setChecked(False)
 
         if self.model.img_model.get_img_correction("slab") is not None:
             self.update_slab_widgets()
-            self.widget.slab_groupbox.blockSignals(True)
             self.widget.slab_groupbox.setChecked(True)
-            self.widget.slab_groupbox.blockSignals(False)
         else:
             self.widget.slab_groupbox.setChecked(False)
             self.widget.slab_mu_lbl.setText("μ:")
 
         if self.model.img_model.get_img_correction("cylinder") is not None:
             self.update_cylinder_widgets()
-            self.widget.cylinder_groupbox.blockSignals(True)
             self.widget.cylinder_groupbox.setChecked(True)
-            self.widget.cylinder_groupbox.blockSignals(False)
         else:
             self.widget.cylinder_groupbox.setChecked(False)
             self.widget.cylinder_mu_lbl.setText("μ:")
 
         if self.model.img_model.get_img_correction("sphere") is not None:
             self.update_sphere_widgets()
-            self.widget.sphere_groupbox.blockSignals(True)
             self.widget.sphere_groupbox.setChecked(True)
-            self.widget.sphere_groupbox.blockSignals(False)
         else:
             self.widget.sphere_groupbox.setChecked(False)
             self.widget.sphere_mu_lbl.setText("μ:")
 
         if self.model.img_model.get_img_correction("plate") is not None:
             self.update_plate_widgets()
-            self.widget.plate_groupbox.blockSignals(True)
             self.widget.plate_groupbox.setChecked(True)
-            self.widget.plate_groupbox.blockSignals(False)
         else:
             self.widget.plate_groupbox.setChecked(False)
             self.widget.plate_mu_lbl.setText("μ:")

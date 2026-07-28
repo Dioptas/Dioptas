@@ -41,7 +41,7 @@ class PlateCorrectionControllerTest(QtTest):
 
     def _enable_plate_correction(self, formula="C", density=3.51):
         self.correction_widget.plate_formula_txt.setText(formula)
-        self.correction_widget.plate_param_tw.cellWidget(0, 1).setText(str(density))
+        self.correction_widget.plate_param_form.set_value("density", density)
         self.correction_widget.plate_gb.setChecked(True)
         self.correction_controller.plate_groupbox_changed()
 
@@ -114,7 +114,7 @@ class PlateCorrectionControllerTest(QtTest):
         )
 
         # Change thickness
-        self.correction_widget.plate_param_tw.cellWidget(1, 1).setText("5.0")
+        self.correction_widget.plate_param_form.set_value("thickness", 5.0)
         self.correction_controller.plate_groupbox_changed()
 
         correction_after = (

@@ -88,7 +88,7 @@ class OiadacCorrectionControllerTest(QtTest):
         )
 
         # Change detector thickness
-        self.correction_widget.oiadac_param_tw.cellWidget(0, 1).setText("80")
+        self.correction_widget.oiadac_param_form.set_value("detector_thickness", 80)
         self.correction_controller.oiadac_groupbox_changed()
 
         correction_after = (

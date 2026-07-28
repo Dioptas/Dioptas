@@ -6,12 +6,17 @@
 - introduced an evented parameter dataclass layer (`dioptas.model.state`): Configuration settings now live in a `ConfigurationParams` object that is saved generically into project files; the 1D azimuth range and trim-trailing-zeros settings are now persisted (they were previously lost on save)
 - pattern/cake integration and the combined cake are now derived computations (`Derived`) with a single suppression primitive (`hold()`); this replaces the auto_integrate connect/disconnect cycling, the temporary flag-toggling dances in model and controllers, and the multiple-file-loading signal rewiring
 - project files now carry an explicit `format_version` root attribute; the versioning policy for .dio files (application version vs. layout version vs. params encoding version) is documented in `dioptas/model/state/hdf5.py`, and files written by newer Dioptas versions load best-effort instead of failing
-- added a declarative widget-binding layer (`dioptas/controller/binding.py`): bindings declare model→widget rendering (with widget signals blocked automatically) and widget→model writes once, replacing hand-written update_gui methods and their blockSignals sandwiches; OptionsController and BackgroundController are migrated, the remaining controllers follow incrementally
+- added a declarative widget-binding layer (`dioptas/controller/binding.py`): bindings declare model→widget rendering (with widget signals blocked automatically) and widget→model writes once, replacing hand-written update_gui methods and their blockSignals sandwiches; Options, Background, Calibration, Pattern, Batch and Correction controllers are migrated
+- the integration unit now has a single write path with a model-level `integration_unit_changed` signal; the pattern and batch views react to it instead of double-handling the same button clicks
+- correction parameters are edited in named form fields (`ParameterFormWidget`) instead of table cells addressed by row index
 
 ## Bugfixes
 
 - after loading a project or resetting, calibration parameter changes did not invalidate the cached multi-geometry, so combined patterns/cakes of multiple configurations could go stale
 - map change signals were shared between all configurations (class-level), causing cross-configuration crosstalk; they are now per-instance and the map view follows the selected configuration
+- the cBN seat correction GUI had crossed field wiring: the anvil and seat absorption length fields fed each other's parameters, and restoring a project scrambled the center offset and absorption length fields
+- the pattern axis labels and unit buttons could go stale when switching to a configuration with a different integration unit (the previous unit was shadow-copied in the controller)
+- the batch view's d-spacing display now inverts the x-axis like the pattern plot
 
 ## Distribution
 

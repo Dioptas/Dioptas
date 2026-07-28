@@ -88,7 +88,7 @@ class CbnCorrectionControllerTest(QtTest):
         )
 
         # Change diamond thickness
-        self.correction_widget.cbn_param_tw.cellWidget(0, 1).setText("3.0")
+        self.correction_widget.cbn_param_form.set_value("anvil_thickness", 3.0)
         self.correction_controller.cbn_groupbox_changed()
 
         correction_after = (
