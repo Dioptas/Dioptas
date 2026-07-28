@@ -8,7 +8,12 @@ parameters move out of the individual models into plain evented dataclasses
 instead of being serialized field-by-field in hand-written HDF5 code.
 """
 
-from .params import ConfigurationParams, ViewParams, default_working_directories
+from .params import (
+    ConfigurationParams,
+    ImgParams,
+    ViewParams,
+    default_working_directories,
+)
 from .hdf5 import (
     save_params,
     load_params,
@@ -21,6 +26,7 @@ from .derived import Derived
 
 __all__ = [
     "ConfigurationParams",
+    "ImgParams",
     "ViewParams",
     "default_working_directories",
     "save_params",

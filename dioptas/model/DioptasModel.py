@@ -80,7 +80,9 @@ class DioptasModel:
 
         # the store-level settings-change surface: forwards every params
         # field change of the CURRENT configuration as (field, new, old);
-        # stable across configuration switches (rewired in connect_models)
+        # stable across configuration switches (rewired in connect_models).
+        # Sub-model params are namespaced by prefix: e.g. the ImgModel's
+        # factor arrives as "img.factor"; Configuration fields are unprefixed.
         self.configuration_params_changed: Signal = Signal(str, object, object)
 
         # convenience signal for the most-consumed field, emitting
@@ -368,6 +370,9 @@ class DioptasModel:
         self.current_configuration.params.events.disconnect(
             self._on_configuration_params_event, missing_ok=True
         )
+        self.img_model.params.events.disconnect(
+            self._on_img_params_event, missing_ok=True
+        )
 
     def connect_models(self) -> None:
         """Connects signals of the currently selected configuration."""
@@ -378,6 +383,7 @@ class DioptasModel:
         self.current_configuration.params.events.connect(
             self._on_configuration_params_event
         )
+        self.img_model.params.events.connect(self._on_img_params_event)
 
     def _on_configuration_params_event(self, info) -> None:
         """Forwards a psygnal EmissionInfo from the current configuration's
@@ -387,6 +393,10 @@ class DioptasModel:
         self.configuration_params_changed.emit(field, new, old)
         if field == "integration_unit":
             self.integration_unit_changed.emit(new, old)
+
+    def _on_img_params_event(self, info) -> None:
+        new, old = info.args
+        self.configuration_params_changed.emit("img." + info.signal.name, new, old)
 
     @property
     def working_directories(self) -> dict[str, str]:

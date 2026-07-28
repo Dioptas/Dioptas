@@ -258,3 +258,21 @@ def test_load_params_tolerates_corrupt_group(tmp_path):
 
     with h5py.File(filename, "r") as f:
         assert load_params(f, ConfigurationParams) is None
+
+
+# ---------------------------------------------------------------------------
+# ImgParams
+# ---------------------------------------------------------------------------
+
+from dioptas.model.state import ImgParams
+
+
+def test_img_params_defaults_and_events():
+    params = ImgParams()
+    assert params.factor == 1.0
+    assert params.file_iteration_mode == "number"
+
+    got = []
+    params.events.factor.connect(lambda new, old: got.append((new, old)))
+    params.factor = 2.0
+    assert got == [(2.0, 1.0)]

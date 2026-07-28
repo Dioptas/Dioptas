@@ -81,16 +81,24 @@ class Binder:
         self._register(_Binding(render_fn, widgets), field)
 
     def bind_checkbox(
-        self, checkbox: Any, owner: Callable[[], Any], field: str
+        self,
+        checkbox: Any,
+        owner: Callable[[], Any],
+        field: str,
+        event_field: str | None = None,
     ) -> None:
-        """Two-way binding for a QCheckBox-like widget (toggled/isChecked)."""
+        """Two-way binding for a QCheckBox-like widget (toggled/isChecked).
+
+        *event_field* overrides the field-event name to react to when it
+        differs from the attribute name (e.g. namespaced sub-model fields
+        like "img.factor")."""
         checkbox.toggled.connect(
             lambda checked: setattr(owner(), field, bool(checked))
         )
         self.add_render(
             lambda: checkbox.setChecked(bool(getattr(owner(), field))),
             checkbox,
-            field=field,
+            field=event_field or field,
         )
 
     def bind_spinbox(
@@ -99,6 +107,7 @@ class Binder:
         owner: Callable[[], Any],
         field: str,
         dtype: Callable[[Any], Any] = int,
+        event_field: str | None = None,
     ) -> None:
         """Two-way binding for a QSpinBox-like widget (valueChanged/value)."""
         spinbox.valueChanged.connect(
@@ -107,7 +116,7 @@ class Binder:
         self.add_render(
             lambda: spinbox.setValue(getattr(owner(), field)),
             spinbox,
-            field=field,
+            field=event_field or field,
         )
 
     def mirror_toggles(

@@ -32,7 +32,7 @@ def detect_fast_path(img_model: ImgModel) -> bool:
         not img_model.img_transformations
         and img_model._background_data is None
         and not img_model._img_corrections.has_items()
-        and img_model._factor == 1
+        and img_model.factor == 1
     )
 
 

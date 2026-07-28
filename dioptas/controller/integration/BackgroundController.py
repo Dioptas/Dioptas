@@ -29,13 +29,15 @@ class BackgroundController:
             widget.integration_control_widget.background_control_widget
         )
         self.model = dioptas_model
-        self.binder = Binder()
+        self.binder = Binder(field_events=self.model.configuration_params_changed)
 
         self.model.configuration_selected.connect(self.update_bkg_image_widgets)
         self.model.configuration_selected.connect(self.update_auto_pattern_bkg_widgets)
 
         self.create_image_background_signals()
         self.create_pattern_background_signals()
+        self.binder.connect_refresh(self.model.configuration_selected)
+        self.binder.refresh()
 
     def create_image_background_signals(self):
         self.connect_click_function(
@@ -51,11 +53,19 @@ class BackgroundController:
         self.widget.bkg_image_offset_step_msb.editingFinished.connect(
             self.update_bkg_image_offset_step
         )
-        self.widget.bkg_image_scale_sb.valueChanged.connect(
-            self.background_img_scale_changed
+        self.binder.bind_spinbox(
+            self.widget.bkg_image_scale_sb,
+            lambda: self.model.img_model,
+            "background_scaling",
+            dtype=float,
+            event_field="img.background_scaling",
         )
-        self.widget.bkg_image_offset_sb.valueChanged.connect(
-            self.background_img_offset_changed
+        self.binder.bind_spinbox(
+            self.widget.bkg_image_offset_sb,
+            lambda: self.model.img_model,
+            "background_offset",
+            dtype=float,
+            event_field="img.background_offset",
         )
 
         self.model.img_changed.connect(self.update_background_image_filename)
@@ -153,12 +163,6 @@ class BackgroundController:
         else:
             self.widget.bkg_image_filename_lbl.setText("None")
             self.widget.bkg_name_lbl.setText("")
-
-    def background_img_scale_changed(self):
-        self.model.img_model.background_scaling = self.widget.bkg_image_scale_sb.value()
-
-    def background_img_offset_changed(self):
-        self.model.img_model.background_offset = self.widget.bkg_image_offset_sb.value()
 
     def bkg_pattern_gb_toggled_callback(self, is_checked):
         self.widget.qa_bkg_pattern_inspect_btn.setVisible(is_checked)
@@ -332,8 +336,6 @@ class BackgroundController:
 
     def update_bkg_image_widgets(self):
         self.update_background_image_filename()
-        self.widget.bkg_image_offset_sb.setValue(self.model.img_model.background_offset)
-        self.widget.bkg_image_scale_sb.setValue(self.model.img_model.background_scaling)
         self.widget.img_show_background_subtracted_btn.setVisible(
             self.model.img_model.has_background()
         )

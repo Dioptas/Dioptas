@@ -15,6 +15,7 @@ import h5py
 import fabio
 
 from .util import Signal
+from .state import ImgParams
 from dioptas.model.loader.spe import SpeFile
 from .util.NewFileWatcher import NewFileInDirectoryWatcher
 from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
@@ -50,7 +51,10 @@ class ImgModel:
         self.filename: str = ""
         self.img_transformations: list[Callable[[np.ndarray], np.ndarray]] = []
 
-        self.file_iteration_mode: str = "number"
+        # All user-settable parameters live in the evented params dataclass;
+        # the properties below delegate to it and add side effects.
+        self.params: ImgParams = ImgParams()
+
         self.file_name_iterator: FileNameIterator = FileNameIterator()
 
         self.series_pos: int = 1
@@ -64,10 +68,6 @@ class ImgModel:
 
         self.background_filename: str = ""
         self._background_data: np.ndarray | None = None
-        self._background_scaling: float = 1
-        self._background_offset: float = 0
-
-        self._factor: float = 1
 
         self.transfer_correction: TransferFunctionCorrection = TransferFunctionCorrection()
         self.flat_field_correction: FlatFieldCorrection = FlatFieldCorrection()
@@ -113,9 +113,6 @@ class ImgModel:
         self.loader: FabioLoader | Hdf5Image | None = None
 
         self._img_corrections: ImgCorrectionManager = ImgCorrectionManager()
-
-        # setting up autoprocess
-        self._autoprocess: bool = False
         # TODO: watching a directory should be open to any file type - an extension should  be added when a
         # new file is loaded with a previous non-existing file extension
         self._directory_watcher: NewFileInDirectoryWatcher = NewFileInDirectoryWatcher(
@@ -404,23 +401,31 @@ class ImgModel:
 
     @property
     def background_scaling(self) -> float:
-        return self._background_scaling
+        return self.params.background_scaling
 
     @background_scaling.setter
     def background_scaling(self, new_value: float) -> None:
-        self._background_scaling = new_value
+        self.params.background_scaling = float(new_value)
         self._calculate_img_data()
         self.img_changed.emit()
 
     @property
     def background_offset(self) -> float:
-        return self._background_offset
+        return self.params.background_offset
 
     @background_offset.setter
     def background_offset(self, new_value: float) -> None:
-        self._background_offset = new_value
+        self.params.background_offset = float(new_value)
         self._calculate_img_data()
         self.img_changed.emit()
+
+    @property
+    def file_iteration_mode(self) -> str:
+        return self.params.file_iteration_mode
+
+    @file_iteration_mode.setter
+    def file_iteration_mode(self, new_mode: str) -> None:
+        self.params.file_iteration_mode = new_mode
 
     def load_series_img(self, pos: int) -> None:
         """
@@ -534,8 +539,8 @@ class ImgModel:
         # calculate the current _img_data
         if self._background_data is not None and not self._img_corrections.has_items():
             self._img_data_background_subtracted = self._img_data - (
-                self._background_scaling * self._background_data
-                + self._background_offset
+                self.params.background_scaling * self._background_data
+                + self.params.background_offset
             )
         elif self._background_data is None and self._img_corrections.has_items():
             self._img_data_absorption_corrected = (
@@ -546,8 +551,8 @@ class ImgModel:
             self._img_data_background_subtracted_absorption_corrected = (
                 self._img_data
                 - (
-                    self._background_scaling * self._background_data
-                    + self._background_offset
+                    self.params.background_scaling * self._background_data
+                    + self.params.background_offset
                 )
             ) / self._img_corrections.get_data()
 
@@ -829,11 +834,11 @@ class ImgModel:
 
     @property
     def autoprocess(self) -> bool:
-        return self._autoprocess
+        return self.params.autoprocess
 
     @autoprocess.setter
     def autoprocess(self, new_val: bool) -> None:
-        self._autoprocess = new_val
+        self.params.autoprocess = new_val
         if new_val:
             self._directory_watcher.activate()
         else:
@@ -841,11 +846,13 @@ class ImgModel:
 
     @property
     def factor(self) -> float:
-        return self._factor
+        return self.params.factor
 
     @factor.setter
     def factor(self, new_value: float) -> None:
-        self._factor = new_value
+        # float coercion: an integer factor would multiply integer-typed
+        # image data with wraparound (uint16 pixel values silently overflow)
+        self.params.factor = float(new_value)
         self.img_changed.emit()
 
     def get_img_data_float64(self) -> np.ndarray:

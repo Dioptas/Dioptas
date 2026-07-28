@@ -1,6 +1,12 @@
 # 0.8.7 (in development)
 
+## Bugfixes
+
+- setting an integer intensity factor (e.g. from a script) silently wrapped uint16 image pixel values around; the factor is now coerced to float
+
 ## Internal
+
+- ImgModel's settings (autoprocess, factor, background scaling/offset, file iteration mode) moved into an evented `ImgParams` dataclass following the no-state-in-models direction; the file iteration mode is now persisted in project files (previously lost on save); img params changes surface on `configuration_params_changed` with an `img.` prefix, and the background image scale/offset spinboxes bind reactively to them
 
 - the model Signal class is now backed by psygnal, gaining batched/paused emission while keeping the existing API
 - introduced an evented parameter dataclass layer (`dioptas.model.state`): Configuration settings now live in a `ConfigurationParams` object that is saved generically into project files; the 1D azimuth range and trim-trailing-zeros settings are now persisted (they were previously lost on save)
