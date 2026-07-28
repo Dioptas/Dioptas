@@ -10,7 +10,6 @@ import json
 from copy import deepcopy
 
 from xypattern import Pattern
-from xypattern.auto_background import SmoothBrucknerBackground
 
 from .util import Signal
 from .state import (
@@ -794,22 +793,23 @@ class Configuration:
         pattern_group.attrs["file_iteration_mode"] = (
             self.pattern_model.file_iteration_mode
         )
-        if self.pattern_model.pattern.auto_bkg:
+        pattern_params = self.pattern_model.params
+        if pattern_params.auto_bkg_enabled:
             pattern_group.attrs["auto_background_subtraction"] = True
             auto_background_group = pattern_group.create_group(
                 "auto_background_settings"
             )
-            auto_bkg = self.pattern_model.pattern.auto_bkg
+            auto_background_group.attrs["smoothing"] = pattern_params.auto_bkg_smoothing
+            auto_background_group.attrs["iterations"] = (
+                pattern_params.auto_bkg_iterations
+            )
+            auto_background_group.attrs["poly_order"] = (
+                pattern_params.auto_bkg_poly_order
+            )
 
-            if type(auto_bkg) == SmoothBrucknerBackground:
-                auto_background_group.attrs["smoothing"] = auto_bkg.smooth_width
-                auto_background_group.attrs["iterations"] = auto_bkg.iterations
-                auto_background_group.attrs["poly_order"] = auto_bkg.cheb_order
-
-            auto_bkg_roi = self.pattern_model.pattern.auto_bkg_roi
-            if auto_bkg_roi is not None:
-                auto_background_group.attrs["x_start"] = auto_bkg_roi[0]
-                auto_background_group.attrs["x_end"] = auto_bkg_roi[1]
+            if pattern_params.auto_bkg_roi is not None:
+                auto_background_group.attrs["x_start"] = pattern_params.auto_bkg_roi[0]
+                auto_background_group.attrs["x_end"] = pattern_params.auto_bkg_roi[1]
         else:
             pattern_group.attrs["auto_background_subtraction"] = False
 
@@ -1003,15 +1003,21 @@ class Configuration:
             )
 
         if f.get("pattern").attrs["auto_background_subtraction"]:
-            self.pattern_model.pattern.auto_bkg_roi = [
-                f.get("pattern").get("auto_background_settings").attrs["x_start"],
-                f.get("pattern").get("auto_background_settings").attrs["x_end"],
+            auto_background_group = f.get("pattern").get("auto_background_settings")
+            pattern_params = self.pattern_model.params
+            pattern_params.auto_bkg_smoothing = auto_background_group.attrs["smoothing"]
+            pattern_params.auto_bkg_iterations = auto_background_group.attrs[
+                "iterations"
             ]
-            self.pattern_model.pattern.auto_bkg = SmoothBrucknerBackground(
-                f.get("pattern").get("auto_background_settings").attrs["smoothing"],
-                f.get("pattern").get("auto_background_settings").attrs["iterations"],
-                f.get("pattern").get("auto_background_settings").attrs["poly_order"],
-            )
+            pattern_params.auto_bkg_poly_order = auto_background_group.attrs[
+                "poly_order"
+            ]
+            if "x_start" in auto_background_group.attrs:
+                pattern_params.auto_bkg_roi = [
+                    auto_background_group.attrs["x_start"],
+                    auto_background_group.attrs["x_end"],
+                ]
+            pattern_params.auto_bkg_enabled = True
 
         # load general configuration
         if f.get("general_information").attrs["integration_num_points"]:

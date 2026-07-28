@@ -4,7 +4,6 @@ import os
 
 import numpy as np
 from qtpy import QtWidgets
-from xypattern.auto_background import SmoothBrucknerBackground
 
 from ...widgets.UtilityWidgets import open_file_dialog, save_file_dialog
 from ...widgets.integration import IntegrationWidget
@@ -182,25 +181,30 @@ class BackgroundController:
     def bkg_pattern_parameters_changed(self):
         bkg_pattern_parameters = self.background_widget.get_bkg_pattern_parameters()
         bkg_pattern_roi = self.background_widget.get_bkg_pattern_roi()
-        if self.model.pattern_model.pattern.auto_bkg is not None:
+        if self.model.pattern_model.params.auto_bkg_enabled:
             self.model.pattern_model.set_auto_background_subtraction(
                 bkg_pattern_parameters, bkg_pattern_roi
             )
 
     def update_bkg_gui_parameters(self):
-        pattern = self.model.pattern_model.pattern
-        auto_bkg = pattern.auto_bkg
-        if auto_bkg is None:
+        params = self.model.pattern_model.params
+        if not params.auto_bkg_enabled:
             return
 
-        assert type(auto_bkg) == SmoothBrucknerBackground
         self.background_widget.set_bkg_pattern_parameters(
-            [auto_bkg.smooth_width, auto_bkg.iterations, auto_bkg.cheb_order]
+            [
+                params.auto_bkg_smoothing,
+                params.auto_bkg_iterations,
+                params.auto_bkg_poly_order,
+            ]
         )
-        self.background_widget.set_bkg_pattern_roi(pattern.auto_bkg_roi)
+        roi = params.auto_bkg_roi
+        if roi is None:
+            return
+        self.background_widget.set_bkg_pattern_roi(roi)
 
         self.widget.pattern_widget.bkg_roi.blockSignals(True)
-        self.widget.pattern_widget.set_bkg_roi(*pattern.auto_bkg_roi)
+        self.widget.pattern_widget.set_bkg_roi(*roi)
         self.widget.pattern_widget.bkg_roi.blockSignals(False)
 
         if self.model.batch_model.binning is not None:
@@ -341,7 +345,7 @@ class BackgroundController:
         )
 
     def update_auto_pattern_bkg_widgets(self):
-        auto_bkg_enabled = self.model.pattern.auto_bkg is not None
+        auto_bkg_enabled = self.model.pattern_model.params.auto_bkg_enabled
         self._set_bkg_pattern_toggles(auto_bkg_enabled)
         self.widget.qa_bkg_pattern_inspect_btn.setVisible(auto_bkg_enabled)
 
