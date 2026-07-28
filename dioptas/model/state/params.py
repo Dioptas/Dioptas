@@ -22,7 +22,7 @@ from typing import ClassVar
 
 from psygnal import SignalGroupDescriptor
 
-__all__ = ["ConfigurationParams", "default_working_directories"]
+__all__ = ["ConfigurationParams", "ViewParams", "default_working_directories"]
 
 
 def default_working_directories() -> dict[str, str]:
@@ -35,6 +35,22 @@ def default_working_directories() -> dict[str, str]:
         "phase": "",
         "batch": os.path.expanduser("~"),
     }
+
+
+@dataclass
+class ViewParams:
+    """View state of the GUI that is not derivable from the data models.
+
+    Owned by DioptasModel (a single, stable instance — load applies fields
+    onto it instead of replacing it, so event subscriptions stay valid).
+    Controllers write it and react to its change events; keeping it in the
+    model makes it persistable and testable without widgets.
+    """
+
+    events: ClassVar[SignalGroupDescriptor] = SignalGroupDescriptor()
+
+    #: what the integration image panel shows: "Image" or "Cake"
+    img_mode: str = "Image"
 
 
 @dataclass

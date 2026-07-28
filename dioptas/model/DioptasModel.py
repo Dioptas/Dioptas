@@ -13,7 +13,7 @@ from xypattern import Pattern
 
 from .util import Signal
 from .util import jcpds
-from .state import Derived, PROJECT_FORMAT_VERSION
+from .state import Derived, ViewParams, save_params, load_params, PROJECT_FORMAT_VERSION
 from .Configuration import Configuration
 from . import (
     ImgModel,
@@ -46,6 +46,11 @@ class DioptasModel:
 
         self._overlay_model: OverlayModel = OverlayModel()
         self._phase_model: PhaseModel = PhaseModel()
+
+        # GUI view state (see ViewParams). A single stable instance for the
+        # model's lifetime — load() applies fields onto it, so controllers'
+        # event subscriptions stay valid.
+        self.view: ViewParams = ViewParams()
 
         self._combine_patterns: bool = False
         self._combine_cakes: bool = False
@@ -163,6 +168,8 @@ class DioptasModel:
         # dioptas/model/state/hdf5.py for the versioning policy
         f.attrs["__version__"] = __version__
         f.attrs["format_version"] = PROJECT_FORMAT_VERSION
+
+        save_params(f, self.view, name="view")
 
         # save configuration
         configurations_group = f.create_group("configurations")
@@ -318,6 +325,12 @@ class DioptasModel:
                 )
             except KeyError:
                 logger.debug("Optional overlay data not found in project file")
+
+        # apply saved view state last, field-wise onto the stable instance so
+        # subscribed controllers react through the change events
+        saved_view = load_params(f, ViewParams, name="view")
+        if saved_view is not None:
+            self.view.img_mode = saved_view.img_mode
 
         f.close()
 

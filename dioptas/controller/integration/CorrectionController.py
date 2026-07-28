@@ -391,9 +391,9 @@ class CorrectionController:
             self.reset_img_widget()
 
     def reset_img_widget(self):
-        if self.widget.img_mode == "Cake":
+        if self.model.view.img_mode == "Cake":
             self.model.cake_changed.emit()
-        elif self.widget.img_mode == "Image":
+        elif self.model.view.img_mode == "Image":
             self.model.img_changed.emit()
 
     def update_slab_widgets(self):

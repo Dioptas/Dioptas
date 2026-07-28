@@ -660,6 +660,24 @@ def test_clicked_tth_and_azi_signals(dioptas_model):
     assert dioptas_model.clicked_azi == 90.0
 
 
+def test_view_state_round_trip(dioptas_model, tmp_path):
+    """The GUI view state is saved in the project file and applied onto the
+    stable ViewParams instance on load (events fire, object identity kept)."""
+    dioptas_model.view.img_mode = "Cake"
+    filename = os.path.join(tmp_path, "view.dio")
+    dioptas_model.save(filename)
+
+    dioptas_model.view.img_mode = "Image"
+    view_instance = dioptas_model.view
+    events = []
+    dioptas_model.view.events.img_mode.connect(lambda new, old: events.append(new))
+
+    dioptas_model.load(filename)
+    assert dioptas_model.view is view_instance
+    assert dioptas_model.view.img_mode == "Cake"
+    assert events == ["Cake"]
+
+
 def test_project_file_has_format_version(dioptas_model, tmp_path):
     import h5py
 

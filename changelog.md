@@ -9,6 +9,7 @@
 - added a declarative widget-binding layer (`dioptas/controller/binding.py`): bindings declare model→widget rendering (with widget signals blocked automatically) and widget→model writes once, replacing hand-written update_gui methods and their blockSignals sandwiches; Options, Background, Calibration, Pattern, Batch and Correction controllers are migrated
 - the integration unit now has a single write path with a model-level `integration_unit_changed` signal; the pattern and batch views react to it instead of double-handling the same button clicks
 - correction parameters are edited in named form fields (`ParameterFormWidget`) instead of table cells addressed by row index
+- the image/cake view mode moved from a widget attribute into evented view state (`ViewParams.img_mode` on the model); the mode switch runs in reaction to state changes, and the view mode is now saved in and restored from project files
 
 ## Bugfixes
 
