@@ -98,6 +98,10 @@ class ViewParams:
     #: whether the image panel is docked in the main window
     img_docked: bool = True
 
+    #: whether the map panel is docked in the main window; when undocked it
+    #: keeps working in its own window regardless of the mode shown
+    map_docked: bool = True
+
     #: y separation applied by the overlay waterfall action
     waterfall_separation: float = 100.0
 

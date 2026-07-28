@@ -350,7 +350,8 @@ class PatternWidget(QtCore.QObject):
 
     # map interactive linear region functions
     def show_map_interactive_roi(self):
-        self.pattern_plot.addItem(self.map_interactive_roi)
+        if self.map_interactive_roi.scene() != self.pattern_plot.scene():
+            self.pattern_plot.addItem(self.map_interactive_roi)
 
     def set_map_interactive_roi(self, x_min, x_max):
         self.map_interactive_roi.setRegion((x_min, x_max))

@@ -1,38 +1,48 @@
 # SPDX-License-Identifier: MIT
-import os
-import time
-from PIL import Image
 from typing import Optional
 
 import numpy as np
-import pyqtgraph as pg
-from qtpy import QtWidgets, QtCore
-from qtpy.QtGui import QTransform
-from scipy.ndimage import zoom
 
 from dioptas.model.DioptasModel import DioptasModel
 from dioptas.model.util.calc import convert_units
 from dioptas.widgets.MapWidget import MapWidget
 
-from ..widgets.UtilityWidgets import get_progress_dialog, open_files_dialog
+from .MapPanelController import MapPanelController
+from .integration.MapRoiInPatternController import MapRoiInPatternController
 from .integration.phase.PhaseInPatternController import PhaseInPatternController
 from .integration.overlay.OverlayInPatternController import OverlayInPatternController
-from ..widgets.UtilityWidgets import save_file_dialog
 
 
 class MapController:
-    def __init__(self, widget: MapWidget, dioptas_model: DioptasModel):
+    def __init__(
+        self,
+        widget: MapWidget,
+        dioptas_model: DioptasModel,
+        panel_controller: Optional[MapPanelController] = None,
+    ):
         self.widget = widget
         self.model = dioptas_model
 
-        self._contour_items: list[pg.IsocurveItem] = []
+        # The map panel is shared with the integration view, so its controller
+        # is normally owned by the MainController and passed in here.
+        if panel_controller is None:
+            panel_controller = MapPanelController(
+                self.widget.map_panel_widget, self.model
+            )
+        self.panel_controller = panel_controller
+
         self._setting_levels = False
+        self._active = False
 
         self.phase_in_pattern_controller = PhaseInPatternController(
             self.widget.pattern_plot_widget, self.model
         )
         self.overlay_in_pattern_controller = OverlayInPatternController(
             self.widget.pattern_plot_widget, self.model.overlay_model
+        )
+        # this plot exists to drive the map, so its window region is always up
+        self.map_roi_controller = MapRoiInPatternController(
+            self.widget.pattern_plot_widget, self.model, always_visible=True
         )
 
         self.create_signals()
@@ -47,19 +57,6 @@ class MapController:
         self.widget.control_widget.reintegrate_cb.toggled.connect(
             self._auto_integrate_toggled
         )
-        self.widget.map_plot_control_widget.save_map_btn.clicked.connect(self._save_map)
-        self.widget.map_image_frame.smooth_btn.toggled.connect(
-            self._smooth_toggled
-        )
-        self.widget.map_image_frame.smooth_slider.valueChanged.connect(
-            self._smooth_slider_changed
-        )
-        self.widget.map_image_frame.contour_btn.toggled.connect(
-            self._contour_toggled
-        )
-        self.widget.map_image_frame.contour_slider.valueChanged.connect(
-            self._contour_slider_changed
-        )
 
         self.widget.pattern_footer_widget.log_btn.clicked.connect(
             self._y_scale_log_clicked
@@ -68,19 +65,11 @@ class MapController:
             self._y_scale_sqrt_clicked
         )
 
-        self.widget.map_plot_widget.mouse_left_clicked.connect(self.map_point_selected)
         self.widget.pattern_plot_widget.mouse_left_clicked.connect(self.pattern_clicked)
-        self.widget.pattern_plot_widget.map_interactive_roi.sigRegionChanged.connect(
-            self.pattern_roi_changed
-        )
         self.widget.pattern_plot_widget.mouse_moved.connect(
             self.pattern_plot_mouse_moved
         )
 
-        self.widget.map_plot_control_widget.map_dimension_cb.currentIndexChanged.connect(
-            self.map_dimension_cb_changed
-        )
-        self.widget.map_plot_widget.mouse_moved.connect(self.map_plot_mouse_moved)
         self.widget.img_plot_widget.mouse_left_clicked.connect(
             self.img_plot_left_clicked
         )
@@ -92,9 +81,14 @@ class MapController:
             self._img_levels_manually_changed
         )
 
+        self.panel_controller.point_selected.connect(self.map_point_selected)
+
         self._connected_map_model = self.model.map_model
-        self._connected_map_model.map_changed.connect(self.update_map)
         self._connected_map_model.map_changed.connect(self.update_file_list)
+        # removing a configuration switches to another one without emitting
+        # configuration_selected, and this stays connected while the map mode
+        # is hidden so its file list is right when it comes back
+        self.model.configuration_removed.connect(self._configuration_removed)
         self.model.clicked_tth_changed.connect(self.update_pattern_green_line)
         self.model.clicked_tth_changed.connect(self.update_image_green_line)
         self.model.clicked_tth_changed.connect(self.update_clicked_pos_label)
@@ -103,72 +97,19 @@ class MapController:
         self.model.pattern_changed.connect(self.update_pattern)
         self.activate_model_signals()
 
-    def _smooth_toggled(self, checked: bool):
-        self.widget.map_image_frame.smooth_slider.setVisible(checked)
-        self.widget.map_image_frame.smooth_label.setVisible(checked)
-        if checked:
-            factor = self.widget.map_image_frame.smooth_slider.value()
-        else:
-            factor = 1
-        self.widget.map_plot_widget.data_img_item.setSmoothFactor(factor)
-
-    def _smooth_slider_changed(self, value: int):
-        self.widget.map_image_frame.smooth_label.setText(str(value))
-        if self.widget.map_image_frame.smooth_btn.isChecked():
-            self.widget.map_plot_widget.data_img_item.setSmoothFactor(value)
-
-    def _contour_slider_changed(self, value: int):
-        self.widget.map_image_frame.contour_label.setText(str(value))
-        if self.widget.map_image_frame.contour_btn.isChecked():
-            self._update_contours()
-
-    def _contour_toggled(self, checked: bool):
-        self.widget.map_image_frame.contour_slider.setVisible(checked)
-        self.widget.map_image_frame.contour_label.setVisible(checked)
-        if checked:
-            self._update_contours()
-        else:
-            self._clear_contours()
-
-    _CONTOUR_UPSAMPLE = 3
-
-    def _update_contours(self):
-        self._clear_contours()
-        if self.model.map_model.map is None:
-            return
-        data = np.flipud(self.model.map_model.map).T
-        factor = self._CONTOUR_UPSAMPLE
-        data = zoom(data.astype(float), factor, order=3)
-        num_levels = self.widget.map_image_frame.contour_slider.value()
-        d_min, d_max = float(data.min()), float(data.max())
-        if d_min == d_max:
-            return
-        levels = np.linspace(d_min, d_max, num_levels + 2)[1:-1]
-        pen = pg.mkPen(color=(255, 255, 255, 128), width=1)
-        view_box = self.widget.map_plot_widget.img_view_box
-        scale = QTransform.fromScale(1.0 / factor, 1.0 / factor)
-        for level in levels:
-            item = pg.IsocurveItem(data=data, level=level, pen=pen)
-            item.setTransform(scale)
-            view_box.addItem(item)
-            self._contour_items.append(item)
-
-    def _clear_contours(self):
-        view_box = self.widget.map_plot_widget.img_view_box
-        for item in self._contour_items:
-            view_box.removeItem(item)
-        self._contour_items.clear()
-
     def activate(self):
+        self._active = True
         self.activate_model_signals()
         self._apply_auto_integrate()
         self.configuration_selected()
+        self._sync_file_list_selection()
 
     def activate_model_signals(self):
         self.model.img_changed.connect(self.update_image)
         self.model.configuration_selected.connect(self.configuration_selected)
 
     def deactivate(self):
+        self._active = False
         self.model.img_changed.disconnect(self.update_image)
         self.model.configuration_selected.disconnect(self.configuration_selected)
         self.model.current_configuration.auto_integrate_pattern = True
@@ -197,132 +138,68 @@ class MapController:
         self.model.current_configuration.auto_integrate_pattern = checked
 
     def _set_stored_pattern(self, index):
-        """Set pattern from stored map data when reintegrate is off."""
+        """Set pattern from stored map data when reintegrate is off.
+
+        Only applies while the map mode itself is shown: a point picked from
+        the integration view has to go through the normal integration
+        pipeline, or the pattern there would ignore the mask, background and
+        unit currently set in that view.
+        """
+        if not self._active:
+            return
         if self.widget.control_widget.reintegrate_cb.isChecked():
             return
         map_model = self.model.map_model
         if map_model.pattern_x is None or map_model.pattern_intensities is None:
             return
-        x = map_model.pattern_x
+        x = self._pattern_x_in_display_unit(map_model)
+        if x is None:
+            return
         y = map_model.pattern_intensities[index]
         filename = self.model.img_model.filename
         self.model.current_configuration.pattern_model.set_pattern(
             x, y, filename, unit=self.model.integration_unit
         )
 
+    def _pattern_x_in_display_unit(self, map_model):
+        """The stored map x values, in the unit the pattern is displayed in.
+
+        The map keeps them in the unit it was integrated in, which the user
+        can have changed since. Converting d spacing leaves the values in
+        descending order, as a regular integration in d does.
+        """
+        unit = self.model.integration_unit
+        if map_model.pattern_unit is None or map_model.pattern_unit == unit:
+            return map_model.pattern_x
+        wavelength = self.model.calibration_model.wavelength
+        if not wavelength:
+            return None
+        return convert_units(
+            map_model.pattern_x, wavelength, map_model.pattern_unit, unit
+        )
+
     def load_btn_clicked(self):
-        filenames = open_files_dialog(
-            self.widget,
-            "Load image data file(s)",
-            self.model.working_directories["image"],
-        )
-        if len(filenames) == 0:
-            return
-
-        progressDialog = get_progress_dialog(
-            "Integrating image data...", "Abort Integration", 100, self.widget.map_pg_layout
-        )
-        progressDialog.setMinimumDuration(0)
-        progressDialog.setWindowModality(QtCore.Qt.ApplicationModal)
-        label = progressDialog.findChild(QtWidgets.QLabel)
-        if label is not None:
-            label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-
-        t_start = time.time()
-
-        def callback_fn(current, n_total):
-            if progressDialog.wasCanceled():
-                return False
-            progressDialog.setValue(int(current / n_total * 100))
-            elapsed = time.time() - t_start
-            rate = current / elapsed if elapsed > 0 else 0
-            progressDialog.setLabelText(
-                f"Image {current} of {n_total}\n"
-                f"{elapsed:.1f}s elapsed\n"
-                f"{rate:.1f} img/s"
-            )
-            QtWidgets.QApplication.processEvents()
-            return not progressDialog.wasCanceled()
-
-        try:
-            self.model.map_model.load(filenames, callback_fn=callback_fn)
-            self.model.map_model.select_point(0, 0)
-        except Exception as e:
-            QtWidgets.QMessageBox.critical(
-                self.widget, "Error loading image data.", str(e)
-            )
-        finally:
-            progressDialog.close()
-
-    def _save_map(self):
-        filename = save_file_dialog(
-            self.widget,
-            "Save Image.",
-            os.path.join(self.model.working_directories["image"]),
-            ("PNG Image (*.png);; TIFF Data (*.tiff);; Tabular Text (*.txt)"),
-        )
-
-        if filename == "":
-            return
-        else:
-            self.save_map(filename)
+        self.panel_controller.load_map()
 
     def save_map(self, filename: str):
-        if filename.endswith(".png"):
-            self.widget.map_plot_widget.save_img(filename)
-        elif filename.endswith(".tiff"):
-            data = self.model.map_model.map
-            max_uint32 = np.iinfo(np.uint32).max
-            normalized_data = (data - np.min(data)) / (np.max(data) - np.min(data))
-            normalized_data = (normalized_data * max_uint32).astype(np.uint32)
-            im = Image.fromarray(normalized_data)
-            im.save(filename)
-        elif filename.endswith(".txt"):
-            np.savetxt(filename, self.model.map_model.map, fmt="%d")
+        self.panel_controller.save_map(filename)
 
     def update_file_list(self):
-        # get current items
-        items = [
-            self.widget.control_widget.file_list.item(i).text()
-            for i in range(self.widget.control_widget.file_list.count())
-        ]
-        if items == self.model.map_model.get_filenames():
-            return
-
-        self.widget.control_widget.file_list.blockSignals(True)
-        self.widget.control_widget.file_list.clear()
+        file_list = self.widget.control_widget.file_list
+        items = [file_list.item(i).text() for i in range(file_list.count())]
         filenames = self.model.map_model.get_filenames()
-        if len(filenames) == 0:  # no files loaded
+        if items == filenames:
             return
-        self.widget.control_widget.file_list.addItems(filenames)
-        self.widget.control_widget.file_list.blockSignals(False)
 
-    def update_map(self):
-        if self.model.map_model.map is None:
-            # clear image
-            self.widget.map_plot_widget.plot_image(np.array([[], []]))
-            self._clear_contours()
-        else:
-            self.widget.map_plot_widget.plot_image(
-                np.flipud(self.model.map_model.map), auto_level=True
-            )
-            self.update_dimension_cb()
-            if self.widget.map_image_frame.contour_btn.isChecked():
-                self._update_contours()
-
-    def update_dimension_cb(self):
-        dim_cb = self.widget.map_plot_control_widget.map_dimension_cb
-        dim_cb.blockSignals(True)
-        dim_cb.clear()
-        possible_dimensions_str = [
-            f"{x}x{y}" for x, y in self.model.map_model.possible_dimensions
-        ]
-        dim_cb.addItems(possible_dimensions_str)
-        current_dimension_index = self.model.map_model.possible_dimensions.index(
-            self.model.map_model.dimension
-        )
-        dim_cb.setCurrentIndex(current_dimension_index)
-        dim_cb.blockSignals(False)
+        # unblock even when there are no files: leaving the list blocked would
+        # swallow the row changes of the next map loaded into it
+        file_list.blockSignals(True)
+        try:
+            file_list.clear()
+            if filenames:
+                file_list.addItems(filenames)
+        finally:
+            file_list.blockSignals(False)
 
     def update_image(self):
         if self.model.img_model.img_data is None:
@@ -383,88 +260,34 @@ class MapController:
     def file_list_row_changed(self, row):
         self.model.map_model.select_point_by_index(row)
         self._set_stored_pattern(row)
-        row, col = self.model.map_model.get_point_coordinates(row)
-        map_shape = self.model.map_model.map.shape
-        self.widget.map_plot_widget.set_mouse_click_position(
-            col + 0.5, map_shape[0] - row - 0.5  # 0.5 are there to shift to center
-        )
 
-    def _get_mouse_row_col(self, x, y):
-        x, y = np.floor(x), np.floor(y)
-        row = self.widget.map_plot_widget.img_data.shape[0] - int(y) - 1
-        col = int(x)
-        return row, col
+    def map_point_selected(self, index):
+        """Follows a selection made in the map plot with the file list.
 
-    def _row_col_in_map(self, row, col):
-        map_shape = self.widget.map_plot_widget.img_data.shape
-        if row < 0 or col < 0 or row >= map_shape[0] or col >= map_shape[1]:
-            return False
-        return True
+        Stays connected while other modes are shown so the list is up to date
+        when the map mode comes back.
+        """
+        self._set_stored_pattern(index)
+        self._set_file_list_row(index)
 
-    def map_point_selected(self, clicked_x, clicked_y):
-        # skip when now map is loaded
-        if self.model.map_model.map is None:
-            return
-
-        row, col = self._get_mouse_row_col(clicked_x, clicked_y)
-
-        # skip when the mouse is outside of the map
-        if not self._row_col_in_map(row, col):
-            return
-
-        self.model.map_model.select_point(row, col)
-        ind = self.model.map_model.get_point_index(row, col)
-        self._set_stored_pattern(ind)
-
+    def _set_file_list_row(self, index):
         self.widget.control_widget.file_list.blockSignals(True)
-        self.widget.control_widget.file_list.setCurrentRow(ind)
+        self.widget.control_widget.file_list.setCurrentRow(index)
         self.widget.control_widget.file_list.blockSignals(False)
 
-    def map_dimension_cb_changed(self, _):
-        dimension_str = (
-            self.widget.map_plot_control_widget.map_dimension_cb.currentText()
+    def _sync_file_list_selection(self):
+        """Points the file list at the currently loaded image.
+
+        Images can also be loaded while the map mode is hidden, e.g. by
+        stepping through files in the integration view. An image that is not
+        part of the map clears the selection, matching the map marker which
+        hides in that case.
+        """
+        img_model = self.model.img_model
+        index = self.model.map_model.get_index_of_file(
+            img_model.filename, img_model.series_pos - 1
         )
-        dimension = tuple([int(x) for x in dimension_str.split("x")])
-        self.model.map_model.set_dimension(dimension)
-
-    def map_plot_mouse_moved(self, x, y):
-        # shows the information for a point inside of the map
-        # since pyqtgraph gives the coordinates in the image coordinate system
-        # we need to flip the y axis
-
-        # skip when no image is loaded
-        if self.widget.map_plot_widget.img_data is None:
-            return
-
-        row, col = self._get_mouse_row_col(x, y)
-
-        # if the mouse is outside of the image, we don't want to show any information
-        if not self._row_col_in_map(row, col):
-            self.widget.map_plot_control_widget.mouse_x_label.setText(f"X: ")
-            self.widget.map_plot_control_widget.mouse_y_label.setText(f"Y: ")
-            self.widget.map_plot_control_widget.mouse_int_label.setText(f"I: ")
-            self.widget.map_plot_control_widget.filename_label.setText(f"")
-            return
-
-        self.widget.map_plot_control_widget.mouse_x_label.setText(f"X: {col:.0f}")
-        self.widget.map_plot_control_widget.mouse_y_label.setText(f"Y: {row:.0f}")
-        self.widget.map_plot_control_widget.mouse_int_label.setText(
-            f"I: {self.model.map_model.map[row, col]:.0f}"
-        )
-
-        point_info = self.model.map_model.get_point_info(row, col)
-        if point_info is None:
-            self.widget.map_plot_control_widget.filename_label.setText(f"")
-            return
-
-        if point_info.frame_index == 0:
-            self.widget.map_plot_control_widget.filename_label.setText(
-                f"{point_info.filename}"
-            )
-        else:
-            self.widget.map_plot_control_widget.filename_label.setText(
-                f"{point_info.filename} - Frame: {point_info.frame_index}"
-            )
+        self._set_file_list_row(index if index is not None else -1)
 
     def img_plot_left_clicked(self, x, y):
         if not self.model.current_configuration.is_calibrated:
@@ -583,11 +406,7 @@ class MapController:
         pos_widget.azi_lbl.setText(f"X: {azi:.3f}")
 
     def pattern_clicked(self, x, _):
-        self.widget.pattern_plot_widget.map_interactive_roi.setCenter(x)
-
-    def pattern_roi_changed(self, interactive_roi):
-        region = interactive_roi.getRegion()
-        self.model.map_model.set_window(region)
+        self.map_roi_controller.set_center(x)
 
     def _y_scale_log_clicked(self):
         if self.widget.pattern_footer_widget.log_btn.isChecked():
@@ -606,9 +425,13 @@ class MapController:
     def configuration_selected(self):
         self._update_map_model_connection()
         self.update_file_list()
-        self.update_map()
         self.update_image()
         self.update_pattern()
+
+    def _configuration_removed(self, _index=None):
+        self._update_map_model_connection()
+        self.update_file_list()
+        self._sync_file_list_selection()
 
     def _update_map_model_connection(self):
         """Rebinds map_changed to the current configuration's map model.
@@ -618,8 +441,6 @@ class MapController:
         add/remove, project load)."""
         if self.model.map_model is self._connected_map_model:
             return
-        self._connected_map_model.map_changed.disconnect(self.update_map)
         self._connected_map_model.map_changed.disconnect(self.update_file_list)
         self._connected_map_model = self.model.map_model
-        self._connected_map_model.map_changed.connect(self.update_map)
         self._connected_map_model.map_changed.connect(self.update_file_list)

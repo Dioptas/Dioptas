@@ -21,6 +21,7 @@ from .integration import IntegrationController
 from .MaskController import MaskController
 from .ConfigurationController import ConfigurationController
 from .MapController import MapController
+from .MapPanelController import MapPanelController
 
 from dioptas import __version__
 from ..model.UpdateChecker import check_for_update
@@ -57,7 +58,16 @@ class MainController:
         self.integration_controller = IntegrationController(
             self.widget.integration_widget, self.model
         )
-        self.map_controller = MapController(self.widget.map_widget, self.model)
+        # The map panel moves between the map mode and its own window, so it
+        # is owned here rather than by the mode it happens to sit in.
+        self.map_panel_controller = MapPanelController(
+            self.widget.map_widget.map_panel_widget, self.model
+        )
+        self.map_controller = MapController(
+            self.widget.map_widget, self.model, self.map_panel_controller
+        )
+        self._map_panel_host = self.widget.map_widget.map_panel_host
+        self._closing = False
 
         self.calibration_controller.activate()
         self.integration_controller.image_controller.deactivate()
@@ -174,6 +184,16 @@ class MainController:
         self.model.img_changed.connect(self.update_title)
         self.model.pattern_changed.connect(self.update_title)
 
+        map_panel = self.widget.map_widget.map_panel_widget
+        map_panel.map_plot_control_widget.undock_btn.clicked.connect(
+            self.map_undock_btn_clicked
+        )
+        self.widget.map_widget.map_panel_host.dock_btn.clicked.connect(
+            self.map_dock_btn_clicked
+        )
+        self.widget.map_panel_window.closed.connect(self._map_window_closed)
+        self.model.view.events.map_docked.connect(self._map_docked_changed)
+
         self.widget.save_btn.clicked.connect(self.save_btn_clicked)
         self.widget.load_btn.clicked.connect(self.load_btn_clicked)
         self.widget.reset_btn.clicked.connect(self.reset_btn_clicked)
@@ -228,6 +248,47 @@ class MainController:
 
         self.activate_mode(ind)
         self.update_image_display_state(old_index, ind)
+
+    def place_map_panel(self):
+        """Moves the map panel between the map mode and its own window.
+
+        Undocked it stays in its window whatever mode is shown, which is how
+        the map is used next to the integration view.
+        """
+        window = self.widget.map_panel_window
+        if self.model.view.map_docked:
+            host = self.widget.map_widget.map_panel_host
+        else:
+            host = window
+
+        if host is self._map_panel_host:
+            return
+
+        self._map_panel_host.release_panel()
+        host.take_panel(self.widget.map_widget.map_panel_widget)
+        self._map_panel_host = host
+
+        window.setVisible(host is window)
+
+    def map_undock_btn_clicked(self):
+        self.model.view.map_docked = not self.model.view.map_docked
+
+    def map_dock_btn_clicked(self):
+        self.model.view.map_docked = True
+
+    def _map_docked_changed(self, docked, _old=None):
+        self.widget.map_widget.map_panel_widget.map_plot_control_widget.undock_btn.setText(
+            "Undock" if docked else "Dock"
+        )
+        self.place_map_panel()
+
+    def _map_window_closed(self):
+        # on shutdown every window is closed; docking back then would undo the
+        # state that was just saved and reparent widgets on their way out
+        if self._closing:
+            return
+        if not self.model.view.map_docked:
+            self.model.view.map_docked = True
 
     def activate_mode(self, mode_ind):
         controllers = [
@@ -368,6 +429,7 @@ class MainController:
         Intervention of the Dioptas close event to save settings before closing the Program.
         """
         logger.info("Closing Dioptas")
+        self._closing = True
         if self.use_settings:
             self.save_default_settings()
             self.save_directories()

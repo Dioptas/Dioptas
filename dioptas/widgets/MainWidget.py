@@ -9,6 +9,7 @@ from .CalibrationWidget import CalibrationWidget
 from .MaskWidget import MaskWidget
 from .integration import IntegrationWidget
 from .MapWidget import MapWidget
+from .MapPanelWidget import MapPanelWindow
 from .CustomWidgets import (
     VerticalSpacerItem,
     CheckableFlatButton,
@@ -128,6 +129,9 @@ class MainWidget(QtWidgets.QWidget):
         self.mask_widget = MaskWidget(self)
         self.integration_widget = IntegrationWidget(self)
         self.map_widget = MapWidget(self)
+        # home for the map panel while it is undocked; parented so it is torn
+        # down with the main window, but shown as its own window
+        self.map_panel_window = MapPanelWindow(self)
 
         self._layout_main_frame.addWidget(self.calibration_widget)
         self._layout_main_frame.addWidget(self.mask_widget)

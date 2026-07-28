@@ -52,6 +52,10 @@ class MapModel:
         self.point_infos = []
         self.pattern_intensities = None
         self.pattern_x = None
+        #: integration unit pattern_x is expressed in; None while no map data
+        #: exists. Consumers displaying the pattern in a different unit have
+        #: to convert the window into this unit before setting it.
+        self.pattern_unit = None
         self.window_intensities = None
         self.possible_dimensions = None
         self.map = None
@@ -112,6 +116,7 @@ class MapModel:
         self.pattern_x = []
         self.pattern_intensities = []
         self.point_infos = []
+        self.pattern_unit = self.configuration.integration_unit
 
         # disable trimming trailing zeros for integration, otherwise the
         # integration will result in patterns with different length, which
@@ -288,16 +293,24 @@ class MapModel:
         pattern_intensities,
         point_infos: list[MapPointInfo],
         filepaths: list[str],
+        pattern_unit: str | None = None,
     ):
         """Sets pre-computed integration results and rebuilds the map.
 
         This allows populating the model without re-integrating, e.g. when
-        results were computed in a worker thread.
+        results were computed in a worker thread. *pattern_unit* defaults to
+        the configuration's current integration unit, which is correct for
+        results just computed with it; project files pass their stored unit.
         """
         self.pattern_x = pattern_x
         self.pattern_intensities = pattern_intensities
         self.point_infos = point_infos
         self.filepaths = filepaths
+        self.pattern_unit = (
+            pattern_unit
+            if pattern_unit is not None
+            else self.configuration.integration_unit
+        )
 
         if self.window is None:
             self.window = get_center_window(self.pattern_x)
@@ -321,6 +334,7 @@ class MapModel:
         self.point_infos = []
         self.pattern_intensities = None
         self.pattern_x = None
+        self.pattern_unit = None
         self.dimension = None
         self.possible_dimensions = None
         self.map = None
@@ -370,6 +384,24 @@ class MapModel:
             return None
         return divmod(index, self.dimension[1])
 
+    def get_index_of_file(self, filepath: str, frame_index: int = 0) -> int | None:
+        """Returns the point index for an image file, or None if it is not part
+        of the map.
+
+        Inverse of :meth:`get_point_info`. Used to keep a map selection marker
+        in sync with images loaded from outside the map (e.g. by stepping
+        through files in the integration view).
+        """
+        if filepath is None:
+            return None
+        for index, point_info in enumerate(self.point_infos):
+            if (
+                point_info.filepath == filepath
+                and point_info.frame_index == frame_index
+            ):
+                return index
+        return None
+
     def get_filenames(self) -> list[str]:
         """Returns a list of filenames for the integrated images, it will add the frame index if it is not 0"""
         filenames = []
@@ -409,6 +441,8 @@ class MapModel:
         save_params(g, self.params)
         g.create_dataset("pattern_x", data=self.pattern_x)
         g.create_dataset("pattern_intensities", data=self.pattern_intensities)
+        if self.pattern_unit is not None:
+            g.attrs["pattern_unit"] = self.pattern_unit
         g.create_dataset("window", data=np.array(self.window, dtype="f8"))
         g.create_dataset("dimension", data=np.array(self.dimension, dtype="i"))
 
@@ -444,6 +478,12 @@ class MapModel:
         window = tuple(g["window"][...])
         dimension = tuple(g["dimension"][...])
 
+        # Files written before the unit was stored fall back to the current
+        # integration unit, which is what those versions implicitly assumed.
+        pattern_unit = g.attrs.get("pattern_unit")
+        if isinstance(pattern_unit, bytes):
+            pattern_unit = pattern_unit.decode()
+
         # Set window and dimension before set_integration_results so it
         # uses the saved values instead of computing defaults that may not
         # match the data after an HDF5 round-trip.
@@ -451,7 +491,11 @@ class MapModel:
         self.dimension = dimension
 
         self.set_integration_results(
-            pattern_x, pattern_intensities, point_infos, filepaths
+            pattern_x,
+            pattern_intensities,
+            point_infos,
+            filepaths,
+            pattern_unit=pattern_unit,
         )
 
 

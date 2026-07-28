@@ -10,6 +10,7 @@ from dioptas.controller.MapController import MapController
 from dioptas.model.DioptasModel import DioptasModel
 
 from dioptas.model.MapModel import MapModel, MapPointInfo, create_map
+from dioptas.model.util.calc import convert_units
 from dioptas.widgets.MapWidget import MapWidget
 from dioptas.widgets.plot_widgets.PatternWidget import SymmetricModifiedLinearRegionItem
 
@@ -240,9 +241,10 @@ def test_mouse_click_item_in_map_plot_widget_updates_correctly(
     mock_open_filenames(map_img_file_paths)
     map_controller.load_btn_clicked()
 
+    # loading selects the first point, so the marker starts on its center
     click_x, click_y = map_controller.widget.map_plot_widget.mouse_click_item.getData()
-    assert click_x[0] == approx(0)
-    assert click_y[0] == approx(0)
+    assert click_x[0] == approx(0.5)
+    assert click_y[0] == approx(2.5)
 
     map_controller.widget.control_widget.file_list.setCurrentRow(1)
     # check that mouse click item in map_plot_widget has changed
@@ -308,6 +310,38 @@ def test_pattern_interactive_roi_updates_map(map_controller):
         SymmetricModifiedLinearRegionItem((10, 11))
     )
     map_controller.model.map_model.set_window.assert_called_once_with((10, 11))
+
+
+def test_stored_pattern_is_converted_into_the_displayed_unit(map_controller):
+    """With reintegrate off the pattern comes from the stored map data, which
+    is kept in the unit the map was integrated in."""
+    load_calibration(map_controller)
+    mock_open_filenames(map_img_file_paths)
+    map_controller.load_btn_clicked()
+    map_controller._active = True
+
+    model = map_controller.model
+    assert model.map_model.pattern_unit == "2th_deg"
+    tth_max = model.map_model.pattern_x.max()
+
+    model.integration_unit = "q_A^-1"
+    map_controller.widget.control_widget.file_list.setCurrentRow(1)
+
+    wavelength = model.calibration_model.wavelength
+    expected_max = convert_units(tth_max, wavelength, "2th_deg", "q_A^-1")
+    assert model.pattern.x.max() == approx(expected_max, rel=1e-6)
+
+
+def test_stored_pattern_of_a_map_in_the_displayed_unit_is_untouched(map_controller):
+    load_calibration(map_controller)
+    mock_open_filenames(map_img_file_paths)
+    map_controller.load_btn_clicked()
+    map_controller._active = True
+
+    model = map_controller.model
+    map_controller.widget.control_widget.file_list.setCurrentRow(1)
+
+    np.testing.assert_array_equal(model.pattern.x, model.map_model.pattern_x)
 
 
 def test_mouse_move_in_map_image_will_update_xyI(map_controller, map_model):
