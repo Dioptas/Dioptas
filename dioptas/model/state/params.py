@@ -254,6 +254,16 @@ class PatternParams:
     #: how prev/next iterate through pattern files: "number" or "time"
     file_iteration_mode: str = "number"
 
+    # Automatic (smooth Bruckner) background subtraction. These are the
+    # canonical values; PatternModel pushes them into the xypattern Pattern,
+    # which owns the actual computation.
+    auto_bkg_enabled: bool = False
+    auto_bkg_smoothing: float = 0.1
+    auto_bkg_iterations: int = 50
+    auto_bkg_poly_order: int = 50
+    #: [x_min, x_max] range the background is fitted over; None = full range
+    auto_bkg_roi: list[float] | None = None
+
 
 @dataclass
 class ConfigurationParams:

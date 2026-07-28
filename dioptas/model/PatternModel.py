@@ -38,6 +38,63 @@ class PatternModel:
 
         self.pattern_changed: Signal = Signal()
 
+        self._applying_auto_bkg: bool = False
+
+        # the auto-background params are canonical; this reaction pushes
+        # them into the Pattern, which owns the computation, so a direct
+        # params write behaves exactly like set_auto_background_subtraction
+        self.params.events.connect(self._on_params_changed)
+
+    _AUTO_BKG_FIELDS = (
+        "auto_bkg_enabled",
+        "auto_bkg_smoothing",
+        "auto_bkg_iterations",
+        "auto_bkg_poly_order",
+        "auto_bkg_roi",
+    )
+
+    def _on_params_changed(self, info) -> None:
+        if info.signal.name in self._AUTO_BKG_FIELDS and not self._applying_auto_bkg:
+            self._apply_auto_background()
+
+    def _apply_auto_background(self) -> None:
+        """Applies the auto-background params to the pattern."""
+        if not self.params.auto_bkg_enabled:
+            self.pattern.auto_bkg = None
+            self.pattern_changed.emit()
+            return
+
+        roi = self.params.auto_bkg_roi
+        self.pattern.auto_bkg_roi = list(roi) if roi is not None else None
+        self.pattern.auto_bkg = SmoothBrucknerBackground(
+            self.params.auto_bkg_smoothing,
+            self.params.auto_bkg_iterations,
+            self.params.auto_bkg_poly_order,
+        )
+        self.pattern_changed.emit()
+
+    def _clamped_roi(self, roi: list[float] | None) -> list[float] | None:
+        """Keeps a user-supplied background roi inside the data range.
+
+        Only applied at the API boundary: a roi restored from a project file
+        must not be clamped against the pattern that happens to be loaded at
+        that moment."""
+        if roi is None:
+            return None
+        x, _ = self.pattern.original_data
+        if x is None or len(x) < 2:
+            return list(roi)
+
+        roi = list(roi)
+        if roi[0] > roi[1]:
+            roi[0], roi[1] = roi[1], roi[0]
+        x_step = x[1] - x[0]
+        roi[0] = roi[0] if roi[0] > x[0] else x[0] - x_step / 2
+        roi[0] = roi[0] if roi[0] < x[-1] - 1.5 * x_step else x[-1] - 1.5 * x_step
+        roi[1] = roi[1] if roi[1] < x[-1] else x[-1] + x_step / 2
+        roi[1] = roi[1] if roi[1] > x[0] + 1.5 * x_step else x[0] + 1.5 * x_step
+        return roi
+
     @property
     def unit(self) -> str:
         return self.params.unit
@@ -156,25 +213,22 @@ class PatternModel:
         roi is [x_min, x_max] specifying the range for background subtraction.
         """
         logger.info("Setting auto background subtraction with parameters: %s", parameters)
-        if roi is not None:
-            x, _ = self.pattern.original_data
-            roi = list(roi)
-
-            # make sure the roi is within the data range
-            if roi[0] > roi[1]:
-                roi[0], roi[1] = roi[1], roi[0]
-            x_step = x[1] - x[0]
-            roi[0] = roi[0] if roi[0] > x[0] else x[0] - x_step / 2
-            roi[0] = roi[0] if roi[0] < x[-1] - 1.5 * x_step else x[-1] - 1.5 * x_step
-            roi[1] = roi[1] if roi[1] < x[-1] else x[-1] + x_step / 2
-            roi[1] = roi[1] if roi[1] > x[0] + 1.5 * x_step else x[0] + 1.5 * x_step
-
-        self.pattern.auto_bkg_roi = roi
-        self.pattern.auto_bkg = SmoothBrucknerBackground(*parameters)
-        self.pattern_changed.emit()
+        # suppressed while writing, so the (expensive) background extraction
+        # runs once instead of once per field
+        self._applying_auto_bkg = True
+        try:
+            self.params.auto_bkg_smoothing = parameters[0]
+            self.params.auto_bkg_iterations = parameters[1]
+            self.params.auto_bkg_poly_order = parameters[2]
+            self.params.auto_bkg_roi = self._clamped_roi(roi)
+            self.params.auto_bkg_enabled = True
+        finally:
+            self._applying_auto_bkg = False
+        self._apply_auto_background()
 
     def unset_auto_background_subtraction(self) -> None:
         """Disables auto background extraction and removal."""
         logger.info("Unsetting auto background subtraction")
+        self.params.auto_bkg_enabled = False
         self.pattern.auto_bkg = None
         self.pattern_changed.emit()
