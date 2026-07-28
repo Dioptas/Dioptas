@@ -9,6 +9,7 @@ instead of being serialized field-by-field in hand-written HDF5 code.
 """
 
 from .params import (
+    apply_params,
     CalibrationParams,
     ConfigurationParams,
     ImgParams,
@@ -32,6 +33,7 @@ from .hdf5 import (
 from .derived import Derived
 
 __all__ = [
+    "apply_params",
     "CalibrationParams",
     "ConfigurationParams",
     "ImgParams",

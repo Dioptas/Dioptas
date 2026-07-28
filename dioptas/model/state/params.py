@@ -16,13 +16,16 @@ to know.
 
 from __future__ import annotations
 
+import copy as _copy
+import dataclasses
 import os
 from dataclasses import dataclass, field
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from psygnal import SignalGroupDescriptor
 
 __all__ = [
+    "apply_params",
     "CalibrationParams",
     "ConfigurationParams",
     "ImgParams",
@@ -35,6 +38,23 @@ __all__ = [
     "ViewParams",
     "default_working_directories",
 ]
+
+
+def apply_params(target: Any, source: Any, fields: set[str] | None = None) -> None:
+    """Copies field values from *source* onto the existing *target* instance.
+
+    The target keeps its identity, so event subscriptions on it stay valid,
+    and every differing field emits its change event (and therefore runs
+    its reactions). Mutable values are deep-copied so the two instances do
+    not share state. Pass *fields* to restrict the copy to a subset.
+    """
+    for f in dataclasses.fields(target):
+        if fields is not None and f.name not in fields:
+            continue
+        value = getattr(source, f.name)
+        if isinstance(value, (dict, list, set)):
+            value = _copy.deepcopy(value)
+        setattr(target, f.name, value)
 
 
 def default_working_directories() -> dict[str, str]:
