@@ -78,8 +78,13 @@ class DioptasModel:
         self.cake_changed: Signal = Signal()
         self.enabled_phases_in_cake: Signal = Signal()
 
-        # forwards the current configuration's params event, emitting
-        # (new_unit, previous_unit); rewired on configuration switch
+        # the store-level settings-change surface: forwards every params
+        # field change of the CURRENT configuration as (field, new, old);
+        # stable across configuration switches (rewired in connect_models)
+        self.configuration_params_changed: Signal = Signal(str, object, object)
+
+        # convenience signal for the most-consumed field, emitting
+        # (new_unit, previous_unit); derived from the forwarding above
         self.integration_unit_changed: Signal = Signal(str, str)
 
         self.clicked_tth: float = 0
@@ -360,8 +365,8 @@ class DioptasModel:
         self.mask_model.mask_changed.disconnect(self.mask_changed)
         self.pattern_model.pattern_changed.disconnect(self.pattern_changed)
         self.current_configuration.cake_changed.disconnect(self.cake_changed)
-        self.current_configuration.params.events.integration_unit.disconnect(
-            self.integration_unit_changed.emit, missing_ok=True
+        self.current_configuration.params.events.disconnect(
+            self._on_configuration_params_event, missing_ok=True
         )
 
     def connect_models(self) -> None:
@@ -370,9 +375,18 @@ class DioptasModel:
         self.mask_model.mask_changed.connect(self.mask_changed)
         self.pattern_model.pattern_changed.connect(self.pattern_changed)
         self.current_configuration.cake_changed.connect(self.cake_changed)
-        self.current_configuration.params.events.integration_unit.connect(
-            self.integration_unit_changed.emit
+        self.current_configuration.params.events.connect(
+            self._on_configuration_params_event
         )
+
+    def _on_configuration_params_event(self, info) -> None:
+        """Forwards a psygnal EmissionInfo from the current configuration's
+        params event group to the store-level signals."""
+        field = info.signal.name
+        new, old = info.args
+        self.configuration_params_changed.emit(field, new, old)
+        if field == "integration_unit":
+            self.integration_unit_changed.emit(new, old)
 
     @property
     def working_directories(self) -> dict[str, str]:

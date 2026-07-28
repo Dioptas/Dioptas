@@ -29,7 +29,7 @@ class OptionsController:
         self.model = dioptas_model
 
         self._setup_dioptrin_checkbox()
-        self.binder = Binder()
+        self.binder = Binder(field_events=self.model.configuration_params_changed)
         self.create_bindings()
         self.connect_signals()
         self.binder.refresh()

@@ -184,3 +184,26 @@ def test_mirror_toggles(qapp, binder):
     set_checked(True)
     assert a.isChecked() and b.isChecked()
     assert events == [True, False]
+
+
+def test_field_events_render_individual_bindings(qapp, settings):
+    from dioptas.model.util.signal import Signal
+
+    field_events = Signal(str, object, object)
+    binder = Binder(field_events=field_events)
+
+    checkbox = QtWidgets.QCheckBox()
+    spinbox = QtWidgets.QSpinBox()
+    spinbox.setMaximum(10000)
+    binder.bind_checkbox(checkbox, lambda: settings, "flag")
+    binder.bind_spinbox(spinbox, lambda: settings, "points")
+
+    settings.flag = True
+    settings.points = 999
+    field_events.emit("flag", True, False)
+
+    assert checkbox.isChecked() is True
+    assert spinbox.value() != 999  # only the matching binding rendered
+
+    field_events.emit("points", 999, 360)
+    assert spinbox.value() == 999

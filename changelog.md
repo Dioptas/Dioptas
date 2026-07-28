@@ -10,6 +10,7 @@
 - the integration unit now has a single write path with a model-level `integration_unit_changed` signal; the pattern and batch views react to it instead of double-handling the same button clicks
 - correction parameters are edited in named form fields (`ParameterFormWidget`) instead of table cells addressed by row index
 - the image/cake view mode moved from a widget attribute into evented view state (`ViewParams.img_mode` on the model); the mode switch runs in reaction to state changes, and the view mode is now saved in and restored from project files
+- added a store-level settings-change surface: `DioptasModel.configuration_params_changed` emits `(field, new, old)` for every settings change of the current configuration, and widget bindings re-render individually on matching field events — settings changed from scripts or other controllers now appear in the GUI immediately
 
 ## Bugfixes
 

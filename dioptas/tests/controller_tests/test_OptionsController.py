@@ -56,3 +56,17 @@ class OptionsControllerTest(QtTest):
 
 
 
+
+    def test_direct_params_write_updates_widgets(self):
+        """Writing the params directly (e.g. from a script) renders into the
+        GUI through the store-level field events — no refresh needed."""
+        self.model.current_configuration.params.cake_azimuth_points = 1234
+        self.assertEqual(self.options_widget.cake_azimuth_points_sb.value(), 1234)
+
+        self.model.current_configuration.params.cake_azimuth_range = (-45.0, 45.0)
+        self.assertEqual(self.options_widget.cake_azimuth_min_txt.text(), "-45.0")
+        self.assertEqual(self.options_widget.cake_azimuth_max_txt.text(), "45.0")
+        self.assertFalse(self.options_widget.cake_full_toggle_btn.isChecked())
+
+        self.model.current_configuration.params.cake_azimuth_range = None
+        self.assertTrue(self.options_widget.cake_full_toggle_btn.isChecked())

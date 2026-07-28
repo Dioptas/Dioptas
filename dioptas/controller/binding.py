@@ -16,6 +16,11 @@ the signals that indicate the underlying model changed wholesale (e.g.
 ``configuration_selected``). Owners are passed as callables (e.g.
 ``lambda: model.current_configuration``) and resolved at every access, so
 bindings never go stale when the current configuration changes.
+
+With *field_events* (a signal emitting ``(field, new, old)``, e.g.
+``DioptasModel.configuration_params_changed``), field bindings additionally
+re-render individually whenever their field changes in the model — no
+matter who changed it (another controller, a script, the pipeline).
 """
 
 from __future__ import annotations
@@ -42,8 +47,20 @@ class _Binding:
 
 
 class Binder:
-    def __init__(self) -> None:
+    def __init__(self, field_events: Any = None) -> None:
         self._bindings: list[_Binding] = []
+        self._bindings_by_field: dict[str, list[_Binding]] = {}
+        if field_events is not None:
+            field_events.connect(self._on_field_changed)
+
+    def _on_field_changed(self, field: str, new: Any = None, old: Any = None) -> None:
+        for binding in self._bindings_by_field.get(field, ()):
+            binding.render()
+
+    def _register(self, binding: _Binding, field: str | None) -> None:
+        self._bindings.append(binding)
+        if field is not None:
+            self._bindings_by_field.setdefault(field, []).append(binding)
 
     def refresh(self) -> None:
         """Re-renders all bindings from the current model state."""
@@ -55,12 +72,13 @@ class Binder:
         signal.connect(self.refresh)
 
     def add_render(
-        self, render_fn: Callable[[], None], *widgets: Any
+        self, render_fn: Callable[[], None], *widgets: Any, field: str | None = None
     ) -> None:
         """Registers a model→widget render; *widgets* have their Qt signals
         blocked while it runs. For display-only values, this is the whole
-        binding."""
-        self._bindings.append(_Binding(render_fn, widgets))
+        binding. With *field*, the render also runs on matching field
+        events."""
+        self._register(_Binding(render_fn, widgets), field)
 
     def bind_checkbox(
         self, checkbox: Any, owner: Callable[[], Any], field: str
@@ -70,7 +88,9 @@ class Binder:
             lambda checked: setattr(owner(), field, bool(checked))
         )
         self.add_render(
-            lambda: checkbox.setChecked(bool(getattr(owner(), field))), checkbox
+            lambda: checkbox.setChecked(bool(getattr(owner(), field))),
+            checkbox,
+            field=field,
         )
 
     def bind_spinbox(
@@ -85,7 +105,9 @@ class Binder:
             lambda *args: setattr(owner(), field, dtype(spinbox.value()))
         )
         self.add_render(
-            lambda: spinbox.setValue(getattr(owner(), field)), spinbox
+            lambda: spinbox.setValue(getattr(owner(), field)),
+            spinbox,
+            field=field,
         )
 
     def mirror_toggles(
@@ -160,4 +182,4 @@ class Binder:
         max_txt.editingFinished.connect(apply_range)
         full_btn.toggled.connect(toggled)
         render_binding = _Binding(render, (min_txt, max_txt, full_btn))
-        self._bindings.append(render_binding)
+        self._register(render_binding, field)

@@ -660,6 +660,47 @@ def test_clicked_tth_and_azi_signals(dioptas_model):
     assert dioptas_model.clicked_azi == 90.0
 
 
+def test_configuration_params_changed_forwarding(dioptas_model):
+    """Params changes of the current configuration surface as one
+    store-level signal with (field, new, old)."""
+    got = []
+    dioptas_model.configuration_params_changed.connect(
+        lambda field, new, old: got.append((field, new, old))
+    )
+
+    dioptas_model.current_configuration.params.use_mask = True
+    dioptas_model.current_configuration.params.cake_azimuth_points = 720
+    assert got == [("use_mask", True, False), ("cake_azimuth_points", 720, 360)]
+
+
+def test_configuration_params_changed_follows_selected_configuration(dioptas_model):
+    got = []
+    dioptas_model.configuration_params_changed.connect(
+        lambda field, new, old: got.append((field, new))
+    )
+
+    dioptas_model.add_configuration()
+    inactive = dioptas_model.configurations[0]
+    dioptas_model.select_configuration(1)
+    got.clear()
+
+    # changes on a non-selected configuration must not surface
+    inactive.params.use_mask = True
+    assert got == []
+
+    dioptas_model.current_configuration.params.transparent_mask = True
+    assert got == [("transparent_mask", True)]
+
+
+def test_integration_unit_changed_derived_from_forwarding(dioptas_model):
+    got = []
+    dioptas_model.integration_unit_changed.connect(
+        lambda new, old: got.append((new, old))
+    )
+    dioptas_model.current_configuration.params.integration_unit = "q_A^-1"
+    assert got == [("q_A^-1", "2th_deg")]
+
+
 def test_view_state_round_trip(dioptas_model, tmp_path):
     """The GUI view state is saved in the project file and applied onto the
     stable ViewParams instance on load (events fire, object identity kept)."""
