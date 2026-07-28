@@ -54,12 +54,17 @@ class MapPanelController:
             self.map_dimension_cb_changed
         )
 
+        self.widget.map_plot_control_widget.load_btn.clicked.connect(self.load_map)
         self.widget.map_plot_widget.mouse_left_clicked.connect(self.map_point_selected)
         self.widget.map_plot_widget.mouse_moved.connect(self.map_plot_mouse_moved)
 
         self._connected_map_model = self.model.map_model
         self._connected_map_model.map_changed.connect(self.update_map)
         self.model.configuration_selected.connect(self.configuration_selected)
+        # stays connected across mode switches: the panel also follows images
+        # loaded elsewhere, e.g. by stepping through files in the integration
+        # view while the map tab is shown
+        self.model.img_changed.connect(self.update_marker)
 
     def load_map(self):
         """Asks for image files and builds a map from them."""
@@ -201,6 +206,9 @@ class MapPanelController:
             self.update_dimension_cb()
             if self.widget.map_image_frame.contour_btn.isChecked():
                 self._update_contours()
+            # a new map, or a new grid for the same points, moves the point
+            # the currently loaded image sits on
+            self.update_marker()
 
     def update_dimension_cb(self):
         dim_cb = self.widget.map_plot_control_widget.map_dimension_cb
@@ -259,9 +267,30 @@ class MapPanelController:
             return
         row, col = coordinates
         map_shape = map_model.map.shape
+        self.widget.map_plot_widget.mouse_click_item.setVisible(True)
         self.widget.map_plot_widget.set_mouse_click_position(
             col + 0.5, map_shape[0] - row - 0.5  # 0.5 are there to shift to center
         )
+
+    def update_marker(self):
+        """Points the marker at the currently loaded image.
+
+        Images can be loaded from anywhere (map click, file list, stepping
+        through a directory in the integration view), so the marker follows
+        the image model rather than any one of those controls. It is hidden
+        while an image that is not part of the map is shown.
+        """
+        map_model = self.model.map_model
+        if map_model.map is None:
+            return
+        img_model = self.model.img_model
+        index = map_model.get_index_of_file(
+            img_model.filename, img_model.series_pos - 1
+        )
+        if index is None:
+            self.widget.map_plot_widget.mouse_click_item.setVisible(False)
+        else:
+            self.set_marker_by_index(index)
 
     def map_plot_mouse_moved(self, x, y):
         # shows the information for a point inside of the map

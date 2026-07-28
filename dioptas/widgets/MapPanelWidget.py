@@ -15,6 +15,7 @@ from .plot_widgets.ImgWidget import IntegrationImgWidget
 from .CustomWidgets import (
     SaveIconButton,
     CheckableFlatButton,
+    FlatButton,
     HorizontalSpacerItem,
     CleanLooksComboBox,
 )
@@ -56,6 +57,49 @@ class MapPanelWidget(QtWidgets.QWidget):
         self._outer_layout.addWidget(self.map_image_frame)
         self._outer_layout.addWidget(self.map_plot_control_widget)
         self.setLayout(self._outer_layout)
+
+
+class MapPanelHost(QtWidgets.QWidget):
+    """Slot a :class:`MapPanelWidget` can be placed into.
+
+    The panel is shared between the map mode, the integration view and its
+    own window, so each of its homes keeps an (initially empty) slot rather
+    than owning a panel of its own.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._panel = None
+        self._layout = TightVBoxLayout()
+        self.setLayout(self._layout)
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
+
+    def minimumSizeHint(self):
+        # the map plot has no content-derived height; without a hint the tab
+        # machinery collapses it to almost nothing
+        return QtCore.QSize(280, 280)
+
+    @property
+    def panel(self) -> "MapPanelWidget | None":
+        return self._panel
+
+    def take_panel(self, panel: "MapPanelWidget"):
+        """Moves *panel* into this slot, removing it from its previous home."""
+        if self._panel is panel:
+            return
+        self._layout.addWidget(panel)
+        self._panel = panel
+        panel.show()
+
+    def release_panel(self) -> "MapPanelWidget | None":
+        """Removes the panel from this slot and returns it."""
+        panel = self._panel
+        if panel is not None:
+            self._layout.removeWidget(panel)
+            self._panel = None
+        return panel
 
 
 class MapImageFrame(QtWidgets.QWidget):
@@ -141,6 +185,8 @@ class MapPlotControlWidget(QtWidgets.QWidget):
         self.style_widgets()
 
     def create_widgets(self):
+        self.load_btn = FlatButton("Load")
+        self.load_btn.setToolTip("Integrate image files into a new map")
         self.save_map_btn = SaveIconButton()
         self.map_dimension_cb = CleanLooksComboBox()
         self.map_dimension_cb.setMinimumWidth(80)
@@ -159,6 +205,7 @@ class MapPlotControlWidget(QtWidgets.QWidget):
         self._mouse_pos_layout.addWidget(self.mouse_int_label)
         self._left_layout.addLayout(self._mouse_pos_layout)
         self._left_layout.addWidget(self.filename_label)
+        self._outer_layout.addWidget(self.load_btn)
         self._outer_layout.addWidget(self.save_map_btn)
         self._outer_layout.addWidget(QtWidgets.QLabel("Dim: "))
         self._outer_layout.addWidget(self.map_dimension_cb)

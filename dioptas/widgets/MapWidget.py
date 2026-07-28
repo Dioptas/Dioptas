@@ -7,7 +7,12 @@ from dioptas.widgets.plot_widgets.ImgWidget import IntegrationImgWidget
 
 from .integration.CustomWidgets import MouseUnitCurrentAndClickedWidget
 from .CustomWidgets import CheckableFlatButton
-from .MapPanelWidget import MapPanelWidget, TightHBoxLayout, TightVBoxLayout
+from .MapPanelWidget import (
+    MapPanelHost,
+    MapPanelWidget,
+    TightHBoxLayout,
+    TightVBoxLayout,
+)
 
 
 class MapWidget(QtWidgets.QWidget):
@@ -23,6 +28,8 @@ class MapWidget(QtWidgets.QWidget):
 
     def create_widgets(self):
         self.map_panel_widget = MapPanelWidget()
+        self.map_panel_host = MapPanelHost()
+        self.map_panel_host.take_panel(self.map_panel_widget)
 
         self.img_pg_layout = GraphicsLayoutWidget()
         self.img_plot_widget = IntegrationImgWidget(
@@ -80,7 +87,7 @@ class MapWidget(QtWidgets.QWidget):
 
         self._left_widget = QtWidgets.QWidget()
         self._left_widget.setLayout(self._left_layout)
-        self._left_layout.addWidget(self.map_panel_widget)
+        self._left_layout.addWidget(self.map_panel_host)
 
         self.upper_right_splitter = QtWidgets.QSplitter()
         self.upper_right_splitter.setOrientation(QtCore.Qt.Horizontal)

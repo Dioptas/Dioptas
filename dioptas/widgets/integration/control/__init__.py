@@ -9,6 +9,7 @@ from .PhaseWidget import PhaseWidget
 from .CorrectionsWidget import CorrectionsWidget
 from .BackgroundWidget import BackgroundWidget
 from .OptionsWidget import OptionsWidget
+from ...MapPanelWidget import MapPanelHost
 
 
 class IntegrationControlWidget(QtWidgets.QWidget):
@@ -29,6 +30,7 @@ class IntegrationControlWidget(QtWidgets.QWidget):
         self.corrections_control_widget = CorrectionsWidget()
         self.background_control_widget = BackgroundWidget()
         self.integration_options_widget = OptionsWidget()
+        self.map_control_widget = MapPanelHost()
 
         self.horizontal_splitter = QtWidgets.QSplitter()
         self.horizontal_splitter.setOrientation(QtCore.Qt.Horizontal)
@@ -57,6 +59,12 @@ class IntegrationControlWidget(QtWidgets.QWidget):
         self.tab_widget_1.addTab(self.corrections_control_widget, "Cor")
         self.tab_widget_1.addTab(self.background_control_widget, "Bkg")
         self.tab_widget_1.addTab(self.integration_options_widget, "X")
+        # by widget, not index: the layout variants below move tabs around
+        self.tab_widget_1.insertTab(
+            self.tab_widget_1.indexOf(self.integration_options_widget),
+            self.map_control_widget,
+            "Map",
+        )
 
         self.tab_widget_1.setCurrentIndex(0)
 

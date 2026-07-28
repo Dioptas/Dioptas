@@ -240,9 +240,10 @@ def test_mouse_click_item_in_map_plot_widget_updates_correctly(
     mock_open_filenames(map_img_file_paths)
     map_controller.load_btn_clicked()
 
+    # loading selects the first point, so the marker starts on its center
     click_x, click_y = map_controller.widget.map_plot_widget.mouse_click_item.getData()
-    assert click_x[0] == approx(0)
-    assert click_y[0] == approx(0)
+    assert click_x[0] == approx(0.5)
+    assert click_y[0] == approx(2.5)
 
     map_controller.widget.control_widget.file_list.setCurrentRow(1)
     # check that mouse click item in map_plot_widget has changed

@@ -263,6 +263,8 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.cake_widget = image_widget.cake_view
         self.img_show_background_subtracted_btn = image_widget.show_background_subtracted_img_btn
 
+        self.map_control_widget = self.integration_control_widget.map_control_widget
+
         self.frame_img_positions_widget = self.integration_image_widget.position_and_unit_widget
         self.tabWidget = self.integration_control_widget
         self.img_widget_mouse_x_lbl = self.integration_image_widget.mouse_pos_widget.cur_pos_widget.x_pos_lbl

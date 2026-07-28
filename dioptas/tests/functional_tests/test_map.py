@@ -119,6 +119,84 @@ def test_map(main_controller: MainController):
     assert map_widget.pattern_plot_widget.map_interactive_roi.center == approx(center_x)
 
 
+def test_map_panel_moves_into_the_integration_view(main_controller: MainController):
+    # Herbert wants to keep exploring his map, but with the large image and all
+    # the phase controls of the integration view at hand.
+    prepare_map_gui(main_controller)
+    map_widget = main_controller.widget.map_widget
+    panel = map_widget.map_panel_widget
+    map_tab = main_controller.widget.integration_widget.map_control_widget
+
+    # in the map mode the panel sits in the map widget
+    assert map_widget.map_panel_host.panel is panel
+    assert map_tab.panel is None
+
+    # switching to the integration view brings the map along, into its own tab
+    click_button(main_controller.widget.integration_mode_btn)
+    assert map_tab.panel is panel
+    assert map_widget.map_panel_host.panel is None
+    assert panel.map_plot_widget.img_data is not None
+
+    # and going back to the map mode returns it
+    click_button(main_controller.widget.map_mode_btn)
+    assert map_widget.map_panel_host.panel is panel
+    assert map_tab.panel is None
+
+
+def test_selecting_a_map_point_from_the_integration_view(main_controller: MainController):
+    # Herbert clicks around in the map while the integration view is shown, and
+    # expects image, pattern and map marker to follow.
+    prepare_map_gui(main_controller)
+    click_button(main_controller.widget.integration_mode_btn)
+
+    model = main_controller.model
+    integration_widget = main_controller.widget.integration_widget
+    panel = main_controller.widget.map_widget.map_panel_widget
+
+    panel.map_plot_widget.mouse_left_clicked.emit(2, 2)
+
+    assert model.img_model.filename == map_img_file_paths[2]
+    assert np.array_equal(integration_widget.img_widget.img_data, model.img_model.img_data)
+
+    # the pattern comes from a full integration, not from the stored map data,
+    # so that it honours the settings of the integration view
+    assert model.pattern.name == os.path.basename(map_img_file_paths[2]).split(".")[0]
+
+    # the marker follows the click
+    click_x, click_y = panel.map_plot_widget.mouse_click_item.getData()
+    assert click_x[0] == approx(2.5)
+    assert click_y[0] == approx(2.5)
+
+    # and the map mode file list is up to date when he returns to it
+    click_button(main_controller.widget.map_mode_btn)
+    assert main_controller.widget.map_widget.control_widget.file_list.currentRow() == 2
+
+
+def test_map_marker_follows_images_loaded_elsewhere(main_controller: MainController):
+    # Stepping through files in the integration view moves the marker, and it
+    # disappears for images that are not part of the map.
+    prepare_map_gui(main_controller)
+    click_button(main_controller.widget.integration_mode_btn)
+
+    model = main_controller.model
+    panel = main_controller.widget.map_widget.map_panel_widget
+
+    model.img_model.load(map_img_file_paths[4])
+    click_x, click_y = panel.map_plot_widget.mouse_click_item.getData()
+    assert click_x[0] == approx(1.5)
+    assert click_y[0] == approx(1.5)
+    assert panel.map_plot_widget.mouse_click_item.isVisible()
+
+    # an image of the same detector, but not one of the map points
+    model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
+    assert not panel.map_plot_widget.mouse_click_item.isVisible()
+
+    # back in the map mode the file list agrees with the marker: no map point
+    # is shown, so nothing is selected
+    click_button(main_controller.widget.map_mode_btn)
+    assert main_controller.widget.map_widget.control_widget.file_list.currentRow() == -1
+
+
 def test_map_with_different_dimension(main_controller: MainController):
     # Herbert has collected another large map of his sample and wants to visualize
     # and explore it in Dioptas. This time the map is not rectangular but has a

@@ -66,6 +66,7 @@ class MainController:
         self.map_controller = MapController(
             self.widget.map_widget, self.model, self.map_panel_controller
         )
+        self._map_panel_host = self.widget.map_widget.map_panel_host
 
         self.calibration_controller.activate()
         self.integration_controller.image_controller.deactivate()
@@ -234,8 +235,26 @@ class MainController:
         if ind == 2:  # integration tab
             self.integration_controller.image_controller.update_image()
 
+        self.place_map_panel(ind)
         self.activate_mode(ind)
         self.update_image_display_state(old_index, ind)
+
+    def place_map_panel(self, mode_ind):
+        """Moves the shared map panel into the home of the given mode.
+
+        Modes without a home for it (calibration, mask) leave it where it is;
+        it is not visible there either way.
+        """
+        hosts = {
+            2: self.widget.integration_widget.map_control_widget,
+            3: self.widget.map_widget.map_panel_host,
+        }
+        host = hosts.get(mode_ind)
+        if host is None or host is self._map_panel_host:
+            return
+        self._map_panel_host.release_panel()
+        host.take_panel(self.widget.map_widget.map_panel_widget)
+        self._map_panel_host = host
 
     def activate_mode(self, mode_ind):
         controllers = [

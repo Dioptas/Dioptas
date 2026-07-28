@@ -31,6 +31,7 @@ class MapController:
         self.panel_controller = panel_controller
 
         self._setting_levels = False
+        self._active = False
 
         self.phase_in_pattern_controller = PhaseInPatternController(
             self.widget.pattern_plot_widget, self.model
@@ -91,15 +92,18 @@ class MapController:
         self.activate_model_signals()
 
     def activate(self):
+        self._active = True
         self.activate_model_signals()
         self._apply_auto_integrate()
         self.configuration_selected()
+        self._sync_file_list_selection()
 
     def activate_model_signals(self):
         self.model.img_changed.connect(self.update_image)
         self.model.configuration_selected.connect(self.configuration_selected)
 
     def deactivate(self):
+        self._active = False
         self.model.img_changed.disconnect(self.update_image)
         self.model.configuration_selected.disconnect(self.configuration_selected)
         self.model.current_configuration.auto_integrate_pattern = True
@@ -128,7 +132,15 @@ class MapController:
         self.model.current_configuration.auto_integrate_pattern = checked
 
     def _set_stored_pattern(self, index):
-        """Set pattern from stored map data when reintegrate is off."""
+        """Set pattern from stored map data when reintegrate is off.
+
+        Only applies while the map mode itself is shown: a point picked from
+        the integration view has to go through the normal integration
+        pipeline, or the pattern there would ignore the mask, background and
+        unit currently set in that view.
+        """
+        if not self._active:
+            return
         if self.widget.control_widget.reintegrate_cb.isChecked():
             return
         map_model = self.model.map_model
@@ -223,15 +235,34 @@ class MapController:
     def file_list_row_changed(self, row):
         self.model.map_model.select_point_by_index(row)
         self._set_stored_pattern(row)
-        self.panel_controller.set_marker_by_index(row)
 
     def map_point_selected(self, index):
-        """Follows a selection made in the map plot with the file list."""
-        self._set_stored_pattern(index)
+        """Follows a selection made in the map plot with the file list.
 
+        Stays connected while other modes are shown so the list is up to date
+        when the map mode comes back.
+        """
+        self._set_stored_pattern(index)
+        self._set_file_list_row(index)
+
+    def _set_file_list_row(self, index):
         self.widget.control_widget.file_list.blockSignals(True)
         self.widget.control_widget.file_list.setCurrentRow(index)
         self.widget.control_widget.file_list.blockSignals(False)
+
+    def _sync_file_list_selection(self):
+        """Points the file list at the currently loaded image.
+
+        Images can also be loaded while the map mode is hidden, e.g. by
+        stepping through files in the integration view. An image that is not
+        part of the map clears the selection, matching the map marker which
+        hides in that case.
+        """
+        img_model = self.model.img_model
+        index = self.model.map_model.get_index_of_file(
+            img_model.filename, img_model.series_pos - 1
+        )
+        self._set_file_list_row(index if index is not None else -1)
 
     def img_plot_left_clicked(self, x, y):
         if not self.model.current_configuration.is_calibrated:
