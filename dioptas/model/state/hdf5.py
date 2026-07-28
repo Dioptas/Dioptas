@@ -49,6 +49,7 @@ from __future__ import annotations
 import dataclasses
 import json
 import logging
+import types
 import typing
 from typing import Any, TypeVar
 
@@ -69,7 +70,12 @@ logger = logging.getLogger(__name__)
 #: version of the params-group JSON encoding (see module docstring)
 SCHEMA_VERSION = 1
 
-#: version of the overall .dio project file layout (see module docstring)
+#: version of the overall .dio project file layout (see module docstring).
+#: Stays at 1 while writers still emit the legacy field-by-field attributes
+#: alongside the params documents: the file remains readable by Dioptas
+#: versions that predate the params layer, so there is nothing for a reader
+#: to branch on. Bump to 2 together with dropping the legacy writer — that
+#: is the change older versions must not silently misread.
 PROJECT_FORMAT_VERSION = 1
 
 T = TypeVar("T")
@@ -88,6 +94,18 @@ def _json_default(obj: object) -> int | float | list:
 def params_to_dict(params: Any) -> dict:
     """Converts a params dataclass (including nested dataclasses) to a dict."""
     return dataclasses.asdict(params)
+
+
+def _wants_tuple(field_type: Any) -> bool:
+    """Whether a dataclass field is declared as a tuple (JSON has no tuples)."""
+    if field_type is tuple:
+        return True
+    origin = typing.get_origin(field_type)
+    if origin is tuple:
+        return True
+    if origin in (typing.Union, types.UnionType):
+        return any(_wants_tuple(arg) for arg in typing.get_args(field_type))
+    return False
 
 
 def params_from_dict(cls: type[T], data: dict) -> T:
@@ -112,6 +130,10 @@ def params_from_dict(cls: type[T], data: dict) -> T:
             and isinstance(value, dict)
         ):
             value = params_from_dict(field_type, value)
+        elif isinstance(value, list) and _wants_tuple(field_type):
+            # JSON round-trips tuples as lists; restore the declared type so
+            # a loaded value compares equal to a freshly set one
+            value = tuple(value)
         kwargs[f.name] = value
     return cls(**kwargs)
 

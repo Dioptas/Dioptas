@@ -388,3 +388,15 @@ def test_phase_item_params_events():
     params.events.visible.connect(lambda new, old: got.append(new))
     params.visible = False
     assert got == [False]
+
+
+def test_tuple_fields_survive_the_json_round_trip():
+    """JSON has no tuple type; declared tuple fields must not become lists."""
+    params = MaskParams(roi=(10, 20, 30, 40))
+    restored = params_from_dict(MaskParams, params_to_dict(params))
+    assert restored.roi == (10, 20, 30, 40)
+    assert isinstance(restored.roi, tuple)
+
+    item = PhaseItemParams(color=(1, 2, 3))
+    restored_item = params_from_dict(PhaseItemParams, params_to_dict(item))
+    assert isinstance(restored_item.color, tuple)

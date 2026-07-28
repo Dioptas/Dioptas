@@ -18,6 +18,7 @@ from .state import (
     ConfigurationParams,
     ImgParams,
     MaskParams,
+    PatternParams,
     save_params,
     load_params,
     Derived,
@@ -825,6 +826,12 @@ class Configuration:
         ):
             self._load_from_hdf5(hdf5_group)
 
+    @staticmethod
+    def _apply_saved_params(target, saved, exclude=None) -> None:
+        """Applies a params document loaded from a project file, if present."""
+        if saved is not None:
+            apply_params(target, saved, exclude=exclude)
+
     def _load_from_hdf5(self, hdf5_group: h5py.Group) -> None:
         f = hdf5_group
 
@@ -1142,37 +1149,36 @@ class Configuration:
                 val = val.decode("utf-8")
             self.integrated_patterns_file_formats.append(str(val))
 
-        # apply params saved by the generic state layer (project files written
-        # since its introduction). Fields that also exist in the legacy layout
-        # were already restored above with their loading side effects, so only
-        # the fields the legacy layout never persisted are taken from here.
-        saved_params = load_params(f, ConfigurationParams)
-        if saved_params is not None:
-            self.params.oned_azimuth_range = saved_params.oned_azimuth_range
-            self.params.trim_trailing_zeros = saved_params.trim_trailing_zeros
-
-        saved_img_params = load_params(f.get("image_model"), ImgParams)
-        if saved_img_params is not None:
-            self.img_model.params.file_iteration_mode = (
-                saved_img_params.file_iteration_mode
-            )
-
-        saved_mask_params = load_params(f.get("mask"), MaskParams)
-        if saved_mask_params is not None:
-            self.mask_model.params.mode = saved_mask_params.mode
-
-        # calibration workflow settings absent from the legacy layout;
-        # use_dioptrin / dioptrin_num_workers are machine-specific and are
-        # deliberately NOT restored from project files
-        saved_calibration_params = load_params(
-            f.get("calibration_model"), CalibrationParams
+        # Apply the generic params documents on top of the legacy restore
+        # above. Both are written from the same in-memory state by save(),
+        # so for every field the legacy layout knows about this is a no-op
+        # (equal values emit nothing) — and every field it does NOT know
+        # about is restored automatically, with no per-field bookkeeping
+        # here. The exclusions below are the fields whose legacy restore is
+        # not a plain copy and must win.
+        self._apply_saved_params(
+            self.params,
+            load_params(f, ConfigurationParams),
+            # the legacy restore drops working directories that no longer
+            # exist on this machine; that validation must not be undone
+            exclude={"working_directories"},
         )
-        if saved_calibration_params is not None:
-            calibration_params = self.calibration_model.params
-            calibration_params.start_values = saved_calibration_params.start_values
-            calibration_params.fit_wavelength = saved_calibration_params.fit_wavelength
-            calibration_params.fixed_values = saved_calibration_params.fixed_values
-            calibration_params.use_mask = saved_calibration_params.use_mask
+        self._apply_saved_params(
+            self.img_model.params, load_params(f.get("image_model"), ImgParams)
+        )
+        self._apply_saved_params(
+            self.mask_model.params, load_params(f.get("mask"), MaskParams)
+        )
+        self._apply_saved_params(
+            self.pattern_model.params, load_params(f.get("pattern"), PatternParams)
+        )
+        self._apply_saved_params(
+            self.calibration_model.params,
+            load_params(f.get("calibration_model"), CalibrationParams),
+            # machine-specific: the effective defaults are computed per
+            # machine at construction and must not travel in project files
+            exclude={"use_dioptrin", "dioptrin_num_workers"},
+        )
 
         if self.calibration_model.is_calibrated:
             self.integrate_image_1d()

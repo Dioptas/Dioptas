@@ -40,16 +40,24 @@ __all__ = [
 ]
 
 
-def apply_params(target: Any, source: Any, fields: set[str] | None = None) -> None:
+def apply_params(
+    target: Any,
+    source: Any,
+    fields: set[str] | None = None,
+    exclude: set[str] | None = None,
+) -> None:
     """Copies field values from *source* onto the existing *target* instance.
 
     The target keeps its identity, so event subscriptions on it stay valid,
     and every differing field emits its change event (and therefore runs
     its reactions). Mutable values are deep-copied so the two instances do
-    not share state. Pass *fields* to restrict the copy to a subset.
+    not share state. Pass *fields* to restrict the copy to a subset, or
+    *exclude* to skip individual fields.
     """
     for f in dataclasses.fields(target):
         if fields is not None and f.name not in fields:
+            continue
+        if exclude is not None and f.name in exclude:
             continue
         value = getattr(source, f.name)
         if isinstance(value, (dict, list, set)):
