@@ -45,6 +45,27 @@ def test_is_proc(batch_controller, load_proc_data):
     assert batch_controller.is_proc(filename)
 
 
+def test_is_proc_closes_the_file_even_when_reading_raises(
+    batch_controller, tmp_path, monkeypatch
+):
+    """is_proc must close the file on every path.
+
+    On a normal return CPython's refcounting closes it anyway, but when an
+    exception propagates the traceback keeps the frame — and with it a bare
+    handle — alive, and every later write to that file then fails."""
+    from unittest.mock import MagicMock
+
+    handle = MagicMock()
+    handle.__enter__.return_value = handle
+    handle.__contains__.side_effect = OSError("corrupt file")
+    monkeypatch.setattr("h5py.File", MagicMock(return_value=handle))
+
+    with pytest.raises(OSError):
+        batch_controller.is_proc(os.path.join(tmp_path, "corrupt.nxs"))
+
+    handle.__exit__.assert_called()
+
+
 def test_change_3d_view(batch_controller, batch_widget):
     batch_widget.activate_surface_view()
 
