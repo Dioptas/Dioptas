@@ -38,6 +38,10 @@ Three version markers exist, each with a distinct job:
 A params group with a ``schema_version`` newer than this code can decode is
 skipped (:func:`load_params` returns None) so the loader falls back to the
 legacy attributes, which writers keep emitting alongside the params group.
+
+Caution: when a params group is placed inside an HDF5 group whose children
+are *iterated* as items (e.g. the numbered phase groups in ``phases``), the
+iterating loader must skip the reserved ``params`` name.
 """
 
 from __future__ import annotations

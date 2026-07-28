@@ -882,3 +882,36 @@ def test_dioptrin_settings_not_restored_from_project(dioptas_model, tmp_path):
     dioptas_model.load(filename)
     assert dioptas_model.calibration_model.use_dioptrin == machine_use_dioptrin
     assert dioptas_model.calibration_model.dioptrin_num_workers == machine_workers
+
+
+def test_map_and_phase_params_forwarded_with_namespace(dioptas_model):
+    got = []
+    dioptas_model.configuration_params_changed.connect(
+        lambda field, new, old: got.append((field, new))
+    )
+    dioptas_model.map_model.window = [5.0, 6.0]
+    dioptas_model.phase_model.same_conditions = False
+    assert got == [("map.window", [5.0, 6.0]), ("phase.same_conditions", False)]
+
+
+def test_phase_same_conditions_round_trips_via_params(dioptas_model, tmp_path):
+    dioptas_model.phase_model.same_conditions = False
+    filename = os.path.join(tmp_path, "phase_settings.dio")
+    dioptas_model.save(filename)
+
+    dioptas_model.reset()
+    dioptas_model.phase_model.same_conditions = True
+
+    dioptas_model.load(filename)
+    assert dioptas_model.phase_model.same_conditions is False
+
+
+def test_transformations_round_trip(dioptas_model, tmp_path):
+    dioptas_model.img_model.load(os.path.join(data_path, "image_001.tif"))
+    dioptas_model.img_model.rotate_img_m90()
+    filename = os.path.join(tmp_path, "transformed.dio")
+    dioptas_model.save(filename)
+
+    dioptas_model.reset()
+    dioptas_model.load(filename)
+    assert dioptas_model.img_model.params.transformations == ["rotate_matrix_m90"]

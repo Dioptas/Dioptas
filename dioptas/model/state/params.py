@@ -26,8 +26,10 @@ __all__ = [
     "CalibrationParams",
     "ConfigurationParams",
     "ImgParams",
+    "MapParams",
     "MaskParams",
     "PatternParams",
+    "PhaseParams",
     "ViewParams",
     "default_working_directories",
 ]
@@ -86,6 +88,10 @@ class ImgParams:
     #: how prev/next iterate through files: "number" or "time"
     file_iteration_mode: str = "number"
 
+    #: applied image transformations by name, in application order (see
+    #: ImgModel.TRANSFORMATION_FUNCTIONS); the callable list is derived
+    transformations: list[str] = field(default_factory=list)
+
 
 @dataclass
 class CalibrationParams:
@@ -141,6 +147,34 @@ class MaskParams:
 
     #: rectangular region of interest as (x1, x2, y1, y2); None = disabled
     roi: tuple[int, int, int, int] | None = None
+
+
+@dataclass
+class MapParams:
+    """User-settable parameters of a MapModel.
+
+    Owned by :class:`dioptas.model.MapModel.MapModel`; the model computes
+    defaults for both fields when map data is loaded, so None means "not
+    determined yet".
+    """
+
+    events: ClassVar[SignalGroupDescriptor] = SignalGroupDescriptor()
+
+    #: [x_min, x_max] window of the pattern used for the map intensity
+    window: list[float] | None = None
+
+    #: (rows, columns) grid the map points are arranged in
+    dimension: tuple[int, int] | None = None
+
+
+@dataclass
+class PhaseParams:
+    """User-settable parameters of the (global) PhaseModel."""
+
+    events: ClassVar[SignalGroupDescriptor] = SignalGroupDescriptor()
+
+    #: apply pressure/temperature changes to all phases at once
+    same_conditions: bool = True
 
 
 @dataclass

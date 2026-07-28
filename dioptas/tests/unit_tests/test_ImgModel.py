@@ -329,3 +329,28 @@ def test_img_model_settings_delegate_to_params():
 
     img_model.file_iteration_mode = "time"
     assert img_model.params.file_iteration_mode == "time"
+
+
+def test_transformations_are_canonical_in_params():
+    from dioptas.model.ImgModel import ImgModel
+
+    img_model = ImgModel()
+    img_model.rotate_img_p90()
+    img_model.flip_img_horizontally()
+    assert img_model.params.transformations == ["rotate_matrix_p90", "fliplr"]
+    assert img_model.get_transformations_string_list() == [
+        "rotate_matrix_p90",
+        "fliplr",
+    ]
+
+    # the callable list derives from the names
+    import numpy as np
+    from dioptas.model.util.HelperModule import rotate_matrix_p90
+
+    assert img_model.img_transformations == [rotate_matrix_p90, np.fliplr]
+
+    img_model.load_transformations_string_list(["flipud"])
+    assert img_model.params.transformations == ["flipud"]
+
+    img_model.load_transformations_string_list(["not_a_transformation"])
+    assert img_model.params.transformations == []

@@ -13,7 +13,14 @@ from xypattern import Pattern
 
 from .util import Signal
 from .util import jcpds
-from .state import Derived, ViewParams, save_params, load_params, PROJECT_FORMAT_VERSION
+from .state import (
+    Derived,
+    PhaseParams,
+    ViewParams,
+    save_params,
+    load_params,
+    PROJECT_FORMAT_VERSION,
+)
 from .Configuration import Configuration
 from . import (
     ImgModel,
@@ -107,6 +114,10 @@ class DioptasModel:
         self._combined_cake.add_dependency(self.configurations[0].cake_changed)
 
         self.connect_models()
+
+        # the phase model is global (not per-configuration), so its params
+        # events are forwarded once and never rewired
+        self._phase_model.params.events.connect(self._on_phase_params_event)
 
     def add_configuration(self) -> None:
         """Adds a new configuration to the list of configurations.
@@ -204,6 +215,7 @@ class DioptasModel:
 
         # save phases
         phases_group = f.create_group("phases")
+        save_params(phases_group, self.phase_model.params)
         for ind, phase in enumerate(self.phase_model.phases):
             phase_group = phases_group.create_group(str(ind))
             phase_group.attrs["name"] = phase._name
@@ -280,6 +292,8 @@ class DioptasModel:
 
         # load phase model
         for ind, phase_group in f.get("phases").items():
+            if ind == "params":  # the generic params group is not a phase
+                continue
             new_jcpds = jcpds()
             new_jcpds.name = phase_group.attrs.get("name")
             new_jcpds.filename = phase_group.attrs.get("filename")
@@ -333,6 +347,13 @@ class DioptasModel:
             except KeyError:
                 logger.debug("Optional overlay data not found in project file")
 
+        # phase settings absent from the legacy layout
+        saved_phase_params = load_params(f.get("phases"), PhaseParams)
+        if saved_phase_params is not None:
+            self.phase_model.params.same_conditions = (
+                saved_phase_params.same_conditions
+            )
+
         # apply saved view state last, field-wise onto the stable instance so
         # subscribed controllers react through the change events
         saved_view = load_params(f, ViewParams, name="view")
@@ -382,6 +403,9 @@ class DioptasModel:
         self.calibration_model.params.events.disconnect(
             self._on_calibration_params_event, missing_ok=True
         )
+        self.map_model.params.events.disconnect(
+            self._on_map_params_event, missing_ok=True
+        )
 
     def connect_models(self) -> None:
         """Connects signals of the currently selected configuration."""
@@ -398,6 +422,7 @@ class DioptasModel:
         self.calibration_model.params.events.connect(
             self._on_calibration_params_event
         )
+        self.map_model.params.events.connect(self._on_map_params_event)
 
     def _on_configuration_params_event(self, info) -> None:
         """Forwards a psygnal EmissionInfo from the current configuration's
@@ -427,6 +452,14 @@ class DioptasModel:
         self.configuration_params_changed.emit(
             "calibration." + info.signal.name, new, old
         )
+
+    def _on_map_params_event(self, info) -> None:
+        new, old = info.args
+        self.configuration_params_changed.emit("map." + info.signal.name, new, old)
+
+    def _on_phase_params_event(self, info) -> None:
+        new, old = info.args
+        self.configuration_params_changed.emit("phase." + info.signal.name, new, old)
 
     @property
     def working_directories(self) -> dict[str, str]:

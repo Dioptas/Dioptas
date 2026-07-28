@@ -8,6 +8,7 @@ import time
 import h5py
 import numpy as np
 from dioptas.model.util.signal import Signal
+from .state import MapParams, save_params
 
 from typing import TYPE_CHECKING
 
@@ -42,15 +43,34 @@ class MapModel:
         self.point_integrated = Signal(float)
 
         self.configuration = configuration
+
+        # All user-settable parameters live in the evented params dataclass;
+        # the properties below delegate to it.
+        self.params = MapParams()
+
         self.filepaths = None
         self.point_infos = []
         self.pattern_intensities = None
         self.pattern_x = None
-        self.window = None
         self.window_intensities = None
-        self.dimension = None
         self.possible_dimensions = None
         self.map = None
+
+    @property
+    def window(self) -> list[float] | None:
+        return self.params.window
+
+    @window.setter
+    def window(self, new_window: list[float] | None) -> None:
+        self.params.window = new_window
+
+    @property
+    def dimension(self) -> tuple[int, int] | None:
+        return self.params.dimension
+
+    @dimension.setter
+    def dimension(self, new_dimension: tuple[int, int] | None) -> None:
+        self.params.dimension = new_dimension
 
     def load(self, filepaths: list[str], callback_fn=None):
         """Loads a list of files, integrates them and creates a map"""
@@ -386,6 +406,7 @@ class MapModel:
             return
 
         g = hdf5_group.create_group("map")
+        save_params(g, self.params)
         g.create_dataset("pattern_x", data=self.pattern_x)
         g.create_dataset("pattern_intensities", data=self.pattern_intensities)
         g.create_dataset("window", data=np.array(self.window, dtype="f8"))

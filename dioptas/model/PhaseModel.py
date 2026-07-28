@@ -6,6 +6,7 @@ import numpy as np
 from xypattern import Pattern
 
 from .util import Signal
+from .state import PhaseParams
 from .util.jcpds import jcpds, jcpds_reflection
 from .util.cif import CifConverter
 from .util.HelperModule import calculate_color
@@ -34,7 +35,9 @@ class PhaseModel:
         self.phase_colors: list[np.ndarray] = []
         self.phase_visible: list[bool] = []
 
-        self.same_conditions: bool = True
+        # All user-settable parameters live in the evented params dataclass;
+        # the property below delegates to it.
+        self.params: PhaseParams = PhaseParams()
 
         self.phase_added: Signal = Signal()
         self.phase_removed: Signal = Signal(int)  # phase ind
@@ -43,6 +46,14 @@ class PhaseModel:
 
         self.reflection_added: Signal = Signal(int)
         self.reflection_deleted: Signal = Signal(int, int)  # phase index, reflection index
+
+    @property
+    def same_conditions(self) -> bool:
+        return self.params.same_conditions
+
+    @same_conditions.setter
+    def same_conditions(self, new_value: bool) -> None:
+        self.params.same_conditions = new_value
 
     def add_jcpds(self, filename: str) -> None:
         """Adds a jcpds file."""
