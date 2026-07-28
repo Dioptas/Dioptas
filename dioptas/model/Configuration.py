@@ -104,6 +104,52 @@ class Configuration:
             active=self.params.auto_integrate_cake,
         )
 
+        # side effects of settings changes live here (not in the property
+        # setters), so a direct params write behaves exactly like the
+        # property write — no matter who writes (GUI, script, pipeline).
+        # Subscribed before DioptasModel's store forwarding, so reactions
+        # run before the GUI is notified.
+        self.params.events.connect(self._on_own_params_changed)
+        self.calibration_model.params.events.connect(
+            self._on_calibration_params_changed
+        )
+
+    def _on_own_params_changed(self, info) -> None:
+        field = info.signal.name
+        if field == "integration_rad_points":
+            self.pattern_integration.recompute()
+            self.cake_integration.invalidate()
+        elif field in ("cake_azimuth_points", "cake_azimuth_range"):
+            self.cake_integration.invalidate()
+        elif field == "oned_azimuth_range":
+            self.pattern_integration.invalidate()
+        elif field == "integration_unit":
+            new_unit, old_unit = info.args
+            self._on_integration_unit_changed(new_unit, old_unit)
+        elif field == "auto_integrate_pattern":
+            self.pattern_integration.active = info.args[0]
+        elif field == "auto_integrate_cake":
+            self.cake_integration.active = info.args[0]
+
+    def _on_calibration_params_changed(self, info) -> None:
+        if info.signal.name == "correct_solid_angle":
+            self.pattern_integration.invalidate()
+            self.cake_integration.invalidate()
+
+    def _on_integration_unit_changed(self, new_unit: str, old_unit: str) -> None:
+        pattern = self.pattern_model.pattern
+        x = getattr(pattern, "x", None)
+        valid_units = {"2th_deg", "q_A^-1", "d_A"}
+        if old_unit not in valid_units or new_unit not in valid_units:
+            return
+        if x is not None and len(x) > 1:
+            pattern.transform_x(
+                lambda x: convert_units(
+                    x, self.calibration_model.wavelength, old_unit, new_unit
+                )
+            )
+            self.pattern_integration.recompute()
+
     def _connect_signals(self) -> None:
         """Connects the img_changed signal to responding functions."""
         self.img_model.img_changed.connect(self.update_mask_dimension)
@@ -401,8 +447,6 @@ class Configuration:
     @integration_rad_points.setter
     def integration_rad_points(self, new_value: int | None) -> None:
         self.params.integration_rad_points = new_value
-        self.pattern_integration.recompute()
-        self.cake_integration.invalidate()
 
     @property
     def cake_azimuth_points(self) -> int:
@@ -411,7 +455,6 @@ class Configuration:
     @cake_azimuth_points.setter
     def cake_azimuth_points(self, new_value: int) -> None:
         self.params.cake_azimuth_points = new_value
-        self.cake_integration.invalidate()
 
     @property
     def cake_azimuth_range(self) -> list[float] | None:
@@ -420,7 +463,6 @@ class Configuration:
     @cake_azimuth_range.setter
     def cake_azimuth_range(self, new_value: list[float] | None) -> None:
         self.params.cake_azimuth_range = new_value
-        self.cake_integration.invalidate()
 
     @property
     def oned_azimuth_range(self) -> list[float] | None:
@@ -429,7 +471,6 @@ class Configuration:
     @oned_azimuth_range.setter
     def oned_azimuth_range(self, new_value: list[float] | None) -> None:
         self.params.oned_azimuth_range = new_value
-        self.pattern_integration.invalidate()
 
     @property
     def integration_unit(self) -> str:
@@ -437,23 +478,7 @@ class Configuration:
 
     @integration_unit.setter
     def integration_unit(self, new_unit: str) -> None:
-        old_unit = self.integration_unit
         self.params.integration_unit = new_unit
-
-        pattern = self.pattern_model.pattern
-        x = getattr(pattern, "x", None)
-        valid_units = {"2th_deg", "q_A^-1", "d_A"}
-        if old_unit not in valid_units or new_unit not in valid_units:
-            return
-        if old_unit == new_unit:
-            return
-        if x is not None and len(x) > 1:
-            pattern.transform_x(
-                lambda x: convert_units(
-                    x, self.calibration_model.wavelength, old_unit, new_unit
-                )
-            )
-            self.pattern_integration.recompute()
 
     @property
     def correct_solid_angle(self) -> bool:
@@ -462,8 +487,6 @@ class Configuration:
     @correct_solid_angle.setter
     def correct_solid_angle(self, new_val: bool) -> None:
         self.calibration_model.correct_solid_angle = new_val
-        self.pattern_integration.invalidate()
-        self.cake_integration.invalidate()
 
     @property
     def is_calibrated(self) -> bool:
@@ -476,7 +499,6 @@ class Configuration:
     @auto_integrate_cake.setter
     def auto_integrate_cake(self, new_value: bool) -> None:
         self.params.auto_integrate_cake = new_value
-        self.cake_integration.active = new_value
 
     @property
     def auto_integrate_pattern(self) -> bool:
@@ -485,7 +507,6 @@ class Configuration:
     @auto_integrate_pattern.setter
     def auto_integrate_pattern(self, new_value: bool) -> None:
         self.params.auto_integrate_pattern = new_value
-        self.pattern_integration.active = new_value
 
     @property
     def cake_img(self) -> np.ndarray:

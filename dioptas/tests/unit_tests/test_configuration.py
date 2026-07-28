@@ -377,3 +377,24 @@ def test_working_directories_passed_by_reference():
     directories = {"image": "/somewhere"}
     config = Configuration(directories)
     assert config.working_directories is directories
+
+
+def test_direct_params_writes_trigger_same_reactions_as_properties():
+    """Uniform writes: a direct params write behaves like the property write."""
+    from unittest.mock import MagicMock
+
+    config = Configuration()
+    config.pattern_integration.recompute = MagicMock()
+    config.cake_integration.invalidate = MagicMock()
+
+    config.params.integration_rad_points = 1500
+    config.pattern_integration.recompute.assert_called_once()
+    config.cake_integration.invalidate.assert_called_once()
+
+    config.params.auto_integrate_cake = True
+    assert config.cake_integration.active is True
+    config.params.auto_integrate_pattern = False
+    assert config.pattern_integration.active is False
+
+    config.calibration_model.params.correct_solid_angle = False
+    config.cake_integration.invalidate.assert_called()
