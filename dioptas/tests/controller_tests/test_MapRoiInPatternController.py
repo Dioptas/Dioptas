@@ -118,6 +118,24 @@ def test_changing_the_unit_moves_the_roi(map_in_integration, unit):
     assert region == approx(tuple(expected), rel=1e-6)
 
 
+def test_regions_that_have_no_meaningful_conversion_are_ignored(map_in_integration):
+    """d spacing runs through a division by the position, and q has an upper
+    bound; neither may reach the model as inf/nan or raise."""
+    model = map_in_integration.model
+    model.integration_unit = "d_A"
+    window_before = tuple(model.map_model.window)
+
+    pattern_widget(map_in_integration).map_interactive_roi.setRegion((0.0, 2.0))
+    assert model.map_model.window == approx(window_before)
+
+    model.integration_unit = "q_A^-1"
+    q_max = 4 * np.pi / model.calibration_model.wavelength / 1e10
+    pattern_widget(map_in_integration).map_interactive_roi.setRegion(
+        (q_max + 5, q_max + 10)
+    )
+    assert all(np.isfinite(model.map_model.window))
+
+
 def test_map_window_survives_a_round_trip_through_a_unit_change(map_in_integration):
     model = map_in_integration.model
     for unit in ["q_A^-1", "d_A", "2th_deg"]:

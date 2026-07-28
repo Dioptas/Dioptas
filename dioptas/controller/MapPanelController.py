@@ -61,6 +61,10 @@ class MapPanelController:
         self._connected_map_model = self.model.map_model
         self._connected_map_model.map_changed.connect(self.update_map)
         self.model.configuration_selected.connect(self.configuration_selected)
+        # removing a configuration selects another one without emitting
+        # configuration_selected, so the panel would keep showing the map of
+        # the configuration that is gone
+        self.model.configuration_removed.connect(self._configuration_removed)
         # stays connected across mode switches: the panel also follows images
         # loaded elsewhere, e.g. by stepping through files in the integration
         # view while the map tab is shown
@@ -232,13 +236,18 @@ class MapPanelController:
         self.model.map_model.set_dimension(dimension)
 
     def _get_mouse_row_col(self, x, y):
+        # bounds come from the model rather than the plotted image so that a
+        # plot which has not caught up yet cannot index into a smaller map
         x, y = np.floor(x), np.floor(y)
-        row = self.widget.map_plot_widget.img_data.shape[0] - int(y) - 1
+        row = self.model.map_model.map.shape[0] - int(y) - 1
         col = int(x)
         return row, col
 
     def _row_col_in_map(self, row, col):
-        map_shape = self.widget.map_plot_widget.img_data.shape
+        map_data = self.model.map_model.map
+        if map_data is None:
+            return False
+        map_shape = map_data.shape
         if row < 0 or col < 0 or row >= map_shape[0] or col >= map_shape[1]:
             return False
         return True
@@ -297,8 +306,8 @@ class MapPanelController:
         # since pyqtgraph gives the coordinates in the image coordinate system
         # we need to flip the y axis
 
-        # skip when no image is loaded
-        if self.widget.map_plot_widget.img_data is None:
+        # skip when no map is loaded
+        if self.model.map_model.map is None:
             return
 
         row, col = self._get_mouse_row_col(x, y)
@@ -334,6 +343,9 @@ class MapPanelController:
     def configuration_selected(self):
         self._update_map_model_connection()
         self.update_map()
+
+    def _configuration_removed(self, _index=None):
+        self.configuration_selected()
 
     def _update_map_model_connection(self):
         """Rebinds map_changed to the current configuration's map model.

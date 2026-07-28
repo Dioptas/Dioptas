@@ -67,6 +67,7 @@ class MainController:
             self.widget.map_widget, self.model, self.map_panel_controller
         )
         self._map_panel_host = self.widget.map_widget.map_panel_host
+        self._last_docked_host = self._map_panel_host
         self._closing = False
 
         self.calibration_controller.activate()
@@ -191,6 +192,7 @@ class MainController:
         for host in (
             self.widget.map_widget.map_panel_host,
             self.widget.integration_widget.map_control_widget,
+            self.widget.map_panel_window,
         ):
             host.dock_btn.clicked.connect(self.map_dock_btn_clicked)
         self.widget.map_panel_window.closed.connect(self._map_window_closed)
@@ -263,14 +265,18 @@ class MainController:
         if mode_ind is None:
             mode_ind = self.current_tab_index
 
+        window = self.widget.map_panel_window
         if self.model.view.map_docked:
             hosts = {
                 2: self.widget.integration_widget.map_control_widget,
                 3: self.widget.map_widget.map_panel_host,
             }
-            host = hosts.get(mode_ind)
+            # docking from a mode with no home of its own (calibration, mask)
+            # puts the panel back where it was undocked from
+            host = hosts.get(mode_ind, self._last_docked_host)
+            self._last_docked_host = host
         else:
-            host = self.widget.map_panel_window
+            host = window
 
         if host is None or host is self._map_panel_host:
             return
@@ -279,7 +285,6 @@ class MainController:
         host.take_panel(self.widget.map_widget.map_panel_widget)
         self._map_panel_host = host
 
-        window = self.widget.map_panel_window
         window.setVisible(host is window)
 
     def map_undock_btn_clicked(self):

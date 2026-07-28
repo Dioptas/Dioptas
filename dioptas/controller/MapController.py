@@ -85,6 +85,10 @@ class MapController:
 
         self._connected_map_model = self.model.map_model
         self._connected_map_model.map_changed.connect(self.update_file_list)
+        # removing a configuration switches to another one without emitting
+        # configuration_selected, and this stays connected while the map mode
+        # is hidden so its file list is right when it comes back
+        self.model.configuration_removed.connect(self._configuration_removed)
         self.model.clicked_tth_changed.connect(self.update_pattern_green_line)
         self.model.clicked_tth_changed.connect(self.update_image_green_line)
         self.model.clicked_tth_changed.connect(self.update_clicked_pos_label)
@@ -148,11 +152,30 @@ class MapController:
         map_model = self.model.map_model
         if map_model.pattern_x is None or map_model.pattern_intensities is None:
             return
-        x = map_model.pattern_x
+        x = self._pattern_x_in_display_unit(map_model)
+        if x is None:
+            return
         y = map_model.pattern_intensities[index]
         filename = self.model.img_model.filename
         self.model.current_configuration.pattern_model.set_pattern(
             x, y, filename, unit=self.model.integration_unit
+        )
+
+    def _pattern_x_in_display_unit(self, map_model):
+        """The stored map x values, in the unit the pattern is displayed in.
+
+        The map keeps them in the unit it was integrated in, which the user
+        can have changed since. Converting d spacing leaves the values in
+        descending order, as a regular integration in d does.
+        """
+        unit = self.model.integration_unit
+        if map_model.pattern_unit is None or map_model.pattern_unit == unit:
+            return map_model.pattern_x
+        wavelength = self.model.calibration_model.wavelength
+        if not wavelength:
+            return None
+        return convert_units(
+            map_model.pattern_x, wavelength, map_model.pattern_unit, unit
         )
 
     def load_btn_clicked(self):
@@ -162,21 +185,21 @@ class MapController:
         self.panel_controller.save_map(filename)
 
     def update_file_list(self):
-        # get current items
-        items = [
-            self.widget.control_widget.file_list.item(i).text()
-            for i in range(self.widget.control_widget.file_list.count())
-        ]
-        if items == self.model.map_model.get_filenames():
+        file_list = self.widget.control_widget.file_list
+        items = [file_list.item(i).text() for i in range(file_list.count())]
+        filenames = self.model.map_model.get_filenames()
+        if items == filenames:
             return
 
-        self.widget.control_widget.file_list.blockSignals(True)
-        self.widget.control_widget.file_list.clear()
-        filenames = self.model.map_model.get_filenames()
-        if len(filenames) == 0:  # no files loaded
-            return
-        self.widget.control_widget.file_list.addItems(filenames)
-        self.widget.control_widget.file_list.blockSignals(False)
+        # unblock even when there are no files: leaving the list blocked would
+        # swallow the row changes of the next map loaded into it
+        file_list.blockSignals(True)
+        try:
+            file_list.clear()
+            if filenames:
+                file_list.addItems(filenames)
+        finally:
+            file_list.blockSignals(False)
 
     def update_image(self):
         if self.model.img_model.img_data is None:
@@ -404,6 +427,11 @@ class MapController:
         self.update_file_list()
         self.update_image()
         self.update_pattern()
+
+    def _configuration_removed(self, _index=None):
+        self._update_map_model_connection()
+        self.update_file_list()
+        self._sync_file_list_selection()
 
     def _update_map_model_connection(self):
         """Rebinds map_changed to the current configuration's map model.

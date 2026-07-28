@@ -7,6 +7,7 @@ from mock import MagicMock
 from pytest import approx
 
 from dioptas.controller.MainController import MainController
+from dioptas.model.util.calc import convert_units
 
 from ..utility import click_button
 
@@ -232,6 +233,51 @@ def test_undocked_map_stays_available_in_every_mode(main_controller: MainControl
     assert not window.isVisible()
 
 
+def test_docking_works_from_a_mode_that_has_no_map(main_controller: MainController):
+    # Herbert undocks the map, wanders off into the mask mode, and docks it
+    # again from there.
+    prepare_map_gui(main_controller)
+    widget = main_controller.widget
+    panel = widget.map_widget.map_panel_widget
+
+    click_button(panel.map_plot_control_widget.undock_btn)
+    click_button(widget.mask_mode_btn)
+
+    # the panel's own button is the one on screen in the floating window
+    assert panel.map_plot_control_widget.undock_btn.text() == "Dock"
+    click_button(panel.map_plot_control_widget.undock_btn)
+
+    assert main_controller.model.view.map_docked
+    assert widget.map_panel_window.panel is None
+    assert not widget.map_panel_window.isVisible()
+    # it went back to the home it was undocked from
+    assert widget.map_widget.map_panel_host.panel is panel
+
+
+def test_removing_a_configuration_updates_the_map_panel(main_controller: MainController):
+    # Herbert compares two samples in two configurations and removes the one
+    # holding the map.
+    prepare_map_gui(main_controller)
+    model = main_controller.model
+    panel = main_controller.widget.map_widget.map_panel_widget
+
+    assert panel.map_plot_widget.img_data is not None
+
+    model.add_configuration()  # a fresh configuration without a map
+    assert panel.map_plot_widget.img_data.size == 0
+
+    model.select_configuration(0)
+    assert panel.map_plot_widget.img_data.shape == (3, 3)
+
+    model.remove_configuration()  # removes the one holding the map
+    assert model.map_model.map is None
+    assert panel.map_plot_widget.img_data.size == 0
+
+    # moving the mouse over the now empty map must not raise
+    panel.map_plot_widget.mouse_moved.emit(1, 1)
+    panel.map_plot_widget.mouse_left_clicked.emit(1, 1)
+
+
 def test_closing_the_map_window_docks_it_again(main_controller: MainController):
     prepare_map_gui(main_controller)
     widget = main_controller.widget
@@ -245,6 +291,55 @@ def test_closing_the_map_window_docks_it_again(main_controller: MainController):
     assert (
         widget.map_widget.map_panel_host.panel is widget.map_widget.map_panel_widget
     )
+
+
+def test_exploring_a_map_from_the_integration_view(main_controller: MainController):
+    # Herbert has his map and now wants to work the way he normally does: big
+    # image, phases on the pattern, and the map right there to click around in.
+    prepare_map_gui(main_controller)
+    model = main_controller.model
+    widget = main_controller.widget
+    panel = widget.map_widget.map_panel_widget
+
+    click_button(widget.integration_mode_btn)
+    control_widget = widget.integration_widget.integration_control_widget
+    control_widget.tab_widget_1.setCurrentWidget(widget.integration_widget.map_control_widget)
+
+    # the map is in the tab, and the window region shows up in the pattern
+    assert widget.integration_widget.map_control_widget.panel is panel
+    pattern_widget = widget.integration_widget.pattern_widget
+    assert pattern_widget.map_interactive_roi in pattern_widget.pattern_plot.items
+
+    # he picks a point and gets that image, integrated with his settings
+    panel.map_plot_widget.mouse_left_clicked.emit(0, 0)
+    assert model.img_model.filename == map_img_file_paths[6]
+    assert np.array_equal(
+        widget.integration_widget.img_widget.img_data, model.img_model.img_data
+    )
+
+    # he works in Q, and dragging the region there still picks the right part
+    # of the pattern: the map keeps its window in the unit it was integrated in
+    model.integration_unit = "q_A^-1"
+    assert model.map_model.pattern_unit == "2th_deg"
+
+    wavelength = model.calibration_model.wavelength
+    region = sorted(
+        convert_units(x, wavelength, "2th_deg", "q_A^-1") for x in (8.0, 9.0)
+    )
+    old_map = np.copy(model.map_model.map)
+    pattern_widget.map_interactive_roi.setRegion(region)
+
+    assert model.map_model.window == approx((8.0, 9.0), rel=1e-6)
+    assert not np.array_equal(model.map_model.map, old_map)
+    assert np.array_equal(panel.map_plot_widget.img_data, np.flipud(model.map_model.map))
+
+    # finally he puts the map on his second screen and keeps clicking points
+    click_button(panel.map_plot_control_widget.undock_btn)
+    assert widget.map_panel_window.panel is panel
+
+    panel.map_plot_widget.mouse_left_clicked.emit(2, 0)
+    assert model.img_model.filename == map_img_file_paths[8]
+    assert pattern_widget.map_interactive_roi in pattern_widget.pattern_plot.items
 
 
 def test_map_with_different_dimension(main_controller: MainController):

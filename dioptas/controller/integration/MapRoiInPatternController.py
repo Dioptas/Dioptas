@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: MIT
 
+import numpy as np
+
 from ...model.DioptasModel import DioptasModel
 from ...model.util.calc import convert_units
 from ...widgets.plot_widgets import PatternWidget
@@ -45,6 +47,9 @@ class MapRoiInPatternController:
         )
         self.model.integration_unit_changed.connect(self.update_roi)
         self.model.configuration_selected.connect(self.configuration_selected)
+        # removing a configuration switches to another one without emitting
+        # configuration_selected
+        self.model.configuration_removed.connect(self._configuration_removed)
 
         self._connected_map_model = self.model.map_model
         self._connected_map_model.map_changed.connect(self.map_changed)
@@ -110,6 +115,9 @@ class MapRoiInPatternController:
         self.update_visibility()
         self.update_roi()
 
+    def _configuration_removed(self, _index=None):
+        self.configuration_selected()
+
     def _map_unit(self) -> str:
         # before a map has been integrated there is no recorded unit yet; a
         # window set now will be used with the unit active at integration time
@@ -121,10 +129,15 @@ class MapRoiInPatternController:
         wavelength = self.model.calibration_model.wavelength
         if not wavelength:
             return None
-        converted = [
-            convert_units(float(v), wavelength, from_unit, to_unit) for v in values
-        ]
-        if any(c is None for c in converted):
+        try:
+            converted = [
+                convert_units(float(v), wavelength, from_unit, to_unit) for v in values
+            ]
+        except ZeroDivisionError:  # d spacing of zero
+            return None
+        # a region dragged past what the geometry can express (beyond the q
+        # limit, through zero in d) has no counterpart to hand to the map
+        if any(c is None or not np.isfinite(c) for c in converted):
             return None
         # d spacing runs the other way round, so a converted pair can come out
         # reversed; the region always wants (low, high)
