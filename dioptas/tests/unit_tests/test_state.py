@@ -341,3 +341,26 @@ def test_calibration_params_instances_do_not_share_dicts():
     a.fixed_values["rot1"] = 0.5
     assert b.start_values["dist"] == 200e-3
     assert b.fixed_values == {}
+
+
+# ---------------------------------------------------------------------------
+# MapParams / PhaseParams
+# ---------------------------------------------------------------------------
+
+from dioptas.model.state import MapParams, PhaseParams
+
+
+def test_map_params_defaults():
+    params = MapParams()
+    assert params.window is None
+    assert params.dimension is None
+
+
+def test_phase_params_defaults_and_events():
+    params = PhaseParams()
+    assert params.same_conditions is True
+
+    got = []
+    params.events.same_conditions.connect(lambda new, old: got.append(new))
+    params.same_conditions = False
+    assert got == [False]

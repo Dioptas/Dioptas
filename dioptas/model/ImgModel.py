@@ -32,6 +32,15 @@ from dioptas.model.loader.FabioLoader import FabioLoader
 
 logger = logging.getLogger(__name__)
 
+#: image transformations by name; ImgParams.transformations stores the names,
+#: the callable list is derived from this registry
+TRANSFORMATION_FUNCTIONS = {
+    "flipud": np.flipud,
+    "fliplr": np.fliplr,
+    "rotate_matrix_m90": rotate_matrix_m90,
+    "rotate_matrix_p90": rotate_matrix_p90,
+}
+
 
 class ImgModel:
     """
@@ -49,7 +58,6 @@ class ImgModel:
     def __init__(self) -> None:
         super().__init__()
         self.filename: str = ""
-        self.img_transformations: list[Callable[[np.ndarray], np.ndarray]] = []
 
         # All user-settable parameters live in the evented params dataclass;
         # the properties below delegate to it and add side effects.
@@ -420,6 +428,24 @@ class ImgModel:
         self.img_changed.emit()
 
     @property
+    def img_transformations(self) -> list[Callable[[np.ndarray], np.ndarray]]:
+        """The applied transformations as callables, derived from the
+        canonical name list in the params."""
+        return [
+            TRANSFORMATION_FUNCTIONS[name] for name in self.params.transformations
+        ]
+
+    @img_transformations.setter
+    def img_transformations(
+        self, transformations: list[Callable[[np.ndarray], np.ndarray]]
+    ) -> None:
+        self.params.transformations = [t.__name__ for t in transformations]
+
+    def _append_transformation(self, name: str) -> None:
+        # reassignment (not in-place append) so the params event fires
+        self.params.transformations = self.params.transformations + [name]
+
+    @property
     def file_iteration_mode(self) -> str:
         return self.params.file_iteration_mode
 
@@ -605,7 +631,7 @@ class ImgModel:
         if self._background_data is not None:
             self._background_data = rotate_matrix_p90(self._background_data)
 
-        self.img_transformations.append(rotate_matrix_p90)
+        self._append_transformation("rotate_matrix_p90")
 
         self.transformations_changed.emit()
         self._calculate_img_data()
@@ -621,7 +647,7 @@ class ImgModel:
         self._img_data = rotate_matrix_m90(self._img_data)
         if self._background_data is not None:
             self._background_data = rotate_matrix_m90(self._background_data)
-        self.img_transformations.append(rotate_matrix_m90)
+        self._append_transformation("rotate_matrix_m90")
         self.transformations_changed.emit()
 
         self._calculate_img_data()
@@ -637,7 +663,7 @@ class ImgModel:
         self._img_data = np.fliplr(self._img_data)
         if self._background_data is not None:
             self._background_data = np.fliplr(self._background_data)
-        self.img_transformations.append(np.fliplr)
+        self._append_transformation("fliplr")
         self.transformations_changed.emit()
 
         self._calculate_img_data()
@@ -653,7 +679,7 @@ class ImgModel:
         self._img_data = np.flipud(self._img_data)
         if self._background_data is not None:
             self._background_data = np.flipud(self._background_data)
-        self.img_transformations.append(np.flipud)
+        self._append_transformation("flipud")
         self.transformations_changed.emit()
 
         self._calculate_img_data()
@@ -723,13 +749,13 @@ class ImgModel:
         self.img_transformations = []
         for transformation in transformations:
             if transformation == "flipud":
-                self.img_transformations.append(np.flipud)
+                self._append_transformation("flipud")
             elif transformation == "fliplr":
-                self.img_transformations.append(np.fliplr)
+                self._append_transformation("fliplr")
             elif transformation == "rotate_matrix_m90":
-                self.img_transformations.append(rotate_matrix_m90)
+                self._append_transformation("rotate_matrix_m90")
             elif transformation == "rotate_matrix_p90":
-                self.img_transformations.append(rotate_matrix_p90)
+                self._append_transformation("rotate_matrix_p90")
         self._perform_img_transformations()
         self._perform_background_transformations()
 
