@@ -91,6 +91,26 @@ def test_hdf5_round_trip(tmp_path):
     assert restored.trim_trailing_zeros is False
 
 
+def test_hdf5_round_trip_with_numpy_bool(tmp_path):
+    # legacy h5py attribute reads assign numpy scalars into params fields;
+    # saving must not choke on them (autosave used to crash with
+    # "Object of type bool is not JSON serializable")
+    params = ConfigurationParams()
+    params.use_mask = np.bool_(True)
+    params.transparent_mask = np.bool_(False)
+
+    filename = os.path.join(tmp_path, "state_bool.h5")
+    with h5py.File(filename, "w") as f:
+        save_params(f, params)
+
+    with h5py.File(filename, "r") as f:
+        restored = load_params(f, ConfigurationParams)
+
+    assert restored is not None
+    assert restored.use_mask is True
+    assert restored.transparent_mask is False
+
+
 def test_load_params_returns_none_for_missing_group(tmp_path):
     filename = os.path.join(tmp_path, "empty.h5")
     with h5py.File(filename, "w") as f:

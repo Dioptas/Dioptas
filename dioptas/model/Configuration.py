@@ -45,14 +45,12 @@ import h5py
 logger = logging.getLogger(__name__)
 
 
-def _json_numpy_default(obj: object) -> int | float | list:
-    """JSON encoder default for numpy int/float types."""
-    if isinstance(obj, np.integer):
-        return int(obj)
-    if isinstance(obj, np.floating):
-        return float(obj)
+def _json_numpy_default(obj: object) -> object:
+    """JSON encoder default for numpy scalar and array types."""
     if isinstance(obj, np.ndarray):
         return obj.tolist()
+    if isinstance(obj, np.generic):
+        return obj.item()
     raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
 
@@ -886,9 +884,9 @@ class Configuration:
         self.calibration_model.calibration_name = base_name
 
         try:
-            self.correct_solid_angle = f.get("calibration_model").attrs[
-                "correct_solid_angle"
-            ]
+            self.correct_solid_angle = bool(
+                f.get("calibration_model").attrs["correct_solid_angle"]
+            )
         except KeyError:
             logger.debug("Optional field 'correct_solid_angle' not found in project file")
 
@@ -932,7 +930,7 @@ class Configuration:
         except EnvironmentError:
             logger.warning("Could not load mask file from project")
 
-        self.img_model.autoprocess = f.get("image_model").attrs["auto_process"]
+        self.img_model.autoprocess = bool(f.get("image_model").attrs["auto_process"])
         self.img_model.autoprocess_changed.emit()
         self.img_model.factor = f.get("image_model").attrs["factor"]
         # announce the restored image data explicitly (detector shape sync,
@@ -1033,9 +1031,9 @@ class Configuration:
             )
 
         # cake parameters:
-        self.auto_integrate_cake = f.get("general_information").attrs[
-            "auto_integrate_cake"
-        ]
+        self.auto_integrate_cake = bool(
+            f.get("general_information").attrs["auto_integrate_cake"]
+        )
         try:
             self.cake_azimuth_points = f.get("general_information").attrs[
                 "cake_azimuth_points"
@@ -1052,8 +1050,10 @@ class Configuration:
             logger.debug("Optional cake azimuth range not found in project file")
 
         # mask parameters
-        self.use_mask = f.get("general_information").attrs["use_mask"]
-        self.transparent_mask = f.get("general_information").attrs["transparent_mask"]
+        self.use_mask = bool(f.get("general_information").attrs["use_mask"])
+        self.transparent_mask = bool(
+            f.get("general_information").attrs["transparent_mask"]
+        )
 
         # corrections
         if f.get("image_model").get("corrections").attrs["has_corrections"]:
@@ -1133,9 +1133,9 @@ class Configuration:
                     self.img_model.enable_flat_field()
 
         # autosave parameters
-        self.auto_save_integrated_pattern = f.get("general_information").attrs[
-            "auto_save_integrated_pattern"
-        ]
+        self.auto_save_integrated_pattern = bool(
+            f.get("general_information").attrs["auto_save_integrated_pattern"]
+        )
         self.integrated_patterns_file_formats = []
         for file_format in f.get("general_information").get(
             "integrated_patterns_file_formats"

@@ -2,6 +2,8 @@
 
 ## Bugfixes
 
+- saving the session (autosave or on close) crashed with "Object of type bool is not JSON serializable" after restoring a previous session, because loading assigned numpy booleans from the project file into the settings; on top of that, the failed save leaked its open file handle, so every following autosave failed with "unable to truncate a file which is already open" — numpy scalars now serialize, and save/load always close the project file even when they fail partway
+
 - the corrections panel layout was off after the parameter form rework: input fields stretched across the whole panel, tabs with only a few parameters spread their rows over the full height, and the plot buttons sat at the far right edge — fields now keep a compact width, rows are packed to the top, formula inputs line up with the parameter labels, and the plot buttons sit next to (or below) the values they belong to
 
 - settings stored as tuples (the mask region of interest, phase colors) came back as lists after a project round-trip, because JSON has no tuple type

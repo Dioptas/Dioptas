@@ -189,8 +189,16 @@ class DioptasModel:
         File-ending can be chosen as wanted. Usually Dioptas projects are saved as *.dio files.
         """
         logger.info("Saving project to %s", filename)
+        # close the file even when saving fails partway — a leaked open
+        # handle makes every subsequent save of the same file fail with
+        # "unable to truncate a file which is already open"
         f = h5py.File(filename, "w")
+        try:
+            self._save_into(f)
+        finally:
+            f.close()
 
+    def _save_into(self, f: h5py.File) -> None:
         # __version__ records which Dioptas wrote the file (informational);
         # format_version is the layout version the loader branches on — see
         # dioptas/model/state/hdf5.py for the versioning policy
@@ -254,16 +262,21 @@ class DioptasModel:
                 phase_reflection_group.attrs["h"] = reflection.h
                 phase_reflection_group.attrs["k"] = reflection.k
                 phase_reflection_group.attrs["l"] = reflection.l
-        f.flush()
-        f.close()
 
     def load(self, filename: str) -> None:
         """Loads a previously saved model (see save function) from an h5py file."""
         logger.info("Loading project from %s", filename)
         self.disconnect_models()
 
+        # close the file even when loading fails partway — a leaked open
+        # handle blocks any later save of the same file
         f = h5py.File(filename, "r")
+        try:
+            self._load_from(f)
+        finally:
+            f.close()
 
+    def _load_from(self, f: h5py.File) -> None:
         # missing format_version = legacy layout (version 0); newer files
         # load best-effort thanks to the tolerant params layer
         format_version = int(f.attrs.get("format_version", 0))
@@ -271,7 +284,7 @@ class DioptasModel:
             logger.warning(
                 "Project file %s has format_version %d, newer than supported %d "
                 "— loading best-effort, some settings may be missed",
-                filename,
+                f.filename,
                 format_version,
                 PROJECT_FORMAT_VERSION,
             )
@@ -374,8 +387,6 @@ class DioptasModel:
         saved_view = load_params(f, ViewParams, name="view")
         if saved_view is not None:
             apply_params(self.view, saved_view)
-
-        f.close()
 
     def select_configuration(self, ind: int) -> None:
         """Selects a configuration specified by the index as current model.

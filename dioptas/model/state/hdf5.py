@@ -81,13 +81,13 @@ PROJECT_FORMAT_VERSION = 1
 T = TypeVar("T")
 
 
-def _json_default(obj: object) -> int | float | list:
-    if isinstance(obj, np.integer):
-        return int(obj)
-    if isinstance(obj, np.floating):
-        return float(obj)
+def _json_default(obj: object) -> object:
     if isinstance(obj, np.ndarray):
         return obj.tolist()
+    if isinstance(obj, np.generic):
+        # any numpy scalar (bool_, integer, floating, str_, ...) — these leak
+        # into params when legacy h5py attributes are assigned to fields
+        return obj.item()
     raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
 

@@ -320,6 +320,36 @@ def test_save_and_load_round_trips_params_only_fields(dioptas_model, tmp_path):
     assert dioptas_model.current_configuration.trim_trailing_zeros is False
 
 
+def test_save_with_numpy_bool_in_params(dioptas_model, tmp_path):
+    """Legacy project loading assigns h5py attributes (numpy scalars) into
+    params fields — saving afterwards must not crash on them."""
+    dioptas_model.current_configuration.params.use_mask = np.bool_(True)
+
+    filename = os.path.join(tmp_path, "numpy_bool.dio")
+    dioptas_model.save(filename)
+
+    dioptas_model.reset()
+    dioptas_model.load(filename)
+    assert dioptas_model.current_configuration.params.use_mask is True
+
+
+def test_failed_save_does_not_block_subsequent_saves(dioptas_model, tmp_path):
+    """A save that fails partway must close the file handle — a leaked open
+    handle used to make every later save of the same file fail with
+    "unable to truncate a file which is already open"."""
+    filename = os.path.join(tmp_path, "project.dio")
+
+    original = dioptas_model.current_configuration.save_in_hdf5
+    dioptas_model.current_configuration.save_in_hdf5 = MagicMock(
+        side_effect=RuntimeError("boom")
+    )
+    with pytest.raises(RuntimeError):
+        dioptas_model.save(filename)
+    dioptas_model.current_configuration.save_in_hdf5 = original
+
+    dioptas_model.save(filename)
+
+
 def test_load_project_without_params_group(dioptas_model, tmp_path):
     """Project files written before the params layer must still load."""
     import h5py
