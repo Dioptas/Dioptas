@@ -22,7 +22,12 @@ from typing import ClassVar
 
 from psygnal import SignalGroupDescriptor
 
-__all__ = ["ConfigurationParams", "ViewParams", "default_working_directories"]
+__all__ = [
+    "ConfigurationParams",
+    "ImgParams",
+    "ViewParams",
+    "default_working_directories",
+]
 
 
 def default_working_directories() -> dict[str, str]:
@@ -51,6 +56,32 @@ class ViewParams:
 
     #: what the integration image panel shows: "Image" or "Cake"
     img_mode: str = "Image"
+
+
+@dataclass
+class ImgParams:
+    """User-settable parameters of an ImgModel.
+
+    Owned by :class:`dioptas.model.ImgModel.ImgModel`, which exposes them
+    through delegating properties that add side effects (image
+    recalculation, directory-watcher activation). Writing the fields here
+    directly bypasses those side effects but still emits change events.
+    """
+
+    events: ClassVar[SignalGroupDescriptor] = SignalGroupDescriptor()
+
+    autoprocess: bool = False
+    #: int default is deliberate: it keeps pristine img_data in the image's
+    #: native dtype (uint16 * 1 stays uint16); any user-set factor is
+    #: coerced to float by ImgModel.factor so integer multiplication can
+    #: never wrap the pixel values
+    factor: float = 1
+
+    background_scaling: float = 1.0
+    background_offset: float = 0.0
+
+    #: how prev/next iterate through files: "number" or "time"
+    file_iteration_mode: str = "number"
 
 
 @dataclass

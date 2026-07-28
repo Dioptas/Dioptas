@@ -228,7 +228,9 @@ def test_setting_factors(dioptas_model):
     dioptas_model.img_model.load(os.path.join(data_path, "image_001.tif"))
     data1 = np.copy(dioptas_model.img_data)
     dioptas_model.img_model.factor = 2
-    assert np.array_equal(2 * data1, dioptas_model.img_data)
+    # 2.0: the reference must be computed in float — integer multiplication
+    # of the uint16 data would wrap around, which the factor no longer does
+    assert np.array_equal(2.0 * data1, dioptas_model.img_data)
 
 
 def test_iterate_next_image(dioptas_model):
@@ -743,3 +745,37 @@ def test_load_project_with_newer_format_version(dioptas_model, tmp_path):
 
     dioptas_model.load(filename)  # must not raise
     assert len(dioptas_model.configurations) == 1
+
+
+def test_img_params_forwarded_with_namespace(dioptas_model):
+    got = []
+    dioptas_model.configuration_params_changed.connect(
+        lambda field, new, old: got.append((field, new))
+    )
+    dioptas_model.img_model.params.factor = 2.0
+    assert got == [("img.factor", 2.0)]
+
+    dioptas_model.add_configuration()
+    inactive_img_model = dioptas_model.configurations[0].img_model
+    dioptas_model.select_configuration(1)
+    got.clear()
+
+    inactive_img_model.params.factor = 5.0
+    assert got == []  # non-selected configuration stays silent
+
+    dioptas_model.img_model.params.autoprocess = True
+    assert got == [("img.autoprocess", True)]
+
+
+def test_file_iteration_mode_round_trips_via_params(dioptas_model, tmp_path):
+    """ImgModel.file_iteration_mode is not in the legacy layout — it
+    round-trips via the generic img params group."""
+    dioptas_model.img_model.file_iteration_mode = "time"
+    filename = os.path.join(tmp_path, "iteration.dio")
+    dioptas_model.save(filename)
+
+    dioptas_model.reset()
+    assert dioptas_model.img_model.file_iteration_mode == "number"
+
+    dioptas_model.load(filename)
+    assert dioptas_model.img_model.file_iteration_mode == "time"

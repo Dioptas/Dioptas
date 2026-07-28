@@ -13,7 +13,7 @@ from xypattern import Pattern
 from xypattern.auto_background import SmoothBrucknerBackground
 
 from .util import Signal
-from .state import ConfigurationParams, save_params, load_params, Derived
+from .state import ConfigurationParams, ImgParams, save_params, load_params, Derived
 from .util.ImgCorrection import (
     CbnCorrection,
     ObliqueAngleDetectorAbsorptionCorrection,
@@ -571,6 +571,7 @@ class Configuration:
 
         # save image model
         image_group = f.create_group("image_model")
+        save_params(image_group, self.img_model.params)
         image_group.attrs["auto_process"] = self.img_model.autoprocess
         image_group.attrs["factor"] = self.img_model.factor
         image_group.attrs["has_background"] = self.img_model.has_background()
@@ -1086,6 +1087,12 @@ class Configuration:
         if saved_params is not None:
             self.params.oned_azimuth_range = saved_params.oned_azimuth_range
             self.params.trim_trailing_zeros = saved_params.trim_trailing_zeros
+
+        saved_img_params = load_params(f.get("image_model"), ImgParams)
+        if saved_img_params is not None:
+            self.img_model.params.file_iteration_mode = (
+                saved_img_params.file_iteration_mode
+            )
 
         if self.calibration_model.is_calibrated:
             self.integrate_image_1d()

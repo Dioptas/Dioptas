@@ -310,3 +310,22 @@ def test_loading_karabo_file_without_extra_data(img_model):
         # Verify that other file types still work
         img_model.load(os.path.join(data_path, "image_001.tif"))
         assert img_model.img_data is not None
+
+
+def test_img_model_settings_delegate_to_params():
+    from dioptas.model.ImgModel import ImgModel
+
+    img_model = ImgModel()
+    emitted = []
+    img_model.img_changed.connect(lambda: emitted.append(1))
+
+    img_model.factor = 2.5
+    assert img_model.params.factor == 2.5
+    assert len(emitted) == 1  # property setter keeps its side effect
+
+    img_model.params.factor = 3.0  # direct params write: storage + event only
+    assert img_model.factor == 3.0
+    assert len(emitted) == 1
+
+    img_model.file_iteration_mode = "time"
+    assert img_model.params.file_iteration_mode == "time"
