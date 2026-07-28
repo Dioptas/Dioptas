@@ -25,6 +25,7 @@ from psygnal import SignalGroupDescriptor
 __all__ = [
     "ConfigurationParams",
     "ImgParams",
+    "PatternParams",
     "ViewParams",
     "default_working_directories",
 ]
@@ -81,6 +82,24 @@ class ImgParams:
     background_offset: float = 0.0
 
     #: how prev/next iterate through files: "number" or "time"
+    file_iteration_mode: str = "number"
+
+
+@dataclass
+class PatternParams:
+    """User-settable parameters of a PatternModel.
+
+    Owned by :class:`dioptas.model.PatternModel.PatternModel`; the model's
+    properties delegate here. Writing fields directly bypasses model side
+    effects but still emits change events.
+    """
+
+    events: ClassVar[SignalGroupDescriptor] = SignalGroupDescriptor()
+
+    #: unit of the current pattern's x-axis ("", "2th_deg", "q_A^-1", "d_A")
+    unit: str = ""
+
+    #: how prev/next iterate through pattern files: "number" or "time"
     file_iteration_mode: str = "number"
 
 

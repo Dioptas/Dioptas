@@ -7,6 +7,7 @@ from xypattern import Pattern
 from xypattern.auto_background import SmoothBrucknerBackground
 
 from .util import Signal
+from .state import PatternParams
 from .util.HelperModule import FileNameIterator, get_base_name
 
 logger = logging.getLogger(__name__)
@@ -27,13 +28,31 @@ class PatternModel:
         self.pattern: Pattern = Pattern()
         self.pattern_filename: str = ""
 
-        self.unit: str = ""
-        self.file_iteration_mode: str = "number"
+        # All user-settable parameters live in the evented params dataclass;
+        # the properties below delegate to it.
+        self.params: PatternParams = PatternParams()
+
         self.file_name_iterator: FileNameIterator = FileNameIterator()
 
         self._background_pattern: Pattern | None = None
 
         self.pattern_changed: Signal = Signal()
+
+    @property
+    def unit(self) -> str:
+        return self.params.unit
+
+    @unit.setter
+    def unit(self, new_unit: str) -> None:
+        self.params.unit = new_unit
+
+    @property
+    def file_iteration_mode(self) -> str:
+        return self.params.file_iteration_mode
+
+    @file_iteration_mode.setter
+    def file_iteration_mode(self, new_mode: str) -> None:
+        self.params.file_iteration_mode = new_mode
 
     def set_pattern(
         self,

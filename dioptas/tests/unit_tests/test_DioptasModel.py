@@ -779,3 +779,22 @@ def test_file_iteration_mode_round_trips_via_params(dioptas_model, tmp_path):
 
     dioptas_model.load(filename)
     assert dioptas_model.img_model.file_iteration_mode == "time"
+
+
+def test_pattern_model_settings_delegate_to_params(dioptas_model):
+    pattern_model = dioptas_model.pattern_model
+    pattern_model.unit = "2th_deg"
+    assert pattern_model.params.unit == "2th_deg"
+
+    pattern_model.set_file_iteration_mode("time")
+    assert pattern_model.params.file_iteration_mode == "time"
+    assert pattern_model.file_name_iterator.create_timed_file_list is True
+
+
+def test_pattern_params_forwarded_with_namespace(dioptas_model):
+    got = []
+    dioptas_model.configuration_params_changed.connect(
+        lambda field, new, old: got.append((field, new))
+    )
+    dioptas_model.pattern_model.params.file_iteration_mode = "time"
+    assert got == [("pattern.file_iteration_mode", "time")]
