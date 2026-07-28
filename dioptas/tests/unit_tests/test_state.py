@@ -107,3 +107,129 @@ def test_instances_do_not_share_mutable_defaults():
     a.integrated_patterns_file_formats.append(".chi")
     assert b.working_directories["image"] != "/somewhere"
     assert b.integrated_patterns_file_formats == [".xy"]
+
+
+# ---------------------------------------------------------------------------
+# Derived
+# ---------------------------------------------------------------------------
+
+from dioptas.model.state import Derived
+from dioptas.model.util.signal import Signal
+
+
+def test_derived_recomputes_on_dependency_change():
+    dep = Signal()
+    runs = []
+    derived = Derived(lambda: runs.append(1), dependencies=[dep])
+    dep.emit()
+    dep.emit()
+    assert len(runs) == 2
+
+
+def test_derived_inactive_discards_triggers():
+    dep = Signal()
+    runs = []
+    derived = Derived(lambda: runs.append(1), dependencies=[dep], active=False)
+    dep.emit()
+    assert runs == []
+
+    # enabling does not recompute retroactively
+    derived.active = True
+    assert runs == []
+    dep.emit()
+    assert len(runs) == 1
+
+
+def test_derived_recompute_ignores_active():
+    runs = []
+    derived = Derived(lambda: runs.append(1), active=False)
+    derived.recompute()
+    assert len(runs) == 1
+
+
+def test_derived_hold_coalesces():
+    dep = Signal()
+    runs = []
+    derived = Derived(lambda: runs.append(1), dependencies=[dep])
+    with derived.hold():
+        dep.emit()
+        dep.emit()
+        dep.emit()
+        assert runs == []
+    assert len(runs) == 1
+
+
+def test_derived_hold_without_trigger_does_not_compute():
+    runs = []
+    derived = Derived(lambda: runs.append(1))
+    with derived.hold():
+        pass
+    assert runs == []
+
+
+def test_derived_hold_flush_false_discards():
+    dep = Signal()
+    runs = []
+    derived = Derived(lambda: runs.append(1), dependencies=[dep])
+    with derived.hold(flush=False):
+        dep.emit()
+    assert runs == []
+    # a later trigger still works
+    dep.emit()
+    assert len(runs) == 1
+
+
+def test_derived_nested_holds_outermost_flush_wins():
+    dep = Signal()
+    runs = []
+    derived = Derived(lambda: runs.append(1), dependencies=[dep])
+    with derived.hold(flush=False):
+        with derived.hold(flush=True):
+            dep.emit()
+        assert runs == []
+    assert runs == []
+
+    with derived.hold(flush=True):
+        with derived.hold(flush=False):
+            dep.emit()
+    assert len(runs) == 1
+
+
+def test_derived_add_dependency_later():
+    dep = Signal()
+    runs = []
+    derived = Derived(lambda: runs.append(1))
+    dep.emit()
+    assert runs == []
+    derived.add_dependency(dep)
+    dep.emit()
+    assert len(runs) == 1
+
+
+# ---------------------------------------------------------------------------
+# Versioning
+# ---------------------------------------------------------------------------
+
+from dioptas.model.state import SCHEMA_VERSION
+
+
+def test_load_params_skips_newer_schema_version(tmp_path):
+    """A params group written by a future encoding is skipped so callers
+    fall back to the legacy attributes."""
+    filename = os.path.join(tmp_path, "future.h5")
+    with h5py.File(filename, "w") as f:
+        save_params(f, ConfigurationParams())
+        f["params"].attrs["schema_version"] = SCHEMA_VERSION + 1
+
+    with h5py.File(filename, "r") as f:
+        assert load_params(f, ConfigurationParams) is None
+
+
+def test_load_params_accepts_current_and_missing_schema_version(tmp_path):
+    filename = os.path.join(tmp_path, "current.h5")
+    with h5py.File(filename, "w") as f:
+        save_params(f, ConfigurationParams())
+        assert int(f["params"].attrs["schema_version"]) == SCHEMA_VERSION
+
+    with h5py.File(filename, "r") as f:
+        assert load_params(f, ConfigurationParams) is not None

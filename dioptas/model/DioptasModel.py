@@ -13,6 +13,7 @@ from xypattern import Pattern
 
 from .util import Signal
 from .util import jcpds
+from .state import Derived, PROJECT_FORMAT_VERSION
 from .Configuration import Configuration
 from . import (
     ImgModel,
@@ -80,6 +81,15 @@ class DioptasModel:
         self.clicked_tth_changed.connect(self.update_clicked_tth)
         self.clicked_azi_changed.connect(self.update_clicked_azi)
 
+        # Combined cake across all configurations: recomputed when any
+        # configuration's cake changes, gated by combine_cakes. Registered
+        # before connect_models so the recompute runs before the cake_changed
+        # forwarding to the GUI.
+        self._combined_cake: Derived = Derived(
+            self.calculate_combined_cake, active=False
+        )
+        self._combined_cake.add_dependency(self.configurations[0].cake_changed)
+
         self.connect_models()
 
     def add_configuration(self) -> None:
@@ -110,6 +120,7 @@ class DioptasModel:
         self.configurations[-1].calibration_model.parameters_changed.connect(
             self.invalidate_multi_geometry
         )
+        self._combined_cake.add_dependency(self.configurations[-1].cake_changed)
 
         self.select_configuration(len(self.configurations) - 1)
         self.invalidate_multi_geometry()
@@ -143,7 +154,11 @@ class DioptasModel:
         logger.info("Saving project to %s", filename)
         f = h5py.File(filename, "w")
 
+        # __version__ records which Dioptas wrote the file (informational);
+        # format_version is the layout version the loader branches on — see
+        # dioptas/model/state/hdf5.py for the versioning policy
         f.attrs["__version__"] = __version__
+        f.attrs["format_version"] = PROJECT_FORMAT_VERSION
 
         # save configuration
         configurations_group = f.create_group("configurations")
@@ -204,6 +219,18 @@ class DioptasModel:
 
         f = h5py.File(filename, "r")
 
+        # missing format_version = legacy layout (version 0); newer files
+        # load best-effort thanks to the tolerant params layer
+        format_version = int(f.attrs.get("format_version", 0))
+        if format_version > PROJECT_FORMAT_VERSION:
+            logger.warning(
+                "Project file %s has format_version %d, newer than supported %d "
+                "— loading best-effort, some settings may be missed",
+                filename,
+                format_version,
+                PROJECT_FORMAT_VERSION,
+            )
+
         # delete old configurations
         for config in self.configurations:
             del config.img_model
@@ -224,6 +251,7 @@ class DioptasModel:
             configuration.calibration_model.parameters_changed.connect(
                 self.invalidate_multi_geometry
             )
+            self._combined_cake.add_dependency(configuration.cake_changed)
             self.configurations.append(configuration)
         self.configuration_ind = f.get("configurations").attrs["selected_configuration"]
 
@@ -299,14 +327,13 @@ class DioptasModel:
             self.configuration_ind = ind
             self.connect_models()
             self.configuration_selected.emit(ind)
-            self.current_configuration.auto_integrate_pattern = False
-            if self.combine_cakes:
-                self.current_configuration.auto_integrate_cake = False
-            self.img_changed.emit()
-            self.mask_changed.emit()
-            self.current_configuration.auto_integrate_pattern = True
-            if self.combine_cakes:
-                self.current_configuration.auto_integrate_cake = True
+            # suppress integrations indirectly triggered by GUI handlers of
+            # the re-emitted signals — nothing changed, we only re-render
+            with self.current_configuration.pattern_integration.hold(
+                flush=False
+            ), self.current_configuration.cake_integration.hold(flush=False):
+                self.img_changed.emit()
+                self.mask_changed.emit()
             self.pattern_changed.emit()
             self.cake_changed.emit()
 
@@ -434,13 +461,9 @@ class DioptasModel:
     @combine_cakes.setter
     def combine_cakes(self, new_val: bool) -> None:
         self._combine_cakes = new_val
+        self._combined_cake.active = new_val
         if new_val:
-            for configuration in self.configurations:
-                configuration.cake_changed.connect(self.calculate_combined_cake)
-            self.calculate_combined_cake()
-        else:
-            for configuration in self.configurations:
-                configuration.cake_changed.disconnect(self.calculate_combined_cake)
+            self._combined_cake.recompute()
         self.cake_changed.emit()
 
     def _get_multi_geometry(self, unit: str = "2th_deg") -> MultiGeometry:
@@ -588,6 +611,7 @@ class DioptasModel:
         self.configurations[0].calibration_model.parameters_changed.connect(
             self.invalidate_multi_geometry
         )
+        self._combined_cake.add_dependency(self.configurations[0].cake_changed)
         self.configuration_ind = 0
         self.overlay_model.reset()
         self.phase_model.reset()
@@ -611,32 +635,15 @@ class DioptasModel:
             del configuration.mask_model
         del self.configurations
 
-    def _setup_multiple_file_loading(self) -> None:
-        """Performs tasks before multiple configurations load the next image.
-
-        This is in particular to prevent multiple integrations, if only one is needed.
-        """
-        if self.combine_cakes:
-            for configuration in self.configurations:
-                configuration.cake_changed.disconnect(self.calculate_combined_cake)
-
-    def _teardown_multiple_file_loading(self) -> None:
-        """Performs everything after all configurations have loaded a new image."""
-        if self.combine_cakes:
-            for configuration in self.configurations:
-                configuration.cake_changed.connect(self.calculate_combined_cake)
-            self.calculate_combined_cake()
-
     def next_image(self, pos: int | None = None) -> None:
         """Loads the next image for each configuration if it exists.
 
         The pos parameter is the position of the number in terms of numbers present
         in the filename string (not string position).
         """
-        self._setup_multiple_file_loading()
-        for configuration in self.configurations:
-            configuration.img_model.load_next_file(pos=pos)
-        self._teardown_multiple_file_loading()
+        with self._combined_cake.hold():
+            for configuration in self.configurations:
+                configuration.img_model.load_next_file(pos=pos)
 
     def previous_image(self, pos: int | None = None) -> None:
         """Loads the previous image for each configuration if it exists.
@@ -644,10 +651,9 @@ class DioptasModel:
         The pos parameter is the position of the number in terms of numbers present
         in the filename string (not string position).
         """
-        self._setup_multiple_file_loading()
-        for configuration in self.configurations:
-            configuration.img_model.load_previous_file(pos=pos)
-        self._teardown_multiple_file_loading()
+        with self._combined_cake.hold():
+            for configuration in self.configurations:
+                configuration.img_model.load_previous_file(pos=pos)
 
     def next_folder(self, mec_mode: bool = False) -> None:
         """Loads an image in the next folder with the same filename.
@@ -656,10 +662,9 @@ class DioptasModel:
         If mec_mode is True, accounts for the MEC beamline at LCLS-SLAC where filenames
         also include the run number.
         """
-        self._setup_multiple_file_loading()
-        for configuration in self.configurations:
-            configuration.img_model.load_next_folder(mec_mode=mec_mode)
-        self._teardown_multiple_file_loading()
+        with self._combined_cake.hold():
+            for configuration in self.configurations:
+                configuration.img_model.load_next_folder(mec_mode=mec_mode)
 
     def previous_folder(self, mec_mode: bool = False) -> None:
         """Loads an image in the previous folder with the same filename.
@@ -668,10 +673,9 @@ class DioptasModel:
         If mec_mode is True, accounts for the MEC beamline at LCLS-SLAC where filenames
         also include the run number.
         """
-        self._setup_multiple_file_loading()
-        for configuration in self.configurations:
-            configuration.img_model.load_previous_folder(mec_mode=mec_mode)
-        self._teardown_multiple_file_loading()
+        with self._combined_cake.hold():
+            for configuration in self.configurations:
+                configuration.img_model.load_previous_folder(mec_mode=mec_mode)
 
     def blockSignals(self, block: bool = True) -> None:
         for member in vars(self):

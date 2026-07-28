@@ -4,6 +4,8 @@
 
 - the model Signal class is now backed by psygnal, gaining batched/paused emission while keeping the existing API
 - introduced an evented parameter dataclass layer (`dioptas.model.state`): Configuration settings now live in a `ConfigurationParams` object that is saved generically into project files; the 1D azimuth range and trim-trailing-zeros settings are now persisted (they were previously lost on save)
+- pattern/cake integration and the combined cake are now derived computations (`Derived`) with a single suppression primitive (`hold()`); this replaces the auto_integrate connect/disconnect cycling, the temporary flag-toggling dances in model and controllers, and the multiple-file-loading signal rewiring
+- project files now carry an explicit `format_version` root attribute; the versioning policy for .dio files (application version vs. layout version vs. params encoding version) is documented in `dioptas/model/state/hdf5.py`, and files written by newer Dioptas versions load best-effort instead of failing
 
 ## Bugfixes
 

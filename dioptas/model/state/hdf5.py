@@ -12,24 +12,61 @@ A params object is stored as one JSON document inside a named subgroup:
 
 JSON keeps the encoding independent of h5py attribute-type quirks (None,
 heterogeneous lists, nested dicts) and makes the whole object diffable in
-any HDF5 viewer. Loading is tolerant in both directions: unknown keys are
-ignored (file newer than code), missing keys keep their dataclass defaults
-(file older than code).
+any HDF5 viewer.
+
+Versioning policy for .dio project files
+----------------------------------------
+
+Three version markers exist, each with a distinct job:
+
+- ``/@__version__`` (root attribute, string): the Dioptas application
+  version that wrote the file. Informational only — never used to branch
+  loading logic.
+- ``/@format_version`` (root attribute, int, :data:`PROJECT_FORMAT_VERSION`):
+  the overall .dio layout version. Files written before its introduction
+  have no such attribute and are treated as the legacy layout (version 0,
+  field-by-field attributes only). Increment when groups/datasets move or
+  change meaning; add a migration branch in the loader keyed on it.
+- ``params/@schema_version`` (per params group, int,
+  :data:`SCHEMA_VERSION`): the encoding of the params document itself.
+  Adding/removing dataclass fields does NOT bump this — that is handled by
+  tolerant loading (unknown keys are ignored: file newer than code; missing
+  keys keep their dataclass defaults: file older than code). Increment only
+  when the encoding mechanics change (e.g. the JSON layout), with a
+  migration keyed on the stored value.
+
+A params group with a ``schema_version`` newer than this code can decode is
+skipped (:func:`load_params` returns None) so the loader falls back to the
+legacy attributes, which writers keep emitting alongside the params group.
 """
 
 from __future__ import annotations
 
 import dataclasses
 import json
+import logging
 import typing
 from typing import Any, TypeVar
 
 import h5py
 import numpy as np
 
-__all__ = ["save_params", "load_params", "params_to_dict", "params_from_dict"]
+__all__ = [
+    "save_params",
+    "load_params",
+    "params_to_dict",
+    "params_from_dict",
+    "SCHEMA_VERSION",
+    "PROJECT_FORMAT_VERSION",
+]
 
+logger = logging.getLogger(__name__)
+
+#: version of the params-group JSON encoding (see module docstring)
 SCHEMA_VERSION = 1
+
+#: version of the overall .dio project file layout (see module docstring)
+PROJECT_FORMAT_VERSION = 1
 
 T = TypeVar("T")
 
@@ -87,9 +124,22 @@ def load_params(parent: h5py.Group, cls: type[T], name: str = "params") -> T | N
     """Loads a params dataclass from parent[name].
 
     Returns None if the group does not exist (e.g. project files written
-    before the params layer was introduced).
+    before the params layer was introduced) or if its schema_version is
+    newer than this code can decode — callers fall back to the legacy
+    field-by-field attributes in both cases.
     """
     if name not in parent:
         return None
-    data = json.loads(parent[name].attrs["data"])
+    group = parent[name]
+    version = int(group.attrs.get("schema_version", 1))
+    if version > SCHEMA_VERSION:
+        logger.warning(
+            "params group '%s' has schema_version %d, newer than supported %d "
+            "— falling back to legacy attributes",
+            name,
+            version,
+            SCHEMA_VERSION,
+        )
+        return None
+    data = json.loads(group.attrs["data"])
     return params_from_dict(cls, data)

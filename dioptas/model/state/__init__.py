@@ -9,7 +9,15 @@ instead of being serialized field-by-field in hand-written HDF5 code.
 """
 
 from .params import ConfigurationParams, default_working_directories
-from .hdf5 import save_params, load_params, params_to_dict, params_from_dict
+from .hdf5 import (
+    save_params,
+    load_params,
+    params_to_dict,
+    params_from_dict,
+    SCHEMA_VERSION,
+    PROJECT_FORMAT_VERSION,
+)
+from .derived import Derived
 
 __all__ = [
     "ConfigurationParams",
@@ -18,4 +26,7 @@ __all__ = [
     "load_params",
     "params_to_dict",
     "params_from_dict",
+    "SCHEMA_VERSION",
+    "PROJECT_FORMAT_VERSION",
+    "Derived",
 ]

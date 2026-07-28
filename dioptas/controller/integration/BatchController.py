@@ -1252,15 +1252,14 @@ class BatchController:
         :param y: Number of raw image in the batch
         """
         y = int(y)
-        self.model.current_configuration.auto_integrate_pattern = False
-        self.model.batch_model.load_image(
-            y, self.widget.batch_widget.mode_widget.view_f_btn.isChecked()
-        )
-        f_name, pos = self.model.batch_model.get_image_info(
-            y, self.widget.batch_widget.mode_widget.view_f_btn.isChecked()
-        )
+        with self.model.current_configuration.pattern_integration.hold(flush=False):
+            self.model.batch_model.load_image(
+                y, self.widget.batch_widget.mode_widget.view_f_btn.isChecked()
+            )
+            f_name, pos = self.model.batch_model.get_image_info(
+                y, self.widget.batch_widget.mode_widget.view_f_btn.isChecked()
+            )
         self.widget.batch_widget.setWindowTitle(f"Batch widget. {f_name} - {pos}")
-        self.model.current_configuration.auto_integrate_pattern = True
         self.widget.batch_widget.position_widget.mouse_pos_widget.clicked_pos_widget.x_pos_lbl.setText(
             f"Img: {y:.0f}"
         )

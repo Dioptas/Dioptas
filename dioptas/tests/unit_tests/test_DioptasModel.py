@@ -658,3 +658,29 @@ def test_clicked_tth_and_azi_signals(dioptas_model):
 
     dioptas_model.clicked_azi_changed.emit(90.0)
     assert dioptas_model.clicked_azi == 90.0
+
+
+def test_project_file_has_format_version(dioptas_model, tmp_path):
+    import h5py
+
+    from dioptas.model.state import PROJECT_FORMAT_VERSION
+
+    filename = os.path.join(tmp_path, "versioned.dio")
+    dioptas_model.save(filename)
+    with h5py.File(filename, "r") as f:
+        assert int(f.attrs["format_version"]) == PROJECT_FORMAT_VERSION
+
+
+def test_load_project_with_newer_format_version(dioptas_model, tmp_path):
+    """Files from a future Dioptas load best-effort instead of failing."""
+    import h5py
+
+    from dioptas.model.state import PROJECT_FORMAT_VERSION
+
+    filename = os.path.join(tmp_path, "future.dio")
+    dioptas_model.save(filename)
+    with h5py.File(filename, "r+") as f:
+        f.attrs["format_version"] = PROJECT_FORMAT_VERSION + 1
+
+    dioptas_model.load(filename)  # must not raise
+    assert len(dioptas_model.configurations) == 1

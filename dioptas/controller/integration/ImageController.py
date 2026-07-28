@@ -341,22 +341,19 @@ class ImageController:
                                                           len(filenames))
         QtWidgets.QApplication.processEvents()
 
-        self.model.current_configuration.auto_integrate_pattern = False
+        with self.model.current_configuration.pattern_integration.hold(flush=False):
+            for ind, filename in enumerate(filenames):
+                base_filename = os.path.basename(filename)
 
-        for ind, filename in enumerate(filenames):
-            base_filename = os.path.basename(filename)
+                progress_dialog.setValue(ind)
+                progress_dialog.setLabelText("Saving: " + base_filename)
 
-            progress_dialog.setValue(ind)
-            progress_dialog.setLabelText("Saving: " + base_filename)
+                self.model.img_model.load(str(filename))
+                self.save_img(os.path.join(working_directory, 'batch_' + base_filename))
 
-            self.model.img_model.load(str(filename))
-            self.save_img(os.path.join(working_directory, 'batch_' + base_filename))
-
-            QtWidgets.QApplication.processEvents()
-            if progress_dialog.wasCanceled():
-                break
-
-        self.model.current_configuration.auto_integrate_pattern = True
+                QtWidgets.QApplication.processEvents()
+                if progress_dialog.wasCanceled():
+                    break
 
         progress_dialog.close()
         self._tear_down_batch_processing()

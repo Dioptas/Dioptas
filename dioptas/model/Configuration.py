@@ -13,7 +13,7 @@ from xypattern import Pattern
 from xypattern.auto_background import SmoothBrucknerBackground
 
 from .util import Signal
-from .state import ConfigurationParams, save_params, load_params
+from .state import ConfigurationParams, save_params, load_params, Derived
 from .util.ImgCorrection import (
     CbnCorrection,
     ObliqueAngleDetectorAbsorptionCorrection,
@@ -80,11 +80,26 @@ class Configuration:
         self.cake_changed: Signal = Signal()
         self._connect_signals()
 
+        # Derived computations: re-run integration when the image changes.
+        # `active` mirrors the auto_integrate_* params (the user-facing
+        # modes); temporary suppression during bulk operations uses hold().
+        # Created after _connect_signals so integration runs after the mask
+        # dimension/plugin handlers on img_changed.
+        self.pattern_integration: Derived = Derived(
+            self.integrate_image_1d,
+            dependencies=[self.img_model.img_changed],
+            active=self.params.auto_integrate_pattern,
+        )
+        self.cake_integration: Derived = Derived(
+            self.integrate_image_2d,
+            dependencies=[self.img_model.img_changed],
+            active=self.params.auto_integrate_cake,
+        )
+
     def _connect_signals(self) -> None:
         """Connects the img_changed signal to responding functions."""
         self.img_model.img_changed.connect(self.update_mask_dimension)
         self.img_model.img_changed.connect(self._update_plugin_masks)
-        self.img_model.img_changed.connect(self.integrate_image_1d)
         self.mask_plugin_manager.mask_changed.connect(
             self.mask_model.mask_changed.emit
         )
@@ -378,9 +393,8 @@ class Configuration:
     @integration_rad_points.setter
     def integration_rad_points(self, new_value: int | None) -> None:
         self.params.integration_rad_points = new_value
-        self.integrate_image_1d()
-        if self.auto_integrate_cake:
-            self.integrate_image_2d()
+        self.pattern_integration.recompute()
+        self.cake_integration.invalidate()
 
     @property
     def cake_azimuth_points(self) -> int:
@@ -389,8 +403,7 @@ class Configuration:
     @cake_azimuth_points.setter
     def cake_azimuth_points(self, new_value: int) -> None:
         self.params.cake_azimuth_points = new_value
-        if self.auto_integrate_cake:
-            self.integrate_image_2d()
+        self.cake_integration.invalidate()
 
     @property
     def cake_azimuth_range(self) -> list[float] | None:
@@ -399,8 +412,7 @@ class Configuration:
     @cake_azimuth_range.setter
     def cake_azimuth_range(self, new_value: list[float] | None) -> None:
         self.params.cake_azimuth_range = new_value
-        if self.auto_integrate_cake:
-            self.integrate_image_2d()
+        self.cake_integration.invalidate()
 
     @property
     def oned_azimuth_range(self) -> list[float] | None:
@@ -409,8 +421,7 @@ class Configuration:
     @oned_azimuth_range.setter
     def oned_azimuth_range(self, new_value: list[float] | None) -> None:
         self.params.oned_azimuth_range = new_value
-        if self.auto_integrate_pattern:
-            self.integrate_image_1d()
+        self.pattern_integration.invalidate()
 
     @property
     def integration_unit(self) -> str:
@@ -434,7 +445,7 @@ class Configuration:
                     x, self.calibration_model.wavelength, old_unit, new_unit
                 )
             )
-            self.integrate_image_1d()
+            self.pattern_integration.recompute()
 
     @property
     def correct_solid_angle(self) -> bool:
@@ -443,10 +454,8 @@ class Configuration:
     @correct_solid_angle.setter
     def correct_solid_angle(self, new_val: bool) -> None:
         self.calibration_model.correct_solid_angle = new_val
-        if self.auto_integrate_pattern:
-            self.integrate_image_1d()
-        if self.auto_integrate_cake:
-            self.integrate_image_2d()
+        self.pattern_integration.invalidate()
+        self.cake_integration.invalidate()
 
     @property
     def is_calibrated(self) -> bool:
@@ -458,14 +467,8 @@ class Configuration:
 
     @auto_integrate_cake.setter
     def auto_integrate_cake(self, new_value: bool) -> None:
-        if self.params.auto_integrate_cake == new_value:
-            return
-
         self.params.auto_integrate_cake = new_value
-        if new_value:
-            self.img_model.img_changed.connect(self.integrate_image_2d)
-        else:
-            self.img_model.img_changed.disconnect(self.integrate_image_2d)
+        self.cake_integration.active = new_value
 
     @property
     def auto_integrate_pattern(self) -> bool:
@@ -473,14 +476,8 @@ class Configuration:
 
     @auto_integrate_pattern.setter
     def auto_integrate_pattern(self, new_value: bool) -> None:
-        if self.params.auto_integrate_pattern == new_value:
-            return
-
         self.params.auto_integrate_pattern = new_value
-        if new_value:
-            self.img_model.img_changed.connect(self.integrate_image_1d)
-        else:
-            self.img_model.img_changed.disconnect(self.integrate_image_1d)
+        self.pattern_integration.active = new_value
 
     @property
     def cake_img(self) -> np.ndarray:
@@ -493,7 +490,7 @@ class Configuration:
     @roi.setter
     def roi(self, new_val: tuple[int, ...] | None) -> None:
         self.mask_model.roi = new_val
-        self.integrate_image_1d()
+        self.pattern_integration.recompute()
 
     def copy(self) -> Configuration:
         """Creates a copy of the current configuration."""
@@ -767,12 +764,18 @@ class Configuration:
 
     def load_from_hdf5(self, hdf5_group: h5py.Group) -> None:
         """Loads a configuration from the specified hdf5_group."""
+        # suppress integrations triggered by the many setter calls during
+        # loading — the load path integrates explicitly once at the end
+        with self.pattern_integration.hold(flush=False), self.cake_integration.hold(
+            flush=False
+        ):
+            self._load_from_hdf5(hdf5_group)
 
+    def _load_from_hdf5(self, hdf5_group: h5py.Group) -> None:
         f = hdf5_group
 
-        # disable all automatic functions
-        self.auto_integrate_pattern = False
-        self.auto_integrate_cake = False
+        # do not auto-save patterns for integrations during loading; the
+        # saved value is restored further down
         self.auto_save_integrated_pattern = False
 
         # get working directories
