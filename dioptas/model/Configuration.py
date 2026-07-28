@@ -725,6 +725,7 @@ class Configuration:
             background_pattern_group.attrs["has_background_pattern"] = False
 
         pattern_group = f.create_group("pattern")
+        save_params(pattern_group, self.pattern_model.params)
         try:
             pattern_x = self.pattern_model.pattern._original_x
             pattern_y = self.pattern_model.pattern._original_y

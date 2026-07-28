@@ -11,6 +11,7 @@ instead of being serialized field-by-field in hand-written HDF5 code.
 from .params import (
     ConfigurationParams,
     ImgParams,
+    PatternParams,
     ViewParams,
     default_working_directories,
 )
@@ -27,6 +28,7 @@ from .derived import Derived
 __all__ = [
     "ConfigurationParams",
     "ImgParams",
+    "PatternParams",
     "ViewParams",
     "default_working_directories",
     "save_params",

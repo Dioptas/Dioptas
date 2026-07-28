@@ -276,3 +276,21 @@ def test_img_params_defaults_and_events():
     params.events.factor.connect(lambda new, old: got.append((new, old)))
     params.factor = 2.0
     assert got == [(2.0, 1.0)]
+
+
+# ---------------------------------------------------------------------------
+# PatternParams
+# ---------------------------------------------------------------------------
+
+from dioptas.model.state import PatternParams
+
+
+def test_pattern_params_defaults_and_events():
+    params = PatternParams()
+    assert params.unit == ""
+    assert params.file_iteration_mode == "number"
+
+    got = []
+    params.events.unit.connect(lambda new, old: got.append((new, old)))
+    params.unit = "q_A^-1"
+    assert got == [("q_A^-1", "")]
