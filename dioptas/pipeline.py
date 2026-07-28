@@ -469,7 +469,9 @@ class Pipeline:
 
     @integration_unit.setter
     def integration_unit(self, unit: str) -> None:
-        self._configuration._integration_unit = unit
+        # write to params directly: skips the Configuration property's
+        # axis-transformation/re-integration side effects
+        self._configuration.params.integration_unit = unit
 
     @property
     def integration_num_points(self):
@@ -478,7 +480,7 @@ class Pipeline:
 
     @integration_num_points.setter
     def integration_num_points(self, n) -> None:
-        self._configuration._integration_rad_points = n
+        self._configuration.params.integration_rad_points = n
 
     @property
     def azimuth_range(self):
@@ -487,7 +489,7 @@ class Pipeline:
 
     @azimuth_range.setter
     def azimuth_range(self, range) -> None:
-        self._configuration._oned_azimuth_range = range
+        self._configuration.params.oned_azimuth_range = range
 
     @property
     def correct_solid_angle(self) -> bool:

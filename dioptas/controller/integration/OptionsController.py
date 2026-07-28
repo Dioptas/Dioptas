@@ -5,12 +5,13 @@
 from ...widgets.integration import IntegrationWidget
 from ...model.DioptasModel import DioptasModel
 
+from ..binding import Binder
+
 
 class OptionsController:
     """
-    IntegrationPatternController handles all the interaction from the IntegrationView with the pattern data.
-    It manages the auto integration of image files to  in addition to pattern browsing and changing of units
-    (2 Theta, Q, A)
+    Handles the integration options tab: radial bin count display, azimuth
+    ranges for 1D/2D integration, solid angle correction and dioptrin usage.
     """
 
     def __init__(self, widget, dioptas_model):
@@ -28,7 +29,10 @@ class OptionsController:
         self.model = dioptas_model
 
         self._setup_dioptrin_checkbox()
+        self.binder = Binder(field_events=self.model.configuration_params_changed)
+        self.create_bindings()
         self.connect_signals()
+        self.binder.refresh()
 
     def _setup_dioptrin_checkbox(self):
         import dioptas
@@ -37,20 +41,59 @@ class OptionsController:
         if not self._dioptrin_available:
             self.options_widget.use_dioptrin_cb.setVisible(False)
 
+    def create_bindings(self):
+        configuration = lambda: self.model.current_configuration
+
+        self.binder.bind_checkbox(
+            self.options_widget.correct_solid_angle_cb,
+            configuration,
+            "correct_solid_angle",
+        )
+        self.binder.bind_spinbox(
+            self.options_widget.cake_azimuth_points_sb,
+            configuration,
+            "cake_azimuth_points",
+        )
+        self.binder.bind_optional_range(
+            self.options_widget.oned_azimuth_min_txt,
+            self.options_widget.oned_azimuth_max_txt,
+            self.options_widget.oned_full_toggle_btn,
+            configuration,
+            "oned_azimuth_range",
+        )
+        self.binder.bind_optional_range(
+            self.options_widget.cake_azimuth_min_txt,
+            self.options_widget.cake_azimuth_max_txt,
+            self.options_widget.cake_full_toggle_btn,
+            configuration,
+            "cake_azimuth_range",
+            on_full_changed=self._cake_full_range_changed,
+        )
+        # display-only values
+        self.binder.add_render(
+            lambda: self.options_widget.bin_count_txt.setText(
+                "{:1.0f}".format(self.model.calibration_model.num_points)
+            ),
+            self.options_widget.bin_count_txt,
+        )
+        self.binder.add_render(
+            lambda: self.options_widget.use_dioptrin_cb.setChecked(
+                self.model.calibration_model.use_dioptrin
+            ),
+            self.options_widget.use_dioptrin_cb,
+        )
+
     def connect_signals(self):
-        self.options_widget.correct_solid_angle_cb.stateChanged.connect(self.correct_solid_angle_cb_clicked)
-        self.model.configuration_selected.connect(self.update_gui)
-        self.model.pattern_changed.connect(self.update_gui)
+        self.binder.connect_refresh(self.model.configuration_selected)
+        self.binder.connect_refresh(self.model.pattern_changed)
         self.options_widget.use_dioptrin_cb.toggled.connect(self._use_dioptrin_toggled)
 
-        self.options_widget.cake_azimuth_points_sb.valueChanged.connect(self.cake_azimuth_points_changed)
-        self.options_widget.cake_azimuth_min_txt.editingFinished.connect(self.cake_azimuth_range_changed)
-        self.options_widget.cake_azimuth_max_txt.editingFinished.connect(self.cake_azimuth_range_changed)
-
-        self.options_widget.oned_full_toggle_btn.toggled.connect(self.oned_full_toggled_btn_changed)
-        self.options_widget.cake_full_toggle_btn.toggled.connect(self.cake_full_toggled_btn_changed)
-        self.options_widget.oned_azimuth_min_txt.editingFinished.connect(self.oned_azimuth_range_changed)
-        self.options_widget.oned_azimuth_max_txt.editingFinished.connect(self.oned_azimuth_range_changed)
+    def _cake_full_range_changed(self, is_full):
+        """The cake azimuth shift slider only makes sense for the full range."""
+        slider = self.integration_widget.cake_shift_azimuth_sl
+        slider.setDisabled(not is_full)
+        if not is_full:
+            slider.setValue(0)
 
     def _use_dioptrin_toggled(self, checked):
         self.model.calibration_model.use_dioptrin = checked
@@ -58,89 +101,5 @@ class OptionsController:
             self.model.calibration_model._create_dioptrin_integrator()
         if self.model.calibration_model.is_calibrated:
             self.model.current_configuration.integrate_image_1d()
-            if self.model.current_configuration._auto_integrate_cake:
+            if self.model.current_configuration.auto_integrate_cake:
                 self.model.current_configuration.integrate_image_2d()
-
-    def correct_solid_angle_cb_clicked(self):
-        self.model.current_configuration.correct_solid_angle = self.options_widget.correct_solid_angle_cb.isChecked()
-
-    def update_gui(self):
-        self.options_widget.blockSignals(True)
-
-        self.options_widget.correct_solid_angle_cb.blockSignals(True)
-        self.options_widget.correct_solid_angle_cb.setChecked(int(self.model.current_configuration.correct_solid_angle))
-        self.options_widget.correct_solid_angle_cb.blockSignals(False)
-
-        self.options_widget.use_dioptrin_cb.blockSignals(True)
-        self.options_widget.use_dioptrin_cb.setChecked(self.model.calibration_model.use_dioptrin)
-        self.options_widget.use_dioptrin_cb.blockSignals(False)
-
-        self.options_widget.bin_count_txt.blockSignals(True)
-        self.options_widget.bin_count_txt.setText("{:1.0f}".format(self.model.calibration_model.num_points))
-        self.options_widget.bin_count_txt.blockSignals(False)
-
-        self.options_widget.cake_azimuth_points_sb.blockSignals(True)
-        self.options_widget.cake_azimuth_points_sb.setValue(self.model.current_configuration.cake_azimuth_points)
-        self.options_widget.cake_azimuth_points_sb.blockSignals(False)
-
-        if self.model.current_configuration.cake_azimuth_range is None:
-            self.enable_full_cake_range()
-        else:
-            self.options_widget.cake_azimuth_min_txt.setText(
-                '{}'.format(self.model.current_configuration.cake_azimuth_range[0]))
-            self.options_widget.cake_azimuth_max_txt.setText(
-                '{}'.format(self.model.current_configuration.cake_azimuth_range[1]))
-            self.options_widget.blockSignals(False)
-            self.disable_full_cake_range()
-        self.options_widget.blockSignals(False)
-
-    def cake_azimuth_range_changed(self):
-        range_min = float(self.options_widget.cake_azimuth_min_txt.text())
-        range_max = float(self.options_widget.cake_azimuth_max_txt.text())
-        self.model.current_configuration.cake_azimuth_range = (range_min, range_max)
-
-    def cake_azimuth_points_changed(self):
-        self.model.current_configuration.cake_azimuth_points = int(
-            self.options_widget.cake_azimuth_points_sb.value())
-
-    def cake_full_toggled_btn_changed(self):
-        if self.options_widget.cake_full_toggle_btn.isChecked():
-            self.enable_full_cake_range()
-            self.model.current_configuration.cake_azimuth_range = None
-
-        elif not self.options_widget.cake_full_toggle_btn.isChecked():
-            self.disable_full_cake_range()
-            self.cake_azimuth_range_changed()
-
-    def enable_full_cake_range(self):
-        self.options_widget.cake_azimuth_min_txt.setDisabled(True)
-        self.options_widget.cake_azimuth_max_txt.setDisabled(True)
-        self.integration_widget.cake_shift_azimuth_sl.setDisabled(False)
-
-    def disable_full_cake_range(self):
-        self.options_widget.cake_azimuth_min_txt.setDisabled(False)
-        self.options_widget.cake_azimuth_max_txt.setDisabled(False)
-        self.integration_widget.cake_shift_azimuth_sl.setDisabled(True)
-        self.integration_widget.cake_shift_azimuth_sl.setValue(0)
-
-    def oned_azimuth_range_changed(self):
-        range_min = float(self.options_widget.oned_azimuth_min_txt.text())
-        range_max = float(self.options_widget.oned_azimuth_max_txt.text())
-        self.model.current_configuration.oned_azimuth_range = (range_min, range_max)
-
-    def oned_full_toggled_btn_changed(self):
-        if self.options_widget.oned_full_toggle_btn.isChecked():
-            self.enable_full_oned_range()
-            self.model.current_configuration.oned_azimuth_range = None
-
-        elif not self.options_widget.oned_full_toggle_btn.isChecked():
-            self.disable_full_oned_range()
-            self.oned_azimuth_range_changed()
-
-    def enable_full_oned_range(self):
-        self.options_widget.oned_azimuth_min_txt.setDisabled(True)
-        self.options_widget.oned_azimuth_max_txt.setDisabled(True)
-
-    def disable_full_oned_range(self):
-        self.options_widget.oned_azimuth_min_txt.setDisabled(False)
-        self.options_widget.oned_azimuth_max_txt.setDisabled(False)

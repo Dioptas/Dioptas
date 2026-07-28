@@ -115,7 +115,7 @@ class ImageController:
         """
         Plots the mask data.
         """
-        if self.model.use_mask and self.widget.img_mode == 'Image':
+        if self.model.use_mask and self.model.view.img_mode == 'Image':
             self.widget.img_widget.activate_mask()
             self.widget.img_widget.plot_mask(self.model.mask_model.get_display_mask())
         else:
@@ -185,6 +185,7 @@ class ImageController:
         self.widget.img_dock_btn.clicked.connect(self.img_dock_btn_clicked)
         self.widget.img_autoscale_btn.clicked.connect(self.img_autoscale_btn_clicked)
         self.widget.img_mode_btn.clicked.connect(self.change_view_mode)
+        self.model.view.events.img_mode.connect(self._img_mode_changed)
 
         self.widget.integration_image_widget.show_background_subtracted_img_btn.clicked.connect(
             self.show_background_subtracted_img_btn_clicked)
@@ -198,12 +199,12 @@ class ImageController:
         self.widget.autoprocess_cb.toggled.connect(self.auto_process_cb_click)
 
     def activate(self):
-        if self.widget.img_mode == 'Image':
+        if self.model.view.img_mode == 'Image':
             if not self.model.img_changed.has_listener(self.plot_img):
                 self.model.img_changed.connect(self.plot_img)
             if not self.model.mask_changed.has_listener(self.plot_mask):
                 self.model.mask_changed.connect(self.plot_mask)
-        elif self.widget.img_mode == 'Cake':
+        elif self.model.view.img_mode == 'Cake':
             if not self.model.cake_changed.has_listener(self.plot_cake):
                 self.model.cake_changed.connect(self.plot_cake)
         self.widget.calibration_lbl.setText(
@@ -216,10 +217,10 @@ class ImageController:
         self.plot_mask()
 
     def update_image(self):
-        if self.widget.img_mode == 'Image':
+        if self.model.view.img_mode == 'Image':
             self.plot_mask()
             self.plot_img()
-        elif self.widget.img_mode == 'Cake':
+        elif self.model.view.img_mode == 'Cake':
             self.plot_cake()
 
     def deactivate(self):
@@ -341,22 +342,19 @@ class ImageController:
                                                           len(filenames))
         QtWidgets.QApplication.processEvents()
 
-        self.model.current_configuration.auto_integrate_pattern = False
+        with self.model.current_configuration.pattern_integration.hold(flush=False):
+            for ind, filename in enumerate(filenames):
+                base_filename = os.path.basename(filename)
 
-        for ind, filename in enumerate(filenames):
-            base_filename = os.path.basename(filename)
+                progress_dialog.setValue(ind)
+                progress_dialog.setLabelText("Saving: " + base_filename)
 
-            progress_dialog.setValue(ind)
-            progress_dialog.setLabelText("Saving: " + base_filename)
+                self.model.img_model.load(str(filename))
+                self.save_img(os.path.join(working_directory, 'batch_' + base_filename))
 
-            self.model.img_model.load(str(filename))
-            self.save_img(os.path.join(working_directory, 'batch_' + base_filename))
-
-            QtWidgets.QApplication.processEvents()
-            if progress_dialog.wasCanceled():
-                break
-
-        self.model.current_configuration.auto_integrate_pattern = True
+                QtWidgets.QApplication.processEvents()
+                if progress_dialog.wasCanceled():
+                    break
 
         progress_dialog.close()
         self._tear_down_batch_processing()
@@ -587,9 +585,20 @@ class ImageController:
         self.model.current_configuration.roi = self.widget.img_widget.roi.getRoiLimits()
 
     def change_view_mode(self):
-        if str(self.widget.img_mode_btn.text()) == 'Cake':
+        """Toggles between image and cake view by writing the view state;
+        the display switch happens in reaction to the change event."""
+        if self.model.view.img_mode == 'Image':
+            if self.model.calibration_model.cake_geometry is None:
+                self.widget.show_error_msg("Can not switch to the cake mode without calibration.")
+                return
+            self.model.view.img_mode = 'Cake'
+        else:
+            self.model.view.img_mode = 'Image'
+
+    def _img_mode_changed(self, new_mode, old_mode):
+        if new_mode == 'Cake':
             self.activate_cake_mode()
-        elif str(self.widget.img_mode_btn.text()) == 'Image':
+        else:
             self.activate_image_mode()
 
     def toggle_show_phases(self):
@@ -609,8 +618,13 @@ class ImageController:
         self.plot_cake_integral(None)
 
     def activate_cake_mode(self):
+        """Renders the cake view; runs in reaction to view.img_mode. Safe to
+        call in any prior display state."""
         if self.model.calibration_model.cake_geometry is None:
+            # can only happen when view state was set programmatically
+            # (e.g. project load) without a calibration — fall back
             self.widget.show_error_msg("Can not switch to the cake mode without calibration.")
+            self.model.view.img_mode = 'Image'
             return
 
         if not self.model.current_configuration.auto_integrate_cake:
@@ -622,12 +636,12 @@ class ImageController:
         self._update_cake_mouse_click_pos()
 
         self.widget.img_mode_btn.setText('Image')
-        self.widget.img_mode = str("Cake")
 
         self.model.img_changed.disconnect(self.plot_img)
         self.model.img_changed.disconnect(self.plot_mask)
 
-        self.model.cake_changed.connect(self.plot_cake)
+        if not self.model.cake_changed.has_listener(self.plot_cake):
+            self.model.cake_changed.connect(self.plot_cake)
         self.plot_cake()
 
         self.widget.cake_shift_azimuth_sl.setVisible(True)
@@ -640,6 +654,8 @@ class ImageController:
         self.widget.integration_image_widget.cake_pg_layout.show()
 
     def activate_image_mode(self):
+        """Renders the image view; runs in reaction to view.img_mode. Safe to
+        call in any prior display state."""
         if self.model.current_configuration.auto_integrate_cake:
             self.model.current_configuration.auto_integrate_cake = False
 
@@ -650,9 +666,10 @@ class ImageController:
         self._update_image_mouse_click_pos()
 
         self.widget.img_mode_btn.setText('Cake')
-        self.widget.img_mode = str("Image")
-        self.model.img_changed.connect(self.plot_img)
-        self.model.img_changed.connect(self.plot_mask)
+        if not self.model.img_changed.has_listener(self.plot_img):
+            self.model.img_changed.connect(self.plot_img)
+        if not self.model.img_changed.has_listener(self.plot_mask):
+            self.model.img_changed.connect(self.plot_mask)
         self.model.cake_changed.disconnect(self.plot_cake)
         self.plot_img()
         self.plot_mask()
@@ -669,7 +686,7 @@ class ImageController:
         self.widget.dock_img(self.img_docked)
 
     def show_background_subtracted_img_btn_clicked(self):
-        if self.widget.img_mode_btn.text() == 'Cake':
+        if self.model.view.img_mode == 'Image':
             self.plot_img()
         else:
             self.widget.integration_image_widget.show_background_subtracted_img_btn.setChecked(False)
@@ -768,7 +785,7 @@ class ImageController:
         self.update_cake_x_axis()
 
     def show_img_mouse_position(self, x, y):
-        if self.widget.img_mode == 'Cake':
+        if self.model.view.img_mode == 'Cake':
             img_data = self.widget.cake_widget.img_data
         else:
             img_data = self.widget.img_widget.img_data
@@ -784,7 +801,7 @@ class ImageController:
                 x_temp = x
                 x = np.array([y])
                 y = np.array([x_temp])
-                if self.widget.img_mode == 'Cake':
+                if self.model.view.img_mode == 'Cake':
                     tth = get_partial_value(self.model.cake_tth, y - 0.5)
                     shift_amount = self.widget.cake_shift_azimuth_sl.value()
                     cake_azi = self.model.cake_azi - shift_amount * np.mean(np.diff(self.model.cake_azi))
@@ -817,7 +834,7 @@ class ImageController:
                 self.widget.img_widget_mouse_azi_lbl.setText('X: -')
 
     def img_mouse_click(self, x, y):
-        if self.widget.img_mode == 'Cake':
+        if self.model.view.img_mode == 'Cake':
             img_data = self.widget.cake_widget.img_data
         else:
             img_data = self.widget.img_widget.img_data
@@ -830,7 +847,7 @@ class ImageController:
 
         if self.model.calibration_model.is_calibrated:
             x, y = y, x  # the indices are reversed for the img_array
-            if self.widget.img_mode == 'Cake':  # cake mode
+            if self.model.view.img_mode == 'Cake':  # cake mode
                 # get clicked tth and azimuth
                 cake_shape = self.model.cake_data.shape
                 if x < 0 or y < 0 or x > cake_shape[0] - 1 or y > cake_shape[1] - 1:
@@ -840,7 +857,7 @@ class ImageController:
                 azi = get_partial_value(np.roll(self.model.cake_azi, shift_amount), x - 0.5)
                 self.widget.cake_widget.activate_vertical_line()
 
-            elif self.widget.img_mode == 'Image':  # image mode
+            elif self.model.view.img_mode == 'Image':  # image mode
                 img_shape = self.model.img_data.shape
                 if x < 0 or y < 0 or x > img_shape[0] - 1 or y > img_shape[1] - 1:
                     return
@@ -855,7 +872,7 @@ class ImageController:
             self.clicked_tth = tth  # in degree
             self.clicked_azi = azi  # in degree
 
-            if self.widget.img_mode == 'Cake':
+            if self.model.view.img_mode == 'Cake':
                 self.plot_cake_integral()
 
             self.model.clicked_tth_changed.emit(tth)
@@ -990,14 +1007,14 @@ class ImageController:
 
         if filename != '':
             if filename.endswith('.png'):
-                if self.widget.img_mode == 'Cake':
+                if self.model.view.img_mode == 'Cake':
                     self.widget.cake_widget.deactivate_vertical_line()
                     self.widget.cake_widget.deactivate_mouse_click_item()
                     QtWidgets.QApplication.processEvents()
                     self.widget.cake_widget.save_img(filename)
                     self.widget.cake_widget.activate_vertical_line()
                     self.widget.cake_widget.activate_mouse_click_item()
-                elif self.widget.img_mode == 'Image':
+                elif self.model.view.img_mode == 'Image':
                     self.widget.img_widget.deactivate_circle_scatter()
                     self.widget.img_widget.deactivate_roi()
                     QtWidgets.QApplication.processEvents()
@@ -1007,17 +1024,17 @@ class ImageController:
                         self.widget.img_widget.activate_roi()
 
             elif filename.endswith('.tiff') or filename.endswith('.tif'):
-                if self.widget.img_mode == 'Image':
+                if self.model.view.img_mode == 'Image':
                     im_array = np.int32(self.model.img_data)
-                elif self.widget.img_mode == 'Cake':
+                elif self.model.view.img_mode == 'Cake':
                     im_array = np.int32(self.model.cake_data)
                 im_array = np.flipud(im_array)
                 im = Image.fromarray(im_array)
                 im.save(filename)
             elif filename.endswith('.txt') or filename.endswith('.csv'):
-                if self.widget.img_mode == 'Image':
+                if self.model.view.img_mode == 'Image':
                     return
-                elif self.widget.img_mode == 'Cake':  # saving cake data as a text file for export.
+                elif self.model.view.img_mode == 'Cake':  # saving cake data as a text file for export.
                     with open(filename, 'w') as out_file:  # this is done in an odd and slow way because the headers
                         # should be floats and the data itself int.
                         cake_tth = np.insert(self.model.cake_tth, 0, 0)
@@ -1036,16 +1053,21 @@ class ImageController:
         self.update_mask_mode()
         self.update_roi_in_gui()
 
-        if self.model.current_configuration.auto_integrate_cake and self.widget.img_mode == 'Image':
-            self.activate_cake_mode()
-        elif not self.model.current_configuration.auto_integrate_cake and self.widget.img_mode == 'Cake':
-            self.activate_image_mode()
-        elif self.model.current_configuration.auto_integrate_cake and self.widget.img_mode == 'Cake':
-            self.set_cake_line_position(self.model.clicked_tth)
-            self._update_cake_mouse_click_pos()
-        elif not self.model.current_configuration.auto_integrate_cake and self.widget.img_mode == 'Image':
-            self._update_image_line_pos()
-            self._update_image_mouse_click_pos()
+        # reconcile the global view mode with the (per-configuration)
+        # auto_integrate_cake flag; an actual mode change triggers the
+        # display switch via the view event
+        if self.model.current_configuration.auto_integrate_cake:
+            if self.model.view.img_mode == 'Image':
+                self.model.view.img_mode = 'Cake'
+            else:
+                self.set_cake_line_position(self.model.clicked_tth)
+                self._update_cake_mouse_click_pos()
+        else:
+            if self.model.view.img_mode == 'Cake':
+                self.model.view.img_mode = 'Image'
+            else:
+                self._update_image_line_pos()
+                self._update_image_mouse_click_pos()
 
     def change_view_btn_clicked(self):
         if self.view_mode == 'alternative':

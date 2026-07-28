@@ -14,6 +14,7 @@ from .. import calibrants_path
 from ..widgets.CalibrationWidget import CalibrationWidget
 from ..widgets.UtilityWidgets import open_file_dialog
 from ..model.DioptasModel import DioptasModel
+from .binding import Binder
 from ..model.CalibrationModel import (
     NotEnoughSpacingsInCalibrant,
     get_available_detectors,
@@ -40,6 +41,7 @@ class CalibrationController:
         """
         self.widget = widget
         self.model = dioptas_model
+        self.binder = Binder()
 
         self.widget.set_start_values(self.model.calibration_model.start_values)
         self.create_signals()
@@ -92,13 +94,18 @@ class CalibrationController:
         self.widget.load_spline_btn.clicked.connect(self.load_spline_btn_click)
         self.widget.spline_reset_btn.clicked.connect(self.reset_spline_btn_click)
 
-        self.widget.f2_wavelength_cb.stateChanged.connect(self.wavelength_cb_changed)
-        self.widget.pf_wavelength_cb.stateChanged.connect(self.wavelength_cb_changed)
-        self.widget.sv_wavelength_cb.stateChanged.connect(self.wavelength_cb_changed)
-
-        self.widget.f2_distance_cb.stateChanged.connect(self.distance_cb_changed)
-        self.widget.pf_distance_cb.stateChanged.connect(self.distance_cb_changed)
-        self.widget.sv_distance_cb.stateChanged.connect(self.distance_cb_changed)
+        self.binder.mirror_toggles(
+            self.widget.f2_wavelength_cb,
+            self.widget.pf_wavelength_cb,
+            self.widget.sv_wavelength_cb,
+            on_toggled=self.wavelength_cb_changed,
+        )
+        self.binder.mirror_toggles(
+            self.widget.f2_distance_cb,
+            self.widget.pf_distance_cb,
+            self.widget.sv_distance_cb,
+            on_toggled=self.distance_cb_changed,
+        )
 
         self.widget.use_mask_cb.stateChanged.connect(self.use_mask_cb_changed)
         self.widget.mask_transparent_cb.stateChanged.connect(
@@ -496,36 +503,12 @@ class CalibrationController:
         """
         Sets the fit_wavelength parameter in the calibration data according to the GUI state.
         """
-        self.widget.f2_wavelength_cb.blockSignals(True)
-        self.widget.pf_wavelength_cb.blockSignals(True)
-        self.widget.sv_wavelength_cb.blockSignals(True)
-
-        self.widget.f2_wavelength_cb.setChecked(value)
-        self.widget.pf_wavelength_cb.setChecked(value)
-        self.widget.sv_wavelength_cb.setChecked(value)
-
-        self.widget.f2_wavelength_cb.blockSignals(False)
-        self.widget.pf_wavelength_cb.blockSignals(False)
-        self.widget.sv_wavelength_cb.blockSignals(False)
-
         self.model.calibration_model.fit_wavelength = value
 
     def distance_cb_changed(self, value):
         """
-        Sets the fit_distance parameter int he calibration model according to the GUI state
+        Sets the fit_distance parameter in the calibration model according to the GUI state
         """
-        self.widget.f2_distance_cb.blockSignals(True)
-        self.widget.pf_distance_cb.blockSignals(True)
-        self.widget.sv_distance_cb.blockSignals(True)
-
-        self.widget.f2_distance_cb.setChecked(value)
-        self.widget.pf_distance_cb.setChecked(value)
-        self.widget.sv_distance_cb.setChecked(value)
-
-        self.widget.f2_distance_cb.blockSignals(False)
-        self.widget.pf_distance_cb.blockSignals(False)
-        self.widget.sv_distance_cb.blockSignals(False)
-
         self.model.calibration_model.fit_distance = value
 
     def update_fixed_values(self):

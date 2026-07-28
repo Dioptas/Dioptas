@@ -41,7 +41,7 @@ class SlabCorrectionControllerTest(QtTest):
 
     def _enable_slab_correction(self, formula="CeO2", density=7.22):
         self.correction_widget.slab_formula_txt.setText(formula)
-        self.correction_widget.slab_param_tw.cellWidget(0, 1).setText(str(density))
+        self.correction_widget.slab_param_form.set_value("density", density)
         self.correction_widget.slab_gb.setChecked(True)
         # Trigger the signal manually since setChecked doesn't always emit clicked
         self.correction_controller.slab_groupbox_changed()
@@ -115,7 +115,7 @@ class SlabCorrectionControllerTest(QtTest):
         )
 
         # Change thickness
-        self.correction_widget.slab_param_tw.cellWidget(1, 1).setText("0.5")
+        self.correction_widget.slab_param_form.set_value("thickness", 0.5)
         self.correction_controller.slab_groupbox_changed()
 
         correction_after = (

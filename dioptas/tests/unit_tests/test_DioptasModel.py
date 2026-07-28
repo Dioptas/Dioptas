@@ -301,6 +301,65 @@ def test_save_empty_configuration(dioptas_model, tmp_path):
     dioptas_model.save(os.path.join(tmp_path, "empty.dio"))
 
 
+def test_save_and_load_round_trips_params_only_fields(dioptas_model, tmp_path):
+    """oned_azimuth_range and trim_trailing_zeros are not in the legacy .dio
+    layout — they round-trip via the generic params group."""
+    dioptas_model.current_configuration.params.oned_azimuth_range = [-90.0, 90.0]
+    dioptas_model.current_configuration.params.trim_trailing_zeros = False
+
+    filename = os.path.join(tmp_path, "params.dio")
+    dioptas_model.save(filename)
+    dioptas_model.reset()
+    assert dioptas_model.current_configuration.oned_azimuth_range is None
+    assert dioptas_model.current_configuration.trim_trailing_zeros is True
+
+    dioptas_model.load(filename)
+    assert dioptas_model.current_configuration.oned_azimuth_range == [-90.0, 90.0]
+    assert dioptas_model.current_configuration.trim_trailing_zeros is False
+
+
+def test_load_project_without_params_group(dioptas_model, tmp_path):
+    """Project files written before the params layer must still load."""
+    import h5py
+
+    filename = os.path.join(tmp_path, "legacy.dio")
+    dioptas_model.save(filename)
+    with h5py.File(filename, "r+") as f:
+        for _, configuration_group in f["configurations"].items():
+            del configuration_group["params"]
+
+    dioptas_model.load(filename)
+    assert dioptas_model.current_configuration.oned_azimuth_range is None
+    assert dioptas_model.current_configuration.trim_trailing_zeros is True
+
+
+def test_parameters_changed_invalidates_multi_geometry_after_load(
+    dioptas_model, tmp_path
+):
+    dioptas_model.save(os.path.join(tmp_path, "project.dio"))
+    dioptas_model.load(os.path.join(tmp_path, "project.dio"))
+
+    dioptas_model._multi_geometry = "sentinel"
+    dioptas_model.calibration_model.parameters_changed.emit()
+    assert dioptas_model._multi_geometry is None
+
+    dioptas_model._multi_geometry = "sentinel"
+    dioptas_model.calibration_model.detector_reset.emit()
+    assert dioptas_model._multi_geometry is None
+
+
+def test_parameters_changed_invalidates_multi_geometry_after_reset(dioptas_model):
+    dioptas_model.reset()
+
+    dioptas_model._multi_geometry = "sentinel"
+    dioptas_model.calibration_model.parameters_changed.emit()
+    assert dioptas_model._multi_geometry is None
+
+    dioptas_model._multi_geometry = "sentinel"
+    dioptas_model.calibration_model.detector_reset.emit()
+    assert dioptas_model._multi_geometry is None
+
+
 def test_clear_model(dioptas_model):
     dioptas_model.calibration_model.load(os.path.join(data_path, "CeO2_Pilatus1M.poni"))
     dioptas_model.img_model.load(os.path.join(data_path, "image_001.tif"))
@@ -599,3 +658,88 @@ def test_clicked_tth_and_azi_signals(dioptas_model):
 
     dioptas_model.clicked_azi_changed.emit(90.0)
     assert dioptas_model.clicked_azi == 90.0
+
+
+def test_configuration_params_changed_forwarding(dioptas_model):
+    """Params changes of the current configuration surface as one
+    store-level signal with (field, new, old)."""
+    got = []
+    dioptas_model.configuration_params_changed.connect(
+        lambda field, new, old: got.append((field, new, old))
+    )
+
+    dioptas_model.current_configuration.params.use_mask = True
+    dioptas_model.current_configuration.params.cake_azimuth_points = 720
+    assert got == [("use_mask", True, False), ("cake_azimuth_points", 720, 360)]
+
+
+def test_configuration_params_changed_follows_selected_configuration(dioptas_model):
+    got = []
+    dioptas_model.configuration_params_changed.connect(
+        lambda field, new, old: got.append((field, new))
+    )
+
+    dioptas_model.add_configuration()
+    inactive = dioptas_model.configurations[0]
+    dioptas_model.select_configuration(1)
+    got.clear()
+
+    # changes on a non-selected configuration must not surface
+    inactive.params.use_mask = True
+    assert got == []
+
+    dioptas_model.current_configuration.params.transparent_mask = True
+    assert got == [("transparent_mask", True)]
+
+
+def test_integration_unit_changed_derived_from_forwarding(dioptas_model):
+    got = []
+    dioptas_model.integration_unit_changed.connect(
+        lambda new, old: got.append((new, old))
+    )
+    dioptas_model.current_configuration.params.integration_unit = "q_A^-1"
+    assert got == [("q_A^-1", "2th_deg")]
+
+
+def test_view_state_round_trip(dioptas_model, tmp_path):
+    """The GUI view state is saved in the project file and applied onto the
+    stable ViewParams instance on load (events fire, object identity kept)."""
+    dioptas_model.view.img_mode = "Cake"
+    filename = os.path.join(tmp_path, "view.dio")
+    dioptas_model.save(filename)
+
+    dioptas_model.view.img_mode = "Image"
+    view_instance = dioptas_model.view
+    events = []
+    dioptas_model.view.events.img_mode.connect(lambda new, old: events.append(new))
+
+    dioptas_model.load(filename)
+    assert dioptas_model.view is view_instance
+    assert dioptas_model.view.img_mode == "Cake"
+    assert events == ["Cake"]
+
+
+def test_project_file_has_format_version(dioptas_model, tmp_path):
+    import h5py
+
+    from dioptas.model.state import PROJECT_FORMAT_VERSION
+
+    filename = os.path.join(tmp_path, "versioned.dio")
+    dioptas_model.save(filename)
+    with h5py.File(filename, "r") as f:
+        assert int(f.attrs["format_version"]) == PROJECT_FORMAT_VERSION
+
+
+def test_load_project_with_newer_format_version(dioptas_model, tmp_path):
+    """Files from a future Dioptas load best-effort instead of failing."""
+    import h5py
+
+    from dioptas.model.state import PROJECT_FORMAT_VERSION
+
+    filename = os.path.join(tmp_path, "future.dio")
+    dioptas_model.save(filename)
+    with h5py.File(filename, "r+") as f:
+        f.attrs["format_version"] = PROJECT_FORMAT_VERSION + 1
+
+    dioptas_model.load(filename)  # must not raise
+    assert len(dioptas_model.configurations) == 1

@@ -10,6 +10,7 @@ from ...widgets.UtilityWidgets import open_file_dialog, save_file_dialog
 from ...widgets.integration import IntegrationWidget
 from ...model.DioptasModel import DioptasModel
 from ...model.ImgModel import BackgroundDimensionWrongException
+from ..binding import Binder
 
 
 class BackgroundController:
@@ -28,6 +29,7 @@ class BackgroundController:
             widget.integration_control_widget.background_control_widget
         )
         self.model = dioptas_model
+        self.binder = Binder()
 
         self.model.configuration_selected.connect(self.update_bkg_image_widgets)
         self.model.configuration_selected.connect(self.update_auto_pattern_bkg_widgets)
@@ -59,9 +61,15 @@ class BackgroundController:
         self.model.img_changed.connect(self.update_background_image_filename)
 
     def create_pattern_background_signals(self):
-        self.widget.bkg_pattern_gb.toggled.connect(self.bkg_pattern_gb_toggled_callback)
-        self.widget.qa_bkg_pattern_btn.toggled.connect(
-            self.bkg_pattern_gb_toggled_callback
+        self._set_bkg_pattern_toggles = self.binder.mirror_toggles(
+            self.widget.bkg_pattern_gb,
+            self.widget.qa_bkg_pattern_btn,
+            on_toggled=self.bkg_pattern_gb_toggled_callback,
+        )
+        self._set_inspect_toggles = self.binder.mirror_toggles(
+            self.widget.bkg_pattern_inspect_btn,
+            self.widget.qa_bkg_pattern_inspect_btn,
+            on_toggled=self.bkg_pattern_inspect_btn_toggled_callback,
         )
 
         self.widget.bkg_pattern_iterations_sb.valueChanged.connect(
@@ -80,17 +88,11 @@ class BackgroundController:
             self.bkg_pattern_parameters_changed
         )
 
-        self.widget.bkg_pattern_inspect_btn.toggled.connect(
-            self.bkg_pattern_inspect_btn_toggled_callback
-        )
         self.widget.bkg_pattern_save_btn.clicked.connect(
             self.bkg_pattern_save_btn_callback
         )
         self.widget.bkg_pattern_as_overlay_btn.clicked.connect(
             self.bkg_pattern_as_overlay_btn_callback
-        )
-        self.widget.qa_bkg_pattern_inspect_btn.toggled.connect(
-            self.bkg_pattern_inspect_btn_toggled_callback
         )
 
         self.model.pattern_changed.connect(self.update_bkg_gui_parameters)
@@ -159,12 +161,6 @@ class BackgroundController:
         self.model.img_model.background_offset = self.widget.bkg_image_offset_sb.value()
 
     def bkg_pattern_gb_toggled_callback(self, is_checked):
-        self.widget.bkg_pattern_gb.blockSignals(True)
-        self.widget.qa_bkg_pattern_btn.blockSignals(True)
-        self.widget.bkg_pattern_gb.setChecked(is_checked)
-        self.widget.qa_bkg_pattern_btn.setChecked(is_checked)
-        self.widget.bkg_pattern_gb.blockSignals(False)
-        self.widget.qa_bkg_pattern_btn.blockSignals(False)
         self.widget.qa_bkg_pattern_inspect_btn.setVisible(is_checked)
 
         if is_checked:
@@ -222,13 +218,6 @@ class BackgroundController:
             )
 
     def bkg_pattern_inspect_btn_toggled_callback(self, checked):
-        self.widget.bkg_pattern_inspect_btn.blockSignals(True)
-        self.widget.qa_bkg_pattern_inspect_btn.blockSignals(True)
-        self.widget.bkg_pattern_inspect_btn.setChecked(checked)
-        self.widget.qa_bkg_pattern_inspect_btn.setChecked(checked)
-        self.widget.bkg_pattern_inspect_btn.blockSignals(False)
-        self.widget.qa_bkg_pattern_inspect_btn.blockSignals(False)
-
         if checked:
             self.widget.pattern_widget.show_bkg_roi()
             self.widget.pattern_widget.bkg_roi.sigRegionChanged.connect(
@@ -350,15 +339,9 @@ class BackgroundController:
         )
 
     def update_auto_pattern_bkg_widgets(self):
-        # set the state of the toggles:
-        self.widget.bkg_pattern_gb.blockSignals(True)
-        self.widget.qa_bkg_pattern_btn.blockSignals(True)
         auto_bkg_enabled = self.model.pattern.auto_bkg is not None
-        self.widget.bkg_pattern_gb.setChecked(auto_bkg_enabled)
+        self._set_bkg_pattern_toggles(auto_bkg_enabled)
         self.widget.qa_bkg_pattern_inspect_btn.setVisible(auto_bkg_enabled)
-        self.widget.qa_bkg_pattern_btn.setChecked(auto_bkg_enabled)
-        self.widget.bkg_pattern_gb.blockSignals(False)
-        self.widget.qa_bkg_pattern_btn.blockSignals(False)
 
         self.update_bkg_gui_parameters()
         self.widget.qa_bkg_pattern_inspect_btn.setChecked(False)

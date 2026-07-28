@@ -92,8 +92,9 @@ class MapController:
             self._img_levels_manually_changed
         )
 
-        self.model.map_model.map_changed.connect(self.update_map)
-        self.model.map_model.map_changed.connect(self.update_file_list)
+        self._connected_map_model = self.model.map_model
+        self._connected_map_model.map_changed.connect(self.update_map)
+        self._connected_map_model.map_changed.connect(self.update_file_list)
         self.model.clicked_tth_changed.connect(self.update_pattern_green_line)
         self.model.clicked_tth_changed.connect(self.update_image_green_line)
         self.model.clicked_tth_changed.connect(self.update_clicked_pos_label)
@@ -603,7 +604,22 @@ class MapController:
             self.widget.pattern_plot_widget.set_y_scale("linear")
 
     def configuration_selected(self):
+        self._update_map_model_connection()
         self.update_file_list()
         self.update_map()
         self.update_image()
         self.update_pattern()
+
+    def _update_map_model_connection(self):
+        """Rebinds map_changed to the current configuration's map model.
+
+        The map model is configuration-scoped, so the subscription made at
+        construction time goes stale when the configuration changes (switch,
+        add/remove, project load)."""
+        if self.model.map_model is self._connected_map_model:
+            return
+        self._connected_map_model.map_changed.disconnect(self.update_map)
+        self._connected_map_model.map_changed.disconnect(self.update_file_list)
+        self._connected_map_model = self.model.map_model
+        self._connected_map_model.map_changed.connect(self.update_map)
+        self._connected_map_model.map_changed.connect(self.update_file_list)
