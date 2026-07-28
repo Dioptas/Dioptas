@@ -907,6 +907,10 @@ class Configuration:
         self.img_model.autoprocess = f.get("image_model").attrs["auto_process"]
         self.img_model.autoprocess_changed.emit()
         self.img_model.factor = f.get("image_model").attrs["factor"]
+        # announce the restored image data explicitly (detector shape sync,
+        # plugin masks); historically this rode on the factor write above,
+        # which no longer emits when the value is unchanged
+        self.img_model.img_changed.emit()
 
         try:
             self.img_model.series_max = f.get("image_model").attrs["series_max"]

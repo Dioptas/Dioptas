@@ -150,6 +150,29 @@ class ImgModel:
 
         self.transformations_changed.connect(self._update_correction_transformations)
 
+        # side effects of settings changes live here (not in the property
+        # setters), so a direct params write behaves exactly like the
+        # property write
+        self.params.events.connect(self._on_params_changed)
+
+    def _on_params_changed(self, info) -> None:
+        field = info.signal.name
+        if field in ("factor", "background_scaling", "background_offset"):
+            # normalize storage to float: an integer factor/scaling would
+            # multiply integer-typed image data with wraparound. psygnal
+            # updates storage on equal-compare writes without re-emitting.
+            value = info.args[0]
+            if not isinstance(value, float):
+                setattr(self.params, field, float(value))
+            if field != "factor":
+                self._calculate_img_data()
+            self.img_changed.emit()
+        elif field == "autoprocess":
+            if info.args[0]:
+                self._directory_watcher.activate()
+            else:
+                self._directory_watcher.deactivate()
+
     def load(self, filename: str, pos: int = 0) -> None:
         """
         Loads an image file in any format known by fabIO, PIL or HDF5. Automatically performs all previous img
@@ -413,9 +436,7 @@ class ImgModel:
 
     @background_scaling.setter
     def background_scaling(self, new_value: float) -> None:
-        self.params.background_scaling = float(new_value)
-        self._calculate_img_data()
-        self.img_changed.emit()
+        self.params.background_scaling = new_value
 
     @property
     def background_offset(self) -> float:
@@ -423,9 +444,7 @@ class ImgModel:
 
     @background_offset.setter
     def background_offset(self, new_value: float) -> None:
-        self.params.background_offset = float(new_value)
-        self._calculate_img_data()
-        self.img_changed.emit()
+        self.params.background_offset = new_value
 
     @property
     def img_transformations(self) -> list[Callable[[np.ndarray], np.ndarray]]:
@@ -865,10 +884,6 @@ class ImgModel:
     @autoprocess.setter
     def autoprocess(self, new_val: bool) -> None:
         self.params.autoprocess = new_val
-        if new_val:
-            self._directory_watcher.activate()
-        else:
-            self._directory_watcher.deactivate()
 
     @property
     def factor(self) -> float:
@@ -876,10 +891,7 @@ class ImgModel:
 
     @factor.setter
     def factor(self, new_value: float) -> None:
-        # float coercion: an integer factor would multiply integer-typed
-        # image data with wraparound (uint16 pixel values silently overflow)
-        self.params.factor = float(new_value)
-        self.img_changed.emit()
+        self.params.factor = new_value
 
     def get_img_data_float64(self) -> np.ndarray:
         """Return current image data as a contiguous float64 array.

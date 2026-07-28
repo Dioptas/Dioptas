@@ -6,6 +6,8 @@
 
 ## Internal
 
+- settings writes are now uniform: side effects (re-integration, watcher activation, background recalculation, overlay pattern math) moved from property setters into params event subscriptions, so writing `params.<field>` directly behaves exactly like the property write for every writer (GUI, scripts, pipeline); the headless pipeline uses the hold() mechanism for its deliberately integration-free writes
+
 - ImgModel's settings (autoprocess, factor, background scaling/offset, file iteration mode) moved into an evented `ImgParams` dataclass following the no-state-in-models direction; the file iteration mode is now persisted in project files (previously lost on save); img params changes surface on `configuration_params_changed` with an `img.` prefix, and the background image scale/offset spinboxes bind reactively to them
 - PatternModel's settings (unit, file iteration mode) moved into an evented `PatternParams` dataclass, surfacing on `configuration_params_changed` with a `pattern.` prefix and saved generically in the project file's pattern group
 - MaskModel's settings (drawing mode, ROI) moved into an evented `MaskParams` dataclass with a `mask.` prefix on the store surface; the mask/unmask drawing mode is now persisted in project files (previously lost on save)

@@ -38,6 +38,21 @@ class Overlay(Pattern):
             offset=Pattern.offset.fget(self),
         )
         Overlay.index += 1
+        # scaling/offset reactions push into the Pattern base class, so a
+        # direct params write behaves exactly like the property write
+        self.params.events.connect(self._on_params_changed)
+
+    def _on_params_changed(self, info) -> None:
+        field = info.signal.name
+        if field == "scaling":
+            Pattern.scaling.fset(self, info.args[0])
+            effective = Pattern.scaling.fget(self)
+            if effective != info.args[0]:
+                # xypattern clamped the value — record the effective one
+                # (this re-emits once with the corrected value)
+                self.params.scaling = effective
+        elif field == "offset":
+            Pattern.offset.fset(self, info.args[0])
 
     @classmethod
     def from_pattern(cls, pattern: Pattern) -> Overlay:
@@ -81,10 +96,10 @@ class Overlay(Pattern):
 
     @scaling.setter
     def scaling(self, value: float) -> None:
-        Pattern.scaling.fset(self, value)
         if "params" in self.__dict__:
-            # record the effective (possibly clamped) value
-            self.params.scaling = Pattern.scaling.fget(self)
+            self.params.scaling = value
+        else:  # during super().__init__, before params exists
+            Pattern.scaling.fset(self, value)
 
     @property
     def offset(self) -> float:
@@ -92,9 +107,10 @@ class Overlay(Pattern):
 
     @offset.setter
     def offset(self, value: float) -> None:
-        Pattern.offset.fset(self, value)
         if "params" in self.__dict__:
-            self.params.offset = Pattern.offset.fget(self)
+            self.params.offset = value
+        else:
+            Pattern.offset.fset(self, value)
 
 
 class OverlayModel:
