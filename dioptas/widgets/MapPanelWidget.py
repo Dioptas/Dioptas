@@ -230,10 +230,21 @@ class MapPlotControlWidget(QtWidgets.QWidget):
 
     def create_widgets(self):
         self.load_btn = FlatButton("Load")
-        self.load_btn.setToolTip("Integrate image files into a new map")
+        self.load_btn.setToolTip(
+            "Build a map from detector image files.\n"
+            "Select the images of the scan (any format Dioptas can open); each "
+            "one is integrated\nwith the current calibration and mask, and "
+            "contributes one point of the map.\n"
+            "Files holding several frames contribute one point per frame."
+        )
         self.save_map_btn = SaveIconButton()
+        self.save_map_btn.setToolTip("Save the map as an image or a table of values")
+        self.dimension_lbl = QtWidgets.QLabel("Dim:")
         self.map_dimension_cb = CleanLooksComboBox()
         self.map_dimension_cb.setMinimumWidth(80)
+        self.map_dimension_cb.setToolTip(
+            "Grid the map points are arranged in, for the number of images loaded"
+        )
         self.undock_btn = FlatButton("Undock")
         self.undock_btn.setToolTip("Show the map in its own window")
         self.mouse_x_label = QtWidgets.QLabel("X: ")
@@ -253,7 +264,7 @@ class MapPlotControlWidget(QtWidgets.QWidget):
         self._left_layout.addWidget(self.filename_label)
         self._outer_layout.addWidget(self.load_btn)
         self._outer_layout.addWidget(self.save_map_btn)
-        self._outer_layout.addWidget(QtWidgets.QLabel("Dim: "))
+        self._outer_layout.addWidget(self.dimension_lbl)
         self._outer_layout.addWidget(self.map_dimension_cb)
         self._outer_layout.addWidget(self.undock_btn)
         self._outer_layout.addStretch(1)
@@ -261,8 +272,10 @@ class MapPlotControlWidget(QtWidgets.QWidget):
         self.setLayout(self._outer_layout)
 
     def style_widgets(self):
-        self._outer_layout.setContentsMargins(6, 3, 0, 0)
+        self._outer_layout.setContentsMargins(8, 6, 8, 6)
+        self._outer_layout.setSpacing(8)
+        self._mouse_pos_layout.setSpacing(8)
         self.mouse_x_label.setFixedWidth(50)
         self.mouse_y_label.setFixedWidth(50)
         self.mouse_int_label.setMinimumWidth(80)
-        self.setMinimumHeight(30)
+        self.setMinimumHeight(42)
