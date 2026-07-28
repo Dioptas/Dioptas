@@ -10,12 +10,17 @@ from xypattern import Pattern
 
 from .util.HelperModule import calculate_color, rgb_to_hex
 from .util import Signal
+from .state import OverlayItemParams
 
 logger = logging.getLogger(__name__)
 
 
 class Overlay(Pattern):
-    """Overlay class, inherits from Pattern. It is used to store overlays for the pattern widget."""
+    """Overlay class, inherits from Pattern. It is used to store overlays for the pattern widget.
+
+    The user-settable display state lives in the evented ``params``
+    dataclass. ``scaling`` and ``offset`` additionally write through to the
+    Pattern base class, which applies them in its data computation."""
 
     index: int = 0
 
@@ -26,14 +31,70 @@ class Overlay(Pattern):
         name: str = "",
     ) -> None:
         super().__init__(x, y, name)
-        self.visible: bool = True
-        self.color: str = rgb_to_hex(calculate_color(Overlay.index))
+        self.params: OverlayItemParams = OverlayItemParams(
+            name=self._pre_params_name,
+            color=rgb_to_hex(calculate_color(Overlay.index)),
+            scaling=Pattern.scaling.fget(self),
+            offset=Pattern.offset.fget(self),
+        )
         Overlay.index += 1
 
     @classmethod
     def from_pattern(cls, pattern: Pattern) -> Overlay:
         """Creates an overlay from a pattern, does not use its original scaling parameters."""
         return Overlay(np.copy(pattern.x), np.copy(pattern.y), copy(pattern.name))
+
+    # name is a plain attribute on Pattern, assigned during super().__init__
+    # before the params object exists — hence the _pre_params_name buffer
+    @property
+    def name(self) -> str:
+        if "params" in self.__dict__:
+            return self.params.name
+        return self._pre_params_name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        if "params" in self.__dict__:
+            self.params.name = value
+        else:
+            self._pre_params_name = value
+
+    @property
+    def visible(self) -> bool:
+        return self.params.visible
+
+    @visible.setter
+    def visible(self, value: bool) -> None:
+        self.params.visible = value
+
+    @property
+    def color(self) -> str:
+        return self.params.color
+
+    @color.setter
+    def color(self, value: str) -> None:
+        self.params.color = value
+
+    @property
+    def scaling(self) -> float:
+        return Pattern.scaling.fget(self)
+
+    @scaling.setter
+    def scaling(self, value: float) -> None:
+        Pattern.scaling.fset(self, value)
+        if "params" in self.__dict__:
+            # record the effective (possibly clamped) value
+            self.params.scaling = Pattern.scaling.fget(self)
+
+    @property
+    def offset(self) -> float:
+        return Pattern.offset.fget(self)
+
+    @offset.setter
+    def offset(self, value: float) -> None:
+        Pattern.offset.fset(self, value)
+        if "params" in self.__dict__:
+            self.params.offset = Pattern.offset.fget(self)
 
 
 class OverlayModel:
