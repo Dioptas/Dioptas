@@ -961,3 +961,69 @@ def test_add_configuration_preserves_calibration_name(dioptas_model):
         dioptas_model.configurations[0].calibration_model.calibration_name
         == "CeO2_Pilatus1M"
     )
+
+
+def test_params_restore_is_not_hand_listed(dioptas_model, tmp_path):
+    """Settings restore comes from the params documents wholesale.
+
+    Every settings field round-trips without per-field code in the loader,
+    including fields the legacy layout never writes."""
+    from dioptas.model.state import params_to_dict
+
+    configuration = dioptas_model.current_configuration
+    configuration.params.trim_trailing_zeros = False
+    configuration.params.oned_azimuth_range = [-45.0, 45.0]
+    configuration.params.cake_azimuth_range = [-100.0, 100.0]
+    configuration.img_model.params.file_iteration_mode = "time"
+    configuration.mask_model.params.mode = False
+    configuration.pattern_model.params.file_iteration_mode = "time"
+    configuration.calibration_model.params.fit_wavelength = True
+    configuration.calibration_model.params.fixed_values = {"rot1": 0.25}
+
+    expected = {
+        "configuration": params_to_dict(configuration.params),
+        "img": params_to_dict(configuration.img_model.params),
+        "mask": params_to_dict(configuration.mask_model.params),
+        # "unit" is excluded: it tracks the last integration, and loading
+        # ends with one, so it is not expected to match the pre-save value
+        "pattern": {
+            k: v
+            for k, v in params_to_dict(configuration.pattern_model.params).items()
+            if k != "unit"
+        },
+    }
+
+    filename = os.path.join(tmp_path, "wholesale.dio")
+    dioptas_model.save(filename)
+    dioptas_model.reset()
+    dioptas_model.load(filename)
+
+    restored = dioptas_model.current_configuration
+    assert params_to_dict(restored.params) == expected["configuration"]
+    assert params_to_dict(restored.img_model.params) == expected["img"]
+    assert params_to_dict(restored.mask_model.params) == expected["mask"]
+    assert {
+        k: v
+        for k, v in params_to_dict(restored.pattern_model.params).items()
+        if k != "unit"
+    } == expected["pattern"]
+    assert restored.calibration_model.params.fit_wavelength is True
+    assert restored.calibration_model.params.fixed_values == {"rot1": 0.25}
+
+
+def test_missing_working_directories_are_not_restored(dioptas_model, tmp_path):
+    """The legacy restore drops directories that no longer exist; the
+    wholesale params apply must not undo that validation."""
+    gone = os.path.join(tmp_path, "no_longer_there")
+    dioptas_model.current_configuration.params.working_directories = {
+        "image": gone,
+        "pattern": str(tmp_path),
+    }
+
+    filename = os.path.join(tmp_path, "dirs.dio")
+    dioptas_model.save(filename)
+    dioptas_model.load(filename)
+
+    restored = dioptas_model.current_configuration.working_directories
+    assert restored["image"] == ""  # dropped: does not exist
+    assert restored["pattern"] == str(tmp_path)  # kept: exists

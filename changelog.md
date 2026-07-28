@@ -4,11 +4,15 @@
 
 - the corrections panel layout was off after the parameter form rework: input fields stretched across the whole panel, tabs with only a few parameters spread their rows over the full height, and the plot buttons sat at the far right edge — fields now keep a compact width, rows are packed to the top, formula inputs line up with the parameter labels, and the plot buttons sit next to (or below) the values they belong to
 
+- settings stored as tuples (the mask region of interest, phase colors) came back as lists after a project round-trip, because JSON has no tuple type
+
 - adding a configuration renamed the calibration of both the new and the original configuration to "transfer" (the name of the temporary file the calibration is transferred through), which was then shown in the calibration label and saved into project files
 
 - setting an integer intensity factor (e.g. from a script) silently wrapped uint16 image pixel values around; the factor is now coerced to float
 
 ## Internal
+
+- restoring settings from a project file no longer needs per-field code: the generic params documents are applied wholesale on top of the legacy restore, so any settings field added in future round-trips automatically
 
 - the periodic session backup now only writes when something actually changed, instead of rewriting the whole project (including image data) every ten minutes in an idle session; closing Dioptas still saves unconditionally
 
