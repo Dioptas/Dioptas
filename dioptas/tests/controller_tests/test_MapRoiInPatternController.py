@@ -23,7 +23,7 @@ map_img_file_paths = [
 
 @pytest.fixture
 def map_in_integration(integration_controller: IntegrationController):
-    """An integration view with a small map loaded and its map tab selected."""
+    """An integration view with a small map loaded, shown in its own window."""
     model = integration_controller.model
     model.calibration_model.load(os.path.join(data_path, "CeO2_Pilatus1M.poni"))
     model.img_model.load(map_img_file_paths[0])
@@ -38,18 +38,8 @@ def map_in_integration(integration_controller: IntegrationController):
         [MapPointInfo(f) for f in map_img_file_paths[:6]],
         map_img_file_paths[:6],
     )
-    select_map_tab(integration_controller)
+    model.view.map_docked = False
     return integration_controller
-
-
-def select_map_tab(integration_controller: IntegrationController, selected=True):
-    control_widget = integration_controller.widget.integration_control_widget
-    widget = (
-        integration_controller.widget.map_control_widget
-        if selected
-        else control_widget.phase_control_widget
-    )
-    control_widget.tab_widget_1.setCurrentWidget(widget)
 
 
 def pattern_widget(integration_controller: IntegrationController):
@@ -61,18 +51,18 @@ def roi_is_shown(integration_controller: IntegrationController) -> bool:
     return widget.map_interactive_roi in widget.pattern_plot.items
 
 
-def test_roi_is_only_shown_while_the_map_tab_is_selected(map_in_integration):
+def test_roi_is_only_shown_while_the_map_is_undocked(map_in_integration):
     assert roi_is_shown(map_in_integration)
 
-    select_map_tab(map_in_integration, selected=False)
+    map_in_integration.model.view.map_docked = True
     assert not roi_is_shown(map_in_integration)
 
-    select_map_tab(map_in_integration, selected=True)
+    map_in_integration.model.view.map_docked = False
     assert roi_is_shown(map_in_integration)
 
 
 def test_roi_is_not_shown_without_a_map(integration_controller: IntegrationController):
-    select_map_tab(integration_controller)
+    integration_controller.model.view.map_docked = False
     assert not roi_is_shown(integration_controller)
 
 

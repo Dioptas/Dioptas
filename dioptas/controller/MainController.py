@@ -58,8 +58,8 @@ class MainController:
         self.integration_controller = IntegrationController(
             self.widget.integration_widget, self.model
         )
-        # The map panel is shared between the map mode and the integration
-        # view, so it is owned here rather than by one of the modes.
+        # The map panel moves between the map mode and its own window, so it
+        # is owned here rather than by the mode it happens to sit in.
         self.map_panel_controller = MapPanelController(
             self.widget.map_widget.map_panel_widget, self.model
         )
@@ -67,7 +67,6 @@ class MainController:
             self.widget.map_widget, self.model, self.map_panel_controller
         )
         self._map_panel_host = self.widget.map_widget.map_panel_host
-        self._last_docked_host = self._map_panel_host
         self._closing = False
 
         self.calibration_controller.activate()
@@ -189,12 +188,9 @@ class MainController:
         map_panel.map_plot_control_widget.undock_btn.clicked.connect(
             self.map_undock_btn_clicked
         )
-        for host in (
-            self.widget.map_widget.map_panel_host,
-            self.widget.integration_widget.map_control_widget,
-            self.widget.map_panel_window,
-        ):
-            host.dock_btn.clicked.connect(self.map_dock_btn_clicked)
+        self.widget.map_widget.map_panel_host.dock_btn.clicked.connect(
+            self.map_dock_btn_clicked
+        )
         self.widget.map_panel_window.closed.connect(self._map_window_closed)
         self.model.view.events.map_docked.connect(self._map_docked_changed)
 
@@ -250,35 +246,22 @@ class MainController:
         if ind == 2:  # integration tab
             self.integration_controller.image_controller.update_image()
 
-        self.place_map_panel(ind)
         self.activate_mode(ind)
         self.update_image_display_state(old_index, ind)
 
-    def place_map_panel(self, mode_ind=None):
-        """Moves the shared map panel into the home it belongs in.
+    def place_map_panel(self):
+        """Moves the map panel between the map mode and its own window.
 
-        While undocked that is its own window, whatever mode is shown.
-        Otherwise it is the home of the current mode; modes without one
-        (calibration, mask) leave it where it is, since it is not visible
-        there either way.
+        Undocked it stays in its window whatever mode is shown, which is how
+        the map is used next to the integration view.
         """
-        if mode_ind is None:
-            mode_ind = self.current_tab_index
-
         window = self.widget.map_panel_window
         if self.model.view.map_docked:
-            hosts = {
-                2: self.widget.integration_widget.map_control_widget,
-                3: self.widget.map_widget.map_panel_host,
-            }
-            # docking from a mode with no home of its own (calibration, mask)
-            # puts the panel back where it was undocked from
-            host = hosts.get(mode_ind, self._last_docked_host)
-            self._last_docked_host = host
+            host = self.widget.map_widget.map_panel_host
         else:
             host = window
 
-        if host is None or host is self._map_panel_host:
+        if host is self._map_panel_host:
             return
 
         self._map_panel_host.release_panel()

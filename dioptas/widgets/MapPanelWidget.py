@@ -272,10 +272,10 @@ class MapPlotControlWidget(QtWidgets.QWidget):
         self.setLayout(self._outer_layout)
 
     def style_widgets(self):
-        self._outer_layout.setContentsMargins(8, 6, 8, 6)
-        self._outer_layout.setSpacing(8)
-        self._mouse_pos_layout.setSpacing(8)
+        self._outer_layout.setContentsMargins(6, 3, 6, 3)
+        self._outer_layout.setSpacing(6)
+        self._mouse_pos_layout.setSpacing(6)
         self.mouse_x_label.setFixedWidth(50)
         self.mouse_y_label.setFixedWidth(50)
         self.mouse_int_label.setMinimumWidth(80)
-        self.setMinimumHeight(42)
+        self.setMinimumHeight(32)

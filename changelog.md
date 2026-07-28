@@ -2,11 +2,9 @@
 
 ## New Features
 
-- the map can now be used inside the integration view: a new "Map" tab in the control panel shows it next to the large image, the phase lines and all the usual integration controls, and clicking a map point loads that image and integrates it with the settings currently set there
+- the map can be undocked into its own window, which keeps working whatever mode the main window shows; this makes it usable next to the integration view, where clicking a map point loads that image and integrates it with the settings set there — with the large image, the phase lines and all the usual controls at hand. The docked state is saved with the session
 
-- the region that selects which part of the pattern the map sums is now available in the integration pattern as well, shown while the map is on screen; it converts between the displayed unit and the unit the map was integrated in, so it works in 2θ, Q and d
-
-- the map can be undocked into its own window, which keeps working whatever mode the main window shows — for a large map on a second screen next to the integration view; the state is saved with the session
+- while the map is undocked, the region that selects which part of the pattern it sums also appears in the integration pattern, so the map can be re-sliced without leaving that view; it converts between the displayed unit and the unit the map was integrated in, so it works in 2θ, Q and d
 
 - the map selection marker now follows whichever image is loaded, so stepping through files anywhere in Dioptas moves it, and it hides for images that are not part of the map
 

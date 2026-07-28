@@ -120,39 +120,42 @@ def test_map(main_controller: MainController):
     assert map_widget.pattern_plot_widget.map_interactive_roi.center == approx(center_x)
 
 
-def test_map_panel_moves_into_the_integration_view(main_controller: MainController):
-    # Herbert wants to keep exploring his map, but with the large image and all
-    # the phase controls of the integration view at hand.
+def test_map_panel_moves_between_the_map_mode_and_its_window(
+    main_controller: MainController,
+):
     prepare_map_gui(main_controller)
     map_widget = main_controller.widget.map_widget
     panel = map_widget.map_panel_widget
-    map_tab = main_controller.widget.integration_widget.map_control_widget
+    window = main_controller.widget.map_panel_window
 
-    # in the map mode the panel sits in the map widget
+    # docked the panel sits in the map widget, whatever mode is shown
     assert map_widget.map_panel_host.panel is panel
-    assert map_tab.panel is None
+    assert window.panel is None
 
-    # switching to the integration view brings the map along, into its own tab
     click_button(main_controller.widget.integration_mode_btn)
-    assert map_tab.panel is panel
+    assert map_widget.map_panel_host.panel is panel
+
+    # undocking hands it to its window and docking gives it back
+    click_button(panel.map_plot_control_widget.undock_btn)
+    assert window.panel is panel
     assert map_widget.map_panel_host.panel is None
     assert panel.map_plot_widget.img_data is not None
 
-    # and going back to the map mode returns it
-    click_button(main_controller.widget.map_mode_btn)
+    click_button(panel.map_plot_control_widget.undock_btn)
     assert map_widget.map_panel_host.panel is panel
-    assert map_tab.panel is None
+    assert window.panel is None
 
 
 def test_selecting_a_map_point_from_the_integration_view(main_controller: MainController):
-    # Herbert clicks around in the map while the integration view is shown, and
-    # expects image, pattern and map marker to follow.
+    # Herbert clicks around in the undocked map while the integration view is
+    # shown, and expects image, pattern and map marker to follow.
     prepare_map_gui(main_controller)
+    panel = main_controller.widget.map_widget.map_panel_widget
+    click_button(panel.map_plot_control_widget.undock_btn)
     click_button(main_controller.widget.integration_mode_btn)
 
     model = main_controller.model
     integration_widget = main_controller.widget.integration_widget
-    panel = main_controller.widget.map_widget.map_panel_widget
 
     panel.map_plot_widget.mouse_left_clicked.emit(2, 2)
 
@@ -217,7 +220,6 @@ def test_undocked_map_stays_available_in_every_mode(main_controller: MainControl
     # the map keeps working from its own window, whatever mode is shown
     click_button(widget.integration_mode_btn)
     assert window.panel is panel
-    assert widget.integration_widget.map_control_widget.panel is None
 
     panel.map_plot_widget.mouse_left_clicked.emit(1, 1)  # center point of a 3x3 map
     assert main_controller.model.img_model.filename == map_img_file_paths[4]
@@ -226,11 +228,12 @@ def test_undocked_map_stays_available_in_every_mode(main_controller: MainControl
     pattern_widget = widget.integration_widget.pattern_widget
     assert pattern_widget.map_interactive_roi in pattern_widget.pattern_plot.items
 
-    # docking it again from the placeholder puts it back where it belongs
-    click_button(widget.integration_widget.map_control_widget.dock_btn)
+    # docking it again puts it back into the map mode
+    click_button(panel.map_plot_control_widget.undock_btn)
     assert main_controller.model.view.map_docked
-    assert widget.integration_widget.map_control_widget.panel is panel
+    assert widget.map_widget.map_panel_host.panel is panel
     assert not window.isVisible()
+    assert pattern_widget.map_interactive_roi not in pattern_widget.pattern_plot.items
 
 
 def test_docking_works_from_a_mode_that_has_no_map(main_controller: MainController):
@@ -250,7 +253,6 @@ def test_docking_works_from_a_mode_that_has_no_map(main_controller: MainControll
     assert main_controller.model.view.map_docked
     assert widget.map_panel_window.panel is None
     assert not widget.map_panel_window.isVisible()
-    # it went back to the home it was undocked from
     assert widget.map_widget.map_panel_host.panel is panel
 
 
@@ -295,18 +297,18 @@ def test_closing_the_map_window_docks_it_again(main_controller: MainController):
 
 def test_exploring_a_map_from_the_integration_view(main_controller: MainController):
     # Herbert has his map and now wants to work the way he normally does: big
-    # image, phases on the pattern, and the map right there to click around in.
+    # image, phases on the pattern, and the map on his second screen to click
+    # around in.
     prepare_map_gui(main_controller)
     model = main_controller.model
     widget = main_controller.widget
     panel = widget.map_widget.map_panel_widget
 
+    click_button(panel.map_plot_control_widget.undock_btn)
     click_button(widget.integration_mode_btn)
-    control_widget = widget.integration_widget.integration_control_widget
-    control_widget.tab_widget_1.setCurrentWidget(widget.integration_widget.map_control_widget)
 
-    # the map is in the tab, and the window region shows up in the pattern
-    assert widget.integration_widget.map_control_widget.panel is panel
+    # the map is in its window, and the window region shows up in the pattern
+    assert widget.map_panel_window.panel is panel
     pattern_widget = widget.integration_widget.pattern_widget
     assert pattern_widget.map_interactive_roi in pattern_widget.pattern_plot.items
 
@@ -333,10 +335,7 @@ def test_exploring_a_map_from_the_integration_view(main_controller: MainControll
     assert not np.array_equal(model.map_model.map, old_map)
     assert np.array_equal(panel.map_plot_widget.img_data, np.flipud(model.map_model.map))
 
-    # finally he puts the map on his second screen and keeps clicking points
-    click_button(panel.map_plot_control_widget.undock_btn)
-    assert widget.map_panel_window.panel is panel
-
+    # and he keeps clicking points from over there
     panel.map_plot_widget.mouse_left_clicked.emit(2, 0)
     assert model.img_model.filename == map_img_file_paths[8]
     assert pattern_widget.map_interactive_roi in pattern_widget.pattern_plot.items
