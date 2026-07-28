@@ -204,6 +204,7 @@ class DioptasModel:
                 str(ind).zfill(5)
             )  # need to fill the ind string, in order to keep it
             # ordered also for larger numbers of overlays
+            save_params(ov, overlay.params)
             ov.attrs["name"] = overlay.name
             x, y = overlay.original_data
             ov.create_dataset("x", x.shape, "f", x)
@@ -218,6 +219,10 @@ class DioptasModel:
         save_params(phases_group, self.phase_model.params)
         for ind, phase in enumerate(self.phase_model.phases):
             phase_group = phases_group.create_group(str(ind))
+            # "item_params": the "params" name is taken by the jcpds params
+            save_params(
+                phase_group, self.phase_model.item_params[ind], name="item_params"
+            )
             phase_group.attrs["name"] = phase._name
             phase_group.attrs["filename"] = phase._filename
             phase_group.attrs["color"] = self.phase_model.phase_colors[ind]

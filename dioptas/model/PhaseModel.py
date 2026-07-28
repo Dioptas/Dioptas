@@ -6,7 +6,7 @@ import numpy as np
 from xypattern import Pattern
 
 from .util import Signal
-from .state import PhaseParams
+from .state import PhaseParams, PhaseItemParams
 from .util.jcpds import jcpds, jcpds_reflection
 from .util.cif import CifConverter
 from .util.HelperModule import calculate_color
@@ -32,8 +32,9 @@ class PhaseModel:
         self.phases: list[jcpds] = []
         self.reflections: list[np.ndarray] = []
         self.phase_files: list[str] = []
-        self.phase_colors: list[np.ndarray] = []
-        self.phase_visible: list[bool] = []
+
+        # per-phase display state; the jcpds objects themselves are data
+        self.item_params: list[PhaseItemParams] = []
 
         # All user-settable parameters live in the evented params dataclass;
         # the property below delegates to it.
@@ -90,8 +91,9 @@ class PhaseModel:
         """Adds a jcpds object to the phase list."""
         self.phases.append(jcpds_object)
         self.reflections.append([])
-        self.phase_colors.append(calculate_color(PhaseModel.num_phases + 9))
-        self.phase_visible.append(True)
+        self.item_params.append(
+            PhaseItemParams(color=calculate_color(PhaseModel.num_phases + 9))
+        )
         PhaseModel.num_phases += 1
         if self.same_conditions and len(self.phases) > 2:
             self.phases[-1].compute_d(self.phases[-2].params['pressure'], self.phases[-2].params['temperature'])
@@ -113,8 +115,7 @@ class PhaseModel:
         del self.phases[ind]
         del self.reflections[ind]
         del self.phase_files[ind]
-        del self.phase_colors[ind]
-        del self.phase_visible[ind]
+        del self.item_params[ind]
         self.phase_removed.emit(ind)
 
     def reload(self, ind: int) -> None:
@@ -186,13 +187,23 @@ class PhaseModel:
 
     def set_color(self, ind: int, color: tuple[int, int, int]) -> None:
         """Changes the color of the phase with index ind."""
-        self.phase_colors[ind] = color
+        self.item_params[ind].color = color
         self.phase_changed.emit(ind)
 
     def set_phase_visible(self, ind: int, bool: bool) -> None:
         """Sets the visible flag for phase with index ind."""
-        self.phase_visible[ind] = bool
+        self.item_params[ind].visible = bool
         self.phase_changed.emit(ind)
+
+    @property
+    def phase_colors(self) -> list:
+        """Per-phase colors (read-only view; write via set_color)."""
+        return [item.color for item in self.item_params]
+
+    @property
+    def phase_visible(self) -> list[bool]:
+        """Per-phase visibility (read-only view; write via set_phase_visible)."""
+        return [item.visible for item in self.item_params]
 
     def get_lines_d(self, ind: int) -> np.ndarray:
         """

@@ -28,7 +28,9 @@ __all__ = [
     "ImgParams",
     "MapParams",
     "MaskParams",
+    "OverlayItemParams",
     "PatternParams",
+    "PhaseItemParams",
     "PhaseParams",
     "ViewParams",
     "default_working_directories",
@@ -165,6 +167,35 @@ class MapParams:
 
     #: (rows, columns) grid the map points are arranged in
     dimension: tuple[int, int] | None = None
+
+
+@dataclass
+class OverlayItemParams:
+    """User-settable display state of a single overlay.
+
+    Owned by :class:`dioptas.model.OverlayModel.Overlay`, which delegates
+    its display attributes here (scaling/offset additionally write through
+    to the underlying xypattern.Pattern, which applies them in its math).
+    """
+
+    events: ClassVar[SignalGroupDescriptor] = SignalGroupDescriptor()
+
+    name: str = ""
+    color: str = ""
+    visible: bool = True
+    scaling: float = 1.0
+    offset: float = 0.0
+
+
+@dataclass
+class PhaseItemParams:
+    """User-settable display state of a single phase (jcpds content is data)."""
+
+    events: ClassVar[SignalGroupDescriptor] = SignalGroupDescriptor()
+
+    #: RGB color as a (r, g, b) sequence
+    color: tuple = (255, 255, 255)
+    visible: bool = True
 
 
 @dataclass

@@ -364,3 +364,27 @@ def test_phase_params_defaults_and_events():
     params.events.same_conditions.connect(lambda new, old: got.append(new))
     params.same_conditions = False
     assert got == [False]
+
+
+# ---------------------------------------------------------------------------
+# Per-item params
+# ---------------------------------------------------------------------------
+
+from dioptas.model.state import OverlayItemParams, PhaseItemParams
+
+
+def test_overlay_item_params_events():
+    params = OverlayItemParams(name="test", color="#ff0000")
+    got = []
+    params.events.scaling.connect(lambda new, old: got.append(new))
+    params.scaling = 2.0
+    assert got == [2.0]
+
+
+def test_phase_item_params_events():
+    params = PhaseItemParams()
+    assert params.visible is True
+    got = []
+    params.events.visible.connect(lambda new, old: got.append(new))
+    params.visible = False
+    assert got == [False]
