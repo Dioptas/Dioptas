@@ -506,10 +506,9 @@ class CalibrationController:
         self.model.calibration_model.fit_wavelength = value
 
     def distance_cb_changed(self, value):
-        """
-        Sets the fit_distance parameter in the calibration model according to the GUI state
-        """
-        self.model.calibration_model.fit_distance = value
+        """The distance checkboxes only need to stay in sync (done by the
+        mirror binding) — their state is read via get_fixed_values() when a
+        calibration or refinement starts."""
 
     def update_fixed_values(self):
         self.model.calibration_model.set_fixed_values(self.widget.get_fixed_values())

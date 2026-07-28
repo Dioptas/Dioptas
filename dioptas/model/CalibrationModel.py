@@ -23,6 +23,7 @@ from skimage.measure import find_contours
 from .. import calibrants_path
 from .ImgModel import ImgModel
 from .util import Signal
+from .state import CalibrationParams
 from .util.HelperModule import (
     get_base_name,
     rotate_matrix_p90,
@@ -61,26 +62,20 @@ class CalibrationModel:
         )  # needs to be extra stored for applying supersampling
         self.orig_pixel2: float = self.detector.pixel2
 
-        self.start_values: dict[str, float] = {
-            "dist": 200e-3,
-            "wavelength": 0.3344e-10,
-            "polarization_factor": 0.99,
-        }
-        self.fit_wavelength: bool = False
-        self.fixed_values: dict[str, float] = (
-            {}
-        )  # dictionary for fixed parameters during calibration (keys can be e.g. rot1, poni1 etc.
-        # and values are the values to what the respective parameter will be set
+        # All user-settable parameters live in the evented params dataclass;
+        # the properties below delegate to it. The machine-specific dioptrin
+        # fields get their effective defaults here at construction.
+        import dioptas
+
+        self.params: CalibrationParams = CalibrationParams(
+            use_dioptrin=dioptas._dioptrin_available,
+            dioptrin_num_workers=max((os.cpu_count() or 4) - 1, 1),
+        )
+
         self.is_calibrated: bool = False
-        self.use_mask: bool = False
         self.filename: str = ""
         self.calibration_name: str = ""
-        self.polarization_factor: float = 0.99
-        self.supersampling_factor: int = 1
-        self.correct_solid_angle: bool = True
         self._calibrants_working_dir: str = calibrants_path
-
-        self.distortion_spline_filename: str | None = None
 
         self.tth: np.ndarray = np.linspace(0, 25)
         self.int: np.ndarray = np.sin(self.tth)
@@ -98,9 +93,86 @@ class CalibrationModel:
         self.parameters_changed: Signal = Signal()
 
         self._dioptrin_integrator: Any = None
-        self.dioptrin_num_workers: int = max((os.cpu_count() or 4) - 1, 1)
-        import dioptas
-        self.use_dioptrin: bool = dioptas._dioptrin_available
+
+    @property
+    def start_values(self) -> dict[str, float]:
+        return self.params.start_values
+
+    @start_values.setter
+    def start_values(self, new_values: dict[str, float]) -> None:
+        self.params.start_values = new_values
+
+    @property
+    def fit_wavelength(self) -> bool:
+        return self.params.fit_wavelength
+
+    @fit_wavelength.setter
+    def fit_wavelength(self, new_value: bool) -> None:
+        self.params.fit_wavelength = new_value
+
+    @property
+    def fixed_values(self) -> dict[str, float]:
+        return self.params.fixed_values
+
+    @fixed_values.setter
+    def fixed_values(self, new_values: dict[str, float]) -> None:
+        self.params.fixed_values = new_values
+
+    @property
+    def use_mask(self) -> bool:
+        return self.params.use_mask
+
+    @use_mask.setter
+    def use_mask(self, new_value: bool) -> None:
+        self.params.use_mask = new_value
+
+    @property
+    def polarization_factor(self) -> float:
+        return self.params.polarization_factor
+
+    @polarization_factor.setter
+    def polarization_factor(self, new_value: float) -> None:
+        self.params.polarization_factor = new_value
+
+    @property
+    def supersampling_factor(self) -> int:
+        return self.params.supersampling_factor
+
+    @supersampling_factor.setter
+    def supersampling_factor(self, new_value: int) -> None:
+        self.params.supersampling_factor = new_value
+
+    @property
+    def correct_solid_angle(self) -> bool:
+        return self.params.correct_solid_angle
+
+    @correct_solid_angle.setter
+    def correct_solid_angle(self, new_value: bool) -> None:
+        self.params.correct_solid_angle = new_value
+
+    @property
+    def distortion_spline_filename(self) -> str | None:
+        return self.params.distortion_spline_filename
+
+    @distortion_spline_filename.setter
+    def distortion_spline_filename(self, new_value: str | None) -> None:
+        self.params.distortion_spline_filename = new_value
+
+    @property
+    def use_dioptrin(self) -> bool:
+        return self.params.use_dioptrin
+
+    @use_dioptrin.setter
+    def use_dioptrin(self, new_value: bool) -> None:
+        self.params.use_dioptrin = new_value
+
+    @property
+    def dioptrin_num_workers(self) -> int:
+        return self.params.dioptrin_num_workers
+
+    @dioptrin_num_workers.setter
+    def dioptrin_num_workers(self, new_value: int) -> None:
+        self.params.dioptrin_num_workers = new_value
 
     def _get_poni_dict(self) -> dict[str, float]:
         return {

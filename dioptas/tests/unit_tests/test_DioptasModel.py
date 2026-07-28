@@ -831,3 +831,54 @@ def test_mask_mode_round_trips_via_params(dioptas_model, tmp_path):
 
     dioptas_model.load(filename)
     assert dioptas_model.mask_model.mode is False
+
+
+def test_calibration_params_forwarded_with_namespace(dioptas_model):
+    got = []
+    dioptas_model.configuration_params_changed.connect(
+        lambda field, new, old: got.append((field, new))
+    )
+    dioptas_model.calibration_model.polarization_factor = 0.5
+    assert got == [("calibration.polarization_factor", 0.5)]
+
+
+def test_calibration_workflow_settings_round_trip(dioptas_model, tmp_path):
+    """start_values, fit_wavelength, fixed_values and use_mask were never in
+    the legacy layout — they round-trip via the calibration params group."""
+    calibration_model = dioptas_model.calibration_model
+    calibration_model.start_values = {
+        "dist": 0.3,
+        "wavelength": 0.4e-10,
+        "polarization_factor": 0.9,
+    }
+    calibration_model.fit_wavelength = True
+    calibration_model.set_fixed_values({"rot1": 0.1})
+    calibration_model.use_mask = True
+
+    filename = os.path.join(tmp_path, "calibration_settings.dio")
+    dioptas_model.save(filename)
+    dioptas_model.reset()
+    assert dioptas_model.calibration_model.fit_wavelength is False
+
+    dioptas_model.load(filename)
+    calibration_model = dioptas_model.calibration_model
+    assert calibration_model.start_values["dist"] == 0.3
+    assert calibration_model.fit_wavelength is True
+    assert calibration_model.fixed_values == {"rot1": 0.1}
+    assert calibration_model.use_mask is True
+
+
+def test_dioptrin_settings_not_restored_from_project(dioptas_model, tmp_path):
+    """use_dioptrin / dioptrin_num_workers are machine-specific — saving a
+    project must not carry them onto another machine."""
+    machine_use_dioptrin = dioptas_model.calibration_model.use_dioptrin
+    machine_workers = dioptas_model.calibration_model.dioptrin_num_workers
+
+    dioptas_model.calibration_model.use_dioptrin = not machine_use_dioptrin
+    dioptas_model.calibration_model.dioptrin_num_workers = 999
+    filename = os.path.join(tmp_path, "dioptrin.dio")
+    dioptas_model.save(filename)
+
+    dioptas_model.load(filename)
+    assert dioptas_model.calibration_model.use_dioptrin == machine_use_dioptrin
+    assert dioptas_model.calibration_model.dioptrin_num_workers == machine_workers
