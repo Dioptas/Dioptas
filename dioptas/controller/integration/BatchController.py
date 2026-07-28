@@ -821,12 +821,14 @@ class BatchController:
         Check if file contains processed data
         """
         if os.path.splitext(filename)[1] == ".nxs":
-            data_file = h5py.File(filename, "r")
-            if "processed" in data_file:
-                return True
-            # ToDo Check for old format. To be removed
-            if "data" in data_file:
-                return True
+            # the handle must be closed on every path: a leaked reader blocks
+            # later writes to the same file
+            with h5py.File(filename, "r") as data_file:
+                if "processed" in data_file:
+                    return True
+                # ToDo Check for old format. To be removed
+                if "data" in data_file:
+                    return True
         return False
 
     def load_raw_data(self, filenames):
