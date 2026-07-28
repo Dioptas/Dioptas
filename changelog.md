@@ -6,6 +6,8 @@
 
 ## Internal
 
+- the remaining hand-written `update_gui` pushes (mask transparency radio buttons, the integration view's mask/transparency/autoprocess widgets and calibration label, the configuration factor field) are now declarative bindings; the binder gained number-field and radio-pair binding kinds
+
 - the automatic (smooth Bruckner) background settings — smoothing width, iterations, polynomial order and the fitted x-range — are now canonical evented state in `PatternParams` with the pattern model pushing them into the pattern computation, instead of living in spinboxes and inside xypattern's internals; project save/load no longer reaches into those internals, and the range restored from a project is no longer clamped against whichever pattern happens to be loaded at that moment
 
 - `Configuration.copy()` now copies every setting generically instead of a hand-picked subset (it silently dropped the mask usage, integration unit, cake settings and auto-integrate flags)

@@ -7,6 +7,8 @@ from ..widgets.UtilityWidgets import save_file_dialog
 from ..widgets.ConfigurationWidget import ConfigurationWidget
 from ..model.DioptasModel import DioptasModel
 
+from .binding import Binder
+
 
 class ConfigurationController:
     """
@@ -21,10 +23,13 @@ class ConfigurationController:
         self.widget = configuration_widget
         self.model = dioptas_model
         self.controllers = controllers
+        self.binder = Binder(field_events=self.model.configuration_params_changed)
 
         self.update_configuration_widget()
 
         self.create_signals()
+        self.binder.connect_refresh(self.model.configuration_selected)
+        self.binder.refresh()
 
     def create_signals(self):
         self.widget.add_configuration_btn.clicked.connect(self.model.add_configuration)
@@ -34,7 +39,6 @@ class ConfigurationController:
 
         self.model.configuration_added.connect(self.update_configuration_widget)
         self.model.configuration_removed.connect(self.update_configuration_widget)
-        self.model.configuration_selected.connect(self.configuration_selected)
 
         self.widget.next_file_btn.clicked.connect(self.load_next_file)
         self.widget.previous_file_btn.clicked.connect(self.load_previous_file)
@@ -42,7 +46,12 @@ class ConfigurationController:
         self.widget.next_folder_btn.clicked.connect(self.load_next_folder)
         self.widget.previous_folder_btn.clicked.connect(self.load_previous_folder)
 
-        self.widget.factor_txt.editingFinished.connect(self.factor_txt_changed)
+        self.binder.bind_number_field(
+            self.widget.factor_txt,
+            lambda: self.model.img_model,
+            "factor",
+            event_field="img.factor",
+        )
 
         self.widget.combine_patterns_btn.clicked.connect(self.combine_patterns_btn_clicked)
         self.widget.saved_combined_patterns_btn.clicked.connect(self.save_combined_patterns_btn_clicked)
@@ -53,9 +62,6 @@ class ConfigurationController:
             configurations=self.model.configurations,
             cur_ind=self.model.configuration_ind
         )
-
-    def configuration_selected(self):
-        self.widget.factor_txt.setText(str(self.model.img_model.factor))
 
     def combine_patterns_btn_clicked(self):
         self.model.combine_patterns = self.widget.combine_patterns_btn.isChecked()
@@ -74,9 +80,6 @@ class ConfigurationController:
 
     def combine_cakes_btn_clicked(self):
         self.model.combine_cakes = self.widget.combine_cakes_btn.isChecked()
-
-    def factor_txt_changed(self):
-        self.model.img_model.factor = float(str(self.widget.factor_txt.text()))
 
     def load_next_file(self):
         pos = int(str(self.widget.file_iterator_pos_txt.text()))

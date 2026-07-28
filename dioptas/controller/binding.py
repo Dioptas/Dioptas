@@ -101,6 +101,66 @@ class Binder:
             field=event_field or field,
         )
 
+    def bind_number_field(
+        self,
+        line_edit: Any,
+        owner: Callable[[], Any],
+        field: str,
+        dtype: Callable[[Any], Any] = float,
+        fmt: Callable[[Any], str] = str,
+        event_field: str | None = None,
+    ) -> None:
+        """Two-way binding for a QLineEdit-like numeric field.
+
+        The widget writes on editingFinished; invalid input is ignored and
+        the field re-renders from the model on the next refresh."""
+
+        def apply() -> None:
+            try:
+                value = dtype(line_edit.text())
+            except (TypeError, ValueError):
+                return
+            setattr(owner(), field, value)
+
+        line_edit.editingFinished.connect(apply)
+        self.add_render(
+            lambda: line_edit.setText(fmt(getattr(owner(), field))),
+            line_edit,
+            field=event_field or field,
+        )
+
+    def bind_radio_pair(
+        self,
+        true_btn: Any,
+        false_btn: Any,
+        owner: Callable[[], Any],
+        field: str,
+        event_field: str | None = None,
+        on_changed: Callable[[bool], None] | None = None,
+    ) -> None:
+        """Two-way binding for two mutually exclusive buttons representing a
+        boolean field.
+
+        *on_changed* runs after every render with the current value — use it
+        for display side effects that follow the setting."""
+        true_btn.clicked.connect(lambda: setattr(owner(), field, True))
+        false_btn.clicked.connect(lambda: setattr(owner(), field, False))
+
+        def render() -> None:
+            value = bool(getattr(owner(), field))
+            # auto-exclusive buttons ignore setChecked(False), so unchecking
+            # is done with exclusivity temporarily disabled — this must not
+            # depend on the two buttons sharing a parent
+            for button, state in ((true_btn, value), (false_btn, not value)):
+                exclusive = button.autoExclusive()
+                button.setAutoExclusive(False)
+                button.setChecked(state)
+                button.setAutoExclusive(exclusive)
+            if on_changed is not None:
+                on_changed(value)
+
+        self.add_render(render, true_btn, false_btn, field=event_field or field)
+
     def bind_spinbox(
         self,
         spinbox: Any,
