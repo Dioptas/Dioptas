@@ -17,6 +17,8 @@ from ...model.util.HelperModule import get_partial_index, get_partial_value
 
 from .EpicsController import EpicsController
 
+from ..binding import Binder
+
 logger = logging.getLogger(__name__)
 
 
@@ -33,6 +35,7 @@ class ImageController:
         """
         self.widget = widget
         self.model = dioptas_model
+        self.binder = Binder(field_events=self.model.configuration_params_changed)
 
         self.epics_controller = EpicsController(self.widget, self.model)
 
@@ -48,6 +51,25 @@ class ImageController:
 
         self.create_signals()
         self.create_mouse_behavior()
+
+        self.binder.add_render(
+            lambda: self.widget.img_mask_btn.setChecked(bool(self.model.use_mask)),
+            self.widget.img_mask_btn,
+            field="use_mask",
+        )
+        self.binder.add_render(
+            lambda: self.widget.autoprocess_cb.setChecked(
+                bool(self.model.img_model.autoprocess)
+            ),
+            self.widget.autoprocess_cb,
+            field="img.autoprocess",
+        )
+        self.binder.add_render(
+            lambda: self.widget.calibration_lbl.setText(
+                self.model.calibration_model.calibration_name
+            )
+        )
+        self.binder.refresh()
 
     def plot_img(self, auto_scale=None):
         """
@@ -122,16 +144,11 @@ class ImageController:
         else:
             self.widget.img_widget.deactivate_mask()
 
-    def update_mask_transparency(self):
-        """
-        Changes the colormap of the mask according to the transparency option selection in the GUI. Resulting Mask will
-        be either transparent or solid.
-        """
-        self.model.transparent_mask = self.widget.mask_transparent_cb.isChecked()
-        if self.model.transparent_mask:
-            self.widget.img_widget.set_mask_color([255, 0, 0, 100])
-        else:
-            self.widget.img_widget.set_mask_color([255, 0, 0, 255])
+    def _apply_mask_transparency(self, transparent):
+        """Display side effect following the transparent_mask setting."""
+        self.widget.img_widget.set_mask_color(
+            [255, 0, 0, 100] if transparent else [255, 0, 0, 255]
+        )
 
     def create_signals(self):
         self.model.configuration_selected.connect(self.update_gui_from_configuration)
@@ -165,7 +182,15 @@ class ImageController:
         # Image widget image specific controls
         self.widget.img_roi_btn.clicked.connect(self.click_roi_btn)
         self.widget.img_mask_btn.clicked.connect(self.change_mask_mode)
-        self.widget.mask_transparent_cb.clicked.connect(self.update_mask_transparency)
+        self.binder.bind_checkbox(
+            self.widget.mask_transparent_cb,
+            lambda: self.model.current_configuration,
+            "transparent_mask",
+        )
+        self.binder.add_render(
+            lambda: self._apply_mask_transparency(self.model.transparent_mask),
+            field="transparent_mask",
+        )
 
         ###
         # Image Widget cake specific controls
@@ -1049,10 +1074,7 @@ class ImageController:
                             out_file.write("{:6.2f}".format(azi) + row_str + '\n')
 
     def update_gui_from_configuration(self):
-        self.widget.img_mask_btn.setChecked(int(self.model.use_mask))
-        self.widget.mask_transparent_cb.setChecked(bool(self.model.transparent_mask))
-        self.widget.autoprocess_cb.setChecked(bool(self.model.img_model.autoprocess))
-        self.widget.calibration_lbl.setText(self.model.calibration_model.calibration_name)
+        self.binder.refresh()
 
         self.update_img_control_widget()
         self.update_mask_mode()

@@ -207,3 +207,45 @@ def test_field_events_render_individual_bindings(qapp, settings):
 
     field_events.emit("points", 999, 360)
     assert spinbox.value() == 999
+
+
+def test_number_field_binding(qapp, binder, settings):
+    field = QtWidgets.QLineEdit()
+    binder.bind_number_field(field, lambda: settings, "points", dtype=float)
+
+    field.setText("2.5")
+    field.editingFinished.emit()
+    assert settings.points == 2.5
+
+    settings.points = 7.0
+    binder.refresh()
+    assert field.text() == "7.0"
+
+
+def test_number_field_binding_ignores_invalid_input(qapp, binder, settings):
+    field = QtWidgets.QLineEdit()
+    binder.bind_number_field(field, lambda: settings, "points", dtype=float)
+
+    settings.points = 5.0
+    field.setText("not a number")
+    field.editingFinished.emit()
+    assert settings.points == 5.0  # unchanged
+
+
+def test_radio_pair_binding(qapp, binder, settings):
+    true_btn = QtWidgets.QRadioButton()
+    false_btn = QtWidgets.QRadioButton()
+    seen = []
+    binder.bind_radio_pair(
+        true_btn, false_btn, lambda: settings, "flag", on_changed=seen.append
+    )
+
+    true_btn.click()
+    assert settings.flag is True
+    false_btn.click()
+    assert settings.flag is False
+
+    settings.flag = True
+    binder.refresh()
+    assert true_btn.isChecked() and not false_btn.isChecked()
+    assert seen[-1] is True  # display side effect follows the setting

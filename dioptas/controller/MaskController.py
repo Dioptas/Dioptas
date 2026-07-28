@@ -14,6 +14,8 @@ from ..widgets.MaskPluginWidget import MaskPluginSettingsDialog
 from ..widgets.MaskWidget import MaskWidget
 from ..model.DioptasModel import DioptasModel
 
+from .binding import Binder
+
 
 class MaskController:
     DEFAULT_MASK_FILTER = 'Mask (*.mask)'
@@ -28,6 +30,7 @@ class MaskController:
         """
         self.widget = widget
         self.model = dioptas_model
+        self.binder = Binder(field_events=self.model.configuration_params_changed)
 
         self.state = None
         self.clicks = 0
@@ -61,8 +64,13 @@ class MaskController:
         self.widget.add_mask_btn.clicked.connect(self.add_mask_btn_click)
         self.widget.mask_rb.clicked.connect(self.mask_rb_click)
         self.widget.unmask_rb.clicked.connect(self.unmask_rb_click)
-        self.widget.fill_rb.clicked.connect(self.fill_rb_click)
-        self.widget.transparent_rb.clicked.connect(self.transparent_rb_click)
+        self.binder.bind_radio_pair(
+            self.widget.transparent_rb,
+            self.widget.fill_rb,
+            lambda: self.model.current_configuration,
+            "transparent_mask",
+            on_changed=self._apply_mask_transparency,
+        )
 
         self.widget.point_size_sb.valueChanged.connect(self.set_point_size)
         self.widget.img_widget.mouse_moved.connect(self.show_img_mouse_position)
@@ -572,15 +580,11 @@ class MaskController:
         self.widget.img_widget.mask_preview_fill_color = QtGui.QColor(0, 255, 0, 150)
         self.update_shape_preview_fill_color()
 
-    def fill_rb_click(self):
-        self.model.transparent_mask = False
-        self.widget.img_widget.set_mask_color([255, 0, 0, 255])
-        self.plot_mask()
-
-    #
-    def transparent_rb_click(self):
-        self.model.transparent_mask = True
-        self.widget.img_widget.set_mask_color([255, 0, 0, 100])
+    def _apply_mask_transparency(self, transparent):
+        """Display side effect following the transparent_mask setting."""
+        self.widget.img_widget.set_mask_color(
+            [255, 0, 0, 100] if transparent else [255, 0, 0, 255]
+        )
         self.plot_mask()
 
     def show_img_mouse_position(self, x, y):
@@ -596,15 +600,7 @@ class MaskController:
 
     def update_gui(self):
         self.plot_image()
-
-        # transparency
-        if self.model.transparent_mask:
-            self.widget.transparent_rb.setChecked(True)
-            self.transparent_rb_click()
-        else:
-            self.widget.fill_rb.setChecked(True)
-            self.fill_rb_click()
-
+        self.binder.refresh()  # transparency radios + their display effect
         self._update_plugin_checkboxes()
         self.plot_mask()
 
