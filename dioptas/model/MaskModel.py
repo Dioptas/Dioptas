@@ -13,6 +13,7 @@ from PIL import Image
 
 from .util.cosmics import cosmicsimage
 from .util import Signal
+from .state import MaskParams
 from .util.point import Point
 
 logger = logging.getLogger(__name__)
@@ -20,11 +21,13 @@ logger = logging.getLogger(__name__)
 
 class MaskModel:
     def __init__(self, mask_dimension: tuple[int, int] = (2048, 2048)) -> None:
+        # All user-settable parameters live in the evented params dataclass;
+        # the properties below delegate to it.
+        self.params: MaskParams = MaskParams()
+
         self.mask_dimension: tuple[int, int] = mask_dimension
         self.reset_dimension()
         self.filename: str = ''
-        self.mode: bool = True
-        self.roi: tuple[int, int, int, int] | None = None
 
         self._mask_data: np.ndarray = np.zeros(self.mask_dimension, dtype=bool)
         self._undo_deque: deque[np.ndarray] = deque(maxlen=50)
@@ -37,6 +40,22 @@ class MaskModel:
         self.mask_changed: Signal = Signal()
 
         self.mask_plugin_manager = None  # set by Configuration
+
+    @property
+    def mode(self) -> bool:
+        return self.params.mode
+
+    @mode.setter
+    def mode(self, new_mode: bool) -> None:
+        self.params.mode = new_mode
+
+    @property
+    def roi(self) -> tuple[int, int, int, int] | None:
+        return self.params.roi
+
+    @roi.setter
+    def roi(self, new_roi: tuple[int, int, int, int] | None) -> None:
+        self.params.roi = new_roi
 
     def set_dimension(self, mask_dimension: tuple[int, int]) -> None:
         if not np.array_equal(mask_dimension, self.mask_dimension):

@@ -13,7 +13,14 @@ from xypattern import Pattern
 from xypattern.auto_background import SmoothBrucknerBackground
 
 from .util import Signal
-from .state import ConfigurationParams, ImgParams, save_params, load_params, Derived
+from .state import (
+    ConfigurationParams,
+    ImgParams,
+    MaskParams,
+    save_params,
+    load_params,
+    Derived,
+)
 from .util.ImgCorrection import (
     CbnCorrection,
     ObliqueAngleDetectorAbsorptionCorrection,
@@ -648,6 +655,7 @@ class Configuration:
 
         # save mask model (only user-drawn mask, not plugin-generated masks)
         mask_group = f.create_group("mask")
+        save_params(mask_group, self.mask_model.params)
         current_mask = self.mask_model.get_img()
         mask_data = mask_group.create_dataset("data", current_mask.shape, dtype=bool)
         mask_data[...] = current_mask
@@ -1094,6 +1102,10 @@ class Configuration:
             self.img_model.params.file_iteration_mode = (
                 saved_img_params.file_iteration_mode
             )
+
+        saved_mask_params = load_params(f.get("mask"), MaskParams)
+        if saved_mask_params is not None:
+            self.mask_model.params.mode = saved_mask_params.mode
 
         if self.calibration_model.is_calibrated:
             self.integrate_image_1d()
