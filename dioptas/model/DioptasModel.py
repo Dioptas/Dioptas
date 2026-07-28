@@ -73,6 +73,10 @@ class DioptasModel:
         self.cake_changed: Signal = Signal()
         self.enabled_phases_in_cake: Signal = Signal()
 
+        # forwards the current configuration's params event, emitting
+        # (new_unit, previous_unit); rewired on configuration switch
+        self.integration_unit_changed: Signal = Signal(str, str)
+
         self.clicked_tth: float = 0
         self.clicked_azi: float = 0
 
@@ -343,6 +347,9 @@ class DioptasModel:
         self.mask_model.mask_changed.disconnect(self.mask_changed)
         self.pattern_model.pattern_changed.disconnect(self.pattern_changed)
         self.current_configuration.cake_changed.disconnect(self.cake_changed)
+        self.current_configuration.params.events.integration_unit.disconnect(
+            self.integration_unit_changed.emit, missing_ok=True
+        )
 
     def connect_models(self) -> None:
         """Connects signals of the currently selected configuration."""
@@ -350,6 +357,9 @@ class DioptasModel:
         self.mask_model.mask_changed.connect(self.mask_changed)
         self.pattern_model.pattern_changed.connect(self.pattern_changed)
         self.current_configuration.cake_changed.connect(self.cake_changed)
+        self.current_configuration.params.events.integration_unit.connect(
+            self.integration_unit_changed.emit
+        )
 
     @property
     def working_directories(self) -> dict[str, str]:

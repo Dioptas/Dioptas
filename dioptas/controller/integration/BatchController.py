@@ -113,15 +113,15 @@ class BatchController:
             self.normalize_btn_clicked
         )
 
-        # set unit of x axis
+        # set unit of x axis; display updates run in reaction to the model
+        # signal, so unit changes made elsewhere (e.g. the pattern widget's
+        # unit buttons) are reflected here as well
         self.widget.batch_widget.options_widget.tth_btn.clicked.connect(
             self.set_unit_tth
         )
         self.widget.batch_widget.options_widget.q_btn.clicked.connect(self.set_unit_q)
         self.widget.batch_widget.options_widget.d_btn.clicked.connect(self.set_unit_d)
-        self.widget.pattern_q_btn.clicked.connect(self.set_unit_q)
-        self.widget.pattern_tth_btn.clicked.connect(self.set_unit_tth)
-        self.widget.pattern_d_btn.clicked.connect(self.set_unit_d)
+        self.model.integration_unit_changed.connect(self._integration_unit_changed)
 
         # work with filenames
         self.widget.img_directory_txt.editingFinished.connect(
@@ -422,69 +422,54 @@ class BatchController:
         self.widget.batch_widget.stack_plot_widget.img_view.activate_vertical_line()
         self.widget.batch_widget.stack_plot_widget.img_view.vertical_line.setValue(pos)
 
-    def set_unit_tth(self):
-        """
-        Set 2th_deg unit on batch plot
+    # (axis label, unit suffix, inverted x-axis) per integration unit
+    _UNIT_DISPLAY = {
+        "2th_deg": ("2θ", "°", False),
+        "q_A^-1": ("Q", "A<sup>-1</sup>", False),
+        "d_A": ("d", "A", True),
+    }
 
-        Corresponding buttons on batch and pattern widgets are checked.
-        """
-        self.widget.batch_widget.options_widget.tth_btn.setChecked(True)
-        self.widget.integration_pattern_widget.tth_btn.setChecked(True)
-        self.model.current_configuration.integration_unit = "2th_deg"
-        self.widget.batch_widget.stack_plot_widget.img_view.bottom_axis_cake.setLabel(
-            "2θ", "°"
-        )
-        self.widget.batch_widget.stack_plot_widget.img_view.img_view_box.invertX(False)
-        self.update_x_axis()
-        if not self.model.calibration_model.is_calibrated:
-            x = (
-                self.widget.batch_widget.stack_plot_widget.img_view.vertical_line.getXPos()
-            )
-            y = (
-                self.widget.batch_widget.position_widget.step_series_widget.slider.value()
-            )
-            self.plot_pattern(int(x), int(y))
+    def set_unit_tth(self):
+        self.set_unit("2th_deg")
 
     def set_unit_q(self):
-        """
-        Set q_A^-1 unit on batch plot
-
-        Corresponding buttons on batch and pattern widgets are checked.
-        """
-        self.widget.batch_widget.options_widget.q_btn.setChecked(True)
-        self.widget.integration_pattern_widget.q_btn.setChecked(True)
-        self.model.current_configuration.integration_unit = "q_A^-1"
-        self.widget.batch_widget.stack_plot_widget.img_view.img_view_box.invertX(False)
-        self.widget.batch_widget.stack_plot_widget.img_view.bottom_axis_cake.setLabel(
-            "Q", "A<sup>-1</sup>"
-        )
-        self.update_x_axis()
-        if not self.model.calibration_model.is_calibrated:
-            x = (
-                self.widget.batch_widget.stack_plot_widget.img_view.vertical_line.getXPos()
-            )
-            y = (
-                self.widget.batch_widget.position_widget.step_series_widget.slider.value()
-            )
-            self.plot_pattern(int(x), int(y))
+        self.set_unit("q_A^-1")
 
     def set_unit_d(self):
-        """
-        Set d_A unit on batch plot
+        self.set_unit("d_A")
 
-        Corresponding buttons on batch and pattern widgets are checked.
-        """
-        self.widget.batch_widget.options_widget.d_btn.setChecked(True)
-        self.widget.integration_pattern_widget.d_btn.setChecked(True)
-        self.model.current_configuration.integration_unit = "d_A"
-        self.widget.batch_widget.stack_plot_widget.img_view.bottom_axis_cake.setLabel(
-            "d", "A"
-        )
+    def set_unit(self, unit):
+        changed = self.model.current_configuration.integration_unit != unit
+        self.model.current_configuration.integration_unit = unit
+        if not changed:
+            # no model event fired — still refresh the batch axis display,
+            # matching the historical always-refresh behavior of set_unit_*
+            self._apply_unit(unit)
+
+    def _integration_unit_changed(self, new_unit, previous_unit=None):
+        self._apply_unit(new_unit)
+
+    def _apply_unit(self, unit):
+        """Renders the batch plot for the given integration unit."""
+        label, unit_suffix, inverted = self._UNIT_DISPLAY[unit]
+        batch_button = {
+            "2th_deg": self.widget.batch_widget.options_widget.tth_btn,
+            "q_A^-1": self.widget.batch_widget.options_widget.q_btn,
+            "d_A": self.widget.batch_widget.options_widget.d_btn,
+        }[unit]
+        batch_button.setChecked(True)
+        pattern_button = {
+            "2th_deg": self.widget.integration_pattern_widget.tth_btn,
+            "q_A^-1": self.widget.integration_pattern_widget.q_btn,
+            "d_A": self.widget.integration_pattern_widget.d_btn,
+        }[unit]
+        pattern_button.setChecked(True)
+        img_view = self.widget.batch_widget.stack_plot_widget.img_view
+        img_view.bottom_axis_cake.setLabel(label, unit_suffix)
+        img_view.img_view_box.invertX(inverted)
         self.update_x_axis()
         if not self.model.calibration_model.is_calibrated:
-            x = (
-                self.widget.batch_widget.stack_plot_widget.img_view.vertical_line.getXPos()
-            )
+            x = img_view.vertical_line.getXPos()
             y = (
                 self.widget.batch_widget.position_widget.step_series_widget.slider.value()
             )
@@ -1530,12 +1515,4 @@ class BatchController:
         """
         Apply integration unit from current_configuration
         """
-        if self.model.current_configuration.integration_unit == "2th_deg":
-            self.widget.batch_widget.options_widget.tth_btn.setChecked(True)
-            self.set_unit_tth()
-        elif self.model.current_configuration.integration_unit == "d_A":
-            self.widget.batch_widget.options_widget.d_btn.setChecked(True)
-            self.set_unit_d()
-        elif self.model.current_configuration.integration_unit == "q_A^-1":
-            self.widget.batch_widget.options_widget.q_btn.setChecked(True)
-            self.set_unit_q()
+        self._apply_unit(self.model.current_configuration.integration_unit)
