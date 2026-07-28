@@ -43,8 +43,8 @@ class MapWidget(QtWidgets.QWidget):
         self.img_pg_layout.installEventFilter(self)
 
         self.pattern_pg_layout = GraphicsLayoutWidget()
+        # the window region is put up by MapRoiInPatternController
         self.pattern_plot_widget = PatternWidget(self.pattern_pg_layout)
-        self.pattern_plot_widget.show_map_interactive_roi()
 
         self.pattern_footer_widget = PatternFooterWidget()
         self.pattern_widget = QtWidgets.QWidget()

@@ -8,6 +8,7 @@ from dioptas.model.util.calc import convert_units
 from dioptas.widgets.MapWidget import MapWidget
 
 from .MapPanelController import MapPanelController
+from .integration.MapRoiInPatternController import MapRoiInPatternController
 from .integration.phase.PhaseInPatternController import PhaseInPatternController
 from .integration.overlay.OverlayInPatternController import OverlayInPatternController
 
@@ -39,6 +40,10 @@ class MapController:
         self.overlay_in_pattern_controller = OverlayInPatternController(
             self.widget.pattern_plot_widget, self.model.overlay_model
         )
+        # this plot exists to drive the map, so its window region is always up
+        self.map_roi_controller = MapRoiInPatternController(
+            self.widget.pattern_plot_widget, self.model, always_visible=True
+        )
 
         self.create_signals()
 
@@ -61,9 +66,6 @@ class MapController:
         )
 
         self.widget.pattern_plot_widget.mouse_left_clicked.connect(self.pattern_clicked)
-        self.widget.pattern_plot_widget.map_interactive_roi.sigRegionChanged.connect(
-            self.pattern_roi_changed
-        )
         self.widget.pattern_plot_widget.mouse_moved.connect(
             self.pattern_plot_mouse_moved
         )
@@ -381,11 +383,7 @@ class MapController:
         pos_widget.azi_lbl.setText(f"X: {azi:.3f}")
 
     def pattern_clicked(self, x, _):
-        self.widget.pattern_plot_widget.map_interactive_roi.setCenter(x)
-
-    def pattern_roi_changed(self, interactive_roi):
-        region = interactive_roi.getRegion()
-        self.model.map_model.set_window(region)
+        self.map_roi_controller.set_center(x)
 
     def _y_scale_log_clicked(self):
         if self.widget.pattern_footer_widget.log_btn.isChecked():
