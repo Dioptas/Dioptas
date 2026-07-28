@@ -281,3 +281,20 @@ def test_phase_item_params_backed_lists():
     assert phase_model.item_params[0].visible is False
     assert phase_model.phase_colors[0] == (1, 2, 3)
     assert phase_model.phase_visible[0] is False
+
+
+def test_direct_overlay_params_writes_reach_pattern_math():
+    """Uniform writes: direct params writes update the Pattern computation."""
+    import numpy as np
+    from dioptas.model.OverlayModel import OverlayModel
+
+    overlay_model = OverlayModel()
+    overlay = overlay_model.add_overlay(np.linspace(0, 10), np.ones(50), "ov")
+
+    overlay.params.scaling = 3.0
+    overlay.params.offset = 1.0
+    _, y = overlay.data
+    assert y[0] == 3.0 * 1.0 + 1.0
+
+    overlay.params.scaling = -2.0  # clamped by xypattern
+    assert overlay.params.scaling == 0.0

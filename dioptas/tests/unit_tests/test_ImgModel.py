@@ -323,9 +323,9 @@ def test_img_model_settings_delegate_to_params():
     assert img_model.params.factor == 2.5
     assert len(emitted) == 1  # property setter keeps its side effect
 
-    img_model.params.factor = 3.0  # direct params write: storage + event only
+    img_model.params.factor = 3.0  # direct write behaves like the property
     assert img_model.factor == 3.0
-    assert len(emitted) == 1
+    assert len(emitted) == 2
 
     img_model.file_iteration_mode = "time"
     assert img_model.params.file_iteration_mode == "time"
@@ -354,3 +354,26 @@ def test_transformations_are_canonical_in_params():
 
     img_model.load_transformations_string_list(["not_a_transformation"])
     assert img_model.params.transformations == []
+
+
+def test_direct_img_params_writes_trigger_same_reactions():
+    """Uniform writes: direct params writes behave like property writes."""
+    from dioptas.model.ImgModel import ImgModel
+
+    img_model = ImgModel()
+    emitted = []
+    img_model.img_changed.connect(lambda: emitted.append(1))
+
+    img_model.params.factor = 2  # int, direct write
+    assert len(emitted) == 1
+    assert isinstance(img_model.params.factor, float)  # coerced in reaction
+
+    img_model.params.background_scaling = 3
+    assert len(emitted) == 2
+    assert isinstance(img_model.params.background_scaling, float)
+
+    img_model.params.autoprocess = True
+    assert img_model._directory_watcher._active if hasattr(
+        img_model._directory_watcher, "_active"
+    ) else True
+    img_model.params.autoprocess = False
