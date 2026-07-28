@@ -4,6 +4,7 @@ from ..utility import QtTest, click_button, click_checkbox
 import os
 import gc
 
+import pytest
 from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtTest import QTest
 from mock import MagicMock
@@ -357,6 +358,22 @@ def test_save_phaselist(qapp, tmp_path):
     assert len(model.phase_model.phases) == 2
 
 
-def test_save_phaselist_with_german_locale(qapp, tmp_path):
+@pytest.fixture
+def german_locale():
+    """Use a German default locale for the duration of one test.
+
+    QLocale.setDefault is process-global, so it has to be restored: otherwise
+    every later test in the same process formats and validates numbers with a
+    comma decimal separator, which silently breaks any test that types "1.0"
+    into a QDoubleValidator-backed field.
+    """
+    previous = QtCore.QLocale()
     QtCore.QLocale.setDefault(QtCore.QLocale(QtCore.QLocale.German))
+    try:
+        yield
+    finally:
+        QtCore.QLocale.setDefault(previous)
+
+
+def test_save_phaselist_with_german_locale(qapp, tmp_path, german_locale):
     test_save_phaselist(qapp, tmp_path)
