@@ -8,6 +8,7 @@ from ...CustomWidgets import (
     MenuTabWidget,
     ParameterFormWidget,
     CheckableButton,
+    align_parameter_forms,
 )
 from dioptas.paths import diagrams_path
 
@@ -78,6 +79,13 @@ class CorrectionsWidget(QtWidgets.QWidget):
         ])
 
     @staticmethod
+    def _create_formula_field(default, placeholder):
+        txt = QtWidgets.QLineEdit(default)
+        txt.setPlaceholderText(placeholder)
+        txt.setMaximumWidth(160)
+        return txt
+
+    @staticmethod
     def _create_description_label(text):
         lbl = QtWidgets.QLabel(text)
         lbl.setWordWrap(True)
@@ -113,10 +121,15 @@ class CorrectionsWidget(QtWidgets.QWidget):
 
         self._cbn_seat_right_layout = QtWidgets.QVBoxLayout()
         self._cbn_seat_right_layout.addWidget(self.cbn_seat_plot_btn)
-        self._cbn_seat_right_layout.addStretch()
+        self._cbn_seat_layout.addSpacing(15)
         self._cbn_seat_layout.addLayout(self._cbn_seat_right_layout)
+        self._cbn_seat_layout.setAlignment(
+            self._cbn_seat_right_layout, QtCore.Qt.AlignTop
+        )
+        self._cbn_seat_layout.addStretch()
 
         self._cbn_seat_outer_layout.addLayout(self._cbn_seat_layout)
+        self._cbn_seat_outer_layout.addStretch()
         self.cbn_seat_gb.setLayout(self._cbn_seat_outer_layout)
 
     def create_oiadac_widgets(self):
@@ -142,10 +155,15 @@ class CorrectionsWidget(QtWidgets.QWidget):
 
         self._oiadac_right_layout = QtWidgets.QVBoxLayout()
         self._oiadac_right_layout.addWidget(self.oiadac_plot_btn)
-        self._oiadac_right_layout.addStretch()
+        self._oiadac_layout.addSpacing(15)
         self._oiadac_layout.addLayout(self._oiadac_right_layout)
+        self._oiadac_layout.setAlignment(
+            self._oiadac_right_layout, QtCore.Qt.AlignTop
+        )
+        self._oiadac_layout.addStretch()
 
         self._oiadac_outer_layout.addLayout(self._oiadac_layout)
+        self._oiadac_outer_layout.addStretch()
         self.oiadac_gb.setLayout(self._oiadac_outer_layout)
 
     def create_transfer_widgets(self):
@@ -185,10 +203,13 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.slab_gb = QtWidgets.QGroupBox("Slab Absorption Correction")
         self.slab_plot_btn = CheckableButton("Plot")
 
-        self.slab_formula_txt = QtWidgets.QLineEdit("CeO2")
-        self.slab_formula_txt.setPlaceholderText("e.g. CeO2, Fe2O3, Au")
+        self.slab_formula_txt = self._create_formula_field(
+            "CeO2", "e.g. CeO2, Fe2O3, Au"
+        )
 
-        self.slab_param_form = ParameterFormWidget([
+        self.slab_param_form = ParameterFormWidget()
+        self.slab_param_form.add_row("Formula", self.slab_formula_txt)
+        self.slab_param_form.add_parameters([
             ("density", "Density", 7.22, "g/cm³"),
             ("thickness", "Thickness", 0.1, "mm"),
             ("slab_tilt", "Slab tilt", 0.0, "°"),
@@ -206,12 +227,6 @@ class CorrectionsWidget(QtWidgets.QWidget):
             "Integrates absorption over the scattering depth within the sample."
         ))
 
-        # Formula row
-        formula_layout = QtWidgets.QHBoxLayout()
-        formula_layout.addWidget(QtWidgets.QLabel("Formula:"))
-        formula_layout.addWidget(self.slab_formula_txt)
-        self._slab_layout.addLayout(formula_layout)
-
         # Parameters + plot button
         params_layout = QtWidgets.QHBoxLayout()
         params_layout.addWidget(self.slab_param_form)
@@ -219,21 +234,27 @@ class CorrectionsWidget(QtWidgets.QWidget):
         right_layout = QtWidgets.QVBoxLayout()
         right_layout.addWidget(self.slab_plot_btn)
         right_layout.addWidget(self.slab_mu_lbl)
-        right_layout.addStretch()
+        params_layout.addSpacing(15)
         params_layout.addLayout(right_layout)
+        params_layout.setAlignment(right_layout, QtCore.Qt.AlignTop)
+        params_layout.addStretch()
 
         self._slab_layout.addLayout(params_layout)
         self._slab_layout.addWidget(self._create_diagram_label("slab_geometry.svg"))
+        self._slab_layout.addStretch()
         self.slab_gb.setLayout(self._slab_layout)
 
     def create_cylinder_correction_widgets(self):
         self.cylinder_gb = QtWidgets.QGroupBox("Cylinder Absorption Correction")
         self.cylinder_plot_btn = CheckableButton("Plot")
 
-        self.cylinder_formula_txt = QtWidgets.QLineEdit("SiO2")
-        self.cylinder_formula_txt.setPlaceholderText("e.g. SiO2, LaB6")
+        self.cylinder_formula_txt = self._create_formula_field(
+            "SiO2", "e.g. SiO2, LaB6"
+        )
 
-        self.cylinder_param_form = ParameterFormWidget([
+        self.cylinder_param_form = ParameterFormWidget()
+        self.cylinder_param_form.add_row("Formula", self.cylinder_formula_txt)
+        self.cylinder_param_form.add_parameters([
             ("density", "Density", 2.65, "g/cm³"),
             ("radius", "Radius", 0.15, "mm"),
             ("axis_tilt", "Axis tilt", 0.0, "°"),
@@ -242,13 +263,22 @@ class CorrectionsWidget(QtWidgets.QWidget):
         ])
 
         # Container sub-section
-        self.cylinder_container_formula_txt = QtWidgets.QLineEdit("")
-        self.cylinder_container_formula_txt.setPlaceholderText("e.g. SiO2 (glass)")
+        self.cylinder_container_formula_txt = self._create_formula_field(
+            "", "e.g. SiO2 (glass)"
+        )
 
-        self.cylinder_container_param_form = ParameterFormWidget([
+        self.cylinder_container_param_form = ParameterFormWidget()
+        self.cylinder_container_param_form.add_row(
+            "Container", self.cylinder_container_formula_txt
+        )
+        self.cylinder_container_param_form.add_parameters([
             ("container_density", "Container density", 2.23, "g/cm³"),
             ("wall_thickness", "Wall thickness", 0.01, "mm"),
         ])
+
+        align_parameter_forms(
+            self.cylinder_param_form, self.cylinder_container_param_form
+        )
 
         self.cylinder_mu_lbl = QtWidgets.QLabel("μ:")
 
@@ -261,12 +291,6 @@ class CorrectionsWidget(QtWidgets.QWidget):
             "with optional container wall absorption."
         ))
 
-        # Sample formula row
-        formula_layout = QtWidgets.QHBoxLayout()
-        formula_layout.addWidget(QtWidgets.QLabel("Formula:"))
-        formula_layout.addWidget(self.cylinder_formula_txt)
-        self._cylinder_layout.addLayout(formula_layout)
-
         # Sample parameters + plot/mu
         params_layout = QtWidgets.QHBoxLayout()
         params_layout.addWidget(self.cylinder_param_form)
@@ -274,19 +298,17 @@ class CorrectionsWidget(QtWidgets.QWidget):
         right_layout = QtWidgets.QVBoxLayout()
         right_layout.addWidget(self.cylinder_plot_btn)
         right_layout.addWidget(self.cylinder_mu_lbl)
-        right_layout.addStretch()
+        params_layout.addSpacing(15)
         params_layout.addLayout(right_layout)
+        params_layout.setAlignment(right_layout, QtCore.Qt.AlignTop)
+        params_layout.addStretch()
         self._cylinder_layout.addLayout(params_layout)
 
         # Container section
-        container_formula_layout = QtWidgets.QHBoxLayout()
-        container_formula_layout.addWidget(QtWidgets.QLabel("Container:"))
-        container_formula_layout.addWidget(self.cylinder_container_formula_txt)
-        self._cylinder_layout.addLayout(container_formula_layout)
-
         self._cylinder_layout.addWidget(self.cylinder_container_param_form)
 
         self._cylinder_layout.addWidget(self._create_diagram_label("cylinder_geometry.svg"))
+        self._cylinder_layout.addStretch()
 
         self.cylinder_gb.setLayout(self._cylinder_layout)
 
@@ -294,10 +316,13 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self.sphere_gb = QtWidgets.QGroupBox("Sphere Absorption Correction")
         self.sphere_plot_btn = CheckableButton("Plot")
 
-        self.sphere_formula_txt = QtWidgets.QLineEdit("Fe2O3")
-        self.sphere_formula_txt.setPlaceholderText("e.g. Fe2O3, Au")
+        self.sphere_formula_txt = self._create_formula_field(
+            "Fe2O3", "e.g. Fe2O3, Au"
+        )
 
-        self.sphere_param_form = ParameterFormWidget([
+        self.sphere_param_form = ParameterFormWidget()
+        self.sphere_param_form.add_row("Formula", self.sphere_formula_txt)
+        self.sphere_param_form.add_parameters([
             ("density", "Density", 5.24, "g/cm³"),
             ("radius", "Radius", 0.5, "mm"),
             ("beam_width", "Beam width", 0.0, "mm"),
@@ -313,12 +338,6 @@ class CorrectionsWidget(QtWidgets.QWidget):
             "Sample self-absorption for a spherical sample."
         ))
 
-        # Formula row
-        formula_layout = QtWidgets.QHBoxLayout()
-        formula_layout.addWidget(QtWidgets.QLabel("Formula:"))
-        formula_layout.addWidget(self.sphere_formula_txt)
-        self._sphere_layout.addLayout(formula_layout)
-
         # Parameters + plot/mu
         params_layout = QtWidgets.QHBoxLayout()
         params_layout.addWidget(self.sphere_param_form)
@@ -326,20 +345,26 @@ class CorrectionsWidget(QtWidgets.QWidget):
         right_layout = QtWidgets.QVBoxLayout()
         right_layout.addWidget(self.sphere_plot_btn)
         right_layout.addWidget(self.sphere_mu_lbl)
-        right_layout.addStretch()
+        params_layout.addSpacing(15)
         params_layout.addLayout(right_layout)
+        params_layout.setAlignment(right_layout, QtCore.Qt.AlignTop)
+        params_layout.addStretch()
 
         self._sphere_layout.addLayout(params_layout)
+        self._sphere_layout.addStretch()
         self.sphere_gb.setLayout(self._sphere_layout)
 
     def create_plate_correction_widgets(self):
         self.plate_gb = QtWidgets.QGroupBox("Plate Absorption Correction")
         self.plate_plot_btn = CheckableButton("Plot")
 
-        self.plate_formula_txt = QtWidgets.QLineEdit("C")
-        self.plate_formula_txt.setPlaceholderText("e.g. C (diamond), SiO2")
+        self.plate_formula_txt = self._create_formula_field(
+            "C", "e.g. C (diamond), SiO2"
+        )
 
-        self.plate_param_form = ParameterFormWidget([
+        self.plate_param_form = ParameterFormWidget()
+        self.plate_param_form.add_row("Formula", self.plate_formula_txt)
+        self.plate_param_form.add_parameters([
             ("density", "Density", 3.51, "g/cm³"),
             ("thickness", "Thickness", 2.0, "mm"),
             ("plate_tilt", "Plate tilt", 0.0, "°"),
@@ -357,12 +382,6 @@ class CorrectionsWidget(QtWidgets.QWidget):
             "(e.g. diamond anvil window, Be window). No scattering depth integration."
         ))
 
-        # Formula row
-        formula_layout = QtWidgets.QHBoxLayout()
-        formula_layout.addWidget(QtWidgets.QLabel("Formula:"))
-        formula_layout.addWidget(self.plate_formula_txt)
-        self._plate_layout.addLayout(formula_layout)
-
         # Parameters + plot button + diagram
         params_layout = QtWidgets.QHBoxLayout()
         params_layout.addWidget(self.plate_param_form)
@@ -370,11 +389,14 @@ class CorrectionsWidget(QtWidgets.QWidget):
         right_layout = QtWidgets.QVBoxLayout()
         right_layout.addWidget(self.plate_plot_btn)
         right_layout.addWidget(self.plate_mu_lbl)
-        right_layout.addStretch()
+        params_layout.addSpacing(15)
         params_layout.addLayout(right_layout)
+        params_layout.setAlignment(right_layout, QtCore.Qt.AlignTop)
+        params_layout.addStretch()
 
         self._plate_layout.addLayout(params_layout)
         self._plate_layout.addWidget(self._create_diagram_label("plate_geometry.svg"))
+        self._plate_layout.addStretch()
         self.plate_gb.setLayout(self._plate_layout)
 
     def create_flat_field_widgets(self):

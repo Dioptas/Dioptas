@@ -459,9 +459,14 @@ class ParameterFormWidget(QtWidgets.QWidget):
     instead of row index, so controllers cannot mix up rows. ``changed``
     is emitted when the user finishes editing any field; programmatic
     ``set_value`` does not emit.
+
+    Rows stay compact: fields keep a fixed width instead of stretching with
+    the panel, and the form only claims the height its rows need.
     """
 
     changed = QtCore.Signal()
+
+    field_width = 90
 
     def __init__(self, parameters=None):
         """
@@ -469,22 +474,50 @@ class ParameterFormWidget(QtWidgets.QWidget):
         """
         super().__init__()
         self._fields = {}
+        self._labels = []
+        self._row_count = 0
         self._grid = QtWidgets.QGridLayout()
         self._grid.setContentsMargins(0, 0, 0, 0)
         self._grid.setSpacing(5)
-        self._grid.setColumnStretch(1, 1)
+        self._grid.setColumnStretch(3, 1)  # empty column absorbs extra width
         self.setLayout(self._grid)
-        for parameter in parameters or []:
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum
+        )
+        self.add_parameters(parameters or [])
+
+    def add_parameters(self, parameters):
+        for parameter in parameters:
             self.add_parameter(*parameter)
 
     def add_parameter(self, name, label, default, unit=""):
-        row = len(self._fields)
         field = NumberTextField("{:g}".format(default))
         field.editingFinished.connect(self.changed)
-        self._grid.addWidget(LabelAlignRight(label + ":"), row, 0)
-        self._grid.addWidget(field, row, 1)
-        self._grid.addWidget(QtWidgets.QLabel(unit), row, 2)
+        field.setMaximumWidth(self.field_width)
+        self.add_row(label, field, unit)
         self._fields[name] = field
+        return field
+
+    def add_row(self, label, widget, unit=""):
+        """Add a row with an arbitrary widget, so that non-numeric input
+        (e.g. a chemical formula) lines up with the parameter rows."""
+        row = self._row_count
+        label_widget = LabelAlignRight(label + ":")
+        self._labels.append(label_widget)
+        self._grid.addWidget(label_widget, row, 0)
+        self._grid.addWidget(
+            widget, row, 1, QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
+        )
+        if unit:
+            self._grid.addWidget(QtWidgets.QLabel(unit), row, 2)
+        self._row_count += 1
+
+    def label_width(self):
+        """Natural width of the label column."""
+        return max((lbl.sizeHint().width() for lbl in self._labels), default=0)
+
+    def set_label_width(self, width):
+        self._grid.setColumnMinimumWidth(0, width)
 
     def field(self, name):
         return self._fields[name]
@@ -500,3 +533,11 @@ class ParameterFormWidget(QtWidgets.QWidget):
 
     def parameter_names(self):
         return list(self._fields)
+
+
+def align_parameter_forms(*forms):
+    """Give several ParameterFormWidgets a common label column width, so that
+    their fields line up when stacked in the same panel."""
+    width = max(form.label_width() for form in forms)
+    for form in forms:
+        form.set_label_width(width)
