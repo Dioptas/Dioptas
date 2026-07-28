@@ -84,6 +84,15 @@ class ViewParams:
     #: what the integration image panel shows: "Image" or "Cake"
     img_mode: str = "Image"
 
+    #: integration window layout: "normal" or "alternative"
+    view_mode: str = "normal"
+
+    #: whether the image panel is docked in the main window
+    img_docked: bool = True
+
+    #: y separation applied by the overlay waterfall action
+    waterfall_separation: float = 100.0
+
 
 @dataclass
 class ImgParams:

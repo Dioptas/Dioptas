@@ -12,6 +12,8 @@ from ...model.util.calc import convert_units
 from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
 
+from ..binding import Binder
+
 
 class PatternController:
     """
@@ -31,17 +33,18 @@ class PatternController:
 
         self.widget = widget
         self.model = dioptas_model
-
-        self.autocreate_pattern = False
+        self.binder = Binder(field_events=self.model.configuration_params_changed)
 
         self.create_subscriptions()
         self.create_gui_signals()
+        self.binder.refresh()
 
     def create_subscriptions(self):
         # Data subscriptions
         self.model.pattern_changed.connect(self.plot_pattern)
         self.model.configuration_selected.connect(self.update_gui)
         self.model.integration_unit_changed.connect(self._integration_unit_changed)
+        self.binder.connect_refresh(self.model.configuration_selected)
 
         # Gui subscriptions
         # self.widget.img_widget.roi.sigRegionChangeFinished.connect(self.image_changed)
@@ -55,7 +58,11 @@ class PatternController:
         """
 
         # file callbacks
-        self.widget.pattern_autocreate_cb.clicked.connect(self.autocreate_cb_changed)
+        self.binder.bind_checkbox(
+            self.widget.pattern_autocreate_cb,
+            lambda: self.model.current_configuration,
+            "auto_save_integrated_pattern",
+        )
         self.widget.pattern_load_btn.clicked.connect(self.load)
         self.widget.pattern_previous_btn.clicked.connect(self.load_previous)
         self.widget.pattern_next_btn.clicked.connect(self.load_next)
@@ -243,12 +250,6 @@ class PatternController:
         self.model.pattern_model.load_next_file(step=step)
         self.widget.pattern_filename_txt.setText(
             os.path.basename(self.model.pattern.filename)
-        )
-
-    def autocreate_cb_changed(self):
-        self.autocreate_pattern = self.widget.pattern_autocreate_cb.isChecked()
-        self.model.current_configuration.auto_save_integrated_pattern = (
-            self.widget.pattern_autocreate_cb.isChecked()
         )
 
     def filename_txt_changed(self):
