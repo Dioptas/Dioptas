@@ -233,3 +233,28 @@ def test_load_params_accepts_current_and_missing_schema_version(tmp_path):
 
     with h5py.File(filename, "r") as f:
         assert load_params(f, ConfigurationParams) is not None
+
+
+def test_load_params_tolerates_corrupt_group(tmp_path):
+    """A corrupt params group must not abort loading — callers fall back to
+    the legacy attributes."""
+    filename = os.path.join(tmp_path, "corrupt.h5")
+    with h5py.File(filename, "w") as f:
+        save_params(f, ConfigurationParams())
+        f["params"].attrs["data"] = "{not valid json"
+
+    with h5py.File(filename, "r") as f:
+        assert load_params(f, ConfigurationParams) is None
+
+    with h5py.File(filename, "r+") as f:
+        del f["params"].attrs["data"]  # missing data attribute
+
+    with h5py.File(filename, "r") as f:
+        assert load_params(f, ConfigurationParams) is None
+
+    with h5py.File(filename, "r+") as f:
+        f["params"].attrs["data"] = "{}"
+        f["params"].attrs["schema_version"] = "garbage"  # non-numeric version
+
+    with h5py.File(filename, "r") as f:
+        assert load_params(f, ConfigurationParams) is None

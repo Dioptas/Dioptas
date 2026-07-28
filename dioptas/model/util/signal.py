@@ -23,7 +23,8 @@ emission with ``reducer``).
 
 import inspect
 from collections.abc import Callable
-from typing import Any, ContextManager
+from contextlib import contextmanager
+from typing import Any, Iterator
 
 from psygnal import EmitLoopError, SignalInstance
 
@@ -84,16 +85,22 @@ class Signal:
         """Unblocks the Signal from emitting."""
         self.blocked = False
 
+    @contextmanager
     def paused(
         self, reducer: Callable[[tuple, tuple], tuple] | None = None
-    ) -> ContextManager[None]:
+    ) -> Iterator[None]:
         """Context manager batching emissions until exit.
 
         Without *reducer* every queued emission is delivered on exit; with a
         reducer the queued emission args are folded pairwise into a single
-        emission (e.g. ``lambda a, b: b`` keeps only the latest).
+        emission (e.g. ``lambda a, b: b`` keeps only the latest). Listener
+        exceptions raised during the flush propagate unwrapped, like emit().
         """
-        return self._psygnal.paused(reducer)
+        try:
+            with self._psygnal.paused(reducer):
+                yield
+        except EmitLoopError as e:
+            raise _unwrap(e) from None
 
     def has_listener(self, handle: Callable[..., Any]) -> bool:
         """Returns True if the handle is in the list of listeners."""

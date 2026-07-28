@@ -131,15 +131,26 @@ def load_params(parent: h5py.Group, cls: type[T], name: str = "params") -> T | N
     if name not in parent:
         return None
     group = parent[name]
-    version = int(group.attrs.get("schema_version", 1))
-    if version > SCHEMA_VERSION:
+    try:
+        version = int(group.attrs.get("schema_version", 1))
+        if version > SCHEMA_VERSION:
+            logger.warning(
+                "params group '%s' has schema_version %d, newer than supported %d "
+                "— falling back to legacy attributes",
+                name,
+                version,
+                SCHEMA_VERSION,
+            )
+            return None
+        data = json.loads(group.attrs["data"])
+        return params_from_dict(cls, data)
+    except (KeyError, ValueError, TypeError) as e:
+        # corrupt params must not abort loading — the legacy attributes are
+        # still present in the file and cover the overlapping fields
         logger.warning(
-            "params group '%s' has schema_version %d, newer than supported %d "
+            "params group '%s' could not be decoded (%s) "
             "— falling back to legacy attributes",
             name,
-            version,
-            SCHEMA_VERSION,
+            e,
         )
         return None
-    data = json.loads(group.attrs["data"])
-    return params_from_dict(cls, data)

@@ -219,3 +219,15 @@ def test_paused_with_reducer_emits_once():
         signal.emit(2)
         signal.emit(3)
     assert memory == [3]
+
+
+def test_paused_flush_exceptions_propagate_unwrapped():
+    signal = Signal()
+
+    def boom():
+        raise ValueError("boom")
+
+    signal.connect(boom)
+    with pytest.raises(ValueError, match="boom"):
+        with signal.paused():
+            signal.emit()

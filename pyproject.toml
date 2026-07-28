@@ -42,7 +42,9 @@ dependencies = [
     "qt-material>=2.14,<3.0",
     "bitshuffle>=0.5.1",
     "xraydb>=4.5.8",
-    "psygnal>=0.15.1",
+    # upper bound: Signal.has_listener relies on psygnal's private _slots
+    # (see dioptas/model/util/signal.py) — verify before raising
+    "psygnal>=0.15.1,<0.16",
 ]
 
 [project.optional-dependencies]
