@@ -221,6 +221,9 @@ class DioptasModel:
             configuration.calibration_model.detector_reset.connect(
                 self.invalidate_multi_geometry
             )
+            configuration.calibration_model.parameters_changed.connect(
+                self.invalidate_multi_geometry
+            )
             self.configurations.append(configuration)
         self.configuration_ind = f.get("configurations").attrs["selected_configuration"]
 
@@ -580,6 +583,9 @@ class DioptasModel:
         self.delete_configurations()
         self.configurations = [Configuration()]
         self.configurations[0].calibration_model.detector_reset.connect(
+            self.invalidate_multi_geometry
+        )
+        self.configurations[0].calibration_model.parameters_changed.connect(
             self.invalidate_multi_geometry
         )
         self.configuration_ind = 0

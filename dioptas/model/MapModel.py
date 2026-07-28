@@ -28,12 +28,6 @@ class MapPointInfo:
 
 
 class MapModel:
-    map_changed = Signal()
-
-    # point_integrated is emitted with the index of the integrated point
-    # it will be a fractional number, when the image file contains multiple frames
-    point_integrated = Signal(float)
-
     def __init__(self, configuration: "Configuration"):
         """
         Creates a new map-model. The configuration specified will serve as
@@ -41,6 +35,12 @@ class MapModel:
         :param configuration: Configuration to be used for integration
         """
         super().__init__()
+        self.map_changed = Signal()
+
+        # point_integrated is emitted with the index of the integrated point
+        # it will be a fractional number, when the image file contains multiple frames
+        self.point_integrated = Signal(float)
+
         self.configuration = configuration
         self.filepaths = None
         self.point_infos = []
@@ -429,17 +429,9 @@ class MapModel:
         self.window = window
         self.dimension = dimension
 
-        # Block map_changed during restore — it is a class-level signal
-        # shared by all instances, so emitting here would trigger handlers
-        # connected via other instances (e.g. MapController) while
-        # DioptasModel.configurations is still empty during load.
-        self.map_changed.blocked = True
-        try:
-            self.set_integration_results(
-                pattern_x, pattern_intensities, point_infos, filepaths
-            )
-        finally:
-            self.map_changed.blocked = False
+        self.set_integration_results(
+            pattern_x, pattern_intensities, point_infos, filepaths
+        )
 
 
 def get_center_window(x, window_range=3) -> list[float]:

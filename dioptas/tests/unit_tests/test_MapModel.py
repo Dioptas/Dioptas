@@ -275,3 +275,23 @@ def test_load_hdf5_without_map_group(map_model: MapModel):
         assert map_model.map is None
     finally:
         os.unlink(tmp_path)
+
+
+def test_signals_are_instance_level(configuration: Configuration):
+    """Each MapModel instance must have its own signals — a signal emitted by
+    one instance must not trigger listeners connected to another instance."""
+    model_a = MapModel(configuration)
+    model_b = MapModel(configuration)
+
+    listener_a = MagicMock()
+    listener_b = MagicMock()
+    model_a.map_changed.connect(listener_a)
+    model_b.map_changed.connect(listener_b)
+
+    model_a.map_changed.emit()
+    listener_a.assert_called_once()
+    listener_b.assert_not_called()
+
+    model_b.point_integrated.connect(listener_b)
+    model_a.point_integrated.emit(1.0)
+    listener_b.assert_not_called()

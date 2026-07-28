@@ -301,6 +301,33 @@ def test_save_empty_configuration(dioptas_model, tmp_path):
     dioptas_model.save(os.path.join(tmp_path, "empty.dio"))
 
 
+def test_parameters_changed_invalidates_multi_geometry_after_load(
+    dioptas_model, tmp_path
+):
+    dioptas_model.save(os.path.join(tmp_path, "project.dio"))
+    dioptas_model.load(os.path.join(tmp_path, "project.dio"))
+
+    dioptas_model._multi_geometry = "sentinel"
+    dioptas_model.calibration_model.parameters_changed.emit()
+    assert dioptas_model._multi_geometry is None
+
+    dioptas_model._multi_geometry = "sentinel"
+    dioptas_model.calibration_model.detector_reset.emit()
+    assert dioptas_model._multi_geometry is None
+
+
+def test_parameters_changed_invalidates_multi_geometry_after_reset(dioptas_model):
+    dioptas_model.reset()
+
+    dioptas_model._multi_geometry = "sentinel"
+    dioptas_model.calibration_model.parameters_changed.emit()
+    assert dioptas_model._multi_geometry is None
+
+    dioptas_model._multi_geometry = "sentinel"
+    dioptas_model.calibration_model.detector_reset.emit()
+    assert dioptas_model._multi_geometry is None
+
+
 def test_clear_model(dioptas_model):
     dioptas_model.calibration_model.load(os.path.join(data_path, "CeO2_Pilatus1M.poni"))
     dioptas_model.img_model.load(os.path.join(data_path, "image_001.tif"))
