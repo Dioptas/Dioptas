@@ -10,6 +10,8 @@
 
 ## Bugfixes
 
+- switching on smoothing in the map hid the position, intensity and filename information below the map plot when hovering over it, because the smoothed image is upscaled and the mouse position was read in that upscaled grid
+
 - checking whether a batch file contains processed data left the file open when reading it raised, which then blocked every later write to that file (same failure mode as the autosave handle leak)
 
 - saving the session (autosave or on close) crashed with "Object of type bool is not JSON serializable" after restoring a previous session, because loading assigned numpy booleans from the project file into the settings; on top of that, the failed save leaked its open file handle, so every following autosave failed with "unable to truncate a file which is already open" — numpy scalars now serialize, and save/load always close the project file even when they fail partway

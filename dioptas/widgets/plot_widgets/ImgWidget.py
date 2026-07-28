@@ -162,7 +162,10 @@ class ImgWidget(QtCore.QObject):
         self.img_scatter_plot_item.show()
 
     def mouseMoved(self, pos):
-        pos = self.data_img_item.mapFromScene(pos)
+        # mapped through the view box and not the image item: a smoothed image
+        # item carries an upscaling transform, which would scale the reported
+        # data coordinates along with it
+        pos = self.img_view_box.mapSceneToView(pos)
         self.mouse_moved.emit(pos.x(), pos.y())
 
     def modify_mouse_behavior(self):
