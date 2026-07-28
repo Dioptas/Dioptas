@@ -798,3 +798,36 @@ def test_pattern_params_forwarded_with_namespace(dioptas_model):
     )
     dioptas_model.pattern_model.params.file_iteration_mode = "time"
     assert got == [("pattern.file_iteration_mode", "time")]
+
+
+def test_mask_model_settings_delegate_to_params(dioptas_model):
+    mask_model = dioptas_model.mask_model
+    mask_model.set_mode(False)
+    assert mask_model.params.mode is False
+
+    dioptas_model.current_configuration.roi = (10, 100, 20, 200)
+    assert mask_model.params.roi == (10, 100, 20, 200)
+    assert mask_model.roi_mask is not None
+
+
+def test_mask_params_forwarded_with_namespace(dioptas_model):
+    got = []
+    dioptas_model.configuration_params_changed.connect(
+        lambda field, new, old: got.append((field, new))
+    )
+    dioptas_model.mask_model.params.mode = False
+    assert got == [("mask.mode", False)]
+
+
+def test_mask_mode_round_trips_via_params(dioptas_model, tmp_path):
+    """MaskModel.mode is not in the legacy layout — it round-trips via the
+    generic mask params group."""
+    dioptas_model.mask_model.set_mode(False)
+    filename = os.path.join(tmp_path, "mask_mode.dio")
+    dioptas_model.save(filename)
+
+    dioptas_model.reset()
+    assert dioptas_model.mask_model.mode is True
+
+    dioptas_model.load(filename)
+    assert dioptas_model.mask_model.mode is False

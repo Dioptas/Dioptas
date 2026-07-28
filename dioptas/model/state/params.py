@@ -25,6 +25,7 @@ from psygnal import SignalGroupDescriptor
 __all__ = [
     "ConfigurationParams",
     "ImgParams",
+    "MaskParams",
     "PatternParams",
     "ViewParams",
     "default_working_directories",
@@ -83,6 +84,23 @@ class ImgParams:
 
     #: how prev/next iterate through files: "number" or "time"
     file_iteration_mode: str = "number"
+
+
+@dataclass
+class MaskParams:
+    """User-settable parameters of a MaskModel.
+
+    Owned by :class:`dioptas.model.MaskModel.MaskModel`; the model's
+    properties delegate here.
+    """
+
+    events: ClassVar[SignalGroupDescriptor] = SignalGroupDescriptor()
+
+    #: drawing mode: True masks, False unmasks
+    mode: bool = True
+
+    #: rectangular region of interest as (x1, x2, y1, y2); None = disabled
+    roi: tuple[int, int, int, int] | None = None
 
 
 @dataclass

@@ -294,3 +294,21 @@ def test_pattern_params_defaults_and_events():
     params.events.unit.connect(lambda new, old: got.append((new, old)))
     params.unit = "q_A^-1"
     assert got == [("q_A^-1", "")]
+
+
+# ---------------------------------------------------------------------------
+# MaskParams
+# ---------------------------------------------------------------------------
+
+from dioptas.model.state import MaskParams
+
+
+def test_mask_params_defaults_and_events():
+    params = MaskParams()
+    assert params.mode is True
+    assert params.roi is None
+
+    got = []
+    params.events.mode.connect(lambda new, old: got.append((new, old)))
+    params.mode = False
+    assert got == [(False, True)]
