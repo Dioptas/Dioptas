@@ -261,6 +261,124 @@ def test_save_load_hdf5_round_trip(map_model: MapModel, configuration: Configura
         os.unlink(tmp_path)
 
 
+def test_pattern_unit_is_stored_on_integration(
+    map_model: MapModel, configuration: Configuration
+):
+    """The unit pattern_x is expressed in is recorded with the map data."""
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    configuration.integration_unit = "q_A^-1"
+    map_model.load(map_img_file_paths)
+
+    assert map_model.pattern_unit == "q_A^-1"
+
+    # switching the display unit afterwards must not change the stored data
+    configuration.integration_unit = "2th_deg"
+    assert map_model.pattern_unit == "q_A^-1"
+
+
+def test_pattern_unit_round_trips_through_hdf5(
+    map_model: MapModel, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    configuration.integration_unit = "q_A^-1"
+    map_model.load(map_img_file_paths)
+
+    with tempfile.NamedTemporaryFile(suffix=".h5", delete=False) as tmp:
+        tmp_path = tmp.name
+
+    try:
+        with h5py.File(tmp_path, "w") as f:
+            map_model.save_in_hdf5(f)
+
+        # a different current unit must not overwrite the stored one
+        configuration.integration_unit = "2th_deg"
+        new_model = MapModel(configuration)
+        with h5py.File(tmp_path, "r") as f:
+            new_model.load_from_hdf5(f)
+
+        assert new_model.pattern_unit == "q_A^-1"
+    finally:
+        os.unlink(tmp_path)
+
+
+def test_pattern_unit_falls_back_for_legacy_files(
+    map_model: MapModel, configuration: Configuration
+):
+    """Project files written before the unit was stored use the current unit."""
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths)
+
+    with tempfile.NamedTemporaryFile(suffix=".h5", delete=False) as tmp:
+        tmp_path = tmp.name
+
+    try:
+        with h5py.File(tmp_path, "w") as f:
+            map_model.save_in_hdf5(f)
+            del f["map"].attrs["pattern_unit"]
+
+        configuration.integration_unit = "d_A"
+        new_model = MapModel(configuration)
+        with h5py.File(tmp_path, "r") as f:
+            new_model.load_from_hdf5(f)
+
+        assert new_model.pattern_unit == "d_A"
+    finally:
+        os.unlink(tmp_path)
+
+
+def test_pattern_unit_is_cleared_on_failed_integration(
+    map_model: MapModel, configuration: Configuration
+):
+    file_paths = [
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.tif"),
+        os.path.join(unittest_data_path, "image_001.tif"),
+    ]
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    with pytest.raises(ValueError):
+        map_model.load(file_paths)
+
+    assert map_model.pattern_unit is None
+
+
+def test_get_index_of_file(map_model: MapModel, configuration: Configuration):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+
+    for i, filepath in enumerate(map_img_file_paths[:6]):
+        assert map_model.get_index_of_file(filepath) == i
+
+    assert map_model.get_index_of_file(map_img_file_paths[6]) is None
+    assert map_model.get_index_of_file(None) is None
+    # right file, but a frame that is not part of the map
+    assert map_model.get_index_of_file(map_img_file_paths[0], 3) is None
+
+
+def test_get_index_of_file_with_multi_frame_file(
+    map_model: MapModel, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load([multi_file_img_path])
+
+    for frame_index in range(10):
+        assert (
+            map_model.get_index_of_file(multi_file_img_path, frame_index)
+            == frame_index
+        )
+    assert map_model.get_index_of_file(multi_file_img_path, 10) is None
+
+
 def test_load_hdf5_without_map_group(map_model: MapModel):
     """Loading from an HDF5 file with no 'map' group is a no-op."""
     with tempfile.NamedTemporaryFile(suffix=".h5", delete=False) as tmp:
