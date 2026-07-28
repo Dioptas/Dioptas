@@ -67,6 +67,7 @@ class MainController:
             self.widget.map_widget, self.model, self.map_panel_controller
         )
         self._map_panel_host = self.widget.map_widget.map_panel_host
+        self._closing = False
 
         self.calibration_controller.activate()
         self.integration_controller.image_controller.deactivate()
@@ -183,6 +184,18 @@ class MainController:
         self.model.img_changed.connect(self.update_title)
         self.model.pattern_changed.connect(self.update_title)
 
+        map_panel = self.widget.map_widget.map_panel_widget
+        map_panel.map_plot_control_widget.undock_btn.clicked.connect(
+            self.map_undock_btn_clicked
+        )
+        for host in (
+            self.widget.map_widget.map_panel_host,
+            self.widget.integration_widget.map_control_widget,
+        ):
+            host.dock_btn.clicked.connect(self.map_dock_btn_clicked)
+        self.widget.map_panel_window.closed.connect(self._map_window_closed)
+        self.model.view.events.map_docked.connect(self._map_docked_changed)
+
         self.widget.save_btn.clicked.connect(self.save_btn_clicked)
         self.widget.load_btn.clicked.connect(self.load_btn_clicked)
         self.widget.reset_btn.clicked.connect(self.reset_btn_clicked)
@@ -239,22 +252,55 @@ class MainController:
         self.activate_mode(ind)
         self.update_image_display_state(old_index, ind)
 
-    def place_map_panel(self, mode_ind):
-        """Moves the shared map panel into the home of the given mode.
+    def place_map_panel(self, mode_ind=None):
+        """Moves the shared map panel into the home it belongs in.
 
-        Modes without a home for it (calibration, mask) leave it where it is;
-        it is not visible there either way.
+        While undocked that is its own window, whatever mode is shown.
+        Otherwise it is the home of the current mode; modes without one
+        (calibration, mask) leave it where it is, since it is not visible
+        there either way.
         """
-        hosts = {
-            2: self.widget.integration_widget.map_control_widget,
-            3: self.widget.map_widget.map_panel_host,
-        }
-        host = hosts.get(mode_ind)
+        if mode_ind is None:
+            mode_ind = self.current_tab_index
+
+        if self.model.view.map_docked:
+            hosts = {
+                2: self.widget.integration_widget.map_control_widget,
+                3: self.widget.map_widget.map_panel_host,
+            }
+            host = hosts.get(mode_ind)
+        else:
+            host = self.widget.map_panel_window
+
         if host is None or host is self._map_panel_host:
             return
+
         self._map_panel_host.release_panel()
         host.take_panel(self.widget.map_widget.map_panel_widget)
         self._map_panel_host = host
+
+        window = self.widget.map_panel_window
+        window.setVisible(host is window)
+
+    def map_undock_btn_clicked(self):
+        self.model.view.map_docked = not self.model.view.map_docked
+
+    def map_dock_btn_clicked(self):
+        self.model.view.map_docked = True
+
+    def _map_docked_changed(self, docked, _old=None):
+        self.widget.map_widget.map_panel_widget.map_plot_control_widget.undock_btn.setText(
+            "Undock" if docked else "Dock"
+        )
+        self.place_map_panel()
+
+    def _map_window_closed(self):
+        # on shutdown every window is closed; docking back then would undo the
+        # state that was just saved and reparent widgets on their way out
+        if self._closing:
+            return
+        if not self.model.view.map_docked:
+            self.model.view.map_docked = True
 
     def activate_mode(self, mode_ind):
         controllers = [
@@ -395,6 +441,7 @@ class MainController:
         Intervention of the Dioptas close event to save settings before closing the Program.
         """
         logger.info("Closing Dioptas")
+        self._closing = True
         if self.use_settings:
             self.save_default_settings()
             self.save_directories()

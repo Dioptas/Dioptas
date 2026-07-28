@@ -76,6 +76,19 @@ class MapPanelHost(QtWidgets.QWidget):
             QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
         )
 
+        self.dock_btn = FlatButton("Dock map")
+        self._placeholder = QtWidgets.QWidget()
+        message_lbl = QtWidgets.QLabel("The map is shown in its own window.")
+        message_lbl.setAlignment(QtCore.Qt.AlignCenter)
+        message_lbl.setWordWrap(True)
+        placeholder_layout = QtWidgets.QVBoxLayout()
+        placeholder_layout.addStretch(1)
+        placeholder_layout.addWidget(message_lbl)
+        placeholder_layout.addWidget(self.dock_btn, 0, QtCore.Qt.AlignCenter)
+        placeholder_layout.addStretch(1)
+        self._placeholder.setLayout(placeholder_layout)
+        self._layout.addWidget(self._placeholder)
+
     def minimumSizeHint(self):
         # the map plot has no content-derived height; without a hint the tab
         # machinery collapses it to almost nothing
@@ -92,6 +105,7 @@ class MapPanelHost(QtWidgets.QWidget):
         self._layout.addWidget(panel)
         self._panel = panel
         panel.show()
+        self._placeholder.hide()
 
     def release_panel(self) -> "MapPanelWidget | None":
         """Removes the panel from this slot and returns it."""
@@ -99,7 +113,37 @@ class MapPanelHost(QtWidgets.QWidget):
         if panel is not None:
             self._layout.removeWidget(panel)
             self._panel = None
+        self._placeholder.show()
         return panel
+
+
+class MapPanelWindow(MapPanelHost):
+    """Window the map panel is shown in while it is undocked."""
+
+    closed = QtCore.Signal()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setWindowTitle("Dioptas - Map")
+        self.setWindowFlags(
+            QtCore.Qt.Window
+            | QtCore.Qt.CustomizeWindowHint
+            | QtCore.Qt.WindowMinimizeButtonHint
+            | QtCore.Qt.WindowMaximizeButtonHint
+            | QtCore.Qt.WindowCloseButtonHint
+        )
+        self.resize(600, 600)
+        # the placeholder belongs to the docked homes; an empty window closes
+        self._placeholder.hide()
+
+    def release_panel(self):
+        panel = super().release_panel()
+        self._placeholder.hide()
+        return panel
+
+    def closeEvent(self, event):
+        self.closed.emit()
+        super().closeEvent(event)
 
 
 class MapImageFrame(QtWidgets.QWidget):
@@ -190,6 +234,8 @@ class MapPlotControlWidget(QtWidgets.QWidget):
         self.save_map_btn = SaveIconButton()
         self.map_dimension_cb = CleanLooksComboBox()
         self.map_dimension_cb.setMinimumWidth(80)
+        self.undock_btn = FlatButton("Undock")
+        self.undock_btn.setToolTip("Show the map in its own window")
         self.mouse_x_label = QtWidgets.QLabel("X: ")
         self.mouse_y_label = QtWidgets.QLabel("Y: ")
         self.mouse_int_label = QtWidgets.QLabel("I: ")
@@ -209,6 +255,7 @@ class MapPlotControlWidget(QtWidgets.QWidget):
         self._outer_layout.addWidget(self.save_map_btn)
         self._outer_layout.addWidget(QtWidgets.QLabel("Dim: "))
         self._outer_layout.addWidget(self.map_dimension_cb)
+        self._outer_layout.addWidget(self.undock_btn)
         self._outer_layout.addStretch(1)
         self._outer_layout.addLayout(self._left_layout)
         self.setLayout(self._outer_layout)

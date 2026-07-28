@@ -197,6 +197,56 @@ def test_map_marker_follows_images_loaded_elsewhere(main_controller: MainControl
     assert main_controller.widget.map_widget.control_widget.file_list.currentRow() == -1
 
 
+def test_undocked_map_stays_available_in_every_mode(main_controller: MainController):
+    # Herbert has two screens and wants the map large on the second one while
+    # he works in the integration view on the first.
+    prepare_map_gui(main_controller)
+    widget = main_controller.widget
+    panel = widget.map_widget.map_panel_widget
+    window = widget.map_panel_window
+
+    click_button(panel.map_plot_control_widget.undock_btn)
+
+    assert not main_controller.model.view.map_docked
+    assert panel.map_plot_control_widget.undock_btn.text() == "Dock"
+    assert window.panel is panel
+    assert window.isVisible()
+    assert widget.map_widget.map_panel_host.panel is None
+
+    # the map keeps working from its own window, whatever mode is shown
+    click_button(widget.integration_mode_btn)
+    assert window.panel is panel
+    assert widget.integration_widget.map_control_widget.panel is None
+
+    panel.map_plot_widget.mouse_left_clicked.emit(1, 1)  # center point of a 3x3 map
+    assert main_controller.model.img_model.filename == map_img_file_paths[4]
+
+    # and so does the window region in the integration pattern
+    pattern_widget = widget.integration_widget.pattern_widget
+    assert pattern_widget.map_interactive_roi in pattern_widget.pattern_plot.items
+
+    # docking it again from the placeholder puts it back where it belongs
+    click_button(widget.integration_widget.map_control_widget.dock_btn)
+    assert main_controller.model.view.map_docked
+    assert widget.integration_widget.map_control_widget.panel is panel
+    assert not window.isVisible()
+
+
+def test_closing_the_map_window_docks_it_again(main_controller: MainController):
+    prepare_map_gui(main_controller)
+    widget = main_controller.widget
+
+    click_button(widget.map_widget.map_panel_widget.map_plot_control_widget.undock_btn)
+    assert not main_controller.model.view.map_docked
+
+    widget.map_panel_window.close()
+
+    assert main_controller.model.view.map_docked
+    assert (
+        widget.map_widget.map_panel_host.panel is widget.map_widget.map_panel_widget
+    )
+
+
 def test_map_with_different_dimension(main_controller: MainController):
     # Herbert has collected another large map of his sample and wants to visualize
     # and explore it in Dioptas. This time the map is not rectangular but has a

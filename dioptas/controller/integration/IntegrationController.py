@@ -61,16 +61,20 @@ class IntegrationController:
         )
 
         tab_widget = self.widget.integration_control_widget.tab_widget_1
-        tab_widget.currentChanged.connect(self._control_tab_changed)
-        self._control_tab_changed()
+        tab_widget.currentChanged.connect(self._update_map_roi_wanted)
+        self.model.view.events.map_docked.connect(self._update_map_roi_wanted)
+        self._update_map_roi_wanted()
 
-    def _control_tab_changed(self, *_args):
+    def _update_map_roi_wanted(self, *_args):
         """Shows the map window region only while the map is on screen.
 
         Dragging it changes what the map displays, so it would be a puzzling
-        thing to find in the pattern while working on anything else.
+        thing to find in the pattern while working on anything else. An
+        undocked map is on screen whatever tab is selected.
         """
         tab_widget = self.widget.integration_control_widget.tab_widget_1
-        self.map_roi_controller.set_wanted(
+        map_shown = (
             tab_widget.currentWidget() is self.widget.map_control_widget
+            or not self.model.view.map_docked
         )
+        self.map_roi_controller.set_wanted(map_shown)
