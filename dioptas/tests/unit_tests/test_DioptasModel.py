@@ -940,3 +940,24 @@ def test_view_params_round_trip_all_fields(dioptas_model, tmp_path):
     assert dioptas_model.view.view_mode == "alternative"
     assert dioptas_model.view.img_docked is False
     assert dioptas_model.view.waterfall_separation == 42.0
+
+
+def test_add_configuration_preserves_calibration_name(dioptas_model):
+    """Transferring the calibration to a new configuration must not rename it.
+
+    The transfer goes through a temporary poni file, whose save/load
+    overwrote the calibration name of both configurations with "transfer"."""
+    dioptas_model.calibration_model.load(
+        os.path.join(data_path, "CeO2_Pilatus1M.poni")
+    )
+    dioptas_model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
+    assert dioptas_model.calibration_model.calibration_name == "CeO2_Pilatus1M"
+
+    dioptas_model.add_configuration()
+
+    assert dioptas_model.calibration_model.is_calibrated
+    assert dioptas_model.calibration_model.calibration_name == "CeO2_Pilatus1M"
+    assert (
+        dioptas_model.configurations[0].calibration_model.calibration_name
+        == "CeO2_Pilatus1M"
+    )

@@ -2,9 +2,13 @@
 
 ## Bugfixes
 
+- adding a configuration renamed the calibration of both the new and the original configuration to "transfer" (the name of the temporary file the calibration is transferred through), which was then shown in the calibration label and saved into project files
+
 - setting an integer intensity factor (e.g. from a script) silently wrapped uint16 image pixel values around; the factor is now coerced to float
 
 ## Internal
+
+- the periodic session backup now only writes when something actually changed, instead of rewriting the whole project (including image data) every ten minutes in an idle session; closing Dioptas still saves unconditionally
 
 - the remaining hand-written `update_gui` pushes (mask transparency radio buttons, the integration view's mask/transparency/autoprocess widgets and calibration label, the configuration factor field) are now declarative bindings; the binder gained number-field and radio-pair binding kinds
 

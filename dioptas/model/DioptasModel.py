@@ -128,16 +128,25 @@ class DioptasModel:
         logger.info("Adding new configuration")
         self.configurations.append(Configuration(self.working_directories))
 
-        if self.current_configuration.calibration_model.is_calibrated:
+        source_calibration = self.current_configuration.calibration_model
+        if source_calibration.is_calibrated:
             dioptas_config_folder = os.path.join(os.path.expanduser("~"), ".Dioptas")
             if not os.path.isdir(dioptas_config_folder):
                 os.mkdir(dioptas_config_folder)
-            self.current_configuration.calibration_model.save(
-                os.path.join(dioptas_config_folder, "transfer.poni")
-            )
-            self.configurations[-1].calibration_model.load(
-                os.path.join(dioptas_config_folder, "transfer.poni")
-            )
+            # the calibration is transferred through a temporary poni file;
+            # save()/load() overwrite the calibration name and filename, so
+            # they are restored afterwards for both configurations
+            calibration_name = source_calibration.calibration_name
+            calibration_filename = source_calibration.filename
+            transfer_path = os.path.join(dioptas_config_folder, "transfer.poni")
+            source_calibration.save(transfer_path)
+            self.configurations[-1].calibration_model.load(transfer_path)
+            for calibration_model in (
+                source_calibration,
+                self.configurations[-1].calibration_model,
+            ):
+                calibration_model.calibration_name = calibration_name
+                calibration_model.filename = calibration_filename
 
         self.configurations[-1].img_model._img_data = (
             self.current_configuration.img_model.img_data

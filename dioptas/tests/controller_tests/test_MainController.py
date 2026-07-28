@@ -139,3 +139,25 @@ def test_title_is_shown_correctly(main_controller: MainController):
     assert title.startswith("image_001.tif, calibration: CeO2_Pilatus1M | Dioptas")
     assert title.endswith("C. Prescher")
 
+
+
+def test_backup_skips_when_nothing_changed(main_controller, tmp_path):
+    """The periodic backup only writes when something actually changed."""
+    from unittest.mock import MagicMock
+
+    main_controller.setup_backup_timer()
+    main_controller.save_default_settings = MagicMock()
+
+    # freshly set up: nothing has changed yet
+    main_controller._backup_dirty = False
+    main_controller.save_backup_if_changed()
+    main_controller.save_default_settings.assert_not_called()
+
+    # any settings change marks the session dirty
+    main_controller.model.current_configuration.params.use_mask = True
+    main_controller.save_backup_if_changed()
+    main_controller.save_default_settings.assert_called_once()
+
+    # and the flag clears again
+    main_controller.save_backup_if_changed()
+    main_controller.save_default_settings.assert_called_once()
