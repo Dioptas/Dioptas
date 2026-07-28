@@ -21,6 +21,7 @@ from .integration import IntegrationController
 from .MaskController import MaskController
 from .ConfigurationController import ConfigurationController
 from .MapController import MapController
+from .MapPanelController import MapPanelController
 
 from dioptas import __version__
 from ..model.UpdateChecker import check_for_update
@@ -57,7 +58,14 @@ class MainController:
         self.integration_controller = IntegrationController(
             self.widget.integration_widget, self.model
         )
-        self.map_controller = MapController(self.widget.map_widget, self.model)
+        # The map panel is shared between the map mode and the integration
+        # view, so it is owned here rather than by one of the modes.
+        self.map_panel_controller = MapPanelController(
+            self.widget.map_widget.map_panel_widget, self.model
+        )
+        self.map_controller = MapController(
+            self.widget.map_widget, self.model, self.map_panel_controller
+        )
 
         self.calibration_controller.activate()
         self.integration_controller.image_controller.deactivate()
