@@ -188,15 +188,14 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self._transfer_layout.addWidget(self.transfer_load_response_btn, 1, 0)
         self._transfer_layout.addWidget(self.transfer_original_filename_lbl, 0, 1)
         self._transfer_layout.addWidget(self.transfer_response_filename_lbl, 1, 1)
-        self._transfer_layout.addWidget(self.transfer_plot_btn, 0, 2)
+        self._transfer_layout.addWidget(
+            self.transfer_plot_btn, 2, 0, QtCore.Qt.AlignLeft
+        )
         self._transfer_layout.setColumnStretch(0, 0)
         self._transfer_layout.setColumnStretch(1, 1)
-        self._transfer_layout.setColumnStretch(2, 0)
-        self._transfer_layout.setRowStretch(0, 0)
-        self._transfer_layout.setRowStretch(1, 0)
-        self._transfer_layout.setRowStretch(2, 1)
 
         self._transfer_outer_layout.addLayout(self._transfer_layout)
+        self._transfer_outer_layout.addStretch()
         self.transfer_gb.setLayout(self._transfer_outer_layout)
 
     def create_slab_correction_widgets(self):
@@ -417,14 +416,14 @@ class CorrectionsWidget(QtWidgets.QWidget):
         self._flat_field_layout.setSpacing(5)
         self._flat_field_layout.addWidget(self.flat_field_load_btn, 0, 0)
         self._flat_field_layout.addWidget(self.flat_field_filename_lbl, 0, 1)
-        self._flat_field_layout.addWidget(self.flat_field_plot_btn, 0, 2)
+        self._flat_field_layout.addWidget(
+            self.flat_field_plot_btn, 1, 0, QtCore.Qt.AlignLeft
+        )
         self._flat_field_layout.setColumnStretch(0, 0)
         self._flat_field_layout.setColumnStretch(1, 1)
-        self._flat_field_layout.setColumnStretch(2, 0)
-        self._flat_field_layout.setRowStretch(0, 0)
-        self._flat_field_layout.setRowStretch(1, 1)
 
         self._flat_field_outer_layout.addLayout(self._flat_field_layout)
+        self._flat_field_outer_layout.addStretch()
         self.flat_field_gb.setLayout(self._flat_field_outer_layout)
 
     def style_widgets(self):
