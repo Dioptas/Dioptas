@@ -42,6 +42,7 @@ dependencies = [
     "qt-material>=2.14,<3.0",
     "bitshuffle>=0.5.1",
     "xraydb>=4.5.8",
+    "psygnal>=0.15.1",
 ]
 
 [project.optional-dependencies]
