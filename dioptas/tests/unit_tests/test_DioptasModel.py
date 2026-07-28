@@ -301,6 +301,38 @@ def test_save_empty_configuration(dioptas_model, tmp_path):
     dioptas_model.save(os.path.join(tmp_path, "empty.dio"))
 
 
+def test_save_and_load_round_trips_params_only_fields(dioptas_model, tmp_path):
+    """oned_azimuth_range and trim_trailing_zeros are not in the legacy .dio
+    layout — they round-trip via the generic params group."""
+    dioptas_model.current_configuration.params.oned_azimuth_range = [-90.0, 90.0]
+    dioptas_model.current_configuration.params.trim_trailing_zeros = False
+
+    filename = os.path.join(tmp_path, "params.dio")
+    dioptas_model.save(filename)
+    dioptas_model.reset()
+    assert dioptas_model.current_configuration.oned_azimuth_range is None
+    assert dioptas_model.current_configuration.trim_trailing_zeros is True
+
+    dioptas_model.load(filename)
+    assert dioptas_model.current_configuration.oned_azimuth_range == [-90.0, 90.0]
+    assert dioptas_model.current_configuration.trim_trailing_zeros is False
+
+
+def test_load_project_without_params_group(dioptas_model, tmp_path):
+    """Project files written before the params layer must still load."""
+    import h5py
+
+    filename = os.path.join(tmp_path, "legacy.dio")
+    dioptas_model.save(filename)
+    with h5py.File(filename, "r+") as f:
+        for _, configuration_group in f["configurations"].items():
+            del configuration_group["params"]
+
+    dioptas_model.load(filename)
+    assert dioptas_model.current_configuration.oned_azimuth_range is None
+    assert dioptas_model.current_configuration.trim_trailing_zeros is True
+
+
 def test_parameters_changed_invalidates_multi_geometry_after_load(
     dioptas_model, tmp_path
 ):

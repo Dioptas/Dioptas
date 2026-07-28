@@ -35,32 +35,32 @@ def test_auto_save_background_subtracted_pattern(tmp_path):
 def test_integration_rad_points_property():
     config = Configuration()
     assert config.integration_rad_points is None
-    config._integration_rad_points = 1500
+    config.params.integration_rad_points = 1500
     assert config.integration_rad_points == 1500
 
 
 def test_oned_azimuth_range_property():
     config = Configuration()
     assert config.oned_azimuth_range is None
-    config._oned_azimuth_range = [0.0, 180.0]
+    config.params.oned_azimuth_range = [0.0, 180.0]
     assert config.oned_azimuth_range == [0.0, 180.0]
-    config._oned_azimuth_range = None
+    config.params.oned_azimuth_range = None
     assert config.oned_azimuth_range is None
 
 
 def test_cake_azimuth_range_property():
     config = Configuration()
     assert config.cake_azimuth_range is None
-    config._cake_azimuth_range = [-180.0, 180.0]
+    config.params.cake_azimuth_range = [-180.0, 180.0]
     assert config.cake_azimuth_range == [-180.0, 180.0]
-    config._cake_azimuth_range = None
+    config.params.cake_azimuth_range = None
     assert config.cake_azimuth_range is None
 
 
 def test_integration_unit_property():
     config = Configuration()
     assert config.integration_unit == "2th_deg"
-    config._integration_unit = "q_A^-1"
+    config.params.integration_unit = "q_A^-1"
     assert config.integration_unit == "q_A^-1"
 
 
@@ -177,7 +177,7 @@ def test_create_fxye_header():
 
 def test_create_fxye_header_q_unit():
     config = _load_calibrated_config()
-    config._integration_unit = "q_A^-1"
+    config.params.integration_unit = "q_A^-1"
     header = config._create_fxye_header("test.fxye")
     assert "CONQ" in header
 
@@ -225,10 +225,10 @@ def test_save_and_load_hdf5_round_trip(tmp_path):
 
     config.use_mask = True
     config.transparent_mask = True
-    config._integration_unit = "q_A^-1"
-    config._integration_rad_points = 2000
-    config._cake_azimuth_points = 180
-    config._cake_azimuth_range = [-90.0, 90.0]
+    config.params.integration_unit = "q_A^-1"
+    config.params.integration_rad_points = 2000
+    config.params.cake_azimuth_points = 180
+    config.params.cake_azimuth_range = [-90.0, 90.0]
     config.auto_save_integrated_pattern = True
     config.integrated_patterns_file_formats = [".xy", ".fxye"]
 
@@ -331,7 +331,7 @@ def test_save_and_load_hdf5_with_cake_azimuth_range_none(tmp_path):
 
     config = _load_calibrated_config()
     config.integrate_image_1d()
-    config._cake_azimuth_range = None
+    config.params.cake_azimuth_range = None
 
     hdf5_path = os.path.join(tmp_path, "test_cake_none.h5")
     with h5py.File(hdf5_path, "w") as f:
@@ -345,3 +345,35 @@ def test_save_and_load_hdf5_with_cake_azimuth_range_none(tmp_path):
 
     assert loaded.cake_azimuth_range is None
 
+
+
+# ---------------------------------------------------------------------------
+# Params state layer
+# ---------------------------------------------------------------------------
+
+
+def test_properties_delegate_to_params():
+    config = Configuration()
+    config.use_mask = True
+    config.transparent_mask = True
+    config.trim_trailing_zeros = False
+    assert config.params.use_mask is True
+    assert config.params.transparent_mask is True
+    assert config.params.trim_trailing_zeros is False
+
+    config.params.use_mask = False
+    assert config.use_mask is False
+
+
+def test_property_changes_emit_params_events():
+    config = Configuration()
+    got = []
+    config.params.events.use_mask.connect(lambda new, old: got.append((new, old)))
+    config.use_mask = True
+    assert got == [(True, False)]
+
+
+def test_working_directories_passed_by_reference():
+    directories = {"image": "/somewhere"}
+    config = Configuration(directories)
+    assert config.working_directories is directories

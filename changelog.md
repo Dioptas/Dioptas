@@ -1,8 +1,19 @@
 # 0.8.7 (in development)
 
+## Internal
+
+- the model Signal class is now backed by psygnal, gaining batched/paused emission while keeping the existing API
+- introduced an evented parameter dataclass layer (`dioptas.model.state`): Configuration settings now live in a `ConfigurationParams` object that is saved generically into project files; the 1D azimuth range and trim-trailing-zeros settings are now persisted (they were previously lost on save)
+
+## Bugfixes
+
+- after loading a project or resetting, calibration parameter changes did not invalidate the cached multi-geometry, so combined patterns/cakes of multiple configurations could go stale
+- map change signals were shared between all configurations (class-level), causing cross-configuration crosstalk; they are now per-instance and the map view follows the selected configuration
+
 ## Distribution
 
 - updated pillow (12.3.0), lxml (6.1.1), pygments (2.20.0) and setuptools (83.0.0) to resolve security advisories
+- added psygnal (>=0.15.1) as a dependency
 
 # 0.8.6 (27.07.2026)
 

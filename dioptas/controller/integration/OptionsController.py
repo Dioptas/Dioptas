@@ -58,7 +58,7 @@ class OptionsController:
             self.model.calibration_model._create_dioptrin_integrator()
         if self.model.calibration_model.is_calibrated:
             self.model.current_configuration.integrate_image_1d()
-            if self.model.current_configuration._auto_integrate_cake:
+            if self.model.current_configuration.auto_integrate_cake:
                 self.model.current_configuration.integrate_image_2d()
 
     def correct_solid_angle_cb_clicked(self):
