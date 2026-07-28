@@ -36,9 +36,10 @@ class ImageController:
 
         self.epics_controller = EpicsController(self.widget, self.model)
 
-        self.img_docked = True
-        self.view_mode = 'normal'  # modes available: normal, alternative
         self.roi_active = False
+        # which layout is currently applied to the widgets; distinct from
+        # the view_mode setting, which is what the user asked for
+        self._applied_view_mode = 'normal'
 
         self.vertical_splitter_alternative_state = None
         self.vertical_splitter_normal_state = None
@@ -186,6 +187,8 @@ class ImageController:
         self.widget.img_autoscale_btn.clicked.connect(self.img_autoscale_btn_clicked)
         self.widget.img_mode_btn.clicked.connect(self.change_view_mode)
         self.model.view.events.img_mode.connect(self._img_mode_changed)
+        self.model.view.events.view_mode.connect(self._view_mode_changed)
+        self.model.view.events.img_docked.connect(self._img_docked_changed)
 
         self.widget.integration_image_widget.show_background_subtracted_img_btn.clicked.connect(
             self.show_background_subtracted_img_btn_clicked)
@@ -312,7 +315,7 @@ class ImageController:
         self._tear_down_batch_processing()
 
     def _get_pattern_working_directory(self):
-        if self.widget.pattern_autocreate_cb.isChecked():
+        if self.model.current_configuration.auto_save_integrated_pattern:
             working_directory = self.model.working_directories['pattern']
         else:
             # if there is no working directory selected A file dialog opens up to choose a directory...
@@ -682,8 +685,10 @@ class ImageController:
             self.widget.img_widget.auto_level()
 
     def img_dock_btn_clicked(self):
-        self.img_docked = not self.img_docked
-        self.widget.dock_img(self.img_docked)
+        self.model.view.img_docked = not self.model.view.img_docked
+
+    def _img_docked_changed(self, docked, _old=None):
+        self.widget.dock_img(docked)
 
     def show_background_subtracted_img_btn_clicked(self):
         if self.model.view.img_mode == 'Image':
@@ -1070,13 +1075,19 @@ class ImageController:
                 self._update_image_mouse_click_pos()
 
     def change_view_btn_clicked(self):
-        if self.view_mode == 'alternative':
-            self.change_view_to_normal()
-        elif self.view_mode == 'normal':
+        if self.model.view.view_mode == 'alternative':
+            self.model.view.view_mode = 'normal'
+        else:
+            self.model.view.view_mode = 'alternative'
+
+    def _view_mode_changed(self, new_mode, _old_mode=None):
+        if new_mode == 'alternative':
             self.change_view_to_alternative()
+        else:
+            self.change_view_to_normal()
 
     def change_view_to_normal(self):
-        if self.view_mode == 'normal':
+        if self._applied_view_mode == 'normal':
             return
         self.vertical_splitter_alternative_state = self.widget.vertical_splitter.saveState()
         self.horizontal_splitter_alternative_state = self.widget.horizontal_splitter.saveState()
@@ -1090,12 +1101,12 @@ class ImageController:
             self.widget.horizontal_splitter.restoreState(self.horizontal_splitter_normal_state)
 
         self.widget.img_widget.set_orientation("horizontal")
-        self.view_mode = 'normal'
+        self._applied_view_mode = 'normal'
+        self.model.view.view_mode = 'normal'
 
     def change_view_to_alternative(self):
-        if self.view_mode == 'alternative':
+        if self._applied_view_mode == 'alternative':
             return
-
         self.vertical_splitter_normal_state = self.widget.vertical_splitter.saveState()
         self.horizontal_splitter_normal_state = self.widget.horizontal_splitter.saveState()
 
@@ -1109,4 +1120,5 @@ class ImageController:
             self.widget.horizontal_splitter.restoreState(self.horizontal_splitter_alternative_state)
 
         self.widget.img_widget.set_orientation("vertical")
-        self.view_mode = 'alternative'
+        self._applied_view_mode = 'alternative'
+        self.model.view.view_mode = 'alternative'

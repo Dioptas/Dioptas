@@ -1170,10 +1170,9 @@ class BatchController:
             self.model.overlay_model.add_overlay(
                 new_binning, data[i, x1:x2], f"{f_name}, {pos}"
             )
-        separation = (
-            self.widget.integration_control_widget.overlay_control_widget.waterfall_separation_msb.value()
+        self.model.overlay_model.overlay_waterfall(
+            self.model.view.waterfall_separation
         )
-        self.model.overlay_model.overlay_waterfall(separation)
 
     def load_single_image(self, x, y):
         """

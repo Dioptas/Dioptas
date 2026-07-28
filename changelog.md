@@ -6,6 +6,9 @@
 
 ## Internal
 
+- `Configuration.copy()` now copies every setting generically instead of a hand-picked subset (it silently dropped the mask usage, integration unit, cake settings and auto-integrate flags)
+- the integration window layout mode, image dock state and overlay waterfall separation moved into the evented view state and are now saved in project files; the auto-create-pattern checkbox is bound to the persisted setting, so loading a project restores it (it previously always showed unchecked)
+
 - settings writes are now uniform: side effects (re-integration, watcher activation, background recalculation, overlay pattern math) moved from property setters into params event subscriptions, so writing `params.<field>` directly behaves exactly like the property write for every writer (GUI, scripts, pipeline); the headless pipeline uses the hold() mechanism for its deliberately integration-free writes
 
 - ImgModel's settings (autoprocess, factor, background scaling/offset, file iteration mode) moved into an evented `ImgParams` dataclass following the no-state-in-models direction; the file iteration mode is now persisted in project files (previously lost on save); img params changes surface on `configuration_params_changed` with an `img.` prefix, and the background image scale/offset spinboxes bind reactively to them

@@ -915,3 +915,28 @@ def test_transformations_round_trip(dioptas_model, tmp_path):
     dioptas_model.reset()
     dioptas_model.load(filename)
     assert dioptas_model.img_model.params.transformations == ["rotate_matrix_m90"]
+
+
+def test_view_params_round_trip_all_fields(dioptas_model, tmp_path):
+    """Every view setting round-trips, applied onto the stable instance."""
+    dioptas_model.view.img_mode = "Cake"
+    dioptas_model.view.view_mode = "alternative"
+    dioptas_model.view.img_docked = False
+    dioptas_model.view.waterfall_separation = 42.0
+
+    filename = os.path.join(tmp_path, "view_all.dio")
+    dioptas_model.save(filename)
+
+    view_instance = dioptas_model.view
+    dioptas_model.reset()
+    dioptas_model.view.img_mode = "Image"
+    dioptas_model.view.view_mode = "normal"
+    dioptas_model.view.img_docked = True
+    dioptas_model.view.waterfall_separation = 100.0
+
+    dioptas_model.load(filename)
+    assert dioptas_model.view is view_instance
+    assert dioptas_model.view.img_mode == "Cake"
+    assert dioptas_model.view.view_mode == "alternative"
+    assert dioptas_model.view.img_docked is False
+    assert dioptas_model.view.waterfall_separation == 42.0

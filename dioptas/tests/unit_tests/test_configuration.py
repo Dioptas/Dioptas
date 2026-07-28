@@ -398,3 +398,50 @@ def test_direct_params_writes_trigger_same_reactions_as_properties():
 
     config.calibration_model.params.correct_solid_angle = False
     config.cake_integration.invalidate.assert_called()
+
+
+def test_copy_carries_all_settings():
+    """copy() copies every settings tree generically, not a hand-picked subset."""
+    config = _load_calibrated_config()
+    config.use_mask = True
+    config.transparent_mask = True
+    config.integration_unit = "q_A^-1"
+    config.cake_azimuth_points = 720
+    config.params.oned_azimuth_range = [-90.0, 90.0]
+    config.img_model.params.factor = 3.0
+    config.mask_model.params.mode = False
+    config.calibration_model.params.polarization_factor = 0.5
+
+    copied = config.copy()
+
+    assert copied.use_mask is True
+    assert copied.transparent_mask is True
+    assert copied.integration_unit == "q_A^-1"
+    assert copied.cake_azimuth_points == 720
+    assert copied.oned_azimuth_range == [-90.0, 90.0]
+    assert copied.img_model.factor == 3.0
+    assert copied.mask_model.mode is False
+    assert copied.calibration_model.polarization_factor == 0.5
+
+
+def test_copy_does_not_share_mutable_settings():
+    config = _load_calibrated_config()
+    copied = config.copy()
+
+    copied.params.working_directories["image"] = "/copied/only"
+    assert config.working_directories["image"] != "/copied/only"
+
+
+def test_apply_params_preserves_instance_and_fires_events():
+    from dioptas.model.state import ConfigurationParams, apply_params
+
+    target = ConfigurationParams()
+    source = ConfigurationParams(use_mask=True, cake_azimuth_points=720)
+    got = []
+    target.events.use_mask.connect(lambda new, old: got.append(new))
+
+    apply_params(target, source)
+
+    assert target.use_mask is True
+    assert target.cake_azimuth_points == 720
+    assert got == [True]  # subscriptions on the target stayed valid

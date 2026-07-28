@@ -14,6 +14,7 @@ from xypattern import Pattern
 from .util import Signal
 from .util import jcpds
 from .state import (
+    apply_params,
     Derived,
     PhaseParams,
     ViewParams,
@@ -363,7 +364,7 @@ class DioptasModel:
         # subscribed controllers react through the change events
         saved_view = load_params(f, ViewParams, name="view")
         if saved_view is not None:
-            self.view.img_mode = saved_view.img_mode
+            apply_params(self.view, saved_view)
 
         f.close()
 

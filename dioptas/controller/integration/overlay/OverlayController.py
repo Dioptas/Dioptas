@@ -10,6 +10,8 @@ from ....widgets.UtilityWidgets import open_files_dialog
 from ....widgets.integration import IntegrationWidget
 from ....model.DioptasModel import DioptasModel
 
+from ...binding import Binder
+
 
 class OverlayController:
     """
@@ -27,7 +29,17 @@ class OverlayController:
         self.model = dioptas_model
 
         self.overlay_lw_items = []
+        self.binder = Binder()
         self.create_signals()
+        # the waterfall separation is a view setting, bound two-way so a
+        # loaded project restores the spinbox
+        self.binder.bind_spinbox(
+            self.overlay_widget.waterfall_separation_msb,
+            lambda: self.model.view,
+            "waterfall_separation",
+            dtype=float,
+        )
+        self.binder.refresh()
 
     def create_signals(self):
         self.connect_click_function(
@@ -270,8 +282,9 @@ class OverlayController:
         self.overlay_widget.show_cbs[ind].blockSignals(False)
 
     def waterfall_btn_click_callback(self):
-        separation = self.overlay_widget.waterfall_separation_msb.value()
-        self.model.overlay_model.overlay_waterfall(separation)
+        self.model.overlay_model.overlay_waterfall(
+            self.model.view.waterfall_separation
+        )
 
     def set_as_bkg_btn_click_callback(self):
         """

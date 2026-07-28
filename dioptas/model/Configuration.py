@@ -14,6 +14,7 @@ from xypattern.auto_background import SmoothBrucknerBackground
 
 from .util import Signal
 from .state import (
+    apply_params,
     CalibrationParams,
     ConfigurationParams,
     ImgParams,
@@ -522,16 +523,36 @@ class Configuration:
         self.pattern_integration.recompute()
 
     def copy(self) -> Configuration:
-        """Creates a copy of the current configuration."""
-        new_configuration = Configuration(self.working_directories)
-        new_configuration.img_model._img_data = self.img_model._img_data
-        new_configuration.img_model.img_transformations = deepcopy(
-            self.img_model.img_transformations
-        )
+        """Creates a copy of the current configuration.
 
-        new_configuration.calibration_model.set_pyFAI(
-            self.calibration_model.get_calibration_parameter()[0]
-        )
+        Every settings tree is copied generically, so settings added in the
+        future are included automatically."""
+        new_configuration = Configuration()
+
+        # suppressed while copying: the explicit integration below runs once
+        with new_configuration.pattern_integration.hold(
+            flush=False
+        ), new_configuration.cake_integration.hold(flush=False):
+            apply_params(new_configuration.params, self.params)
+            apply_params(new_configuration.img_model.params, self.img_model.params)
+            apply_params(new_configuration.mask_model.params, self.mask_model.params)
+            apply_params(
+                new_configuration.pattern_model.params, self.pattern_model.params
+            )
+            apply_params(
+                new_configuration.calibration_model.params,
+                self.calibration_model.params,
+            )
+
+            new_configuration.img_model._img_data = self.img_model._img_data
+
+            new_configuration.calibration_model.set_pyFAI(
+                self.calibration_model.get_calibration_parameter()[0]
+            )
+            # the copied supersampling factor only takes effect on the
+            # geometry when applied explicitly
+            new_configuration.calibration_model.set_supersampling()
+
         new_configuration.integrate_image_1d()
 
         return new_configuration
