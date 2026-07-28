@@ -311,10 +311,35 @@ class MainController:
                 self.load_directories()
 
     def setup_backup_timer(self):
+        """Periodically backs up the session, but only when something changed.
+
+        The backup writes the whole project (including image data), so the
+        write frequency stays bounded by the timer; the dirty flag only
+        removes the pointless writes of an idle session."""
+        self._backup_dirty = False
+        for signal in (
+            self.model.configuration_params_changed,
+            self.model.img_changed,
+            self.model.pattern_changed,
+            self.model.configuration_added,
+            self.model.configuration_removed,
+        ):
+            signal.connect(self._mark_backup_dirty)
+        self.model.view.events.connect(self._mark_backup_dirty)
+
         self.backup_timer = QtCore.QTimer(self.widget)
-        self.backup_timer.timeout.connect(self.save_default_settings)
+        self.backup_timer.timeout.connect(self.save_backup_if_changed)
         self.backup_timer.setInterval(600000)  # every 10 minutes
         self.backup_timer.start()
+
+    def _mark_backup_dirty(self, *_args):
+        self._backup_dirty = True
+
+    def save_backup_if_changed(self):
+        if not self._backup_dirty:
+            return
+        self.save_default_settings()
+        self._backup_dirty = False
 
     def save_directories(self):
         """
