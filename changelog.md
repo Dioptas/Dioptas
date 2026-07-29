@@ -1,4 +1,4 @@
-# 0.8.7 (in development)
+# 0.8.7 (29.07.2026)
 
 ## New Features
 
@@ -32,9 +32,23 @@
 
 - setting an integer intensity factor (e.g. from a script) silently wrapped uint16 image pixel values around; the factor is now coerced to float
 
+- after loading a project or resetting, calibration parameter changes did not invalidate the cached multi-geometry, so combined patterns/cakes of multiple configurations could go stale
+
+- map change signals were shared between all configurations (class-level), causing cross-configuration crosstalk; they are now per-instance and the map view follows the selected configuration
+
+- the cBN seat correction GUI had crossed field wiring: the anvil and seat absorption length fields fed each other's parameters, and restoring a project scrambled the center offset and absorption length fields
+
+- the pattern axis labels and unit buttons could go stale when switching to a configuration with a different integration unit (the previous unit was shadow-copied in the controller)
+
+- the batch view's d-spacing display now inverts the x-axis like the pattern plot
+
 ## Distribution
 
 - 0.8.6 never reached PyPI: the Apple-silicon wheel failed because Homebrew's OpenMP library requires a newer macOS than the wheel was tagged for, and the Intel wheel job waited 24 hours for a runner that GitHub has retired — with one wheel job failing, the publishing step was skipped without the release run drawing attention to it. The Apple-silicon wheel is now built for macOS 14 and later, the Intel wheel is built on a current runner without OpenMP (so it keeps working on older macOS, with the spot mask running serially), and a final check now fails the release run if publishing did not happen
+
+- updated pillow (12.3.0), lxml (6.1.1), pygments (2.20.0) and setuptools (83.0.0) to resolve security advisories
+
+- added psygnal (>=0.15.1) as a dependency
 
 ## Internal
 
@@ -67,20 +81,6 @@
 - correction parameters are edited in named form fields (`ParameterFormWidget`) instead of table cells addressed by row index
 - the image/cake view mode moved from a widget attribute into evented view state (`ViewParams.img_mode` on the model); the mode switch runs in reaction to state changes, and the view mode is now saved in and restored from project files
 - added a store-level settings-change surface: `DioptasModel.configuration_params_changed` emits `(field, new, old)` for every settings change of the current configuration, and widget bindings re-render individually on matching field events — settings changed from scripts or other controllers now appear in the GUI immediately
-
-## Bugfixes
-
-- after loading a project or resetting, calibration parameter changes did not invalidate the cached multi-geometry, so combined patterns/cakes of multiple configurations could go stale
-- map change signals were shared between all configurations (class-level), causing cross-configuration crosstalk; they are now per-instance and the map view follows the selected configuration
-- the cBN seat correction GUI had crossed field wiring: the anvil and seat absorption length fields fed each other's parameters, and restoring a project scrambled the center offset and absorption length fields
-- the pattern axis labels and unit buttons could go stale when switching to a configuration with a different integration unit (the previous unit was shadow-copied in the controller)
-- the batch view's d-spacing display now inverts the x-axis like the pattern plot
-
-## Distribution
-
-- updated pillow (12.3.0), lxml (6.1.1), pygments (2.20.0) and setuptools (83.0.0) to resolve security advisories
-- added psygnal (>=0.15.1) as a dependency
-
 # 0.8.6 (27.07.2026)
 
 ## New Features
