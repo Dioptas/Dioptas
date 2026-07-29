@@ -13,7 +13,7 @@ from sys import platform as _platform
 from qtpy import QtWidgets, QtCore, QtGui
 
 from ..widgets.MainWidget import MainWidget
-from ..model.DioptasModel import DioptasModel
+from ..model.DioptasModel import DioptasModel, UnsupportedProjectFileError
 from ..widgets.UtilityWidgets import save_file_dialog, open_file_dialog
 
 from . import CalibrationController
@@ -516,7 +516,13 @@ class MainController:
         )
         if filename is not None and filename != "":
             logger.info("Loading project from %s", filename)
-            self.model.load(filename)
+            try:
+                self.model.load(filename)
+            except UnsupportedProjectFileError as error:
+                QtWidgets.QMessageBox.critical(
+                    self.widget, "Cannot open this project file", str(error)
+                )
+                return
             self.model.working_directories["project"] = os.path.dirname(filename)
 
     def reset_btn_clicked(self):

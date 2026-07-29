@@ -76,7 +76,12 @@ SCHEMA_VERSION = 1
 #: versions that predate the params layer, so there is nothing for a reader
 #: to branch on. Bump to 2 together with dropping the legacy writer — that
 #: is the change older versions must not silently misread.
-PROJECT_FORMAT_VERSION = 1
+#: 2 (0.8.8): the migrated state lives in the generic params documents and
+#: the per-field legacy attributes are no longer written. Files from
+#: version 1 (Dioptas <= 0.8.7) are refused with a pointer to the version
+#: that can read them — the decision when the state migration dropped
+#: backward file compatibility.
+PROJECT_FORMAT_VERSION = 2
 
 T = TypeVar("T")
 

@@ -27,6 +27,11 @@
 - the view state (panel layout, docking, image/cake mode) and the working directories are deliberately outside the history: undo reverses the work, not the window arrangement or which folder a file dialog last pointed at. Loading a project, resetting, and adding or removing a configuration rebaseline the history rather than being undoable
 - the image is restored before the mask, so a restored mask always fits the image it was drawn on; that also retired the earlier rule of wiping the history whenever the mask was resized, along with the class of silently discarded history it caused
 
+## Distribution
+
+- **project files written by Dioptas 0.8.7 or earlier can no longer be opened** — the state migration changed what lives where in the file. Opening an old .dio shows a clear message instead of a broken load; older Dioptas releases remain available on PyPI and GitHub to read old files. The autosaved session from a previous version is likewise dropped once on upgrade
+- project files are stamped format_version 2 and are written atomically: the save goes to a temporary sibling file that replaces the project only on success, so a failed or interrupted save can never destroy the previous file (this also removes the "unable to truncate a file which is already open" failure mode at the root)
+
 ## Bugfixes
 
 - copying a phase marked it as modified — the asterisk that means "this no longer matches the file it came from" — because `jcpds.params` flags itself when certain keys are written and Python rebuilds a dict subclass by replaying its items through exactly that path. Copies now reproduce the original's flag instead of inventing one

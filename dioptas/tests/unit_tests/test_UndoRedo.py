@@ -1350,3 +1350,52 @@ def test_choosing_a_predefined_detector_is_undoable(calibrated):
     calibrated.history.redo()
     assert calibrated.calibration_model.detector_mode == DetectorModes.PREDEFINED
     assert calibrated.calibration_model.detector.name == "Pilatus CdTe 1M"
+
+
+# ---------------------------------------------------------------------------
+# project file format 2: atomic writes and legacy refusal
+# ---------------------------------------------------------------------------
+
+
+def test_projects_are_stamped_with_format_2(model, tmp_path):
+    import h5py
+
+    filename = str(tmp_path / "stamped.dio")
+    model.save(filename)
+    with h5py.File(filename, "r") as f:
+        assert int(f.attrs["format_version"]) == 2
+
+
+def test_old_project_files_are_refused_cleanly(model, tmp_path):
+    """A pre-migration file must produce a clear error, never a half-load."""
+    import h5py
+
+    from dioptas.model.DioptasModel import UnsupportedProjectFileError
+
+    filename = str(tmp_path / "old.dio")
+    with h5py.File(filename, "w") as f:
+        f.attrs["format_version"] = 1
+
+    model.current_configuration.integration_unit = "q_A^-1"
+    with pytest.raises(UnsupportedProjectFileError, match="0.8.7 or earlier"):
+        model.load(filename)
+    # the session was not touched by the refusal
+    assert model.current_configuration.integration_unit == "q_A^-1"
+    assert len(model.configurations) == 1
+
+
+def test_a_failing_save_leaves_the_previous_file_intact(model, tmp_path):
+    filename = str(tmp_path / "precious.dio")
+    model.save(filename)
+    size_before = os.path.getsize(filename)
+
+    original = model._save_into
+    model._save_into = lambda f: (_ for _ in ()).throw(RuntimeError("boom"))
+    with pytest.raises(RuntimeError):
+        model.save(filename)
+    model._save_into = original
+
+    assert os.path.getsize(filename) == size_before
+    assert model.load(filename) is None  # still a readable project
+    leftovers = [n for n in os.listdir(tmp_path) if ".tmp-" in n]
+    assert leftovers == []

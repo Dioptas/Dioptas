@@ -41,6 +41,10 @@ from .. import __version__
 logger = logging.getLogger(__name__)
 
 
+class UnsupportedProjectFileError(Exception):
+    """A .dio file this version cannot read (written before format 2)."""
+
+
 class DioptasModel:
     """Handles all the data used in Dioptas.
 
@@ -199,14 +203,21 @@ class DioptasModel:
         File-ending can be chosen as wanted. Usually Dioptas projects are saved as *.dio files.
         """
         logger.info("Saving project to %s", filename)
-        # close the file even when saving fails partway — a leaked open
-        # handle makes every subsequent save of the same file fail with
-        # "unable to truncate a file which is already open"
-        f = h5py.File(filename, "w")
+        # Write into a sibling temp file and swap it in atomically: a save
+        # that fails partway (or a crash mid-write) can then never destroy
+        # the previous project file, and the "unable to truncate a file
+        # which is already open" failure mode cannot reach the real file.
+        temp_filename = f"{filename}.tmp-{os.getpid()}"
         try:
-            self._save_into(f)
+            f = h5py.File(temp_filename, "w")
+            try:
+                self._save_into(f)
+            finally:
+                f.close()
+            os.replace(temp_filename, filename)
         finally:
-            f.close()
+            if os.path.isfile(temp_filename):
+                os.remove(temp_filename)
 
     def _save_into(self, f: h5py.File) -> None:
         # __version__ records which Dioptas wrote the file (informational);
@@ -276,6 +287,20 @@ class DioptasModel:
     def load(self, filename: str) -> None:
         """Loads a previously saved model (see save function) from an h5py file."""
         logger.info("Loading project from %s", filename)
+
+        # refuse old files before touching the current session, so a refusal
+        # never leaves a half-loaded state behind
+        with h5py.File(filename, "r") as probe:
+            format_version = int(probe.attrs.get("format_version", 0))
+        if format_version < PROJECT_FORMAT_VERSION:
+            raise UnsupportedProjectFileError(
+                f"{os.path.basename(filename)} was written by Dioptas 0.8.7 "
+                "or earlier. The project layout changed with the state "
+                "migration; please open the file with the Dioptas version "
+                "that wrote it (older releases stay available on PyPI and "
+                "GitHub) and re-export what you need."
+            )
+
         self.disconnect_models()
 
         # close the file even when loading fails partway — a leaked open
@@ -291,8 +316,8 @@ class DioptasModel:
         self.history.reset()
 
     def _load_from(self, f: h5py.File) -> None:
-        # missing format_version = legacy layout (version 0); newer files
-        # load best-effort thanks to the tolerant params layer
+        # older files were refused in load(); newer files load best-effort
+        # thanks to the tolerant params layer
         format_version = int(f.attrs.get("format_version", 0))
         if format_version > PROJECT_FORMAT_VERSION:
             logger.warning(
