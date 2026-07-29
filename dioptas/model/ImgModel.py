@@ -32,6 +32,26 @@ from dioptas.model.loader.FabioLoader import FabioLoader
 
 logger = logging.getLogger(__name__)
 
+
+def scalar_correction_params(correction: "ImgCorrectionInterface") -> dict:
+    """A correction's get_params() reduced to its JSON-safe state: numpy
+    scalars coerced, arrays dropped (they are caches — the transfer and
+    flat-field reference images reload from the filenames kept here).
+
+    get_params is optional on the interface; a correction without it (e.g.
+    one added programmatically) has no restorable state and syncs as {}."""
+    get_params = getattr(correction, "get_params", None)
+    if get_params is None:
+        return {}
+    scalars = {}
+    for key, value in get_params().items():
+        if isinstance(value, np.ndarray):
+            continue
+        if isinstance(value, np.generic):
+            value = value.item()
+        scalars[key] = value
+    return scalars
+
 #: image transformations by name; ImgParams.transformations stores the names,
 #: the callable list is derived from this registry
 TRANSFORMATION_FUNCTIONS = {
@@ -208,6 +228,19 @@ class ImgModel:
         if background_filename is not None:
             self.background_filename = str(background_filename)
         self._sync_file_params()
+
+    def _sync_correction_params(self) -> None:
+        """Writes the active corrections' scalar parameters into the params.
+
+        The correction objects (with their tth/azi grids and reference-image
+        arrays) are working machinery; the scalar parameters and filenames
+        are the state. The reconcile lives in Configuration, which owns the
+        calibration the rebuild needs.
+        """
+        self.params.corrections = {
+            name: scalar_correction_params(correction)
+            for name, correction in self._img_corrections.corrections.items()
+        }
 
     def _reconcile_file_params(self) -> None:
         """Makes the screen follow the file params (the undo/restore path).
@@ -899,6 +932,7 @@ class ImgModel:
         """
         logger.info("Adding image correction: %s", name)
         self._img_corrections.add(correction, name)
+        self._sync_correction_params()
         self._calculate_img_data()
         self.img_changed.emit()
 
@@ -911,6 +945,7 @@ class ImgModel:
         correction is deleted."""
         logger.info("Deleting image correction: %s", name)
         self._img_corrections.delete(name)
+        self._sync_correction_params()
         self._calculate_img_data()
         self.img_changed.emit()
 

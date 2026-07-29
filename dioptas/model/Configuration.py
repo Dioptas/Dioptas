@@ -130,6 +130,106 @@ class Configuration:
         self.calibration_model.params.events.connect(
             self._on_calibration_params_changed
         )
+        # the corrections reconcile lives here rather than in ImgModel:
+        # rebuilding a correction needs the calibration's tth/azi arrays,
+        # and Configuration is what owns both models
+        self._reconciling_corrections = False
+        self.img_model.params.events.connect(self._on_img_params_changed)
+
+    def _on_img_params_changed(self, info) -> None:
+        if info.signal.name == "corrections" and not self._reconciling_corrections:
+            self._reconcile_corrections()
+
+    def _reconcile_corrections(self) -> None:
+        """Makes the active corrections follow ImgParams.corrections.
+
+        Interactive adds/removes sync the params at their end, which this
+        recognizes as already reconciled (per-name scalar comparison). A
+        correction that cannot be rebuilt — a reference image that has moved,
+        or no calibration for the tth/azi grids — is logged and dropped from
+        the params, so the state never claims a correction that is not
+        applied."""
+        from .ImgModel import scalar_correction_params
+
+        # delete/add below sync the params mid-way through; reacting to those
+        # intermediate writes would restart the reconcile against a target
+        # that is no longer the one being applied
+        self._reconciling_corrections = True
+        try:
+            wanted = dict(self.img_model.params.corrections)
+            live = self.img_model.img_corrections.corrections
+
+            for name in [n for n in live if n not in wanted]:
+                self.img_model.delete_img_correction(name)
+
+            for name, params in wanted.items():
+                existing = live.get(name)
+                if existing is not None and (
+                    scalar_correction_params(existing) == params
+                ):
+                    continue
+                try:
+                    correction = self._build_correction(name, dict(params))
+                except Exception:
+                    logger.exception("Failed to rebuild the %s correction", name)
+                    correction = None
+                if correction is not None:
+                    self.img_model.add_img_correction(correction, name)
+
+            # one settled sync at the end: params mirror what is actually
+            # applied, including anything that could not be rebuilt
+            self.img_model._sync_correction_params()
+        finally:
+            self._reconciling_corrections = False
+
+    def _build_correction(self, name: str, params: dict):
+        """Constructs a correction object from its scalar parameters — the
+        one recipe shared by the params reconcile and the project loader.
+        Returns None when the inputs for the rebuild are not available."""
+        if name in ("cbn", "oiadac", "slab", "cylinder", "sphere", "plate"):
+            if self.calibration_model.tth_array is None:
+                return None
+            tth_array = 180.0 / np.pi * self.calibration_model.tth_array
+            azi_array = 180.0 / np.pi * self.calibration_model.azi_array
+            correction_classes = {
+                "cbn": CbnCorrection,
+                "oiadac": ObliqueAngleDetectorAbsorptionCorrection,
+                "slab": SlabAbsorptionCorrection,
+                "cylinder": CylinderAbsorptionCorrection,
+                "sphere": SphereAbsorptionCorrection,
+                "plate": PlateAbsorptionCorrection,
+            }
+            correction = correction_classes[name](
+                tth_array=tth_array, azi_array=azi_array
+            )
+            correction.set_params(params)
+            correction.update()
+            return correction
+        if name == "transfer":
+            correction = self.img_model.transfer_correction
+            if params.get("original_data") is not None:
+                # legacy loader path: the arrays travel in the project file
+                correction.set_params(params)
+                return correction
+            current = correction.get_params()
+            if (
+                current.get("original_data") is None
+                or current.get("original_filename") != params["original_filename"]
+                or current.get("response_filename") != params["response_filename"]
+            ):
+                # scalar-only params (undo, params doc): re-read the files
+                correction.load_original_image(params["original_filename"])
+                correction.load_response_image(params["response_filename"])
+            return correction
+        if name == "flat_field":
+            correction = self.img_model.flat_field_correction
+            if params.get("raw_data") is not None:
+                correction.set_params(params)
+            else:
+                correction.load(params["filename"])
+            return correction
+        logger.warning("Unknown image correction type: %s", name)
+        return None
 
     def _on_own_params_changed(self, info) -> None:
         field = info.signal.name
@@ -1072,7 +1172,19 @@ class Configuration:
             f.get("general_information").attrs["transparent_mask"]
         )
 
-        # corrections
+        # apply the img params doc now — before the legacy corrections block —
+        # so files without legacy correction attrs still rebuild theirs via
+        # the reconcile, and older docs' defaults are settled before legacy
+        # reconstruction syncs over them
+        self._apply_saved_params(
+            self.img_model.params, load_params(f.get("image_model"), ImgParams)
+        )
+
+        # corrections. The img params doc (applied above) already rebuilt
+        # scalar-parameterized corrections through the reconcile; this legacy
+        # block remains for files from before the corrections migration and
+        # for the embedded transfer/flat-field arrays (caches that make the
+        # project robust against the reference files moving).
         if f.get("image_model").get("corrections").attrs["has_corrections"]:
             for name, correction_group in (
                 f.get("image_model").get("corrections").items()
@@ -1080,54 +1192,7 @@ class Configuration:
                 params = {}
                 for param, val in correction_group.attrs.items():
                     params[param] = val
-                if name == "cbn":
-                    tth_array = (
-                        180.0 / np.pi * self.calibration_model.tth_array
-                    )
-                    azi_array = (
-                        180.0 / np.pi * self.calibration_model.azi_array
-                    )
-                    cbn_correction = CbnCorrection(
-                        tth_array=tth_array, azi_array=azi_array
-                    )
-
-                    cbn_correction.set_params(params)
-                    cbn_correction.update()
-                    self.img_model.add_img_correction(cbn_correction, name)
-                elif name == "oiadac":
-                    tth_array = (
-                        180.0 / np.pi * self.calibration_model.tth_array
-                    )
-                    azi_array = (
-                        180.0 / np.pi * self.calibration_model.azi_array
-                    )
-                    oiadac = ObliqueAngleDetectorAbsorptionCorrection(
-                        tth_array=tth_array, azi_array=azi_array
-                    )
-
-                    oiadac.set_params(params)
-                    oiadac.update()
-                    self.img_model.add_img_correction(oiadac, name)
-                elif name in ("slab", "cylinder", "sphere", "plate"):
-                    tth_array = (
-                        180.0 / np.pi * self.calibration_model.tth_array
-                    )
-                    azi_array = (
-                        180.0 / np.pi * self.calibration_model.azi_array
-                    )
-                    correction_classes = {
-                        "slab": SlabAbsorptionCorrection,
-                        "cylinder": CylinderAbsorptionCorrection,
-                        "sphere": SphereAbsorptionCorrection,
-                        "plate": PlateAbsorptionCorrection,
-                    }
-                    correction_obj = correction_classes[name](
-                        tth_array=tth_array, azi_array=azi_array
-                    )
-                    correction_obj.set_params(params)
-                    correction_obj.update()
-                    self.img_model.add_img_correction(correction_obj, name)
-                elif name == "transfer":
+                if name == "transfer":
                     params = {
                         "original_data": correction_group.get("original_data")[...],
                         "original_filename": correction_group.get(
@@ -1138,16 +1203,18 @@ class Configuration:
                             "response_data"
                         ).attrs["filename"],
                     }
-
-                    self.img_model.transfer_correction.set_params(params)
-                    self.img_model.enable_transfer_function()
                 elif name == "flat_field":
                     params = {
                         "raw_data": correction_group.get("raw_data")[...],
                         "filename": correction_group.get("raw_data").attrs["filename"],
                     }
-                    self.img_model.flat_field_correction.set_params(params)
-                    self.img_model.enable_flat_field()
+                try:
+                    correction = self._build_correction(name, params)
+                except Exception:
+                    logger.exception("Could not load the %s correction", name)
+                    correction = None
+                if correction is not None:
+                    self.img_model.add_img_correction(correction, name)
 
         # autosave parameters
         self.auto_save_integrated_pattern = bool(
@@ -1179,9 +1246,6 @@ class Configuration:
             # the legacy restore drops working directories that no longer
             # exist on this machine; that validation must not be undone
             exclude={"working_directories"},
-        )
-        self._apply_saved_params(
-            self.img_model.params, load_params(f.get("image_model"), ImgParams)
         )
         self._apply_saved_params(
             self.mask_model.params, load_params(f.get("mask"), MaskParams)

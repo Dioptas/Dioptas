@@ -223,6 +223,14 @@ class CalibrationModel:
                     != params.detector_filename
                 ):
                     self.load_detector_from_file(params.detector_filename)
+            elif detector_mode == DetectorModes.CUSTOM:
+                # the mode property reads the params, so it cannot serve as
+                # the "live" side of this comparison — the detector object
+                # can: predefined and nexus detectors are subclasses
+                if type(self.detector) is not Detector:
+                    # back to a plain detector; pixel sizes and shape then
+                    # come from the geometry config applied below
+                    self.reset_detector()
 
             if params.geometry is not None and params.geometry != (
                 _plain_geometry_config(self.pattern_geometry.get_config())

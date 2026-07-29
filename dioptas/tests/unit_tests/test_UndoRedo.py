@@ -1200,3 +1200,152 @@ def test_background_uid_survives_a_project_round_trip(model, xy, tmp_path):
     restored = model.overlay_model.get_overlay_by_uid(uid)
     assert restored is not None
     assert model.pattern_model.background_pattern is restored
+
+
+# ---------------------------------------------------------------------------
+# image corrections as params (step 4 — the last audit gap)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def calibrated(model):
+    model.img_model.load(os.path.join(_DATA, "CeO2_Pilatus1M.tif"))
+    model.calibration_model.load(os.path.join(_DATA, "CeO2_Pilatus1M.poni"))
+    model.history.reset()
+    return model
+
+
+def _add_cbn(model):
+    from dioptas.model.util.ImgCorrection import CbnCorrection
+
+    tth = 180.0 / np.pi * model.calibration_model.tth_array
+    azi = 180.0 / np.pi * model.calibration_model.azi_array
+    correction = CbnCorrection(tth_array=tth, azi_array=azi)
+    correction.set_params(
+        {
+            "diamond_thickness": 2.2,
+            "seat_thickness": 5.3,
+            "small_cbn_seat_radius": 0.4,
+            "large_cbn_seat_radius": 1.95,
+            "tilt": 0.0,
+            "tilt_rotation": 0.0,
+            "diamond_abs_length": 13.7,
+            "seat_abs_length": 14.05,
+            "center_offset": 0.0,
+            "center_offset_angle": 0.0,
+        }
+    )
+    correction.update()
+    model.img_model.add_img_correction(correction, "cbn")
+
+
+def test_adding_a_correction_is_undoable(calibrated):
+    _add_cbn(calibrated)
+    assert calibrated.img_model.has_corrections()
+    assert "cbn" in calibrated.img_model.params.corrections
+    assert calibrated.history.undo_label == "image correction"
+
+    calibrated.history.undo()
+    assert not calibrated.img_model.has_corrections()
+    assert calibrated.img_model.params.corrections == {}
+
+    calibrated.history.redo()
+    assert calibrated.img_model.has_corrections()
+    rebuilt = calibrated.img_model.get_img_correction("cbn")
+    assert rebuilt is not None
+    assert rebuilt.get_params()["diamond_thickness"] == 2.2
+
+
+def test_removing_a_correction_is_undoable(calibrated):
+    _add_cbn(calibrated)
+    calibrated.history.reset()
+
+    calibrated.img_model.delete_img_correction("cbn")
+    assert not calibrated.img_model.has_corrections()
+
+    calibrated.history.undo()
+    assert calibrated.img_model.has_corrections()
+
+
+def test_changing_correction_parameters_is_undoable(calibrated):
+    """The controller replaces the correction object on every edit; the
+    params must follow, and undo must bring the old values back."""
+    _add_cbn(calibrated)
+    calibrated.history.reset()
+
+    _add_cbn(calibrated)  # same name, would be an edit in the GUI
+    updated = dict(calibrated.img_model.params.corrections["cbn"])
+    updated["diamond_thickness"] = 3.0
+    calibrated.img_model.params.corrections = {
+        **calibrated.img_model.params.corrections,
+        "cbn": updated,
+    }
+    assert (
+        calibrated.img_model.get_img_correction("cbn").get_params()[
+            "diamond_thickness"
+        ]
+        == 3.0
+    )
+
+    calibrated.history.undo()
+    assert (
+        calibrated.img_model.get_img_correction("cbn").get_params()[
+            "diamond_thickness"
+        ]
+        == 2.2
+    )
+
+
+def test_corrections_ride_the_params_doc_in_projects(calibrated, tmp_path):
+    _add_cbn(calibrated)
+
+    filename = str(tmp_path / "corrected.dio")
+    calibrated.save(filename)
+    calibrated.load(filename)
+
+    assert "cbn" in calibrated.img_model.params.corrections
+    assert calibrated.img_model.has_corrections()
+    assert (
+        calibrated.img_model.get_img_correction("cbn").get_params()[
+            "diamond_thickness"
+        ]
+        == 2.2
+    )
+
+
+def test_transfer_correction_state_is_filenames_not_arrays(calibrated):
+    original = os.path.join(_DATA, "TransferCorrection", "original.tif")
+    response = os.path.join(_DATA, "TransferCorrection", "response.tif")
+    if not os.path.isfile(original):
+        pytest.skip("no transfer correction test data")
+
+    calibrated.img_model.load(original)
+    calibrated.img_model.transfer_correction.load_original_image(original)
+    calibrated.img_model.transfer_correction.load_response_image(response)
+    calibrated.img_model.enable_transfer_function()
+    calibrated.history.reset()
+
+    stored = calibrated.img_model.params.corrections["transfer"]
+    assert stored["original_filename"] == original
+    assert "original_data" not in stored  # arrays are caches, not state
+
+    calibrated.img_model.disable_transfer_function()
+    assert "transfer" not in calibrated.img_model.params.corrections
+
+    calibrated.history.undo()
+    assert calibrated.img_model.get_img_correction("transfer") is not None
+
+
+def test_choosing_a_predefined_detector_is_undoable(calibrated):
+    from dioptas.model.CalibrationModel import DetectorModes
+
+    calibrated.calibration_model.load_detector("Pilatus CdTe 1M")
+    assert calibrated.calibration_model.detector_mode == DetectorModes.PREDEFINED
+
+    calibrated.history.undo()
+    assert calibrated.calibration_model.detector_mode == DetectorModes.CUSTOM
+    assert calibrated.calibration_model.detector.name != "Pilatus CdTe 1M"
+
+    calibrated.history.redo()
+    assert calibrated.calibration_model.detector_mode == DetectorModes.PREDEFINED
+    assert calibrated.calibration_model.detector.name == "Pilatus CdTe 1M"

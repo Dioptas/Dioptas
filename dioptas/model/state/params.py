@@ -145,6 +145,14 @@ class ImgParams:
     #: background image file; empty = no background loaded
     background_filename: str = ""
 
+    #: Active image corrections by name ("cbn", "oiadac", "transfer",
+    #: "flat_field", "slab", ...), each holding that correction's scalar
+    #: parameters. Arrays (transfer/flat-field reference images, the tth/azi
+    #: grids) are caches rebuilt from these and the live calibration — the
+    #: filenames inside the dicts are the state. Always assign a NEW dict;
+    #: in-place mutation does not emit.
+    corrections: dict[str, dict] = field(default_factory=dict)
+
 
 @dataclass
 class CalibrationParams:

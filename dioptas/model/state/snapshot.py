@@ -93,6 +93,8 @@ _RECORDED_ELSEWHERE = {
     "img.filename",
     "img.series_pos",
     "img.background_filename",
+    # correction adds/removes recalculate the image and end with img_changed
+    "img.corrections",
     # the calibration result settles via parameters_changed, which records
     # once; these fire mid-operation while the sync writes them field by field
     "calibration.detector_mode",
@@ -440,6 +442,9 @@ class StateRecorder:
 
     def _restore_configuration(self, state: _ConfigState, configuration: Any) -> None:
         _apply_dict(configuration.params, state.params, exclude=_CONFIG_EXCLUDED)
+        # calibration before img: rebuilding an absorption correction (part
+        # of the img params) needs the restored calibration's tth/azi grids
+        _apply_dict(configuration.calibration_model.params, state.calibration)
         # transformations are excluded from the generic copy: the field is a
         # log of what was applied to the pixels rather than something they are
         # derived from, so assigning it would record a rotation that never
@@ -450,7 +455,6 @@ class StateRecorder:
         configuration.img_model.set_transformations(state.img["transformations"])
         _apply_dict(configuration.pattern_model.params, state.pattern)
         _apply_dict(configuration.mask_model.params, state.mask)
-        _apply_dict(configuration.calibration_model.params, state.calibration)
         _apply_dict(configuration.map_model.params, state.map)
 
         _restore_plugins(configuration.mask_plugin_manager, state.plugins)
@@ -547,6 +551,7 @@ _LABELS = {
     "img.filename": "image file",
     "img.series_pos": "series position",
     "img.background_filename": "background image",
+    "img.corrections": "image correction",
     "calibration.peak_selections": "calibration peaks",
     "pattern.pattern_filename": "pattern file",
     "pattern.pattern_source": "pattern file",
