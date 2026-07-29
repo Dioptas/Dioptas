@@ -110,3 +110,60 @@ def test_main_controller_binds_undo_shortcuts(main_controller):
     }
     assert QtGui.QKeySequence(QtGui.QKeySequence.StandardKey.Undo).toString() in bound
     assert "Ctrl+Y" in bound
+
+
+# ---------------------------------------------------------------------------
+# the sidebar buttons — the only visible affordance outside mask mode
+# ---------------------------------------------------------------------------
+
+
+def test_sidebar_buttons_sit_below_the_mode_buttons(main_controller):
+    widget = main_controller.widget
+    assert widget.undo_btn.y() > widget.map_mode_btn.y()
+    assert widget.redo_btn.y() > widget.undo_btn.y()
+
+
+def test_sidebar_buttons_start_disabled(main_controller):
+    assert main_controller.widget.undo_btn.isEnabled() is False
+    assert main_controller.widget.redo_btn.isEnabled() is False
+
+
+def test_sidebar_buttons_drive_the_history(main_controller, qtbot):
+    model, widget = main_controller.model, main_controller.widget
+    model.img_model._img_data = np.zeros((50, 50))
+    model.img_model.img_changed.emit()
+    model.history.reset()
+
+    model.current_configuration.integration_unit = "q_A^-1"
+    assert widget.undo_btn.isEnabled() is True
+
+    qtbot.mouseClick(widget.undo_btn, QtCore.Qt.MouseButton.LeftButton)
+    assert model.current_configuration.integration_unit == "2th_deg"
+    assert widget.redo_btn.isEnabled() is True
+
+    qtbot.mouseClick(widget.redo_btn, QtCore.Qt.MouseButton.LeftButton)
+    assert model.current_configuration.integration_unit == "q_A^-1"
+
+
+def test_sidebar_tooltips_name_the_step_and_the_shortcut(main_controller):
+    model, widget = main_controller.model, main_controller.widget
+    model.img_model._img_data = np.zeros((50, 50))
+    model.img_model.img_changed.emit()
+    model.history.reset()
+
+    shortcut = QtGui.QKeySequence(QtGui.QKeySequence.StandardKey.Undo).toString(
+        QtGui.QKeySequence.SequenceFormat.NativeText
+    )
+    assert "Nothing to undo" in widget.undo_btn.toolTip()
+    assert shortcut in widget.undo_btn.toolTip()
+
+    model.current_configuration.integration_unit = "q_A^-1"
+    assert "integration unit" in widget.undo_btn.toolTip()
+    assert shortcut in widget.undo_btn.toolTip()
+
+
+def test_redo_shortcut_shown_is_the_z_variant(main_controller):
+    """Reads better beside the undo shortcut, and is the macOS convention."""
+    from dioptas.controller.MainController import _shortcut_text
+
+    assert _shortcut_text(QtGui.QKeySequence.StandardKey.Redo).endswith("Z")

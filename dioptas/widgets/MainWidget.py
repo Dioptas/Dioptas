@@ -31,10 +31,14 @@ class MainWidget(QtWidgets.QWidget):
 
         self._create_menu()
         self._create_mode_menu()
+        self._create_history_menu()
 
         self._left_layout.addLayout(self._menu_layout)
         self._left_layout.addLayout(self._mode_layout)
         self._left_layout.addLayout(self._external_actions_layout)
+        # last in the sidebar, so the spacer inside the mode layout pushes it
+        # to the bottom left corner
+        self._left_layout.addLayout(self._history_layout)
 
         self._outer_layout.addLayout(self._left_layout)
         self._outer_layout.addWidget(VerticalLine())
@@ -74,6 +78,7 @@ class MainWidget(QtWidgets.QWidget):
         self._external_actions_layout = QtWidgets.QVBoxLayout()
         self._content_layout = QtWidgets.QVBoxLayout()
         self._mode_layout = QtWidgets.QVBoxLayout()
+        self._history_layout = QtWidgets.QVBoxLayout()
 
     def _create_mode_menu(self):
         self.mode_btn_group = QtWidgets.QButtonGroup()
@@ -118,6 +123,24 @@ class MainWidget(QtWidgets.QWidget):
         self.load_btn = FlatButton("Open Project")
         self.reset_btn = FlatButton("Reset Project")
 
+    def _create_history_menu(self):
+        """Undo/redo at the foot of the sidebar.
+
+        The history is application-wide, so the controls belong beside the
+        mode buttons rather than inside any one mode — the mask had the only
+        visible pair before, which left undo undiscoverable everywhere else.
+        """
+        self.undo_btn = FlatButton("UNDO", self)
+        self.undo_btn.setObjectName("undo_btn")
+        self.redo_btn = FlatButton("REDO", self)
+        self.redo_btn.setObjectName("redo_btn")
+
+        self._history_layout.setContentsMargins(0, 0, 0, 6)
+        self._history_layout.setSpacing(0)
+        self._history_layout.addWidget(HorizontalLine())
+        self._history_layout.addWidget(self.undo_btn)
+        self._history_layout.addWidget(self.redo_btn)
+
     def _create_main_frame(self):
         self.main_frame = QtWidgets.QWidget(self)
         self._layout_main_frame = QtWidgets.QVBoxLayout()
@@ -153,6 +176,7 @@ class MainWidget(QtWidgets.QWidget):
     def style_widgets(self):
         self._style_mode_btns()
         self._style_menu_btn()
+        self._style_history_btns()
 
         button_height = 24
         button_width = 24
@@ -168,6 +192,13 @@ class MainWidget(QtWidgets.QWidget):
     def _style_menu_btn(self):
         self.menu_btn.setFixedWidth(30)
         self.menu_btn.setFixedHeight(30)
+
+    def _style_history_btns(self):
+        # same width as the mode buttons above them so the sidebar stays one
+        # column, but much shorter — these are not modes
+        for btn in (self.undo_btn, self.redo_btn):
+            btn.setWidth(75)
+            btn.setHeight(26)
 
     def _style_mode_btns(self):
         mode_btn_width = 75

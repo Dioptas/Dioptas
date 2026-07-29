@@ -226,11 +226,36 @@ class MainController:
         for shortcut in self._redo_shortcuts:
             shortcut.activated.connect(self.redo)
 
+        self.widget.undo_btn.clicked.connect(self.undo)
+        self.widget.redo_btn.clicked.connect(self.redo)
+        self.model.history.changed.connect(self.update_history_buttons)
+        self.update_history_buttons()
+
     def undo(self):
         self.model.history.undo()
 
     def redo(self):
         self.model.history.redo()
+
+    def update_history_buttons(self):
+        """Greys the sidebar buttons out at the ends of the history and names
+        the step each would apply, together with its shortcut."""
+        history = self.model.history
+        undo_key = _shortcut_text(QtGui.QKeySequence.StandardKey.Undo)
+        redo_key = _shortcut_text(QtGui.QKeySequence.StandardKey.Redo)
+
+        self.widget.undo_btn.setEnabled(history.can_undo)
+        self.widget.redo_btn.setEnabled(history.can_redo)
+        self.widget.undo_btn.setToolTip(
+            f"Undo {history.undo_label} ({undo_key})"
+            if history.can_undo
+            else f"Nothing to undo ({undo_key})"
+        )
+        self.widget.redo_btn.setToolTip(
+            f"Redo {history.redo_label} ({redo_key})"
+            if history.can_redo
+            else f"Nothing to redo ({redo_key})"
+        )
 
     def tab_changed(self):
         """
@@ -533,3 +558,22 @@ class MainController:
         threading.Thread(target=run_command).start()
 
         return command_str
+
+
+def _shortcut_text(standard_key) -> str:
+    """The shortcut to advertise for a standard action, as the user's keyboard
+    shows it.
+
+    Qt lists several bindings per action and its first choice for Redo is
+    Ctrl+Y, but the Z-based variant is the platform convention on macOS and
+    reads better next to the Undo shortcut shown beside it, so that one wins
+    when it is available.
+    """
+    bindings = QtGui.QKeySequence.keyBindings(standard_key)
+    if not bindings:
+        return ""
+    native = QtGui.QKeySequence.SequenceFormat.NativeText
+    for binding in bindings:
+        if binding.toString().endswith("Z"):
+            return binding.toString(native)
+    return bindings[0].toString(native)
