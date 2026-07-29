@@ -10,6 +10,8 @@
 
 ## Improvements
 
+- images are stored in their own dtype and compressed in project files, instead of being converted to 32-bit floats: a project holding a 2048² 16-bit image drops from about 17 MB to 4.5 MB, and reloading an image now returns exactly the data that was loaded (converting to float doubled the size of 16-bit detector data and lost precision above 16.7 million counts)
+
 - the mask is stored compressed in project files (gzip level 1): a saved mask shrinks about 190x (4.2 MB to 22 KB for a 2048² detector, 18 MB to 0.12 MB for a 4M one), which also makes the session autosave far cheaper; gzip is a built-in HDF5 filter, so older Dioptas versions still read these files
 
 - the mask undo/redo history stores bit-packed snapshots instead of full byte-per-pixel arrays, cutting its memory by 8x (about 900 MB to 113 MB for a 4M-pixel detector at the 50-step depth)

@@ -1057,3 +1057,44 @@ def test_missing_working_directories_are_not_restored(dioptas_model, tmp_path):
     restored = dioptas_model.current_configuration.working_directories
     assert restored["image"] == ""  # dropped: does not exist
     assert restored["pattern"] == str(tmp_path)  # kept: exists
+
+
+def test_image_round_trip_preserves_dtype_and_values(dioptas_model, tmp_path):
+    """A project round-trip must return the image exactly as loaded.
+
+    Images used to be stored as float32 regardless of the detector dtype, so
+    reloading a uint16 image from a project gave float32 back — and integer
+    counts above 2**24 lost precision."""
+    dioptas_model.img_model.load(os.path.join(data_path, "image_001.tif"))
+    original = dioptas_model.img_model.raw_img_data.copy()
+    assert original.dtype == np.uint16  # guard: the fixture image is integer
+
+    filename = os.path.join(tmp_path, "image_round_trip.dio")
+    dioptas_model.save(filename)
+    dioptas_model.load(filename)
+
+    restored = dioptas_model.img_model.raw_img_data
+    assert restored.dtype == original.dtype
+    assert np.array_equal(restored, original)
+
+
+def test_image_and_background_are_stored_compressed(dioptas_model, tmp_path):
+    import h5py
+
+    dioptas_model.img_model.load(os.path.join(data_path, "image_001.tif"))
+    dioptas_model.img_model.background_data = np.zeros(
+        dioptas_model.img_model.raw_img_data.shape, dtype=np.uint16
+    )
+
+    filename = os.path.join(tmp_path, "compressed_image.dio")
+    dioptas_model.save(filename)
+
+    with h5py.File(filename, "r") as f:
+        image_group = f["configurations/0/image_model"]
+        for name in ("raw_image_data", "background_data"):
+            dataset = image_group[name]
+            assert dataset.compression == "gzip"
+            assert dataset.shuffle
+            stored = dataset.id.get_storage_size()
+            raw = dataset.size * dataset.dtype.itemsize
+            assert stored < raw
