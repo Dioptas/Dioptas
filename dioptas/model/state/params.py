@@ -183,6 +183,12 @@ class CalibrationParams:
     use_dioptrin: bool = False
     dioptrin_num_workers: int = 1
 
+    #: Picked calibration peaks as ((ring, ((x, y), ...)), ...) — one entry
+    #: per pick, in pick order. Plain nested tuples so the generic
+    #: serializer, snapshot equality and JSON survive them untouched; the
+    #: model exposes numpy views through its points/points_index properties.
+    peak_selections: tuple = ()
+
 
 @dataclass
 class MaskParams:

@@ -1001,3 +1001,60 @@ def test_a_failed_load_leaves_the_model_untouched(model, images):
         model.img_model.load("/nowhere/not_an_image.tif")
     assert model.img_model.filename == images[0]
     assert model.img_model.params.filename == images[0]
+
+
+# ---------------------------------------------------------------------------
+# peak selections as params records (step 2a)
+# ---------------------------------------------------------------------------
+
+
+def test_peak_selections_are_plain_nested_tuples(model):
+    model.calibration_model.find_peak(20, 20, 5, 3)
+    selections = model.calibration_model.params.peak_selections
+    assert isinstance(selections, tuple)
+    ring, positions = selections[0]
+    assert ring == 3
+    assert isinstance(positions, tuple)
+    assert isinstance(positions[0], tuple)
+
+
+def test_points_properties_mirror_the_params(model):
+    model.calibration_model.find_peak(20, 20, 5, 1)
+    model.calibration_model.find_peak(30, 30, 5, 2)
+    assert model.calibration_model.points_index == [1, 2]
+    assert len(model.calibration_model.points) == 2
+    assert model.calibration_model.points[0].shape[-1] == 2
+
+
+def test_list_shaped_selections_are_canonicalized(model):
+    """A JSON round trip delivers nested lists; the reaction normalizes them
+    so snapshots and fresh picks always compare equal."""
+    model.calibration_model.params.peak_selections = [[1, [[10.0, 12.0]]]]
+    selections = model.calibration_model.params.peak_selections
+    assert selections == ((1, ((10.0, 12.0),)),)
+    assert isinstance(selections, tuple)
+
+
+def test_picked_peaks_survive_a_project_round_trip(model, tmp_path):
+    """Peaks ride the generic params doc now — previously they were lost."""
+    model.calibration_model.find_peak(20, 20, 5, 0)
+    model.calibration_model.find_peak(30, 30, 5, 1)
+    kept = model.calibration_model.params.peak_selections
+
+    filename = str(tmp_path / "peaks.dio")
+    model.save(filename)
+    model.load(filename)
+    assert model.calibration_model.params.peak_selections == kept
+    assert model.calibration_model.points_index == [0, 1]
+
+
+def test_remove_peaks_by_ring_goes_through_params(model):
+    model.calibration_model.find_peak(20, 20, 5, 0)
+    model.calibration_model.find_peak(30, 30, 5, 1)
+    model.history.reset()
+
+    model.calibration_model.remove_peaks_by_ring(0)
+    assert model.calibration_model.points_index == [1]
+
+    model.history.undo()
+    assert model.calibration_model.points_index == [0, 1]

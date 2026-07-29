@@ -40,8 +40,10 @@ class CalibrationModel:
     def __init__(self, img_model: ImgModel | None = None) -> None:
         super().__init__()
         self.img_model: ImgModel | None = img_model
-        self.points: list[np.ndarray] = []
-        self.points_index: list[int] = []
+        # picked peaks live in params.peak_selections; these caches hold
+        # the derived numpy views the algorithms consume
+        self._points_cache: list[np.ndarray] | None = None
+        self._points_index_cache: list[int] | None = None
 
         self.detector: Detector = Detector(pixel1=79e-6, pixel2=79e-6)
         # self.detector.shape = (2048, 2048)
@@ -91,12 +93,52 @@ class CalibrationModel:
 
         self.detector_reset: Signal = Signal()
         self.parameters_changed: Signal = Signal()
-        #: picked calibration peaks changed. The points are data rather
-        #: than settings, so they have no params event of their own — this
-        #: is what lets the undo history see peak picking at all.
+        #: re-emitted whenever params.peak_selections changes; views that
+        #: plot the picked peaks subscribe here
         self.points_changed: Signal = Signal()
 
         self._dioptrin_integrator: Any = None
+
+        # side effects of settings changes live here (not in the property
+        # setters), so a direct params write behaves exactly like the
+        # property write
+        self.params.events.connect(self._on_params_changed)
+
+    def _on_params_changed(self, info) -> None:
+        if info.signal.name == "peak_selections":
+            value = info.args[0]
+            canonical = _canonical_peak_selections(value)
+            if canonical != value:
+                # JSON round trips turn tuples into lists; normalize so
+                # snapshots and fresh writes always compare equal
+                self.params.peak_selections = canonical
+                return
+            self._points_cache = None
+            self._points_index_cache = None
+            self.points_changed.emit()
+
+    @property
+    def points(self) -> list[np.ndarray]:
+        """Picked peaks as numpy arrays, one entry per pick (read-only view
+        of ``params.peak_selections`` — mutate through the pick/clear/remove
+        methods, which write the params)."""
+        if self._points_cache is None:
+            self._points_cache = [
+                np.array(positions) for _, positions in self.params.peak_selections
+            ]
+        return self._points_cache
+
+    @property
+    def points_index(self) -> list[int]:
+        if self._points_index_cache is None:
+            self._points_index_cache = [
+                ring for ring, _ in self.params.peak_selections
+            ]
+        return self._points_index_cache
+
+    def _append_peak_selection(self, points: np.ndarray, ring: int) -> None:
+        entry = (int(ring), tuple(map(tuple, np.atleast_2d(points).tolist())))
+        self.params.peak_selections = self.params.peak_selections + (entry,)
 
     @property
     def start_values(self) -> dict[str, float]:
@@ -279,9 +321,7 @@ class CalibrationModel:
             (int(np.round(x)), int(np.round(y))), stdout=DummyStdOut()
         )
         if len(cur_peak_points):
-            self.points.append(np.array(cur_peak_points))
-            self.points_index.append(peak_ind)
-            self.points_changed.emit()
+            self._append_peak_selection(np.array(cur_peak_points), peak_ind)
         return np.array(cur_peak_points)
 
     def find_peak(self, x: float, y: float, search_size: int, peak_ind: int) -> np.ndarray:
@@ -306,40 +346,24 @@ class CalibrationModel:
         x_ind, y_ind = np.where(search_array == search_array.max())
         x_ind = x_ind[0] + left_ind
         y_ind = y_ind[0] + top_ind
-        self.points.append(np.array([x_ind, y_ind]))
-        self.points_index.append(peak_ind)
-        self.points_changed.emit()
+        self._append_peak_selection(np.array([x_ind, y_ind]), peak_ind)
         return np.array([np.array((x_ind, y_ind))])
 
     def clear_peaks(self) -> None:
         logger.info("Clearing all calibration peaks")
-        self.points = []
-        self.points_index = []
-        self.points_changed.emit()
+        self.params.peak_selections = ()
 
     def remove_peaks_by_ring(self, ring_ind: int) -> None:
         """Removes all peaks belonging to the specified ring index."""
-        filtered = [
-            (p, i)
-            for p, i in zip(self.points, self.points_index)
-            if i != ring_ind
-        ]
-        if filtered:
-            self.points, self.points_index = map(list, zip(*filtered))
-        else:
-            self.points = []
-            self.points_index = []
-        self.points_changed.emit()
+        self.params.peak_selections = tuple(
+            entry for entry in self.params.peak_selections if entry[0] != ring_ind
+        )
 
     def remove_last_peak(self) -> int | None:
-        if self.points:
-            num_points = int(
-                self.points[-1].size / 2
-            )  # each peak is x, y so length is twice as number of peaks
-            self.points.pop(-1)
-            self.points_index.pop(-1)
-            self.points_changed.emit()
-            return num_points
+        if self.params.peak_selections:
+            _, positions = self.params.peak_selections[-1]
+            self.params.peak_selections = self.params.peak_selections[:-1]
+            return len(positions)
 
     def create_cake_geometry(self) -> None:
         self.cake_geometry = AzimuthalIntegrator(
@@ -446,9 +470,7 @@ class CalibrationModel:
 
         # Store the result
         if len(res):
-            self.points.append(np.array(res))
-            self.points_index.append(ring_index)
-            self.points_changed.emit()
+            self._append_peak_selection(np.array(res), ring_index)
 
         self.set_supersampling()
         self.pattern_geometry.reset()
@@ -1394,6 +1416,18 @@ def poni_flipud(poni_dict: dict) -> dict:
             "Detector orientation is not supported: Saved .poni file is not compatible with pyFAI"
         )
     return poni_dict
+
+
+def _canonical_peak_selections(value: Any) -> tuple:
+    """Nested tuples of (ring, ((x, y), ...)) — the one true shape.
+
+    JSON (project files) has no tuples, so a loaded document arrives as
+    nested lists; comparing that against a freshly picked tuple would claim
+    a change where there is none."""
+    return tuple(
+        (int(ring), tuple(tuple(float(c) for c in point) for point in positions))
+        for ring, positions in value
+    )
 
 
 class DetectorModes(Enum):

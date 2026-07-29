@@ -83,6 +83,9 @@ _CONFIG_EXCLUDED = {"working_directories"}
 #: one action, and — worse — the first of those steps would be captured
 #: mid-operation: rotating an image records the new transformation before the
 #: mask has been resized to match, a state that never actually existed.
+#: fields where consecutive writes are separate decisions, never a drag
+_NO_COALESCE = {"calibration.peak_selections"}
+
 _RECORDED_ELSEWHERE = {
     "img.transformations",
     # file loads end with img_changed, which records the settled state;
@@ -127,9 +130,6 @@ class _ConfigState:
     #: identical masks (across steps or configurations) share one blob
     mask_data: str
     plugins: tuple
-    #: picked calibration peaks, as plain nested tuples so snapshots compare
-    #: by content (the model holds them as numpy arrays)
-    points: tuple
     #: the refined geometry, the detector and whether a calibration exists at
     #: all — pyFAI geometry is data on the model rather than a params field,
     #: so none of it travels with CalibrationParams
@@ -230,7 +230,6 @@ class StateRecorder:
         """
         for configuration in self._model.configurations:
             for signal, handler in (
-                (configuration.calibration_model.points_changed, self._on_points_changed),
                 (
                     configuration.calibration_model.parameters_changed,
                     self._on_calibration_changed,
@@ -239,12 +238,6 @@ class StateRecorder:
             ):
                 if not signal.has_listener(handler):
                     signal.connect(handler)
-
-    def _on_points_changed(self) -> None:
-        # Deliberately not coalesced. An automatic search adds its whole burst
-        # of peaks in one call and so emits once anyway, while two clicks are
-        # two decisions the user may well want to take back one at a time.
-        self.history.record(label="calibration peaks")
 
     def _on_calibration_changed(self) -> None:
         self._record("calibration")
@@ -273,6 +266,12 @@ class StateRecorder:
         self.history.record("remove phase")
 
     def _on_params_changed(self, field: str, new: Any, old: Any) -> None:
+        if field in _NO_COALESCE:
+            # an automatic search adds its whole burst in one write and so
+            # records once anyway; two clicks are two decisions the user
+            # may well want to take back one at a time
+            self.history.record(label=_label_for(field))
+            return
         if field in _RECORDED_ELSEWHERE:
             # remember what the user actually did, so the step is not labelled
             # after whichever consequence happens to be recorded first
@@ -351,7 +350,6 @@ class StateRecorder:
             map=_capture_params(configuration.map_model.params),
             mask_data=self._capture_mask(configuration.mask_model),
             plugins=_capture_plugins(configuration.mask_plugin_manager),
-            points=_capture_points(configuration.calibration_model),
             calibration_state=_capture_calibration(configuration.calibration_model),
         )
 
@@ -440,7 +438,6 @@ class StateRecorder:
         if tuple(payload.shape) == tuple(configuration.mask_model.mask_dimension):
             configuration.mask_model.set_mask_data(payload.array())
 
-        _restore_points(configuration.calibration_model, state.points)
         _restore_calibration(configuration.calibration_model, state.calibration_state)
 
 def _apply_dict(target: Any, values: dict, exclude: set[str] | None = None) -> None:
@@ -491,31 +488,6 @@ def _phase_fingerprint(phase: Any) -> tuple:
             (r.h, r.k, r.l, r.d, r.d0, r.intensity) for r in phase.reflections
         ),
     )
-
-
-def _capture_points(calibration_model: Any) -> tuple:
-    """Picked calibration peaks as plain nested tuples.
-
-    The model stores them as numpy arrays, which cannot be compared with ``==``
-    inside a snapshot; converting is also what keeps an unchanged set of points
-    comparing equal across captures.
-    """
-    return tuple(
-        (tuple(np.atleast_2d(points).tolist()), int(index))
-        for points, index in zip(
-            calibration_model.points, calibration_model.points_index
-        )
-    )
-
-
-def _restore_points(calibration_model: Any, states: tuple) -> None:
-    if _capture_points(calibration_model) == states:
-        return
-    calibration_model.points = [
-        np.array(points).reshape(-1, 2).squeeze() for points, _ in states
-    ]
-    calibration_model.points_index = [index for _, index in states]
-    calibration_model.points_changed.emit()
 
 
 def _capture_calibration(calibration_model: Any) -> dict:
@@ -607,6 +579,7 @@ _LABELS = {
     "img.filename": "image file",
     "img.series_pos": "series position",
     "img.background_filename": "background image",
+    "calibration.peak_selections": "calibration peaks",
     "mask.roi": "mask region of interest",
     "mask.mode": "mask drawing mode",
 }
