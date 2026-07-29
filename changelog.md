@@ -8,6 +8,12 @@
 
 - the map selection marker now follows whichever image is loaded, so stepping through files anywhere in Dioptas moves it, and it hides for images that are not part of the map
 
+## Improvements
+
+- the mask is stored compressed in project files (gzip level 1): a saved mask shrinks about 190x (4.2 MB to 22 KB for a 2048² detector, 18 MB to 0.12 MB for a 4M one), which also makes the session autosave far cheaper; gzip is a built-in HDF5 filter, so older Dioptas versions still read these files
+
+- the mask undo/redo history stores bit-packed snapshots instead of full byte-per-pixel arrays, cutting its memory by 8x (about 900 MB to 113 MB for a 4M-pixel detector at the 50-step depth)
+
 ## Bugfixes
 
 - switching on smoothing in the map hid the position, intensity and filename information below the map plot when hovering over it, because the smoothed image is upscaled and the mouse position was read in that upscaled grid
@@ -25,9 +31,6 @@
 - setting an integer intensity factor (e.g. from a script) silently wrapped uint16 image pixel values around; the factor is now coerced to float
 
 ## Internal
-
-- the mask is stored compressed in project files (gzip level 1): a saved mask shrinks about 190x (4.2 MB to 22 KB for a 2048² detector, 18 MB to 0.12 MB for a 4M one), which also makes the session autosave far cheaper; gzip is a built-in HDF5 filter, so older Dioptas versions still read these files
-- the mask undo/redo history stores bit-packed snapshots instead of full byte-per-pixel arrays, cutting its memory by 8x (about 900 MB to 113 MB for a 4M-pixel detector at the 50-step depth)
 
 - restoring settings from a project file no longer needs per-field code: the generic params documents are applied wholesale on top of the legacy restore, so any settings field added in future round-trips automatically
 
