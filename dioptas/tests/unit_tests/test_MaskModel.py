@@ -525,3 +525,53 @@ def test_set_mask_updates_dimension():
 
     # Mask must be preserved — not reset to zeros
     assert np.sum(mask_model.get_img()) == 100 * 100
+
+
+def test_undo_history_is_bit_packed_and_exact():
+    """The undo history stores bit-packed snapshots (8x smaller than the
+    bool arrays) and must still restore masks exactly."""
+    mask_model = MaskModel((512, 512))
+
+    mask_model.mask_rect(100, 100, 50, 50)
+    after_first = mask_model.get_img().copy()
+    # deliberately draw over the existing mask: restoring must be exact
+    mask_model.mask_rect(120, 120, 50, 50)
+    after_second = mask_model.get_img().copy()
+
+    packed, shape = mask_model._undo_deque[-1]
+    assert shape == (512, 512)
+    assert packed.nbytes == after_first.nbytes / 8
+
+    mask_model.undo()
+    assert np.array_equal(mask_model.get_img(), after_first)
+    assert mask_model.get_img().dtype == bool
+
+    mask_model.redo()
+    assert np.array_equal(mask_model.get_img(), after_second)
+
+
+def test_imprint_undo_snapshot_is_packed():
+    """The imprint path records through the same packed representation."""
+    from dioptas.model.MaskPluginManager import MaskPluginManager
+    from dioptas.model.util.mask_plugins import BUILTIN_MASK_PLUGINS
+
+    mask_model = MaskModel((256, 256))
+    manager = MaskPluginManager()
+    manager.register(BUILTIN_MASK_PLUGINS[0]())
+    mask_model.mask_plugin_manager = manager
+
+    mask_model.mask_rect(10, 10, 20, 20)
+    before = mask_model.get_img().copy()
+
+    plugin_mask = np.zeros((256, 256), dtype=bool)
+    plugin_mask[100:120, 100:120] = True
+    name = manager.plugin_names[0]
+    manager.plugins[name].cached_mask = plugin_mask
+
+    mask_model.imprint_plugin_mask(name)
+    # the imprint must actually have happened, otherwise this tests nothing
+    assert not np.array_equal(mask_model.get_img(), before)
+    assert isinstance(mask_model._undo_deque[-1], tuple)
+
+    mask_model.undo()
+    assert np.array_equal(mask_model.get_img(), before)
