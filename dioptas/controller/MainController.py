@@ -211,6 +211,27 @@ class MainController:
             lambda: self.model.previous_image()
         )
 
+        # Undo/redo work in every mode, not just the mask: the history is a
+        # single application-wide stack (see model/state/snapshot.py). Both
+        # redo sequences are bound because Ctrl+Shift+Z is the platform
+        # convention here while Ctrl+Y is what the mask mode always used.
+        self._undo_shortcut = QtGui.QShortcut(
+            QtGui.QKeySequence.StandardKey.Undo, self.widget
+        )
+        self._undo_shortcut.activated.connect(self.undo)
+        self._redo_shortcuts = [
+            QtGui.QShortcut(QtGui.QKeySequence.StandardKey.Redo, self.widget),
+            QtGui.QShortcut(QtGui.QKeySequence("Ctrl+Y"), self.widget),
+        ]
+        for shortcut in self._redo_shortcuts:
+            shortcut.activated.connect(self.redo)
+
+    def undo(self):
+        self.model.history.undo()
+
+    def redo(self):
+        self.model.history.redo()
+
     def tab_changed(self):
         """
         Function which is called when a tab has been selected (calibration, mask, or integration). Performs

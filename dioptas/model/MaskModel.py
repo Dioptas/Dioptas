@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from collections import deque
 from math import sqrt, atan2, cos, sin
 
 import fabio
@@ -30,14 +29,6 @@ class MaskModel:
         self.filename: str = ''
 
         self._mask_data: np.ndarray = np.zeros(self.mask_dimension, dtype=bool)
-        # bit-packed snapshots (see _pack_mask): 8x smaller than the
-        # bool arrays, which matters at 50 deep on large detectors
-        self._undo_deque: deque[tuple[np.ndarray, tuple[int, ...]]] = deque(maxlen=50)
-        self._redo_deque: deque[tuple[np.ndarray, tuple[int, ...]]] = deque(maxlen=50)
-        # Parallel deques tracking which plugin (if any) was imprinted at each
-        # undo step. None for regular mask actions; plugin name for imprints.
-        self._imprint_undo: deque[str | None] = deque(maxlen=50)
-        self._imprint_redo: deque[str | None] = deque(maxlen=50)
 
         self.mask_changed: Signal = Signal()
 
@@ -70,10 +61,6 @@ class MaskModel:
     def reset_dimension(self) -> None:
         if self.mask_dimension is not None:
             self._mask_data = np.zeros(self.mask_dimension, dtype=bool)
-            self._undo_deque = deque(maxlen=50)
-            self._redo_deque = deque(maxlen=50)
-            self._imprint_undo = deque(maxlen=50)
-            self._imprint_redo = deque(maxlen=50)
 
     @property
     def roi_mask(self) -> np.ndarray | None:
@@ -113,90 +100,41 @@ class MaskModel:
                 mask = np.logical_or(mask, plugin_mask)
         return mask
 
-    @staticmethod
-    def _pack_mask(mask: np.ndarray) -> tuple[np.ndarray, tuple[int, ...]]:
-        """Bit-packs a mask for the undo/redo history.
+    def set_mask_data(self, mask_data: np.ndarray) -> None:
+        """Replaces the user-drawn mask without any further bookkeeping.
 
-        numpy stores booleans as one byte per pixel, so the history held 50
-        full-size arrays (about 900 MB for a 4M-pixel detector). Packing
-        costs well under a millisecond and divides that by eight. The shape
-        travels with the data because the mask can be resized."""
-        return np.packbits(mask), mask.shape
-
-    @staticmethod
-    def _unpack_mask(entry: tuple[np.ndarray, tuple[int, ...]]) -> np.ndarray:
-        packed, shape = entry
-        size = int(np.prod(shape))
-        return np.unpackbits(packed)[:size].reshape(shape).astype(bool)
-
-    def update_deque(self) -> None:
-        """Saves the current mask data into a deque, which can be popped later
-        to provide an undo/redo feature.
-        When performing a new action the old redo steps will be cleared.
+        Used by the undo history to write a snapshot back. Unlike
+        :meth:`set_mask` this does not touch ``filename``, so restoring a step
+        does not claim the mask came from a file.
         """
-        self._undo_deque.append(self._pack_mask(self._mask_data))
-        self._imprint_undo.append(None)
-        self._redo_deque.clear()
-        self._imprint_redo.clear()
-
-    def undo(self) -> None:
-        try:
-            old_data = self._unpack_mask(self._undo_deque.pop())
-            imprint_name = self._imprint_undo.pop() if self._imprint_undo else None
-            self._redo_deque.append(self._pack_mask(self._mask_data))
-            self._imprint_redo.append(imprint_name)
-            self._mask_data = old_data
-            # Re-enable any plugin that was disabled by this imprint step.
-            if imprint_name and self.mask_plugin_manager is not None:
-                self.mask_plugin_manager.set_enabled(imprint_name, True)
-            self.mask_changed.emit()
-        except IndexError:
-            pass
-
-    def redo(self) -> None:
-        try:
-            new_data = self._unpack_mask(self._redo_deque.pop())
-            imprint_name = self._imprint_redo.pop() if self._imprint_redo else None
-            self._undo_deque.append(self._pack_mask(self._mask_data))
-            self._imprint_undo.append(imprint_name)
-            self._mask_data = new_data
-            # Re-disable any plugin that was disabled by this imprint step.
-            if imprint_name and self.mask_plugin_manager is not None:
-                self.mask_plugin_manager.set_enabled(imprint_name, False)
-            self.mask_changed.emit()
-        except IndexError:
-            pass
+        self._mask_data = mask_data
+        self.mask_dimension = mask_data.shape
+        self.mask_changed.emit()
 
     def imprint_plugin_mask(self, plugin_name: str) -> None:
         """Bake a plugin's current mask into the user-drawn mask and disable it.
 
-        The action is recorded as a single undo step: undoing it restores the
-        previous user mask AND re-enables the plugin.
+        Both effects land in one undo step because the history snapshots the
+        mask data and the plugins' enabled state together — undoing restores
+        the previous mask and re-enables the plugin without this method
+        having to record anything.
         """
         if self.mask_plugin_manager is None:
             return
         entry = self.mask_plugin_manager.plugins.get(plugin_name)
         if entry is None or entry.cached_mask is None:
             return
-        # Record snapshot tagged with the plugin name so undo can re-enable it.
-        self._undo_deque.append(self._pack_mask(self._mask_data))
-        self._imprint_undo.append(plugin_name)
-        self._redo_deque.clear()
-        self._imprint_redo.clear()
-        # Apply the imprint and disable the plugin.
         self._mask_data = np.logical_or(self._mask_data, entry.cached_mask)
         self.mask_plugin_manager.set_enabled(plugin_name, False)
         self.mask_changed.emit()
 
     def mask_below_threshold(self, img_data: np.ndarray, threshold: float) -> None:
         logger.debug("Masking below threshold: %s", threshold)
-        self.update_deque()
         self._mask_data[img_data < threshold] = self.mode
         self.mask_changed.emit()
 
     def mask_above_threshold(self, img_data: np.ndarray, threshold: float) -> None:
         logger.debug("Masking above threshold: %s", threshold)
-        self.update_deque()
         self._mask_data[img_data > threshold] = self.mode
         self.mask_changed.emit()
 
@@ -235,7 +173,6 @@ class MaskModel:
         of the rectangle.
         """
         logger.debug("Masking rectangle at (%s, %s) size %sx%s", x, y, width, height)
-        self.update_deque()
         if width > 0:
             x_ind1 = np.round(x)
             x_ind2 = np.round(x + width)
@@ -264,7 +201,6 @@ class MaskModel:
         the skimage library.
         """
         logger.debug("Masking polygon with %d vertices", len(x))
-        self.update_deque()
         rr, cc = skimage.draw.polygon(y, x, self._mask_data.shape)
         self._mask_data[rr, cc] = self.mode
         self.mask_changed.emit()
@@ -274,7 +210,6 @@ class MaskModel:
         given. Uses the draw.ellipse implementation of the skimage library.
         """
         logger.debug("Masking ellipse at (%.1f, %.1f)", cx, cy)
-        self.update_deque()
         rr, cc = skimage.draw.ellipse(
             cy, cx, y_radius, x_radius, shape=self._mask_data.shape)
         self._mask_data[rr, cc] = self.mode
@@ -282,7 +217,6 @@ class MaskModel:
 
     def grow(self) -> None:
         logger.debug("Growing mask")
-        self.update_deque()
         self._mask_data[1:, :] = np.logical_or(self._mask_data[1:, :], self._mask_data[:-1, :])
         self._mask_data[:-1, :] = np.logical_or(self._mask_data[:-1, :], self._mask_data[1:, :])
         self._mask_data[:, 1:] = np.logical_or(self._mask_data[:, 1:], self._mask_data[:, :-1])
@@ -291,7 +225,6 @@ class MaskModel:
 
     def shrink(self) -> None:
         logger.debug("Shrinking mask")
-        self.update_deque()
         self._mask_data[1:, :] = np.logical_and(self._mask_data[1:, :], self._mask_data[:-1, :])
         self._mask_data[:-1, :] = np.logical_and(self._mask_data[:-1, :], self._mask_data[1:, :])
         self._mask_data[:, 1:] = np.logical_and(self._mask_data[:, 1:], self._mask_data[:, :-1])
@@ -300,18 +233,15 @@ class MaskModel:
 
     def invert_mask(self) -> None:
         logger.debug("Inverting mask")
-        self.update_deque()
         self._mask_data = np.logical_not(self._mask_data)
         self.mask_changed.emit()
 
     def clear_mask(self) -> None:
         logger.debug("Clearing mask")
-        self.update_deque()
         self._mask_data[:, :] = False
         self.mask_changed.emit()
 
     def remove_cosmic(self, img: np.ndarray) -> None:
-        self.update_deque()
         test = cosmicsimage(img, sigclip=3.0, objlim=3.0)
         num = 2
         for i in range(num):
@@ -325,7 +255,6 @@ class MaskModel:
         self.mode = mode
 
     def set_mask(self, mask_data: np.ndarray) -> None:
-        self.update_deque()
         self._mask_data = mask_data
         self.mask_dimension = mask_data.shape
         self.mask_changed.emit()
@@ -394,7 +323,6 @@ class MaskModel:
         return False
 
     def _add_mask(self, mask_data: np.ndarray) -> None:
-        self.update_deque()
         self._mask_data = np.logical_or(self._mask_data,
                                         np.array(mask_data, dtype='bool'))
 

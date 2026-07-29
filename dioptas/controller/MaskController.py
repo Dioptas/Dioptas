@@ -52,6 +52,8 @@ class MaskController:
         self.widget.point_btn.clicked.connect(self.activate_point_btn)
         self.widget.undo_btn.clicked.connect(self.undo_btn_click)
         self.widget.redo_btn.clicked.connect(self.redo_btn_click)
+        self.model.history.changed.connect(self._on_history_changed)
+        self.update_undo_redo_buttons()
         self.widget.below_thresh_btn.clicked.connect(self.below_thresh_btn_click)
         self.widget.above_thresh_btn.clicked.connect(self.above_thresh_btn_click)
         self.widget.cosmic_btn.clicked.connect(self.cosmic_btn_click)
@@ -272,15 +274,35 @@ class MaskController:
             self.state = 'None'
             self.uncheck_all_btn()
 
-    def undo_btn_click(self):
-        self.model.mask_model.undo()
+    def _on_history_changed(self):
+        """Follows the history however it moved — button, shortcut from another
+        mode, or a step being recorded."""
+        self.update_undo_redo_buttons()
+        # a restored step can re-enable a plugin that an imprint disabled
         self._update_plugin_checkboxes()
-        self.plot_mask()
+
+    def update_undo_redo_buttons(self):
+        """Greys the buttons out at the ends of the history, and names the
+        step they would reverse."""
+        history = self.model.history
+        self.widget.undo_btn.setEnabled(history.can_undo)
+        self.widget.redo_btn.setEnabled(history.can_redo)
+        self.widget.undo_btn.setToolTip(
+            f"Undo: {history.undo_label}" if history.can_undo else "Nothing to undo"
+        )
+        self.widget.redo_btn.setToolTip(
+            f"Redo: {history.redo_label}" if history.can_redo else "Nothing to redo"
+        )
+
+    def undo_btn_click(self):
+        # the mask no longer keeps its own stack: these buttons drive the
+        # application-wide history, so they also step back over anything else
+        # that changed since. The GUI refresh happens in _on_history_changed,
+        # so the shortcut from another mode updates this view identically.
+        self.model.history.undo()
 
     def redo_btn_click(self):
-        self.model.mask_model.redo()
-        self._update_plugin_checkboxes()
-        self.plot_mask()
+        self.model.history.redo()
 
     def plot_image(self):
         self.widget.img_widget.plot_image(self.model.img_data, False)
@@ -559,11 +581,9 @@ class MaskController:
                 self.widget.point_size_sb.setValue(self.widget.point_size_sb.value() - 1)
 
         if ev.modifiers() == QtCore.Qt.ControlModifier:
-            if ev.key() == 90:  # for pressing z
-                self.undo_btn_click()
-            elif ev.key() == 89:  # for pressing y
-                self.redo_btn_click()
-            elif ev.key() == 83:  # for pressing s
+            # Ctrl+Z / Ctrl+Y are application-wide shortcuts on MainController
+            # now, so they are deliberately not handled here as well
+            if ev.key() == 83:  # for pressing s
                 self.save_mask_btn_click()
             elif ev.key == 79:  # for pressing o
                 self.load_mask_btn_click()

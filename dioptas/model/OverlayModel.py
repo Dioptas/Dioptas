@@ -149,6 +149,29 @@ class OverlayModel:
             del self.overlays[ind]
             self.overlay_removed.emit(ind)
 
+    def restore(self, overlays: list[Overlay]) -> None:
+        """Rebuilds the overlay list to match a saved one (used by undo/redo).
+
+        Emits the ordinary add/remove signals, so views follow without knowing
+        the history exists. Only the tail that actually differs is rebuilt:
+        overlays sitting at the same index as before are left untouched, so
+        undoing a change to one overlay does not disturb the others.
+        """
+        common = 0
+        while (
+            common < len(self.overlays)
+            and common < len(overlays)
+            and self.overlays[common] is overlays[common]
+        ):
+            common += 1
+
+        for ind in range(len(self.overlays) - 1, common - 1, -1):
+            del self.overlays[ind]
+            self.overlay_removed.emit(ind)
+        for overlay in overlays[common:]:
+            self.overlays.append(overlay)
+            self.overlay_added.emit()
+
     def get_overlay(self, ind: int) -> Overlay | None:
         """Returns overlay if existent or None if it does not exist."""
         try:

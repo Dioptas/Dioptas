@@ -22,6 +22,7 @@ from .state import (
     load_params,
     PROJECT_FORMAT_VERSION,
 )
+from .state.snapshot import StateRecorder
 from .Configuration import Configuration
 from . import (
     ImgModel,
@@ -119,6 +120,10 @@ class DioptasModel:
         # the phase model is global (not per-configuration), so its params
         # events are forwarded once and never rewired
         self._phase_model.params.events.connect(self._on_phase_params_event)
+
+        # Undo/redo. Constructed last: it subscribes to the signals above and
+        # captures a baseline snapshot, so everything it snapshots must exist.
+        self._recorder: StateRecorder = StateRecorder(self)
 
     def add_configuration(self) -> None:
         """Adds a new configuration to the list of configurations.
@@ -272,9 +277,13 @@ class DioptasModel:
         # handle blocks any later save of the same file
         f = h5py.File(filename, "r")
         try:
-            self._load_from(f)
+            # a loaded project is a starting point, not an edit: undoing back
+            # into the previous session's state would be surprising
+            with self.history.suspended():
+                self._load_from(f)
         finally:
             f.close()
+        self.history.reset()
 
     def _load_from(self, f: h5py.File) -> None:
         # missing format_version = legacy layout (version 0); newer files
@@ -486,6 +495,11 @@ class DioptasModel:
     def _on_phase_params_event(self, info) -> None:
         new, old = info.args
         self.configuration_params_changed.emit("phase." + info.signal.name, new, old)
+
+    @property
+    def history(self):
+        """Undo/redo over the settings and masks (see state/snapshot.py)."""
+        return self._recorder.history
 
     @property
     def working_directories(self) -> dict[str, str]:

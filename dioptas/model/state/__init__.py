@@ -31,6 +31,7 @@ from .hdf5 import (
     PROJECT_FORMAT_VERSION,
 )
 from .derived import Derived
+from .history import History
 
 __all__ = [
     "apply_params",
@@ -52,4 +53,5 @@ __all__ = [
     "SCHEMA_VERSION",
     "PROJECT_FORMAT_VERSION",
     "Derived",
+    "History",
 ]
