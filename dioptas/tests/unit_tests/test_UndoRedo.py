@@ -6,11 +6,15 @@ The mask used to carry its own undo deques; those behaviours are asserted here
 against the single global stack that replaced them.
 """
 
+import os
+
 import numpy as np
 import pytest
 
 from dioptas.model.DioptasModel import DioptasModel
 from dioptas.model.util.MaskPlugin import MaskPluginBase
+
+_DATA = os.path.join(os.path.dirname(__file__), "..", "data")
 
 
 @pytest.fixture
@@ -292,13 +296,6 @@ def test_working_directories_are_not_restored(model):
     assert model.working_directories["image"] == "/somewhere"
 
 
-def test_loading_an_image_is_not_undoable(model, tmp_path):
-    """Undo covers edits, not navigation."""
-    model.img_model._img_data = np.ones((50, 50))
-    model.img_model.img_changed.emit()
-    assert model.history.can_undo is False
-
-
 # ---------------------------------------------------------------------------
 # things that invalidate the stack
 # ---------------------------------------------------------------------------
@@ -321,13 +318,16 @@ def test_removing_a_configuration_resets_the_history(model):
     assert model.history.can_undo is False
 
 
-def test_resizing_the_mask_resets_the_history(model):
-    """Older snapshots hold a mask of the wrong shape for the new image."""
+def test_a_mask_of_the_wrong_shape_is_not_written_back(model):
+    """Resizing the mask without changing the image leaves older snapshots
+    holding a mask that no longer fits. Restoring one would put a mask on
+    screen that does not match the image, so it is skipped."""
     model.mask_model.mask_rect(10, 10, 5, 5)
-    assert model.history.can_undo is True
-
     model.mask_model.set_dimension((100, 100))
-    assert model.history.can_undo is False
+
+    while model.history.can_undo:
+        model.history.undo()
+    assert model.mask_model.get_img().shape == (100, 100)
 
 
 def test_loading_a_project_resets_the_history(model, tmp_path):
@@ -626,3 +626,134 @@ def test_undo_only_reintegrates_the_configuration_it_touched(model):
 
     model.history.undo()
     assert other == {"1d": 0, "2d": 0}
+
+
+# ---------------------------------------------------------------------------
+# calibration peak picking
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def images():
+    import glob
+    import os
+
+    files = sorted(glob.glob(os.path.join(_DATA, "*.tif")))
+    if len(files) < 2:
+        pytest.skip("need two test images")
+    return files[:2]
+
+
+def test_picking_a_peak_is_undoable(model):
+    model.calibration_model.find_peak(20, 20, 5, 0)
+    assert len(model.calibration_model.points) == 1
+    assert model.history.undo_label == "calibration peaks"
+
+    model.history.undo()
+    assert model.calibration_model.points == []
+    model.history.redo()
+    assert len(model.calibration_model.points) == 1
+
+
+def test_each_pick_is_its_own_step(model):
+    """Two clicks are two decisions; they must not coalesce into one."""
+    model.calibration_model.find_peak(20, 20, 5, 0)
+    model.calibration_model.find_peak(30, 30, 5, 1)
+
+    model.history.undo()
+    assert len(model.calibration_model.points) == 1
+    model.history.undo()
+    assert len(model.calibration_model.points) == 0
+
+
+def test_undo_restores_the_ring_index_of_a_peak(model):
+    model.calibration_model.find_peak(20, 20, 5, 3)
+    model.history.reset()
+    model.calibration_model.find_peak(30, 30, 5, 7)
+
+    model.history.undo()
+    assert model.calibration_model.points_index == [3]
+
+
+def test_clearing_peaks_is_undoable(model):
+    model.calibration_model.find_peak(20, 20, 5, 0)
+    model.calibration_model.find_peak(30, 30, 5, 0)
+    model.history.reset()
+
+    model.calibration_model.clear_peaks()
+    assert model.calibration_model.points == []
+
+    model.history.undo()
+    assert len(model.calibration_model.points) == 2
+
+
+def test_restored_peaks_keep_their_coordinates(model):
+    model.calibration_model.find_peak(20, 20, 5, 0)
+    original = np.array(model.calibration_model.points[0])
+    model.history.reset()
+
+    model.calibration_model.clear_peaks()
+    model.history.undo()
+    assert np.array_equal(np.array(model.calibration_model.points[0]), original)
+
+
+def test_picking_the_same_peaks_again_is_not_a_new_step(model):
+    model.calibration_model.find_peak(20, 20, 5, 0)
+    depth = model.history.depth
+    model.calibration_model.clear_peaks()
+    model.history.undo()  # back to the single peak
+    assert model.history.depth == depth + 1  # the clear is the only new step
+
+
+# ---------------------------------------------------------------------------
+# image loading
+# ---------------------------------------------------------------------------
+
+
+def test_loading_an_image_is_undoable(model, images):
+    import os
+
+    model.img_model.load(images[0])
+    model.history.reset()
+
+    model.img_model.load(images[1])
+    assert os.path.basename(model.img_model.filename) == os.path.basename(images[1])
+
+    model.history.undo()
+    assert os.path.basename(model.img_model.filename) == os.path.basename(images[0])
+    model.history.redo()
+    assert os.path.basename(model.img_model.filename) == os.path.basename(images[1])
+
+
+def test_undoing_an_image_load_brings_back_its_mask(model, images):
+    """The two test images have different detector sizes, so this also covers
+    the mask being resized by the load."""
+    model.img_model.load(images[0])
+    model.mask_model.mask_rect(100, 100, 50, 50)
+    shape, masked = model.mask_model.get_img().shape, model.mask_model.get_img().sum()
+    assert masked > 0
+
+    model.img_model.load(images[1])
+    assert model.mask_model.get_img().shape != shape  # resized by the new image
+
+    model.history.undo()
+    assert model.mask_model.get_img().shape == shape
+    assert model.mask_model.get_img().sum() == masked
+
+
+def test_a_missing_file_does_not_abort_the_rest_of_the_undo(model, images, tmp_path):
+    """The file may be gone by the time you undo; the rest must still apply."""
+    import shutil
+
+    temporary = str(tmp_path / "gone.tif")
+    shutil.copy(images[0], temporary)
+    model.img_model.load(temporary)
+    model.history.reset()
+
+    model.img_model.load(images[1])
+    model.current_configuration.integration_unit = "q_A^-1"
+    os.remove(temporary)
+
+    model.history.undo()  # the settings change
+    model.history.undo()  # the image load, whose file is now gone
+    assert model.current_configuration.integration_unit == "2th_deg"

@@ -2,7 +2,9 @@
 
 ## New Features
 
-- undo/redo now covers the whole application instead of only the mask: Ctrl+Z and Ctrl+Shift+Z (or Ctrl+Y) work in every mode and step back through settings changes, mask edits, and overlay and phase editing alike, in the order they were made. The mask's undo and redo buttons drive the same history, so there is one stack rather than two competing ones, and they now grey out at its ends and name the step they would reverse
+- undo/redo now covers the whole application instead of only the mask: Ctrl+Z and Ctrl+Shift+Z (or Ctrl+Y) — Cmd on macOS — work in every mode and step back through settings changes, mask edits, overlay and phase editing, calibration peak picking and image loading alike, in the order they were made. The mask's undo/redo buttons and calibration's "Undo Peaks" button all drive that same history, so there is one stack rather than three competing ones, and the mask buttons grey out at its ends and name the step they would reverse
+
+- picking calibration peaks is undoable, one click at a time, and so is loading an image: undo re-opens the file that was on screen before, bringing its mask back with it even when the two images come from detectors of different sizes. A file that has moved since is skipped with a warning rather than derailing the rest of the undo. Note that undoing onto an image whose shape differs from the current detector definition still raises the usual "detector has been reset" notice, exactly as loading that file by hand does
 
 - adding, removing, recolouring or rescaling an overlay is undoable, and so is adding or deleting a phase and changing its pressure, temperature or display state. Undoing the removal of an overlay puts the original back rather than a copy, so its plot keeps its identity
 

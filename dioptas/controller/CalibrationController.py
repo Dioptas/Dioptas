@@ -54,6 +54,9 @@ class CalibrationController:
         """
         self.model.img_changed.connect(self.plot_image)
         self.model.mask_changed.connect(self.update_mask_gui)
+        # picked peaks can change without this controller doing it — an undo
+        # from any mode restores them, and the view has to follow
+        self.model.calibration_model.points_changed.connect(self.plot_points)
         self.model.configuration_selected.connect(
             self.update_calibration_parameter_in_view
         )
@@ -443,6 +446,9 @@ class CalibrationController:
         except IndexError:
             return
         if len(points) == 0:
+            # undoing back to no peaks has to clear the view; returning early
+            # would leave the previous scatter on screen
+            self.widget.img_widget.clear_scatter_plot()
             return
         current_ring = self.widget.peak_num_sb.value() - 1
         brushes = []
@@ -473,12 +479,18 @@ class CalibrationController:
         self.plot_points()
 
     def undo_peaks_btn_clicked(self):
+        """Steps back through the application-wide history.
+
+        Peak picking used to have its own undo here, which meant calibration
+        mode had a second stack competing with Ctrl+Z. The points are now part
+        of the shared history, so this button and the shortcut do the same
+        thing — at the cost that it also steps back over non-peak changes.
         """
-        undoes clicked peaks
-        """
-        num_points = self.model.calibration_model.remove_last_peak()
-        self.widget.img_widget.remove_last_scatter_points(num_points)
-        if self.widget.automatic_peak_num_inc_cb.isChecked():
+        had_peaks = len(self.model.calibration_model.points)
+        self.model.history.undo()
+        if self.widget.automatic_peak_num_inc_cb.isChecked() and (
+            len(self.model.calibration_model.points) < had_peaks
+        ):
             self.widget.peak_num_sb.setValue(self.widget.peak_num_sb.value() - 1)
 
     def load_spline_btn_click(self):

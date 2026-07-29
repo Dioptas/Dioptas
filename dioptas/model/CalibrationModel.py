@@ -91,6 +91,10 @@ class CalibrationModel:
 
         self.detector_reset: Signal = Signal()
         self.parameters_changed: Signal = Signal()
+        #: picked calibration peaks changed. The points are data rather
+        #: than settings, so they have no params event of their own — this
+        #: is what lets the undo history see peak picking at all.
+        self.points_changed: Signal = Signal()
 
         self._dioptrin_integrator: Any = None
 
@@ -277,6 +281,7 @@ class CalibrationModel:
         if len(cur_peak_points):
             self.points.append(np.array(cur_peak_points))
             self.points_index.append(peak_ind)
+            self.points_changed.emit()
         return np.array(cur_peak_points)
 
     def find_peak(self, x: float, y: float, search_size: int, peak_ind: int) -> np.ndarray:
@@ -303,12 +308,14 @@ class CalibrationModel:
         y_ind = y_ind[0] + top_ind
         self.points.append(np.array([x_ind, y_ind]))
         self.points_index.append(peak_ind)
+        self.points_changed.emit()
         return np.array([np.array((x_ind, y_ind))])
 
     def clear_peaks(self) -> None:
         logger.info("Clearing all calibration peaks")
         self.points = []
         self.points_index = []
+        self.points_changed.emit()
 
     def remove_peaks_by_ring(self, ring_ind: int) -> None:
         """Removes all peaks belonging to the specified ring index."""
@@ -322,6 +329,7 @@ class CalibrationModel:
         else:
             self.points = []
             self.points_index = []
+        self.points_changed.emit()
 
     def remove_last_peak(self) -> int | None:
         if self.points:
@@ -330,6 +338,7 @@ class CalibrationModel:
             )  # each peak is x, y so length is twice as number of peaks
             self.points.pop(-1)
             self.points_index.pop(-1)
+            self.points_changed.emit()
             return num_points
 
     def create_cake_geometry(self) -> None:
@@ -439,6 +448,7 @@ class CalibrationModel:
         if len(res):
             self.points.append(np.array(res))
             self.points_index.append(ring_index)
+            self.points_changed.emit()
 
         self.set_supersampling()
         self.pattern_geometry.reset()

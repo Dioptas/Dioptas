@@ -165,7 +165,14 @@ class History:
 
         Used when the state is replaced wholesale (loading a project, reset),
         where undoing back into the previous session would be surprising.
+
+        Ignored while restoring: applying a step can legitimately look like a
+        wholesale replacement to a listener (restoring an image of a different
+        size resizes the mask, for one), and honouring that would throw away
+        the very stack being navigated.
         """
+        if self._restoring:
+            return
         self._steps = [_Step(self._capture(), "", None, self._clock())]
         self._cursor = 0
         self.changed.emit()

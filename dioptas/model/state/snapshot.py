@@ -28,14 +28,20 @@ mutated:
   history. A content fingerprint decides when a fresh copy is needed, so an
   unchanged phase is copied once no matter how many steps it survives.
 
+The image is held as a *path*, not as pixels — holding image data per step
+would cost orders of magnitude more than everything else combined — and undo
+re-reads it from disk. It is restored before the mask, so the mask that comes
+back always fits the image it was drawn on, even across detectors of different
+sizes. A file that has since moved is skipped with a warning rather than
+aborting the rest of the restore.
+
 What it deliberately does not hold
 ----------------------------------
 ``ViewParams`` (panel layout, docking, image/cake mode): undo is for the work,
 not the furniture — rewinding a settings change should not also undock a
 window. ``working_directories``: bookkeeping that follows the last file
-dialog, never something the user "did". Loaded images and integrated patterns:
-undo covers edits, not navigation, and holding image data per step would cost
-orders of magnitude more than everything else combined.
+dialog, never something the user "did". Integrated patterns and cakes: they
+are derived, and recomputed from what is restored.
 
 Configuration structure
 -----------------------
@@ -49,12 +55,16 @@ change.
 from __future__ import annotations
 
 import copy as _copy
+import logging
+import os
 import zlib
 from contextlib import ExitStack
 from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 from .history import History
 from .params import apply_params
@@ -116,6 +126,12 @@ class _ConfigState:
     map: dict
     mask_data: _MaskBlob
     plugins: tuple
+    #: picked calibration peaks, as plain nested tuples so snapshots compare
+    #: by content (the model holds them as numpy arrays)
+    points: tuple
+    #: the image file on screen. Only the path is held — image data per step
+    #: would dwarf the rest of a snapshot — and undo re-reads it from disk.
+    filename: str
 
 
 @dataclass(frozen=True)
@@ -160,8 +176,6 @@ class StateRecorder:
         # capturing a mask costs about a millisecond, so the blob is reused
         # until something says the mask changed
         self._mask_cache: dict[int, _MaskBlob] = {}
-        self._mask_shapes: dict[int, tuple] = {}
-        self._mask_shapes_changed()  # seed, so the first edit is not a resize
         # copying a phase costs a few tens of microseconds, which would dwarf
         # a settings snapshot if it happened on every capture
         self._phase_cache: dict[int, _Ref] = {}
@@ -185,11 +199,43 @@ class StateRecorder:
         )
         overlays.overlay_changed.connect(self._on_overlay_changed)
 
+        # Peak picking and image loading live on the per-configuration models
+        # and have no store-level forwarding, so they are wired per
+        # configuration and rewired whenever the set of them changes.
+        self._watch_configurations()
+        model.configuration_added.connect(self._watch_configurations)
+        model.configuration_removed.connect(self._watch_configurations)
+
         phases = model.phase_model
         phases.phase_added.connect(lambda: self.history.record("add phase"))
         phases.phase_removed.connect(self._on_phase_removed)
         phases.phase_changed.connect(self._on_phase_changed)
         phases.phase_reloaded.connect(self._on_phase_changed)
+
+    def _watch_configurations(self, *args: Any) -> None:
+        """Subscribes to signals that only exist per configuration.
+
+        Connecting is not idempotent — a second connect of the same slot makes
+        it fire twice — so already-wired signals are skipped rather than
+        blindly reconnected when this runs again after a configuration is
+        added.
+        """
+        for configuration in self._model.configurations:
+            for signal, handler in (
+                (configuration.calibration_model.points_changed, self._on_points_changed),
+                (configuration.img_model.img_changed, self._on_img_changed),
+            ):
+                if not signal.has_listener(handler):
+                    signal.connect(handler)
+
+    def _on_points_changed(self) -> None:
+        # Deliberately not coalesced. An automatic search adds its whole burst
+        # of peaks in one call and so emits once anyway, while two clicks are
+        # two decisions the user may well want to take back one at a time.
+        self.history.record(label="calibration peaks")
+
+    def _on_img_changed(self) -> None:
+        self.history.record(label="image")
 
     def _on_overlay_changed(self, ind: int) -> None:
         self.history.record(label="overlay", key="overlay")
@@ -212,22 +258,7 @@ class StateRecorder:
     def _on_mask_changed(self) -> None:
         # the blob for the edited mask is stale; recaptured on demand
         self._mask_cache.clear()
-        if self._mask_shapes_changed():
-            # a new image of a different size resets the mask, so every older
-            # snapshot holds a mask of the wrong shape; undoing into one would
-            # put a mask on screen that does not match the image
-            self.history.reset()
-            return
         self.history.record(label="mask")
-
-    def _mask_shapes_changed(self) -> bool:
-        shapes = {
-            id(c.mask_model): tuple(c.mask_model.mask_dimension)
-            for c in self._model.configurations
-        }
-        changed = shapes != self._mask_shapes
-        self._mask_shapes = shapes
-        return changed
 
     def _on_structure_changed(self, *args: Any) -> None:
         self._mask_cache.clear()
@@ -287,6 +318,8 @@ class StateRecorder:
             map=_capture_params(configuration.map_model.params),
             mask_data=self._capture_mask(configuration.mask_model),
             plugins=_capture_plugins(configuration.mask_plugin_manager),
+            points=_capture_points(configuration.calibration_model),
+            filename=configuration.img_model.filename or "",
         )
 
     def _capture_mask(self, mask_model: Any) -> _MaskBlob:
@@ -348,6 +381,10 @@ class StateRecorder:
             self._phase_cache[id(phase)] = (state.fingerprint, state.phase)
 
     def _restore_configuration(self, state: _ConfigState, configuration: Any) -> None:
+        # the image goes back first: loading one resets the mask dimension and
+        # re-runs the plugins, which would otherwise undo the mask restored
+        # below it
+        self._restore_image(state, configuration)
         _apply_dict(configuration.params, state.params, exclude=_CONFIG_EXCLUDED)
         _apply_dict(configuration.img_model.params, state.img)
         _apply_dict(configuration.pattern_model.params, state.pattern)
@@ -356,13 +393,41 @@ class StateRecorder:
         _apply_dict(configuration.map_model.params, state.map)
 
         _restore_plugins(configuration.mask_plugin_manager, state.plugins)
-        # belt and braces: a resize resets the history, so a stale shape
-        # should be unreachable — but writing one back would leave a mask
-        # that does not match the image, which surfaces as a blocking dialog
+        # The image was restored first, so the mask normally fits again by the
+        # time we get here. It will not if that reload failed (file moved) or
+        # if the mask was resized without the image changing — writing a
+        # mismatched mask back would leave one on screen that does not match
+        # the image, which surfaces as a blocking dialog.
         if tuple(state.mask_data.shape) == tuple(
             configuration.mask_model.mask_dimension
         ):
             configuration.mask_model.set_mask_data(state.mask_data.unpack())
+
+        _restore_points(configuration.calibration_model, state.points)
+
+    def _restore_image(self, state: _ConfigState, configuration: Any) -> None:
+        """Reloads the image the step was taken with, if it is not the one on
+        screen.
+
+        Only the path travels in the snapshot, so this re-reads from disk. The
+        file may be gone by now — a failed reload leaves the current image in
+        place rather than aborting the rest of the undo, which would strand
+        the state half-restored.
+        """
+        img_model = configuration.img_model
+        if not state.filename or state.filename == (img_model.filename or ""):
+            return
+        if not os.path.isfile(state.filename):
+            logger.warning(
+                "Cannot restore %s: the file is no longer there, keeping the "
+                "image currently loaded",
+                state.filename,
+            )
+            return
+        try:
+            img_model.load(state.filename)
+        except Exception:
+            logger.exception("Failed to restore image %s", state.filename)
 
 
 def _apply_dict(target: Any, values: dict, exclude: set[str] | None = None) -> None:
@@ -413,6 +478,31 @@ def _phase_fingerprint(phase: Any) -> tuple:
             (r.h, r.k, r.l, r.d, r.d0, r.intensity) for r in phase.reflections
         ),
     )
+
+
+def _capture_points(calibration_model: Any) -> tuple:
+    """Picked calibration peaks as plain nested tuples.
+
+    The model stores them as numpy arrays, which cannot be compared with ``==``
+    inside a snapshot; converting is also what keeps an unchanged set of points
+    comparing equal across captures.
+    """
+    return tuple(
+        (tuple(np.atleast_2d(points).tolist()), int(index))
+        for points, index in zip(
+            calibration_model.points, calibration_model.points_index
+        )
+    )
+
+
+def _restore_points(calibration_model: Any, states: tuple) -> None:
+    if _capture_points(calibration_model) == states:
+        return
+    calibration_model.points = [
+        np.array(points).reshape(-1, 2).squeeze() for points, _ in states
+    ]
+    calibration_model.points_index = [index for _, index in states]
+    calibration_model.points_changed.emit()
 
 
 def _capture_plugins(manager: Any) -> tuple:
