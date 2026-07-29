@@ -263,7 +263,7 @@ class StateRecorder:
             # invalidate anything
             cached = self._phase_cache.get(id(phase))
             if cached is None or cached[0] != fingerprint:
-                cached = (fingerprint, _Ref(_copy_phase(phase)))
+                cached = (fingerprint, _Ref(_copy.deepcopy(phase)))
                 self._phase_cache[id(phase)] = cached
             states.append(
                 _PhaseState(
@@ -338,7 +338,7 @@ class StateRecorder:
         # hand the model fresh copies: keeping the snapshot's own objects out
         # of the live model is what stops a later pressure change from
         # editing the history
-        phases = [_copy_phase(state.phase.value) for state in states]
+        phases = [_copy.deepcopy(state.phase.value) for state in states]
         phase_model.restore(phases, [state.filename for state in states])
         for state, item_params in zip(states, phase_model.item_params):
             _apply_dict(item_params, state.item_params)
@@ -397,21 +397,6 @@ def _plain(value: Any) -> Any:
     if isinstance(value, (list, tuple)):
         return type(value)(_plain(item) for item in value)
     return value
-
-
-def _copy_phase(phase: Any) -> Any:
-    """Deep-copies a jcpds without marking it as modified.
-
-    ``jcpds.params`` is a dict subclass that flips its ``modified`` flag when
-    certain keys are written, and deepcopy repopulates a dict subclass through
-    ``__setitem__`` — so copying a phase would otherwise flag it as edited,
-    which shows up as a ``*`` on its name. jcpds does the same save-and-restore
-    around its own reflection sorting.
-    """
-    was_modified = phase.params["modified"]
-    copied = _copy.deepcopy(phase)
-    copied.params["modified"] = was_modified
-    return copied
 
 
 def _phase_fingerprint(phase: Any) -> tuple:

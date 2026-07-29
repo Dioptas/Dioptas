@@ -40,6 +40,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 import string
+from copy import deepcopy as _deepcopy
 from typing import Any
 
 import numpy as np
@@ -84,6 +85,25 @@ class MyDict(dict):
                    'alpha_t0', 'd_alpha_dt', 'reflections']:
             self.__setitem__('modified', True)
         super().__setitem__(key, value)
+
+    # Copying must not look like editing. Python rebuilds a dict subclass by
+    # replaying its items through __setitem__, which would trip the flag above
+    # and leave every copy claiming it had been edited — the asterisk on the
+    # name says a phase no longer matches the file it came from, so a copy
+    # would lie about that. Both hooks write through dict.__setitem__ to
+    # bypass the flagging and reproduce the original exactly.
+    def __copy__(self) -> MyDict:
+        duplicate = MyDict()
+        for key, value in self.items():
+            dict.__setitem__(duplicate, key, value)
+        return duplicate
+
+    def __deepcopy__(self, memo: dict) -> MyDict:
+        duplicate = MyDict()
+        memo[id(self)] = duplicate  # registered first, in case of cycles
+        for key, value in self.items():
+            dict.__setitem__(duplicate, key, _deepcopy(value, memo))
+        return duplicate
 
 
 class jcpds:
