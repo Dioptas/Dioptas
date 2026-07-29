@@ -32,6 +32,7 @@ from .hdf5 import (
 )
 from .derived import Derived
 from .history import History
+from .payload import Payload, PayloadStore
 
 __all__ = [
     "apply_params",
@@ -54,4 +55,6 @@ __all__ = [
     "PROJECT_FORMAT_VERSION",
     "Derived",
     "History",
+    "Payload",
+    "PayloadStore",
 ]

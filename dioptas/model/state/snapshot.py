@@ -18,8 +18,11 @@ free.
 The bulky parts are shared rather than copied, each according to how it is
 mutated:
 
-- Masks become compressed blobs, shared by reference between snapshots that
-  did not touch them — a hundred steps of spinbox fiddling costs one mask.
+- Masks live in the model's content-addressed PayloadStore (see payload.py);
+  snapshots hold their ids, so unchanged masks contribute a string to each
+  snapshot rather than a copy, and identical masks are stored once however
+  many steps or configurations reference them. Payloads are garbage-collected
+  against the history whenever it changes.
 - Overlays are referenced directly. Their x/y data is replaced, never edited
   in place, so undoing a removal can put the original object back instead of a
   look-alike the pattern view would have to re-create.
@@ -57,7 +60,6 @@ from __future__ import annotations
 import copy as _copy
 import logging
 import os
-import zlib
 from contextlib import ExitStack
 from dataclasses import dataclass, field
 from typing import Any
@@ -105,25 +107,6 @@ class _Ref:
 
 
 @dataclass(frozen=True)
-class _MaskBlob:
-    """A compressed, immutable mask. Shared between snapshots by reference."""
-
-    data: bytes
-    shape: tuple[int, ...]
-
-    def unpack(self) -> np.ndarray:
-        packed = np.frombuffer(zlib.decompress(self.data), dtype=np.uint8)
-        size = int(np.prod(self.shape))
-        return np.unpackbits(packed)[:size].reshape(self.shape).astype(bool)
-
-    @classmethod
-    def pack(cls, mask: np.ndarray) -> _MaskBlob:
-        # level 1: masks are mostly large uniform regions, so the cheapest
-        # setting already gets the bulk of the ratio (see changelog 0.8.7)
-        return cls(zlib.compress(np.packbits(mask).tobytes(), 1), mask.shape)
-
-
-@dataclass(frozen=True)
 class _ConfigState:
     params: dict
     img: dict
@@ -131,7 +114,10 @@ class _ConfigState:
     mask: dict
     calibration: dict
     map: dict
-    mask_data: _MaskBlob
+    #: content id of the user-drawn mask in the model's PayloadStore —
+    #: a plain string, so snapshot equality never touches the pixels and
+    #: identical masks (across steps or configurations) share one blob
+    mask_data: str
     plugins: tuple
     #: picked calibration peaks, as plain nested tuples so snapshots compare
     #: by content (the model holds them as numpy arrays)
@@ -186,7 +172,7 @@ class StateRecorder:
         self._model = model
         # capturing a mask costs about a millisecond, so the blob is reused
         # until something says the mask changed
-        self._mask_cache: dict[int, _MaskBlob] = {}
+        self._mask_cache: dict[int, str] = {}
         # copying a phase costs a few tens of microseconds, which would dwarf
         # a settings snapshot if it happened on every capture
         self._phase_cache: dict[int, _Ref] = {}
@@ -200,6 +186,9 @@ class StateRecorder:
 
     def _connect(self) -> None:
         model = self._model
+        # payload liveness follows the history: whenever steps are added,
+        # trimmed or reset, blobs no snapshot references anymore are dropped
+        self.history.changed.connect(self._sweep_payloads)
         model.configuration_params_changed.connect(self._on_params_changed)
         model.mask_changed.connect(self._on_mask_changed)
         # a structural change makes older snapshots inapplicable
@@ -287,9 +276,17 @@ class StateRecorder:
         self.history.record(label=_label_for(field), key=field)
 
     def _on_mask_changed(self) -> None:
-        # the blob for the edited mask is stale; recaptured on demand
+        # the id for the edited mask is stale; recaptured on demand
         self._mask_cache.clear()
         self._record("mask")
+
+    def _sweep_payloads(self) -> None:
+        """Drops payloads no held snapshot (and no current capture) references."""
+        live: set[str] = set(self._mask_cache.values())
+        for state in self.history.states():
+            for config_state in state.configurations:
+                live.add(config_state.mask_data)
+        self._model.payloads.sweep(live)
 
     def _on_structure_changed(self, *args: Any) -> None:
         self._mask_cache.clear()
@@ -354,13 +351,15 @@ class StateRecorder:
             filename=configuration.img_model.filename or "",
         )
 
-    def _capture_mask(self, mask_model: Any) -> _MaskBlob:
+    def _capture_mask(self, mask_model: Any) -> str:
+        # putting a mask costs a packbits + compress + hash (~1 ms at 2048²),
+        # so the id is cached until mask_changed says the pixels moved
         key = id(mask_model)
-        blob = self._mask_cache.get(key)
-        if blob is None:
-            blob = _MaskBlob.pack(mask_model.get_img())
-            self._mask_cache[key] = blob
-        return blob
+        payload_id = self._mask_cache.get(key)
+        if payload_id is None:
+            payload_id = self._model.payloads.put(mask_model.get_img())
+            self._mask_cache[key] = payload_id
+        return payload_id
 
     # -- restore ----------------------------------------------------------
 
@@ -437,10 +436,9 @@ class StateRecorder:
         # if the mask was resized without the image changing — writing a
         # mismatched mask back would leave one on screen that does not match
         # the image, which surfaces as a blocking dialog.
-        if tuple(state.mask_data.shape) == tuple(
-            configuration.mask_model.mask_dimension
-        ):
-            configuration.mask_model.set_mask_data(state.mask_data.unpack())
+        payload = self._model.payloads.get(state.mask_data)
+        if tuple(payload.shape) == tuple(configuration.mask_model.mask_dimension):
+            configuration.mask_model.set_mask_data(payload.array())
 
         _restore_points(configuration.calibration_model, state.points)
         _restore_calibration(configuration.calibration_model, state.calibration_state)

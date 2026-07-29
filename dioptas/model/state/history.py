@@ -108,6 +108,15 @@ class History:
         """Number of undoable steps currently held."""
         return len(self._steps) - 1
 
+    def states(self) -> tuple:
+        """Every state currently held (baseline included, oldest first).
+
+        Exists for resource accounting: the payload store sweeps against the
+        ids reachable from these, so anything a held snapshot references
+        stays alive exactly as long as the snapshot does.
+        """
+        return tuple(step.state for step in self._steps)
+
     # -- recording --------------------------------------------------------
 
     def record(self, label: str = "", key: Any = None) -> None:

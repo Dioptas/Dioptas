@@ -22,6 +22,7 @@ from .state import (
     load_params,
     PROJECT_FORMAT_VERSION,
 )
+from .state import PayloadStore
 from .state.snapshot import StateRecorder
 from .Configuration import Configuration
 from . import (
@@ -120,6 +121,10 @@ class DioptasModel:
         # the phase model is global (not per-configuration), so its params
         # events are forwarded once and never rewired
         self._phase_model.params.events.connect(self._on_phase_params_event)
+
+        # Owned binary payloads (mask pixels; overlay data in later steps),
+        # content-addressed so snapshots and configurations share them by id.
+        self.payloads: PayloadStore = PayloadStore()
 
         # Undo/redo. Constructed last: it subscribes to the signals above and
         # captures a baseline snapshot, so everything it snapshots must exist.

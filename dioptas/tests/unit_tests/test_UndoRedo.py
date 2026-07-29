@@ -107,10 +107,11 @@ def test_stored_masks_are_compressed(model):
     model.history.reset()
     model.mask_model.mask_rect(100, 100, 50, 50)
 
-    blob = model.history._steps[-1].state.configurations[0].mask_data
+    payload_id = model.history._steps[-1].state.configurations[0].mask_data
+    payload = model.payloads.get(payload_id)
     raw = model.mask_model.get_img().nbytes
-    assert blob.shape == (512, 512)
-    assert len(blob.data) < raw / 8
+    assert payload.shape == (512, 512)
+    assert payload.nbytes_stored < raw / 8
 
 
 def test_masks_are_shared_between_snapshots_that_did_not_touch_them(model):
@@ -119,8 +120,10 @@ def test_masks_are_shared_between_snapshots_that_did_not_touch_them(model):
     model.current_configuration.integration_unit = "q_A^-1"
     model.current_configuration.integration_rad_points = 999
 
-    blobs = [s.state.configurations[0].mask_data for s in model.history._steps[-3:]]
-    assert blobs[0] is blobs[1] is blobs[2]
+    ids = [s.state.configurations[0].mask_data for s in model.history._steps[-3:]]
+    assert ids[0] == ids[1] == ids[2]
+    # and the store holds the bytes once, however many snapshots reference them
+    assert sum(1 for i in model.payloads._payloads if i == ids[0]) == 1
 
 
 # ---------------------------------------------------------------------------
@@ -891,3 +894,35 @@ def test_a_calibration_that_cannot_be_restored_is_skipped(calibratable, caplog):
 
     calibratable.history.undo()
     assert calibratable.current_configuration.integration_unit == "2th_deg"
+
+
+# ---------------------------------------------------------------------------
+# payload lifetime follows the history
+# ---------------------------------------------------------------------------
+
+
+def test_payloads_of_dropped_history_are_swept(model):
+    """Resetting the history must not leak the blobs its snapshots held."""
+    for offset in range(5):
+        model.mask_model.mask_rect(offset * 8, 0, 5, 5)
+    grown = len(model.payloads)
+    assert grown >= 5
+
+    model.history.reset()
+    # only the payloads the baseline snapshot references survive
+    live = {s.configurations[0].mask_data for s in model.history.states()}
+    assert set(model.payloads._payloads) == live
+
+
+def test_identical_masks_across_configurations_share_a_payload(model):
+    model.add_configuration()
+    # give both configurations the same image, hence the same mask shape,
+    # and draw the same rectangle in each
+    for configuration in model.configurations:
+        configuration.img_model._img_data = np.zeros((50, 50))
+        configuration.img_model.img_changed.emit()
+        configuration.mask_model.mask_rect(10, 10, 5, 5)
+
+    state = model.history.states()[-1]
+    ids = {config.mask_data for config in state.configurations}
+    assert len(ids) == 1  # identical content, one payload
