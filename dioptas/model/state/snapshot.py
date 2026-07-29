@@ -64,16 +64,23 @@ from typing import Any
 
 import numpy as np
 
-logger = logging.getLogger(__name__)
-
 from .history import History
 from .params import apply_params
 from .hdf5 import params_to_dict, params_from_dict
+
+logger = logging.getLogger(__name__)
 
 __all__ = ["Snapshot", "StateRecorder"]
 
 #: params fields that are captured but never restored (see module docstring)
 _CONFIG_EXCLUDED = {"working_directories"}
+
+#: Fields whose change is only part of a larger operation that goes on to emit
+#: a signal of its own. Recording them as well would cost two undo steps for
+#: one action, and — worse — the first of those steps would be captured
+#: mid-operation: rotating an image records the new transformation before the
+#: mask has been resized to match, a state that never actually existed.
+_RECORDED_ELSEWHERE = {"img.transformations"}
 
 
 @dataclass(frozen=True, eq=False)
@@ -179,6 +186,9 @@ class StateRecorder:
         # copying a phase costs a few tens of microseconds, which would dwarf
         # a settings snapshot if it happened on every capture
         self._phase_cache: dict[int, _Ref] = {}
+        #: label of an action whose own record is suppressed, applied to
+        #: the next record so the step is named after the action
+        self._pending_label = ""
         self.history = History(self.capture, self.restore, **history_kwargs)
         self._connect()
 
@@ -235,7 +245,12 @@ class StateRecorder:
         self.history.record(label="calibration peaks")
 
     def _on_img_changed(self) -> None:
-        self.history.record(label="image")
+        self._record("image")
+
+    def _record(self, label: str, key: Any = None) -> None:
+        """Records a step, preferring the label of the action that caused it."""
+        label, self._pending_label = self._pending_label or label, ""
+        self.history.record(label=label, key=key)
 
     def _on_overlay_changed(self, ind: int) -> None:
         self.history.record(label="overlay", key="overlay")
@@ -253,12 +268,17 @@ class StateRecorder:
         self.history.record("remove phase")
 
     def _on_params_changed(self, field: str, new: Any, old: Any) -> None:
+        if field in _RECORDED_ELSEWHERE:
+            # remember what the user actually did, so the step is not labelled
+            # after whichever consequence happens to be recorded first
+            self._pending_label = _label_for(field)
+            return
         self.history.record(label=_label_for(field), key=field)
 
     def _on_mask_changed(self) -> None:
         # the blob for the edited mask is stale; recaptured on demand
         self._mask_cache.clear()
-        self.history.record(label="mask")
+        self._record("mask")
 
     def _on_structure_changed(self, *args: Any) -> None:
         self._mask_cache.clear()
@@ -386,7 +406,14 @@ class StateRecorder:
         # below it
         self._restore_image(state, configuration)
         _apply_dict(configuration.params, state.params, exclude=_CONFIG_EXCLUDED)
-        _apply_dict(configuration.img_model.params, state.img)
+        # transformations are excluded from the generic copy: the field is a
+        # log of what was applied to the pixels rather than something they are
+        # derived from, so assigning it would record a rotation that never
+        # happened. set_transformations makes the image follow.
+        _apply_dict(
+            configuration.img_model.params, state.img, exclude={"transformations"}
+        )
+        configuration.img_model.set_transformations(state.img["transformations"])
         _apply_dict(configuration.pattern_model.params, state.pattern)
         _apply_dict(configuration.mask_model.params, state.mask)
         _apply_dict(configuration.calibration_model.params, state.calibration)

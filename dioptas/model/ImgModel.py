@@ -720,6 +720,28 @@ class ImgModel:
         if img_changed:
             self.img_changed.emit()
 
+    def set_transformations(self, names: list[str]) -> None:
+        """Reconciles the image to exactly the given list of transformations.
+
+        The rotate/flip methods apply their change to the pixels and then
+        record the name, so ``params.transformations`` is a log of what was
+        done rather than something the image is derived from — assigning to it
+        alone leaves the pixels as they were. Undo needs the pixels to follow,
+        so this un-applies what is currently recorded and applies the target
+        list instead.
+        """
+        if list(names) == list(self.params.transformations):
+            return
+        self._reset_img_transformations()
+        self._reset_background_transformations()
+        self.params.transformations = list(names)
+        self._perform_img_transformations()
+        self._perform_background_transformations()
+        self.transformations_changed.emit()
+
+        self._calculate_img_data()
+        self.img_changed.emit()
+
     def _update_correction_transformations(self) -> None:
         self.transfer_correction.set_img_transformations(self.img_transformations)
         self.flat_field_correction.set_img_transformations(self.img_transformations)

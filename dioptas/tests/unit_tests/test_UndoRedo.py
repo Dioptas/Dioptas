@@ -757,3 +757,56 @@ def test_a_missing_file_does_not_abort_the_rest_of_the_undo(model, images, tmp_p
     model.history.undo()  # the settings change
     model.history.undo()  # the image load, whose file is now gone
     assert model.current_configuration.integration_unit == "2th_deg"
+
+
+# ---------------------------------------------------------------------------
+# one user action is one undo step
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def loaded(model):
+    """A real image, so transformations have something to act on."""
+    model.img_model.load(os.path.join(_DATA, "CeO2_Pilatus1M.tif"))
+    model.history.reset()
+    return model
+
+
+def test_rotating_the_image_is_one_step(loaded):
+    """The rotation resizes the mask too; that is a consequence, not a second
+    action, and recording it separately made the first undo look like a no-op."""
+    loaded.img_model.rotate_img_p90()
+    assert loaded.history.depth == 1
+    assert loaded.history.undo_label == "transformations"
+
+
+def test_undoing_a_rotation_turns_the_image_back(loaded):
+    shape = loaded.img_model.img_data.shape
+    loaded.img_model.rotate_img_p90()
+    assert loaded.img_model.img_data.shape == shape[::-1]
+
+    loaded.history.undo()
+    assert loaded.img_model.params.transformations == []
+    # the pixels must follow, not just the list that records them
+    assert loaded.img_model.img_data.shape == shape
+
+
+def test_redoing_a_rotation_applies_it_again(loaded):
+    shape = loaded.img_model.img_data.shape
+    loaded.img_model.rotate_img_p90()
+    loaded.history.undo()
+    loaded.history.redo()
+
+    assert loaded.img_model.params.transformations == ["rotate_matrix_p90"]
+    assert loaded.img_model.img_data.shape == shape[::-1]
+
+
+def test_several_transformations_undo_one_at_a_time(loaded):
+    loaded.img_model.rotate_img_p90()
+    loaded.img_model.flip_img_horizontally()
+    assert len(loaded.img_model.params.transformations) == 2
+
+    loaded.history.undo()
+    assert len(loaded.img_model.params.transformations) == 1
+    loaded.history.undo()
+    assert loaded.img_model.params.transformations == []

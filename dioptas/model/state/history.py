@@ -137,6 +137,11 @@ class History:
         now = self._clock()
         del self._steps[self._cursor + 1 :]  # a new edit invalidates the redo tail
 
+        # Merges a run of writes to the same field — a spinbox being dragged.
+        # Deliberately keyed rather than purely time-based: coalescing
+        # everything that lands close together also swallows genuinely
+        # separate actions performed in quick succession, which is worse than
+        # the occasional extra step.
         coalescing = (
             key is not None
             and key == current.key
@@ -147,7 +152,12 @@ class History:
             and now - current.at <= self._coalesce_seconds
         )
         if coalescing:
-            self._steps[self._cursor] = _Step(state, label or current.label, key, now)
+            # the first record names the action; anything merged into it is a
+            # consequence of that action ("mask" for a rotation resizing it),
+            # so the original label is the one worth showing
+            self._steps[self._cursor] = _Step(
+                state, current.label or label, current.key or key, now
+            )
         else:
             self._steps.append(_Step(state, label, key, now))
             self._cursor += 1
