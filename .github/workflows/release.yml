@@ -298,18 +298,39 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
+        include:
+          - os: ubuntu-latest
+          - os: windows-latest
+          # Apple silicon: built WITH OpenMP. Homebrew's libomp on this runner
+          # has a minimum target of macOS 14, and delocate refuses to bundle a
+          # library into a wheel tagged for an older macOS, so the wheel's
+          # target is raised to match. Apple silicon Macs all run 14 or newer
+          # in practice; older ones fall back to the sdist.
+          - os: macos-14
+            openmp: true
+            cibw_env_macos: MACOSX_DEPLOYMENT_TARGET=14.0
+          # Intel: built WITHOUT OpenMP on purpose. Installing libomp here
+          # would force this wheel's minimum up to the runner's macOS version
+          # too, which would exclude most of the Intel Macs still in use. The
+          # omp pragma is simply ignored without it, so the spot-mask outlier
+          # detection runs serially and nothing else changes.
+          # (macos-13 was removed by GitHub: that job never got a runner and
+          # hung for the full 24h workflow limit, which is what blocked the
+          # 0.8.6 PyPI release.)
+          - os: macos-15-intel
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Install OpenMP (macOS)
-        if: runner.os == 'macOS'
+        if: matrix.openmp
         run: brew install libomp
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.4.1
+        env:
+          CIBW_ENVIRONMENT_MACOS: ${{ matrix.cibw_env_macos }}
 
       - name: Verify each wheel contains the C extension
         shell: bash
@@ -424,3 +445,23 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  verify_release_complete:
+    # The 0.8.6 release created the GitHub release but published nothing to
+    # PyPI: one wheel job failed and pypi-publish was silently *skipped*, so
+    # the run needed a click-through to notice. This job makes that loud.
+    name: Verify the release is complete
+    needs: [create_release, pypi-publish]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if PyPI publishing did not run
+        run: |
+          publish="${{ needs.pypi-publish.result }}"
+          if [ "$publish" != "success" ]; then
+            echo "::error::PyPI publish did not succeed (result: $publish)."
+            echo "The GitHub release and its executables may still exist,"
+            echo "so check what is already published before re-tagging."
+            exit 1
+          fi
+          echo "GitHub release and PyPI publish both succeeded."

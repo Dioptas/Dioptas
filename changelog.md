@@ -32,6 +32,10 @@
 
 - setting an integer intensity factor (e.g. from a script) silently wrapped uint16 image pixel values around; the factor is now coerced to float
 
+## Distribution
+
+- 0.8.6 never reached PyPI: the Apple-silicon wheel failed because Homebrew's OpenMP library requires a newer macOS than the wheel was tagged for, and the Intel wheel job waited 24 hours for a runner that GitHub has retired — with one wheel job failing, the publishing step was skipped without the release run drawing attention to it. The Apple-silicon wheel is now built for macOS 14 and later, the Intel wheel is built on a current runner without OpenMP (so it keeps working on older macOS, with the spot mask running serially), and a final check now fails the release run if publishing did not happen
+
 ## Internal
 
 - restoring settings from a project file no longer needs per-field code: the generic params documents are applied wholesale on top of the legacy restore, so any settings field added in future round-trips automatically
