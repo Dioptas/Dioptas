@@ -135,6 +135,15 @@ class ImgParams:
     #: ImgModel.TRANSFORMATION_FUNCTIONS); the callable list is derived
     transformations: list[str] = field(default_factory=list)
 
+    # The file on screen. The pixels are an external payload: re-readable
+    # from this path, so the path is the state and the arrays are caches
+    # (ImgModel reconciles by re-reading when these change behind it).
+    filename: str = ""
+    #: position in a multi-image file, 1-based as shown to the user
+    series_pos: int = 1
+    #: background image file; empty = no background loaded
+    background_filename: str = ""
+
 
 @dataclass
 class CalibrationParams:

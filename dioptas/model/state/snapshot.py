@@ -31,12 +31,13 @@ mutated:
   history. A content fingerprint decides when a fresh copy is needed, so an
   unchanged phase is copied once no matter how many steps it survives.
 
-The image is held as a *path*, not as pixels — holding image data per step
-would cost orders of magnitude more than everything else combined — and undo
-re-reads it from disk. It is restored before the mask, so the mask that comes
-back always fits the image it was drawn on, even across detectors of different
-sizes. A file that has since moved is skipped with a warning rather than
-aborting the rest of the restore.
+The image is held as a *path* (ImgParams.filename), not as pixels — the
+pixels are re-readable from the file, so the path is the state and holding
+data per step would dwarf everything else. Restoring the params makes
+ImgModel's reconcile reaction re-read the file; the mask is applied after the
+img params, so it always fits the image it was drawn on, even across
+detectors of different sizes. A file that has since moved is skipped with a
+warning (inside the reaction) rather than aborting the rest of the restore.
 
 What it deliberately does not hold
 ----------------------------------
@@ -82,7 +83,14 @@ _CONFIG_EXCLUDED = {"working_directories"}
 #: one action, and — worse — the first of those steps would be captured
 #: mid-operation: rotating an image records the new transformation before the
 #: mask has been resized to match, a state that never actually existed.
-_RECORDED_ELSEWHERE = {"img.transformations"}
+_RECORDED_ELSEWHERE = {
+    "img.transformations",
+    # file loads end with img_changed, which records the settled state;
+    # these fire mid-load and would capture a half-applied one
+    "img.filename",
+    "img.series_pos",
+    "img.background_filename",
+}
 
 
 @dataclass(frozen=True, eq=False)
@@ -126,9 +134,6 @@ class _ConfigState:
     #: all — pyFAI geometry is data on the model rather than a params field,
     #: so none of it travels with CalibrationParams
     calibration_state: dict
-    #: the image file on screen. Only the path is held — image data per step
-    #: would dwarf the rest of a snapshot — and undo re-reads it from disk.
-    filename: str
 
 
 @dataclass(frozen=True)
@@ -348,7 +353,6 @@ class StateRecorder:
             plugins=_capture_plugins(configuration.mask_plugin_manager),
             points=_capture_points(configuration.calibration_model),
             calibration_state=_capture_calibration(configuration.calibration_model),
-            filename=configuration.img_model.filename or "",
         )
 
     def _capture_mask(self, mask_model: Any) -> str:
@@ -412,10 +416,6 @@ class StateRecorder:
             self._phase_cache[id(phase)] = (state.fingerprint, state.phase)
 
     def _restore_configuration(self, state: _ConfigState, configuration: Any) -> None:
-        # the image goes back first: loading one resets the mask dimension and
-        # re-runs the plugins, which would otherwise undo the mask restored
-        # below it
-        self._restore_image(state, configuration)
         _apply_dict(configuration.params, state.params, exclude=_CONFIG_EXCLUDED)
         # transformations are excluded from the generic copy: the field is a
         # log of what was applied to the pixels rather than something they are
@@ -442,31 +442,6 @@ class StateRecorder:
 
         _restore_points(configuration.calibration_model, state.points)
         _restore_calibration(configuration.calibration_model, state.calibration_state)
-
-    def _restore_image(self, state: _ConfigState, configuration: Any) -> None:
-        """Reloads the image the step was taken with, if it is not the one on
-        screen.
-
-        Only the path travels in the snapshot, so this re-reads from disk. The
-        file may be gone by now — a failed reload leaves the current image in
-        place rather than aborting the rest of the undo, which would strand
-        the state half-restored.
-        """
-        img_model = configuration.img_model
-        if not state.filename or state.filename == (img_model.filename or ""):
-            return
-        if not os.path.isfile(state.filename):
-            logger.warning(
-                "Cannot restore %s: the file is no longer there, keeping the "
-                "image currently loaded",
-                state.filename,
-            )
-            return
-        try:
-            img_model.load(state.filename)
-        except Exception:
-            logger.exception("Failed to restore image %s", state.filename)
-
 
 def _apply_dict(target: Any, values: dict, exclude: set[str] | None = None) -> None:
     """Applies a captured params dict onto the live params instance.
@@ -629,6 +604,9 @@ _LABELS = {
     "use_mask": "mask usage",
     "transparent_mask": "mask transparency",
     "img.factor": "image factor",
+    "img.filename": "image file",
+    "img.series_pos": "series position",
+    "img.background_filename": "background image",
     "mask.roi": "mask region of interest",
     "mask.mode": "mask drawing mode",
 }

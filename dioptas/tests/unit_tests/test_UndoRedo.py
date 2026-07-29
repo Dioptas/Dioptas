@@ -926,3 +926,78 @@ def test_identical_masks_across_configurations_share_a_payload(model):
     state = model.history.states()[-1]
     ids = {config.mask_data for config in state.configurations}
     assert len(ids) == 1  # identical content, one payload
+
+
+# ---------------------------------------------------------------------------
+# file state as params (step 1 of the state-ubiquity migration)
+# ---------------------------------------------------------------------------
+
+
+def test_loading_keeps_params_and_screen_in_sync(model, images):
+    model.img_model.load(images[0])
+    assert model.img_model.params.filename == images[0]
+    assert model.img_model.params.filename == model.img_model.filename
+    assert model.img_model.params.series_pos == model.img_model.series_pos
+
+
+def test_writing_the_filename_param_loads_the_file(model, images):
+    """The store rule: writing state has the same effect as the action."""
+    model.img_model.params.filename = images[0]
+    assert model.img_model.filename == images[0]
+    assert model.img_model.img_data is not None
+
+
+def test_background_image_is_undoable(model, images):
+    model.img_model.load(images[0])
+    model.history.reset()
+
+    model.img_model.load_background(images[0])
+    assert model.img_model.has_background() is True
+    assert model.img_model.params.background_filename == images[0]
+
+    model.history.undo()
+    assert model.img_model.has_background() is False
+    assert model.img_model.params.background_filename == ""
+
+    model.history.redo()
+    assert model.img_model.has_background() is True
+
+
+def test_removing_the_background_is_undoable(model, images):
+    model.img_model.load(images[0])
+    model.img_model.load_background(images[0])
+    model.history.reset()
+
+    model.img_model.reset_background()
+    assert model.img_model.has_background() is False
+
+    model.history.undo()
+    assert model.img_model.has_background() is True
+    assert model.img_model.params.background_filename == images[0]
+
+
+def test_missing_background_file_is_skipped_with_params_synced(model, images, tmp_path):
+    import shutil
+
+    temporary = str(tmp_path / "bg.tif")
+    shutil.copy(images[0], temporary)
+    model.img_model.load(images[0])
+    model.img_model.load_background(temporary)
+    model.history.reset()
+
+    model.img_model.reset_background()
+    os.remove(temporary)
+
+    model.history.undo()  # background file is gone
+    # the state must not claim a background that is not on screen
+    assert model.img_model.has_background() is False
+    assert model.img_model.params.background_filename == ""
+
+
+def test_a_failed_load_leaves_the_model_untouched(model, images):
+    """get_image_data runs before any state is mutated."""
+    model.img_model.load(images[0])
+    with pytest.raises(Exception):
+        model.img_model.load("/nowhere/not_an_image.tif")
+    assert model.img_model.filename == images[0]
+    assert model.img_model.params.filename == images[0]

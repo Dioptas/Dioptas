@@ -637,19 +637,14 @@ class Configuration:
 
         # save image model
         image_group = f.create_group("image_model")
+        # the params doc is the state; only what is NOT params remains as
+        # attrs/datasets: cached pixel data and file-derived values
         save_params(image_group, self.img_model.params)
-        image_group.attrs["auto_process"] = self.img_model.autoprocess
-        image_group.attrs["factor"] = self.img_model.factor
         image_group.attrs["has_background"] = self.img_model.has_background()
-        image_group.attrs["background_filename"] = self.img_model.background_filename
-        image_group.attrs["background_offset"] = self.img_model.background_offset
-        image_group.attrs["background_scaling"] = self.img_model.background_scaling
         if self.img_model.has_background():
             background_data = self.img_model.untransformed_background_data
             _create_image_dataset(image_group, "background_data", background_data)
-
         image_group.attrs["series_max"] = self.img_model.series_max
-        image_group.attrs["series_pos"] = self.img_model.series_pos
 
         # image corrections
         corrections_group = image_group.create_group("corrections")
@@ -688,7 +683,6 @@ class Configuration:
                 ff_ds.attrs["filename"] = params["filename"]
 
         # the actual image
-        image_group.attrs["filename"] = self.img_model.filename
         current_raw_image = self.img_model.untransformed_raw_img_data
 
         _create_image_dataset(image_group, "raw_image_data", current_raw_image)
@@ -940,8 +934,17 @@ class Configuration:
         self.img_model._img_data = np.copy(
             f.get("image_model").get("raw_image_data")[...]
         )
-        filename = f.get("image_model").attrs["filename"]
-        self.img_model.filename = filename
+        # file identity: prefer the params doc (files written since the file
+        # state moved into ImgParams); fall back to the legacy attr
+        saved_img_params = load_params(f.get("image_model"), ImgParams)
+        if saved_img_params is not None and saved_img_params.filename:
+            filename = saved_img_params.filename
+        else:
+            filename = f.get("image_model").attrs.get("filename", "")
+        # the pixels were just restored from the embedded dataset: mark the
+        # file as on screen so the reconcile reaction does not re-read it
+        # from disk (the path may not even exist on this machine)
+        self.img_model.set_loaded_file_state(filename=filename)
 
         try:
             self.img_model.file_name_iterator.update_filename(filename)
@@ -949,33 +952,46 @@ class Configuration:
         except EnvironmentError:
             logger.warning("Could not load mask file from project")
 
-        self.img_model.autoprocess = bool(f.get("image_model").attrs["auto_process"])
+        if "auto_process" in f.get("image_model").attrs:  # pre-migration file
+            self.img_model.autoprocess = bool(
+                f.get("image_model").attrs["auto_process"]
+            )
+            self.img_model.factor = f.get("image_model").attrs["factor"]
         self.img_model.autoprocess_changed.emit()
-        self.img_model.factor = f.get("image_model").attrs["factor"]
         # announce the restored image data explicitly (detector shape sync,
         # plugin masks); historically this rode on the factor write above,
         # which no longer emits when the value is unchanged
         self.img_model.img_changed.emit()
 
-        try:
-            self.img_model.series_max = f.get("image_model").attrs["series_max"]
-            self.img_model.series_pos = f.get("image_model").attrs["series_pos"]
-        except KeyError:
-            logger.debug("Optional field 'supersampling_factor' not found in project file")
+        self.img_model.series_max = int(
+            f.get("image_model").attrs.get("series_max", 1)
+        )
+        legacy_series_pos = f.get("image_model").attrs.get("series_pos")
+        if legacy_series_pos is not None:  # pre-migration file
+            self.img_model.set_loaded_file_state(series_pos=int(legacy_series_pos))
+        elif saved_img_params is not None:
+            self.img_model.set_loaded_file_state(
+                series_pos=int(saved_img_params.series_pos)
+            )
 
         if f.get("image_model").attrs["has_background"]:
             self.img_model.background_data = np.copy(
                 f.get("image_model").get("background_data")[...]
             )
-            self.img_model.background_filename = f.get("image_model").attrs[
+            background_filename = f.get("image_model").attrs.get(
                 "background_filename"
-            ]
-            self.img_model.background_scaling = f.get("image_model").attrs[
-                "background_scaling"
-            ]
-            self.img_model.background_offset = f.get("image_model").attrs[
-                "background_offset"
-            ]
+            )
+            if background_filename is None and saved_img_params is not None:
+                background_filename = saved_img_params.background_filename
+            self.img_model.set_loaded_file_state(
+                background_filename=background_filename or ""
+            )
+            # pre-migration files carry these as attrs; newer files supply
+            # them through the params doc applied further down
+            attrs = f.get("image_model").attrs
+            if "background_scaling" in attrs:
+                self.img_model.background_scaling = attrs["background_scaling"]
+                self.img_model.background_offset = attrs["background_offset"]
 
         # load image transformations
         transformation_group = f.get("image_model").get("image_transformations")

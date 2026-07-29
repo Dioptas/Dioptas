@@ -157,7 +157,9 @@ class ImgModel:
 
     def _on_params_changed(self, info) -> None:
         field = info.signal.name
-        if field in ("factor", "background_scaling", "background_offset"):
+        if field in ("filename", "series_pos", "background_filename"):
+            self._reconcile_file_params()
+        elif field in ("factor", "background_scaling", "background_offset"):
             # normalize storage to float: an integer factor/scaling would
             # multiply integer-typed image data with wraparound. psygnal
             # updates storage on equal-compare writes without re-emitting.
@@ -173,6 +175,88 @@ class ImgModel:
             else:
                 self._directory_watcher.deactivate()
 
+    def _sync_file_params(self) -> None:
+        """Writes the on-screen file state into the params.
+
+        The plain attributes (``filename``, ``series_pos``,
+        ``background_filename``) mirror what is actually loaded; the params
+        fields are the canonical, undoable state. Writers update the
+        attributes and call this at the end, so the reconcile reaction sees
+        params == screen and stays quiet.
+        """
+        self.params.filename = self.filename
+        self.params.series_pos = int(self.series_pos)
+        self.params.background_filename = self.background_filename
+
+    def set_loaded_file_state(
+        self,
+        filename: str | None = None,
+        series_pos: int | None = None,
+        background_filename: str | None = None,
+    ) -> None:
+        """Marks file state as already on screen, without loading anything.
+
+        Used by the project loader, which restores the pixels from the data
+        embedded in the file: the params must then say which file that was
+        without the reconcile reaction re-reading it from disk (the path may
+        not even exist on this machine).
+        """
+        if filename is not None:
+            self.filename = str(filename)
+        if series_pos is not None:
+            self.series_pos = int(series_pos)
+        if background_filename is not None:
+            self.background_filename = str(background_filename)
+        self._sync_file_params()
+
+    def _reconcile_file_params(self) -> None:
+        """Makes the screen follow the file params (the undo/restore path).
+
+        Interactive loads go the other way (screen first, params synced at
+        the end), which this recognizes as already-reconciled and ignores.
+        A file that has since vanished is skipped with a warning and the
+        params are synced back, so the state never claims a file that is not
+        actually on screen.
+        """
+        params = self.params
+        if params.filename != self.filename or params.series_pos != self.series_pos:
+            if not params.filename:
+                # there is no "unload" — the params follow the screen instead
+                self._sync_file_params()
+            elif not os.path.isfile(params.filename):
+                logger.warning(
+                    "Cannot restore %s: the file is no longer there, keeping "
+                    "the image currently loaded",
+                    params.filename,
+                )
+                self._sync_file_params()
+            elif params.filename == self.filename:
+                self.load_series_img(params.series_pos)
+            else:
+                try:
+                    self.load(params.filename, max(params.series_pos - 1, 0))
+                except Exception:
+                    logger.exception("Failed to restore image %s", params.filename)
+                    self._sync_file_params()
+
+        if params.background_filename != self.background_filename:
+            if not params.background_filename:
+                self.reset_background()
+            elif not os.path.isfile(params.background_filename):
+                logger.warning(
+                    "Cannot restore background %s: the file is no longer there",
+                    params.background_filename,
+                )
+                self._sync_file_params()
+            else:
+                try:
+                    self.load_background(params.background_filename)
+                except Exception:
+                    logger.exception(
+                        "Failed to restore background %s", params.background_filename
+                    )
+                    self._sync_file_params()
+
     def load(self, filename: str, pos: int = 0) -> None:
         """
         Loads an image file in any format known by fabIO, PIL or HDF5. Automatically performs all previous img
@@ -181,9 +265,11 @@ class ImgModel:
         """
         filename = str(filename)  # since it could also be QString
         logger.info("Loading {0}.".format(filename))
-        self.filename = filename
 
+        # read the file before touching any state, so a failing load leaves
+        # the model exactly as it was
         image_file_data = self.get_image_data(filename, pos)
+        self.filename = filename
         self.set_loadable_attributes(image_file_data)
 
         self.file_name_iterator.update_filename(filename)
@@ -192,6 +278,7 @@ class ImgModel:
         self._perform_img_transformations()
         self._calculate_img_data()
         self.series_pos = pos + 1
+        self._sync_file_params()
 
         self.img_changed.emit()
 
@@ -322,6 +409,7 @@ class ImgModel:
         self.selected_source = source
         self.series_max = self.loader.series_max
         self.series_pos = min(self.series_pos, self.series_max)
+        self._sync_file_params()
         self._img_data = self.series_get_image(self.series_pos - 1)
 
         self._perform_img_transformations()
@@ -346,19 +434,21 @@ class ImgModel:
         The img_changed signal will be emitted after the process.
         """
         logger.info("Loading background image: %s", filename)
-        self.background_filename = filename
-
         self._background_data = self.get_image_data(filename)["img_data"]
 
         self._perform_background_transformations()
 
         if self._background_data.shape != self._img_data.shape:
-            self._background_data = None
-            self._calculate_img_data()
+            # the previous background is gone either way; make the recorded
+            # state say so instead of naming a file that is not applied
+            self._reset_background()
+            self._sync_file_params()
             self.img_changed.emit()
             raise BackgroundDimensionWrongException()
 
+        self.background_filename = filename
         self._calculate_img_data()
+        self._sync_file_params()
         self.img_changed.emit()
 
     def add(self, filename: str) -> None:
@@ -408,6 +498,7 @@ class ImgModel:
     def reset_background(self) -> None:
         logger.debug("Resetting background image")
         self._reset_background()
+        self._sync_file_params()
         self.img_changed.emit()
 
     def has_background(self) -> bool:
@@ -491,6 +582,7 @@ class ImgModel:
 
         self._perform_img_transformations()
         self._calculate_img_data()
+        self._sync_file_params()
 
         self.img_changed.emit()
 
