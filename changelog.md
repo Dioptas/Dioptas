@@ -2,14 +2,20 @@
 
 ## New Features
 
-- undo/redo now covers the whole application instead of only the mask: Ctrl+Z and Ctrl+Shift+Z (or Ctrl+Y) work in every mode and step back through settings changes and mask edits alike, in the order they were made. The mask's undo and redo buttons drive the same history, so there is one stack rather than two competing ones, and they now grey out at its ends and name the step they would reverse
+- undo/redo now covers the whole application instead of only the mask: Ctrl+Z and Ctrl+Shift+Z (or Ctrl+Y) work in every mode and step back through settings changes, mask edits, and overlay and phase editing alike, in the order they were made. The mask's undo and redo buttons drive the same history, so there is one stack rather than two competing ones, and they now grey out at its ends and name the step they would reverse
 
-- dragging a spinbox or slider counts as a single undo step rather than one per intermediate value, and imprinting a mask plugin is undone as one action (the mask is restored and the plugin re-enabled together)
+- adding, removing, recolouring or rescaling an overlay is undoable, and so is adding or deleting a phase and changing its pressure, temperature or display state. Undoing the removal of an overlay puts the original back rather than a copy, so its plot keeps its identity
+
+- dragging a spinbox or slider counts as a single undo step rather than one per intermediate value, and actions that touch several things at once are one step too: imprinting a mask plugin restores the mask and re-enables the plugin together, and changing the pressure with "apply to all phases" switched on is a single Ctrl+Z rather than one per phase
+
+- undoing a step only recomputes what it actually changed: reverting an integration setting re-integrates once (even if the step changed several such settings at once), reverting something that does not affect the integration does not re-integrate at all, and a configuration the step never touched is left alone
 
 ## Internal
 
-- undo/redo is built on snapshots of the evented params rather than per-action undo methods: because every setting already lives in a params dataclass behind one change surface, a whole snapshot of the settings is about 1.5 kB, so capturing state is both cheaper and harder to get wrong than describing changes — an action cannot forget to register its undo. Masks are stored compressed and shared by reference between steps that did not touch them, so a hundred steps of settings changes cost one mask, and a hundred mask edits on a 2048x2048 detector cost about 0.3 MB in total
+- undo/redo is built on snapshots of the evented params rather than per-action undo methods: because every setting already lives in a params dataclass behind one change surface, a whole snapshot of the settings is about 1.5 kB, so capturing state is both cheaper and harder to get wrong than describing changes — an action cannot forget to register its undo
+- the bulky parts of a snapshot are shared rather than copied, each according to how it is mutated: masks are compressed and shared by reference between steps that did not touch them (a hundred mask edits on a 2048x2048 detector cost about 0.3 MB in total), overlays are referenced directly because their data is replaced rather than edited in place, and phases are copied because jcpds objects *are* edited in place — with a content fingerprint deciding when a fresh copy is needed, so an unchanged phase is copied once no matter how many steps it survives
 - the mask model's four parallel undo/redo deques are gone, replaced by the shared history; the imprint bookkeeping that had to be kept in lockstep with them disappears with it
+- fixed deep-copying a phase marking it as modified (shown as a `*` after its name): `jcpds.params` flags itself as modified when certain keys are written, and copying a dict subclass repopulates it through exactly that path
 - the view state (panel layout, docking, image/cake mode), the working directories and the loaded image data are deliberately outside the history: undo reverses edits, not window arrangement or file navigation. Loading a project, resetting, adding or removing a configuration and loading an image of a different size all rebaseline the history rather than being undoable
 
 # 0.8.7 (29.07.2026)

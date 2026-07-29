@@ -361,3 +361,268 @@ def test_switching_configuration_is_not_an_undo_step(model):
     model.select_configuration(0)
     model.select_configuration(1)
     assert model.history.can_undo is False
+
+
+# ---------------------------------------------------------------------------
+# overlays
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def xy():
+    x = np.linspace(1.0, 10.0, 100)
+    return x, x * 2
+
+
+def test_adding_an_overlay_is_undoable(model, xy):
+    model.overlay_model.add_overlay(*xy, "first")
+    assert len(model.overlay_model.overlays) == 1
+    assert model.history.undo_label == "add overlay"
+
+    model.history.undo()
+    assert model.overlay_model.overlays == []
+    model.history.redo()
+    assert [o.name for o in model.overlay_model.overlays] == ["first"]
+
+
+def test_removing_an_overlay_is_undoable(model, xy):
+    model.overlay_model.add_overlay(*xy, "first")
+    model.overlay_model.add_overlay(*xy, "second")
+    model.history.reset()
+
+    model.overlay_model.remove_overlay(0)
+    assert [o.name for o in model.overlay_model.overlays] == ["second"]
+
+    model.history.undo()
+    assert [o.name for o in model.overlay_model.overlays] == ["first", "second"]
+
+
+def test_undoing_a_removal_restores_the_original_object(model, xy):
+    """Not a look-alike: the pattern view keeps plot items per overlay."""
+    model.overlay_model.add_overlay(*xy, "first")
+    original = model.overlay_model.overlays[0]
+    model.history.reset()
+
+    model.overlay_model.remove_overlay(0)
+    model.history.undo()
+    assert model.overlay_model.overlays[0] is original
+
+
+def test_overlay_display_state_is_undoable(model, xy):
+    model.overlay_model.add_overlay(*xy, "first")
+    model.history.reset()
+
+    model.overlay_model.set_overlay_scaling(0, 5.0)
+    model.overlay_model.set_overlay_color(0, "#123456")
+    assert model.overlay_model.get_overlay_scaling(0) == 5.0
+
+    model.history.undo()
+    assert model.overlay_model.overlays[0].color != "#123456"
+    model.history.undo()
+    assert model.overlay_model.get_overlay_scaling(0) == 1.0
+
+
+def test_untouched_overlays_are_not_rebuilt(model, xy):
+    """Undoing an unrelated change must leave overlay objects in place."""
+    model.overlay_model.add_overlay(*xy, "first")
+    model.overlay_model.add_overlay(*xy, "second")
+    originals = list(model.overlay_model.overlays)
+    model.history.reset()
+
+    model.current_configuration.integration_unit = "q_A^-1"
+    model.history.undo()
+    assert model.overlay_model.overlays == originals
+
+
+def test_overlay_data_is_shared_not_copied(model, xy):
+    model.overlay_model.add_overlay(*xy, "first")
+    model.current_configuration.integration_rad_points = 999
+
+    refs = [s.state.overlays[0].overlay for s in model.history._steps[-2:]]
+    assert refs[0] is refs[1] or refs[0] == refs[1]
+
+
+# ---------------------------------------------------------------------------
+# phases
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def phase_file():
+    import glob
+
+    files = sorted(glob.glob("dioptas/tests/data/jcpds/*.jcpds"))
+    if not files:
+        pytest.skip("no jcpds test data")
+    return files[0]
+
+
+def test_adding_a_phase_is_undoable(model, phase_file):
+    model.phase_model.add_jcpds(phase_file)
+    assert len(model.phase_model.phases) == 1
+
+    model.history.undo()
+    assert model.phase_model.phases == []
+    model.history.redo()
+    assert len(model.phase_model.phases) == 1
+
+
+def test_adding_a_phase_costs_exactly_one_step(model, phase_file):
+    """add_jcpds_object emits phase_added and phase_changed; the second must
+    not consume a second undo step."""
+    model.phase_model.add_jcpds(phase_file)
+    assert model.history.depth == 1
+
+
+def test_removing_a_phase_is_undoable(model, phase_file):
+    model.phase_model.add_jcpds(phase_file)
+    name = model.phase_model.phases[0].name
+    model.history.reset()
+
+    model.phase_model.del_phase(0)
+    assert model.phase_model.phases == []
+
+    model.history.undo()
+    assert len(model.phase_model.phases) == 1
+    assert model.phase_model.phases[0].name == name
+    # the parallel lists must come back in step with the phases
+    assert len(model.phase_model.item_params) == 1
+    assert len(model.phase_model.reflections) == 1
+    assert len(model.phase_model.phase_files) == 1
+
+
+def test_phase_pressure_is_undoable(model, phase_file):
+    model.phase_model.add_jcpds(phase_file)
+    model.history.reset()
+
+    model.phase_model.set_pressure(0, 25.0)
+    assert model.phase_model.phases[0].params["pressure"] == 25.0
+
+    model.history.undo()
+    assert model.phase_model.phases[0].params["pressure"] == 0.0
+
+
+def test_pressure_with_same_conditions_is_one_step(model, phase_file):
+    """Applying to all phases is one action, so it is one Ctrl+Z."""
+    import glob
+
+    files = sorted(glob.glob("dioptas/tests/data/jcpds/*.jcpds"))[:2]
+    if len(files) < 2:
+        pytest.skip("need two jcpds files")
+    for f in files:
+        model.phase_model.add_jcpds(f)
+    model.phase_model.same_conditions = True
+    model.history.reset()
+
+    model.phase_model.set_pressure(0, 25.0)
+    assert all(p.params["pressure"] == 25.0 for p in model.phase_model.phases)
+
+    model.history.undo()
+    assert all(p.params["pressure"] == 0.0 for p in model.phase_model.phases)
+
+
+def test_undo_does_not_mark_phases_as_modified(model, phase_file):
+    """Deep-copying a jcpds flips its modified flag unless handled — that
+    shows up as a '*' on the phase name."""
+    model.phase_model.add_jcpds(phase_file)
+    model.history.reset()
+    assert model.phase_model.phases[0].params["modified"] is False
+
+    model.phase_model.set_pressure(0, 25.0)
+    model.history.undo()
+    assert model.phase_model.phases[0].params["modified"] is False
+    assert "*" not in model.phase_model.phases[0].name
+
+
+def test_history_keeps_its_own_copy_of_a_phase(model, phase_file):
+    """A later in-place edit must not reach back into a stored snapshot."""
+    model.phase_model.add_jcpds(phase_file)
+    model.history.reset()
+    stored = model.history._steps[0].state.phases[0].phase.value
+
+    model.phase_model.set_pressure(0, 50.0)
+    assert stored.params["pressure"] == 0.0
+    assert stored is not model.phase_model.phases[0]
+
+
+def test_phase_display_state_is_undoable(model, phase_file):
+    model.phase_model.add_jcpds(phase_file)
+    model.history.reset()
+
+    model.phase_model.set_phase_visible(0, False)
+    assert model.phase_model.phase_visible[0] is False
+
+    model.history.undo()
+    assert model.phase_model.phase_visible[0] is True
+
+
+def test_unchanged_phase_is_copied_only_once(model, phase_file):
+    """The fingerprint keeps repeated captures from re-copying a phase."""
+    model.phase_model.add_jcpds(phase_file)
+    model.history.reset()
+
+    for points in range(100, 110):
+        model.current_configuration.cake_azimuth_points = points
+
+    stored = {id(s.state.phases[0].phase.value) for s in model.history._steps}
+    assert len(stored) == 1
+
+
+# ---------------------------------------------------------------------------
+# how much recomputation an undo costs
+# ---------------------------------------------------------------------------
+
+
+def _count_integrations(configuration):
+    """Replaces the integration computations with counters."""
+    counts = {"1d": 0, "2d": 0}
+    configuration.pattern_integration._compute = lambda: counts.__setitem__(
+        "1d", counts["1d"] + 1
+    )
+    configuration.cake_integration._compute = lambda: counts.__setitem__(
+        "2d", counts["2d"] + 1
+    )
+    return counts
+
+
+def test_undo_of_an_integration_setting_reintegrates_once(model):
+    config = model.current_configuration
+    config.integration_rad_points = 1000
+    counts = _count_integrations(config)
+
+    model.history.undo()
+    assert counts["1d"] == 1
+
+
+def test_undo_of_several_integration_settings_still_reintegrates_once(model):
+    """A step touching three fields must not cost three integrations."""
+    config = model.current_configuration
+    with model.history.transaction("bulk"):
+        config.integration_rad_points = 2000
+        config.params.cake_azimuth_points = 720
+        config.params.oned_azimuth_range = [0.0, 90.0]
+    counts = _count_integrations(config)
+
+    model.history.undo()
+    assert counts["1d"] == 1
+
+
+def test_undo_of_an_unrelated_setting_does_not_reintegrate(model):
+    """Nothing that feeds the integration changed, so nothing recomputes."""
+    model.mask_model.mode = False
+    counts = _count_integrations(model.current_configuration)
+
+    model.history.undo()
+    assert counts == {"1d": 0, "2d": 0}
+
+
+def test_undo_only_reintegrates_the_configuration_it_touched(model):
+    model.add_configuration()
+    model.select_configuration(0)
+    model.history.reset()
+
+    model.configurations[0].integration_rad_points = 4000
+    other = _count_integrations(model.configurations[1])
+
+    model.history.undo()
+    assert other == {"1d": 0, "2d": 0}

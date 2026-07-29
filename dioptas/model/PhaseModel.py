@@ -118,6 +118,41 @@ class PhaseModel:
         del self.item_params[ind]
         self.phase_removed.emit(ind)
 
+    def restore(self, phases: list[jcpds], filenames: list[str]) -> None:
+        """Rebuilds the phase list to match a saved one (used by undo/redo).
+
+        Emits the ordinary add/remove signals, so views follow without knowing
+        the history exists. Only the tail that differs is rebuilt, so undoing
+        an edit to one phase leaves the other phases' plot items alone.
+
+        ``phases`` are expected to be copies the caller does not keep using —
+        the model edits them in place from here on.
+        """
+        common = 0
+        while (
+            common < len(self.phases)
+            and common < len(phases)
+            and self.phases[common] is phases[common]
+        ):
+            common += 1
+
+        for ind in range(len(self.phases) - 1, common - 1, -1):
+            # all four lists are index-parallel and must stay that way
+            del self.phases[ind]
+            del self.reflections[ind]
+            del self.phase_files[ind]
+            del self.item_params[ind]
+            self.phase_removed.emit(ind)
+
+        for offset, phase in enumerate(phases[common:]):
+            self.phases.append(phase)
+            self.reflections.append([])
+            self.phase_files.append(filenames[common + offset])
+            self.item_params.append(PhaseItemParams())
+            self.get_lines_d(-1)
+            self.phase_added.emit()
+            self.phase_changed.emit(len(self.phases) - 1)
+
     def reload(self, ind: int) -> None:
         """Reloads a phase specified by index ind from its original source filename."""
         logger.info("Reloading phase %d", ind)
