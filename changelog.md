@@ -17,10 +17,12 @@
 - undo/redo is built on snapshots of the evented params rather than per-action undo methods: because every setting already lives in a params dataclass behind one change surface, a whole snapshot of the settings is about 1.5 kB, so capturing state is both cheaper and harder to get wrong than describing changes — an action cannot forget to register its undo
 - the bulky parts of a snapshot are shared rather than copied, each according to how it is mutated: masks are compressed and shared by reference between steps that did not touch them (a hundred mask edits on a 2048x2048 detector cost about 0.3 MB in total), overlays are referenced directly because their data is replaced rather than edited in place, and phases are copied because jcpds objects *are* edited in place — with a content fingerprint deciding when a fresh copy is needed, so an unchanged phase is copied once no matter how many steps it survives
 - the mask model's four parallel undo/redo deques are gone, replaced by the shared history; the imprint bookkeeping that had to be kept in lockstep with them disappears with it
+- the view state (panel layout, docking, image/cake mode) and the working directories are deliberately outside the history: undo reverses the work, not the window arrangement or which folder a file dialog last pointed at. Loading a project, resetting, and adding or removing a configuration rebaseline the history rather than being undoable
+- the image is restored before the mask, so a restored mask always fits the image it was drawn on; that also retired the earlier rule of wiping the history whenever the mask was resized, along with the class of silently discarded history it caused
+
 ## Bugfixes
 
 - copying a phase marked it as modified — the asterisk that means "this no longer matches the file it came from" — because `jcpds.params` flags itself when certain keys are written and Python rebuilds a dict subclass by replaying its items through exactly that path. Copies now reproduce the original's flag instead of inventing one
-- the view state (panel layout, docking, image/cake mode), the working directories and the loaded image data are deliberately outside the history: undo reverses edits, not window arrangement or file navigation. Loading a project, resetting, adding or removing a configuration and loading an image of a different size all rebaseline the history rather than being undoable
 
 # 0.8.7 (29.07.2026)
 
