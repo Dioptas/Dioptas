@@ -24,6 +24,7 @@ from .state import (
 )
 from .state import PayloadStore
 from .state.snapshot import StateRecorder
+from .state.project import save_project, load_project
 from .Configuration import Configuration
 from . import (
     ImgModel,
@@ -225,64 +226,7 @@ class DioptasModel:
         # dioptas/model/state/hdf5.py for the versioning policy
         f.attrs["__version__"] = __version__
         f.attrs["format_version"] = PROJECT_FORMAT_VERSION
-
-        save_params(f, self.view, name="view")
-
-        # save configuration
-        configurations_group = f.create_group("configurations")
-        configurations_group.attrs["selected_configuration"] = self.configuration_ind
-        for ind, configuration in enumerate(self.configurations):
-            configuration_group = configurations_group.create_group(str(ind))
-            configuration.save_in_hdf5(configuration_group)
-
-        # save overlays
-        overlay_group = f.create_group("overlays")
-
-        for ind, overlay in enumerate(self.overlay_model.overlays):
-            ov = overlay_group.create_group(
-                str(ind).zfill(5)
-            )  # need to fill the ind string, in order to keep it
-            # ordered also for larger numbers of overlays
-            save_params(ov, overlay.params)
-            ov.attrs["name"] = overlay.name
-            x, y = overlay.original_data
-            ov.create_dataset("x", x.shape, "f", x)
-            ov.create_dataset("y", y.shape, "f", y)
-            ov.attrs["scaling"] = overlay.scaling
-            ov.attrs["offset"] = overlay.offset
-            ov.attrs["color"] = overlay.color
-            ov.attrs["visible"] = overlay.visible
-
-        # save phases
-        phases_group = f.create_group("phases")
-        save_params(phases_group, self.phase_model.params)
-        for ind, phase in enumerate(self.phase_model.phases):
-            phase_group = phases_group.create_group(str(ind))
-            # "item_params": the "params" name is taken by the jcpds params
-            save_params(
-                phase_group, self.phase_model.item_params[ind], name="item_params"
-            )
-            phase_group.attrs["name"] = phase._name
-            phase_group.attrs["filename"] = phase._filename
-            phase_group.attrs["color"] = self.phase_model.phase_colors[ind]
-            phase_group.attrs["visible"] = self.phase_model.phase_visible[ind]
-            phase_parameter_group = phase_group.create_group("params")
-            for key in phase.params:
-                if key == "comments":
-                    phases_comments_group = phase_group.create_group("comments")
-                    for ind, comment in enumerate(phase.params["comments"]):
-                        phases_comments_group.attrs[str(ind)] = comment
-                else:
-                    phase_parameter_group.attrs[key] = phase.params[key]
-            phase_reflections_group = phase_group.create_group("reflections")
-            for ind, reflection in enumerate(phase.reflections):
-                phase_reflection_group = phase_reflections_group.create_group(str(ind))
-                phase_reflection_group.attrs["d0"] = reflection.d0
-                phase_reflection_group.attrs["d"] = reflection.d
-                phase_reflection_group.attrs["intensity"] = reflection.intensity
-                phase_reflection_group.attrs["h"] = reflection.h
-                phase_reflection_group.attrs["k"] = reflection.k
-                phase_reflection_group.attrs["l"] = reflection.l
+        save_project(self, f)
 
     def load(self, filename: str) -> None:
         """Loads a previously saved model (see save function) from an h5py file."""
@@ -316,8 +260,6 @@ class DioptasModel:
         self.history.reset()
 
     def _load_from(self, f: h5py.File) -> None:
-        # older files were refused in load(); newer files load best-effort
-        # thanks to the tolerant params layer
         format_version = int(f.attrs.get("format_version", 0))
         if format_version > PROJECT_FORMAT_VERSION:
             logger.warning(
@@ -328,109 +270,24 @@ class DioptasModel:
                 PROJECT_FORMAT_VERSION,
             )
 
-        # delete old configurations
-        for config in self.configurations:
-            del config.img_model
-            del config.calibration_model
-            del config.mask_model
-            import gc
+        self.delete_configurations()
+        load_project(self, f, Configuration)
 
-            gc.collect()
+    def attach_configuration(self, configuration: Configuration) -> None:
+        """Adds an already-built configuration and wires its signals.
 
-        # load_configurations
-        self.configurations = []
-        for ind, configuration_group in f.get("configurations").items():
-            configuration = Configuration()
-            configuration.load_from_hdf5(configuration_group)
-            configuration.calibration_model.detector_reset.connect(
-                self.invalidate_multi_geometry
-            )
-            configuration.calibration_model.parameters_changed.connect(
-                self.invalidate_multi_geometry
-            )
-            self._combined_cake.add_dependency(configuration.cake_changed)
-            self.configurations.append(configuration)
-        self.configuration_ind = f.get("configurations").attrs["selected_configuration"]
-
-        self.connect_models()
-        self.invalidate_multi_geometry()
-        self.configuration_added.emit()
-        self.select_configuration(self.configuration_ind)
-
-        # load phase model
-        for ind, phase_group in f.get("phases").items():
-            if ind == "params":  # the generic params group is not a phase
-                continue
-            new_jcpds = jcpds()
-            new_jcpds.name = phase_group.attrs.get("name")
-            new_jcpds.filename = phase_group.attrs.get("filename")
-            for p_key, p_value in phase_group.get("params").attrs.items():
-                new_jcpds.params[p_key] = p_value
-            for c_key, comment in phase_group.get("comments").attrs.items():
-                new_jcpds.params["comments"].append(comment)
-            for r_key, reflection in phase_group.get("reflections").items():
-                new_jcpds.add_reflection(
-                    reflection.attrs["h"],
-                    reflection.attrs["k"],
-                    reflection.attrs["l"],
-                    reflection.attrs["intensity"],
-                    reflection.attrs["d"],
-                )
-            new_jcpds.params["modified"] = bool(
-                phase_group.get("params").attrs["modified"]
-            )
-            self.phase_model.add_jcpds_object(
-                new_jcpds, filename=new_jcpds.filename
-            )
-            phase_ind = len(self.phase_model.phases) - 1
-            try:
-                self.phase_model.set_color(
-                    phase_ind, np.array(phase_group.attrs["color"])
-                )
-                self.phase_model.set_phase_visible(
-                    phase_ind, bool(phase_group.attrs["visible"])
-                )
-            except KeyError:
-                logger.debug("Optional phase data not found in project file")
-
-        # load overlay model
-        for ind, overlay_group in f.get("overlays").items():
-            self.overlay_model.add_overlay(
-                overlay_group.get("x")[...],
-                overlay_group.get("y")[...],
-                overlay_group.attrs["name"],
-            )
-            index = len(self.overlay_model.overlays) - 1
-            self.overlay_model.set_overlay_offset(index, overlay_group.attrs["offset"])
-            self.overlay_model.set_overlay_scaling(
-                index, overlay_group.attrs["scaling"]
-            )
-            try:
-                self.overlay_model.set_overlay_color(
-                    index, overlay_group.attrs["color"]
-                )
-                self.overlay_model.set_overlay_visible(
-                    index, bool(overlay_group.attrs["visible"])
-                )
-            except KeyError:
-                logger.debug("Optional overlay data not found in project file")
-
-        # phase settings absent from the legacy layout
-        saved_phase_params = load_params(f.get("phases"), PhaseParams)
-        if saved_phase_params is not None:
-            self.phase_model.params.same_conditions = (
-                saved_phase_params.same_conditions
-            )
-
-        # apply saved view state last, field-wise onto the stable instance so
-        # subscribed controllers react through the change events
-        saved_view = load_params(f, ViewParams, name="view")
-        if saved_view is not None:
-            apply_params(self.view, saved_view)
-
-        # configurations were restored before the overlays existed; point
-        # their background references at the now-loaded overlays
-        self.resolve_background_overlays()
+        Used by project loading, which constructs configurations from the
+        file rather than through add_configuration (that one copies the
+        current calibration and selects the new configuration).
+        """
+        configuration.calibration_model.detector_reset.connect(
+            self.invalidate_multi_geometry
+        )
+        configuration.calibration_model.parameters_changed.connect(
+            self.invalidate_multi_geometry
+        )
+        self._combined_cake.add_dependency(configuration.cake_changed)
+        self.configurations.append(configuration)
 
     def select_configuration(self, ind: int) -> None:
         """Selects a configuration specified by the index as current model.

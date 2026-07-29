@@ -96,6 +96,8 @@ class ImgModel:
 
         self.background_filename: str = ""
         self._background_data: np.ndarray | None = None
+        #: guards the reconcile against the sync's own partial writes
+        self._syncing_file_params: bool = False
 
         self.transfer_correction: TransferFunctionCorrection = TransferFunctionCorrection()
         self.flat_field_correction: FlatFieldCorrection = FlatFieldCorrection()
@@ -178,7 +180,8 @@ class ImgModel:
     def _on_params_changed(self, info) -> None:
         field = info.signal.name
         if field in ("filename", "series_pos", "background_filename"):
-            self._reconcile_file_params()
+            if not self._syncing_file_params:
+                self._reconcile_file_params()
         elif field in ("factor", "background_scaling", "background_offset"):
             # normalize storage to float: an integer factor/scaling would
             # multiply integer-typed image data with wraparound. psygnal
@@ -203,10 +206,19 @@ class ImgModel:
         fields are the canonical, undoable state. Writers update the
         attributes and call this at the end, so the reconcile reaction sees
         params == screen and stays quiet.
+
+        The three fields are written one at a time, so the reconcile must be
+        held off until all of them are: seeing the first write with the other
+        two still stale made it "reconcile" a state that never existed —
+        clearing a background whose filename simply had not been synced yet.
         """
-        self.params.filename = self.filename
-        self.params.series_pos = int(self.series_pos)
-        self.params.background_filename = self.background_filename
+        self._syncing_file_params = True
+        try:
+            self.params.filename = self.filename
+            self.params.series_pos = int(self.series_pos)
+            self.params.background_filename = self.background_filename
+        finally:
+            self._syncing_file_params = False
 
     def set_loaded_file_state(
         self,

@@ -215,12 +215,28 @@ def test_update_mask_dimension():
 # HDF5 round-trip test
 # ---------------------------------------------------------------------------
 
+def _calibrated_model():
+    """A DioptasModel whose current configuration is calibrated with an
+    image loaded — the round-trip tests below go through the model, since
+    project files are written for the whole model rather than per
+    configuration."""
+    from dioptas.model.DioptasModel import DioptasModel
+
+    model = DioptasModel()
+    config = model.current_configuration
+    config.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    config.img_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.tif"))
+    return model, config
+
+
 def test_save_and_load_hdf5_round_trip(tmp_path):
     import h5py
     import numpy as np
 
     # Set up a fully configured Configuration
-    config = _load_calibrated_config()
+    model, config = _calibrated_model()
     config.integrate_image_1d()
 
     config.use_mask = True
@@ -252,17 +268,16 @@ def test_save_and_load_hdf5_round_trip(tmp_path):
     oiadac.update()
     config.img_model.add_img_correction(oiadac, "oiadac")
 
-    # Save to HDF5
-    hdf5_path = os.path.join(tmp_path, "test_project.h5")
-    with h5py.File(hdf5_path, "w") as f:
-        group = f.create_group("config")
-        config.save_in_hdf5(group)
+    # loading replaces the configurations, so what is compared afterwards
+    # has to be captured first
+    expected_image = np.copy(config.img_model._img_data)
 
-    # Load into fresh Configuration
-    loaded = Configuration()
-    with h5py.File(hdf5_path, "r") as f:
-        group = f["config"]
-        loaded.load_from_hdf5(group)
+    # round-trip through a project file: configurations are saved and
+    # loaded as part of the model now (see state/project.py)
+    project_path = os.path.join(tmp_path, "test_project.dio")
+    model.save(project_path)
+    model.load(project_path)
+    loaded = model.current_configuration
 
     # Verify general information
     assert loaded.integration_unit == "q_A^-1"
@@ -285,9 +300,9 @@ def test_save_and_load_hdf5_round_trip(tmp_path):
     assert loaded.calibration_model.is_calibrated
 
     # Verify image data shape
-    assert loaded.img_model._img_data.shape == config.img_model._img_data.shape
+    assert loaded.img_model._img_data.shape == expected_image.shape
     np.testing.assert_array_almost_equal(
-        loaded.img_model._img_data, config.img_model._img_data, decimal=3
+        loaded.img_model._img_data, expected_image, decimal=3
     )
 
     # Verify mask
@@ -307,21 +322,20 @@ def test_save_and_load_hdf5_no_corrections(tmp_path):
     import h5py
     import numpy as np
 
-    config = _load_calibrated_config()
+    model, config = _calibrated_model()
     config.integrate_image_1d()
 
-    hdf5_path = os.path.join(tmp_path, "test_minimal.h5")
-    with h5py.File(hdf5_path, "w") as f:
-        group = f.create_group("config")
-        config.save_in_hdf5(group)
+    # loading replaces the configurations, so what is compared afterwards
+    # has to be captured first
+    expected_shape = config.img_model._img_data.shape
 
-    loaded = Configuration()
-    with h5py.File(hdf5_path, "r") as f:
-        group = f["config"]
-        loaded.load_from_hdf5(group)
+    project_path = os.path.join(tmp_path, "test_minimal.dio")
+    model.save(project_path)
+    model.load(project_path)
+    loaded = model.current_configuration
 
     assert loaded.calibration_model.is_calibrated
-    assert loaded.img_model._img_data.shape == config.img_model._img_data.shape
+    assert loaded.img_model._img_data.shape == expected_shape
     assert loaded.integration_unit == "2th_deg"
 
 
@@ -329,19 +343,14 @@ def test_save_and_load_hdf5_with_cake_azimuth_range_none(tmp_path):
     """Verify that cake_azimuth_range=None round-trips correctly."""
     import h5py
 
-    config = _load_calibrated_config()
+    model, config = _calibrated_model()
     config.integrate_image_1d()
     config.params.cake_azimuth_range = None
 
-    hdf5_path = os.path.join(tmp_path, "test_cake_none.h5")
-    with h5py.File(hdf5_path, "w") as f:
-        group = f.create_group("config")
-        config.save_in_hdf5(group)
-
-    loaded = Configuration()
-    with h5py.File(hdf5_path, "r") as f:
-        group = f["config"]
-        loaded.load_from_hdf5(group)
+    project_path = os.path.join(tmp_path, "test_cake_none.dio")
+    model.save(project_path)
+    model.load(project_path)
+    loaded = model.current_configuration
 
     assert loaded.cake_azimuth_range is None
 

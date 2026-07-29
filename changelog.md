@@ -30,10 +30,12 @@
 ## Distribution
 
 - **project files written by Dioptas 0.8.7 or earlier can no longer be opened** — the state migration changed what lives where in the file. Opening an old .dio shows a clear message instead of a broken load; older Dioptas releases remain available on PyPI and GitHub to read old files. The autosaved session from a previous version is likewise dropped once on upgrade
+- project files are now the state tree plus the binary it references: one `/state` JSON document holding every settings document, `/payloads/<content-id>` for owned data (masks, overlay curves — identical content stored once) and `/cache/<content-id>` for image copies. The per-field HDF5 attributes written alongside the settings documents are gone (every value existed twice and the two could disagree), as is the group-per-reflection layout — a two-phase project used 72 HDF5 groups where it now uses 4. Adding a setting no longer needs any save/load code at all
 - project files are stamped format_version 2 and are written atomically: the save goes to a temporary sibling file that replaces the project only on success, so a failed or interrupted save can never destroy the previous file (this also removes the "unable to truncate a file which is already open" failure mode at the root)
 
 ## Bugfixes
 
+- loading a project into a session that already had phases or overlays appended them instead of replacing them, so they doubled with every load; loading now replaces the session as it always claimed to
 - copying a phase marked it as modified — the asterisk that means "this no longer matches the file it came from" — because `jcpds.params` flags itself when certain keys are written and Python rebuilds a dict subclass by replaying its items through exactly that path. Copies now reproduce the original's flag instead of inventing one
 
 # 0.8.7 (29.07.2026)

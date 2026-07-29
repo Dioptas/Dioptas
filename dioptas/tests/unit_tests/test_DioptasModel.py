@@ -339,30 +339,42 @@ def test_failed_save_does_not_block_subsequent_saves(dioptas_model, tmp_path):
     "unable to truncate a file which is already open"."""
     filename = os.path.join(tmp_path, "project.dio")
 
-    original = dioptas_model.current_configuration.save_in_hdf5
-    dioptas_model.current_configuration.save_in_hdf5 = MagicMock(
-        side_effect=RuntimeError("boom")
-    )
+    original = dioptas_model._save_into
+    dioptas_model._save_into = MagicMock(side_effect=RuntimeError("boom"))
     with pytest.raises(RuntimeError):
         dioptas_model.save(filename)
-    dioptas_model.current_configuration.save_in_hdf5 = original
+    dioptas_model._save_into = original
 
     dioptas_model.save(filename)
+    assert os.path.isfile(filename)
+    # the failed attempt must not leave its temporary file behind either
+    assert [n for n in os.listdir(tmp_path) if ".tmp-" in n] == []
 
 
-def test_load_project_without_params_group(dioptas_model, tmp_path):
-    """Project files written before the params layer must still load."""
+def test_project_state_is_one_json_document(dioptas_model, tmp_path):
+    """The layout is the state tree plus the binary it references: one
+    /state document, content-addressed payloads and caches — no per-field
+    attributes, and no group-per-reflection."""
     import h5py
+    import json
 
-    filename = os.path.join(tmp_path, "legacy.dio")
+    filename = os.path.join(tmp_path, "layout.dio")
     dioptas_model.save(filename)
-    with h5py.File(filename, "r+") as f:
-        for _, configuration_group in f["configurations"].items():
-            del configuration_group["params"]
 
-    dioptas_model.load(filename)
-    assert dioptas_model.current_configuration.oned_azimuth_range is None
-    assert dioptas_model.current_configuration.trim_trailing_zeros is True
+    with h5py.File(filename, "r") as f:
+        assert "state" in f
+        document = json.loads(f["state"][()])
+        assert set(document) >= {
+            "view",
+            "phase",
+            "configurations",
+            "overlays",
+            "phases",
+            "selected_configuration",
+        }
+        # settings live in the document, not as attributes beside it
+        assert "integration_unit" in document["configurations"][0]["params"]
+        assert list(f["configurations/0"].attrs) == []
 
 
 def test_parameters_changed_invalidates_multi_geometry_after_load(
@@ -1095,9 +1107,11 @@ def test_image_and_background_are_stored_compressed(dioptas_model, tmp_path):
     dioptas_model.save(filename)
 
     with h5py.File(filename, "r") as f:
-        image_group = f["configurations/0/image_model"]
-        for name in ("raw_image_data", "background_data"):
-            dataset = image_group[name]
+        # image pixels are an external payload: cached under a content id
+        cache = f["cache"]
+        assert len(cache) >= 1
+        for name in cache:
+            dataset = cache[name]
             assert dataset.compression == "gzip"
             assert dataset.shuffle
             stored = dataset.id.get_storage_size()

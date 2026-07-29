@@ -30,6 +30,8 @@ class PatternModel:
         self.pattern_filename: str = ""
         #: how the current pattern came to be: "integrated" or "file"
         self.pattern_source: str = "integrated"
+        #: guards the reconcile against the sync's own partial writes
+        self._syncing_file_params: bool = False
 
         # All user-settable parameters live in the evented params dataclass;
         # the properties below delegate to it.
@@ -58,9 +60,17 @@ class PatternModel:
 
     def _sync_file_params(self) -> None:
         """Writes the on-screen pattern source into the params (see ImgModel:
-        attrs mirror the screen, params are the canonical undoable state)."""
-        self.params.pattern_source = self.pattern_source
-        self.params.pattern_filename = self.pattern_filename
+        attrs mirror the screen, params are the canonical undoable state).
+
+        Guarded like ImgModel's: the two fields are written separately, and
+        the reconcile must not act on the first while the second is stale.
+        """
+        self._syncing_file_params = True
+        try:
+            self.params.pattern_source = self.pattern_source
+            self.params.pattern_filename = self.pattern_filename
+        finally:
+            self._syncing_file_params = False
 
     def _reconcile_file_params(self) -> None:
         """Makes the screen follow the pattern-file params (undo/restore).
@@ -96,7 +106,8 @@ class PatternModel:
 
     def _on_params_changed(self, info) -> None:
         if info.signal.name in ("pattern_source", "pattern_filename"):
-            self._reconcile_file_params()
+            if not self._syncing_file_params:
+                self._reconcile_file_params()
             return
         if info.signal.name in self._AUTO_BKG_FIELDS and not self._applying_auto_bkg:
             self._apply_auto_background()

@@ -1399,3 +1399,23 @@ def test_a_failing_save_leaves_the_previous_file_intact(model, tmp_path):
     assert model.load(filename) is None  # still a readable project
     leftovers = [n for n in os.listdir(tmp_path) if ".tmp-" in n]
     assert leftovers == []
+
+
+def test_loading_replaces_phases_and_overlays_instead_of_appending(
+    model, phase_file, xy
+):
+    """Phases and overlays are global, so clearing the configurations is not
+    enough — loading into a session that already has some used to double
+    them."""
+    model.phase_model.add_jcpds(phase_file)
+    model.overlay_model.add_overlay(*xy, "one")
+
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as directory:
+        filename = os.path.join(directory, "replace.dio")
+        model.save(filename)
+        model.load(filename)
+
+    assert len(model.phase_model.phases) == 1
+    assert len(model.overlay_model.overlays) == 1
