@@ -172,6 +172,13 @@ class OverlayModel:
             self.overlays.append(overlay)
             self.overlay_added.emit()
 
+    def get_overlay_by_uid(self, uid: str) -> Overlay | None:
+        """Returns the overlay with the given stable uid, or None."""
+        for overlay in self.overlays:
+            if overlay.params.uid == uid:
+                return overlay
+        return None
+
     def get_overlay(self, ind: int) -> Overlay | None:
         """Returns overlay if existent or None if it does not exist."""
         try:

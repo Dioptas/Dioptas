@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+import os
 
 import numpy as np
 from xypattern import Pattern
@@ -27,6 +28,8 @@ class PatternModel:
         super().__init__()
         self.pattern: Pattern = Pattern()
         self.pattern_filename: str = ""
+        #: how the current pattern came to be: "integrated" or "file"
+        self.pattern_source: str = "integrated"
 
         # All user-settable parameters live in the evented params dataclass;
         # the properties below delegate to it.
@@ -53,7 +56,48 @@ class PatternModel:
         "auto_bkg_roi",
     )
 
+    def _sync_file_params(self) -> None:
+        """Writes the on-screen pattern source into the params (see ImgModel:
+        attrs mirror the screen, params are the canonical undoable state)."""
+        self.params.pattern_source = self.pattern_source
+        self.params.pattern_filename = self.pattern_filename
+
+    def _reconcile_file_params(self) -> None:
+        """Makes the screen follow the pattern-file params (undo/restore).
+
+        Only patterns that came from a *file* are reloaded: an "integrated"
+        pattern's filename names the image it was integrated from, and the
+        pattern itself is derived — the integration recomputes it from the
+        restored image and calibration.
+        """
+        params = self.params
+        if (params.pattern_source, params.pattern_filename) == (
+            self.pattern_source,
+            self.pattern_filename,
+        ):
+            return
+        if params.pattern_source != "file":
+            # nothing to re-read; the params simply describe the new source
+            self.pattern_source = params.pattern_source
+            self.pattern_filename = params.pattern_filename
+            return
+        if not os.path.isfile(params.pattern_filename):
+            logger.warning(
+                "Cannot restore pattern %s: the file is no longer there",
+                params.pattern_filename,
+            )
+            self._sync_file_params()
+            return
+        try:
+            self.load_pattern(params.pattern_filename)
+        except Exception:
+            logger.exception("Failed to restore pattern %s", params.pattern_filename)
+            self._sync_file_params()
+
     def _on_params_changed(self, info) -> None:
+        if info.signal.name in ("pattern_source", "pattern_filename"):
+            self._reconcile_file_params()
+            return
         if info.signal.name in self._AUTO_BKG_FIELDS and not self._applying_auto_bkg:
             self._apply_auto_background()
 
@@ -120,21 +164,25 @@ class PatternModel:
     ) -> None:
         """Set the current data pattern."""
         self.pattern_filename = filename
+        self.pattern_source = "integrated"
         self.pattern.data = (x, y)
         self.pattern.name = get_base_name(filename)
         self.unit = unit
+        self._sync_file_params()
         self.pattern_changed.emit()
 
     def load_pattern(self, filename: str) -> None:
         """Loads a pattern from a tabular pattern file (2 column txt file)."""
         logger.info("Load pattern: {0}".format(filename))
         self.pattern_filename = filename
+        self.pattern_source = "file"
 
         skiprows = 0
         if filename.endswith(".chi"):
             skiprows = 4
         self.pattern.load(filename, skiprows)
         self.file_name_iterator.update_filename(filename)
+        self._sync_file_params()
         self.pattern_changed.emit()
 
     def save_pattern(

@@ -402,6 +402,10 @@ class DioptasModel:
         if saved_view is not None:
             apply_params(self.view, saved_view)
 
+        # configurations were restored before the overlays existed; point
+        # their background references at the now-loaded overlays
+        self.resolve_background_overlays()
+
     def select_configuration(self, ind: int) -> None:
         """Selects a configuration specified by the index as current model.
 
@@ -479,9 +483,31 @@ class DioptasModel:
 
     def _on_pattern_params_event(self, info) -> None:
         new, old = info.args
+        if info.signal.name == "background_overlay_uid":
+            # the uid is the state; the Pattern object it names lives in the
+            # (global) overlay model, so the resolution happens here
+            self._resolve_background_overlay(self.current_configuration)
         self.configuration_params_changed.emit(
             "pattern." + info.signal.name, new, old
         )
+
+    def _resolve_background_overlay(self, configuration) -> None:
+        pattern_model = configuration.pattern_model
+        uid = pattern_model.params.background_overlay_uid
+        if uid is None:
+            # not tracked by reference (e.g. an anonymous background restored
+            # from an old project file) — leave whatever is set alone
+            return
+        overlay = self.overlay_model.get_overlay_by_uid(uid) if uid else None
+        if pattern_model.background_pattern is not overlay:
+            pattern_model.background_pattern = overlay
+
+    def resolve_background_overlays(self) -> None:
+        """Re-points every configuration's pattern background at the overlay
+        its uid names. Called after bulk state changes (undo restore, project
+        load), where the uid may be applied before the overlay exists."""
+        for configuration in self.configurations:
+            self._resolve_background_overlay(configuration)
 
     def _on_mask_params_event(self, info) -> None:
         new, old = info.args

@@ -1100,3 +1100,103 @@ def test_calibration_result_survives_a_project_round_trip(calibratable, tmp_path
     assert cm.is_calibrated is True
     assert abs(float(cm.pattern_geometry.dist) - distance) < 1e-12
     assert cm.calibration_name == "CeO2_Pilatus1M"
+
+
+# ---------------------------------------------------------------------------
+# pattern file + background by overlay reference (step 3)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def pattern_file():
+    import glob
+
+    files = sorted(glob.glob(os.path.join(_DATA, "*.xy")))
+    if not files:
+        pytest.skip("no .xy test data")
+    return files[0]
+
+
+def test_loading_a_pattern_file_is_undoable(model, pattern_file):
+    model.pattern_model.load_pattern(pattern_file)
+    assert model.pattern_model.params.pattern_source == "file"
+    assert model.pattern_model.params.pattern_filename == pattern_file
+
+    previous_name = model.pattern_model.pattern.name
+    model.history.undo()
+    assert model.pattern_model.params.pattern_filename == ""
+    model.history.redo()
+    assert model.pattern_model.pattern.name == previous_name
+
+
+def test_integrated_patterns_are_never_reloaded_as_files(model, images):
+    """An integrated pattern's filename names the IMAGE — reloading it as a
+    two-column text file would fail loudly or corrupt the pattern."""
+    model.pattern_model.set_pattern(
+        np.linspace(1, 10, 50), np.ones(50), images[0], unit="2th_deg"
+    )
+    assert model.pattern_model.params.pattern_source == "integrated"
+
+    read_attempts = []
+    original = model.pattern_model.load_pattern
+    model.pattern_model.load_pattern = lambda f: read_attempts.append(f)
+
+    model.history.undo()
+    model.history.redo()
+    assert read_attempts == []
+    model.pattern_model.load_pattern = original
+
+
+def test_overlays_carry_a_stable_uid(model, xy):
+    model.overlay_model.add_overlay(*xy, "first")
+    uid = model.overlay_model.overlays[0].params.uid
+    assert uid
+    assert model.overlay_model.get_overlay_by_uid(uid) is model.overlay_model.overlays[0]
+
+
+def test_setting_an_overlay_as_background_is_undoable(model, xy):
+    model.overlay_model.add_overlay(*xy, "bkg")
+    overlay = model.overlay_model.overlays[0]
+    model.history.reset()
+
+    model.pattern_model.params.background_overlay_uid = overlay.params.uid
+    assert model.pattern_model.background_pattern is overlay
+
+    model.history.undo()
+    assert model.pattern_model.background_pattern is None
+
+    model.history.redo()
+    assert model.pattern_model.background_pattern is overlay
+
+
+def test_undoing_background_overlay_removal_restores_the_link(model, xy):
+    """The uid must resolve again once the overlay itself is restored."""
+    model.overlay_model.add_overlay(*xy, "bkg")
+    overlay = model.overlay_model.overlays[0]
+    model.pattern_model.params.background_overlay_uid = overlay.params.uid
+    model.history.reset()
+
+    # remove: clear the reference, then the overlay (as the controller does)
+    model.pattern_model.params.background_overlay_uid = ""
+    model.overlay_model.remove_overlay(0)
+    assert model.pattern_model.background_pattern is None
+
+    model.history.undo()  # the removal
+    model.history.undo()  # the reference clear
+    assert model.overlay_model.overlays[0] is overlay
+    assert model.pattern_model.background_pattern is overlay
+
+
+def test_background_uid_survives_a_project_round_trip(model, xy, tmp_path):
+    model.overlay_model.add_overlay(*xy, "bkg")
+    overlay = model.overlay_model.overlays[0]
+    model.pattern_model.params.background_overlay_uid = overlay.params.uid
+    uid = overlay.params.uid
+
+    filename = str(tmp_path / "background.dio")
+    model.save(filename)
+    model.load(filename)
+
+    restored = model.overlay_model.get_overlay_by_uid(uid)
+    assert restored is not None
+    assert model.pattern_model.background_pattern is restored

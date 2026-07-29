@@ -102,6 +102,12 @@ _RECORDED_ELSEWHERE = {
     "calibration.is_calibrated",
     "calibration.poni_filename",
     "calibration.calibration_name",
+    # pattern loads and background changes settle via pattern_changed;
+    # unit is written by set_pattern inside every integration cascade
+    "pattern.unit",
+    "pattern.pattern_source",
+    "pattern.pattern_filename",
+    "pattern.background_overlay_uid",
 }
 
 
@@ -240,6 +246,10 @@ class StateRecorder:
                     self._on_calibration_changed,
                 ),
                 (configuration.img_model.img_changed, self._on_img_changed),
+                (
+                    configuration.pattern_model.pattern_changed,
+                    self._on_pattern_changed,
+                ),
             ):
                 if not signal.has_listener(handler):
                     signal.connect(handler)
@@ -249,6 +259,11 @@ class StateRecorder:
 
     def _on_img_changed(self) -> None:
         self._record("image")
+
+    def _on_pattern_changed(self) -> None:
+        # fires after every integration too — those captures are identical
+        # to the step already recorded and are dropped by the equality check
+        self._record("pattern")
 
     def _record(self, label: str, key: Any = None) -> None:
         """Records a step, preferring the label of the action that caused it."""
@@ -390,6 +405,9 @@ class StateRecorder:
             _apply_dict(model.phase_model.params, snapshot.phase)
             self._restore_overlays(snapshot.overlays)
             self._restore_phases(snapshot.phases)
+            # a background uid may have been applied before its overlay was
+            # restored; re-point every configuration now that the list is back
+            model.resolve_background_overlays()
 
         self._mask_cache.clear()
 
@@ -530,6 +548,9 @@ _LABELS = {
     "img.series_pos": "series position",
     "img.background_filename": "background image",
     "calibration.peak_selections": "calibration peaks",
+    "pattern.pattern_filename": "pattern file",
+    "pattern.pattern_source": "pattern file",
+    "pattern.background_overlay_uid": "pattern background",
     # the calibration result fields are one action to the user
     "calibration.detector_mode": "calibration",
     "calibration.detector_name": "calibration",

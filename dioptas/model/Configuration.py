@@ -1019,6 +1019,10 @@ class Configuration:
                 f.get("background_pattern").get("y")[...],
                 "background_pattern",
             )
+            # this background is raw arrays from an old project — no overlay
+            # owns it. None marks it anonymous, so uid resolution leaves it
+            # alone instead of clearing it (only this loader ever writes None)
+            self.pattern_model.params.background_overlay_uid = None
 
         if f.get("pattern").attrs["auto_background_subtraction"]:
             auto_background_group = f.get("pattern").get("auto_background_settings")

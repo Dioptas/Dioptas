@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import copy as _copy
 import dataclasses
+import uuid as _uuid
 import os
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
@@ -257,6 +258,10 @@ class OverlayItemParams:
 
     events: ClassVar[SignalGroupDescriptor] = SignalGroupDescriptor()
 
+    #: stable identity, so state can reference this overlay (e.g. as the
+    #: pattern background) across reorderings, undo steps and project files
+    uid: str = field(default_factory=lambda: _uuid.uuid4().hex)
+
     name: str = ""
     color: str = ""
     visible: bool = True
@@ -298,6 +303,20 @@ class PatternParams:
 
     #: unit of the current pattern's x-axis ("", "2th_deg", "q_A^-1", "d_A")
     unit: str = ""
+
+    # Where the current pattern came from. "integrated" patterns are derived
+    # (recomputed from image + calibration on restore) and their filename is
+    # the *image* the integration ran on — reloading it as a pattern file
+    # would parse a TIFF as two-column text. Only "file" patterns reload.
+    pattern_source: str = "integrated"
+    pattern_filename: str = ""
+
+    #: uid of the overlay serving as the pattern background. "" = no
+    #: background (the default); an OverlayItemParams.uid = that overlay;
+    #: None = anonymous — a raw-array background restored from an old project
+    #: that no overlay owns, which resolution deliberately leaves alone.
+    #: Only the legacy project loader ever writes None.
+    background_overlay_uid: str | None = ""
 
     #: how prev/next iterate through pattern files: "number" or "time"
     file_iteration_mode: str = "number"
