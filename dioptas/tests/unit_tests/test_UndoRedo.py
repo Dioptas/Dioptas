@@ -810,3 +810,84 @@ def test_several_transformations_undo_one_at_a_time(loaded):
     assert len(loaded.img_model.params.transformations) == 1
     loaded.history.undo()
     assert loaded.img_model.params.transformations == []
+
+
+# ---------------------------------------------------------------------------
+# calibration geometry and detector
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def calibratable(model):
+    """An image with a matching .poni available to load onto it."""
+    model.img_model.load(os.path.join(_DATA, "CeO2_Pilatus1M.tif"))
+    model.history.reset()
+    return model
+
+
+def test_loading_a_calibration_is_undoable(calibratable):
+    cm = calibratable.calibration_model
+    assert cm.is_calibrated is False
+
+    cm.load(os.path.join(_DATA, "CeO2_Pilatus1M.poni"))
+    assert cm.is_calibrated is True
+    assert calibratable.history.undo_label == "calibration"
+    distance = float(cm.pattern_geometry.dist)
+
+    calibratable.history.undo()
+    assert cm.is_calibrated is False
+    assert float(cm.pattern_geometry.dist) != distance
+
+    calibratable.history.redo()
+    assert cm.is_calibrated is True
+    assert float(cm.pattern_geometry.dist) == distance
+
+
+def test_undo_restores_the_whole_geometry(calibratable):
+    cm = calibratable.calibration_model
+    cm.load(os.path.join(_DATA, "CeO2_Pilatus1M.poni"))
+    first = dict(cm.pattern_geometry.get_config())
+    calibratable.history.reset()
+
+    cm.load(os.path.join(_DATA, "LaB6_40keV_MarCCD.poni"))
+    assert cm.pattern_geometry.get_config() != first
+
+    calibratable.history.undo()
+    restored = cm.pattern_geometry.get_config()
+    for key in ("dist", "poni1", "poni2", "rot1", "rot2", "rot3", "wavelength"):
+        assert restored[key] == first[key], key
+
+
+def test_undo_restores_the_calibration_name(calibratable):
+    cm = calibratable.calibration_model
+    cm.load(os.path.join(_DATA, "CeO2_Pilatus1M.poni"))
+    assert cm.calibration_name == "CeO2_Pilatus1M"
+
+    calibratable.history.undo()
+    assert cm.calibration_name != "CeO2_Pilatus1M"
+
+
+def test_calibration_is_not_re_recorded_when_nothing_changed(calibratable):
+    cm = calibratable.calibration_model
+    cm.load(os.path.join(_DATA, "CeO2_Pilatus1M.poni"))
+    depth = calibratable.history.depth
+
+    cm.parameters_changed.emit()  # as a no-op refinement would
+    assert calibratable.history.depth == depth
+
+
+def test_a_calibration_that_cannot_be_restored_is_skipped(calibratable, caplog):
+    """A geometry pyFAI rejects must not abandon the rest of the undo."""
+    from dioptas.model.state import snapshot as snapshot_module
+
+    cm = calibratable.calibration_model
+    cm.load(os.path.join(_DATA, "CeO2_Pilatus1M.poni"))
+    calibratable.history.reset()
+
+    calibratable.current_configuration.integration_unit = "q_A^-1"
+    # corrupt the stored geometry so restoring it raises
+    state = calibratable.history._steps[0].state
+    state.configurations[0].calibration_state["geometry"] = {"dist": object()}
+
+    calibratable.history.undo()
+    assert calibratable.current_configuration.integration_unit == "2th_deg"

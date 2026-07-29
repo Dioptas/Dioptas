@@ -136,6 +136,10 @@ class _ConfigState:
     #: picked calibration peaks, as plain nested tuples so snapshots compare
     #: by content (the model holds them as numpy arrays)
     points: tuple
+    #: the refined geometry, the detector and whether a calibration exists at
+    #: all — pyFAI geometry is data on the model rather than a params field,
+    #: so none of it travels with CalibrationParams
+    calibration_state: dict
     #: the image file on screen. Only the path is held — image data per step
     #: would dwarf the rest of a snapshot — and undo re-reads it from disk.
     filename: str
@@ -233,6 +237,10 @@ class StateRecorder:
         for configuration in self._model.configurations:
             for signal, handler in (
                 (configuration.calibration_model.points_changed, self._on_points_changed),
+                (
+                    configuration.calibration_model.parameters_changed,
+                    self._on_calibration_changed,
+                ),
                 (configuration.img_model.img_changed, self._on_img_changed),
             ):
                 if not signal.has_listener(handler):
@@ -243,6 +251,9 @@ class StateRecorder:
         # of peaks in one call and so emits once anyway, while two clicks are
         # two decisions the user may well want to take back one at a time.
         self.history.record(label="calibration peaks")
+
+    def _on_calibration_changed(self) -> None:
+        self._record("calibration")
 
     def _on_img_changed(self) -> None:
         self._record("image")
@@ -339,6 +350,7 @@ class StateRecorder:
             mask_data=self._capture_mask(configuration.mask_model),
             plugins=_capture_plugins(configuration.mask_plugin_manager),
             points=_capture_points(configuration.calibration_model),
+            calibration_state=_capture_calibration(configuration.calibration_model),
             filename=configuration.img_model.filename or "",
         )
 
@@ -431,6 +443,7 @@ class StateRecorder:
             configuration.mask_model.set_mask_data(state.mask_data.unpack())
 
         _restore_points(configuration.calibration_model, state.points)
+        _restore_calibration(configuration.calibration_model, state.calibration_state)
 
     def _restore_image(self, state: _ConfigState, configuration: Any) -> None:
         """Reloads the image the step was taken with, if it is not the one on
@@ -530,6 +543,62 @@ def _restore_points(calibration_model: Any, states: tuple) -> None:
     ]
     calibration_model.points_index = [index for _, index in states]
     calibration_model.points_changed.emit()
+
+
+def _capture_calibration(calibration_model: Any) -> dict:
+    """The calibration as data: refined geometry, detector, and whether one
+    exists at all.
+
+    CalibrationParams covers the *settings* around calibrating (start values,
+    what to hold fixed). The result of calibrating — the pyFAI geometry — is
+    not a setting and lives on the model, which is why loading a .poni or
+    running a refinement was invisible to the history until this was added.
+    """
+    from ..CalibrationModel import DetectorModes
+
+    detector_mode = calibration_model.detector_mode
+    state = {
+        "geometry": _plain(calibration_model.pattern_geometry.get_config()),
+        "is_calibrated": bool(calibration_model.is_calibrated),
+        "calibration_name": str(calibration_model.calibration_name or ""),
+        "filename": str(calibration_model.filename or ""),
+        "detector_mode": int(detector_mode.value),
+        "detector_name": "",
+        "detector_filename": "",
+    }
+    if detector_mode == DetectorModes.PREDEFINED:
+        state["detector_name"] = str(calibration_model.detector.name)
+    elif detector_mode == DetectorModes.NEXUS:
+        state["detector_filename"] = str(calibration_model.detector.filename or "")
+    return state
+
+
+def _restore_calibration(calibration_model: Any, state: dict) -> None:
+    """Applies a captured calibration, in the same order project loading uses."""
+    from ..CalibrationModel import DetectorModes
+
+    if _capture_calibration(calibration_model) == state:
+        return
+
+    detector_mode = DetectorModes(state["detector_mode"])
+    try:
+        if detector_mode == DetectorModes.PREDEFINED and state["detector_name"]:
+            calibration_model.load_detector(state["detector_name"])
+        elif detector_mode == DetectorModes.NEXUS and state["detector_filename"]:
+            calibration_model.load_detector_from_file(state["detector_filename"])
+        calibration_model.set_pyFAI_config(_copy.deepcopy(state["geometry"]))
+    except Exception:
+        # a detector file that has since moved, or a geometry pyFAI rejects:
+        # leave the calibration alone rather than abandon the rest of the undo
+        logger.exception("Failed to restore the calibration")
+        return
+
+    # set_pyFAI_config marks the model calibrated, so this comes after it —
+    # undoing back to before a calibration has to un-set the flag as well
+    calibration_model.is_calibrated = state["is_calibrated"]
+    calibration_model.calibration_name = state["calibration_name"]
+    calibration_model.filename = state["filename"]
+    calibration_model.parameters_changed.emit()
 
 
 def _capture_plugins(manager: Any) -> tuple:
