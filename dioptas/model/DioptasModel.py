@@ -354,8 +354,9 @@ class DioptasModel:
             new_jcpds.params["modified"] = bool(
                 phase_group.get("params").attrs["modified"]
             )
-            self.phase_model.phase_files.append(new_jcpds.filename)
-            self.phase_model.add_jcpds_object(new_jcpds)
+            self.phase_model.add_jcpds_object(
+                new_jcpds, filename=new_jcpds.filename
+            )
             phase_ind = len(self.phase_model.phases) - 1
             try:
                 self.phase_model.set_color(

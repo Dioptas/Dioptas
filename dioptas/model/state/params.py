@@ -283,6 +283,9 @@ class PhaseItemParams:
 
     events: ClassVar[SignalGroupDescriptor] = SignalGroupDescriptor()
 
+    #: stable identity across reorderings, undo steps and project files
+    uid: str = field(default_factory=lambda: _uuid.uuid4().hex)
+
     #: RGB color as a (r, g, b) sequence
     color: tuple = (255, 255, 255)
     visible: bool = True

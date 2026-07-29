@@ -5,6 +5,9 @@ import logging
 import numpy as np
 from xypattern import Pattern
 
+from dataclasses import dataclass, field
+from typing import Any
+
 from .util import Signal
 from .state import PhaseParams, PhaseItemParams
 from .util.jcpds import jcpds, jcpds_reflection
@@ -23,18 +26,30 @@ class PhaseLoadError(Exception):
         return "Could not load {0} as jcpds file".format(self.filename)
 
 
+@dataclass
+class PhaseItem:
+    """Everything belonging to one phase, in one record.
+
+    Replaces four parallel lists that had to be mutated in lockstep. The
+    jcpds object is the crystallographic data (step 5b dissolves it into
+    state and derived values); reflections caches the computed line
+    positions/intensities for the current pressure and temperature."""
+
+    jcpds: "jcpds"
+    params: PhaseItemParams
+    filename: str = ""
+    reflections: Any = field(default_factory=list)
+
+
 class PhaseModel:
 
     num_phases: int = 0
 
     def __init__(self) -> None:
         super().__init__()
-        self.phases: list[jcpds] = []
-        self.reflections: list[np.ndarray] = []
-        self.phase_files: list[str] = []
-
-        # per-phase display state; the jcpds objects themselves are data
-        self.item_params: list[PhaseItemParams] = []
+        # one record per phase: the four historically parallel lists
+        # (phases/reflections/phase_files/item_params) are views over this
+        self.items: list[PhaseItem] = []
 
         # All user-settable parameters live in the evented params dataclass;
         # the property below delegates to it.
@@ -56,14 +71,34 @@ class PhaseModel:
     def same_conditions(self, new_value: bool) -> None:
         self.params.same_conditions = new_value
 
+    # -- read-only views over the items -----------------------------------
+    # The four lists used to be parallel and mutated in lockstep at every
+    # site — the same disease the mask's four undo deques had. External code
+    # reads them by index; all mutation goes through the item list.
+
+    @property
+    def phases(self) -> list[jcpds]:
+        return [item.jcpds for item in self.items]
+
+    @property
+    def reflections(self) -> list:
+        return [item.reflections for item in self.items]
+
+    @property
+    def phase_files(self) -> list[str]:
+        return [item.filename for item in self.items]
+
+    @property
+    def item_params(self) -> list[PhaseItemParams]:
+        return [item.params for item in self.items]
+
     def add_jcpds(self, filename: str) -> None:
         """Adds a jcpds file."""
         logger.info("Adding JCPDS phase: %s", filename)
         try:
             jcpds_object = jcpds()
             jcpds_object.load_file(filename)
-            self.phase_files.append(filename)
-            self.add_jcpds_object(jcpds_object)
+            self.add_jcpds_object(jcpds_object, filename=filename)
         except (ZeroDivisionError, UnboundLocalError, ValueError):
             raise PhaseLoadError(filename)
 
@@ -81,18 +116,21 @@ class PhaseModel:
         try:
             cif_converter = CifConverter(0.31, minimum_d_spacing, intensity_cutoff)
             jcpds_object = cif_converter.convert_cif_to_jcpds(filename)
-            self.phase_files.append(filename)
-            self.add_jcpds_object(jcpds_object)
+            self.add_jcpds_object(jcpds_object, filename=filename)
         except (ZeroDivisionError, UnboundLocalError, ValueError) as e:
             logger.warning("Failed to load CIF file %s: %s", filename, e)
             raise PhaseLoadError(filename)
 
-    def add_jcpds_object(self, jcpds_object: jcpds) -> None:
+    def add_jcpds_object(self, jcpds_object: jcpds, filename: str = "") -> None:
         """Adds a jcpds object to the phase list."""
-        self.phases.append(jcpds_object)
-        self.reflections.append([])
-        self.item_params.append(
-            PhaseItemParams(color=calculate_color(PhaseModel.num_phases + 9))
+        self.items.append(
+            PhaseItem(
+                jcpds=jcpds_object,
+                params=PhaseItemParams(
+                    color=calculate_color(PhaseModel.num_phases + 9)
+                ),
+                filename=filename or str(jcpds_object.filename or ""),
+            )
         )
         PhaseModel.num_phases += 1
         if self.same_conditions and len(self.phases) > 2:
@@ -112,10 +150,7 @@ class PhaseModel:
     def del_phase(self, ind: int) -> None:
         """Deletes a phase with index ind from the phase list."""
         logger.info("Deleting phase %d", ind)
-        del self.phases[ind]
-        del self.reflections[ind]
-        del self.phase_files[ind]
-        del self.item_params[ind]
+        del self.items[ind]
         self.phase_removed.emit(ind)
 
     def restore(self, phases: list[jcpds], filenames: list[str]) -> None:
@@ -130,28 +165,27 @@ class PhaseModel:
         """
         common = 0
         while (
-            common < len(self.phases)
+            common < len(self.items)
             and common < len(phases)
-            and self.phases[common] is phases[common]
+            and self.items[common].jcpds is phases[common]
         ):
             common += 1
 
-        for ind in range(len(self.phases) - 1, common - 1, -1):
-            # all four lists are index-parallel and must stay that way
-            del self.phases[ind]
-            del self.reflections[ind]
-            del self.phase_files[ind]
-            del self.item_params[ind]
+        for ind in range(len(self.items) - 1, common - 1, -1):
+            del self.items[ind]
             self.phase_removed.emit(ind)
 
         for offset, phase in enumerate(phases[common:]):
-            self.phases.append(phase)
-            self.reflections.append([])
-            self.phase_files.append(filenames[common + offset])
-            self.item_params.append(PhaseItemParams())
+            self.items.append(
+                PhaseItem(
+                    jcpds=phase,
+                    params=PhaseItemParams(),
+                    filename=filenames[common + offset],
+                )
+            )
             self.get_lines_d(-1)
             self.phase_added.emit()
-            self.phase_changed.emit(len(self.phases) - 1)
+            self.phase_changed.emit(len(self.items) - 1)
 
     def reload(self, ind: int) -> None:
         """Reloads a phase specified by index ind from its original source filename."""
@@ -253,7 +287,7 @@ class PhaseModel:
             res[i, 2] = reflection.h
             res[i, 3] = reflection.k
             res[i, 4] = reflection.l
-        self.reflections[ind] = res
+        self.items[ind].reflections = res
         return res
 
     def get_phase_line_positions(
