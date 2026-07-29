@@ -1,3 +1,17 @@
+# 0.8.8 (in development)
+
+## New Features
+
+- undo/redo now covers the whole application instead of only the mask: Ctrl+Z and Ctrl+Shift+Z (or Ctrl+Y) work in every mode and step back through settings changes and mask edits alike, in the order they were made. The mask's undo and redo buttons drive the same history, so there is one stack rather than two competing ones, and they now grey out at its ends and name the step they would reverse
+
+- dragging a spinbox or slider counts as a single undo step rather than one per intermediate value, and imprinting a mask plugin is undone as one action (the mask is restored and the plugin re-enabled together)
+
+## Internal
+
+- undo/redo is built on snapshots of the evented params rather than per-action undo methods: because every setting already lives in a params dataclass behind one change surface, a whole snapshot of the settings is about 1.5 kB, so capturing state is both cheaper and harder to get wrong than describing changes — an action cannot forget to register its undo. Masks are stored compressed and shared by reference between steps that did not touch them, so a hundred steps of settings changes cost one mask, and a hundred mask edits on a 2048x2048 detector cost about 0.3 MB in total
+- the mask model's four parallel undo/redo deques are gone, replaced by the shared history; the imprint bookkeeping that had to be kept in lockstep with them disappears with it
+- the view state (panel layout, docking, image/cake mode), the working directories and the loaded image data are deliberately outside the history: undo reverses edits, not window arrangement or file navigation. Loading a project, resetting, adding or removing a configuration and loading an image of a different size all rebaseline the history rather than being undoable
+
 # 0.8.7 (29.07.2026)
 
 ## New Features
