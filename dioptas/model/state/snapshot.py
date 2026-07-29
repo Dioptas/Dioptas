@@ -26,10 +26,10 @@ mutated:
 - Overlays are referenced directly. Their x/y data is replaced, never edited
   in place, so undoing a removal can put the original object back instead of a
   look-alike the pattern view would have to re-create.
-- Phases are deep-copied, because jcpds objects *are* edited in place when
-  pressure or temperature change; a reference would let a later edit rewrite
-  history. A content fingerprint decides when a fresh copy is needed, so an
-  unchanged phase is copied once no matter how many steps it survives.
+- Phases are captured as pure content: the jcpds CrystalState document and
+  the reflection tuples. Restoring applies the content onto the live objects
+  (matched by uid), so nothing is ever copied and plot items bound to a
+  phase survive its undo.
 
 The image is held as a *path* (ImgParams.filename), not as pixels — the
 pixels are re-readable from the file, so the path is the state and holding
@@ -159,16 +159,22 @@ class _OverlayState:
 
 @dataclass(frozen=True)
 class _PhaseState:
-    #: An immutable deep copy — unlike overlays, jcpds objects are edited in
-    #: place when pressure or temperature change, so a reference would let
-    #: later edits rewrite history. Excluded from equality: two copies of an
-    #: unchanged phase are different objects, and comparing them by identity
-    #: would report a change on every capture that had to re-copy.
-    phase: _Ref = field(compare=False)
-    #: what equality actually rests on — cheap and content-based
-    fingerprint: tuple = ()
-    item_params: dict = field(default_factory=dict)
+    """A phase as pure content — the jcpds CrystalState document plus the
+    reflection state. No object references and no copies: applying this
+    onto the live jcpds (matched by uid) is cheap, and equality is plain
+    dict/tuple comparison. The deepcopy-with-fingerprint machinery this
+    replaces existed only because the old params dict was uncopyable state
+    and derived values mixed together."""
+
+    uid: str
     filename: str = ""
+    #: display name (basename for file-loaded phases, formula for CIF ones);
+    #: lives on the jcpds outside CrystalState until 5b's final cleanup
+    name: str = ""
+    item_params: dict = field(default_factory=dict)
+    crystal: dict = field(default_factory=dict)
+    #: ((h, k, l, intensity, d0), ...) — d values are derived
+    reflections: tuple = ()
 
 
 @dataclass(frozen=True)
@@ -191,9 +197,6 @@ class StateRecorder:
         # capturing a mask costs about a millisecond, so the blob is reused
         # until something says the mask changed
         self._mask_cache: dict[int, str] = {}
-        # copying a phase costs a few tens of microseconds, which would dwarf
-        # a settings snapshot if it happened on every capture
-        self._phase_cache: dict[int, _Ref] = {}
         #: label of an action whose own record is suppressed, applied to
         #: the next record so the step is named after the action
         self._pending_label = ""
@@ -343,27 +346,20 @@ class StateRecorder:
 
     def _capture_phases(self) -> tuple:
         phase_model = self._model.phase_model
-        states = []
-        for ind, phase in enumerate(phase_model.phases):
-            fingerprint = _phase_fingerprint(phase)
-            # the fingerprint doubles as the cache key: a phase whose content
-            # is unchanged reuses its copy, so no signal has to be trusted to
-            # invalidate anything
-            cached = self._phase_cache.get(id(phase))
-            if cached is None or cached[0] != fingerprint:
-                cached = (fingerprint, _Ref(_copy.deepcopy(phase)))
-                self._phase_cache[id(phase)] = cached
-            states.append(
-                _PhaseState(
-                    phase=cached[1],
-                    fingerprint=fingerprint,
-                    item_params=_capture_params(phase_model.item_params[ind]),
-                    filename=phase_model.phase_files[ind]
-                    if ind < len(phase_model.phase_files)
-                    else "",
-                )
+        return tuple(
+            _PhaseState(
+                uid=item.params.uid,
+                filename=item.filename,
+                name=str(item.jcpds._name),
+                item_params=_capture_params(item.params),
+                crystal=_capture_params(item.jcpds.state),
+                reflections=tuple(
+                    (r.h, r.k, r.l, r.intensity, r.d0)
+                    for r in item.jcpds.reflections
+                ),
             )
-        return tuple(states)
+            for item in phase_model.items
+        )
 
     def _capture_configuration(self, configuration: Any) -> _ConfigState:
         return _ConfigState(
@@ -428,17 +424,41 @@ class StateRecorder:
         if self._capture_phases() == states:
             return
         phase_model = self._model.phase_model
-        # hand the model fresh copies: keeping the snapshot's own objects out
-        # of the live model is what stops a later pressure change from
-        # editing the history
-        phases = [_copy.deepcopy(state.phase.value) for state in states]
-        phase_model.restore(phases, [state.filename for state in states])
-        for state, item_params in zip(states, phase_model.item_params):
-            _apply_dict(item_params, state.item_params)
-        # point the cache at the snapshot's copies, so capturing straight
-        # after a restore reuses them instead of copying all over again
-        for state, phase in zip(states, phases):
-            self._phase_cache[id(phase)] = (state.fingerprint, state.phase)
+        items = phase_model.items
+
+        # phases whose uid still matches are edited in place: their objects
+        # (and the plot items bound to them) survive the restore
+        common = 0
+        while (
+            common < len(items)
+            and common < len(states)
+            and items[common].params.uid == states[common].uid
+        ):
+            state = states[common]
+            item = items[common]
+            if (
+                _capture_params(item.jcpds.state) != state.crystal
+                or tuple(
+                    (r.h, r.k, r.l, r.intensity, r.d0)
+                    for r in item.jcpds.reflections
+                )
+                != state.reflections
+            ):
+                _apply_phase_content(item.jcpds, state)
+                item.jcpds._name = state.name
+                phase_model.get_lines_d(common)
+                phase_model.phase_changed.emit(common)
+            _apply_dict(item.params, state.item_params)
+            item.filename = state.filename
+            common += 1
+
+        for ind in range(len(items) - 1, common - 1, -1):
+            phase_model.del_phase(ind)
+
+        for state in states[common:]:
+            rebuilt = _jcpds_from_state(state)
+            phase_model.add_jcpds_object(rebuilt, filename=state.filename)
+            _apply_dict(phase_model.items[-1].params, state.item_params)
 
     def _restore_configuration(self, state: _ConfigState, configuration: Any) -> None:
         _apply_dict(configuration.params, state.params, exclude=_CONFIG_EXCLUDED)
@@ -502,20 +522,29 @@ def _plain(value: Any) -> Any:
     return value
 
 
-def _phase_fingerprint(phase: Any) -> tuple:
-    """Content summary of a jcpds, cheap enough to compute on every capture.
+def _apply_phase_content(target: Any, state: "_PhaseState") -> None:
+    """Applies a captured crystal state and reflection list onto a live
+    jcpds, then recomputes the derived values for its P and T."""
+    from ..util.jcpds import CrystalState, jcpds_reflection
 
-    Covers what a user can edit — the parameters (pressure, temperature, unit
-    cell, ...) and the resulting reflections — which is what decides whether a
-    phase needs a fresh copy in the history.
-    """
-    return (
-        phase.name,
-        repr(phase.params),
-        tuple(
-            (r.h, r.k, r.l, r.d, r.d0, r.intensity) for r in phase.reflections
-        ),
-    )
+    apply_params(target.state, params_from_dict(CrystalState, state.crystal))
+    target.reflections = [
+        jcpds_reflection(h, k, l, intensity, d0)
+        for h, k, l, intensity, d0 in state.reflections
+    ]
+    target.compute_d()
+
+
+def _jcpds_from_state(state: "_PhaseState") -> Any:
+    from ..util.jcpds import jcpds
+
+    rebuilt = jcpds()
+    rebuilt._filename = state.filename
+    rebuilt._name = state.name
+    _apply_phase_content(rebuilt, state)
+    # the flag travels with the state; applying it must not invent an edit
+    rebuilt.state.modified = bool(state.crystal.get("modified", False))
+    return rebuilt
 
 
 def _capture_plugins(manager: Any) -> tuple:

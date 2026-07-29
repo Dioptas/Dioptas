@@ -537,15 +537,15 @@ def test_undo_does_not_mark_phases_as_modified(model, phase_file):
     assert "*" not in model.phase_model.phases[0].name
 
 
-def test_history_keeps_its_own_copy_of_a_phase(model, phase_file):
-    """A later in-place edit must not reach back into a stored snapshot."""
+def test_snapshots_are_isolated_from_later_phase_edits(model, phase_file):
+    """A later in-place edit must not reach back into a stored snapshot —
+    snapshots hold the phase as pure content, not as object references."""
     model.phase_model.add_jcpds(phase_file)
     model.history.reset()
-    stored = model.history._steps[0].state.phases[0].phase.value
+    stored = model.history._steps[0].state.phases[0]
 
     model.phase_model.set_pressure(0, 50.0)
-    assert stored.params["pressure"] == 0.0
-    assert stored is not model.phase_model.phases[0]
+    assert stored.crystal["pressure"] == 0.0
 
 
 def test_phase_display_state_is_undoable(model, phase_file):
@@ -559,16 +559,17 @@ def test_phase_display_state_is_undoable(model, phase_file):
     assert model.phase_model.phase_visible[0] is True
 
 
-def test_unchanged_phase_is_copied_only_once(model, phase_file):
-    """The fingerprint keeps repeated captures from re-copying a phase."""
+def test_phase_snapshots_hold_no_object_references(model, phase_file):
+    """Nothing is copied per step anymore: a phase snapshot is JSON-plain
+    content, so settings-only steps stay cheap however many phases exist."""
     model.phase_model.add_jcpds(phase_file)
     model.history.reset()
 
     for points in range(100, 110):
         model.current_configuration.cake_azimuth_points = points
 
-    stored = {id(s.state.phases[0].phase.value) for s in model.history._steps}
-    assert len(stored) == 1
+    first = model.history._steps[0].state.phases
+    assert all(s.state.phases == first for s in model.history._steps)
 
 
 # ---------------------------------------------------------------------------
