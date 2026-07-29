@@ -778,6 +778,11 @@ def test_load_project_with_newer_format_version(dioptas_model, tmp_path):
 
 
 def test_img_params_forwarded_with_namespace(dioptas_model):
+    # first contact between image and detector legitimately updates the
+    # calibration geometry (the detector learns its shape); settle that
+    # before asserting the exact event stream
+    dioptas_model.img_model.img_changed.emit()
+
     got = []
     dioptas_model.configuration_params_changed.connect(
         lambda field, new, old: got.append((field, new))

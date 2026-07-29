@@ -47,7 +47,6 @@ class CalibrationModel:
 
         self.detector: Detector = Detector(pixel1=79e-6, pixel2=79e-6)
         # self.detector.shape = (2048, 2048)
-        self.detector_mode: DetectorModes = DetectorModes.CUSTOM
         self._original_detector: Detector | None = (
             None  # used for saving original state before rotating or flipping
         )
@@ -74,9 +73,6 @@ class CalibrationModel:
             dioptrin_num_workers=max((os.cpu_count() or 4) - 1, 1),
         )
 
-        self.is_calibrated: bool = False
-        self.filename: str = ""
-        self.calibration_name: str = ""
         self._calibrants_working_dir: str = calibrants_path
 
         self.tth: np.ndarray = np.linspace(0, 25)
@@ -103,9 +99,20 @@ class CalibrationModel:
         # setters), so a direct params write behaves exactly like the
         # property write
         self.params.events.connect(self._on_params_changed)
+        # populate params.geometry from the default geometry right away, so
+        # later syncs only emit on real change instead of on first touch
+        self._sync_calibration_params()
 
     def _on_params_changed(self, info) -> None:
-        if info.signal.name == "peak_selections":
+        if info.signal.name in (
+            "detector_mode",
+            "detector_name",
+            "detector_filename",
+            "geometry",
+            "distortion_spline_filename",
+        ):
+            self._reconcile_calibration_params()
+        elif info.signal.name == "peak_selections":
             value = info.args[0]
             canonical = _canonical_peak_selections(value)
             if canonical != value:
@@ -135,6 +142,107 @@ class CalibrationModel:
                 ring for ring, _ in self.params.peak_selections
             ]
         return self._points_index_cache
+
+    @property
+    def is_calibrated(self) -> bool:
+        return self.params.is_calibrated
+
+    @is_calibrated.setter
+    def is_calibrated(self, value: bool) -> None:
+        self.params.is_calibrated = bool(value)
+
+    @property
+    def filename(self) -> str:
+        return self.params.poni_filename
+
+    @filename.setter
+    def filename(self, value: str) -> None:
+        self.params.poni_filename = str(value)
+
+    @property
+    def calibration_name(self) -> str:
+        return self.params.calibration_name
+
+    @calibration_name.setter
+    def calibration_name(self, value: str) -> None:
+        self.params.calibration_name = str(value)
+
+    @property
+    def detector_mode(self) -> "DetectorModes":
+        return DetectorModes(self.params.detector_mode)
+
+    @detector_mode.setter
+    def detector_mode(self, value: "DetectorModes") -> None:
+        self.params.detector_mode = int(value.value)
+
+    def _sync_calibration_params(self) -> None:
+        """Writes the live geometry and detector descriptor into the params.
+
+        The geometry objects are the working machinery; the params are the
+        canonical state. Every operation that changes the geometry or the
+        detector calls this at the end, so the reconcile reaction sees
+        params == live and stays quiet.
+        """
+        self.params.geometry = _plain_geometry_config(
+            self.pattern_geometry.get_config()
+        )
+        if self.detector_mode == DetectorModes.PREDEFINED:
+            self.params.detector_name = str(self.detector.name)
+            self.params.detector_filename = ""
+        elif self.detector_mode == DetectorModes.NEXUS:
+            self.params.detector_name = ""
+            self.params.detector_filename = str(
+                getattr(self.detector, "filename", "") or ""
+            )
+        else:
+            self.params.detector_name = ""
+            self.params.detector_filename = ""
+
+    def _reconcile_calibration_params(self) -> None:
+        """Makes the live geometry follow the params (undo/restore path).
+
+        Idempotent full-state compare: interactive operations sync at their
+        end, which this recognizes as already reconciled. The detector is
+        applied before the geometry, mirroring project loading. A geometry
+        pyFAI rejects, or a detector file that has moved, is logged and the
+        params are synced back rather than leaving state half-applied.
+        """
+        params = self.params
+        try:
+            detector_mode = DetectorModes(params.detector_mode)
+            if detector_mode == DetectorModes.PREDEFINED and params.detector_name:
+                if (
+                    self.detector_mode != DetectorModes.PREDEFINED
+                    or str(self.detector.name) != params.detector_name
+                ):
+                    self.load_detector(params.detector_name)
+            elif detector_mode == DetectorModes.NEXUS and params.detector_filename:
+                if (
+                    self.detector_mode != DetectorModes.NEXUS
+                    or str(getattr(self.detector, "filename", ""))
+                    != params.detector_filename
+                ):
+                    self.load_detector_from_file(params.detector_filename)
+
+            if params.geometry is not None and params.geometry != (
+                _plain_geometry_config(self.pattern_geometry.get_config())
+            ):
+                # rebuilding the integrator is expensive; only on real change.
+                # set_pyFAI_config is the one method that applies a config
+                # completely — including the model's own detector reference,
+                # which a bare pattern_geometry.set_config would leave stale.
+                # It marks the model calibrated; when this reconcile is part
+                # of a params apply, the is_calibrated field is declared
+                # after geometry and corrects that right afterwards.
+                self.set_pyFAI_config(deepcopy(params.geometry))
+                self.parameters_changed.emit()
+
+            spline = params.distortion_spline_filename
+            if spline and self.pattern_geometry.splinefile != spline:
+                self.load_distortion(spline)
+        except Exception:
+            logger.exception("Failed to apply the calibration state")
+            self._sync_calibration_params()
 
     def _append_peak_selection(self, points: np.ndarray, ring: int) -> None:
         entry = (int(ring), tuple(map(tuple, np.atleast_2d(points).tolist())))
@@ -528,6 +636,7 @@ class CalibrationModel:
         self.set_supersampling()
         # reset the integrator (not the geometric parameters)
         self.pattern_geometry.reset()
+        self._sync_calibration_params()
         self.parameters_changed.emit()
 
     def refine(self) -> None:
@@ -556,6 +665,9 @@ class CalibrationModel:
         self.set_supersampling()
         # reset the integrator (not the geometric parameters)
         self.pattern_geometry.reset()
+        # a standalone refine (controller refinement loop) changes the
+        # geometry too — the params must follow it like any other result
+        self._sync_calibration_params()
 
     def _check_detector_and_image_shape(self) -> None:
         if self.detector.shape is not None:
@@ -1013,6 +1125,7 @@ class CalibrationModel:
         self.set_supersampling()
         if self.use_dioptrin:
             self._create_dioptrin_integrator()
+        self._sync_calibration_params()
         self.parameters_changed.emit()
 
     def save(self, filename: str) -> None:
@@ -1054,6 +1167,8 @@ class CalibrationModel:
 
         self.set_supersampling()
         self._original_detector = None
+        self._sync_calibration_params()
+        self.parameters_changed.emit()
 
     def reset_detector(self) -> None:
         self.detector_mode = DetectorModes.CUSTOM
@@ -1065,6 +1180,7 @@ class CalibrationModel:
         if self.cake_geometry:
             self.cake_geometry.detector = self.detector
         self.set_supersampling()
+        self._sync_calibration_params()
 
     def create_file_header(self) -> str:
         try:
@@ -1103,6 +1219,7 @@ class CalibrationModel:
         self.orig_pixel2 = fit2d_parameter["pixelY"] * 1e-6
         self.is_calibrated = True
         self.set_supersampling()
+        self._sync_calibration_params()
         self.parameters_changed.emit()
 
     def set_pyFAI(self, pyFAI_parameter: dict[str, float]) -> None:
@@ -1131,6 +1248,7 @@ class CalibrationModel:
         self.set_supersampling()
         if self.use_dioptrin:
             self._create_dioptrin_integrator()
+        self._sync_calibration_params()
         self.parameters_changed.emit()
 
     def get_pyFAI_config(self) -> dict:
@@ -1416,6 +1534,20 @@ def poni_flipud(poni_dict: dict) -> dict:
             "Detector orientation is not supported: Saved .poni file is not compatible with pyFAI"
         )
     return poni_dict
+
+
+def _plain_geometry_config(config: dict) -> dict:
+    """The pyFAI config with numpy scalars coerced to plain floats, so it
+    compares and JSON-serializes like any other params value."""
+    plain = {}
+    for key, value in config.items():
+        if isinstance(value, np.generic):
+            plain[key] = value.item()
+        elif isinstance(value, dict):
+            plain[key] = _plain_geometry_config(value)
+        else:
+            plain[key] = value
+    return plain
 
 
 def _canonical_peak_selections(value: Any) -> tuple:

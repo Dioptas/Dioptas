@@ -890,7 +890,7 @@ def test_a_calibration_that_cannot_be_restored_is_skipped(calibratable, caplog):
     calibratable.current_configuration.integration_unit = "q_A^-1"
     # corrupt the stored geometry so restoring it raises
     state = calibratable.history._steps[0].state
-    state.configurations[0].calibration_state["geometry"] = {"dist": object()}
+    state.configurations[0].calibration["geometry"] = {"dist": object()}
 
     calibratable.history.undo()
     assert calibratable.current_configuration.integration_unit == "2th_deg"
@@ -1058,3 +1058,45 @@ def test_remove_peaks_by_ring_goes_through_params(model):
 
     model.history.undo()
     assert model.calibration_model.points_index == [0, 1]
+
+
+# ---------------------------------------------------------------------------
+# calibration result as params (step 2b)
+# ---------------------------------------------------------------------------
+
+
+def test_calibration_result_lives_in_params(calibratable):
+    cm = calibratable.calibration_model
+    cm.load(os.path.join(_DATA, "CeO2_Pilatus1M.poni"))
+
+    assert cm.params.is_calibrated is True
+    assert cm.params.geometry is not None
+    assert cm.params.geometry["dist"] == float(cm.pattern_geometry.dist)
+    assert cm.params.poni_filename.endswith("CeO2_Pilatus1M.poni")
+    assert cm.params.calibration_name == "CeO2_Pilatus1M"
+
+
+def test_writing_the_geometry_param_rebuilds_the_geometry(calibratable):
+    """The store rule: writing state has the same effect as the action."""
+    cm = calibratable.calibration_model
+    cm.load(os.path.join(_DATA, "CeO2_Pilatus1M.poni"))
+
+    changed = dict(cm.params.geometry)
+    changed["dist"] = 0.42
+    cm.params.geometry = changed
+    assert abs(float(cm.pattern_geometry.dist) - 0.42) < 1e-12
+
+
+def test_calibration_result_survives_a_project_round_trip(calibratable, tmp_path):
+    cm = calibratable.calibration_model
+    cm.load(os.path.join(_DATA, "CeO2_Pilatus1M.poni"))
+    distance = float(cm.pattern_geometry.dist)
+
+    filename = str(tmp_path / "calibrated.dio")
+    calibratable.save(filename)
+    calibratable.load(filename)
+
+    cm = calibratable.calibration_model  # configurations were rebuilt
+    assert cm.is_calibrated is True
+    assert abs(float(cm.pattern_geometry.dist) - distance) < 1e-12
+    assert cm.calibration_name == "CeO2_Pilatus1M"

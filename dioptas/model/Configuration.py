@@ -724,47 +724,10 @@ class Configuration:
             if settings:
                 pg.attrs["settings"] = json.dumps(settings, default=_json_numpy_default)
 
-        # save detector information
-        detector_group = f.create_group("detector")
-        detector_mode = self.calibration_model.detector_mode
-        detector_group.attrs["detector_mode"] = detector_mode.value
-        if detector_mode == DetectorModes.PREDEFINED:
-            detector_group.attrs["detector_name"] = self.calibration_model.detector.name
-        elif detector_mode == DetectorModes.NEXUS:
-            detector_group.attrs["nexus_filename"] = (
-                self.calibration_model.detector.filename
-            )
-
-        # save calibration model
+        # save calibration model: the params doc carries the geometry, the
+        # detector descriptor and the flags since the state migration
         calibration_group = f.create_group("calibration_model")
         save_params(calibration_group, self.calibration_model.params)
-        # version 2.0 is used to indicate that the pyFAI parameters are stored as a json string
-        calibration_group.attrs["version"] = "2.0"
-
-        calibration_filename = self.calibration_model.filename
-        if calibration_filename.endswith(".poni"):
-            base_filename, ext = self.calibration_model.filename.rsplit(".", 1)
-        else:
-            base_filename = self.calibration_model.filename
-            ext = "poni"
-        calibration_group.attrs["calibration_filename"] = base_filename + "." + ext
-
-        pyfai_config = self.calibration_model.pattern_geometry.get_config()
-        calibration_group.attrs["pyfai_parameters"] = json.dumps(
-            pyfai_config, default=_json_numpy_default
-        )
-        calibration_group.attrs["polarization_factor"] = (
-            self.calibration_model.polarization_factor
-        )
-
-        calibration_group.attrs["correct_solid_angle"] = self.correct_solid_angle
-        calibration_group.attrs["supersampling_factor"] = (
-            self.calibration_model.supersampling_factor
-        )
-        if self.calibration_model.distortion_spline_filename is not None:
-            calibration_group.attrs["distortion_spline_filename"] = (
-                self.calibration_model.distortion_spline_filename
-            )
 
         # save background pattern and pattern model
         background_pattern_group = f.create_group("background_pattern")
@@ -891,10 +854,13 @@ class Configuration:
             except (KeyError, ValueError):
                 logger.warning("Problem with saved pyFAI calibration parameters")
 
-        filename = f.get("calibration_model").attrs["calibration_filename"]
-        (_, base_name) = os.path.split(filename)
-        self.calibration_model.filename = filename
-        self.calibration_model.calibration_name = base_name
+        legacy_calibration_filename = f.get("calibration_model").attrs.get(
+            "calibration_filename"
+        )
+        if legacy_calibration_filename is not None:  # pre-migration file
+            (_, base_name) = os.path.split(legacy_calibration_filename)
+            self.calibration_model.filename = legacy_calibration_filename
+            self.calibration_model.calibration_name = base_name
 
         try:
             self.correct_solid_angle = bool(
@@ -929,6 +895,18 @@ class Configuration:
                 self.calibration_model.load_detector_from_file(nexus_filename)
         except AttributeError:  # to ensure backwards compatibility
             pass
+
+        # Apply the calibration params here — where the legacy detector load
+        # used to run — NOT at the end: the image-transformations block below
+        # re-applies rotations to the detector, so the detector (and the
+        # geometry on top of it) must already be the saved one by then.
+        self._apply_saved_params(
+            self.calibration_model.params,
+            load_params(f.get("calibration_model"), CalibrationParams),
+            # machine-specific: the effective defaults are computed per
+            # machine at construction and must not travel in project files
+            exclude={"use_dioptrin", "dioptrin_num_workers"},
+        )
 
         # load img_model
         self.img_model._img_data = np.copy(
@@ -1207,14 +1185,6 @@ class Configuration:
         self._apply_saved_params(
             self.pattern_model.params, load_params(f.get("pattern"), PatternParams)
         )
-        self._apply_saved_params(
-            self.calibration_model.params,
-            load_params(f.get("calibration_model"), CalibrationParams),
-            # machine-specific: the effective defaults are computed per
-            # machine at construction and must not travel in project files
-            exclude={"use_dioptrin", "dioptrin_num_workers"},
-        )
-
         if self.calibration_model.is_calibrated:
             self.integrate_image_1d()
         else:

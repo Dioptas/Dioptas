@@ -183,6 +183,27 @@ class CalibrationParams:
     use_dioptrin: bool = False
     dioptrin_num_workers: int = 1
 
+    # --- the calibration result (moved here in step 2b) -----------------
+    # Declared detector-first on purpose: apply_params walks fields in
+    # declaration order, and the detector must be in place before a geometry
+    # is applied on top of it (the order project loading always used).
+
+    #: DetectorModes value: 1 custom, 2 nexus file, 3 predefined
+    detector_mode: int = 1
+    #: pyFAI detector name when detector_mode is predefined
+    detector_name: str = ""
+    #: NeXus detector file when detector_mode is nexus
+    detector_filename: str = ""
+    #: the pyFAI geometry config (plain dict of floats/str) — the *result*
+    #: of calibrating; None until a calibration exists
+    geometry: dict | None = None
+    is_calibrated: bool = False
+    #: the .poni file the calibration came from or was saved to ("" when
+    #: calibrated in-session and never saved)
+    poni_filename: str = ""
+    #: display name; "current" for an unsaved in-session calibration
+    calibration_name: str = ""
+
     #: Picked calibration peaks as ((ring, ((x, y), ...)), ...) — one entry
     #: per pick, in pick order. Plain nested tuples so the generic
     #: serializer, snapshot equality and JSON survive them untouched; the
