@@ -35,11 +35,12 @@ class MainWidget(QtWidgets.QWidget):
         self._create_history_menu()
 
         self._left_layout.addLayout(self._menu_layout)
+        # undo/redo sit with the other application-wide actions at the top,
+        # above the mode buttons — they act on the whole session, not on
+        # whichever mode happens to be showing
+        self._left_layout.addLayout(self._history_layout)
         self._left_layout.addLayout(self._mode_layout)
         self._left_layout.addLayout(self._external_actions_layout)
-        # last in the sidebar, so the spacer inside the mode layout pushes it
-        # to the bottom left corner
-        self._left_layout.addLayout(self._history_layout)
 
         self._outer_layout.addLayout(self._left_layout)
         self._outer_layout.addWidget(VerticalLine())
@@ -125,11 +126,12 @@ class MainWidget(QtWidgets.QWidget):
         self.reset_btn = FlatButton("Reset Project")
 
     def _create_history_menu(self):
-        """Undo/redo at the foot of the sidebar.
+        """Undo/redo near the top of the sidebar.
 
-        The history is application-wide, so the controls belong beside the
-        mode buttons rather than inside any one mode — the mask had the only
-        visible pair before, which left undo undiscoverable everywhere else.
+        The history is application-wide, so the controls belong with the
+        other global actions rather than inside any one mode — the mask had
+        the only visible pair before, which left undo undiscoverable
+        everywhere else.
         """
         # icons rather than labels: undo/redo are universally recognised
         # symbols, and SVG keeps them crisp at any scale without depending on
@@ -148,10 +150,10 @@ class MainWidget(QtWidgets.QWidget):
         self._history_btn_layout.addWidget(self.undo_btn)
         self._history_btn_layout.addWidget(self.redo_btn)
 
-        self._history_layout.setContentsMargins(0, 0, 0, 6)
+        self._history_layout.setContentsMargins(0, 3, 0, 0)
         self._history_layout.setSpacing(0)
-        self._history_layout.addWidget(HorizontalLine())
         self._history_layout.addLayout(self._history_btn_layout)
+        self._history_layout.addWidget(HorizontalLine())
 
     def _create_main_frame(self):
         self.main_frame = QtWidgets.QWidget(self)

@@ -50,10 +50,10 @@ class MaskController:
         self.widget.polygon_btn.clicked.connect(self.activate_polygon_btn)
         self.widget.arc_btn.clicked.connect(self.activate_arc_btn)
         self.widget.point_btn.clicked.connect(self.activate_point_btn)
-        self.widget.undo_btn.clicked.connect(self.undo_btn_click)
-        self.widget.redo_btn.clicked.connect(self.redo_btn_click)
-        self.model.history.changed.connect(self._on_history_changed)
-        self.update_undo_redo_buttons()
+        # undo/redo live in the sidebar (application-wide); this only has to
+        # follow the history, since a restored step can re-enable a plugin
+        # that an imprint disabled
+        self.model.history.changed.connect(self._update_plugin_checkboxes)
         self.widget.below_thresh_btn.clicked.connect(self.below_thresh_btn_click)
         self.widget.above_thresh_btn.clicked.connect(self.above_thresh_btn_click)
         self.widget.cosmic_btn.clicked.connect(self.cosmic_btn_click)
@@ -273,36 +273,6 @@ class MaskController:
         else:
             self.state = 'None'
             self.uncheck_all_btn()
-
-    def _on_history_changed(self):
-        """Follows the history however it moved — button, shortcut from another
-        mode, or a step being recorded."""
-        self.update_undo_redo_buttons()
-        # a restored step can re-enable a plugin that an imprint disabled
-        self._update_plugin_checkboxes()
-
-    def update_undo_redo_buttons(self):
-        """Greys the buttons out at the ends of the history, and names the
-        step they would reverse."""
-        history = self.model.history
-        self.widget.undo_btn.setEnabled(history.can_undo)
-        self.widget.redo_btn.setEnabled(history.can_redo)
-        self.widget.undo_btn.setToolTip(
-            f"Undo: {history.undo_label}" if history.can_undo else "Nothing to undo"
-        )
-        self.widget.redo_btn.setToolTip(
-            f"Redo: {history.redo_label}" if history.can_redo else "Nothing to redo"
-        )
-
-    def undo_btn_click(self):
-        # the mask no longer keeps its own stack: these buttons drive the
-        # application-wide history, so they also step back over anything else
-        # that changed since. The GUI refresh happens in _on_history_changed,
-        # so the shortcut from another mode updates this view identically.
-        self.model.history.undo()
-
-    def redo_btn_click(self):
-        self.model.history.redo()
 
     def plot_image(self):
         self.widget.img_widget.plot_image(self.model.img_data, False)

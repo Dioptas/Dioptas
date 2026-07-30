@@ -33,47 +33,28 @@ def mask_controller(mask_widget, model):
     return MaskController(mask_widget, model)
 
 
-def test_buttons_start_disabled(mask_controller, mask_widget):
-    assert mask_widget.undo_btn.isEnabled() is False
-    assert mask_widget.redo_btn.isEnabled() is False
+# ---------------------------------------------------------------------------
+# mask mode: no undo/redo buttons of its own any more — the sidebar pair is
+# application-wide — but the view still has to follow the shared history
+# ---------------------------------------------------------------------------
 
 
-def test_buttons_follow_the_history(mask_controller, mask_widget, model):
+def test_mask_mode_has_no_undo_redo_buttons(mask_widget):
+    """A second pair in one mode is the duplication the shared history removed."""
+    assert not hasattr(mask_widget, "undo_btn")
+    assert not hasattr(mask_widget, "redo_btn")
+
+
+def test_plugin_checkboxes_follow_the_history(mask_controller, mask_widget, model):
+    """Undoing an imprint re-enables the plugin, and the checkbox has to say so
+    however the undo was triggered."""
+    seen = []
+    mask_controller._update_plugin_checkboxes = lambda: seen.append(1)
+    model.history.changed.connect(mask_controller._update_plugin_checkboxes)
+
     model.mask_model.mask_rect(10, 10, 5, 5)
-    assert mask_widget.undo_btn.isEnabled() is True
-    assert mask_widget.redo_btn.isEnabled() is False
-
     model.history.undo()
-    assert mask_widget.undo_btn.isEnabled() is False
-    assert mask_widget.redo_btn.isEnabled() is True
-
-
-def test_buttons_react_to_a_settings_change_made_elsewhere(
-    mask_controller, mask_widget, model
-):
-    """The stack is global, so a change in another mode enables undo here."""
-    model.current_configuration.integration_unit = "q_A^-1"
-    assert mask_widget.undo_btn.isEnabled() is True
-
-
-def test_tooltip_names_the_step(mask_controller, mask_widget, model):
-    model.current_configuration.integration_unit = "q_A^-1"
-    assert "integration unit" in mask_widget.undo_btn.toolTip()
-
-    model.history.undo()
-    assert "integration unit" in mask_widget.redo_btn.toolTip()
-    assert mask_widget.undo_btn.toolTip() == "Nothing to undo"
-
-
-def test_undo_button_reverts_the_mask(mask_controller, mask_widget, model, qtbot):
-    model.mask_model.mask_rect(10, 10, 5, 5)
-    assert model.mask_model.get_img().sum() > 0
-
-    qtbot.mouseClick(mask_widget.undo_btn, QtCore.Qt.MouseButton.LeftButton)
-    assert model.mask_model.get_img().sum() == 0
-
-    qtbot.mouseClick(mask_widget.redo_btn, QtCore.Qt.MouseButton.LeftButton)
-    assert model.mask_model.get_img().sum() > 0
+    assert seen
 
 
 def test_undo_from_elsewhere_still_refreshes_this_view(
@@ -117,15 +98,18 @@ def test_main_controller_binds_undo_shortcuts(main_controller):
 # ---------------------------------------------------------------------------
 
 
-def test_sidebar_buttons_sit_below_the_mode_buttons(main_controller):
+def test_sidebar_buttons_sit_between_the_menu_and_the_modes(main_controller):
+    """They act on the whole session, so they belong with the global actions
+    at the top rather than below the mode buttons."""
     widget = main_controller.widget
-    assert widget.undo_btn.y() > widget.map_mode_btn.y()
+    assert widget.undo_btn.y() > widget.menu_btn.y()
+    assert widget.undo_btn.y() < widget.calibration_mode_btn.y()
     # side by side, the conventional arrangement for the pair
     assert widget.redo_btn.x() > widget.undo_btn.x()
     assert widget.redo_btn.y() == widget.undo_btn.y()
     # together they span the mode-button column, keeping the sidebar one wide
     pair = widget.undo_btn.width() + widget.redo_btn.width()
-    assert abs(pair - widget.map_mode_btn.width()) <= 2
+    assert abs(pair - widget.calibration_mode_btn.width()) <= 2
 
 
 def test_sidebar_buttons_use_icons_not_text(main_controller):
