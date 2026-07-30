@@ -6,7 +6,7 @@
 
 ## New Features
 
-- **Undo and redo now work across the whole application, not just the mask.** Ctrl+Z and Ctrl+Shift+Z (Cmd on macOS) apply in every mode, stepping back through everything in the order it was done. The buttons sit at the top of the left sidebar, so the history is reachable wherever you are; they grey out at the ends and their tooltip names the step they would apply. There is one history: calibration's "Undo Peaks" button drives it too, and mask mode no longer keeps a separate one.
+- **Undo and redo now work across the whole application, not just the mask.** Ctrl+Z and Ctrl+Shift+Z (Cmd on macOS) apply in every mode, stepping back through everything in the order it was done. The buttons sit at the top of the left sidebar, so the history is reachable wherever you are; they grey out at the ends and their tooltip names the step they would apply. There is one history: calibration's "Undo Peaks" button drives it too, and mask mode no longer keeps a separate one. Ctrl+O and Ctrl+A in mask mode have been removed — they were listed as shortcuts for loading and adding a mask file but never actually worked; the Load Mask and Add Mask buttons are unchanged.
 
 - What can be reversed: settings of every kind, mask drawing, thresholds and plugin imprints, calibration peak picking and refinement, loading an image or a pattern, adding and removing overlays and phases, phase pressure and temperature, and the absorption and transfer corrections. Undoing an image load re-opens the file that was on screen before and brings its mask back with it, even when the two images come from different detectors.
 
@@ -19,6 +19,8 @@
 ## Bugfixes
 
 - Undoing an image load did nothing, and undoing a second load did not bring the first image back. "No image loaded" was treated as a state that could not be returned to, so the first undo left the image on screen while the history believed it had gone back; the next action then discarded the step that was actually displayed. Undo now unloads, and a step that cannot be applied in full — a file that has moved since, for instance — is recorded as what was actually achieved, so the history and what you see cannot drift apart.
+
+- Undoing a picked calibration peak left the ring number advanced, so the next pick went to the wrong ring. The counter now follows the history however the undo was triggered.
 
 - Undoing and redoing a phase repainted it in a different colour each time, because restoring a phase went through the same path as adding a new one and took the next colour from the sequence. Restored phases keep their own colour.
 
