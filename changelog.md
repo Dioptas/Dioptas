@@ -1,46 +1,52 @@
 # 0.9.0 (in development)
 
+## Breaking changes
+
+- **Project files (.dio) written by Dioptas 0.8.7 or earlier can no longer be opened.** This release reorganised what a project file contains, and supporting both layouts would have meant carrying the old one indefinitely. Opening an older project shows a message naming the version that can read it, rather than failing part way through. Earlier Dioptas releases stay available on PyPI and GitHub for exactly that. Images, calibrations, masks and patterns are unaffected — they live in standard formats outside the project file. On first start after upgrading, the automatically saved session from the previous version is likewise dropped once.
+
 ## New Features
 
-- undo/redo now covers the whole application instead of only the mask: Ctrl+Z and Ctrl+Shift+Z (or Ctrl+Y) — Cmd on macOS — work in every mode and step back through settings changes, mask edits, overlay and phase editing, calibration peak picking and image loading alike, in the order they were made. Undo and Redo buttons sit in the left sidebar, so the history is reachable in every mode rather than only where a mode happened to provide its own buttons; they grey out at the ends of the history and their tooltip names the step they would apply along with the shortcut. Calibration's "Undo Peaks" button drives that same history, so there is one stack rather than three competing ones
+- **Undo and redo now work across the whole application, not just the mask.** Ctrl+Z and Ctrl+Shift+Z (Cmd on macOS) apply in every mode, stepping back through everything in the order it was done. The buttons sit at the top of the left sidebar, so the history is reachable wherever you are; they grey out at the ends and their tooltip names the step they would apply. There is one history: calibration's "Undo Peaks" button drives it too, and mask mode no longer keeps a separate one.
 
-- the undo and redo buttons sit at the top of the left sidebar, just below the menu button and above the mode buttons, as the conventional curved-arrow icons side by side; a disabled one fades, so an unavailable button no longer looks more prominent than an available one. Mask mode no longer has its own Undo and Redo buttons — they duplicated the sidebar pair once the history became application-wide
+- What can be reversed: settings of every kind, mask drawing, thresholds and plugin imprints, calibration peak picking and refinement, loading an image or a pattern, adding and removing overlays and phases, phase pressure and temperature, and the absorption and transfer corrections. Undoing an image load re-opens the file that was on screen before and brings its mask back with it, even when the two images come from different detectors.
 
-- picking calibration peaks is undoable, one click at a time, and so is loading an image: undo re-opens the file that was on screen before, bringing its mask back with it even when the two images come from detectors of different sizes. A file that has moved since is skipped with a warning rather than derailing the rest of the undo. Note that undoing onto an image whose shape differs from the current detector definition still raises the usual "detector has been reset" notice, exactly as loading that file by hand does
+- **A step matches an action rather than an internal event.** Dragging a spinbox is one undo, not one per intermediate value. Imprinting a mask plugin restores the mask and re-enables the plugin together. Changing the pressure with "apply to all phases" switched on is a single undo rather than one per phase.
 
-- adding, removing, recolouring or rescaling an overlay is undoable, and so is adding or deleting a phase and changing its pressure, temperature or display state. Undoing the removal of an overlay puts the original back rather than a copy, so its plot keeps its identity
+- Undoing recomputes only what actually changed: reverting an integration setting re-integrates once even when the step changed several of them, reverting something unrelated to the integration does not re-integrate at all, and a configuration the step never touched is left alone.
 
-- dragging a spinbox or slider counts as a single undo step rather than one per intermediate value, and actions that touch several things at once are one step too: imprinting a mask plugin restores the mask and re-enables the plugin together, and changing the pressure with "apply to all phases" switched on is a single Ctrl+Z rather than one per phase
-
-- undoing a step only recomputes what it actually changed: reverting an integration setting re-integrates once (even if the step changed several such settings at once), reverting something that does not affect the integration does not re-integrate at all, and a configuration the step never touched is left alone
-
-## Internal
-
-- undo/redo is built on snapshots of the evented params rather than per-action undo methods: because every setting already lives in a params dataclass behind one change surface, a whole snapshot of the settings is about 1.5 kB, so capturing state is both cheaper and harder to get wrong than describing changes — an action cannot forget to register its undo
-- the bulky parts of a snapshot are shared rather than copied, each according to how it is mutated: masks are compressed and shared by reference between steps that did not touch them (a hundred mask edits on a 2048x2048 detector cost about 0.3 MB in total), overlays are referenced directly because their data is replaced rather than edited in place, and phases are copied because jcpds objects *are* edited in place — with a content fingerprint deciding when a fresh copy is needed, so an unchanged phase is copied once no matter how many steps it survives
-- introduced a content-addressed payload store (`dioptas/model/state/payload.py`) for owned binary data — data that cannot be reproduced from any file, like the user-drawn mask: params and snapshots hold content ids (plain strings), the store holds the compressed bytes once however many undo steps or configurations reference them, and payloads are garbage-collected against the history; this replaces the mask-specific blob mechanism and is the foundation for overlay data and project-file payloads in the ongoing state migration
-- the loaded image file, its position in a multi-image series and the background image file moved into `ImgParams` (step 1 of making state ubiquitous): the paths are the state, the pixels are caches re-read on restore, and writing `params.filename` now loads the file exactly as the load action does; the bespoke image-restore code in the undo layer and the corresponding hand-written project attrs are gone
-- picked calibration peaks moved into `CalibrationParams` as plain records (step 2a): the parallel points/points_index lists are gone, peaks are now saved in project files (they were previously lost on save), and the undo layer's bespoke peak capture is deleted — peaks ride the generic params path
-- the calibration result — the pyFAI geometry, the detector descriptor and whether a calibration exists — moved into `CalibrationParams` (step 2b): writing `params.geometry` rebuilds the live geometry exactly as loading a .poni does, the undo layer's bespoke calibration capture is deleted, and the hand-written calibration/detector attrs in project files are replaced by the generic params document
-- the loaded pattern file and the pattern background moved into `PatternParams` (step 3): the pattern's source kind distinguishes file-loaded patterns (reloaded on restore) from integrated ones (recomputed — their filename names the image, and reloading that as a text pattern would corrupt it); overlays carry a stable uid, and the pattern background is referenced by that uid, so undoing the removal of a background overlay restores the link along with the overlay
-- image corrections (cBN seat, oblique-angle, slab/cylinder/sphere/plate absorption, transfer function, flat field) moved into `ImgParams.corrections` (step 4): each correction's scalar parameters and reference-image filenames are the state, the tth/azi grids and reference arrays are caches rebuilt from the live calibration; adding, removing and editing corrections is undoable, and choosing a detector (or undoing back to a custom one) restores correctly
-- jcpds phases split into state and derived values (step 5b): a `CrystalState` dataclass holds what a user sets or a file provides (zero-pressure cell, EOS parameters, P, T, reflections as h/k/l/intensity/d0), while a/b/c/α/β/γ/V, k0p, alpha_t and reflection d-spacings are recomputed for the current conditions; `phase.params` stays available as a dict-style view so the JCPDS editor works unchanged. Undo snapshots now capture phases as pure content applied back onto the live objects (matched by uid) — the per-step deep copies and the content fingerprint are gone, and the write-hook dict subclass that caused the copy-marks-modified bug no longer exists
-- the mask model's four parallel undo/redo deques are gone, replaced by the shared history; the imprint bookkeeping that had to be kept in lockstep with them disappears with it
-- the view state (panel layout, docking, image/cake mode) and the working directories are deliberately outside the history: undo reverses the work, not the window arrangement or which folder a file dialog last pointed at. Loading a project, resetting, and adding or removing a configuration rebaseline the history rather than being undoable
-- the image is restored before the mask, so a restored mask always fits the image it was drawn on; that also retired the earlier rule of wiping the history whenever the mask was resized, along with the class of silently discarded history it caused
-
-## Distribution
-
-- **project files written by Dioptas 0.8.7 or earlier can no longer be opened** — the state migration changed what lives where in the file. Opening an old .dio shows a clear message instead of a broken load; older Dioptas releases remain available on PyPI and GitHub to read old files. The autosaved session from a previous version is likewise dropped once on upgrade
-- project files are now the state tree plus the binary it references: one `/state` JSON document holding every settings document, `/payloads/<content-id>` for owned data (masks, overlay curves — identical content stored once) and `/cache/<content-id>` for image copies. The per-field HDF5 attributes written alongside the settings documents are gone (every value existed twice and the two could disagree), as is the group-per-reflection layout — a two-phase project used 72 HDF5 groups where it now uses 4. Adding a setting no longer needs any save/load code at all
-- project files are stamped format_version 2 and are written atomically: the save goes to a temporary sibling file that replaces the project only on success, so a failed or interrupted save can never destroy the previous file (this also removes the "unable to truncate a file which is already open" failure mode at the root)
+- Calibration peaks are now saved in project files. They were previously lost when a project was saved.
 
 ## Bugfixes
 
-- undoing an image load did nothing: "no image loaded" was treated as unreachable, so the first undo silently kept the image on screen while the history believed it had gone back — and the next action then discarded the step that was actually displayed, which is why undoing a second load did not bring the first image back either. Undo now unloads, and a step that cannot be fully applied (a file that has moved since) is re-recorded as what was actually achieved, so the history and the screen cannot drift apart
-- undoing and redoing a phase repainted it in a different colour each time: restoring went through the new-phase path, which hands out the next colour from a counter. Restored phases now bring their own colour, the counter only advances for genuinely new phases, and it is per model rather than shared between all of them
-- loading a project into a session that already had phases or overlays appended them instead of replacing them, so they doubled with every load; loading now replaces the session as it always claimed to
-- copying a phase marked it as modified — the asterisk that means "this no longer matches the file it came from" — because `jcpds.params` flags itself when certain keys are written and Python rebuilds a dict subclass by replaying its items through exactly that path. Copies now reproduce the original's flag instead of inventing one
+- Undoing an image load did nothing, and undoing a second load did not bring the first image back. "No image loaded" was treated as a state that could not be returned to, so the first undo left the image on screen while the history believed it had gone back; the next action then discarded the step that was actually displayed. Undo now unloads, and a step that cannot be applied in full — a file that has moved since, for instance — is recorded as what was actually achieved, so the history and what you see cannot drift apart.
+
+- Undoing and redoing a phase repainted it in a different colour each time, because restoring a phase went through the same path as adding a new one and took the next colour from the sequence. Restored phases keep their own colour.
+
+- Loading a project into a session that already had phases or overlays added to them instead of replacing them, so they doubled with every load.
+
+- Copying a phase marked it as modified — the asterisk meaning it no longer matches the file it came from — so a copy claimed an edit that never happened.
+
+- Saving a project could leave the previous file damaged if the save failed or was interrupted part way through.
+
+## Distribution
+
+- A project file is now the settings tree plus the data it refers to: one JSON document holding every setting, and content-addressed datasets for masks, overlay curves and image copies. Identical content is stored once, so two configurations masking the same detector no longer store two copies. The previous layout wrote every value twice — once as an HDF5 attribute and once in a settings document — and spent one HDF5 group per reflection; a two-phase project used 72 groups where it now uses four.
+
+- Projects are written atomically: the save goes to a temporary file that replaces the project only once it has succeeded.
+
+## Internal
+
+- Undo/redo is built on snapshots of the evented settings rather than an `undo()` per action. Because every setting already lives in a params dataclass behind a single change surface, a snapshot of the whole settings tree is about 1.5 kB — cheap enough to keep one per step, and impossible for an action to forget to register. The history is a list of states with a cursor rather than a pair of stacks, which removes the class of bug that comes from keeping parallel bookkeeping in step; the mask's four undo/redo deques are gone with it.
+
+- Bulk data is shared rather than copied, according to how it is mutated. Masks and overlay curves are *owned* — nothing can reproduce them — and live in a content-addressed store (`dioptas/model/state/payload.py`) that snapshots reference by id, so an unchanged mask costs one string per step and a hundred mask edits on a 2048×2048 detector cost about 0.3 MB in total. Image pixels are *external*: the file path is the state and the pixels are a cache re-read on demand.
+
+- The state migration that made this possible moved everything a user can set or produce out of the models and into params documents: the loaded image, series position and background image; the picked calibration peaks (previously two index-parallel lists); the pyFAI geometry and detector; the loaded pattern and its background, referenced by a stable overlay id; and the image corrections, whose scalar parameters are state while their angle grids and reference images are caches. Writing any of these now has exactly the effect the corresponding action has.
+
+- jcpds phases are split into state and derived values: a `CrystalState` dataclass holds what a user sets or a file provides, while the pressure- and temperature-dependent cell, moduli and d-spacings are recomputed. `phase.params` remains as a dict-style view, so the JCPDS editor is unchanged. The dict subclass that flagged itself on write — the cause of the copy-marks-modified bug — no longer exists.
+
+- Because settings are now serialised generically, the hand-written project reader and writer are gone (588 lines from `Configuration` alone), and adding a setting needs no save/load code at all.
+
+- Deliberately outside the history: the window layout and docking state, and the working directories. Undo reverses the work, not the furniture or which folder a file dialog last pointed at. Loading a project, resetting, and adding or removing a configuration start a fresh history rather than being undoable.
 
 # 0.8.7 (29.07.2026)
 
