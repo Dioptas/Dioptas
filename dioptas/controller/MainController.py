@@ -244,8 +244,7 @@ class MainController:
         undo_key = _shortcut_text(QtGui.QKeySequence.StandardKey.Undo)
         redo_key = _shortcut_text(QtGui.QKeySequence.StandardKey.Redo)
 
-        self.widget.undo_btn.setEnabled(history.can_undo)
-        self.widget.redo_btn.setEnabled(history.can_redo)
+        self.widget.set_history_enabled(history.can_undo, history.can_redo)
         self.widget.undo_btn.setToolTip(
             f"Undo {history.undo_label} ({undo_key})"
             if history.can_undo

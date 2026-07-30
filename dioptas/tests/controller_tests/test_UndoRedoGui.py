@@ -107,9 +107,11 @@ def test_sidebar_buttons_sit_between_the_menu_and_the_modes(main_controller):
     # side by side, the conventional arrangement for the pair
     assert widget.redo_btn.x() > widget.undo_btn.x()
     assert widget.redo_btn.y() == widget.undo_btn.y()
-    # together they span the mode-button column, keeping the sidebar one wide
+    # small and centred rather than filling the column: these are quick
+    # actions, not modes
     pair = widget.undo_btn.width() + widget.redo_btn.width()
-    assert abs(pair - widget.calibration_mode_btn.width()) <= 2
+    assert pair < widget.calibration_mode_btn.width()
+    assert widget.undo_btn.height() < widget.calibration_mode_btn.height() / 2
 
 
 def test_sidebar_buttons_use_icons_not_text(main_controller):
@@ -117,6 +119,28 @@ def test_sidebar_buttons_use_icons_not_text(main_controller):
     for button in (widget.undo_btn, widget.redo_btn):
         assert button.text() == ""
         assert not button.icon().isNull()
+
+
+def test_disabled_history_button_shows_a_faded_icon(main_controller):
+    """The greyed icon is the whole disabled cue — the buttons carry no
+    background of their own. Qt draws through the stylesheet style, which
+    ignores an icon's disabled mode, so the faded icon is swapped in by hand
+    and this guards that it actually happens."""
+    from qtpy import QtCore
+
+    model, widget = main_controller.model, main_controller.widget
+
+    def ink(button):
+        image = button.icon().pixmap(QtCore.QSize(14, 14)).toImage()
+        return sum(
+            image.pixelColor(x, y).alpha()
+            for y in range(image.height())
+            for x in range(image.width())
+        )
+
+    faded = ink(widget.undo_btn)          # nothing to undo yet
+    model.current_configuration.integration_unit = "q_A^-1"
+    assert ink(widget.undo_btn) > faded * 2
 
 
 def test_sidebar_buttons_start_disabled(main_controller):

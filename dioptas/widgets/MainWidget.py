@@ -16,7 +16,7 @@ from .CustomWidgets import (
     FlatButton,
     VerticalLine,
     HorizontalLine,
-    icon_with_faded_disabled,
+    render_icon,
 )
 
 from .. import icons_path
@@ -99,6 +99,9 @@ class MainWidget(QtWidgets.QWidget):
         self.mode_btn_group.addButton(self.integration_mode_btn)
         self.mode_btn_group.addButton(self.map_mode_btn)
 
+        # leads the mode block, so it sits flush against the first mode
+        # button instead of being separated from it by the sidebar spacing
+        self._mode_layout.addWidget(HorizontalLine())
         self._mode_layout.addWidget(self.calibration_mode_btn)
         self._mode_layout.addWidget(HorizontalLine())
         self._mode_layout.addWidget(self.mask_mode_btn)
@@ -136,24 +139,45 @@ class MainWidget(QtWidgets.QWidget):
         # icons rather than labels: undo/redo are universally recognised
         # symbols, and SVG keeps them crisp at any scale without depending on
         # a font shipping the glyphs
+        # Two icons per button, swapped by set_history_enabled: with a
+        # stylesheet applied Qt draws through QStyleSheetStyle, which ignores
+        # an icon's disabled mode, so the fade has to be applied by hand.
+        self._undo_icons = (render_icon("undo.svg"), render_icon("undo.svg", 0.35))
+        self._redo_icons = (render_icon("redo.svg"), render_icon("redo.svg", 0.35))
+
         self.undo_btn = FlatButton(self)
         self.undo_btn.setObjectName("undo_btn")
-        self.undo_btn.setIcon(icon_with_faded_disabled("undo.svg"))
         self.redo_btn = FlatButton(self)
         self.redo_btn.setObjectName("redo_btn")
-        self.redo_btn.setIcon(icon_with_faded_disabled("redo.svg"))
+        self.set_history_enabled(False, False)
 
-        # side by side, the conventional arrangement for the pair
+        # side by side, the conventional arrangement for the pair, centred
+        # in the column rather than filling it — they are small actions
         self._history_btn_layout = QtWidgets.QHBoxLayout()
         self._history_btn_layout.setContentsMargins(0, 0, 0, 0)
-        self._history_btn_layout.setSpacing(0)
+        self._history_btn_layout.setSpacing(2)
+        self._history_btn_layout.addStretch()
         self._history_btn_layout.addWidget(self.undo_btn)
         self._history_btn_layout.addWidget(self.redo_btn)
+        self._history_btn_layout.addStretch()
 
-        self._history_layout.setContentsMargins(0, 3, 0, 0)
+        self._history_layout.setContentsMargins(0, 2, 0, 2)
         self._history_layout.setSpacing(0)
         self._history_layout.addLayout(self._history_btn_layout)
-        self._history_layout.addWidget(HorizontalLine())
+
+    def set_history_enabled(self, can_undo, can_redo):
+        """Enables the history buttons and picks the matching icon.
+
+        The greyed-out icon is the whole disabled cue: the buttons carry no
+        background of their own (see qt_material.css), so an unavailable one
+        simply fades rather than gaining a highlight.
+        """
+        for button, icons, enabled in (
+            (self.undo_btn, self._undo_icons, can_undo),
+            (self.redo_btn, self._redo_icons, can_redo),
+        ):
+            button.setEnabled(enabled)
+            button.setIcon(icons[0] if enabled else icons[1])
 
     def _create_main_frame(self):
         self.main_frame = QtWidgets.QWidget(self)
@@ -208,12 +232,12 @@ class MainWidget(QtWidgets.QWidget):
         self.menu_btn.setFixedHeight(30)
 
     def _style_history_btns(self):
-        # the pair together spans the mode-button column above them, so the
-        # sidebar stays one column wide; much shorter, since these are not modes
+        # small: these are quick actions sitting above the mode buttons, not
+        # modes themselves
         for btn in (self.undo_btn, self.redo_btn):
-            btn.setWidth(37)
-            btn.setHeight(30)
-            btn.setIconSize(QtCore.QSize(18, 18))
+            btn.setWidth(26)
+            btn.setHeight(22)
+            btn.setIconSize(QtCore.QSize(14, 14))
 
     def _style_mode_btns(self):
         mode_btn_width = 75

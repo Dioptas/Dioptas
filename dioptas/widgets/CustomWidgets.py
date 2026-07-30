@@ -543,27 +543,29 @@ def align_parameter_forms(*forms):
         form.set_label_width(width)
 
 
-def icon_with_faded_disabled(filename, opacity=0.35, sizes=(18, 36)):
-    """An icon whose disabled variant is faded rather than full strength.
+def render_icon(filename, opacity=1.0, sizes=(14, 28, 56)):
+    """Renders an SVG icon to pixmaps, optionally faded.
 
-    The stylesheet dims a disabled button's *text* and fills its background
-    with a wash (see dioptas.css). An icon is not affected by `color`, so on an
-    icon-only button that leaves the symbol at full brightness on the wash —
-    making an unavailable button look more prominent than an available one.
-    Supplying a faded pixmap for the disabled mode puts icons back in step
-    with the way text behaves.
+    Rendered here rather than handed to QIcon as a file for two reasons: an
+    icon backed by the SVG engine regenerates every mode from the source and
+    ignores an added disabled pixmap, and with a stylesheet applied Qt draws
+    the button through QStyleSheetStyle, which does not use the icon's
+    disabled mode at all. Callers therefore keep a faded icon of their own and
+    swap it in — see MainWidget.set_history_enabled.
 
-    Rendered at a couple of sizes because Qt picks the closest match; include
-    the 2x variant so the fade survives on a high-DPI screen.
+    Several sizes are provided because Qt picks the closest match, including
+    the 2x and 4x variants for high-DPI screens.
     """
-    icon = QtGui.QIcon(os.path.join(icons_path, filename))
+    from qtpy import QtSvg
+
+    renderer = QtSvg.QSvgRenderer(os.path.join(icons_path, filename))
+    icon = QtGui.QIcon()
     for size in sizes:
-        source = icon.pixmap(QtCore.QSize(size, size))
-        faded = QtGui.QPixmap(source.size())
-        faded.fill(QtCore.Qt.GlobalColor.transparent)
-        painter = QtGui.QPainter(faded)
+        pixmap = QtGui.QPixmap(size, size)
+        pixmap.fill(QtCore.Qt.GlobalColor.transparent)
+        painter = QtGui.QPainter(pixmap)
         painter.setOpacity(opacity)
-        painter.drawPixmap(0, 0, source)
+        renderer.render(painter)
         painter.end()
-        icon.addPixmap(faded, QtGui.QIcon.Mode.Disabled)
+        icon.addPixmap(pixmap)
     return icon

@@ -56,7 +56,8 @@ class CalibrationController:
         self.model.mask_changed.connect(self.update_mask_gui)
         # picked peaks can change without this controller doing it — an undo
         # from any mode restores them, and the view has to follow
-        self.model.calibration_model.points_changed.connect(self.plot_points)
+        self._last_peak_selection_count = len(self.model.calibration_model.points)
+        self.model.calibration_model.points_changed.connect(self._on_points_changed)
         self.model.configuration_selected.connect(
             self.update_calibration_parameter_in_view
         )
@@ -436,6 +437,26 @@ class CalibrationController:
             if self.widget.automatic_peak_num_inc_cb.isChecked():
                 self.widget.peak_num_sb.setValue(peak_ind + 1)
 
+    def _on_points_changed(self):
+        """Keeps the ring counter and the plotted peaks in step with the model.
+
+        Picking advances the counter, so undoing a pick has to take it back —
+        otherwise the next pick lands on the wrong ring. This lives here
+        rather than in the undo button because the points can change from
+        anywhere: the keyboard shortcut, the sidebar buttons, a script.
+        """
+        selections = len(self.model.calibration_model.points)
+        if (
+            selections < self._last_peak_selection_count
+            and self.widget.automatic_peak_num_inc_cb.isChecked()
+        ):
+            steps = self._last_peak_selection_count - selections
+            self.widget.peak_num_sb.setValue(
+                max(self.widget.peak_num_sb.value() - steps, 1)
+            )
+        self._last_peak_selection_count = selections
+        self.plot_points()
+
     def plot_points(self, _=None):
         """
         Plots all picked peaks into the image view. Peaks belonging to the
@@ -485,13 +506,10 @@ class CalibrationController:
         mode had a second stack competing with Ctrl+Z. The points are now part
         of the shared history, so this button and the shortcut do the same
         thing — at the cost that it also steps back over non-peak changes.
+        The ring counter follows in _on_points_changed, so it does the same
+        whether the undo came from here or from the keyboard.
         """
-        had_peaks = len(self.model.calibration_model.points)
         self.model.history.undo()
-        if self.widget.automatic_peak_num_inc_cb.isChecked() and (
-            len(self.model.calibration_model.points) < had_peaks
-        ):
-            self.widget.peak_num_sb.setValue(self.widget.peak_num_sb.value() - 1)
 
     def load_spline_btn_click(self):
         filename = open_file_dialog(

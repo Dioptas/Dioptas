@@ -552,13 +552,15 @@ class MaskController:
 
         if ev.modifiers() == QtCore.Qt.ControlModifier:
             # Ctrl+Z / Ctrl+Y are application-wide shortcuts on MainController
-            # now, so they are deliberately not handled here as well
+            # now, so they are deliberately not handled here as well.
+            # Ctrl+O and Ctrl+A used to be listed here for loading and adding
+            # a mask file, but compared ev.key (the method) against a keycode,
+            # so they never fired — in the decade since, nobody missed them.
+            # The Load Mask and Add Mask buttons are the way in; Ctrl+A in
+            # particular means "select all" everywhere else and should not be
+            # taught to mean "merge a mask file" now.
             if ev.key() == 83:  # for pressing s
                 self.save_mask_btn_click()
-            elif ev.key == 79:  # for pressing o
-                self.load_mask_btn_click()
-            elif ev.key == 65:  # for pressing a
-                self.add_mask_btn_click()
 
     def mask_rb_click(self):
         self.model.mask_model.set_mode(True)
