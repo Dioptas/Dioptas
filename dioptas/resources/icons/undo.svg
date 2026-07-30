@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- Undo: the conventional curved arrow turning back to the left.
+       Monochrome in the theme's text colour, so Qt can derive the greyed
+       disabled state from it. -->
+  <path d="M9.5 8 H14.5 a5.5 5.5 0 0 1 0 11 H9"
+        fill="none" stroke="#f1f1f1" stroke-width="2.2"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M11 4 L5.5 8 L11 12 Z" fill="#f1f1f1"/>
+</svg>

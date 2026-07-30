@@ -541,3 +541,29 @@ def align_parameter_forms(*forms):
     width = max(form.label_width() for form in forms)
     for form in forms:
         form.set_label_width(width)
+
+
+def icon_with_faded_disabled(filename, opacity=0.35, sizes=(18, 36)):
+    """An icon whose disabled variant is faded rather than full strength.
+
+    The stylesheet dims a disabled button's *text* and fills its background
+    with a wash (see dioptas.css). An icon is not affected by `color`, so on an
+    icon-only button that leaves the symbol at full brightness on the wash —
+    making an unavailable button look more prominent than an available one.
+    Supplying a faded pixmap for the disabled mode puts icons back in step
+    with the way text behaves.
+
+    Rendered at a couple of sizes because Qt picks the closest match; include
+    the 2x variant so the fade survives on a high-DPI screen.
+    """
+    icon = QtGui.QIcon(os.path.join(icons_path, filename))
+    for size in sizes:
+        source = icon.pixmap(QtCore.QSize(size, size))
+        faded = QtGui.QPixmap(source.size())
+        faded.fill(QtCore.Qt.GlobalColor.transparent)
+        painter = QtGui.QPainter(faded)
+        painter.setOpacity(opacity)
+        painter.drawPixmap(0, 0, source)
+        painter.end()
+        icon.addPixmap(faded, QtGui.QIcon.Mode.Disabled)
+    return icon

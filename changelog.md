@@ -4,6 +4,8 @@
 
 - undo/redo now covers the whole application instead of only the mask: Ctrl+Z and Ctrl+Shift+Z (or Ctrl+Y) — Cmd on macOS — work in every mode and step back through settings changes, mask edits, overlay and phase editing, calibration peak picking and image loading alike, in the order they were made. Undo and Redo buttons sit at the foot of the left sidebar, below the mode buttons, so the history is reachable in every mode rather than only where a mode happened to provide its own buttons; they grey out at the ends of the history and their tooltip names the step they would apply along with the shortcut. The mask's undo/redo buttons and calibration's "Undo Peaks" button now drive that same history, so there is one stack rather than three competing ones
 
+- the undo and redo buttons in the sidebar use the conventional curved-arrow icons instead of the words UNDO and REDO, side by side as the pair is normally arranged; a disabled one fades, so an unavailable button no longer looks more prominent than an available one
+
 - picking calibration peaks is undoable, one click at a time, and so is loading an image: undo re-opens the file that was on screen before, bringing its mask back with it even when the two images come from detectors of different sizes. A file that has moved since is skipped with a warning rather than derailing the rest of the undo. Note that undoing onto an image whose shape differs from the current detector definition still raises the usual "detector has been reset" notice, exactly as loading that file by hand does
 
 - adding, removing, recolouring or rescaling an overlay is undoable, and so is adding or deleting a phase and changing its pressure, temperature or display state. Undoing the removal of an overlay puts the original back rather than a copy, so its plot keeps its identity
@@ -35,6 +37,8 @@
 
 ## Bugfixes
 
+- undoing an image load did nothing: "no image loaded" was treated as unreachable, so the first undo silently kept the image on screen while the history believed it had gone back — and the next action then discarded the step that was actually displayed, which is why undoing a second load did not bring the first image back either. Undo now unloads, and a step that cannot be fully applied (a file that has moved since) is re-recorded as what was actually achieved, so the history and the screen cannot drift apart
+- undoing and redoing a phase repainted it in a different colour each time: restoring went through the new-phase path, which hands out the next colour from a counter. Restored phases now bring their own colour, the counter only advances for genuinely new phases, and it is per model rather than shared between all of them
 - loading a project into a session that already had phases or overlays appended them instead of replacing them, so they doubled with every load; loading now replaces the session as it always claimed to
 - copying a phase marked it as modified — the asterisk that means "this no longer matches the file it came from" — because `jcpds.params` flags itself when certain keys are written and Python rebuilds a dict subclass by replaying its items through exactly that path. Copies now reproduce the original's flag instead of inventing one
 

@@ -120,7 +120,19 @@ def test_main_controller_binds_undo_shortcuts(main_controller):
 def test_sidebar_buttons_sit_below_the_mode_buttons(main_controller):
     widget = main_controller.widget
     assert widget.undo_btn.y() > widget.map_mode_btn.y()
-    assert widget.redo_btn.y() > widget.undo_btn.y()
+    # side by side, the conventional arrangement for the pair
+    assert widget.redo_btn.x() > widget.undo_btn.x()
+    assert widget.redo_btn.y() == widget.undo_btn.y()
+    # together they span the mode-button column, keeping the sidebar one wide
+    pair = widget.undo_btn.width() + widget.redo_btn.width()
+    assert abs(pair - widget.map_mode_btn.width()) <= 2
+
+
+def test_sidebar_buttons_use_icons_not_text(main_controller):
+    widget = main_controller.widget
+    for button in (widget.undo_btn, widget.redo_btn):
+        assert button.text() == ""
+        assert not button.icon().isNull()
 
 
 def test_sidebar_buttons_start_disabled(main_controller):

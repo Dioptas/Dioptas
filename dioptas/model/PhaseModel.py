@@ -43,13 +43,16 @@ class PhaseItem:
 
 class PhaseModel:
 
-    num_phases: int = 0
 
     def __init__(self) -> None:
         super().__init__()
         # one record per phase: the four historically parallel lists
         # (phases/reflections/phase_files/item_params) are views over this
         self.items: list[PhaseItem] = []
+        #: advances only for genuinely new phases, so each gets a fresh
+        #: colour; restoring a phase brings its own colour and must not
+        #: consume one (it used to, giving a new colour every undo/redo)
+        self._color_counter: int = 0
 
         # All user-settable parameters live in the evented params dataclass;
         # the property below delegates to it.
@@ -121,18 +124,32 @@ class PhaseModel:
             logger.warning("Failed to load CIF file %s: %s", filename, e)
             raise PhaseLoadError(filename)
 
-    def add_jcpds_object(self, jcpds_object: jcpds, filename: str = "") -> None:
-        """Adds a jcpds object to the phase list."""
+    def add_jcpds_object(
+        self,
+        jcpds_object: jcpds,
+        filename: str = "",
+        params: PhaseItemParams | None = None,
+    ) -> None:
+        """Adds a jcpds object to the phase list.
+
+        *params* supplies the display state for a phase that already has one
+        (undo/redo, project loading). It has to be set before the item is
+        appended: phase_added is what makes the views build their plot items,
+        and they read the colour at that moment — assigning it afterwards left
+        the plot in whatever colour the phase happened to be given first.
+        """
+        if params is None:
+            params = PhaseItemParams(
+                color=calculate_color(self._color_counter + 9)
+            )
+            self._color_counter += 1
         self.items.append(
             PhaseItem(
                 jcpds=jcpds_object,
-                params=PhaseItemParams(
-                    color=calculate_color(PhaseModel.num_phases + 9)
-                ),
+                params=params,
                 filename=filename or str(jcpds_object.filename or ""),
             )
         )
-        PhaseModel.num_phases += 1
         if self.same_conditions and len(self.phases) > 2:
             self.phases[-1].compute_d(self.phases[-2].params['pressure'], self.phases[-2].params['temperature'])
         else:
@@ -152,40 +169,6 @@ class PhaseModel:
         logger.info("Deleting phase %d", ind)
         del self.items[ind]
         self.phase_removed.emit(ind)
-
-    def restore(self, phases: list[jcpds], filenames: list[str]) -> None:
-        """Rebuilds the phase list to match a saved one (used by undo/redo).
-
-        Emits the ordinary add/remove signals, so views follow without knowing
-        the history exists. Only the tail that differs is rebuilt, so undoing
-        an edit to one phase leaves the other phases' plot items alone.
-
-        ``phases`` are expected to be copies the caller does not keep using —
-        the model edits them in place from here on.
-        """
-        common = 0
-        while (
-            common < len(self.items)
-            and common < len(phases)
-            and self.items[common].jcpds is phases[common]
-        ):
-            common += 1
-
-        for ind in range(len(self.items) - 1, common - 1, -1):
-            del self.items[ind]
-            self.phase_removed.emit(ind)
-
-        for offset, phase in enumerate(phases[common:]):
-            self.items.append(
-                PhaseItem(
-                    jcpds=phase,
-                    params=PhaseItemParams(),
-                    filename=filenames[common + offset],
-                )
-            )
-            self.get_lines_d(-1)
-            self.phase_added.emit()
-            self.phase_changed.emit(len(self.items) - 1)
 
     def reload(self, ind: int) -> None:
         """Reloads a phase specified by index ind from its original source filename."""

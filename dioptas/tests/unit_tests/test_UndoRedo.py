@@ -1419,3 +1419,99 @@ def test_loading_replaces_phases_and_overlays_instead_of_appending(
 
     assert len(model.phase_model.phases) == 1
     assert len(model.overlay_model.overlays) == 1
+
+
+# ---------------------------------------------------------------------------
+# reported from use: image loads and phase colours
+# ---------------------------------------------------------------------------
+
+
+def test_undoing_the_first_image_load_unloads_it(model, images):
+    """"No image" is a real state — a fresh Dioptas is in it — so undoing the
+    first load has to return to it. It used to be treated as "there is no
+    unload", which left the history believing it had applied a state it had
+    not."""
+    model.history.reset()
+    model.img_model.load(images[0])
+
+    model.history.undo()
+    assert model.img_model.filename == ""
+    assert model.img_model.img_data.sum() == 0
+
+    model.history.redo()
+    assert model.img_model.filename == images[0]
+    assert model.img_model.img_data.sum() > 0
+
+
+def test_undoing_a_second_load_brings_the_first_image_back(model, images):
+    """The sequence that exposed it: load, load, undo. The first undo used to
+    do nothing while still moving the cursor, so the next edit discarded the
+    step that was actually on screen."""
+    model.history.reset()
+    model.img_model.load(images[0])
+    first_sum = float(model.img_model.img_data.sum())
+    model.img_model.load(images[1])
+    assert float(model.img_model.img_data.sum()) != first_sum
+
+    model.history.undo()
+    assert model.img_model.filename == images[0]
+    assert abs(float(model.img_model.img_data.sum()) - first_sum) < 1
+
+
+def test_a_step_that_cannot_be_fully_applied_stays_consistent(model, images):
+    """states[cursor] must keep mirroring reality even when a reaction falls
+    short, or the next edit throws away a step that is still on screen."""
+    import shutil
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as directory:
+        temporary = os.path.join(directory, "gone.tif")
+        shutil.copy(images[0], temporary)
+        model.img_model.load(temporary)
+        model.img_model.load(images[1])
+        os.remove(temporary)
+
+        model.history.undo()  # cannot re-read the deleted file
+        # whatever it managed to restore, the step now says so
+        recaptured = model.history.states()[model.history._cursor]
+        assert recaptured.configurations[0].img["filename"] == (
+            model.img_model.filename
+        )
+
+
+def test_phase_colour_survives_undo_and_redo(model, phase_file):
+    """Restoring a phase used to route through the new-phase path, which
+    assigns the next colour from a counter — so every undo/redo cycle
+    repainted the phase in a different colour."""
+    model.phase_model.add_jcpds(phase_file)
+    colour = tuple(model.phase_model.phase_colors[0])
+
+    for _ in range(3):
+        model.history.undo()
+        model.history.redo()
+        assert tuple(model.phase_model.phase_colors[0]) == colour
+
+
+def test_restoring_a_phase_does_not_consume_a_colour(model, phase_file):
+    """The counter must only advance for genuinely new phases, otherwise a
+    phase added after some undoing skips colours."""
+    model.phase_model.add_jcpds(phase_file)
+    model.history.undo()
+    model.history.redo()
+
+    model.phase_model.add_jcpds(phase_file)
+    colours = [tuple(c) for c in model.phase_model.phase_colors]
+    assert colours[0] != colours[1]  # distinct, and no colour was skipped
+    assert model.phase_model._color_counter == 2
+
+
+def test_the_colour_counter_is_per_model(phase_file):
+    """It used to be a class attribute, so one model's phases shifted the
+    colours of another's (the bug class the MapModel signals had)."""
+    first, second = DioptasModel(), DioptasModel()
+    first.phase_model.add_jcpds(phase_file)
+    second.phase_model.add_jcpds(phase_file)
+    assert (
+        tuple(first.phase_model.phase_colors[0])
+        == tuple(second.phase_model.phase_colors[0])
+    )

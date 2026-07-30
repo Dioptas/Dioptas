@@ -16,6 +16,7 @@ from .CustomWidgets import (
     FlatButton,
     VerticalLine,
     HorizontalLine,
+    icon_with_faded_disabled,
 )
 
 from .. import icons_path
@@ -130,16 +131,27 @@ class MainWidget(QtWidgets.QWidget):
         mode buttons rather than inside any one mode — the mask had the only
         visible pair before, which left undo undiscoverable everywhere else.
         """
-        self.undo_btn = FlatButton("UNDO", self)
+        # icons rather than labels: undo/redo are universally recognised
+        # symbols, and SVG keeps them crisp at any scale without depending on
+        # a font shipping the glyphs
+        self.undo_btn = FlatButton(self)
         self.undo_btn.setObjectName("undo_btn")
-        self.redo_btn = FlatButton("REDO", self)
+        self.undo_btn.setIcon(icon_with_faded_disabled("undo.svg"))
+        self.redo_btn = FlatButton(self)
         self.redo_btn.setObjectName("redo_btn")
+        self.redo_btn.setIcon(icon_with_faded_disabled("redo.svg"))
+
+        # side by side, the conventional arrangement for the pair
+        self._history_btn_layout = QtWidgets.QHBoxLayout()
+        self._history_btn_layout.setContentsMargins(0, 0, 0, 0)
+        self._history_btn_layout.setSpacing(0)
+        self._history_btn_layout.addWidget(self.undo_btn)
+        self._history_btn_layout.addWidget(self.redo_btn)
 
         self._history_layout.setContentsMargins(0, 0, 0, 6)
         self._history_layout.setSpacing(0)
         self._history_layout.addWidget(HorizontalLine())
-        self._history_layout.addWidget(self.undo_btn)
-        self._history_layout.addWidget(self.redo_btn)
+        self._history_layout.addLayout(self._history_btn_layout)
 
     def _create_main_frame(self):
         self.main_frame = QtWidgets.QWidget(self)
@@ -194,11 +206,12 @@ class MainWidget(QtWidgets.QWidget):
         self.menu_btn.setFixedHeight(30)
 
     def _style_history_btns(self):
-        # same width as the mode buttons above them so the sidebar stays one
-        # column, but much shorter — these are not modes
+        # the pair together spans the mode-button column above them, so the
+        # sidebar stays one column wide; much shorter, since these are not modes
         for btn in (self.undo_btn, self.redo_btn):
-            btn.setWidth(75)
-            btn.setHeight(26)
+            btn.setWidth(37)
+            btn.setHeight(30)
+            btn.setIconSize(QtCore.QSize(18, 18))
 
     def _style_mode_btns(self):
         mode_btn_width = 75

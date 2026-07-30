@@ -254,6 +254,21 @@ class ImgModel:
             for name, correction in self._img_corrections.corrections.items()
         }
 
+    def unload(self) -> None:
+        """Returns to having no image, the state a fresh model is in.
+
+        Everything that came from the file goes back to its default (see
+        ``loadable_data``), including the image itself; the transformations
+        are settings rather than file data and are left alone.
+        """
+        logger.info("Unloading the image")
+        self.filename = ""
+        self.set_loadable_attributes({})
+        self._perform_img_transformations()
+        self._calculate_img_data()
+        self._sync_file_params()
+        self.img_changed.emit()
+
     def _reconcile_file_params(self) -> None:
         """Makes the screen follow the file params (the undo/restore path).
 
@@ -266,8 +281,13 @@ class ImgModel:
         params = self.params
         if params.filename != self.filename or params.series_pos != self.series_pos:
             if not params.filename:
-                # there is no "unload" — the params follow the screen instead
-                self._sync_file_params()
+                # "no image" is a real state — it is what a fresh Dioptas is
+                # in — so undoing the first load has to return to it. This
+                # used to sync the params back to whatever was on screen
+                # instead, which left the history believing it had applied a
+                # state it had not: the step still on screen was then lost
+                # from the stack by the next edit.
+                self.unload()
             elif not os.path.isfile(params.filename):
                 logger.warning(
                     "Cannot restore %s: the file is no longer there, keeping "

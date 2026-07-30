@@ -68,7 +68,7 @@ from typing import Any
 import numpy as np
 
 from .history import History
-from .params import apply_params
+from .params import apply_params, PhaseItemParams
 from .hdf5 import params_to_dict, params_from_dict
 
 logger = logging.getLogger(__name__)
@@ -457,8 +457,13 @@ class StateRecorder:
 
         for state in states[common:]:
             rebuilt = _jcpds_from_state(state)
-            phase_model.add_jcpds_object(rebuilt, filename=state.filename)
-            _apply_dict(phase_model.items[-1].params, state.item_params)
+            # hand the display state in, so the phase is complete before
+            # phase_added fires and the views paint it in its own colour
+            phase_model.add_jcpds_object(
+                rebuilt,
+                filename=state.filename,
+                params=params_from_dict(PhaseItemParams, state.item_params),
+            )
 
     def _restore_configuration(self, state: _ConfigState, configuration: Any) -> None:
         _apply_dict(configuration.params, state.params, exclude=_CONFIG_EXCLUDED)

@@ -220,6 +220,17 @@ class History:
             self._restore(state)
         finally:
             self._restoring = False
+
+        # Re-capture what was actually achieved. A restore can legitimately
+        # fall short — a file that has moved cannot be re-read — and the
+        # invariant that states[cursor] mirrors the live state has to hold
+        # regardless: _push compares against it to decide whether anything
+        # changed, and a step that quietly disagrees with reality gets
+        # discarded by the next edit while still being on screen.
+        step = self._steps[self._cursor]
+        self._steps[self._cursor] = _Step(
+            self._capture(), step.label, step.key, step.at
+        )
         self.changed.emit()
 
     # -- control ----------------------------------------------------------
