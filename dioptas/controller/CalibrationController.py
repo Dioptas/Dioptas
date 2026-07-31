@@ -92,7 +92,6 @@ class CalibrationController:
 
         self.widget.clear_peaks_btn.clicked.connect(self.clear_peaks)
         self.widget.clear_ring_btn.clicked.connect(self.clear_current_ring)
-        self.widget.undo_peaks_btn.clicked.connect(self.undo_peaks_btn_clicked)
         self.widget.peak_num_sb.valueChanged.connect(self.plot_points)
 
         self.widget.load_spline_btn.clicked.connect(self.load_spline_btn_click)
@@ -498,18 +497,6 @@ class CalibrationController:
         ring_ind = self.widget.peak_num_sb.value() - 1
         self.model.calibration_model.remove_peaks_by_ring(ring_ind)
         self.plot_points()
-
-    def undo_peaks_btn_clicked(self):
-        """Steps back through the application-wide history.
-
-        Peak picking used to have its own undo here, which meant calibration
-        mode had a second stack competing with Ctrl+Z. The points are now part
-        of the shared history, so this button and the shortcut do the same
-        thing — at the cost that it also steps back over non-peak changes.
-        The ring counter follows in _on_points_changed, so it does the same
-        whether the undo came from here or from the keyboard.
-        """
-        self.model.history.undo()
 
     def load_spline_btn_click(self):
         filename = open_file_dialog(
