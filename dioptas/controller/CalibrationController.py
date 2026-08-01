@@ -15,7 +15,7 @@ from ..widgets.CalibrationWidget import CalibrationWidget
 from ..widgets.UtilityWidgets import open_file_dialog
 from ..model.DioptasModel import DioptasModel
 from .binding import Binder
-from ..model.CalibrationGuide import CalibrationGuide, NextAction, Step
+from ..model.CalibrationGuide import CalibrationGuide, Step
 from ..model.CalibrationModel import (
     NotEnoughSpacingsInCalibrant,
     get_available_detectors,
@@ -521,18 +521,6 @@ class CalibrationController:
                 field.style().unpolish(field)
                 field.style().polish(field)
 
-    _NEXT_ACTION_HINTS = {
-        NextAction.LOAD_IMAGE: "Step 1: Load an image of your calibration "
-        "standard, orient it and check the detector settings.",
-        NextAction.PICK_PEAKS: "Step 2: Click on the innermost complete ring "
-        "in the image to pick peaks.",
-        NextAction.CALIBRATE: "Step 3: Check calibrant, wavelength and "
-        "distance, then press Calibrate.",
-        NextAction.SAVE: "Check that the rings match the image and pattern, "
-        "then press Save Calibration.",
-        NextAction.NONE: "",
-    }
-
     _WIZARD_STEP_INDICES = {Step.IMAGE: 0, Step.PEAKS: 1, Step.CALIBRATE: 2}
 
     def _wizard_widget(self):
@@ -562,9 +550,9 @@ class CalibrationController:
         if not self._wizard_step_reachable(index):
             # an (unlikely) click on a not-yet-reachable indicator button —
             # put the check mark back onto the current page
-            wizard.step_indicator.set_current_step(wizard.current_step())
+            self.widget.step_indicator.set_current_step(wizard.current_step())
             return
-        wizard.set_current_step(index)
+        self.widget.set_wizard_step(index)
         self.update_guide_in_view()
 
     def update_guide_in_view(self, state=None):
@@ -581,19 +569,21 @@ class CalibrationController:
             self._confirm_fields(*list(self._unconfirmed_fields))
 
         wizard = self._wizard_widget()
+        step_indicator = self.widget.step_indicator
         for step, index in self._WIZARD_STEP_INDICES.items():
-            wizard.step_indicator.set_step_status(
+            step_indicator.set_step_status(
                 index, state.step_status[step].name.lower()
             )
-            wizard.step_indicator.set_step_enabled(
+            step_indicator.set_step_enabled(
                 index, self._wizard_step_reachable(index, state)
             )
 
         current = wizard.current_step()
+        last = wizard.step_stack.count() - 1
         wizard.back_btn.setEnabled(current > 0)
+        wizard.next_btn.setVisible(current < last)
         wizard.next_btn.setEnabled(
-            current < wizard.step_stack.count() - 1
-            and self._wizard_step_reachable(current + 1, state)
+            current < last and self._wizard_step_reachable(current + 1, state)
         )
         if current == 0 and not state.image_loaded:
             wizard.next_btn.setToolTip("Load an image first.")
@@ -605,9 +595,11 @@ class CalibrationController:
         else:
             wizard.next_btn.setToolTip("")
 
-        self.widget.calibration_display_widget.show_hint(
-            self._NEXT_ACTION_HINTS[state.next_action]
-        )
+        # results and follow-up actions appear only once they exist / can run
+        wizard.refine_btn.setVisible(state.is_calibrated)
+        wizard.save_calibration_btn.setVisible(state.is_calibrated)
+        wizard.pyfai_expander.setVisible(state.is_calibrated)
+        wizard.fit2d_expander.setVisible(state.is_calibrated)
 
         if state.num_peaks == 0:
             self.widget.peak_counter_lbl.setText("No peaks selected")
@@ -1002,11 +994,9 @@ class CalibrationController:
         if self.widget.tab_widget.currentIndex() == 0:
             self.widget.tab_widget.setCurrentIndex(1)
 
-        if (
-            self.widget.ToolBox.currentIndex() != 2
-            or self.widget.ToolBox.currentIndex() != 3
-        ):
-            self.widget.ToolBox.setCurrentIndex(2)
+        # a calibration (or loaded .poni) exists now — bring the wizard to
+        # its result page, where the fitted parameters and Save live
+        self.widget.set_wizard_step(2)
         self.update_calibration_parameter_in_view()
         self.load_calibrant("pyFAI")
 

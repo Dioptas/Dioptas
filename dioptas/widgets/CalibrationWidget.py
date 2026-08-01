@@ -81,22 +81,23 @@ class StepIndicatorWidget(QtWidgets.QWidget):
     def _style_step(self, index):
         color = self.STATUS_COLORS[self._statuses[index]]
         self.step_btns[index].setStyleSheet(
-            'QToolButton {{ border: none; color: {0}; padding: 2px 4px; }}'
+            'QToolButton {{ border: none; color: {0}; font-size: 14px;'
+            ' padding: 4px 10px; }}'
             'QToolButton:checked {{ font-weight: bold; color: #F1F1F1;'
             ' border-bottom: 2px solid {0}; }}'
             'QToolButton:disabled {{ color: #5B5B5B; }}'.format(color))
 
 
 class AdvancedExpander(QtWidgets.QWidget):
-    """A collapsed-by-default "advanced" disclosure for options that
-    first-time users should not need to touch."""
+    """A collapsed-by-default disclosure for options that first-time users
+    should not need to touch."""
 
-    def __init__(self, content_widget, parent=None):
+    def __init__(self, content_widget, parent=None, title='advanced'):
         super().__init__(parent)
         self.content_widget = content_widget
 
         self.header_btn = QtWidgets.QToolButton()
-        self.header_btn.setText('advanced')
+        self.header_btn.setText(title)
         self.header_btn.setCheckable(True)
         self.header_btn.setChecked(False)
         self.header_btn.setArrowType(QtCore.Qt.RightArrow)
@@ -135,16 +136,31 @@ class CalibrationWidget(QtWidgets.QWidget):
 
         self.setObjectName('calibration_widget')
 
+        self.step_indicator = StepIndicatorWidget(
+            ['Image', 'Pick Rings', 'Calibrate'])
+
         self.calibration_display_widget = CalibrationDisplayWidget(self)
         self.calibration_control_widget = CalibrationControlWidget(self)
 
-        self._layout = QtWidgets.QHBoxLayout()
+        self._content_layout = QtWidgets.QHBoxLayout()
+        self._content_layout.setContentsMargins(0, 0, 0, 0)
+        self._content_layout.addWidget(self.calibration_display_widget)
+        self._content_layout.addWidget(self.calibration_control_widget)
+
+        self._layout = QtWidgets.QVBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
-        self._layout.addWidget(self.calibration_display_widget)
-        self._layout.addWidget(self.calibration_control_widget)
+        self._layout.setSpacing(0)
+        self._layout.addWidget(self.step_indicator)
+        self._layout.addLayout(self._content_layout)
         self.setLayout(self._layout)
 
         self.create_shortcuts()
+
+    def set_wizard_step(self, index):
+        """Shows the given wizard page and moves the top step indicator
+        along with it."""
+        self.calibration_control_widget.calibration_parameters_widget.set_current_step(index)
+        self.step_indicator.set_current_step(index)
 
     def create_shortcuts(self):
         """
@@ -156,15 +172,16 @@ class CalibrationWidget(QtWidgets.QWidget):
         self.load_previous_img_btn = parameters_widget.load_previous_img_btn
         self.filename_txt = parameters_widget.filename_txt
 
-        self.save_calibration_btn = self.calibration_control_widget.save_calibration_btn
+        self.save_calibration_btn = parameters_widget.save_calibration_btn
         self.load_calibration_btn = self.calibration_control_widget.load_calibration_btn
 
-        self.calibrate_btn = self.calibration_display_widget.calibrate_btn
-        self.refine_btn = self.calibration_display_widget.refine_btn
+        self.calibrate_btn = parameters_widget.calibrate_btn
+        self.refine_btn = parameters_widget.refine_btn
+        self.pyfai_expander = parameters_widget.pyfai_expander
+        self.fit2d_expander = parameters_widget.fit2d_expander
         self.pos_lbl = self.calibration_display_widget.position_lbl
 
         self.tab_widget = self.calibration_display_widget.tab_widget
-        self.ToolBox = self.calibration_control_widget.toolbox
 
         detector_gb = self.calibration_control_widget.calibration_parameters_widget.detector_gb
         self.detectors_cb = detector_gb.detector_cb
@@ -211,8 +228,6 @@ class CalibrationWidget(QtWidgets.QWidget):
         self.clear_ring_btn = peak_selection_gb.clear_ring_btn
         self.peak_counter_lbl = peak_selection_gb.peak_counter_lbl
 
-        self.hint_lbl = self.calibration_display_widget.hint_lbl
-        self.step_indicator = parameters_widget.step_indicator
         self.step_stack = parameters_widget.step_stack
         self.wizard_back_btn = parameters_widget.back_btn
         self.wizard_next_btn = parameters_widget.next_btn
@@ -426,14 +441,6 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
         self.cake_widget = CalibrationCakeWidget(self.cake_layout_widget)
         self.pattern_widget = PatternWidget(self.pattern_layout_widget)
 
-        self.hint_lbl = QtWidgets.QLabel()
-        self.hint_lbl.setObjectName('calibration_hint_lbl')
-        self.hint_lbl.setAlignment(QtCore.Qt.AlignCenter)
-        self.hint_lbl.setStyleSheet(
-            'color: #ffa726; font-style: italic; padding: 2px;')
-        self.hint_lbl.hide()
-        self._layout.addWidget(self.hint_lbl)
-
         self.tab_widget = QtWidgets.QTabWidget()
         self.tab_widget.addTab(self.img_layout_widget, 'Image')
         self.tab_widget.addTab(self.cake_layout_widget, 'Cake')
@@ -442,12 +449,8 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
 
         self._status_layout = QtWidgets.QHBoxLayout()
         self._status_layout.setContentsMargins(6, 0, 0, 0)
-        self.calibrate_btn = QtWidgets.QPushButton("Calibrate")
-        self.refine_btn = QtWidgets.QPushButton("Refine")
         self.position_lbl = QtWidgets.QLabel("position_lbl")
 
-        self._status_layout.addWidget(self.calibrate_btn)
-        self._status_layout.addWidget(self.refine_btn)
         self._status_layout.addSpacerItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
                                                                 QtWidgets.QSizePolicy.Minimum))
         self._status_layout.addWidget(self.position_lbl)
@@ -458,13 +461,6 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
 
     def style_widgets(self):
         self.pattern_widget.deactivate_pos_line()
-        self.calibrate_btn.setMinimumWidth(130)
-        self.refine_btn.setMinimumWidth(130)
-
-    def show_hint(self, text):
-        """Shows the guidance hint above the image display; hides on empty text."""
-        self.hint_lbl.setText(text)
-        self.hint_lbl.setVisible(bool(text))
 
 
 class CalibrationControlWidget(QtWidgets.QWidget):
@@ -474,21 +470,23 @@ class CalibrationControlWidget(QtWidgets.QWidget):
         self._layout = QtWidgets.QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
 
-        self.toolbox = QtWidgets.QToolBox()
         self.calibration_parameters_widget = CalibrationParameterWidget()
-        self.pyfai_parameters_widget = PyfaiParametersWidget()
-        self.fit2d_parameters_widget = Fit2dParametersWidget()
+        self._layout.addWidget(self.calibration_parameters_widget)
 
-        self.toolbox.addItem(self.calibration_parameters_widget, "Calibration")
-        self.toolbox.addItem(self.pyfai_parameters_widget, 'pyFAI Parameters')
-        self.toolbox.addItem(self.fit2d_parameters_widget, 'Fit2d Parameters')
-        self._layout.addWidget(self.toolbox)
+        # the wizard owns the step content; these aliases keep the
+        # historical access paths working
+        self.pyfai_parameters_widget = (
+            self.calibration_parameters_widget.pyfai_parameters_widget
+        )
+        self.fit2d_parameters_widget = (
+            self.calibration_parameters_widget.fit2d_parameters_widget
+        )
 
+        # loading an existing .poni is the alternative entry into the
+        # workflow, so it stays reachable from every step
         self._bottom_layout = QtWidgets.QHBoxLayout()
         self.load_calibration_btn = QtWidgets.QPushButton('Load Calibration')
-        self.save_calibration_btn = QtWidgets.QPushButton('Save Calibration')
         self._bottom_layout.addWidget(self.load_calibration_btn)
-        self._bottom_layout.addWidget(self.save_calibration_btn)
         self._layout.addLayout(self._bottom_layout)
 
         self.style_widgets()
@@ -564,9 +562,30 @@ class CalibrationParameterWidget(QtWidgets.QWidget):
         self._peaks_page_layout.addWidget(self.peak_selection_gb)
         self._peaks_page_layout.addStretch()
 
-        # --- page 3: calibrant, start values, refinement ----------------
+        # --- page 3: calibrant, start values, calibrate & results -------
         self.start_values_gb = StartValuesGroupBox(self)
         self.refinement_options_gb = RefinementOptionsGroupBox()
+
+        self.calibrate_btn = QtWidgets.QPushButton('Calibrate')
+        self.calibrate_btn.setProperty('primary', True)
+        self.calibrate_btn.setMinimumHeight(28)
+        self.refine_btn = QtWidgets.QPushButton('Refine')
+        self._action_layout = QtWidgets.QHBoxLayout()
+        self._action_layout.addWidget(self.calibrate_btn)
+        self._action_layout.addWidget(self.refine_btn)
+
+        # the fitted parameters are the *result* of the workflow — they
+        # appear (collapsed) only once a calibration exists
+        self.pyfai_parameters_widget = PyfaiParametersWidget()
+        self.fit2d_parameters_widget = Fit2dParametersWidget()
+        self.pyfai_expander = AdvancedExpander(
+            self.pyfai_parameters_widget, title='pyFAI parameters')
+        self.fit2d_expander = AdvancedExpander(
+            self.fit2d_parameters_widget, title='Fit2d parameters')
+
+        self.save_calibration_btn = QtWidgets.QPushButton('Save Calibration')
+        self.save_calibration_btn.setProperty('primary', True)
+        self.save_calibration_btn.setMinimumHeight(28)
 
         self.calibrate_page = QtWidgets.QWidget()
         self._calibrate_page_layout = QtWidgets.QVBoxLayout(self.calibrate_page)
@@ -574,25 +593,34 @@ class CalibrationParameterWidget(QtWidgets.QWidget):
         self._calibrate_page_layout.setSpacing(12)
         self._calibrate_page_layout.addWidget(self.start_values_gb)
         self._calibrate_page_layout.addWidget(self.refinement_options_gb)
+        self._calibrate_page_layout.addLayout(self._action_layout)
+        self._calibrate_page_layout.addWidget(self.pyfai_expander)
+        self._calibrate_page_layout.addWidget(self.fit2d_expander)
+        self._calibrate_page_layout.addWidget(self.save_calibration_btn)
         self._calibrate_page_layout.addStretch()
 
         # --- wizard chrome ----------------------------------------------
-        self.step_indicator = StepIndicatorWidget(['Image', 'Pick Rings', 'Calibrate'])
-
         self.step_stack = QtWidgets.QStackedWidget()
         self.step_stack.addWidget(self.image_page)
         self.step_stack.addWidget(self.peaks_page)
         self.step_stack.addWidget(self.calibrate_page)
 
+        self._scroll_area = QtWidgets.QScrollArea()
+        self._scroll_area.setWidgetResizable(True)
+        self._scroll_area.setFrameShape(QtWidgets.QFrame.NoFrame)
+        self._scroll_area.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAlwaysOff)
+        self._scroll_area.setWidget(self.step_stack)
+
         self.back_btn = QtWidgets.QPushButton('< Back')
         self.next_btn = QtWidgets.QPushButton('Next >')
+        self.next_btn.setProperty('primary', True)
         self._nav_layout = QtWidgets.QHBoxLayout()
         self._nav_layout.addWidget(self.back_btn)
         self._nav_layout.addStretch()
         self._nav_layout.addWidget(self.next_btn)
 
-        self._layout.addWidget(self.step_indicator)
-        self._layout.addWidget(self.step_stack)
+        self._layout.addWidget(self._scroll_area)
         self._layout.addLayout(self._nav_layout)
 
         self.setLayout(self._layout)
@@ -606,7 +634,6 @@ class CalibrationParameterWidget(QtWidgets.QWidget):
         """Shows the given wizard page; navigation gating stays with the
         controller, which calls this only for allowed transitions."""
         self.step_stack.setCurrentIndex(index)
-        self.step_indicator.set_current_step(index)
 
 
 class DetectorGroupbox(QtWidgets.QGroupBox):

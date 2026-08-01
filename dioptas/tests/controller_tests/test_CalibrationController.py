@@ -391,19 +391,17 @@ def test_refine_button_is_gated_until_calibrated(calibration_controller):
     assert widget.refine_btn.toolTip() != ""
 
 
-def test_guide_updates_indicator_hint_and_counter(
+def test_guide_updates_indicator_and_counter(
     calibration_controller, calibration_model, dioptas_model
 ):
     widget = calibration_controller.widget
     assert widget.step_indicator.step_status(0) == "attention"
-    assert widget.hint_lbl.text().startswith("Step 1")
 
     dioptas_model.img_model.load(
         os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
     )
     assert widget.step_indicator.step_status(0) == "done"
     assert widget.step_indicator.step_status(1) == "attention"
-    assert widget.hint_lbl.text().startswith("Step 2")
 
     calibration_model.params.peak_selections = (
         (0, ((10.0, 20.0), (30.0, 40.0))),
@@ -416,11 +414,6 @@ def test_guide_updates_indicator_hint_and_counter(
     calibration_model.params.is_calibrated = True
     assert widget.step_indicator.step_status(2) == "done"
     assert widget.refine_btn.isEnabled()
-    assert "Save Calibration" in widget.hint_lbl.text()
-
-    calibration_model.params.poni_filename = "/somewhere/test.poni"
-    assert widget.hint_lbl.text() == ""
-    assert not widget.hint_lbl.isVisible()
 
 
 def test_wizard_shows_one_page_at_a_time(calibration_controller, qtbot):
@@ -432,13 +425,44 @@ def test_wizard_shows_one_page_at_a_time(calibration_controller, qtbot):
     qtbot.addWidget(widget)
 
     assert parameters_widget.current_step() == 0
+    assert widget.step_indicator.isVisible()
     assert widget.load_img_btn.isVisible()
     assert widget.rotate_m90_btn.isVisible()
     assert widget.detectors_cb.isVisible()
-    # peak picking and calibrant controls belong to later pages
+    # peak picking, calibrant and the actions belong to later pages
     assert not widget.peak_num_sb.isVisible()
     assert not widget.calibrant_cb.isVisible()
     assert not widget.sv_wavelength_txt.isVisible()
+    assert not widget.calibrate_btn.isVisible()
+    assert not widget.refine_btn.isVisible()
+
+
+def test_results_and_actions_appear_when_they_can_run(
+    calibration_controller, calibration_model, dioptas_model, qtbot
+):
+    widget = calibration_controller.widget
+    widget.show()
+    qtbot.addWidget(widget)
+
+    dioptas_model.img_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
+    )
+    calibration_model.params.peak_selections = ((0, ((10.0, 20.0),)),)
+    calibration_controller.go_to_wizard_step(2)
+
+    # peaks picked but not calibrated: only Calibrate is offered
+    assert widget.calibrate_btn.isVisible()
+    assert widget.calibrate_btn.isEnabled()
+    assert not widget.refine_btn.isVisible()
+    assert not widget.save_calibration_btn.isVisible()
+    assert not widget.pyfai_expander.isVisible()
+    assert not widget.fit2d_expander.isVisible()
+
+    calibration_model.params.is_calibrated = True
+    assert widget.refine_btn.isVisible()
+    assert widget.save_calibration_btn.isVisible()
+    assert widget.pyfai_expander.isVisible()
+    assert widget.fit2d_expander.isVisible()
 
 
 def test_wizard_navigation_is_gated_by_prerequisites(
