@@ -44,7 +44,7 @@ class StepSectionWidget(QtWidgets.QWidget):
         self.status_lbl = QtWidgets.QLabel()
 
         self._header_layout = QtWidgets.QHBoxLayout()
-        self._header_layout.setContentsMargins(0, 3, 3, 0)
+        self._header_layout.setContentsMargins(0, 3, 12, 0)
         self._header_layout.addWidget(self.header_btn)
         self._header_layout.addStretch()
         self._header_layout.addWidget(self.status_lbl)
