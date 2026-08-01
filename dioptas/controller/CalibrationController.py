@@ -178,7 +178,11 @@ class CalibrationController:
             self.enter_parameters_manually
         )
 
-        # linked click position and phase overlays on the validation step
+        # linked click position and phase overlays on the validation step;
+        # the position markers stay hidden until the first linked click —
+        # both widgets create them visible at position 0 by default
+        self.widget.pattern_widget.deactivate_pos_line()
+        self.widget.cake_widget.deactivate_vertical_line()
         self._phase_overlays_dirty = True
         self.widget.img_widget.mouse_left_clicked.connect(self.validation_img_click)
         self.widget.cake_widget.mouse_left_clicked.connect(self.validation_cake_click)
@@ -374,6 +378,7 @@ class CalibrationController:
         pattern_x = self.convert_x_value(
             tth, "2th_deg", self.model.current_configuration.integration_unit, None
         )
+        self.widget.pattern_widget.activate_pos_line()
         self.widget.pattern_widget.set_pos_line(pattern_x)
 
         if self.model.cake_tth is not None:

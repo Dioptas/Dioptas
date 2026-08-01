@@ -158,6 +158,10 @@ class PatternWidget(QtCore.QObject):
         if self.pos_line.scene() == self.pattern_plot.scene():
             self.pattern_plot.removeItem(self.pos_line)
 
+    def activate_pos_line(self):
+        if self.pos_line.scene() != self.pattern_plot.scene():
+            self.pattern_plot.addItem(self.pos_line)
+
     def set_pos_line(self, x):
         self.pos_line.setPos(x)
 
