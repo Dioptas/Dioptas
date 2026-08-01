@@ -44,6 +44,8 @@
 
 - The calibration view showed the literal text "position_lbl" in its status corner until the mouse first moved over the image.
 
+- After loading an existing calibration, the wizard marked Calibrate and Validation as done while Pick Rings still looked not started, contradicting the idea of a sequence. A step that a loaded or manually entered calibration makes unnecessary now shows a gray dash — skipped — with a tooltip saying why.
+
 ## Distribution
 
 - A project file is now the settings tree plus the data it refers to: one JSON document holding every setting, and content-addressed datasets for masks, overlay curves and image copies. Identical content is stored once, so two configurations masking the same detector no longer store two copies. The previous layout wrote every value twice — once as an HDF5 attribute and once in a settings document — and spent one HDF5 group per reflection; a two-phase project used 72 groups where it now uses four.

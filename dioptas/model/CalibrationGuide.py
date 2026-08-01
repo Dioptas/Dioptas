@@ -51,6 +51,9 @@ class StepStatus(enum.Enum):
     PENDING = enum.auto()
     #: the step the user should act on next
     ATTENTION = enum.auto()
+    #: not performed, but made unnecessary (e.g. peak picking after a
+    #: calibration was loaded from file or entered manually)
+    SKIPPED = enum.auto()
     DONE = enum.auto()
 
 
@@ -95,6 +98,8 @@ def compute_guide_state(model: "DioptasModel") -> GuideState:
         Step.PEAKS: (
             StepStatus.DONE
             if num_peaks > 0
+            else StepStatus.SKIPPED
+            if is_calibrated
             else StepStatus.ATTENTION
             if next_action == NextAction.PICK_PEAKS
             else StepStatus.PENDING

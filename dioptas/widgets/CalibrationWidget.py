@@ -45,6 +45,7 @@ class StepIndicatorWidget(QtWidgets.QWidget):
     STATUS_COLORS = {
         'pending': '#787878',
         'attention': '#F1F1F1',
+        'skipped': '#8C8C8C',
         'done': '#B4B4B4',
     }
     #: badge/underline color of the current step
@@ -87,8 +88,8 @@ class StepIndicatorWidget(QtWidgets.QWidget):
 
     def _make_badge_icon(self, index):
         """Paints the step's circular badge: amber with the step number for
-        the current step, a green check for completed steps, an outlined
-        number otherwise."""
+        the current step, a green check for completed steps, a gray dash
+        for skipped steps, an outlined number otherwise."""
         status = self._statuses[index]
         is_current = self.step_btns[index].isChecked()
         size = self.BADGE_SIZE
@@ -115,6 +116,13 @@ class StepIndicatorWidget(QtWidgets.QWidget):
             painter.setBrush(QtCore.Qt.NoBrush)
             painter.drawEllipse(rect)
             painter.drawText(rect, QtCore.Qt.AlignCenter, '✓')
+        elif status == 'skipped':
+            pen = QtGui.QPen(QtGui.QColor(self.STATUS_COLORS['skipped']))
+            pen.setWidthF(1.2)
+            painter.setPen(pen)
+            painter.setBrush(QtCore.Qt.NoBrush)
+            painter.drawEllipse(rect)
+            painter.drawText(rect, QtCore.Qt.AlignCenter, '–')
         else:
             color = QtGui.QColor(self.STATUS_COLORS[status])
             pen = QtGui.QPen(color)
@@ -139,8 +147,12 @@ class StepIndicatorWidget(QtWidgets.QWidget):
         return 0
 
     def set_step_status(self, index, status):
-        """:param status: one of 'pending', 'attention', 'done'"""
+        """:param status: one of 'pending', 'attention', 'skipped', 'done'"""
         self._statuses[index] = status
+        self.step_btns[index].setToolTip(
+            'Skipped – the calibration was loaded or entered manually'
+            if status == 'skipped' else ''
+        )
         self._style_step(index)
 
     def step_status(self, index):
