@@ -451,9 +451,10 @@ def test_validation_step_gates_results_and_views(
     qtbot.addWidget(widget)
 
     # the cake and pattern views are hidden while working through steps 1-3
-    assert not widget.tab_widget.tabBar().isVisible()
-    assert not widget.tab_widget.isTabVisible(1)
-    assert not widget.tab_widget.isTabVisible(2)
+    display_widget = widget.calibration_display_widget
+    assert widget.img_widget.img_view_box.isVisible()
+    assert not display_widget.cake_layout_widget.isVisible()
+    assert not display_widget.pattern_layout_widget.isVisible()
 
     dioptas_model.img_model.load(
         os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
@@ -472,17 +473,16 @@ def test_validation_step_gates_results_and_views(
     calibration_model.params.is_calibrated = True
     calibration_controller.go_to_wizard_step(3)
     assert widget.step_stack.currentIndex() == 3
-    assert widget.tab_widget.tabBar().isVisible()
-    assert widget.tab_widget.isTabVisible(1)
-    assert widget.tab_widget.isTabVisible(2)
+    assert display_widget.cake_layout_widget.isVisible()
+    assert display_widget.pattern_layout_widget.isVisible()
     assert widget.parameters_tab_widget.isVisible()
     assert widget.refine_btn.isVisible()
     assert widget.save_calibration_btn.isVisible()
 
     # going back hides the validation-only views again
     calibration_controller.go_to_wizard_step(1)
-    assert not widget.tab_widget.tabBar().isVisible()
-    assert not widget.tab_widget.isTabVisible(1)
+    assert not display_widget.cake_layout_widget.isVisible()
+    assert not display_widget.pattern_layout_widget.isVisible()
 
 
 def test_wizard_navigation_is_gated_by_prerequisites(
@@ -663,6 +663,57 @@ def test_image_clicks_only_pick_peaks_on_the_pick_rings_step(
     calibration_controller.go_to_wizard_step(1)
     calibration_controller.search_peaks(1179.6, 1129.4)
     assert len(calibration_model.points) == 1
+
+
+def test_validation_click_links_position_across_views(
+    calibration_controller, calibration_model, dioptas_model
+):
+    widget = calibration_controller.widget
+    dioptas_model.img_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
+    )
+    calibration_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.poni")
+    )
+    calibration_controller.go_to_wizard_step(3)
+
+    # off the validation step nothing is published
+    calibration_controller.go_to_wizard_step(1)
+    calibration_controller.validation_pattern_click(12.0, 0)
+    assert dioptas_model.clicked_tth != 12.0
+
+    calibration_controller.go_to_wizard_step(3)
+    calibration_controller.validation_pattern_click(12.0, 0)
+    assert dioptas_model.clicked_tth == pytest.approx(12.0)
+    assert widget.pattern_widget.get_pos_line() == pytest.approx(12.0)
+
+    # a click on the image publishes its 2theta as well
+    calibration_controller.validation_img_click(1179.6, 1129.4)
+    assert dioptas_model.clicked_tth != pytest.approx(12.0)
+
+
+def test_phase_lines_are_drawn_in_validation_views(
+    calibration_controller, calibration_model, dioptas_model
+):
+    widget = calibration_controller.widget
+    dioptas_model.img_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
+    )
+    calibration_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.poni")
+    )
+    dioptas_model.phase_model.add_jcpds(
+        os.path.join(unittest_data_path, "jcpds", "au_Anderson.jcpds")
+    )
+    calibration_controller.go_to_wizard_step(3)
+
+    assert len(widget.img_widget._phase_ring_items) > 0
+    # pattern lines come via the shared PhaseInPatternController
+    assert len(widget.pattern_widget.phases) == 1
+
+    dioptas_model.phase_model.del_phase(0)
+    assert len(widget.img_widget._phase_ring_items) == 0
+    assert len(widget.pattern_widget.phases) == 0
 
 
 def test_fixed_parameters_can_be_set_before_calibration(calibration_controller):

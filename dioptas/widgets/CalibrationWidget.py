@@ -6,8 +6,9 @@ import sys
 from qtpy import QtWidgets, QtGui, QtCore
 from pyqtgraph import GraphicsLayoutWidget
 
-from ..widgets.plot_widgets import MaskImgWidget, CalibrationCakeWidget
+from ..widgets.plot_widgets import CalibrationCakeWidget
 from ..widgets.plot_widgets import PatternWidget
+from ..widgets.plot_widgets.ImgWidget import IntegrationImgWidget
 
 from .CustomWidgets import NumberTextField, LabelAlignRight, CleanLooksComboBox, SpinBoxAlignRight, \
     DoubleSpinBoxAlignRight, OpenIconButton, ResetIconButton
@@ -155,8 +156,6 @@ class CalibrationWidget(QtWidgets.QWidget):
         self.refine_btn = parameters_widget.refine_btn
         self.parameters_tab_widget = parameters_widget.parameters_tab_widget
         self.pos_lbl = self.calibration_display_widget.position_lbl
-
-        self.tab_widget = self.calibration_display_widget.tab_widget
 
         detector_gb = self.calibration_control_widget.calibration_parameters_widget.detector_gb
         self.detectors_cb = detector_gb.detector_cb
@@ -427,15 +426,24 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
         self.cake_layout_widget = GraphicsLayoutWidget()
         self.pattern_layout_widget = GraphicsLayoutWidget()
 
-        self.img_widget = MaskImgWidget(self.img_layout_widget)
+        # IntegrationImgWidget extends the mask-capable image widget with
+        # the iso-2θ circle overlay used by the linked click position
+        self.img_widget = IntegrationImgWidget(self.img_layout_widget)
         self.cake_widget = CalibrationCakeWidget(self.cake_layout_widget)
         self.pattern_widget = PatternWidget(self.pattern_layout_widget)
 
-        self.tab_widget = QtWidgets.QTabWidget()
-        self.tab_widget.addTab(self.img_layout_widget, 'Image')
-        self.tab_widget.addTab(self.cake_layout_widget, 'Cake')
-        self.tab_widget.addTab(self.pattern_layout_widget, 'Pattern')
-        self._layout.addWidget(self.tab_widget)
+        # image alone during the working steps; cake and pattern join it on
+        # the validation step
+        self._top_splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        self._top_splitter.addWidget(self.img_layout_widget)
+        self._top_splitter.addWidget(self.cake_layout_widget)
+
+        self.view_splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+        self.view_splitter.addWidget(self._top_splitter)
+        self.view_splitter.addWidget(self.pattern_layout_widget)
+        self.view_splitter.setStretchFactor(0, 3)
+        self.view_splitter.setStretchFactor(1, 1)
+        self._layout.addWidget(self.view_splitter)
 
         self._status_layout = QtWidgets.QHBoxLayout()
         self._status_layout.setContentsMargins(6, 0, 0, 0)
@@ -447,10 +455,25 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
         self._layout.addLayout(self._status_layout)
 
         self.setLayout(self._layout)
-        self.style_widgets()
+        self.show_validation_views(False)
 
-    def style_widgets(self):
-        self.pattern_widget.deactivate_pos_line()
+    def show_validation_views(self, show):
+        """Shows cake and pattern beside the image (validation step) or the
+        image alone (all other steps)."""
+        self.cake_layout_widget.setVisible(show)
+        self.pattern_layout_widget.setVisible(show)
+        if show:
+            # give freshly shown views a sensible share once — collapsed
+            # widgets otherwise stay at (near) zero size; user-dragged
+            # splitter positions are left alone on later calls
+            if self.cake_layout_widget.width() < 20:
+                total_width = max(self._top_splitter.width(), 2)
+                self._top_splitter.setSizes(
+                    [total_width // 2, total_width // 2])
+            if self.pattern_layout_widget.height() < 20:
+                total_height = max(self.view_splitter.height(), 3)
+                self.view_splitter.setSizes(
+                    [2 * total_height // 3, total_height // 3])
 
 
 class CalibrationControlWidget(QtWidgets.QWidget):

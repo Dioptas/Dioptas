@@ -6,8 +6,11 @@ from qtpy import QtWidgets, QtCore, QtGui
 
 import numpy as np
 import pyqtgraph as pg
+from skimage.measure import find_contours
 
 from ..widgets.UtilityWidgets import open_file_dialog, save_file_dialog
+from ..model.util.HelperModule import get_partial_index, get_partial_value
+from .integration.phase.PhaseInPatternController import PhaseInPatternController
 from .. import calibrants_path
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
@@ -50,6 +53,13 @@ class CalibrationController:
         self.load_calibrants_list()
         self._setup_unconfirmed_fields()
         self.update_peak_table()
+
+        # phase lines in the validation pattern reuse the integration-mode
+        # controller wholesale; cake lines and image rings are drawn by
+        # _update_phase_overlays below
+        self.phase_in_pattern_controller = PhaseInPatternController(
+            self.widget.pattern_widget, dioptas_model
+        )
 
         self.guide = CalibrationGuide(dioptas_model)
         self.guide.changed.connect(self.update_guide_in_view)
@@ -162,6 +172,21 @@ class CalibrationController:
         self._manual_parameters_requested = False
         self.widget.enter_parameters_btn.clicked.connect(
             self.enter_parameters_manually
+        )
+
+        # linked click position and phase overlays on the validation step
+        self._phase_overlays_dirty = True
+        self.widget.img_widget.mouse_left_clicked.connect(self.validation_img_click)
+        self.widget.cake_widget.mouse_left_clicked.connect(self.validation_cake_click)
+        self.widget.pattern_widget.mouse_left_clicked.connect(
+            self.validation_pattern_click
+        )
+        self.model.clicked_tth_changed.connect(self.update_validation_line_positions)
+        self.model.phase_model.phase_added.connect(self._phase_overlays_changed)
+        self.model.phase_model.phase_removed.connect(self._phase_overlays_changed)
+        self.model.phase_model.phase_changed.connect(self._phase_overlays_changed)
+        self.model.calibration_model.parameters_changed.connect(
+            self._phase_overlays_changed
         )
 
     def create_transformation_signals(self):
@@ -278,6 +303,147 @@ class CalibrationController:
         self._manual_parameters_requested = True
         self.widget.set_wizard_step(3)
         self.update_guide_in_view()
+
+    # ------------------------------------------------------------------
+    # validation step: linked click position across image, cake, pattern
+    # ------------------------------------------------------------------
+
+    def _on_validation_step(self):
+        return (
+            self._wizard_widget().current_step()
+            == self._wizard_widget().step_stack.count() - 1
+        )
+
+    def validation_img_click(self, x, y):
+        """Publishes the 2θ of a click on the image as the linked position."""
+        if not self._on_validation_step():
+            return
+        if not self.model.calibration_model.is_calibrated:
+            return
+        x, y = y, x  # image array indices vs. mouse position
+        shape = self.model.img_model.img_data.shape
+        if not (0 <= x < shape[0] and 0 <= y < shape[1]):
+            return
+        tth = np.rad2deg(
+            self.model.calibration_model.get_two_theta_img(
+                np.array([x]), np.array([y])
+            )
+        )
+        self.model.clicked_tth_changed.emit(float(tth))
+
+    def validation_cake_click(self, x, _y):
+        """Publishes the 2θ of a click on the cake as the linked position."""
+        if not self._on_validation_step():
+            return
+        if self.model.cake_tth is None:
+            return
+        tth = get_partial_value(self.model.cake_tth, x - 0.5)
+        if tth is None:
+            return
+        self.model.clicked_tth_changed.emit(float(tth))
+
+    def validation_pattern_click(self, x, _y):
+        """Publishes the 2θ of a click in the pattern as the linked position."""
+        if not self._on_validation_step():
+            return
+        tth = self.convert_x_value(
+            x, self.model.current_configuration.integration_unit, "2th_deg", None
+        )
+        self.model.clicked_tth_changed.emit(float(tth))
+
+    def update_validation_line_positions(self, tth=None):
+        """Places the green position line at *tth* (degrees) in all three
+        validation views: pos line in the pattern, vertical line in the
+        cake, iso-2θ contour on the image."""
+        if not self._on_validation_step():
+            return
+        if tth is None:
+            tth = self.model.clicked_tth
+
+        pattern_x = self.convert_x_value(
+            tth, "2th_deg", self.model.current_configuration.integration_unit, None
+        )
+        self.widget.pattern_widget.set_pos_line(pattern_x)
+
+        if self.model.cake_tth is not None:
+            position = get_partial_index(self.model.cake_tth, tth)
+            if position is not None:
+                self.widget.cake_widget.set_vertical_line_pos(position + 0.5, 0)
+                self.widget.cake_widget.activate_vertical_line()
+            else:
+                self.widget.cake_widget.deactivate_vertical_line()
+
+        if self.model.calibration_model.is_calibrated:
+            self.widget.img_widget.activate_circle_scatter()
+            self.widget.img_widget.set_circle_line(
+                self.model.calibration_model.get_two_theta_array(), np.deg2rad(tth)
+            )
+
+    # ------------------------------------------------------------------
+    # validation step: phase overlays in cake and image
+    # ------------------------------------------------------------------
+
+    def _phase_overlays_changed(self, *_):
+        self._phase_overlays_dirty = True
+        if self._on_validation_step():
+            self._update_phase_overlays()
+
+    #: alpha for the phase overlays, so the peaks stay visible underneath
+    _PHASE_OVERLAY_ALPHA = 130
+    #: image downsampling for the ring contours — full 2k×2k contouring
+    #: per reflection would take seconds
+    _PHASE_RING_DOWNSAMPLE = 4
+
+    def _update_phase_overlays(self):
+        """Draws every visible phase's reflections as vertical lines into
+        the cake and as iso-2θ rings onto the image (the pattern lines are
+        handled by the PhaseInPatternController)."""
+        self._phase_overlays_dirty = False
+        phase_model = self.model.phase_model
+        cake_lines = []
+        ring_segments = []
+
+        if self.model.calibration_model.is_calibrated:
+            wavelength_ang = self.model.calibration_model.wavelength * 1e10
+            downsample = self._PHASE_RING_DOWNSAMPLE
+            tth_img = self.model.calibration_model.tth_array[::downsample, ::downsample]
+            tth_img_min, tth_img_max = tth_img.min(), tth_img.max()
+
+            for ind in range(len(phase_model.phases)):
+                if not phase_model.phase_visible[ind]:
+                    continue
+                color = phase_model.phase_colors[ind]
+                rgba = (
+                    int(color[0]),
+                    int(color[1]),
+                    int(color[2]),
+                    self._PHASE_OVERLAY_ALPHA,
+                )
+                line_positions = phase_model.get_phase_line_positions(
+                    ind, "2th_deg", wavelength_ang
+                )
+
+                if self.model.cake_tth is not None:
+                    for tth in line_positions:
+                        position = get_partial_index(self.model.cake_tth, tth)
+                        if position is not None:
+                            cake_lines.append((position + 0.5, rgba))
+
+                for tth in line_positions:
+                    tth_rad = np.deg2rad(tth)
+                    if not tth_img_min < tth_rad < tth_img_max:
+                        continue
+                    for segment in find_contours(tth_img, tth_rad):
+                        ring_segments.append(
+                            (
+                                segment[:, 1] * downsample + 0.5,
+                                segment[:, 0] * downsample + 0.5,
+                                rgba,
+                            )
+                        )
+
+        self.widget.cake_widget.set_phase_lines(cake_lines)
+        self.widget.img_widget.set_phase_rings(ring_segments)
 
     def load_img(self):
         """
@@ -688,12 +854,9 @@ class CalibrationController:
         # the cake and pattern views are for judging the finished
         # calibration — they appear only on the validation step
         on_validation = current == last
-        tab_widget = self.widget.tab_widget
-        tab_widget.setTabVisible(1, on_validation)
-        tab_widget.setTabVisible(2, on_validation)
-        tab_widget.tabBar().setVisible(on_validation)
-        if not on_validation and tab_widget.currentIndex() != 0:
-            tab_widget.setCurrentIndex(0)
+        self.widget.calibration_display_widget.show_validation_views(on_validation)
+        if on_validation and self._phase_overlays_dirty:
+            self._update_phase_overlays()
 
         if state.num_peaks == 0:
             self.widget.peak_counter_lbl.setText("No peaks selected")
@@ -760,6 +923,13 @@ class CalibrationController:
             calibration_model.detector_reset.connect(
                 self.show_detector_reset_message_box
             )
+        if not calibration_model.parameters_changed.has_listener(
+            self._phase_overlays_changed
+        ):
+            calibration_model.parameters_changed.connect(
+                self._phase_overlays_changed
+            )
+        self._phase_overlays_dirty = True
         # a plain refresh — the ring-counter bookkeeping in
         # _on_points_changed must not treat the cross-configuration count
         # difference as an undo
@@ -1017,15 +1187,16 @@ class CalibrationController:
             text_str, abort_str, 0, end_value, self.widget
         )
 
+        display_widget = self.widget.calibration_display_widget
         progress_dialog.move(
             int(
-                self.widget.tab_widget.x()
-                + self.widget.tab_widget.size().width() / 2.0
+                display_widget.x()
+                + display_widget.size().width() / 2.0
                 - progress_dialog.size().width() / 2.0
             ),
             int(
-                self.widget.tab_widget.y()
-                + self.widget.tab_widget.size().height() / 2.0
+                display_widget.y()
+                + display_widget.size().height() / 2.0
                 - progress_dialog.size().height() / 2.0
             ),
         )
@@ -1229,11 +1400,10 @@ class CalibrationController:
 
         self.widget.pattern_widget.view_box.autoRange()
         # a calibration (or loaded .poni) exists now — bring the wizard to
-        # the validation page (unhides the cake/pattern tabs), then show the
-        # cake for a first visual check
+        # the validation page, where image, cake and pattern are shown
+        # side by side; the freshly integrated cake needs its overlays
+        self._phase_overlays_dirty = True
         self.go_to_wizard_step(3)
-        if self.widget.tab_widget.currentIndex() == 0:
-            self.widget.tab_widget.setCurrentIndex(1)
         self.update_calibration_parameter_in_view()
         self.load_calibrant("pyFAI")
 
