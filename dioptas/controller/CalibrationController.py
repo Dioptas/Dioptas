@@ -465,6 +465,11 @@ class CalibrationController:
         :param y:
             y-Position for the search
         """
+        # picking only belongs to the Pick Rings step — a click on the image
+        # in any other step must not silently add peaks
+        if self._wizard_widget().current_step() != 1:
+            return
+
         x, y = (
             y,
             x,

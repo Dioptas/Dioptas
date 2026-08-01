@@ -203,6 +203,7 @@ class TestCalibrationController(QtTest):
             return_value=os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
         )
         QTest.mouseClick(self.widget.load_img_btn, QtCore.Qt.LeftButton)
+        self.controller.go_to_wizard_step(1)
         self.controller.search_peaks(1179.6, 1129.4)
         self.controller.search_peaks(1268.5, 1119.8)
         self.controller.widget.sv_wavelength_txt.setText("0.31")
@@ -229,6 +230,7 @@ class TestCalibrationController(QtTest):
             return_value=os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
         )
         QTest.mouseClick(self.widget.load_img_btn, QtCore.Qt.LeftButton)
+        self.controller.go_to_wizard_step(1)
         self.controller.search_peaks(1179.6, 1129.4)
         self.controller.search_peaks(1268.5, 1119.8)
         self.assertEqual(3, self.widget.peak_num_sb.value())
@@ -243,6 +245,7 @@ class TestCalibrationController(QtTest):
         click_checkbox(self.widget.automatic_peak_num_inc_cb)
         self.assertFalse(self.widget.automatic_peak_num_inc_cb.isChecked())
 
+        self.controller.go_to_wizard_step(1)
         self.controller.search_peaks(1179.6, 1129.4)
         self.controller.search_peaks(1268.5, 1119.8)
         self.assertEqual(1, self.widget.peak_num_sb.value())
@@ -340,6 +343,7 @@ class TestCalibrationController(QtTest):
             return_value=os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
         )
         QTest.mouseClick(self.widget.load_img_btn, QtCore.Qt.LeftButton)
+        self.controller.go_to_wizard_step(1)
         self.controller.search_peaks(1179.6, 1129.4)
         self.controller.search_peaks(1268.5, 1119.8)
         calibrant_index = self.widget.calibrant_cb.findText("CuO")
@@ -641,6 +645,22 @@ def test_manual_parameter_update_with_empty_fields_shows_message(
     click_button(widget.pf_update_btn)
     assert QtWidgets.QMessageBox.critical.called
     assert not calibration_model.is_calibrated
+
+
+def test_image_clicks_only_pick_peaks_on_the_pick_rings_step(
+    calibration_controller, calibration_model, dioptas_model
+):
+    dioptas_model.img_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
+    )
+    # on the image step a click must not add peaks
+    assert calibration_controller.widget.step_stack.currentIndex() == 0
+    calibration_controller.search_peaks(1179.6, 1129.4)
+    assert len(calibration_model.points) == 0
+
+    calibration_controller.go_to_wizard_step(1)
+    calibration_controller.search_peaks(1179.6, 1129.4)
+    assert len(calibration_model.points) == 1
 
 
 def test_project_reset_clears_peak_views(

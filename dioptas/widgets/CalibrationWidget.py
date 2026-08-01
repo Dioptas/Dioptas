@@ -758,33 +758,33 @@ class PeakSelectionWidget(QtWidgets.QWidget):
         self._layout.setVerticalSpacing(3)
         self._layout.setHorizontalSpacing(6)
 
+        self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
+                                                   QtWidgets.QSizePolicy.Minimum), 0, 0)
+        self._layout.addWidget(LabelAlignRight('Current Ring Number:'), 0, 1, 1, 2)
+        self.peak_num_sb = SpinBoxAlignRight()
+        self.peak_num_sb.setValue(1)
+        self.peak_num_sb.setMinimum(1)
+        self._layout.addWidget(self.peak_num_sb, 0, 3)
+
+        self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
+                                                   QtWidgets.QSizePolicy.Minimum), 1, 0, 1, 2)
+        self.automatic_peak_num_inc_cb = QtWidgets.QCheckBox('automatic increase')
+        self.automatic_peak_num_inc_cb.setChecked(True)
+        self._layout.addWidget(self.automatic_peak_num_inc_cb, 1, 2, 1, 2)
+
         self.automatic_peak_search_rb = QtWidgets.QRadioButton('automatic peak search')
         self.automatic_peak_search_rb.setChecked(True)
         self.select_peak_rb = QtWidgets.QRadioButton('single peak search')
-        self._layout.addWidget(self.automatic_peak_search_rb, 0, 0, 1, 4)
-        self._layout.addWidget(self.select_peak_rb, 1, 0, 1, 4)
+        self._layout.addWidget(self.automatic_peak_search_rb, 2, 0, 1, 4)
+        self._layout.addWidget(self.select_peak_rb, 3, 0, 1, 4)
 
         self.search_size_sb = SpinBoxAlignRight()
         self.search_size_sb.setValue(10)
         self.search_size_sb.setMaximumWidth(50)
-        self._layout.addWidget(LabelAlignRight('Search size:'), 2, 0)
-        self._layout.addWidget(self.search_size_sb, 2, 1)
+        self._layout.addWidget(LabelAlignRight('Search size:'), 4, 0)
+        self._layout.addWidget(self.search_size_sb, 4, 1)
         self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
-                                                   QtWidgets.QSizePolicy.Minimum), 2, 2, 1, 2)
-
-        self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
-                                                   QtWidgets.QSizePolicy.Minimum), 3, 0)
-        self._layout.addWidget(LabelAlignRight('Current Ring Number:'), 3, 1, 1, 2)
-        self.peak_num_sb = SpinBoxAlignRight()
-        self.peak_num_sb.setValue(1)
-        self.peak_num_sb.setMinimum(1)
-        self._layout.addWidget(self.peak_num_sb, 3, 3)
-
-        self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
-                                                   QtWidgets.QSizePolicy.Minimum), 4, 0, 1, 2)
-        self.automatic_peak_num_inc_cb = QtWidgets.QCheckBox('automatic increase')
-        self.automatic_peak_num_inc_cb.setChecked(True)
-        self._layout.addWidget(self.automatic_peak_num_inc_cb, 4, 2, 1, 2)
+                                                   QtWidgets.QSizePolicy.Minimum), 4, 2, 1, 2)
 
         # one row per picked peak group; the ring spinbox reassigns a
         # group, selection highlights the peaks in the image
