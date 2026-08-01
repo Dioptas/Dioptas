@@ -512,7 +512,7 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
 
         self._status_layout = QtWidgets.QHBoxLayout()
         self._status_layout.setContentsMargins(6, 0, 0, 0)
-        self.position_lbl = QtWidgets.QLabel("position_lbl")
+        self.position_lbl = QtWidgets.QLabel("")
 
         self._status_layout.addSpacerItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
                                                                 QtWidgets.QSizePolicy.Minimum))
