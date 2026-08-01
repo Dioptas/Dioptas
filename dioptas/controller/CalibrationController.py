@@ -868,6 +868,16 @@ class CalibrationController:
             wizard.next_btn.setText(
                 "Next: {} ›".format(WIZARD_STEP_TITLES[current + 1])
             )
+        if current == last:
+            # Back is the only navigation on the result page — let it fill
+            # the row and say where it goes instead of floating alone
+            wizard.back_btn.setMaximumWidth(16777215)
+            wizard.back_btn.setText(
+                "‹ Back: {}".format(WIZARD_STEP_TITLES[current - 1])
+            )
+        else:
+            wizard.back_btn.setMaximumWidth(80)
+            wizard.back_btn.setText("‹ Back")
         wizard.next_btn.setEnabled(
             current < last and self._wizard_step_reachable(current + 1, state)
         )
