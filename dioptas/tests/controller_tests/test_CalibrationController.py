@@ -367,17 +367,58 @@ class TestCalibrationController(QtTest):
         self.model.calibration_model.detector_reset.emit.assert_not_called()
 
 
-def test_click_calibrate_without_defined_points(
+def test_calibrate_button_is_gated_until_peaks_are_picked(
     calibration_controller, calibration_model
 ):
-    QtWidgets.QMessageBox.critical = MagicMock()
+    # the guided workflow disables Calibrate instead of popping an error
+    # dialog after the fact
     calibration_model.calibrate = MagicMock()
-    click_button(calibration_controller.widget.calibrate_btn)
-    assert QtWidgets.QMessageBox.critical.called
+    widget = calibration_controller.widget
+    assert not widget.calibrate_btn.isEnabled()
+    assert widget.calibrate_btn.toolTip() != ""
+
+    click_button(widget.calibrate_btn)
     assert not calibration_model.calibrate.called
 
+    calibration_model.params.peak_selections = ((0, ((10.0, 20.0),)),)
+    assert widget.calibrate_btn.isEnabled()
+    assert widget.calibrate_btn.toolTip() == ""
 
-def test_click_refine_without_defined_points(calibration_controller, calibration_model):
-    QtWidgets.QMessageBox.critical = MagicMock()
-    click_button(calibration_controller.widget.refine_btn)
-    assert QtWidgets.QMessageBox.critical.called
+
+def test_refine_button_is_gated_until_calibrated(calibration_controller):
+    widget = calibration_controller.widget
+    assert not widget.refine_btn.isEnabled()
+    assert widget.refine_btn.toolTip() != ""
+
+
+def test_guide_updates_steps_hint_and_counter(
+    calibration_controller, calibration_model, dioptas_model
+):
+    widget = calibration_controller.widget
+    assert widget.image_step.status() == "attention"
+    assert widget.hint_lbl.text().startswith("Step 1")
+
+    dioptas_model.img_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
+    )
+    assert widget.image_step.status() == "done"
+    assert widget.peaks_step.status() == "attention"
+    assert widget.hint_lbl.text().startswith("Step 3")
+
+    calibration_model.params.peak_selections = (
+        (0, ((10.0, 20.0), (30.0, 40.0))),
+        (1, ((50.0, 60.0),)),
+    )
+    assert widget.peaks_step.status() == "done"
+    assert widget.calibrate_step.status() == "attention"
+    assert widget.peak_counter_lbl.text() == "3 peaks on 2 rings"
+
+    calibration_model.params.is_calibrated = True
+    assert widget.calibrate_step.status() == "done"
+    assert widget.setup_step.status() == "done"
+    assert widget.refine_btn.isEnabled()
+    assert "Save Calibration" in widget.hint_lbl.text()
+
+    calibration_model.params.poni_filename = "/somewhere/test.poni"
+    assert widget.hint_lbl.text() == ""
+    assert not widget.hint_lbl.isVisible()

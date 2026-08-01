@@ -15,6 +15,7 @@ from ..widgets.CalibrationWidget import CalibrationWidget
 from ..widgets.UtilityWidgets import open_file_dialog
 from ..model.DioptasModel import DioptasModel
 from .binding import Binder
+from ..model.CalibrationGuide import CalibrationGuide, NextAction, Step
 from ..model.CalibrationModel import (
     NotEnoughSpacingsInCalibrant,
     get_available_detectors,
@@ -47,6 +48,10 @@ class CalibrationController:
         self.create_signals()
         self.load_detectors_list()
         self.load_calibrants_list()
+
+        self.guide = CalibrationGuide(dioptas_model)
+        self.guide.changed.connect(self.update_guide_in_view)
+        self.update_guide_in_view()
 
     def create_signals(self):
         """
@@ -435,6 +440,62 @@ class CalibrationController:
             self.plot_points(points)
             if self.widget.automatic_peak_num_inc_cb.isChecked():
                 self.widget.peak_num_sb.setValue(peak_ind + 1)
+
+    _NEXT_ACTION_HINTS = {
+        NextAction.LOAD_IMAGE: "Step 1: Load an image of your calibration standard.",
+        NextAction.PICK_PEAKS: "Step 3: Click on the innermost complete ring in the "
+        "image to pick peaks — check calibrant, wavelength and distance "
+        "in step 2 first.",
+        NextAction.CALIBRATE: "Step 4: Press Calibrate.",
+        NextAction.SAVE: "Check that the rings match the image and pattern, "
+        "then press Save Calibration.",
+        NextAction.NONE: "",
+    }
+
+    def update_guide_in_view(self, state=None):
+        """Pushes the guide's derived workflow state into the view: the step
+        status chips, the hint bar, the peak counter and the readiness of the
+        Calibrate/Refine buttons.
+        """
+        if state is None:
+            state = self.guide.state
+
+        step_sections = {
+            Step.IMAGE: self.widget.image_step,
+            Step.SETUP: self.widget.setup_step,
+            Step.PEAKS: self.widget.peaks_step,
+            Step.CALIBRATE: self.widget.calibrate_step,
+        }
+        for step, section in step_sections.items():
+            section.set_status(state.step_status[step].name.lower())
+
+        self.widget.calibration_display_widget.show_hint(
+            self._NEXT_ACTION_HINTS[state.next_action]
+        )
+
+        if state.num_peaks == 0:
+            self.widget.peak_counter_lbl.setText("No peaks selected")
+        else:
+            self.widget.peak_counter_lbl.setText(
+                "{} peaks on {} ring{}".format(
+                    state.num_peaks,
+                    state.num_rings,
+                    "" if state.num_rings == 1 else "s",
+                )
+            )
+
+        self.widget.calibrate_btn.setEnabled(state.num_peaks > 0)
+        self.widget.calibrate_btn.setToolTip(
+            ""
+            if state.num_peaks > 0
+            else "Needs picked peaks — click on the innermost ring in the image first."
+        )
+        self.widget.refine_btn.setEnabled(state.is_calibrated)
+        self.widget.refine_btn.setToolTip(
+            ""
+            if state.is_calibrated
+            else "Needs an existing calibration — run Calibrate or load a *.poni file first."
+        )
 
     def _on_points_changed(self):
         """Keeps the ring counter and the plotted peaks in step with the model.
