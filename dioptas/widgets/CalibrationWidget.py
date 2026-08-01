@@ -31,12 +31,16 @@ class StepIndicatorWidget(QtWidgets.QWidget):
         'attention': '#F1F1F1',
         'done': '#B4B4B4',
     }
+    #: badge/underline color of the current step
+    CURRENT_COLOR = '#E8A33C'
+    DONE_COLOR = '#66bb6a'
+    BADGE_SIZE = 20
 
     def __init__(self, titles, parent=None):
         super().__init__(parent)
         self._layout = QtWidgets.QHBoxLayout(self)
         self._layout.setContentsMargins(6, 0, 10, 0)
-        self._layout.setSpacing(0)
+        self._layout.setSpacing(8)
 
         # right-aligned: the wizard controls live in the right panel, so
         # the step navigation sits above them
@@ -47,11 +51,13 @@ class StepIndicatorWidget(QtWidgets.QWidget):
         self._statuses = []
         for ind, title in enumerate(titles):
             if ind > 0:
-                separator = QtWidgets.QLabel('›')
-                separator.setStyleSheet('color: #5B5B5B;')
-                self._layout.addWidget(separator)
+                separator = QtWidgets.QLabel()
+                separator.setFixedSize(22, 1)
+                separator.setStyleSheet('background-color: #5B5B5B;')
+                self._layout.addWidget(separator, 0, QtCore.Qt.AlignVCenter)
             btn = QtWidgets.QToolButton()
-            btn.setText('{}. {}'.format(ind + 1, title))
+            btn.setText(title)
+            btn.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
             btn.setCheckable(True)
             btn.setAutoExclusive(True)
             btn.clicked.connect(lambda _=False, i=ind: self.step_clicked.emit(i))
@@ -59,14 +65,56 @@ class StepIndicatorWidget(QtWidgets.QWidget):
             self.step_btns.append(btn)
             self._statuses.append('pending')
 
-        self.setMaximumHeight(30)
+        self.setMaximumHeight(34)
 
         self.set_current_step(0)
-        for ind in range(len(self.step_btns)):
-            self._style_step(ind)
+
+    def _make_badge_icon(self, index):
+        """Paints the step's circular badge: amber with the step number for
+        the current step, a green check for completed steps, an outlined
+        number otherwise."""
+        status = self._statuses[index]
+        is_current = self.step_btns[index].isChecked()
+        size = self.BADGE_SIZE
+        pixmap = QtGui.QPixmap(size * 2, size * 2)
+        pixmap.setDevicePixelRatio(2)
+        pixmap.fill(QtCore.Qt.transparent)
+        painter = QtGui.QPainter(pixmap)
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        rect = QtCore.QRectF(1, 1, size - 2, size - 2)
+        font = painter.font()
+        font.setBold(True)
+        font.setPixelSize(11)
+        painter.setFont(font)
+        if is_current:
+            painter.setPen(QtCore.Qt.NoPen)
+            painter.setBrush(QtGui.QColor(self.CURRENT_COLOR))
+            painter.drawEllipse(rect)
+            painter.setPen(QtGui.QColor('#1E1E1E'))
+            painter.drawText(rect, QtCore.Qt.AlignCenter, str(index + 1))
+        elif status == 'done':
+            pen = QtGui.QPen(QtGui.QColor(self.DONE_COLOR))
+            pen.setWidthF(1.6)
+            painter.setPen(pen)
+            painter.setBrush(QtCore.Qt.NoBrush)
+            painter.drawEllipse(rect)
+            painter.drawText(rect, QtCore.Qt.AlignCenter, '✓')
+        else:
+            color = QtGui.QColor(self.STATUS_COLORS[status])
+            pen = QtGui.QPen(color)
+            pen.setWidthF(1.2)
+            painter.setPen(pen)
+            painter.setBrush(QtCore.Qt.NoBrush)
+            painter.drawEllipse(rect)
+            painter.drawText(rect, QtCore.Qt.AlignCenter, str(index + 1))
+        painter.end()
+        return QtGui.QIcon(pixmap)
 
     def set_current_step(self, index):
         self.step_btns[index].setChecked(True)
+        # the badges depend on which step is current
+        for ind in range(len(self.step_btns)):
+            self._style_step(ind)
 
     def current_step(self):
         for ind, btn in enumerate(self.step_btns):
@@ -88,18 +136,20 @@ class StepIndicatorWidget(QtWidgets.QWidget):
     def _style_step(self, index):
         status = self._statuses[index]
         color = self.STATUS_COLORS[status]
-        prefix = '✓ ' if status == 'done' else ''
-        self.step_btns[index].setText(
-            '{}{}. {}'.format(prefix, index + 1, self._titles[index]))
+        btn = self.step_btns[index]
+        btn.setText(' ' + self._titles[index])
+        btn.setIcon(self._make_badge_icon(index))
+        btn.setIconSize(QtCore.QSize(self.BADGE_SIZE, self.BADGE_SIZE))
         # min-height/margin zeroed to undo the qt_material button sizing,
         # which would inflate the row to ~47px and read as empty space
-        self.step_btns[index].setStyleSheet(
+        btn.setStyleSheet(
             'QToolButton {{ border: none; background: transparent;'
-            ' color: {0}; font-size: 14px; padding: 2px 8px;'
+            ' color: {0}; font-size: 14px; padding: 4px 10px;'
             ' margin: 0px; min-height: 0px; }}'
             'QToolButton:checked {{ font-weight: bold; color: #F1F1F1;'
-            ' background: transparent; border-bottom: 2px solid #B4B4B4; }}'
-            'QToolButton:disabled {{ color: #5B5B5B; }}'.format(color))
+            ' background: #262626; border-bottom: 2px solid {1}; }}'
+            'QToolButton:disabled {{ color: #5B5B5B; }}'.format(
+                color, self.CURRENT_COLOR))
 
 
 class CalibrationWidget(QtWidgets.QWidget):
