@@ -14,7 +14,7 @@ from .integration.phase.PhaseInPatternController import PhaseInPatternController
 from .. import calibrants_path
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from ..widgets.CalibrationWidget import CalibrationWidget
+from ..widgets.CalibrationWidget import CalibrationWidget, WIZARD_STEP_TITLES
 from ..widgets.UtilityWidgets import open_file_dialog
 from ..model.DioptasModel import DioptasModel
 from .binding import Binder
@@ -861,8 +861,13 @@ class CalibrationController:
             self.widget.set_wizard_step(current)
 
         last = wizard.step_stack.count() - 1
+        wizard.back_btn.setVisible(current > 0)
         wizard.back_btn.setEnabled(current > 0)
         wizard.next_btn.setVisible(current < last)
+        if current < last:
+            wizard.next_btn.setText(
+                "Next: {} ›".format(WIZARD_STEP_TITLES[current + 1])
+            )
         wizard.next_btn.setEnabled(
             current < last and self._wizard_step_reachable(current + 1, state)
         )

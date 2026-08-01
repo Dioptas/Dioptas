@@ -14,6 +14,22 @@ from .CustomWidgets import NumberTextField, LabelAlignRight, CleanLooksComboBox,
     DoubleSpinBoxAlignRight, OpenIconButton, ResetIconButton
 
 
+#: the wizard's step titles — shared between the top indicator and the
+#: Next button labels
+WIZARD_STEP_TITLES = ['Image', 'Pick Rings', 'Calibrate', 'Validation']
+
+#: instance stylesheet for the wizard's primary action buttons — applied
+#: per button because the qt_material theme overrides the app-qss
+#: property rule inconsistently
+PRIMARY_BUTTON_STYLE = (
+    'QPushButton { border: 1px solid #E8A33C; color: #E8A33C;'
+    ' font-weight: bold; border-radius: 4px; background: transparent; }'
+    'QPushButton:hover { background: rgba(232, 163, 60, 30); }'
+    'QPushButton:disabled { border: 1px solid #5B5B5B; color: #909090;'
+    ' font-weight: normal; }'
+)
+
+
 class StepIndicatorWidget(QtWidgets.QWidget):
     """The "1. Image ▸ 2. Pick Rings ▸ 3. Calibrate" header of the
     calibration wizard.
@@ -164,8 +180,7 @@ class CalibrationWidget(QtWidgets.QWidget):
 
         self.setObjectName('calibration_widget')
 
-        self.step_indicator = StepIndicatorWidget(
-            ['Image', 'Pick Rings', 'Calibrate', 'Validation'])
+        self.step_indicator = StepIndicatorWidget(WIZARD_STEP_TITLES)
 
         self.calibration_display_widget = CalibrationDisplayWidget(self)
         self.calibration_control_widget = CalibrationControlWidget(self)
@@ -635,7 +650,7 @@ class CalibrationParameterWidget(QtWidgets.QWidget):
         self.refinement_options_gb = RefinementOptionsGroupBox()
 
         self.calibrate_btn = QtWidgets.QPushButton('Calibrate')
-        self.calibrate_btn.setProperty('primary', True)
+        self.calibrate_btn.setStyleSheet(PRIMARY_BUTTON_STYLE)
         self.calibrate_btn.setMinimumHeight(28)
 
         self.calibrate_page = QtWidgets.QWidget()
@@ -656,7 +671,7 @@ class CalibrationParameterWidget(QtWidgets.QWidget):
 
         self.refine_btn = QtWidgets.QPushButton('Refine')
         self.save_calibration_btn = QtWidgets.QPushButton('Save Calibration')
-        self.save_calibration_btn.setProperty('primary', True)
+        self.save_calibration_btn.setStyleSheet(PRIMARY_BUTTON_STYLE)
         self.save_calibration_btn.setMinimumHeight(28)
 
         self.validation_page = QtWidgets.QWidget()
@@ -682,13 +697,18 @@ class CalibrationParameterWidget(QtWidgets.QWidget):
             QtCore.Qt.ScrollBarAlwaysOff)
         self._scroll_area.setWidget(self.step_stack)
 
-        self.back_btn = QtWidgets.QPushButton('< Back')
-        self.next_btn = QtWidgets.QPushButton('Next >')
-        self.next_btn.setProperty('primary', True)
+        # the primary way forward: a prominent Next naming the target step,
+        # with a compact Back beside it
+        self.back_btn = QtWidgets.QPushButton('‹ Back')
+        self.back_btn.setMinimumHeight(30)
+        self.back_btn.setMaximumWidth(80)
+        self.next_btn = QtWidgets.QPushButton('Next ›')
+        self.next_btn.setStyleSheet(PRIMARY_BUTTON_STYLE)
+        self.next_btn.setMinimumHeight(30)
         self._nav_layout = QtWidgets.QHBoxLayout()
+        self._nav_layout.setSpacing(6)
         self._nav_layout.addWidget(self.back_btn)
-        self._nav_layout.addStretch()
-        self._nav_layout.addWidget(self.next_btn)
+        self._nav_layout.addWidget(self.next_btn, 1)
 
         self._layout.addWidget(self._scroll_area)
         self._layout.addLayout(self._nav_layout)

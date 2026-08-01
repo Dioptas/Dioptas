@@ -133,19 +133,6 @@ QLineEdit::focus{
 QLineEdit[unconfirmed="true"], QComboBox[unconfirmed="true"] {
     border: 1px solid #ffa726;
 }
-
-/* the primary action of a wizard step (guided calibration) */
-QPushButton[primary="true"] {
-    border: 1px solid rgb(255, 120, 0);
-    color: rgb(255, 160, 60);
-    font-weight: bold;
-}
-QPushButton[primary="true"]:disabled {
-    border: 1px solid #5B5B5B;
-    color: rgb(148, 148, 148);
-    font-weight: normal;
-}
-
 QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled{
 	color:rgb(148, 148, 148)
 }
