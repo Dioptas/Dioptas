@@ -46,6 +46,8 @@
 
 - After loading an existing calibration, the wizard marked Calibrate and Validation as done while Pick Rings still looked not started, contradicting the idea of a sequence. A step that a loaded or manually entered calibration makes unnecessary now shows a gray dash — skipped — with a tooltip saying why.
 
+- Values in disabled input fields — the parameters of a correction that is not yet enabled, for instance — were rendered so dim they were unreadable on the dark background. They are legible now, while still clearly inactive; the same applies to disabled labels, checkboxes and radio buttons.
+
 ## Distribution
 
 - A project file is now the settings tree plus the data it refers to: one JSON document holding every setting, and content-addressed datasets for masks, overlay curves and image copies. Identical content is stored once, so two configurations masking the same detector no longer store two copies. The previous layout wrote every value twice — once as an HDF5 attribute and once in a settings document — and spent one HDF5 group per reflection; a two-phase project used 72 groups where it now uses four.
