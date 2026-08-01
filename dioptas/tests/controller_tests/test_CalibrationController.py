@@ -4,6 +4,8 @@ import unittest
 from mock import MagicMock, patch
 import os
 import gc
+
+import pytest
 from pyFAI import detectors
 
 import numpy as np
@@ -661,6 +663,54 @@ def test_image_clicks_only_pick_peaks_on_the_pick_rings_step(
     calibration_controller.go_to_wizard_step(1)
     calibration_controller.search_peaks(1179.6, 1129.4)
     assert len(calibration_model.points) == 1
+
+
+def test_fixed_parameters_can_be_set_before_calibration(calibration_controller):
+    widget = calibration_controller.widget
+    refinement_options_gb = (
+        widget.calibration_control_widget
+        .calibration_parameters_widget.refinement_options_gb
+    )
+    # everything refined by default
+    assert widget.get_fixed_values() == {}
+
+    click_checkbox(refinement_options_gb.rotation3_cb)
+    refinement_options_gb.rotation3_txt.setText("0.01")
+    click_checkbox(refinement_options_gb.poni1_cb)
+    refinement_options_gb.poni1_txt.setText("0.08")
+    assert widget.get_fixed_values() == {"rot3": 0.01, "poni1": 0.08}
+
+    # mirrored onto the pyFAI parameter page and back
+    assert not widget.pf_rot3_cb.isChecked()
+    assert not widget.pf_poni1_cb.isChecked()
+    click_checkbox(widget.pf_rot3_cb)
+    assert refinement_options_gb.rotation3_cb.isChecked()
+    assert widget.get_fixed_values() == {"poni1": 0.08}
+
+
+def test_fitted_values_sync_into_constraint_fields(calibration_controller):
+    widget = calibration_controller.widget
+    refinement_options_gb = (
+        widget.calibration_control_widget
+        .calibration_parameters_widget.refinement_options_gb
+    )
+    widget.set_pyFAI_parameter(
+        {
+            "dist": 0.2,
+            "poni1": 0.081,
+            "poni2": 0.082,
+            "rot1": 0.001,
+            "rot2": 0.002,
+            "rot3": 0.003,
+            "wavelength": 0.31e-10,
+            "polarization_factor": 0.99,
+            "pixel1": 79e-6,
+            "pixel2": 79e-6,
+        }
+    )
+    assert float(refinement_options_gb.rotation1_txt.text()) == pytest.approx(0.001)
+    assert float(refinement_options_gb.rotation3_txt.text()) == pytest.approx(0.003)
+    assert float(refinement_options_gb.poni1_txt.text()) == pytest.approx(0.081)
 
 
 def test_project_reset_clears_peak_views(
