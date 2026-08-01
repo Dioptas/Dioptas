@@ -78,6 +78,42 @@ class StepSectionWidget(QtWidgets.QWidget):
         return self._status
 
 
+class AdvancedExpander(QtWidgets.QWidget):
+    """A collapsed-by-default "advanced" disclosure for options that
+    first-time users should not need to touch."""
+
+    def __init__(self, content_widget, parent=None):
+        super().__init__(parent)
+        self.content_widget = content_widget
+
+        self.header_btn = QtWidgets.QToolButton()
+        self.header_btn.setText('advanced')
+        self.header_btn.setCheckable(True)
+        self.header_btn.setChecked(False)
+        self.header_btn.setArrowType(QtCore.Qt.RightArrow)
+        self.header_btn.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+        self.header_btn.setStyleSheet(
+            'QToolButton { border: none; color: #989898; }')
+        self.header_btn.toggled.connect(self.set_expanded)
+
+        self._layout = QtWidgets.QVBoxLayout(self)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(0)
+        self._layout.addWidget(self.header_btn)
+        self._layout.addWidget(self.content_widget)
+
+        self.content_widget.hide()
+
+    def set_expanded(self, expanded):
+        self.header_btn.setChecked(expanded)
+        self.content_widget.setVisible(expanded)
+        self.header_btn.setArrowType(
+            QtCore.Qt.DownArrow if expanded else QtCore.Qt.RightArrow)
+
+    def is_expanded(self):
+        return self.header_btn.isChecked()
+
+
 class CalibrationWidget(QtWidgets.QWidget):
     """
     Defines the main structure of the calibration widget, which is separated into two parts.
@@ -140,6 +176,7 @@ class CalibrationWidget(QtWidgets.QWidget):
 
         self.sv_wavelength_txt = sv_gb.wavelength_txt
         self.sv_wavelength_cb = sv_gb.wavelength_cb
+        self.sv_energy_txt = sv_gb.energy_txt
         self.sv_distance_txt = sv_gb.distance_txt
         self.sv_distance_cb = sv_gb.distance_cb
         self.sv_polarisation_txt = sv_gb.polarization_txt
@@ -203,6 +240,7 @@ class CalibrationWidget(QtWidgets.QWidget):
         sv_gb.distance_txt.setText('%.3f' % (start_values['dist'] * 1000))
         sv_gb.wavelength_txt.setText('%.6f' % (start_values['wavelength'] * 1e10))
         sv_gb.polarization_txt.setText('%.3f' % (start_values['polarization_factor']))
+        sv_gb.update_energy_from_wavelength()
 
     def get_start_values(self):
         """
@@ -283,6 +321,7 @@ class CalibrationWidget(QtWidgets.QWidget):
             pyfai_widget.pixel_width_txt.setText('%.4f' % (pyfai_parameter['pixel2'] * 1e6))
 
             sv_gb.wavelength_txt.setText('%.6f' % (pyfai_parameter['wavelength'] * 1e10))
+            sv_gb.update_energy_from_wavelength()
             sv_gb.polarization_txt.setText('%.3f' % (pyfai_parameter['polarization_factor']))
             self.set_pixel_size(pyfai_parameter['pixel2'], pyfai_parameter['pixel1'])
         except (AttributeError, TypeError):
@@ -616,9 +655,14 @@ class StartValuesGroupBox(QtWidgets.QGroupBox):
         self._grid_layout1.addWidget(QtWidgets.QLabel('A'), 1, 2)
         self._grid_layout1.addWidget(self.wavelength_cb, 1, 3)
 
-        self._grid_layout1.addWidget(LabelAlignRight('Polarization:'), 2, 0)
+        self._grid_layout1.addWidget(LabelAlignRight('Energy:'), 2, 0)
+        self.energy_txt = NumberTextField()
+        self._grid_layout1.addWidget(self.energy_txt, 2, 1)
+        self._grid_layout1.addWidget(QtWidgets.QLabel('keV'), 2, 2)
+
+        self._grid_layout1.addWidget(LabelAlignRight('Polarization:'), 3, 0)
         self.polarization_txt = NumberTextField('0.99')
-        self._grid_layout1.addWidget(self.polarization_txt, 2, 1)
+        self._grid_layout1.addWidget(self.polarization_txt, 3, 1)
 
         self._grid_layout1.addWidget(LabelAlignRight('Calibrant:'), 5, 0)
         self.calibrant_cb = CleanLooksComboBox()
@@ -627,6 +671,26 @@ class StartValuesGroupBox(QtWidgets.QGroupBox):
         self._layout.addLayout(self._grid_layout1)
 
         self.setLayout(self._layout)
+        self.update_energy_from_wavelength()
+
+    #: hc in keV·Å for photon energy/wavelength conversion
+    HC_KEV_ANGSTROM = 12.398419843320026
+
+    def update_energy_from_wavelength(self):
+        """Recomputes the energy display from the wavelength field."""
+        try:
+            wavelength = float(self.wavelength_txt.text())
+            self.energy_txt.setText('%.4f' % (self.HC_KEV_ANGSTROM / wavelength))
+        except (ValueError, ZeroDivisionError):
+            self.energy_txt.setText('')
+
+    def update_wavelength_from_energy(self):
+        """Recomputes the wavelength field from the energy display."""
+        try:
+            energy = float(self.energy_txt.text())
+            self.wavelength_txt.setText('%.6f' % (self.HC_KEV_ANGSTROM / energy))
+        except (ValueError, ZeroDivisionError):
+            pass
 
 
 class PeakSelectionGroupBox(QtWidgets.QGroupBox):
@@ -650,20 +714,6 @@ class PeakSelectionGroupBox(QtWidgets.QGroupBox):
         self.automatic_peak_num_inc_cb.setChecked(True)
         self._layout.addWidget(self.automatic_peak_num_inc_cb, 1, 2, 1, 2)
 
-        self.automatic_peak_search_rb = QtWidgets.QRadioButton('automatic peak search')
-        self.automatic_peak_search_rb.setChecked(True)
-        self.select_peak_rb = QtWidgets.QRadioButton('single peak search')
-        self._layout.addWidget(self.automatic_peak_search_rb, 2, 0, 1, 4)
-        self._layout.addWidget(self.select_peak_rb, 3, 0, 1, 4)
-
-        self._layout.addWidget(LabelAlignRight('Search size:'), 4, 0)
-        self.search_size_sb = SpinBoxAlignRight()
-        self.search_size_sb.setValue(10)
-        self.search_size_sb.setMaximumWidth(50)
-        self._layout.addWidget(self.search_size_sb, 4, 1, 1, 2)
-        self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
-                                                   QtWidgets.QSizePolicy.Minimum), 4, 2, 1, 2)
-
         self.clear_ring_btn = QtWidgets.QPushButton("Clear Ring")
         self.clear_peaks_btn = QtWidgets.QPushButton("Clear All")
 
@@ -671,11 +721,35 @@ class PeakSelectionGroupBox(QtWidgets.QGroupBox):
         self._peak_btn_layout.setSpacing(6)
         self._peak_btn_layout.addWidget(self.clear_ring_btn)
         self._peak_btn_layout.addWidget(self.clear_peaks_btn)
-        self._layout.addLayout(self._peak_btn_layout, 5, 0, 1, 4)
+        self._layout.addLayout(self._peak_btn_layout, 2, 0, 1, 4)
 
         self.peak_counter_lbl = QtWidgets.QLabel('No peaks selected')
         self.peak_counter_lbl.setStyleSheet('color: #787878; font-style: italic;')
-        self._layout.addWidget(self.peak_counter_lbl, 6, 0, 1, 4)
+        self._layout.addWidget(self.peak_counter_lbl, 3, 0, 1, 4)
+
+        # search mode and size are expert options — collapsed by default
+        self.automatic_peak_search_rb = QtWidgets.QRadioButton('automatic peak search')
+        self.automatic_peak_search_rb.setChecked(True)
+        self.select_peak_rb = QtWidgets.QRadioButton('single peak search')
+
+        self.search_size_sb = SpinBoxAlignRight()
+        self.search_size_sb.setValue(10)
+        self.search_size_sb.setMaximumWidth(50)
+
+        advanced_content = QtWidgets.QWidget()
+        self._advanced_layout = QtWidgets.QGridLayout(advanced_content)
+        self._advanced_layout.setContentsMargins(0, 0, 0, 0)
+        self._advanced_layout.setVerticalSpacing(3)
+        self._advanced_layout.addWidget(self.automatic_peak_search_rb, 0, 0, 1, 3)
+        self._advanced_layout.addWidget(self.select_peak_rb, 1, 0, 1, 3)
+        self._advanced_layout.addWidget(LabelAlignRight('Search size:'), 2, 0)
+        self._advanced_layout.addWidget(self.search_size_sb, 2, 1)
+        self._advanced_layout.addItem(
+            QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
+                                  QtWidgets.QSizePolicy.Minimum), 2, 2)
+
+        self.advanced_expander = AdvancedExpander(advanced_content)
+        self._layout.addWidget(self.advanced_expander, 4, 0, 1, 4)
 
         self.setLayout(self._layout)
 
@@ -698,29 +772,38 @@ class RefinementOptionsGroupBox(QtWidgets.QGroupBox):
         self.mask_transparent_cb = QtWidgets.QCheckBox('transparent')
         self._layout.addWidget(self.mask_transparent_cb, 1, 1)
 
-        self._layout.addWidget(LabelAlignRight('Peak Search Algorithm:'), 2, 0)
+        # refinement tuning parameters are expert options — collapsed by default
         self.peak_search_algorithm_cb = CleanLooksComboBox()
         self.peak_search_algorithm_cb.addItems(['Massif', 'Blob'])
-        self._layout.addWidget(self.peak_search_algorithm_cb, 2, 1)
 
-        self._layout.addWidget(LabelAlignRight('Delta 2Th:'), 3, 0)
         self.delta_tth_txt = NumberTextField('0.1')
-        self._layout.addWidget(self.delta_tth_txt, 3, 1)
 
-        self._layout.addWidget(LabelAlignRight('Intensity Mean Factor:'), 4, 0)
         self.intensity_mean_factor_sb = DoubleSpinBoxAlignRight()
         self.intensity_mean_factor_sb.setValue(3.0)
         self.intensity_mean_factor_sb.setSingleStep(0.1)
-        self._layout.addWidget(self.intensity_mean_factor_sb, 4, 1)
 
-        self._layout.addWidget(LabelAlignRight('Intensity Limit:'), 5, 0)
         self.intensity_limit_txt = NumberTextField('55000')
-        self._layout.addWidget(self.intensity_limit_txt, 5, 1)
 
-        self._layout.addWidget(LabelAlignRight('Number of rings:'), 6, 0)
         self.number_of_rings_sb = SpinBoxAlignRight()
         self.number_of_rings_sb.setValue(15)
-        self._layout.addWidget(self.number_of_rings_sb, 6, 1)
+
+        advanced_content = QtWidgets.QWidget()
+        self._advanced_layout = QtWidgets.QGridLayout(advanced_content)
+        self._advanced_layout.setContentsMargins(0, 0, 0, 0)
+        self._advanced_layout.setSpacing(3)
+        self._advanced_layout.addWidget(LabelAlignRight('Peak Search Algorithm:'), 0, 0)
+        self._advanced_layout.addWidget(self.peak_search_algorithm_cb, 0, 1)
+        self._advanced_layout.addWidget(LabelAlignRight('Delta 2Th:'), 1, 0)
+        self._advanced_layout.addWidget(self.delta_tth_txt, 1, 1)
+        self._advanced_layout.addWidget(LabelAlignRight('Intensity Mean Factor:'), 2, 0)
+        self._advanced_layout.addWidget(self.intensity_mean_factor_sb, 2, 1)
+        self._advanced_layout.addWidget(LabelAlignRight('Intensity Limit:'), 3, 0)
+        self._advanced_layout.addWidget(self.intensity_limit_txt, 3, 1)
+        self._advanced_layout.addWidget(LabelAlignRight('Number of rings:'), 4, 0)
+        self._advanced_layout.addWidget(self.number_of_rings_sb, 4, 1)
+
+        self.advanced_expander = AdvancedExpander(advanced_content)
+        self._layout.addWidget(self.advanced_expander, 2, 0, 1, 2)
 
         self.setLayout(self._layout)
 

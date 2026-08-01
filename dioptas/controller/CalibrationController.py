@@ -48,6 +48,7 @@ class CalibrationController:
         self.create_signals()
         self.load_detectors_list()
         self.load_calibrants_list()
+        self._setup_unconfirmed_fields()
 
         self.guide = CalibrationGuide(dioptas_model)
         self.guide.changed.connect(self.update_guide_in_view)
@@ -266,6 +267,7 @@ class CalibrationController:
             self.model.calibration_model.load_detector(
                 self.widget.detectors_cb.currentText()
             )
+            self._confirm_fields(*self._pixel_fields)
             emit_img_changed = (
                 self.model.calibration_model.detector.shape
                 == self.model.img_model.img_data.shape
@@ -288,6 +290,7 @@ class CalibrationController:
 
         if filename != "":
             self.model.calibration_model.load_detector_from_file(filename)
+            self._confirm_fields(*self._pixel_fields)
             self.update_detector_parameters_in_view()
 
     def reset_detector_from_file(self):
@@ -441,6 +444,79 @@ class CalibrationController:
             if self.widget.automatic_peak_num_inc_cb.isChecked():
                 self.widget.peak_num_sb.setValue(peak_ind + 1)
 
+    _UNCONFIRMED_TOOLTIP = (
+        "Still at its default value — check that it matches your experiment."
+    )
+
+    def _setup_unconfirmed_fields(self):
+        """Flags setup fields that still show their shipped defaults.
+
+        A first-time user gets garbage out of a calibration run against the
+        default wavelength, distance, pixel size or calibrant without any
+        error — the orange border marks each value that has not been
+        confirmed yet. A field counts as confirmed once the user edits it,
+        a detector or calibration file provides it, or a calibration
+        succeeds with it.
+        """
+        widget = self.widget
+        detector_gb = (
+            widget.calibration_control_widget.calibration_parameters_widget.detector_gb
+        )
+        sv_gb = (
+            widget.calibration_control_widget.calibration_parameters_widget.start_values_gb
+        )
+        self._pixel_fields = (detector_gb.pixel_width_txt, detector_gb.pixel_height_txt)
+        self._wavelength_fields = (widget.sv_wavelength_txt, widget.sv_energy_txt)
+
+        self._unconfirmed_fields = {
+            widget.sv_distance_txt,
+            widget.sv_wavelength_txt,
+            widget.sv_energy_txt,
+            widget.calibrant_cb,
+            *self._pixel_fields,
+        }
+        for field in self._unconfirmed_fields:
+            field.setProperty("unconfirmed", True)
+            field.setToolTip(self._UNCONFIRMED_TOOLTIP)
+            field.style().unpolish(field)
+            field.style().polish(field)
+
+        # the energy display tracks the wavelength field, so an edit of
+        # either confirms both
+        widget.sv_wavelength_txt.textEdited.connect(
+            lambda _: (
+                sv_gb.update_energy_from_wavelength(),
+                self._confirm_fields(*self._wavelength_fields),
+            )
+        )
+        widget.sv_energy_txt.textEdited.connect(
+            lambda _: (
+                sv_gb.update_wavelength_from_energy(),
+                self._confirm_fields(*self._wavelength_fields),
+            )
+        )
+        widget.sv_distance_txt.textEdited.connect(
+            lambda _: self._confirm_fields(widget.sv_distance_txt)
+        )
+        detector_gb.pixel_width_txt.textEdited.connect(
+            lambda _: self._confirm_fields(detector_gb.pixel_width_txt)
+        )
+        detector_gb.pixel_height_txt.textEdited.connect(
+            lambda _: self._confirm_fields(detector_gb.pixel_height_txt)
+        )
+        widget.calibrant_cb.activated.connect(
+            lambda _: self._confirm_fields(widget.calibrant_cb)
+        )
+
+    def _confirm_fields(self, *fields):
+        for field in fields:
+            if field in self._unconfirmed_fields:
+                self._unconfirmed_fields.discard(field)
+                field.setProperty("unconfirmed", False)
+                field.setToolTip("")
+                field.style().unpolish(field)
+                field.style().polish(field)
+
     _NEXT_ACTION_HINTS = {
         NextAction.LOAD_IMAGE: "Step 1: Load an image of your calibration standard.",
         NextAction.PICK_PEAKS: "Step 3: Click on the innermost complete ring in the "
@@ -459,6 +535,11 @@ class CalibrationController:
         """
         if state is None:
             state = self.guide.state
+
+        if state.is_calibrated:
+            # a working calibration exists, so its setup values are evidently
+            # usable — whether calibrated here or loaded from a file
+            self._confirm_fields(*list(self._unconfirmed_fields))
 
         step_sections = {
             Step.IMAGE: self.widget.image_step,

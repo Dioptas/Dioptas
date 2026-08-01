@@ -422,3 +422,83 @@ def test_guide_updates_steps_hint_and_counter(
     calibration_model.params.poni_filename = "/somewhere/test.poni"
     assert widget.hint_lbl.text() == ""
     assert not widget.hint_lbl.isVisible()
+
+
+def test_advanced_options_are_collapsed_by_default(calibration_controller):
+    widget = calibration_controller.widget
+    parameters_widget = (
+        widget.calibration_control_widget.calibration_parameters_widget
+    )
+    assert not parameters_widget.peak_selection_gb.advanced_expander.is_expanded()
+    assert not parameters_widget.refinement_options_gb.advanced_expander.is_expanded()
+    # the hidden expert controls keep working defaults
+    assert widget.automatic_peak_search_rb.isChecked()
+    assert widget.options_num_rings_sb.value() == 15
+
+    parameters_widget.peak_selection_gb.advanced_expander.set_expanded(True)
+    assert parameters_widget.peak_selection_gb.advanced_expander.is_expanded()
+
+
+def test_setup_fields_are_flagged_until_edited(calibration_controller):
+    widget = calibration_controller.widget
+    for field in (
+        widget.sv_distance_txt,
+        widget.sv_wavelength_txt,
+        widget.sv_energy_txt,
+        widget.calibrant_cb,
+    ):
+        assert field.property("unconfirmed")
+        assert field.toolTip() != ""
+
+    widget.sv_distance_txt.setText("300")
+    widget.sv_distance_txt.textEdited.emit("300")
+    assert not widget.sv_distance_txt.property("unconfirmed")
+    assert widget.sv_distance_txt.toolTip() == ""
+    # the others stay flagged
+    assert widget.sv_wavelength_txt.property("unconfirmed")
+
+
+def test_wavelength_and_energy_stay_in_sync(calibration_controller):
+    widget = calibration_controller.widget
+    # default 0.3344 A shows its energy equivalent
+    assert abs(float(widget.sv_energy_txt.text()) - 37.0766) < 1e-3
+
+    widget.sv_wavelength_txt.setText("0.4")
+    widget.sv_wavelength_txt.textEdited.emit("0.4")
+    assert abs(float(widget.sv_energy_txt.text()) - 30.9960) < 1e-3
+    assert not widget.sv_wavelength_txt.property("unconfirmed")
+    assert not widget.sv_energy_txt.property("unconfirmed")
+
+    widget.sv_energy_txt.setText("31")
+    widget.sv_energy_txt.textEdited.emit("31")
+    assert abs(float(widget.sv_wavelength_txt.text()) - 0.399949) < 1e-5
+
+
+def test_calibrated_state_confirms_all_setup_fields(
+    calibration_controller, calibration_model
+):
+    widget = calibration_controller.widget
+    assert widget.sv_wavelength_txt.property("unconfirmed")
+
+    calibration_model.params.is_calibrated = True
+    for field in (
+        widget.sv_distance_txt,
+        widget.sv_wavelength_txt,
+        widget.sv_energy_txt,
+        widget.calibrant_cb,
+    ):
+        assert not field.property("unconfirmed")
+
+
+def test_loading_detector_confirms_pixel_size(calibration_controller):
+    widget = calibration_controller.widget
+    detector_gb = (
+        widget.calibration_control_widget.calibration_parameters_widget.detector_gb
+    )
+    assert detector_gb.pixel_width_txt.property("unconfirmed")
+
+    widget.detectors_cb.setCurrentIndex(
+        widget.detectors_cb.findText("Pilatus CdTe 1M")
+    )
+    assert not detector_gb.pixel_width_txt.property("unconfirmed")
+    assert not detector_gb.pixel_height_txt.property("unconfirmed")
