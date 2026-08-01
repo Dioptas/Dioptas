@@ -16,6 +16,8 @@
 
 - Calibration peaks are now saved in project files. They were previously lost when a project was saved.
 
+- **Calibration now guides you through its steps.** The control panel is organised into four numbered sections — image, experiment setup, ring picking, calibration — each with a status marker showing what is done and what needs attention, and a hint above the image always names the next action. A counter shows how many peaks are picked on how many rings. Calibrate stays greyed out until peaks are picked and Refine until a calibration exists, with the tooltip explaining what is missing — replacing the error dialogs that previously appeared only after the click. Sections can be collapsed once you know your way around.
+
 ## Bugfixes
 
 - Undoing an image load did nothing, and undoing a second load did not bring the first image back. "No image loaded" was treated as a state that could not be returned to, so the first undo left the image on screen while the history believed it had gone back; the next action then discarded the step that was actually displayed. Undo now unloads, and a step that cannot be applied in full — a file that has moved since, for instance — is recorded as what was actually achieved, so the history and what you see cannot drift apart.
