@@ -394,41 +394,38 @@ class CalibrationController:
     #: per reflection would take seconds
     _PHASE_RING_DOWNSAMPLE = 4
 
+    #: color of the calibrant overlay lines — same red the pattern's
+    #: calibrant lines use
+    _CALIBRANT_LINE_COLOR = (200, 50, 50)
+
     def _update_phase_overlays(self):
-        """Draws every visible phase's reflections as vertical lines into
-        the cake and as iso-2θ rings onto the image (the pattern lines are
-        handled by the PhaseInPatternController)."""
+        """Draws the calibrant's and every visible phase's reflections as
+        vertical lines into the cake and as iso-2θ rings onto the image
+        (the pattern already shows both: calibrant lines via
+        plot_vertical_lines, phase lines via the PhaseInPatternController)."""
         self._phase_overlays_dirty = False
         phase_model = self.model.phase_model
         cake_lines = []
         ring_segments = []
 
         if self.model.calibration_model.is_calibrated:
-            wavelength_ang = self.model.calibration_model.wavelength * 1e10
             downsample = self._PHASE_RING_DOWNSAMPLE
             tth_img = self.model.calibration_model.tth_array[::downsample, ::downsample]
             tth_img_min, tth_img_max = tth_img.min(), tth_img.max()
-
-            for ind in range(len(phase_model.phases)):
-                if not phase_model.phase_visible[ind]:
-                    continue
-                color = phase_model.phase_colors[ind]
-                rgba = (
-                    int(color[0]),
-                    int(color[1]),
-                    int(color[2]),
-                    self._PHASE_OVERLAY_ALPHA,
-                )
-                line_positions = phase_model.get_phase_line_positions(
-                    ind, "2th_deg", wavelength_ang
+            # only ring positions within the integrated range — the extreme
+            # image corners reach higher angles, where dense high-order
+            # rings would just clutter the view
+            if self.model.cake_tth is not None:
+                tth_img_max = min(
+                    tth_img_max, np.deg2rad(np.max(self.model.cake_tth))
                 )
 
+            def add_positions(line_positions, rgba):
                 if self.model.cake_tth is not None:
                     for tth in line_positions:
                         position = get_partial_index(self.model.cake_tth, tth)
                         if position is not None:
                             cake_lines.append((position + 0.5, rgba))
-
                 for tth in line_positions:
                     tth_rad = np.deg2rad(tth)
                     if not tth_img_min < tth_rad < tth_img_max:
@@ -441,6 +438,34 @@ class CalibrationController:
                                 rgba,
                             )
                         )
+
+            calibrant_positions = (
+                np.array(self.model.calibration_model.calibrant.get_2th())
+                / np.pi
+                * 180
+            )
+            add_positions(
+                calibrant_positions,
+                (*self._CALIBRANT_LINE_COLOR, self._PHASE_OVERLAY_ALPHA),
+            )
+
+            wavelength_ang = self.model.calibration_model.wavelength * 1e10
+            for ind in range(len(phase_model.phases)):
+                if not phase_model.phase_visible[ind]:
+                    continue
+                color = phase_model.phase_colors[ind]
+                rgba = (
+                    int(color[0]),
+                    int(color[1]),
+                    int(color[2]),
+                    self._PHASE_OVERLAY_ALPHA,
+                )
+                add_positions(
+                    phase_model.get_phase_line_positions(
+                        ind, "2th_deg", wavelength_ang
+                    ),
+                    rgba,
+                )
 
         self.widget.cake_widget.set_phase_lines(cake_lines)
         self.widget.img_widget.set_phase_rings(ring_segments)
@@ -624,6 +649,8 @@ class CalibrationController:
                 positions=calibrant_line_positions,
                 name=self._calibrants_file_names_list[current_index],
             )
+        # the calibrant's reflections are part of the validation overlays
+        self._phase_overlays_changed()
 
     def set_calibrant(self, index):
         """

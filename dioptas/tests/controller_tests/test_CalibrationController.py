@@ -707,17 +707,23 @@ def test_phase_lines_are_drawn_in_validation_views(
     calibration_model.load(
         os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.poni")
     )
+    calibration_controller.go_to_wizard_step(3)
+
+    # the calibrant's rings are always overlaid on image and cake
+    # (cake lines need an integrated cake, which this test skips — the
+    # image rings cover the overlay path)
+    calibrant_ring_count = len(widget.img_widget._phase_ring_items)
+    assert calibrant_ring_count > 0
+
     dioptas_model.phase_model.add_jcpds(
         os.path.join(unittest_data_path, "jcpds", "au_Anderson.jcpds")
     )
-    calibration_controller.go_to_wizard_step(3)
-
-    assert len(widget.img_widget._phase_ring_items) > 0
+    assert len(widget.img_widget._phase_ring_items) > calibrant_ring_count
     # pattern lines come via the shared PhaseInPatternController
     assert len(widget.pattern_widget.phases) == 1
 
     dioptas_model.phase_model.del_phase(0)
-    assert len(widget.img_widget._phase_ring_items) == 0
+    assert len(widget.img_widget._phase_ring_items) == calibrant_ring_count
     assert len(widget.pattern_widget.phases) == 0
 
 

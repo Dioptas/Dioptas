@@ -438,7 +438,7 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
         self.view_splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
         self.view_splitter.addWidget(self._top_splitter)
         self.view_splitter.addWidget(self.pattern_layout_widget)
-        self.view_splitter.setStretchFactor(0, 3)
+        self.view_splitter.setStretchFactor(0, 1)
         self.view_splitter.setStretchFactor(1, 1)
         self._layout.addWidget(self.view_splitter)
 
@@ -468,9 +468,9 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
                 self._top_splitter.setSizes(
                     [total_width // 2, total_width // 2])
             if self.pattern_layout_widget.height() < 20:
-                total_height = max(self.view_splitter.height(), 3)
+                total_height = max(self.view_splitter.height(), 2)
                 self.view_splitter.setSizes(
-                    [2 * total_height // 3, total_height // 3])
+                    [total_height // 2, total_height // 2])
 
 
 class CalibrationControlWidget(QtWidgets.QWidget):
