@@ -4,7 +4,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 import numpy as np
 
 from ...widgets.CustomWidgets import NumberTextField, LabelAlignRight, DoubleSpinBoxAlignRight, HorizontalSpacerItem, \
-    VerticalSpacerItem, CleanLooksComboBox
+    VerticalSpacerItem
 
 from ...model.util.HelperModule import convert_d_to_two_theta
 
@@ -32,7 +32,7 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
 
         self._symmetry_layout = QtWidgets.QHBoxLayout()
         self._symmetry_layout.addWidget(LabelAlignRight('Symmetry'))
-        self.symmetry_cb = CleanLooksComboBox()
+        self.symmetry_cb = QtWidgets.QComboBox()
         self.symmetries = ['cubic', 'tetragonal', 'hexagonal', 'trigonal', 'rhombohedral',
                            'orthorhombic', 'monoclinic', 'triclinic']
         self.symmetry_cb.addItems(self.symmetries)

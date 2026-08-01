@@ -4,7 +4,7 @@ from qtpy import QtWidgets, QtGui, QtCore
 
 from dioptas.widgets.integration import CLICKED_COLOR
 
-from ..CustomWidgets import LabelAlignRight, FlatButton, CleanLooksComboBox
+from ..CustomWidgets import LabelAlignRight, FlatButton
 
 
 class MouseCurrentAndClickedWidget(QtWidgets.QWidget):
@@ -148,7 +148,7 @@ class BrowseFileWidget(QtWidgets.QWidget):
         self._layout.addLayout(self._directory_layout, 3, 0, 1, 5)
 
         self.sources_widget = QtWidgets.QWidget()
-        self.sources_cb = CleanLooksComboBox()
+        self.sources_cb = QtWidgets.QComboBox()
         self._sources_layout = QtWidgets.QHBoxLayout()
         self._sources_layout.setContentsMargins(0, 0, 0, 0)
         self._sources_layout.addWidget(LabelAlignRight("Source:"))

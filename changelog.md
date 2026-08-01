@@ -40,6 +40,8 @@
 
 - Saving a project could leave the previous file damaged if the save failed or was interrupted part way through.
 
+- On macOS, drop-down boxes took an extra click before their list would stay open. They were built on a custom widget from the Qt4 days that swallowed the mouse press and opened the list itself, which left Qt unaware that a click was in progress, so the release that followed closed the list again. They are now ordinary combo boxes, and their list drops down below the box and scrolls, instead of covering it at the full height of the screen.
+
 ## Distribution
 
 - A project file is now the settings tree plus the data it refers to: one JSON document holding every setting, and content-addressed datasets for masks, overlay curves and image copies. Identical content is stored once, so two configurations masking the same detector no longer store two copies. The previous layout wrote every value twice — once as an HDF5 attribute and once in a settings document — and spent one HDF5 group per reflection; a two-phase project used 72 groups where it now uses four.
