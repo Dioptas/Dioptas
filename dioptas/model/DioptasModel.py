@@ -685,6 +685,8 @@ class DioptasModel:
         self.configuration_removed.emit(0)
         self.configuration_selected.emit(0)
         self.img_model.img_changed.emit()
+        # without this the mask views keep showing the deleted mask
+        self.mask_changed.emit()
         self.pattern_model.pattern_changed.emit()
 
     def delete_configurations(self) -> None:

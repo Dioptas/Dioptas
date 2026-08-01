@@ -52,6 +52,10 @@ def save(widget, name):
 def main():
     app = QtWidgets.QApplication(sys.argv)
 
+    # modal message boxes (e.g. the detector-shape-mismatch warning when the
+    # calibration section swaps test images) would block the run forever
+    QtWidgets.QMessageBox.critical = lambda *args, **kwargs: None
+
     theme_path = os.path.join(style_path, "dark_orange.xml")
     qss_path = os.path.join(style_path, "qt_material.css")
     apply_stylesheet(
@@ -141,29 +145,6 @@ def main():
     save(int_widget.integration_pattern_widget, "background_inspect.png")
 
     # =============================================
-    # CALIBRATION VIEW
-    # =============================================
-    print("Calibration view screenshots...")
-    controller.widget.calibration_mode_btn.click()
-    wait(app, 800)
-
-    cal_widget = controller.widget.calibration_widget
-    cal_control = cal_widget.calibration_control_widget
-    cal_params = cal_control.calibration_parameters_widget
-
-    # Full calibration view
-    save(controller.widget, "peak_selection2.png")
-
-    # Start values panel
-    save(cal_params.start_values_gb, "start_values.png")
-
-    # Peak selection panel
-    save(cal_params.peak_selection_gb, "peak_selection.png")
-
-    # Refinement options
-    save(cal_params.refinement_options_gb, "refinement_options.png")
-
-    # =============================================
     # MASK VIEW
     # =============================================
     print("Mask view screenshots...")
@@ -178,6 +159,58 @@ def main():
     controller.widget.map_mode_btn.click()
     wait(app, 800)
     save(controller.widget, "map_view.png")
+
+    # =============================================
+    # CALIBRATION VIEW (wizard)
+    # =============================================
+    # last, because it walks the LaB6 example through the wizard steps and
+    # thereby replaces the loaded image, calibration and phases
+    print("Calibration view screenshots...")
+    controller.widget.calibration_mode_btn.click()
+    wait(app, 800)
+
+    cal_widget = controller.widget.calibration_widget
+    cal_controller = controller.calibration_controller
+
+    # start from a clean slate so the wizard shows the first-time flow
+    controller.model.reset()
+    wait(app, 500)
+
+    lab6_image = os.path.join(DATA_DIR, "LaB6_40keV_MarCCD.tif")
+    lab6_poni = os.path.join(DATA_DIR, "LaB6_40keV_MarCCD.poni")
+
+    # step 1: image & detector
+    controller.model.img_model.load(lab6_image)
+    cal_controller.go_to_wizard_step(0)
+    wait(app, 500)
+    save(controller.widget, "calibration_step1_image.png")
+
+    # step 2: peaks picked on the first two rings, ring 2 highlighted
+    cal_controller.go_to_wizard_step(1)
+    cal_controller.search_peaks(1179.6, 1129.4)
+    cal_controller.search_peaks(1268.5, 1119.8)
+    cal_widget.peak_num_sb.setValue(2)
+    wait(app, 500)
+    save(controller.widget, "calibration_step2_pick_rings.png")
+
+    # step 3: start values, fit constraints and refinement options
+    cal_controller.go_to_wizard_step(2)
+    wait(app, 500)
+    save(cal_widget.calibration_control_widget, "calibration_step3_panel.png")
+
+    # step 4: validation with calibrant overlays and the linked marker
+    controller.model.calibration_model.load(lab6_poni)
+    cal_controller.update_all()
+    cal_controller.validation_pattern_click(6.05, 0)
+    wait(app, 800)
+    save(controller.widget, "calibration_step4_validation.png")
+
+    # the stepper alone, cropped from the full-width bar
+    stepper_pixmap = controller.widget.grab()
+    stepper_pixmap.copy(
+        controller.widget.width() - 540, 0, 540, 44
+    ).save(os.path.join(IMG_DIR, "calibration_stepper.png"))
+    print("  Saved calibration_stepper.png (540x44)")
 
     print("\nDone! All screenshots saved to docs/source/images/")
 
