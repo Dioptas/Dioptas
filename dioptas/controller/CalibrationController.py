@@ -46,6 +46,10 @@ class CalibrationController:
         self.widget = widget
         self.model = dioptas_model
         self.binder = Binder()
+        # calibration is the mode the application starts in; activate()/
+        # deactivate() track mode switches so hidden validation views are
+        # not redrawn from signals fired in other modes
+        self._mode_active = True
 
         self.widget.set_start_values(self.model.calibration_model.start_values)
         self.create_signals()
@@ -206,14 +210,19 @@ class CalibrationController:
         )
 
     def activate(self):
+        self._mode_active = True
         if not self.model.img_changed.has_listener(self.plot_image):
             self.model.img_changed.connect(self.plot_image)
         if not self.model.mask_changed.has_listener(self.update_mask_gui):
             self.model.mask_changed.connect(self.update_mask_gui)
         self.plot_image()
         self.update_mask_gui()
+        # overlays that went stale while another mode was active
+        if self._phase_overlays_dirty and self._on_validation_step():
+            self._update_phase_overlays()
 
     def deactivate(self):
+        self._mode_active = False
         if self.model.img_changed.has_listener(self.plot_image):
             self.model.img_changed.disconnect(self.plot_image)
         if self.model.mask_changed.has_listener(self.update_mask_gui):
@@ -355,7 +364,9 @@ class CalibrationController:
         """Places the green position line at *tth* (degrees) in all three
         validation views: pos line in the pattern, vertical line in the
         cake, iso-2θ contour on the image."""
-        if not self._on_validation_step():
+        if not self._mode_active or not self._on_validation_step():
+            # clicked_tth also changes from clicks in other modes — do not
+            # run the (contour-computing) update for hidden views
             return
         if tth is None:
             tth = self.model.clicked_tth
@@ -403,6 +414,9 @@ class CalibrationController:
         vertical lines into the cake and as iso-2θ rings onto the image
         (the pattern already shows both: calibrant lines via
         plot_vertical_lines, phase lines via the PhaseInPatternController)."""
+        if not self._mode_active:
+            # stays dirty; recomputed when the calibration mode reactivates
+            return
         self._phase_overlays_dirty = False
         phase_model = self.model.phase_model
         cake_lines = []
@@ -830,8 +844,8 @@ class CalibrationController:
 
     def update_guide_in_view(self, state=None):
         """Pushes the guide's derived workflow state into the view: the step
-        indicator, the wizard navigation, the hint bar, the peak counter and
-        the readiness of the Calibrate/Refine buttons.
+        indicator, the wizard navigation, the peak counter, the validation
+        views and the readiness of the Calibrate/Refine/Save buttons.
         """
         if state is None:
             state = self.guide.state
@@ -1441,13 +1455,13 @@ class CalibrationController:
             self.widget.pattern_widget.pattern_plot.setLabel("bottom", "d", "A")
 
         self.widget.pattern_widget.view_box.autoRange()
+        self.update_calibration_parameter_in_view()
+        # marks the overlays dirty for the freshly integrated cake, too
+        self.load_calibrant("pyFAI")
         # a calibration (or loaded .poni) exists now — bring the wizard to
         # the validation page, where image, cake and pattern are shown
-        # side by side; the freshly integrated cake needs its overlays
-        self._phase_overlays_dirty = True
+        # side by side and the overlays get drawn once
         self.go_to_wizard_step(3)
-        self.update_calibration_parameter_in_view()
-        self.load_calibrant("pyFAI")
 
     def update_calibration_parameter_in_view(self):
         """
