@@ -38,12 +38,13 @@ class NextAction(enum.Enum):
 
 
 class Step(enum.Enum):
-    """The three pages of the calibration wizard: image & detector,
-    peak picking, calibrant & calibration."""
+    """The four pages of the calibration wizard: image & detector,
+    peak picking, calibrant & calibration, validation of the result."""
 
     IMAGE = enum.auto()
     PEAKS = enum.auto()
     CALIBRATE = enum.auto()
+    VALIDATE = enum.auto()
 
 
 class StepStatus(enum.Enum):
@@ -103,6 +104,13 @@ def compute_guide_state(model: "DioptasModel") -> GuideState:
             if is_calibrated
             else StepStatus.ATTENTION
             if next_action == NextAction.CALIBRATE
+            else StepStatus.PENDING
+        ),
+        Step.VALIDATE: (
+            StepStatus.DONE
+            if is_saved
+            else StepStatus.ATTENTION
+            if next_action == NextAction.SAVE
             else StepStatus.PENDING
         ),
     }

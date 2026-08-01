@@ -521,21 +521,31 @@ class CalibrationController:
                 field.style().unpolish(field)
                 field.style().polish(field)
 
-    _WIZARD_STEP_INDICES = {Step.IMAGE: 0, Step.PEAKS: 1, Step.CALIBRATE: 2}
+    _WIZARD_STEP_INDICES = {
+        Step.IMAGE: 0,
+        Step.PEAKS: 1,
+        Step.CALIBRATE: 2,
+        Step.VALIDATE: 3,
+    }
 
     def _wizard_widget(self):
         return self.widget.calibration_control_widget.calibration_parameters_widget
 
     def _wizard_step_reachable(self, index, state=None):
         """A wizard page is reachable once its prerequisites exist: an image
-        for peak picking, peaks (or a loaded calibration) for calibrating."""
+        for peak picking, peaks (or a loaded calibration) for calibrating,
+        a calibration for validating."""
         if state is None:
             state = self.guide.state
         if index <= 0:
             return True
         if index == 1:
             return state.image_loaded
-        return state.image_loaded and (state.num_peaks > 0 or state.is_calibrated)
+        if index == 2:
+            return state.image_loaded and (
+                state.num_peaks > 0 or state.is_calibrated
+            )
+        return state.is_calibrated
 
     def wizard_next(self):
         self.go_to_wizard_step(self._wizard_widget().current_step() + 1)
@@ -578,7 +588,15 @@ class CalibrationController:
                 index, self._wizard_step_reachable(index, state)
             )
 
+        # a state regression (e.g. switching to an uncalibrated
+        # configuration) can strand the wizard on a page that is no longer
+        # reachable — fall back to the closest one that is
         current = wizard.current_step()
+        while current > 0 and not self._wizard_step_reachable(current, state):
+            current -= 1
+        if current != wizard.current_step():
+            self.widget.set_wizard_step(current)
+
         last = wizard.step_stack.count() - 1
         wizard.back_btn.setEnabled(current > 0)
         wizard.next_btn.setVisible(current < last)
@@ -592,14 +610,20 @@ class CalibrationController:
                 "Pick at least one peak first — click on the innermost ring "
                 "in the image."
             )
+        elif current == 2 and not state.is_calibrated:
+            wizard.next_btn.setToolTip("Run Calibrate first.")
         else:
             wizard.next_btn.setToolTip("")
 
-        # results and follow-up actions appear only once they exist / can run
-        wizard.refine_btn.setVisible(state.is_calibrated)
-        wizard.save_calibration_btn.setVisible(state.is_calibrated)
-        wizard.pyfai_expander.setVisible(state.is_calibrated)
-        wizard.fit2d_expander.setVisible(state.is_calibrated)
+        # the cake and pattern views are for judging the finished
+        # calibration — they appear only on the validation step
+        on_validation = current == last
+        tab_widget = self.widget.tab_widget
+        tab_widget.setTabVisible(1, on_validation)
+        tab_widget.setTabVisible(2, on_validation)
+        tab_widget.tabBar().setVisible(on_validation)
+        if not on_validation and tab_widget.currentIndex() != 0:
+            tab_widget.setCurrentIndex(0)
 
         if state.num_peaks == 0:
             self.widget.peak_counter_lbl.setText("No peaks selected")
@@ -991,12 +1015,12 @@ class CalibrationController:
             self.widget.pattern_widget.pattern_plot.setLabel("bottom", "d", "A")
 
         self.widget.pattern_widget.view_box.autoRange()
+        # a calibration (or loaded .poni) exists now — bring the wizard to
+        # the validation page (unhides the cake/pattern tabs), then show the
+        # cake for a first visual check
+        self.go_to_wizard_step(3)
         if self.widget.tab_widget.currentIndex() == 0:
             self.widget.tab_widget.setCurrentIndex(1)
-
-        # a calibration (or loaded .poni) exists now — bring the wizard to
-        # its result page, where the fitted parameters and Save live
-        self.widget.set_wizard_step(2)
         self.update_calibration_parameter_in_view()
         self.load_calibrant("pyFAI")
 

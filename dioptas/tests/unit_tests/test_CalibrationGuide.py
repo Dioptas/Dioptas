@@ -68,6 +68,7 @@ def test_calibrating_suggests_saving(dioptas_model):
 
     assert guide.state.next_action == NextAction.SAVE
     assert guide.state.step_status[Step.CALIBRATE] == StepStatus.DONE
+    assert guide.state.step_status[Step.VALIDATE] == StepStatus.ATTENTION
     assert not guide.state.is_saved
 
 
@@ -80,6 +81,7 @@ def test_saving_completes_the_workflow(dioptas_model):
 
     assert guide.state.is_saved
     assert guide.state.next_action == NextAction.NONE
+    assert guide.state.step_status[Step.VALIDATE] == StepStatus.DONE
 
 
 def test_loaded_poni_without_peaks_needs_no_action(dioptas_model):

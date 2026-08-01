@@ -437,32 +437,46 @@ def test_wizard_shows_one_page_at_a_time(calibration_controller, qtbot):
     assert not widget.refine_btn.isVisible()
 
 
-def test_results_and_actions_appear_when_they_can_run(
+def test_validation_step_gates_results_and_views(
     calibration_controller, calibration_model, dioptas_model, qtbot
 ):
     widget = calibration_controller.widget
     widget.show()
     qtbot.addWidget(widget)
 
+    # the cake and pattern views are hidden while working through steps 1-3
+    assert not widget.tab_widget.tabBar().isVisible()
+    assert not widget.tab_widget.isTabVisible(1)
+    assert not widget.tab_widget.isTabVisible(2)
+
     dioptas_model.img_model.load(
         os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
     )
     calibration_model.params.peak_selections = ((0, ((10.0, 20.0),)),)
     calibration_controller.go_to_wizard_step(2)
-
-    # peaks picked but not calibrated: only Calibrate is offered
     assert widget.calibrate_btn.isVisible()
     assert widget.calibrate_btn.isEnabled()
     assert not widget.refine_btn.isVisible()
     assert not widget.save_calibration_btn.isVisible()
-    assert not widget.pyfai_expander.isVisible()
-    assert not widget.fit2d_expander.isVisible()
+
+    # validation is unreachable without a calibration
+    calibration_controller.go_to_wizard_step(3)
+    assert widget.step_stack.currentIndex() == 2
 
     calibration_model.params.is_calibrated = True
+    calibration_controller.go_to_wizard_step(3)
+    assert widget.step_stack.currentIndex() == 3
+    assert widget.tab_widget.tabBar().isVisible()
+    assert widget.tab_widget.isTabVisible(1)
+    assert widget.tab_widget.isTabVisible(2)
+    assert widget.parameters_tab_widget.isVisible()
     assert widget.refine_btn.isVisible()
     assert widget.save_calibration_btn.isVisible()
-    assert widget.pyfai_expander.isVisible()
-    assert widget.fit2d_expander.isVisible()
+
+    # going back hides the validation-only views again
+    calibration_controller.go_to_wizard_step(1)
+    assert not widget.tab_widget.tabBar().isVisible()
+    assert not widget.tab_widget.isTabVisible(1)
 
 
 def test_wizard_navigation_is_gated_by_prerequisites(
@@ -496,11 +510,21 @@ def test_wizard_navigation_is_gated_by_prerequisites(
     assert widget.wizard_next_btn.isEnabled()
     click_button(widget.wizard_next_btn)
     assert parameters_widget.current_step() == 2
+
+    # not calibrated yet: the validation page stays unreachable
+    assert not widget.wizard_next_btn.isEnabled()
+    calibration_controller.wizard_next()
+    assert parameters_widget.current_step() == 2
+
+    calibration_model.params.is_calibrated = True
+    assert widget.wizard_next_btn.isEnabled()
+    click_button(widget.wizard_next_btn)
+    assert parameters_widget.current_step() == 3
     # last page has no next
     assert not widget.wizard_next_btn.isEnabled()
 
     click_button(widget.wizard_back_btn)
-    assert parameters_widget.current_step() == 1
+    assert parameters_widget.current_step() == 2
 
 
 def test_advanced_options_are_collapsed_by_default(calibration_controller):
