@@ -201,8 +201,8 @@ class BatchFileViewWidget(QtWidgets.QWidget):
         self._file_lbl_widget = QtWidgets.QWidget()
         self._file_lbl_layout = QtWidgets.QGridLayout()
 
-        self.cal_file_lbl = LabelExpandable("undefined")
-        self.mask_file_lbl = LabelExpandable("undefined")
+        self.cal_file_lbl = LabelExpandable("none loaded")
+        self.mask_file_lbl = LabelExpandable("none loaded")
 
         self.treeView = QtWidgets.QTreeView()
         self.treeView.setObjectName("treeView")
@@ -253,13 +253,13 @@ class BatchFileViewWidget(QtWidgets.QWidget):
 
     def set_cal_file(self, file_path):
         if file_path is None:
-            file_path = "undefined"
+            file_path = "none loaded"
         self.cal_file_lbl.setText(file_path)
         self.cal_file_lbl.setToolTip("Calibration used for integration")
 
     def set_mask_file(self, file_path):
         if file_path is None:
-            file_path = "undefined"
+            file_path = "none loaded"
         self.mask_file_lbl.setText(file_path)
         self.mask_file_lbl.setToolTip("Mask used for integration")
 

@@ -50,6 +50,8 @@
 
 - Phase names in the pattern plot were drawn on top of the y-axis; they now sit inside the plot area.
 
+- The batch view labelled a missing calibration or mask file "undefined"; it now says "none loaded".
+
 ## Distribution
 
 - A project file is now the settings tree plus the data it refers to: one JSON document holding every setting, and content-addressed datasets for masks, overlay curves and image copies. Identical content is stored once, so two configurations masking the same detector no longer store two copies. The previous layout wrote every value twice — once as an HDF5 attribute and once in a settings document — and spent one HDF5 group per reflection; a two-phase project used 72 groups where it now uses four.
