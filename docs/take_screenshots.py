@@ -54,7 +54,9 @@ def main():
 
     # modal message boxes (e.g. the detector-shape-mismatch warning when the
     # calibration section swaps test images) would block the run forever
-    QtWidgets.QMessageBox.critical = lambda *args, **kwargs: None
+    QtWidgets.QMessageBox.critical = (
+        lambda *args, **kwargs: QtWidgets.QMessageBox.Ok
+    )
 
     theme_path = os.path.join(style_path, "dark_orange.xml")
     qss_path = os.path.join(style_path, "qt_material.css")
