@@ -2,19 +2,23 @@
 
 import logging
 import os
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 
 import numpy as np
 import pyqtgraph as pg
+from skimage.measure import find_contours
 
 from ..widgets.UtilityWidgets import open_file_dialog, save_file_dialog
+from ..model.util.HelperModule import get_partial_index, get_partial_value
+from .integration.phase.PhaseInPatternController import PhaseInPatternController
 from .. import calibrants_path
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
-from ..widgets.CalibrationWidget import CalibrationWidget
+from ..widgets.CalibrationWidget import CalibrationWidget, WIZARD_STEP_TITLES
 from ..widgets.UtilityWidgets import open_file_dialog
 from ..model.DioptasModel import DioptasModel
 from .binding import Binder
+from ..model.CalibrationGuide import CalibrationGuide, Step
 from ..model.CalibrationModel import (
     NotEnoughSpacingsInCalibrant,
     get_available_detectors,
@@ -42,11 +46,28 @@ class CalibrationController:
         self.widget = widget
         self.model = dioptas_model
         self.binder = Binder()
+        # calibration is the mode the application starts in; activate()/
+        # deactivate() track mode switches so hidden validation views are
+        # not redrawn from signals fired in other modes
+        self._mode_active = True
 
         self.widget.set_start_values(self.model.calibration_model.start_values)
         self.create_signals()
         self.load_detectors_list()
         self.load_calibrants_list()
+        self._setup_unconfirmed_fields()
+        self.update_peak_table()
+
+        # phase lines in the validation pattern reuse the integration-mode
+        # controller wholesale; cake lines and image rings are drawn by
+        # _update_phase_overlays below
+        self.phase_in_pattern_controller = PhaseInPatternController(
+            self.widget.pattern_widget, dioptas_model
+        )
+
+        self.guide = CalibrationGuide(dioptas_model)
+        self.guide.changed.connect(self.update_guide_in_view)
+        self.update_guide_in_view()
 
     def create_signals(self):
         """
@@ -64,6 +85,10 @@ class CalibrationController:
         self.model.configuration_selected.connect(
             self.update_detector_parameters_in_view
         )
+        # configuration switching (and project reset) replaces the
+        # calibration model — re-wire its instance signals and refresh the
+        # peak views, which would otherwise keep showing the old peaks
+        self.model.configuration_selected.connect(self._on_configuration_selected)
         self.model.calibration_model.detector_reset.connect(
             self.update_detector_parameters_in_view
         )
@@ -92,7 +117,18 @@ class CalibrationController:
 
         self.widget.clear_peaks_btn.clicked.connect(self.clear_peaks)
         self.widget.clear_ring_btn.clicked.connect(self.clear_current_ring)
-        self.widget.peak_num_sb.valueChanged.connect(self.plot_points)
+        self.widget.peak_num_sb.valueChanged.connect(self.current_ring_changed)
+
+        self._updating_peak_table = False
+        self.widget.peak_table.itemSelectionChanged.connect(
+            self.peak_table_selection_changed
+        )
+        self.widget.delete_peak_btn.clicked.connect(self.delete_selected_peaks)
+        self._delete_peak_shortcut = QtGui.QShortcut(
+            QtGui.QKeySequence(QtCore.Qt.Key_Delete), self.widget.peak_table
+        )
+        self._delete_peak_shortcut.setContext(QtCore.Qt.WidgetShortcut)
+        self._delete_peak_shortcut.activated.connect(self.delete_selected_peaks)
 
         self.widget.load_spline_btn.clicked.connect(self.load_spline_btn_click)
         self.widget.spline_reset_btn.clicked.connect(self.reset_spline_btn_click)
@@ -110,9 +146,55 @@ class CalibrationController:
             on_toggled=self.distance_cb_changed,
         )
 
+        # the rotation/PONI fit checkboxes in the start values and on the
+        # pyFAI parameter page show the same state; the values are read via
+        # get_fixed_values() when a calibration or refinement starts
+        start_values_gb = (
+            self.widget.calibration_control_widget
+            .calibration_parameters_widget.start_values_gb
+        )
+        for pyfai_cb, calibrate_cb in [
+            (self.widget.pf_rot1_cb, start_values_gb.rotation1_cb),
+            (self.widget.pf_rot2_cb, start_values_gb.rotation2_cb),
+            (self.widget.pf_rot3_cb, start_values_gb.rotation3_cb),
+            (self.widget.pf_poni1_cb, start_values_gb.poni1_cb),
+            (self.widget.pf_poni2_cb, start_values_gb.poni2_cb),
+        ]:
+            self.binder.mirror_toggles(
+                pyfai_cb, calibrate_cb, on_toggled=lambda _checked: None
+            )
+
         self.widget.use_mask_cb.stateChanged.connect(self.use_mask_cb_changed)
         self.widget.mask_transparent_cb.stateChanged.connect(
             self.mask_transparent_status_changed
+        )
+
+        self.widget.wizard_back_btn.clicked.connect(self.wizard_back)
+        self.widget.wizard_next_btn.clicked.connect(self.wizard_next)
+        self.widget.step_indicator.step_clicked.connect(self.go_to_wizard_step)
+
+        self._manual_parameters_requested = False
+        self.widget.enter_parameters_btn.clicked.connect(
+            self.enter_parameters_manually
+        )
+
+        # linked click position and phase overlays on the validation step;
+        # the position markers stay hidden until the first linked click —
+        # both widgets create them visible at position 0 by default
+        self.widget.pattern_widget.deactivate_pos_line()
+        self.widget.cake_widget.deactivate_vertical_line()
+        self._phase_overlays_dirty = True
+        self.widget.img_widget.mouse_left_clicked.connect(self.validation_img_click)
+        self.widget.cake_widget.mouse_left_clicked.connect(self.validation_cake_click)
+        self.widget.pattern_widget.mouse_left_clicked.connect(
+            self.validation_pattern_click
+        )
+        self.model.clicked_tth_changed.connect(self.update_validation_line_positions)
+        self.model.phase_model.phase_added.connect(self._phase_overlays_changed)
+        self.model.phase_model.phase_removed.connect(self._phase_overlays_changed)
+        self.model.phase_model.phase_changed.connect(self._phase_overlays_changed)
+        self.model.calibration_model.parameters_changed.connect(
+            self._phase_overlays_changed
         )
 
     def create_transformation_signals(self):
@@ -132,14 +214,19 @@ class CalibrationController:
         )
 
     def activate(self):
+        self._mode_active = True
         if not self.model.img_changed.has_listener(self.plot_image):
             self.model.img_changed.connect(self.plot_image)
         if not self.model.mask_changed.has_listener(self.update_mask_gui):
             self.model.mask_changed.connect(self.update_mask_gui)
         self.plot_image()
         self.update_mask_gui()
+        # overlays that went stale while another mode was active
+        if self._phase_overlays_dirty and self._on_validation_step():
+            self._update_phase_overlays()
 
     def deactivate(self):
+        self._mode_active = False
         if self.model.img_changed.has_listener(self.plot_image):
             self.model.img_changed.disconnect(self.plot_image)
         if self.model.mask_changed.has_listener(self.update_mask_gui):
@@ -192,17 +279,215 @@ class CalibrationController:
         """
         Takes all parameters inserted into the fit2d txt-fields and updates the current calibration accordingly.
         """
-        fit2d_parameter = self.widget.get_fit2d_parameter()
+        try:
+            fit2d_parameter = self.widget.get_fit2d_parameter()
+        except ValueError:
+            self._show_incomplete_parameters_message("Fit2d")
+            return
         self.model.calibration_model.set_fit2d(fit2d_parameter)
         self.update_all()
 
     def update_pyFAI_btn_click(self):
         """
-        Takes all parameters inserted into the fit2d txt-fields and updates the current calibration accordingly.
+        Takes all parameters inserted into the pyFAI txt-fields and updates the current calibration accordingly.
         """
-        pyFAI_parameter = self.widget.get_pyFAI_parameter()
+        try:
+            pyFAI_parameter = self.widget.get_pyFAI_parameter()
+        except ValueError:
+            self._show_incomplete_parameters_message("pyFAI")
+            return
         self.model.calibration_model.set_pyFAI(pyFAI_parameter)
         self.update_all()
+
+    def _show_incomplete_parameters_message(self, parameter_kind):
+        QtWidgets.QMessageBox.critical(
+            self.widget,
+            "Incomplete parameters",
+            "Please fill in all {} parameter fields before updating.".format(
+                parameter_kind
+            ),
+            QtWidgets.QMessageBox.Ok,
+        )
+
+    def enter_parameters_manually(self):
+        """Opens the validation page for typing pyFAI/Fit2d parameters
+        directly — the expert entry path that needs neither picked peaks
+        nor a .poni file."""
+        self._manual_parameters_requested = True
+        self.widget.set_wizard_step(3)
+        self.update_guide_in_view()
+
+    # ------------------------------------------------------------------
+    # validation step: linked click position across image, cake, pattern
+    # ------------------------------------------------------------------
+
+    def _on_validation_step(self):
+        return (
+            self._wizard_widget().current_step()
+            == self._wizard_widget().step_stack.count() - 1
+        )
+
+    def validation_img_click(self, x, y):
+        """Publishes the 2θ of a click on the image as the linked position."""
+        if not self._on_validation_step():
+            return
+        if not self.model.calibration_model.is_calibrated:
+            return
+        x, y = y, x  # image array indices vs. mouse position
+        shape = self.model.img_model.img_data.shape
+        if not (0 <= x < shape[0] and 0 <= y < shape[1]):
+            return
+        tth = np.rad2deg(
+            self.model.calibration_model.get_two_theta_img(
+                np.array([x]), np.array([y])
+            )
+        )
+        self.model.clicked_tth_changed.emit(float(tth))
+
+    def validation_cake_click(self, x, _y):
+        """Publishes the 2θ of a click on the cake as the linked position."""
+        if not self._on_validation_step():
+            return
+        if self.model.cake_tth is None:
+            return
+        tth = get_partial_value(self.model.cake_tth, x - 0.5)
+        if tth is None:
+            return
+        self.model.clicked_tth_changed.emit(float(tth))
+
+    def validation_pattern_click(self, x, _y):
+        """Publishes the 2θ of a click in the pattern as the linked position."""
+        if not self._on_validation_step():
+            return
+        tth = self.convert_x_value(
+            x, self.model.current_configuration.integration_unit, "2th_deg", None
+        )
+        self.model.clicked_tth_changed.emit(float(tth))
+
+    def update_validation_line_positions(self, tth=None):
+        """Places the green position line at *tth* (degrees) in all three
+        validation views: pos line in the pattern, vertical line in the
+        cake, iso-2θ contour on the image."""
+        if not self._mode_active or not self._on_validation_step():
+            # clicked_tth also changes from clicks in other modes — do not
+            # run the (contour-computing) update for hidden views
+            return
+        if tth is None:
+            tth = self.model.clicked_tth
+
+        pattern_x = self.convert_x_value(
+            tth, "2th_deg", self.model.current_configuration.integration_unit, None
+        )
+        self.widget.pattern_widget.activate_pos_line()
+        self.widget.pattern_widget.set_pos_line(pattern_x)
+
+        if self.model.cake_tth is not None:
+            position = get_partial_index(self.model.cake_tth, tth)
+            if position is not None:
+                self.widget.cake_widget.set_vertical_line_pos(position + 0.5, 0)
+                self.widget.cake_widget.activate_vertical_line()
+            else:
+                self.widget.cake_widget.deactivate_vertical_line()
+
+        if self.model.calibration_model.is_calibrated:
+            self.widget.img_widget.activate_circle_scatter()
+            self.widget.img_widget.set_circle_line(
+                self.model.calibration_model.get_two_theta_array(), np.deg2rad(tth)
+            )
+
+    # ------------------------------------------------------------------
+    # validation step: phase overlays in cake and image
+    # ------------------------------------------------------------------
+
+    def _phase_overlays_changed(self, *_):
+        self._phase_overlays_dirty = True
+        if self._on_validation_step():
+            self._update_phase_overlays()
+
+    #: alpha for the phase overlays, so the peaks stay visible underneath
+    _PHASE_OVERLAY_ALPHA = 180
+    #: image downsampling for the ring contours — full 2k×2k contouring
+    #: per reflection would take seconds
+    _PHASE_RING_DOWNSAMPLE = 4
+
+    #: color of the calibrant overlay lines — same red the pattern's
+    #: calibrant lines use
+    _CALIBRANT_LINE_COLOR = (200, 50, 50)
+
+    def _update_phase_overlays(self):
+        """Draws the calibrant's and every visible phase's reflections as
+        vertical lines into the cake and as iso-2θ rings onto the image
+        (the pattern already shows both: calibrant lines via
+        plot_vertical_lines, phase lines via the PhaseInPatternController)."""
+        if not self._mode_active:
+            # stays dirty; recomputed when the calibration mode reactivates
+            return
+        self._phase_overlays_dirty = False
+        phase_model = self.model.phase_model
+        cake_lines = []
+        ring_segments = []
+
+        if self.model.calibration_model.is_calibrated:
+            downsample = self._PHASE_RING_DOWNSAMPLE
+            tth_img = self.model.calibration_model.tth_array[::downsample, ::downsample]
+            tth_img_min, tth_img_max = tth_img.min(), tth_img.max()
+            # only ring positions within the integrated range — the extreme
+            # image corners reach higher angles, where dense high-order
+            # rings would just clutter the view
+            if self.model.cake_tth is not None:
+                tth_img_max = min(
+                    tth_img_max, np.deg2rad(np.max(self.model.cake_tth))
+                )
+
+            def add_positions(line_positions, rgba):
+                if self.model.cake_tth is not None:
+                    for tth in line_positions:
+                        position = get_partial_index(self.model.cake_tth, tth)
+                        if position is not None:
+                            cake_lines.append((position + 0.5, rgba))
+                for tth in line_positions:
+                    tth_rad = np.deg2rad(tth)
+                    if not tth_img_min < tth_rad < tth_img_max:
+                        continue
+                    for segment in find_contours(tth_img, tth_rad):
+                        ring_segments.append(
+                            (
+                                segment[:, 1] * downsample + 0.5,
+                                segment[:, 0] * downsample + 0.5,
+                                rgba,
+                            )
+                        )
+
+            calibrant_positions = (
+                np.array(self.model.calibration_model.calibrant.get_2th())
+                / np.pi
+                * 180
+            )
+            add_positions(
+                calibrant_positions,
+                (*self._CALIBRANT_LINE_COLOR, self._PHASE_OVERLAY_ALPHA),
+            )
+
+            wavelength_ang = self.model.calibration_model.wavelength * 1e10
+            for ind in range(len(phase_model.phases)):
+                if not phase_model.phase_visible[ind]:
+                    continue
+                color = phase_model.phase_colors[ind]
+                rgba = (
+                    int(color[0]),
+                    int(color[1]),
+                    int(color[2]),
+                    self._PHASE_OVERLAY_ALPHA,
+                )
+                add_positions(
+                    phase_model.get_phase_line_positions(
+                        ind, "2th_deg", wavelength_ang
+                    ),
+                    rgba,
+                )
+
+        self.widget.cake_widget.set_phase_lines(cake_lines)
+        self.widget.img_widget.set_phase_rings(ring_segments)
 
     def load_img(self):
         """
@@ -261,6 +546,7 @@ class CalibrationController:
             self.model.calibration_model.load_detector(
                 self.widget.detectors_cb.currentText()
             )
+            self._confirm_fields(*self._pixel_fields)
             emit_img_changed = (
                 self.model.calibration_model.detector.shape
                 == self.model.img_model.img_data.shape
@@ -283,6 +569,7 @@ class CalibrationController:
 
         if filename != "":
             self.model.calibration_model.load_detector_from_file(filename)
+            self._confirm_fields(*self._pixel_fields)
             self.update_detector_parameters_in_view()
 
     def reset_detector_from_file(self):
@@ -381,6 +668,8 @@ class CalibrationController:
                 positions=calibrant_line_positions,
                 name=self._calibrants_file_names_list[current_index],
             )
+        # the calibrant's reflections are part of the validation overlays
+        self._phase_overlays_changed()
 
     def set_calibrant(self, index):
         """
@@ -406,6 +695,11 @@ class CalibrationController:
         :param y:
             y-Position for the search
         """
+        # picking only belongs to the Pick Rings step — a click on the image
+        # in any other step must not silently add peaks
+        if self._wizard_widget().current_step() != 1:
+            return
+
         x, y = (
             y,
             x,
@@ -436,6 +730,220 @@ class CalibrationController:
             if self.widget.automatic_peak_num_inc_cb.isChecked():
                 self.widget.peak_num_sb.setValue(peak_ind + 1)
 
+    _UNCONFIRMED_TOOLTIP = (
+        "Still at its default value — check that it matches your experiment."
+    )
+
+    def _setup_unconfirmed_fields(self):
+        """Flags setup fields that still show their shipped defaults.
+
+        A first-time user gets garbage out of a calibration run against the
+        default wavelength, distance, pixel size or calibrant without any
+        error — the orange border marks each value that has not been
+        confirmed yet. A field counts as confirmed once the user edits it,
+        a detector or calibration file provides it, or a calibration
+        succeeds with it.
+        """
+        widget = self.widget
+        detector_gb = (
+            widget.calibration_control_widget.calibration_parameters_widget.detector_gb
+        )
+        sv_gb = (
+            widget.calibration_control_widget.calibration_parameters_widget.start_values_gb
+        )
+        self._pixel_fields = (detector_gb.pixel_width_txt, detector_gb.pixel_height_txt)
+        self._wavelength_fields = (widget.sv_wavelength_txt, widget.sv_energy_txt)
+
+        self._unconfirmed_fields = {
+            widget.sv_distance_txt,
+            widget.sv_wavelength_txt,
+            widget.sv_energy_txt,
+            widget.calibrant_cb,
+            *self._pixel_fields,
+        }
+        for field in self._unconfirmed_fields:
+            field.setProperty("unconfirmed", True)
+            field.setToolTip(self._UNCONFIRMED_TOOLTIP)
+            field.style().unpolish(field)
+            field.style().polish(field)
+
+        # the energy display tracks the wavelength field, so an edit of
+        # either confirms both
+        widget.sv_wavelength_txt.textEdited.connect(
+            lambda _: (
+                sv_gb.update_energy_from_wavelength(),
+                self._confirm_fields(*self._wavelength_fields),
+            )
+        )
+        widget.sv_energy_txt.textEdited.connect(
+            lambda _: (
+                sv_gb.update_wavelength_from_energy(),
+                self._confirm_fields(*self._wavelength_fields),
+            )
+        )
+        widget.sv_distance_txt.textEdited.connect(
+            lambda _: self._confirm_fields(widget.sv_distance_txt)
+        )
+        detector_gb.pixel_width_txt.textEdited.connect(
+            lambda _: self._confirm_fields(detector_gb.pixel_width_txt)
+        )
+        detector_gb.pixel_height_txt.textEdited.connect(
+            lambda _: self._confirm_fields(detector_gb.pixel_height_txt)
+        )
+        widget.calibrant_cb.activated.connect(
+            lambda _: self._confirm_fields(widget.calibrant_cb)
+        )
+
+    def _confirm_fields(self, *fields):
+        for field in fields:
+            if field in self._unconfirmed_fields:
+                self._unconfirmed_fields.discard(field)
+                field.setProperty("unconfirmed", False)
+                field.setToolTip("")
+                field.style().unpolish(field)
+                field.style().polish(field)
+
+    _WIZARD_STEP_INDICES = {
+        Step.IMAGE: 0,
+        Step.PEAKS: 1,
+        Step.CALIBRATE: 2,
+        Step.VALIDATE: 3,
+    }
+
+    def _wizard_widget(self):
+        return self.widget.calibration_control_widget.calibration_parameters_widget
+
+    def _wizard_step_reachable(self, index, state=None):
+        """A wizard page is reachable once its prerequisites exist: an image
+        for peak picking, peaks (or a loaded calibration) for calibrating,
+        a calibration for validating."""
+        if state is None:
+            state = self.guide.state
+        if index <= 0:
+            return True
+        if index == 1:
+            return state.image_loaded
+        if index == 2:
+            return state.image_loaded and (
+                state.num_peaks > 0 or state.is_calibrated
+            )
+        return state.is_calibrated or self._manual_parameters_requested
+
+    def wizard_next(self):
+        self.go_to_wizard_step(self._wizard_widget().current_step() + 1)
+
+    def wizard_back(self):
+        self.go_to_wizard_step(self._wizard_widget().current_step() - 1)
+
+    def go_to_wizard_step(self, index):
+        wizard = self._wizard_widget()
+        if not 0 <= index < wizard.step_stack.count():
+            return
+        if not self._wizard_step_reachable(index):
+            # an (unlikely) click on a not-yet-reachable indicator button —
+            # put the check mark back onto the current page
+            self.widget.step_indicator.set_current_step(wizard.current_step())
+            return
+        self.widget.set_wizard_step(index)
+        self.update_guide_in_view()
+
+    def update_guide_in_view(self, state=None):
+        """Pushes the guide's derived workflow state into the view: the step
+        indicator, the wizard navigation, the peak counter, the validation
+        views and the readiness of the Calibrate/Refine/Save buttons.
+        """
+        if state is None:
+            state = self.guide.state
+
+        if state.is_calibrated:
+            # a working calibration exists, so its setup values are evidently
+            # usable — whether calibrated here or loaded from a file
+            self._confirm_fields(*list(self._unconfirmed_fields))
+
+        wizard = self._wizard_widget()
+        step_indicator = self.widget.step_indicator
+        for step, index in self._WIZARD_STEP_INDICES.items():
+            step_indicator.set_step_status(
+                index, state.step_status[step].name.lower()
+            )
+            step_indicator.set_step_enabled(
+                index, self._wizard_step_reachable(index, state)
+            )
+
+        # a state regression (e.g. switching to an uncalibrated
+        # configuration) can strand the wizard on a page that is no longer
+        # reachable — fall back to the closest one that is
+        current = wizard.current_step()
+        while current > 0 and not self._wizard_step_reachable(current, state):
+            current -= 1
+        if current != wizard.current_step():
+            self.widget.set_wizard_step(current)
+
+        last = wizard.step_stack.count() - 1
+        wizard.back_btn.setVisible(current > 0)
+        wizard.back_btn.setEnabled(current > 0)
+        wizard.next_btn.setVisible(current < last)
+        if current < last:
+            wizard.next_btn.setText(
+                "Next: {} ›".format(WIZARD_STEP_TITLES[current + 1])
+            )
+        if current == last:
+            # Back is the only navigation on the result page — let it fill
+            # the row and say where it goes instead of floating alone
+            wizard.back_btn.setMaximumWidth(16777215)
+            wizard.back_btn.setText(
+                "‹ Back: {}".format(WIZARD_STEP_TITLES[current - 1])
+            )
+        else:
+            wizard.back_btn.setMaximumWidth(80)
+            wizard.back_btn.setText("‹ Back")
+        wizard.next_btn.setEnabled(
+            current < last and self._wizard_step_reachable(current + 1, state)
+        )
+        if current == 0 and not state.image_loaded:
+            wizard.next_btn.setToolTip("Load an image first.")
+        elif current == 1 and not (state.num_peaks or state.is_calibrated):
+            wizard.next_btn.setToolTip(
+                "Pick at least one peak first — click on the innermost ring "
+                "in the image."
+            )
+        elif current == 2 and not state.is_calibrated:
+            wizard.next_btn.setToolTip("Run Calibrate first.")
+        else:
+            wizard.next_btn.setToolTip("")
+
+        # the cake and pattern views are for judging the finished
+        # calibration — they appear only on the validation step
+        on_validation = current == last
+        self.widget.calibration_display_widget.show_validation_views(on_validation)
+        if on_validation and self._phase_overlays_dirty:
+            self._update_phase_overlays()
+
+        if state.num_peaks == 0:
+            self.widget.peak_counter_lbl.setText("No peaks selected")
+        else:
+            self.widget.peak_counter_lbl.setText(
+                "{} peaks on {} ring{}".format(
+                    state.num_peaks,
+                    state.num_rings,
+                    "" if state.num_rings == 1 else "s",
+                )
+            )
+
+        self.widget.calibrate_btn.setEnabled(state.num_peaks > 0)
+        self.widget.calibrate_btn.setToolTip(
+            ""
+            if state.num_peaks > 0
+            else "Needs picked peaks — click on the innermost ring in the image first."
+        )
+        self.widget.refine_btn.setEnabled(state.is_calibrated)
+        self.widget.refine_btn.setToolTip(
+            ""
+            if state.is_calibrated
+            else "Needs an existing calibration — run Calibrate or load a *.poni file first."
+        )
+        self.widget.save_calibration_btn.setEnabled(state.is_calibrated)
+
     def _on_points_changed(self):
         """Keeps the ring counter and the plotted peaks in step with the model.
 
@@ -454,32 +962,181 @@ class CalibrationController:
                 max(self.widget.peak_num_sb.value() - steps, 1)
             )
         self._last_peak_selection_count = selections
+        self.update_peak_table()
         self.plot_points()
+
+    def _on_configuration_selected(self, _ind=None):
+        """Follows a configuration switch or project reset: the calibration
+        model is a different instance now, so its instance signals need
+        re-wiring, and the peak table/plot must show the new state."""
+        calibration_model = self.model.calibration_model
+        if not calibration_model.points_changed.has_listener(self._on_points_changed):
+            calibration_model.points_changed.connect(self._on_points_changed)
+        if not calibration_model.detector_reset.has_listener(
+            self.update_detector_parameters_in_view
+        ):
+            calibration_model.detector_reset.connect(
+                self.update_detector_parameters_in_view
+            )
+        if not calibration_model.detector_reset.has_listener(
+            self.show_detector_reset_message_box
+        ):
+            calibration_model.detector_reset.connect(
+                self.show_detector_reset_message_box
+            )
+        if not calibration_model.parameters_changed.has_listener(
+            self._phase_overlays_changed
+        ):
+            calibration_model.parameters_changed.connect(
+                self._phase_overlays_changed
+            )
+        self._phase_overlays_dirty = True
+        # a plain refresh — the ring-counter bookkeeping in
+        # _on_points_changed must not treat the cross-configuration count
+        # difference as an undo
+        self._last_peak_selection_count = len(calibration_model.points)
+        self.update_peak_table()
+        self.plot_points()
+
+    def _selected_pick_rows(self):
+        selection_model = self.widget.peak_table.selectionModel()
+        if selection_model is None:
+            return []
+        return sorted(index.row() for index in selection_model.selectedRows())
+
+    def update_peak_table(self):
+        """Rebuilds the peak-group table from the model, one row per pick,
+        preserving the row selection where possible.
+
+        The ring spinboxes are updated in place rather than recreated — a
+        rebuild triggered from a spinbox's own valueChanged must not delete
+        the emitting widget mid-signal.
+        """
+        table = self.widget.peak_table
+        selections = self.model.calibration_model.params.peak_selections
+        previously_selected = set(self._selected_pick_rows())
+
+        self._updating_peak_table = True
+        table.blockSignals(True)
+        table.setRowCount(len(selections))
+        for row, (ring_ind, positions) in enumerate(selections):
+            ring_sb = table.cellWidget(row, 0)
+            if ring_sb is None:
+                ring_sb = QtWidgets.QSpinBox()
+                ring_sb.setMinimum(1)
+                ring_sb.setMaximum(999)
+                ring_sb.setAlignment(
+                    QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
+                )
+                ring_sb.setFrame(False)
+                ring_sb.valueChanged.connect(
+                    lambda value, row=row: self.peak_ring_changed(row, value)
+                )
+                table.setCellWidget(row, 0, ring_sb)
+            ring_sb.blockSignals(True)
+            ring_sb.setValue(ring_ind + 1)
+            ring_sb.blockSignals(False)
+
+            count_item = QtWidgets.QTableWidgetItem(str(len(positions)))
+            count_item.setTextAlignment(QtCore.Qt.AlignCenter)
+            count_item.setFlags(count_item.flags() & ~QtCore.Qt.ItemIsEditable)
+            table.setItem(row, 1, count_item)
+
+            positions_array = np.atleast_2d(np.array(positions))
+            pos_item = QtWidgets.QTableWidgetItem(
+                "%.0f, %.0f"
+                % (positions_array[:, 1].mean(), positions_array[:, 0].mean())
+            )
+            pos_item.setFlags(pos_item.flags() & ~QtCore.Qt.ItemIsEditable)
+            pos_item.setToolTip("Mean position of the group's peaks (x, y)")
+            table.setItem(row, 2, pos_item)
+
+        for row in previously_selected:
+            if row < table.rowCount():
+                table.selectionModel().select(
+                    table.model().index(row, 0),
+                    QtCore.QItemSelectionModel.Select
+                    | QtCore.QItemSelectionModel.Rows,
+                )
+        table.blockSignals(False)
+        self._updating_peak_table = False
+
+    def peak_table_selection_changed(self):
+        if self._updating_peak_table:
+            return
+        self.plot_points()
+
+    def peak_ring_changed(self, row, ring_number):
+        """Reassigns a pick to another ring via its table spinbox."""
+        if self._updating_peak_table:
+            return
+        self.model.calibration_model.set_peak_selection_ring(
+            row, ring_number - 1
+        )
+
+    def current_ring_changed(self):
+        """Selects (and thereby highlights) every peak group belonging to
+        the newly chosen current ring."""
+        self._select_rows_of_ring(self.widget.peak_num_sb.value() - 1)
+        self.plot_points()
+
+    def _select_rows_of_ring(self, ring_ind):
+        table = self.widget.peak_table
+        selection_model = table.selectionModel()
+        if selection_model is None:
+            return
+        rings = self.model.calibration_model.points_index
+        self._updating_peak_table = True
+        selection_model.clearSelection()
+        for row, row_ring in enumerate(rings):
+            if int(row_ring) == int(ring_ind):
+                selection_model.select(
+                    table.model().index(row, 0),
+                    QtCore.QItemSelectionModel.Select
+                    | QtCore.QItemSelectionModel.Rows,
+                )
+        self._updating_peak_table = False
+
+    def delete_selected_peaks(self):
+        """Deletes the peak groups selected in the table."""
+        for row in sorted(self._selected_pick_rows(), reverse=True):
+            self.model.calibration_model.remove_peak_selection(row)
 
     def plot_points(self, _=None):
         """
         Plots all picked peaks into the image view. Peaks belonging to the
-        currently selected ring are highlighted in a different color.
+        currently selected ring get their own color; groups selected in the
+        table are marked by a slightly larger dot with a white outline.
         """
-        try:
-            points = self.model.calibration_model.get_point_array()
-        except IndexError:
-            return
-        if len(points) == 0:
-            # undoing back to no peaks has to clear the view; returning early
-            # would leave the previous scatter on screen
-            self.widget.img_widget.clear_scatter_plot()
-            return
-        current_ring = self.widget.peak_num_sb.value() - 1
-        brushes = []
-        for ring_ind in points[:, 2]:
-            if int(ring_ind) == current_ring:
-                brushes.append(pg.mkBrush(255, 140, 0, 255))
-            else:
-                brushes.append(pg.mkBrush(255, 0, 0, 255))
+        picks = self.model.calibration_model.points
+        rings = self.model.calibration_model.points_index
         self.widget.img_widget.clear_scatter_plot()
+        if len(picks) == 0:
+            return
+        selected_rows = set(self._selected_pick_rows())
+        current_ring = self.widget.peak_num_sb.value() - 1
+        highlight_pen = pg.mkPen(255, 255, 255, 255, width=2)
+        normal_pen = pg.mkPen(255, 255, 255, 90)
+        xs, ys, brushes, sizes, pens = [], [], [], [], []
+        for pick_ind, (positions, ring_ind) in enumerate(zip(picks, rings)):
+            if int(ring_ind) == current_ring:
+                brush = pg.mkBrush(255, 140, 0, 255)
+            else:
+                brush = pg.mkBrush(255, 0, 0, 255)
+            if pick_ind in selected_rows:
+                pen = highlight_pen
+                size = 9
+            else:
+                pen = normal_pen
+                size = 7
+            for position in np.atleast_2d(positions):
+                xs.append(position[1] + 0.5)
+                ys.append(position[0] + 0.5)
+                brushes.append(brush)
+                sizes.append(size)
+                pens.append(pen)
         self.widget.img_widget.img_scatter_plot_item.addPoints(
-            x=points[:, 1] + 0.5, y=points[:, 0] + 0.5, brush=brushes
+            x=xs, y=ys, brush=brushes, size=sizes, pen=pens
         )
 
     def clear_peaks(self):
@@ -591,15 +1248,16 @@ class CalibrationController:
             text_str, abort_str, 0, end_value, self.widget
         )
 
+        display_widget = self.widget.calibration_display_widget
         progress_dialog.move(
             int(
-                self.widget.tab_widget.x()
-                + self.widget.tab_widget.size().width() / 2.0
+                display_widget.x()
+                + display_widget.size().width() / 2.0
                 - progress_dialog.size().width() / 2.0
             ),
             int(
-                self.widget.tab_widget.y()
-                + self.widget.tab_widget.size().height() / 2.0
+                display_widget.y()
+                + display_widget.size().height() / 2.0
                 - progress_dialog.size().height() / 2.0
             ),
         )
@@ -802,16 +1460,13 @@ class CalibrationController:
             self.widget.pattern_widget.pattern_plot.setLabel("bottom", "d", "A")
 
         self.widget.pattern_widget.view_box.autoRange()
-        if self.widget.tab_widget.currentIndex() == 0:
-            self.widget.tab_widget.setCurrentIndex(1)
-
-        if (
-            self.widget.ToolBox.currentIndex() != 2
-            or self.widget.ToolBox.currentIndex() != 3
-        ):
-            self.widget.ToolBox.setCurrentIndex(2)
         self.update_calibration_parameter_in_view()
+        # marks the overlays dirty for the freshly integrated cake, too
         self.load_calibrant("pyFAI")
+        # a calibration (or loaded .poni) exists now — bring the wizard to
+        # the validation page, where image, cake and pattern are shown
+        # side by side and the overlays get drawn once
+        self.go_to_wizard_step(3)
 
     def update_calibration_parameter_in_view(self):
         """
