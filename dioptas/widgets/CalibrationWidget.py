@@ -98,42 +98,6 @@ class StepIndicatorWidget(QtWidgets.QWidget):
             'QToolButton:disabled {{ color: #5B5B5B; }}'.format(color))
 
 
-class AdvancedExpander(QtWidgets.QWidget):
-    """A collapsed-by-default disclosure for options that first-time users
-    should not need to touch."""
-
-    def __init__(self, content_widget, parent=None, title='advanced'):
-        super().__init__(parent)
-        self.content_widget = content_widget
-
-        self.header_btn = QtWidgets.QToolButton()
-        self.header_btn.setText(title)
-        self.header_btn.setCheckable(True)
-        self.header_btn.setChecked(False)
-        self.header_btn.setArrowType(QtCore.Qt.RightArrow)
-        self.header_btn.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-        self.header_btn.setStyleSheet(
-            'QToolButton { border: none; color: #989898; }')
-        self.header_btn.toggled.connect(self.set_expanded)
-
-        self._layout = QtWidgets.QVBoxLayout(self)
-        self._layout.setContentsMargins(0, 0, 0, 0)
-        self._layout.setSpacing(0)
-        self._layout.addWidget(self.header_btn)
-        self._layout.addWidget(self.content_widget)
-
-        self.content_widget.hide()
-
-    def set_expanded(self, expanded):
-        self.header_btn.setChecked(expanded)
-        self.content_widget.setVisible(expanded)
-        self.header_btn.setArrowType(
-            QtCore.Qt.DownArrow if expanded else QtCore.Qt.RightArrow)
-
-    def is_expanded(self):
-        return self.header_btn.isChecked()
-
-
 class CalibrationWidget(QtWidgets.QWidget):
     """
     Defines the main structure of the calibration widget, which is separated into two parts.
@@ -185,6 +149,7 @@ class CalibrationWidget(QtWidgets.QWidget):
 
         self.save_calibration_btn = parameters_widget.save_calibration_btn
         self.load_calibration_btn = self.calibration_control_widget.load_calibration_btn
+        self.enter_parameters_btn = self.calibration_control_widget.enter_parameters_btn
 
         self.calibrate_btn = parameters_widget.calibrate_btn
         self.refine_btn = parameters_widget.refine_btn
@@ -494,11 +459,17 @@ class CalibrationControlWidget(QtWidgets.QWidget):
             self.calibration_parameters_widget.fit2d_parameters_widget
         )
 
-        # loading an existing .poni is the alternative entry into the
-        # workflow, so it stays reachable from every step
+        # loading an existing .poni or typing known parameters are the
+        # alternative entries into the workflow, so they stay reachable
+        # from every step
         self._bottom_layout = QtWidgets.QHBoxLayout()
         self.load_calibration_btn = QtWidgets.QPushButton('Load Calibration')
+        self.enter_parameters_btn = QtWidgets.QPushButton('Enter Manually')
+        self.enter_parameters_btn.setToolTip(
+            'Type known pyFAI or Fit2d calibration parameters directly, '
+            'without a *.poni file')
         self._bottom_layout.addWidget(self.load_calibration_btn)
+        self._bottom_layout.addWidget(self.enter_parameters_btn)
         self._layout.addLayout(self._bottom_layout)
 
         self.style_widgets()
@@ -888,9 +859,8 @@ class RefinementOptionsGroupBox(QtWidgets.QGroupBox):
         self.number_of_rings_sb = SpinBoxAlignRight()
         self.number_of_rings_sb.setValue(15)
 
-        advanced_content = QtWidgets.QWidget()
-        self._advanced_layout = QtWidgets.QGridLayout(advanced_content)
-        self._advanced_layout.setContentsMargins(0, 0, 0, 0)
+        self.advanced_gb = QtWidgets.QGroupBox('Advanced')
+        self._advanced_layout = QtWidgets.QGridLayout(self.advanced_gb)
         self._advanced_layout.setSpacing(3)
         self._advanced_layout.addWidget(LabelAlignRight('Peak Search Algorithm:'), 0, 0)
         self._advanced_layout.addWidget(self.peak_search_algorithm_cb, 0, 1)
@@ -903,8 +873,7 @@ class RefinementOptionsGroupBox(QtWidgets.QGroupBox):
         self._advanced_layout.addWidget(LabelAlignRight('Number of rings:'), 4, 0)
         self._advanced_layout.addWidget(self.number_of_rings_sb, 4, 1)
 
-        self.advanced_expander = AdvancedExpander(advanced_content)
-        self._layout.addWidget(self.advanced_expander, 2, 0, 1, 2)
+        self._layout.addWidget(self.advanced_gb, 2, 0, 1, 2)
 
         self.setLayout(self._layout)
 

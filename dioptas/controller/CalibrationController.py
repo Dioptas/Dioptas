@@ -71,6 +71,10 @@ class CalibrationController:
         self.model.configuration_selected.connect(
             self.update_detector_parameters_in_view
         )
+        # configuration switching (and project reset) replaces the
+        # calibration model — re-wire its instance signals and refresh the
+        # peak views, which would otherwise keep showing the old peaks
+        self.model.configuration_selected.connect(self._on_configuration_selected)
         self.model.calibration_model.detector_reset.connect(
             self.update_detector_parameters_in_view
         )
@@ -136,6 +140,11 @@ class CalibrationController:
         self.widget.wizard_back_btn.clicked.connect(self.wizard_back)
         self.widget.wizard_next_btn.clicked.connect(self.wizard_next)
         self.widget.step_indicator.step_clicked.connect(self.go_to_wizard_step)
+
+        self._manual_parameters_requested = False
+        self.widget.enter_parameters_btn.clicked.connect(
+            self.enter_parameters_manually
+        )
 
     def create_transformation_signals(self):
         """
@@ -214,17 +223,43 @@ class CalibrationController:
         """
         Takes all parameters inserted into the fit2d txt-fields and updates the current calibration accordingly.
         """
-        fit2d_parameter = self.widget.get_fit2d_parameter()
+        try:
+            fit2d_parameter = self.widget.get_fit2d_parameter()
+        except ValueError:
+            self._show_incomplete_parameters_message("Fit2d")
+            return
         self.model.calibration_model.set_fit2d(fit2d_parameter)
         self.update_all()
 
     def update_pyFAI_btn_click(self):
         """
-        Takes all parameters inserted into the fit2d txt-fields and updates the current calibration accordingly.
+        Takes all parameters inserted into the pyFAI txt-fields and updates the current calibration accordingly.
         """
-        pyFAI_parameter = self.widget.get_pyFAI_parameter()
+        try:
+            pyFAI_parameter = self.widget.get_pyFAI_parameter()
+        except ValueError:
+            self._show_incomplete_parameters_message("pyFAI")
+            return
         self.model.calibration_model.set_pyFAI(pyFAI_parameter)
         self.update_all()
+
+    def _show_incomplete_parameters_message(self, parameter_kind):
+        QtWidgets.QMessageBox.critical(
+            self.widget,
+            "Incomplete parameters",
+            "Please fill in all {} parameter fields before updating.".format(
+                parameter_kind
+            ),
+            QtWidgets.QMessageBox.Ok,
+        )
+
+    def enter_parameters_manually(self):
+        """Opens the validation page for typing pyFAI/Fit2d parameters
+        directly — the expert entry path that needs neither picked peaks
+        nor a .poni file."""
+        self._manual_parameters_requested = True
+        self.widget.set_wizard_step(3)
+        self.update_guide_in_view()
 
     def load_img(self):
         """
@@ -557,7 +592,7 @@ class CalibrationController:
             return state.image_loaded and (
                 state.num_peaks > 0 or state.is_calibrated
             )
-        return state.is_calibrated
+        return state.is_calibrated or self._manual_parameters_requested
 
     def wizard_next(self):
         self.go_to_wizard_step(self._wizard_widget().current_step() + 1)
@@ -660,6 +695,7 @@ class CalibrationController:
             if state.is_calibrated
             else "Needs an existing calibration — run Calibrate or load a *.poni file first."
         )
+        self.widget.save_calibration_btn.setEnabled(state.is_calibrated)
 
     def _on_points_changed(self):
         """Keeps the ring counter and the plotted peaks in step with the model.
@@ -679,6 +715,32 @@ class CalibrationController:
                 max(self.widget.peak_num_sb.value() - steps, 1)
             )
         self._last_peak_selection_count = selections
+        self.update_peak_table()
+        self.plot_points()
+
+    def _on_configuration_selected(self, _ind=None):
+        """Follows a configuration switch or project reset: the calibration
+        model is a different instance now, so its instance signals need
+        re-wiring, and the peak table/plot must show the new state."""
+        calibration_model = self.model.calibration_model
+        if not calibration_model.points_changed.has_listener(self._on_points_changed):
+            calibration_model.points_changed.connect(self._on_points_changed)
+        if not calibration_model.detector_reset.has_listener(
+            self.update_detector_parameters_in_view
+        ):
+            calibration_model.detector_reset.connect(
+                self.update_detector_parameters_in_view
+            )
+        if not calibration_model.detector_reset.has_listener(
+            self.show_detector_reset_message_box
+        ):
+            calibration_model.detector_reset.connect(
+                self.show_detector_reset_message_box
+            )
+        # a plain refresh — the ring-counter bookkeeping in
+        # _on_points_changed must not treat the cross-configuration count
+        # difference as an undo
+        self._last_peak_selection_count = len(calibration_model.points)
         self.update_peak_table()
         self.plot_points()
 

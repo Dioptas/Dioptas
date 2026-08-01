@@ -20,6 +20,8 @@
 
 - Picked calibration peaks can now be managed, not just cleared. The Pick Rings step shows a table of the picked groups — a ring spinbox to reassign the group, number of peaks, mean position. Selecting rows marks those peaks in the image with a subtle outline, changing the current ring number highlights every group of that ring, and selected groups can be deleted with the Delete button or the Del key. Previously a mis-picked ring meant clearing everything and starting over.
 
+- Known calibration parameters can be entered directly: "Enter Manually" at the bottom of the calibration panel opens the parameter page for typing pyFAI or Fit2d values without a .poni file, with a clear message if fields are left empty. Resetting the project now also clears the picked peaks from the image and table — they previously survived the reset on screen.
+
 - Setup values still at their shipped defaults — distance, wavelength, pixel size, calibrant — carry an orange border until you confirm them by editing, loading a detector or calibration, or calibrating successfully; a silently wrong default is the easiest way to get a nonsense calibration. The wavelength can now also be entered as an energy in keV, with the two fields kept in sync. Expert options (peak search mode and size, refinement tuning parameters) sit behind collapsed "advanced" toggles on their pages.
 
 ## Bugfixes

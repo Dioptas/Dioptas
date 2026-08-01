@@ -574,17 +574,93 @@ def test_peak_table_selection_highlights_in_image(
     assert len(x_data) == 2
 
 
-def test_refinement_advanced_options_are_collapsed_by_default(calibration_controller):
+def test_refinement_advanced_options_always_visible(
+    calibration_controller, calibration_model, dioptas_model, qtbot
+):
     widget = calibration_controller.widget
+    widget.show()
+    qtbot.addWidget(widget)
+
+    dioptas_model.img_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
+    )
+    calibration_model.params.peak_selections = ((0, ((10.0, 20.0),)),)
+    calibration_controller.go_to_wizard_step(2)
+
     parameters_widget = (
         widget.calibration_control_widget.calibration_parameters_widget
     )
-    assert not parameters_widget.refinement_options_gb.advanced_expander.is_expanded()
-    # the hidden expert controls keep working defaults
+    assert parameters_widget.refinement_options_gb.advanced_gb.isVisible()
+    assert widget.options_num_rings_sb.isVisible()
     assert widget.options_num_rings_sb.value() == 15
 
-    parameters_widget.refinement_options_gb.advanced_expander.set_expanded(True)
-    assert parameters_widget.refinement_options_gb.advanced_expander.is_expanded()
+
+def test_manual_parameter_entry_without_poni(
+    calibration_controller, calibration_model
+):
+    widget = calibration_controller.widget
+
+    # the validation page is closed without a calibration ...
+    calibration_controller.go_to_wizard_step(3)
+    assert widget.step_stack.currentIndex() != 3
+
+    # ... but Enter Manually opens it directly
+    click_button(widget.enter_parameters_btn)
+    assert widget.step_stack.currentIndex() == 3
+
+    pyfai_widget = (
+        widget.calibration_control_widget.pyfai_parameters_widget
+    )
+    for txt_field, value in [
+        (pyfai_widget.distance_txt, "200"),
+        (pyfai_widget.wavelength_txt, "0.31"),
+        (pyfai_widget.polarization_txt, "0.99"),
+        (pyfai_widget.poni1_txt, "0.08"),
+        (pyfai_widget.poni2_txt, "0.08"),
+        (pyfai_widget.rotation1_txt, "0"),
+        (pyfai_widget.rotation2_txt, "0"),
+        (pyfai_widget.rotation3_txt, "0"),
+        (pyfai_widget.pixel_width_txt, "79"),
+        (pyfai_widget.pixel_height_txt, "79"),
+    ]:
+        txt_field.setText(value)
+
+    calibration_controller.update_all = MagicMock()
+    click_button(widget.pf_update_btn)
+    assert calibration_model.is_calibrated
+    assert calibration_controller.update_all.called
+
+
+def test_manual_parameter_update_with_empty_fields_shows_message(
+    calibration_controller, calibration_model
+):
+    widget = calibration_controller.widget
+    click_button(widget.enter_parameters_btn)
+
+    QtWidgets.QMessageBox.critical = MagicMock()
+    click_button(widget.pf_update_btn)
+    assert QtWidgets.QMessageBox.critical.called
+    assert not calibration_model.is_calibrated
+
+
+def test_project_reset_clears_peak_views(
+    calibration_controller, calibration_model, dioptas_model
+):
+    widget = calibration_controller.widget
+    calibration_model.params.peak_selections = ((0, ((10.0, 20.0),)),)
+    assert widget.peak_table.rowCount() == 1
+
+    dioptas_model.reset()
+    assert widget.peak_table.rowCount() == 0
+    x_data, y_data = widget.img_widget.img_scatter_plot_item.getData()
+    assert x_data is None or len(x_data) == 0
+
+    # picking in the fresh configuration updates the views again
+    dioptas_model.calibration_model.params.peak_selections = (
+        (1, ((30.0, 40.0),)),
+    )
+    assert widget.peak_table.rowCount() == 1
+    assert widget.peak_table.cellWidget(0, 0).value() == 2
 
 
 def test_current_ring_change_selects_groups_of_that_ring(
