@@ -154,6 +154,7 @@ class CalibrationWidget(QtWidgets.QWidget):
 
         self._content_layout = QtWidgets.QHBoxLayout()
         self._content_layout.setContentsMargins(0, 0, 0, 0)
+        self._content_layout.setSpacing(10)
         self._content_layout.addWidget(self.calibration_display_widget)
         self._content_layout.addWidget(self.calibration_control_widget)
 
