@@ -35,8 +35,12 @@ class StepIndicatorWidget(QtWidgets.QWidget):
     def __init__(self, titles, parent=None):
         super().__init__(parent)
         self._layout = QtWidgets.QHBoxLayout(self)
-        self._layout.setContentsMargins(6, 0, 3, 0)
+        self._layout.setContentsMargins(6, 0, 10, 0)
         self._layout.setSpacing(0)
+
+        # right-aligned: the wizard controls live in the right panel, so
+        # the step navigation sits above them
+        self._layout.addStretch()
 
         self.step_btns = []
         self._titles = list(titles)
@@ -54,7 +58,6 @@ class StepIndicatorWidget(QtWidgets.QWidget):
             self._layout.addWidget(btn)
             self.step_btns.append(btn)
             self._statuses.append('pending')
-        self._layout.addStretch()
 
         self.setMaximumHeight(30)
 
