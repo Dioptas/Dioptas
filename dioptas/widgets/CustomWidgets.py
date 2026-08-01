@@ -1,6 +1,4 @@
 # SPDX-License-Identifier: MIT
-import time
-
 import os
 from qtpy import QtCore, QtWidgets, QtGui
 from math import floor, log10
@@ -44,49 +42,6 @@ class LabelExpandable(QtWidgets.QLineEdit):
         """
         )
         self.setReadOnly(True)
-
-
-class CleanLooksComboBox(QtWidgets.QComboBox):
-    cleanlooks = QtWidgets.QStyleFactory.create("motif")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.setStyle(CleanLooksComboBox.cleanlooks)
-        self.setLineEdit(CleanLooksLineEdit())
-        self.lineEdit().clicked.connect(self.showPopup)
-        self.popup_closed_time = time.time()
-
-    def showPopup(self):
-        if time.time() - self.popup_closed_time > 0.01:
-            # prevents showing popup immediately after closing by clicking onto lineEdit.
-            super().showPopup()
-
-    def hidePopup(self):
-        super().hidePopup()
-        self.popup_closed_time = time.time()
-
-
-class CleanLooksLineEdit(QtWidgets.QLineEdit):
-    clicked = QtCore.Signal()
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.installEventFilter(self)
-        self.setReadOnly(True)
-        self.setStyleSheet(
-            """
-                margin: 2px; 
-                background: #3C3C3C;
-            """
-        )
-
-    def eventFilter(self, obj, event):
-        if event.type() == QtCore.QEvent.MouseButtonPress:
-            self.clicked.emit()
-            return True
-        if event.type() == QtCore.QEvent.MouseMove:
-            return True
-        return super().eventFilter(obj, event)
 
 
 class SpinBoxAlignRight(QtWidgets.QSpinBox):

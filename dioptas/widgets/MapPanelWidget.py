@@ -17,7 +17,6 @@ from .CustomWidgets import (
     CheckableFlatButton,
     FlatButton,
     HorizontalSpacerItem,
-    CleanLooksComboBox,
 )
 
 
@@ -240,7 +239,7 @@ class MapPlotControlWidget(QtWidgets.QWidget):
         self.save_map_btn = SaveIconButton()
         self.save_map_btn.setToolTip("Save the map as an image or a table of values")
         self.dimension_lbl = QtWidgets.QLabel("Dim:")
-        self.map_dimension_cb = CleanLooksComboBox()
+        self.map_dimension_cb = QtWidgets.QComboBox()
         self.map_dimension_cb.setMinimumWidth(80)
         self.map_dimension_cb.setToolTip(
             "Grid the map points are arranged in, for the number of images loaded"

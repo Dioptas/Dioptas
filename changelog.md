@@ -22,7 +22,7 @@
 
 - The validation step shows image, cake and pattern side by side instead of tabs. Clicking any of the three places a green marker at the same 2θ in all of them — the iso-2θ ring on the image, a vertical line in the cake, the position line in the pattern — for checking that rings, cake lines and peaks line up. The calibrant's reflections are overlaid in every view — the red lines known from the pattern also appear as rings on the image and vertical lines in the cake — and loaded phases join them in their phase color, all semi-transparent, so the match with the measured peaks is visible at a glance. Parameters can be fixed to chosen values before calibrating: the start values carry fit checkboxes and value fields for the rotations and PONI next to distance and wavelength, synced with the fitted values afterwards. The refinement options show the automatic-refinement parameters only while automatic refinement is enabled.
 
-- Known calibration parameters can be entered directly: "Enter Manually" at the bottom of the calibration panel opens the parameter page for typing pyFAI or Fit2d values without a .poni file, with a clear message if fields are left empty. Resetting the project now also clears the picked peaks from the image and table — they previously survived the reset on screen.
+- Known calibration parameters can be entered directly: "Enter Manually" at the bottom of the calibration panel opens the parameter page for typing pyFAI or Fit2d values without a .poni file, with a clear message if fields are left empty. Resetting the project now also clears the picked peaks and the displayed mask from the views — both previously survived the reset on screen.
 
 - Setup values still at their shipped defaults — distance, wavelength, pixel size, calibrant — carry an orange border until you confirm them by editing, loading a detector or calibration, or calibrating successfully; a silently wrong default is the easiest way to get a nonsense calibration. The wavelength can now also be entered as an energy in keV, with the two fields kept in sync. Expert options (peak search mode and size, refinement tuning parameters) sit behind collapsed "advanced" toggles on their pages.
 
@@ -39,6 +39,8 @@
 - Copying a phase marked it as modified — the asterisk meaning it no longer matches the file it came from — so a copy claimed an edit that never happened.
 
 - Saving a project could leave the previous file damaged if the save failed or was interrupted part way through.
+
+- On macOS, drop-down boxes took an extra click before their list would stay open. They were built on a custom widget from the Qt4 days that swallowed the mouse press and opened the list itself, which left Qt unaware that a click was in progress, so the release that followed closed the list again. They are now ordinary combo boxes, and their list drops down below the box and scrolls, instead of covering it at the full height of the screen.
 
 ## Distribution
 

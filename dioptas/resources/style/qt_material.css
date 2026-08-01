@@ -15,6 +15,10 @@ QGroupBox::title {{
 
 QComboBox {{
     selection-background-color: {QTMATERIAL_SECONDARYCOLOR};
+    /* Use a scrollable drop-down list instead of the native macOS menu popup,
+       which is drawn over the box, reserves a check-mark column and ignores
+       maxVisibleItems. */
+    combobox-popup: 0;
 }}
 
 QComboBox::item:selected {{

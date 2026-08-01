@@ -780,10 +780,15 @@ def test_project_reset_clears_peak_views(
 ):
     widget = calibration_controller.widget
     calibration_model.params.peak_selections = ((0, ((10.0, 20.0),)),)
+    dioptas_model.use_mask = True
+    dioptas_model.mask_changed.emit()
     assert widget.peak_table.rowCount() == 1
+    assert widget.use_mask_cb.isChecked()
 
     dioptas_model.reset()
     assert widget.peak_table.rowCount() == 0
+    # the mask state of the fresh configuration is shown, not the old one
+    assert not widget.use_mask_cb.isChecked()
     x_data, y_data = widget.img_widget.img_scatter_plot_item.getData()
     assert x_data is None or len(x_data) == 0
 

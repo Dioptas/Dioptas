@@ -10,7 +10,7 @@ from ..widgets.plot_widgets import CalibrationCakeWidget
 from ..widgets.plot_widgets import PatternWidget
 from ..widgets.plot_widgets.ImgWidget import IntegrationImgWidget
 
-from .CustomWidgets import NumberTextField, LabelAlignRight, CleanLooksComboBox, SpinBoxAlignRight, \
+from .CustomWidgets import NumberTextField, LabelAlignRight, SpinBoxAlignRight, \
     DoubleSpinBoxAlignRight, OpenIconButton, ResetIconButton
 
 
@@ -732,7 +732,7 @@ class DetectorGroupbox(QtWidgets.QGroupBox):
 
         self._layout = QtWidgets.QVBoxLayout(self)
 
-        self.detector_cb = CleanLooksComboBox()
+        self.detector_cb = QtWidgets.QComboBox()
 
         self.detector_name_lbl = LabelAlignRight()
         self.detector_name_lbl.hide()
@@ -857,7 +857,7 @@ class StartValuesGroupBox(QtWidgets.QGroupBox):
             self._grid_layout1.addWidget(checkbox, row, 3)
 
         self._grid_layout1.addWidget(LabelAlignRight('Calibrant:'), 9, 0)
-        self.calibrant_cb = CleanLooksComboBox()
+        self.calibrant_cb = QtWidgets.QComboBox()
         self._grid_layout1.addWidget(self.calibrant_cb, 9, 1, 1, 2)
 
         self._layout.addLayout(self._grid_layout1)
@@ -982,7 +982,7 @@ class RefinementOptionsGroupBox(QtWidgets.QGroupBox):
 
         # the parameters below belong to the automatic refinement — they
         # are only shown while it is enabled
-        self.peak_search_algorithm_cb = CleanLooksComboBox()
+        self.peak_search_algorithm_cb = QtWidgets.QComboBox()
         self.peak_search_algorithm_cb.addItems(['Massif', 'Blob'])
 
         self.delta_tth_txt = NumberTextField('0.1')
