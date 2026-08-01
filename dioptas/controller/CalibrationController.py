@@ -142,19 +142,19 @@ class CalibrationController:
             on_toggled=self.distance_cb_changed,
         )
 
-        # the rotation/PONI fit checkboxes on the calibrate page and on the
+        # the rotation/PONI fit checkboxes in the start values and on the
         # pyFAI parameter page show the same state; the values are read via
         # get_fixed_values() when a calibration or refinement starts
-        refinement_options_gb = (
+        start_values_gb = (
             self.widget.calibration_control_widget
-            .calibration_parameters_widget.refinement_options_gb
+            .calibration_parameters_widget.start_values_gb
         )
         for pyfai_cb, calibrate_cb in [
-            (self.widget.pf_rot1_cb, refinement_options_gb.rotation1_cb),
-            (self.widget.pf_rot2_cb, refinement_options_gb.rotation2_cb),
-            (self.widget.pf_rot3_cb, refinement_options_gb.rotation3_cb),
-            (self.widget.pf_poni1_cb, refinement_options_gb.poni1_cb),
-            (self.widget.pf_poni2_cb, refinement_options_gb.poni2_cb),
+            (self.widget.pf_rot1_cb, start_values_gb.rotation1_cb),
+            (self.widget.pf_rot2_cb, start_values_gb.rotation2_cb),
+            (self.widget.pf_rot3_cb, start_values_gb.rotation3_cb),
+            (self.widget.pf_poni1_cb, start_values_gb.poni1_cb),
+            (self.widget.pf_poni2_cb, start_values_gb.poni2_cb),
         ]:
             self.binder.mirror_toggles(
                 pyfai_cb, calibrate_cb, on_toggled=lambda _checked: None

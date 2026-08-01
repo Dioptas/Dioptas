@@ -275,22 +275,20 @@ class CalibrationWidget(QtWidgets.QWidget):
         pyFAI-page checkboxes mirror these, so both stay in agreement."""
         fixed_values = {}
 
-        parameters_widget = self.calibration_control_widget.calibration_parameters_widget
-        sv_gb = parameters_widget.start_values_gb
-        ro_gb = parameters_widget.refinement_options_gb
+        sv_gb = self.calibration_control_widget.calibration_parameters_widget.start_values_gb
 
         if not sv_gb.distance_cb.isChecked():
             fixed_values['dist'] = self.get_float_from_txt_field(sv_gb.distance_txt) * 1e-3
-        if not ro_gb.rotation1_cb.isChecked():
-            fixed_values['rot1'] = self.get_float_from_txt_field(ro_gb.rotation1_txt)
-        if not ro_gb.rotation2_cb.isChecked():
-            fixed_values['rot2'] = self.get_float_from_txt_field(ro_gb.rotation2_txt)
-        if not ro_gb.rotation3_cb.isChecked():
-            fixed_values['rot3'] = self.get_float_from_txt_field(ro_gb.rotation3_txt)
-        if not ro_gb.poni1_cb.isChecked():
-            fixed_values['poni1'] = self.get_float_from_txt_field(ro_gb.poni1_txt)
-        if not ro_gb.poni2_cb.isChecked():
-            fixed_values['poni2'] = self.get_float_from_txt_field(ro_gb.poni2_txt)
+        if not sv_gb.rotation1_cb.isChecked():
+            fixed_values['rot1'] = self.get_float_from_txt_field(sv_gb.rotation1_txt)
+        if not sv_gb.rotation2_cb.isChecked():
+            fixed_values['rot2'] = self.get_float_from_txt_field(sv_gb.rotation2_txt)
+        if not sv_gb.rotation3_cb.isChecked():
+            fixed_values['rot3'] = self.get_float_from_txt_field(sv_gb.rotation3_txt)
+        if not sv_gb.poni1_cb.isChecked():
+            fixed_values['poni1'] = self.get_float_from_txt_field(sv_gb.poni1_txt)
+        if not sv_gb.poni2_cb.isChecked():
+            fixed_values['poni2'] = self.get_float_from_txt_field(sv_gb.poni2_txt)
         return fixed_values
 
     def get_float_from_txt_field(self, txt_field):
@@ -331,12 +329,11 @@ class CalibrationWidget(QtWidgets.QWidget):
 
             # the fit-constraint fields follow the fitted values, so a later
             # "hold this fixed" keeps the calibrated number, not a stale one
-            ro_gb = self.calibration_control_widget.calibration_parameters_widget.refinement_options_gb
-            ro_gb.rotation1_txt.setText('%.8f' % (pyfai_parameter['rot1']))
-            ro_gb.rotation2_txt.setText('%.8f' % (pyfai_parameter['rot2']))
-            ro_gb.rotation3_txt.setText('%.8f' % (pyfai_parameter['rot3']))
-            ro_gb.poni1_txt.setText('%.6f' % (pyfai_parameter['poni1']))
-            ro_gb.poni2_txt.setText('%.6f' % (pyfai_parameter['poni2']))
+            sv_gb.rotation1_txt.setText('%.8f' % (pyfai_parameter['rot1']))
+            sv_gb.rotation2_txt.setText('%.8f' % (pyfai_parameter['rot2']))
+            sv_gb.rotation3_txt.setText('%.8f' % (pyfai_parameter['rot3']))
+            sv_gb.poni1_txt.setText('%.6f' % (pyfai_parameter['poni1']))
+            sv_gb.poni2_txt.setText('%.6f' % (pyfai_parameter['poni2']))
         except (AttributeError, TypeError):
             pyfai_widget.distance_txt.setText('')
             pyfai_widget.poni1_txt.setText('')
@@ -756,9 +753,39 @@ class StartValuesGroupBox(QtWidgets.QGroupBox):
         self.polarization_txt = NumberTextField('0.99')
         self._grid_layout1.addWidget(self.polarization_txt, 3, 1)
 
-        self._grid_layout1.addWidget(LabelAlignRight('Calibrant:'), 5, 0)
+        # unchecked checkboxes hold the parameter fixed at the given value
+        # during calibration and refinement (mirrored with the pyFAI
+        # parameter page), like the distance and wavelength ones above
+        self.rotation1_txt = NumberTextField('0')
+        self.rotation2_txt = NumberTextField('0')
+        self.rotation3_txt = NumberTextField('0')
+        self.rotation1_cb = QtWidgets.QCheckBox()
+        self.rotation2_cb = QtWidgets.QCheckBox()
+        self.rotation3_cb = QtWidgets.QCheckBox()
+        self.poni1_txt = NumberTextField('0')
+        self.poni2_txt = NumberTextField('0')
+        self.poni1_cb = QtWidgets.QCheckBox()
+        self.poni2_cb = QtWidgets.QCheckBox()
+
+        fit_tooltip = ('Checked: parameter is refined. Unchecked: it is '
+                       'held fixed at the given value.')
+        for row_offset, (label, txt_field, unit, checkbox) in enumerate([
+                ('Rotation 1:', self.rotation1_txt, 'rad', self.rotation1_cb),
+                ('Rotation 2:', self.rotation2_txt, 'rad', self.rotation2_cb),
+                ('Rotation 3:', self.rotation3_txt, 'rad', self.rotation3_cb),
+                ('PONI 1:', self.poni1_txt, 'm', self.poni1_cb),
+                ('PONI 2:', self.poni2_txt, 'm', self.poni2_cb)]):
+            checkbox.setChecked(True)
+            checkbox.setToolTip(fit_tooltip)
+            row = 4 + row_offset
+            self._grid_layout1.addWidget(LabelAlignRight(label), row, 0)
+            self._grid_layout1.addWidget(txt_field, row, 1)
+            self._grid_layout1.addWidget(QtWidgets.QLabel(unit), row, 2)
+            self._grid_layout1.addWidget(checkbox, row, 3)
+
+        self._grid_layout1.addWidget(LabelAlignRight('Calibrant:'), 9, 0)
         self.calibrant_cb = CleanLooksComboBox()
-        self._grid_layout1.addWidget(self.calibrant_cb, 5, 1, 1, 2)
+        self._grid_layout1.addWidget(self.calibrant_cb, 9, 1, 1, 2)
 
         self._layout.addLayout(self._grid_layout1)
 
@@ -870,17 +897,18 @@ class RefinementOptionsGroupBox(QtWidgets.QGroupBox):
         self._layout.setSpacing(3)
         self._layout.setContentsMargins(6, 8, 6, 6)
 
-        self.automatic_refinement_cb = QtWidgets.QCheckBox('automatic refinement')
-        self.automatic_refinement_cb.setChecked(True)
-        self._layout.addWidget(self.automatic_refinement_cb, 0, 0, 1, 1)
-
         self.use_mask_cb = QtWidgets.QCheckBox('use mask')
-        self._layout.addWidget(self.use_mask_cb, 1, 0)
+        self._layout.addWidget(self.use_mask_cb, 0, 0)
 
         self.mask_transparent_cb = QtWidgets.QCheckBox('transparent')
-        self._layout.addWidget(self.mask_transparent_cb, 1, 1)
+        self._layout.addWidget(self.mask_transparent_cb, 0, 1)
 
-        # refinement tuning parameters are expert options — collapsed by default
+        self.automatic_refinement_cb = QtWidgets.QCheckBox('automatic refinement')
+        self.automatic_refinement_cb.setChecked(True)
+        self._layout.addWidget(self.automatic_refinement_cb, 1, 0, 1, 2)
+
+        # the parameters below belong to the automatic refinement — they
+        # are only shown while it is enabled
         self.peak_search_algorithm_cb = CleanLooksComboBox()
         self.peak_search_algorithm_cb.addItems(['Massif', 'Blob'])
 
@@ -895,52 +923,25 @@ class RefinementOptionsGroupBox(QtWidgets.QGroupBox):
         self.number_of_rings_sb = SpinBoxAlignRight()
         self.number_of_rings_sb.setValue(15)
 
-        self.advanced_gb = QtWidgets.QGroupBox('Advanced')
-        self._advanced_layout = QtWidgets.QGridLayout(self.advanced_gb)
-        self._advanced_layout.setSpacing(3)
-        self._advanced_layout.addWidget(LabelAlignRight('Peak Search Algorithm:'), 0, 0)
-        self._advanced_layout.addWidget(self.peak_search_algorithm_cb, 0, 1)
-        self._advanced_layout.addWidget(LabelAlignRight('Delta 2Th:'), 1, 0)
-        self._advanced_layout.addWidget(self.delta_tth_txt, 1, 1)
-        self._advanced_layout.addWidget(LabelAlignRight('Intensity Mean Factor:'), 2, 0)
-        self._advanced_layout.addWidget(self.intensity_mean_factor_sb, 2, 1)
-        self._advanced_layout.addWidget(LabelAlignRight('Intensity Limit:'), 3, 0)
-        self._advanced_layout.addWidget(self.intensity_limit_txt, 3, 1)
-        self._advanced_layout.addWidget(LabelAlignRight('Number of rings:'), 4, 0)
-        self._advanced_layout.addWidget(self.number_of_rings_sb, 4, 1)
+        self.automatic_refinement_content = QtWidgets.QWidget()
+        self._automatic_layout = QtWidgets.QGridLayout(
+            self.automatic_refinement_content)
+        self._automatic_layout.setContentsMargins(0, 0, 0, 0)
+        self._automatic_layout.setSpacing(3)
+        self._automatic_layout.addWidget(LabelAlignRight('Peak Search Algorithm:'), 0, 0)
+        self._automatic_layout.addWidget(self.peak_search_algorithm_cb, 0, 1)
+        self._automatic_layout.addWidget(LabelAlignRight('Delta 2Th:'), 1, 0)
+        self._automatic_layout.addWidget(self.delta_tth_txt, 1, 1)
+        self._automatic_layout.addWidget(LabelAlignRight('Intensity Mean Factor:'), 2, 0)
+        self._automatic_layout.addWidget(self.intensity_mean_factor_sb, 2, 1)
+        self._automatic_layout.addWidget(LabelAlignRight('Intensity Limit:'), 3, 0)
+        self._automatic_layout.addWidget(self.intensity_limit_txt, 3, 1)
+        self._automatic_layout.addWidget(LabelAlignRight('Number of rings:'), 4, 0)
+        self._automatic_layout.addWidget(self.number_of_rings_sb, 4, 1)
 
-        # fit constraints: unchecked holds the parameter fixed at the given
-        # value during calibration and refinement (mirrored with the pyFAI
-        # parameter page); distance and wavelength have their checkboxes in
-        # the start values above
-        self.rotation1_txt = NumberTextField('0')
-        self.rotation2_txt = NumberTextField('0')
-        self.rotation3_txt = NumberTextField('0')
-        self.rotation1_cb = QtWidgets.QCheckBox()
-        self.rotation2_cb = QtWidgets.QCheckBox()
-        self.rotation3_cb = QtWidgets.QCheckBox()
-        self.poni1_txt = NumberTextField('0')
-        self.poni2_txt = NumberTextField('0')
-        self.poni1_cb = QtWidgets.QCheckBox()
-        self.poni2_cb = QtWidgets.QCheckBox()
-
-        fit_tooltip = ('Checked: parameter is refined. Unchecked: it is '
-                       'held fixed at the given value.')
-        for row_offset, (label, txt_field, unit, checkbox) in enumerate([
-                ('Rotation 1:', self.rotation1_txt, 'rad', self.rotation1_cb),
-                ('Rotation 2:', self.rotation2_txt, 'rad', self.rotation2_cb),
-                ('Rotation 3:', self.rotation3_txt, 'rad', self.rotation3_cb),
-                ('PONI 1:', self.poni1_txt, 'm', self.poni1_cb),
-                ('PONI 2:', self.poni2_txt, 'm', self.poni2_cb)]):
-            checkbox.setChecked(True)
-            checkbox.setToolTip(fit_tooltip)
-            row = 5 + row_offset
-            self._advanced_layout.addWidget(LabelAlignRight(label), row, 0)
-            self._advanced_layout.addWidget(txt_field, row, 1)
-            self._advanced_layout.addWidget(QtWidgets.QLabel(unit), row, 2)
-            self._advanced_layout.addWidget(checkbox, row, 3)
-
-        self._layout.addWidget(self.advanced_gb, 2, 0, 1, 2)
+        self._layout.addWidget(self.automatic_refinement_content, 2, 0, 1, 2)
+        self.automatic_refinement_cb.toggled.connect(
+            self.automatic_refinement_content.setVisible)
 
         self.setLayout(self._layout)
 

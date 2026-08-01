@@ -580,7 +580,7 @@ def test_peak_table_selection_highlights_in_image(
     assert len(x_data) == 2
 
 
-def test_refinement_advanced_options_always_visible(
+def test_automatic_refinement_parameters_follow_checkbox(
     calibration_controller, calibration_model, dioptas_model, qtbot
 ):
     widget = calibration_controller.widget
@@ -593,12 +593,17 @@ def test_refinement_advanced_options_always_visible(
     calibration_model.params.peak_selections = ((0, ((10.0, 20.0),)),)
     calibration_controller.go_to_wizard_step(2)
 
-    parameters_widget = (
-        widget.calibration_control_widget.calibration_parameters_widget
-    )
-    assert parameters_widget.refinement_options_gb.advanced_gb.isVisible()
+    # enabled by default: the automatic-refinement parameters are shown
+    assert widget.options_automatic_refinement_cb.isChecked()
     assert widget.options_num_rings_sb.isVisible()
     assert widget.options_num_rings_sb.value() == 15
+
+    click_checkbox(widget.options_automatic_refinement_cb)
+    assert not widget.options_num_rings_sb.isVisible()
+    assert not widget.options_peaksearch_algorithm_cb.isVisible()
+
+    click_checkbox(widget.options_automatic_refinement_cb)
+    assert widget.options_num_rings_sb.isVisible()
 
 
 def test_manual_parameter_entry_without_poni(
@@ -718,32 +723,32 @@ def test_phase_lines_are_drawn_in_validation_views(
 
 def test_fixed_parameters_can_be_set_before_calibration(calibration_controller):
     widget = calibration_controller.widget
-    refinement_options_gb = (
+    start_values_gb = (
         widget.calibration_control_widget
-        .calibration_parameters_widget.refinement_options_gb
+        .calibration_parameters_widget.start_values_gb
     )
     # everything refined by default
     assert widget.get_fixed_values() == {}
 
-    click_checkbox(refinement_options_gb.rotation3_cb)
-    refinement_options_gb.rotation3_txt.setText("0.01")
-    click_checkbox(refinement_options_gb.poni1_cb)
-    refinement_options_gb.poni1_txt.setText("0.08")
+    click_checkbox(start_values_gb.rotation3_cb)
+    start_values_gb.rotation3_txt.setText("0.01")
+    click_checkbox(start_values_gb.poni1_cb)
+    start_values_gb.poni1_txt.setText("0.08")
     assert widget.get_fixed_values() == {"rot3": 0.01, "poni1": 0.08}
 
     # mirrored onto the pyFAI parameter page and back
     assert not widget.pf_rot3_cb.isChecked()
     assert not widget.pf_poni1_cb.isChecked()
     click_checkbox(widget.pf_rot3_cb)
-    assert refinement_options_gb.rotation3_cb.isChecked()
+    assert start_values_gb.rotation3_cb.isChecked()
     assert widget.get_fixed_values() == {"poni1": 0.08}
 
 
 def test_fitted_values_sync_into_constraint_fields(calibration_controller):
     widget = calibration_controller.widget
-    refinement_options_gb = (
+    start_values_gb = (
         widget.calibration_control_widget
-        .calibration_parameters_widget.refinement_options_gb
+        .calibration_parameters_widget.start_values_gb
     )
     widget.set_pyFAI_parameter(
         {
@@ -759,9 +764,9 @@ def test_fitted_values_sync_into_constraint_fields(calibration_controller):
             "pixel2": 79e-6,
         }
     )
-    assert float(refinement_options_gb.rotation1_txt.text()) == pytest.approx(0.001)
-    assert float(refinement_options_gb.rotation3_txt.text()) == pytest.approx(0.003)
-    assert float(refinement_options_gb.poni1_txt.text()) == pytest.approx(0.081)
+    assert float(start_values_gb.rotation1_txt.text()) == pytest.approx(0.001)
+    assert float(start_values_gb.rotation3_txt.text()) == pytest.approx(0.003)
+    assert float(start_values_gb.poni1_txt.text()) == pytest.approx(0.081)
 
 
 def test_project_reset_clears_peak_views(
