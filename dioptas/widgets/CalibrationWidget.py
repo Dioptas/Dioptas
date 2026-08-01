@@ -55,6 +55,8 @@ class StepIndicatorWidget(QtWidgets.QWidget):
             self._statuses.append('pending')
         self._layout.addStretch()
 
+        self.setMaximumHeight(30)
+
         self.set_current_step(0)
         for ind in range(len(self.step_btns)):
             self._style_step(ind)
@@ -85,9 +87,12 @@ class StepIndicatorWidget(QtWidgets.QWidget):
         prefix = '✓ ' if status == 'done' else ''
         self.step_btns[index].setText(
             '{}{}. {}'.format(prefix, index + 1, self._titles[index]))
+        # min-height/margin zeroed to undo the qt_material button sizing,
+        # which would inflate the row to ~47px and read as empty space
         self.step_btns[index].setStyleSheet(
             'QToolButton {{ border: none; background: transparent;'
-            ' color: {0}; font-size: 14px; padding: 4px 10px; }}'
+            ' color: {0}; font-size: 14px; padding: 2px 8px;'
+            ' margin: 0px; min-height: 0px; }}'
             'QToolButton:checked {{ font-weight: bold; color: #F1F1F1;'
             ' background: transparent; border-bottom: 2px solid #B4B4B4; }}'
             'QToolButton:disabled {{ color: #5B5B5B; }}'.format(color))
