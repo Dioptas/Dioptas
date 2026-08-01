@@ -69,6 +69,8 @@ class MaskWidget(QtWidgets.QWidget):
         self.rectangle_btn = CheckableButton('Rectangle')
         self.point_btn = CheckableButton('Point')
         self.point_size_sb = SpinBoxAlignRight()
+        self.point_size_sb.setSuffix(' px')
+        self.point_size_sb.setToolTip('Diameter of the point masking tool')
         self.polygon_btn = CheckableButton('Polygon')
         self.arc_btn = CheckableButton('Arc')
         self._geometry_layout.addWidget(self.circle_btn, 0, 0)
@@ -85,7 +87,13 @@ class MaskWidget(QtWidgets.QWidget):
         self.above_thresh_btn = QtWidgets.QPushButton('Above Thresh')
         self.below_thresh_btn = QtWidgets.QPushButton('Below Thresh')
         self.above_thresh_txt = NumberTextField('')
+        self.above_thresh_txt.setPlaceholderText('counts')
+        self.above_thresh_txt.setToolTip(
+            'Mask all pixels with intensities above this value')
         self.below_thresh_txt = NumberTextField('')
+        self.below_thresh_txt.setPlaceholderText('counts')
+        self.below_thresh_txt.setToolTip(
+            'Mask all pixels with intensities below this value')
         self._threshold_layout.addWidget(self.above_thresh_btn, 0, 0)
         self._threshold_layout.addWidget(self.above_thresh_txt, 0, 1)
         self._threshold_layout.addWidget(self.below_thresh_btn, 1, 0)
