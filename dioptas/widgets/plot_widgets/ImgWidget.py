@@ -351,7 +351,7 @@ class CalibrationCakeWidget(ImgWidget):
         """
         self.clear_phase_lines()
         for position, color in positions_and_colors:
-            line = pg.InfiniteLine(angle=90, pen=pg.mkPen(color=color, width=1))
+            line = pg.InfiniteLine(angle=90, pen=pg.mkPen(color=color, width=1.6))
             line.setValue(position)
             self.img_view_box.addItem(line)
             self._phase_line_items.append(line)
@@ -491,7 +491,7 @@ class IntegrationImgWidget(MaskImgWidget):
         """
         self.clear_phase_rings()
         for x, y, color in segments:
-            item = pg.PlotDataItem(x=x, y=y, pen=pg.mkPen(color=color, width=1))
+            item = pg.PlotDataItem(x=x, y=y, pen=pg.mkPen(color=color, width=1.6))
             self.img_view_box.addItem(item)
             self._phase_ring_items.append(item)
 

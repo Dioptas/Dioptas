@@ -389,7 +389,7 @@ class CalibrationController:
             self._update_phase_overlays()
 
     #: alpha for the phase overlays, so the peaks stay visible underneath
-    _PHASE_OVERLAY_ALPHA = 130
+    _PHASE_OVERLAY_ALPHA = 180
     #: image downsampling for the ring contours — full 2k×2k contouring
     #: per reflection would take seconds
     _PHASE_RING_DOWNSAMPLE = 4
