@@ -99,13 +99,12 @@ class CalibrationController:
 
         self.widget.clear_peaks_btn.clicked.connect(self.clear_peaks)
         self.widget.clear_ring_btn.clicked.connect(self.clear_current_ring)
-        self.widget.peak_num_sb.valueChanged.connect(self.plot_points)
+        self.widget.peak_num_sb.valueChanged.connect(self.current_ring_changed)
 
         self._updating_peak_table = False
         self.widget.peak_table.itemSelectionChanged.connect(
             self.peak_table_selection_changed
         )
-        self.widget.peak_table.itemChanged.connect(self.peak_table_item_changed)
         self.widget.delete_peak_btn.clicked.connect(self.delete_selected_peaks)
         self._delete_peak_shortcut = QtGui.QShortcut(
             QtGui.QKeySequence(QtCore.Qt.Key_Delete), self.widget.peak_table
@@ -691,7 +690,12 @@ class CalibrationController:
 
     def update_peak_table(self):
         """Rebuilds the peak-group table from the model, one row per pick,
-        preserving the row selection where possible."""
+        preserving the row selection where possible.
+
+        The ring spinboxes are updated in place rather than recreated — a
+        rebuild triggered from a spinbox's own valueChanged must not delete
+        the emitting widget mid-signal.
+        """
         table = self.widget.peak_table
         selections = self.model.calibration_model.params.peak_selections
         previously_selected = set(self._selected_pick_rows())
@@ -700,9 +704,22 @@ class CalibrationController:
         table.blockSignals(True)
         table.setRowCount(len(selections))
         for row, (ring_ind, positions) in enumerate(selections):
-            ring_item = QtWidgets.QTableWidgetItem(str(ring_ind + 1))
-            ring_item.setTextAlignment(QtCore.Qt.AlignCenter)
-            table.setItem(row, 0, ring_item)
+            ring_sb = table.cellWidget(row, 0)
+            if ring_sb is None:
+                ring_sb = QtWidgets.QSpinBox()
+                ring_sb.setMinimum(1)
+                ring_sb.setMaximum(999)
+                ring_sb.setAlignment(
+                    QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
+                )
+                ring_sb.setFrame(False)
+                ring_sb.valueChanged.connect(
+                    lambda value, row=row: self.peak_ring_changed(row, value)
+                )
+                table.setCellWidget(row, 0, ring_sb)
+            ring_sb.blockSignals(True)
+            ring_sb.setValue(ring_ind + 1)
+            ring_sb.blockSignals(False)
 
             count_item = QtWidgets.QTableWidgetItem(str(len(positions)))
             count_item.setTextAlignment(QtCore.Qt.AlignCenter)
@@ -715,6 +732,7 @@ class CalibrationController:
                 % (positions_array[:, 1].mean(), positions_array[:, 0].mean())
             )
             pos_item.setFlags(pos_item.flags() & ~QtCore.Qt.ItemIsEditable)
+            pos_item.setToolTip("Mean position of the group's peaks (x, y)")
             table.setItem(row, 2, pos_item)
 
         for row in previously_selected:
@@ -732,23 +750,36 @@ class CalibrationController:
             return
         self.plot_points()
 
-    def peak_table_item_changed(self, item):
-        """Reassigns a pick to another ring when its Ring cell is edited."""
-        if item.column() != 0:
-            return
-        try:
-            ring_number = int(item.text())
-        except ValueError:
-            ring_number = 0
-        if ring_number < 1:
-            # invalid input — restore the model's value
-            self.update_peak_table()
+    def peak_ring_changed(self, row, ring_number):
+        """Reassigns a pick to another ring via its table spinbox."""
+        if self._updating_peak_table:
             return
         self.model.calibration_model.set_peak_selection_ring(
-            item.row(), ring_number - 1
+            row, ring_number - 1
         )
-        # a no-change edit emits nothing, so restore formatting directly
-        self.update_peak_table()
+
+    def current_ring_changed(self):
+        """Selects (and thereby highlights) every peak group belonging to
+        the newly chosen current ring."""
+        self._select_rows_of_ring(self.widget.peak_num_sb.value() - 1)
+        self.plot_points()
+
+    def _select_rows_of_ring(self, ring_ind):
+        table = self.widget.peak_table
+        selection_model = table.selectionModel()
+        if selection_model is None:
+            return
+        rings = self.model.calibration_model.points_index
+        self._updating_peak_table = True
+        selection_model.clearSelection()
+        for row, row_ring in enumerate(rings):
+            if int(row_ring) == int(ring_ind):
+                selection_model.select(
+                    table.model().index(row, 0),
+                    QtCore.QItemSelectionModel.Select
+                    | QtCore.QItemSelectionModel.Rows,
+                )
+        self._updating_peak_table = False
 
     def delete_selected_peaks(self):
         """Deletes the peak groups selected in the table."""
@@ -757,9 +788,9 @@ class CalibrationController:
 
     def plot_points(self, _=None):
         """
-        Plots all picked peaks into the image view. Peaks of the groups
-        selected in the table are highlighted; peaks belonging to the
-        currently selected ring get their own color.
+        Plots all picked peaks into the image view. Peaks belonging to the
+        currently selected ring get their own color; groups selected in the
+        table are marked by a slightly larger dot with a white outline.
         """
         picks = self.model.calibration_model.points
         rings = self.model.calibration_model.points_index
@@ -768,24 +799,28 @@ class CalibrationController:
             return
         selected_rows = set(self._selected_pick_rows())
         current_ring = self.widget.peak_num_sb.value() - 1
-        xs, ys, brushes, sizes = [], [], [], []
+        highlight_pen = pg.mkPen(255, 255, 255, 255, width=2)
+        normal_pen = pg.mkPen(255, 255, 255, 90)
+        xs, ys, brushes, sizes, pens = [], [], [], [], []
         for pick_ind, (positions, ring_ind) in enumerate(zip(picks, rings)):
-            if pick_ind in selected_rows:
-                brush = pg.mkBrush(0, 255, 255, 255)
-                size = 12
-            elif int(ring_ind) == current_ring:
+            if int(ring_ind) == current_ring:
                 brush = pg.mkBrush(255, 140, 0, 255)
-                size = 7
             else:
                 brush = pg.mkBrush(255, 0, 0, 255)
+            if pick_ind in selected_rows:
+                pen = highlight_pen
+                size = 9
+            else:
+                pen = normal_pen
                 size = 7
             for position in np.atleast_2d(positions):
                 xs.append(position[1] + 0.5)
                 ys.append(position[0] + 0.5)
                 brushes.append(brush)
                 sizes.append(size)
+                pens.append(pen)
         self.widget.img_widget.img_scatter_plot_item.addPoints(
-            x=xs, y=ys, brush=brushes, size=sizes
+            x=xs, y=ys, brush=brushes, size=sizes, pen=pens
         )
 
     def clear_peaks(self):

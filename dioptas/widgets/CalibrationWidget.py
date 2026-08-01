@@ -228,17 +228,17 @@ class CalibrationWidget(QtWidgets.QWidget):
         self.options_intensity_mean_factor_sb = refinement_options_gb.intensity_mean_factor_sb
         self.options_intensity_limit_txt = refinement_options_gb.intensity_limit_txt
 
-        peak_selection_gb = self.calibration_control_widget.calibration_parameters_widget.peak_selection_gb
-        self.peak_num_sb = peak_selection_gb.peak_num_sb
-        self.automatic_peak_search_rb = peak_selection_gb.automatic_peak_search_rb
-        self.select_peak_rb = peak_selection_gb.select_peak_rb
-        self.search_size_sb = peak_selection_gb.search_size_sb
-        self.automatic_peak_num_inc_cb = peak_selection_gb.automatic_peak_num_inc_cb
-        self.clear_peaks_btn = peak_selection_gb.clear_peaks_btn
-        self.clear_ring_btn = peak_selection_gb.clear_ring_btn
-        self.peak_counter_lbl = peak_selection_gb.peak_counter_lbl
-        self.peak_table = peak_selection_gb.peak_table
-        self.delete_peak_btn = peak_selection_gb.delete_peak_btn
+        peak_selection_widget = parameters_widget.peak_selection_widget
+        self.peak_num_sb = peak_selection_widget.peak_num_sb
+        self.automatic_peak_search_rb = peak_selection_widget.automatic_peak_search_rb
+        self.select_peak_rb = peak_selection_widget.select_peak_rb
+        self.search_size_sb = peak_selection_widget.search_size_sb
+        self.automatic_peak_num_inc_cb = peak_selection_widget.automatic_peak_num_inc_cb
+        self.clear_peaks_btn = peak_selection_widget.clear_peaks_btn
+        self.clear_ring_btn = peak_selection_widget.clear_ring_btn
+        self.peak_counter_lbl = peak_selection_widget.peak_counter_lbl
+        self.peak_table = peak_selection_widget.peak_table
+        self.delete_peak_btn = peak_selection_widget.delete_peak_btn
 
         self.step_stack = parameters_widget.step_stack
         self.wizard_back_btn = parameters_widget.back_btn
@@ -565,13 +565,12 @@ class CalibrationParameterWidget(QtWidgets.QWidget):
         self._image_page_layout.addStretch()
 
         # --- page 2: peak picking ---------------------------------------
-        self.peak_selection_gb = PeakSelectionGroupBox()
-        self.peak_selection_gb.setTitle('')
+        self.peak_selection_widget = PeakSelectionWidget()
 
         self.peaks_page = QtWidgets.QWidget()
         self._peaks_page_layout = QtWidgets.QVBoxLayout(self.peaks_page)
         self._peaks_page_layout.setContentsMargins(0, 0, 0, 0)
-        self._peaks_page_layout.addWidget(self.peak_selection_gb)
+        self._peaks_page_layout.addWidget(self.peak_selection_widget)
         self._peaks_page_layout.addStretch()
 
         # --- page 3: calibrant, start values, calibrate -----------------
@@ -779,29 +778,45 @@ class StartValuesGroupBox(QtWidgets.QGroupBox):
             pass
 
 
-class PeakSelectionGroupBox(QtWidgets.QGroupBox):
+class PeakSelectionWidget(QtWidgets.QWidget):
     def __init__(self):
-        super().__init__('Peak Selection')
+        super().__init__()
 
         self._layout = QtWidgets.QGridLayout()
+        self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setVerticalSpacing(3)
         self._layout.setHorizontalSpacing(6)
+
+        self.automatic_peak_search_rb = QtWidgets.QRadioButton('automatic peak search')
+        self.automatic_peak_search_rb.setChecked(True)
+        self.select_peak_rb = QtWidgets.QRadioButton('single peak search')
+        self._layout.addWidget(self.automatic_peak_search_rb, 0, 0, 1, 4)
+        self._layout.addWidget(self.select_peak_rb, 1, 0, 1, 4)
+
+        self.search_size_sb = SpinBoxAlignRight()
+        self.search_size_sb.setValue(10)
+        self.search_size_sb.setMaximumWidth(50)
+        self._layout.addWidget(LabelAlignRight('Search size:'), 2, 0)
+        self._layout.addWidget(self.search_size_sb, 2, 1)
         self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
-                                                   QtWidgets.QSizePolicy.Minimum), 0, 0)
-        self._layout.addWidget(LabelAlignRight('Current Ring Number:'), 0, 1, 1, 2)
+                                                   QtWidgets.QSizePolicy.Minimum), 2, 2, 1, 2)
+
+        self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
+                                                   QtWidgets.QSizePolicy.Minimum), 3, 0)
+        self._layout.addWidget(LabelAlignRight('Current Ring Number:'), 3, 1, 1, 2)
         self.peak_num_sb = SpinBoxAlignRight()
         self.peak_num_sb.setValue(1)
         self.peak_num_sb.setMinimum(1)
-        self._layout.addWidget(self.peak_num_sb, 0, 3)
+        self._layout.addWidget(self.peak_num_sb, 3, 3)
 
         self._layout.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
-                                                   QtWidgets.QSizePolicy.Minimum), 1, 0, 1, 2)
+                                                   QtWidgets.QSizePolicy.Minimum), 4, 0, 1, 2)
         self.automatic_peak_num_inc_cb = QtWidgets.QCheckBox('automatic increase')
         self.automatic_peak_num_inc_cb.setChecked(True)
-        self._layout.addWidget(self.automatic_peak_num_inc_cb, 1, 2, 1, 2)
+        self._layout.addWidget(self.automatic_peak_num_inc_cb, 4, 2, 1, 2)
 
-        # one row per picked peak group; the ring column is editable to
-        # reassign a group, selection highlights the peaks in the image
+        # one row per picked peak group; the ring spinbox reassigns a
+        # group, selection highlights the peaks in the image
         self.peak_table = QtWidgets.QTableWidget()
         self.peak_table.setColumnCount(3)
         self.peak_table.setHorizontalHeaderLabels(['Ring', 'Peaks', 'Position'])
@@ -815,8 +830,10 @@ class PeakSelectionGroupBox(QtWidgets.QGroupBox):
         self.peak_table.horizontalHeader().setSectionResizeMode(
             1, QtWidgets.QHeaderView.ResizeToContents)
         self.peak_table.horizontalHeader().setStretchLastSection(True)
+        self.peak_table.horizontalHeaderItem(2).setToolTip(
+            "Mean position of the group's peaks (x, y)")
         self.peak_table.setMinimumHeight(140)
-        self._layout.addWidget(self.peak_table, 2, 0, 1, 4)
+        self._layout.addWidget(self.peak_table, 5, 0, 1, 4)
 
         self.delete_peak_btn = QtWidgets.QPushButton("Delete")
         self.delete_peak_btn.setToolTip(
@@ -829,35 +846,11 @@ class PeakSelectionGroupBox(QtWidgets.QGroupBox):
         self._peak_btn_layout.addWidget(self.delete_peak_btn)
         self._peak_btn_layout.addWidget(self.clear_ring_btn)
         self._peak_btn_layout.addWidget(self.clear_peaks_btn)
-        self._layout.addLayout(self._peak_btn_layout, 3, 0, 1, 4)
+        self._layout.addLayout(self._peak_btn_layout, 6, 0, 1, 4)
 
         self.peak_counter_lbl = QtWidgets.QLabel('No peaks selected')
         self.peak_counter_lbl.setStyleSheet('color: #787878; font-style: italic;')
-        self._layout.addWidget(self.peak_counter_lbl, 4, 0, 1, 4)
-
-        # search mode and size are expert options — collapsed by default
-        self.automatic_peak_search_rb = QtWidgets.QRadioButton('automatic peak search')
-        self.automatic_peak_search_rb.setChecked(True)
-        self.select_peak_rb = QtWidgets.QRadioButton('single peak search')
-
-        self.search_size_sb = SpinBoxAlignRight()
-        self.search_size_sb.setValue(10)
-        self.search_size_sb.setMaximumWidth(50)
-
-        advanced_content = QtWidgets.QWidget()
-        self._advanced_layout = QtWidgets.QGridLayout(advanced_content)
-        self._advanced_layout.setContentsMargins(0, 0, 0, 0)
-        self._advanced_layout.setVerticalSpacing(3)
-        self._advanced_layout.addWidget(self.automatic_peak_search_rb, 0, 0, 1, 3)
-        self._advanced_layout.addWidget(self.select_peak_rb, 1, 0, 1, 3)
-        self._advanced_layout.addWidget(LabelAlignRight('Search size:'), 2, 0)
-        self._advanced_layout.addWidget(self.search_size_sb, 2, 1)
-        self._advanced_layout.addItem(
-            QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
-                                  QtWidgets.QSizePolicy.Minimum), 2, 2)
-
-        self.advanced_expander = AdvancedExpander(advanced_content)
-        self._layout.addWidget(self.advanced_expander, 5, 0, 1, 4)
+        self._layout.addWidget(self.peak_counter_lbl, 7, 0, 1, 4)
 
         self.setLayout(self._layout)
 

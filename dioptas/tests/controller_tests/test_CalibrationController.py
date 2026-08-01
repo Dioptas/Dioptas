@@ -535,19 +535,14 @@ def test_peak_table_lists_and_edits_picks(calibration_controller, calibration_mo
     )
     table = widget.peak_table
     assert table.rowCount() == 2
-    assert table.item(0, 0).text() == "1"
+    assert table.cellWidget(0, 0).value() == 1
     assert table.item(0, 1).text() == "2"
-    assert table.item(1, 0).text() == "2"
+    assert table.cellWidget(1, 0).value() == 2
 
-    # editing the ring cell reassigns the pick to that ring
-    table.item(1, 0).setText("5")
+    # changing the ring spinbox reassigns the pick to that ring
+    table.cellWidget(1, 0).setValue(5)
     assert calibration_model.points_index == [0, 4]
-    assert table.item(1, 0).text() == "5"
-
-    # invalid input is reverted to the model's value
-    table.item(1, 0).setText("abc")
-    assert calibration_model.points_index == [0, 4]
-    assert table.item(1, 0).text() == "5"
+    assert table.cellWidget(1, 0).value() == 5
 
 
 def test_peak_table_delete_selected(calibration_controller, calibration_model):
@@ -579,19 +574,33 @@ def test_peak_table_selection_highlights_in_image(
     assert len(x_data) == 2
 
 
-def test_advanced_options_are_collapsed_by_default(calibration_controller):
+def test_refinement_advanced_options_are_collapsed_by_default(calibration_controller):
     widget = calibration_controller.widget
     parameters_widget = (
         widget.calibration_control_widget.calibration_parameters_widget
     )
-    assert not parameters_widget.peak_selection_gb.advanced_expander.is_expanded()
     assert not parameters_widget.refinement_options_gb.advanced_expander.is_expanded()
     # the hidden expert controls keep working defaults
-    assert widget.automatic_peak_search_rb.isChecked()
     assert widget.options_num_rings_sb.value() == 15
 
-    parameters_widget.peak_selection_gb.advanced_expander.set_expanded(True)
-    assert parameters_widget.peak_selection_gb.advanced_expander.is_expanded()
+    parameters_widget.refinement_options_gb.advanced_expander.set_expanded(True)
+    assert parameters_widget.refinement_options_gb.advanced_expander.is_expanded()
+
+
+def test_current_ring_change_selects_groups_of_that_ring(
+    calibration_controller, calibration_model
+):
+    widget = calibration_controller.widget
+    calibration_model.params.peak_selections = (
+        (0, ((10.0, 20.0),)),
+        (1, ((30.0, 40.0),)),
+        (0, ((50.0, 60.0),)),
+    )
+    widget.peak_num_sb.setValue(2)
+    assert calibration_controller._selected_pick_rows() == [1]
+
+    widget.peak_num_sb.setValue(1)
+    assert calibration_controller._selected_pick_rows() == [0, 2]
 
 
 def test_setup_fields_are_flagged_until_edited(calibration_controller):
