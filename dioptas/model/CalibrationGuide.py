@@ -38,10 +38,10 @@ class NextAction(enum.Enum):
 
 
 class Step(enum.Enum):
-    """The four guided steps of the calibration panel."""
+    """The three pages of the calibration wizard: image & detector,
+    peak picking, calibrant & calibration."""
 
     IMAGE = enum.auto()
-    SETUP = enum.auto()
     PEAKS = enum.auto()
     CALIBRATE = enum.auto()
 
@@ -91,8 +91,6 @@ def compute_guide_state(model: "DioptasModel") -> GuideState:
 
     step_status = {
         Step.IMAGE: StepStatus.DONE if image_loaded else StepStatus.ATTENTION,
-        # setup values are advisory until a calibration proves them usable
-        Step.SETUP: StepStatus.DONE if is_calibrated else StepStatus.PENDING,
         Step.PEAKS: (
             StepStatus.DONE
             if num_peaks > 0

@@ -32,7 +32,6 @@ def test_initial_state_suggests_loading_an_image(dioptas_model):
     assert not guide.state.is_calibrated
     assert guide.state.next_action == NextAction.LOAD_IMAGE
     assert guide.state.step_status[Step.IMAGE] == StepStatus.ATTENTION
-    assert guide.state.step_status[Step.SETUP] == StepStatus.PENDING
     assert guide.state.step_status[Step.PEAKS] == StepStatus.PENDING
     assert guide.state.step_status[Step.CALIBRATE] == StepStatus.PENDING
 
@@ -69,7 +68,6 @@ def test_calibrating_suggests_saving(dioptas_model):
 
     assert guide.state.next_action == NextAction.SAVE
     assert guide.state.step_status[Step.CALIBRATE] == StepStatus.DONE
-    assert guide.state.step_status[Step.SETUP] == StepStatus.DONE
     assert not guide.state.is_saved
 
 

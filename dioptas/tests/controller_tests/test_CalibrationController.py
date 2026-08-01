@@ -391,37 +391,92 @@ def test_refine_button_is_gated_until_calibrated(calibration_controller):
     assert widget.refine_btn.toolTip() != ""
 
 
-def test_guide_updates_steps_hint_and_counter(
+def test_guide_updates_indicator_hint_and_counter(
     calibration_controller, calibration_model, dioptas_model
 ):
     widget = calibration_controller.widget
-    assert widget.image_step.status() == "attention"
+    assert widget.step_indicator.step_status(0) == "attention"
     assert widget.hint_lbl.text().startswith("Step 1")
 
     dioptas_model.img_model.load(
         os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
     )
-    assert widget.image_step.status() == "done"
-    assert widget.peaks_step.status() == "attention"
-    assert widget.hint_lbl.text().startswith("Step 3")
+    assert widget.step_indicator.step_status(0) == "done"
+    assert widget.step_indicator.step_status(1) == "attention"
+    assert widget.hint_lbl.text().startswith("Step 2")
 
     calibration_model.params.peak_selections = (
         (0, ((10.0, 20.0), (30.0, 40.0))),
         (1, ((50.0, 60.0),)),
     )
-    assert widget.peaks_step.status() == "done"
-    assert widget.calibrate_step.status() == "attention"
+    assert widget.step_indicator.step_status(1) == "done"
+    assert widget.step_indicator.step_status(2) == "attention"
     assert widget.peak_counter_lbl.text() == "3 peaks on 2 rings"
 
     calibration_model.params.is_calibrated = True
-    assert widget.calibrate_step.status() == "done"
-    assert widget.setup_step.status() == "done"
+    assert widget.step_indicator.step_status(2) == "done"
     assert widget.refine_btn.isEnabled()
     assert "Save Calibration" in widget.hint_lbl.text()
 
     calibration_model.params.poni_filename = "/somewhere/test.poni"
     assert widget.hint_lbl.text() == ""
     assert not widget.hint_lbl.isVisible()
+
+
+def test_wizard_shows_one_page_at_a_time(calibration_controller, qtbot):
+    widget = calibration_controller.widget
+    parameters_widget = (
+        widget.calibration_control_widget.calibration_parameters_widget
+    )
+    widget.show()
+    qtbot.addWidget(widget)
+
+    assert parameters_widget.current_step() == 0
+    assert widget.load_img_btn.isVisible()
+    assert widget.rotate_m90_btn.isVisible()
+    assert widget.detectors_cb.isVisible()
+    # peak picking and calibrant controls belong to later pages
+    assert not widget.peak_num_sb.isVisible()
+    assert not widget.calibrant_cb.isVisible()
+    assert not widget.sv_wavelength_txt.isVisible()
+
+
+def test_wizard_navigation_is_gated_by_prerequisites(
+    calibration_controller, dioptas_model, calibration_model
+):
+    widget = calibration_controller.widget
+    parameters_widget = (
+        widget.calibration_control_widget.calibration_parameters_widget
+    )
+
+    # nothing loaded: stuck on page 1
+    assert not widget.wizard_next_btn.isEnabled()
+    assert not widget.wizard_back_btn.isEnabled()
+    assert widget.wizard_next_btn.toolTip() != ""
+    calibration_controller.wizard_next()
+    assert parameters_widget.current_step() == 0
+
+    dioptas_model.img_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
+    )
+    assert widget.wizard_next_btn.isEnabled()
+    click_button(widget.wizard_next_btn)
+    assert parameters_widget.current_step() == 1
+
+    # no peaks yet: page 3 unreachable
+    assert not widget.wizard_next_btn.isEnabled()
+    calibration_controller.wizard_next()
+    assert parameters_widget.current_step() == 1
+
+    calibration_model.params.peak_selections = ((0, ((10.0, 20.0),)),)
+    assert widget.wizard_next_btn.isEnabled()
+    click_button(widget.wizard_next_btn)
+    assert parameters_widget.current_step() == 2
+    # last page has no next
+    assert not widget.wizard_next_btn.isEnabled()
+
+    click_button(widget.wizard_back_btn)
+    assert parameters_widget.current_step() == 1
 
 
 def test_advanced_options_are_collapsed_by_default(calibration_controller):

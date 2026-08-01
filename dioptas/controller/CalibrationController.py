@@ -121,6 +121,10 @@ class CalibrationController:
             self.mask_transparent_status_changed
         )
 
+        self.widget.wizard_back_btn.clicked.connect(self.wizard_back)
+        self.widget.wizard_next_btn.clicked.connect(self.wizard_next)
+        self.widget.step_indicator.step_clicked.connect(self.go_to_wizard_step)
+
     def create_transformation_signals(self):
         """
         Connects all the rotation GUI controls.
@@ -518,20 +522,55 @@ class CalibrationController:
                 field.style().polish(field)
 
     _NEXT_ACTION_HINTS = {
-        NextAction.LOAD_IMAGE: "Step 1: Load an image of your calibration standard.",
-        NextAction.PICK_PEAKS: "Step 3: Click on the innermost complete ring in the "
-        "image to pick peaks — check calibrant, wavelength and distance "
-        "in step 2 first.",
-        NextAction.CALIBRATE: "Step 4: Press Calibrate.",
+        NextAction.LOAD_IMAGE: "Step 1: Load an image of your calibration "
+        "standard, orient it and check the detector settings.",
+        NextAction.PICK_PEAKS: "Step 2: Click on the innermost complete ring "
+        "in the image to pick peaks.",
+        NextAction.CALIBRATE: "Step 3: Check calibrant, wavelength and "
+        "distance, then press Calibrate.",
         NextAction.SAVE: "Check that the rings match the image and pattern, "
         "then press Save Calibration.",
         NextAction.NONE: "",
     }
 
+    _WIZARD_STEP_INDICES = {Step.IMAGE: 0, Step.PEAKS: 1, Step.CALIBRATE: 2}
+
+    def _wizard_widget(self):
+        return self.widget.calibration_control_widget.calibration_parameters_widget
+
+    def _wizard_step_reachable(self, index, state=None):
+        """A wizard page is reachable once its prerequisites exist: an image
+        for peak picking, peaks (or a loaded calibration) for calibrating."""
+        if state is None:
+            state = self.guide.state
+        if index <= 0:
+            return True
+        if index == 1:
+            return state.image_loaded
+        return state.image_loaded and (state.num_peaks > 0 or state.is_calibrated)
+
+    def wizard_next(self):
+        self.go_to_wizard_step(self._wizard_widget().current_step() + 1)
+
+    def wizard_back(self):
+        self.go_to_wizard_step(self._wizard_widget().current_step() - 1)
+
+    def go_to_wizard_step(self, index):
+        wizard = self._wizard_widget()
+        if not 0 <= index < wizard.step_stack.count():
+            return
+        if not self._wizard_step_reachable(index):
+            # an (unlikely) click on a not-yet-reachable indicator button —
+            # put the check mark back onto the current page
+            wizard.step_indicator.set_current_step(wizard.current_step())
+            return
+        wizard.set_current_step(index)
+        self.update_guide_in_view()
+
     def update_guide_in_view(self, state=None):
         """Pushes the guide's derived workflow state into the view: the step
-        status chips, the hint bar, the peak counter and the readiness of the
-        Calibrate/Refine buttons.
+        indicator, the wizard navigation, the hint bar, the peak counter and
+        the readiness of the Calibrate/Refine buttons.
         """
         if state is None:
             state = self.guide.state
@@ -541,14 +580,30 @@ class CalibrationController:
             # usable — whether calibrated here or loaded from a file
             self._confirm_fields(*list(self._unconfirmed_fields))
 
-        step_sections = {
-            Step.IMAGE: self.widget.image_step,
-            Step.SETUP: self.widget.setup_step,
-            Step.PEAKS: self.widget.peaks_step,
-            Step.CALIBRATE: self.widget.calibrate_step,
-        }
-        for step, section in step_sections.items():
-            section.set_status(state.step_status[step].name.lower())
+        wizard = self._wizard_widget()
+        for step, index in self._WIZARD_STEP_INDICES.items():
+            wizard.step_indicator.set_step_status(
+                index, state.step_status[step].name.lower()
+            )
+            wizard.step_indicator.set_step_enabled(
+                index, self._wizard_step_reachable(index, state)
+            )
+
+        current = wizard.current_step()
+        wizard.back_btn.setEnabled(current > 0)
+        wizard.next_btn.setEnabled(
+            current < wizard.step_stack.count() - 1
+            and self._wizard_step_reachable(current + 1, state)
+        )
+        if current == 0 and not state.image_loaded:
+            wizard.next_btn.setToolTip("Load an image first.")
+        elif current == 1 and not (state.num_peaks or state.is_calibrated):
+            wizard.next_btn.setToolTip(
+                "Pick at least one peak first — click on the innermost ring "
+                "in the image."
+            )
+        else:
+            wizard.next_btn.setToolTip("")
 
         self.widget.calibration_display_widget.show_hint(
             self._NEXT_ACTION_HINTS[state.next_action]
