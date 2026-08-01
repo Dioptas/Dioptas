@@ -237,6 +237,8 @@ class CalibrationWidget(QtWidgets.QWidget):
         self.clear_peaks_btn = peak_selection_gb.clear_peaks_btn
         self.clear_ring_btn = peak_selection_gb.clear_ring_btn
         self.peak_counter_lbl = peak_selection_gb.peak_counter_lbl
+        self.peak_table = peak_selection_gb.peak_table
+        self.delete_peak_btn = peak_selection_gb.delete_peak_btn
 
         self.step_stack = parameters_widget.step_stack
         self.wizard_back_btn = parameters_widget.back_btn
@@ -798,18 +800,40 @@ class PeakSelectionGroupBox(QtWidgets.QGroupBox):
         self.automatic_peak_num_inc_cb.setChecked(True)
         self._layout.addWidget(self.automatic_peak_num_inc_cb, 1, 2, 1, 2)
 
+        # one row per picked peak group; the ring column is editable to
+        # reassign a group, selection highlights the peaks in the image
+        self.peak_table = QtWidgets.QTableWidget()
+        self.peak_table.setColumnCount(3)
+        self.peak_table.setHorizontalHeaderLabels(['Ring', 'Peaks', 'Position'])
+        self.peak_table.verticalHeader().setVisible(False)
+        self.peak_table.setSelectionBehavior(
+            QtWidgets.QAbstractItemView.SelectRows)
+        self.peak_table.setSelectionMode(
+            QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.peak_table.horizontalHeader().setSectionResizeMode(
+            0, QtWidgets.QHeaderView.ResizeToContents)
+        self.peak_table.horizontalHeader().setSectionResizeMode(
+            1, QtWidgets.QHeaderView.ResizeToContents)
+        self.peak_table.horizontalHeader().setStretchLastSection(True)
+        self.peak_table.setMinimumHeight(140)
+        self._layout.addWidget(self.peak_table, 2, 0, 1, 4)
+
+        self.delete_peak_btn = QtWidgets.QPushButton("Delete")
+        self.delete_peak_btn.setToolTip(
+            'Delete the selected peak groups (Del)')
         self.clear_ring_btn = QtWidgets.QPushButton("Clear Ring")
         self.clear_peaks_btn = QtWidgets.QPushButton("Clear All")
 
         self._peak_btn_layout = QtWidgets.QHBoxLayout()
         self._peak_btn_layout.setSpacing(6)
+        self._peak_btn_layout.addWidget(self.delete_peak_btn)
         self._peak_btn_layout.addWidget(self.clear_ring_btn)
         self._peak_btn_layout.addWidget(self.clear_peaks_btn)
-        self._layout.addLayout(self._peak_btn_layout, 2, 0, 1, 4)
+        self._layout.addLayout(self._peak_btn_layout, 3, 0, 1, 4)
 
         self.peak_counter_lbl = QtWidgets.QLabel('No peaks selected')
         self.peak_counter_lbl.setStyleSheet('color: #787878; font-style: italic;')
-        self._layout.addWidget(self.peak_counter_lbl, 3, 0, 1, 4)
+        self._layout.addWidget(self.peak_counter_lbl, 4, 0, 1, 4)
 
         # search mode and size are expert options — collapsed by default
         self.automatic_peak_search_rb = QtWidgets.QRadioButton('automatic peak search')
@@ -833,7 +857,7 @@ class PeakSelectionGroupBox(QtWidgets.QGroupBox):
                                   QtWidgets.QSizePolicy.Minimum), 2, 2)
 
         self.advanced_expander = AdvancedExpander(advanced_content)
-        self._layout.addWidget(self.advanced_expander, 4, 0, 1, 4)
+        self._layout.addWidget(self.advanced_expander, 5, 0, 1, 4)
 
         self.setLayout(self._layout)
 

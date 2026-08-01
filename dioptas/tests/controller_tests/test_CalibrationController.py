@@ -527,6 +527,58 @@ def test_wizard_navigation_is_gated_by_prerequisites(
     assert parameters_widget.current_step() == 2
 
 
+def test_peak_table_lists_and_edits_picks(calibration_controller, calibration_model):
+    widget = calibration_controller.widget
+    calibration_model.params.peak_selections = (
+        (0, ((10.0, 20.0), (30.0, 40.0))),
+        (1, ((50.0, 60.0),)),
+    )
+    table = widget.peak_table
+    assert table.rowCount() == 2
+    assert table.item(0, 0).text() == "1"
+    assert table.item(0, 1).text() == "2"
+    assert table.item(1, 0).text() == "2"
+
+    # editing the ring cell reassigns the pick to that ring
+    table.item(1, 0).setText("5")
+    assert calibration_model.points_index == [0, 4]
+    assert table.item(1, 0).text() == "5"
+
+    # invalid input is reverted to the model's value
+    table.item(1, 0).setText("abc")
+    assert calibration_model.points_index == [0, 4]
+    assert table.item(1, 0).text() == "5"
+
+
+def test_peak_table_delete_selected(calibration_controller, calibration_model):
+    widget = calibration_controller.widget
+    calibration_model.params.peak_selections = (
+        (0, ((10.0, 20.0),)),
+        (1, ((30.0, 40.0),)),
+        (2, ((50.0, 60.0),)),
+    )
+    widget.peak_table.selectRow(1)
+    click_button(widget.delete_peak_btn)
+    assert calibration_model.points_index == [0, 2]
+    assert widget.peak_table.rowCount() == 2
+
+
+def test_peak_table_selection_highlights_in_image(
+    calibration_controller, calibration_model
+):
+    widget = calibration_controller.widget
+    calibration_model.params.peak_selections = (
+        (0, ((10.0, 20.0),)),
+        (1, ((30.0, 40.0),)),
+    )
+    widget.peak_table.selectRow(0)
+    assert calibration_controller._selected_pick_rows() == [0]
+
+    # the replot with highlighting put both picks on screen
+    x_data, y_data = widget.img_widget.img_scatter_plot_item.getData()
+    assert len(x_data) == 2
+
+
 def test_advanced_options_are_collapsed_by_default(calibration_controller):
     widget = calibration_controller.widget
     parameters_widget = (

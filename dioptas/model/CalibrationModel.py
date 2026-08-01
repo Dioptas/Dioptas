@@ -481,6 +481,29 @@ class CalibrationModel:
             self.params.peak_selections = self.params.peak_selections[:-1]
             return len(positions)
 
+    def remove_peak_selection(self, index: int) -> None:
+        """Removes the picked-peak group at *index* (in pick order)."""
+        selections = self.params.peak_selections
+        if not 0 <= index < len(selections):
+            return
+        self.params.peak_selections = (
+            selections[:index] + selections[index + 1:]
+        )
+
+    def set_peak_selection_ring(self, index: int, ring_ind: int) -> None:
+        """Assigns the picked-peak group at *index* to another ring."""
+        selections = self.params.peak_selections
+        if not 0 <= index < len(selections):
+            return
+        ring, positions = selections[index]
+        if ring == int(ring_ind):
+            return
+        self.params.peak_selections = (
+            selections[:index]
+            + ((int(ring_ind), positions),)
+            + selections[index + 1:]
+        )
+
     def create_cake_geometry(self) -> None:
         self.cake_geometry = AzimuthalIntegrator(
             splinefile=self.distortion_spline_filename
