@@ -68,7 +68,7 @@ class MainWidget(QtWidgets.QWidget):
         self._mode_layout.setContentsMargins(0, 0, 0, 0)
         self._mode_layout.setSpacing(0)
         self._content_layout.setSpacing(0)
-        self._content_layout.setContentsMargins(0, 6, 0, 0)
+        self._content_layout.setContentsMargins(0, 0, 0, 0)
         self._left_layout.setContentsMargins(0, 0, 0, 0)
         self._left_layout.setSpacing(6)
         self._external_actions_layout.setContentsMargins(6, 6, 6, 6)
@@ -182,7 +182,7 @@ class MainWidget(QtWidgets.QWidget):
     def _create_main_frame(self):
         self.main_frame = QtWidgets.QWidget(self)
         self._layout_main_frame = QtWidgets.QVBoxLayout()
-        self._layout_main_frame.setContentsMargins(0, 10, 6, 6)
+        self._layout_main_frame.setContentsMargins(0, 2, 6, 6)
         self._layout_main_frame.setSpacing(0)
         self.main_frame.setLayout(self._layout_main_frame)
 
