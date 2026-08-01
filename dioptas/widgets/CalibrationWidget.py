@@ -13,6 +13,71 @@ from .CustomWidgets import NumberTextField, LabelAlignRight, CleanLooksComboBox,
     DoubleSpinBoxAlignRight, OpenIconButton, ResetIconButton
 
 
+class StepSectionWidget(QtWidgets.QWidget):
+    """One numbered step of the guided calibration workflow.
+
+    A collapsible header row (arrow + "N. Title" + status chip) above an
+    arbitrary content widget. The status is purely visual — the semantic
+    step state lives in the model layer (CalibrationGuide).
+    """
+
+    STATUS_CHIPS = {
+        'pending': ('○', '#787878'),
+        'attention': ('●', '#ffa726'),
+        'done': ('✓', '#66bb6a'),
+    }
+
+    def __init__(self, number, title, content_widget, parent=None):
+        super().__init__(parent)
+        self.content_widget = content_widget
+
+        self.header_btn = QtWidgets.QToolButton()
+        self.header_btn.setText('{}. {}'.format(number, title))
+        self.header_btn.setCheckable(True)
+        self.header_btn.setChecked(True)
+        self.header_btn.setArrowType(QtCore.Qt.DownArrow)
+        self.header_btn.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+        self.header_btn.setStyleSheet(
+            'QToolButton { border: none; font-weight: bold; }')
+        self.header_btn.toggled.connect(self.set_expanded)
+
+        self.status_lbl = QtWidgets.QLabel()
+
+        self._header_layout = QtWidgets.QHBoxLayout()
+        self._header_layout.setContentsMargins(0, 3, 3, 0)
+        self._header_layout.addWidget(self.header_btn)
+        self._header_layout.addStretch()
+        self._header_layout.addWidget(self.status_lbl)
+
+        self._layout = QtWidgets.QVBoxLayout(self)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(0)
+        self._layout.addLayout(self._header_layout)
+        self._layout.addWidget(self.content_widget)
+
+        self.set_status('pending')
+
+    def set_expanded(self, expanded):
+        self.header_btn.setChecked(expanded)
+        self.content_widget.setVisible(expanded)
+        self.header_btn.setArrowType(
+            QtCore.Qt.DownArrow if expanded else QtCore.Qt.RightArrow)
+
+    def is_expanded(self):
+        return self.header_btn.isChecked()
+
+    def set_status(self, status):
+        """:param status: one of 'pending', 'attention', 'done'"""
+        chip_text, chip_color = self.STATUS_CHIPS[status]
+        self.status_lbl.setText(chip_text)
+        self.status_lbl.setStyleSheet(
+            'color: {}; font-weight: bold;'.format(chip_color))
+        self._status = status
+
+    def status(self):
+        return self._status
+
+
 class CalibrationWidget(QtWidgets.QWidget):
     """
     Defines the main structure of the calibration widget, which is separated into two parts.
@@ -64,12 +129,13 @@ class CalibrationWidget(QtWidgets.QWidget):
         self.load_spline_btn = detector_gb.spline_load_btn
         self.spline_filename_txt = detector_gb.spline_name_txt
 
+        self.rotate_m90_btn = self.calibration_control_widget.rotate_m90_btn
+        self.rotate_p90_btn = self.calibration_control_widget.rotate_p90_btn
+        self.invert_horizontal_btn = self.calibration_control_widget.flip_horizontal_btn
+        self.invert_vertical_btn = self.calibration_control_widget.flip_vertical_btn
+        self.reset_transformations_btn = self.calibration_control_widget.reset_transformations_btn
+
         sv_gb = self.calibration_control_widget.calibration_parameters_widget.start_values_gb
-        self.rotate_m90_btn = sv_gb.rotate_m90_btn
-        self.rotate_p90_btn = sv_gb.rotate_p90_btn
-        self.invert_horizontal_btn = sv_gb.flip_horizontal_btn
-        self.invert_vertical_btn = sv_gb.flip_vertical_btn
-        self.reset_transformations_btn = sv_gb.reset_transformations_btn
         self.calibrant_cb = sv_gb.calibrant_cb
 
         self.sv_wavelength_txt = sv_gb.wavelength_txt
@@ -96,6 +162,14 @@ class CalibrationWidget(QtWidgets.QWidget):
         self.automatic_peak_num_inc_cb = peak_selection_gb.automatic_peak_num_inc_cb
         self.clear_peaks_btn = peak_selection_gb.clear_peaks_btn
         self.clear_ring_btn = peak_selection_gb.clear_ring_btn
+        self.peak_counter_lbl = peak_selection_gb.peak_counter_lbl
+
+        self.hint_lbl = self.calibration_display_widget.hint_lbl
+        self.image_step = self.calibration_control_widget.image_step
+        parameters_widget = self.calibration_control_widget.calibration_parameters_widget
+        self.setup_step = parameters_widget.setup_step
+        self.peaks_step = parameters_widget.peaks_step
+        self.calibrate_step = parameters_widget.calibrate_step
 
         self.f2_update_btn = self.calibration_control_widget.fit2d_parameters_widget.update_btn
         self.pf_update_btn = self.calibration_control_widget.pyfai_parameters_widget.update_btn
@@ -304,6 +378,14 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
         self.cake_widget = CalibrationCakeWidget(self.cake_layout_widget)
         self.pattern_widget = PatternWidget(self.pattern_layout_widget)
 
+        self.hint_lbl = QtWidgets.QLabel()
+        self.hint_lbl.setObjectName('calibration_hint_lbl')
+        self.hint_lbl.setAlignment(QtCore.Qt.AlignCenter)
+        self.hint_lbl.setStyleSheet(
+            'color: #ffa726; font-style: italic; padding: 2px;')
+        self.hint_lbl.hide()
+        self._layout.addWidget(self.hint_lbl)
+
         self.tab_widget = QtWidgets.QTabWidget()
         self.tab_widget.addTab(self.img_layout_widget, 'Image')
         self.tab_widget.addTab(self.cake_layout_widget, 'Cake')
@@ -331,6 +413,11 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
         self.calibrate_btn.setMinimumWidth(130)
         self.refine_btn.setMinimumWidth(130)
 
+    def show_hint(self, text):
+        """Shows the guidance hint above the image display; hides on empty text."""
+        self.hint_lbl.setText(text)
+        self.hint_lbl.setVisible(bool(text))
+
 
 class CalibrationControlWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
@@ -339,6 +426,7 @@ class CalibrationControlWidget(QtWidgets.QWidget):
         self._layout = QtWidgets.QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
 
+        # --- step 1: load (and optionally transform) the calibrant image ---
         self._file_layout = QtWidgets.QHBoxLayout()
         self.load_img_btn = QtWidgets.QPushButton("Load Image File", self)
         self.load_previous_img_btn = QtWidgets.QPushButton("<", self)
@@ -348,10 +436,31 @@ class CalibrationControlWidget(QtWidgets.QWidget):
         self._file_layout.addWidget(self.load_previous_img_btn)
         self._file_layout.addWidget(self.load_next_img_btn)
 
-        self._layout.addLayout(self._file_layout)
-
         self.filename_txt = QtWidgets.QLineEdit('', self)
-        self._layout.addWidget(self.filename_txt)
+
+        self.rotate_p90_btn = QtWidgets.QPushButton('Rotate +90')
+        self.rotate_m90_btn = QtWidgets.QPushButton('Rotate -90')
+        self.flip_horizontal_btn = QtWidgets.QPushButton('Flip horizontal')
+        self.flip_vertical_btn = QtWidgets.QPushButton('Flip vertical')
+        self.reset_transformations_btn = QtWidgets.QPushButton('Reset transformations')
+
+        self._transformation_layout = QtWidgets.QGridLayout()
+        self._transformation_layout.setSpacing(6)
+        self._transformation_layout.addWidget(self.rotate_p90_btn, 0, 0)
+        self._transformation_layout.addWidget(self.rotate_m90_btn, 0, 1)
+        self._transformation_layout.addWidget(self.flip_horizontal_btn, 1, 0)
+        self._transformation_layout.addWidget(self.flip_vertical_btn, 1, 1)
+        self._transformation_layout.addWidget(self.reset_transformations_btn, 2, 0, 1, 2)
+
+        image_step_content = QtWidgets.QWidget()
+        self._image_step_layout = QtWidgets.QVBoxLayout(image_step_content)
+        self._image_step_layout.setContentsMargins(0, 0, 0, 0)
+        self._image_step_layout.addLayout(self._file_layout)
+        self._image_step_layout.addWidget(self.filename_txt)
+        self._image_step_layout.addLayout(self._transformation_layout)
+
+        self.image_step = StepSectionWidget(1, 'Image', image_step_content)
+        self._layout.addWidget(self.image_step)
 
         self.toolbox = QtWidgets.QToolBox()
         self.calibration_parameters_widget = CalibrationParameterWidget()
@@ -390,10 +499,24 @@ class CalibrationParameterWidget(QtWidgets.QWidget):
         self.peak_selection_gb = PeakSelectionGroupBox()
         self.refinement_options_gb = RefinementOptionsGroupBox()
 
-        self._layout.addWidget(self.detector_gb)
-        self._layout.addWidget(self.start_values_gb)
-        self._layout.addWidget(self.peak_selection_gb)
-        self._layout.addWidget(self.refinement_options_gb)
+        # the step headers carry the titles; keeping the group box frames
+        # gives visual grouping without duplicated captions
+        self.peak_selection_gb.setTitle('')
+        self.refinement_options_gb.setTitle('')
+
+        setup_step_content = QtWidgets.QWidget()
+        self._setup_step_layout = QtWidgets.QVBoxLayout(setup_step_content)
+        self._setup_step_layout.setContentsMargins(0, 0, 0, 0)
+        self._setup_step_layout.addWidget(self.detector_gb)
+        self._setup_step_layout.addWidget(self.start_values_gb)
+
+        self.setup_step = StepSectionWidget(2, 'Experiment Setup', setup_step_content)
+        self.peaks_step = StepSectionWidget(3, 'Pick Rings', self.peak_selection_gb)
+        self.calibrate_step = StepSectionWidget(4, 'Calibrate', self.refinement_options_gb)
+
+        self._layout.addWidget(self.setup_step)
+        self._layout.addWidget(self.peaks_step)
+        self._layout.addWidget(self.calibrate_step)
         self._layout.addSpacerItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
                                                          QtWidgets.QSizePolicy.Expanding))
 
@@ -501,24 +624,7 @@ class StartValuesGroupBox(QtWidgets.QGroupBox):
         self.calibrant_cb = CleanLooksComboBox()
         self._grid_layout1.addWidget(self.calibrant_cb, 5, 1, 1, 2)
 
-        self._grid_layout2 = QtWidgets.QGridLayout()
-        self._grid_layout2.setSpacing(6)
-
-        self.rotate_p90_btn = QtWidgets.QPushButton('Rotate +90')
-        self.rotate_m90_btn = QtWidgets.QPushButton('Rotate -90', self)
-        self._grid_layout2.addWidget(self.rotate_p90_btn, 1, 0)
-        self._grid_layout2.addWidget(self.rotate_m90_btn, 1, 1)
-
-        self.flip_horizontal_btn = QtWidgets.QPushButton('Flip horizontal', self)
-        self.flip_vertical_btn = QtWidgets.QPushButton('Flip vertical', self)
-        self._grid_layout2.addWidget(self.flip_horizontal_btn, 2, 0)
-        self._grid_layout2.addWidget(self.flip_vertical_btn, 2, 1)
-
-        self.reset_transformations_btn = QtWidgets.QPushButton('Reset transformations', self)
-        self._grid_layout2.addWidget(self.reset_transformations_btn, 3, 0, 1, 2)
-
         self._layout.addLayout(self._grid_layout1)
-        self._layout.addLayout(self._grid_layout2)
 
         self.setLayout(self._layout)
 
@@ -566,6 +672,10 @@ class PeakSelectionGroupBox(QtWidgets.QGroupBox):
         self._peak_btn_layout.addWidget(self.clear_ring_btn)
         self._peak_btn_layout.addWidget(self.clear_peaks_btn)
         self._layout.addLayout(self._peak_btn_layout, 5, 0, 1, 4)
+
+        self.peak_counter_lbl = QtWidgets.QLabel('No peaks selected')
+        self.peak_counter_lbl.setStyleSheet('color: #787878; font-style: italic;')
+        self._layout.addWidget(self.peak_counter_lbl, 6, 0, 1, 4)
 
         self.setLayout(self._layout)
 
