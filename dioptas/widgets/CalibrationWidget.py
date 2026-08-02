@@ -11,7 +11,7 @@ from ..widgets.plot_widgets import PatternWidget
 from ..widgets.plot_widgets.ImgWidget import IntegrationImgWidget
 
 from .CustomWidgets import NumberTextField, LabelAlignRight, SpinBoxAlignRight, \
-    DoubleSpinBoxAlignRight, OpenIconButton, ResetIconButton
+    DoubleSpinBoxAlignRight, OpenIconButton, ResetIconButton, EmptyStateOverlay
 
 
 #: the wizard's step titles — shared between the top indicator and the
@@ -45,6 +45,7 @@ class StepIndicatorWidget(QtWidgets.QWidget):
     STATUS_COLORS = {
         'pending': '#787878',
         'attention': '#F1F1F1',
+        'skipped': '#8C8C8C',
         'done': '#B4B4B4',
     }
     #: badge/underline color of the current step
@@ -87,8 +88,8 @@ class StepIndicatorWidget(QtWidgets.QWidget):
 
     def _make_badge_icon(self, index):
         """Paints the step's circular badge: amber with the step number for
-        the current step, a green check for completed steps, an outlined
-        number otherwise."""
+        the current step, a green check for completed steps, a gray dash
+        for skipped steps, an outlined number otherwise."""
         status = self._statuses[index]
         is_current = self.step_btns[index].isChecked()
         size = self.BADGE_SIZE
@@ -115,6 +116,13 @@ class StepIndicatorWidget(QtWidgets.QWidget):
             painter.setBrush(QtCore.Qt.NoBrush)
             painter.drawEllipse(rect)
             painter.drawText(rect, QtCore.Qt.AlignCenter, '✓')
+        elif status == 'skipped':
+            pen = QtGui.QPen(QtGui.QColor(self.STATUS_COLORS['skipped']))
+            pen.setWidthF(1.2)
+            painter.setPen(pen)
+            painter.setBrush(QtCore.Qt.NoBrush)
+            painter.drawEllipse(rect)
+            painter.drawText(rect, QtCore.Qt.AlignCenter, '–')
         else:
             color = QtGui.QColor(self.STATUS_COLORS[status])
             pen = QtGui.QPen(color)
@@ -139,8 +147,12 @@ class StepIndicatorWidget(QtWidgets.QWidget):
         return 0
 
     def set_step_status(self, index, status):
-        """:param status: one of 'pending', 'attention', 'done'"""
+        """:param status: one of 'pending', 'attention', 'skipped', 'done'"""
         self._statuses[index] = status
+        self.step_btns[index].setToolTip(
+            'Skipped – the calibration was loaded or entered manually'
+            if status == 'skipped' else ''
+        )
         self._style_step(index)
 
     def step_status(self, index):
@@ -494,6 +506,15 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
         # IntegrationImgWidget extends the mask-capable image widget with
         # the iso-2θ circle overlay used by the linked click position
         self.img_widget = IntegrationImgWidget(self.img_layout_widget)
+        # shown until an image is loaded; the controller hides it based on
+        # the guide state
+        self.empty_state_lbl = EmptyStateOverlay(
+            self.img_layout_widget,
+            "<span style='font-size: 15px;'>"
+            "Load a calibration image to begin</span><br/>"
+            "<span style='font-size: 12px; color: #6E6E6E;'>"
+            "TIFF, CBF, EDF, HDF5 and other formats &mdash; or use "
+            "&ldquo;Load Calibration&rdquo; on the right</span>")
         self.cake_widget = CalibrationCakeWidget(self.cake_layout_widget)
         self.pattern_widget = PatternWidget(self.pattern_layout_widget)
 
@@ -512,7 +533,7 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
 
         self._status_layout = QtWidgets.QHBoxLayout()
         self._status_layout.setContentsMargins(6, 0, 0, 0)
-        self.position_lbl = QtWidgets.QLabel("position_lbl")
+        self.position_lbl = QtWidgets.QLabel("")
 
         self._status_layout.addSpacerItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
                                                                 QtWidgets.QSizePolicy.Minimum))
@@ -562,7 +583,14 @@ class CalibrationControlWidget(QtWidgets.QWidget):
 
         # loading an existing .poni or typing known parameters are the
         # alternative entries into the workflow, so they stay reachable
-        # from every step
+        # from every step; the caption marks them as a deliberate block
+        # rather than two stray buttons
+        self.alternative_entry_lbl = QtWidgets.QLabel(
+            'Already have a calibration?')
+        self.alternative_entry_lbl.setStyleSheet(
+            'color: #909090; font-size: 12px; margin-top: 6px;')
+        self._layout.addWidget(self.alternative_entry_lbl)
+
         self._bottom_layout = QtWidgets.QHBoxLayout()
         self.load_calibration_btn = QtWidgets.QPushButton('Load Calibration')
         self.enter_parameters_btn = QtWidgets.QPushButton('Enter Manually')

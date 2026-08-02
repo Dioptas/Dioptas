@@ -81,7 +81,8 @@ class PatternWidget(QtCore.QObject):
         self.legend.setParentItem(self.pattern_plot.vb)
         self.legend.anchor(itemPos=(1, 0), parentPos=(1, 0), offset=(-10, -10))
         self.phases_legend.setParentItem(self.pattern_plot.vb)
-        self.phases_legend.anchor(itemPos=(0, 0), parentPos=(0, 0), offset=(0, -10))
+        # x-offset keeps the phase names clear of the y-axis line
+        self.phases_legend.anchor(itemPos=(0, 0), parentPos=(0, 0), offset=(15, -10))
 
         self.bkg_roi = ModifiedLinearRegionItem(
             [5, 20],

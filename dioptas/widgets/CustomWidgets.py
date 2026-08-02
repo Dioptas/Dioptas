@@ -233,22 +233,57 @@ class RotatedCheckableFlatButton(CheckableFlatButton):
         return options
 
 
+#: text color of the theme's flat buttons
+ACCENT_COLOR = "#ff9500"
+
+#: icon buttons sitting among the flat text buttons of a plot header (e.g.
+#: save). A cool steel blue: deliberately outside the orange accent's hue
+#: family, so an icon-only utility reads as a different kind of control
+#: than the labelled actions next to it instead of competing with them.
+PLOT_ICON_COLOR = "#8fa3b8"
+
+#: display size of those icons, matched to the cap height of the flat text
+#: buttons beside them so the row reads as one line of controls
+PLOT_ICON_SIZE = 18
+
+#: reserved for controls that discard user work in one click (clear all
+#: phases/overlays). Semantic, not decorative — do not use it to make an
+#: ordinary button stand out.
+DANGER_COLOR = "#e0554d"
+
+
+def set_icon_button_hover_color(button, color):
+    """Gives an icon-only button a hover border in the icon's own colour.
+
+    The theme's global rule borders every hovered button in the orange
+    accent, which contradicts a deliberately non-orange icon (the steel
+    save glyph, the red clear-all). Set per instance because the colour
+    lives in Python, so the two cannot drift apart.
+    """
+    button.setStyleSheet(
+        "QPushButton:hover {{ border: 1px solid {0}; }}"
+        "QPushButton:flat:hover {{ border: 1px solid {0}; }}".format(color)
+    )
+
+
 class SaveIconButton(FlatButton):
-    def __init__(self):
+    def __init__(self, color=None):
         super().__init__()
-        self.setIcon(QtGui.QIcon(os.path.join(icons_path, "save.ico")))
+        self.setIcon(render_icon("save.svg", color=color))
+        if color is not None:
+            set_icon_button_hover_color(self, color)
 
 
 class OpenIconButton(FlatButton):
     def __init__(self):
         super().__init__()
-        self.setIcon(QtGui.QIcon(os.path.join(icons_path, "open.ico")))
+        self.setIcon(render_icon("open.svg"))
 
 
 class ResetIconButton(FlatButton):
     def __init__(self):
         super().__init__()
-        self.setIcon(QtGui.QIcon(os.path.join(icons_path, "reset.ico")))
+        self.setIcon(render_icon("reset.svg"))
 
 
 class HorizontalLine(QtWidgets.QFrame):
@@ -406,6 +441,11 @@ class MenuTabWidget(QtWidgets.QWidget):
         """
         self._menu_btn_widget.setFixedWidth(width)
 
+    def menu_height(self) -> int:
+        """Height of the menu button column — the part of the widget that
+        cannot scroll and therefore always needs to be visible."""
+        return self._menu_btn_widget.sizeHint().height()
+
 
 class ParameterFormWidget(QtWidgets.QWidget):
     """A form of (label, number field, unit) rows with by-name access.
@@ -498,8 +538,8 @@ def align_parameter_forms(*forms):
         form.set_label_width(width)
 
 
-def render_icon(filename, opacity=1.0, sizes=(14, 28, 56)):
-    """Renders an SVG icon to pixmaps, optionally faded.
+def render_icon(filename, opacity=1.0, sizes=(14, 28, 56), color=None):
+    """Renders an SVG icon to pixmaps, optionally faded or recoloured.
 
     Rendered here rather than handed to QIcon as a file for two reasons: an
     icon backed by the SVG engine regenerates every mode from the source and
@@ -510,10 +550,20 @@ def render_icon(filename, opacity=1.0, sizes=(14, 28, 56)):
 
     Several sizes are provided because Qt picks the closest match, including
     the 2x and 4x variants for high-DPI screens.
+
+    :param color: replaces the glyph set's base colour (#f1f1f1), e.g. with
+        PLOT_ICON_COLOR for icon buttons that sit among flat text
+        buttons, or DANGER_COLOR for destructive ones.
     """
     from qtpy import QtSvg
 
-    renderer = QtSvg.QSvgRenderer(os.path.join(icons_path, filename))
+    path = os.path.join(icons_path, filename)
+    if color is None:
+        renderer = QtSvg.QSvgRenderer(path)
+    else:
+        with open(path) as svg_file:
+            svg = svg_file.read().replace("#f1f1f1", color)
+        renderer = QtSvg.QSvgRenderer(QtCore.QByteArray(svg.encode()))
     icon = QtGui.QIcon()
     for size in sizes:
         pixmap = QtGui.QPixmap(size, size)
@@ -524,3 +574,34 @@ def render_icon(filename, opacity=1.0, sizes=(14, 28, 56)):
         painter.end()
         icon.addPixmap(pixmap)
     return icon
+
+
+class EmptyStateOverlay(QtWidgets.QLabel):
+    """Dimmed, centered hint text laid over a host widget while a view has
+    no data yet (e.g. "Load an image to begin"). The overlay tracks the
+    host's size, ignores mouse events and is simply hidden once content
+    arrives.
+    """
+
+    def __init__(self, host: QtWidgets.QWidget, text: str):
+        super().__init__(text, host)
+        self._host = host
+        self.setAlignment(QtCore.Qt.AlignCenter)
+        self.setWordWrap(True)
+        self.setTextFormat(QtCore.Qt.RichText)
+        self.setStyleSheet('background: transparent; color: #8A8A8A;')
+        self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
+        host.installEventFilter(self)
+        self._sync_geometry()
+
+    def eventFilter(self, obj, event):
+        if obj is self._host and event.type() in (
+            QtCore.QEvent.Resize,
+            QtCore.QEvent.Show,
+        ):
+            self._sync_geometry()
+        return False
+
+    def _sync_geometry(self):
+        self.setGeometry(self._host.rect())
+        self.raise_()

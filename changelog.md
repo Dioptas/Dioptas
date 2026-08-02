@@ -42,6 +42,26 @@
 
 - On macOS, drop-down boxes took an extra click before their list would stay open. They were built on a custom widget from the Qt4 days that swallowed the mouse press and opened the list itself, which left Qt unaware that a click was in progress, so the release that followed closed the list again. They are now ordinary combo boxes, and their list drops down below the box and scrolls, instead of covering it at the full height of the screen.
 
+- The calibration view showed the literal text "position_lbl" in its status corner until the mouse first moved over the image.
+
+- After loading an existing calibration, the wizard marked Calibrate and Validation as done while Pick Rings still looked not started, contradicting the idea of a sequence. A step that a loaded or manually entered calibration makes unnecessary now shows a gray dash — skipped — with a tooltip saying why.
+
+- Values in disabled input fields — the parameters of a correction that is not yet enabled, for instance — were rendered so dim they were unreadable on the dark background. They are legible now, while still clearly inactive; the same applies to disabled labels, checkboxes and radio buttons.
+
+- Phase names in the pattern plot were drawn on top of the y-axis; they now sit inside the plot area.
+
+- The batch view labelled a missing calibration or mask file "undefined"; it now says "none loaded".
+
+- The point masking tool's size box now carries a px suffix and a tooltip, and the threshold fields hint that they take counts — previously the number 20 stood unlabelled next to the Point button.
+
+- The Bkg and X tabs of the integration view were cut off mid-control: the splitter squeezes the control area down to its minimum size, and pages whose content sits in an inner tab widget reported a minimum far below what their controls need. The control area now reserves the height the current tab actually requires. The Cor tab keeps its compact height: its parameter pages scroll by design, so only the menu column has to stay fully visible.
+
+- Empty views now say what to do instead of showing a black void: the calibration view suggests loading a calibration image (and names the supported formats), and the batch view explains how to open a file series. The hints disappear as soon as data is loaded. The calibration panel's "Load Calibration" and "Enter Manually" buttons carry a caption — "Already have a calibration?" — so the alternative entry into the workflow no longer reads as two stray buttons at the bottom of the panel.
+
+- The coloured legacy icons — the yellow folder and the blue floppy disk — are replaced with monochrome outline glyphs matching the undo/edit/delete set, so the icon language is consistent across the overlay and phase lists, the batch toolbar and the detector panel. Colour is now used where it carries meaning rather than by accident: the save icons inside the plot areas (pattern, image, map) are drawn larger and in a steel blue that marks them as a different kind of control than the orange labelled actions beside them, and "remove all overlays"/"remove all phases" are red, so the one click that discards a whole list looks different from the buttons around it. Hovering these icon buttons outlines them in their own colour instead of the general orange.
+
+- The toggle buttons beside the pattern plot (2θ/Q/d, Log, √, bg, AA, A) now sit in visually connected groups instead of spreading over the full plot height, every one of them explains itself in a tooltip, and the active toggles carry an amber fill so the current state is readable at a glance.
+
 ## Distribution
 
 - A project file is now the settings tree plus the data it refers to: one JSON document holding every setting, and content-addressed datasets for masks, overlay curves and image copies. Identical content is stored once, so two configurations masking the same detector no longer store two copies. The previous layout wrote every value twice — once as an HDF5 attribute and once in a settings document — and spent one HDF5 group per reflection; a two-phase project used 72 groups where it now uses four.

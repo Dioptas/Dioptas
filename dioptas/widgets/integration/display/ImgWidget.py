@@ -6,7 +6,8 @@ from qtpy import QtWidgets, QtCore, QtGui
 from pyqtgraph import GraphicsLayoutWidget
 
 from ...plot_widgets.ImgWidget import IntegrationImgWidget, IntegrationCakeWidget
-from ...CustomWidgets import FlatButton, CheckableFlatButton, HorizontalSpacerItem, SaveIconButton, DarkCheckableFlatButton
+from ...CustomWidgets import FlatButton, CheckableFlatButton, HorizontalSpacerItem, SaveIconButton, \
+    DarkCheckableFlatButton, PLOT_ICON_COLOR, PLOT_ICON_SIZE
 from ..CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
 from .. import CLICKED_COLOR
 
@@ -50,7 +51,7 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
         self._control_layout.setContentsMargins(6, 6, 6, 6)
         self._control_layout.setSpacing(6)
 
-        self.save_image_btn = SaveIconButton()
+        self.save_image_btn = SaveIconButton(color=PLOT_ICON_COLOR)
         self.save_image_btn.setToolTip("Save Image")
 
         self.roi_btn = CheckableFlatButton('ROI')
@@ -101,7 +102,7 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
         self.phases_btn.setVisible(False)
         self.position_and_unit_widget.hide()
 
-        self.save_image_btn.setIconSize(QtCore.QSize(13, 13))
+        self.save_image_btn.setIconSize(QtCore.QSize(PLOT_ICON_SIZE, PLOT_ICON_SIZE))
         self.save_image_btn.setWidth(25)
 
         # btns = [self.roi_btn, self.mode_btn, self.mask_btn, self.transparent_cb, self.show_background_subtracted_img_btn, 

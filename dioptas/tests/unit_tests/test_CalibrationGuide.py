@@ -92,7 +92,9 @@ def test_loaded_poni_without_peaks_needs_no_action(dioptas_model):
     dioptas_model.calibration_model.params.poni_filename = "/somewhere/test.poni"
 
     assert guide.state.next_action == NextAction.NONE
-    assert guide.state.step_status[Step.PEAKS] == StepStatus.PENDING
+    # picking peaks was never done, but the loaded calibration makes it
+    # unnecessary — shown as "skipped" rather than "not started"
+    assert guide.state.step_status[Step.PEAKS] == StepStatus.SKIPPED
 
 
 def test_clearing_peaks_reverts_suggestion(dioptas_model):
