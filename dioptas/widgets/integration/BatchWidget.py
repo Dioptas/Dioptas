@@ -12,6 +12,7 @@ from ..CustomWidgets import (
     VerticalSpacerItem,
     LabelAlignRight,
     LabelExpandable,
+    EmptyStateOverlay,
 )
 
 from . import CLICKED_COLOR
@@ -211,6 +212,15 @@ class BatchFileViewWidget(QtWidgets.QWidget):
         self.treeView.setModel(self.tree_model)
         self.treeView.setColumnWidth(0, 350)
 
+        # shown until a file series is loaded (hidden by set_raw_files)
+        self.empty_state_lbl = EmptyStateOverlay(
+            self.treeView,
+            "<span style='font-size: 15px;'>"
+            "Load a series of raw image files to integrate them in one run"
+            "</span><br/>"
+            "<span style='font-size: 12px; color: #6E6E6E;'>"
+            "Open files with the folder button in the top left</span>")
+
         self.style_widgets()
         self.create_layout()
 
@@ -242,6 +252,7 @@ class BatchFileViewWidget(QtWidgets.QWidget):
         )
 
     def set_raw_files(self, files, images):
+        self.empty_state_lbl.setVisible(len(files) == 0)
         self.tree_model.clear()
         self.tree_model.setColumnCount(2)
         self.tree_model.setHorizontalHeaderLabels(["Raw file name", "N images"])

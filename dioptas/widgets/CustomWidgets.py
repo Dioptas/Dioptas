@@ -529,3 +529,34 @@ def render_icon(filename, opacity=1.0, sizes=(14, 28, 56)):
         painter.end()
         icon.addPixmap(pixmap)
     return icon
+
+
+class EmptyStateOverlay(QtWidgets.QLabel):
+    """Dimmed, centered hint text laid over a host widget while a view has
+    no data yet (e.g. "Load an image to begin"). The overlay tracks the
+    host's size, ignores mouse events and is simply hidden once content
+    arrives.
+    """
+
+    def __init__(self, host: QtWidgets.QWidget, text: str):
+        super().__init__(text, host)
+        self._host = host
+        self.setAlignment(QtCore.Qt.AlignCenter)
+        self.setWordWrap(True)
+        self.setTextFormat(QtCore.Qt.RichText)
+        self.setStyleSheet('background: transparent; color: #8A8A8A;')
+        self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
+        host.installEventFilter(self)
+        self._sync_geometry()
+
+    def eventFilter(self, obj, event):
+        if obj is self._host and event.type() in (
+            QtCore.QEvent.Resize,
+            QtCore.QEvent.Show,
+        ):
+            self._sync_geometry()
+        return False
+
+    def _sync_geometry(self):
+        self.setGeometry(self._host.rect())
+        self.raise_()

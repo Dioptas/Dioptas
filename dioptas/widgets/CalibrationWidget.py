@@ -11,7 +11,7 @@ from ..widgets.plot_widgets import PatternWidget
 from ..widgets.plot_widgets.ImgWidget import IntegrationImgWidget
 
 from .CustomWidgets import NumberTextField, LabelAlignRight, SpinBoxAlignRight, \
-    DoubleSpinBoxAlignRight, OpenIconButton, ResetIconButton
+    DoubleSpinBoxAlignRight, OpenIconButton, ResetIconButton, EmptyStateOverlay
 
 
 #: the wizard's step titles — shared between the top indicator and the
@@ -506,6 +506,15 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
         # IntegrationImgWidget extends the mask-capable image widget with
         # the iso-2θ circle overlay used by the linked click position
         self.img_widget = IntegrationImgWidget(self.img_layout_widget)
+        # shown until an image is loaded; the controller hides it based on
+        # the guide state
+        self.empty_state_lbl = EmptyStateOverlay(
+            self.img_layout_widget,
+            "<span style='font-size: 15px;'>"
+            "Load a calibration image to begin</span><br/>"
+            "<span style='font-size: 12px; color: #6E6E6E;'>"
+            "TIFF, CBF, EDF, HDF5 and other formats &mdash; or use "
+            "&ldquo;Load Calibration&rdquo; on the right</span>")
         self.cake_widget = CalibrationCakeWidget(self.cake_layout_widget)
         self.pattern_widget = PatternWidget(self.pattern_layout_widget)
 
@@ -574,7 +583,14 @@ class CalibrationControlWidget(QtWidgets.QWidget):
 
         # loading an existing .poni or typing known parameters are the
         # alternative entries into the workflow, so they stay reachable
-        # from every step
+        # from every step; the caption marks them as a deliberate block
+        # rather than two stray buttons
+        self.alternative_entry_lbl = QtWidgets.QLabel(
+            'Already have a calibration?')
+        self.alternative_entry_lbl.setStyleSheet(
+            'color: #909090; font-size: 12px; margin-top: 6px;')
+        self._layout.addWidget(self.alternative_entry_lbl)
+
         self._bottom_layout = QtWidgets.QHBoxLayout()
         self.load_calibration_btn = QtWidgets.QPushButton('Load Calibration')
         self.enter_parameters_btn = QtWidgets.QPushButton('Enter Manually')

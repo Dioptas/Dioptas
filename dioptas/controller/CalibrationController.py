@@ -860,6 +860,10 @@ class CalibrationController:
             # usable — whether calibrated here or loaded from a file
             self._confirm_fields(*list(self._unconfirmed_fields))
 
+        self.widget.calibration_display_widget.empty_state_lbl.setVisible(
+            not state.image_loaded
+        )
+
         wizard = self._wizard_widget()
         step_indicator = self.widget.step_indicator
         for step, index in self._WIZARD_STEP_INDICES.items():
