@@ -63,16 +63,31 @@ class IntegrationPatternWidget(QtWidgets.QWidget):
         self.sqrt_btn = CheckableFlatButton(u'\u221a')
         self.auto_range_btn = CheckableFlatButton('A')
 
+        self.tth_btn.setToolTip(u'x-axis in 2\u03b8 (degrees)')
+        self.q_btn.setToolTip(u'x-axis in scattering vector Q (\u212b\u207b\u00b9)')
+        self.d_btn.setToolTip(u'x-axis in d-spacing (\u212b)')
+        self.log_btn.setToolTip('Logarithmic intensity scale')
+        self.sqrt_btn.setToolTip('Square-root intensity scale')
+        self.background_btn.setToolTip('Subtract the fitted pattern background')
+        self.background_inspect_btn.setToolTip(
+            'Show the fitted background in the plot')
+        self.antialias_btn.setToolTip('Antialiased (smoothed) line drawing')
+        self.auto_range_btn.setToolTip(
+            'Automatically rescale the axes when the pattern changes')
+
+        # fixed gaps keep the groups (unit / scale / background / drawing)
+        # visually connected instead of spread over the full column height;
+        # only auto-range stays pinned at the bottom corner of the plot
         self._right_control_layout.addWidget(self.tth_btn)
         self._right_control_layout.addWidget(self.q_btn)
         self._right_control_layout.addWidget(self.d_btn)
-        self._right_control_layout.addSpacerItem(VerticalSpacerItem())
+        self._right_control_layout.addSpacing(16)
         self._right_control_layout.addWidget(self.log_btn)
         self._right_control_layout.addWidget(self.sqrt_btn)
-        self._right_control_layout.addSpacerItem(VerticalSpacerItem())
+        self._right_control_layout.addSpacing(16)
         self._right_control_layout.addWidget(self.background_btn)
         self._right_control_layout.addWidget(self.background_inspect_btn)
-        self._right_control_layout.addSpacerItem(VerticalSpacerItem())
+        self._right_control_layout.addSpacing(16)
         self._right_control_layout.addWidget(self.antialias_btn)
         self._right_control_layout.addSpacerItem(VerticalSpacerItem())
         self._right_control_layout.addWidget(self.auto_range_btn)

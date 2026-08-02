@@ -60,6 +60,8 @@
 
 - The last coloured legacy icons — the yellow folder, the blue floppy disk and the red clear circle — are replaced with monochrome outline glyphs matching the undo/edit/delete set, so the icon language is consistent across the overlay and phase lists, the batch toolbar and the detector panel.
 
+- The toggle buttons beside the pattern plot (2θ/Q/d, Log, √, bg, AA, A) now sit in visually connected groups instead of spreading over the full plot height, every one of them explains itself in a tooltip, and the active toggles carry an amber fill so the current state is readable at a glance.
+
 ## Distribution
 
 - A project file is now the settings tree plus the data it refers to: one JSON document holding every setting, and content-addressed datasets for masks, overlay curves and image copies. Identical content is stored once, so two configurations masking the same detector no longer store two copies. The previous layout wrote every value twice — once as an HDF5 attribute and once in a settings document — and spent one HDF5 group per reflection; a two-phase project used 72 groups where it now uses four.

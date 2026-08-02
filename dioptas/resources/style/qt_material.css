@@ -235,3 +235,13 @@ QCheckBox:disabled,
 QRadioButton:disabled {{
     color: rgba(241, 241, 241, 0.45);
 }}
+
+/*  ------------------------------------------------------------------------  */
+/*  Pattern plot edge controls                                                 */
+/*  The unit/scale/background toggles beside the pattern plot are two-letter   */
+/*  micro-buttons; the global flat-checked border alone is easy to miss at     */
+/*  that size, so checked state additionally gets a faint amber fill.          */
+
+#pattern_right_control_widget QPushButton:flat:checked {{
+    background-color: rgba(255, 149, 0, 0.18);
+}}
