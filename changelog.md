@@ -58,6 +58,8 @@
 
 - Empty views now say what to do instead of showing a black void: the calibration view suggests loading a calibration image (and names the supported formats), and the batch view explains how to open a file series. The hints disappear as soon as data is loaded. The calibration panel's "Load Calibration" and "Enter Manually" buttons carry a caption — "Already have a calibration?" — so the alternative entry into the workflow no longer reads as two stray buttons at the bottom of the panel.
 
+- The last coloured legacy icons — the yellow folder, the blue floppy disk and the red clear circle — are replaced with monochrome outline glyphs matching the undo/edit/delete set, so the icon language is consistent across the overlay and phase lists, the batch toolbar and the detector panel.
+
 ## Distribution
 
 - A project file is now the settings tree plus the data it refers to: one JSON document holding every setting, and content-addressed datasets for masks, overlay curves and image copies. Identical content is stored once, so two configurations masking the same detector no longer store two copies. The previous layout wrote every value twice — once as an HDF5 attribute and once in a settings document — and spent one HDF5 group per reflection; a two-phase project used 72 groups where it now uses four.

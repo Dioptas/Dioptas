@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- Save: floppy-disk outline. Monochrome in the theme's text colour,
+       matching the undo/redo/edit/delete glyph set (replaces save.ico). -->
+  <path d="M4.6 4.4 H16.4 L19.6 7.6 V18 A1.4 1.4 0 0 1 18.2 19.4 H5.8 A1.4 1.4 0 0 1 4.4 18 V5.8 A1.4 1.4 0 0 1 5.8 4.4 Z"
+        fill="none" stroke="#f1f1f1" stroke-width="1.8"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M8 4.6 V8.6 H15.2 V4.6"
+        fill="none" stroke="#f1f1f1" stroke-width="1.8"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M7.4 19.2 V13.4 H16.6 V19.2"
+        fill="none" stroke="#f1f1f1" stroke-width="1.8"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

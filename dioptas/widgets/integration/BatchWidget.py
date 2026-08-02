@@ -13,6 +13,7 @@ from ..CustomWidgets import (
     LabelAlignRight,
     LabelExpandable,
     EmptyStateOverlay,
+    render_icon,
 )
 
 from . import CLICKED_COLOR
@@ -283,7 +284,7 @@ class BatchFileControlWidget(QtWidgets.QWidget):
 
         self.load_btn = FlatButton()
         self.load_btn.setToolTip("Load raw/proc data")
-        self.load_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "open.ico")))
+        self.load_btn.setIcon(render_icon("open.svg"))
         self.load_btn.setIconSize(QtCore.QSize(13, 13))
         self.load_btn.setMaximumWidth(25)
 
@@ -295,7 +296,7 @@ class BatchFileControlWidget(QtWidgets.QWidget):
 
         self.save_btn = FlatButton()
         self.save_btn.setToolTip("Save data")
-        self.save_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "save.ico")))
+        self.save_btn.setIcon(render_icon("save.svg"))
         self.save_btn.setIconSize(QtCore.QSize(13, 13))
         self.save_btn.setMaximumWidth(25)
 

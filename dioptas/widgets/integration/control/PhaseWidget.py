@@ -13,6 +13,7 @@ from ...CustomWidgets import (
     ListTableWidget,
     HorizontalLine,
     DoubleMultiplySpinBoxAlignRight,
+    render_icon,
 )
 
 from .... import icons_path
@@ -136,7 +137,7 @@ class PhaseWidget(QtWidgets.QWidget):
     def style_widgets(self):
         icon_size = QtCore.QSize(17, 17)
 
-        self.add_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "open.ico")))
+        self.add_btn.setIcon(render_icon("open.svg"))
         self.add_btn.setIconSize(icon_size)
 
         self.edit_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "edit.png")))
@@ -145,7 +146,7 @@ class PhaseWidget(QtWidgets.QWidget):
         self.delete_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "delete.png")))
         self.delete_btn.setIconSize(QtCore.QSize(12, 14))
 
-        self.clear_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "reset_dark.ico")))
+        self.clear_btn.setIcon(render_icon("reset.svg"))
         self.clear_btn.setIconSize(icon_size)
 
         def modify_btn_to_icon_size(btn):

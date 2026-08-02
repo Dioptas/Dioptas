@@ -236,19 +236,19 @@ class RotatedCheckableFlatButton(CheckableFlatButton):
 class SaveIconButton(FlatButton):
     def __init__(self):
         super().__init__()
-        self.setIcon(QtGui.QIcon(os.path.join(icons_path, "save.ico")))
+        self.setIcon(render_icon("save.svg"))
 
 
 class OpenIconButton(FlatButton):
     def __init__(self):
         super().__init__()
-        self.setIcon(QtGui.QIcon(os.path.join(icons_path, "open.ico")))
+        self.setIcon(render_icon("open.svg"))
 
 
 class ResetIconButton(FlatButton):
     def __init__(self):
         super().__init__()
-        self.setIcon(QtGui.QIcon(os.path.join(icons_path, "reset.ico")))
+        self.setIcon(render_icon("reset.svg"))
 
 
 class HorizontalLine(QtWidgets.QFrame):

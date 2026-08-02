@@ -16,7 +16,7 @@ from ...CustomWidgets import (
     DoubleMultiplySpinBoxAlignRight,
     HorizontalLine,
 )
-from ...CustomWidgets import NoRectDelegate
+from ...CustomWidgets import NoRectDelegate, render_icon
 from .... import icons_path
 
 
@@ -162,10 +162,10 @@ class OverlayWidget(QtWidgets.QWidget):
 
     def style_widgets(self):
         icon_size = QtCore.QSize(17, 17)
-        self.clear_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "reset_dark.ico")))
+        self.clear_btn.setIcon(render_icon("reset.svg"))
         self.clear_btn.setIconSize(icon_size)
 
-        self.add_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "open.ico")))
+        self.add_btn.setIcon(render_icon("open.svg"))
         self.add_btn.setIconSize(icon_size)
 
         self.delete_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "delete.png")))
