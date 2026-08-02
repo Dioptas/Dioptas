@@ -54,6 +54,8 @@
 
 - The point masking tool's size box now carries a px suffix and a tooltip, and the threshold fields hint that they take counts — previously the number 20 stood unlabelled next to the Point button.
 
+- The Bkg and X tabs of the integration view were cut off mid-control: the splitter squeezes the control area down to its minimum size, and pages whose content sits in an inner tab widget reported a minimum far below what their controls need. The control area now reserves the height the current tab actually requires. The Cor tab keeps its compact height: its parameter pages scroll by design, so only the menu column has to stay fully visible.
+
 ## Distribution
 
 - A project file is now the settings tree plus the data it refers to: one JSON document holding every setting, and content-addressed datasets for masks, overlay curves and image copies. Identical content is stored once, so two configurations masking the same detector no longer store two copies. The previous layout wrote every value twice — once as an HDF5 attribute and once in a settings document — and spent one HDF5 group per reflection; a two-phase project used 72 groups where it now uses four.

@@ -161,6 +161,20 @@ class TabWidgetMinSize(QtWidgets.QTabWidget):
         super().__init__()
         self.currentChanged.connect(self.update_sizes)
 
+    def minimumSizeHint(self):
+        """The splitter holding this tab widget squeezes it down to its
+        minimum size hint (the pattern plot below takes all remaining
+        stretch). Pages whose content sits in an inner tab widget (Bkg, X,
+        Cor) report a minimum far below their actual content and were
+        rendered cut off, so the minimum height is raised to what the
+        current page really needs."""
+        hint = super().minimumSizeHint()
+        page = self.currentWidget()
+        if page is not None:
+            needed = page.sizeHint().height() + self.tabBar().sizeHint().height()
+            hint.setHeight(max(hint.height(), needed))
+        return hint
+
     def update_sizes(self):
         for i in range(self.count()):
             self.widget(i).setSizePolicy(

@@ -61,6 +61,19 @@ class CorrectionsWidget(QtWidgets.QWidget):
 
         self.style_widgets()
 
+    def sizeHint(self):
+        """The correction pages scroll inside the menu-tab widget, and the
+        tallest of them (cylinder geometry) would otherwise dictate the
+        height of the whole control area. Only the menu column cannot
+        scroll, so it defines this widget's natural height."""
+        hint = super().sizeHint()
+        margins = self._layout.contentsMargins()
+        hint.setHeight(
+            self.menu_tab_widget.menu_height()
+            + margins.top() + margins.bottom()
+        )
+        return hint
+
     def create_cbn_correction_widgets(self):
         self.cbn_seat_gb = QtWidgets.QGroupBox("cBN Seat Correction")
         self.cbn_seat_plot_btn = CheckableButton("Plot")

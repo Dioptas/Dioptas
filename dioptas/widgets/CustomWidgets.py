@@ -406,6 +406,11 @@ class MenuTabWidget(QtWidgets.QWidget):
         """
         self._menu_btn_widget.setFixedWidth(width)
 
+    def menu_height(self) -> int:
+        """Height of the menu button column — the part of the widget that
+        cannot scroll and therefore always needs to be visible."""
+        return self._menu_btn_widget.sizeHint().height()
+
 
 class ParameterFormWidget(QtWidgets.QWidget):
     """A form of (label, number field, unit) rows with by-name access.
