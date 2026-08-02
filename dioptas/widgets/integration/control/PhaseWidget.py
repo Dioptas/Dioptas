@@ -14,6 +14,8 @@ from ...CustomWidgets import (
     HorizontalLine,
     DoubleMultiplySpinBoxAlignRight,
     render_icon,
+    DANGER_COLOR,
+    set_icon_button_hover_color,
 )
 
 from .... import icons_path
@@ -146,7 +148,8 @@ class PhaseWidget(QtWidgets.QWidget):
         self.delete_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "delete.png")))
         self.delete_btn.setIconSize(QtCore.QSize(12, 14))
 
-        self.clear_btn.setIcon(render_icon("reset.svg"))
+        self.clear_btn.setIcon(render_icon("reset.svg", color=DANGER_COLOR))
+        set_icon_button_hover_color(self.clear_btn, DANGER_COLOR)
         self.clear_btn.setIconSize(icon_size)
 
         def modify_btn_to_icon_size(btn):

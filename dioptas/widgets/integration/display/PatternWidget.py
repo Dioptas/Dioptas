@@ -6,7 +6,7 @@ from pyqtgraph import GraphicsLayoutWidget
 
 from ...plot_widgets import PatternWidget
 from ...CustomWidgets import LabelAlignRight, FlatButton, CheckableFlatButton, HorizontalSpacerItem, VerticalSpacerItem, \
-    SaveIconButton
+    SaveIconButton, PLOT_ICON_COLOR, PLOT_ICON_SIZE
 from .... import icons_path
 
 
@@ -23,7 +23,7 @@ class IntegrationPatternWidget(QtWidgets.QWidget):
         self._top_control_layout = QtWidgets.QHBoxLayout()
         self._top_control_layout.setContentsMargins(8, 8, 0, 0)
 
-        self.save_pattern_btn = SaveIconButton()
+        self.save_pattern_btn = SaveIconButton(color=PLOT_ICON_COLOR)
         self.save_pattern_btn.setToolTip("Save Pattern")
         self.as_overlay_btn = FlatButton('As Overlay')
         self.as_bkg_btn = FlatButton('As Bkg')
@@ -143,5 +143,5 @@ class IntegrationPatternWidget(QtWidgets.QWidget):
         self.sqrt_btn.setMaximumWidth(right_controls_button_width)
         self.auto_range_btn.setMaximumWidth(right_controls_button_width)
 
-        self.save_pattern_btn.setIconSize(QtCore.QSize(13, 13))
+        self.save_pattern_btn.setIconSize(QtCore.QSize(PLOT_ICON_SIZE, PLOT_ICON_SIZE))
         self.save_pattern_btn.setMaximumWidth(right_controls_button_width)

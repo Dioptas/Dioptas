@@ -14,6 +14,8 @@ from pyqtgraph import GraphicsLayoutWidget
 from .plot_widgets.ImgWidget import IntegrationImgWidget
 from .CustomWidgets import (
     SaveIconButton,
+    PLOT_ICON_COLOR,
+    PLOT_ICON_SIZE,
     CheckableFlatButton,
     FlatButton,
     HorizontalSpacerItem,
@@ -236,7 +238,8 @@ class MapPlotControlWidget(QtWidgets.QWidget):
             "contributes one point of the map.\n"
             "Files holding several frames contribute one point per frame."
         )
-        self.save_map_btn = SaveIconButton()
+        self.save_map_btn = SaveIconButton(color=PLOT_ICON_COLOR)
+        self.save_map_btn.setIconSize(QtCore.QSize(PLOT_ICON_SIZE, PLOT_ICON_SIZE))
         self.save_map_btn.setToolTip("Save the map as an image or a table of values")
         self.dimension_lbl = QtWidgets.QLabel("Dim:")
         self.map_dimension_cb = QtWidgets.QComboBox()
