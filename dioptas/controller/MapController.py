@@ -121,6 +121,17 @@ class MapController:
         self.model.clicked_azi_changed.connect(self.update_clicked_azi_label)
 
         self.model.pattern_changed.connect(self.update_pattern)
+        # the overlay column offers what currently exists; the map values
+        # themselves are recomputed by the model when overlays change
+        self.model.overlay_model.overlay_added.connect(
+            lambda *args: self.update_layer_widget()
+        )
+        self.model.overlay_model.overlay_removed.connect(
+            lambda *args: self.update_layer_widget()
+        )
+        self.model.overlay_model.overlay_changed.connect(
+            lambda *args: self.update_layer_widget()
+        )
         self.activate_model_signals()
 
     def activate(self):
@@ -246,9 +257,18 @@ class MapController:
     def update_layer_widget(self):
         map_model = self.model.map_model
         layer_widget = self.widget.control_widget.layer_widget
+        layer_widget.set_overlay_names(
+            [overlay.name for overlay in self.model.overlay_model.overlays]
+        )
         layer_widget.set_rois(map_model.rois)
         layer_widget.set_expressions(map_model.expressions)
         layer_widget.set_active_layer(map_model.active_layer)
+        missing = map_model.missing_overlays()
+        if missing:
+            layer_widget.set_message(
+                "Overlay '%s' is gone — its window shows blank until another "
+                "one is picked." % missing[0]
+            )
 
     def _layer_selected(self, name):
         if name in self.model.map_model.layer_names():
@@ -464,9 +484,18 @@ class MapController:
     def update_layer_widget(self):
         map_model = self.model.map_model
         layer_widget = self.widget.control_widget.layer_widget
+        layer_widget.set_overlay_names(
+            [overlay.name for overlay in self.model.overlay_model.overlays]
+        )
         layer_widget.set_rois(map_model.rois)
         layer_widget.set_expressions(map_model.expressions)
         layer_widget.set_active_layer(map_model.active_layer)
+        missing = map_model.missing_overlays()
+        if missing:
+            layer_widget.set_message(
+                "Overlay '%s' is gone — its window shows blank until another "
+                "one is picked." % missing[0]
+            )
 
     def _layer_selected(self, name):
         if name in self.model.map_model.layer_names():

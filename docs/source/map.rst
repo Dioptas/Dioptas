@@ -79,8 +79,12 @@ Each window of the pattern produces one **layer** of the map, and the *Windows* 
 - **Peak FWHM** — the full width at half maximum, which tracks grain size and mosaicity.
 
 None of these fit a peak: area integrates the background-subtracted profile, position is its
-intensity-weighted centre, and the FWHM interpolates the half-maximum crossings. The **?** beside
-each table's title opens the exact definitions.
+intensity-weighted centre, and the FWHM interpolates the half-maximum crossings. The **? button**
+beside each table opens the exact definitions.
+
+The **− Ovl** column subtracts a chosen overlay (interpolated onto the map's axis) from every
+pattern before the value is computed, so a window can measure the difference to a reference
+pattern. A window the overlay does not cover shows blank rather than an extrapolated value.
 
 Add a second window with the **+** button beside the table; every window is drawn in the pattern plot in its own colour
 and can be dragged there. That colour is shown as a swatch in the row — click it to pick another —

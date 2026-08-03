@@ -126,6 +126,15 @@ class DioptasModel:
         # the phase model is global (not per-configuration), so its params
         # events are forwarded once and never rewired
         self._phase_model.params.events.connect(self._on_phase_params_event)
+        # map windows can subtract an overlay; an edited overlay has to reach
+        # every configuration's map, not only the current one
+        self._overlay_model.overlay_added.connect(self._on_overlays_changed_for_maps)
+        self._overlay_model.overlay_removed.connect(
+            self._on_overlays_changed_for_maps
+        )
+        self._overlay_model.overlay_changed.connect(
+            self._on_overlays_changed_for_maps
+        )
 
         # Owned binary payloads (mask pixels; overlay data in later steps),
         # content-addressed so snapshots and configurations share them by id.
@@ -354,6 +363,19 @@ class DioptasModel:
         # a map ROI carries its own evented params, which are not part of the
         # MapParams group the line above follows
         self.map_model.roi_params_changed.connect(self._on_map_roi_params_changed)
+        # overlays live here, not in the configuration, so the map model gets
+        # a resolver instead of a reference
+        self.map_model.overlay_lookup = self._map_overlay_lookup
+
+    def _map_overlay_lookup(self, name: str):
+        for overlay in self._overlay_model.overlays:
+            if overlay.name == name:
+                return overlay.x, overlay.y
+        return None
+
+    def _on_overlays_changed_for_maps(self, *_args) -> None:
+        for configuration in self.configurations:
+            configuration.map_model.overlays_changed()
 
     def _on_map_roi_params_changed(self, field, new, old) -> None:
         self.configuration_params_changed.emit("map.roi." + field, new, old)

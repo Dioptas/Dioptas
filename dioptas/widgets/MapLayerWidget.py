@@ -137,7 +137,7 @@ class MapLayerWidget(QtWidgets.QWidget):
     sigLayerSelected = QtCore.Signal(str)
     """Name of the layer the user picked to be drawn on the map"""
 
-    _ROI_COLUMNS = ("", "", "Name", "From", "To", "Value")
+    _ROI_COLUMNS = ("", "", "Name", "From", "To", "Value", "− Ovl")
     _EXPRESSION_COLUMNS = ("", "Name", "Expression")
 
     #: widest number a window range is expected to show, used to size the
@@ -151,6 +151,8 @@ class MapLayerWidget(QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self._updating = False
         self._roi_names: list[str] = []
+        #: overlays offered for subtraction, pushed in by the controller
+        self._overlay_names: list[str] = []
         self._expression_names: list[str] = []
         self._active_layer = ""
         #: layer name -> its "draw this" radio, all in one exclusive group
@@ -180,6 +182,7 @@ class MapLayerWidget(QtWidgets.QWidget):
         for column in range(5):
             header.setSectionResizeMode(column, modes.Fixed)
         header.setSectionResizeMode(5, modes.Stretch)
+        header.setSectionResizeMode(6, modes.Fixed)
         self.roi_table.itemChanged.connect(self._roi_item_changed)
         self.roi_table.setItemDelegate(
             RowTintDelegate(self._roi_row_color, self.roi_table)
@@ -349,16 +352,24 @@ class MapLayerWidget(QtWidgets.QWidget):
         range_width = metrics.horizontalAdvance(self._RANGE_SAMPLE) + 16
         name_width = metrics.horizontalAdvance("MMMM") + 16
 
-        for table, widths in (
+        overlay_width = metrics.horizontalAdvance("MMMMMMMM") + 24
+        for table, columns in (
             (
                 self.roi_table,
-                (show_width, ColorSwatch._SIZE + 8, name_width, range_width, range_width),
+                (
+                    (0, show_width),
+                    (1, ColorSwatch._SIZE + 8),
+                    (2, name_width),
+                    (3, range_width),
+                    (4, range_width),
+                    (6, overlay_width),
+                ),
             ),
-            (self.expression_table, (show_width, name_width)),
+            (self.expression_table, ((0, show_width), (1, name_width))),
         ):
             header = table.horizontalHeader()
             fixed = 0
-            for column, wanted in enumerate(widths):
+            for column, wanted in columns:
                 # never narrower than the header text the style draws
                 width = max(wanted, header.sectionSizeHint(column))
                 table.setColumnWidth(column, width)
@@ -428,6 +439,11 @@ where the profile crosses half its maximum on either side of the highest
 point. Blank when the profile does not come back below half inside the
 window.</li>
 </ul>
+<p>The <b>&minus; Ovl</b> column subtracts a chosen overlay (interpolated
+onto the map's radial axis, read in the map's unit) from every pattern before
+the value is computed — the window then measures the <i>difference</i> to that
+overlay. Where the overlay does not cover the window, or the overlay is gone,
+the layer shows blank rather than a value that quietly ignores it.</p>
 <p>A point shows as blank (transparent) when its window holds nothing to
 measure.</p>
 """
@@ -624,6 +640,10 @@ reason shown below the tables.</p>
             if value_cb.currentIndex() != index:
                 value_cb.setCurrentIndex(index)
             value_cb.setToolTip(REDUCTION_LABELS.get(roi.reduction, ""))
+        overlay_cb = self.roi_table.cellWidget(row, 6)
+        if isinstance(overlay_cb, QtWidgets.QComboBox):
+            if (overlay_cb.currentData() or "") != roi.overlay:
+                self._fill_overlay_combo(overlay_cb, roi.overlay)
 
     @staticmethod
     def _set_text(item, text: str):
@@ -680,6 +700,50 @@ reason shown below the tables.</p>
             )
         )
         self.roi_table.setCellWidget(row, 5, value_cb)
+
+        overlay_cb = QtWidgets.QComboBox()
+        overlay_cb.setToolTip(
+            "Subtract this overlay from every pattern before the value is\n"
+            "computed — the window then measures the difference to it.\n"
+            "The overlay is read in the unit the map was integrated in."
+        )
+        self._fill_overlay_combo(overlay_cb, roi.overlay)
+        overlay_cb.currentIndexChanged.connect(
+            lambda _index, name=roi.name, box=overlay_cb: self._emit_roi_change(
+                name, "overlay", box.currentData() or ""
+            )
+        )
+        self.roi_table.setCellWidget(row, 6, overlay_cb)
+
+    def _fill_overlay_combo(self, combo: QtWidgets.QComboBox, selected: str):
+        combo.blockSignals(True)
+        try:
+            combo.clear()
+            combo.addItem("—", "")
+            for overlay_name in self._overlay_names:
+                combo.addItem(overlay_name, overlay_name)
+            if selected and selected not in self._overlay_names:
+                # keeps a stored choice visible after its overlay went away,
+                # instead of silently snapping to "none"
+                combo.addItem(f"{selected} (missing)", selected)
+            index = combo.findData(selected)
+            combo.setCurrentIndex(index if index >= 0 else 0)
+        finally:
+            combo.blockSignals(False)
+
+    def set_overlay_names(self, names: list[str]):
+        """Refreshes which overlays the windows can subtract."""
+        if names == self._overlay_names:
+            return
+        self._overlay_names = list(names)
+        self._updating = True
+        try:
+            for row, roi_name in enumerate(self._roi_names):
+                combo = self.roi_table.cellWidget(row, 6)
+                if isinstance(combo, QtWidgets.QComboBox):
+                    self._fill_overlay_combo(combo, combo.currentData() or "")
+        finally:
+            self._updating = False
 
     def set_expressions(self, expressions: dict):
         """Shows the computed layers, in place where the set is unchanged.

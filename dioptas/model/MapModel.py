@@ -73,6 +73,13 @@ class MapModel:
         #: changes. Reductions are cheap but the map redraws often.
         self._layer_cache: dict[str, np.ndarray] = {}
 
+        #: resolves an overlay name to its (x, y) data. Injected by the
+        #: model that owns the overlays; the map model itself has no path
+        #: to them.
+        self.overlay_lookup = None
+        #: overlay name -> its y values interpolated onto pattern_x
+        self._overlay_interp_cache: dict[str, np.ndarray | None] = {}
+
         # rebuilding is suspended while a bulk change (load, project restore)
         # sets several params in a row, so the map is built once at the end
         self._suspend_rebuild = False
@@ -141,6 +148,57 @@ class MapModel:
 
     def _invalidate_layers(self):
         self._layer_cache.clear()
+        self._overlay_interp_cache.clear()
+
+    def overlays_changed(self):
+        """Recomputes every layer that subtracts an overlay.
+
+        Called from outside when an overlay is added, removed or edited —
+        the interpolated overlay this model cached is stale either way.
+        """
+        if not any(roi.overlay for roi in self.params.rois):
+            return
+        self._invalidate_layers()
+        self._recompute_window_intensities()
+        self._rebuild_map()
+
+    def _interpolated_overlay(self, name: str) -> np.ndarray | None:
+        """The overlay's intensities on the map's own radial axis.
+
+        None when the overlay cannot be found. Points outside the overlay's
+        range become NaN rather than an extrapolated guess, so a window the
+        overlay does not cover reads blank instead of quietly wrong.
+        """
+        if name in self._overlay_interp_cache:
+            return self._overlay_interp_cache[name]
+        resolved = None
+        if self.overlay_lookup is not None and self.pattern_x is not None:
+            found = self.overlay_lookup(name)
+            if found is not None:
+                overlay_x, overlay_y = np.asarray(found[0]), np.asarray(found[1])
+                order = np.argsort(overlay_x)  # d spacing runs descending
+                resolved = np.interp(
+                    self.pattern_x,
+                    overlay_x[order],
+                    overlay_y[order],
+                    left=np.nan,
+                    right=np.nan,
+                )
+        self._overlay_interp_cache[name] = resolved
+        return resolved
+
+    def missing_overlays(self) -> list[str]:
+        """Overlay names windows refer to that cannot be resolved."""
+        missing = []
+        for roi in self.params.rois:
+            if not roi.overlay or roi.overlay in missing:
+                continue
+            if (
+                self.overlay_lookup is None
+                or self.overlay_lookup(roi.overlay) is None
+            ):
+                missing.append(roi.overlay)
+        return missing
 
     # --- ROIs and layers -------------------------------------------------
 
@@ -332,9 +390,19 @@ class MapModel:
 
         roi = self.get_roi(name)
         if roi is not None:
+            intensities = self.pattern_intensities
+            if roi.overlay:
+                overlay_y = self._interpolated_overlay(roi.overlay)
+                if overlay_y is None:
+                    # a missing overlay blanks the layer; quietly measuring
+                    # without the subtraction would be a wrong map
+                    values = np.full(len(intensities), np.nan)
+                    self._layer_cache[name] = values
+                    return values
+                intensities = intensities - overlay_y[None, :]
             values = map_reduction.reduce_window(
                 self.pattern_x,
-                self.pattern_intensities,
+                intensities,
                 (roi.x_min, roi.x_max),
                 reduction=roi.reduction,
                 subtract_background=roi.subtract_background,

@@ -751,3 +751,103 @@ def test_signals_are_instance_level(configuration: Configuration):
     model_b.point_integrated.connect(listener_b)
     model_a.point_integrated.emit(1.0)
     listener_b.assert_not_called()
+
+def _overlay_lookup(x, y):
+    return lambda name: (x, y) if name == "ref" else None
+
+
+def test_window_subtracts_an_overlay_before_reducing(
+    map_model: MapModel, configuration: Configuration
+):
+    """A window with an overlay picked measures the difference to it."""
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.set_window((14.0, 16.0))
+    plain = map_model.window_intensities.copy()
+
+    # an overlay of constant 100 counts across the whole axis
+    map_model.overlay_lookup = _overlay_lookup(
+        map_model.pattern_x.copy(), np.full_like(map_model.pattern_x, 100.0)
+    )
+    map_model.rois[0].overlay = "ref"
+
+    import dioptas.model.map_reduction as mr
+    channels = len(mr.window_indices(map_model.pattern_x, (14.0, 16.0)))
+    np.testing.assert_allclose(
+        map_model.window_intensities, plain - 100.0 * channels, rtol=1e-6
+    )
+
+
+def test_missing_overlay_blanks_the_layer_instead_of_lying(
+    map_model: MapModel, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.rois[0].overlay = "gone"
+
+    assert np.all(np.isnan(map_model.window_intensities))
+    assert map_model.missing_overlays() == ["gone"]
+
+
+def test_overlay_outside_its_range_blanks_rather_than_extrapolates(
+    map_model: MapModel, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.set_window((14.0, 16.0))
+
+    # overlay only covers up to 10 — nowhere near the window
+    x = np.linspace(0.0, 10.0, 50)
+    map_model.overlay_lookup = _overlay_lookup(x, np.ones_like(x))
+    map_model.rois[0].overlay = "ref"
+
+    assert np.all(np.isnan(map_model.window_intensities))
+
+
+def test_overlays_changed_recomputes_subtracting_windows(
+    map_model: MapModel, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.set_window((14.0, 16.0))
+
+    x = map_model.pattern_x.copy()
+    level = {"value": 100.0}
+    map_model.overlay_lookup = lambda name: (x, np.full_like(x, level["value"]))
+    map_model.rois[0].overlay = "ref"
+    first = map_model.window_intensities.copy()
+
+    level["value"] = 200.0
+    map_model.overlays_changed()  # what an overlay edit triggers
+
+    assert not np.allclose(map_model.window_intensities, first)
+
+
+def test_overlay_choice_round_trips_through_hdf5(
+    map_model: MapModel, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.rois[0].overlay = "my reference"
+
+    with tempfile.NamedTemporaryFile(suffix=".h5", delete=False) as tmp:
+        tmp_path = tmp.name
+    try:
+        with h5py.File(tmp_path, "w") as f:
+            map_model.save_in_hdf5(f)
+        new_model = MapModel(configuration)
+        with h5py.File(tmp_path, "r") as f:
+            new_model.load_from_hdf5(f)
+        assert new_model.rois[0].overlay == "my reference"
+    finally:
+        os.unlink(tmp_path)
