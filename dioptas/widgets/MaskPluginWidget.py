@@ -229,6 +229,9 @@ class MaskPluginSettingsDialog(QtWidgets.QDialog):
 
         Goes through the widgets rather than the plugin, so the change flows
         through the same live-update path as manual edits — including undo.
+        Widget signals are blocked during the loop and one change is emitted
+        at the end: per-field emissions would recompute the mask once per
+        field and leave one undo step each.
         """
         for key, widget in self._widgets.items():
             spec = self._schema[key]
@@ -236,16 +239,18 @@ class MaskPluginSettingsDialog(QtWidgets.QDialog):
             if default is None:
                 continue
             param_type = spec.get("type", "str")
-            if param_type in ("float", "int"):
-                widget.setValue(default)
-            elif param_type == "bool":
-                widget.setChecked(bool(default))
-            elif param_type == "choice":
-                widget.setCurrentText(str(default))
-            else:
-                # setText emits no editingFinished; the collective emit
-                # below covers it
-                widget.setText(str(default))
+            blocker = QtCore.QSignalBlocker(widget)
+            try:
+                if param_type in ("float", "int"):
+                    widget.setValue(default)
+                elif param_type == "bool":
+                    widget.setChecked(bool(default))
+                elif param_type == "choice":
+                    widget.setCurrentText(str(default))
+                else:
+                    widget.setText(str(default))
+            finally:
+                del blocker
         self._on_value_changed()
 
     def _get_values(self) -> dict:

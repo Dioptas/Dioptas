@@ -244,5 +244,7 @@ def test_plugin_settings_dialog_restores_defaults(qapp):
 
     dialog.restore_defaults()
 
-    assert received[-1] == {"threshold": 5.0, "iterations": 3, "mode": "fast"}
+    # exactly one emission: per-field ones would recompute the mask once
+    # per field and leave one undo step each
+    assert received == [{"threshold": 5.0, "iterations": 3, "mode": "fast"}]
     dialog.close()
