@@ -19,12 +19,13 @@ want to explore how diffraction patterns vary across the sample.
 Overview
 --------
 
-The Map module has a four-panel layout:
+The Map module has a three-panel layout:
 
 - **Map image** (left): Shows a 2D map where each pixel represents an integrated diffraction pattern.
   The pixel value is derived from a selected feature of the pattern (e.g., intensity in a region of interest).
-- **Image view** (upper right): Shows the raw diffraction image for the currently selected map position.
-- **Control panel** (middle right): Controls for loading data, adjusting visualization, and selecting ROI.
+- **Control panel** (upper right): Three tabs — *Image*, the raw diffraction image of the
+  currently selected map position; *Points*, for loading the images and arranging them on the
+  grid; and *Layers*, for what each point measures.
 - **Pattern plot** (lower right): Shows the integrated pattern for the currently selected map position.
 
 
@@ -47,7 +48,9 @@ Several options are available to enhance the map visualization:
 - **Contours**: Overlay contour lines on the map image using cubic interpolation.
   The slider controls the number of contour levels.
 - **AutoScale**: Automatically adjust the image intensity range.
-- **Dimension**: Select which dimension to display when the map has more than 2 dimensions.
+- **Layer**: Select which of the map's layers is drawn (see `Windows and layers`_).
+- **Grid…**: Opens the layout dialog — grid size, serpentine scans, mirroring and the
+  dropped-frame repair (see `Arranging the points`_).
 
 
 Interacting with the Map
@@ -58,6 +61,66 @@ Interacting with the Map
 - The pattern plot supports **Log** and **Sqrt** scaling buttons for the y-axis.
 - A region of interest (ROI) can be selected on the pattern to define which feature is used to
   generate the map image values.
+
+
+Windows and layers
+------------------
+
+Each window of the pattern produces one **layer** of the map, and the *Windows* table in the
+*Layers* tab decides what that window is reduced to:
+
+- **Sum**, **Sum − bkg**, **Mean**, **Max** — the raw counts in the window. A plain sum also tracks
+  how much sample the beam went through, so it often maps thickness as much as phase.
+- **Peak area** — the same, after subtracting the straight line joining the window edges. Use this
+  when the background varies across the scan.
+- **Peak pos.** — the intensity-weighted centre of the peak. Mapped over a scan this is a
+  d-spacing map, and therefore a strain map.
+- **Peak FWHM** — the full width at half maximum, which tracks grain size and mosaicity.
+
+Add a second window with the **+** button below the table; every window is drawn in the pattern plot in its own colour
+and can be dragged there. That colour is shown as a swatch in the row — click it to pick another —
+and the row, its "show" marker and the region under the mouse all use it, so it is always clear
+which region belongs to which window. **Computed layers**, added with their own **+**, combine the windows by name — ``A/B`` for a phase
+fraction, ``(A-B)/(A+B)`` for a contrast that survives changes in illumination. Only arithmetic on
+the layer names, numbers, and the functions ``abs``, ``sqrt``, ``log``, ``log10``, ``exp``,
+``clip``, ``minimum`` and ``maximum`` are allowed.
+
+The two tables share the tab through a splitter and each scrolls inside its own half, so
+adding a window never pushes the computed layers out of reach. Drag the divider to give one
+of them more room.
+
+Only one layer is drawn at a time. **Which one is chosen by the radio button in the leftmost column
+of either table**, next to the window it belongs to; the **Layer** box below the map does the same
+and is what to use when the map panel is undocked or shown in the integration view. A newly added
+window or computed layer is shown straight away.
+
+
+Arranging the points
+--------------------
+
+The list in the *Points* tab has one row per **grid cell**, not per file, so a gap in the scan is
+visible. Rows can be dragged to rearrange the map, and the icon buttons beside the list — also
+available by right-clicking a row — act on the selected cell. Hover any of them for what it does:
+
+- **Move up** / **Move down** (arrows) — moves the selected cell one place along the scan order,
+  for finer control than dragging. Works on blanks as well as on points.
+- **Insert blank cell** (dashed cell with a plus) — for a frame the beamline dropped. Without it
+  every point after the gap sits one cell too early, which produces a plausible-looking but wrong
+  map.
+- **Remove blank cell** (dashed cell with a minus)
+- **Leave point out** / **Put it back** (cell struck through / ticked) — for a saturated frame or a
+  beam dump. The point keeps its cell; none of the others move.
+
+Buttons that cannot apply to the selected cell fade out.
+
+The **Grid…** button below the map opens the layout options: a quick pick of the grids that fit the
+loaded points exactly, the number of rows and columns (any grid with room for every point, not only
+exact factorizations of the point count), **Serpentine (snake) scan** for
+scans where every other row ran in the opposite direction, swapping the fast and slow axis, and
+mirroring. **Check filename numbering** looks for numbers missing from the file names and inserts a
+blank for each one, which repairs a dropped frame in a single click.
+
+Blank cells are drawn transparent and are left out of the colour scale.
 
 
 Reintegration
