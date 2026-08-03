@@ -1428,3 +1428,17 @@ def test_unknown_or_removed_overlay_is_reported(map_controller):
     overlay_model.remove_overlay(0)
     assert map_model.layer_values("d") is None
     assert "no overlay called 'bkg_empty'" in widget.message_lbl.text()
+
+def test_remove_blank_button_disabled_for_structural_blanks(map_controller):
+    """The grid needs its cells: a trailing blank cannot be deleted, and the
+    button saying otherwise was a false promise."""
+    map_model = load_map(map_controller)
+    control = map_controller.widget.control_widget
+    map_model.set_dimension((3, 3))  # trailing blanks appear
+
+    control.file_list.setCurrentRow(7)  # a structural blank
+    assert not control.remove_blank_btn.isEnabled()
+
+    map_model.insert_blank(1)  # a repair blank, points after it
+    control.file_list.setCurrentRow(1)
+    assert control.remove_blank_btn.isEnabled()

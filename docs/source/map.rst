@@ -119,7 +119,9 @@ available by right-clicking a row — act on the selected cell. Hover any of the
 - **Insert blank cell** (dashed cell with a plus) — for a frame the beamline dropped. Without it
   every point after the gap sits one cell too early, which produces a plausible-looking but wrong
   map.
-- **Remove blank cell** (dashed cell with a minus)
+- **Remove blank cell** (dashed cell with a minus) — only for blanks with points after them: the
+  grid keeps its cell count, so a trailing blank belongs to the grid size and is dropped by
+  shrinking the grid instead.
 - **Leave point out** / **Put it back** (cell struck through / ticked) — for a saturated frame or a
   beam dump. The point keeps its cell; none of the others move.
 

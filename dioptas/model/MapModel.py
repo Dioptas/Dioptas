@@ -916,6 +916,20 @@ class MapModel:
             return
         self._set_slots(map_layout.remove_blank(self.get_slots(), position))
 
+    def can_remove_blank(self, position: int) -> bool:
+        """Whether removing the blank at *position* changes anything.
+
+        The grid keeps its cell count, so a removed blank only shifts the
+        points after it one cell earlier — and a new blank appears at the
+        end. A blank with no point after it is therefore structural: it
+        belongs to the grid size, and "removing" it would visibly do
+        nothing. Shrinking the grid is what gets rid of those.
+        """
+        slots = self.get_slots()
+        if not (0 <= position < len(slots)) or slots[position] is not None:
+            return False
+        return any(entry is not None for entry in slots[position + 1:])
+
     def move_slot(self, source: int, target: int):
         """Moves one cell of the arrangement to another position."""
         if self.dimension is None:

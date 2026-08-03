@@ -390,7 +390,7 @@ class MapController:
         menu.addSeparator()
         insert_action = menu.addAction("Insert blank cell here")
         remove_action = menu.addAction("Remove blank cell")
-        remove_action.setEnabled(point is None)
+        remove_action.setEnabled(map_model.can_remove_blank(slot))
         menu.addSeparator()
         if point is not None and map_model.is_point_excluded(point):
             exclude_action = menu.addAction("Include point in map")
@@ -477,7 +477,9 @@ class MapController:
             selected and slot < map_model.num_slots - 1
         )
         control.insert_blank_btn.setEnabled(selected)
-        control.remove_blank_btn.setEnabled(selected and point is None)
+        control.remove_blank_btn.setEnabled(
+            selected and map_model.can_remove_blank(slot)
+        )
         control.exclude_btn.setEnabled(point is not None)
         control.set_point_excluded(
             point is not None and map_model.is_point_excluded(point)
@@ -619,7 +621,7 @@ class MapController:
         menu.addSeparator()
         insert_action = menu.addAction("Insert blank cell here")
         remove_action = menu.addAction("Remove blank cell")
-        remove_action.setEnabled(point is None)
+        remove_action.setEnabled(map_model.can_remove_blank(slot))
         menu.addSeparator()
         if point is not None and map_model.is_point_excluded(point):
             exclude_action = menu.addAction("Include point in map")
@@ -706,7 +708,9 @@ class MapController:
             selected and slot < map_model.num_slots - 1
         )
         control.insert_blank_btn.setEnabled(selected)
-        control.remove_blank_btn.setEnabled(selected and point is None)
+        control.remove_blank_btn.setEnabled(
+            selected and map_model.can_remove_blank(slot)
+        )
         control.exclude_btn.setEnabled(point is not None)
         control.set_point_excluded(
             point is not None and map_model.is_point_excluded(point)

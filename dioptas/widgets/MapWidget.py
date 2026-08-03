@@ -294,7 +294,8 @@ class MapControlWidget(QtWidgets.QWidget):
             "map_remove_blank.svg",
             "Remove blank cell\n\n"
             "Takes the selected empty cell out again, pulling the later\n"
-            "points back.",
+            "points back. Blanks with nothing after them belong to the grid\n"
+            "size — shrink the grid (Grid\u2026 below the map) to drop those.",
         )
         self.exclude_btn = IconActionButton(
             "map_exclude_point.svg",

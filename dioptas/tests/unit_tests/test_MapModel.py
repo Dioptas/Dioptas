@@ -874,3 +874,32 @@ def test_renaming_a_window_follows_into_ovl_but_not_the_overlay_name(
 
     assert map_model.rename_roi("A", "quartz") is True
     assert map_model.expressions["d"] == "quartz - ovl(A, quartz)"
+
+
+def test_structural_blanks_cannot_pretend_to_be_removable(
+    map_model: MapModel, configuration: Configuration
+):
+    """A blank with no point after it belongs to the grid size: the grid
+    keeps its cell count, so removing it would visibly do nothing."""
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.set_dimension((3, 3))  # six points, three trailing blanks
+
+    # trailing blanks: "removing" them changes nothing
+    for slot in (6, 7, 8):
+        assert map_model.can_remove_blank(slot) is False
+    before = map_model.get_slots()
+    map_model.remove_blank(7)
+    assert map_model.get_slots() == before
+
+    # a blank with points after it does shift them when removed
+    map_model.insert_blank(2)
+    assert map_model.can_remove_blank(2) is True
+    map_model.remove_blank(2)
+    assert map_model.get_point_index(0, 2) == 2
+
+    # points are never removable, blanks out of range neither
+    assert map_model.can_remove_blank(0) is False
+    assert map_model.can_remove_blank(99) is False
