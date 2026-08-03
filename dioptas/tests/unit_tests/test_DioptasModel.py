@@ -1135,3 +1135,19 @@ def test_image_and_background_are_stored_compressed(dioptas_model, tmp_path):
             stored = dataset.id.get_storage_size()
             raw = dataset.size * dataset.dtype.itemsize
             assert stored < raw
+
+
+def test_reset_survives_the_overlay_forwarding_to_maps(dioptas_model):
+    """reset() deletes the configurations attribute and clears the overlays
+    while it is gone; the overlay-to-maps forwarding must not trip over the
+    missing attribute (caught by CI in the project round-trip tests)."""
+    dioptas_model.overlay_model.add_overlay(
+        np.linspace(0, 10, 50), np.ones(50), "ref"
+    )
+    dioptas_model.reset()  # used to raise AttributeError via overlay_removed
+
+    # and the forwarding still works on the rebuilt configurations
+    dioptas_model.map_model.set_expression("d", "A - ovl(ref)")
+    dioptas_model.overlay_model.add_overlay(
+        np.linspace(0, 10, 50), np.ones(50), "ref"
+    )

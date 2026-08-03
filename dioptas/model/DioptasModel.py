@@ -374,7 +374,10 @@ class DioptasModel:
         return None
 
     def _on_overlays_changed_for_maps(self, *_args) -> None:
-        for configuration in self.configurations:
+        # reset() deletes the configurations attribute outright and clears
+        # the overlays while it is gone — those maps are being discarded,
+        # so there is nothing to recompute
+        for configuration in getattr(self, "configurations", []):
             configuration.map_model.overlays_changed()
 
     def _on_map_roi_params_changed(self, field, new, old) -> None:
