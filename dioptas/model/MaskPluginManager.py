@@ -69,8 +69,12 @@ class MaskPluginManager:
 
         entry.enabled = enabled
 
-        if enabled and entry.cached_mask is None and self._current_img_data is not None:
-            self._compute_plugin_mask(entry)
+        # A dynamic plugin's mask belongs to one particular image, and the
+        # image may have changed while the plugin was off — enabling always
+        # recomputes, otherwise the mask of the previous image comes back.
+        if enabled and self._current_img_data is not None:
+            if entry.plugin.is_dynamic or entry.cached_mask is None:
+                self._compute_plugin_mask(entry)
 
         self.mask_changed.emit()
 
@@ -92,7 +96,9 @@ class MaskPluginManager:
         changed = False
         for entry in self._plugins.values():
             if not entry.enabled:
-                if shape_changed:
+                # a disabled dynamic plugin's cache describes an image that
+                # is now gone; keeping it would show the old mask on enable
+                if shape_changed or entry.plugin.is_dynamic:
                     entry.cached_mask = None
                 continue
 

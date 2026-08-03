@@ -224,3 +224,27 @@ class MaskControllerTest(QtTest):
             sys.setrecursionlimit(old_limit)
 
         assert self.model.mask_model.get_img().sum() > 0
+
+
+def test_plugin_settings_dialog_restores_defaults(qapp):
+    """The Restore Defaults button sets every field back to the schema
+    default and pushes the change through the live-update path."""
+    from dioptas.widgets.MaskPluginWidget import MaskPluginSettingsDialog
+
+    schema = {
+        "threshold": {"type": "float", "default": 5.0, "min": 0, "max": 100},
+        "iterations": {"type": "int", "default": 3, "min": 1, "max": 10},
+        "mode": {"type": "choice", "choices": ["fast", "full"], "default": "fast"},
+    }
+    dialog = MaskPluginSettingsDialog(
+        "Test", schema, {"threshold": 42.0, "iterations": 9, "mode": "full"}
+    )
+    received = []
+    dialog.settings_changed.connect(received.append)
+
+    dialog.restore_defaults()
+
+    # exactly one emission: per-field ones would recompute the mask once
+    # per field and leave one undo step each
+    assert received == [{"threshold": 5.0, "iterations": 3, "mode": "fast"}]
+    dialog.close()

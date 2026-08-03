@@ -1,5 +1,15 @@
 # 0.9.1 (in development)
 
+## Bugfixes
+
+- Re-enabling a dynamic mask after loading a different image showed the mask computed for the previous image; enabling now always recomputes for the image on screen.
+
+## Changes
+
+- The mask plugin settings dialogs gained a **Restore Defaults** button.
+
+- The redundant **Clear Ring** button under the calibration peak table is gone: changing the ring number already selects every group of that ring, so Delete does the same in two steps — the tooltip now says so.
+
 # 0.9.0 (03.08.2026)
 
 ## Breaking changes

@@ -279,7 +279,6 @@ class CalibrationWidget(QtWidgets.QWidget):
         self.search_size_sb = peak_selection_widget.search_size_sb
         self.automatic_peak_num_inc_cb = peak_selection_widget.automatic_peak_num_inc_cb
         self.clear_peaks_btn = peak_selection_widget.clear_peaks_btn
-        self.clear_ring_btn = peak_selection_widget.clear_ring_btn
         self.peak_counter_lbl = peak_selection_widget.peak_counter_lbl
         self.peak_table = peak_selection_widget.peak_table
         self.delete_peak_btn = peak_selection_widget.delete_peak_btn
@@ -972,14 +971,15 @@ class PeakSelectionWidget(QtWidgets.QWidget):
 
         self.delete_peak_btn = QtWidgets.QPushButton("Delete")
         self.delete_peak_btn.setToolTip(
-            'Delete the selected peak groups (Del)')
-        self.clear_ring_btn = QtWidgets.QPushButton("Clear Ring")
+            "Delete the selected peak groups (Del).\n"
+            "Changing the ring number selects every group of that ring,\n"
+            "so a whole ring can be deleted in two steps."
+        )
         self.clear_peaks_btn = QtWidgets.QPushButton("Clear All")
 
         self._peak_btn_layout = QtWidgets.QHBoxLayout()
         self._peak_btn_layout.setSpacing(6)
         self._peak_btn_layout.addWidget(self.delete_peak_btn)
-        self._peak_btn_layout.addWidget(self.clear_ring_btn)
         self._peak_btn_layout.addWidget(self.clear_peaks_btn)
         self._layout.addLayout(self._peak_btn_layout, 6, 0, 1, 4)
 

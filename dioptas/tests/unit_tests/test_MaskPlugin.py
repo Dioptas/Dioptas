@@ -518,3 +518,45 @@ def test_imprint_bakes_mask_and_disables_plugin():
     assert model.get_img().sum() == 50  # row 0 baked in
     assert not manager.is_enabled("No Settings")
 
+
+
+def test_enabling_after_an_image_change_recomputes_the_mask():
+    """Enable on image A, disable, load same-shaped image B, enable again:
+    the mask shown used to be image A's."""
+    manager = MaskPluginManager()
+    plugin = DynamicMeanPlugin()
+    manager.register(plugin)
+
+    image_a = np.zeros((4, 4))
+    image_a[0, 0] = 100.0  # far above the mean -> masked
+    manager.update_image(image_a)
+    manager.set_enabled(plugin.name, True)
+    mask_a = manager.plugins[plugin.name].cached_mask.copy()
+    assert mask_a[0, 0]
+
+    manager.set_enabled(plugin.name, False)
+    image_b = np.zeros((4, 4))
+    image_b[3, 3] = 100.0  # same shape, different hot pixel
+    manager.update_image(image_b)
+
+    manager.set_enabled(plugin.name, True)
+    mask_b = manager.plugins[plugin.name].cached_mask
+    assert mask_b[3, 3]
+    assert not mask_b[0, 0]  # not image A's mask
+
+
+def test_static_plugin_cache_survives_same_shape_image_changes():
+    """A non-dynamic plugin's mask does not depend on the image, so its
+    cache stays valid across same-shaped images."""
+    manager = MaskPluginManager()
+    plugin = StaticThresholdPlugin()
+    manager.register(plugin)
+
+    manager.update_image(np.ones((4, 4)))
+    manager.set_enabled(plugin.name, True)
+    cached = manager.plugins[plugin.name].cached_mask
+
+    manager.set_enabled(plugin.name, False)
+    manager.update_image(np.ones((4, 4)) * 2)
+    manager.set_enabled(plugin.name, True)
+    assert manager.plugins[plugin.name].cached_mask is cached
