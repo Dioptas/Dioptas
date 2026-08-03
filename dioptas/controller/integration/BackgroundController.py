@@ -214,7 +214,7 @@ class BackgroundController:
             binning = self.model.batch_model.binning[start_x:stop_x]
 
             bkg_roi = self.convert_x_value(
-                np.array(pattern.auto_bkg_roi),
+                np.array(roi),
                 self.model.current_configuration.integration_unit,
                 "2th_deg",
             )

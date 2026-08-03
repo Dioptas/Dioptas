@@ -107,3 +107,11 @@ exclude_lines = [
     "if __name__ == .__main__.",
 ]
 
+
+[tool.ruff.lint]
+# Critical defects only — the classes of problem the test suite cannot see:
+# syntax errors (E9), shadowed redefinitions (F811, a duplicated function
+# body silently loses one copy), undefined names (F821/F823, a NameError on
+# whatever code path reaches them). Style rules are deliberately not
+# enforced here.
+select = ["E9", "F811", "F821", "F823"]

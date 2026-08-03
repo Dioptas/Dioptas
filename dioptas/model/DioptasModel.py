@@ -33,7 +33,6 @@ from . import (
     PhaseModel,
     PatternModel,
     OverlayModel,
-    MapModel,
     BatchModel,
 )
 from .MapModel import MapModel
