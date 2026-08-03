@@ -257,18 +257,18 @@ class MapController:
     def update_layer_widget(self):
         map_model = self.model.map_model
         layer_widget = self.widget.control_widget.layer_widget
-        layer_widget.set_overlay_names(
-            [overlay.name for overlay in self.model.overlay_model.overlays]
-        )
         layer_widget.set_rois(map_model.rois)
         layer_widget.set_expressions(map_model.expressions)
         layer_widget.set_active_layer(map_model.active_layer)
-        missing = map_model.missing_overlays()
-        if missing:
-            layer_widget.set_message(
-                "Overlay '%s' is gone — its window shows blank until another "
-                "one is picked." % missing[0]
+        for name, expression in map_model.expressions.items():
+            problem = map_expression.validate(
+                expression,
+                {roi.name for roi in map_model.rois},
+                overlay_exists=map_model.overlay_exists,
             )
+            if problem is not None:
+                layer_widget.set_message(f"{name}: {problem}")
+                break
 
     def _layer_selected(self, name):
         if name in self.model.map_model.layer_names():
@@ -320,7 +320,9 @@ class MapController:
         layer_widget = self.widget.control_widget.layer_widget
         map_model.set_expression(name, expression)
         problem = map_expression.validate(
-            expression, {roi.name for roi in map_model.rois}
+            expression,
+            {roi.name for roi in map_model.rois},
+            overlay_exists=map_model.overlay_exists,
         )
         if problem is None:
             values = map_model.layer_values(name)
@@ -484,18 +486,18 @@ class MapController:
     def update_layer_widget(self):
         map_model = self.model.map_model
         layer_widget = self.widget.control_widget.layer_widget
-        layer_widget.set_overlay_names(
-            [overlay.name for overlay in self.model.overlay_model.overlays]
-        )
         layer_widget.set_rois(map_model.rois)
         layer_widget.set_expressions(map_model.expressions)
         layer_widget.set_active_layer(map_model.active_layer)
-        missing = map_model.missing_overlays()
-        if missing:
-            layer_widget.set_message(
-                "Overlay '%s' is gone — its window shows blank until another "
-                "one is picked." % missing[0]
+        for name, expression in map_model.expressions.items():
+            problem = map_expression.validate(
+                expression,
+                {roi.name for roi in map_model.rois},
+                overlay_exists=map_model.overlay_exists,
             )
+            if problem is not None:
+                layer_widget.set_message(f"{name}: {problem}")
+                break
 
     def _layer_selected(self, name):
         if name in self.model.map_model.layer_names():
@@ -547,7 +549,9 @@ class MapController:
         layer_widget = self.widget.control_widget.layer_widget
         map_model.set_expression(name, expression)
         problem = map_expression.validate(
-            expression, {roi.name for roi in map_model.rois}
+            expression,
+            {roi.name for roi in map_model.rois},
+            overlay_exists=map_model.overlay_exists,
         )
         if problem is None:
             values = map_model.layer_values(name)

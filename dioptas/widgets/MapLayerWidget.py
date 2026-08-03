@@ -137,7 +137,7 @@ class MapLayerWidget(QtWidgets.QWidget):
     sigLayerSelected = QtCore.Signal(str)
     """Name of the layer the user picked to be drawn on the map"""
 
-    _ROI_COLUMNS = ("", "", "Name", "From", "To", "Value", "− Ovl")
+    _ROI_COLUMNS = ("", "", "Name", "From", "To", "Value")
     _EXPRESSION_COLUMNS = ("", "Name", "Expression")
 
     #: widest number a window range is expected to show, used to size the
@@ -151,8 +151,6 @@ class MapLayerWidget(QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self._updating = False
         self._roi_names: list[str] = []
-        #: overlays offered for subtraction, pushed in by the controller
-        self._overlay_names: list[str] = []
         self._expression_names: list[str] = []
         self._active_layer = ""
         #: layer name -> its "draw this" radio, all in one exclusive group
@@ -182,7 +180,6 @@ class MapLayerWidget(QtWidgets.QWidget):
         for column in range(5):
             header.setSectionResizeMode(column, modes.Fixed)
         header.setSectionResizeMode(5, modes.Stretch)
-        header.setSectionResizeMode(6, modes.Fixed)
         self.roi_table.itemChanged.connect(self._roi_item_changed)
         self.roi_table.setItemDelegate(
             RowTintDelegate(self._roi_row_color, self.roi_table)
@@ -352,7 +349,6 @@ class MapLayerWidget(QtWidgets.QWidget):
         range_width = metrics.horizontalAdvance(self._RANGE_SAMPLE) + 16
         name_width = metrics.horizontalAdvance("MMMM") + 16
 
-        overlay_width = metrics.horizontalAdvance("MMMMMMMM") + 24
         for table, columns in (
             (
                 self.roi_table,
@@ -362,7 +358,6 @@ class MapLayerWidget(QtWidgets.QWidget):
                     (2, name_width),
                     (3, range_width),
                     (4, range_width),
-                    (6, overlay_width),
                 ),
             ),
             (self.expression_table, ((0, show_width), (1, name_width))),
@@ -439,11 +434,6 @@ where the profile crosses half its maximum on either side of the highest
 point. Blank when the profile does not come back below half inside the
 window.</li>
 </ul>
-<p>The <b>&minus; Ovl</b> column subtracts a chosen overlay (interpolated
-onto the map's radial axis, read in the map's unit) from every pattern before
-the value is computed — the window then measures the <i>difference</i> to that
-overlay. Where the overlay does not cover the window, or the overlay is gone,
-the layer shows blank rather than a value that quietly ignores it.</p>
 <p>A point shows as blank (transparent) when its window holds nothing to
 measure.</p>
 """
@@ -459,6 +449,13 @@ per map point. Anything that is not plain arithmetic is rejected.</p>
 parentheses</li>
 <li>functions <code>abs, sqrt, log, log10, exp, clip, minimum,
 maximum</code></li>
+<li><code>ovl(overlay, window)</code> — an <b>overlay</b> put through a
+window: interpolated onto the map's axis (read in the map's unit) and
+reduced with that window's range, value kind and background setting, giving
+one number. With a single window in the expression the window argument can
+be left out: <code>A - ovl(bkg_empty)</code> is the difference to that
+reference. Overlay names that are not plain words go in quotes:
+<code>ovl('my background', A)</code>.</li>
 </ul>
 <p><b>Examples:</b></p>
 <ul>
@@ -468,6 +465,8 @@ illumination</li>
 <li><code>log10(A)</code> — compress a large dynamic range</li>
 <li><code>clip(A/B, 0, 2)</code> — bound outliers</li>
 <li><code>maximum(A, B)</code> — the stronger of two windows</li>
+<li><code>A - ovl(bkg_empty)</code> — window A minus the same window of an
+overlay</li>
 </ul>
 <p>Dividing by zero makes the affected points blank rather than failing the
 whole layer. A layer whose expression cannot be evaluated is skipped and the
@@ -640,10 +639,6 @@ reason shown below the tables.</p>
             if value_cb.currentIndex() != index:
                 value_cb.setCurrentIndex(index)
             value_cb.setToolTip(REDUCTION_LABELS.get(roi.reduction, ""))
-        overlay_cb = self.roi_table.cellWidget(row, 6)
-        if isinstance(overlay_cb, QtWidgets.QComboBox):
-            if (overlay_cb.currentData() or "") != roi.overlay:
-                self._fill_overlay_combo(overlay_cb, roi.overlay)
 
     @staticmethod
     def _set_text(item, text: str):
@@ -701,49 +696,143 @@ reason shown below the tables.</p>
         )
         self.roi_table.setCellWidget(row, 5, value_cb)
 
-        overlay_cb = QtWidgets.QComboBox()
-        overlay_cb.setToolTip(
-            "Subtract this overlay from every pattern before the value is\n"
-            "computed — the window then measures the difference to it.\n"
-            "The overlay is read in the unit the map was integrated in."
-        )
-        self._fill_overlay_combo(overlay_cb, roi.overlay)
-        overlay_cb.currentIndexChanged.connect(
-            lambda _index, name=roi.name, box=overlay_cb: self._emit_roi_change(
-                name, "overlay", box.currentData() or ""
-            )
-        )
-        self.roi_table.setCellWidget(row, 6, overlay_cb)
-
-    def _fill_overlay_combo(self, combo: QtWidgets.QComboBox, selected: str):
-        combo.blockSignals(True)
-        try:
-            combo.clear()
-            combo.addItem("—", "")
-            for overlay_name in self._overlay_names:
-                combo.addItem(overlay_name, overlay_name)
-            if selected and selected not in self._overlay_names:
-                # keeps a stored choice visible after its overlay went away,
-                # instead of silently snapping to "none"
-                combo.addItem(f"{selected} (missing)", selected)
-            index = combo.findData(selected)
-            combo.setCurrentIndex(index if index >= 0 else 0)
-        finally:
-            combo.blockSignals(False)
-
-    def set_overlay_names(self, names: list[str]):
-        """Refreshes which overlays the windows can subtract."""
-        if names == self._overlay_names:
+    def _show_toggled(self, name: str, checked: bool):
+        if self._updating or not checked:
             return
-        self._overlay_names = list(names)
+        self.sigLayerSelected.emit(name)
+
+    def set_active_layer(self, name: str):
+        """Marks which layer the map is currently drawing."""
+        self._active_layer = name
         self._updating = True
         try:
-            for row, roi_name in enumerate(self._roi_names):
-                combo = self.roi_table.cellWidget(row, 6)
-                if isinstance(combo, QtWidgets.QComboBox):
-                    self._fill_overlay_combo(combo, combo.currentData() or "")
+            for layer_name, button in self._show_buttons.items():
+                button.setChecked(layer_name == name)
         finally:
             self._updating = False
+
+    def _reset_show_buttons(self, names: list[str]):
+        """Forgets the buttons of rows that are about to be replaced."""
+        for name in names:
+            button = self._show_buttons.pop(name, None)
+            if button is not None:
+                self._show_group.removeButton(button)
+
+    def set_rois(self, rois):
+        """Shows the given MapRoiParams.
+
+        The map is rebuilt on every edit, so this runs constantly. Rows are
+        therefore updated in place whenever the windows themselves are the
+        same ones — recreating them would drop the selection under the user
+        and leave the replaced cell widgets painting until Qt gets round to
+        deleting them.
+        """
+        names = [roi.name for roi in rois]
+        self._updating = True
+        try:
+            if names == self._roi_names and self.roi_table.rowCount() == len(rois):
+                for row, roi in enumerate(rois):
+                    self._update_roi_row(row, roi)
+                return
+            self._reset_show_buttons(self._roi_names)
+            self._roi_names = names
+            self._clear_cell_widgets(self.roi_table)
+            self.roi_table.setRowCount(len(rois))
+            for row, roi in enumerate(rois):
+                self._fill_roi_row(row, roi)
+            self._apply_minimum_heights()
+        finally:
+            self._updating = False
+
+    @staticmethod
+    def _clear_cell_widgets(table: QtWidgets.QTableWidget):
+        """Takes cell widgets out before their rows go.
+
+        Qt only schedules the replaced widget for deletion, and until that
+        happens it still paints — over whatever was drawn in its place.
+        """
+        for row in range(table.rowCount()):
+            for column in range(table.columnCount()):
+                widget = table.cellWidget(row, column)
+                if widget is not None:
+                    widget.hide()
+                    table.removeCellWidget(row, column)
+
+    def _update_roi_row(self, row: int, roi):
+        """Refreshes an existing row without replacing its widgets."""
+        swatch = self.roi_table.cellWidget(row, 1)
+        if isinstance(swatch, ColorSwatch) and swatch.color().name() != roi.color:
+            swatch.set_color(roi.color)
+            name_item = self.roi_table.item(row, 2)
+            if name_item is not None:
+                name_item.setForeground(QtGui.QColor(roi.color))
+            button = self._show_buttons.get(roi.name)
+            if button is not None:
+                self.style_show_button(button, QtGui.QColor(roi.color))
+        self._set_text(self.roi_table.item(row, 3), f"{roi.x_min:.4g}")
+        self._set_text(self.roi_table.item(row, 4), f"{roi.x_max:.4g}")
+        value_cb = self.roi_table.cellWidget(row, 5)
+        if isinstance(value_cb, QtWidgets.QComboBox):
+            index = self._value_kind_index(roi)
+            if value_cb.currentIndex() != index:
+                value_cb.setCurrentIndex(index)
+            value_cb.setToolTip(REDUCTION_LABELS.get(roi.reduction, ""))
+
+    @staticmethod
+    def _set_text(item, text: str):
+        # writing an unchanged value would still emit itemChanged
+        if item is not None and item.text() != text:
+            item.setText(text)
+
+    @staticmethod
+    def _value_kind_index(roi) -> int:
+        """Row of VALUE_KINDS matching the window's reduction.
+
+        Matched in Python rather than with findData, which does not compare
+        tuples reliably across the Qt bindings.
+        """
+        wanted = (roi.reduction, bool(roi.subtract_background))
+        for index, (_, reduction, subtract) in enumerate(VALUE_KINDS):
+            if (reduction, subtract) == wanted:
+                return index
+        # a background flag the list has no entry for (e.g. mean with
+        # subtraction, set through a project file) still shows its kind
+        for index, (_, reduction, _) in enumerate(VALUE_KINDS):
+            if reduction == roi.reduction:
+                return index
+        return 0
+
+    def _fill_roi_row(self, row: int, roi):
+        self._make_show_button(
+            self.roi_table, row, roi.name, QtGui.QColor(roi.color)
+        )
+
+        swatch = ColorSwatch(roi.color)
+        swatch.clicked.connect(lambda _=False, name=roi.name: self._pick_color(name))
+        self.roi_table.setCellWidget(row, 1, swatch)
+
+        name_item = QtWidgets.QTableWidgetItem(roi.name)
+        name_item.setForeground(QtGui.QColor(roi.color))
+        self.roi_table.setItem(row, 2, name_item)
+        self.roi_table.setItem(row, 3, QtWidgets.QTableWidgetItem(f"{roi.x_min:.4g}"))
+        self.roi_table.setItem(row, 4, QtWidgets.QTableWidgetItem(f"{roi.x_max:.4g}"))
+
+        value_cb = QtWidgets.QComboBox()
+        for index, (label, reduction, subtract) in enumerate(VALUE_KINDS):
+            value_cb.addItem(label, (reduction, subtract))
+            value_cb.setItemData(
+                index,
+                REDUCTION_LABELS.get(reduction, label),
+                QtCore.Qt.ToolTipRole,
+            )
+        value_cb.setCurrentIndex(self._value_kind_index(roi))
+        value_cb.setToolTip(REDUCTION_LABELS.get(roi.reduction, ""))
+        value_cb.currentIndexChanged.connect(
+            lambda _index, name=roi.name, box=value_cb: self._emit_roi_change(
+                name, "value_kind", box.currentData()
+            )
+        )
+        self.roi_table.setCellWidget(row, 5, value_cb)
 
     def set_expressions(self, expressions: dict):
         """Shows the computed layers, in place where the set is unchanged.

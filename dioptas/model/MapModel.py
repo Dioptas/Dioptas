@@ -151,12 +151,15 @@ class MapModel:
         self._overlay_interp_cache.clear()
 
     def overlays_changed(self):
-        """Recomputes every layer that subtracts an overlay.
+        """Recomputes every expression layer that references an overlay.
 
         Called from outside when an overlay is added, removed or edited —
         the interpolated overlay this model cached is stale either way.
         """
-        if not any(roi.overlay for roi in self.params.rois):
+        if not any(
+            map_expression.OVL + "(" in expression
+            for expression in self.params.expressions.values()
+        ):
             return
         self._invalidate_layers()
         self._recompute_window_intensities()
@@ -187,18 +190,31 @@ class MapModel:
         self._overlay_interp_cache[name] = resolved
         return resolved
 
-    def missing_overlays(self) -> list[str]:
-        """Overlay names windows refer to that cannot be resolved."""
-        missing = []
-        for roi in self.params.rois:
-            if not roi.overlay or roi.overlay in missing:
-                continue
-            if (
-                self.overlay_lookup is None
-                or self.overlay_lookup(roi.overlay) is None
-            ):
-                missing.append(roi.overlay)
-        return missing
+    def overlay_window_value(self, overlay_name: str, window_name: str | None):
+        """One number: the overlay put through the given window.
+
+        The overlay is interpolated onto the map's radial axis and reduced
+        with the window's range, value kind and background setting — this is
+        what ovl(overlay, window) means in an expression. None when either
+        cannot be resolved.
+        """
+        roi = self.get_roi(window_name) if window_name else None
+        if roi is None:
+            return None
+        overlay_y = self._interpolated_overlay(overlay_name)
+        if overlay_y is None:
+            return None
+        values = map_reduction.reduce_window(
+            self.pattern_x,
+            overlay_y[None, :],
+            (roi.x_min, roi.x_max),
+            reduction=roi.reduction,
+            subtract_background=roi.subtract_background,
+        )
+        return float(values[0])
+
+    def overlay_exists(self, name: str) -> bool:
+        return self.overlay_lookup is not None and self.overlay_lookup(name) is not None
 
     # --- ROIs and layers -------------------------------------------------
 
@@ -390,19 +406,9 @@ class MapModel:
 
         roi = self.get_roi(name)
         if roi is not None:
-            intensities = self.pattern_intensities
-            if roi.overlay:
-                overlay_y = self._interpolated_overlay(roi.overlay)
-                if overlay_y is None:
-                    # a missing overlay blanks the layer; quietly measuring
-                    # without the subtraction would be a wrong map
-                    values = np.full(len(intensities), np.nan)
-                    self._layer_cache[name] = values
-                    return values
-                intensities = intensities - overlay_y[None, :]
             values = map_reduction.reduce_window(
                 self.pattern_x,
-                intensities,
+                self.pattern_intensities,
                 (roi.x_min, roi.x_max),
                 reduction=roi.reduction,
                 subtract_background=roi.subtract_background,
@@ -411,6 +417,7 @@ class MapModel:
             values = map_expression.evaluate(
                 self.params.expressions[name],
                 {roi.name: self.layer_values(roi.name) for roi in self.params.rois},
+                ovl=self.overlay_window_value,
             )
         else:
             return None

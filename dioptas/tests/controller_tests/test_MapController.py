@@ -1394,37 +1394,37 @@ def test_an_expression_that_overflows_everywhere_says_so(map_controller):
     assert widget.message_lbl.text() == ""
 
 
-def test_overlay_column_offers_the_existing_overlays(map_controller):
+def test_ovl_expression_uses_a_real_overlay(map_controller):
     map_model = load_map(map_controller)
     overlay_model = map_controller.model.overlay_model
     overlay_model.add_overlay(
-        map_model.pattern_x.copy(), np.ones_like(map_model.pattern_x), "matrix"
+        map_model.pattern_x.copy(), np.ones_like(map_model.pattern_x), "bkg_empty"
     )
+    widget = layer_widget(map_controller)
 
-    combo = layer_widget(map_controller).roi_table.cellWidget(0, 6)
-    entries = [combo.itemText(i) for i in range(combo.count())]
-    assert entries == ["—", "matrix"]
-
-    combo.setCurrentIndex(1)
-    assert map_model.rois[0].overlay == "matrix"
-    # the window now measures the difference to the overlay
-    assert np.all(np.isfinite(map_model.window_intensities))
-
-    combo.setCurrentIndex(0)
-    assert map_model.rois[0].overlay == ""
+    widget.sigExpressionChanged.emit("d", "A - ovl(bkg_empty)")
+    assert widget.message_lbl.text() == ""
+    values = map_model.layer_values("d")
+    assert values is not None and np.all(np.isfinite(values))
+    # and it is genuinely the difference to the overlay
+    offset = map_model.overlay_window_value("bkg_empty", "A")
+    np.testing.assert_allclose(values, map_model.layer_values("A") - offset)
 
 
-def test_removed_overlay_is_reported_not_silently_dropped(map_controller):
+def test_unknown_or_removed_overlay_is_reported(map_controller):
     map_model = load_map(map_controller)
     overlay_model = map_controller.model.overlay_model
+    widget = layer_widget(map_controller)
+
+    widget.sigExpressionChanged.emit("d", "A - ovl(bkg_empty)")
+    assert "no overlay called 'bkg_empty'" in widget.message_lbl.text()
+
     overlay_model.add_overlay(
-        map_model.pattern_x.copy(), np.ones_like(map_model.pattern_x), "matrix"
+        map_model.pattern_x.copy(), np.ones_like(map_model.pattern_x), "bkg_empty"
     )
-    layer_widget(map_controller).roi_table.cellWidget(0, 6).setCurrentIndex(1)
+    widget.sigExpressionChanged.emit("d", "A - ovl(bkg_empty)")
+    assert widget.message_lbl.text() == ""
 
     overlay_model.remove_overlay(0)
-
-    assert np.all(np.isnan(map_model.window_intensities))
-    assert "matrix" in layer_widget(map_controller).message_lbl.text()
-    combo = layer_widget(map_controller).roi_table.cellWidget(0, 6)
-    assert "(missing)" in combo.currentText()
+    assert map_model.layer_values("d") is None
+    assert "no overlay called 'bkg_empty'" in widget.message_lbl.text()

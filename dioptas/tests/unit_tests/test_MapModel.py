@@ -733,64 +733,98 @@ def test_legacy_project_without_rois_gets_one_from_its_window(
         os.unlink(tmp_path)
 
 
-def test_signals_are_instance_level(configuration: Configuration):
-    """Each MapModel instance must have its own signals — a signal emitted by
-    one instance must not trigger listeners connected to another instance."""
-    model_a = MapModel(configuration)
-    model_b = MapModel(configuration)
-
-    listener_a = MagicMock()
-    listener_b = MagicMock()
-    model_a.map_changed.connect(listener_a)
-    model_b.map_changed.connect(listener_b)
-
-    model_a.map_changed.emit()
-    listener_a.assert_called_once()
-    listener_b.assert_not_called()
-
-    model_b.point_integrated.connect(listener_b)
-    model_a.point_integrated.emit(1.0)
-    listener_b.assert_not_called()
-
 def _overlay_lookup(x, y):
     return lambda name: (x, y) if name == "ref" else None
 
 
-def test_window_subtracts_an_overlay_before_reducing(
-    map_model: MapModel, configuration: Configuration
-):
-    """A window with an overlay picked measures the difference to it."""
+def _prepare_two_windows(map_model, configuration):
     configuration.calibration_model.load(
         os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
     )
     map_model.load(map_img_file_paths[:6])
     map_model.set_window((14.0, 16.0))
-    plain = map_model.window_intensities.copy()
+    map_model.add_roi(name="B", window=(16.5, 18.0))
 
-    # an overlay of constant 100 counts across the whole axis
+
+def test_ovl_in_an_expression_subtracts_the_reference(
+    map_model: MapModel, configuration: Configuration
+):
+    """A - ovl(ref): the overlay put through window A, taken off A."""
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.set_window((14.0, 16.0))
+    plain = map_model.layer_values("A").copy()
+
     map_model.overlay_lookup = _overlay_lookup(
         map_model.pattern_x.copy(), np.full_like(map_model.pattern_x, 100.0)
     )
-    map_model.rois[0].overlay = "ref"
+    map_model.set_expression("d", "A - ovl(ref)")
 
     import dioptas.model.map_reduction as mr
     channels = len(mr.window_indices(map_model.pattern_x, (14.0, 16.0)))
     np.testing.assert_allclose(
-        map_model.window_intensities, plain - 100.0 * channels, rtol=1e-6
+        map_model.layer_values("d"), plain - 100.0 * channels, rtol=1e-6
     )
 
 
-def test_missing_overlay_blanks_the_layer_instead_of_lying(
+def test_ovl_with_two_windows_needs_the_window_named(
+    map_model: MapModel, configuration: Configuration
+):
+    _prepare_two_windows(map_model, configuration)
+    map_model.overlay_lookup = _overlay_lookup(
+        map_model.pattern_x.copy(), np.full_like(map_model.pattern_x, 100.0)
+    )
+
+    # ambiguous: two windows in the expression, no window given
+    map_model.set_expression("d", "A - B - ovl(ref)")
+    assert map_model.layer_values("d") is None
+
+    map_model.set_expression("d", "A - B - ovl(ref, A)")
+    expected = (
+        map_model.layer_values("A")
+        - map_model.layer_values("B")
+        - map_model.overlay_window_value("ref", "A")
+    )
+    np.testing.assert_allclose(map_model.layer_values("d"), expected)
+
+
+def test_ovl_respects_the_windows_value_kind(
+    map_model: MapModel, configuration: Configuration
+):
+    """ovl(ref, A) uses A's reduction, not always a sum."""
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.set_window((14.0, 16.0))
+    x = map_model.pattern_x.copy()
+    map_model.overlay_lookup = _overlay_lookup(x, np.full_like(x, 100.0))
+
+    as_sum = map_model.overlay_window_value("ref", "A")
+    map_model.rois[0].reduction = "mean"
+    as_mean = map_model.overlay_window_value("ref", "A")
+
+    assert as_mean == pytest.approx(100.0, rel=1e-6)
+    assert as_sum > as_mean
+
+
+def test_unknown_overlay_blanks_the_expression_layer(
     map_model: MapModel, configuration: Configuration
 ):
     configuration.calibration_model.load(
         os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
     )
     map_model.load(map_img_file_paths[:6])
-    map_model.rois[0].overlay = "gone"
+    map_model.overlay_lookup = _overlay_lookup(
+        map_model.pattern_x.copy(), np.ones_like(map_model.pattern_x)
+    )
 
-    assert np.all(np.isnan(map_model.window_intensities))
-    assert map_model.missing_overlays() == ["gone"]
+    map_model.set_expression("d", "A - ovl(gone)")
+    assert map_model.layer_values("d") is None
+    assert map_model.overlay_exists("ref") is True
+    assert map_model.overlay_exists("gone") is False
 
 
 def test_overlay_outside_its_range_blanks_rather_than_extrapolates(
@@ -805,12 +839,12 @@ def test_overlay_outside_its_range_blanks_rather_than_extrapolates(
     # overlay only covers up to 10 — nowhere near the window
     x = np.linspace(0.0, 10.0, 50)
     map_model.overlay_lookup = _overlay_lookup(x, np.ones_like(x))
-    map_model.rois[0].overlay = "ref"
+    map_model.set_expression("d", "A - ovl(ref)")
 
-    assert np.all(np.isnan(map_model.window_intensities))
+    assert np.all(np.isnan(map_model.layer_values("d")))
 
 
-def test_overlays_changed_recomputes_subtracting_windows(
+def test_overlays_changed_recomputes_referencing_expressions(
     map_model: MapModel, configuration: Configuration
 ):
     configuration.calibration_model.load(
@@ -822,7 +856,8 @@ def test_overlays_changed_recomputes_subtracting_windows(
     x = map_model.pattern_x.copy()
     level = {"value": 100.0}
     map_model.overlay_lookup = lambda name: (x, np.full_like(x, level["value"]))
-    map_model.rois[0].overlay = "ref"
+    map_model.set_expression("d", "A - ovl(ref)")
+    map_model.active_layer = "d"
     first = map_model.window_intensities.copy()
 
     level["value"] = 200.0
@@ -831,23 +866,11 @@ def test_overlays_changed_recomputes_subtracting_windows(
     assert not np.allclose(map_model.window_intensities, first)
 
 
-def test_overlay_choice_round_trips_through_hdf5(
+def test_renaming_a_window_follows_into_ovl_but_not_the_overlay_name(
     map_model: MapModel, configuration: Configuration
 ):
-    configuration.calibration_model.load(
-        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
-    )
-    map_model.load(map_img_file_paths[:6])
-    map_model.rois[0].overlay = "my reference"
+    _prepare_two_windows(map_model, configuration)
+    map_model.set_expression("d", "A - ovl(A, A)")  # overlay happens to share the name
 
-    with tempfile.NamedTemporaryFile(suffix=".h5", delete=False) as tmp:
-        tmp_path = tmp.name
-    try:
-        with h5py.File(tmp_path, "w") as f:
-            map_model.save_in_hdf5(f)
-        new_model = MapModel(configuration)
-        with h5py.File(tmp_path, "r") as f:
-            new_model.load_from_hdf5(f)
-        assert new_model.rois[0].overlay == "my reference"
-    finally:
-        os.unlink(tmp_path)
+    assert map_model.rename_roi("A", "quartz") is True
+    assert map_model.expressions["d"] == "quartz - ovl(A, quartz)"

@@ -12,6 +12,13 @@ Expressions are evaluated over whole layers at once, so ``A/B`` divides the
 two arrays element-wise and yields a third layer. Only arithmetic on the
 named layers and numbers is allowed — the expression is parsed into an AST
 and walked, so nothing outside this grammar can run.
+
+``ovl(overlay, window)`` brings an overlay in: the overlay put through the
+given window — its range, value kind and background setting — as one number,
+the same for every map point. ``A - ovl(bkg_empty)`` is then the difference
+to that reference; with a single window in the expression the window
+argument can be left out, otherwise it is required, since guessing which
+window was meant would be worse than asking.
 """
 
 from __future__ import annotations
@@ -22,7 +29,7 @@ import operator
 
 import numpy as np
 
-__all__ = ["evaluate", "referenced_names", "rename", "validate"]
+__all__ = ["OVL", "evaluate", "referenced_names", "rename", "validate"]
 
 logger = logging.getLogger(__name__)
 
@@ -53,8 +60,35 @@ _FUNCTIONS = {
 }
 
 
+#: name of the overlay-reference function
+OVL = "ovl"
+
+
 class ExpressionError(ValueError):
     """An expression that cannot be parsed, or refers to something unknown."""
+
+
+def _ovl_parts(node: ast.Call) -> tuple[str, str | None]:
+    """The (overlay name, window name or None) of an ``ovl(...)`` call."""
+    if node.keywords or not 1 <= len(node.args) <= 2:
+        raise ExpressionError(
+            "ovl takes the overlay and optionally the window: "
+            "ovl(overlay) or ovl(overlay, window)"
+        )
+    first = node.args[0]
+    if isinstance(first, ast.Name):
+        overlay = first.id
+    elif isinstance(first, ast.Constant) and isinstance(first.value, str):
+        # for overlay names that are not plain identifiers ("my bkg")
+        overlay = first.value
+    else:
+        raise ExpressionError("ovl expects an overlay name")
+    window = None
+    if len(node.args) == 2:
+        if not isinstance(node.args[1], ast.Name):
+            raise ExpressionError("the second argument of ovl is a window name")
+        window = node.args[1].id
+    return overlay, window
 
 
 def _parse(expression: str) -> ast.expr:
@@ -65,15 +99,29 @@ def _parse(expression: str) -> ast.expr:
 
 
 def referenced_names(expression: str) -> set[str]:
-    """Layer names an expression mentions (function names excluded)."""
+    """Layer names an expression mentions.
+
+    Function names are excluded, and so is the overlay argument of ovl():
+    it names an overlay, not a layer — the window argument counts.
+    """
     try:
         tree = _parse(expression)
     except ExpressionError:
         return set()
+    overlay_args = set()
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == OVL
+            and node.args
+            and isinstance(node.args[0], ast.Name)
+        ):
+            overlay_args.add(id(node.args[0]))
     names = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Name):
-            if node.id not in _FUNCTIONS:
+            if node.id not in _FUNCTIONS and node.id != OVL and id(node) not in overlay_args:
                 names.add(node.id)
     return names
 
@@ -90,26 +138,87 @@ def rename(expression: str, old_name: str, new_name: str) -> str:
         tree = ast.parse(expression.strip(), mode="eval")
     except SyntaxError:
         return expression
+    overlay_args = set()
     for node in ast.walk(tree):
-        if isinstance(node, ast.Name) and node.id == old_name:
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == OVL
+            and node.args
+        ):
+            # the overlay argument stays: it names an overlay, and a window
+            # sharing its name is a coincidence
+            overlay_args.add(id(node.args[0]))
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Name)
+            and node.id == old_name
+            and id(node) not in overlay_args
+        ):
             node.id = new_name
     return ast.unparse(tree.body)
 
 
-def validate(expression: str, available: set[str]) -> str | None:
-    """Returns why *expression* cannot be used, or None if it can."""
+def validate(
+    expression: str, available: set[str], overlay_exists=None
+) -> str | None:
+    """Returns why *expression* cannot be used, or None if it can.
+
+    *overlay_exists* is an optional callable checking ovl() references;
+    without it, overlay names are taken on trust (they are checked again
+    when the expression is evaluated).
+    """
     try:
         tree = _parse(expression)
     except ExpressionError as error:
         return f"Cannot read the expression: {error}"
     try:
-        _check(tree, available)
+        _check(tree, available, overlay_exists)
+        _check_single_arg_ovl(tree, available)
     except ExpressionError as error:
         return str(error)
     return None
 
 
-def _check(node: ast.expr, available: set[str]) -> None:
+def _check_single_arg_ovl(tree: ast.expr, available: set[str]) -> None:
+    """ovl(overlay) without a window is only unambiguous with one window."""
+    has_single = any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == OVL
+        and len(node.args) == 1
+        for node in ast.walk(tree)
+    )
+    if not has_single:
+        return
+    windows = _referenced_windows(tree, available)
+    if len(windows) != 1:
+        raise ExpressionError(
+            "ovl(overlay) needs the expression to use exactly one window — "
+            "say which one: ovl(overlay, window)"
+        )
+
+
+def _referenced_windows(tree: ast.expr, available: set[str]) -> set[str]:
+    overlay_args = set()
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == OVL
+            and node.args
+        ):
+            overlay_args.add(id(node.args[0]))
+    return {
+        node.id
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Name)
+        and node.id in available
+        and id(node) not in overlay_args
+    }
+
+
+def _check(node: ast.expr, available: set[str], overlay_exists=None) -> None:
     if isinstance(node, ast.Constant):
         if not isinstance(node.value, (int, float)):
             raise ExpressionError("Only numbers can be written directly")
@@ -121,29 +230,42 @@ def _check(node: ast.expr, available: set[str]) -> None:
     if isinstance(node, ast.BinOp):
         if type(node.op) not in _BINARY_OPERATORS:
             raise ExpressionError("That operator is not allowed here")
-        _check(node.left, available)
-        _check(node.right, available)
+        _check(node.left, available, overlay_exists)
+        _check(node.right, available, overlay_exists)
         return
     if isinstance(node, ast.UnaryOp):
         if type(node.op) not in _UNARY_OPERATORS:
             raise ExpressionError("That operator is not allowed here")
-        _check(node.operand, available)
+        _check(node.operand, available, overlay_exists)
         return
     if isinstance(node, ast.Call):
+        if isinstance(node.func, ast.Name) and node.func.id == OVL:
+            overlay, window = _ovl_parts(node)
+            if overlay_exists is not None and not overlay_exists(overlay):
+                raise ExpressionError(f"There is no overlay called '{overlay}'")
+            if window is not None and window not in available:
+                raise ExpressionError(f"There is no window called '{window}'")
+            return
         if not isinstance(node.func, ast.Name) or node.func.id not in _FUNCTIONS:
             raise ExpressionError(
-                "Only " + ", ".join(sorted(_FUNCTIONS)) + " can be called"
+                "Only "
+                + ", ".join(sorted(_FUNCTIONS))
+                + f" and {OVL} can be called"
             )
         if node.keywords:
             raise ExpressionError("Functions take plain arguments only")
         for argument in node.args:
-            _check(argument, available)
+            _check(argument, available, overlay_exists)
         return
     raise ExpressionError("Only arithmetic on the layer names is allowed")
 
 
-def evaluate(expression: str, layers: dict[str, np.ndarray | None]):
+def evaluate(expression: str, layers: dict[str, np.ndarray | None], ovl=None):
     """Evaluates *expression* over the given layers, element-wise.
+
+    *ovl* resolves overlay references: called as ovl(overlay_name,
+    window_name) and expected to return one number, or None when the
+    overlay or window cannot be found.
 
     Returns None when the expression cannot be evaluated — an unknown name, a
     layer that has no values, or arithmetic that fails. Division by zero
@@ -156,8 +278,11 @@ def evaluate(expression: str, layers: dict[str, np.ndarray | None]):
         logger.debug("map expression %r rejected: %s", expression, problem)
         return None
     try:
+        tree = _parse(expression)
+        windows = _referenced_windows(tree, set(usable))
+        default_window = next(iter(windows)) if len(windows) == 1 else None
         with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
-            result = _evaluate(_parse(expression), usable)
+            result = _evaluate(tree, usable, ovl, default_window)
     except (ExpressionError, ValueError, TypeError) as error:
         logger.debug("map expression %r failed: %s", expression, error)
         return None
@@ -172,7 +297,7 @@ def evaluate(expression: str, layers: dict[str, np.ndarray | None]):
     return np.where(np.isfinite(result), result, np.nan)
 
 
-def _evaluate(node: ast.expr, layers: dict[str, np.ndarray]):
+def _evaluate(node, layers, ovl=None, default_window=None):
     if isinstance(node, ast.Constant):
         return node.value
     if isinstance(node, ast.Name):
@@ -181,11 +306,29 @@ def _evaluate(node: ast.expr, layers: dict[str, np.ndarray]):
         raise ExpressionError(f"There is no layer called '{node.id}'")
     if isinstance(node, ast.BinOp):
         function = _BINARY_OPERATORS[type(node.op)]
-        return function(_evaluate(node.left, layers), _evaluate(node.right, layers))
+        return function(
+            _evaluate(node.left, layers, ovl, default_window),
+            _evaluate(node.right, layers, ovl, default_window),
+        )
     if isinstance(node, ast.UnaryOp):
         function = _UNARY_OPERATORS[type(node.op)]
-        return function(_evaluate(node.operand, layers))
+        return function(_evaluate(node.operand, layers, ovl, default_window))
     if isinstance(node, ast.Call):
+        if isinstance(node.func, ast.Name) and node.func.id == OVL:
+            if ovl is None:
+                raise ExpressionError("Overlays are not available here")
+            overlay, window = _ovl_parts(node)
+            value = ovl(overlay, window or default_window)
+            if value is None:
+                raise ExpressionError(
+                    f"The overlay '{overlay}' cannot be used here"
+                )
+            return float(value)
         function = _FUNCTIONS[node.func.id]
-        return function(*[_evaluate(argument, layers) for argument in node.args])
+        return function(
+            *[
+                _evaluate(argument, layers, ovl, default_window)
+                for argument in node.args
+            ]
+        )
     raise ExpressionError("Only arithmetic on the layer names is allowed")

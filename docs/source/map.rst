@@ -82,17 +82,20 @@ None of these fit a peak: area integrates the background-subtracted profile, pos
 intensity-weighted centre, and the FWHM interpolates the half-maximum crossings. The **? button**
 beside each table opens the exact definitions.
 
-The **− Ovl** column subtracts a chosen overlay (interpolated onto the map's axis) from every
-pattern before the value is computed, so a window can measure the difference to a reference
-pattern. A window the overlay does not cover shows blank rather than an extrapolated value.
+Overlays enter through expressions: ``ovl(overlay, window)`` is the overlay put through a window —
+interpolated onto the map's axis and reduced with that window's range, value kind and background
+setting — so ``A - ovl(bkg_empty)`` maps the difference to a reference pattern (with one window in
+the expression the window argument can be left out). Overlay names that are not plain words go in
+quotes: ``ovl('my background', A)``. A window the overlay does not cover reads blank rather than an
+extrapolated value.
 
 Add a second window with the **+** button beside the table; every window is drawn in the pattern plot in its own colour
 and can be dragged there. That colour is shown as a swatch in the row — click it to pick another —
 and the row, its "show" marker and the region under the mouse all use it, so it is always clear
 which region belongs to which window. **Computed layers**, added with the **+** beside their table, combine the windows by name — ``A/B`` for a phase
 fraction, ``(A-B)/(A+B)`` for a contrast that survives changes in illumination. Only arithmetic on
-the layer names, numbers, and the functions ``abs``, ``sqrt``, ``log``, ``log10``, ``exp``,
-``clip``, ``minimum`` and ``maximum`` are allowed.
+the layer names, numbers, the functions ``abs``, ``sqrt``, ``log``, ``log10``, ``exp``,
+``clip``, ``minimum`` and ``maximum``, and the ``ovl()`` overlay reference are allowed.
 
 The two tables share the tab through a splitter and each scrolls inside its own half, so
 adding a window never pushes the computed layers out of reach. Drag the divider to give one

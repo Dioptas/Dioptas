@@ -266,11 +266,6 @@ class MapRoiParams:
     #: colour of the region drawn in the pattern plot
     color: str = "#40e0d0"
 
-    #: name of an overlay subtracted from every pattern (interpolated onto
-    #: the map's radial axis) before the reduction; "" = none. This is what
-    #: makes a window measure the difference to a reference pattern.
-    overlay: str = ""
-
 
 @dataclass
 class MapParams:
