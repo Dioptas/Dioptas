@@ -302,6 +302,15 @@ class MapController:
         problem = map_expression.validate(
             expression, {roi.name for roi in map_model.rois}
         )
+        if problem is None:
+            values = map_model.layer_values(name)
+            if values is not None and not np.any(np.isfinite(values)):
+                # valid but useless — e.g. A**B of two large sums overflows
+                # everywhere. Without a word the map just goes blank.
+                problem = (
+                    "The expression gives no finite values — it overflows or "
+                    "divides by zero at every point."
+                )
         layer_widget.set_message("" if problem is None else problem)
         self.update_layer_widget()
 
@@ -511,6 +520,15 @@ class MapController:
         problem = map_expression.validate(
             expression, {roi.name for roi in map_model.rois}
         )
+        if problem is None:
+            values = map_model.layer_values(name)
+            if values is not None and not np.any(np.isfinite(values)):
+                # valid but useless — e.g. A**B of two large sums overflows
+                # everywhere. Without a word the map just goes blank.
+                problem = (
+                    "The expression gives no finite values — it overflows or "
+                    "divides by zero at every point."
+                )
         layer_widget.set_message("" if problem is None else problem)
         self.update_layer_widget()
 

@@ -1361,3 +1361,34 @@ def test_table_buttons_sit_beside_the_tables(map_controller, qapp):
     ):
         assert button.parentWidget() is table.parentWidget()
         assert button.x() >= table.x() + table.width()
+
+
+def test_negative_valued_layers_still_display(map_controller):
+    """The histogram LUT works in log space and clamps levels <= 0 to 1;
+    an all-negative layer — (A-B)/(A+B) with B stronger — showed as an
+    empty map."""
+    map_model = load_map(map_controller)
+    map_model.add_roi(window=(16.5, 18.0))
+    map_model.set_expression("c", "(A-B)/(A+B)")
+    map_model.active_layer = "c"
+
+    values = map_model.layer_values("c")
+    assert np.all(values < 0)  # the case that used to blank out
+
+    levels = map_controller.widget.map_plot_widget.data_img_item.getLevels()
+    assert levels[0] < 0
+    assert levels[0] < levels[1]
+
+
+def test_an_expression_that_overflows_everywhere_says_so(map_controller):
+    """A**B of two window sums is inf at every point; the map went blank
+    with no explanation."""
+    map_model = load_map(map_controller)
+    map_model.add_roi(window=(16.5, 18.0))
+    widget = layer_widget(map_controller)
+
+    widget.sigExpressionChanged.emit("p", "A**B")
+    assert "no finite values" in widget.message_lbl.text()
+
+    widget.sigExpressionChanged.emit("p", "A/B")
+    assert widget.message_lbl.text() == ""
