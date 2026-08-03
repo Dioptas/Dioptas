@@ -295,20 +295,14 @@ class MapLayerWidget(QtWidgets.QWidget):
         """A titled table with its buttons in a column beside it.
 
         The same arrangement the phase and overlay lists use, so the map
-        tables read as the same kind of control. The help button sits with
-        the title it explains.
+        tables read as the same kind of control. The help button sits at the
+        bottom of the column, apart from the actions above it.
         """
         pane = QtWidgets.QWidget()
         layout = QtWidgets.QVBoxLayout(pane)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
-
-        title_row = QtWidgets.QHBoxLayout()
-        title_row.setSpacing(6)
-        title_row.addWidget(QtWidgets.QLabel(title))
-        title_row.addWidget(help_button)
-        title_row.addStretch(1)
-        layout.addLayout(title_row)
+        layout.addWidget(QtWidgets.QLabel(title))
 
         body = QtWidgets.QHBoxLayout()
         body.setSpacing(4)
@@ -318,6 +312,8 @@ class MapLayerWidget(QtWidgets.QWidget):
         side.addWidget(add_button)
         side.addWidget(remove_button)
         side.addStretch(1)
+        # at the bottom, apart from the actions: it explains, it does not act
+        side.addWidget(help_button)
         body.addLayout(side)
         layout.addLayout(body)
         return pane

@@ -1356,6 +1356,8 @@ def test_table_buttons_sit_beside_the_tables(map_controller, qapp):
     for table, button in (
         (widget.roi_table, widget.add_roi_btn),
         (widget.expression_table, widget.add_expression_btn),
+        (widget.roi_table, widget.roi_help_btn),
+        (widget.expression_table, widget.expression_help_btn),
     ):
         assert button.parentWidget() is table.parentWidget()
         assert button.x() >= table.x() + table.width()
