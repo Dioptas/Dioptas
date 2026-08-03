@@ -78,10 +78,14 @@ Each window of the pattern produces one **layer** of the map, and the *Windows* 
   d-spacing map, and therefore a strain map.
 - **Peak FWHM** — the full width at half maximum, which tracks grain size and mosaicity.
 
-Add a second window with the **+** button below the table; every window is drawn in the pattern plot in its own colour
+None of these fit a peak: area integrates the background-subtracted profile, position is its
+intensity-weighted centre, and the FWHM interpolates the half-maximum crossings. The **?** beside
+each table's title opens the exact definitions.
+
+Add a second window with the **+** button beside the table; every window is drawn in the pattern plot in its own colour
 and can be dragged there. That colour is shown as a swatch in the row — click it to pick another —
 and the row, its "show" marker and the region under the mouse all use it, so it is always clear
-which region belongs to which window. **Computed layers**, added with their own **+**, combine the windows by name — ``A/B`` for a phase
+which region belongs to which window. **Computed layers**, added with the **+** beside their table, combine the windows by name — ``A/B`` for a phase
 fraction, ``(A-B)/(A+B)`` for a contrast that survives changes in illumination. Only arithmetic on
 the layer names, numbers, and the functions ``abs``, ``sqrt``, ``log``, ``log10``, ``exp``,
 ``clip``, ``minimum`` and ``maximum`` are allowed.

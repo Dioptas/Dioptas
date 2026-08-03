@@ -1317,3 +1317,45 @@ def test_squeezed_sizes_at_flip_time_do_not_overwrite_the_share(map_controller):
     assert widget._wide_image_share == 0.6
     widget._remember_wide_share()  # tabbed: a stray call must change nothing
     assert widget._wide_image_share == 0.6
+
+
+def test_help_buttons_open_a_non_modal_reference(map_controller, qapp):
+    """Modal help would freeze the application (and hang the test suite);
+    the text is a reference meant to stay open while editing."""
+    widget = layer_widget(map_controller)
+
+    widget.roi_help_btn.clicked.emit()
+    qapp.processEvents()
+    dialog = widget._help_dialog
+    assert dialog is not None and dialog.isVisible()
+    assert not dialog.isModal()
+    text = dialog.findChild(QtWidgets.QTextBrowser).toPlainText()
+    assert "Nothing is fitted" in text
+    assert "centre of mass" in text
+
+    widget.expression_help_btn.clicked.emit()
+    qapp.processEvents()
+    assert widget._help_dialog is not dialog  # replaced, not stacked
+    text = widget._help_dialog.findChild(QtWidgets.QTextBrowser).toPlainText()
+    assert "(A-B)/(A+B)" in text
+    widget._help_dialog.close()
+
+
+def test_table_buttons_sit_beside_the_tables(map_controller, qapp):
+    """Same arrangement as the phase and overlay lists: the actions in a
+    column at the side, not underneath."""
+    map_widget = map_controller.widget
+    map_widget.resize(1600, 900)
+    map_widget.show()  # hidden widgets never lay out
+    map_widget.control_widget.tab_widget.setCurrentWidget(
+        map_widget.control_widget.layer_widget
+    )
+    for _ in range(10):
+        qapp.processEvents()
+    widget = layer_widget(map_controller)
+    for table, button in (
+        (widget.roi_table, widget.add_roi_btn),
+        (widget.expression_table, widget.add_expression_btn),
+    ):
+        assert button.parentWidget() is table.parentWidget()
+        assert button.x() >= table.x() + table.width()

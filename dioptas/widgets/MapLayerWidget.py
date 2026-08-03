@@ -230,6 +230,18 @@ class MapLayerWidget(QtWidgets.QWidget):
         )
         self.remove_expression_btn.clicked.connect(self._remove_expression_clicked)
 
+        self.roi_help_btn = IconActionButton(
+            "map_help.svg", "What the value kinds mean and how they are computed"
+        )
+        self.roi_help_btn.setFixedSize(22, 22)
+        self.roi_help_btn.clicked.connect(self.show_roi_help)
+        self.expression_help_btn = IconActionButton(
+            "map_help.svg", "What can be written in an expression"
+        )
+        self.expression_help_btn.setFixedSize(22, 22)
+        self.expression_help_btn.clicked.connect(self.show_expression_help)
+        self._help_dialog = None
+
         self.message_lbl = QtWidgets.QLabel("")
         self.message_lbl.setWordWrap(True)
 
@@ -252,7 +264,11 @@ class MapLayerWidget(QtWidgets.QWidget):
 
         self.splitter.addWidget(
             self._table_pane(
-                "Windows", self.roi_table, self.add_roi_btn, self.remove_roi_btn
+                "Windows",
+                self.roi_table,
+                self.add_roi_btn,
+                self.remove_roi_btn,
+                self.roi_help_btn,
             )
         )
         self.splitter.addWidget(
@@ -261,6 +277,7 @@ class MapLayerWidget(QtWidgets.QWidget):
                 self.expression_table,
                 self.add_expression_btn,
                 self.remove_expression_btn,
+                self.expression_help_btn,
             )
         )
         # windows are the common case and usually outnumber the expressions
@@ -274,20 +291,35 @@ class MapLayerWidget(QtWidgets.QWidget):
         self._apply_minimum_heights()
 
     @staticmethod
-    def _table_pane(title, table, add_button, remove_button):
-        """A titled table with its own buttons directly beneath it."""
+    def _table_pane(title, table, add_button, remove_button, help_button):
+        """A titled table with its buttons in a column beside it.
+
+        The same arrangement the phase and overlay lists use, so the map
+        tables read as the same kind of control. The help button sits with
+        the title it explains.
+        """
         pane = QtWidgets.QWidget()
         layout = QtWidgets.QVBoxLayout(pane)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
-        layout.addWidget(QtWidgets.QLabel(title))
-        layout.addWidget(table)
-        buttons = QtWidgets.QHBoxLayout()
-        buttons.setSpacing(8)
-        buttons.addWidget(add_button)
-        buttons.addWidget(remove_button)
-        buttons.addStretch(1)
-        layout.addLayout(buttons)
+
+        title_row = QtWidgets.QHBoxLayout()
+        title_row.setSpacing(6)
+        title_row.addWidget(QtWidgets.QLabel(title))
+        title_row.addWidget(help_button)
+        title_row.addStretch(1)
+        layout.addLayout(title_row)
+
+        body = QtWidgets.QHBoxLayout()
+        body.setSpacing(4)
+        body.addWidget(table)
+        side = QtWidgets.QVBoxLayout()
+        side.setSpacing(8)
+        side.addWidget(add_button)
+        side.addWidget(remove_button)
+        side.addStretch(1)
+        body.addLayout(side)
+        layout.addLayout(body)
         return pane
 
     # --- appearance ------------------------------------------------------
@@ -368,6 +400,94 @@ class MapLayerWidget(QtWidgets.QWidget):
                 + 2 * table.frameWidth()
             )
             table.setMinimumHeight(height)
+
+    # --- help -------------------------------------------------------------
+
+    _ROI_HELP = """
+<h3>What a window measures</h3>
+<p>Each window turns the part of the pattern between <i>From</i> and <i>To</i>
+into one number per map point. <b>Nothing is fitted</b> — every value comes
+from the measured points directly, which keeps the maps fast and free of
+convergence problems, at the price of assuming the window brackets a single
+feature.</p>
+<p><b>Background</b>, where it is subtracted, is the straight line joining the
+two edges of the window; each edge is averaged over the outer 10&nbsp;% of the
+window so one noisy channel cannot tilt it.</p>
+<ul>
+<li><b>Sum</b> — the counts in the window, as measured. Also tracks how much
+sample the beam went through, so it often maps thickness as much as phase.</li>
+<li><b>Sum − bkg</b> — the same after subtracting the background line.</li>
+<li><b>Mean</b> — the average count.</li>
+<li><b>Max</b> — the highest count.</li>
+<li><b>Peak area</b> — the integral (trapezoid rule) of the
+background-subtracted profile.</li>
+<li><b>Peak pos.</b> — the intensity-weighted centre (centre of mass) of the
+background-subtracted profile; parts below the background are ignored. Mapped
+over a scan this is a d-spacing, and therefore strain, map. It is <i>not</i> a
+peak fit: for a single peak in the window it is robust even for asymmetric
+shapes, but a neighbouring peak inside the window pulls it sideways — keep the
+window tight around one peak.</li>
+<li><b>Peak FWHM</b> — the full width at half maximum, read by interpolating
+where the profile crosses half its maximum on either side of the highest
+point. Blank when the profile does not come back below half inside the
+window.</li>
+</ul>
+<p>A point shows as blank (transparent) when its window holds nothing to
+measure.</p>
+"""
+
+    _EXPRESSION_HELP = """
+<h3>Computed layers</h3>
+<p>An expression combines the windows above by their <b>names</b>, computed
+per map point. Anything that is not plain arithmetic is rejected.</p>
+<p><b>Allowed:</b></p>
+<ul>
+<li>window names (<code>A</code>, <code>B</code>, …) and numbers</li>
+<li>operators <code>+&nbsp;&minus;&nbsp;*&nbsp;/&nbsp;**&nbsp;%</code> and
+parentheses</li>
+<li>functions <code>abs, sqrt, log, log10, exp, clip, minimum,
+maximum</code></li>
+</ul>
+<p><b>Examples:</b></p>
+<ul>
+<li><code>A/B</code> — a phase fraction</li>
+<li><code>(A-B)/(A+B)</code> — a contrast that survives changes in
+illumination</li>
+<li><code>log10(A)</code> — compress a large dynamic range</li>
+<li><code>clip(A/B, 0, 2)</code> — bound outliers</li>
+<li><code>maximum(A, B)</code> — the stronger of two windows</li>
+</ul>
+<p>Dividing by zero makes the affected points blank rather than failing the
+whole layer. A layer whose expression cannot be evaluated is skipped and the
+reason shown below the tables.</p>
+"""
+
+    def show_roi_help(self):
+        self._show_help("Map windows", self._ROI_HELP)
+
+    def show_expression_help(self):
+        self._show_help("Computed layers", self._EXPRESSION_HELP)
+
+    def _show_help(self, title: str, html: str):
+        """Opens the help beside the tables, without blocking them.
+
+        Non-modal on purpose: the text is a reference to keep open while
+        editing, and a modal box would also freeze the whole application
+        (and any test) until dismissed.
+        """
+        if self._help_dialog is not None:
+            self._help_dialog.close()
+        dialog = QtWidgets.QDialog(self)
+        dialog.setWindowTitle(title)
+        dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        layout = QtWidgets.QVBoxLayout(dialog)
+        text = QtWidgets.QTextBrowser()
+        text.setHtml(html)
+        text.setOpenExternalLinks(False)
+        layout.addWidget(text)
+        dialog.resize(520, 560)
+        dialog.show()
+        self._help_dialog = dialog
 
     # --- filling in ------------------------------------------------------
 
