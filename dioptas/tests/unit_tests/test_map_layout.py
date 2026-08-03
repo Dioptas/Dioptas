@@ -52,11 +52,19 @@ def test_transpose_and_flips():
     np.testing.assert_array_equal(grid, [[3, 4, 5], [0, 1, 2]])
 
 
-def test_excluded_point_blanks_the_value_but_keeps_the_cell():
+def test_excluded_point_loses_its_cell_and_the_rest_close_up():
     grid, index_grid = map_layout.arrange(values(6), (2, 3), excluded=[4])
-    assert np.isnan(grid[1, 1])
-    # still selectable, so a bad frame can be looked at
-    assert index_grid[1, 1] == 4
+    # point 5 moves into the freed cell; the blank collects at the end
+    np.testing.assert_array_equal(index_grid, [[0, 1, 2], [3, 5, BLANK]])
+    assert np.isnan(grid[1, 2])
+
+
+def test_including_a_point_again_restores_its_stored_place():
+    slots = [0, 1, 2, 3, 4, 5]
+    with_out = map_layout.fit_slots(slots, 6, 6, excluded=[2])
+    assert with_out == [0, 1, 3, 4, 5, None]
+    back = map_layout.fit_slots(slots, 6, 6, excluded=[])
+    assert back == slots
 
 
 def test_fit_slots_appends_points_the_arrangement_does_not_mention():

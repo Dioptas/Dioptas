@@ -442,7 +442,7 @@ def test_insert_blank_shifts_later_points(
     assert map_model.get_point_index(0, 1) == 1
 
 
-def test_excluded_point_is_blank_but_selectable(
+def test_excluded_point_loses_its_cell_and_returns_to_it(
     map_model: MapModel, configuration: Configuration
 ):
     configuration.calibration_model.load(
@@ -452,11 +452,14 @@ def test_excluded_point_is_blank_but_selectable(
 
     map_model.set_point_excluded(2)
     assert map_model.is_point_excluded(2)
-    assert np.isnan(map_model.map[0, 2])
-    assert map_model.get_point_index(0, 2) == 2
+    # the later points close up; the freed cell joins the blanks at the end
+    assert map_model.get_point_index(0, 2) == 3
+    assert map_model.get_point_index(1, 2) is None
+    assert np.isnan(map_model.map[1, 2])
 
     map_model.set_point_excluded(2, False)
-    assert not np.isnan(map_model.map[0, 2])
+    assert map_model.get_point_index(0, 2) == 2
+    assert not np.any(np.isnan(map_model.map))
 
 
 def test_snake_reverses_every_other_row(

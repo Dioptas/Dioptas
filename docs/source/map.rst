@@ -123,7 +123,9 @@ available by right-clicking a row — act on the selected cell. Hover any of the
   grid keeps its cell count, so a trailing blank belongs to the grid size and is dropped by
   shrinking the grid instead.
 - **Leave point out** / **Put it back** (cell struck through / ticked) — for a saturated frame or a
-  beam dump. The point keeps its cell; none of the others move.
+  beam dump. The point's cell closes up (the freed cell joins the blanks at the end) and its file is
+  listed below the cells, struck through; putting it back restores its place. Clicking a blank cell
+  in the map selects its row in the list, where the blank actions live.
 
 Buttons that cannot apply to the selected cell fade out.
 

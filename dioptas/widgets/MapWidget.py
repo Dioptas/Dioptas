@@ -299,7 +299,9 @@ class MapControlWidget(QtWidgets.QWidget):
         )
         self.exclude_btn = IconActionButton(
             "map_exclude_point.svg",
-            "Leave point out of the map",
+            "Leave point out of the map\n\n"
+            "For a saturated frame or a beam dump. Its cell closes up and\n"
+            "the file moves below the cells, struck through, to be put back.",
         )
 
     def set_point_excluded(self, excluded: bool):
@@ -312,8 +314,8 @@ class MapControlWidget(QtWidgets.QWidget):
             "Put the point back into the map"
             if excluded
             else "Leave point out of the map\n\n"
-            "For a saturated frame or a beam dump. The point keeps its cell;\n"
-            "none of the others move."
+            "For a saturated frame or a beam dump. Its cell closes up and\n"
+            "the file moves below the cells, struck through, to be put back."
         )
 
     @property

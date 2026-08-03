@@ -58,7 +58,10 @@ def default_slots(num_points: int, num_slots: int) -> list[int | None]:
 
 
 def fit_slots(
-    slots: list[int | None] | None, num_points: int, num_slots: int
+    slots: list[int | None] | None,
+    num_points: int,
+    num_slots: int,
+    excluded=(),
 ) -> list[int | None]:
     """Normalizes *slots* to a usable arrangement of *num_points* points.
 
@@ -67,9 +70,15 @@ def fit_slots(
     anywhere are appended. That way growing the grid or reloading a map with
     a different number of files degrades into the sequential arrangement for
     the part the stored slots say nothing about, instead of losing points.
+
+    *excluded* points are left out entirely — their cell disappears and the
+    points after them close up, instead of an empty box staying behind. The
+    stored arrangement is not touched, so including a point again puts it
+    back where it was.
     """
+    excluded = {int(index) for index in excluded}
     if slots is None:
-        return default_slots(num_points, num_slots)
+        slots = default_slots(num_points, num_slots)
 
     seen: set[int] = set()
     kept: list[int | None] = []
@@ -78,6 +87,9 @@ def fit_slots(
             kept.append(None)
             continue
         index = int(entry)
+        if index in excluded:
+            # dropped without a placeholder: the cell itself goes
+            continue
         if index < 0 or index >= num_points or index in seen:
             # a stale index leaves a blank rather than shifting the rest,
             # so the surrounding arrangement survives
@@ -86,7 +98,9 @@ def fit_slots(
         seen.add(index)
         kept.append(index)
 
-    unplaced = [i for i in range(num_points) if i not in seen]
+    unplaced = [
+        i for i in range(num_points) if i not in seen and i not in excluded
+    ]
     if unplaced:
         # fill existing blanks first, then extend
         for position, entry in enumerate(kept):
@@ -114,16 +128,16 @@ def arrange(
     """Lays *values* out on the grid, returning (value grid, index grid).
 
     The index grid holds the point index behind every cell, or :data:`BLANK`,
-    and is what turns a clicked cell back into a point. Excluded points keep
-    their cell — they stay selectable so a bad frame can still be inspected —
-    but read as NaN in the value grid.
+    and is what turns a clicked cell back into a point. Excluded points have
+    no cell at all: the points after them close up and the freed cell joins
+    the blanks at the end.
     """
     rows, columns = int(dimension[0]), int(dimension[1])
     num_slots = rows * columns
     values = np.asarray(values, dtype=float)
     num_points = len(values)
 
-    slots = fit_slots(slots, num_points, num_slots)
+    slots = fit_slots(slots, num_points, num_slots, excluded=excluded)
 
     index_grid = np.full(num_slots, BLANK, dtype=int)
     for slot, point in enumerate(slots):
@@ -144,10 +158,6 @@ def arrange(
     value_grid = np.full(index_grid.shape, np.nan, dtype=float)
     filled = index_grid != BLANK
     value_grid[filled] = values[index_grid[filled]]
-
-    excluded = [int(i) for i in excluded]
-    if excluded:
-        value_grid[np.isin(index_grid, excluded)] = np.nan
 
     return value_grid, index_grid
 

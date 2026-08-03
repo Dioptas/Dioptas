@@ -687,13 +687,20 @@ def test_dragging_a_row_rearranges_the_map(map_controller):
     assert map_model.get_slots()[:3] == [0, 1, 2]
 
 
-def test_excluded_point_is_struck_through_in_the_list(map_controller):
+def test_excluded_point_moves_below_the_cells_struck_through(map_controller):
+    """An excluded point has no cell any more; it is listed after the cells,
+    struck through, so it can be found and put back."""
     map_model = load_map(map_controller)
+    file_list = map_controller.widget.control_widget.file_list
     map_model.set_point_excluded(1)
 
-    file_list = map_controller.widget.control_widget.file_list
-    assert file_list.item(1).font().strikeOut() is True
-    assert file_list.item(0).font().strikeOut() is False
+    # the cells close up; the excluded file sits below them
+    assert file_list.count() == map_model.num_slots + 1
+    last = file_list.item(file_list.count() - 1)
+    assert last.text() == map_model.point_infos[1].filename
+    assert last.font().strikeOut() is True
+    # the freed cell became a trailing blank
+    assert file_list.item(map_model.num_slots - 1).text() == "—"
 
 
 def test_grid_popup_shows_and_applies_the_layout(map_controller):
@@ -1194,7 +1201,18 @@ def test_exclude_button_shows_which_way_it_goes(map_controller):
 
     assert "Leave point out" in control.exclude_btn.toolTip()
     map_model.set_point_excluded(0)
+
+    # the point now lives in an excluded row below the cells; selecting it
+    # offers the way back
+    control.file_list.setCurrentRow(map_model.num_slots)
+    map_controller.update_point_actions()
     assert "back into the map" in control.exclude_btn.toolTip()
+    assert control.exclude_btn.isEnabled()
+    assert not control.move_up_btn.isEnabled()  # not a cell
+    assert not control.insert_blank_btn.isEnabled()
+
+    map_controller.toggle_point_excluded()
+    assert not map_model.is_point_excluded(0)
 
 
 def test_disabled_point_action_fades_rather_than_filling(map_controller):
@@ -1464,3 +1482,30 @@ def test_help_reopens_after_the_user_closed_it(map_controller, qapp):
     widget.expression_help_btn.clicked.emit()
     assert widget._help_dialog is not None and widget._help_dialog.isVisible()
     widget._help_dialog.close()
+
+
+def test_clicking_a_blank_map_cell_selects_its_row(map_controller):
+    """A blank cell has no image, but it has a row — where the actions that
+    can do something with it (remove the blank, move it) live."""
+    map_model = load_map(map_controller)
+    map_controller.activate()
+    map_model.insert_blank(4)
+    assert map_model.get_point_index(1, 1) is None
+
+    click_map_cell(map_controller, 1, 1)
+
+    control = map_controller.widget.control_widget
+    assert control.file_list.currentRow() == 4
+    assert control.remove_blank_btn.isEnabled()
+
+    # and with transforms on, the traced slot follows the layout
+    map_model.snake = True
+    row, col = next(
+        (r, c)
+        for r in range(map_model.map.shape[0])
+        for c in range(map_model.map.shape[1])
+        if map_model.get_point_index(r, c) is None
+        and map_model.get_slot_at(r, c) == 4
+    )
+    click_map_cell(map_controller, row, col)
+    assert control.file_list.currentRow() == 4

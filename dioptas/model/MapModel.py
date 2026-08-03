@@ -68,6 +68,9 @@ class MapModel:
         #: point index behind every cell of :attr:`map`, or
         #: :data:`map_layout.BLANK` — the inverse of the layout
         self.index_map = None
+        #: slot index behind every cell, for tracing blank cells to their
+        #: row in the arrangement
+        self.slot_map = None
 
         #: layer name -> values, dropped whenever anything it depends on
         #: changes. Reductions are cheap but the map redraws often.
@@ -527,8 +530,14 @@ class MapModel:
         return int(self.dimension[0]) * int(self.dimension[1])
 
     def get_slots(self) -> list[int | None]:
-        """The current arrangement, normalized and padded to the grid."""
-        return map_layout.fit_slots(self.slots, self.num_points, self.num_slots)
+        """The arrangement as displayed: normalized, padded, and without the
+        excluded points — their cells close up rather than sitting empty."""
+        return map_layout.fit_slots(
+            self.slots,
+            self.num_points,
+            self.num_slots,
+            excluded=self.excluded_points,
+        )
 
     def get_point_of_slot(self, slot: int) -> int | None:
         """The point shown in the given cell of the arrangement, if any."""
@@ -853,6 +862,18 @@ class MapModel:
             flip_vertical=self.flip_vertical,
             excluded=self.excluded_points,
         )
+        # the same transforms applied to the slot numbers themselves, so a
+        # clicked cell — blank ones included — can be traced to its slot
+        num_slots = self.num_slots
+        _, self.slot_map = map_layout.arrange(
+            np.arange(num_slots),
+            self.dimension,
+            slots=list(range(num_slots)),
+            snake=self.snake,
+            transpose=self.transpose,
+            flip_horizontal=self.flip_horizontal,
+            flip_vertical=self.flip_vertical,
+        )
         self.map_changed.emit()
 
     def _reset(self):
@@ -865,6 +886,7 @@ class MapModel:
         self.possible_dimensions = None
         self.map = None
         self.index_map = None
+        self.slot_map = None
         self._suspend_rebuild = True
         try:
             self.dimension = None
@@ -984,6 +1006,15 @@ class MapModel:
         if ind is None or ind > len(self.point_infos) - 1:
             return None
         return self.point_infos[ind]
+
+    def get_slot_at(self, row_index: int, column_index: int) -> int | None:
+        """The slot behind the cell at that position, blank cells included."""
+        if self.slot_map is None:
+            return None
+        rows, columns = self.slot_map.shape
+        if not (0 <= row_index < rows and 0 <= column_index < columns):
+            return None
+        return int(self.slot_map[row_index, column_index])
 
     def get_point_index(self, row_index: int, column_index: int) -> int | None:
         """Returns the index into the point list of the cell at that position,

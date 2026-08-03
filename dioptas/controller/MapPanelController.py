@@ -37,6 +37,10 @@ class MapPanelController:
         #: so hosts can follow the selection with their own widgets
         self.point_selected = Signal(int)
 
+        #: emitted with the slot index when a blank cell is picked — there is
+        #: no point to select, but the cell still has a row in the list
+        self.blank_selected = Signal(int)
+
         self._contour_items: list[pg.IsocurveItem] = []
 
         self.grid_popup = MapGridPopup(self.widget)
@@ -344,10 +348,13 @@ class MapPanelController:
         if not self._row_col_in_map(row, col):
             return
 
-        # a cell left blank by a dropped frame has no image behind it, and
-        # nothing downstream can do anything with "no point"
+        # a cell left blank by a dropped frame has no image behind it, but
+        # it still has a row in the list worth pointing at
         index = self.model.map_model.get_point_index(row, col)
         if index is None:
+            slot = self.model.map_model.get_slot_at(row, col)
+            if slot is not None:
+                self.blank_selected.emit(slot)
             return
 
         self.model.map_model.select_point(row, col)
