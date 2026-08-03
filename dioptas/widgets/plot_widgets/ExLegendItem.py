@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 from pyqtgraph.graphicsItems.GraphicsWidget import GraphicsWidget
-from pyqtgraph.graphicsItems.LabelItem import LabelItem
+from .utils import SafeLabelItem as LabelItem
 from qtpy import QtWidgets, QtCore, QtGui
 from pyqtgraph import functions as fn
 from pyqtgraph.Point import Point

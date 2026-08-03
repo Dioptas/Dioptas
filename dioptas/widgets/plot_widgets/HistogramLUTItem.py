@@ -15,10 +15,12 @@ from pyqtgraph.Point import Point
 import pyqtgraph.functions as fn
 import pyqtgraph as pg
 import numpy as np
+from .utils import SafeLabelItem
 from .ColormapPopup import ColormapPopup
 from .NormalizedImageItem import NormalizedImageItem
 from ..CustomWidgets import FlatButton
 from ... import icons_path, style_path
+
 
 __all__ = ["HistogramLUTItem"]
 
@@ -85,7 +87,7 @@ class HistogramLUTItem(GraphicsWidget):
         self.gradient = GradientEditorItem()
         self.gradient.loadPreset("grey")
 
-        self._normalizationLabel = pg.LabelItem("")
+        self._normalizationLabel = SafeLabelItem("")
 
         configurationButton = FlatButton()
         configurationButton.setWidth(30)

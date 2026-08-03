@@ -5,6 +5,8 @@ import re
 from typing import Optional
 import numbers
 import numpy as np
+import pyqtgraph as pg
+from qtpy import QtCore
 
 
 def _default_auto_level(data: np.ndarray) -> tuple[float, float]:
@@ -150,3 +152,52 @@ class AutoLevel:
 
 
 auto_level = AutoLevel()
+
+
+class SafeLabelItem(pg.LabelItem):
+    """LabelItem that survives being measured outside its own lifetime.
+
+    pyqtgraph's LabelItem reads ``self._sizeHint`` in sizeHint(), and there
+    are two moments when that attribute is not there:
+
+    - during construction, because updateMin() calls setMinimumWidth/Height
+      — which can trigger a layout pass — before it fills _sizeHint in;
+    - during teardown, when Qt lays out one last time after the Python
+      attributes of the wrapper are already gone.
+
+    Either way an AttributeError is raised inside the Qt event loop, where
+    nothing can handle it. Answering "no size" is the honest response for an
+    item that is not ready or no longer exists.
+    """
+
+    def __init__(self, *args, **kwargs):
+        self._sizeHint = {}
+        super().__init__(*args, **kwargs)
+
+    @property
+    def _usable(self) -> bool:
+        """Whether the Python side of this item is still there.
+
+        Checked rather than assumed: Qt lays items out during teardown, by
+        which point the wrapper's attributes can already be gone.
+        """
+        return (
+            hasattr(self, "item")
+            and hasattr(self, "_sizeHint")
+            and hasattr(self, "_previousGeometry")
+        )
+
+    def sizeHint(self, hint, constraint):
+        if not self._usable:
+            return QtCore.QSizeF(0, 0)
+        return super().sizeHint(hint, constraint)
+
+    def resizeEvent(self, event):
+        if not self._usable:
+            return
+        super().resizeEvent(event)
+
+    def boundingRect(self):
+        if not self._usable:
+            return QtCore.QRectF()
+        return super().boundingRect()
