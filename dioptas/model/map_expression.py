@@ -29,7 +29,14 @@ import operator
 
 import numpy as np
 
-__all__ = ["OVL", "evaluate", "referenced_names", "rename", "validate"]
+__all__ = [
+    "OVL",
+    "evaluate",
+    "referenced_names",
+    "rename",
+    "reserved_names",
+    "validate",
+]
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +69,15 @@ _FUNCTIONS = {
 
 #: name of the overlay-reference function
 OVL = "ovl"
+
+
+def reserved_names() -> set[str]:
+    """Names the expression grammar claims for itself.
+
+    A window called "sqrt" or "ovl" would shadow them and turn valid
+    expressions ambiguous, so these are not usable as window names.
+    """
+    return set(_FUNCTIONS) | {OVL}
 
 
 class ExpressionError(ValueError):

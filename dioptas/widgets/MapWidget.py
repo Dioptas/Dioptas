@@ -6,15 +6,7 @@ from dioptas.widgets.plot_widgets import PatternWidget
 from dioptas.widgets.plot_widgets.ImgWidget import IntegrationImgWidget
 
 from .integration.CustomWidgets import MouseUnitCurrentAndClickedWidget
-from .CustomWidgets import (
-    CheckableFlatButton,
-    FlatButton,
-    IconActionButton,
-    PLOT_ICON_COLOR,
-    PLOT_ICON_SIZE,
-    render_icon,
-    set_icon_button_hover_color,
-)
+from .CustomWidgets import CheckableFlatButton, IconActionButton
 from .MapLayerWidget import MapLayerWidget
 from .MapPanelWidget import (
     MapPanelHost,

@@ -154,12 +154,6 @@ class MapRoiInPatternController:
     _HOVER_ALPHA = 85
 
     @classmethod
-    def _region_brush(cls, color: str):
-        """A translucent fill in the window's colour, so several regions can
-        overlap and still be told apart."""
-        return pg.mkBrush(pg.mkColor(color).getRgb()[:3] + (cls._FILL_ALPHA,))
-
-    @classmethod
     def _apply_region_color(cls, item, color: str):
         """Colours a region and everything it turns into when touched.
 

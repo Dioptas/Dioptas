@@ -202,7 +202,7 @@ class MapModel:
         cannot be resolved.
         """
         roi = self.get_roi(window_name) if window_name else None
-        if roi is None:
+        if roi is None or self.pattern_x is None:
             return None
         overlay_y = self._interpolated_overlay(overlay_name)
         if overlay_y is None:
@@ -327,6 +327,10 @@ class MapModel:
         """Renames a window, following it through expressions and selection."""
         roi = self.get_roi(name)
         if roi is None or not new_name or self.get_roi(new_name) is not None:
+            return False
+        if new_name in map_expression.reserved_names():
+            # "sqrt" or "ovl" as a window name would shadow the expression
+            # grammar's own words
             return False
         self._suspend_rebuild = True
         try:
@@ -1071,16 +1075,6 @@ class MapModel:
             ):
                 return index
         return None
-
-    def get_filenames(self) -> list[str]:
-        """Returns a list of filenames for the integrated images, it will add the frame index if it is not 0"""
-        filenames = []
-        for point_info in self.point_infos:
-            if point_info.frame_index == 0:
-                filenames.append(point_info.filename)
-            else:
-                filenames.append(f"{point_info.filename}:{point_info.frame_index}")
-        return filenames
 
     def select_point(self, row_index: int, column_index: int):
         """Selects the point at the specified row and column index, will trigger a load of the image through the

@@ -425,3 +425,25 @@ def test_tuple_fields_survive_the_json_round_trip():
     item = PhaseItemParams(color=(1, 2, 3))
     restored_item = params_from_dict(PhaseItemParams, params_to_dict(item))
     assert isinstance(restored_item.color, tuple)
+
+
+def test_list_of_params_dataclasses_round_trips():
+    """MapParams holds a list of MapRoiParams; the generic dict round trip
+    has to rebuild the items as dataclasses, not leave them as dicts."""
+    from dioptas.model.state import MapParams, MapRoiParams
+    from dioptas.model.state.hdf5 import params_from_dict, params_to_dict
+
+    params = MapParams(
+        rois=[
+            MapRoiParams(name="A", x_min=1.0, x_max=2.0, reduction="area"),
+            MapRoiParams(name="B", x_min=3.0, x_max=4.0),
+        ],
+        expressions={"r": "A/B"},
+    )
+
+    restored = params_from_dict(MapParams, params_to_dict(params))
+
+    assert [type(roi) for roi in restored.rois] == [MapRoiParams, MapRoiParams]
+    assert restored.rois[0].reduction == "area"
+    assert restored.rois[1].name == "B"
+    assert restored.expressions == {"r": "A/B"}

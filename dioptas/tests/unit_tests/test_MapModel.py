@@ -906,3 +906,18 @@ def test_structural_blanks_cannot_pretend_to_be_removable(
     # points are never removable, blanks out of range neither
     assert map_model.can_remove_blank(0) is False
     assert map_model.can_remove_blank(99) is False
+
+
+def test_windows_cannot_take_the_expression_grammars_names(
+    map_model: MapModel, configuration: Configuration
+):
+    """A window called "sqrt" or "ovl" would shadow the functions and the
+    overlay reference in every expression."""
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+
+    assert map_model.rename_roi("A", "ovl") is False
+    assert map_model.rename_roi("A", "sqrt") is False
+    assert map_model.rename_roi("A", "quartz") is True
