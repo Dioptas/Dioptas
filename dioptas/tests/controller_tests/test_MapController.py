@@ -1267,3 +1267,53 @@ def test_transparent_backgrounds_are_qualified_by_object_name(map_controller):
     load_map(map_controller)
     holder = layer_widget(map_controller).roi_table.cellWidget(0, 0)
     assert holder.styleSheet().lstrip().startswith("#")
+
+def test_image_returns_at_a_real_width_not_a_sliver(map_controller, qapp):
+    """A widget inserted into a splitter arrives at its own size hint — for
+    the image a few pixels — so leaving the tabs made it a vertical stripe."""
+    widget = map_controller.widget
+    widget.resize(1600, 900)
+    widget.show()  # hidden widgets never lay out, so nothing would resize
+    for _ in range(10):  # let the resize reach the nested splitters
+        qapp.processEvents()
+
+    widget._set_image_tabbed(True)
+    widget._set_image_tabbed(False)
+    for _ in range(10):  # the split is applied once geometry has settled
+        qapp.processEvents()
+
+    sizes = widget.upper_right_splitter.sizes()
+    assert sizes[0] >= widget._IMAGE_PANE_MIN_WIDTH
+
+
+def test_image_returns_at_the_share_the_user_had(map_controller, qapp):
+    widget = map_controller.widget
+    widget.resize(1600, 900)
+    widget.show()  # hidden widgets never lay out, so nothing would resize
+    for _ in range(10):
+        qapp.processEvents()
+
+    widget.upper_right_splitter.setSizes([700, 500])
+    widget._remember_wide_share()  # a real drag emits splitterMoved
+
+    widget._set_image_tabbed(True)
+    widget._set_image_tabbed(False)
+    for _ in range(10):
+        qapp.processEvents()
+
+    sizes = widget.upper_right_splitter.sizes()
+    share = sizes[0] / sum(sizes)
+    assert share == pytest.approx(700 / 1200, abs=0.05)
+
+
+def test_squeezed_sizes_at_flip_time_do_not_overwrite_the_share(map_controller):
+    """While the window shrinks, the image is squeezed against the controls'
+    minimum before the flip happens — those sizes say nothing about the
+    split the user chose and must not replace it."""
+    widget = map_controller.widget
+    widget._wide_image_share = 0.6
+
+    widget._set_image_tabbed(True)  # sizes at this moment are the squeezed ones
+    assert widget._wide_image_share == 0.6
+    widget._remember_wide_share()  # tabbed: a stray call must change nothing
+    assert widget._wide_image_share == 0.6

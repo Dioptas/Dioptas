@@ -119,6 +119,9 @@ class MapWidget(QtWidgets.QWidget):
         self.upper_right_splitter.setStretchFactor(0, 1)
         self.upper_right_splitter.setStretchFactor(1, 1)
         self._image_tabbed = False
+        #: share of the upper-right width the image had in wide mode, kept
+        #: across a stay in the tabs so widening restores the user's split
+        self._wide_image_share = 0.5
 
         self._lower_right_layout = TightVBoxLayout()
         self._lower_right_layout.addWidget(self.pattern_pg_layout)
@@ -152,6 +155,20 @@ class MapWidget(QtWidgets.QWidget):
             lambda *_args: self._update_image_home()
         )
         self.vertical_splitter.installEventFilter(self)
+        # The share is remembered when the user drags this divider, not when
+        # the image is about to leave: shrinking the window squeezes the
+        # image against the controls' minimum first, so the sizes at flip
+        # time no longer say anything about the split the user chose.
+        self.upper_right_splitter.splitterMoved.connect(
+            lambda *_args: self._remember_wide_share()
+        )
+
+    def _remember_wide_share(self):
+        if self._image_tabbed:
+            return
+        sizes = self.upper_right_splitter.sizes()
+        if len(sizes) == 2 and sizes[0] > 0 and sum(sizes) > 0:
+            self._wide_image_share = sizes[0] / sum(sizes)
 
     # --- where the detector image lives ----------------------------------
 
@@ -192,6 +209,29 @@ class MapWidget(QtWidgets.QWidget):
             self.upper_right_splitter.setStretchFactor(0, 1)
             self.upper_right_splitter.setStretchFactor(1, 1)
             self.img_pg_layout.show()
+            # deferred: at the moment of the flip the surrounding splitters
+            # are mid-resize and still report their old width, so a split
+            # computed now would be scaled from the wrong total
+            QtCore.QTimer.singleShot(0, self._apply_wide_split)
+
+    def _apply_wide_split(self):
+        """Gives the re-inserted image a real pane, not its size hint.
+
+        A widget inserted into a splitter arrives at its own hint — for the
+        image, a sliver a few pixels wide. The pane is restored to the share
+        the image had before it moved into the tabs, floored at the width
+        that made side-by-side worthwhile in the first place and capped so
+        the controls keep their minimum.
+        """
+        if self._image_tabbed:
+            return  # flipped back before the deferred call ran
+        total = self.upper_right_splitter.width()
+        controls_min = self.control_widget.minimumSizeHint().width()
+        if total <= controls_min:
+            return
+        image = round(total * self._wide_image_share)
+        image = max(self._IMAGE_PANE_MIN_WIDTH, min(image, total - controls_min))
+        self.upper_right_splitter.setSizes([image, total - image])
 
     def showEvent(self, event):
         # decided before the first paint, so the mode opens in the layout
