@@ -1,4 +1,4 @@
-# 0.9.0 (in development)
+# 0.9.0 (03.08.2026)
 
 ## Breaking changes
 
@@ -62,13 +62,17 @@
 
 - The batch view labelled a missing calibration or mask file "undefined"; it now says "none loaded".
 
+- Sporadic "wrapped C/C++ object has been deleted" / attribute errors from inside the Qt event loop are fixed: pyqtgraph's plot label item can be asked for its size during construction and again during teardown, at moments where it is not ready to answer. Dioptas hit this through the histogram colour bar and the plot legends.
+
+- Updating the background region while batch data was loaded crashed with a NameError on a variable that never existed; the code path had simply never been exercised.
+
 - The point masking tool's size box now carries a px suffix and a tooltip, and the threshold fields hint that they take counts — previously the number 20 stood unlabelled next to the Point button.
 
 - The Bkg and X tabs of the integration view were cut off mid-control: the splitter squeezes the control area down to its minimum size, and pages whose content sits in an inner tab widget reported a minimum far below what their controls need. The control area now reserves the height the current tab actually requires. The Cor tab keeps its compact height: its parameter pages scroll by design, so only the menu column has to stay fully visible.
 
 - Empty views now say what to do instead of showing a black void: the calibration view suggests loading a calibration image (and names the supported formats), and the batch view explains how to open a file series. The hints disappear as soon as data is loaded. The calibration panel's "Load Calibration" and "Enter Manually" buttons carry a caption — "Already have a calibration?" — so the alternative entry into the workflow no longer reads as two stray buttons at the bottom of the panel.
 
-- The coloured legacy icons — the yellow folder and the blue floppy disk — are replaced with monochrome outline glyphs matching the undo/edit/delete set, so the icon language is consistent across the overlay and phase lists, the batch toolbar and the detector panel. Colour is now used where it carries meaning rather than by accident: the save icons inside the plot areas (pattern, image, map) are drawn larger and in a steel blue that marks them as a different kind of control than the orange labelled actions beside them, and "remove all overlays"/"remove all phases" are red, so the one click that discards a whole list looks different from the buttons around it. Hovering these icon buttons outlines them in their own colour instead of the general orange.
+- The coloured legacy icons — the yellow folder and the blue floppy disk — are replaced with monochrome outline glyphs matching the undo/edit/delete set, so the icon language is consistent across the overlay and phase lists, the batch toolbar and the detector panel. Colour is now used where it carries meaning rather than by accident: the save icons inside the plot areas (pattern, image, map) are drawn larger and in a steel blue that marks them as a different kind of control than the orange labelled actions beside them, and "remove all overlays"/"remove all phases" are red, so the one click that discards a whole list looks different from the buttons around it. Hovering these icon buttons outlines them in their own colour instead of the general orange. The mask plugin rows join in: settings shows the same gear as everywhere else instead of a file-list icon, and imprint gets a stamp glyph instead of the letter "I", which read as the integration view's Inspect buttons.
 
 - The toggle buttons beside the pattern plot (2θ/Q/d, Log, √, bg, AA, A) now sit in visually connected groups instead of spreading over the full plot height, every one of them explains itself in a tooltip, and the active toggles carry an amber fill so the current state is readable at a glance.
 
@@ -91,6 +95,8 @@
 - Because settings are now serialised generically, the hand-written project reader and writer are gone (588 lines from `Configuration` alone), and adding a setting needs no save/load code at all.
 
 - Deliberately outside the history: the window layout and docking state, and the working directories. Undo reverses the work, not the furniture or which folder a file dialog last pointed at. Loading a project, resetting, and adding or removing a configuration start a fresh history rather than being undoable.
+
+- CI now lints for the defect classes the test suite cannot see — syntax errors, undefined names, and shadowed redefinitions (a duplicated function body silently loses one copy). Its first run found a latent crash and three tests that had never actually run.
 
 # 0.8.7 (29.07.2026)
 
