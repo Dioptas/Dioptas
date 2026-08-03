@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- Move the selected map cell one place later in the scan order. -->
+  <path d="M12 4.5 V18.5"
+        fill="none" stroke="#f1f1f1" stroke-width="2.2"
+        stroke-linecap="round"/>
+  <path d="M6.2 12.7 L12 18.8 L17.8 12.7"
+        fill="none" stroke="#f1f1f1" stroke-width="2.2"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

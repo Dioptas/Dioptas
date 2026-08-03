@@ -9,7 +9,7 @@ from mock import MagicMock
 from dioptas.controller.MapController import MapController
 from dioptas.model.DioptasModel import DioptasModel
 
-from dioptas.model.MapModel import MapModel, MapPointInfo, create_map
+from dioptas.model.MapModel import MapModel, MapPointInfo
 from dioptas.model.util.calc import convert_units
 from dioptas.widgets.MapWidget import MapWidget
 from dioptas.widgets.plot_widgets.PatternWidget import SymmetricModifiedLinearRegionItem
@@ -66,12 +66,11 @@ def mock_save_filename(filepath):
 
 
 def mock_map_model(map_model: MapModel):
-    map_model.map = create_map(np.array([1, 2, 3, 4, 5, 6]), (2, 3))
+    map_model.window_intensities = np.array([1, 2, 3, 4, 5, 6])
     map_model.filepaths = map_img_file_paths
     map_model.possible_dimensions = [(1, 6), (2, 3), (3, 2), (6, 1)]
     map_model.point_infos = [MapPointInfo(f) for f in map_img_file_paths]
-    map_model.dimension = (2, 3)
-    map_model.map_changed.emit()
+    map_model.dimension = (2, 3)  # builds the map and emits map_changed
 
 
 def mock_integrate_1d(map_controller: MapController):
@@ -393,12 +392,14 @@ def test_mouse_move_in_map_will_update_filename(map_controller, map_model):
 
 def test_map_dimension_cb_updates_correctly(map_controller, map_model):
     map_model.window_intensities = np.array([1, 2, 3, 4, 5, 6])
-    map_model.map = create_map(map_model.window_intensities, (2, 3))
     map_model.possible_dimensions = [(1, 6), (2, 3), (3, 2), (6, 1)]
-    map_model.dimension = (2, 3)
-    map_model.map_changed.emit()
+    map_model.dimension = (2, 3)  # builds the map and emits map_changed
 
-    dim_cb = map_controller.widget.map_plot_control_widget.map_dimension_cb
+    # the grid sizes live in the grid popup, next to the rows/columns they
+    # are shorthand for
+    grid_popup = map_controller.panel_controller.grid_popup
+    map_controller.widget.map_plot_control_widget.grid_btn.clicked.emit()
+    dim_cb = grid_popup.map_dimension_cb
     assert dim_cb.currentText() == "2x3"
     assert dim_cb.count() == 4
     assert dim_cb.currentIndex() == 1
@@ -411,6 +412,7 @@ def test_map_dimension_cb_updates_correctly(map_controller, map_model):
     dim_cb.setCurrentIndex(2)
     assert map_model.dimension == (3, 2)
     assert map_model.map.shape == (3, 2)
+    grid_popup.hide()
 
 
 def test_changing_configuration_updates_gui(map_controller, dioptas_model):
@@ -618,3 +620,609 @@ def test_save_map(map_controller, dioptas_model, tmp_path, file_type):
 
     map_widget.map_plot_control_widget.save_map_btn.clicked.emit()
     assert filename.exists()
+
+
+def load_map(map_controller, count=6):
+    load_calibration(map_controller)
+    map_controller.model.map_model.load(map_img_file_paths[:count])
+    return map_controller.model.map_model
+
+
+def file_list_labels(map_controller):
+    file_list = map_controller.widget.control_widget.file_list
+    return [file_list.item(i).text() for i in range(file_list.count())]
+
+
+def test_file_list_shows_one_row_per_grid_cell(map_controller):
+    map_model = load_map(map_controller)
+    assert len(file_list_labels(map_controller)) == 6
+
+    map_model.insert_blank(2)
+    labels = file_list_labels(map_controller)
+    # the grid grew to 3x3 to make room, so the list grows with it
+    assert len(labels) == 9
+    assert labels[2] == "—"
+    assert labels[3] == map_model.point_infos[2].filename
+
+
+def test_file_list_row_selects_the_point_of_that_cell(map_controller):
+    map_model = load_map(map_controller)
+    map_model.insert_blank(0)
+
+    map_controller.widget.control_widget.file_list.setCurrentRow(1)
+    assert map_controller.model.img_model.filename == map_model.point_infos[0].filepath
+
+
+def test_blank_row_selects_nothing(map_controller):
+    map_model = load_map(map_controller)
+    map_controller.widget.control_widget.file_list.setCurrentRow(2)
+    loaded = map_controller.model.img_model.filename
+
+    map_model.insert_blank(0)
+    map_controller.widget.control_widget.file_list.setCurrentRow(0)
+    assert map_controller.model.img_model.filename == loaded
+
+
+def test_map_click_selects_the_matching_cell_row(map_controller):
+    map_model = load_map(map_controller)
+    map_model.insert_blank(0)
+
+    # point 4 sits one cell later than it would without the blank
+    map_controller.panel_controller.point_selected.emit(4)
+    assert map_controller.widget.control_widget.file_list.currentRow() == 5
+
+
+def test_dragging_a_row_rearranges_the_map(map_controller):
+    map_model = load_map(map_controller)
+    file_list = map_controller.widget.control_widget.file_list
+
+    # an internal-move drag moves the row through the model, which is what
+    # the controller listens to
+    root = QtCore.QModelIndex()
+    assert file_list.model().moveRow(root, 0, root, 3) is True
+    assert map_model.get_slots()[:3] == [1, 2, 0]
+
+    # and back the other way, where the insertion point needs no adjusting
+    assert file_list.model().moveRow(root, 2, root, 0) is True
+    assert map_model.get_slots()[:3] == [0, 1, 2]
+
+
+def test_excluded_point_is_struck_through_in_the_list(map_controller):
+    map_model = load_map(map_controller)
+    map_model.set_point_excluded(1)
+
+    file_list = map_controller.widget.control_widget.file_list
+    assert file_list.item(1).font().strikeOut() is True
+    assert file_list.item(0).font().strikeOut() is False
+
+
+def test_grid_popup_shows_and_applies_the_layout(map_controller):
+    map_model = load_map(map_controller)
+    popup = map_controller.panel_controller.grid_popup
+
+    map_controller.widget.map_plot_control_widget.grid_btn.clicked.emit()
+    assert popup.rows_sb.value() == 2
+    assert popup.columns_sb.value() == 3
+    assert "no blanks" in popup.capacity_lbl.text()
+
+    popup.sigGridChanged.emit(3, 3)
+    assert map_model.dimension == (3, 3)
+    assert "3 blank" in popup.capacity_lbl.text()
+
+    popup.sigSnakeChanged.emit(True)
+    assert map_model.snake is True
+    popup.sigFlipVerticalChanged.emit(True)
+    assert map_model.flip_vertical is True
+    popup.hide()
+
+
+def test_grid_popup_detects_dropped_frames(map_controller):
+    map_model = load_map(map_controller)
+    popup = map_controller.panel_controller.grid_popup
+
+    for index, info in enumerate(map_model.point_infos):
+        info.filepath = f"/scan/point_{index if index < 3 else index + 1:03d}.tif"
+
+    popup.sigDetectGapsRequested.emit()
+    assert "Inserted 1 blank cell" in popup.gaps_lbl.text()
+    assert map_model.get_point_index(0, 3) is None
+
+
+def test_grid_popup_reports_when_there_is_nothing_to_fix(map_controller):
+    load_map(map_controller)
+    popup = map_controller.panel_controller.grid_popup
+
+    popup.sigDetectGapsRequested.emit()
+    assert "No gaps" in popup.gaps_lbl.text()
+
+
+def layer_widget(map_controller):
+    return map_controller.widget.control_widget.layer_widget
+
+
+def show_button(table, row):
+    """The 'draw this layer' radio of a row."""
+    holder = table.cellWidget(row, 0)
+    return None if holder is None else holder.findChild(QtWidgets.QRadioButton)
+
+
+def test_layer_widget_shows_the_map_windows(map_controller):
+    load_map(map_controller)
+    table = layer_widget(map_controller).roi_table
+    assert table.rowCount() == 1
+    assert table.item(0, 2).text() == "A"
+
+
+def test_adding_a_window_adds_a_layer(map_controller):
+    map_model = load_map(map_controller)
+    layer_widget(map_controller).sigAddRoiRequested.emit()
+
+    assert [roi.name for roi in map_model.rois] == ["A", "B"]
+    assert layer_widget(map_controller).roi_table.rowCount() == 2
+
+    layer_cb = map_controller.widget.map_plot_control_widget.layer_cb
+    assert [layer_cb.itemText(i) for i in range(layer_cb.count())] == ["A", "B"]
+
+
+def test_layer_combo_switches_which_layer_is_shown(map_controller):
+    map_model = load_map(map_controller)
+    map_model.add_roi(window=(15.0, 16.0))
+
+    layer_cb = map_controller.widget.map_plot_control_widget.layer_cb
+    layer_cb.setCurrentIndex(1)
+    assert map_model.active_layer == "B"
+    np.testing.assert_array_equal(
+        map_model.window_intensities, map_model.layer_values("B")
+    )
+
+
+def test_editing_a_window_range_in_the_table(map_controller):
+    map_model = load_map(map_controller)
+    layer_widget(map_controller).sigRoiChanged.emit("A", "x_min", 14.0)
+    layer_widget(map_controller).sigRoiChanged.emit("A", "x_max", 16.0)
+    assert map_model.window == approx([14.0, 16.0])
+
+
+def test_changing_the_reduction_changes_the_map(map_controller):
+    map_model = load_map(map_controller)
+    map_model.set_window((14.0, 16.0))
+    before = map_model.map.copy()
+
+    layer_widget(map_controller).sigRoiChanged.emit("A", "value_kind", ("center", False))
+    assert map_model.rois[0].reduction == "center"
+    assert not np.allclose(map_model.map, before)
+
+
+def test_removing_the_only_window_is_refused_with_a_message(map_controller):
+    load_map(map_controller)
+    layer_widget(map_controller).sigRemoveRoiRequested.emit("A")
+    assert "at least one window" in layer_widget(map_controller).message_lbl.text()
+
+
+def test_adding_a_computed_layer_needs_two_windows(map_controller):
+    load_map(map_controller)
+    widget = layer_widget(map_controller)
+
+    widget.sigAddExpressionRequested.emit()
+    assert "second window" in widget.message_lbl.text()
+
+    widget.sigAddRoiRequested.emit()
+    widget.sigAddExpressionRequested.emit()
+    assert widget.expression_table.rowCount() == 1
+    assert widget.expression_table.item(0, 1).text() == "A/B"
+
+
+def test_a_bad_expression_is_reported_rather_than_applied(map_controller):
+    map_model = load_map(map_controller)
+    map_model.add_roi(window=(15.0, 16.0))
+    widget = layer_widget(map_controller)
+
+    widget.sigExpressionChanged.emit("bad", "A/Z")
+    assert "no layer called 'Z'" in widget.message_lbl.text()
+    assert map_model.layer_values("bad") is None
+    # the map keeps showing something valid
+    assert map_model.map is not None
+
+
+def test_extra_windows_get_their_own_region_in_the_pattern(map_controller):
+    map_model = load_map(map_controller)
+    roi_controller = map_controller.map_roi_controller
+    assert roi_controller._extra_items == {}
+
+    map_model.add_roi(window=(15.0, 16.0))
+    assert list(roi_controller._extra_items) == ["B"]
+
+    map_model.remove_roi("B")
+    assert roi_controller._extra_items == {}
+
+
+def test_dragging_an_extra_region_moves_that_window(map_controller):
+    map_model = load_map(map_controller)
+    map_model.add_roi(window=(15.0, 16.0))
+    item = map_controller.map_roi_controller._extra_items["B"]
+
+    item.setRegion((17.0, 18.0))
+    assert map_model.get_roi("B").x_min == approx(17.0)
+    assert map_model.get_roi("B").x_max == approx(18.0)
+    # the active window is untouched
+    assert map_model.get_roi("A").x_min != approx(17.0)
+
+
+def test_layer_table_updates_in_place_while_the_windows_are_the_same(map_controller):
+    """The map rebuilds on every edit, so the table must not be recreated
+    each time: replaced cell widgets keep painting until Qt deletes them, and
+    the row under the user's cursor would jump away."""
+    map_model = load_map(map_controller)
+    table = layer_widget(map_controller).roi_table
+    value_cb = table.cellWidget(0, 5)
+
+    map_model.set_window((14.0, 16.0))
+
+    assert table.cellWidget(0, 5) is value_cb  # same widget, not a new one
+    assert table.item(0, 3).text() == "14"
+    assert table.item(0, 4).text() == "16"
+
+    # a window appearing or going does rebuild, and leaves nothing behind
+    map_model.add_roi(window=(16.5, 18.0))
+    assert table.rowCount() == 2
+    assert isinstance(table.cellWidget(1, 5), QtWidgets.QComboBox)
+    assert show_button(table, 1) is not None
+
+
+def test_selecting_a_window_survives_a_map_rebuild(map_controller):
+    map_model = load_map(map_controller)
+    map_model.add_roi(window=(16.5, 18.0))
+    table = layer_widget(map_controller).roi_table
+
+    table.setCurrentCell(1, 0)
+    map_model.set_window((14.0, 16.0))
+    assert table.currentRow() == 1
+
+
+def test_control_column_has_tabs_for_image_points_and_layers(map_controller):
+    """The detector image shares the tabs: beside the tables it collided
+    with them as soon as the panel got narrow."""
+    tabs = map_controller.widget.control_widget.tab_widget
+    assert [tabs.tabText(i) for i in range(tabs.count())] == [
+        "Image",
+        "Points",
+        "Layers",
+    ]
+    assert tabs.widget(0) is map_controller.widget.img_pg_layout
+
+
+def test_show_radio_picks_which_layer_is_drawn(map_controller):
+    """The explicit answer to 'how do I display another layer': a radio in
+    each row, next to the window it belongs to."""
+    map_model = load_map(map_controller)
+    map_model.add_roi(window=(16.5, 18.0))
+    map_model.set_expression("A/B", "A/B")
+    table = layer_widget(map_controller).roi_table
+    expression_table = layer_widget(map_controller).expression_table
+
+    assert show_button(table, 0).isChecked() is True
+    assert show_button(table, 1).isChecked() is False
+
+    show_button(table, 1).setChecked(True)
+    assert map_model.active_layer == "B"
+    assert show_button(table, 0).isChecked() is False
+
+    # the group spans both tables, so exactly one layer is ever drawn
+    show_button(expression_table, 0).setChecked(True)
+    assert map_model.active_layer == "A/B"
+    assert show_button(table, 0).isChecked() is False
+    assert show_button(table, 1).isChecked() is False
+
+
+def test_show_radio_follows_a_layer_picked_elsewhere(map_controller):
+    map_model = load_map(map_controller)
+    map_model.add_roi(window=(16.5, 18.0))
+    table = layer_widget(map_controller).roi_table
+
+    map_controller.widget.map_plot_control_widget.layer_cb.setCurrentIndex(0)
+    assert map_model.active_layer == "A"
+    assert show_button(table, 0).isChecked() is True
+    assert show_button(table, 1).isChecked() is False
+
+
+def test_layer_table_columns_fit_what_the_style_draws(map_controller):
+    """Widths are measured from the style, not hard-coded: qt-material draws
+    the headers upper-cased, which clipped 'NAME' to 'AN' at fixed pixels."""
+    load_map(map_controller)
+    table = layer_widget(map_controller).roi_table
+    header = table.horizontalHeader()
+
+    for column in range(5):
+        assert table.columnWidth(column) >= header.sectionSizeHint(column)
+
+    # and the table refuses to be squeezed below what the stretching Value
+    # column needs for its combo, which would otherwise just be clipped
+    fixed = sum(table.columnWidth(column) for column in range(5))
+    assert table.minimumWidth() > fixed
+
+
+def test_windows_table_scrolls_instead_of_pushing_the_layers_down(map_controller):
+    """Sizing the table to its rows meant every added window pushed the
+    computed layers further down the panel. Each table now fills its own
+    pane of the splitter and scrolls inside it."""
+    map_model = load_map(map_controller)
+    widget = layer_widget(map_controller)
+    assert widget.splitter.count() == 2
+
+    floor = widget.roi_table.minimumHeight()
+    assert floor > 0  # a couple of rows stay reachable at any split
+
+    for window in ((16.5, 18.0), (19.0, 21.0), (22.0, 24.0), (25.0, 27.0)):
+        map_model.add_roi(window=window)
+
+    assert widget.roi_table.minimumHeight() == floor
+    # not pinned to its contents any more, so the pane decides its height
+    assert widget.roi_table.maximumHeight() > 10000
+
+
+def popup_and_button(map_controller):
+    return (
+        map_controller.panel_controller.grid_popup,
+        map_controller.widget.map_plot_control_widget.grid_btn,
+    )
+
+
+def test_grid_popup_opens_upwards_when_there_is_no_room_below(map_controller):
+    """Its button lives in the strip along the bottom of the map, so dropping
+    downwards would put the popup off the screen."""
+    from qtpy import QtGui
+
+    load_map(map_controller)
+    popup, button = popup_and_button(map_controller)
+    available = QtGui.QGuiApplication.primaryScreen().availableGeometry()
+
+    # put the window so its bottom strip sits at the bottom of the screen
+    window = map_controller.widget
+    window.move(available.left(), available.bottom() - window.height() + 1)
+    QtWidgets.QApplication.processEvents()
+
+    popup.popup_at(button)
+    try:
+        geometry = popup.frameGeometry()
+        assert geometry.bottom() <= available.bottom()
+        assert geometry.top() >= available.top()
+        # opened above the button rather than over it
+        assert geometry.bottom() <= button.mapToGlobal(QtCore.QPoint(0, 0)).y() + 1
+    finally:
+        popup.hide()
+
+
+def test_grid_popup_stays_within_the_screen_horizontally(map_controller):
+    from qtpy import QtGui
+
+    load_map(map_controller)
+    popup, button = popup_and_button(map_controller)
+    available = QtGui.QGuiApplication.primaryScreen().availableGeometry()
+
+    window = map_controller.widget
+    window.move(available.right() - 60, available.top())
+    QtWidgets.QApplication.processEvents()
+
+    popup.popup_at(button)
+    try:
+        geometry = popup.frameGeometry()
+        assert geometry.left() >= available.left()
+        assert geometry.right() <= available.right()
+    finally:
+        popup.hide()
+
+
+def click_map_cell(map_controller, row, col):
+    """Clicks the given map cell through the plot widget's mouse signal."""
+    rows = map_controller.model.map_model.map.shape[0]
+    map_controller.widget.map_plot_widget.mouse_left_clicked.emit(
+        col + 0.5, rows - row - 1 + 0.5
+    )
+
+
+def test_clicking_a_blank_cell_selects_nothing(map_controller):
+    """A cell left blank by a dropped frame has no image behind it."""
+    map_model = load_map(map_controller)
+    # the stored-pattern path only runs while the map mode is up, which is
+    # exactly when a click can happen
+    map_controller.activate()
+    map_model.insert_blank(0)
+    assert map_model.get_point_index(0, 0) is None
+
+    click_map_cell(map_controller, 1, 1)  # a real point first
+    loaded = map_controller.model.img_model.filename
+    pattern = map_controller.model.pattern.y.copy()
+
+    click_map_cell(map_controller, 0, 0)  # the blank
+
+    assert map_controller.model.img_model.filename == loaded
+    np.testing.assert_array_equal(map_controller.model.pattern.y, pattern)
+
+
+def test_row_highlight_uses_each_windows_own_colour(map_controller):
+    """Every window is drawn in its own colour in the pattern plot; the
+    highlight in the table keeps that link instead of a single accent."""
+    from dioptas.widgets.MapLayerWidget import ColorSwatch, RowTintDelegate
+
+    map_model = load_map(map_controller)
+    map_model.add_roi(window=(16.5, 18.0))
+    widget = layer_widget(map_controller)
+
+    delegate = widget.roi_table.itemDelegate()
+    assert isinstance(delegate, RowTintDelegate)
+    assert delegate._color_for_row(0).name() == map_model.rois[0].color
+    assert delegate._color_for_row(1).name() == map_model.rois[1].color
+    assert map_model.rois[0].color != map_model.rois[1].color
+
+    # and the colour is on show in the row, not only in the pattern plot
+    swatch = widget.roi_table.cellWidget(0, 1)
+    assert isinstance(swatch, ColorSwatch)
+    assert swatch.color().name() == map_model.rois[0].color
+
+
+def test_window_colour_can_be_changed(map_controller):
+    from dioptas.widgets.MapLayerWidget import ColorSwatch
+
+    map_model = load_map(map_controller)
+    widget = layer_widget(map_controller)
+
+    widget.sigRoiChanged.emit("A", "color", "#ff00ff")
+    assert map_model.rois[0].color == "#ff00ff"
+
+    swatch = widget.roi_table.cellWidget(0, 1)
+    assert isinstance(swatch, ColorSwatch)
+    assert swatch.color().name() == "#ff00ff"
+    assert widget.roi_table.itemDelegate()._color_for_row(0).name() == "#ff00ff"
+
+
+def test_unchecking_reintegrate_uses_the_point_behind_the_selected_cell(map_controller):
+    """The list rows are grid cells, so the selected row is not the point
+    index once a blank has been inserted."""
+    map_model = load_map(map_controller)
+    map_controller.activate()
+    map_model.insert_blank(0)
+
+    slot = map_model.get_slot_of_point(2)
+    map_controller.widget.control_widget.file_list.setCurrentRow(slot)
+
+    reintegrate_cb = map_controller.widget.control_widget.reintegrate_cb
+    reintegrate_cb.setChecked(True)
+    reintegrate_cb.setChecked(False)
+
+    np.testing.assert_array_equal(
+        map_controller.model.pattern.y, map_model.pattern_intensities[2]
+    )
+
+
+def test_region_hover_keeps_the_windows_colour(map_controller):
+    """pyqtgraph's hover brush and pens default to blue; a window turning
+    blue under the mouse loses the link to its row."""
+    map_model = load_map(map_controller)
+    map_model.add_roi(window=(16.5, 18.0))
+    map_model.rois[0].color = "#ff0000"
+    map_model.rois[1].color = "#00ff00"
+
+    roi_controller = map_controller.map_roi_controller
+    active_item = map_controller.widget.pattern_plot_widget.map_interactive_roi
+    extra_item = roi_controller._extra_items["B"]
+
+    for item, expected in ((active_item, (255, 0, 0)), (extra_item, (0, 255, 0))):
+        assert item.brush.color().getRgb()[:3] == expected
+        hover = item.hoverBrush.color()
+        assert hover.getRgb()[:3] == expected
+        # same colour, just more of it
+        assert hover.alpha() > item.brush.color().alpha()
+        for line in item.lines:
+            assert line.pen.color().getRgb()[:3] == expected
+            assert line.hoverPen.color().getRgb()[:3] == expected
+
+
+def test_show_radio_takes_the_windows_colour(map_controller):
+    map_model = load_map(map_controller)
+    map_model.rois[0].color = "#ff00ff"
+    widget = layer_widget(map_controller)
+
+    button = show_button(widget.roi_table, 0)
+    assert "#ff00ff" in button.styleSheet()
+    # and the cell holding it does not paint over the row's tint
+    holder = widget.roi_table.cellWidget(0, 0)
+    assert "transparent" in holder.styleSheet()
+
+
+def test_point_action_buttons_follow_the_selected_cell(map_controller):
+    """The icon buttons say what is possible here, since a glyph on its own
+    does not explain itself."""
+    map_model = load_map(map_controller)
+    control = map_controller.widget.control_widget
+    map_model.insert_blank(0)
+
+    control.file_list.setCurrentRow(0)  # the blank
+    assert control.insert_blank_btn.isEnabled()
+    assert control.remove_blank_btn.isEnabled()
+    assert not control.exclude_btn.isEnabled()
+
+    control.file_list.setCurrentRow(1)  # a real point
+    assert not control.remove_blank_btn.isEnabled()
+    assert control.exclude_btn.isEnabled()
+
+
+def test_exclude_button_shows_which_way_it_goes(map_controller):
+    map_model = load_map(map_controller)
+    control = map_controller.widget.control_widget
+    control.file_list.setCurrentRow(0)
+
+    assert "Leave point out" in control.exclude_btn.toolTip()
+    map_model.set_point_excluded(0)
+    assert "back into the map" in control.exclude_btn.toolTip()
+
+
+def test_disabled_point_action_fades_rather_than_filling(map_controller):
+    """The theme fills a disabled flat button, which made an unavailable
+    action louder than an available one."""
+    load_map(map_controller)
+    button = map_controller.widget.control_widget.remove_blank_btn
+
+    button.setEnabled(True)
+    enabled_icon = button.icon().cacheKey()
+    button.setEnabled(False)
+    assert button.icon().cacheKey() != enabled_icon
+
+    assert "background: transparent" in button.styleSheet()
+
+
+def test_move_selected_cell_up_and_down(map_controller):
+    map_model = load_map(map_controller)
+    control = map_controller.widget.control_widget
+    before = map_model.get_slots()[:4]
+
+    control.file_list.setCurrentRow(2)
+    control.move_up_btn.clicked.emit()
+
+    slots = map_model.get_slots()
+    assert slots[1] == before[2]
+    assert slots[2] == before[1]
+    # the selection follows the cell that moved
+    assert control.file_list.currentRow() == 1
+
+    control.move_down_btn.clicked.emit()
+    assert map_model.get_slots()[:4] == before
+    assert control.file_list.currentRow() == 2
+
+
+def test_blanks_can_be_moved_too(map_controller):
+    """A blank in the wrong place is exactly what needs nudging once the
+    dropped frame is found."""
+    map_model = load_map(map_controller)
+    control = map_controller.widget.control_widget
+    map_model.insert_blank(3)
+    assert map_model.get_slots()[3] is None
+
+    control.file_list.setCurrentRow(3)
+    control.move_down_btn.clicked.emit()
+
+    assert map_model.get_slots()[3] is not None
+    assert map_model.get_slots()[4] is None
+    assert control.file_list.currentRow() == 4
+
+
+def test_move_buttons_stop_at_the_ends(map_controller):
+    map_model = load_map(map_controller)
+    control = map_controller.widget.control_widget
+
+    control.file_list.setCurrentRow(0)
+    assert not control.move_up_btn.isEnabled()
+    assert control.move_down_btn.isEnabled()
+
+    control.file_list.setCurrentRow(map_model.num_slots - 1)
+    assert control.move_up_btn.isEnabled()
+    assert not control.move_down_btn.isEnabled()
+
+
+def test_transparent_backgrounds_are_qualified_by_object_name(map_controller):
+    """An unqualified 'background: transparent' cascades to every descendant
+    — it reached the value combo's drop-down list, which then had none. Only
+    visible under the app's stylesheet, which the tests do not apply, so the
+    guard is on the rule rather than on the pixels."""
+    load_map(map_controller)
+    holder = layer_widget(map_controller).roi_table.cellWidget(0, 0)
+    assert holder.styleSheet().lstrip().startswith("#")

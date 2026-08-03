@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- Put a left-out map point back: the same cell, ticked. -->
+  <rect x="4.5" y="4.5" width="15" height="15" rx="2"
+        fill="none" stroke="#f1f1f1" stroke-width="1.8"/>
+  <path d="M7.8 12.2 L10.8 15.2 L16.4 8.8"
+        fill="none" stroke="#f1f1f1" stroke-width="2.2"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

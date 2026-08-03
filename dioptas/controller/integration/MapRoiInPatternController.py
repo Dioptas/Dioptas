@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: MIT
 
 import numpy as np
+import pyqtgraph as pg
 
 from ...model.DioptasModel import DioptasModel
 from ...model.util.calc import convert_units
 from ...widgets.plot_widgets import PatternWidget
+from ...widgets.plot_widgets.PatternWidget import SymmetricModifiedLinearRegionItem
 
 
 class MapRoiInPatternController:
@@ -37,6 +39,10 @@ class MapRoiInPatternController:
         self._wanted = always_visible
         self._visible = False
         self._updating_roi = False
+
+        #: ROI name -> region item for every window except the active one,
+        #: which keeps using the plot's own map_interactive_roi
+        self._extra_items: dict[str, SymmetricModifiedLinearRegionItem] = {}
 
         self.connect()
         self.update_visibility()
@@ -74,6 +80,7 @@ class MapRoiInPatternController:
             self.update_roi()
         else:
             self.pattern_widget.hide_map_interactive_roi()
+            self._clear_extra_items()
 
     def set_center(self, x: float):
         """Moves the region to be centered on *x*, in the displayed unit."""
@@ -95,20 +102,113 @@ class MapRoiInPatternController:
         self.update_roi()
 
     def update_roi(self, *_args):
-        """Puts the region where the map's window is, in the displayed unit."""
+        """Puts the regions where the map's windows are, in the displayed unit.
+
+        The active window uses the plot's own interactive region — the one
+        clicking the pattern re-centres — and every other window gets a
+        region of its own, in its layer colour.
+        """
         if not self._visible:
             return
-        window = self.model.map_model.window
-        if window is None:
+        map_model = self.model.map_model
+        active = map_model.active_roi
+        if active is None:
+            self._clear_extra_items()
             return
-        region = self._from_map_unit(window)
-        if region is None:
-            return
+
         self._updating_roi = True
         try:
-            self.pattern_widget.set_map_interactive_roi(*region)
+            region = self._from_map_unit([active.x_min, active.x_max])
+            if region is not None:
+                self.pattern_widget.set_map_interactive_roi(*region)
+            # the shown window is drawn in its own colour too, so the table
+            # and the plot agree about which region is which
+            self._apply_region_color(
+                self.pattern_widget.map_interactive_roi, active.color
+            )
+            self._update_extra_items(active)
         finally:
             self._updating_roi = False
+
+    def _update_extra_items(self, active):
+        map_model = self.model.map_model
+        wanted = {roi.name: roi for roi in map_model.rois if roi is not active}
+
+        for name in list(self._extra_items):
+            if name not in wanted:
+                self._remove_extra_item(name)
+
+        for name, roi in wanted.items():
+            region = self._from_map_unit([roi.x_min, roi.x_max])
+            if region is None:
+                self._remove_extra_item(name)
+                continue
+            item = self._extra_items.get(name)
+            if item is None:
+                item = self._create_extra_item(name)
+            self._apply_region_color(item, roi.color)
+            item.setRegion(region)
+
+    #: alphas of a region's fill: at rest, and while the mouse is over it
+    _FILL_ALPHA = 45
+    _HOVER_ALPHA = 85
+
+    @classmethod
+    def _region_brush(cls, color: str):
+        """A translucent fill in the window's colour, so several regions can
+        overlap and still be told apart."""
+        return pg.mkBrush(pg.mkColor(color).getRgb()[:3] + (cls._FILL_ALPHA,))
+
+    @classmethod
+    def _apply_region_color(cls, item, color: str):
+        """Colours a region and everything it turns into when touched.
+
+        pyqtgraph keeps separate brushes and pens for the hovered state, and
+        their defaults are blue. Left alone, moving the mouse over a window
+        would recolour it to something unrelated to the window; the same
+        colour a little more intense says "you are on this one" without
+        losing which one it is.
+        """
+        rgb = pg.mkColor(color).getRgb()[:3]
+        item.setBrush(pg.mkBrush(rgb + (cls._FILL_ALPHA,)))
+        item.setHoverBrush(pg.mkBrush(rgb + (cls._HOVER_ALPHA,)))
+        for line in item.lines:
+            line.setPen(pg.mkPen(rgb + (160,), width=1))
+            line.setHoverPen(pg.mkPen(rgb + (255,), width=2))
+        # the region caches which brush it is currently drawing with
+        item.currentBrush = item.hoverBrush if item.mouseHovering else item.brush
+        item.update()
+
+    def _create_extra_item(self, name: str):
+        item = SymmetricModifiedLinearRegionItem([0, 1], pg.LinearRegionItem.Vertical)
+        item.sigRegionChanged.connect(
+            lambda changed, roi_name=name: self._extra_roi_changed(roi_name, changed)
+        )
+        self.pattern_widget.pattern_plot.addItem(item)
+        self._extra_items[name] = item
+        return item
+
+    def _remove_extra_item(self, name: str):
+        item = self._extra_items.pop(name, None)
+        if item is None:
+            return
+        if item.scene() == self.pattern_widget.pattern_plot.scene():
+            self.pattern_widget.pattern_plot.removeItem(item)
+
+    def _clear_extra_items(self):
+        for name in list(self._extra_items):
+            self._remove_extra_item(name)
+
+    def _extra_roi_changed(self, name: str, item):
+        if self._updating_roi or not self._visible:
+            return
+        roi = self.model.map_model.get_roi(name)
+        if roi is None:
+            return
+        window = self._to_map_unit(item.getRegion())
+        if window is None:
+            return
+        roi.x_min, roi.x_max = float(window[0]), float(window[1])
 
     def configuration_selected(self):
         self._update_map_model_connection()

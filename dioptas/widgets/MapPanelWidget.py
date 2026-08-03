@@ -241,11 +241,16 @@ class MapPlotControlWidget(QtWidgets.QWidget):
         self.save_map_btn = SaveIconButton(color=PLOT_ICON_COLOR)
         self.save_map_btn.setIconSize(QtCore.QSize(PLOT_ICON_SIZE, PLOT_ICON_SIZE))
         self.save_map_btn.setToolTip("Save the map as an image or a table of values")
-        self.dimension_lbl = QtWidgets.QLabel("Dim:")
-        self.map_dimension_cb = QtWidgets.QComboBox()
-        self.map_dimension_cb.setMinimumWidth(80)
-        self.map_dimension_cb.setToolTip(
-            "Grid the map points are arranged in, for the number of images loaded"
+        self.layer_lbl = QtWidgets.QLabel("Layer:")
+        self.layer_cb = QtWidgets.QComboBox()
+        self.layer_cb.setMinimumWidth(90)
+        self.layer_cb.setToolTip("Which of the map's layers is drawn here")
+        # the grid itself is set in the popup, which has room for the whole
+        # layout rather than only the size
+        self.grid_btn = FlatButton("Grid…")
+        self.grid_btn.setToolTip(
+            "Grid the points are arranged in: size, serpentine scans, mirroring,\n"
+            "and repairing frames the beamline dropped"
         )
         self.undock_btn = FlatButton("Undock")
         self.undock_btn.setToolTip("Show the map in its own window")
@@ -266,8 +271,9 @@ class MapPlotControlWidget(QtWidgets.QWidget):
         self._left_layout.addWidget(self.filename_label)
         self._outer_layout.addWidget(self.load_btn)
         self._outer_layout.addWidget(self.save_map_btn)
-        self._outer_layout.addWidget(self.dimension_lbl)
-        self._outer_layout.addWidget(self.map_dimension_cb)
+        self._outer_layout.addWidget(self.layer_lbl)
+        self._outer_layout.addWidget(self.layer_cb)
+        self._outer_layout.addWidget(self.grid_btn)
         self._outer_layout.addWidget(self.undock_btn)
         self._outer_layout.addStretch(1)
         self._outer_layout.addLayout(self._left_layout)
