@@ -15,7 +15,6 @@ from .. import calibrants_path
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ..widgets.CalibrationWidget import CalibrationWidget, WIZARD_STEP_TITLES
-from ..widgets.UtilityWidgets import open_file_dialog
 from ..model.DioptasModel import DioptasModel
 from .binding import Binder
 from ..model.CalibrationGuide import CalibrationGuide, Step
