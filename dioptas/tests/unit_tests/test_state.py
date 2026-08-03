@@ -372,8 +372,13 @@ from dioptas.model.state import MapParams, PhaseParams
 
 def test_map_params_defaults():
     params = MapParams()
-    assert params.window is None
+    assert params.rois == []
+    assert params.expressions == {}
+    assert params.active_layer == "A"
     assert params.dimension is None
+    assert params.slots is None
+    assert params.snake is False
+    assert params.excluded_points == []
 
 
 def test_phase_params_defaults_and_events():

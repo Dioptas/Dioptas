@@ -31,6 +31,7 @@ __all__ = [
     "ConfigurationParams",
     "ImgParams",
     "MapParams",
+    "MapRoiParams",
     "MaskParams",
     "OverlayItemParams",
     "PatternParams",
@@ -238,21 +239,79 @@ class MaskParams:
 
 
 @dataclass
-class MapParams:
-    """User-settable parameters of a MapModel.
+class MapRoiParams:
+    """One window of the pattern and how it becomes a map layer.
 
-    Owned by :class:`dioptas.model.MapModel.MapModel`; the model computes
-    defaults for both fields when map data is loaded, so None means "not
-    determined yet".
+    Owned by :class:`dioptas.model.MapModel.MapModel` through
+    :attr:`MapParams.rois`. What the reduction keys mean is documented in
+    :mod:`dioptas.model.map_reduction`.
     """
 
     events: ClassVar[SignalGroupDescriptor] = SignalGroupDescriptor()
 
-    #: [x_min, x_max] window of the pattern used for the map intensity
-    window: list[float] | None = None
+    #: identifies the layer, and is what expressions refer to
+    name: str = "A"
+
+    #: window on the radial axis, in the unit the map was integrated in
+    x_min: float = 0.0
+    x_max: float = 0.0
+
+    #: one of dioptas.model.map_reduction.REDUCTIONS
+    reduction: str = "sum"
+
+    #: take off the straight line joining the window edges first. The
+    #: peak-shape reductions do this regardless.
+    subtract_background: bool = False
+
+    #: colour of the region drawn in the pattern plot
+    color: str = "#40e0d0"
+
+
+@dataclass
+class MapParams:
+    """User-settable parameters of a MapModel.
+
+    Owned by :class:`dioptas.model.MapModel.MapModel`; the model computes
+    defaults for window and dimension when map data is loaded, so None means
+    "not determined yet". The layout fields below describe how the ordered
+    points are laid out on that grid — see
+    :mod:`dioptas.model.map_layout`.
+    """
+
+    events: ClassVar[SignalGroupDescriptor] = SignalGroupDescriptor()
+
+    #: windows of the pattern, each producing one map layer. The map used to
+    #: have exactly one, which is still what a freshly loaded map gets.
+    rois: list[MapRoiParams] = field(default_factory=list)
+
+    #: name of the layer drawn in the map plot — an ROI or an expression
+    active_layer: str = "A"
+
+    #: named layers computed from the ROI layers, as {name: expression},
+    #: e.g. {"A/B": "A/B"}. Referring to an ROI by name gives its values.
+    expressions: dict[str, str] = field(default_factory=dict)
 
     #: (rows, columns) grid the map points are arranged in
     dimension: tuple[int, int] | None = None
+
+    #: grid cells in row-major order, each holding the index of the point
+    #: shown there or None for a blank. None means the plain sequential
+    #: arrangement, which is what a scan without dropped frames wants.
+    slots: list[int | None] | None = None
+
+    #: reverse every other row — serpentine ("snake") scans
+    snake: bool = False
+
+    #: swap the fast and slow axes of the arranged grid
+    transpose: bool = False
+
+    #: mirror the arranged grid left/right and top/bottom
+    flip_horizontal: bool = False
+    flip_vertical: bool = False
+
+    #: indices of points left out of the map (saturated frames, beam dumps).
+    #: They keep their cell and stay selectable, but read as blank.
+    excluded_points: list[int] = field(default_factory=list)
 
 
 @dataclass

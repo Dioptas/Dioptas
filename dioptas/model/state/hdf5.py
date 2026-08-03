@@ -113,11 +113,32 @@ def _wants_tuple(field_type: Any) -> bool:
     return False
 
 
+def _list_item_dataclass(field_type: Any) -> type | None:
+    """The dataclass a ``list[SomeParams]`` field holds, if it is one."""
+    origin = typing.get_origin(field_type)
+    if origin in (typing.Union, types.UnionType):
+        for arg in typing.get_args(field_type):
+            found = _list_item_dataclass(arg)
+            if found is not None:
+                return found
+        return None
+    if origin is not list:
+        return None
+    args = typing.get_args(field_type)
+    if len(args) != 1:
+        return None
+    item_type = args[0]
+    if dataclasses.is_dataclass(item_type) and isinstance(item_type, type):
+        return item_type
+    return None
+
+
 def params_from_dict(cls: type[T], data: dict) -> T:
     """Constructs a params dataclass from a dict, tolerantly.
 
     Unknown keys in *data* are ignored, missing keys keep the dataclass
-    defaults, and dict values for nested dataclass fields are recursed.
+    defaults, and dict values for nested dataclass fields — including lists
+    of them — are recursed.
     """
     try:
         hints = typing.get_type_hints(cls)
@@ -129,12 +150,18 @@ def params_from_dict(cls: type[T], data: dict) -> T:
             continue
         value = data[f.name]
         field_type = hints.get(f.name)
+        item_cls = _list_item_dataclass(field_type)
         if (
             dataclasses.is_dataclass(field_type)
             and isinstance(field_type, type)
             and isinstance(value, dict)
         ):
             value = params_from_dict(field_type, value)
+        elif item_cls is not None and isinstance(value, list):
+            value = [
+                params_from_dict(item_cls, item) if isinstance(item, dict) else item
+                for item in value
+            ]
         elif isinstance(value, list) and _wants_tuple(field_type):
             # JSON round-trips tuples as lists; restore the declared type so
             # a loaded value compares equal to a freshly set one

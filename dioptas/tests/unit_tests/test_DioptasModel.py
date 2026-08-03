@@ -936,9 +936,27 @@ def test_map_and_phase_params_forwarded_with_namespace(dioptas_model):
     dioptas_model.configuration_params_changed.connect(
         lambda field, new, old: got.append((field, new))
     )
+    # the first window has to be created before it can be moved
     dioptas_model.map_model.window = [5.0, 6.0]
     dioptas_model.phase_model.same_conditions = False
-    assert got == [("map.window", [5.0, 6.0]), ("phase.same_conditions", False)]
+    assert [field for field, _ in got] == ["map.rois", "phase.same_conditions"]
+    assert dioptas_model.map_model.window == [5.0, 6.0]
+
+
+def test_map_roi_edits_are_forwarded_for_the_history(dioptas_model):
+    """A window dragged in the pattern must reach the undo history, which
+    listens on configuration_params_changed."""
+    map_model = dioptas_model.map_model
+    map_model.window = [5.0, 6.0]
+
+    got = []
+    dioptas_model.configuration_params_changed.connect(
+        lambda field, new, old: got.append((field, new))
+    )
+    map_model.rois[0].x_max = 7.0
+    map_model.rois[0].reduction = "area"
+
+    assert got == [("map.roi.x_max", 7.0), ("map.roi.reduction", "area")]
 
 
 def test_phase_same_conditions_round_trips_via_params(dioptas_model, tmp_path):

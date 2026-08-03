@@ -333,6 +333,7 @@ class DioptasModel:
         self.map_model.params.events.disconnect(
             self._on_map_params_event, missing_ok=True
         )
+        self.map_model.roi_params_changed.disconnect(self._on_map_roi_params_changed)
 
     def connect_models(self) -> None:
         """Connects signals of the currently selected configuration."""
@@ -350,6 +351,12 @@ class DioptasModel:
             self._on_calibration_params_event
         )
         self.map_model.params.events.connect(self._on_map_params_event)
+        # a map ROI carries its own evented params, which are not part of the
+        # MapParams group the line above follows
+        self.map_model.roi_params_changed.connect(self._on_map_roi_params_changed)
+
+    def _on_map_roi_params_changed(self, field, new, old) -> None:
+        self.configuration_params_changed.emit("map.roi." + field, new, old)
 
     def _on_configuration_params_event(self, info) -> None:
         """Forwards a psygnal EmissionInfo from the current configuration's
