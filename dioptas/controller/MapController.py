@@ -109,8 +109,9 @@ class MapController:
 
         self.panel_controller.point_selected.connect(self.map_point_selected)
         # a blank cell has no point, but its row in the list is where the
-        # insert/remove/move actions live
-        self.panel_controller.blank_selected.connect(self._select_slot)
+        # insert/remove/move actions live; translated, because the map
+        # closes up over excluded points while the list keeps them
+        self.panel_controller.blank_selected.connect(self._blank_cell_selected)
 
         self._connected_map_model = self.model.map_model
         self._connected_map_model.map_changed.connect(self._map_changed)
@@ -230,11 +231,11 @@ class MapController:
         self.panel_controller.save_map(filename)
 
     def update_file_list(self):
-        """Shows the map cells in arrangement order, blanks included.
+        """Shows the arrangement in order, blanks included.
 
-        Excluded points have no cell any more, so they are listed after the
-        cells, struck through — still there to be put back, but visibly out
-        of the map.
+        Excluded points stay in their row, struck through — the map closes
+        up over them, but the list keeps their place, so leaving one out
+        does not shuffle the list.
         """
         map_model = self.model.map_model
         file_list = self.widget.control_widget.file_list
@@ -251,19 +252,12 @@ class MapController:
                 item = QtWidgets.QListWidgetItem(label)
                 if point is None:
                     item.setForeground(QtGui.QColor(128, 128, 128))
-                file_list.addItem(item)
-            if labels:
-                for point in map_model.excluded_points:
-                    if not 0 <= point < len(map_model.point_infos):
-                        continue
-                    item = QtWidgets.QListWidgetItem(
-                        map_model.point_infos[point].filename
-                    )
+                elif map_model.is_point_excluded(point):
                     font = item.font()
                     font.setStrikeOut(True)
                     item.setFont(font)
                     item.setForeground(QtGui.QColor(128, 128, 128))
-                    file_list.addItem(item)
+                file_list.addItem(item)
             if 0 <= current < file_list.count():
                 file_list.setCurrentRow(current)
         finally:
@@ -382,11 +376,6 @@ class MapController:
         # dest_row is the insertion point before the row is taken out
         target = dest_row if dest_row < start else dest_row - 1
         num_slots = self.model.map_model.num_slots
-        if start >= num_slots:
-            # the excluded rows below the cells are not draggable content;
-            # rebuild the list to undo the visual move
-            self.update_file_list()
-            return
         target = min(target, num_slots - 1)
         self.model.map_model.move_slot(start, target)
 
@@ -403,15 +392,6 @@ class MapController:
         slot = file_list.row(item)
         file_list.setCurrentRow(slot)
         point = self._row_point(slot)
-
-        if slot >= map_model.num_slots:
-            # an excluded row below the cells: the only thing to do with it
-            # is put it back
-            menu = QtWidgets.QMenu(file_list)
-            include_action = menu.addAction("Include point in map")
-            if menu.exec_(file_list.mapToGlobal(position)) is include_action:
-                self.toggle_point_excluded()
-            return
 
         menu = QtWidgets.QMenu(file_list)
         move_up_action = menu.addAction("Move up")
@@ -447,16 +427,10 @@ class MapController:
         return self.widget.control_widget.file_list.currentRow()
 
     def _row_point(self, row: int):
-        """The point behind a list row — a cell, or an excluded entry below
-        the cells."""
-        map_model = self.model.map_model
+        """The point behind a list row, excluded ones included."""
         if row < 0:
             return None
-        if row < map_model.num_slots:
-            return map_model.get_point_of_slot(row)
-        excluded = map_model.excluded_points
-        index = row - map_model.num_slots
-        return excluded[index] if index < len(excluded) else None
+        return self.model.map_model.get_point_of_slot(row)
 
     def _selected_point(self):
         return self._row_point(self._selected_slot())
@@ -476,6 +450,11 @@ class MapController:
         # the rebuilt list restores the row that was selected, which is the
         # place the cell has just left; the selection follows the cell
         self._select_slot(target)
+
+    def _blank_cell_selected(self, visible_slot: int):
+        row = self.model.map_model.get_row_of_visible_slot(visible_slot)
+        if row is not None:
+            self._select_slot(row)
 
     def _select_slot(self, slot: int):
         """Selects a list row without re-selecting the point behind it."""
@@ -513,8 +492,6 @@ class MapController:
         has_map = map_model.map is not None
         slot = self._selected_slot()
         point = self._row_point(slot) if has_map else None
-        # the reorder and blank actions act on cells; the excluded rows
-        # below the cells are not cells
         is_cell = has_map and 0 <= slot < map_model.num_slots
         selected = is_cell
 
@@ -644,11 +621,6 @@ class MapController:
         # dest_row is the insertion point before the row is taken out
         target = dest_row if dest_row < start else dest_row - 1
         num_slots = self.model.map_model.num_slots
-        if start >= num_slots:
-            # the excluded rows below the cells are not draggable content;
-            # rebuild the list to undo the visual move
-            self.update_file_list()
-            return
         target = min(target, num_slots - 1)
         self.model.map_model.move_slot(start, target)
 
@@ -665,15 +637,6 @@ class MapController:
         slot = file_list.row(item)
         file_list.setCurrentRow(slot)
         point = self._row_point(slot)
-
-        if slot >= map_model.num_slots:
-            # an excluded row below the cells: the only thing to do with it
-            # is put it back
-            menu = QtWidgets.QMenu(file_list)
-            include_action = menu.addAction("Include point in map")
-            if menu.exec_(file_list.mapToGlobal(position)) is include_action:
-                self.toggle_point_excluded()
-            return
 
         menu = QtWidgets.QMenu(file_list)
         move_up_action = menu.addAction("Move up")
@@ -709,16 +672,10 @@ class MapController:
         return self.widget.control_widget.file_list.currentRow()
 
     def _row_point(self, row: int):
-        """The point behind a list row — a cell, or an excluded entry below
-        the cells."""
-        map_model = self.model.map_model
+        """The point behind a list row, excluded ones included."""
         if row < 0:
             return None
-        if row < map_model.num_slots:
-            return map_model.get_point_of_slot(row)
-        excluded = map_model.excluded_points
-        index = row - map_model.num_slots
-        return excluded[index] if index < len(excluded) else None
+        return self.model.map_model.get_point_of_slot(row)
 
     def _selected_point(self):
         return self._row_point(self._selected_slot())
@@ -738,6 +695,11 @@ class MapController:
         # the rebuilt list restores the row that was selected, which is the
         # place the cell has just left; the selection follows the cell
         self._select_slot(target)
+
+    def _blank_cell_selected(self, visible_slot: int):
+        row = self.model.map_model.get_row_of_visible_slot(visible_slot)
+        if row is not None:
+            self._select_slot(row)
 
     def _select_slot(self, slot: int):
         """Selects a list row without re-selecting the point behind it."""
@@ -775,8 +737,6 @@ class MapController:
         has_map = map_model.map is not None
         slot = self._selected_slot()
         point = self._row_point(slot) if has_map else None
-        # the reorder and blank actions act on cells; the excluded rows
-        # below the cells are not cells
         is_cell = has_map and 0 <= slot < map_model.num_slots
         selected = is_cell
 
@@ -895,15 +855,8 @@ class MapController:
         self._set_file_list_row(index if index is not None else -1)
 
     def _row_of_point(self, index):
-        """The list row a point sits in — its cell, or its excluded row."""
-        map_model = self.model.map_model
-        row = map_model.get_slot_of_point(index)
-        if row is not None:
-            return row
-        excluded = map_model.excluded_points
-        if index in excluded:
-            return map_model.num_slots + excluded.index(index)
-        return None
+        """The list row a point sits in; excluded points keep their row."""
+        return self.model.map_model.get_slot_of_point(index)
 
     def img_plot_left_clicked(self, x, y):
         if not self.model.current_configuration.is_calibrated:

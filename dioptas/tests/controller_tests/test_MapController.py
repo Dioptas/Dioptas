@@ -687,20 +687,24 @@ def test_dragging_a_row_rearranges_the_map(map_controller):
     assert map_model.get_slots()[:3] == [0, 1, 2]
 
 
-def test_excluded_point_moves_below_the_cells_struck_through(map_controller):
-    """An excluded point has no cell any more; it is listed after the cells,
-    struck through, so it can be found and put back."""
+def test_excluded_point_keeps_its_row_struck_through(map_controller):
+    """Leaving a point out closes its cell in the map, but its row in the
+    list stays where it was — struck through, not shuffled to the end."""
     map_model = load_map(map_controller)
     file_list = map_controller.widget.control_widget.file_list
     map_model.set_point_excluded(1)
 
-    # the cells close up; the excluded file sits below them
-    assert file_list.count() == map_model.num_slots + 1
-    last = file_list.item(file_list.count() - 1)
-    assert last.text() == map_model.point_infos[1].filename
-    assert last.font().strikeOut() is True
-    # the freed cell became a trailing blank
-    assert file_list.item(map_model.num_slots - 1).text() == "—"
+    assert file_list.count() == map_model.num_slots
+    row = file_list.item(1)
+    assert row.text() == map_model.point_infos[1].filename
+    assert row.font().strikeOut() is True
+    # while the map closed up: point 2 moved into the freed cell
+    assert map_model.get_point_index(0, 1) == 2
+
+    # and putting it back restores everything
+    map_model.set_point_excluded(1, False)
+    assert file_list.item(1).font().strikeOut() is False
+    assert map_model.get_point_index(0, 1) == 1
 
 
 def test_grid_popup_shows_and_applies_the_layout(map_controller):
@@ -1201,16 +1205,11 @@ def test_exclude_button_shows_which_way_it_goes(map_controller):
 
     assert "Leave point out" in control.exclude_btn.toolTip()
     map_model.set_point_excluded(0)
-
-    # the point now lives in an excluded row below the cells; selecting it
-    # offers the way back
-    control.file_list.setCurrentRow(map_model.num_slots)
     map_controller.update_point_actions()
-    assert "back into the map" in control.exclude_btn.toolTip()
-    assert control.exclude_btn.isEnabled()
-    assert not control.move_up_btn.isEnabled()  # not a cell
-    assert not control.insert_blank_btn.isEnabled()
 
+    # the row stayed selected in place and offers the way back
+    assert control.file_list.currentRow() == 0
+    assert "back into the map" in control.exclude_btn.toolTip()
     map_controller.toggle_point_excluded()
     assert not map_model.is_point_excluded(0)
 
@@ -1509,3 +1508,23 @@ def test_clicking_a_blank_map_cell_selects_its_row(map_controller):
     )
     click_map_cell(map_controller, row, col)
     assert control.file_list.currentRow() == 4
+
+
+def test_blank_click_translation_skips_excluded_rows(map_controller):
+    """The map closes up over excluded points while the list keeps them, so
+    a clicked blank cell has to be traced past the excluded rows."""
+    map_model = load_map(map_controller)
+    map_controller.activate()
+    map_model.insert_blank(4)          # blank at row 4
+    map_model.set_point_excluded(0)    # row 0 excluded, map shifts by one
+
+    # the blank now sits one cell earlier in the map than its row says
+    row, col = next(
+        (r, c)
+        for r in range(map_model.map.shape[0])
+        for c in range(map_model.map.shape[1])
+        if map_model.get_point_index(r, c) is None
+        and map_model.get_row_of_visible_slot(map_model.get_slot_at(r, c)) == 4
+    )
+    click_map_cell(map_controller, row, col)
+    assert map_controller.widget.control_widget.file_list.currentRow() == 4

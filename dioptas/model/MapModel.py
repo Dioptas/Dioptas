@@ -530,14 +530,31 @@ class MapModel:
         return int(self.dimension[0]) * int(self.dimension[1])
 
     def get_slots(self) -> list[int | None]:
-        """The arrangement as displayed: normalized, padded, and without the
-        excluded points — their cells close up rather than sitting empty."""
-        return map_layout.fit_slots(
-            self.slots,
-            self.num_points,
-            self.num_slots,
-            excluded=self.excluded_points,
-        )
+        """The full arrangement, normalized and padded to the grid.
+
+        Excluded points are still in here, at their place — the list shows
+        them struck through where they belong. Only the map layout leaves
+        them out (see :meth:`get_row_of_visible_slot` for the translation).
+        """
+        return map_layout.fit_slots(self.slots, self.num_points, self.num_slots)
+
+    def get_row_of_visible_slot(self, visible_slot: int) -> int | None:
+        """The arrangement row behind a cell of the drawn map.
+
+        The map closes up over excluded points while the arrangement keeps
+        them, so the two run out of step by one row per excluded point
+        before the cell. None for the trailing blanks that only exist
+        because of exclusions — they have no row of their own.
+        """
+        excluded = set(self.excluded_points)
+        count = -1
+        for row, entry in enumerate(self.get_slots()):
+            if entry is not None and entry in excluded:
+                continue
+            count += 1
+            if count == visible_slot:
+                return row
+        return None
 
     def get_point_of_slot(self, slot: int) -> int | None:
         """The point shown in the given cell of the arrangement, if any."""
@@ -942,8 +959,8 @@ class MapModel:
         """Whether removing the blank at *position* changes anything.
 
         The grid keeps its cell count, so a removed blank only shifts the
-        points after it one cell earlier — and a new blank appears at the
-        end. A blank with no point after it is therefore structural: it
+        entries after it one row earlier — and a new blank appears at the
+        end. A blank with nothing after it is therefore structural: it
         belongs to the grid size, and "removing" it would visibly do
         nothing. Shrinking the grid is what gets rid of those.
         """
