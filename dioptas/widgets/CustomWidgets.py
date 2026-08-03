@@ -286,6 +286,49 @@ class ResetIconButton(FlatButton):
         self.setIcon(render_icon("reset.svg"))
 
 
+class IconActionButton(FlatButton):
+    """Icon-only action whose disabled state reads as unavailable.
+
+    With a stylesheet applied Qt draws through QStyleSheetStyle, which
+    ignores an icon's disabled mode, and the theme fills a disabled flat
+    button with a muted accent — so an action that cannot be used came out
+    looking more prominent than one that can. The fade is therefore applied
+    by hand, as the history buttons do, and the fill removed.
+    """
+
+    _SIZE = 28
+    _DISABLED_OPACITY = 0.3
+
+    def __init__(self, icon_name: str, tooltip: str):
+        super().__init__()
+        self.setIconSize(QtCore.QSize(PLOT_ICON_SIZE, PLOT_ICON_SIZE))
+        self.setFixedSize(self._SIZE, self._SIZE)
+        self.setToolTip(tooltip)
+        self.setStyleSheet(
+            "QPushButton {{ background: transparent;"
+            " border: 1px solid transparent; }}"
+            "QPushButton:hover:enabled {{ border: 1px solid {0}; }}"
+            "QPushButton:disabled {{ background: transparent;"
+            " border: 1px solid transparent; }}".format(PLOT_ICON_COLOR)
+        )
+        self.set_glyph(icon_name)
+
+    def set_glyph(self, icon_name: str):
+        """Swaps which glyph the button shows, keeping its faded twin."""
+        self._icons = (
+            render_icon(icon_name, color=PLOT_ICON_COLOR),
+            render_icon(icon_name, self._DISABLED_OPACITY, color=PLOT_ICON_COLOR),
+        )
+        self._apply_icon()
+
+    def setEnabled(self, enabled: bool):
+        super().setEnabled(enabled)
+        self._apply_icon()
+
+    def _apply_icon(self):
+        self.setIcon(self._icons[0 if self.isEnabled() else 1])
+
+
 class HorizontalLine(QtWidgets.QFrame):
     def __init__(self):
         super().__init__()

@@ -141,6 +141,13 @@ class ImgWidget(QtCore.QObject):
             return
         self.img_histogram_LUT_vertical.setLevels(*colormap_range)
         self.img_histogram_LUT_horizontal.setLevels(*colormap_range)
+        if colormap_range[0] <= 0:
+            # The histogram works in log space and clamps levels <= 0 to 1,
+            # which detector images (never negative) do not notice. Map
+            # layers can be negative throughout — a difference, a contrast —
+            # and came out as a blank map, so their levels go onto the image
+            # directly.
+            self.data_img_item.setLevels(list(colormap_range))
 
     def add_scatter_data(self, x, y):
         self.img_scatter_plot_item.addPoints(x=y, y=x)

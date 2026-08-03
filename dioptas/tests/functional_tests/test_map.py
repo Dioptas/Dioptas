@@ -57,6 +57,12 @@ def test_map(main_controller: MainController):
     map_widget = main_controller.widget.map_widget
 
     assert map_widget.map_pg_layout.isVisible()
+    # at narrow widths the detector image shares the tabs with the controls;
+    # with room it sits beside them and is visible straight away
+    if map_widget._image_tabbed:
+        map_widget.control_widget.tab_widget.setCurrentWidget(
+            map_widget.img_pg_layout
+        )
     assert map_widget.img_pg_layout.isVisible()
     assert map_widget.pattern_pg_layout.isVisible()
 
@@ -365,12 +371,13 @@ def test_map_with_different_dimension(main_controller: MainController):
 
     assert map_widget.map_plot_widget.img_data.shape == (2, 4)
 
-    # however, it is obvious that he actually needs a 4x2 map. He sees, that there are
-    # multiple possible dimensions available below the image widget. He clicks on the
-    # 2x4 dimension and sees that the map is updated.
+    # however, it is obvious that he actually needs a 4x2 map. He opens the grid
+    # dialog below the map and finds the dimensions that fit his images exactly.
+    # He picks 4x2 and sees that the map is updated.
 
-    assert map_widget.map_plot_control_widget.map_dimension_cb.currentText() == "2x4"
-    dim_cb = map_widget.map_plot_control_widget.map_dimension_cb
+    click_button(map_widget.map_plot_control_widget.grid_btn)
+    dim_cb = main_controller.map_controller.panel_controller.grid_popup.map_dimension_cb
+    assert dim_cb.currentText() == "2x4"
     dim_cb_str_list = [dim_cb.itemText(i) for i in range(dim_cb.count())]
     dim_model_str_list = [
         f"{x}x{y}"
@@ -384,3 +391,93 @@ def test_map_with_different_dimension(main_controller: MainController):
     assert map_widget.map_plot_widget.img_data.shape == (4, 2)
 
     # He is satisfied and can go on exploring his map of the sample.
+
+
+def test_map_with_a_dropped_frame_and_several_layers(main_controller: MainController):
+    # Herbert's beamline dropped a frame in the middle of a scan, and the map
+    # he gets back is scrambled: nine points do not fill his 3x3 grid the way
+    # he expects, and everything after the gap sits one cell too early.
+    prepare_map_gui(main_controller)
+
+    map_widget = main_controller.widget.map_widget
+    map_model = main_controller.model.current_configuration.map_model
+    assert map_widget.map_plot_widget.img_data.shape == (3, 3)
+
+    # He right-clicks the cell where the missing frame should have been and
+    # inserts a blank. The points after it move along and the map makes sense
+    # again — the grid grows to hold the extra cell.
+    map_model.insert_blank(4)
+
+    assert map_model.dimension == (4, 3)
+    assert map_model.get_point_index(1, 1) is None
+    assert np.isnan(map_model.map[1, 1])
+    assert map_widget.control_widget.file_list.count() == 12
+    assert map_widget.control_widget.file_list.item(4).text() == "—"
+
+    # His scan also ran serpentine, so he ticks that in the grid popup and the
+    # alternating rows stop coming out mirrored.
+    grid_popup = main_controller.map_controller.panel_controller.grid_popup
+    grid_popup.sigSnakeChanged.emit(True)
+    assert map_model.snake is True
+    assert map_model.get_point_index(1, 2) == 3
+
+    # Summing one peak only tells him how much sample the beam went through,
+    # so he switches the window to a background-corrected peak area, and adds
+    # a second window on another reflection.
+    layer_widget = map_widget.control_widget.layer_widget
+    layer_widget.sigRoiChanged.emit("A", "value_kind", ("area", False))
+    layer_widget.sigAddRoiRequested.emit()
+    assert [roi.name for roi in map_model.rois] == ["A", "B"]
+
+    # The new window is what the map shows straight away, so he can see that
+    # it did something.
+    assert map_model.active_layer == "B"
+
+    # Both windows are drawn in the pattern and he can drag either one; the
+    # one being shown uses the plot's own region, the other gets its own.
+    assert list(main_controller.map_controller.map_roi_controller._extra_items) == ["A"]
+
+    # The ratio of the two is the phase fraction he is actually after, so he
+    # adds it as a computed layer and picks it in the map's layer box.
+    layer_widget.sigAddExpressionRequested.emit()
+    assert map_model.layer_names() == ["A", "B", "A/B"]
+
+    layer_cb = map_widget.map_plot_control_widget.layer_cb
+    layer_cb.setCurrentIndex(layer_cb.count() - 1)
+    assert map_model.active_layer == "A/B"
+
+    expected = map_model.layer_values("A") / map_model.layer_values("B")
+    shown = map_widget.map_plot_widget.img_data
+    assert shown.shape == (4, 3)
+    assert np.nanmax(np.abs(np.sort(shown[np.isfinite(shown)]) - np.sort(expected))) < 1e-9
+
+
+def test_layer_can_be_switched_from_the_map_panel(main_controller: MainController):
+    prepare_map_gui(main_controller)
+    map_widget = main_controller.widget.map_widget
+    mm = main_controller.model.current_configuration.map_model
+    layer_cb = map_widget.map_plot_control_widget.layer_cb
+
+    assert [layer_cb.itemText(i) for i in range(layer_cb.count())] == ["A"]
+
+    # adding a window shows it immediately, and the map changes
+    first = map_widget.map_plot_widget.img_data.copy()
+    map_widget.control_widget.layer_widget.sigAddRoiRequested.emit()
+    assert mm.layer_names() == ["A", "B"]
+    assert [layer_cb.itemText(i) for i in range(layer_cb.count())] == ["A", "B"]
+    assert mm.active_layer == "B"
+    second = map_widget.map_plot_widget.img_data.copy()
+    assert not np.allclose(first, second, equal_nan=True)
+
+    # and the combo below the map switches back
+    layer_cb.setCurrentIndex(0)
+    assert mm.active_layer == "A"
+    assert np.allclose(map_widget.map_plot_widget.img_data, first, equal_nan=True)
+
+    # the radio in the Layers tab does the same, so the choice is also right
+    # next to the window it belongs to
+    holder = map_widget.control_widget.layer_widget.roi_table.cellWidget(1, 0)
+    holder.findChild(QtWidgets.QRadioButton).setChecked(True)
+    assert mm.active_layer == "B"
+    assert np.allclose(map_widget.map_plot_widget.img_data, second, equal_nan=True)
+    assert layer_cb.currentText() == "B"

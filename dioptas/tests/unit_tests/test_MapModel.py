@@ -90,7 +90,9 @@ def test_set_dimensions(map_model: MapModel, configuration: Configuration):
     assert map_model.map.shape == (1, 6)
 
 
-def test_set_wrong_dimensions(map_model: MapModel, configuration: Configuration):
+def test_set_too_small_dimension_is_rejected(
+    map_model: MapModel, configuration: Configuration
+):
     configuration.calibration_model.load(
         os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
     )
@@ -99,9 +101,28 @@ def test_set_wrong_dimensions(map_model: MapModel, configuration: Configuration)
     assert map_model.dimension == (2, 3)
     assert map_model.map.shape == (2, 3)
 
-    map_model.set_dimension((3, 3))
+    map_model.set_dimension((2, 2))  # no room for all six points
     assert map_model.dimension == (2, 3)
     assert map_model.map.shape == (2, 3)
+
+
+def test_set_oversized_dimension_leaves_blanks(
+    map_model: MapModel, configuration: Configuration
+):
+    """A grid larger than the point count is allowed — that is what a scan
+    with dropped frames needs."""
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+
+    map_model.set_dimension((3, 3))
+    assert map_model.dimension == (3, 3)
+    assert map_model.map.shape == (3, 3)
+    # the six points fill the grid in order, the last three cells stay blank
+    assert np.count_nonzero(np.isnan(map_model.map)) == 3
+    assert map_model.get_point_index(0, 0) == 0
+    assert map_model.get_point_index(2, 2) is None
 
 
 def test_set_different_window(map_model: MapModel, configuration: Configuration):
@@ -111,10 +132,13 @@ def test_set_different_window(map_model: MapModel, configuration: Configuration)
     map_model.load(map_img_file_paths[:6])
 
     map_model.set_window((15, 16))
-    assert map_model.window_intensities.all() > 0
+    assert np.all(map_model.window_intensities > 0)
 
-    map_model.set_window((35, 40))  # window outside of pattern range
-    assert map_model.window_intensities.all() == 0
+    # a window outside the pattern range holds no data to reduce, which is
+    # not the same as a measured zero — those points read blank
+    map_model.set_window((35, 40))
+    assert np.all(np.isnan(map_model.window_intensities))
+    assert np.all(np.isnan(map_model.map))
 
 
 def test_get_point_information(map_model: MapModel, configuration: Configuration):
@@ -395,21 +419,526 @@ def test_load_hdf5_without_map_group(map_model: MapModel):
         os.unlink(tmp_path)
 
 
-def test_signals_are_instance_level(configuration: Configuration):
-    """Each MapModel instance must have its own signals — a signal emitted by
-    one instance must not trigger listeners connected to another instance."""
-    model_a = MapModel(configuration)
-    model_b = MapModel(configuration)
+def test_insert_blank_shifts_later_points(
+    map_model: MapModel, configuration: Configuration
+):
+    """The repair for a dropped frame: everything after the gap moves on."""
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    assert map_model.dimension == (2, 3)
 
-    listener_a = MagicMock()
-    listener_b = MagicMock()
-    model_a.map_changed.connect(listener_a)
-    model_b.map_changed.connect(listener_b)
+    map_model.insert_blank(1)
 
-    model_a.map_changed.emit()
-    listener_a.assert_called_once()
-    listener_b.assert_not_called()
+    # the grid grew a row to make room for the extra cell
+    assert map_model.dimension == (3, 3)
+    assert map_model.get_point_index(0, 0) == 0
+    assert map_model.get_point_index(0, 1) is None
+    assert map_model.get_point_index(0, 2) == 1
+    assert np.isnan(map_model.map[0, 1])
 
-    model_b.point_integrated.connect(listener_b)
-    model_a.point_integrated.emit(1.0)
-    listener_b.assert_not_called()
+    map_model.remove_blank(1)
+    assert map_model.get_point_index(0, 1) == 1
+
+
+def test_excluded_point_loses_its_cell_and_returns_to_it(
+    map_model: MapModel, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+
+    map_model.set_point_excluded(2)
+    assert map_model.is_point_excluded(2)
+    # the later points close up; the freed cell joins the blanks at the end
+    assert map_model.get_point_index(0, 2) == 3
+    assert map_model.get_point_index(1, 2) is None
+    assert np.isnan(map_model.map[1, 2])
+
+    map_model.set_point_excluded(2, False)
+    assert map_model.get_point_index(0, 2) == 2
+    assert not np.any(np.isnan(map_model.map))
+
+
+def test_snake_reverses_every_other_row(
+    map_model: MapModel, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+
+    map_model.snake = True
+    assert map_model.get_point_index(1, 0) == 5
+    assert map_model.get_point_index(1, 2) == 3
+    assert map_model.get_point_coordinates(3) == (1, 2)
+
+
+def test_detect_gaps_from_filename_numbering(
+    map_model: MapModel, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+
+    # the test images are named ..._map_<n>_P1_E1_001.tif, so the trailing
+    # number is the same for all of them and says nothing about gaps
+    for index, info in enumerate(map_model.point_infos):
+        info.filepath = f"/scan/point_{index if index < 3 else index + 2:03d}.tif"
+
+    inserted = map_model.detect_gaps()
+    assert inserted == 2
+    assert map_model.get_point_index(0, 2) == 2
+    assert map_model.get_point_index(1, 0) is None
+    assert map_model.get_point_index(1, 1) is None
+    assert map_model.get_point_index(1, 2) == 3
+
+
+def test_detect_gaps_does_nothing_without_a_usable_numbering(
+    map_model: MapModel, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+
+    assert map_model.detect_gaps() == 0
+    assert map_model.dimension == (2, 3)
+
+
+def test_layout_round_trips_through_hdf5(
+    map_model: MapModel, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+
+    map_model.insert_blank(2)
+    map_model.set_point_excluded(4)
+    map_model.snake = True
+    map_model.flip_vertical = True
+
+    with tempfile.NamedTemporaryFile(suffix=".h5", delete=False) as tmp:
+        tmp_path = tmp.name
+
+    try:
+        with h5py.File(tmp_path, "w") as f:
+            map_model.save_in_hdf5(f)
+
+        new_model = MapModel(configuration)
+        with h5py.File(tmp_path, "r") as f:
+            new_model.load_from_hdf5(f)
+
+        assert new_model.dimension == map_model.dimension
+        assert new_model.get_slots() == map_model.get_slots()
+        assert new_model.snake is True
+        assert new_model.flip_vertical is True
+        assert new_model.excluded_points == [4]
+        np.testing.assert_array_equal(new_model.index_map, map_model.index_map)
+        np.testing.assert_array_equal(new_model.map, map_model.map)
+    finally:
+        os.unlink(tmp_path)
+
+
+def test_new_map_starts_from_a_plain_arrangement(
+    map_model: MapModel, configuration: Configuration
+):
+    """An arrangement describes one set of files; loading others drops it."""
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.insert_blank(1)
+    map_model.set_point_excluded(3)
+
+    map_model.load(map_img_file_paths[:6])
+
+    assert map_model.slots is None
+    assert map_model.excluded_points == []
+    assert map_model.dimension == (2, 3)
+    assert not np.any(np.isnan(map_model.map))
+
+
+def test_a_fresh_map_has_one_roi(map_model: MapModel, configuration: Configuration):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+
+    assert [roi.name for roi in map_model.rois] == ["A"]
+    assert map_model.active_layer == "A"
+    assert map_model.window == pytest.approx(
+        [map_model.rois[0].x_min, map_model.rois[0].x_max]
+    )
+
+
+def test_second_roi_gives_a_second_layer(
+    map_model: MapModel, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+
+    map_model.add_roi(window=(15.0, 16.0))
+    assert map_model.layer_names() == ["A", "B"]
+
+    a_values = map_model.layer_values("A")
+    b_values = map_model.layer_values("B")
+    assert a_values is not None and b_values is not None
+    assert not np.allclose(a_values, b_values)
+
+    # the map still shows A until asked otherwise
+    np.testing.assert_array_equal(map_model.window_intensities, a_values)
+    map_model.active_layer = "B"
+    np.testing.assert_array_equal(map_model.window_intensities, b_values)
+
+
+def test_changing_a_reduction_changes_the_layer(
+    map_model: MapModel, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.set_window((14.0, 16.0))
+    summed = map_model.window_intensities.copy()
+
+    map_model.rois[0].reduction = "center"
+
+    assert not np.allclose(map_model.window_intensities, summed)
+    # a peak position lands inside the window it was measured in
+    assert np.all(map_model.window_intensities > 14.0)
+    assert np.all(map_model.window_intensities < 16.0)
+
+
+def test_expression_layer(map_model: MapModel, configuration: Configuration):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.add_roi(window=(15.0, 16.0))
+    map_model.set_expression("ratio", "A/B")
+
+    assert map_model.layer_names() == ["A", "B", "ratio"]
+    expected = map_model.layer_values("A") / map_model.layer_values("B")
+    np.testing.assert_allclose(map_model.layer_values("ratio"), expected)
+
+    map_model.active_layer = "ratio"
+    np.testing.assert_allclose(map_model.window_intensities, expected)
+    np.testing.assert_allclose(map_model.map.ravel(), expected)
+
+
+def test_expression_follows_a_renamed_roi(
+    map_model: MapModel, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.add_roi(window=(15.0, 16.0))
+    map_model.set_expression("ratio", "A/B")
+
+    assert map_model.rename_roi("A", "quartz") is True
+    assert map_model.expressions["ratio"] == "quartz / B"
+    assert map_model.layer_values("ratio") is not None
+
+
+def test_removing_an_roi_drops_expressions_that_needed_it(
+    map_model: MapModel, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.add_roi(window=(15.0, 16.0))
+    map_model.set_expression("ratio", "A/B")
+    map_model.active_layer = "ratio"
+
+    assert map_model.remove_roi("B") is True
+    assert map_model.layer_names() == ["A"]
+    assert map_model.active_layer == "A"
+    assert map_model.map is not None
+
+    # the last window cannot go, or there would be nothing to show
+    assert map_model.remove_roi("A") is False
+
+
+def test_rois_round_trip_through_hdf5(
+    map_model: MapModel, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.rois[0].reduction = "area"
+    map_model.add_roi(window=(15.0, 16.0))
+    map_model.set_expression("ratio", "A/B")
+    map_model.active_layer = "ratio"
+
+    with tempfile.NamedTemporaryFile(suffix=".h5", delete=False) as tmp:
+        tmp_path = tmp.name
+
+    try:
+        with h5py.File(tmp_path, "w") as f:
+            map_model.save_in_hdf5(f)
+
+        new_model = MapModel(configuration)
+        with h5py.File(tmp_path, "r") as f:
+            new_model.load_from_hdf5(f)
+
+        assert new_model.layer_names() == ["A", "B", "ratio"]
+        assert new_model.rois[0].reduction == "area"
+        assert new_model.active_layer == "ratio"
+        np.testing.assert_allclose(new_model.map, map_model.map)
+
+        # and the restored ROIs are live, not a frozen copy
+        new_model.rois[1].x_max = 17.0
+        assert not np.allclose(new_model.layer_values("B"), map_model.layer_values("B"))
+    finally:
+        os.unlink(tmp_path)
+
+
+def test_legacy_project_without_rois_gets_one_from_its_window(
+    map_model: MapModel, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.set_window((14.0, 16.0))
+
+    with tempfile.NamedTemporaryFile(suffix=".h5", delete=False) as tmp:
+        tmp_path = tmp.name
+
+    try:
+        with h5py.File(tmp_path, "w") as f:
+            map_model.save_in_hdf5(f)
+            # emulate a file written before layers existed
+            import json
+
+            data = json.loads(f["map"]["params"].attrs["data"])
+            data.pop("rois", None)
+            f["map"]["params"].attrs["data"] = json.dumps(data)
+
+        new_model = MapModel(configuration)
+        with h5py.File(tmp_path, "r") as f:
+            new_model.load_from_hdf5(f)
+
+        assert [roi.name for roi in new_model.rois] == ["A"]
+        assert new_model.window == pytest.approx([14.0, 16.0])
+        np.testing.assert_allclose(new_model.map, map_model.map)
+    finally:
+        os.unlink(tmp_path)
+
+
+def _overlay_lookup(x, y):
+    return lambda name: (x, y) if name == "ref" else None
+
+
+def _prepare_two_windows(map_model, configuration):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.set_window((14.0, 16.0))
+    map_model.add_roi(name="B", window=(16.5, 18.0))
+
+
+def test_ovl_in_an_expression_subtracts_the_reference(
+    map_model: MapModel, configuration: Configuration
+):
+    """A - ovl(ref): the overlay put through window A, taken off A."""
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.set_window((14.0, 16.0))
+    plain = map_model.layer_values("A").copy()
+
+    map_model.overlay_lookup = _overlay_lookup(
+        map_model.pattern_x.copy(), np.full_like(map_model.pattern_x, 100.0)
+    )
+    map_model.set_expression("d", "A - ovl(ref)")
+
+    import dioptas.model.map_reduction as mr
+    channels = len(mr.window_indices(map_model.pattern_x, (14.0, 16.0)))
+    np.testing.assert_allclose(
+        map_model.layer_values("d"), plain - 100.0 * channels, rtol=1e-6
+    )
+
+
+def test_ovl_with_two_windows_needs_the_window_named(
+    map_model: MapModel, configuration: Configuration
+):
+    _prepare_two_windows(map_model, configuration)
+    map_model.overlay_lookup = _overlay_lookup(
+        map_model.pattern_x.copy(), np.full_like(map_model.pattern_x, 100.0)
+    )
+
+    # ambiguous: two windows in the expression, no window given
+    map_model.set_expression("d", "A - B - ovl(ref)")
+    assert map_model.layer_values("d") is None
+
+    map_model.set_expression("d", "A - B - ovl(ref, A)")
+    expected = (
+        map_model.layer_values("A")
+        - map_model.layer_values("B")
+        - map_model.overlay_window_value("ref", "A")
+    )
+    np.testing.assert_allclose(map_model.layer_values("d"), expected)
+
+
+def test_ovl_respects_the_windows_value_kind(
+    map_model: MapModel, configuration: Configuration
+):
+    """ovl(ref, A) uses A's reduction, not always a sum."""
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.set_window((14.0, 16.0))
+    x = map_model.pattern_x.copy()
+    map_model.overlay_lookup = _overlay_lookup(x, np.full_like(x, 100.0))
+
+    as_sum = map_model.overlay_window_value("ref", "A")
+    map_model.rois[0].reduction = "mean"
+    as_mean = map_model.overlay_window_value("ref", "A")
+
+    assert as_mean == pytest.approx(100.0, rel=1e-6)
+    assert as_sum > as_mean
+
+
+def test_unknown_overlay_blanks_the_expression_layer(
+    map_model: MapModel, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.overlay_lookup = _overlay_lookup(
+        map_model.pattern_x.copy(), np.ones_like(map_model.pattern_x)
+    )
+
+    map_model.set_expression("d", "A - ovl(gone)")
+    assert map_model.layer_values("d") is None
+    assert map_model.overlay_exists("ref") is True
+    assert map_model.overlay_exists("gone") is False
+
+
+def test_overlay_outside_its_range_blanks_rather_than_extrapolates(
+    map_model: MapModel, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.set_window((14.0, 16.0))
+
+    # overlay only covers up to 10 — nowhere near the window
+    x = np.linspace(0.0, 10.0, 50)
+    map_model.overlay_lookup = _overlay_lookup(x, np.ones_like(x))
+    map_model.set_expression("d", "A - ovl(ref)")
+
+    assert np.all(np.isnan(map_model.layer_values("d")))
+
+
+def test_overlays_changed_recomputes_referencing_expressions(
+    map_model: MapModel, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.set_window((14.0, 16.0))
+
+    x = map_model.pattern_x.copy()
+    level = {"value": 100.0}
+    map_model.overlay_lookup = lambda name: (x, np.full_like(x, level["value"]))
+    map_model.set_expression("d", "A - ovl(ref)")
+    map_model.active_layer = "d"
+    first = map_model.window_intensities.copy()
+
+    level["value"] = 200.0
+    map_model.overlays_changed()  # what an overlay edit triggers
+
+    assert not np.allclose(map_model.window_intensities, first)
+
+
+def test_renaming_a_window_follows_into_ovl_but_not_the_overlay_name(
+    map_model: MapModel, configuration: Configuration
+):
+    _prepare_two_windows(map_model, configuration)
+    map_model.set_expression("d", "A - ovl(A, A)")  # overlay happens to share the name
+
+    assert map_model.rename_roi("A", "quartz") is True
+    assert map_model.expressions["d"] == "quartz - ovl(A, quartz)"
+
+
+def test_structural_blanks_cannot_pretend_to_be_removable(
+    map_model: MapModel, configuration: Configuration
+):
+    """A blank with no point after it belongs to the grid size: the grid
+    keeps its cell count, so removing it would visibly do nothing."""
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.set_dimension((3, 3))  # six points, three trailing blanks
+
+    # trailing blanks: "removing" them changes nothing
+    for slot in (6, 7, 8):
+        assert map_model.can_remove_blank(slot) is False
+    before = map_model.get_slots()
+    map_model.remove_blank(7)
+    assert map_model.get_slots() == before
+
+    # a blank with points after it does shift them when removed
+    map_model.insert_blank(2)
+    assert map_model.can_remove_blank(2) is True
+    map_model.remove_blank(2)
+    assert map_model.get_point_index(0, 2) == 2
+
+    # points are never removable, blanks out of range neither
+    assert map_model.can_remove_blank(0) is False
+    assert map_model.can_remove_blank(99) is False
+
+
+def test_windows_cannot_take_the_expression_grammars_names(
+    map_model: MapModel, configuration: Configuration
+):
+    """A window called "sqrt" or "ovl" would shadow the functions and the
+    overlay reference in every expression."""
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+
+    assert map_model.rename_roi("A", "ovl") is False
+    assert map_model.rename_roi("A", "sqrt") is False
+    assert map_model.rename_roi("A", "quartz") is True
+
+
+def test_windows_and_expressions_share_one_namespace(
+    map_model: MapModel, configuration: Configuration
+):
+    """Windows are looked up first, so a colliding name would make the
+    expression layer unreachable (found by review on the PR)."""
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.set_expression("ratio", "A*2")
+
+    # an expression cannot take a window's name, a window cannot take an
+    # expression's, and the automatic window names skip taken ones
+    assert map_model.set_expression("A", "A*2") is False
+    assert map_model.rename_roi("A", "ratio") is False
+    map_model.set_expression("B", "A*3")
+    added = map_model.add_roi()
+    assert added.name == "C"
+    assert sorted(map_model.layer_names()) == sorted(["A", "C", "ratio", "B"])

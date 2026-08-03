@@ -125,6 +125,15 @@ class DioptasModel:
         # the phase model is global (not per-configuration), so its params
         # events are forwarded once and never rewired
         self._phase_model.params.events.connect(self._on_phase_params_event)
+        # map windows can subtract an overlay; an edited overlay has to reach
+        # every configuration's map, not only the current one
+        self._overlay_model.overlay_added.connect(self._on_overlays_changed_for_maps)
+        self._overlay_model.overlay_removed.connect(
+            self._on_overlays_changed_for_maps
+        )
+        self._overlay_model.overlay_changed.connect(
+            self._on_overlays_changed_for_maps
+        )
 
         # Owned binary payloads (mask pixels; overlay data in later steps),
         # content-addressed so snapshots and configurations share them by id.
@@ -332,6 +341,7 @@ class DioptasModel:
         self.map_model.params.events.disconnect(
             self._on_map_params_event, missing_ok=True
         )
+        self.map_model.roi_params_changed.disconnect(self._on_map_roi_params_changed)
 
     def connect_models(self) -> None:
         """Connects signals of the currently selected configuration."""
@@ -349,6 +359,28 @@ class DioptasModel:
             self._on_calibration_params_event
         )
         self.map_model.params.events.connect(self._on_map_params_event)
+        # a map ROI carries its own evented params, which are not part of the
+        # MapParams group the line above follows
+        self.map_model.roi_params_changed.connect(self._on_map_roi_params_changed)
+        # overlays live here, not in the configuration, so the map model gets
+        # a resolver instead of a reference
+        self.map_model.overlay_lookup = self._map_overlay_lookup
+
+    def _map_overlay_lookup(self, name: str):
+        for overlay in self._overlay_model.overlays:
+            if overlay.name == name:
+                return overlay.x, overlay.y
+        return None
+
+    def _on_overlays_changed_for_maps(self, *_args) -> None:
+        # reset() deletes the configurations attribute outright and clears
+        # the overlays while it is gone — those maps are being discarded,
+        # so there is nothing to recompute
+        for configuration in getattr(self, "configurations", []):
+            configuration.map_model.overlays_changed()
+
+    def _on_map_roi_params_changed(self, field, new, old) -> None:
+        self.configuration_params_changed.emit("map.roi." + field, new, old)
 
     def _on_configuration_params_event(self, info) -> None:
         """Forwards a psygnal EmissionInfo from the current configuration's
