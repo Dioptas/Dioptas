@@ -57,8 +57,12 @@ def test_map(main_controller: MainController):
     map_widget = main_controller.widget.map_widget
 
     assert map_widget.map_pg_layout.isVisible()
-    # the detector image shares the tabs with the point and layer controls
-    map_widget.control_widget.tab_widget.setCurrentWidget(map_widget.img_pg_layout)
+    # at narrow widths the detector image shares the tabs with the controls;
+    # with room it sits beside them and is visible straight away
+    if map_widget._image_tabbed:
+        map_widget.control_widget.tab_widget.setCurrentWidget(
+            map_widget.img_pg_layout
+        )
     assert map_widget.img_pg_layout.isVisible()
     assert map_widget.pattern_pg_layout.isVisible()
 

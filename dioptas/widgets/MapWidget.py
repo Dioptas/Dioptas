@@ -86,6 +86,16 @@ class MapWidget(QtWidgets.QWidget):
                 self.img_pg_layout.width() - self.img_autoscale_btn.width() - 5,
                 self.img_pg_layout.height() - self.img_autoscale_btn.height() - 5,
             )
+        # Watched on the splitter itself rather than in resizeEvent: while
+        # the MapWidget is being resized, its children still have their old
+        # geometry, so the width read there is one step behind. getattr
+        # because the image's own filter above already fires during
+        # construction, before the splitter exists.
+        if (
+            obj is getattr(self, "vertical_splitter", None)
+            and event.type() == QtCore.QEvent.Resize
+        ):
+            self._update_image_home()
         return super().eventFilter(obj, event)
 
     def create_layout(self):
@@ -98,12 +108,17 @@ class MapWidget(QtWidgets.QWidget):
         self._left_widget.setLayout(self._left_layout)
         self._left_layout.addWidget(self.map_panel_host)
 
-        # The detector image joins the control tabs instead of sitting
-        # beside them: side by side, a narrow window squeezed the image and
-        # the tables into each other until neither was usable. It only shows
-        # which point is selected, so it does not need to be always on.
-        self.control_widget.tab_widget.insertTab(0, self.img_pg_layout, "Image")
-        self.control_widget.tab_widget.setCurrentIndex(0)
+        # The detector image sits beside the control tabs while there is
+        # room for both, and moves into the tabs (leftmost) when the panel
+        # gets too narrow for the pair — side by side at small widths they
+        # squeezed each other until neither was usable.
+        self.upper_right_splitter = QtWidgets.QSplitter()
+        self.upper_right_splitter.setOrientation(QtCore.Qt.Horizontal)
+        self.upper_right_splitter.addWidget(self.img_pg_layout)
+        self.upper_right_splitter.addWidget(self.control_widget)
+        self.upper_right_splitter.setStretchFactor(0, 1)
+        self.upper_right_splitter.setStretchFactor(1, 1)
+        self._image_tabbed = False
 
         self._lower_right_layout = TightVBoxLayout()
         self._lower_right_layout.addWidget(self.pattern_pg_layout)
@@ -112,7 +127,7 @@ class MapWidget(QtWidgets.QWidget):
 
         self.vertical_splitter = QtWidgets.QSplitter(self)
         self.vertical_splitter.setOrientation(QtCore.Qt.Vertical)
-        self.vertical_splitter.addWidget(self.control_widget)
+        self.vertical_splitter.addWidget(self.upper_right_splitter)
         self.vertical_splitter.addWidget(self.pattern_widget)
         # the pattern is where the windows are set, so it gets the larger half
         self.vertical_splitter.setStretchFactor(0, 4)
@@ -130,6 +145,59 @@ class MapWidget(QtWidgets.QWidget):
         self._outer_layout.addWidget(self.horizontal_splitter)
 
         self.setLayout(self._outer_layout)
+
+        # the upper-right width changes with the window and with the divider
+        # against the map panel, so both feed the image-placement decision
+        self.horizontal_splitter.splitterMoved.connect(
+            lambda *_args: self._update_image_home()
+        )
+        self.vertical_splitter.installEventFilter(self)
+
+    # --- where the detector image lives ----------------------------------
+
+    #: narrowest pane the detector image is worth showing in; below the
+    #: controls' own minimum plus this, the image moves into the tabs
+    _IMAGE_PANE_MIN_WIDTH = 300
+
+    def _image_should_be_tabbed(self, available_width: int) -> bool:
+        controls_min = self.control_widget.minimumSizeHint().width()
+        return available_width < controls_min + self._IMAGE_PANE_MIN_WIDTH
+
+    def _update_image_home(self):
+        self._set_image_tabbed(
+            self._image_should_be_tabbed(self.vertical_splitter.width())
+        )
+
+    def _set_image_tabbed(self, tabbed: bool):
+        """Moves the detector image between its two homes.
+
+        Beside the controls while the panel is wide enough for both; the
+        leftmost tab when it is not. The tab the user is on stays put in
+        either direction.
+        """
+        if tabbed == self._image_tabbed:
+            return
+        self._image_tabbed = tabbed
+        tab_widget = self.control_widget.tab_widget
+        if tabbed:
+            current = tab_widget.currentWidget()
+            tab_widget.insertTab(0, self.img_pg_layout, "Image")
+            if current is not None:
+                tab_widget.setCurrentWidget(current)
+        else:
+            index = tab_widget.indexOf(self.img_pg_layout)
+            if index >= 0:
+                tab_widget.removeTab(index)
+            self.upper_right_splitter.insertWidget(0, self.img_pg_layout)
+            self.upper_right_splitter.setStretchFactor(0, 1)
+            self.upper_right_splitter.setStretchFactor(1, 1)
+            self.img_pg_layout.show()
+
+    def showEvent(self, event):
+        # decided before the first paint, so the mode opens in the layout
+        # its size calls for rather than visibly switching a moment later
+        super().showEvent(event)
+        self._update_image_home()
 
 
 class MapControlWidget(QtWidgets.QWidget):

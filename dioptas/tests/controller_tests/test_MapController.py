@@ -879,16 +879,57 @@ def test_selecting_a_window_survives_a_map_rebuild(map_controller):
     assert table.currentRow() == 1
 
 
-def test_control_column_has_tabs_for_image_points_and_layers(map_controller):
-    """The detector image shares the tabs: beside the tables it collided
-    with them as soon as the panel got narrow."""
-    tabs = map_controller.widget.control_widget.tab_widget
+def test_image_moves_into_the_tabs_only_when_the_panel_is_narrow(map_controller):
+    """The detector image sits beside the controls while there is room, and
+    becomes the leftmost tab when there is not — side by side at small
+    widths, the image and the tables squeezed each other."""
+    widget = map_controller.widget
+    tabs = widget.control_widget.tab_widget
+
+    widget._set_image_tabbed(True)
     assert [tabs.tabText(i) for i in range(tabs.count())] == [
         "Image",
         "Points",
         "Layers",
     ]
-    assert tabs.widget(0) is map_controller.widget.img_pg_layout
+    assert tabs.widget(0) is widget.img_pg_layout
+
+    widget._set_image_tabbed(False)
+    assert [tabs.tabText(i) for i in range(tabs.count())] == ["Points", "Layers"]
+    assert widget.upper_right_splitter.widget(0) is widget.img_pg_layout
+
+
+def test_image_home_follows_the_available_width(map_controller):
+    widget = map_controller.widget
+    controls_min = widget.control_widget.minimumSizeHint().width()
+
+    assert widget._image_should_be_tabbed(controls_min + 100) is True
+    assert widget._image_should_be_tabbed(controls_min + 400) is False
+
+
+def test_switching_the_image_home_keeps_the_current_tab(map_controller):
+    widget = map_controller.widget
+    tabs = widget.control_widget.tab_widget
+    widget._set_image_tabbed(False)
+
+    tabs.setCurrentWidget(widget.control_widget.layer_widget)
+    widget._set_image_tabbed(True)
+    assert tabs.currentWidget() is widget.control_widget.layer_widget
+
+    widget._set_image_tabbed(False)
+    assert tabs.currentWidget() is widget.control_widget.layer_widget
+
+
+def test_image_still_plots_after_moving_between_homes(map_controller):
+    widget = map_controller.widget
+    map_controller.activate()  # the image only updates while the mode is up
+    load_map(map_controller)
+    widget._set_image_tabbed(True)
+    widget._set_image_tabbed(False)
+    widget._set_image_tabbed(True)
+
+    assert widget.img_plot_widget.img_data is not None
+
 
 
 def test_show_radio_picks_which_layer_is_drawn(map_controller):

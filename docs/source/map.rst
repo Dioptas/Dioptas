@@ -19,13 +19,14 @@ want to explore how diffraction patterns vary across the sample.
 Overview
 --------
 
-The Map module has a three-panel layout:
+The Map module has a four-panel layout:
 
 - **Map image** (left): Shows a 2D map where each pixel represents an integrated diffraction pattern.
   The pixel value is derived from a selected feature of the pattern (e.g., intensity in a region of interest).
-- **Control panel** (upper right): Three tabs — *Image*, the raw diffraction image of the
-  currently selected map position; *Points*, for loading the images and arranging them on the
-  grid; and *Layers*, for what each point measures.
+- **Image view and control panel** (upper right): the raw diffraction image of the currently
+  selected map position, beside two tabs — *Points*, for loading the images and arranging them on
+  the grid, and *Layers*, for what each point measures. When the panel is too narrow for both,
+  the image moves into the tabs (leftmost) instead of squeezing the tables.
 - **Pattern plot** (lower right): Shows the integrated pattern for the currently selected map position.
 
 
