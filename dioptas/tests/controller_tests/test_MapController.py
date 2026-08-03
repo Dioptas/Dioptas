@@ -1528,3 +1528,28 @@ def test_blank_click_translation_skips_excluded_rows(map_controller):
     )
     click_map_cell(map_controller, row, col)
     assert map_controller.widget.control_widget.file_list.currentRow() == 4
+
+
+def test_saving_an_all_blank_map_as_tiff_does_not_crash(
+    map_controller, tmp_path
+):
+    """A layer can be NaN everywhere (window outside the pattern, an
+    overflowing expression); saving it must still produce a file."""
+    map_model = load_map(map_controller)
+    map_model.set_window((100.0, 200.0))  # outside the pattern
+    assert np.all(np.isnan(map_model.map))
+
+    filename = str(tmp_path / "blank_map.tiff")
+    map_controller.panel_controller.save_map(filename)
+    assert os.path.exists(filename)
+
+
+def test_expression_taking_a_window_name_is_refused_with_a_message(
+    map_controller,
+):
+    map_model = load_map(map_controller)
+    widget = layer_widget(map_controller)
+
+    widget.sigExpressionChanged.emit("A", "A*2")
+    assert "already a window" in widget.message_lbl.text()
+    assert "A" not in map_model.expressions

@@ -262,9 +262,16 @@ class MapPanelController:
         elif filename.endswith(".tiff"):
             data = np.asarray(self.model.map_model.map, dtype=float)
             max_uint32 = np.iinfo(np.uint32).max
-            d_min, d_max = np.nanmin(data), np.nanmax(data)
-            span = d_max - d_min
-            normalized_data = (data - d_min) / span if span else np.zeros_like(data)
+            if np.any(np.isfinite(data)):
+                d_min, d_max = np.nanmin(data), np.nanmax(data)
+                span = d_max - d_min
+                normalized_data = (
+                    (data - d_min) / span if span else np.zeros_like(data)
+                )
+            else:
+                # a map of only blanks (window outside the pattern, a layer
+                # that overflowed) still has to save, as an empty image
+                normalized_data = np.zeros_like(data)
             # an integer image has no way to say "no data"; blanks go to zero
             normalized_data = np.nan_to_num(normalized_data, nan=0.0)
             normalized_data = (normalized_data * max_uint32).astype(np.uint32)

@@ -332,6 +332,10 @@ class MapModel:
             # "sqrt" or "ovl" as a window name would shadow the expression
             # grammar's own words
             return False
+        if new_name in self.params.expressions:
+            # windows are looked up first, so a window taking an expression
+            # layer's name would make that layer unreachable
+            return False
         self._suspend_rebuild = True
         try:
             roi.name = new_name
@@ -349,7 +353,11 @@ class MapModel:
         return True
 
     def _next_roi_name(self) -> str:
-        taken = {roi.name for roi in self.params.rois}
+        # expression layers share the namespace: a window taking one of
+        # their names would shadow the expression
+        taken = {roi.name for roi in self.params.rois} | set(
+            self.params.expressions
+        )
         for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
             if letter not in taken:
                 return letter
@@ -371,11 +379,19 @@ class MapModel:
     def expressions(self) -> dict[str, str]:
         return self.params.expressions
 
-    def set_expression(self, name: str, expression: str):
-        """Adds or replaces a layer computed from the ROI layers."""
+    def set_expression(self, name: str, expression: str) -> bool:
+        """Adds or replaces a layer computed from the ROI layers.
+
+        Refuses a name a window already holds: windows are looked up first,
+        so the expression layer would be unreachable and the layer list
+        ambiguous.
+        """
+        if not name or self.get_roi(name) is not None:
+            return False
         updated = dict(self.params.expressions)
         updated[name] = expression
         self.params.expressions = updated
+        return True
 
     def remove_expression(self, name: str) -> bool:
         if name not in self.params.expressions:

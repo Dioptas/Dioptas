@@ -174,7 +174,8 @@ class MapGridPopup(QtWidgets.QFrame):
         blanks = cells - num_points
         if blanks > 0:
             self.capacity_lbl.setText(
-                f"{num_points} points in {cells} cells — {blanks} blank"
+                f"{num_points} points in {cells} cells — "
+                f"{blanks} blank{'s' if blanks != 1 else ''}"
             )
         elif blanks < 0:
             self.capacity_lbl.setText(

@@ -327,7 +327,12 @@ class MapController:
     def _expression_changed(self, name, expression):
         map_model = self.model.map_model
         layer_widget = self.widget.control_widget.layer_widget
-        map_model.set_expression(name, expression)
+        if not map_model.set_expression(name, expression):
+            layer_widget.set_message(
+                f"'{name}' is already a window — pick another name."
+            )
+            self.update_layer_widget()
+            return
         problem = map_expression.validate(
             expression,
             {roi.name for roi in map_model.rois},

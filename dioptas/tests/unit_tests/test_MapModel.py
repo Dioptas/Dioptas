@@ -921,3 +921,24 @@ def test_windows_cannot_take_the_expression_grammars_names(
     assert map_model.rename_roi("A", "ovl") is False
     assert map_model.rename_roi("A", "sqrt") is False
     assert map_model.rename_roi("A", "quartz") is True
+
+
+def test_windows_and_expressions_share_one_namespace(
+    map_model: MapModel, configuration: Configuration
+):
+    """Windows are looked up first, so a colliding name would make the
+    expression layer unreachable (found by review on the PR)."""
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:6])
+    map_model.set_expression("ratio", "A*2")
+
+    # an expression cannot take a window's name, a window cannot take an
+    # expression's, and the automatic window names skip taken ones
+    assert map_model.set_expression("A", "A*2") is False
+    assert map_model.rename_roi("A", "ratio") is False
+    map_model.set_expression("B", "A*3")
+    added = map_model.add_roi()
+    assert added.name == "C"
+    assert sorted(map_model.layer_names()) == sorted(["A", "C", "ratio", "B"])
