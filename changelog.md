@@ -4,101 +4,71 @@
 
 ## Breaking changes
 
-- **Project files (.dio) written by Dioptas 0.8.7 or earlier can no longer be opened.** This release reorganised what a project file contains, and supporting both layouts would have meant carrying the old one indefinitely. Opening an older project shows a message naming the version that can read it, rather than failing part way through. Earlier Dioptas releases stay available on PyPI and GitHub for exactly that. Images, calibrations, masks and patterns are unaffected — they live in standard formats outside the project file. On first start after upgrading, the automatically saved session from the previous version is likewise dropped once.
+- **Project files (.dio) written by Dioptas 0.8.7 or earlier can no longer be opened.** The project file format was reorganised; opening an older project shows a message naming the version that can still read it, and earlier Dioptas releases remain available on PyPI and GitHub for exactly that. Images, calibrations, masks and patterns are unaffected — they live in standard formats outside the project file. On first start after upgrading, the automatically saved session from the previous version is likewise dropped once.
 
 ## New Features
 
-- **A map point can now measure more than the counts in one window.** Each window of the pattern produces one map layer, and the new *Windows* table chooses what that window is reduced to: the plain sum as before, the **peak area** with the straight line under the peak subtracted, the **peak position** — which makes a d-spacing, and therefore strain, map — or the **peak width (FWHM)**. A raw sum tracks how much sample the beam went through as much as it tracks the phase, so maps made that way often show thickness; the background-corrected area does not. Nothing is fitted — a **?** beside each table explains exactly how every value kind is computed, and what can be written in an expression. Expressions can also reference **overlays**: `A - ovl(bkg_empty)` maps the difference to a reference pattern, with the overlay put through the window's own range and value kind.
+- **Map layers.** Each window of the pattern produces one layer of the map, and its *Value* chooses what is measured: the plain sum, a background-subtracted sum, mean, max, **peak area** (with a linear background removed), **peak position** — which makes a d-spacing, and therefore strain, map — or **peak width (FWHM)**. A **?** beside the table explains exactly how each value is computed.
 
-- **Several windows at once, and arithmetic between them.** Every window is drawn in the pattern plot in its own colour and can be dragged there, and *Computed layers* combine them by name — `A/B` for a phase fraction, `(A-B)/(A+B)` for a contrast that survives changes in illumination. Only arithmetic on the layer names, numbers and a small set of element-wise functions is accepted. One layer is drawn at a time, chosen by the radio button beside it in the Layers tab or by the Layer box below the map; a window you have just added is shown straight away. Each window has a colour, shown as a swatch in its row and used for its region in the pattern plot and for highlighting its row — click the swatch to change it.
+- **Several map windows, and math between them.** Every window is drawn in the pattern plot in its own colour (click the swatch in its row to change it) and can be dragged there. *Computed layers* combine windows by name — `A/B` for a phase fraction, `(A-B)/(A+B)` for a contrast — and can reference overlays: `A - ovl(bkg_empty)` maps the difference to a reference pattern. The displayed layer is picked with the radio button beside it or the Layer box below the map.
 
-- **Dropped frames no longer scramble a map, silently.** A scan that lost one image previously could not fill its grid at all — nine points do not factor into 3×3 — and every point after the gap sat one cell too early, in a map that still looked plausible. The cell list now has one row per grid cell rather than per file, so a gap is visible: rows can be dragged or nudged one place at a time to rearrange the map, and right-clicking one inserts a blank for a missing frame, removes a blank, or leaves a bad point (a saturated frame, a beam dump) out — its cell closes up in the map while its row in the list stays put, struck through, until it is put back. Clicking a blank cell in the map selects its row in the list. **Check filename numbering** in the new Grid dialog finds numbers missing from the file names and inserts a blank for each, repairing a dropped frame in one click. All of these are icon buttons beside the list as well as right-click actions, and fade out when they do not apply.
+- **Repairable map grids.** The point list shows one row per grid cell, so a frame dropped by the beamline is visible and fixable: insert or remove blank cells, reorder rows by dragging or one step at a time, or leave a bad point out — it stays in the list, struck through, until it is put back. **Check filename numbering** finds missing file numbers and inserts a blank for each automatically. The Grid dialog accepts any grid size (not only exact factorizations of the point count) and adds **serpentine (snake) scans**, axis swapping and mirroring.
 
-- **The detector image yields instead of colliding.** It sits beside the map mode's Points/Layers tabs while there is room; when the panel gets too narrow for both — previously the image and the tables squeezed each other until neither was usable — it moves into the tabs as the leftmost one and each side gets the full width.
+- The detector image sits beside the map controls while there is room, and moves into the tabs when the panel becomes too narrow for both.
 
-- **Grid layouts that match how scans are actually run.** The Grid dialog takes any number of rows and columns with room for the points — not only exact factorizations of the point count, so a grid with blank cells is now possible at all — and adds **serpentine (snake) scans**, where every other row ran in the opposite direction and previously came out mirrored, along with swapping the fast and slow axis and mirroring either way. Blank cells are drawn transparent and left out of the colour scale.
+- **Undo and redo work across the whole application**, not just the mask: Ctrl+Z / Ctrl+Shift+Z (Cmd on macOS) in every mode, with the buttons at the top of the left sidebar. Covered are settings of every kind, mask edits, calibration peak picking and refinement, loading images and patterns, overlays, phases, and the image corrections. One drag of a spinbox is one step, and undoing an image load brings the previous image and its mask back. The separate Undo buttons in mask mode and calibration are gone, as are the never-functional Ctrl+O/Ctrl+A mask shortcuts.
 
-- **Undo and redo now work across the whole application, not just the mask.** Ctrl+Z and Ctrl+Shift+Z (Cmd on macOS) apply in every mode, stepping back through everything in the order it was done. The buttons sit at the top of the left sidebar, so the history is reachable wherever you are; they grey out at the ends and their tooltip names the step they would apply. There is one history, and one pair of buttons: the separate Undo buttons that mask mode and calibration each kept are gone. Ctrl+O and Ctrl+A in mask mode have been removed — they were listed as shortcuts for loading and adding a mask file but never actually worked; the Load Mask and Add Mask buttons are unchanged.
+- **Calibration is now a step-by-step wizard** — 1. Image, 2. Pick Rings, 3. Calibrate, 4. Validation. Each page shows only what its step needs, completed steps can be revisited from the stepper, and loading an existing calibration jumps straight to validation.
 
-- What can be reversed: settings of every kind, mask drawing, thresholds and plugin imprints, calibration peak picking and refinement, loading an image or a pattern, adding and removing overlays and phases, phase pressure and temperature, and the absorption and transfer corrections. Undoing an image load re-opens the file that was on screen before and brings its mask back with it, even when the two images come from different detectors.
+- Picked calibration peaks can be managed in a table — reassign a group's ring, highlight it in the image, delete selected groups — instead of only clearing everything and starting over.
 
-- **A step matches an action rather than an internal event.** Dragging a spinbox is one undo, not one per intermediate value. Imprinting a mask plugin restores the mask and re-enables the plugin together. Changing the pressure with "apply to all phases" switched on is a single undo rather than one per phase.
+- The validation step shows image, cake and pattern side by side with a linked 2θ marker in all three, and overlays the calibrant's (and loaded phases') reflections in every view. Parameters can be fixed to chosen values before calibrating.
 
-- Undoing recomputes only what actually changed: reverting an integration setting re-integrates once even when the step changed several of them, reverting something unrelated to the integration does not re-integrate at all, and a configuration the step never touched is left alone.
+- Calibration parameters can be typed in directly ("Enter Manually") without a .poni file, and the wavelength can also be entered as an energy in keV.
 
-- Calibration peaks are now saved in project files. They were previously lost when a project was saved.
+- Setup values still at their shipped defaults — distance, wavelength, pixel size, calibrant — carry an orange border until confirmed, since a silently wrong default is the easiest way to a nonsense calibration.
 
-- **Calibration is now a step-by-step wizard.** A stepper across the top — 1. Image, 2. Pick Rings, 3. Calibrate, 4. Validation — shows where you are and what is done, and the panel shows only what the current step needs: load and orient the image and describe the detector; pick peaks on the rings; choose calibrant, wavelength and distance and calibrate; then judge the result. Next unlocks when a step's prerequisites exist (an image, picked peaks, a calibration), and completed steps can be revisited by clicking the stepper. Actions live where they can actually run: Calibrate at the end of step 3, while the fitted pyFAI/Fit2d parameters, Refine and Save Calibration belong to the validation step — replacing the always-present buttons and the error dialogs that previously fired after the click. The cake and pattern views only appear on the validation step, where they are needed to judge the calibration; before that the display is just the image, uncluttered. Loading an existing calibration still works from anywhere and jumps straight to validation.
+- Calibration peaks are now saved in project files; they were previously lost on save.
 
-- Picked calibration peaks can now be managed, not just cleared. The Pick Rings step shows a table of the picked groups — a ring spinbox to reassign the group, number of peaks, mean position. Selecting rows marks those peaks in the image with a subtle outline, changing the current ring number highlights every group of that ring, and selected groups can be deleted with the Delete button or the Del key. Previously a mis-picked ring meant clearing everything and starting over.
-
-- The validation step shows image, cake and pattern side by side instead of tabs. Clicking any of the three places a green marker at the same 2θ in all of them — the iso-2θ ring on the image, a vertical line in the cake, the position line in the pattern — for checking that rings, cake lines and peaks line up. The calibrant's reflections are overlaid in every view — the red lines known from the pattern also appear as rings on the image and vertical lines in the cake — and loaded phases join them in their phase color, all semi-transparent, so the match with the measured peaks is visible at a glance. Parameters can be fixed to chosen values before calibrating: the start values carry fit checkboxes and value fields for the rotations and PONI next to distance and wavelength, synced with the fitted values afterwards. The refinement options show the automatic-refinement parameters only while automatic refinement is enabled.
-
-- Known calibration parameters can be entered directly: "Enter Manually" at the bottom of the calibration panel opens the parameter page for typing pyFAI or Fit2d values without a .poni file, with a clear message if fields are left empty. Resetting the project now also clears the picked peaks and the displayed mask from the views — both previously survived the reset on screen.
-
-- Setup values still at their shipped defaults — distance, wavelength, pixel size, calibrant — carry an orange border until you confirm them by editing, loading a detector or calibration, or calibrating successfully; a silently wrong default is the easiest way to get a nonsense calibration. The wavelength can now also be entered as an energy in keV, with the two fields kept in sync. Expert options (peak search mode and size, refinement tuning parameters) sit behind collapsed "advanced" toggles on their pages.
+- Project files are considerably smaller, and saving is atomic: an interrupted or failed save can no longer damage the existing file.
 
 ## Bugfixes
 
-- Undoing an image load did nothing, and undoing a second load did not bring the first image back. "No image loaded" was treated as a state that could not be returned to, so the first undo left the image on screen while the history believed it had gone back; the next action then discarded the step that was actually displayed. Undo now unloads, and a step that cannot be applied in full — a file that has moved since, for instance — is recorded as what was actually achieved, so the history and what you see cannot drift apart.
+- Undoing an image load did nothing, and a second undo could not bring the first image back; the history could then drift from what was on screen.
 
-- Undoing a picked calibration peak left the ring number advanced, so the next pick went to the wrong ring. The counter now follows the history however the undo was triggered.
+- Undoing a picked calibration peak left the ring number advanced, so the next pick went to the wrong ring.
 
-- Undoing and redoing a phase repainted it in a different colour each time, because restoring a phase went through the same path as adding a new one and took the next colour from the sequence. Restored phases keep their own colour.
+- Undoing and redoing a phase repainted it in a different colour each time; restored phases keep their colour.
 
-- Loading a project into a session that already had phases or overlays added to them instead of replacing them, so they doubled with every load.
+- Loading a project into a session that already had phases or overlays added to them instead of replacing them, doubling them with every load.
 
-- Copying a phase marked it as modified — the asterisk meaning it no longer matches the file it came from — so a copy claimed an edit that never happened.
+- Copying a phase marked it as modified although nothing was edited.
 
-- Saving a project could leave the previous file damaged if the save failed or was interrupted part way through.
+- On macOS, drop-down boxes took an extra click before their list would stay open; the lists also open below the box now instead of covering the full screen height.
 
-- On macOS, drop-down boxes took an extra click before their list would stay open. They were built on a custom widget from the Qt4 days that swallowed the mouse press and opened the list itself, which left Qt unaware that a click was in progress, so the release that followed closed the list again. They are now ordinary combo boxes, and their list drops down below the box and scrolls, instead of covering it at the full height of the screen.
+- The calibration view showed the literal text "position_lbl" until the mouse first moved over the image.
 
-- The calibration view showed the literal text "position_lbl" in its status corner until the mouse first moved over the image.
+- After loading an existing calibration, Pick Rings showed as not started; steps a loaded calibration makes unnecessary now show as skipped, with a tooltip saying why.
 
-- After loading an existing calibration, the wizard marked Calibrate and Validation as done while Pick Rings still looked not started, contradicting the idea of a sequence. A step that a loaded or manually entered calibration makes unnecessary now shows a gray dash — skipped — with a tooltip saying why.
+- Values in disabled input fields were rendered so dim they were unreadable on the dark theme.
 
-- Values in disabled input fields — the parameters of a correction that is not yet enabled, for instance — were rendered so dim they were unreadable on the dark background. They are legible now, while still clearly inactive; the same applies to disabled labels, checkboxes and radio buttons.
-
-- Phase names in the pattern plot were drawn on top of the y-axis; they now sit inside the plot area.
+- Phase names in the pattern plot were drawn on top of the y-axis.
 
 - The batch view labelled a missing calibration or mask file "undefined"; it now says "none loaded".
 
-- Sporadic "wrapped C/C++ object has been deleted" / attribute errors from inside the Qt event loop are fixed: pyqtgraph's plot label item can be asked for its size during construction and again during teardown, at moments where it is not ready to answer. Dioptas hit this through the histogram colour bar and the plot legends.
+- The point masking tool's size and threshold fields were unlabelled numbers.
 
-- Updating the background region while batch data was loaded crashed with a NameError on a variable that never existed; the code path had simply never been exercised.
+- The Bkg and X tabs of the integration view were cut off mid-control at small window heights.
 
-- The point masking tool's size box now carries a px suffix and a tooltip, and the threshold fields hint that they take counts — previously the number 20 stood unlabelled next to the Point button.
+- Empty calibration and batch views now say how to load data instead of showing a black void.
 
-- The Bkg and X tabs of the integration view were cut off mid-control: the splitter squeezes the control area down to its minimum size, and pages whose content sits in an inner tab widget reported a minimum far below what their controls need. The control area now reserves the height the current tab actually requires. The Cor tab keeps its compact height: its parameter pages scroll by design, so only the menu column has to stay fully visible.
+- Sporadic "wrapped C/C++ object has been deleted" errors coming from the plot labels are fixed.
 
-- Empty views now say what to do instead of showing a black void: the calibration view suggests loading a calibration image (and names the supported formats), and the batch view explains how to open a file series. The hints disappear as soon as data is loaded. The calibration panel's "Load Calibration" and "Enter Manually" buttons carry a caption — "Already have a calibration?" — so the alternative entry into the workflow no longer reads as two stray buttons at the bottom of the panel.
+- Updating the background region while batch data was loaded crashed.
 
-- The coloured legacy icons — the yellow folder and the blue floppy disk — are replaced with monochrome outline glyphs matching the undo/edit/delete set, so the icon language is consistent across the overlay and phase lists, the batch toolbar and the detector panel. Colour is now used where it carries meaning rather than by accident: the save icons inside the plot areas (pattern, image, map) are drawn larger and in a steel blue that marks them as a different kind of control than the orange labelled actions beside them, and "remove all overlays"/"remove all phases" are red, so the one click that discards a whole list looks different from the buttons around it. Hovering these icon buttons outlines them in their own colour instead of the general orange. The mask plugin rows join in: settings shows the same gear as everywhere else instead of a file-list icon, and imprint gets a stamp glyph instead of the letter "I", which read as the integration view's Inspect buttons.
+## Appearance
 
-- The toggle buttons beside the pattern plot (2θ/Q/d, Log, √, bg, AA, A) now sit in visually connected groups instead of spreading over the full plot height, every one of them explains itself in a tooltip, and the active toggles carry an amber fill so the current state is readable at a glance.
-
-## Distribution
-
-- A project file is now the settings tree plus the data it refers to: one JSON document holding every setting, and content-addressed datasets for masks, overlay curves and image copies. Identical content is stored once, so two configurations masking the same detector no longer store two copies. The previous layout wrote every value twice — once as an HDF5 attribute and once in a settings document — and spent one HDF5 group per reflection; a two-phase project used 72 groups where it now uses four.
-
-- Projects are written atomically: the save goes to a temporary file that replaces the project only once it has succeeded.
-
-## Internal
-
-- Undo/redo is built on snapshots of the evented settings rather than an `undo()` per action. Because every setting already lives in a params dataclass behind a single change surface, a snapshot of the whole settings tree is about 1.5 kB — cheap enough to keep one per step, and impossible for an action to forget to register. The history is a list of states with a cursor rather than a pair of stacks, which removes the class of bug that comes from keeping parallel bookkeeping in step; the mask's four undo/redo deques are gone with it.
-
-- Bulk data is shared rather than copied, according to how it is mutated. Masks and overlay curves are *owned* — nothing can reproduce them — and live in a content-addressed store (`dioptas/model/state/payload.py`) that snapshots reference by id, so an unchanged mask costs one string per step and a hundred mask edits on a 2048×2048 detector cost about 0.3 MB in total. Image pixels are *external*: the file path is the state and the pixels are a cache re-read on demand.
-
-- The state migration that made this possible moved everything a user can set or produce out of the models and into params documents: the loaded image, series position and background image; the picked calibration peaks (previously two index-parallel lists); the pyFAI geometry and detector; the loaded pattern and its background, referenced by a stable overlay id; and the image corrections, whose scalar parameters are state while their angle grids and reference images are caches. Writing any of these now has exactly the effect the corresponding action has.
-
-- jcpds phases are split into state and derived values: a `CrystalState` dataclass holds what a user sets or a file provides, while the pressure- and temperature-dependent cell, moduli and d-spacings are recomputed. `phase.params` remains as a dict-style view, so the JCPDS editor is unchanged. The dict subclass that flagged itself on write — the cause of the copy-marks-modified bug — no longer exists.
-
-- Because settings are now serialised generically, the hand-written project reader and writer are gone (588 lines from `Configuration` alone), and adding a setting needs no save/load code at all.
-
-- Deliberately outside the history: the window layout and docking state, and the working directories. Undo reverses the work, not the furniture or which folder a file dialog last pointed at. Loading a project, resetting, and adding or removing a configuration start a fresh history rather than being undoable.
-
-- CI now lints for the defect classes the test suite cannot see — syntax errors, undefined names, and shadowed redefinitions (a duplicated function body silently loses one copy). Its first run found a latent crash and three tests that had never actually run.
+- A consistent monochrome icon set replaces the coloured legacy icons across the overlay and phase lists, the batch toolbar, the detector panel and the mask plugin rows (which get a real settings gear, and a stamp for imprint instead of the letter "I"). Buttons that discard a whole list are red; the toggle buttons beside the pattern plot are grouped, carry tooltips, and show an amber fill when active.
 
 # 0.8.7 (29.07.2026)
 
