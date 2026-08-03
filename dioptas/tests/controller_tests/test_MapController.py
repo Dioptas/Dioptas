@@ -1442,3 +1442,25 @@ def test_remove_blank_button_disabled_for_structural_blanks(map_controller):
     map_model.insert_blank(1)  # a repair blank, points after it
     control.file_list.setCurrentRow(1)
     assert control.remove_blank_btn.isEnabled()
+
+
+def test_help_reopens_after_the_user_closed_it(map_controller, qapp):
+    """The dialog deletes itself on close; reopening then called close() on
+    the dead wrapper and raised through the excepthook."""
+    widget = layer_widget(map_controller)
+
+    widget.roi_help_btn.clicked.emit()
+    widget._help_dialog.close()  # what the user's window-close does
+    for _ in range(5):  # delete-on-close finishes in the event loop
+        qapp.processEvents()
+
+    widget.roi_help_btn.clicked.emit()  # used to raise RuntimeError
+    assert widget._help_dialog is not None and widget._help_dialog.isVisible()
+
+    # and again for the other help, closing via the same path
+    widget._help_dialog.close()
+    for _ in range(5):
+        qapp.processEvents()
+    widget.expression_help_btn.clicked.emit()
+    assert widget._help_dialog is not None and widget._help_dialog.isVisible()
+    widget._help_dialog.close()

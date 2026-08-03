@@ -487,10 +487,22 @@ reason shown below the tables.</p>
         (and any test) until dismissed.
         """
         if self._help_dialog is not None:
-            self._help_dialog.close()
+            try:
+                self._help_dialog.close()
+            except RuntimeError:
+                # delete-on-close destroyed it behind the wrapper already
+                pass
         dialog = QtWidgets.QDialog(self)
         dialog.setWindowTitle(title)
         dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        # delete-on-close kills the C++ object when the user closes the
+        # dialog; without dropping the reference the next open would call
+        # close() on the dead wrapper. Bound to this dialog: the destruction
+        # arrives deferred, and one replaced by a newer dialog must not
+        # clear the newer one's reference.
+        dialog.destroyed.connect(
+            lambda _=None, closed=dialog: self._forget_help_dialog(closed)
+        )
         layout = QtWidgets.QVBoxLayout(dialog)
         text = QtWidgets.QTextBrowser()
         text.setHtml(html)
@@ -499,6 +511,10 @@ reason shown below the tables.</p>
         dialog.resize(520, 560)
         dialog.show()
         self._help_dialog = dialog
+
+    def _forget_help_dialog(self, closed):
+        if self._help_dialog is closed:
+            self._help_dialog = None
 
     # --- filling in ------------------------------------------------------
 
