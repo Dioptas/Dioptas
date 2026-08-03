@@ -115,7 +115,6 @@ class CalibrationController:
         self.widget.refine_btn.clicked.connect(self.refine)
 
         self.widget.clear_peaks_btn.clicked.connect(self.clear_peaks)
-        self.widget.clear_ring_btn.clicked.connect(self.clear_current_ring)
         self.widget.peak_num_sb.valueChanged.connect(self.current_ring_changed)
 
         self._updating_peak_table = False
@@ -1149,14 +1148,6 @@ class CalibrationController:
         self.model.calibration_model.clear_peaks()
         self.widget.img_widget.clear_scatter_plot()
         self.widget.peak_num_sb.setValue(1)
-
-    def clear_current_ring(self):
-        """
-        Deletes all peaks for the currently selected ring.
-        """
-        ring_ind = self.widget.peak_num_sb.value() - 1
-        self.model.calibration_model.remove_peaks_by_ring(ring_ind)
-        self.plot_points()
 
     def load_spline_btn_click(self):
         filename = open_file_dialog(
