@@ -167,9 +167,15 @@ class MaskPluginSettingsDialog(QtWidgets.QDialog):
         button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.StandardButton.Ok
             | QtWidgets.QDialogButtonBox.StandardButton.Cancel
+            | QtWidgets.QDialogButtonBox.StandardButton.RestoreDefaults
         )
         button_box.accepted.connect(self._on_accept)
         button_box.rejected.connect(self.reject)
+        restore_button = button_box.button(
+            QtWidgets.QDialogButtonBox.StandardButton.RestoreDefaults
+        )
+        restore_button.setToolTip("Set every value back to the plugin's defaults")
+        restore_button.clicked.connect(self.restore_defaults)
         layout.addWidget(button_box)
 
     def _create_widget(self, param_type: str, spec: dict, value) -> QtWidgets.QWidget:
@@ -217,6 +223,30 @@ class MaskPluginSettingsDialog(QtWidgets.QDialog):
             if value is not None:
                 widget.setText(str(value))
             return widget
+
+    def restore_defaults(self):
+        """Sets every field back to its schema default.
+
+        Goes through the widgets rather than the plugin, so the change flows
+        through the same live-update path as manual edits — including undo.
+        """
+        for key, widget in self._widgets.items():
+            spec = self._schema[key]
+            default = spec.get("default")
+            if default is None:
+                continue
+            param_type = spec.get("type", "str")
+            if param_type in ("float", "int"):
+                widget.setValue(default)
+            elif param_type == "bool":
+                widget.setChecked(bool(default))
+            elif param_type == "choice":
+                widget.setCurrentText(str(default))
+            else:
+                # setText emits no editingFinished; the collective emit
+                # below covers it
+                widget.setText(str(default))
+        self._on_value_changed()
 
     def _get_values(self) -> dict:
         values = {}
