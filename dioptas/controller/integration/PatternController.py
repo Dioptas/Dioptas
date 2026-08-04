@@ -7,6 +7,7 @@ from qtpy import QtWidgets, QtCore
 
 from ...widgets.UtilityWidgets import save_file_dialog, open_file_dialog
 from ...model.util.calc import convert_units
+from ...model.util.file_type import FileLoadingError
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ...model.DioptasModel import DioptasModel
@@ -232,9 +233,13 @@ class PatternController:
 
         if filename != "":
             self.model.working_directories["pattern"] = os.path.dirname(filename)
+            try:
+                self.model.pattern_model.load_pattern(filename)
+            except FileLoadingError as e:
+                self.widget.show_error_msg(str(e))
+                return
             self.widget.pattern_filename_txt.setText(os.path.basename(filename))
             self.widget.pattern_directory_txt.setText(os.path.dirname(filename))
-            self.model.pattern_model.load_pattern(filename)
             self.widget.pattern_next_btn.setEnabled(True)
             self.widget.pattern_previous_btn.setEnabled(True)
 

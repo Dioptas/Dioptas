@@ -10,6 +10,7 @@ from xypattern.auto_background import SmoothBrucknerBackground
 from .util import Signal
 from .state import PatternParams
 from .util.HelperModule import FileNameIterator, get_base_name
+from .util.file_type import file_loading_error
 
 logger = logging.getLogger(__name__)
 
@@ -185,13 +186,19 @@ class PatternModel:
     def load_pattern(self, filename: str) -> None:
         """Loads a pattern from a tabular pattern file (2 column txt file)."""
         logger.info("Load pattern: {0}".format(filename))
-        self.pattern_filename = filename
-        self.pattern_source = "file"
 
         skiprows = 0
         if filename.endswith(".chi"):
             skiprows = 4
-        self.pattern.load(filename, skiprows)
+        # read the file before touching any state, so a failing load leaves
+        # the model exactly as it was
+        try:
+            self.pattern.load(filename, skiprows)
+        except (ValueError, IndexError, OSError, UnicodeDecodeError) as e:
+            raise file_loading_error(filename, "pattern") from e
+
+        self.pattern_filename = filename
+        self.pattern_source = "file"
         self.file_name_iterator.update_filename(filename)
         self._sync_file_params()
         self.pattern_changed.emit()

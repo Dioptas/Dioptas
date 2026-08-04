@@ -10,6 +10,7 @@ from skimage.measure import find_contours
 
 from ..widgets.UtilityWidgets import open_file_dialog, save_file_dialog
 from ..model.util.HelperModule import get_partial_index, get_partial_value
+from ..model.util.file_type import FileLoadingError
 from .integration.phase.PhaseInPatternController import PhaseInPatternController
 from .. import calibrants_path
 
@@ -297,6 +298,14 @@ class CalibrationController:
         self.model.calibration_model.set_pyFAI(pyFAI_parameter)
         self.update_all()
 
+    def _show_file_error_message(self, message):
+        QtWidgets.QMessageBox.critical(
+            self.widget,
+            "Error",
+            message,
+            QtWidgets.QMessageBox.Ok,
+        )
+
     def _show_incomplete_parameters_message(self, parameter_kind):
         QtWidgets.QMessageBox.critical(
             self.widget,
@@ -500,7 +509,10 @@ class CalibrationController:
 
         if filename != "":
             self.model.working_directories["image"] = os.path.dirname(filename)
-            self.model.img_model.load(filename)
+            try:
+                self.model.img_model.load(filename)
+            except FileLoadingError as e:
+                self._show_file_error_message(str(e))
 
     def load_next_img(self):
         self.model.img_model.load_next_file()
@@ -1376,7 +1388,11 @@ class CalibrationController:
         )
         if filename != "":
             self.model.working_directories["calibration"] = os.path.dirname(filename)
-            self.model.calibration_model.load(filename)
+            try:
+                self.model.calibration_model.load(filename)
+            except FileLoadingError as e:
+                self._show_file_error_message(str(e))
+                return
             self.update_all(integrate=self.model.img_model.filename != "")
 
     def update_mask_gui(self):

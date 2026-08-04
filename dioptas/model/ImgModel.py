@@ -18,6 +18,7 @@ from .util import Signal
 from .state import ImgParams
 from dioptas.model.loader.spe import SpeFile
 from .util.NewFileWatcher import NewFileInDirectoryWatcher
+from .util.file_type import file_loading_error
 from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
 from .util.ImgCorrection import (
     ImgCorrectionManager,
@@ -366,7 +367,7 @@ class ImgModel:
             if data:
                 return data
         else:
-            raise IOError("No handler found for given image with filename: " + filename)
+            raise file_loading_error(filename, "image")
 
     def set_loadable_attributes(self, loaded_data: dict[str, Any]) -> None:
         """
@@ -453,10 +454,13 @@ class ImgModel:
             "series_get_image": karabo_file.get_image,
         }
 
-    def load_hdf5(self, filename: str, frame_index: int = 0) -> dict[str, Any]:
+    def load_hdf5(self, filename: str, frame_index: int = 0) -> dict[str, Any] | None:
         """Loads an ESRF hdf5 file."""
-
-        hdf5_image = Hdf5Image(filename)
+        try:
+            hdf5_image = Hdf5Image(filename)
+        except OSError:
+            # not an HDF5 file at all
+            return None
         self.loader = hdf5_image
         self.selected_source = hdf5_image.image_sources[0]
 

@@ -31,6 +31,7 @@ from .util.HelperModule import (
     get_partial_index,
 )
 from .util.calc import supersample_image, trim_trailing_zeros
+from .util.file_type import file_loading_error
 
 logger = logging.getLogger(__name__)
 
@@ -1121,7 +1122,18 @@ class CalibrationModel:
     def load(self, poni_filename: str) -> None:
         """Loads a calibration file and sets all the calibration parameter."""
         logger.info("Loading calibration from %s", poni_filename)
-        poni_dict = PoniFile(poni_filename).as_dict()
+        try:
+            poni_dict = PoniFile(poni_filename).as_dict()
+        except Exception as e:
+            raise file_loading_error(poni_filename, "calibration") from e
+
+        # PoniFile parses any text file without complaint and just leaves the
+        # geometry values at None — treat that as an unreadable file
+        if any(
+            poni_dict.get(key) is None
+            for key in ("dist", "poni1", "poni2", "rot1", "rot2", "rot3")
+        ):
+            raise file_loading_error(poni_filename, "calibration")
 
         if (
             poni_dict.get("poni_version", 1) >= 2

@@ -14,6 +14,7 @@ from ...widgets.UtilityWidgets import open_file_dialog, open_files_dialog, save_
 from ...widgets.integration import IntegrationWidget
 from ...model.DioptasModel import DioptasModel
 from ...model.util.HelperModule import get_partial_index, get_partial_value
+from ...model.util.file_type import FileLoadingError
 
 from .EpicsController import EpicsController
 
@@ -281,29 +282,36 @@ class ImageController:
 
         if filenames is not None and len(filenames) != 0:
             self.model.working_directories['image'] = os.path.dirname(str(filenames[0]))
-            if len(filenames) == 1:
+            try:
+                self._load_files(filenames)
+            except FileLoadingError as e:
+                self.model.img_model.blockSignals(False)
+                self.widget.show_error_msg(str(e))
+
+    def _load_files(self, filenames):
+        if len(filenames) == 1:
+            self.model.img_model.load(str(filenames[0]))
+        else:
+            if self.widget.img_batch_mode_add_rb.isChecked():
+                self.model.img_model.blockSignals(True)
                 self.model.img_model.load(str(filenames[0]))
-            else:
-                if self.widget.img_batch_mode_add_rb.isChecked():
-                    self.model.img_model.blockSignals(True)
-                    self.model.img_model.load(str(filenames[0]))
-                    for ind in range(1, len(filenames)):
-                        self.model.img_model.add(filenames[ind])
-                    self.model.img_model.blockSignals(False)
-                    self.model.img_model.img_changed.emit()
-                if self.widget.img_batch_mode_average_rb.isChecked():
-                    self.model.img_model.blockSignals(True)
-                    self.model.img_model.load(str(filenames[0]))
-                    for ind in range(1, len(filenames)):
-                        self.model.img_model.add(filenames[ind])
-                    self.model.img_model._img_data = self.model.img_model._img_data / len(filenames)
-                    self.model.img_model._calculate_img_data()
-                    self.model.img_model.blockSignals(False)
-                    self.model.img_model.img_changed.emit()
-                elif self.widget.img_batch_mode_integrate_rb.isChecked():
-                    self._load_multiple_files(filenames)
-                elif self.widget.img_batch_mode_image_save_rb.isChecked():
-                    self._save_multiple_image_files(filenames)
+                for ind in range(1, len(filenames)):
+                    self.model.img_model.add(filenames[ind])
+                self.model.img_model.blockSignals(False)
+                self.model.img_model.img_changed.emit()
+            if self.widget.img_batch_mode_average_rb.isChecked():
+                self.model.img_model.blockSignals(True)
+                self.model.img_model.load(str(filenames[0]))
+                for ind in range(1, len(filenames)):
+                    self.model.img_model.add(filenames[ind])
+                self.model.img_model._img_data = self.model.img_model._img_data / len(filenames)
+                self.model.img_model._calculate_img_data()
+                self.model.img_model.blockSignals(False)
+                self.model.img_model.img_changed.emit()
+            elif self.widget.img_batch_mode_integrate_rb.isChecked():
+                self._load_multiple_files(filenames)
+            elif self.widget.img_batch_mode_image_save_rb.isChecked():
+                self._save_multiple_image_files(filenames)
 
     def _load_multiple_files(self, filenames):
         if not self.model.calibration_model.is_calibrated:
@@ -318,26 +326,27 @@ class ImageController:
                                                           len(filenames))
         self._set_up_batch_processing()
 
-        for ind in range(len(filenames)):
-            filename = str(filenames[ind])
-            base_filename = os.path.basename(filename)
+        try:
+            for ind in range(len(filenames)):
+                filename = str(filenames[ind])
+                base_filename = os.path.basename(filename)
 
-            progress_dialog.setValue(ind)
-            progress_dialog.setLabelText("Integrating: " + base_filename)
+                progress_dialog.setValue(ind)
+                progress_dialog.setLabelText("Integrating: " + base_filename)
 
-            self.model.img_model.blockSignals(True)
-            self.model.img_model.load(filename)
-            self.model.img_model.blockSignals(False)
+                self.model.img_model.blockSignals(True)
+                self.model.img_model.load(filename)
+                self.model.img_model.blockSignals(False)
 
-            x, y = self.integrate_pattern()
-            self._save_pattern(base_filename, working_directory, x, y)
+                x, y = self.integrate_pattern()
+                self._save_pattern(base_filename, working_directory, x, y)
 
-            QtWidgets.QApplication.processEvents()
-            if progress_dialog.wasCanceled():
-                break
-
-        progress_dialog.close()
-        self._tear_down_batch_processing()
+                QtWidgets.QApplication.processEvents()
+                if progress_dialog.wasCanceled():
+                    break
+        finally:
+            progress_dialog.close()
+            self._tear_down_batch_processing()
 
     def _get_pattern_working_directory(self):
         if self.model.current_configuration.auto_save_integrated_pattern:
@@ -998,7 +1007,11 @@ class ImageController:
             '*.poni')
         if filename != '':
             self.model.working_directories['calibration'] = os.path.dirname(filename)
-            self.model.calibration_model.load(filename)
+            try:
+                self.model.calibration_model.load(filename)
+            except FileLoadingError as e:
+                self.widget.show_error_msg(str(e))
+                return
             self.widget.calibration_lbl.setText(
                 self.model.calibration_model.calibration_name)
             self.widget.wavelength_lbl.setText('{:.4f}'.format(self.model.calibration_model.wavelength * 1e10) + ' A')

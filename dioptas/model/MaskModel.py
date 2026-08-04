@@ -14,6 +14,7 @@ from .util.cosmics import cosmicsimage
 from .util import Signal
 from .state import MaskParams
 from .util.point import Point
+from .util.file_type import file_loading_error
 
 logger = logging.getLogger(__name__)
 
@@ -285,15 +286,18 @@ class MaskModel:
     @staticmethod
     def read_mask_file(filename: str, flipud: bool = False) -> np.ndarray:
         """Load an image mask from file."""
-        if filename.endswith('.npy'):
-            data = np.load(filename)
-        elif filename.endswith('.edf'):
-            data = fabio.open(filename).data
-        else:
-            try:
-                data = np.array(Image.open(filename))
-            except IOError:
-                data = np.loadtxt(filename)
+        try:
+            if filename.endswith('.npy'):
+                data = np.load(filename)
+            elif filename.endswith('.edf'):
+                data = fabio.open(filename).data
+            else:
+                try:
+                    data = np.array(Image.open(filename))
+                except IOError:
+                    data = np.loadtxt(filename)
+        except Exception as e:
+            raise file_loading_error(filename, "mask") from e
 
         if flipud:
             data = np.flipud(data)
