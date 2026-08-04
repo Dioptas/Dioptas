@@ -1295,6 +1295,10 @@ class CalibrationController:
         progress_dialog = self.create_progress_dialog(
             "Refining Calibration.", "Abort", num_rings
         )
+        # remember the manually picked peaks so they can be restored if the
+        # automatic search comes up empty (e.g. threshold set too low)
+        previous_peak_selections = self.model.calibration_model.params.peak_selections
+        previous_peak_num = self.widget.peak_num_sb.value()
         self.clear_peaks()
         self.load_calibrant(wavelength_from="pyFAI")  # load right calibration file
 
@@ -1365,14 +1369,25 @@ class CalibrationController:
         del progress_dialog
 
         QtWidgets.QApplication.processEvents()
-        if len(self.model.calibration_model.points) == 0:
+        peaks_found = len(self.model.calibration_model.points) > 0
+        if not peaks_found:
+            message = (
+                "Automatic peak search did not find any peaks.\nThis might be due to "
+                "the peak search settings or the wrong calibrant being selected."
+            )
+            if len(previous_peak_selections):
+                self.model.calibration_model.params.peak_selections = (
+                    previous_peak_selections
+                )
+                self.widget.peak_num_sb.setValue(previous_peak_num)
+                message += "\nThe previously picked peaks have been restored."
             QtWidgets.QMessageBox.critical(
                 self.widget,
                 "No peaks found!",
-                "Automatic peak search did not find any peaks.\nThis might be due to the peak search settings or the wrong calibrant being selected.",
+                message,
                 QtWidgets.QMessageBox.Ok,
             )
-        if not refinement_canceled and len(self.model.calibration_model.points) > 0:
+        if not refinement_canceled and peaks_found:
             self.update_all()
 
     def load_calibration(self):

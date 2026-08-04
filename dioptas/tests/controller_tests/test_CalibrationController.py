@@ -879,3 +879,27 @@ def test_loading_detector_confirms_pixel_size(calibration_controller):
     )
     assert not detector_gb.pixel_width_txt.property("unconfirmed")
     assert not detector_gb.pixel_height_txt.property("unconfirmed")
+
+
+def test_automatic_refinement_restores_picks_when_no_peaks_found(
+    calibration_controller, calibration_model, dioptas_model
+):
+    widget = calibration_controller.widget
+    dioptas_model.img_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
+    )
+    calibration_controller.go_to_wizard_step(1)
+    calibration_controller.search_peaks(1179.6, 1129.4)
+    previous_selections = calibration_model.params.peak_selections
+    assert len(previous_selections) == 1
+    previous_peak_num = widget.peak_num_sb.value()
+
+    # the search finds nothing (e.g. threshold too low) — the manual
+    # picks must survive the refinement attempt
+    calibration_model.search_peaks_on_ring = MagicMock(return_value=[])
+    with patch.object(QtWidgets.QMessageBox, "critical") as critical:
+        calibration_controller.automatic_refinement()
+
+    assert critical.called
+    assert calibration_model.params.peak_selections == previous_selections
+    assert widget.peak_num_sb.value() == previous_peak_num
