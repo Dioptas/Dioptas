@@ -87,7 +87,10 @@ class NewFileInDirectoryWatcher:
             return
         self.active = False
         self._stop_event.set()
-        self._poll_thread.join()
+        # file_added handlers run on the poll thread; one of them turning
+        # the watcher off must not join the very thread it runs on
+        if threading.current_thread() is not self._poll_thread:
+            self._poll_thread.join()
 
     @property
     def path(self) -> str:

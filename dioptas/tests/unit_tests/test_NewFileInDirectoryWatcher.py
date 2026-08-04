@@ -146,6 +146,34 @@ def test_batch_of_files_is_emitted_in_mtime_order(tmp_path):
     ]
 
 
+def test_deactivating_from_inside_a_handler_does_not_deadlock(tmp_path):
+    # handlers run on the poll thread; a handler turning the watcher off
+    # must not make deactivate() join the thread it is running on
+    watcher = NewFileInDirectoryWatcher(
+        str(tmp_path), file_types=["tif"], poll_interval=0.02
+    )
+    received = []
+
+    def handler(path):
+        received.append(path)
+        watcher.deactivate()
+
+    watcher.file_added.connect(handler)
+    watcher.activate()
+    try:
+        (tmp_path / "image.tif").write_bytes(b"image")
+        timeout = time.time() + 5.0
+        while not received and time.time() < timeout:
+            time.sleep(0.01)
+    finally:
+        watcher.deactivate()
+
+    assert received == [str(tmp_path / "image.tif")]
+    watcher._poll_thread.join(timeout=5.0)
+    assert not watcher._poll_thread.is_alive()
+    assert not watcher.active
+
+
 def test_end_to_end_with_the_poll_thread(tmp_path):
     watcher = NewFileInDirectoryWatcher(
         str(tmp_path), file_types=["tif"], poll_interval=0.02
