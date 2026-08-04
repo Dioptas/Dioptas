@@ -762,6 +762,50 @@ def test_phase_lines_are_drawn_in_validation_views(
     assert len(widget.pattern_widget.phases) == 0
 
 
+def test_project_reset_clears_rings_and_ring_number(
+    calibration_controller, calibration_model, dioptas_model
+):
+    widget = calibration_controller.widget
+    dioptas_model.img_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
+    )
+    calibration_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.poni")
+    )
+    calibration_controller.go_to_wizard_step(3)
+    assert len(widget.img_widget._phase_ring_items) > 0
+    widget.peak_num_sb.setValue(5)
+
+    dioptas_model.reset()
+
+    # the old calibration's rings must not survive the reset, no matter
+    # which wizard step is shown
+    assert len(widget.img_widget._phase_ring_items) == 0
+    assert len(widget.img_widget._phase_ring_label_items) == 0
+    assert widget.peak_num_sb.value() == 1
+
+
+def test_ring_number_follows_configuration_switch(
+    calibration_controller, calibration_model, dioptas_model
+):
+    widget = calibration_controller.widget
+    dioptas_model.img_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
+    )
+    calibration_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.poni")
+    )
+    calibration_model.find_peaks_automatic(1179.6, 1129.4, 0)
+    calibration_model.find_peaks_automatic(1268.5, 1119.8, 1)
+    widget.peak_num_sb.setValue(3)
+
+    dioptas_model.add_configuration()
+    assert widget.peak_num_sb.value() == 1
+
+    dioptas_model.select_configuration(0)
+    assert widget.peak_num_sb.value() == 3
+
+
 def test_fixed_parameters_can_be_set_before_calibration(calibration_controller):
     widget = calibration_controller.widget
     start_values_gb = (

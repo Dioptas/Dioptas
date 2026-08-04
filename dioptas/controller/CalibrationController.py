@@ -220,8 +220,9 @@ class CalibrationController:
             self.model.mask_changed.connect(self.update_mask_gui)
         self.plot_image()
         self.update_mask_gui()
-        # overlays that went stale while another mode was active
-        if self._phase_overlays_dirty and self._on_validation_step():
+        # overlays that went stale while another mode was active — they are
+        # visible on every wizard step, so refresh regardless of the step
+        if self._phase_overlays_dirty:
             self._update_phase_overlays()
 
     def deactivate(self):
@@ -1026,7 +1027,20 @@ class CalibrationController:
             calibration_model.parameters_changed.connect(
                 self._phase_overlays_changed
             )
+        # the calibrant is not part of the configuration — sync the new
+        # model from the combo box and redraw the pattern's calibrant lines
+        self.load_calibrant(wavelength_from="pyFAI")
         self._phase_overlays_dirty = True
+        if self._mode_active:
+            # the overlays are visible on every wizard step, so a stale
+            # ring drawing must not survive a reset or configuration switch
+            self._update_phase_overlays()
+        # the ring counter continues after the new configuration's picked
+        # rings — and returns to 1 on a project reset
+        selections = calibration_model.params.peak_selections
+        self.widget.peak_num_sb.setValue(
+            max(ring for ring, _ in selections) + 2 if selections else 1
+        )
         # a plain refresh — the ring-counter bookkeeping in
         # _on_points_changed must not treat the cross-configuration count
         # difference as an undo

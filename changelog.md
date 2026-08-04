@@ -2,6 +2,8 @@
 
 ## Bugfixes
 
+- Resetting a project (or switching configurations) now clears the calibrant ring overlays of the previous calibration from the image and cake views, redraws the pattern's calibrant lines for the new state, and resets the ring number in the pick step (to 1 after a reset; after a configuration switch it continues after that configuration's picked rings).
+
 - Re-enabling a dynamic mask after loading a different image showed the mask computed for the previous image; enabling now always recomputes for the image on screen.
 
 - When the automatic calibration peak search comes up empty (e.g. the intensity threshold is set too low), the manually picked peaks are restored instead of being lost.
