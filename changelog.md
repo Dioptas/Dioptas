@@ -4,6 +4,8 @@
 
 - Re-enabling a dynamic mask after loading a different image showed the mask computed for the previous image; enabling now always recomputes for the image on screen.
 
+- **autoprocess** now notices new images on beamline network storage. It used to rely on OS file events, which never reach the machine when the detector writes to a network drive; the folder is now checked directly about once a second instead, which works on any filesystem. A file is only loaded once it has stopped growing, so half-written images no longer slip through.
+
 ## Changes
 
 - **Clear messages for wrong file types.** Picking the wrong kind of file — a *.poni calibration as an image, an image as a pattern, a pattern as a calibration, and so on — used to crash into a raw error dialog (or, for a pattern loaded as a calibration, silently misbehave). Each loader now explains what the chosen file looks like and where to load it instead, e.g. "It looks like a pyFAI calibration file — use 'Load Calibration' to open it." A failed load leaves the previously loaded data untouched.
