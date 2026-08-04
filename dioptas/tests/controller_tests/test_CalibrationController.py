@@ -762,6 +762,42 @@ def test_phase_lines_are_drawn_in_validation_views(
     assert len(widget.pattern_widget.phases) == 0
 
 
+def test_calibrant_lines_and_numbers_can_be_hidden(
+    calibration_controller, calibration_model, dioptas_model
+):
+    widget = calibration_controller.widget
+    dioptas_model.img_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
+    )
+    calibration_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.poni")
+    )
+    calibration_controller.load_calibrant(wavelength_from="pyFAI")
+    calibration_controller.go_to_wizard_step(3)
+    assert len(widget.img_widget._phase_ring_items) > 0
+    assert len(widget.img_widget._phase_ring_label_items) > 0
+    assert len(widget.pattern_widget.phases_vlines[0].line_items) > 0
+
+    # numbers off: the lines stay, the labels disappear
+    click_checkbox(widget.show_calibrant_numbers_cb)
+    assert len(widget.img_widget._phase_ring_items) > 0
+    assert len(widget.img_widget._phase_ring_label_items) == 0
+
+    # lines off: everything disappears, in the pattern too; the numbers
+    # checkbox is moot without lines
+    click_checkbox(widget.show_calibrant_lines_cb)
+    assert len(widget.img_widget._phase_ring_items) == 0
+    assert len(widget.pattern_widget.phases_vlines[0].line_items) == 0
+    assert not widget.show_calibrant_numbers_cb.isEnabled()
+
+    # lines back on: rings and pattern lines return, numbers still off
+    click_checkbox(widget.show_calibrant_lines_cb)
+    assert len(widget.img_widget._phase_ring_items) > 0
+    assert len(widget.pattern_widget.phases_vlines[0].line_items) > 0
+    assert len(widget.img_widget._phase_ring_label_items) == 0
+    assert widget.show_calibrant_numbers_cb.isEnabled()
+
+
 def test_project_reset_clears_rings_and_ring_number(
     calibration_controller, calibration_model, dioptas_model
 ):

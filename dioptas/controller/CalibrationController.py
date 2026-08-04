@@ -118,6 +118,13 @@ class CalibrationController:
         self.widget.clear_peaks_btn.clicked.connect(self.clear_peaks)
         self.widget.peak_num_sb.valueChanged.connect(self.current_ring_changed)
 
+        self.widget.show_calibrant_lines_cb.toggled.connect(
+            self._calibrant_visibility_changed
+        )
+        self.widget.show_calibrant_numbers_cb.toggled.connect(
+            self._calibrant_visibility_changed
+        )
+
         self._updating_peak_table = False
         self.widget.peak_table.itemSelectionChanged.connect(
             self.peak_table_selection_changed
@@ -486,16 +493,17 @@ class CalibrationController:
                             )
                         )
 
-            calibrant_positions = (
-                np.array(self.model.calibration_model.calibrant.get_2th())
-                / np.pi
-                * 180
-            )
-            add_positions(
-                calibrant_positions,
-                (*self._CALIBRANT_LINE_COLOR, self._PHASE_OVERLAY_ALPHA),
-                numbered=True,
-            )
+            if self.widget.show_calibrant_lines_cb.isChecked():
+                calibrant_positions = (
+                    np.array(self.model.calibration_model.calibrant.get_2th())
+                    / np.pi
+                    * 180
+                )
+                add_positions(
+                    calibrant_positions,
+                    (*self._CALIBRANT_LINE_COLOR, self._PHASE_OVERLAY_ALPHA),
+                    numbered=self.widget.show_calibrant_numbers_cb.isChecked(),
+                )
 
             wavelength_ang = self.model.calibration_model.wavelength * 1e10
             for ind in range(len(phase_model.phases)):
@@ -517,6 +525,37 @@ class CalibrationController:
 
         self.widget.cake_widget.set_phase_lines(cake_lines)
         self.widget.img_widget.set_phase_rings(ring_segments, ring_labels)
+
+    def _calibrant_visibility_changed(self, _checked=False):
+        """Applies the calibrant lines/numbers checkboxes to all views."""
+        self.widget.show_calibrant_numbers_cb.setEnabled(
+            self.widget.show_calibrant_lines_cb.isChecked()
+        )
+        self._plot_calibrant_pattern_lines()
+        self._phase_overlays_changed()
+        if self._phase_overlays_dirty and self._mode_active:
+            # the overlays show on every wizard step, not just validation
+            self._update_phase_overlays()
+
+    def _plot_calibrant_pattern_lines(self, positions=None, numbers=None, name=None):
+        """Draws the calibrant's vertical lines into the pattern plot,
+        honoring the lines/numbers checkboxes.
+
+        With arguments it also remembers them, so a later checkbox toggle
+        can redraw the same lines without recomputing the positions.
+        """
+        if positions is not None:
+            self._calibrant_pattern_line_data = (positions, numbers, name)
+        positions, numbers, name = getattr(
+            self, "_calibrant_pattern_line_data", (np.array([]), None, None)
+        )
+        if not self.widget.show_calibrant_lines_cb.isChecked():
+            positions, numbers = np.array([]), None
+        elif not self.widget.show_calibrant_numbers_cb.isChecked():
+            numbers = None
+        self.widget.pattern_widget.plot_vertical_lines(
+            positions=positions, name=name, numbers=numbers
+        )
 
     def load_img(self):
         """
@@ -696,10 +735,10 @@ class CalibrationController:
             visible = (calibrant_line_positions > pattern_min) & (
                 calibrant_line_positions < pattern_max
             )
-            self.widget.pattern_widget.plot_vertical_lines(
+            self._plot_calibrant_pattern_lines(
                 positions=calibrant_line_positions[visible],
-                name=self._calibrants_file_names_list[current_index],
                 numbers=calibrant_line_numbers[visible],
+                name=self._calibrants_file_names_list[current_index],
             )
         # the calibrant's reflections are part of the validation overlays
         self._phase_overlays_changed()
@@ -1508,8 +1547,8 @@ class CalibrationController:
             self.model.current_configuration.integration_unit,
             None,
         )
-        self.widget.pattern_widget.plot_vertical_lines(
-            calibrant_line_positions,
+        self._plot_calibrant_pattern_lines(
+            positions=calibrant_line_positions,
             numbers=np.arange(1, len(calibrant_line_positions) + 1),
         )
 
