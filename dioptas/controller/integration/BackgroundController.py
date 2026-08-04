@@ -9,6 +9,7 @@ from ...widgets.UtilityWidgets import open_file_dialog, save_file_dialog
 from ...widgets.integration import IntegrationWidget
 from ...model.DioptasModel import DioptasModel
 from ...model.ImgModel import BackgroundDimensionWrongException
+from ...model.util.file_type import FileLoadingError
 from ..binding import Binder
 
 
@@ -131,6 +132,9 @@ class BackgroundController:
                     "Background image does not have the same dimensions as original Image. "
                     + "Resetting Background Image.",
                 )
+                self.widget.bkg_image_filename_lbl.setText("None")
+            except FileLoadingError as e:
+                QtWidgets.QMessageBox.critical(self.widget, "Error", str(e))
                 self.widget.bkg_image_filename_lbl.setText("None")
 
     def remove_background_image(self):

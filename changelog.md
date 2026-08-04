@@ -6,6 +6,8 @@
 
 ## Changes
 
+- **Clear messages for wrong file types.** Picking the wrong kind of file — a *.poni calibration as an image, an image as a pattern, a pattern as a calibration, and so on — used to crash into a raw error dialog (or, for a pattern loaded as a calibration, silently misbehave). Each loader now explains what the chosen file looks like and where to load it instead, e.g. "It looks like a pyFAI calibration file — use 'Load Calibration' to open it." A failed load leaves the previously loaded data untouched.
+
 - The mask plugin settings dialogs gained a **Restore Defaults** button.
 
 - The redundant **Clear Ring** button under the calibration peak table is gone: changing the ring number already selects every group of that ring, so Delete does the same in two steps — the tooltip now says so.

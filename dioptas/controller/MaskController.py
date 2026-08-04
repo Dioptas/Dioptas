@@ -13,6 +13,7 @@ from ..widgets.MaskPluginWidget import MaskPluginSettingsDialog
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ..widgets.MaskWidget import MaskWidget
 from ..model.DioptasModel import DioptasModel
+from ..model.util.file_type import FileLoadingError
 
 from .binding import Binder
 
@@ -511,7 +512,12 @@ class MaskController:
         if filename != '':
             flipud = selected_filter.startswith(self.FLIPUD_MASK_FILTER_PREFIX)
             self.model.working_directories['mask'] = os.path.dirname(filename)
-            if self.model.mask_model.load_mask(filename, flipud):
+            try:
+                loaded = self.model.mask_model.load_mask(filename, flipud)
+            except FileLoadingError as e:
+                QtWidgets.QMessageBox.critical(self.widget, 'Error', str(e))
+                return
+            if loaded:
                 self.plot_mask()
             else:
                 QtWidgets.QMessageBox.critical(self.widget, 'Error',
@@ -531,7 +537,12 @@ class MaskController:
         if filename != '':
             flipud = selected_filter.startswith(self.FLIPUD_MASK_FILTER_PREFIX)
             self.model.working_directories['mask'] = os.path.dirname(filename)
-            if self.model.mask_model.add_mask(filename, flipud):
+            try:
+                added = self.model.mask_model.add_mask(filename, flipud)
+            except FileLoadingError as e:
+                QtWidgets.QMessageBox.critical(self.widget, 'Error', str(e))
+                return
+            if added:
                 self.plot_mask()
             else:
                 QtWidgets.QMessageBox.critical(self.widget, 'Error',
