@@ -4,6 +4,8 @@
 
 - Re-enabling a dynamic mask after loading a different image showed the mask computed for the previous image; enabling now always recomputes for the image on screen.
 
+- When the automatic calibration peak search comes up empty (e.g. the intensity threshold is set too low), the manually picked peaks are restored instead of being lost.
+
 - **autoprocess** now notices new images on beamline network storage. It used to rely on OS file events, which never reach the machine when the detector writes to a network drive; the folder is now checked directly about once a second instead, which works on any filesystem. A file is only loaded once it has stopped growing, so half-written images no longer slip through.
 
 ## Changes
