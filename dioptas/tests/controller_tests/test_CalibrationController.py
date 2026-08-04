@@ -715,10 +715,45 @@ def test_phase_lines_are_drawn_in_validation_views(
     calibrant_ring_count = len(widget.img_widget._phase_ring_items)
     assert calibrant_ring_count > 0
 
+    # the calibrant's rings are numbered so they can be matched to the
+    # ring spinbox during peak picking; numbering starts at 1
+    calibrant_label_count = len(widget.img_widget._phase_ring_label_items)
+    assert calibrant_label_count > 0
+    assert widget.img_widget._phase_ring_label_items[0].toPlainText() == "1"
+
+    # the numbers follow the zoom: every label anchors inside the current
+    # view when its ring crosses it, and hides when the ring is out of view
+    widget.img_widget.img_view_box.setRange(
+        xRange=(1100, 1600), yRange=(1100, 1600), padding=0
+    )
+    visible_labels = [
+        item
+        for item in widget.img_widget._phase_ring_label_items
+        if item.isVisible()
+    ]
+    assert 0 < len(visible_labels) < calibrant_label_count
+    # the aspect-locked view box widens the requested range, so compare
+    # against what is actually in view
+    (x_min, x_max), (y_min, y_max) = widget.img_widget.img_view_box.viewRange()
+    for item in visible_labels:
+        assert x_min < item.pos().x() < x_max
+        assert y_min < item.pos().y() < y_max
+
+    # zoomed inside the innermost ring no label is left in view
+    widget.img_widget.img_view_box.setRange(
+        xRange=(1000, 1080), yRange=(1000, 1080), padding=0
+    )
+    assert not any(
+        item.isVisible() for item in widget.img_widget._phase_ring_label_items
+    )
+    widget.img_widget.auto_range()
+
     dioptas_model.phase_model.add_jcpds(
         os.path.join(unittest_data_path, "jcpds", "au_Anderson.jcpds")
     )
     assert len(widget.img_widget._phase_ring_items) > calibrant_ring_count
+    # phase rings stay unnumbered
+    assert len(widget.img_widget._phase_ring_label_items) == calibrant_label_count
     # pattern lines come via the shared PhaseInPatternController
     assert len(widget.pattern_widget.phases) == 1
 

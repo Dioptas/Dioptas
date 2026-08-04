@@ -354,12 +354,25 @@ class CalibrationCakeWidget(ImgWidget):
     def set_phase_lines(self, positions_and_colors):
         """Draws one vertical line per phase reflection.
 
-        :param positions_and_colors: iterable of (column position, rgba color)
+        :param positions_and_colors: iterable of (column position,
+            rgba color, label) — label is a string drawn at the top of the
+            line or None for no label
         """
         self.clear_phase_lines()
-        for position, color in positions_and_colors:
+        for ind, (position, color, label) in enumerate(positions_and_colors):
             line = pg.InfiniteLine(angle=90, pen=pg.mkPen(color=color, width=1.6))
             line.setValue(position)
+            if label is not None:
+                # alternating heights so labels of closely spaced lines
+                # don't overlap
+                pg.InfLineLabel(
+                    line,
+                    text=label,
+                    position=0.97 if ind % 2 else 0.93,
+                    color=color,
+                    movable=False,
+                    fill=pg.mkBrush(0, 0, 0, 150),
+                )
             self.img_view_box.addItem(line)
             self._phase_line_items.append(line)
 
@@ -490,22 +503,80 @@ class IntegrationImgWidget(MaskImgWidget):
             if plot_item in self.img_view_box.addedItems:
                 self.img_view_box.removeItem(plot_item)
 
-    def set_phase_rings(self, segments):
+    #: successive ring labels sit at golden-ratio-spaced fractions along
+    #: the visible part of their ring, so neighboring rings' labels never
+    #: stack on top of each other at any zoom level
+    _RING_LABEL_FRACTION_STEP = 0.381966
+
+    def set_phase_rings(self, segments, labels=()):
         """Draws iso-2θ contour segments of phase reflections onto the image.
 
         :param segments: iterable of (x array, y array, rgba color) — one
             entry per contour segment, already in image pixel coordinates
+        :param labels: iterable of (x array, y array, text, rgba color) —
+            the candidate anchor points of one ring; the text is placed on
+            whichever part of the ring is currently in view
         """
         self.clear_phase_rings()
         for x, y, color in segments:
             item = pg.PlotDataItem(x=x, y=y, pen=pg.mkPen(color=color, width=1.6))
             self.img_view_box.addItem(item)
             self._phase_ring_items.append(item)
+        for x, y, text, color in labels:
+            item = pg.TextItem(
+                text,
+                color=color,
+                anchor=(0.5, 0.5),
+                fill=pg.mkBrush(0, 0, 0, 150),
+            )
+            self.img_view_box.addItem(item)
+            self._phase_ring_label_items.append(item)
+            self._phase_ring_label_points.append((np.asarray(x), np.asarray(y)))
+        if not getattr(self, '_phase_ring_labels_connected', False):
+            self.img_view_box.sigRangeChanged.connect(
+                self.update_phase_ring_label_positions
+            )
+            self._phase_ring_labels_connected = True
+        self.update_phase_ring_label_positions()
+
+    def update_phase_ring_label_positions(self, *_):
+        """Re-anchors each ring number to the part of its ring in view.
+
+        Runs on every zoom or pan, so a ring crossing the current view
+        always carries its number inside the view; rings entirely outside
+        have their labels hidden.
+        """
+        label_points = getattr(self, '_phase_ring_label_points', [])
+        if not label_points:
+            return
+        (x_min, x_max), (y_min, y_max) = self.img_view_box.viewRange()
+        # inset so labels don't sit half outside the view edge
+        x_margin = 0.04 * (x_max - x_min)
+        y_margin = 0.04 * (y_max - y_min)
+        x_min, x_max = x_min + x_margin, x_max - x_margin
+        y_min, y_max = y_min + y_margin, y_max - y_margin
+        for ind, (item, (x, y)) in enumerate(
+            zip(self._phase_ring_label_items, label_points)
+        ):
+            visible = np.flatnonzero(
+                (x > x_min) & (x < x_max) & (y > y_min) & (y < y_max)
+            )
+            if len(visible) == 0:
+                item.setVisible(False)
+                continue
+            item.setVisible(True)
+            fraction = (ind * self._RING_LABEL_FRACTION_STEP) % 1
+            anchor = visible[int(fraction * (len(visible) - 1))]
+            item.setPos(x[anchor], y[anchor])
 
     def clear_phase_rings(self):
         for item in getattr(self, '_phase_ring_items', []):
             self.img_view_box.removeItem(item)
         self._phase_ring_items = []
+        for item in getattr(self, '_phase_ring_label_items', []):
+            self.img_view_box.removeItem(item)
+        self._phase_ring_label_items = []
+        self._phase_ring_label_points = []
 
     def create_roi_item(self):
         self.roi = MyROI([20, 20], [500, 500], pen=pg.mkPen(color=(0, 255, 0), size=2))

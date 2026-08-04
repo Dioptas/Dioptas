@@ -433,6 +433,7 @@ class CalibrationController:
         phase_model = self.model.phase_model
         cake_lines = []
         ring_segments = []
+        ring_labels = []
 
         if self.model.calibration_model.is_calibrated:
             downsample = self._PHASE_RING_DOWNSAMPLE
@@ -446,21 +447,40 @@ class CalibrationController:
                     tth_img_max, np.deg2rad(np.max(self.model.cake_tth))
                 )
 
-            def add_positions(line_positions, rgba):
-                if self.model.cake_tth is not None:
-                    for tth in line_positions:
+            def add_positions(line_positions, rgba, numbered=False):
+                # numbered labels the lines with their 1-based index in the
+                # full line list — the same numbering the ring spinbox uses
+                # during peak picking
+                for ind, tth in enumerate(line_positions):
+                    label = str(ind + 1) if numbered else None
+                    if self.model.cake_tth is not None:
                         position = get_partial_index(self.model.cake_tth, tth)
                         if position is not None:
-                            cake_lines.append((position + 0.5, rgba))
-                for tth in line_positions:
+                            cake_lines.append((position + 0.5, rgba, label))
                     tth_rad = np.deg2rad(tth)
                     if not tth_img_min < tth_rad < tth_img_max:
                         continue
-                    for segment in find_contours(tth_img, tth_rad):
+                    segments = find_contours(tth_img, tth_rad)
+                    if not segments:
+                        continue
+                    for segment in segments:
                         ring_segments.append(
                             (
                                 segment[:, 1] * downsample + 0.5,
                                 segment[:, 0] * downsample + 0.5,
+                                rgba,
+                            )
+                        )
+                    if label is not None:
+                        # the widget anchors the number to whichever part
+                        # of the ring is in view, so it hands over all
+                        # contour points as candidates
+                        points = np.concatenate(segments)
+                        ring_labels.append(
+                            (
+                                points[:, 1] * downsample + 0.5,
+                                points[:, 0] * downsample + 0.5,
+                                label,
                                 rgba,
                             )
                         )
@@ -473,6 +493,7 @@ class CalibrationController:
             add_positions(
                 calibrant_positions,
                 (*self._CALIBRANT_LINE_COLOR, self._PHASE_OVERLAY_ALPHA),
+                numbered=True,
             )
 
             wavelength_ang = self.model.calibration_model.wavelength * 1e10
@@ -494,7 +515,7 @@ class CalibrationController:
                 )
 
         self.widget.cake_widget.set_phase_lines(cake_lines)
-        self.widget.img_widget.set_phase_rings(ring_segments)
+        self.widget.img_widget.set_phase_rings(ring_segments, ring_labels)
 
     def load_img(self):
         """
@@ -664,19 +685,20 @@ class CalibrationController:
             integration_unit,
             wavelength,
         )
-        # filter them to only show the ones visible with the current pattern
+        # filter them to only show the ones visible with the current pattern;
+        # the numbers stay indices into the full line list so they match the
+        # ring spinbox used during peak picking
+        calibrant_line_numbers = np.arange(1, len(calibrant_line_positions) + 1)
         if len(self.model.pattern.x) > 0:
             pattern_min = np.min(self.model.pattern.x)
             pattern_max = np.max(self.model.pattern.x)
-            calibrant_line_positions = calibrant_line_positions[
-                calibrant_line_positions > pattern_min
-            ]
-            calibrant_line_positions = calibrant_line_positions[
+            visible = (calibrant_line_positions > pattern_min) & (
                 calibrant_line_positions < pattern_max
-            ]
+            )
             self.widget.pattern_widget.plot_vertical_lines(
-                positions=calibrant_line_positions,
+                positions=calibrant_line_positions[visible],
                 name=self._calibrants_file_names_list[current_index],
+                numbers=calibrant_line_numbers[visible],
             )
         # the calibrant's reflections are part of the validation overlays
         self._phase_overlays_changed()
@@ -1464,15 +1486,17 @@ class CalibrationController:
         self.widget.cake_widget.auto_level()
 
         self.widget.pattern_widget.plot_data(*self.model.pattern.data)
+        calibrant_line_positions = self.convert_x_value(
+            np.array(self.model.calibration_model.calibrant.get_2th())
+            / np.pi
+            * 180,
+            "2th_deg",
+            self.model.current_configuration.integration_unit,
+            None,
+        )
         self.widget.pattern_widget.plot_vertical_lines(
-            self.convert_x_value(
-                np.array(self.model.calibration_model.calibrant.get_2th())
-                / np.pi
-                * 180,
-                "2th_deg",
-                self.model.current_configuration.integration_unit,
-                None,
-            )
+            calibrant_line_positions,
+            numbers=np.arange(1, len(calibrant_line_positions) + 1),
         )
 
         if self.model.current_configuration.integration_unit == "2th_deg":

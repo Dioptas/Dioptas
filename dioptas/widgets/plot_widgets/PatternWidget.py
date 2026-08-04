@@ -327,15 +327,16 @@ class PatternWidget(QtCore.QObject):
         self.phases[ind].remove()
         del self.phases[ind]
 
-    def plot_vertical_lines(self, positions, name=None):
+    def plot_vertical_lines(self, positions, name=None, numbers=None):
         if len(self.phases_vlines) > 0:
-            self.phases_vlines[0].set_data(positions, name)
+            self.phases_vlines[0].set_data(positions, name, numbers)
         else:
             self.phases_vlines.append(
                 PhaseLinesPlot(
                     self.pattern_plot,
                     positions,
                     pen=pg.mkPen(color=(200, 50, 50), style=QtCore.Qt.SolidLine),
+                    numbers=numbers,
                 )
             )
 
@@ -532,6 +533,7 @@ class PhaseLinesPlot:
         positions=None,
         name="Dummy",
         pen=pg.mkPen(color=(120, 120, 120), style=QtCore.Qt.DashLine),
+        numbers=None,
     ):
         self.plot_item = plot_item
         self.peak_positions = []
@@ -540,9 +542,9 @@ class PhaseLinesPlot:
         self.name = name
 
         if positions is not None:
-            self.set_data(positions, name)
+            self.set_data(positions, name, numbers)
 
-    def set_data(self, positions, name):
+    def set_data(self, positions, name, numbers=None):
         # remove all old lines
         for item in self.line_items:
             # Only remove if item belongs to this scene
@@ -553,9 +555,20 @@ class PhaseLinesPlot:
         self.line_items = []
         self.peak_positions = positions
         for ind, position in enumerate(positions):
-            self.line_items.append(pg.InfiniteLine(pen=self.pen))
-            self.line_items[ind].setValue(position)
-            self.plot_item.addItem(self.line_items[ind])
+            line = pg.InfiniteLine(pen=self.pen)
+            line.setValue(position)
+            if numbers is not None:
+                # alternating heights so labels of closely spaced lines
+                # don't overlap
+                pg.InfLineLabel(
+                    line,
+                    text=str(numbers[ind]),
+                    position=0.97 if ind % 2 else 0.93,
+                    color=self.pen.color(),
+                    movable=False,
+                )
+            self.line_items.append(line)
+            self.plot_item.addItem(line)
 
 
 class PhasePlot:

@@ -10,6 +10,8 @@
 
 ## Changes
 
+- **Numbered calibrant lines.** The calibrant's lines in the calibration view now carry their ring number — on the image rings, the cake lines, and the pattern lines — so it is easy to see which ring is the first and which the tenth. The numbers match the ring spinbox used during peak picking, and they follow the zoom: any ring crossing the current view keeps its number inside the view.
+
 - **Clear messages for wrong file types.** Picking the wrong kind of file — a *.poni calibration as an image, an image as a pattern, a pattern as a calibration, and so on — used to crash into a raw error dialog (or, for a pattern loaded as a calibration, silently misbehave). Each loader now explains what the chosen file looks like and where to load it instead, e.g. "It looks like a pyFAI calibration file — use 'Load Calibration' to open it." A failed load leaves the previously loaded data untouched.
 
 - The mask plugin settings dialogs gained a **Restore Defaults** button.
