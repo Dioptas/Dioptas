@@ -2,6 +2,10 @@
 
 ## Bugfixes
 
+- Loading a color image (e.g. an RGB PNG preview saved next to the detector data) crashed with an endless series of error dialogs (`data.shape[2] must be <= 4`, `too many values to unpack`). Color images are now averaged to a grayscale intensity image on loading, so they display and integrate normally; images with shapes Dioptas cannot interpret are refused with a clear message instead of crashing.
+
+- The intensity histogram crashed with `Cannot create 1500 finite-sized bins` for any 8-bit image (numpy computes the logarithm of such images in half precision, which is too coarse for the histogram binning).
+
 - Resetting a project (or switching configurations) now clears the calibrant ring overlays of the previous calibration from the image and cake views, redraws the pattern's calibrant lines for the new state, and resets the ring number in the pick step (to 1 after a reset; after a configuration switch it continues after that configuration's picked rings).
 
 - Re-enabling a dynamic mask after loading a different image showed the mask computed for the previous image; enabling now always recomputes for the image on screen.
