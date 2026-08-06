@@ -10,6 +10,8 @@ from ....widgets.UtilityWidgets import open_files_dialog
 from ....widgets.integration import IntegrationWidget
 from ....model.DioptasModel import DioptasModel
 
+from ...binding import Binder
+
 
 class OverlayController:
     """
@@ -27,7 +29,17 @@ class OverlayController:
         self.model = dioptas_model
 
         self.overlay_lw_items = []
+        self.binder = Binder()
         self.create_signals()
+        # the waterfall separation is a view setting, bound two-way so a
+        # loaded project restores the spinbox
+        self.binder.bind_spinbox(
+            self.overlay_widget.waterfall_separation_msb,
+            lambda: self.model.view,
+            "waterfall_separation",
+            dtype=float,
+        )
+        self.binder.refresh()
 
     def create_signals(self):
         self.connect_click_function(
@@ -134,7 +146,7 @@ class OverlayController:
             self.model.pattern_model.background_pattern
             == self.model.overlay_model.overlays[cur_ind]
         ):
-            self.model.pattern_model.background_pattern = None
+            self.model.pattern_model.params.background_overlay_uid = ""
         self.model.overlay_model.remove_overlay(cur_ind)
 
     def overlay_removed(self, ind):
@@ -270,8 +282,9 @@ class OverlayController:
         self.overlay_widget.show_cbs[ind].blockSignals(False)
 
     def waterfall_btn_click_callback(self):
-        separation = self.overlay_widget.waterfall_separation_msb.value()
-        self.model.overlay_model.overlay_waterfall(separation)
+        self.model.overlay_model.overlay_waterfall(
+            self.model.view.waterfall_separation
+        )
 
     def set_as_bkg_btn_click_callback(self):
         """
@@ -286,11 +299,12 @@ class OverlayController:
         if not self.overlay_widget.set_as_bkg_btn.isChecked():
             ## if the overlay is not currently a background
             # it will unset the current background and redisplay
-            self.model.pattern_model.background_pattern = None
+            self.model.pattern_model.params.background_overlay_uid = ""
         else:
-            # if the overlay is currently the active background
-            self.model.pattern_model.background_pattern = (
-                self.model.overlay_model.overlays[cur_ind]
+            # if the overlay is currently the active background: the uid is
+            # the state, the model resolves it back to the overlay object
+            self.model.pattern_model.params.background_overlay_uid = (
+                self.model.overlay_model.overlays[cur_ind].params.uid
             )
             if self.overlay_widget.show_cb_is_checked(cur_ind):
                 self.overlay_widget.show_cb_set_checked(cur_ind, False)
@@ -300,9 +314,9 @@ class OverlayController:
 
     def set_current_pattern_as_background(self):
         self.model.overlay_model.add_overlay_pattern(self.model.pattern)
-        self.model.pattern_model.background_pattern = self.model.overlay_model.overlays[
-            -1
-        ]
+        self.model.pattern_model.params.background_overlay_uid = (
+            self.model.overlay_model.overlays[-1].params.uid
+        )
 
         self.overlay_widget.set_as_bkg_btn.setChecked(True)
         self.overlay_widget.show_cb_set_checked(-1, False)

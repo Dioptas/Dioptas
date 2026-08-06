@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- Remove the selected window / computed layer: a waste bin, the same
+       meaning as the legacy delete.png but in the monochrome glyph style. -->
+  <path d="M4.6 6.8 H19.4"
+        fill="none" stroke="#f1f1f1" stroke-width="2"
+        stroke-linecap="round"/>
+  <path d="M9.4 6.6 V4.9 a1 1 0 0 1 1-1 h3.2 a1 1 0 0 1 1 1 V6.6"
+        fill="none" stroke="#f1f1f1" stroke-width="1.8"
+        stroke-linejoin="round"/>
+  <path d="M6.6 8.8 L7.5 19.1 a1.2 1.2 0 0 0 1.2 1.1 h6.6 a1.2 1.2 0 0 0 1.2-1.1 L17.4 8.8"
+        fill="none" stroke="#f1f1f1" stroke-width="1.8"
+        stroke-linejoin="round"/>
+</svg>

@@ -12,6 +12,8 @@ from ..CustomWidgets import (
     VerticalSpacerItem,
     LabelAlignRight,
     LabelExpandable,
+    EmptyStateOverlay,
+    render_icon,
 )
 
 from . import CLICKED_COLOR
@@ -201,8 +203,8 @@ class BatchFileViewWidget(QtWidgets.QWidget):
         self._file_lbl_widget = QtWidgets.QWidget()
         self._file_lbl_layout = QtWidgets.QGridLayout()
 
-        self.cal_file_lbl = LabelExpandable("undefined")
-        self.mask_file_lbl = LabelExpandable("undefined")
+        self.cal_file_lbl = LabelExpandable("none loaded")
+        self.mask_file_lbl = LabelExpandable("none loaded")
 
         self.treeView = QtWidgets.QTreeView()
         self.treeView.setObjectName("treeView")
@@ -210,6 +212,15 @@ class BatchFileViewWidget(QtWidgets.QWidget):
         self.tree_model = QtGui.QStandardItemModel()
         self.treeView.setModel(self.tree_model)
         self.treeView.setColumnWidth(0, 350)
+
+        # shown until a file series is loaded (hidden by set_raw_files)
+        self.empty_state_lbl = EmptyStateOverlay(
+            self.treeView,
+            "<span style='font-size: 15px;'>"
+            "Load a series of raw image files to integrate them in one run"
+            "</span><br/>"
+            "<span style='font-size: 12px; color: #6E6E6E;'>"
+            "Open files with the folder button in the top left</span>")
 
         self.style_widgets()
         self.create_layout()
@@ -242,6 +253,7 @@ class BatchFileViewWidget(QtWidgets.QWidget):
         )
 
     def set_raw_files(self, files, images):
+        self.empty_state_lbl.setVisible(len(files) == 0)
         self.tree_model.clear()
         self.tree_model.setColumnCount(2)
         self.tree_model.setHorizontalHeaderLabels(["Raw file name", "N images"])
@@ -253,13 +265,13 @@ class BatchFileViewWidget(QtWidgets.QWidget):
 
     def set_cal_file(self, file_path):
         if file_path is None:
-            file_path = "undefined"
+            file_path = "none loaded"
         self.cal_file_lbl.setText(file_path)
         self.cal_file_lbl.setToolTip("Calibration used for integration")
 
     def set_mask_file(self, file_path):
         if file_path is None:
-            file_path = "undefined"
+            file_path = "none loaded"
         self.mask_file_lbl.setText(file_path)
         self.mask_file_lbl.setToolTip("Mask used for integration")
 
@@ -272,7 +284,7 @@ class BatchFileControlWidget(QtWidgets.QWidget):
 
         self.load_btn = FlatButton()
         self.load_btn.setToolTip("Load raw/proc data")
-        self.load_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "open.ico")))
+        self.load_btn.setIcon(render_icon("open.svg"))
         self.load_btn.setIconSize(QtCore.QSize(13, 13))
         self.load_btn.setMaximumWidth(25)
 
@@ -284,7 +296,7 @@ class BatchFileControlWidget(QtWidgets.QWidget):
 
         self.save_btn = FlatButton()
         self.save_btn.setToolTip("Save data")
-        self.save_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "save.ico")))
+        self.save_btn.setIcon(render_icon("save.svg"))
         self.save_btn.setIconSize(QtCore.QSize(13, 13))
         self.save_btn.setMaximumWidth(25)
 

@@ -103,8 +103,7 @@ def test_reference_switch_updates_parameters_and_name(gold_material, gold_eos):
                                        "04-0783, shock wave"]
 
     model = PhaseModel()
-    model.phase_files.append(phase._filename)
-    model.add_jcpds_object(phase)
+    model.add_jcpds_object(phase, filename=phase._filename)
 
     model.set_eos_reference(0, 1)   # switch to the shock-wave reference
     assert model.phases[0].params["k0"] == pytest.approx(120.8)

@@ -13,6 +13,9 @@ from ..widgets.MaskPluginWidget import MaskPluginSettingsDialog
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ..widgets.MaskWidget import MaskWidget
 from ..model.DioptasModel import DioptasModel
+from ..model.util.file_type import FileLoadingError
+
+from .binding import Binder
 
 
 class MaskController:
@@ -28,6 +31,7 @@ class MaskController:
         """
         self.widget = widget
         self.model = dioptas_model
+        self.binder = Binder(field_events=self.model.configuration_params_changed)
 
         self.state = None
         self.clicks = 0
@@ -47,8 +51,10 @@ class MaskController:
         self.widget.polygon_btn.clicked.connect(self.activate_polygon_btn)
         self.widget.arc_btn.clicked.connect(self.activate_arc_btn)
         self.widget.point_btn.clicked.connect(self.activate_point_btn)
-        self.widget.undo_btn.clicked.connect(self.undo_btn_click)
-        self.widget.redo_btn.clicked.connect(self.redo_btn_click)
+        # undo/redo live in the sidebar (application-wide); this only has to
+        # follow the history, since a restored step can re-enable a plugin
+        # that an imprint disabled
+        self.model.history.changed.connect(self._update_plugin_checkboxes)
         self.widget.below_thresh_btn.clicked.connect(self.below_thresh_btn_click)
         self.widget.above_thresh_btn.clicked.connect(self.above_thresh_btn_click)
         self.widget.cosmic_btn.clicked.connect(self.cosmic_btn_click)
@@ -61,8 +67,13 @@ class MaskController:
         self.widget.add_mask_btn.clicked.connect(self.add_mask_btn_click)
         self.widget.mask_rb.clicked.connect(self.mask_rb_click)
         self.widget.unmask_rb.clicked.connect(self.unmask_rb_click)
-        self.widget.fill_rb.clicked.connect(self.fill_rb_click)
-        self.widget.transparent_rb.clicked.connect(self.transparent_rb_click)
+        self.binder.bind_radio_pair(
+            self.widget.transparent_rb,
+            self.widget.fill_rb,
+            lambda: self.model.current_configuration,
+            "transparent_mask",
+            on_changed=self._apply_mask_transparency,
+        )
 
         self.widget.point_size_sb.valueChanged.connect(self.set_point_size)
         self.widget.img_widget.mouse_moved.connect(self.show_img_mouse_position)
@@ -263,16 +274,6 @@ class MaskController:
         else:
             self.state = 'None'
             self.uncheck_all_btn()
-
-    def undo_btn_click(self):
-        self.model.mask_model.undo()
-        self._update_plugin_checkboxes()
-        self.plot_mask()
-
-    def redo_btn_click(self):
-        self.model.mask_model.redo()
-        self._update_plugin_checkboxes()
-        self.plot_mask()
 
     def plot_image(self):
         self.widget.img_widget.plot_image(self.model.img_data, False)
@@ -511,7 +512,12 @@ class MaskController:
         if filename != '':
             flipud = selected_filter.startswith(self.FLIPUD_MASK_FILTER_PREFIX)
             self.model.working_directories['mask'] = os.path.dirname(filename)
-            if self.model.mask_model.load_mask(filename, flipud):
+            try:
+                loaded = self.model.mask_model.load_mask(filename, flipud)
+            except FileLoadingError as e:
+                QtWidgets.QMessageBox.critical(self.widget, 'Error', str(e))
+                return
+            if loaded:
                 self.plot_mask()
             else:
                 QtWidgets.QMessageBox.critical(self.widget, 'Error',
@@ -531,7 +537,12 @@ class MaskController:
         if filename != '':
             flipud = selected_filter.startswith(self.FLIPUD_MASK_FILTER_PREFIX)
             self.model.working_directories['mask'] = os.path.dirname(filename)
-            if self.model.mask_model.add_mask(filename, flipud):
+            try:
+                added = self.model.mask_model.add_mask(filename, flipud)
+            except FileLoadingError as e:
+                QtWidgets.QMessageBox.critical(self.widget, 'Error', str(e))
+                return
+            if added:
                 self.plot_mask()
             else:
                 QtWidgets.QMessageBox.critical(self.widget, 'Error',
@@ -551,16 +562,16 @@ class MaskController:
                 self.widget.point_size_sb.setValue(self.widget.point_size_sb.value() - 1)
 
         if ev.modifiers() == QtCore.Qt.ControlModifier:
-            if ev.key() == 90:  # for pressing z
-                self.undo_btn_click()
-            elif ev.key() == 89:  # for pressing y
-                self.redo_btn_click()
-            elif ev.key() == 83:  # for pressing s
+            # Ctrl+Z / Ctrl+Y are application-wide shortcuts on MainController
+            # now, so they are deliberately not handled here as well.
+            # Ctrl+O and Ctrl+A used to be listed here for loading and adding
+            # a mask file, but compared ev.key (the method) against a keycode,
+            # so they never fired — in the decade since, nobody missed them.
+            # The Load Mask and Add Mask buttons are the way in; Ctrl+A in
+            # particular means "select all" everywhere else and should not be
+            # taught to mean "merge a mask file" now.
+            if ev.key() == 83:  # for pressing s
                 self.save_mask_btn_click()
-            elif ev.key == 79:  # for pressing o
-                self.load_mask_btn_click()
-            elif ev.key == 65:  # for pressing a
-                self.add_mask_btn_click()
 
     def mask_rb_click(self):
         self.model.mask_model.set_mode(True)
@@ -572,15 +583,11 @@ class MaskController:
         self.widget.img_widget.mask_preview_fill_color = QtGui.QColor(0, 255, 0, 150)
         self.update_shape_preview_fill_color()
 
-    def fill_rb_click(self):
-        self.model.transparent_mask = False
-        self.widget.img_widget.set_mask_color([255, 0, 0, 255])
-        self.plot_mask()
-
-    #
-    def transparent_rb_click(self):
-        self.model.transparent_mask = True
-        self.widget.img_widget.set_mask_color([255, 0, 0, 100])
+    def _apply_mask_transparency(self, transparent):
+        """Display side effect following the transparent_mask setting."""
+        self.widget.img_widget.set_mask_color(
+            [255, 0, 0, 100] if transparent else [255, 0, 0, 255]
+        )
         self.plot_mask()
 
     def show_img_mouse_position(self, x, y):
@@ -596,15 +603,7 @@ class MaskController:
 
     def update_gui(self):
         self.plot_image()
-
-        # transparency
-        if self.model.transparent_mask:
-            self.widget.transparent_rb.setChecked(True)
-            self.transparent_rb_click()
-        else:
-            self.widget.fill_rb.setChecked(True)
-            self.fill_rb_click()
-
+        self.binder.refresh()  # transparency radios + their display effect
         self._update_plugin_checkboxes()
         self.plot_mask()
 

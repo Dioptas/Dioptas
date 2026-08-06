@@ -4,6 +4,8 @@ import unittest
 from mock import MagicMock, patch
 import os
 import gc
+
+import pytest
 from pyFAI import detectors
 
 import numpy as np
@@ -203,6 +205,7 @@ class TestCalibrationController(QtTest):
             return_value=os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
         )
         QTest.mouseClick(self.widget.load_img_btn, QtCore.Qt.LeftButton)
+        self.controller.go_to_wizard_step(1)
         self.controller.search_peaks(1179.6, 1129.4)
         self.controller.search_peaks(1268.5, 1119.8)
         self.controller.widget.sv_wavelength_txt.setText("0.31")
@@ -229,6 +232,7 @@ class TestCalibrationController(QtTest):
             return_value=os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
         )
         QTest.mouseClick(self.widget.load_img_btn, QtCore.Qt.LeftButton)
+        self.controller.go_to_wizard_step(1)
         self.controller.search_peaks(1179.6, 1129.4)
         self.controller.search_peaks(1268.5, 1119.8)
         self.assertEqual(3, self.widget.peak_num_sb.value())
@@ -243,6 +247,7 @@ class TestCalibrationController(QtTest):
         click_checkbox(self.widget.automatic_peak_num_inc_cb)
         self.assertFalse(self.widget.automatic_peak_num_inc_cb.isChecked())
 
+        self.controller.go_to_wizard_step(1)
         self.controller.search_peaks(1179.6, 1129.4)
         self.controller.search_peaks(1268.5, 1119.8)
         self.assertEqual(1, self.widget.peak_num_sb.value())
@@ -340,6 +345,7 @@ class TestCalibrationController(QtTest):
             return_value=os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
         )
         QTest.mouseClick(self.widget.load_img_btn, QtCore.Qt.LeftButton)
+        self.controller.go_to_wizard_step(1)
         self.controller.search_peaks(1179.6, 1129.4)
         self.controller.search_peaks(1268.5, 1119.8)
         calibrant_index = self.widget.calibrant_cb.findText("CuO")
@@ -367,17 +373,533 @@ class TestCalibrationController(QtTest):
         self.model.calibration_model.detector_reset.emit.assert_not_called()
 
 
-def test_click_calibrate_without_defined_points(
+def test_calibrate_button_is_gated_until_peaks_are_picked(
     calibration_controller, calibration_model
 ):
-    QtWidgets.QMessageBox.critical = MagicMock()
+    # the guided workflow disables Calibrate instead of popping an error
+    # dialog after the fact
     calibration_model.calibrate = MagicMock()
-    click_button(calibration_controller.widget.calibrate_btn)
-    assert QtWidgets.QMessageBox.critical.called
+    widget = calibration_controller.widget
+    assert not widget.calibrate_btn.isEnabled()
+    assert widget.calibrate_btn.toolTip() != ""
+
+    click_button(widget.calibrate_btn)
     assert not calibration_model.calibrate.called
 
+    calibration_model.params.peak_selections = ((0, ((10.0, 20.0),)),)
+    assert widget.calibrate_btn.isEnabled()
+    assert widget.calibrate_btn.toolTip() == ""
 
-def test_click_refine_without_defined_points(calibration_controller, calibration_model):
+
+def test_refine_button_is_gated_until_calibrated(calibration_controller):
+    widget = calibration_controller.widget
+    assert not widget.refine_btn.isEnabled()
+    assert widget.refine_btn.toolTip() != ""
+
+
+def test_guide_updates_indicator_and_counter(
+    calibration_controller, calibration_model, dioptas_model
+):
+    widget = calibration_controller.widget
+    assert widget.step_indicator.step_status(0) == "attention"
+
+    dioptas_model.img_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
+    )
+    assert widget.step_indicator.step_status(0) == "done"
+    assert widget.step_indicator.step_status(1) == "attention"
+
+    calibration_model.params.peak_selections = (
+        (0, ((10.0, 20.0), (30.0, 40.0))),
+        (1, ((50.0, 60.0),)),
+    )
+    assert widget.step_indicator.step_status(1) == "done"
+    assert widget.step_indicator.step_status(2) == "attention"
+    assert widget.peak_counter_lbl.text() == "3 peaks on 2 rings"
+
+    calibration_model.params.is_calibrated = True
+    assert widget.step_indicator.step_status(2) == "done"
+    assert widget.refine_btn.isEnabled()
+
+
+def test_wizard_shows_one_page_at_a_time(calibration_controller, qtbot):
+    widget = calibration_controller.widget
+    parameters_widget = (
+        widget.calibration_control_widget.calibration_parameters_widget
+    )
+    widget.show()
+    qtbot.addWidget(widget)
+
+    assert parameters_widget.current_step() == 0
+    assert widget.step_indicator.isVisible()
+    assert widget.load_img_btn.isVisible()
+    assert widget.rotate_m90_btn.isVisible()
+    assert widget.detectors_cb.isVisible()
+    # peak picking, calibrant and the actions belong to later pages
+    assert not widget.peak_num_sb.isVisible()
+    assert not widget.calibrant_cb.isVisible()
+    assert not widget.sv_wavelength_txt.isVisible()
+    assert not widget.calibrate_btn.isVisible()
+    assert not widget.refine_btn.isVisible()
+
+
+def test_validation_step_gates_results_and_views(
+    calibration_controller, calibration_model, dioptas_model, qtbot
+):
+    widget = calibration_controller.widget
+    widget.show()
+    qtbot.addWidget(widget)
+
+    # the cake and pattern views are hidden while working through steps 1-3
+    display_widget = widget.calibration_display_widget
+    assert widget.img_widget.img_view_box.isVisible()
+    assert not display_widget.cake_layout_widget.isVisible()
+    assert not display_widget.pattern_layout_widget.isVisible()
+
+    dioptas_model.img_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
+    )
+    calibration_model.params.peak_selections = ((0, ((10.0, 20.0),)),)
+    calibration_controller.go_to_wizard_step(2)
+    assert widget.calibrate_btn.isVisible()
+    assert widget.calibrate_btn.isEnabled()
+    assert not widget.refine_btn.isVisible()
+    assert not widget.save_calibration_btn.isVisible()
+
+    # validation is unreachable without a calibration
+    calibration_controller.go_to_wizard_step(3)
+    assert widget.step_stack.currentIndex() == 2
+
+    calibration_model.params.is_calibrated = True
+    calibration_controller.go_to_wizard_step(3)
+    assert widget.step_stack.currentIndex() == 3
+    assert display_widget.cake_layout_widget.isVisible()
+    assert display_widget.pattern_layout_widget.isVisible()
+    assert widget.parameters_tab_widget.isVisible()
+    assert widget.refine_btn.isVisible()
+    assert widget.save_calibration_btn.isVisible()
+
+    # going back hides the validation-only views again
+    calibration_controller.go_to_wizard_step(1)
+    assert not display_widget.cake_layout_widget.isVisible()
+    assert not display_widget.pattern_layout_widget.isVisible()
+
+
+def test_wizard_navigation_is_gated_by_prerequisites(
+    calibration_controller, dioptas_model, calibration_model
+):
+    widget = calibration_controller.widget
+    parameters_widget = (
+        widget.calibration_control_widget.calibration_parameters_widget
+    )
+
+    # nothing loaded: stuck on page 1
+    assert not widget.wizard_next_btn.isEnabled()
+    assert not widget.wizard_back_btn.isEnabled()
+    assert widget.wizard_next_btn.toolTip() != ""
+    calibration_controller.wizard_next()
+    assert parameters_widget.current_step() == 0
+
+    dioptas_model.img_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
+    )
+    assert widget.wizard_next_btn.isEnabled()
+    click_button(widget.wizard_next_btn)
+    assert parameters_widget.current_step() == 1
+
+    # no peaks yet: page 3 unreachable
+    assert not widget.wizard_next_btn.isEnabled()
+    calibration_controller.wizard_next()
+    assert parameters_widget.current_step() == 1
+
+    calibration_model.params.peak_selections = ((0, ((10.0, 20.0),)),)
+    assert widget.wizard_next_btn.isEnabled()
+    click_button(widget.wizard_next_btn)
+    assert parameters_widget.current_step() == 2
+
+    # not calibrated yet: the validation page stays unreachable
+    assert not widget.wizard_next_btn.isEnabled()
+    calibration_controller.wizard_next()
+    assert parameters_widget.current_step() == 2
+
+    calibration_model.params.is_calibrated = True
+    assert widget.wizard_next_btn.isEnabled()
+    click_button(widget.wizard_next_btn)
+    assert parameters_widget.current_step() == 3
+    # last page has no next
+    assert not widget.wizard_next_btn.isEnabled()
+
+    click_button(widget.wizard_back_btn)
+    assert parameters_widget.current_step() == 2
+
+
+def test_peak_table_lists_and_edits_picks(calibration_controller, calibration_model):
+    widget = calibration_controller.widget
+    calibration_model.params.peak_selections = (
+        (0, ((10.0, 20.0), (30.0, 40.0))),
+        (1, ((50.0, 60.0),)),
+    )
+    table = widget.peak_table
+    assert table.rowCount() == 2
+    assert table.cellWidget(0, 0).value() == 1
+    assert table.item(0, 1).text() == "2"
+    assert table.cellWidget(1, 0).value() == 2
+
+    # changing the ring spinbox reassigns the pick to that ring
+    table.cellWidget(1, 0).setValue(5)
+    assert calibration_model.points_index == [0, 4]
+    assert table.cellWidget(1, 0).value() == 5
+
+
+def test_peak_table_delete_selected(calibration_controller, calibration_model):
+    widget = calibration_controller.widget
+    calibration_model.params.peak_selections = (
+        (0, ((10.0, 20.0),)),
+        (1, ((30.0, 40.0),)),
+        (2, ((50.0, 60.0),)),
+    )
+    widget.peak_table.selectRow(1)
+    click_button(widget.delete_peak_btn)
+    assert calibration_model.points_index == [0, 2]
+    assert widget.peak_table.rowCount() == 2
+
+
+def test_peak_table_selection_highlights_in_image(
+    calibration_controller, calibration_model
+):
+    widget = calibration_controller.widget
+    calibration_model.params.peak_selections = (
+        (0, ((10.0, 20.0),)),
+        (1, ((30.0, 40.0),)),
+    )
+    widget.peak_table.selectRow(0)
+    assert calibration_controller._selected_pick_rows() == [0]
+
+    # the replot with highlighting put both picks on screen
+    x_data, y_data = widget.img_widget.img_scatter_plot_item.getData()
+    assert len(x_data) == 2
+
+
+def test_automatic_refinement_parameters_follow_checkbox(
+    calibration_controller, calibration_model, dioptas_model, qtbot
+):
+    widget = calibration_controller.widget
+    widget.show()
+    qtbot.addWidget(widget)
+
+    dioptas_model.img_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
+    )
+    calibration_model.params.peak_selections = ((0, ((10.0, 20.0),)),)
+    calibration_controller.go_to_wizard_step(2)
+
+    # enabled by default: the automatic-refinement parameters are shown
+    assert widget.options_automatic_refinement_cb.isChecked()
+    assert widget.options_num_rings_sb.isVisible()
+    assert widget.options_num_rings_sb.value() == 15
+
+    click_checkbox(widget.options_automatic_refinement_cb)
+    assert not widget.options_num_rings_sb.isVisible()
+    assert not widget.options_peaksearch_algorithm_cb.isVisible()
+
+    click_checkbox(widget.options_automatic_refinement_cb)
+    assert widget.options_num_rings_sb.isVisible()
+
+
+def test_manual_parameter_entry_without_poni(
+    calibration_controller, calibration_model
+):
+    widget = calibration_controller.widget
+
+    # the validation page is closed without a calibration ...
+    calibration_controller.go_to_wizard_step(3)
+    assert widget.step_stack.currentIndex() != 3
+
+    # ... but Enter Manually opens it directly
+    click_button(widget.enter_parameters_btn)
+    assert widget.step_stack.currentIndex() == 3
+
+    pyfai_widget = (
+        widget.calibration_control_widget.pyfai_parameters_widget
+    )
+    for txt_field, value in [
+        (pyfai_widget.distance_txt, "200"),
+        (pyfai_widget.wavelength_txt, "0.31"),
+        (pyfai_widget.polarization_txt, "0.99"),
+        (pyfai_widget.poni1_txt, "0.08"),
+        (pyfai_widget.poni2_txt, "0.08"),
+        (pyfai_widget.rotation1_txt, "0"),
+        (pyfai_widget.rotation2_txt, "0"),
+        (pyfai_widget.rotation3_txt, "0"),
+        (pyfai_widget.pixel_width_txt, "79"),
+        (pyfai_widget.pixel_height_txt, "79"),
+    ]:
+        txt_field.setText(value)
+
+    calibration_controller.update_all = MagicMock()
+    click_button(widget.pf_update_btn)
+    assert calibration_model.is_calibrated
+    assert calibration_controller.update_all.called
+
+
+def test_manual_parameter_update_with_empty_fields_shows_message(
+    calibration_controller, calibration_model
+):
+    widget = calibration_controller.widget
+    click_button(widget.enter_parameters_btn)
+
     QtWidgets.QMessageBox.critical = MagicMock()
-    click_button(calibration_controller.widget.refine_btn)
+    click_button(widget.pf_update_btn)
     assert QtWidgets.QMessageBox.critical.called
+    assert not calibration_model.is_calibrated
+
+
+def test_image_clicks_only_pick_peaks_on_the_pick_rings_step(
+    calibration_controller, calibration_model, dioptas_model
+):
+    dioptas_model.img_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
+    )
+    # on the image step a click must not add peaks
+    assert calibration_controller.widget.step_stack.currentIndex() == 0
+    calibration_controller.search_peaks(1179.6, 1129.4)
+    assert len(calibration_model.points) == 0
+
+    calibration_controller.go_to_wizard_step(1)
+    calibration_controller.search_peaks(1179.6, 1129.4)
+    assert len(calibration_model.points) == 1
+
+
+def test_validation_click_links_position_across_views(
+    calibration_controller, calibration_model, dioptas_model
+):
+    widget = calibration_controller.widget
+    dioptas_model.img_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
+    )
+    calibration_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.poni")
+    )
+    calibration_controller.go_to_wizard_step(3)
+
+    # off the validation step nothing is published
+    calibration_controller.go_to_wizard_step(1)
+    calibration_controller.validation_pattern_click(12.0, 0)
+    assert dioptas_model.clicked_tth != 12.0
+
+    calibration_controller.go_to_wizard_step(3)
+    calibration_controller.validation_pattern_click(12.0, 0)
+    assert dioptas_model.clicked_tth == pytest.approx(12.0)
+    assert widget.pattern_widget.get_pos_line() == pytest.approx(12.0)
+
+    # a click on the image publishes its 2theta as well
+    calibration_controller.validation_img_click(1179.6, 1129.4)
+    assert dioptas_model.clicked_tth != pytest.approx(12.0)
+
+
+def test_phase_lines_are_drawn_in_validation_views(
+    calibration_controller, calibration_model, dioptas_model
+):
+    widget = calibration_controller.widget
+    dioptas_model.img_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
+    )
+    calibration_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.poni")
+    )
+    calibration_controller.go_to_wizard_step(3)
+
+    # the calibrant's rings are always overlaid on image and cake
+    # (cake lines need an integrated cake, which this test skips — the
+    # image rings cover the overlay path)
+    calibrant_ring_count = len(widget.img_widget._phase_ring_items)
+    assert calibrant_ring_count > 0
+
+    dioptas_model.phase_model.add_jcpds(
+        os.path.join(unittest_data_path, "jcpds", "au_Anderson.jcpds")
+    )
+    assert len(widget.img_widget._phase_ring_items) > calibrant_ring_count
+    # pattern lines come via the shared PhaseInPatternController
+    assert len(widget.pattern_widget.phases) == 1
+
+    dioptas_model.phase_model.del_phase(0)
+    assert len(widget.img_widget._phase_ring_items) == calibrant_ring_count
+    assert len(widget.pattern_widget.phases) == 0
+
+
+def test_fixed_parameters_can_be_set_before_calibration(calibration_controller):
+    widget = calibration_controller.widget
+    start_values_gb = (
+        widget.calibration_control_widget
+        .calibration_parameters_widget.start_values_gb
+    )
+    # everything refined by default
+    assert widget.get_fixed_values() == {}
+
+    click_checkbox(start_values_gb.rotation3_cb)
+    start_values_gb.rotation3_txt.setText("0.01")
+    click_checkbox(start_values_gb.poni1_cb)
+    start_values_gb.poni1_txt.setText("0.08")
+    assert widget.get_fixed_values() == {"rot3": 0.01, "poni1": 0.08}
+
+    # mirrored onto the pyFAI parameter page and back
+    assert not widget.pf_rot3_cb.isChecked()
+    assert not widget.pf_poni1_cb.isChecked()
+    click_checkbox(widget.pf_rot3_cb)
+    assert start_values_gb.rotation3_cb.isChecked()
+    assert widget.get_fixed_values() == {"poni1": 0.08}
+
+
+def test_fitted_values_sync_into_constraint_fields(calibration_controller):
+    widget = calibration_controller.widget
+    start_values_gb = (
+        widget.calibration_control_widget
+        .calibration_parameters_widget.start_values_gb
+    )
+    widget.set_pyFAI_parameter(
+        {
+            "dist": 0.2,
+            "poni1": 0.081,
+            "poni2": 0.082,
+            "rot1": 0.001,
+            "rot2": 0.002,
+            "rot3": 0.003,
+            "wavelength": 0.31e-10,
+            "polarization_factor": 0.99,
+            "pixel1": 79e-6,
+            "pixel2": 79e-6,
+        }
+    )
+    assert float(start_values_gb.rotation1_txt.text()) == pytest.approx(0.001)
+    assert float(start_values_gb.rotation3_txt.text()) == pytest.approx(0.003)
+    assert float(start_values_gb.poni1_txt.text()) == pytest.approx(0.081)
+
+
+def test_project_reset_clears_peak_views(
+    calibration_controller, calibration_model, dioptas_model
+):
+    widget = calibration_controller.widget
+    calibration_model.params.peak_selections = ((0, ((10.0, 20.0),)),)
+    dioptas_model.use_mask = True
+    dioptas_model.mask_changed.emit()
+    assert widget.peak_table.rowCount() == 1
+    assert widget.use_mask_cb.isChecked()
+
+    dioptas_model.reset()
+    assert widget.peak_table.rowCount() == 0
+    # the mask state of the fresh configuration is shown, not the old one
+    assert not widget.use_mask_cb.isChecked()
+    x_data, y_data = widget.img_widget.img_scatter_plot_item.getData()
+    assert x_data is None or len(x_data) == 0
+
+    # picking in the fresh configuration updates the views again
+    dioptas_model.calibration_model.params.peak_selections = (
+        (1, ((30.0, 40.0),)),
+    )
+    assert widget.peak_table.rowCount() == 1
+    assert widget.peak_table.cellWidget(0, 0).value() == 2
+
+
+def test_current_ring_change_selects_groups_of_that_ring(
+    calibration_controller, calibration_model
+):
+    widget = calibration_controller.widget
+    calibration_model.params.peak_selections = (
+        (0, ((10.0, 20.0),)),
+        (1, ((30.0, 40.0),)),
+        (0, ((50.0, 60.0),)),
+    )
+    widget.peak_num_sb.setValue(2)
+    assert calibration_controller._selected_pick_rows() == [1]
+
+    widget.peak_num_sb.setValue(1)
+    assert calibration_controller._selected_pick_rows() == [0, 2]
+
+
+def test_setup_fields_are_flagged_until_edited(calibration_controller):
+    widget = calibration_controller.widget
+    for field in (
+        widget.sv_distance_txt,
+        widget.sv_wavelength_txt,
+        widget.sv_energy_txt,
+        widget.calibrant_cb,
+    ):
+        assert field.property("unconfirmed")
+        assert field.toolTip() != ""
+
+    widget.sv_distance_txt.setText("300")
+    widget.sv_distance_txt.textEdited.emit("300")
+    assert not widget.sv_distance_txt.property("unconfirmed")
+    assert widget.sv_distance_txt.toolTip() == ""
+    # the others stay flagged
+    assert widget.sv_wavelength_txt.property("unconfirmed")
+
+
+def test_wavelength_and_energy_stay_in_sync(calibration_controller):
+    widget = calibration_controller.widget
+    # default 0.3344 A shows its energy equivalent
+    assert abs(float(widget.sv_energy_txt.text()) - 37.0766) < 1e-3
+
+    widget.sv_wavelength_txt.setText("0.4")
+    widget.sv_wavelength_txt.textEdited.emit("0.4")
+    assert abs(float(widget.sv_energy_txt.text()) - 30.9960) < 1e-3
+    assert not widget.sv_wavelength_txt.property("unconfirmed")
+    assert not widget.sv_energy_txt.property("unconfirmed")
+
+    widget.sv_energy_txt.setText("31")
+    widget.sv_energy_txt.textEdited.emit("31")
+    assert abs(float(widget.sv_wavelength_txt.text()) - 0.399949) < 1e-5
+
+
+def test_calibrated_state_confirms_all_setup_fields(
+    calibration_controller, calibration_model
+):
+    widget = calibration_controller.widget
+    assert widget.sv_wavelength_txt.property("unconfirmed")
+
+    calibration_model.params.is_calibrated = True
+    for field in (
+        widget.sv_distance_txt,
+        widget.sv_wavelength_txt,
+        widget.sv_energy_txt,
+        widget.calibrant_cb,
+    ):
+        assert not field.property("unconfirmed")
+
+
+def test_loading_detector_confirms_pixel_size(calibration_controller):
+    widget = calibration_controller.widget
+    detector_gb = (
+        widget.calibration_control_widget.calibration_parameters_widget.detector_gb
+    )
+    assert detector_gb.pixel_width_txt.property("unconfirmed")
+
+    widget.detectors_cb.setCurrentIndex(
+        widget.detectors_cb.findText("Pilatus CdTe 1M")
+    )
+    assert not detector_gb.pixel_width_txt.property("unconfirmed")
+    assert not detector_gb.pixel_height_txt.property("unconfirmed")
+
+
+def test_automatic_refinement_restores_picks_when_no_peaks_found(
+    calibration_controller, calibration_model, dioptas_model
+):
+    widget = calibration_controller.widget
+    dioptas_model.img_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
+    )
+    calibration_controller.go_to_wizard_step(1)
+    calibration_controller.search_peaks(1179.6, 1129.4)
+    previous_selections = calibration_model.params.peak_selections
+    assert len(previous_selections) == 1
+    previous_peak_num = widget.peak_num_sb.value()
+
+    # the search finds nothing (e.g. threshold too low) — the manual
+    # picks must survive the refinement attempt
+    calibration_model.search_peaks_on_ring = MagicMock(return_value=[])
+    with patch.object(QtWidgets.QMessageBox, "critical") as critical:
+        calibration_controller.automatic_refinement()
+
+    assert critical.called
+    assert calibration_model.params.peak_selections == previous_selections
+    assert widget.peak_num_sb.value() == previous_peak_num

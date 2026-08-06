@@ -15,6 +15,10 @@ QGroupBox::title {{
 
 QComboBox {{
     selection-background-color: {QTMATERIAL_SECONDARYCOLOR};
+    /* Use a scrollable drop-down list instead of the native macOS menu popup,
+       which is drawn over the box, reserves a check-mark column and ignores
+       maxVisibleItems. */
+    combobox-popup: 0;
 }}
 
 QComboBox::item:selected {{
@@ -187,4 +191,57 @@ QComboBox QAbstractItemView {{
 
 QListView::item:selected:focus {{
     background-color: rgba(255, 149, 0, 0.1);
+}}
+
+/*  ------------------------------------------------------------------------  */
+/*  Undo/redo history buttons                                                  */
+/*  Icon-only, so qt_material's disabled flat-button rule does not suit them:   */
+/*  it dims the *text* and fills the background with a wash, and an icon is     */
+/*  not affected by `color` — which left an unavailable button looking more     */
+/*  prominent than an available one. The faded icon alone carries the state.    */
+
+QPushButton#undo_btn, QPushButton#redo_btn {{
+    background-color: transparent;
+    border: none;
+}}
+
+QPushButton#undo_btn:disabled, QPushButton#redo_btn:disabled {{
+    background-color: transparent;
+    border: none;
+}}
+
+QPushButton#undo_btn:hover:enabled, QPushButton#redo_btn:hover:enabled {{
+    background-color: rgba(255, 149, 0, 0.15);
+    border: none;
+}}
+
+/*  ------------------------------------------------------------------------  */
+/*  Disabled widgets                                                           */
+/*  qt_material dims disabled input text to 20% opacity, which makes values    */
+/*  in disabled fields (e.g. correction parameters before the correction is    */
+/*  enabled) illegible on the dark background. Users need to read these        */
+/*  values to decide whether to enable the feature, so keep them legible.      */
+
+QDateEdit:disabled,
+QDateTimeEdit:disabled,
+QSpinBox:disabled,
+QDoubleSpinBox:disabled,
+QLineEdit:disabled {{
+    color: rgba(241, 241, 241, 0.55);
+}}
+
+QLabel:disabled,
+QCheckBox:disabled,
+QRadioButton:disabled {{
+    color: rgba(241, 241, 241, 0.45);
+}}
+
+/*  ------------------------------------------------------------------------  */
+/*  Pattern plot edge controls                                                 */
+/*  The unit/scale/background toggles beside the pattern plot are two-letter   */
+/*  micro-buttons; the global flat-checked border alone is easy to miss at     */
+/*  that size, so checked state additionally gets a faint amber fill.          */
+
+#pattern_right_control_widget QPushButton:flat:checked {{
+    background-color: rgba(255, 149, 0, 0.18);
 }}

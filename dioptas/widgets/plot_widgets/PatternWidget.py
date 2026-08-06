@@ -81,7 +81,8 @@ class PatternWidget(QtCore.QObject):
         self.legend.setParentItem(self.pattern_plot.vb)
         self.legend.anchor(itemPos=(1, 0), parentPos=(1, 0), offset=(-10, -10))
         self.phases_legend.setParentItem(self.pattern_plot.vb)
-        self.phases_legend.anchor(itemPos=(0, 0), parentPos=(0, 0), offset=(0, -10))
+        # x-offset keeps the phase names clear of the y-axis line
+        self.phases_legend.anchor(itemPos=(0, 0), parentPos=(0, 0), offset=(15, -10))
 
         self.bkg_roi = ModifiedLinearRegionItem(
             [5, 20],
@@ -157,6 +158,10 @@ class PatternWidget(QtCore.QObject):
     def deactivate_pos_line(self):
         if self.pos_line.scene() == self.pattern_plot.scene():
             self.pattern_plot.removeItem(self.pos_line)
+
+    def activate_pos_line(self):
+        if self.pos_line.scene() != self.pattern_plot.scene():
+            self.pattern_plot.addItem(self.pos_line)
 
     def set_pos_line(self, x):
         self.pos_line.setPos(x)
@@ -350,7 +355,8 @@ class PatternWidget(QtCore.QObject):
 
     # map interactive linear region functions
     def show_map_interactive_roi(self):
-        self.pattern_plot.addItem(self.map_interactive_roi)
+        if self.map_interactive_roi.scene() != self.pattern_plot.scene():
+            self.pattern_plot.addItem(self.map_interactive_roi)
 
     def set_map_interactive_roi(self, x_min, x_max):
         self.map_interactive_roi.setRegion((x_min, x_max))

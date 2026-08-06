@@ -5,6 +5,40 @@ import weakref
 
 import pytest
 
+# Run the Qt tests headless by default, so test windows don't pop up and steal
+# focus while working. This matches the CI setup, which sets QT_QPA_PLATFORM to
+# offscreen for all test workflows. Set DIOPTAS_TEST_GUI=1 to watch the tests
+# run in real windows, or set QT_QPA_PLATFORM explicitly to override.
+if not os.environ.get("DIOPTAS_TEST_GUI") and "QT_QPA_PLATFORM" not in os.environ:
+    os.environ["QT_QPA_PLATFORM"] = "offscreen"
+
+
+_OFFSCREEN_NOISE = (
+    "This plugin does not support",
+    "QOpenGLWidget is not supported on this platform",
+    "QOpenGLWidget: Failed to create context",
+    "Populating font family aliases took",
+)
+
+
+def pytest_configure(config):
+    """Filter the Qt warnings the offscreen platform emits for unsupported calls.
+
+    The offscreen plugin warns on every raise()/propagateSizeHints()/OpenGL
+    context call, which floods the test output without indicating a problem.
+    """
+    if os.environ.get("QT_QPA_PLATFORM") != "offscreen":
+        return
+
+    import sys
+    from qtpy import QtCore
+
+    def handler(msg_type, context, message):
+        if not any(message.startswith(prefix) for prefix in _OFFSCREEN_NOISE):
+            print(message, file=sys.stderr)
+
+    QtCore.qInstallMessageHandler(handler)
+
 
 @pytest.fixture(scope="session")
 def qapp():

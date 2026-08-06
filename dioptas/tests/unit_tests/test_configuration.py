@@ -35,32 +35,32 @@ def test_auto_save_background_subtracted_pattern(tmp_path):
 def test_integration_rad_points_property():
     config = Configuration()
     assert config.integration_rad_points is None
-    config._integration_rad_points = 1500
+    config.params.integration_rad_points = 1500
     assert config.integration_rad_points == 1500
 
 
 def test_oned_azimuth_range_property():
     config = Configuration()
     assert config.oned_azimuth_range is None
-    config._oned_azimuth_range = [0.0, 180.0]
+    config.params.oned_azimuth_range = [0.0, 180.0]
     assert config.oned_azimuth_range == [0.0, 180.0]
-    config._oned_azimuth_range = None
+    config.params.oned_azimuth_range = None
     assert config.oned_azimuth_range is None
 
 
 def test_cake_azimuth_range_property():
     config = Configuration()
     assert config.cake_azimuth_range is None
-    config._cake_azimuth_range = [-180.0, 180.0]
+    config.params.cake_azimuth_range = [-180.0, 180.0]
     assert config.cake_azimuth_range == [-180.0, 180.0]
-    config._cake_azimuth_range = None
+    config.params.cake_azimuth_range = None
     assert config.cake_azimuth_range is None
 
 
 def test_integration_unit_property():
     config = Configuration()
     assert config.integration_unit == "2th_deg"
-    config._integration_unit = "q_A^-1"
+    config.params.integration_unit = "q_A^-1"
     assert config.integration_unit == "q_A^-1"
 
 
@@ -177,7 +177,7 @@ def test_create_fxye_header():
 
 def test_create_fxye_header_q_unit():
     config = _load_calibrated_config()
-    config._integration_unit = "q_A^-1"
+    config.params.integration_unit = "q_A^-1"
     header = config._create_fxye_header("test.fxye")
     assert "CONQ" in header
 
@@ -215,20 +215,36 @@ def test_update_mask_dimension():
 # HDF5 round-trip test
 # ---------------------------------------------------------------------------
 
+def _calibrated_model():
+    """A DioptasModel whose current configuration is calibrated with an
+    image loaded — the round-trip tests below go through the model, since
+    project files are written for the whole model rather than per
+    configuration."""
+    from dioptas.model.DioptasModel import DioptasModel
+
+    model = DioptasModel()
+    config = model.current_configuration
+    config.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    config.img_model.load(os.path.join(unittest_data_path, "CeO2_Pilatus1M.tif"))
+    return model, config
+
+
 def test_save_and_load_hdf5_round_trip(tmp_path):
     import h5py
     import numpy as np
 
     # Set up a fully configured Configuration
-    config = _load_calibrated_config()
+    model, config = _calibrated_model()
     config.integrate_image_1d()
 
     config.use_mask = True
     config.transparent_mask = True
-    config._integration_unit = "q_A^-1"
-    config._integration_rad_points = 2000
-    config._cake_azimuth_points = 180
-    config._cake_azimuth_range = [-90.0, 90.0]
+    config.params.integration_unit = "q_A^-1"
+    config.params.integration_rad_points = 2000
+    config.params.cake_azimuth_points = 180
+    config.params.cake_azimuth_range = [-90.0, 90.0]
     config.auto_save_integrated_pattern = True
     config.integrated_patterns_file_formats = [".xy", ".fxye"]
 
@@ -252,17 +268,16 @@ def test_save_and_load_hdf5_round_trip(tmp_path):
     oiadac.update()
     config.img_model.add_img_correction(oiadac, "oiadac")
 
-    # Save to HDF5
-    hdf5_path = os.path.join(tmp_path, "test_project.h5")
-    with h5py.File(hdf5_path, "w") as f:
-        group = f.create_group("config")
-        config.save_in_hdf5(group)
+    # loading replaces the configurations, so what is compared afterwards
+    # has to be captured first
+    expected_image = np.copy(config.img_model._img_data)
 
-    # Load into fresh Configuration
-    loaded = Configuration()
-    with h5py.File(hdf5_path, "r") as f:
-        group = f["config"]
-        loaded.load_from_hdf5(group)
+    # round-trip through a project file: configurations are saved and
+    # loaded as part of the model now (see state/project.py)
+    project_path = os.path.join(tmp_path, "test_project.dio")
+    model.save(project_path)
+    model.load(project_path)
+    loaded = model.current_configuration
 
     # Verify general information
     assert loaded.integration_unit == "q_A^-1"
@@ -285,9 +300,9 @@ def test_save_and_load_hdf5_round_trip(tmp_path):
     assert loaded.calibration_model.is_calibrated
 
     # Verify image data shape
-    assert loaded.img_model._img_data.shape == config.img_model._img_data.shape
+    assert loaded.img_model._img_data.shape == expected_image.shape
     np.testing.assert_array_almost_equal(
-        loaded.img_model._img_data, config.img_model._img_data, decimal=3
+        loaded.img_model._img_data, expected_image, decimal=3
     )
 
     # Verify mask
@@ -307,21 +322,20 @@ def test_save_and_load_hdf5_no_corrections(tmp_path):
     import h5py
     import numpy as np
 
-    config = _load_calibrated_config()
+    model, config = _calibrated_model()
     config.integrate_image_1d()
 
-    hdf5_path = os.path.join(tmp_path, "test_minimal.h5")
-    with h5py.File(hdf5_path, "w") as f:
-        group = f.create_group("config")
-        config.save_in_hdf5(group)
+    # loading replaces the configurations, so what is compared afterwards
+    # has to be captured first
+    expected_shape = config.img_model._img_data.shape
 
-    loaded = Configuration()
-    with h5py.File(hdf5_path, "r") as f:
-        group = f["config"]
-        loaded.load_from_hdf5(group)
+    project_path = os.path.join(tmp_path, "test_minimal.dio")
+    model.save(project_path)
+    model.load(project_path)
+    loaded = model.current_configuration
 
     assert loaded.calibration_model.is_calibrated
-    assert loaded.img_model._img_data.shape == config.img_model._img_data.shape
+    assert loaded.img_model._img_data.shape == expected_shape
     assert loaded.integration_unit == "2th_deg"
 
 
@@ -329,19 +343,114 @@ def test_save_and_load_hdf5_with_cake_azimuth_range_none(tmp_path):
     """Verify that cake_azimuth_range=None round-trips correctly."""
     import h5py
 
-    config = _load_calibrated_config()
+    model, config = _calibrated_model()
     config.integrate_image_1d()
-    config._cake_azimuth_range = None
+    config.params.cake_azimuth_range = None
 
-    hdf5_path = os.path.join(tmp_path, "test_cake_none.h5")
-    with h5py.File(hdf5_path, "w") as f:
-        group = f.create_group("config")
-        config.save_in_hdf5(group)
-
-    loaded = Configuration()
-    with h5py.File(hdf5_path, "r") as f:
-        group = f["config"]
-        loaded.load_from_hdf5(group)
+    project_path = os.path.join(tmp_path, "test_cake_none.dio")
+    model.save(project_path)
+    model.load(project_path)
+    loaded = model.current_configuration
 
     assert loaded.cake_azimuth_range is None
 
+
+
+# ---------------------------------------------------------------------------
+# Params state layer
+# ---------------------------------------------------------------------------
+
+
+def test_properties_delegate_to_params():
+    config = Configuration()
+    config.use_mask = True
+    config.transparent_mask = True
+    config.trim_trailing_zeros = False
+    assert config.params.use_mask is True
+    assert config.params.transparent_mask is True
+    assert config.params.trim_trailing_zeros is False
+
+    config.params.use_mask = False
+    assert config.use_mask is False
+
+
+def test_property_changes_emit_params_events():
+    config = Configuration()
+    got = []
+    config.params.events.use_mask.connect(lambda new, old: got.append((new, old)))
+    config.use_mask = True
+    assert got == [(True, False)]
+
+
+def test_working_directories_passed_by_reference():
+    directories = {"image": "/somewhere"}
+    config = Configuration(directories)
+    assert config.working_directories is directories
+
+
+def test_direct_params_writes_trigger_same_reactions_as_properties():
+    """Uniform writes: a direct params write behaves like the property write."""
+    from unittest.mock import MagicMock
+
+    config = Configuration()
+    config.pattern_integration.recompute = MagicMock()
+    config.cake_integration.invalidate = MagicMock()
+
+    config.params.integration_rad_points = 1500
+    config.pattern_integration.recompute.assert_called_once()
+    config.cake_integration.invalidate.assert_called_once()
+
+    config.params.auto_integrate_cake = True
+    assert config.cake_integration.active is True
+    config.params.auto_integrate_pattern = False
+    assert config.pattern_integration.active is False
+
+    config.calibration_model.params.correct_solid_angle = False
+    config.cake_integration.invalidate.assert_called()
+
+
+def test_copy_carries_all_settings():
+    """copy() copies every settings tree generically, not a hand-picked subset."""
+    config = _load_calibrated_config()
+    config.use_mask = True
+    config.transparent_mask = True
+    config.integration_unit = "q_A^-1"
+    config.cake_azimuth_points = 720
+    config.params.oned_azimuth_range = [-90.0, 90.0]
+    config.img_model.params.factor = 3.0
+    config.mask_model.params.mode = False
+    config.calibration_model.params.polarization_factor = 0.5
+
+    copied = config.copy()
+
+    assert copied.use_mask is True
+    assert copied.transparent_mask is True
+    assert copied.integration_unit == "q_A^-1"
+    assert copied.cake_azimuth_points == 720
+    assert copied.oned_azimuth_range == [-90.0, 90.0]
+    assert copied.img_model.factor == 3.0
+    assert copied.mask_model.mode is False
+    assert copied.calibration_model.polarization_factor == 0.5
+
+
+def test_copy_does_not_share_mutable_settings():
+    config = _load_calibrated_config()
+    copied = config.copy()
+
+    copied.params.working_directories["image"] = "/copied/only"
+    assert config.working_directories["image"] != "/copied/only"
+
+
+def test_apply_params_preserves_instance_and_fires_events():
+    from dioptas.model.state import ConfigurationParams, apply_params
+
+    target = ConfigurationParams()
+    source = ConfigurationParams(use_mask=True, cake_azimuth_points=720)
+    got = []
+    target.events.use_mask.connect(lambda new, old: got.append(new))
+
+    apply_params(target, source)
+
+    assert target.use_mask is True
+    assert target.cake_azimuth_points == 720
+    assert got == [True]  # subscriptions on the target stayed valid

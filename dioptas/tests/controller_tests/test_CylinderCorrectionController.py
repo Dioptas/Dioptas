@@ -41,7 +41,7 @@ class CylinderCorrectionControllerTest(QtTest):
 
     def _enable_cylinder_correction(self, formula="SiO2", density=2.65):
         self.correction_widget.cylinder_formula_txt.setText(formula)
-        self.correction_widget.cylinder_param_tw.cellWidget(0, 1).setText(str(density))
+        self.correction_widget.cylinder_param_form.set_value("density", density)
         self.correction_widget.cylinder_gb.setChecked(True)
         self.correction_controller.cylinder_groupbox_changed()
 
@@ -114,7 +114,7 @@ class CylinderCorrectionControllerTest(QtTest):
         )
 
         # Change radius
-        self.correction_widget.cylinder_param_tw.cellWidget(1, 1).setText("0.5")
+        self.correction_widget.cylinder_param_form.set_value("radius", 0.5)
         self.correction_controller.cylinder_groupbox_changed()
 
         correction_after = (
@@ -180,8 +180,8 @@ class CylinderCorrectionControllerTest(QtTest):
 
         # Enable container
         self.correction_widget.cylinder_container_formula_txt.setText("SiO2")
-        self.correction_widget.cylinder_container_param_tw.cellWidget(0, 1).setText("2.23")
-        self.correction_widget.cylinder_container_param_tw.cellWidget(1, 1).setText("0.1")
+        self.correction_widget.cylinder_container_param_form.set_value("container_density", 2.23)
+        self.correction_widget.cylinder_container_param_form.set_value("wall_thickness", 0.1)
         self.correction_controller.cylinder_groupbox_changed()
 
         correction_with_container = (

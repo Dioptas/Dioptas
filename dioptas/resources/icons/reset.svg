@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- Reset/clear: circle with an X. Monochrome in the theme's text colour,
+       matching the undo/redo/edit/delete glyph set (replaces reset.ico and
+       reset_dark.ico). -->
+  <circle cx="12" cy="12" r="8.4"
+          fill="none" stroke="#f1f1f1" stroke-width="1.8"/>
+  <path d="M9.2 9.2 L14.8 14.8 M14.8 9.2 L9.2 14.8"
+        fill="none" stroke="#f1f1f1" stroke-width="1.8"
+        stroke-linecap="round"/>
+</svg>

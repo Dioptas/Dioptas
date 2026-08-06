@@ -15,8 +15,10 @@ import h5py
 import fabio
 
 from .util import Signal
+from .state import ImgParams
 from dioptas.model.loader.spe import SpeFile
 from .util.NewFileWatcher import NewFileInDirectoryWatcher
+from .util.file_type import file_loading_error
 from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
 from .util.ImgCorrection import (
     ImgCorrectionManager,
@@ -30,6 +32,35 @@ from dioptas.model.loader.hdf5Loader import Hdf5Image
 from dioptas.model.loader.FabioLoader import FabioLoader
 
 logger = logging.getLogger(__name__)
+
+
+def scalar_correction_params(correction: "ImgCorrectionInterface") -> dict:
+    """A correction's get_params() reduced to its JSON-safe state: numpy
+    scalars coerced, arrays dropped (they are caches — the transfer and
+    flat-field reference images reload from the filenames kept here).
+
+    get_params is optional on the interface; a correction without it (e.g.
+    one added programmatically) has no restorable state and syncs as {}."""
+    get_params = getattr(correction, "get_params", None)
+    if get_params is None:
+        return {}
+    scalars = {}
+    for key, value in get_params().items():
+        if isinstance(value, np.ndarray):
+            continue
+        if isinstance(value, np.generic):
+            value = value.item()
+        scalars[key] = value
+    return scalars
+
+#: image transformations by name; ImgParams.transformations stores the names,
+#: the callable list is derived from this registry
+TRANSFORMATION_FUNCTIONS = {
+    "flipud": np.flipud,
+    "fliplr": np.fliplr,
+    "rotate_matrix_m90": rotate_matrix_m90,
+    "rotate_matrix_p90": rotate_matrix_p90,
+}
 
 
 class ImgModel:
@@ -48,9 +79,11 @@ class ImgModel:
     def __init__(self) -> None:
         super().__init__()
         self.filename: str = ""
-        self.img_transformations: list[Callable[[np.ndarray], np.ndarray]] = []
 
-        self.file_iteration_mode: str = "number"
+        # All user-settable parameters live in the evented params dataclass;
+        # the properties below delegate to it and add side effects.
+        self.params: ImgParams = ImgParams()
+
         self.file_name_iterator: FileNameIterator = FileNameIterator()
 
         self.series_pos: int = 1
@@ -64,10 +97,8 @@ class ImgModel:
 
         self.background_filename: str = ""
         self._background_data: np.ndarray | None = None
-        self._background_scaling: float = 1
-        self._background_offset: float = 0
-
-        self._factor: float = 1
+        #: guards the reconcile against the sync's own partial writes
+        self._syncing_file_params: bool = False
 
         self.transfer_correction: TransferFunctionCorrection = TransferFunctionCorrection()
         self.flat_field_correction: FlatFieldCorrection = FlatFieldCorrection()
@@ -113,9 +144,6 @@ class ImgModel:
         self.loader: FabioLoader | Hdf5Image | None = None
 
         self._img_corrections: ImgCorrectionManager = ImgCorrectionManager()
-
-        # setting up autoprocess
-        self._autoprocess: bool = False
         # TODO: watching a directory should be open to any file type - an extension should  be added when a
         # new file is loaded with a previous non-existing file extension
         self._directory_watcher: NewFileInDirectoryWatcher = NewFileInDirectoryWatcher(
@@ -145,6 +173,156 @@ class ImgModel:
 
         self.transformations_changed.connect(self._update_correction_transformations)
 
+        # side effects of settings changes live here (not in the property
+        # setters), so a direct params write behaves exactly like the
+        # property write
+        self.params.events.connect(self._on_params_changed)
+
+    def _on_params_changed(self, info) -> None:
+        field = info.signal.name
+        if field in ("filename", "series_pos", "background_filename"):
+            if not self._syncing_file_params:
+                self._reconcile_file_params()
+        elif field in ("factor", "background_scaling", "background_offset"):
+            # normalize storage to float: an integer factor/scaling would
+            # multiply integer-typed image data with wraparound. psygnal
+            # updates storage on equal-compare writes without re-emitting.
+            value = info.args[0]
+            if not isinstance(value, float):
+                setattr(self.params, field, float(value))
+            if field != "factor":
+                self._calculate_img_data()
+            self.img_changed.emit()
+        elif field == "autoprocess":
+            if info.args[0]:
+                self._directory_watcher.activate()
+            else:
+                self._directory_watcher.deactivate()
+
+    def _sync_file_params(self) -> None:
+        """Writes the on-screen file state into the params.
+
+        The plain attributes (``filename``, ``series_pos``,
+        ``background_filename``) mirror what is actually loaded; the params
+        fields are the canonical, undoable state. Writers update the
+        attributes and call this at the end, so the reconcile reaction sees
+        params == screen and stays quiet.
+
+        The three fields are written one at a time, so the reconcile must be
+        held off until all of them are: seeing the first write with the other
+        two still stale made it "reconcile" a state that never existed —
+        clearing a background whose filename simply had not been synced yet.
+        """
+        self._syncing_file_params = True
+        try:
+            self.params.filename = self.filename
+            self.params.series_pos = int(self.series_pos)
+            self.params.background_filename = self.background_filename
+        finally:
+            self._syncing_file_params = False
+
+    def set_loaded_file_state(
+        self,
+        filename: str | None = None,
+        series_pos: int | None = None,
+        background_filename: str | None = None,
+    ) -> None:
+        """Marks file state as already on screen, without loading anything.
+
+        Used by the project loader, which restores the pixels from the data
+        embedded in the file: the params must then say which file that was
+        without the reconcile reaction re-reading it from disk (the path may
+        not even exist on this machine).
+        """
+        if filename is not None:
+            self.filename = str(filename)
+        if series_pos is not None:
+            self.series_pos = int(series_pos)
+        if background_filename is not None:
+            self.background_filename = str(background_filename)
+        self._sync_file_params()
+
+    def _sync_correction_params(self) -> None:
+        """Writes the active corrections' scalar parameters into the params.
+
+        The correction objects (with their tth/azi grids and reference-image
+        arrays) are working machinery; the scalar parameters and filenames
+        are the state. The reconcile lives in Configuration, which owns the
+        calibration the rebuild needs.
+        """
+        self.params.corrections = {
+            name: scalar_correction_params(correction)
+            for name, correction in self._img_corrections.corrections.items()
+        }
+
+    def unload(self) -> None:
+        """Returns to having no image, the state a fresh model is in.
+
+        Everything that came from the file goes back to its default (see
+        ``loadable_data``), including the image itself; the transformations
+        are settings rather than file data and are left alone.
+        """
+        logger.info("Unloading the image")
+        self.filename = ""
+        self.set_loadable_attributes({})
+        self._perform_img_transformations()
+        self._calculate_img_data()
+        self._sync_file_params()
+        self.img_changed.emit()
+
+    def _reconcile_file_params(self) -> None:
+        """Makes the screen follow the file params (the undo/restore path).
+
+        Interactive loads go the other way (screen first, params synced at
+        the end), which this recognizes as already-reconciled and ignores.
+        A file that has since vanished is skipped with a warning and the
+        params are synced back, so the state never claims a file that is not
+        actually on screen.
+        """
+        params = self.params
+        if params.filename != self.filename or params.series_pos != self.series_pos:
+            if not params.filename:
+                # "no image" is a real state — it is what a fresh Dioptas is
+                # in — so undoing the first load has to return to it. This
+                # used to sync the params back to whatever was on screen
+                # instead, which left the history believing it had applied a
+                # state it had not: the step still on screen was then lost
+                # from the stack by the next edit.
+                self.unload()
+            elif not os.path.isfile(params.filename):
+                logger.warning(
+                    "Cannot restore %s: the file is no longer there, keeping "
+                    "the image currently loaded",
+                    params.filename,
+                )
+                self._sync_file_params()
+            elif params.filename == self.filename:
+                self.load_series_img(params.series_pos)
+            else:
+                try:
+                    self.load(params.filename, max(params.series_pos - 1, 0))
+                except Exception:
+                    logger.exception("Failed to restore image %s", params.filename)
+                    self._sync_file_params()
+
+        if params.background_filename != self.background_filename:
+            if not params.background_filename:
+                self.reset_background()
+            elif not os.path.isfile(params.background_filename):
+                logger.warning(
+                    "Cannot restore background %s: the file is no longer there",
+                    params.background_filename,
+                )
+                self._sync_file_params()
+            else:
+                try:
+                    self.load_background(params.background_filename)
+                except Exception:
+                    logger.exception(
+                        "Failed to restore background %s", params.background_filename
+                    )
+                    self._sync_file_params()
+
     def load(self, filename: str, pos: int = 0) -> None:
         """
         Loads an image file in any format known by fabIO, PIL or HDF5. Automatically performs all previous img
@@ -153,9 +331,11 @@ class ImgModel:
         """
         filename = str(filename)  # since it could also be QString
         logger.info("Loading {0}.".format(filename))
-        self.filename = filename
 
+        # read the file before touching any state, so a failing load leaves
+        # the model exactly as it was
         image_file_data = self.get_image_data(filename, pos)
+        self.filename = filename
         self.set_loadable_attributes(image_file_data)
 
         self.file_name_iterator.update_filename(filename)
@@ -164,6 +344,7 @@ class ImgModel:
         self._perform_img_transformations()
         self._calculate_img_data()
         self.series_pos = pos + 1
+        self._sync_file_params()
 
         self.img_changed.emit()
 
@@ -186,7 +367,7 @@ class ImgModel:
             if data:
                 return data
         else:
-            raise IOError("No handler found for given image with filename: " + filename)
+            raise file_loading_error(filename, "image")
 
     def set_loadable_attributes(self, loaded_data: dict[str, Any]) -> None:
         """
@@ -273,10 +454,13 @@ class ImgModel:
             "series_get_image": karabo_file.get_image,
         }
 
-    def load_hdf5(self, filename: str, frame_index: int = 0) -> dict[str, Any]:
+    def load_hdf5(self, filename: str, frame_index: int = 0) -> dict[str, Any] | None:
         """Loads an ESRF hdf5 file."""
-
-        hdf5_image = Hdf5Image(filename)
+        try:
+            hdf5_image = Hdf5Image(filename)
+        except OSError:
+            # not an HDF5 file at all
+            return None
         self.loader = hdf5_image
         self.selected_source = hdf5_image.image_sources[0]
 
@@ -294,6 +478,7 @@ class ImgModel:
         self.selected_source = source
         self.series_max = self.loader.series_max
         self.series_pos = min(self.series_pos, self.series_max)
+        self._sync_file_params()
         self._img_data = self.series_get_image(self.series_pos - 1)
 
         self._perform_img_transformations()
@@ -318,19 +503,21 @@ class ImgModel:
         The img_changed signal will be emitted after the process.
         """
         logger.info("Loading background image: %s", filename)
-        self.background_filename = filename
-
         self._background_data = self.get_image_data(filename)["img_data"]
 
         self._perform_background_transformations()
 
         if self._background_data.shape != self._img_data.shape:
-            self._background_data = None
-            self._calculate_img_data()
+            # the previous background is gone either way; make the recorded
+            # state say so instead of naming a file that is not applied
+            self._reset_background()
+            self._sync_file_params()
             self.img_changed.emit()
             raise BackgroundDimensionWrongException()
 
+        self.background_filename = filename
         self._calculate_img_data()
+        self._sync_file_params()
         self.img_changed.emit()
 
     def add(self, filename: str) -> None:
@@ -380,6 +567,7 @@ class ImgModel:
     def reset_background(self) -> None:
         logger.debug("Resetting background image")
         self._reset_background()
+        self._sync_file_params()
         self.img_changed.emit()
 
     def has_background(self) -> bool:
@@ -404,23 +592,45 @@ class ImgModel:
 
     @property
     def background_scaling(self) -> float:
-        return self._background_scaling
+        return self.params.background_scaling
 
     @background_scaling.setter
     def background_scaling(self, new_value: float) -> None:
-        self._background_scaling = new_value
-        self._calculate_img_data()
-        self.img_changed.emit()
+        self.params.background_scaling = new_value
 
     @property
     def background_offset(self) -> float:
-        return self._background_offset
+        return self.params.background_offset
 
     @background_offset.setter
     def background_offset(self, new_value: float) -> None:
-        self._background_offset = new_value
-        self._calculate_img_data()
-        self.img_changed.emit()
+        self.params.background_offset = new_value
+
+    @property
+    def img_transformations(self) -> list[Callable[[np.ndarray], np.ndarray]]:
+        """The applied transformations as callables, derived from the
+        canonical name list in the params."""
+        return [
+            TRANSFORMATION_FUNCTIONS[name] for name in self.params.transformations
+        ]
+
+    @img_transformations.setter
+    def img_transformations(
+        self, transformations: list[Callable[[np.ndarray], np.ndarray]]
+    ) -> None:
+        self.params.transformations = [t.__name__ for t in transformations]
+
+    def _append_transformation(self, name: str) -> None:
+        # reassignment (not in-place append) so the params event fires
+        self.params.transformations = self.params.transformations + [name]
+
+    @property
+    def file_iteration_mode(self) -> str:
+        return self.params.file_iteration_mode
+
+    @file_iteration_mode.setter
+    def file_iteration_mode(self, new_mode: str) -> None:
+        self.params.file_iteration_mode = new_mode
 
     def load_series_img(self, pos: int) -> None:
         """
@@ -441,6 +651,7 @@ class ImgModel:
 
         self._perform_img_transformations()
         self._calculate_img_data()
+        self._sync_file_params()
 
         self.img_changed.emit()
 
@@ -534,8 +745,8 @@ class ImgModel:
         # calculate the current _img_data
         if self._background_data is not None and not self._img_corrections.has_items():
             self._img_data_background_subtracted = self._img_data - (
-                self._background_scaling * self._background_data
-                + self._background_offset
+                self.params.background_scaling * self._background_data
+                + self.params.background_offset
             )
         elif self._background_data is None and self._img_corrections.has_items():
             self._img_data_absorption_corrected = (
@@ -546,8 +757,8 @@ class ImgModel:
             self._img_data_background_subtracted_absorption_corrected = (
                 self._img_data
                 - (
-                    self._background_scaling * self._background_data
-                    + self._background_offset
+                    self.params.background_scaling * self._background_data
+                    + self.params.background_offset
                 )
             ) / self._img_corrections.get_data()
 
@@ -600,7 +811,7 @@ class ImgModel:
         if self._background_data is not None:
             self._background_data = rotate_matrix_p90(self._background_data)
 
-        self.img_transformations.append(rotate_matrix_p90)
+        self._append_transformation("rotate_matrix_p90")
 
         self.transformations_changed.emit()
         self._calculate_img_data()
@@ -616,7 +827,7 @@ class ImgModel:
         self._img_data = rotate_matrix_m90(self._img_data)
         if self._background_data is not None:
             self._background_data = rotate_matrix_m90(self._background_data)
-        self.img_transformations.append(rotate_matrix_m90)
+        self._append_transformation("rotate_matrix_m90")
         self.transformations_changed.emit()
 
         self._calculate_img_data()
@@ -632,7 +843,7 @@ class ImgModel:
         self._img_data = np.fliplr(self._img_data)
         if self._background_data is not None:
             self._background_data = np.fliplr(self._background_data)
-        self.img_transformations.append(np.fliplr)
+        self._append_transformation("fliplr")
         self.transformations_changed.emit()
 
         self._calculate_img_data()
@@ -648,7 +859,7 @@ class ImgModel:
         self._img_data = np.flipud(self._img_data)
         if self._background_data is not None:
             self._background_data = np.flipud(self._background_data)
-        self.img_transformations.append(np.flipud)
+        self._append_transformation("flipud")
         self.transformations_changed.emit()
 
         self._calculate_img_data()
@@ -669,6 +880,28 @@ class ImgModel:
         self._calculate_img_data()
         if img_changed:
             self.img_changed.emit()
+
+    def set_transformations(self, names: list[str]) -> None:
+        """Reconciles the image to exactly the given list of transformations.
+
+        The rotate/flip methods apply their change to the pixels and then
+        record the name, so ``params.transformations`` is a log of what was
+        done rather than something the image is derived from — assigning to it
+        alone leaves the pixels as they were. Undo needs the pixels to follow,
+        so this un-applies what is currently recorded and applies the target
+        list instead.
+        """
+        if list(names) == list(self.params.transformations):
+            return
+        self._reset_img_transformations()
+        self._reset_background_transformations()
+        self.params.transformations = list(names)
+        self._perform_img_transformations()
+        self._perform_background_transformations()
+        self.transformations_changed.emit()
+
+        self._calculate_img_data()
+        self.img_changed.emit()
 
     def _update_correction_transformations(self) -> None:
         self.transfer_correction.set_img_transformations(self.img_transformations)
@@ -718,13 +951,13 @@ class ImgModel:
         self.img_transformations = []
         for transformation in transformations:
             if transformation == "flipud":
-                self.img_transformations.append(np.flipud)
+                self._append_transformation("flipud")
             elif transformation == "fliplr":
-                self.img_transformations.append(np.fliplr)
+                self._append_transformation("fliplr")
             elif transformation == "rotate_matrix_m90":
-                self.img_transformations.append(rotate_matrix_m90)
+                self._append_transformation("rotate_matrix_m90")
             elif transformation == "rotate_matrix_p90":
-                self.img_transformations.append(rotate_matrix_p90)
+                self._append_transformation("rotate_matrix_p90")
         self._perform_img_transformations()
         self._perform_background_transformations()
 
@@ -735,6 +968,7 @@ class ImgModel:
         """
         logger.info("Adding image correction: %s", name)
         self._img_corrections.add(correction, name)
+        self._sync_correction_params()
         self._calculate_img_data()
         self.img_changed.emit()
 
@@ -747,6 +981,7 @@ class ImgModel:
         correction is deleted."""
         logger.info("Deleting image correction: %s", name)
         self._img_corrections.delete(name)
+        self._sync_correction_params()
         self._calculate_img_data()
         self.img_changed.emit()
 
@@ -829,24 +1064,19 @@ class ImgModel:
 
     @property
     def autoprocess(self) -> bool:
-        return self._autoprocess
+        return self.params.autoprocess
 
     @autoprocess.setter
     def autoprocess(self, new_val: bool) -> None:
-        self._autoprocess = new_val
-        if new_val:
-            self._directory_watcher.activate()
-        else:
-            self._directory_watcher.deactivate()
+        self.params.autoprocess = new_val
 
     @property
     def factor(self) -> float:
-        return self._factor
+        return self.params.factor
 
     @factor.setter
     def factor(self, new_value: float) -> None:
-        self._factor = new_value
-        self.img_changed.emit()
+        self.params.factor = new_value
 
     def get_img_data_float64(self) -> np.ndarray:
         """Return current image data as a contiguous float64 array.

@@ -1,5 +1,5 @@
 """
-Run the EoS database API locally — plain Python, no Docker.
+the EoS database API locally — plain Python, no Docker.
 
 Usage:
     cd eos_database

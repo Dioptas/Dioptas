@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from qtpy import QtWidgets, QtCore, QtGui
 
+from .CustomWidgets import IconActionButton
+
 
 class _InfoIcon(QtWidgets.QLabel):
     """Small circled 'i' icon that shows a tooltip immediately on hover."""
@@ -77,20 +79,23 @@ class _PluginRow(QtWidgets.QWidget):
 
         self.settings_btn: QtWidgets.QPushButton | None = None
         if has_settings:
-            self.settings_btn = QtWidgets.QPushButton()
-            self.settings_btn.setIcon(
-                self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileDialogDetailedView)
+            # the same gear the rest of the application uses for settings —
+            # the previous standard icon was a file-list glyph
+            self.settings_btn = IconActionButton(
+                "settings.svg", f"Settings for {name}"
             )
             self.settings_btn.setFixedSize(24, 24)
-            self.settings_btn.setToolTip(f"Settings for {name}")
             layout.addWidget(self.settings_btn)
 
-        self.imprint_btn = QtWidgets.QPushButton("I")
-        self.imprint_btn.setFixedSize(24, 24)
-        self.imprint_btn.setToolTip(
-            f"Imprint — bake the current {name} mask into the user-drawn "
-            f"mask and disable the plugin."
+        # a stamp, not the letter "I": that read as the Inspect buttons of
+        # the integration view, which do something entirely different
+        self.imprint_btn = IconActionButton(
+            "mask_imprint.svg",
+            f"Imprint\n\n"
+            f"Bakes the current {name} mask into the user-drawn mask\n"
+            f"and disables the plugin.",
         )
+        self.imprint_btn.setFixedSize(24, 24)
         self.imprint_btn.setEnabled(False)  # only enabled when plugin is on
         layout.addWidget(self.imprint_btn)
 
@@ -162,9 +167,15 @@ class MaskPluginSettingsDialog(QtWidgets.QDialog):
         button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.StandardButton.Ok
             | QtWidgets.QDialogButtonBox.StandardButton.Cancel
+            | QtWidgets.QDialogButtonBox.StandardButton.RestoreDefaults
         )
         button_box.accepted.connect(self._on_accept)
         button_box.rejected.connect(self.reject)
+        restore_button = button_box.button(
+            QtWidgets.QDialogButtonBox.StandardButton.RestoreDefaults
+        )
+        restore_button.setToolTip("Set every value back to the plugin's defaults")
+        restore_button.clicked.connect(self.restore_defaults)
         layout.addWidget(button_box)
 
     def _create_widget(self, param_type: str, spec: dict, value) -> QtWidgets.QWidget:
@@ -212,6 +223,35 @@ class MaskPluginSettingsDialog(QtWidgets.QDialog):
             if value is not None:
                 widget.setText(str(value))
             return widget
+
+    def restore_defaults(self):
+        """Sets every field back to its schema default.
+
+        Goes through the widgets rather than the plugin, so the change flows
+        through the same live-update path as manual edits — including undo.
+        Widget signals are blocked during the loop and one change is emitted
+        at the end: per-field emissions would recompute the mask once per
+        field and leave one undo step each.
+        """
+        for key, widget in self._widgets.items():
+            spec = self._schema[key]
+            default = spec.get("default")
+            if default is None:
+                continue
+            param_type = spec.get("type", "str")
+            blocker = QtCore.QSignalBlocker(widget)
+            try:
+                if param_type in ("float", "int"):
+                    widget.setValue(default)
+                elif param_type == "bool":
+                    widget.setChecked(bool(default))
+                elif param_type == "choice":
+                    widget.setCurrentText(str(default))
+                else:
+                    widget.setText(str(default))
+            finally:
+                del blocker
+        self._on_value_changed()
 
     def _get_values(self) -> dict:
         values = {}

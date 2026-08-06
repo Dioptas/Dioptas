@@ -209,3 +209,50 @@ def test_background_pattern_setter_clear(pattern_model: PatternModel):
     assert pattern_model.pattern.background_pattern is None
     _, y_data = pattern_model.pattern.data
     assert y_data == approx(np.ones(100) * 10)
+
+
+def test_auto_background_params_are_canonical():
+    """Direct auto-background params writes reach the pattern computation."""
+    import numpy as np
+    from dioptas.model.PatternModel import PatternModel
+
+    pattern_model = PatternModel()
+    pattern_model.set_pattern(np.linspace(1, 20, 200), np.ones(200) * 5)
+
+    pattern_model.params.auto_bkg_smoothing = 0.2
+    pattern_model.params.auto_bkg_iterations = 30
+    pattern_model.params.auto_bkg_poly_order = 20
+    pattern_model.params.auto_bkg_enabled = True
+
+    auto_bkg = pattern_model.pattern.auto_bkg
+    assert auto_bkg is not None
+    assert auto_bkg.smooth_width == 0.2
+    assert auto_bkg.iterations == 30
+    assert auto_bkg.cheb_order == 20
+
+    pattern_model.params.auto_bkg_enabled = False
+    assert pattern_model.pattern.auto_bkg is None
+
+
+def test_set_auto_background_subtraction_populates_params():
+    import numpy as np
+    from dioptas.model.PatternModel import PatternModel
+
+    pattern_model = PatternModel()
+    pattern_model.set_pattern(np.linspace(1, 20, 200), np.ones(200) * 5)
+    pattern_model.set_auto_background_subtraction([0.5, 40, 25], roi=[3.0, 15.0])
+
+    params = pattern_model.params
+    assert params.auto_bkg_enabled is True
+    assert params.auto_bkg_smoothing == 0.5
+    assert params.auto_bkg_iterations == 40
+    assert params.auto_bkg_poly_order == 25
+    assert params.auto_bkg_roi == [3.0, 15.0]
+
+    # user-supplied roi outside the data range is clamped at the API boundary
+    pattern_model.set_auto_background_subtraction([0.5, 40, 25], roi=[-100.0, 500.0])
+    assert params.auto_bkg_roi[0] >= 1.0 - 1.0
+    assert params.auto_bkg_roi[1] <= 20.0 + 1.0
+
+    pattern_model.unset_auto_background_subtraction()
+    assert params.auto_bkg_enabled is False

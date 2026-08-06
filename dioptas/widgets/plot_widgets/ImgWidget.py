@@ -141,6 +141,13 @@ class ImgWidget(QtCore.QObject):
             return
         self.img_histogram_LUT_vertical.setLevels(*colormap_range)
         self.img_histogram_LUT_horizontal.setLevels(*colormap_range)
+        if colormap_range[0] <= 0:
+            # The histogram works in log space and clamps levels <= 0 to 1,
+            # which detector images (never negative) do not notice. Map
+            # layers can be negative throughout — a difference, a contrast —
+            # and came out as a blank map, so their levels go onto the image
+            # directly.
+            self.data_img_item.setLevels(list(colormap_range))
 
     def add_scatter_data(self, x, y):
         self.img_scatter_plot_item.addPoints(x=y, y=x)
@@ -162,7 +169,10 @@ class ImgWidget(QtCore.QObject):
         self.img_scatter_plot_item.show()
 
     def mouseMoved(self, pos):
-        pos = self.data_img_item.mapFromScene(pos)
+        # mapped through the view box and not the image item: a smoothed image
+        # item carries an upscaling transform, which would scale the reported
+        # data coordinates along with it
+        pos = self.img_view_box.mapSceneToView(pos)
         self.mouse_moved.emit(pos.x(), pos.y())
 
     def modify_mouse_behavior(self):
@@ -341,6 +351,23 @@ class CalibrationCakeWidget(ImgWidget):
     def set_vertical_line_pos(self, x, _):
         self.vertical_line.setValue(x)
 
+    def set_phase_lines(self, positions_and_colors):
+        """Draws one vertical line per phase reflection.
+
+        :param positions_and_colors: iterable of (column position, rgba color)
+        """
+        self.clear_phase_lines()
+        for position, color in positions_and_colors:
+            line = pg.InfiniteLine(angle=90, pen=pg.mkPen(color=color, width=1.6))
+            line.setValue(position)
+            self.img_view_box.addItem(line)
+            self._phase_line_items.append(line)
+
+    def clear_phase_lines(self):
+        for line in getattr(self, '_phase_line_items', []):
+            self.img_view_box.removeItem(line)
+        self._phase_line_items = []
+
 
 class MaskImgWidget(ImgWidget):
     def __init__(self, pg_layout, orientation="vertical", padding=0.01):
@@ -462,6 +489,23 @@ class IntegrationImgWidget(MaskImgWidget):
         for plot_item in self.circle_plot_items:
             if plot_item in self.img_view_box.addedItems:
                 self.img_view_box.removeItem(plot_item)
+
+    def set_phase_rings(self, segments):
+        """Draws iso-2θ contour segments of phase reflections onto the image.
+
+        :param segments: iterable of (x array, y array, rgba color) — one
+            entry per contour segment, already in image pixel coordinates
+        """
+        self.clear_phase_rings()
+        for x, y, color in segments:
+            item = pg.PlotDataItem(x=x, y=y, pen=pg.mkPen(color=color, width=1.6))
+            self.img_view_box.addItem(item)
+            self._phase_ring_items.append(item)
+
+    def clear_phase_rings(self):
+        for item in getattr(self, '_phase_ring_items', []):
+            self.img_view_box.removeItem(item)
+        self._phase_ring_items = []
 
     def create_roi_item(self):
         self.roi = MyROI([20, 20], [500, 500], pen=pg.mkPen(color=(0, 255, 0), size=2))

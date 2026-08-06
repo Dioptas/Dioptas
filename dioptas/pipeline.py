@@ -469,7 +469,10 @@ class Pipeline:
 
     @integration_unit.setter
     def integration_unit(self, unit: str) -> None:
-        self._configuration._integration_unit = unit
+        # the pipeline integrates explicitly — suppress the write's
+        # re-integration reaction
+        with self._configuration.pattern_integration.hold(flush=False):
+            self._configuration.params.integration_unit = unit
 
     @property
     def integration_num_points(self):
@@ -478,7 +481,8 @@ class Pipeline:
 
     @integration_num_points.setter
     def integration_num_points(self, n) -> None:
-        self._configuration._integration_rad_points = n
+        with self._configuration.pattern_integration.hold(flush=False):
+            self._configuration.params.integration_rad_points = n
 
     @property
     def azimuth_range(self):
@@ -487,7 +491,8 @@ class Pipeline:
 
     @azimuth_range.setter
     def azimuth_range(self, range) -> None:
-        self._configuration._oned_azimuth_range = range
+        with self._configuration.pattern_integration.hold(flush=False):
+            self._configuration.params.oned_azimuth_range = range
 
     @property
     def correct_solid_angle(self) -> bool:

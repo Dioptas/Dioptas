@@ -386,8 +386,8 @@ class ProjectSaveLoadTest(QtTest):
 
     def cbn_correction_settings(self):
         self.controller.widget.integration_widget.cbn_groupbox.setChecked(True)
-        self.controller.widget.integration_widget.cbn_param_tw.cellWidget(0, 1).setText(
-            "1.9"
+        self.controller.widget.integration_widget.cbn_param_form.set_value(
+            "anvil_thickness", 1.9
         )
         self.controller.integration_controller.correction_controller.cbn_groupbox_changed()
 
@@ -411,12 +411,12 @@ class ProjectSaveLoadTest(QtTest):
 
     def oiadac_correction_settings(self):
         self.controller.widget.integration_widget.oiadac_groupbox.setChecked(True)
-        self.controller.widget.integration_widget.oiadac_param_tw.cellWidget(
-            0, 1
-        ).setText("30")
-        self.controller.widget.integration_widget.oiadac_param_tw.cellWidget(
-            1, 1
-        ).setText("450")
+        self.controller.widget.integration_widget.oiadac_param_form.set_value(
+            "detector_thickness", 30
+        )
+        self.controller.widget.integration_widget.oiadac_param_form.set_value(
+            "detector_absorption_length", 450
+        )
         self.controller.integration_controller.correction_controller.oiadac_groupbox_changed()
 
     ####################################################################################################################

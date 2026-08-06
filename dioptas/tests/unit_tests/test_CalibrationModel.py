@@ -684,6 +684,34 @@ def test_remove_last_peak_empty(calibration_model):
     assert result is None
 
 
+def test_remove_peak_selection(calibration_model):
+    calibration_model.params.peak_selections = (
+        (0, ((1.0, 2.0),)),
+        (1, ((3.0, 4.0),)),
+        (2, ((5.0, 6.0),)),
+    )
+    calibration_model.remove_peak_selection(1)
+    assert calibration_model.points_index == [0, 2]
+
+    # out-of-range indices are ignored
+    calibration_model.remove_peak_selection(5)
+    calibration_model.remove_peak_selection(-1)
+    assert calibration_model.points_index == [0, 2]
+
+
+def test_set_peak_selection_ring(calibration_model):
+    calibration_model.params.peak_selections = (
+        (0, ((1.0, 2.0),)),
+        (1, ((3.0, 4.0),)),
+    )
+    calibration_model.set_peak_selection_ring(0, 4)
+    assert calibration_model.points_index == [4, 1]
+    assert np.array_equal(calibration_model.points[0], np.array([[1.0, 2.0]]))
+
+    calibration_model.set_peak_selection_ring(7, 2)  # out of range: ignored
+    assert calibration_model.points_index == [4, 1]
+
+
 def test_set_pixel_size(calibration_model):
     calibration_model.set_pixel_size((200e-6, 300e-6))
     assert calibration_model.orig_pixel1 == 200e-6

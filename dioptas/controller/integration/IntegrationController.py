@@ -5,6 +5,7 @@ import pyqtgraph as pg
 from dioptas.controller.integration.overlay.OverlayInPatternController import OverlayInPatternController
 
 from .BackgroundController import BackgroundController
+from .MapRoiInPatternController import MapRoiInPatternController
 from .CorrectionController import CorrectionController
 from .ImageController import ImageController
 from .overlay.OverlayController import OverlayController
@@ -55,3 +56,18 @@ class IntegrationController:
         self.correction_controller = CorrectionController(self.widget, self.model)
         self.options_controller = OptionsController(self.widget, self.model)
         self.batch_controller = BatchController(self.widget, self.model)
+        self.map_roi_controller = MapRoiInPatternController(
+            self.widget.pattern_widget, self.model
+        )
+
+        self.model.view.events.map_docked.connect(self._update_map_roi_wanted)
+        self._update_map_roi_wanted()
+
+    def _update_map_roi_wanted(self, *_args):
+        """Shows the map window region only while the map is on screen.
+
+        Dragging it changes what the map displays, so it would be a puzzling
+        thing to find in the pattern otherwise. Here that means the map is
+        undocked into its own window, next to the integration view.
+        """
+        self.map_roi_controller.set_wanted(not self.model.view.map_docked)

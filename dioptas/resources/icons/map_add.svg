@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- Add a window / computed layer. Monochrome in the theme's text colour,
+       matching the glyph set. -->
+  <path d="M12 4.8 V19.2 M4.8 12 H19.2"
+        fill="none" stroke="#f1f1f1" stroke-width="2.4"
+        stroke-linecap="round"/>
+</svg>

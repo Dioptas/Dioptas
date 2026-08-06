@@ -39,7 +39,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+import dataclasses
 import string
+from collections.abc import MutableMapping
+from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
@@ -73,58 +76,125 @@ class jcpds_reflection:
         return "{:2d},{:2d},{:2d}\t{:.2f}\t{:.3f}".format(self.h, self.k, self.l, self.intensity, self.d0)
 
 
-class MyDict(dict):
-    def __init__(self) -> None:
-        super().__init__()
-        self.setdefault('modified', False)
+@dataclass
+class CrystalState:
+    """The state of a jcpds phase — what a user sets or a file provides.
+
+    Everything else the old params dict carried (a, b, c, alpha, beta,
+    gamma, v, k0p, alpha_t) is *derived*: computed by compute_d for the
+    current pressure and temperature. Reflections are state as
+    (h, k, l, intensity, d0); their d values are derived too.
+
+    A plain dataclass on purpose: the generic state layer (params_to_dict/
+    params_from_dict) serializes it, undo snapshots capture it, and copying
+    it cannot trip any write hook — the class of bug the old dict subclass
+    invited (deepcopy replayed items through the auto-flagging __setitem__).
+    """
+
+    version: float = 0
+    comments: list = field(default_factory=list)
+    symmetry: str = ""
+    k0: float = 0.0
+    k0p0: float = 0.0
+    dk0dt: float = 0.0
+    dk0pdt: float = 0.0
+    alpha_t0: float = 0.0
+    d_alpha_dt: float = 0.0
+    a0: float = 0.0
+    b0: float = 0.0
+    c0: float = 0.0
+    alpha0: float = 0.0
+    beta0: float = 0.0
+    gamma0: float = 0.0
+    v0: float = 0.0
+    pressure: float = 0.0
+    temperature: float = 298.0
+    #: equation of state used to compute the volume at pressure, one of
+    #: BM2 / BM3 / VINET / HOLZAPFEL. Legacy JCPDS files imply 3rd-order
+    #: Birch-Murnaghan; phases from the EoS database carry their own.
+    eos_type: str = "BM3"
+    #: Holzapfel only: atoms per chemical formula (n), summed atomic
+    #: number of the formula (z), and formula units per unit cell (zc,
+    #: the crystallographic Z). Set for phases loaded from the EoS
+    #: database; None for legacy files, which then fall back to BM3.
+    n: float | None = None
+    z: int | None = None
+    zc: int | None = None
+    #: whether the phase no longer matches the file it came from (the
+    #: asterisk in the GUI); flipped by the params view on state writes
+    modified: bool = False
+
+
+#: state keys whose direct edit marks the phase as modified (the asterisk)
+_FLAGGING_KEYS = frozenset(
+    ["comments", "a0", "b0", "c0", "alpha0", "beta0", "gamma0", "symmetry",
+     "k0", "k0p0", "dk0dt", "dk0pdt", "alpha_t0", "d_alpha_dt", "reflections"]
+)
+
+_STATE_KEYS = frozenset(f.name for f in dataclasses.fields(CrystalState))
+
+
+class _ParamsView(MutableMapping):
+    """Dict-style access onto a CrystalState plus a derived-value cache.
+
+    The whole codebase (and the JCPDS editor in particular) reads and writes
+    ``phase.params['k0']``; this view keeps that surface intact while the
+    state lives in the dataclass. Derived keys (a..gamma, v, k0p, alpha_t —
+    written by compute_d) and anything unknown go to a side cache that is
+    never treated as state.
+    """
+
+    def __init__(self, state: CrystalState) -> None:
+        self._state = state
+        self._derived: dict[str, Any] = {}
+
+    def __getitem__(self, key: str) -> Any:
+        if key in _STATE_KEYS:
+            return getattr(self._state, key)
+        return self._derived[key]
 
     def __setitem__(self, key: str, value: Any) -> None:
-        if key in ['comments', 'a0', 'b0', 'c0', 'alpha0', 'beta0', 'gamma0',
-                   'symmetry', 'k0', 'k0p0', 'dk0dt', 'dk0pdt',
-                   'alpha_t0', 'd_alpha_dt', 'reflections']:
-            self.__setitem__('modified', True)
-        super().__setitem__(key, value)
+        if key in _FLAGGING_KEYS:
+            self._state.modified = True
+        if key in _STATE_KEYS:
+            setattr(self._state, key, value)
+        else:
+            self._derived[key] = value
+
+    def __delitem__(self, key: str) -> None:
+        del self._derived[key]
+
+    def __iter__(self):
+        yield from _STATE_KEYS
+        yield from self._derived
+
+    def __len__(self) -> int:
+        return len(_STATE_KEYS) + len(self._derived)
+
+    def __contains__(self, key: object) -> bool:
+        return key in _STATE_KEYS or key in self._derived
 
 
 class jcpds:
     def __init__(self) -> None:
         self._filename: str = ''
         self._name: str = ''
-        self.params: MyDict = MyDict()
-        self.params['version'] = 0
-        self.params['comments'] = []
-        self.params['symmetry'] = ''
-        self.params['k0'] = 0.
-        self.params['k0p0'] = 0.  # k0p at 298K
-        self.params['k0p'] = 0.  # k0p at high T
-        self.params['dk0dt'] = 0.
-        self.params['dk0pdt'] = 0.
-        self.params['alpha_t0'] = 0.  # alphat at 298K
-        self.params['alpha_t'] = 0.  # alphat at high temp.
-        self.params['d_alpha_dt'] = 0.
-        self.params['a0'] = 0.
-        self.params['b0'] = 0.
-        self.params['c0'] = 0.
-        self.params['alpha0'] = 0.
-        self.params['beta0'] = 0.
-        self.params['gamma0'] = 0.
-        self.params['v0'] = 0.
-        self.params['a'] = 0.
-        self.params['b'] = 0.
-        self.params['c'] = 0.
-        self.params['alpha'] = 0.
-        self.params['beta'] = 0.
-        self.params['gamma'] = 0.
-        self.params['v'] = 0.
-        self.params['pressure'] = 0.
-        self.params['temperature'] = 298.
-        # Equation of state used to compute volume at pressure. Defaults to
-        # 3rd-order Birch-Murnaghan, which is what legacy JCPDS files imply.
-        # When a phase comes from the EoS database it may instead be BM2,
-        # VINET, or HOLZAPFEL — see _solve_volume_at_pressure.
-        self.params['eos_type'] = 'BM3'
+        #: the phase's true state; params is the dict-style view over it
+        self.state: CrystalState = CrystalState()
+        self.params: _ParamsView = _ParamsView(self.state)
+        # derived values, recomputed by compute_d for the current P and T
+        for key in ('k0p', 'alpha_t', 'a', 'b', 'c', 'alpha', 'beta',
+                    'gamma', 'v'):
+            self.params[key] = 0.
+        #: EoS records of the same material (different literature
+        #: references), for the per-phase reference switcher. Populated by
+        #: eos_formats.build_jcpds; empty for legacy jcpds files.
+        self.chemistry: str = ''
+        self.eos_records: list = []
+        self.eos_record_labels: list[str] = []
+        self.eos_current_index: int = 0
         self.reflections: list[jcpds_reflection] = []
-        self.params['modified'] = False
+        self.state.modified = False
 
     def load_file(self, filename: str) -> None:
         """

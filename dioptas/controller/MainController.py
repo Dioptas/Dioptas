@@ -13,7 +13,7 @@ from sys import platform as _platform
 from qtpy import QtWidgets, QtCore, QtGui
 
 from ..widgets.MainWidget import MainWidget
-from ..model.DioptasModel import DioptasModel
+from ..model.DioptasModel import DioptasModel, UnsupportedProjectFileError
 from ..widgets.UtilityWidgets import save_file_dialog, open_file_dialog
 
 from . import CalibrationController
@@ -21,6 +21,7 @@ from .integration import IntegrationController
 from .MaskController import MaskController
 from .ConfigurationController import ConfigurationController
 from .MapController import MapController
+from .MapPanelController import MapPanelController
 
 from dioptas import __version__
 from ..model.UpdateChecker import check_for_update
@@ -57,7 +58,16 @@ class MainController:
         self.integration_controller = IntegrationController(
             self.widget.integration_widget, self.model
         )
-        self.map_controller = MapController(self.widget.map_widget, self.model)
+        # The map panel moves between the map mode and its own window, so it
+        # is owned here rather than by the mode it happens to sit in.
+        self.map_panel_controller = MapPanelController(
+            self.widget.map_widget.map_panel_widget, self.model
+        )
+        self.map_controller = MapController(
+            self.widget.map_widget, self.model, self.map_panel_controller
+        )
+        self._map_panel_host = self.widget.map_widget.map_panel_host
+        self._closing = False
 
         self.calibration_controller.activate()
         self.integration_controller.image_controller.deactivate()
@@ -173,6 +183,16 @@ class MainController:
         self.model.img_changed.connect(self.update_title)
         self.model.pattern_changed.connect(self.update_title)
 
+        map_panel = self.widget.map_widget.map_panel_widget
+        map_panel.map_plot_control_widget.undock_btn.clicked.connect(
+            self.map_undock_btn_clicked
+        )
+        self.widget.map_widget.map_panel_host.dock_btn.clicked.connect(
+            self.map_dock_btn_clicked
+        )
+        self.widget.map_panel_window.closed.connect(self._map_window_closed)
+        self.model.view.events.map_docked.connect(self._map_docked_changed)
+
         self.widget.save_btn.clicked.connect(self.save_btn_clicked)
         self.widget.load_btn.clicked.connect(self.load_btn_clicked)
         self.widget.reset_btn.clicked.connect(self.reset_btn_clicked)
@@ -188,6 +208,51 @@ class MainController:
         )
         self._previous_image_shortcut.activated.connect(
             lambda: self.model.previous_image()
+        )
+
+        # Undo/redo work in every mode, not just the mask: the history is a
+        # single application-wide stack (see model/state/snapshot.py). Both
+        # redo sequences are bound because Ctrl+Shift+Z is the platform
+        # convention here while Ctrl+Y is what the mask mode always used.
+        self._undo_shortcut = QtGui.QShortcut(
+            QtGui.QKeySequence.StandardKey.Undo, self.widget
+        )
+        self._undo_shortcut.activated.connect(self.undo)
+        self._redo_shortcuts = [
+            QtGui.QShortcut(QtGui.QKeySequence.StandardKey.Redo, self.widget),
+            QtGui.QShortcut(QtGui.QKeySequence("Ctrl+Y"), self.widget),
+        ]
+        for shortcut in self._redo_shortcuts:
+            shortcut.activated.connect(self.redo)
+
+        self.widget.undo_btn.clicked.connect(self.undo)
+        self.widget.redo_btn.clicked.connect(self.redo)
+        self.model.history.changed.connect(self.update_history_buttons)
+        self.update_history_buttons()
+
+    def undo(self):
+        self.model.history.undo()
+
+    def redo(self):
+        self.model.history.redo()
+
+    def update_history_buttons(self):
+        """Greys the sidebar buttons out at the ends of the history and names
+        the step each would apply, together with its shortcut."""
+        history = self.model.history
+        undo_key = _shortcut_text(QtGui.QKeySequence.StandardKey.Undo)
+        redo_key = _shortcut_text(QtGui.QKeySequence.StandardKey.Redo)
+
+        self.widget.set_history_enabled(history.can_undo, history.can_redo)
+        self.widget.undo_btn.setToolTip(
+            f"Undo {history.undo_label} ({undo_key})"
+            if history.can_undo
+            else f"Nothing to undo ({undo_key})"
+        )
+        self.widget.redo_btn.setToolTip(
+            f"Redo {history.redo_label} ({redo_key})"
+            if history.can_redo
+            else f"Nothing to redo ({redo_key})"
         )
 
     def tab_changed(self):
@@ -227,6 +292,47 @@ class MainController:
 
         self.activate_mode(ind)
         self.update_image_display_state(old_index, ind)
+
+    def place_map_panel(self):
+        """Moves the map panel between the map mode and its own window.
+
+        Undocked it stays in its window whatever mode is shown, which is how
+        the map is used next to the integration view.
+        """
+        window = self.widget.map_panel_window
+        if self.model.view.map_docked:
+            host = self.widget.map_widget.map_panel_host
+        else:
+            host = window
+
+        if host is self._map_panel_host:
+            return
+
+        self._map_panel_host.release_panel()
+        host.take_panel(self.widget.map_widget.map_panel_widget)
+        self._map_panel_host = host
+
+        window.setVisible(host is window)
+
+    def map_undock_btn_clicked(self):
+        self.model.view.map_docked = not self.model.view.map_docked
+
+    def map_dock_btn_clicked(self):
+        self.model.view.map_docked = True
+
+    def _map_docked_changed(self, docked, _old=None):
+        self.widget.map_widget.map_panel_widget.map_plot_control_widget.undock_btn.setText(
+            "Undock" if docked else "Dock"
+        )
+        self.place_map_panel()
+
+    def _map_window_closed(self):
+        # on shutdown every window is closed; docking back then would undo the
+        # state that was just saved and reparent widgets on their way out
+        if self._closing:
+            return
+        if not self.model.view.map_docked:
+            self.model.view.map_docked = True
 
     def activate_mode(self, mode_ind):
         controllers = [
@@ -310,10 +416,35 @@ class MainController:
                 self.load_directories()
 
     def setup_backup_timer(self):
+        """Periodically backs up the session, but only when something changed.
+
+        The backup writes the whole project (including image data), so the
+        write frequency stays bounded by the timer; the dirty flag only
+        removes the pointless writes of an idle session."""
+        self._backup_dirty = False
+        for signal in (
+            self.model.configuration_params_changed,
+            self.model.img_changed,
+            self.model.pattern_changed,
+            self.model.configuration_added,
+            self.model.configuration_removed,
+        ):
+            signal.connect(self._mark_backup_dirty)
+        self.model.view.events.connect(self._mark_backup_dirty)
+
         self.backup_timer = QtCore.QTimer(self.widget)
-        self.backup_timer.timeout.connect(self.save_default_settings)
+        self.backup_timer.timeout.connect(self.save_backup_if_changed)
         self.backup_timer.setInterval(600000)  # every 10 minutes
         self.backup_timer.start()
+
+    def _mark_backup_dirty(self, *_args):
+        self._backup_dirty = True
+
+    def save_backup_if_changed(self):
+        if not self._backup_dirty:
+            return
+        self.save_default_settings()
+        self._backup_dirty = False
 
     def save_directories(self):
         """
@@ -342,6 +473,7 @@ class MainController:
         Intervention of the Dioptas close event to save settings before closing the Program.
         """
         logger.info("Closing Dioptas")
+        self._closing = True
         if self.use_settings:
             self.save_default_settings()
             self.save_directories()
@@ -382,7 +514,13 @@ class MainController:
         )
         if filename is not None and filename != "":
             logger.info("Loading project from %s", filename)
-            self.model.load(filename)
+            try:
+                self.model.load(filename)
+            except UnsupportedProjectFileError as error:
+                QtWidgets.QMessageBox.critical(
+                    self.widget, "Cannot open this project file", str(error)
+                )
+                return
             self.model.working_directories["project"] = os.path.dirname(filename)
 
     def reset_btn_clicked(self):
@@ -424,3 +562,22 @@ class MainController:
         threading.Thread(target=run_command).start()
 
         return command_str
+
+
+def _shortcut_text(standard_key) -> str:
+    """The shortcut to advertise for a standard action, as the user's keyboard
+    shows it.
+
+    Qt lists several bindings per action and its first choice for Redo is
+    Ctrl+Y, but the Z-based variant is the platform convention on macOS and
+    reads better next to the Undo shortcut shown beside it, so that one wins
+    when it is available.
+    """
+    bindings = QtGui.QKeySequence.keyBindings(standard_key)
+    if not bindings:
+        return ""
+    native = QtGui.QKeySequence.SequenceFormat.NativeText
+    for binding in bindings:
+        if binding.toString().endswith("Z"):
+            return binding.toString(native)
+    return bindings[0].toString(native)

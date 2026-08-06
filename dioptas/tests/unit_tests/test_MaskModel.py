@@ -233,67 +233,6 @@ def test_roi_mask_returns_none_when_no_roi():
     assert mask_model.roi_mask is None
 
 
-def test_undo_restores_previous_state(mask_model):
-    """undo() should restore the mask to its previous state."""
-    assert np.sum(mask_model._mask_data) == 0
-    mask_model.mask_ellipse(5, 5, 3, 3)
-    assert np.sum(mask_model._mask_data) > 0
-    mask_model.undo()
-    assert np.sum(mask_model._mask_data) == 0
-
-
-def test_redo_restores_undone_state(mask_model):
-    """redo() should restore a state that was undone."""
-    mask_model.mask_ellipse(5, 5, 3, 3)
-    masked_count = np.sum(mask_model._mask_data)
-    mask_model.undo()
-    assert np.sum(mask_model._mask_data) == 0
-    mask_model.redo()
-    assert np.sum(mask_model._mask_data) == masked_count
-
-
-def test_undo_on_empty_deque_does_nothing(mask_model):
-    """undo() on empty deque should not raise and should not change mask."""
-    original = np.copy(mask_model._mask_data)
-    mask_model.undo()
-    assert np.array_equal(mask_model._mask_data, original)
-
-
-def test_redo_on_empty_deque_does_nothing(mask_model):
-    """redo() on empty deque should not raise and should not change mask."""
-    original = np.copy(mask_model._mask_data)
-    mask_model.redo()
-    assert np.array_equal(mask_model._mask_data, original)
-
-
-class _SignalCounter:
-    """Helper to count signal emissions (prevents GC of weak-ref callbacks)."""
-    def __init__(self):
-        self.count = 0
-
-    def __call__(self):
-        self.count += 1
-
-
-def test_undo_emits_signal(mask_model):
-    """undo() should emit mask_changed signal."""
-    mask_model.mask_ellipse(5, 5, 3, 3)
-    counter = _SignalCounter()
-    mask_model.mask_changed.connect(counter)
-    mask_model.undo()
-    assert counter.count == 1
-
-
-def test_redo_emits_signal(mask_model):
-    """redo() should emit mask_changed signal."""
-    mask_model.mask_ellipse(5, 5, 3, 3)
-    mask_model.undo()
-    counter = _SignalCounter()
-    mask_model.mask_changed.connect(counter)
-    mask_model.redo()
-    assert counter.count == 1
-
-
 class _MockRect:
     """Minimal mock for QRectF-like objects."""
     def __init__(self, x, y, w, h):
@@ -525,3 +464,4 @@ def test_set_mask_updates_dimension():
 
     # Mask must be preserved — not reset to zeros
     assert np.sum(mask_model.get_img()) == 100 * 100
+

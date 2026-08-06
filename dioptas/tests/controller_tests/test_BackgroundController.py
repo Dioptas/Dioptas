@@ -105,3 +105,13 @@ def test_save_fit_background_pattern(
     click_button(widget.qa_bkg_pattern_btn)
     click_button(widget.bkg_pattern_save_btn)
     assert os.path.exists(os.path.join(tmpdir, "test_bg.xy"))
+
+
+def test_bkg_image_spinboxes_react_to_params(background_controller, integration_widget, dioptas_model):
+    """Direct img-params writes render into the spinboxes via the namespaced
+    store events."""
+    dioptas_model.img_model.params.background_scaling = 2.5
+    assert integration_widget.bkg_image_scale_sb.value() == 2.5
+
+    dioptas_model.img_model.params.background_offset = -10.0
+    assert integration_widget.bkg_image_offset_sb.value() == -10.0

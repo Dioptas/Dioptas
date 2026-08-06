@@ -228,7 +228,9 @@ def test_setting_factors(dioptas_model):
     dioptas_model.img_model.load(os.path.join(data_path, "image_001.tif"))
     data1 = np.copy(dioptas_model.img_data)
     dioptas_model.img_model.factor = 2
-    assert np.array_equal(2 * data1, dioptas_model.img_data)
+    # 2.0: the reference must be computed in float — integer multiplication
+    # of the uint16 data would wrap around, which the factor no longer does
+    assert np.array_equal(2.0 * data1, dioptas_model.img_data)
 
 
 def test_iterate_next_image(dioptas_model):
@@ -299,6 +301,107 @@ def test_unit_change_with_auto_background_subtraction(dioptas_model):
 
 def test_save_empty_configuration(dioptas_model, tmp_path):
     dioptas_model.save(os.path.join(tmp_path, "empty.dio"))
+
+
+def test_save_and_load_round_trips_params_only_fields(dioptas_model, tmp_path):
+    """oned_azimuth_range and trim_trailing_zeros are not in the legacy .dio
+    layout — they round-trip via the generic params group."""
+    dioptas_model.current_configuration.params.oned_azimuth_range = [-90.0, 90.0]
+    dioptas_model.current_configuration.params.trim_trailing_zeros = False
+
+    filename = os.path.join(tmp_path, "params.dio")
+    dioptas_model.save(filename)
+    dioptas_model.reset()
+    assert dioptas_model.current_configuration.oned_azimuth_range is None
+    assert dioptas_model.current_configuration.trim_trailing_zeros is True
+
+    dioptas_model.load(filename)
+    assert dioptas_model.current_configuration.oned_azimuth_range == [-90.0, 90.0]
+    assert dioptas_model.current_configuration.trim_trailing_zeros is False
+
+
+def test_save_with_numpy_bool_in_params(dioptas_model, tmp_path):
+    """Legacy project loading assigns h5py attributes (numpy scalars) into
+    params fields — saving afterwards must not crash on them."""
+    dioptas_model.current_configuration.params.use_mask = np.bool_(True)
+
+    filename = os.path.join(tmp_path, "numpy_bool.dio")
+    dioptas_model.save(filename)
+
+    dioptas_model.reset()
+    dioptas_model.load(filename)
+    assert dioptas_model.current_configuration.params.use_mask is True
+
+
+def test_failed_save_does_not_block_subsequent_saves(dioptas_model, tmp_path):
+    """A save that fails partway must close the file handle — a leaked open
+    handle used to make every later save of the same file fail with
+    "unable to truncate a file which is already open"."""
+    filename = os.path.join(tmp_path, "project.dio")
+
+    original = dioptas_model._save_into
+    dioptas_model._save_into = MagicMock(side_effect=RuntimeError("boom"))
+    with pytest.raises(RuntimeError):
+        dioptas_model.save(filename)
+    dioptas_model._save_into = original
+
+    dioptas_model.save(filename)
+    assert os.path.isfile(filename)
+    # the failed attempt must not leave its temporary file behind either
+    assert [n for n in os.listdir(tmp_path) if ".tmp-" in n] == []
+
+
+def test_project_state_is_one_json_document(dioptas_model, tmp_path):
+    """The layout is the state tree plus the binary it references: one
+    /state document, content-addressed payloads and caches — no per-field
+    attributes, and no group-per-reflection."""
+    import h5py
+    import json
+
+    filename = os.path.join(tmp_path, "layout.dio")
+    dioptas_model.save(filename)
+
+    with h5py.File(filename, "r") as f:
+        assert "state" in f
+        document = json.loads(f["state"][()])
+        assert set(document) >= {
+            "view",
+            "phase",
+            "configurations",
+            "overlays",
+            "phases",
+            "selected_configuration",
+        }
+        # settings live in the document, not as attributes beside it
+        assert "integration_unit" in document["configurations"][0]["params"]
+        assert list(f["configurations/0"].attrs) == []
+
+
+def test_parameters_changed_invalidates_multi_geometry_after_load(
+    dioptas_model, tmp_path
+):
+    dioptas_model.save(os.path.join(tmp_path, "project.dio"))
+    dioptas_model.load(os.path.join(tmp_path, "project.dio"))
+
+    dioptas_model._multi_geometry = "sentinel"
+    dioptas_model.calibration_model.parameters_changed.emit()
+    assert dioptas_model._multi_geometry is None
+
+    dioptas_model._multi_geometry = "sentinel"
+    dioptas_model.calibration_model.detector_reset.emit()
+    assert dioptas_model._multi_geometry is None
+
+
+def test_parameters_changed_invalidates_multi_geometry_after_reset(dioptas_model):
+    dioptas_model.reset()
+
+    dioptas_model._multi_geometry = "sentinel"
+    dioptas_model.calibration_model.parameters_changed.emit()
+    assert dioptas_model._multi_geometry is None
+
+    dioptas_model._multi_geometry = "sentinel"
+    dioptas_model.calibration_model.detector_reset.emit()
+    assert dioptas_model._multi_geometry is None
 
 
 def test_clear_model(dioptas_model):
@@ -599,3 +702,452 @@ def test_clicked_tth_and_azi_signals(dioptas_model):
 
     dioptas_model.clicked_azi_changed.emit(90.0)
     assert dioptas_model.clicked_azi == 90.0
+
+
+def test_configuration_params_changed_forwarding(dioptas_model):
+    """Params changes of the current configuration surface as one
+    store-level signal with (field, new, old)."""
+    got = []
+    dioptas_model.configuration_params_changed.connect(
+        lambda field, new, old: got.append((field, new, old))
+    )
+
+    dioptas_model.current_configuration.params.use_mask = True
+    dioptas_model.current_configuration.params.cake_azimuth_points = 720
+    assert got == [("use_mask", True, False), ("cake_azimuth_points", 720, 360)]
+
+
+def test_configuration_params_changed_follows_selected_configuration(dioptas_model):
+    got = []
+    dioptas_model.configuration_params_changed.connect(
+        lambda field, new, old: got.append((field, new))
+    )
+
+    dioptas_model.add_configuration()
+    inactive = dioptas_model.configurations[0]
+    dioptas_model.select_configuration(1)
+    got.clear()
+
+    # changes on a non-selected configuration must not surface
+    inactive.params.use_mask = True
+    assert got == []
+
+    dioptas_model.current_configuration.params.transparent_mask = True
+    assert got == [("transparent_mask", True)]
+
+
+def test_integration_unit_changed_derived_from_forwarding(dioptas_model):
+    got = []
+    dioptas_model.integration_unit_changed.connect(
+        lambda new, old: got.append((new, old))
+    )
+    dioptas_model.current_configuration.params.integration_unit = "q_A^-1"
+    assert got == [("q_A^-1", "2th_deg")]
+
+
+def test_view_state_round_trip(dioptas_model, tmp_path):
+    """The GUI view state is saved in the project file and applied onto the
+    stable ViewParams instance on load (events fire, object identity kept)."""
+    dioptas_model.view.img_mode = "Cake"
+    filename = os.path.join(tmp_path, "view.dio")
+    dioptas_model.save(filename)
+
+    dioptas_model.view.img_mode = "Image"
+    view_instance = dioptas_model.view
+    events = []
+    dioptas_model.view.events.img_mode.connect(lambda new, old: events.append(new))
+
+    dioptas_model.load(filename)
+    assert dioptas_model.view is view_instance
+    assert dioptas_model.view.img_mode == "Cake"
+    assert events == ["Cake"]
+
+
+def test_project_file_has_format_version(dioptas_model, tmp_path):
+    import h5py
+
+    from dioptas.model.state import PROJECT_FORMAT_VERSION
+
+    filename = os.path.join(tmp_path, "versioned.dio")
+    dioptas_model.save(filename)
+    with h5py.File(filename, "r") as f:
+        assert int(f.attrs["format_version"]) == PROJECT_FORMAT_VERSION
+
+
+def test_load_project_with_newer_format_version(dioptas_model, tmp_path):
+    """Files from a future Dioptas load best-effort instead of failing."""
+    import h5py
+
+    from dioptas.model.state import PROJECT_FORMAT_VERSION
+
+    filename = os.path.join(tmp_path, "future.dio")
+    dioptas_model.save(filename)
+    with h5py.File(filename, "r+") as f:
+        f.attrs["format_version"] = PROJECT_FORMAT_VERSION + 1
+
+    dioptas_model.load(filename)  # must not raise
+    assert len(dioptas_model.configurations) == 1
+
+
+def test_img_params_forwarded_with_namespace(dioptas_model):
+    # first contact between image and detector legitimately updates the
+    # calibration geometry (the detector learns its shape); settle that
+    # before asserting the exact event stream
+    dioptas_model.img_model.img_changed.emit()
+
+    got = []
+    dioptas_model.configuration_params_changed.connect(
+        lambda field, new, old: got.append((field, new))
+    )
+    dioptas_model.img_model.params.factor = 2.0
+    assert got == [("img.factor", 2.0)]
+
+    dioptas_model.add_configuration()
+    inactive_img_model = dioptas_model.configurations[0].img_model
+    dioptas_model.select_configuration(1)
+    got.clear()
+
+    inactive_img_model.params.factor = 5.0
+    assert got == []  # non-selected configuration stays silent
+
+    dioptas_model.img_model.params.autoprocess = True
+    assert got == [("img.autoprocess", True)]
+
+
+def test_file_iteration_mode_round_trips_via_params(dioptas_model, tmp_path):
+    """ImgModel.file_iteration_mode is not in the legacy layout — it
+    round-trips via the generic img params group."""
+    dioptas_model.img_model.file_iteration_mode = "time"
+    filename = os.path.join(tmp_path, "iteration.dio")
+    dioptas_model.save(filename)
+
+    dioptas_model.reset()
+    assert dioptas_model.img_model.file_iteration_mode == "number"
+
+    dioptas_model.load(filename)
+    assert dioptas_model.img_model.file_iteration_mode == "time"
+
+
+def test_pattern_model_settings_delegate_to_params(dioptas_model):
+    pattern_model = dioptas_model.pattern_model
+    pattern_model.unit = "2th_deg"
+    assert pattern_model.params.unit == "2th_deg"
+
+    pattern_model.set_file_iteration_mode("time")
+    assert pattern_model.params.file_iteration_mode == "time"
+    assert pattern_model.file_name_iterator.create_timed_file_list is True
+
+
+def test_pattern_params_forwarded_with_namespace(dioptas_model):
+    got = []
+    dioptas_model.configuration_params_changed.connect(
+        lambda field, new, old: got.append((field, new))
+    )
+    dioptas_model.pattern_model.params.file_iteration_mode = "time"
+    assert got == [("pattern.file_iteration_mode", "time")]
+
+
+def test_mask_model_settings_delegate_to_params(dioptas_model):
+    mask_model = dioptas_model.mask_model
+    mask_model.set_mode(False)
+    assert mask_model.params.mode is False
+
+    dioptas_model.current_configuration.roi = (10, 100, 20, 200)
+    assert mask_model.params.roi == (10, 100, 20, 200)
+    assert mask_model.roi_mask is not None
+
+
+def test_mask_params_forwarded_with_namespace(dioptas_model):
+    got = []
+    dioptas_model.configuration_params_changed.connect(
+        lambda field, new, old: got.append((field, new))
+    )
+    dioptas_model.mask_model.params.mode = False
+    assert got == [("mask.mode", False)]
+
+
+def test_mask_mode_round_trips_via_params(dioptas_model, tmp_path):
+    """MaskModel.mode is not in the legacy layout — it round-trips via the
+    generic mask params group."""
+    dioptas_model.mask_model.set_mode(False)
+    filename = os.path.join(tmp_path, "mask_mode.dio")
+    dioptas_model.save(filename)
+
+    dioptas_model.reset()
+    assert dioptas_model.mask_model.mode is True
+
+    dioptas_model.load(filename)
+    assert dioptas_model.mask_model.mode is False
+
+
+def test_calibration_params_forwarded_with_namespace(dioptas_model):
+    got = []
+    dioptas_model.configuration_params_changed.connect(
+        lambda field, new, old: got.append((field, new))
+    )
+    dioptas_model.calibration_model.polarization_factor = 0.5
+    assert got == [("calibration.polarization_factor", 0.5)]
+
+
+def test_calibration_workflow_settings_round_trip(dioptas_model, tmp_path):
+    """start_values, fit_wavelength, fixed_values and use_mask were never in
+    the legacy layout — they round-trip via the calibration params group."""
+    calibration_model = dioptas_model.calibration_model
+    calibration_model.start_values = {
+        "dist": 0.3,
+        "wavelength": 0.4e-10,
+        "polarization_factor": 0.9,
+    }
+    calibration_model.fit_wavelength = True
+    calibration_model.set_fixed_values({"rot1": 0.1})
+    calibration_model.use_mask = True
+
+    filename = os.path.join(tmp_path, "calibration_settings.dio")
+    dioptas_model.save(filename)
+    dioptas_model.reset()
+    assert dioptas_model.calibration_model.fit_wavelength is False
+
+    dioptas_model.load(filename)
+    calibration_model = dioptas_model.calibration_model
+    assert calibration_model.start_values["dist"] == 0.3
+    assert calibration_model.fit_wavelength is True
+    assert calibration_model.fixed_values == {"rot1": 0.1}
+    assert calibration_model.use_mask is True
+
+
+def test_dioptrin_settings_not_restored_from_project(dioptas_model, tmp_path):
+    """use_dioptrin / dioptrin_num_workers are machine-specific — saving a
+    project must not carry them onto another machine."""
+    machine_use_dioptrin = dioptas_model.calibration_model.use_dioptrin
+    machine_workers = dioptas_model.calibration_model.dioptrin_num_workers
+
+    dioptas_model.calibration_model.use_dioptrin = not machine_use_dioptrin
+    dioptas_model.calibration_model.dioptrin_num_workers = 999
+    filename = os.path.join(tmp_path, "dioptrin.dio")
+    dioptas_model.save(filename)
+
+    dioptas_model.load(filename)
+    assert dioptas_model.calibration_model.use_dioptrin == machine_use_dioptrin
+    assert dioptas_model.calibration_model.dioptrin_num_workers == machine_workers
+
+
+def test_map_and_phase_params_forwarded_with_namespace(dioptas_model):
+    got = []
+    dioptas_model.configuration_params_changed.connect(
+        lambda field, new, old: got.append((field, new))
+    )
+    # the first window has to be created before it can be moved
+    dioptas_model.map_model.window = [5.0, 6.0]
+    dioptas_model.phase_model.same_conditions = False
+    assert [field for field, _ in got] == ["map.rois", "phase.same_conditions"]
+    assert dioptas_model.map_model.window == [5.0, 6.0]
+
+
+def test_map_roi_edits_are_forwarded_for_the_history(dioptas_model):
+    """A window dragged in the pattern must reach the undo history, which
+    listens on configuration_params_changed."""
+    map_model = dioptas_model.map_model
+    map_model.window = [5.0, 6.0]
+
+    got = []
+    dioptas_model.configuration_params_changed.connect(
+        lambda field, new, old: got.append((field, new))
+    )
+    map_model.rois[0].x_max = 7.0
+    map_model.rois[0].reduction = "area"
+
+    assert got == [("map.roi.x_max", 7.0), ("map.roi.reduction", "area")]
+
+
+def test_phase_same_conditions_round_trips_via_params(dioptas_model, tmp_path):
+    dioptas_model.phase_model.same_conditions = False
+    filename = os.path.join(tmp_path, "phase_settings.dio")
+    dioptas_model.save(filename)
+
+    dioptas_model.reset()
+    dioptas_model.phase_model.same_conditions = True
+
+    dioptas_model.load(filename)
+    assert dioptas_model.phase_model.same_conditions is False
+
+
+def test_transformations_round_trip(dioptas_model, tmp_path):
+    dioptas_model.img_model.load(os.path.join(data_path, "image_001.tif"))
+    dioptas_model.img_model.rotate_img_m90()
+    filename = os.path.join(tmp_path, "transformed.dio")
+    dioptas_model.save(filename)
+
+    dioptas_model.reset()
+    dioptas_model.load(filename)
+    assert dioptas_model.img_model.params.transformations == ["rotate_matrix_m90"]
+
+
+def test_view_params_round_trip_all_fields(dioptas_model, tmp_path):
+    """Every view setting round-trips, applied onto the stable instance."""
+    dioptas_model.view.img_mode = "Cake"
+    dioptas_model.view.view_mode = "alternative"
+    dioptas_model.view.img_docked = False
+    dioptas_model.view.waterfall_separation = 42.0
+
+    filename = os.path.join(tmp_path, "view_all.dio")
+    dioptas_model.save(filename)
+
+    view_instance = dioptas_model.view
+    dioptas_model.reset()
+    dioptas_model.view.img_mode = "Image"
+    dioptas_model.view.view_mode = "normal"
+    dioptas_model.view.img_docked = True
+    dioptas_model.view.waterfall_separation = 100.0
+
+    dioptas_model.load(filename)
+    assert dioptas_model.view is view_instance
+    assert dioptas_model.view.img_mode == "Cake"
+    assert dioptas_model.view.view_mode == "alternative"
+    assert dioptas_model.view.img_docked is False
+    assert dioptas_model.view.waterfall_separation == 42.0
+
+
+def test_add_configuration_preserves_calibration_name(dioptas_model):
+    """Transferring the calibration to a new configuration must not rename it.
+
+    The transfer goes through a temporary poni file, whose save/load
+    overwrote the calibration name of both configurations with "transfer"."""
+    dioptas_model.calibration_model.load(
+        os.path.join(data_path, "CeO2_Pilatus1M.poni")
+    )
+    dioptas_model.img_model.load(os.path.join(data_path, "CeO2_Pilatus1M.tif"))
+    assert dioptas_model.calibration_model.calibration_name == "CeO2_Pilatus1M"
+
+    dioptas_model.add_configuration()
+
+    assert dioptas_model.calibration_model.is_calibrated
+    assert dioptas_model.calibration_model.calibration_name == "CeO2_Pilatus1M"
+    assert (
+        dioptas_model.configurations[0].calibration_model.calibration_name
+        == "CeO2_Pilatus1M"
+    )
+
+
+def test_params_restore_is_not_hand_listed(dioptas_model, tmp_path):
+    """Settings restore comes from the params documents wholesale.
+
+    Every settings field round-trips without per-field code in the loader,
+    including fields the legacy layout never writes."""
+    from dioptas.model.state import params_to_dict
+
+    configuration = dioptas_model.current_configuration
+    configuration.params.trim_trailing_zeros = False
+    configuration.params.oned_azimuth_range = [-45.0, 45.0]
+    configuration.params.cake_azimuth_range = [-100.0, 100.0]
+    configuration.img_model.params.file_iteration_mode = "time"
+    configuration.mask_model.params.mode = False
+    configuration.pattern_model.params.file_iteration_mode = "time"
+    configuration.calibration_model.params.fit_wavelength = True
+    configuration.calibration_model.params.fixed_values = {"rot1": 0.25}
+
+    expected = {
+        "configuration": params_to_dict(configuration.params),
+        "img": params_to_dict(configuration.img_model.params),
+        "mask": params_to_dict(configuration.mask_model.params),
+        # "unit" is excluded: it tracks the last integration, and loading
+        # ends with one, so it is not expected to match the pre-save value
+        "pattern": {
+            k: v
+            for k, v in params_to_dict(configuration.pattern_model.params).items()
+            if k != "unit"
+        },
+    }
+
+    filename = os.path.join(tmp_path, "wholesale.dio")
+    dioptas_model.save(filename)
+    dioptas_model.reset()
+    dioptas_model.load(filename)
+
+    restored = dioptas_model.current_configuration
+    assert params_to_dict(restored.params) == expected["configuration"]
+    assert params_to_dict(restored.img_model.params) == expected["img"]
+    assert params_to_dict(restored.mask_model.params) == expected["mask"]
+    assert {
+        k: v
+        for k, v in params_to_dict(restored.pattern_model.params).items()
+        if k != "unit"
+    } == expected["pattern"]
+    assert restored.calibration_model.params.fit_wavelength is True
+    assert restored.calibration_model.params.fixed_values == {"rot1": 0.25}
+
+
+def test_missing_working_directories_are_not_restored(dioptas_model, tmp_path):
+    """The legacy restore drops directories that no longer exist; the
+    wholesale params apply must not undo that validation."""
+    gone = os.path.join(tmp_path, "no_longer_there")
+    dioptas_model.current_configuration.params.working_directories = {
+        "image": gone,
+        "pattern": str(tmp_path),
+    }
+
+    filename = os.path.join(tmp_path, "dirs.dio")
+    dioptas_model.save(filename)
+    dioptas_model.load(filename)
+
+    restored = dioptas_model.current_configuration.working_directories
+    assert restored["image"] == ""  # dropped: does not exist
+    assert restored["pattern"] == str(tmp_path)  # kept: exists
+
+
+def test_image_round_trip_preserves_dtype_and_values(dioptas_model, tmp_path):
+    """A project round-trip must return the image exactly as loaded.
+
+    Images used to be stored as float32 regardless of the detector dtype, so
+    reloading a uint16 image from a project gave float32 back — and integer
+    counts above 2**24 lost precision."""
+    dioptas_model.img_model.load(os.path.join(data_path, "image_001.tif"))
+    original = dioptas_model.img_model.raw_img_data.copy()
+    assert original.dtype == np.uint16  # guard: the fixture image is integer
+
+    filename = os.path.join(tmp_path, "image_round_trip.dio")
+    dioptas_model.save(filename)
+    dioptas_model.load(filename)
+
+    restored = dioptas_model.img_model.raw_img_data
+    assert restored.dtype == original.dtype
+    assert np.array_equal(restored, original)
+
+
+def test_image_and_background_are_stored_compressed(dioptas_model, tmp_path):
+    import h5py
+
+    dioptas_model.img_model.load(os.path.join(data_path, "image_001.tif"))
+    dioptas_model.img_model.background_data = np.zeros(
+        dioptas_model.img_model.raw_img_data.shape, dtype=np.uint16
+    )
+
+    filename = os.path.join(tmp_path, "compressed_image.dio")
+    dioptas_model.save(filename)
+
+    with h5py.File(filename, "r") as f:
+        # image pixels are an external payload: cached under a content id
+        cache = f["cache"]
+        assert len(cache) >= 1
+        for name in cache:
+            dataset = cache[name]
+            assert dataset.compression == "gzip"
+            assert dataset.shuffle
+            stored = dataset.id.get_storage_size()
+            raw = dataset.size * dataset.dtype.itemsize
+            assert stored < raw
+
+
+def test_reset_survives_the_overlay_forwarding_to_maps(dioptas_model):
+    """reset() deletes the configurations attribute and clears the overlays
+    while it is gone; the overlay-to-maps forwarding must not trip over the
+    missing attribute (caught by CI in the project round-trip tests)."""
+    dioptas_model.overlay_model.add_overlay(
+        np.linspace(0, 10, 50), np.ones(50), "ref"
+    )
+    dioptas_model.reset()  # used to raise AttributeError via overlay_removed
+
+    # and the forwarding still works on the rebuilt configurations
+    dioptas_model.map_model.set_expression("d", "A - ovl(ref)")
+    dioptas_model.overlay_model.add_overlay(
+        np.linspace(0, 10, 50), np.ones(50), "ref"
+    )

@@ -76,7 +76,6 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.img_frame_size = QtCore.QSize(400, 500)
         self.img_frame_position = QtCore.QPoint(0, 0)
 
-        self.img_mode = 'Image'
 
     def create_shortcuts(self):
         img_control_widget = self.integration_control_widget.img_control_widget.file_widget
@@ -147,10 +146,10 @@ class IntegrationWidget(QtWidgets.QWidget):
 
         corrections_control_widget = self.integration_control_widget.corrections_control_widget
         self.cbn_groupbox = corrections_control_widget.cbn_seat_gb
-        self.cbn_param_tw = corrections_control_widget.cbn_param_tw
+        self.cbn_param_form = corrections_control_widget.cbn_param_form
         self.cbn_plot_btn = corrections_control_widget.cbn_seat_plot_btn
         self.oiadac_groupbox = corrections_control_widget.oiadac_gb
-        self.oiadac_param_tw = corrections_control_widget.oiadac_param_tw
+        self.oiadac_param_form = corrections_control_widget.oiadac_param_form
         self.oiadac_plot_btn = corrections_control_widget.oiadac_plot_btn
         self.transfer_gb = corrections_control_widget.transfer_gb
         self.transfer_load_original_btn = corrections_control_widget.transfer_load_original_btn
@@ -160,24 +159,24 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.transfer_response_filename_lbl = corrections_control_widget.transfer_response_filename_lbl
         self.slab_groupbox = corrections_control_widget.slab_gb
         self.slab_formula_txt = corrections_control_widget.slab_formula_txt
-        self.slab_param_tw = corrections_control_widget.slab_param_tw
+        self.slab_param_form = corrections_control_widget.slab_param_form
         self.slab_mu_lbl = corrections_control_widget.slab_mu_lbl
         self.slab_plot_btn = corrections_control_widget.slab_plot_btn
         self.cylinder_groupbox = corrections_control_widget.cylinder_gb
         self.cylinder_formula_txt = corrections_control_widget.cylinder_formula_txt
-        self.cylinder_param_tw = corrections_control_widget.cylinder_param_tw
+        self.cylinder_param_form = corrections_control_widget.cylinder_param_form
         self.cylinder_container_formula_txt = corrections_control_widget.cylinder_container_formula_txt
-        self.cylinder_container_param_tw = corrections_control_widget.cylinder_container_param_tw
+        self.cylinder_container_param_form = corrections_control_widget.cylinder_container_param_form
         self.cylinder_mu_lbl = corrections_control_widget.cylinder_mu_lbl
         self.cylinder_plot_btn = corrections_control_widget.cylinder_plot_btn
         self.sphere_groupbox = corrections_control_widget.sphere_gb
         self.sphere_formula_txt = corrections_control_widget.sphere_formula_txt
-        self.sphere_param_tw = corrections_control_widget.sphere_param_tw
+        self.sphere_param_form = corrections_control_widget.sphere_param_form
         self.sphere_mu_lbl = corrections_control_widget.sphere_mu_lbl
         self.sphere_plot_btn = corrections_control_widget.sphere_plot_btn
         self.plate_groupbox = corrections_control_widget.plate_gb
         self.plate_formula_txt = corrections_control_widget.plate_formula_txt
-        self.plate_param_tw = corrections_control_widget.plate_param_tw
+        self.plate_param_form = corrections_control_widget.plate_param_form
         self.plate_mu_lbl = corrections_control_widget.plate_mu_lbl
         self.plate_plot_btn = corrections_control_widget.plate_plot_btn
         self.flat_field_gb = corrections_control_widget.flat_field_gb

@@ -310,3 +310,70 @@ def test_loading_karabo_file_without_extra_data(img_model):
         # Verify that other file types still work
         img_model.load(os.path.join(data_path, "image_001.tif"))
         assert img_model.img_data is not None
+
+
+def test_img_model_settings_delegate_to_params():
+    from dioptas.model.ImgModel import ImgModel
+
+    img_model = ImgModel()
+    emitted = []
+    img_model.img_changed.connect(lambda: emitted.append(1))
+
+    img_model.factor = 2.5
+    assert img_model.params.factor == 2.5
+    assert len(emitted) == 1  # property setter keeps its side effect
+
+    img_model.params.factor = 3.0  # direct write behaves like the property
+    assert img_model.factor == 3.0
+    assert len(emitted) == 2
+
+    img_model.file_iteration_mode = "time"
+    assert img_model.params.file_iteration_mode == "time"
+
+
+def test_transformations_are_canonical_in_params():
+    from dioptas.model.ImgModel import ImgModel
+
+    img_model = ImgModel()
+    img_model.rotate_img_p90()
+    img_model.flip_img_horizontally()
+    assert img_model.params.transformations == ["rotate_matrix_p90", "fliplr"]
+    assert img_model.get_transformations_string_list() == [
+        "rotate_matrix_p90",
+        "fliplr",
+    ]
+
+    # the callable list derives from the names
+    import numpy as np
+    from dioptas.model.util.HelperModule import rotate_matrix_p90
+
+    assert img_model.img_transformations == [rotate_matrix_p90, np.fliplr]
+
+    img_model.load_transformations_string_list(["flipud"])
+    assert img_model.params.transformations == ["flipud"]
+
+    img_model.load_transformations_string_list(["not_a_transformation"])
+    assert img_model.params.transformations == []
+
+
+def test_direct_img_params_writes_trigger_same_reactions():
+    """Uniform writes: direct params writes behave like property writes."""
+    from dioptas.model.ImgModel import ImgModel
+
+    img_model = ImgModel()
+    emitted = []
+    img_model.img_changed.connect(lambda: emitted.append(1))
+
+    img_model.params.factor = 2  # int, direct write
+    assert len(emitted) == 1
+    assert isinstance(img_model.params.factor, float)  # coerced in reaction
+
+    img_model.params.background_scaling = 3
+    assert len(emitted) == 2
+    assert isinstance(img_model.params.background_scaling, float)
+
+    img_model.params.autoprocess = True
+    assert img_model._directory_watcher._active if hasattr(
+        img_model._directory_watcher, "_active"
+    ) else True
+    img_model.params.autoprocess = False

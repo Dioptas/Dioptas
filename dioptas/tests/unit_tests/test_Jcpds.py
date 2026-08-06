@@ -97,3 +97,53 @@ def test_using_negative_pressures_with_zero_bulk_modulus(jcpds):
 
     jcpds.compute_d(-1, 298)
     assert jcpds.params['v'] == jcpds.params['v0']
+
+
+def test_copying_does_not_mark_as_modified(jcpds):
+    """Copying is not editing.
+
+    params is a dict subclass that flags itself when certain keys are written,
+    and Python rebuilds a dict subclass by replaying its items through
+    __setitem__ — so a plain copy used to come back claiming it had been
+    edited, asterisk on the name and all.
+    """
+    from copy import copy, deepcopy
+
+    jcpds.load_file(os.path.join(jcpds_path, 'au_Anderson.jcpds'))
+    assert not jcpds.params['modified']
+
+    for duplicate in (deepcopy(jcpds), copy(jcpds.params), deepcopy(jcpds.params)):
+        params = duplicate.params if hasattr(duplicate, 'params') else duplicate
+        assert not params['modified']
+
+    assert deepcopy(jcpds).name == 'au_Anderson'
+    assert not jcpds.params['modified']  # nor is the original touched
+
+
+def test_copying_preserves_an_existing_modified_flag(jcpds):
+    """A copy of an edited phase is still an edited phase."""
+    from copy import copy, deepcopy
+
+    jcpds.load_file(os.path.join(jcpds_path, 'au_Anderson.jcpds'))
+    jcpds.params['k0'] = 200
+    assert jcpds.params['modified']
+
+    assert deepcopy(jcpds).params['modified']
+    assert deepcopy(jcpds).name == 'au_Anderson*'
+    assert copy(jcpds.params)['modified']
+
+
+def test_deep_copy_is_independent_of_the_original(jcpds):
+    from copy import deepcopy
+
+    jcpds.load_file(os.path.join(jcpds_path, 'au_Anderson.jcpds'))
+    jcpds.add_reflection(1, 0, 0, 100, 4.0)
+    duplicate = deepcopy(jcpds)
+
+    # add_reflection is a real edit, so both carry the flag
+    assert duplicate.params['modified'] == jcpds.params['modified'] is True
+
+    jcpds.params['k0'] = 999
+    jcpds.reflections[0].d0 = 42.0
+    assert duplicate.params['k0'] != 999
+    assert duplicate.reflections[0].d0 != 42.0

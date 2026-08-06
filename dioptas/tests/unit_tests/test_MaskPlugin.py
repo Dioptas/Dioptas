@@ -519,98 +519,44 @@ def test_imprint_bakes_mask_and_disables_plugin():
     assert not manager.is_enabled("No Settings")
 
 
-def test_imprint_undo_redo_restores_plugin_state():
-    """Undoing an imprint re-enables the plugin; redo disables it again."""
-    model = MaskModel(mask_dimension=(50, 50))
-    manager = MaskPluginManager()
-    model.mask_plugin_manager = manager
 
-    plugin = NoSettingsPlugin()
+def test_enabling_after_an_image_change_recomputes_the_mask():
+    """Enable on image A, disable, load same-shaped image B, enable again:
+    the mask shown used to be image A's."""
+    manager = MaskPluginManager()
+    plugin = DynamicMeanPlugin()
     manager.register(plugin)
-    manager.update_image(np.zeros((50, 50)))
-    manager.set_enabled("No Settings", True)
 
-    model.imprint_plugin_mask("No Settings")
-    assert not manager.is_enabled("No Settings")
-    assert model.get_img().sum() == 50
+    image_a = np.zeros((4, 4))
+    image_a[0, 0] = 100.0  # far above the mean -> masked
+    manager.update_image(image_a)
+    manager.set_enabled(plugin.name, True)
+    mask_a = manager.plugins[plugin.name].cached_mask.copy()
+    assert mask_a[0, 0]
 
-    model.undo()
-    assert manager.is_enabled("No Settings")
-    assert model.get_img().sum() == 0
+    manager.set_enabled(plugin.name, False)
+    image_b = np.zeros((4, 4))
+    image_b[3, 3] = 100.0  # same shape, different hot pixel
+    manager.update_image(image_b)
 
-    model.redo()
-    assert not manager.is_enabled("No Settings")
-    assert model.get_img().sum() == 50
+    manager.set_enabled(plugin.name, True)
+    mask_b = manager.plugins[plugin.name].cached_mask
+    assert mask_b[3, 3]
+    assert not mask_b[0, 0]  # not image A's mask
 
 
-def test_imprint_multiple_plugins_undo_in_lifo_order():
-    """Imprinting multiple plugins and undoing reverses each one in LIFO order."""
-    model = MaskModel(mask_dimension=(50, 50))
+def test_static_plugin_cache_survives_same_shape_image_changes():
+    """A non-dynamic plugin's mask does not depend on the image, so its
+    cache stays valid across same-shaped images."""
     manager = MaskPluginManager()
-    model.mask_plugin_manager = manager
-
-    class A(MaskPluginBase):
-        name = "A"
-        is_dynamic = True
-        def compute_mask(self, img_data, existing_mask=None, **kwargs):
-            m = np.zeros(img_data.shape, dtype=bool)
-            m[0:5, :] = True
-            return m
-
-    class B(MaskPluginBase):
-        name = "B"
-        is_dynamic = True
-        def compute_mask(self, img_data, existing_mask=None, **kwargs):
-            m = np.zeros(img_data.shape, dtype=bool)
-            m[45:50, :] = True
-            return m
-
-    manager.register(A())
-    manager.register(B())
-    manager.update_image(np.zeros((50, 50)))
-    manager.set_enabled("A", True)
-    manager.set_enabled("B", True)
-
-    model.imprint_plugin_mask("A")
-    assert model.get_img().sum() == 250  # 5 rows
-    assert not manager.is_enabled("A")
-    assert manager.is_enabled("B")
-
-    model.imprint_plugin_mask("B")
-    assert model.get_img().sum() == 500  # 10 rows total
-    assert not manager.is_enabled("A")
-    assert not manager.is_enabled("B")
-
-    # Undo B first (LIFO)
-    model.undo()
-    assert model.get_img().sum() == 250
-    assert not manager.is_enabled("A")
-    assert manager.is_enabled("B")
-
-    # Then A
-    model.undo()
-    assert model.get_img().sum() == 0
-    assert manager.is_enabled("A")
-    assert manager.is_enabled("B")
-
-
-def test_imprint_then_draw_then_undo_skips_plugin_reenable():
-    """A regular mask draw between imprints should not re-enable plugins on undo."""
-    model = MaskModel(mask_dimension=(50, 50))
-    manager = MaskPluginManager()
-    model.mask_plugin_manager = manager
-
-    plugin = NoSettingsPlugin()
+    plugin = StaticThresholdPlugin()
     manager.register(plugin)
-    manager.update_image(np.zeros((50, 50)))
-    manager.set_enabled("No Settings", True)
 
-    model.imprint_plugin_mask("No Settings")
-    model.mask_rect(10, 10, 5, 5)  # regular draw
+    manager.update_image(np.ones((4, 4)))
+    manager.set_enabled(plugin.name, True)
+    cached = manager.plugins[plugin.name].cached_mask
 
-    # Undoing the draw should NOT touch the plugin
-    model.undo()
-    assert not manager.is_enabled("No Settings")
-    # Undoing the imprint SHOULD re-enable the plugin
-    model.undo()
-    assert manager.is_enabled("No Settings")
+    manager.set_enabled(plugin.name, False)
+    manager.update_image(np.ones((4, 4)) * 2)
+    manager.set_enabled(plugin.name, True)
+    assert manager.plugins[plugin.name].cached_mask is cached

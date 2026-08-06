@@ -129,9 +129,7 @@ class PhaseController:
             jcpds_obj, filename = dialog.result_phase
             # Remember API URL for next time
             self._last_db_url = dialog.api_url_input.text().strip()
-            # Sync phase_files so PhaseController.phase_added() can read [-1]
-            self.model.phase_model.phase_files.append(filename)
-            self.model.phase_model.add_jcpds_object(jcpds_obj)
+            self.model.phase_model.add_jcpds_object(jcpds_obj, filename=filename)
 
     def _add_phase(self, filename):
         try:
@@ -147,8 +145,7 @@ class PhaseController:
                 material, eos = read_eosmat(filename)
                 jcpds_obj = build_jcpds(material, eos)
                 jcpds_obj._filename = filename
-                self.model.phase_model.phase_files.append(filename)
-                self.model.phase_model.add_jcpds_object(jcpds_obj)
+                self.model.phase_model.add_jcpds_object(jcpds_obj, filename=filename)
         except PhaseLoadError as e:
             self.integration_widget.show_error_msg(
                 'Could not load:\n\n{}.\n\nPlease check if the format of the input file is correct.'. \

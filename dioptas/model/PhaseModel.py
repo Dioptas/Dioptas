@@ -5,7 +5,11 @@ import logging
 import numpy as np
 from xypattern import Pattern
 
+from dataclasses import dataclass, field
+from typing import Any
+
 from .util import Signal
+from .state import PhaseParams, PhaseItemParams
 from .util.jcpds import jcpds, jcpds_reflection
 from .util.cif import CifConverter
 from .util.HelperModule import calculate_color
@@ -22,19 +26,37 @@ class PhaseLoadError(Exception):
         return "Could not load {0} as jcpds file".format(self.filename)
 
 
+@dataclass
+class PhaseItem:
+    """Everything belonging to one phase, in one record.
+
+    Replaces four parallel lists that had to be mutated in lockstep. The
+    jcpds object is the crystallographic data (step 5b dissolves it into
+    state and derived values); reflections caches the computed line
+    positions/intensities for the current pressure and temperature."""
+
+    jcpds: "jcpds"
+    params: PhaseItemParams
+    filename: str = ""
+    reflections: Any = field(default_factory=list)
+
+
 class PhaseModel:
 
-    num_phases: int = 0
 
     def __init__(self) -> None:
         super().__init__()
-        self.phases: list[jcpds] = []
-        self.reflections: list[np.ndarray] = []
-        self.phase_files: list[str] = []
-        self.phase_colors: list[np.ndarray] = []
-        self.phase_visible: list[bool] = []
+        # one record per phase: the four historically parallel lists
+        # (phases/reflections/phase_files/item_params) are views over this
+        self.items: list[PhaseItem] = []
+        #: advances only for genuinely new phases, so each gets a fresh
+        #: colour; restoring a phase brings its own colour and must not
+        #: consume one (it used to, giving a new colour every undo/redo)
+        self._color_counter: int = 0
 
-        self.same_conditions: bool = True
+        # All user-settable parameters live in the evented params dataclass;
+        # the property below delegates to it.
+        self.params: PhaseParams = PhaseParams()
 
         self.phase_added: Signal = Signal()
         self.phase_removed: Signal = Signal(int)  # phase ind
@@ -44,14 +66,42 @@ class PhaseModel:
         self.reflection_added: Signal = Signal(int)
         self.reflection_deleted: Signal = Signal(int, int)  # phase index, reflection index
 
+    @property
+    def same_conditions(self) -> bool:
+        return self.params.same_conditions
+
+    @same_conditions.setter
+    def same_conditions(self, new_value: bool) -> None:
+        self.params.same_conditions = new_value
+
+    # -- read-only views over the items -----------------------------------
+    # The four lists used to be parallel and mutated in lockstep at every
+    # site — the same disease the mask's four undo deques had. External code
+    # reads them by index; all mutation goes through the item list.
+
+    @property
+    def phases(self) -> list[jcpds]:
+        return [item.jcpds for item in self.items]
+
+    @property
+    def reflections(self) -> list:
+        return [item.reflections for item in self.items]
+
+    @property
+    def phase_files(self) -> list[str]:
+        return [item.filename for item in self.items]
+
+    @property
+    def item_params(self) -> list[PhaseItemParams]:
+        return [item.params for item in self.items]
+
     def add_jcpds(self, filename: str) -> None:
         """Adds a jcpds file."""
         logger.info("Adding JCPDS phase: %s", filename)
         try:
             jcpds_object = jcpds()
             jcpds_object.load_file(filename)
-            self.phase_files.append(filename)
-            self.add_jcpds_object(jcpds_object)
+            self.add_jcpds_object(jcpds_object, filename=filename)
         except (ZeroDivisionError, UnboundLocalError, ValueError):
             raise PhaseLoadError(filename)
 
@@ -69,19 +119,37 @@ class PhaseModel:
         try:
             cif_converter = CifConverter(0.31, minimum_d_spacing, intensity_cutoff)
             jcpds_object = cif_converter.convert_cif_to_jcpds(filename)
-            self.phase_files.append(filename)
-            self.add_jcpds_object(jcpds_object)
+            self.add_jcpds_object(jcpds_object, filename=filename)
         except (ZeroDivisionError, UnboundLocalError, ValueError) as e:
             logger.warning("Failed to load CIF file %s: %s", filename, e)
             raise PhaseLoadError(filename)
 
-    def add_jcpds_object(self, jcpds_object: jcpds) -> None:
-        """Adds a jcpds object to the phase list."""
-        self.phases.append(jcpds_object)
-        self.reflections.append([])
-        self.phase_colors.append(calculate_color(PhaseModel.num_phases + 9))
-        self.phase_visible.append(True)
-        PhaseModel.num_phases += 1
+    def add_jcpds_object(
+        self,
+        jcpds_object: jcpds,
+        filename: str = "",
+        params: PhaseItemParams | None = None,
+    ) -> None:
+        """Adds a jcpds object to the phase list.
+
+        *params* supplies the display state for a phase that already has one
+        (undo/redo, project loading). It has to be set before the item is
+        appended: phase_added is what makes the views build their plot items,
+        and they read the colour at that moment — assigning it afterwards left
+        the plot in whatever colour the phase happened to be given first.
+        """
+        if params is None:
+            params = PhaseItemParams(
+                color=calculate_color(self._color_counter + 9)
+            )
+            self._color_counter += 1
+        self.items.append(
+            PhaseItem(
+                jcpds=jcpds_object,
+                params=params,
+                filename=filename or str(jcpds_object.filename or ""),
+            )
+        )
         if self.same_conditions and len(self.phases) > 2:
             self.phases[-1].compute_d(self.phases[-2].params['pressure'], self.phases[-2].params['temperature'])
         else:
@@ -99,11 +167,7 @@ class PhaseModel:
     def del_phase(self, ind: int) -> None:
         """Deletes a phase with index ind from the phase list."""
         logger.info("Deleting phase %d", ind)
-        del self.phases[ind]
-        del self.reflections[ind]
-        del self.phase_files[ind]
-        del self.phase_colors[ind]
-        del self.phase_visible[ind]
+        del self.items[ind]
         self.phase_removed.emit(ind)
 
     def reload(self, ind: int) -> None:
@@ -226,7 +290,8 @@ class PhaseModel:
         new_name = f"{chemistry} ({label})" if label else chemistry
         phase._name = new_name
         phase._filename = new_name
-        self.phase_files[ind] = new_name
+        # phase_files is a read-only view over the items; set the record
+        self.items[ind].filename = new_name
 
         phase.compute_d()  # recompute at the phase's current P and T
         phase.params['modified'] = False
@@ -239,13 +304,23 @@ class PhaseModel:
 
     def set_color(self, ind: int, color: tuple[int, int, int]) -> None:
         """Changes the color of the phase with index ind."""
-        self.phase_colors[ind] = color
+        self.item_params[ind].color = color
         self.phase_changed.emit(ind)
 
     def set_phase_visible(self, ind: int, bool: bool) -> None:
         """Sets the visible flag for phase with index ind."""
-        self.phase_visible[ind] = bool
+        self.item_params[ind].visible = bool
         self.phase_changed.emit(ind)
+
+    @property
+    def phase_colors(self) -> list:
+        """Per-phase colors (read-only view; write via set_color)."""
+        return [item.color for item in self.item_params]
+
+    @property
+    def phase_visible(self) -> list[bool]:
+        """Per-phase visibility (read-only view; write via set_phase_visible)."""
+        return [item.visible for item in self.item_params]
 
     def get_lines_d(self, ind: int) -> np.ndarray:
         """
@@ -260,7 +335,7 @@ class PhaseModel:
             res[i, 2] = reflection.h
             res[i, 3] = reflection.k
             res[i, 4] = reflection.l
-        self.reflections[ind] = res
+        self.items[ind].reflections = res
         return res
 
     def get_phase_line_positions(

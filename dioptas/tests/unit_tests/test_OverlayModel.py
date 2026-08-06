@@ -235,3 +235,66 @@ def test_reset(overlay_model: OverlayModel):
 
     assert len(overlay_model.overlays) == 0
     assert overlay_model.overlay_removed.emit.call_count == 3
+
+
+def test_overlay_display_state_is_params_backed():
+    import numpy as np
+    from dioptas.model.OverlayModel import OverlayModel
+
+    overlay_model = OverlayModel()
+    overlay = overlay_model.add_overlay(np.linspace(0, 10), np.ones(50), "ov")
+
+    overlay_model.set_overlay_scaling(0, 2.0)
+    overlay_model.set_overlay_offset(0, 5.0)
+    overlay_model.set_overlay_color(0, "#123456")
+    overlay_model.set_overlay_visible(0, False)
+    overlay_model.set_overlay_name(0, "renamed")
+
+    assert overlay.params.scaling == 2.0
+    assert overlay.params.offset == 5.0
+    assert overlay.params.color == "#123456"
+    assert overlay.params.visible is False
+    assert overlay.params.name == "renamed"
+
+    # the Pattern math still sees scaling/offset
+    _, y = overlay.data
+    assert y[0] == 2.0 * 1.0 + 5.0
+
+    # negative scaling is clamped by xypattern; params records the effective value
+    overlay_model.set_overlay_scaling(0, -1.0)
+    assert overlay.params.scaling == 0.0
+
+
+def test_phase_item_params_backed_lists():
+    import os
+    from dioptas.model.PhaseModel import PhaseModel
+
+    unittest_path = os.path.dirname(__file__)
+    phase_model = PhaseModel()
+    phase_model.add_jcpds(
+        os.path.join(unittest_path, "../data/jcpds", "au_Anderson.jcpds")
+    )
+    phase_model.set_color(0, (1, 2, 3))
+    phase_model.set_phase_visible(0, False)
+
+    assert phase_model.item_params[0].color == (1, 2, 3)
+    assert phase_model.item_params[0].visible is False
+    assert phase_model.phase_colors[0] == (1, 2, 3)
+    assert phase_model.phase_visible[0] is False
+
+
+def test_direct_overlay_params_writes_reach_pattern_math():
+    """Uniform writes: direct params writes update the Pattern computation."""
+    import numpy as np
+    from dioptas.model.OverlayModel import OverlayModel
+
+    overlay_model = OverlayModel()
+    overlay = overlay_model.add_overlay(np.linspace(0, 10), np.ones(50), "ov")
+
+    overlay.params.scaling = 3.0
+    overlay.params.offset = 1.0
+    _, y = overlay.data
+    assert y[0] == 3.0 * 1.0 + 1.0
+
+    overlay.params.scaling = -2.0  # clamped by xypattern
+    assert overlay.params.scaling == 0.0

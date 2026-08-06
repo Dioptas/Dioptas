@@ -42,6 +42,10 @@ dependencies = [
     "qt-material>=2.14,<3.0",
     "bitshuffle>=0.5.1",
     "xraydb>=4.5.8",
+    # upper bound: Signal.has_listener relies on psygnal's private _slots
+    # (see dioptas/model/util/signal.py) — verify before raising
+    "psygnal>=0.15.1,<0.16",
+    # EoS database integration: REST client, EoS engine, data models
     "requests>=2.33.1",
     "peritheos",
     "pydantic>=2.13.4",
@@ -49,7 +53,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
-    "pytest>=7.4.0,<9.0",
+    "pytest>=7.4.0,<10.0",
     "pytest-cov>=6.0,<7.0",
     "pytest-qt>=4.4.0,<5.0",
     "mock>=5.1.0,<6.0",
@@ -83,7 +87,7 @@ dev = [
 
 [tool.setuptools_scm]
 version_file = "dioptas/_version.py"
-fallback_version = "0.8.5"
+fallback_version = "0.9.0"
 
 [tool.cibuildwheel]
 # Project requires Python >=3.11,<3.14
@@ -117,3 +121,10 @@ exclude_lines = [
 [tool.uv.sources]
 peritheos = { git = "https://github.com/CPrescher/peritheos.git" }
 
+[tool.ruff.lint]
+# Critical defects only — the classes of problem the test suite cannot see:
+# syntax errors (E9), shadowed redefinitions (F811, a duplicated function
+# body silently loses one copy), undefined names (F821/F823, a NameError on
+# whatever code path reaches them). Style rules are deliberately not
+# enforced here.
+select = ["E9", "F811", "F821", "F823"]

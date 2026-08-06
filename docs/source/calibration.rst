@@ -5,133 +5,177 @@ Calibration Procedure
 =====================
 Make sure you are in the Calibration mode, selected via the **CALIB** button on the left side of the window.
 
-Preparation
-~~~~~~~~~~~
+Calibration is organised as a step-by-step workflow.
+The stepper in the upper right corner shows the four steps and where you are:
 
-Load the calibration image by clicking the "**Load File**" button on the upper right side of the window.
-Enter the starting values for the calibration in the panel on the right.
-The calibration procedure will estimate distance and center position of the X-ray beam, as well as detector rotation.
-The wavelength and pixel width/height must be defined based on your experimental setup and detector.
+.. figure:: images/calibration_stepper.png
+   :align: center
+   :width: 540 px
 
-Choose the correct calibrant from the **Calibrant** drop-down list.
-If your calibrant is not available, you can add your own by placing a text file containing a list of d-spacings
-in the ``dioptas/calibrants`` folder. Dioptas will automatically make this calibrant available after a restart.
+   The calibration stepper: completed steps carry a green check mark, the current step is highlighted
+   in amber, steps that are not yet reachable are greyed out.
 
+Each step shows only the controls it needs.
+Use the **Next** button at the bottom of the panel to continue — it names the step it leads to and
+unlocks once the current step's prerequisites exist (an image, picked peaks, a calibration).
+Completed steps can be revisited at any time by clicking them in the stepper or using **Back**.
+
+If you already have a calibration, you do not need to walk through the steps:
+**Load Calibration** (a pyFAI ``.poni`` file) and **Enter Manually** (typed pyFAI or Fit2D
+parameters) at the bottom of the panel are available from every step and jump straight to the
+validation step.
+
+Values that are still at their shipped defaults — distance, wavelength, pixel size, calibrant —
+are marked with an orange border until you confirm them by editing, by loading a detector or
+calibration file, or by calibrating successfully.
+A silently wrong default is the most common way to get a nonsense calibration, so check every
+orange field before calibrating.
+
+
+Step 1: Image
+~~~~~~~~~~~~~
+
+.. figure:: images/calibration_step1_image.png
+   :align: center
+   :width: 600 px
+
+   Step 1 — load and orient the calibration image and describe the detector.
+
+Load the calibration image with **Load Image File**.
 Different detector orientations can be accommodated by rotating or flipping the image using the
 **Rotate +90**, **Rotate -90**, **Flip horizontal**, and **Flip vertical** buttons.
 These image transformations will be applied to all subsequently loaded images across all modules.
 
-You can also load a predefined detector from pyFAI's detector database or from a NeXus detector definition file.
+In the **Detector** section, either enter the pixel width and height of your detector directly,
+select a predefined detector from pyFAI's detector database, or load a NeXus detector definition
+file. A spline file for distortion correction can also be loaded here.
 
-.. figure:: images/start_values.png
+
+Step 2: Pick Rings
+~~~~~~~~~~~~~~~~~~
+
+In order for Dioptas to find the correct geometry, it needs initial guesses for the positions of
+diffraction rings. This is done by selecting peaks on each ring — clicking on the image picks
+peaks only while this step is active.
+
+.. figure:: images/calibration_step2_pick_rings.png
    :align: center
-   :width: 300 px
+   :width: 600 px
 
-   Start values for calibration.
+   Step 2 — LaB\ :sub:`6` \  image with peaks picked on the first two rings.
+   The group of the current ring is selected in the table and highlighted in the image.
 
-
-Peak Picking
-~~~~~~~~~~~~
-
-In order for Dioptas to find the correct geometry, it needs initial guesses for the positions of diffraction rings.
-This is done by selecting peaks on each ring.
-The parameters for peak selection are given in the "**Peak Selection**" section on the right side of the calibration
-module when "**Calibration Parameters**" is selected.
-
-.. figure:: images/peak_selection.png
-   :align: center
-   :width: 300 px
-
-   Peak Selection Options.
-
-By default, **automatic peak search** is selected, which tries to automatically find peaks along a clicked ring.
-To search on the first ring, click on it with the left mouse button.
+By default, **automatic peak search** is selected, which tries to automatically find peaks along a
+clicked ring. To search on the first ring, click on it with the left mouse button.
 If it is difficult to click on the ring, zoom in using drag-zoom or the mouse wheel.
-If the peak search was successful, the found peaks will be highlighted:
+With **automatic increase** enabled, the **Current Ring Number** advances after every successful
+pick, so you can simply click ring after ring from the inside out.
 
-.. figure:: images/peak_selection2.png
-    :align:  center
-    :width: 600 px
+Every pick becomes a row in the table, showing its ring assignment, the number of found peaks and
+the mean position:
 
-    LaB\ :sub:`6` \  2D diffraction image with the first ring selected.
+- Selecting rows highlights those peaks in the image with a white outline.
+- Changing the **Current Ring Number** highlights every group belonging to that ring.
+- The ring spinbox in a row reassigns the group to a different ring — useful when a ring was
+  skipped or double-clicked.
+- **Delete** (or the Del key) removes the selected groups; **Clear Ring** removes all peaks of the
+  current ring; **Clear All** starts over.
 
-If the automatic peak search fails, several options are available:
-
-* Perform the automatic peak search on a different ring:
-
-  - Change the "**Current Ring Number**"
-  - Click on the desired ring
-
-* Choose "**single peak search**", which finds the highest intensity peak around the click position.
-  The search area size is defined by the **search size** parameter.
-
-  - Search one peak per ring (the ring number auto-increments), or
-  - Deselect auto-increment and click multiple spots on any ring
-
-* Use **Clear Ring** to delete all peaks for the currently selected ring number, or
-  **Clear All Peaks** to start over completely.
-
-The selected ring's peaks are highlighted in the image to help verify the selection.
+If the automatic peak search fails, choose **single peak search**, which finds the highest
+intensity peak around the click position (the search area is defined by the **search size**
+parameter). Either search one peak per ring with automatic increase, or deselect it and click
+multiple spots on the same ring.
 
 
-The Calibration and Refinement Process
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Step 3: Calibrate
+~~~~~~~~~~~~~~~~~
 
-After peaks/rings have been selected, start the calibration by clicking the "**Calibrate**" button
-on the lower left of the interface.
-This calculates the geometric parameters based on the peak selection and then automatically refines them.
+.. figure:: images/calibration_step3_panel.png
+   :align: center
+   :width: 300 px
 
-After refinement, Dioptas creates a 360-degree cake image and an integrated pattern.
-It will switch to the "**Cake**" tab (above the image) to show the cake image.
-In this view you can verify the calibration by checking if the cake lines are straight.
-The "**Pattern**" tab shows the integrated pattern with calculated calibrant line positions — all peak maxima
-should coincide with the phase lines.
+   Step 3 — start values, fit constraints and refinement options.
 
-The resulting calibration parameters are shown under the **pyFAI Parameters** or **Fit2D Parameters** tabs in the
-right control panel.
-Save the calibration by clicking **Save Calibration** (saves a ``.poni`` file).
-To reuse a calibration, load it with **Load Calibration**.
+Enter the **start values** for the calibration:
+
+- *Distance*: approximate sample–detector distance. The checkbox next to it controls whether the
+  distance is refined; unchecked, it is held fixed at the entered value.
+- *Wavelength* / *Energy*: the two fields are kept in sync — enter whichever you know. The
+  checkbox enables refining the wavelength (usually it is known and stays fixed).
+- *Polarization*: polarization factor used for the integration.
+- *Rotation 1–3* and *PONI 1/2*: the pyFAI geometry parameters. They are normally refined
+  (checkbox checked); uncheck a parameter to hold it fixed at the entered value during
+  calibration and refinement, e.g. to force an orthogonal geometry with all rotations at 0.
+  After a successful calibration the fields show the fitted values.
+- *Calibrant*: choose the correct calibrant from the drop-down list. If your calibrant is not
+  available, you can add your own by placing a text file containing a list of d-spacings in the
+  ``dioptas/calibrants`` folder. Dioptas will automatically make this calibrant available after a
+  restart.
+
+The **refinement options** control what happens after the initial geometry fit:
+
+- *Use mask / transparent*:
+    Constrain the refinement to a certain image area using a mask previously defined in the Mask
+    module. The mask can be made transparent to see the image underneath.
+
+- *Automatic refinement*:
+    When enabled (the default), Dioptas searches for additional peaks on all rings after the
+    initial calibration and refines the geometry with them. When disabled, only the manually
+    picked peaks are used. Its parameters are shown while it is enabled:
+
+    - *Peak Search Algorithm*: "Massif" is the default; "Blob" detection may give better results
+      in some cases.
+    - *Delta 2th*: the ± search range for automatic peak search around each ring.
+    - *Intensity Mean Factor*: how many times the peak intensity must exceed the mean intensity
+      of the search area. Lower values find more peaks but risk selecting background noise.
+      Default is 3 (good for spotty patterns); for smooth rings, reduce to 1–1.5.
+    - *Intensity Limit*: excludes peaks above this intensity. Default 55000 (suitable for 16-bit
+      detectors); adjust for detectors with higher dynamic range.
+    - *Number of rings*: how many rings to search for peaks on. Use all visible rings for optimal
+      calibration.
+
+Press **Calibrate** to run the calibration.
+If it fails, the most common adjustments are the number of rings and the Intensity Mean Factor.
 
 
-Refinement Options
-__________________
+Step 4: Validation
+~~~~~~~~~~~~~~~~~~
 
-The refinement options are in the right control panel when "Calibration Parameters" is selected.
+After the calibration (or after loading a ``.poni`` file), Dioptas switches to the validation
+step, which shows the detector image, the 360-degree cake and the integrated pattern side by side:
 
-.. figure:: images/refinement_options.png
-    :align: center
-    :width: 300 px
+.. figure:: images/calibration_step4_validation.png
+   :align: center
+   :width: 600 px
 
-    Available options for calibration refinement.
+   Step 4 — image, cake and pattern with the calibrant's reflections overlaid (red) and the
+   linked position marker (green) after a click in the pattern.
 
-Available options:
+Judging the calibration:
 
-- *Automatic refinement:*
-    When enabled, Dioptas searches for additional peaks automatically after the initial calibration.
-    When disabled, only the manually selected peaks are used.
+- The calibrant's reflections are overlaid in every view — as rings on the image, vertical lines
+  in the cake and vertical lines in the pattern. For a good calibration they coincide with the
+  measured rings, the cake lines are straight, and all peak maxima match the line positions.
+- Clicking in any of the three views places a green marker at the same 2θ position in all of
+  them: the iso-2θ ring on the image, a vertical line in the cake and the position line in the
+  pattern. This makes it easy to check a specific feature across the views.
+- Phases loaded in the Integration module are overlaid the same way in their phase colors.
 
-- *Use mask / transparent:*
-    Constrain the refinement to a certain image area using a mask previously defined in the Mask module.
-    The mask can be made transparent to see the image underneath.
+The resulting geometry is shown in the **pyFAI** and **Fit2D** tabs of the panel and can be
+edited there; **update** applies typed values.
+**Refine** repeats the automatic peak search and refinement based on the current geometry —
+useful after adjusting parameters or the refinement options.
 
-- *Peak search algorithm:*
-    The algorithm used for finding peaks on rings.
-    "Massif" is the default; "Blob" detection may give better results in some cases.
+Finally, save the calibration with **Save Calibration** (a pyFAI ``.poni`` file), so it can be
+reused later with **Load Calibration**.
 
-- *Delta 2th:*
-    The ± search range for automatic peak search around each ring.
-    The center value is estimated from the calibration procedure.
 
-- *Intensity Min factor:*
-    How many times the peak intensity must exceed the mean intensity of the search area.
-    Lower values find more peaks but risk selecting background noise.
-    Default is 3 (good for spotty patterns). For smooth rings, reduce to 1–1.5.
+Entering a Known Calibration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- *Intensity Max:*
-    Excludes peaks above this intensity. Default 55000 (suitable for 16-bit detectors).
-    Adjust for detectors with higher dynamic range.
+Two shortcuts skip the calibration procedure entirely:
 
-- *Number of rings:*
-    How many rings to search for peaks on. Use all visible rings for optimal calibration.
-
-If calibration fails, the most common adjustments are the number of rings and the Intensity Min factor.
+- **Load Calibration** loads a pyFAI ``.poni`` file and jumps to the validation step.
+- **Enter Manually** opens the validation step with empty pyFAI/Fit2D parameter fields. Type the
+  known values and press **update** — from then on the calibration behaves exactly as a
+  calibrated one, including integration in the other modules.
