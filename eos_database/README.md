@@ -18,6 +18,8 @@ Neon Postgres  (remote database, single source of truth)
 
 - **Hosted API:** https://dioptas.onrender.com (Dioptas connects to it by
   default; interactive docs at `/docs`)
+- **Python client:** `dioptas/eos_client.py` — usable standalone against
+  any deployment of this API, not just from inside Dioptas.
 - The EoS *calculations* (BM2, BM3, Vinet, Holzapfel) run inside Dioptas
   via the [Peritheos](https://github.com/CPrescher/peritheos) library.
 
@@ -66,7 +68,6 @@ eos_database/
 │   ├── import_jcpds.py         import .jcpds files (idempotent)
 │   ├── init_db.py              create tables
 │   └── add_holzapfel_data.py   fill formula_units_per_cell
-├── client/eos_client.py  Python client (also bundled in Dioptas)
 ├── JCPDSv1/              30 original .jcpds source files (kept as reference)
 ├── run_api.py            run the API locally
 └── requirements.txt
