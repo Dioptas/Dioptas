@@ -18,7 +18,7 @@ from .util import Signal
 from .state import ImgParams
 from dioptas.model.loader.spe import SpeFile
 from .util.NewFileWatcher import NewFileInDirectoryWatcher
-from .util.file_type import file_loading_error
+from .util.file_type import FileLoadingError, file_loading_error
 from .util.HelperModule import rotate_matrix_p90, rotate_matrix_m90, FileNameIterator
 from .util.ImgCorrection import (
     ImgCorrectionManager,
@@ -365,9 +365,35 @@ class ImgModel:
         for loader in img_loaders:
             data = loader(filename, pos)
             if data:
+                data["img_data"] = self._ensure_grayscale(data["img_data"], filename)
                 return data
         else:
             raise file_loading_error(filename, "image")
+
+    @staticmethod
+    def _ensure_grayscale(img_data: np.ndarray, filename: str) -> np.ndarray:
+        """
+        The whole processing chain (display, histogram, integration) requires a
+        2D intensity array, but e.g. PNG previews saved next to detector images
+        are often RGB(A). Collapse those to grayscale; refuse anything else
+        that is not 2D.
+        """
+        if img_data.ndim == 2:
+            return img_data
+        if img_data.ndim == 3 and img_data.shape[2] in (2, 3, 4):
+            logger.info(
+                "%s is a color image, averaging its channels to grayscale",
+                filename,
+            )
+            if img_data.shape[2] == 2:  # luminance + alpha
+                return img_data[..., 0].astype(np.float32)
+            return img_data[..., :3].mean(axis=2, dtype=np.float32)
+        raise FileLoadingError(
+            'Could not load "{}" as an image: '
+            "its data has shape {} instead of the expected two dimensions.".format(
+                os.path.basename(str(filename)), img_data.shape
+            )
+        )
 
     def set_loadable_attributes(self, loaded_data: dict[str, Any]) -> None:
         """

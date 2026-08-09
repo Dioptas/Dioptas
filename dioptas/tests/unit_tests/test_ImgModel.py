@@ -377,3 +377,80 @@ def test_direct_img_params_writes_trigger_same_reactions():
         img_model._directory_watcher, "_active"
     ) else True
     img_model.params.autoprocess = False
+
+
+def test_loading_rgb_png_converts_to_grayscale(tmp_path):
+    """Color previews (e.g. beamline PNG exports) must not enter the 2D-only
+    processing chain as 3D arrays; they are averaged to grayscale instead."""
+    from PIL import Image
+
+    rgb = np.zeros((40, 50, 3), dtype=np.uint8)
+    rgb[..., 0] = 30
+    rgb[..., 1] = 60
+    rgb[..., 2] = 90
+    filename = str(tmp_path / "preview_rgb.png")
+    Image.fromarray(rgb).save(filename)
+
+    img_model = ImgModel()
+    img_model.load(filename)
+
+    assert img_model.img_data.ndim == 2
+    assert img_model.img_data.shape == (40, 50)
+    assert np.allclose(img_model.img_data, 60.0)
+
+
+def test_loading_rgba_png_ignores_alpha(tmp_path):
+    from PIL import Image
+
+    rgba = np.zeros((40, 50, 4), dtype=np.uint8)
+    rgba[..., 0] = 30
+    rgba[..., 1] = 60
+    rgba[..., 2] = 90
+    rgba[..., 3] = 255
+    filename = str(tmp_path / "preview_rgba.png")
+    Image.fromarray(rgba).save(filename)
+
+    img_model = ImgModel()
+    img_model.load(filename)
+
+    assert img_model.img_data.ndim == 2
+    assert np.allclose(img_model.img_data, 60.0)
+
+
+def test_loading_grayscale_alpha_png_uses_luminance(tmp_path):
+    from PIL import Image
+
+    la = np.zeros((40, 50, 2), dtype=np.uint8)
+    la[..., 0] = 120
+    la[..., 1] = 255
+    filename = str(tmp_path / "preview_la.png")
+    Image.fromarray(la, mode="LA").save(filename)
+
+    img_model = ImgModel()
+    img_model.load(filename)
+
+    assert img_model.img_data.ndim == 2
+    assert np.allclose(img_model.img_data, 120.0)
+
+
+def test_ensure_grayscale_refuses_unexpected_shapes():
+    from dioptas.model.util.file_type import FileLoadingError
+
+    with pytest.raises(FileLoadingError):
+        ImgModel._ensure_grayscale(np.zeros((5, 5, 7)), "strange.h5")
+
+
+def test_color_background_image_matches_grayscale_image(tmp_path):
+    """A color PNG used as background goes through the same conversion, so it
+    stays shape-compatible with a grayscale foreground of the same size."""
+    from PIL import Image
+
+    rgb = np.full((40, 50, 3), 90, dtype=np.uint8)
+    filename = str(tmp_path / "background_rgb.png")
+    Image.fromarray(rgb).save(filename)
+
+    img_model = ImgModel()
+    img_model._img_data = np.ones((40, 50))
+    img_model.load_background(filename)
+
+    assert img_model._background_data.shape == (40, 50)
