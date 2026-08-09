@@ -204,7 +204,10 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self.reflection_table_view.setItemDelegate(TextDoubleDelegate())
         self.reflection_table_view.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
-        self.eos_gb.setMaximumWidth(200)
+        # wide enough for the EoS/thermal display names ("Birch-Murnaghan
+        # (3rd order)", "Constant α, dK/dT") and the unit labels
+        self.eos_gb.setMinimumWidth(280)
+        self.eos_gb.setMaximumWidth(320)
         self.eos_gb.setStyleSheet("""
             QLineEdit {
                 max-width: 80;
