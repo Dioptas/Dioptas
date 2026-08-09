@@ -314,3 +314,26 @@ class PhaseEditorControllerTest(QtTest):
         self.jcpds_widget.eos_Kpp_txt.editingFinished.emit()
         self.assertAlmostEqual(
             self.phase_model.phases[5].params['k0pp0'], -0.04)
+
+    def test_thermal_selector_derived_from_values(self):
+        # au_Anderson.jcpds carries thermal expansion -> AlphaKT selected
+        self.setup_selected_row(2)
+        click_button(self.phase_widget.edit_btn)
+        self.assertEqual(self.jcpds_widget.get_thermal_type(), 'alphakt')
+        self.assertTrue(self.jcpds_widget.eos_alphaT_txt.isVisibleTo(
+            self.jcpds_widget))
+        # a BM3 phase shows only its own parameters otherwise
+        self.assertFalse(self.jcpds_widget.eos_Kpp_txt.isVisibleTo(
+            self.jcpds_widget))
+
+    def test_selecting_no_thermal_model_zeroes_coefficients(self):
+        self.setup_selected_row(2)
+        click_button(self.phase_widget.edit_btn)
+        cb = self.jcpds_widget.thermal_type_cb
+        self.assertNotEqual(
+            self.phase_model.phases[2].params['alpha_t0'], 0.0)
+        cb.setCurrentIndex(cb.findData('none'))
+        for param in ('alpha_t0', 'd_alpha_dt', 'dk0dt', 'dk0pdt'):
+            self.assertEqual(self.phase_model.phases[2].params[param], 0.0)
+        self.assertFalse(self.jcpds_widget.eos_alphaT_txt.isVisibleTo(
+            self.jcpds_widget))

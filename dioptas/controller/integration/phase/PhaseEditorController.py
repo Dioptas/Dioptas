@@ -123,6 +123,7 @@ class PhaseEditorController(QtCore.QObject):
 
         # Equation of state fields
         self.jcpds_widget.eos_type_cb.currentIndexChanged.connect(self.eos_type_changed)
+        self.jcpds_widget.thermal_type_cb.currentIndexChanged.connect(self.thermal_type_changed)
         self.jcpds_widget.eos_K_txt.editingFinished.connect(partial(self.param_txt_changed,
                                                                     widget=self.jcpds_widget.eos_K_txt,
                                                                     param='k0'))
@@ -219,6 +220,19 @@ class PhaseEditorController(QtCore.QObject):
             return
         self.jcpds_widget.update_eos_parameter_visibility()
         self.phase_model.set_eos_type(self.phase_ind, eos_type)
+
+    def thermal_type_changed(self):
+        if self.phase_ind < 0:
+            return
+        self.jcpds_widget.update_thermal_parameter_visibility()
+        if self.jcpds_widget.get_thermal_type() == 'none':
+            # removing the thermal model zeroes its coefficients — the
+            # phase then computes purely from the room-temperature EoS
+            for param in ('alpha_t0', 'd_alpha_dt', 'dk0dt', 'dk0pdt'):
+                if self.jcpds_phase.params[param]:
+                    self.phase_model.set_param(self.phase_ind, param, 0.0)
+        # selecting the thermal model only reveals its (zero-valued)
+        # fields; nothing is written until the user enters coefficients
 
     def lattice_ab_changed(self):
         ab_ratio = float(self.jcpds_widget.lattice_ab_sb.value())

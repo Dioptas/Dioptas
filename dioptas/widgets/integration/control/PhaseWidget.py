@@ -100,10 +100,10 @@ class PhaseWidget(QtWidgets.QWidget):
             1, QtWidgets.QHeaderView.Fixed
         )
         self.phase_tw.horizontalHeader().setSectionResizeMode(
-            2, QtWidgets.QHeaderView.Stretch
+            2, QtWidgets.QHeaderView.ResizeToContents
         )
         self.phase_tw.horizontalHeader().setSectionResizeMode(
-            3, QtWidgets.QHeaderView.ResizeToContents
+            3, QtWidgets.QHeaderView.Stretch
         )
         self.phase_tw.horizontalHeader().setSectionResizeMode(
             4, QtWidgets.QHeaderView.ResizeToContents
@@ -247,7 +247,6 @@ class PhaseWidget(QtWidgets.QWidget):
         reference_cb = QtWidgets.QComboBox()
         reference_cb.addItem("—")
         reference_cb.setEnabled(False)   # enabled when references exist
-        reference_cb.setMaximumWidth(220)
         reference_cb.setToolTip("Literature reference for the EoS parameters.\n"
                                 "Switching applies that fit's K0/K0'/V0 and\n"
                                 "recomputes the phase lines.")
@@ -289,7 +288,10 @@ class PhaseWidget(QtWidgets.QWidget):
         self.phase_tw.setColumnWidth(0, 20)
         self.phase_tw.setColumnWidth(1, 25)
         self.phase_tw.horizontalHeader().setSectionResizeMode(
-            3, QtWidgets.QHeaderView.ResizeToContents
+            2, QtWidgets.QHeaderView.ResizeToContents
+        )
+        self.phase_tw.horizontalHeader().setSectionResizeMode(
+            3, QtWidgets.QHeaderView.Stretch
         )
         self.phase_tw.horizontalHeader().setSectionResizeMode(
             4, QtWidgets.QHeaderView.ResizeToContents

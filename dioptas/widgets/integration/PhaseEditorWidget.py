@@ -141,11 +141,20 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self._add_eos_param_row('Zc', self.eos_zc_txt, 'Z<sub>cell</sub>:',
                                 'formula/cell', 6)
 
-        # thermal correction (applies to any equation above)
-        self.add_field(self._eos_layout, self.eos_alphaT_txt, u'α<sub>T</sub>:', '1/K', 7, 0)
-        self.add_field(self._eos_layout, self.eos_dalphadT_txt, u'dα<sub>T</sub>/dT:', u'1/K²', 8, 0)
-        self.add_field(self._eos_layout, self.eos_dKdT_txt, 'dK/dT:', 'GPa/K', 9, 0)
-        self.add_field(self._eos_layout, self.eos_dKpdT_txt, "dK'/dT", '1/K', 10, 0)
+        # thermal model on top of the equation above. Only the classic
+        # constant-coefficient correction exists so far; Peritheos thermal
+        # models (Mie-Gruneisen-Debye, ...) will slot in here once wired.
+        self.thermal_type_cb = QtWidgets.QComboBox()
+        self.thermal_type_cb.addItem('None', 'none')
+        self.thermal_type_cb.addItem('Constant α, dK/dT', 'alphakt')
+        self._eos_layout.addWidget(LabelAlignRight('Thermal:'), 7, 0)
+        self._eos_layout.addWidget(self.thermal_type_cb, 7, 1, 1, 2)
+
+        self._thermal_param_rows = {}
+        self._add_thermal_param_row(self.eos_alphaT_txt, u'α<sub>T</sub>:', '1/K', 8)
+        self._add_thermal_param_row(self.eos_dalphadT_txt, u'dα<sub>T</sub>/dT:', u'1/K²', 9)
+        self._add_thermal_param_row(self.eos_dKdT_txt, 'dK/dT:', 'GPa/K', 10)
+        self._add_thermal_param_row(self.eos_dKpdT_txt, "dK'/dT", '1/K', 11)
         self.eos_gb.setLayout(self._eos_layout)
 
         self.reflections_gb = QtWidgets.QGroupBox('Reflections')
@@ -220,6 +229,33 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         if unit:
             layout.addWidget(QtWidgets.QLabel(unit), x, y + 2)
 
+    def _add_thermal_param_row(self, widget, label_str, unit, row):
+        """One thermal parameter row, shown only when a thermal model is
+        selected (see update_thermal_parameter_visibility)."""
+        label = LabelAlignRight(label_str)
+        self._eos_layout.addWidget(label, row, 0)
+        self._eos_layout.addWidget(widget, row, 1)
+        unit_label = QtWidgets.QLabel(unit)
+        self._eos_layout.addWidget(unit_label, row, 2)
+        self._thermal_param_rows[widget] = [label, widget, unit_label]
+
+    def set_thermal_type(self, key):
+        """Select the thermal model ('none'/'alphakt') without emitting."""
+        index = self.thermal_type_cb.findData(key)
+        self.thermal_type_cb.blockSignals(True)
+        self.thermal_type_cb.setCurrentIndex(max(0, index))
+        self.thermal_type_cb.blockSignals(False)
+        self.update_thermal_parameter_visibility()
+
+    def get_thermal_type(self):
+        return self.thermal_type_cb.currentData()
+
+    def update_thermal_parameter_visibility(self):
+        visible = self.get_thermal_type() != 'none'
+        for row_widgets in self._thermal_param_rows.values():
+            for widget in row_widgets:
+                widget.setVisible(visible)
+
     def _add_eos_param_row(self, key, widget, label_str, unit, row):
         """One EoS parameter row whose visibility follows the selected
         equation (see set_eos_parameter_names)."""
@@ -288,6 +324,9 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self.eos_dalphadT_txt.setText(str(jcpds_phase.params['d_alpha_dt']))
         self.eos_dKdT_txt.setText(str(jcpds_phase.params['dk0dt']))
         self.eos_dKpdT_txt.setText(str(jcpds_phase.params['dk0pdt']))
+        has_thermal = any(jcpds_phase.params[key] for key in
+                          ('alpha_t0', 'd_alpha_dt', 'dk0dt', 'dk0pdt'))
+        self.set_thermal_type('alphakt' if has_thermal else 'none')
 
     def update_name(self, jcpds_phase):
         self.filename_txt.setText(jcpds_phase.filename)
