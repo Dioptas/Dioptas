@@ -1,0 +1,72 @@
+{
+ "format_version": 1,
+ "name": "Neon",
+ "formula": "Ne",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 4.2351,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "notes": "NEON (EOS fitted to Fei, Dewaelle, Takemura)",
+ "peaks": [
+  [
+   1,
+   1,
+   1,
+   2.577,
+   100.0
+  ],
+  [
+   2,
+   0,
+   0,
+   2.232,
+   40.0
+  ],
+  [
+   2,
+   2,
+   0,
+   1.578,
+   25.0
+  ],
+  [
+   3,
+   1,
+   1,
+   1.346,
+   30.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "EOS fitted to Fei, Dewaelle, Takemura",
+   "reference": "NEON (EOS fitted to Fei, Dewaelle, Takemura)",
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 75.961058569551,
+     "K0": 5.0819,
+     "K0_prime": 5.4662
+    }
+   }
+  },
+  {
+   "label": "To be edited",
+   "reference": "NEON (To be edited)",
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 88.96740625728799,
+     "K0": 1.43,
+     "K0_prime": 8.02
+    }
+   }
+  }
+ ]
+}

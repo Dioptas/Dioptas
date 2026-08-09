@@ -30,14 +30,14 @@ class PhaseWidget(QtWidgets.QWidget):
     eos_type_changed = QtCore.Signal(int, str)
     reference_changed = QtCore.Signal(int, int)  # phase row, reference index
 
-    # Equation-of-state types selectable per phase. Display label -> engine key.
-    # BM2/BM3/Vinet work directly from V0/K0/K0'. Holzapfel additionally
-    # needs the chemical formula (for n and Z) and the number of formula
-    # units per cell — EosPhase converts the unit-cell volume to the molar
-    # volume Peritheos expects. Phases loaded from the EoS database carry
-    # this data; legacy .jcpds files fall back to BM3 with a warning.
+    # Equation-of-state types selectable per phase: display label ->
+    # peritheos.eos.rt class name. BM2/BM3/Vinet work directly from
+    # V0/K0/K0'. Holzapfel additionally needs the chemical formula (for n
+    # and Z) and the number of formula units per cell; the controller
+    # disables it (set_phase_eos_type_available) for phases without that
+    # data — i.e. legacy .jcpds files.
     EOS_TYPES = [("BM2", "BM2"), ("BM3", "BM3"),
-                 ("Vinet", "VINET"), ("Holzapfel", "HOLZAPFEL")]
+                 ("Vinet", "Vinet"), ("Holzapfel", "Holzapfel")]
 
     def __init__(self):
         super().__init__()
@@ -380,18 +380,35 @@ class PhaseWidget(QtWidgets.QWidget):
         return self.pressure_sbs[ind].value()
 
     def set_phase_eos_type(self, ind, eos_type):
-        """Set the EoS combobox of row ind to match the given engine key."""
+        """Set the EoS combobox of row ind to match the given EoS name."""
         label = next((lbl for lbl, key in self.EOS_TYPES
-                      if key == str(eos_type).upper()), "BM3")
+                      if key.upper() == str(eos_type).upper()), "BM3")
         cb = self.eos_type_cbs[ind]
         cb.blockSignals(True)
         cb.setCurrentText(label)
         cb.blockSignals(False)
 
     def get_phase_eos_type(self, ind):
-        """Return the engine key (BM2/BM3/VINET/HOLZAPFEL) for row ind."""
+        """Return the EoS name (peritheos class name) for row ind."""
         label = self.eos_type_cbs[ind].currentText()
         return next((key for lbl, key in self.EOS_TYPES if lbl == label), "BM3")
+
+    def set_phase_eos_type_available(self, ind, eos_type, available):
+        """
+        Enable or grey out one entry of row ind's EoS dropdown. Used for
+        equations that need data the phase doesn't carry (e.g. Holzapfel
+        without chemical-formula and unit-cell information).
+        """
+        cb = self.eos_type_cbs[ind]
+        for i, (_lbl, key) in enumerate(self.EOS_TYPES):
+            if key.upper() == str(eos_type).upper():
+                item = cb.model().item(i)
+                if item is not None:
+                    item.setEnabled(bool(available))
+                    item.setToolTip(
+                        "" if available else
+                        "Needs chemical-formula and unit-cell data —\n"
+                        "available for phases loaded from the EoS database")
 
     def set_phase_references(self, ind, labels, current_index=0):
         """

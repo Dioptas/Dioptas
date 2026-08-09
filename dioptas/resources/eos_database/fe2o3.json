@@ -1,0 +1,116 @@
+{
+ "format_version": 1,
+ "name": "Fe2O3",
+ "formula": "Fe2O3",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 5.0356,
+  "b": null,
+  "c": 13.7489,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 6,
+ "notes": "Fe2O3 Hematite (JCPDS 33-664, EOS not confirmed)",
+ "peaks": [
+  [
+   0,
+   1,
+   2,
+   3.684,
+   30.0
+  ],
+  [
+   1,
+   0,
+   4,
+   2.7,
+   100.0
+  ],
+  [
+   1,
+   1,
+   0,
+   2.519,
+   70.0
+  ],
+  [
+   0,
+   0,
+   6,
+   2.292,
+   3.0
+  ],
+  [
+   1,
+   1,
+   3,
+   2.207,
+   20.0
+  ],
+  [
+   2,
+   0,
+   2,
+   2.0779,
+   3.0
+  ],
+  [
+   0,
+   2,
+   4,
+   1.8406,
+   40.0
+  ],
+  [
+   1,
+   1,
+   6,
+   1.6941,
+   45.0
+  ],
+  [
+   2,
+   1,
+   1,
+   1.6367,
+   1.0
+  ],
+  [
+   1,
+   2,
+   2,
+   1.6033,
+   5.0
+  ],
+  [
+   0,
+   1,
+   8,
+   1.5992,
+   10.0
+  ],
+  [
+   2,
+   1,
+   4,
+   1.4859,
+   30.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "Hematite (JCPDS 33-664, EOS not confirmed)",
+   "reference": "Fe2O3 Hematite (JCPDS 33-664, EOS not confirmed)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 348.634533205904,
+     "K0": 205.0,
+     "K0_prime": 4.0
+    }
+   }
+  }
+ ]
+}

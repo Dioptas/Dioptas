@@ -1,0 +1,119 @@
+{
+ "format_version": 1,
+ "name": "Iron",
+ "formula": "Fe",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 2.527,
+  "b": null,
+  "c": 4.065,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "iron",
+ "peaks": [
+  [
+   1,
+   0,
+   0,
+   2.12,
+   20.0
+  ],
+  [
+   0,
+   0,
+   2,
+   1.97,
+   80.0
+  ],
+  [
+   1,
+   0,
+   1,
+   1.84,
+   100.0
+  ],
+  [
+   1,
+   0,
+   2,
+   1.44,
+   10.0
+  ],
+  [
+   1,
+   1,
+   0,
+   1.234,
+   10.0
+  ],
+  [
+   1,
+   0,
+   3,
+   1.113,
+   10.0
+  ],
+  [
+   2,
+   0,
+   0,
+   1.0941,
+   10.0
+  ],
+  [
+   1,
+   1,
+   2,
+   1.0713,
+   10.0
+  ],
+  [
+   2,
+   0,
+   1,
+   1.0561,
+   10.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "",
+   "reference": "iron",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 25.957988385000004,
+     "K0": 180.0,
+     "K0_prime": 4.9
+    }
+   }
+  },
+  {
+   "label": "(hcp phase -- 19.2 GPa modified to P=0) (JCPDS 34-529 ) EOS from Mao et al 90",
+   "reference": "iron (hcp phase -- 19.2 GPa modified to P=0) (JCPDS 34-529 ) EOS from Mao et al 90",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 25.814948055400002,
+     "K0": 165.0,
+     "K0_prime": 5.33
+    }
+   }
+  },
+  {
+   "label": "(hcp phase -- 19.2 GPa) (JCPDS 34-529 ) EOS from Mao et al 90",
+   "reference": "iron (hcp phase -- 19.2 GPa) (JCPDS 34-529 ) EOS from Mao et al 90",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 16.117587576,
+     "K0": 165.0,
+     "K0_prime": 5.33
+    }
+   }
+  }
+ ]
+}

@@ -109,9 +109,10 @@ class CrystalState:
     v0: float = 0.0
     pressure: float = 0.0
     temperature: float = 298.0
-    #: equation of state used to compute the volume at pressure, one of
-    #: BM2 / BM3 / VINET / HOLZAPFEL. Legacy JCPDS files imply 3rd-order
-    #: Birch-Murnaghan; phases from the EoS database carry their own.
+    #: equation of state used to compute the volume at pressure — a
+    #: peritheos.eos.rt class name (see model/util/eos_phase.py). Legacy
+    #: JCPDS files imply 3rd-order Birch-Murnaghan; phases from the EoS
+    #: database carry their own.
     eos_type: str = "BM3"
     #: Holzapfel only: atoms per chemical formula (n), summed atomic
     #: number of the formula (z), and formula units per unit cell (zc,
@@ -120,6 +121,14 @@ class CrystalState:
     n: float | None = None
     z: int | None = None
     zc: int | None = None
+    #: the material's chemical formula and its EoS records (dicts, schema
+    #: in model/eos/material.py), for the per-phase reference switcher.
+    #: Set for phases loaded from the EoS database; empty for legacy
+    #: jcpds files. State so that the switcher survives project
+    #: save/load and undo.
+    chemistry: str = ""
+    eos_records: list = field(default_factory=list)
+    eos_current_index: int = 0
     #: whether the phase no longer matches the file it came from (the
     #: asterisk in the GUI); flipped by the params view on state writes
     modified: bool = False
@@ -128,7 +137,8 @@ class CrystalState:
 #: state keys whose direct edit marks the phase as modified (the asterisk)
 _FLAGGING_KEYS = frozenset(
     ["comments", "a0", "b0", "c0", "alpha0", "beta0", "gamma0", "symmetry",
-     "k0", "k0p0", "dk0dt", "dk0pdt", "alpha_t0", "d_alpha_dt", "reflections"]
+     "k0", "k0p0", "dk0dt", "dk0pdt", "alpha_t0", "d_alpha_dt", "reflections",
+     "eos_type"]
 )
 
 _STATE_KEYS = frozenset(f.name for f in dataclasses.fields(CrystalState))
@@ -186,13 +196,6 @@ class jcpds:
         for key in ('k0p', 'alpha_t', 'a', 'b', 'c', 'alpha', 'beta',
                     'gamma', 'v'):
             self.params[key] = 0.
-        #: EoS records of the same material (different literature
-        #: references), for the per-phase reference switcher. Populated by
-        #: eos_formats.build_jcpds; empty for legacy jcpds files.
-        self.chemistry: str = ''
-        self.eos_records: list = []
-        self.eos_record_labels: list[str] = []
-        self.eos_current_index: int = 0
         self.reflections: list[jcpds_reflection] = []
         self.state.modified = False
 
@@ -589,30 +592,31 @@ class jcpds:
         pressure using the configured equation of state.
 
         The Peritheos library is used as the live calculation engine,
-        dispatching on ``params['eos_type']`` (BM2 / BM3 / VINET /
-        HOLZAPFEL). If Peritheos is unavailable, or the EoS cannot be
-        constructed (e.g. Holzapfel without n/Z), it falls back to the
-        legacy 3rd-order Birch-Murnaghan solver, which the test suite
-        cross-validates against Peritheos' BM3.
+        dispatching on ``params['eos_type']`` (a peritheos.eos.rt class
+        name). Only two failures fall back to the legacy 3rd-order
+        Birch-Murnaghan solver — Peritheos not importable, or the EoS not
+        constructible from the phase's parameters (the UI disables such
+        choices up front) — anything else propagates. The test suite
+        cross-validates the legacy solver against Peritheos' BM3.
         """
-        eos_type = str(self.params.get('eos_type', 'BM3')).upper()
+        eos_type = str(self.params.get('eos_type') or 'BM3')
         try:
             from .eos_phase import EosPhase
-            eos = EosPhase(
-                eos_type=eos_type,
-                v0=self.params['v0'],
-                k0=k0,
-                k0_prime=k0p,
-                n=self.params.get('n'),
-                z=self.params.get('z'),
-                formula_units_per_cell=self.params.get('zc'),
-            )
-            return eos.volume(pressure)
-        except Exception as e:
+        except ImportError as e:
             logger.warning(
-                "Peritheos EoS '%s' unavailable or failed (%s); "
-                "falling back to legacy BM3.", eos_type, e)
+                "Peritheos is not available (%s); computing '%s' with the "
+                "legacy BM3 solver instead.", e, eos_type)
             return self._legacy_bm3_volume(k0, k0p, pressure)
+        try:
+            eos = EosPhase.from_jcpds(self, eos_type=eos_type,
+                                      k0=k0, k0p=k0p)
+        except ValueError as e:
+            logger.warning(
+                "EoS '%s' cannot be constructed for phase '%s' (%s); "
+                "computing with the legacy BM3 solver instead.",
+                eos_type, self.name, e)
+            return self._legacy_bm3_volume(k0, k0p, pressure)
+        return eos.volume(pressure)
 
     def _legacy_bm3_volume(self, k0: float, k0p: float, pressure: float) -> float:
         """

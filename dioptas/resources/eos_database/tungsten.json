@@ -1,0 +1,74 @@
+{
+ "format_version": 1,
+ "name": "Tungsten",
+ "formula": "W",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.1648,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 2,
+ "notes": "Tungsten (4-0806 EOS Hixson and Fritz)",
+ "peaks": [
+  [
+   1,
+   1,
+   0,
+   2.238,
+   100.0
+  ],
+  [
+   2,
+   0,
+   0,
+   1.582,
+   15.0
+  ],
+  [
+   2,
+   1,
+   1,
+   1.292,
+   23.0
+  ],
+  [
+   2,
+   2,
+   0,
+   1.1188,
+   8.0
+  ],
+  [
+   3,
+   1,
+   0,
+   1.0008,
+   11.0
+  ],
+  [
+   3,
+   2,
+   1,
+   0.8459,
+   18.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "4-0806 EOS Hixson and Fritz",
+   "reference": "Tungsten (4-0806 EOS Hixson and Fritz)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 31.698507169792002,
+     "K0": 311.22,
+     "K0_prime": 3.9
+    }
+   }
+  }
+ ]
+}

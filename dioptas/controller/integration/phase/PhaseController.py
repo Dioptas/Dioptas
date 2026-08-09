@@ -119,17 +119,13 @@ class PhaseController:
             QtWidgets.QApplication.processEvents()
 
     def browse_db_btn_click_callback(self):
-        """Open the EoS Database browser dialog and load the chosen material as a phase."""
-        from ....widgets.EosDatabaseDialog import EosDatabaseDialog, DEFAULT_API_URL
-        dialog = EosDatabaseDialog(
-            parent=self.integration_widget,
-            api_url=getattr(self, "_last_db_url", DEFAULT_API_URL),
-        )
-        if dialog.exec_() == EosDatabaseDialog.Accepted and dialog.result_phase:
-            jcpds_obj, filename = dialog.result_phase
-            # Remember API URL for next time
-            self._last_db_url = dialog.api_url_input.text().strip()
-            self.model.phase_model.add_jcpds_object(jcpds_obj, filename=filename)
+        """Open the EoS database browser and load the chosen material as a phase."""
+        from .EosDatabaseController import EosDatabaseController
+        controller = EosDatabaseController(self.integration_widget)
+        jcpds_object = controller.exec_()
+        if jcpds_object is not None:
+            self.model.phase_model.add_jcpds_object(
+                jcpds_object, filename=jcpds_object.filename)
 
     def _add_phase(self, filename):
         try:
@@ -141,9 +137,8 @@ class PhaseController:
                                                self.cif_conversion_dialog.int_cutoff,
                                                self.cif_conversion_dialog.min_d_spacing)
             elif filename.endswith(".eosmat"):
-                from ....eos_formats import read_eosmat, build_jcpds
-                material, eos = read_eosmat(filename)
-                jcpds_obj = build_jcpds(material, eos)
+                from ....model.eos import load_material_file, build_jcpds
+                jcpds_obj = build_jcpds(load_material_file(filename))
                 jcpds_obj._filename = filename
                 self.model.phase_model.add_jcpds_object(jcpds_obj, filename=filename)
         except PhaseLoadError as e:
@@ -158,15 +153,22 @@ class PhaseController:
         # Reflect the phase's actual equation of state in its dropdown
         # (database phases may be BM2 / Vinet / Holzapfel, not just BM3).
         last = len(self.model.phase_model.phases) - 1
+        phase = self.model.phase_model.phases[last]
         self.phase_widget.set_phase_eos_type(
             last, self.model.phase_model.get_eos_type(last))
+        # Holzapfel needs n/Z and the formula units per cell; grey it out
+        # for phases that don't carry them (e.g. legacy jcpds files)
+        # instead of silently computing BM3.
+        self.phase_widget.set_phase_eos_type_available(
+            last, 'Holzapfel',
+            phase.params.get('n') is not None
+            and bool(phase.params.get('zc')))
         # Fill the reference dropdown with all EoS records of the material
         # (database phases only; legacy jcpds files have none).
-        phase = self.model.phase_model.phases[last]
         self.phase_widget.set_phase_references(
             last,
             self.model.phase_model.get_eos_reference_labels(last),
-            getattr(phase, 'eos_current_index', 0))
+            phase.params['eos_current_index'])
 
     def phase_changed(self, ind):
         phase_name = get_base_name(self.model.phase_model.phases[ind].filename)
