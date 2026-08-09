@@ -27,17 +27,7 @@ class PhaseWidget(QtWidgets.QWidget):
 
     pressure_sb_value_changed = QtCore.Signal(int, float)
     temperature_sb_value_changed = QtCore.Signal(int, float)
-    eos_type_changed = QtCore.Signal(int, str)
     reference_changed = QtCore.Signal(int, int)  # phase row, reference index
-
-    # Equation-of-state types selectable per phase: display label ->
-    # peritheos.eos.rt class name. BM2/BM3/Vinet work directly from
-    # V0/K0/K0'. Holzapfel additionally needs the chemical formula (for n
-    # and Z) and the number of formula units per cell; the controller
-    # disables it (set_phase_eos_type_available) for phases without that
-    # data — i.e. legacy .jcpds files.
-    EOS_TYPES = [("BM2", "BM2"), ("BM3", "BM3"),
-                 ("Vinet", "Vinet"), ("Holzapfel", "Holzapfel")]
 
     def __init__(self):
         super().__init__()
@@ -95,10 +85,10 @@ class PhaseWidget(QtWidgets.QWidget):
 
         self._body_layout = QtWidgets.QHBoxLayout()
 
-        self.phase_tw = ListTableWidget(columns=7)
+        self.phase_tw = ListTableWidget(columns=6)
         self.phase_tw.setObjectName("phase_table_widget")
         self.phase_tw.setHorizontalHeaderLabels(
-            ["", "", "Name", "Ref", "EoS", "P (GPa)", "T (K)"])
+            ["", "", "Name", "Ref", "P (GPa)", "T (K)"])
         self.phase_tw.horizontalHeader().setVisible(True)
         self.phase_tw.horizontalHeader().setStretchLastSection(False)
         self.phase_tw.setColumnWidth(0, 20)
@@ -120,9 +110,6 @@ class PhaseWidget(QtWidgets.QWidget):
         )
         self.phase_tw.horizontalHeader().setSectionResizeMode(
             5, QtWidgets.QHeaderView.ResizeToContents
-        )
-        self.phase_tw.horizontalHeader().setSectionResizeMode(
-            6, QtWidgets.QHeaderView.ResizeToContents
         )
         self.phase_tw.setItemDelegate(NoRectDelegate())
         self._body_layout.addWidget(self.phase_tw, 10)
@@ -153,7 +140,6 @@ class PhaseWidget(QtWidgets.QWidget):
         self.phase_color_btns = []
         self.pressure_sbs = []
         self.temperature_sbs = []
-        self.eos_type_cbs = []
         self.reference_cbs = []
 
         self.show_parameter_in_pattern = True
@@ -163,6 +149,9 @@ class PhaseWidget(QtWidgets.QWidget):
 
         self.add_btn.setIcon(render_icon("open.svg"))
         self.add_btn.setIconSize(icon_size)
+
+        self.browse_db_btn.setIcon(render_icon("database.svg"))
+        self.browse_db_btn.setIconSize(icon_size)
 
         self.edit_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "edit.png")))
         self.edit_btn.setIconSize(QtCore.QSize(14, 14))
@@ -188,9 +177,6 @@ class PhaseWidget(QtWidgets.QWidget):
         modify_btn_to_icon_size(self.clear_btn)
         modify_btn_to_icon_size(self.edit_btn)
 
-        # Label the DB button with text since there is no dedicated icon
-        self.browse_db_btn.setText("DB")
-        self.browse_db_btn.setStyleSheet("font-size: 9px; font-weight: bold;")
 
         self.phase_tw.setSizePolicy(
             QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.MinimumExpanding
@@ -271,18 +257,6 @@ class PhaseWidget(QtWidgets.QWidget):
         self.phase_tw.setCellWidget(current_rows, 3, reference_cb)
         self.reference_cbs.append(reference_cb)
 
-        eos_type_cb = QtWidgets.QComboBox()
-        for label, _key in self.EOS_TYPES:
-            eos_type_cb.addItem(label)
-        eos_type_cb.setCurrentText("BM3")
-        eos_type_cb.setToolTip("Equation of state used to compute phase\n"
-                               "line positions at pressure (via Peritheos)")
-        eos_type_cb.currentIndexChanged.connect(
-            partial(self.eos_type_cb_callback, eos_type_cb)
-        )
-        self.phase_tw.setCellWidget(current_rows, 4, eos_type_cb)
-        self.eos_type_cbs.append(eos_type_cb)
-
         pressure_sb = DoubleSpinBoxAlignRight()
         pressure_sb.setFixedWidth(70)
         pressure_sb.setMinimum(-9999999)
@@ -292,7 +266,7 @@ class PhaseWidget(QtWidgets.QWidget):
         pressure_sb.valueChanged.connect(
             partial(self.pressure_sb_callback, pressure_sb)
         )
-        self.phase_tw.setCellWidget(current_rows, 5, pressure_sb)
+        self.phase_tw.setCellWidget(current_rows, 4, pressure_sb)
         self.pressure_sbs.append(pressure_sb)
 
         temperature_sb = DoubleSpinBoxAlignRight()
@@ -304,7 +278,7 @@ class PhaseWidget(QtWidgets.QWidget):
         temperature_sb.valueChanged.connect(
             partial(self.temperature_sb_callback, temperature_sb)
         )
-        self.phase_tw.setCellWidget(current_rows, 6, temperature_sb)
+        self.phase_tw.setCellWidget(current_rows, 5, temperature_sb)
         self.temperature_sbs.append(temperature_sb)
 
         self.phase_tw.setRowHeight(current_rows, 25)
@@ -322,9 +296,6 @@ class PhaseWidget(QtWidgets.QWidget):
         )
         self.phase_tw.horizontalHeader().setSectionResizeMode(
             5, QtWidgets.QHeaderView.ResizeToContents
-        )
-        self.phase_tw.horizontalHeader().setSectionResizeMode(
-            6, QtWidgets.QHeaderView.ResizeToContents
         )
 
     def select_phase(self, ind):
@@ -349,7 +320,6 @@ class PhaseWidget(QtWidgets.QWidget):
         del self.phase_color_btns[ind]
         del self.temperature_sbs[ind]
         del self.pressure_sbs[ind]
-        del self.eos_type_cbs[ind]
         del self.reference_cbs[ind]
 
         if self.phase_tw.rowCount() > ind:
@@ -379,53 +349,25 @@ class PhaseWidget(QtWidgets.QWidget):
     def get_phase_pressure(self, ind):
         return self.pressure_sbs[ind].value()
 
-    def set_phase_eos_type(self, ind, eos_type):
-        """Set the EoS combobox of row ind to match the given EoS name."""
-        label = next((lbl for lbl, key in self.EOS_TYPES
-                      if key.upper() == str(eos_type).upper()), "BM3")
-        cb = self.eos_type_cbs[ind]
-        cb.blockSignals(True)
-        cb.setCurrentText(label)
-        cb.blockSignals(False)
-
-    def get_phase_eos_type(self, ind):
-        """Return the EoS name (peritheos class name) for row ind."""
-        label = self.eos_type_cbs[ind].currentText()
-        return next((key for lbl, key in self.EOS_TYPES if lbl == label), "BM3")
-
-    def set_phase_eos_type_available(self, ind, eos_type, available):
-        """
-        Enable or grey out one entry of row ind's EoS dropdown. Used for
-        equations that need data the phase doesn't carry (e.g. Holzapfel
-        without chemical-formula and unit-cell information).
-        """
-        cb = self.eos_type_cbs[ind]
-        for i, (_lbl, key) in enumerate(self.EOS_TYPES):
-            if key.upper() == str(eos_type).upper():
-                item = cb.model().item(i)
-                if item is not None:
-                    item.setEnabled(bool(available))
-                    item.setToolTip(
-                        "" if available else
-                        "Needs chemical-formula and unit-cell data —\n"
-                        "available for phases loaded from the EoS database")
-
-    def set_phase_references(self, ind, labels, current_index=0):
+    def set_phase_references(self, ind, labels, current_index=0,
+                             tooltips=None):
         """
         Fill the Ref dropdown of row ind with the available literature
         references. With no labels (legacy jcpds files) it stays disabled.
+        *tooltips* (same length as labels) carry the full reference and
+        the record's equation of state for hover — the visible box is
+        width-limited, references aren't.
         """
         cb = self.reference_cbs[ind]
         cb.blockSignals(True)
         cb.clear()
         if labels:
             cb.addItems(labels)
-            # Full reference on hover, for each dropdown item and the box
-            # itself — the visible box is width-limited, references aren't.
-            for i, label in enumerate(labels):
-                cb.setItemData(i, label, QtCore.Qt.ToolTipRole)
+            tooltips = tooltips if tooltips else labels
+            for i, tooltip in enumerate(tooltips):
+                cb.setItemData(i, tooltip, QtCore.Qt.ToolTipRole)
             cb.setCurrentIndex(min(current_index, len(labels) - 1))
-            cb.setToolTip(cb.currentText())
+            cb.setToolTip(tooltips[cb.currentIndex()])
             cb.setEnabled(len(labels) > 1)
             # Let the opened popup be as wide as the longest reference,
             # independent of the (narrow) box width.
@@ -463,13 +405,9 @@ class PhaseWidget(QtWidgets.QWidget):
             self.temperature_sbs.index(temperature_sb), temperature_sb.value()
         )
 
-    def eos_type_cb_callback(self, eos_type_cb):
-        ind = self.eos_type_cbs.index(eos_type_cb)
-        label = eos_type_cb.currentText()
-        key = next((k for lbl, k in self.EOS_TYPES if lbl == label), "BM3")
-        self.eos_type_changed.emit(ind, key)
-
     def reference_cb_callback(self, reference_cb):
         ind = self.reference_cbs.index(reference_cb)
-        reference_cb.setToolTip(reference_cb.currentText())
+        tooltip = reference_cb.itemData(reference_cb.currentIndex(),
+                                        QtCore.Qt.ToolTipRole)
+        reference_cb.setToolTip(tooltip or reference_cb.currentText())
         self.reference_changed.emit(ind, reference_cb.currentIndex())

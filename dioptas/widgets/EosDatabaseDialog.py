@@ -124,6 +124,11 @@ class EosDatabaseDialog(QtWidgets.QDialog):
     def fill_materials(self, rows):
         """*rows*: list of (display_name, symmetry) tuples."""
         table = self.materials_table
+        # Drop any previous selection first: after a refill the same row
+        # index would still count as "selected" without ever firing
+        # selectionChanged, leaving the EoS table below showing the
+        # records of whatever material sat at that row before.
+        table.clearSelection()
         table.setRowCount(len(rows))
         for r, (name, symmetry) in enumerate(rows):
             table.setItem(r, 0, QtWidgets.QTableWidgetItem(name))

@@ -59,6 +59,23 @@ class EosDatabaseControllerTest(QtTest):
                 ["eos"]["parameters"]["K0"])
         assert len(phase.params["eos_records"]) == len(material.eos_records)
 
+    def test_new_search_refreshes_eos_records(self):
+        # Regression: after clicking into the EoS table and searching
+        # again, the previous selection's row index survived the refill
+        # without firing selectionChanged, so the EoS table kept showing
+        # the old material's records.
+        self.dialog.search_input.setText("gold")
+        self.dialog.eos_table.selectRow(0)   # user clicks into the viewer
+        gold_rows = self.dialog.eos_table.rowCount()
+        assert gold_rows > 0
+
+        self.dialog.search_input.setText("mgo")
+        material = self.controller.shown_materials[0]
+        assert material.formula == "MgO"
+        assert (self.dialog.eos_table.rowCount()
+                == len(material.eos_records))
+        assert self.dialog.eos_table.rowCount() != gold_rows
+
     def test_material_without_records_is_still_loadable(self):
         self.dialog.search_input.setText("copper")
         self.dialog.materials_table.selectRow(0)

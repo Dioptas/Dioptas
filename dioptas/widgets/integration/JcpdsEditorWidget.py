@@ -110,6 +110,14 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
         self.eos_gb = QtWidgets.QGroupBox('Equation of State')
         self._eos_layout = QtWidgets.QGridLayout()
 
+        # which equation the parameters below belong to — read-only, it is
+        # determined by the phase's source (the selected database record,
+        # or 3rd-order Birch-Murnaghan for legacy jcpds files)
+        self.eos_type_lbl = QtWidgets.QLabel('Birch-Murnaghan (3rd order)')
+        self.eos_type_lbl.setWordWrap(True)
+        self._eos_layout.addWidget(QtWidgets.QLabel('EoS:'), 0, 0)
+        self._eos_layout.addWidget(self.eos_type_lbl, 0, 1, 1, 2)
+
         self.eos_K_txt = NumberTextField()
         self.eos_Kp_txt = NumberTextField()
         self.eos_alphaT_txt = NumberTextField()
@@ -117,12 +125,12 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
         self.eos_dKdT_txt = NumberTextField()
         self.eos_dKpdT_txt = NumberTextField()
 
-        self.add_field(self._eos_layout, self.eos_K_txt, 'K:', 'GPa', 0, 0)
-        self.add_field(self._eos_layout, self.eos_Kp_txt, 'Kp:', None, 1, 0)
-        self.add_field(self._eos_layout, self.eos_alphaT_txt, u'α<sub>T</sub>:', '1/K', 2, 0)
-        self.add_field(self._eos_layout, self.eos_dalphadT_txt, u'dα<sub>T</sub>/dT:', u'1/K²', 3, 0)
-        self.add_field(self._eos_layout, self.eos_dKdT_txt, 'dK/dT:', 'GPa/K', 4, 0)
-        self.add_field(self._eos_layout, self.eos_dKpdT_txt, "dK'/dT", '1/K', 5, 0)
+        self.add_field(self._eos_layout, self.eos_K_txt, 'K:', 'GPa', 1, 0)
+        self.add_field(self._eos_layout, self.eos_Kp_txt, 'Kp:', None, 2, 0)
+        self.add_field(self._eos_layout, self.eos_alphaT_txt, u'α<sub>T</sub>:', '1/K', 3, 0)
+        self.add_field(self._eos_layout, self.eos_dalphadT_txt, u'dα<sub>T</sub>/dT:', u'1/K²', 4, 0)
+        self.add_field(self._eos_layout, self.eos_dKdT_txt, 'dK/dT:', 'GPa/K', 5, 0)
+        self.add_field(self._eos_layout, self.eos_dKpdT_txt, "dK'/dT", '1/K', 6, 0)
         self.eos_gb.setLayout(self._eos_layout)
 
         self.reflections_gb = QtWidgets.QGroupBox('Reflections')
@@ -204,7 +212,34 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
         self.reflection_table_model.update_reflection_data(jcpds_phase.reflections,
                                                            wavelength)
 
+    #: peritheos class name -> display name for the EoS line
+    EOS_DISPLAY_NAMES = {
+        'BM2': 'Birch-Murnaghan (2nd order)',
+        'BM3': 'Birch-Murnaghan (3rd order)',
+        'BM4': 'Birch-Murnaghan (4th order)',
+        'Murnaghan': 'Murnaghan',
+        'Vinet': 'Vinet',
+        'ModifiedTait': 'Modified Tait',
+        'NaturalStrain2': 'Natural Strain (2nd order)',
+        'NaturalStrain3': 'Natural Strain (3rd order)',
+        'NaturalStrain4': 'Natural Strain (4th order)',
+        'Holzapfel': 'Holzapfel',
+    }
+
     def update_eos_parameters(self, jcpds_phase):
+        eos_type = str(jcpds_phase.params.get('eos_type') or 'BM3')
+        display = self.EOS_DISPLAY_NAMES.get(eos_type, eos_type)
+        records = jcpds_phase.params.get('eos_records') or []
+        index = jcpds_phase.params.get('eos_current_index', 0)
+        if records and 0 <= index < len(records):
+            reference = records[index].get('reference') or ''
+            if reference:
+                display = f'{display} — {reference}'
+        self.eos_type_lbl.setText(display)
+        self.eos_type_lbl.setToolTip(
+            'Determined by the phase source: the selected database '
+            'reference record, or Birch-Murnaghan (3rd order) for '
+            'legacy jcpds files.')
         self.eos_K_txt.setText(str(jcpds_phase.params['k0']))
         self.eos_Kp_txt.setText(str(jcpds_phase.params['k0p']))
         self.eos_alphaT_txt.setText(str(jcpds_phase.params['alpha_t0']))

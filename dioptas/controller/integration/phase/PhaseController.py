@@ -65,7 +65,6 @@ class PhaseController:
 
         self.phase_widget.pressure_sb_value_changed.connect(self.model.phase_model.set_pressure)
         self.phase_widget.temperature_sb_value_changed.connect(self.model.phase_model.set_temperature)
-        self.phase_widget.eos_type_changed.connect(self.model.phase_model.set_eos_type)
         self.phase_widget.reference_changed.connect(self.model.phase_model.set_eos_reference)
 
         # Color and State
@@ -150,25 +149,19 @@ class PhaseController:
         color = self.model.phase_model.phase_colors[-1]
         self.phase_widget.add_phase(get_base_name(self.model.phase_model.phase_files[-1]),
                                     '#%02x%02x%02x' % (int(color[0]), int(color[1]), int(color[2])))
-        # Reflect the phase's actual equation of state in its dropdown
-        # (database phases may be BM2 / Vinet / Holzapfel, not just BM3).
+        # Fill the reference dropdown with all EoS records of the material
+        # (database phases only; legacy jcpds files have none). Each record
+        # determines its own equation of state; the tooltip shows it.
         last = len(self.model.phase_model.phases) - 1
         phase = self.model.phase_model.phases[last]
-        self.phase_widget.set_phase_eos_type(
-            last, self.model.phase_model.get_eos_type(last))
-        # Holzapfel needs n/Z and the formula units per cell; grey it out
-        # for phases that don't carry them (e.g. legacy jcpds files)
-        # instead of silently computing BM3.
-        self.phase_widget.set_phase_eos_type_available(
-            last, 'Holzapfel',
-            phase.params.get('n') is not None
-            and bool(phase.params.get('zc')))
-        # Fill the reference dropdown with all EoS records of the material
-        # (database phases only; legacy jcpds files have none).
         self.phase_widget.set_phase_references(
             last,
             self.model.phase_model.get_eos_reference_labels(last),
-            phase.params['eos_current_index'])
+            phase.params['eos_current_index'],
+            tooltips=[
+                f"{record.get('reference') or ''} — "
+                f"{(record.get('eos') or {}).get('type', 'BM3')}"
+                for record in phase.params['eos_records']])
 
     def phase_changed(self, ind):
         phase_name = get_base_name(self.model.phase_model.phases[ind].filename)
@@ -177,9 +170,6 @@ class PhaseController:
         self.phase_widget.rename_phase(ind, phase_name)
         self.phase_widget.set_phase_pressure(ind, self.model.phase_model.phases[ind].params['pressure'])
         self.phase_widget.set_phase_temperature(ind, self.model.phase_model.phases[ind].params['temperature'])
-        # Keep the EoS dropdown in sync (a reference switch can change it,
-        # e.g. selecting a Vinet record)
-        self.phase_widget.set_phase_eos_type(ind, self.model.phase_model.get_eos_type(ind))
         self.phase_widget.temperature_sbs[ind].setEnabled(int(self.model.phase_model.phases[ind].has_thermal_expansion()))
 
     def delete_btn_click_callback(self):
