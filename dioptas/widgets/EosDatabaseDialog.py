@@ -63,8 +63,15 @@ class EosDatabaseDialog(QtWidgets.QDialog):
                 QtWidgets.QAbstractItemView.SingleSelection)
             table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
             table.verticalHeader().setVisible(False)
-            table.horizontalHeader().setStretchLastSection(True)
         self.materials_table.setAlternatingRowColors(True)
+        # the name / reference column takes the free space
+        self.materials_table.horizontalHeader().setSectionResizeMode(
+            0, QtWidgets.QHeaderView.Stretch)
+        # keep the "Space Group" header readable even when all cell
+        # contents are narrower
+        self.materials_table.horizontalHeader().setMinimumSectionSize(120)
+        self.eos_table.horizontalHeader().setSectionResizeMode(
+            1, QtWidgets.QHeaderView.Stretch)
 
         self.export_btn = FlatButton("Export .eosmat…")
         self.export_btn.setEnabled(False)
