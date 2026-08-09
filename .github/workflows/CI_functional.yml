@@ -35,6 +35,6 @@ jobs:
 
     - name: Run tests
       run: |
-        uv run pytest dioptas/tests/functional_tests/test_functional_JcpdsEditor.py
+        uv run pytest dioptas/tests/functional_tests/test_functional_PhaseEditor.py
         uv run pytest dioptas/tests/functional_tests/test_img_plots.py
         uv run pytest dioptas/tests/functional_tests/test_functional_integration.py
