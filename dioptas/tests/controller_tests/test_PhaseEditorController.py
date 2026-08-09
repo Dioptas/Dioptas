@@ -12,7 +12,7 @@ from mock import MagicMock
 import numpy as np
 
 from ..utility import click_button, enter_value_into_text_field, delete_if_exists
-from ...controller.integration import JcpdsEditorController
+from ...controller.integration import PhaseEditorController
 from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
 
@@ -21,7 +21,7 @@ data_path = os.path.join(unittest_path, '../data')
 jcpds_path = os.path.join(data_path, 'jcpds')
 
 
-class JcpdsEditorControllerTest(QtTest):
+class PhaseEditorControllerTest(QtTest):
     # SETUP
     #######################
     def setUp(self) -> None:
@@ -35,7 +35,7 @@ class JcpdsEditorControllerTest(QtTest):
 
         self.widget = IntegrationWidget()
 
-        self.controller = JcpdsEditorController(self.widget, self.model)
+        self.controller = PhaseEditorController(self.widget, self.model)
         self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
 
         self.jcpds_widget = self.controller.jcpds_widget
@@ -272,3 +272,45 @@ class JcpdsEditorControllerTest(QtTest):
         self.assertEqual(QtWidgets.QApplication.clipboard().text().split('\n')[3],
                          '1	0	1	100.00	2.1065	2.1065')
 
+
+
+    # EoS selection
+    #######################
+
+    def test_eos_combobox_offers_all_peritheos_equations(self):
+        from dioptas.model.util.eos_phase import RT_EOS_TYPES
+        cb = self.jcpds_widget.eos_type_cb
+        keys = [cb.itemData(i) for i in range(cb.count())]
+        self.assertEqual(keys, list(RT_EOS_TYPES))
+        # a plain jcpds phase starts as 3rd-order Birch-Murnaghan
+        self.assertEqual(self.jcpds_widget.get_eos_type(), 'BM3')
+
+    def test_selecting_eos_updates_model_and_parameter_rows(self):
+        cb = self.jcpds_widget.eos_type_cb
+        cb.setCurrentIndex(cb.findData('BM4'))
+        self.assertEqual(self.phase_model.get_eos_type(5), 'BM4')
+        # BM4 shows the K0'' row, BM3 does not
+        self.assertTrue(self.jcpds_widget.eos_Kpp_txt.isVisibleTo(
+            self.jcpds_widget))
+        cb.setCurrentIndex(cb.findData('BM3'))
+        self.assertEqual(self.phase_model.get_eos_type(5), 'BM3')
+        self.assertFalse(self.jcpds_widget.eos_Kpp_txt.isVisibleTo(
+            self.jcpds_widget))
+
+    def test_holzapfel_shows_material_data_rows(self):
+        cb = self.jcpds_widget.eos_type_cb
+        cb.setCurrentIndex(cb.findData('Holzapfel'))
+        for field in (self.jcpds_widget.eos_n_txt,
+                      self.jcpds_widget.eos_z_txt,
+                      self.jcpds_widget.eos_zc_txt):
+            self.assertTrue(field.isVisibleTo(self.jcpds_widget))
+        # legacy phase has no n/Z/Zc — the fields are empty, not '0'
+        self.assertEqual(self.jcpds_widget.eos_n_txt.text(), '')
+
+    def test_editing_k0pp_writes_state(self):
+        cb = self.jcpds_widget.eos_type_cb
+        cb.setCurrentIndex(cb.findData('BM4'))
+        self.jcpds_widget.eos_Kpp_txt.setText('-0.04')
+        self.jcpds_widget.eos_Kpp_txt.editingFinished.emit()
+        self.assertAlmostEqual(
+            self.phase_model.phases[5].params['k0pp0'], -0.04)

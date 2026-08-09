@@ -6,7 +6,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 
 from ....model.PhaseModel import PhaseLoadError
 from ....model.util.HelperModule import get_base_name
-from ....controller.integration.phase.JcpdsEditorController import JcpdsEditorController
+from ....controller.integration.phase.PhaseEditorController import PhaseEditorController
 from ....widgets.UtilityWidgets import save_file_dialog, open_file_dialog, open_files_dialog
 
 from .PhaseInPatternController import PhaseInPatternController
@@ -43,7 +43,7 @@ class PhaseController:
         self.phase_in_pattern_controller = PhaseInPatternController(self.integration_widget.pattern_widget, dioptas_model)
         self.phase_in_cake_controller = PhaseInCakeController(self.integration_widget, dioptas_model)
         self.phase_in_batch_controller = PhaseInBatchController(self.integration_widget.batch_widget, dioptas_model)
-        self.jcpds_editor_controller = JcpdsEditorController(self.integration_widget, self.model)
+        self.phase_editor_controller = PhaseEditorController(self.integration_widget, self.model)
 
         self.phase_lw_items = []
         self.create_signals()
@@ -184,12 +184,12 @@ class PhaseController:
         self.phase_widget.del_phase(ind)
         # self.img_view_widget.del_cake_phase(ind)
 
-        if self.jcpds_editor_controller.active:
+        if self.phase_editor_controller.active:
             ind = self.phase_widget.get_selected_phase_row()
             if ind >= 0:
-                self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[ind])
+                self.phase_editor_controller.show_phase(self.model.phase_model.phases[ind])
             else:
-                self.jcpds_editor_controller.jcpds_widget.close()
+                self.phase_editor_controller.jcpds_widget.close()
 
     def load_list_btn_clicked_callback(self):
         filename = open_file_dialog(self.integration_widget, caption="Load Phase List",
@@ -246,7 +246,7 @@ class PhaseController:
         """
         while self.phase_widget.phase_tw.rowCount() > 0:
             self.delete_btn_click_callback()
-            self.jcpds_editor_controller.close_view()
+            self.phase_editor_controller.close_view()
 
     def update_pressure_step(self):
         for pressure_sb in self.phase_widget.pressure_sbs:

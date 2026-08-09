@@ -5,20 +5,20 @@ import unittest
 
 from ..utility import QtTest, QtWidgets
 from ...model.util import jcpds
-from ...widgets.integration.JcpdsEditorWidget import JcpdsEditorWidget
+from ...widgets.integration.PhaseEditorWidget import PhaseEditorWidget
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 jcpds_path = os.path.join(data_path, 'jcpds')
 
 
-class JcpdsEditorTest(QtTest):
+class PhaseEditorWidgetTest(QtTest):
     def setUp(self):
         self.jcpds = jcpds()
         self.jcpds.compute_v0()
         self.jcpds.load_file(os.path.join(jcpds_path, 'au_Anderson.jcpds'))
 
-        self.jcpds_editor_widget = JcpdsEditorWidget()
+        self.jcpds_editor_widget = PhaseEditorWidget()
         self.jcpds_editor_widget.show_jcpds(self.jcpds, wavelength=0.31)
 
     def tearDown(self):

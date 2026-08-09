@@ -63,8 +63,10 @@ def test_formula_parsing():
 
 def test_build_jcpds_carries_everything(gold):
     phase = eos.build_jcpds(gold, record_index=0)
-    label = eos.record_label(gold.eos_records[0])
-    assert phase.name == f"Au ({label})"
+    # the name is the chemistry alone; the active reference lives in the
+    # Ref column and the comments
+    assert phase.name == "Au"
+    assert phase.params["comments"] == [gold.eos_records[0]["reference"]]
     assert phase.params["k0"] > 0
     assert phase.params["v0"] > 0
     assert len(phase.reflections) == len(gold.peaks)
@@ -89,19 +91,20 @@ def test_build_jcpds_without_records(materials):
     assert len(phase.reflections) == len(copper.peaks)
 
 
-def test_reference_switch_updates_parameters_and_name(gold):
+def test_reference_switch_updates_parameters_and_comments(gold):
     phase = eos.build_jcpds(gold, record_index=0)
     model = PhaseModel()
     model.add_jcpds_object(phase, filename=phase.filename)
 
     first = gold.eos_records[0]["eos"]["parameters"]
     second = gold.eos_records[1]["eos"]["parameters"]
-    second_label = eos.record_label(gold.eos_records[1])
 
     model.set_eos_reference(0, 1)
     assert model.phases[0].params["k0"] == pytest.approx(second["K0"])
-    assert model.phases[0].name == f"Au ({second_label})"
-    assert model.phase_files[0] == f"Au ({second_label})"
+    # the name stays the chemistry; the reference moves to the comments
+    assert model.phases[0].name == "Au"
+    assert (model.phases[0].params["comments"]
+            == [gold.eos_records[1]["reference"]])
 
     model.set_eos_reference(0, 0)   # and back
     assert model.phases[0].params["k0"] == pytest.approx(first["K0"])

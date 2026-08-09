@@ -9,11 +9,11 @@ from ...widgets.CustomWidgets import NumberTextField, LabelAlignRight, DoubleSpi
 from ...model.util.HelperModule import convert_d_to_two_theta
 
 
-class JcpdsEditorWidget(QtWidgets.QWidget):
+class PhaseEditorWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle('Dioptas - JCPDS Editor')
+        self.setWindowTitle('Dioptas - Phase Editor')
 
         self._layout = QtWidgets.QVBoxLayout()
 
@@ -110,27 +110,42 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
         self.eos_gb = QtWidgets.QGroupBox('Equation of State')
         self._eos_layout = QtWidgets.QGridLayout()
 
-        # which equation the parameters below belong to — read-only, it is
-        # determined by the phase's source (the selected database record,
-        # or 3rd-order Birch-Murnaghan for legacy jcpds files)
-        self.eos_type_lbl = QtWidgets.QLabel('Birch-Murnaghan (3rd order)')
-        self.eos_type_lbl.setWordWrap(True)
-        self._eos_layout.addWidget(QtWidgets.QLabel('EoS:'), 0, 0)
-        self._eos_layout.addWidget(self.eos_type_lbl, 0, 1, 1, 2)
+        # the equation itself is selectable; the parameter rows below are
+        # shown or hidden per equation (see set_eos_parameter_names). The
+        # combobox entries are configured by the controller
+        # (configure_eos_types) from what Peritheos supports.
+        self.eos_type_cb = QtWidgets.QComboBox()
+        self._eos_layout.addWidget(LabelAlignRight('EoS:'), 0, 0)
+        self._eos_layout.addWidget(self.eos_type_cb, 0, 1, 1, 2)
 
         self.eos_K_txt = NumberTextField()
         self.eos_Kp_txt = NumberTextField()
+        self.eos_Kpp_txt = NumberTextField()
+        self.eos_n_txt = NumberTextField()
+        self.eos_z_txt = NumberTextField()
+        self.eos_zc_txt = NumberTextField()
         self.eos_alphaT_txt = NumberTextField()
         self.eos_dalphadT_txt = NumberTextField()
         self.eos_dKdT_txt = NumberTextField()
         self.eos_dKpdT_txt = NumberTextField()
 
-        self.add_field(self._eos_layout, self.eos_K_txt, 'K:', 'GPa', 1, 0)
-        self.add_field(self._eos_layout, self.eos_Kp_txt, 'Kp:', None, 2, 0)
-        self.add_field(self._eos_layout, self.eos_alphaT_txt, u'α<sub>T</sub>:', '1/K', 3, 0)
-        self.add_field(self._eos_layout, self.eos_dalphadT_txt, u'dα<sub>T</sub>/dT:', u'1/K²', 4, 0)
-        self.add_field(self._eos_layout, self.eos_dKdT_txt, 'dK/dT:', 'GPa/K', 5, 0)
-        self.add_field(self._eos_layout, self.eos_dKpdT_txt, "dK'/dT", '1/K', 6, 0)
+        # per-equation parameter rows, keyed by the peritheos constructor
+        # parameter name (plus the Holzapfel material data n/Z/Zc)
+        self._eos_param_rows = {}
+        self._add_eos_param_row('K0', self.eos_K_txt, 'K:', 'GPa', 1)
+        self._add_eos_param_row('K0_prime', self.eos_Kp_txt, "K':", None, 2)
+        self._add_eos_param_row('K0_double_prime', self.eos_Kpp_txt,
+                                "K'':", '1/GPa', 3)
+        self._add_eos_param_row('n', self.eos_n_txt, 'n:', 'atoms/formula', 4)
+        self._add_eos_param_row('Z', self.eos_z_txt, 'Z:', 'e per formula', 5)
+        self._add_eos_param_row('Zc', self.eos_zc_txt, 'Z<sub>cell</sub>:',
+                                'formula/cell', 6)
+
+        # thermal correction (applies to any equation above)
+        self.add_field(self._eos_layout, self.eos_alphaT_txt, u'α<sub>T</sub>:', '1/K', 7, 0)
+        self.add_field(self._eos_layout, self.eos_dalphadT_txt, u'dα<sub>T</sub>/dT:', u'1/K²', 8, 0)
+        self.add_field(self._eos_layout, self.eos_dKdT_txt, 'dK/dT:', 'GPa/K', 9, 0)
+        self.add_field(self._eos_layout, self.eos_dKpdT_txt, "dK'/dT", '1/K', 10, 0)
         self.eos_gb.setLayout(self._eos_layout)
 
         self.reflections_gb = QtWidgets.QGroupBox('Reflections')
@@ -205,6 +220,54 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
         if unit:
             layout.addWidget(QtWidgets.QLabel(unit), x, y + 2)
 
+    def _add_eos_param_row(self, key, widget, label_str, unit, row):
+        """One EoS parameter row whose visibility follows the selected
+        equation (see set_eos_parameter_names)."""
+        label = LabelAlignRight(label_str)
+        self._eos_layout.addWidget(label, row, 0)
+        self._eos_layout.addWidget(widget, row, 1)
+        row_widgets = [label, widget]
+        if unit:
+            unit_label = QtWidgets.QLabel(unit)
+            self._eos_layout.addWidget(unit_label, row, 2)
+            row_widgets.append(unit_label)
+        self._eos_param_rows[key] = row_widgets
+
+    def configure_eos_types(self, eos_types):
+        """
+        Fill the EoS combobox. *eos_types*: list of (key, display_name,
+        parameter_names) — key is the peritheos class name, and
+        parameter_names decides which rows show when it is selected.
+        """
+        self._eos_parameter_names = {key: list(names)
+                                     for key, _, names in eos_types}
+        self.eos_type_cb.blockSignals(True)
+        self.eos_type_cb.clear()
+        for key, display_name, _ in eos_types:
+            self.eos_type_cb.addItem(display_name, key)
+        self.eos_type_cb.blockSignals(False)
+
+    def set_eos_type(self, key):
+        """Select the equation with the given key, without emitting."""
+        index = self.eos_type_cb.findData(key)
+        self.eos_type_cb.blockSignals(True)
+        self.eos_type_cb.setCurrentIndex(max(0, index))
+        self.eos_type_cb.blockSignals(False)
+        self.update_eos_parameter_visibility()
+
+    def get_eos_type(self):
+        """The peritheos class name of the selected equation."""
+        return self.eos_type_cb.currentData()
+
+    def update_eos_parameter_visibility(self):
+        """Show only the parameter rows of the selected equation."""
+        names = getattr(self, '_eos_parameter_names', {}).get(
+            self.get_eos_type(), ['K0', 'K0_prime'])
+        for key, row_widgets in self._eos_param_rows.items():
+            visible = key in names
+            for widget in row_widgets:
+                widget.setVisible(visible)
+
     def show_jcpds(self, jcpds_phase, wavelength=None):
         self.update_name(jcpds_phase)
         self.update_lattice_parameters(jcpds_phase)
@@ -212,36 +275,15 @@ class JcpdsEditorWidget(QtWidgets.QWidget):
         self.reflection_table_model.update_reflection_data(jcpds_phase.reflections,
                                                            wavelength)
 
-    #: peritheos class name -> display name for the EoS line
-    EOS_DISPLAY_NAMES = {
-        'BM2': 'Birch-Murnaghan (2nd order)',
-        'BM3': 'Birch-Murnaghan (3rd order)',
-        'BM4': 'Birch-Murnaghan (4th order)',
-        'Murnaghan': 'Murnaghan',
-        'Vinet': 'Vinet',
-        'ModifiedTait': 'Modified Tait',
-        'NaturalStrain2': 'Natural Strain (2nd order)',
-        'NaturalStrain3': 'Natural Strain (3rd order)',
-        'NaturalStrain4': 'Natural Strain (4th order)',
-        'Holzapfel': 'Holzapfel',
-    }
-
     def update_eos_parameters(self, jcpds_phase):
-        eos_type = str(jcpds_phase.params.get('eos_type') or 'BM3')
-        display = self.EOS_DISPLAY_NAMES.get(eos_type, eos_type)
-        records = jcpds_phase.params.get('eos_records') or []
-        index = jcpds_phase.params.get('eos_current_index', 0)
-        if records and 0 <= index < len(records):
-            reference = records[index].get('reference') or ''
-            if reference:
-                display = f'{display} — {reference}'
-        self.eos_type_lbl.setText(display)
-        self.eos_type_lbl.setToolTip(
-            'Determined by the phase source: the selected database '
-            'reference record, or Birch-Murnaghan (3rd order) for '
-            'legacy jcpds files.')
+        self.set_eos_type(str(jcpds_phase.params.get('eos_type') or 'BM3'))
         self.eos_K_txt.setText(str(jcpds_phase.params['k0']))
         self.eos_Kp_txt.setText(str(jcpds_phase.params['k0p']))
+        self.eos_Kpp_txt.setText(str(jcpds_phase.params.get('k0pp0') or 0.0))
+        for field, key in ((self.eos_n_txt, 'n'), (self.eos_z_txt, 'z'),
+                           (self.eos_zc_txt, 'zc')):
+            value = jcpds_phase.params.get(key)
+            field.setText('' if value is None else str(value))
         self.eos_alphaT_txt.setText(str(jcpds_phase.params['alpha_t0']))
         self.eos_dalphadT_txt.setText(str(jcpds_phase.params['d_alpha_dt']))
         self.eos_dKdT_txt.setText(str(jcpds_phase.params['dk0dt']))

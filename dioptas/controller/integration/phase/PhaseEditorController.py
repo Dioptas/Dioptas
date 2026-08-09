@@ -7,7 +7,7 @@ import numpy as np
 from qtpy import QtWidgets, QtCore, QtGui
 
 from ....widgets.UtilityWidgets import save_file_dialog
-from ....widgets.integration.JcpdsEditorWidget import JcpdsEditorWidget
+from ....widgets.integration.PhaseEditorWidget import PhaseEditorWidget
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ....model.util.jcpds import jcpds, jcpds_reflection
@@ -15,9 +15,9 @@ from ....model.DioptasModel import DioptasModel
 from ....widgets.integration import IntegrationWidget
 
 
-class JcpdsEditorController(QtCore.QObject):
+class PhaseEditorController(QtCore.QObject):
     """
-    JcpdsEditorController handles all the signals and changes associated with Jcpds editor widget
+    PhaseEditorController handles all the signals and changes associated with Jcpds editor widget
     """
     canceled_editor = QtCore.Signal(jcpds)
 
@@ -40,10 +40,11 @@ class JcpdsEditorController(QtCore.QObject):
         """
         super().__init__()
         self.integration_widget = integration_widget
-        self.jcpds_widget = JcpdsEditorWidget(integration_widget)
+        self.jcpds_widget = PhaseEditorWidget(integration_widget)
         self.phase_widget = self.integration_widget.phase_widget
         self.model = dioptas_model
         self.phase_model = self.model.phase_model
+        self._configure_eos_types()
         self.create_connections()
 
         self.previous_header_item_index_sorted = None
@@ -61,6 +62,21 @@ class JcpdsEditorController(QtCore.QObject):
             if self.model.calibration_model is not None:
                 wavelength = self.model.calibration_model.wavelength * 1e10
         self.jcpds_widget.show_jcpds(jcpds_phase, wavelength)
+
+    def _configure_eos_types(self):
+        """Fill the EoS combobox with every equation Peritheos supports,
+        each with the parameter rows its constructor needs (Holzapfel
+        additionally shows the material data n/Z/Zc it converts with)."""
+        from ....model.util.eos_phase import (
+            RT_EOS_TYPES, EOS_DISPLAY_NAMES, eos_parameter_names)
+
+        eos_types = []
+        for key in RT_EOS_TYPES:
+            names = eos_parameter_names(key)
+            if key == 'Holzapfel':
+                names = names + ['Zc']
+            eos_types.append((key, EOS_DISPLAY_NAMES.get(key, key), names))
+        self.jcpds_widget.configure_eos_types(eos_types)
 
     def create_connections(self):
         # Phase Widget Signals
@@ -106,12 +122,25 @@ class JcpdsEditorController(QtCore.QObject):
         self.jcpds_widget.lattice_ratio_step_txt.editingFinished.connect(self.lattice_ratio_step_changed)
 
         # Equation of state fields
+        self.jcpds_widget.eos_type_cb.currentIndexChanged.connect(self.eos_type_changed)
         self.jcpds_widget.eos_K_txt.editingFinished.connect(partial(self.param_txt_changed,
                                                                     widget=self.jcpds_widget.eos_K_txt,
                                                                     param='k0'))
         self.jcpds_widget.eos_Kp_txt.editingFinished.connect(partial(self.param_txt_changed,
                                                                      widget=self.jcpds_widget.eos_Kp_txt,
                                                                      param='k0p0'))
+        self.jcpds_widget.eos_Kpp_txt.editingFinished.connect(partial(self.param_txt_changed,
+                                                                      widget=self.jcpds_widget.eos_Kpp_txt,
+                                                                      param='k0pp0'))
+        self.jcpds_widget.eos_n_txt.editingFinished.connect(partial(self.param_txt_changed,
+                                                                    widget=self.jcpds_widget.eos_n_txt,
+                                                                    param='n'))
+        self.jcpds_widget.eos_z_txt.editingFinished.connect(partial(self.param_txt_changed,
+                                                                    widget=self.jcpds_widget.eos_z_txt,
+                                                                    param='z'))
+        self.jcpds_widget.eos_zc_txt.editingFinished.connect(partial(self.param_txt_changed,
+                                                                     widget=self.jcpds_widget.eos_zc_txt,
+                                                                     param='zc'))
         self.jcpds_widget.eos_alphaT_txt.editingFinished.connect(partial(self.param_txt_changed,
                                                                          widget=self.jcpds_widget.eos_alphaT_txt,
                                                                          param='alpha_t0'))
@@ -173,7 +202,23 @@ class JcpdsEditorController(QtCore.QObject):
         self.phase_model.set_param(self.phase_ind, param, widget.value())
 
     def param_txt_changed(self, widget, param):
-        self.phase_model.set_param(self.phase_ind, param, float(widget.text()))
+        try:
+            value = float(widget.text())
+        except ValueError:
+            # empty or unparsable (e.g. the n/Z/Zc fields of a legacy
+            # phase) — restore what the model has instead of crashing
+            self.jcpds_widget.update_eos_parameters(self.jcpds_phase)
+            return
+        if param in ('z', 'zc'):
+            value = int(value)
+        self.phase_model.set_param(self.phase_ind, param, value)
+
+    def eos_type_changed(self):
+        eos_type = self.jcpds_widget.get_eos_type()
+        if eos_type is None or self.phase_ind < 0:
+            return
+        self.jcpds_widget.update_eos_parameter_visibility()
+        self.phase_model.set_eos_type(self.phase_ind, eos_type)
 
     def lattice_ab_changed(self):
         ab_ratio = float(self.jcpds_widget.lattice_ab_sb.value())

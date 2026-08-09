@@ -96,6 +96,9 @@ class CrystalState:
     symmetry: str = ""
     k0: float = 0.0
     k0p0: float = 0.0
+    #: K0'' (1/GPa) — only used by 4th-order equations (BM4, Modified
+    #: Tait); stays 0 for everything else
+    k0pp0: float = 0.0
     dk0dt: float = 0.0
     dk0pdt: float = 0.0
     alpha_t0: float = 0.0
@@ -137,8 +140,8 @@ class CrystalState:
 #: state keys whose direct edit marks the phase as modified (the asterisk)
 _FLAGGING_KEYS = frozenset(
     ["comments", "a0", "b0", "c0", "alpha0", "beta0", "gamma0", "symmetry",
-     "k0", "k0p0", "dk0dt", "dk0pdt", "alpha_t0", "d_alpha_dt", "reflections",
-     "eos_type"]
+     "k0", "k0p0", "k0pp0", "dk0dt", "dk0pdt", "alpha_t0", "d_alpha_dt",
+     "reflections", "eos_type"]
 )
 
 _STATE_KEYS = frozenset(f.name for f in dataclasses.fields(CrystalState))

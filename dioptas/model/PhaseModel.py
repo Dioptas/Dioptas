@@ -258,15 +258,16 @@ class PhaseModel:
         """
         Switches the phase with index ind to another of its EoS records
         (different literature reference for the same material). Applies
-        that record's K0/K0'/V0 etc., renames the phase to
-        "<chemistry> (<reference>)", and recomputes the line positions at
-        the current pressure/temperature.
+        that record's K0/K0'/V0 etc. — including its equation of state —
+        and recomputes the line positions at the current
+        pressure/temperature. The phase name stays the chemistry; the
+        active reference is visible in the Ref column and the comments.
 
         The records live on the phase state (set by model.eos.build_jcpds
         for database materials, carried through project files and undo);
         legacy jcpds files have none, so this is a no-op there.
         """
-        from .eos import apply_eos_record, record_label
+        from .eos import apply_eos_record
 
         phase = self.phases[ind]
         records = phase.params['eos_records']
@@ -278,15 +279,6 @@ class PhaseModel:
 
         phase.params['eos_current_index'] = ref_ind
         apply_eos_record(phase, record)
-
-        # Rename: chemistry + newly selected reference
-        chemistry = phase.params['chemistry'] or phase.name
-        label = record_label(record)
-        new_name = f"{chemistry} ({label})" if label else chemistry
-        phase._name = new_name
-        phase._filename = new_name
-        # phase_files is a read-only view over the items; set the record
-        self.items[ind].filename = new_name
 
         phase.compute_d()  # recompute at the phase's current P and T
         phase.params['modified'] = False

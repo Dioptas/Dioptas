@@ -46,6 +46,36 @@ RT_EOS_TYPES = (
 #: this feature branch) still resolves
 _CANONICAL = {name.upper(): name for name in RT_EOS_TYPES}
 
+#: human-readable names for the UI (phase editor combobox etc.)
+EOS_DISPLAY_NAMES = {
+    "BM2": "Birch-Murnaghan (2nd order)",
+    "BM3": "Birch-Murnaghan (3rd order)",
+    "BM4": "Birch-Murnaghan (4th order)",
+    "Murnaghan": "Murnaghan",
+    "Vinet": "Vinet",
+    "ModifiedTait": "Modified Tait",
+    "NaturalStrain2": "Natural Strain (2nd order)",
+    "NaturalStrain3": "Natural Strain (3rd order)",
+    "NaturalStrain4": "Natural Strain (4th order)",
+    "Holzapfel": "Holzapfel",
+}
+
+
+def eos_parameter_names(eos_type: str) -> list:
+    """
+    The constructor parameters of a peritheos rt equation, in signature
+    order, without ``self`` and without ``V0`` (Dioptas derives the
+    zero-pressure volume from the lattice). E.g. BM4 ->
+    ['K0', 'K0_prime', 'K0_double_prime'].
+    """
+    canonical = _CANONICAL.get(str(eos_type).upper())
+    if canonical is None:
+        raise ValueError(f"Unsupported EoS type '{eos_type}'")
+    eos_class = getattr(rt, canonical)
+    return [name for name in
+            inspect.signature(eos_class.__init__).parameters
+            if name not in ("self", "V0")]
+
 # Å³ per formula unit -> JBar⁻¹ (= cm³/mol / 10): Avogadro * 1e-24 / 10
 _A3_TO_JBAR = 0.060221415
 
@@ -136,6 +166,7 @@ class EosPhase:
                 "K0": k0 if k0 is not None else p["k0"],
                 "K0_prime": k0p if k0p is not None
                 else (p.get("k0p0") or p.get("k0p")),
+                "K0_double_prime": p.get("k0pp0") or 0.0,
             },
             n=p.get("n"),
             z=p.get("z"),

@@ -22,8 +22,9 @@ def build_jcpds(material: Material, record_index: int = 0):
     """
     Build a Dioptas ``jcpds`` object from a Material, applying the EoS
     record at *record_index* (when the material has any). The phase is
-    named "<formula> (<label>)" so both the chemistry and the literature
-    source are visible in the phase list.
+    named by its chemistry alone ("Au") — the active literature
+    reference is shown in the phase table's Ref column and kept in the
+    comments, not baked into the name.
 
     All EoS records are stored on the phase state, so the user can switch
     between literature references from the phase table later
@@ -41,10 +42,8 @@ def build_jcpds(material: Material, record_index: int = 0):
         record_index = max(0, min(record_index, len(records) - 1))
         record = records[record_index]
 
-    label = record_label(record) if record else ""
-    name = f"{chemistry} ({label})" if label else chemistry
-    obj._name = name
-    obj._filename = name
+    obj._name = chemistry
+    obj._filename = chemistry
 
     # Lattice
     lat = material.lattice
@@ -93,16 +92,22 @@ def apply_eos_record(phase, record: dict) -> None:
     """
     Copy one EoS record's parameters onto a jcpds phase: bulk modulus,
     K0', V0, the thermal correction, and the equation-of-state type.
+    The record's reference goes into the comments, so it is visible in
+    the phase editor and survives a jcpds export.
     Shared by build_jcpds and PhaseModel.set_eos_reference.
     """
     eos = record.get("eos") or {}
     parameters = eos.get("parameters") or {}
+    reference = record.get("reference") or record_label(record)
+    if reference:
+        phase.params["comments"] = [reference]
     phase.params["k0"] = parameters.get("K0") or 0.0
     # BM2 fixes K0' = 4 by definition; carry that so switching the phase
     # to a 3rd-order equation later starts from the sensible value.
     phase.params["k0p0"] = (parameters.get("K0_prime")
                             or (4.0 if eos.get("type") == "BM2" else 0.0))
     phase.params["k0p"] = phase.params["k0p0"]
+    phase.params["k0pp0"] = parameters.get("K0_double_prime") or 0.0
 
     thermal = record.get("thermal") or {}
     thermal_parameters = (thermal.get("parameters") or {}
