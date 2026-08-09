@@ -45,9 +45,10 @@ dependencies = [
     # upper bound: Signal.has_listener relies on psygnal's private _slots
     # (see dioptas/model/util/signal.py) — verify before raising
     "psygnal>=0.15.1,<0.16",
-    # EoS database integration: REST client, EoS engine, data models
+    # equation-of-state engine for phase lines at pressure
+    # (lower bound: first PyPI release with the full rt/thermal model set)
+    "peritheos>=0.4.0,<1.0",
     "requests>=2.33.1",
-    "peritheos",
     "pydantic>=2.13.4",
 ]
 
@@ -118,8 +119,6 @@ exclude_lines = [
     "if __name__ == .__main__.",
 ]
 
-[tool.uv.sources]
-peritheos = { git = "https://github.com/CPrescher/peritheos.git" }
 
 [tool.ruff.lint]
 # Critical defects only — the classes of problem the test suite cannot see:

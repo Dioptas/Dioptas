@@ -359,7 +359,7 @@ requires-dist = [
     { name = "numexpr", specifier = ">=2.10.2,<3.0" },
     { name = "numpy", specifier = ">=2.0,<3.0" },
     { name = "pandas", specifier = ">=2.1.1,<3.0" },
-    { name = "peritheos", git = "https://github.com/CPrescher/peritheos.git" },
+    { name = "peritheos", specifier = ">=0.4.0,<1.0" },
     { name = "psutil", specifier = ">=5.9.5,<6.0" },
     { name = "psygnal", specifier = ">=0.15.1,<0.16" },
     { name = "pycifrw", specifier = ">=5.0.0,<6.0" },
@@ -1049,11 +1049,15 @@ wheels = [
 
 [[package]]
 name = "peritheos"
-version = "0.1.0"
-source = { git = "https://github.com/CPrescher/peritheos.git#a0297f5a1e4de221367a1f5c4c6c4531d9747fe9" }
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
     { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8a/5e/0e499c23da0e2fb72cee77784dd8dc69b8145e3ac16345ac6141e501c774/peritheos-0.4.0.tar.gz", hash = "sha256:469815a0e88fd4e9232692fb8dce53aa6fbffa9ec49364d1e21a91c02b2e3e98", size = 68919, upload-time = "2026-08-09T05:31:15.41Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/17/da/774c0723108de9856f1c68cdaed93b06ad8fb4faede54bf0e8da8f9f8973/peritheos-0.4.0-py3-none-any.whl", hash = "sha256:868b3d65f13fec19c7c11a0dcd23929944c6d061e63a6e9bf61a63bd40f01b62", size = 39899, upload-time = "2026-08-09T05:31:14.041Z" },
 ]
 
 [[package]]
