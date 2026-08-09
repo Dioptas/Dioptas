@@ -162,11 +162,12 @@
    "eos": {
     "type": "BM3",
     "parameters": {
-     "V0": 33.95469023999999,
+     "V0": 29.405624325471532,
      "K0": 433.8,
      "K0_prime": 3.46
     }
-   }
+   },
+   "notes": "V0 rescaled by sin(120): the hosted database computed hexagonal cell volumes as a^2*c."
   }
  ]
 }

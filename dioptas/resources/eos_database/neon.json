@@ -55,18 +55,6 @@
      "K0_prime": 5.4662
     }
    }
-  },
-  {
-   "label": "To be edited",
-   "reference": "NEON (To be edited)",
-   "eos": {
-    "type": "Vinet",
-    "parameters": {
-     "V0": 88.96740625728799,
-     "K0": 1.43,
-     "K0_prime": 8.02
-    }
-   }
   }
  ]
 }

@@ -120,7 +120,8 @@
      "K0": 167.0,
      "K0_prime": 5.77
     }
-   }
+   },
+   "notes": "BM3 refit of the Fei 2007 scale as distributed in beamline jcpds files; the paper's own fit is the Vinet record."
   },
   {
    "label": "04-0784, Fei et al PNAS, 2007 [Vinet]",
@@ -128,11 +129,22 @@
    "eos": {
     "type": "Vinet",
     "parameters": {
-     "V0": 67.84742110765599,
-     "K0": 166.65,
-     "K0_prime": 5.4823
+     "V0": 67.85,
+     "K0": 167.0,
+     "K0_prime": 6.0
     }
-   }
+   },
+   "thermal": {
+    "type": "MieGruneisenDebye",
+    "parameters": {
+     "Tr": 300.0,
+     "theta0": 170.0,
+     "gamma0": 2.97,
+     "q": 0.6,
+     "n": 1
+    }
+   },
+   "notes": "Corrected against the paper (Table 1: Vinet, V0=67.850(4), K0=167, K0p=6.00(2)); the hosted database carried Anderson's BM3 values here. Thermal parameters are the paper's MGD fit (not yet used by Dioptas)."
   }
  ]
 }

@@ -80,20 +80,8 @@
  ],
  "eos_records": [
   {
-   "label": "FCC iron (JCPDS 4-0829, EOS from Shen)",
-   "reference": "FCC iron (JCPDS 4-0829, EOS from Shen)",
-   "eos": {
-    "type": "BM3",
-    "parameters": {
-     "V0": 46.461869875000005,
-     "K0": 176.0,
-     "K0_prime": 5.0
-    }
-   }
-  },
-  {
-   "label": "FCC neon (fei)",
-   "reference": "FCC neon (fei)",
+   "label": "Fei et al PNAS 2007 [BM3]",
+   "reference": "Fei et al PNAS 104, 9182, 2007",
    "eos": {
     "type": "BM3",
     "parameters": {
@@ -101,7 +89,31 @@
      "K0": 1.43,
      "K0_prime": 8.02
     }
-   }
+   },
+   "notes": "From the paper's text: BM3 fit to the same data as the Vinet fit, K0=1.43(14) GPa, K0p=8.02(31)."
+  },
+  {
+   "label": "Fei et al PNAS 2007 [Vinet]",
+   "reference": "Fei et al PNAS 104, 9182, 2007",
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 88.967,
+     "K0": 1.16,
+     "K0_prime": 8.23
+    }
+   },
+   "thermal": {
+    "type": "MieGruneisenDebye",
+    "parameters": {
+     "Tr": 300.0,
+     "theta0": 75.1,
+     "gamma0": 2.05,
+     "q": 0.6,
+     "n": 1
+    }
+   },
+   "notes": "The paper's primary fit (Table 1: V0=88.967, K0=1.16(14), K0p=8.23(31)); was missing from the hosted database. Thermal parameters are the paper's MGD fit (not yet used by Dioptas)."
   }
  ]
 }

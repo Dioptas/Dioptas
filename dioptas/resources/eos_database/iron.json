@@ -85,11 +85,12 @@
    "eos": {
     "type": "BM3",
     "parameters": {
-     "V0": 25.957988385000004,
+     "V0": 22.4802773725514,
      "K0": 180.0,
      "K0_prime": 4.9
     }
-   }
+   },
+   "notes": "V0 rescaled by sin(120): the hosted database computed hexagonal cell volumes as a^2*c."
   },
   {
    "label": "(hcp phase -- 19.2 GPa modified to P=0) (JCPDS 34-529 ) EOS from Mao et al 90",
@@ -97,11 +98,12 @@
    "eos": {
     "type": "BM3",
     "parameters": {
-     "V0": 25.814948055400002,
+     "V0": 22.3564008133521,
      "K0": 165.0,
      "K0_prime": 5.33
     }
-   }
+   },
+   "notes": "V0 rescaled by sin(120): the hosted database computed hexagonal cell volumes as a^2*c."
   },
   {
    "label": "(hcp phase -- 19.2 GPa) (JCPDS 34-529 ) EOS from Mao et al 90",
@@ -113,7 +115,8 @@
      "K0": 165.0,
      "K0_prime": 5.33
     }
-   }
+   },
+   "notes": "Inconsistent record: d-spacings are at 19.2 GPa and V0 matches neither the ambient nor the 19.2 GPa hcp cell volume. Needs curation against Mao et al."
   }
  ]
 }
