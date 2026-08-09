@@ -1,5 +1,11 @@
 # 0.9.1 (in development)
 
+## New Features
+
+- **EoS material database.** The Phase panel gained a **DB** button that opens a browser over a database of materials with published equation-of-state parameters (bulk modulus, K0′, V0 per literature reference). The database ships with Dioptas — it works offline and is curated in the repository like the calibrant files, so new materials and references can be added by pull request. Materials can also be exported as `.eosmat` files and reloaded through the normal Add button.
+
+- **Selectable equation of state per phase.** Phase lines at pressure are now computed through the [Peritheos](https://github.com/CPrescher/peritheos) library, and each phase row gained an **EoS** dropdown (2nd/3rd-order Birch-Murnaghan, Vinet, Holzapfel) and — for database materials — a **Ref** dropdown to switch between literature references, both recomputing the lines live. Existing `.jcpds` phases behave exactly as before (3rd-order Birch-Murnaghan, cross-validated against the previous solver).
+
 ## Bugfixes
 
 - Re-enabling a dynamic mask after loading a different image showed the mask computed for the previous image; enabling now always recomputes for the image on screen.

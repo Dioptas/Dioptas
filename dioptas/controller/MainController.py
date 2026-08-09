@@ -178,6 +178,7 @@ class MainController:
             self.widget.integration_widget.setVisible
         )
         self.widget.map_mode_btn.toggled.connect(self.widget.map_widget.setVisible)
+
         self.widget.mode_btn_group.buttonToggled.connect(self.tab_changed)
 
         self.model.img_changed.connect(self.update_title)
@@ -339,7 +340,7 @@ class MainController:
             self.calibration_controller,
             self.mask_controller,
             self.integration_controller.image_controller,
-            self.map_controller,
+            self.map_controller
         ]
         for i, controller in enumerate(controllers):
             if i == mode_ind:
@@ -352,7 +353,7 @@ class MainController:
             self.widget.calibration_widget.img_widget,
             self.widget.mask_widget.img_widget,
             self.widget.integration_widget.img_widget,
-            self.widget.map_widget.img_plot_widget,
+            self.widget.map_widget.img_plot_widget
         ]
         old_display_state = img_widgets[old_index].get_display_state()
         img_widgets[new_index].set_display_state(*old_display_state)

@@ -49,8 +49,12 @@ extra_datas = [
 fabio_hiddenimports = collect_submodules("fabio")
 pyqtgraph_hiddenimports = collect_submodules("pyqtgraph")
 pyFAI_hiddenimports = collect_submodules("pyFAI")
+# peritheos is imported lazily inside jcpds.compute_volume — make sure the
+# static analysis doesn't miss it
+peritheos_hiddenimports = collect_submodules("peritheos")
 
-hiddenimports = fabio_hiddenimports + pyqtgraph_hiddenimports + pyFAI_hiddenimports
+hiddenimports = (fabio_hiddenimports + pyqtgraph_hiddenimports
+                 + pyFAI_hiddenimports + peritheos_hiddenimports)
 
 a = Analysis(
     ["run.py"],
