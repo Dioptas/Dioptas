@@ -298,18 +298,20 @@ class jcpds:
         # In current files have the first line starts with the string VERSION:
         fp = open(filename, 'r')
         line = fp.readline()
-        pos = line.index(' ')
-        tag = line[0:pos].upper()
-        value = line[pos:].strip()
+        parts = line.split(maxsplit=1)
+        tag = parts[0].upper() if parts else ''
+        value = parts[1].strip() if len(parts) > 1 else ''
         if tag == 'VERSION:':
             self.version = value
             # This is the current, keyword based version of JCPDS file
             while (1):
                 line = fp.readline()
                 if line == '': break
-                pos = line.index(' ')
-                tag = line[0:pos].upper()
-                value = line[pos:].strip()
+                parts = line.split(maxsplit=1)
+                if len(parts) < 2:
+                    continue
+                tag = parts[0].upper()
+                value = parts[1].strip()
                 if tag == 'COMMENT:':
                     self.params['comments'].append(value)
                 elif tag == 'K0:':
@@ -350,6 +352,51 @@ class jcpds:
                     reflection.k = int(dtemp[3])
                     reflection.l = int(dtemp[4])
                     self.reflections.append(reflection)
+        elif tag in ('2', '3'):
+            # Version 2/3 (Dan Shim's format): the bare version number,
+            # a title line, a "symmetry_code K0 K0'" line, a lattice-
+            # constant line whose length depends on the symmetry, a
+            # placeholder line, a column-label line, and the peak table.
+            self.version = float(tag)
+            self.params['comments'].append(fp.readline().strip())
+            temp = fp.readline().replace(',', ' ').split()
+            symmetry_code = int(float(temp[0]))
+            self.params['symmetry'] = {
+                1: 'CUBIC', 2: 'HEXAGONAL', 3: 'TETRAGONAL',
+                4: 'ORTHORHOMBIC', 5: 'MONOCLINIC', 6: 'TRICLINIC',
+            }.get(symmetry_code, 'CUBIC')
+            self.params['k0'] = float(temp[1])
+            self.params['k0p0'] = float(temp[2])
+
+            lat = [float(v) for v in fp.readline().replace(',', ' ').split()]
+            self.params['a0'] = lat[0]
+            if len(lat) >= 6:
+                # full set incl. angles (whatever the symmetry code says)
+                self.params['b0'], self.params['c0'] = lat[1], lat[2]
+                (self.params['alpha0'], self.params['beta0'],
+                 self.params['gamma0']) = lat[3], lat[4], lat[5]
+            elif len(lat) == 4:      # monoclinic: a b c beta
+                self.params['b0'], self.params['c0'] = lat[1], lat[2]
+                self.params['beta0'] = lat[3]
+            elif len(lat) == 3:      # orthorhombic: a b c
+                self.params['b0'], self.params['c0'] = lat[1], lat[2]
+            elif len(lat) == 2:      # hexagonal/tetragonal: a c
+                self.params['c0'] = lat[1]
+            # remaining constants and angles follow from the symmetry
+            # (compute_v0 normalizes them)
+
+            fp.readline()   # "(blank for future use)"
+            fp.readline()   # column labels
+            while 1:
+                line = fp.readline()
+                if line == '': break
+                dtemp = list(map(float, line.replace(',', ' ').split()[0:5]))
+                if len(dtemp) < 5:
+                    continue
+                self.reflections.append(jcpds_reflection(
+                    h=int(dtemp[2]), k=int(dtemp[3]), l=int(dtemp[4]),
+                    intensity=dtemp[1], d=dtemp[0]))
+
         else:
             # This is an old format JCPDS file
             self.version = 1.

@@ -147,3 +147,19 @@ def test_deep_copy_is_independent_of_the_original(jcpds):
     jcpds.reflections[0].d0 = 42.0
     assert duplicate.params['k0'] != 999
     assert duplicate.reflections[0].d0 != 42.0
+
+
+def test_load_version3_file():
+    # Dan Shim's old fixed format: bare version number, title,
+    # "symmetry_code K0 K0'", lattice line, placeholder, labels, peaks.
+    # The first line has no space, which crashed the loader for years.
+    from ...model.util.jcpds import jcpds
+    j = jcpds()
+    j.load_file(os.path.join(jcpds_path, "au_version3.jcpds"))
+    assert j.params["symmetry"] == "CUBIC"
+    assert j.params["a0"] == pytest.approx(4.0786)
+    assert j.params["k0"] == pytest.approx(166.6)
+    assert j.params["k0p0"] == pytest.approx(5.5)
+    assert len(j.reflections) == 3
+    assert j.reflections[0].d0 == pytest.approx(2.355, abs=1e-3)
+    assert j.params["comments"] == ["Gold (04-0784, Heinz and Jeanloz 1984)"]
