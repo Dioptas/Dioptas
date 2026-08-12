@@ -2,6 +2,8 @@
 
 ## Bugfixes
 
+- On Windows, the taskbar showed a generic icon on the first run of a freshly unpacked Dioptas (later runs, or pinning it, showed the proper icon). The `icon.ico` embedded in the executable carried only a single 256 px image, which the Windows shell fails to scale down on a cold icon cache; it now ships the standard 16-256 px sizes, the application declares an explicit Windows app identity, and the icon is set application-wide so every window inherits it.
+
 - Loading a color image (e.g. an RGB PNG preview saved next to the detector data) crashed with an endless series of error dialogs (`data.shape[2] must be <= 4`, `too many values to unpack`). Color images are now averaged to a grayscale intensity image on loading, so they display and integrate normally; images with shapes Dioptas cannot interpret are refused with a clear message instead of crashing.
 
 - The intensity histogram crashed with `Cannot create 1500 finite-sized bins` for any 8-bit image (numpy computes the logarithm of such images in half precision, which is too coarse for the histogram binning).

@@ -70,10 +70,34 @@ def _check_dioptrin_license():
         return False
 
 
+def _set_application_icon(app):
+    """Application-wide icon, inherited by every top-level window.
+
+    On Windows the .ico is used: it carries pre-rendered 16-256 px entries,
+    which the shell can consume directly for the taskbar and Alt-Tab. The
+    other platforms take the SVG, which scales to any size Qt asks for.
+    """
+    from qtpy import QtGui
+
+    icon_file = "icon.ico" if _platform == "win32" else "icon.svg"
+    app.setWindowIcon(QtGui.QIcon(os.path.join(icons_path, icon_file)))
+
+
 def main():
     global _dioptrin_available
 
+    if _platform == "win32":
+        # Windows resolves the taskbar button's icon through the application
+        # identity, not the window; without an explicit one it has to guess,
+        # which comes up empty on the first run of a fresh executable.
+        import ctypes
+
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+            "com.dioptas.Dioptas"
+        )
+
     app = QtWidgets.QApplication([])
+    _set_application_icon(app)
 
     apply_stylesheet(
         app,
