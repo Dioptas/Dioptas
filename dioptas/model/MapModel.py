@@ -627,6 +627,126 @@ class MapModel:
 
         self._apply_new_data()
 
+    def append_files(self, filepaths: list[str]) -> list[str]:
+        """Integrates *filepaths* with the current settings and appends them
+        to the existing map — the live path, where files arrive one by one
+        while the scan is still running.
+
+        Nothing the user arranged is reset: the grid keeps its number of
+        columns and gains rows as needed, and a custom arrangement gets the
+        new points after its last entry — behind trailing blanks left for
+        dropped frames on purpose. Files already in the map are ignored.
+
+        Returns the files that could not be added (unreadable, or not
+        matching the map's geometry); the map keeps growing without them.
+        """
+        if self.pattern_x is None or self.pattern_intensities is None:
+            raise ValueError("There is no map to append to — load one first")
+        if not self.configuration.calibration_model.is_calibrated:
+            raise ValueError("Detector geometry is not calibrated")
+        if self.configuration.integration_unit != self.pattern_unit:
+            raise ValueError(
+                "The integration unit changed since the map was integrated — "
+                "reload the map to use the new unit"
+            )
+
+        present = {info.filepath for info in self.point_infos}
+        new_files = [path for path in filepaths if path not in present]
+        if not new_files:
+            return []
+
+        failed: list[str] = []
+        appended_infos: list[MapPointInfo] = []
+        appended_intensities: list[np.ndarray] = []
+        appended_files: list[str] = []
+
+        # same protection as integrate(): constant pattern length, and no
+        # img_changed storm while frames pass through the shared img model
+        trim_trailing_zeros_backup = self.configuration.trim_trailing_zeros
+        self.configuration.trim_trailing_zeros = False
+        self.configuration.img_model.img_changed.blocked = True
+        try:
+            for filepath in new_files:
+                try:
+                    file_infos, file_intensities = self._integrate_single_file(
+                        filepath
+                    )
+                except Exception:
+                    # a single bad frame must not end a running live session
+                    logger.warning(
+                        "Could not append %s to the map", filepath, exc_info=True
+                    )
+                    failed.append(filepath)
+                    continue
+                appended_infos.extend(file_infos)
+                appended_intensities.extend(file_intensities)
+                appended_files.append(filepath)
+        finally:
+            self.configuration.trim_trailing_zeros = trim_trailing_zeros_backup
+            self.configuration.img_model.img_changed.blocked = False
+
+        if not appended_infos:
+            return failed
+
+        self.point_infos.extend(appended_infos)
+        self.pattern_intensities = np.vstack(
+            [self.pattern_intensities, appended_intensities]
+        )
+        self.filepaths = list(self.filepaths) + appended_files
+        self._apply_appended_data()
+        return failed
+
+    def _integrate_single_file(
+        self, filepath: str
+    ) -> tuple[list[MapPointInfo], list[np.ndarray]]:
+        """Integrates every frame of one file, validated against the map."""
+        self.configuration.img_model.load(filepath)
+        infos: list[MapPointInfo] = []
+        intensities: list[np.ndarray] = []
+        for frame_ind in range(self.configuration.img_model.series_max):
+            self.configuration.img_model.load_series_img(frame_ind + 1)
+            x, y = self.configuration.integrate_image_1d(update_pattern_model=False)
+            if len(x) != len(self.pattern_x):
+                raise ValueError(
+                    "The integrated pattern has a different length than the map's"
+                )
+            infos.append(MapPointInfo(filepath, frame_ind))
+            intensities.append(y)
+        return infos, intensities
+
+    def _apply_appended_data(self):
+        """Grows the layout around freshly appended points and rebuilds.
+
+        The counterpart of :meth:`_apply_new_data` for appending: where that
+        one derives fresh defaults, this one preserves every choice the user
+        made and only makes room."""
+        self._suspend_rebuild = True
+        try:
+            # window_intensities still has the old length, and num_points
+            # reads from it — recompute before sizing anything
+            self._invalidate_layers()
+            self._recompute_window_intensities()
+            num_points = len(self.point_infos)
+            self.possible_dimensions = map_layout.possible_dimensions(num_points)
+
+            if self.slots is not None:
+                slots = list(self.slots)
+                known = {entry for entry in slots if entry is not None}
+                slots += [
+                    index for index in range(num_points) if index not in known
+                ]
+                if len(slots) > self.num_slots:
+                    self.dimension = map_layout.grid_for(
+                        len(slots), self.dimension[1]
+                    )
+                self.slots = slots
+            elif num_points > self.num_slots:
+                self.dimension = map_layout.grid_for(num_points, self.dimension[1])
+        finally:
+            self._suspend_rebuild = False
+
+        self._rebuild_map()
+
     def integrate(self, callback_fn=None):
         """Integrates all files in the filepaths list and stores the results"""
         logger.info("Integrating map data")

@@ -942,3 +942,96 @@ def test_windows_and_expressions_share_one_namespace(
     added = map_model.add_roi()
     assert added.name == "C"
     assert sorted(map_model.layer_names()) == sorted(["A", "C", "ratio", "B"])
+
+
+def _calibrated_map(map_model: MapModel, configuration: Configuration, count: int):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:count])
+
+
+def test_append_files_grows_the_map(
+    map_model: MapModel, configuration: Configuration
+):
+    """The live path: new frames arrive while the scan runs, and the grid
+    keeps its columns and gains rows rather than being re-derived."""
+    _calibrated_map(map_model, configuration, 6)
+    assert map_model.dimension == (2, 3)
+
+    failed = map_model.append_files(map_img_file_paths[6:9])
+
+    assert failed == []
+    assert map_model.filepaths == map_img_file_paths[:9]
+    assert len(map_model.point_infos) == 9
+    assert map_model.pattern_intensities.shape[0] == 9
+    assert len(map_model.window_intensities) == 9
+    assert map_model.dimension == (3, 3)
+    assert map_model.get_point_index(2, 2) == 8
+
+
+def test_append_files_ignores_files_already_in_the_map(
+    map_model: MapModel, configuration: Configuration
+):
+    _calibrated_map(map_model, configuration, 6)
+    changed = []
+    map_model.map_changed.connect(lambda: changed.append(True))
+
+    failed = map_model.append_files(map_img_file_paths[:6])
+
+    assert failed == []
+    assert len(map_model.point_infos) == 6
+    assert changed == []
+
+
+def test_append_files_keeps_the_arrangement(
+    map_model: MapModel, configuration: Configuration
+):
+    """Blanks inserted for dropped frames keep their meaning; the new point
+    goes after the last arranged cell."""
+    _calibrated_map(map_model, configuration, 6)
+    map_model.insert_blank(1)
+    map_model.set_point_excluded(3)
+    assert map_model.dimension == (3, 3)
+
+    map_model.append_files([map_img_file_paths[6]])
+
+    assert map_model.get_point_index(0, 1) is None, "blank survives the append"
+    assert map_model.is_point_excluded(3)
+    # 6 points + 1 blank before the append; the new point takes the cell
+    # after the last one
+    assert map_model.get_slots()[7] == 6
+    assert map_model.dimension == (3, 3)
+
+
+def test_append_files_reports_unreadable_files_and_keeps_going(
+    map_model: MapModel, configuration: Configuration
+):
+    _calibrated_map(map_model, configuration, 6)
+
+    failed = map_model.append_files(
+        ["/nowhere/dropped_frame.tif", map_img_file_paths[6]]
+    )
+
+    assert failed == ["/nowhere/dropped_frame.tif"]
+    assert len(map_model.point_infos) == 7
+    assert map_model.filepaths[-1] == map_img_file_paths[6]
+
+
+def test_append_files_without_a_map_is_refused(
+    map_model: MapModel, configuration: Configuration
+):
+    with pytest.raises(ValueError):
+        map_model.append_files(map_img_file_paths[:1])
+
+
+def test_append_files_refuses_a_changed_integration_unit(
+    map_model: MapModel, configuration: Configuration
+):
+    """Appending in a different unit would mix incompatible x-axes."""
+    _calibrated_map(map_model, configuration, 6)
+    configuration.integration_unit = "q_A^-1"
+
+    with pytest.raises(ValueError):
+        map_model.append_files([map_img_file_paths[6]])
+    assert len(map_model.point_infos) == 6
