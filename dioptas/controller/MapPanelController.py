@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MIT
 
+import logging
 import os
+import queue
 import time
 
 import numpy as np
@@ -10,13 +12,17 @@ from qtpy import QtWidgets, QtCore
 from qtpy.QtGui import QTransform
 from scipy.ndimage import zoom
 
+from dioptas.model import map_layout
 from dioptas.model.DioptasModel import DioptasModel
+from dioptas.model.util.NewFileWatcher import NewFileInDirectoryWatcher
 from dioptas.model.util.signal import Signal
 from dioptas.widgets.MapGridPopup import MapGridPopup
 from dioptas.widgets.MapPanelWidget import MapPanelWidget
 
 from ..widgets.UtilityWidgets import get_progress_dialog, open_files_dialog
 from ..widgets.UtilityWidgets import save_file_dialog
+
+logger = logging.getLogger(__name__)
 
 
 class MapPanelController:
@@ -45,6 +51,15 @@ class MapPanelController:
 
         self.grid_popup = MapGridPopup(self.widget)
 
+        # live mode: the watcher announces finished files from its poll
+        # thread; they cross into the GUI thread through this queue, which a
+        # timer drains in batches — one integration pass per tick, not per file
+        self._live_watcher: NewFileInDirectoryWatcher | None = None
+        self._live_queue: queue.Queue[str] = queue.Queue()
+        self._live_timer = QtCore.QTimer(self.widget)
+        self._live_timer.setInterval(500)
+        self._live_timer.timeout.connect(self._drain_live_queue)
+
         self.create_signals()
 
     def create_signals(self):
@@ -62,6 +77,9 @@ class MapPanelController:
         )
 
         self.widget.map_plot_control_widget.load_btn.clicked.connect(self.load_map)
+        self.widget.map_plot_control_widget.live_btn.toggled.connect(
+            self._live_toggled
+        )
         self.widget.map_plot_control_widget.grid_btn.clicked.connect(
             self._grid_btn_clicked
         )
@@ -86,8 +104,151 @@ class MapPanelController:
         # view while the map tab is shown
         self.model.img_changed.connect(self.update_marker)
 
+    def _live_toggled(self, checked: bool):
+        if checked:
+            if not self._start_live():
+                self.widget.map_plot_control_widget.live_btn.setChecked(False)
+        else:
+            self._stop_live()
+
+    def stop_live(self):
+        """Turns live mode off, button included; safe to call any time."""
+        live_btn = self.widget.map_plot_control_widget.live_btn
+        if live_btn.isChecked():
+            live_btn.setChecked(False)  # _live_toggled does the stopping
+        else:
+            self._stop_live()
+
+    def _start_live(self) -> bool:
+        """Watches the loaded map's folder and appends what appears there."""
+        map_model = self.model.map_model
+        if map_model.pattern_x is None or not map_model.filepaths:
+            QtWidgets.QMessageBox.information(
+                self.widget,
+                "Live map",
+                "Load the first image(s) of the scan as a map first — "
+                "Live then appends every new file written to their folder.",
+            )
+            return False
+
+        directory = os.path.dirname(os.path.abspath(map_model.filepaths[-1]))
+        extensions = {
+            os.path.splitext(path)[1].lstrip(".").lower()
+            for path in map_model.filepaths
+        }
+        extensions.discard("")
+
+        if self._live_watcher is None:
+            self._live_watcher = NewFileInDirectoryWatcher(
+                directory, file_types=sorted(extensions)
+            )
+            self._live_watcher.file_added.connect(self._live_file_appeared)
+        else:
+            self._live_watcher.file_types = extensions
+            self._live_watcher.path = directory
+
+        self._catch_up(directory, extensions)
+        self._live_watcher.activate()
+        self._live_timer.start()
+        return True
+
+    def _stop_live(self):
+        self._live_timer.stop()
+        if self._live_watcher is not None:
+            self._live_watcher.deactivate()
+        # files left in the queue belong to the session that found them
+        while True:
+            try:
+                self._live_queue.get_nowait()
+            except queue.Empty:
+                break
+
+    def _live_file_appeared(self, filepath: str):
+        # called on the watcher's poll thread; only the queue is touched
+        self._live_queue.put(filepath)
+
+    def _catch_up(self, directory: str, extensions: set[str]):
+        """Queues the scan files written between loading the map and now.
+
+        Only numbered continuations count: files carrying a number higher
+        than the highest already in the map. Anything else in the folder — a
+        calibration image, another scan — is none of live mode's business,
+        and an unnumbered map has no way to tell the two apart.
+        """
+        map_model = self.model.map_model
+        numbers = [
+            map_layout.filename_number(path) for path in map_model.filepaths
+        ]
+        if any(number is None for number in numbers):
+            return
+        highest = max(numbers)
+
+        try:
+            names = os.listdir(directory)
+        except OSError:
+            return
+        present = {os.path.abspath(path) for path in map_model.filepaths}
+        candidates = []
+        for name in names:
+            if os.path.splitext(name)[1].lstrip(".").lower() not in extensions:
+                continue
+            path = os.path.abspath(os.path.join(directory, name))
+            if path in present:
+                continue
+            number = map_layout.filename_number(name)
+            if number is None or number <= highest:
+                continue
+            candidates.append((number, path))
+        for _, path in sorted(candidates):
+            self._live_queue.put(path)
+
+    def _drain_live_queue(self):
+        batch = []
+        while True:
+            try:
+                batch.append(self._live_queue.get_nowait())
+            except queue.Empty:
+                break
+        if not batch:
+            return
+
+        map_model = self.model.map_model
+        points_before = len(map_model.point_infos)
+        try:
+            failed = map_model.append_files(batch)
+        except Exception as e:
+            # systemic — the unit changed, the calibration is gone: stopping
+            # beats failing again on every tick
+            self.stop_live()
+            QtWidgets.QMessageBox.critical(
+                self.widget,
+                "Live map stopped",
+                f"New images can no longer be added to the map:\n{e}",
+            )
+            return
+
+        if failed:
+            logger.warning(
+                "Live map: %d file(s) could not be added: %s",
+                len(failed),
+                ", ".join(os.path.basename(path) for path in failed),
+            )
+        if len(map_model.point_infos) > points_before:
+            self._follow_newest()
+
+    def _follow_newest(self):
+        """Selects the point that just arrived — at the beamline the newest
+        frame is the one being watched."""
+        map_model = self.model.map_model
+        coordinates = map_model.get_point_coordinates(
+            len(map_model.point_infos) - 1
+        )
+        if coordinates is not None:
+            map_model.select_point(*coordinates)
+
     def load_map(self):
         """Asks for image files and builds a map from them."""
+        self.stop_live()
         filenames = open_files_dialog(
             self.widget,
             "Load image data file(s)",
@@ -443,6 +604,8 @@ class MapPanelController:
             )
 
     def configuration_selected(self):
+        # the watcher belongs to the previous configuration's map
+        self.stop_live()
         self._update_map_model_connection()
         self.update_map()
 

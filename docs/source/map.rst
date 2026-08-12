@@ -139,6 +139,24 @@ blank for each one, which repairs a dropped frame in a single click.
 Blank cells are drawn transparent and are left out of the colour scale.
 
 
+Live maps
+---------
+
+The **Live** button beside *Load* grows the map while the beamline is still writing it. The folder
+of the loaded files is watched — by listing it about once a second, which unlike file-system events
+also works on the network storage beamlines use — and every new image is integrated and appended as
+soon as it is fully written. The grid keeps its number of columns and gains rows as the scan
+progresses; blanks, rearrangements and excluded points survive; the newest point is selected as it
+arrives, so the pattern plot always shows the latest frame.
+
+The intended workflow: load the first image (or images) of the scan as a map, then switch Live on.
+Numbered files written between the two — the scan does not wait — are picked up automatically. Only
+numbered continuations of the loaded files are added this way; a calibration image or another scan
+sitting in the same folder is left alone.
+
+A file that cannot be read is skipped with a log entry rather than ending the session. Loading a
+different map or switching the configuration turns Live off.
+
 Reintegration
 -------------
 

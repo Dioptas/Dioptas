@@ -1,5 +1,9 @@
 # 0.9.1 (in development)
 
+## New Features
+
+- **Live maps.** The **Live** button beside Load in the map view grows the map while the beamline is still writing it: the folder of the loaded files is watched (by listing it, so it works on network storage), and every new image is integrated and appended as soon as it is fully written — the grid keeps its columns and gains rows, arrangements and excluded points survive, and the newest point is selected as it arrives. Load the first image(s) of the scan, switch Live on, and numbered files written in between are picked up too. A file that cannot be read is skipped with a log entry rather than ending the session.
+
 ## Bugfixes
 
 - On Windows, the taskbar showed a generic icon on the first run of a freshly unpacked Dioptas (later runs, or pinning it, showed the proper icon). The `icon.ico` embedded in the executable carried only a single 256 px image, which the Windows shell fails to scale down on a cold icon cache; it now ships the standard 16-256 px sizes, the application declares an explicit Windows app identity, and the icon is set application-wide so every window inherits it.
@@ -23,6 +27,8 @@
 - **Clear messages for wrong file types.** Picking the wrong kind of file — a *.poni calibration as an image, an image as a pattern, a pattern as a calibration, and so on — used to crash into a raw error dialog (or, for a pattern loaded as a calibration, silently misbehave). Each loader now explains what the chosen file looks like and where to load it instead, e.g. "It looks like a pyFAI calibration file — use 'Load Calibration' to open it." A failed load leaves the previously loaded data untouched.
 
 - The mask plugin settings dialogs gained a **Restore Defaults** button.
+
+- The calibration wizard remembers whether the validation step last showed the **pyFAI or Fit2d** parameters — across restarts, and per project. Handy when the Fit2d numbers are what feeds other programs (CrysAlis etc.).
 
 - The redundant **Clear Ring** button under the calibration peak table is gone: changing the ring number already selects every group of that ring, so Delete does the same in two steps — the tooltip now says so.
 
