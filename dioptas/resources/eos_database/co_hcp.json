@@ -1,0 +1,82 @@
+{
+ "format_version": 1,
+ "name": "Co",
+ "formula": "Co",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 5.096,
+  "b": 5.096,
+  "c": 2.862,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/H-phase.jcpds",
+ "peaks": [
+  [
+   1,
+   0,
+   3,
+   0.9325,
+   18.0
+  ],
+  [
+   1,
+   0,
+   2,
+   1.3612,
+   15.0
+  ],
+  [
+   0,
+   0,
+   2,
+   1.431,
+   26.0
+  ],
+  [
+   2,
+   0,
+   0,
+   2.2066,
+   2.4
+  ],
+  [
+   1,
+   0,
+   1,
+   2.4013,
+   100.0
+  ],
+  [
+   1,
+   1,
+   0,
+   2.548,
+   17.0
+  ],
+  [
+   1,
+   0,
+   0,
+   4.4133,
+   24.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "(hcp phase)  EOS from Fujihisa and  Takemura 1996",
+   "reference": "Co (hcp phase)  EOS from Fujihisa and  Takemura 1996",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 64.3664,
+     "K0": 199.0,
+     "K0_prime": 3.6
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

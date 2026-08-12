@@ -1,0 +1,164 @@
+{
+ "format_version": 1,
+ "name": "Co3O4",
+ "formula": "Co3O4",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 8.0799,
+  "b": 8.0799,
+  "c": 8.0799,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/ver3/co3o4.jcpds, JCPDS/current user/jcpds/ver2/co3o4.jcpds",
+ "peaks": [
+  [
+   8,
+   0,
+   0,
+   1.01,
+   3.0
+  ],
+  [
+   7,
+   3,
+   1,
+   1.0519,
+   9.0
+  ],
+  [
+   6,
+   4,
+   2,
+   1.0797,
+   3.0
+  ],
+  [
+   7,
+   1,
+   1,
+   1.1314,
+   1.0
+  ],
+  [
+   4,
+   4,
+   4,
+   1.1662,
+   2.0
+  ],
+  [
+   6,
+   2,
+   0,
+   1.2775,
+   2.0
+  ],
+  [
+   5,
+   3,
+   1,
+   1.3658,
+   2.0
+  ],
+  [
+   4,
+   4,
+   0,
+   1.4283,
+   34.0
+  ],
+  [
+   5,
+   1,
+   1,
+   1.555,
+   29.0
+  ],
+  [
+   4,
+   2,
+   2,
+   1.6493,
+   8.0
+  ],
+  [
+   4,
+   0,
+   0,
+   2.02,
+   19.0
+  ],
+  [
+   2,
+   2,
+   2,
+   2.3325,
+   9.0
+  ],
+  [
+   3,
+   1,
+   1,
+   2.4362,
+   100.0
+  ],
+  [
+   2,
+   2,
+   0,
+   2.8567,
+   34.0
+  ],
+  [
+   1,
+   1,
+   1,
+   4.6649,
+   19.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "JCPDS 42-1467, EOS from NSLS experiment",
+   "reference": "Co3O4 (JCPDS 42-1467, EOS from NSLS experiment)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 527.4945,
+     "K0": 300.0,
+     "K0_prime": 3.9
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  },
+  {
+   "label": "JCPDS 42-1467, EOS from CoO, 66",
+   "reference": "Co3O4 (JCPDS 42-1467, EOS from CoO, 66)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 527.4945,
+     "K0": 190.5,
+     "K0_prime": 3.9
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  },
+  {
+   "label": "JCPDS 42-1467, EOS from CoO, 66 [K0=190.5]",
+   "reference": "Co3O4 (JCPDS 42-1467, EOS from CoO, 66)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 528.2391,
+     "K0": 190.5,
+     "K0_prime": 3.9
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

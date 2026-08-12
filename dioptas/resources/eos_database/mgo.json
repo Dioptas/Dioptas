@@ -97,6 +97,26 @@
      "K0_prime": 4.0
     }
    }
+  },
+  {
+   "label": "JCPDS 4-0829, Speziale and Duffy",
+   "reference": "MgO (JCPDS 4-0829, Speziale and Duffy)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 74.9913,
+     "K0": 160.2,
+     "K0_prime": 3.99
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply.",
+   "thermal": {
+    "type": "AlphaKT",
+    "parameters": {
+     "alpha0": 1.35e-05,
+     "dK_dT": 0.0
+    }
+   }
   }
  ]
 }

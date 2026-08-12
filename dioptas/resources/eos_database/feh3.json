@@ -1,0 +1,75 @@
+{
+ "format_version": 1,
+ "name": "FeH3",
+ "formula": "FeH3",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 2.7672,
+  "b": 2.7672,
+  "c": 2.7672,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/FeH3_cubic_guess.jcpds",
+ "peaks": [
+  [
+   2,
+   1,
+   1,
+   1.1297,
+   0.5
+  ],
+  [
+   2,
+   1,
+   0,
+   1.2375,
+   0.5
+  ],
+  [
+   2,
+   0,
+   0,
+   1.3836,
+   0.5
+  ],
+  [
+   1,
+   1,
+   1,
+   1.5976,
+   0.5
+  ],
+  [
+   1,
+   1,
+   0,
+   1.9567,
+   1.0
+  ],
+  [
+   1,
+   0,
+   0,
+   2.7672,
+   1.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "Pm3m FeH3 from Pepin et al 2014",
+   "reference": "Pm3m FeH3 from Pepin et al 2014",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 21.1895,
+     "K0": 180.1,
+     "K0_prime": 5.0
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

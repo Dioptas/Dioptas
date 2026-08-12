@@ -1,0 +1,96 @@
+{
+ "format_version": 1,
+ "name": "Indium",
+ "formula": "",
+ "symmetry": "TETRAGONAL",
+ "lattice": {
+  "a": 3.2517,
+  "b": 3.2517,
+  "c": 4.9459,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/In.jcpds",
+ "peaks": [
+  [
+   0,
+   0,
+   4,
+   1.2365,
+   3.0
+  ],
+  [
+   2,
+   1,
+   1,
+   1.3951,
+   23.0
+  ],
+  [
+   1,
+   0,
+   3,
+   1.4704,
+   16.0
+  ],
+  [
+   2,
+   0,
+   0,
+   1.6258,
+   12.0
+  ],
+  [
+   1,
+   1,
+   2,
+   1.6839,
+   24.0
+  ],
+  [
+   1,
+   1,
+   0,
+   2.2993,
+   36.0
+  ],
+  [
+   0,
+   0,
+   2,
+   2.473,
+   21.0
+  ],
+  [
+   1,
+   0,
+   1,
+   2.7171,
+   100.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "JCPDS 5-0642, EOS need found",
+   "reference": "Indium (JCPDS 5-0642, EOS need found)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 52.2957,
+     "K0": 45.8,
+     "K0_prime": 4.0
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply.",
+   "thermal": {
+    "type": "AlphaKT",
+    "parameters": {
+     "alpha0": 2e-05,
+     "dK_dT": 0.0
+    }
+   }
+  }
+ ]
+}

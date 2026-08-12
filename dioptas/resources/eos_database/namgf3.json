@@ -1,0 +1,143 @@
+{
+ "format_version": 1,
+ "name": "NaMgF3",
+ "formula": "NaMgF3",
+ "symmetry": "ORTHORHOMBIC",
+ "lattice": {
+  "a": 2.77,
+  "b": 8.68,
+  "c": 6.877,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/NaMgF3_ppv_Umemoto.jcpds",
+ "peaks": [
+  [
+   1,
+   3,
+   5,
+   1.1334,
+   24.0
+  ],
+  [
+   0,
+   6,
+   2,
+   1.3335,
+   27.0
+  ],
+  [
+   1,
+   5,
+   2,
+   1.3524,
+   31.0
+  ],
+  [
+   2,
+   0,
+   0,
+   1.385,
+   36.0
+  ],
+  [
+   1,
+   1,
+   4,
+   1.4405,
+   24.0
+  ],
+  [
+   0,
+   0,
+   4,
+   1.7192,
+   43.0
+  ],
+  [
+   1,
+   3,
+   2,
+   1.7294,
+   52.0
+  ],
+  [
+   1,
+   1,
+   3,
+   1.7306,
+   47.0
+  ],
+  [
+   1,
+   3,
+   1,
+   1.9212,
+   100.0
+  ],
+  [
+   1,
+   3,
+   0,
+   2.0009,
+   81.0
+  ],
+  [
+   0,
+   2,
+   3,
+   2.027,
+   53.0
+  ],
+  [
+   0,
+   2,
+   2,
+   2.6951,
+   61.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "JCPDS #####, EOS from dMaN",
+   "reference": "NaMgF3(JCPDS #####, EOS from dMaN)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 165.2585,
+     "K0": 100.0,
+     "K0_prime": 4.0
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  },
+  {
+   "label": "JCPDS #####, EOS from dMaN [K0=77.6]",
+   "reference": "NaMgF3(JCPDS #####, EOS from dMaN)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 165.3478,
+     "K0": 77.6,
+     "K0_prime": 4.7
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  },
+  {
+   "label": "JCPDS #####, EOS from dMaN [K0=69.1]",
+   "reference": "NaMgF3(JCPDS #####, EOS from dMaN)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 165.3478,
+     "K0": 69.1,
+     "K0_prime": 4.7
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

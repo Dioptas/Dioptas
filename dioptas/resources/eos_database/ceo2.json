@@ -1,0 +1,89 @@
+{
+ "format_version": 1,
+ "name": "CeO2",
+ "formula": "CeO2",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 5.4111,
+  "b": 5.4111,
+  "c": 5.4111,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/CeO2.jcpds",
+ "peaks": [
+  [
+   4,
+   2,
+   0,
+   1.21,
+   7.0
+  ],
+  [
+   3,
+   3,
+   1,
+   1.2414,
+   12.0
+  ],
+  [
+   4,
+   0,
+   0,
+   1.3528,
+   6.0
+  ],
+  [
+   2,
+   2,
+   2,
+   1.5621,
+   6.0
+  ],
+  [
+   3,
+   1,
+   1,
+   1.6315,
+   34.0
+  ],
+  [
+   2,
+   2,
+   0,
+   1.9131,
+   46.0
+  ],
+  [
+   2,
+   0,
+   0,
+   2.7056,
+   27.0
+  ],
+  [
+   1,
+   1,
+   1,
+   3.1241,
+   100.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "43-1002, no data for high P",
+   "reference": "CeO2 (43-1002, no data for high P)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 158.4282,
+     "K0": 99.0,
+     "K0_prime": 4.0
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

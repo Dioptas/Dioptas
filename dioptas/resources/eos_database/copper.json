@@ -50,5 +50,32 @@
    5.0
   ]
  ],
- "eos_records": []
+ "eos_records": [
+  {
+   "label": "(4-0836) EOS from Moriarity",
+   "reference": "Copper (4-0836) EOS from Moriarity",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 47.2416,
+     "K0": 137.0,
+     "K0_prime": 5.48
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  },
+  {
+   "label": "FCC (JCPDS 04-0836; Eos Holzapfel)",
+   "reference": "Copper FCC (JCPDS 04-0836; Eos Holzapfel)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 47.2416,
+     "K0": 134.42,
+     "K0_prime": 5.19
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
 }

@@ -1,0 +1,159 @@
+{
+ "format_version": 1,
+ "name": "FeS",
+ "formula": "FeS",
+ "symmetry": "ORTHORHOMBIC",
+ "lattice": {
+  "a": 5.55695,
+  "b": 5.35246,
+  "c": 3.34529,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/FeS(VI).jcpds",
+ "peaks": [
+  [
+   0,
+   2,
+   2,
+   1.4184,
+   3.0
+  ],
+  [
+   2,
+   0,
+   2,
+   1.433,
+   4.0
+  ],
+  [
+   3,
+   2,
+   0,
+   1.5231,
+   3.0
+  ],
+  [
+   3,
+   1,
+   1,
+   1.551,
+   6.0
+  ],
+  [
+   3,
+   0,
+   1,
+   1.6205,
+   20.0
+  ],
+  [
+   2,
+   2,
+   1,
+   1.6701,
+   42.0
+  ],
+  [
+   3,
+   1,
+   0,
+   1.7505,
+   12.0
+  ],
+  [
+   2,
+   2,
+   0,
+   1.9275,
+   47.0
+  ],
+  [
+   1,
+   2,
+   1,
+   1.956,
+   100.0
+  ],
+  [
+   2,
+   1,
+   1,
+   1.985,
+   45.0
+  ],
+  [
+   0,
+   2,
+   1,
+   2.0898,
+   6.0
+  ],
+  [
+   2,
+   1,
+   0,
+   2.466,
+   22.0
+  ],
+  [
+   1,
+   1,
+   1,
+   2.5266,
+   58.0
+  ],
+  [
+   0,
+   2,
+   0,
+   2.6762,
+   8.0
+  ],
+  [
+   2,
+   0,
+   0,
+   2.7785,
+   12.0
+  ],
+  [
+   1,
+   0,
+   1,
+   2.866,
+   67.0
+  ],
+  [
+   1,
+   1,
+   0,
+   3.855,
+   12.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "(VI) Ono 2006",
+   "reference": "FeS (VI) Ono 2006",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 99.5001,
+     "K0": 156.0,
+     "K0_prime": 4.0
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply.",
+   "thermal": {
+    "type": "AlphaKT",
+    "parameters": {
+     "alpha0": 4.26e-05,
+     "dK_dT": 0.0
+    }
+   }
+  }
+ ]
+}

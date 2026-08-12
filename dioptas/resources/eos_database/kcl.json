@@ -83,6 +83,26 @@
      "K0_prime": 4.0
     }
    }
+  },
+  {
+   "label": "B2 (EOS from Walker et al. 2002)",
+   "reference": "KCl1  B2 (EOS from Walker et al. 2002)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 53.3485,
+     "K0": 23.7,
+     "K0_prime": 4.57
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply.",
+   "thermal": {
+    "type": "AlphaKT",
+    "parameters": {
+     "alpha0": 4.26e-05,
+     "dK_dT": 0.0
+    }
+   }
   }
  ]
 }

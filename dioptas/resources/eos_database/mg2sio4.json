@@ -1,0 +1,145 @@
+{
+ "format_version": 1,
+ "name": "Mg2SiO4",
+ "formula": "Mg2SiO4",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 8.0904,
+  "b": 8.0904,
+  "c": 8.0904,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/mg2sio4-rin-1h2o.jcpds",
+ "peaks": [
+  [
+   8,
+   0,
+   0,
+   1.0113,
+   8.0
+  ],
+  [
+   7,
+   3,
+   1,
+   1.0533,
+   8.0
+  ],
+  [
+   6,
+   4,
+   2,
+   1.0811,
+   6.0
+  ],
+  [
+   4,
+   4,
+   4,
+   1.1677,
+   6.0
+  ],
+  [
+   5,
+   3,
+   3,
+   1.2338,
+   11.0
+  ],
+  [
+   6,
+   2,
+   0,
+   1.2792,
+   4.0
+  ],
+  [
+   5,
+   3,
+   1,
+   1.3675,
+   2.0
+  ],
+  [
+   4,
+   4,
+   0,
+   1.4302,
+   73.0
+  ],
+  [
+   5,
+   1,
+   1,
+   1.557,
+   50.0
+  ],
+  [
+   4,
+   2,
+   2,
+   1.6514,
+   11.0
+  ],
+  [
+   4,
+   0,
+   0,
+   2.0226,
+   50.0
+  ],
+  [
+   2,
+   2,
+   2,
+   2.3355,
+   4.0
+  ],
+  [
+   3,
+   1,
+   1,
+   2.4393,
+   100.0
+  ],
+  [
+   2,
+   2,
+   0,
+   2.8604,
+   33.0
+  ],
+  [
+   1,
+   1,
+   1,
+   4.671,
+   22.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "Fo90 Smyth et al 2003",
+   "reference": "Mg2SiO4 (Fo90 Smyth et al 2003)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 529.5537,
+     "K0": 169.0,
+     "K0_prime": 7.5
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply.",
+   "thermal": {
+    "type": "AlphaKT",
+    "parameters": {
+     "alpha0": 0.00011,
+     "dK_dT": 0.0
+    }
+   }
+  }
+ ]
+}

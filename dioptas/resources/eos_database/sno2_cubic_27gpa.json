@@ -1,0 +1,110 @@
+{
+ "format_version": 1,
+ "name": "sno2 cubic 27GPa",
+ "formula": "",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 4.9201,
+  "b": 4.9201,
+  "c": 4.9201,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Users data/sno2_cubic_27GPa.jcpds",
+ "peaks": [
+  [
+   4,
+   2,
+   2,
+   1.0043,
+   15.0
+  ],
+  [
+   4,
+   2,
+   0,
+   1.1002,
+   20.0
+  ],
+  [
+   3,
+   3,
+   1,
+   1.1287,
+   65.0
+  ],
+  [
+   4,
+   0,
+   0,
+   1.23,
+   20.0
+  ],
+  [
+   2,
+   2,
+   2,
+   1.4203,
+   5.0
+  ],
+  [
+   3,
+   1,
+   1,
+   1.4835,
+   100.0
+  ],
+  [
+   2,
+   2,
+   0,
+   1.7395,
+   80.0
+  ],
+  [
+   2,
+   1,
+   1,
+   2.0086,
+   5.0
+  ],
+  [
+   2,
+   1,
+   0,
+   2.2003,
+   15.0
+  ],
+  [
+   2,
+   0,
+   0,
+   2.46,
+   85.0
+  ],
+  [
+   1,
+   1,
+   1,
+   2.8406,
+   80.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "SnO2_Pa-3 at 26.6 GPa (by Ono et al., 2000)",
+   "reference": "SnO2_Pa-3 at 26.6 GPa (by Ono et al., 2000)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 119.1028,
+     "K0": 252.0,
+     "K0_prime": 3.5
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

@@ -1,0 +1,82 @@
+{
+ "format_version": 1,
+ "name": "Majorite",
+ "formula": "",
+ "symmetry": "TETRAGONAL",
+ "lattice": {
+  "a": 11.501,
+  "b": 11.501,
+  "c": 11.48,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/ver3/majorite.jcpds",
+ "peaks": [
+  [
+   4,
+   0,
+   0,
+   2.8752,
+   5.0
+  ],
+  [
+   2,
+   2,
+   0,
+   4.0662,
+   6.0
+  ],
+  [
+   1,
+   1,
+   2,
+   4.6895,
+   6.0
+  ],
+  [
+   0,
+   0,
+   2,
+   5.74,
+   19.0
+  ],
+  [
+   2,
+   0,
+   0,
+   5.7505,
+   14.0
+  ],
+  [
+   1,
+   0,
+   1,
+   8.125,
+   81.0
+  ],
+  [
+   1,
+   1,
+   0,
+   8.1324,
+   100.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "GSAS calculation, EOS from Yagi et al, 1992",
+   "reference": "Majorite (GSAS calculation, EOS from Yagi et al, 1992)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 1518.4941,
+     "K0": 159.8,
+     "K0_prime": 4.98
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

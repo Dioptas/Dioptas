@@ -1,0 +1,159 @@
+{
+ "format_version": 1,
+ "name": "Chabazite",
+ "formula": "",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 13.784,
+  "b": 13.784,
+  "c": 14.99699,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Users data/chabazite.jcpds",
+ "peaks": [
+  [
+   4,
+   4,
+   0,
+   1.723,
+   10.0
+  ],
+  [
+   4,
+   2,
+   5,
+   1.8029,
+   18.0
+  ],
+  [
+   4,
+   1,
+   6,
+   1.8035,
+   18.0
+  ],
+  [
+   1,
+   2,
+   5,
+   2.4978,
+   21.0
+  ],
+  [
+   0,
+   0,
+   6,
+   2.4995,
+   21.0
+  ],
+  [
+   4,
+   1,
+   0,
+   2.6049,
+   20.0
+  ],
+  [
+   2,
+   1,
+   4,
+   2.8836,
+   45.0
+  ],
+  [
+   0,
+   1,
+   5,
+   2.909,
+   21.0
+  ],
+  [
+   4,
+   0,
+   1,
+   2.9269,
+   93.0
+  ],
+  [
+   0,
+   2,
+   4,
+   3.1748,
+   11.0
+  ],
+  [
+   2,
+   2,
+   0,
+   3.446,
+   19.0
+  ],
+  [
+   1,
+   0,
+   4,
+   3.577,
+   42.0
+  ],
+  [
+   1,
+   2,
+   2,
+   3.866,
+   21.0
+  ],
+  [
+   2,
+   1,
+   1,
+   4.3206,
+   100.0
+  ],
+  [
+   0,
+   0,
+   3,
+   4.999,
+   29.0
+  ],
+  [
+   0,
+   2,
+   1,
+   5.5456,
+   26.0
+  ],
+  [
+   1,
+   1,
+   0,
+   6.892,
+   13.0
+  ],
+  [
+   1,
+   0,
+   1,
+   9.3398,
+   54.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "(JCPDS 34-0137, EOS unkown) (Int>10)",
+   "reference": "Chabazite (JCPDS 34-0137, EOS unkown) (Int>10)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 2467.66,
+     "K0": 50.0,
+     "K0_prime": 4.0
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

@@ -1,0 +1,96 @@
+{
+ "format_version": 1,
+ "name": "Ni(OH)2",
+ "formula": "",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 3.126,
+  "b": 3.126,
+  "c": 4.60491,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Users data/nioh2.jcpds",
+ "peaks": [
+  [
+   2,
+   0,
+   2,
+   1.1669,
+   8.0
+  ],
+  [
+   2,
+   0,
+   1,
+   1.2987,
+   10.0
+  ],
+  [
+   1,
+   0,
+   3,
+   1.3353,
+   8.0
+  ],
+  [
+   1,
+   1,
+   1,
+   1.4801,
+   16.0
+  ],
+  [
+   1,
+   1,
+   0,
+   1.563,
+   25.0
+  ],
+  [
+   1,
+   0,
+   2,
+   1.7539,
+   35.0
+  ],
+  [
+   1,
+   0,
+   1,
+   2.3338,
+   100.0
+  ],
+  [
+   1,
+   0,
+   0,
+   2.7072,
+   45.0
+  ],
+  [
+   0,
+   0,
+   1,
+   4.6049,
+   100.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "(14-0117) (EOS unknown)",
+   "reference": "Ni(OH)2 (14-0117) (EOS unknown)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 38.9699,
+     "K0": 50.0,
+     "K0_prime": 4.0
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

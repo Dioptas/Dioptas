@@ -77,7 +77,9 @@ class EosDatabaseControllerTest(QtTest):
         assert self.dialog.eos_table.rowCount() != gold_rows
 
     def test_material_without_records_is_still_loadable(self):
-        self.dialog.search_input.setText("copper")
+        material = next(m for m in eos.load_materials()
+                        if not m.eos_records)
+        self.dialog.search_input.setText(material.name)
         self.dialog.materials_table.selectRow(0)
         assert self.dialog.eos_table.rowCount() == 0
         assert self.dialog.load_btn.isEnabled()

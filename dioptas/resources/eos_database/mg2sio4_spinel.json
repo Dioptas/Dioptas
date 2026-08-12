@@ -1,0 +1,152 @@
+{
+ "format_version": 1,
+ "name": "Mg2SiO4",
+ "formula": "Mg2SiO4",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 8.0709,
+  "b": 8.0709,
+  "c": 8.0709,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/certified data base/mg2sio4-g.jcpds, JCPDS/dac_user_jcpds/mg2sio4-rin.jcpds",
+ "peaks": [
+  [
+   8,
+   4,
+   0,
+   0.9024,
+   1.0
+  ],
+  [
+   8,
+   0,
+   0,
+   1.0089,
+   1.0
+  ],
+  [
+   5,
+   5,
+   3,
+   1.0507,
+   1.0
+  ],
+  [
+   7,
+   3,
+   1,
+   1.0507,
+   2.0
+  ],
+  [
+   4,
+   4,
+   4,
+   1.1649,
+   2.0
+  ],
+  [
+   5,
+   3,
+   3,
+   1.2308,
+   3.0
+  ],
+  [
+   6,
+   2,
+   0,
+   1.2761,
+   1.0
+  ],
+  [
+   4,
+   4,
+   0,
+   1.4267,
+   31.0
+  ],
+  [
+   3,
+   3,
+   3,
+   1.5532,
+   6.0
+  ],
+  [
+   5,
+   1,
+   1,
+   1.5532,
+   9.0
+  ],
+  [
+   4,
+   2,
+   2,
+   1.6475,
+   6.0
+  ],
+  [
+   3,
+   3,
+   1,
+   1.8516,
+   2.0
+  ],
+  [
+   4,
+   0,
+   0,
+   2.0177,
+   39.0
+  ],
+  [
+   2,
+   2,
+   2,
+   2.3299,
+   1.0
+  ],
+  [
+   3,
+   1,
+   1,
+   2.4335,
+   100.0
+  ],
+  [
+   2,
+   2,
+   0,
+   2.8535,
+   30.0
+  ],
+  [
+   1,
+   1,
+   1,
+   4.6597,
+   20.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "spinel (GSAS calculation, EOS from Knittle and Jeanloz,1987)",
+   "reference": "Mg2SiO4 spinel (GSAS calculation, EOS from Knittle and Jeanloz,1987)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 525.7338,
+     "K0": 183.0,
+     "K0_prime": 5.38
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply. 1/17 file peaks deviate >2% from the lattice d-spacing."
+  }
+ ]
+}

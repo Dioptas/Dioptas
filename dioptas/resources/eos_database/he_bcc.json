@@ -1,0 +1,61 @@
+{
+ "format_version": 1,
+ "name": "He",
+ "formula": "He",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 4.01,
+  "b": 4.01,
+  "c": 4.01,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/He/He-bcc.jcpds",
+ "peaks": [
+  [
+   2,
+   2,
+   0,
+   1.4177,
+   9.0
+  ],
+  [
+   2,
+   1,
+   1,
+   1.6371,
+   30.0
+  ],
+  [
+   2,
+   0,
+   0,
+   2.005,
+   19.0
+  ],
+  [
+   1,
+   1,
+   0,
+   2.8355,
+   100.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "(bcc)  (Phys.Rev 1958, Schuch)",
+   "reference": "He (bcc)  (Phys.Rev 1958, Schuch)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 64.4812,
+     "K0": 0.225,
+     "K0_prime": 7.35
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

@@ -1,0 +1,103 @@
+{
+ "format_version": 1,
+ "name": "FeH2",
+ "formula": "FeH2",
+ "symmetry": "TETRAGONAL",
+ "lattice": {
+  "a": 2.714,
+  "b": 2.714,
+  "c": 9.2142,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/FeH2_tetragonal.jcpds",
+ "peaks": [
+  [
+   2,
+   1,
+   1,
+   1.2033,
+   10.0
+  ],
+  [
+   2,
+   0,
+   0,
+   1.357,
+   10.0
+  ],
+  [
+   1,
+   1,
+   4,
+   1.4745,
+   50.0
+  ],
+  [
+   0,
+   0,
+   6,
+   1.5357,
+   10.0
+  ],
+  [
+   1,
+   1,
+   2,
+   1.7715,
+   10.0
+  ],
+  [
+   1,
+   1,
+   0,
+   1.9191,
+   50.0
+  ],
+  [
+   1,
+   0,
+   3,
+   2.0338,
+   100.0
+  ],
+  [
+   0,
+   0,
+   4,
+   2.3036,
+   50.0
+  ],
+  [
+   1,
+   0,
+   1,
+   2.6034,
+   100.0
+  ],
+  [
+   0,
+   0,
+   2,
+   4.6071,
+   50.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "tetragonal from Pepin 2014",
+   "reference": "FeH2 tetragonal from Pepin 2014",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 67.8699,
+     "K0": 127.2,
+     "K0_prime": 5.0
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

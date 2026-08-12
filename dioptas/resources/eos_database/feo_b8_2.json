@@ -1,0 +1,138 @@
+{
+ "format_version": 1,
+ "name": "FeO",
+ "formula": "FeO",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 2.8346,
+  "b": 2.8346,
+  "c": 5.7259,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/CVS/PbF2_ni2in.jcpds, JCPDS/dac_user_jcpds/FeO_B8.jcpds",
+ "peaks": [
+  [
+   1,
+   1,
+   4,
+   1.0072,
+   14.0
+  ],
+  [
+   2,
+   0,
+   3,
+   1.0324,
+   0.0
+  ],
+  [
+   1,
+   0,
+   5,
+   1.0378,
+   0.0
+  ],
+  [
+   2,
+   0,
+   2,
+   1.1281,
+   18.0
+  ],
+  [
+   2,
+   0,
+   1,
+   1.2002,
+   1.0
+  ],
+  [
+   2,
+   0,
+   0,
+   1.2274,
+   8.0
+  ],
+  [
+   1,
+   0,
+   4,
+   1.2366,
+   16.0
+  ],
+  [
+   1,
+   1,
+   2,
+   1.2702,
+   14.0
+  ],
+  [
+   1,
+   1,
+   0,
+   1.4173,
+   25.0
+  ],
+  [
+   0,
+   0,
+   4,
+   1.4315,
+   8.0
+  ],
+  [
+   1,
+   0,
+   3,
+   1.5068,
+   2.0
+  ],
+  [
+   1,
+   0,
+   2,
+   1.8636,
+   100.0
+  ],
+  [
+   1,
+   0,
+   1,
+   2.2562,
+   8.0
+  ],
+  [
+   1,
+   0,
+   0,
+   2.4548,
+   64.0
+  ],
+  [
+   0,
+   0,
+   2,
+   2.863,
+   22.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "B8\tFisher et al. 2010",
+   "reference": "FeO-B8\tFisher et al. 2010",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 39.8435,
+     "K0": 137.8,
+     "K0_prime": 4.0
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

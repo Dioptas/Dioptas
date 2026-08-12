@@ -1,0 +1,117 @@
+{
+ "format_version": 1,
+ "name": "Al2O3-gamma",
+ "formula": "Al2O3",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 7.9,
+  "b": 7.9,
+  "c": 7.9,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Users data/al2o3-gamma.jcpds",
+ "peaks": [
+  [
+   8,
+   4,
+   4,
+   0.8063,
+   20.0
+  ],
+  [
+   8,
+   4,
+   0,
+   0.8832,
+   10.0
+  ],
+  [
+   8,
+   0,
+   0,
+   0.9875,
+   10.0
+  ],
+  [
+   7,
+   3,
+   1,
+   1.0285,
+   10.0
+  ],
+  [
+   4,
+   4,
+   4,
+   1.1403,
+   20.0
+  ],
+  [
+   4,
+   4,
+   0,
+   1.3965,
+   100.0
+  ],
+  [
+   5,
+   1,
+   1,
+   1.5204,
+   30.0
+  ],
+  [
+   4,
+   0,
+   0,
+   1.975,
+   100.0
+  ],
+  [
+   2,
+   2,
+   2,
+   2.2805,
+   50.0
+  ],
+  [
+   3,
+   1,
+   1,
+   2.3819,
+   80.0
+  ],
+  [
+   2,
+   2,
+   0,
+   2.7931,
+   20.0
+  ],
+  [
+   1,
+   1,
+   1,
+   4.5611,
+   40.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "JCPDS 46-1212, EOS",
+   "reference": "Al2O3-gamma (JCPDS 46-1212, EOS)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 493.039,
+     "K0": 250.0,
+     "K0_prime": 4.3
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply. 1/12 file peaks deviate >2% from the lattice d-spacing."
+  }
+ ]
+}

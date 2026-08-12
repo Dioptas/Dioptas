@@ -62,6 +62,19 @@
      "K0_prime": 3.9
     }
    }
+  },
+  {
+   "label": "JCPDS 6-0675, EOS from ?",
+   "reference": "diamond (JCPDS 6-0675, EOS from ?)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 45.3732,
+     "K0": 800.0,
+     "K0_prime": 4.0
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
   }
  ]
 }

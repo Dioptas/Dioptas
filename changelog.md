@@ -8,6 +8,10 @@
 
 - **Equations of state through Peritheos.** Phase lines at pressure are now computed through the [Peritheos](https://github.com/CPrescher/peritheos) library. Database phases carry one EoS record per literature reference — the phase table's **Ref** dropdown switches between them and recomputes the lines live — and the Phase Editor (formerly JCPDS editor) lets experts pick any equation Peritheos supports (2nd/3rd/4th-order Birch-Murnaghan, Murnaghan, Vinet, Modified Tait, Natural Strain, Holzapfel), showing exactly the parameters that equation needs. Existing `.jcpds` phases behave exactly as before (3rd-order Birch-Murnaghan, cross-validated against the previous solver).
 
+- **The EoS database grew from 22 to 177 materials** (220 literature records), curated from a beamline jcpds collection: 830 files were deduplicated, checked for internal consistency (peak lists recomputed against their lattice), stripped of placeholder equations of state and unedited template comments, and imported with their original references preserved verbatim.
+
+- **Old jcpds files load again.** Version 2/3 jcpds files (Dan Shim's fixed format, still common in beamline collections) crashed the loader for years; they now load, including all six crystal-system codes.
+
 - **Thermal equations of state.** The Phase Editor's **Thermal** selector composes a thermal model over the equation of state: the classic constant α/dK-dT correction (what `.jcpds` files have always used), or Peritheos' **Mie-Grüneisen-Debye** / **Mie-Grüneisen-Einstein** models with θ₀, γ₀ and q — so the temperature spinbox moves the lines with proper high-temperature physics instead of a linearized shift. Database records carry the published thermal fits where available (e.g. gold and neon from Fei et al., PNAS 2007), and the whole thermal state survives project save/load.
 
 ## Bugfixes

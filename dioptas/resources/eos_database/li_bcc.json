@@ -1,0 +1,82 @@
+{
+ "format_version": 1,
+ "name": "Li",
+ "formula": "Li",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.51,
+  "b": 3.51,
+  "c": 3.51,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Li-bcc.jcpds",
+ "peaks": [
+  [
+   3,
+   2,
+   1,
+   0.9381,
+   19.8
+  ],
+  [
+   2,
+   2,
+   2,
+   1.0132,
+   3.7
+  ],
+  [
+   3,
+   1,
+   0,
+   1.11,
+   14.0
+  ],
+  [
+   2,
+   2,
+   0,
+   1.241,
+   10.2
+  ],
+  [
+   2,
+   1,
+   1,
+   1.433,
+   34.6
+  ],
+  [
+   2,
+   0,
+   0,
+   1.755,
+   17.5
+  ],
+  [
+   1,
+   1,
+   0,
+   2.4819,
+   100.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "(bcc)  (JCPDS 6-0696, EOS from Hanfland SSC )",
+   "reference": "Li (bcc)  (JCPDS 6-0696, EOS from Hanfland SSC )",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 43.2436,
+     "K0": 11.32,
+     "K0_prime": 3.62
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

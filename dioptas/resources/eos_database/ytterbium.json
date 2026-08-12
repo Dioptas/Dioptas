@@ -1,0 +1,173 @@
+{
+ "format_version": 1,
+ "name": "Ytterbium",
+ "formula": "",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 3.015,
+  "b": 3.015,
+  "c": 4.823,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Yb_hcp.jcpds",
+ "peaks": [
+  [
+   3,
+   0,
+   0,
+   0.8704,
+   5.0
+  ],
+  [
+   2,
+   0,
+   4,
+   0.8858,
+   2.0
+  ],
+  [
+   1,
+   0,
+   5,
+   0.9048,
+   8.0
+  ],
+  [
+   2,
+   1,
+   2,
+   0.9134,
+   5.0
+  ],
+  [
+   1,
+   1,
+   4,
+   0.9416,
+   8.0
+  ],
+  [
+   2,
+   1,
+   1,
+   0.9669,
+   15.0
+  ],
+  [
+   2,
+   1,
+   0,
+   0.9869,
+   3.0
+  ],
+  [
+   2,
+   0,
+   3,
+   1.0135,
+   7.0
+  ],
+  [
+   1,
+   0,
+   4,
+   1.0947,
+   2.0
+  ],
+  [
+   2,
+   0,
+   2,
+   1.1481,
+   3.0
+  ],
+  [
+   0,
+   0,
+   4,
+   1.2058,
+   2.0
+  ],
+  [
+   2,
+   0,
+   1,
+   1.2602,
+   15.0
+  ],
+  [
+   1,
+   1,
+   2,
+   1.2783,
+   20.0
+  ],
+  [
+   2,
+   0,
+   0,
+   1.3055,
+   3.0
+  ],
+  [
+   1,
+   0,
+   3,
+   1.369,
+   16.0
+  ],
+  [
+   1,
+   1,
+   0,
+   1.5075,
+   22.0
+  ],
+  [
+   1,
+   0,
+   2,
+   1.7715,
+   11.0
+  ],
+  [
+   1,
+   0,
+   1,
+   2.2962,
+   100.0
+  ],
+  [
+   0,
+   0,
+   2,
+   2.4115,
+   34.0
+  ],
+  [
+   1,
+   0,
+   0,
+   2.6111,
+   32.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "JCPDS 5-0702, EOS from ?",
+   "reference": "Ytterbium (JCPDS 5-0702, EOS from ?)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 37.9684,
+     "K0": 43.8,
+     "K0_prime": 3.46
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply. 3/20 file peaks deviate >2% from the lattice d-spacing."
+  }
+ ]
+}

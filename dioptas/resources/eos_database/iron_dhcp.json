@@ -1,0 +1,117 @@
+{
+ "format_version": 1,
+ "name": "Iron",
+ "formula": "Fe",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 2.668,
+  "b": 2.668,
+  "c": 8.75,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/feH-dhcp2.jcpds",
+ "peaks": [
+  [
+   1,
+   1,
+   4,
+   1.1389,
+   24.0
+  ],
+  [
+   2,
+   0,
+   1,
+   1.1453,
+   5.0
+  ],
+  [
+   2,
+   0,
+   0,
+   1.1553,
+   2.0
+  ],
+  [
+   1,
+   0,
+   6,
+   1.2332,
+   18.0
+  ],
+  [
+   1,
+   1,
+   0,
+   1.334,
+   10.0
+  ],
+  [
+   1,
+   0,
+   5,
+   1.395,
+   5.0
+  ],
+  [
+   1,
+   0,
+   4,
+   1.5885,
+   12.0
+  ],
+  [
+   1,
+   0,
+   3,
+   1.8111,
+   21.0
+  ],
+  [
+   1,
+   0,
+   2,
+   2.0431,
+   100.0
+  ],
+  [
+   0,
+   0,
+   4,
+   2.1875,
+   36.0
+  ],
+  [
+   1,
+   0,
+   1,
+   2.234,
+   43.0
+  ],
+  [
+   1,
+   0,
+   0,
+   2.3106,
+   8.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "DHCP (Baddington - 1991 calc)",
+   "reference": "Iron DHCP (Baddington - 1991 calc)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 53.9399,
+     "K0": 121.0,
+     "K0_prime": 5.33
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply. 1/12 file peaks deviate >2% from the lattice d-spacing."
+  }
+ ]
+}

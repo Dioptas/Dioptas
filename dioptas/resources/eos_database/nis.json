@@ -1,0 +1,68 @@
+{
+ "format_version": 1,
+ "name": "NiS",
+ "formula": "NiS",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 3.4395,
+  "b": 3.4395,
+  "c": 5.3514,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/NiS_alpha.jcpds",
+ "peaks": [
+  [
+   0,
+   2,
+   2,
+   1.3013,
+   22.0
+  ],
+  [
+   1,
+   1,
+   0,
+   1.7198,
+   44.0
+  ],
+  [
+   0,
+   1,
+   2,
+   1.9905,
+   100.0
+  ],
+  [
+   0,
+   1,
+   1,
+   2.6027,
+   28.0
+  ],
+  [
+   0,
+   1,
+   0,
+   2.9787,
+   59.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "Campbell and Heintz 1993",
+   "reference": "NiS (Campbell and Heintz 1993)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 54.8263,
+     "K0": 156.0,
+     "K0_prime": 4.4
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

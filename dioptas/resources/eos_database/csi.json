@@ -1,0 +1,75 @@
+{
+ "format_version": 1,
+ "name": "CsI",
+ "formula": "CsI",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 4.5679,
+  "b": 4.5679,
+  "c": 4.5679,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/CsI.jcpds",
+ "peaks": [
+  [
+   3,
+   1,
+   0,
+   1.4445,
+   8.0
+  ],
+  [
+   2,
+   2,
+   0,
+   1.615,
+   18.0
+  ],
+  [
+   2,
+   1,
+   1,
+   1.8648,
+   35.0
+  ],
+  [
+   2,
+   0,
+   0,
+   2.284,
+   20.0
+  ],
+  [
+   1,
+   1,
+   0,
+   3.23,
+   100.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "JCPDS 6-311",
+   "reference": "CsI (JCPDS 6-311)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 95.3125,
+     "K0": 23.88,
+     "K0_prime": 5.2
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply.",
+   "thermal": {
+    "type": "AlphaKT",
+    "parameters": {
+     "alpha0": 4.26e-05,
+     "dK_dT": 0.0
+    }
+   }
+  }
+ ]
+}

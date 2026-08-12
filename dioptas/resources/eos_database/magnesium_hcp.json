@@ -1,0 +1,96 @@
+{
+ "format_version": 1,
+ "name": "Magnesium",
+ "formula": "Mg",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 3.20936,
+  "b": 3.20936,
+  "c": 5.2112,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Mg-hcp.jcpds",
+ "peaks": [
+  [
+   2,
+   0,
+   1,
+   1.3428,
+   8.0
+  ],
+  [
+   1,
+   1,
+   2,
+   1.3664,
+   13.0
+  ],
+  [
+   2,
+   0,
+   0,
+   1.3897,
+   2.0
+  ],
+  [
+   1,
+   0,
+   3,
+   1.473,
+   16.0
+  ],
+  [
+   1,
+   1,
+   0,
+   1.6047,
+   12.0
+  ],
+  [
+   1,
+   0,
+   2,
+   1.9009,
+   15.0
+  ],
+  [
+   1,
+   0,
+   1,
+   2.4524,
+   100.0
+  ],
+  [
+   0,
+   0,
+   2,
+   2.6056,
+   36.0
+  ],
+  [
+   1,
+   0,
+   0,
+   2.7794,
+   25.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "(JCPDS 35-0821 ) EOS from Leonid",
+   "reference": "Magnesium (JCPDS 35-0821 ) EOS from Leonid",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 46.4842,
+     "K0": 33.6,
+     "K0_prime": 4.0
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

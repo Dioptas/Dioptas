@@ -1,0 +1,96 @@
+{
+ "format_version": 1,
+ "name": "he",
+ "formula": "",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 3.65,
+  "b": 3.65,
+  "c": 5.945,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/He/He-hcp.jcpds",
+ "peaks": [
+  [
+   2,
+   0,
+   1,
+   1.5274,
+   10.0
+  ],
+  [
+   1,
+   1,
+   2,
+   1.5553,
+   10.0
+  ],
+  [
+   2,
+   0,
+   0,
+   1.5805,
+   10.0
+  ],
+  [
+   1,
+   0,
+   3,
+   1.679,
+   10.0
+  ],
+  [
+   1,
+   1,
+   0,
+   1.825,
+   10.0
+  ],
+  [
+   1,
+   0,
+   2,
+   2.1654,
+   10.0
+  ],
+  [
+   1,
+   0,
+   1,
+   2.791,
+   100.0
+  ],
+  [
+   0,
+   0,
+   2,
+   2.9725,
+   80.0
+  ],
+  [
+   1,
+   0,
+   0,
+   3.161,
+   20.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "(hcp phase 1.73 K 29.7 bar) PRL v8 (1962) 469-470",
+   "reference": "he (hcp phase 1.73 K 29.7 bar) PRL v8 (1962) 469-470",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 68.5912,
+     "K0": 0.225,
+     "K0_prime": 7.35
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

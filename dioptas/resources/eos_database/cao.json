@@ -1,0 +1,124 @@
+{
+ "format_version": 1,
+ "name": "CaO",
+ "formula": "CaO",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 4.81059,
+  "b": 4.81059,
+  "c": 4.81059,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/cao.jcpds, JCPDS/current user/jcpds/ver3/cao.jcpds, JCPDS/current user/jcpds/ver2/cao.jcpds",
+ "peaks": [
+  [
+   6,
+   0,
+   0,
+   0.8018,
+   16.0
+  ],
+  [
+   5,
+   3,
+   1,
+   0.8131,
+   10.0
+  ],
+  [
+   4,
+   4,
+   0,
+   0.8504,
+   6.0
+  ],
+  [
+   5,
+   1,
+   1,
+   0.9258,
+   6.0
+  ],
+  [
+   4,
+   2,
+   2,
+   0.982,
+   12.0
+  ],
+  [
+   4,
+   2,
+   0,
+   1.0757,
+   16.0
+  ],
+  [
+   3,
+   3,
+   1,
+   1.1036,
+   6.0
+  ],
+  [
+   4,
+   0,
+   0,
+   1.2026,
+   6.0
+  ],
+  [
+   2,
+   2,
+   2,
+   1.3887,
+   16.0
+  ],
+  [
+   3,
+   1,
+   1,
+   1.4504,
+   16.0
+  ],
+  [
+   2,
+   2,
+   0,
+   1.7008,
+   54.0
+  ],
+  [
+   2,
+   0,
+   0,
+   2.4053,
+   100.0
+  ],
+  [
+   1,
+   1,
+   1,
+   2.7774,
+   36.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "JCPDS 37-1497, EOS by Richet et al 1988",
+   "reference": "CaO (JCPDS 37-1497, EOS by Richet et al 1988)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 111.3256,
+     "K0": 111.0,
+     "K0_prime": 4.2
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

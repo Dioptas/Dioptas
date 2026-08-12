@@ -1,0 +1,138 @@
+{
+ "format_version": 1,
+ "name": "LiNbO3-type MgGeO3",
+ "formula": "MgGeO3",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 4.9871,
+  "b": 4.9871,
+  "c": 13.09,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/MgGeO3-LiNbO3type.jcpds",
+ "peaks": [
+  [
+   2,
+   2,
+   0,
+   1.2468,
+   5.0
+  ],
+  [
+   1,
+   0,
+   10,
+   1.2527,
+   5.0
+  ],
+  [
+   1,
+   1,
+   9,
+   1.2563,
+   5.0
+  ],
+  [
+   2,
+   0,
+   8,
+   1.3042,
+   5.0
+  ],
+  [
+   0,
+   3,
+   0,
+   1.4397,
+   10.0
+  ],
+  [
+   2,
+   1,
+   4,
+   1.4608,
+   10.0
+  ],
+  [
+   0,
+   1,
+   8,
+   1.5301,
+   5.0
+  ],
+  [
+   1,
+   2,
+   2,
+   1.5839,
+   5.0
+  ],
+  [
+   1,
+   1,
+   6,
+   1.6419,
+   16.0
+  ],
+  [
+   0,
+   2,
+   4,
+   1.8024,
+   25.0
+  ],
+  [
+   2,
+   0,
+   2,
+   2.0507,
+   5.0
+  ],
+  [
+   1,
+   1,
+   3,
+   2.165,
+   16.0
+  ],
+  [
+   1,
+   1,
+   0,
+   2.4936,
+   40.0
+  ],
+  [
+   1,
+   0,
+   4,
+   2.6083,
+   40.0
+  ],
+  [
+   0,
+   1,
+   2,
+   3.6048,
+   100.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "after \"corundum\" phase of MgGeO3 in Ito and Matsui, 1979",
+   "reference": "LiNbO3-type MgGeO3 (after \"corundum\" phase of MgGeO3 in Ito and Matsui, 1979)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 281.9463,
+     "K0": 212.0,
+     "K0_prime": 4.0
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

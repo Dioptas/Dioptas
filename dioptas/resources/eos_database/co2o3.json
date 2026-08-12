@@ -1,0 +1,75 @@
+{
+ "format_version": 1,
+ "name": "Co2O3",
+ "formula": "Co2O3",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 4.882,
+  "b": 4.882,
+  "c": 13.3864,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/certified data base/co2o3h.jcpds, JCPDS/current user/jcpds/ver3/co2o3h.jcpds, JCPDS/dac_user_jcpds/Users data/co2o3h.jcpds",
+ "peaks": [
+  [
+   1,
+   1,
+   6,
+   1.6468,
+   100.0
+  ],
+  [
+   0,
+   2,
+   4,
+   1.7873,
+   24.0
+  ],
+  [
+   1,
+   1,
+   3,
+   2.1415,
+   21.0
+  ],
+  [
+   1,
+   1,
+   0,
+   2.441,
+   50.0
+  ],
+  [
+   1,
+   0,
+   4,
+   2.624,
+   61.0
+  ],
+  [
+   0,
+   1,
+   2,
+   3.5745,
+   24.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "by Chenavas and Joubert, EOS from CoO, 66",
+   "reference": "Co2O3 (by Chenavas and Joubert, EOS from CoO, 66)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 276.3058,
+     "K0": 190.5,
+     "K0_prime": 3.9
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

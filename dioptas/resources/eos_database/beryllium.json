@@ -1,0 +1,89 @@
+{
+ "format_version": 1,
+ "name": "Beryllium",
+ "formula": "Be",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 2.2859,
+  "b": 2.2859,
+  "c": 3.5843,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/beAlex.jcpds",
+ "peaks": [
+  [
+   2,
+   0,
+   1,
+   0.9541,
+   6.0
+  ],
+  [
+   1,
+   1,
+   2,
+   0.9637,
+   8.0
+  ],
+  [
+   1,
+   0,
+   3,
+   1.0229,
+   8.0
+  ],
+  [
+   1,
+   1,
+   0,
+   1.143,
+   9.0
+  ],
+  [
+   1,
+   0,
+   2,
+   1.3286,
+   9.0
+  ],
+  [
+   1,
+   0,
+   1,
+   1.7329,
+   100.0
+  ],
+  [
+   0,
+   0,
+   2,
+   1.7922,
+   25.0
+  ],
+  [
+   1,
+   0,
+   0,
+   1.9796,
+   30.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "JCPDS 22-111 EOS - unknown",
+   "reference": "Beryllium (JCPDS 22-111 EOS - unknown)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 16.2199,
+     "K0": 130.0,
+     "K0_prime": 4.0
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

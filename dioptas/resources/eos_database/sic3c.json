@@ -1,0 +1,89 @@
+{
+ "format_version": 1,
+ "name": "SiC3c",
+ "formula": "SiC3C",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 4.3584,
+  "b": 4.3584,
+  "c": 4.3584,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/SiC3c.jcpds",
+ "peaks": [
+  [
+   4,
+   2,
+   0,
+   0.9746,
+   8.0
+  ],
+  [
+   3,
+   3,
+   1,
+   0.9999,
+   17.0
+  ],
+  [
+   4,
+   0,
+   0,
+   1.0896,
+   34.0
+  ],
+  [
+   2,
+   2,
+   2,
+   1.2582,
+   16.0
+  ],
+  [
+   3,
+   1,
+   1,
+   1.3141,
+   36.0
+  ],
+  [
+   2,
+   2,
+   0,
+   1.5409,
+   76.0
+  ],
+  [
+   2,
+   0,
+   0,
+   2.1792,
+   32.0
+  ],
+  [
+   1,
+   1,
+   1,
+   2.5163,
+   100.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "SiC 3c JCPDS 2-1383",
+   "reference": "SiC 3c JCPDS 2-1383",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 82.7906,
+     "K0": 260.0,
+     "K0_prime": 2.9
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

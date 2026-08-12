@@ -82,13 +82,13 @@ def test_build_jcpds_carries_everything(gold):
 
 
 def test_build_jcpds_without_records(materials):
-    copper = next(m for m in materials if m.formula == "Cu")
-    assert copper.eos_records == []
-    phase = eos.build_jcpds(copper)
+    # some materials carry peak provenance but no published EoS
+    material = next(m for m in materials if not m.eos_records)
+    phase = eos.build_jcpds(material)
     # loadable anyway: peaks at ambient conditions, V0 from the lattice
-    assert phase.name == "Cu"
-    assert phase.params["v0"] == pytest.approx(3.615 ** 3, rel=1e-4)
-    assert len(phase.reflections) == len(copper.peaks)
+    assert phase.params["v0"] > 0
+    assert len(phase.reflections) == len(material.peaks)
+    assert phase.params["k0"] == 0.0
 
 
 def test_reference_switch_updates_parameters_and_comments(gold):

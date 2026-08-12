@@ -1,0 +1,152 @@
+{
+ "format_version": 1,
+ "name": "Molibdenum",
+ "formula": "Mo",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 3.0029,
+  "b": 3.0029,
+  "c": 4.7289,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Mo2C-hex-Haines.jcpds",
+ "peaks": [
+  [
+   2,
+   1,
+   4,
+   0.7558,
+   20.7
+  ],
+  [
+   0,
+   0,
+   6,
+   0.7882,
+   1.9
+  ],
+  [
+   3,
+   0,
+   2,
+   0.8139,
+   12.6
+  ],
+  [
+   3,
+   0,
+   0,
+   0.8669,
+   9.0
+  ],
+  [
+   2,
+   0,
+   4,
+   0.8747,
+   16.5
+  ],
+  [
+   2,
+   1,
+   2,
+   0.9076,
+   40.0
+  ],
+  [
+   1,
+   1,
+   4,
+   0.9288,
+   22.2
+  ],
+  [
+   2,
+   1,
+   0,
+   0.9829,
+   23.2
+  ],
+  [
+   1,
+   0,
+   4,
+   1.0762,
+   30.0
+  ],
+  [
+   2,
+   0,
+   2,
+   1.1394,
+   37.4
+  ],
+  [
+   0,
+   0,
+   4,
+   1.1822,
+   7.0
+  ],
+  [
+   1,
+   1,
+   2,
+   1.2675,
+   43.0
+  ],
+  [
+   2,
+   0,
+   0,
+   1.3003,
+   24.0
+  ],
+  [
+   1,
+   1,
+   0,
+   1.5014,
+   37.4
+  ],
+  [
+   1,
+   0,
+   2,
+   1.7495,
+   100.0
+  ],
+  [
+   0,
+   0,
+   2,
+   2.3644,
+   25.0
+  ],
+  [
+   1,
+   0,
+   0,
+   2.6006,
+   93.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "JCPDS 42-1120, EOS from Hixson and Fritz, 1992",
+   "reference": "Molibdenum (JCPDS 42-1120, EOS from Hixson and Fritz, 1992)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 36.9294,
+     "K0": 307.0,
+     "K0_prime": 6.2
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

@@ -1,0 +1,138 @@
+{
+ "format_version": 1,
+ "name": "PbO2_Pnam at 48GPa",
+ "formula": "",
+ "symmetry": "ORTHORHOMBIC",
+ "lattice": {
+  "a": 5.443,
+  "b": 6.346,
+  "c": 3.368,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/pbo2_Pnam.jcpds",
+ "peaks": [
+  [
+   4,
+   0,
+   0,
+   1.3607,
+   5.0
+  ],
+  [
+   2,
+   4,
+   0,
+   1.3706,
+   6.0
+  ],
+  [
+   2,
+   0,
+   2,
+   1.432,
+   12.0
+  ],
+  [
+   1,
+   2,
+   2,
+   1.4349,
+   22.0
+  ],
+  [
+   2,
+   3,
+   1,
+   1.4963,
+   28.0
+  ],
+  [
+   3,
+   1,
+   1,
+   1.549,
+   23.0
+  ],
+  [
+   3,
+   2,
+   0,
+   1.575,
+   17.0
+  ],
+  [
+   0,
+   0,
+   2,
+   1.684,
+   14.0
+  ],
+  [
+   0,
+   3,
+   1,
+   1.7913,
+   28.0
+  ],
+  [
+   2,
+   1,
+   1,
+   2.008,
+   32.0
+  ],
+  [
+   1,
+   1,
+   1,
+   2.6105,
+   84.0
+  ],
+  [
+   2,
+   0,
+   0,
+   2.7215,
+   35.0
+  ],
+  [
+   1,
+   2,
+   0,
+   2.7412,
+   65.0
+  ],
+  [
+   0,
+   1,
+   1,
+   2.975,
+   30.0
+  ],
+  [
+   0,
+   2,
+   0,
+   3.173,
+   6.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "Haines et al.1996,EOS guess",
+   "reference": "PbO2_Pnam at 48GPa(Haines et al.1996,EOS guess)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 116.335,
+     "K0": 300.0,
+     "K0_prime": 4.0
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

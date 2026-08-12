@@ -1,0 +1,96 @@
+{
+ "format_version": 1,
+ "name": "Silver",
+ "formula": "Ag",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 4.0862,
+  "b": 4.0862,
+  "c": 4.0862,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Users data/silver.jcpds",
+ "peaks": [
+  [
+   4,
+   2,
+   2,
+   0.8341,
+   13.0
+  ],
+  [
+   4,
+   2,
+   0,
+   0.9137,
+   12.0
+  ],
+  [
+   3,
+   3,
+   1,
+   0.9374,
+   15.0
+  ],
+  [
+   4,
+   0,
+   0,
+   1.0216,
+   4.0
+  ],
+  [
+   2,
+   2,
+   2,
+   1.1796,
+   12.0
+  ],
+  [
+   3,
+   1,
+   1,
+   1.232,
+   26.0
+  ],
+  [
+   2,
+   2,
+   0,
+   1.4447,
+   25.0
+  ],
+  [
+   2,
+   0,
+   0,
+   2.0431,
+   40.0
+  ],
+  [
+   1,
+   1,
+   1,
+   2.3592,
+   100.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "JCPDS 4-0784, EOS from ?",
+   "reference": "Silver (JCPDS 4-0784, EOS from ?)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 68.2274,
+     "K0": 166.65,
+     "K0_prime": 5.48
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

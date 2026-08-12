@@ -69,6 +69,19 @@
      "K0_prime": 3.9
     }
    }
+  },
+  {
+   "label": "4-0806 EOS A. Dewaele, PRB 2007",
+   "reference": "Tungsten (4-0806 EOS A. Dewaele, PRB 2007)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 31.6985,
+     "K0": 307.0,
+     "K0_prime": 5.4
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
   }
  ]
 }

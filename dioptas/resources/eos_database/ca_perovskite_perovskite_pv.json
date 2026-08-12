@@ -1,0 +1,115 @@
+{
+ "format_version": 1,
+ "name": "Ca-perovskite",
+ "formula": "",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.5666,
+  "b": 3.5666,
+  "c": 3.5666,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/simplified/casio3-pv.jcpds",
+ "peaks": [
+  [
+   2,
+   2,
+   2,
+   1.0296,
+   3.0
+  ],
+  [
+   3,
+   1,
+   0,
+   1.1279,
+   3.0
+  ],
+  [
+   2,
+   2,
+   0,
+   1.261,
+   9.0
+  ],
+  [
+   2,
+   1,
+   1,
+   1.4561,
+   15.0
+  ],
+  [
+   2,
+   0,
+   0,
+   1.7833,
+   56.0
+  ],
+  [
+   1,
+   1,
+   1,
+   2.0592,
+   31.0
+  ],
+  [
+   1,
+   1,
+   0,
+   2.522,
+   100.0
+  ],
+  [
+   1,
+   0,
+   0,
+   3.5666,
+   4.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "using aristotype, EOS by Shim et al 1999",
+   "reference": "Ca-perovskite (using aristotype, EOS by Shim et al 1999)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 45.3694,
+     "K0": 236.0,
+     "K0_prime": 3.9
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  },
+  {
+   "label": "using aristotype, EOS by Shim et al 1999 [K0=245]",
+   "reference": "Ca-perovskite (using aristotype, EOS by Shim et al 1999)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 45.3694,
+     "K0": 245.0,
+     "K0_prime": 4.0
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  },
+  {
+   "label": "using aristotype, EOS by Mao et al 1989",
+   "reference": "Ca-perovskite (using aristotype, EOS by Mao et al 1989)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 45.3694,
+     "K0": 281.0,
+     "K0_prime": 4.0
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

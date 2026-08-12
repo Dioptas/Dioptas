@@ -1,0 +1,82 @@
+{
+ "format_version": 1,
+ "name": "FeO",
+ "formula": "FeO",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 4.293,
+  "b": 4.293,
+  "c": 4.293,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/feo.jcpds, JCPDS/dac_user_jcpds/Users data/feo.jcpds",
+ "peaks": [
+  [
+   3,
+   3,
+   1,
+   0.9849,
+   30.0
+  ],
+  [
+   4,
+   0,
+   0,
+   1.0732,
+   40.0
+  ],
+  [
+   2,
+   2,
+   2,
+   1.2393,
+   40.0
+  ],
+  [
+   3,
+   1,
+   1,
+   1.2944,
+   50.0
+  ],
+  [
+   2,
+   2,
+   0,
+   1.5178,
+   80.0
+  ],
+  [
+   2,
+   0,
+   0,
+   2.1465,
+   100.0
+  ],
+  [
+   1,
+   1,
+   1,
+   2.4786,
+   80.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "(Fei et al. Miner. Spectros. (5) 1996)",
+   "reference": "FeO (Fei et al. Miner. Spectros. (5) 1996)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 79.1193,
+     "K0": 145.0,
+     "K0_prime": 4.0
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}

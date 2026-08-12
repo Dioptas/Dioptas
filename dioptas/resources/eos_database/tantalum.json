@@ -1,0 +1,89 @@
+{
+ "format_version": 1,
+ "name": "Tantalum",
+ "formula": "Ta",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.3058,
+  "b": 3.3058,
+  "c": 3.3058,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/ta.jcpds, JCPDS/dac_user_jcpds/ta.jcpds",
+ "peaks": [
+  [
+   4,
+   0,
+   0,
+   0.8264,
+   4.0
+  ],
+  [
+   3,
+   2,
+   1,
+   0.8835,
+   29.0
+  ],
+  [
+   2,
+   2,
+   2,
+   0.9543,
+   7.0
+  ],
+  [
+   3,
+   1,
+   0,
+   1.0454,
+   19.0
+  ],
+  [
+   2,
+   2,
+   0,
+   1.1688,
+   13.0
+  ],
+  [
+   2,
+   1,
+   1,
+   1.3496,
+   38.0
+  ],
+  [
+   2,
+   0,
+   0,
+   1.6529,
+   21.0
+  ],
+  [
+   1,
+   1,
+   0,
+   2.3376,
+   100.0
+  ]
+ ],
+ "eos_records": [
+  {
+   "label": "4-0788 EOS from Cynn and Yoo",
+   "reference": "Tantalum (4-0788 EOS from Cynn and Yoo)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 36.1268,
+     "K0": 194.7,
+     "K0_prime": 3.4
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+  }
+ ]
+}
