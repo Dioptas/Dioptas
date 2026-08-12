@@ -122,8 +122,10 @@ def test_holzapfel_close_to_bm3_at_moderate_pressure():
 def test_holzapfel_requires_cell_data():
     with pytest.raises(ValueError, match="formula_units_per_cell"):
         EosPhase("Holzapfel", GOLD, n=1, z=79)
-    with pytest.raises(ValueError, match="n and Z"):
+    with pytest.raises(ValueError, match="atoms per chemical formula"):
         EosPhase("Holzapfel", GOLD, formula_units_per_cell=4)
+    with pytest.raises(ValueError, match="summed atomic number"):
+        EosPhase("Holzapfel", GOLD, n=1, formula_units_per_cell=4)
 
 
 # ---------------------------------------------------------------------------
@@ -192,3 +194,105 @@ def test_selecting_eos_type_marks_phase_modified(gold_jcpds):
     assert gold_jcpds.params["modified"] is False
     gold_jcpds.params["eos_type"] = "Vinet"
     assert gold_jcpds.params["modified"] is True
+
+
+# ---------------------------------------------------------------------------
+# Thermal models: Mie-Grüneisen-Debye/Einstein composed over the rt equation
+# ---------------------------------------------------------------------------
+
+GOLD_MGD = {"Tr": 300.0, "theta0": 170.0, "gamma0": 2.97, "q": 0.6}
+
+
+def _gold_mgd(thermal_type="MieGruneisenDebye"):
+    return EosPhase("Vinet", GOLD, n=1, formula_units_per_cell=4,
+                    thermal_type=thermal_type, thermal_parameters=GOLD_MGD)
+
+
+def test_mgd_reduces_to_rt_equation_at_reference_temperature():
+    v_thermal = _gold_mgd().volume(30.0, temperature=300.0)
+    v_rt = EosPhase("Vinet", GOLD).volume(30.0)
+    assert v_thermal == pytest.approx(v_rt, rel=1e-6)
+
+
+def test_mgd_expands_with_temperature_and_roundtrips():
+    eos = _gold_mgd()
+    v_300 = eos.volume(30.0, temperature=300.0)
+    v_2000 = eos.volume(30.0, temperature=2000.0)
+    assert v_2000 > v_300
+    assert eos.pressure(v_2000, temperature=2000.0) == pytest.approx(
+        30.0, abs=1e-2)
+
+
+def test_mgd_thermal_pressure_magnitude_matches_alpha_k0():
+    # At fixed volume, the MGD thermal pressure over 1000 K should be in
+    # the same ballpark as the classic alpha*K0*dT estimate for gold
+    # (~4.26e-5 * 167 * 1000 = 7.1 GPa) — same physics, different model.
+    eos = _gold_mgd()
+    v = eos.volume(10.0, temperature=300.0)
+    delta_p = (eos.pressure(v, temperature=1300.0)
+               - eos.pressure(v, temperature=300.0))
+    assert 4.0 < delta_p < 11.0
+
+
+def test_einstein_close_to_debye_well_above_theta():
+    v_debye = _gold_mgd().volume(30.0, temperature=1500.0)
+    v_einstein = _gold_mgd("MieGruneisenEinstein").volume(
+        30.0, temperature=1500.0)
+    # both converge to the classical limit far above theta0 = 170 K
+    assert v_einstein == pytest.approx(v_debye, rel=5e-3)
+
+
+def test_thermal_model_requires_parameters_and_material_data():
+    with pytest.raises(ValueError, match="theta0"):
+        EosPhase("Vinet", GOLD, n=1, formula_units_per_cell=4,
+                 thermal_type="MieGruneisenDebye",
+                 thermal_parameters={"gamma0": 2.97})
+    with pytest.raises(ValueError, match="formula_units_per_cell"):
+        EosPhase("Vinet", GOLD, n=1,
+                 thermal_type="MieGruneisenDebye",
+                 thermal_parameters=GOLD_MGD)
+    with pytest.raises(ValueError, match="Unsupported thermal"):
+        EosPhase("Vinet", GOLD, n=1, formula_units_per_cell=4,
+                 thermal_type="NotAModel", thermal_parameters=GOLD_MGD)
+
+
+def test_compute_volume_routes_through_thermal_engine(gold_jcpds):
+    p = gold_jcpds.params
+    p["eos_type"] = "Vinet"
+    p["thermal_type"] = "MieGruneisenDebye"
+    p["theta_t0"] = 170.0
+    p["gamma_t0"] = 2.97
+    p["q_t0"] = 0.6
+    p["t_ref"] = 300.0
+    p["n"] = 1
+    p["zc"] = 4
+
+    gold_jcpds.compute_volume(pressure=30.0, temperature=2000.0)
+    via_jcpds = p["v"]
+    expected = EosPhase(
+        "Vinet",
+        {"V0": p["v0"], "K0": p["k0"], "K0_prime": p["k0p0"]},
+        n=1, formula_units_per_cell=4,
+        thermal_type="MieGruneisenDebye",
+        thermal_parameters={"Tr": 300.0, "theta0": 170.0,
+                            "gamma0": 2.97, "q": 0.6},
+    ).volume(30.0, temperature=2000.0)
+    assert via_jcpds == pytest.approx(expected, rel=1e-6)
+
+    # temperature spinbox relies on this
+    assert gold_jcpds.has_thermal_expansion()
+
+
+def test_incomplete_thermal_model_falls_back_gracefully(gold_jcpds, caplog):
+    # MGD selected but theta0 never entered: computes exactly like the
+    # phase without the thermal model (the legacy path, including its
+    # alpha correction) and logs the reason
+    gold_jcpds.params["thermal_type"] = "MieGruneisenDebye"
+    gold_jcpds.compute_volume(pressure=30.0, temperature=2000.0)
+    with_incomplete_mgd = gold_jcpds.params["v"]
+    assert "cannot be constructed" in caplog.text
+
+    gold_jcpds.params["thermal_type"] = ""
+    gold_jcpds.compute_volume(pressure=30.0, temperature=2000.0)
+    assert with_incomplete_mgd == pytest.approx(gold_jcpds.params["v"],
+                                                rel=1e-9)

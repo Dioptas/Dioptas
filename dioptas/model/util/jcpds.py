@@ -124,6 +124,18 @@ class CrystalState:
     n: float | None = None
     z: int | None = None
     zc: int | None = None
+    #: thermal model on top of the equation of state. "" means the
+    #: classic constant-coefficient correction (alpha_t0/d_alpha_dt/
+    #: dk0dt/dk0pdt as effective-pressure shift — a no-op when they are
+    #: zero, which keeps every legacy file and project behaving as
+    #: before). A peritheos.eos.thermal class name ('MieGruneisenDebye',
+    #: 'MieGruneisenEinstein') switches to the full thermal engine with
+    #: the parameters below (+ n and zc for the molar conversion).
+    thermal_type: str = ""
+    theta_t0: float = 0.0   # Debye/Einstein temperature (K)
+    gamma_t0: float = 0.0   # Grüneisen parameter at V0
+    q_t0: float = 1.0       # volume exponent of the Grüneisen parameter
+    t_ref: float = 298.15   # reference temperature of the fit (K)
     #: the material's chemical formula and its EoS records (dicts, schema
     #: in model/eos/material.py), for the per-phase reference switcher.
     #: Set for phases loaded from the EoS database; empty for legacy
@@ -141,7 +153,8 @@ class CrystalState:
 _FLAGGING_KEYS = frozenset(
     ["comments", "a0", "b0", "c0", "alpha0", "beta0", "gamma0", "symmetry",
      "k0", "k0p0", "k0pp0", "dk0dt", "dk0pdt", "alpha_t0", "d_alpha_dt",
-     "reflections", "eos_type"]
+     "reflections", "eos_type",
+     "thermal_type", "theta_t0", "gamma_t0", "q_t0", "t_ref"]
 )
 
 _STATE_KEYS = frozenset(f.name for f in dataclasses.fields(CrystalState))
@@ -564,6 +577,16 @@ class jcpds:
         # Assume 0 K really means room T
         if temperature == 0: temperature = 298.
 
+        # A peritheos thermal model (Mie-Grüneisen-Debye, ...) handles
+        # the temperature inside the engine — no coefficient corrections
+        # or effective-pressure shift. Failures (Peritheos missing, or
+        # parameters incomplete — the UI asks for them) fall through to
+        # the legacy path below, which then behaves like a phase without
+        # thermal expansion.
+        if self.params.get('thermal_type') and pressure >= 0:
+            if self._thermal_engine_volume(pressure, temperature):
+                return
+
         # Compute values of K0, K0P and alphat at this temperature
         self.params['alpha_t'] = self.params['alpha_t0'] + self.params['d_alpha_dt'] * (temperature - 298.)
         self.params['k0p'] = self.params['k0p0'] + self.params['dk0pdt'] * (temperature - 298.)
@@ -588,6 +611,37 @@ class jcpds:
                                     self.params['alpha_t'] * k0 * (temperature - 298.)
                 self.params['v'] = self._solve_volume_at_pressure(
                     k0, k0p, self.mod_pressure)
+
+    def _thermal_engine_volume(self, pressure: float, temperature: float) -> bool:
+        """
+        Compute the volume through the phase's peritheos thermal model
+        (params['thermal_type'], e.g. Mie-Grüneisen-Debye over the
+        configured rt equation). Returns True when the volume was set;
+        False when the engine is unavailable or not constructible, so
+        compute_volume falls back to the legacy path.
+        """
+        thermal_type = str(self.params.get('thermal_type') or '')
+        try:
+            from .eos_phase import EosPhase
+        except ImportError as e:
+            logger.warning(
+                "Peritheos is not available (%s); ignoring thermal model "
+                "'%s'.", e, thermal_type)
+            return False
+        try:
+            eos = EosPhase.from_jcpds(self, with_thermal=True)
+        except ValueError as e:
+            logger.warning(
+                "Thermal model '%s' cannot be constructed for phase '%s' "
+                "(%s); computing without it.",
+                thermal_type, self.name, e)
+            return False
+        # the temperature dependence lives in the engine now — keep the
+        # derived coefficient values meaningful for displays
+        self.params['alpha_t'] = self.params['alpha_t0']
+        self.params['k0p'] = self.params['k0p0']
+        self.params['v'] = eos.volume(pressure, temperature)
+        return True
 
     def _solve_volume_at_pressure(self, k0: float, k0p: float, pressure: float) -> float:
         """
@@ -852,7 +906,8 @@ class jcpds:
         self.reorder_reflections_by_index(sorted_ind, reversed_toggle)
 
     def has_thermal_expansion(self) -> bool:
-        return (self.params['alpha_t0'] != 0) or (self.params['d_alpha_dt'] != 0)
+        return (self.params['alpha_t0'] != 0) or (self.params['d_alpha_dt'] != 0) \
+            or bool(self.params['thermal_type'])
 
 
 def lookup_jcpds_line(in_string: str,

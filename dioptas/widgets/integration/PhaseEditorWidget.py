@@ -141,20 +141,30 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self._add_eos_param_row('Zc', self.eos_zc_txt, 'Z<sub>cell</sub>:',
                                 'formula/cell', 6)
 
-        # thermal model on top of the equation above. Only the classic
-        # constant-coefficient correction exists so far; Peritheos thermal
-        # models (Mie-Gruneisen-Debye, ...) will slot in here once wired.
+        # thermal model on top of the equation above: the classic
+        # constant-coefficient correction, or a peritheos thermal engine
         self.thermal_type_cb = QtWidgets.QComboBox()
         self.thermal_type_cb.addItem('None', 'none')
         self.thermal_type_cb.addItem('Constant α, dK/dT', 'alphakt')
+        self.thermal_type_cb.addItem('Mie-Grüneisen-Debye', 'MieGruneisenDebye')
+        self.thermal_type_cb.addItem('Mie-Grüneisen-Einstein', 'MieGruneisenEinstein')
         self._eos_layout.addWidget(LabelAlignRight('Thermal:'), 7, 0)
         self._eos_layout.addWidget(self.thermal_type_cb, 7, 1, 1, 2)
 
+        self.eos_theta_txt = NumberTextField()
+        self.eos_gamma_txt = NumberTextField()
+        self.eos_qt_txt = NumberTextField()
+        self.eos_tref_txt = NumberTextField()
+
         self._thermal_param_rows = {}
-        self._add_thermal_param_row(self.eos_alphaT_txt, u'α<sub>T</sub>:', '1/K', 8)
-        self._add_thermal_param_row(self.eos_dalphadT_txt, u'dα<sub>T</sub>/dT:', u'1/K²', 9)
-        self._add_thermal_param_row(self.eos_dKdT_txt, 'dK/dT:', 'GPa/K', 10)
-        self._add_thermal_param_row(self.eos_dKpdT_txt, "dK'/dT", '1/K', 11)
+        self._add_thermal_param_row('alpha_t0', self.eos_alphaT_txt, u'α<sub>T</sub>:', '1/K', 8)
+        self._add_thermal_param_row('d_alpha_dt', self.eos_dalphadT_txt, u'dα<sub>T</sub>/dT:', u'1/K²', 9)
+        self._add_thermal_param_row('dk0dt', self.eos_dKdT_txt, 'dK/dT:', 'GPa/K', 10)
+        self._add_thermal_param_row('dk0pdt', self.eos_dKpdT_txt, "dK'/dT", '1/K', 11)
+        self._add_thermal_param_row('theta_t0', self.eos_theta_txt, u'θ<sub>0</sub>:', 'K', 12)
+        self._add_thermal_param_row('gamma_t0', self.eos_gamma_txt, u'γ<sub>0</sub>:', None, 13)
+        self._add_thermal_param_row('q_t0', self.eos_qt_txt, 'q:', None, 14)
+        self._add_thermal_param_row('t_ref', self.eos_tref_txt, u'T<sub>ref</sub>:', 'K', 15)
         self.eos_gb.setLayout(self._eos_layout)
 
         self.reflections_gb = QtWidgets.QGroupBox('Reflections')
@@ -232,30 +242,51 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         if unit:
             layout.addWidget(QtWidgets.QLabel(unit), x, y + 2)
 
-    def _add_thermal_param_row(self, widget, label_str, unit, row):
-        """One thermal parameter row, shown only when a thermal model is
-        selected (see update_thermal_parameter_visibility)."""
+    #: which parameter rows each thermal model shows
+    THERMAL_PARAM_SETS = {
+        'none': (),
+        'alphakt': ('alpha_t0', 'd_alpha_dt', 'dk0dt', 'dk0pdt'),
+        'MieGruneisenDebye': ('theta_t0', 'gamma_t0', 'q_t0', 't_ref'),
+        'MieGruneisenEinstein': ('theta_t0', 'gamma_t0', 'q_t0', 't_ref'),
+    }
+    #: peritheos thermal models additionally need the material data for
+    #: the molar conversion — union'd into the EoS parameter rows
+    THERMAL_MATERIAL_KEYS = {
+        'MieGruneisenDebye': ('n', 'Zc'),
+        'MieGruneisenEinstein': ('n', 'Zc'),
+    }
+
+    def _add_thermal_param_row(self, key, widget, label_str, unit, row):
+        """One thermal parameter row, shown per selected thermal model
+        (see update_thermal_parameter_visibility)."""
         label = LabelAlignRight(label_str)
         self._eos_layout.addWidget(label, row, 0)
         self._eos_layout.addWidget(widget, row, 1)
-        unit_label = QtWidgets.QLabel(unit)
-        self._eos_layout.addWidget(unit_label, row, 2)
-        self._thermal_param_rows[widget] = [label, widget, unit_label]
+        row_widgets = [label, widget]
+        if unit:
+            unit_label = QtWidgets.QLabel(unit)
+            self._eos_layout.addWidget(unit_label, row, 2)
+            row_widgets.append(unit_label)
+        self._thermal_param_rows[key] = row_widgets
 
     def set_thermal_type(self, key):
-        """Select the thermal model ('none'/'alphakt') without emitting."""
+        """Select the thermal model without emitting: 'none', 'alphakt',
+        or a peritheos thermal class name."""
         index = self.thermal_type_cb.findData(key)
         self.thermal_type_cb.blockSignals(True)
         self.thermal_type_cb.setCurrentIndex(max(0, index))
         self.thermal_type_cb.blockSignals(False)
         self.update_thermal_parameter_visibility()
+        self.update_eos_parameter_visibility()
 
     def get_thermal_type(self):
         return self.thermal_type_cb.currentData()
 
     def update_thermal_parameter_visibility(self):
-        visible = self.get_thermal_type() != 'none'
-        for row_widgets in self._thermal_param_rows.values():
+        """Show only the parameter rows of the selected thermal model."""
+        names = self.THERMAL_PARAM_SETS.get(self.get_thermal_type(), ())
+        for key, row_widgets in self._thermal_param_rows.items():
+            visible = key in names
             for widget in row_widgets:
                 widget.setVisible(visible)
 
@@ -299,9 +330,12 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         return self.eos_type_cb.currentData()
 
     def update_eos_parameter_visibility(self):
-        """Show only the parameter rows of the selected equation."""
-        names = getattr(self, '_eos_parameter_names', {}).get(
-            self.get_eos_type(), ['K0', 'K0_prime'])
+        """Show the parameter rows of the selected equation, plus the
+        material data a selected peritheos thermal model needs."""
+        names = set(getattr(self, '_eos_parameter_names', {}).get(
+            self.get_eos_type(), ['K0', 'K0_prime']))
+        names |= set(self.THERMAL_MATERIAL_KEYS.get(
+            self.get_thermal_type(), ()))
         for key, row_widgets in self._eos_param_rows.items():
             visible = key in names
             for widget in row_widgets:
@@ -327,9 +361,17 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self.eos_dalphadT_txt.setText(str(jcpds_phase.params['d_alpha_dt']))
         self.eos_dKdT_txt.setText(str(jcpds_phase.params['dk0dt']))
         self.eos_dKpdT_txt.setText(str(jcpds_phase.params['dk0pdt']))
-        has_thermal = any(jcpds_phase.params[key] for key in
-                          ('alpha_t0', 'd_alpha_dt', 'dk0dt', 'dk0pdt'))
-        self.set_thermal_type('alphakt' if has_thermal else 'none')
+        self.eos_theta_txt.setText(str(jcpds_phase.params['theta_t0']))
+        self.eos_gamma_txt.setText(str(jcpds_phase.params['gamma_t0']))
+        self.eos_qt_txt.setText(str(jcpds_phase.params['q_t0']))
+        self.eos_tref_txt.setText(str(jcpds_phase.params['t_ref']))
+        thermal_type = str(jcpds_phase.params.get('thermal_type') or '')
+        if thermal_type:
+            self.set_thermal_type(thermal_type)
+        else:
+            has_thermal = any(jcpds_phase.params[key] for key in
+                              ('alpha_t0', 'd_alpha_dt', 'dk0dt', 'dk0pdt'))
+            self.set_thermal_type('alphakt' if has_thermal else 'none')
 
     def update_name(self, jcpds_phase):
         self.filename_txt.setText(jcpds_phase.filename)

@@ -110,10 +110,25 @@ def apply_eos_record(phase, record: dict) -> None:
     phase.params["k0pp0"] = parameters.get("K0_double_prime") or 0.0
 
     thermal = record.get("thermal") or {}
-    thermal_parameters = (thermal.get("parameters") or {}
-                          if thermal.get("type") == "AlphaKT" else {})
-    phase.params["alpha_t0"] = thermal_parameters.get("alpha0") or 0.0
-    phase.params["dk0dt"] = thermal_parameters.get("dK_dT") or 0.0
+    thermal_type = thermal.get("type") or ""
+    thermal_parameters = thermal.get("parameters") or {}
+    if thermal_type in ("MieGruneisenDebye", "MieGruneisenEinstein"):
+        # full thermal engine: parameters go to the thermal state fields,
+        # the legacy coefficients stay zero
+        phase.params["thermal_type"] = thermal_type
+        phase.params["theta_t0"] = thermal_parameters.get("theta0") or 0.0
+        phase.params["gamma_t0"] = thermal_parameters.get("gamma0") or 0.0
+        phase.params["q_t0"] = thermal_parameters.get("q", 1.0)
+        phase.params["t_ref"] = thermal_parameters.get("Tr") or 298.15
+        phase.params["alpha_t0"] = 0.0
+        phase.params["dk0dt"] = 0.0
+    else:
+        # 'AlphaKT' (the classic correction) or no thermal data at all
+        phase.params["thermal_type"] = ""
+        if thermal_type != "AlphaKT":
+            thermal_parameters = {}
+        phase.params["alpha_t0"] = thermal_parameters.get("alpha0") or 0.0
+        phase.params["dk0dt"] = thermal_parameters.get("dK_dT") or 0.0
 
     phase.params["eos_type"] = eos.get("type") or "BM3"
     if parameters.get("V0"):

@@ -171,3 +171,54 @@ def test_eosmat_round_trip(materials, tmp_path):
 
 def test_alias_search_is_case_insensitive():
     assert any(m.formula == "Au" for m in eos.search_materials("GOLD"))
+
+
+def test_mgd_record_applies_thermal_state(gold):
+    mgd_index = next(i for i, r in enumerate(gold.eos_records)
+                     if (r.get("thermal") or {}).get("type")
+                     == "MieGruneisenDebye")
+    phase = eos.build_jcpds(gold, record_index=mgd_index)
+    assert phase.params["thermal_type"] == "MieGruneisenDebye"
+    assert phase.params["theta_t0"] == pytest.approx(170.0)
+    assert phase.params["gamma_t0"] == pytest.approx(2.97)
+    assert phase.has_thermal_expansion()
+
+    # temperature genuinely moves the volume through the engine
+    phase.compute_volume(pressure=10.0, temperature=300.0)
+    v300 = phase.params["v"]
+    phase.compute_volume(pressure=10.0, temperature=1500.0)
+    assert phase.params["v"] > v300
+
+    # switching to a record without a thermal model clears it
+    model = PhaseModel()
+    model.add_jcpds_object(phase, filename=phase.filename)
+    other = next(i for i, r in enumerate(gold.eos_records)
+                 if not r.get("thermal"))
+    model.set_eos_reference(0, other)
+    assert model.get_thermal_type(0) == ""
+
+
+def test_thermal_state_survives_project_round_trip(gold, tmp_path):
+    from ...model.DioptasModel import DioptasModel
+
+    mgd_index = next(i for i, r in enumerate(gold.eos_records)
+                     if (r.get("thermal") or {}).get("type")
+                     == "MieGruneisenDebye")
+    model = DioptasModel()
+    phase = eos.build_jcpds(gold, record_index=mgd_index)
+    model.phase_model.add_jcpds_object(phase, filename=phase.filename)
+    filename = str(tmp_path / "thermal.dio")
+    model.save(filename)
+
+    loaded = DioptasModel()
+    loaded.load(filename)
+    p = loaded.phase_model.phases[0].params
+    assert p["thermal_type"] == "MieGruneisenDebye"
+    assert p["theta_t0"] == pytest.approx(170.0)
+    assert p["gamma_t0"] == pytest.approx(2.97)
+    assert p["q_t0"] == pytest.approx(0.6)
+    loaded.phase_model.phases[0].compute_volume(pressure=10.0,
+                                                temperature=1500.0)
+    phase.compute_volume(pressure=10.0, temperature=1500.0)
+    assert (loaded.phase_model.phases[0].params["v"]
+            == pytest.approx(phase.params["v"], rel=1e-9))

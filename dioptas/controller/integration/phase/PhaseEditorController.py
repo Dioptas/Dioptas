@@ -142,6 +142,18 @@ class PhaseEditorController(QtCore.QObject):
         self.jcpds_widget.eos_zc_txt.editingFinished.connect(partial(self.param_txt_changed,
                                                                      widget=self.jcpds_widget.eos_zc_txt,
                                                                      param='zc'))
+        self.jcpds_widget.eos_theta_txt.editingFinished.connect(partial(self.param_txt_changed,
+                                                                        widget=self.jcpds_widget.eos_theta_txt,
+                                                                        param='theta_t0'))
+        self.jcpds_widget.eos_gamma_txt.editingFinished.connect(partial(self.param_txt_changed,
+                                                                        widget=self.jcpds_widget.eos_gamma_txt,
+                                                                        param='gamma_t0'))
+        self.jcpds_widget.eos_qt_txt.editingFinished.connect(partial(self.param_txt_changed,
+                                                                     widget=self.jcpds_widget.eos_qt_txt,
+                                                                     param='q_t0'))
+        self.jcpds_widget.eos_tref_txt.editingFinished.connect(partial(self.param_txt_changed,
+                                                                       widget=self.jcpds_widget.eos_tref_txt,
+                                                                       param='t_ref'))
         self.jcpds_widget.eos_alphaT_txt.editingFinished.connect(partial(self.param_txt_changed,
                                                                          widget=self.jcpds_widget.eos_alphaT_txt,
                                                                          param='alpha_t0'))
@@ -224,15 +236,25 @@ class PhaseEditorController(QtCore.QObject):
     def thermal_type_changed(self):
         if self.phase_ind < 0:
             return
+        key = self.jcpds_widget.get_thermal_type()
         self.jcpds_widget.update_thermal_parameter_visibility()
-        if self.jcpds_widget.get_thermal_type() == 'none':
+        self.jcpds_widget.update_eos_parameter_visibility()
+        if key in ('MieGruneisenDebye', 'MieGruneisenEinstein'):
+            # full peritheos engine; computes once theta0/gamma0 (and
+            # n/Zc) are filled in — until then it logs and behaves like
+            # a phase without thermal expansion
+            self.phase_model.set_thermal_type(self.phase_ind, key)
+            return
+        if self.phase_model.get_thermal_type(self.phase_ind):
+            self.phase_model.set_thermal_type(self.phase_ind, '')
+        if key == 'none':
             # removing the thermal model zeroes its coefficients — the
             # phase then computes purely from the room-temperature EoS
             for param in ('alpha_t0', 'd_alpha_dt', 'dk0dt', 'dk0pdt'):
                 if self.jcpds_phase.params[param]:
                     self.phase_model.set_param(self.phase_ind, param, 0.0)
-        # selecting the thermal model only reveals its (zero-valued)
-        # fields; nothing is written until the user enters coefficients
+        # selecting 'alphakt' only reveals its (zero-valued) fields;
+        # nothing is written until the user enters coefficients
 
     def lattice_ab_changed(self):
         ab_ratio = float(self.jcpds_widget.lattice_ab_sb.value())

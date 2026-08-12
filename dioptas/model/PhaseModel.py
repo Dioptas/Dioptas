@@ -254,6 +254,25 @@ class PhaseModel:
         """Returns the equation-of-state type of the phase with index ind."""
         return str(self.phases[ind].params.get('eos_type') or 'BM3')
 
+    def set_thermal_type(self, ind: int, thermal_type: str) -> None:
+        """
+        Changes the thermal model of the phase with index ind: '' for the
+        classic constant-coefficient correction, or a peritheos thermal
+        class name ('MieGruneisenDebye', 'MieGruneisenEinstein'), and
+        recomputes the line positions at the current
+        pressure/temperature.
+        """
+        logger.debug("Setting thermal model for phase %d to '%s'",
+                     ind, thermal_type)
+        self.phases[ind].params['thermal_type'] = thermal_type
+        self.phases[ind].compute_d()
+        self.get_lines_d(ind)
+        self.phase_changed.emit(ind)
+
+    def get_thermal_type(self, ind: int) -> str:
+        """Returns the thermal model of the phase with index ind."""
+        return str(self.phases[ind].params.get('thermal_type') or '')
+
     def set_eos_reference(self, ind: int, ref_ind: int) -> None:
         """
         Switches the phase with index ind to another of its EoS records

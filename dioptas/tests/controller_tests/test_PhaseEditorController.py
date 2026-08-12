@@ -337,3 +337,45 @@ class PhaseEditorControllerTest(QtTest):
             self.assertEqual(self.phase_model.phases[2].params[param], 0.0)
         self.assertFalse(self.jcpds_widget.eos_alphaT_txt.isVisibleTo(
             self.jcpds_widget))
+
+    def test_thermal_dropdown_offers_peritheos_models(self):
+        cb = self.jcpds_widget.thermal_type_cb
+        keys = [cb.itemData(i) for i in range(cb.count())]
+        self.assertEqual(keys, ['none', 'alphakt', 'MieGruneisenDebye',
+                                'MieGruneisenEinstein'])
+
+    def test_selecting_mgd_updates_model_and_rows(self):
+        cb = self.jcpds_widget.thermal_type_cb
+        cb.setCurrentIndex(cb.findData('MieGruneisenDebye'))
+        self.assertEqual(self.phase_model.get_thermal_type(5),
+                         'MieGruneisenDebye')
+        # MGD parameter rows appear, the legacy coefficient rows hide
+        self.assertTrue(self.jcpds_widget.eos_theta_txt.isVisibleTo(
+            self.jcpds_widget))
+        self.assertFalse(self.jcpds_widget.eos_alphaT_txt.isVisibleTo(
+            self.jcpds_widget))
+        # the molar conversion needs n and Zc — shown even for BM3
+        self.assertTrue(self.jcpds_widget.eos_n_txt.isVisibleTo(
+            self.jcpds_widget))
+        self.assertTrue(self.jcpds_widget.eos_zc_txt.isVisibleTo(
+            self.jcpds_widget))
+        # temperature spinbox follows has_thermal_expansion
+        self.assertTrue(self.phase_model.phases[5].has_thermal_expansion())
+
+        cb.setCurrentIndex(cb.findData('none'))
+        self.assertEqual(self.phase_model.get_thermal_type(5), '')
+        self.assertFalse(self.jcpds_widget.eos_theta_txt.isVisibleTo(
+            self.jcpds_widget))
+        self.assertFalse(self.jcpds_widget.eos_n_txt.isVisibleTo(
+            self.jcpds_widget))
+
+    def test_editing_mgd_parameters_writes_state(self):
+        cb = self.jcpds_widget.thermal_type_cb
+        cb.setCurrentIndex(cb.findData('MieGruneisenDebye'))
+        self.jcpds_widget.eos_theta_txt.setText('170')
+        self.jcpds_widget.eos_theta_txt.editingFinished.emit()
+        self.jcpds_widget.eos_gamma_txt.setText('2.97')
+        self.jcpds_widget.eos_gamma_txt.editingFinished.emit()
+        params = self.phase_model.phases[5].params
+        self.assertAlmostEqual(params['theta_t0'], 170.0)
+        self.assertAlmostEqual(params['gamma_t0'], 2.97)
