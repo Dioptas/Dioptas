@@ -9,7 +9,7 @@
   "c": 4.4574,
   "alpha": 90.0,
   "beta": 90.0,
-  "gamma": 90.0
+  "gamma": 120.0
  },
  "formula_units_per_cell": 2,
  "notes": "Rhenium (JCPDS 5-0702, EOS from dcal)",
@@ -168,6 +168,19 @@
     }
    },
    "notes": "V0 rescaled by sin(120): the hosted database computed hexagonal cell volumes as a^2*c."
+  },
+  {
+   "label": "JCPDS 5-0702, zHA, 2004",
+   "reference": "Rhenium (JCPDS 5-0702, zHA, 2004)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 29.4056,
+     "K0": 359.0,
+     "K0_prime": 5.43
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
   }
  ]
 }

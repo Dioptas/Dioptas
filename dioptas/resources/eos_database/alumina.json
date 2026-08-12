@@ -5,11 +5,11 @@
  "symmetry": "HEXAGONAL",
  "lattice": {
   "a": 4.758,
-  "b": 0.0,
+  "b": null,
   "c": 12.99,
   "alpha": 90.0,
   "beta": 90.0,
-  "gamma": 90.0
+  "gamma": 120.0
  },
  "formula_units_per_cell": 6,
  "notes": "Alumina (JCPDS 0-173, EOS n/a)",
@@ -98,6 +98,19 @@
     }
    },
    "notes": "Recovered from the JCPDSv1 seed file; the hosted database rows for this material were unreadable."
+  },
+  {
+   "label": "corundum (JCPDS 46-1212, EOS)",
+   "reference": "Al2O3 corundum (JCPDS 46-1212, EOS)",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 254.8082,
+     "K0": 254.0,
+     "K0_prime": 4.3
+    }
+   },
+   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
   }
  ]
 }
