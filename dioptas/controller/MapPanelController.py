@@ -202,15 +202,27 @@ class MapPanelController:
         for _, path in sorted(candidates):
             self._live_queue.put(path)
 
-    #: files integrated per timer tick. Batches go through the multithreaded
-    #: batch engine, so bigger is faster — but the tick runs on the GUI
-    #: thread, and one bounded batch per tick keeps the interface usable
-    #: while a big catch-up works through the queue.
+    #: files integrated per timer tick with the multithreaded batch engine:
+    #: bigger batches are faster there, but the tick runs on the GUI thread,
+    #: and one bounded batch per tick keeps the interface usable while a big
+    #: catch-up works through the queue.
     _LIVE_BATCH_LIMIT = 25
+    #: without the batch engine every file costs a full pyFAI pass on the
+    #: GUI thread, so the per-tick bite is kept much smaller — the map falls
+    #: behind a fast beamline more gracefully than the interface freezes
+    _LIVE_SINGLE_LIMIT = 5
+
+    def _live_drain_limit(self) -> int:
+        configuration = self.model.map_model.configuration
+        batch_capable = configuration.calibration_model.can_use_dioptrin_batch(
+            configuration.integration_unit, configuration.oned_azimuth_range
+        )
+        return self._LIVE_BATCH_LIMIT if batch_capable else self._LIVE_SINGLE_LIMIT
 
     def _drain_live_queue(self):
         batch = []
-        while len(batch) < self._LIVE_BATCH_LIMIT:
+        limit = self._live_drain_limit()
+        while len(batch) < limit:
             try:
                 batch.append(self._live_queue.get_nowait())
             except queue.Empty:

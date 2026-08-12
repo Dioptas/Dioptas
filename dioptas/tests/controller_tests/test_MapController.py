@@ -1656,3 +1656,30 @@ def test_switching_the_configuration_stops_live(
     panel.model.add_configuration()
 
     assert not live_btn.isChecked()
+
+
+def test_live_without_the_batch_engine_takes_small_bites(
+    map_controller: MapController, tmp_path
+):
+    """Every file costs a full pyFAI pass on the GUI thread when dioptrin is
+    not available, so one tick appends a few files and leaves the rest
+    queued for the next — the interface stays usable during a catch-up."""
+    load_calibration(map_controller)
+    panel = map_controller.panel_controller
+    map_model = panel.model.map_model
+    map_model.load(_copy_scan_files(tmp_path, 2))
+    assert not map_model.configuration.calibration_model.can_use_dioptrin_batch(
+        map_model.configuration.integration_unit,
+        map_model.configuration.oned_azimuth_range,
+    )
+
+    _copy_scan_files(tmp_path, 7, start=3)
+    live_btn = panel.widget.map_plot_control_widget.live_btn
+    live_btn.setChecked(True)  # catch-up queues the 7 numbered files
+    try:
+        panel._drain_live_queue()
+        assert len(map_model.point_infos) == 2 + panel._LIVE_SINGLE_LIMIT
+        panel._drain_live_queue()
+        assert len(map_model.point_infos) == 9, "the rest follows next tick"
+    finally:
+        live_btn.setChecked(False)
