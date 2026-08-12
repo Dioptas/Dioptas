@@ -107,6 +107,12 @@ class ViewParams:
     #: y separation applied by the overlay waterfall action
     waterfall_separation: float = 100.0
 
+    #: which representation the calibration wizard's validation step shows
+    #: the fitted parameters in: "pyFAI" or "Fit2d" (the tab labels). Users
+    #: feeding other programs (CrysAlis etc.) live on the Fit2d tab, so the
+    #: choice survives restarts with the session.
+    calibration_param_display: str = "pyFAI"
+
 
 @dataclass
 class ImgParams:

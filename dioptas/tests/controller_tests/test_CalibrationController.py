@@ -64,6 +64,27 @@ class TestCalibrationController(QtTest):
         )
         self.model.calibration_model.integrate_2d = MagicMock()
 
+    def test_parameters_tab_choice_is_stored_in_view_params(self):
+        self.assertEqual(self.model.view.calibration_param_display, "pyFAI")
+
+        tab_widget = self.widget.parameters_tab_widget
+        fit2d_index = next(
+            i for i in range(tab_widget.count()) if tab_widget.tabText(i) == "Fit2d"
+        )
+        tab_widget.setCurrentIndex(fit2d_index)
+        self.assertEqual(self.model.view.calibration_param_display, "Fit2d")
+
+    def test_parameters_tab_follows_view_params(self):
+        # a loaded project or restored session writes the view params; the
+        # tab has to follow without the user touching it
+        self.model.view.calibration_param_display = "Fit2d"
+
+        tab_widget = self.widget.parameters_tab_widget
+        self.assertEqual(tab_widget.tabText(tab_widget.currentIndex()), "Fit2d")
+
+        self.model.view.calibration_param_display = "pyFAI"
+        self.assertEqual(tab_widget.tabText(tab_widget.currentIndex()), "pyFAI")
+
     def test_load_detector(self):
         detector_names, detector_classes = get_available_detectors()
         det_ind = 9

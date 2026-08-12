@@ -24,6 +24,8 @@
 
 - The mask plugin settings dialogs gained a **Restore Defaults** button.
 
+- The calibration wizard remembers whether the validation step last showed the **pyFAI or Fit2d** parameters — across restarts, and per project. Handy when the Fit2d numbers are what feeds other programs (CrysAlis etc.).
+
 - The redundant **Clear Ring** button under the calibration peak table is gone: changing the ring number already selects every group of that ring, so Delete does the same in two steps — the tooltip now says so.
 
 # 0.9.0 (03.08.2026)

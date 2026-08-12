@@ -115,6 +115,17 @@ class CalibrationController:
         self.widget.calibrate_btn.clicked.connect(self.calibrate)
         self.widget.refine_btn.clicked.connect(self.refine)
 
+        # the pyFAI/Fit2d choice on the validation step is a workflow
+        # preference (Fit2d numbers feed CrysAlis and friends), so it lives
+        # in the view params and comes back with the session
+        self.widget.parameters_tab_widget.currentChanged.connect(
+            self._parameters_tab_changed
+        )
+        self.model.view.events.calibration_param_display.connect(
+            self._parameters_display_changed
+        )
+        self._parameters_display_changed()
+
         self.widget.clear_peaks_btn.clicked.connect(self.clear_peaks)
         self.widget.peak_num_sb.valueChanged.connect(self.current_ring_changed)
 
@@ -202,6 +213,18 @@ class CalibrationController:
         self.model.calibration_model.parameters_changed.connect(
             self._phase_overlays_changed
         )
+
+    def _parameters_tab_changed(self, index):
+        self.model.view.calibration_param_display = (
+            self.widget.parameters_tab_widget.tabText(index)
+        )
+
+    def _parameters_display_changed(self, *_args):
+        tab_widget = self.widget.parameters_tab_widget
+        for index in range(tab_widget.count()):
+            if tab_widget.tabText(index) == self.model.view.calibration_param_display:
+                tab_widget.setCurrentIndex(index)
+                return
 
     def create_transformation_signals(self):
         """
