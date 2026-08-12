@@ -147,8 +147,9 @@ Subtract a background image (e.g. dark frame) from all images before integration
 Pattern Background
 ^^^^^^^^^^^^^^^^^^
 
-Apply automatic background subtraction on the integrated 1D pattern using the
-Smooth Bruckner algorithm:
+Apply automatic background subtraction on the integrated 1D pattern using the robust
+smoothing procedure of Brückner (2000, *J. Appl. Cryst.* **33**, 977–979) combined with
+a Chebyshev polynomial fit — see :doc:`integration` for a description of the algorithm:
 
 .. code-block:: python
 
