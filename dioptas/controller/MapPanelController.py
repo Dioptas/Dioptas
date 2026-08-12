@@ -202,9 +202,15 @@ class MapPanelController:
         for _, path in sorted(candidates):
             self._live_queue.put(path)
 
+    #: files integrated per timer tick. Batches go through the multithreaded
+    #: batch engine, so bigger is faster — but the tick runs on the GUI
+    #: thread, and one bounded batch per tick keeps the interface usable
+    #: while a big catch-up works through the queue.
+    _LIVE_BATCH_LIMIT = 25
+
     def _drain_live_queue(self):
         batch = []
-        while True:
+        while len(batch) < self._LIVE_BATCH_LIMIT:
             try:
                 batch.append(self._live_queue.get_nowait())
             except queue.Empty:

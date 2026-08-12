@@ -2,7 +2,7 @@
 
 ## New Features
 
-- **Live maps.** The **Live** button beside Load in the map view grows the map while the beamline is still writing it: the folder of the loaded files is watched (by listing it, so it works on network storage), and every new image is integrated and appended as soon as it is fully written — the grid keeps its columns and gains rows, arrangements and excluded points survive, and the newest point is selected as it arrives. Load the first image(s) of the scan, switch Live on, and numbered files written in between are picked up too. A file that cannot be read is skipped with a log entry rather than ending the session.
+- **Live maps.** The **Live** button beside Load in the map view grows the map while the beamline is still writing it: the folder of the loaded files is watched (by listing it, so it works on network storage), and every new image is integrated and appended as soon as it is fully written — the grid keeps its columns and gains rows, arrangements and excluded points survive, and the newest point is selected as it arrives. Load the first image(s) of the scan, switch Live on, and numbered files written in between are picked up too. A file that cannot be read is skipped with a log entry rather than ending the session. When frames arrive faster than one-by-one integration keeps up, the backlog is appended in batches through the same fast integration engine the bulk load uses, so live mode keeps pace with the beamline.
 
 ## Bugfixes
 

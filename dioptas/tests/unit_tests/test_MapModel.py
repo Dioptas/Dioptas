@@ -1050,3 +1050,53 @@ def test_append_files_fills_unfilled_grid_capacity(
 
     assert map_model.get_point_index(1, 1) == 4
     assert map_model.dimension == (3, 3)
+
+
+def test_append_files_batches_several_files(
+    map_model: MapModel, configuration: Configuration
+):
+    """A beamline can write faster than one-by-one integration keeps up, so
+    a multi-file append goes through the same batch engine as the bulk load."""
+    from dioptas.model.MapModel import MapPointInfo
+
+    _calibrated_map(map_model, configuration, 4)
+    configuration.calibration_model.can_use_dioptrin_batch = MagicMock(
+        return_value=True
+    )
+
+    def fake_batch(filepaths):
+        infos = [MapPointInfo(path, 0) for path in filepaths]
+        intensities = [np.zeros_like(map_model.pattern_x) for _ in filepaths]
+        return infos, intensities
+
+    map_model._integrate_files_dioptrin = MagicMock(side_effect=fake_batch)
+
+    failed = map_model.append_files(map_img_file_paths[4:7])
+
+    assert failed == []
+    map_model._integrate_files_dioptrin.assert_called_once_with(
+        map_img_file_paths[4:7]
+    )
+    assert len(map_model.point_infos) == 7
+    assert map_model.filepaths == map_img_file_paths[:7]
+
+
+def test_append_files_retries_one_by_one_when_the_batch_fails(
+    map_model: MapModel, configuration: Configuration
+):
+    """One bad file fails the whole batch; the retry drops only that file."""
+    _calibrated_map(map_model, configuration, 4)
+    configuration.calibration_model.can_use_dioptrin_batch = MagicMock(
+        return_value=True
+    )
+    map_model._integrate_files_dioptrin = MagicMock(
+        side_effect=RuntimeError("bad frame in the batch")
+    )
+
+    failed = map_model.append_files(
+        [map_img_file_paths[4], "/nowhere/dropped.tif", map_img_file_paths[5]]
+    )
+
+    assert failed == ["/nowhere/dropped.tif"]
+    assert len(map_model.point_infos) == 6
+    assert map_model.filepaths[-2:] == map_img_file_paths[4:6]
