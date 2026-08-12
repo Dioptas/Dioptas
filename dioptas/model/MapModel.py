@@ -650,8 +650,12 @@ class MapModel:
                 "reload the map to use the new unit"
             )
 
-        present = {info.filepath for info in self.point_infos}
-        new_files = [path for path in filepaths if path not in present]
+        # normalized comparison: the watcher announces absolute paths, the
+        # map may hold them as they came from the file dialog
+        present = {os.path.abspath(info.filepath) for info in self.point_infos}
+        new_files = [
+            path for path in filepaths if os.path.abspath(path) not in present
+        ]
         if not new_files:
             return []
 
