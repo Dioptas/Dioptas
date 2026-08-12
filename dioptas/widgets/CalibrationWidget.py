@@ -236,6 +236,12 @@ class CalibrationWidget(QtWidgets.QWidget):
         self.refine_btn = parameters_widget.refine_btn
         self.parameters_tab_widget = parameters_widget.parameters_tab_widget
         self.pos_lbl = self.calibration_display_widget.position_lbl
+        self.show_calibrant_lines_cb = (
+            self.calibration_display_widget.show_calibrant_lines_cb
+        )
+        self.show_calibrant_numbers_cb = (
+            self.calibration_display_widget.show_calibrant_numbers_cb
+        )
 
         detector_gb = self.calibration_control_widget.calibration_parameters_widget.detector_gb
         self.detectors_cb = detector_gb.detector_cb
@@ -533,6 +539,21 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
         self._status_layout = QtWidgets.QHBoxLayout()
         self._status_layout.setContentsMargins(6, 0, 0, 0)
         self.position_lbl = QtWidgets.QLabel("")
+
+        # visible on every wizard step, like the calibrant overlays they
+        # control
+        self.show_calibrant_lines_cb = QtWidgets.QCheckBox("calibrant lines")
+        self.show_calibrant_lines_cb.setChecked(True)
+        self.show_calibrant_lines_cb.setToolTip(
+            "Show the calibrant's lines in the image, cake and pattern views."
+        )
+        self.show_calibrant_numbers_cb = QtWidgets.QCheckBox("numbers")
+        self.show_calibrant_numbers_cb.setChecked(True)
+        self.show_calibrant_numbers_cb.setToolTip(
+            "Show the ring number on each calibrant line."
+        )
+        self._status_layout.addWidget(self.show_calibrant_lines_cb)
+        self._status_layout.addWidget(self.show_calibrant_numbers_cb)
 
         self._status_layout.addSpacerItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
                                                                 QtWidgets.QSizePolicy.Minimum))

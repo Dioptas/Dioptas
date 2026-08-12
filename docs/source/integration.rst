@@ -376,16 +376,33 @@ After any change, the image is automatically reintegrated.
 Pattern Background
 ~~~~~~~~~~~~~~~~~~
 
-Automatically estimate and subtract the background from the integrated pattern using a moving-average
-(Smooth Bruckner) method:
+Automatically estimate and subtract the background from the integrated pattern. The estimation
+uses the robust smoothing procedure of Brückner, followed by a Chebyshev polynomial fit:
 
-- *Smooth Width*: Width of the smoothing window (in pattern x-units).
-- *Iterations*: Number of smoothing passes.
-- *Poly Order*: Chebyshev polynomial order for the background fit.
+1. **Brückner smoothing**: The pattern is repeatedly smoothed with a moving-average window.
+   In each iteration, any point above the local window average is replaced by that average,
+   while points below it are left unchanged. Peaks are thereby progressively suppressed
+   from above, and the curve converges towards the background under the peaks.
+   Before iterating, unusually intense points are clipped to reduce the influence of very
+   strong peaks.
+2. **Chebyshev fit**: A Chebyshev polynomial is fitted to the smoothed curve to obtain a
+   continuous, smooth background, which is then subtracted from the original pattern.
+
+The parameters in the **Bkg** tab control this procedure:
+
+- *Smooth Width*: Width of the smoothing window (in pattern x-units). Larger values give
+  smoother backgrounds but may cut into broad features.
+- *Iterations*: Number of smoothing passes. More iterations pull the estimate further
+  below the peaks.
+- *Poly Order*: Chebyshev polynomial order for the background fit. Higher orders can follow
+  more complex background shapes.
 - *X-Range*: Min and max x-values for background estimation.
   **Note**: The subtracted pattern is only displayed within this range.
 - *Inspect*: Show the original pattern and estimated background (red dashed line)
   side by side for parameter tuning. The x-range can be adjusted by dragging the yellow ROI lines.
+
+Reference: Brückner, S. (2000). Estimation of the background in powder diffraction patterns
+through a robust smoothing procedure. *J. Appl. Cryst.* **33**, 977–979.
 
 .. _background_inspect_figure:
 

@@ -449,6 +449,11 @@ def get_histogram_data(img_data: np.ndarray) -> tuple:
     if ar_hash in histogram_cache:
         return histogram_cache[ar_hash]
     else:
+        # np.log promotes small integer dtypes only to float16, whose
+        # precision is too coarse to build 1500 distinct bin edges — upcast
+        # before taking the log
+        if img_data.dtype.itemsize < 4:
+            img_data = img_data.astype(np.float32)
         log_data = np.log(img_data)
         log_data = log_data[np.isfinite(log_data)]
         if log_data.size == 0:

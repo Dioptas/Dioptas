@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: MIT
 
-import os
-
-from qtpy import QtWidgets, QtGui, QtCore
+from qtpy import QtWidgets, QtCore
 
 from .ConfigurationWidget import ConfigurationWidget
 from .CalibrationWidget import CalibrationWidget
@@ -18,8 +16,6 @@ from .CustomWidgets import (
     HorizontalLine,
     render_icon,
 )
-
-from .. import icons_path
 
 
 class MainWidget(QtWidgets.QWidget):
@@ -58,7 +54,6 @@ class MainWidget(QtWidgets.QWidget):
         self.add_tooltips()
 
         self._content_layout.addWidget(self.main_frame)
-        self.setWindowIcon(QtGui.QIcon(os.path.join(icons_path, "icon.svg")))
 
     def _style_layouts(self):
         self._outer_layout.setContentsMargins(0, 0, 0, 0)
@@ -208,8 +203,6 @@ class MainWidget(QtWidgets.QWidget):
 
         self.style_widgets()
         self.add_tooltips()
-
-        self.setWindowIcon(QtGui.QIcon(os.path.join(icons_path, "icon.svg")))
 
     def style_widgets(self):
         self._style_mode_btns()

@@ -64,6 +64,27 @@ class TestCalibrationController(QtTest):
         )
         self.model.calibration_model.integrate_2d = MagicMock()
 
+    def test_parameters_tab_choice_is_stored_in_view_params(self):
+        self.assertEqual(self.model.view.calibration_param_display, "pyFAI")
+
+        tab_widget = self.widget.parameters_tab_widget
+        fit2d_index = next(
+            i for i in range(tab_widget.count()) if tab_widget.tabText(i) == "Fit2d"
+        )
+        tab_widget.setCurrentIndex(fit2d_index)
+        self.assertEqual(self.model.view.calibration_param_display, "Fit2d")
+
+    def test_parameters_tab_follows_view_params(self):
+        # a loaded project or restored session writes the view params; the
+        # tab has to follow without the user touching it
+        self.model.view.calibration_param_display = "Fit2d"
+
+        tab_widget = self.widget.parameters_tab_widget
+        self.assertEqual(tab_widget.tabText(tab_widget.currentIndex()), "Fit2d")
+
+        self.model.view.calibration_param_display = "pyFAI"
+        self.assertEqual(tab_widget.tabText(tab_widget.currentIndex()), "pyFAI")
+
     def test_load_detector(self):
         detector_names, detector_classes = get_available_detectors()
         det_ind = 9
@@ -715,16 +736,131 @@ def test_phase_lines_are_drawn_in_validation_views(
     calibrant_ring_count = len(widget.img_widget._phase_ring_items)
     assert calibrant_ring_count > 0
 
+    # the calibrant's rings are numbered so they can be matched to the
+    # ring spinbox during peak picking; numbering starts at 1
+    calibrant_label_count = len(widget.img_widget._phase_ring_label_items)
+    assert calibrant_label_count > 0
+    assert widget.img_widget._phase_ring_label_items[0].toPlainText() == "1"
+
+    # the numbers follow the zoom: every label anchors inside the current
+    # view when its ring crosses it, and hides when the ring is out of view
+    widget.img_widget.img_view_box.setRange(
+        xRange=(1100, 1600), yRange=(1100, 1600), padding=0
+    )
+    visible_labels = [
+        item
+        for item in widget.img_widget._phase_ring_label_items
+        if item.isVisible()
+    ]
+    assert 0 < len(visible_labels) < calibrant_label_count
+    # the aspect-locked view box widens the requested range, so compare
+    # against what is actually in view
+    (x_min, x_max), (y_min, y_max) = widget.img_widget.img_view_box.viewRange()
+    for item in visible_labels:
+        assert x_min < item.pos().x() < x_max
+        assert y_min < item.pos().y() < y_max
+
+    # zoomed inside the innermost ring no label is left in view
+    widget.img_widget.img_view_box.setRange(
+        xRange=(1000, 1080), yRange=(1000, 1080), padding=0
+    )
+    assert not any(
+        item.isVisible() for item in widget.img_widget._phase_ring_label_items
+    )
+    widget.img_widget.auto_range()
+
     dioptas_model.phase_model.add_jcpds(
         os.path.join(unittest_data_path, "jcpds", "au_Anderson.jcpds")
     )
     assert len(widget.img_widget._phase_ring_items) > calibrant_ring_count
+    # phase rings stay unnumbered
+    assert len(widget.img_widget._phase_ring_label_items) == calibrant_label_count
     # pattern lines come via the shared PhaseInPatternController
     assert len(widget.pattern_widget.phases) == 1
 
     dioptas_model.phase_model.del_phase(0)
     assert len(widget.img_widget._phase_ring_items) == calibrant_ring_count
     assert len(widget.pattern_widget.phases) == 0
+
+
+def test_calibrant_lines_and_numbers_can_be_hidden(
+    calibration_controller, calibration_model, dioptas_model
+):
+    widget = calibration_controller.widget
+    dioptas_model.img_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
+    )
+    calibration_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.poni")
+    )
+    calibration_controller.load_calibrant(wavelength_from="pyFAI")
+    calibration_controller.go_to_wizard_step(3)
+    assert len(widget.img_widget._phase_ring_items) > 0
+    assert len(widget.img_widget._phase_ring_label_items) > 0
+    assert len(widget.pattern_widget.phases_vlines[0].line_items) > 0
+
+    # numbers off: the lines stay, the labels disappear
+    click_checkbox(widget.show_calibrant_numbers_cb)
+    assert len(widget.img_widget._phase_ring_items) > 0
+    assert len(widget.img_widget._phase_ring_label_items) == 0
+
+    # lines off: everything disappears, in the pattern too; the numbers
+    # checkbox is moot without lines
+    click_checkbox(widget.show_calibrant_lines_cb)
+    assert len(widget.img_widget._phase_ring_items) == 0
+    assert len(widget.pattern_widget.phases_vlines[0].line_items) == 0
+    assert not widget.show_calibrant_numbers_cb.isEnabled()
+
+    # lines back on: rings and pattern lines return, numbers still off
+    click_checkbox(widget.show_calibrant_lines_cb)
+    assert len(widget.img_widget._phase_ring_items) > 0
+    assert len(widget.pattern_widget.phases_vlines[0].line_items) > 0
+    assert len(widget.img_widget._phase_ring_label_items) == 0
+    assert widget.show_calibrant_numbers_cb.isEnabled()
+
+
+def test_project_reset_clears_rings_and_ring_number(
+    calibration_controller, calibration_model, dioptas_model
+):
+    widget = calibration_controller.widget
+    dioptas_model.img_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
+    )
+    calibration_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.poni")
+    )
+    calibration_controller.go_to_wizard_step(3)
+    assert len(widget.img_widget._phase_ring_items) > 0
+    widget.peak_num_sb.setValue(5)
+
+    dioptas_model.reset()
+
+    # the old calibration's rings must not survive the reset, no matter
+    # which wizard step is shown
+    assert len(widget.img_widget._phase_ring_items) == 0
+    assert len(widget.img_widget._phase_ring_label_items) == 0
+    assert widget.peak_num_sb.value() == 1
+
+
+def test_ring_number_follows_configuration_switch(
+    calibration_controller, calibration_model, dioptas_model
+):
+    widget = calibration_controller.widget
+    dioptas_model.img_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.tif")
+    )
+    calibration_model.load(
+        os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.poni")
+    )
+    calibration_model.find_peaks_automatic(1179.6, 1129.4, 0)
+    calibration_model.find_peaks_automatic(1268.5, 1119.8, 1)
+    widget.peak_num_sb.setValue(3)
+
+    dioptas_model.add_configuration()
+    assert widget.peak_num_sb.value() == 1
+
+    dioptas_model.select_configuration(0)
+    assert widget.peak_num_sb.value() == 3
 
 
 def test_fixed_parameters_can_be_set_before_calibration(calibration_controller):

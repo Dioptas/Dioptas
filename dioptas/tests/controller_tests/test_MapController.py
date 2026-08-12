@@ -1553,3 +1553,178 @@ def test_expression_taking_a_window_name_is_refused_with_a_message(
     widget.sigExpressionChanged.emit("A", "A*2")
     assert "already a window" in widget.message_lbl.text()
     assert "A" not in map_model.expressions
+
+
+# ---------------------------------------------------------------- live maps
+
+
+def _copy_scan_files(tmp_path, count, start=1):
+    """Numbered copies of a real Pilatus image, as a beamline would write."""
+    import shutil
+
+    paths = []
+    for number in range(start, start + count):
+        destination = tmp_path / f"scan_{number:03d}.tif"
+        shutil.copy(map_img_file_paths[0], destination)
+        paths.append(str(destination))
+    return paths
+
+
+def test_live_needs_a_loaded_map(map_controller: MapController):
+    QtWidgets.QMessageBox.information = MagicMock()
+    live_btn = map_controller.panel_controller.widget.map_plot_control_widget.live_btn
+
+    live_btn.setChecked(True)
+
+    assert not live_btn.isChecked(), "no map to append to, so live turns off"
+    QtWidgets.QMessageBox.information.assert_called_once()
+
+
+def test_live_appends_files_as_they_appear(
+    map_controller: MapController, tmp_path
+):
+    load_calibration(map_controller)
+    panel = map_controller.panel_controller
+    map_model = panel.model.map_model
+    map_model.load(_copy_scan_files(tmp_path, 4))
+    live_btn = panel.widget.map_plot_control_widget.live_btn
+
+    live_btn.setChecked(True)
+    try:
+        assert live_btn.isChecked()
+
+        (new_path,) = _copy_scan_files(tmp_path, 1, start=5)
+        panel._live_file_appeared(new_path)  # what the watcher does
+        panel._drain_live_queue()
+
+        assert len(map_model.point_infos) == 5
+        assert map_model.filepaths[-1] == new_path
+        # the newest point is followed: its image is on screen
+        assert panel.model.img_model.filename == new_path
+    finally:
+        live_btn.setChecked(False)
+    assert not panel._live_timer.isActive()
+
+
+def test_live_catches_up_on_files_written_since_the_map_was_loaded(
+    map_controller: MapController, tmp_path
+):
+    """Frames the beamline wrote between Load and pressing Live are not
+    lost — numbered continuations of the loaded files are picked up."""
+    load_calibration(map_controller)
+    panel = map_controller.panel_controller
+    map_model = panel.model.map_model
+    map_model.load(_copy_scan_files(tmp_path, 4))
+
+    _copy_scan_files(tmp_path, 2, start=5)  # written "during" the toggle
+    live_btn = panel.widget.map_plot_control_widget.live_btn
+    live_btn.setChecked(True)
+    try:
+        panel._drain_live_queue()
+        assert len(map_model.point_infos) == 6
+        assert [os.path.basename(p) for p in map_model.filepaths[-2:]] == [
+            "scan_005.tif",
+            "scan_006.tif",
+        ]
+    finally:
+        live_btn.setChecked(False)
+
+
+def test_loading_a_new_map_stops_live(map_controller: MapController, tmp_path):
+    load_calibration(map_controller)
+    panel = map_controller.panel_controller
+    panel.model.map_model.load(_copy_scan_files(tmp_path, 4))
+    live_btn = panel.widget.map_plot_control_widget.live_btn
+    live_btn.setChecked(True)
+
+    mock_open_filenames([])  # user cancels the dialog; live is off regardless
+    panel.load_map()
+
+    assert not live_btn.isChecked()
+    assert not panel._live_timer.isActive()
+
+
+def test_switching_the_configuration_stops_live(
+    map_controller: MapController, tmp_path
+):
+    load_calibration(map_controller)
+    panel = map_controller.panel_controller
+    panel.model.map_model.load(_copy_scan_files(tmp_path, 4))
+    live_btn = panel.widget.map_plot_control_widget.live_btn
+    live_btn.setChecked(True)
+
+    panel.model.add_configuration()
+
+    assert not live_btn.isChecked()
+
+
+def test_live_without_the_batch_engine_takes_small_bites(
+    map_controller: MapController, tmp_path
+):
+    """Every file costs a full pyFAI pass on the GUI thread when dioptrin is
+    not available, so one tick appends a few files and leaves the rest
+    queued for the next — the interface stays usable during a catch-up."""
+    load_calibration(map_controller)
+    panel = map_controller.panel_controller
+    map_model = panel.model.map_model
+    map_model.load(_copy_scan_files(tmp_path, 2))
+    assert not map_model.configuration.calibration_model.can_use_dioptrin_batch(
+        map_model.configuration.integration_unit,
+        map_model.configuration.oned_azimuth_range,
+    )
+
+    _copy_scan_files(tmp_path, 7, start=3)
+    live_btn = panel.widget.map_plot_control_widget.live_btn
+    live_btn.setChecked(True)  # catch-up queues the 7 numbered files
+    try:
+        panel._drain_live_queue()
+        assert len(map_model.point_infos) == 2 + panel._LIVE_SINGLE_LIMIT
+        panel._drain_live_queue()
+        assert len(map_model.point_infos) == 9, "the rest follows next tick"
+    finally:
+        live_btn.setChecked(False)
+
+
+def test_live_ignores_files_that_are_not_part_of_the_scan(
+    map_controller: MapController, tmp_path
+):
+    """The watcher matches on extension alone; a file from another scan (or
+    a calibration image) in the same folder must not enter the map."""
+    import shutil
+
+    load_calibration(map_controller)
+    panel = map_controller.panel_controller
+    map_model = panel.model.map_model
+    map_model.load(_copy_scan_files(tmp_path, 4))
+
+    intruder = tmp_path / "LaB6_calibration_999.tif"
+    shutil.copy(map_img_file_paths[0], intruder)
+
+    live_btn = panel.widget.map_plot_control_widget.live_btn
+    live_btn.setChecked(True)
+    try:
+        # catch-up must not have queued it, despite its high number
+        panel._drain_live_queue()
+        assert len(map_model.point_infos) == 4
+
+        # nor does it get in when announced by the watcher
+        panel._live_file_appeared(str(intruder))
+        (scan_file,) = _copy_scan_files(tmp_path, 1, start=5)
+        panel._live_file_appeared(scan_file)
+        panel._drain_live_queue()
+
+        assert len(map_model.point_infos) == 5
+        assert map_model.filepaths[-1] == scan_file
+    finally:
+        live_btn.setChecked(False)
+
+
+def test_the_scan_name_prefix_is_not_locked_to_shared_leading_digits():
+    """Loading scan_11..13 must not shut out scan_20."""
+    from dioptas.controller.MapPanelController import MapPanelController
+
+    prefix = MapPanelController._name_prefix(
+        ["/data/scan_11.tif", "/data/scan_12.tif", "/data/scan_13.tif"]
+    )
+    assert prefix == "scan_"
+    assert MapPanelController._name_prefix(["/data/scan_005.tif"]) == "scan_"

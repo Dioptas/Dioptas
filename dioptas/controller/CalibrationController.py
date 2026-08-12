@@ -115,8 +115,26 @@ class CalibrationController:
         self.widget.calibrate_btn.clicked.connect(self.calibrate)
         self.widget.refine_btn.clicked.connect(self.refine)
 
+        # the pyFAI/Fit2d choice on the validation step is a workflow
+        # preference (Fit2d numbers feed CrysAlis and friends), so it lives
+        # in the view params and comes back with the session
+        self.widget.parameters_tab_widget.currentChanged.connect(
+            self._parameters_tab_changed
+        )
+        self.model.view.events.calibration_param_display.connect(
+            self._parameters_display_changed
+        )
+        self._parameters_display_changed()
+
         self.widget.clear_peaks_btn.clicked.connect(self.clear_peaks)
         self.widget.peak_num_sb.valueChanged.connect(self.current_ring_changed)
+
+        self.widget.show_calibrant_lines_cb.toggled.connect(
+            self._calibrant_visibility_changed
+        )
+        self.widget.show_calibrant_numbers_cb.toggled.connect(
+            self._calibrant_visibility_changed
+        )
 
         self._updating_peak_table = False
         self.widget.peak_table.itemSelectionChanged.connect(
@@ -196,6 +214,18 @@ class CalibrationController:
             self._phase_overlays_changed
         )
 
+    def _parameters_tab_changed(self, index):
+        self.model.view.calibration_param_display = (
+            self.widget.parameters_tab_widget.tabText(index)
+        )
+
+    def _parameters_display_changed(self, *_args):
+        tab_widget = self.widget.parameters_tab_widget
+        for index in range(tab_widget.count()):
+            if tab_widget.tabText(index) == self.model.view.calibration_param_display:
+                tab_widget.setCurrentIndex(index)
+                return
+
     def create_transformation_signals(self):
         """
         Connects all the rotation GUI controls.
@@ -220,8 +250,9 @@ class CalibrationController:
             self.model.mask_changed.connect(self.update_mask_gui)
         self.plot_image()
         self.update_mask_gui()
-        # overlays that went stale while another mode was active
-        if self._phase_overlays_dirty and self._on_validation_step():
+        # overlays that went stale while another mode was active — they are
+        # visible on every wizard step, so refresh regardless of the step
+        if self._phase_overlays_dirty:
             self._update_phase_overlays()
 
     def deactivate(self):
@@ -433,6 +464,7 @@ class CalibrationController:
         phase_model = self.model.phase_model
         cake_lines = []
         ring_segments = []
+        ring_labels = []
 
         if self.model.calibration_model.is_calibrated:
             downsample = self._PHASE_RING_DOWNSAMPLE
@@ -446,17 +478,23 @@ class CalibrationController:
                     tth_img_max, np.deg2rad(np.max(self.model.cake_tth))
                 )
 
-            def add_positions(line_positions, rgba):
-                if self.model.cake_tth is not None:
-                    for tth in line_positions:
+            def add_positions(line_positions, rgba, numbered=False):
+                # numbered labels the lines with their 1-based index in the
+                # full line list — the same numbering the ring spinbox uses
+                # during peak picking
+                for ind, tth in enumerate(line_positions):
+                    label = str(ind + 1) if numbered else None
+                    if self.model.cake_tth is not None:
                         position = get_partial_index(self.model.cake_tth, tth)
                         if position is not None:
-                            cake_lines.append((position + 0.5, rgba))
-                for tth in line_positions:
+                            cake_lines.append((position + 0.5, rgba, label))
                     tth_rad = np.deg2rad(tth)
                     if not tth_img_min < tth_rad < tth_img_max:
                         continue
-                    for segment in find_contours(tth_img, tth_rad):
+                    segments = find_contours(tth_img, tth_rad)
+                    if not segments:
+                        continue
+                    for segment in segments:
                         ring_segments.append(
                             (
                                 segment[:, 1] * downsample + 0.5,
@@ -464,16 +502,31 @@ class CalibrationController:
                                 rgba,
                             )
                         )
+                    if label is not None:
+                        # the widget anchors the number to whichever part
+                        # of the ring is in view, so it hands over all
+                        # contour points as candidates
+                        points = np.concatenate(segments)
+                        ring_labels.append(
+                            (
+                                points[:, 1] * downsample + 0.5,
+                                points[:, 0] * downsample + 0.5,
+                                label,
+                                rgba,
+                            )
+                        )
 
-            calibrant_positions = (
-                np.array(self.model.calibration_model.calibrant.get_2th())
-                / np.pi
-                * 180
-            )
-            add_positions(
-                calibrant_positions,
-                (*self._CALIBRANT_LINE_COLOR, self._PHASE_OVERLAY_ALPHA),
-            )
+            if self.widget.show_calibrant_lines_cb.isChecked():
+                calibrant_positions = (
+                    np.array(self.model.calibration_model.calibrant.get_2th())
+                    / np.pi
+                    * 180
+                )
+                add_positions(
+                    calibrant_positions,
+                    (*self._CALIBRANT_LINE_COLOR, self._PHASE_OVERLAY_ALPHA),
+                    numbered=self.widget.show_calibrant_numbers_cb.isChecked(),
+                )
 
             wavelength_ang = self.model.calibration_model.wavelength * 1e10
             for ind in range(len(phase_model.phases)):
@@ -494,7 +547,38 @@ class CalibrationController:
                 )
 
         self.widget.cake_widget.set_phase_lines(cake_lines)
-        self.widget.img_widget.set_phase_rings(ring_segments)
+        self.widget.img_widget.set_phase_rings(ring_segments, ring_labels)
+
+    def _calibrant_visibility_changed(self, _checked=False):
+        """Applies the calibrant lines/numbers checkboxes to all views."""
+        self.widget.show_calibrant_numbers_cb.setEnabled(
+            self.widget.show_calibrant_lines_cb.isChecked()
+        )
+        self._plot_calibrant_pattern_lines()
+        self._phase_overlays_changed()
+        if self._phase_overlays_dirty and self._mode_active:
+            # the overlays show on every wizard step, not just validation
+            self._update_phase_overlays()
+
+    def _plot_calibrant_pattern_lines(self, positions=None, numbers=None, name=None):
+        """Draws the calibrant's vertical lines into the pattern plot,
+        honoring the lines/numbers checkboxes.
+
+        With arguments it also remembers them, so a later checkbox toggle
+        can redraw the same lines without recomputing the positions.
+        """
+        if positions is not None:
+            self._calibrant_pattern_line_data = (positions, numbers, name)
+        positions, numbers, name = getattr(
+            self, "_calibrant_pattern_line_data", (np.array([]), None, None)
+        )
+        if not self.widget.show_calibrant_lines_cb.isChecked():
+            positions, numbers = np.array([]), None
+        elif not self.widget.show_calibrant_numbers_cb.isChecked():
+            numbers = None
+        self.widget.pattern_widget.plot_vertical_lines(
+            positions=positions, name=name, numbers=numbers
+        )
 
     def load_img(self):
         """
@@ -664,18 +748,19 @@ class CalibrationController:
             integration_unit,
             wavelength,
         )
-        # filter them to only show the ones visible with the current pattern
+        # filter them to only show the ones visible with the current pattern;
+        # the numbers stay indices into the full line list so they match the
+        # ring spinbox used during peak picking
+        calibrant_line_numbers = np.arange(1, len(calibrant_line_positions) + 1)
         if len(self.model.pattern.x) > 0:
             pattern_min = np.min(self.model.pattern.x)
             pattern_max = np.max(self.model.pattern.x)
-            calibrant_line_positions = calibrant_line_positions[
-                calibrant_line_positions > pattern_min
-            ]
-            calibrant_line_positions = calibrant_line_positions[
+            visible = (calibrant_line_positions > pattern_min) & (
                 calibrant_line_positions < pattern_max
-            ]
-            self.widget.pattern_widget.plot_vertical_lines(
-                positions=calibrant_line_positions,
+            )
+            self._plot_calibrant_pattern_lines(
+                positions=calibrant_line_positions[visible],
+                numbers=calibrant_line_numbers[visible],
                 name=self._calibrants_file_names_list[current_index],
             )
         # the calibrant's reflections are part of the validation overlays
@@ -1004,7 +1089,20 @@ class CalibrationController:
             calibration_model.parameters_changed.connect(
                 self._phase_overlays_changed
             )
+        # the calibrant is not part of the configuration — sync the new
+        # model from the combo box and redraw the pattern's calibrant lines
+        self.load_calibrant(wavelength_from="pyFAI")
         self._phase_overlays_dirty = True
+        if self._mode_active:
+            # the overlays are visible on every wizard step, so a stale
+            # ring drawing must not survive a reset or configuration switch
+            self._update_phase_overlays()
+        # the ring counter continues after the new configuration's picked
+        # rings — and returns to 1 on a project reset
+        selections = calibration_model.params.peak_selections
+        self.widget.peak_num_sb.setValue(
+            max(ring for ring, _ in selections) + 2 if selections else 1
+        )
         # a plain refresh — the ring-counter bookkeeping in
         # _on_points_changed must not treat the cross-configuration count
         # difference as an undo
@@ -1464,15 +1562,17 @@ class CalibrationController:
         self.widget.cake_widget.auto_level()
 
         self.widget.pattern_widget.plot_data(*self.model.pattern.data)
-        self.widget.pattern_widget.plot_vertical_lines(
-            self.convert_x_value(
-                np.array(self.model.calibration_model.calibrant.get_2th())
-                / np.pi
-                * 180,
-                "2th_deg",
-                self.model.current_configuration.integration_unit,
-                None,
-            )
+        calibrant_line_positions = self.convert_x_value(
+            np.array(self.model.calibration_model.calibrant.get_2th())
+            / np.pi
+            * 180,
+            "2th_deg",
+            self.model.current_configuration.integration_unit,
+            None,
+        )
+        self._plot_calibrant_pattern_lines(
+            positions=calibrant_line_positions,
+            numbers=np.arange(1, len(calibrant_line_positions) + 1),
         )
 
         if self.model.current_configuration.integration_unit == "2th_deg":

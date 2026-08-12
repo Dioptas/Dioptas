@@ -2,11 +2,21 @@
 
 ## New Features
 
+- **Live maps.** The **Live** button beside Load in the map view grows the map while the beamline is still writing it: the folder of the loaded files is watched (by listing it, so it works on network storage), and every new image named like the scan's — same name up to the running number — is integrated and appended as soon as it is fully written; a calibration image or another scan in the same folder stays out. The grid keeps its columns and gains rows (set the scan size in **Grid…** and it fills in cell by cell), arrangements and excluded points survive, and the newest point is selected as it arrives. Load the first image(s) of the scan, switch Live on, and numbered files written in between are picked up too. A file that cannot be read is skipped with a log entry rather than ending the session. When frames arrive faster than one-by-one integration keeps up, the backlog is appended in batches through the same fast integration engine the bulk load uses, so live mode keeps pace with the beamline.
+
 - **EoS material database.** The Phase panel gained a **DB** button that opens a browser over a database of materials with published equation-of-state parameters (bulk modulus, K0′, V0 per literature reference). The database ships with Dioptas — it works offline and is curated in the repository like the calibrant files, so new materials and references can be added by pull request. Materials can also be exported as `.eosmat` files and reloaded through the normal Add button.
 
-- **Selectable equation of state per phase.** Phase lines at pressure are now computed through the [Peritheos](https://github.com/CPrescher/peritheos) library, and each phase row gained an **EoS** dropdown (2nd/3rd-order Birch-Murnaghan, Vinet, Holzapfel) and — for database materials — a **Ref** dropdown to switch between literature references, both recomputing the lines live. Existing `.jcpds` phases behave exactly as before (3rd-order Birch-Murnaghan, cross-validated against the previous solver).
+- **Equations of state through Peritheos.** Phase lines at pressure are now computed through the [Peritheos](https://github.com/CPrescher/peritheos) library. Database phases carry one EoS record per literature reference — the phase table's **Ref** dropdown switches between them and recomputes the lines live — and the Phase Editor (formerly JCPDS editor) lets experts pick any equation Peritheos supports (2nd/3rd/4th-order Birch-Murnaghan, Murnaghan, Vinet, Modified Tait, Natural Strain, Holzapfel), showing exactly the parameters that equation needs. Existing `.jcpds` phases behave exactly as before (3rd-order Birch-Murnaghan, cross-validated against the previous solver).
 
 ## Bugfixes
+
+- On Windows, the taskbar showed a generic icon on the first run of a freshly unpacked Dioptas (later runs, or pinning it, showed the proper icon). The `icon.ico` embedded in the executable carried only a single 256 px image, which the Windows shell fails to scale down on a cold icon cache; it now ships the standard 16-256 px sizes, the application declares an explicit Windows app identity, and the icon is set application-wide so every window inherits it.
+
+- Loading a color image (e.g. an RGB PNG preview saved next to the detector data) crashed with an endless series of error dialogs (`data.shape[2] must be <= 4`, `too many values to unpack`). Color images are now averaged to a grayscale intensity image on loading, so they display and integrate normally; images with shapes Dioptas cannot interpret are refused with a clear message instead of crashing.
+
+- The intensity histogram crashed with `Cannot create 1500 finite-sized bins` for any 8-bit image (numpy computes the logarithm of such images in half precision, which is too coarse for the histogram binning).
+
+- Resetting a project (or switching configurations) now clears the calibrant ring overlays of the previous calibration from the image and cake views, redraws the pattern's calibrant lines for the new state, and resets the ring number in the pick step (to 1 after a reset; after a configuration switch it continues after that configuration's picked rings).
 
 - Re-enabling a dynamic mask after loading a different image showed the mask computed for the previous image; enabling now always recomputes for the image on screen.
 
@@ -16,9 +26,13 @@
 
 ## Changes
 
+- **Numbered calibrant lines.** The calibrant's lines in the calibration view now carry their ring number — on the image rings, the cake lines, and the pattern lines — so it is easy to see which ring is the first and which the tenth. The numbers match the ring spinbox used during peak picking, and they follow the zoom: any ring crossing the current view keeps its number inside the view. Two checkboxes below the views — visible on every step — hide the lines or just the numbers.
+
 - **Clear messages for wrong file types.** Picking the wrong kind of file — a *.poni calibration as an image, an image as a pattern, a pattern as a calibration, and so on — used to crash into a raw error dialog (or, for a pattern loaded as a calibration, silently misbehave). Each loader now explains what the chosen file looks like and where to load it instead, e.g. "It looks like a pyFAI calibration file — use 'Load Calibration' to open it." A failed load leaves the previously loaded data untouched.
 
 - The mask plugin settings dialogs gained a **Restore Defaults** button.
+
+- The calibration wizard remembers whether the validation step last showed the **pyFAI or Fit2d** parameters — across restarts, and per project. Handy when the Fit2d numbers are what feeds other programs (CrysAlis etc.).
 
 - The redundant **Clear Ring** button under the calibration peak table is gone: changing the ring number already selects every group of that ring, so Delete does the same in two steps — the tooltip now says so.
 
