@@ -150,9 +150,13 @@ progresses; blanks, rearrangements and excluded points survive; the newest point
 arrives, so the pattern plot always shows the latest frame.
 
 The intended workflow: load the first image (or images) of the scan as a map, then switch Live on.
-Numbered files written between the two — the scan does not wait — are picked up automatically. Only
-numbered continuations of the loaded files are added this way; a calibration image or another scan
-sitting in the same folder is left alone.
+Numbered files written between the two — the scan does not wait — are picked up automatically.
+
+Which files count as part of the scan is decided by their name: a new file must share the loaded
+files' name up to the running number (loading ``scan_001.tif`` admits ``scan_002.tif`` and
+``scan_020.tif``), so a calibration image or another scan writing into the same folder is left
+alone, whatever its extension and numbering. Catch-up additionally requires the number to continue
+past the highest one loaded.
 
 A file that cannot be read is skipped with a log entry rather than ending the session. Loading a
 different map or switching the configuration turns Live off.

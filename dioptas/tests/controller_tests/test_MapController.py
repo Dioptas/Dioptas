@@ -1683,3 +1683,48 @@ def test_live_without_the_batch_engine_takes_small_bites(
         assert len(map_model.point_infos) == 9, "the rest follows next tick"
     finally:
         live_btn.setChecked(False)
+
+
+def test_live_ignores_files_that_are_not_part_of_the_scan(
+    map_controller: MapController, tmp_path
+):
+    """The watcher matches on extension alone; a file from another scan (or
+    a calibration image) in the same folder must not enter the map."""
+    import shutil
+
+    load_calibration(map_controller)
+    panel = map_controller.panel_controller
+    map_model = panel.model.map_model
+    map_model.load(_copy_scan_files(tmp_path, 4))
+
+    intruder = tmp_path / "LaB6_calibration_999.tif"
+    shutil.copy(map_img_file_paths[0], intruder)
+
+    live_btn = panel.widget.map_plot_control_widget.live_btn
+    live_btn.setChecked(True)
+    try:
+        # catch-up must not have queued it, despite its high number
+        panel._drain_live_queue()
+        assert len(map_model.point_infos) == 4
+
+        # nor does it get in when announced by the watcher
+        panel._live_file_appeared(str(intruder))
+        (scan_file,) = _copy_scan_files(tmp_path, 1, start=5)
+        panel._live_file_appeared(scan_file)
+        panel._drain_live_queue()
+
+        assert len(map_model.point_infos) == 5
+        assert map_model.filepaths[-1] == scan_file
+    finally:
+        live_btn.setChecked(False)
+
+
+def test_the_scan_name_prefix_is_not_locked_to_shared_leading_digits():
+    """Loading scan_11..13 must not shut out scan_20."""
+    from dioptas.controller.MapPanelController import MapPanelController
+
+    prefix = MapPanelController._name_prefix(
+        ["/data/scan_11.tif", "/data/scan_12.tif", "/data/scan_13.tif"]
+    )
+    assert prefix == "scan_"
+    assert MapPanelController._name_prefix(["/data/scan_005.tif"]) == "scan_"

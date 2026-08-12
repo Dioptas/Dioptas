@@ -55,6 +55,7 @@ class MapPanelController:
         # thread; they cross into the GUI thread through this queue, which a
         # timer drains in batches — one integration pass per tick, not per file
         self._live_watcher: NewFileInDirectoryWatcher | None = None
+        self._live_prefix = ""
         self._live_queue: queue.Queue[str] = queue.Queue()
         self._live_timer = QtCore.QTimer(self.widget)
         self._live_timer.setInterval(500)
@@ -138,6 +139,8 @@ class MapPanelController:
         }
         extensions.discard("")
 
+        self._live_prefix = self._name_prefix(map_model.filepaths)
+
         if self._live_watcher is None:
             self._live_watcher = NewFileInDirectoryWatcher(
                 directory, file_types=sorted(extensions)
@@ -151,6 +154,24 @@ class MapPanelController:
         self._live_watcher.activate()
         self._live_timer.start()
         return True
+
+    @staticmethod
+    def _name_prefix(filepaths: list[str]) -> str:
+        """What the scan's files are called, before their running number.
+
+        The common prefix of the loaded names, with any digits it ends in
+        stripped: loading scan_11..scan_13 must not lock the prefix to
+        "scan_1" and shut out scan_20. Only files bearing this prefix belong
+        to the scan — another scan or a calibration image written into the
+        same folder does not, whatever its extension and number say.
+        """
+        stems = [
+            os.path.splitext(os.path.basename(path))[0] for path in filepaths
+        ]
+        return os.path.commonprefix(stems).rstrip("0123456789")
+
+    def _belongs_to_scan(self, filepath: str) -> bool:
+        return os.path.basename(filepath).startswith(self._live_prefix)
 
     def _stop_live(self):
         self._live_timer.stop()
@@ -192,6 +213,8 @@ class MapPanelController:
         for name in names:
             if os.path.splitext(name)[1].lstrip(".").lower() not in extensions:
                 continue
+            if not self._belongs_to_scan(name):
+                continue
             path = os.path.abspath(os.path.join(directory, name))
             if path in present:
                 continue
@@ -224,9 +247,13 @@ class MapPanelController:
         limit = self._live_drain_limit()
         while len(batch) < limit:
             try:
-                batch.append(self._live_queue.get_nowait())
+                filepath = self._live_queue.get_nowait()
             except queue.Empty:
                 break
+            # the watcher matches on extension alone; whether the file is
+            # part of this scan is decided by its name
+            if self._belongs_to_scan(filepath):
+                batch.append(filepath)
         if not batch:
             return
 

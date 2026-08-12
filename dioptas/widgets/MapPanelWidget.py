@@ -241,9 +241,10 @@ class MapPlotControlWidget(QtWidgets.QWidget):
         self.live_btn = CheckableFlatButton("Live")
         self.live_btn.setToolTip(
             "Grow the map while the beamline is still writing it: the folder of "
-            "the loaded\nfiles is watched, and every new image is integrated and "
-            "appended as soon as it\nis fully written. The newest point is "
-            "selected as it arrives.\n"
+            "the loaded\nfiles is watched, and every new image named like them — "
+            "same name up to the\nrunning number — is integrated and appended as "
+            "soon as it is fully written.\nThe newest point is selected as it "
+            "arrives.\n"
             "Load the first image(s) of the scan as a map, then switch this on — "
             "numbered\nfiles written in between are picked up too."
         )
