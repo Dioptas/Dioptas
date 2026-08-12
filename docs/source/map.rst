@@ -38,6 +38,8 @@ The Map module can integrate multiple image files and arrange them based on thei
 
 The map dimensions are calculated automatically from the number of files and the expected grid size.
 
+A map can also be built while it is still being measured — see `Live maps`_.
+
 
 Visualization Options
 ---------------------
@@ -50,6 +52,7 @@ Several options are available to enhance the map visualization:
   The slider controls the number of contour levels.
 - **AutoScale**: Automatically adjust the image intensity range.
 - **Layer**: Select which of the map's layers is drawn (see `Windows and layers`_).
+- **Live**: Keep appending the scan's images as the beamline writes them (see `Live maps`_).
 - **Grid…**: Opens the layout dialog — grid size, serpentine scans, mirroring and the
   dropped-frame repair (see `Arranging the points`_).
 
@@ -157,6 +160,12 @@ files' name up to the running number (loading ``scan_001.tif`` admits ``scan_002
 ``scan_020.tif``), so a calibration image or another scan writing into the same folder is left
 alone, whatever its extension and numbering. Catch-up additionally requires the number to continue
 past the highest one loaded.
+
+The grid is not guessed from the files — set the scan's width (or its full size) in **Grid…**, at
+any point before or during the scan. The grid then keeps its number of columns and gains rows as
+points arrive; a grid set to the full scan size fills in cell by cell. Until a width is set, the
+map grows with the columns the initial load happened to have — nothing is lost, and the points
+rearrange the moment the real width is entered.
 
 A file that cannot be read is skipped with a log entry rather than ending the session. Loading a
 different map or switching the configuration turns Live off.
