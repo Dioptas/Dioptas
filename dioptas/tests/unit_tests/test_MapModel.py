@@ -1035,3 +1035,18 @@ def test_append_files_refuses_a_changed_integration_unit(
     with pytest.raises(ValueError):
         map_model.append_files([map_img_file_paths[6]])
     assert len(map_model.point_infos) == 6
+
+
+def test_append_files_fills_unfilled_grid_capacity(
+    map_model: MapModel, configuration: Configuration
+):
+    """A grid set to the full scan size up front fills in cell by cell —
+    capacity blanks are taken by new points, no growth until they run out."""
+    _calibrated_map(map_model, configuration, 4)
+    map_model.set_dimension((3, 3))
+    assert map_model.get_point_index(1, 1) is None
+
+    map_model.append_files([map_img_file_paths[4]])
+
+    assert map_model.get_point_index(1, 1) == 4
+    assert map_model.dimension == (3, 3)
