@@ -942,3 +942,161 @@ def test_windows_and_expressions_share_one_namespace(
     added = map_model.add_roi()
     assert added.name == "C"
     assert sorted(map_model.layer_names()) == sorted(["A", "C", "ratio", "B"])
+
+
+def _calibrated_map(map_model: MapModel, configuration: Configuration, count: int):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load(map_img_file_paths[:count])
+
+
+def test_append_files_grows_the_map(
+    map_model: MapModel, configuration: Configuration
+):
+    """The live path: new frames arrive while the scan runs, and the grid
+    keeps its columns and gains rows rather than being re-derived."""
+    _calibrated_map(map_model, configuration, 6)
+    assert map_model.dimension == (2, 3)
+
+    failed = map_model.append_files(map_img_file_paths[6:9])
+
+    assert failed == []
+    assert map_model.filepaths == map_img_file_paths[:9]
+    assert len(map_model.point_infos) == 9
+    assert map_model.pattern_intensities.shape[0] == 9
+    assert len(map_model.window_intensities) == 9
+    assert map_model.dimension == (3, 3)
+    assert map_model.get_point_index(2, 2) == 8
+
+
+def test_append_files_ignores_files_already_in_the_map(
+    map_model: MapModel, configuration: Configuration
+):
+    _calibrated_map(map_model, configuration, 6)
+    changed = []
+    map_model.map_changed.connect(lambda: changed.append(True))
+
+    failed = map_model.append_files(map_img_file_paths[:6])
+
+    assert failed == []
+    assert len(map_model.point_infos) == 6
+    assert changed == []
+
+
+def test_append_files_keeps_the_arrangement(
+    map_model: MapModel, configuration: Configuration
+):
+    """Blanks inserted for dropped frames keep their meaning; the new point
+    goes after the last arranged cell."""
+    _calibrated_map(map_model, configuration, 6)
+    map_model.insert_blank(1)
+    map_model.set_point_excluded(3)
+    assert map_model.dimension == (3, 3)
+
+    map_model.append_files([map_img_file_paths[6]])
+
+    assert map_model.get_point_index(0, 1) is None, "blank survives the append"
+    assert map_model.is_point_excluded(3)
+    # 6 points + 1 blank before the append; the new point takes the cell
+    # after the last one
+    assert map_model.get_slots()[7] == 6
+    assert map_model.dimension == (3, 3)
+
+
+def test_append_files_reports_unreadable_files_and_keeps_going(
+    map_model: MapModel, configuration: Configuration
+):
+    _calibrated_map(map_model, configuration, 6)
+
+    failed = map_model.append_files(
+        ["/nowhere/dropped_frame.tif", map_img_file_paths[6]]
+    )
+
+    assert failed == ["/nowhere/dropped_frame.tif"]
+    assert len(map_model.point_infos) == 7
+    assert map_model.filepaths[-1] == map_img_file_paths[6]
+
+
+def test_append_files_without_a_map_is_refused(
+    map_model: MapModel, configuration: Configuration
+):
+    with pytest.raises(ValueError):
+        map_model.append_files(map_img_file_paths[:1])
+
+
+def test_append_files_refuses_a_changed_integration_unit(
+    map_model: MapModel, configuration: Configuration
+):
+    """Appending in a different unit would mix incompatible x-axes."""
+    _calibrated_map(map_model, configuration, 6)
+    configuration.integration_unit = "q_A^-1"
+
+    with pytest.raises(ValueError):
+        map_model.append_files([map_img_file_paths[6]])
+    assert len(map_model.point_infos) == 6
+
+
+def test_append_files_fills_unfilled_grid_capacity(
+    map_model: MapModel, configuration: Configuration
+):
+    """A grid set to the full scan size up front fills in cell by cell —
+    capacity blanks are taken by new points, no growth until they run out."""
+    _calibrated_map(map_model, configuration, 4)
+    map_model.set_dimension((3, 3))
+    assert map_model.get_point_index(1, 1) is None
+
+    map_model.append_files([map_img_file_paths[4]])
+
+    assert map_model.get_point_index(1, 1) == 4
+    assert map_model.dimension == (3, 3)
+
+
+def test_append_files_batches_several_files(
+    map_model: MapModel, configuration: Configuration
+):
+    """A beamline can write faster than one-by-one integration keeps up, so
+    a multi-file append goes through the same batch engine as the bulk load."""
+    from dioptas.model.MapModel import MapPointInfo
+
+    _calibrated_map(map_model, configuration, 4)
+    configuration.calibration_model.can_use_dioptrin_batch = MagicMock(
+        return_value=True
+    )
+
+    def fake_batch(filepaths):
+        infos = [MapPointInfo(path, 0) for path in filepaths]
+        intensities = [np.zeros_like(map_model.pattern_x) for _ in filepaths]
+        return infos, intensities
+
+    map_model._integrate_files_dioptrin = MagicMock(side_effect=fake_batch)
+
+    failed = map_model.append_files(map_img_file_paths[4:7])
+
+    assert failed == []
+    map_model._integrate_files_dioptrin.assert_called_once_with(
+        map_img_file_paths[4:7]
+    )
+    assert len(map_model.point_infos) == 7
+    assert map_model.filepaths == map_img_file_paths[:7]
+
+
+def test_append_files_retries_one_by_one_when_the_batch_fails(
+    map_model: MapModel, configuration: Configuration
+):
+    """One bad file fails the whole batch; the retry drops only that file."""
+    _calibrated_map(map_model, configuration, 4)
+    configuration.calibration_model.can_use_dioptrin_batch = MagicMock(
+        return_value=True
+    )
+    map_model._integrate_files_dioptrin = MagicMock(
+        side_effect=RuntimeError("bad frame in the batch")
+    )
+
+    failed = map_model.append_files(
+        [map_img_file_paths[4], "/nowhere/dropped.tif", map_img_file_paths[5]]
+    )
+
+    assert failed == ["/nowhere/dropped.tif"]
+    assert len(map_model.point_infos) == 6
+    assert map_model.filepaths[-2:] == map_img_file_paths[4:6]

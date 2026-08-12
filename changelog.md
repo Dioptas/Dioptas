@@ -1,5 +1,9 @@
 # 0.9.1 (in development)
 
+## New Features
+
+- **Live maps.** The **Live** button beside Load in the map view grows the map while the beamline is still writing it: the folder of the loaded files is watched (by listing it, so it works on network storage), and every new image named like the scan's — same name up to the running number — is integrated and appended as soon as it is fully written; a calibration image or another scan in the same folder stays out. The grid keeps its columns and gains rows (set the scan size in **Grid…** and it fills in cell by cell), arrangements and excluded points survive, and the newest point is selected as it arrives. Load the first image(s) of the scan, switch Live on, and numbered files written in between are picked up too. A file that cannot be read is skipped with a log entry rather than ending the session. When frames arrive faster than one-by-one integration keeps up, the backlog is appended in batches through the same fast integration engine the bulk load uses, so live mode keeps pace with the beamline.
+
 ## Bugfixes
 
 - On Windows, the taskbar showed a generic icon on the first run of a freshly unpacked Dioptas (later runs, or pinning it, showed the proper icon). The `icon.ico` embedded in the executable carried only a single 256 px image, which the Windows shell fails to scale down on a cold icon cache; it now ships the standard 16-256 px sizes, the application declares an explicit Windows app identity, and the icon is set application-wide so every window inherits it.

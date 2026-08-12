@@ -627,6 +627,210 @@ class MapModel:
 
         self._apply_new_data()
 
+    def append_files(self, filepaths: list[str]) -> list[str]:
+        """Integrates *filepaths* with the current settings and appends them
+        to the existing map — the live path, where files arrive one by one
+        while the scan is still running.
+
+        Nothing the user arranged is reset: the grid keeps its number of
+        columns and gains rows as needed, and a custom arrangement gets the
+        new points after its last entry — behind trailing blanks left for
+        dropped frames on purpose. Files already in the map are ignored.
+
+        Returns the files that could not be added (unreadable, or not
+        matching the map's geometry); the map keeps growing without them.
+        """
+        if self.pattern_x is None or self.pattern_intensities is None:
+            raise ValueError("There is no map to append to — load one first")
+        if not self.configuration.calibration_model.is_calibrated:
+            raise ValueError("Detector geometry is not calibrated")
+        if self.configuration.integration_unit != self.pattern_unit:
+            raise ValueError(
+                "The integration unit changed since the map was integrated — "
+                "reload the map to use the new unit"
+            )
+
+        # normalized comparison: the watcher announces absolute paths, the
+        # map may hold them as they came from the file dialog
+        present = {os.path.abspath(info.filepath) for info in self.point_infos}
+        new_files = [
+            path for path in filepaths if os.path.abspath(path) not in present
+        ]
+        if not new_files:
+            return []
+
+        # same protection as integrate(): constant pattern length, and no
+        # img_changed storm while frames pass through the shared img model
+        trim_trailing_zeros_backup = self.configuration.trim_trailing_zeros
+        self.configuration.trim_trailing_zeros = False
+        self.configuration.img_model.img_changed.blocked = True
+        try:
+            appended_infos, appended_intensities, failed = (
+                self._integrate_new_files(new_files)
+            )
+        finally:
+            self.configuration.trim_trailing_zeros = trim_trailing_zeros_backup
+            self.configuration.img_model.img_changed.blocked = False
+
+        if not appended_infos:
+            return failed
+
+        self.point_infos.extend(appended_infos)
+        self.pattern_intensities = np.vstack(
+            [self.pattern_intensities, appended_intensities]
+        )
+        appended_files = list(
+            dict.fromkeys(info.filepath for info in appended_infos)
+        )
+        self.filepaths = list(self.filepaths) + appended_files
+        self._apply_appended_data()
+        return failed
+
+    def _integrate_new_files(
+        self, new_files: list[str]
+    ) -> tuple[list[MapPointInfo], list[np.ndarray], list[str]]:
+        """(infos, intensities, failed files) for the files being appended.
+
+        Several files at once go through dioptrin's multithreaded batch
+        engine when it is available — the beamline may well write frames
+        faster than one-by-one integration keeps up, and a growing backlog
+        arrives here as ever bigger batches. If the batch trips over one bad
+        file the whole set is retried one by one, where only the bad file is
+        dropped.
+        """
+        cal = self.configuration.calibration_model
+        unit = self.configuration.integration_unit
+        azi_range = self.configuration.oned_azimuth_range
+
+        if len(new_files) > 1 and cal.can_use_dioptrin_batch(unit, azi_range):
+            try:
+                infos, intensities = self._integrate_files_dioptrin(new_files)
+                return infos, intensities, []
+            except Exception:
+                logger.warning(
+                    "Batch integration of the appended files failed; "
+                    "retrying them one by one",
+                    exc_info=True,
+                )
+
+        infos, intensities, failed = [], [], []
+        for filepath in new_files:
+            try:
+                file_infos, file_intensities = self._integrate_single_file(
+                    filepath
+                )
+            except Exception:
+                # a single bad frame must not end a running live session
+                logger.warning(
+                    "Could not append %s to the map", filepath, exc_info=True
+                )
+                failed.append(filepath)
+                continue
+            infos.extend(file_infos)
+            intensities.extend(file_intensities)
+        return infos, intensities, failed
+
+    def _integrate_files_dioptrin(
+        self, filepaths: list[str]
+    ) -> tuple[list[MapPointInfo], list[np.ndarray]]:
+        """Appended frames through the same engine as the bulk load."""
+        from dioptas.model.util.integration import iter_frames_sequential
+
+        cal = self.configuration.calibration_model
+        unit = self.configuration.integration_unit
+        num_points = self.configuration.integration_rad_points
+
+        self.configuration.img_model.load(filepaths[0])
+        img_shape = self.configuration.img_model.img_data.shape
+
+        if self.configuration.use_mask:
+            mask = self.configuration.mask_model.get_mask()
+        elif self.configuration.mask_model.roi is not None:
+            mask = self.configuration.mask_model.roi_mask
+        else:
+            mask = None
+
+        num_points = cal.sync_dioptrin_for_batch(mask, unit, num_points, img_shape)
+
+        all_infos: list[MapPointInfo] = []
+
+        def frame_generator():
+            yield from iter_frames_sequential(
+                self.configuration.img_model,
+                filepaths,
+                img_shape=img_shape,
+                on_frame=lambda fp, fi: all_infos.append(MapPointInfo(fp, fi)),
+            )
+
+        infos: list[MapPointInfo] = []
+        intensities: list[np.ndarray] = []
+        for i, result in enumerate(
+            cal.dioptrin_batch1d_iter(frame_generator(), num_points)
+        ):
+            if not result.is_ok():
+                raise RuntimeError(
+                    f"Dioptrin batch integration failed: {result.error}"
+                )
+            y = np.array(result.result.intensity)
+            if len(y) != len(self.pattern_x):
+                raise ValueError(
+                    "The integrated pattern has a different length than the map's"
+                )
+            infos.append(all_infos[i])
+            intensities.append(y)
+        return infos, intensities
+
+    def _integrate_single_file(
+        self, filepath: str
+    ) -> tuple[list[MapPointInfo], list[np.ndarray]]:
+        """Integrates every frame of one file, validated against the map."""
+        self.configuration.img_model.load(filepath)
+        infos: list[MapPointInfo] = []
+        intensities: list[np.ndarray] = []
+        for frame_ind in range(self.configuration.img_model.series_max):
+            self.configuration.img_model.load_series_img(frame_ind + 1)
+            x, y = self.configuration.integrate_image_1d(update_pattern_model=False)
+            if len(x) != len(self.pattern_x):
+                raise ValueError(
+                    "The integrated pattern has a different length than the map's"
+                )
+            infos.append(MapPointInfo(filepath, frame_ind))
+            intensities.append(y)
+        return infos, intensities
+
+    def _apply_appended_data(self):
+        """Grows the layout around freshly appended points and rebuilds.
+
+        The counterpart of :meth:`_apply_new_data` for appending: where that
+        one derives fresh defaults, this one preserves every choice the user
+        made and only makes room."""
+        self._suspend_rebuild = True
+        try:
+            # window_intensities still has the old length, and num_points
+            # reads from it — recompute before sizing anything
+            self._invalidate_layers()
+            self._recompute_window_intensities()
+            num_points = len(self.point_infos)
+            self.possible_dimensions = map_layout.possible_dimensions(num_points)
+
+            if self.slots is not None:
+                slots = list(self.slots)
+                known = {entry for entry in slots if entry is not None}
+                slots += [
+                    index for index in range(num_points) if index not in known
+                ]
+                if len(slots) > self.num_slots:
+                    self.dimension = map_layout.grid_for(
+                        len(slots), self.dimension[1]
+                    )
+                self.slots = slots
+            elif num_points > self.num_slots:
+                self.dimension = map_layout.grid_for(num_points, self.dimension[1])
+        finally:
+            self._suspend_rebuild = False
+
+        self._rebuild_map()
+
     def integrate(self, callback_fn=None):
         """Integrates all files in the filepaths list and stores the results"""
         logger.info("Integrating map data")

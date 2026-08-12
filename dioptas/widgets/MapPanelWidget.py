@@ -238,6 +238,16 @@ class MapPlotControlWidget(QtWidgets.QWidget):
             "contributes one point of the map.\n"
             "Files holding several frames contribute one point per frame."
         )
+        self.live_btn = CheckableFlatButton("Live")
+        self.live_btn.setToolTip(
+            "Grow the map while the beamline is still writing it: the folder of "
+            "the loaded\nfiles is watched, and every new image named like them — "
+            "same name up to the\nrunning number — is integrated and appended as "
+            "soon as it is fully written.\nThe newest point is selected as it "
+            "arrives.\n"
+            "Load the first image(s) of the scan as a map, then switch this on — "
+            "numbered\nfiles written in between are picked up too."
+        )
         self.save_map_btn = SaveIconButton(color=PLOT_ICON_COLOR)
         self.save_map_btn.setIconSize(QtCore.QSize(PLOT_ICON_SIZE, PLOT_ICON_SIZE))
         self.save_map_btn.setToolTip("Save the map as an image or a table of values")
@@ -270,6 +280,7 @@ class MapPlotControlWidget(QtWidgets.QWidget):
         self._left_layout.addLayout(self._mouse_pos_layout)
         self._left_layout.addWidget(self.filename_label)
         self._outer_layout.addWidget(self.load_btn)
+        self._outer_layout.addWidget(self.live_btn)
         self._outer_layout.addWidget(self.save_map_btn)
         self._outer_layout.addWidget(self.layer_lbl)
         self._outer_layout.addWidget(self.layer_cb)
