@@ -41,6 +41,8 @@ schema change::
                            "K0": null,          # no verified error recorded
                            "K0_prime": 0.02},
       "fixed_parameters": ["K0"],             # held fixed in the EoS fit
+      "experimental_pressure_range_gpa": [0.0, 8.9], # optional fit data
+      "experimental_temperature_range_k": [298.0, 298.0], # optional
       "thermal": {"type": "AlphaKT",         # optional
                   "parameters": {"alpha0": 4.2e-5, "dK_dT": -0.02}},
       "temperature_ref": 298.15,             # optional, K
@@ -62,6 +64,10 @@ the same units as the corresponding EoS parameters.  A JSON ``null`` means
 that no verified uncertainty is recorded; it must never be interpreted as
 zero.  ``fixed_parameters`` records parameters held fixed during the EoS fit.
 A fixed value may still have an independently measured uncertainty.
+``experimental_pressure_range_gpa`` and
+``experimental_temperature_range_k`` describe the measurements used to
+constrain the published fit.  They are not phase-stability limits, and an
+EoS should not automatically be extrapolated beyond them.
 """
 
 from __future__ import annotations
@@ -178,8 +184,24 @@ class Material:
 
 
 def record_label(record: dict) -> str:
-    """Display label of an EoS record (falls back to the full reference)."""
-    return record.get("label") or record.get("reference") or ""
+    """Display label, including the experimental fit domain when known."""
+    label = record.get("label") or record.get("reference") or ""
+    pressure_range = record_pressure_range(record)
+    return f"{label} [{pressure_range}]" if pressure_range else label
+
+
+def record_pressure_range(record: dict) -> str:
+    """Human-readable experimental pressure range, including units."""
+    values = record.get("experimental_pressure_range_gpa")
+    if not isinstance(values, (list, tuple)) or len(values) != 2:
+        return ""
+    low, high = values
+    try:
+        if float(low) == float(high):
+            return f"{float(low):g} GPa"
+        return f"{float(low):g}\N{EN DASH}{float(high):g} GPa"
+    except (TypeError, ValueError):
+        return ""
 
 
 def record_eos_type(record: dict) -> str:

@@ -53,10 +53,13 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         self.materials_table.setHorizontalHeaderLabels(
             ["Material", "Space Group"])
         self.eos_table = QtWidgets.QTableWidget()
-        self.eos_table.setColumnCount(5)
+        self.eos_table.setColumnCount(6)
         self.eos_table.setHorizontalHeaderLabels(
-            ["EoS", "Reference", "K0 (GPa)", "K0′", "V0 (Å³)"])
+            ["EoS", "Reference", "Fit P range", "K0 (GPa)", "K0′",
+             "V0 (Å³)"])
         self.eos_table.setToolTip(
+            "Fit P range is the experimental pressure interval used to "
+            "constrain the published EoS, not a phase-stability range.\n"
             "± values are publication-reported errors in the displayed "
             "units.\n‘error n/r’ means that no verified error is recorded; "
             "it does not mean zero.")
@@ -140,7 +143,7 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         table.resizeColumnsToContents()
 
     def fill_eos_records(self, rows):
-        """*rows*: list of (eos_type, reference, k0, k0_prime, v0) strings."""
+        """Rows: EoS, reference, fit P range, K0, K0-prime and V0."""
         table = self.eos_table
         table.setRowCount(len(rows))
         for r, row in enumerate(rows):

@@ -61,6 +61,16 @@ def test_formula_parsing():
     assert _parse_formula("") == []
 
 
+def test_experimental_pressure_range_display():
+    record = {
+        "label": "Angel et al. (1997)",
+        "experimental_pressure_range_gpa": [0.0, 8.9]
+    }
+    assert eos.record_pressure_range(record) == "0–8.9 GPa"
+    assert eos.record_label(record) == "Angel et al. (1997) [0–8.9 GPa]"
+    assert eos.record_pressure_range({}) == ""
+
+
 def test_build_jcpds_carries_everything(gold):
     phase = eos.build_jcpds(gold, record_index=0)
     # the name is the chemistry alone; the active reference lives in the

@@ -57,6 +57,8 @@
    "label": "Tange et al. (2012), mantle-range BM3-MGD",
    "reference": "Tange et al., Journal of Geophysical Research: Solid Earth 117, B06201 (2012), doi:10.1029/2011JB008988",
    "temperature_ref": 300.0,
+   "experimental_pressure_range_gpa": [28.0, 108.0],
+   "experimental_temperature_range_k": [300.0, 2430.0],
    "eos": {
     "type": "BM3",
     "parameters": {
@@ -87,6 +89,8 @@
    "label": "Tange et al. (2012), mantle-range Vinet-MGD",
    "reference": "Tange et al., Journal of Geophysical Research: Solid Earth 117, B06201 (2012), doi:10.1029/2011JB008988",
    "temperature_ref": 300.0,
+   "experimental_pressure_range_gpa": [28.0, 108.0],
+   "experimental_temperature_range_k": [300.0, 2430.0],
    "eos": {
     "type": "Vinet",
     "parameters": {
@@ -117,6 +121,8 @@
    "label": "Vanpeteghem et al. (2006), low-pressure single-crystal BM2",
    "reference": "Vanpeteghem et al., Geophysical Research Letters 33, L03306 (2006), doi:10.1029/2005GL024955",
    "temperature_ref": 300.0,
+   "experimental_pressure_range_gpa": [0.0, 10.0],
+   "experimental_temperature_range_k": [300.0, 300.0],
    "eos": {
     "type": "BM2",
     "parameters": {

@@ -77,8 +77,12 @@ class EosDatabaseControllerTest(QtTest):
         assert self.dialog.eos_table.rowCount() != gold_rows
 
     def test_material_without_records_is_still_loadable(self):
-        material = next(m for m in eos.load_materials()
-                        if not m.eos_records)
+        materials = eos.load_materials()
+        material = next(
+            m for m in materials
+            if (not m.eos_records
+                and len(eos.search_materials(m.name, materials)) == 1)
+        )
         self.dialog.search_input.setText(material.name)
         self.dialog.materials_table.selectRow(0)
         assert self.dialog.eos_table.rowCount() == 0
@@ -100,9 +104,11 @@ def test_record_row_displays_reported_errors_and_fixed_parameters():
         "parameter_errors": {"V0": 0.0048, "K0": 2.0,
                              "K0_prime": None},
         "fixed_parameters": ["V0"],
+        "experimental_pressure_range_gpa": [12.0, 80.5],
     }
     assert _record_row(record) == (
-        "Vinet", "A publication", "395.0 ± 2", "3.62 (error n/r)",
+        "Vinet", "A publication", "12–80.5 GPa", "395.0 ± 2",
+        "3.62 (error n/r)",
         "47.250 ± 0.0048 (fixed)",
     )
 
@@ -113,6 +119,6 @@ def test_record_row_displays_implicit_bm2_derivative_as_fixed():
         "parameter_errors": {"V0": None, "K0": 1.0},
         "fixed_parameters": [],
     }
-    assert _record_row(record)[2:] == (
+    assert _record_row(record)[3:] == (
         "20.0 ± 1", "4 (fixed)", "10.000 (error n/r)",
     )

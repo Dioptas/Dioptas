@@ -32,6 +32,29 @@ def test_every_eos_parameter_has_explicit_uncertainty_metadata():
                 assert error is None or error > 0, (path.name, name)
 
 
+def test_experimental_ranges_are_ordered_finite_intervals():
+    range_fields = {
+        "experimental_pressure_range_gpa": 0.0,
+        "experimental_temperature_range_k": 0.0,
+    }
+    for path in DATABASE.glob("*.json"):
+        for record in _document(path.name)["eos_records"]:
+            for field, lower_bound in range_fields.items():
+                if field not in record:
+                    continue
+                values = record[field]
+                assert isinstance(values, list) and len(values) == 2, (
+                    path.name, field
+                )
+                assert all(isinstance(value, (int, float))
+                           and math.isfinite(value) for value in values), (
+                    path.name, field
+                )
+                assert lower_bound <= values[0] <= values[1], (
+                    path.name, field
+                )
+
+
 def test_records_without_any_parameter_error_explain_why():
     explanation_markers = {
         "uncertaint", "standard error", "no error", "non-meaningful",
@@ -125,6 +148,8 @@ def test_publication_verified_parameter_errors(filename, index, errors, fixed):
         ("ringwoodite.json", 0, "BM3", 526.7, 182.0, 4.2),
         ("bridgmanite.json", 0, "BM3", 162.373, 256.7, 4.09),
         ("mgsio3_post_perovskite.json", 0, "BM3", 162.2, 225.0, 4.21),
+        ("alpha_quartz.json", 0, "BM3", 112.981, 37.12, 5.99),
+        ("calcite.json", 0, "BM2", 367.789, 73.46, None),
     ],
 )
 def test_publication_corrected_eos_records(
@@ -261,7 +286,7 @@ def test_all_curated_structures_are_complete_and_stoichiometric():
             )
         assert dict(actual) == pytest.approx(dict(expected)), path.name
 
-    assert len(structured) == 75
+    assert len(structured) == 77
 
 
 @pytest.mark.parametrize(
@@ -281,6 +306,7 @@ def test_all_curated_structures_are_complete_and_stoichiometric():
         ("ringwoodite.json", "BM3", 526.7, 182.0, 4.2),
         ("bridgmanite.json", "BM3", 162.373, 256.7, 4.09),
         ("mgsio3_post_perovskite.json", "BM3", 162.2, 225.0, 4.21),
+        ("alpha_quartz.json", "BM3", 112.981, 37.12, 5.99),
     ],
 )
 def test_literature_expansion_eos_records(
@@ -308,6 +334,7 @@ def test_literature_expansion_eos_records(
         "silicon_carbide_b3.json", "silicon_carbide_b1.json",
         "boron_nitride_hexagonal.json", "niobium.json",
         "ringwoodite.json",
+        "alpha_quartz.json", "calcite.json",
     ],
 )
 def test_literature_expansion_peak_d_spacings(filename):
@@ -382,6 +409,7 @@ def test_martinez_aragonite_thermal_parameters_match_publication():
         ("phase_d.json", 84.7321, 134.0),
         ("zircon.json", 260.803, 227.0),
         ("bridgmanite.json", 162.51, 253.0),
+        ("calcite.json", 367.789, 73.46),
     ],
 )
 def test_publication_second_order_fits_do_not_store_fitted_k0_prime(
@@ -478,6 +506,28 @@ def test_sakai_post_perovskite_multimegabar_fit_matches_publication():
     assert record["fixed_parameters"] == []
 
 
+@pytest.mark.parametrize(
+    "filename,index,pressure_range,temperature_range",
+    [
+        ("bridgmanite.json", 0, [28.0, 108.0], [300.0, 2430.0]),
+        ("bridgmanite.json", 1, [28.0, 108.0], [300.0, 2430.0]),
+        ("bridgmanite.json", 2, [0.0, 10.0], [300.0, 300.0]),
+        ("mgsio3_post_perovskite.json", 0, [111.0, 245.0], None),
+        ("mgsio3_post_perovskite.json", 1, [100.0, 265.0], None),
+        ("alpha_quartz.json", 0, [0.0, 8.9], [298.0, 298.0]),
+        ("calcite.json", 0, [0.0, 1.435], [298.0, 298.0]),
+    ],
+)
+def test_curated_eos_records_report_experimental_domains(
+        filename, index, pressure_range, temperature_range):
+    record = _document(filename)["eos_records"][index]
+    assert record["experimental_pressure_range_gpa"] == pressure_range
+    if temperature_range is None:
+        assert "experimental_temperature_range_k" not in record
+    else:
+        assert record["experimental_temperature_range_k"] == temperature_range
+
+
 def test_phase_only_materials_have_explicit_card_references():
     expected = {
         "fe_fcc.json": "JCPDS 4-0829",
@@ -555,7 +605,7 @@ def test_retained_references_have_normalized_publication_metadata():
             record["reference"] for record in _document(path.name)["eos_records"]
         )
 
-    assert len(references) == 101
+    assert len(references) == 103
     assert {reference for reference in references if "doi:" not in reference} == (
         no_registered_doi
     )

@@ -99,6 +99,7 @@ def _record_row(record: dict) -> tuple:
     return (
         eos_block.get("type") or "",
         record.get("reference") or eos.record_label(record),
+        eos.record_pressure_range(record),
         _parameter_text(record, "K0", ".1f"),
         k0p_text,
         _parameter_text(record, "V0", ".3f"),
