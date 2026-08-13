@@ -12,6 +12,11 @@
   "gamma": 90.0
  },
  "formula_units_per_cell": 2,
+ "space_group": "Im-3m",
+ "space_group_number": 229,
+ "atom_sites": [
+  {"element": "W", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
  "notes": "Tungsten (4-0806 EOS Hixson and Fritz)",
  "peaks": [
   [1, 1, 0, 2.238, 100.0],
@@ -46,6 +51,20 @@
     }
    },
    "notes": "Publication Vinet fit on the revised ruby scale; atomic V0=15.862 A^3 multiplied by 2 atoms per bcc cell."
+  },
+  {
+   "label": "Shen and Smith (2026), Cu-referenced Vinet",
+   "reference": "Shen and Smith, Phys. Rev. B 113, 144113 (2026), doi:10.1103/fxgq-96sg",
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 31.704,
+     "K0": 307.0,
+     "K0_prime": 4.02
+    }
+   },
+   "temperature_ref": 300.0,
+   "notes": "Table II Cu-referenced fit combining DAC-1 and DAC-2; V0 fixed. Reported uncertainties: K0 +/- 0.8 GPa and K0' +/- 0.03. Measurements extend to 140 GPa."
   }
  ]
 }

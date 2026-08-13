@@ -11,8 +11,14 @@
   "beta": 90.0,
   "gamma": 90.0
  },
- "formula_units_per_cell": null,
- "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/sno2_cassit.jcpds",
+ "formula_units_per_cell": 2,
+ "space_group": "P42/mnm",
+ "space_group_number": 136,
+ "atom_sites": [
+  {"element": "Sn", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4f", "x": 0.307, "y": 0.307, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/sno2_cassit.jcpds. Cassiterite coordinates matching the ambient card cell: Baur, Acta Crystallographica 9, 515-520 (1956).",
  "peaks": [
   [2, 2, 3, 0.8972, 1.0],
   [5, 0, 1, 0.9083, 8.0],

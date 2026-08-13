@@ -12,6 +12,12 @@
   "gamma": 90.0
  },
  "formula_units_per_cell": 1,
+ "space_group": "Pm-3m",
+ "space_group_number": 221,
+ "atom_sites": [
+  {"element": "Fe", "wyckoff": "1a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "H", "wyckoff": "3c", "x": 0.0, "y": 0.5, "z": 0.5, "occupancy": 1.0}
+ ],
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/FeH3_cubic_guess.jcpds",
  "peaks": [
   [2, 1, 1, 1.1297, 0.5],

@@ -12,6 +12,12 @@
   "gamma": 120.0
  },
  "formula_units_per_cell": 4,
+ "space_group": "P63/mmc",
+ "space_group_number": 194,
+ "atom_sites": [
+  {"element": "C", "wyckoff": "2b", "x": 0.0, "y": 0.0, "z": 0.25, "occupancy": 1.0},
+  {"element": "C", "wyckoff": "2c", "x": 0.3333333333, "y": 0.6666666667, "z": 0.25, "occupancy": 1.0}
+ ],
  "notes": "Phase reference: JCPDS 41-1487.",
  "peaks": [
   [0, 0, 2, 3.38, 100.0],

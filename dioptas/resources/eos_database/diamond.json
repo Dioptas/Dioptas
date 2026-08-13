@@ -12,6 +12,11 @@
   "gamma": 90.0
  },
  "formula_units_per_cell": 8,
+ "space_group": "Fd-3m",
+ "space_group_number": 227,
+ "atom_sites": [
+  {"element": "C", "wyckoff": "8a", "x": 0.125, "y": 0.125, "z": 0.125, "occupancy": 1.0}
+ ],
  "notes": "diamond (JCPDS 6-0675, dummy EOS)",
  "peaks": [
   [1, 1, 1, 2.06, 100.0],

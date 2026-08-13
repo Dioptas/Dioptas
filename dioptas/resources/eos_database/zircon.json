@@ -11,8 +11,15 @@
   "beta": 90.0,
   "gamma": 90.0
  },
- "formula_units_per_cell": null,
- "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/ZrSiO4 (2).jcpds",
+ "formula_units_per_cell": 4,
+ "space_group": "I41/amd",
+ "space_group_number": 141,
+ "atom_sites": [
+  {"element": "Zr", "wyckoff": "4a", "x": 0.0, "y": 0.75, "z": 0.125, "occupancy": 1.0},
+  {"element": "Si", "wyckoff": "4b", "x": 0.0, "y": 0.75, "z": 0.625, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "16h", "x": 0.0, "y": 0.066, "z": 0.195, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/ZrSiO4 (2).jcpds. Ambient coordinates are from Hazen and Finger, American Mineralogist 64, 196-201 (1979).",
  "peaks": [
   [6, 0, 0, 1.1007, 4.6],
   [5, 0, 3, 1.101, 2.0],

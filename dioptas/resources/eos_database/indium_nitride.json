@@ -1,7 +1,7 @@
 {
  "format_version": 1,
  "name": "Indium Nitride",
- "formula": "",
+ "formula": "InN",
  "symmetry": "HEXAGONAL",
  "lattice": {
   "a": 3.537,
@@ -11,8 +11,14 @@
   "beta": 90.0,
   "gamma": 120.0
  },
- "formula_units_per_cell": null,
- "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/InN_hex.jcpds",
+ "formula_units_per_cell": 2,
+ "space_group": "P63mc",
+ "space_group_number": 186,
+ "atom_sites": [
+  {"element": "In", "wyckoff": "2b", "x": 0.3333333333333333, "y": 0.6666666666666666, "z": 0.0, "occupancy": 1.0},
+  {"element": "N", "wyckoff": "2b", "x": 0.3333333333333333, "y": 0.6666666666666666, "z": 0.3769, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/InN_hex.jcpds. Structure coordinates: Paszkowicz et al., Powder Diffraction 18, 114-121 (2003), doi:10.1154/1.1566957.",
  "peaks": [
   [1, 0, 4, 1.2928, 36.0],
   [2, 0, 2, 1.3493, 36.0],

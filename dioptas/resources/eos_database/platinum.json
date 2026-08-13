@@ -12,6 +12,11 @@
   "gamma": 90.0
  },
  "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Pt", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
  "notes": "Platinum (JCPDS 4-0802, EOS from Holmes)",
  "peaks": [
   [1, 1, 1, 2.265, 100.0],
@@ -47,6 +52,20 @@
      "dK_dT": 0.0
     }
    }
+  },
+  {
+   "label": "Shen and Smith (2026), Cu-referenced Vinet",
+   "reference": "Shen and Smith, Phys. Rev. B 113, 144113 (2026), doi:10.1103/fxgq-96sg",
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 60.364,
+     "K0": 261.2,
+     "K0_prime": 5.75
+    }
+   },
+   "temperature_ref": 300.0,
+   "notes": "Table II Cu-referenced fit using DAC-2 data; V0 fixed. Reported uncertainties: K0 +/- 0.5 GPa and K0' +/- 0.02. Measurements were made at 298.5 +/- 0.5 K to 140 GPa."
   }
  ]
 }

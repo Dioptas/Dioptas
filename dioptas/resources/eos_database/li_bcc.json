@@ -11,7 +11,12 @@
   "beta": 90.0,
   "gamma": 90.0
  },
- "formula_units_per_cell": null,
+ "formula_units_per_cell": 2,
+ "space_group": "Im-3m",
+ "space_group_number": 229,
+ "atom_sites": [
+  {"element": "Li", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Li-bcc.jcpds",
  "peaks": [
   [3, 2, 1, 0.9381, 19.8],

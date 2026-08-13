@@ -11,7 +11,13 @@
   "beta": 90.0,
   "gamma": 90.0
  },
- "formula_units_per_cell": null,
+ "formula_units_per_cell": 1,
+ "space_group": "Pm-3m",
+ "space_group_number": 221,
+ "atom_sites": [
+  {"element": "Sr", "wyckoff": "1a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "1b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
+ ],
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/SrO-b2.jcpds",
  "peaks": [
   [3, 2, 2, 0.7367, 1.0],

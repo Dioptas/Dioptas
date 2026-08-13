@@ -12,6 +12,11 @@
   "gamma": 90.0
  },
  "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Cu", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
  "notes": "FCC phase reference: JCPDS 04-0836.",
  "peaks": [
   [1, 1, 1, 2.088, 100.0],

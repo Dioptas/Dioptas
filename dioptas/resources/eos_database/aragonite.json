@@ -12,7 +12,15 @@
   "gamma": 90.0
  },
  "formula_units_per_cell": 4,
- "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Users data/caco3_arag.jcpds",
+ "space_group": "Pmcn",
+ "space_group_number": 62,
+ "atom_sites": [
+  {"element": "Ca", "wyckoff": "4c", "x": 0.25, "y": 0.41498, "z": 0.75936, "occupancy": 1.0},
+  {"element": "C", "wyckoff": "4c", "x": 0.25, "y": 0.7622, "z": 0.9149, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4c", "x": 0.25, "y": 0.922, "z": 0.9044, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8d", "x": 0.4737, "y": 0.6807, "z": 0.9128, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Users data/caco3_arag.jcpds. Ambient aragonite coordinates: Ye et al., American Mineralogist 97, 707-712 (2012).",
  "peaks": [
   [1, 1, 3, 1.7421, 35.0],
   [1, 3, 2, 1.8143, 33.0],

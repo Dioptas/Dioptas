@@ -32,11 +32,43 @@ static parameters were checked.
 Generic thermal coefficients copied into PbS B1 and ten unrelated imported
 records were removed; those records now represent only their cited static EoS.
 
+## Shen and Smith 2026 extension
+
+Table II of Shen and Smith, *Physical Review B* 113, 144113 (2026),
+[doi:10.1103/fxgq-96sg](https://doi.org/10.1103/fxgq-96sg), was checked against
+the complete paper supplied by the user. Ten Cu-referenced 300 K Vinet fits
+were added as alternative records: Pt, Au, Ta, W, Mo, MgO, NaCl-B1, NaCl-B2,
+bcc-Fe, and hcp-Fe. All stored V0 values are the crystallographic unit-cell
+volumes printed in Table II, not the atomic or formula-unit volumes used in
+Table I. The publication uncertainties, fixed-V0 status, run selection, and
+phase-specific pressure limits are retained in each record's notes.
+
+Molybdenum and NaCl-B1 were new material documents. Their ambient diffraction
+entries use JCPDS 42-1120 and JCPDS 5-0628, respectively. The latter is also
+the ambient-volume source explicitly identified by Shen and Smith. Copper was
+not added from this paper: it is the primary pressure anchor, and its EOS
+parameters are taken from another publication and explicitly not repeated in
+Table II.
+
+The eleven calibrant phases, including reference Cu, also store their
+Hermann-Mauguin space group, International Tables number, and occupied
+asymmetric-unit Wyckoff sites. Each site contains the element, fractional
+coordinates, Wyckoff multiplicity/letter, and occupancy. This representation
+is intended for a later Phase Smith structure-factor calculation; symmetry-
+equivalent atoms are deliberately not duplicated in the material documents.
+
+A subsequent database-wide structure pass extended this representation to 48
+of the 78 materials. Fixed-coordinate prototypes and source-specific refined
+coordinates are covered by stoichiometry and schema regression tests. The 30
+remaining complex, disordered, molecular, or ambiguously identified phases are
+listed with their blocking reason in `docs/eos_structure_audit.md`; no atomic
+coordinates were guessed for them.
+
 ## Citation normalization
 
 Every retained citation was reconciled against publisher or DOI metadata and
-rewritten as `Authors, Journal volume, pages (year), doi:...`. Of the 76
-retained records, 74 now include a DOI. The two exceptions are the 1979 zircon
+rewritten as `Authors, Journal volume, pages (year), doi:...`. Of the 86
+current records, 84 include a DOI. The two exceptions are the 1979 zircon
 and 1981 coesite papers in American Mineralogist; both have complete
 author/volume/page/year metadata, but no registered DOI was found.
 
@@ -48,10 +80,11 @@ NaAlSiO4 and Z=4, rather than being mislabeled as jadeite NaAlSi2O6.
 ## Removed EoS records
 
 Of the 220 EoS records in the post-import database, 144 were removed, leaving
-76 publication-supported EoS records. Material entries left with neither an
-EoS nor an independent phase reference were then removed as well. The final
-database contains 76 materials: 68 with EoS data and eight phase-only entries
-identified by explicit JCPDS/PDF card numbers in their material notes.
+76 publication-supported EoS records at the end of the initial audit. Material
+entries left with neither an EoS nor an independent phase reference were then
+removed as well. After the Shen and Smith extension, the database contains 78
+materials and 86 EoS records: 71 materials with EoS data and seven phase-only
+entries identified by explicit JCPDS/PDF card numbers in their material notes.
 
 The removed records fall into four reproducible categories:
 

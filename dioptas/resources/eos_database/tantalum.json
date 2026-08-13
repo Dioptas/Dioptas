@@ -12,6 +12,11 @@
   "gamma": 90.0
  },
  "formula_units_per_cell": 2,
+ "space_group": "Im-3m",
+ "space_group_number": 229,
+ "atom_sites": [
+  {"element": "Ta", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/ta.jcpds, JCPDS/dac_user_jcpds/ta.jcpds",
  "peaks": [
   [4, 0, 0, 0.8264, 4.0],
@@ -36,6 +41,20 @@
     }
    },
    "notes": "Publication values."
+  },
+  {
+   "label": "Shen and Smith (2026), Cu-referenced Vinet",
+   "reference": "Shen and Smith, Phys. Rev. B 113, 144113 (2026), doi:10.1103/fxgq-96sg",
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 36.14,
+     "K0": 195.2,
+     "K0_prime": 3.62
+    }
+   },
+   "temperature_ref": 300.0,
+   "notes": "Table II Cu-referenced fit using DAC-1 data; DAC-2 was excluded and V0 was fixed. Reported uncertainties: K0 +/- 0.4 GPa and K0' +/- 0.02."
   }
  ]
 }

@@ -12,7 +12,14 @@
   "gamma": 120.0
  },
  "formula_units_per_cell": 6,
- "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/mgco3.jcpds",
+ "space_group": "R-3c",
+ "space_group_number": 167,
+ "atom_sites": [
+  {"element": "Mg", "wyckoff": "6b", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "C", "wyckoff": "6a", "x": 0.0, "y": 0.0, "z": 0.25, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "18e", "x": 0.2778, "y": 0.0, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/mgco3.jcpds. Ambient structure coordinates: Markgraf and Reeder, American Mineralogist 70, 590-600 (1985).",
  "peaks": [
   [4, 0, 10, 0.8342, 10.0],
   [0, 0, 18, 0.8343, 7.0],

@@ -11,8 +11,14 @@
   "beta": 90.0,
   "gamma": 90.0
  },
- "formula_units_per_cell": null,
- "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/GeO2-rutile.jcpds",
+ "formula_units_per_cell": 2,
+ "space_group": "P42/mnm",
+ "space_group_number": 136,
+ "atom_sites": [
+  {"element": "Ge", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4f", "x": 0.306, "y": 0.306, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/GeO2-rutile.jcpds. Ambient rutile-type structure: Haines et al., Physics and Chemistry of Minerals 27, 575-582 (2000).",
  "peaks": [
   [5, 2, 1, 0.7851, 10.0],
   [3, 0, 3, 0.7996, 8.0],

@@ -143,7 +143,7 @@ def save_material_file(path: str, material: Material) -> None:
 
 
 def _format_material_json(document: dict) -> str:
-    """Render one material with each ``[h, k, l, d, I]`` on one line."""
+    """Render each peak and atom site compactly on one line."""
     document = copy.deepcopy(document)
     replacements = {}
     compact_peaks = []
@@ -155,6 +155,16 @@ def _format_material_json(document: dict) -> str:
         )
         compact_peaks.append(marker)
     document["peaks"] = compact_peaks
+
+    compact_sites = []
+    for index, site in enumerate(document.get("atom_sites", [])):
+        marker = f"\0DIOPTAS_ATOM_SITE_{index:06d}\0"
+        encoded_marker = json.dumps(marker)
+        replacements[encoded_marker] = json.dumps(
+            site, ensure_ascii=False, separators=(", ", ": ")
+        )
+        compact_sites.append(marker)
+    document["atom_sites"] = compact_sites
 
     rendered = json.dumps(document, indent=1, ensure_ascii=False)
     for marker, peak_row in replacements.items():

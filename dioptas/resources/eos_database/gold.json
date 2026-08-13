@@ -12,6 +12,11 @@
   "gamma": 90.0
  },
  "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Au", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
  "notes": "Gold (04-0783, shock wave)",
  "peaks": [
   [1, 1, 1, 2.359, 100.0],
@@ -66,6 +71,20 @@
     }
    },
    "notes": "Corrected against the paper (Table 1: Vinet, V0=67.850(4), K0=167, K0p=6.00(2)); the hosted database carried Anderson's BM3 values here. Thermal parameters are the paper's MGD fit (not yet used by Dioptas)."
+  },
+  {
+   "label": "Shen and Smith (2026), Cu-referenced Vinet",
+   "reference": "Shen and Smith, Phys. Rev. B 113, 144113 (2026), doi:10.1103/fxgq-96sg",
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 67.792,
+     "K0": 167.5,
+     "K0_prime": 5.85
+    }
+   },
+   "temperature_ref": 300.0,
+   "notes": "Table II Cu-referenced fit using DAC-1 data; V0 fixed. Reported uncertainties: K0 +/- 0.3 GPa and K0' +/- 0.01. Measurements were made at 298.5 +/- 0.5 K to 140 GPa."
   }
  ]
 }

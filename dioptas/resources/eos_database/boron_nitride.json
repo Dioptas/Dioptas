@@ -1,7 +1,7 @@
 {
  "format_version": 1,
  "name": "Boron Nitride",
- "formula": "",
+ "formula": "BN",
  "symmetry": "CUBIC",
  "lattice": {
   "a": 3.6159,
@@ -12,6 +12,12 @@
   "gamma": 90.0
  },
  "formula_units_per_cell": 4,
+ "space_group": "F-43m",
+ "space_group_number": 216,
+ "atom_sites": [
+  {"element": "B", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "N", "wyckoff": "4c", "x": 0.25, "y": 0.25, "z": 0.25, "occupancy": 1.0}
+ ],
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/BN-cubic.jcpds",
  "peaks": [
   [3, 3, 1, 0.8295, 3.0],

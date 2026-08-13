@@ -11,7 +11,13 @@
   "beta": 90.0,
   "gamma": 120.0
  },
- "formula_units_per_cell": null,
+ "formula_units_per_cell": 2,
+ "space_group": "P63/mmc",
+ "space_group_number": 194,
+ "atom_sites": [
+  {"element": "Fe", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "2c", "x": 0.3333333333, "y": 0.6666666667, "z": 0.25, "occupancy": 1.0}
+ ],
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/CVS/PbF2_ni2in.jcpds, JCPDS/dac_user_jcpds/FeO_B8.jcpds",
  "peaks": [
   [1, 1, 4, 1.0072, 14.0],

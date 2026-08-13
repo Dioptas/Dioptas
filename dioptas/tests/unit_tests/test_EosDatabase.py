@@ -35,7 +35,7 @@ def test_bundled_database_loads(materials):
 
 
 def test_gold_has_multiple_references(gold):
-    assert len(gold.eos_records) == 2
+    assert len(gold.eos_records) == 3
     labels = [eos.record_label(r) for r in gold.eos_records]
     assert all(labels), "every record needs a display label"
     assert len(set(labels)) == len(labels), "labels must be unique"
@@ -167,11 +167,24 @@ def test_eosmat_round_trip(materials, tmp_path):
     assert loaded.peaks == wollastonite.peaks
     assert loaded.eos_records == wollastonite.eos_records
     assert loaded.formula_units_per_cell == wollastonite.formula_units_per_cell
+    assert loaded.space_group == wollastonite.space_group
+    assert loaded.space_group_number == wollastonite.space_group_number
+    assert loaded.atom_sites == wollastonite.atom_sites
 
     rendered = open(path, encoding="utf-8").read()
     peak_lines = [line for line in rendered.splitlines()
                   if line.startswith("  [")]
     assert len(peak_lines) == len(wollastonite.peaks)
+
+
+def test_eosmat_keeps_each_atom_site_on_one_line(tmp_path):
+    material = next(m for m in eos.load_materials() if m.formula == "MgO")
+    path = str(tmp_path / "MgO.eosmat")
+    eos.save_material_file(path, material)
+    rendered = open(path, encoding="utf-8").read()
+    site_lines = [line for line in rendered.splitlines()
+                  if line.startswith('  {"element"')]
+    assert len(site_lines) == len(material.atom_sites)
 
 
 def test_alias_search_is_case_insensitive():

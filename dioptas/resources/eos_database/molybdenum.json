@@ -1,0 +1,46 @@
+{
+ "format_version": 1,
+ "name": "Molybdenum",
+ "formula": "Mo",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.1472,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 2,
+ "space_group": "Im-3m",
+ "space_group_number": 229,
+ "atom_sites": [
+  {"element": "Mo", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "Ambient bcc phase reference: JCPDS 42-1120.",
+ "peaks": [
+  [1, 1, 0, 2.2247, 100.0],
+  [2, 0, 0, 1.5738, 16.0],
+  [2, 1, 1, 1.2847, 31.0],
+  [2, 2, 0, 1.1129, 9.0],
+  [3, 1, 0, 0.9953, 14.0],
+  [2, 2, 2, 0.9085, 3.0],
+  [3, 2, 1, 0.8411, 24.0]
+ ],
+ "eos_records": [
+  {
+   "label": "Shen and Smith (2026), Cu-referenced Vinet",
+   "reference": "Shen and Smith, Phys. Rev. B 113, 144113 (2026), doi:10.1103/fxgq-96sg",
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 31.14,
+     "K0": 260.6,
+     "K0_prime": 4.06
+    }
+   },
+   "temperature_ref": 300.0,
+   "notes": "Table II Cu-referenced fit combining DAC-1 and DAC-2; V0 fixed. Reported uncertainties: K0 +/- 0.5 GPa and K0' +/- 0.02. Measurements extend to 140 GPa."
+  }
+ ]
+}

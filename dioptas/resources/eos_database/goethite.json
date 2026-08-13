@@ -12,7 +12,15 @@
   "gamma": 90.0
  },
  "formula_units_per_cell": 4,
- "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/FeOOH-pbnm.jcpds",
+ "space_group": "Pbnm",
+ "space_group_number": 62,
+ "atom_sites": [
+  {"element": "Fe", "wyckoff": "4c", "x": 0.04893, "y": 0.853657, "z": 0.25, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4c", "x": 0.7057, "y": 0.19914, "z": 0.25, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4c", "x": 0.1987, "y": 0.05298, "z": 0.25, "occupancy": 1.0},
+  {"element": "H", "wyckoff": "4c", "x": 0.379, "y": 0.082, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/FeOOH-pbnm.jcpds. Single-crystal coordinates: Yang et al., Acta Crystallographica E62, i250-i252 (2006), doi:10.1107/S1600536806047258.",
  "peaks": [
   [1, 3, 2, 1.3185, 20.0],
   [0, 0, 2, 1.5121, 30.0],

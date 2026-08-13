@@ -15,6 +15,12 @@ a user-saved ``.eosmat`` file — same content) looks like::
       "lattice": {"a": 4.0786, "b": null, "c": null,
                   "alpha": 90.0, "beta": 90.0, "gamma": 90.0},
       "formula_units_per_cell": 4,
+      "space_group": "Fm-3m",
+      "space_group_number": 225,
+      "atom_sites": [
+        {"element": "Au", "x": 0.0, "y": 0.0, "z": 0.0,
+         "occupancy": 1.0, "wyckoff": "4a"}
+      ],
       "notes": "...",
       "peaks": [[h, k, l, d0, intensity], ...],
       "eos_records": [ <record>, ... ]
@@ -78,6 +84,13 @@ class Material:
     #: formula units per unit cell (crystallographic Z) — needed to convert
     #: the unit-cell volume to molar volume for Holzapfel-type equations
     formula_units_per_cell: Optional[int] = None
+    #: Hermann-Mauguin symbol and International Tables number. ``atom_sites``
+    #: contains the asymmetric-unit representatives with their Wyckoff
+    #: multiplicity/letter, ready for a crystallographic symmetry engine to
+    #: generate the full cell and calculate reflection intensities.
+    space_group: str = ""
+    space_group_number: Optional[int] = None
+    atom_sites: list = field(default_factory=list)
     notes: str = ""
     #: [h, k, l, d0, intensity] per peak
     peaks: list = field(default_factory=list)
@@ -120,6 +133,9 @@ class Material:
                 "gamma": self.lattice.gamma,
             },
             "formula_units_per_cell": self.formula_units_per_cell,
+            "space_group": self.space_group,
+            "space_group_number": self.space_group_number,
+            "atom_sites": [dict(site) for site in self.atom_sites],
             "notes": self.notes,
             "peaks": [list(peak) for peak in self.peaks],
             "eos_records": self.eos_records,
@@ -141,6 +157,10 @@ class Material:
                 gamma=lattice.get("gamma") or 90.0,
             ),
             formula_units_per_cell=document.get("formula_units_per_cell"),
+            space_group=document.get("space_group") or "",
+            space_group_number=document.get("space_group_number"),
+            atom_sites=[dict(site)
+                        for site in document.get("atom_sites", [])],
             notes=document.get("notes") or "",
             peaks=[list(peak) for peak in document.get("peaks", [])],
             eos_records=list(document.get("eos_records", [])),

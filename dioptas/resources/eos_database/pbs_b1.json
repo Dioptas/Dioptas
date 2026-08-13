@@ -1,7 +1,7 @@
 {
  "format_version": 1,
  "name": "PbS_B1",
- "formula": "",
+ "formula": "PbS",
  "symmetry": "CUBIC",
  "lattice": {
   "a": 5.936,
@@ -12,6 +12,12 @@
   "gamma": 90.0
  },
  "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Pb", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "S", "wyckoff": "4b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
+ ],
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/PbS_B1.jcpds",
  "peaks": [
   [6, 2, 0, 0.9386, 1.0],

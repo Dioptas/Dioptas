@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 """Regression checks for the publication audit of imported JCPDS EoS data."""
+from collections import defaultdict
 import json
 from pathlib import Path
+import re
 
 import pytest
 
@@ -47,6 +49,129 @@ def test_publication_corrected_eos_records(
     assert "doi:" in record["reference"].lower()
 
 
+@pytest.mark.parametrize(
+    "filename,v0,k0,k0_prime",
+    [
+        ("platinum.json", 60.364, 261.2, 5.75),
+        ("gold.json", 67.792, 167.5, 5.85),
+        ("tantalum.json", 36.14, 195.2, 3.62),
+        ("tungsten.json", 31.704, 307.0, 4.02),
+        ("molybdenum.json", 31.14, 260.6, 4.06),
+        ("mgo.json", 74.636, 161.9, 4.08),
+        ("nacl_b1.json", 179.41, 23.5, 5.23),
+        ("nacl_b2.json", 41.35, 24.92, 5.63),
+        ("fe.json", 23.506, 162.1, 5.4),
+        ("iron.json", 22.352, 168.55, 5.53),
+    ],
+)
+def test_shen_smith_2026_vinet_records_match_table_ii(
+        filename, v0, k0, k0_prime):
+    records = _document(filename)["eos_records"]
+    record = next(
+        record for record in records
+        if "doi:10.1103/fxgq-96sg" in record["reference"]
+    )
+    assert record["eos"] == {
+        "type": "Vinet",
+        "parameters": {
+            "V0": pytest.approx(v0),
+            "K0": pytest.approx(k0),
+            "K0_prime": pytest.approx(k0_prime),
+        },
+    }
+    assert record["temperature_ref"] == pytest.approx(300.0)
+
+
+@pytest.mark.parametrize(
+    "filename,space_group,number,sites",
+    [
+        ("platinum.json", "Fm-3m", 225,
+         [("Pt", "4a", 0.0, 0.0, 0.0)]),
+        ("gold.json", "Fm-3m", 225,
+         [("Au", "4a", 0.0, 0.0, 0.0)]),
+        ("copper.json", "Fm-3m", 225,
+         [("Cu", "4a", 0.0, 0.0, 0.0)]),
+        ("tantalum.json", "Im-3m", 229,
+         [("Ta", "2a", 0.0, 0.0, 0.0)]),
+        ("tungsten.json", "Im-3m", 229,
+         [("W", "2a", 0.0, 0.0, 0.0)]),
+        ("molybdenum.json", "Im-3m", 229,
+         [("Mo", "2a", 0.0, 0.0, 0.0)]),
+        ("mgo.json", "Fm-3m", 225,
+         [("Mg", "4a", 0.0, 0.0, 0.0),
+          ("O", "4b", 0.5, 0.5, 0.5)]),
+        ("nacl_b1.json", "Fm-3m", 225,
+         [("Na", "4a", 0.0, 0.0, 0.0),
+          ("Cl", "4b", 0.5, 0.5, 0.5)]),
+        ("nacl_b2.json", "Pm-3m", 221,
+         [("Na", "1a", 0.0, 0.0, 0.0),
+          ("Cl", "1b", 0.5, 0.5, 0.5)]),
+        ("fe.json", "Im-3m", 229,
+         [("Fe", "2a", 0.0, 0.0, 0.0)]),
+        ("iron.json", "P63/mmc", 194,
+         [("Fe", "2c", 1 / 3, 2 / 3, 0.25)]),
+    ],
+)
+def test_shen_smith_calibrants_store_asymmetric_unit_wyckoff_sites(
+        filename, space_group, number, sites):
+    document = _document(filename)
+    assert document["space_group"] == space_group
+    assert document["space_group_number"] == number
+    assert len(document["atom_sites"]) == len(sites)
+    for site, (element, wyckoff, x, y, z) in zip(
+            document["atom_sites"], sites):
+        assert site == {
+            "element": element,
+            "wyckoff": wyckoff,
+            "x": pytest.approx(x),
+            "y": pytest.approx(y),
+            "z": pytest.approx(z),
+            "occupancy": pytest.approx(1.0),
+        }
+
+
+def test_all_curated_structures_are_complete_and_stoichiometric():
+    structured = []
+    for path in DATABASE.glob("*.json"):
+        document = _document(path.name)
+        sites = document.get("atom_sites") or []
+        if not sites:
+            assert not document.get("space_group")
+            assert document.get("space_group_number") is None
+            continue
+
+        structured.append(path.name)
+        assert document["space_group"]
+        assert 1 <= document["space_group_number"] <= 230
+        assert document["formula_units_per_cell"] > 0
+
+        actual = defaultdict(float)
+        for site in sites:
+            assert set(site) == {
+                "element", "wyckoff", "x", "y", "z", "occupancy"
+            }
+            match = re.fullmatch(r"(\d+)[a-zA-Z]", site["wyckoff"])
+            assert match, f"invalid Wyckoff label in {path.name}: {site}"
+            assert all(0.0 <= site[axis] < 1.0 for axis in "xyz")
+            assert 0.0 < site["occupancy"] <= 1.0
+            actual[site["element"]] += (
+                int(match.group(1)) * site["occupancy"]
+            )
+
+        expected = defaultdict(float)
+        tokens = re.findall(r"([A-Z][a-z]?)(\d*)", document["formula"])
+        assert tokens
+        assert "".join(element + count
+                       for element, count in tokens) == document["formula"]
+        for element, count in tokens:
+            expected[element] += (
+                int(count or 1) * document["formula_units_per_cell"]
+            )
+        assert dict(actual) == pytest.approx(dict(expected)), path.name
+
+    assert len(structured) == 48
+
+
 def test_walker_kcl_thermal_parameters_match_publication():
     thermal = _document("kcl.json")["eos_records"][1]["thermal"]
     assert thermal["type"] == "AlphaKT"
@@ -89,7 +214,6 @@ def test_phase_only_materials_have_explicit_card_references():
         "alumina.json": "JCPDS 0-173",
         "b4c.json": "JCPDS/PDF 6-0555",
         "copper.json": "JCPDS 04-0836",
-        "fe.json": "JCPDS 6-0696",
         "fe2o3.json": "JCPDS 33-664",
         "fe_fcc.json": "JCPDS 4-0829",
         "graphite.json": "JCPDS 41-1487",
@@ -152,7 +276,7 @@ def test_retained_references_have_normalized_publication_metadata():
             record["reference"] for record in _document(path.name)["eos_records"]
         )
 
-    assert len(references) == 76
+    assert len(references) == 86
     assert {reference for reference in references if "doi:" not in reference} == (
         no_registered_doi
     )
@@ -160,6 +284,6 @@ def test_retained_references_have_normalized_publication_metadata():
 
 
 def test_unpublished_alternatives_were_removed():
-    assert len(_document("gold.json")["eos_records"]) == 2
+    assert len(_document("gold.json")["eos_records"]) == 3
     assert _document("gold.json")["eos_records"][1]["eos"]["type"] == "Vinet"
-    assert len(_document("iron.json")["eos_records"]) == 1
+    assert len(_document("iron.json")["eos_records"]) == 2

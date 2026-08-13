@@ -12,6 +12,12 @@
   "gamma": 90.0
  },
  "formula_units_per_cell": 1,
+ "space_group": "Pm-3m",
+ "space_group_number": 221,
+ "atom_sites": [
+  {"element": "K", "wyckoff": "1a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "Cl", "wyckoff": "1b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
+ ],
  "notes": "KCl  B2 (EOS from Campbell and Heinz, 1991)",
  "peaks": [
   [1, 0, 0, 3.753, 6.0],

@@ -12,6 +12,12 @@
   "gamma": 120.0
  },
  "formula_units_per_cell": 6,
+ "space_group": "R-3c",
+ "space_group_number": 167,
+ "atom_sites": [
+  {"element": "Fe", "wyckoff": "12c", "x": 0.0, "y": 0.0, "z": 0.14783, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "18e", "x": 0.30618, "y": 0.0, "z": 0.25, "occupancy": 1.0}
+ ],
  "notes": "Hematite phase reference: JCPDS 33-664.",
  "peaks": [
   [0, 1, 2, 3.684, 30.0],
