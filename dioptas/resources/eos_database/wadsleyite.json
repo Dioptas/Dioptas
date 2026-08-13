@@ -1,0 +1,91 @@
+{
+ "format_version": 1,
+ "name": "Wadsleyite",
+ "formula": "Mg2SiO4",
+ "symmetry": "ORTHORHOMBIC",
+ "lattice": {
+  "a": 5.7016,
+  "b": 11.4427,
+  "c": 8.2491,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 8,
+ "space_group": "Imma",
+ "space_group_number": 74,
+ "atom_sites": [
+  {"element": "Mg", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "Mg", "wyckoff": "4e", "x": 0.0, "y": 0.25, "z": 0.9726, "occupancy": 1.0},
+  {"element": "Mg", "wyckoff": "8g", "x": 0.25, "y": 0.1286, "z": 0.25, "occupancy": 1.0},
+  {"element": "Si", "wyckoff": "8h", "x": 0.0, "y": 0.1187, "z": 0.6175, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4e", "x": 0.0, "y": 0.25, "z": 0.2177, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4e", "x": 0.0, "y": 0.25, "z": 0.7179, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8h", "x": 0.0, "y": 0.9929, "z": 0.2548, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "16j", "x": 0.2624, "y": 0.1227, "z": 0.9945, "occupancy": 1.0}
+ ],
+ "notes": "Ambient lattice and fractional coordinates: Trots et al., American Mineralogist 97, 1582-1590 (2012), doi:10.2138/am.2012.3992, COD 9015858 (297 K). Phase-line intensities were calculated from this structure using independent-atom X-ray form factors.",
+ "peaks": [
+  [0, 7, 3, 1.40512, 7.2],
+  [4, 0, 0, 1.4254, 27.6],
+  [0, 8, 0, 1.43034, 27.1],
+  [2, 4, 4, 1.44282, 100.0],
+  [1, 7, 2, 1.46841, 4.4],
+  [1, 5, 4, 1.47953, 3.1],
+  [0, 3, 5, 1.51424, 3.8],
+  [3, 4, 1, 1.55465, 11.2],
+  [3, 0, 3, 1.56343, 8.5],
+  [3, 3, 2, 1.57257, 3.2],
+  [1, 0, 5, 1.58481, 6.2],
+  [2, 0, 4, 1.67091, 4.6],
+  [3, 1, 2, 1.70679, 3.2],
+  [1, 3, 4, 1.7287, 4.1],
+  [2, 5, 1, 1.74428, 4.8],
+  [0, 5, 3, 1.75901, 4.0],
+  [1, 1, 4, 1.91205, 2.0],
+  [2, 4, 0, 2.0193, 32.1],
+  [0, 0, 4, 2.06228, 13.8],
+  [2, 3, 1, 2.20071, 9.2],
+  [0, 3, 3, 2.23052, 4.0],
+  [1, 4, 1, 2.44226, 24.2],
+  [1, 0, 3, 2.47672, 8.4],
+  [1, 3, 2, 2.51355, 4.4],
+  [2, 1, 1, 2.62271, 12.3],
+  [0, 1, 3, 2.67359, 9.7],
+  [2, 0, 0, 2.8508, 2.4],
+  [0, 4, 0, 2.86068, 2.3],
+  [1, 1, 2, 3.20781, 6.1]
+ ],
+ "eos_records": [
+  {
+   "label": "Katsura et al. (2009), high-temperature BM3-MGD",
+   "reference": "Katsura et al., Geophysical Research Letters 36, L11307 (2009), doi:10.1029/2009GL038107",
+   "temperature_ref": 300.0,
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 538.185,
+     "K0": 169.2,
+     "K0_prime": 4.1
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": 0.1
+   },
+   "fixed_parameters": ["V0", "K0"],
+   "thermal": {
+    "type": "MieGruneisenDebye",
+    "parameters": {
+     "Tr": 300.0,
+     "theta0": 814.0,
+     "gamma0": 1.64,
+     "q": 1.5,
+     "n": 7
+    }
+   },
+   "notes": "Katsura et al. fit 11-20 GPa and 300-2100 K data with K0 fixed at 169.2 GPa, obtaining K0_prime=4.1(1), gamma0=1.64(2), and q=1.5(1) with theta0 fixed at 814 K. V0 is the independently measured 297 K structural volume from Trots et al.; no separate uncertainty was reported in the COD entry."
+  }
+ ]
+}

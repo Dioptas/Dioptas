@@ -120,6 +120,9 @@ def test_publication_verified_parameter_errors(filename, index, errors, fixed):
         ("silicon_carbide_b1.json", 0, "BM3", 66.3, 323.0, 3.1),
         ("boron_nitride_hexagonal.json", 0, "BM3", 36.18, 27.4, 11.4),
         ("niobium.json", 0, "BM3", 35.96, 168.0, 3.4),
+        ("forsterite.json", 0, "BM3", 290.1, 130.0, 4.12),
+        ("wadsleyite.json", 0, "BM3", 538.185, 169.2, 4.1),
+        ("ringwoodite.json", 0, "BM3", 526.7, 182.0, 4.2),
     ],
 )
 def test_publication_corrected_eos_records(
@@ -256,7 +259,7 @@ def test_all_curated_structures_are_complete_and_stoichiometric():
             )
         assert dict(actual) == pytest.approx(dict(expected)), path.name
 
-    assert len(structured) == 70
+    assert len(structured) == 74
 
 
 @pytest.mark.parametrize(
@@ -271,6 +274,9 @@ def test_all_curated_structures_are_complete_and_stoichiometric():
         ("palladium.json", "BM3", 58.88, 190.0, 5.3),
         ("iridium.json", "BM3", 56.62, 327.0, 5.46),
         ("silicon.json", "Vinet", 160.248, 97.89, 4.24),
+        ("forsterite.json", "BM3", 290.1, 130.0, 4.12),
+        ("wadsleyite.json", "BM3", 538.185, 169.2, 4.1),
+        ("ringwoodite.json", "BM3", 526.7, 182.0, 4.2),
     ],
 )
 def test_literature_expansion_eos_records(
@@ -297,6 +303,7 @@ def test_literature_expansion_eos_records(
         "silicon_v.json", "silicon_vii.json", "silicon_x.json",
         "silicon_carbide_b3.json", "silicon_carbide_b1.json",
         "boron_nitride_hexagonal.json", "niobium.json",
+        "ringwoodite.json",
     ],
 )
 def test_literature_expansion_peak_d_spacings(filename):
@@ -310,6 +317,22 @@ def test_literature_expansion_peak_d_spacings(filename):
                 4.0 * (h * h + h * k + k * k) / (3.0 * lattice["a"] ** 2)
                 + l * l / lattice["c"] ** 2
             )
+        assert calculated_d == pytest.approx(stored_d, abs=1e-5)
+
+
+@pytest.mark.parametrize(
+    "filename",
+    ["forsterite.json", "wadsleyite.json", "bridgmanite.json"],
+)
+def test_mantle_phase_orthorhombic_peak_d_spacings(filename):
+    document = _document(filename)
+    lattice = document["lattice"]
+    for h, k, l, stored_d, _intensity in document["peaks"]:
+        calculated_d = 1.0 / math.sqrt(
+            (h / lattice["a"]) ** 2
+            + (k / lattice["b"]) ** 2
+            + (l / lattice["c"]) ** 2
+        )
         assert calculated_d == pytest.approx(stored_d, abs=1e-5)
 
 
@@ -351,6 +374,7 @@ def test_martinez_aragonite_thermal_parameters_match_publication():
         ("argon_hcp.json", 47.7648, 6.5),
         ("phase_d.json", 84.7321, 134.0),
         ("zircon.json", 260.803, 227.0),
+        ("bridgmanite.json", 162.51, 253.0),
     ],
 )
 def test_publication_second_order_fits_do_not_store_fitted_k0_prime(
@@ -361,6 +385,26 @@ def test_publication_second_order_fits_do_not_store_fitted_k0_prime(
         "V0": pytest.approx(v0),
         "K0": pytest.approx(k0),
     }
+
+
+@pytest.mark.parametrize(
+    "filename,errors,fixed",
+    [
+        ("forsterite.json",
+         {"V0": 0.1, "K0": 0.9, "K0_prime": 0.07}, ["V0"]),
+        ("wadsleyite.json",
+         {"V0": None, "K0": None, "K0_prime": 0.1},
+         ["V0", "K0"]),
+        ("ringwoodite.json",
+         {"V0": 0.3, "K0": 3.0, "K0_prime": 0.3}, []),
+        ("bridgmanite.json", {"V0": 0.02, "K0": 1.0}, []),
+    ],
+)
+def test_mantle_phase_eos_uncertainties_and_constraints(
+        filename, errors, fixed):
+    record = _document(filename)["eos_records"][0]
+    assert record["parameter_errors"] == errors
+    assert record["fixed_parameters"] == fixed
 
 
 def test_phase_only_materials_have_explicit_card_references():
@@ -440,7 +484,7 @@ def test_retained_references_have_normalized_publication_metadata():
             record["reference"] for record in _document(path.name)["eos_records"]
         )
 
-    assert len(references) == 93
+    assert len(references) == 97
     assert {reference for reference in references if "doi:" not in reference} == (
         no_registered_doi
     )
