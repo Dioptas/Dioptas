@@ -12,6 +12,7 @@ import pytest
 from ...model import eos
 from ...model.eos.material import Material, _parse_formula
 from ...model.PhaseModel import PhaseModel
+from ...model.util.phasesmith import material_has_complete_structure
 
 
 @pytest.fixture
@@ -28,10 +29,14 @@ def test_bundled_database_loads(materials):
     assert len(materials) >= 20
     names = {m.name for m in materials}
     assert {"Gold", "Platinum", "MgO", "Diamond"} <= names
-    # every material parses into a lattice and peaks
+    # Complete structures are calculated by PhaseSmith; legacy records keep
+    # a stored peak table only when they cannot be calculated.
     for m in materials:
         assert m.lattice.a > 0
-        assert m.peaks
+        if material_has_complete_structure(m):
+            assert not m.peaks
+        else:
+            assert m.peaks
 
 
 def test_gold_has_multiple_references(gold):
@@ -91,7 +96,9 @@ def test_build_jcpds_carries_everything(gold):
     assert phase.params["comments"] == [gold.eos_records[0]["reference"]]
     assert phase.params["k0"] > 0
     assert phase.params["v0"] > 0
-    assert len(phase.reflections) == len(gold.peaks)
+    assert not gold.peaks
+    assert len(phase.reflections) > 0
+    assert phase.reflections[0].d0 == pytest.approx(2.35917, abs=1e-5)
     # Holzapfel data (Au -> n=1, Z=79, fcc -> Zc=4)
     assert phase.params["n"] == 1
     assert phase.params["z"] == 79
@@ -109,7 +116,10 @@ def test_build_jcpds_carries_everything(gold):
 
 def test_build_jcpds_without_records(materials):
     # some materials carry peak provenance but no published EoS
-    material = next(m for m in materials if not m.eos_records)
+    material = next(
+        m for m in materials
+        if not m.eos_records and not material_has_complete_structure(m)
+    )
     phase = eos.build_jcpds(material)
     # loadable anyway: peaks at ambient conditions, V0 from the lattice
     assert phase.params["v0"] > 0
@@ -193,7 +203,7 @@ def test_eosmat_round_trip(materials, tmp_path):
     assert loaded.lattice.beta == pytest.approx(coesite.lattice.beta)
     assert loaded.lattice.gamma == pytest.approx(coesite.lattice.gamma)
     assert loaded.lattice.beta != 90.0
-    assert loaded.peaks == coesite.peaks
+    assert loaded.peaks == coesite.peaks == []
     assert loaded.eos_records == coesite.eos_records
     assert loaded.formula_units_per_cell == coesite.formula_units_per_cell
     assert loaded.space_group == coesite.space_group

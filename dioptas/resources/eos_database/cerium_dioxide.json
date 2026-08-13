@@ -18,25 +18,8 @@
   {"element": "Ce", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
   {"element": "O", "wyckoff": "8c", "x": 0.25, "y": 0.25, "z": 0.25, "occupancy": 1.0}
  ],
- "notes": "The ambient fluorite cell is the value measured in the EoS study. Peak intensities are calculated Cu K-alpha powder intensities for the ideal structure.",
- "peaks": [
-  [1, 1, 1, 3.12404, 100.0],
-  [2, 0, 0, 2.7055, 29.1],
-  [2, 2, 0, 1.91308, 54.5],
-  [3, 1, 1, 1.63148, 44.3],
-  [2, 2, 2, 1.56202, 8.4],
-  [4, 0, 0, 1.35275, 8.2],
-  [3, 3, 1, 1.24137, 17.8],
-  [4, 2, 0, 1.20994, 11.5],
-  [4, 2, 2, 1.10452, 17.1],
-  [5, 1, 1, 1.04135, 15.2],
-  [4, 4, 0, 0.95654, 7.0],
-  [5, 3, 1, 0.91463, 22.0],
-  [6, 0, 0, 0.90183, 10.3],
-  [6, 2, 0, 0.85555, 16.9],
-  [5, 3, 3, 0.82517, 15.8],
-  [6, 2, 2, 0.81574, 12.8]
- ],
+ "notes": "The ambient fluorite cell is the value measured in the EoS study. PhaseSmith calculates powder reflections and intensities from the ideal structure.",
+ "peaks": [],
  "eos_records": [
   {
    "label": "Gerward et al. (2005), room-temperature BM3",

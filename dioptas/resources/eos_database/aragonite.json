@@ -21,18 +21,7 @@
   {"element": "O", "wyckoff": "8d", "x": 0.4737, "y": 0.6807, "z": 0.9128, "occupancy": 1.0}
  ],
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Users data/caco3_arag.jcpds. Ambient aragonite coordinates: Ye et al., American Mineralogist 97, 707-712 (2012).",
- "peaks": [
-  [1, 1, 3, 1.7421, 35.0],
-  [1, 3, 2, 1.8143, 33.0],
-  [0, 4, 1, 1.8817, 34.0],
-  [2, 2, 1, 1.9769, 77.0],
-  [1, 3, 0, 2.3414, 29.0],
-  [1, 1, 2, 2.3717, 42.0],
-  [1, 0, 2, 2.4844, 29.0],
-  [0, 1, 2, 2.7003, 53.0],
-  [0, 2, 1, 3.2728, 57.0],
-  [1, 1, 1, 3.3956, 100.0]
- ],
+ "peaks": [],
  "eos_records": [
   {
    "label": "Martinez et al. (1996)",

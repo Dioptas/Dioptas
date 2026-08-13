@@ -17,21 +17,8 @@
  "atom_sites": [
   {"element": "Si", "wyckoff": "8a", "x": 0.125, "y": 0.125, "z": 0.125, "occupancy": 1.0}
  ],
- "notes": "The lattice parameter is calculated from the fitted 300 K atomic reference volume. Peak intensities are calculated Cu K-alpha powder intensities for the ideal diamond structure.",
- "peaks": [
-  [1, 1, 1, 3.13596, 100.0],
-  [2, 2, 0, 1.92037, 67.1],
-  [3, 1, 1, 1.6377, 39.9],
-  [4, 0, 0, 1.35791, 10.7],
-  [3, 3, 1, 1.2461, 16.2],
-  [4, 2, 2, 1.10873, 23.1],
-  [5, 1, 1, 1.04532, 10.2],
-  [3, 3, 3, 1.04532, 3.4],
-  [4, 4, 0, 0.96019, 9.2],
-  [5, 3, 1, 0.91811, 18.4],
-  [6, 2, 0, 0.85882, 20.6],
-  [5, 3, 3, 0.82832, 12.0]
- ],
+ "notes": "The lattice parameter is calculated from the fitted 300 K atomic reference volume. PhaseSmith calculates powder reflections and intensities from the ideal diamond structure.",
+ "peaks": [],
  "eos_records": [
   {
    "label": "Anzellini et al. (2019), constrained Vinet",

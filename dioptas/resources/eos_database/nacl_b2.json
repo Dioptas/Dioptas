@@ -19,25 +19,7 @@
   {"element": "Cl", "wyckoff": "1b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
  ],
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/nacl-b2.jcpds, JCPDS/current user/jcpds/certified data base/nacl-b2.jcpds, JCPDS/current user/jcpds/ver3/naclb2.jcpds",
- "peaks": [
-  [3, 2, 2, 0.8408, 1.0],
-  [4, 1, 0, 0.8408, 1.0],
-  [4, 0, 0, 0.8667, 1.0],
-  [3, 2, 1, 0.9266, 3.0],
-  [3, 2, 0, 0.9615, 1.0],
-  [2, 2, 2, 1.0008, 1.0],
-  [3, 1, 1, 1.0453, 1.0],
-  [3, 1, 0, 1.0963, 7.0],
-  [2, 2, 1, 1.1556, 1.0],
-  [3, 0, 0, 1.1556, 1.0],
-  [2, 2, 0, 1.2257, 4.0],
-  [2, 1, 1, 1.4154, 21.0],
-  [2, 1, 0, 1.5504, 1.0],
-  [2, 0, 0, 1.7334, 8.0],
-  [1, 1, 1, 2.0016, 1.0],
-  [1, 1, 0, 2.4515, 100.0],
-  [1, 0, 0, 3.4669, 6.0]
- ],
+ "peaks": [],
  "eos_records": [
   {
    "label": "Heinz and Jeanloz (1984), B2",

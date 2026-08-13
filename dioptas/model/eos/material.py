@@ -22,7 +22,7 @@ a user-saved ``.eosmat`` file — same content) looks like::
          "occupancy": 1.0, "wyckoff": "4a"}
       ],
       "notes": "...",
-      "peaks": [[h, k, l, d0, intensity], ...],
+      "peaks": [[h, k, l, d0, intensity], ...], # optional legacy fallback
       "eos_records": [ <record>, ... ]
     }
 
@@ -96,7 +96,7 @@ class Lattice:
 
 @dataclass
 class Material:
-    """A material with its lattice, diffraction peaks and EoS records."""
+    """A material with its structure, optional fallback peaks and EoS records."""
 
     name: str = ""
     formula: str = ""
@@ -113,7 +113,8 @@ class Material:
     space_group_number: Optional[int] = None
     atom_sites: list = field(default_factory=list)
     notes: str = ""
-    #: [h, k, l, d0, intensity] per peak
+    #: [h, k, l, d0, intensity] per peak.  Used only when the complete
+    #: structure needed for PhaseSmith calculation is unavailable.
     peaks: list = field(default_factory=list)
     #: EoS record dicts, schema in the module docstring
     eos_records: list = field(default_factory=list)

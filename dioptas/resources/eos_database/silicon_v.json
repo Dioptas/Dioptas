@@ -17,21 +17,8 @@
  "atom_sites": [
   {"element": "Si", "wyckoff": "1a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
  ],
- "notes": "Simple-hexagonal Si-V. Because the high-pressure phase cannot be recovered, the reference cell is constructed from the extrapolated EoS V0 and the axial ratio measured at 17.9 GPa. Peak intensities are calculated Cu K-alpha powder intensities for the ideal structure.",
- "peaks": [
-  [0, 0, 1, 2.48935, 42.1],
-  [1, 0, 0, 2.30711, 100.0],
-  [1, 0, 1, 1.69213, 74.4],
-  [1, 1, 0, 1.33201, 16.8],
-  [0, 0, 2, 1.24467, 4.5],
-  [1, 1, 1, 1.17445, 22.6],
-  [2, 0, 0, 1.15355, 10.8],
-  [1, 0, 2, 1.09543, 18.8],
-  [2, 0, 1, 1.04664, 17.0],
-  [1, 1, 2, 0.90943, 15.5],
-  [2, 1, 0, 0.87201, 16.5],
-  [2, 1, 1, 0.82297, 41.6]
- ],
+ "notes": "Simple-hexagonal Si-V. Because the high-pressure phase cannot be recovered, the reference cell is constructed from the extrapolated EoS V0 and the axial ratio measured at 17.9 GPa. PhaseSmith calculates powder reflections and intensities from the ideal structure.",
+ "peaks": [],
  "eos_records": [
   {
    "label": "Anzellini et al. (2019), 300 K Vinet",

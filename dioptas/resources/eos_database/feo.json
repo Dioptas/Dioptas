@@ -19,15 +19,7 @@
   {"element": "O", "wyckoff": "4b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
  ],
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/feo.jcpds, JCPDS/dac_user_jcpds/Users data/feo.jcpds",
- "peaks": [
-  [3, 3, 1, 0.9849, 30.0],
-  [4, 0, 0, 1.0732, 40.0],
-  [2, 2, 2, 1.2393, 40.0],
-  [3, 1, 1, 1.2944, 50.0],
-  [2, 2, 0, 1.5178, 80.0],
-  [2, 0, 0, 2.1465, 100.0],
-  [1, 1, 1, 2.4786, 80.0]
- ],
+ "peaks": [],
  "eos_records": [
   {
    "label": "(Fei et al. Miner. Spectros. (5) 1996)",

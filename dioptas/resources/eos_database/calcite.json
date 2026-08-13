@@ -20,25 +20,7 @@
   {"element": "O", "wyckoff": "18e", "x": 0.2567, "y": 0.0, "z": 0.25, "occupancy": 1.0}
  ],
  "notes": "Ambient 24 C structure: Markgraf and Reeder, American Mineralogist 70, 590-600 (1985), COD 9000965. The EoS is from Redfern and Angel, Contributions to Mineralogy and Petrology 134, 102-106 (1999), doi:10.1007/s004100050471. Phase-line intensities were calculated from the cited structure using independent-atom X-ray form factors.",
- "peaks": [
-  [0, 3, 0, 1.43991, 47.3],
-  [1, 2, 5, 1.47279, 15.0],
-  [1, 1, 9, 1.50919, 18.9],
-  [0, 2, 8, 1.51753, 14.7],
-  [1, 2, 4, 1.52481, 31.5],
-  [0, 1, 10, 1.58682, 4.6],
-  [1, 2, 2, 1.6036, 50.6],
-  [1, 2, 1, 1.62528, 18.4],
-  [1, 1, 6, 1.87498, 68.5],
-  [0, 1, 8, 1.91228, 62.0],
-  [0, 2, 4, 1.9269, 19.0],
-  [0, 2, 2, 2.0938, 36.4],
-  [1, 1, 3, 2.28402, 38.9],
-  [1, 1, 0, 2.494, 22.1],
-  [0, 0, 6, 2.8435, 2.6],
-  [0, 1, 4, 3.03507, 100.0],
-  [0, 1, 2, 3.85379, 4.8]
- ],
+ "peaks": [],
  "eos_records": [
   {
    "label": "Redfern and Angel (1999), single-crystal BM2",

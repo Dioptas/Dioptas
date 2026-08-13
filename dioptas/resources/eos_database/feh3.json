@@ -19,14 +19,7 @@
   {"element": "H", "wyckoff": "3c", "x": 0.0, "y": 0.5, "z": 0.5, "occupancy": 1.0}
  ],
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/FeH3_cubic_guess.jcpds",
- "peaks": [
-  [2, 1, 1, 1.1297, 0.5],
-  [2, 1, 0, 1.2375, 0.5],
-  [2, 0, 0, 1.3836, 0.5],
-  [1, 1, 1, 1.5976, 0.5],
-  [1, 1, 0, 1.9567, 1.0],
-  [1, 0, 0, 2.7672, 1.0]
- ],
+ "peaks": [],
  "eos_records": [
   {
    "label": "Pepin et al. (2014), Vinet",

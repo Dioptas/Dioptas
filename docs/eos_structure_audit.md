@@ -2,11 +2,16 @@
 
 Audit date: 2026-08-13.
 
-This pass prepares the bundled EoS materials for a future Phase Smith
-structure-factor calculation. A complete structure entry contains the
+The bundled EoS materials use PhaseSmith for reflection generation and
+structure-factor intensities. A complete structure entry contains the
 Hermann-Mauguin symbol, International Tables number, crystallographic `Z`,
 and one occupied asymmetric-unit representative per Wyckoff site. The full
 symmetry-expanded cell is deliberately not stored.
+
+Complete structures do not store generated `peaks` rows: the structure is the
+single source of truth and PhaseSmith calculates the lines when the phase is
+loaded. The 13 deferred structures retain their cited JCPDS/reference peak
+tables as a fallback until their atomic models can be verified.
 
 ## Coverage
 

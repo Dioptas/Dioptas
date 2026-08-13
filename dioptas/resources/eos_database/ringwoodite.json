@@ -22,16 +22,7 @@
   {"element": "O", "wyckoff": "32e", "x": 0.3685, "y": 0.3685, "z": 0.3685, "occupancy": 1.0}
  ],
  "notes": "The BM3 reference cell is from Meng et al., Physics and Chemistry of Minerals 21, 407-413 (1994), doi:10.1007/BF00203299. Fractional coordinates and the experimentally refined partial Mg-Si disorder are from Sasaki et al., Journal of Geophysical Research 87, 7829-7832 (1982), doi:10.1029/JB087iB09p07829, COD 1549722 (origin choice used by that CIF). Phase-line intensities were calculated from the cited structure using independent-atom X-ray form factors.",
- "peaks": [
-  [4, 4, 0, 1.42762, 100.0],
-  [3, 3, 3, 1.5542, 13.2],
-  [5, 1, 1, 1.5542, 18.6],
-  [4, 2, 2, 1.64847, 10.3],
-  [3, 3, 1, 1.85273, 2.3],
-  [4, 0, 0, 2.01896, 29.4],
-  [3, 1, 1, 2.43496, 41.3],
-  [2, 2, 0, 2.85524, 8.4]
- ],
+ "peaks": [],
  "eos_records": [
   {
    "label": "Meng et al. (1994), 300 K BM3",

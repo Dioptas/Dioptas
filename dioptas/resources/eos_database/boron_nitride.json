@@ -19,14 +19,7 @@
   {"element": "N", "wyckoff": "4c", "x": 0.25, "y": 0.25, "z": 0.25, "occupancy": 1.0}
  ],
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/BN-cubic.jcpds",
- "peaks": [
-  [3, 3, 1, 0.8295, 3.0],
-  [4, 0, 0, 0.904, 2.0],
-  [3, 1, 1, 1.0902, 8.0],
-  [2, 2, 0, 1.2784, 24.0],
-  [2, 0, 0, 1.808, 5.0],
-  [1, 1, 1, 2.0876, 100.0]
- ],
+ "peaks": [],
  "eos_records": [
   {
    "label": "Datchi et al. (2007), Vinet",

@@ -18,13 +18,7 @@
   {"element": "C", "wyckoff": "8a", "x": 0.125, "y": 0.125, "z": 0.125, "occupancy": 1.0}
  ],
  "notes": "Phase reference: diamond, JCPDS 6-0675.",
- "peaks": [
-  [1, 1, 1, 2.06, 100.0],
-  [2, 2, 0, 1.261, 27.0],
-  [3, 1, 1, 1.0754, 16.0],
-  [4, 0, 0, 0.8916, 7.0],
-  [3, 3, 1, 0.8182, 15.0]
- ],
+ "peaks": [],
  "eos_records": [
   {
    "label": "Occelli data on the H2005 scale (Datchi et al. 2007)",

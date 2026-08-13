@@ -19,19 +19,7 @@
   {"element": "O", "wyckoff": "4b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
  ],
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/SrO.jcpds",
- "peaks": [
-  [4, 4, 0, 0.9122, 2.0],
-  [5, 1, 1, 0.993, 1.0],
-  [4, 2, 2, 1.0533, 7.0],
-  [4, 2, 0, 1.1538, 11.0],
-  [3, 3, 1, 1.1838, 1.0],
-  [4, 0, 0, 1.29, 6.0],
-  [2, 2, 2, 1.4896, 15.0],
-  [3, 1, 1, 1.5558, 2.0],
-  [2, 2, 0, 1.8243, 55.0],
-  [2, 0, 0, 2.58, 100.0],
-  [1, 1, 1, 2.9791, 13.0]
- ],
+ "peaks": [],
  "eos_records": [
   {
    "label": "Liu and Bassett 1973",

@@ -48,6 +48,8 @@ dependencies = [
     # equation-of-state engine for phase lines at pressure
     # (lower bound: first PyPI release with the full rt/thermal model set)
     "peritheos>=0.4.0,<1.0",
+    # exact-symmetry reflection generation and structure-factor intensities
+    "phasesmith>=0.3.0,<0.4",
 ]
 
 [project.optional-dependencies]

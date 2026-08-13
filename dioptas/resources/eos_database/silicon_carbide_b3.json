@@ -18,17 +18,8 @@
   {"element": "Si", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
   {"element": "C", "wyckoff": "4c", "x": 0.25, "y": 0.25, "z": 0.25, "occupancy": 1.0}
  ],
- "notes": "Cubic 3C-SiC (B3, zinc-blende type). The reference cell is calculated from the fixed conventional-cell V0 used in the room-temperature fit. Peak intensities are calculated Cu K-alpha powder intensities for the ideal structure.",
- "peaks": [
-  [1, 1, 1, 2.51642, 100.0],
-  [2, 0, 0, 2.17928, 18.1],
-  [2, 2, 0, 1.54099, 46.1],
-  [3, 1, 1, 1.31416, 35.0],
-  [2, 2, 2, 1.25821, 5.0],
-  [4, 0, 0, 1.08964, 7.5],
-  [3, 3, 1, 0.99992, 17.2],
-  [4, 2, 2, 0.88969, 26.4]
- ],
+ "notes": "Cubic 3C-SiC (B3, zinc-blende type). The reference cell is calculated from the fixed conventional-cell V0 used in the room-temperature fit. PhaseSmith calculates powder reflections and intensities from the ideal structure.",
+ "peaks": [],
  "eos_records": [
   {
    "label": "Miozzi et al. (2018), 300 K BM3",

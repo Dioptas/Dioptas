@@ -19,20 +19,7 @@
   {"element": "N", "wyckoff": "2b", "x": 0.3333333333333333, "y": 0.6666666666666666, "z": 0.3769, "occupancy": 1.0}
  ],
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/InN_hex.jcpds. Structure coordinates: Paszkowicz et al., Powder Diffraction 18, 114-121 (2003), doi:10.1154/1.1566957.",
- "peaks": [
-  [1, 0, 4, 1.2928, 36.0],
-  [2, 0, 2, 1.3493, 36.0],
-  [0, 0, 4, 1.426, 27.0],
-  [2, 0, 1, 1.4792, 73.0],
-  [1, 1, 2, 1.503, 73.0],
-  [2, 0, 0, 1.5316, 36.0],
-  [1, 0, 3, 1.6154, 73.0],
-  [1, 1, 0, 1.7685, 73.0],
-  [1, 0, 2, 2.0873, 45.0],
-  [1, 0, 1, 2.6986, 91.0],
-  [0, 0, 2, 2.852, 45.0],
-  [1, 0, 0, 3.0631, 55.0]
- ],
+ "peaks": [],
  "eos_records": [
   {
    "label": "(02-1450, A. Munoz and K. Kunc 1993 J. Phys: Condens. Matter 5 6015",

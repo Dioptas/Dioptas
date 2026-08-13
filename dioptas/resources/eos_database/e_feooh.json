@@ -21,22 +21,7 @@
   {"element": "H", "wyckoff": "2a", "x": 0.492, "y": 0.275, "z": 0.0, "occupancy": 1.0}
  ],
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/FeOOH-pmn21.jcpds. Cell axes and hkl were permuted into the P21nm setting without changing d-spacings. The positional model is the 20 GPa static structure of Insixiengmay and Stixrude, American Mineralogist 108, 2209-2222 (2023), doi:10.2138/am-2022-8839, selected because its volume is closest to the imported high-pressure cell.",
- "peaks": [
-  [2, 0, 2, 1.2499, 20.0],
-  [1, 1, 2, 1.3341, 20.0],
-  [0, 0, 2, 1.4675, 20.0],
-  [3, 1, 0, 1.4925, 20.0],
-  [2, 2, 0, 1.6014, 10.0],
-  [1, 2, 1, 1.6346, 80.0],
-  [2, 1, 1, 1.7016, 50.0],
-  [2, 1, 0, 2.0884, 60.0],
-  [0, 2, 0, 2.1605, 60.0],
-  [2, 0, 0, 2.3855, 80.0],
-  [0, 1, 1, 2.4279, 70.0],
-  [1, 0, 1, 2.4999, 10.0],
-  [1, 0, 1, 2.4999, 90.0],
-  [1, 1, 0, 3.2027, 80.0]
- ],
+ "peaks": [],
  "eos_records": [
   {
    "label": "Gleason et al. (2008), second-order BM",

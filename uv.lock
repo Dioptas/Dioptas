@@ -293,6 +293,7 @@ dependencies = [
     { name = "numpy" },
     { name = "pandas" },
     { name = "peritheos" },
+    { name = "phasesmith" },
     { name = "psutil" },
     { name = "psygnal" },
     { name = "pycifrw" },
@@ -333,6 +334,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.0,<3.0" },
     { name = "pandas", specifier = ">=2.1.1,<3.0" },
     { name = "peritheos", specifier = ">=0.4.0,<1.0" },
+    { name = "phasesmith", specifier = ">=0.3.0,<0.4" },
     { name = "psutil", specifier = ">=5.9.5,<6.0" },
     { name = "psygnal", specifier = ">=0.15.1,<0.16" },
     { name = "pycifrw", specifier = ">=5.0.0,<6.0" },
@@ -1013,6 +1015,22 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/8a/5e/0e499c23da0e2fb72cee77784dd8dc69b8145e3ac16345ac6141e501c774/peritheos-0.4.0.tar.gz", hash = "sha256:469815a0e88fd4e9232692fb8dce53aa6fbffa9ec49364d1e21a91c02b2e3e98", size = 68919, upload-time = "2026-08-09T05:31:15.41Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/17/da/774c0723108de9856f1c68cdaed93b06ad8fb4faede54bf0e8da8f9f8973/peritheos-0.4.0-py3-none-any.whl", hash = "sha256:868b3d65f13fec19c7c11a0dcd23929944c6d061e63a6e9bf61a63bd40f01b62", size = 39899, upload-time = "2026-08-09T05:31:14.041Z" },
+]
+
+[[package]]
+name = "phasesmith"
+version = "0.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d7/af/f5549861839c05483867c2933d5520cc334a5a85aa8cb087e4d3f1be9baf/phasesmith-0.3.0.tar.gz", hash = "sha256:f9a69b77183bf0a1f1e47d360939a5e0bbb6bb9147539f83a7d47c79dc5fc514", size = 895395, upload-time = "2026-08-13T07:48:16.176Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e1/06/c70bb93d1a038695d7f550754ca87e8a65ffde2601846ee102c1d0c7c605/phasesmith-0.3.0-cp311-abi3-macosx_10_12_x86_64.whl", hash = "sha256:98156da4c408a483a162f97b42afd792896658bfca2c34adc3da792f51bd8dd2", size = 3464325, upload-time = "2026-08-13T07:48:07.75Z" },
+    { url = "https://files.pythonhosted.org/packages/ef/6d/6e993a164c34f86997449050dadf0e073288375f749de7870937afc578b4/phasesmith-0.3.0-cp311-abi3-macosx_11_0_arm64.whl", hash = "sha256:478404d84f2347b27a572a935d6f5c0f257675db0c1c5a5fa4bc682d55ed2fe1", size = 3324915, upload-time = "2026-08-13T07:48:09.522Z" },
+    { url = "https://files.pythonhosted.org/packages/2c/7d/d5c15e2c7cd99c3334f23655ead7ce801126af077d7d7bbb3de8e473376c/phasesmith-0.3.0-cp311-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:33a37bcae266adb0c547730460d179f436995ee8994292ce6dda622f693b55f5", size = 3609275, upload-time = "2026-08-13T07:48:11.157Z" },
+    { url = "https://files.pythonhosted.org/packages/4e/34/707132e59de51834da8d06c3933a7037904f2df384ad195bc3488aac5bc8/phasesmith-0.3.0-cp311-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4566ffc94f18e2ad8fc4cb66c89ae659356974c7e9f3d6eb06e9a1c72c79afc7", size = 3611515, upload-time = "2026-08-13T07:48:12.744Z" },
+    { url = "https://files.pythonhosted.org/packages/02/7e/b2a04b0f05551ea74fc37e4e9f6f2ac8399f5cf85f53b5a0eb84966db6dd/phasesmith-0.3.0-cp311-abi3-win_amd64.whl", hash = "sha256:33eb943e6d0c860d71a196a2d3d2894a025a247fa324628cfd2d5725ca1e6c28", size = 3306242, upload-time = "2026-08-13T07:48:14.605Z" },
 ]
 
 [[package]]

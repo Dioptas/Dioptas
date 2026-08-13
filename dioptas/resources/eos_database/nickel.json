@@ -17,16 +17,8 @@
  "atom_sites": [
   {"element": "Ni", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
  ],
- "notes": "The lattice parameter is calculated from the fitted 300 K atomic reference volume. Peak intensities are calculated Cu K-alpha powder intensities for the ideal fcc structure.",
- "peaks": [
-  [1, 1, 1, 2.0354, 100.0],
-  [2, 0, 0, 1.76271, 46.5],
-  [2, 2, 0, 1.24642, 26.5],
-  [3, 1, 1, 1.06295, 32.3],
-  [2, 2, 2, 1.0177, 9.8],
-  [4, 0, 0, 0.88136, 7.1],
-  [3, 3, 1, 0.80879, 42.2]
- ],
+ "notes": "The lattice parameter is calculated from the fitted 300 K atomic reference volume. PhaseSmith calculates powder reflections and intensities from the ideal fcc structure.",
+ "peaks": [],
  "eos_records": [
   {
    "label": "Dewaele et al. (2008), Vinet",

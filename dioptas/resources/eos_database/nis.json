@@ -19,13 +19,7 @@
   {"element": "S", "wyckoff": "2c", "x": 0.3333333333, "y": 0.6666666667, "z": 0.25, "occupancy": 1.0}
  ],
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/NiS_alpha.jcpds",
- "peaks": [
-  [0, 2, 2, 1.3013, 22.0],
-  [1, 1, 0, 1.7198, 44.0],
-  [0, 1, 2, 1.9905, 100.0],
-  [0, 1, 1, 2.6027, 28.0],
-  [0, 1, 0, 2.9787, 59.0]
- ],
+ "peaks": [],
  "eos_records": [
   {
    "label": "Campbell and Heintz 1993",

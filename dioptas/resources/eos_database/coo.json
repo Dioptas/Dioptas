@@ -19,17 +19,7 @@
   {"element": "O", "wyckoff": "4b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
  ],
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/certified data base/coo.jcpds, JCPDS/current user/jcpds/ver3/coo.jcpds, JCPDS/current user/jcpds/ver2/coo.jcpds",
- "peaks": [
-  [5, 1, 1, 0.8745, 3.0],
-  [4, 2, 2, 0.9275, 5.0],
-  [3, 3, 1, 1.0425, 2.0],
-  [4, 0, 0, 1.136, 2.0],
-  [2, 2, 2, 1.3117, 1.0],
-  [3, 1, 1, 1.3701, 17.0],
-  [2, 2, 0, 1.6065, 30.0],
-  [2, 0, 0, 2.272, 15.0],
-  [1, 1, 1, 2.6235, 100.0]
- ],
+ "peaks": [],
  "eos_records": [
   {
    "label": "JCPDS 42-1300, EOS from Clendenen and Drickamer, 66",

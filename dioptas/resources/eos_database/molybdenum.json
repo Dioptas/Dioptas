@@ -18,15 +18,7 @@
   {"element": "Mo", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
  ],
  "notes": "Ambient bcc phase reference: JCPDS 42-1120.",
- "peaks": [
-  [1, 1, 0, 2.2247, 100.0],
-  [2, 0, 0, 1.5738, 16.0],
-  [2, 1, 1, 1.2847, 31.0],
-  [2, 2, 0, 1.1129, 9.0],
-  [3, 1, 0, 0.9953, 14.0],
-  [2, 2, 2, 0.9085, 3.0],
-  [3, 2, 1, 0.8411, 24.0]
- ],
+ "peaks": [],
  "eos_records": [
   {
    "label": "Shen and Smith (2026), Cu-referenced Vinet",

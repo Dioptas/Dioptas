@@ -17,22 +17,8 @@
  "atom_sites": [
   {"element": "Pb", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
  ],
- "notes": "The fcc cell is calculated from the 300 K reference volume of the PVT EoS. Peak intensities are calculated Cu K-alpha powder intensities for the ideal structure.",
- "peaks": [
-  [1, 1, 1, 2.85891, 100.0],
-  [2, 0, 0, 2.47589, 51.0],
-  [2, 2, 0, 1.75072, 36.8],
-  [3, 1, 1, 1.49302, 44.1],
-  [2, 2, 2, 1.42945, 12.8],
-  [4, 0, 0, 1.23794, 6.1],
-  [3, 3, 1, 1.13602, 19.4],
-  [4, 2, 0, 1.10725, 18.3],
-  [4, 2, 2, 1.01078, 15.7],
-  [5, 1, 1, 0.95297, 20.5],
-  [4, 4, 0, 0.87536, 8.6],
-  [5, 3, 1, 0.837, 41.2],
-  [4, 4, 2, 0.8253, 22.4]
- ],
+ "notes": "The fcc cell is calculated from the 300 K reference volume of the PVT EoS. PhaseSmith calculates powder reflections and intensities from the ideal structure.",
+ "peaks": [],
  "eos_records": [
   {
    "label": "Fortes (2019), 300 K BM4 slice",

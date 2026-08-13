@@ -18,20 +18,8 @@
   {"element": "B", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
   {"element": "P", "wyckoff": "4c", "x": 0.25, "y": 0.25, "z": 0.25, "occupancy": 1.0}
  ],
- "notes": "The zinc-blende cell is calculated from the fixed experimental V0. Peak intensities are calculated Cu K-alpha powder intensities for the ideal structure.",
- "peaks": [
-  [1, 1, 1, 2.61771, 100.0],
-  [2, 0, 0, 2.267, 24.8],
-  [2, 2, 0, 1.60301, 42.2],
-  [3, 1, 1, 1.36705, 34.6],
-  [2, 2, 2, 1.30885, 5.8],
-  [4, 0, 0, 1.1335, 7.2],
-  [3, 3, 1, 1.04017, 17.0],
-  [4, 2, 0, 1.01383, 9.2],
-  [4, 2, 2, 0.9255, 22.8],
-  [3, 3, 3, 0.87257, 5.7],
-  [4, 4, 0, 0.80151, 20.0]
- ],
+ "notes": "The zinc-blende cell is calculated from the fixed experimental V0. PhaseSmith calculates powder reflections and intensities from the ideal structure.",
+ "peaks": [],
  "eos_records": [
   {
    "label": "Le Godec et al. (2014), 300 K Vinet",

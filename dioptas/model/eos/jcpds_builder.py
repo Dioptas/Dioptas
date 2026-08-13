@@ -68,8 +68,17 @@ def build_jcpds(material: Material, record_index: int = 0):
     if material.formula_units_per_cell:
         obj.params["zc"] = material.formula_units_per_cell
 
-    # Diffraction peaks
-    for h, k, l, d0, intensity in material.peaks:
+    # A complete crystal structure is the source of truth.  Legacy records
+    # without one retain their stored JCPDS/reference peak table as a fallback.
+    from ..util.phasesmith import (
+        calculate_material_reflections,
+        material_has_complete_structure,
+    )
+    if material_has_complete_structure(material):
+        peak_rows = calculate_material_reflections(material)
+    else:
+        peak_rows = material.peaks
+    for h, k, l, d0, intensity in peak_rows:
         obj.reflections.append(jcpds_reflection(
             h=h, k=k, l=l, intensity=intensity, d=d0))
 

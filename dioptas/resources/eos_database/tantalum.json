@@ -18,16 +18,7 @@
   {"element": "Ta", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
  ],
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/ta.jcpds, JCPDS/dac_user_jcpds/ta.jcpds",
- "peaks": [
-  [4, 0, 0, 0.8264, 4.0],
-  [3, 2, 1, 0.8835, 29.0],
-  [2, 2, 2, 0.9543, 7.0],
-  [3, 1, 0, 1.0454, 19.0],
-  [2, 2, 0, 1.1688, 13.0],
-  [2, 1, 1, 1.3496, 38.0],
-  [2, 0, 0, 1.6529, 21.0],
-  [1, 1, 0, 2.3376, 100.0]
- ],
+ "peaks": [],
  "eos_records": [
   {
    "label": "Cynn and Yoo (1999)",

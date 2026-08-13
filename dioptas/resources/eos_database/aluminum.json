@@ -17,18 +17,8 @@
  "atom_sites": [
   {"element": "Al", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
  ],
- "notes": "The lattice parameter is calculated from the fitted 298 K atomic reference volume. Peak intensities are calculated Cu K-alpha powder intensities for the ideal fcc structure.",
- "peaks": [
-  [1, 1, 1, 2.33665, 100.0],
-  [2, 0, 0, 2.0236, 48.3],
-  [2, 2, 0, 1.4309, 30.8],
-  [3, 1, 1, 1.22027, 35.6],
-  [2, 2, 2, 1.16832, 10.3],
-  [4, 0, 0, 1.0118, 5.4],
-  [3, 3, 1, 0.92849, 19.9],
-  [4, 2, 0, 0.90498, 20.1],
-  [4, 2, 2, 0.82613, 25.5]
- ],
+ "notes": "The lattice parameter is calculated from the fitted 298 K atomic reference volume. PhaseSmith calculates powder reflections and intensities from the ideal fcc structure.",
+ "peaks": [],
  "eos_records": [
   {
    "label": "Dewaele et al. (2004), revised-ruby Vinet",

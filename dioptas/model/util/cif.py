@@ -3,11 +3,12 @@ from __future__ import annotations
 
 import os
 import itertools
+from dataclasses import replace
 from math import degrees
 from urllib.request import pathname2url
 
 from CifFile import ReadCif
-from .jcpds import jcpds
+from .jcpds import jcpds, jcpds_reflection
 from ... import data_path
 
 import logging
@@ -41,10 +42,86 @@ class CifConverter:
         """
         Reads a cif file and returns a jcpds with correct reflection and intensities.
         """
-        file_url = 'file:' + pathname2url(filename)
-        cif_file = ReadCif(file_url)
-        cif_phase = CifPhase(cif_file[cif_file.keys()[0]])
-        jcpds_phase = self.convert_cif_phase_to_jcpds(cif_phase)
+        from .phasesmith import calculate_structure_reflections
+        from phasesmith import AtomSite, CrystalStructure, SpaceGroup, UnitCell
+        from phasesmith.io.cif import read_cif
+
+        try:
+            structure = read_cif(filename, strict=False).structure
+            cell = structure.cell
+            jcpds_phase = jcpds()
+            jcpds_phase.params['a0'] = cell.a_angstrom
+            jcpds_phase.params['b0'] = cell.b_angstrom
+            jcpds_phase.params['c0'] = cell.c_angstrom
+            jcpds_phase.params['alpha0'] = cell.alpha_deg
+            jcpds_phase.params['beta0'] = cell.beta_deg
+            jcpds_phase.params['gamma0'] = cell.gamma_deg
+            jcpds_phase.params['v0'] = cell.geometry().volume_angstrom3
+            jcpds_phase.params['symmetry'] = (
+                structure.space_group.crystal_system.upper()
+            )
+            jcpds_phase.params['comments'] = [structure.name]
+        except ValueError as error:
+            # PhaseSmith 0.3 cannot yet resolve a few redundant legacy
+            # symmetry spellings (notably old SHELX Hall symbols). Preserve
+            # Dioptas' established file compatibility while keeping every
+            # numerical diffraction calculation in PhaseSmith.
+            logger.warning(
+                "PhaseSmith could not parse CIF %s (%s); using the legacy "
+                "PyCifRW parser compatibility path",
+                filename, error,
+            )
+            file_url = 'file:' + pathname2url(filename)
+            cif_file = ReadCif(file_url)
+            cif_phase = CifPhase(cif_file[cif_file.keys()[0]])
+            sites = tuple(
+                AtomSite(
+                    site_id=f"{atom[0]}{index}",
+                    source_label=f"{atom[0]}{index}",
+                    type_symbol=str(atom[0]),
+                    element_symbol=str(atom[0]),
+                    fractional_xyz=(
+                        float(atom[1]), float(atom[2]), float(atom[3])
+                    ),
+                    occupancy=float(atom[4]),
+                )
+                for index, atom in enumerate(cif_phase.atoms, start=1)
+            )
+            structure = CrystalStructure(
+                "cif-phase",
+                os.path.basename(filename),
+                UnitCell(
+                    cif_phase.a, cif_phase.b, cif_phase.c,
+                    cif_phase.alpha, cif_phase.beta, cif_phase.gamma,
+                ),
+                SpaceGroup.p1(),
+                sites,
+            )
+            jcpds_phase = self._create_jcpds_from_cif_parameters(cif_phase)
+
+        # CIF oxidation states are useful provenance, but the PhaseSmith X-ray
+        # table intentionally does not contain every possible ion. Dioptas has
+        # historically used neutral-atom factors, so retain that convention.
+        structure = replace(
+            structure,
+            sites=tuple(
+                replace(
+                    site,
+                    type_symbol=site.element_symbol,
+                    charge=None,
+                )
+                for site in structure.sites
+            ),
+        )
+        for h, k, l, d_spacing, intensity in calculate_structure_reflections(
+            structure,
+            minimum_d_spacing=self.min_d_spacing,
+            minimum_intensity=self.min_intensity,
+            wavelength_angstrom=self.wavelength,
+        ):
+            jcpds_phase.reflections.append(jcpds_reflection(
+                h=h, k=k, l=l, intensity=intensity, d=d_spacing
+            ))
         jcpds_phase.filename = filename
         jcpds_phase.name = os.path.splitext(os.path.basename(filename))[0]
         jcpds_phase.params['modified'] = False

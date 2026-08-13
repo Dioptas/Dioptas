@@ -72,9 +72,9 @@ volumes printed in Table II, not the atomic or formula-unit volumes used in
 Table I. The publication uncertainties, fixed-V0 status, run selection, and
 phase-specific pressure limits are retained in each record's notes.
 
-Molybdenum and NaCl-B1 were new material documents. Their ambient diffraction
-entries use JCPDS 42-1120 and JCPDS 5-0628, respectively. The latter is also
-the ambient-volume source explicitly identified by Shen and Smith. Copper was
+Molybdenum and NaCl-B1 were new material documents. Their phase identification
+uses JCPDS 42-1120 and JCPDS 5-0628, respectively. The latter is also the
+ambient-volume source explicitly identified by Shen and Smith. Copper was
 not added from this paper: it is the primary pressure anchor, and its EOS
 parameters are taken from another publication and explicitly not repeated in
 Table II.
@@ -82,9 +82,10 @@ Table II.
 The eleven calibrant phases, including reference Cu, also store their
 Hermann-Mauguin space group, International Tables number, and occupied
 asymmetric-unit Wyckoff sites. Each site contains the element, fractional
-coordinates, Wyckoff multiplicity/letter, and occupancy. This representation
-is intended for a later Phase Smith structure-factor calculation; symmetry-
-equivalent atoms are deliberately not duplicated in the material documents.
+coordinates, Wyckoff multiplicity/letter, and occupancy. PhaseSmith now uses
+this representation for the phase lines; symmetry-equivalent atoms and the
+derived reflection tables are deliberately not duplicated in the material
+documents.
 
 A subsequent database-wide structure pass extended this representation to 55
 of the original 78 materials. Later literature additions and source-specific
@@ -99,7 +100,8 @@ Nine material documents absent from the imported collection were added from
 primary high-pressure diffraction studies: fcc Al, Ag, Ni, Rh, Pd, and Ir;
 bcc Cr; hcp Ru; and diamond-cubic Si-I. Each document contains a complete
 asymmetric-unit structure, a reference cell consistent with its fitted V0,
-calculated powder peaks, and at least one experimental room-temperature EoS.
+a PhaseSmith-ready structure, and at least one experimental room-temperature
+EoS.
 
 The Al parameters are the revised-ruby Vinet fit of Dewaele et al. (2004),
 [doi:10.1103/PhysRevB.70.094112](https://doi.org/10.1103/PhysRevB.70.094112).
@@ -113,7 +115,7 @@ printed for fcc or diamond cells were converted to conventional-cell V0.
 
 Seven additional phase documents were added from four experimental studies
 and one openly archived pressure-marker report. Each has a complete ideal or
-measured asymmetric-unit structure, calculated powder reflections, parameter
+measured asymmetric-unit structure, PhaseSmith-calculated reflections, parameter
 errors (or an explicit statement that the paper tabulates none), and the
 pressure interval used for the fit.
 

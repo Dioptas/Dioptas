@@ -18,17 +18,7 @@
   {"element": "Ar", "wyckoff": "2c", "x": 0.3333333333, "y": 0.6666666667, "z": 0.25, "occupancy": 1.0}
  ],
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/ar2.jcpds",
- "peaks": [
-  [1, 0, 3, 1.1841, 10.0],
-  [1, 1, 2, 1.3458, 10.0],
-  [2, 0, 1, 1.5125, 10.0],
-  [1, 0, 2, 1.6483, 10.0],
-  [2, 0, 0, 1.6483, 10.0],
-  [1, 1, 0, 1.9032, 10.0],
-  [0, 0, 2, 1.9032, 80.0],
-  [1, 0, 1, 2.4919, 100.0],
-  [1, 0, 0, 3.2965, 20.0]
- ],
+ "peaks": [],
  "eos_records": [
   {
    "label": "Wittlinger et al. (1997)",

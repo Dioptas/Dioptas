@@ -272,9 +272,11 @@ def test_all_curated_structures_are_complete_and_stoichiometric():
         if not sites:
             assert not document.get("space_group")
             assert document.get("space_group_number") is None
+            assert document["peaks"], path.name
             continue
 
         structured.append(path.name)
+        assert document["peaks"] == [], path.name
         assert document["space_group"]
         assert 1 <= document["space_group_number"] <= 230
         assert document["formula_units_per_cell"] > 0
@@ -391,69 +393,6 @@ def test_fortes_lead_record_is_an_explicit_static_pvt_slice():
     assert record["experimental_temperature_range_k"] == [295.0, 788.0]
     assert "temperature-dependent" in record["notes"]
     assert "RAL-TR-2019-002.pdf" in record["notes"]
-
-
-@pytest.mark.parametrize(
-    "filename",
-    [
-        "aluminum.json", "silver.json", "nickel.json", "chromium.json",
-        "ruthenium.json", "rhodium.json", "palladium.json",
-        "iridium.json", "silicon.json", "graphite.json", "rhenium.json",
-        "copper.json", "b4c.json", "alumina.json", "fe2o3.json",
-        "silicon_v.json", "silicon_vii.json", "silicon_x.json",
-        "silicon_carbide_b3.json", "silicon_carbide_b1.json",
-        "boron_nitride_hexagonal.json", "niobium.json",
-        "ringwoodite.json",
-        "alpha_quartz.json", "calcite.json",
-        "lif_b1.json", "kbr_b1.json", "kbr_b2.json",
-        "boron_phosphide.json", "cerium_dioxide.json",
-        "praseodymium_dioxide.json", "lead_fcc.json",
-    ],
-)
-def test_literature_expansion_peak_d_spacings(filename):
-    document = _document(filename)
-    lattice = document["lattice"]
-    for h, k, l, stored_d, _intensity in document["peaks"]:
-        if document["symmetry"] == "CUBIC":
-            calculated_d = lattice["a"] / math.sqrt(h * h + k * k + l * l)
-        else:
-            calculated_d = 1.0 / math.sqrt(
-                4.0 * (h * h + h * k + k * k) / (3.0 * lattice["a"] ** 2)
-                + l * l / lattice["c"] ** 2
-            )
-        assert calculated_d == pytest.approx(stored_d, abs=1e-5)
-
-
-@pytest.mark.parametrize(
-    "filename",
-    [
-        "forsterite.json", "wadsleyite.json", "bridgmanite.json",
-        "mgsio3_post_perovskite.json",
-    ],
-)
-def test_mantle_phase_orthorhombic_peak_d_spacings(filename):
-    document = _document(filename)
-    lattice = document["lattice"]
-    for h, k, l, stored_d, _intensity in document["peaks"]:
-        calculated_d = 1.0 / math.sqrt(
-            (h / lattice["a"]) ** 2
-            + (k / lattice["b"]) ** 2
-            + (l / lattice["c"]) ** 2
-        )
-        assert calculated_d == pytest.approx(stored_d, abs=1e-5)
-
-
-@pytest.mark.parametrize("filename", ["e_feooh.json", "fes.json"])
-def test_reindexed_orthorhombic_structures_preserve_peak_d_spacings(filename):
-    document = _document(filename)
-    lattice = document["lattice"]
-    for h, k, l, stored_d, _intensity in document["peaks"]:
-        calculated_d = 1.0 / math.sqrt(
-            (h / lattice["a"]) ** 2
-            + (k / lattice["b"]) ** 2
-            + (l / lattice["c"]) ** 2
-        )
-        assert calculated_d == pytest.approx(stored_d, abs=5e-5)
 
 
 def test_walker_kcl_thermal_parameters_match_publication():

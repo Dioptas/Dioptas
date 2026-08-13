@@ -18,17 +18,8 @@
   {"element": "Si", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
   {"element": "C", "wyckoff": "4b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
  ],
- "notes": "High-pressure B1 (rock-salt-type) SiC. The reference cell is calculated from the extrapolated conventional-cell V0. Peak intensities are calculated Cu K-alpha powder intensities for the ideal structure.",
- "peaks": [
-  [1, 1, 1, 2.33674, 48.4],
-  [2, 0, 0, 2.02368, 100.0],
-  [2, 2, 0, 1.43096, 59.3],
-  [3, 1, 1, 1.22032, 23.0],
-  [2, 2, 2, 1.16837, 20.2],
-  [4, 0, 0, 1.01184, 11.0],
-  [3, 3, 1, 0.92853, 13.6],
-  [4, 2, 2, 0.82616, 57.4]
- ],
+ "notes": "High-pressure B1 (rock-salt-type) SiC. The reference cell is calculated from the extrapolated conventional-cell V0. PhaseSmith calculates powder reflections and intensities from the ideal structure.",
+ "peaks": [],
  "eos_records": [
   {
    "label": "Miozzi et al. (2018), 300 K BM3",
