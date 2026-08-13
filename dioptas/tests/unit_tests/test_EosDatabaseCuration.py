@@ -32,6 +32,20 @@ def test_every_eos_parameter_has_explicit_uncertainty_metadata():
                 assert error is None or error > 0, (path.name, name)
 
 
+def test_records_without_any_parameter_error_explain_why():
+    explanation_markers = {
+        "uncertaint", "standard error", "no error", "non-meaningful",
+    }
+    for path in DATABASE.glob("*.json"):
+        for record in _document(path.name)["eos_records"]:
+            if all(error is None
+                   for error in record["parameter_errors"].values()):
+                notes = record.get("notes", "").lower()
+                assert any(marker in notes for marker in explanation_markers), (
+                    path.name, record["label"]
+                )
+
+
 @pytest.mark.parametrize(
     "filename,index,errors,fixed",
     [
@@ -43,6 +57,23 @@ def test_every_eos_parameter_has_explicit_uncertainty_metadata():
          {"V0": 0.0128, "K0": None, "K0_prime": 0.15}, ["K0"]),
         ("mgo.json", 1,
          {"V0": 0.01, "K0": None, "K0_prime": 0.01}, ["K0"]),
+        ("ca_perovskite_perovskite_pv.json", 0,
+         {"V0": 0.05, "K0": 4.0, "K0_prime": 0.2}, ["V0"]),
+        ("cao_b2.json", 0,
+         {"V0": 0.3321, "K0": 20.0, "K0_prime": 0.5}, []),
+        ("e_feooh.json", 0,
+         {"V0": 0.5, "K0": 5.0}, []),
+        ("feh2.json", 0,
+         {"V0": 0.7174, "K0": 8.1, "K0_prime": None},
+         ["K0_prime"]),
+        ("goethite.json", 0,
+         {"V0": 0.02, "K0": 3.7, "K0_prime": 0.4}, []),
+        ("magnesite.json", 0,
+         {"V0": 0.03, "K0": 3.0, "K0_prime": 0.7}, []),
+        ("naalsio4_calcium_ferrite.json", 0,
+         {"V0": 0.1328, "K0": 1.0, "K0_prime": 0.1}, []),
+        ("sno2_cubic_27gpa.json", 0,
+         {"V0": 3.0, "K0": 28.0, "K0_prime": 2.2}, []),
         ("rhenium.json", 0,
          {"V0": 0.0332, "K0": 8.0, "K0_prime": 0.17}, []),
         ("silicon_carbide_b1.json", 0,
@@ -71,7 +102,12 @@ def test_publication_verified_parameter_errors(filename, index, errors, fixed):
         ("graphite.json", 0, "Murnaghan", 35.12, 33.8, 8.9),
         ("rhenium.json", 0, "Vinet", 29.4666, 352.6, 4.56),
         ("cobalt_hcp.json", 0, "BM3", 22.4685, 199.0, 3.6),
-        ("nacl_b2.json", 0, "BM3", 41.67, 36.2, 4.0),
+        ("nacl_b2.json", 0, "BM2", 41.67, 36.2, None),
+        ("iceviii.json", 0, "BM3", 165.39, 20.4, 4.7),
+        ("geo2_rutile.json", 0, "BM3", 55.3268, 258.0, 7.0),
+        ("naalsi2o6.json", 0, "BM3", 401.19, 125.0, 5.0),
+        ("perovskite_orthorhombic.json", 0, "BM3", 162.77, 266.0, 3.9),
+        ("sio2_stv_andr.json", 0, "BM3", 46.5025, 309.9, 4.59),
         ("tungsten.json", 1, "Vinet", 31.724, 295.2, 4.32),
         ("copper.json", 0, "Vinet", 47.24, 132.4, 5.32),
         ("b4c.json", 0, "BM3", 328.5, 221.0, 3.3),
@@ -220,7 +256,7 @@ def test_all_curated_structures_are_complete_and_stoichiometric():
             )
         assert dict(actual) == pytest.approx(dict(expected)), path.name
 
-    assert len(structured) == 72
+    assert len(structured) == 70
 
 
 @pytest.mark.parametrize(
@@ -330,6 +366,9 @@ def test_publication_second_order_fits_do_not_store_fitted_k0_prime(
 def test_phase_only_materials_have_explicit_card_references():
     expected = {
         "fe_fcc.json": "JCPDS 4-0829",
+        "fes_iii.json": "doi:10.1103/PhysRevB.59.9048",
+        "nitrogen_epsilon.json": "doi:10.1063/1.450310",
+        "o8.json": "doi:10.1103/PhysRevLett.97.085503",
     }
     actual = {}
     for path in DATABASE.glob("*.json"):
@@ -340,7 +379,8 @@ def test_phase_only_materials_have_explicit_card_references():
     assert set(actual) == set(expected)
     for filename, card in expected.items():
         assert card in actual[filename]
-        assert "eos" not in actual[filename].lower()
+        if filename != "fe_fcc.json":
+            assert "removed" in actual[filename].lower()
 
 
 def test_b4c_hexagonal_cell_metadata_matches_phase_publication():
@@ -355,6 +395,18 @@ def test_misidentified_material_files_were_corrected_or_removed():
     assert not (DATABASE / "molibdenum.json").exists()
     assert not (DATABASE / "molibdenum_2.json").exists()
     assert not (DATABASE / "naalsi2o6_2.json").exists()
+    assert not (DATABASE / "casio3_perovskite.json").exists()
+    assert not (DATABASE / "perovskite_cubic.json").exists()
+    assert not (DATABASE / "ca_perovskite_tetragonal.json").exists()
+
+    unsupported_calcium_silicates = {
+        "alpha_ca2sio5.json", "alphah_ca2sio5.json",
+        "alphal_ca2sio5.json", "gamma_ca2sio5.json",
+        "k2nif4_ca2sio5.json", "larnite.json",
+        "casi2o5.json", "casi2o5_2.json",
+    }
+    assert not any((DATABASE / filename).exists()
+                   for filename in unsupported_calcium_silicates)
 
     assert not (DATABASE / "moc_fm.json").exists()
     assert not (DATABASE / "mo2c_hex_haines.json").exists()
@@ -388,7 +440,7 @@ def test_retained_references_have_normalized_publication_metadata():
             record["reference"] for record in _document(path.name)["eos_records"]
         )
 
-    assert len(references) == 109
+    assert len(references) == 93
     assert {reference for reference in references if "doi:" not in reference} == (
         no_registered_doi
     )

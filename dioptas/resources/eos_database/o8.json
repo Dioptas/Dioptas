@@ -12,7 +12,7 @@
   "gamma": 90.0
  },
  "formula_units_per_cell": null,
- "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/O8.jcpds",
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/O8.jcpds. The 11.4 GPa epsilon-O8 lattice and structural refinement are from Fujihisa et al., Physical Review Letters 97, 085503 (2006), doi:10.1103/PhysRevLett.97.085503. That publication reports no fitted EoS; the unsupported legacy coefficients were removed.",
  "peaks": [
   [4, 4, 2, 0.8327, 1.1],
   [0, 4, 3, 0.8833, 2.1],
@@ -50,26 +50,6 @@
   [0, 0, 1, 3.3597, 43.0],
   [1, 1, 0, 4.5035, 2.1]
  ],
- "eos_records": [
-  {
-   "label": "Physical Review Letters 97, 085503-1-085503-4, Fujihisa, H.",
-   "reference": "Fujihisa et al., Phys. Rev. Lett. 97, 085503 (2006), doi:10.1103/PhysRevLett.97.085503",
-   "eos": {
-    "type": "BM3",
-    "parameters": {
-     "V0": 157.1867,
-     "K0": 10.0,
-     "K0_prime": 6.0
-    }
-   },
-   "parameter_errors": {
-    "V0": null,
-    "K0": null,
-    "K0_prime": null
-   },
-   "fixed_parameters": [],
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
-  }
- ],
+ "eos_records": [],
  "atom_sites": []
 }

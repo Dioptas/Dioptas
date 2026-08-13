@@ -55,8 +55,8 @@
    "eos": {
     "type": "BM3",
     "parameters": {
-     "V0": 126.9535,
-     "K0": 20.45,
+     "V0": 165.39,
+     "K0": 20.4,
      "K0_prime": 4.7
     }
    },
@@ -66,7 +66,7 @@
     "K0_prime": null
    },
    "fixed_parameters": [],
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "notes": "Besson et al. give the 300 K molar V0 = 12.45 cm^3/mol, converted here to the Z=8 tetragonal cell. Their fit gives K0 = 20.4 GPa and K0' = 4.7 for 0-10 GPa. They state that no error can be quoted because the result depends on the adopted 300 K equation of state; it should not be used above 10 GPa."
   }
  ],
  "atom_sites": []

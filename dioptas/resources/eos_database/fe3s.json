@@ -40,18 +40,20 @@
    "eos": {
     "type": "BM3",
     "parameters": {
-     "V0": 377.0098,
+     "V0": 377.0,
      "K0": 150.0,
      "K0_prime": 4.0
     }
    },
    "parameter_errors": {
-    "V0": null,
-    "K0": null,
+    "V0": 0.2,
+    "K0": 2.0,
     "K0_prime": null
    },
-   "fixed_parameters": [],
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "fixed_parameters": [
+    "K0_prime"
+   ],
+   "notes": "Fei et al. report V0 = 377.0(2) A^3 and K0 = 150 +/- 2 GPa with K0' fixed at 4.0."
   }
  ],
  "atom_sites": []

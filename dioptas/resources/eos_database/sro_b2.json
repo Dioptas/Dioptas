@@ -55,8 +55,10 @@
     "K0": null,
     "K0_prime": null
    },
-   "fixed_parameters": [],
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "fixed_parameters": [
+    "K0_prime"
+   ],
+   "notes": "Sato and Jeanloz report K0 = 160 GPa with K0' fixed at 4.0 for B2 SrO. The publication does not provide recoverable coefficient uncertainties."
   }
  ]
 }

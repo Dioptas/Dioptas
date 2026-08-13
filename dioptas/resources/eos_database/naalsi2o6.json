@@ -66,23 +66,26 @@
  ],
  "eos_records": [
   {
-   "label": "jadeite (CVS from mincryst 2209, EOS from Akaogi et al 2002)",
-   "reference": "Akaogi et al., Phys. Earth Planet. Inter. 130, 49-58 (2002), doi:10.1016/S0031-9201(01)00305-3",
+   "label": "Jadeite, Zhao et al. (1997)",
+   "reference": "Zhao et al., Geophys. Res. Lett. 24, 5-8 (1997), doi:10.1029/96GL03769",
    "eos": {
     "type": "BM3",
     "parameters": {
-     "V0": 400.3145,
+     "V0": 401.19,
      "K0": 125.0,
      "K0_prime": 5.0
     }
    },
    "parameter_errors": {
     "V0": null,
-    "K0": null,
+    "K0": 4.0,
     "K0_prime": null
    },
-   "fixed_parameters": [],
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "fixed_parameters": [
+    "V0",
+    "K0_prime"
+   ],
+   "notes": "Zhao et al. report K0 = 125(4) GPa with K0' constrained to 5.0. Their ambient molar volume of 60.4 cm^3/mol is converted here to the conventional Z=4 cell; no uncertainty was reported for that fixed value. The imported phase lattice and Prewitt-Burnham coordinates are retained independently."
   }
  ]
 }

@@ -55,23 +55,25 @@
  ],
  "eos_records": [
   {
-   "label": "rutile (EoS by Yamanaka and Ogata 1991)",
-   "reference": "Yamanaka and Ogata, J. Appl. Crystallogr. 24, 111-118 (1991), doi:10.1107/S0021889890011153",
+   "label": "Rutile GeO2, Hazen and Finger (1981)",
+   "reference": "Hazen and Finger, J. Phys. Chem. Solids 42, 143-151 (1981), doi:10.1016/0022-3697(81)90074-3",
    "eos": {
     "type": "BM3",
     "parameters": {
      "V0": 55.3268,
-     "K0": 395.0,
-     "K0_prime": 4.0
+     "K0": 258.0,
+     "K0_prime": 7.0
     }
    },
    "parameter_errors": {
     "V0": null,
-    "K0": null,
+    "K0": 5.0,
     "K0_prime": null
    },
-   "fixed_parameters": [],
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "fixed_parameters": [
+    "K0_prime"
+   ],
+   "notes": "Hazen and Finger report K0 = 258 +/- 5 GPa assuming K0' = 7.0 for rutile-type GeO2. The unsupported legacy value K0 = 395 GPa attributed to Yamanaka and Ogata was removed."
   }
  ]
 }

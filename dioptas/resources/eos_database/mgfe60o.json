@@ -1,7 +1,7 @@
 {
  "format_version": 1,
- "name": "MgFe60O",
- "formula": "MgFe60O",
+ "name": "(Mg0.4Fe0.6)O",
+ "formula": "Mg2Fe3O5",
  "symmetry": "CUBIC",
  "lattice": {
   "a": 4.2805,
@@ -32,18 +32,20 @@
    "eos": {
     "type": "BM3",
     "parameters": {
-     "V0": 78.4302,
+     "V0": 78.43,
      "K0": 149.0,
      "K0_prime": 4.0
     }
    },
    "parameter_errors": {
-    "V0": null,
-    "K0": null,
+    "V0": 0.02,
+    "K0": 4.0,
     "K0_prime": null
    },
-   "fixed_parameters": [],
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "fixed_parameters": [
+    "K0_prime"
+   ],
+   "notes": "Richet et al. report V0 = 78.43(2) A^3 and K0 = 149(4) GPa with K0' fixed at 4.0 for (Mg0.4Fe0.6)O. The formula is stored as the equivalent integer ratio Mg2Fe3O5."
   }
  ],
  "atom_sites": []

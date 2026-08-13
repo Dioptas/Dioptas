@@ -160,29 +160,28 @@ def test_records_survive_project_round_trip(gold, tmp_path):
 
 
 def test_eosmat_round_trip(materials, tmp_path):
-    # wollastonite is triclinic — angles must survive the round trip
-    wollastonite = next(m for m in materials
-                        if m.symmetry == "TRICLINIC")
-    path = str(tmp_path / "wollastonite.eosmat")
-    eos.save_material_file(path, wollastonite)
+    # Coesite is monoclinic — its non-orthogonal angle must survive the round trip.
+    coesite = next(m for m in materials if m.name == "Coesite")
+    path = str(tmp_path / "coesite.eosmat")
+    eos.save_material_file(path, coesite)
     loaded = eos.load_material_file(path)
 
-    assert loaded.name == wollastonite.name
-    assert loaded.lattice.alpha == pytest.approx(wollastonite.lattice.alpha)
-    assert loaded.lattice.beta == pytest.approx(wollastonite.lattice.beta)
-    assert loaded.lattice.gamma == pytest.approx(wollastonite.lattice.gamma)
-    assert loaded.lattice.alpha != 90.0
-    assert loaded.peaks == wollastonite.peaks
-    assert loaded.eos_records == wollastonite.eos_records
-    assert loaded.formula_units_per_cell == wollastonite.formula_units_per_cell
-    assert loaded.space_group == wollastonite.space_group
-    assert loaded.space_group_number == wollastonite.space_group_number
-    assert loaded.atom_sites == wollastonite.atom_sites
+    assert loaded.name == coesite.name
+    assert loaded.lattice.alpha == pytest.approx(coesite.lattice.alpha)
+    assert loaded.lattice.beta == pytest.approx(coesite.lattice.beta)
+    assert loaded.lattice.gamma == pytest.approx(coesite.lattice.gamma)
+    assert loaded.lattice.beta != 90.0
+    assert loaded.peaks == coesite.peaks
+    assert loaded.eos_records == coesite.eos_records
+    assert loaded.formula_units_per_cell == coesite.formula_units_per_cell
+    assert loaded.space_group == coesite.space_group
+    assert loaded.space_group_number == coesite.space_group_number
+    assert loaded.atom_sites == coesite.atom_sites
 
     rendered = open(path, encoding="utf-8").read()
     peak_lines = [line for line in rendered.splitlines()
                   if line.startswith("  [")]
-    assert len(peak_lines) == len(wollastonite.peaks)
+    assert len(peak_lines) == len(coesite.peaks)
 
 
 def test_eosmat_keeps_each_atom_site_on_one_line(tmp_path):

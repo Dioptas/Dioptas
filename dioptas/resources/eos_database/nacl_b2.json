@@ -41,22 +41,20 @@
  "eos_records": [
   {
    "label": "Heinz and Jeanloz (1984), B2",
-   "reference": "Heinz and Jeanloz, J. Appl. Phys. 55, 885-893 (1984), doi:10.1063/1.333139",
+   "reference": "Heinz and Jeanloz, Phys. Rev. B 30, 6045-6050 (1984), doi:10.1103/PhysRevB.30.6045",
    "eos": {
-    "type": "BM3",
+    "type": "BM2",
     "parameters": {
      "V0": 41.67,
-     "K0": 36.2,
-     "K0_prime": 4.0
+     "K0": 36.2
     }
    },
    "parameter_errors": {
-    "V0": null,
-    "K0": null,
-    "K0_prime": null
+    "V0": 3.18,
+    "K0": 4.2
    },
    "fixed_parameters": [],
-   "notes": "Publication-identifiable B2 NaCl record; the uncitable Sata/Shen fit was removed."
+   "notes": "Heinz and Jeanloz report V0(B2)/V0(B1) = 0.929 +/- 0.071 and K0 = 36.2 +/- 4.2 GPa from a second-order finite-strain fit, which fixes K0' at 4. The V0 uncertainty is propagated using the ambient B1 volume. The uncitable Sata/Shen fit was removed."
   },
   {
    "label": "Shen and Smith (2026), Cu-referenced Vinet",

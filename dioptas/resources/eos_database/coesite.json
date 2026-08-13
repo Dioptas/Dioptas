@@ -94,11 +94,11 @@
    },
    "parameter_errors": {
     "V0": null,
-    "K0": null,
-    "K0_prime": null
+    "K0": 3.0,
+    "K0_prime": 1.9
    },
    "fixed_parameters": [],
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "notes": "Levien and Prewitt report K0 = 96 +/- 3 GPa and K0' = 8.4 +/- 1.9. V0 is retained from the cited ambient structure; no separate fitted V0 uncertainty was reported."
   }
  ]
 }

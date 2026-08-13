@@ -48,7 +48,7 @@
     "K0_prime": null
    },
    "fixed_parameters": [],
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "notes": "Clendenen and Drickamer report the legacy compression parameters K0 = 190.5 GPa and K0' = 3.9 without parameter uncertainties. V0 is retained from the ambient diffraction card."
   }
  ]
 }

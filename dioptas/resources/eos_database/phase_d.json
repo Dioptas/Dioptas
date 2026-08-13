@@ -93,10 +93,10 @@
    },
    "parameter_errors": {
     "V0": null,
-    "K0": null
+    "K0": 5.0
    },
    "fixed_parameters": [],
-   "notes": "Fe-bearing phase D; the publication explicitly uses a second-order Birch-Murnaghan fit with K0_prime fixed at 4."
+   "notes": "Shieh et al. report K0 = 134 +/- 5 GPa for Fe-bearing phase D using a second-order Birch-Murnaghan fit, which fixes K0' at 4. The publication does not tabulate a fitted V0 uncertainty for this phase."
   }
  ],
  "atom_sites": []

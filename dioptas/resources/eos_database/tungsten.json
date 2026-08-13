@@ -43,7 +43,8 @@
     "K0": null,
     "K0_prime": null
    },
-   "fixed_parameters": []
+   "fixed_parameters": [],
+   "notes": "Hixson and Fritz shock-derived reference parameterization. No independent coefficient standard errors are tabulated for this legacy parameter set."
   },
   {
    "label": "Dewaele et al. (2004), Vinet",

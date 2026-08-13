@@ -34,19 +34,18 @@
    "label": "B2 (EOS from Campbell and Heinz, 1991)",
    "reference": "Campbell and Heinz, J. Phys. Chem. Solids 52, 495-499 (1991), doi:10.1016/0022-3697(91)90181-X",
    "eos": {
-    "type": "Vinet",
+    "type": "BM2",
     "parameters": {
-     "V0": 52.861038777000005,
-     "K0": 28.7,
-     "K0_prime": 4.0
+     "V0": 52.85,
+     "K0": 28.7
     }
    },
    "parameter_errors": {
-    "V0": null,
-    "K0": null,
-    "K0_prime": null
+    "V0": 0.36,
+    "K0": 0.6
    },
-   "fixed_parameters": []
+   "fixed_parameters": [],
+   "notes": "Campbell and Heinz report V0(B2)/V0(B1) = 0.8483 +/- 0.0057 and K0 = 28.7 +/- 0.6 GPa, with K0' constrained to 4.0. This is stored as BM2; V0 and its propagated uncertainty use the ambient B1 reference volume."
   },
   {
    "label": "Walker et al. (2002), B2 thermal Birch",
@@ -65,7 +64,7 @@
     "K0_prime": null
    },
    "fixed_parameters": [],
-   "notes": "Publication values for B2 KCl (Z=1).",
+   "notes": "Walker et al. B2 KCl parameters (Z=1). The authors explicitly state that tradeoffs between V0, K0, and K0' make errors on the individual parameters non-meaningful, so none are quoted.",
    "thermal": {
     "type": "AlphaKT",
     "parameters": {

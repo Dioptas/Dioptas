@@ -47,6 +47,7 @@
     "K0_prime": null
    },
    "fixed_parameters": [],
+   "notes": "Anderson et al. thermodynamic pressure-scale parameterization. The source does not tabulate statistical standard errors for this recommended parameter set.",
    "thermal": {
     "type": "AlphaKT",
     "parameters": {

@@ -51,6 +51,7 @@
     "K0_prime": null
    },
    "fixed_parameters": [],
+   "notes": "Holmes et al. pressure-scale parameters K0 = 266 GPa and K0' = 5.81; the publication does not give statistical uncertainties for these reference values.",
    "thermal": {
     "type": "AlphaKT",
     "parameters": {

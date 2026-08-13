@@ -47,11 +47,11 @@
    },
    "parameter_errors": {
     "V0": null,
-    "K0": null,
-    "K0_prime": null
+    "K0": 0.5,
+    "K0_prime": 0.7
    },
    "fixed_parameters": [],
-   "notes": "The publication's measured 298 K, ambient-pressure cell volume and global high-temperature BM3 fit; replaces two conflicting JCPDS-derived V0 entries.",
+   "notes": "Martinez et al. report K0 = 65.4(5) GPa and K0' = 2.7(7) for the global high-temperature BM3 fit. The measured 298 K ambient volume is retained without a separately tabulated fit uncertainty; replaces two conflicting JCPDS-derived V0 entries.",
    "thermal": {
     "type": "AlphaKT",
     "parameters": {

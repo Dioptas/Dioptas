@@ -46,11 +46,13 @@
    },
    "parameter_errors": {
     "V0": null,
-    "K0": null,
-    "K0_prime": null
+    "K0": 2.7,
+    "K0_prime": 0.3
    },
-   "fixed_parameters": [],
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "fixed_parameters": [
+    "V0"
+   ],
+   "notes": "Liu and Bassett report K0 = 913 +/- 27 kbar (91.3 +/- 2.7 GPa) and K0' = 4.3 +/- 0.3. The ambient card volume is treated as fixed."
   }
  ]
 }

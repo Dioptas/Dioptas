@@ -51,7 +51,7 @@
     "K0_prime"
    ],
    "temperature_ref": 300.0,
-   "notes": "Room-temperature compression to 165 GPa; K0' was fixed at 4. The published V0 is for the conventional six-formula-unit hexagonal cell."
+   "notes": "Room-temperature compression to 165 GPa; K0' was fixed at 4. The published V0 is for the conventional six-formula-unit hexagonal cell. The constrained parameter set is published without individual statistical uncertainties."
   }
  ]
 }

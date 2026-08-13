@@ -38,12 +38,14 @@
     }
    },
    "parameter_errors": {
-    "V0": null,
-    "K0": null,
+    "V0": 0.7174,
+    "K0": 8.1,
     "K0_prime": null
    },
-   "fixed_parameters": [],
-   "notes": "Experimental Vinet fit. Publication V0=10.221 cm^3/mol converted to A^3 for the Z=4 tetragonal cell."
+   "fixed_parameters": [
+    "K0_prime"
+   ],
+   "notes": "Experimental Vinet fit: molar V0 = 10.221(108) cm^3/mol and K0 = 127.2(81) GPa, with K0' fixed at 5. V0 and its uncertainty were converted to the Z=4 tetragonal cell."
   }
  ],
  "atom_sites": []

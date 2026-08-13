@@ -34,18 +34,20 @@
    "eos": {
     "type": "BM3",
     "parameters": {
-     "V0": 43.2436,
+     "V0": 43.245,
      "K0": 11.32,
      "K0_prime": 3.62
     }
    },
    "parameter_errors": {
     "V0": null,
-    "K0": null,
-    "K0_prime": null
+    "K0": 0.1,
+    "K0_prime": 0.04
    },
-   "fixed_parameters": [],
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "fixed_parameters": [
+    "V0"
+   ],
+   "notes": "Hanfland et al. report atomic V0 = 21.6225 A^3 fixed, K0 = 11.32(10) GPa, and K0' = 3.62(4). V0 was doubled for the bcc cell."
   }
  ]
 }

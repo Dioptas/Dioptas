@@ -30,23 +30,25 @@
  ],
  "eos_records": [
   {
-   "label": "B8\tFischer et al. 2010",
+   "label": "B1 Fe0.94O, Fischer et al. (2011)",
    "reference": "Fischer et al., Earth Planet. Sci. Lett. 304, 496-502 (2011), doi:10.1016/j.epsl.2011.02.025",
    "eos": {
     "type": "BM3",
     "parameters": {
-     "V0": 79.1193,
-     "K0": 149.0,
+     "V0": 81.4063,
+     "K0": 149.4,
      "K0_prime": 3.6
     }
    },
    "parameter_errors": {
     "V0": null,
-    "K0": null,
-    "K0_prime": null
+    "K0": 1.0,
+    "K0_prime": 0.04
    },
-   "fixed_parameters": [],
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "fixed_parameters": [
+    "V0"
+   ],
+   "notes": "This file contains the B1, not B8, phase. Fischer et al. fit Fe0.94O with molar V0 = 12.256 cm^3/mol fixed, K0 = 149.4 +/- 1.0 GPa, and K0' = 3.60 +/- 0.04. V0 was converted to the conventional Z=4 B1 cell."
   }
  ]
 }

@@ -78,12 +78,12 @@
     }
    },
    "parameter_errors": {
-    "V0": null,
-    "K0": null,
-    "K0_prime": null
+    "V0": 0.1328,
+    "K0": 1.0,
+    "K0_prime": 0.1
    },
    "fixed_parameters": [],
-   "notes": "Identity corrected from the source filenames and cited publication; publication BM3 parameters."
+   "notes": "Dubrovinsky et al. report molar V0 = 36.58(2) cm^3/mol, K0 = 220(1) GPa, and K0' = 4.1(1). V0 and its uncertainty were converted to the Z=4 cell."
   }
  ]
 }

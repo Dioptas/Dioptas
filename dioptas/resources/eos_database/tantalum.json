@@ -42,11 +42,11 @@
    },
    "parameter_errors": {
     "V0": null,
-    "K0": null,
-    "K0_prime": null
+    "K0": 4.8,
+    "K0_prime": 0.1
    },
    "fixed_parameters": [],
-   "notes": "Publication values."
+   "notes": "Cynn and Yoo report K0 = 194.7(4.8) GPa and K0' = 3.4(1). V0 is retained from the ambient bcc lattice because the fit uncertainty was not tabulated."
   },
   {
    "label": "Shen and Smith (2026), Cu-referenced Vinet",

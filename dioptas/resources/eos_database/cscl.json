@@ -53,11 +53,11 @@
    },
    "parameter_errors": {
     "V0": null,
-    "K0": null,
-    "K0_prime": null
+    "K0": 0.29,
+    "K0_prime": 0.15
    },
    "fixed_parameters": [],
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "notes": "Campbell and Heinz report K0 = 17.01(29) GPa and K0' = 5.49(15). No independent uncertainty was recovered for the ambient card volume."
   }
  ]
 }

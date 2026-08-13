@@ -29,18 +29,20 @@
    "eos": {
     "type": "BM3",
     "parameters": {
-     "V0": 1518.4941,
-     "K0": 159.8,
-     "K0_prime": 4.98
+     "V0": 1513.1,
+     "K0": 161.0,
+     "K0_prime": 4.0
     }
    },
    "parameter_errors": {
     "V0": null,
-    "K0": null,
+    "K0": 4.0,
     "K0_prime": null
    },
-   "fixed_parameters": [],
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "fixed_parameters": [
+    "K0_prime"
+   ],
+   "notes": "Yagi et al. report V0 = 1513.1 A^3 and K0 = 161 +/- 4 GPa with K0' fixed at 4.0. The ambient structural cell used for the phase lines is independently 1518.5 A^3."
   }
  ],
  "atom_sites": []

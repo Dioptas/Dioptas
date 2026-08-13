@@ -36,18 +36,18 @@
    "eos": {
     "type": "BM3",
     "parameters": {
-     "V0": 22.3564008133521,
+     "V0": 22.35,
      "K0": 165.0,
      "K0_prime": 5.33
     }
    },
    "parameter_errors": {
-    "V0": null,
-    "K0": null,
-    "K0_prime": null
+    "V0": 0.03,
+    "K0": 4.0,
+    "K0_prime": 0.09
    },
    "fixed_parameters": [],
-   "notes": "V0 rescaled by sin(120): the hosted database computed hexagonal cell volumes as a^2*c."
+   "notes": "Mao et al. report V0 = 22.35(3) A^3, K0 = 165(4) GPa, and K0' = 5.33(9) for the two-atom hcp cell. The legacy volume was also corrected for the hexagonal sin(120 degree) factor."
   },
   {
    "label": "Shen and Smith (2026), Cu-referenced Vinet",

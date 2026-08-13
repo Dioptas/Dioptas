@@ -48,18 +48,20 @@
    "eos": {
     "type": "BM3",
     "parameters": {
-     "V0": 45.3694,
+     "V0": 45.37,
      "K0": 281.0,
      "K0_prime": 4.0
     }
    },
    "parameter_errors": {
-    "V0": null,
-    "K0": null,
+    "V0": 0.08,
+    "K0": 4.0,
     "K0_prime": null
    },
-   "fixed_parameters": [],
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "fixed_parameters": [
+    "K0_prime"
+   ],
+   "notes": "Mao et al. Table values, as reproduced by Shim et al. (2000): V0 = 45.37(8) A^3, K0 = 281(4) GPa, with K0' fixed at 4.0."
   }
  ]
 }

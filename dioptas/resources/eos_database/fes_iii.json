@@ -22,7 +22,7 @@
   {"element": "S", "wyckoff": "4e", "x": 0.519, "y": 0.911, "z": 0.756, "occupancy": 1.0},
   {"element": "S", "wyckoff": "4e", "x": 0.335, "y": 0.42, "z": 0.591, "occupancy": 1.0}
  ],
- "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/FeS(III).jcpds. FeS-III coordinates are the three-sample average refined at 7.5 GPa by Nelmes et al., Physical Review B 59, 9048-9052 (1999), doi:10.1103/PhysRevB.59.9048.",
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/FeS(III).jcpds. FeS-III coordinates are the three-sample average refined at 7.5 GPa by Nelmes et al., Physical Review B 59, 9048-9052 (1999), doi:10.1103/PhysRevB.59.9048. Nelmes et al. explicitly state that their data do not yield meaningful ambient-pressure K0 and K0'; the unsupported legacy EoS was removed. 8/33 imported peaks deviate by more than 2% from the lattice d-spacing.",
  "peaks": [
   [4, 4, 4, 0.9587, 17.0],
   [4, 1, 4, 1.2414, 98.0],
@@ -58,25 +58,5 @@
   [1, 1, 0, 4.7865, 5.0],
   [0, 0, 1, 6.6718, 7.0]
  ],
- "eos_records": [
-  {
-   "label": "(III) Nelmes 1999",
-   "reference": "Nelmes et al., Phys. Rev. B 59, 9048-9052 (1999), doi:10.1103/PhysRevB.59.9048",
-   "eos": {
-    "type": "BM3",
-    "parameters": {
-     "V0": 325.6683,
-     "K0": 80.0,
-     "K0_prime": 4.0
-    }
-   },
-   "parameter_errors": {
-    "V0": null,
-    "K0": null,
-    "K0_prime": null
-   },
-   "fixed_parameters": [],
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply. 8/33 file peaks deviate >2% from the lattice d-spacing."
-  }
- ]
+ "eos_records": []
 }

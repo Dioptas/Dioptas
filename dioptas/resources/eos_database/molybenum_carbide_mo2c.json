@@ -79,11 +79,11 @@
    },
    "parameter_errors": {
     "V0": null,
-    "K0": null,
-    "K0_prime": null
+    "K0": 5.0,
+    "K0_prime": 0.3
    },
    "fixed_parameters": [],
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "notes": "Haines et al. report K0 = 307(5) GPa and K0' = 6.2(3). V0 is retained from the cited ambient orthorhombic structure."
   }
  ]
 }

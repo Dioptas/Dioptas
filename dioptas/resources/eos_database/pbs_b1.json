@@ -38,22 +38,22 @@
  "eos_records": [
   {
    "label": "Grzechnik and Friese (2010)",
-   "reference": "Grzechnik and Friese, J. Phys.: Condens. Matter 22, 095402 (2010), doi:10.1088/0953-8984/22/9/095402",
+   "reference": "Knorr et al., Eur. Phys. J. B 31, 297-303 (2003), doi:10.1140/epjb/e2003-00034-6",
    "eos": {
     "type": "BM3",
     "parameters": {
-     "V0": 209.1615,
+     "V0": 209.2,
      "K0": 51.0,
      "K0_prime": 4.3
     }
    },
    "parameter_errors": {
-    "V0": null,
-    "K0": null,
-    "K0_prime": null
+    "V0": 0.1,
+    "K0": 1.0,
+    "K0_prime": 0.9
    },
    "fixed_parameters": [],
-   "notes": "Ambient-pressure B1 fit. The imported generic thermal coefficient was not reported by this source and was removed."
+   "notes": "Knorr et al. report K0 = 51(1) GPa and K0' = 4.3(9) for B1 PbS. Grzechnik and Friese independently measured ambient V0 = 209.2(1) A^3 and reproduce those coefficients; their structure paper remains the source for the stored phase metadata. The imported generic thermal coefficient was removed."
   }
  ]
 }

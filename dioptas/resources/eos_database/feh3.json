@@ -40,12 +40,14 @@
     }
    },
    "parameter_errors": {
-    "V0": null,
-    "K0": null,
+    "V0": 0.0664,
+    "K0": 0.05,
     "K0_prime": null
    },
-   "fixed_parameters": [],
-   "notes": "Experimental Vinet fit. Publication V0=11.171 cm^3/mol converted to A^3 for the Z=1 cubic cell."
+   "fixed_parameters": [
+    "K0_prime"
+   ],
+   "notes": "Experimental Vinet fit: molar V0 = 11.171 +/- 0.040 cm^3/mol and K0 = 190.1 +/- 0.05 GPa, with K0' fixed at 5. V0 and its uncertainty were converted to the Z=1 cubic cell."
   }
  ]
 }

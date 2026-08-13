@@ -1,7 +1,7 @@
 {
  "format_version": 1,
- "name": "Mg7Si2O8",
- "formula": "Mg7Si2O8",
+ "name": "Phase A",
+ "formula": "Mg7Si2O14H6",
  "symmetry": "HEXAGONAL",
  "lattice": {
   "a": 7.8603,
@@ -57,18 +57,18 @@
    "eos": {
     "type": "BM3",
     "parameters": {
-     "V0": 512.2205,
+     "V0": 512.56,
      "K0": 97.5,
      "K0_prime": 5.97
     }
    },
    "parameter_errors": {
-    "V0": null,
-    "K0": null,
-    "K0_prime": null
+    "V0": 0.03,
+    "K0": 0.4,
+    "K0_prime": 0.14
    },
    "fixed_parameters": [],
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "notes": "Hydrous phase A, Mg7Si2O8(OH)6. Crichton and Ross report V0 = 512.56(3) A^3, K0 = 97.5(4) GPa, and K0' = 5.97(14). The formula is stored in parser-compatible expanded form."
   }
  ],
  "atom_sites": []
