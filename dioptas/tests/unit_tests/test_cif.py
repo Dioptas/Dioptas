@@ -79,6 +79,8 @@ def test_loading_cif_phase_with_occupancies_specified():
 
 
 def test_reading_american_mineralogist_db_cif():
+    with open(os.path.join(cif_path, 'amcsd.cif'), encoding='utf-8') as stream:
+        assert "'F m -3 m'" in stream.read()
     cif_converter = CifConverter(0.31)
     jcpds_phase = cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'amcsd.cif'))
     assert jcpds_phase.params['a0'] == 5.4631
