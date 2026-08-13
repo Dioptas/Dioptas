@@ -11,8 +11,18 @@
   "beta": 93.0,
   "gamma": 90.0
  },
- "formula_units_per_cell": null,
- "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/FeS(III).jcpds",
+ "formula_units_per_cell": 12,
+ "space_group": "P21/a",
+ "space_group_number": 14,
+ "atom_sites": [
+  {"element": "Fe", "wyckoff": "4e", "x": 0.065, "y": 0.8, "z": 0.082, "occupancy": 1.0},
+  {"element": "Fe", "wyckoff": "4e", "x": 0.211, "y": 0.212, "z": 0.178, "occupancy": 1.0},
+  {"element": "Fe", "wyckoff": "4e", "x": 0.423, "y": 0.763, "z": 0.45, "occupancy": 1.0},
+  {"element": "S", "wyckoff": "4e", "x": 0.188, "y": 0.076, "z": 0.865, "occupancy": 1.0},
+  {"element": "S", "wyckoff": "4e", "x": 0.519, "y": 0.911, "z": 0.756, "occupancy": 1.0},
+  {"element": "S", "wyckoff": "4e", "x": 0.335, "y": 0.42, "z": 0.591, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/FeS(III).jcpds. FeS-III coordinates are the three-sample average refined at 7.5 GPa by Nelmes et al., Physical Review B 59, 9048-9052 (1999), doi:10.1103/PhysRevB.59.9048.",
  "peaks": [
   [4, 4, 4, 0.9587, 17.0],
   [4, 1, 4, 1.2414, 98.0],

@@ -1,6 +1,6 @@
 {
  "format_version": 1,
- "name": "Molybenum Carbide Mo2C",
+ "name": "Molybdenum carbide Mo2C",
  "formula": "Mo2C",
  "symmetry": "ORTHORHOMBIC",
  "lattice": {
@@ -11,8 +11,14 @@
   "beta": 90.0,
   "gamma": 90.0
  },
- "formula_units_per_cell": null,
- "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Mo2C-Haines.jcpds",
+ "formula_units_per_cell": 4,
+ "space_group": "Pbcn",
+ "space_group_number": 60,
+ "atom_sites": [
+  {"element": "Mo", "wyckoff": "8d", "x": 0.24617, "y": 0.12796, "z": 0.07926, "occupancy": 1.0},
+  {"element": "C", "wyckoff": "4c", "x": 0.0, "y": 0.38546, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Mo2C-Haines.jcpds. Orthorhombic Mo2C coordinates from the Rietveld refinement of Chasvin et al., Molecular Catalysis 439, 163-170 (2017), doi:10.1016/j.mcat.2017.07.003.",
  "peaks": [
   [3, 2, 5, 0.8336, 9.3],
   [3, 6, 1, 0.8336, 9.4],

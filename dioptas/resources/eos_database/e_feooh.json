@@ -1,33 +1,41 @@
 {
  "format_version": 1,
  "name": "E-FeOOH",
- "formula": "",
+ "formula": "FeOOH",
  "symmetry": "ORTHORHOMBIC",
  "lattice": {
   "a": 4.771,
-  "b": 2.935,
-  "c": 4.321,
+  "b": 4.321,
+  "c": 2.935,
   "alpha": 90.0,
   "beta": 90.0,
   "gamma": 90.0
  },
- "formula_units_per_cell": 4,
- "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/FeOOH-pmn21.jcpds",
+ "formula_units_per_cell": 2,
+ "space_group": "P21nm",
+ "space_group_number": 31,
+ "atom_sites": [
+  {"element": "Fe", "wyckoff": "2a", "x": 0.0, "y": 0.24, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "2a", "x": 0.355, "y": 0.48, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "2a", "x": 0.651, "y": 0.021, "z": 0.0, "occupancy": 1.0},
+  {"element": "H", "wyckoff": "2a", "x": 0.492, "y": 0.275, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/FeOOH-pmn21.jcpds. Cell axes and hkl were permuted into the P21nm setting without changing d-spacings. The positional model is the 20 GPa static structure of Insixiengmay and Stixrude, American Mineralogist 108, 2209-2222 (2023), doi:10.2138/am-2022-8839, selected because its volume is closest to the imported high-pressure cell.",
  "peaks": [
-  [2, 2, 0, 1.2499, 20.0],
-  [1, 2, 1, 1.3341, 20.0],
-  [0, 2, 0, 1.4675, 20.0],
-  [3, 0, 1, 1.4925, 20.0],
-  [2, 0, 2, 1.6014, 10.0],
-  [1, 1, 2, 1.6346, 80.0],
+  [2, 0, 2, 1.2499, 20.0],
+  [1, 1, 2, 1.3341, 20.0],
+  [0, 0, 2, 1.4675, 20.0],
+  [3, 1, 0, 1.4925, 20.0],
+  [2, 2, 0, 1.6014, 10.0],
+  [1, 2, 1, 1.6346, 80.0],
   [2, 1, 1, 1.7016, 50.0],
-  [2, 0, 1, 2.0884, 60.0],
-  [0, 0, 2, 2.1605, 60.0],
+  [2, 1, 0, 2.0884, 60.0],
+  [0, 2, 0, 2.1605, 60.0],
   [2, 0, 0, 2.3855, 80.0],
   [0, 1, 1, 2.4279, 70.0],
-  [1, 1, 0, 2.4999, 10.0],
-  [1, 1, 0, 2.4999, 90.0],
-  [1, 0, 1, 3.2027, 80.0]
+  [1, 0, 1, 2.4999, 10.0],
+  [1, 0, 1, 2.4999, 90.0],
+  [1, 1, 0, 3.2027, 80.0]
  ],
  "eos_records": [
   {

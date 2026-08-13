@@ -2,6 +2,7 @@
 """Regression checks for the publication audit of imported JCPDS EoS data."""
 from collections import defaultdict
 import json
+import math
 from pathlib import Path
 import re
 
@@ -169,7 +170,20 @@ def test_all_curated_structures_are_complete_and_stoichiometric():
             )
         assert dict(actual) == pytest.approx(dict(expected)), path.name
 
-    assert len(structured) == 48
+    assert len(structured) == 55
+
+
+@pytest.mark.parametrize("filename", ["e_feooh.json", "fes.json"])
+def test_reindexed_orthorhombic_structures_preserve_peak_d_spacings(filename):
+    document = _document(filename)
+    lattice = document["lattice"]
+    for h, k, l, stored_d, _intensity in document["peaks"]:
+        calculated_d = 1.0 / math.sqrt(
+            (h / lattice["a"]) ** 2
+            + (k / lattice["b"]) ** 2
+            + (l / lattice["c"]) ** 2
+        )
+        assert calculated_d == pytest.approx(stored_d, abs=5e-5)
 
 
 def test_walker_kcl_thermal_parameters_match_publication():

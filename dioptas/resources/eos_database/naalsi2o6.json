@@ -11,8 +11,18 @@
   "beta": 107.97,
   "gamma": 90.0
  },
- "formula_units_per_cell": null,
- "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/jadeite.jcpds",
+ "formula_units_per_cell": 4,
+ "space_group": "C2/c",
+ "space_group_number": 15,
+ "atom_sites": [
+  {"element": "Na", "wyckoff": "4e", "x": 0.0, "y": 0.3009, "z": 0.25, "occupancy": 1.0},
+  {"element": "Al", "wyckoff": "4e", "x": 0.0, "y": 0.094, "z": 0.75, "occupancy": 1.0},
+  {"element": "Si", "wyckoff": "8f", "x": 0.2906, "y": 0.0934, "z": 0.2277, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8f", "x": 0.109, "y": 0.0763, "z": 0.1275, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8f", "x": 0.3608, "y": 0.263, "z": 0.2929, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8f", "x": 0.3533, "y": 0.007, "z": 0.0058, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/jadeite.jcpds. Ambient pure-jadeite coordinates: Prewitt and Burnham, American Mineralogist 51, 956-975 (1966); the imported EoS lattice is retained.",
  "peaks": [
   [6, 0, -4, 1.1435, 5.4],
   [3, 5, 2, 1.1963, 9.5],
