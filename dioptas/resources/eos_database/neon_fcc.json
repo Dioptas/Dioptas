@@ -17,7 +17,7 @@
  "atom_sites": [
   {"element": "Ne", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
  ],
- "notes": "FCC neon (fei)",
+ "notes": "FCC neon; the Fei et al. (2007) primary Vinet fit is the default, with their BM3 fit retained as an alternative.",
  "peaks": [],
  "eos_records": [
   {
@@ -43,6 +43,7 @@
   {
    "label": "Fei et al PNAS 2007 [Vinet]",
    "reference": "Fei et al., Proc. Natl. Acad. Sci. USA 104, 9182-9186 (2007), doi:10.1073/pnas.0609013104",
+   "default": true,
    "eos": {
     "type": "Vinet",
     "parameters": {

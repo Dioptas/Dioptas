@@ -32,6 +32,34 @@ def test_every_eos_parameter_has_explicit_uncertainty_metadata():
                 assert error is None or error > 0, (path.name, name)
 
 
+def test_materials_have_at_most_one_boolean_default_record():
+    for path in DATABASE.glob("*.json"):
+        defaults = []
+        for record in _document(path.name)["eos_records"]:
+            if "default" in record:
+                assert isinstance(record["default"], bool), path.name
+                if record["default"]:
+                    defaults.append(record)
+        assert len(defaults) <= 1, path.name
+
+
+@pytest.mark.parametrize(
+    "filename,label_fragment",
+    [
+        ("gold.json", "Fei et al PNAS, 2007 [Vinet]"),
+        ("mgo.json", "Speziale et al. (2001)"),
+        ("neon_fcc.json", "Fei et al PNAS 2007 [Vinet]"),
+        ("tungsten.json", "Dewaele et al. (2004)"),
+    ],
+)
+def test_curated_default_eos_records(filename, label_fragment):
+    records = _document(filename)["eos_records"]
+    defaults = [record for record in records if record.get("default")]
+
+    assert len(defaults) == 1
+    assert label_fragment in defaults[0]["label"]
+
+
 def test_experimental_ranges_are_ordered_finite_intervals():
     range_fields = {
         "experimental_pressure_range_gpa": 0.0,

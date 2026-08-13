@@ -17,7 +17,7 @@
  "atom_sites": [
   {"element": "Au", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
  ],
- "notes": "Gold (04-0783, shock wave)",
+ "notes": "Gold pressure calibrant with multiple literature EoS records; Fei et al. (2007) is the default.",
  "peaks": [],
  "eos_records": [
   {
@@ -50,6 +50,7 @@
   {
    "label": "04-0784, Fei et al PNAS, 2007 [Vinet]",
    "reference": "Fei et al., Proc. Natl. Acad. Sci. USA 104, 9182-9186 (2007), doi:10.1073/pnas.0609013104",
+   "default": true,
    "eos": {
     "type": "Vinet",
     "parameters": {

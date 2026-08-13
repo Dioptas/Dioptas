@@ -54,8 +54,11 @@ class EosDatabaseDialog(QtWidgets.QDialog):
             ["Material", "Space Group"])
         self.eos_table = QtWidgets.QTableWidget()
         self.eos_table.setColumnCount(6)
+        # Keep this label uppercase in the model as well as on screen. The
+        # theme's text-transform happens only while painting, after Qt has
+        # measured the narrower mixed-case text, and otherwise clips the F.
         self.eos_table.setHorizontalHeaderLabels(
-            ["EoS", "Reference", "Fit P range", "K0 (GPa)", "K0′",
+            ["EoS", "Reference", "FIT P RANGE", "K0 (GPa)", "K0′",
              "V0 (Å³)"])
         self.eos_table.setToolTip(
             "Fit P range is the experimental pressure interval used to "
@@ -73,14 +76,27 @@ class EosDatabaseDialog(QtWidgets.QDialog):
             table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
             table.verticalHeader().setVisible(False)
         self.materials_table.setAlternatingRowColors(True)
-        # the name / reference column takes the free space
-        self.materials_table.horizontalHeader().setSectionResizeMode(
+        # Keep the material columns governed by persistent resize modes.
+        # A one-shot resizeColumnsToContents() briefly shrinks the header to
+        # the width of a single search result before Qt gets another layout
+        # pass, which can leave a visible gap on some platforms.
+        materials_header = self.materials_table.horizontalHeader()
+        materials_header.setSectionResizeMode(
             0, QtWidgets.QHeaderView.Stretch)
+        materials_header.setSectionResizeMode(
+            1, QtWidgets.QHeaderView.ResizeToContents)
         # keep the "Space Group" header readable even when all cell
         # contents are narrower
-        self.materials_table.horizontalHeader().setMinimumSectionSize(120)
-        self.eos_table.horizontalHeader().setSectionResizeMode(
-            1, QtWidgets.QHeaderView.Stretch)
+        materials_header.setMinimumSectionSize(120)
+        eos_header = self.eos_table.horizontalHeader()
+        for column in (0, 3, 4, 5):
+            eos_header.setSectionResizeMode(
+                column, QtWidgets.QHeaderView.ResizeToContents)
+        # The two descriptive columns share the available width. Giving all
+        # of it to Reference makes that column dominate the result table.
+        for column in (1, 2):
+            eos_header.setSectionResizeMode(
+                column, QtWidgets.QHeaderView.Stretch)
 
         self.export_btn = FlatButton("Export .eosmat…")
         self.export_btn.setEnabled(False)
@@ -121,12 +137,26 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         self.clear_btn.clicked.connect(self.search_input.clear)
         self.materials_table.selectionModel().selectionChanged.connect(
             self._emit_material_selected)
+        self.materials_table.doubleClicked.connect(
+            self._load_material_from_double_click)
+        self.eos_table.doubleClicked.connect(
+            self._load_eos_from_double_click)
         self.load_btn.clicked.connect(self.load_clicked)
         self.export_btn.clicked.connect(self.export_clicked)
         self.close_btn.clicked.connect(self.reject)
 
     def _emit_material_selected(self):
         self.material_selected.emit(self.selected_material_row())
+
+    def _load_material_from_double_click(self, index):
+        if index.isValid():
+            self.materials_table.selectRow(index.row())
+            self.load_clicked.emit()
+
+    def _load_eos_from_double_click(self, index):
+        if index.isValid():
+            self.eos_table.selectRow(index.row())
+            self.load_clicked.emit()
 
     # -- view interface used by the controller -------------------------
 
@@ -142,9 +172,8 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         for r, (name, symmetry) in enumerate(rows):
             table.setItem(r, 0, QtWidgets.QTableWidgetItem(name))
             table.setItem(r, 1, QtWidgets.QTableWidgetItem(symmetry))
-        table.resizeColumnsToContents()
 
-    def fill_eos_records(self, rows):
+    def fill_eos_records(self, rows, selected_row=0):
         """Rows: EoS, reference, fit P range, K0, K0-prime and V0."""
         table = self.eos_table
         table.setRowCount(len(rows))
@@ -154,9 +183,8 @@ class EosDatabaseDialog(QtWidgets.QDialog):
                 if c == 1:
                     item.setToolTip(text)
                 table.setItem(r, c, item)
-        table.resizeColumnsToContents()
         if rows:
-            table.selectRow(0)
+            table.selectRow(max(0, min(selected_row, len(rows) - 1)))
         # A material without EoS records is still loadable — its peak
         # positions at ambient conditions are useful on their own.
         material_selected = self.selected_material_row() >= 0

@@ -34,6 +34,7 @@ schema change::
     {
       "label": "Anderson et al 1989",        # short display label
       "reference": "full literature reference",
+      "default": true,                        # optional preferred record
       "eos": {"type": "BM3",                 # peritheos.eos.rt class name
               "parameters": {"V0": 67.847, "K0": 166.65,
                              "K0_prime": 5.4823}},
@@ -125,6 +126,14 @@ class Material:
         if self.formula and self.formula != self.name:
             return f"{self.name} ({self.formula})"
         return self.name
+
+    @property
+    def default_eos_index(self) -> int:
+        """Preferred EoS record, falling back to the first for old files."""
+        for index, record in enumerate(self.eos_records):
+            if record.get("default") is True:
+                return index
+        return 0
 
     def atoms_per_formula(self) -> Optional[float]:
         """Number of atoms in the chemical formula, e.g. MgO -> 2."""

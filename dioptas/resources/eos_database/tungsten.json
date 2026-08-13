@@ -17,7 +17,7 @@
  "atom_sites": [
   {"element": "W", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
  ],
- "notes": "Tungsten (4-0806 EOS Hixson and Fritz)",
+ "notes": "Tungsten pressure calibrant; the static-DAC Dewaele et al. (2004) Vinet fit is the default. The shock-derived Hixson and Fritz and Cu-referenced Shen and Smith fits remain available as alternatives.",
  "peaks": [],
  "eos_records": [
   {
@@ -43,6 +43,7 @@
   {
    "label": "Dewaele et al. (2004), Vinet",
    "reference": "Dewaele, Loubeyre, and Mezouar, Phys. Rev. B 70, 094112 (2004), doi:10.1103/PhysRevB.70.094112",
+   "default": true,
    "eos": {
     "type": "Vinet",
     "parameters": {

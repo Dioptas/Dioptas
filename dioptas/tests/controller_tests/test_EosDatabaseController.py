@@ -6,6 +6,8 @@ phase carrying the full reference-switcher state.
 """
 import gc
 
+from qtpy import QtWidgets
+
 from ..utility import QtTest
 
 from ...controller.integration.phase.EosDatabaseController import (
@@ -37,27 +39,73 @@ class EosDatabaseControllerTest(QtTest):
         assert (self.dialog.materials_table.rowCount()
                 == len(eos.load_materials()))
 
+    def test_single_search_result_keeps_material_table_full_width(self):
+        self.dialog.resize(680, 520)
+        self.dialog.show()
+        QtWidgets.QApplication.processEvents()
+
+        self.dialog.search_input.setText("gold")
+
+        table = self.dialog.materials_table
+        header = table.horizontalHeader()
+        assert table.rowCount() == 1
+        assert header.length() == table.viewport().width()
+
+    def test_fit_pressure_header_is_measured_in_painted_uppercase(self):
+        # The application theme paints headers uppercase. Supplying this one
+        # as mixed case makes Qt size it too narrowly before that transform.
+        item = self.dialog.eos_table.horizontalHeaderItem(2)
+        assert item.text() == "FIT P RANGE"
+
+    def test_reference_and_fit_range_share_available_width(self):
+        self.dialog.resize(680, 520)
+        self.dialog.show()
+        QtWidgets.QApplication.processEvents()
+
+        table = self.dialog.eos_table
+        assert abs(table.columnWidth(1) - table.columnWidth(2)) <= 1
+
     def test_selecting_material_shows_eos_records(self):
         self.dialog.search_input.setText("gold")
         self.dialog.materials_table.selectRow(0)
         material = self.controller.shown_materials[0]
         assert (self.dialog.eos_table.rowCount()
                 == len(material.eos_records))
+        assert (self.dialog.selected_eos_row()
+                == material.default_eos_index == 1)
         assert self.dialog.load_btn.isEnabled()
 
     def test_load_builds_phase_with_selected_record(self):
         self.dialog.search_input.setText("gold")
         self.dialog.materials_table.selectRow(0)
-        self.dialog.eos_table.selectRow(1)
+        self.dialog.eos_table.selectRow(2)
         self.dialog.load_btn.click()
 
         phase = self.controller.result_phase
         assert phase is not None
         material = self.controller.shown_materials[0]
-        assert phase.params["eos_current_index"] == 1
-        assert (phase.params["k0"] == material.eos_records[1]
+        assert phase.params["eos_current_index"] == 2
+        assert (phase.params["k0"] == material.eos_records[2]
                 ["eos"]["parameters"]["K0"])
         assert len(phase.params["eos_records"]) == len(material.eos_records)
+
+    def test_double_clicking_material_loads_default_record(self):
+        self.dialog.search_input.setText("gold")
+        table = self.dialog.materials_table
+
+        table.doubleClicked.emit(table.model().index(0, 0))
+
+        assert self.controller.result_phase is not None
+        assert self.controller.result_phase.params["eos_current_index"] == 1
+
+    def test_double_clicking_eos_record_loads_that_record(self):
+        self.dialog.search_input.setText("gold")
+        table = self.dialog.eos_table
+
+        table.doubleClicked.emit(table.model().index(0, 0))
+
+        assert self.controller.result_phase is not None
+        assert self.controller.result_phase.params["eos_current_index"] == 0
 
     def test_new_search_refreshes_eos_records(self):
         # Regression: after clicking into the EoS table and searching

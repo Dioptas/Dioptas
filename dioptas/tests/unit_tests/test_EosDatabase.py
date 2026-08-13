@@ -114,6 +114,14 @@ def test_build_jcpds_carries_everything(gold):
     assert phase.params["modified"] is False
 
 
+def test_build_jcpds_uses_explicit_material_default(gold):
+    phase = eos.build_jcpds(gold)
+
+    assert gold.default_eos_index == 1
+    assert phase.params["eos_current_index"] == 1
+    assert phase.params["comments"] == [gold.eos_records[1]["reference"]]
+
+
 def test_build_jcpds_without_records(materials):
     # some materials carry peak provenance but no published EoS
     material = next(

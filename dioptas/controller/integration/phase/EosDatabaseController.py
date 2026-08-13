@@ -51,13 +51,16 @@ class EosDatabaseController(object):
             self.dialog.fill_eos_records([])
             return
         self.dialog.fill_eos_records([
-            _record_row(record) for record in material.eos_records])
+            _record_row(record) for record in material.eos_records],
+            selected_row=material.default_eos_index)
 
     def load(self):
         material = self._selected_material(self.dialog.selected_material_row())
         if material is None:
             return
-        record_index = max(0, self.dialog.selected_eos_row())
+        record_index = self.dialog.selected_eos_row()
+        if record_index < 0:
+            record_index = material.default_eos_index
         self.result_phase = eos.build_jcpds(material, record_index)
         self.dialog.accept()
 

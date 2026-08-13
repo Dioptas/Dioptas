@@ -18,7 +18,7 @@
   {"element": "Mg", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
   {"element": "O", "wyckoff": "4b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
  ],
- "notes": "MgO (JCPDS 4-0829, EOS from Duffy et al, 95)",
+ "notes": "MgO pressure calibrant; the quasi-hydrostatic Speziale et al. (2001) BM3 fit is the default. The Duffy et al. (1995) multimegabar and Shen and Smith (2026) Cu-referenced fits remain available as alternatives.",
  "peaks": [],
  "eos_records": [
   {
@@ -46,6 +46,7 @@
   {
    "label": "Speziale et al. (2001), constrained BM3",
    "reference": "Speziale et al., J. Geophys. Res. 106, 515-528 (2001), doi:10.1029/2000JB900318",
+   "default": true,
    "eos": {
     "type": "BM3",
     "parameters": {

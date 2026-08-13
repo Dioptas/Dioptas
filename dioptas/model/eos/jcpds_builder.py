@@ -18,11 +18,12 @@ import json
 from .material import Material, record_eos_type, record_label
 
 
-def build_jcpds(material: Material, record_index: int = 0):
+def build_jcpds(material: Material, record_index: int | None = None):
     """
     Build a Dioptas ``jcpds`` object from a Material, applying the EoS
-    record at *record_index* (when the material has any). The phase is
-    named by its chemistry alone ("Au") — the active literature
+    preferred record (or the explicitly supplied *record_index*) when the
+    material has any. The phase is named by its chemistry alone ("Au") —
+    the active literature
     reference is shown in the phase table's Ref column and kept in the
     comments, not baked into the name.
 
@@ -39,6 +40,8 @@ def build_jcpds(material: Material, record_index: int = 0):
     records = copy.deepcopy(material.eos_records)
     record = None
     if records:
+        if record_index is None:
+            record_index = material.default_eos_index
         record_index = max(0, min(record_index, len(records) - 1))
         record = records[record_index]
 
