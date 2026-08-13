@@ -159,7 +159,8 @@ Judging the calibration:
 - Clicking in any of the three views places a green marker at the same 2θ position in all of
   them: the iso-2θ ring on the image, a vertical line in the cake and the position line in the
   pattern. This makes it easy to check a specific feature across the views.
-- Phases loaded in the Integration module are overlaid the same way in their phase colors.
+- Phases loaded in the Integration module are not shown here, keeping the validation views
+  focused on the selected calibrant.
 
 The resulting geometry is shown in the **pyFAI** and **Fit2D** tabs of the panel and can be
 edited there; **update** applies typed values.

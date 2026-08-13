@@ -11,7 +11,6 @@ from skimage.measure import find_contours
 from ..widgets.UtilityWidgets import open_file_dialog, save_file_dialog
 from ..model.util.HelperModule import get_partial_index, get_partial_value
 from ..model.util.file_type import FileLoadingError
-from .integration.phase.PhaseInPatternController import PhaseInPatternController
 from .. import calibrants_path
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
@@ -57,13 +56,6 @@ class CalibrationController:
         self.load_calibrants_list()
         self._setup_unconfirmed_fields()
         self.update_peak_table()
-
-        # phase lines in the validation pattern reuse the integration-mode
-        # controller wholesale; cake lines and image rings are drawn by
-        # _update_phase_overlays below
-        self.phase_in_pattern_controller = PhaseInPatternController(
-            self.widget.pattern_widget, dioptas_model
-        )
 
         self.guide = CalibrationGuide(dioptas_model)
         self.guide.changed.connect(self.update_guide_in_view)
@@ -195,23 +187,20 @@ class CalibrationController:
             self.enter_parameters_manually
         )
 
-        # linked click position and phase overlays on the validation step;
+        # linked click position and calibrant overlays on the validation step;
         # the position markers stay hidden until the first linked click —
         # both widgets create them visible at position 0 by default
         self.widget.pattern_widget.deactivate_pos_line()
         self.widget.cake_widget.deactivate_vertical_line()
-        self._phase_overlays_dirty = True
+        self._calibrant_overlays_dirty = True
         self.widget.img_widget.mouse_left_clicked.connect(self.validation_img_click)
         self.widget.cake_widget.mouse_left_clicked.connect(self.validation_cake_click)
         self.widget.pattern_widget.mouse_left_clicked.connect(
             self.validation_pattern_click
         )
         self.model.clicked_tth_changed.connect(self.update_validation_line_positions)
-        self.model.phase_model.phase_added.connect(self._phase_overlays_changed)
-        self.model.phase_model.phase_removed.connect(self._phase_overlays_changed)
-        self.model.phase_model.phase_changed.connect(self._phase_overlays_changed)
         self.model.calibration_model.parameters_changed.connect(
-            self._phase_overlays_changed
+            self._calibrant_overlays_changed
         )
 
     def _parameters_tab_changed(self, index):
@@ -252,8 +241,8 @@ class CalibrationController:
         self.update_mask_gui()
         # overlays that went stale while another mode was active — they are
         # visible on every wizard step, so refresh regardless of the step
-        if self._phase_overlays_dirty:
-            self._update_phase_overlays()
+        if self._calibrant_overlays_dirty:
+            self._update_calibrant_overlays()
 
     def deactivate(self):
         self._mode_active = False
@@ -434,40 +423,38 @@ class CalibrationController:
             )
 
     # ------------------------------------------------------------------
-    # validation step: phase overlays in cake and image
+    # validation step: calibrant overlays in cake and image
     # ------------------------------------------------------------------
 
-    def _phase_overlays_changed(self, *_):
-        self._phase_overlays_dirty = True
+    def _calibrant_overlays_changed(self, *_):
+        self._calibrant_overlays_dirty = True
         if self._on_validation_step():
-            self._update_phase_overlays()
+            self._update_calibrant_overlays()
 
-    #: alpha for the phase overlays, so the peaks stay visible underneath
-    _PHASE_OVERLAY_ALPHA = 180
+    #: alpha for the calibrant overlays, so the peaks stay visible underneath
+    _CALIBRANT_OVERLAY_ALPHA = 180
     #: image downsampling for the ring contours — full 2k×2k contouring
     #: per reflection would take seconds
-    _PHASE_RING_DOWNSAMPLE = 4
+    _CALIBRANT_RING_DOWNSAMPLE = 4
 
     #: color of the calibrant overlay lines — same red the pattern's
     #: calibrant lines use
     _CALIBRANT_LINE_COLOR = (200, 50, 50)
 
-    def _update_phase_overlays(self):
-        """Draws the calibrant's and every visible phase's reflections as
-        vertical lines into the cake and as iso-2θ rings onto the image
-        (the pattern already shows both: calibrant lines via
-        plot_vertical_lines, phase lines via the PhaseInPatternController)."""
+    def _update_calibrant_overlays(self):
+        """Draws the calibrant's reflections as vertical lines into the cake
+        and as iso-2θ rings onto the image. The pattern's calibrant lines are
+        drawn separately by ``_plot_calibrant_pattern_lines``."""
         if not self._mode_active:
             # stays dirty; recomputed when the calibration mode reactivates
             return
-        self._phase_overlays_dirty = False
-        phase_model = self.model.phase_model
+        self._calibrant_overlays_dirty = False
         cake_lines = []
         ring_segments = []
         ring_labels = []
 
         if self.model.calibration_model.is_calibrated:
-            downsample = self._PHASE_RING_DOWNSAMPLE
+            downsample = self._CALIBRANT_RING_DOWNSAMPLE
             tth_img = self.model.calibration_model.tth_array[::downsample, ::downsample]
             tth_img_min, tth_img_max = tth_img.min(), tth_img.max()
             # only ring positions within the integrated range — the extreme
@@ -524,26 +511,8 @@ class CalibrationController:
                 )
                 add_positions(
                     calibrant_positions,
-                    (*self._CALIBRANT_LINE_COLOR, self._PHASE_OVERLAY_ALPHA),
+                    (*self._CALIBRANT_LINE_COLOR, self._CALIBRANT_OVERLAY_ALPHA),
                     numbered=self.widget.show_calibrant_numbers_cb.isChecked(),
-                )
-
-            wavelength_ang = self.model.calibration_model.wavelength * 1e10
-            for ind in range(len(phase_model.phases)):
-                if not phase_model.phase_visible[ind]:
-                    continue
-                color = phase_model.phase_colors[ind]
-                rgba = (
-                    int(color[0]),
-                    int(color[1]),
-                    int(color[2]),
-                    self._PHASE_OVERLAY_ALPHA,
-                )
-                add_positions(
-                    phase_model.get_phase_line_positions(
-                        ind, "2th_deg", wavelength_ang
-                    ),
-                    rgba,
                 )
 
         self.widget.cake_widget.set_phase_lines(cake_lines)
@@ -555,10 +524,10 @@ class CalibrationController:
             self.widget.show_calibrant_lines_cb.isChecked()
         )
         self._plot_calibrant_pattern_lines()
-        self._phase_overlays_changed()
-        if self._phase_overlays_dirty and self._mode_active:
+        self._calibrant_overlays_changed()
+        if self._calibrant_overlays_dirty and self._mode_active:
             # the overlays show on every wizard step, not just validation
-            self._update_phase_overlays()
+            self._update_calibrant_overlays()
 
     def _plot_calibrant_pattern_lines(self, positions=None, numbers=None, name=None):
         """Draws the calibrant's vertical lines into the pattern plot,
@@ -764,7 +733,7 @@ class CalibrationController:
                 name=self._calibrants_file_names_list[current_index],
             )
         # the calibrant's reflections are part of the validation overlays
-        self._phase_overlays_changed()
+        self._calibrant_overlays_changed()
 
     def set_calibrant(self, index):
         """
@@ -1015,8 +984,8 @@ class CalibrationController:
         # calibration — they appear only on the validation step
         on_validation = current == last
         self.widget.calibration_display_widget.show_validation_views(on_validation)
-        if on_validation and self._phase_overlays_dirty:
-            self._update_phase_overlays()
+        if on_validation and self._calibrant_overlays_dirty:
+            self._update_calibrant_overlays()
 
         if state.num_peaks == 0:
             self.widget.peak_counter_lbl.setText("No peaks selected")
@@ -1084,19 +1053,19 @@ class CalibrationController:
                 self.show_detector_reset_message_box
             )
         if not calibration_model.parameters_changed.has_listener(
-            self._phase_overlays_changed
+            self._calibrant_overlays_changed
         ):
             calibration_model.parameters_changed.connect(
-                self._phase_overlays_changed
+                self._calibrant_overlays_changed
             )
         # the calibrant is not part of the configuration — sync the new
         # model from the combo box and redraw the pattern's calibrant lines
         self.load_calibrant(wavelength_from="pyFAI")
-        self._phase_overlays_dirty = True
+        self._calibrant_overlays_dirty = True
         if self._mode_active:
             # the overlays are visible on every wizard step, so a stale
             # ring drawing must not survive a reset or configuration switch
-            self._update_phase_overlays()
+            self._update_calibrant_overlays()
         # the ring counter continues after the new configuration's picked
         # rings — and returns to 1 on a project reset
         selections = calibration_model.params.peak_selections

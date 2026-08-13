@@ -718,7 +718,7 @@ def test_validation_click_links_position_across_views(
     assert dioptas_model.clicked_tth != pytest.approx(12.0)
 
 
-def test_phase_lines_are_drawn_in_validation_views(
+def test_only_calibrant_lines_are_drawn_in_validation_views(
     calibration_controller, calibration_model, dioptas_model
 ):
     widget = calibration_controller.widget
@@ -728,13 +728,14 @@ def test_phase_lines_are_drawn_in_validation_views(
     calibration_model.load(
         os.path.join(unittest_data_path, "LaB6_40keV_MarCCD.poni")
     )
+    calibration_model.cake_tth = np.linspace(0, 30, 1000)
     calibration_controller.go_to_wizard_step(3)
 
-    # the calibrant's rings are always overlaid on image and cake
-    # (cake lines need an integrated cake, which this test skips — the
-    # image rings cover the overlay path)
+    # The calibrant is overlaid in every validation view.
     calibrant_ring_count = len(widget.img_widget._phase_ring_items)
+    calibrant_cake_line_count = len(widget.cake_widget._phase_line_items)
     assert calibrant_ring_count > 0
+    assert calibrant_cake_line_count > 0
 
     # the calibrant's rings are numbered so they can be matched to the
     # ring spinbox during peak picking; numbering starts at 1
@@ -772,14 +773,15 @@ def test_phase_lines_are_drawn_in_validation_views(
     dioptas_model.phase_model.add_jcpds(
         os.path.join(unittest_data_path, "jcpds", "au_Anderson.jcpds")
     )
-    assert len(widget.img_widget._phase_ring_items) > calibrant_ring_count
-    # phase rings stay unnumbered
+    # Integration phases must not leak into any of the validation plots.
+    assert len(widget.img_widget._phase_ring_items) == calibrant_ring_count
     assert len(widget.img_widget._phase_ring_label_items) == calibrant_label_count
-    # pattern lines come via the shared PhaseInPatternController
-    assert len(widget.pattern_widget.phases) == 1
+    assert len(widget.cake_widget._phase_line_items) == calibrant_cake_line_count
+    assert len(widget.pattern_widget.phases) == 0
 
     dioptas_model.phase_model.del_phase(0)
     assert len(widget.img_widget._phase_ring_items) == calibrant_ring_count
+    assert len(widget.cake_widget._phase_line_items) == calibrant_cake_line_count
     assert len(widget.pattern_widget.phases) == 0
 
 
