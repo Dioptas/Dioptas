@@ -123,6 +123,8 @@ def test_publication_verified_parameter_errors(filename, index, errors, fixed):
         ("forsterite.json", 0, "BM3", 290.1, 130.0, 4.12),
         ("wadsleyite.json", 0, "BM3", 538.185, 169.2, 4.1),
         ("ringwoodite.json", 0, "BM3", 526.7, 182.0, 4.2),
+        ("bridgmanite.json", 0, "BM3", 162.373, 256.7, 4.09),
+        ("mgsio3_post_perovskite.json", 0, "BM3", 162.2, 225.0, 4.21),
     ],
 )
 def test_publication_corrected_eos_records(
@@ -259,7 +261,7 @@ def test_all_curated_structures_are_complete_and_stoichiometric():
             )
         assert dict(actual) == pytest.approx(dict(expected)), path.name
 
-    assert len(structured) == 74
+    assert len(structured) == 75
 
 
 @pytest.mark.parametrize(
@@ -277,6 +279,8 @@ def test_all_curated_structures_are_complete_and_stoichiometric():
         ("forsterite.json", "BM3", 290.1, 130.0, 4.12),
         ("wadsleyite.json", "BM3", 538.185, 169.2, 4.1),
         ("ringwoodite.json", "BM3", 526.7, 182.0, 4.2),
+        ("bridgmanite.json", "BM3", 162.373, 256.7, 4.09),
+        ("mgsio3_post_perovskite.json", "BM3", 162.2, 225.0, 4.21),
     ],
 )
 def test_literature_expansion_eos_records(
@@ -322,7 +326,10 @@ def test_literature_expansion_peak_d_spacings(filename):
 
 @pytest.mark.parametrize(
     "filename",
-    ["forsterite.json", "wadsleyite.json", "bridgmanite.json"],
+    [
+        "forsterite.json", "wadsleyite.json", "bridgmanite.json",
+        "mgsio3_post_perovskite.json",
+    ],
 )
 def test_mantle_phase_orthorhombic_peak_d_spacings(filename):
     document = _document(filename)
@@ -379,7 +386,10 @@ def test_martinez_aragonite_thermal_parameters_match_publication():
 )
 def test_publication_second_order_fits_do_not_store_fitted_k0_prime(
         filename, v0, k0):
-    record = _document(filename)["eos_records"][0]
+    record = next(
+        record for record in _document(filename)["eos_records"]
+        if record["eos"]["type"] == "BM2"
+    )
     assert record["eos"]["type"] == "BM2"
     assert record["eos"]["parameters"] == {
         "V0": pytest.approx(v0),
@@ -397,7 +407,10 @@ def test_publication_second_order_fits_do_not_store_fitted_k0_prime(
          ["V0", "K0"]),
         ("ringwoodite.json",
          {"V0": 0.3, "K0": 3.0, "K0_prime": 0.3}, []),
-        ("bridgmanite.json", {"V0": 0.02, "K0": 1.0}, []),
+        ("bridgmanite.json",
+         {"V0": None, "K0": 1.5, "K0_prime": 0.06}, ["V0"]),
+        ("mgsio3_post_perovskite.json",
+         {"V0": None, "K0": 2.0, "K0_prime": 0.07}, ["V0"]),
     ],
 )
 def test_mantle_phase_eos_uncertainties_and_constraints(
@@ -405,6 +418,64 @@ def test_mantle_phase_eos_uncertainties_and_constraints(
     record = _document(filename)["eos_records"][0]
     assert record["parameter_errors"] == errors
     assert record["fixed_parameters"] == fixed
+
+
+def test_tange_bridgmanite_mantle_range_alternative_matches_publication():
+    records = _document("bridgmanite.json")["eos_records"]
+    assert records[1]["eos"] == {
+        "type": "Vinet",
+        "parameters": {
+            "V0": pytest.approx(162.373),
+            "K0": pytest.approx(258.4),
+            "K0_prime": pytest.approx(4.10),
+        },
+    }
+    assert records[1]["parameter_errors"] == {
+        "V0": None,
+        "K0": 1.7,
+        "K0_prime": 0.07,
+    }
+    assert records[1]["fixed_parameters"] == ["V0"]
+
+
+@pytest.mark.parametrize(
+    "index,theta0,gamma0,q",
+    [
+        (0, 950.0, 1.54, 1.5),
+        (1, 940.0, 1.55, 1.1),
+    ],
+)
+def test_tange_bridgmanite_thermal_parameters_match_publication(
+        index, theta0, gamma0, q):
+    thermal = _document("bridgmanite.json")["eos_records"][index]["thermal"]
+    assert thermal == {
+        "type": "MieGruneisenDebye",
+        "parameters": {
+            "Tr": pytest.approx(300.0),
+            "theta0": pytest.approx(theta0),
+            "gamma0": pytest.approx(gamma0),
+            "q": pytest.approx(q),
+            "n": 5,
+        },
+    }
+
+
+def test_sakai_post_perovskite_multimegabar_fit_matches_publication():
+    record = _document("mgsio3_post_perovskite.json")["eos_records"][1]
+    assert record["eos"] == {
+        "type": "BM3",
+        "parameters": {
+            "V0": pytest.approx(158.0),
+            "K0": pytest.approx(292.0),
+            "K0_prime": pytest.approx(3.74),
+        },
+    }
+    assert record["parameter_errors"] == {
+        "V0": 1.5,
+        "K0": 22.0,
+        "K0_prime": 0.13,
+    }
+    assert record["fixed_parameters"] == []
 
 
 def test_phase_only_materials_have_explicit_card_references():
@@ -484,7 +555,7 @@ def test_retained_references_have_normalized_publication_metadata():
             record["reference"] for record in _document(path.name)["eos_records"]
         )
 
-    assert len(references) == 97
+    assert len(references) == 101
     assert {reference for reference in references if "doi:" not in reference} == (
         no_registered_doi
     )

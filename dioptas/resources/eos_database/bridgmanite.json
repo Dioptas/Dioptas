@@ -20,7 +20,7 @@
   {"element": "O", "wyckoff": "4c", "x": 0.096, "y": 0.477, "z": 0.25, "occupancy": 1.0},
   {"element": "O", "wyckoff": "8d", "x": 0.696, "y": 0.291, "z": 0.056, "occupancy": 1.0}
  ],
- "notes": "Ambient lattice and BM2 EoS: Vanpeteghem et al., Geophysical Research Letters 33, L03306 (2006), doi:10.1029/2005GL024955. Ambient fractional coordinates: Yagi et al., Physics and Chemistry of Minerals 3, 97-110 (1978), doi:10.1007/BF00308114, COD 9005757. Phase-line intensities were calculated from the cited structure using independent-atom X-ray form factors.",
+ "notes": "Ambient lattice: Vanpeteghem et al., Geophysical Research Letters 33, L03306 (2006), doi:10.1029/2005GL024955. Ambient fractional coordinates: Yagi et al., Physics and Chemistry of Minerals 3, 97-110 (1978), doi:10.1007/BF00308114, COD 9005757. The default mantle-range EoS is from Tange et al. (2012); the Vanpeteghem BM2 fit is retained as a low-pressure alternative. Phase-line intensities were calculated from the cited structure using independent-atom X-ray form factors.",
  "peaks": [
   [0, 2, 4, 1.41332, 51.8],
   [1, 3, 2, 1.41711, 37.0],
@@ -54,7 +54,67 @@
  ],
  "eos_records": [
   {
-   "label": "Vanpeteghem et al. (2006), room-temperature BM2",
+   "label": "Tange et al. (2012), mantle-range BM3-MGD",
+   "reference": "Tange et al., Journal of Geophysical Research: Solid Earth 117, B06201 (2012), doi:10.1029/2011JB008988",
+   "temperature_ref": 300.0,
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 162.373,
+     "K0": 256.7,
+     "K0_prime": 4.09
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 1.5,
+    "K0_prime": 0.06
+   },
+   "fixed_parameters": ["V0"],
+   "thermal": {
+    "type": "MieGruneisenDebye",
+    "parameters": {
+     "Tr": 300.0,
+     "theta0": 950.0,
+     "gamma0": 1.54,
+     "q": 1.5,
+     "n": 5
+    }
+   },
+   "notes": "Preferred default for mantle work. The fit combines multi-anvil data at 28-63 GPa and 300-1500 K with laser-heated DAC data at 52-108 GPa and 300 or 1500-2430 K; the study reports measurements up to 110 GPa and 2500 K. V0=162.373 A^3 was fixed to an independent ambient measurement; theta0=950(150) K, gamma0=1.54(9), and q=1.5(3). The paper calls the exponent b; with its fixed a=1, the published Gruneisen expression reduces exactly to gamma=gamma0(V/V0)^b used here."
+  },
+  {
+   "label": "Tange et al. (2012), mantle-range Vinet-MGD",
+   "reference": "Tange et al., Journal of Geophysical Research: Solid Earth 117, B06201 (2012), doi:10.1029/2011JB008988",
+   "temperature_ref": 300.0,
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 162.373,
+     "K0": 258.4,
+     "K0_prime": 4.1
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 1.7,
+    "K0_prime": 0.07
+   },
+   "fixed_parameters": ["V0"],
+   "thermal": {
+    "type": "MieGruneisenDebye",
+    "parameters": {
+     "Tr": 300.0,
+     "theta0": 940.0,
+     "gamma0": 1.55,
+     "q": 1.1,
+     "n": 5
+    }
+   },
+   "notes": "Alternative Vinet fit to the same multi-anvil and laser-heated DAC dataset, measured up to 110 GPa and 2500 K. V0=162.373 A^3 was fixed to an independent ambient measurement; theta0=940(140) K, gamma0=1.55(9), and q=1.1(3). The paper calls the exponent b; with a fixed to 1, it is the q parameter of the conventional MGD volume dependence stored here."
+  },
+  {
+   "label": "Vanpeteghem et al. (2006), low-pressure single-crystal BM2",
    "reference": "Vanpeteghem et al., Geophysical Research Letters 33, L03306 (2006), doi:10.1029/2005GL024955",
    "temperature_ref": 300.0,
    "eos": {
@@ -69,7 +129,7 @@
     "K0": 1.0
    },
    "fixed_parameters": [],
-   "notes": "Single-crystal P-V data to 10 GPa. The normalized-stress plot supported a second-order Birch-Murnaghan fit, so K0_prime=4 is implicit in BM2 rather than stored as a fitted parameter."
+   "notes": "Single-crystal P-V data to 10 GPa. Retained as a low-pressure structural reference, not as the default mantle-range EoS. The normalized-stress plot supported a second-order Birch-Murnaghan fit, so K0_prime=4 is implicit in BM2 rather than stored as a fitted parameter."
   }
  ]
 }
