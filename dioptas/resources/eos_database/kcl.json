@@ -14,67 +14,19 @@
  "formula_units_per_cell": 1,
  "notes": "KCl  B2 (EOS from Campbell and Heinz, 1991)",
  "peaks": [
-  [
-   1,
-   0,
-   0,
-   3.753,
-   6.0
-  ],
-  [
-   1,
-   1,
-   0,
-   2.654,
-   100.0
-  ],
-  [
-   1,
-   1,
-   1,
-   2.167,
-   1.0
-  ],
-  [
-   2,
-   0,
-   0,
-   1.876,
-   8.0
-  ],
-  [
-   2,
-   1,
-   0,
-   1.678,
-   1.0
-  ],
-  [
-   2,
-   1,
-   1,
-   1.532,
-   21.0
-  ],
-  [
-   2,
-   2,
-   0,
-   1.327,
-   4.0
-  ],
-  [
-   3,
-   0,
-   0,
-   1.251,
-   1.0
-  ]
+  [1, 0, 0, 3.753, 6.0],
+  [1, 1, 0, 2.654, 100.0],
+  [1, 1, 1, 2.167, 1.0],
+  [2, 0, 0, 1.876, 8.0],
+  [2, 1, 0, 1.678, 1.0],
+  [2, 1, 1, 1.532, 21.0],
+  [2, 2, 0, 1.327, 4.0],
+  [3, 0, 0, 1.251, 1.0]
  ],
  "eos_records": [
   {
    "label": "B2 (EOS from Campbell and Heinz, 1991)",
-   "reference": "KCl  B2 (EOS from Campbell and Heinz, 1991)",
+   "reference": "Campbell and Heinz, J. Phys. Chem. Solids 52, 495-499 (1991), doi:10.1016/0022-3697(91)90181-X",
    "eos": {
     "type": "Vinet",
     "parameters": {
@@ -85,21 +37,21 @@
    }
   },
   {
-   "label": "B2 (EOS from Walker et al. 2002)",
-   "reference": "KCl1  B2 (EOS from Walker et al. 2002)",
+   "label": "Walker et al. (2002), B2 thermal Birch",
+   "reference": "Walker et al., American Mineralogist 87, 805-812 (2002), doi:10.2138/am-2002-0701",
    "eos": {
     "type": "BM3",
     "parameters": {
-     "V0": 53.3485,
+     "V0": 53.53,
      "K0": 23.7,
-     "K0_prime": 4.57
+     "K0_prime": 4.4
     }
    },
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply.",
+   "notes": "Publication values for B2 KCl (Z=1).",
    "thermal": {
     "type": "AlphaKT",
     "parameters": {
-     "alpha0": 4.26e-05,
+     "alpha0": 0.00018,
      "dK_dT": 0.0
     }
    }

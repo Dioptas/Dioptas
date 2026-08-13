@@ -14,67 +14,25 @@
  "formula_units_per_cell": 8,
  "notes": "diamond (JCPDS 6-0675, dummy EOS)",
  "peaks": [
-  [
-   1,
-   1,
-   1,
-   2.06,
-   100.0
-  ],
-  [
-   2,
-   2,
-   0,
-   1.261,
-   27.0
-  ],
-  [
-   3,
-   1,
-   1,
-   1.0754,
-   16.0
-  ],
-  [
-   4,
-   0,
-   0,
-   0.8916,
-   7.0
-  ],
-  [
-   3,
-   3,
-   1,
-   0.8182,
-   15.0
-  ]
+  [1, 1, 1, 2.06, 100.0],
+  [2, 2, 0, 1.261, 27.0],
+  [3, 1, 1, 1.0754, 16.0],
+  [4, 0, 0, 0.8916, 7.0],
+  [3, 3, 1, 0.8182, 15.0]
  ],
  "eos_records": [
   {
-   "label": "JCPDS 6-0675, dummy EOS",
-   "reference": "diamond (JCPDS 6-0675, dummy EOS)",
+   "label": "Occelli data on the H2005 scale (Datchi et al. 2007)",
+   "reference": "Datchi et al., Phys. Rev. B 75, 214104 (2007), Table II, doi:10.1103/PhysRevB.75.214104",
    "eos": {
-    "type": "BM3",
+    "type": "Vinet",
     "parameters": {
-     "V0": 45.373235085962996,
-     "K0": 444.0,
-     "K0_prime": 3.9
-    }
-   }
-  },
-  {
-   "label": "JCPDS 6-0675, EOS from ?",
-   "reference": "diamond (JCPDS 6-0675, EOS from ?)",
-   "eos": {
-    "type": "BM3",
-    "parameters": {
-     "V0": 45.3732,
-     "K0": 800.0,
-     "K0_prime": 4.0
+     "V0": 45.3864,
+     "K0": 443.0,
+     "K0_prime": 3.97
     }
    },
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "notes": "Reanalysis of Occelli et al. diamond data; V0=5.6733 A^3/atom multiplied by 8 atoms per conventional cell. Replaces the dummy record and removes the unsupported K0=800 record."
   }
  ]
 }

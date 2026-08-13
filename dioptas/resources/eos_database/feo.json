@@ -14,60 +14,18 @@
  "formula_units_per_cell": null,
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/feo.jcpds, JCPDS/dac_user_jcpds/Users data/feo.jcpds",
  "peaks": [
-  [
-   3,
-   3,
-   1,
-   0.9849,
-   30.0
-  ],
-  [
-   4,
-   0,
-   0,
-   1.0732,
-   40.0
-  ],
-  [
-   2,
-   2,
-   2,
-   1.2393,
-   40.0
-  ],
-  [
-   3,
-   1,
-   1,
-   1.2944,
-   50.0
-  ],
-  [
-   2,
-   2,
-   0,
-   1.5178,
-   80.0
-  ],
-  [
-   2,
-   0,
-   0,
-   2.1465,
-   100.0
-  ],
-  [
-   1,
-   1,
-   1,
-   2.4786,
-   80.0
-  ]
+  [3, 3, 1, 0.9849, 30.0],
+  [4, 0, 0, 1.0732, 40.0],
+  [2, 2, 2, 1.2393, 40.0],
+  [3, 1, 1, 1.2944, 50.0],
+  [2, 2, 0, 1.5178, 80.0],
+  [2, 0, 0, 2.1465, 100.0],
+  [1, 1, 1, 2.4786, 80.0]
  ],
  "eos_records": [
   {
    "label": "(Fei et al. Miner. Spectros. (5) 1996)",
-   "reference": "FeO (Fei et al. Miner. Spectros. (5) 1996)",
+   "reference": "Fei, in Mineral Physics & Crystallography, AGU Reference Shelf 2, 29-44 (1995), doi:10.1029/RF002p0029",
    "eos": {
     "type": "BM3",
     "parameters": {

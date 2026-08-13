@@ -14,60 +14,18 @@
  "formula_units_per_cell": null,
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/ver3/majorite.jcpds",
  "peaks": [
-  [
-   4,
-   0,
-   0,
-   2.8752,
-   5.0
-  ],
-  [
-   2,
-   2,
-   0,
-   4.0662,
-   6.0
-  ],
-  [
-   1,
-   1,
-   2,
-   4.6895,
-   6.0
-  ],
-  [
-   0,
-   0,
-   2,
-   5.74,
-   19.0
-  ],
-  [
-   2,
-   0,
-   0,
-   5.7505,
-   14.0
-  ],
-  [
-   1,
-   0,
-   1,
-   8.125,
-   81.0
-  ],
-  [
-   1,
-   1,
-   0,
-   8.1324,
-   100.0
-  ]
+  [4, 0, 0, 2.8752, 5.0],
+  [2, 2, 0, 4.0662, 6.0],
+  [1, 1, 2, 4.6895, 6.0],
+  [0, 0, 2, 5.74, 19.0],
+  [2, 0, 0, 5.7505, 14.0],
+  [1, 0, 1, 8.125, 81.0],
+  [1, 1, 0, 8.1324, 100.0]
  ],
  "eos_records": [
   {
    "label": "GSAS calculation, EOS from Yagi et al, 1992",
-   "reference": "Majorite (GSAS calculation, EOS from Yagi et al, 1992)",
+   "reference": "Yagi et al., Phys. Earth Planet. Inter. 74, 1-7 (1992), doi:10.1016/0031-9201(92)90063-2",
    "eos": {
     "type": "BM3",
     "parameters": {

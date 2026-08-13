@@ -11,167 +11,34 @@
   "beta": 90.0,
   "gamma": 120.0
  },
- "formula_units_per_cell": null,
+ "formula_units_per_cell": 2,
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Co-hcp.jcpds",
  "peaks": [
-  [
-   3,
-   0,
-   0,
-   0.7257,
-   0.0
-  ],
-  [
-   2,
-   0,
-   4,
-   0.7467,
-   2.0
-  ],
-  [
-   2,
-   1,
-   2,
-   0.7638,
-   2.0
-  ],
-  [
-   1,
-   0,
-   5,
-   0.7682,
-   1.0
-  ],
-  [
-   1,
-   1,
-   4,
-   0.795,
-   4.0
-  ],
-  [
-   2,
-   1,
-   1,
-   0.8068,
-   6.0
-  ],
-  [
-   2,
-   1,
-   0,
-   0.8229,
-   9.0
-  ],
-  [
-   2,
-   0,
-   3,
-   0.8519,
-   2.0
-  ],
-  [
-   1,
-   0,
-   4,
-   0.9283,
-   6.0
-  ],
-  [
-   2,
-   0,
-   2,
-   0.9617,
-   3.0
-  ],
-  [
-   0,
-   0,
-   4,
-   1.0263,
-   3.0
-  ],
-  [
-   2,
-   0,
-   1,
-   1.0522,
-   13.0
-  ],
-  [
-   1,
-   1,
-   2,
-   1.0719,
-   19.0
-  ],
-  [
-   2,
-   0,
-   0,
-   1.0886,
-   3.0
-  ],
-  [
-   1,
-   0,
-   3,
-   1.1585,
-   19.0
-  ],
-  [
-   1,
-   1,
-   0,
-   1.257,
-   17.0
-  ],
-  [
-   1,
-   0,
-   2,
-   1.4935,
-   15.0
-  ],
-  [
-   1,
-   0,
-   1,
-   1.9234,
-   100.0
-  ],
-  [
-   0,
-   0,
-   2,
-   2.0525,
-   27.0
-  ],
-  [
-   1,
-   0,
-   0,
-   2.1772,
-   24.0
-  ]
+  [3, 0, 0, 0.7257, 0.0],
+  [2, 0, 4, 0.7467, 2.0],
+  [2, 1, 2, 0.7638, 2.0],
+  [1, 0, 5, 0.7682, 1.0],
+  [1, 1, 4, 0.795, 4.0],
+  [2, 1, 1, 0.8068, 6.0],
+  [2, 1, 0, 0.8229, 9.0],
+  [2, 0, 3, 0.8519, 2.0],
+  [1, 0, 4, 0.9283, 6.0],
+  [2, 0, 2, 0.9617, 3.0],
+  [0, 0, 4, 1.0263, 3.0],
+  [2, 0, 1, 1.0522, 13.0],
+  [1, 1, 2, 1.0719, 19.0],
+  [2, 0, 0, 1.0886, 3.0],
+  [1, 0, 3, 1.1585, 19.0],
+  [1, 1, 0, 1.257, 17.0],
+  [1, 0, 2, 1.4935, 15.0],
+  [1, 0, 1, 1.9234, 100.0],
+  [0, 0, 2, 2.0525, 27.0],
+  [1, 0, 0, 2.1772, 24.0]
  ],
  "eos_records": [
   {
-   "label": "HCP (JCPDS 5-0727, EOS from Lazor and Shen)",
-   "reference": "Cobalt HCP (JCPDS 5-0727, EOS from Lazor and Shen)",
-   "eos": {
-    "type": "BM3",
-    "parameters": {
-     "V0": 22.0639,
-     "K0": 194.0,
-     "K0_prime": 5.0
-    }
-   },
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
-  },
-  {
-   "label": "JCPDS 5-0702, EOS from Fujihisa Takemura",
-   "reference": "Cobalt (JCPDS 5-0702, EOS from Fujihisa Takemura)",
+   "label": "Fujihisa and Takemura (1996)",
+   "reference": "Fujihisa and Takemura, Phys. Rev. B 54, 5-7 (1996), doi:10.1103/PhysRevB.54.5",
    "eos": {
     "type": "BM3",
     "parameters": {
@@ -180,7 +47,7 @@
      "K0_prime": 3.6
     }
    },
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply. 3/20 file peaks deviate >2% from the lattice d-spacing."
+   "notes": "Publication bulk modulus and pressure derivative; ambient V0 from this crystallographic cell."
   }
  ]
 }

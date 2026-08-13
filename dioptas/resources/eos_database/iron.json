@@ -14,87 +14,20 @@
  "formula_units_per_cell": null,
  "notes": "iron",
  "peaks": [
-  [
-   1,
-   0,
-   0,
-   2.12,
-   20.0
-  ],
-  [
-   0,
-   0,
-   2,
-   1.97,
-   80.0
-  ],
-  [
-   1,
-   0,
-   1,
-   1.84,
-   100.0
-  ],
-  [
-   1,
-   0,
-   2,
-   1.44,
-   10.0
-  ],
-  [
-   1,
-   1,
-   0,
-   1.234,
-   10.0
-  ],
-  [
-   1,
-   0,
-   3,
-   1.113,
-   10.0
-  ],
-  [
-   2,
-   0,
-   0,
-   1.0941,
-   10.0
-  ],
-  [
-   1,
-   1,
-   2,
-   1.0713,
-   10.0
-  ],
-  [
-   2,
-   0,
-   1,
-   1.0561,
-   10.0
-  ]
+  [1, 0, 0, 2.12, 20.0],
+  [0, 0, 2, 1.97, 80.0],
+  [1, 0, 1, 1.84, 100.0],
+  [1, 0, 2, 1.44, 10.0],
+  [1, 1, 0, 1.234, 10.0],
+  [1, 0, 3, 1.113, 10.0],
+  [2, 0, 0, 1.0941, 10.0],
+  [1, 1, 2, 1.0713, 10.0],
+  [2, 0, 1, 1.0561, 10.0]
  ],
  "eos_records": [
   {
-   "label": "",
-   "reference": "iron",
-   "eos": {
-    "type": "BM3",
-    "parameters": {
-     "V0": 22.4802773725514,
-     "K0": 180.0,
-     "K0_prime": 4.9
-    }
-   },
-   "notes": "V0 rescaled by sin(120): the hosted database computed hexagonal cell volumes as a^2*c."
-  },
-  {
    "label": "(hcp phase -- 19.2 GPa modified to P=0) (JCPDS 34-529 ) EOS from Mao et al 90",
-   "reference": "iron (hcp phase -- 19.2 GPa modified to P=0) (JCPDS 34-529 ) EOS from Mao et al 90",
+   "reference": "Mao et al., J. Geophys. Res. 95, 21737-21742 (1990), doi:10.1029/JB095iB13p21737",
    "eos": {
     "type": "BM3",
     "parameters": {
@@ -104,19 +37,6 @@
     }
    },
    "notes": "V0 rescaled by sin(120): the hosted database computed hexagonal cell volumes as a^2*c."
-  },
-  {
-   "label": "(hcp phase -- 19.2 GPa) (JCPDS 34-529 ) EOS from Mao et al 90",
-   "reference": "iron (hcp phase -- 19.2 GPa) (JCPDS 34-529 ) EOS from Mao et al 90",
-   "eos": {
-    "type": "BM3",
-    "parameters": {
-     "V0": 16.117587576,
-     "K0": 165.0,
-     "K0_prime": 5.33
-    }
-   },
-   "notes": "Inconsistent record: d-spacings are at 19.2 GPa and V0 matches neither the ambient nor the 19.2 GPa hcp cell volume. Needs curation against Mao et al."
   }
  ]
 }

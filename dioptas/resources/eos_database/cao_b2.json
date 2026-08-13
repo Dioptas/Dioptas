@@ -14,95 +14,23 @@
  "formula_units_per_cell": null,
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/certified data base/cao-b2.jcpds, JCPDS/current user/jcpds/ver3/caob2.jcpds, JCPDS/current user/jcpds/ver2/caob2.jcpds",
  "peaks": [
-  [
-   2,
-   2,
-   2,
-   0.8393,
-   2.0
-  ],
-  [
-   3,
-   1,
-   1,
-   0.8766,
-   1.0
-  ],
-  [
-   3,
-   1,
-   0,
-   0.9194,
-   2.0
-  ],
-  [
-   2,
-   2,
-   1,
-   0.9691,
-   1.0
-  ],
-  [
-   3,
-   0,
-   0,
-   0.9691,
-   1.0
-  ],
-  [
-   2,
-   2,
-   0,
-   1.0279,
-   2.0
-  ],
-  [
-   2,
-   1,
-   1,
-   1.1869,
-   15.0
-  ],
-  [
-   2,
-   1,
-   0,
-   1.3002,
-   9.0
-  ],
-  [
-   2,
-   0,
-   0,
-   1.4537,
-   13.0
-  ],
-  [
-   1,
-   1,
-   1,
-   1.6786,
-   8.0
-  ],
-  [
-   1,
-   1,
-   0,
-   2.0558,
-   100.0
-  ],
-  [
-   1,
-   0,
-   0,
-   2.9074,
-   29.0
-  ]
+  [2, 2, 2, 0.8393, 2.0],
+  [3, 1, 1, 0.8766, 1.0],
+  [3, 1, 0, 0.9194, 2.0],
+  [2, 2, 1, 0.9691, 1.0],
+  [3, 0, 0, 0.9691, 1.0],
+  [2, 2, 0, 1.0279, 2.0],
+  [2, 1, 1, 1.1869, 15.0],
+  [2, 1, 0, 1.3002, 9.0],
+  [2, 0, 0, 1.4537, 13.0],
+  [1, 1, 1, 1.6786, 8.0],
+  [1, 1, 0, 2.0558, 100.0],
+  [1, 0, 0, 2.9074, 29.0]
  ],
  "eos_records": [
   {
    "label": "GSAS, EOS by Richet et al 1988",
-   "reference": "CaO-b2 (GSAS, EOS by Richet et al 1988)",
+   "reference": "Richet, Mao, and Bell, J. Geophys. Res. 93, 15279-15288 (1988), doi:10.1029/JB093iB12p15279",
    "eos": {
     "type": "BM3",
     "parameters": {

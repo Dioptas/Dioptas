@@ -12,71 +12,14 @@
   "gamma": 120.0
  },
  "formula_units_per_cell": 4,
- "notes": "Graphite(JCPDS 41-1487, EOS from Kern, Georg 1998 thesis for hBN)",
+ "notes": "Phase reference: JCPDS 41-1487.",
  "peaks": [
-  [
-   0,
-   0,
-   2,
-   3.38,
-   100.0
-  ],
-  [
-   1,
-   0,
-   0,
-   2.139,
-   2.0
-  ],
-  [
-   1,
-   0,
-   1,
-   2.039,
-   6.0
-  ],
-  [
-   0,
-   0,
-   4,
-   1.681,
-   4.0
-  ],
-  [
-   1,
-   1,
-   0,
-   1.234,
-   3.0
-  ],
-  [
-   1,
-   1,
-   2,
-   1.1604,
-   3.0
-  ]
+  [0, 0, 2, 3.38, 100.0],
+  [1, 0, 0, 2.139, 2.0],
+  [1, 0, 1, 2.039, 6.0],
+  [0, 0, 4, 1.681, 4.0],
+  [1, 1, 0, 1.234, 3.0],
+  [1, 1, 2, 1.1604, 3.0]
  ],
- "eos_records": [
-  {
-   "label": "JCPDS 41-1487, EOS from Kern, Georg 1998 thesis for hBN",
-   "reference": "Graphite(JCPDS 41-1487, EOS from Kern, Georg 1998 thesis for hBN)",
-   "eos": {
-    "type": "BM3",
-    "parameters": {
-     "V0": 35.540106795053184,
-     "K0": 28.0,
-     "K0_prime": 5.0
-    }
-   },
-   "thermal": {
-    "type": "AlphaKT",
-    "parameters": {
-     "alpha0": 1e-06,
-     "dK_dT": 0.0
-    }
-   },
-   "notes": "V0 rescaled by sin(120): the hosted database computed hexagonal cell volumes as a^2*c."
-  }
- ]
+ "eos_records": []
 }

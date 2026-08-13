@@ -12,85 +12,17 @@
   "gamma": 90.0
  },
  "formula_units_per_cell": 4,
- "notes": "FCC iron (JCPDS 4-0829)",
+ "notes": "FCC phase reference: JCPDS 4-0829.",
  "peaks": [
-  [
-   1,
-   1,
-   1,
-   2.076,
-   100.0
-  ],
-  [
-   2,
-   0,
-   0,
-   1.795,
-   100.0
-  ],
-  [
-   2,
-   2,
-   0,
-   1.271,
-   100.0
-  ],
-  [
-   3,
-   1,
-   1,
-   1.084,
-   100.0
-  ],
-  [
-   2,
-   2,
-   2,
-   1.038,
-   100.0
-  ],
-  [
-   4,
-   0,
-   0,
-   0.899,
-   100.0
-  ],
-  [
-   4,
-   2,
-   0,
-   0.804,
-   100.0
-  ],
-  [
-   4,
-   2,
-   2,
-   0.734,
-   100.0
-  ],
-  [
-   5,
-   1,
-   1,
-   0.692,
-   100.0
-  ]
+  [1, 1, 1, 2.076, 100.0],
+  [2, 0, 0, 1.795, 100.0],
+  [2, 2, 0, 1.271, 100.0],
+  [3, 1, 1, 1.084, 100.0],
+  [2, 2, 2, 1.038, 100.0],
+  [4, 0, 0, 0.899, 100.0],
+  [4, 2, 0, 0.804, 100.0],
+  [4, 2, 2, 0.734, 100.0],
+  [5, 1, 1, 0.692, 100.0]
  ],
- "eos_records": [
-  {
-   "label": "FCC iron (JCPDS 4-0829, EOS from Shen)",
-   "reference": "FCC iron (JCPDS 4-0829, EOS from Shen)",
-   "eos": {
-    "type": "BM3",
-    "parameters": {
-     "V0": 46.461869875000005,
-     "K0": 176.0,
-     "K0_prime": 5.0
-    }
-   },
-   "notes": "Reattached: the hosted database stored this record under Neon (fcc). The JCPDSv1 seed file carried K0p = 4; the hosted database stored 5.0."
-  }
- ]
+ "eos_records": []
 }

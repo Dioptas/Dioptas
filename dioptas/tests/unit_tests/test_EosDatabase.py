@@ -35,7 +35,7 @@ def test_bundled_database_loads(materials):
 
 
 def test_gold_has_multiple_references(gold):
-    assert len(gold.eos_records) >= 3
+    assert len(gold.eos_records) == 2
     labels = [eos.record_label(r) for r in gold.eos_records]
     assert all(labels), "every record needs a display label"
     assert len(set(labels)) == len(labels), "labels must be unique"
@@ -146,9 +146,9 @@ def test_records_survive_project_round_trip(gold, tmp_path):
     assert loaded_phase.params["eos_current_index"] == 1
     assert loaded_phase.name == phase.name
     # and switching still works after the reload
-    loaded.phase_model.set_eos_reference(0, 2)
-    third = gold.eos_records[2]["eos"]["parameters"]
-    assert loaded_phase.params["k0"] == pytest.approx(third["K0"])
+    loaded.phase_model.set_eos_reference(0, 0)
+    first = gold.eos_records[0]["eos"]["parameters"]
+    assert loaded_phase.params["k0"] == pytest.approx(first["K0"])
 
 
 def test_eosmat_round_trip(materials, tmp_path):
@@ -167,6 +167,11 @@ def test_eosmat_round_trip(materials, tmp_path):
     assert loaded.peaks == wollastonite.peaks
     assert loaded.eos_records == wollastonite.eos_records
     assert loaded.formula_units_per_cell == wollastonite.formula_units_per_cell
+
+    rendered = open(path, encoding="utf-8").read()
+    peak_lines = [line for line in rendered.splitlines()
+                  if line.startswith("  [")]
+    assert len(peak_lines) == len(wollastonite.peaks)
 
 
 def test_alias_search_is_case_insensitive():
@@ -189,11 +194,11 @@ def test_mgd_record_applies_thermal_state(gold):
     phase.compute_volume(pressure=10.0, temperature=1500.0)
     assert phase.params["v"] > v300
 
-    # switching to a record without a thermal model clears it
+    # switching away from MGD clears the engine's MGD thermal state
     model = PhaseModel()
     model.add_jcpds_object(phase, filename=phase.filename)
     other = next(i for i, r in enumerate(gold.eos_records)
-                 if not r.get("thermal"))
+                 if (r.get("thermal") or {}).get("type") == "AlphaKT")
     model.set_eos_reference(0, other)
     assert model.get_thermal_type(0) == ""
 

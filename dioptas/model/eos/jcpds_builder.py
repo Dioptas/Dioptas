@@ -139,8 +139,29 @@ def apply_eos_record(phase, record: dict) -> None:
 def save_material_file(path: str, material: Material) -> None:
     """Write a material as a ``.eosmat`` (JSON) file."""
     with open(path, "w", encoding="utf-8") as fh:
-        json.dump(material.to_dict(), fh, indent=1)
-        fh.write("\n")
+        fh.write(_format_material_json(material.to_dict()))
+
+
+def _format_material_json(document: dict) -> str:
+    """Render one material with each ``[h, k, l, d, I]`` on one line."""
+    document = copy.deepcopy(document)
+    replacements = {}
+    compact_peaks = []
+    for index, peak in enumerate(document.get("peaks", [])):
+        marker = f"\0DIOPTAS_PEAK_ROW_{index:06d}\0"
+        encoded_marker = json.dumps(marker)
+        replacements[encoded_marker] = json.dumps(
+            peak, ensure_ascii=False, separators=(", ", ": ")
+        )
+        compact_peaks.append(marker)
+    document["peaks"] = compact_peaks
+
+    rendered = json.dumps(document, indent=1, ensure_ascii=False)
+    for marker, peak_row in replacements.items():
+        if rendered.count(marker) != 1:
+            raise ValueError("Peak-row serialization marker is not unique")
+        rendered = rendered.replace(marker, peak_row)
+    return rendered + "\n"
 
 
 def load_material_file(path: str) -> Material:

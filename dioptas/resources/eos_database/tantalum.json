@@ -11,70 +11,22 @@
   "beta": 90.0,
   "gamma": 90.0
  },
- "formula_units_per_cell": null,
+ "formula_units_per_cell": 2,
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/ta.jcpds, JCPDS/dac_user_jcpds/ta.jcpds",
  "peaks": [
-  [
-   4,
-   0,
-   0,
-   0.8264,
-   4.0
-  ],
-  [
-   3,
-   2,
-   1,
-   0.8835,
-   29.0
-  ],
-  [
-   2,
-   2,
-   2,
-   0.9543,
-   7.0
-  ],
-  [
-   3,
-   1,
-   0,
-   1.0454,
-   19.0
-  ],
-  [
-   2,
-   2,
-   0,
-   1.1688,
-   13.0
-  ],
-  [
-   2,
-   1,
-   1,
-   1.3496,
-   38.0
-  ],
-  [
-   2,
-   0,
-   0,
-   1.6529,
-   21.0
-  ],
-  [
-   1,
-   1,
-   0,
-   2.3376,
-   100.0
-  ]
+  [4, 0, 0, 0.8264, 4.0],
+  [3, 2, 1, 0.8835, 29.0],
+  [2, 2, 2, 0.9543, 7.0],
+  [3, 1, 0, 1.0454, 19.0],
+  [2, 2, 0, 1.1688, 13.0],
+  [2, 1, 1, 1.3496, 38.0],
+  [2, 0, 0, 1.6529, 21.0],
+  [1, 1, 0, 2.3376, 100.0]
  ],
  "eos_records": [
   {
-   "label": "4-0788 EOS from Cynn and Yoo",
-   "reference": "Tantalum (4-0788 EOS from Cynn and Yoo)",
+   "label": "Cynn and Yoo (1999)",
+   "reference": "Cynn and Yoo, Phys. Rev. B 59, 8526-8529 (1999), doi:10.1103/PhysRevB.59.8526",
    "eos": {
     "type": "BM3",
     "parameters": {
@@ -83,7 +35,7 @@
      "K0_prime": 3.4
     }
    },
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "notes": "Publication values."
   }
  ]
 }

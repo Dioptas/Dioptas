@@ -11,106 +11,41 @@
   "beta": 90.0,
   "gamma": 90.0
  },
- "formula_units_per_cell": null,
+ "formula_units_per_cell": 4,
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Users data/caco3_arag.jcpds",
  "peaks": [
-  [
-   1,
-   1,
-   3,
-   1.7421,
-   35.0
-  ],
-  [
-   1,
-   3,
-   2,
-   1.8143,
-   33.0
-  ],
-  [
-   0,
-   4,
-   1,
-   1.8817,
-   34.0
-  ],
-  [
-   2,
-   2,
-   1,
-   1.9769,
-   77.0
-  ],
-  [
-   1,
-   3,
-   0,
-   2.3414,
-   29.0
-  ],
-  [
-   1,
-   1,
-   2,
-   2.3717,
-   42.0
-  ],
-  [
-   1,
-   0,
-   2,
-   2.4844,
-   29.0
-  ],
-  [
-   0,
-   1,
-   2,
-   2.7003,
-   53.0
-  ],
-  [
-   0,
-   2,
-   1,
-   3.2728,
-   57.0
-  ],
-  [
-   1,
-   1,
-   1,
-   3.3956,
-   100.0
-  ]
+  [1, 1, 3, 1.7421, 35.0],
+  [1, 3, 2, 1.8143, 33.0],
+  [0, 4, 1, 1.8817, 34.0],
+  [2, 2, 1, 1.9769, 77.0],
+  [1, 3, 0, 2.3414, 29.0],
+  [1, 1, 2, 2.3717, 42.0],
+  [1, 0, 2, 2.4844, 29.0],
+  [0, 1, 2, 2.7003, 53.0],
+  [0, 2, 1, 3.2728, 57.0],
+  [1, 1, 1, 3.3956, 100.0]
  ],
  "eos_records": [
   {
-   "label": "Martinez et al, 96",
-   "reference": "Aragonite (Martinez et al, 96)",
+   "label": "Martinez et al. (1996)",
+   "reference": "Martinez et al., American Mineralogist 81, 611-624 (1996), doi:10.2138/am-1996-5-608",
    "eos": {
     "type": "BM3",
     "parameters": {
-     "V0": 226.5741,
+     "V0": 227.14,
      "K0": 65.4,
      "K0_prime": 2.7
     }
    },
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
-  },
-  {
-   "label": "Martinez et al, 96 [K0=65.4]",
-   "reference": "Aragonite (Martinez et al, 96)",
-   "eos": {
-    "type": "BM3",
+   "notes": "The publication's measured 298 K, ambient-pressure cell volume and global high-temperature BM3 fit; replaces two conflicting JCPDS-derived V0 entries.",
+   "thermal": {
+    "type": "AlphaKT",
     "parameters": {
-     "V0": 226.8955,
-     "K0": 65.4,
-     "K0_prime": 2.7
+     "alpha0": 6.7e-05,
+     "dK_dT": -0.013
     }
    },
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "temperature_ref": 298.0
   }
  ]
 }

@@ -14,83 +14,28 @@
  "formula_units_per_cell": null,
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/ar2.jcpds",
  "peaks": [
-  [
-   1,
-   0,
-   3,
-   1.1841,
-   10.0
-  ],
-  [
-   1,
-   1,
-   2,
-   1.3458,
-   10.0
-  ],
-  [
-   2,
-   0,
-   1,
-   1.5125,
-   10.0
-  ],
-  [
-   1,
-   0,
-   2,
-   1.6483,
-   10.0
-  ],
-  [
-   2,
-   0,
-   0,
-   1.6483,
-   10.0
-  ],
-  [
-   1,
-   1,
-   0,
-   1.9032,
-   10.0
-  ],
-  [
-   0,
-   0,
-   2,
-   1.9032,
-   80.0
-  ],
-  [
-   1,
-   0,
-   1,
-   2.4919,
-   100.0
-  ],
-  [
-   1,
-   0,
-   0,
-   3.2965,
-   20.0
-  ]
+  [1, 0, 3, 1.1841, 10.0],
+  [1, 1, 2, 1.3458, 10.0],
+  [2, 0, 1, 1.5125, 10.0],
+  [1, 0, 2, 1.6483, 10.0],
+  [2, 0, 0, 1.6483, 10.0],
+  [1, 1, 0, 1.9032, 10.0],
+  [0, 0, 2, 1.9032, 80.0],
+  [1, 0, 1, 2.4919, 100.0],
+  [1, 0, 0, 3.2965, 20.0]
  ],
  "eos_records": [
   {
-   "label": "HCP (EOS data from Wittlinger et al Acta Cryst. B53 745, 1997)",
-   "reference": "Argon HCP (EOS data from Wittlinger et al Acta Cryst. B53 745, 1997)",
+   "label": "Wittlinger et al. (1997)",
+   "reference": "Wittlinger et al., Acta Crystallogr. B 53, 745-749 (1997), doi:10.1107/S0108768197005739",
    "eos": {
-    "type": "BM3",
+    "type": "BM2",
     "parameters": {
      "V0": 47.7648,
-     "K0": 6.5,
-     "K0_prime": 4.0
+     "K0": 6.5
     }
    },
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "notes": "The publication reports K0=6.5(1.3) GPa; K0_prime is fixed at 4 by BM2."
   }
  ]
 }

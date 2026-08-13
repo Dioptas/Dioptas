@@ -12,105 +12,17 @@
   "gamma": 120.0
  },
  "formula_units_per_cell": 6,
- "notes": "Alumina (JCPDS 0-173, EOS n/a)",
+ "notes": "Phase reference: JCPDS 0-173.",
  "peaks": [
-  [
-   0,
-   1,
-   2,
-   3.479,
-   75.0
-  ],
-  [
-   1,
-   0,
-   4,
-   2.552,
-   90.0
-  ],
-  [
-   1,
-   1,
-   0,
-   2.379,
-   40.0
-  ],
-  [
-   1,
-   1,
-   3,
-   2.085,
-   100.0
-  ],
-  [
-   0,
-   2,
-   4,
-   1.74,
-   45.0
-  ],
-  [
-   1,
-   1,
-   6,
-   1.601,
-   80.0
-  ],
-  [
-   2,
-   1,
-   4,
-   1.404,
-   30.0
-  ],
-  [
-   3,
-   0,
-   0,
-   1.374,
-   50.0
-  ],
-  [
-   1,
-   0,
-   10,
-   1.239,
-   16.0
-  ]
+  [0, 1, 2, 3.479, 75.0],
+  [1, 0, 4, 2.552, 90.0],
+  [1, 1, 0, 2.379, 40.0],
+  [1, 1, 3, 2.085, 100.0],
+  [0, 2, 4, 1.74, 45.0],
+  [1, 1, 6, 1.601, 80.0],
+  [2, 1, 4, 1.404, 30.0],
+  [3, 0, 0, 1.374, 50.0],
+  [1, 0, 10, 1.239, 16.0]
  ],
- "eos_records": [
-  {
-   "label": "JCPDS 0-173, EOS n/a",
-   "reference": "Alumina (JCPDS 0-173, EOS n/a)",
-   "eos": {
-    "type": "BM3",
-    "parameters": {
-     "V0": 254.6764,
-     "K0": 194.0,
-     "K0_prime": 5.0
-    }
-   },
-   "thermal": {
-    "type": "AlphaKT",
-    "parameters": {
-     "alpha0": 2e-06,
-     "dK_dT": 0.0
-    }
-   },
-   "notes": "Recovered from the JCPDSv1 seed file; the hosted database rows for this material were unreadable."
-  },
-  {
-   "label": "corundum (JCPDS 46-1212, EOS)",
-   "reference": "Al2O3 corundum (JCPDS 46-1212, EOS)",
-   "eos": {
-    "type": "BM3",
-    "parameters": {
-     "V0": 254.8082,
-     "K0": 254.0,
-     "K0_prime": 4.3
-    }
-   },
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
-  }
- ]
+ "eos_records": []
 }

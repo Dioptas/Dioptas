@@ -11,112 +11,28 @@
   "beta": 90.0,
   "gamma": 90.0
  },
- "formula_units_per_cell": null,
+ "formula_units_per_cell": 4,
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/PbS_B1.jcpds",
  "peaks": [
-  [
-   6,
-   2,
-   0,
-   0.9386,
-   1.0
-  ],
-  [
-   6,
-   0,
-   0,
-   0.9893,
-   5.0
-  ],
-  [
-   5,
-   3,
-   1,
-   1.0034,
-   2.0
-  ],
-  [
-   4,
-   4,
-   0,
-   1.0493,
-   8.0
-  ],
-  [
-   5,
-   1,
-   1,
-   1.1424,
-   3.0
-  ],
-  [
-   4,
-   2,
-   2,
-   1.2117,
-   15.0
-  ],
-  [
-   4,
-   2,
-   0,
-   1.3273,
-   17.0
-  ],
-  [
-   3,
-   3,
-   1,
-   1.3618,
-   2.0
-  ],
-  [
-   4,
-   0,
-   0,
-   1.484,
-   5.0
-  ],
-  [
-   2,
-   2,
-   2,
-   1.7136,
-   12.0
-  ],
-  [
-   3,
-   1,
-   1,
-   1.7898,
-   4.0
-  ],
-  [
-   2,
-   2,
-   0,
-   2.0987,
-   52.0
-  ],
-  [
-   2,
-   0,
-   0,
-   2.968,
-   100.0
-  ],
-  [
-   1,
-   1,
-   1,
-   3.4272,
-   10.0
-  ]
+  [6, 2, 0, 0.9386, 1.0],
+  [6, 0, 0, 0.9893, 5.0],
+  [5, 3, 1, 1.0034, 2.0],
+  [4, 4, 0, 1.0493, 8.0],
+  [5, 1, 1, 1.1424, 3.0],
+  [4, 2, 2, 1.2117, 15.0],
+  [4, 2, 0, 1.3273, 17.0],
+  [3, 3, 1, 1.3618, 2.0],
+  [4, 0, 0, 1.484, 5.0],
+  [2, 2, 2, 1.7136, 12.0],
+  [3, 1, 1, 1.7898, 4.0],
+  [2, 2, 0, 2.0987, 52.0],
+  [2, 0, 0, 2.968, 100.0],
+  [1, 1, 1, 3.4272, 10.0]
  ],
  "eos_records": [
   {
-   "label": "Grzechnik and Friese, 2010",
-   "reference": "PbS_B1 (Grzechnik and Friese, 2010)",
+   "label": "Grzechnik and Friese (2010)",
+   "reference": "Grzechnik and Friese, J. Phys.: Condens. Matter 22, 095402 (2010), doi:10.1088/0953-8984/22/9/095402",
    "eos": {
     "type": "BM3",
     "parameters": {
@@ -125,14 +41,7 @@
      "K0_prime": 4.3
     }
    },
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply.",
-   "thermal": {
-    "type": "AlphaKT",
-    "parameters": {
-     "alpha0": 1.35e-05,
-     "dK_dT": 0.0
-    }
-   }
+   "notes": "Ambient-pressure B1 fit. The imported generic thermal coefficient was not reported by this source and was removed."
   }
  ]
 }

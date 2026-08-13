@@ -69,9 +69,9 @@ class EosDatabaseControllerTest(QtTest):
         gold_rows = self.dialog.eos_table.rowCount()
         assert gold_rows > 0
 
-        self.dialog.search_input.setText("mgo")
+        self.dialog.search_input.setText("diamond")
         material = self.controller.shown_materials[0]
-        assert material.formula == "MgO"
+        assert material.formula == "C"
         assert (self.dialog.eos_table.rowCount()
                 == len(material.eos_records))
         assert self.dialog.eos_table.rowCount() != gold_rows

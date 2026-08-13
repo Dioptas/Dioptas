@@ -11,78 +11,29 @@
   "beta": 90.0,
   "gamma": 90.0
  },
- "formula_units_per_cell": null,
+ "formula_units_per_cell": 4,
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/BN-cubic.jcpds",
  "peaks": [
-  [
-   3,
-   3,
-   1,
-   0.8295,
-   3.0
-  ],
-  [
-   4,
-   0,
-   0,
-   0.904,
-   2.0
-  ],
-  [
-   3,
-   1,
-   1,
-   1.0902,
-   8.0
-  ],
-  [
-   2,
-   2,
-   0,
-   1.2784,
-   24.0
-  ],
-  [
-   2,
-   0,
-   0,
-   1.808,
-   5.0
-  ],
-  [
-   1,
-   1,
-   1,
-   2.0876,
-   100.0
-  ]
+  [3, 3, 1, 0.8295, 3.0],
+  [4, 0, 0, 0.904, 2.0],
+  [3, 1, 1, 1.0902, 8.0],
+  [2, 2, 0, 1.2784, 24.0],
+  [2, 0, 0, 1.808, 5.0],
+  [1, 1, 1, 2.0876, 100.0]
  ],
  "eos_records": [
   {
-   "label": "(cubic) (JCPDS 35-1365, EOS from Datchi)",
-   "reference": "Boron Nitride (cubic) (JCPDS 35-1365, EOS from Datchi)",
+   "label": "Datchi et al. (2007), Vinet",
+   "reference": "Datchi et al., Phys. Rev. B 75, 214104 (2007), doi:10.1103/PhysRevB.75.214104",
    "eos": {
-    "type": "BM3",
+    "type": "Vinet",
     "parameters": {
-     "V0": 47.2769,
-     "K0": 500.0,
-     "K0_prime": 4.0
-    }
-   },
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
-  },
-  {
-   "label": "(cubic) (JCPDS 35-1365, EOS from Datchi) [K0=395]",
-   "reference": "Boron Nitride (cubic) (JCPDS 35-1365, EOS from Datchi)",
-   "eos": {
-    "type": "BM3",
-    "parameters": {
-     "V0": 47.2769,
+     "V0": 47.2496,
      "K0": 395.0,
      "K0_prime": 3.62
     }
    },
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "notes": "V0=5.9062 A^3/atom multiplied by 8 atoms in the conventional cubic cell; the unsupported K0=500 record was removed."
   }
  ]
 }

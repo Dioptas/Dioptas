@@ -14,67 +14,19 @@
  "formula_units_per_cell": null,
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/simplified/casio3-pv.jcpds",
  "peaks": [
-  [
-   2,
-   2,
-   2,
-   1.0296,
-   3.0
-  ],
-  [
-   3,
-   1,
-   0,
-   1.1279,
-   3.0
-  ],
-  [
-   2,
-   2,
-   0,
-   1.261,
-   9.0
-  ],
-  [
-   2,
-   1,
-   1,
-   1.4561,
-   15.0
-  ],
-  [
-   2,
-   0,
-   0,
-   1.7833,
-   56.0
-  ],
-  [
-   1,
-   1,
-   1,
-   2.0592,
-   31.0
-  ],
-  [
-   1,
-   1,
-   0,
-   2.522,
-   100.0
-  ],
-  [
-   1,
-   0,
-   0,
-   3.5666,
-   4.0
-  ]
+  [2, 2, 2, 1.0296, 3.0],
+  [3, 1, 0, 1.1279, 3.0],
+  [2, 2, 0, 1.261, 9.0],
+  [2, 1, 1, 1.4561, 15.0],
+  [2, 0, 0, 1.7833, 56.0],
+  [1, 1, 1, 2.0592, 31.0],
+  [1, 1, 0, 2.522, 100.0],
+  [1, 0, 0, 3.5666, 4.0]
  ],
  "eos_records": [
   {
    "label": "using aristotype, EOS by Shim et al 1999",
-   "reference": "Ca-perovskite (using aristotype, EOS by Shim et al 1999)",
+   "reference": "Shim, Duffy, and Shen, Phys. Earth Planet. Inter. 120, 327-338 (2000), doi:10.1016/S0031-9201(00)00154-0",
    "eos": {
     "type": "BM3",
     "parameters": {
@@ -87,7 +39,7 @@
   },
   {
    "label": "using aristotype, EOS by Shim et al 1999 [K0=245]",
-   "reference": "Ca-perovskite (using aristotype, EOS by Shim et al 1999)",
+   "reference": "Shim, Duffy, and Shen, Phys. Earth Planet. Inter. 120, 327-338 (2000), doi:10.1016/S0031-9201(00)00154-0",
    "eos": {
     "type": "BM3",
     "parameters": {
@@ -100,7 +52,7 @@
   },
   {
    "label": "using aristotype, EOS by Mao et al 1989",
-   "reference": "Ca-perovskite (using aristotype, EOS by Mao et al 1989)",
+   "reference": "Mao et al., J. Geophys. Res. 94, 17889-17894 (1989), doi:10.1029/JB094iB12p17889",
    "eos": {
     "type": "BM3",
     "parameters": {

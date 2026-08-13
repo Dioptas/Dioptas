@@ -14,88 +14,22 @@
  "formula_units_per_cell": null,
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Users data/sno2_cubic_48GPa.jcpds",
  "peaks": [
-  [
-   4,
-   2,
-   2,
-   0.9941,
-   15.0
-  ],
-  [
-   4,
-   2,
-   0,
-   1.089,
-   20.0
-  ],
-  [
-   3,
-   3,
-   1,
-   1.1173,
-   65.0
-  ],
-  [
-   4,
-   0,
-   0,
-   1.2175,
-   20.0
-  ],
-  [
-   2,
-   2,
-   2,
-   1.4058,
-   5.0
-  ],
-  [
-   3,
-   1,
-   1,
-   1.4684,
-   100.0
-  ],
-  [
-   2,
-   2,
-   0,
-   1.7218,
-   80.0
-  ],
-  [
-   2,
-   1,
-   1,
-   1.9882,
-   5.0
-  ],
-  [
-   2,
-   1,
-   0,
-   2.1779,
-   15.0
-  ],
-  [
-   2,
-   0,
-   0,
-   2.435,
-   85.0
-  ],
-  [
-   1,
-   1,
-   1,
-   2.8117,
-   80.0
-  ]
+  [4, 2, 2, 0.9941, 15.0],
+  [4, 2, 0, 1.089, 20.0],
+  [3, 3, 1, 1.1173, 65.0],
+  [4, 0, 0, 1.2175, 20.0],
+  [2, 2, 2, 1.4058, 5.0],
+  [3, 1, 1, 1.4684, 100.0],
+  [2, 2, 0, 1.7218, 80.0],
+  [2, 1, 1, 1.9882, 5.0],
+  [2, 1, 0, 2.1779, 15.0],
+  [2, 0, 0, 2.435, 85.0],
+  [1, 1, 1, 2.8117, 80.0]
  ],
  "eos_records": [
   {
    "label": "lattice parameter by Haines and Leger,1997, intensity by Ono et al., 2000",
-   "reference": "SnO2_Pa-3 at 48GPa (lattice parameter by Haines and Leger,1997, intensity by Ono et al., 2000)",
+   "reference": "Ono et al., Phys. Chem. Miner. 27, 618-622 (2000), doi:10.1007/S002690000108",
    "eos": {
     "type": "BM3",
     "parameters": {

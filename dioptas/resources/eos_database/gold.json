@@ -14,86 +14,20 @@
  "formula_units_per_cell": 4,
  "notes": "Gold (04-0783, shock wave)",
  "peaks": [
-  [
-   1,
-   1,
-   1,
-   2.359,
-   100.0
-  ],
-  [
-   2,
-   0,
-   0,
-   2.044,
-   52.0
-  ],
-  [
-   2,
-   2,
-   0,
-   1.445,
-   32.0
-  ],
-  [
-   3,
-   1,
-   1,
-   1.231,
-   36.0
-  ],
-  [
-   2,
-   2,
-   2,
-   1.176,
-   12.0
-  ],
-  [
-   4,
-   0,
-   0,
-   1.0215,
-   6.0
-  ],
-  [
-   3,
-   3,
-   1,
-   0.9375,
-   23.0
-  ],
-  [
-   4,
-   2,
-   0,
-   0.9137,
-   22.0
-  ],
-  [
-   4,
-   2,
-   2,
-   0.8341,
-   23.0
-  ]
+  [1, 1, 1, 2.359, 100.0],
+  [2, 0, 0, 2.044, 52.0],
+  [2, 2, 0, 1.445, 32.0],
+  [3, 1, 1, 1.231, 36.0],
+  [2, 2, 2, 1.176, 12.0],
+  [4, 0, 0, 1.0215, 6.0],
+  [3, 3, 1, 0.9375, 23.0],
+  [4, 2, 0, 0.9137, 22.0],
+  [4, 2, 2, 0.8341, 23.0]
  ],
  "eos_records": [
   {
-   "label": "04-0783, shock wave",
-   "reference": "Gold (04-0783, shock wave)",
-   "eos": {
-    "type": "BM3",
-    "parameters": {
-     "V0": 68.22740578392799,
-     "K0": 120.8,
-     "K0_prime": 4.84
-    }
-   }
-  },
-  {
    "label": "04-0784, Anderson et al J Appl Phys 65, 1534, 1989",
-   "reference": "Gold (04-0784, Anderson et al J Appl Phys 65, 1534, 1989)",
+   "reference": "Anderson, Isaak, and Yamamoto, J. Appl. Phys. 65, 1534-1543 (1989), doi:10.1063/1.342969",
    "eos": {
     "type": "BM3",
     "parameters": {
@@ -111,21 +45,8 @@
    }
   },
   {
-   "label": "04-0784, Fei et al PNAS, 2007 [BM3]",
-   "reference": "Gold (04-0784, Fei et al PNAS, 2007)",
-   "eos": {
-    "type": "BM3",
-    "parameters": {
-     "V0": 67.84742110765599,
-     "K0": 167.0,
-     "K0_prime": 5.77
-    }
-   },
-   "notes": "BM3 refit of the Fei 2007 scale as distributed in beamline jcpds files; the paper's own fit is the Vinet record."
-  },
-  {
    "label": "04-0784, Fei et al PNAS, 2007 [Vinet]",
-   "reference": "Gold (04-0784, Fei et al PNAS, 2007)",
+   "reference": "Fei et al., Proc. Natl. Acad. Sci. USA 104, 9182-9186 (2007), doi:10.1073/pnas.0609013104",
    "eos": {
     "type": "Vinet",
     "parameters": {

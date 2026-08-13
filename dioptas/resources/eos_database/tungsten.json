@@ -14,53 +14,17 @@
  "formula_units_per_cell": 2,
  "notes": "Tungsten (4-0806 EOS Hixson and Fritz)",
  "peaks": [
-  [
-   1,
-   1,
-   0,
-   2.238,
-   100.0
-  ],
-  [
-   2,
-   0,
-   0,
-   1.582,
-   15.0
-  ],
-  [
-   2,
-   1,
-   1,
-   1.292,
-   23.0
-  ],
-  [
-   2,
-   2,
-   0,
-   1.1188,
-   8.0
-  ],
-  [
-   3,
-   1,
-   0,
-   1.0008,
-   11.0
-  ],
-  [
-   3,
-   2,
-   1,
-   0.8459,
-   18.0
-  ]
+  [1, 1, 0, 2.238, 100.0],
+  [2, 0, 0, 1.582, 15.0],
+  [2, 1, 1, 1.292, 23.0],
+  [2, 2, 0, 1.1188, 8.0],
+  [3, 1, 0, 1.0008, 11.0],
+  [3, 2, 1, 0.8459, 18.0]
  ],
  "eos_records": [
   {
    "label": "4-0806 EOS Hixson and Fritz",
-   "reference": "Tungsten (4-0806 EOS Hixson and Fritz)",
+   "reference": "Hixson and Fritz, J. Appl. Phys. 71, 1721-1728 (1992), doi:10.1063/1.351203",
    "eos": {
     "type": "BM3",
     "parameters": {
@@ -71,17 +35,17 @@
    }
   },
   {
-   "label": "4-0806 EOS A. Dewaele, PRB 2007",
-   "reference": "Tungsten (4-0806 EOS A. Dewaele, PRB 2007)",
+   "label": "Dewaele et al. (2004), Vinet",
+   "reference": "Dewaele, Loubeyre, and Mezouar, Phys. Rev. B 70, 094112 (2004), doi:10.1103/PhysRevB.70.094112",
    "eos": {
-    "type": "BM3",
+    "type": "Vinet",
     "parameters": {
-     "V0": 31.6985,
-     "K0": 307.0,
-     "K0_prime": 5.4
+     "V0": 31.724,
+     "K0": 295.2,
+     "K0_prime": 4.32
     }
    },
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "notes": "Publication Vinet fit on the revised ruby scale; atomic V0=15.862 A^3 multiplied by 2 atoms per bcc cell."
   }
  ]
 }

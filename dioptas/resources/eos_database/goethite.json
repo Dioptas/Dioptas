@@ -11,100 +11,34 @@
   "beta": 90.0,
   "gamma": 90.0
  },
- "formula_units_per_cell": null,
+ "formula_units_per_cell": 4,
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/FeOOH-pbnm.jcpds",
  "peaks": [
-  [
-   1,
-   3,
-   2,
-   1.3185,
-   20.0
-  ],
-  [
-   0,
-   0,
-   2,
-   1.5121,
-   30.0
-  ],
-  [
-   1,
-   5,
-   1,
-   1.5647,
-   40.0
-  ],
-  [
-   2,
-   2,
-   1,
-   1.7197,
-   60.0
-  ],
-  [
-   1,
-   4,
-   0,
-   2.1905,
-   40.0
-  ],
-  [
-   1,
-   1,
-   1,
-   2.4504,
-   80.0
-  ],
-  [
-   0,
-   2,
-   1,
-   2.5849,
-   40.0
-  ],
-  [
-   1,
-   3,
-   0,
-   2.6934,
-   60.0
-  ],
-  [
-   1,
-   2,
-   0,
-   3.3817,
-   20.0
-  ],
-  [
-   1,
-   1,
-   0,
-   4.1812,
-   80.0
-  ],
-  [
-   0,
-   2,
-   0,
-   4.98,
-   20.0
-  ]
+  [1, 3, 2, 1.3185, 20.0],
+  [0, 0, 2, 1.5121, 30.0],
+  [1, 5, 1, 1.5647, 40.0],
+  [2, 2, 1, 1.7197, 60.0],
+  [1, 4, 0, 2.1905, 40.0],
+  [1, 1, 1, 2.4504, 80.0],
+  [0, 2, 1, 2.5849, 40.0],
+  [1, 3, 0, 2.6934, 60.0],
+  [1, 2, 0, 3.3817, 20.0],
+  [1, 1, 0, 4.1812, 80.0],
+  [0, 2, 0, 4.98, 20.0]
  ],
  "eos_records": [
   {
-   "label": "a-FeOOH (pbnm) (EOS from Gleason et al. 2008)",
-   "reference": "Goethite a-FeOOH (pbnm) (EOS from Gleason et al. 2008)",
+   "label": "Gleason et al. (2008)",
+   "reference": "Gleason, Jeanloz, and Kunz, American Mineralogist 93, 1882-1885 (2008), doi:10.2138/am.2008.2942",
    "eos": {
     "type": "BM3",
     "parameters": {
-     "V0": 138.7616,
+     "V0": 138.75,
      "K0": 140.3,
      "K0_prime": 4.6
     }
    },
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
+   "notes": "Publication values for alpha-FeOOH."
   }
  ]
 }

@@ -11,121 +11,36 @@
   "beta": 90.0,
   "gamma": 90.0
  },
- "formula_units_per_cell": null,
+ "formula_units_per_cell": 4,
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/FeOOH-pmn21.jcpds",
  "peaks": [
-  [
-   2,
-   2,
-   0,
-   1.2499,
-   20.0
-  ],
-  [
-   1,
-   2,
-   1,
-   1.3341,
-   20.0
-  ],
-  [
-   0,
-   2,
-   0,
-   1.4675,
-   20.0
-  ],
-  [
-   3,
-   0,
-   1,
-   1.4925,
-   20.0
-  ],
-  [
-   2,
-   0,
-   2,
-   1.6014,
-   10.0
-  ],
-  [
-   1,
-   1,
-   2,
-   1.6346,
-   80.0
-  ],
-  [
-   2,
-   1,
-   1,
-   1.7016,
-   50.0
-  ],
-  [
-   2,
-   0,
-   1,
-   2.0884,
-   60.0
-  ],
-  [
-   0,
-   0,
-   2,
-   2.1605,
-   60.0
-  ],
-  [
-   2,
-   0,
-   0,
-   2.3855,
-   80.0
-  ],
-  [
-   0,
-   1,
-   1,
-   2.4279,
-   70.0
-  ],
-  [
-   1,
-   1,
-   0,
-   2.4999,
-   10.0
-  ],
-  [
-   1,
-   1,
-   0,
-   2.4999,
-   90.0
-  ],
-  [
-   1,
-   0,
-   1,
-   3.2027,
-   80.0
-  ]
+  [2, 2, 0, 1.2499, 20.0],
+  [1, 2, 1, 1.3341, 20.0],
+  [0, 2, 0, 1.4675, 20.0],
+  [3, 0, 1, 1.4925, 20.0],
+  [2, 0, 2, 1.6014, 10.0],
+  [1, 1, 2, 1.6346, 80.0],
+  [2, 1, 1, 1.7016, 50.0],
+  [2, 0, 1, 2.0884, 60.0],
+  [0, 0, 2, 2.1605, 60.0],
+  [2, 0, 0, 2.3855, 80.0],
+  [0, 1, 1, 2.4279, 70.0],
+  [1, 1, 0, 2.4999, 10.0],
+  [1, 1, 0, 2.4999, 90.0],
+  [1, 0, 1, 3.2027, 80.0]
  ],
  "eos_records": [
   {
-   "label": "(Pmn21 or P21mn) (EOS from Gleason et al. 2008)",
-   "reference": "E-FeOOH (Pmn21 or P21mn) (EOS from Gleason et al. 2008)",
+   "label": "Gleason et al. (2008), second-order BM",
+   "reference": "Gleason, Jeanloz, and Kunz, American Mineralogist 93, 1882-1885 (2008), doi:10.2138/am.2008.2942",
    "eos": {
-    "type": "BM3",
+    "type": "BM2",
     "parameters": {
-     "V0": 60.5065,
-     "K0": 158.0,
-     "K0_prime": 4.0
+     "V0": 66.3,
+     "K0": 158.0
     }
    },
-   "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply. 4/14 file peaks deviate >2% from the lattice d-spacing."
+   "notes": "Publication values for epsilon-FeOOH; K0_prime is fixed to 4 by the second-order Birch-Murnaghan equation."
   }
  ]
 }

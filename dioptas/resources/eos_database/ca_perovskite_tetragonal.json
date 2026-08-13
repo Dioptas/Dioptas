@@ -14,53 +14,17 @@
  "formula_units_per_cell": null,
  "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/casio3-pvp.jcpds",
  "peaks": [
-  [
-   0,
-   0,
-   2,
-   1.7716,
-   33.0
-  ],
-  [
-   2,
-   2,
-   0,
-   1.7892,
-   100.0
-  ],
-  [
-   2,
-   1,
-   1,
-   1.9073,
-   6.0
-  ],
-  [
-   2,
-   0,
-   1,
-   2.0591,
-   37.0
-  ],
-  [
-   2,
-   1,
-   0,
-   2.2632,
-   19.0
-  ],
-  [
-   1,
-   1,
-   1,
-   2.5177,
-   44.0
-  ]
+  [0, 0, 2, 1.7716, 33.0],
+  [2, 2, 0, 1.7892, 100.0],
+  [2, 1, 1, 1.9073, 6.0],
+  [2, 0, 1, 2.0591, 37.0],
+  [2, 1, 0, 2.2632, 19.0],
+  [1, 1, 1, 2.5177, 44.0]
  ],
  "eos_records": [
   {
    "label": "using aristotype, EOS by Mao et al 1989",
-   "reference": "Ca-perovskite tetragonal (using aristotype, EOS by Mao et al 1989)",
+   "reference": "Mao et al., J. Geophys. Res. 94, 17889-17894 (1989), doi:10.1029/JB094iB12p17889",
    "eos": {
     "type": "BM3",
     "parameters": {
@@ -73,7 +37,7 @@
   },
   {
    "label": "(using aristotype (I), EOS by Mao et al 1989)",
-   "reference": "Ca-perovskite tetragonal (using aristotype (I), EOS by Mao et al 1989)",
+   "reference": "Mao et al., J. Geophys. Res. 94, 17889-17894 (1989), doi:10.1029/JB094iB12p17889",
    "eos": {
     "type": "BM3",
     "parameters": {
