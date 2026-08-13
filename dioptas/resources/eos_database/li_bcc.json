@@ -47,7 +47,8 @@
    "fixed_parameters": [
     "V0"
    ],
-   "notes": "Hanfland et al. report atomic V0 = 21.6225 A^3 fixed, K0 = 11.32(10) GPa, and K0' = 3.62(4). V0 was doubled for the bcc cell."
+   "experimental_pressure_range_gpa": [0.0, 21.0],
+   "notes": "Hanfland et al. report atomic V0 = 21.6225 A^3 fixed, K0 = 11.32(10) GPa, and K0' = 3.62(4). V0 was doubled for the bcc cell. The published 0-21 GPa Vinet fit jointly uses the bcc and fcc compression data; this bcc material entry therefore must not be read as a claim that bcc Li is stable over the whole fit interval."
   }
  ]
 }

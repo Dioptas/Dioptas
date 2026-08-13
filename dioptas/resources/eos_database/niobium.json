@@ -48,6 +48,7 @@
    "fixed_parameters": [
     "V0"
    ],
+   "experimental_pressure_range_gpa": [0.0, 134.0],
    "temperature_ref": 300.0,
    "notes": "Helium-medium powder-XRD fit to 134 GPa. Published V0=17.98 A^3/atom is multiplied by two atoms in the conventional bcc cell; no phase transition was observed."
   }

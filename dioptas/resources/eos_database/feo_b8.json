@@ -48,6 +48,7 @@
    "fixed_parameters": [
     "V0"
    ],
+   "experimental_pressure_range_gpa": [0.0, 156.0],
    "notes": "This file contains the B1, not B8, phase. Fischer et al. fit Fe0.94O with molar V0 = 12.256 cm^3/mol fixed, K0 = 149.4 +/- 1.0 GPa, and K0' = 3.60 +/- 0.04. V0 was converted to the conventional Z=4 B1 cell."
   }
  ]

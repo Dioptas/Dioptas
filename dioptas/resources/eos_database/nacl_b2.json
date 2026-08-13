@@ -54,6 +54,7 @@
     "K0": 4.2
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [25.0, 70.0],
    "notes": "Heinz and Jeanloz report V0(B2)/V0(B1) = 0.929 +/- 0.071 and K0 = 36.2 +/- 4.2 GPa from a second-order finite-strain fit, which fixes K0' at 4. The V0 uncertainty is propagated using the ambient B1 volume. The uncitable Sata/Shen fit was removed."
   },
   {
@@ -75,6 +76,7 @@
    "fixed_parameters": [
     "V0"
    ],
+   "experimental_pressure_range_gpa": [33.0, 140.0],
    "temperature_ref": 300.0,
    "notes": "Table II Cu-referenced fit using DAC-2 data; V0 fixed. Reported uncertainties: K0 +/- 0.11 GPa and K0' +/- 0.02. The B2 phase data are above 33 GPa."
   }

@@ -61,6 +61,7 @@
    "fixed_parameters": [
     "K0_prime"
    ],
+   "experimental_pressure_range_gpa": [0.0, 134.0],
    "notes": "Mao et al. Table values, as reproduced by Shim et al. (2000): V0 = 45.37(8) A^3, K0 = 281(4) GPa, with K0' fixed at 4.0."
   }
  ]

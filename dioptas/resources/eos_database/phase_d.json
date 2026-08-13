@@ -96,6 +96,7 @@
     "K0": 5.0
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 24.6],
    "notes": "Shieh et al. report K0 = 134 +/- 5 GPa for Fe-bearing phase D using a second-order Birch-Murnaghan fit, which fixes K0' at 4. The publication does not tabulate a fitted V0 uncertainty for this phase."
   }
  ],

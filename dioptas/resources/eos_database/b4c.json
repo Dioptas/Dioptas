@@ -62,6 +62,7 @@
     "K0_prime": 0.1
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 50.0],
    "temperature_ref": 300.0,
    "notes": "Quasi-hydrostatic room-temperature fit to 50 GPa. The average disordered R-3m structure follows the ideal B4C model confirmed to 74 GPa by Dera et al., J. Solid State Chem. 215, 85-93 (2014), doi:10.1016/j.jssc.2014.03.018."
   }

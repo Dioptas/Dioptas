@@ -46,6 +46,7 @@
     "K0_prime": 0.2
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 80.0],
    "temperature_ref": 300.0,
    "notes": "Experimental 0-80 GPa BM3 fit; published V0=14.72(4) A^3/atom is multiplied by four atoms in the conventional fcc cell."
   }

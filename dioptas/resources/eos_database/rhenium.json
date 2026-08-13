@@ -58,6 +58,7 @@
     "K0_prime": 0.17
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 144.0],
    "temperature_ref": 300.0,
    "notes": "Quasi-hydrostatic powder-XRD fit in helium to 144 GPa. The published molar V0=8.8726 cm^3/mol is converted to 14.7333 A^3/atom and multiplied by two atoms in the conventional hcp cell."
   }

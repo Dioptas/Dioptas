@@ -52,6 +52,7 @@
    "fixed_parameters": [
     "V0"
    ],
+   "experimental_pressure_range_gpa": [0.0, 31.0],
    "temperature_ref": 300.0,
    "notes": "Table II Cu-referenced fit using DAC-2 data; V0 fixed to the JCPDS 5-0628 value. Reported uncertainties: K0 +/- 0.3 GPa and K0' +/- 0.06. The B1 phase data extend to 31 GPa; coexistence-region data near 30-35 GPa were excluded."
   }

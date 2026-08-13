@@ -46,6 +46,7 @@
     "K0_prime": 0.1
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 174.0],
    "notes": "Cynn and Yoo report K0 = 194.7(4.8) GPa and K0' = 3.4(1). V0 is retained from the ambient bcc lattice because the fit uncertainty was not tabulated."
   },
   {
@@ -67,6 +68,7 @@
    "fixed_parameters": [
     "V0"
    ],
+   "experimental_pressure_range_gpa": [0.0, 140.0],
    "temperature_ref": 300.0,
    "notes": "Table II Cu-referenced fit using DAC-1 data; DAC-2 was excluded and V0 was fixed. Reported uncertainties: K0 +/- 0.4 GPa and K0' +/- 0.02."
   }

@@ -56,6 +56,7 @@
    "fixed_parameters": [
     "K0_prime"
    ],
+   "experimental_pressure_range_gpa": [70.0, 156.0],
    "notes": "Fischer et al. fit B8 Fe0.94O with molar V0 = 11.997 +/- 0.018 cm^3/mol, K0 = 137.8 +/- 0.9 GPa, and K0' fixed at 4.0. V0 and its uncertainty were converted to the Z=2 hexagonal cell."
   }
  ]

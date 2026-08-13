@@ -54,6 +54,7 @@
    "fixed_parameters": [
     "V0"
    ],
+   "experimental_pressure_range_gpa": [0.0, 60.0],
    "notes": "Richet et al. report K0 = 111 +/- 1 GPa and K0' = 4.2 +/- 0.2 for B1 CaO; the ambient card volume is treated as fixed."
   }
  ]

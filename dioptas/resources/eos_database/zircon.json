@@ -65,6 +65,7 @@
     "K0": 2.0
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 4.8],
    "notes": "The publication reports K0=227(2) GPa from low-pressure compression; the unsupported imported K0_prime=6.5 was removed."
   }
  ]

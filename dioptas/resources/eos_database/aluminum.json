@@ -49,6 +49,7 @@
    "fixed_parameters": [
     "V0"
    ],
+   "experimental_pressure_range_gpa": [0.0, 153.0],
    "temperature_ref": 298.0,
    "notes": "Table II unconstrained fit on the authors' revised ruby scale; published atomic V0=16.573 A^3 is multiplied by four atoms in the conventional fcc cell. Measurements extend to 153 GPa."
   }

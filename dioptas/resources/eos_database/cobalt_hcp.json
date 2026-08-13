@@ -60,6 +60,7 @@
    "fixed_parameters": [
     "V0"
    ],
+   "experimental_pressure_range_gpa": [0.0, 79.0],
    "notes": "Publication bulk modulus and pressure derivative; ambient V0 from this crystallographic cell."
   }
  ]

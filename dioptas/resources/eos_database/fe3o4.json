@@ -81,6 +81,7 @@
    "fixed_parameters": [
     "K0_prime"
    ],
+   "experimental_pressure_range_gpa": [0.0, 25.0],
    "notes": "Mao et al. report K0 = 183 +/- 10 GPa using K0' = 4.0 +/- 0.4 as an imposed value. V0 is retained from the cited ambient structure."
   }
  ]

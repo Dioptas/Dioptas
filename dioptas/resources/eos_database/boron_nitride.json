@@ -47,6 +47,7 @@
    "fixed_parameters": [
     "V0"
    ],
+   "experimental_pressure_range_gpa": [0.0, 160.0],
    "notes": "V0=5.9062 A^3/atom multiplied by 8 atoms in the conventional cubic cell; the unsupported K0=500 record was removed."
   }
  ]

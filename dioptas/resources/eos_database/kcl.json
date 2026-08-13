@@ -45,6 +45,7 @@
     "K0": 0.6
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [2.0, 56.0],
    "notes": "Campbell and Heinz report V0(B2)/V0(B1) = 0.8483 +/- 0.0057 and K0 = 28.7 +/- 0.6 GPa, with K0' constrained to 4.0. This is stored as BM2; V0 and its propagated uncertainty use the ambient B1 reference volume."
   },
   {
@@ -64,6 +65,7 @@
     "K0_prime": null
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [2.0, 8.0],
    "notes": "Walker et al. B2 KCl parameters (Z=1). The authors explicitly state that tradeoffs between V0, K0, and K0' make errors on the individual parameters non-meaningful, so none are quoted.",
    "thermal": {
     "type": "AlphaKT",

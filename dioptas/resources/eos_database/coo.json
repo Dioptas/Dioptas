@@ -48,7 +48,8 @@
     "K0_prime": null
    },
    "fixed_parameters": [],
-   "notes": "Clendenen and Drickamer report the legacy compression parameters K0 = 190.5 GPa and K0' = 3.9 without parameter uncertainties. V0 is retained from the ambient diffraction card."
+   "pressure_range_status": "reported_qualitatively",
+   "notes": "Clendenen and Drickamer report the legacy compression parameters K0 = 190.5 GPa and K0' = 3.9 without parameter uncertainties. V0 is retained from the ambient diffraction card. The source describes measurements to several hundred kilobars but does not expose a recoverable CoO-specific maximum in the accessible metadata, so no exact numeric fit limit is asserted."
   }
  ]
 }

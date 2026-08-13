@@ -45,6 +45,7 @@
    "fixed_parameters": [
     "V0"
    ],
+   "experimental_pressure_range_gpa": [0.0, 140.0],
    "temperature_ref": 298.0,
    "notes": "Reanalysis of Occelli et al. diamond data; V0=5.6733 A^3/atom multiplied by 8 atoms per conventional cell. Replaces the dummy record and removes the unsupported K0=800 record."
   },
@@ -67,6 +68,7 @@
    "fixed_parameters": [
     "K0"
    ],
+   "experimental_pressure_range_gpa": [0.0, 80.0],
    "temperature_ref": 298.0,
    "notes": "Independent single-crystal XRD fit in neon to 80 GPa; K0 was fixed to the isothermal ultrasonic value. Published atomic V0=5.6693 A^3 is multiplied by eight atoms in the conventional diamond cell."
   }

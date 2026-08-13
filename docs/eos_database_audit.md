@@ -8,6 +8,32 @@ equation family, parameter convention, and reference could be reconciled.
 
 Audit date: 2026-08-13.
 
+## Experimental pressure-domain audit
+
+Every EoS record now reports the pressure domain of the measurements used to
+constrain that particular fit.  The interval is stored as
+`experimental_pressure_range_gpa`; it is deliberately not a phase-stability
+range.  All limits were checked against the cited primary publication's data
+tables, figures, full text, or publisher abstract.  Phase-specific limits were
+used where a paper spans a transition: for example CaO-B1 is 0--60 GPa while
+CaO-B2 is 52.7--134.9 GPa, and the four high-pressure silicon polymorphs each
+carry their own observed interval.
+
+The legacy Pt and W records are dynamic-compression exceptions.  The Holmes
+Pt model is tied to the 32--660 GPa shock data, while the Hixson--Fritz W
+record is limited to the 0--380 GPa reduced-isotherm table derived from their
+shock measurements.  These are not presented as static DAC fit ranges.
+
+Four records have no defensible numeric experimental interval and instead use
+an explicit `pressure_range_status`: the Munoz--Kunc InN EoS is theoretical;
+the Fei FeO and Anderson Au values are reference/compilation
+parameterizations rather than fits to one bounded data set; and the 1966 CoO
+source reports its upper limit only qualitatively as "several hundred
+kilobars" in the recoverable publication metadata.  The database UI displays
+these statuses instead of leaving the fit-range column blank or inventing a
+number.  A regression test requires every current and future EoS record to
+contain exactly one of a numeric interval or an approved explicit status.
+
 ## Corrected from publications
 
 | Material | Stored EoS | V0 (A^3/cell) | K0 (GPa) | K0' | Source and correction |

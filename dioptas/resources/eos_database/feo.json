@@ -48,6 +48,7 @@
    "fixed_parameters": [
     "K0_prime"
    ],
+   "pressure_range_status": "reference_parameterization",
    "notes": "Fei's review tabulates the recommended B1 FeO values K0 = 145 GPa with K0' fixed at 4.0, but gives no parameter uncertainties. A composition-specific Fischer et al. fit is available separately."
   }
  ]

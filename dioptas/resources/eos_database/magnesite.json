@@ -101,6 +101,7 @@
     "K0_prime": 0.7
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 7.0],
    "notes": "Ross reports V0 = 279.28(3) A^3, K0 = 117(3) GPa, and K0' = 2.3(7); replaces three JCPDS variants with conflicting V0 values."
   }
  ]

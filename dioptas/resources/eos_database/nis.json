@@ -44,6 +44,7 @@
     "K0_prime": 1.2
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 45.0],
    "notes": "Campbell and Heinz report K0 = 156(10) GPa and K0' = 4.4(12). No independent uncertainty was recovered for the ambient card volume."
   }
  ]

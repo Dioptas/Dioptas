@@ -53,6 +53,7 @@
     "K0_prime": 0.9
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 6.0],
    "notes": "Knorr et al. report K0 = 51(1) GPa and K0' = 4.3(9) for B1 PbS. Grzechnik and Friese independently measured ambient V0 = 209.2(1) A^3 and reproduce those coefficients; their structure paper remains the source for the stored phase metadata. The imported generic thermal coefficient was removed."
   }
  ]

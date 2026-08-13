@@ -50,6 +50,7 @@
    "fixed_parameters": [
     "V0"
    ],
+   "experimental_pressure_range_gpa": [0.0, 134.0],
    "notes": "Quasi-hydrostatic BM3 fit selected by Shim et al.: V0 = 45.58 +/- 0.05 A^3 was fixed from the ambient reference volume; K0 = 236 +/- 4 GPa and K0' = 3.9 +/- 0.2 were fitted."
   },
   {
@@ -71,6 +72,7 @@
    "fixed_parameters": [
     "K0_prime"
    ],
+   "experimental_pressure_range_gpa": [0.0, 108.0],
    "notes": "Mao et al. Table values, as reproduced by Shim et al. (2000): V0 = 45.37(8) A^3, K0 = 281(4) GPa, with K0' fixed at 4.0."
   }
  ]

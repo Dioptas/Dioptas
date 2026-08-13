@@ -47,6 +47,7 @@
     "K0_prime": null
    },
    "fixed_parameters": [],
+   "pressure_range_status": "reference_parameterization",
    "notes": "Anderson et al. thermodynamic pressure-scale parameterization. The source does not tabulate statistical standard errors for this recommended parameter set.",
    "thermal": {
     "type": "AlphaKT",
@@ -75,6 +76,7 @@
    "fixed_parameters": [
     "K0"
    ],
+   "experimental_pressure_range_gpa": [0.0, 89.0],
    "thermal": {
     "type": "MieGruneisenDebye",
     "parameters": {
@@ -106,6 +108,7 @@
    "fixed_parameters": [
     "V0"
    ],
+   "experimental_pressure_range_gpa": [0.0, 140.0],
    "temperature_ref": 300.0,
    "notes": "Table II Cu-referenced fit using DAC-1 data; V0 fixed. Reported uncertainties: K0 +/- 0.3 GPa and K0' +/- 0.01. Measurements were made at 298.5 +/- 0.5 K to 140 GPa."
   }

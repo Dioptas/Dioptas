@@ -52,6 +52,7 @@
     "K0_prime": 0.4
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 29.4],
    "notes": "Gleason et al. report V0 = 138.75 +/- 0.02 A^3, K0 = 140.3 +/- 3.7 GPa, and K0' = 4.6 +/- 0.4."
   }
  ]

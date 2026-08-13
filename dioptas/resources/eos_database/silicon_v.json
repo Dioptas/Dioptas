@@ -50,6 +50,7 @@
     "K0_prime": 0.5
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [15.8, 40.9],
    "temperature_ref": 300.0,
    "notes": "Table 8 room-temperature fit. Si-V was observed from 15.8 to 40.9 GPa; V0 is an extrapolated atomic and one-atom cell volume."
   }

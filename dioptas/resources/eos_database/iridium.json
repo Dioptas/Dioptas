@@ -46,6 +46,7 @@
     "K0_prime": 0.03
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 101.0],
    "temperature_ref": 300.0,
    "notes": "Experimental 300 K isotherm combined with resistive- and laser-heating data; fcc Ir remained stable to 101 GPa and 5600 K in the investigated range."
   }

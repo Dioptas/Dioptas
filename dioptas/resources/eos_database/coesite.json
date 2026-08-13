@@ -98,6 +98,7 @@
     "K0_prime": 1.9
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 5.2],
    "notes": "Levien and Prewitt report K0 = 96 +/- 3 GPa and K0' = 8.4 +/- 1.9. V0 is retained from the cited ambient structure; no separate fitted V0 uncertainty was reported."
   }
  ]

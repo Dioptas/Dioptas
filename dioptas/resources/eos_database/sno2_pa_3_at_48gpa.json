@@ -44,6 +44,7 @@
     "K0_prime": 2.2
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [18.0, 29.0],
    "notes": "Ono et al. report the extrapolated zero-pressure EoS values V0 = 130.6 +/- 3.0 A^3, K0 = 252 +/- 28 GPa, and K0' = 3.5 +/- 2.2. The lattice and phase lines in this file are a measured 48 GPa pattern, not the zero-pressure cell."
   }
  ],

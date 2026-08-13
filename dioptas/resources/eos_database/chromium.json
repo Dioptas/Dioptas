@@ -44,6 +44,7 @@
     "K0_prime": 0.03
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 131.0],
    "temperature_ref": 300.0,
    "notes": "Table 3 experimental helium-medium BM3 fit. The bcc phase remains observed to 131 GPa at room temperature."
   }

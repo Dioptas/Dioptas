@@ -52,6 +52,7 @@
    "fixed_parameters": [
     "V0"
    ],
+   "experimental_pressure_range_gpa": [0.0, 34.0],
    "notes": "Liu and Bassett report K0 = 913 +/- 27 kbar (91.3 +/- 2.7 GPa) and K0' = 4.3 +/- 0.3. The ambient card volume is treated as fixed."
   }
  ]

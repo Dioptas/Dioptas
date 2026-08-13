@@ -46,6 +46,7 @@
     "K0_prime": 0.3
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [90.8, 105.2],
    "temperature_ref": 300.0,
    "notes": "Table 8 room-temperature fit. Published V0=13.3 A^3/atom is multiplied by four atoms in the conventional fcc cell; V0 is extrapolated because Si-X appears above about 91 GPa."
   }

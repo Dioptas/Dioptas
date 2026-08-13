@@ -47,6 +47,7 @@
     "K0_prime": 0.09
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 124.0],
    "temperature_ref": 300.0,
    "notes": "Quasi-hydrostatic helium-medium fit; published atomic V0=17.070 A^3 is multiplied by four atoms in the conventional fcc cell. Measurements extend to 124 GPa."
   }

@@ -51,6 +51,7 @@
     "K0_prime": 0.5
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [52.7, 134.9],
    "notes": "Richet et al. report molar V0 = 14.8 +/- 0.2 cm^3/mol, K0 = 130 +/- 20 GPa, and K0' = 3.5 +/- 0.5 for B2 CaO. V0 and its uncertainty were converted to the Z=1 cell."
   }
  ]

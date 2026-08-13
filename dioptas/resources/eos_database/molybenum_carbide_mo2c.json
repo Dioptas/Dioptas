@@ -83,6 +83,7 @@
     "K0_prime": 0.3
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 46.0],
    "notes": "Haines et al. report K0 = 307(5) GPa and K0' = 6.2(3). V0 is retained from the cited ambient orthorhombic structure."
   }
  ]

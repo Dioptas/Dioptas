@@ -53,6 +53,7 @@
     "K0": 5.0
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [5.0, 21.0],
    "notes": "Gleason et al. report V0 = 66.3 +/- 0.5 A^3 and K0 = 158 +/- 5 GPa; K0' is fixed to 4 by the second-order Birch-Murnaghan equation."
   }
  ]

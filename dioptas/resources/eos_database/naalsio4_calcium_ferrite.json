@@ -83,6 +83,7 @@
     "K0_prime": 0.1
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 40.0],
    "notes": "Dubrovinsky et al. report molar V0 = 36.58(2) cm^3/mol, K0 = 220(1) GPa, and K0' = 4.1(1). V0 and its uncertainty were converted to the Z=4 cell."
   }
  ]

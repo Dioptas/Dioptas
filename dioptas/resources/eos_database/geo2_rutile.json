@@ -73,6 +73,7 @@
    "fixed_parameters": [
     "K0_prime"
    ],
+   "experimental_pressure_range_gpa": [0.0, 5.0],
    "notes": "Hazen and Finger report K0 = 258 +/- 5 GPa assuming K0' = 7.0 for rutile-type GeO2. The unsupported legacy value K0 = 395 GPa attributed to Yamanaka and Ogata was removed."
   }
  ]

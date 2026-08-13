@@ -75,6 +75,7 @@
     "K0_prime": 0.1
    },
    "fixed_parameters": ["V0", "K0"],
+   "experimental_pressure_range_gpa": [11.0, 20.0],
    "thermal": {
     "type": "MieGruneisenDebye",
     "parameters": {

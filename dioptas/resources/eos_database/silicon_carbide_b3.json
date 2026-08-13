@@ -49,6 +49,7 @@
    "fixed_parameters": [
     "V0"
    ],
+   "experimental_pressure_range_gpa": [0.0, 65.0],
    "temperature_ref": 300.0,
    "notes": "Table 1 room-temperature Birch-Murnaghan fit; V0 was fixed to 82.80 A^3 for the conventional four-formula-unit cell."
   }

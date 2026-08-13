@@ -51,6 +51,7 @@
     "K0_prime": null
    },
    "fixed_parameters": [],
+   "pressure_range_status": "theoretical",
    "notes": "Muñoz and Kunc give K0 = 166 GPa and K0' = 3.8 from an ab initio total-energy calculation for wurtzite InN. These are theoretical values, so no statistical fit uncertainties were published. V0 is retained from the cited experimental structure."
   }
  ]

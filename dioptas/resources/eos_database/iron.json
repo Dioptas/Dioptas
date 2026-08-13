@@ -47,6 +47,7 @@
     "K0_prime": 0.09
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [19.2, 300.0],
    "notes": "Mao et al. report V0 = 22.35(3) A^3, K0 = 165(4) GPa, and K0' = 5.33(9) for the two-atom hcp cell. The legacy volume was also corrected for the hexagonal sin(120 degree) factor."
   },
   {
@@ -68,6 +69,7 @@
    "fixed_parameters": [
     "V0"
    ],
+   "experimental_pressure_range_gpa": [16.0, 140.0],
    "temperature_ref": 300.0,
    "notes": "Table II Cu-referenced fit combining DAC-1 and DAC-2; V0 fixed. Reported uncertainties: K0 +/- 0.6 GPa and K0' +/- 0.03. The hcp phase data are above 16 GPa."
   }

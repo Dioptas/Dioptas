@@ -66,6 +66,7 @@
     "K0_prime": null
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 10.0],
    "notes": "Besson et al. give the 300 K molar V0 = 12.45 cm^3/mol, converted here to the Z=8 tetragonal cell. Their fit gives K0 = 20.4 GPa and K0' = 4.7 for 0-10 GPa. They state that no error can be quoted because the result depends on the adopted 300 K equation of state; it should not be used above 10 GPa."
   }
  ],

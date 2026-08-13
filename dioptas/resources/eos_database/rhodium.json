@@ -46,6 +46,7 @@
     "K0_prime": 0.2
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 55.0],
    "temperature_ref": 300.0,
    "notes": "Experimental helium-medium Vinet fit over 0-55 GPa; fcc Rh remains stable throughout the measured range."
   }

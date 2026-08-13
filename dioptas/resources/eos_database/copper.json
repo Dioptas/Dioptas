@@ -45,6 +45,7 @@
    "fixed_parameters": [
     "V0"
    ],
+   "experimental_pressure_range_gpa": [0.0, 153.0],
    "temperature_ref": 300.0,
    "notes": "Table II fit on the authors' revised PR8 ruby scale using helium as pressure medium. Published V0=11.810 A^3/atom is multiplied by four atoms in the conventional fcc cell."
   }

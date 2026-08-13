@@ -49,6 +49,7 @@
     "K0": 3.0
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 25.3],
    "temperature_ref": 300.0,
    "notes": "Recommended finite-strain result from neon-medium single-crystal XRD to 25.3 GPa. Second-order Birch-Murnaghan fixes K0'=4 by definition; the unconstrained alternative was not selected."
   }

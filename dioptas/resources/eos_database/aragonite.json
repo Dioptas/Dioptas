@@ -51,6 +51,7 @@
     "K0_prime": 0.7
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 7.0],
    "notes": "Martinez et al. report K0 = 65.4(5) GPa and K0' = 2.7(7) for the global high-temperature BM3 fit. The measured 298 K ambient volume is retained without a separately tabulated fit uncertainty; replaces two conflicting JCPDS-derived V0 entries.",
    "thermal": {
     "type": "AlphaKT",

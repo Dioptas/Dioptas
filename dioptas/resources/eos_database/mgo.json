@@ -51,6 +51,7 @@
    "fixed_parameters": [
     "V0"
    ],
+   "experimental_pressure_range_gpa": [0.0, 227.0],
    "notes": "Static nonhydrostatic BM3 fit to 227 GPa: K0 = 177 +/- 4 GPa and K0' = 4.0 +/- 0.1. The fixed molar V0 = 11.253 cm^3/mol was converted to the conventional Z=4 B1 cell."
   },
   {
@@ -72,6 +73,7 @@
    "fixed_parameters": [
     "K0"
    ],
+   "experimental_pressure_range_gpa": [0.0, 52.0],
    "notes": "Publication constrained BM3 fit. The imported constant-alpha thermal approximation was not part of this fit and was removed."
   },
   {
@@ -93,6 +95,7 @@
    "fixed_parameters": [
     "V0"
    ],
+   "experimental_pressure_range_gpa": [0.0, 140.0],
    "temperature_ref": 300.0,
    "notes": "Table II Cu-referenced fit using DAC-2 data; V0 fixed. Reported uncertainties: K0 +/- 0.7 GPa and K0' +/- 0.03. Measurements extend to 140 GPa."
   }

@@ -49,6 +49,7 @@
     "K0_prime": 0.04
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [46.0, 94.4],
    "temperature_ref": 300.0,
    "notes": "Table 8 room-temperature fit. Published V0=14.3 A^3/atom is multiplied by two atoms in the hcp cell; V0 is extrapolated because Si-VII was observed only at high pressure."
   }

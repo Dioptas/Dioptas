@@ -45,6 +45,7 @@
     "K0_prime": 1.0
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 14.0],
    "temperature_ref": 300.0,
    "notes": "Hydrostatic powder-XRD fit for hexagonal graphite. Valid only below the observed room-temperature transformation near 14 GPa."
   }

@@ -42,6 +42,8 @@ schema change::
                            "K0_prime": 0.02},
       "fixed_parameters": ["K0"],             # held fixed in the EoS fit
       "experimental_pressure_range_gpa": [0.0, 8.9], # optional fit data
+      "pressure_range_status": "theoretical", # alternative when no
+                                                 # experimental interval exists
       "experimental_temperature_range_k": [298.0, 298.0], # optional
       "thermal": {"type": "AlphaKT",         # optional
                   "parameters": {"alpha0": 4.2e-5, "dK_dT": -0.02}},
@@ -68,6 +70,9 @@ A fixed value may still have an independently measured uncertainty.
 ``experimental_temperature_range_k`` describe the measurements used to
 constrain the published fit.  They are not phase-stability limits, and an
 EoS should not automatically be extrapolated beyond them.
+``pressure_range_status`` is used instead of a numeric pressure interval for
+theoretical EoS records, source compilations, and sources that report their
+experimental limit only qualitatively.
 """
 
 from __future__ import annotations
@@ -191,17 +196,22 @@ def record_label(record: dict) -> str:
 
 
 def record_pressure_range(record: dict) -> str:
-    """Human-readable experimental pressure range, including units."""
+    """Human-readable fit pressure domain or explicit non-numeric status."""
     values = record.get("experimental_pressure_range_gpa")
-    if not isinstance(values, (list, tuple)) or len(values) != 2:
-        return ""
-    low, high = values
-    try:
-        if float(low) == float(high):
-            return f"{float(low):g} GPa"
-        return f"{float(low):g}\N{EN DASH}{float(high):g} GPa"
-    except (TypeError, ValueError):
-        return ""
+    if isinstance(values, (list, tuple)) and len(values) == 2:
+        low, high = values
+        try:
+            if float(low) == float(high):
+                return f"{float(low):g} GPa"
+            return f"{float(low):g}\N{EN DASH}{float(high):g} GPa"
+        except (TypeError, ValueError):
+            pass
+    statuses = {
+        "theoretical": "theoretical",
+        "reference_parameterization": "reference model",
+        "reported_qualitatively": "qualitative limit",
+    }
+    return statuses.get(record.get("pressure_range_status"), "")
 
 
 def record_eos_type(record: dict) -> str:

@@ -55,6 +55,23 @@ def test_experimental_ranges_are_ordered_finite_intervals():
                 )
 
 
+def test_every_eos_has_a_numeric_pressure_domain_or_explicit_status():
+    allowed_statuses = {
+        "theoretical",
+        "reference_parameterization",
+        "reported_qualitatively",
+    }
+    for path in DATABASE.glob("*.json"):
+        for record in _document(path.name)["eos_records"]:
+            has_range = "experimental_pressure_range_gpa" in record
+            has_status = "pressure_range_status" in record
+            assert has_range != has_status, (path.name, record["label"])
+            if has_status:
+                assert record["pressure_range_status"] in allowed_statuses, (
+                    path.name, record["label"]
+                )
+
+
 def test_records_without_any_parameter_error_explain_why():
     explanation_markers = {
         "uncertaint", "standard error", "no error", "non-meaningful",

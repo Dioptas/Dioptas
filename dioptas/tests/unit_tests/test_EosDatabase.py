@@ -71,6 +71,18 @@ def test_experimental_pressure_range_display():
     assert eos.record_pressure_range({}) == ""
 
 
+def test_non_numeric_pressure_domain_status_display():
+    assert eos.record_pressure_range({
+        "pressure_range_status": "reference_parameterization"
+    }) == "reference model"
+    assert eos.record_pressure_range({
+        "pressure_range_status": "theoretical"
+    }) == "theoretical"
+    assert eos.record_pressure_range({
+        "pressure_range_status": "reported_qualitatively"
+    }) == "qualitative limit"
+
+
 def test_build_jcpds_carries_everything(gold):
     phase = eos.build_jcpds(gold, record_index=0)
     # the name is the chemistry alone; the active reference lives in the

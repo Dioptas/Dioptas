@@ -60,6 +60,8 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         self.eos_table.setToolTip(
             "Fit P range is the experimental pressure interval used to "
             "constrain the published EoS, not a phase-stability range.\n"
+            "Theoretical, reference-model, and qualitative-limit records "
+            "have no defensible numeric fit interval.\n"
             "± values are publication-reported errors in the displayed "
             "units.\n‘error n/r’ means that no verified error is recorded; "
             "it does not mean zero.")

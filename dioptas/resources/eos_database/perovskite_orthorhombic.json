@@ -189,6 +189,7 @@
     "K0_prime": 0.4
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [25.0, 127.0],
    "notes": "Knittle and Jeanloz measured orthorhombic (Mg0.88Fe0.12)SiO3, not pure MgSiO3: V0 = 162.77(39) A^3, K0 = 266 +/- 6 GPa, and K0' = 3.9 +/- 0.4. The formula is stored as the exact equivalent integer ratio Mg22Fe3Si25O75."
   }
  ],

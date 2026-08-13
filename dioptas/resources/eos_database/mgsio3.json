@@ -138,6 +138,7 @@
    "fixed_parameters": [
     "K0_prime"
    ],
+   "experimental_pressure_range_gpa": [0.0, 9.72],
    "notes": "Yagi et al. report V0 = 1513.1 A^3 and K0 = 161 +/- 4 GPa with K0' fixed at 4.0. The ambient structural cell used for the phase lines is independently 1518.5 A^3."
   }
  ],

@@ -89,6 +89,7 @@
     "K0_prime": 0.07
    },
    "fixed_parameters": ["V0"],
+   "experimental_pressure_range_gpa": [0.0, 48.0],
    "notes": "Fit to single-crystal compression data through 48 GPa in helium. The measured V0=290.1(1) A^3 was fixed while K0 and K0_prime were refined."
   }
  ]

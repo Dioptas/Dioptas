@@ -85,6 +85,7 @@
     "V0",
     "K0_prime"
    ],
+   "experimental_pressure_range_gpa": [0.0, 8.2],
    "notes": "Zhao et al. report K0 = 125(4) GPa with K0' constrained to 5.0. Their ambient molar volume of 60.4 cm^3/mol is converted here to the conventional Z=4 cell; no uncertainty was reported for that fixed value. The imported phase lattice and Prewitt-Burnham coordinates are retained independently."
   }
  ]

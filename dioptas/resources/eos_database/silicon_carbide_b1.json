@@ -47,6 +47,7 @@
     "K0_prime": 0.43
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [65.0, 205.0],
    "temperature_ref": 300.0,
    "notes": "Table 1 room-temperature Birch-Murnaghan fit. The B1 phase was measured between 65 and 205 GPa; V0 is extrapolated to zero pressure."
   }

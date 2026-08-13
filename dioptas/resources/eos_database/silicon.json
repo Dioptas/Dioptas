@@ -52,6 +52,7 @@
    "fixed_parameters": [
     "K0_prime"
    ],
+   "experimental_pressure_range_gpa": [0.0, 13.9],
    "temperature_ref": 300.0,
    "notes": "Figure 1 constrained Vinet fit with K0' fixed to the ultrasonic value; published V0=20.031 A^3/atom is multiplied by eight atoms in the conventional diamond cell. Si-I was observed to 13.9 GPa under quasi-hydrostatic compression. The publication does not quote individual statistical uncertainties for this constrained fit."
   }

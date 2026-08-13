@@ -47,6 +47,7 @@
     "K0_prime": 0.31
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [4.7, 110.0],
    "notes": "From the paper's text: BM3 fit to the same data as the Vinet fit, K0=1.43(14) GPa, K0p=8.02(31)."
   },
   {
@@ -66,6 +67,7 @@
     "K0_prime": 0.31
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [4.7, 110.0],
    "thermal": {
     "type": "MieGruneisenDebye",
     "parameters": {

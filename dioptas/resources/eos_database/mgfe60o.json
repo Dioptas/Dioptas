@@ -45,6 +45,7 @@
    "fixed_parameters": [
     "K0_prime"
    ],
+   "experimental_pressure_range_gpa": [0.0, 50.0],
    "notes": "Richet et al. report V0 = 78.43(2) A^3 and K0 = 149(4) GPa with K0' fixed at 4.0 for (Mg0.4Fe0.6)O. The formula is stored as the equivalent integer ratio Mg2Fe3O5."
   }
  ],

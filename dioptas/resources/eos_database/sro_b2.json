@@ -58,6 +58,7 @@
    "fixed_parameters": [
     "K0_prime"
    ],
+   "experimental_pressure_range_gpa": [34.0, 59.0],
    "notes": "Sato and Jeanloz report K0 = 160 GPa with K0' fixed at 4.0 for B2 SrO. The publication does not provide recoverable coefficient uncertainties."
   }
  ]

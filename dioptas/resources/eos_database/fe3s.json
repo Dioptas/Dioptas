@@ -53,6 +53,7 @@
    "fixed_parameters": [
     "K0_prime"
    ],
+   "experimental_pressure_range_gpa": [0.0, 40.0],
    "notes": "Fei et al. report V0 = 377.0(2) A^3 and K0 = 150 +/- 2 GPa with K0' fixed at 4.0."
   }
  ],

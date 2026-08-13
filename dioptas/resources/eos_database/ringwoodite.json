@@ -51,6 +51,7 @@
     "K0_prime": 0.3
    },
    "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 30.0],
    "notes": "Hydrostatic compression of gamma-Mg2SiO4 to mantle pressures and 700 K. The stored values are the publication's 300 K isothermal fit."
   }
  ]
