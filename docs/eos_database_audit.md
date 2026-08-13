@@ -87,10 +87,10 @@ is intended for a later Phase Smith structure-factor calculation; symmetry-
 equivalent atoms are deliberately not duplicated in the material documents.
 
 A subsequent database-wide structure pass extended this representation to 55
-of the original 78 materials. Fixed-coordinate prototypes and source-specific
-refined coordinates are covered by stoichiometry and schema regression tests. The 23
-remaining complex, disordered, molecular, or ambiguously identified phases are
-listed with their blocking reason in `docs/eos_structure_audit.md`; no atomic
+of the original 78 materials. Later literature additions and source-specific
+refinements raised current coverage to 84 of 97 materials. The 13 remaining
+complex, disordered, molecular, or ambiguously identified phases are listed
+with their blocking reason in `docs/eos_structure_audit.md`; no atomic
 coordinates were guessed for them.
 
 ## Literature expansion beyond the JCPDS import
@@ -109,13 +109,32 @@ The other additions use Anzellini et al. for Cr, Ru, Ir, and Si-I;
 Rodrigo-Ramon et al. for Rh; and Baty et al. for Pd. Atomic reference volumes
 printed for fcc or diamond cells were converted to conventional-cell V0.
 
+## Pressure-marker and binary-compound extension
+
+Seven additional phase documents were added from four experimental studies
+and one openly archived pressure-marker report. Each has a complete ideal or
+measured asymmetric-unit structure, calculated powder reflections, parameter
+errors (or an explicit statement that the paper tabulates none), and the
+pressure interval used for the fit.
+
+| Phase | Stored EoS | V0 (A^3/cell) | K0 (GPa) | K0' | Experimental domain and source |
+|---|---:|---:|---:|---:|---|
+| LiF B1 | Vinet | 65.484 | 64.6(1.4) | 4.62(60) | 0--109 GPa; Dewaele (2019), [doi:10.3390/min9110684](https://doi.org/10.3390/min9110684). The Mao-scale column is used because it provides explicit 95% confidence intervals. |
+| KBr B1 | Vinet | 287.56 | 14.2 | 5.5 fixed | 0--2.3 GPa; Dewaele et al. (2012), [doi:10.1103/PhysRevB.85.214105](https://doi.org/10.1103/PhysRevB.85.214105). |
+| KBr B2 | Vinet | 63.4 fixed | 14.9 | 5.81 | 2.3--165 GPa; same source. B1 and B2 are separate phase documents because their cells, reflection conditions, stability ranges, and EoS parameterizations differ. |
+| cubic BP | Vinet | 93.2061 fixed | 179(1) | 3.3(1) | 0--55 GPa; Le Godec et al. (2014), [doi:10.3103/S1063457614010092](https://doi.org/10.3103/S1063457614010092). |
+| CeO2 fluorite | BM3 | 158.428242 | 220(9) | 4.4(4) | 0--20 GPa; Gerward et al. (2005), [doi:10.1016/j.jallcom.2005.04.008](https://doi.org/10.1016/j.jallcom.2005.04.008). |
+| PrO2 fluorite | BM3 | 156.939703 | 187(8) | 4.8(5) | 0--35 GPa; same source. |
+| Pb fcc | BM4 | 121.418(5) | 41.73(1) | 5.39(25) | 0--13 GPa, compression data at 295--788 K; Fortes, RAL-TR-2019-002 (2019). The database stores the 300 K slice, including K0''=-0.33(2) GPa^-1, because the source's polynomial temperature model is not representable by the present thermal schema. |
+
 ## Citation normalization
 
 Every retained citation was reconciled against publisher or DOI metadata and
-rewritten as `Authors, Journal volume, pages (year), doi:...`. Of the 98
-current records, 96 include a DOI. The two exceptions are the 1979 zircon
-and 1981 coesite papers in American Mineralogist; both have complete
-author/volume/page/year metadata, but no registered DOI was found.
+rewritten as `Authors, Journal volume, pages (year), doi:...`. Of the 110
+current records, 107 include a DOI. The exceptions are the 1979 zircon and
+1981 coesite papers in American Mineralogist, for which no registered DOI was
+found, and the citable STFC report for fcc Pb. The Pb record includes the
+open primary-report URL in its notes.
 
 This pass also corrected a material identity: `naalsi2o6_2.json` came from
 files explicitly named `NaAlSiO4 CaF phase` and cites the calcium-ferrite-type
@@ -163,9 +182,9 @@ The imported `TiBr` file was deleted because its source, lattice, and card all
 identify TiB2. Two files labeled as molybdenum were identified as `MoC
 (Fm-3m)` and `Mo2C (hexagonal)` from their source filenames; after their
 molybdenum-metal EoS records were rejected, the now-unreferenced material
-entries were removed too. The subsequent literature expansions bring the
-current database to 87 materials and 98 EoS records: 82 materials with EoS
-data and five phase-only entries.
+entries were removed too. The subsequent literature expansions and
+pressure-domain audit bring the current database to 97 materials and 110 EoS
+records: 93 materials with EoS data and four phase-only entries.
 
 ## Retention rule
 

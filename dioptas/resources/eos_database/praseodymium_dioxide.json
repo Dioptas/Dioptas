@@ -1,0 +1,65 @@
+{
+ "format_version": 1,
+ "name": "Praseodymium dioxide (fluorite)",
+ "formula": "PrO2",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 5.394,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Pr", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8c", "x": 0.25, "y": 0.25, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "The ambient fluorite cell is the value measured in the EoS study. Peak intensities are calculated Cu K-alpha powder intensities for the ideal structure.",
+ "peaks": [
+  [1, 1, 1, 3.11423, 100.0],
+  [2, 0, 0, 2.697, 29.5],
+  [2, 2, 0, 1.90707, 54.1],
+  [3, 1, 1, 1.62635, 44.4],
+  [2, 2, 2, 1.55711, 8.4],
+  [4, 0, 0, 1.3485, 8.1],
+  [3, 3, 1, 1.23747, 17.8],
+  [4, 2, 0, 1.20614, 11.6],
+  [4, 2, 2, 1.10105, 17.1],
+  [5, 1, 1, 1.03808, 15.3],
+  [4, 4, 0, 0.95353, 7.0],
+  [5, 3, 1, 0.91175, 22.3],
+  [6, 0, 0, 0.899, 10.6],
+  [6, 2, 0, 0.85287, 17.2],
+  [5, 3, 3, 0.82258, 16.3],
+  [6, 2, 2, 0.81318, 13.4]
+ ],
+ "eos_records": [
+  {
+   "label": "Gerward et al. (2005), room-temperature BM3",
+   "reference": "Gerward et al., J. Alloys Compd. 400, 56-61 (2005), doi:10.1016/j.jallcom.2005.04.008",
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 156.939703,
+     "K0": 187.0,
+     "K0_prime": 4.8
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.174571,
+    "K0": 8.0,
+    "K0_prime": 0.5
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 35.0],
+   "temperature_ref": 298.0,
+   "notes": "Room-temperature powder XRD fit of the cubic fluorite phase. The equation fits K0 and K0_prime using measured a0=5.394(2) A; V0=a0^3 and its error is propagated as 3*a0^2*sigma_a."
+  }
+ ]
+}

@@ -1,0 +1,61 @@
+{
+ "format_version": 1,
+ "name": "Boron phosphide",
+ "formula": "BP",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 4.533999,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "F-43m",
+ "space_group_number": 216,
+ "atom_sites": [
+  {"element": "B", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "P", "wyckoff": "4c", "x": 0.25, "y": 0.25, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "The zinc-blende cell is calculated from the fixed experimental V0. Peak intensities are calculated Cu K-alpha powder intensities for the ideal structure.",
+ "peaks": [
+  [1, 1, 1, 2.61771, 100.0],
+  [2, 0, 0, 2.267, 24.8],
+  [2, 2, 0, 1.60301, 42.2],
+  [3, 1, 1, 1.36705, 34.6],
+  [2, 2, 2, 1.30885, 5.8],
+  [4, 0, 0, 1.1335, 7.2],
+  [3, 3, 1, 1.04017, 17.0],
+  [4, 2, 0, 1.01383, 9.2],
+  [4, 2, 2, 0.9255, 22.8],
+  [3, 3, 3, 0.87257, 5.7],
+  [4, 4, 0, 0.80151, 20.0]
+ ],
+ "eos_records": [
+  {
+   "label": "Le Godec et al. (2014), 300 K Vinet",
+   "reference": "Le Godec et al., J. Superhard Mater. 36, 61-64 (2014), doi:10.3103/S1063457614010092",
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 93.2061,
+     "K0": 179.0,
+     "K0_prime": 3.3
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 1.0,
+    "K0_prime": 0.1
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 55.0],
+   "experimental_temperature_range_k": [300.0, 300.0],
+   "temperature_ref": 300.0,
+   "notes": "Single-crystal XRD in neon. The Vinet fit fixed the conventional zinc-blende V0 to 93.2061 A^3; no uncertainty was reported for that fixed value. No phase transition or amorphization was observed to 55 GPa."
+  }
+ ]
+}

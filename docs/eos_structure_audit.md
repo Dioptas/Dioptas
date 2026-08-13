@@ -10,21 +10,28 @@ symmetry-expanded cell is deliberately not stored.
 
 ## Coverage
 
-The database contains 87 material documents. Sixty-four now have complete
-structure metadata and 23 remain intentionally unset. Every completed entry
+The database contains 97 material documents. Eighty-four now have complete
+structure metadata and 13 remain intentionally unset. Every completed entry
 passes an automated check that Wyckoff multiplicity times occupancy reproduces
 the formula stoichiometry multiplied by `Z`.
 
 The completed set is:
 
-`alumina`, `aluminum`, `aragonite`, `argon_hcp`, `boron_nitride`, `ca_perovskite`,
-`ca_perovskite_perovskite_pv`, `cao`, `cao_b2`, `casio3_perovskite`,
-`chromium`, `cobalt_hcp`, `coesite`, `coo`, `copper`, `cscl`, `diamond`, `e_feooh`, `fe`, `fe2o3`, `fe3o4`,
-`fe_fcc`, `feh3`, `feo`, `feo_b8`, `feo_b8_2`, `fes`, `fes_iii`, `geo2_rutile`, `goethite`,
-`gold`, `graphite`, `indium_nitride`, `iridium`, `iron`, `kcl`, `li_bcc`, `magnesite`,
-`mgo`, `molybdenum`, `molybenum_carbide_mo2c`, `naalsi2o6`, `naalsio4_calcium_ferrite`, `nacl_b1`, `nacl_b2`, `neon_fcc`, `nickel`, `nis`, `palladium`, `pbs_b1`,
-`perovskite_cubic`, `platinum`, `rhenium`, `rhodium`, `ruthenium`, `silicon`, `silver`, `sio2_stv_andr`, `sno2`, `sro`,
-`sro_b2`, `tantalum`, `tungsten`, and `zircon`.
+`alpha_quartz`, `alumina`, `aluminum`, `aragonite`, `argon_hcp`, `b4c`,
+`boron_nitride`, `boron_nitride_hexagonal`, `boron_phosphide`, `bridgmanite`,
+`ca_perovskite`, `ca_perovskite_perovskite_pv`, `calcite`, `cao`, `cao_b2`,
+`cerium_dioxide`, `chromium`, `cobalt_hcp`, `coesite`, `coo`, `copper`, `cscl`,
+`diamond`, `e_feooh`, `fe`, `fe2o3`, `fe3o4`, `fe_fcc`, `feh3`, `feo`,
+`feo_b8`, `feo_b8_2`, `fes`, `fes_iii`, `forsterite`, `geo2_rutile`,
+`goethite`, `gold`, `graphite`, `indium_nitride`, `iridium`, `iron`, `kbr_b1`,
+`kbr_b2`, `kcl`, `lead_fcc`, `li_bcc`, `lif_b1`, `magnesite`, `mgo`,
+`mgsio3_post_perovskite`, `molybdenum`, `molybenum_carbide_mo2c`,
+`naalsi2o6`, `naalsio4_calcium_ferrite`, `nacl_b1`, `nacl_b2`, `neon_fcc`,
+`nickel`, `niobium`, `nis`, `palladium`, `pbs_b1`, `platinum`,
+`praseodymium_dioxide`, `rhenium`, `rhodium`, `ringwoodite`, `ruthenium`,
+`silicon`, `silicon_carbide_b1`, `silicon_carbide_b3`, `silicon_v`,
+`silicon_vii`, `silicon_x`, `silver`, `sio2_stv_andr`, `sno2`, `sro`,
+`sro_b2`, `tantalum`, `tungsten`, `wadsleyite`, and `zircon`.
 
 Fixed-coordinate prototypes were assigned only where the phase identity and
 cell setting are unambiguous: fcc, bcc, hcp, diamond, graphite, zinc blende,
@@ -69,14 +76,11 @@ first be reconciled.
 
 | Files | Reason for deferral |
 |---|---|
-| `alpha_ca2sio5`, `alphah_ca2sio5`, `alphal_ca2sio5`, `gamma_ca2sio5`, `k2nif4_ca2sio5`, `larnite` | The imported names/formulas are inconsistent with the Ca2SiO4 polymorph nomenclature; identity, setting, and source structure must be reconciled together. |
-| `casi2o5`, `casi2o5_2` | Complex mono-/triclinic CaSi2O5 structures; the EoS paper does not provide an unambiguous ambient asymmetric unit for these imported settings. |
-| `ca_perovskite_tetragonal`, `sno2_cubic_27gpa`, `sno2_pa_3_at_48gpa` | High-pressure polymorphs whose internal coordinates and, for the 27 GPa SnO2 entry, exact structure model must be taken at the stated pressure. |
+| `sno2_cubic_27gpa`, `sno2_pa_3_at_48gpa` | High-pressure polymorphs whose internal coordinates and, for the 27 GPa SnO2 entry, exact structure model must be taken at the stated pressure. |
 | `feh2`, `fe3s` | Hydrogen/iron-sulfide high-pressure structures need the experimental or calculated site table for the exact phase and pressure. |
 | `iceviii`, `nitrogen_epsilon`, `o8` | Molecular positions and orientations cannot be reconstructed from lattice and powder peaks alone. |
 | `majorite`, `mgsio3`, `mg7si2o8`, `phase_d` | Complex mantle phases; composition/site occupancy is missing or ambiguous in the imported document. |
 | `perovskite_orthorhombic`, `mgfe60o` | The source filenames indicate solid solutions, but the imported formulas do not reliably encode their compositions or mixed-site occupancies. |
-| `b4c` | Boron-carbide site occupancies depend on the polytype and carbon distribution; JCPDS/PDF 6-0555 and the cited 1934 phase paper do not define a modern, unique occupancy model. |
 
 These blanks are deliberate. A plausible prototype with guessed coordinates
 would produce plausible-looking but potentially wrong reflection intensities.

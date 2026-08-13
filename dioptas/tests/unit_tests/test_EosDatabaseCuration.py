@@ -303,7 +303,7 @@ def test_all_curated_structures_are_complete_and_stoichiometric():
             )
         assert dict(actual) == pytest.approx(dict(expected)), path.name
 
-    assert len(structured) == 77
+    assert len(structured) == 84
 
 
 @pytest.mark.parametrize(
@@ -341,6 +341,59 @@ def test_literature_expansion_eos_records(
 
 
 @pytest.mark.parametrize(
+    "filename,eos_type,parameters,errors,fixed,pressure_range",
+    [
+        ("lif_b1.json", "Vinet",
+         {"V0": 65.484, "K0": 64.6, "K0_prime": 4.62},
+         {"V0": 0.12, "K0": 1.4, "K0_prime": 0.6},
+         [], [0.0, 109.0]),
+        ("kbr_b1.json", "Vinet",
+         {"V0": 287.56, "K0": 14.2, "K0_prime": 5.5},
+         {"V0": None, "K0": None, "K0_prime": None},
+         ["K0_prime"], [0.0, 2.3]),
+        ("kbr_b2.json", "Vinet",
+         {"V0": 63.4, "K0": 14.9, "K0_prime": 5.81},
+         {"V0": None, "K0": None, "K0_prime": None},
+         ["V0"], [2.3, 165.0]),
+        ("boron_phosphide.json", "Vinet",
+         {"V0": 93.2061, "K0": 179.0, "K0_prime": 3.3},
+         {"V0": None, "K0": 1.0, "K0_prime": 0.1},
+         ["V0"], [0.0, 55.0]),
+        ("cerium_dioxide.json", "BM3",
+         {"V0": 158.428242, "K0": 220.0, "K0_prime": 4.4},
+         {"V0": 0.087837, "K0": 9.0, "K0_prime": 0.4},
+         ["V0"], [0.0, 20.0]),
+        ("praseodymium_dioxide.json", "BM3",
+         {"V0": 156.939703, "K0": 187.0, "K0_prime": 4.8},
+         {"V0": 0.174571, "K0": 8.0, "K0_prime": 0.5},
+         ["V0"], [0.0, 35.0]),
+        ("lead_fcc.json", "BM4",
+         {"V0": 121.418, "K0": 41.73, "K0_prime": 5.39,
+          "K0_double_prime": -0.33},
+         {"V0": 0.005, "K0": 0.01, "K0_prime": 0.25,
+          "K0_double_prime": 0.02},
+         ["V0", "K0"], [0.0, 13.0]),
+    ],
+)
+def test_new_phase_eos_records_match_primary_sources(
+        filename, eos_type, parameters, errors, fixed, pressure_range):
+    record = _document(filename)["eos_records"][0]
+    assert record["eos"]["type"] == eos_type
+    assert record["eos"]["parameters"] == pytest.approx(parameters)
+    assert record["parameter_errors"] == errors
+    assert record["fixed_parameters"] == fixed
+    assert record["experimental_pressure_range_gpa"] == pressure_range
+
+
+def test_fortes_lead_record_is_an_explicit_static_pvt_slice():
+    record = _document("lead_fcc.json")["eos_records"][0]
+    assert record["temperature_ref"] == pytest.approx(300.0)
+    assert record["experimental_temperature_range_k"] == [295.0, 788.0]
+    assert "temperature-dependent" in record["notes"]
+    assert "RAL-TR-2019-002.pdf" in record["notes"]
+
+
+@pytest.mark.parametrize(
     "filename",
     [
         "aluminum.json", "silver.json", "nickel.json", "chromium.json",
@@ -352,6 +405,9 @@ def test_literature_expansion_eos_records(
         "boron_nitride_hexagonal.json", "niobium.json",
         "ringwoodite.json",
         "alpha_quartz.json", "calcite.json",
+        "lif_b1.json", "kbr_b1.json", "kbr_b2.json",
+        "boron_phosphide.json", "cerium_dioxide.json",
+        "praseodymium_dioxide.json", "lead_fcc.json",
     ],
 )
 def test_literature_expansion_peak_d_spacings(filename):
@@ -615,6 +671,8 @@ def test_retained_references_have_normalized_publication_metadata():
     no_registered_doi = {
         "Levien and Prewitt, American Mineralogist 66, 324-333 (1981)",
         "Hazen and Finger, American Mineralogist 64, 196-201 (1979)",
+        "Fortes, STFC Rutherford Appleton Laboratory Technical Report "
+        "RAL-TR-2019-002 (2019)",
     }
     references = []
     for path in DATABASE.glob("*.json"):
@@ -622,7 +680,7 @@ def test_retained_references_have_normalized_publication_metadata():
             record["reference"] for record in _document(path.name)["eos_records"]
         )
 
-    assert len(references) == 103
+    assert len(references) == 110
     assert {reference for reference in references if "doi:" not in reference} == (
         no_registered_doi
     )
