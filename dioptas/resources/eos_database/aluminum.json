@@ -1,0 +1,44 @@
+{
+ "format_version": 1,
+ "name": "Aluminum",
+ "formula": "Al",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 4.047191,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Al", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "The lattice parameter is calculated from the fitted 298 K atomic reference volume. Peak intensities are calculated Cu K-alpha powder intensities for the ideal fcc structure.",
+ "peaks": [
+  [1, 1, 1, 2.33665, 100.0],
+  [2, 0, 0, 2.0236, 48.3],
+  [2, 2, 0, 1.4309, 30.8],
+  [3, 1, 1, 1.22027, 35.6],
+  [2, 2, 2, 1.16832, 10.3],
+  [4, 0, 0, 1.0118, 5.4],
+  [3, 3, 1, 0.92849, 19.9],
+  [4, 2, 0, 0.90498, 20.1],
+  [4, 2, 2, 0.82613, 25.5]
+ ],
+ "eos_records": [
+  {
+   "label": "Dewaele et al. (2004), revised-ruby Vinet",
+   "reference": "Dewaele, Loubeyre, and Mezouar, Phys. Rev. B 70, 094112 (2004), doi:10.1103/PhysRevB.70.094112",
+   "eos": {
+    "type": "Vinet",
+    "parameters": {"V0": 66.292, "K0": 74.3, "K0_prime": 4.47}
+   },
+   "temperature_ref": 298.0,
+   "notes": "Table II unconstrained fit on the authors' revised ruby scale; published atomic V0=16.573 A^3 is multiplied by four atoms in the conventional fcc cell. Measurements extend to 153 GPa."
+  }
+ ]
+}

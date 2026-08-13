@@ -1,0 +1,44 @@
+{
+ "format_version": 1,
+ "name": "Silver",
+ "formula": "Ag",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 4.08725,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Ag", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "The lattice parameter is calculated from the fitted 300 K atomic reference volume. Peak intensities are calculated Cu K-alpha powder intensities for the ideal fcc structure.",
+ "peaks": [
+  [1, 1, 1, 2.35977, 100.0],
+  [2, 0, 0, 2.04362, 48.2],
+  [2, 2, 0, 1.44506, 29.8],
+  [3, 1, 1, 1.23235, 34.5],
+  [2, 2, 2, 1.17989, 10.1],
+  [4, 0, 0, 1.02181, 5.4],
+  [3, 3, 1, 0.93768, 20.9],
+  [4, 2, 0, 0.91394, 21.4],
+  [4, 2, 2, 0.83431, 28.5]
+ ],
+ "eos_records": [
+  {
+   "label": "Dewaele et al. (2008), Vinet",
+   "reference": "Dewaele, Torrent, Loubeyre, and Mezouar, Phys. Rev. B 78, 104102 (2008), doi:10.1103/PhysRevB.78.104102",
+   "eos": {
+    "type": "Vinet",
+    "parameters": {"V0": 68.28, "K0": 100.2, "K0_prime": 5.70}
+   },
+   "temperature_ref": 300.0,
+   "notes": "Quasi-hydrostatic helium-medium fit; published atomic V0=17.070 A^3 is multiplied by four atoms in the conventional fcc cell. Measurements extend to 124 GPa."
+  }
+ ]
+}

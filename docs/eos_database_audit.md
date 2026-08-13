@@ -57,18 +57,34 @@ coordinates, Wyckoff multiplicity/letter, and occupancy. This representation
 is intended for a later Phase Smith structure-factor calculation; symmetry-
 equivalent atoms are deliberately not duplicated in the material documents.
 
-A subsequent database-wide structure pass extended this representation to 48
-of the 78 materials. Fixed-coordinate prototypes and source-specific refined
-coordinates are covered by stoichiometry and schema regression tests. The 30
+A subsequent database-wide structure pass extended this representation to 55
+of the original 78 materials. Fixed-coordinate prototypes and source-specific
+refined coordinates are covered by stoichiometry and schema regression tests. The 23
 remaining complex, disordered, molecular, or ambiguously identified phases are
 listed with their blocking reason in `docs/eos_structure_audit.md`; no atomic
 coordinates were guessed for them.
 
+## Literature expansion beyond the JCPDS import
+
+Nine material documents absent from the imported collection were added from
+primary high-pressure diffraction studies: fcc Al, Ag, Ni, Rh, Pd, and Ir;
+bcc Cr; hcp Ru; and diamond-cubic Si-I. Each document contains a complete
+asymmetric-unit structure, a reference cell consistent with its fitted V0,
+calculated powder peaks, and at least one experimental room-temperature EoS.
+
+The Al parameters are the revised-ruby Vinet fit of Dewaele et al. (2004),
+[doi:10.1103/PhysRevB.70.094112](https://doi.org/10.1103/PhysRevB.70.094112).
+Ag and Ni use the helium-medium Vinet fits of Dewaele et al. (2008),
+[doi:10.1103/PhysRevB.78.104102](https://doi.org/10.1103/PhysRevB.78.104102).
+The other additions use Anzellini et al. for Cr, Ru, Ir, and Si-I;
+Rodrigo-Ramon et al. for Rh; and Baty et al. for Pd. Atomic reference volumes
+printed for fcc or diamond cells were converted to conventional-cell V0.
+
 ## Citation normalization
 
 Every retained citation was reconciled against publisher or DOI metadata and
-rewritten as `Authors, Journal volume, pages (year), doi:...`. Of the 86
-current records, 84 include a DOI. The two exceptions are the 1979 zircon
+rewritten as `Authors, Journal volume, pages (year), doi:...`. Of the 95
+current records, 93 include a DOI. The two exceptions are the 1979 zircon
 and 1981 coesite papers in American Mineralogist; both have complete
 author/volume/page/year metadata, but no registered DOI was found.
 
@@ -118,7 +134,9 @@ The imported `TiBr` file was deleted because its source, lattice, and card all
 identify TiB2. Two files labeled as molybdenum were identified as `MoC
 (Fm-3m)` and `Mo2C (hexagonal)` from their source filenames; after their
 molybdenum-metal EoS records were rejected, the now-unreferenced material
-entries were removed too.
+entries were removed too. The subsequent literature expansion brings the
+current database to 87 materials and 95 EoS records: 80 materials with EoS
+data and seven phase-only entries.
 
 ## Retention rule
 

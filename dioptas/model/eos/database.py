@@ -26,6 +26,7 @@ eos_database_path = os.path.join(resources_path, "eos_database")
 # Common-name shortcuts for friendlier search
 _ALIASES = {
     "gold": "Au", "silver": "Ag", "iron": "Fe", "copper": "Cu",
+    "aluminium": "Al",
     "platinum": "Pt", "iridium": "Ir", "rhenium": "Re", "tungsten": "W",
     "neon": "Ne", "argon": "Ar",
     "alumina": "Al2O3", "corundum": "Al2O3",

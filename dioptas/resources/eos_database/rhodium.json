@@ -1,0 +1,43 @@
+{
+ "format_version": 1,
+ "name": "Rhodium",
+ "formula": "Rh",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.804012,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Rh", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "The lattice parameter is calculated from the fitted 300 K reference volume. Peak intensities are calculated Cu K-alpha powder intensities for the ideal fcc structure.",
+ "peaks": [
+  [1, 1, 1, 2.19625, 100.0],
+  [2, 0, 0, 1.90201, 47.5],
+  [2, 2, 0, 1.34492, 29.0],
+  [3, 1, 1, 1.14695, 35.2],
+  [2, 2, 2, 1.09812, 10.5],
+  [4, 0, 0, 0.951, 6.7],
+  [3, 3, 1, 0.8727, 30.3],
+  [4, 2, 0, 0.8506, 33.3]
+ ],
+ "eos_records": [
+  {
+   "label": "Rodrigo-Ramon et al. (2024), Vinet",
+   "reference": "Rodrigo-Ramon et al., Sci. Rep. 14, 26634 (2024), doi:10.1038/s41598-024-78006-0",
+   "eos": {
+    "type": "Vinet",
+    "parameters": {"V0": 55.046, "K0": 251.0, "K0_prime": 5.7}
+   },
+   "temperature_ref": 300.0,
+   "notes": "Experimental helium-medium Vinet fit over 0-55 GPa; fcc Rh remains stable throughout the measured range."
+  }
+ ]
+}

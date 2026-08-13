@@ -10,20 +10,20 @@ symmetry-expanded cell is deliberately not stored.
 
 ## Coverage
 
-The database contains 78 material documents. Fifty-five now have complete
+The database contains 87 material documents. Sixty-four now have complete
 structure metadata and 23 remain intentionally unset. Every completed entry
 passes an automated check that Wyckoff multiplicity times occupancy reproduces
 the formula stoichiometry multiplied by `Z`.
 
 The completed set is:
 
-`alumina`, `aragonite`, `argon_hcp`, `boron_nitride`, `ca_perovskite`,
+`alumina`, `aluminum`, `aragonite`, `argon_hcp`, `boron_nitride`, `ca_perovskite`,
 `ca_perovskite_perovskite_pv`, `cao`, `cao_b2`, `casio3_perovskite`,
-`cobalt_hcp`, `coesite`, `coo`, `copper`, `cscl`, `diamond`, `e_feooh`, `fe`, `fe2o3`, `fe3o4`,
+`chromium`, `cobalt_hcp`, `coesite`, `coo`, `copper`, `cscl`, `diamond`, `e_feooh`, `fe`, `fe2o3`, `fe3o4`,
 `fe_fcc`, `feh3`, `feo`, `feo_b8`, `feo_b8_2`, `fes`, `fes_iii`, `geo2_rutile`, `goethite`,
-`gold`, `graphite`, `indium_nitride`, `iron`, `kcl`, `li_bcc`, `magnesite`,
-`mgo`, `molybdenum`, `molybenum_carbide_mo2c`, `naalsi2o6`, `naalsio4_calcium_ferrite`, `nacl_b1`, `nacl_b2`, `neon_fcc`, `nis`, `pbs_b1`,
-`perovskite_cubic`, `platinum`, `rhenium`, `sio2_stv_andr`, `sno2`, `sro`,
+`gold`, `graphite`, `indium_nitride`, `iridium`, `iron`, `kcl`, `li_bcc`, `magnesite`,
+`mgo`, `molybdenum`, `molybenum_carbide_mo2c`, `naalsi2o6`, `naalsio4_calcium_ferrite`, `nacl_b1`, `nacl_b2`, `neon_fcc`, `nickel`, `nis`, `palladium`, `pbs_b1`,
+`perovskite_cubic`, `platinum`, `rhenium`, `rhodium`, `ruthenium`, `silicon`, `silver`, `sio2_stv_andr`, `sno2`, `sro`,
 `sro_b2`, `tantalum`, `tungsten`, and `zircon`.
 
 Fixed-coordinate prototypes were assigned only where the phase identity and

@@ -170,7 +170,57 @@ def test_all_curated_structures_are_complete_and_stoichiometric():
             )
         assert dict(actual) == pytest.approx(dict(expected)), path.name
 
-    assert len(structured) == 55
+    assert len(structured) == 64
+
+
+@pytest.mark.parametrize(
+    "filename,eos_type,v0,k0,k0_prime",
+    [
+        ("aluminum.json", "Vinet", 66.292, 74.3, 4.47),
+        ("silver.json", "Vinet", 68.28, 100.2, 5.70),
+        ("nickel.json", "Vinet", 43.816, 177.5, 4.83),
+        ("chromium.json", "BM3", 24.08, 185.0, 4.74),
+        ("ruthenium.json", "BM3", 27.122, 323.4, 4.15),
+        ("rhodium.json", "Vinet", 55.046, 251.0, 5.7),
+        ("palladium.json", "BM3", 58.88, 190.0, 5.3),
+        ("iridium.json", "BM3", 56.62, 327.0, 5.46),
+        ("silicon.json", "Vinet", 160.248, 97.89, 4.24),
+    ],
+)
+def test_literature_expansion_eos_records(
+        filename, eos_type, v0, k0, k0_prime):
+    record = _document(filename)["eos_records"][0]
+    assert record["eos"] == {
+        "type": eos_type,
+        "parameters": {
+            "V0": pytest.approx(v0),
+            "K0": pytest.approx(k0),
+            "K0_prime": pytest.approx(k0_prime),
+        },
+    }
+    assert "doi:" in record["reference"].lower()
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "aluminum.json", "silver.json", "nickel.json", "chromium.json",
+        "ruthenium.json", "rhodium.json", "palladium.json",
+        "iridium.json", "silicon.json",
+    ],
+)
+def test_literature_expansion_peak_d_spacings(filename):
+    document = _document(filename)
+    lattice = document["lattice"]
+    for h, k, l, stored_d, _intensity in document["peaks"]:
+        if document["symmetry"] == "CUBIC":
+            calculated_d = lattice["a"] / math.sqrt(h * h + k * k + l * l)
+        else:
+            calculated_d = 1.0 / math.sqrt(
+                4.0 * (h * h + h * k + k * k) / (3.0 * lattice["a"] ** 2)
+                + l * l / lattice["c"] ** 2
+            )
+        assert calculated_d == pytest.approx(stored_d, abs=1e-5)
 
 
 @pytest.mark.parametrize("filename", ["e_feooh.json", "fes.json"])
@@ -290,7 +340,7 @@ def test_retained_references_have_normalized_publication_metadata():
             record["reference"] for record in _document(path.name)["eos_records"]
         )
 
-    assert len(references) == 86
+    assert len(references) == 95
     assert {reference for reference in references if "doi:" not in reference} == (
         no_registered_doi
     )
