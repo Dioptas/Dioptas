@@ -4,7 +4,7 @@
  "formula": "Cu",
  "symmetry": "CUBIC",
  "lattice": {
-  "a": 3.615,
+  "a": 3.614958,
   "b": null,
   "c": null,
   "alpha": 90.0,
@@ -17,13 +17,24 @@
  "atom_sites": [
   {"element": "Cu", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
  ],
- "notes": "FCC phase reference: JCPDS 04-0836.",
+ "notes": "FCC phase reference: JCPDS 04-0836. The reference cell is calculated from the fitted conventional-cell V0.",
  "peaks": [
-  [1, 1, 1, 2.088, 100.0],
-  [2, 0, 0, 1.808, 46.0],
-  [2, 2, 0, 1.278, 20.0],
-  [3, 1, 1, 1.09, 17.0],
-  [2, 2, 2, 1.0436, 5.0]
+  [1, 1, 1, 2.0871, 100.0],
+  [2, 0, 0, 1.80748, 46.0],
+  [2, 2, 0, 1.27808, 20.0],
+  [3, 1, 1, 1.08995, 17.0],
+  [2, 2, 2, 1.04355, 5.0]
  ],
- "eos_records": []
+ "eos_records": [
+  {
+   "label": "Dewaele et al. (2004), revised-ruby-scale Vinet",
+   "reference": "Dewaele, Loubeyre, and Mezouar, Phys. Rev. B 70, 094112 (2004), doi:10.1103/PhysRevB.70.094112",
+   "eos": {
+    "type": "Vinet",
+    "parameters": {"V0": 47.24, "K0": 132.4, "K0_prime": 5.32}
+   },
+   "temperature_ref": 300.0,
+   "notes": "Table II fit on the authors' revised PR8 ruby scale using helium as pressure medium. Published V0=11.810 A^3/atom is multiplied by four atoms in the conventional fcc cell."
+  }
+ ]
 }

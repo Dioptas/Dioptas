@@ -1,0 +1,43 @@
+{
+ "format_version": 1,
+ "name": "Niobium",
+ "formula": "Nb",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.300704,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 2,
+ "space_group": "Im-3m",
+ "space_group_number": 229,
+ "atom_sites": [
+  {"element": "Nb", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "Body-centered-cubic niobium. The reference cell is calculated from the published atomic V0. Peak intensities are calculated Cu K-alpha powder intensities for the ideal structure.",
+ "peaks": [
+  [1, 1, 0, 2.33395, 100.0],
+  [2, 0, 0, 1.65035, 16.6],
+  [2, 1, 1, 1.34751, 33.4],
+  [2, 2, 0, 1.16698, 10.7],
+  [3, 1, 0, 1.04377, 16.7],
+  [2, 2, 2, 0.95283, 5.2],
+  [3, 2, 1, 0.88215, 34.6],
+  [4, 0, 0, 0.82518, 5.8]
+ ],
+ "eos_records": [
+  {
+   "label": "Takemura and Singh (2006), helium-medium BM3",
+   "reference": "Takemura and Singh, Phys. Rev. B 73, 224119 (2006), doi:10.1103/PhysRevB.73.224119",
+   "eos": {
+    "type": "BM3",
+    "parameters": {"V0": 35.96, "K0": 168.0, "K0_prime": 3.4}
+   },
+   "temperature_ref": 300.0,
+   "notes": "Helium-medium powder-XRD fit to 134 GPa. Published V0=17.98 A^3/atom is multiplied by two atoms in the conventional bcc cell; no phase transition was observed."
+  }
+ ]
+}

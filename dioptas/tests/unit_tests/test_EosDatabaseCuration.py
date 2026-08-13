@@ -37,6 +37,17 @@ def _document(filename):
         ("cobalt_hcp.json", 0, "BM3", 22.4685, 199.0, 3.6),
         ("nacl_b2.json", 0, "BM3", 41.67, 36.2, 4.0),
         ("tungsten.json", 1, "Vinet", 31.724, 295.2, 4.32),
+        ("copper.json", 0, "Vinet", 47.24, 132.4, 5.32),
+        ("b4c.json", 0, "BM3", 328.5, 221.0, 3.3),
+        ("alumina.json", 0, "Vinet", 255.45, 254.1, 4.0),
+        ("fe2o3.json", 0, "BM2", 301.88, 207.0, None),
+        ("silicon_v.json", 0, "Vinet", 15.3, 95.0, 4.6),
+        ("silicon_vii.json", 0, "Vinet", 28.6, 96.9, 4.01),
+        ("silicon_x.json", 0, "Vinet", 53.2, 136.0, 4.2),
+        ("silicon_carbide_b3.json", 0, "BM3", 82.8, 224.0, 4.1),
+        ("silicon_carbide_b1.json", 0, "BM3", 66.3, 323.0, 3.1),
+        ("boron_nitride_hexagonal.json", 0, "BM3", 36.18, 27.4, 11.4),
+        ("niobium.json", 0, "BM3", 35.96, 168.0, 3.4),
     ],
 )
 def test_publication_corrected_eos_records(
@@ -173,7 +184,7 @@ def test_all_curated_structures_are_complete_and_stoichiometric():
             )
         assert dict(actual) == pytest.approx(dict(expected)), path.name
 
-    assert len(structured) == 64
+    assert len(structured) == 72
 
 
 @pytest.mark.parametrize(
@@ -210,6 +221,10 @@ def test_literature_expansion_eos_records(
         "aluminum.json", "silver.json", "nickel.json", "chromium.json",
         "ruthenium.json", "rhodium.json", "palladium.json",
         "iridium.json", "silicon.json", "graphite.json", "rhenium.json",
+        "copper.json", "b4c.json", "alumina.json", "fe2o3.json",
+        "silicon_v.json", "silicon_vii.json", "silicon_x.json",
+        "silicon_carbide_b3.json", "silicon_carbide_b1.json",
+        "boron_nitride_hexagonal.json", "niobium.json",
     ],
 )
 def test_literature_expansion_peak_d_spacings(filename):
@@ -278,10 +293,6 @@ def test_publication_second_order_fits_do_not_store_fitted_k0_prime(
 
 def test_phase_only_materials_have_explicit_card_references():
     expected = {
-        "alumina.json": "JCPDS 0-173",
-        "b4c.json": "JCPDS/PDF 6-0555",
-        "copper.json": "JCPDS 04-0836",
-        "fe2o3.json": "JCPDS 33-664",
         "fe_fcc.json": "JCPDS 4-0829",
     }
     actual = {}
@@ -341,7 +352,7 @@ def test_retained_references_have_normalized_publication_metadata():
             record["reference"] for record in _document(path.name)["eos_records"]
         )
 
-    assert len(references) == 98
+    assert len(references) == 109
     assert {reference for reference in references if "doi:" not in reference} == (
         no_registered_doi
     )

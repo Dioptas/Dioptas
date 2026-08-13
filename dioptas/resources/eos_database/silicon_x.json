@@ -1,0 +1,43 @@
+{
+ "format_version": 1,
+ "name": "Silicon (Si-X, fcc)",
+ "formula": "Si",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.761005,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Si", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "Face-centered-cubic Si-X. The reference cell is calculated from the extrapolated conventional-cell V0. Peak intensities are calculated Cu K-alpha powder intensities for the ideal structure.",
+ "peaks": [
+  [1, 1, 1, 2.17142, 100.0],
+  [2, 0, 0, 1.8805, 47.5],
+  [2, 2, 0, 1.32972, 30.3],
+  [3, 1, 1, 1.13399, 37.2],
+  [2, 2, 2, 1.08571, 11.1],
+  [4, 0, 0, 0.94025, 6.9],
+  [3, 3, 1, 0.86283, 30.7],
+  [4, 2, 0, 0.84099, 33.6]
+ ],
+ "eos_records": [
+  {
+   "label": "Anzellini et al. (2019), 300 K Vinet",
+   "reference": "Anzellini et al., Sci. Rep. 9, 15537 (2019), doi:10.1038/s41598-019-51931-1",
+   "eos": {
+    "type": "Vinet",
+    "parameters": {"V0": 53.2, "K0": 136.0, "K0_prime": 4.2}
+   },
+   "temperature_ref": 300.0,
+   "notes": "Table 8 room-temperature fit. Published V0=13.3 A^3/atom is multiplied by four atoms in the conventional fcc cell; V0 is extrapolated because Si-X appears above about 91 GPa."
+  }
+ ]
+}

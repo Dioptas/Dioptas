@@ -4,36 +4,56 @@
  "formula": "B4C",
  "symmetry": "HEXAGONAL",
  "lattice": {
-  "a": 5.61,
+  "a": 5.607296,
   "b": null,
-  "c": 12.07,
+  "c": 12.064181,
   "alpha": 90.0,
   "beta": 90.0,
   "gamma": 120.0
  },
  "formula_units_per_cell": 9,
- "notes": "Phase reference: Clark and Hoard, J. Am. Chem. Soc. 65, 2115-2119 (1943), doi:10.1021/ja01251a026; JCPDS/PDF 6-0555.",
- "peaks": [
-  [1, 0, 1, 4.49, 30.0],
-  [0, 0, 3, 4.02, 40.0],
-  [0, 1, 2, 3.79, 70.0],
-  [1, 1, 0, 2.81, 30.0],
-  [1, 0, 4, 2.57, 80.0],
-  [0, 2, 1, 2.38, 100.0],
-  [1, 1, 3, 2.3, 10.0],
-  [0, 0, 6, 2.02, 10.0],
-  [2, 1, 1, 1.82, 10.0],
-  [2, 0, 5, 1.714, 30.0],
-  [1, 1, 6, 1.637, 10.0],
-  [1, 0, 7, 1.628, 10.0],
-  [3, 0, 3, 1.505, 20.0],
-  [1, 2, 5, 1.463, 30.0],
-  [0, 1, 8, 1.446, 30.0],
-  [0, 2, 7, 1.407, 30.0],
-  [2, 2, 0, 1.403, 30.0],
-  [0, 0, 9, 1.345, 20.0],
-  [1, 3, 1, 1.342, 20.0],
-  [2, 2, 3, 1.326, 20.0]
+ "space_group": "R-3m",
+ "space_group_number": 166,
+ "atom_sites": [
+  {"element": "B", "wyckoff": "18h", "x": 0.838, "y": 0.162, "z": 0.358, "occupancy": 1.0},
+  {"element": "B", "wyckoff": "18h", "x": 0.892, "y": 0.108, "z": 0.1167, "occupancy": 0.8333333333},
+  {"element": "C", "wyckoff": "18h", "x": 0.892, "y": 0.108, "z": 0.1167, "occupancy": 0.1666666667},
+  {"element": "B", "wyckoff": "3b", "x": 0.0, "y": 0.0, "z": 0.5, "occupancy": 1.0},
+  {"element": "C", "wyckoff": "6c", "x": 0.0, "y": 0.0, "z": 0.3809, "occupancy": 1.0}
  ],
- "eos_records": []
+ "notes": "Phase reference: Clark and Hoard, J. Am. Chem. Soc. 65, 2115-2119 (1943), doi:10.1021/ja01251a026; JCPDS/PDF 6-0555. Average R-3m B4C model: the polar icosahedral site is represented by split B/C occupancy; the reference cell is constrained to the EoS V0 while retaining the measured axial ratio.",
+ "peaks": [
+  [1, 0, 1, 4.50482, 30.0],
+  [0, 0, 3, 4.02139, 40.0],
+  [0, 1, 2, 3.78263, 70.0],
+  [1, 1, 0, 2.80365, 30.0],
+  [1, 0, 4, 2.56209, 80.0],
+  [0, 2, 1, 2.3803, 100.0],
+  [1, 1, 3, 2.29988, 10.0],
+  [0, 0, 6, 2.0107, 10.0],
+  [2, 1, 1, 1.81454, 10.0],
+  [2, 0, 5, 1.71148, 30.0],
+  [1, 1, 6, 1.63394, 10.0],
+  [1, 0, 7, 1.6242, 10.0],
+  [3, 0, 3, 1.50161, 20.0],
+  [1, 2, 5, 1.46081, 30.0],
+  [0, 1, 8, 1.44018, 30.0],
+  [0, 2, 7, 1.4054, 30.0],
+  [2, 2, 0, 1.40182, 30.0],
+  [0, 0, 9, 1.34046, 20.0],
+  [1, 3, 1, 1.33851, 20.0],
+  [2, 2, 3, 1.3237, 20.0]
+ ],
+ "eos_records": [
+  {
+   "label": "Somayazulu et al. (2023), 300 K BM3",
+   "reference": "Somayazulu et al., Philos. Trans. R. Soc. A 381, 20220331 (2023), doi:10.1098/rsta.2022.0331",
+   "eos": {
+    "type": "BM3",
+    "parameters": {"V0": 328.5, "K0": 221.0, "K0_prime": 3.3}
+   },
+   "temperature_ref": 300.0,
+   "notes": "Quasi-hydrostatic room-temperature fit to 50 GPa. The average disordered R-3m structure follows the ideal B4C model confirmed to 74 GPa by Dera et al., J. Solid State Chem. 215, 85-93 (2014), doi:10.1016/j.jssc.2014.03.018."
+  }
+ ]
 }

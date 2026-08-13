@@ -1,0 +1,47 @@
+{
+ "format_version": 1,
+ "name": "Silicon (Si-V, simple hexagonal)",
+ "formula": "Si",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 2.664021,
+  "b": null,
+  "c": 2.489348,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": 1,
+ "space_group": "P6/mmm",
+ "space_group_number": 191,
+ "atom_sites": [
+  {"element": "Si", "wyckoff": "1a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "Simple-hexagonal Si-V. Because the high-pressure phase cannot be recovered, the reference cell is constructed from the extrapolated EoS V0 and the axial ratio measured at 17.9 GPa. Peak intensities are calculated Cu K-alpha powder intensities for the ideal structure.",
+ "peaks": [
+  [0, 0, 1, 2.48935, 42.1],
+  [1, 0, 0, 2.30711, 100.0],
+  [1, 0, 1, 1.69213, 74.4],
+  [1, 1, 0, 1.33201, 16.8],
+  [0, 0, 2, 1.24467, 4.5],
+  [1, 1, 1, 1.17445, 22.6],
+  [2, 0, 0, 1.15355, 10.8],
+  [1, 0, 2, 1.09543, 18.8],
+  [2, 0, 1, 1.04664, 17.0],
+  [1, 1, 2, 0.90943, 15.5],
+  [2, 1, 0, 0.87201, 16.5],
+  [2, 1, 1, 0.82297, 41.6]
+ ],
+ "eos_records": [
+  {
+   "label": "Anzellini et al. (2019), 300 K Vinet",
+   "reference": "Anzellini et al., Sci. Rep. 9, 15537 (2019), doi:10.1038/s41598-019-51931-1",
+   "eos": {
+    "type": "Vinet",
+    "parameters": {"V0": 15.3, "K0": 95.0, "K0_prime": 4.6}
+   },
+   "temperature_ref": 300.0,
+   "notes": "Table 8 room-temperature fit. Si-V was observed from 15.8 to 40.9 GPa; V0 is an extrapolated atomic and one-atom cell volume."
+  }
+ ]
+}

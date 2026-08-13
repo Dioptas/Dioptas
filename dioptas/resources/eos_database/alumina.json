@@ -4,9 +4,9 @@
  "formula": "Al2O3",
  "symmetry": "HEXAGONAL",
  "lattice": {
-  "a": 4.758,
+  "a": 4.762813,
   "b": null,
-  "c": 12.99,
+  "c": 13.00314,
   "alpha": 90.0,
   "beta": 90.0,
   "gamma": 120.0
@@ -18,17 +18,28 @@
   {"element": "Al", "wyckoff": "12c", "x": 0.0, "y": 0.0, "z": 0.3522, "occupancy": 1.0},
   {"element": "O", "wyckoff": "18e", "x": 0.3061, "y": 0.0, "z": 0.25, "occupancy": 1.0}
  ],
- "notes": "Phase reference: JCPDS 0-173.",
+ "notes": "Corundum phase reference: JCPDS 0-173. The reference cell is constrained to the fitted V0 while retaining the original axial ratio.",
  "peaks": [
-  [0, 1, 2, 3.479, 75.0],
-  [1, 0, 4, 2.552, 90.0],
-  [1, 1, 0, 2.379, 40.0],
-  [1, 1, 3, 2.085, 100.0],
-  [0, 2, 4, 1.74, 45.0],
-  [1, 1, 6, 1.601, 80.0],
-  [2, 1, 4, 1.404, 30.0],
-  [3, 0, 0, 1.374, 50.0],
-  [1, 0, 10, 1.239, 16.0]
+  [0, 1, 2, 3.48293, 75.0],
+  [1, 0, 4, 2.55316, 90.0],
+  [1, 1, 0, 2.38141, 40.0],
+  [1, 1, 3, 2.08713, 100.0],
+  [0, 2, 4, 1.74146, 45.0],
+  [1, 1, 6, 1.60283, 80.0],
+  [2, 1, 4, 1.4057, 30.0],
+  [3, 0, 0, 1.37491, 50.0],
+  [1, 0, 10, 1.24015, 16.0]
  ],
- "eos_records": []
+ "eos_records": [
+  {
+   "label": "Dewaele and Torrent (2013), constrained Vinet",
+   "reference": "Dewaele and Torrent, Phys. Rev. B 88, 064107 (2013), doi:10.1103/PhysRevB.88.064107",
+   "eos": {
+    "type": "Vinet",
+    "parameters": {"V0": 255.45, "K0": 254.1, "K0_prime": 4.0}
+   },
+   "temperature_ref": 300.0,
+   "notes": "Room-temperature compression to 165 GPa; K0' was fixed at 4. The published V0 is for the conventional six-formula-unit hexagonal cell."
+  }
+ ]
 }
