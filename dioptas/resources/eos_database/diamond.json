@@ -17,7 +17,7 @@
  "atom_sites": [
   {"element": "C", "wyckoff": "8a", "x": 0.125, "y": 0.125, "z": 0.125, "occupancy": 1.0}
  ],
- "notes": "diamond (JCPDS 6-0675, dummy EOS)",
+ "notes": "Phase reference: diamond, JCPDS 6-0675.",
  "peaks": [
   [1, 1, 1, 2.06, 100.0],
   [2, 2, 0, 1.261, 27.0],
@@ -37,7 +37,18 @@
      "K0_prime": 3.97
     }
    },
+   "temperature_ref": 298.0,
    "notes": "Reanalysis of Occelli et al. diamond data; V0=5.6733 A^3/atom multiplied by 8 atoms per conventional cell. Replaces the dummy record and removes the unsupported K0=800 record."
+  },
+  {
+   "label": "Dewaele et al. (2008), 298 K neon-medium Vinet",
+   "reference": "Dewaele, Datchi, Loubeyre, and Mezouar, Phys. Rev. B 77, 094106 (2008), doi:10.1103/PhysRevB.77.094106",
+   "eos": {
+    "type": "Vinet",
+    "parameters": {"V0": 45.3544, "K0": 444.5, "K0_prime": 4.18}
+   },
+   "temperature_ref": 298.0,
+   "notes": "Independent single-crystal XRD fit in neon to 80 GPa; K0 was fixed to the isothermal ultrasonic value. Published atomic V0=5.6693 A^3 is multiplied by eight atoms in the conventional diamond cell."
   }
  ]
 }

@@ -16,12 +16,15 @@ Audit date: 2026-08-13.
 | hcp Ar | BM2 | 47.7648 | 6.5 | 4 fixed | Wittlinger et al. (1997), [doi:10.1107/S0108768197005739](https://doi.org/10.1107/S0108768197005739). The publication reports K0=6.5(1.3) GPa but no fitted derivative, so the imported BM3 record was changed to BM2. |
 | c-BN | Vinet | 47.2496 | 395.0 | 3.62 | Datchi et al. (2007), [doi:10.1103/PhysRevB.75.214104](https://doi.org/10.1103/PhysRevB.75.214104). The paper gives 5.9062 A^3/atom; the database stores the 8-atom conventional cell. The imported BM3/K0=500 alternative was removed. |
 | Diamond | Vinet | 45.3864 | 443.0 | 3.97 | Datchi et al. (2007), Table II, using the H2005 pressure scale. The paper gives 5.6733 A^3/atom. The dummy record and imported K0=800 record were replaced. |
+| Diamond | Vinet | 45.3544 | 444.5 | 4.18 | Dewaele et al. (2008), [doi:10.1103/PhysRevB.77.094106](https://doi.org/10.1103/PhysRevB.77.094106). Independent 298 K single-crystal XRD in neon to 80 GPa; the fixed-K0 fit gives 5.6693 A^3/atom. |
+| Graphite | Murnaghan | 35.12 | 33.8 | 8.9 | Hanfland et al. (1989), [doi:10.1103/PhysRevB.39.12598](https://doi.org/10.1103/PhysRevB.39.12598). The 300 K powder-XRD fit is phase-limited to below the transformation near 14 GPa. |
 | epsilon-FeOOH | BM2 | 66.3 | 158.0 | 4 fixed | Gleason et al. (2008), [doi:10.2138/am.2008.2942](https://doi.org/10.2138/am.2008.2942). The import used the wrong V0 and labeled the second-order fit BM3. |
 | FeH2 | Vinet | 67.8895 | 127.2 | 5.0 | Pepin et al. (2014), [doi:10.1103/PhysRevLett.113.265504](https://doi.org/10.1103/PhysRevLett.113.265504). The published 10.221 cm^3/mol was converted for the Z=4 cell. |
 | FeH3 | Vinet | 18.5499 | 190.1 | 5.0 | Pepin et al. (2014), same source. The published 11.171 cm^3/mol was converted for the Z=1 cell; the import had K0=180.1 and the wrong equation family. |
 | KCl B2 | BM3 | 53.53 | 23.7 | 4.4 | Walker et al. (2002), [doi:10.2138/am-2002-0701](https://doi.org/10.2138/am-2002-0701). The volumetric alpha0 was corrected from 4.26e-5 to 1.8e-4 K^-1. |
 | Magnesite | BM3 | 279.28 | 117.0 | 2.3 | Ross (1997), [doi:10.2138/am-1997-7-805](https://doi.org/10.2138/am-1997-7-805). Three imported records with conflicting V0 values were replaced by the publication fit. |
 | MgO | BM3 | 74.71 | 160.2 | 3.99 | Speziale et al. (2001), [doi:10.1029/2000JB900318](https://doi.org/10.1029/2000JB900318). The unsupported constant-alpha approximation was removed. |
+| Rhenium | Vinet | 29.4666 | 352.6 | 4.56 | Anzellini et al. (2014), [doi:10.1063/1.4863300](https://doi.org/10.1063/1.4863300). Quasi-hydrostatic helium-medium XRD to 144 GPa; 8.8726 cm^3/mol was converted to the two-atom hcp cell. |
 | Fe-bearing phase D | BM2 | 84.7321 | 134.0 | 4 fixed | Shieh et al. (2000), [doi:10.1016/S0012-821X(00)00033-9](https://doi.org/10.1016/S0012-821X(00)00033-9). The paper explicitly uses a second-order fit; the imported K0'=4.3 was removed. |
 | W | Vinet | 31.724 | 295.2 | 4.32 | Dewaele et al. (2004), [doi:10.1103/PhysRevB.70.094112](https://doi.org/10.1103/PhysRevB.70.094112). The paper gives 15.862 A^3/atom. The import cited the wrong year, equation family, and fit parameters. |
 | Zircon | BM2 | 260.803 | 227.0 | 4 fixed | Hazen and Finger (1979), American Mineralogist 64, 196-201. The paper reports K0=227(2) GPa; the unsupported imported K0'=6.5 was removed. |
@@ -83,8 +86,8 @@ printed for fcc or diamond cells were converted to conventional-cell V0.
 ## Citation normalization
 
 Every retained citation was reconciled against publisher or DOI metadata and
-rewritten as `Authors, Journal volume, pages (year), doi:...`. Of the 95
-current records, 93 include a DOI. The two exceptions are the 1979 zircon
+rewritten as `Authors, Journal volume, pages (year), doi:...`. Of the 98
+current records, 96 include a DOI. The two exceptions are the 1979 zircon
 and 1981 coesite papers in American Mineralogist; both have complete
 author/volume/page/year metadata, but no registered DOI was found.
 
@@ -134,9 +137,9 @@ The imported `TiBr` file was deleted because its source, lattice, and card all
 identify TiB2. Two files labeled as molybdenum were identified as `MoC
 (Fm-3m)` and `Mo2C (hexagonal)` from their source filenames; after their
 molybdenum-metal EoS records were rejected, the now-unreferenced material
-entries were removed too. The subsequent literature expansion brings the
-current database to 87 materials and 95 EoS records: 80 materials with EoS
-data and seven phase-only entries.
+entries were removed too. The subsequent literature expansions bring the
+current database to 87 materials and 98 EoS records: 82 materials with EoS
+data and five phase-only entries.
 
 ## Retention rule
 

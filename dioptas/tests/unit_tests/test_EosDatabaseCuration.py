@@ -25,12 +25,15 @@ def _document(filename):
         ("aragonite.json", 0, "BM3", 227.14, 65.4, 2.7),
         ("boron_nitride.json", 0, "Vinet", 47.2496, 395.0, 3.62),
         ("diamond.json", 0, "Vinet", 45.3864, 443.0, 3.97),
+        ("diamond.json", 1, "Vinet", 45.3544, 444.5, 4.18),
         ("e_feooh.json", 0, "BM2", 66.3, 158.0, None),
         ("feh2.json", 0, "Vinet", 67.8895, 127.2, 5.0),
         ("feh3.json", 0, "Vinet", 18.5499, 190.1, 5.0),
         ("kcl.json", 1, "BM3", 53.53, 23.7, 4.4),
         ("magnesite.json", 0, "BM3", 279.28, 117.0, 2.3),
         ("mgo.json", 1, "BM3", 74.71, 160.2, 3.99),
+        ("graphite.json", 0, "Murnaghan", 35.12, 33.8, 8.9),
+        ("rhenium.json", 0, "Vinet", 29.4666, 352.6, 4.56),
         ("cobalt_hcp.json", 0, "BM3", 22.4685, 199.0, 3.6),
         ("nacl_b2.json", 0, "BM3", 41.67, 36.2, 4.0),
         ("tungsten.json", 1, "Vinet", 31.724, 295.2, 4.32),
@@ -206,7 +209,7 @@ def test_literature_expansion_eos_records(
     [
         "aluminum.json", "silver.json", "nickel.json", "chromium.json",
         "ruthenium.json", "rhodium.json", "palladium.json",
-        "iridium.json", "silicon.json",
+        "iridium.json", "silicon.json", "graphite.json", "rhenium.json",
     ],
 )
 def test_literature_expansion_peak_d_spacings(filename):
@@ -280,8 +283,6 @@ def test_phase_only_materials_have_explicit_card_references():
         "copper.json": "JCPDS 04-0836",
         "fe2o3.json": "JCPDS 33-664",
         "fe_fcc.json": "JCPDS 4-0829",
-        "graphite.json": "JCPDS 41-1487",
-        "rhenium.json": "JCPDS 5-0702",
     }
     actual = {}
     for path in DATABASE.glob("*.json"):
@@ -340,7 +341,7 @@ def test_retained_references_have_normalized_publication_metadata():
             record["reference"] for record in _document(path.name)["eos_records"]
         )
 
-    assert len(references) == 95
+    assert len(references) == 98
     assert {reference for reference in references if "doi:" not in reference} == (
         no_registered_doi
     )
