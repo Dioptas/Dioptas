@@ -26,7 +26,7 @@
   [1, 1, 0, 1.38095, 22.0],
   [1, 0, 3, 1.26274, 16.0],
   [2, 0, 0, 1.19594, 3.0],
-  [1, 1, 2, 1.17410, 20.0],
+  [1, 1, 2, 1.1741, 20.0],
   [2, 0, 1, 1.15514, 15.0],
   [0, 0, 4, 1.11512, 2.0],
   [2, 0, 2, 1.05397, 3.0],
@@ -46,8 +46,18 @@
    "reference": "Anzellini, Dewaele, Occelli, Loubeyre, and Mezouar, J. Appl. Phys. 115, 043511 (2014), doi:10.1063/1.4863300",
    "eos": {
     "type": "Vinet",
-    "parameters": {"V0": 29.4666, "K0": 352.6, "K0_prime": 4.56}
+    "parameters": {
+     "V0": 29.4666,
+     "K0": 352.6,
+     "K0_prime": 4.56
+    }
    },
+   "parameter_errors": {
+    "V0": 0.0332,
+    "K0": 8.0,
+    "K0_prime": 0.17
+   },
+   "fixed_parameters": [],
    "temperature_ref": 300.0,
    "notes": "Quasi-hydrostatic powder-XRD fit in helium to 144 GPa. The published molar V0=8.8726 cm^3/mol is converted to 14.7333 A^3/atom and multiplied by two atoms in the conventional hcp cell."
   }

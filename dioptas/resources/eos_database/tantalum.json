@@ -40,6 +40,12 @@
      "K0_prime": 3.4
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [],
    "notes": "Publication values."
   },
   {
@@ -53,6 +59,14 @@
      "K0_prime": 3.62
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 0.4,
+    "K0_prime": 0.02
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
    "temperature_ref": 300.0,
    "notes": "Table II Cu-referenced fit using DAC-1 data; DAC-2 was excluded and V0 was fixed. Reported uncertainties: K0 +/- 0.4 GPa and K0' +/- 0.02."
   }

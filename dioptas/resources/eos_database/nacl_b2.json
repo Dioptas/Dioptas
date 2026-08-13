@@ -50,6 +50,12 @@
      "K0_prime": 4.0
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [],
    "notes": "Publication-identifiable B2 NaCl record; the uncitable Sata/Shen fit was removed."
   },
   {
@@ -63,6 +69,14 @@
      "K0_prime": 5.63
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 0.11,
+    "K0_prime": 0.02
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
    "temperature_ref": 300.0,
    "notes": "Table II Cu-referenced fit using DAC-2 data; V0 fixed. Reported uncertainties: K0 +/- 0.11 GPa and K0' +/- 0.02. The B2 phase data are above 33 GPa."
   }

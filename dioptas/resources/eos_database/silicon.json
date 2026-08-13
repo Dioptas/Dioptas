@@ -38,8 +38,20 @@
    "reference": "Anzellini et al., Sci. Rep. 9, 15537 (2019), doi:10.1038/s41598-019-51931-1",
    "eos": {
     "type": "Vinet",
-    "parameters": {"V0": 160.248, "K0": 97.89, "K0_prime": 4.24}
+    "parameters": {
+     "V0": 160.248,
+     "K0": 97.89,
+     "K0_prime": 4.24
+    }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [
+    "K0_prime"
+   ],
    "temperature_ref": 300.0,
    "notes": "Figure 1 constrained Vinet fit with K0' fixed to the ultrasonic value; published V0=20.031 A^3/atom is multiplied by eight atoms in the conventional diamond cell. Si-I was observed to 13.9 GPa under quasi-hydrostatic compression."
   }

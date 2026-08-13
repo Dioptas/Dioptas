@@ -19,6 +19,42 @@ def _document(filename):
         return json.load(stream)
 
 
+def test_every_eos_parameter_has_explicit_uncertainty_metadata():
+    for path in DATABASE.glob("*.json"):
+        for record in _document(path.name)["eos_records"]:
+            parameters = record["eos"]["parameters"]
+            errors = record["parameter_errors"]
+            fixed = record["fixed_parameters"]
+            assert set(errors) == set(parameters), path.name
+            assert set(fixed) <= set(parameters), path.name
+            assert len(fixed) == len(set(fixed)), path.name
+            for name, error in errors.items():
+                assert error is None or error > 0, (path.name, name)
+
+
+@pytest.mark.parametrize(
+    "filename,index,errors,fixed",
+    [
+        ("boron_nitride.json", 0,
+         {"V0": 0.0048, "K0": 2.0, "K0_prime": 0.05}, ["V0"]),
+        ("copper.json", 0,
+         {"V0": None, "K0": 1.4, "K0_prime": 0.06}, ["V0"]),
+        ("diamond.json", 1,
+         {"V0": 0.0128, "K0": None, "K0_prime": 0.15}, ["K0"]),
+        ("mgo.json", 1,
+         {"V0": 0.01, "K0": None, "K0_prime": 0.01}, ["K0"]),
+        ("rhenium.json", 0,
+         {"V0": 0.0332, "K0": 8.0, "K0_prime": 0.17}, []),
+        ("silicon_carbide_b1.json", 0,
+         {"V0": 0.1, "K0": 3.0, "K0_prime": 0.43}, []),
+    ],
+)
+def test_publication_verified_parameter_errors(filename, index, errors, fixed):
+    record = _document(filename)["eos_records"][index]
+    assert record["parameter_errors"] == errors
+    assert record["fixed_parameters"] == fixed
+
+
 @pytest.mark.parametrize(
     "filename,index,eos_type,v0,k0,k0_prime",
     [

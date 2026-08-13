@@ -47,6 +47,12 @@
      "K0_prime": 4.3
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [],
    "notes": "Ambient-pressure B1 fit. The imported generic thermal coefficient was not reported by this source and was removed."
   }
  ]

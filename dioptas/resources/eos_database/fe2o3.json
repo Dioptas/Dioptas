@@ -39,8 +39,16 @@
    "reference": "Schouwink et al., Am. Mineral. 96, 1781-1786 (2011), doi:10.2138/am.2011.3775",
    "eos": {
     "type": "BM2",
-    "parameters": {"V0": 301.88, "K0": 207.0}
+    "parameters": {
+     "V0": 301.88,
+     "K0": 207.0
+    }
    },
+   "parameter_errors": {
+    "V0": 0.02,
+    "K0": 3.0
+   },
+   "fixed_parameters": [],
    "temperature_ref": 300.0,
    "notes": "Recommended finite-strain result from neon-medium single-crystal XRD to 25.3 GPa. Second-order Birch-Murnaghan fixes K0'=4 by definition; the unconstrained alternative was not selected."
   }

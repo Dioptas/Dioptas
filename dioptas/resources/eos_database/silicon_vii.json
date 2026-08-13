@@ -37,8 +37,18 @@
    "reference": "Anzellini et al., Sci. Rep. 9, 15537 (2019), doi:10.1038/s41598-019-51931-1",
    "eos": {
     "type": "Vinet",
-    "parameters": {"V0": 28.6, "K0": 96.9, "K0_prime": 4.01}
+    "parameters": {
+     "V0": 28.6,
+     "K0": 96.9,
+     "K0_prime": 4.01
+    }
    },
+   "parameter_errors": {
+    "V0": 0.2,
+    "K0": 0.9,
+    "K0_prime": 0.04
+   },
+   "fixed_parameters": [],
    "temperature_ref": 300.0,
    "notes": "Table 8 room-temperature fit. Published V0=14.3 A^3/atom is multiplied by two atoms in the hcp cell; V0 is extrapolated because Si-VII was observed only at high pressure."
   }

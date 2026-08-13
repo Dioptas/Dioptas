@@ -35,8 +35,18 @@
    "reference": "Dewaele, Torrent, Loubeyre, and Mezouar, Phys. Rev. B 78, 104102 (2008), doi:10.1103/PhysRevB.78.104102",
    "eos": {
     "type": "Vinet",
-    "parameters": {"V0": 68.28, "K0": 100.2, "K0_prime": 5.70}
+    "parameters": {
+     "V0": 68.28,
+     "K0": 100.2,
+     "K0_prime": 5.7
+    }
    },
+   "parameter_errors": {
+    "V0": 0.064,
+    "K0": 1.6,
+    "K0_prime": 0.09
+   },
+   "fixed_parameters": [],
    "temperature_ref": 300.0,
    "notes": "Quasi-hydrostatic helium-medium fit; published atomic V0=17.070 A^3 is multiplied by four atoms in the conventional fcc cell. Measurements extend to 124 GPa."
   }

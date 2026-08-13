@@ -39,6 +39,12 @@
      "K0_prime": 5.0
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [],
    "notes": "Experimental Vinet fit. Publication V0=11.171 cm^3/mol converted to A^3 for the Z=1 cubic cell."
   }
  ]

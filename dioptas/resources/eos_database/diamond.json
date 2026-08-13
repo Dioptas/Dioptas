@@ -37,6 +37,14 @@
      "K0_prime": 3.97
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 3.0,
+    "K0_prime": 0.05
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
    "temperature_ref": 298.0,
    "notes": "Reanalysis of Occelli et al. diamond data; V0=5.6733 A^3/atom multiplied by 8 atoms per conventional cell. Replaces the dummy record and removes the unsupported K0=800 record."
   },
@@ -45,8 +53,20 @@
    "reference": "Dewaele, Datchi, Loubeyre, and Mezouar, Phys. Rev. B 77, 094106 (2008), doi:10.1103/PhysRevB.77.094106",
    "eos": {
     "type": "Vinet",
-    "parameters": {"V0": 45.3544, "K0": 444.5, "K0_prime": 4.18}
+    "parameters": {
+     "V0": 45.3544,
+     "K0": 444.5,
+     "K0_prime": 4.18
+    }
    },
+   "parameter_errors": {
+    "V0": 0.0128,
+    "K0": null,
+    "K0_prime": 0.15
+   },
+   "fixed_parameters": [
+    "K0"
+   ],
    "temperature_ref": 298.0,
    "notes": "Independent single-crystal XRD fit in neon to 80 GPa; K0 was fixed to the isothermal ultrasonic value. Published atomic V0=5.6693 A^3 is multiplied by eight atoms in the conventional diamond cell."
   }

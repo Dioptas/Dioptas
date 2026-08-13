@@ -37,8 +37,18 @@
    "reference": "Muhammad et al., Nanoscale 16, 9096-9107 (2024), doi:10.1039/D4NR00093E",
    "eos": {
     "type": "BM3",
-    "parameters": {"V0": 36.18, "K0": 27.4, "K0_prime": 11.4}
+    "parameters": {
+     "V0": 36.18,
+     "K0": 27.4,
+     "K0_prime": 11.4
+    }
    },
+   "parameter_errors": {
+    "V0": 0.06,
+    "K0": 0.9,
+    "K0_prime": 0.8
+   },
+   "fixed_parameters": [],
    "temperature_ref": 300.0,
    "notes": "Hydrostatic helium-medium powder-XRD fit over 0-9.5 GPa. This replaces older strongly discrepant non-hydrostatic compressibility estimates for h-BN."
   }

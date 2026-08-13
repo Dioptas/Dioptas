@@ -40,7 +40,13 @@
      "K0": 28.7,
      "K0_prime": 4.0
     }
-   }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": []
   },
   {
    "label": "Walker et al. (2002), B2 thermal Birch",
@@ -53,6 +59,12 @@
      "K0_prime": 4.4
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [],
    "notes": "Publication values for B2 KCl (Z=1).",
    "thermal": {
     "type": "AlphaKT",

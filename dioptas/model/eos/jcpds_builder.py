@@ -98,6 +98,10 @@ def apply_eos_record(phase, record: dict) -> None:
     """
     eos = record.get("eos") or {}
     parameters = eos.get("parameters") or {}
+    phase.params["eos_parameter_errors"] = dict(
+        record.get("parameter_errors") or {})
+    phase.params["eos_fixed_parameters"] = list(
+        record.get("fixed_parameters") or [])
     reference = record.get("reference") or record_label(record)
     if reference:
         phase.params["comments"] = [reference]

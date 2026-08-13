@@ -36,8 +36,20 @@
    "reference": "Dewaele and Torrent, Phys. Rev. B 88, 064107 (2013), doi:10.1103/PhysRevB.88.064107",
    "eos": {
     "type": "Vinet",
-    "parameters": {"V0": 255.45, "K0": 254.1, "K0_prime": 4.0}
+    "parameters": {
+     "V0": 255.45,
+     "K0": 254.1,
+     "K0_prime": 4.0
+    }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [
+    "K0_prime"
+   ],
    "temperature_ref": 300.0,
    "notes": "Room-temperature compression to 165 GPa; K0' was fixed at 4. The published V0 is for the conventional six-formula-unit hexagonal cell."
   }

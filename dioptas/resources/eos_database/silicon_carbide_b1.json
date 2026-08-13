@@ -35,8 +35,18 @@
    "reference": "Miozzi et al., J. Geophys. Res. Planets 123, 2295-2309 (2018), doi:10.1029/2018JE005582",
    "eos": {
     "type": "BM3",
-    "parameters": {"V0": 66.3, "K0": 323.0, "K0_prime": 3.1}
+    "parameters": {
+     "V0": 66.3,
+     "K0": 323.0,
+     "K0_prime": 3.1
+    }
    },
+   "parameter_errors": {
+    "V0": 0.1,
+    "K0": 3.0,
+    "K0_prime": 0.43
+   },
+   "fixed_parameters": [],
    "temperature_ref": 300.0,
    "notes": "Table 1 room-temperature Birch-Murnaghan fit. The B1 phase was measured between 65 and 205 GPa; V0 is extrapolated to zero pressure."
   }

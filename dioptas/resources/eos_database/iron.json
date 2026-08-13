@@ -41,6 +41,12 @@
      "K0_prime": 5.33
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [],
    "notes": "V0 rescaled by sin(120): the hosted database computed hexagonal cell volumes as a^2*c."
   },
   {
@@ -54,6 +60,14 @@
      "K0_prime": 5.53
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 0.6,
+    "K0_prime": 0.03
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
    "temperature_ref": 300.0,
    "notes": "Table II Cu-referenced fit combining DAC-1 and DAC-2; V0 fixed. Reported uncertainties: K0 +/- 0.6 GPa and K0' +/- 0.03. The hcp phase data are above 16 GPa."
   }

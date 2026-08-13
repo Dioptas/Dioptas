@@ -31,8 +31,20 @@
    "reference": "Dewaele, Loubeyre, and Mezouar, Phys. Rev. B 70, 094112 (2004), doi:10.1103/PhysRevB.70.094112",
    "eos": {
     "type": "Vinet",
-    "parameters": {"V0": 47.24, "K0": 132.4, "K0_prime": 5.32}
+    "parameters": {
+     "V0": 47.24,
+     "K0": 132.4,
+     "K0_prime": 5.32
+    }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 1.4,
+    "K0_prime": 0.06
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
    "temperature_ref": 300.0,
    "notes": "Table II fit on the authors' revised PR8 ruby scale using helium as pressure medium. Published V0=11.810 A^3/atom is multiplied by four atoms in the conventional fcc cell."
   }

@@ -88,20 +88,37 @@ class EosDatabaseController(object):
 
 
 def _record_row(record: dict) -> tuple:
-    """One EoS table row: (type, reference, K0, K0', V0) as strings."""
+    """One EoS table row, including source-reported parameter errors."""
     eos_block = record.get("eos") or {}
     parameters = eos_block.get("parameters") or {}
-    k0 = parameters.get("K0")
-    k0p = parameters.get("K0_prime")
-    if k0p is None and eos_block.get("type") == "BM2":
+    if ("K0_prime" not in parameters
+            and eos_block.get("type") == "BM2"):
         k0p_text = "4 (fixed)"
     else:
-        k0p_text = f"{k0p:.2f}" if k0p is not None else ""
-    v0 = parameters.get("V0")
+        k0p_text = _parameter_text(record, "K0_prime", ".2f")
     return (
         eos_block.get("type") or "",
         record.get("reference") or eos.record_label(record),
-        f"{k0:.1f}" if k0 is not None else "",
+        _parameter_text(record, "K0", ".1f"),
         k0p_text,
-        f"{v0:.3f}" if v0 is not None else "",
+        _parameter_text(record, "V0", ".3f"),
     )
+
+
+def _parameter_text(record: dict, name: str, value_format: str) -> str:
+    """Format a parameter, distinguishing errors, fixed values and gaps."""
+    parameters = ((record.get("eos") or {}).get("parameters") or {})
+    if name not in parameters:
+        return ""
+
+    text = format(parameters[name], value_format)
+    errors = record.get("parameter_errors") or {}
+    fixed = name in (record.get("fixed_parameters") or [])
+    error = errors.get(name)
+    if error is not None:
+        text += f" ± {error:g}"
+    elif not fixed:
+        text += " (error n/r)"
+    if fixed:
+        text += " (fixed)"
+    return text

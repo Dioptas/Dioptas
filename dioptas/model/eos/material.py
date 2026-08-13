@@ -37,6 +37,10 @@ schema change::
       "eos": {"type": "BM3",                 # peritheos.eos.rt class name
               "parameters": {"V0": 67.847, "K0": 166.65,
                              "K0_prime": 5.4823}},
+      "parameter_errors": {"V0": 0.004,       # same units as parameters
+                           "K0": null,          # no verified error recorded
+                           "K0_prime": 0.02},
+      "fixed_parameters": ["K0"],             # held fixed in the EoS fit
       "thermal": {"type": "AlphaKT",         # optional
                   "parameters": {"alpha0": 4.2e-5, "dK_dT": -0.02}},
       "temperature_ref": 298.15,             # optional, K
@@ -52,6 +56,12 @@ Records are handled as plain dicts throughout: the same dict is stored in
 the bundled files, on ``CrystalState.eos_records`` (and therefore in
 ``.dio`` projects and undo snapshots), and consumed by the EosPhase
 engine wrapper.
+
+``parameter_errors`` uses the publication's reported error convention and
+the same units as the corresponding EoS parameters.  A JSON ``null`` means
+that no verified uncertainty is recorded; it must never be interpreted as
+zero.  ``fixed_parameters`` records parameters held fixed during the EoS fit.
+A fixed value may still have an independently measured uncertainty.
 """
 
 from __future__ import annotations

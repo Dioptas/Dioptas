@@ -52,6 +52,14 @@
      "K0_prime": 3.6
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 6.0,
+    "K0_prime": 0.2
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
    "notes": "Publication bulk modulus and pressure derivative; ambient V0 from this crystallographic cell."
   }
  ]

@@ -63,6 +63,12 @@
      "K0_prime": 4.59
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [],
    "notes": "Publication values."
   }
  ]

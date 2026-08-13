@@ -34,8 +34,18 @@
    "reference": "Anzellini et al., Commun. Mater. 6, 221 (2025), doi:10.1038/s43246-025-00963-4",
    "eos": {
     "type": "BM3",
-    "parameters": {"V0": 56.62, "K0": 327.0, "K0_prime": 5.46}
+    "parameters": {
+     "V0": 56.62,
+     "K0": 327.0,
+     "K0_prime": 5.46
+    }
    },
+   "parameter_errors": {
+    "V0": 0.05,
+    "K0": 2.0,
+    "K0_prime": 0.03
+   },
+   "fixed_parameters": [],
    "temperature_ref": 300.0,
    "notes": "Experimental 300 K isotherm combined with resistive- and laser-heating data; fcc Ir remained stable to 101 GPa and 5600 K in the investigated range."
   }

@@ -38,8 +38,18 @@
    "reference": "Anzellini et al., Sci. Rep. 9, 15537 (2019), doi:10.1038/s41598-019-51931-1",
    "eos": {
     "type": "Vinet",
-    "parameters": {"V0": 15.3, "K0": 95.0, "K0_prime": 4.6}
+    "parameters": {
+     "V0": 15.3,
+     "K0": 95.0,
+     "K0_prime": 4.6
+    }
    },
+   "parameter_errors": {
+    "V0": 0.1,
+    "K0": 10.0,
+    "K0_prime": 0.5
+   },
+   "fixed_parameters": [],
    "temperature_ref": 300.0,
    "notes": "Table 8 room-temperature fit. Si-V was observed from 15.8 to 40.9 GPa; V0 is an extrapolated atomic and one-atom cell volume."
   }

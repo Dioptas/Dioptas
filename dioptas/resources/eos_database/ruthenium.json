@@ -41,8 +41,18 @@
    "reference": "Anzellini et al., Sci. Rep. 9, 14459 (2019), doi:10.1038/s41598-019-51037-8",
    "eos": {
     "type": "BM3",
-    "parameters": {"V0": 27.122, "K0": 323.4, "K0_prime": 4.15}
+    "parameters": {
+     "V0": 27.122,
+     "K0": 323.4,
+     "K0_prime": 4.15
+    }
    },
+   "parameter_errors": {
+    "V0": 0.006,
+    "K0": 1.1,
+    "K0_prime": 0.019
+   },
+   "fixed_parameters": [],
    "temperature_ref": 300.0,
    "notes": "Experimental helium-medium BM3 fit to 151 GPa; the paper reports V0=27.122(6) A^3, K0=323.4(1.1) GPa, and K0'=4.150(19)."
   }

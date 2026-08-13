@@ -69,6 +69,12 @@
      "K0_prime": 7.0
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [],
    "notes": "Imported from a beamline jcpds collection (12.08.2026); BM3 as all jcpds files imply."
   }
  ]

@@ -34,8 +34,18 @@
    "reference": "Rodrigo-Ramon et al., Sci. Rep. 14, 26634 (2024), doi:10.1038/s41598-024-78006-0",
    "eos": {
     "type": "Vinet",
-    "parameters": {"V0": 55.046, "K0": 251.0, "K0_prime": 5.7}
+    "parameters": {
+     "V0": 55.046,
+     "K0": 251.0,
+     "K0_prime": 5.7
+    }
    },
+   "parameter_errors": {
+    "V0": 0.016,
+    "K0": 3.0,
+    "K0_prime": 0.2
+   },
+   "fixed_parameters": [],
    "temperature_ref": 300.0,
    "notes": "Experimental helium-medium Vinet fit over 0-55 GPa; fcc Rh remains stable throughout the measured range."
   }

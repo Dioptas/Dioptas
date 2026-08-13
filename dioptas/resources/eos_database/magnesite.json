@@ -95,6 +95,12 @@
      "K0_prime": 2.3
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [],
    "notes": "Publication values; replaces three JCPDS variants with conflicting V0 values."
   }
  ]

@@ -52,7 +52,13 @@
      "K0": 236.0,
      "K0_prime": 3.9
     }
-   }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": []
   }
  ]
 }

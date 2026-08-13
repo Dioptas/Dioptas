@@ -32,8 +32,18 @@
    "reference": "Anzellini et al., Sci. Rep. 12, 6727 (2022), doi:10.1038/s41598-022-10523-2",
    "eos": {
     "type": "BM3",
-    "parameters": {"V0": 24.08, "K0": 185.0, "K0_prime": 4.74}
+    "parameters": {
+     "V0": 24.08,
+     "K0": 185.0,
+     "K0_prime": 4.74
+    }
    },
+   "parameter_errors": {
+    "V0": 0.02,
+    "K0": 1.0,
+    "K0_prime": 0.03
+   },
+   "fixed_parameters": [],
    "temperature_ref": 300.0,
    "notes": "Table 3 experimental helium-medium BM3 fit. The bcc phase remains observed to 131 GPa at room temperature."
   }

@@ -9,7 +9,7 @@ import gc
 from ..utility import QtTest
 
 from ...controller.integration.phase.EosDatabaseController import (
-    EosDatabaseController)
+    EosDatabaseController, _record_row)
 from ...model import eos
 
 
@@ -87,3 +87,32 @@ class EosDatabaseControllerTest(QtTest):
         phase = self.controller.result_phase
         assert phase is not None
         assert len(phase.reflections) > 0
+
+
+def test_record_row_displays_reported_errors_and_fixed_parameters():
+    record = {
+        "reference": "A publication",
+        "eos": {
+            "type": "Vinet",
+            "parameters": {"V0": 47.2496, "K0": 395.0,
+                           "K0_prime": 3.62},
+        },
+        "parameter_errors": {"V0": 0.0048, "K0": 2.0,
+                             "K0_prime": None},
+        "fixed_parameters": ["V0"],
+    }
+    assert _record_row(record) == (
+        "Vinet", "A publication", "395.0 ± 2", "3.62 (error n/r)",
+        "47.250 ± 0.0048 (fixed)",
+    )
+
+
+def test_record_row_displays_implicit_bm2_derivative_as_fixed():
+    record = {
+        "eos": {"type": "BM2", "parameters": {"V0": 10.0, "K0": 20.0}},
+        "parameter_errors": {"V0": None, "K0": 1.0},
+        "fixed_parameters": [],
+    }
+    assert _record_row(record)[2:] == (
+        "20.0 ± 1", "4 (fixed)", "10.000 (error n/r)",
+    )

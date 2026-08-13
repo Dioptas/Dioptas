@@ -35,8 +35,20 @@
    "reference": "Miozzi et al., J. Geophys. Res. Planets 123, 2295-2309 (2018), doi:10.1029/2018JE005582",
    "eos": {
     "type": "BM3",
-    "parameters": {"V0": 82.8, "K0": 224.0, "K0_prime": 4.1}
+    "parameters": {
+     "V0": 82.8,
+     "K0": 224.0,
+     "K0_prime": 4.1
+    }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 5.0,
+    "K0_prime": 0.3
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
    "temperature_ref": 300.0,
    "notes": "Table 1 room-temperature Birch-Murnaghan fit; V0 was fixed to 82.80 A^3 for the conventional four-formula-unit cell."
   }

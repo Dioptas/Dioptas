@@ -34,8 +34,18 @@
    "reference": "Baty et al., J. Appl. Phys. 135, 075103 (2024), doi:10.1063/5.0179469",
    "eos": {
     "type": "BM3",
-    "parameters": {"V0": 58.88, "K0": 190.0, "K0_prime": 5.3}
+    "parameters": {
+     "V0": 58.88,
+     "K0": 190.0,
+     "K0_prime": 5.3
+    }
    },
+   "parameter_errors": {
+    "V0": 0.16,
+    "K0": 3.0,
+    "K0_prime": 0.2
+   },
+   "fixed_parameters": [],
    "temperature_ref": 300.0,
    "notes": "Experimental 0-80 GPa BM3 fit; published V0=14.72(4) A^3/atom is multiplied by four atoms in the conventional fcc cell."
   }

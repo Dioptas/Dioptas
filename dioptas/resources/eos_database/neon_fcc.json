@@ -41,6 +41,12 @@
      "K0_prime": 8.02
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 0.14,
+    "K0_prime": 0.31
+   },
+   "fixed_parameters": [],
    "notes": "From the paper's text: BM3 fit to the same data as the Vinet fit, K0=1.43(14) GPa, K0p=8.02(31)."
   },
   {
@@ -54,6 +60,12 @@
      "K0_prime": 8.23
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 0.14,
+    "K0_prime": 0.31
+   },
+   "fixed_parameters": [],
    "thermal": {
     "type": "MieGruneisenDebye",
     "parameters": {

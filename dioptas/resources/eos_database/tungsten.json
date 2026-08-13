@@ -37,7 +37,13 @@
      "K0": 311.22,
      "K0_prime": 3.9
     }
-   }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": []
   },
   {
    "label": "Dewaele et al. (2004), Vinet",
@@ -50,6 +56,14 @@
      "K0_prime": 4.32
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 3.9,
+    "K0_prime": 0.11
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
    "notes": "Publication Vinet fit on the revised ruby scale; atomic V0=15.862 A^3 multiplied by 2 atoms per bcc cell."
   },
   {
@@ -63,6 +77,14 @@
      "K0_prime": 4.02
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 0.8,
+    "K0_prime": 0.03
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
    "temperature_ref": 300.0,
    "notes": "Table II Cu-referenced fit combining DAC-1 and DAC-2; V0 fixed. Reported uncertainties: K0 +/- 0.8 GPa and K0' +/- 0.03. Measurements extend to 140 GPa."
   }

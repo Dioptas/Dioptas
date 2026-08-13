@@ -42,7 +42,13 @@
      "K0": 177.0,
      "K0_prime": 4.0
     }
-   }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": []
   },
   {
    "label": "Speziale et al. (2001), constrained BM3",
@@ -55,6 +61,14 @@
      "K0_prime": 3.99
     }
    },
+   "parameter_errors": {
+    "V0": 0.01,
+    "K0": null,
+    "K0_prime": 0.01
+   },
+   "fixed_parameters": [
+    "K0"
+   ],
    "notes": "Publication constrained BM3 fit. The imported constant-alpha thermal approximation was not part of this fit and was removed."
   },
   {
@@ -68,6 +82,14 @@
      "K0_prime": 4.08
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 0.7,
+    "K0_prime": 0.03
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
    "temperature_ref": 300.0,
    "notes": "Table II Cu-referenced fit using DAC-2 data; V0 fixed. Reported uncertainties: K0 +/- 0.7 GPa and K0' +/- 0.03. Measurements extend to 140 GPa."
   }

@@ -35,8 +35,20 @@
    "reference": "Dewaele, Loubeyre, and Mezouar, Phys. Rev. B 70, 094112 (2004), doi:10.1103/PhysRevB.70.094112",
    "eos": {
     "type": "Vinet",
-    "parameters": {"V0": 66.292, "K0": 74.3, "K0_prime": 4.47}
+    "parameters": {
+     "V0": 66.292,
+     "K0": 74.3,
+     "K0_prime": 4.47
+    }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 1.1,
+    "K0_prime": 0.06
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
    "temperature_ref": 298.0,
    "notes": "Table II unconstrained fit on the authors' revised ruby scale; published atomic V0=16.573 A^3 is multiplied by four atoms in the conventional fcc cell. Measurements extend to 153 GPa."
   }

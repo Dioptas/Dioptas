@@ -91,7 +91,13 @@
      "K0": 134.0
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null
+   },
+   "fixed_parameters": [],
    "notes": "Fe-bearing phase D; the publication explicitly uses a second-order Birch-Murnaghan fit with K0_prime fixed at 4."
   }
- ]
+ ],
+ "atom_sites": []
 }

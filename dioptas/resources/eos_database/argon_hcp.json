@@ -40,6 +40,11 @@
      "K0": 6.5
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 1.3
+   },
+   "fixed_parameters": [],
    "notes": "The publication reports K0=6.5(1.3) GPa; K0_prime is fixed at 4 by BM2."
   }
  ]

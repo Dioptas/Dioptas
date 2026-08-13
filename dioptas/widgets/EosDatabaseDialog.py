@@ -56,6 +56,10 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         self.eos_table.setColumnCount(5)
         self.eos_table.setHorizontalHeaderLabels(
             ["EoS", "Reference", "K0 (GPa)", "K0′", "V0 (Å³)"])
+        self.eos_table.setToolTip(
+            "± values are publication-reported errors in the displayed "
+            "units.\n‘error n/r’ means that no verified error is recorded; "
+            "it does not mean zero.")
         for table in (self.materials_table, self.eos_table):
             table.setSelectionBehavior(
                 QtWidgets.QAbstractItemView.SelectRows)

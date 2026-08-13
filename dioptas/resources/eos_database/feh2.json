@@ -37,7 +37,14 @@
      "K0_prime": 5.0
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [],
    "notes": "Experimental Vinet fit. Publication V0=10.221 cm^3/mol converted to A^3 for the Z=4 tetragonal cell."
   }
- ]
+ ],
+ "atom_sites": []
 }

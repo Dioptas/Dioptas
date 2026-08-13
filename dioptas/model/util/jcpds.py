@@ -144,6 +144,11 @@ class CrystalState:
     chemistry: str = ""
     eos_records: list = field(default_factory=list)
     eos_current_index: int = 0
+    #: Source-reported errors (same units as the record's EoS parameters)
+    #: and the names of parameters held fixed in that fit.  These mirror the
+    #: active record so downstream tools need not re-inspect eos_records.
+    eos_parameter_errors: dict = field(default_factory=dict)
+    eos_fixed_parameters: list = field(default_factory=list)
     #: whether the phase no longer matches the file it came from (the
     #: asterisk in the GUI); flipped by the params view on state writes
     modified: bool = False

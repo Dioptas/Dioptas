@@ -60,6 +60,11 @@
      "K0": 227.0
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 2.0
+   },
+   "fixed_parameters": [],
    "notes": "The publication reports K0=227(2) GPa from low-pressure compression; the unsupported imported K0_prime=6.5 was removed."
   }
  ]

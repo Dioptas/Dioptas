@@ -21,8 +21,8 @@
  "notes": "Phase reference: JCPDS 41-1487. The reference cell is constrained to the fitted 300 K V0 while retaining the ambient axial ratio measured by Hanfland et al.",
  "peaks": [
   [0, 0, 2, 3.35193, 100.0],
-  [1, 0, 0, 2.13000, 2.0],
-  [1, 0, 1, 2.03000, 6.0],
+  [1, 0, 0, 2.13, 2.0],
+  [1, 0, 1, 2.03, 6.0],
   [0, 0, 4, 1.67597, 4.0],
   [1, 1, 0, 1.22976, 3.0],
   [1, 1, 2, 1.15451, 3.0]
@@ -33,8 +33,18 @@
    "reference": "Hanfland, Beister, and Syassen, Phys. Rev. B 39, 12598-12603 (1989), doi:10.1103/PhysRevB.39.12598",
    "eos": {
     "type": "Murnaghan",
-    "parameters": {"V0": 35.12, "K0": 33.8, "K0_prime": 8.9}
+    "parameters": {
+     "V0": 35.12,
+     "K0": 33.8,
+     "K0_prime": 8.9
+    }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 3.0,
+    "K0_prime": 1.0
+   },
+   "fixed_parameters": [],
    "temperature_ref": 300.0,
    "notes": "Hydrostatic powder-XRD fit for hexagonal graphite. Valid only below the observed room-temperature transformation near 14 GPa."
   }

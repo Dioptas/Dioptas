@@ -39,6 +39,14 @@
      "K0_prime": 4.06
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 0.5,
+    "K0_prime": 0.02
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
    "temperature_ref": 300.0,
    "notes": "Table II Cu-referenced fit combining DAC-1 and DAC-2; V0 fixed. Reported uncertainties: K0 +/- 0.5 GPa and K0' +/- 0.02. Measurements extend to 140 GPa."
   }

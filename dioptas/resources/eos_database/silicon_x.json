@@ -34,8 +34,18 @@
    "reference": "Anzellini et al., Sci. Rep. 9, 15537 (2019), doi:10.1038/s41598-019-51931-1",
    "eos": {
     "type": "Vinet",
-    "parameters": {"V0": 53.2, "K0": 136.0, "K0_prime": 4.2}
+    "parameters": {
+     "V0": 53.2,
+     "K0": 136.0,
+     "K0_prime": 4.2
+    }
    },
+   "parameter_errors": {
+    "V0": 0.8,
+    "K0": 5.0,
+    "K0_prime": 0.3
+   },
+   "fixed_parameters": [],
    "temperature_ref": 300.0,
    "notes": "Table 8 room-temperature fit. Published V0=13.3 A^3/atom is multiplied by four atoms in the conventional fcc cell; V0 is extrapolated because Si-X appears above about 91 GPa."
   }

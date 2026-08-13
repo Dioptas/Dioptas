@@ -34,8 +34,20 @@
    "reference": "Takemura and Singh, Phys. Rev. B 73, 224119 (2006), doi:10.1103/PhysRevB.73.224119",
    "eos": {
     "type": "BM3",
-    "parameters": {"V0": 35.96, "K0": 168.0, "K0_prime": 3.4}
+    "parameters": {
+     "V0": 35.96,
+     "K0": 168.0,
+     "K0_prime": 3.4
+    }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 4.0,
+    "K0_prime": 0.3
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
    "temperature_ref": 300.0,
    "notes": "Helium-medium powder-XRD fit to 134 GPa. Published V0=17.98 A^3/atom is multiplied by two atoms in the conventional bcc cell; no phase transition was observed."
   }

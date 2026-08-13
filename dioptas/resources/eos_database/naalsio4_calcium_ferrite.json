@@ -77,6 +77,12 @@
      "K0_prime": 4.1
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [],
    "notes": "Identity corrected from the source filenames and cited publication; publication BM3 parameters."
   }
  ]

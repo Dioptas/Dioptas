@@ -46,6 +46,12 @@
      "K0_prime": 4.6
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [],
    "notes": "Publication values for alpha-FeOOH."
   }
  ]

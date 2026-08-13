@@ -45,6 +45,12 @@
      "K0_prime": 2.7
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [],
    "notes": "The publication's measured 298 K, ambient-pressure cell volume and global high-temperature BM3 fit; replaces two conflicting JCPDS-derived V0 entries.",
    "thermal": {
     "type": "AlphaKT",

@@ -48,6 +48,11 @@
      "K0": 158.0
     }
    },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null
+   },
+   "fixed_parameters": [],
    "notes": "Publication values for epsilon-FeOOH; K0_prime is fixed to 4 by the second-order Birch-Murnaghan equation."
   }
  ]

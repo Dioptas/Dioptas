@@ -78,6 +78,10 @@ def test_build_jcpds_carries_everything(gold):
     assert phase.params["chemistry"] == "Au"
     assert len(phase.params["eos_records"]) == len(gold.eos_records)
     assert phase.params["eos_current_index"] == 0
+    assert (phase.params["eos_parameter_errors"]
+            == gold.eos_records[0]["parameter_errors"])
+    assert (phase.params["eos_fixed_parameters"]
+            == gold.eos_records[0]["fixed_parameters"])
     assert phase.params["modified"] is False
 
 
@@ -145,6 +149,10 @@ def test_records_survive_project_round_trip(gold, tmp_path):
             == [eos.record_label(r) for r in gold.eos_records])
     assert loaded_phase.params["eos_current_index"] == 1
     assert loaded_phase.name == phase.name
+    assert (loaded_phase.params["eos_parameter_errors"]
+            == gold.eos_records[1]["parameter_errors"])
+    assert (loaded_phase.params["eos_fixed_parameters"]
+            == gold.eos_records[1]["fixed_parameters"])
     # and switching still works after the reload
     loaded.phase_model.set_eos_reference(0, 0)
     first = gold.eos_records[0]["eos"]["parameters"]
