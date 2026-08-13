@@ -88,7 +88,7 @@ class PhaseWidget(QtWidgets.QWidget):
         self.phase_tw = ListTableWidget(columns=6)
         self.phase_tw.setObjectName("phase_table_widget")
         self.phase_tw.setHorizontalHeaderLabels(
-            ["", "", "Name", "Ref", "P (GPa)", "T (K)"])
+            ["", "", "Name", "P (GPa)", "T (K)", "Ref"])
         self.phase_tw.horizontalHeader().setVisible(True)
         self.phase_tw.horizontalHeader().setStretchLastSection(False)
         self.phase_tw.setColumnWidth(0, 20)
@@ -100,16 +100,16 @@ class PhaseWidget(QtWidgets.QWidget):
             1, QtWidgets.QHeaderView.Fixed
         )
         self.phase_tw.horizontalHeader().setSectionResizeMode(
-            2, QtWidgets.QHeaderView.ResizeToContents
+            2, QtWidgets.QHeaderView.Interactive
         )
         self.phase_tw.horizontalHeader().setSectionResizeMode(
-            3, QtWidgets.QHeaderView.Stretch
+            3, QtWidgets.QHeaderView.ResizeToContents
         )
         self.phase_tw.horizontalHeader().setSectionResizeMode(
             4, QtWidgets.QHeaderView.ResizeToContents
         )
         self.phase_tw.horizontalHeader().setSectionResizeMode(
-            5, QtWidgets.QHeaderView.ResizeToContents
+            5, QtWidgets.QHeaderView.Interactive
         )
         self.phase_tw.setItemDelegate(NoRectDelegate())
         self._body_layout.addWidget(self.phase_tw, 10)
@@ -244,18 +244,6 @@ class PhaseWidget(QtWidgets.QWidget):
         name_item.setToolTip(name)   # full name on hover (column may truncate)
         self.phase_tw.setItem(current_rows, 2, name_item)
 
-        reference_cb = QtWidgets.QComboBox()
-        reference_cb.addItem("—")
-        reference_cb.setEnabled(False)   # enabled when references exist
-        reference_cb.setToolTip("Literature reference for the EoS parameters.\n"
-                                "Switching applies that fit's K0/K0'/V0 and\n"
-                                "recomputes the phase lines.")
-        reference_cb.currentIndexChanged.connect(
-            partial(self.reference_cb_callback, reference_cb)
-        )
-        self.phase_tw.setCellWidget(current_rows, 3, reference_cb)
-        self.reference_cbs.append(reference_cb)
-
         pressure_sb = DoubleSpinBoxAlignRight()
         pressure_sb.setFixedWidth(70)
         pressure_sb.setMinimum(-9999999)
@@ -265,7 +253,7 @@ class PhaseWidget(QtWidgets.QWidget):
         pressure_sb.valueChanged.connect(
             partial(self.pressure_sb_callback, pressure_sb)
         )
-        self.phase_tw.setCellWidget(current_rows, 4, pressure_sb)
+        self.phase_tw.setCellWidget(current_rows, 3, pressure_sb)
         self.pressure_sbs.append(pressure_sb)
 
         temperature_sb = DoubleSpinBoxAlignRight()
@@ -277,8 +265,20 @@ class PhaseWidget(QtWidgets.QWidget):
         temperature_sb.valueChanged.connect(
             partial(self.temperature_sb_callback, temperature_sb)
         )
-        self.phase_tw.setCellWidget(current_rows, 5, temperature_sb)
+        self.phase_tw.setCellWidget(current_rows, 4, temperature_sb)
         self.temperature_sbs.append(temperature_sb)
+
+        reference_cb = QtWidgets.QComboBox()
+        reference_cb.addItem("—")
+        reference_cb.setEnabled(False)   # enabled when references exist
+        reference_cb.setToolTip("Literature reference for the EoS parameters.\n"
+                                "Switching applies that fit's K0/K0'/V0 and\n"
+                                "recomputes the phase lines.")
+        reference_cb.currentIndexChanged.connect(
+            partial(self.reference_cb_callback, reference_cb)
+        )
+        self.phase_tw.setCellWidget(current_rows, 5, reference_cb)
+        self.reference_cbs.append(reference_cb)
 
         self.phase_tw.setRowHeight(current_rows, 25)
         self.select_phase(current_rows)
@@ -288,16 +288,16 @@ class PhaseWidget(QtWidgets.QWidget):
         self.phase_tw.setColumnWidth(0, 20)
         self.phase_tw.setColumnWidth(1, 25)
         self.phase_tw.horizontalHeader().setSectionResizeMode(
-            2, QtWidgets.QHeaderView.ResizeToContents
+            2, QtWidgets.QHeaderView.Interactive
         )
         self.phase_tw.horizontalHeader().setSectionResizeMode(
-            3, QtWidgets.QHeaderView.Stretch
+            3, QtWidgets.QHeaderView.ResizeToContents
         )
         self.phase_tw.horizontalHeader().setSectionResizeMode(
             4, QtWidgets.QHeaderView.ResizeToContents
         )
         self.phase_tw.horizontalHeader().setSectionResizeMode(
-            5, QtWidgets.QHeaderView.ResizeToContents
+            5, QtWidgets.QHeaderView.Interactive
         )
 
     def select_phase(self, ind):
