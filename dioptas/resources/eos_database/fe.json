@@ -2,6 +2,7 @@
  "format_version": 2,
  "name": "Fe",
  "formula": "Fe",
+ "aliases": ["Iron", "Iron (bcc)"],
  "symmetry": "CUBIC",
  "lattice": {
   "a": 2.8664,

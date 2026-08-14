@@ -2,6 +2,7 @@
  "format_version": 2,
  "name": "(Mg0.4Fe0.6)O",
  "formula": "Mg2Fe3O5",
+ "aliases": ["Ferropericlase", "Magnesiowüstite", "Magnesiowustite"],
  "symmetry": "CUBIC",
  "lattice": {
   "a": 4.2805,

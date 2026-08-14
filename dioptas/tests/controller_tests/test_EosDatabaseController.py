@@ -45,6 +45,14 @@ class EosDatabaseControllerTest(QtTest):
         names = {material.name for material in self.controller.shown_materials}
         assert {"Ice VI", "Ice VII", "Ice VIII"} <= names
 
+    def test_formula_family_search_finds_solid_solution(self):
+        self.dialog.search_input.setText("MgFeO")
+
+        formulas = {
+            material.formula for material in self.controller.shown_materials
+        }
+        assert "Mg2Fe3O5" in formulas
+
     def test_single_search_result_keeps_material_table_full_width(self):
         self.dialog.resize(680, 520)
         self.dialog.show()

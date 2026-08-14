@@ -1,6 +1,7 @@
 {
  "format_version": 2,
- "name": "SrO",
+ "name": "SrO (B1)",
+ "aliases": ["rocksalt SrO"],
  "formula": "SrO",
  "symmetry": "CUBIC",
  "lattice": {

@@ -15,7 +15,7 @@ tables as a fallback until their atomic models can be verified.
 
 ## Coverage
 
-The database contains 111 material documents. Ninety-eight now have complete
+The database contains 120 material documents. One hundred seven have complete
 structure metadata and 13 remain intentionally unset. Every completed entry
 passes an automated check that Wyckoff multiplicity times occupancy reproduces
 the formula stoichiometry multiplied by `Z`.
@@ -24,10 +24,10 @@ The completed set is:
 
 `alpha_quartz`, `alumina`, `aluminum`, `aragonite`, `argon_hcp`, `b4c`,
 `boron_nitride`, `boron_nitride_hexagonal`, `boron_phosphide`, `bridgmanite`,
-`ca_perovskite`, `ca_perovskite_perovskite_pv`, `calcite`, `cao`, `cao_b2`,
+`ca_perovskite`, `calcite`, `cao`, `cao_b2`,
 `cerium_dioxide`, `chromium`, `cobalt_hcp`, `coesite`, `coo`, `copper`, `cscl`,
 `diamond`, `e_feooh`, `fe`, `fe2o3`, `fe3o4`, `fe_fcc`, `feh3`, `feo`,
-`feo_b8`, `feo_b8_2`, `fes`, `fes_iii`, `forsterite`, `geo2_rutile`,
+`feo_b8_2`, `fes`, `fes_iii`, `forsterite`, `geo2_rutile`,
 `goethite`, `gold`, `graphite`, `indium_nitride`, `iridium`, `iron`, `kbr_b1`,
 `kbr_b2`, `kcl`, `lead_fcc`, `li_bcc`, `lif_b1`, `magnesite`, `mgo`,
 `mgsio3_post_perovskite`, `molybdenum`, `molybenum_carbide_mo2c`,
@@ -42,6 +42,12 @@ The latest completed additions are `akimotoite`, `almandine`, `fayalite`,
 `kcl_b1`, `magnesium_bcc`, `magnesium_hcp`, `manganese_alpha`, `orthoenstatite`,
 `osmium`, `pyrope`, `seifertite`, `silica_cacl2`, `titanium_alpha`, and
 `titanium_omega`.
+
+The newest phase-specific additions are `calcium_carbonate_post_aragonite`,
+`cementite`, `iron_carbide_fe7c3`, `nickel_oxide`, `zinc_oxide_rocksalt`,
+`zinc_oxide_wurtzite`, `zirconium_alpha`, `zirconium_beta`, and
+`zirconium_omega`. The duplicate CaSiO3-perovskite and FeO-B8 documents were
+consolidated into their equivalent phase records.
 
 Fixed-coordinate prototypes were assigned only where the phase identity and
 cell setting are unambiguous: fcc, bcc, hcp, diamond, graphite, zinc blende,

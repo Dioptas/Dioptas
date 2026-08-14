@@ -2,6 +2,7 @@
  "format_version": 2,
  "name": "Bridgmanite",
  "formula": "MgSiO3",
+ "aliases": ["Mg-perovskite", "Magnesium perovskite"],
  "symmetry": "ORTHORHOMBIC",
  "lattice": {
   "a": 4.7783,

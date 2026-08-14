@@ -2,6 +2,7 @@
  "format_version": 2,
  "name": "MgO",
  "formula": "MgO",
+ "aliases": ["Magnesia", "Periclase"],
  "symmetry": "CUBIC",
  "lattice": {
   "a": 4.213,

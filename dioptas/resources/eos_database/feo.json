@@ -1,6 +1,7 @@
 {
  "format_version": 2,
- "name": "FeO",
+ "name": "FeO (B1)",
+ "aliases": ["wustite", "ferrous oxide"],
  "formula": "FeO",
  "symmetry": "CUBIC",
  "lattice": {
@@ -18,7 +19,7 @@
   {"element": "Fe", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
   {"element": "O", "wyckoff": "4b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
  ],
- "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/feo.jcpds, JCPDS/dac_user_jcpds/Users data/feo.jcpds",
+ "notes": "Consolidated B1 FeO entry from equivalent cubic beamline JCPDS cards. The Fischer et al. record is composition-specific to Fe0.94O.",
  "peaks": [],
  "eos_records": [
   {
@@ -50,7 +51,39 @@
     "K0_prime"
    ],
    "pressure_range_status": "reference_parameterization",
-   "notes": "Fei's review tabulates the recommended B1 FeO values K0 = 145 GPa with K0' fixed at 4.0, but gives no parameter uncertainties. A composition-specific Fischer et al. fit is available separately."
+   "notes": "Fei's review tabulates the recommended B1 FeO values K0 = 145 GPa with K0' fixed at 4.0, but gives no parameter uncertainties. A composition-specific Fischer et al. fit is included in this material."
+  },
+  {
+   "label": "B1 Fe0.94O, Fischer et al. (2011)",
+   "reference": {
+    "authors": [
+     "Fischer"
+    ],
+    "authors_truncated": true,
+    "year": 2011,
+    "source": "Earth Planet. Sci. Lett.",
+    "volume": "304",
+    "locator": "496-502",
+    "doi": "10.1016/j.epsl.2011.02.025"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 81.4063,
+     "K0": 149.4,
+     "K0_prime": 3.6
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 1.0,
+    "K0_prime": 0.04
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 156.0],
+   "notes": "Fischer et al. fit Fe0.94O with molar V0 = 12.256 cm^3/mol fixed, K0 = 149.4 +/- 1.0 GPa, and K0' = 3.60 +/- 0.04. V0 was converted to the conventional Z=4 B1 cell."
   }
  ]
 }

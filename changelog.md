@@ -8,7 +8,7 @@
 
 - **Equations of state through Peritheos.** Phase lines at pressure are now computed through the [Peritheos](https://github.com/CPrescher/peritheos) library. Database phases carry one EoS record per literature reference — the phase table's **Ref** dropdown switches between them and recomputes the lines live — and the Phase Editor (formerly JCPDS editor) lets experts pick any equation Peritheos supports (2nd/3rd/4th-order Birch-Murnaghan, Murnaghan, Vinet, Modified Tait, Natural Strain, Holzapfel), showing exactly the parameters that equation needs. Existing `.jcpds` phases behave exactly as before (3rd-order Birch-Murnaghan, cross-validated against the previous solver).
 
-- **The EoS database grew from 22 to 76 materials**, curated from a beamline jcpds collection: 68 materials contain 76 publication-verified EoS records, and eight phase-only materials retain explicit JCPDS/PDF card references. Entries without either kind of verifiable source were removed.
+- **The EoS database grew from 22 to 120 materials**, curated from a beamline jcpds collection and primary literature: 116 materials contain 147 publication-verified EoS records, and four phase-only materials retain explicit JCPDS/PDF card references. The latest phase-specific additions cover wurtzite and rocksalt ZnO; alpha, omega, and beta Zr; NiO; Fe3C; orthorhombic Fe7C3; and post-aragonite CaCO3 (including its thermal EoS). Equivalent duplicate cards were consolidated, and ambiguous phase names were made explicit.
 
 - **Old jcpds files load again.** Version 2/3 jcpds files (Dan Shim's fixed format, still common in beamline collections) crashed the loader for years; they now load, including all six crystal-system codes.
 
@@ -31,6 +31,8 @@
 - **autoprocess** now notices new images on beamline network storage. It used to rely on OS file events, which never reach the machine when the detector writes to a network drive; the folder is now checked directly about once a second instead, which works on any filesystem. A file is only loaded once it has stopped growing, so half-written images no longer slip through.
 
 ## Changes
+
+- **Chemistry-aware EoS database search.** Formula searches now understand composition families: for example, `MgFeO` finds the stored `(Mg0.4Fe0.6)O` material even though its exact integer-ratio formula is `Mg2Fe3O5`. Exact and stoichiometrically equivalent formulas rank first, decimal and Unicode-subscript formulas are accepted, and mineral/common-name aliases such as `periclase`, `corundum`, and `hematite` now live on their specific material instead of expanding globally to unrelated polymorphs.
 
 - **Numbered calibrant lines.** The calibrant's lines in the calibration view now carry their ring number — on the image rings, the cake lines, and the pattern lines — so it is easy to see which ring is the first and which the tenth. The numbers match the ring spinbox used during peak picking, and they follow the zoom: any ring crossing the current view keeps its number inside the view. Two checkboxes below the views — visible on every step — hide the lines or just the numbers.
 

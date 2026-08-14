@@ -1,6 +1,7 @@
 {
  "format_version": 2,
- "name": "SrO",
+ "name": "SrO (B2)",
+ "aliases": ["cesium-chloride-type SrO"],
  "formula": "SrO",
  "symmetry": "CUBIC",
  "lattice": {

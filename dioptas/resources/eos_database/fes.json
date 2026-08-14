@@ -1,6 +1,7 @@
 {
  "format_version": 2,
- "name": "FeS",
+ "name": "FeS-VI",
+ "aliases": ["orthorhombic FeS"],
  "formula": "FeS",
  "symmetry": "ORTHORHOMBIC",
  "lattice": {

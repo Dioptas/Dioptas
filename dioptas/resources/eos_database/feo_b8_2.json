@@ -1,6 +1,7 @@
 {
  "format_version": 2,
- "name": "FeO",
+ "name": "FeO (B8)",
+ "aliases": ["nickeline-type FeO", "NiAs-type FeO"],
  "formula": "FeO",
  "symmetry": "HEXAGONAL",
  "lattice": {

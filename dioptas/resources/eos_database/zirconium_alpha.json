@@ -1,0 +1,36 @@
+{
+ "format_version": 2,
+ "name": "Zirconium (alpha)",
+ "aliases": ["alpha-Zr", "hcp zirconium"],
+ "formula": "Zr",
+ "symmetry": "HEXAGONAL",
+ "lattice": {"a": 3.2332528519, "b": null, "c": 5.1505717931, "alpha": 90.0, "beta": 90.0, "gamma": 120.0},
+ "formula_units_per_cell": 2,
+ "space_group": "P63/mmc",
+ "space_group_number": 194,
+ "atom_sites": [
+  {"element": "Zr", "wyckoff": "2c", "x": 0.3333333333, "y": 0.6666666667, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "Ambient alpha-Zr structure; the lattice is normalized to the fixed V0 while preserving the reported ambient c/a ratio of 1.593.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "McHardy et al. (2026), alpha Vinet",
+   "reference": {
+    "authors": ["McHardy", "Storm", "Lonsdale", "Roy", "McMahon"],
+    "year": 2026,
+    "source": "Phys. Rev. B",
+    "volume": "113",
+    "locator": "174115",
+    "doi": "10.1103/zp3m-kjpc"
+   },
+   "eos": {"type": "Vinet", "parameters": {"V0": 46.63, "K0": 113.7, "K0_prime": 1.0}},
+   "parameter_errors": {"V0": null, "K0": 0.7, "K0_prime": null},
+   "fixed_parameters": ["V0", "K0_prime"],
+   "experimental_pressure_range_gpa": [0.0, 11.0],
+   "experimental_temperature_range_k": [300.0, 300.0],
+   "temperature_ref": 300.0,
+   "notes": "The authors constrained V0 to 23.315 A^3/atom and K0' to 1; the conventional two-atom volume is stored here."
+  }
+ ]
+}

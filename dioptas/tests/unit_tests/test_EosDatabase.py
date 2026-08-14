@@ -28,7 +28,14 @@ def gold(materials):
 def test_bundled_database_loads(materials):
     assert len(materials) >= 20
     names = {m.name for m in materials}
-    assert {"Gold", "Platinum", "MgO", "Diamond"} <= names
+    assert {
+        "Gold", "Platinum", "MgO", "Diamond",
+        "Zinc oxide (wurtzite B4)", "Zinc oxide (rocksalt B1)",
+        "Zirconium (alpha)", "Zirconium (omega)", "Zirconium (beta)",
+        "Nickel oxide (rhombohedral B1)", "Cementite",
+        "Iron carbide (orthorhombic Fe7C3)",
+        "Calcium carbonate (post-aragonite Pmmn)",
+    } <= names
     # Complete structures are calculated by PhaseSmith; legacy records keep
     # a stored peak table only when they cannot be calculated.
     for m in materials:
@@ -37,6 +44,29 @@ def test_bundled_database_loads(materials):
             assert not m.peaks
         else:
             assert m.peaks
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "Zinc oxide (wurtzite B4)",
+        "Zinc oxide (rocksalt B1)",
+        "Zirconium (alpha)",
+        "Zirconium (omega)",
+        "Zirconium (beta)",
+        "Nickel oxide (rhombohedral B1)",
+        "Cementite",
+        "Iron carbide (orthorhombic Fe7C3)",
+        "Calcium carbonate (post-aragonite Pmmn)",
+    ],
+)
+def test_phase_expansion_materials_build_structure_reflections(
+        materials, name):
+    material = next(material for material in materials
+                    if material.name == name)
+    for index in range(len(material.eos_records)):
+        phase = eos.build_jcpds(material, record_index=index)
+        assert phase.reflections
 
 
 def test_gold_has_multiple_references(gold):
@@ -48,14 +78,65 @@ def test_gold_has_multiple_references(gold):
 
 def test_search(materials):
     assert any(m.formula == "Au" for m in eos.search_materials("Au"))
-    # alias: common name finds the formula
+    # Names and material-owned aliases find the corresponding formula.
     assert any(m.formula == "Au" for m in eos.search_materials("gold"))
     assert any(m.formula == "MgO" for m in eos.search_materials("periclase"))
+    assert any(m.formula == "Mg2Fe3O5"
+               for m in eos.search_materials("ferropericlase"))
     # Every bundled water-ice phase is discoverable by its chemistry.
     water_ice_names = {m.name for m in eos.search_materials("H2O")}
     assert {"Ice VI", "Ice VII", "Ice VIII"} <= water_ice_names
+    assert any(m.name == "Zinc oxide (wurtzite B4)"
+               for m in eos.search_materials("zincite"))
+    assert any(m.name == "Calcium carbonate (post-aragonite Pmmn)"
+               for m in eos.search_materials("CaCO3-Pmmn"))
     # empty query returns everything
     assert len(eos.search_materials("")) == len(materials)
+
+
+def test_search_matches_formula_family_and_ranks_exact_formula_first():
+    materials = [
+        Material(name="Mixed oxide", formula="Mg2Fe3O5"),
+        Material(name="Exact", formula="MgFeO"),
+        Material(name="Different family", formula="Mg2SiO4"),
+    ]
+
+    results = eos.search_materials("MgFeO", materials)
+
+    assert [material.name for material in results] == ["Exact", "Mixed oxide"]
+
+
+def test_search_recognizes_equivalent_decimal_and_unicode_formulas():
+    materials = [
+        Material(name="Ferropericlase", formula="Mg2Fe3O5"),
+        Material(name="Different ratio", formula="MgFeO"),
+    ]
+
+    ascii_results = eos.search_materials("Mg0.4Fe0.6O", materials)
+    unicode_results = eos.search_materials("Mg₀.₄Fe₀.₆O", materials)
+
+    assert ascii_results[0].name == "Ferropericlase"
+    assert unicode_results[0].name == "Ferropericlase"
+
+
+def test_search_uses_material_owned_aliases_and_partial_aliases():
+    materials = [
+        Material(name="MgO", formula="MgO",
+                 aliases=["Magnesia", "Periclase"]),
+        Material(name="Unrelated", formula="CaO"),
+    ]
+
+    assert eos.search_materials("periclase", materials) == [materials[0]]
+    assert eos.search_materials("peri", materials) == [materials[0]]
+
+
+def test_material_aliases_survive_serialization():
+    material = Material(name="Alumina", formula="Al2O3",
+                        aliases=["Corundum"])
+
+    loaded = Material.from_dict(material.to_dict())
+
+    assert loaded.aliases == ["Corundum"]
 
 
 def test_formula_parsing():

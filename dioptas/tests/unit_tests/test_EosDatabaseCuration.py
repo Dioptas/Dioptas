@@ -140,7 +140,7 @@ def test_records_without_any_parameter_error_explain_why():
          {"V0": 0.0128, "K0": None, "K0_prime": 0.15}, ["K0"]),
         ("mgo.json", 1,
          {"V0": 0.01, "K0": None, "K0_prime": 0.01}, ["K0"]),
-        ("ca_perovskite_perovskite_pv.json", 0,
+        ("ca_perovskite.json", 0,
          {"V0": 0.05, "K0": 4.0, "K0_prime": 0.2}, ["V0"]),
         ("cao_b2.json", 0,
          {"V0": 0.3321, "K0": 20.0, "K0_prime": 0.5}, []),
@@ -351,7 +351,75 @@ def test_all_curated_structures_are_complete_and_stoichiometric():
             )
         assert dict(actual) == pytest.approx(dict(expected)), path.name
 
-    assert len(structured) == 100
+    assert len(structured) == 107
+
+
+@pytest.mark.parametrize(
+    "filename,index,eos_type,parameters,errors,fixed",
+    [
+        ("zinc_oxide_wurtzite.json", 0, "BM2",
+         {"V0": 47.7, "K0": 139.0},
+         {"V0": 0.12, "K0": 8.0}, []),
+        ("zinc_oxide_rocksalt.json", 0, "BM2",
+         {"V0": 78.44, "K0": 172.0},
+         {"V0": 0.4, "K0": 21.0}, []),
+        ("zirconium_alpha.json", 0, "Vinet",
+         {"V0": 46.63, "K0": 113.7, "K0_prime": 1.0},
+         {"V0": None, "K0": 0.7, "K0_prime": None},
+         ["V0", "K0_prime"]),
+        ("zirconium_omega.json", 0, "Vinet",
+         {"V0": 69.15, "K0": 98.0, "K0_prime": 3.6},
+         {"V0": 0.09, "K0": 2.0, "K0_prime": 0.2}, ["V0"]),
+        ("zirconium_beta.json", 0, "Vinet",
+         {"V0": 45.2, "K0": 83.0, "K0_prime": 3.91},
+         {"V0": None, "K0": 0.5, "K0_prime": 0.02}, ["V0"]),
+        ("nickel_oxide.json", 0, "BM3",
+         {"V0": 54.6581199247, "K0": 191.0, "K0_prime": 3.9},
+         {"V0": 0.0392564903, "K0": None, "K0_prime": None}, ["V0"]),
+        ("cementite.json", 0, "BM3",
+         {"V0": 155.26, "K0": 175.4, "K0_prime": 5.1},
+         {"V0": 0.14, "K0": 3.5, "K0_prime": 0.3}, []),
+        ("iron_carbide_fe7c3.json", 0, "BM3",
+         {"V0": 748.0, "K0": 168.0, "K0_prime": 6.1},
+         {"V0": 1.0, "K0": 4.0, "K0_prime": 0.1}, []),
+        ("calcium_carbonate_post_aragonite.json", 0, "BM3",
+         {"V0": 97.76, "K0": 146.7, "K0_prime": 3.4},
+         {"V0": None, "K0": 1.9, "K0_prime": 0.1}, ["V0"]),
+        ("calcium_carbonate_post_aragonite.json", 1, "BM3",
+         {"V0": 97.76, "K0": 151.0, "K0_prime": 3.2},
+         {"V0": None, "K0": 4.0, "K0_prime": 0.2}, ["V0"]),
+    ],
+)
+def test_phase_expansion_records_match_primary_sources(
+        filename, index, eos_type, parameters, errors, fixed):
+    record = _document(filename)["eos_records"][index]
+    assert record["eos"]["type"] == eos_type
+    assert record["eos"]["parameters"] == pytest.approx(parameters)
+    assert record["parameter_errors"] == errors
+    assert record["fixed_parameters"] == fixed
+    assert record["reference"].get("doi")
+
+
+def test_post_aragonite_thermal_parameters_match_primary_source():
+    thermal = _document(
+        "calcium_carbonate_post_aragonite.json"
+    )["eos_records"][1]["thermal"]
+    assert thermal["type"] == "MieGruneisenDebye"
+    assert thermal["parameters"] == pytest.approx({
+        "Tr": 300.0,
+        "theta0": 631.0,
+        "gamma0": 1.6,
+        "q": 1.3,
+        "n": 5,
+    })
+    assert thermal["parameter_errors"] == {
+        "Tr": None,
+        "theta0": None,
+        "gamma0": 0.5,
+        "q": 0.9,
+        "n": None,
+    }
+    assert thermal["fixed_parameters"] == ["Tr", "theta0", "n"]
 
 
 @pytest.mark.parametrize(
@@ -815,7 +883,7 @@ def test_retained_references_have_normalized_publication_metadata():
             for record in _document(path.name)["eos_records"]
         )
 
-    assert len(references) == 138
+    assert len(references) == 147
     assert {reference for reference in references if "doi:" not in reference} == (
         no_registered_doi
     )

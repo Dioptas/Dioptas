@@ -11,6 +11,7 @@ a user-saved ``.eosmat`` file — same content) looks like::
       "format_version": 2,
       "name": "Gold",
       "formula": "Au",
+      "aliases": ["native gold"],
       "symmetry": "CUBIC",
       "lattice": {"a": 4.0786, "b": null, "c": null,
                   "alpha": 90.0, "beta": 90.0, "gamma": 90.0},
@@ -119,6 +120,10 @@ class Material:
 
     name: str = ""
     formula: str = ""
+    #: Material-specific alternative names used by the database search.
+    #: Keeping these beside the material avoids ambiguous global aliases
+    #: that accidentally match every polymorph with the same chemistry.
+    aliases: list = field(default_factory=list)
     symmetry: str = ""
     lattice: Lattice = field(default_factory=Lattice)
     #: formula units per unit cell (crystallographic Z) — needed to convert
@@ -175,6 +180,7 @@ class Material:
             "format_version": 2,
             "name": self.name,
             "formula": self.formula,
+            "aliases": list(self.aliases),
             "symmetry": self.symmetry,
             "lattice": {
                 "a": self.lattice.a, "b": self.lattice.b, "c": self.lattice.c,
@@ -196,6 +202,8 @@ class Material:
         return cls(
             name=document.get("name") or "",
             formula=document.get("formula") or "",
+            aliases=[str(alias) for alias in document.get("aliases", [])
+                     if alias],
             symmetry=(document.get("symmetry") or "").upper(),
             lattice=Lattice(
                 a=lattice.get("a") or 0.0,
@@ -349,14 +357,34 @@ def record_eos_type(record: dict) -> str:
 
 def _parse_formula(formula: str) -> list:
     """
-    Parse a chemical formula like 'Al2O3' into [('Al', 2), ('O', 3)].
-    Returns [] for strings that are not simple formulas.
+    Parse a simple chemical formula into ``(element, amount)`` pairs.
+
+    Decimal occupancies and Unicode subscript/superscript digits are
+    accepted so searches such as ``Mg₀.₂Fe₀.₈O`` can be compared with
+    integer-ratio formulas stored by the database. Returns ``[]`` for
+    names and for formulas containing unsupported grouping syntax.
     """
     if not formula:
         return []
-    tokens = re.findall(r"([A-Z][a-z]?)(\d*)", formula)
-    parsed = [(el, int(num) if num else 1) for el, num in tokens if el]
-    # Reject if the tokens don't reproduce the input (e.g. name-like strings)
-    reconstructed = "".join(
-        f"{el}{num if num > 1 else ''}" for el, num in parsed)
-    return parsed if reconstructed == formula else []
+    normalized = formula.translate(str.maketrans(
+        "₀₁₂₃₄₅₆₇₈₉⁰¹²³⁴⁵⁶⁷⁸⁹",
+        "01234567890123456789",
+    )).strip()
+    token = re.compile(r"([A-Z][a-z]?)(\d+(?:\.\d*)?|\.\d+)?")
+    parsed = []
+    position = 0
+    while position < len(normalized):
+        match = token.match(normalized, position)
+        if match is None:
+            return []
+        element, amount_text = match.groups()
+        if amount_text:
+            amount = (float(amount_text) if "." in amount_text
+                      else int(amount_text))
+            if amount <= 0:
+                return []
+        else:
+            amount = 1
+        parsed.append((element, amount))
+        position = match.end()
+    return parsed

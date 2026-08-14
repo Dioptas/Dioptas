@@ -2,6 +2,7 @@
  "format_version": 2,
  "name": "Aluminum",
  "formula": "Al",
+ "aliases": ["Aluminium"],
  "symmetry": "CUBIC",
  "lattice": {
   "a": 4.047191,

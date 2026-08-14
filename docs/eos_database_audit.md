@@ -24,10 +24,11 @@ Pt model is tied to the 32--660 GPa shock data, while the Hixson--Fritz W
 record is limited to the 0--380 GPa reduced-isotherm table derived from their
 shock measurements.  These are not presented as static DAC fit ranges.
 
-Fifteen records have no defensible numeric experimental interval and instead use
+Sixteen records have no defensible numeric experimental interval and instead use
 an explicit `pressure_range_status`: the Munoz--Kunc InN EoS is theoretical;
 the Fei FeO and Anderson Au values are reference/compilation
-parameterizations rather than fits to one bounded data set; and the 1966 CoO
+parameterizations rather than fits to one bounded data set; the B1-ZnO paper
+does not tabulate the exact fit interval; and the 1966 CoO
 source reports its upper limit only qualitatively as "several hundred
 kilobars" in the recoverable publication metadata. The eleven Sokolova et al.
 thermal calibrants are likewise reference parameterizations, not fits to one
@@ -91,8 +92,8 @@ documents.
 
 A subsequent database-wide structure pass extended this representation to 55
 of the original 78 materials. Later literature additions and source-specific
-refinements and the latest literature additions raised current coverage to 98
-of 111 materials. The 13 remaining
+refinements and the latest literature additions raised current coverage to 107
+of 120 materials. The 13 remaining
 complex, disordered, molecular, or ambiguously identified phases are listed
 with their blocking reason in `docs/eos_structure_audit.md`; no atomic
 coordinates were guessed for them.
@@ -165,11 +166,22 @@ phase-per-polymorph treatment of CaO and KBr. Source-reported parameter errors
 and fixed parameters are retained; absent published errors are stored as
 `null`.
 
+## ZnO, Zr, oxide, carbide, and carbonate extension
+
+Nine phase documents and ten EoS records were added from primary literature:
+wurtzite/B4 and rocksalt/B1 ZnO; alpha, omega, and beta Zr; rhombohedral NiO;
+cementite Fe3C; orthorhombic Fe7C3; and post-aragonite CaCO3-Pmmn. Each phase
+has an explicit crystallographic model and conventional-cell V0. The
+post-aragonite document contains both the 300 K static BM3 fit and the paired
+BM3--Mie-Gruneisen-Debye fit to 2200 K. Equivalent imported CaSiO3-perovskite
+and FeO-B8 documents were consolidated rather than retained under ambiguous
+duplicate names.
+
 ## Citation normalization
 
 Every retained citation was reconciled against publisher or DOI metadata and
-rewritten as `Authors, Journal volume, pages (year), doi:...`. Of the 135
-current records, 132 include a DOI. The exceptions are the 1979 zircon and
+rewritten as `Authors, Journal volume, pages (year), doi:...`. Of the 147
+current records, 144 include a DOI. The exceptions are the 1979 zircon and
 1981 coesite papers in American Mineralogist, for which no registered DOI was
 found, and the citable STFC report for fcc Pb. The Pb record includes the
 open primary-report URL in its notes.
@@ -222,8 +234,8 @@ identify TiB2. Two files labeled as molybdenum were identified as `MoC
 molybdenum-metal EoS records were rejected, the now-unreferenced material
 entries were removed too. The subsequent literature expansions and
 pressure-domain audit, native Sokolova parameterizations, and subsequent
-phase expansion bring the current database to 111 materials and 135 EoS
-records: 107 materials with EoS data and four phase-only entries.
+phase expansion bring the current database to 120 materials and 147 EoS
+records: 116 materials with EoS data and four phase-only entries.
 
 ## Retention rule
 

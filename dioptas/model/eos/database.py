@@ -14,31 +14,15 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import os
 
 from ...paths import resources_path
-from .material import Material
+from .material import Material, _parse_formula
 
 logger = logging.getLogger(__name__)
 
 eos_database_path = os.path.join(resources_path, "eos_database")
-
-# Common-name shortcuts for friendlier search
-_ALIASES = {
-    "gold": "Au", "silver": "Ag", "iron": "Fe", "copper": "Cu",
-    "aluminium": "Al", "magnesium": "Mg", "titanium": "Ti",
-    "osmium": "Os", "manganese": "Mn",
-    "platinum": "Pt", "iridium": "Ir", "rhenium": "Re", "tungsten": "W",
-    "neon": "Ne", "argon": "Ar",
-    "alumina": "Al2O3", "corundum": "Al2O3",
-    "magnesia": "MgO", "periclase": "MgO",
-    "hematite": "Fe2O3", "boron carbide": "B4C",
-    "wollastonite": "CaSiO3", "perovskite": "CaSiO3",
-    "akimotoite": "MgSiO3", "orthoenstatite": "MgSiO3",
-    "enstatite": "MgSiO3", "pyrope": "Mg3Al2Si3O12",
-    "almandine": "Fe3Al2Si3O12", "fayalite": "Fe2SiO4",
-    "seifertite": "SiO2",
-}
 
 _cache: dict = {}
 
@@ -76,21 +60,76 @@ def load_materials(directory: str | None = None) -> list:
 
 def search_materials(query: str, materials: list | None = None) -> list:
     """
-    Case-insensitive substring search over name and formula, with
-    common-name aliases ('gold' finds Au). An empty query returns
-    everything.
+    Ranked material search over names, formulas, and material-owned aliases.
+
+    A query that is itself a chemical formula additionally finds formulas
+    with equivalent stoichiometry or the same set of elements. This makes a
+    composition-family query such as ``MgFeO`` find ``Mg2Fe3O5`` while exact
+    formula and textual matches remain first. An empty query returns all
+    materials in their original order.
     """
     if materials is None:
         materials = load_materials()
     query = (query or "").strip()
     if not query:
         return list(materials)
-    terms = {query.lower()}
-    alias = _ALIASES.get(query.lower())
-    if alias:
-        terms.add(alias.lower())
-    return [
-        m for m in materials
-        if any(term in m.name.lower() or term in m.formula.lower()
-               for term in terms)
-    ]
+
+    ranked = []
+    for original_index, material in enumerate(materials):
+        rank = _material_search_rank(query, material)
+        if rank is not None:
+            ranked.append((rank, original_index, material))
+    ranked.sort(key=lambda hit: (hit[0], hit[1]))
+    return [material for _, _, material in ranked]
+
+
+def _material_search_rank(query: str, material: Material) -> int | None:
+    """Best match category for *material*; lower values rank first."""
+    query_text = query.casefold()
+    name = material.name.casefold()
+    formula = material.formula.casefold()
+    aliases = [alias.casefold() for alias in material.aliases]
+
+    if query_text == formula and formula:
+        return 0
+    if query_text == name or query_text in aliases:
+        return 1
+
+    formula_rank = _formula_search_rank(query, material.formula)
+    if formula_rank == 2:
+        return formula_rank
+
+    searchable_text = [name, formula, *aliases]
+    if any(value.startswith(query_text) for value in searchable_text):
+        return 3
+    if any(query_text in value for value in searchable_text):
+        return 4
+    return formula_rank
+
+
+def _formula_search_rank(query: str, formula: str) -> int | None:
+    """Return 2 for equivalent ratios and 5 for a shared element set."""
+    query_composition = _formula_composition(query)
+    material_composition = _formula_composition(formula)
+    if not query_composition or not material_composition:
+        return None
+    if query_composition.keys() != material_composition.keys():
+        return None
+
+    query_total = sum(query_composition.values())
+    material_total = sum(material_composition.values())
+    equivalent = all(math.isclose(
+        query_composition[element] / query_total,
+        material_composition[element] / material_total,
+        rel_tol=1e-9,
+        abs_tol=1e-12,
+    ) for element in query_composition)
+    return 2 if equivalent else 5
+
+
+def _formula_composition(formula: str) -> dict[str, float]:
+    """Aggregate a parsed formula into one amount per element."""
+    composition = {}
+    for element, amount in _parse_formula(formula):
+        composition[element] = composition.get(element, 0.0) + float(amount)
+    return composition

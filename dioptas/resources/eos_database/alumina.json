@@ -2,6 +2,7 @@
  "format_version": 2,
  "name": "Alumina",
  "formula": "Al2O3",
+ "aliases": ["Corundum"],
  "symmetry": "HEXAGONAL",
  "lattice": {
   "a": 4.762813,
