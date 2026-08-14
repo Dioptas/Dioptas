@@ -1,0 +1,44 @@
+{
+ "format_version": 2,
+ "name": "Magnesium (bcc)",
+ "formula": "Mg",
+ "symmetry": "CUBIC",
+ "lattice": {"a": 3.5902720909, "b": null, "c": null, "alpha": 90.0, "beta": 90.0, "gamma": 90.0},
+ "formula_units_per_cell": 2,
+ "space_group": "Im-3m",
+ "space_group_number": 229,
+ "atom_sites": [
+  {"element": "Mg", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "High-pressure bcc magnesium, stored separately from the hcp polymorph.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Stinton et al. (2014), bcc Vinet",
+   "reference": {
+    "authors": [
+     "Stinton",
+     "MacLeod",
+     "Cynn",
+     "Errandonea",
+     "Evans",
+     "Proctor",
+     "Meng",
+     "McMahon"
+    ],
+    "year": 2014,
+    "source": "Phys. Rev. B",
+    "volume": "90",
+    "locator": "134105",
+    "doi": "10.1103/PhysRevB.90.134105"
+   },
+   "eos": {"type": "Vinet", "parameters": {"V0": 46.2788, "K0": 26.3, "K0_prime": 5.1}},
+   "parameter_errors": {"V0": 0.0016, "K0": 0.6, "K0_prime": 0.06},
+   "fixed_parameters": ["V0"],
+   "experimental_pressure_range_gpa": [46.0, 211.0],
+   "experimental_temperature_range_k": [300.0, 300.0],
+   "temperature_ref": 300.0,
+   "notes": "Room-temperature bcc fit. The published 23.1394 A^3/atom reference volume is multiplied by two for the conventional bcc cell."
+  }
+ ]
+}

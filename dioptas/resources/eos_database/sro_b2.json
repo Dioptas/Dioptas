@@ -1,0 +1,58 @@
+{
+ "format_version": 2,
+ "name": "SrO (B2)",
+ "aliases": ["cesium-chloride-type SrO"],
+ "formula": "SrO",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.0374,
+  "b": 3.0374,
+  "c": 3.0374,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 1,
+ "space_group": "Pm-3m",
+ "space_group_number": 221,
+ "atom_sites": [
+  {"element": "Sr", "wyckoff": "1a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "1b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/SrO-b2.jcpds",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "B2 (Sato and Jeanloz1981)",
+   "reference": {
+    "authors": [
+     "Sato",
+     "Jeanloz"
+    ],
+    "year": 1981,
+    "source": "J. Geophys. Res.",
+    "volume": "86",
+    "locator": "11773-11778",
+    "doi": "10.1029/JB086iB12p11773"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 28.0224,
+     "K0": 160.0,
+     "K0_prime": 4.0
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [
+    "K0_prime"
+   ],
+   "experimental_pressure_range_gpa": [34.0, 59.0],
+   "notes": "Sato and Jeanloz report K0 = 160 GPa with K0' fixed at 4.0 for B2 SrO. The publication does not provide recoverable coefficient uncertainties."
+  }
+ ]
+}

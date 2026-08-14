@@ -1,0 +1,55 @@
+{
+ "format_version": 2,
+ "name": "Magnesite",
+ "formula": "MgCO3",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 4.6339,
+  "b": 4.6339,
+  "c": 15.0177,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": 6,
+ "space_group": "R-3c",
+ "space_group_number": 167,
+ "atom_sites": [
+  {"element": "Mg", "wyckoff": "6b", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "C", "wyckoff": "6a", "x": 0.0, "y": 0.0, "z": 0.25, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "18e", "x": 0.2778, "y": 0.0, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/mgco3.jcpds. Ambient structure coordinates: Markgraf and Reeder, American Mineralogist 70, 590-600 (1985).",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Ross (1997)",
+   "reference": {
+    "authors": [
+     "Ross"
+    ],
+    "year": 1997,
+    "source": "American Mineralogist",
+    "volume": "82",
+    "locator": "682-688",
+    "doi": "10.2138/am-1997-7-805"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 279.28,
+     "K0": 117.0,
+     "K0_prime": 2.3
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.03,
+    "K0": 3.0,
+    "K0_prime": 0.7
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 7.0],
+   "notes": "Ross reports V0 = 279.28(3) A^3, K0 = 117(3) GPa, and K0' = 2.3(7); replaces three JCPDS variants with conflicting V0 values."
+  }
+ ]
+}

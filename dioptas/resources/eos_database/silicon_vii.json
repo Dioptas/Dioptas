@@ -1,0 +1,59 @@
+{
+ "format_version": 2,
+ "name": "Silicon (Si-VII, hcp)",
+ "formula": "Si",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 2.689646,
+  "b": null,
+  "c": 4.565046,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": 2,
+ "space_group": "P63/mmc",
+ "space_group_number": 194,
+ "atom_sites": [
+  {"element": "Si", "wyckoff": "2c", "x": 0.3333333333, "y": 0.6666666667, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "Hexagonal-close-packed Si-VII. The reference cell uses the extrapolated EoS V0 and the axial ratio measured at 48.6 GPa. PhaseSmith calculates powder reflections and intensities from the ideal structure.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Anzellini et al. (2019), 300 K Vinet",
+   "reference": {
+    "authors": [
+     "Anzellini",
+     "Wharmby",
+     "Miozzi",
+     "Kleppe",
+     "Daisenberger",
+     "Wilhelm"
+    ],
+    "year": 2019,
+    "source": "Sci. Rep.",
+    "volume": "9",
+    "locator": "15537",
+    "doi": "10.1038/s41598-019-51931-1"
+   },
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 28.6,
+     "K0": 96.9,
+     "K0_prime": 4.01
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.2,
+    "K0": 0.9,
+    "K0_prime": 0.04
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [46.0, 94.4],
+   "temperature_ref": 300.0,
+   "notes": "Table 8 room-temperature fit. Published V0=14.3 A^3/atom is multiplied by two atoms in the hcp cell; V0 is extrapolated because Si-VII was observed only at high pressure."
+  }
+ ]
+}

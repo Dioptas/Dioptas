@@ -1,0 +1,62 @@
+{
+ "format_version": 2,
+ "name": "Ringwoodite",
+ "formula": "Mg2SiO4",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 8.075841,
+  "b": 8.075841,
+  "c": 8.075841,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 8,
+ "space_group": "Fd-3m",
+ "space_group_number": 227,
+ "atom_sites": [
+  {"element": "Mg", "wyckoff": "16d", "x": 0.625, "y": 0.625, "z": 0.625, "occupancy": 0.9},
+  {"element": "Si", "wyckoff": "16d", "x": 0.625, "y": 0.625, "z": 0.625, "occupancy": 0.1},
+  {"element": "Si", "wyckoff": "8a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 0.8},
+  {"element": "Mg", "wyckoff": "8a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 0.2},
+  {"element": "O", "wyckoff": "32e", "x": 0.3685, "y": 0.3685, "z": 0.3685, "occupancy": 1.0}
+ ],
+ "notes": "The BM3 reference cell is from Meng et al., Physics and Chemistry of Minerals 21, 407-413 (1994), doi:10.1007/BF00203299. Fractional coordinates and the experimentally refined partial Mg-Si disorder are from Sasaki et al., Journal of Geophysical Research 87, 7829-7832 (1982), doi:10.1029/JB087iB09p07829, COD 1549722 (origin choice used by that CIF). Phase-line intensities were calculated from the cited structure using independent-atom X-ray form factors.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Meng et al. (1994), 300 K BM3",
+   "reference": {
+    "authors": [
+     "Meng",
+     "Fei",
+     "Weidner",
+     "Gwanmesia",
+     "Hu"
+    ],
+    "year": 1994,
+    "source": "Physics and Chemistry of Minerals",
+    "volume": "21",
+    "locator": "407-413",
+    "doi": "10.1007/BF00203299"
+   },
+   "temperature_ref": 300.0,
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 526.7,
+     "K0": 182.0,
+     "K0_prime": 4.2
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.3,
+    "K0": 3.0,
+    "K0_prime": 0.3
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 30.0],
+   "notes": "Hydrostatic compression of gamma-Mg2SiO4 to mantle pressures and 700 K. The stored values are the publication's 300 K isothermal fit."
+  }
+ ]
+}

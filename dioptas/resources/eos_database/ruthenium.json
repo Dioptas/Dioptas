@@ -1,0 +1,63 @@
+{
+ "format_version": 2,
+ "name": "Ruthenium",
+ "formula": "Ru",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 2.704989,
+  "b": null,
+  "c": 4.280159,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": 2,
+ "space_group": "P63/mmc",
+ "space_group_number": 194,
+ "atom_sites": [
+  {"element": "Ru", "wyckoff": "2c", "x": 0.3333333333, "y": 0.6666666667, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "The reference cell is constrained to the fitted 300 K V0 while retaining the ambient axial ratio. PhaseSmith calculates powder reflections and intensities from the ideal hcp structure.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Anzellini et al. (2019), BM3",
+   "reference": {
+    "authors": [
+     "Anzellini",
+     "Errandonea",
+     "Cazorla",
+     "MacLeod",
+     "Monteseguro",
+     "Boccato",
+     "Bandiello",
+     "Anichtchenko",
+     "Popescu",
+     "Beavers"
+    ],
+    "year": 2019,
+    "source": "Sci. Rep.",
+    "volume": "9",
+    "locator": "14459",
+    "doi": "10.1038/s41598-019-51037-8"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 27.122,
+     "K0": 323.4,
+     "K0_prime": 4.15
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.006,
+    "K0": 1.1,
+    "K0_prime": 0.019
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 151.0],
+   "temperature_ref": 300.0,
+   "notes": "Experimental helium-medium BM3 fit to 151 GPa; the paper reports V0=27.122(6) A^3, K0=323.4(1.1) GPa, and K0'=4.150(19)."
+  }
+ ]
+}

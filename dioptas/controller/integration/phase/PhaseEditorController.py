@@ -7,7 +7,9 @@ import numpy as np
 from qtpy import QtWidgets, QtCore, QtGui
 
 from ....widgets.UtilityWidgets import save_file_dialog
-from ....widgets.integration.JcpdsEditorWidget import JcpdsEditorWidget
+from ....widgets.EosRecordDialog import EosRecordDialog
+from ....widgets.integration.PhaseEditorWidget import PhaseEditorWidget
+from ....model.PhaseModel import PhaseLoadError
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ....model.util.jcpds import jcpds, jcpds_reflection
@@ -15,9 +17,9 @@ from ....model.DioptasModel import DioptasModel
 from ....widgets.integration import IntegrationWidget
 
 
-class JcpdsEditorController(QtCore.QObject):
+class PhaseEditorController(QtCore.QObject):
     """
-    JcpdsEditorController handles all the signals and changes associated with Jcpds editor widget
+    PhaseEditorController handles all the signals and changes associated with Jcpds editor widget
     """
     canceled_editor = QtCore.Signal(jcpds)
 
@@ -40,10 +42,11 @@ class JcpdsEditorController(QtCore.QObject):
         """
         super().__init__()
         self.integration_widget = integration_widget
-        self.jcpds_widget = JcpdsEditorWidget(integration_widget)
+        self.jcpds_widget = PhaseEditorWidget(integration_widget)
         self.phase_widget = self.integration_widget.phase_widget
         self.model = dioptas_model
         self.phase_model = self.model.phase_model
+        self._configure_eos_types()
         self.create_connections()
 
         self.previous_header_item_index_sorted = None
@@ -61,6 +64,22 @@ class JcpdsEditorController(QtCore.QObject):
             if self.model.calibration_model is not None:
                 wavelength = self.model.calibration_model.wavelength * 1e10
         self.jcpds_widget.show_jcpds(jcpds_phase, wavelength)
+        self._update_eos_record_controls()
+
+    def _configure_eos_types(self):
+        """Fill the EoS combobox with every equation Peritheos supports,
+        each with the parameter rows its constructor needs (Holzapfel
+        additionally shows the material data n/Z/Zc it converts with)."""
+        from ....model.util.eos_phase import (
+            RT_EOS_TYPES, EOS_DISPLAY_NAMES, eos_parameter_names)
+
+        eos_types = []
+        for key in RT_EOS_TYPES:
+            names = eos_parameter_names(key)
+            if key == 'Holzapfel':
+                names = names + ['Zc']
+            eos_types.append((key, EOS_DISPLAY_NAMES.get(key, key), names))
+        self.jcpds_widget.configure_eos_types(eos_types)
 
     def create_connections(self):
         # Phase Widget Signals
@@ -106,12 +125,59 @@ class JcpdsEditorController(QtCore.QObject):
         self.jcpds_widget.lattice_ratio_step_txt.editingFinished.connect(self.lattice_ratio_step_changed)
 
         # Equation of state fields
+        self.jcpds_widget.eos_type_cb.currentIndexChanged.connect(self.eos_type_changed)
+        self.jcpds_widget.thermal_type_cb.currentIndexChanged.connect(self.thermal_type_changed)
+        self.jcpds_widget.eos_record_cb.currentIndexChanged.connect(
+            self.eos_record_changed)
+        self.jcpds_widget.eos_record_add_btn.clicked.connect(
+            self.add_eos_record)
+        self.jcpds_widget.eos_record_duplicate_btn.clicked.connect(
+            self.duplicate_eos_record)
+        self.jcpds_widget.eos_record_edit_btn.clicked.connect(
+            self.edit_eos_record)
+        self.jcpds_widget.eos_record_delete_btn.clicked.connect(
+            self.delete_eos_record)
+        self.jcpds_widget.eos_record_default_btn.clicked.connect(
+            self.set_default_eos_record)
         self.jcpds_widget.eos_K_txt.editingFinished.connect(partial(self.param_txt_changed,
                                                                     widget=self.jcpds_widget.eos_K_txt,
                                                                     param='k0'))
         self.jcpds_widget.eos_Kp_txt.editingFinished.connect(partial(self.param_txt_changed,
                                                                      widget=self.jcpds_widget.eos_Kp_txt,
                                                                      param='k0p0'))
+        self.jcpds_widget.eos_Kpp_txt.editingFinished.connect(partial(self.param_txt_changed,
+                                                                      widget=self.jcpds_widget.eos_Kpp_txt,
+                                                                      param='k0pp0'))
+        self.jcpds_widget.eos_n_txt.editingFinished.connect(partial(self.param_txt_changed,
+                                                                    widget=self.jcpds_widget.eos_n_txt,
+                                                                    param='n'))
+        self.jcpds_widget.eos_z_txt.editingFinished.connect(partial(self.param_txt_changed,
+                                                                    widget=self.jcpds_widget.eos_z_txt,
+                                                                    param='z'))
+        self.jcpds_widget.eos_zc_txt.editingFinished.connect(partial(self.param_txt_changed,
+                                                                     widget=self.jcpds_widget.eos_zc_txt,
+                                                                     param='zc'))
+        self.jcpds_widget.eos_theta_txt.editingFinished.connect(partial(
+            self.thermal_param_txt_changed,
+            widget=self.jcpds_widget.eos_theta_txt,
+            parameter='theta0', state_param='theta_t0'))
+        self.jcpds_widget.eos_gamma_txt.editingFinished.connect(partial(
+            self.thermal_param_txt_changed,
+            widget=self.jcpds_widget.eos_gamma_txt,
+            parameter='gamma0', state_param='gamma_t0'))
+        self.jcpds_widget.eos_qt_txt.editingFinished.connect(partial(
+            self.thermal_param_txt_changed,
+            widget=self.jcpds_widget.eos_qt_txt,
+            parameter='q', state_param='q_t0'))
+        self.jcpds_widget.eos_tref_txt.editingFinished.connect(partial(
+            self.thermal_param_txt_changed,
+            widget=self.jcpds_widget.eos_tref_txt,
+            parameter='Tr', state_param='t_ref'))
+        for parameter, field in (
+                self.jcpds_widget.sokolova_parameter_fields.items()):
+            field.editingFinished.connect(partial(
+                self.thermal_param_txt_changed,
+                widget=field, parameter=parameter))
         self.jcpds_widget.eos_alphaT_txt.editingFinished.connect(partial(self.param_txt_changed,
                                                                          widget=self.jcpds_widget.eos_alphaT_txt,
                                                                          param='alpha_t0'))
@@ -156,8 +222,10 @@ class JcpdsEditorController(QtCore.QObject):
 
     def phase_changed(self, ind):
         if self.active and self.phase_ind == ind:
-            self.jcpds_widget.show_jcpds(self.phase_model.phases[ind],
+            self.jcpds_phase = self.phase_model.phases[ind]
+            self.jcpds_widget.show_jcpds(self.jcpds_phase,
                                          wavelength=self.model.calibration_model.wavelength * 1e10)
+            self._update_eos_record_controls()
 
     def update_filename(self):
         self.jcpds_widget.filename_txt.setText(self.jcpds_phase.filename)
@@ -173,7 +241,162 @@ class JcpdsEditorController(QtCore.QObject):
         self.phase_model.set_param(self.phase_ind, param, widget.value())
 
     def param_txt_changed(self, widget, param):
-        self.phase_model.set_param(self.phase_ind, param, float(widget.text()))
+        try:
+            value = float(widget.text())
+        except ValueError:
+            # empty or unparsable (e.g. the n/Z/Zc fields of a legacy
+            # phase) — restore what the model has instead of crashing
+            self.jcpds_widget.update_eos_parameters(self.jcpds_phase)
+            return
+        if param == 'zc':
+            value = int(value)
+        self.phase_model.set_param(self.phase_ind, param, value)
+
+    def thermal_param_txt_changed(self, widget, parameter,
+                                  state_param=None):
+        """Write an editable thermal constructor parameter back to state."""
+        try:
+            value = float(widget.text())
+        except ValueError:
+            self.jcpds_widget.update_eos_parameters(self.jcpds_phase)
+            return
+
+        thermal_parameters = dict(
+            self.jcpds_phase.params.get('thermal_parameters') or {})
+        thermal_parameters[parameter] = value
+        # Keep the legacy scalar fields in sync for project compatibility
+        # and for UI code that reads them directly.
+        if state_param is not None:
+            self.jcpds_phase.params[state_param] = value
+        self.phase_model.set_param(
+            self.phase_ind, 'thermal_parameters', thermal_parameters)
+
+    def eos_type_changed(self):
+        eos_type = self.jcpds_widget.get_eos_type()
+        if eos_type is None or self.phase_ind < 0:
+            return
+        self.jcpds_widget.update_eos_parameter_visibility()
+        self.phase_model.set_eos_type(self.phase_ind, eos_type)
+
+    def thermal_type_changed(self):
+        if self.phase_ind < 0:
+            return
+        key = self.jcpds_widget.get_thermal_type()
+        self.jcpds_widget.update_thermal_parameter_visibility()
+        self.jcpds_widget.update_eos_parameter_visibility()
+        if key in ('MieGruneisenDebye', 'MieGruneisenEinstein',
+                   'Sokolova2016'):
+            # full peritheos engine; computes once theta0/gamma0 (and
+            # n/Zc) are filled in — until then it logs and behaves like
+            # a phase without thermal expansion
+            self.phase_model.set_thermal_type(self.phase_ind, key)
+            return
+        if self.phase_model.get_thermal_type(self.phase_ind):
+            self.phase_model.set_thermal_type(self.phase_ind, '')
+        if key == 'none':
+            # removing the thermal model zeroes its coefficients — the
+            # phase then computes purely from the room-temperature EoS
+            for param in ('alpha_t0', 'd_alpha_dt', 'dk0dt', 'dk0pdt'):
+                if self.jcpds_phase.params[param]:
+                    self.phase_model.set_param(self.phase_ind, param, 0.0)
+        # selecting 'alphakt' only reveals its (zero-valued) fields;
+        # nothing is written until the user enters coefficients
+
+    def _update_eos_record_controls(self):
+        if self.phase_ind < 0:
+            return
+        phase = self.phase_model.phases[self.phase_ind]
+        self.jcpds_widget.update_eos_records(
+            self.phase_model.get_eos_reference_labels(self.phase_ind),
+            phase.params['eos_current_index'],
+            origins=list(phase.params.get('eos_record_origins') or []),
+            default_index=phase.params.get('eos_default_index') or 0,
+            material_origin=phase.params.get('material_origin') or 'legacy',
+            reloadable=self.phase_model.can_reload(self.phase_ind),
+        )
+
+    def eos_record_changed(self, record_index):
+        if self.phase_ind < 0 or record_index < 0:
+            return
+        self.phase_model.set_eos_reference(self.phase_ind, record_index)
+
+    def _record_dialog(self, record, title):
+        dialog = EosRecordDialog(record, self.jcpds_widget, title=title)
+        if dialog.exec_() != QtWidgets.QDialog.Accepted:
+            return None
+        return dialog.record()
+
+    def add_eos_record(self):
+        if self.phase_ind < 0:
+            return
+        record = self.phase_model.eos_record_from_phase(self.phase_ind)
+        record.setdefault('label', 'Custom EoS')
+        edited = self._record_dialog(record, 'Add EoS Record')
+        if edited is not None:
+            self.phase_model.add_eos_record(
+                self.phase_ind, edited, origin='custom')
+
+    def duplicate_eos_record(self):
+        if self.phase_ind < 0:
+            return
+        phase = self.phase_model.phases[self.phase_ind]
+        index = phase.params['eos_current_index']
+        records = phase.params['eos_records']
+        if not 0 <= index < len(records):
+            return
+        record = deepcopy(records[index])
+        record.pop('default', None)
+        record['label'] = f"{record.get('label') or 'EoS record'} (custom)"
+        edited = self._record_dialog(record, 'Duplicate as Custom EoS Record')
+        if edited is not None:
+            self.phase_model.duplicate_eos_record(
+                self.phase_ind, index, edited)
+
+    def edit_eos_record(self):
+        if self.phase_ind < 0:
+            return
+        phase = self.phase_model.phases[self.phase_ind]
+        index = phase.params['eos_current_index']
+        if not self.phase_model.is_eos_record_editable(self.phase_ind, index):
+            return
+        records = phase.params['eos_records']
+        if not 0 <= index < len(records):
+            return
+        live_record = self.phase_model.eos_record_from_phase(
+            self.phase_ind, records[index])
+        edited = self._record_dialog(live_record, 'Edit EoS Record')
+        if edited is not None:
+            self.phase_model.update_eos_record(
+                self.phase_ind, index, edited)
+
+    def delete_eos_record(self):
+        if self.phase_ind < 0:
+            return
+        phase = self.phase_model.phases[self.phase_ind]
+        index = phase.params['eos_current_index']
+        if not self.phase_model.is_eos_record_editable(self.phase_ind, index):
+            return
+        records = phase.params['eos_records']
+        if not 0 <= index < len(records):
+            return
+        label = records[index].get('label') or 'this EoS record'
+        answer = QtWidgets.QMessageBox.question(
+            self.jcpds_widget,
+            'Delete EoS Record',
+            f'Delete “{label}” from this material?',
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+            QtWidgets.QMessageBox.No,
+        )
+        if answer == QtWidgets.QMessageBox.Yes:
+            self.phase_model.delete_eos_record(self.phase_ind, index)
+
+    def set_default_eos_record(self):
+        if self.phase_ind < 0:
+            return
+        index = self.phase_model.phases[
+            self.phase_ind].params['eos_current_index']
+        if self.phase_model.is_eos_record_editable(self.phase_ind, index):
+            self.phase_model.set_eos_default(self.phase_ind, index)
 
     def lattice_ab_changed(self):
         ab_ratio = float(self.jcpds_widget.lattice_ab_sb.value())
@@ -303,15 +526,20 @@ class JcpdsEditorController(QtCore.QObject):
 
     def save_as_btn_clicked(self, filename=False):
         if filename is False:
-            filename = save_file_dialog(self.jcpds_widget, "Save JCPDS phase.",
+            filename = save_file_dialog(self.jcpds_widget, "Save phase or material.",
                                         self.model.working_directories['phase'],
-                                        ('JCPDS Phase (*.jcpds);;Export Table (*.txt)'))
+                                        ('EoS Material (*.eosmat);;JCPDS Phase (*.jcpds);;Export Table (*.txt)'))
 
-            if filename != '':
-                if filename.endswith('.jcpds'):
-                    self.phase_model.save_phase_as(self.phase_ind, filename)
-                elif filename.endswith('.txt'):
-                    self.export_table_data(filename)
+        if filename != '':
+            if filename.endswith('.eosmat'):
+                from ....model.eos import (
+                    material_from_jcpds, save_material_file)
+                save_material_file(
+                    filename, material_from_jcpds(self.jcpds_phase))
+            elif filename.endswith('.jcpds'):
+                self.phase_model.save_phase_as(self.phase_ind, filename)
+            elif filename.endswith('.txt'):
+                self.export_table_data(filename)
             self.show_phase(self.jcpds_phase)
 
     def export_table_data(self, filename):
@@ -328,7 +556,12 @@ class JcpdsEditorController(QtCore.QObject):
         fp.close()
 
     def reload_file_btn_clicked(self):
-        self.phase_model.reload(self.phase_ind)
+        try:
+            self.phase_model.reload(self.phase_ind)
+        except PhaseLoadError as error:
+            self.integration_widget.show_error_msg(
+                f'Could not reload:\n\n{error.filename}.\n\n'
+                'Please check that the source file still exists and is valid.')
 
     def show_view(self):
         self.active = True

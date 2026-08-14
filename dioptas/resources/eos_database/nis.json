@@ -1,0 +1,55 @@
+{
+ "format_version": 2,
+ "name": "NiS",
+ "formula": "NiS",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 3.4395,
+  "b": 3.4395,
+  "c": 5.3514,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": 2,
+ "space_group": "P63/mmc",
+ "space_group_number": 194,
+ "atom_sites": [
+  {"element": "Ni", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "S", "wyckoff": "2c", "x": 0.3333333333, "y": 0.6666666667, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/NiS_alpha.jcpds",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Campbell and Heintz 1993",
+   "reference": {
+    "authors": [
+     "Campbell",
+     "Heinz"
+    ],
+    "year": 1993,
+    "source": "J. Phys. Chem. Solids",
+    "volume": "54",
+    "locator": "5-7",
+    "doi": "10.1016/0022-3697(93)90106-2"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 54.8263,
+     "K0": 156.0,
+     "K0_prime": 4.4
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 10.0,
+    "K0_prime": 1.2
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 45.0],
+   "notes": "Campbell and Heinz report K0 = 156(10) GPa and K0' = 4.4(12). No independent uncertainty was recovered for the ambient card volume."
+  }
+ ]
+}

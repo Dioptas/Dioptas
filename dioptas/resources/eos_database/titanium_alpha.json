@@ -1,0 +1,42 @@
+{
+ "format_version": 2,
+ "name": "Titanium (alpha)",
+ "formula": "Ti",
+ "symmetry": "HEXAGONAL",
+ "lattice": {"a": 2.9503229616, "b": null, "c": 4.6833235701, "alpha": 90.0, "beta": 90.0, "gamma": 120.0},
+ "formula_units_per_cell": 2,
+ "space_group": "P63/mmc",
+ "space_group_number": 194,
+ "atom_sites": [
+  {"element": "Ti", "wyckoff": "2c", "x": 0.3333333333, "y": 0.6666666667, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "Ambient alpha-Ti; lattice scaled to the fitted V0 while preserving the ambient axial ratio.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Dewaele et al. (2015), alpha Vinet",
+   "reference": {
+    "authors": [
+     "Dewaele",
+     "Stutzmann",
+     "Bouchet",
+     "Bottin",
+     "Occelli",
+     "Mezouar"
+    ],
+    "year": 2015,
+    "source": "Phys. Rev. B",
+    "volume": "91",
+    "locator": "134108",
+    "doi": "10.1103/PhysRevB.91.134108"
+   },
+   "eos": {"type": "Vinet", "parameters": {"V0": 35.304, "K0": 110.4, "K0_prime": 4.0}},
+   "parameter_errors": {"V0": 0.04, "K0": 2.7, "K0_prime": null},
+   "fixed_parameters": ["K0_prime"],
+   "experimental_pressure_range_gpa": [0.0, 10.0],
+   "experimental_temperature_range_k": [300.0, 300.0],
+   "temperature_ref": 300.0,
+   "notes": "Low-pressure alpha-phase Vinet fit; K0' was fixed at 4."
+  }
+ ]
+}

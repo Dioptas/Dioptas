@@ -1,0 +1,58 @@
+{
+ "format_version": 2,
+ "name": "Palladium",
+ "formula": "Pd",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.890355,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Pd", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "The lattice parameter is calculated from the fitted 300 K atomic reference volume. PhaseSmith calculates powder reflections and intensities from the ideal fcc structure.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Baty et al. (2024), BM3",
+   "reference": {
+    "authors": [
+     "Baty",
+     "Burakovsky",
+     "Luscher",
+     "Anzellini",
+     "Errandonea"
+    ],
+    "year": 2024,
+    "source": "J. Appl. Phys.",
+    "volume": "135",
+    "locator": "075103",
+    "doi": "10.1063/5.0179469"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 58.88,
+     "K0": 190.0,
+     "K0_prime": 5.3
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.16,
+    "K0": 3.0,
+    "K0_prime": 0.2
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 80.0],
+   "temperature_ref": 300.0,
+   "notes": "Experimental 0-80 GPa BM3 fit; published V0=14.72(4) A^3/atom is multiplied by four atoms in the conventional fcc cell."
+  }
+ ]
+}

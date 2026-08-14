@@ -1,0 +1,95 @@
+{
+ "format_version": 2,
+ "name": "Ca-perovskite",
+ "formula": "CaSiO3",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.5666,
+  "b": 3.5666,
+  "c": 3.5666,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 1,
+ "space_group": "Pm-3m",
+ "space_group_number": 221,
+ "atom_sites": [
+  {"element": "Ca", "wyckoff": "1a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "Si", "wyckoff": "1b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "3c", "x": 0.0, "y": 0.5, "z": 0.5, "occupancy": 1.0}
+ ],
+ "notes": "Consolidated from the equivalent cubic CaSiO3 perovskite cards in the beamline JCPDS collection. The ideal Pm-3m aristotype is shared by both literature EoS records.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "using aristotype, EOS by Shim et al. (2000)",
+   "reference": {
+    "authors": [
+     "Shim",
+     "Duffy",
+     "Shen"
+    ],
+    "year": 2000,
+    "source": "Phys. Earth Planet. Inter.",
+    "volume": "120",
+    "locator": "327-338",
+    "doi": "10.1016/S0031-9201(00)00154-0"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 45.58,
+     "K0": 236.0,
+     "K0_prime": 3.9
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.05,
+    "K0": 4.0,
+    "K0_prime": 0.2
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 134.0],
+   "notes": "Quasi-hydrostatic BM3 fit selected by Shim et al.: V0 = 45.58 +/- 0.05 A^3 was fixed from the ambient reference volume; K0 = 236 +/- 4 GPa and K0' = 3.9 +/- 0.2 were fitted."
+  },
+  {
+   "label": "using aristotype, EOS by Mao et al 1989",
+   "reference": {
+    "authors": [
+     "Mao",
+     "Chen",
+     "Hemley",
+     "Jephcoat",
+     "Wu",
+     "Bassett"
+    ],
+    "year": 1989,
+    "source": "J. Geophys. Res.",
+    "volume": "94",
+    "locator": "17889-17894",
+    "doi": "10.1029/JB094iB12p17889"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 45.37,
+     "K0": 281.0,
+     "K0_prime": 4.0
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.08,
+    "K0": 4.0,
+    "K0_prime": null
+   },
+   "fixed_parameters": [
+    "K0_prime"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 134.0],
+   "notes": "Mao et al. Table values, as reproduced by Shim et al. (2000): V0 = 45.37(8) A^3, K0 = 281(4) GPa, with K0' fixed at 4.0."
+  }
+ ]
+}

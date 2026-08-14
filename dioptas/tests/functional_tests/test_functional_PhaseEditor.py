@@ -12,7 +12,7 @@ from ..utility import QtTest, click_button, enter_value_into_text_field
 
 from ...model.util import jcpds
 from ...model.DioptasModel import DioptasModel
-from ...controller.integration import JcpdsEditorController
+from ...controller.integration import PhaseEditorController
 from ...controller import MainController
 
 from ...widgets.integration import IntegrationWidget
@@ -31,7 +31,7 @@ def calculate_cubic_q_value(h, k, l, a):
     return 2.0 * np.pi / calculate_cubic_d_spacing(h, k, l, a)
 
 
-class JcpdsEditorFunctionalTest(QtTest):
+class PhaseEditorFunctionalTest(QtTest):
     def setUp(self):
         self.model = DioptasModel()
         self.phase_model = self.model.phase_model
@@ -60,11 +60,11 @@ class JcpdsEditorFunctionalTest(QtTest):
                 self.jcpds_controller.jcpds_widget.deleteLater()
             del self.jcpds_controller
 
-        if hasattr(self, 'jcpds_editor_controller'):
-            if hasattr(self.jcpds_editor_controller, 'jcpds_widget'):
-                self.jcpds_editor_controller.jcpds_widget.close()
-                self.jcpds_editor_controller.jcpds_widget.deleteLater()
-            del self.jcpds_editor_controller
+        if hasattr(self, 'phase_editor_controller'):
+            if hasattr(self.phase_editor_controller, 'jcpds_widget'):
+                self.phase_editor_controller.jcpds_widget.close()
+                self.phase_editor_controller.jcpds_widget.deleteLater()
+            del self.phase_editor_controller
 
         if hasattr(self, 'jcpds_widget'):
             self.jcpds_widget.close()
@@ -147,7 +147,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.phase_model.add_jcpds(os.path.join(jcpds_path, "au_Anderson.jcpds"))
         self.model.calibration_model.pattern_geometry.wavelength = 0.31
 
-        self.jcpds_controller = JcpdsEditorController(IntegrationWidget(), self.model)
+        self.jcpds_controller = PhaseEditorController(IntegrationWidget(), self.model)
         self.jcpds_controller.active = True
         self.jcpds_widget = self.jcpds_controller.jcpds_widget
         self.jcpds_widget.raise_widget()
@@ -338,7 +338,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.phase_model.add_jcpds(os.path.join(jcpds_path, "au_Anderson.jcpds"))
         self.model.calibration_model.pattern_geometry.wavelength = 0.31
 
-        self.jcpds_controller = JcpdsEditorController(IntegrationWidget(), self.model)
+        self.jcpds_controller = PhaseEditorController(IntegrationWidget(), self.model)
         self.jcpds_controller.active = True
         self.jcpds_widget = self.jcpds_controller.jcpds_widget
         self.jcpds_controller.show_phase(self.phase_model.phases[0])
@@ -498,8 +498,8 @@ class JcpdsEditorFunctionalTest(QtTest):
         )
         click_button(self.phase_controller.phase_widget.add_btn)
 
-        self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
-        self.jcpds_widget = self.jcpds_editor_controller.jcpds_widget
+        self.phase_editor_controller = self.phase_controller.phase_editor_controller
+        self.jcpds_widget = self.phase_editor_controller.jcpds_widget
 
         self.phase_controller.phase_widget.phase_tw.selectRow(0)
         QTest.mouseClick(
@@ -541,7 +541,7 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.enter_value_into_spinbox(self.jcpds_widget.lattice_a_sb, 3.4)
         QtWidgets.QApplication.processEvents()
 
-        self.assertEqual(self.jcpds_editor_controller.jcpds_phase.params["a0"], 3.4)
+        self.assertEqual(self.phase_editor_controller.jcpds_phase.params["a0"], 3.4)
         prev_line_pos = self.compare_line_position(prev_line_pos, 2, 0)
 
         # now he decides to have full control, changes the structure to TRICLINIC and plays with all parameters:
@@ -640,8 +640,8 @@ class JcpdsEditorFunctionalTest(QtTest):
         )
         click_button(self.phase_controller.phase_widget.add_btn)
 
-        self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
-        self.jcpds_widget = self.jcpds_editor_controller.jcpds_widget
+        self.phase_editor_controller = self.phase_controller.phase_editor_controller
+        self.jcpds_widget = self.phase_editor_controller.jcpds_widget
         self.jcpds_phase = self.main_controller.model.phase_model.phases[0]
         self.jcpds_in_spec = (
             self.main_controller.integration_controller.widget.pattern_widget.phases[0]
@@ -740,8 +740,8 @@ class JcpdsEditorFunctionalTest(QtTest):
         self.phase_controller = (
             self.main_controller.integration_controller.phase_controller
         )
-        self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
-        self.jcpds_widget = self.jcpds_editor_controller.jcpds_widget
+        self.phase_editor_controller = self.phase_controller.phase_editor_controller
+        self.jcpds_widget = self.phase_editor_controller.jcpds_widget
         self.jcpds_phase = self.main_controller.model.phase_model.phases[0]
         self.jcpds_in_spec = (
             self.main_controller.integration_controller.widget.pattern_widget.phases[0]
@@ -787,8 +787,8 @@ class JcpdsEditorFunctionalTest(QtTest):
 
         # Erwin starts the software loads Gold and wants to see what is in the jcpds file, however since he does not
 
-        self.jcpds_editor_controller = self.phase_controller.jcpds_editor_controller
-        self.jcpds_widget = self.jcpds_editor_controller.jcpds_widget
+        self.phase_editor_controller = self.phase_controller.phase_editor_controller
+        self.jcpds_widget = self.phase_editor_controller.jcpds_widget
         self.jcpds_phase = self.main_controller.model.phase_model.phases[0]
         self.jcpds_in_spec = (
             self.main_controller.integration_controller.widget.pattern_widget.phases[0]

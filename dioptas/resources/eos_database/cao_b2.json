@@ -1,0 +1,56 @@
+{
+ "format_version": 2,
+ "name": "CaO-b2",
+ "formula": "CaO",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 2.9074,
+  "b": 2.9074,
+  "c": 2.9074,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 1,
+ "space_group": "Pm-3m",
+ "space_group_number": 221,
+ "atom_sites": [
+  {"element": "Ca", "wyckoff": "1a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "1b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/certified data base/cao-b2.jcpds, JCPDS/current user/jcpds/ver3/caob2.jcpds, JCPDS/current user/jcpds/ver2/caob2.jcpds",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "GSAS, EOS by Richet et al 1988",
+   "reference": {
+    "authors": [
+     "Richet",
+     "Mao",
+     "Bell"
+    ],
+    "year": 1988,
+    "source": "J. Geophys. Res.",
+    "volume": "93",
+    "locator": "15279-15288",
+    "doi": "10.1029/JB093iB12p15279"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 24.576,
+     "K0": 130.0,
+     "K0_prime": 3.5
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.3321,
+    "K0": 20.0,
+    "K0_prime": 0.5
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [52.7, 134.9],
+   "notes": "Richet et al. report molar V0 = 14.8 +/- 0.2 cm^3/mol, K0 = 130 +/- 20 GPa, and K0' = 3.5 +/- 0.5 for B2 CaO. V0 and its uncertainty were converted to the Z=1 cell."
+  }
+ ]
+}

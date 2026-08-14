@@ -1,0 +1,62 @@
+{
+ "format_version": 2,
+ "name": "FeO (B8)",
+ "aliases": ["nickeline-type FeO", "NiAs-type FeO"],
+ "formula": "FeO",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 2.8346,
+  "b": 2.8346,
+  "c": 5.7259,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": 2,
+ "space_group": "P63/mmc",
+ "space_group_number": 194,
+ "atom_sites": [
+  {"element": "Fe", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "2c", "x": 0.3333333333, "y": 0.6666666667, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/CVS/PbF2_ni2in.jcpds, JCPDS/dac_user_jcpds/FeO_B8.jcpds",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "B8 Fe0.94O, Fischer et al. (2011)",
+   "reference": {
+    "authors": [
+     "Fischer",
+     "Campbell",
+     "Shofner",
+     "Lord",
+     "Dera",
+     "Prakapenka"
+    ],
+    "year": 2011,
+    "source": "Earth Planet. Sci. Lett.",
+    "volume": "304",
+    "locator": "496-502",
+    "doi": "10.1016/j.epsl.2011.02.025"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 39.843,
+     "K0": 137.8,
+     "K0_prime": 4.0
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.0598,
+    "K0": 0.9,
+    "K0_prime": null
+   },
+   "fixed_parameters": [
+    "K0_prime"
+   ],
+   "experimental_pressure_range_gpa": [70.0, 156.0],
+   "notes": "Fischer et al. fit B8 Fe0.94O with molar V0 = 11.997 +/- 0.018 cm^3/mol, K0 = 137.8 +/- 0.9 GPa, and K0' fixed at 4.0. V0 and its uncertainty were converted to the Z=2 hexagonal cell."
+  }
+ ]
+}

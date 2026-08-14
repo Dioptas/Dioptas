@@ -1,0 +1,88 @@
+{
+ "format_version": 2,
+ "name": "Copper",
+ "formula": "Cu",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.614958,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Cu", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "FCC phase reference: JCPDS 04-0836. The reference cell is calculated from the fitted conventional-cell V0.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Dewaele et al. (2004), revised-ruby-scale Vinet",
+   "reference": {
+    "authors": [
+     "Dewaele",
+     "Loubeyre",
+     "Mezouar"
+    ],
+    "year": 2004,
+    "source": "Phys. Rev. B",
+    "volume": "70",
+    "locator": "094112",
+    "doi": "10.1103/PhysRevB.70.094112"
+   },
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 47.24,
+     "K0": 132.4,
+     "K0_prime": 5.32
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 1.4,
+    "K0_prime": 0.06
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 153.0],
+   "temperature_ref": 300.0,
+   "notes": "Table II fit on the authors' revised PR8 ruby scale using helium as pressure medium. Published V0=11.810 A^3/atom is multiplied by four atoms in the conventional fcc cell."
+  },
+  {
+   "label": "Sokolova et al. (2016), Holzapfel thermal model",
+   "reference": {
+    "authors": [
+     "Sokolova",
+     "Dorogokupets",
+     "Dymshits",
+     "Danilov",
+     "Litasov"
+    ],
+    "year": 2016,
+    "source": "Comput. Geosci.",
+    "volume": "94",
+    "locator": "162-169",
+    "details": "supplementary workbook 5",
+    "doi": "10.1016/j.cageo.2016.06.002"
+   },
+   "eos": {"type": "Holzapfel", "parameters": {"V0": 47.239009578237244, "K0": 133.5, "K0_prime": 5.32}},
+   "parameter_errors": {"V0": null, "K0": null, "K0_prime": null},
+   "fixed_parameters": [],
+   "pressure_range_status": "reference_parameterization",
+   "temperature_ref": 298.15,
+   "thermal": {
+    "type": "Sokolova2016",
+    "parameters": {"Tr": 298.15, "QE1o": 296.0, "mE1": 1.5, "QE2o": 169.0, "mE2": 1.5, "delta": -0.07, "t": 1.401, "a_0": 0.0, "m": 0.0, "g": 2.18, "e_0": 27.7},
+    "parameter_errors": {"Tr": null, "QE1o": null, "mE1": null, "QE2o": null, "mE2": null, "delta": null, "t": null, "a_0": null, "m": null, "g": null, "e_0": null},
+    "fixed_parameters": []
+   },
+   "notes": "Native Sokolova2016 parameterization transcribed from the authors' Cu Excel table. Workbook Vo=0.7112 J bar^-1 mol^-1 and Ko=1335 kbar were converted to the conventional Z=4 cell in A^3 and GPa. The source reports no parameter uncertainties."
+  }
+ ]
+}

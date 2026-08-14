@@ -1,0 +1,60 @@
+{
+ "format_version": 2,
+ "name": "Fe2O3",
+ "formula": "Fe2O3",
+ "aliases": ["Hematite"],
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 5.0354,
+  "b": null,
+  "c": 13.7477,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": 6,
+ "space_group": "R-3c",
+ "space_group_number": 167,
+ "atom_sites": [
+  {"element": "Fe", "wyckoff": "12c", "x": 0.0, "y": 0.0, "z": 0.3552, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "18e", "x": 0.3059, "y": 0.0, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "Hematite phase reference: JCPDS 33-664. Cell and asymmetric-unit coordinates are the ambient-pressure single-crystal refinement of Schouwink et al.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Schouwink et al. (2011), 300 K BM2",
+   "reference": {
+    "authors": [
+     "Schouwink",
+     "Dubrovinsky",
+     "Glazyrin",
+     "Merlini",
+     "Hanfland",
+     "Pippinger",
+     "Miletich"
+    ],
+    "year": 2011,
+    "source": "Am. Mineral.",
+    "volume": "96",
+    "locator": "1781-1786",
+    "doi": "10.2138/am.2011.3775"
+   },
+   "eos": {
+    "type": "BM2",
+    "parameters": {
+     "V0": 301.88,
+     "K0": 207.0
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.02,
+    "K0": 3.0
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 25.3],
+   "temperature_ref": 300.0,
+   "notes": "Recommended finite-strain result from neon-medium single-crystal XRD to 25.3 GPa. Second-order Birch-Murnaghan fixes K0'=4 by definition; the unconstrained alternative was not selected."
+  }
+ ]
+}

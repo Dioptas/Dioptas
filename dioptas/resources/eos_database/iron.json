@@ -1,0 +1,90 @@
+{
+ "format_version": 2,
+ "name": "Iron",
+ "formula": "Fe",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 2.527,
+  "b": null,
+  "c": 4.065,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": 2,
+ "space_group": "P63/mmc",
+ "space_group_number": 194,
+ "atom_sites": [
+  {"element": "Fe", "wyckoff": "2c", "x": 0.3333333333, "y": 0.6666666667, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "iron",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "(hcp phase -- 19.2 GPa modified to P=0) (JCPDS 34-529 ) EOS from Mao et al 90",
+   "reference": {
+    "authors": [
+     "Mao",
+     "Wu",
+     "Chen",
+     "Shu",
+     "Jephcoat"
+    ],
+    "year": 1990,
+    "source": "J. Geophys. Res.",
+    "volume": "95",
+    "locator": "21737-21742",
+    "doi": "10.1029/JB095iB13p21737"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 22.35,
+     "K0": 165.0,
+     "K0_prime": 5.33
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.03,
+    "K0": 4.0,
+    "K0_prime": 0.09
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [19.2, 300.0],
+   "notes": "Mao et al. report V0 = 22.35(3) A^3, K0 = 165(4) GPa, and K0' = 5.33(9) for the two-atom hcp cell. The legacy volume was also corrected for the hexagonal sin(120 degree) factor."
+  },
+  {
+   "label": "Shen and Smith (2026), Cu-referenced Vinet",
+   "reference": {
+    "authors": [
+     "Shen",
+     "Smith"
+    ],
+    "year": 2026,
+    "source": "Phys. Rev. B",
+    "volume": "113",
+    "locator": "144113",
+    "doi": "10.1103/fxgq-96sg"
+   },
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 22.352,
+     "K0": 168.55,
+     "K0_prime": 5.53
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 0.6,
+    "K0_prime": 0.03
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
+   "experimental_pressure_range_gpa": [16.0, 140.0],
+   "temperature_ref": 300.0,
+   "notes": "Table II Cu-referenced fit combining DAC-1 and DAC-2; V0 fixed. Reported uncertainties: K0 +/- 0.6 GPa and K0' +/- 0.03. The hcp phase data are above 16 GPa."
+  }
+ ]
+}

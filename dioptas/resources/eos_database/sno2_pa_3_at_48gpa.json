@@ -1,0 +1,68 @@
+{
+ "format_version": 2,
+ "name": "SnO2_Pa-3 at 48GPa",
+ "formula": "SnO2",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 4.87,
+  "b": 4.87,
+  "c": 4.87,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Users data/sno2_cubic_48GPa.jcpds",
+ "peaks": [
+  [4, 2, 2, 0.9941, 15.0],
+  [4, 2, 0, 1.089, 20.0],
+  [3, 3, 1, 1.1173, 65.0],
+  [4, 0, 0, 1.2175, 20.0],
+  [2, 2, 2, 1.4058, 5.0],
+  [3, 1, 1, 1.4684, 100.0],
+  [2, 2, 0, 1.7218, 80.0],
+  [2, 1, 1, 1.9882, 5.0],
+  [2, 1, 0, 2.1779, 15.0],
+  [2, 0, 0, 2.435, 85.0],
+  [1, 1, 1, 2.8117, 80.0]
+ ],
+ "eos_records": [
+  {
+   "label": "lattice parameter by Haines and Leger,1997, intensity by Ono et al., 2000",
+   "reference": {
+    "authors": [
+     "Ono",
+     "Ito",
+     "Katsura",
+     "Yoneda",
+     "Walter",
+     "Urakawa",
+     "Utsumi",
+     "Funakoshi"
+    ],
+    "year": 2000,
+    "source": "Phys. Chem. Miner.",
+    "volume": "27",
+    "locator": "618-622",
+    "doi": "10.1007/S002690000108"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 130.6,
+     "K0": 252.0,
+     "K0_prime": 3.5
+    }
+   },
+   "parameter_errors": {
+    "V0": 3.0,
+    "K0": 28.0,
+    "K0_prime": 2.2
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [18.0, 29.0],
+   "notes": "Ono et al. report the extrapolated zero-pressure EoS values V0 = 130.6 +/- 3.0 A^3, K0 = 252 +/- 28 GPa, and K0' = 3.5 +/- 2.2. The lattice and phase lines in this file are a measured 48 GPa pattern, not the zero-pressure cell."
+  }
+ ],
+ "atom_sites": []
+}

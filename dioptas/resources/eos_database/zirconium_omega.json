@@ -1,0 +1,37 @@
+{
+ "format_version": 2,
+ "name": "Zirconium (omega)",
+ "aliases": ["omega-Zr"],
+ "formula": "Zr",
+ "symmetry": "HEXAGONAL",
+ "lattice": {"a": 5.044, "b": null, "c": 3.137, "alpha": 90.0, "beta": 90.0, "gamma": 120.0},
+ "formula_units_per_cell": 3,
+ "space_group": "P6/mmm",
+ "space_group_number": 191,
+ "atom_sites": [
+  {"element": "Zr", "wyckoff": "1a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "Zr", "wyckoff": "2d", "x": 0.3333333333, "y": 0.6666666667, "z": 0.5, "occupancy": 1.0}
+ ],
+ "notes": "McHardy et al.'s measured zero-pressure omega-Zr lattice; its rounded axes agree with the constrained EoS volume within 0.05 A^3.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "McHardy et al. (2026), omega Vinet",
+   "reference": {
+    "authors": ["McHardy", "Storm", "Lonsdale", "Roy", "McMahon"],
+    "year": 2026,
+    "source": "Phys. Rev. B",
+    "volume": "113",
+    "locator": "174115",
+    "doi": "10.1103/zp3m-kjpc"
+   },
+   "eos": {"type": "Vinet", "parameters": {"V0": 69.15, "K0": 98.0, "K0_prime": 3.6}},
+   "parameter_errors": {"V0": 0.09, "K0": 2.0, "K0_prime": 0.2},
+   "fixed_parameters": ["V0"],
+   "experimental_pressure_range_gpa": [0.0, 33.0],
+   "experimental_temperature_range_k": [300.0, 300.0],
+   "temperature_ref": 300.0,
+   "notes": "The fit constrained V0 to the independently measured decompression value 23.05(3) A^3/atom; volume and uncertainty are tripled for the conventional Z=3 cell."
+  }
+ ]
+}

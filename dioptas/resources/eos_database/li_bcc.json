@@ -1,0 +1,59 @@
+{
+ "format_version": 2,
+ "name": "Li",
+ "formula": "Li",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.51,
+  "b": 3.51,
+  "c": 3.51,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 2,
+ "space_group": "Im-3m",
+ "space_group_number": 229,
+ "atom_sites": [
+  {"element": "Li", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Li-bcc.jcpds",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "(bcc)  (JCPDS 6-0696, EOS from Hanfland SSC )",
+   "reference": {
+    "authors": [
+     "Hanfland",
+     "Loa",
+     "Syassen",
+     "Schwarz",
+     "Takemura"
+    ],
+    "year": 1999,
+    "source": "Solid State Commun.",
+    "volume": "112",
+    "locator": "123-127",
+    "doi": "10.1016/S0038-1098(99)00322-1"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 43.245,
+     "K0": 11.32,
+     "K0_prime": 3.62
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 0.1,
+    "K0_prime": 0.04
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 21.0],
+   "notes": "Hanfland et al. report atomic V0 = 21.6225 A^3 fixed, K0 = 11.32(10) GPa, and K0' = 3.62(4). V0 was doubled for the bcc cell. The published 0-21 GPa Vinet fit jointly uses the bcc and fcc compression data; this bcc material entry therefore must not be read as a claim that bcc Li is stable over the whole fit interval."
+  }
+ ]
+}

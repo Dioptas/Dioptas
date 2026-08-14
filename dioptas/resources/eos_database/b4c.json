@@ -1,0 +1,64 @@
+{
+ "format_version": 2,
+ "name": "B4C",
+ "formula": "B4C",
+ "aliases": ["Boron carbide"],
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 5.607296,
+  "b": null,
+  "c": 12.064181,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": 9,
+ "space_group": "R-3m",
+ "space_group_number": 166,
+ "atom_sites": [
+  {"element": "B", "wyckoff": "18h", "x": 0.838, "y": 0.162, "z": 0.358, "occupancy": 1.0},
+  {"element": "B", "wyckoff": "18h", "x": 0.892, "y": 0.108, "z": 0.1167, "occupancy": 0.8333333333},
+  {"element": "C", "wyckoff": "18h", "x": 0.892, "y": 0.108, "z": 0.1167, "occupancy": 0.1666666667},
+  {"element": "B", "wyckoff": "3b", "x": 0.0, "y": 0.0, "z": 0.5, "occupancy": 1.0},
+  {"element": "C", "wyckoff": "6c", "x": 0.0, "y": 0.0, "z": 0.3809, "occupancy": 1.0}
+ ],
+ "notes": "Phase reference: Clark and Hoard, J. Am. Chem. Soc. 65, 2115-2119 (1943), doi:10.1021/ja01251a026; JCPDS/PDF 6-0555. Average R-3m B4C model: the polar icosahedral site is represented by split B/C occupancy; the reference cell is constrained to the EoS V0 while retaining the measured axial ratio.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Somayazulu et al. (2023), 300 K BM3",
+   "reference": {
+    "authors": [
+     "Somayazulu",
+     "Ahart",
+     "Meng",
+     "Ciezak",
+     "Velisavlevic",
+     "Hemley"
+    ],
+    "year": 2023,
+    "source": "Philos. Trans. R. Soc. A",
+    "volume": "381",
+    "locator": "20220331",
+    "doi": "10.1098/rsta.2022.0331"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 328.5,
+     "K0": 221.0,
+     "K0_prime": 3.3
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 2.0,
+    "K0_prime": 0.1
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 50.0],
+   "temperature_ref": 300.0,
+   "notes": "Quasi-hydrostatic room-temperature fit to 50 GPa. The average disordered R-3m structure follows the ideal B4C model confirmed to 74 GPa by Dera et al., J. Solid State Chem. 215, 85-93 (2014), doi:10.1016/j.jssc.2014.03.018."
+  }
+ ]
+}

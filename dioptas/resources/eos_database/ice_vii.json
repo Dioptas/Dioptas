@@ -1,0 +1,105 @@
+{
+ "format_version": 2,
+ "name": "Ice VII",
+ "formula": "H2O",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.4616289204,
+  "b": 3.4616289204,
+  "c": 3.4616289204,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 2,
+ "space_group": "Pn-3m",
+ "space_group_number": 224,
+ "atom_sites": [
+  {"element": "O", "wyckoff": "2a", "x": 0.25, "y": 0.25, "z": 0.25, "occupancy": 1.0},
+  {"element": "H", "wyckoff": "8e", "x": 0.41, "y": 0.41, "z": 0.41, "occupancy": 0.5}
+ ],
+ "notes": "Average hydrogen-disordered Pn-3m single-site model from Gajda et al., IUCrJ 12, 288-294 (2025), doi:10.1107/S2052252525002581: O at 2a and half-occupied H at 8e. The paper cautions that the local disorder is more complex than this average model; it is used here for powder X-ray lines. The lattice is set to the default 300 K PVT-fit V0.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Bezacier et al. (2014), PVT BM2",
+   "reference": {
+    "authors": [
+     "Bezacier",
+     "Journaux",
+     "Perrillat",
+     "Cardon",
+     "Hanfland",
+     "Daniel"
+    ],
+    "year": 2014,
+    "source": "Journal of Chemical Physics",
+    "volume": "141",
+    "locator": "104505",
+    "doi": "10.1063/1.4894421"
+   },
+   "default": true,
+   "eos": {
+    "type": "BM2",
+    "parameters": {
+     "V0": 41.480265898,
+     "K0": 20.15
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.0332107813,
+    "K0": 0.17
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [2.55, 10.11],
+   "experimental_temperature_range_k": [300.5, 451.2],
+   "temperature_ref": 300.0,
+   "thermal": {
+    "type": "AlphaKT",
+    "parameters": {
+     "alpha0": 0.0001158,
+     "dK_dT": 0.0
+    },
+    "parameter_errors": {
+     "alpha0": 0.0000054,
+     "dK_dT": null
+    },
+    "fixed_parameters": ["dK_dT"]
+   },
+   "notes": "Joint PVT fit for pure H2O ice VII. Published molar V0=12.49(1) cm^3/mol is converted to the Z=2 unit cell. The second-order Birch-Murnaghan form fixes K0'=4; dK/dT was fixed to zero because no temperature dependence was detectable. The numeric domains give the extrema of the ice-VII measurements tabulated in the paper."
+  },
+  {
+   "label": "Frank et al. (2004), 300 K BM3",
+   "reference": {
+    "authors": [
+     "Frank",
+     "Fei",
+     "Hu"
+    ],
+    "year": 2004,
+    "source": "Geochimica et Cosmochimica Acta",
+    "volume": "68",
+    "locator": "2781-2790",
+    "doi": "10.1016/j.gca.2003.12.007"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 41.1813688659,
+     "K0": 21.1,
+     "K0_prime": 4.4
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.3321078134,
+    "K0": 1.3,
+    "K0_prime": 0.1
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [6.57, 60.52],
+   "experimental_temperature_range_k": [300.0, 300.0],
+   "temperature_ref": 300.0,
+   "notes": "Independent 300 K compression fit. Published molar V0=12.4(1) cm^3/mol is converted to the Z=2 cubic cell. The fit used all three BM3 variables simultaneously; the numeric pressure domain is the range of the authors' 300 K compression data."
+  }
+ ]
+}

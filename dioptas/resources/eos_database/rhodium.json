@@ -1,0 +1,63 @@
+{
+ "format_version": 2,
+ "name": "Rhodium",
+ "formula": "Rh",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.804012,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Rh", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "The lattice parameter is calculated from the fitted 300 K reference volume. PhaseSmith calculates powder reflections and intensities from the ideal fcc structure.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Rodrigo-Ramon et al. (2024), Vinet",
+   "reference": {
+    "authors": [
+     "Rodrigo-Ramon",
+     "Anzellini",
+     "Cazorla",
+     "Botella",
+     "Garcia-Beamud",
+     "Sanchez-Martin",
+     "Garbarino",
+     "Rosa",
+     "Gallego-Parra",
+     "Errandonea"
+    ],
+    "year": 2024,
+    "source": "Sci. Rep.",
+    "volume": "14",
+    "locator": "26634",
+    "doi": "10.1038/s41598-024-78006-0"
+   },
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 55.046,
+     "K0": 251.0,
+     "K0_prime": 5.7
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.016,
+    "K0": 3.0,
+    "K0_prime": 0.2
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 55.0],
+   "temperature_ref": 300.0,
+   "notes": "Experimental helium-medium Vinet fit over 0-55 GPa; fcc Rh remains stable throughout the measured range."
+  }
+ ]
+}

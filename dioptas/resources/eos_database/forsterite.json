@@ -1,0 +1,65 @@
+{
+ "format_version": 2,
+ "name": "Forsterite",
+ "formula": "Mg2SiO4",
+ "symmetry": "ORTHORHOMBIC",
+ "lattice": {
+  "a": 4.7543,
+  "b": 10.201,
+  "c": 5.9819,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Pbnm",
+ "space_group_number": 62,
+ "atom_sites": [
+  {"element": "Mg", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "Mg", "wyckoff": "4c", "x": 0.9915, "y": 0.2774, "z": 0.25, "occupancy": 1.0},
+  {"element": "Si", "wyckoff": "4c", "x": 0.4262, "y": 0.094, "z": 0.25, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4c", "x": 0.7657, "y": 0.0913, "z": 0.25, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4c", "x": 0.2215, "y": 0.4474, "z": 0.25, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8d", "x": 0.2777, "y": 0.1628, "z": 0.0331, "occupancy": 1.0}
+ ],
+ "notes": "Ambient lattice and BM3 EoS: Finkelstein et al., American Mineralogist 99, 35-43 (2014), doi:10.2138/am.2014.4526. Ambient fractional coordinates: Smyth and Hazen, American Mineralogist 58, 588-593 (1973), COD 9000319. Phase-line intensities were calculated from the cited ambient structure using independent-atom X-ray form factors.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Finkelstein et al. (2014), room-temperature BM3",
+   "reference": {
+    "authors": [
+     "Finkelstein",
+     "Dera",
+     "Jahn",
+     "Oganov",
+     "Holl",
+     "Meng",
+     "Duffy"
+    ],
+    "year": 2014,
+    "source": "American Mineralogist",
+    "volume": "99",
+    "locator": "35-43",
+    "doi": "10.2138/am.2014.4526"
+   },
+   "temperature_ref": 298.0,
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 290.1,
+     "K0": 130.0,
+     "K0_prime": 4.12
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.1,
+    "K0": 0.9,
+    "K0_prime": 0.07
+   },
+   "fixed_parameters": ["V0"],
+   "experimental_pressure_range_gpa": [0.0, 48.0],
+   "notes": "Fit to single-crystal compression data through 48 GPa in helium. The measured V0=290.1(1) A^3 was fixed while K0 and K0_prime were refined."
+  }
+ ]
+}

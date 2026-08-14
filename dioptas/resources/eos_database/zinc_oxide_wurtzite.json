@@ -1,0 +1,43 @@
+{
+ "format_version": 2,
+ "name": "Zinc oxide (wurtzite B4)",
+ "aliases": ["zincite", "wurtzite ZnO"],
+ "formula": "ZnO",
+ "symmetry": "HEXAGONAL",
+ "lattice": {"a": 3.2518875845, "b": null, "c": 5.2085483441, "alpha": 90.0, "beta": 90.0, "gamma": 120.0},
+ "formula_units_per_cell": 2,
+ "space_group": "P63mc",
+ "space_group_number": 186,
+ "atom_sites": [
+  {"element": "Zn", "wyckoff": "2b", "x": 0.3333333333, "y": 0.6666666667, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "2b", "x": 0.3333333333, "y": 0.6666666667, "z": 0.3825, "occupancy": 1.0}
+ ],
+ "notes": "The wurtzite structure uses the ambient internal coordinate of Kisi and Elcombe, Acta Cryst. C 45, 1867-1870 (1989), doi:10.1107/S0108270189004269. The lattice preserves Hanna et al.'s reported c/a ratio and is normalized to their EoS V0.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Hanna et al. (2011), wurtzite BM2",
+   "reference": {
+    "authors": [
+     "Hanna",
+     "Teklemichael",
+     "McCluskey",
+     "Bergman",
+     "Huso"
+    ],
+    "year": 2011,
+    "source": "J. Appl. Phys.",
+    "volume": "110",
+    "locator": "073511",
+    "doi": "10.1063/1.3644969"
+   },
+   "eos": {"type": "BM2", "parameters": {"V0": 47.7, "K0": 139.0}},
+   "parameter_errors": {"V0": 0.12, "K0": 8.0},
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 8.3],
+   "experimental_temperature_range_k": [300.0, 300.0],
+   "temperature_ref": 300.0,
+   "notes": "Hanna et al. report V0 = 23.85(6) A^3 per ZnO and K0 = 139(8) GPa with K0' fixed at 4; V0 and its uncertainty are doubled here for the conventional Z=2 cell. The B4-to-B1 transition begins near 8.3 GPa."
+  }
+ ]
+}

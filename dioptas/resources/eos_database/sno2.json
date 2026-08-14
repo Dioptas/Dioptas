@@ -1,0 +1,57 @@
+{
+ "format_version": 2,
+ "name": "SnO2",
+ "formula": "SnO2",
+ "symmetry": "TETRAGONAL",
+ "lattice": {
+  "a": 4.7382,
+  "b": 4.7382,
+  "c": 3.1871,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 2,
+ "space_group": "P42/mnm",
+ "space_group_number": 136,
+ "atom_sites": [
+  {"element": "Sn", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4f", "x": 0.307, "y": 0.307, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/sno2_cassit.jcpds. Cassiterite coordinates matching the ambient card cell: Baur, Acta Crystallographica 9, 515-520 (1956).",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "JCPDS411445,EOS from Hazen and Finger,1983",
+   "reference": {
+    "authors": [
+     "Hazen",
+     "Finger"
+    ],
+    "year": 1981,
+    "source": "J. Phys. Chem. Solids",
+    "volume": "42",
+    "locator": "143-151",
+    "doi": "10.1016/0022-3697(81)90074-3"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 71.5521,
+     "K0": 218.0,
+     "K0_prime": 7.0
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 2.0,
+    "K0_prime": null
+   },
+   "fixed_parameters": [
+    "K0_prime"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 5.0],
+   "notes": "Hazen and Finger report K0 = 218 +/- 2 GPa assuming K0' = 7.0. V0 is retained from their ambient rutile-type structure."
+  }
+ ]
+}

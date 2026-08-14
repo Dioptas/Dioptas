@@ -1,0 +1,93 @@
+{
+ "format_version": 2,
+ "name": "Potassium chloride (B2)",
+ "formula": "KCl",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.753,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 1,
+ "space_group": "Pm-3m",
+ "space_group_number": 221,
+ "atom_sites": [
+  {"element": "K", "wyckoff": "1a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "Cl", "wyckoff": "1b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
+ ],
+ "notes": "High-pressure CsCl-type B2 KCl, stored separately from the rock-salt B1 phase.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "B2 (EOS from Campbell and Heinz, 1991)",
+   "reference": {
+    "authors": [
+     "Campbell",
+     "Heinz"
+    ],
+    "year": 1991,
+    "source": "J. Phys. Chem. Solids",
+    "volume": "52",
+    "locator": "495-499",
+    "doi": "10.1016/0022-3697(91)90181-X"
+   },
+   "eos": {
+    "type": "BM2",
+    "parameters": {
+     "V0": 52.85,
+     "K0": 28.7
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.36,
+    "K0": 0.6
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [2.0, 56.0],
+   "notes": "Campbell and Heinz report V0(B2)/V0(B1) = 0.8483 +/- 0.0057 and K0 = 28.7 +/- 0.6 GPa, with K0' constrained to 4.0. This is stored as BM2; V0 and its propagated uncertainty use the ambient B1 reference volume."
+  },
+  {
+   "label": "Walker et al. (2002), B2 thermal Birch",
+   "reference": {
+    "authors": [
+     "Walker",
+     "Cranswick",
+     "Verma",
+     "Clark",
+     "Buhre"
+    ],
+    "year": 2002,
+    "source": "American Mineralogist",
+    "volume": "87",
+    "locator": "805-812",
+    "doi": "10.2138/am-2002-0701"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 53.53,
+     "K0": 23.7,
+     "K0_prime": 4.4
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [2.0, 8.0],
+   "notes": "Walker et al. B2 KCl parameters (Z=1). The authors explicitly state that tradeoffs between V0, K0, and K0' make errors on the individual parameters non-meaningful, so none are quoted.",
+   "thermal": {
+    "type": "AlphaKT",
+    "parameters": {
+     "alpha0": 0.00018,
+     "dK_dT": 0.0
+    }
+   }
+  }
+ ]
+}

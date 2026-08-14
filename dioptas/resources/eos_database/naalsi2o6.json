@@ -1,0 +1,67 @@
+{
+ "format_version": 2,
+ "name": "NaAlSi2O6",
+ "formula": "NaAlSi2O6",
+ "symmetry": "MONOCLINIC",
+ "lattice": {
+  "a": 9.418,
+  "b": 8.562,
+  "c": 5.219,
+  "alpha": 90.0,
+  "beta": 107.97,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "C2/c",
+ "space_group_number": 15,
+ "atom_sites": [
+  {"element": "Na", "wyckoff": "4e", "x": 0.0, "y": 0.3009, "z": 0.25, "occupancy": 1.0},
+  {"element": "Al", "wyckoff": "4e", "x": 0.0, "y": 0.094, "z": 0.75, "occupancy": 1.0},
+  {"element": "Si", "wyckoff": "8f", "x": 0.2906, "y": 0.0934, "z": 0.2277, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8f", "x": 0.109, "y": 0.0763, "z": 0.1275, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8f", "x": 0.3608, "y": 0.263, "z": 0.2929, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8f", "x": 0.3533, "y": 0.007, "z": 0.0058, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/jadeite.jcpds. Ambient pure-jadeite coordinates: Prewitt and Burnham, American Mineralogist 51, 956-975 (1966); the imported EoS lattice is retained.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Jadeite, Zhao et al. (1997)",
+   "reference": {
+    "authors": [
+     "Zhao",
+     "Von Dreele",
+     "Shankland",
+     "Weidner",
+     "Zhang",
+     "Wang",
+     "Gasparik"
+    ],
+    "year": 1997,
+    "source": "Geophys. Res. Lett.",
+    "volume": "24",
+    "locator": "5-8",
+    "doi": "10.1029/96GL03769"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 401.19,
+     "K0": 125.0,
+     "K0_prime": 5.0
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 4.0,
+    "K0_prime": null
+   },
+   "fixed_parameters": [
+    "V0",
+    "K0_prime"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 8.2],
+   "notes": "Zhao et al. report K0 = 125(4) GPa with K0' constrained to 5.0. Their ambient molar volume of 60.4 cm^3/mol is converted here to the conventional Z=4 cell; no uncertainty was reported for that fixed value. The imported phase lattice and Prewitt-Burnham coordinates are retained independently."
+  }
+ ]
+}

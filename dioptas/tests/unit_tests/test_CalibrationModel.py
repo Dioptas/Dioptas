@@ -2,6 +2,7 @@
 
 import os
 import sys
+import logging
 import pytest
 
 import numpy as np
@@ -794,6 +795,35 @@ def test_get_calibration_parameter(calibration_model):
     assert fit2d_params is not None
     assert "wavelength" in fit2d_params
     assert "polarization_factor" in fit2d_params
+
+
+def test_set_pyfai_uses_current_config_api(calibration_model, caplog):
+    parameters = {
+        "dist": 0.2,
+        "poni1": 0.08,
+        "poni2": 0.081,
+        "rot1": 0.0043,
+        "rot2": 0.002,
+        "rot3": 0.001,
+        "pixel1": 7.4e-5,
+        "pixel2": 7.6e-5,
+        "wavelength": 0.31e-10,
+        "polarization_factor": 0.99,
+    }
+    detector = calibration_model.detector
+    caplog.set_level(logging.WARNING, logger="pyFAI.DEPRECATION")
+
+    calibration_model.set_pyFAI(parameters)
+
+    assert calibration_model.pattern_geometry.detector is detector
+    assert calibration_model.pattern_geometry.dist == pytest.approx(0.2)
+    assert calibration_model.pattern_geometry.poni1 == pytest.approx(0.08)
+    assert detector.pixel1 == pytest.approx(7.4e-5)
+    assert detector.pixel2 == pytest.approx(7.6e-5)
+    assert not any(
+        "setPyFAI" in record.message or "splineFile" in record.message
+        for record in caplog.records
+    )
 
 
 def test_set_supersampling_changes_pixel_size(calibration_model):

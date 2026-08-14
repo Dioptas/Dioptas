@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 import os
+from math import pi
 
 import numpy as np
 import pytest
@@ -89,6 +90,51 @@ def test_reload_phase(phase_model: PhaseModel):
     assert phase_model.phases[0].params['pressure'] == 5
 
 
+def test_reload_cif_phase_from_source(phase_model: PhaseModel):
+    filename = os.path.join(data_path, 'cif', 'hcp.cif')
+    phase_model.add_cif(filename, wavelength_angstrom=0.31)
+    original_a0 = phase_model.phases[0].params['a0']
+    original_name = phase_model.phases[0].name
+    phase_model.set_pressure(0, 5)
+    phase_model.set_param(0, 'a0', original_a0 + 1)
+
+    assert phase_model.can_reload(0)
+    phase_model.reload(0)
+
+    assert phase_model.phases[0].params['a0'] == pytest.approx(original_a0)
+    assert phase_model.phases[0].params['pressure'] == 5
+    assert phase_model.phases[0].name == original_name
+    assert phase_model.phases[0].params['material_origin'] == 'cif'
+
+
+def test_reload_eosmat_phase_from_source(phase_model: PhaseModel, tmp_path):
+    from ...model import eos
+
+    material = eos.Material(
+        name='Test mineral', formula='MgO', symmetry='CUBIC',
+        lattice=eos.Lattice(a=4.2, b=4.2, c=4.2),
+        peaks=[[1, 0, 0, 4.2, 100]],
+        eos_records=[{
+            'label': 'Test fit',
+            'eos': {'type': 'BM3', 'parameters': {
+                'V0': 74.088, 'K0': 160.0, 'K0_prime': 4.0,
+            }},
+        }],
+    )
+    filename = tmp_path / 'test.eosmat'
+    eos.save_material_file(str(filename), material)
+    phase = eos.build_jcpds(material, origin='file')
+    phase._filename = str(filename)
+    phase_model.add_jcpds_object(phase, filename=str(filename))
+    phase_model.set_param(0, 'k0', 999.0)
+
+    phase_model.reload(0)
+
+    assert phase_model.phases[0].params['k0'] == pytest.approx(160.0)
+    assert phase_model.phases[0].name == 'Test mineral (MgO)'
+    assert phase_model.phases[0].params['material_origin'] == 'file'
+
+
 # --- PhaseLoadError ---
 
 def test_phase_load_error_init():
@@ -115,6 +161,62 @@ def test_add_cif(phase_model):
     assert len(phase_model.phases) == 1
     assert len(phase_model.reflections) == 1
     assert phase_model.phase_files[0] == cif_path
+    assert phase_model.phases[0].state.reflection_source["kind"] == "cif"
+
+
+def test_structure_reflections_grow_with_pattern_coverage(phase_model):
+    from ...model import eos
+
+    gold = next(
+        material
+        for material in eos.load_materials()
+        if material.formula == "Au" and material.atom_sites
+    )
+    phase = eos.build_jcpds(gold)
+    phase_model.add_jcpds_object(phase, filename=phase.filename)
+    initial_count = len(phase.reflections)
+
+    changed = phase_model.ensure_structure_reflection_coverage(
+        2.0 * pi / 21.0,
+        0.31,
+    )
+
+    assert changed == [0]
+    assert len(phase.reflections) > initial_count
+    assert phase.state.reflection_q_max == pytest.approx(21.0)
+    assert phase_model.ensure_structure_reflection_coverage(
+        2.0 * pi / 20.0,
+        0.31,
+    ) == []
+
+
+def test_pressure_and_temperature_keep_cached_reflections(phase_model):
+    from ...model import eos
+
+    gold = next(
+        material
+        for material in eos.load_materials()
+        if material.formula == "Au" and material.atom_sites
+    )
+    phase = eos.build_jcpds(
+        gold,
+        minimum_d_spacing=2.0 * pi / 21.0,
+        wavelength_angstrom=0.31,
+    )
+    phase_model.add_jcpds_object(phase, filename=phase.filename)
+    reflection_identity = [
+        (reflection.h, reflection.k, reflection.l, reflection.intensity)
+        for reflection in phase.reflections
+    ]
+
+    phase_model.set_pressure(0, 50.0)
+    phase_model.set_temperature(0, 1000.0)
+
+    assert [
+        (reflection.h, reflection.k, reflection.l, reflection.intensity)
+        for reflection in phase.reflections
+    ] == reflection_identity
+    assert phase.state.reflection_q_max == pytest.approx(21.0)
 
 
 def test_add_cif_invalid_file_raises(phase_model):

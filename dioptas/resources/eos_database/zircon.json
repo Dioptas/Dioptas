@@ -1,0 +1,53 @@
+{
+ "format_version": 2,
+ "name": "Zircon",
+ "formula": "ZrSiO4",
+ "symmetry": "TETRAGONAL",
+ "lattice": {
+  "a": 6.6042,
+  "b": 6.6042,
+  "c": 5.9796,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "I41/amd",
+ "space_group_number": 141,
+ "atom_sites": [
+  {"element": "Zr", "wyckoff": "4a", "x": 0.0, "y": 0.75, "z": 0.125, "occupancy": 1.0},
+  {"element": "Si", "wyckoff": "4b", "x": 0.0, "y": 0.75, "z": 0.625, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "16h", "x": 0.0, "y": 0.066, "z": 0.195, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/ZrSiO4 (2).jcpds. Ambient coordinates are from Hazen and Finger, American Mineralogist 64, 196-201 (1979).",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Hazen and Finger (1979)",
+   "reference": {
+    "authors": [
+     "Hazen",
+     "Finger"
+    ],
+    "year": 1979,
+    "source": "American Mineralogist",
+    "volume": "64",
+    "locator": "196-201"
+   },
+   "eos": {
+    "type": "BM2",
+    "parameters": {
+     "V0": 260.803,
+     "K0": 227.0
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 2.0
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 4.8],
+   "notes": "The publication reports K0=227(2) GPa from low-pressure compression; the unsupported imported K0_prime=6.5 was removed."
+  }
+ ]
+}

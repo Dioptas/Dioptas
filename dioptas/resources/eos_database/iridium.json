@@ -1,0 +1,63 @@
+{
+ "format_version": 2,
+ "name": "Iridium",
+ "formula": "Ir",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.83993,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Ir", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "The lattice parameter is calculated from the fitted 300 K reference volume. PhaseSmith calculates powder reflections and intensities from the ideal fcc structure.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Anzellini et al. (2025), BM3",
+   "reference": {
+    "authors": [
+     "Anzellini",
+     "Botella",
+     "Rodrigo-Ramon",
+     "Garcia-Beamud",
+     "Sanchez-Martin",
+     "Garbarino",
+     "Rosa",
+     "Gallego-Parra",
+     "Koemets",
+     "Errandonea"
+    ],
+    "year": 2025,
+    "source": "Commun. Mater.",
+    "volume": "6",
+    "locator": "221",
+    "doi": "10.1038/s43246-025-00963-4"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 56.62,
+     "K0": 327.0,
+     "K0_prime": 5.46
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.05,
+    "K0": 2.0,
+    "K0_prime": 0.03
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 101.0],
+   "temperature_ref": 300.0,
+   "notes": "Experimental 300 K isotherm combined with resistive- and laser-heating data; fcc Ir remained stable to 101 GPa and 5600 K in the investigated range."
+  }
+ ]
+}

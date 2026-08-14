@@ -1,0 +1,86 @@
+{
+ "format_version": 2,
+ "name": "NaCl",
+ "formula": "NaCl",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.4669,
+  "b": 3.4669,
+  "c": 3.4669,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 1,
+ "space_group": "Pm-3m",
+ "space_group_number": 221,
+ "atom_sites": [
+  {"element": "Na", "wyckoff": "1a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "Cl", "wyckoff": "1b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/nacl-b2.jcpds, JCPDS/current user/jcpds/certified data base/nacl-b2.jcpds, JCPDS/current user/jcpds/ver3/naclb2.jcpds",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Heinz and Jeanloz (1984), B2",
+   "reference": {
+    "authors": [
+     "Heinz",
+     "Jeanloz"
+    ],
+    "year": 1984,
+    "source": "Phys. Rev. B",
+    "volume": "30",
+    "locator": "6045-6050",
+    "doi": "10.1103/PhysRevB.30.6045"
+   },
+   "eos": {
+    "type": "BM2",
+    "parameters": {
+     "V0": 41.67,
+     "K0": 36.2
+    }
+   },
+   "parameter_errors": {
+    "V0": 3.18,
+    "K0": 4.2
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [25.0, 70.0],
+   "notes": "Heinz and Jeanloz report V0(B2)/V0(B1) = 0.929 +/- 0.071 and K0 = 36.2 +/- 4.2 GPa from a second-order finite-strain fit, which fixes K0' at 4. The V0 uncertainty is propagated using the ambient B1 volume. The uncitable Sata/Shen fit was removed."
+  },
+  {
+   "label": "Shen and Smith (2026), Cu-referenced Vinet",
+   "reference": {
+    "authors": [
+     "Shen",
+     "Smith"
+    ],
+    "year": 2026,
+    "source": "Phys. Rev. B",
+    "volume": "113",
+    "locator": "144113",
+    "doi": "10.1103/fxgq-96sg"
+   },
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 41.35,
+     "K0": 24.92,
+     "K0_prime": 5.63
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 0.11,
+    "K0_prime": 0.02
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
+   "experimental_pressure_range_gpa": [33.0, 140.0],
+   "temperature_ref": 300.0,
+   "notes": "Table II Cu-referenced fit using DAC-2 data; V0 fixed. Reported uncertainties: K0 +/- 0.11 GPa and K0' +/- 0.02. The B2 phase data are above 33 GPa."
+  }
+ ]
+}

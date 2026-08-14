@@ -1,0 +1,57 @@
+{
+ "format_version": 2,
+ "name": "Nickel",
+ "formula": "Ni",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.52542,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Ni", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "The lattice parameter is calculated from the fitted 300 K atomic reference volume. PhaseSmith calculates powder reflections and intensities from the ideal fcc structure.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Dewaele et al. (2008), Vinet",
+   "reference": {
+    "authors": [
+     "Dewaele",
+     "Torrent",
+     "Loubeyre",
+     "Mezouar"
+    ],
+    "year": 2008,
+    "source": "Phys. Rev. B",
+    "volume": "78",
+    "locator": "104102",
+    "doi": "10.1103/PhysRevB.78.104102"
+   },
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 43.816,
+     "K0": 177.5,
+     "K0_prime": 4.83
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.072,
+    "K0": 2.4,
+    "K0_prime": 0.09
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 157.0],
+   "temperature_ref": 300.0,
+   "notes": "Quasi-hydrostatic helium-medium fit; published atomic V0=10.954 A^3 is multiplied by four atoms in the conventional fcc cell. Measurements extend to 157 GPa."
+  }
+ ]
+}

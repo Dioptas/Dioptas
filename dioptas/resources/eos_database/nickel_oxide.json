@@ -1,0 +1,36 @@
+{
+ "format_version": 2,
+ "name": "Nickel oxide (rhombohedral B1)",
+ "aliases": ["bunsenite", "antiferromagnetic NiO"],
+ "formula": "NiO",
+ "symmetry": "TRIGONAL",
+ "lattice": {"a": 2.9544109669, "b": null, "c": 7.2307316474, "alpha": 90.0, "beta": 90.0, "gamma": 120.0},
+ "formula_units_per_cell": 3,
+ "space_group": "R-3m",
+ "space_group_number": 166,
+ "atom_sites": [
+  {"element": "Ni", "wyckoff": "3a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "3b", "x": 0.0, "y": 0.0, "z": 0.5, "occupancy": 1.0}
+ ],
+ "notes": "The room-temperature antiferromagnetic R-3m structure follows Slack, J. Appl. Phys. 31, 1571-1582 (1960), doi:10.1063/1.1735895. Hexagonal axes were normalized to the shock study's measured pseudo-cubic reference volume.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Noguchi et al. (1999), shock BM3 isotherm",
+   "reference": {
+    "authors": ["Noguchi", "Uchino", "Hikosaka", "Atou", "Kusaba", "Fukuoka", "Mashimo", "Syono"],
+    "year": 1999,
+    "source": "J. Phys. Chem. Solids",
+    "volume": "60",
+    "locator": "509-514",
+    "doi": "10.1016/S0022-3697(98)00296-0"
+   },
+   "eos": {"type": "BM3", "parameters": {"V0": 54.6581199247, "K0": 191.0, "K0_prime": 3.9}},
+   "parameter_errors": {"V0": 0.0392564903, "K0": null, "K0_prime": null},
+   "fixed_parameters": ["V0"],
+   "experimental_pressure_range_gpa": [0.0, 147.6],
+   "temperature_ref": 300.0,
+   "notes": "The reference volume and uncertainty are calculated from the reported pseudo-cubic a0 = 4.177(1) A for the Z=3 rhombohedral hexagonal cell. The paper reports the BM3 isothermal parameters K0 = 191 GPa and K0' = 3.9 without parameter uncertainties; its quoted K0'' = -0.03 GPa^-1 is the value implied by that third-order fit, not an independent BM4 coefficient."
+  }
+ ]
+}

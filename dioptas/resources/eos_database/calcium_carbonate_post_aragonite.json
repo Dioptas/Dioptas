@@ -1,0 +1,64 @@
+{
+ "format_version": 2,
+ "name": "Calcium carbonate (post-aragonite Pmmn)",
+ "aliases": ["post-aragonite CaCO3", "CaCO3-Pmmn"],
+ "formula": "CaCO3",
+ "symmetry": "ORTHORHOMBIC",
+ "lattice": {"a": 4.548592982, "b": 4.9797326888, "c": 4.315966702, "alpha": 90.0, "beta": 90.0, "gamma": 90.0},
+ "formula_units_per_cell": 2,
+ "space_group": "Pmmn",
+ "space_group_number": 59,
+ "atom_sites": [
+  {"element": "Ca", "wyckoff": "2b", "x": 0.0, "y": 0.5, "z": 0.6151, "occupancy": 1.0},
+  {"element": "C", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.9897, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.6742, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4f", "x": 0.0, "y": 0.2359, "z": 0.1429, "occupancy": 1.0}
+ ],
+ "notes": "Pmmn coordinates and 36 GPa axial ratios are from Oganov, Glass, and Ono, Earth Planet. Sci. Lett. 241, 95-103 (2006), doi:10.1016/j.epsl.2005.10.014. Axes are extrapolated to and normalized against Lv et al.'s fixed V0.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Lv et al. (2020), 300 K BM3",
+   "default": true,
+   "reference": {
+    "authors": ["Lv", "Liu", "Greenberg", "Prakapenka", "Dorfman"],
+    "year": 2020,
+    "source": "Am. Mineral.",
+    "volume": "105",
+    "locator": "1365-1374",
+    "doi": "10.2138/am-2020-7279"
+   },
+   "eos": {"type": "BM3", "parameters": {"V0": 97.76, "K0": 146.7, "K0_prime": 3.4}},
+   "parameter_errors": {"V0": null, "K0": 1.9, "K0_prime": 0.1},
+   "fixed_parameters": ["V0"],
+   "experimental_pressure_range_gpa": [49.0, 75.0],
+   "experimental_temperature_range_k": [300.0, 300.0],
+   "temperature_ref": 300.0,
+   "notes": "Room-temperature BM3 fit with V0 fixed at 97.76 A^3."
+  },
+  {
+   "label": "Lv et al. (2020), BM3-MGD",
+   "reference": {
+    "authors": ["Lv", "Liu", "Greenberg", "Prakapenka", "Dorfman"],
+    "year": 2020,
+    "source": "Am. Mineral.",
+    "volume": "105",
+    "locator": "1365-1374",
+    "doi": "10.2138/am-2020-7279"
+   },
+   "eos": {"type": "BM3", "parameters": {"V0": 97.76, "K0": 151.0, "K0_prime": 3.2}},
+   "parameter_errors": {"V0": null, "K0": 4.0, "K0_prime": 0.2},
+   "fixed_parameters": ["V0"],
+   "experimental_pressure_range_gpa": [49.0, 75.0],
+   "experimental_temperature_range_k": [300.0, 2200.0],
+   "temperature_ref": 300.0,
+   "thermal": {
+    "type": "MieGruneisenDebye",
+    "parameters": {"Tr": 300.0, "theta0": 631.0, "gamma0": 1.6, "q": 1.3, "n": 5},
+    "parameter_errors": {"Tr": null, "theta0": null, "gamma0": 0.5, "q": 0.9, "n": null},
+    "fixed_parameters": ["Tr", "theta0", "n"]
+   },
+   "notes": "Joint high-pressure/high-temperature BM3-MGD fit. V0 and the Debye temperature were fixed; n is the five-atom formula-unit count used by the thermal model."
+  }
+ ]
+}

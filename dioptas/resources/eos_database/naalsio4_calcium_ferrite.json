@@ -1,0 +1,64 @@
+{
+ "format_version": 2,
+ "name": "NaAlSiO4 (calcium-ferrite type)",
+ "formula": "NaAlSiO4",
+ "symmetry": "ORTHORHOMBIC",
+ "lattice": {
+  "a": 10.187,
+  "b": 8.684,
+  "c": 2.7464,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Pbnm",
+ "space_group_number": 62,
+ "atom_sites": [
+  {"element": "Na", "wyckoff": "4c", "x": 0.661, "y": 0.764, "z": 0.75, "occupancy": 1.0},
+  {"element": "Al", "wyckoff": "4c", "x": 0.89, "y": 0.577, "z": 0.25, "occupancy": 0.5},
+  {"element": "Si", "wyckoff": "4c", "x": 0.89, "y": 0.577, "z": 0.25, "occupancy": 0.5},
+  {"element": "Al", "wyckoff": "4c", "x": 0.398, "y": 0.556, "z": 0.25, "occupancy": 0.5},
+  {"element": "Si", "wyckoff": "4c", "x": 0.398, "y": 0.556, "z": 0.25, "occupancy": 0.5},
+  {"element": "O", "wyckoff": "4c", "x": 0.365, "y": 0.697, "z": 0.75, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4c", "x": 0.018, "y": 0.612, "z": 0.75, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4c", "x": 0.201, "y": 0.461, "z": 0.25, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4c", "x": 0.43, "y": 0.438, "z": 0.75, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/NaAlSiO4 CaF phase - Copy.jcpds, JCPDS/dac_user_jcpds/NaAlSiO4 CaF phase.jcpds. Calcium-ferrite structure: Yamada, Matsui, and Ito, Mineralogical Magazine 47, 177-181 (1983), doi:10.1180/minmag.1983.047.343.07; corrected O4 coordinate documented by Finger and Hazen, Acta Crystallographica B47, 561-580 (1991), doi:10.1107/S0108768191004214.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Dubrovinsky et al. (2002)",
+   "reference": {
+    "authors": [
+     "Dubrovinsky",
+     "Dubrovinskaia",
+     "Prokopenko",
+     "Le Bihan"
+    ],
+    "year": 2002,
+    "source": "High Pressure Res.",
+    "volume": "22",
+    "locator": "495-499",
+    "doi": "10.1080/08957950212807"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 242.9573,
+     "K0": 220.0,
+     "K0_prime": 4.1
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.1328,
+    "K0": 1.0,
+    "K0_prime": 0.1
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 40.0],
+   "notes": "Dubrovinsky et al. report molar V0 = 36.58(2) cm^3/mol, K0 = 220(1) GPa, and K0' = 4.1(1). V0 and its uncertainty were converted to the Z=4 cell."
+  }
+ ]
+}

@@ -1,0 +1,55 @@
+{
+ "format_version": 2,
+ "name": "CsCl",
+ "formula": "CsCl",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 4.123,
+  "b": 4.123,
+  "c": 4.123,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 1,
+ "space_group": "Pm-3m",
+ "space_group_number": 221,
+ "atom_sites": [
+  {"element": "Cs", "wyckoff": "1a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "Cl", "wyckoff": "1b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/cscl.jcpds",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "JCPDS 5-0607, EOS from Campbell and Heinz, J Geophys. Res. 99, 11765, 1994",
+   "reference": {
+    "authors": [
+     "Campbell",
+     "Heinz"
+    ],
+    "year": 1994,
+    "source": "J. Geophys. Res.",
+    "volume": "99",
+    "locator": "11765-11774",
+    "doi": "10.1029/94JB00127"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 70.0874,
+     "K0": 17.01,
+     "K0_prime": 5.49
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 0.29,
+    "K0_prime": 0.15
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 30.0],
+   "notes": "Campbell and Heinz report K0 = 17.01(29) GPa and K0' = 5.49(15). No independent uncertainty was recovered for the ambient card volume."
+  }
+ ]
+}

@@ -1,0 +1,59 @@
+{
+ "format_version": 2,
+ "name": "Alumina",
+ "formula": "Al2O3",
+ "aliases": ["Corundum"],
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 4.762813,
+  "b": null,
+  "c": 13.00314,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": 6,
+ "space_group": "R-3c",
+ "space_group_number": 167,
+ "atom_sites": [
+  {"element": "Al", "wyckoff": "12c", "x": 0.0, "y": 0.0, "z": 0.3522, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "18e", "x": 0.3061, "y": 0.0, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "Corundum phase reference: JCPDS 0-173. The reference cell is constrained to the fitted V0 while retaining the original axial ratio.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Dewaele and Torrent (2013), constrained Vinet",
+   "reference": {
+    "authors": [
+     "Dewaele",
+     "Torrent"
+    ],
+    "year": 2013,
+    "source": "Phys. Rev. B",
+    "volume": "88",
+    "locator": "064107",
+    "doi": "10.1103/PhysRevB.88.064107"
+   },
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 255.45,
+     "K0": 254.1,
+     "K0_prime": 4.0
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [
+    "K0_prime"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 165.0],
+   "temperature_ref": 300.0,
+   "notes": "Room-temperature compression to 165 GPa; K0' was fixed at 4. The published V0 is for the conventional six-formula-unit hexagonal cell. The constrained parameter set is published without individual statistical uncertainties."
+  }
+ ]
+}

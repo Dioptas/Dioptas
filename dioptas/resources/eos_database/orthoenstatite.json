@@ -1,0 +1,47 @@
+{
+ "format_version": 2,
+ "name": "Orthoenstatite",
+ "formula": "MgSiO3",
+ "symmetry": "ORTHORHOMBIC",
+ "lattice": {"a": 18.2217129037, "b": 8.8176679905, "c": 5.1813305555, "alpha": 90.0, "beta": 90.0, "gamma": 90.0},
+ "formula_units_per_cell": 16,
+ "space_group": "Pbca",
+ "space_group_number": 61,
+ "atom_sites": [
+  {"element": "Mg", "wyckoff": "8c", "x": 0.376, "y": 0.6544, "z": 0.8663, "occupancy": 1.0},
+  {"element": "Mg", "wyckoff": "8c", "x": 0.3769, "y": 0.4854, "z": 0.3609, "occupancy": 1.0},
+  {"element": "Si", "wyckoff": "8c", "x": 0.2716, "y": 0.3411, "z": 0.0494, "occupancy": 1.0},
+  {"element": "Si", "wyckoff": "8c", "x": 0.474, "y": 0.3373, "z": 0.7988, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8c", "x": 0.1832, "y": 0.3386, "z": 0.0349, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8c", "x": 0.3118, "y": 0.5022, "z": 0.043, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8c", "x": 0.3036, "y": 0.2252, "z": 0.8302, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8c", "x": 0.5628, "y": 0.3382, "z": 0.8009, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8c", "x": 0.4337, "y": 0.4841, "z": 0.688, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8c", "x": 0.447, "y": 0.1961, "z": 0.6004, "occupancy": 1.0}
+ ],
+ "notes": "Pbca structure coordinates from Yang and Ghose, Am. Mineral. 80, 9-20 (1995); lattice scaled uniformly to the EoS V0.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Angel and Jackson (2002), BM3",
+   "reference": {
+    "authors": [
+     "Angel",
+     "Jackson"
+    ],
+    "year": 2002,
+    "source": "Am. Mineral.",
+    "volume": "87",
+    "locator": "558-561",
+    "doi": "10.2138/am-2002-0419"
+   },
+   "eos": {"type": "BM3", "parameters": {"V0": 832.5, "K0": 105.8, "K0_prime": 8.5}},
+   "parameter_errors": {"V0": 0.2, "K0": 0.5, "K0_prime": 0.3},
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 8.5],
+   "experimental_temperature_range_k": [298.0, 298.0],
+   "temperature_ref": 298.0,
+   "notes": "Combined room-pressure/high-pressure fit reported after reanalysis of the static compression data."
+  }
+ ]
+}

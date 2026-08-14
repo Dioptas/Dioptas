@@ -1,0 +1,64 @@
+{
+ "format_version": 2,
+ "name": "Potassium bromide (B2)",
+ "formula": "KBr",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.987461,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 1,
+ "space_group": "Pm-3m",
+ "space_group_number": 221,
+ "atom_sites": [
+  {"element": "K", "wyckoff": "1a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "Br", "wyckoff": "1b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
+ ],
+ "notes": "The B2 CsCl-type reference cell is calculated from the fictive zero-pressure V0 used by the EoS. PhaseSmith calculates powder reflections and intensities from the ideal structure.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Dewaele et al. (2012), 298 K B2 Vinet",
+   "reference": {
+    "authors": [
+     "Dewaele",
+     "Belonoshko",
+     "Garbarino",
+     "Occelli",
+     "Bouvier",
+     "Hanfland",
+     "Mezouar"
+    ],
+    "year": 2012,
+    "source": "Phys. Rev. B",
+    "volume": "85",
+    "locator": "214105",
+    "doi": "10.1103/PhysRevB.85.214105"
+   },
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 63.4,
+     "K0": 14.9,
+     "K0_prime": 5.81
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
+   "experimental_pressure_range_gpa": [2.3, 165.0],
+   "experimental_temperature_range_k": [298.0, 298.0],
+   "temperature_ref": 298.0,
+   "notes": "Table III experimental B2 fit in helium. V0 is a fictive zero-pressure value fixed from the lowest-pressure 2-6 GPa measurements; no coefficient standard errors are tabulated."
+  }
+ ]
+}

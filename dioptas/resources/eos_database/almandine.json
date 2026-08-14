@@ -1,0 +1,45 @@
+{
+ "format_version": 2,
+ "name": "Almandine",
+ "formula": "Fe3Al2Si3O12",
+ "symmetry": "CUBIC",
+ "lattice": {"a": 11.5317835318, "b": null, "c": null, "alpha": 90.0, "beta": 90.0, "gamma": 90.0},
+ "formula_units_per_cell": 8,
+ "space_group": "Ia-3d",
+ "space_group_number": 230,
+ "atom_sites": [
+  {"element": "Fe", "wyckoff": "24c", "x": 0.125, "y": 0.0, "z": 0.25, "occupancy": 1.0},
+  {"element": "Al", "wyckoff": "16a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "Si", "wyckoff": "24d", "x": 0.375, "y": 0.0, "z": 0.25, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "96h", "x": 0.03401, "y": 0.04901, "z": 0.65278, "occupancy": 1.0}
+ ],
+ "notes": "Garnet coordinates from Armbruster et al., Am. Mineral. 77, 512-521 (1992); cell parameter is the cube root of the fitted V0.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Milani et al. (2015), BM3",
+   "reference": {
+    "authors": [
+     "Milani",
+     "Nestola",
+     "Alvaro",
+     "Pasqual",
+     "Mazzucchelli",
+     "Domeneghetti",
+     "Geiger"
+    ],
+    "year": 2015,
+    "source": "Lithos",
+    "volume": "227",
+    "locator": "140-147",
+    "doi": "10.1016/j.lithos.2015.03.017"
+   },
+   "eos": {"type": "BM3", "parameters": {"V0": 1533.52, "K0": 172.6, "K0_prime": 5.8}},
+   "parameter_errors": {"V0": 0.1, "K0": 1.5, "K0_prime": 0.5},
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 8.0],
+   "experimental_temperature_range_k": [298.0, 298.0],
+   "temperature_ref": 298.0
+  }
+ ]
+}

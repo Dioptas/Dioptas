@@ -1,0 +1,57 @@
+{
+ "format_version": 2,
+ "name": "Graphite",
+ "formula": "C",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 2.459515,
+  "b": null,
+  "c": 6.70386,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "P63/mmc",
+ "space_group_number": 194,
+ "atom_sites": [
+  {"element": "C", "wyckoff": "2b", "x": 0.0, "y": 0.0, "z": 0.25, "occupancy": 1.0},
+  {"element": "C", "wyckoff": "2c", "x": 0.3333333333, "y": 0.6666666667, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "Phase reference: JCPDS 41-1487. The reference cell is constrained to the fitted 300 K V0 while retaining the ambient axial ratio measured by Hanfland et al.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Hanfland et al. (1989), 300 K Murnaghan",
+   "reference": {
+    "authors": [
+     "Hanfland",
+     "Beister",
+     "Syassen"
+    ],
+    "year": 1989,
+    "source": "Phys. Rev. B",
+    "volume": "39",
+    "locator": "12598-12603",
+    "doi": "10.1103/PhysRevB.39.12598"
+   },
+   "eos": {
+    "type": "Murnaghan",
+    "parameters": {
+     "V0": 35.12,
+     "K0": 33.8,
+     "K0_prime": 8.9
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 3.0,
+    "K0_prime": 1.0
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 14.0],
+   "temperature_ref": 300.0,
+   "notes": "Hydrostatic powder-XRD fit for hexagonal graphite. Valid only below the observed room-temperature transformation near 14 GPa."
+  }
+ ]
+}

@@ -1,0 +1,62 @@
+{
+ "format_version": 2,
+ "name": "Silicon carbide (B1 rock salt)",
+ "formula": "SiC",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 4.047354,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Si", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "C", "wyckoff": "4b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
+ ],
+ "notes": "High-pressure B1 (rock-salt-type) SiC. The reference cell is calculated from the extrapolated conventional-cell V0. PhaseSmith calculates powder reflections and intensities from the ideal structure.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Miozzi et al. (2018), 300 K BM3",
+   "reference": {
+    "authors": [
+     "Miozzi",
+     "Morard",
+     "Antonangeli",
+     "Clark",
+     "Mezouar",
+     "Dorn",
+     "Rozel",
+     "Fiquet"
+    ],
+    "year": 2018,
+    "source": "J. Geophys. Res. Planets",
+    "volume": "123",
+    "locator": "2295-2309",
+    "doi": "10.1029/2018JE005582"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 66.3,
+     "K0": 323.0,
+     "K0_prime": 3.1
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.1,
+    "K0": 3.0,
+    "K0_prime": 0.43
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [65.0, 205.0],
+   "temperature_ref": 300.0,
+   "notes": "Table 1 room-temperature Birch-Murnaghan fit. The B1 phase was measured between 65 and 205 GPa; V0 is extrapolated to zero pressure."
+  }
+ ]
+}

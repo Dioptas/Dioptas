@@ -1,0 +1,38 @@
+{
+ "format_version": 2,
+ "name": "Cementite",
+ "aliases": ["cohenite", "iron carbide"],
+ "formula": "Fe3C",
+ "symmetry": "ORTHORHOMBIC",
+ "lattice": {"a": 5.091, "b": 6.743, "c": 4.5227577357, "alpha": 90.0, "beta": 90.0, "gamma": 90.0},
+ "formula_units_per_cell": 4,
+ "space_group": "Pnma",
+ "space_group_number": 62,
+ "atom_sites": [
+  {"element": "Fe", "wyckoff": "8d", "x": 0.1846, "y": 0.0594, "z": 0.334, "occupancy": 1.0},
+  {"element": "Fe", "wyckoff": "4c", "x": 0.0346, "y": 0.25, "z": 0.8377, "occupancy": 1.0},
+  {"element": "C", "wyckoff": "4c", "x": 0.8984, "y": 0.25, "z": 0.4467, "occupancy": 1.0}
+ ],
+ "notes": "Cementite coordinates and ambient axial ratios are from Wood et al., J. Appl. Cryst. 37, 82-90 (2004), doi:10.1107/S0021889803024695. The c axis is normalized to Scott et al.'s EoS V0.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Scott et al. (2001), cementite BM3",
+   "reference": {
+    "authors": ["Scott", "Williams", "Knittle"],
+    "year": 2001,
+    "source": "Geophys. Res. Lett.",
+    "volume": "28",
+    "locator": "1875-1878",
+    "doi": "10.1029/2000GL012606"
+   },
+   "eos": {"type": "BM3", "parameters": {"V0": 155.26, "K0": 175.4, "K0_prime": 5.1}},
+   "parameter_errors": {"V0": 0.14, "K0": 3.5, "K0_prime": 0.3},
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 73.0],
+   "experimental_temperature_range_k": [300.0, 300.0],
+   "temperature_ref": 300.0,
+   "notes": "Room-temperature compression of orthorhombic Fe3C to 73 GPa; values follow the publication's third-order Birch-Murnaghan fit."
+  }
+ ]
+}

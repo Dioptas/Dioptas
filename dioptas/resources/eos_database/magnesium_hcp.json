@@ -1,0 +1,44 @@
+{
+ "format_version": 2,
+ "name": "Magnesium (hcp)",
+ "formula": "Mg",
+ "symmetry": "HEXAGONAL",
+ "lattice": {"a": 3.2052572812, "b": null, "c": 5.203735196, "alpha": 90.0, "beta": 90.0, "gamma": 120.0},
+ "formula_units_per_cell": 2,
+ "space_group": "P63/mmc",
+ "space_group_number": 194,
+ "atom_sites": [
+  {"element": "Mg", "wyckoff": "2c", "x": 0.3333333333, "y": 0.6666666667, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "Ambient hcp magnesium; the lattice preserves the fitted V0 and the ambient axial ratio.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Stinton et al. (2014), hcp Vinet",
+   "reference": {
+    "authors": [
+     "Stinton",
+     "MacLeod",
+     "Cynn",
+     "Errandonea",
+     "Evans",
+     "Proctor",
+     "Meng",
+     "McMahon"
+    ],
+    "year": 2014,
+    "source": "Phys. Rev. B",
+    "volume": "90",
+    "locator": "134105",
+    "doi": "10.1103/PhysRevB.90.134105"
+   },
+   "eos": {"type": "Vinet", "parameters": {"V0": 46.299, "K0": 30.9, "K0_prime": 4.56}},
+   "parameter_errors": {"V0": 0.0016, "K0": 0.4, "K0_prime": 0.06},
+   "fixed_parameters": ["V0"],
+   "experimental_pressure_range_gpa": [0.0, 61.0],
+   "experimental_temperature_range_k": [300.0, 300.0],
+   "temperature_ref": 300.0,
+   "notes": "Room-temperature hcp fit; V0 is the two-atom hexagonal cell volume."
+  }
+ ]
+}

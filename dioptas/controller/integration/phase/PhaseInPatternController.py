@@ -17,6 +17,7 @@ class PhaseInPatternController:
         """
         self.model = dioptas_model
         self.pattern_widget = pattern_widget
+        self._calibration_model = None
 
         self.connect()
 
@@ -40,6 +41,21 @@ class PhaseInPatternController:
             self.update_all_phase_lines
         )
         self.model.pattern_changed.connect(self.pattern_data_changed)
+        self.model.configuration_selected.connect(self._configuration_selected)
+        self._connect_calibration_model()
+
+    def _configuration_selected(self, *_):
+        self._connect_calibration_model()
+
+    def _connect_calibration_model(self):
+        if self._calibration_model is not None:
+            self._calibration_model.parameters_changed.disconnect(
+                self.pattern_data_changed
+            )
+        self._calibration_model = self.model.calibration_model
+        self._calibration_model.parameters_changed.connect(
+            self.pattern_data_changed
+        )
 
     def add_phase_plot(self):
         """
@@ -101,6 +117,18 @@ class PhaseInPatternController:
         """
         Function is called after the pattern data has changed.
         """
+        from ....model.util.phasesmith import minimum_d_spacing_for_pattern
+
+        wavelength = self.model.calibration_model.wavelength * 1e10
+        minimum_d_spacing = minimum_d_spacing_for_pattern(
+            self.model.pattern.data[0],
+            self.model.integration_unit,
+            wavelength,
+        )
+        self.model.phase_model.ensure_structure_reflection_coverage(
+            minimum_d_spacing,
+            wavelength,
+        )
         self.pattern_widget.update_phase_line_visibilities()
 
     def update_phase_legend(self, ind):

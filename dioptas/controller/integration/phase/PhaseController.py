@@ -4,9 +4,10 @@ import os
 
 from qtpy import QtWidgets, QtCore, QtGui
 
+from ....model import eos
 from ....model.PhaseModel import PhaseLoadError
 from ....model.util.HelperModule import get_base_name
-from ....controller.integration.phase.JcpdsEditorController import JcpdsEditorController
+from ....controller.integration.phase.PhaseEditorController import PhaseEditorController
 from ....widgets.UtilityWidgets import save_file_dialog, open_file_dialog, open_files_dialog
 
 from .PhaseInPatternController import PhaseInPatternController
@@ -43,7 +44,7 @@ class PhaseController:
         self.phase_in_pattern_controller = PhaseInPatternController(self.integration_widget.pattern_widget, dioptas_model)
         self.phase_in_cake_controller = PhaseInCakeController(self.integration_widget, dioptas_model)
         self.phase_in_batch_controller = PhaseInBatchController(self.integration_widget.batch_widget, dioptas_model)
-        self.jcpds_editor_controller = JcpdsEditorController(self.integration_widget, self.model)
+        self.phase_editor_controller = PhaseEditorController(self.integration_widget, self.model)
 
         self.phase_lw_items = []
         self.create_signals()
@@ -53,6 +54,7 @@ class PhaseController:
     def create_signals(self):
         # Button Callbacks
         self.phase_widget.add_btn.clicked.connect(self.add_btn_click_callback)
+        self.phase_widget.browse_db_btn.clicked.connect(self.browse_db_btn_click_callback)
         self.phase_widget.delete_btn.clicked.connect(self.delete_btn_click_callback)
         self.phase_widget.clear_btn.clicked.connect(self.clear_phases)
         self.phase_widget.save_list_btn.clicked.connect(self.save_btn_clicked_callback)
@@ -64,6 +66,7 @@ class PhaseController:
 
         self.phase_widget.pressure_sb_value_changed.connect(self.model.phase_model.set_pressure)
         self.phase_widget.temperature_sb_value_changed.connect(self.model.phase_model.set_temperature)
+        self.phase_widget.reference_changed.connect(self.model.phase_model.set_eos_reference)
 
         # Color and State
         self.phase_widget.color_btn_clicked.connect(self.color_btn_clicked)
@@ -115,33 +118,104 @@ class PhaseController:
             progress_dialog.close()
             QtWidgets.QApplication.processEvents()
 
+    def browse_db_btn_click_callback(self):
+        """Open the EoS database browser and load the chosen material as a phase."""
+        from .EosDatabaseController import EosDatabaseController
+        minimum_d_spacing, wavelength = self._reflection_calculation_parameters()
+        controller = EosDatabaseController(
+            self.integration_widget,
+            minimum_d_spacing=minimum_d_spacing,
+            wavelength_angstrom=wavelength,
+        )
+        jcpds_object = controller.exec_()
+        if jcpds_object is not None:
+            self.model.phase_model.add_jcpds_object(
+                jcpds_object, filename=jcpds_object.filename)
+
     def _add_phase(self, filename):
         try:
             if filename.endswith("jcpds"):
                 self.model.phase_model.add_jcpds(filename)
             elif filename.endswith(".cif"):
+                minimum_d_spacing, wavelength = (
+                    self._reflection_calculation_parameters()
+                )
+                self.cif_conversion_dialog.set_minimum_d_spacing(
+                    minimum_d_spacing
+                )
                 self.cif_conversion_dialog.exec_()
-                self.model.phase_model.add_cif(filename,
-                                               self.cif_conversion_dialog.int_cutoff,
-                                               self.cif_conversion_dialog.min_d_spacing)
+                self.model.phase_model.add_cif(
+                    filename,
+                    self.cif_conversion_dialog.int_cutoff,
+                    self.cif_conversion_dialog.min_d_spacing,
+                    wavelength,
+                )
+            elif filename.endswith(".eosmat"):
+                from ....model.eos import load_material_file, build_jcpds
+                minimum_d_spacing, wavelength = (
+                    self._reflection_calculation_parameters()
+                )
+                jcpds_obj = build_jcpds(
+                    load_material_file(filename),
+                    minimum_d_spacing=minimum_d_spacing,
+                    wavelength_angstrom=wavelength,
+                    origin="file",
+                )
+                jcpds_obj._filename = filename
+                self.model.phase_model.add_jcpds_object(jcpds_obj, filename=filename)
         except PhaseLoadError as e:
             self.integration_widget.show_error_msg(
                 'Could not load:\n\n{}.\n\nPlease check if the format of the input file is correct.'. \
                     format(e.filename))
 
+    def _reflection_calculation_parameters(self):
+        """Return pattern-derived d cutoff and the experimental wavelength."""
+        from ....model.util.phasesmith import minimum_d_spacing_for_pattern
+
+        wavelength = self.model.calibration_model.wavelength * 1e10
+        pattern_x = self.model.pattern.data[0]
+        minimum_d_spacing = minimum_d_spacing_for_pattern(
+            pattern_x,
+            self.model.integration_unit,
+            wavelength,
+        )
+        return minimum_d_spacing, wavelength
+
     def phase_added(self):
         color = self.model.phase_model.phase_colors[-1]
-        self.phase_widget.add_phase(get_base_name(self.model.phase_model.phase_files[-1]),
+        phase = self.model.phase_model.phases[-1]
+        display_name = phase.name or get_base_name(
+            self.model.phase_model.phase_files[-1])
+        self.phase_widget.add_phase(display_name,
                                     '#%02x%02x%02x' % (int(color[0]), int(color[1]), int(color[2])))
+        # Fill the reference dropdown with all EoS records of the material
+        # (database phases only; legacy jcpds files have none). Each record
+        # determines its own equation of state; the tooltip shows it.
+        last = len(self.model.phase_model.phases) - 1
+        self._update_phase_references(last)
+
+    def _update_phase_references(self, ind):
+        """Keep the phase-table selector aligned with record management."""
+        phase = self.model.phase_model.phases[ind]
+        self.phase_widget.set_phase_references(
+            ind,
+            self.model.phase_model.get_eos_reference_labels(ind),
+            phase.params['eos_current_index'],
+            tooltips=[
+                f"{eos.reference_text(record.get('reference'))} — "
+                f"{(record.get('eos') or {}).get('type', 'BM3')}"
+                for record in phase.params['eos_records']])
 
     def phase_changed(self, ind):
-        phase_name = get_base_name(self.model.phase_model.phases[ind].filename)
-        if self.model.phase_model.phases[ind].params['modified']:
-            phase_name += '*'
+        phase = self.model.phase_model.phases[ind]
+        phase_name = phase.name or get_base_name(
+            self.model.phase_model.phase_files[ind])
         self.phase_widget.rename_phase(ind, phase_name)
-        self.phase_widget.set_phase_pressure(ind, self.model.phase_model.phases[ind].params['pressure'])
-        self.phase_widget.set_phase_temperature(ind, self.model.phase_model.phases[ind].params['temperature'])
-        self.phase_widget.temperature_sbs[ind].setEnabled(int(self.model.phase_model.phases[ind].has_thermal_expansion()))
+        self.phase_widget.set_phase_pressure(ind, phase.params['pressure'])
+        self.phase_widget.set_phase_temperature(ind, phase.params['temperature'])
+        self.phase_widget.temperature_sbs[ind].setEnabled(
+            int(phase.has_thermal_expansion()))
+        self._update_phase_references(ind)
 
     def delete_btn_click_callback(self):
         """
@@ -155,12 +229,12 @@ class PhaseController:
         self.phase_widget.del_phase(ind)
         # self.img_view_widget.del_cake_phase(ind)
 
-        if self.jcpds_editor_controller.active:
+        if self.phase_editor_controller.active:
             ind = self.phase_widget.get_selected_phase_row()
             if ind >= 0:
-                self.jcpds_editor_controller.show_phase(self.model.phase_model.phases[ind])
+                self.phase_editor_controller.show_phase(self.model.phase_model.phases[ind])
             else:
-                self.jcpds_editor_controller.jcpds_widget.close()
+                self.phase_editor_controller.jcpds_widget.close()
 
     def load_list_btn_clicked_callback(self):
         filename = open_file_dialog(self.integration_widget, caption="Load Phase List",
@@ -217,7 +291,7 @@ class PhaseController:
         """
         while self.phase_widget.phase_tw.rowCount() > 0:
             self.delete_btn_click_callback()
-            self.jcpds_editor_controller.close_view()
+            self.phase_editor_controller.close_view()
 
     def update_pressure_step(self):
         for pressure_sb in self.phase_widget.pressure_sbs:

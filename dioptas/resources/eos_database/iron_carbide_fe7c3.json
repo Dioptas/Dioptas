@@ -1,0 +1,63 @@
+{
+ "format_version": 2,
+ "name": "Iron carbide (orthorhombic Fe7C3)",
+ "aliases": ["o-Fe7C3", "Pbca Fe7C3"],
+ "formula": "Fe7C3",
+ "symmetry": "ORTHORHOMBIC",
+ "lattice": {"a": 11.9926302306, "b": 4.5269682888, "c": 13.7777992441, "alpha": 90.0, "beta": 90.0, "gamma": 90.0},
+ "formula_units_per_cell": 8,
+ "space_group": "Pbca",
+ "space_group_number": 61,
+ "atom_sites": [
+  {"element": "Fe", "wyckoff": "8c", "x": 0.8129, "y": 0.0562, "z": 0.71645, "occupancy": 1.0},
+  {"element": "Fe", "wyckoff": "8c", "x": 0.6267, "y": 0.056, "z": 0.62535, "occupancy": 1.0},
+  {"element": "Fe", "wyckoff": "8c", "x": 0.8111, "y": 0.0646, "z": 0.53232, "occupancy": 1.0},
+  {"element": "Fe", "wyckoff": "8c", "x": 0.9173, "y": 0.2409, "z": 0.87325, "occupancy": 1.0},
+  {"element": "Fe", "wyckoff": "8c", "x": 0.0229, "y": 0.2324, "z": 0.71595, "occupancy": 1.0},
+  {"element": "Fe", "wyckoff": "8c", "x": 0.5231, "y": 0.2503, "z": 0.46853, "occupancy": 1.0},
+  {"element": "Fe", "wyckoff": "8c", "x": 0.7081, "y": 0.248, "z": 0.87498, "occupancy": 1.0},
+  {"element": "C", "wyckoff": "8c", "x": 0.8414, "y": 0.464, "z": 0.7669, "occupancy": 1.0},
+  {"element": "C", "wyckoff": "8c", "x": 0.563, "y": 0.46, "z": 0.619, "occupancy": 1.0},
+  {"element": "C", "wyckoff": "8c", "x": 0.8456, "y": 0.471, "z": 0.484, "occupancy": 1.0}
+ ],
+ "notes": "Pbca structure and fractional coordinates from Prescher et al., Nature Geosci. 8, 220-223 (2015); the reported axial ratios are normalized to the fitted V0.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Prescher et al. (2015), orthorhombic Fe7C3 BM3",
+   "reference": {
+    "authors": [
+     "Prescher",
+     "Dubrovinsky",
+     "Bykova",
+     "Kupenko",
+     "Glazyrin",
+     "Kantor",
+     "McCammon",
+     "Mookherjee",
+     "Nakajima",
+     "Miyajima",
+     "Sinmyo",
+     "Cerantola",
+     "Dubrovinskaia",
+     "Prakapenka",
+     "Rüffer",
+     "Chumakov",
+     "Hanfland"
+    ],
+    "year": 2015,
+    "source": "Nature Geosci.",
+    "volume": "8",
+    "locator": "220-223",
+    "doi": "10.1038/ngeo2370"
+   },
+   "eos": {"type": "BM3", "parameters": {"V0": 748.0, "K0": 168.0, "K0_prime": 6.1}},
+   "parameter_errors": {"V0": 1.0, "K0": 4.0, "K0_prime": 0.1},
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [4.0, 158.0],
+   "experimental_temperature_range_k": [300.0, 300.0],
+   "temperature_ref": 300.0,
+   "notes": "Single-crystal X-ray compression fit for orthorhombic Fe7C3 from 4 to 158 GPa. The structure was additionally observed after high-pressure, high-temperature synthesis to 205 GPa, outside the fitted EoS interval."
+  }
+ ]
+}

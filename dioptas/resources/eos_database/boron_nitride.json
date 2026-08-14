@@ -1,0 +1,59 @@
+{
+ "format_version": 2,
+ "name": "Boron Nitride",
+ "formula": "BN",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.6159,
+  "b": 3.6159,
+  "c": 3.6159,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "F-43m",
+ "space_group_number": 216,
+ "atom_sites": [
+  {"element": "B", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "N", "wyckoff": "4c", "x": 0.25, "y": 0.25, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/BN-cubic.jcpds",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Datchi et al. (2007), Vinet",
+   "reference": {
+    "authors": [
+     "Datchi",
+     "Dewaele",
+     "Le Godec",
+     "Loubeyre"
+    ],
+    "year": 2007,
+    "source": "Phys. Rev. B",
+    "volume": "75",
+    "locator": "214104",
+    "doi": "10.1103/PhysRevB.75.214104"
+   },
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 47.2496,
+     "K0": 395.0,
+     "K0_prime": 3.62
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.0048,
+    "K0": 2.0,
+    "K0_prime": 0.05
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 160.0],
+   "notes": "V0=5.9062 A^3/atom multiplied by 8 atoms in the conventional cubic cell; the unsupported K0=500 record was removed."
+  }
+ ]
+}

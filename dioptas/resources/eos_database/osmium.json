@@ -1,0 +1,36 @@
+{
+ "format_version": 2,
+ "name": "Osmium",
+ "formula": "Os",
+ "symmetry": "HEXAGONAL",
+ "lattice": {"a": 2.7348, "b": null, "c": 4.3193, "alpha": 90.0, "beta": 90.0, "gamma": 120.0},
+ "formula_units_per_cell": 2,
+ "space_group": "P63/mmc",
+ "space_group_number": 194,
+ "atom_sites": [
+  {"element": "Os", "wyckoff": "2c", "x": 0.3333333333, "y": 0.6666666667, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "Ambient hcp osmium structure; PhaseSmith calculates the reflection list.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Takemura (2004), BM3",
+   "reference": {
+    "authors": [
+     "Takemura"
+    ],
+    "year": 2004,
+    "source": "Phys. Rev. B",
+    "volume": "70",
+    "locator": "012101",
+    "doi": "10.1103/PhysRevB.70.012101"
+   },
+   "eos": {"type": "BM3", "parameters": {"V0": 27.9766135265, "K0": 395.0, "K0_prime": 4.5}},
+   "parameter_errors": {"V0": 0.0188, "K0": 15.0, "K0_prime": 0.5},
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 58.2],
+   "experimental_temperature_range_k": [300.0, 300.0],
+   "temperature_ref": 300.0
+  }
+ ]
+}

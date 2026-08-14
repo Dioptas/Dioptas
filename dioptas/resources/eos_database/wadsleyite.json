@@ -1,0 +1,83 @@
+{
+ "format_version": 2,
+ "name": "Wadsleyite",
+ "formula": "Mg2SiO4",
+ "symmetry": "ORTHORHOMBIC",
+ "lattice": {
+  "a": 5.7016,
+  "b": 11.4427,
+  "c": 8.2491,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 8,
+ "space_group": "Imma",
+ "space_group_number": 74,
+ "atom_sites": [
+  {"element": "Mg", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "Mg", "wyckoff": "4e", "x": 0.0, "y": 0.25, "z": 0.9726, "occupancy": 1.0},
+  {"element": "Mg", "wyckoff": "8g", "x": 0.25, "y": 0.1286, "z": 0.25, "occupancy": 1.0},
+  {"element": "Si", "wyckoff": "8h", "x": 0.0, "y": 0.1187, "z": 0.6175, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4e", "x": 0.0, "y": 0.25, "z": 0.2177, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4e", "x": 0.0, "y": 0.25, "z": 0.7179, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8h", "x": 0.0, "y": 0.9929, "z": 0.2548, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "16j", "x": 0.2624, "y": 0.1227, "z": 0.9945, "occupancy": 1.0}
+ ],
+ "notes": "Ambient lattice and fractional coordinates: Trots et al., American Mineralogist 97, 1582-1590 (2012), doi:10.2138/am.2012.3992, COD 9015858 (297 K). Phase-line intensities were calculated from this structure using independent-atom X-ray form factors.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Katsura et al. (2009), high-temperature BM3-MGD",
+   "reference": {
+    "authors": [
+     "Katsura",
+     "Shatskiy",
+     "Manthilake",
+     "Zhai",
+     "Yamazaki",
+     "Matsuzaki",
+     "Yoshino",
+     "Yoneda",
+     "Ito",
+     "Sugita",
+     "Tomioka",
+     "Nozawa",
+     "Funakoshi"
+    ],
+    "year": 2009,
+    "source": "Geophysical Research Letters",
+    "volume": "36",
+    "locator": "L11307",
+    "doi": "10.1029/2009GL038107"
+   },
+   "temperature_ref": 300.0,
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 538.185,
+     "K0": 169.2,
+     "K0_prime": 4.1
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": 0.1
+   },
+   "fixed_parameters": ["V0", "K0"],
+   "experimental_pressure_range_gpa": [11.0, 20.0],
+   "thermal": {
+    "type": "MieGruneisenDebye",
+    "parameters": {
+     "Tr": 300.0,
+     "theta0": 814.0,
+     "gamma0": 1.64,
+     "q": 1.5,
+     "n": 7
+    }
+   },
+   "notes": "Katsura et al. fit 11-20 GPa and 300-2100 K data with K0 fixed at 169.2 GPa, obtaining K0_prime=4.1(1), gamma0=1.64(2), and q=1.5(1) with theta0 fixed at 814 K. V0 is the independently measured 297 K structural volume from Trots et al.; no separate uncertainty was reported in the COD entry."
+  }
+ ]
+}

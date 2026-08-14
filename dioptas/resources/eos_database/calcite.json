@@ -1,0 +1,56 @@
+{
+ "format_version": 2,
+ "name": "Calcite",
+ "formula": "CaCO3",
+ "symmetry": "TRIGONAL",
+ "lattice": {
+  "a": 4.988,
+  "b": 4.988,
+  "c": 17.061,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": 6,
+ "space_group": "R-3c",
+ "space_group_number": 167,
+ "atom_sites": [
+  {"element": "Ca", "wyckoff": "6b", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "C", "wyckoff": "6a", "x": 0.0, "y": 0.0, "z": 0.25, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "18e", "x": 0.2567, "y": 0.0, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "Ambient 24 C structure: Markgraf and Reeder, American Mineralogist 70, 590-600 (1985), COD 9000965. The EoS is from Redfern and Angel, Contributions to Mineralogy and Petrology 134, 102-106 (1999), doi:10.1007/s004100050471. Phase-line intensities were calculated from the cited structure using independent-atom X-ray form factors.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Redfern and Angel (1999), single-crystal BM2",
+   "reference": {
+    "authors": [
+     "Redfern",
+     "Angel"
+    ],
+    "year": 1999,
+    "source": "Contributions to Mineralogy and Petrology",
+    "volume": "134",
+    "locator": "102-106",
+    "doi": "10.1007/s004100050471"
+   },
+   "temperature_ref": 298.0,
+   "experimental_pressure_range_gpa": [0.0, 1.435],
+   "experimental_temperature_range_k": [298.0, 298.0],
+   "eos": {
+    "type": "BM2",
+    "parameters": {
+     "V0": 367.789,
+     "K0": 73.46
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.004,
+    "K0": 0.27
+   },
+   "fixed_parameters": [],
+   "notes": "Second-order Birch-Murnaghan fit to room-temperature single-crystal measurements from ambient pressure to 1.435 GPa; K0_prime=4 is implicit in BM2. The range describes the fitted data, not the calcite stability field."
+  }
+ ]
+}

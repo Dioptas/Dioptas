@@ -1,0 +1,63 @@
+{
+ "format_version": 2,
+ "name": "Boron nitride (hexagonal)",
+ "formula": "BN",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 2.50425,
+  "b": null,
+  "c": 6.661664,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": 2,
+ "space_group": "P63/mmc",
+ "space_group_number": 194,
+ "atom_sites": [
+  {"element": "B", "wyckoff": "2c", "x": 0.3333333333, "y": 0.6666666667, "z": 0.25, "occupancy": 1.0},
+  {"element": "N", "wyckoff": "2d", "x": 0.6666666667, "y": 0.3333333333, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "AA-prime stacked hexagonal boron nitride. The ambient axial ratio is scaled to the fitted 300 K V0. PhaseSmith calculates powder reflections and intensities from the ideal structure.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Muhammad et al. (2024), helium-medium BM3",
+   "reference": {
+    "authors": [
+     "Muhammad",
+     "Mezouar",
+     "Garbarino",
+     "Poręba",
+     "Confalonieri",
+     "Ceppatelli",
+     "Serrano-Ruiz",
+     "Peruzzini",
+     "Datchi"
+    ],
+    "year": 2024,
+    "source": "Nanoscale",
+    "volume": "16",
+    "locator": "9096-9107",
+    "doi": "10.1039/D4NR00093E"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 36.18,
+     "K0": 27.4,
+     "K0_prime": 11.4
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.06,
+    "K0": 0.9,
+    "K0_prime": 0.8
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 9.5],
+   "temperature_ref": 300.0,
+   "notes": "Hydrostatic helium-medium powder-XRD fit over 0-9.5 GPa. This replaces older strongly discrepant non-hydrostatic compressibility estimates for h-BN."
+  }
+ ]
+}

@@ -1,0 +1,32 @@
+{
+ "format_version": 2,
+ "name": "Nitrogen",
+ "formula": "N2",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 8.02,
+  "b": 8.02,
+  "c": 11.104,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/nitrogen_epsilon.jcpds. Epsilon-N2 diffraction and molar-volume data are from Mills, Olinger, and Cromer, Journal of Chemical Physics 84, 2837-2845 (1986), doi:10.1063/1.450310. No fitted K0 = 15 GPa, K0' = 3.8 EoS could be verified in that source, so the legacy EoS was removed.",
+ "peaks": [
+  [0, 4, 2, 1.6572, 1.5],
+  [0, 0, 6, 1.8507, 2.8],
+  [1, 3, 1, 1.898, 3.1],
+  [2, 1, 4, 1.9074, 1.1],
+  [2, 2, 0, 2.005, 9.3],
+  [0, 2, 4, 2.1684, 21.3],
+  [3, 0, 0, 2.3152, 17.4],
+  [1, 2, 2, 2.3732, 93.5],
+  [2, 1, 1, 2.5547, 100.0],
+  [1, 0, 4, 2.5777, 28.8],
+  [1, 1, 3, 2.7198, 72.2],
+  [2, 0, 2, 2.9442, 44.8]
+ ],
+ "eos_records": [],
+ "atom_sites": []
+}

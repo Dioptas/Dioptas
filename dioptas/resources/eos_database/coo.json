@@ -1,0 +1,55 @@
+{
+ "format_version": 2,
+ "name": "CoO",
+ "formula": "CoO",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 4.544,
+  "b": 4.544,
+  "c": 4.544,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Co", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/certified data base/coo.jcpds, JCPDS/current user/jcpds/ver3/coo.jcpds, JCPDS/current user/jcpds/ver2/coo.jcpds",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "JCPDS 42-1300, EOS from Clendenen and Drickamer, 66",
+   "reference": {
+    "authors": [
+     "Clendenen",
+     "Drickamer"
+    ],
+    "year": 1966,
+    "source": "J. Chem. Phys.",
+    "volume": "44",
+    "locator": "4223-4228",
+    "doi": "10.1063/1.1726610"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 93.8242,
+     "K0": 190.5,
+     "K0_prime": 3.9
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [],
+   "pressure_range_status": "reported_qualitatively",
+   "notes": "Clendenen and Drickamer report the legacy compression parameters K0 = 190.5 GPa and K0' = 3.9 without parameter uncertainties. V0 is retained from the ambient diffraction card. The source describes measurements to several hundred kilobars but does not expose a recoverable CoO-specific maximum in the accessible metadata, so no exact numeric fit limit is asserted."
+  }
+ ]
+}

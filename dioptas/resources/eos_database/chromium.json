@@ -1,0 +1,59 @@
+{
+ "format_version": 2,
+ "name": "Chromium",
+ "formula": "Cr",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 2.887701,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 2,
+ "space_group": "Im-3m",
+ "space_group_number": 229,
+ "atom_sites": [
+  {"element": "Cr", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "The lattice parameter is calculated from the fitted 300 K reference volume. PhaseSmith calculates powder reflections and intensities from the ideal bcc structure.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Anzellini et al. (2022), BM3",
+   "reference": {
+    "authors": [
+     "Anzellini",
+     "Errandonea",
+     "Burakovsky",
+     "Proctor",
+     "Turnbull",
+     "Beavers"
+    ],
+    "year": 2022,
+    "source": "Sci. Rep.",
+    "volume": "12",
+    "locator": "6727",
+    "doi": "10.1038/s41598-022-10523-2"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 24.08,
+     "K0": 185.0,
+     "K0_prime": 4.74
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.02,
+    "K0": 1.0,
+    "K0_prime": 0.03
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 131.0],
+   "temperature_ref": 300.0,
+   "notes": "Table 3 experimental helium-medium BM3 fit. The bcc phase remains observed to 131 GPa at room temperature."
+  }
+ ]
+}

@@ -1,0 +1,46 @@
+{
+ "format_version": 2,
+ "name": "Fayalite",
+ "formula": "Fe2SiO4",
+ "symmetry": "ORTHORHOMBIC",
+ "lattice": {"a": 4.8248, "b": 10.4604, "c": 6.1007, "alpha": 90.0, "beta": 90.0, "gamma": 90.0},
+ "formula_units_per_cell": 4,
+ "space_group": "Pbnm",
+ "space_group_number": 62,
+ "atom_sites": [
+  {"element": "Fe", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "Fe", "wyckoff": "4c", "x": 0.9915, "y": 0.2774, "z": 0.25, "occupancy": 1.0},
+  {"element": "Si", "wyckoff": "4c", "x": 0.4262, "y": 0.094, "z": 0.25, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4c", "x": 0.7657, "y": 0.0913, "z": 0.25, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4c", "x": 0.2215, "y": 0.4474, "z": 0.25, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8d", "x": 0.2777, "y": 0.1628, "z": 0.0331, "occupancy": 1.0}
+ ],
+ "notes": "Room-temperature olivine structure and compression data from Bejina et al. (2021).",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Bejina et al. (2021), 302 K BM3",
+   "reference": {
+    "authors": [
+     "Béjina",
+     "Bystricky",
+     "Tercé",
+     "Whitaker",
+     "Chen"
+    ],
+    "year": 2021,
+    "source": "Eur. J. Mineral.",
+    "volume": "33",
+    "locator": "519-535",
+    "doi": "10.5194/ejm-33-519-2021"
+   },
+   "eos": {"type": "BM3", "parameters": {"V0": 307.84, "K0": 130.4, "K0_prime": 5.3}},
+   "parameter_errors": {"V0": 0.05, "K0": 1.4, "K0_prime": null},
+   "fixed_parameters": ["K0_prime"],
+   "experimental_pressure_range_gpa": [0.0, 5.0],
+   "experimental_temperature_range_k": [302.0, 302.0],
+   "temperature_ref": 302.0,
+   "notes": "The room-temperature fit fixed K0'=5.3."
+  }
+ ]
+}

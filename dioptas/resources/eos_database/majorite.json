@@ -1,0 +1,62 @@
+{
+ "format_version": 2,
+ "name": "Majorite",
+ "formula": "",
+ "symmetry": "TETRAGONAL",
+ "lattice": {
+  "a": 11.501,
+  "b": 11.501,
+  "c": 11.48,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/ver3/majorite.jcpds",
+ "peaks": [
+  [4, 0, 0, 2.8752, 5.0],
+  [2, 2, 0, 4.0662, 6.0],
+  [1, 1, 2, 4.6895, 6.0],
+  [0, 0, 2, 5.74, 19.0],
+  [2, 0, 0, 5.7505, 14.0],
+  [1, 0, 1, 8.125, 81.0],
+  [1, 1, 0, 8.1324, 100.0]
+ ],
+ "eos_records": [
+  {
+   "label": "GSAS calculation, EOS from Yagi et al, 1992",
+   "reference": {
+    "authors": [
+     "Yagi",
+     "Uchiyama",
+     "Akaogi",
+     "Ito"
+    ],
+    "year": 1992,
+    "source": "Phys. Earth Planet. Inter.",
+    "volume": "74",
+    "locator": "1-7",
+    "doi": "10.1016/0031-9201(92)90063-2"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 1513.1,
+     "K0": 161.0,
+     "K0_prime": 4.0
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 4.0,
+    "K0_prime": null
+   },
+   "fixed_parameters": [
+    "K0_prime"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 9.72],
+   "notes": "Yagi et al. report V0 = 1513.1 A^3 and K0 = 161 +/- 4 GPa with K0' fixed at 4.0. The ambient structural cell used for the phase lines is independently 1518.5 A^3."
+  }
+ ],
+ "atom_sites": []
+}

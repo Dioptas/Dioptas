@@ -1,0 +1,62 @@
+{
+ "format_version": 2,
+ "name": "Cerium dioxide (fluorite)",
+ "formula": "CeO2",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 5.411,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Ce", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8c", "x": 0.25, "y": 0.25, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "The ambient fluorite cell is the value measured in the EoS study. PhaseSmith calculates powder reflections and intensities from the ideal structure.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Gerward et al. (2005), room-temperature BM3",
+   "reference": {
+    "authors": [
+     "Gerward",
+     "Staun Olsen",
+     "Petit",
+     "Vaitheeswaran",
+     "Kanchana",
+     "Svane"
+    ],
+    "year": 2005,
+    "source": "J. Alloys Compd.",
+    "volume": "400",
+    "locator": "56-61",
+    "doi": "10.1016/j.jallcom.2005.04.008"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 158.428242,
+     "K0": 220.0,
+     "K0_prime": 4.4
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.087837,
+    "K0": 9.0,
+    "K0_prime": 0.4
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 20.0],
+   "temperature_ref": 298.0,
+   "notes": "Room-temperature powder XRD fit of the cubic fluorite phase. The equation fits K0 and K0_prime using measured a0=5.411(1) A; V0=a0^3 and its error is propagated as 3*a0^2*sigma_a."
+  }
+ ]
+}

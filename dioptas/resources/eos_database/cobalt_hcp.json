@@ -1,0 +1,56 @@
+{
+ "format_version": 2,
+ "name": "Cobalt",
+ "formula": "Co",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 2.514,
+  "b": 2.514,
+  "c": 4.105,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": 2,
+ "space_group": "P63/mmc",
+ "space_group_number": 194,
+ "atom_sites": [
+  {"element": "Co", "wyckoff": "2c", "x": 0.3333333333, "y": 0.6666666667, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Co-hcp.jcpds",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Fujihisa and Takemura (1996)",
+   "reference": {
+    "authors": [
+     "Fujihisa",
+     "Takemura"
+    ],
+    "year": 1996,
+    "source": "Phys. Rev. B",
+    "volume": "54",
+    "locator": "5-7",
+    "doi": "10.1103/PhysRevB.54.5"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 22.4685,
+     "K0": 199.0,
+     "K0_prime": 3.6
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 6.0,
+    "K0_prime": 0.2
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 79.0],
+   "notes": "Publication bulk modulus and pressure derivative; ambient V0 from this crystallographic cell."
+  }
+ ]
+}

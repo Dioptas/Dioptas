@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- Database: cylinder outline. Monochrome in the theme's text colour,
+       matching the open/save/edit/delete glyph set. -->
+  <g fill="none" stroke="#f1f1f1" stroke-width="1.8"
+     stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="12" cy="5.6" rx="7.2" ry="2.8"/>
+    <path d="M4.8 5.6 V18.4 A7.2 2.8 0 0 0 19.2 18.4 V5.6"/>
+    <path d="M4.8 12 A7.2 2.8 0 0 0 19.2 12"/>
+  </g>
+</svg>

@@ -1,0 +1,58 @@
+{
+ "format_version": 2,
+ "name": "SrO (B1)",
+ "aliases": ["rocksalt SrO"],
+ "formula": "SrO",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 5.16,
+  "b": 5.16,
+  "c": 5.16,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Sr", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/SrO.jcpds",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Liu and Bassett 1973",
+   "reference": {
+    "authors": [
+     "Liu",
+     "Bassett"
+    ],
+    "year": 1973,
+    "source": "J. Geophys. Res.",
+    "volume": "78",
+    "locator": "8470-8473",
+    "doi": "10.1029/JB078i035p08470"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 137.3881,
+     "K0": 91.3,
+     "K0_prime": 4.3
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 2.7,
+    "K0_prime": 0.3
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 34.0],
+   "notes": "Liu and Bassett report K0 = 913 +/- 27 kbar (91.3 +/- 2.7 GPa) and K0' = 4.3 +/- 0.3. The ambient card volume is treated as fixed."
+  }
+ ]
+}

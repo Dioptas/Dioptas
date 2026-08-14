@@ -1,0 +1,151 @@
+{
+ "format_version": 2,
+ "name": "Bridgmanite",
+ "formula": "MgSiO3",
+ "aliases": ["Mg-perovskite", "Magnesium perovskite"],
+ "symmetry": "ORTHORHOMBIC",
+ "lattice": {
+  "a": 4.7783,
+  "b": 4.9311,
+  "c": 6.8993,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Pbnm",
+ "space_group_number": 62,
+ "atom_sites": [
+  {"element": "Mg", "wyckoff": "4c", "x": 0.974, "y": 0.063, "z": 0.25, "occupancy": 1.0},
+  {"element": "Si", "wyckoff": "4b", "x": 0.0, "y": 0.5, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4c", "x": 0.096, "y": 0.477, "z": 0.25, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8d", "x": 0.696, "y": 0.291, "z": 0.056, "occupancy": 1.0}
+ ],
+ "notes": "Ambient lattice: Vanpeteghem et al., Geophysical Research Letters 33, L03306 (2006), doi:10.1029/2005GL024955. Ambient fractional coordinates: Yagi et al., Physics and Chemistry of Minerals 3, 97-110 (1978), doi:10.1007/BF00308114, COD 9005757. The default mantle-range EoS is from Tange et al. (2012); the Vanpeteghem BM2 fit is retained as a low-pressure alternative. Phase-line intensities were calculated from the cited structure using independent-atom X-ray form factors.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Tange et al. (2012), mantle-range BM3-MGD",
+   "reference": {
+    "authors": [
+     "Tange",
+     "Kuwayama",
+     "Irifune",
+     "Funakoshi",
+     "Ohishi"
+    ],
+    "year": 2012,
+    "source": "Journal of Geophysical Research: Solid Earth",
+    "volume": "117",
+    "locator": "B06201",
+    "doi": "10.1029/2011JB008988"
+   },
+   "temperature_ref": 300.0,
+   "experimental_pressure_range_gpa": [28.0, 108.0],
+   "experimental_temperature_range_k": [300.0, 2430.0],
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 162.373,
+     "K0": 256.7,
+     "K0_prime": 4.09
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 1.5,
+    "K0_prime": 0.06
+   },
+   "fixed_parameters": ["V0"],
+   "thermal": {
+    "type": "MieGruneisenDebye",
+    "parameters": {
+     "Tr": 300.0,
+     "theta0": 950.0,
+     "gamma0": 1.54,
+     "q": 1.5,
+     "n": 5
+    }
+   },
+   "notes": "Preferred default for mantle work. The fit combines multi-anvil data at 28-63 GPa and 300-1500 K with laser-heated DAC data at 52-108 GPa and 300 or 1500-2430 K; the study reports measurements up to 110 GPa and 2500 K. V0=162.373 A^3 was fixed to an independent ambient measurement; theta0=950(150) K, gamma0=1.54(9), and q=1.5(3). The paper calls the exponent b; with its fixed a=1, the published Gruneisen expression reduces exactly to gamma=gamma0(V/V0)^b used here."
+  },
+  {
+   "label": "Tange et al. (2012), mantle-range Vinet-MGD",
+   "reference": {
+    "authors": [
+     "Tange",
+     "Kuwayama",
+     "Irifune",
+     "Funakoshi",
+     "Ohishi"
+    ],
+    "year": 2012,
+    "source": "Journal of Geophysical Research: Solid Earth",
+    "volume": "117",
+    "locator": "B06201",
+    "doi": "10.1029/2011JB008988"
+   },
+   "temperature_ref": 300.0,
+   "experimental_pressure_range_gpa": [28.0, 108.0],
+   "experimental_temperature_range_k": [300.0, 2430.0],
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 162.373,
+     "K0": 258.4,
+     "K0_prime": 4.1
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 1.7,
+    "K0_prime": 0.07
+   },
+   "fixed_parameters": ["V0"],
+   "thermal": {
+    "type": "MieGruneisenDebye",
+    "parameters": {
+     "Tr": 300.0,
+     "theta0": 940.0,
+     "gamma0": 1.55,
+     "q": 1.1,
+     "n": 5
+    }
+   },
+   "notes": "Alternative Vinet fit to the same multi-anvil and laser-heated DAC dataset, measured up to 110 GPa and 2500 K. V0=162.373 A^3 was fixed to an independent ambient measurement; theta0=940(140) K, gamma0=1.55(9), and q=1.1(3). The paper calls the exponent b; with a fixed to 1, it is the q parameter of the conventional MGD volume dependence stored here."
+  },
+  {
+   "label": "Vanpeteghem et al. (2006), low-pressure single-crystal BM2",
+   "reference": {
+    "authors": [
+     "Vanpeteghem",
+     "Zhao",
+     "Angel",
+     "Ross",
+     "Bolfan-Casanova"
+    ],
+    "year": 2006,
+    "source": "Geophysical Research Letters",
+    "volume": "33",
+    "locator": "L03306",
+    "doi": "10.1029/2005GL024955"
+   },
+   "temperature_ref": 300.0,
+   "experimental_pressure_range_gpa": [0.0, 10.0],
+   "experimental_temperature_range_k": [300.0, 300.0],
+   "eos": {
+    "type": "BM2",
+    "parameters": {
+     "V0": 162.51,
+     "K0": 253.0
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.02,
+    "K0": 1.0
+   },
+   "fixed_parameters": [],
+   "notes": "Single-crystal P-V data to 10 GPa. Retained as a low-pressure structural reference, not as the default mantle-range EoS. The normalized-stress plot supported a second-order Birch-Murnaghan fit, so K0_prime=4 is implicit in BM2 rather than stored as a fitted parameter."
+  }
+ ]
+}

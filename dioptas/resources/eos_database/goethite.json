@@ -1,0 +1,58 @@
+{
+ "format_version": 2,
+ "name": "Goethite",
+ "formula": "FeOOH",
+ "symmetry": "ORTHORHOMBIC",
+ "lattice": {
+  "a": 4.6068,
+  "b": 9.96,
+  "c": 3.0242,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Pbnm",
+ "space_group_number": 62,
+ "atom_sites": [
+  {"element": "Fe", "wyckoff": "4c", "x": 0.04893, "y": 0.853657, "z": 0.25, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4c", "x": 0.7057, "y": 0.19914, "z": 0.25, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4c", "x": 0.1987, "y": 0.05298, "z": 0.25, "occupancy": 1.0},
+  {"element": "H", "wyckoff": "4c", "x": 0.379, "y": 0.082, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/FeOOH-pbnm.jcpds. Single-crystal coordinates: Yang et al., Acta Crystallographica E62, i250-i252 (2006), doi:10.1107/S1600536806047258.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Gleason et al. (2008)",
+   "reference": {
+    "authors": [
+     "Gleason",
+     "Jeanloz",
+     "Kunz"
+    ],
+    "year": 2008,
+    "source": "American Mineralogist",
+    "volume": "93",
+    "locator": "1882-1885",
+    "doi": "10.2138/am.2008.2942"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 138.75,
+     "K0": 140.3,
+     "K0_prime": 4.6
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.02,
+    "K0": 3.7,
+    "K0_prime": 0.4
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 29.4],
+   "notes": "Gleason et al. report V0 = 138.75 +/- 0.02 A^3, K0 = 140.3 +/- 3.7 GPa, and K0' = 4.6 +/- 0.4."
+  }
+ ]
+}

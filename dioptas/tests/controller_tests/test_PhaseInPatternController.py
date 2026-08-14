@@ -184,3 +184,53 @@ class PhaseInPatternControllerTest(QtTest):
         self.load_phase("au_Anderson.jcpds")
         self.model.phase_model.delete_reflection(0, 0)
         self.model.phase_model.reload(0)
+
+    def test_larger_pattern_q_range_extends_structure_phase_lines(self):
+        from ...model import eos
+
+        self.model.integration_unit = "q_A^-1"
+        gold = next(
+            material
+            for material in eos.load_materials()
+            if material.formula == "Au" and material.atom_sites
+        )
+        phase = eos.build_jcpds(gold)
+        self.model.phase_model.add_jcpds_object(phase, filename=phase.filename)
+        initial_count = len(phase.reflections)
+
+        x = np.linspace(1.0, 20.0, 100)
+        self.model.pattern_model.set_pattern(
+            x,
+            np.ones_like(x),
+            unit="q_A^-1",
+        )
+
+        self.assertGreater(len(phase.reflections), initial_count)
+        self.assertAlmostEqual(phase.state.reflection_q_max, 21.0)
+        self.assertEqual(
+            len(self.widget.pattern_widget.phases[0].line_items),
+            len(phase.reflections),
+        )
+
+    def test_completed_calibration_checks_reflection_coverage(self):
+        ensure_coverage = MagicMock()
+        self.model.phase_model.ensure_structure_reflection_coverage = (
+            ensure_coverage
+        )
+
+        self.model.calibration_model.parameters_changed.emit()
+
+        ensure_coverage.assert_called_once()
+
+    def test_configuration_reselection_reconnects_calibration_signal(self):
+        self.model.configuration_selected.emit(0)
+
+        self.assertIs(
+            self.controller._calibration_model,
+            self.model.calibration_model,
+        )
+        self.assertTrue(
+            self.model.calibration_model.parameters_changed.has_listener(
+                self.controller.pattern_data_changed
+            )
+        )

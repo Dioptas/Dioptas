@@ -1,0 +1,23 @@
+{
+ "format_version": 2,
+ "name": "Iron (fcc)",
+ "formula": "Fe",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.595,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Fe", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "FCC phase reference: JCPDS 4-0829.",
+ "peaks": [],
+ "eos_records": []
+}

@@ -626,9 +626,10 @@ class PhasePlot:
             pg.PlotDataItem(x=[0, 0], y=[0, 0], pen=self.pen, antialias=False)
         )
         self.line_visible.append(True)
-        self.plot_item.blockSignals(True)
-        self.plot_item.addItem(self.line_items[-1])
-        self.plot_item.blockSignals(False)
+        if self.visible:
+            self.plot_item.blockSignals(True)
+            self.plot_item.addItem(self.line_items[-1])
+            self.plot_item.blockSignals(False)
 
     def delete_line(self, ind=-1):
         # Only remove if item belongs to this scene
@@ -643,11 +644,14 @@ class PhasePlot:
             self.delete_line()
 
     def update_intensities(self, positions, intensities, baseline=0):
-        if self.visible:
-            for ind, intensity in enumerate(intensities):
-                self.line_items[ind].setData(
-                    y=[baseline, intensity], x=[positions[ind], positions[ind]]
-                )
+        while len(self.line_items) < len(positions):
+            self.add_line()
+        while len(self.line_items) > len(positions):
+            self.delete_line()
+        for ind, intensity in enumerate(intensities):
+            self.line_items[ind].setData(
+                y=[baseline, intensity], x=[positions[ind], positions[ind]]
+            )
 
     def update_visibilities(self, pattern_range):
         if self.visible and pattern_range[0] is not None:

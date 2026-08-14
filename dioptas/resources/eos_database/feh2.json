@@ -1,0 +1,66 @@
+{
+ "format_version": 2,
+ "name": "FeH2",
+ "formula": "FeH2",
+ "symmetry": "TETRAGONAL",
+ "lattice": {
+  "a": 2.714,
+  "b": 2.714,
+  "c": 9.2142,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/FeH2_tetragonal.jcpds",
+ "peaks": [
+  [2, 1, 1, 1.2033, 10.0],
+  [2, 0, 0, 1.357, 10.0],
+  [1, 1, 4, 1.4745, 50.0],
+  [0, 0, 6, 1.5357, 10.0],
+  [1, 1, 2, 1.7715, 10.0],
+  [1, 1, 0, 1.9191, 50.0],
+  [1, 0, 3, 2.0338, 100.0],
+  [0, 0, 4, 2.3036, 50.0],
+  [1, 0, 1, 2.6034, 100.0],
+  [0, 0, 2, 4.6071, 50.0]
+ ],
+ "eos_records": [
+  {
+   "label": "Pepin et al. (2014), Vinet",
+   "reference": {
+    "authors": [
+     "Pépin",
+     "Dewaele",
+     "Geneste",
+     "Loubeyre",
+     "Mezouar"
+    ],
+    "year": 2014,
+    "source": "Phys. Rev. Lett.",
+    "volume": "113",
+    "locator": "265504",
+    "doi": "10.1103/PhysRevLett.113.265504"
+   },
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 67.8895,
+     "K0": 127.2,
+     "K0_prime": 5.0
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.7174,
+    "K0": 8.1,
+    "K0_prime": null
+   },
+   "fixed_parameters": [
+    "K0_prime"
+   ],
+   "experimental_pressure_range_gpa": [23.0, 87.0],
+   "notes": "Experimental Vinet fit: molar V0 = 10.221(108) cm^3/mol and K0 = 127.2(81) GPa, with K0' fixed at 5. V0 and its uncertainty were converted to the Z=4 tetragonal cell."
+  }
+ ],
+ "atom_sites": []
+}

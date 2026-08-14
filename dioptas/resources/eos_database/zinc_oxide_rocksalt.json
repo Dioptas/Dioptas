@@ -1,0 +1,43 @@
+{
+ "format_version": 2,
+ "name": "Zinc oxide (rocksalt B1)",
+ "aliases": ["rocksalt ZnO"],
+ "formula": "ZnO",
+ "symmetry": "CUBIC",
+ "lattice": {"a": 4.2806776811, "b": null, "c": null, "alpha": 90.0, "beta": 90.0, "gamma": 90.0},
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Zn", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
+ ],
+ "notes": "Ideal B1 structure. The cubic lattice is calculated from Hanna et al.'s extrapolated conventional-cell V0.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Hanna et al. (2011), rocksalt BM2",
+   "reference": {
+    "authors": [
+     "Hanna",
+     "Teklemichael",
+     "McCluskey",
+     "Bergman",
+     "Huso"
+    ],
+    "year": 2011,
+    "source": "J. Appl. Phys.",
+    "volume": "110",
+    "locator": "073511",
+    "doi": "10.1063/1.3644969"
+   },
+   "eos": {"type": "BM2", "parameters": {"V0": 78.44, "K0": 172.0}},
+   "parameter_errors": {"V0": 0.4, "K0": 21.0},
+   "fixed_parameters": [],
+   "pressure_range_status": "reported_qualitatively",
+   "experimental_temperature_range_k": [300.0, 300.0],
+   "temperature_ref": 300.0,
+   "notes": "Hanna et al. report V0 = 19.61(10) A^3 per ZnO and K0 = 172(21) GPa with K0' fixed at 4; values are converted to the conventional Z=4 cell. B1 data were collected above the 8.3-10 GPa coexistence interval, but the exact fitted pressure interval is not tabulated."
+  }
+ ]
+}

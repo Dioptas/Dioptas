@@ -1,0 +1,57 @@
+{
+ "format_version": 2,
+ "name": "SiO2 stishovite",
+ "formula": "SiO2",
+ "symmetry": "TETRAGONAL",
+ "lattice": {
+  "a": 4.1772,
+  "b": 4.1772,
+  "c": 2.66505,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 2,
+ "space_group": "P42/mnm",
+ "space_group_number": 136,
+ "atom_sites": [
+  {"element": "Si", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4f", "x": 0.3062, "y": 0.3062, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/sio2-stv_Andr.jcpds. Ambient stishovite coordinates: Baur and Khan, Acta Crystallographica B27, 2133-2139 (1971).",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Andrault et al. (2003)",
+   "reference": {
+    "authors": [
+     "Andrault",
+     "Angel",
+     "Mosenfelder",
+     "Le Bihan"
+    ],
+    "year": 2003,
+    "source": "American Mineralogist",
+    "volume": "88",
+    "locator": "301-307",
+    "doi": "10.2138/am-2003-2-307"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 46.5025,
+     "K0": 309.9,
+     "K0_prime": 4.59
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.61,
+    "K0": 1.1,
+    "K0_prime": 0.23
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 53.0],
+   "notes": "Andrault et al. report V0 = 46.51(61) A^3, K0 = 309.9(1.1) GPa, and K0' = 4.59(23). The stored V0 retains the more precise ambient lattice product."
+  }
+ ]
+}

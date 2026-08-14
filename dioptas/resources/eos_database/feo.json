@@ -1,0 +1,93 @@
+{
+ "format_version": 2,
+ "name": "FeO (B1)",
+ "aliases": ["wustite", "ferrous oxide"],
+ "formula": "FeO",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 4.293,
+  "b": 4.293,
+  "c": 4.293,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Fe", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
+ ],
+ "notes": "Consolidated B1 FeO entry from equivalent cubic beamline JCPDS cards. The Fischer et al. record is composition-specific to Fe0.94O.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "(Fei et al. Miner. Spectros. (5) 1996)",
+   "reference": {
+    "authors": [
+     "Fei"
+    ],
+    "year": 1995,
+    "source": "in Mineral Physics & Crystallography, AGU Reference Shelf",
+    "volume": "2",
+    "locator": "29-44",
+    "doi": "10.1029/RF002p0029"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 79.1193,
+     "K0": 145.0,
+     "K0_prime": 4.0
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [
+    "K0_prime"
+   ],
+   "pressure_range_status": "reference_parameterization",
+   "notes": "Fei's review tabulates the recommended B1 FeO values K0 = 145 GPa with K0' fixed at 4.0, but gives no parameter uncertainties. A composition-specific Fischer et al. fit is included in this material."
+  },
+  {
+   "label": "B1 Fe0.94O, Fischer et al. (2011)",
+   "reference": {
+    "authors": [
+     "Fischer",
+     "Campbell",
+     "Shofner",
+     "Lord",
+     "Dera",
+     "Prakapenka"
+    ],
+    "year": 2011,
+    "source": "Earth Planet. Sci. Lett.",
+    "volume": "304",
+    "locator": "496-502",
+    "doi": "10.1016/j.epsl.2011.02.025"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 81.4063,
+     "K0": 149.4,
+     "K0_prime": 3.6
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 1.0,
+    "K0_prime": 0.04
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 156.0],
+   "notes": "Fischer et al. fit Fe0.94O with molar V0 = 12.256 cm^3/mol fixed, K0 = 149.4 +/- 1.0 GPa, and K0' = 3.60 +/- 0.04. V0 was converted to the conventional Z=4 B1 cell."
+  }
+ ]
+}

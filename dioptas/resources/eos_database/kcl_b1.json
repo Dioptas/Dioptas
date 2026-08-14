@@ -1,0 +1,44 @@
+{
+ "format_version": 2,
+ "name": "Potassium chloride (B1)",
+ "formula": "KCl",
+ "symmetry": "CUBIC",
+ "lattice": {"a": 6.2948980277, "b": null, "c": null, "alpha": 90.0, "beta": 90.0, "gamma": 90.0},
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "K", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "Cl", "wyckoff": "4b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
+ ],
+ "notes": "Rock-salt B1 KCl, stored separately from the high-pressure CsCl-type B2 phase.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Dewaele et al. (2012), B1 Vinet",
+   "reference": {
+    "authors": [
+     "Dewaele",
+     "Belonoshko",
+     "Garbarino",
+     "Occelli",
+     "Bouvier",
+     "Hanfland",
+     "Mezouar"
+    ],
+    "year": 2012,
+    "source": "Phys. Rev. B",
+    "volume": "85",
+    "locator": "214105",
+    "doi": "10.1103/PhysRevB.85.214105"
+   },
+   "eos": {"type": "Vinet", "parameters": {"V0": 249.44, "K0": 17.1, "K0_prime": 5.5}},
+   "parameter_errors": {"V0": null, "K0": null, "K0_prime": null},
+   "fixed_parameters": ["K0_prime"],
+   "experimental_pressure_range_gpa": [0.0, 2.6],
+   "experimental_temperature_range_k": [298.0, 298.0],
+   "temperature_ref": 298.0,
+   "notes": "The published 62.36 A^3/formula-unit V0 is multiplied by four for the conventional B1 cell. The source gives no individual fit uncertainties and fixes K0'=5.5."
+  }
+ ]
+}

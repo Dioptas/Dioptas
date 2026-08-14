@@ -1,0 +1,43 @@
+{
+ "format_version": 2,
+ "name": "Akimotoite",
+ "formula": "MgSiO3",
+ "symmetry": "TRIGONAL",
+ "lattice": {"a": 4.7277, "b": null, "c": 13.558, "alpha": 90.0, "beta": 90.0, "gamma": 120.0},
+ "formula_units_per_cell": 6,
+ "space_group": "R-3",
+ "space_group_number": 148,
+ "atom_sites": [
+  {"element": "Mg", "wyckoff": "6c", "x": 0.0, "y": 0.0, "z": 0.3597, "occupancy": 1.0},
+  {"element": "Si", "wyckoff": "6c", "x": 0.0, "y": 0.0, "z": 0.15768, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "18f", "x": 0.3214, "y": 0.0361, "z": 0.24077, "occupancy": 1.0}
+ ],
+ "notes": "Ilmenite-type MgSiO3 structure from Horiuchi et al., Am. Mineral. 67, 788-793 (1982).",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Siersch et al. (2021), BM3",
+   "reference": {
+    "authors": [
+     "Siersch",
+     "Kurnosov",
+     "Criniti",
+     "Ishii",
+     "Boffa Ballaran",
+     "Frost"
+    ],
+    "year": 2021,
+    "source": "Phys. Earth Planet. Inter.",
+    "volume": "320",
+    "locator": "106786",
+    "doi": "10.1016/j.pepi.2021.106786"
+   },
+   "eos": {"type": "BM3", "parameters": {"V0": 262.43, "K0": 205.0, "K0_prime": 4.9}},
+   "parameter_errors": {"V0": 0.02, "K0": 1.0, "K0_prime": 0.2},
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 24.86],
+   "experimental_temperature_range_k": [298.0, 298.0],
+   "temperature_ref": 298.0
+  }
+ ]
+}

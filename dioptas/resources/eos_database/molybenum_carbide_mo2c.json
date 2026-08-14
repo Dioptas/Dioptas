@@ -1,0 +1,57 @@
+{
+ "format_version": 2,
+ "name": "Molybdenum carbide Mo2C",
+ "formula": "Mo2C",
+ "symmetry": "ORTHORHOMBIC",
+ "lattice": {
+  "a": 4.724,
+  "b": 6.004,
+  "c": 5.199,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Pbcn",
+ "space_group_number": 60,
+ "atom_sites": [
+  {"element": "Mo", "wyckoff": "8d", "x": 0.24617, "y": 0.12796, "z": 0.07926, "occupancy": 1.0},
+  {"element": "C", "wyckoff": "4c", "x": 0.0, "y": 0.38546, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Mo2C-Haines.jcpds. Orthorhombic Mo2C coordinates from the Rietveld refinement of Chasvin et al., Molecular Catalysis 439, 163-170 (2017), doi:10.1016/j.mcat.2017.07.003.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "EOS from Haines et al. 2001",
+   "reference": {
+    "authors": [
+     "Haines",
+     "Léger",
+     "Chateau",
+     "Lowther"
+    ],
+    "year": 2001,
+    "source": "J. Phys.: Condens. Matter",
+    "volume": "13",
+    "locator": "2447-2454",
+    "doi": "10.1088/0953-8984/13/11/303"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 147.4587,
+     "K0": 307.0,
+     "K0_prime": 6.2
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 5.0,
+    "K0_prime": 0.3
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 46.0],
+   "notes": "Haines et al. report K0 = 307(5) GPa and K0' = 6.2(3). V0 is retained from the cited ambient orthorhombic structure."
+  }
+ ]
+}

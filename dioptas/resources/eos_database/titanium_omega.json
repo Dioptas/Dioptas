@@ -1,0 +1,43 @@
+{
+ "format_version": 2,
+ "name": "Titanium (omega)",
+ "formula": "Ti",
+ "symmetry": "HEXAGONAL",
+ "lattice": {"a": 4.6234249104, "b": null, "c": 2.8294840179, "alpha": 90.0, "beta": 90.0, "gamma": 120.0},
+ "formula_units_per_cell": 3,
+ "space_group": "P6/mmm",
+ "space_group_number": 191,
+ "atom_sites": [
+  {"element": "Ti", "wyckoff": "1a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "Ti", "wyckoff": "2d", "x": 0.3333333333, "y": 0.6666666667, "z": 0.5, "occupancy": 1.0}
+ ],
+ "notes": "High-pressure omega-Ti, stored separately from alpha-Ti.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Dewaele et al. (2015), omega Vinet",
+   "reference": {
+    "authors": [
+     "Dewaele",
+     "Stutzmann",
+     "Bouchet",
+     "Bottin",
+     "Occelli",
+     "Mezouar"
+    ],
+    "year": 2015,
+    "source": "Phys. Rev. B",
+    "volume": "91",
+    "locator": "134108",
+    "doi": "10.1103/PhysRevB.91.134108"
+   },
+   "eos": {"type": "Vinet", "parameters": {"V0": 52.38, "K0": 106.9, "K0_prime": 3.68}},
+   "parameter_errors": {"V0": 0.3, "K0": 6.0, "K0_prime": 0.2},
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 121.0],
+   "experimental_temperature_range_k": [300.0, 300.0],
+   "temperature_ref": 300.0,
+   "notes": "Metastably extrapolated omega-phase reference volume; the measurements extend to 121 GPa."
+  }
+ ]
+}

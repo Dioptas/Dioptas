@@ -1,0 +1,58 @@
+{
+ "format_version": 2,
+ "name": "FeS-VI",
+ "aliases": ["orthorhombic FeS"],
+ "formula": "FeS",
+ "symmetry": "ORTHORHOMBIC",
+ "lattice": {
+  "a": 5.35246,
+  "b": 3.34529,
+  "c": 5.55695,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Pnma",
+ "space_group_number": 62,
+ "atom_sites": [
+  {"element": "Fe", "wyckoff": "4c", "x": 0.0051, "y": 0.25, "z": 0.2001, "occupancy": 1.0},
+  {"element": "S", "wyckoff": "4c", "x": 0.2085, "y": 0.25, "z": 0.58, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/FeS(VI).jcpds. Cell axes and hkl were cyclically permuted into the standard Pnma setting without changing d-spacings. FeS-VI coordinates refined at 56 GPa and 300 K by Ono et al., Earth and Planetary Science Letters 272, 481-487 (2008), doi:10.1016/j.epsl.2008.05.017.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "(VI) Ono 2006",
+   "reference": {
+    "authors": [
+     "Ono",
+     "Kikegawa"
+    ],
+    "year": 2006,
+    "source": "American Mineralogist",
+    "volume": "91",
+    "locator": "1941-1944",
+    "doi": "10.2138/am.2006.2347"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 99.5,
+     "K0": 156.0,
+     "K0_prime": 4.0
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.7,
+    "K0": 6.0,
+    "K0_prime": null
+   },
+   "fixed_parameters": [
+    "K0_prime"
+   ],
+   "experimental_pressure_range_gpa": [43.2, 120.1],
+   "notes": "Ono and Kikegawa report V0 = 99.5(7) A^3 and K0 = 156(6) GPa with K0' fixed at 4.0."
+  }
+ ]
+}

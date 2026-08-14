@@ -1,0 +1,57 @@
+{
+ "format_version": 2,
+ "name": "GeO2",
+ "formula": "GeO2",
+ "symmetry": "TETRAGONAL",
+ "lattice": {
+  "a": 4.3963,
+  "b": 4.3963,
+  "c": 2.8626,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 2,
+ "space_group": "P42/mnm",
+ "space_group_number": 136,
+ "atom_sites": [
+  {"element": "Ge", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4f", "x": 0.306, "y": 0.306, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/GeO2-rutile.jcpds. Ambient rutile-type structure: Haines et al., Physics and Chemistry of Minerals 27, 575-582 (2000).",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Rutile GeO2, Hazen and Finger (1981)",
+   "reference": {
+    "authors": [
+     "Hazen",
+     "Finger"
+    ],
+    "year": 1981,
+    "source": "J. Phys. Chem. Solids",
+    "volume": "42",
+    "locator": "143-151",
+    "doi": "10.1016/0022-3697(81)90074-3"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 55.3268,
+     "K0": 258.0,
+     "K0_prime": 7.0
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 5.0,
+    "K0_prime": null
+   },
+   "fixed_parameters": [
+    "K0_prime"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 5.0],
+   "notes": "Hazen and Finger report K0 = 258 +/- 5 GPa assuming K0' = 7.0 for rutile-type GeO2. The unsupported legacy value K0 = 395 GPa attributed to Yamanaka and Ogata was removed."
+  }
+ ]
+}

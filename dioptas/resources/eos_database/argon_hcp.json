@@ -1,0 +1,55 @@
+{
+ "format_version": 2,
+ "name": "Argon",
+ "formula": "Ar",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 3.8065,
+  "b": 3.8065,
+  "c": 3.8065,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": 2,
+ "space_group": "P63/mmc",
+ "space_group_number": 194,
+ "atom_sites": [
+  {"element": "Ar", "wyckoff": "2c", "x": 0.3333333333, "y": 0.6666666667, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/ar2.jcpds",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Wittlinger et al. (1997)",
+   "reference": {
+    "authors": [
+     "Wittlinger",
+     "Fischer",
+     "Werner",
+     "Schneider",
+     "Schulz"
+    ],
+    "year": 1997,
+    "source": "Acta Crystallogr. B",
+    "volume": "53",
+    "locator": "745-749",
+    "doi": "10.1107/S0108768197005739"
+   },
+   "eos": {
+    "type": "BM2",
+    "parameters": {
+     "V0": 47.7648,
+     "K0": 6.5
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 1.3
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [1.2, 8.5],
+   "notes": "The publication reports K0=6.5(1.3) GPa; K0_prime is fixed at 4 by BM2."
+  }
+ ]
+}

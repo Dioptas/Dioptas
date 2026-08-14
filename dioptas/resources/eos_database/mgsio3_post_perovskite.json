@@ -1,0 +1,103 @@
+{
+ "format_version": 2,
+ "name": "MgSiO3 post-perovskite",
+ "formula": "MgSiO3",
+ "symmetry": "ORTHORHOMBIC",
+ "lattice": {
+  "a": 2.7129228447,
+  "b": 8.8832758621,
+  "c": 6.7303904287,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Cmcm",
+ "space_group_number": 63,
+ "atom_sites": [
+  {"element": "Si", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "Mg", "wyckoff": "4c", "x": 0.0, "y": 0.253, "z": 0.25, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4c", "x": 0.0, "y": 0.923, "z": 0.25, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8f", "x": 0.0, "y": 0.631, "z": 0.436, "occupancy": 1.0}
+ ],
+ "notes": "Cmcm structure and fractional coordinates at 121 GPa and 300 K: Murakami et al., Science 304, 855-858 (2004), doi:10.1126/science.1095932, ICSD 158959. The measured 121 GPa cell (a=2.456, b=8.042, c=6.093 A) was isotropically expanded to the Mosenfelder V0=162.2 A^3 while preserving its axial ratios, so Dioptas' isotropic EoS scaling returns a close approximation to the measured high-pressure cell. Phase-line intensities were calculated from the cited structure using independent-atom X-ray form factors.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Mosenfelder et al. (2009), shock-static BM3-MGD",
+   "reference": {
+    "authors": [
+     "Mosenfelder",
+     "Asimow",
+     "Frost",
+     "Rubie",
+     "Ahrens"
+    ],
+    "year": 2009,
+    "source": "Journal of Geophysical Research: Solid Earth",
+    "volume": "114",
+    "locator": "B01203",
+    "doi": "10.1029/2008JB005900"
+   },
+   "temperature_ref": 300.0,
+   "experimental_pressure_range_gpa": [111.0, 245.0],
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 162.2,
+     "K0": 225.0,
+     "K0_prime": 4.21
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 2.0,
+    "K0_prime": 0.07
+   },
+   "fixed_parameters": ["V0"],
+   "thermal": {
+    "type": "MieGruneisenDebye",
+    "parameters": {
+     "Tr": 300.0,
+     "theta0": 990.0,
+     "gamma0": 2.61,
+     "q": 2.1,
+     "n": 5
+    }
+   },
+   "notes": "Global inversion of Guignot et al. static P-V-T data and six shock experiments at substantially higher pressures. V0=162.2 A^3 was fixed; theta0=990(146) K, gamma0=2.61(67), and q=2.1(8). The paper defines the cold curve as a BM3 isentrope; this is retained because it is the engine-supported form published with the MGD thermal model."
+  },
+  {
+   "label": "Sakai et al. (2016), experimental multi-megabar BM3",
+   "reference": {
+    "authors": [
+     "Sakai",
+     "Dekura",
+     "Hirao"
+    ],
+    "year": 2016,
+    "source": "Scientific Reports",
+    "volume": "6",
+    "locator": "22652",
+    "doi": "10.1038/srep22652"
+   },
+   "temperature_ref": 300.0,
+   "experimental_pressure_range_gpa": [100.0, 265.0],
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 158.0,
+     "K0": 292.0,
+     "K0_prime": 3.74
+    }
+   },
+   "parameter_errors": {
+    "V0": 1.5,
+    "K0": 22.0,
+    "K0_prime": 0.13
+   },
+   "fixed_parameters": [],
+   "notes": "Experimental BM3 fit 1 to laser-heated DAC data from this study plus Guignot et al., reaching 265 GPa. Stored as a room-temperature cold curve only because the published thermal fit uses an Al'tshuler gamma(V) function not implemented by Dioptas. Sakai et al. prefer their Keane fit for multi-megabar extrapolation; the BM3 parameters are strongly correlated and should be used within the experimental range rather than extrapolated."
+  }
+ ]
+}

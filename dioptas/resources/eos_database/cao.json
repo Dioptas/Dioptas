@@ -1,0 +1,58 @@
+{
+ "format_version": 2,
+ "name": "CaO",
+ "formula": "CaO",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 4.81059,
+  "b": 4.81059,
+  "c": 4.81059,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Ca", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/current user/jcpds/cao.jcpds, JCPDS/current user/jcpds/ver3/cao.jcpds, JCPDS/current user/jcpds/ver2/cao.jcpds",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "JCPDS 37-1497, EOS by Richet et al 1988",
+   "reference": {
+    "authors": [
+     "Richet",
+     "Mao",
+     "Bell"
+    ],
+    "year": 1988,
+    "source": "J. Geophys. Res.",
+    "volume": "93",
+    "locator": "15279-15288",
+    "doi": "10.1029/JB093iB12p15279"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 111.3256,
+     "K0": 111.0,
+     "K0_prime": 4.2
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 1.0,
+    "K0_prime": 0.2
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 60.0],
+   "notes": "Richet et al. report K0 = 111 +/- 1 GPa and K0' = 4.2 +/- 0.2 for B1 CaO; the ambient card volume is treated as fixed."
+  }
+ ]
+}

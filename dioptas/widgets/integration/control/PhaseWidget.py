@@ -27,6 +27,7 @@ class PhaseWidget(QtWidgets.QWidget):
 
     pressure_sb_value_changed = QtCore.Signal(int, float)
     temperature_sb_value_changed = QtCore.Signal(int, float)
+    reference_changed = QtCore.Signal(int, int)  # phase row, reference index
 
     def __init__(self):
         super().__init__()
@@ -36,6 +37,7 @@ class PhaseWidget(QtWidgets.QWidget):
         self._layout.setSpacing(5)
 
         self.add_btn = FlatButton()
+        self.browse_db_btn = FlatButton()
         self.edit_btn = FlatButton()
         self.delete_btn = FlatButton()
         self.clear_btn = FlatButton()
@@ -49,6 +51,7 @@ class PhaseWidget(QtWidgets.QWidget):
         self._button_layout.setSpacing(6)
 
         self._button_layout.addWidget(self.add_btn)
+        self._button_layout.addWidget(self.browse_db_btn)
         self._button_layout.addWidget(self.edit_btn)
         self._button_layout.addWidget(HorizontalLine())
         self._button_layout.addWidget(self.delete_btn)
@@ -82,9 +85,10 @@ class PhaseWidget(QtWidgets.QWidget):
 
         self._body_layout = QtWidgets.QHBoxLayout()
 
-        self.phase_tw = ListTableWidget(columns=5)
+        self.phase_tw = ListTableWidget(columns=6)
         self.phase_tw.setObjectName("phase_table_widget")
-        self.phase_tw.setHorizontalHeaderLabels(["", "", "Name", "P (GPa)", "T (K)"])
+        self.phase_tw.setHorizontalHeaderLabels(
+            ["", "", "Name", "P (GPa)", "T (K)", "Ref"])
         self.phase_tw.horizontalHeader().setVisible(True)
         self.phase_tw.horizontalHeader().setStretchLastSection(False)
         self.phase_tw.setColumnWidth(0, 20)
@@ -96,13 +100,18 @@ class PhaseWidget(QtWidgets.QWidget):
             1, QtWidgets.QHeaderView.Fixed
         )
         self.phase_tw.horizontalHeader().setSectionResizeMode(
-            2, QtWidgets.QHeaderView.Stretch
+            2, QtWidgets.QHeaderView.Interactive
         )
         self.phase_tw.horizontalHeader().setSectionResizeMode(
-            3, QtWidgets.QHeaderView.ResizeToContents
+            3, QtWidgets.QHeaderView.Fixed
         )
+        self.phase_tw.setColumnWidth(3, 70)
         self.phase_tw.horizontalHeader().setSectionResizeMode(
-            4, QtWidgets.QHeaderView.ResizeToContents
+            4, QtWidgets.QHeaderView.Fixed
+        )
+        self.phase_tw.setColumnWidth(4, 80)
+        self.phase_tw.horizontalHeader().setSectionResizeMode(
+            5, QtWidgets.QHeaderView.Interactive
         )
         self.phase_tw.setItemDelegate(NoRectDelegate())
         self._body_layout.addWidget(self.phase_tw, 10)
@@ -133,6 +142,7 @@ class PhaseWidget(QtWidgets.QWidget):
         self.phase_color_btns = []
         self.pressure_sbs = []
         self.temperature_sbs = []
+        self.reference_cbs = []
 
         self.show_parameter_in_pattern = True
 
@@ -141,6 +151,9 @@ class PhaseWidget(QtWidgets.QWidget):
 
         self.add_btn.setIcon(render_icon("open.svg"))
         self.add_btn.setIconSize(icon_size)
+
+        self.browse_db_btn.setIcon(render_icon("database.svg"))
+        self.browse_db_btn.setIconSize(icon_size)
 
         self.edit_btn.setIcon(QtGui.QIcon(os.path.join(icons_path, "edit.png")))
         self.edit_btn.setIconSize(QtCore.QSize(14, 14))
@@ -161,9 +174,11 @@ class PhaseWidget(QtWidgets.QWidget):
             btn.setMaximumWidth(button_width)
 
         modify_btn_to_icon_size(self.add_btn)
+        modify_btn_to_icon_size(self.browse_db_btn)
         modify_btn_to_icon_size(self.delete_btn)
         modify_btn_to_icon_size(self.clear_btn)
         modify_btn_to_icon_size(self.edit_btn)
+
 
         self.phase_tw.setSizePolicy(
             QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.MinimumExpanding
@@ -191,6 +206,7 @@ class PhaseWidget(QtWidgets.QWidget):
 
     def add_tooltips(self):
         self.add_btn.setToolTip("Loads Phase(s) from jcpds or cif file(s)")
+        self.browse_db_btn.setToolTip("Browse EoS Material Database")
         self.edit_btn.setToolTip("Edit selected Phase")
         self.delete_btn.setToolTip("Removes currently selected phase")
         self.clear_btn.setToolTip("Removes all phases")
@@ -227,6 +243,7 @@ class PhaseWidget(QtWidgets.QWidget):
         name_item = QtWidgets.QTableWidgetItem(name)
         name_item.setFlags(name_item.flags() & ~QtCore.Qt.ItemIsEditable)
         name_item.setTextAlignment(int(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter))
+        name_item.setToolTip(name)   # full name on hover (column may truncate)
         self.phase_tw.setItem(current_rows, 2, name_item)
 
         pressure_sb = DoubleSpinBoxAlignRight()
@@ -253,6 +270,18 @@ class PhaseWidget(QtWidgets.QWidget):
         self.phase_tw.setCellWidget(current_rows, 4, temperature_sb)
         self.temperature_sbs.append(temperature_sb)
 
+        reference_cb = QtWidgets.QComboBox()
+        reference_cb.addItem("—")
+        reference_cb.setEnabled(False)   # enabled when references exist
+        reference_cb.setToolTip("Literature reference for the EoS parameters.\n"
+                                "Switching applies that fit's K0/K0'/V0 and\n"
+                                "recomputes the phase lines.")
+        reference_cb.currentIndexChanged.connect(
+            partial(self.reference_cb_callback, reference_cb)
+        )
+        self.phase_tw.setCellWidget(current_rows, 5, reference_cb)
+        self.reference_cbs.append(reference_cb)
+
         self.phase_tw.setRowHeight(current_rows, 25)
         self.select_phase(current_rows)
         self.phase_tw.blockSignals(False)
@@ -261,10 +290,18 @@ class PhaseWidget(QtWidgets.QWidget):
         self.phase_tw.setColumnWidth(0, 20)
         self.phase_tw.setColumnWidth(1, 25)
         self.phase_tw.horizontalHeader().setSectionResizeMode(
-            3, QtWidgets.QHeaderView.ResizeToContents
+            2, QtWidgets.QHeaderView.Interactive
         )
         self.phase_tw.horizontalHeader().setSectionResizeMode(
-            4, QtWidgets.QHeaderView.ResizeToContents
+            3, QtWidgets.QHeaderView.Fixed
+        )
+        self.phase_tw.setColumnWidth(3, 70)
+        self.phase_tw.horizontalHeader().setSectionResizeMode(
+            4, QtWidgets.QHeaderView.Fixed
+        )
+        self.phase_tw.setColumnWidth(4, 80)
+        self.phase_tw.horizontalHeader().setSectionResizeMode(
+            5, QtWidgets.QHeaderView.Interactive
         )
 
     def select_phase(self, ind):
@@ -289,6 +326,7 @@ class PhaseWidget(QtWidgets.QWidget):
         del self.phase_color_btns[ind]
         del self.temperature_sbs[ind]
         del self.pressure_sbs[ind]
+        del self.reference_cbs[ind]
 
         if self.phase_tw.rowCount() > ind:
             self.select_phase(ind)
@@ -298,6 +336,7 @@ class PhaseWidget(QtWidgets.QWidget):
     def rename_phase(self, ind, name):
         name_item = self.phase_tw.item(ind, 2)
         name_item.setText(name)
+        name_item.setToolTip(name)
 
     def set_phase_temperature(self, ind, temperature):
         pass
@@ -315,6 +354,36 @@ class PhaseWidget(QtWidgets.QWidget):
 
     def get_phase_pressure(self, ind):
         return self.pressure_sbs[ind].value()
+
+    def set_phase_references(self, ind, labels, current_index=0,
+                             tooltips=None):
+        """
+        Fill the Ref dropdown of row ind with the available literature
+        references. With no labels (legacy jcpds files) it stays disabled.
+        *tooltips* (same length as labels) carry the full reference and
+        the record's equation of state for hover — the visible box is
+        width-limited, references aren't.
+        """
+        cb = self.reference_cbs[ind]
+        cb.blockSignals(True)
+        cb.clear()
+        if labels:
+            cb.addItems(labels)
+            tooltips = tooltips if tooltips else labels
+            for i, tooltip in enumerate(tooltips):
+                cb.setItemData(i, tooltip, QtCore.Qt.ToolTipRole)
+            cb.setCurrentIndex(min(current_index, len(labels) - 1))
+            cb.setToolTip(tooltips[cb.currentIndex()])
+            cb.setEnabled(len(labels) > 1)
+            # Let the opened popup be as wide as the longest reference,
+            # independent of the (narrow) box width.
+            popup_width = cb.view().sizeHintForColumn(0) + 24
+            cb.view().setMinimumWidth(popup_width)
+        else:
+            cb.addItem("—")
+            cb.setToolTip("No alternative references (legacy jcpds file)")
+            cb.setEnabled(False)
+        cb.blockSignals(False)
 
     def phase_color_btn_click(self, button):
         self.color_btn_clicked.emit(self.phase_color_btns.index(button), button)
@@ -341,3 +410,10 @@ class PhaseWidget(QtWidgets.QWidget):
         self.temperature_sb_value_changed.emit(
             self.temperature_sbs.index(temperature_sb), temperature_sb.value()
         )
+
+    def reference_cb_callback(self, reference_cb):
+        ind = self.reference_cbs.index(reference_cb)
+        tooltip = reference_cb.itemData(reference_cb.currentIndex(),
+                                        QtCore.Qt.ToolTipRole)
+        reference_cb.setToolTip(tooltip or reference_cb.currentText())
+        self.reference_changed.emit(ind, reference_cb.currentIndex())

@@ -1,0 +1,56 @@
+{
+ "format_version": 2,
+ "name": "E-FeOOH",
+ "formula": "FeOOH",
+ "symmetry": "ORTHORHOMBIC",
+ "lattice": {
+  "a": 4.771,
+  "b": 4.321,
+  "c": 2.935,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 2,
+ "space_group": "P21nm",
+ "space_group_number": 31,
+ "atom_sites": [
+  {"element": "Fe", "wyckoff": "2a", "x": 0.0, "y": 0.24, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "2a", "x": 0.355, "y": 0.48, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "2a", "x": 0.651, "y": 0.021, "z": 0.0, "occupancy": 1.0},
+  {"element": "H", "wyckoff": "2a", "x": 0.492, "y": 0.275, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/FeOOH-pmn21.jcpds. Cell axes and hkl were permuted into the P21nm setting without changing d-spacings. The positional model is the 20 GPa static structure of Insixiengmay and Stixrude, American Mineralogist 108, 2209-2222 (2023), doi:10.2138/am-2022-8839, selected because its volume is closest to the imported high-pressure cell.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Gleason et al. (2008), second-order BM",
+   "reference": {
+    "authors": [
+     "Gleason",
+     "Jeanloz",
+     "Kunz"
+    ],
+    "year": 2008,
+    "source": "American Mineralogist",
+    "volume": "93",
+    "locator": "1882-1885",
+    "doi": "10.2138/am.2008.2942"
+   },
+   "eos": {
+    "type": "BM2",
+    "parameters": {
+     "V0": 66.3,
+     "K0": 158.0
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.5,
+    "K0": 5.0
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [5.0, 21.0],
+   "notes": "Gleason et al. report V0 = 66.3 +/- 0.5 A^3 and K0 = 158 +/- 5 GPa; K0' is fixed to 4 by the second-order Birch-Murnaghan equation."
+  }
+ ]
+}

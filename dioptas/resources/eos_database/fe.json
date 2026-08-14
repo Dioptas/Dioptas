@@ -1,0 +1,58 @@
+{
+ "format_version": 2,
+ "name": "Fe",
+ "formula": "Fe",
+ "aliases": ["Iron", "Iron (bcc)"],
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 2.8664,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 2,
+ "space_group": "Im-3m",
+ "space_group_number": 229,
+ "atom_sites": [
+  {"element": "Fe", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "BCC phase reference: JCPDS 6-0696.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Shen and Smith (2026), Cu-referenced Vinet",
+   "reference": {
+    "authors": [
+     "Shen",
+     "Smith"
+    ],
+    "year": 2026,
+    "source": "Phys. Rev. B",
+    "volume": "113",
+    "locator": "144113",
+    "doi": "10.1103/fxgq-96sg"
+   },
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 23.506,
+     "K0": 162.1,
+     "K0_prime": 5.4
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 2.5,
+    "K0_prime": 0.5
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 15.5],
+   "temperature_ref": 300.0,
+   "notes": "Table II Cu-referenced fit combining DAC-1 and DAC-2; V0 fixed. Reported uncertainties: K0 +/- 2.5 GPa and K0' +/- 0.5. The bcc phase data extend to 15.5 GPa."
+  }
+ ]
+}

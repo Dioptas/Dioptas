@@ -1,0 +1,58 @@
+{
+ "format_version": 2,
+ "name": "Rhenium",
+ "formula": "Re",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 2.761906,
+  "b": null,
+  "c": 4.460479,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": 2,
+ "space_group": "P63/mmc",
+ "space_group_number": 194,
+ "atom_sites": [
+  {"element": "Re", "wyckoff": "2c", "x": 0.3333333333, "y": 0.6666666667, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "Phase reference: JCPDS 5-0702. The reference cell is constrained to the fitted 300 K V0 while retaining the JCPDS axial ratio.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Anzellini et al. (2014), helium-medium Vinet",
+   "reference": {
+    "authors": [
+     "Anzellini",
+     "Dewaele",
+     "Occelli",
+     "Loubeyre",
+     "Mezouar"
+    ],
+    "year": 2014,
+    "source": "J. Appl. Phys.",
+    "volume": "115",
+    "locator": "043511",
+    "doi": "10.1063/1.4863300"
+   },
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 29.4666,
+     "K0": 352.6,
+     "K0_prime": 4.56
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.0332,
+    "K0": 8.0,
+    "K0_prime": 0.17
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 144.0],
+   "temperature_ref": 300.0,
+   "notes": "Quasi-hydrostatic powder-XRD fit in helium to 144 GPa. The published molar V0=8.8726 cm^3/mol is converted to 14.7333 A^3/atom and multiplied by two atoms in the conventional hcp cell."
+  }
+ ]
+}

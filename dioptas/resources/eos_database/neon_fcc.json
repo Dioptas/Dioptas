@@ -1,0 +1,103 @@
+{
+ "format_version": 2,
+ "name": "Neon (fcc)",
+ "formula": "Ne",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 4.464,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Ne", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "FCC neon; the Fei et al. (2007) primary Vinet fit is the default, with their BM3 fit retained as an alternative.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Fei et al PNAS 2007 [BM3]",
+   "reference": {
+    "authors": [
+     "Fei",
+     "Ricolleau",
+     "Frank",
+     "Mibe",
+     "Shen",
+     "Prakapenka"
+    ],
+    "year": 2007,
+    "source": "Proc. Natl. Acad. Sci. USA",
+    "volume": "104",
+    "locator": "9182-9186",
+    "doi": "10.1073/pnas.0609013104"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 88.95544934400003,
+     "K0": 1.43,
+     "K0_prime": 8.02
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 0.14,
+    "K0_prime": 0.31
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [4.7, 110.0],
+   "notes": "From the paper's text: BM3 fit to the same data as the Vinet fit, K0=1.43(14) GPa, K0p=8.02(31)."
+  },
+  {
+   "label": "Fei et al PNAS 2007 [Vinet]",
+   "reference": {
+    "authors": [
+     "Fei",
+     "Ricolleau",
+     "Frank",
+     "Mibe",
+     "Shen",
+     "Prakapenka"
+    ],
+    "year": 2007,
+    "source": "Proc. Natl. Acad. Sci. USA",
+    "volume": "104",
+    "locator": "9182-9186",
+    "doi": "10.1073/pnas.0609013104"
+   },
+   "default": true,
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 88.967,
+     "K0": 1.16,
+     "K0_prime": 8.23
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 0.14,
+    "K0_prime": 0.31
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [4.7, 110.0],
+   "thermal": {
+    "type": "MieGruneisenDebye",
+    "parameters": {
+     "Tr": 300.0,
+     "theta0": 75.1,
+     "gamma0": 2.05,
+     "q": 0.6,
+     "n": 1
+    }
+   },
+   "notes": "The paper's primary fit (Table 1: V0=88.967, K0=1.16(14), K0p=8.23(31)); was missing from the hosted database. Thermal parameters are the paper's MGD fit (not yet used by Dioptas)."
+  }
+ ]
+}

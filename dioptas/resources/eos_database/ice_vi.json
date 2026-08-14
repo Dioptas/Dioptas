@@ -1,0 +1,76 @@
+{
+ "format_version": 2,
+ "name": "Ice VI",
+ "formula": "H2O",
+ "symmetry": "TETRAGONAL",
+ "lattice": {
+  "a": 6.3467097076,
+  "b": 6.3467097076,
+  "c": 5.841463653,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 10,
+ "space_group": "P42/nmc",
+ "space_group_number": 137,
+ "atom_sites": [
+  {"element": "O", "wyckoff": "8g", "x": 0.52984, "y": 0.75, "z": 0.12901, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "2a", "x": 0.25, "y": 0.75, "z": 0.75, "occupancy": 1.0},
+  {"element": "H", "wyckoff": "16h", "x": 0.4654, "y": 0.637, "z": 0.208, "occupancy": 0.5},
+  {"element": "H", "wyckoff": "8g", "x": 0.68, "y": 0.75, "z": 0.12, "occupancy": 0.5},
+  {"element": "H", "wyckoff": "8g", "x": 0.138, "y": 0.75, "z": 0.851, "occupancy": 0.5},
+  {"element": "H", "wyckoff": "8g", "x": 0.467, "y": 0.75, "z": 0.988, "occupancy": 0.5}
+ ],
+ "notes": "Average hydrogen-disordered P42/nmc H2O structure from the 293 K Hirshfeld-atom refinement of Chodkiewicz et al., IUCrJ 9, 573-579 (2022), doi:10.1107/S2052252522006662. Fractional coordinates and the measured c/a ratio are retained; the lattice is isotropically scaled to the 300 K PVT-fit V0 so its volume is consistent with the stored EoS.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Bezacier et al. (2014), PVT BM2",
+   "reference": {
+    "authors": [
+     "Bezacier",
+     "Journaux",
+     "Perrillat",
+     "Cardon",
+     "Hanfland",
+     "Daniel"
+    ],
+    "year": 2014,
+    "source": "Journal of Chemical Physics",
+    "volume": "141",
+    "locator": "104505",
+    "doi": "10.1063/1.4894421"
+   },
+   "default": true,
+   "eos": {
+    "type": "BM2",
+    "parameters": {
+     "V0": 235.2983858185,
+     "K0": 14.05
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.3321078134,
+    "K0": 0.23
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [1.26, 2.56],
+   "experimental_temperature_range_k": [298.7, 340.7],
+   "temperature_ref": 300.0,
+   "thermal": {
+    "type": "AlphaKT",
+    "parameters": {
+     "alpha0": 0.000146,
+     "dK_dT": 0.0
+    },
+    "parameter_errors": {
+     "alpha0": 0.000014,
+     "dK_dT": null
+    },
+    "fixed_parameters": ["dK_dT"]
+   },
+   "notes": "Joint PVT fit for pure H2O ice VI. Published molar V0=14.17(2) cm^3/mol is converted to the Z=10 unit cell. The second-order Birch-Murnaghan form fixes K0'=4; dK/dT was fixed to zero because no temperature dependence was detectable. The numeric domains give the extrema of the ice-VI measurements tabulated in the paper."
+  }
+ ]
+}

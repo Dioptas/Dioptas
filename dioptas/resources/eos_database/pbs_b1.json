@@ -1,0 +1,58 @@
+{
+ "format_version": 2,
+ "name": "PbS_B1",
+ "formula": "PbS",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 5.936,
+  "b": 5.936,
+  "c": 5.936,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Pb", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "S", "wyckoff": "4b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/PbS_B1.jcpds",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Grzechnik and Friese (2010)",
+   "reference": {
+    "authors": [
+     "Knorr",
+     "Ehm",
+     "Hytha",
+     "Winkler",
+     "Depmeier"
+    ],
+    "year": 2003,
+    "source": "Eur. Phys. J. B",
+    "volume": "31",
+    "locator": "297-303",
+    "doi": "10.1140/epjb/e2003-00034-6"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 209.2,
+     "K0": 51.0,
+     "K0_prime": 4.3
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.1,
+    "K0": 1.0,
+    "K0_prime": 0.9
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 6.0],
+   "notes": "Knorr et al. report K0 = 51(1) GPa and K0' = 4.3(9) for B1 PbS. Grzechnik and Friese independently measured ambient V0 = 209.2(1) A^3 and reproduce those coefficients; their structure paper remains the source for the stored phase metadata. The imported generic thermal coefficient was removed."
+  }
+ ]
+}

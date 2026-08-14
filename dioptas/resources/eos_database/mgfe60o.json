@@ -1,0 +1,65 @@
+{
+ "format_version": 2,
+ "name": "(Mg0.4Fe0.6)O",
+ "formula": "Mg2Fe3O5",
+ "aliases": ["Ferropericlase", "Magnesiowüstite", "Magnesiowustite"],
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 4.2805,
+  "b": 4.2805,
+  "c": 4.2805,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": null,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Users data/MgFe60O.jcpds",
+ "peaks": [
+  [5, 1, 1, 0.8238, 3.0],
+  [4, 2, 2, 0.8738, 15.0],
+  [4, 2, 0, 0.9571, 17.0],
+  [3, 3, 1, 0.982, 2.0],
+  [4, 0, 0, 1.0701, 5.0],
+  [2, 2, 2, 1.2357, 12.0],
+  [3, 1, 1, 1.2906, 4.0],
+  [2, 2, 0, 1.5134, 52.0],
+  [2, 0, 0, 2.1402, 100.0],
+  [1, 1, 1, 2.4713, 10.0]
+ ],
+ "eos_records": [
+  {
+   "label": "(Mg0.4Fe0.6)O (P. Richet, H.K.Mao, P.M. Bell JGR 1989)",
+   "reference": {
+    "authors": [
+     "Richet",
+     "Mao",
+     "Bell"
+    ],
+    "year": 1989,
+    "source": "J. Geophys. Res.",
+    "volume": "94",
+    "locator": "3037-3045",
+    "doi": "10.1029/JB094iB03p03037"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 78.43,
+     "K0": 149.0,
+     "K0_prime": 4.0
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.02,
+    "K0": 4.0,
+    "K0_prime": null
+   },
+   "fixed_parameters": [
+    "K0_prime"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 50.0],
+   "notes": "Richet et al. report V0 = 78.43(2) A^3 and K0 = 149(4) GPa with K0' fixed at 4.0 for (Mg0.4Fe0.6)O. The formula is stored as the equivalent integer ratio Mg2Fe3O5."
+  }
+ ],
+ "atom_sites": []
+}

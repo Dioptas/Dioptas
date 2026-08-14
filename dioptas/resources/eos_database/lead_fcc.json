@@ -1,0 +1,57 @@
+{
+ "format_version": 2,
+ "name": "Lead (fcc)",
+ "formula": "Pb",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 4.951776,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Pb", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "The fcc cell is calculated from the 300 K reference volume of the PVT EoS. PhaseSmith calculates powder reflections and intensities from the ideal structure.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Fortes (2019), 300 K BM4 slice",
+   "reference": {
+    "authors": [
+     "Fortes"
+    ],
+    "year": 2019,
+    "source": "STFC Rutherford Appleton Laboratory Technical Report RAL-TR-2019-002"
+   },
+   "eos": {
+    "type": "BM4",
+    "parameters": {
+     "V0": 121.418,
+     "K0": 41.73,
+     "K0_prime": 5.39,
+     "K0_double_prime": -0.33
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.005,
+    "K0": 0.01,
+    "K0_prime": 0.25,
+    "K0_double_prime": 0.02
+   },
+   "fixed_parameters": [
+    "V0",
+    "K0"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 13.0],
+   "experimental_temperature_range_k": [295.0, 788.0],
+   "temperature_ref": 300.0,
+   "notes": "Static 300 K slice of the report's temperature-dependent BM4 pressure-marker model. V0(T) and K0(T) were constrained first from thermal-expansion and elastic data; K0_prime and K0_double_prime were then fitted to compression data spanning 295-788 K. The polynomial temperature dependence is intentionally not stored because the current thermal schema cannot represent it. Primary report: https://epubs.stfc.ac.uk/manifestation/40740885/RAL-TR-2019-002.pdf"
+  }
+ ]
+}

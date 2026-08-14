@@ -24,7 +24,7 @@ _cell_angle_beta 90
 _cell_angle_gamma 90
 _cell_volume 163.049
 _exptl_crystal_density_diffrn      3.181
-_symmetry_space_group_name_H-M 'F m 3 m'
+_symmetry_space_group_name_H-M 'F m -3 m'
 loop_
 _space_group_symop_operation_xyz
   'x,y,z'
@@ -226,4 +226,3 @@ _atom_site_fract_y
 _atom_site_fract_z
 Ca   0.00000   0.00000   0.00000
 F   0.25000   0.25000   0.25000
-

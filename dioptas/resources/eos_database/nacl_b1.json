@@ -1,0 +1,58 @@
+{
+ "format_version": 2,
+ "name": "NaCl (B1)",
+ "formula": "NaCl",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 5.6402,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Na", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "Cl", "wyckoff": "4b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
+ ],
+ "notes": "Rock-salt B1 phase reference: JCPDS 5-0628.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Shen and Smith (2026), Cu-referenced Vinet",
+   "reference": {
+    "authors": [
+     "Shen",
+     "Smith"
+    ],
+    "year": 2026,
+    "source": "Phys. Rev. B",
+    "volume": "113",
+    "locator": "144113",
+    "doi": "10.1103/fxgq-96sg"
+   },
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 179.41,
+     "K0": 23.5,
+     "K0_prime": 5.23
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 0.3,
+    "K0_prime": 0.06
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 31.0],
+   "temperature_ref": 300.0,
+   "notes": "Table II Cu-referenced fit using DAC-2 data; V0 fixed to the JCPDS 5-0628 value. Reported uncertainties: K0 +/- 0.3 GPa and K0' +/- 0.06. The B1 phase data extend to 31 GPa; coexistence-region data near 30-35 GPa were excluded."
+  }
+ ]
+}

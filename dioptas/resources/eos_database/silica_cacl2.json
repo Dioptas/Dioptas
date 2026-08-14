@@ -1,0 +1,48 @@
+{
+ "format_version": 2,
+ "name": "Silica (CaCl2-type)",
+ "formula": "SiO2",
+ "symmetry": "ORTHORHOMBIC",
+ "lattice": {"a": 4.077211193, "b": 4.320631694, "c": 2.730452473, "alpha": 90.0, "beta": 90.0, "gamma": 90.0},
+ "formula_units_per_cell": 2,
+ "space_group": "Pnnm",
+ "space_group_number": 58,
+ "atom_sites": [
+  {"element": "Si", "wyckoff": "2a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4g", "x": 0.276, "y": 0.313, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "CaCl2-type silica structure based on Andrault et al. (1998); axial ratios are retained and scaled to the EoS reference volume.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Sun et al. (2019), BM2-MGD",
+   "reference": {
+    "authors": [
+     "Sun",
+     "Shi",
+     "Mao",
+     "Zhou",
+     "Prakapenka"
+    ],
+    "year": 2019,
+    "source": "J. Geophys. Res. Solid Earth",
+    "volume": "124",
+    "locator": "12620-12630",
+    "doi": "10.1029/2019JB017853"
+   },
+   "eos": {"type": "BM2", "parameters": {"V0": 48.1, "K0": 245.0}},
+   "parameter_errors": {"V0": 0.2, "K0": 7.0},
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [55.0, 147.0],
+   "experimental_temperature_range_k": [300.0, 3500.0],
+   "temperature_ref": 300.0,
+   "thermal": {
+    "type": "MieGruneisenDebye",
+    "parameters": {"Tr": 300.0, "theta0": 1100.0, "gamma0": 1.3, "q": 1.0},
+    "parameter_errors": {"Tr": null, "theta0": 400.0, "gamma0": 0.3, "q": null},
+    "fixed_parameters": ["q"]
+   },
+   "notes": "Laser-heated DAC thermal EoS; BM2 fixes K0'=4 and the thermal fit fixes q=1."
+  }
+ ]
+}

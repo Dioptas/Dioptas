@@ -1,0 +1,60 @@
+{
+ "format_version": 2,
+ "name": "FeH3",
+ "formula": "FeH3",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 2.7672,
+  "b": 2.7672,
+  "c": 2.7672,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 1,
+ "space_group": "Pm-3m",
+ "space_group_number": 221,
+ "atom_sites": [
+  {"element": "Fe", "wyckoff": "1a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "H", "wyckoff": "3c", "x": 0.0, "y": 0.5, "z": 0.5, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/FeH3_cubic_guess.jcpds",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Pepin et al. (2014), Vinet",
+   "reference": {
+    "authors": [
+     "Pépin",
+     "Dewaele",
+     "Geneste",
+     "Loubeyre",
+     "Mezouar"
+    ],
+    "year": 2014,
+    "source": "Phys. Rev. Lett.",
+    "volume": "113",
+    "locator": "265504",
+    "doi": "10.1103/PhysRevLett.113.265504"
+   },
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 18.5499,
+     "K0": 190.1,
+     "K0_prime": 5.0
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.0664,
+    "K0": 0.05,
+    "K0_prime": null
+   },
+   "fixed_parameters": [
+    "K0_prime"
+   ],
+   "experimental_pressure_range_gpa": [39.0, 160.0],
+   "notes": "Experimental Vinet fit: molar V0 = 11.171 +/- 0.040 cm^3/mol and K0 = 190.1 +/- 0.05 GPa, with K0' fixed at 5. V0 and its uncertainty were converted to the Z=1 cubic cell."
+  }
+ ]
+}

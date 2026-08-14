@@ -1,0 +1,56 @@
+{
+ "format_version": 2,
+ "name": "Lithium fluoride (B1)",
+ "formula": "LiF",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 4.030681,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Li", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "F", "wyckoff": "4b", "x": 0.5, "y": 0.5, "z": 0.5, "occupancy": 1.0}
+ ],
+ "notes": "The B1 rocksalt cell is calculated from the fitted 300 K V0. PhaseSmith calculates powder reflections and intensities from the ideal structure.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Dewaele (2019), 300 K helium-medium Vinet",
+   "reference": {
+    "authors": [
+     "Dewaele"
+    ],
+    "year": 2019,
+    "source": "Minerals",
+    "volume": "9",
+    "locator": "684",
+    "doi": "10.3390/min9110684"
+   },
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 65.484,
+     "K0": 64.6,
+     "K0_prime": 4.62
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.12,
+    "K0": 1.4,
+    "K0_prime": 0.6
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 109.0],
+   "experimental_temperature_range_k": [300.0, 300.0],
+   "temperature_ref": 300.0,
+   "notes": "Table 1 Mao-ruby-scale fit, selected because that column reports parameter uncertainties. Published V0=16.371(30) A^3 per formula unit is multiplied by Z=4 for the conventional B1 cell. The paper states that parenthesized values are 95% confidence intervals."
+  }
+ ]
+}

@@ -1,0 +1,66 @@
+{
+ "format_version": 2,
+ "name": "Aragonite",
+ "formula": "CaCO3",
+ "symmetry": "ORTHORHOMBIC",
+ "lattice": {
+  "a": 4.9611,
+  "b": 7.9672,
+  "c": 5.7404,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Pmcn",
+ "space_group_number": 62,
+ "atom_sites": [
+  {"element": "Ca", "wyckoff": "4c", "x": 0.25, "y": 0.41498, "z": 0.75936, "occupancy": 1.0},
+  {"element": "C", "wyckoff": "4c", "x": 0.25, "y": 0.7622, "z": 0.9149, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4c", "x": 0.25, "y": 0.922, "z": 0.9044, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8d", "x": 0.4737, "y": 0.6807, "z": 0.9128, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/Users data/caco3_arag.jcpds. Ambient aragonite coordinates: Ye et al., American Mineralogist 97, 707-712 (2012).",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Martinez et al. (1996)",
+   "reference": {
+    "authors": [
+     "Martinez",
+     "Zhang",
+     "Reeder"
+    ],
+    "year": 1996,
+    "source": "American Mineralogist",
+    "volume": "81",
+    "locator": "611-624",
+    "doi": "10.2138/am-1996-5-608"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 227.14,
+     "K0": 65.4,
+     "K0_prime": 2.7
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 0.5,
+    "K0_prime": 0.7
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 7.0],
+   "notes": "Martinez et al. report K0 = 65.4(5) GPa and K0' = 2.7(7) for the global high-temperature BM3 fit. The measured 298 K ambient volume is retained without a separately tabulated fit uncertainty; replaces two conflicting JCPDS-derived V0 entries.",
+   "thermal": {
+    "type": "AlphaKT",
+    "parameters": {
+     "alpha0": 6.7e-05,
+     "dK_dT": -0.013
+    }
+   },
+   "temperature_ref": 298.0
+  }
+ ]
+}

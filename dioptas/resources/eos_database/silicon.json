@@ -1,0 +1,61 @@
+{
+ "format_version": 2,
+ "name": "Silicon (Si-I, diamond cubic)",
+ "formula": "Si",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 5.431639,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 8,
+ "space_group": "Fd-3m",
+ "space_group_number": 227,
+ "atom_sites": [
+  {"element": "Si", "wyckoff": "8a", "x": 0.125, "y": 0.125, "z": 0.125, "occupancy": 1.0}
+ ],
+ "notes": "The lattice parameter is calculated from the fitted 300 K atomic reference volume. PhaseSmith calculates powder reflections and intensities from the ideal diamond structure.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Anzellini et al. (2019), constrained Vinet",
+   "reference": {
+    "authors": [
+     "Anzellini",
+     "Wharmby",
+     "Miozzi",
+     "Kleppe",
+     "Daisenberger",
+     "Wilhelm"
+    ],
+    "year": 2019,
+    "source": "Sci. Rep.",
+    "volume": "9",
+    "locator": "15537",
+    "doi": "10.1038/s41598-019-51931-1"
+   },
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 160.248,
+     "K0": 97.89,
+     "K0_prime": 4.24
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [
+    "K0_prime"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 13.9],
+   "temperature_ref": 300.0,
+   "notes": "Figure 1 constrained Vinet fit with K0' fixed to the ultrasonic value; published V0=20.031 A^3/atom is multiplied by eight atoms in the conventional diamond cell. Si-I was observed to 13.9 GPa under quasi-hydrostatic compression. The publication does not quote individual statistical uncertainties for this constrained fit."
+  }
+ ]
+}

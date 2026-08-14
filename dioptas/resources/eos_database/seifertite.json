@@ -1,0 +1,48 @@
+{
+ "format_version": 2,
+ "name": "Seifertite",
+ "formula": "SiO2",
+ "symmetry": "ORTHORHOMBIC",
+ "lattice": {"a": 4.0878288785, "b": 5.0349040973, "c": 4.4845388521, "alpha": 90.0, "beta": 90.0, "gamma": 90.0},
+ "formula_units_per_cell": 4,
+ "space_group": "Pbcn",
+ "space_group_number": 60,
+ "atom_sites": [
+  {"element": "Si", "wyckoff": "4c", "x": 0.0, "y": 0.1522, "z": 0.25, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8d", "x": 0.7336, "y": 0.6245, "z": 0.9186, "occupancy": 1.0}
+ ],
+ "notes": "Pbcn seifertite structure from Dera et al., Am. Mineral. 87, 1018-1023 (2002); axial ratios scaled to the EoS V0.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Sun et al. (2019), BM2-MGD",
+   "reference": {
+    "authors": [
+     "Sun",
+     "Shi",
+     "Mao",
+     "Zhou",
+     "Prakapenka"
+    ],
+    "year": 2019,
+    "source": "J. Geophys. Res. Solid Earth",
+    "volume": "124",
+    "locator": "12620-12630",
+    "doi": "10.1029/2019JB017853"
+   },
+   "eos": {"type": "BM2", "parameters": {"V0": 92.3, "K0": 290.0}},
+   "parameter_errors": {"V0": 0.5, "K0": 10.0},
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [55.0, 147.0],
+   "experimental_temperature_range_k": [300.0, 3500.0],
+   "temperature_ref": 300.0,
+   "thermal": {
+    "type": "MieGruneisenDebye",
+    "parameters": {"Tr": 300.0, "theta0": 1600.0, "gamma0": 1.6, "q": 1.0},
+    "parameter_errors": {"Tr": null, "theta0": 200.0, "gamma0": 0.2, "q": null},
+    "fixed_parameters": ["q"]
+   },
+   "notes": "Laser-heated DAC thermal EoS; BM2 fixes K0'=4 and the thermal fit fixes q=1."
+  }
+ ]
+}

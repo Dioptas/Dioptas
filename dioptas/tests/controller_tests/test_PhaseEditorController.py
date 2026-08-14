@@ -12,7 +12,7 @@ from mock import MagicMock
 import numpy as np
 
 from ..utility import click_button, enter_value_into_text_field, delete_if_exists
-from ...controller.integration import JcpdsEditorController
+from ...controller.integration import PhaseEditorController
 from ...model.DioptasModel import DioptasModel
 from ...widgets.integration import IntegrationWidget
 
@@ -21,7 +21,7 @@ data_path = os.path.join(unittest_path, '../data')
 jcpds_path = os.path.join(data_path, 'jcpds')
 
 
-class JcpdsEditorControllerTest(QtTest):
+class PhaseEditorControllerTest(QtTest):
     # SETUP
     #######################
     def setUp(self) -> None:
@@ -35,7 +35,7 @@ class JcpdsEditorControllerTest(QtTest):
 
         self.widget = IntegrationWidget()
 
-        self.controller = JcpdsEditorController(self.widget, self.model)
+        self.controller = PhaseEditorController(self.widget, self.model)
         self.model.pattern_model.load_pattern(os.path.join(data_path, 'pattern_001.xy'))
 
         self.jcpds_widget = self.controller.jcpds_widget
@@ -54,6 +54,7 @@ class JcpdsEditorControllerTest(QtTest):
         self.model.delete_configurations()
         del self.model
         delete_if_exists(os.path.join(jcpds_path, 'dummy.jcpds'))
+        delete_if_exists(os.path.join(jcpds_path, 'dummy.eosmat'))
         delete_if_exists(os.path.join(data_path, 'reflection_table.txt'))
         gc.collect()
 
@@ -272,3 +273,194 @@ class JcpdsEditorControllerTest(QtTest):
         self.assertEqual(QtWidgets.QApplication.clipboard().text().split('\n')[3],
                          '1	0	1	100.00	2.1065	2.1065')
 
+
+
+    # EoS selection
+    #######################
+
+    def test_eos_combobox_offers_all_peritheos_equations(self):
+        from dioptas.model.util.eos_phase import RT_EOS_TYPES
+        cb = self.jcpds_widget.eos_type_cb
+        keys = [cb.itemData(i) for i in range(cb.count())]
+        self.assertEqual(keys, list(RT_EOS_TYPES))
+        # a plain jcpds phase starts as 3rd-order Birch-Murnaghan
+        self.assertEqual(self.jcpds_widget.get_eos_type(), 'BM3')
+
+    def test_selecting_eos_updates_model_and_parameter_rows(self):
+        cb = self.jcpds_widget.eos_type_cb
+        cb.setCurrentIndex(cb.findData('BM4'))
+        self.assertEqual(self.phase_model.get_eos_type(5), 'BM4')
+        # BM4 shows the K0'' row, BM3 does not
+        self.assertTrue(self.jcpds_widget.eos_Kpp_txt.isVisibleTo(
+            self.jcpds_widget))
+        cb.setCurrentIndex(cb.findData('BM3'))
+        self.assertEqual(self.phase_model.get_eos_type(5), 'BM3')
+        self.assertFalse(self.jcpds_widget.eos_Kpp_txt.isVisibleTo(
+            self.jcpds_widget))
+
+    def test_holzapfel_shows_material_data_rows(self):
+        cb = self.jcpds_widget.eos_type_cb
+        cb.setCurrentIndex(cb.findData('Holzapfel'))
+        for field in (self.jcpds_widget.eos_n_txt,
+                      self.jcpds_widget.eos_z_txt,
+                      self.jcpds_widget.eos_zc_txt):
+            self.assertTrue(field.isVisibleTo(self.jcpds_widget))
+        # legacy phase has no n/Z/Zc — the fields are empty, not '0'
+        self.assertEqual(self.jcpds_widget.eos_n_txt.text(), '')
+
+    def test_editing_k0pp_writes_state(self):
+        cb = self.jcpds_widget.eos_type_cb
+        cb.setCurrentIndex(cb.findData('BM4'))
+        self.jcpds_widget.eos_Kpp_txt.setText('-0.04')
+        self.jcpds_widget.eos_Kpp_txt.editingFinished.emit()
+        self.assertAlmostEqual(
+            self.phase_model.phases[5].params['k0pp0'], -0.04)
+
+    def test_thermal_selector_derived_from_values(self):
+        # au_Anderson.jcpds carries thermal expansion -> AlphaKT selected
+        self.setup_selected_row(2)
+        click_button(self.phase_widget.edit_btn)
+        self.assertEqual(self.jcpds_widget.get_thermal_type(), 'alphakt')
+        self.assertTrue(self.jcpds_widget.eos_alphaT_txt.isVisibleTo(
+            self.jcpds_widget))
+        # a BM3 phase shows only its own parameters otherwise
+        self.assertFalse(self.jcpds_widget.eos_Kpp_txt.isVisibleTo(
+            self.jcpds_widget))
+
+    def test_selecting_no_thermal_model_zeroes_coefficients(self):
+        self.setup_selected_row(2)
+        click_button(self.phase_widget.edit_btn)
+        cb = self.jcpds_widget.thermal_type_cb
+        self.assertNotEqual(
+            self.phase_model.phases[2].params['alpha_t0'], 0.0)
+        cb.setCurrentIndex(cb.findData('none'))
+        for param in ('alpha_t0', 'd_alpha_dt', 'dk0dt', 'dk0pdt'):
+            self.assertEqual(self.phase_model.phases[2].params[param], 0.0)
+        self.assertFalse(self.jcpds_widget.eos_alphaT_txt.isVisibleTo(
+            self.jcpds_widget))
+
+    def test_thermal_dropdown_offers_peritheos_models(self):
+        cb = self.jcpds_widget.thermal_type_cb
+        keys = [cb.itemData(i) for i in range(cb.count())]
+        self.assertEqual(keys, ['none', 'alphakt', 'MieGruneisenDebye',
+                                'MieGruneisenEinstein', 'Sokolova2016'])
+
+    def test_selecting_mgd_updates_model_and_rows(self):
+        cb = self.jcpds_widget.thermal_type_cb
+        cb.setCurrentIndex(cb.findData('MieGruneisenDebye'))
+        self.assertEqual(self.phase_model.get_thermal_type(5),
+                         'MieGruneisenDebye')
+        # MGD parameter rows appear, the legacy coefficient rows hide
+        self.assertTrue(self.jcpds_widget.eos_theta_txt.isVisibleTo(
+            self.jcpds_widget))
+        self.assertFalse(self.jcpds_widget.eos_alphaT_txt.isVisibleTo(
+            self.jcpds_widget))
+        # the molar conversion needs n and Zc — shown even for BM3
+        self.assertTrue(self.jcpds_widget.eos_n_txt.isVisibleTo(
+            self.jcpds_widget))
+        self.assertTrue(self.jcpds_widget.eos_zc_txt.isVisibleTo(
+            self.jcpds_widget))
+        # temperature spinbox follows has_thermal_expansion
+        self.assertTrue(self.phase_model.phases[5].has_thermal_expansion())
+
+        cb.setCurrentIndex(cb.findData('none'))
+        self.assertEqual(self.phase_model.get_thermal_type(5), '')
+        self.assertFalse(self.jcpds_widget.eos_theta_txt.isVisibleTo(
+            self.jcpds_widget))
+        self.assertFalse(self.jcpds_widget.eos_n_txt.isVisibleTo(
+            self.jcpds_widget))
+
+    def test_editing_mgd_parameters_writes_state(self):
+        cb = self.jcpds_widget.thermal_type_cb
+        cb.setCurrentIndex(cb.findData('MieGruneisenDebye'))
+        self.jcpds_widget.eos_theta_txt.setText('170')
+        self.jcpds_widget.eos_theta_txt.editingFinished.emit()
+        self.jcpds_widget.eos_gamma_txt.setText('2.97')
+        self.jcpds_widget.eos_gamma_txt.editingFinished.emit()
+        params = self.phase_model.phases[5].params
+        self.assertAlmostEqual(params['theta_t0'], 170.0)
+        self.assertAlmostEqual(params['gamma_t0'], 2.97)
+
+    def test_editing_sokolova_parameter_writes_constructor_dictionary(self):
+        phase = self.phase_model.phases[5]
+        phase.params['eos_type'] = 'Holzapfel'
+        phase.params['n'] = 1
+        phase.params['z'] = 75
+        phase.params['zc'] = 2
+        phase.params['thermal_type'] = 'Sokolova2016'
+        phase.params['thermal_parameters'] = {
+            'Tr': 298.15, 'QE1o': 179.5, 'mE1': 1.5,
+            'QE2o': 83.0, 'mE2': 1.5, 'delta': 0.134,
+            't': 0.087, 'a_0': 0.0, 'm': 0.0, 'g': 0.0,
+            'e_0': 0.0,
+        }
+        phase.params['t_ref'] = 298.15
+        self.controller.show_phase(phase, wavelength=0.31)
+
+        field = self.jcpds_widget.sokolova_parameter_fields['delta']
+        field.setText('0.2')
+        field.editingFinished.emit()
+
+        self.assertAlmostEqual(
+            phase.params['thermal_parameters']['delta'], 0.2)
+
+    def test_editing_thermal_reference_updates_constructor_dictionary(self):
+        cb = self.jcpds_widget.thermal_type_cb
+        cb.setCurrentIndex(cb.findData('MieGruneisenDebye'))
+        self.jcpds_widget.eos_tref_txt.setText('300')
+        self.jcpds_widget.eos_tref_txt.editingFinished.emit()
+
+        params = self.phase_model.phases[5].params
+        self.assertAlmostEqual(params['t_ref'], 300.0)
+        self.assertAlmostEqual(params['thermal_parameters']['Tr'], 300.0)
+
+    def test_adds_a_complete_custom_eos_record(self):
+        phase = self.phase_model.phases[5]
+        record = self.phase_model.eos_record_from_phase(5)
+        record['label'] = 'My referenced fit'
+        record['reference'] = {'authors': ['Tester'], 'year': 2026}
+        self.controller._record_dialog = MagicMock(return_value=record)
+
+        click_button(self.jcpds_widget.eos_record_add_btn)
+
+        self.assertEqual(len(phase.params['eos_records']), 1)
+        self.assertEqual(phase.params['eos_records'][0]['label'],
+                         'My referenced fit')
+        self.assertEqual(phase.params['eos_record_origins'], ['custom'])
+        self.assertTrue(self.jcpds_widget.eos_record_edit_btn.isEnabled())
+
+    def test_bundled_record_requires_duplicate_before_editing(self):
+        from ...model import eos
+
+        gold = next(material for material in eos.load_materials()
+                    if material.formula == 'Au')
+        phase = eos.build_jcpds(gold, record_index=0, origin='bundled')
+        self.phase_model.add_jcpds_object(phase, filename=phase.filename)
+        self.controller.show_phase(phase, wavelength=0.31)
+
+        self.assertFalse(self.jcpds_widget.eos_K_txt.isEnabled())
+        self.assertFalse(self.jcpds_widget.eos_record_edit_btn.isEnabled())
+        custom = dict(phase.params['eos_records'][0])
+        custom['label'] = 'Editable copy'
+        self.controller._record_dialog = MagicMock(return_value=custom)
+        click_button(self.jcpds_widget.eos_record_duplicate_btn)
+
+        self.assertEqual(self.phase_model.eos_record_origin(6), 'custom')
+        self.assertTrue(self.jcpds_widget.eos_K_txt.isEnabled())
+        self.assertTrue(self.jcpds_widget.eos_record_delete_btn.isEnabled())
+
+    def test_save_as_eosmat_preserves_records_and_structure(self):
+        from ...model import eos
+
+        gold = next(material for material in eos.load_materials()
+                    if material.formula == 'Au')
+        phase = eos.build_jcpds(gold, record_index=0, origin='bundled')
+        self.phase_model.add_jcpds_object(phase, filename=phase.filename)
+        self.controller.show_phase(phase, wavelength=0.31)
+        filename = os.path.join(jcpds_path, 'dummy.eosmat')
+
+        self.controller.save_as_btn_clicked(filename)
+        loaded = eos.load_material_file(filename)
+
+        self.assertEqual(loaded.atom_sites, gold.atom_sites)
+        self.assertEqual(loaded.eos_records, gold.eos_records)

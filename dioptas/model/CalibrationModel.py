@@ -1270,18 +1270,23 @@ class CalibrationModel:
         'dist', 'poni1', 'poni2', 'rot1', 'rot2', 'rot3', 'pixel1', 'pixel2', 'wavelength',
         'polarization_factor'
         """
-        self.pattern_geometry.setPyFAI(
-            dist=pyFAI_parameter["dist"],
-            poni1=pyFAI_parameter["poni1"],
-            poni2=pyFAI_parameter["poni2"],
-            rot1=pyFAI_parameter["rot1"],
-            rot2=pyFAI_parameter["rot2"],
-            rot3=pyFAI_parameter["rot3"],
+        config = self.pattern_geometry.get_config()
+        for key in ("dist", "poni1", "poni2", "rot1", "rot2", "rot3"):
+            config[key] = pyFAI_parameter[key]
+        detector_config = dict(config.get("detector_config") or {})
+        detector_config.update(
             pixel1=pyFAI_parameter["pixel1"],
             pixel2=pyFAI_parameter["pixel2"],
         )
+        config["detector_config"] = detector_config
+        self.pattern_geometry.set_config(config)
+
+        # set_config reconstructs the detector from its serializable config.
+        # Keep the live Dioptas detector instead: it may carry an image mask,
+        # distortion spline, or detector-specific runtime state.
         self.detector.pixel1 = pyFAI_parameter["pixel1"]
         self.detector.pixel2 = pyFAI_parameter["pixel2"]
+        self.pattern_geometry.detector = self.detector
         self.orig_pixel1 = self.detector.pixel1
         self.orig_pixel2 = self.detector.pixel2
         self.pattern_geometry.wavelength = pyFAI_parameter["wavelength"]

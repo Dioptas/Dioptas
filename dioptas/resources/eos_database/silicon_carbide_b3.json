@@ -1,0 +1,64 @@
+{
+ "format_version": 2,
+ "name": "Silicon carbide (B3 zinc blende)",
+ "formula": "SiC",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 4.358564,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "F-43m",
+ "space_group_number": 216,
+ "atom_sites": [
+  {"element": "Si", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "C", "wyckoff": "4c", "x": 0.25, "y": 0.25, "z": 0.25, "occupancy": 1.0}
+ ],
+ "notes": "Cubic 3C-SiC (B3, zinc-blende type). The reference cell is calculated from the fixed conventional-cell V0 used in the room-temperature fit. PhaseSmith calculates powder reflections and intensities from the ideal structure.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Miozzi et al. (2018), 300 K BM3",
+   "reference": {
+    "authors": [
+     "Miozzi",
+     "Morard",
+     "Antonangeli",
+     "Clark",
+     "Mezouar",
+     "Dorn",
+     "Rozel",
+     "Fiquet"
+    ],
+    "year": 2018,
+    "source": "J. Geophys. Res. Planets",
+    "volume": "123",
+    "locator": "2295-2309",
+    "doi": "10.1029/2018JE005582"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 82.8,
+     "K0": 224.0,
+     "K0_prime": 4.1
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 5.0,
+    "K0_prime": 0.3
+   },
+   "fixed_parameters": [
+    "V0"
+   ],
+   "experimental_pressure_range_gpa": [0.0, 65.0],
+   "temperature_ref": 300.0,
+   "notes": "Table 1 room-temperature Birch-Murnaghan fit; V0 was fixed to 82.80 A^3 for the conventional four-formula-unit cell."
+  }
+ ]
+}

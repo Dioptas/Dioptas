@@ -1,0 +1,59 @@
+{
+ "format_version": 2,
+ "name": "Coesite",
+ "formula": "SiO2",
+ "symmetry": "MONOCLINIC",
+ "lattice": {
+  "a": 7.1356,
+  "b": 12.3692,
+  "c": 7.17363,
+  "alpha": 90.0,
+  "beta": 120.34,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 16,
+ "space_group": "C2/c",
+ "space_group_number": 15,
+ "atom_sites": [
+  {"element": "Si", "wyckoff": "8f", "x": 0.14035, "y": 0.10833, "z": 0.0723, "occupancy": 1.0},
+  {"element": "Si", "wyckoff": "8f", "x": 0.50674, "y": 0.15796, "z": 0.54072, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "4e", "x": 0.5, "y": 0.11634, "z": 0.75, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8f", "x": 0.2661, "y": 0.12324, "z": 0.9401, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8f", "x": 0.3114, "y": 0.10378, "z": 0.328, "occupancy": 1.0},
+  {"element": "O", "wyckoff": "8f", "x": 0.0175, "y": 0.21177, "z": 0.4784, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/sio2-coe2.jcpds, JCPDS/current user/CVS/sio2-coe2.jcpds. Ambient coesite coordinates: Levien and Prewitt, American Mineralogist 66, 324-333 (1981).",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "data from JCPDS and Levien and Prewitt, 1981",
+   "reference": {
+    "authors": [
+     "Levien",
+     "Prewitt"
+    ],
+    "year": 1981,
+    "source": "American Mineralogist",
+    "volume": "66",
+    "locator": "324-333"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 546.4414,
+     "K0": 96.0,
+     "K0_prime": 8.4
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": 3.0,
+    "K0_prime": 1.9
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [0.0, 5.2],
+   "notes": "Levien and Prewitt report K0 = 96 +/- 3 GPa and K0' = 8.4 +/- 1.9. V0 is retained from the cited ambient structure; no separate fitted V0 uncertainty was reported."
+  }
+ ]
+}

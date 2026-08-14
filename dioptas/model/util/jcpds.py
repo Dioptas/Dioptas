@@ -96,6 +96,9 @@ class CrystalState:
     symmetry: str = ""
     k0: float = 0.0
     k0p0: float = 0.0
+    #: K0'' (1/GPa) — only used by 4th-order equations (BM4, Modified
+    #: Tait); stays 0 for everything else
+    k0pp0: float = 0.0
     dk0dt: float = 0.0
     dk0pdt: float = 0.0
     alpha_t0: float = 0.0
@@ -109,6 +112,75 @@ class CrystalState:
     v0: float = 0.0
     pressure: float = 0.0
     temperature: float = 298.0
+    #: equation of state used to compute the volume at pressure — a
+    #: peritheos.eos.rt class name (see model/util/eos_phase.py). Legacy
+    #: JCPDS files imply 3rd-order Birch-Murnaghan; phases from the EoS
+    #: database carry their own.
+    eos_type: str = "BM3"
+    #: Holzapfel only: atoms per chemical formula (n), summed/effective atomic
+    #: number parameter of the formula (z), and formula units per unit cell (zc,
+    #: the crystallographic Z). Set for material-backed phases; None for
+    #: legacy files, which then fall back to BM3.
+    #: A literature record may override z (the Sokolova MgO workbook uses
+    #: an effective value of 10.34 rather than the integer electron sum).
+    n: float | None = None
+    z: float | None = None
+    zc: int | None = None
+    #: thermal model on top of the equation of state. "" means the
+    #: classic constant-coefficient correction (alpha_t0/d_alpha_dt/
+    #: dk0dt/dk0pdt as effective-pressure shift — a no-op when they are
+    #: zero, which keeps every legacy file and project behaving as
+    #: before). A peritheos.eos.thermal class name ('MieGruneisenDebye',
+    #: 'MieGruneisenEinstein', 'Sokolova2016') switches to the full thermal
+    #: engine. The complete constructor dictionary is retained below;
+    #: the scalar fields remain for the editable Debye/Einstein UI and
+    #: backward-compatible projects.
+    thermal_type: str = ""
+    thermal_parameters: dict = field(default_factory=dict)
+    thermal_parameter_errors: dict = field(default_factory=dict)
+    thermal_fixed_parameters: list = field(default_factory=list)
+    theta_t0: float = 0.0   # Debye/Einstein temperature (K)
+    gamma_t0: float = 0.0   # Grüneisen parameter at V0
+    q_t0: float = 1.0       # volume exponent of the Grüneisen parameter
+    t_ref: float = 298.15   # reference temperature of the fit (K)
+    #: the material's chemical formula and its EoS records (dicts, schema
+    #: in model/eos/material.py), for the per-phase reference switcher.
+    #: Set for material-backed phases; empty for legacy jcpds files. State so
+    #: that the switcher survives project
+    #: save/load and undo.
+    chemistry: str = ""
+    eos_records: list = field(default_factory=list)
+    eos_current_index: int = 0
+    #: Runtime ownership for each EoS record. ``bundled`` records are
+    #: immutable; ``file`` and ``custom`` records are user-owned. Ownership
+    #: survives a project round trip but is intentionally absent from
+    #: portable .eosmat documents.
+    eos_record_origins: list = field(default_factory=list)
+    #: True after record management changes. Selecting another published
+    #: reference is not itself an edit, but must not hide earlier unsaved
+    #: custom-record changes by clearing the phase's modified marker.
+    eos_records_modified: bool = False
+    #: Preferred record for a user-owned material. Kept separately from the
+    #: record dicts so choosing a local default never mutates a bundled record.
+    eos_default_index: int = 0
+    #: Canonical material structure/provenance without the EoS record list.
+    #: Together with ``eos_records`` this is sufficient to export the phase as
+    #: a full-fidelity .eosmat document.
+    material_document: dict = field(default_factory=dict)
+    #: ``bundled``, ``file``, ``cif``, ``custom`` or ``legacy``.
+    material_origin: str = "legacy"
+    #: Source-reported errors (same units as the record's EoS parameters)
+    #: and the names of parameters held fixed in that fit.  These mirror the
+    #: active record so downstream tools need not re-inspect eos_records.
+    eos_parameter_errors: dict = field(default_factory=dict)
+    eos_fixed_parameters: list = field(default_factory=list)
+    #: Serializable structure input used to extend PhaseSmith reflection
+    #: coverage after a new calibration or pattern increases the measured Q
+    #: range. Empty for legacy/manual JCPDS phases.
+    reflection_source: dict = field(default_factory=dict)
+    reflection_q_max: float = 0.0
+    reflection_wavelength: float = 0.0
+    reflection_intensity_cutoff: float = 0.5
     #: whether the phase no longer matches the file it came from (the
     #: asterisk in the GUI); flipped by the params view on state writes
     modified: bool = False
@@ -117,7 +189,10 @@ class CrystalState:
 #: state keys whose direct edit marks the phase as modified (the asterisk)
 _FLAGGING_KEYS = frozenset(
     ["comments", "a0", "b0", "c0", "alpha0", "beta0", "gamma0", "symmetry",
-     "k0", "k0p0", "dk0dt", "dk0pdt", "alpha_t0", "d_alpha_dt", "reflections"]
+     "k0", "k0p0", "k0pp0", "dk0dt", "dk0pdt", "alpha_t0", "d_alpha_dt",
+     "reflections", "eos_type",
+     "thermal_type", "thermal_parameters", "theta_t0", "gamma_t0",
+     "q_t0", "t_ref"]
 )
 
 _STATE_KEYS = frozenset(f.name for f in dataclasses.fields(CrystalState))
@@ -261,18 +336,20 @@ class jcpds:
         # In current files have the first line starts with the string VERSION:
         fp = open(filename, 'r')
         line = fp.readline()
-        pos = line.index(' ')
-        tag = line[0:pos].upper()
-        value = line[pos:].strip()
+        parts = line.split(maxsplit=1)
+        tag = parts[0].upper() if parts else ''
+        value = parts[1].strip() if len(parts) > 1 else ''
         if tag == 'VERSION:':
             self.version = value
             # This is the current, keyword based version of JCPDS file
             while (1):
                 line = fp.readline()
                 if line == '': break
-                pos = line.index(' ')
-                tag = line[0:pos].upper()
-                value = line[pos:].strip()
+                parts = line.split(maxsplit=1)
+                if len(parts) < 2:
+                    continue
+                tag = parts[0].upper()
+                value = parts[1].strip()
                 if tag == 'COMMENT:':
                     self.params['comments'].append(value)
                 elif tag == 'K0:':
@@ -313,6 +390,51 @@ class jcpds:
                     reflection.k = int(dtemp[3])
                     reflection.l = int(dtemp[4])
                     self.reflections.append(reflection)
+        elif tag in ('2', '3'):
+            # Version 2/3 (Dan Shim's format): the bare version number,
+            # a title line, a "symmetry_code K0 K0'" line, a lattice-
+            # constant line whose length depends on the symmetry, a
+            # placeholder line, a column-label line, and the peak table.
+            self.version = float(tag)
+            self.params['comments'].append(fp.readline().strip())
+            temp = fp.readline().replace(',', ' ').split()
+            symmetry_code = int(float(temp[0]))
+            self.params['symmetry'] = {
+                1: 'CUBIC', 2: 'HEXAGONAL', 3: 'TETRAGONAL',
+                4: 'ORTHORHOMBIC', 5: 'MONOCLINIC', 6: 'TRICLINIC',
+            }.get(symmetry_code, 'CUBIC')
+            self.params['k0'] = float(temp[1])
+            self.params['k0p0'] = float(temp[2])
+
+            lat = [float(v) for v in fp.readline().replace(',', ' ').split()]
+            self.params['a0'] = lat[0]
+            if len(lat) >= 6:
+                # full set incl. angles (whatever the symmetry code says)
+                self.params['b0'], self.params['c0'] = lat[1], lat[2]
+                (self.params['alpha0'], self.params['beta0'],
+                 self.params['gamma0']) = lat[3], lat[4], lat[5]
+            elif len(lat) == 4:      # monoclinic: a b c beta
+                self.params['b0'], self.params['c0'] = lat[1], lat[2]
+                self.params['beta0'] = lat[3]
+            elif len(lat) == 3:      # orthorhombic: a b c
+                self.params['b0'], self.params['c0'] = lat[1], lat[2]
+            elif len(lat) == 2:      # hexagonal/tetragonal: a c
+                self.params['c0'] = lat[1]
+            # remaining constants and angles follow from the symmetry
+            # (compute_v0 normalizes them)
+
+            fp.readline()   # "(blank for future use)"
+            fp.readline()   # column labels
+            while 1:
+                line = fp.readline()
+                if line == '': break
+                dtemp = list(map(float, line.replace(',', ' ').split()[0:5]))
+                if len(dtemp) < 5:
+                    continue
+                self.reflections.append(jcpds_reflection(
+                    h=int(dtemp[2]), k=int(dtemp[3]), l=int(dtemp[4]),
+                    intensity=dtemp[1], d=dtemp[0]))
+
         else:
             # This is an old format JCPDS file
             self.version = 1.
@@ -540,6 +662,16 @@ class jcpds:
         # Assume 0 K really means room T
         if temperature == 0: temperature = 298.
 
+        # A peritheos thermal model (Mie-Grüneisen-Debye, ...) handles
+        # the temperature inside the engine — no coefficient corrections
+        # or effective-pressure shift. Failures (Peritheos missing, or
+        # parameters incomplete — the UI asks for them) fall through to
+        # the legacy path below, which then behaves like a phase without
+        # thermal expansion.
+        if self.params.get('thermal_type') and pressure >= 0:
+            if self._thermal_engine_volume(pressure, temperature):
+                return
+
         # Compute values of K0, K0P and alphat at this temperature
         self.params['alpha_t'] = self.params['alpha_t0'] + self.params['d_alpha_dt'] * (temperature - 298.)
         self.params['k0p'] = self.params['k0p0'] + self.params['dk0pdt'] * (temperature - 298.)
@@ -562,12 +694,85 @@ class jcpds:
             else:
                 self.mod_pressure = pressure - \
                                     self.params['alpha_t'] * k0 * (temperature - 298.)
-                res = minimize(self.bm3_inverse, 1.,
-                               args=(k0, k0p, self.mod_pressure),
-                               method='Nelder-Mead')
-                if not res.success:
-                    raise ArithmeticError("minimize didn't find a minimum!\n" + str(res))
-                self.params['v'] = self.params['v0'] / float(res.x[0])
+                self.params['v'] = self._solve_volume_at_pressure(
+                    k0, k0p, self.mod_pressure)
+
+    def _thermal_engine_volume(self, pressure: float, temperature: float) -> bool:
+        """
+        Compute the volume through the phase's peritheos thermal model
+        (params['thermal_type'], e.g. Mie-Grüneisen-Debye over the
+        configured rt equation). Returns True when the volume was set;
+        False when the engine is unavailable or not constructible, so
+        compute_volume falls back to the legacy path.
+        """
+        thermal_type = str(self.params.get('thermal_type') or '')
+        try:
+            from .eos_phase import EosPhase
+        except ImportError as e:
+            logger.warning(
+                "Peritheos is not available (%s); ignoring thermal model "
+                "'%s'.", e, thermal_type)
+            return False
+        try:
+            eos = EosPhase.from_jcpds(self, with_thermal=True)
+        except ValueError as e:
+            logger.warning(
+                "Thermal model '%s' cannot be constructed for phase '%s' "
+                "(%s); computing without it.",
+                thermal_type, self.name, e)
+            return False
+        # the temperature dependence lives in the engine now — keep the
+        # derived coefficient values meaningful for displays
+        self.params['alpha_t'] = self.params['alpha_t0']
+        self.params['k0p'] = self.params['k0p0']
+        self.params['v'] = eos.volume(pressure, temperature)
+        return True
+
+    def _solve_volume_at_pressure(self, k0: float, k0p: float, pressure: float) -> float:
+        """
+        Solve for the unit-cell volume at the given (thermal-corrected)
+        pressure using the configured equation of state.
+
+        The Peritheos library is used as the live calculation engine,
+        dispatching on ``params['eos_type']`` (a peritheos.eos.rt class
+        name). Only two failures fall back to the legacy 3rd-order
+        Birch-Murnaghan solver — Peritheos not importable, or the EoS not
+        constructible from the phase's parameters (the UI disables such
+        choices up front) — anything else propagates. The test suite
+        cross-validates the legacy solver against Peritheos' BM3.
+        """
+        eos_type = str(self.params.get('eos_type') or 'BM3')
+        try:
+            from .eos_phase import EosPhase
+        except ImportError as e:
+            logger.warning(
+                "Peritheos is not available (%s); computing '%s' with the "
+                "legacy BM3 solver instead.", e, eos_type)
+            return self._legacy_bm3_volume(k0, k0p, pressure)
+        try:
+            eos = EosPhase.from_jcpds(self, eos_type=eos_type,
+                                      k0=k0, k0p=k0p)
+        except ValueError as e:
+            logger.warning(
+                "EoS '%s' cannot be constructed for phase '%s' (%s); "
+                "computing with the legacy BM3 solver instead.",
+                eos_type, self.name, e)
+            return self._legacy_bm3_volume(k0, k0p, pressure)
+        return eos.volume(pressure)
+
+    def _legacy_bm3_volume(self, k0: float, k0p: float, pressure: float) -> float:
+        """
+        Original Dioptas 3rd-order Birch-Murnaghan solve (scipy minimize on
+        the squared pressure residual). Retained as a Peritheos-free
+        fallback and as the independent reference in the cross-validation
+        tests.
+        """
+        res = minimize(self.bm3_inverse, 1.,
+                       args=(k0, k0p, pressure),
+                       method='Nelder-Mead')
+        if not res.success:
+            raise ArithmeticError("minimize didn't find a minimum!\n" + str(res))
+        return self.params['v0'] / float(res.x[0])
 
     def bm3_inverse(self, v0_v: float, k0: float, k0p: float, pressure: float) -> float:
         """
@@ -786,7 +991,8 @@ class jcpds:
         self.reorder_reflections_by_index(sorted_ind, reversed_toggle)
 
     def has_thermal_expansion(self) -> bool:
-        return (self.params['alpha_t0'] != 0) or (self.params['d_alpha_dt'] != 0)
+        return (self.params['alpha_t0'] != 0) or (self.params['d_alpha_dt'] != 0) \
+            or bool(self.params['thermal_type'])
 
 
 def lookup_jcpds_line(in_string: str,

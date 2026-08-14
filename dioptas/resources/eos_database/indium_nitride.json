@@ -1,0 +1,55 @@
+{
+ "format_version": 2,
+ "name": "Indium Nitride",
+ "formula": "InN",
+ "symmetry": "HEXAGONAL",
+ "lattice": {
+  "a": 3.537,
+  "b": 3.537,
+  "c": 5.704,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 120.0
+ },
+ "formula_units_per_cell": 2,
+ "space_group": "P63mc",
+ "space_group_number": 186,
+ "atom_sites": [
+  {"element": "In", "wyckoff": "2b", "x": 0.3333333333333333, "y": 0.6666666666666666, "z": 0.0, "occupancy": 1.0},
+  {"element": "N", "wyckoff": "2b", "x": 0.3333333333333333, "y": 0.6666666666666666, "z": 0.3769, "occupancy": 1.0}
+ ],
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/InN_hex.jcpds. Structure coordinates: Paszkowicz et al., Powder Diffraction 18, 114-121 (2003), doi:10.1154/1.1566957.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "(02-1450, A. Munoz and K. Kunc 1993 J. Phys: Condens. Matter 5 6015",
+   "reference": {
+    "authors": [
+     "Muñoz",
+     "Kunc"
+    ],
+    "year": 1993,
+    "source": "J. Phys.: Condens. Matter",
+    "volume": "5",
+    "locator": "6015-6022",
+    "doi": "10.1088/0953-8984/5/33/010"
+   },
+   "eos": {
+    "type": "BM3",
+    "parameters": {
+     "V0": 61.7988,
+     "K0": 166.0,
+     "K0_prime": 3.8
+    }
+   },
+   "parameter_errors": {
+    "V0": null,
+    "K0": null,
+    "K0_prime": null
+   },
+   "fixed_parameters": [],
+   "pressure_range_status": "theoretical",
+   "notes": "Muñoz and Kunc give K0 = 166 GPa and K0' = 3.8 from an ab initio total-energy calculation for wurtzite InN. These are theoretical values, so no statistical fit uncertainties were published. V0 is retained from the cited experimental structure."
+  }
+ ]
+}

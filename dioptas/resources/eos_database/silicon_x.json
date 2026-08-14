@@ -1,0 +1,59 @@
+{
+ "format_version": 2,
+ "name": "Silicon (Si-X, fcc)",
+ "formula": "Si",
+ "symmetry": "CUBIC",
+ "lattice": {
+  "a": 3.761005,
+  "b": null,
+  "c": null,
+  "alpha": 90.0,
+  "beta": 90.0,
+  "gamma": 90.0
+ },
+ "formula_units_per_cell": 4,
+ "space_group": "Fm-3m",
+ "space_group_number": 225,
+ "atom_sites": [
+  {"element": "Si", "wyckoff": "4a", "x": 0.0, "y": 0.0, "z": 0.0, "occupancy": 1.0}
+ ],
+ "notes": "Face-centered-cubic Si-X. The reference cell is calculated from the extrapolated conventional-cell V0. PhaseSmith calculates powder reflections and intensities from the ideal structure.",
+ "peaks": [],
+ "eos_records": [
+  {
+   "label": "Anzellini et al. (2019), 300 K Vinet",
+   "reference": {
+    "authors": [
+     "Anzellini",
+     "Wharmby",
+     "Miozzi",
+     "Kleppe",
+     "Daisenberger",
+     "Wilhelm"
+    ],
+    "year": 2019,
+    "source": "Sci. Rep.",
+    "volume": "9",
+    "locator": "15537",
+    "doi": "10.1038/s41598-019-51931-1"
+   },
+   "eos": {
+    "type": "Vinet",
+    "parameters": {
+     "V0": 53.2,
+     "K0": 136.0,
+     "K0_prime": 4.2
+    }
+   },
+   "parameter_errors": {
+    "V0": 0.8,
+    "K0": 5.0,
+    "K0_prime": 0.3
+   },
+   "fixed_parameters": [],
+   "experimental_pressure_range_gpa": [90.8, 105.2],
+   "temperature_ref": 300.0,
+   "notes": "Table 8 room-temperature fit. Published V0=13.3 A^3/atom is multiplied by four atoms in the conventional fcc cell; V0 is extrapolated because Si-X appears above about 91 GPa."
+  }
+ ]
+}
