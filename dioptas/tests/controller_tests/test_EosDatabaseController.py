@@ -44,7 +44,7 @@ class EosDatabaseControllerTest(QtTest):
         material = self.controller.shown_materials[0]
 
         assert material.space_group == "Fm-3m"
-        assert self.dialog.materials_table.item(0, 1).text() == "Fm3\u0305m"
+        assert self.dialog.materials_table.item(0, 1).text() == "Fm-3m"
         assert self.dialog.materials_table.item(0, 1).text() != material.symmetry
 
     def test_material_table_displays_screw_axis_as_subscript(self):

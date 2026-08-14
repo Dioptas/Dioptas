@@ -32,11 +32,7 @@ def _display_space_group(space_group: str) -> str:
         lambda match: match.group(1).translate(_SUBSCRIPT_DIGITS),
         displayed,
     )
-    return re.sub(
-        r"-(\d)",
-        lambda match: f"{match.group(1)}\N{COMBINING OVERLINE}",
-        displayed,
-    )
+    return displayed
 
 
 class EosDatabaseDialog(QtWidgets.QDialog):
@@ -198,10 +194,10 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         table.setRowCount(len(rows))
         for r, (name, space_group) in enumerate(rows):
             table.setItem(r, 0, QtWidgets.QTableWidgetItem(name))
-            table.setItem(
-                r, 1,
-                QtWidgets.QTableWidgetItem(_display_space_group(space_group)),
+            space_group_item = QtWidgets.QTableWidgetItem(
+                _display_space_group(space_group)
             )
+            table.setItem(r, 1, space_group_item)
 
     def fill_eos_records(self, rows, selected_row=0,
                          reference_tooltips=None, thermal_tooltips=None):
