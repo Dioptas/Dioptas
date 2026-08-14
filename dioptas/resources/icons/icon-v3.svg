@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Dioptas diffraction arc icon</title>
+  <desc id="desc">Three concentric diffraction arcs and a detector-center marker with a clean off-white-to-orange gradient on a graphite squircle.</desc>
+
+  <defs>
+    <!-- Shared coordinates keep the color transition continuous across all arcs. -->
+    <linearGradient id="surface" x1="72" y1="64" x2="440" y2="456" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#31363b"/>
+      <stop offset="1" stop-color="#232629"/>
+    </linearGradient>
+    <linearGradient id="diffraction" x1="192" y1="76" x2="372" y2="436" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f1f1f1"/>
+      <stop offset="0.42" stop-color="#ffd08a"/>
+      <stop offset="0.7" stop-color="#ffad33"/>
+      <stop offset="1" stop-color="#ff9500"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Continuous corners feel softer than a conventional rounded rectangle. -->
+  <path d="M 156 20
+           H 356
+           C 438 20 492 74 492 156
+           V 356
+           C 492 438 438 492 356 492
+           H 156
+           C 74 492 20 438 20 356
+           V 156
+           C 20 74 74 20 156 20
+           Z"
+        fill="url(#surface)"/>
+
+  <!--
+    All arcs share the exact center (192, 256), use equal 24 px strokes,
+    and are separated by a consistent 52 px radial interval.
+  -->
+  <path d="M 192 180
+           C 233.974 180 268 214.026 268 256
+           C 268 297.974 233.974 332 192 332"
+        fill="none" stroke="url(#diffraction)" stroke-width="24" stroke-linecap="round"/>
+  <path d="M 192 128
+           C 262.692 128 320 185.308 320 256
+           C 320 326.692 262.692 384 192 384"
+        fill="none" stroke="url(#diffraction)" stroke-width="24" stroke-linecap="round"/>
+  <path d="M 192 76
+           C 291.411 76 372 156.589 372 256
+           C 372 355.411 291.411 436 192 436"
+        fill="none" stroke="url(#diffraction)" stroke-width="24" stroke-linecap="round"/>
+
+  <!-- The beam/detector center distinguishes the mark from generic signal waves. -->
+  <circle cx="192" cy="256" r="10" fill="#ff9500"/>
+</svg>

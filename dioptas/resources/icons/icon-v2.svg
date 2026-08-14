@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Dioptas application icon</title>
+  <desc id="desc">A white letter D with two diffraction arcs on a deep green rounded square.</desc>
+
+  <!-- The 20 px clear edge keeps the silhouette intact on platforms that add their own mask. -->
+  <rect x="20" y="20" width="472" height="472" rx="108" fill="#08783e"/>
+
+  <!-- Diffraction arcs sit behind the letter so the D remains the dominant silhouette. -->
+  <g stroke="#a6d4ad" stroke-width="18" stroke-linecap="round">
+    <path d="M 258 76 A 220 220 0 0 1 478 296" fill="none" opacity="0.76"/>
+    <path d="M 258 128 A 168 168 0 0 1 426 296" fill="none" opacity="0.58"/>
+  </g>
+
+  <!-- A geometric D with an open counter for clarity at 16 px. -->
+  <path fill="#fff" fill-rule="evenodd" d="
+    M 94 178
+    H 224
+    C 310 178 364 223 364 296
+    C 364 369 310 414 224 414
+    H 94
+    Z
+
+    M 160 238
+    V 354
+    H 222
+    C 270 354 296 334 296 296
+    C 296 258 270 238 222 238
+    Z
+  "/>
+</svg>
