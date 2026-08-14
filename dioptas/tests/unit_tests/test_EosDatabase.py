@@ -51,6 +51,9 @@ def test_search(materials):
     # alias: common name finds the formula
     assert any(m.formula == "Au" for m in eos.search_materials("gold"))
     assert any(m.formula == "MgO" for m in eos.search_materials("periclase"))
+    # Every bundled water-ice phase is discoverable by its chemistry.
+    water_ice_names = {m.name for m in eos.search_materials("H2O")}
+    assert {"Ice VI", "Ice VII", "Ice VIII"} <= water_ice_names
     # empty query returns everything
     assert len(eos.search_materials("")) == len(materials)
 

@@ -1,7 +1,7 @@
 {
  "format_version": 1,
- "name": "iceVIII",
- "formula": "",
+ "name": "Ice VIII",
+ "formula": "H2O",
  "symmetry": "TETRAGONAL",
  "lattice": {
   "a": 4.4493,
@@ -11,8 +11,8 @@
   "beta": 90.0,
   "gamma": 90.0
  },
- "formula_units_per_cell": null,
- "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/iceVIII.jcpds",
+ "formula_units_per_cell": 8,
+ "notes": "Imported 12.08.2026 from a beamline jcpds collection. Source file(s): JCPDS/dac_user_jcpds/iceVIII.jcpds. The H2O formula and Z=8 cell content follow the Besson et al. EoS source; the legacy powder lines remain because a publication-verified ordered molecular structure has not yet been curated.",
  "peaks": [
   [4, 3, 1, 0.8814, 0.0],
   [3, 2, 5, 0.8893, 0.3],

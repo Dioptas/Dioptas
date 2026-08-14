@@ -39,6 +39,12 @@ class EosDatabaseControllerTest(QtTest):
         assert (self.dialog.materials_table.rowCount()
                 == len(eos.load_materials()))
 
+    def test_h2o_search_shows_all_water_ice_phases(self):
+        self.dialog.search_input.setText("H2O")
+
+        names = {material.name for material in self.controller.shown_materials}
+        assert {"Ice VI", "Ice VII", "Ice VIII"} <= names
+
     def test_single_search_result_keeps_material_table_full_width(self):
         self.dialog.resize(680, 520)
         self.dialog.show()

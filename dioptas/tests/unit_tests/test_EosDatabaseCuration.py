@@ -187,6 +187,9 @@ def test_publication_verified_parameter_errors(filename, index, errors, fixed):
         ("cobalt_hcp.json", 0, "BM3", 22.4685, 199.0, 3.6),
         ("nacl_b2.json", 0, "BM2", 41.67, 36.2, None),
         ("iceviii.json", 0, "BM3", 165.39, 20.4, 4.7),
+        ("ice_vi.json", 0, "BM2", 235.2983858185, 14.05, None),
+        ("ice_vii.json", 0, "BM2", 41.480265898, 20.15, None),
+        ("ice_vii.json", 1, "BM3", 41.1813688659, 21.1, 4.4),
         ("geo2_rutile.json", 0, "BM3", 55.3268, 258.0, 7.0),
         ("naalsi2o6.json", 0, "BM3", 401.19, 125.0, 5.0),
         ("perovskite_orthorhombic.json", 0, "BM3", 162.77, 266.0, 3.9),
@@ -348,7 +351,7 @@ def test_all_curated_structures_are_complete_and_stoichiometric():
             )
         assert dict(actual) == pytest.approx(dict(expected)), path.name
 
-    assert len(structured) == 98
+    assert len(structured) == 100
 
 
 @pytest.mark.parametrize(
@@ -811,7 +814,7 @@ def test_retained_references_have_normalized_publication_metadata():
             record["reference"] for record in _document(path.name)["eos_records"]
         )
 
-    assert len(references) == 135
+    assert len(references) == 138
     assert {reference for reference in references if "doi:" not in reference} == (
         no_registered_doi
     )
