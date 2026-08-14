@@ -156,6 +156,13 @@ class CrystalState:
     #: active record so downstream tools need not re-inspect eos_records.
     eos_parameter_errors: dict = field(default_factory=dict)
     eos_fixed_parameters: list = field(default_factory=list)
+    #: Serializable structure input used to extend PhaseSmith reflection
+    #: coverage after a new calibration or pattern increases the measured Q
+    #: range. Empty for legacy/manual JCPDS phases.
+    reflection_source: dict = field(default_factory=dict)
+    reflection_q_max: float = 0.0
+    reflection_wavelength: float = 0.0
+    reflection_intensity_cutoff: float = 0.5
     #: whether the phase no longer matches the file it came from (the
     #: asterisk in the GUI); flipped by the params view on state writes
     modified: bool = False

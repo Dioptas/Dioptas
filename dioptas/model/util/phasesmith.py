@@ -9,6 +9,7 @@ fallback for legacy materials whose structure is incomplete.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from functools import lru_cache
 from math import asin, degrees, pi
 from typing import TYPE_CHECKING
@@ -24,6 +25,7 @@ if TYPE_CHECKING:
 DEFAULT_WAVELENGTH_ANGSTROM = 0.31
 DEFAULT_MIN_D_SPACING_ANGSTROM = 0.5
 DEFAULT_MIN_INTENSITY_PERCENT = 0.5
+REFLECTION_Q_MARGIN = 1.05
 TWO_THETA_MERGE_TOLERANCE_DEG = 1.0e-5
 
 # Short monoclinic symbols do not always select a unique conventional setting.
@@ -149,6 +151,92 @@ def calculate_material_reflections(
     return calculate_structure_reflections(
         structure,
         generator=generator,
+        minimum_d_spacing=minimum_d_spacing,
+        minimum_intensity=minimum_intensity,
+        wavelength_angstrom=wavelength_angstrom,
+    )
+
+
+def minimum_d_spacing_for_pattern(
+    x_values,
+    unit: str,
+    wavelength_angstrom: float,
+    *,
+    fallback: float = DEFAULT_MIN_D_SPACING_ANGSTROM,
+    q_margin: float = REFLECTION_Q_MARGIN,
+) -> float:
+    """Return the d cutoff covering the complete pattern plus a Q margin."""
+
+    values = np.asarray(x_values, dtype=float)
+    values = values[np.isfinite(values)]
+    if not len(values) or wavelength_angstrom <= 0:
+        return fallback
+
+    if unit == "q_A^-1":
+        positive = values[values > 0]
+        measured_q_max = float(np.max(positive)) if len(positive) else 0.0
+    elif unit == "d_A":
+        positive = values[values > 0]
+        measured_q_max = (
+            float(2.0 * pi / np.min(positive)) if len(positive) else 0.0
+        )
+    elif unit == "2th_deg":
+        valid = values[(values > 0) & (values < 180)]
+        measured_q_max = (
+            float(
+                np.max(
+                    4.0
+                    * pi
+                    / wavelength_angstrom
+                    * np.sin(np.deg2rad(valid) / 2.0)
+                )
+            )
+            if len(valid)
+            else 0.0
+        )
+    else:
+        raise ValueError(f"unsupported diffraction unit {unit!r}")
+
+    if measured_q_max <= 0:
+        return fallback
+
+    # The LP correction is defined only inside the elastic-scattering sphere.
+    physical_q_max = np.nextafter(4.0 * pi / wavelength_angstrom, 0.0)
+    target_q_max = min(measured_q_max * q_margin, physical_q_max)
+    return 2.0 * pi / target_q_max
+
+
+def calculate_reflection_source(
+    source: dict,
+    *,
+    minimum_d_spacing: float,
+    minimum_intensity: float,
+    wavelength_angstrom: float,
+) -> list[tuple[int, int, int, float, float]]:
+    """Recalculate reflections from a serializable phase structure source."""
+
+    kind = source.get("kind")
+    if kind == "material":
+        from ..eos.material import Material
+
+        structure = structure_from_material(Material.from_dict(source["material"]))
+    elif kind == "cif":
+        from phasesmith.io.cif import read_cif
+
+        structure = read_cif(source["text"], strict=False).structure
+        # Preserve Dioptas' neutral-atom scattering convention for CIFs.
+        structure = replace(
+            structure,
+            sites=tuple(
+                replace(site, type_symbol=site.element_symbol, charge=None)
+                for site in structure.sites
+            ),
+        )
+    else:
+        raise ValueError(f"unsupported reflection source {kind!r}")
+
+    return calculate_structure_reflections(
+        structure,
         minimum_d_spacing=minimum_d_spacing,
         minimum_intensity=minimum_intensity,
         wavelength_angstrom=wavelength_angstrom,

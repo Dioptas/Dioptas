@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import os
 from dataclasses import replace
+from math import pi
+from pathlib import Path
 
 from .jcpds import jcpds, jcpds_reflection
 
@@ -68,5 +70,12 @@ class CifConverter:
 
         phase.filename = filename
         phase.name = os.path.splitext(os.path.basename(filename))[0]
+        phase.state.reflection_source = {
+            "kind": "cif",
+            "text": Path(filename).read_text(encoding="utf-8"),
+        }
+        phase.state.reflection_q_max = 2.0 * pi / self.min_d_spacing
+        phase.state.reflection_wavelength = self.wavelength
+        phase.state.reflection_intensity_cutoff = self.min_intensity
         phase.params["modified"] = False
         return phase

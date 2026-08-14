@@ -19,8 +19,16 @@ logger = logging.getLogger(__name__)
 
 class EosDatabaseController(object):
 
-    def __init__(self, parent_widget=None):
+    def __init__(
+        self,
+        parent_widget=None,
+        *,
+        minimum_d_spacing: float = 0.5,
+        wavelength_angstrom: float = 0.31,
+    ):
         self.dialog = EosDatabaseDialog(parent_widget)
+        self.minimum_d_spacing = minimum_d_spacing
+        self.wavelength_angstrom = wavelength_angstrom
         self.materials = eos.load_materials()
         self.shown_materials = list(self.materials)
         #: jcpds object built when the user clicks "Load as Phase"
@@ -61,7 +69,12 @@ class EosDatabaseController(object):
         record_index = self.dialog.selected_eos_row()
         if record_index < 0:
             record_index = material.default_eos_index
-        self.result_phase = eos.build_jcpds(material, record_index)
+        self.result_phase = eos.build_jcpds(
+            material,
+            record_index,
+            minimum_d_spacing=self.minimum_d_spacing,
+            wavelength_angstrom=self.wavelength_angstrom,
+        )
         self.dialog.accept()
 
     def export(self):

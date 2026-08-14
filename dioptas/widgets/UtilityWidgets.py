@@ -102,6 +102,10 @@ class CifConversionParametersDialog(QtWidgets.QDialog):
         """
         return float(str(self.min_d_spacing_txt.text()))
 
+    def set_minimum_d_spacing(self, value):
+        """Set the pattern-derived cutoff while keeping it user-editable."""
+        self.min_d_spacing_txt.setText(f"{float(value):.5g}")
+
     def exec_(self):
         """
         Overwriting the dialog exec_ function to center the widget in the parent window before execution.

@@ -14,11 +14,19 @@ from __future__ import annotations
 
 import copy
 import json
+from math import pi
 
 from .material import Material, record_eos_type, record_label
 
 
-def build_jcpds(material: Material, record_index: int | None = None):
+def build_jcpds(
+    material: Material,
+    record_index: int | None = None,
+    *,
+    minimum_d_spacing: float = 0.5,
+    minimum_intensity: float = 0.5,
+    wavelength_angstrom: float = 0.31,
+):
     """
     Build a Dioptas ``jcpds`` object from a Material, applying the EoS
     preferred record (or the explicitly supplied *record_index*) when the
@@ -78,7 +86,22 @@ def build_jcpds(material: Material, record_index: int | None = None):
         material_has_complete_structure,
     )
     if material_has_complete_structure(material):
-        peak_rows = calculate_material_reflections(material)
+        peak_rows = calculate_material_reflections(
+            material,
+            minimum_d_spacing=minimum_d_spacing,
+            minimum_intensity=minimum_intensity,
+            wavelength_angstrom=wavelength_angstrom,
+        )
+        structure_document = material.to_dict()
+        structure_document["peaks"] = []
+        structure_document["eos_records"] = []
+        obj.state.reflection_source = {
+            "kind": "material",
+            "material": structure_document,
+        }
+        obj.state.reflection_q_max = 2.0 * pi / minimum_d_spacing
+        obj.state.reflection_wavelength = wavelength_angstrom
+        obj.state.reflection_intensity_cutoff = minimum_intensity
     else:
         peak_rows = material.peaks
     for h, k, l, d0, intensity in peak_rows:

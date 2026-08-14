@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+from math import isclose, pi
 
 import numpy as np
 from xypattern import Pattern
@@ -110,6 +111,7 @@ class PhaseModel:
         filename: str,
         intensity_cutoff: float = 0.5,
         minimum_d_spacing: float = 0.5,
+        wavelength_angstrom: float = 0.31,
     ) -> None:
         """
         Adds a cif file. Internally it is converted to a jcpds format. It calculates
@@ -117,7 +119,9 @@ class PhaseModel:
         """
         logger.info("Adding CIF phase: %s", filename)
         try:
-            cif_converter = CifConverter(0.31, minimum_d_spacing, intensity_cutoff)
+            cif_converter = CifConverter(
+                wavelength_angstrom, minimum_d_spacing, intensity_cutoff
+            )
             jcpds_object = cif_converter.convert_cif_to_jcpds(filename)
             self.add_jcpds_object(jcpds_object, filename=filename)
         except (ZeroDivisionError, UnboundLocalError, ValueError) as e:
@@ -157,6 +161,58 @@ class PhaseModel:
         self.get_lines_d(-1)
         self.phase_added.emit()
         self.phase_changed.emit(len(self.phases) - 1)
+
+    def ensure_structure_reflection_coverage(
+        self,
+        minimum_d_spacing: float,
+        wavelength_angstrom: float,
+    ) -> list[int]:
+        """Extend structure-backed phases to a required experimental range.
+
+        The supplied d cutoff already includes the experiment's Q margin.
+        Existing coverage is retained unless a wavelength change reduces the
+        physically accessible scattering sphere. Pressure and temperature do
+        not call this method; they only move the cached reflections.
+        """
+
+        from .util.phasesmith import calculate_reflection_source
+
+        requested_q_max = 2.0 * pi / minimum_d_spacing
+        physical_q_max = np.nextafter(4.0 * pi / wavelength_angstrom, 0.0)
+        changed = []
+        for ind, phase in enumerate(self.phases):
+            source = phase.state.reflection_source
+            if not source or phase.state.modified:
+                continue
+
+            old_q_max = phase.state.reflection_q_max
+            wavelength_changed = not isclose(
+                phase.state.reflection_wavelength,
+                wavelength_angstrom,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+            if requested_q_max <= old_q_max * (1.0 + 1e-12) and not wavelength_changed:
+                continue
+
+            target_q_max = min(max(requested_q_max, old_q_max), physical_q_max)
+            rows = calculate_reflection_source(
+                source,
+                minimum_d_spacing=2.0 * pi / target_q_max,
+                minimum_intensity=phase.state.reflection_intensity_cutoff,
+                wavelength_angstrom=wavelength_angstrom,
+            )
+            phase.reflections = [
+                jcpds_reflection(h=h, k=k, l=l, intensity=intensity, d=d0)
+                for h, k, l, d0, intensity in rows
+            ]
+            phase.state.reflection_q_max = target_q_max
+            phase.state.reflection_wavelength = wavelength_angstrom
+            phase.compute_d()
+            self.get_lines_d(ind)
+            self.phase_changed.emit(ind)
+            changed.append(ind)
+        return changed
 
     def save_phase_as(self, ind: int, filename: str) -> None:
         """Save the phase specified with ind as a jcpds file."""

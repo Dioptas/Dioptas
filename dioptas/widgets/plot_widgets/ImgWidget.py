@@ -831,9 +831,10 @@ class CakePhasePlot:
     def add_line(self):
         self.line_items.append(pg.InfiniteLine(angle=90))
         self.line_visible.append(True)
-        self.plot_item.blockSignals(True)
-        self.plot_item.addItem(self.line_items[-1])
-        self.plot_item.blockSignals(False)
+        if self.visible:
+            self.plot_item.blockSignals(True)
+            self.plot_item.addItem(self.line_items[-1])
+            self.plot_item.blockSignals(False)
 
     def delete_line(self, ind=-1):
         if self.line_items[ind].scene() == self.plot_item.scene():
@@ -854,6 +855,8 @@ class CakePhasePlot:
         """
         self.positions = positions
         self.intensities = intensities
+        while len(self.line_items) < len(positions):
+            self.add_line()
         self.update_visibilities()
 
         for ind, intensity in enumerate(intensities):

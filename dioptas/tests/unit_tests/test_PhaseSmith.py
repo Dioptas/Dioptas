@@ -2,13 +2,16 @@
 """Tests for the PhaseSmith phase-line adapter."""
 
 from copy import deepcopy
+from math import asin, degrees, pi
 
+import numpy as np
 import pytest
 
 from ...model import eos
 from ...model.util.phasesmith import (
     calculate_material_reflections,
     material_has_complete_structure,
+    minimum_d_spacing_for_pattern,
 )
 
 
@@ -36,6 +39,36 @@ def test_builder_ignores_stale_peaks_when_structure_is_complete():
     assert material_has_complete_structure(gold)
     assert len(phase.reflections) > 1
     assert all(reflection.d0 != 99.0 for reflection in phase.reflections)
+
+
+@pytest.mark.parametrize(
+    ("unit", "x_values"),
+    [
+        ("q_A^-1", np.array([1.0, 20.0])),
+        ("d_A", np.array([2.0 * pi / 20.0, 4.0])),
+        (
+            "2th_deg",
+            np.array([5.0, degrees(2.0 * asin(20.0 * 0.31 / (4.0 * pi)))]),
+        ),
+    ],
+)
+def test_pattern_cutoff_adds_five_percent_q_margin(unit, x_values):
+    minimum_d = minimum_d_spacing_for_pattern(x_values, unit, 0.31)
+
+    assert 2.0 * pi / minimum_d == pytest.approx(21.0)
+
+
+def test_gold_builder_uses_requested_pattern_coverage():
+    gold = _material("Au")
+    phase = eos.build_jcpds(
+        gold,
+        minimum_d_spacing=2.0 * pi / 21.0,
+        wavelength_angstrom=0.31,
+    )
+
+    assert len(phase.reflections) > 22
+    assert phase.state.reflection_q_max == pytest.approx(21.0)
+    assert phase.state.reflection_source["kind"] == "material"
 
 
 def test_builder_uses_stored_peaks_for_incomplete_structure():

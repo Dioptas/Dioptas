@@ -202,6 +202,32 @@ def test_records_survive_project_round_trip(gold, tmp_path):
     assert loaded_phase.params["k0"] == pytest.approx(first["K0"])
 
 
+def test_structure_source_survives_project_and_can_extend_lines(gold, tmp_path):
+    from math import pi
+
+    from ...model.DioptasModel import DioptasModel
+
+    model = DioptasModel()
+    phase = eos.build_jcpds(gold)
+    model.phase_model.add_jcpds_object(phase, filename=phase.filename)
+    filename = str(tmp_path / "structure-source.dio")
+    model.save(filename)
+
+    loaded = DioptasModel()
+    loaded.load(filename)
+    loaded_phase = loaded.phase_model.phases[0]
+    initial_count = len(loaded_phase.reflections)
+
+    changed = loaded.phase_model.ensure_structure_reflection_coverage(
+        2.0 * pi / 21.0,
+        0.31,
+    )
+
+    assert loaded_phase.state.reflection_source["kind"] == "material"
+    assert changed == [0]
+    assert len(loaded_phase.reflections) > initial_count
+
+
 def test_eosmat_round_trip(materials, tmp_path):
     # Coesite is monoclinic — its non-orthogonal angle must survive the round trip.
     coesite = next(m for m in materials if m.name == "Coesite")

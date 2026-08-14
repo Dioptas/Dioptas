@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 import os
+from math import pi
 
 import numpy as np
 import pytest
@@ -115,6 +116,62 @@ def test_add_cif(phase_model):
     assert len(phase_model.phases) == 1
     assert len(phase_model.reflections) == 1
     assert phase_model.phase_files[0] == cif_path
+    assert phase_model.phases[0].state.reflection_source["kind"] == "cif"
+
+
+def test_structure_reflections_grow_with_pattern_coverage(phase_model):
+    from ...model import eos
+
+    gold = next(
+        material
+        for material in eos.load_materials()
+        if material.formula == "Au" and material.atom_sites
+    )
+    phase = eos.build_jcpds(gold)
+    phase_model.add_jcpds_object(phase, filename=phase.filename)
+    initial_count = len(phase.reflections)
+
+    changed = phase_model.ensure_structure_reflection_coverage(
+        2.0 * pi / 21.0,
+        0.31,
+    )
+
+    assert changed == [0]
+    assert len(phase.reflections) > initial_count
+    assert phase.state.reflection_q_max == pytest.approx(21.0)
+    assert phase_model.ensure_structure_reflection_coverage(
+        2.0 * pi / 20.0,
+        0.31,
+    ) == []
+
+
+def test_pressure_and_temperature_keep_cached_reflections(phase_model):
+    from ...model import eos
+
+    gold = next(
+        material
+        for material in eos.load_materials()
+        if material.formula == "Au" and material.atom_sites
+    )
+    phase = eos.build_jcpds(
+        gold,
+        minimum_d_spacing=2.0 * pi / 21.0,
+        wavelength_angstrom=0.31,
+    )
+    phase_model.add_jcpds_object(phase, filename=phase.filename)
+    reflection_identity = [
+        (reflection.h, reflection.k, reflection.l, reflection.intensity)
+        for reflection in phase.reflections
+    ]
+
+    phase_model.set_pressure(0, 50.0)
+    phase_model.set_temperature(0, 1000.0)
+
+    assert [
+        (reflection.h, reflection.k, reflection.l, reflection.intensity)
+        for reflection in phase.reflections
+    ] == reflection_identity
+    assert phase.state.reflection_q_max == pytest.approx(21.0)
 
 
 def test_add_cif_invalid_file_raises(phase_model):

@@ -120,7 +120,12 @@ class PhaseController:
     def browse_db_btn_click_callback(self):
         """Open the EoS database browser and load the chosen material as a phase."""
         from .EosDatabaseController import EosDatabaseController
-        controller = EosDatabaseController(self.integration_widget)
+        minimum_d_spacing, wavelength = self._reflection_calculation_parameters()
+        controller = EosDatabaseController(
+            self.integration_widget,
+            minimum_d_spacing=minimum_d_spacing,
+            wavelength_angstrom=wavelength,
+        )
         jcpds_object = controller.exec_()
         if jcpds_object is not None:
             self.model.phase_model.add_jcpds_object(
@@ -131,19 +136,48 @@ class PhaseController:
             if filename.endswith("jcpds"):
                 self.model.phase_model.add_jcpds(filename)
             elif filename.endswith(".cif"):
+                minimum_d_spacing, wavelength = (
+                    self._reflection_calculation_parameters()
+                )
+                self.cif_conversion_dialog.set_minimum_d_spacing(
+                    minimum_d_spacing
+                )
                 self.cif_conversion_dialog.exec_()
-                self.model.phase_model.add_cif(filename,
-                                               self.cif_conversion_dialog.int_cutoff,
-                                               self.cif_conversion_dialog.min_d_spacing)
+                self.model.phase_model.add_cif(
+                    filename,
+                    self.cif_conversion_dialog.int_cutoff,
+                    self.cif_conversion_dialog.min_d_spacing,
+                    wavelength,
+                )
             elif filename.endswith(".eosmat"):
                 from ....model.eos import load_material_file, build_jcpds
-                jcpds_obj = build_jcpds(load_material_file(filename))
+                minimum_d_spacing, wavelength = (
+                    self._reflection_calculation_parameters()
+                )
+                jcpds_obj = build_jcpds(
+                    load_material_file(filename),
+                    minimum_d_spacing=minimum_d_spacing,
+                    wavelength_angstrom=wavelength,
+                )
                 jcpds_obj._filename = filename
                 self.model.phase_model.add_jcpds_object(jcpds_obj, filename=filename)
         except PhaseLoadError as e:
             self.integration_widget.show_error_msg(
                 'Could not load:\n\n{}.\n\nPlease check if the format of the input file is correct.'. \
                     format(e.filename))
+
+    def _reflection_calculation_parameters(self):
+        """Return pattern-derived d cutoff and the experimental wavelength."""
+        from ....model.util.phasesmith import minimum_d_spacing_for_pattern
+
+        wavelength = self.model.calibration_model.wavelength * 1e10
+        pattern_x = self.model.pattern.data[0]
+        minimum_d_spacing = minimum_d_spacing_for_pattern(
+            pattern_x,
+            self.model.integration_unit,
+            wavelength,
+        )
+        return minimum_d_spacing, wavelength
 
     def phase_added(self):
         color = self.model.phase_model.phase_colors[-1]
