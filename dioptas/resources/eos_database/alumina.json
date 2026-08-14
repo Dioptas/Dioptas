@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Alumina",
  "formula": "Al2O3",
  "symmetry": "HEXAGONAL",
@@ -23,7 +23,17 @@
  "eos_records": [
   {
    "label": "Dewaele and Torrent (2013), constrained Vinet",
-   "reference": "Dewaele and Torrent, Phys. Rev. B 88, 064107 (2013), doi:10.1103/PhysRevB.88.064107",
+   "reference": {
+    "authors": [
+     "Dewaele",
+     "Torrent"
+    ],
+    "year": 2013,
+    "source": "Phys. Rev. B",
+    "volume": "88",
+    "locator": "064107",
+    "doi": "10.1103/PhysRevB.88.064107"
+   },
    "eos": {
     "type": "Vinet",
     "parameters": {

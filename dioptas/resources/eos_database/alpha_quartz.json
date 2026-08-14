@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Alpha quartz",
  "formula": "SiO2",
  "symmetry": "TRIGONAL",
@@ -23,7 +23,17 @@
  "eos_records": [
   {
    "label": "Angel et al. (1997), single-crystal BM3",
-   "reference": "Angel et al., Journal of Applied Crystallography 30, 461-466 (1997), doi:10.1107/S0021889897000861",
+   "reference": {
+    "authors": [
+     "Angel"
+    ],
+    "authors_truncated": true,
+    "year": 1997,
+    "source": "Journal of Applied Crystallography",
+    "volume": "30",
+    "locator": "461-466",
+    "doi": "10.1107/S0021889897000861"
+   },
    "temperature_ref": 298.0,
    "experimental_pressure_range_gpa": [0.0, 8.9],
    "experimental_temperature_range_k": [298.0, 298.0],

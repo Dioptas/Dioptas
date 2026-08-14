@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Ca-perovskite",
  "formula": "CaSiO3",
  "symmetry": "CUBIC",
@@ -24,7 +24,17 @@
  "eos_records": [
   {
    "label": "using aristotype, EOS by Mao et al 1989",
-   "reference": "Mao et al., J. Geophys. Res. 94, 17889-17894 (1989), doi:10.1029/JB094iB12p17889",
+   "reference": {
+    "authors": [
+     "Mao"
+    ],
+    "authors_truncated": true,
+    "year": 1989,
+    "source": "J. Geophys. Res.",
+    "volume": "94",
+    "locator": "17889-17894",
+    "doi": "10.1029/JB094iB12p17889"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

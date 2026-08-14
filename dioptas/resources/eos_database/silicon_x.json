@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Silicon (Si-X, fcc)",
  "formula": "Si",
  "symmetry": "CUBIC",
@@ -22,7 +22,17 @@
  "eos_records": [
   {
    "label": "Anzellini et al. (2019), 300 K Vinet",
-   "reference": "Anzellini et al., Sci. Rep. 9, 15537 (2019), doi:10.1038/s41598-019-51931-1",
+   "reference": {
+    "authors": [
+     "Anzellini"
+    ],
+    "authors_truncated": true,
+    "year": 2019,
+    "source": "Sci. Rep.",
+    "volume": "9",
+    "locator": "15537",
+    "doi": "10.1038/s41598-019-51931-1"
+   },
    "eos": {
     "type": "Vinet",
     "parameters": {

@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Lithium fluoride (B1)",
  "formula": "LiF",
  "symmetry": "CUBIC",
@@ -23,7 +23,16 @@
  "eos_records": [
   {
    "label": "Dewaele (2019), 300 K helium-medium Vinet",
-   "reference": "Dewaele, Minerals 9, 684 (2019), doi:10.3390/min9110684",
+   "reference": {
+    "authors": [
+     "Dewaele"
+    ],
+    "year": 2019,
+    "source": "Minerals",
+    "volume": "9",
+    "locator": "684",
+    "doi": "10.3390/min9110684"
+   },
    "eos": {
     "type": "Vinet",
     "parameters": {

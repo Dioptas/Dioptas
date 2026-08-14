@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "CaO",
  "formula": "CaO",
  "symmetry": "CUBIC",
@@ -23,7 +23,18 @@
  "eos_records": [
   {
    "label": "JCPDS 37-1497, EOS by Richet et al 1988",
-   "reference": "Richet, Mao, and Bell, J. Geophys. Res. 93, 15279-15288 (1988), doi:10.1029/JB093iB12p15279",
+   "reference": {
+    "authors": [
+     "Richet",
+     "Mao",
+     "Bell"
+    ],
+    "year": 1988,
+    "source": "J. Geophys. Res.",
+    "volume": "93",
+    "locator": "15279-15288",
+    "doi": "10.1029/JB093iB12p15279"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

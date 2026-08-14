@@ -8,7 +8,7 @@ One material document (a ``.json`` file in ``resources/eos_database/``, or
 a user-saved ``.eosmat`` file — same content) looks like::
 
     {
-      "format_version": 1,
+      "format_version": 2,
       "name": "Gold",
       "formula": "Au",
       "symmetry": "CUBIC",
@@ -32,8 +32,15 @@ equations of state (or thermal models) in Peritheos need data only — no
 schema change::
 
     {
-      "label": "Anderson et al 1989",        # short display label
-      "reference": "full literature reference",
+      "label": "Anderson et al 1989",        # record-specific label
+      "reference": {
+          "authors": ["Anderson", "Isaak", "Yamamoto"],
+          "year": 1989,
+          "source": "J. Appl. Phys.",
+          "volume": "65",
+          "locator": "1534-1543",
+          "doi": "10.1063/1.342969"
+      },
       "default": true,                        # optional preferred record
       "eos": {"type": "BM3",                 # peritheos.eos.rt class name
               "parameters": {"V0": 67.847, "K0": 166.65,
@@ -53,6 +60,11 @@ schema change::
       "temperature_ref": 298.15,             # optional, K
       "notes": "..."                         # optional
     }
+
+``reference.authors_truncated`` is true when the publication itself names
+only the first author followed by "et al.". ``volume``, ``locator``, ``doi``,
+and a free-form ``details`` field (for example, a table or supplementary
+workbook) are optional.
 
 ``thermal.type`` is reserved for ``peritheos.eos.thermal`` class names
 (``MieGruneisenDebye``, ``HollandPowell2011``, ...); the one exception is
@@ -160,7 +172,7 @@ class Material:
 
     def to_dict(self) -> dict:
         return {
-            "format_version": 1,
+            "format_version": 2,
             "name": self.name,
             "formula": self.formula,
             "symmetry": self.symmetry,
@@ -206,9 +218,109 @@ class Material:
 
 def record_label(record: dict) -> str:
     """Display label, including the experimental fit domain when known."""
-    label = record.get("label") or record.get("reference") or ""
+    label = record.get("label") or reference_short(record.get("reference"))
     pressure_range = record_pressure_range(record)
     return f"{label} [{pressure_range}]" if pressure_range else label
+
+
+def reference_authors(reference: dict | str | None) -> str:
+    """Compact author display (``Dewaele et al.``) for a reference."""
+    if not isinstance(reference, dict):
+        return _legacy_reference_authors(reference or "")
+
+    authors = [str(author) for author in reference.get("authors", [])
+               if author]
+    if not authors:
+        return ""
+    if reference.get("authors_truncated") or len(authors) > 2:
+        return f"{authors[0]} et al."
+    if len(authors) == 2:
+        return f"{authors[0]} and {authors[1]}"
+    return authors[0]
+
+
+def reference_year(reference: dict | str | None) -> str:
+    """Publication year as display text, including legacy string records."""
+    if isinstance(reference, dict):
+        year = reference.get("year")
+        return str(year) if year is not None else ""
+    matches = re.findall(r"\((\d{4})\)", reference or "")
+    return matches[-1] if matches else ""
+
+
+def reference_short(reference: dict | str | None) -> str:
+    """Compact author/year citation suitable for narrow controls."""
+    authors = reference_authors(reference)
+    year = reference_year(reference)
+    if authors and year:
+        return f"{authors} ({year})"
+    return authors or year or reference_text(reference)
+
+
+def reference_text(reference: dict | str | None) -> str:
+    """
+    Reconstruct the complete citation from a structured reference.
+
+    String references remain supported for projects and ``.eosmat`` files
+    created by versions using the format-1 schema.
+    """
+    if not reference:
+        return ""
+    if isinstance(reference, str):
+        return reference
+    if not isinstance(reference, dict):
+        return str(reference)
+
+    authors = [str(author) for author in reference.get("authors", [])
+               if author]
+    if reference.get("authors_truncated") and authors:
+        author_text = f"{authors[0]} et al."
+    elif len(authors) > 2:
+        author_text = f"{', '.join(authors[:-1])}, and {authors[-1]}"
+    elif len(authors) == 2:
+        author_text = f"{authors[0]} and {authors[1]}"
+    else:
+        author_text = authors[0] if authors else ""
+
+    source = str(reference.get("source") or "")
+    volume = str(reference.get("volume") or "")
+    locator = str(reference.get("locator") or "")
+    publication = source
+    if volume:
+        publication += f" {volume}"
+    if locator:
+        publication += f", {locator}"
+
+    parts = [part for part in (author_text, publication) if part]
+    text = ", ".join(parts)
+    year = reference.get("year")
+    if year is not None:
+        text += f" ({year})"
+    details = reference.get("details")
+    if details:
+        text += f", {details}"
+    doi = reference.get("doi")
+    if doi:
+        text += f", doi:{doi}"
+    return text
+
+
+def _legacy_reference_authors(reference: str) -> str:
+    """Best-effort compact author text for a format-1 citation string."""
+    if not reference:
+        return ""
+    prefix = reference.split(",", 1)[0].strip()
+    if " et al." in prefix:
+        return prefix
+    if " and " in prefix:
+        return prefix
+    # Multi-author legacy strings put the conjunction after a comma.
+    match = re.match(r"^(.+?, and [^,]+),", reference)
+    if match:
+        names = [name.strip() for name in
+                 match.group(1).replace(", and ", ", ").split(",")]
+        return f"{names[0]} et al." if len(names) > 2 else match.group(1)
+    return prefix
 
 
 def record_pressure_range(record: dict) -> str:

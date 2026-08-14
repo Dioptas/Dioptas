@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Aragonite",
  "formula": "CaCO3",
  "symmetry": "ORTHORHOMBIC",
@@ -25,7 +25,17 @@
  "eos_records": [
   {
    "label": "Martinez et al. (1996)",
-   "reference": "Martinez et al., American Mineralogist 81, 611-624 (1996), doi:10.2138/am-1996-5-608",
+   "reference": {
+    "authors": [
+     "Martinez"
+    ],
+    "authors_truncated": true,
+    "year": 1996,
+    "source": "American Mineralogist",
+    "volume": "81",
+    "locator": "611-624",
+    "doi": "10.2138/am-1996-5-608"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

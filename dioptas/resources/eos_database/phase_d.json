@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "PHASE D",
  "formula": "",
  "symmetry": "HEXAGONAL",
@@ -83,7 +83,17 @@
  "eos_records": [
   {
    "label": "Shieh et al. (2000)",
-   "reference": "Shieh et al., Earth Planet. Sci. Lett. 177, 69-80 (2000), doi:10.1016/S0012-821X(00)00033-9",
+   "reference": {
+    "authors": [
+     "Shieh"
+    ],
+    "authors_truncated": true,
+    "year": 2000,
+    "source": "Earth Planet. Sci. Lett.",
+    "volume": "177",
+    "locator": "69-80",
+    "doi": "10.1016/S0012-821X(00)00033-9"
+   },
    "eos": {
     "type": "BM2",
     "parameters": {

@@ -60,7 +60,11 @@ class EosDatabaseController(object):
             return
         self.dialog.fill_eos_records([
             _record_row(record) for record in material.eos_records],
-            selected_row=material.default_eos_index)
+            selected_row=material.default_eos_index,
+            reference_tooltips=[
+                eos.reference_text(record.get("reference"))
+                for record in material.eos_records
+            ])
 
     def load(self):
         material = self._selected_material(self.dialog.selected_material_row())
@@ -114,7 +118,8 @@ def _record_row(record: dict) -> tuple:
         k0p_text = _parameter_text(record, "K0_prime", ".2f")
     return (
         eos_block.get("type") or "",
-        record.get("reference") or eos.record_label(record),
+        eos.reference_authors(record.get("reference")),
+        eos.reference_year(record.get("reference")),
         eos.record_pressure_range(record),
         _parameter_text(record, "K0", ".1f"),
         k0p_text,

@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "NaCl (B1)",
  "formula": "NaCl",
  "symmetry": "CUBIC",
@@ -23,7 +23,17 @@
  "eos_records": [
   {
    "label": "Shen and Smith (2026), Cu-referenced Vinet",
-   "reference": "Shen and Smith, Phys. Rev. B 113, 144113 (2026), doi:10.1103/fxgq-96sg",
+   "reference": {
+    "authors": [
+     "Shen",
+     "Smith"
+    ],
+    "year": 2026,
+    "source": "Phys. Rev. B",
+    "volume": "113",
+    "locator": "144113",
+    "doi": "10.1103/fxgq-96sg"
+   },
    "eos": {
     "type": "Vinet",
     "parameters": {

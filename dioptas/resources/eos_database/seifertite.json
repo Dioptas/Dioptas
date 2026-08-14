@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Seifertite",
  "formula": "SiO2",
  "symmetry": "ORTHORHOMBIC",
@@ -16,7 +16,17 @@
  "eos_records": [
   {
    "label": "Sun et al. (2019), BM2-MGD",
-   "reference": "Sun et al., J. Geophys. Res. Solid Earth 124, 12620-12630 (2019), doi:10.1029/2019JB017853",
+   "reference": {
+    "authors": [
+     "Sun"
+    ],
+    "authors_truncated": true,
+    "year": 2019,
+    "source": "J. Geophys. Res. Solid Earth",
+    "volume": "124",
+    "locator": "12620-12630",
+    "doi": "10.1029/2019JB017853"
+   },
    "eos": {"type": "BM2", "parameters": {"V0": 92.3, "K0": 290.0}},
    "parameter_errors": {"V0": 0.5, "K0": 10.0},
    "fixed_parameters": [],

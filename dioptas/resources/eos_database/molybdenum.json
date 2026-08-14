@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Molybdenum",
  "formula": "Mo",
  "symmetry": "CUBIC",
@@ -22,7 +22,17 @@
  "eos_records": [
   {
    "label": "Shen and Smith (2026), Cu-referenced Vinet",
-   "reference": "Shen and Smith, Phys. Rev. B 113, 144113 (2026), doi:10.1103/fxgq-96sg",
+   "reference": {
+    "authors": [
+     "Shen",
+     "Smith"
+    ],
+    "year": 2026,
+    "source": "Phys. Rev. B",
+    "volume": "113",
+    "locator": "144113",
+    "doi": "10.1103/fxgq-96sg"
+   },
    "eos": {
     "type": "Vinet",
     "parameters": {
@@ -45,7 +55,19 @@
   },
   {
    "label": "Sokolova et al. (2016), Holzapfel thermal model",
-   "reference": "Sokolova, Dorogokupets, and Litasov, Comput. Geosci. 94, 162-169 (2016), supplementary workbook 7, doi:10.1016/j.cageo.2016.06.002",
+   "reference": {
+    "authors": [
+     "Sokolova",
+     "Dorogokupets",
+     "Litasov"
+    ],
+    "year": 2016,
+    "source": "Comput. Geosci.",
+    "volume": "94",
+    "locator": "162-169",
+    "details": "supplementary workbook 7",
+    "doi": "10.1016/j.cageo.2016.06.002"
+   },
    "eos": {"type": "Holzapfel", "parameters": {"V0": 31.115177217273953, "K0": 260.0, "K0_prime": 4.2}},
    "parameter_errors": {"V0": null, "K0": null, "K0_prime": null},
    "fixed_parameters": [],

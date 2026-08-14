@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Titanium (omega)",
  "formula": "Ti",
  "symmetry": "HEXAGONAL",
@@ -16,7 +16,17 @@
  "eos_records": [
   {
    "label": "Dewaele et al. (2015), omega Vinet",
-   "reference": "Dewaele et al., Phys. Rev. B 91, 134108 (2015), doi:10.1103/PhysRevB.91.134108",
+   "reference": {
+    "authors": [
+     "Dewaele"
+    ],
+    "authors_truncated": true,
+    "year": 2015,
+    "source": "Phys. Rev. B",
+    "volume": "91",
+    "locator": "134108",
+    "doi": "10.1103/PhysRevB.91.134108"
+   },
    "eos": {"type": "Vinet", "parameters": {"V0": 52.38, "K0": 106.9, "K0_prime": 3.68}},
    "parameter_errors": {"V0": 0.3, "K0": 6.0, "K0_prime": 0.2},
    "fixed_parameters": [],

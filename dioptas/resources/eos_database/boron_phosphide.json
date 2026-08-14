@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Boron phosphide",
  "formula": "BP",
  "symmetry": "CUBIC",
@@ -23,7 +23,17 @@
  "eos_records": [
   {
    "label": "Le Godec et al. (2014), 300 K Vinet",
-   "reference": "Le Godec et al., J. Superhard Mater. 36, 61-64 (2014), doi:10.3103/S1063457614010092",
+   "reference": {
+    "authors": [
+     "Le Godec"
+    ],
+    "authors_truncated": true,
+    "year": 2014,
+    "source": "J. Superhard Mater.",
+    "volume": "36",
+    "locator": "61-64",
+    "doi": "10.3103/S1063457614010092"
+   },
    "eos": {
     "type": "Vinet",
     "parameters": {

@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "NaAlSi2O6",
  "formula": "NaAlSi2O6",
  "symmetry": "MONOCLINIC",
@@ -27,7 +27,17 @@
  "eos_records": [
   {
    "label": "Jadeite, Zhao et al. (1997)",
-   "reference": "Zhao et al., Geophys. Res. Lett. 24, 5-8 (1997), doi:10.1029/96GL03769",
+   "reference": {
+    "authors": [
+     "Zhao"
+    ],
+    "authors_truncated": true,
+    "year": 1997,
+    "source": "Geophys. Res. Lett.",
+    "volume": "24",
+    "locator": "5-8",
+    "doi": "10.1029/96GL03769"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

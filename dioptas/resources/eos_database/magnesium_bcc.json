@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Magnesium (bcc)",
  "formula": "Mg",
  "symmetry": "CUBIC",
@@ -15,7 +15,17 @@
  "eos_records": [
   {
    "label": "Stinton et al. (2014), bcc Vinet",
-   "reference": "Stinton et al., Phys. Rev. B 90, 134105 (2014), doi:10.1103/PhysRevB.90.134105",
+   "reference": {
+    "authors": [
+     "Stinton"
+    ],
+    "authors_truncated": true,
+    "year": 2014,
+    "source": "Phys. Rev. B",
+    "volume": "90",
+    "locator": "134105",
+    "doi": "10.1103/PhysRevB.90.134105"
+   },
    "eos": {"type": "Vinet", "parameters": {"V0": 46.2788, "K0": 26.3, "K0_prime": 5.1}},
    "parameter_errors": {"V0": 0.0016, "K0": 0.6, "K0_prime": 0.06},
    "fixed_parameters": ["V0"],

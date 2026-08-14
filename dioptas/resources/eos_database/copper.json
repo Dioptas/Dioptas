@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Copper",
  "formula": "Cu",
  "symmetry": "CUBIC",
@@ -22,7 +22,18 @@
  "eos_records": [
   {
    "label": "Dewaele et al. (2004), revised-ruby-scale Vinet",
-   "reference": "Dewaele, Loubeyre, and Mezouar, Phys. Rev. B 70, 094112 (2004), doi:10.1103/PhysRevB.70.094112",
+   "reference": {
+    "authors": [
+     "Dewaele",
+     "Loubeyre",
+     "Mezouar"
+    ],
+    "year": 2004,
+    "source": "Phys. Rev. B",
+    "volume": "70",
+    "locator": "094112",
+    "doi": "10.1103/PhysRevB.70.094112"
+   },
    "eos": {
     "type": "Vinet",
     "parameters": {
@@ -45,7 +56,19 @@
   },
   {
    "label": "Sokolova et al. (2016), Holzapfel thermal model",
-   "reference": "Sokolova, Dorogokupets, and Litasov, Comput. Geosci. 94, 162-169 (2016), supplementary workbook 5, doi:10.1016/j.cageo.2016.06.002",
+   "reference": {
+    "authors": [
+     "Sokolova",
+     "Dorogokupets",
+     "Litasov"
+    ],
+    "year": 2016,
+    "source": "Comput. Geosci.",
+    "volume": "94",
+    "locator": "162-169",
+    "details": "supplementary workbook 5",
+    "doi": "10.1016/j.cageo.2016.06.002"
+   },
    "eos": {"type": "Holzapfel", "parameters": {"V0": 47.239009578237244, "K0": 133.5, "K0_prime": 5.32}},
    "parameter_errors": {"V0": null, "K0": null, "K0_prime": null},
    "fixed_parameters": [],

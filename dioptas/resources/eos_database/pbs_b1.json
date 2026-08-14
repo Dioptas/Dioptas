@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "PbS_B1",
  "formula": "PbS",
  "symmetry": "CUBIC",
@@ -23,7 +23,17 @@
  "eos_records": [
   {
    "label": "Grzechnik and Friese (2010)",
-   "reference": "Knorr et al., Eur. Phys. J. B 31, 297-303 (2003), doi:10.1140/epjb/e2003-00034-6",
+   "reference": {
+    "authors": [
+     "Knorr"
+    ],
+    "authors_truncated": true,
+    "year": 2003,
+    "source": "Eur. Phys. J. B",
+    "volume": "31",
+    "locator": "297-303",
+    "doi": "10.1140/epjb/e2003-00034-6"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

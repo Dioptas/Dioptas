@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Titanium (alpha)",
  "formula": "Ti",
  "symmetry": "HEXAGONAL",
@@ -15,7 +15,17 @@
  "eos_records": [
   {
    "label": "Dewaele et al. (2015), alpha Vinet",
-   "reference": "Dewaele et al., Phys. Rev. B 91, 134108 (2015), doi:10.1103/PhysRevB.91.134108",
+   "reference": {
+    "authors": [
+     "Dewaele"
+    ],
+    "authors_truncated": true,
+    "year": 2015,
+    "source": "Phys. Rev. B",
+    "volume": "91",
+    "locator": "134108",
+    "doi": "10.1103/PhysRevB.91.134108"
+   },
    "eos": {"type": "Vinet", "parameters": {"V0": 35.304, "K0": 110.4, "K0_prime": 4.0}},
    "parameter_errors": {"V0": 0.04, "K0": 2.7, "K0_prime": null},
    "fixed_parameters": ["K0_prime"],

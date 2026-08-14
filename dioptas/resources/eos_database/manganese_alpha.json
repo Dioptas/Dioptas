@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Manganese (alpha)",
  "formula": "Mn",
  "symmetry": "CUBIC",
@@ -18,7 +18,17 @@
  "eos_records": [
   {
    "label": "Magad-Weiss et al. (2021), BM3",
-   "reference": "Magad-Weiss et al., Phys. Rev. B 103, 014101 (2021), doi:10.1103/PhysRevB.103.014101",
+   "reference": {
+    "authors": [
+     "Magad-Weiss"
+    ],
+    "authors_truncated": true,
+    "year": 2021,
+    "source": "Phys. Rev. B",
+    "volume": "103",
+    "locator": "014101",
+    "doi": "10.1103/PhysRevB.103.014101"
+   },
    "eos": {"type": "BM3", "parameters": {"V0": 707.9435488281, "K0": 204.0, "K0_prime": 3.7}},
    "parameter_errors": {"V0": null, "K0": 3.0, "K0_prime": 0.4},
    "fixed_parameters": ["V0"],

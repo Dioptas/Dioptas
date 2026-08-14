@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Bridgmanite",
  "formula": "MgSiO3",
  "symmetry": "ORTHORHOMBIC",
@@ -25,7 +25,17 @@
  "eos_records": [
   {
    "label": "Tange et al. (2012), mantle-range BM3-MGD",
-   "reference": "Tange et al., Journal of Geophysical Research: Solid Earth 117, B06201 (2012), doi:10.1029/2011JB008988",
+   "reference": {
+    "authors": [
+     "Tange"
+    ],
+    "authors_truncated": true,
+    "year": 2012,
+    "source": "Journal of Geophysical Research: Solid Earth",
+    "volume": "117",
+    "locator": "B06201",
+    "doi": "10.1029/2011JB008988"
+   },
    "temperature_ref": 300.0,
    "experimental_pressure_range_gpa": [28.0, 108.0],
    "experimental_temperature_range_k": [300.0, 2430.0],
@@ -57,7 +67,17 @@
   },
   {
    "label": "Tange et al. (2012), mantle-range Vinet-MGD",
-   "reference": "Tange et al., Journal of Geophysical Research: Solid Earth 117, B06201 (2012), doi:10.1029/2011JB008988",
+   "reference": {
+    "authors": [
+     "Tange"
+    ],
+    "authors_truncated": true,
+    "year": 2012,
+    "source": "Journal of Geophysical Research: Solid Earth",
+    "volume": "117",
+    "locator": "B06201",
+    "doi": "10.1029/2011JB008988"
+   },
    "temperature_ref": 300.0,
    "experimental_pressure_range_gpa": [28.0, 108.0],
    "experimental_temperature_range_k": [300.0, 2430.0],
@@ -89,7 +109,17 @@
   },
   {
    "label": "Vanpeteghem et al. (2006), low-pressure single-crystal BM2",
-   "reference": "Vanpeteghem et al., Geophysical Research Letters 33, L03306 (2006), doi:10.1029/2005GL024955",
+   "reference": {
+    "authors": [
+     "Vanpeteghem"
+    ],
+    "authors_truncated": true,
+    "year": 2006,
+    "source": "Geophysical Research Letters",
+    "volume": "33",
+    "locator": "L03306",
+    "doi": "10.1029/2005GL024955"
+   },
    "temperature_ref": 300.0,
    "experimental_pressure_range_gpa": [0.0, 10.0],
    "experimental_temperature_range_k": [300.0, 300.0],

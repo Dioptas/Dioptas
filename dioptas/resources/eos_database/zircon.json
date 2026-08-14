@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Zircon",
  "formula": "ZrSiO4",
  "symmetry": "TETRAGONAL",
@@ -24,7 +24,16 @@
  "eos_records": [
   {
    "label": "Hazen and Finger (1979)",
-   "reference": "Hazen and Finger, American Mineralogist 64, 196-201 (1979)",
+   "reference": {
+    "authors": [
+     "Hazen",
+     "Finger"
+    ],
+    "year": 1979,
+    "source": "American Mineralogist",
+    "volume": "64",
+    "locator": "196-201"
+   },
    "eos": {
     "type": "BM2",
     "parameters": {

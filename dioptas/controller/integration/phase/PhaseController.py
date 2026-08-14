@@ -4,6 +4,7 @@ import os
 
 from qtpy import QtWidgets, QtCore, QtGui
 
+from ....model import eos
 from ....model.PhaseModel import PhaseLoadError
 from ....model.util.HelperModule import get_base_name
 from ....controller.integration.phase.PhaseEditorController import PhaseEditorController
@@ -193,7 +194,7 @@ class PhaseController:
             self.model.phase_model.get_eos_reference_labels(last),
             phase.params['eos_current_index'],
             tooltips=[
-                f"{record.get('reference') or ''} — "
+                f"{eos.reference_text(record.get('reference'))} — "
                 f"{(record.get('eos') or {}).get('type', 'BM3')}"
                 for record in phase.params['eos_records']])
 

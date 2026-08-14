@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Cerium dioxide (fluorite)",
  "formula": "CeO2",
  "symmetry": "CUBIC",
@@ -23,7 +23,17 @@
  "eos_records": [
   {
    "label": "Gerward et al. (2005), room-temperature BM3",
-   "reference": "Gerward et al., J. Alloys Compd. 400, 56-61 (2005), doi:10.1016/j.jallcom.2005.04.008",
+   "reference": {
+    "authors": [
+     "Gerward"
+    ],
+    "authors_truncated": true,
+    "year": 2005,
+    "source": "J. Alloys Compd.",
+    "volume": "400",
+    "locator": "56-61",
+    "doi": "10.1016/j.jallcom.2005.04.008"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

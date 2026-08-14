@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Indium Nitride",
  "formula": "InN",
  "symmetry": "HEXAGONAL",
@@ -23,7 +23,17 @@
  "eos_records": [
   {
    "label": "(02-1450, A. Munoz and K. Kunc 1993 J. Phys: Condens. Matter 5 6015",
-   "reference": "Muñoz and Kunc, J. Phys.: Condens. Matter 5, 6015-6022 (1993), doi:10.1088/0953-8984/5/33/010",
+   "reference": {
+    "authors": [
+     "Muñoz",
+     "Kunc"
+    ],
+    "year": 1993,
+    "source": "J. Phys.: Condens. Matter",
+    "volume": "5",
+    "locator": "6015-6022",
+    "doi": "10.1088/0953-8984/5/33/010"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

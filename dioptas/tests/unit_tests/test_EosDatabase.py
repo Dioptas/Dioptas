@@ -79,6 +79,29 @@ def test_experimental_pressure_range_display():
     assert eos.record_pressure_range({}) == ""
 
 
+def test_structured_reference_display_and_legacy_compatibility():
+    reference = {
+        "authors": ["Dewaele", "Torrent", "Loubeyre", "Mezouar"],
+        "year": 2008,
+        "source": "Phys. Rev. B",
+        "volume": "78",
+        "locator": "104102",
+        "doi": "10.1103/PhysRevB.78.104102",
+    }
+    assert eos.reference_authors(reference) == "Dewaele et al."
+    assert eos.reference_year(reference) == "2008"
+    assert eos.reference_short(reference) == "Dewaele et al. (2008)"
+    assert eos.reference_text(reference) == (
+        "Dewaele, Torrent, Loubeyre, and Mezouar, Phys. Rev. B 78, "
+        "104102 (2008), doi:10.1103/PhysRevB.78.104102"
+    )
+
+    legacy = "Dewaele et al., Phys. Rev. B 91, 134108 (2015)"
+    assert eos.reference_authors(legacy) == "Dewaele et al."
+    assert eos.reference_year(legacy) == "2015"
+    assert eos.reference_text(legacy) == legacy
+
+
 def test_non_numeric_pressure_domain_status_display():
     assert eos.record_pressure_range({
         "pressure_range_status": "reference_parameterization"
@@ -96,7 +119,9 @@ def test_build_jcpds_carries_everything(gold):
     # the name is the chemistry alone; the active reference lives in the
     # Ref column and the comments
     assert phase.name == "Au"
-    assert phase.params["comments"] == [gold.eos_records[0]["reference"]]
+    assert phase.params["comments"] == [
+        eos.reference_text(gold.eos_records[0]["reference"])
+    ]
     assert phase.params["k0"] > 0
     assert phase.params["v0"] > 0
     assert not gold.peaks
@@ -122,7 +147,9 @@ def test_build_jcpds_uses_explicit_material_default(gold):
 
     assert gold.default_eos_index == 1
     assert phase.params["eos_current_index"] == 1
-    assert phase.params["comments"] == [gold.eos_records[1]["reference"]]
+    assert phase.params["comments"] == [
+        eos.reference_text(gold.eos_records[1]["reference"])
+    ]
 
 
 def test_build_jcpds_without_records(materials):
@@ -151,7 +178,7 @@ def test_reference_switch_updates_parameters_and_comments(gold):
     # the name stays the chemistry; the reference moves to the comments
     assert model.phases[0].name == "Au"
     assert (model.phases[0].params["comments"]
-            == [gold.eos_records[1]["reference"]])
+            == [eos.reference_text(gold.eos_records[1]["reference"])])
 
     model.set_eos_reference(0, 0)   # and back
     assert model.phases[0].params["k0"] == pytest.approx(first["K0"])

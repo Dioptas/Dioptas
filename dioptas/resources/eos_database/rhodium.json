@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Rhodium",
  "formula": "Rh",
  "symmetry": "CUBIC",
@@ -22,7 +22,17 @@
  "eos_records": [
   {
    "label": "Rodrigo-Ramon et al. (2024), Vinet",
-   "reference": "Rodrigo-Ramon et al., Sci. Rep. 14, 26634 (2024), doi:10.1038/s41598-024-78006-0",
+   "reference": {
+    "authors": [
+     "Rodrigo-Ramon"
+    ],
+    "authors_truncated": true,
+    "year": 2024,
+    "source": "Sci. Rep.",
+    "volume": "14",
+    "locator": "26634",
+    "doi": "10.1038/s41598-024-78006-0"
+   },
    "eos": {
     "type": "Vinet",
     "parameters": {

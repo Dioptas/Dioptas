@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Potassium chloride (B1)",
  "formula": "KCl",
  "symmetry": "CUBIC",
@@ -16,7 +16,17 @@
  "eos_records": [
   {
    "label": "Dewaele et al. (2012), B1 Vinet",
-   "reference": "Dewaele et al., Phys. Rev. B 85, 214105 (2012), doi:10.1103/PhysRevB.85.214105",
+   "reference": {
+    "authors": [
+     "Dewaele"
+    ],
+    "authors_truncated": true,
+    "year": 2012,
+    "source": "Phys. Rev. B",
+    "volume": "85",
+    "locator": "214105",
+    "doi": "10.1103/PhysRevB.85.214105"
+   },
    "eos": {"type": "Vinet", "parameters": {"V0": 249.44, "K0": 17.1, "K0_prime": 5.5}},
    "parameter_errors": {"V0": null, "K0": null, "K0_prime": null},
    "fixed_parameters": ["K0_prime"],

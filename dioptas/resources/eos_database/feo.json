@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "FeO",
  "formula": "FeO",
  "symmetry": "CUBIC",
@@ -23,7 +23,16 @@
  "eos_records": [
   {
    "label": "(Fei et al. Miner. Spectros. (5) 1996)",
-   "reference": "Fei, in Mineral Physics & Crystallography, AGU Reference Shelf 2, 29-44 (1995), doi:10.1029/RF002p0029",
+   "reference": {
+    "authors": [
+     "Fei"
+    ],
+    "year": 1995,
+    "source": "in Mineral Physics & Crystallography, AGU Reference Shelf",
+    "volume": "2",
+    "locator": "29-44",
+    "doi": "10.1029/RF002p0029"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

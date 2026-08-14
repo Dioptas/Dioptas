@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Ice VIII",
  "formula": "H2O",
  "symmetry": "TETRAGONAL",
@@ -51,7 +51,17 @@
  "eos_records": [
   {
    "label": "Variation of interatomic distances in ice VIII to 10 GPa, PRB(1994) , Besson J M",
-   "reference": "Besson et al., Phys. Rev. B 49, 12540-12550 (1994), doi:10.1103/PhysRevB.49.12540",
+   "reference": {
+    "authors": [
+     "Besson"
+    ],
+    "authors_truncated": true,
+    "year": 1994,
+    "source": "Phys. Rev. B",
+    "volume": "49",
+    "locator": "12540-12550",
+    "doi": "10.1103/PhysRevB.49.12540"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

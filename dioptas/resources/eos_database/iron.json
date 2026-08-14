@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Iron",
  "formula": "Fe",
  "symmetry": "HEXAGONAL",
@@ -22,7 +22,17 @@
  "eos_records": [
   {
    "label": "(hcp phase -- 19.2 GPa modified to P=0) (JCPDS 34-529 ) EOS from Mao et al 90",
-   "reference": "Mao et al., J. Geophys. Res. 95, 21737-21742 (1990), doi:10.1029/JB095iB13p21737",
+   "reference": {
+    "authors": [
+     "Mao"
+    ],
+    "authors_truncated": true,
+    "year": 1990,
+    "source": "J. Geophys. Res.",
+    "volume": "95",
+    "locator": "21737-21742",
+    "doi": "10.1029/JB095iB13p21737"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {
@@ -42,7 +52,17 @@
   },
   {
    "label": "Shen and Smith (2026), Cu-referenced Vinet",
-   "reference": "Shen and Smith, Phys. Rev. B 113, 144113 (2026), doi:10.1103/fxgq-96sg",
+   "reference": {
+    "authors": [
+     "Shen",
+     "Smith"
+    ],
+    "year": 2026,
+    "source": "Phys. Rev. B",
+    "volume": "113",
+    "locator": "144113",
+    "doi": "10.1103/fxgq-96sg"
+   },
    "eos": {
     "type": "Vinet",
     "parameters": {

@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Tungsten",
  "formula": "W",
  "symmetry": "CUBIC",
@@ -22,7 +22,17 @@
  "eos_records": [
   {
    "label": "4-0806 EOS Hixson and Fritz",
-   "reference": "Hixson and Fritz, J. Appl. Phys. 71, 1721-1728 (1992), doi:10.1063/1.351203",
+   "reference": {
+    "authors": [
+     "Hixson",
+     "Fritz"
+    ],
+    "year": 1992,
+    "source": "J. Appl. Phys.",
+    "volume": "71",
+    "locator": "1721-1728",
+    "doi": "10.1063/1.351203"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {
@@ -42,7 +52,18 @@
   },
   {
    "label": "Dewaele et al. (2004), Vinet",
-   "reference": "Dewaele, Loubeyre, and Mezouar, Phys. Rev. B 70, 094112 (2004), doi:10.1103/PhysRevB.70.094112",
+   "reference": {
+    "authors": [
+     "Dewaele",
+     "Loubeyre",
+     "Mezouar"
+    ],
+    "year": 2004,
+    "source": "Phys. Rev. B",
+    "volume": "70",
+    "locator": "094112",
+    "doi": "10.1103/PhysRevB.70.094112"
+   },
    "default": true,
    "eos": {
     "type": "Vinet",
@@ -65,7 +86,17 @@
   },
   {
    "label": "Shen and Smith (2026), Cu-referenced Vinet",
-   "reference": "Shen and Smith, Phys. Rev. B 113, 144113 (2026), doi:10.1103/fxgq-96sg",
+   "reference": {
+    "authors": [
+     "Shen",
+     "Smith"
+    ],
+    "year": 2026,
+    "source": "Phys. Rev. B",
+    "volume": "113",
+    "locator": "144113",
+    "doi": "10.1103/fxgq-96sg"
+   },
    "eos": {
     "type": "Vinet",
     "parameters": {
@@ -88,7 +119,19 @@
   },
   {
    "label": "Sokolova et al. (2016), Holzapfel thermal model",
-   "reference": "Sokolova, Dorogokupets, and Litasov, Comput. Geosci. 94, 162-169 (2016), supplementary workbook 11, doi:10.1016/j.cageo.2016.06.002",
+   "reference": {
+    "authors": [
+     "Sokolova",
+     "Dorogokupets",
+     "Litasov"
+    ],
+    "year": 2016,
+    "source": "Comput. Geosci.",
+    "volume": "94",
+    "locator": "162-169",
+    "details": "supplementary workbook 11",
+    "doi": "10.1016/j.cageo.2016.06.002"
+   },
    "eos": {"type": "Holzapfel", "parameters": {"V0": 31.72293444117844, "K0": 308.0, "K0_prime": 4.12}},
    "parameter_errors": {"V0": null, "K0": null, "K0_prime": null},
    "fixed_parameters": [],

@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "MgSiO3",
  "formula": "MgSiO3",
  "symmetry": "TETRAGONAL",
@@ -121,7 +121,17 @@
  "eos_records": [
   {
    "label": "Majorite (GSAS calculation, EOS from Yagi et al, 1992)",
-   "reference": "Yagi et al., Phys. Earth Planet. Inter. 74, 1-7 (1992), doi:10.1016/0031-9201(92)90063-2",
+   "reference": {
+    "authors": [
+     "Yagi"
+    ],
+    "authors_truncated": true,
+    "year": 1992,
+    "source": "Phys. Earth Planet. Inter.",
+    "volume": "74",
+    "locator": "1-7",
+    "doi": "10.1016/0031-9201(92)90063-2"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

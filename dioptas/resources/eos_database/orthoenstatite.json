@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Orthoenstatite",
  "formula": "MgSiO3",
  "symmetry": "ORTHORHOMBIC",
@@ -24,7 +24,17 @@
  "eos_records": [
   {
    "label": "Angel and Jackson (2002), BM3",
-   "reference": "Angel and Jackson, Am. Mineral. 87, 558-561 (2002), doi:10.2138/am-2002-0419",
+   "reference": {
+    "authors": [
+     "Angel",
+     "Jackson"
+    ],
+    "year": 2002,
+    "source": "Am. Mineral.",
+    "volume": "87",
+    "locator": "558-561",
+    "doi": "10.2138/am-2002-0419"
+   },
    "eos": {"type": "BM3", "parameters": {"V0": 832.5, "K0": 105.8, "K0_prime": 8.5}},
    "parameter_errors": {"V0": 0.2, "K0": 0.5, "K0_prime": 0.3},
    "fixed_parameters": [],

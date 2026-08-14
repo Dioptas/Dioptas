@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Magnesite",
  "formula": "MgCO3",
  "symmetry": "HEXAGONAL",
@@ -24,7 +24,16 @@
  "eos_records": [
   {
    "label": "Ross (1997)",
-   "reference": "Ross, American Mineralogist 82, 682-688 (1997), doi:10.2138/am-1997-7-805",
+   "reference": {
+    "authors": [
+     "Ross"
+    ],
+    "year": 1997,
+    "source": "American Mineralogist",
+    "volume": "82",
+    "locator": "682-688",
+    "doi": "10.2138/am-1997-7-805"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

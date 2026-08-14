@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Phase A",
  "formula": "Mg7Si2O14H6",
  "symmetry": "HEXAGONAL",
@@ -53,7 +53,17 @@
  "eos_records": [
   {
    "label": "(OH)6-phase A (lattice from Horiuchi et al, Am Min 64 593, 1979; EOS from Cricht",
-   "reference": "Crichton and Ross, American Mineralogist 87, 333-338 (2002), doi:10.2138/am-2002-2-316",
+   "reference": {
+    "authors": [
+     "Crichton",
+     "Ross"
+    ],
+    "year": 2002,
+    "source": "American Mineralogist",
+    "volume": "87",
+    "locator": "333-338",
+    "doi": "10.2138/am-2002-2-316"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

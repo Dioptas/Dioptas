@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Forsterite",
  "formula": "Mg2SiO4",
  "symmetry": "ORTHORHOMBIC",
@@ -27,7 +27,17 @@
  "eos_records": [
   {
    "label": "Finkelstein et al. (2014), room-temperature BM3",
-   "reference": "Finkelstein et al., American Mineralogist 99, 35-43 (2014), doi:10.2138/am.2014.4526",
+   "reference": {
+    "authors": [
+     "Finkelstein"
+    ],
+    "authors_truncated": true,
+    "year": 2014,
+    "source": "American Mineralogist",
+    "volume": "99",
+    "locator": "35-43",
+    "doi": "10.2138/am.2014.4526"
+   },
    "temperature_ref": 298.0,
    "eos": {
     "type": "BM3",

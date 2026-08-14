@@ -349,8 +349,9 @@ class PhaseModel:
         if not 0 <= ref_ind < len(records):
             return
         record = records[ref_ind]
+        from .eos import reference_text
         logger.debug("Switching phase %d to EoS reference '%s'",
-                     ind, record.get('reference', ''))
+                     ind, reference_text(record.get('reference')))
 
         phase.params['eos_current_index'] = ref_ind
         apply_eos_record(phase, record)

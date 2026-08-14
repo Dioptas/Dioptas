@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Fe3S",
  "formula": "Fe3S",
  "symmetry": "TETRAGONAL",
@@ -36,7 +36,17 @@
  "eos_records": [
   {
    "label": "Fei et al Am. Mineral. 85, 1830, 2000",
-   "reference": "Fei et al., American Mineralogist 85, 1830-1833 (2000), doi:10.2138/am-2000-11-1229",
+   "reference": {
+    "authors": [
+     "Fei"
+    ],
+    "authors_truncated": true,
+    "year": 2000,
+    "source": "American Mineralogist",
+    "volume": "85",
+    "locator": "1830-1833",
+    "doi": "10.2138/am-2000-11-1229"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Pyrope",
  "formula": "Mg3Al2Si3O12",
  "symmetry": "CUBIC",
@@ -18,7 +18,17 @@
  "eos_records": [
   {
    "label": "Milani et al. (2015), BM3",
-   "reference": "Milani et al., Lithos 227, 140-147 (2015), doi:10.1016/j.lithos.2015.03.017",
+   "reference": {
+    "authors": [
+     "Milani"
+    ],
+    "authors_truncated": true,
+    "year": 2015,
+    "source": "Lithos",
+    "volume": "227",
+    "locator": "140-147",
+    "doi": "10.1016/j.lithos.2015.03.017"
+   },
    "eos": {"type": "BM3", "parameters": {"V0": 1506.15, "K0": 163.7, "K0_prime": 6.4}},
    "parameter_errors": {"V0": 0.16, "K0": 1.7, "K0_prime": 0.4},
    "fixed_parameters": [],

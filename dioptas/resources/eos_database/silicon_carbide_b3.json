@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Silicon carbide (B3 zinc blende)",
  "formula": "SiC",
  "symmetry": "CUBIC",
@@ -23,7 +23,17 @@
  "eos_records": [
   {
    "label": "Miozzi et al. (2018), 300 K BM3",
-   "reference": "Miozzi et al., J. Geophys. Res. Planets 123, 2295-2309 (2018), doi:10.1029/2018JE005582",
+   "reference": {
+    "authors": [
+     "Miozzi"
+    ],
+    "authors_truncated": true,
+    "year": 2018,
+    "source": "J. Geophys. Res. Planets",
+    "volume": "123",
+    "locator": "2295-2309",
+    "doi": "10.1029/2018JE005582"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

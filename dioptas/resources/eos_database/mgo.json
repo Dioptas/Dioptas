@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "MgO",
  "formula": "MgO",
  "symmetry": "CUBIC",
@@ -23,7 +23,18 @@
  "eos_records": [
   {
    "label": "JCPDS 4-0829, EOS from Duffy et al, 95",
-   "reference": "Duffy, Hemley, and Mao, Phys. Rev. Lett. 74, 1371-1374 (1995), doi:10.1103/PhysRevLett.74.1371",
+   "reference": {
+    "authors": [
+     "Duffy",
+     "Hemley",
+     "Mao"
+    ],
+    "year": 1995,
+    "source": "Phys. Rev. Lett.",
+    "volume": "74",
+    "locator": "1371-1374",
+    "doi": "10.1103/PhysRevLett.74.1371"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {
@@ -45,7 +56,17 @@
   },
   {
    "label": "Speziale et al. (2001), constrained BM3",
-   "reference": "Speziale et al., J. Geophys. Res. 106, 515-528 (2001), doi:10.1029/2000JB900318",
+   "reference": {
+    "authors": [
+     "Speziale"
+    ],
+    "authors_truncated": true,
+    "year": 2001,
+    "source": "J. Geophys. Res.",
+    "volume": "106",
+    "locator": "515-528",
+    "doi": "10.1029/2000JB900318"
+   },
    "default": true,
    "eos": {
     "type": "BM3",
@@ -68,7 +89,17 @@
   },
   {
    "label": "Shen and Smith (2026), Cu-referenced Vinet",
-   "reference": "Shen and Smith, Phys. Rev. B 113, 144113 (2026), doi:10.1103/fxgq-96sg",
+   "reference": {
+    "authors": [
+     "Shen",
+     "Smith"
+    ],
+    "year": 2026,
+    "source": "Phys. Rev. B",
+    "volume": "113",
+    "locator": "144113",
+    "doi": "10.1103/fxgq-96sg"
+   },
    "eos": {
     "type": "Vinet",
     "parameters": {
@@ -91,7 +122,19 @@
   },
   {
    "label": "Sokolova et al. (2016), Holzapfel thermal model",
-   "reference": "Sokolova, Dorogokupets, and Litasov, Comput. Geosci. 94, 162-169 (2016), supplementary workbook 6, doi:10.1016/j.cageo.2016.06.002",
+   "reference": {
+    "authors": [
+     "Sokolova",
+     "Dorogokupets",
+     "Litasov"
+    ],
+    "year": 2016,
+    "source": "Comput. Geosci.",
+    "volume": "94",
+    "locator": "162-169",
+    "details": "supplementary workbook 6",
+    "doi": "10.1016/j.cageo.2016.06.002"
+   },
    "eos": {"type": "Holzapfel", "parameters": {"V0": 74.71096452981054, "K0": 160.3, "K0_prime": 4.1, "Z": 10.34}},
    "parameter_errors": {"V0": null, "K0": null, "K0_prime": null, "Z": null},
    "fixed_parameters": [],

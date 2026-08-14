@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Argon",
  "formula": "Ar",
  "symmetry": "HEXAGONAL",
@@ -22,7 +22,17 @@
  "eos_records": [
   {
    "label": "Wittlinger et al. (1997)",
-   "reference": "Wittlinger et al., Acta Crystallogr. B 53, 745-749 (1997), doi:10.1107/S0108768197005739",
+   "reference": {
+    "authors": [
+     "Wittlinger"
+    ],
+    "authors_truncated": true,
+    "year": 1997,
+    "source": "Acta Crystallogr. B",
+    "volume": "53",
+    "locator": "745-749",
+    "doi": "10.1107/S0108768197005739"
+   },
    "eos": {
     "type": "BM2",
     "parameters": {

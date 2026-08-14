@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Osmium",
  "formula": "Os",
  "symmetry": "HEXAGONAL",
@@ -15,7 +15,16 @@
  "eos_records": [
   {
    "label": "Takemura (2004), BM3",
-   "reference": "Takemura, Phys. Rev. B 70, 012101 (2004), doi:10.1103/PhysRevB.70.012101",
+   "reference": {
+    "authors": [
+     "Takemura"
+    ],
+    "year": 2004,
+    "source": "Phys. Rev. B",
+    "volume": "70",
+    "locator": "012101",
+    "doi": "10.1103/PhysRevB.70.012101"
+   },
    "eos": {"type": "BM3", "parameters": {"V0": 27.9766135265, "K0": 395.0, "K0_prime": 4.5}},
    "parameter_errors": {"V0": 0.0188, "K0": 15.0, "K0_prime": 0.5},
    "fixed_parameters": [],

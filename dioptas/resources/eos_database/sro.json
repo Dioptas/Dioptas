@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "SrO",
  "formula": "SrO",
  "symmetry": "CUBIC",
@@ -23,7 +23,17 @@
  "eos_records": [
   {
    "label": "Liu and Bassett 1973",
-   "reference": "Liu and Bassett, J. Geophys. Res. 78, 8470-8473 (1973), doi:10.1029/JB078i035p08470",
+   "reference": {
+    "authors": [
+     "Liu",
+     "Bassett"
+    ],
+    "year": 1973,
+    "source": "J. Geophys. Res.",
+    "volume": "78",
+    "locator": "8470-8473",
+    "doi": "10.1029/JB078i035p08470"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

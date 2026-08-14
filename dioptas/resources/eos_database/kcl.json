@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Potassium chloride (B2)",
  "formula": "KCl",
  "symmetry": "CUBIC",
@@ -23,7 +23,17 @@
  "eos_records": [
   {
    "label": "B2 (EOS from Campbell and Heinz, 1991)",
-   "reference": "Campbell and Heinz, J. Phys. Chem. Solids 52, 495-499 (1991), doi:10.1016/0022-3697(91)90181-X",
+   "reference": {
+    "authors": [
+     "Campbell",
+     "Heinz"
+    ],
+    "year": 1991,
+    "source": "J. Phys. Chem. Solids",
+    "volume": "52",
+    "locator": "495-499",
+    "doi": "10.1016/0022-3697(91)90181-X"
+   },
    "eos": {
     "type": "BM2",
     "parameters": {
@@ -41,7 +51,17 @@
   },
   {
    "label": "Walker et al. (2002), B2 thermal Birch",
-   "reference": "Walker et al., American Mineralogist 87, 805-812 (2002), doi:10.2138/am-2002-0701",
+   "reference": {
+    "authors": [
+     "Walker"
+    ],
+    "authors_truncated": true,
+    "year": 2002,
+    "source": "American Mineralogist",
+    "volume": "87",
+    "locator": "805-812",
+    "doi": "10.2138/am-2002-0701"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

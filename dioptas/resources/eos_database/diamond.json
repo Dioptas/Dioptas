@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Diamond",
  "formula": "C",
  "symmetry": "CUBIC",
@@ -22,7 +22,18 @@
  "eos_records": [
   {
    "label": "Occelli data on the H2005 scale (Datchi et al. 2007)",
-   "reference": "Datchi et al., Phys. Rev. B 75, 214104 (2007), Table II, doi:10.1103/PhysRevB.75.214104",
+   "reference": {
+    "authors": [
+     "Datchi"
+    ],
+    "authors_truncated": true,
+    "year": 2007,
+    "source": "Phys. Rev. B",
+    "volume": "75",
+    "locator": "214104",
+    "details": "Table II",
+    "doi": "10.1103/PhysRevB.75.214104"
+   },
    "eos": {
     "type": "Vinet",
     "parameters": {
@@ -45,7 +56,19 @@
   },
   {
    "label": "Dewaele et al. (2008), 298 K neon-medium Vinet",
-   "reference": "Dewaele, Datchi, Loubeyre, and Mezouar, Phys. Rev. B 77, 094106 (2008), doi:10.1103/PhysRevB.77.094106",
+   "reference": {
+    "authors": [
+     "Dewaele",
+     "Datchi",
+     "Loubeyre",
+     "Mezouar"
+    ],
+    "year": 2008,
+    "source": "Phys. Rev. B",
+    "volume": "77",
+    "locator": "094106",
+    "doi": "10.1103/PhysRevB.77.094106"
+   },
    "eos": {
     "type": "Vinet",
     "parameters": {
@@ -68,7 +91,19 @@
   },
   {
    "label": "Sokolova et al. (2016), Holzapfel thermal model",
-   "reference": "Sokolova, Dorogokupets, and Litasov, Comput. Geosci. 94, 162-169 (2016), supplementary workbook 4, doi:10.1016/j.cageo.2016.06.002",
+   "reference": {
+    "authors": [
+     "Sokolova",
+     "Dorogokupets",
+     "Litasov"
+    ],
+    "year": 2016,
+    "source": "Comput. Geosci.",
+    "volume": "94",
+    "locator": "162-169",
+    "details": "supplementary workbook 4",
+    "doi": "10.1016/j.cageo.2016.06.002"
+   },
    "eos": {"type": "Holzapfel", "parameters": {"V0": 45.35396586081546, "K0": 441.5, "K0_prime": 3.9}},
    "parameter_errors": {"V0": null, "K0": null, "K0_prime": null},
    "fixed_parameters": [],

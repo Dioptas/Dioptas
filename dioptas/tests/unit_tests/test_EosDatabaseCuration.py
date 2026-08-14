@@ -226,7 +226,7 @@ def test_publication_corrected_eos_records(
         assert "K0_prime" not in parameters
     else:
         assert parameters["K0_prime"] == pytest.approx(k0_prime)
-    assert "doi:" in record["reference"].lower()
+    assert record["reference"].get("doi")
 
 
 @pytest.mark.parametrize(
@@ -249,7 +249,7 @@ def test_shen_smith_2026_vinet_records_match_table_ii(
     records = _document(filename)["eos_records"]
     record = next(
         record for record in records
-        if "doi:10.1103/fxgq-96sg" in record["reference"]
+        if record["reference"].get("doi") == "10.1103/fxgq-96sg"
     )
     assert record["eos"] == {
         "type": "Vinet",
@@ -385,7 +385,7 @@ def test_literature_expansion_eos_records(
             "K0_prime": pytest.approx(k0_prime),
         },
     }
-    assert "doi:" in record["reference"].lower()
+    assert record["reference"].get("doi")
 
 
 @pytest.mark.parametrize(
@@ -797,7 +797,7 @@ def test_retained_references_do_not_use_non_public_provenance_markers():
     }
     for path in DATABASE.glob("*.json"):
         for record in _document(path.name)["eos_records"]:
-            reference = record["reference"].lower()
+            reference = eos.reference_text(record["reference"]).lower()
             assert not any(marker in reference for marker in rejected_markers)
 
 
@@ -811,7 +811,8 @@ def test_retained_references_have_normalized_publication_metadata():
     references = []
     for path in DATABASE.glob("*.json"):
         references.extend(
-            record["reference"] for record in _document(path.name)["eos_records"]
+            eos.reference_text(record["reference"])
+            for record in _document(path.name)["eos_records"]
         )
 
     assert len(references) == 138
@@ -819,6 +820,18 @@ def test_retained_references_have_normalized_publication_metadata():
         no_registered_doi
     )
     assert all("(" in reference and ")" in reference for reference in references)
+
+
+def test_references_use_structured_format_2_metadata():
+    for path in DATABASE.glob("*.json"):
+        document = _document(path.name)
+        assert document["format_version"] == 2
+        for record in document["eos_records"]:
+            reference = record["reference"]
+            assert isinstance(reference, dict), path.name
+            assert reference["authors"], path.name
+            assert isinstance(reference["year"], int), path.name
+            assert reference["source"], path.name
 
 
 def test_unpublished_alternatives_were_removed():

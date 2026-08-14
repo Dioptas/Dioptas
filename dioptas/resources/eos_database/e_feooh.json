@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "E-FeOOH",
  "formula": "FeOOH",
  "symmetry": "ORTHORHOMBIC",
@@ -25,7 +25,18 @@
  "eos_records": [
   {
    "label": "Gleason et al. (2008), second-order BM",
-   "reference": "Gleason, Jeanloz, and Kunz, American Mineralogist 93, 1882-1885 (2008), doi:10.2138/am.2008.2942",
+   "reference": {
+    "authors": [
+     "Gleason",
+     "Jeanloz",
+     "Kunz"
+    ],
+    "year": 2008,
+    "source": "American Mineralogist",
+    "volume": "93",
+    "locator": "1882-1885",
+    "doi": "10.2138/am.2008.2942"
+   },
    "eos": {
     "type": "BM2",
     "parameters": {

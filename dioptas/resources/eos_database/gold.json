@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Gold",
  "formula": "Au",
  "symmetry": "CUBIC",
@@ -22,7 +22,18 @@
  "eos_records": [
   {
    "label": "04-0784, Anderson et al J Appl Phys 65, 1534, 1989",
-   "reference": "Anderson, Isaak, and Yamamoto, J. Appl. Phys. 65, 1534-1543 (1989), doi:10.1063/1.342969",
+   "reference": {
+    "authors": [
+     "Anderson",
+     "Isaak",
+     "Yamamoto"
+    ],
+    "year": 1989,
+    "source": "J. Appl. Phys.",
+    "volume": "65",
+    "locator": "1534-1543",
+    "doi": "10.1063/1.342969"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {
@@ -49,7 +60,17 @@
   },
   {
    "label": "04-0784, Fei et al PNAS, 2007 [Vinet]",
-   "reference": "Fei et al., Proc. Natl. Acad. Sci. USA 104, 9182-9186 (2007), doi:10.1073/pnas.0609013104",
+   "reference": {
+    "authors": [
+     "Fei"
+    ],
+    "authors_truncated": true,
+    "year": 2007,
+    "source": "Proc. Natl. Acad. Sci. USA",
+    "volume": "104",
+    "locator": "9182-9186",
+    "doi": "10.1073/pnas.0609013104"
+   },
    "default": true,
    "eos": {
     "type": "Vinet",
@@ -82,7 +103,17 @@
   },
   {
    "label": "Shen and Smith (2026), Cu-referenced Vinet",
-   "reference": "Shen and Smith, Phys. Rev. B 113, 144113 (2026), doi:10.1103/fxgq-96sg",
+   "reference": {
+    "authors": [
+     "Shen",
+     "Smith"
+    ],
+    "year": 2026,
+    "source": "Phys. Rev. B",
+    "volume": "113",
+    "locator": "144113",
+    "doi": "10.1103/fxgq-96sg"
+   },
    "eos": {
     "type": "Vinet",
     "parameters": {
@@ -105,7 +136,19 @@
   },
   {
    "label": "Sokolova et al. (2016), Holzapfel thermal model",
-   "reference": "Sokolova, Dorogokupets, and Litasov, Comput. Geosci. 94, 162-169 (2016), supplementary workbook 3, doi:10.1016/j.cageo.2016.06.002",
+   "reference": {
+    "authors": [
+     "Sokolova",
+     "Dorogokupets",
+     "Litasov"
+    ],
+    "year": 2016,
+    "source": "Comput. Geosci.",
+    "volume": "94",
+    "locator": "162-169",
+    "details": "supplementary workbook 3",
+    "doi": "10.1016/j.cageo.2016.06.002"
+   },
    "eos": {"type": "Holzapfel", "parameters": {"V0": 67.84961794736972, "K0": 167.0, "K0_prime": 5.9}},
    "parameter_errors": {"V0": null, "K0": null, "K0_prime": null},
    "fixed_parameters": [],

@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Li",
  "formula": "Li",
  "symmetry": "CUBIC",
@@ -22,7 +22,17 @@
  "eos_records": [
   {
    "label": "(bcc)  (JCPDS 6-0696, EOS from Hanfland SSC )",
-   "reference": "Hanfland et al., Solid State Commun. 112, 123-127 (1999), doi:10.1016/S0038-1098(99)00322-1",
+   "reference": {
+    "authors": [
+     "Hanfland"
+    ],
+    "authors_truncated": true,
+    "year": 1999,
+    "source": "Solid State Commun.",
+    "volume": "112",
+    "locator": "123-127",
+    "doi": "10.1016/S0038-1098(99)00322-1"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "NaAlSiO4 (calcium-ferrite type)",
  "formula": "NaAlSiO4",
  "symmetry": "ORTHORHOMBIC",
@@ -30,7 +30,17 @@
  "eos_records": [
   {
    "label": "Dubrovinsky et al. (2002)",
-   "reference": "Dubrovinsky et al., High Pressure Res. 22, 495-499 (2002), doi:10.1080/08957950212807",
+   "reference": {
+    "authors": [
+     "Dubrovinsky"
+    ],
+    "authors_truncated": true,
+    "year": 2002,
+    "source": "High Pressure Res.",
+    "volume": "22",
+    "locator": "495-499",
+    "doi": "10.1080/08957950212807"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

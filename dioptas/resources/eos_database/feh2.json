@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "FeH2",
  "formula": "FeH2",
  "symmetry": "TETRAGONAL",
@@ -28,7 +28,17 @@
  "eos_records": [
   {
    "label": "Pepin et al. (2014), Vinet",
-   "reference": "Pepin et al., Phys. Rev. Lett. 113, 265504 (2014), doi:10.1103/PhysRevLett.113.265504",
+   "reference": {
+    "authors": [
+     "Pepin"
+    ],
+    "authors_truncated": true,
+    "year": 2014,
+    "source": "Phys. Rev. Lett.",
+    "volume": "113",
+    "locator": "265504",
+    "doi": "10.1103/PhysRevLett.113.265504"
+   },
    "eos": {
     "type": "Vinet",
     "parameters": {

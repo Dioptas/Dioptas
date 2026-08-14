@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Akimotoite",
  "formula": "MgSiO3",
  "symmetry": "TRIGONAL",
@@ -17,7 +17,17 @@
  "eos_records": [
   {
    "label": "Siersch et al. (2021), BM3",
-   "reference": "Siersch et al., Phys. Earth Planet. Inter. 320, 106786 (2021), doi:10.1016/j.pepi.2021.106786",
+   "reference": {
+    "authors": [
+     "Siersch"
+    ],
+    "authors_truncated": true,
+    "year": 2021,
+    "source": "Phys. Earth Planet. Inter.",
+    "volume": "320",
+    "locator": "106786",
+    "doi": "10.1016/j.pepi.2021.106786"
+   },
    "eos": {"type": "BM3", "parameters": {"V0": 262.43, "K0": 205.0, "K0_prime": 4.9}},
    "parameter_errors": {"V0": 0.02, "K0": 1.0, "K0_prime": 0.2},
    "fixed_parameters": [],

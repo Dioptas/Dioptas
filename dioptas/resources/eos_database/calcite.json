@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Calcite",
  "formula": "CaCO3",
  "symmetry": "TRIGONAL",
@@ -24,7 +24,17 @@
  "eos_records": [
   {
    "label": "Redfern and Angel (1999), single-crystal BM2",
-   "reference": "Redfern and Angel, Contributions to Mineralogy and Petrology 134, 102-106 (1999), doi:10.1007/s004100050471",
+   "reference": {
+    "authors": [
+     "Redfern",
+     "Angel"
+    ],
+    "year": 1999,
+    "source": "Contributions to Mineralogy and Petrology",
+    "volume": "134",
+    "locator": "102-106",
+    "doi": "10.1007/s004100050471"
+   },
    "temperature_ref": 298.0,
    "experimental_pressure_range_gpa": [0.0, 1.435],
    "experimental_temperature_range_k": [298.0, 298.0],

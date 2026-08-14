@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "CoO",
  "formula": "CoO",
  "symmetry": "CUBIC",
@@ -23,7 +23,17 @@
  "eos_records": [
   {
    "label": "JCPDS 42-1300, EOS from Clendenen and Drickamer, 66",
-   "reference": "Clendenen and Drickamer, J. Chem. Phys. 44, 4223-4228 (1966), doi:10.1063/1.1726610",
+   "reference": {
+    "authors": [
+     "Clendenen",
+     "Drickamer"
+    ],
+    "year": 1966,
+    "source": "J. Chem. Phys.",
+    "volume": "44",
+    "locator": "4223-4228",
+    "doi": "10.1063/1.1726610"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

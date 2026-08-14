@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Fe3O4",
  "formula": "Fe3O4",
  "symmetry": "CUBIC",
@@ -24,7 +24,17 @@
  "eos_records": [
   {
    "label": "GSAS, EOS from Mao 1974",
-   "reference": "Mao et al., J. Geophys. Res. 79, 1165-1170 (1974), doi:10.1029/JB079i008p01165",
+   "reference": {
+    "authors": [
+     "Mao"
+    ],
+    "authors_truncated": true,
+    "year": 1974,
+    "source": "J. Geophys. Res.",
+    "volume": "79",
+    "locator": "1165-1170",
+    "doi": "10.1029/JB079i008p01165"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

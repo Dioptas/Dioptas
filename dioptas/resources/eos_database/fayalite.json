@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Fayalite",
  "formula": "Fe2SiO4",
  "symmetry": "ORTHORHOMBIC",
@@ -20,7 +20,17 @@
  "eos_records": [
   {
    "label": "Bejina et al. (2021), 302 K BM3",
-   "reference": "Bejina et al., Eur. J. Mineral. 33, 519-535 (2021), doi:10.5194/ejm-33-519-2021",
+   "reference": {
+    "authors": [
+     "Bejina"
+    ],
+    "authors_truncated": true,
+    "year": 2021,
+    "source": "Eur. J. Mineral.",
+    "volume": "33",
+    "locator": "519-535",
+    "doi": "10.5194/ejm-33-519-2021"
+   },
    "eos": {"type": "BM3", "parameters": {"V0": 307.84, "K0": 130.4, "K0_prime": 5.3}},
    "parameter_errors": {"V0": 0.05, "K0": 1.4, "K0_prime": null},
    "fixed_parameters": ["K0_prime"],

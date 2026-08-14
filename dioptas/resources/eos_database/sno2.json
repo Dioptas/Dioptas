@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "SnO2",
  "formula": "SnO2",
  "symmetry": "TETRAGONAL",
@@ -23,7 +23,17 @@
  "eos_records": [
   {
    "label": "JCPDS411445,EOS from Hazen and Finger,1983",
-   "reference": "Hazen and Finger, J. Phys. Chem. Solids 42, 143-151 (1981), doi:10.1016/0022-3697(81)90074-3",
+   "reference": {
+    "authors": [
+     "Hazen",
+     "Finger"
+    ],
+    "year": 1981,
+    "source": "J. Phys. Chem. Solids",
+    "volume": "42",
+    "locator": "143-151",
+    "doi": "10.1016/0022-3697(81)90074-3"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

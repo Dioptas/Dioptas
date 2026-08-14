@@ -22,7 +22,7 @@ class EosDatabaseDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("EoS Material Database")
-        self.setMinimumSize(680, 520)
+        self.setMinimumSize(720, 520)
         self.setModal(True)
         self.setWindowModality(QtCore.Qt.ApplicationModal)
 
@@ -53,13 +53,13 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         self.materials_table.setHorizontalHeaderLabels(
             ["Material", "Space Group"])
         self.eos_table = QtWidgets.QTableWidget()
-        self.eos_table.setColumnCount(6)
+        self.eos_table.setColumnCount(7)
         # Keep this label uppercase in the model as well as on screen. The
         # theme's text-transform happens only while painting, after Qt has
         # measured the narrower mixed-case text, and otherwise clips the F.
         self.eos_table.setHorizontalHeaderLabels(
-            ["EoS", "Reference", "FIT P RANGE", "K0 (GPa)", "K0′",
-             "V0 (Å³)"])
+            ["EoS", "Authors", "Year", "FIT P RANGE", "K0 (GPa)",
+             "K0′", "V0 (Å³)"])
         self.eos_table.setToolTip(
             "Fit P range is the experimental pressure interval used to "
             "constrain the published EoS, not a phase-stability range.\n"
@@ -89,12 +89,12 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         # contents are narrower
         materials_header.setMinimumSectionSize(120)
         eos_header = self.eos_table.horizontalHeader()
-        for column in (0, 3, 4, 5):
+        for column in (0, 2, 4, 5, 6):
             eos_header.setSectionResizeMode(
                 column, QtWidgets.QHeaderView.ResizeToContents)
         # The two descriptive columns share the available width. Giving all
-        # of it to Reference makes that column dominate the result table.
-        for column in (1, 2):
+        # of it to Authors makes that column dominate the result table.
+        for column in (1, 3):
             eos_header.setSectionResizeMode(
                 column, QtWidgets.QHeaderView.Stretch)
 
@@ -173,15 +173,17 @@ class EosDatabaseDialog(QtWidgets.QDialog):
             table.setItem(r, 0, QtWidgets.QTableWidgetItem(name))
             table.setItem(r, 1, QtWidgets.QTableWidgetItem(symmetry))
 
-    def fill_eos_records(self, rows, selected_row=0):
-        """Rows: EoS, reference, fit P range, K0, K0-prime and V0."""
+    def fill_eos_records(self, rows, selected_row=0,
+                         reference_tooltips=None):
+        """Rows: EoS, authors, year, fit range, K0, K0-prime and V0."""
         table = self.eos_table
+        reference_tooltips = reference_tooltips or []
         table.setRowCount(len(rows))
         for r, row in enumerate(rows):
             for c, text in enumerate(row):
                 item = QtWidgets.QTableWidgetItem(text)
-                if c == 1:
-                    item.setToolTip(text)
+                if c in (1, 2) and r < len(reference_tooltips):
+                    item.setToolTip(reference_tooltips[r])
                 table.setItem(r, c, item)
         if rows:
             table.selectRow(max(0, min(selected_row, len(rows) - 1)))

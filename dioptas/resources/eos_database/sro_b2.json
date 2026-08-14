@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "SrO",
  "formula": "SrO",
  "symmetry": "CUBIC",
@@ -23,7 +23,17 @@
  "eos_records": [
   {
    "label": "B2 (Sato and Jeanloz1981)",
-   "reference": "Sato and Jeanloz, J. Geophys. Res. 86, 11773-11778 (1981), doi:10.1029/JB086iB12p11773",
+   "reference": {
+    "authors": [
+     "Sato",
+     "Jeanloz"
+    ],
+    "year": 1981,
+    "source": "J. Geophys. Res.",
+    "volume": "86",
+    "locator": "11773-11778",
+    "doi": "10.1029/JB086iB12p11773"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Lead (fcc)",
  "formula": "Pb",
  "symmetry": "CUBIC",
@@ -22,7 +22,13 @@
  "eos_records": [
   {
    "label": "Fortes (2019), 300 K BM4 slice",
-   "reference": "Fortes, STFC Rutherford Appleton Laboratory Technical Report RAL-TR-2019-002 (2019)",
+   "reference": {
+    "authors": [
+     "Fortes"
+    ],
+    "year": 2019,
+    "source": "STFC Rutherford Appleton Laboratory Technical Report RAL-TR-2019-002"
+   },
    "eos": {
     "type": "BM4",
     "parameters": {

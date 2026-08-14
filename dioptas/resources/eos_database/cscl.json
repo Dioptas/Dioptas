@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "CsCl",
  "formula": "CsCl",
  "symmetry": "CUBIC",
@@ -23,7 +23,17 @@
  "eos_records": [
   {
    "label": "JCPDS 5-0607, EOS from Campbell and Heinz, J Geophys. Res. 99, 11765, 1994",
-   "reference": "Campbell and Heinz, J. Geophys. Res. 99, 11765-11774 (1994), doi:10.1029/94JB00127",
+   "reference": {
+    "authors": [
+     "Campbell",
+     "Heinz"
+    ],
+    "year": 1994,
+    "source": "J. Geophys. Res.",
+    "volume": "99",
+    "locator": "11765-11774",
+    "doi": "10.1029/94JB00127"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

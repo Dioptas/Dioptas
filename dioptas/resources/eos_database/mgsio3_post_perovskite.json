@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "MgSiO3 post-perovskite",
  "formula": "MgSiO3",
  "symmetry": "ORTHORHOMBIC",
@@ -25,7 +25,17 @@
  "eos_records": [
   {
    "label": "Mosenfelder et al. (2009), shock-static BM3-MGD",
-   "reference": "Mosenfelder et al., Journal of Geophysical Research: Solid Earth 114, B01203 (2009), doi:10.1029/2008JB005900",
+   "reference": {
+    "authors": [
+     "Mosenfelder"
+    ],
+    "authors_truncated": true,
+    "year": 2009,
+    "source": "Journal of Geophysical Research: Solid Earth",
+    "volume": "114",
+    "locator": "B01203",
+    "doi": "10.1029/2008JB005900"
+   },
    "temperature_ref": 300.0,
    "experimental_pressure_range_gpa": [111.0, 245.0],
    "eos": {
@@ -56,7 +66,17 @@
   },
   {
    "label": "Sakai et al. (2016), experimental multi-megabar BM3",
-   "reference": "Sakai et al., Scientific Reports 6, 22652 (2016), doi:10.1038/srep22652",
+   "reference": {
+    "authors": [
+     "Sakai"
+    ],
+    "authors_truncated": true,
+    "year": 2016,
+    "source": "Scientific Reports",
+    "volume": "6",
+    "locator": "22652",
+    "doi": "10.1038/srep22652"
+   },
    "temperature_ref": 300.0,
    "experimental_pressure_range_gpa": [100.0, 265.0],
    "eos": {

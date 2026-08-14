@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "(Mg0.4Fe0.6)O",
  "formula": "Mg2Fe3O5",
  "symmetry": "CUBIC",
@@ -28,7 +28,18 @@
  "eos_records": [
   {
    "label": "(Mg0.4Fe0.6)O (P. Richet, H.K.Mao, P.M. Bell JGR 1989)",
-   "reference": "Richet, Mao, and Bell, J. Geophys. Res. 94, 3037-3045 (1989), doi:10.1029/JB094iB03p03037",
+   "reference": {
+    "authors": [
+     "Richet",
+     "Mao",
+     "Bell"
+    ],
+    "year": 1989,
+    "source": "J. Geophys. Res.",
+    "volume": "94",
+    "locator": "3037-3045",
+    "doi": "10.1029/JB094iB03p03037"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

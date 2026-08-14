@@ -16,7 +16,8 @@ import copy
 import json
 from math import pi
 
-from .material import Material, record_eos_type, record_label
+from .material import (Material, record_eos_type, record_label,
+                       reference_text)
 
 
 def build_jcpds(
@@ -137,7 +138,7 @@ def apply_eos_record(phase, record: dict) -> None:
         record.get("parameter_errors") or {})
     phase.params["eos_fixed_parameters"] = list(
         record.get("fixed_parameters") or [])
-    reference = record.get("reference") or record_label(record)
+    reference = reference_text(record.get("reference")) or record_label(record)
     if reference:
         phase.params["comments"] = [reference]
     phase.params["k0"] = parameters.get("K0") or 0.0

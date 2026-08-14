@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Chromium",
  "formula": "Cr",
  "symmetry": "CUBIC",
@@ -22,7 +22,17 @@
  "eos_records": [
   {
    "label": "Anzellini et al. (2022), BM3",
-   "reference": "Anzellini et al., Sci. Rep. 12, 6727 (2022), doi:10.1038/s41598-022-10523-2",
+   "reference": {
+    "authors": [
+     "Anzellini"
+    ],
+    "authors_truncated": true,
+    "year": 2022,
+    "source": "Sci. Rep.",
+    "volume": "12",
+    "locator": "6727",
+    "doi": "10.1038/s41598-022-10523-2"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

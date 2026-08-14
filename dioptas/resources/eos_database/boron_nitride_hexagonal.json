@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Boron nitride (hexagonal)",
  "formula": "BN",
  "symmetry": "HEXAGONAL",
@@ -23,7 +23,17 @@
  "eos_records": [
   {
    "label": "Muhammad et al. (2024), helium-medium BM3",
-   "reference": "Muhammad et al., Nanoscale 16, 9096-9107 (2024), doi:10.1039/D4NR00093E",
+   "reference": {
+    "authors": [
+     "Muhammad"
+    ],
+    "authors_truncated": true,
+    "year": 2024,
+    "source": "Nanoscale",
+    "volume": "16",
+    "locator": "9096-9107",
+    "doi": "10.1039/D4NR00093E"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

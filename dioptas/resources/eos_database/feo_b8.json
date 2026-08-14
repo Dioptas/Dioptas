@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "FeO",
  "formula": "FeO",
  "symmetry": "CUBIC",
@@ -23,7 +23,17 @@
  "eos_records": [
   {
    "label": "B1 Fe0.94O, Fischer et al. (2011)",
-   "reference": "Fischer et al., Earth Planet. Sci. Lett. 304, 496-502 (2011), doi:10.1016/j.epsl.2011.02.025",
+   "reference": {
+    "authors": [
+     "Fischer"
+    ],
+    "authors_truncated": true,
+    "year": 2011,
+    "source": "Earth Planet. Sci. Lett.",
+    "volume": "304",
+    "locator": "496-502",
+    "doi": "10.1016/j.epsl.2011.02.025"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Tantalum",
  "formula": "Ta",
  "symmetry": "CUBIC",
@@ -22,7 +22,17 @@
  "eos_records": [
   {
    "label": "Cynn and Yoo (1999)",
-   "reference": "Cynn and Yoo, Phys. Rev. B 59, 8526-8529 (1999), doi:10.1103/PhysRevB.59.8526",
+   "reference": {
+    "authors": [
+     "Cynn",
+     "Yoo"
+    ],
+    "year": 1999,
+    "source": "Phys. Rev. B",
+    "volume": "59",
+    "locator": "8526-8529",
+    "doi": "10.1103/PhysRevB.59.8526"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {
@@ -42,7 +52,17 @@
   },
   {
    "label": "Shen and Smith (2026), Cu-referenced Vinet",
-   "reference": "Shen and Smith, Phys. Rev. B 113, 144113 (2026), doi:10.1103/fxgq-96sg",
+   "reference": {
+    "authors": [
+     "Shen",
+     "Smith"
+    ],
+    "year": 2026,
+    "source": "Phys. Rev. B",
+    "volume": "113",
+    "locator": "144113",
+    "doi": "10.1103/fxgq-96sg"
+   },
    "eos": {
     "type": "Vinet",
     "parameters": {
@@ -65,7 +85,19 @@
   },
   {
    "label": "Sokolova et al. (2016), Holzapfel thermal model",
-   "reference": "Sokolova, Dorogokupets, and Litasov, Comput. Geosci. 94, 162-169 (2016), supplementary workbook 10, doi:10.1016/j.cageo.2016.06.002",
+   "reference": {
+    "authors": [
+     "Sokolova",
+     "Dorogokupets",
+     "Litasov"
+    ],
+    "year": 2016,
+    "source": "Comput. Geosci.",
+    "volume": "94",
+    "locator": "162-169",
+    "details": "supplementary workbook 10",
+    "doi": "10.1016/j.cageo.2016.06.002"
+   },
    "eos": {"type": "Holzapfel", "parameters": {"V0": 36.07022518484496, "K0": 191.0, "K0_prime": 3.83}},
    "parameter_errors": {"V0": null, "K0": null, "K0_prime": null},
    "fixed_parameters": [],

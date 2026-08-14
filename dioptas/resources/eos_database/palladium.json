@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Palladium",
  "formula": "Pd",
  "symmetry": "CUBIC",
@@ -22,7 +22,17 @@
  "eos_records": [
   {
    "label": "Baty et al. (2024), BM3",
-   "reference": "Baty et al., J. Appl. Phys. 135, 075103 (2024), doi:10.1063/5.0179469",
+   "reference": {
+    "authors": [
+     "Baty"
+    ],
+    "authors_truncated": true,
+    "year": 2024,
+    "source": "J. Appl. Phys.",
+    "volume": "135",
+    "locator": "075103",
+    "doi": "10.1063/5.0179469"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

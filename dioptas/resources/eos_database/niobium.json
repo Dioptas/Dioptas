@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Niobium",
  "formula": "Nb",
  "symmetry": "CUBIC",
@@ -22,7 +22,17 @@
  "eos_records": [
   {
    "label": "Takemura and Singh (2006), helium-medium BM3",
-   "reference": "Takemura and Singh, Phys. Rev. B 73, 224119 (2006), doi:10.1103/PhysRevB.73.224119",
+   "reference": {
+    "authors": [
+     "Takemura",
+     "Singh"
+    ],
+    "year": 2006,
+    "source": "Phys. Rev. B",
+    "volume": "73",
+    "locator": "224119",
+    "doi": "10.1103/PhysRevB.73.224119"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {
@@ -45,7 +55,19 @@
   },
   {
    "label": "Sokolova et al. (2016), Holzapfel thermal model",
-   "reference": "Sokolova, Dorogokupets, and Litasov, Comput. Geosci. 94, 162-169 (2016), supplementary workbook 8, doi:10.1016/j.cageo.2016.06.002",
+   "reference": {
+    "authors": [
+     "Sokolova",
+     "Dorogokupets",
+     "Litasov"
+    ],
+    "year": 2016,
+    "source": "Comput. Geosci.",
+    "volume": "94",
+    "locator": "162-169",
+    "details": "supplementary workbook 8",
+    "doi": "10.1016/j.cageo.2016.06.002"
+   },
    "eos": {"type": "Holzapfel", "parameters": {"V0": 35.960629619878574, "K0": 170.5, "K0_prime": 3.65}},
    "parameter_errors": {"V0": null, "K0": null, "K0_prime": null},
    "fixed_parameters": [],

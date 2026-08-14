@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "SnO2_Pa-3 at 48GPa",
  "formula": "SnO2",
  "symmetry": "CUBIC",
@@ -29,7 +29,17 @@
  "eos_records": [
   {
    "label": "lattice parameter by Haines and Leger,1997, intensity by Ono et al., 2000",
-   "reference": "Ono et al., Phys. Chem. Miner. 27, 618-622 (2000), doi:10.1007/S002690000108",
+   "reference": {
+    "authors": [
+     "Ono"
+    ],
+    "authors_truncated": true,
+    "year": 2000,
+    "source": "Phys. Chem. Miner.",
+    "volume": "27",
+    "locator": "618-622",
+    "doi": "10.1007/S002690000108"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

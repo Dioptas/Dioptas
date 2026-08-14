@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Graphite",
  "formula": "C",
  "symmetry": "HEXAGONAL",
@@ -23,7 +23,18 @@
  "eos_records": [
   {
    "label": "Hanfland et al. (1989), 300 K Murnaghan",
-   "reference": "Hanfland, Beister, and Syassen, Phys. Rev. B 39, 12598-12603 (1989), doi:10.1103/PhysRevB.39.12598",
+   "reference": {
+    "authors": [
+     "Hanfland",
+     "Beister",
+     "Syassen"
+    ],
+    "year": 1989,
+    "source": "Phys. Rev. B",
+    "volume": "39",
+    "locator": "12598-12603",
+    "doi": "10.1103/PhysRevB.39.12598"
+   },
    "eos": {
     "type": "Murnaghan",
     "parameters": {

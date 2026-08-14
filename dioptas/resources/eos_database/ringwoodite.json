@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Ringwoodite",
  "formula": "Mg2SiO4",
  "symmetry": "CUBIC",
@@ -26,7 +26,17 @@
  "eos_records": [
   {
    "label": "Meng et al. (1994), 300 K BM3",
-   "reference": "Meng et al., Physics and Chemistry of Minerals 21, 407-413 (1994), doi:10.1007/BF00203299",
+   "reference": {
+    "authors": [
+     "Meng"
+    ],
+    "authors_truncated": true,
+    "year": 1994,
+    "source": "Physics and Chemistry of Minerals",
+    "volume": "21",
+    "locator": "407-413",
+    "doi": "10.1007/BF00203299"
+   },
    "temperature_ref": 300.0,
    "eos": {
     "type": "BM3",

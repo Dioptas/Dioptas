@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Coesite",
  "formula": "SiO2",
  "symmetry": "MONOCLINIC",
@@ -28,7 +28,16 @@
  "eos_records": [
   {
    "label": "data from JCPDS and Levien and Prewitt, 1981",
-   "reference": "Levien and Prewitt, American Mineralogist 66, 324-333 (1981)",
+   "reference": {
+    "authors": [
+     "Levien",
+     "Prewitt"
+    ],
+    "year": 1981,
+    "source": "American Mineralogist",
+    "volume": "66",
+    "locator": "324-333"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Wadsleyite",
  "formula": "Mg2SiO4",
  "symmetry": "ORTHORHOMBIC",
@@ -29,7 +29,17 @@
  "eos_records": [
   {
    "label": "Katsura et al. (2009), high-temperature BM3-MGD",
-   "reference": "Katsura et al., Geophysical Research Letters 36, L11307 (2009), doi:10.1029/2009GL038107",
+   "reference": {
+    "authors": [
+     "Katsura"
+    ],
+    "authors_truncated": true,
+    "year": 2009,
+    "source": "Geophysical Research Letters",
+    "volume": "36",
+    "locator": "L11307",
+    "doi": "10.1029/2009GL038107"
+   },
    "temperature_ref": 300.0,
    "eos": {
     "type": "BM3",

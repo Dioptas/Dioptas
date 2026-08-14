@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "SiO2 stishovite",
  "formula": "SiO2",
  "symmetry": "TETRAGONAL",
@@ -23,7 +23,17 @@
  "eos_records": [
   {
    "label": "Andrault et al. (2003)",
-   "reference": "Andrault et al., American Mineralogist 88, 301-307 (2003), doi:10.2138/am-2003-2-307",
+   "reference": {
+    "authors": [
+     "Andrault"
+    ],
+    "authors_truncated": true,
+    "year": 2003,
+    "source": "American Mineralogist",
+    "volume": "88",
+    "locator": "301-307",
+    "doi": "10.2138/am-2003-2-307"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "(Mg0.88Fe0.12)SiO3 perovskite",
  "formula": "Mg22Fe3Si25O75",
  "symmetry": "ORTHORHOMBIC",
@@ -174,7 +174,17 @@
  "eos_records": [
   {
    "label": "GSAS calculation, EOS from Knittle and Jeanloz,1987",
-   "reference": "Knittle and Jeanloz, Science 235, 668-670 (1987), doi:10.1126/science.235.4789.668",
+   "reference": {
+    "authors": [
+     "Knittle",
+     "Jeanloz"
+    ],
+    "year": 1987,
+    "source": "Science",
+    "volume": "235",
+    "locator": "668-670",
+    "doi": "10.1126/science.235.4789.668"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

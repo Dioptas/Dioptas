@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "B4C",
  "formula": "B4C",
  "symmetry": "HEXAGONAL",
@@ -26,7 +26,17 @@
  "eos_records": [
   {
    "label": "Somayazulu et al. (2023), 300 K BM3",
-   "reference": "Somayazulu et al., Philos. Trans. R. Soc. A 381, 20220331 (2023), doi:10.1098/rsta.2022.0331",
+   "reference": {
+    "authors": [
+     "Somayazulu"
+    ],
+    "authors_truncated": true,
+    "year": 2023,
+    "source": "Philos. Trans. R. Soc. A",
+    "volume": "381",
+    "locator": "20220331",
+    "doi": "10.1098/rsta.2022.0331"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

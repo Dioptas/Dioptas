@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "FeS",
  "formula": "FeS",
  "symmetry": "ORTHORHOMBIC",
@@ -23,7 +23,17 @@
  "eos_records": [
   {
    "label": "(VI) Ono 2006",
-   "reference": "Ono and Kikegawa, American Mineralogist 91, 1941-1944 (2006), doi:10.2138/am.2006.2347",
+   "reference": {
+    "authors": [
+     "Ono",
+     "Kikegawa"
+    ],
+    "year": 2006,
+    "source": "American Mineralogist",
+    "volume": "91",
+    "locator": "1941-1944",
+    "doi": "10.2138/am.2006.2347"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {

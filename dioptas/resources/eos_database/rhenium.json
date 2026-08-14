@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "Rhenium",
  "formula": "Re",
  "symmetry": "HEXAGONAL",
@@ -22,7 +22,20 @@
  "eos_records": [
   {
    "label": "Anzellini et al. (2014), helium-medium Vinet",
-   "reference": "Anzellini, Dewaele, Occelli, Loubeyre, and Mezouar, J. Appl. Phys. 115, 043511 (2014), doi:10.1063/1.4863300",
+   "reference": {
+    "authors": [
+     "Anzellini",
+     "Dewaele",
+     "Occelli",
+     "Loubeyre",
+     "Mezouar"
+    ],
+    "year": 2014,
+    "source": "J. Appl. Phys.",
+    "volume": "115",
+    "locator": "043511",
+    "doi": "10.1063/1.4863300"
+   },
    "eos": {
     "type": "Vinet",
     "parameters": {

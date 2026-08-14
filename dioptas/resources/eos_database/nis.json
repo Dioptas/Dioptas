@@ -1,5 +1,5 @@
 {
- "format_version": 1,
+ "format_version": 2,
  "name": "NiS",
  "formula": "NiS",
  "symmetry": "HEXAGONAL",
@@ -23,7 +23,17 @@
  "eos_records": [
   {
    "label": "Campbell and Heintz 1993",
-   "reference": "Campbell and Heinz, J. Phys. Chem. Solids 54, 5-7 (1993), doi:10.1016/0022-3697(93)90106-2",
+   "reference": {
+    "authors": [
+     "Campbell",
+     "Heinz"
+    ],
+    "year": 1993,
+    "source": "J. Phys. Chem. Solids",
+    "volume": "54",
+    "locator": "5-7",
+    "doi": "10.1016/0022-3697(93)90106-2"
+   },
    "eos": {
     "type": "BM3",
     "parameters": {
