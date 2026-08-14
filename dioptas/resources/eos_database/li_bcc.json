@@ -24,9 +24,12 @@
    "label": "(bcc)  (JCPDS 6-0696, EOS from Hanfland SSC )",
    "reference": {
     "authors": [
-     "Hanfland"
+     "Hanfland",
+     "Loa",
+     "Syassen",
+     "Schwarz",
+     "Takemura"
     ],
-    "authors_truncated": true,
     "year": 1999,
     "source": "Solid State Commun.",
     "volume": "112",

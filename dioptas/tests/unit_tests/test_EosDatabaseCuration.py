@@ -58,6 +58,16 @@ def test_materials_have_at_most_one_boolean_default_record():
         assert len(defaults) <= 1, path.name
 
 
+def test_bundled_references_store_complete_author_lists():
+    for path in DATABASE.glob("*.json"):
+        for record in _document(path.name)["eos_records"]:
+            reference = record["reference"]
+            assert reference.get("authors"), (path.name, record["label"])
+            assert not reference.get("authors_truncated"), (
+                path.name, record["label"]
+            )
+
+
 @pytest.mark.parametrize(
     "filename,label_fragment",
     [

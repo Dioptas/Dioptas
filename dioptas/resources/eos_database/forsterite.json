@@ -29,9 +29,14 @@
    "label": "Finkelstein et al. (2014), room-temperature BM3",
    "reference": {
     "authors": [
-     "Finkelstein"
+     "Finkelstein",
+     "Dera",
+     "Jahn",
+     "Oganov",
+     "Holl",
+     "Meng",
+     "Duffy"
     ],
-    "authors_truncated": true,
     "year": 2014,
     "source": "American Mineralogist",
     "volume": "99",

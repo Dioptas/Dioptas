@@ -26,9 +26,14 @@
    "label": "Schouwink et al. (2011), 300 K BM2",
    "reference": {
     "authors": [
-     "Schouwink"
+     "Schouwink",
+     "Dubrovinsky",
+     "Glazyrin",
+     "Merlini",
+     "Hanfland",
+     "Pippinger",
+     "Miletich"
     ],
-    "authors_truncated": true,
     "year": 2011,
     "source": "Am. Mineral.",
     "volume": "96",

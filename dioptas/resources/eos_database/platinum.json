@@ -24,9 +24,11 @@
    "label": "JCPDS 4-0802, EOS from Holmes",
    "reference": {
     "authors": [
-     "Holmes"
+     "Holmes",
+     "Moriarty",
+     "Gathers",
+     "Nellis"
     ],
-    "authors_truncated": true,
     "year": 1989,
     "source": "J. Appl. Phys.",
     "volume": "66",
@@ -96,6 +98,8 @@
     "authors": [
      "Sokolova",
      "Dorogokupets",
+     "Dymshits",
+     "Danilov",
      "Litasov"
     ],
     "year": 2016,

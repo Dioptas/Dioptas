@@ -24,9 +24,13 @@
    "label": "Anzellini et al. (2019), 300 K Vinet",
    "reference": {
     "authors": [
-     "Anzellini"
+     "Anzellini",
+     "Wharmby",
+     "Miozzi",
+     "Kleppe",
+     "Daisenberger",
+     "Wilhelm"
     ],
-    "authors_truncated": true,
     "year": 2019,
     "source": "Sci. Rep.",
     "volume": "9",

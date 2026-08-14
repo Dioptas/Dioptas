@@ -32,9 +32,11 @@
    "label": "Dubrovinsky et al. (2002)",
    "reference": {
     "authors": [
-     "Dubrovinsky"
+     "Dubrovinsky",
+     "Dubrovinskaia",
+     "Prokopenko",
+     "Le Bihan"
     ],
-    "authors_truncated": true,
     "year": 2002,
     "source": "High Pressure Res.",
     "volume": "22",

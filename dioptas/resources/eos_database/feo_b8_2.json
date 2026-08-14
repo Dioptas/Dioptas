@@ -26,9 +26,13 @@
    "label": "B8 Fe0.94O, Fischer et al. (2011)",
    "reference": {
     "authors": [
-     "Fischer"
+     "Fischer",
+     "Campbell",
+     "Shofner",
+     "Lord",
+     "Dera",
+     "Prakapenka"
     ],
-    "authors_truncated": true,
     "year": 2011,
     "source": "Earth Planet. Sci. Lett.",
     "volume": "304",

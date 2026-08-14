@@ -24,9 +24,17 @@
    "label": "Anzellini et al. (2019), BM3",
    "reference": {
     "authors": [
-     "Anzellini"
+     "Anzellini",
+     "Errandonea",
+     "Cazorla",
+     "MacLeod",
+     "Monteseguro",
+     "Boccato",
+     "Bandiello",
+     "Anichtchenko",
+     "Popescu",
+     "Beavers"
     ],
-    "authors_truncated": true,
     "year": 2019,
     "source": "Sci. Rep.",
     "volume": "9",

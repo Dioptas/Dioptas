@@ -25,9 +25,14 @@
    "label": "Le Godec et al. (2014), 300 K Vinet",
    "reference": {
     "authors": [
-     "Le Godec"
+     "Le Godec",
+     "Mezouar",
+     "Kurakevych",
+     "Munsch",
+     "Nwagwu",
+     "Edgar",
+     "Solozhenko"
     ],
-    "authors_truncated": true,
     "year": 2014,
     "source": "J. Superhard Mater.",
     "volume": "36",

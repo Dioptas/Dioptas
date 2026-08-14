@@ -20,9 +20,14 @@
    "label": "Milani et al. (2015), BM3",
    "reference": {
     "authors": [
-     "Milani"
+     "Milani",
+     "Nestola",
+     "Alvaro",
+     "Pasqual",
+     "Mazzucchelli",
+     "Domeneghetti",
+     "Geiger"
     ],
-    "authors_truncated": true,
     "year": 2015,
     "source": "Lithos",
     "volume": "227",

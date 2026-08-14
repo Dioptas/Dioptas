@@ -53,9 +53,16 @@
    "label": "Variation of interatomic distances in ice VIII to 10 GPa, PRB(1994) , Besson J M",
    "reference": {
     "authors": [
-     "Besson"
+     "Besson",
+     "Pruzan",
+     "Klotz",
+     "Hamel",
+     "Silvi",
+     "Nelmes",
+     "Loveday",
+     "Wilson",
+     "Hull"
     ],
-    "authors_truncated": true,
     "year": 1994,
     "source": "Phys. Rev. B",
     "volume": "49",

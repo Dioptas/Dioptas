@@ -31,9 +31,15 @@
    "label": "lattice parameter by Haines and Leger,1997, intensity by Ono et al., 2000",
    "reference": {
     "authors": [
-     "Ono"
+     "Ono",
+     "Ito",
+     "Katsura",
+     "Yoneda",
+     "Walter",
+     "Urakawa",
+     "Utsumi",
+     "Funakoshi"
     ],
-    "authors_truncated": true,
     "year": 2000,
     "source": "Phys. Chem. Miner.",
     "volume": "27",

@@ -64,10 +64,12 @@ schema change::
       "notes": "..."                         # optional
     }
 
-``reference.authors_truncated`` is true when the publication itself names
-only the first author followed by "et al.". ``volume``, ``locator``, ``doi``,
-and a free-form ``details`` field (for example, a table or supplementary
-workbook) are optional.
+``reference.authors`` stores the publication's complete, ordered author list.
+``reference.authors_truncated`` remains supported for imported user files
+whose source metadata supplies only the first author followed by "et al.";
+bundled database records do not use it. ``volume``, ``locator``, ``doi``, and
+a free-form ``details`` field (for example, a table or supplementary workbook)
+are optional.
 
 ``thermal.type`` is reserved for ``peritheos.eos.thermal`` class names
 (``MieGruneisenDebye``, ``HollandPowell2011``, ...); the one exception is

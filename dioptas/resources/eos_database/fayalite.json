@@ -22,9 +22,12 @@
    "label": "Bejina et al. (2021), 302 K BM3",
    "reference": {
     "authors": [
-     "Bejina"
+     "Béjina",
+     "Bystricky",
+     "Tercé",
+     "Whitaker",
+     "Chen"
     ],
-    "authors_truncated": true,
     "year": 2021,
     "source": "Eur. J. Mineral.",
     "volume": "33",

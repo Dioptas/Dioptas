@@ -31,9 +31,20 @@
    "label": "Katsura et al. (2009), high-temperature BM3-MGD",
    "reference": {
     "authors": [
-     "Katsura"
+     "Katsura",
+     "Shatskiy",
+     "Manthilake",
+     "Zhai",
+     "Yamazaki",
+     "Matsuzaki",
+     "Yoshino",
+     "Yoneda",
+     "Ito",
+     "Sugita",
+     "Tomioka",
+     "Nozawa",
+     "Funakoshi"
     ],
-    "authors_truncated": true,
     "year": 2009,
     "source": "Geophysical Research Letters",
     "volume": "36",

@@ -24,9 +24,12 @@
    "label": "Baty et al. (2024), BM3",
    "reference": {
     "authors": [
-     "Baty"
+     "Baty",
+     "Burakovsky",
+     "Luscher",
+     "Anzellini",
+     "Errandonea"
     ],
-    "authors_truncated": true,
     "year": 2024,
     "source": "J. Appl. Phys.",
     "volume": "135",

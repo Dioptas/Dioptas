@@ -26,7 +26,25 @@
   {
    "label": "Prescher et al. (2015), orthorhombic Fe7C3 BM3",
    "reference": {
-    "authors": ["Prescher", "Takahashi", "Nishio-Hamane", "Ko", "Ohishi", "Kantor", "Kurnosov", "Frost", "Dubrovinsky"],
+    "authors": [
+     "Prescher",
+     "Dubrovinsky",
+     "Bykova",
+     "Kupenko",
+     "Glazyrin",
+     "Kantor",
+     "McCammon",
+     "Mookherjee",
+     "Nakajima",
+     "Miyajima",
+     "Sinmyo",
+     "Cerantola",
+     "Dubrovinskaia",
+     "Prakapenka",
+     "Rüffer",
+     "Chumakov",
+     "Hanfland"
+    ],
     "year": 2015,
     "source": "Nature Geosci.",
     "volume": "8",

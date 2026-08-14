@@ -27,9 +27,11 @@
    "label": "GSAS calculation, EOS from Yagi et al, 1992",
    "reference": {
     "authors": [
-     "Yagi"
+     "Yagi",
+     "Uchiyama",
+     "Akaogi",
+     "Ito"
     ],
-    "authors_truncated": true,
     "year": 1992,
     "source": "Phys. Earth Planet. Inter.",
     "volume": "74",

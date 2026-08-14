@@ -38,9 +38,11 @@
    "label": "Fei et al Am. Mineral. 85, 1830, 2000",
    "reference": {
     "authors": [
-     "Fei"
+     "Fei",
+     "Li",
+     "Bertka",
+     "Prewitt"
     ],
-    "authors_truncated": true,
     "year": 2000,
     "source": "American Mineralogist",
     "volume": "85",

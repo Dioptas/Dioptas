@@ -24,9 +24,17 @@
    "label": "Rodrigo-Ramon et al. (2024), Vinet",
    "reference": {
     "authors": [
-     "Rodrigo-Ramon"
+     "Rodrigo-Ramon",
+     "Anzellini",
+     "Cazorla",
+     "Botella",
+     "Garcia-Beamud",
+     "Sanchez-Martin",
+     "Garbarino",
+     "Rosa",
+     "Gallego-Parra",
+     "Errandonea"
     ],
-    "authors_truncated": true,
     "year": 2024,
     "source": "Sci. Rep.",
     "volume": "14",

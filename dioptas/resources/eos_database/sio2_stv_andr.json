@@ -25,9 +25,11 @@
    "label": "Andrault et al. (2003)",
    "reference": {
     "authors": [
-     "Andrault"
+     "Andrault",
+     "Angel",
+     "Mosenfelder",
+     "Le Bihan"
     ],
-    "authors_truncated": true,
     "year": 2003,
     "source": "American Mineralogist",
     "volume": "88",

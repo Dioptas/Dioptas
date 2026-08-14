@@ -18,9 +18,12 @@
    "label": "Sun et al. (2019), BM2-MGD",
    "reference": {
     "authors": [
-     "Sun"
+     "Sun",
+     "Shi",
+     "Mao",
+     "Zhou",
+     "Prakapenka"
     ],
-    "authors_truncated": true,
     "year": 2019,
     "source": "J. Geophys. Res. Solid Earth",
     "volume": "124",

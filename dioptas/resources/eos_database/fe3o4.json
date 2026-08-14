@@ -26,9 +26,12 @@
    "label": "GSAS, EOS from Mao 1974",
    "reference": {
     "authors": [
-     "Mao"
+     "Mao",
+     "Takahashi",
+     "Bassett",
+     "Kinsland",
+     "Merrill"
     ],
-    "authors_truncated": true,
     "year": 1974,
     "source": "J. Geophys. Res.",
     "volume": "79",

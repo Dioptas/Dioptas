@@ -29,9 +29,13 @@
    "label": "Somayazulu et al. (2023), 300 K BM3",
    "reference": {
     "authors": [
-     "Somayazulu"
+     "Somayazulu",
+     "Ahart",
+     "Meng",
+     "Ciezak",
+     "Velisavlevic",
+     "Hemley"
     ],
-    "authors_truncated": true,
     "year": 2023,
     "source": "Philos. Trans. R. Soc. A",
     "volume": "381",

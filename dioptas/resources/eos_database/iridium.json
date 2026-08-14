@@ -24,9 +24,17 @@
    "label": "Anzellini et al. (2025), BM3",
    "reference": {
     "authors": [
-     "Anzellini"
+     "Anzellini",
+     "Botella",
+     "Rodrigo-Ramon",
+     "Garcia-Beamud",
+     "Sanchez-Martin",
+     "Garbarino",
+     "Rosa",
+     "Gallego-Parra",
+     "Koemets",
+     "Errandonea"
     ],
-    "authors_truncated": true,
     "year": 2025,
     "source": "Commun. Mater.",
     "volume": "6",

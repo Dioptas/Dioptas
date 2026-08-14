@@ -25,9 +25,11 @@
    "label": "Angel et al. (1997), single-crystal BM3",
    "reference": {
     "authors": [
-     "Angel"
+     "Angel",
+     "Allan",
+     "Miletich",
+     "Finger"
     ],
-    "authors_truncated": true,
     "year": 1997,
     "source": "Journal of Applied Crystallography",
     "volume": "30",

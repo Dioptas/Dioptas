@@ -17,9 +17,13 @@
    "label": "Dewaele et al. (2015), alpha Vinet",
    "reference": {
     "authors": [
-     "Dewaele"
+     "Dewaele",
+     "Stutzmann",
+     "Bouchet",
+     "Bottin",
+     "Occelli",
+     "Mezouar"
     ],
-    "authors_truncated": true,
     "year": 2015,
     "source": "Phys. Rev. B",
     "volume": "91",

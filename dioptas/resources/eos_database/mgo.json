@@ -59,9 +59,12 @@
    "label": "Speziale et al. (2001), constrained BM3",
    "reference": {
     "authors": [
-     "Speziale"
+     "Speziale",
+     "Zha",
+     "Duffy",
+     "Hemley",
+     "Mao"
     ],
-    "authors_truncated": true,
     "year": 2001,
     "source": "J. Geophys. Res.",
     "volume": "106",
@@ -127,6 +130,8 @@
     "authors": [
      "Sokolova",
      "Dorogokupets",
+     "Dymshits",
+     "Danilov",
      "Litasov"
     ],
     "year": 2016,

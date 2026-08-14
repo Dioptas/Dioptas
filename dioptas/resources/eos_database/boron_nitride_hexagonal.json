@@ -25,9 +25,16 @@
    "label": "Muhammad et al. (2024), helium-medium BM3",
    "reference": {
     "authors": [
-     "Muhammad"
+     "Muhammad",
+     "Mezouar",
+     "Garbarino",
+     "Poręba",
+     "Confalonieri",
+     "Ceppatelli",
+     "Serrano-Ruiz",
+     "Peruzzini",
+     "Datchi"
     ],
-    "authors_truncated": true,
     "year": 2024,
     "source": "Nanoscale",
     "volume": "16",

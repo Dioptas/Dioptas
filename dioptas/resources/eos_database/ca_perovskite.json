@@ -59,9 +59,13 @@
    "label": "using aristotype, EOS by Mao et al 1989",
    "reference": {
     "authors": [
-     "Mao"
+     "Mao",
+     "Chen",
+     "Hemley",
+     "Jephcoat",
+     "Wu",
+     "Bassett"
     ],
-    "authors_truncated": true,
     "year": 1989,
     "source": "J. Geophys. Res.",
     "volume": "94",

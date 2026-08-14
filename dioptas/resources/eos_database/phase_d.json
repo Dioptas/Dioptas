@@ -85,9 +85,11 @@
    "label": "Shieh et al. (2000)",
    "reference": {
     "authors": [
-     "Shieh"
+     "Shieh",
+     "Mao",
+     "Hemley",
+     "Ming"
     ],
-    "authors_truncated": true,
     "year": 2000,
     "source": "Earth Planet. Sci. Lett.",
     "volume": "177",

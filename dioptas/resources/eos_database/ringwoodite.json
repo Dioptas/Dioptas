@@ -28,9 +28,12 @@
    "label": "Meng et al. (1994), 300 K BM3",
    "reference": {
     "authors": [
-     "Meng"
+     "Meng",
+     "Fei",
+     "Weidner",
+     "Gwanmesia",
+     "Hu"
     ],
-    "authors_truncated": true,
     "year": 1994,
     "source": "Physics and Chemistry of Minerals",
     "volume": "21",

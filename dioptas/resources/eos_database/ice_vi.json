@@ -29,9 +29,13 @@
    "label": "Bezacier et al. (2014), PVT BM2",
    "reference": {
     "authors": [
-     "Bezacier"
+     "Bezacier",
+     "Journaux",
+     "Perrillat",
+     "Cardon",
+     "Hanfland",
+     "Daniel"
     ],
-    "authors_truncated": true,
     "year": 2014,
     "source": "Journal of Chemical Physics",
     "volume": "141",

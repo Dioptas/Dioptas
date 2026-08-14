@@ -25,9 +25,12 @@
    "label": "Grzechnik and Friese (2010)",
    "reference": {
     "authors": [
-     "Knorr"
+     "Knorr",
+     "Ehm",
+     "Hytha",
+     "Winkler",
+     "Depmeier"
     ],
-    "authors_truncated": true,
     "year": 2003,
     "source": "Eur. Phys. J. B",
     "volume": "31",

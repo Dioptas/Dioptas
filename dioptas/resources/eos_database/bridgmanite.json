@@ -28,9 +28,12 @@
    "label": "Tange et al. (2012), mantle-range BM3-MGD",
    "reference": {
     "authors": [
-     "Tange"
+     "Tange",
+     "Kuwayama",
+     "Irifune",
+     "Funakoshi",
+     "Ohishi"
     ],
-    "authors_truncated": true,
     "year": 2012,
     "source": "Journal of Geophysical Research: Solid Earth",
     "volume": "117",
@@ -70,9 +73,12 @@
    "label": "Tange et al. (2012), mantle-range Vinet-MGD",
    "reference": {
     "authors": [
-     "Tange"
+     "Tange",
+     "Kuwayama",
+     "Irifune",
+     "Funakoshi",
+     "Ohishi"
     ],
-    "authors_truncated": true,
     "year": 2012,
     "source": "Journal of Geophysical Research: Solid Earth",
     "volume": "117",
@@ -112,9 +118,12 @@
    "label": "Vanpeteghem et al. (2006), low-pressure single-crystal BM2",
    "reference": {
     "authors": [
-     "Vanpeteghem"
+     "Vanpeteghem",
+     "Zhao",
+     "Angel",
+     "Ross",
+     "Bolfan-Casanova"
     ],
-    "authors_truncated": true,
     "year": 2006,
     "source": "Geophysical Research Letters",
     "volume": "33",

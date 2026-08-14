@@ -24,9 +24,12 @@
    "label": "Wittlinger et al. (1997)",
    "reference": {
     "authors": [
-     "Wittlinger"
+     "Wittlinger",
+     "Fischer",
+     "Werner",
+     "Schneider",
+     "Schulz"
     ],
-    "authors_truncated": true,
     "year": 1997,
     "source": "Acta Crystallogr. B",
     "volume": "53",

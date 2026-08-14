@@ -29,9 +29,14 @@
    "label": "Jadeite, Zhao et al. (1997)",
    "reference": {
     "authors": [
-     "Zhao"
+     "Zhao",
+     "Von Dreele",
+     "Shankland",
+     "Weidner",
+     "Zhang",
+     "Wang",
+     "Gasparik"
     ],
-    "authors_truncated": true,
     "year": 1997,
     "source": "Geophys. Res. Lett.",
     "volume": "24",

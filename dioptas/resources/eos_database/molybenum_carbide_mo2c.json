@@ -25,9 +25,11 @@
    "label": "EOS from Haines et al. 2001",
    "reference": {
     "authors": [
-     "Haines"
+     "Haines",
+     "Léger",
+     "Chateau",
+     "Lowther"
     ],
-    "authors_truncated": true,
     "year": 2001,
     "source": "J. Phys.: Condens. Matter",
     "volume": "13",

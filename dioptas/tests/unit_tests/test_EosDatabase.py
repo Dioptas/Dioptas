@@ -193,6 +193,18 @@ def test_structured_reference_display_and_legacy_compatibility():
     assert eos.reference_text(legacy) == legacy
 
 
+@pytest.mark.parametrize(
+    "authors, expected",
+    [
+        (["Ross"], "Ross"),
+        (["Redfern", "Angel"], "Redfern and Angel"),
+        (["Martinez", "Zhang", "Reeder"], "Martinez et al."),
+    ],
+)
+def test_reference_authors_compacts_complete_author_lists(authors, expected):
+    assert eos.reference_authors({"authors": authors}) == expected
+
+
 def test_non_numeric_pressure_domain_status_display():
     assert eos.record_pressure_range({
         "pressure_range_status": "reference_parameterization"

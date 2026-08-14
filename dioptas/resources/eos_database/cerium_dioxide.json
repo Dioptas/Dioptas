@@ -25,9 +25,13 @@
    "label": "Gerward et al. (2005), room-temperature BM3",
    "reference": {
     "authors": [
-     "Gerward"
+     "Gerward",
+     "Staun Olsen",
+     "Petit",
+     "Vaitheeswaran",
+     "Kanchana",
+     "Svane"
     ],
-    "authors_truncated": true,
     "year": 2005,
     "source": "J. Alloys Compd.",
     "volume": "400",

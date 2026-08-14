@@ -30,9 +30,12 @@
    "label": "Pepin et al. (2014), Vinet",
    "reference": {
     "authors": [
-     "Pepin"
+     "Pépin",
+     "Dewaele",
+     "Geneste",
+     "Loubeyre",
+     "Mezouar"
     ],
-    "authors_truncated": true,
     "year": 2014,
     "source": "Phys. Rev. Lett.",
     "volume": "113",

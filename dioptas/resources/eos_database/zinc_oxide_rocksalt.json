@@ -18,7 +18,13 @@
   {
    "label": "Hanna et al. (2011), rocksalt BM2",
    "reference": {
-    "authors": ["Hanna", "Davis", "Vohra"],
+    "authors": [
+     "Hanna",
+     "Teklemichael",
+     "McCluskey",
+     "Bergman",
+     "Huso"
+    ],
     "year": 2011,
     "source": "J. Appl. Phys.",
     "volume": "110",

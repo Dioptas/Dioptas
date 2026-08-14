@@ -19,9 +19,13 @@
    "label": "Siersch et al. (2021), BM3",
    "reference": {
     "authors": [
-     "Siersch"
+     "Siersch",
+     "Kurnosov",
+     "Criniti",
+     "Ishii",
+     "Boffa Ballaran",
+     "Frost"
     ],
-    "authors_truncated": true,
     "year": 2021,
     "source": "Phys. Earth Planet. Inter.",
     "volume": "320",

@@ -24,9 +24,12 @@
    "label": "(hcp phase -- 19.2 GPa modified to P=0) (JCPDS 34-529 ) EOS from Mao et al 90",
    "reference": {
     "authors": [
-     "Mao"
+     "Mao",
+     "Wu",
+     "Chen",
+     "Shu",
+     "Jephcoat"
     ],
-    "authors_truncated": true,
     "year": 1990,
     "source": "J. Geophys. Res.",
     "volume": "95",

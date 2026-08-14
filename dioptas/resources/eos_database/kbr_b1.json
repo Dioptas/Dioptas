@@ -25,9 +25,14 @@
    "label": "Dewaele et al. (2012), 298 K B1 Vinet",
    "reference": {
     "authors": [
-     "Dewaele"
+     "Dewaele",
+     "Belonoshko",
+     "Garbarino",
+     "Occelli",
+     "Bouvier",
+     "Hanfland",
+     "Mezouar"
     ],
-    "authors_truncated": true,
     "year": 2012,
     "source": "Phys. Rev. B",
     "volume": "85",

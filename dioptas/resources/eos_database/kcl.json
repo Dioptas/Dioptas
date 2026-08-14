@@ -53,9 +53,12 @@
    "label": "Walker et al. (2002), B2 thermal Birch",
    "reference": {
     "authors": [
-     "Walker"
+     "Walker",
+     "Cranswick",
+     "Verma",
+     "Clark",
+     "Buhre"
     ],
-    "authors_truncated": true,
     "year": 2002,
     "source": "American Mineralogist",
     "volume": "87",

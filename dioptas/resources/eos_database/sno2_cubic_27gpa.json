@@ -31,9 +31,15 @@
    "label": "SnO2_Pa-3 at 26.6 GPa (by Ono et al., 2000)",
    "reference": {
     "authors": [
-     "Ono"
+     "Ono",
+     "Ito",
+     "Katsura",
+     "Yoneda",
+     "Walter",
+     "Urakawa",
+     "Utsumi",
+     "Funakoshi"
     ],
-    "authors_truncated": true,
     "year": 2000,
     "source": "Phys. Chem. Miner.",
     "volume": "27",

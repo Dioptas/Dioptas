@@ -24,9 +24,11 @@
    "label": "Occelli data on the H2005 scale (Datchi et al. 2007)",
    "reference": {
     "authors": [
-     "Datchi"
+     "Datchi",
+     "Dewaele",
+     "Le Godec",
+     "Loubeyre"
     ],
-    "authors_truncated": true,
     "year": 2007,
     "source": "Phys. Rev. B",
     "volume": "75",
@@ -95,6 +97,8 @@
     "authors": [
      "Sokolova",
      "Dorogokupets",
+     "Dymshits",
+     "Danilov",
      "Litasov"
     ],
     "year": 2016,

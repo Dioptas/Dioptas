@@ -27,9 +27,12 @@
    "label": "Mosenfelder et al. (2009), shock-static BM3-MGD",
    "reference": {
     "authors": [
-     "Mosenfelder"
+     "Mosenfelder",
+     "Asimow",
+     "Frost",
+     "Rubie",
+     "Ahrens"
     ],
-    "authors_truncated": true,
     "year": 2009,
     "source": "Journal of Geophysical Research: Solid Earth",
     "volume": "114",
@@ -68,9 +71,10 @@
    "label": "Sakai et al. (2016), experimental multi-megabar BM3",
    "reference": {
     "authors": [
-     "Sakai"
+     "Sakai",
+     "Dekura",
+     "Hirao"
     ],
-    "authors_truncated": true,
     "year": 2016,
     "source": "Scientific Reports",
     "volume": "6",

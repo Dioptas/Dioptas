@@ -17,9 +17,15 @@
    "label": "Stinton et al. (2014), hcp Vinet",
    "reference": {
     "authors": [
-     "Stinton"
+     "Stinton",
+     "MacLeod",
+     "Cynn",
+     "Errandonea",
+     "Evans",
+     "Proctor",
+     "Meng",
+     "McMahon"
     ],
-    "authors_truncated": true,
     "year": 2014,
     "source": "Phys. Rev. B",
     "volume": "90",
