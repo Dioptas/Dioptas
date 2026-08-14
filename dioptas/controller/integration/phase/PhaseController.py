@@ -159,6 +159,7 @@ class PhaseController:
                     load_material_file(filename),
                     minimum_d_spacing=minimum_d_spacing,
                     wavelength_angstrom=wavelength,
+                    origin="file",
                 )
                 jcpds_obj._filename = filename
                 self.model.phase_model.add_jcpds_object(jcpds_obj, filename=filename)
@@ -182,16 +183,23 @@ class PhaseController:
 
     def phase_added(self):
         color = self.model.phase_model.phase_colors[-1]
-        self.phase_widget.add_phase(get_base_name(self.model.phase_model.phase_files[-1]),
+        phase = self.model.phase_model.phases[-1]
+        display_name = phase.name or get_base_name(
+            self.model.phase_model.phase_files[-1])
+        self.phase_widget.add_phase(display_name,
                                     '#%02x%02x%02x' % (int(color[0]), int(color[1]), int(color[2])))
         # Fill the reference dropdown with all EoS records of the material
         # (database phases only; legacy jcpds files have none). Each record
         # determines its own equation of state; the tooltip shows it.
         last = len(self.model.phase_model.phases) - 1
-        phase = self.model.phase_model.phases[last]
+        self._update_phase_references(last)
+
+    def _update_phase_references(self, ind):
+        """Keep the phase-table selector aligned with record management."""
+        phase = self.model.phase_model.phases[ind]
         self.phase_widget.set_phase_references(
-            last,
-            self.model.phase_model.get_eos_reference_labels(last),
+            ind,
+            self.model.phase_model.get_eos_reference_labels(ind),
             phase.params['eos_current_index'],
             tooltips=[
                 f"{eos.reference_text(record.get('reference'))} — "
@@ -199,13 +207,15 @@ class PhaseController:
                 for record in phase.params['eos_records']])
 
     def phase_changed(self, ind):
-        phase_name = get_base_name(self.model.phase_model.phases[ind].filename)
-        if self.model.phase_model.phases[ind].params['modified']:
-            phase_name += '*'
+        phase = self.model.phase_model.phases[ind]
+        phase_name = phase.name or get_base_name(
+            self.model.phase_model.phase_files[ind])
         self.phase_widget.rename_phase(ind, phase_name)
-        self.phase_widget.set_phase_pressure(ind, self.model.phase_model.phases[ind].params['pressure'])
-        self.phase_widget.set_phase_temperature(ind, self.model.phase_model.phases[ind].params['temperature'])
-        self.phase_widget.temperature_sbs[ind].setEnabled(int(self.model.phase_model.phases[ind].has_thermal_expansion()))
+        self.phase_widget.set_phase_pressure(ind, phase.params['pressure'])
+        self.phase_widget.set_phase_temperature(ind, phase.params['temperature'])
+        self.phase_widget.temperature_sbs[ind].setEnabled(
+            int(phase.has_thermal_expansion()))
+        self._update_phase_references(ind)
 
     def delete_btn_click_callback(self):
         """

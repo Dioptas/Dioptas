@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 import os
-from dataclasses import replace
-from math import pi
+import re
 from pathlib import Path
 
-from .jcpds import jcpds, jcpds_reflection
+from ..eos.material import Lattice, Material
+from .jcpds import jcpds
 
 
 class CifConverter:
@@ -23,59 +23,100 @@ class CifConverter:
         self.min_intensity = min_intensity
 
     def convert_cif_to_jcpds(self, filename: str) -> jcpds:
-        """Read *filename* and calculate its powder reflections."""
-        from phasesmith.io.cif import read_cif
+        """Read *filename* into a canonical Material and build its phase."""
+        from ..eos import build_jcpds
 
-        from .phasesmith import calculate_structure_reflections
-
-        structure = read_cif(filename, strict=False).structure
-        cell = structure.cell
-
-        phase = jcpds()
-        phase.params["a0"] = cell.a_angstrom
-        phase.params["b0"] = cell.b_angstrom
-        phase.params["c0"] = cell.c_angstrom
-        phase.params["alpha0"] = cell.alpha_deg
-        phase.params["beta0"] = cell.beta_deg
-        phase.params["gamma0"] = cell.gamma_deg
-        phase.params["v0"] = cell.geometry().volume_angstrom3
-        phase.params["symmetry"] = structure.space_group.crystal_system.upper()
-        phase.params["comments"] = [structure.name]
-
-        # CIF oxidation states are useful provenance, but the PhaseSmith X-ray
-        # table intentionally does not contain every possible ion. Dioptas has
-        # historically used neutral-atom factors, so retain that convention.
-        structure = replace(
-            structure,
-            sites=tuple(
-                replace(site, type_symbol=site.element_symbol, charge=None)
-                for site in structure.sites
-            ),
-        )
-        for h, k, ell, d_spacing, intensity in calculate_structure_reflections(
-            structure,
+        material = self.convert_cif_to_material(filename)
+        phase = build_jcpds(
+            material,
             minimum_d_spacing=self.min_d_spacing,
             minimum_intensity=self.min_intensity,
             wavelength_angstrom=self.wavelength,
-        ):
-            phase.reflections.append(
-                jcpds_reflection(
-                    h=h,
-                    k=k,
-                    l=ell,
-                    intensity=intensity,
-                    d=d_spacing,
-                )
-            )
-
+            origin="cif",
+        )
         phase.filename = filename
-        phase.name = os.path.splitext(os.path.basename(filename))[0]
-        phase.state.reflection_source = {
-            "kind": "cif",
-            "text": Path(filename).read_text(encoding="utf-8"),
-        }
-        phase.state.reflection_q_max = 2.0 * pi / self.min_d_spacing
-        phase.state.reflection_wavelength = self.wavelength
-        phase.state.reflection_intensity_cutoff = self.min_intensity
+        phase.name = (
+            material.display_name
+            or os.path.splitext(os.path.basename(filename))[0]
+        )
+        phase.params["comments"] = [material.name]
         phase.params["modified"] = False
         return phase
+
+    def convert_cif_to_material(self, filename: str) -> Material:
+        """Read *filename* as a normalized, lossless EoS Material.
+
+        The normalized lattice, formula, space group, crystallographic Z and
+        atom sites support the shared material workflow. The original CIF text
+        remains attached as provenance and as the authoritative reflection
+        source, preserving information that the compact material schema does
+        not model yet (anisotropic displacement, disorder groups, and so on).
+        """
+        from phasesmith.io.cif import read_cif
+
+        structure = read_cif(filename, strict=False).structure
+        cell = structure.cell
+        metadata = dict(structure.metadata)
+        formula = _normalized_formula(
+            metadata.get("chemical_formula_sum") or structure.name
+        )
+        z_value = metadata.get("formula_units_per_cell")
+        formula_units = None
+        if z_value not in (None, ""):
+            numeric_z = float(z_value)
+            if numeric_z.is_integer():
+                formula_units = int(numeric_z)
+
+        space_group_number = metadata.get("space_group_number")
+        if space_group_number not in (None, ""):
+            space_group_number = int(space_group_number)
+        else:
+            space_group_number = None
+
+        atom_sites = []
+        for site in structure.sites:
+            x, y, z = site.fractional_xyz
+            atom_site = {
+                "site_id": site.site_id,
+                "label": site.source_label,
+                "element": site.element_symbol,
+                "type_symbol": site.type_symbol,
+                "x": float(x), "y": float(y), "z": float(z),
+                "occupancy": float(site.occupancy),
+            }
+            for key in ("u_iso_angstrom2", "charge", "isotope"):
+                value = getattr(site, key, None)
+                if value is not None:
+                    atom_site[key] = value
+            atom_sites.append(atom_site)
+
+        return Material(
+            name=structure.name or Path(filename).stem,
+            formula=formula,
+            symmetry=structure.space_group.crystal_system.upper(),
+            lattice=Lattice(
+                a=cell.a_angstrom,
+                b=cell.b_angstrom,
+                c=cell.c_angstrom,
+                alpha=cell.alpha_deg,
+                beta=cell.beta_deg,
+                gamma=cell.gamma_deg,
+            ),
+            formula_units_per_cell=formula_units,
+            space_group=str(metadata.get("space_group_hm") or ""),
+            space_group_number=space_group_number,
+            atom_sites=atom_sites,
+            source={
+                "kind": "cif",
+                "text": Path(filename).read_text(encoding="utf-8"),
+                "name": Path(filename).name,
+            },
+        )
+
+
+def _normalized_formula(value: str) -> str:
+    """Turn a CIF sum formula such as ``Fe0.3 Mg0.7 O1`` into a token."""
+    compact = re.sub(r"\s+", "", str(value or ""))
+    if not compact or any(character in compact for character in "()[]"):
+        return compact
+    return re.sub(r"([A-Z][a-z]?)1(?=[A-Z]|$)", r"\1", compact)

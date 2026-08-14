@@ -81,6 +81,7 @@ class EosDatabaseController(object):
             record_index,
             minimum_d_spacing=self.minimum_d_spacing,
             wavelength_angstrom=self.wavelength_angstrom,
+            origin="bundled",
         )
         self.dialog.accept()
 

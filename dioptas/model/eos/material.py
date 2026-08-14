@@ -22,6 +22,8 @@ a user-saved ``.eosmat`` file — same content) looks like::
         {"element": "Au", "x": 0.0, "y": 0.0, "z": 0.0,
          "occupancy": 1.0, "wyckoff": "4a"}
       ],
+      "source": {"kind": "cif", "name": "sample.cif",
+                 "text": "data_..."},              # optional, lossless
       "notes": "...",
       "peaks": [[h, k, l, d0, intensity], ...], # optional legacy fallback
       "eos_records": [ <record>, ... ]
@@ -136,6 +138,12 @@ class Material:
     space_group: str = ""
     space_group_number: Optional[int] = None
     atom_sites: list = field(default_factory=list)
+    #: Optional lossless source document. CIF-derived materials keep the
+    #: original text here so recalculating reflections does not depend on the
+    #: normalized atom-site projection alone. This is material provenance,
+    #: unlike the runtime ownership state (bundled/file/custom), which is
+    #: deliberately kept on the loaded phase and is not exported.
+    source: dict = field(default_factory=dict)
     notes: str = ""
     #: [h, k, l, d0, intensity] per peak.  Used only when the complete
     #: structure needed for PhaseSmith calculation is unavailable.
@@ -191,6 +199,7 @@ class Material:
             "space_group": self.space_group,
             "space_group_number": self.space_group_number,
             "atom_sites": [dict(site) for site in self.atom_sites],
+            "source": dict(self.source),
             "notes": self.notes,
             "peaks": [list(peak) for peak in self.peaks],
             "eos_records": self.eos_records,
@@ -218,6 +227,7 @@ class Material:
             space_group_number=document.get("space_group_number"),
             atom_sites=[dict(site)
                         for site in document.get("atom_sites", [])],
+            source=dict(document.get("source") or {}),
             notes=document.get("notes") or "",
             peaks=[list(peak) for peak in document.get("peaks", [])],
             eos_records=list(document.get("eos_records", [])),

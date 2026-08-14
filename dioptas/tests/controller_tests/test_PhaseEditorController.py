@@ -54,6 +54,7 @@ class PhaseEditorControllerTest(QtTest):
         self.model.delete_configurations()
         del self.model
         delete_if_exists(os.path.join(jcpds_path, 'dummy.jcpds'))
+        delete_if_exists(os.path.join(jcpds_path, 'dummy.eosmat'))
         delete_if_exists(os.path.join(data_path, 'reflection_table.txt'))
         gc.collect()
 
@@ -412,3 +413,54 @@ class PhaseEditorControllerTest(QtTest):
         params = self.phase_model.phases[5].params
         self.assertAlmostEqual(params['t_ref'], 300.0)
         self.assertAlmostEqual(params['thermal_parameters']['Tr'], 300.0)
+
+    def test_adds_a_complete_custom_eos_record(self):
+        phase = self.phase_model.phases[5]
+        record = self.phase_model.eos_record_from_phase(5)
+        record['label'] = 'My referenced fit'
+        record['reference'] = {'authors': ['Tester'], 'year': 2026}
+        self.controller._record_dialog = MagicMock(return_value=record)
+
+        click_button(self.jcpds_widget.eos_record_add_btn)
+
+        self.assertEqual(len(phase.params['eos_records']), 1)
+        self.assertEqual(phase.params['eos_records'][0]['label'],
+                         'My referenced fit')
+        self.assertEqual(phase.params['eos_record_origins'], ['custom'])
+        self.assertTrue(self.jcpds_widget.eos_record_edit_btn.isEnabled())
+
+    def test_bundled_record_requires_duplicate_before_editing(self):
+        from ...model import eos
+
+        gold = next(material for material in eos.load_materials()
+                    if material.formula == 'Au')
+        phase = eos.build_jcpds(gold, record_index=0, origin='bundled')
+        self.phase_model.add_jcpds_object(phase, filename=phase.filename)
+        self.controller.show_phase(phase, wavelength=0.31)
+
+        self.assertFalse(self.jcpds_widget.eos_K_txt.isEnabled())
+        self.assertFalse(self.jcpds_widget.eos_record_edit_btn.isEnabled())
+        custom = dict(phase.params['eos_records'][0])
+        custom['label'] = 'Editable copy'
+        self.controller._record_dialog = MagicMock(return_value=custom)
+        click_button(self.jcpds_widget.eos_record_duplicate_btn)
+
+        self.assertEqual(self.phase_model.eos_record_origin(6), 'custom')
+        self.assertTrue(self.jcpds_widget.eos_K_txt.isEnabled())
+        self.assertTrue(self.jcpds_widget.eos_record_delete_btn.isEnabled())
+
+    def test_save_as_eosmat_preserves_records_and_structure(self):
+        from ...model import eos
+
+        gold = next(material for material in eos.load_materials()
+                    if material.formula == 'Au')
+        phase = eos.build_jcpds(gold, record_index=0, origin='bundled')
+        self.phase_model.add_jcpds_object(phase, filename=phase.filename)
+        self.controller.show_phase(phase, wavelength=0.31)
+        filename = os.path.join(jcpds_path, 'dummy.eosmat')
+
+        self.controller.save_as_btn_clicked(filename)
+        loaded = eos.load_material_file(filename)
+
+        self.assertEqual(loaded.atom_sites, gold.atom_sites)
+        self.assertEqual(loaded.eos_records, gold.eos_records)

@@ -197,9 +197,9 @@ def test_non_numeric_pressure_domain_status_display():
 
 def test_build_jcpds_carries_everything(gold):
     phase = eos.build_jcpds(gold, record_index=0)
-    # the name is the chemistry alone; the active reference lives in the
-    # Ref column and the comments
-    assert phase.name == "Au"
+    # The mineral/material and chemistry identify the phase; the active
+    # literature record remains separate in the Ref column and comments.
+    assert phase.name == "Gold (Au)"
     assert phase.params["comments"] == [
         eos.reference_text(gold.eos_records[0]["reference"])
     ]
@@ -233,6 +233,16 @@ def test_build_jcpds_uses_explicit_material_default(gold):
     ]
 
 
+def test_build_jcpds_distinguishes_polymorph_name_from_formula(materials):
+    akimotoite = next(material for material in materials
+                      if material.name == "Akimotoite")
+
+    phase = eos.build_jcpds(akimotoite, origin="bundled")
+
+    assert phase.name == "Akimotoite (MgSiO3)"
+    assert "Siersch" not in phase.name
+
+
 def test_build_jcpds_without_records(materials):
     # some materials carry peak provenance but no published EoS
     material = next(
@@ -256,8 +266,8 @@ def test_reference_switch_updates_parameters_and_comments(gold):
 
     model.set_eos_reference(0, 1)
     assert model.phases[0].params["k0"] == pytest.approx(second["K0"])
-    # the name stays the chemistry; the reference moves to the comments
-    assert model.phases[0].name == "Au"
+    # the material name stays stable; the reference moves to the comments
+    assert model.phases[0].name == "Gold (Au)"
     assert (model.phases[0].params["comments"]
             == [eos.reference_text(gold.eos_records[1]["reference"])])
 
@@ -278,6 +288,75 @@ def test_reference_switch_is_noop_for_legacy_jcpds():
     k0 = model.phases[0].params["k0"]
     model.set_eos_reference(0, 0)
     assert model.phases[0].params["k0"] == k0
+
+
+def test_bundled_records_are_immutable_but_custom_copies_are_editable(gold):
+    phase = eos.build_jcpds(gold, record_index=0, origin="bundled")
+    model = PhaseModel()
+    model.add_jcpds_object(phase, filename=phase.filename)
+
+    assert model.eos_record_origin(0) == "bundled"
+    assert not model.is_eos_record_editable(0)
+    with pytest.raises(PermissionError, match="read-only"):
+        model.set_eos_type(0, "Vinet")
+    with pytest.raises(PermissionError, match="read-only"):
+        model.delete_eos_record(0, 0)
+    with pytest.raises(PermissionError, match="read-only"):
+        model.set_param(0, "a0", 4.1)
+    with pytest.raises(PermissionError, match="read-only"):
+        model.delete_reflection(0, 0)
+
+    custom_index = model.duplicate_eos_record(0, 0)
+    assert model.eos_record_origin(0, custom_index) == "custom"
+    assert model.is_eos_record_editable(0, custom_index)
+    model.set_eos_type(0, "Vinet")
+    assert phase.params["eos_records"][custom_index]["eos"]["type"] == "Vinet"
+    model.set_eos_reference(0, 0)
+    assert phase.params["modified"] is True
+
+    model.delete_eos_record(0, custom_index)
+    assert len(phase.params["eos_records"]) == len(gold.eos_records)
+    assert all(origin == "bundled"
+               for origin in phase.params["eos_record_origins"])
+
+
+def test_custom_record_lifecycle_and_last_delete(gold):
+    structure_only = Material.from_dict(gold.to_dict())
+    structure_only.eos_records = []
+    phase = eos.build_jcpds(structure_only, origin="cif")
+    model = PhaseModel()
+    model.add_jcpds_object(phase, filename=phase.filename)
+    phase.params["k0"] = 150.0
+    phase.params["k0p0"] = 4.2
+    record = model.eos_record_from_phase(0)
+    record["label"] = "My fit"
+
+    index = model.add_eos_record(0, record)
+    assert index == 0
+    assert model.get_eos_reference_labels(0) == ["My fit"]
+    model.set_eos_default(0, 0)
+    model.delete_eos_record(0, 0)
+
+    assert phase.params["eos_records"] == []
+    assert phase.params["k0"] == 0.0
+    assert phase.params["eos_type"] == "BM3"
+
+
+def test_live_phase_exports_complete_user_material(gold):
+    phase = eos.build_jcpds(gold, record_index=0, origin="bundled")
+    model = PhaseModel()
+    model.add_jcpds_object(phase, filename=phase.filename)
+    custom_index = model.duplicate_eos_record(0, 0)
+    model.set_eos_type(0, "Vinet")
+    model.set_eos_default(0, custom_index)
+
+    exported = eos.material_from_jcpds(phase)
+
+    assert exported.atom_sites == gold.atom_sites
+    assert len(exported.eos_records) == len(gold.eos_records) + 1
+    assert exported.default_eos_index == custom_index
+    assert exported.eos_records[custom_index]["eos"]["type"] == "Vinet"
+    assert "eos_record_origins" not in exported.to_dict()
 
 
 def test_records_survive_project_round_trip(gold, tmp_path):
@@ -308,6 +387,30 @@ def test_records_survive_project_round_trip(gold, tmp_path):
     loaded.phase_model.set_eos_reference(0, 0)
     first = gold.eos_records[0]["eos"]["parameters"]
     assert loaded_phase.params["k0"] == pytest.approx(first["K0"])
+
+
+def test_record_ownership_and_material_survive_project_round_trip(
+        gold, tmp_path):
+    from ...model.DioptasModel import DioptasModel
+
+    model = DioptasModel()
+    phase = eos.build_jcpds(gold, record_index=0, origin="bundled")
+    model.phase_model.add_jcpds_object(phase, filename=phase.filename)
+    custom_index = model.phase_model.duplicate_eos_record(0, 0)
+    filename = str(tmp_path / "ownership.dio")
+    model.save(filename)
+
+    loaded = DioptasModel()
+    loaded.load(filename)
+    loaded_phase = loaded.phase_model.phases[0]
+
+    assert loaded_phase.params["material_origin"] == "bundled"
+    assert loaded_phase.params["material_document"]["formula"] == "Au"
+    assert loaded_phase.params["eos_record_origins"][:-1] == [
+        "bundled" for _ in gold.eos_records]
+    assert loaded_phase.params["eos_record_origins"][custom_index] == "custom"
+    assert loaded.phase_model.is_eos_record_editable(0, custom_index)
+    assert not loaded.phase_model.is_eos_record_editable(0, 0)
 
 
 def test_structure_source_survives_project_and_can_extend_lines(gold, tmp_path):

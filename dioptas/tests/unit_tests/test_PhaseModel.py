@@ -90,6 +90,51 @@ def test_reload_phase(phase_model: PhaseModel):
     assert phase_model.phases[0].params['pressure'] == 5
 
 
+def test_reload_cif_phase_from_source(phase_model: PhaseModel):
+    filename = os.path.join(data_path, 'cif', 'hcp.cif')
+    phase_model.add_cif(filename, wavelength_angstrom=0.31)
+    original_a0 = phase_model.phases[0].params['a0']
+    original_name = phase_model.phases[0].name
+    phase_model.set_pressure(0, 5)
+    phase_model.set_param(0, 'a0', original_a0 + 1)
+
+    assert phase_model.can_reload(0)
+    phase_model.reload(0)
+
+    assert phase_model.phases[0].params['a0'] == pytest.approx(original_a0)
+    assert phase_model.phases[0].params['pressure'] == 5
+    assert phase_model.phases[0].name == original_name
+    assert phase_model.phases[0].params['material_origin'] == 'cif'
+
+
+def test_reload_eosmat_phase_from_source(phase_model: PhaseModel, tmp_path):
+    from ...model import eos
+
+    material = eos.Material(
+        name='Test mineral', formula='MgO', symmetry='CUBIC',
+        lattice=eos.Lattice(a=4.2, b=4.2, c=4.2),
+        peaks=[[1, 0, 0, 4.2, 100]],
+        eos_records=[{
+            'label': 'Test fit',
+            'eos': {'type': 'BM3', 'parameters': {
+                'V0': 74.088, 'K0': 160.0, 'K0_prime': 4.0,
+            }},
+        }],
+    )
+    filename = tmp_path / 'test.eosmat'
+    eos.save_material_file(str(filename), material)
+    phase = eos.build_jcpds(material, origin='file')
+    phase._filename = str(filename)
+    phase_model.add_jcpds_object(phase, filename=str(filename))
+    phase_model.set_param(0, 'k0', 999.0)
+
+    phase_model.reload(0)
+
+    assert phase_model.phases[0].params['k0'] == pytest.approx(160.0)
+    assert phase_model.phases[0].name == 'Test mineral (MgO)'
+    assert phase_model.phases[0].params['material_origin'] == 'file'
+
+
 # --- PhaseLoadError ---
 
 def test_phase_load_error_init():

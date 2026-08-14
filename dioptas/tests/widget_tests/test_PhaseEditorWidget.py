@@ -31,6 +31,9 @@ class PhaseEditorWidgetTest(QtTest):
     def test_filename_and_comment_are_shown_correctly(self):
         self.assertEqual(self.jcpds_editor_widget.filename_txt.text(),
                          self.jcpds.filename)
+        # Legacy comments remain available to old code, but provenance now
+        # lives in EoS records and is not duplicated in the phase editor.
+        self.assertTrue(self.jcpds_editor_widget.comments_txt.isHidden())
         self.assertEqual(self.jcpds_editor_widget.comments_txt.text(),
                          self.jcpds.params['comments'][0])
 
@@ -103,6 +106,56 @@ class PhaseEditorWidgetTest(QtTest):
         self.assertEqual(
             self.jcpds_editor_widget.eos_scroll_area.verticalScrollBarPolicy(),
             QtCore.Qt.ScrollBarAsNeeded)
+
+    def test_bundled_record_controls_are_read_only(self):
+        self.jcpds_editor_widget.update_eos_records(
+            ['Published fit'], 0, origins=['bundled'], default_index=0,
+            material_origin='bundled')
+
+        self.assertFalse(self.jcpds_editor_widget.eos_K_txt.isEnabled())
+        self.assertFalse(self.jcpds_editor_widget.eos_type_cb.isEnabled())
+        self.assertFalse(self.jcpds_editor_widget.eos_record_edit_btn.isEnabled())
+        self.assertFalse(self.jcpds_editor_widget.eos_record_delete_btn.isEnabled())
+        self.assertTrue(
+            self.jcpds_editor_widget.eos_record_duplicate_btn.isEnabled())
+        self.assertFalse(self.jcpds_editor_widget.lattice_a_sb.isEnabled())
+        self.assertFalse(
+            self.jcpds_editor_widget.reflection_table_view.isEnabled())
+        self.assertFalse(self.jcpds_editor_widget.reload_file_btn.isEnabled())
+
+    def test_custom_record_controls_are_editable(self):
+        self.jcpds_editor_widget.update_eos_records(
+            ['Custom fit'], 0, origins=['custom'], default_index=0)
+
+        self.assertTrue(self.jcpds_editor_widget.eos_K_txt.isEnabled())
+        self.assertTrue(self.jcpds_editor_widget.eos_record_edit_btn.isEnabled())
+        self.assertTrue(self.jcpds_editor_widget.eos_record_delete_btn.isEnabled())
+
+    def test_visible_eos_rows_are_compacted(self):
+        widget = self.jcpds_editor_widget
+        widget.configure_eos_types([
+            ('BM3', 'Birch-Murnaghan (3rd order)', ['K0', 'K0_prime'])
+        ])
+        widget.set_thermal_type('none')
+        widget.set_eos_type('BM3')
+
+        def grid_row(control):
+            item_index = widget._eos_layout.indexOf(control)
+            return widget._eos_layout.getItemPosition(item_index)[0]
+
+        self.assertEqual([
+            grid_row(widget.eos_type_cb),
+            grid_row(widget.eos_K_txt),
+            grid_row(widget.eos_Kp_txt),
+            grid_row(widget.thermal_type_cb),
+        ], [0, 1, 2, 3])
+
+    def test_cif_and_eosmat_sources_can_be_reloaded(self):
+        for material_origin in ('cif', 'file'):
+            self.jcpds_editor_widget.update_eos_records(
+                [], material_origin=material_origin)
+            self.assertTrue(
+                self.jcpds_editor_widget.reload_file_btn.isEnabled())
 
 
 if __name__ == '__main__':

@@ -133,44 +133,71 @@ Phases
 
 Phase controls are similar to overlay controls:
 
-- *Add*: Load a ``.jcpds`` or ``.cif`` file. CIF files are internally converted to JCPDS format;
-  a dialog asks for the **Intensity Cutoff** and **Minimum d-spacing** for reflections.
-  Multiple files can be selected at once.
+- *Add*: Load a ``.jcpds``, ``.cif`` or ``.eosmat`` file. CIF files become
+  normalized material records containing the complete lattice, formula, space
+  group, crystallographic Z and atom sites; the original CIF text remains the
+  lossless reflection source. A dialog asks for the **Intensity Cutoff** and
+  **Minimum d-spacing** for reflections. Multiple files can be selected at
+  once.
+- *DB*: Browse the bundled, offline EoS material database. A selected material
+  can be loaded directly as a phase; exporting it as ``.eosmat`` is optional
+  and is intended for sharing or portability.
 - *Edit*: Open the JCPDS editor dialog.
 - *Delete*: Remove the selected phase.
 - *Clear*: Remove all phases.
 - *Save List / Load List*: Save or restore a list of loaded phases.
 
-Each phase shows its name, pressure, and temperature.
+Each phase shows its material/mineral name and formula, pressure, temperature,
+and (when available) a separate EoS reference selector. For example,
+akimotoite is shown as ``Akimotoite (MgSiO3)`` while ``Siersch et al.`` stays
+in the reference selector.
 The **P** and **T** spin boxes adjust pressure and temperature.
 Check **Apply to all phases** to change all phases simultaneously.
 **Show in Pattern** controls whether P/T values appear in the phase legend.
 
 
-JCPDS Editor
+Phase Editor
 ~~~~~~~~~~~~
 
 .. figure:: images/jcpds_editor.png
     :align: center
     :height: 500
 
-    Graphical JCPDS editor.
+    Graphical Phase Editor.
 
-The JCPDS Editor allows modifying phase parameters interactively.
+The Phase Editor allows modifying phase parameters interactively.
 All changes are immediately reflected in the pattern line positions.
 You can edit:
 
-- Comment and symmetry
+- Symmetry
 - Lattice parameters
 - Equation of state parameters
 - Individual reflections (h, k, l, intensity) by double-clicking in the table
 
+The **Material record** controls distinguish reusable, referenced EoS records
+from temporary phase parameters:
+
+- **Add** stores the current EoS as a custom record and opens its parameter,
+  literature-reference, uncertainty, fixed-parameter and fit-range metadata.
+- **Duplicate** makes a user-owned copy of any record.
+- **Edit**, **Delete** and **Set Default** operate on user-owned records.
+- Records loaded from the bundled database are read-only. Duplicate a
+  published record before changing its values; this prevents edited numbers
+  from continuing to carry the original publication attribution.
+
+Records loaded from a user ``.eosmat`` file and records created from a CIF are
+editable. Changes to a loaded bundled phase never write into the application
+database; that database is updated only through repository curation.
+
 A "0" suffix indicates ambient-condition values; values without "0" correspond to the current P/T conditions.
 
-- *Save As*: Save modifications to a new file
-- *Reload File*: Revert all changes
-- *OK*: Accept changes and close
-- *Cancel*: Revert changes made since opening and close
+- *Save As*: Save a complete reusable material as ``.eosmat``, use ``.jcpds``
+  for legacy interoperability (advanced EoS/thermal metadata is not retained),
+  or export the displayed reflection table as text. A ``.dio`` project remains
+  the format for saving the complete analysis session.
+- *Reload File*: Discard local changes and rebuild a JCPDS, CIF or ``.eosmat``
+  phase from its source file. Bundled database materials have no source file
+  and are already read-only, so this action is disabled for them.
 
 
 Corrections

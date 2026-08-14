@@ -27,14 +27,14 @@ def build_jcpds(
     minimum_d_spacing: float = 0.5,
     minimum_intensity: float = 0.5,
     wavelength_angstrom: float = 0.31,
+    origin: str = "custom",
 ):
     """
     Build a Dioptas ``jcpds`` object from a Material, applying the EoS
     preferred record (or the explicitly supplied *record_index*) when the
-    material has any. The phase is named by its chemistry alone ("Au") —
-    the active literature
-    reference is shown in the phase table's Ref column and kept in the
-    comments, not baked into the name.
+    material has any. The phase display name combines the mineral/material
+    name and chemistry ("Akimotoite (MgSiO3)"). The active literature
+    reference is shown separately in the phase table's Ref column.
 
     All EoS records are stored on the phase state, so the user can switch
     between literature references from the phase table later
@@ -54,7 +54,7 @@ def build_jcpds(
         record_index = max(0, min(record_index, len(records) - 1))
         record = records[record_index]
 
-    obj._name = chemistry
+    obj._name = material.display_name or chemistry
     obj._filename = chemistry
 
     # Lattice
@@ -86,20 +86,36 @@ def build_jcpds(
         calculate_material_reflections,
         material_has_complete_structure,
     )
-    if material_has_complete_structure(material):
-        peak_rows = calculate_material_reflections(
-            material,
-            minimum_d_spacing=minimum_d_spacing,
-            minimum_intensity=minimum_intensity,
-            wavelength_angstrom=wavelength_angstrom,
-        )
+    cif_source = (
+        material.source
+        if material.source.get("kind") == "cif" and material.source.get("text")
+        else None
+    )
+    if cif_source or material_has_complete_structure(material):
+        if cif_source:
+            from ..util.phasesmith import calculate_reflection_source
+            peak_rows = calculate_reflection_source(
+                cif_source,
+                minimum_d_spacing=minimum_d_spacing,
+                minimum_intensity=minimum_intensity,
+                wavelength_angstrom=wavelength_angstrom,
+            )
+        else:
+            peak_rows = calculate_material_reflections(
+                material,
+                minimum_d_spacing=minimum_d_spacing,
+                minimum_intensity=minimum_intensity,
+                wavelength_angstrom=wavelength_angstrom,
+            )
         structure_document = material.to_dict()
         structure_document["peaks"] = []
         structure_document["eos_records"] = []
-        obj.state.reflection_source = {
-            "kind": "material",
-            "material": structure_document,
-        }
+        obj.state.reflection_source = (
+            copy.deepcopy(cif_source) if cif_source else {
+                "kind": "material",
+                "material": structure_document,
+            }
+        )
         obj.state.reflection_q_max = 2.0 * pi / minimum_d_spacing
         obj.state.reflection_wavelength = wavelength_angstrom
         obj.state.reflection_intensity_cutoff = minimum_intensity
@@ -113,6 +129,12 @@ def build_jcpds(
     obj.params["chemistry"] = chemistry
     obj.params["eos_records"] = records
     obj.params["eos_current_index"] = record_index if record else 0
+    obj.params["eos_default_index"] = material.default_eos_index if records else 0
+    obj.params["eos_record_origins"] = [origin for _ in records]
+    material_document = material.to_dict()
+    material_document["eos_records"] = []
+    obj.params["material_document"] = material_document
+    obj.params["material_origin"] = origin
 
     if record is not None:
         apply_eos_record(obj, record)
@@ -148,6 +170,16 @@ def apply_eos_record(phase, record: dict) -> None:
                             or (4.0 if eos.get("type") == "BM2" else 0.0))
     phase.params["k0p"] = phase.params["k0p0"]
     phase.params["k0pp0"] = parameters.get("K0_double_prime") or 0.0
+    material_document = phase.params.get("material_document") or {}
+    base_material = Material.from_dict(material_document) if material_document else None
+    if parameters.get("n") is not None:
+        phase.params["n"] = parameters["n"]
+    elif base_material is not None:
+        phase.params["n"] = base_material.atoms_per_formula()
+    if parameters.get("Z") is not None:
+        phase.params["z"] = parameters["Z"]
+    elif base_material is not None:
+        phase.params["z"] = base_material.electrons_per_formula()
 
     thermal = record.get("thermal") or {}
     thermal_type = thermal.get("type") or ""
@@ -166,7 +198,9 @@ def apply_eos_record(phase, record: dict) -> None:
         phase.params["q_t0"] = thermal_parameters.get("q", 1.0)
         phase.params["t_ref"] = thermal_parameters.get("Tr") or 298.15
         phase.params["alpha_t0"] = 0.0
+        phase.params["d_alpha_dt"] = 0.0
         phase.params["dk0dt"] = 0.0
+        phase.params["dk0pdt"] = 0.0
     elif thermal_type == "Sokolova2016":
         # The native Sokolova model has eleven fitted coefficients. Keep
         # its source dictionary intact instead of coercing it into the
@@ -177,19 +211,76 @@ def apply_eos_record(phase, record: dict) -> None:
         phase.params["gamma_t0"] = 0.0
         phase.params["q_t0"] = 1.0
         phase.params["alpha_t0"] = 0.0
+        phase.params["d_alpha_dt"] = 0.0
         phase.params["dk0dt"] = 0.0
+        phase.params["dk0pdt"] = 0.0
     else:
         # 'AlphaKT' (the classic correction) or no thermal data at all
         phase.params["thermal_type"] = ""
         if thermal_type != "AlphaKT":
             thermal_parameters = {}
         phase.params["alpha_t0"] = thermal_parameters.get("alpha0") or 0.0
+        phase.params["d_alpha_dt"] = (
+            thermal_parameters.get("d_alpha_dT") or 0.0)
         phase.params["dk0dt"] = thermal_parameters.get("dK_dT") or 0.0
+        phase.params["dk0pdt"] = (
+            thermal_parameters.get("dK_prime_dT") or 0.0)
+
+    phase.params["t_ref"] = (
+        thermal_parameters.get("Tr")
+        or record.get("temperature_ref")
+        or 298.15
+    )
 
     phase.params["eos_type"] = eos.get("type") or "BM3"
     if parameters.get("V0"):
         phase.params["v0"] = parameters["V0"]
         phase.params["v"] = parameters["V0"]
+
+
+def material_from_jcpds(phase) -> Material:
+    """Return a portable :class:`Material` representing the live phase.
+
+    Material-backed phases retain their normalized structure document. A
+    legacy JCPDS phase is still exportable: its current reflection table is
+    used as the fallback structure. Runtime ownership flags are deliberately
+    omitted, so loading the resulting .eosmat creates a user-owned material.
+    """
+    document = copy.deepcopy(phase.params.get("material_document") or {})
+    material = Material.from_dict(document) if document else Material()
+
+    material.name = material.name or phase.name.rstrip("*") or "Material"
+    material.formula = (
+        material.formula or phase.params.get("chemistry") or phase.name.rstrip("*")
+    )
+    material.symmetry = phase.params["symmetry"]
+    material.lattice.a = phase.params["a0"]
+    material.lattice.b = phase.params["b0"]
+    material.lattice.c = phase.params["c0"]
+    material.lattice.alpha = phase.params["alpha0"]
+    material.lattice.beta = phase.params["beta0"]
+    material.lattice.gamma = phase.params["gamma0"]
+    if phase.params.get("zc"):
+        material.formula_units_per_cell = phase.params["zc"]
+
+    records = copy.deepcopy(phase.params.get("eos_records") or [])
+    default_index = phase.params.get("eos_default_index") or 0
+    for index, record in enumerate(records):
+        record.pop("default", None)
+        if index == default_index:
+            record["default"] = True
+    material.eos_records = records
+
+    has_structure = bool(material.atom_sites and material.space_group)
+    has_lossless_source = bool(
+        material.source.get("kind") == "cif" and material.source.get("text")
+    )
+    if not has_structure and not has_lossless_source:
+        material.peaks = [
+            [r.h, r.k, r.l, r.d0, r.intensity]
+            for r in phase.reflections
+        ]
+    return material
 
 
 def save_material_file(path: str, material: Material) -> None:

@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+import os
+from copy import deepcopy
 from math import isclose, pi
 
 import numpy as np
@@ -16,6 +18,16 @@ from .util.cif import CifConverter
 from .util.HelperModule import calculate_color
 
 logger = logging.getLogger(__name__)
+
+
+_EOS_EDIT_PARAMS = frozenset({
+    "k0", "k0p0", "k0pp0", "n", "z", "zc", "dk0dt", "dk0pdt",
+    "alpha_t0", "d_alpha_dt", "thermal_parameters", "theta_t0",
+    "gamma_t0", "q_t0", "t_ref",
+})
+_STRUCTURE_PARAMS = frozenset({
+    "a0", "b0", "c0", "alpha0", "beta0", "gamma0", "symmetry",
+})
 
 
 class PhaseLoadError(Exception):
@@ -227,14 +239,60 @@ class PhaseModel:
         self.phase_removed.emit(ind)
 
     def reload(self, ind: int) -> None:
-        """Reloads a phase specified by index ind from its original source filename."""
+        """Reload a JCPDS, CIF, or EoS material from its source file."""
         logger.info("Reloading phase %d", ind)
-        self.clear_reflections(ind)
-        self.phases[ind].reload_file()
-        for _ in range(len(self.phases[ind].reflections)):
-            self.reflection_added.emit(ind)
+        source = self.items[ind].filename
+        phase = self.phases[ind]
+        pressure = phase.params['pressure']
+        temperature = phase.params['temperature']
+
+        try:
+            extension = os.path.splitext(source)[1].lower()
+            if extension == '.cif':
+                q_max = phase.state.reflection_q_max
+                minimum_d_spacing = 2.0 * pi / q_max if q_max else 0.5
+                converter = CifConverter(
+                    phase.state.reflection_wavelength or 0.31,
+                    minimum_d_spacing,
+                    phase.state.reflection_intensity_cutoff,
+                )
+                reloaded = converter.convert_cif_to_jcpds(source)
+                self.items[ind].jcpds = reloaded
+            elif extension == '.eosmat':
+                from .eos import build_jcpds, load_material_file
+
+                q_max = phase.state.reflection_q_max
+                minimum_d_spacing = 2.0 * pi / q_max if q_max else 0.5
+                reloaded = build_jcpds(
+                    load_material_file(source),
+                    minimum_d_spacing=minimum_d_spacing,
+                    minimum_intensity=phase.state.reflection_intensity_cutoff,
+                    wavelength_angstrom=(
+                        phase.state.reflection_wavelength or 0.31),
+                    origin='file',
+                )
+                reloaded._filename = source
+                self.items[ind].jcpds = reloaded
+            else:
+                phase.reload_file()
+        except Exception as error:
+            logger.warning("Failed to reload phase source %s: %s", source, error)
+            raise PhaseLoadError(source) from error
+
+        phase = self.phases[ind]
+        phase.params['pressure'] = pressure
+        phase.params['temperature'] = temperature
+        phase.compute_d()
         self.get_lines_d(ind)
+        self.phase_reloaded.emit(ind)
         self.phase_changed.emit(ind)
+
+    def can_reload(self, ind: int) -> bool:
+        """Whether a phase has a supported, file-backed source."""
+        if not 0 <= ind < len(self.items):
+            return False
+        extension = os.path.splitext(self.items[ind].filename)[1].lower()
+        return extension in ('.jcpds', '.cif', '.eosmat')
 
     def set_pressure(self, ind: int, pressure: float) -> None:
         """
@@ -280,16 +338,24 @@ class PhaseModel:
         self.get_lines_d(ind)
         self.phase_changed.emit(ind)
 
-    def set_param(self, ind: int, param: str, value: float) -> None:
+    def set_param(self, ind: int, param: str, value: Any) -> None:
         """
         Sets one of the jcpds parameters for the phase with index ind to a certain value.
         Automatically emits the phase_changed signal.
         """
 
-        self.phases[ind].params[param] = value
-        self.phases[ind].compute_v0()
-        self.phases[ind].compute_d0()
-        self.phases[ind].compute_d()
+        phase = self.phases[ind]
+        if param in _EOS_EDIT_PARAMS:
+            self._require_editable_eos_record(ind)
+        if param in _STRUCTURE_PARAMS:
+            self._require_editable_material(ind)
+        phase.params[param] = value
+        if param in _STRUCTURE_PARAMS:
+            phase.compute_v0()
+            phase.compute_d0()
+        if param in _EOS_EDIT_PARAMS or param in _STRUCTURE_PARAMS:
+            self._sync_active_eos_record(ind)
+        phase.compute_d()
         self.get_lines_d(ind)
         self.phase_changed.emit(ind)
 
@@ -301,7 +367,9 @@ class PhaseModel:
         pressure/temperature.
         """
         logger.debug("Setting EoS type for phase %d to %s", ind, eos_type)
+        self._require_editable_eos_record(ind)
         self.phases[ind].params['eos_type'] = eos_type
+        self._sync_active_eos_record(ind)
         self.phases[ind].compute_d()
         self.get_lines_d(ind)
         self.phase_changed.emit(ind)
@@ -320,7 +388,9 @@ class PhaseModel:
         """
         logger.debug("Setting thermal model for phase %d to '%s'",
                      ind, thermal_type)
+        self._require_editable_eos_record(ind)
         self.phases[ind].params['thermal_type'] = thermal_type
+        self._sync_active_eos_record(ind)
         self.phases[ind].compute_d()
         self.get_lines_d(ind)
         self.phase_changed.emit(ind)
@@ -328,6 +398,218 @@ class PhaseModel:
     def get_thermal_type(self, ind: int) -> str:
         """Returns the thermal model of the phase with index ind."""
         return str(self.phases[ind].params.get('thermal_type') or '')
+
+    def eos_record_origin(self, ind: int, ref_ind: int | None = None) -> str:
+        """Runtime ownership of an EoS record."""
+        phase = self.phases[ind]
+        records = phase.params['eos_records']
+        if ref_ind is None:
+            ref_ind = phase.params['eos_current_index']
+        origins = phase.params.get('eos_record_origins') or []
+        if not 0 <= ref_ind < len(records):
+            return ""
+        if ref_ind < len(origins):
+            return str(origins[ref_ind])
+        return str(phase.params.get('material_origin') or 'legacy')
+
+    def is_eos_record_editable(self, ind: int,
+                               ref_ind: int | None = None) -> bool:
+        """A missing/scratch record and every non-bundled record are editable."""
+        phase = self.phases[ind]
+        if not phase.params['eos_records']:
+            return True
+        return self.eos_record_origin(ind, ref_ind) != 'bundled'
+
+    def _require_editable_eos_record(self, ind: int,
+                                     ref_ind: int | None = None) -> None:
+        if not self.is_eos_record_editable(ind, ref_ind):
+            raise PermissionError(
+                "Bundled EoS records are read-only; duplicate the record "
+                "as a custom record before changing it."
+            )
+
+    def is_material_editable(self, ind: int) -> bool:
+        """Bundled structures are curated application data and read-only."""
+        return self.phases[ind].params.get('material_origin') != 'bundled'
+
+    def _require_editable_material(self, ind: int) -> None:
+        if not self.is_material_editable(ind):
+            raise PermissionError(
+                "Bundled materials are read-only; export and reload an "
+                ".eosmat file before changing the structure."
+            )
+
+    def eos_record_from_phase(self, ind: int, base: dict | None = None) -> dict:
+        """Snapshot the live EoS/thermal parameters into one record dict."""
+        from .util.eos_phase import eos_parameter_names
+
+        phase = self.phases[ind]
+        p = phase.params
+        record = deepcopy(base or {})
+        eos_type = str(p.get('eos_type') or 'BM3')
+        parameter_map = {
+            'K0': p.get('k0'),
+            'K0_prime': p.get('k0p0'),
+            'K0_double_prime': p.get('k0pp0'),
+            'n': p.get('n'),
+            'Z': p.get('z'),
+        }
+        names = eos_parameter_names(eos_type)
+        parameters = {'V0': p.get('v0')}
+        for name in names:
+            value = parameter_map.get(name)
+            if value is not None:
+                parameters[name] = value
+        record['eos'] = {'type': eos_type, 'parameters': parameters}
+
+        thermal_type = str(p.get('thermal_type') or '')
+        if thermal_type:
+            thermal_parameters = deepcopy(p.get('thermal_parameters') or {})
+            record['thermal'] = {
+                **deepcopy(record.get('thermal') or {}),
+                'type': thermal_type,
+                'parameters': thermal_parameters,
+            }
+        elif any(p.get(key) for key in
+                 ('alpha_t0', 'd_alpha_dt', 'dk0dt', 'dk0pdt')):
+            record['thermal'] = {
+                **deepcopy(record.get('thermal') or {}),
+                'type': 'AlphaKT',
+                'parameters': {
+                    'alpha0': p.get('alpha_t0') or 0.0,
+                    'd_alpha_dT': p.get('d_alpha_dt') or 0.0,
+                    'dK_dT': p.get('dk0dt') or 0.0,
+                    'dK_prime_dT': p.get('dk0pdt') or 0.0,
+                },
+            }
+        else:
+            record.pop('thermal', None)
+        record['temperature_ref'] = p.get('t_ref') or 298.15
+        return record
+
+    def _sync_active_eos_record(self, ind: int) -> None:
+        """Keep an editable active record aligned with Phase Editor values."""
+        phase = self.phases[ind]
+        records = phase.params['eos_records']
+        ref_ind = phase.params['eos_current_index']
+        if (not 0 <= ref_ind < len(records)
+                or not self.is_eos_record_editable(ind, ref_ind)):
+            return
+        records[ref_ind] = self.eos_record_from_phase(ind, records[ref_ind])
+        phase.params['eos_records'] = records
+        phase.params['eos_records_modified'] = True
+
+    def add_eos_record(self, ind: int, record: dict, *,
+                       origin: str = 'custom', select: bool = True) -> int:
+        """Append a user-owned EoS record and optionally make it active."""
+        phase = self.phases[ind]
+        records = list(phase.params['eos_records'])
+        origins = list(phase.params.get('eos_record_origins') or [])
+        origins.extend(
+            str(phase.params.get('material_origin') or 'legacy')
+            for _ in range(len(records) - len(origins))
+        )
+        records.append(deepcopy(record))
+        origins.append(origin)
+        new_index = len(records) - 1
+        phase.params['eos_records'] = records
+        phase.params['eos_record_origins'] = origins
+        phase.params['eos_records_modified'] = True
+        if len(records) == 1:
+            phase.params['eos_default_index'] = 0
+        if select:
+            phase.params['eos_current_index'] = new_index
+            from .eos import apply_eos_record
+            apply_eos_record(phase, records[new_index])
+            phase.compute_d()
+            self.get_lines_d(ind)
+        phase.params['modified'] = True
+        self.phase_changed.emit(ind)
+        return new_index
+
+    def update_eos_record(self, ind: int, ref_ind: int, record: dict) -> None:
+        """Replace one user-owned record; bundled records are immutable."""
+        self._require_editable_eos_record(ind, ref_ind)
+        phase = self.phases[ind]
+        records = list(phase.params['eos_records'])
+        if not 0 <= ref_ind < len(records):
+            raise IndexError(ref_ind)
+        records[ref_ind] = deepcopy(record)
+        phase.params['eos_records'] = records
+        phase.params['eos_records_modified'] = True
+        if phase.params['eos_current_index'] == ref_ind:
+            from .eos import apply_eos_record
+            apply_eos_record(phase, records[ref_ind])
+            phase.compute_d()
+            self.get_lines_d(ind)
+        phase.params['modified'] = True
+        self.phase_changed.emit(ind)
+
+    def duplicate_eos_record(self, ind: int, ref_ind: int,
+                             record: dict | None = None) -> int:
+        """Create an editable custom copy without changing its source record."""
+        records = self.phases[ind].params['eos_records']
+        if not 0 <= ref_ind < len(records):
+            raise IndexError(ref_ind)
+        duplicate = deepcopy(record or records[ref_ind])
+        duplicate.pop('default', None)
+        if record is None:
+            label = duplicate.get('label') or 'EoS record'
+            duplicate['label'] = f"{label} (custom)"
+        return self.add_eos_record(ind, duplicate, origin='custom')
+
+    def delete_eos_record(self, ind: int, ref_ind: int) -> None:
+        """Delete a user-owned record and apply a safe remaining selection."""
+        self._require_editable_eos_record(ind, ref_ind)
+        phase = self.phases[ind]
+        records = list(phase.params['eos_records'])
+        if not 0 <= ref_ind < len(records):
+            raise IndexError(ref_ind)
+        origins = list(phase.params.get('eos_record_origins') or [])
+        del records[ref_ind]
+        if ref_ind < len(origins):
+            del origins[ref_ind]
+        phase.params['eos_records'] = records
+        phase.params['eos_record_origins'] = origins
+        phase.params['eos_records_modified'] = True
+
+        default_index = phase.params.get('eos_default_index') or 0
+        if default_index > ref_ind:
+            default_index -= 1
+        phase.params['eos_default_index'] = max(
+            0, min(default_index, len(records) - 1)) if records else 0
+
+        if records:
+            current = max(0, min(ref_ind, len(records) - 1))
+            phase.params['eos_current_index'] = current
+            from .eos import apply_eos_record
+            apply_eos_record(phase, records[current])
+        else:
+            phase.params['eos_current_index'] = 0
+            phase.params['k0'] = 0.0
+            phase.params['k0p0'] = 0.0
+            phase.params['k0pp0'] = 0.0
+            phase.params['eos_type'] = 'BM3'
+            phase.params['thermal_type'] = ''
+            phase.params['thermal_parameters'] = {}
+            for key in ('alpha_t0', 'd_alpha_dt', 'dk0dt', 'dk0pdt'):
+                phase.params[key] = 0.0
+            phase.compute_v0()
+        phase.compute_d()
+        phase.params['modified'] = True
+        self.get_lines_d(ind)
+        self.phase_changed.emit(ind)
+
+    def set_eos_default(self, ind: int, ref_ind: int) -> None:
+        """Choose the default of a user-owned material without source edits."""
+        self._require_editable_eos_record(ind, ref_ind)
+        records = self.phases[ind].params['eos_records']
+        if not 0 <= ref_ind < len(records):
+            raise IndexError(ref_ind)
+        self.phases[ind].params['eos_default_index'] = ref_ind
+        self.phases[ind].params['eos_records_modified'] = True
+        self.phases[ind].params['modified'] = True
+        self.phase_changed.emit(ind)
 
     def set_eos_reference(self, ind: int, ref_ind: int) -> None:
         """
@@ -357,7 +639,8 @@ class PhaseModel:
         apply_eos_record(phase, record)
 
         phase.compute_d()  # recompute at the phase's current P and T
-        phase.params['modified'] = False
+        phase.params['modified'] = bool(
+            phase.params.get('eos_records_modified'))
         self.get_lines_d(ind)
         self.phase_changed.emit(ind)
 
@@ -483,12 +766,14 @@ class PhaseModel:
 
     def add_reflection(self, ind: int) -> None:
         """Adds an empty reflection to the reflection table of a phase with index ind."""
+        self._require_editable_material(ind)
         self.phases[ind].add_reflection()
         self.get_lines_d(ind)
         self.reflection_added.emit(ind)
 
     def delete_reflection(self, phase_ind: int, reflection_ind: int) -> None:
         """Deletes a reflection from a phase with the given phase index."""
+        self._require_editable_material(phase_ind)
         self.phases[phase_ind].delete_reflection(reflection_ind)
         self.get_lines_d(phase_ind)
         self.reflection_deleted.emit(phase_ind, reflection_ind)
@@ -515,6 +800,7 @@ class PhaseModel:
         reflection: jcpds_reflection,
     ) -> None:
         """Updates the reflection of a phase with a new jcpds_reflection."""
+        self._require_editable_material(phase_ind)
         self.phases[phase_ind].reflections[reflection_ind] = reflection
         self.phases[phase_ind].params['modified'] = True
         self.phases[phase_ind].compute_d0()

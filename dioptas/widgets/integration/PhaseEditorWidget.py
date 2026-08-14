@@ -19,12 +19,15 @@ class PhaseEditorWidget(QtWidgets.QWidget):
 
         self._file_layout = QtWidgets.QGridLayout()
         self._file_layout.addWidget(LabelAlignRight('Filename:'), 0, 0)
-        self._file_layout.addWidget(LabelAlignRight('Comment:'), 1, 0)
 
         self.filename_txt = QtWidgets.QLineEdit('')
-        self.comments_txt = QtWidgets.QLineEdit('')
+        self.filename_txt.setReadOnly(True)
+        # Retained off-layout for legacy controller/API compatibility. The
+        # editor no longer exposes comments because EoS provenance is shown by
+        # the material-record selector and its metadata dialog.
+        self.comments_txt = QtWidgets.QLineEdit(self)
+        self.comments_txt.hide()
         self._file_layout.addWidget(self.filename_txt, 0, 1)
-        self._file_layout.addWidget(self.comments_txt, 1, 1)
         self._layout.addLayout((self._file_layout))
 
         self.lattice_parameters_gb = QtWidgets.QGroupBox('Lattice Parameters')
@@ -108,6 +111,38 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self.lattice_parameters_gb.setLayout(self._lattice_parameters_layout)
 
         self.eos_gb = QtWidgets.QGroupBox('Equation of State')
+        self.eos_record_cb = QtWidgets.QComboBox()
+        self.eos_record_status_lbl = QtWidgets.QLabel()
+        self.eos_record_status_lbl.setWordWrap(True)
+        self.eos_record_add_btn = QtWidgets.QPushButton('Add…')
+        self.eos_record_duplicate_btn = QtWidgets.QPushButton('Duplicate…')
+        self.eos_record_edit_btn = QtWidgets.QPushButton('Edit…')
+        self.eos_record_delete_btn = QtWidgets.QPushButton('Delete')
+        self.eos_record_default_btn = QtWidgets.QPushButton('Set Default')
+        self._eos_record_widget = QtWidgets.QWidget()
+        record_layout = QtWidgets.QGridLayout(self._eos_record_widget)
+        record_layout.setContentsMargins(4, 4, 4, 2)
+        record_layout.setHorizontalSpacing(6)
+        record_layout.setVerticalSpacing(4)
+        record_layout.addWidget(QtWidgets.QLabel('Material record:'), 0, 0)
+        record_layout.addWidget(self.eos_record_cb, 0, 1)
+        record_layout.addWidget(self.eos_record_status_lbl, 1, 0, 1, 2)
+
+        # Keep actions grouped at their natural widths. Putting each button
+        # in a separate grid column made the row expand across the panel.
+        self._eos_record_button_layout = QtWidgets.QHBoxLayout()
+        self._eos_record_button_layout.setContentsMargins(0, 0, 0, 0)
+        self._eos_record_button_layout.setSpacing(4)
+        for button in (
+                self.eos_record_add_btn, self.eos_record_duplicate_btn,
+                self.eos_record_edit_btn, self.eos_record_delete_btn,
+                self.eos_record_default_btn):
+            button.setSizePolicy(
+                QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
+            self._eos_record_button_layout.addWidget(button)
+        self._eos_record_button_layout.addStretch()
+        record_layout.addLayout(self._eos_record_button_layout, 2, 0, 1, 2)
+        record_layout.setColumnStretch(1, 1)
         # Thermal equations can have substantially more parameters than a
         # room-temperature EoS. Keep that column usable without letting the
         # complete editor grow beyond the screen.
@@ -118,13 +153,18 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self.eos_scroll_area.setFrameShape(QtWidgets.QFrame.NoFrame)
         self._eos_contents = QtWidgets.QWidget()
         self._eos_layout = QtWidgets.QGridLayout(self._eos_contents)
+        self._eos_layout.setContentsMargins(4, 2, 4, 4)
+        self._eos_layout.setHorizontalSpacing(6)
+        self._eos_layout.setVerticalSpacing(4)
+        self._eos_layout.setAlignment(QtCore.Qt.AlignTop)
 
         # the equation itself is selectable; the parameter rows below are
         # shown or hidden per equation (see set_eos_parameter_names). The
         # combobox entries are configured by the controller
         # (configure_eos_types) from what Peritheos supports.
         self.eos_type_cb = QtWidgets.QComboBox()
-        self._eos_layout.addWidget(LabelAlignRight('EoS:'), 0, 0)
+        self.eos_type_lbl = LabelAlignRight('EoS:')
+        self._eos_layout.addWidget(self.eos_type_lbl, 0, 0)
         self._eos_layout.addWidget(self.eos_type_cb, 0, 1, 1, 2)
 
         self.eos_K_txt = NumberTextField()
@@ -158,7 +198,8 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self.thermal_type_cb.addItem('Mie-Grüneisen-Debye', 'MieGruneisenDebye')
         self.thermal_type_cb.addItem('Mie-Grüneisen-Einstein', 'MieGruneisenEinstein')
         self.thermal_type_cb.addItem('Sokolova et al. (2016)', 'Sokolova2016')
-        self._eos_layout.addWidget(LabelAlignRight('Thermal:'), 7, 0)
+        self.thermal_type_lbl = LabelAlignRight('Thermal:')
+        self._eos_layout.addWidget(self.thermal_type_lbl, 7, 0)
         self._eos_layout.addWidget(self.thermal_type_cb, 7, 1, 1, 2)
 
         self.eos_theta_txt = NumberTextField()
@@ -201,6 +242,7 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self.eos_scroll_area.setWidget(self._eos_contents)
         self._eos_group_layout = QtWidgets.QVBoxLayout()
         self._eos_group_layout.setContentsMargins(0, 0, 0, 0)
+        self._eos_group_layout.addWidget(self._eos_record_widget)
         self._eos_group_layout.addWidget(self.eos_scroll_area)
         self.eos_gb.setLayout(self._eos_group_layout)
 
@@ -227,7 +269,7 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self._body_layout.addWidget(self.reflections_gb, 0, 1, 2, 1)
 
         self._button_layout = QtWidgets.QHBoxLayout()
-        self.save_as_btn = QtWidgets.QPushButton('Save As')
+        self.save_as_btn = QtWidgets.QPushButton('Save As…')
         self.reload_file_btn = QtWidgets.QPushButton('Reload File')
 
         self._button_layout.addWidget(self.save_as_btn)
@@ -253,10 +295,12 @@ class PhaseEditorWidget(QtWidgets.QWidget):
 
         # wide enough for the EoS/thermal display names ("Birch-Murnaghan
         # (3rd order)", "Constant α, dK/dT") and the unit labels
-        self.eos_gb.setMinimumWidth(280)
-        self.eos_gb.setMaximumWidth(320)
-        self.eos_gb.setMinimumHeight(300)
-        self.eos_gb.setMaximumHeight(420)
+        self.eos_gb.setMinimumWidth(380)
+        self.eos_gb.setMaximumWidth(430)
+        self.eos_gb.setMinimumHeight(240)
+        self.eos_gb.setMaximumHeight(480)
+        self.eos_gb.setSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
         self.eos_gb.setStyleSheet("""
             QLineEdit {
                 max-width: 80;
@@ -335,6 +379,7 @@ class PhaseEditorWidget(QtWidgets.QWidget):
             visible = key in names
             for widget in row_widgets:
                 widget.setVisible(visible)
+        self._compact_eos_layout()
 
     def _add_eos_param_row(self, key, widget, label_str, unit, row):
         """One EoS parameter row whose visibility follows the selected
@@ -375,6 +420,89 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         """The peritheos class name of the selected equation."""
         return self.eos_type_cb.currentData()
 
+    def update_eos_records(self, labels, current_index=0, *, origins=None,
+                           default_index=0, material_origin='legacy',
+                           reloadable=None):
+        """Refresh the material-record selector without emitting a change."""
+        origins = origins or []
+        self.eos_record_cb.blockSignals(True)
+        self.eos_record_cb.clear()
+        if labels:
+            for index, label in enumerate(labels):
+                prefix = '★ ' if index == default_index else ''
+                self.eos_record_cb.addItem(prefix + label)
+            self.eos_record_cb.setCurrentIndex(
+                max(0, min(current_index, len(labels) - 1)))
+            self.eos_record_cb.setEnabled(True)
+        else:
+            self.eos_record_cb.addItem('No saved EoS record')
+            self.eos_record_cb.setEnabled(False)
+        self.eos_record_cb.blockSignals(False)
+
+        origin = origins[current_index] if (
+            labels and 0 <= current_index < len(origins)) else ''
+        if origin == 'bundled':
+            status = ('Published database record — read-only. Duplicate it '
+                      'to make a custom record.')
+        elif labels:
+            status = 'User-owned record — parameters and metadata are editable.'
+        else:
+            status = ('These are unsaved phase parameters. Add a record to '
+                      'attach reference and fit provenance.')
+        self.eos_record_status_lbl.setText(status)
+        editable = origin != 'bundled'
+        self.eos_record_duplicate_btn.setEnabled(bool(labels))
+        self.eos_record_edit_btn.setEnabled(bool(labels) and editable)
+        self.eos_record_delete_btn.setEnabled(bool(labels) and editable)
+        self.eos_record_default_btn.setEnabled(bool(labels) and editable
+                                               and current_index != default_index)
+        self.set_eos_parameter_editable(editable)
+        self.comments_txt.setEnabled(not labels and material_origin != 'bundled')
+        self.set_material_editable(material_origin != 'bundled')
+        if reloadable is None:
+            reloadable = material_origin in ('legacy', 'file', 'cif')
+        self.reload_file_btn.setEnabled(reloadable)
+        self.reload_file_btn.setToolTip(
+            'Discard local changes and reload the source file.' if reloadable
+            else 'This material was loaded from the built-in database and '
+                 'has no source file to reload.')
+
+    def set_eos_parameter_editable(self, editable):
+        """Lock the calculation fields when a bundled record is active."""
+        widgets = [
+            self.eos_type_cb, self.thermal_type_cb,
+            self.eos_K_txt, self.eos_Kp_txt, self.eos_Kpp_txt,
+            self.eos_n_txt, self.eos_z_txt, self.eos_zc_txt,
+            self.eos_alphaT_txt, self.eos_dalphadT_txt,
+            self.eos_dKdT_txt, self.eos_dKpdT_txt,
+            self.eos_theta_txt, self.eos_gamma_txt, self.eos_qt_txt,
+            self.eos_tref_txt, *self.sokolova_parameter_fields.values(),
+        ]
+        for widget in widgets:
+            widget.setEnabled(editable)
+
+    def set_material_editable(self, editable):
+        """Lock the curated structure and reflection table of DB materials."""
+        widgets = [
+            self.symmetry_cb,
+            self.lattice_a_sb, self.lattice_b_sb, self.lattice_c_sb,
+            self.lattice_alpha_sb, self.lattice_beta_sb,
+            self.lattice_gamma_sb, self.lattice_ab_sb,
+            self.lattice_ca_sb, self.lattice_cb_sb,
+            self.reflections_add_btn, self.reflections_delete_btn,
+            self.reflections_clear_btn, self.reflection_table_view,
+        ]
+        if editable:
+            self.symmetry_cb.setEnabled(True)
+            self.update_spinbox_enable(self.symmetry_cb.currentText().upper())
+            for widget in (
+                    self.reflections_add_btn, self.reflections_delete_btn,
+                    self.reflections_clear_btn, self.reflection_table_view):
+                widget.setEnabled(True)
+        else:
+            for widget in widgets:
+                widget.setEnabled(False)
+
     def update_eos_parameter_visibility(self):
         """Show the parameter rows of the selected equation, plus the
         material data a selected peritheos thermal model needs."""
@@ -386,6 +514,38 @@ class PhaseEditorWidget(QtWidgets.QWidget):
             visible = key in names
             for widget in row_widgets:
                 widget.setVisible(visible)
+        self._compact_eos_layout()
+
+    def _compact_eos_layout(self):
+        """Pack visible EoS and thermal controls into consecutive rows."""
+        for grid_row in range(self._eos_layout.rowCount()):
+            self._eos_layout.setRowStretch(grid_row, 0)
+
+        grid_row = 0
+        self._eos_layout.addWidget(self.eos_type_lbl, grid_row, 0)
+        self._eos_layout.addWidget(self.eos_type_cb, grid_row, 1, 1, 2)
+        grid_row += 1
+
+        for row_widgets in self._eos_param_rows.values():
+            if row_widgets[0].isHidden():
+                continue
+            for column, widget in enumerate(row_widgets):
+                self._eos_layout.addWidget(widget, grid_row, column)
+            grid_row += 1
+
+        self._eos_layout.addWidget(self.thermal_type_lbl, grid_row, 0)
+        self._eos_layout.addWidget(self.thermal_type_cb, grid_row, 1, 1, 2)
+        grid_row += 1
+
+        for row_widgets in self._thermal_param_rows.values():
+            if row_widgets[0].isHidden():
+                continue
+            for column, widget in enumerate(row_widgets):
+                self._eos_layout.addWidget(widget, grid_row, column)
+            grid_row += 1
+
+        # Any extra height belongs below the form, never between fields.
+        self._eos_layout.setRowStretch(grid_row, 1)
 
     def show_jcpds(self, jcpds_phase, wavelength=None):
         self.update_name(jcpds_phase)

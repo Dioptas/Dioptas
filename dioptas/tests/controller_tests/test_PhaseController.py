@@ -89,6 +89,21 @@ class PhaseControllerTest(QtTest):
         self.assertEqual(len(self.widget.pattern_widget.phases), 0)
         self.assertEqual(self.phase_tw.currentRow(), -1)
 
+    def test_database_phase_shows_material_name_separately_from_reference(self):
+        from ...model import eos
+
+        material = next(item for item in eos.load_materials()
+                        if item.name == 'Akimotoite')
+        phase = eos.build_jcpds(material, origin='bundled')
+
+        self.model.phase_model.add_jcpds_object(
+            phase, filename=phase.filename)
+
+        self.assertEqual(
+            self.phase_tw.item(0, 2).text(), 'Akimotoite (MgSiO3)')
+        self.assertNotIn('Siersch', self.phase_tw.item(0, 2).text())
+        self.assertIn('Siersch', self.phase_widget.reference_cbs[0].currentText())
+
     def test_automatic_deleting_phases(self):
         self.load_phases()
         self.load_phases()

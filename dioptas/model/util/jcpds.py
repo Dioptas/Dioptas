@@ -117,14 +117,14 @@ class CrystalState:
     #: JCPDS files imply 3rd-order Birch-Murnaghan; phases from the EoS
     #: database carry their own.
     eos_type: str = "BM3"
-    #: Holzapfel only: atoms per chemical formula (n), summed atomic
+    #: Holzapfel only: atoms per chemical formula (n), summed/effective atomic
     #: number parameter of the formula (z), and formula units per unit cell (zc,
-    #: the crystallographic Z). Set for phases loaded from the EoS
-    #: database; None for legacy files, which then fall back to BM3.
+    #: the crystallographic Z). Set for material-backed phases; None for
+    #: legacy files, which then fall back to BM3.
     #: A literature record may override z (the Sokolova MgO workbook uses
     #: an effective value of 10.34 rather than the integer electron sum).
     n: float | None = None
-    z: int | None = None
+    z: float | None = None
     zc: int | None = None
     #: thermal model on top of the equation of state. "" means the
     #: classic constant-coefficient correction (alpha_t0/d_alpha_dt/
@@ -145,12 +145,30 @@ class CrystalState:
     t_ref: float = 298.15   # reference temperature of the fit (K)
     #: the material's chemical formula and its EoS records (dicts, schema
     #: in model/eos/material.py), for the per-phase reference switcher.
-    #: Set for phases loaded from the EoS database; empty for legacy
-    #: jcpds files. State so that the switcher survives project
+    #: Set for material-backed phases; empty for legacy jcpds files. State so
+    #: that the switcher survives project
     #: save/load and undo.
     chemistry: str = ""
     eos_records: list = field(default_factory=list)
     eos_current_index: int = 0
+    #: Runtime ownership for each EoS record. ``bundled`` records are
+    #: immutable; ``file`` and ``custom`` records are user-owned. Ownership
+    #: survives a project round trip but is intentionally absent from
+    #: portable .eosmat documents.
+    eos_record_origins: list = field(default_factory=list)
+    #: True after record management changes. Selecting another published
+    #: reference is not itself an edit, but must not hide earlier unsaved
+    #: custom-record changes by clearing the phase's modified marker.
+    eos_records_modified: bool = False
+    #: Preferred record for a user-owned material. Kept separately from the
+    #: record dicts so choosing a local default never mutates a bundled record.
+    eos_default_index: int = 0
+    #: Canonical material structure/provenance without the EoS record list.
+    #: Together with ``eos_records`` this is sufficient to export the phase as
+    #: a full-fidelity .eosmat document.
+    material_document: dict = field(default_factory=dict)
+    #: ``bundled``, ``file``, ``cif``, ``custom`` or ``legacy``.
+    material_origin: str = "legacy"
     #: Source-reported errors (same units as the record's EoS parameters)
     #: and the names of parameters held fixed in that fit.  These mirror the
     #: active record so downstream tools need not re-inspect eos_records.
