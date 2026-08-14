@@ -539,7 +539,7 @@ class Pipeline:
     def integrate_batch(self, images, progress=True) -> list:
         """Integrate multiple images to 1D patterns.
 
-        :param images: glob pattern (str like "data/*.tiff"), or list of
+        :param images: glob pattern (for example, ``data/*.tiff``), or list of
             file paths / numpy arrays
         :param progress: if True and tqdm is available, show a progress bar
         :returns: list of Pattern objects

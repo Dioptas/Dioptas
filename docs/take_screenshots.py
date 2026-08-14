@@ -5,6 +5,9 @@ of all views and control panels.
 
 Usage:
     uv run python docs/take_screenshots.py
+
+Set ``DIOPTAS_SCREENSHOTS`` to a comma-separated list of PNG names to update
+only selected screenshots, for example ``eos_database.png,phase_editor.png``.
 """
 
 import os
@@ -19,6 +22,11 @@ from qt_material import apply_stylesheet
 from dioptas.paths import style_path
 
 IMG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "source", "images")
+SCREENSHOT_NAMES = {
+    name.strip()
+    for name in os.environ.get("DIOPTAS_SCREENSHOTS", "").split(",")
+    if name.strip()
+}
 DATA_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "dioptas",
@@ -43,6 +51,8 @@ def wait(app, ms=500):
 
 def save(widget, name):
     """Grab a widget and save as PNG."""
+    if SCREENSHOT_NAMES and name not in SCREENSHOT_NAMES:
+        return
     pixmap = widget.grab()
     path = os.path.join(IMG_DIR, name)
     pixmap.save(path)
@@ -124,6 +134,44 @@ def main():
     control.tab_widget_1.setCurrentWidget(control.phase_control_widget)
     wait(app, 300)
     save(control.tab_widget_1, "phase_control.png")
+
+    # Bundled EoS database browser
+    from dioptas.controller.integration.phase.EosDatabaseController import (
+        EosDatabaseController,
+    )
+
+    eos_database_controller = EosDatabaseController(controller.widget)
+    eos_database_controller.dialog.search_input.setText("gold")
+    eos_database_controller.dialog.show()
+    wait(app, 500)
+    save(eos_database_controller.dialog, "eos_database.png")
+    eos_database_controller.dialog.close()
+
+    # Phase Editor, populated with a database material so the record and
+    # thermal-model workflow is visible rather than only the legacy fields.
+    from dioptas.model import eos
+
+    material = next(
+        material
+        for material in eos_database_controller.materials
+        if material.name.casefold() == "gold"
+    )
+    database_phase = eos.build_jcpds(
+        material,
+        material.default_eos_index,
+        wavelength_angstrom=controller.model.calibration_model.wavelength * 1e10,
+        origin="bundled",
+    )
+    controller.model.phase_model.add_jcpds_object(database_phase)
+    phase_editor_controller = (
+        controller.integration_controller.phase_controller.phase_editor_controller
+    )
+    phase_editor_controller.show_phase(database_phase)
+    phase_editor_controller.show_view()
+    phase_editor_controller.jcpds_widget.resize(1000, 680)
+    wait(app, 500)
+    save(phase_editor_controller.jcpds_widget, "phase_editor.png")
+    phase_editor_controller.close_view()
 
     # Corrections tab
     control.tab_widget_1.setCurrentWidget(control.corrections_control_widget)
@@ -208,11 +256,12 @@ def main():
     save(controller.widget, "calibration_step4_validation.png")
 
     # the stepper alone, cropped from the full-width bar
-    stepper_pixmap = controller.widget.grab()
-    stepper_pixmap.copy(
-        controller.widget.width() - 540, 0, 540, 44
-    ).save(os.path.join(IMG_DIR, "calibration_stepper.png"))
-    print("  Saved calibration_stepper.png (540x44)")
+    if not SCREENSHOT_NAMES or "calibration_stepper.png" in SCREENSHOT_NAMES:
+        stepper_pixmap = controller.widget.grab()
+        stepper_pixmap.copy(
+            controller.widget.width() - 540, 0, 540, 44
+        ).save(os.path.join(IMG_DIR, "calibration_stepper.png"))
+        print("  Saved calibration_stepper.png (540x44)")
 
     print("\nDone! All screenshots saved to docs/source/images/")
 

@@ -49,7 +49,10 @@ There are two modes for file browsing (using the **<** and **>** buttons):
     Files are sorted by creation time. This mode does not require numbers in filenames.
 
 The **step** value controls how many files to skip when browsing.
-The **autoprocess** checkbox monitors the current directory and automatically loads any newly added file.
+The **autoprocess** checkbox monitors the current directory and automatically loads newly written images.
+Dioptas checks the directory directly, so this also works when a detector writes to network storage and
+file-system notifications are unavailable. A file is loaded only after its size has stopped changing, which
+prevents Dioptas from opening a detector frame while it is still being written.
 
 For multi-frame files (e.g., HDF5), a frame slider and position indicator allow navigation within the file.
 
@@ -65,7 +68,12 @@ Patterns can be saved in five formats simultaneously:
 - *.xye*: Three-column format containing x, intensity, and propagated error
 - *.chi*: Two-column Fit2D format
 - *.dat*: Two-column format without header
-- *.fxye*: Three-column GSAS/GSAS-II format (includes intensity errors)
+- *.fxye*: Three-column GSAS/GSAS-II format containing propagated errors
+
+The ``.xye`` and ``.fxye`` choices require **Calculate Poisson errors** in the *X* tab. If the
+current integrated pattern has no errors, selecting either format offers to enable the option and
+reintegrate the current image. Turning error calculation off also turns off both error-bearing
+auto-save formats. The other formats remain available without error calculation.
 
 
 Batch Processing
@@ -143,7 +151,7 @@ Phase controls are similar to overlay controls:
 - *DB*: Browse the bundled, offline EoS material database. A selected material
   can be loaded directly as a phase; exporting it as ``.eosmat`` is optional
   and is intended for sharing or portability.
-- *Edit*: Open the JCPDS editor dialog.
+- *Edit*: Open the Phase Editor.
 - *Delete*: Remove the selected phase.
 - *Clear*: Remove all phases.
 - *Save List / Load List*: Save or restore a list of loaded phases.
@@ -157,14 +165,42 @@ Check **Apply to all phases** to change all phases simultaneously.
 **Show in Pattern** controls whether P/T values appear in the phase legend.
 
 
+Bundled EoS database
+~~~~~~~~~~~~~~~~~~~~
+
+.. figure:: images/eos_database.png
+    :align: center
+    :width: 720
+
+    The bundled database shows a material's published EoS records and their provenance.
+
+Click **DB** to search the equation-of-state material database shipped with Dioptas. Search accepts
+material and mineral names, aliases, and formulas. Formula matching understands equivalent
+stoichiometries and composition families: for example, ``MgFeO`` or ``MgFe`` can find a stored
+mixed Mg-Fe oxide even when its formula uses decimal or integer-ratio subscripts. Exact matches are
+listed first.
+
+Select a material to see all its EoS records. The table reports the equation, whether a thermal
+model is available, publication, experimental fit-pressure range, and the principal parameters.
+The fit-pressure range is the range used to constrain the published EoS; it is **not** a
+phase-stability range. A displayed ``±`` value is the uncertainty reported by the source.
+``error n/r`` means that no verified error was recorded, not that the error is zero.
+
+Select the appropriate record and click **Load as Phase** (or double-click it). Every record for
+that material remains available afterward in the phase table's **Ref** selector, so its effect on
+the calculated lines can be compared immediately. **Export .eosmat…** is only needed to share the
+material or move it to a different Dioptas installation; loading from the database does not require
+an export.
+
+
 Phase Editor
 ~~~~~~~~~~~~
 
-.. figure:: images/jcpds_editor.png
+.. figure:: images/phase_editor.png
     :align: center
-    :height: 500
+    :width: 850
 
-    Graphical Phase Editor.
+    Phase Editor with a published material record and its active EoS and thermal models.
 
 The Phase Editor allows modifying phase parameters interactively.
 All changes are immediately reflected in the pattern line positions.
@@ -174,6 +210,17 @@ You can edit:
 - Lattice parameters
 - Equation of state parameters
 - Individual reflections (h, k, l, intensity) by double-clicking in the table
+
+The **EoS** selector shows only the parameters needed by the chosen equation. Available room-
+temperature equations are second-, third- and fourth-order Birch-Murnaghan, Murnaghan, Vinet,
+Modified Tait, second- through fourth-order Natural Strain, and Holzapfel. Existing JCPDS phases
+continue to use their conventional third-order Birch-Murnaghan calculation.
+
+The **Thermal** selector adds temperature dependence to the room-temperature equation. Choose
+**Constant α, dK/dT** for the traditional JCPDS correction, a Mie-Grüneisen-Debye or
+Mie-Grüneisen-Einstein model for a full thermal EoS, or the Sokolova et al. model when applicable.
+The editor reveals only the parameters required by the selected model. If the active record has no
+thermal model, changing the phase temperature does not move its reflections.
 
 The **Material record** controls distinguish reusable, referenced EoS records
 from temporary phase parameters:
@@ -187,8 +234,10 @@ from temporary phase parameters:
   from continuing to carry the original publication attribution.
 
 Records loaded from a user ``.eosmat`` file and records created from a CIF are
-editable. Changes to a loaded bundled phase never write into the application
-database; that database is updated only through repository curation.
+editable. **Set Default** marks the preferred user-owned record; save the material
+as ``.eosmat`` or save the session as a project to retain that choice. Changes to
+a loaded bundled phase never write into the application database; that database
+is updated only through repository curation.
 
 A "0" suffix indicates ambient-condition values; values without "0" correspond to the current P/T conditions.
 
@@ -199,6 +248,10 @@ A "0" suffix indicates ambient-condition values; values without "0" correspond t
 - *Reload File*: Discard local changes and rebuild a JCPDS, CIF or ``.eosmat``
   phase from its source file. Bundled database materials have no source file
   and are already read-only, so this action is disabled for them.
+
+The complete material, selected record, pressure, temperature and thermal state are also retained
+inside a ``.dio`` project. Use a project when the goal is to resume the whole analysis rather than
+to exchange one material.
 
 
 Corrections
@@ -461,8 +514,9 @@ Options (X Tab)
 - *Solid Angle Correction*: Enable/disable solid angle correction during integration.
 - *Calculate Poisson Errors*: Calculate propagated counting-statistics errors during
   1D integration. This is disabled by default because it requires additional compute
-  time. When enabled, the errors are retained with the current pattern for `.xye` and
-  `.fxye` export; saving does not repeat the integration.
+  time. When enabled, the errors are retained with the current pattern for ``.xye`` and
+  ``.fxye`` export; saving does not repeat the integration. Error calculation uses the
+  active integration engine (pyFAI or, when enabled and available, Dioptrin).
 - *Supersampling*: Split each pixel into n² sub-pixels for finer integration.
   Can reduce peak widths for large pixels but may produce artifacts. Use with caution.
 

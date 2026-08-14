@@ -1,6 +1,6 @@
 # Dioptas
 
-A GUI program for fast analysis of powder X-ray diffraction Images. It provides the capability of calibrating,
+A GUI program for fast analysis of powder X-ray diffraction images. It provides the capability of calibrating,
 creating masks, having pattern overlays and showing phase lines.
 
 ## Documentation
@@ -15,22 +15,21 @@ Clemens Prescher (clemens.prescher@gmail.com)
 
 ## Requirements
 
-    * python 3.9+
+- Python 3.11, 3.12, or 3.13
 
-It is known to run on Windows, Mac and Linux. For optimal usage on a Windows machine it should be run with 64 bit
-python.
+Dioptas runs on 64-bit Windows, macOS, and Linux.
 
 ## Installation
 
 ### Executables
 
-Executable versions for Windows, Mac OsX and Linux (all 64bit) can be downloaded from:
+Executable versions for Windows, macOS, and Linux can be downloaded from:
 
 https://github.com/Dioptas/Dioptas/releases
 
-The executable versions are self-contained folders, which do not need any python installation.
+The executable versions are self-contained and do not need a Python installation.
 Under Windows and Linux the program can be started by running the executable (e.g. Dioptas.exe or Dioptas).
-Under MacOS X the download will contain a `.tar.gz` archive. Extract it first, then right-click the `.app` folder and select "Open" to start the program.
+On macOS, open the `.dmg` and drag Dioptas to Applications. A `.tar.gz` archive of the application is also available.
 
 If macOS shows a warning that the app "cannot be verified", you need to remove the quarantine attribute by running the following command in the Terminal:
 
@@ -52,10 +51,9 @@ and then run Dioptas by typing:
 dioptas
 ```
 
-in the commandline.
+on the command line.
 
-We also maintain a conda-forge version of dioptas.
-You can add the conda-forge channel to your conda distribution and then install dioptas via conda should be working correctly.
+Dioptas is also available from conda-forge:
 
 ```bash
 conda config --add channels conda-forge

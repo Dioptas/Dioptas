@@ -1179,7 +1179,10 @@ class CalibrationModel:
         self.parameters_changed.emit()
 
     def save(self, filename: str) -> None:
-        """Saves the current calibration parameters into a text file. Default extension is *.poni."""
+        """Save the current calibration parameters to a text file.
+
+        The conventional filename suffix is ``.poni``.
+        """
         logger.info("Saving calibration to %s", filename)
         poni_config = self.cake_geometry.get_config()
         poni_config = poni_flipud(poni_config)

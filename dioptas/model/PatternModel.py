@@ -294,9 +294,10 @@ class PatternModel:
         return self.pattern
 
     def load_next_file(self, step: int = 1) -> bool:
-        """
-        Loads the next file from a sequel of filenames (e.g. *_001.xy --> *_002.xy)
-        It assumes that the file numbers are at the end of the filename
+        """Load the next numbered pattern file.
+
+        For example, ``sample_001.xy`` advances to ``sample_002.xy``. The
+        number is expected at the end of the filename stem.
         """
         next_file_name = self.file_name_iterator.get_next_filename(
             mode=self.file_iteration_mode, step=step
@@ -307,9 +308,10 @@ class PatternModel:
         return False
 
     def load_previous_file(self, step: int = 1) -> bool:
-        """
-        Loads the previous file from a sequel of filenames (e.g. *_002.xy --> *_001.xy)
-        It assumes that the file numbers are at the end of the filename
+        """Load the previous numbered pattern file.
+
+        For example, ``sample_002.xy`` moves to ``sample_001.xy``. The
+        number is expected at the end of the filename stem.
         """
         next_file_name = self.file_name_iterator.get_previous_filename(
             mode=self.file_iteration_mode, step=step

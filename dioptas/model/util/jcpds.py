@@ -257,7 +257,8 @@ class jcpds:
         """
         Reads a JCPDS file into the JCPDS object.
 
-        Procedure:
+        Procedure::
+
            This procedure read the JCPDS file.  There are several versions of the
            formats used for JCPDS files.  Versions 1, 2 and 3 used a fixed
            format, where a particular entry had to be in a specific location on
@@ -502,7 +503,8 @@ class jcpds:
         """
         Writes a JCPDS object to a file.
 
-        Procedure:
+        Procedure::
+
            This procedure writes a JCPDS file.  It always writes files in the
            current, keyword-driven format (Version 4).  See the documentation for
            read_file() for information on the file format.
@@ -634,20 +636,12 @@ class jcpds:
                                            np.cos(self.params['gamma0'] * dtor))))
 
     def compute_volume(self, pressure: float | None = None, temperature: float | None = None) -> None:
-        """
-        Computes the unit cell volume of the material.
-        It can compute volumes at different pressures and temperatures.
+        """Compute the unit-cell volume at a pressure and temperature.
 
-        Procedure:
-           This procedure computes the unit cell volume.  It starts with the
-           volume read from the JCPDS file or computed from the zero-pressure,
-           room temperature lattice constants.  It does the following:
-              1) Corrects K0 for temperature if DK0DT is non-zero.
-              2) Computes volume at zero-pressure and the specified temperature
-                 if ALPHAT0 is non-zero.
-              3) Computes the volume at the specified pressure if K0 is non-zero.
-                 The routine uses the IDL function FX_ROOT to solve the third
-                 order Birch-Murnaghan equation of state.
+        The calculation starts from the zero-pressure, room-temperature
+        lattice volume. It applies the selected thermal correction and then
+        the active equation of state. If no explicit values are supplied, the
+        phase's current pressure and temperature are used.
         """
         if pressure is None:
             pressure = self.params['pressure']

@@ -610,16 +610,17 @@ class CylinderAbsorptionCorrection(ImgCorrectionInterface):
     """Absorption correction for a cylindrical sample in transmission geometry.
 
     Calculates the transmission factor by integrating the absorption over
-    the beam footprint within the cylinder cross-section:
-
-        A*(2\u03b8,\u03c6) = average of exp(-\u03bc\u00b7(l_in + l_out))
+    the beam footprint within the cylinder cross-section. The correction is
+    the average of ``exp(-mu * (l_in + l_out))`` over that footprint.
 
     The beam width controls how much of the cross-section is illuminated:
+
     - beam_width=0 (default): pencil beam through center (synchrotron case)
     - beam_width >= 2*radius: full illumination (lab source case)
     - intermediate values: partial illumination
 
     The cylinder axis orientation is defined by two angles:
+
     - axis_tilt: angle of the cylinder axis from the z-axis (vertical)
       in degrees. 0\u00b0 = vertical (perpendicular to beam), 90\u00b0 = along beam.
     - axis_rotation: rotation of the tilt direction around the beam axis

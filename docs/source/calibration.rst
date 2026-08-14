@@ -78,8 +78,8 @@ the mean position:
 - Changing the **Current Ring Number** highlights every group belonging to that ring.
 - The ring spinbox in a row reassigns the group to a different ring — useful when a ring was
   skipped or double-clicked.
-- **Delete** (or the Del key) removes the selected groups; **Clear Ring** removes all peaks of the
-  current ring; **Clear All** starts over.
+- **Delete** (or the Del key) removes the selected groups. To remove a complete ring, change the
+  current ring number to select all of its groups, then press **Delete**. **Clear All** starts over.
 
 If the automatic peak search fails, choose **single peak search**, which finds the highest
 intensity peak around the click position (the search area is defined by the **search size**
@@ -154,16 +154,23 @@ step, which shows the detector image, the 360-degree cake and the integrated pat
 Judging the calibration:
 
 - The calibrant's reflections are overlaid in every view — as rings on the image, vertical lines
-  in the cake and vertical lines in the pattern. For a good calibration they coincide with the
-  measured rings, the cake lines are straight, and all peak maxima match the line positions.
+  in the cake and vertical lines in the pattern. Each reflection carries the same ring number used
+  while picking peaks. The labels stay inside the visible area while zooming, which makes it easier
+  to identify a partly visible ring. For a good calibration the overlays coincide with the measured
+  rings, the cake lines are straight, and all peak maxima match the line positions.
 - Clicking in any of the three views places a green marker at the same 2θ position in all of
   them: the iso-2θ ring on the image, a vertical line in the cake and the position line in the
   pattern. This makes it easy to check a specific feature across the views.
 - Phases loaded in the Integration module are not shown here, keeping the validation views
   focused on the selected calibrant.
 
+The **lines** checkbox below the views hides all calibrant overlays. The **numbers** checkbox hides
+only their ring labels and remains available while the lines are shown. These controls are present
+on every calibration step, not only Validation.
+
 The resulting geometry is shown in the **pyFAI** and **Fit2D** tabs of the panel and can be
-edited there; **update** applies typed values.
+edited there; **update** applies typed values. Dioptas remembers the last selected parameter tab
+for the project and the next session.
 **Refine** repeats the automatic peak search and refinement based on the current geometry —
 useful after adjusting parameters or the refinement options.
 

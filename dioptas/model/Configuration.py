@@ -375,9 +375,10 @@ class Configuration:
         self.cake_changed.emit()
 
     def save_pattern(self, filename: str | None = None, subtract_background: bool = False) -> None:
-        """
-        Saves the current integrated pattern. The format depends on the file ending. Possible file formats:
-            [*.xy, *.xye, *.chi, *.dat, *.fxye]
+        """Save the current integrated pattern.
+
+        The output format is selected from the filename suffix. Supported
+        suffixes are ``.xy``, ``.xye``, ``.chi``, ``.dat``, and ``.fxye``.
         """
         logger.info("Saving pattern to %s", filename)
         if filename is None:
@@ -404,9 +405,10 @@ class Configuration:
             )
 
     def save_background_pattern(self, filename: str | None = None) -> None:
-        """
-        Saves the current fit background as a pattern. The format depends on the file ending. Possible file formats:
-            [*.xy, *.chi, *.dat, *.fxye]
+        """Save the current fitted background as a pattern.
+
+        The output format is selected from the filename suffix. Supported
+        suffixes are ``.xy``, ``.chi``, ``.dat``, and ``.fxye``.
         """
         if filename is None:
             filename = self.img_model.filename

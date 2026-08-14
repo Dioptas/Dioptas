@@ -209,7 +209,8 @@ class DioptasModel:
     def save(self, filename: str) -> None:
         """Saves the current state of the model in a h5py file.
 
-        File-ending can be chosen as wanted. Usually Dioptas projects are saved as *.dio files.
+        The file ending can be chosen freely. Dioptas projects normally use
+        the ``.dio`` suffix.
         """
         logger.info("Saving project to %s", filename)
         # Write into a sibling temp file and swap it in atomically: a save

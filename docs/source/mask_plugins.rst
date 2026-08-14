@@ -12,6 +12,9 @@ Mask plugins are discovered automatically at startup and appear in the Mask modu
 where each plugin has a checkbox to enable/disable it, an optional settings button, and an
 **Imprint** button.
 
+Inside a plugin's settings dialog, **Restore Defaults** resets every field to the defaults declared
+by that plugin. The live preview is recomputed from those defaults before the dialog is closed.
+
 The Imprint button bakes the plugin's current output into the user-drawn mask and disables the
 plugin in one step. This is useful for freezing a dynamic plugin's result so subsequent
 analyses don't depend on the plugin's parameters or runtime — and so the next plugin run isn't

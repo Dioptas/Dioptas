@@ -1,56 +1,44 @@
-# 0.9.1 (in development)
+# 0.10.0 (14.08.2026)
 
-## New Features
+## Highlights
 
-- **Optional Poisson errors for integrated patterns.** The 1D integration options can now calculate propagated Poisson uncertainties on demand, using either pyFAI or Dioptrin. The uncertainties stay attached to the current pattern and are written directly to the new `.xye` export and to `.fxye`, without a second integration during saving. Error calculation remains off by default because it adds computation time.
+- **Build a map while a scan is running.** Load the first image or images, switch on **Live**, and Dioptas appends new frames as soon as they have finished writing. This also works on beamline network storage. Files from other scans in the same folder are ignored, the grid can be given its final size at any time, and existing blanks, rearrangements and excluded points are preserved.
 
-- **Live maps.** The **Live** button beside Load in the map view grows the map while the beamline is still writing it: the folder of the loaded files is watched (by listing it, so it works on network storage), and every new image named like the scan's — same name up to the running number — is integrated and appended as soon as it is fully written; a calibration image or another scan in the same folder stays out. The grid keeps its columns and gains rows (set the scan size in **Grid…** and it fills in cell by cell), arrangements and excluded points survive, and the newest point is selected as it arrives. Load the first image(s) of the scan, switch Live on, and numbered files written in between are picked up too. A file that cannot be read is skipped with a log entry rather than ending the session. When frames arrive faster than one-by-one integration keeps up, the backlog is appended in batches through the same fast integration engine the bulk load uses, so live mode keeps pace with the beamline.
+- **Find pressure standards and sample phases in the new offline EoS database.** The **DB** button in the Phase panel searches 120 bundled materials by name, alias or chemical composition. The database includes 147 publication-checked equation-of-state records, with references, reported parameter uncertainties and experimental fit ranges where available. Select a published record and load it directly as a phase; no internet connection is needed.
 
-- **EoS material database.** The Phase panel gained a **DB** button that opens a browser over a database of materials with published equation-of-state parameters (bulk modulus, K0′, V0 per literature reference). The database ships with Dioptas — it works offline and is curated in the repository like the calibrant files, so new materials and references can be added by pull request. Materials can also be exported as `.eosmat` files and reloaded through the normal Add button.
+- **Use published or custom equations of state without losing their provenance.** A material can contain several literature records, selectable from the phase table. The Phase Editor supports Birch-Murnaghan, Murnaghan, Vinet, Modified Tait, Natural Strain and Holzapfel equations, together with constant-coefficient and Mie-Grüneisen thermal models. Published records are read-only; duplicate one before changing it so edited values cannot retain the original attribution. Complete materials can be shared as `.eosmat` files.
 
-- **Normalized custom-material workflow.** CIF imports now become canonical, lossless material records instead of only transient JCPDS-style phases. The Phase Editor can add, duplicate, edit, delete and choose the default for user-owned EoS records, including structured references, errors, fixed parameters and experimental fit ranges. Published records loaded from the bundled database are read-only and must be duplicated before editing, while **Save As** can write the complete live material as `.eosmat`; legacy `.jcpds` export remains available explicitly for interoperability. Phase names now retain the material/mineral identity alongside the formula (for example, `Akimotoite (MgSiO3)`), and source reload works consistently for JCPDS, CIF and `.eosmat` files.
+- **Export propagated counting errors.** Enable **Calculate Poisson errors** in the 1D integration options to retain an uncertainty for every integrated point. The new `.xye` output and GSAS `.fxye` output write those errors directly. Calculation is opt-in because it adds integration time; choosing an error-bearing export can enable it and reintegrate the current image for you.
 
-- **Equations of state through Peritheos.** Phase lines at pressure are now computed through the [Peritheos](https://github.com/CPrescher/peritheos) library. Database phases carry one EoS record per literature reference — the phase table's **Ref** dropdown switches between them and recomputes the lines live — and the Phase Editor (formerly JCPDS editor) lets experts pick any equation Peritheos supports (2nd/3rd/4th-order Birch-Murnaghan, Murnaghan, Vinet, Modified Tait, Natural Strain, Holzapfel), showing exactly the parameters that equation needs. Existing `.jcpds` phases behave exactly as before (3rd-order Birch-Murnaghan, cross-validated against the previous solver).
+## Improvements
 
-- **The EoS database grew from 22 to 120 materials**, curated from a beamline jcpds collection and primary literature: 116 materials contain 147 publication-verified EoS records, and four phase-only materials retain explicit JCPDS/PDF card references. The latest phase-specific additions cover wurtzite and rocksalt ZnO; alpha, omega, and beta Zr; NiO; Fe3C; orthorhombic Fe7C3; and post-aragonite CaCO3 (including its thermal EoS). Equivalent duplicate cards were consolidated, and ambiguous phase names were made explicit.
+- CIF imports now retain the material name, formula, space group, atom sites and original CIF reflection source. Custom EoS records can store references, reported errors, fixed parameters and fit ranges. A `.eosmat` round-trip keeps this complete material description; `.jcpds` remains available for legacy interoperability.
 
-- **Old jcpds files load again.** Version 2/3 jcpds files (Dan Shim's fixed format, still common in beamline collections) crashed the loader for years; they now load, including all six crystal-system codes.
+- Version 2 and 3 JCPDS files, including the older fixed-width format still found in beamline collections, load again.
 
-- **Thermal equations of state.** The Phase Editor's **Thermal** selector composes a thermal model over the equation of state: the classic constant α/dK-dT correction (what `.jcpds` files have always used), or Peritheos' **Mie-Grüneisen-Debye** / **Mie-Grüneisen-Einstein** models with θ₀, γ₀ and q — so the temperature spinbox moves the lines with proper high-temperature physics instead of a linearized shift. Database records carry the published thermal fits where available (e.g. gold and neon from Fei et al., PNAS 2007), and the whole thermal state survives project save/load.
+- Calibrant reflections are numbered consistently on the image, cake and pattern views. The numbers follow the visible part of a zoomed view, and separate checkboxes can hide the labels or all calibrant lines.
 
-## Bugfixes
+- **autoprocess** now detects finished files on network storage and waits for a file to stop growing before loading it.
 
-- Publication references in the bundled EoS database now store every author instead of only the first author (or an incomplete subset). Compact citations show both names for two-author papers and use “first author et al.” for papers with three or more authors.
+- File loaders recognize common wrong-file selections and explain where the file belongs without replacing the data already on screen.
 
-- On Windows, the taskbar showed a generic icon on the first run of a freshly unpacked Dioptas (later runs, or pinning it, showed the proper icon). The `icon.ico` embedded in the executable carried only a single 256 px image, which the Windows shell fails to scale down on a cold icon cache; it now ships the standard 16-256 px sizes, the application declares an explicit Windows app identity, and the icon is set application-wide so every window inherits it.
+- Color images are converted to grayscale intensity images for display and integration. Unsupported image shapes now produce one clear error instead of repeated dialogs.
 
-- Loading a color image (e.g. an RGB PNG preview saved next to the detector data) crashed with an endless series of error dialogs (`data.shape[2] must be <= 4`, `too many values to unpack`). Color images are now averaged to a grayscale intensity image on loading, so they display and integrate normally; images with shapes Dioptas cannot interpret are refused with a clear message instead of crashing.
+- Mask-plugin settings have a **Restore Defaults** action, and the calibration validation page remembers whether pyFAI or Fit2D parameters were last selected.
 
-- The intensity histogram crashed with `Cannot create 1500 finite-sized bins` for any 8-bit image (numpy computes the logarithm of such images in half precision, which is too coarse for the histogram binning).
+- The application icon has been refreshed. On Windows it now also appears correctly on the taskbar on the first run after unpacking Dioptas.
 
-- Resetting a project (or switching configurations) now clears the calibrant ring overlays of the previous calibration from the image and cake views, redraws the pattern's calibrant lines for the new state, and resets the ring number in the pick step (to 1 after a reset; after a configuration switch it continues after that configuration's picked rings).
+## Fixes
 
-- Re-enabling a dynamic mask after loading a different image showed the mask computed for the previous image; enabling now always recomputes for the image on screen.
+- An unsuccessful automatic calibration-ring search no longer discards peaks that were picked manually.
 
-- When the automatic calibration peak search comes up empty (e.g. the intensity threshold is set too low), the manually picked peaks are restored instead of being lost.
+- Re-enabling a dynamic mask after changing images now computes the mask for the current image instead of showing the previous result.
 
-- **autoprocess** now notices new images on beamline network storage. It used to rely on OS file events, which never reach the machine when the detector writes to a network drive; the folder is now checked directly about once a second instead, which works on any filesystem. A file is only loaded once it has stopped growing, so half-written images no longer slip through.
+- Resetting a project and switching configurations no longer leave calibrant overlays or the wrong ring number on screen.
 
-## Changes
+- Intensity histograms work for 8-bit images.
 
-- PhaseSmith was updated to 0.4.1, so symmetry-equivalent cubic reflections use the conventional `(100)` representative instead of `(001)`.
-
-- **Chemistry-aware EoS database search.** Formula searches now understand composition families: for example, both `MgFeO` and the shorter fragment `MgFe` find the stored `(Mg0.4Fe0.6)O` material even though its exact integer-ratio formula is `Mg2Fe3O5`. Exact and stoichiometrically equivalent formulas rank first, decimal and Unicode-subscript formulas are accepted, and mineral/common-name aliases such as `periclase`, `corundum`, and `hematite` now live on their specific material instead of expanding globally to unrelated polymorphs.
-
-- **Numbered calibrant lines.** The calibrant's lines in the calibration view now carry their ring number — on the image rings, the cake lines, and the pattern lines — so it is easy to see which ring is the first and which the tenth. The numbers match the ring spinbox used during peak picking, and they follow the zoom: any ring crossing the current view keeps its number inside the view. Two checkboxes below the views — visible on every step — hide the lines or just the numbers.
-
-- **Clear messages for wrong file types.** Picking the wrong kind of file — a *.poni calibration as an image, an image as a pattern, a pattern as a calibration, and so on — used to crash into a raw error dialog (or, for a pattern loaded as a calibration, silently misbehave). Each loader now explains what the chosen file looks like and where to load it instead, e.g. "It looks like a pyFAI calibration file — use 'Load Calibration' to open it." A failed load leaves the previously loaded data untouched.
-
-- The mask plugin settings dialogs gained a **Restore Defaults** button.
-
-- The calibration wizard remembers whether the validation step last showed the **pyFAI or Fit2d** parameters — across restarts, and per project. Handy when the Fit2d numbers are what feeds other programs (CrysAlis etc.).
-
-- The redundant **Clear Ring** button under the calibration peak table is gone: changing the ring number already selects every group of that ring, so Delete does the same in two steps — the tooltip now says so.
+- Publication citations in the EoS database now retain the complete author list, and symmetry-equivalent cubic reflections use the conventional `(100)` representative.
 
 # 0.9.0 (03.08.2026)
 
