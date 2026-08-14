@@ -45,8 +45,8 @@ class EosDatabaseControllerTest(QtTest):
         names = {material.name for material in self.controller.shown_materials}
         assert {"Ice VI", "Ice VII", "Ice VIII"} <= names
 
-    def test_formula_family_search_finds_solid_solution(self):
-        self.dialog.search_input.setText("MgFeO")
+    def test_formula_subset_search_finds_solid_solution(self):
+        self.dialog.search_input.setText("MgFe")
 
         formulas = {
             material.formula for material in self.controller.shown_materials

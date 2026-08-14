@@ -63,10 +63,11 @@ def search_materials(query: str, materials: list | None = None) -> list:
     Ranked material search over names, formulas, and material-owned aliases.
 
     A query that is itself a chemical formula additionally finds formulas
-    with equivalent stoichiometry or the same set of elements. This makes a
-    composition-family query such as ``MgFeO`` find ``Mg2Fe3O5`` while exact
-    formula and textual matches remain first. An empty query returns all
-    materials in their original order.
+    with equivalent stoichiometry, the same set of elements, or (for queries
+    containing at least two elements) a superset of the requested elements.
+    This makes both ``MgFeO`` and the shorter ``MgFe`` find ``Mg2Fe3O5``
+    while more specific formula and textual matches remain first. An empty
+    query returns all materials in their original order.
     """
     if materials is None:
         materials = load_materials()
@@ -108,12 +109,17 @@ def _material_search_rank(query: str, material: Material) -> int | None:
 
 
 def _formula_search_rank(query: str, formula: str) -> int | None:
-    """Return 2 for equivalent ratios and 5 for a shared element set."""
+    """Rank equivalent, same-element, and multi-element subset matches."""
     query_composition = _formula_composition(query)
     material_composition = _formula_composition(formula)
     if not query_composition or not material_composition:
         return None
-    if query_composition.keys() != material_composition.keys():
+
+    query_elements = set(query_composition)
+    material_elements = set(material_composition)
+    if query_elements != material_elements:
+        if len(query_elements) >= 2 and query_elements < material_elements:
+            return 6
         return None
 
     query_total = sum(query_composition.values())

@@ -106,6 +106,16 @@ def test_search_matches_formula_family_and_ranks_exact_formula_first():
     assert [material.name for material in results] == ["Exact", "Mixed oxide"]
 
 
+def test_search_matches_multi_element_formula_subset_in_any_order():
+    materials = [
+        Material(name="Ferropericlase", formula="Mg2Fe3O5"),
+        Material(name="Magnesium silicate", formula="Mg2SiO4"),
+    ]
+
+    assert eos.search_materials("MgFe", materials) == [materials[0]]
+    assert eos.search_materials("FeMg", materials) == [materials[0]]
+
+
 def test_search_recognizes_equivalent_decimal_and_unicode_formulas():
     materials = [
         Material(name="Ferropericlase", formula="Mg2Fe3O5"),

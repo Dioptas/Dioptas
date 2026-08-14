@@ -45,7 +45,7 @@ class EosDatabaseDialog(QtWidgets.QDialog):
     def _create_widgets(self):
         self.search_input = QtWidgets.QLineEdit()
         self.search_input.setPlaceholderText(
-            "Search: Au, MgFeO, gold, periclase, alumina…")
+            "Search: Au, MgFe, gold, periclase, alumina…")
         self.clear_btn = FlatButton("All")
 
         self.materials_table = QtWidgets.QTableWidget()
