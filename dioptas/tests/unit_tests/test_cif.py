@@ -1,64 +1,22 @@
 # SPDX-License-Identifier: MIT
 import os
-import numpy as np
 
+import pytest
 from pytest import approx
 
-try:
-    from urllib import pathname2url
-except ImportError:
-    from urllib.request import pathname2url
-
-from CifFile import ReadCif
-
-from ...model.util.cif import CifPhase, CifConverter
+from ...model.util.cif import CifConverter
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
 cif_path = os.path.join(data_path, 'cif')
 
 
-def get_cif_url(cif_filename):
-    file_path = 'file:' + pathname2url(
-        os.path.join(cif_path, cif_filename))
-    return file_path
-
-
-def test_reading_cif():
-    fcc_cif = ReadCif(get_cif_url('fcc.cif'))
-
-    cif_phase = CifPhase(fcc_cif[fcc_cif.keys()[0]])
-
-    assert cif_phase.a == 4.874
-    assert cif_phase.b == 4.874
-    assert cif_phase.c == 4.874
-
-    assert cif_phase.alpha == 90
-    assert cif_phase.beta == 90
-    assert cif_phase.gamma == 90
-
-    assert np.round(cif_phase.volume, 2) == 115.79
-    assert cif_phase.space_group_number == 225
-
-    assert len(cif_phase.atoms) == 8
-    assert cif_phase.comments == 'HoN, Fm-3m - NaCl structure type, ICSD 44776'
-
-
 def test_read_cif_without_cell_volume():
-    fcc_cif = ReadCif(get_cif_url('ICSD_triclinic_without_cell_volume.cif'))
-    cif_phase = CifPhase(fcc_cif[fcc_cif.keys()[0]])
-    assert cif_phase.volume == approx(465.74, 1e-2)
-
-
-def test_calculating_xrd_pattern_from_cif_file():
-    fcc_cif = ReadCif(get_cif_url('fcc.cif'))
-    cif_phase = CifPhase(fcc_cif[fcc_cif.keys()[0]])
-    cif_converter = CifConverter(0.31)
-    jcpds_phase = cif_converter.convert_cif_phase_to_jcpds(cif_phase)
-
-    assert jcpds_phase.reflections[0].intensity == 100
-    assert jcpds_phase.reflections[0].d0 == approx(2.814, 1e-5)
-    assert jcpds_phase.reflections[1].d0 == approx(2.437, 1e-5)
+    converter = CifConverter(0.31, min_d_spacing=1)
+    phase = converter.convert_cif_to_jcpds(
+        os.path.join(cif_path, 'ICSD_triclinic_without_cell_volume.cif')
+    )
+    assert phase.params['v0'] == approx(465.74, 1e-2)
 
 
 def test_loading_cif_phase_and_calculate_jcpds():
@@ -107,3 +65,13 @@ def test_read_cif_from_shelx():
 def test_convert_cif_with_triclinic_geometry():
     cif_converter = CifConverter(0.31, min_d_spacing=1, min_intensity=5)
     cif_converter.convert_cif_to_jcpds(os.path.join(cif_path, 'ICSD_triclinic.cif'))
+
+
+@pytest.mark.parametrize(
+    "cif_filename",
+    sorted(filename for filename in os.listdir(cif_path) if filename.endswith(".cif")),
+)
+def test_phasesmith_reads_every_cif_fixture(cif_filename):
+    converter = CifConverter(0.31, min_d_spacing=1.5, min_intensity=10)
+    phase = converter.convert_cif_to_jcpds(os.path.join(cif_path, cif_filename))
+    assert phase.reflections

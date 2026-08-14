@@ -25,7 +25,6 @@ requirements:
         - lmfit
         - fabio # [linux64 or osx]
         - pyfai # [linux64 or osx]
-        - pycifrw
         - scikit-image
         - qtpy
 
@@ -40,7 +39,6 @@ requirements:
         - lmfit
         - fabio # [linux64 or osx]
         - pyfai # [linux64 or osx]
-        - pycifrw
         - scikit-image
         - qtpy
 

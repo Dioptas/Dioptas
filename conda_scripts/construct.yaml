@@ -29,7 +29,6 @@ specs:
     - pyyaml
     - requests
     - scikit-image
-    - pycifrw
     - fabio>=0.6.0
     - pyfai>=0.15.0
     - lmfit

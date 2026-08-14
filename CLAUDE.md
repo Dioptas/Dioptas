@@ -177,7 +177,7 @@ Data flow example (loading an image):
 - **pyshortcuts**: Desktop shortcut creation
 - **xypattern**: Pattern data handling
 - **h5py/hdf5plugin**: HDF5 file support
-- **PyCifRW**: Crystallographic information file handling
+- **PhaseSmith**: CIF parsing and crystallographic reflection calculations
 
 ## Testing Conventions
 
