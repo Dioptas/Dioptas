@@ -60,7 +60,7 @@ class EosDatabaseControllerTest(QtTest):
     def test_fit_pressure_header_is_measured_in_painted_uppercase(self):
         # The application theme paints headers uppercase. Supplying this one
         # as mixed case makes Qt size it too narrowly before that transform.
-        item = self.dialog.eos_table.horizontalHeaderItem(3)
+        item = self.dialog.eos_table.horizontalHeaderItem(4)
         assert item.text() == "FIT P RANGE"
 
     def test_reference_and_fit_range_share_available_width(self):
@@ -69,7 +69,7 @@ class EosDatabaseControllerTest(QtTest):
         QtWidgets.QApplication.processEvents()
 
         table = self.dialog.eos_table
-        assert abs(table.columnWidth(1) - table.columnWidth(3)) <= 1
+        assert abs(table.columnWidth(2) - table.columnWidth(4)) <= 1
 
     def test_reference_has_separate_authors_and_year_columns(self):
         self.dialog.search_input.setText("silver")
@@ -81,10 +81,31 @@ class EosDatabaseControllerTest(QtTest):
 
         material = self.controller.shown_materials[row]
         reference = material.eos_records[0]["reference"]
-        assert self.dialog.eos_table.item(0, 1).text() == "Dewaele et al."
-        assert self.dialog.eos_table.item(0, 2).text() == "2008"
-        assert (self.dialog.eos_table.item(0, 1).toolTip()
+        assert self.dialog.eos_table.item(0, 2).text() == "Dewaele et al."
+        assert self.dialog.eos_table.item(0, 3).text() == "2008"
+        assert (self.dialog.eos_table.item(0, 2).toolTip()
                 == eos.reference_text(reference))
+
+    def test_thermal_column_is_an_indicator_with_model_tooltip(self):
+        self.dialog.search_input.setText("gold")
+        self.dialog.materials_table.selectRow(0)
+
+        table = self.dialog.eos_table
+        assert table.horizontalHeaderItem(1).text() == "T"
+        assert table.item(0, 1).text() == "✓"
+        assert table.item(0, 1).toolTip() == (
+            "Constant α / dK/dT correction"
+        )
+
+        record_without_thermal = next(
+            row for row, record in enumerate(
+                self.controller.shown_materials[0].eos_records
+            )
+            if not record.get("thermal")
+        )
+        assert table.item(record_without_thermal, 1).text() == "—"
+        assert (table.item(record_without_thermal, 1).toolTip()
+                == "No thermal model")
 
     def test_selecting_material_shows_eos_records(self):
         self.dialog.search_input.setText("gold")
@@ -176,7 +197,7 @@ def test_record_row_displays_reported_errors_and_fixed_parameters():
         "experimental_pressure_range_gpa": [12.0, 80.5],
     }
     assert _record_row(record) == (
-        "Vinet", "A publication", "", "12–80.5 GPa", "395.0 ± 2",
+        "Vinet", "—", "A publication", "", "12–80.5 GPa", "395.0 ± 2",
         "3.62 (error n/r)",
         "47.250 ± 0.0048 (fixed)",
     )
@@ -188,6 +209,6 @@ def test_record_row_displays_implicit_bm2_derivative_as_fixed():
         "parameter_errors": {"V0": None, "K0": 1.0},
         "fixed_parameters": [],
     }
-    assert _record_row(record)[4:] == (
+    assert _record_row(record)[5:] == (
         "20.0 ± 1", "4 (fixed)", "10.000 (error n/r)",
     )

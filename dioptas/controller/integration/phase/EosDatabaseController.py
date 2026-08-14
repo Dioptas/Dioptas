@@ -64,6 +64,9 @@ class EosDatabaseController(object):
             reference_tooltips=[
                 eos.reference_text(record.get("reference"))
                 for record in material.eos_records
+            ],
+            thermal_tooltips=[
+                _thermal_tooltip(record) for record in material.eos_records
             ])
 
     def load(self):
@@ -118,6 +121,7 @@ def _record_row(record: dict) -> tuple:
         k0p_text = _parameter_text(record, "K0_prime", ".2f")
     return (
         eos_block.get("type") or "",
+        "✓" if (record.get("thermal") or {}).get("type") else "—",
         eos.reference_authors(record.get("reference")),
         eos.reference_year(record.get("reference")),
         eos.record_pressure_range(record),
@@ -125,6 +129,20 @@ def _record_row(record: dict) -> tuple:
         k0p_text,
         _parameter_text(record, "V0", ".3f"),
     )
+
+
+def _thermal_tooltip(record: dict) -> str:
+    """Explain the thermal indicator without crowding the table."""
+    thermal_type = (record.get("thermal") or {}).get("type")
+    if not thermal_type:
+        return "No thermal model"
+    names = {
+        "AlphaKT": "Constant α / dK/dT correction",
+        "MieGruneisenDebye": "Mie–Grüneisen–Debye model",
+        "MieGruneisenEinstein": "Mie–Grüneisen–Einstein model",
+        "Sokolova2016": "Sokolova et al. (2016) thermal model",
+    }
+    return names.get(thermal_type, thermal_type)
 
 
 def _parameter_text(record: dict, name: str, value_format: str) -> str:

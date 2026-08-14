@@ -53,13 +53,13 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         self.materials_table.setHorizontalHeaderLabels(
             ["Material", "Space Group"])
         self.eos_table = QtWidgets.QTableWidget()
-        self.eos_table.setColumnCount(7)
+        self.eos_table.setColumnCount(8)
         # Keep this label uppercase in the model as well as on screen. The
         # theme's text-transform happens only while painting, after Qt has
         # measured the narrower mixed-case text, and otherwise clips the F.
         self.eos_table.setHorizontalHeaderLabels(
-            ["EoS", "Authors", "Year", "FIT P RANGE", "K0 (GPa)",
-             "K0′", "V0 (Å³)"])
+            ["EoS", "T", "Authors", "Year", "FIT P RANGE",
+             "K0 (GPa)", "K0′", "V0 (Å³)"])
         self.eos_table.setToolTip(
             "Fit P range is the experimental pressure interval used to "
             "constrain the published EoS, not a phase-stability range.\n"
@@ -89,12 +89,12 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         # contents are narrower
         materials_header.setMinimumSectionSize(120)
         eos_header = self.eos_table.horizontalHeader()
-        for column in (0, 2, 4, 5, 6):
+        for column in (0, 1, 3, 5, 6, 7):
             eos_header.setSectionResizeMode(
                 column, QtWidgets.QHeaderView.ResizeToContents)
         # The two descriptive columns share the available width. Giving all
         # of it to Authors makes that column dominate the result table.
-        for column in (1, 3):
+        for column in (2, 4):
             eos_header.setSectionResizeMode(
                 column, QtWidgets.QHeaderView.Stretch)
 
@@ -174,16 +174,21 @@ class EosDatabaseDialog(QtWidgets.QDialog):
             table.setItem(r, 1, QtWidgets.QTableWidgetItem(symmetry))
 
     def fill_eos_records(self, rows, selected_row=0,
-                         reference_tooltips=None):
-        """Rows: EoS, authors, year, fit range, K0, K0-prime and V0."""
+                         reference_tooltips=None, thermal_tooltips=None):
+        """Rows include authors/year, thermal indicator and fit values."""
         table = self.eos_table
         reference_tooltips = reference_tooltips or []
+        thermal_tooltips = thermal_tooltips or []
         table.setRowCount(len(rows))
         for r, row in enumerate(rows):
             for c, text in enumerate(row):
                 item = QtWidgets.QTableWidgetItem(text)
-                if c in (1, 2) and r < len(reference_tooltips):
+                if c in (2, 3) and r < len(reference_tooltips):
                     item.setToolTip(reference_tooltips[r])
+                elif c == 1:
+                    item.setTextAlignment(QtCore.Qt.AlignCenter)
+                    if r < len(thermal_tooltips):
+                        item.setToolTip(thermal_tooltips[r])
                 table.setItem(r, c, item)
         if rows:
             table.selectRow(max(0, min(selected_row, len(rows) - 1)))
