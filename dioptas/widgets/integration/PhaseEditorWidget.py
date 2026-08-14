@@ -108,7 +108,16 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self.lattice_parameters_gb.setLayout(self._lattice_parameters_layout)
 
         self.eos_gb = QtWidgets.QGroupBox('Equation of State')
-        self._eos_layout = QtWidgets.QGridLayout()
+        # Thermal equations can have substantially more parameters than a
+        # room-temperature EoS. Keep that column usable without letting the
+        # complete editor grow beyond the screen.
+        self.eos_scroll_area = QtWidgets.QScrollArea()
+        self.eos_scroll_area.setWidgetResizable(True)
+        self.eos_scroll_area.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAlwaysOff)
+        self.eos_scroll_area.setFrameShape(QtWidgets.QFrame.NoFrame)
+        self._eos_contents = QtWidgets.QWidget()
+        self._eos_layout = QtWidgets.QGridLayout(self._eos_contents)
 
         # the equation itself is selectable; the parameter rows below are
         # shown or hidden per equation (see set_eos_parameter_names). The
@@ -166,7 +175,34 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self._add_thermal_param_row('gamma_t0', self.eos_gamma_txt, u'γ<sub>0</sub>:', None, 13)
         self._add_thermal_param_row('q_t0', self.eos_qt_txt, 'q:', None, 14)
         self._add_thermal_param_row('t_ref', self.eos_tref_txt, u'T<sub>ref</sub>:', 'K', 15)
-        self.eos_gb.setLayout(self._eos_layout)
+
+        # Native Sokolova coefficients. These live in the phase's
+        # thermal_parameters dictionary rather than in legacy scalar state.
+        self.sokolova_parameter_fields = {}
+        sokolova_rows = (
+            ('QE1o', u'Θ<sub>E1,0</sub>:', 'K'),
+            ('mE1', u'm<sub>E1</sub>:', None),
+            ('QE2o', u'Θ<sub>E2,0</sub>:', 'K'),
+            ('mE2', u'm<sub>E2</sub>:', None),
+            ('delta', u'δ:', None),
+            ('t', 't:', None),
+            ('a_0', u'a<sub>0</sub>:', u'10⁻⁶/K'),
+            ('m', 'm:', None),
+            ('g', 'g:', None),
+            ('e_0', u'e<sub>0</sub>:', u'10⁻⁶/K'),
+        )
+        for row, (parameter, label, unit) in enumerate(
+                sokolova_rows, start=16):
+            field = NumberTextField()
+            self.sokolova_parameter_fields[parameter] = field
+            self._add_thermal_param_row(
+                'sokolova_' + parameter, field, label, unit, row)
+
+        self.eos_scroll_area.setWidget(self._eos_contents)
+        self._eos_group_layout = QtWidgets.QVBoxLayout()
+        self._eos_group_layout.setContentsMargins(0, 0, 0, 0)
+        self._eos_group_layout.addWidget(self.eos_scroll_area)
+        self.eos_gb.setLayout(self._eos_group_layout)
 
         self.reflections_gb = QtWidgets.QGroupBox('Reflections')
         self._reflection_layout = QtWidgets.QGridLayout()
@@ -219,6 +255,8 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         # (3rd order)", "Constant α, dK/dT") and the unit labels
         self.eos_gb.setMinimumWidth(280)
         self.eos_gb.setMaximumWidth(320)
+        self.eos_gb.setMinimumHeight(300)
+        self.eos_gb.setMaximumHeight(420)
         self.eos_gb.setStyleSheet("""
             QLineEdit {
                 max-width: 80;
@@ -249,9 +287,12 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         'alphakt': ('alpha_t0', 'd_alpha_dt', 'dk0dt', 'dk0pdt'),
         'MieGruneisenDebye': ('theta_t0', 'gamma_t0', 'q_t0', 't_ref'),
         'MieGruneisenEinstein': ('theta_t0', 'gamma_t0', 'q_t0', 't_ref'),
-        # The complete source parameter dictionary is preserved on the
-        # phase. Only its reference temperature has an existing scalar UI.
-        'Sokolova2016': ('t_ref',),
+        'Sokolova2016': (
+            't_ref', 'sokolova_QE1o', 'sokolova_mE1',
+            'sokolova_QE2o', 'sokolova_mE2', 'sokolova_delta',
+            'sokolova_t', 'sokolova_a_0', 'sokolova_m',
+            'sokolova_g', 'sokolova_e_0',
+        ),
     }
     #: peritheos thermal models additionally need the material data for
     #: the molar conversion — union'd into the EoS parameter rows
@@ -366,10 +407,19 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self.eos_dalphadT_txt.setText(str(jcpds_phase.params['d_alpha_dt']))
         self.eos_dKdT_txt.setText(str(jcpds_phase.params['dk0dt']))
         self.eos_dKpdT_txt.setText(str(jcpds_phase.params['dk0pdt']))
-        self.eos_theta_txt.setText(str(jcpds_phase.params['theta_t0']))
-        self.eos_gamma_txt.setText(str(jcpds_phase.params['gamma_t0']))
-        self.eos_qt_txt.setText(str(jcpds_phase.params['q_t0']))
-        self.eos_tref_txt.setText(str(jcpds_phase.params['t_ref']))
+        thermal_parameters = jcpds_phase.params.get(
+            'thermal_parameters') or {}
+        self.eos_theta_txt.setText(str(thermal_parameters.get(
+            'theta0', jcpds_phase.params['theta_t0'])))
+        self.eos_gamma_txt.setText(str(thermal_parameters.get(
+            'gamma0', jcpds_phase.params['gamma_t0'])))
+        self.eos_qt_txt.setText(str(thermal_parameters.get(
+            'q', jcpds_phase.params['q_t0'])))
+        self.eos_tref_txt.setText(str(thermal_parameters.get(
+            'Tr', jcpds_phase.params['t_ref'])))
+        for parameter, field in self.sokolova_parameter_fields.items():
+            value = thermal_parameters.get(parameter)
+            field.setText('' if value is None else str(value))
         thermal_type = str(jcpds_phase.params.get('thermal_type') or '')
         if thermal_type:
             self.set_thermal_type(thermal_type)

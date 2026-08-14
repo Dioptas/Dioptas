@@ -142,18 +142,27 @@ class PhaseEditorController(QtCore.QObject):
         self.jcpds_widget.eos_zc_txt.editingFinished.connect(partial(self.param_txt_changed,
                                                                      widget=self.jcpds_widget.eos_zc_txt,
                                                                      param='zc'))
-        self.jcpds_widget.eos_theta_txt.editingFinished.connect(partial(self.param_txt_changed,
-                                                                        widget=self.jcpds_widget.eos_theta_txt,
-                                                                        param='theta_t0'))
-        self.jcpds_widget.eos_gamma_txt.editingFinished.connect(partial(self.param_txt_changed,
-                                                                        widget=self.jcpds_widget.eos_gamma_txt,
-                                                                        param='gamma_t0'))
-        self.jcpds_widget.eos_qt_txt.editingFinished.connect(partial(self.param_txt_changed,
-                                                                     widget=self.jcpds_widget.eos_qt_txt,
-                                                                     param='q_t0'))
-        self.jcpds_widget.eos_tref_txt.editingFinished.connect(partial(self.param_txt_changed,
-                                                                       widget=self.jcpds_widget.eos_tref_txt,
-                                                                       param='t_ref'))
+        self.jcpds_widget.eos_theta_txt.editingFinished.connect(partial(
+            self.thermal_param_txt_changed,
+            widget=self.jcpds_widget.eos_theta_txt,
+            parameter='theta0', state_param='theta_t0'))
+        self.jcpds_widget.eos_gamma_txt.editingFinished.connect(partial(
+            self.thermal_param_txt_changed,
+            widget=self.jcpds_widget.eos_gamma_txt,
+            parameter='gamma0', state_param='gamma_t0'))
+        self.jcpds_widget.eos_qt_txt.editingFinished.connect(partial(
+            self.thermal_param_txt_changed,
+            widget=self.jcpds_widget.eos_qt_txt,
+            parameter='q', state_param='q_t0'))
+        self.jcpds_widget.eos_tref_txt.editingFinished.connect(partial(
+            self.thermal_param_txt_changed,
+            widget=self.jcpds_widget.eos_tref_txt,
+            parameter='Tr', state_param='t_ref'))
+        for parameter, field in (
+                self.jcpds_widget.sokolova_parameter_fields.items()):
+            field.editingFinished.connect(partial(
+                self.thermal_param_txt_changed,
+                widget=field, parameter=parameter))
         self.jcpds_widget.eos_alphaT_txt.editingFinished.connect(partial(self.param_txt_changed,
                                                                          widget=self.jcpds_widget.eos_alphaT_txt,
                                                                          param='alpha_t0'))
@@ -225,6 +234,25 @@ class PhaseEditorController(QtCore.QObject):
         if param in ('z', 'zc'):
             value = int(value)
         self.phase_model.set_param(self.phase_ind, param, value)
+
+    def thermal_param_txt_changed(self, widget, parameter,
+                                  state_param=None):
+        """Write an editable thermal constructor parameter back to state."""
+        try:
+            value = float(widget.text())
+        except ValueError:
+            self.jcpds_widget.update_eos_parameters(self.jcpds_phase)
+            return
+
+        thermal_parameters = dict(
+            self.jcpds_phase.params.get('thermal_parameters') or {})
+        thermal_parameters[parameter] = value
+        # Keep the legacy scalar fields in sync for project compatibility
+        # and for UI code that reads them directly.
+        if state_param is not None:
+            self.jcpds_phase.params[state_param] = value
+        self.phase_model.set_param(
+            self.phase_ind, 'thermal_parameters', thermal_parameters)
 
     def eos_type_changed(self):
         eos_type = self.jcpds_widget.get_eos_type()

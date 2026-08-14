@@ -3,6 +3,8 @@
 import os
 import unittest
 
+from qtpy import QtCore
+
 from ..utility import QtTest, QtWidgets
 from ...model.util import jcpds
 from ...widgets.integration.PhaseEditorWidget import PhaseEditorWidget
@@ -76,6 +78,31 @@ class PhaseEditorWidgetTest(QtTest):
                          self.jcpds.params['dk0dt'])
         self.assertEqual(float(str(self.jcpds_editor_widget.eos_dKpdT_txt.text())),
                          self.jcpds.params['dk0pdt'])
+
+    def test_sokolova_parameters_are_shown_in_scrollable_eos_panel(self):
+        parameters = {
+            'Tr': 298.15, 'QE1o': 179.5, 'mE1': 1.5,
+            'QE2o': 83.0, 'mE2': 1.5, 'delta': 0.134,
+            't': 0.087, 'a_0': 0.0, 'm': 0.0, 'g': 0.0,
+            'e_0': 0.0,
+        }
+        self.jcpds.params['thermal_type'] = 'Sokolova2016'
+        self.jcpds.params['thermal_parameters'] = parameters
+        self.jcpds.params['t_ref'] = parameters['Tr']
+
+        self.jcpds_editor_widget.update_eos_parameters(self.jcpds)
+
+        for name, expected in parameters.items():
+            if name == 'Tr':
+                field = self.jcpds_editor_widget.eos_tref_txt
+            else:
+                field = self.jcpds_editor_widget.sokolova_parameter_fields[name]
+            self.assertFalse(field.isHidden())
+            self.assertAlmostEqual(float(field.text()), expected)
+        self.assertTrue(self.jcpds_editor_widget.eos_theta_txt.isHidden())
+        self.assertEqual(
+            self.jcpds_editor_widget.eos_scroll_area.verticalScrollBarPolicy(),
+            QtCore.Qt.ScrollBarAsNeeded)
 
 
 if __name__ == '__main__':

@@ -379,3 +379,36 @@ class PhaseEditorControllerTest(QtTest):
         params = self.phase_model.phases[5].params
         self.assertAlmostEqual(params['theta_t0'], 170.0)
         self.assertAlmostEqual(params['gamma_t0'], 2.97)
+
+    def test_editing_sokolova_parameter_writes_constructor_dictionary(self):
+        phase = self.phase_model.phases[5]
+        phase.params['eos_type'] = 'Holzapfel'
+        phase.params['n'] = 1
+        phase.params['z'] = 75
+        phase.params['zc'] = 2
+        phase.params['thermal_type'] = 'Sokolova2016'
+        phase.params['thermal_parameters'] = {
+            'Tr': 298.15, 'QE1o': 179.5, 'mE1': 1.5,
+            'QE2o': 83.0, 'mE2': 1.5, 'delta': 0.134,
+            't': 0.087, 'a_0': 0.0, 'm': 0.0, 'g': 0.0,
+            'e_0': 0.0,
+        }
+        phase.params['t_ref'] = 298.15
+        self.controller.show_phase(phase, wavelength=0.31)
+
+        field = self.jcpds_widget.sokolova_parameter_fields['delta']
+        field.setText('0.2')
+        field.editingFinished.emit()
+
+        self.assertAlmostEqual(
+            phase.params['thermal_parameters']['delta'], 0.2)
+
+    def test_editing_thermal_reference_updates_constructor_dictionary(self):
+        cb = self.jcpds_widget.thermal_type_cb
+        cb.setCurrentIndex(cb.findData('MieGruneisenDebye'))
+        self.jcpds_widget.eos_tref_txt.setText('300')
+        self.jcpds_widget.eos_tref_txt.editingFinished.emit()
+
+        params = self.phase_model.phases[5].params
+        self.assertAlmostEqual(params['t_ref'], 300.0)
+        self.assertAlmostEqual(params['thermal_parameters']['Tr'], 300.0)
