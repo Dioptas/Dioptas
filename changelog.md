@@ -32,6 +32,8 @@
 
 ## Changes
 
+- PhaseSmith was updated to 0.4.1, so symmetry-equivalent cubic reflections use the conventional `(100)` representative instead of `(001)`.
+
 - **Chemistry-aware EoS database search.** Formula searches now understand composition families: for example, `MgFeO` finds the stored `(Mg0.4Fe0.6)O` material even though its exact integer-ratio formula is `Mg2Fe3O5`. Exact and stoichiometrically equivalent formulas rank first, decimal and Unicode-subscript formulas are accepted, and mineral/common-name aliases such as `periclase`, `corundum`, and `hematite` now live on their specific material instead of expanding globally to unrelated polymorphs.
 
 - **Numbered calibrant lines.** The calibrant's lines in the calibration view now carry their ring number — on the image rings, the cake lines, and the pattern lines — so it is easy to see which ring is the first and which the tenth. The numbers match the ring spinbox used during peak picking, and they follow the zoom: any ring crossing the current view keeps its number inside the view. Two checkboxes below the views — visible on every step — hide the lines or just the numbers.

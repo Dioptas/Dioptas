@@ -48,7 +48,8 @@ dependencies = [
     # (lower bound: first PyPI release with the full rt/thermal model set)
     "peritheos>=0.4.0,<1.0",
     # exact-symmetry reflection generation and structure-factor intensities
-    "phasesmith>=0.4.0,<0.5",
+    # lower bound: canonical cubic HKL representatives prefer (100) over (001)
+    "phasesmith>=0.4.1,<0.5",
 ]
 
 [project.optional-dependencies]

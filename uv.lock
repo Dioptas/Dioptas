@@ -333,7 +333,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.0,<3.0" },
     { name = "pandas", specifier = ">=2.1.1,<3.0" },
     { name = "peritheos", specifier = ">=0.4.0,<1.0" },
-    { name = "phasesmith", specifier = ">=0.4.0,<0.5" },
+    { name = "phasesmith", specifier = ">=0.4.1,<0.5" },
     { name = "psutil", specifier = ">=5.9.5,<6.0" },
     { name = "psygnal", specifier = ">=0.15.1,<0.16" },
     { name = "pyfai", specifier = ">=2025.12.1" },
@@ -1017,18 +1017,18 @@ wheels = [
 
 [[package]]
 name = "phasesmith"
-version = "0.4.0"
+version = "0.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/94/ee/686df3aab4216940928c46d854a4647dde695a79631831ab4c9f7ba43ebf/phasesmith-0.4.0.tar.gz", hash = "sha256:cf878bb819949156b47e75c723e65734e8ff6c9a0fe8e0a50d923d2d880de7f0", size = 923645, upload-time = "2026-08-14T00:11:09.765Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0c/50/dbe572bf78c0412c3375c2f610da97b6bbf697c2abbe28bdc254b478b278/phasesmith-0.4.1.tar.gz", hash = "sha256:59a8ce6aba69a3aa7965b383cbef39958b6e4a1ae62c32fbbe882396c7332503", size = 926919, upload-time = "2026-08-14T08:24:55.761Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cd/5f/a42c0781bfe0508ba6634d2241ee6a81bdbb9ccf86cebfde1e5e46eb8662/phasesmith-0.4.0-cp311-abi3-macosx_10_12_x86_64.whl", hash = "sha256:01cdcc2e5a95cf025a8e1c7529327fa1180acee2938f7bc9dd13d4ad2d560060", size = 3515542, upload-time = "2026-08-14T00:11:01.092Z" },
-    { url = "https://files.pythonhosted.org/packages/85/c2/9e4651935b5a7b2e816a3dacc57ea892b2e00cf88bfc8617dd5f9eaf0197/phasesmith-0.4.0-cp311-abi3-macosx_11_0_arm64.whl", hash = "sha256:1e5940d8e0a6b28769a7bfc136840d2ef8b315fc1ab824f3c7163421efc8d9fa", size = 3378219, upload-time = "2026-08-14T00:11:02.741Z" },
-    { url = "https://files.pythonhosted.org/packages/60/6a/e9a35c37c40fc8b3a68d0e298f685efe5bd0197d21ccc3c15e5db968c7a4/phasesmith-0.4.0-cp311-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:32360fcb1112a09bf2b3abfac4c78481c836a58f29667f26baf4039a9445abd1", size = 3662660, upload-time = "2026-08-14T00:11:04.569Z" },
-    { url = "https://files.pythonhosted.org/packages/c7/b3/58c8101a1aca564c9f8b9dc03d82bbcb88c57e4198808d3ade7f8c833b16/phasesmith-0.4.0-cp311-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:dcd3d0d2e463a067323ba89ce9947e6109445b3be133f5a153304ec6f8ac3932", size = 3665232, upload-time = "2026-08-14T00:11:06.184Z" },
-    { url = "https://files.pythonhosted.org/packages/68/f7/3a0af3418189e27296da515b13b89c79bd94e36355f74b0020596b1db447/phasesmith-0.4.0-cp311-abi3-win_amd64.whl", hash = "sha256:62c8a8805886637126fe77ead36d544535ed56eeb69d86ad621bab3cfa049e4b", size = 3365030, upload-time = "2026-08-14T00:11:08.078Z" },
+    { url = "https://files.pythonhosted.org/packages/65/20/e3c568cc5affb53194ab4f708de5984afd5a98de1186f180a0259282e7b8/phasesmith-0.4.1-cp311-abi3-macosx_10_12_x86_64.whl", hash = "sha256:31fa34a38196ece30231beb05b2e74d24bed6f339b5caf50ef27a4dfa1f4f862", size = 3516530, upload-time = "2026-08-14T08:24:47.362Z" },
+    { url = "https://files.pythonhosted.org/packages/88/91/da4c575557674a39130696c768e4ec461c820b43ad464536a8c42b4a6c70/phasesmith-0.4.1-cp311-abi3-macosx_11_0_arm64.whl", hash = "sha256:7fa643d377ad8916a38420e4d6438f905087c2efd7d15f1414a328b865ca44b1", size = 3380651, upload-time = "2026-08-14T08:24:49.326Z" },
+    { url = "https://files.pythonhosted.org/packages/8f/31/f5d2f212eed7e08a9e90c2c0c55ef161a6426e984a4f7223422eaa3e26ca/phasesmith-0.4.1-cp311-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:7e8d004e152e440ff2bf1c2be4d4e56ee0502a3f80161e5b66aa789f7835c45f", size = 3664107, upload-time = "2026-08-14T08:24:50.949Z" },
+    { url = "https://files.pythonhosted.org/packages/88/90/9ffa4afc7e95d4d0d526fa418c783beda729fa4b1a541234dbea8cac5eda/phasesmith-0.4.1-cp311-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b39db607a52692ff5a0eb5c3119769db62a032407bbb933b5cd57800eb28d4b3", size = 3666775, upload-time = "2026-08-14T08:24:52.566Z" },
+    { url = "https://files.pythonhosted.org/packages/1f/28/8ab14d38e4cb218f8510552255bf7454b5a4c2fecfbd860e58f10b51a5e5/phasesmith-0.4.1-cp311-abi3-win_amd64.whl", hash = "sha256:497ddd75add438af96e1ecabb8e290b91f60854251a50727213dcc3814c1f04b", size = 3367254, upload-time = "2026-08-14T08:24:54.233Z" },
 ]
 
 [[package]]

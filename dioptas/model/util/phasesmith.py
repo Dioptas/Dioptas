@@ -294,7 +294,7 @@ def calculate_structure_reflections(
         correction=BraggBrentanoUnpolarizedLp(wavelength_angstrom),
     )
     merged = _merge_equal_two_theta(
-        generated.hkl,
+        generated.conventional_hkl,
         generated.d_spacing_angstrom,
         values.integrated_intensity,
         wavelength_angstrom,

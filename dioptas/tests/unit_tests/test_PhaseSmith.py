@@ -30,6 +30,14 @@ def test_complete_structure_generates_normalized_reflections():
     assert all(row[3] >= 0.5 and row[4] > 0.5 for row in rows)
 
 
+def test_cubic_reflections_prefer_100_over_equivalent_001():
+    cubic = _material("FeH3")
+    rows = calculate_material_reflections(cubic)
+
+    assert rows[0][:3] == (1, 0, 0)
+    assert (0, 0, 1) not in {row[:3] for row in rows}
+
+
 def test_builder_ignores_stale_peaks_when_structure_is_complete():
     gold = deepcopy(_material("Au"))
     gold.peaks = [[9, 9, 9, 99.0, 100.0]]
