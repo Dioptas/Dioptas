@@ -58,3 +58,27 @@ def test_error_column_header_is_readable(qapp):
     assert dialog.parameters_table.horizontalHeader().sectionSize(3) >= 65
     assert "reported" in header_item.toolTip()
     dialog.close()
+
+
+def test_fit_domain_rows_align_and_notes_are_discoverable(qapp):
+    dialog = EosRecordDialog(_record())
+    dialog.show()
+    qapp.processEvents()
+
+    assert dialog.pressure_min_edit.geometry().x() == (
+        dialog.temperature_min_edit.geometry().x())
+    assert dialog.pressure_min_edit.width() == (
+        dialog.temperature_min_edit.width())
+    assert dialog.pressure_max_edit.geometry().x() == (
+        dialog.temperature_max_edit.geometry().x())
+    assert dialog.pressure_max_edit.width() == (
+        dialog.temperature_max_edit.width())
+    assert dialog.pressure_min_edit.width() <= 90
+    assert dialog.pressure_max_edit.width() <= 90
+    assert dialog.notes_edit.placeholderText().startswith("Optional notes")
+    assert dialog.notes_edit.minimumHeight() >= 70
+    assert dialog.notes_edit.width() > dialog.pressure_min_edit.width() * 3
+    notes_style = dialog.notes_edit.styleSheet()
+    assert "background-color: rgba(35, 38, 41, 0.75)" in notes_style
+    assert "color: #f1f1f1" in notes_style
+    dialog.close()

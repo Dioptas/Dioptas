@@ -97,8 +97,24 @@ class EosRecordDialog(QtWidgets.QDialog):
             self.temperature_ref_edit,
         ):
             field.setValidator(validator)
+            field.setMaximumWidth(90)
         self.notes_edit = QtWidgets.QPlainTextEdit()
+        self.notes_edit.setPlaceholderText(
+            "Optional notes about the fit, sample, method, or provenance")
+        self.notes_edit.setMinimumHeight(70)
         self.notes_edit.setMaximumHeight(90)
+        self.notes_edit.setStyleSheet("""
+            QPlainTextEdit {
+                color: #f1f1f1;
+                background-color: rgba(35, 38, 41, 0.75);
+                border: 2px solid rgba(241, 241, 241, 0.2);
+                border-width: 0 0 2px 0;
+                border-radius: 0;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                padding: 4px 8px;
+            }
+        """)
 
         self.buttons = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
@@ -131,22 +147,29 @@ class EosRecordDialog(QtWidgets.QDialog):
         root.addWidget(reference_box)
 
         range_box = QtWidgets.QGroupBox("Fit domain and provenance")
-        range_form = QtWidgets.QFormLayout(range_box)
-        pressure_row = QtWidgets.QHBoxLayout()
-        pressure_row.addWidget(self.pressure_min_edit)
-        pressure_row.addWidget(QtWidgets.QLabel("to"))
-        pressure_row.addWidget(self.pressure_max_edit)
-        pressure_row.addWidget(QtWidgets.QLabel("GPa"))
-        range_form.addRow("Experimental pressure:", pressure_row)
-        temperature_row = QtWidgets.QHBoxLayout()
-        temperature_row.addWidget(self.temperature_min_edit)
-        temperature_row.addWidget(QtWidgets.QLabel("to"))
-        temperature_row.addWidget(self.temperature_max_edit)
-        temperature_row.addWidget(QtWidgets.QLabel("K"))
-        range_form.addRow("Experimental temperature:", temperature_row)
-        range_form.addRow("Reference temperature (K):",
-                          self.temperature_ref_edit)
-        range_form.addRow("Notes:", self.notes_edit)
+        range_grid = QtWidgets.QGridLayout(range_box)
+        range_grid.addWidget(QtWidgets.QLabel("Experimental pressure:"), 0, 0)
+        range_grid.addWidget(self.pressure_min_edit, 0, 1)
+        range_grid.addWidget(QtWidgets.QLabel("to"), 0, 2,
+                             alignment=QtCore.Qt.AlignCenter)
+        range_grid.addWidget(self.pressure_max_edit, 0, 3)
+        range_grid.addWidget(QtWidgets.QLabel("GPa"), 0, 4)
+        range_grid.addWidget(
+            QtWidgets.QLabel("Experimental temperature:"), 1, 0)
+        range_grid.addWidget(self.temperature_min_edit, 1, 1)
+        range_grid.addWidget(QtWidgets.QLabel("to"), 1, 2,
+                             alignment=QtCore.Qt.AlignCenter)
+        range_grid.addWidget(self.temperature_max_edit, 1, 3)
+        range_grid.addWidget(QtWidgets.QLabel("K"), 1, 4)
+        range_grid.addWidget(
+            QtWidgets.QLabel("Reference temperature:"), 2, 0)
+        range_grid.addWidget(self.temperature_ref_edit, 2, 1, 1, 3)
+        range_grid.addWidget(QtWidgets.QLabel("K"), 2, 4)
+        notes_label = QtWidgets.QLabel("Notes (optional):")
+        range_grid.addWidget(notes_label, 3, 0,
+                             alignment=QtCore.Qt.AlignTop)
+        range_grid.addWidget(self.notes_edit, 3, 1, 1, 5)
+        range_grid.setColumnStretch(5, 1)
         root.addWidget(range_box)
         root.addWidget(self.buttons)
 
