@@ -103,11 +103,13 @@ class PhaseWidget(QtWidgets.QWidget):
             2, QtWidgets.QHeaderView.Interactive
         )
         self.phase_tw.horizontalHeader().setSectionResizeMode(
-            3, QtWidgets.QHeaderView.ResizeToContents
+            3, QtWidgets.QHeaderView.Fixed
         )
+        self.phase_tw.setColumnWidth(3, 70)
         self.phase_tw.horizontalHeader().setSectionResizeMode(
-            4, QtWidgets.QHeaderView.ResizeToContents
+            4, QtWidgets.QHeaderView.Fixed
         )
+        self.phase_tw.setColumnWidth(4, 80)
         self.phase_tw.horizontalHeader().setSectionResizeMode(
             5, QtWidgets.QHeaderView.Interactive
         )
@@ -291,11 +293,13 @@ class PhaseWidget(QtWidgets.QWidget):
             2, QtWidgets.QHeaderView.Interactive
         )
         self.phase_tw.horizontalHeader().setSectionResizeMode(
-            3, QtWidgets.QHeaderView.ResizeToContents
+            3, QtWidgets.QHeaderView.Fixed
         )
+        self.phase_tw.setColumnWidth(3, 70)
         self.phase_tw.horizontalHeader().setSectionResizeMode(
-            4, QtWidgets.QHeaderView.ResizeToContents
+            4, QtWidgets.QHeaderView.Fixed
         )
+        self.phase_tw.setColumnWidth(4, 80)
         self.phase_tw.horizontalHeader().setSectionResizeMode(
             5, QtWidgets.QHeaderView.Interactive
         )

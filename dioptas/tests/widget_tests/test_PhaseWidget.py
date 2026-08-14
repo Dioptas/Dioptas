@@ -37,6 +37,19 @@ class PhaseWidgetTest(QtTest):
         self.assertIs(table.cellWidget(0, 4), self.phase_widget.temperature_sbs[0])
         self.assertIs(table.cellWidget(0, 5), self.phase_widget.reference_cbs[0])
 
+    def test_spinbox_columns_fit_before_first_layout_update(self):
+        table = self.phase_widget.phase_tw
+        self.phase_widget.add_phase("Au", "#ffd700")
+
+        self.assertEqual(table.columnWidth(3), 70)
+        self.assertEqual(table.columnWidth(4), 80)
+        self.assertEqual(
+            table.columnWidth(3), self.phase_widget.pressure_sbs[0].width()
+        )
+        self.assertEqual(
+            table.columnWidth(4), self.phase_widget.temperature_sbs[0].width()
+        )
+
     def test_layout_update_preserves_name_and_reference_column_widths(self):
         table = self.phase_widget.phase_tw
         table.setColumnWidth(2, 150)
