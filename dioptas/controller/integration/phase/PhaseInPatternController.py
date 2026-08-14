@@ -50,8 +50,7 @@ class PhaseInPatternController:
     def _connect_calibration_model(self):
         if self._calibration_model is not None:
             self._calibration_model.parameters_changed.disconnect(
-                self.pattern_data_changed,
-                missing_ok=True,
+                self.pattern_data_changed
             )
         self._calibration_model = self.model.calibration_model
         self._calibration_model.parameters_changed.connect(

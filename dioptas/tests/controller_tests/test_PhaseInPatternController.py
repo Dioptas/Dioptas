@@ -221,3 +221,16 @@ class PhaseInPatternControllerTest(QtTest):
         self.model.calibration_model.parameters_changed.emit()
 
         ensure_coverage.assert_called_once()
+
+    def test_configuration_reselection_reconnects_calibration_signal(self):
+        self.model.configuration_selected.emit(0)
+
+        self.assertIs(
+            self.controller._calibration_model,
+            self.model.calibration_model,
+        )
+        self.assertTrue(
+            self.model.calibration_model.parameters_changed.has_listener(
+                self.controller.pattern_data_changed
+            )
+        )
