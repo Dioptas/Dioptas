@@ -1,4 +1,5 @@
 import os
+import numpy as np
 from dioptas.model.Configuration import Configuration
 from ..utility import unittest_data_path
 
@@ -37,6 +38,13 @@ def test_integration_rad_points_property():
     assert config.integration_rad_points is None
     config.params.integration_rad_points = 1500
     assert config.integration_rad_points == 1500
+
+
+def test_calculate_poisson_errors_property():
+    config = Configuration()
+    assert config.calculate_poisson_errors is False
+    config.calculate_poisson_errors = True
+    assert config.params.calculate_poisson_errors is True
 
 
 def test_oned_azimuth_range_property():
@@ -146,6 +154,19 @@ def test_save_pattern_fxye(tmp_path):
     assert os.path.getsize(out) > 0
 
 
+def test_integrate_and_save_pattern_xye_with_poisson_errors(tmp_path):
+    config = _load_calibrated_config()
+    config.calculate_poisson_errors = True
+
+    assert config.pattern_model.errors is not None
+    out = os.path.join(tmp_path, "output.xye")
+    config.save_pattern(out)
+
+    saved = np.loadtxt(out)
+    assert saved.shape[1] == 3
+    np.testing.assert_allclose(saved[:, 2], config.pattern_model.errors)
+
+
 def test_save_pattern_chi(tmp_path):
     config = _load_calibrated_config()
     config.integrate_image_1d()
@@ -243,6 +264,7 @@ def test_save_and_load_hdf5_round_trip(tmp_path):
     config.transparent_mask = True
     config.params.integration_unit = "q_A^-1"
     config.params.integration_rad_points = 2000
+    config.params.calculate_poisson_errors = True
     config.params.cake_azimuth_points = 180
     config.params.cake_azimuth_range = [-90.0, 90.0]
     config.auto_save_integrated_pattern = True
@@ -282,6 +304,7 @@ def test_save_and_load_hdf5_round_trip(tmp_path):
     # Verify general information
     assert loaded.integration_unit == "q_A^-1"
     assert loaded.integration_rad_points == 2000
+    assert loaded.calculate_poisson_errors is True
     assert loaded.use_mask == True
     assert loaded.transparent_mask == True
     assert loaded.auto_save_integrated_pattern == True

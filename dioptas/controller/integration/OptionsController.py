@@ -11,7 +11,8 @@ from ..binding import Binder
 class OptionsController:
     """
     Handles the integration options tab: radial bin count display, azimuth
-    ranges for 1D/2D integration, solid angle correction and dioptrin usage.
+    ranges for 1D/2D integration, solid angle and Poisson-error calculation,
+    and dioptrin usage.
     """
 
     def __init__(self, widget, dioptas_model):
@@ -49,6 +50,11 @@ class OptionsController:
             configuration,
             "correct_solid_angle",
             event_field="calibration.correct_solid_angle",
+        )
+        self.binder.bind_checkbox(
+            self.options_widget.calculate_poisson_errors_cb,
+            configuration,
+            "calculate_poisson_errors",
         )
         self.binder.bind_spinbox(
             self.options_widget.cake_azimuth_points_sb,
@@ -89,6 +95,9 @@ class OptionsController:
         self.binder.connect_refresh(self.model.configuration_selected)
         self.binder.connect_refresh(self.model.pattern_changed)
         self.options_widget.use_dioptrin_cb.toggled.connect(self._use_dioptrin_toggled)
+        self.options_widget.calculate_poisson_errors_cb.toggled.connect(
+            self._poisson_errors_toggled
+        )
 
     def _cake_full_range_changed(self, is_full):
         """The cake azimuth shift slider only makes sense for the full range."""
@@ -105,3 +114,23 @@ class OptionsController:
             self.model.current_configuration.integrate_image_1d()
             if self.model.current_configuration.auto_integrate_cake:
                 self.model.current_configuration.integrate_image_2d()
+
+    def _poisson_errors_toggled(self, checked):
+        if checked:
+            return
+        # Error-bearing autocreate formats must not remain active while
+        # error calculation is disabled. Selecting either one again invokes
+        # the confirmation/reintegration flow in PatternController.
+        for checkbox in (
+            self.integration_widget.pattern_header_xye_cb,
+            self.integration_widget.pattern_header_fxye_cb,
+        ):
+            checkbox.blockSignals(True)
+            checkbox.setChecked(False)
+            checkbox.blockSignals(False)
+        configuration = self.model.current_configuration
+        configuration.integrated_patterns_file_formats = [
+            suffix
+            for suffix in configuration.integrated_patterns_file_formats
+            if suffix not in (".xye", ".fxye")
+        ]

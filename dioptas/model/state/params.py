@@ -431,6 +431,7 @@ class ConfigurationParams:
     integration_unit: str = "2th_deg"
     oned_azimuth_range: list[float] | None = None
     trim_trailing_zeros: bool = True
+    calculate_poisson_errors: bool = False
 
     cake_azimuth_points: int = 360
     cake_azimuth_range: list[float] | None = None

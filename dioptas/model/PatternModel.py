@@ -28,6 +28,7 @@ class PatternModel:
     def __init__(self) -> None:
         super().__init__()
         self.pattern: Pattern = Pattern()
+        self.errors: np.ndarray | None = None
         self.pattern_filename: str = ""
         #: how the current pattern came to be: "integrated" or "file"
         self.pattern_source: str = "integrated"
@@ -173,11 +174,15 @@ class PatternModel:
         y: np.ndarray,
         filename: str = "",
         unit: str = "",
+        errors: np.ndarray | None = None,
     ) -> None:
         """Set the current data pattern."""
+        if errors is not None and len(errors) != len(x):
+            raise ValueError("Pattern errors must have the same length as the data")
         self.pattern_filename = filename
         self.pattern_source = "integrated"
         self.pattern.data = (x, y)
+        self.errors = None if errors is None else np.asarray(errors)
         self.pattern.name = get_base_name(filename)
         self.unit = unit
         self._sync_file_params()
@@ -197,6 +202,7 @@ class PatternModel:
         except (ValueError, IndexError, OSError, UnicodeDecodeError) as e:
             raise file_loading_error(filename, "pattern") from e
 
+        self.errors = None
         self.pattern_filename = filename
         self.pattern_source = "file"
         self.file_name_iterator.update_filename(filename)
@@ -208,7 +214,75 @@ class PatternModel:
     ) -> None:
         """Saves the current data pattern."""
         logger.info("Saving pattern to %s", filename)
-        self.pattern.save(filename, header, subtract_background, self.unit)
+        if filename.endswith(".xye"):
+            self._save_xye(filename, header, subtract_background)
+        elif filename.endswith(".fxye") and self.errors is not None:
+            self._save_fxye(filename, header, subtract_background)
+        else:
+            # Keep xypattern's legacy .fxye sqrt(abs(y)) behavior when an
+            # existing script saves without opting into propagated errors.
+            self.pattern.save(filename, header, subtract_background, self.unit)
+
+    def _data_for_save(
+        self, subtract_background: bool
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        if self.errors is None:
+            raise ValueError(
+                "Poisson errors were not calculated for the current pattern"
+            )
+        x, y = self.pattern.data if subtract_background else self.pattern.original_data
+        x = np.asarray(x)
+        y = np.asarray(y)
+        original_x = np.asarray(self.pattern.original_data[0])
+
+        if len(self.errors) == len(x):
+            errors = self.errors
+        else:
+            # Background subtraction can restrict the saved pattern to the
+            # background overlap or the automatic-background ROI. Those x
+            # values are an exact subset of the integration grid, so retain
+            # the corresponding propagated errors.
+            selected = np.isin(original_x, x)
+            errors = self.errors[selected]
+            if len(errors) != len(x) or not np.array_equal(original_x[selected], x):
+                raise ValueError("Pattern errors do not match the current pattern")
+
+        return x, y, errors
+
+    def _save_xye(
+        self, filename: str, header: str, subtract_background: bool
+    ) -> None:
+        x, y, errors = self._data_for_save(subtract_background)
+        with open(filename, "w") as file_handle:
+            if header:
+                file_handle.write(header)
+                if not header.endswith("\n"):
+                    file_handle.write("\n")
+            np.savetxt(
+                file_handle,
+                np.column_stack((x, y, errors)),
+                fmt="%.7E",
+            )
+
+    def _save_fxye(
+        self, filename: str, header: str, subtract_background: bool
+    ) -> None:
+        x, y, errors = self._data_for_save(subtract_background)
+        factor = 1 if "CONQ" in header else 100
+        header = header.replace("NUM_POINTS", f"{len(x):.6g}")
+        header = header.replace("MIN_X_VAL", f"{factor * x[0]:.6g}")
+        header = header.replace(
+            "STEP_X_VAL", f"{factor * (x[1] - x[0]):.6g}"
+        )
+        with open(filename, "w") as file_handle:
+            file_handle.write(header)
+            file_handle.write("\n")
+            np.savetxt(
+                file_handle,
+                np.column_stack((factor * x, y, errors)),
+                delimiter="\t",
+                fmt="%.6g",
+            )
 
     def save_auto_background_as_pattern(
         self, filename: str, header: str | None = None

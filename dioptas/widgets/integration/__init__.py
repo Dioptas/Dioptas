@@ -107,11 +107,13 @@ class IntegrationWidget(QtWidgets.QWidget):
         self.pattern_directory_txt = pattern_file_widget.directory_txt
         self.pattern_directory_btn = pattern_file_widget.directory_btn
         self.pattern_header_xy_cb = self.integration_control_widget.pattern_control_widget.xy_cb
+        self.pattern_header_xye_cb = self.integration_control_widget.pattern_control_widget.xye_cb
         self.pattern_header_chi_cb = self.integration_control_widget.pattern_control_widget.chi_cb
         self.pattern_header_dat_cb = self.integration_control_widget.pattern_control_widget.dat_cb
         self.pattern_header_fxye_cb = self.integration_control_widget.pattern_control_widget.fxye_cb
         self.pattern_headers = []
         self.pattern_headers.append(self.pattern_header_xy_cb)
+        self.pattern_headers.append(self.pattern_header_xye_cb)
         self.pattern_headers.append(self.pattern_header_chi_cb)
         self.pattern_headers.append(self.pattern_header_dat_cb)
         self.pattern_headers.append(self.pattern_header_fxye_cb)

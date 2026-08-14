@@ -54,6 +54,24 @@ class OptionsControllerTest(QtTest):
         enter_value_into_text_field(self.options_widget.cake_azimuth_max_txt, 200)
         self.assertEqual(self.model.current_configuration.cake_azimuth_range[1], 200)
 
+    def test_toggle_poisson_error_calculation(self):
+        self.assertFalse(self.model.current_configuration.calculate_poisson_errors)
+        click_button(self.options_widget.calculate_poisson_errors_cb)
+        self.assertTrue(self.model.current_configuration.calculate_poisson_errors)
+
+    def test_disabling_poisson_errors_disables_error_autosave_formats(self):
+        configuration = self.model.current_configuration
+        configuration.calculate_poisson_errors = True
+        self.widget.pattern_header_xye_cb.setChecked(True)
+        self.widget.pattern_header_fxye_cb.setChecked(True)
+        configuration.integrated_patterns_file_formats = [".xy", ".xye", ".fxye"]
+
+        click_button(self.options_widget.calculate_poisson_errors_cb)
+
+        self.assertFalse(self.widget.pattern_header_xye_cb.isChecked())
+        self.assertFalse(self.widget.pattern_header_fxye_cb.isChecked())
+        self.assertEqual(configuration.integrated_patterns_file_formats, [".xy"])
+
 
 
 
@@ -70,3 +88,6 @@ class OptionsControllerTest(QtTest):
 
         self.model.current_configuration.params.cake_azimuth_range = None
         self.assertTrue(self.options_widget.cake_full_toggle_btn.isChecked())
+
+        self.model.current_configuration.params.calculate_poisson_errors = True
+        self.assertTrue(self.options_widget.calculate_poisson_errors_cb.isChecked())

@@ -19,6 +19,7 @@ def test_defaults():
     assert params.use_mask is False
     assert params.integration_unit == "2th_deg"
     assert params.integration_rad_points is None
+    assert params.calculate_poisson_errors is False
     assert params.cake_azimuth_points == 360
     assert params.integrated_patterns_file_formats == [".xy"]
     assert params.working_directories["calibration"] == ""
@@ -50,6 +51,7 @@ def test_dict_round_trip():
     params = ConfigurationParams()
     params.use_mask = True
     params.integration_rad_points = 1500
+    params.calculate_poisson_errors = True
     params.oned_azimuth_range = [-100.0, 100.0]
     params.integrated_patterns_file_formats = [".xy", ".chi"]
 

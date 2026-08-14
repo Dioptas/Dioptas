@@ -195,6 +195,12 @@ class Configuration:
             self.cake_integration.invalidate()
         elif field == "oned_azimuth_range":
             self.pattern_integration.invalidate()
+        elif field == "calculate_poisson_errors":
+            # Enabling needs a new integration to produce sigma. Disabling
+            # only affects future integrations; the current pattern can keep
+            # the errors already calculated for it.
+            if info.args[0]:
+                self.pattern_integration.invalidate()
         elif field == "integration_unit":
             new_unit, old_unit = info.args
             self._on_integration_unit_changed(new_unit, old_unit)
@@ -320,17 +326,28 @@ class Configuration:
             else:
                 mask = None
 
-            x, y = self.calibration_model.integrate_1d(
+            integration_kwargs = dict(
                 azi_range=self.oned_azimuth_range,
                 mask=mask,
                 unit=self.integration_unit,
                 num_points=self.integration_rad_points,
                 trim_zeros=self.trim_trailing_zeros,
             )
+            if self.calculate_poisson_errors:
+                integration_kwargs["calculate_errors"] = True
+            x, y = self.calibration_model.integrate_1d(**integration_kwargs)
 
             if update_pattern_model:
                 self.pattern_model.set_pattern(
-                    x, y, self.img_model.filename, unit=self.integration_unit
+                    x,
+                    y,
+                    self.img_model.filename,
+                    unit=self.integration_unit,
+                    errors=(
+                        self.calibration_model.sigma
+                        if self.calculate_poisson_errors
+                        else None
+                    ),
                 )
 
                 if self.auto_save_integrated_pattern:
@@ -360,16 +377,19 @@ class Configuration:
     def save_pattern(self, filename: str | None = None, subtract_background: bool = False) -> None:
         """
         Saves the current integrated pattern. The format depends on the file ending. Possible file formats:
-            [*.xy, *.chi, *.dat, *.fxye]
+            [*.xy, *.xye, *.chi, *.dat, *.fxye]
         """
         logger.info("Saving pattern to %s", filename)
         if filename is None:
             filename = self.img_model.filename
 
-        if filename.endswith(".xy"):
+        if filename.endswith((".xy", ".xye")):
+            header = self._create_xy_header()
+            if filename.endswith(".xye"):
+                header += "\t sigma"
             self.pattern_model.save_pattern(
                 filename,
-                header=self._create_xy_header(),
+                header=header,
                 subtract_background=subtract_background,
             )
         elif filename.endswith(".fxye"):
@@ -519,6 +539,14 @@ class Configuration:
     @integration_rad_points.setter
     def integration_rad_points(self, new_value: int | None) -> None:
         self.params.integration_rad_points = new_value
+
+    @property
+    def calculate_poisson_errors(self) -> bool:
+        return self.params.calculate_poisson_errors
+
+    @calculate_poisson_errors.setter
+    def calculate_poisson_errors(self, new_value: bool) -> None:
+        self.params.calculate_poisson_errors = new_value
 
     @property
     def cake_azimuth_points(self) -> int:

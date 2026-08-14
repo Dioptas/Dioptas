@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 import os
+from types import SimpleNamespace
 import sys
 import logging
 import pytest
@@ -110,6 +111,52 @@ def test_integration_with_supersampling(calibration_model):
     y1_2_interp = np.interp(x2, x1, y1)
 
     assert np.mean((y2 - y1_2_interp)) == pytest.approx(0, abs=1e-2)
+
+
+def test_poisson_errors_are_only_calculated_when_requested(calibration_model):
+    load_small_image_with_calibration(calibration_model)
+
+    calibration_model.integrate_1d()
+    assert calibration_model.sigma is None
+
+    x, _ = calibration_model.integrate_1d(calculate_errors=True)
+    assert calibration_model.sigma is not None
+    assert len(calibration_model.sigma) == len(x)
+    assert np.all(np.isfinite(calibration_model.sigma))
+    assert np.all(calibration_model.sigma >= 0)
+
+
+def test_dioptrin_poisson_errors_are_requested_and_stored(calibration_model):
+    load_small_image_with_calibration(calibration_model)
+
+    class FakeDioptrinIntegrator:
+        def set_method(self, *args, **kwargs):
+            pass
+
+        def set_unit(self, *args, **kwargs):
+            pass
+
+        def set_mask(self, *args, **kwargs):
+            pass
+
+        def set_polarization_factor(self, *args, **kwargs):
+            pass
+
+        def integrate1d(self, _image, num_points, **kwargs):
+            assert kwargs == {"errors": True}
+            return SimpleNamespace(
+                radial=np.arange(num_points, dtype=float),
+                intensity=np.ones(num_points),
+                errors=np.full(num_points, 0.25),
+            )
+
+    calibration_model._check_detector_and_image_shape()
+    calibration_model.use_dioptrin = True
+    calibration_model._dioptrin_integrator = FakeDioptrinIntegrator()
+    x, _ = calibration_model.integrate_1d(num_points=10, calculate_errors=True)
+
+    np.testing.assert_allclose(x, np.arange(10))
+    np.testing.assert_allclose(calibration_model.sigma, 0.25)
 
 
 def test_get_pixel_ind(calibration_model):

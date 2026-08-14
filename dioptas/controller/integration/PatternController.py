@@ -126,6 +126,11 @@ class PatternController:
         self.widget.pattern_header_xy_cb.clicked.connect(
             self.update_pattern_file_endings
         )
+        self.widget.pattern_header_xye_cb.clicked.connect(
+            lambda checked: self._error_file_format_clicked(
+                self.widget.pattern_header_xye_cb, checked
+            )
+        )
         self.widget.pattern_header_chi_cb.clicked.connect(
             self.update_pattern_file_endings
         )
@@ -133,13 +138,17 @@ class PatternController:
             self.update_pattern_file_endings
         )
         self.widget.pattern_header_fxye_cb.clicked.connect(
-            self.update_pattern_file_endings
+            lambda checked: self._error_file_format_clicked(
+                self.widget.pattern_header_fxye_cb, checked
+            )
         )
 
     def update_pattern_file_endings(self):
         res = []
         if self.widget.pattern_header_xy_cb.isChecked():
             res.append(".xy")
+        if self.widget.pattern_header_xye_cb.isChecked():
+            res.append(".xye")
         if self.widget.pattern_header_chi_cb.isChecked():
             res.append(".chi")
         if self.widget.pattern_header_dat_cb.isChecked():
@@ -147,6 +156,50 @@ class PatternController:
         if self.widget.pattern_header_fxye_cb.isChecked():
             res.append(".fxye")
         self.model.current_configuration.integrated_patterns_file_formats = res
+
+    def _error_file_format_clicked(self, checkbox, checked):
+        if checked and not self._ensure_poisson_errors():
+            checkbox.blockSignals(True)
+            checkbox.setChecked(False)
+            checkbox.blockSignals(False)
+        self.update_pattern_file_endings()
+
+    def _ensure_poisson_errors(self) -> bool:
+        configuration = self.model.current_configuration
+        if (
+            configuration.calculate_poisson_errors
+            and self.model.pattern_model.errors is not None
+        ):
+            return True
+
+        if (
+            self.model.pattern_model.pattern_source != "integrated"
+            or not configuration.is_calibrated
+            or not self.model.img_model.filename
+        ):
+            self.widget.show_error_msg(
+                "Poisson errors can only be calculated for an integrated image."
+            )
+            return False
+
+        answer = QtWidgets.QMessageBox.question(
+            self.widget,
+            "Calculate Poisson errors?",
+            "The current pattern has no calculated errors. Enable Poisson "
+            "error calculation and reintegrate it now?",
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.Cancel,
+            QtWidgets.QMessageBox.Yes,
+        )
+        if answer != QtWidgets.QMessageBox.Yes:
+            return False
+
+        # Changing the option normally triggers automatic integration. Hold
+        # that reaction so this explicit request performs exactly one pass,
+        # even when automatic integration is enabled.
+        with configuration.pattern_integration.hold(flush=False):
+            configuration.calculate_poisson_errors = True
+        configuration.integrate_image_1d()
+        return self.model.pattern_model.errors is not None
 
     def plot_pattern(self):
         if self.widget.bkg_pattern_inspect_btn.isChecked():
@@ -207,7 +260,7 @@ class PatternController:
                 self.model.working_directories["pattern"], img_filename + ".xy"
             ),
             (
-                "Data (*.xy);;Data (*.chi);;Data (*.dat);;GSAS (*.fxye);;png (*.png);;svg (*.svg)"
+                "Data (*.xy);;Data with errors (*.xye);;Data (*.chi);;Data (*.dat);;GSAS with errors (*.fxye);;png (*.png);;svg (*.svg)"
             ),
         )
 
@@ -218,6 +271,9 @@ class PatternController:
             elif filename.endswith(".svg"):
                 self.widget.pattern_widget.save_svg(filename)
             else:
+                if filename.lower().endswith((".xye", ".fxye")):
+                    if not self._ensure_poisson_errors():
+                        return
                 self.model.current_configuration.save_pattern(
                     filename, subtract_background=True
                 )
@@ -485,3 +541,14 @@ class PatternController:
             self._displayed_unit(),
             self.model.current_configuration.integration_unit,
         )
+        formats = self.model.current_configuration.integrated_patterns_file_formats
+        for checkbox, suffix in (
+            (self.widget.pattern_header_xy_cb, ".xy"),
+            (self.widget.pattern_header_xye_cb, ".xye"),
+            (self.widget.pattern_header_chi_cb, ".chi"),
+            (self.widget.pattern_header_dat_cb, ".dat"),
+            (self.widget.pattern_header_fxye_cb, ".fxye"),
+        ):
+            checkbox.blockSignals(True)
+            checkbox.setChecked(suffix in formats)
+            checkbox.blockSignals(False)

@@ -59,9 +59,10 @@ Pattern Auto-Save
 
 To automatically save integrated patterns, select an output folder in the **Pattern** tab by clicking "**...**"
 and check the **autocreate** checkbox.
-Patterns can be saved in four formats simultaneously:
+Patterns can be saved in five formats simultaneously:
 
 - *.xy*: Two-column format with calibration header (default)
+- *.xye*: Three-column format containing x, intensity, and propagated error
 - *.chi*: Two-column Fit2D format
 - *.dat*: Two-column format without header
 - *.fxye*: Three-column GSAS/GSAS-II format (includes intensity errors)
@@ -458,6 +459,10 @@ Options (X Tab)
 - *Number of Bins*: Manually set the number of integration bins, or check **auto** to let pyFAI decide.
 - *Azimuth Range*: Restrict the azimuthal range for integration (in degrees).
 - *Solid Angle Correction*: Enable/disable solid angle correction during integration.
+- *Calculate Poisson Errors*: Calculate propagated counting-statistics errors during
+  1D integration. This is disabled by default because it requires additional compute
+  time. When enabled, the errors are retained with the current pattern for `.xye` and
+  `.fxye` export; saving does not repeat the integration.
 - *Supersampling*: Split each pixel into n² sub-pixels for finer integration.
   Can reduce peak widths for large pixels but may produce artifacts. Use with caution.
 

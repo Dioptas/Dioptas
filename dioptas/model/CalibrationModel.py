@@ -78,6 +78,7 @@ class CalibrationModel:
 
         self.tth: np.ndarray = np.linspace(0, 25)
         self.int: np.ndarray = np.sin(self.tth)
+        self.sigma: np.ndarray | None = None
         self.num_points: int = len(self.int)
 
         self.cake_img: np.ndarray = np.zeros((2048, 2048))
@@ -744,7 +745,9 @@ class CalibrationModel:
         method: str = "csr",
         azi_range: tuple[float, float] | None = None,
         trim_zeros: bool = True,
+        calculate_errors: bool = False,
     ) -> tuple[np.ndarray, np.ndarray]:
+        self.sigma = None
         if mask is not None and np.all(mask):
             # do not perform integration if the image is completely masked...
             return self.tth, self.int
@@ -795,27 +798,52 @@ class CalibrationModel:
                 self._dioptrin_integrator.set_polarization_factor(polarization_factor)
 
                 t1 = time.time()
-                result = self._dioptrin_integrator.integrate1d(img_data, num_points)
-                self.tth = np.array(result.radial)
-                self.int = np.array(result.intensity)
-
-                if unit == "d_A":
-                    self.tth = (
-                        self.pattern_geometry.wavelength
-                        / (2 * np.sin(self.tth / 360 * np.pi))
-                        * 1e10
+                if calculate_errors:
+                    try:
+                        result = self._dioptrin_integrator.integrate1d(
+                            img_data, num_points, errors=True
+                        )
+                    except TypeError:
+                        logger.info(
+                            "Installed Dioptrin does not support error calculation; "
+                            "using pyFAI"
+                        )
+                        result = None
+                else:
+                    result = self._dioptrin_integrator.integrate1d(
+                        img_data, num_points
                     )
 
-                logger.info(
-                    "1d integration (dioptrin) of {0}: {1}s.".format(
-                        os.path.basename(self.img_model.filename), time.time() - t1
+                if result is not None and (
+                    not calculate_errors or getattr(result, "errors", None) is not None
+                ):
+                    self.tth = np.array(result.radial)
+                    self.int = np.array(result.intensity)
+                    if calculate_errors:
+                        self.sigma = np.array(result.errors)
+
+                    if unit == "d_A":
+                        self.tth = (
+                            self.pattern_geometry.wavelength
+                            / (2 * np.sin(self.tth / 360 * np.pi))
+                            * 1e10
+                        )
+
+                    logger.info(
+                        "1d integration (dioptrin) of {0}: {1}s.".format(
+                            os.path.basename(self.img_model.filename),
+                            time.time() - t1,
+                        )
                     )
-                )
 
-                if np.sum(self.int) != 0 and trim_zeros:
-                    self.tth, self.int = trim_trailing_zeros(self.tth, self.int)
+                    if np.sum(self.int) != 0 and trim_zeros:
+                        self.tth, self.int = trim_trailing_zeros(
+                            self.tth, self.int
+                        )
+                        if self.sigma is not None:
+                            self.sigma = self.sigma[: len(self.int)]
 
-                return self.tth, self.int
+                    return self.tth, self.int
 
         # pyFAI path
         img_data, mask = self._prepare_integration_super_sampling(mask)
@@ -827,62 +855,39 @@ class CalibrationModel:
 
         t1 = time.time()
 
+        integration_kwargs = dict(
+            method=method,
+            unit="2th_deg" if unit == "d_A" else unit,
+            azimuth_range=azi_range,
+            mask=mask,
+            polarization_factor=polarization_factor,
+            correctSolidAngle=self.correct_solid_angle,
+            filename=filename,
+        )
+        if calculate_errors:
+            integration_kwargs["error_model"] = "poisson"
+
+        try:
+            result = self.pattern_geometry.integrate1d(
+                img_data, num_points, **integration_kwargs
+            )
+        except NameError:
+            integration_kwargs["method"] = "csr"
+            result = self.pattern_geometry.integrate1d(
+                img_data, num_points, **integration_kwargs
+            )
+
+        self.tth = np.array(result.radial)
+        self.int = np.array(result.intensity)
+        if calculate_errors and result.sigma is not None:
+            self.sigma = np.array(result.sigma)
+
         if unit == "d_A":
-            try:
-                self.tth, self.int = self.pattern_geometry.integrate1d(
-                    img_data,
-                    num_points,
-                    method=method,
-                    unit="2th_deg",
-                    azimuth_range=azi_range,
-                    mask=mask,
-                    polarization_factor=polarization_factor,
-                    correctSolidAngle=self.correct_solid_angle,
-                    filename=filename,
-                )
-            except NameError:
-                self.tth, self.int = self.pattern_geometry.integrate1d(
-                    img_data,
-                    num_points,
-                    method="csr",
-                    unit="2th_deg",
-                    azimuth_range=azi_range,
-                    mask=mask,
-                    polarization_factor=polarization_factor,
-                    correctSolidAngle=self.correct_solid_angle,
-                    filename=filename,
-                )
             self.tth = (
                 self.pattern_geometry.wavelength
                 / (2 * np.sin(self.tth / 360 * np.pi))
                 * 1e10
             )
-            self.int = self.int
-        else:
-            try:
-                self.tth, self.int = self.pattern_geometry.integrate1d(
-                    img_data,
-                    num_points,
-                    method=method,
-                    unit=unit,
-                    azimuth_range=azi_range,
-                    mask=mask,
-                    polarization_factor=polarization_factor,
-                    correctSolidAngle=self.correct_solid_angle,
-                    filename=filename,
-                )
-            except NameError:
-                self.tth, self.int = self.pattern_geometry.integrate1d(
-                    img_data,
-                    num_points,
-                    method="csr",
-                    unit=unit,
-                    azimuth_range=azi_range,
-                    mask=mask,
-                    polarization_factor=polarization_factor,
-                    correctSolidAngle=self.correct_solid_angle,
-                    filename=filename,
-                )
         logger.info(
             "1d integration of {0}: {1}s.".format(
                 os.path.basename(self.img_model.filename), time.time() - t1
@@ -893,6 +898,8 @@ class CalibrationModel:
             np.sum(self.int) != 0 and trim_zeros
         ):  # only trim zeros if not everything is 0 (e.g. bkg-subtraction of the same image)
             self.tth, self.int = trim_trailing_zeros(self.tth, self.int)
+            if self.sigma is not None:
+                self.sigma = self.sigma[: len(self.int)]
 
         return self.tth, self.int
 

@@ -400,11 +400,18 @@ class ImageController:
         file_endings = self._get_pattern_file_endings()
         for file_ending in file_endings:
             filename = os.path.join(working_directory, os.path.splitext(base_filename)[0] + file_ending)
-            self.model.pattern_model.set_pattern(x, y, filename, unit=self.get_integration_unit())
-            if file_ending == '.xy':
-                self.model.pattern_model.save_pattern(filename, header=self._create_pattern_header())
-            else:
-                self.model.pattern_model.save_pattern(filename)
+            self.model.pattern_model.set_pattern(
+                x,
+                y,
+                filename,
+                unit=self.get_integration_unit(),
+                errors=(
+                    self.model.calibration_model.sigma
+                    if self.model.current_configuration.calculate_poisson_errors
+                    else None
+                ),
+            )
+            self.model.current_configuration.save_pattern(filename)
 
             # save the background subtracted filename
             if self.model.pattern.auto_bkg is not None:
@@ -412,26 +419,22 @@ class ImageController:
                 if not os.path.exists(directory):
                     os.mkdir(directory)
                 filename = os.path.join(directory, self.model.pattern.name + file_ending)
-                if file_ending == '.xy':
-                    self.model.pattern_model.save_pattern(filename, header=self._create_pattern_header(),
-                                                          subtract_background=True)
-                else:
-                    self.model.pattern_model.save_pattern(filename, subtract_background=True)
-
-    def _create_pattern_header(self):
-        header = self.model.calibration_model.create_file_header()
-        header = header.replace('\r\n', '\n')
-        header += '\n#\n# ' + self.model.pattern_model.unit + '\t I'
-        return header
+                self.model.current_configuration.save_pattern(
+                    filename, subtract_background=True
+                )
 
     def _get_pattern_file_endings(self):
         res = []
         if self.widget.pattern_header_xy_cb.isChecked():
             res.append('.xy')
+        if self.widget.pattern_header_xye_cb.isChecked():
+            res.append('.xye')
         if self.widget.pattern_header_chi_cb.isChecked():
             res.append('.chi')
         if self.widget.pattern_header_dat_cb.isChecked():
             res.append('.dat')
+        if self.widget.pattern_header_fxye_cb.isChecked():
+            res.append('.fxye')
         return res
 
     def show_file_info(self):
@@ -480,7 +483,12 @@ class ImageController:
             num_points = int(str(self.widget.bin_count_txt.text()))
         else:
             num_points = None
-        return self.model.calibration_model.integrate_1d(mask=mask, unit=integration_unit, num_points=num_points)
+        integration_kwargs = dict(
+            mask=mask, unit=integration_unit, num_points=num_points
+        )
+        if self.model.current_configuration.calculate_poisson_errors:
+            integration_kwargs["calculate_errors"] = True
+        return self.model.calibration_model.integrate_1d(**integration_kwargs)
 
     def change_mask_mode(self):
         self.model.use_mask = self.widget.integration_image_widget.mask_btn.isChecked()

@@ -20,12 +20,14 @@ class PatternWidget(QtWidgets.QWidget):
 
         self.xy_cb = QtWidgets.QCheckBox('.xy')
         self.xy_cb.setChecked(True)
+        self.xye_cb = QtWidgets.QCheckBox('.xye')
         self.chi_cb = QtWidgets.QCheckBox('.chi')
         self.dat_cb = QtWidgets.QCheckBox('.dat')
         self.fxye_cb = QtWidgets.QCheckBox('.fxye')
         self._pattern_types_layout = QtWidgets.QHBoxLayout()
         self._pattern_types_layout.addWidget(LabelAlignRight('Pattern types:'))
         self._pattern_types_layout.addWidget(self.xy_cb)
+        self._pattern_types_layout.addWidget(self.xye_cb)
         self._pattern_types_layout.addWidget(self.chi_cb)
         self._pattern_types_layout.addWidget(self.dat_cb)
         self._pattern_types_layout.addWidget(self.fxye_cb)
@@ -39,6 +41,7 @@ class PatternWidget(QtWidgets.QWidget):
 
     def setToolTips(self):
         self.xy_cb.setToolTip('Create .xy files')
+        self.xye_cb.setToolTip('Create .xye files with propagated errors')
         self.chi_cb.setToolTip('Create .chi files')
         self.dat_cb.setToolTip('Create .dat files')
         self.fxye_cb.setToolTip('Create .fxye files')

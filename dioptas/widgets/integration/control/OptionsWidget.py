@@ -52,6 +52,9 @@ class OptionsWidget(QtWidgets.QWidget):
         self.supersampling_sb = SpinBoxAlignRight()
         self.correct_solid_angle_cb = QtWidgets.QCheckBox("correct Solid Angle")
         self.correct_solid_angle_cb.setChecked(True)
+        self.calculate_poisson_errors_cb = QtWidgets.QCheckBox(
+            "Calculate Poisson errors"
+        )
 
         self._integration_gb_layout.addWidget(LabelAlignRight("Radial bins:"), 0, 0)
 
@@ -67,11 +70,12 @@ class OptionsWidget(QtWidgets.QWidget):
         self._integration_gb_layout.addLayout(self._oned_azi_range_layout, 1, 1, 1, 2)
         self._integration_gb_layout.addWidget(self.oned_full_toggle_btn, 1, 3)
         self._integration_gb_layout.addWidget(self.correct_solid_angle_cb, 2, 1)
-        self._integration_gb_layout.addWidget(LabelAlignRight("Supersampling:"), 3, 0)
-        self._integration_gb_layout.addWidget(self.supersampling_sb, 3, 1)
+        self._integration_gb_layout.addWidget(self.calculate_poisson_errors_cb, 3, 1)
+        self._integration_gb_layout.addWidget(LabelAlignRight("Supersampling:"), 4, 0)
+        self._integration_gb_layout.addWidget(self.supersampling_sb, 4, 1)
 
         self.use_dioptrin_cb = QtWidgets.QCheckBox("Use Dioptrin")
-        self._integration_gb_layout.addWidget(self.use_dioptrin_cb, 4, 1)
+        self._integration_gb_layout.addWidget(self.use_dioptrin_cb, 5, 1)
 
         self._integration_gb_layout.setRowStretch(0, 0)
         self._integration_gb_layout.setRowStretch(1, 0)
@@ -158,6 +162,9 @@ class OptionsWidget(QtWidgets.QWidget):
     def set_tooltips(self):
         self.cake_full_toggle_btn.setToolTip("Set to full available range")
         self.oned_full_toggle_btn.setToolTip("Set to full available range")
+        self.calculate_poisson_errors_cb.setToolTip(
+            "Calculate and store propagated Poisson uncertainties during 1D integration"
+        )
         self.cake_save_integral_btn.setToolTip(
             "Save the tth integral next to the cake image"
         )

@@ -35,6 +35,81 @@ def test_load_pattern(pattern_model: PatternModel):
     assert len(pattern_model.get_pattern().y) > 101
 
 
+def test_save_xye_uses_stored_errors(pattern_model: PatternModel, tmp_path):
+    x = np.array([1.0, 2.0, 3.0])
+    y = np.array([10.0, 20.0, 30.0])
+    errors = np.array([0.1, 0.2, 0.3])
+    pattern_model.set_pattern(x, y, errors=errors)
+
+    filename = tmp_path / "pattern.xye"
+    pattern_model.save_pattern(str(filename))
+
+    np.testing.assert_allclose(np.loadtxt(filename), np.column_stack((x, y, errors)))
+
+
+def test_save_fxye_uses_stored_errors(pattern_model: PatternModel, tmp_path):
+    x = np.array([1.0, 2.0, 3.0])
+    y = np.array([10.0, 20.0, 30.0])
+    errors = np.array([0.1, 0.2, 0.3])
+    pattern_model.set_pattern(x, y, errors=errors)
+
+    filename = tmp_path / "pattern.fxye"
+    pattern_model.save_pattern(
+        str(filename), "BANK NUM_POINTS MIN_X_VAL STEP_X_VAL FXYE"
+    )
+
+    saved = np.loadtxt(filename, skiprows=1)
+    np.testing.assert_allclose(saved[:, 0], 100 * x)
+    np.testing.assert_allclose(saved[:, 1], y)
+    np.testing.assert_allclose(saved[:, 2], errors)
+
+
+def test_save_xye_aligns_errors_with_auto_background_roi(
+    pattern_model: PatternModel, tmp_path
+):
+    x = np.linspace(0.0, 24.0, 250)
+    y = x * 0.4 + 5.0 + gaussian(x, 10, 3, 0.2)
+    errors = np.linspace(0.1, 1.0, len(x))
+    pattern_model.set_pattern(x, y, errors=errors)
+    pattern_model.set_auto_background_subtraction([2, 10, 5], roi=[5, 15])
+
+    filename = tmp_path / "pattern.xye"
+    pattern_model.save_pattern(str(filename), subtract_background=True)
+
+    saved = np.loadtxt(filename)
+    selected = (5 < x) & (x < 15)
+    np.testing.assert_allclose(saved[:, 0], x[selected])
+    np.testing.assert_allclose(saved[:, 2], errors[selected])
+
+
+def test_save_fxye_aligns_errors_with_shorter_background(
+    pattern_model: PatternModel, tmp_path
+):
+    x = np.linspace(0.0, 24.0, 100)
+    y = x + 10
+    errors = np.linspace(0.1, 1.0, len(x))
+    pattern_model.set_pattern(x, y, errors=errors)
+    pattern_model.background_pattern = Pattern(x[20:80], np.ones(60))
+
+    filename = tmp_path / "pattern.fxye"
+    pattern_model.save_pattern(
+        str(filename),
+        "BANK NUM_POINTS MIN_X_VAL STEP_X_VAL FXYE",
+        subtract_background=True,
+    )
+
+    saved = np.loadtxt(filename, skiprows=1)
+    np.testing.assert_allclose(saved[:, 0], 100 * x[20:80], rtol=1e-5)
+    np.testing.assert_allclose(saved[:, 2], errors[20:80], rtol=1e-5)
+
+
+def test_setting_pattern_without_errors_clears_old_errors(pattern_model: PatternModel):
+    x = np.array([1.0, 2.0])
+    pattern_model.set_pattern(x, x, errors=np.array([0.1, 0.2]))
+    pattern_model.set_pattern(x, x)
+    assert pattern_model.errors is None
+
+
 def test_auto_background_subtraction(pattern_model: PatternModel):
     x = np.linspace(0, 24, 2500)
     y = np.zeros(x.shape)

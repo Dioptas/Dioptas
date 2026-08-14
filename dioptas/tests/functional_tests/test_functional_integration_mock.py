@@ -3,7 +3,7 @@
 import pytest
 import os
 import numpy as np
-from mock import MagicMock
+from mock import MagicMock, patch
 
 from qtpy import QtWidgets
 from xypattern import Pattern
@@ -45,6 +45,22 @@ def test_1D_integration_with_azimuth_limits(
         azi_range=(-100, 80),
         trim_zeros=True,
     )
+
+
+def test_error_export_requests_reintegration_when_option_is_disabled(
+    integration_controller, dioptas_model, mock_integration
+):
+    dioptas_model.pattern_model.errors = np.ones_like(dioptas_model.pattern.x)
+    dioptas_model.current_configuration.calculate_poisson_errors = False
+
+    with patch.object(
+        QtWidgets.QMessageBox,
+        "question",
+        return_value=QtWidgets.QMessageBox.Cancel,
+    ) as question:
+        assert not integration_controller.pattern_controller._ensure_poisson_errors()
+
+    question.assert_called_once()
 
 
 def test_changing_number_of_integration_bins(
@@ -187,4 +203,3 @@ def test_loading_multiple_images_and_batch_save_them(
 
     assert os.path.exists(os.path.join(tmp_path, "batch_image_001.tif"))
     assert os.path.exists(os.path.join(tmp_path, "batch_image_002.tif"))
-
