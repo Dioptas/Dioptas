@@ -465,6 +465,10 @@ class PhaseModel:
         thermal_type = str(p.get('thermal_type') or '')
         if thermal_type:
             thermal_parameters = deepcopy(p.get('thermal_parameters') or {})
+            if (thermal_type in ('MieGruneisenDebye',
+                                 'MieGruneisenEinstein')
+                    and p.get('n') is not None):
+                thermal_parameters.setdefault('n', p['n'])
             record['thermal'] = {
                 **deepcopy(record.get('thermal') or {}),
                 'type': thermal_type,

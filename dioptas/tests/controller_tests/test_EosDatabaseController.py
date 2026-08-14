@@ -39,6 +39,30 @@ class EosDatabaseControllerTest(QtTest):
         assert (self.dialog.materials_table.rowCount()
                 == len(eos.load_materials()))
 
+    def test_material_table_displays_space_group_not_crystal_system(self):
+        self.dialog.search_input.setText("gold")
+        material = self.controller.shown_materials[0]
+
+        assert material.space_group == "Fm-3m"
+        assert self.dialog.materials_table.item(0, 1).text() == "Fm3\u0305m"
+        assert self.dialog.materials_table.item(0, 1).text() != material.symmetry
+
+    def test_material_table_displays_screw_axis_as_subscript(self):
+        self.dialog.search_input.setText("alpha quartz")
+        row = next(
+            index
+            for index, material in enumerate(self.controller.shown_materials)
+            if material.name == "Alpha quartz"
+        )
+
+        assert self.controller.shown_materials[row].space_group == "P3221"
+        assert self.dialog.materials_table.item(row, 1).text() == "P3\u208221"
+
+    def test_material_table_keeps_missing_space_group_blank(self):
+        self.dialog.fill_materials([("Legacy material", "")])
+
+        assert self.dialog.materials_table.item(0, 1).text() == ""
+
     def test_h2o_search_shows_all_water_ice_phases(self):
         self.dialog.search_input.setText("H2O")
 

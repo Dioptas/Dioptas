@@ -7,9 +7,36 @@ EosDatabaseController; the dialog only lays out widgets and re-emits
 user actions as signals.
 """
 
+import re
+
 from qtpy import QtWidgets, QtCore
 
 from .CustomWidgets import FlatButton, HorizontalLine
+
+
+_SUBSCRIPT_DIGITS = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
+_SCREW_AXIS_PREFIX = re.compile(r"^([PABCIFR]\s*)([2346])([1-5])")
+
+
+def _display_space_group(space_group: str) -> str:
+    """Render compact Hermann-Mauguin symbols in crystallographic form."""
+    displayed = _SCREW_AXIS_PREFIX.sub(
+        lambda match: (
+            f"{match.group(1)}{match.group(2)}"
+            f"{match.group(3).translate(_SUBSCRIPT_DIGITS)}"
+        ),
+        space_group,
+    )
+    displayed = re.sub(
+        r"_(\d)",
+        lambda match: match.group(1).translate(_SUBSCRIPT_DIGITS),
+        displayed,
+    )
+    return re.sub(
+        r"-(\d)",
+        lambda match: f"{match.group(1)}\N{COMBINING OVERLINE}",
+        displayed,
+    )
 
 
 class EosDatabaseDialog(QtWidgets.QDialog):
@@ -161,7 +188,7 @@ class EosDatabaseDialog(QtWidgets.QDialog):
     # -- view interface used by the controller -------------------------
 
     def fill_materials(self, rows):
-        """*rows*: list of (display_name, symmetry) tuples."""
+        """*rows*: list of (display_name, space_group) tuples."""
         table = self.materials_table
         # Drop any previous selection first: after a refill the same row
         # index would still count as "selected" without ever firing
@@ -169,9 +196,12 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         # records of whatever material sat at that row before.
         table.clearSelection()
         table.setRowCount(len(rows))
-        for r, (name, symmetry) in enumerate(rows):
+        for r, (name, space_group) in enumerate(rows):
             table.setItem(r, 0, QtWidgets.QTableWidgetItem(name))
-            table.setItem(r, 1, QtWidgets.QTableWidgetItem(symmetry))
+            table.setItem(
+                r, 1,
+                QtWidgets.QTableWidgetItem(_display_space_group(space_group)),
+            )
 
     def fill_eos_records(self, rows, selected_row=0,
                          reference_tooltips=None, thermal_tooltips=None):

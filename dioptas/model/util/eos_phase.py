@@ -270,6 +270,12 @@ class EosPhase:
         """
         p = jcpds_obj.params
         thermal_type = (p.get("thermal_type") or None) if with_thermal else None
+        thermal_parameters = (p.get("thermal_parameters") or {
+            "Tr": p.get("t_ref"),
+            "theta0": p.get("theta_t0"),
+            "gamma0": p.get("gamma_t0"),
+            "q": p.get("q_t0", 1.0),
+        }) if thermal_type else None
         record_parameters = {}
         records = p.get("eos_records") or []
         index = p.get("eos_current_index") or 0
@@ -286,16 +292,12 @@ class EosPhase:
                 else (p.get("k0p0") or p.get("k0p")),
                 "K0_double_prime": p.get("k0pp0") or 0.0,
             },
-            n=p.get("n"),
+            n=(p.get("n") if p.get("n") is not None
+               else (thermal_parameters or {}).get("n")),
             z=p.get("z"),
             formula_units_per_cell=p.get("zc"),
             thermal_type=thermal_type,
-            thermal_parameters=(p.get("thermal_parameters") or {
-                "Tr": p.get("t_ref"),
-                "theta0": p.get("theta_t0"),
-                "gamma0": p.get("gamma_t0"),
-                "q": p.get("q_t0", 1.0),
-            }) if thermal_type else None,
+            thermal_parameters=thermal_parameters,
         )
 
     def __repr__(self) -> str:

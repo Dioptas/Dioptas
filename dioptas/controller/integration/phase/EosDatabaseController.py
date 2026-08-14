@@ -98,7 +98,7 @@ class EosDatabaseController(object):
 
     def _fill_materials(self):
         self.dialog.fill_materials([
-            (material.display_name, material.symmetry)
+            (material.display_name, material.space_group)
             for material in self.shown_materials])
         # Select the first hit so the EoS table below always reflects the
         # current material list — never a previous search's selection.

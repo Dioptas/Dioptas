@@ -6,6 +6,7 @@ all of it survives a project save/load round trip, since the records live
 on the phase state.
 """
 import os
+import math
 
 import pytest
 
@@ -13,6 +14,7 @@ from ...model import eos
 from ...model.eos.material import Material, _parse_formula
 from ...model.PhaseModel import PhaseModel
 from ...model.util.phasesmith import material_has_complete_structure
+from ...model.util.eos_phase import EosPhase
 
 
 @pytest.fixture
@@ -44,6 +46,28 @@ def test_bundled_database_loads(materials):
             assert not m.peaks
         else:
             assert m.peaks
+
+
+def test_every_bundled_eos_record_constructs_and_evaluates(materials):
+    """Database curation must never rely on the silent BM3 fallback."""
+    evaluated = 0
+    for material in materials:
+        for index, record in enumerate(material.eos_records):
+            phase = eos.build_jcpds(material, record_index=index)
+            thermal_type = phase.params.get("thermal_type") or ""
+            try:
+                engine = EosPhase.from_jcpds(
+                    phase, with_thermal=bool(thermal_type)
+                )
+                volume = engine.volume(20.0, 1000.0)
+            except Exception as error:
+                pytest.fail(
+                    f"{material.name} record {index} "
+                    f"({record.get('label')}) is not constructible: {error}"
+                )
+            assert math.isfinite(volume) and volume > 0
+            evaluated += 1
+    assert evaluated == 147
 
 
 @pytest.mark.parametrize(
@@ -523,6 +547,47 @@ def test_mgd_record_applies_thermal_state(gold):
                  if (r.get("thermal") or {}).get("type") == "AlphaKT")
     model.set_eos_reference(0, other)
     assert model.get_thermal_type(0) == ""
+
+
+def test_custom_mgd_record_applies_thermal_atom_count():
+    record = {
+        "label": "Custom thermal fit",
+        "eos": {
+            "type": "Vinet",
+            "parameters": {"V0": 64.0, "K0": 150.0, "K0_prime": 4.0},
+        },
+        "thermal": {
+            "type": "MieGruneisenDebye",
+            "parameters": {
+                "Tr": 300.0,
+                "theta0": 500.0,
+                "gamma0": 1.5,
+                "q": 1.0,
+                "n": 1.0,
+            },
+        },
+    }
+    material = eos.Material(
+        name="Custom phase",
+        symmetry="CUBIC",
+        lattice=eos.Lattice(a=4.0),
+        formula_units_per_cell=1,
+        peaks=[[1, 0, 0, 4.0, 100.0]],
+        eos_records=[record],
+    )
+
+    phase = eos.build_jcpds(material)
+
+    assert phase.params["n"] == pytest.approx(1.0)
+    phase.compute_volume(pressure=10.0, temperature=300.0)
+    volume_at_300 = phase.params["v"]
+    phase.compute_volume(pressure=10.0, temperature=1000.0)
+    assert phase.params["v"] > volume_at_300
+
+    model = PhaseModel()
+    model.add_jcpds_object(phase, filename=phase.filename)
+    saved_record = model.eos_record_from_phase(0, record)
+    assert saved_record["thermal"]["parameters"]["n"] == pytest.approx(1.0)
 
 
 def test_thermal_state_survives_project_round_trip(gold, tmp_path):

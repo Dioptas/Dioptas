@@ -170,10 +170,18 @@ def apply_eos_record(phase, record: dict) -> None:
                             or (4.0 if eos.get("type") == "BM2" else 0.0))
     phase.params["k0p"] = phase.params["k0p0"]
     phase.params["k0pp0"] = parameters.get("K0_double_prime") or 0.0
+    thermal = record.get("thermal") or {}
+    thermal_type = thermal.get("type") or ""
+    thermal_parameters = thermal.get("parameters") or {}
+
     material_document = phase.params.get("material_document") or {}
     base_material = Material.from_dict(material_document) if material_document else None
     if parameters.get("n") is not None:
         phase.params["n"] = parameters["n"]
+    elif thermal_parameters.get("n") is not None:
+        # Mie-Gruneisen records carry the thermal constructor's atom count
+        # inside their thermal parameter block.
+        phase.params["n"] = thermal_parameters["n"]
     elif base_material is not None:
         phase.params["n"] = base_material.atoms_per_formula()
     if parameters.get("Z") is not None:
@@ -181,9 +189,6 @@ def apply_eos_record(phase, record: dict) -> None:
     elif base_material is not None:
         phase.params["z"] = base_material.electrons_per_formula()
 
-    thermal = record.get("thermal") or {}
-    thermal_type = thermal.get("type") or ""
-    thermal_parameters = thermal.get("parameters") or {}
     phase.params["thermal_parameters"] = dict(thermal_parameters)
     phase.params["thermal_parameter_errors"] = dict(
         thermal.get("parameter_errors") or {})

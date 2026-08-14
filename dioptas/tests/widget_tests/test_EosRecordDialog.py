@@ -25,6 +25,14 @@ def _record():
     }
 
 
+def _parameter_row(dialog, name, scope="EoS"):
+    return next(
+        row for row in range(dialog.parameters_table.rowCount())
+        if dialog.parameters_table.item(row, 0).text() == scope
+        and dialog.parameters_table.item(row, 1).text() == name
+    )
+
+
 def test_record_dialog_round_trip(qapp):
     dialog = EosRecordDialog(_record())
     result = dialog.record()
@@ -45,6 +53,61 @@ def test_record_dialog_changes_equation_parameter_rows(qapp):
     names = [dialog.parameters_table.item(row, 1).text()
              for row in range(dialog.parameters_table.rowCount())]
     assert "K0_double_prime" in names
+    dialog.close()
+
+
+def test_record_dialog_rejects_missing_required_equation_parameter(qapp):
+    dialog = EosRecordDialog(_record())
+    dialog.eos_type_cb.setCurrentIndex(dialog.eos_type_cb.findData("BM4"))
+
+    with pytest.raises(ValueError, match="K0_double_prime"):
+        dialog.record()
+    dialog.close()
+
+
+def test_record_dialog_rejects_incomplete_peritheos_thermal_model(qapp):
+    dialog = EosRecordDialog(_record())
+    dialog.thermal_type_cb.setCurrentIndex(
+        dialog.thermal_type_cb.findData("MieGruneisenDebye")
+    )
+
+    with pytest.raises(ValueError, match="MieGruneisenDebye requires"):
+        dialog.record()
+    dialog.close()
+
+
+def test_record_dialog_accepts_complete_peritheos_thermal_model(qapp):
+    dialog = EosRecordDialog(_record())
+    dialog.thermal_type_cb.setCurrentIndex(
+        dialog.thermal_type_cb.findData("MieGruneisenDebye")
+    )
+    values = {
+        "Tr": 300.0,
+        "theta0": 500.0,
+        "gamma0": 1.5,
+        "q": 1.0,
+        "n": 2.0,
+    }
+    for name, value in values.items():
+        row = _parameter_row(dialog, name, scope="Thermal")
+        dialog.parameters_table.item(row, 2).setText(str(value))
+
+    result = dialog.record()
+
+    assert result["thermal"]["parameters"] == values
+    dialog.close()
+
+
+def test_record_dialog_preserves_edits_hidden_by_equation_switch(qapp):
+    dialog = EosRecordDialog(_record())
+    row = _parameter_row(dialog, "K0_prime")
+    dialog.parameters_table.item(row, 2).setText("6.5")
+
+    dialog.eos_type_cb.setCurrentIndex(dialog.eos_type_cb.findData("BM2"))
+    dialog.eos_type_cb.setCurrentIndex(dialog.eos_type_cb.findData("BM3"))
+
+    row = _parameter_row(dialog, "K0_prime")
+    assert dialog.parameters_table.item(row, 2).text() == "6.5"
     dialog.close()
 
 

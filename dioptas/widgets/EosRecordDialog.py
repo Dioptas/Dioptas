@@ -9,6 +9,7 @@ from qtpy import QtCore, QtGui, QtWidgets
 
 from ..model.util.eos_phase import (
     EOS_DISPLAY_NAMES,
+    EosPhase,
     RT_EOS_TYPES,
     eos_parameter_names,
 )
@@ -34,6 +35,9 @@ class EosRecordDialog(QtWidgets.QDialog):
         super().__init__(parent)
         self._source_record = deepcopy(record or {})
         self._result_record = None
+        # Parameter rows appear and disappear with the selected equations.
+        # Keep edits for hidden rows so switching away and back is lossless.
+        self._parameter_state = {}
         self.setWindowTitle(title)
         self.setModal(True)
         self.setMinimumSize(680, 680)
@@ -230,7 +234,8 @@ class EosRecordDialog(QtWidgets.QDialog):
         return state
 
     def _refresh_parameters(self):
-        state = self._table_state()
+        self._parameter_state.update(self._table_state())
+        state = self._parameter_state
         source = self._source_record
         eos_source = source.get("eos") or {}
         thermal_source = source.get("thermal") or {}
@@ -329,8 +334,9 @@ class EosRecordDialog(QtWidgets.QDialog):
             raise ValueError("V0 must be positive")
         if eos_parameters.get("K0", 0) <= 0:
             raise ValueError("K0 must be positive")
+        eos_type = self.eos_type_cb.currentData() or "BM3"
         record["eos"] = {
-            "type": self.eos_type_cb.currentData() or "BM3",
+            "type": eos_type,
             "parameters": eos_parameters,
         }
         record["parameter_errors"] = eos_errors
@@ -346,6 +352,13 @@ class EosRecordDialog(QtWidgets.QDialog):
             }
         else:
             record.pop("thermal", None)
+
+        self._validate_engine_parameters(
+            eos_type,
+            eos_parameters,
+            thermal_type,
+            thermal_parameters,
+        )
 
         authors_text = self.authors_edit.text().strip()
         authors = [part.strip() for part in authors_text.split(";")
@@ -392,6 +405,55 @@ class EosRecordDialog(QtWidgets.QDialog):
             record.pop("notes", None)
         record.pop("default", None)
         return record
+
+    @staticmethod
+    def _validate_engine_parameters(
+        eos_type: str,
+        eos_parameters: dict,
+        thermal_type: str,
+        thermal_parameters: dict,
+    ) -> None:
+        """Reject records that the selected Peritheos engines cannot use."""
+        required_eos = ["V0", *eos_parameter_names(eos_type)]
+        missing = [name for name in required_eos
+                   if eos_parameters.get(name) is None]
+        if missing:
+            raise ValueError(
+                f"{eos_type} requires parameters: {', '.join(missing)}"
+            )
+
+        # AlphaKT is Dioptas' optional legacy coefficient correction. The
+        # Peritheos thermal models, in contrast, must be complete records.
+        if thermal_type and thermal_type != "AlphaKT":
+            missing = [
+                name for name in _THERMAL_PARAMETERS[thermal_type]
+                if thermal_parameters.get(name) is None
+            ]
+            if missing:
+                raise ValueError(
+                    f"{thermal_type} requires parameters: {', '.join(missing)}"
+                )
+
+        n_value = eos_parameters.get("n", thermal_parameters.get("n"))
+        if n_value is not None and n_value <= 0:
+            raise ValueError("n must be positive")
+
+        # Zc belongs to the material rather than an EoS record. A dummy value
+        # lets the constructor validate every record-owned parameter here;
+        # the phase editor separately exposes the real crystallographic Zc.
+        EosPhase(
+            eos_type,
+            eos_parameters,
+            n=n_value,
+            z=eos_parameters.get("Z"),
+            formula_units_per_cell=1,
+            thermal_type=(
+                thermal_type
+                if thermal_type and thermal_type != "AlphaKT"
+                else None
+            ),
+            thermal_parameters=thermal_parameters,
+        )
 
     def accept(self):
         try:
