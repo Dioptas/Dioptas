@@ -26,13 +26,18 @@ eos_database_path = os.path.join(resources_path, "eos_database")
 # Common-name shortcuts for friendlier search
 _ALIASES = {
     "gold": "Au", "silver": "Ag", "iron": "Fe", "copper": "Cu",
-    "aluminium": "Al",
+    "aluminium": "Al", "magnesium": "Mg", "titanium": "Ti",
+    "osmium": "Os", "manganese": "Mn",
     "platinum": "Pt", "iridium": "Ir", "rhenium": "Re", "tungsten": "W",
     "neon": "Ne", "argon": "Ar",
     "alumina": "Al2O3", "corundum": "Al2O3",
     "magnesia": "MgO", "periclase": "MgO",
     "hematite": "Fe2O3", "boron carbide": "B4C",
     "wollastonite": "CaSiO3", "perovskite": "CaSiO3",
+    "akimotoite": "MgSiO3", "orthoenstatite": "MgSiO3",
+    "enstatite": "MgSiO3", "pyrope": "Mg3Al2Si3O12",
+    "almandine": "Fe3Al2Si3O12", "fayalite": "Fe2SiO4",
+    "seifertite": "SiO2",
 }
 
 _cache: dict = {}

@@ -40,7 +40,7 @@ def test_bundled_database_loads(materials):
 
 
 def test_gold_has_multiple_references(gold):
-    assert len(gold.eos_records) == 3
+    assert len(gold.eos_records) == 4
     labels = [eos.record_label(r) for r in gold.eos_records]
     assert all(labels), "every record needs a display label"
     assert len(set(labels)) == len(labels), "labels must be unique"
@@ -287,3 +287,29 @@ def test_thermal_state_survives_project_round_trip(gold, tmp_path):
     phase.compute_volume(pressure=10.0, temperature=1500.0)
     assert (loaded.phase_model.phases[0].params["v"]
             == pytest.approx(phase.params["v"], rel=1e-9))
+
+
+def test_sokolova_record_and_full_parameters_survive_project_round_trip(
+        gold, tmp_path):
+    from ...model.DioptasModel import DioptasModel
+
+    index = next(i for i, record in enumerate(gold.eos_records)
+                 if (record.get("thermal") or {}).get("type")
+                 == "Sokolova2016")
+    source = gold.eos_records[index]["thermal"]
+    phase = eos.build_jcpds(gold, record_index=index)
+    assert phase.params["thermal_type"] == "Sokolova2016"
+    assert phase.params["thermal_parameters"] == source["parameters"]
+    assert (phase.params["thermal_parameter_errors"]
+            == source["parameter_errors"])
+
+    model = DioptasModel()
+    model.phase_model.add_jcpds_object(phase, filename=phase.filename)
+    filename = str(tmp_path / "sokolova.dio")
+    model.save(filename)
+    loaded = DioptasModel()
+    loaded.load(filename)
+    loaded_phase = loaded.phase_model.phases[0]
+    assert loaded_phase.params["thermal_parameters"] == source["parameters"]
+    loaded_phase.compute_volume(pressure=100.0, temperature=1000.0)
+    assert loaded_phase.params["v"] < loaded_phase.params["v0"]

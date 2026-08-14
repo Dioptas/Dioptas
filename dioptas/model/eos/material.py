@@ -47,7 +47,9 @@ schema change::
                                                  # experimental interval exists
       "experimental_temperature_range_k": [298.0, 298.0], # optional
       "thermal": {"type": "AlphaKT",         # optional
-                  "parameters": {"alpha0": 4.2e-5, "dK_dT": -0.02}},
+                  "parameters": {"alpha0": 4.2e-5, "dK_dT": -0.02},
+                  "parameter_errors": {"alpha0": null, "dK_dT": null},
+                  "fixed_parameters": []},
       "temperature_ref": 298.15,             # optional, K
       "notes": "..."                         # optional
     }
@@ -56,6 +58,10 @@ schema change::
 (``MieGruneisenDebye``, ``HollandPowell2011``, ...); the one exception is
 ``AlphaKT``, the classic JCPDS-style correction (thermal expansion alpha0
 and dK/dT applied as a pressure shift) that Dioptas computes itself.
+Thermal ``parameters`` likewise use the selected Peritheos constructor's
+names verbatim. ``thermal.parameter_errors`` and
+``thermal.fixed_parameters`` have the same meaning as their room-temperature
+counterparts.
 
 Records are handled as plain dicts throughout: the same dict is stored in
 the bundled files, on ``CrystalState.eos_records`` (and therefore in

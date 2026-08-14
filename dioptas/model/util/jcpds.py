@@ -118,9 +118,11 @@ class CrystalState:
     #: database carry their own.
     eos_type: str = "BM3"
     #: Holzapfel only: atoms per chemical formula (n), summed atomic
-    #: number of the formula (z), and formula units per unit cell (zc,
+    #: number parameter of the formula (z), and formula units per unit cell (zc,
     #: the crystallographic Z). Set for phases loaded from the EoS
     #: database; None for legacy files, which then fall back to BM3.
+    #: A literature record may override z (the Sokolova MgO workbook uses
+    #: an effective value of 10.34 rather than the integer electron sum).
     n: float | None = None
     z: int | None = None
     zc: int | None = None
@@ -129,9 +131,14 @@ class CrystalState:
     #: dk0dt/dk0pdt as effective-pressure shift — a no-op when they are
     #: zero, which keeps every legacy file and project behaving as
     #: before). A peritheos.eos.thermal class name ('MieGruneisenDebye',
-    #: 'MieGruneisenEinstein') switches to the full thermal engine with
-    #: the parameters below (+ n and zc for the molar conversion).
+    #: 'MieGruneisenEinstein', 'Sokolova2016') switches to the full thermal
+    #: engine. The complete constructor dictionary is retained below;
+    #: the scalar fields remain for the editable Debye/Einstein UI and
+    #: backward-compatible projects.
     thermal_type: str = ""
+    thermal_parameters: dict = field(default_factory=dict)
+    thermal_parameter_errors: dict = field(default_factory=dict)
+    thermal_fixed_parameters: list = field(default_factory=list)
     theta_t0: float = 0.0   # Debye/Einstein temperature (K)
     gamma_t0: float = 0.0   # Grüneisen parameter at V0
     q_t0: float = 1.0       # volume exponent of the Grüneisen parameter
@@ -159,7 +166,8 @@ _FLAGGING_KEYS = frozenset(
     ["comments", "a0", "b0", "c0", "alpha0", "beta0", "gamma0", "symmetry",
      "k0", "k0p0", "k0pp0", "dk0dt", "dk0pdt", "alpha_t0", "d_alpha_dt",
      "reflections", "eos_type",
-     "thermal_type", "theta_t0", "gamma_t0", "q_t0", "t_ref"]
+     "thermal_type", "thermal_parameters", "theta_t0", "gamma_t0",
+     "q_t0", "t_ref"]
 )
 
 _STATE_KEYS = frozenset(f.name for f in dataclasses.fields(CrystalState))

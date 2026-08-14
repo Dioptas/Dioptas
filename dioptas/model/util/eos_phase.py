@@ -51,10 +51,10 @@ RT_EOS_TYPES = (
 )
 
 #: Peritheos thermal models selectable on top of the rt equation. (The
-#: remaining peritheos.eos.thermal classes are constrained to specific
-#: rt equations — Holland-Powell/thermal Tait to ModifiedTait, Sokolova
-#: to Holzapfel — and can be added once a use case needs them.)
-THERMAL_EOS_TYPES = ("MieGruneisenDebye", "MieGruneisenEinstein")
+#: Sokolova2016 is constrained to a Holzapfel room-temperature equation.
+THERMAL_EOS_TYPES = (
+    "MieGruneisenDebye", "MieGruneisenEinstein", "Sokolova2016",
+)
 
 #: case-insensitive lookups, so 'VINET' (stored by earlier versions of
 #: this feature branch) still resolves
@@ -75,6 +75,7 @@ EOS_DISPLAY_NAMES = {
     "Holzapfel": "Holzapfel",
     "MieGruneisenDebye": "Mie-Grüneisen-Debye",
     "MieGruneisenEinstein": "Mie-Grüneisen-Einstein",
+    "Sokolova2016": "Sokolova et al. (2016)",
 }
 
 
@@ -160,12 +161,16 @@ class EosPhase:
                   if key in accepted and value is not None}
 
         if canonical == "Holzapfel":
-            if z is None:
+            # Sokolova's MgO workbook supplies an effective Z that differs
+            # from the integer electron sum derived from the formula. A
+            # record-level constructor value therefore takes precedence.
+            holzapfel_z = parameters.get("Z", z)
+            if holzapfel_z is None:
                 raise ValueError(
-                    "Holzapfel requires Z (summed atomic number of the "
-                    "chemical formula)")
+                    "Holzapfel requires Z (the equation's atomic-number "
+                    "parameter)")
             kwargs["n"] = n
-            kwargs["Z"] = z
+            kwargs["Z"] = holzapfel_z
         if "V0" in kwargs:
             kwargs["V0"] = kwargs["V0"] * self._scale
 
@@ -179,7 +184,8 @@ class EosPhase:
 
         self._eos = eos_class(**kwargs)
 
-        if thermal_canonical:
+        if thermal_canonical in ("MieGruneisenDebye",
+                                 "MieGruneisenEinstein"):
             tp = thermal_parameters or {}
             theta0 = tp.get("theta0")
             gamma0 = tp.get("gamma0")
@@ -200,6 +206,32 @@ class EosPhase:
                 q=tp.get("q", 1.0),
                 n=n,
             )
+        elif thermal_canonical == "Sokolova2016":
+            if canonical != "Holzapfel":
+                raise ValueError(
+                    "Sokolova2016 requires a Holzapfel room-temperature "
+                    "equation")
+            tp = thermal_parameters or {}
+            thermal_class = getattr(thermal, thermal_canonical)
+            signature = inspect.signature(thermal_class.__init__)
+            accepted = [name for name in signature.parameters
+                        if name not in ("self", "rt_eos")]
+            thermal_kwargs = {
+                key: value for key, value in tp.items()
+                if key in accepted and value is not None
+            }
+            missing = [
+                name for name in accepted
+                if name not in thermal_kwargs
+                and signature.parameters[name].default
+                is inspect.Parameter.empty
+            ]
+            if missing:
+                raise ValueError(
+                    "Sokolova2016 requires parameters: "
+                    + ", ".join(missing))
+            self._eos = thermal_class(
+                rt_eos=self._eos, **thermal_kwargs)
 
     def pressure(self, volume: float,
                  temperature: Optional[float] = None) -> float:
@@ -238,9 +270,16 @@ class EosPhase:
         """
         p = jcpds_obj.params
         thermal_type = (p.get("thermal_type") or None) if with_thermal else None
+        record_parameters = {}
+        records = p.get("eos_records") or []
+        index = p.get("eos_current_index") or 0
+        if 0 <= index < len(records):
+            record_parameters = dict(
+                (records[index].get("eos") or {}).get("parameters") or {})
         return cls(
             eos_type=eos_type or p.get("eos_type") or "BM3",
             parameters={
+                **record_parameters,
                 "V0": p["v0"],
                 "K0": k0 if k0 is not None else p["k0"],
                 "K0_prime": k0p if k0p is not None
@@ -251,12 +290,12 @@ class EosPhase:
             z=p.get("z"),
             formula_units_per_cell=p.get("zc"),
             thermal_type=thermal_type,
-            thermal_parameters={
+            thermal_parameters=(p.get("thermal_parameters") or {
                 "Tr": p.get("t_ref"),
                 "theta0": p.get("theta_t0"),
                 "gamma0": p.get("gamma_t0"),
                 "q": p.get("q_t0", 1.0),
-            } if thermal_type else None,
+            }) if thermal_type else None,
         )
 
     def __repr__(self) -> str:

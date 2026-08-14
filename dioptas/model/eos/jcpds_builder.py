@@ -128,6 +128,11 @@ def apply_eos_record(phase, record: dict) -> None:
     thermal = record.get("thermal") or {}
     thermal_type = thermal.get("type") or ""
     thermal_parameters = thermal.get("parameters") or {}
+    phase.params["thermal_parameters"] = dict(thermal_parameters)
+    phase.params["thermal_parameter_errors"] = dict(
+        thermal.get("parameter_errors") or {})
+    phase.params["thermal_fixed_parameters"] = list(
+        thermal.get("fixed_parameters") or [])
     if thermal_type in ("MieGruneisenDebye", "MieGruneisenEinstein"):
         # full thermal engine: parameters go to the thermal state fields,
         # the legacy coefficients stay zero
@@ -136,6 +141,17 @@ def apply_eos_record(phase, record: dict) -> None:
         phase.params["gamma_t0"] = thermal_parameters.get("gamma0") or 0.0
         phase.params["q_t0"] = thermal_parameters.get("q", 1.0)
         phase.params["t_ref"] = thermal_parameters.get("Tr") or 298.15
+        phase.params["alpha_t0"] = 0.0
+        phase.params["dk0dt"] = 0.0
+    elif thermal_type == "Sokolova2016":
+        # The native Sokolova model has eleven fitted coefficients. Keep
+        # its source dictionary intact instead of coercing it into the
+        # four-field Debye/Einstein editor representation.
+        phase.params["thermal_type"] = thermal_type
+        phase.params["t_ref"] = thermal_parameters.get("Tr") or 298.15
+        phase.params["theta_t0"] = 0.0
+        phase.params["gamma_t0"] = 0.0
+        phase.params["q_t0"] = 1.0
         phase.params["alpha_t0"] = 0.0
         phase.params["dk0dt"] = 0.0
     else:

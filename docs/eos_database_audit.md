@@ -6,7 +6,7 @@ files, but their free-text references and parameter slots are not publication
 metadata. Every import was therefore treated as unverified until its compound,
 equation family, parameter convention, and reference could be reconciled.
 
-Audit date: 2026-08-13.
+Audit date: 2026-08-14.
 
 ## Experimental pressure-domain audit
 
@@ -24,12 +24,14 @@ Pt model is tied to the 32--660 GPa shock data, while the Hixson--Fritz W
 record is limited to the 0--380 GPa reduced-isotherm table derived from their
 shock measurements.  These are not presented as static DAC fit ranges.
 
-Four records have no defensible numeric experimental interval and instead use
+Fifteen records have no defensible numeric experimental interval and instead use
 an explicit `pressure_range_status`: the Munoz--Kunc InN EoS is theoretical;
 the Fei FeO and Anderson Au values are reference/compilation
 parameterizations rather than fits to one bounded data set; and the 1966 CoO
 source reports its upper limit only qualitatively as "several hundred
-kilobars" in the recoverable publication metadata.  The database UI displays
+kilobars" in the recoverable publication metadata. The eleven Sokolova et al.
+thermal calibrants are likewise reference parameterizations, not fits to one
+experimental pressure interval. The database UI displays
 these statuses instead of leaving the fit-range column blank or inventing a
 number.  A regression test requires every current and future EoS record to
 contain exactly one of a numeric interval or an approved explicit status.
@@ -89,7 +91,8 @@ documents.
 
 A subsequent database-wide structure pass extended this representation to 55
 of the original 78 materials. Later literature additions and source-specific
-refinements raised current coverage to 84 of 97 materials. The 13 remaining
+refinements and the latest literature additions raised current coverage to 98
+of 111 materials. The 13 remaining
 complex, disordered, molecular, or ambiguously identified phases are listed
 with their blocking reason in `docs/eos_structure_audit.md`; no atomic
 coordinates were guessed for them.
@@ -129,11 +132,44 @@ pressure interval used for the fit.
 | PrO2 fluorite | BM3 | 156.939703 | 187(8) | 4.8(5) | 0--35 GPa; same source. |
 | Pb fcc | BM4 | 121.418(5) | 41.73(1) | 5.39(25) | 0--13 GPa, compression data at 295--788 K; Fortes, RAL-TR-2019-002 (2019). The database stores the 300 K slice, including K0''=-0.33(2) GPa^-1, because the source's polynomial temperature model is not representable by the present thermal schema. |
 
+## Native Sokolova thermal calibrants
+
+The eleven original Excel supplements to Sokolova, Dorogokupets, and Litasov,
+*Computers & Geosciences* 94, 162--169 (2016),
+[doi:10.1016/j.cageo.2016.06.002](https://doi.org/10.1016/j.cageo.2016.06.002),
+were transcribed directly for Ag, Al, Au, diamond, Cu, MgO, Mo, Nb, Pt, Ta,
+and W. These are native `Sokolova2016` thermal models composed with the
+publication's Holzapfel room-temperature EoS, not McHardy or other later
+refits. Workbook `Vo` values in J bar^-1 mol^-1 were converted to conventional
+cell A^3 using each phase's crystallographic Z; workbook `Ko` values were
+converted from kbar to GPa. All eleven full coefficient dictionaries survive
+material loading and project save/load. The supplements do not report
+individual parameter uncertainties, so every corresponding error is
+explicitly `null` rather than zero.
+
+The implementation was cross-checked against all 304 cached P--V--T rows in
+the eleven original workbooks (up to 4000 K where supplied), with a maximum
+relative volume difference of 1.54e-6. A separate literal port of the embedded
+`xAP2` VBA routine agrees with Peritheos at 400 GPa and 3000 K to within
+1.6e-5 A^3 for every material. These high-temperature reference points are
+locked by regression tests.
+
+## Additional phase-resolved EoS records
+
+Fourteen further phase documents were added from primary publications. Each
+has its own structure and fit domain: hcp and bcc Mg; alpha and omega Ti;
+akimotoite and orthoenstatite MgSiO3; CaCl2-type silica and seifertite; pyrope
+and almandine garnet; fayalite; hcp Os; alpha-Mn; and B1 KCl. KCl B1 and B2
+are now explicitly named as separate material records, matching the existing
+phase-per-polymorph treatment of CaO and KBr. Source-reported parameter errors
+and fixed parameters are retained; absent published errors are stored as
+`null`.
+
 ## Citation normalization
 
 Every retained citation was reconciled against publisher or DOI metadata and
-rewritten as `Authors, Journal volume, pages (year), doi:...`. Of the 110
-current records, 107 include a DOI. The exceptions are the 1979 zircon and
+rewritten as `Authors, Journal volume, pages (year), doi:...`. Of the 135
+current records, 132 include a DOI. The exceptions are the 1979 zircon and
 1981 coesite papers in American Mineralogist, for which no registered DOI was
 found, and the citable STFC report for fcc Pb. The Pb record includes the
 open primary-report URL in its notes.
@@ -185,8 +221,9 @@ identify TiB2. Two files labeled as molybdenum were identified as `MoC
 (Fm-3m)` and `Mo2C (hexagonal)` from their source filenames; after their
 molybdenum-metal EoS records were rejected, the now-unreferenced material
 entries were removed too. The subsequent literature expansions and
-pressure-domain audit bring the current database to 97 materials and 110 EoS
-records: 93 materials with EoS data and four phase-only entries.
+pressure-domain audit, native Sokolova parameterizations, and subsequent
+phase expansion bring the current database to 111 materials and 135 EoS
+records: 107 materials with EoS data and four phase-only entries.
 
 ## Retention rule
 

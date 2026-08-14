@@ -124,7 +124,7 @@ def test_holzapfel_requires_cell_data():
         EosPhase("Holzapfel", GOLD, n=1, z=79)
     with pytest.raises(ValueError, match="atoms per chemical formula"):
         EosPhase("Holzapfel", GOLD, formula_units_per_cell=4)
-    with pytest.raises(ValueError, match="summed atomic number"):
+    with pytest.raises(ValueError, match="atomic-number parameter"):
         EosPhase("Holzapfel", GOLD, n=1, formula_units_per_cell=4)
 
 
@@ -296,3 +296,41 @@ def test_incomplete_thermal_model_falls_back_gracefully(gold_jcpds, caplog):
     gold_jcpds.compute_volume(pressure=30.0, temperature=2000.0)
     assert with_incomplete_mgd == pytest.approx(gold_jcpds.params["v"],
                                                 rel=1e-9)
+
+
+GOLD_SOKOLOVA = {
+    "Tr": 298.15, "QE1o": 179.5, "mE1": 1.5,
+    "QE2o": 83.0, "mE2": 1.5, "delta": 0.134, "t": 0.087,
+    "a_0": 0.0, "m": 0.0, "g": 0.0, "e_0": 0.0,
+}
+
+
+def test_sokolova2016_reduces_to_holzapfel_at_reference_temperature():
+    eos = EosPhase(
+        "Holzapfel", GOLD, n=1, z=79, formula_units_per_cell=4,
+        thermal_type="Sokolova2016", thermal_parameters=GOLD_SOKOLOVA)
+    reference = EosPhase(
+        "Holzapfel", GOLD, n=1, z=79, formula_units_per_cell=4)
+    assert eos.volume(100.0, 298.15) == pytest.approx(
+        reference.volume(100.0), rel=1e-8)
+
+
+def test_sokolova2016_expands_and_roundtrips():
+    eos = EosPhase(
+        "Holzapfel", GOLD, n=1, z=79, formula_units_per_cell=4,
+        thermal_type="Sokolova2016", thermal_parameters=GOLD_SOKOLOVA)
+    v_ref = eos.volume(100.0, 298.15)
+    v_hot = eos.volume(100.0, 2000.0)
+    assert v_hot > v_ref
+    assert eos.pressure(v_hot, 2000.0) == pytest.approx(100.0, abs=1e-6)
+
+
+def test_sokolova2016_requires_holzapfel_and_full_parameters():
+    with pytest.raises(ValueError, match="requires a Holzapfel"):
+        EosPhase(
+            "Vinet", GOLD, n=1, z=79, formula_units_per_cell=4,
+            thermal_type="Sokolova2016", thermal_parameters=GOLD_SOKOLOVA)
+    with pytest.raises(ValueError, match="QE1o"):
+        EosPhase(
+            "Holzapfel", GOLD, n=1, z=79, formula_units_per_cell=4,
+            thermal_type="Sokolova2016", thermal_parameters={"Tr": 298.15})

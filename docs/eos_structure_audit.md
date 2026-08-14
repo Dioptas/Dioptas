@@ -1,6 +1,6 @@
 # EoS material structure audit
 
-Audit date: 2026-08-13.
+Audit date: 2026-08-14.
 
 The bundled EoS materials use PhaseSmith for reflection generation and
 structure-factor intensities. A complete structure entry contains the
@@ -15,7 +15,7 @@ tables as a fallback until their atomic models can be verified.
 
 ## Coverage
 
-The database contains 97 material documents. Eighty-four now have complete
+The database contains 111 material documents. Ninety-eight now have complete
 structure metadata and 13 remain intentionally unset. Every completed entry
 passes an automated check that Wyckoff multiplicity times occupancy reproduces
 the formula stoichiometry multiplied by `Z`.
@@ -37,6 +37,11 @@ The completed set is:
 `silicon`, `silicon_carbide_b1`, `silicon_carbide_b3`, `silicon_v`,
 `silicon_vii`, `silicon_x`, `silver`, `sio2_stv_andr`, `sno2`, `sro`,
 `sro_b2`, `tantalum`, `tungsten`, `wadsleyite`, and `zircon`.
+
+The latest completed additions are `akimotoite`, `almandine`, `fayalite`,
+`kcl_b1`, `magnesium_bcc`, `magnesium_hcp`, `manganese_alpha`, `orthoenstatite`,
+`osmium`, `pyrope`, `seifertite`, `silica_cacl2`, `titanium_alpha`, and
+`titanium_omega`.
 
 Fixed-coordinate prototypes were assigned only where the phase identity and
 cell setting are unambiguous: fcc, bcc, hcp, diamond, graphite, zinc blende,
@@ -68,6 +73,11 @@ The stored coordinates use the same setting as the material cell.
 | FeS-VI | Pnma (62) | Fe 4c; S 4c | Ono et al., Earth and Planetary Science Letters 272, 481-487 (2008), doi:10.1016/j.epsl.2008.05.017 |
 | Mo2C | Pbcn (60) | Mo 8d; C 4c | Chasvin et al., Molecular Catalysis 439, 163-170 (2017), doi:10.1016/j.mcat.2017.07.003 |
 | epsilon-FeOOH | P21nm (31) | Fe 2a, O 2a x2, H 2a | 20 GPa static structure from Insixiengmay and Stixrude, American Mineralogist 108, 2209-2222 (2023), doi:10.2138/am-2022-8839 |
+| MgSiO3 akimotoite | R-3 (148) | Mg 6c, Si 6c, O 18f | Horiuchi et al., American Mineralogist 67, 788-793 (1982) |
+| MgSiO3 orthoenstatite | Pbca (61) | Mg 8c x2, Si 8c x2, O 8c x6 | Yang and Ghose, American Mineralogist 80, 9-20 (1995) |
+| SiO2 seifertite | Pbcn (60) | Si 4c, O 8d | Dera et al., American Mineralogist 87, 1018-1023 (2002) |
+| Pyrope and almandine | Ia-3d (230) | divalent cation 24c, Al 16a, Si 24d, O 96h | Armbruster et al., American Mineralogist 77, 512-521 (1992) |
+| alpha-Mn | I-43m (217) | Mn 2a, 8c, 24g x2 | Gazzara et al., Acta Crystallographica 22, 859-862 (1967) |
 
 The material JSON notes retain these structure references where they differ
 from the EoS reference.

@@ -239,7 +239,8 @@ class PhaseEditorController(QtCore.QObject):
         key = self.jcpds_widget.get_thermal_type()
         self.jcpds_widget.update_thermal_parameter_visibility()
         self.jcpds_widget.update_eos_parameter_visibility()
-        if key in ('MieGruneisenDebye', 'MieGruneisenEinstein'):
+        if key in ('MieGruneisenDebye', 'MieGruneisenEinstein',
+                   'Sokolova2016'):
             # full peritheos engine; computes once theta0/gamma0 (and
             # n/Zc) are filled in — until then it logs and behaves like
             # a phase without thermal expansion

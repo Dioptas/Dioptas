@@ -42,6 +42,22 @@
    "experimental_pressure_range_gpa": [0.0, 140.0],
    "temperature_ref": 300.0,
    "notes": "Table II Cu-referenced fit combining DAC-1 and DAC-2; V0 fixed. Reported uncertainties: K0 +/- 0.5 GPa and K0' +/- 0.02. Measurements extend to 140 GPa."
+  },
+  {
+   "label": "Sokolova et al. (2016), Holzapfel thermal model",
+   "reference": "Sokolova, Dorogokupets, and Litasov, Comput. Geosci. 94, 162-169 (2016), supplementary workbook 7, doi:10.1016/j.cageo.2016.06.002",
+   "eos": {"type": "Holzapfel", "parameters": {"V0": 31.115177217273953, "K0": 260.0, "K0_prime": 4.2}},
+   "parameter_errors": {"V0": null, "K0": null, "K0_prime": null},
+   "fixed_parameters": [],
+   "pressure_range_status": "reference_parameterization",
+   "temperature_ref": 298.15,
+   "thermal": {
+    "type": "Sokolova2016",
+    "parameters": {"Tr": 298.15, "QE1o": 353.0, "mE1": 1.5, "QE2o": 222.0, "mE2": 1.5, "delta": -0.802, "t": -0.791, "a_0": 0.0, "m": 0.0, "g": 2.66, "e_0": 143.2},
+    "parameter_errors": {"Tr": null, "QE1o": null, "mE1": null, "QE2o": null, "mE2": null, "delta": null, "t": null, "a_0": null, "m": null, "g": null, "e_0": null},
+    "fixed_parameters": []
+   },
+   "notes": "Native Sokolova2016 parameterization transcribed from the authors' Mo Excel table. Workbook Vo=0.9369 J bar^-1 mol^-1 and Ko=2600 kbar were converted to the conventional Z=2 cell in A^3 and GPa. The source reports no parameter uncertainties."
   }
  ]
 }

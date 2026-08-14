@@ -32,6 +32,21 @@ def test_every_eos_parameter_has_explicit_uncertainty_metadata():
                 assert error is None or error > 0, (path.name, name)
 
 
+def test_every_thermal_parameter_has_explicit_uncertainty_metadata():
+    for path in DATABASE.glob("*.json"):
+        for record in _document(path.name)["eos_records"]:
+            thermal = record.get("thermal")
+            if not thermal or "parameter_errors" not in thermal:
+                continue
+            parameters = thermal["parameters"]
+            errors = thermal["parameter_errors"]
+            fixed = thermal.get("fixed_parameters", [])
+            assert set(errors) == set(parameters), path.name
+            assert set(fixed) <= set(parameters), path.name
+            for name, error in errors.items():
+                assert error is None or error > 0, (path.name, name)
+
+
 def test_materials_have_at_most_one_boolean_default_record():
     for path in DATABASE.glob("*.json"):
         defaults = []
@@ -333,7 +348,7 @@ def test_all_curated_structures_are_complete_and_stoichiometric():
             )
         assert dict(actual) == pytest.approx(dict(expected)), path.name
 
-    assert len(structured) == 84
+    assert len(structured) == 98
 
 
 @pytest.mark.parametrize(
@@ -403,6 +418,60 @@ def test_literature_expansion_eos_records(
          {"V0": 0.005, "K0": 0.01, "K0_prime": 0.25,
           "K0_double_prime": 0.02},
          ["V0", "K0"], [0.0, 13.0]),
+        ("magnesium_hcp.json", "Vinet",
+         {"V0": 46.299, "K0": 30.9, "K0_prime": 4.56},
+         {"V0": 0.0016, "K0": 0.4, "K0_prime": 0.06},
+         ["V0"], [0.0, 61.0]),
+        ("magnesium_bcc.json", "Vinet",
+         {"V0": 46.2788, "K0": 26.3, "K0_prime": 5.1},
+         {"V0": 0.0016, "K0": 0.6, "K0_prime": 0.06},
+         ["V0"], [46.0, 211.0]),
+        ("titanium_alpha.json", "Vinet",
+         {"V0": 35.304, "K0": 110.4, "K0_prime": 4.0},
+         {"V0": 0.04, "K0": 2.7, "K0_prime": None},
+         ["K0_prime"], [0.0, 10.0]),
+        ("titanium_omega.json", "Vinet",
+         {"V0": 52.38, "K0": 106.9, "K0_prime": 3.68},
+         {"V0": 0.3, "K0": 6.0, "K0_prime": 0.2},
+         [], [0.0, 121.0]),
+        ("akimotoite.json", "BM3",
+         {"V0": 262.43, "K0": 205.0, "K0_prime": 4.9},
+         {"V0": 0.02, "K0": 1.0, "K0_prime": 0.2},
+         [], [0.0, 24.86]),
+        ("orthoenstatite.json", "BM3",
+         {"V0": 832.5, "K0": 105.8, "K0_prime": 8.5},
+         {"V0": 0.2, "K0": 0.5, "K0_prime": 0.3},
+         [], [0.0, 8.5]),
+        ("silica_cacl2.json", "BM2",
+         {"V0": 48.1, "K0": 245.0},
+         {"V0": 0.2, "K0": 7.0}, [], [55.0, 147.0]),
+        ("seifertite.json", "BM2",
+         {"V0": 92.3, "K0": 290.0},
+         {"V0": 0.5, "K0": 10.0}, [], [55.0, 147.0]),
+        ("pyrope.json", "BM3",
+         {"V0": 1506.15, "K0": 163.7, "K0_prime": 6.4},
+         {"V0": 0.16, "K0": 1.7, "K0_prime": 0.4},
+         [], [0.0, 8.0]),
+        ("almandine.json", "BM3",
+         {"V0": 1533.52, "K0": 172.6, "K0_prime": 5.8},
+         {"V0": 0.1, "K0": 1.5, "K0_prime": 0.5},
+         [], [0.0, 8.0]),
+        ("fayalite.json", "BM3",
+         {"V0": 307.84, "K0": 130.4, "K0_prime": 5.3},
+         {"V0": 0.05, "K0": 1.4, "K0_prime": None},
+         ["K0_prime"], [0.0, 5.0]),
+        ("osmium.json", "BM3",
+         {"V0": 27.9766135265, "K0": 395.0, "K0_prime": 4.5},
+         {"V0": 0.0188, "K0": 15.0, "K0_prime": 0.5},
+         [], [0.0, 58.2]),
+        ("manganese_alpha.json", "BM3",
+         {"V0": 707.9435488281, "K0": 204.0, "K0_prime": 3.7},
+         {"V0": None, "K0": 3.0, "K0_prime": 0.4},
+         ["V0"], [14.0, 220.0]),
+        ("kcl_b1.json", "Vinet",
+         {"V0": 249.44, "K0": 17.1, "K0_prime": 5.5},
+         {"V0": None, "K0": None, "K0_prime": None},
+         ["K0_prime"], [0.0, 2.6]),
     ],
 )
 def test_new_phase_eos_records_match_primary_sources(
@@ -413,6 +482,101 @@ def test_new_phase_eos_records_match_primary_sources(
     assert record["parameter_errors"] == errors
     assert record["fixed_parameters"] == fixed
     assert record["experimental_pressure_range_gpa"] == pressure_range
+
+
+def test_sokolova_workbook_parameters_match_all_eleven_supplements():
+    expected = {
+        "silver.json": (68.0820933882075, 100.0, 6.15,
+                        [115.0, 1.5, 199.0, 1.5, 0.178, 2.21,
+                         0.0, 0.0, 0.19, 22.1]),
+        "aluminum.json": (66.28871141603032, 72.8, 4.51,
+                          [381.0, 1.5, 202.0, 1.5, -0.242, -0.958,
+                           0.0, 0.0, 0.33, 64.1]),
+        "gold.json": (67.84961794736972, 167.0, 5.9,
+                      [179.5, 1.5, 83.0, 1.5, 0.134, 0.087,
+                       0.0, 0.0, 0.0, 0.0]),
+        "diamond.json": (45.35396586081546, 441.5, 3.9,
+                         [684.0, 0.564, 1561.0, 2.436, -0.506, 1.085,
+                          0.0, 0.0, 0.0, 0.0]),
+        "copper.json": (47.239009578237244, 133.5, 5.32,
+                        [296.0, 1.5, 169.0, 1.5, -0.07, 1.401,
+                         0.0, 0.0, 2.18, 27.7]),
+        "mgo.json": (74.71096452981054, 160.3, 4.1,
+                     [748.0, 3.0, 401.0, 3.0, -0.235, 0.301,
+                      -17.4, 4.95, 0.0, 0.0]),
+        "molybdenum.json": (31.115177217273953, 260.0, 4.2,
+                            [353.0, 1.5, 222.0, 1.5, -0.802, -0.791,
+                             0.0, 0.0, 2.66, 143.2]),
+        "niobium.json": (35.960629619878574, 170.5, 3.65,
+                         [134.0, 1.5, 302.0, 1.5, -0.326, -0.763,
+                          0.0, 0.0, 0.9, 115.9]),
+        "platinum.json": (60.383835218750676, 275.0, 5.35,
+                          [177.0, 1.5, 143.0, 1.5, 0.167, -0.343,
+                           0.0, 0.0, 0.06, 80.6]),
+        "tantalum.json": (36.07022518484496, 191.0, 3.83,
+                          [254.0, 1.5, 101.0, 1.5, -0.101, -0.148,
+                           0.0, 0.0, 0.12, 82.3]),
+        "tungsten.json": (31.72293444117844, 308.0, 4.12,
+                          [172.0, 1.5, 309.0, 1.5, -0.686, -0.591,
+                           0.0, 0.0, 2.77, 100.1]),
+    }
+    keys = ["QE1o", "mE1", "QE2o", "mE2", "delta", "t",
+            "a_0", "m", "g", "e_0"]
+    for filename, (v0, k0, k0p, values) in expected.items():
+        record = next(
+            record for record in _document(filename)["eos_records"]
+            if (record.get("thermal") or {}).get("type")
+            == "Sokolova2016")
+        eos_parameters = record["eos"]["parameters"]
+        assert record["eos"]["type"] == "Holzapfel"
+        assert eos_parameters["V0"] == pytest.approx(v0)
+        assert eos_parameters["K0"] == pytest.approx(k0)
+        assert eos_parameters["K0_prime"] == pytest.approx(k0p)
+        if filename == "mgo.json":
+            assert eos_parameters["Z"] == pytest.approx(10.34)
+        else:
+            assert "Z" not in eos_parameters
+        thermal = record["thermal"]["parameters"]
+        assert thermal["Tr"] == pytest.approx(298.15)
+        assert [thermal[key] for key in keys] == pytest.approx(values)
+
+
+@pytest.mark.parametrize(
+    "filename,temperature,workbook_volume,volume_400gpa_3000k",
+    [
+        ("silver.json", 1200.0, 72.5307308396824, 36.236626468077255),
+        ("aluminum.json", 950.0, 70.35017683917293, 28.239709211578838),
+        ("gold.json", 1500.0, 72.46078586859234, 40.255306257699594),
+        ("diamond.json", 4000.0, 48.089556592259044, 30.21996428002116),
+        ("copper.json", 1300.0, 50.292007869393814, 25.76584394854623),
+        ("mgo.json", 3100.0, 86.3129480553911, 39.08137549392482),
+        ("molybdenum.json", 2800.0, 33.209220611207876,
+         18.59812864118969),
+        ("niobium.json", 2700.0, 38.48428770243464, 18.37933155370624),
+        ("platinum.json", 2100.0, 64.31270868516619, 38.927909880502085),
+        ("tantalum.json", 3300.0, 38.858290868856386, 19.2300741100816),
+        ("tungsten.json", 3500.0, 33.912725752180556,
+         19.662110185919055),
+    ],
+)
+def test_sokolova_engine_matches_excel_and_vba_at_high_temperature(
+        filename, temperature, workbook_volume, volume_400gpa_3000k):
+    material = eos.Material.from_dict(_document(filename))
+    index = next(
+        i for i, record in enumerate(material.eos_records)
+        if (record.get("thermal") or {}).get("type") == "Sokolova2016")
+    phase = eos.build_jcpds(material, record_index=index)
+
+    # Highest cached zero-pressure/high-temperature row in each original
+    # workbook (the available upper temperature differs by material).
+    phase.compute_volume(pressure=0.0001, temperature=temperature)
+    assert phase.params["v"] == pytest.approx(workbook_volume, abs=2e-4)
+
+    # Independently generated from a literal port of the workbook's xAP2
+    # VBA function at the paper's 4 Mbar / 3000 K design limit.
+    phase.compute_volume(pressure=400.0, temperature=3000.0)
+    assert phase.params["v"] == pytest.approx(
+        volume_400gpa_3000k, abs=2e-4)
 
 
 def test_fortes_lead_record_is_an_explicit_static_pvt_slice():
@@ -647,7 +811,7 @@ def test_retained_references_have_normalized_publication_metadata():
             record["reference"] for record in _document(path.name)["eos_records"]
         )
 
-    assert len(references) == 110
+    assert len(references) == 135
     assert {reference for reference in references if "doi:" not in reference} == (
         no_registered_doi
     )
@@ -655,6 +819,6 @@ def test_retained_references_have_normalized_publication_metadata():
 
 
 def test_unpublished_alternatives_were_removed():
-    assert len(_document("gold.json")["eos_records"]) == 3
+    assert len(_document("gold.json")["eos_records"]) == 4
     assert _document("gold.json")["eos_records"][1]["eos"]["type"] == "Vinet"
     assert len(_document("iron.json")["eos_records"]) == 2

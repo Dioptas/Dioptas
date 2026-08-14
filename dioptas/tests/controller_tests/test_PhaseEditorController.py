@@ -342,7 +342,7 @@ class PhaseEditorControllerTest(QtTest):
         cb = self.jcpds_widget.thermal_type_cb
         keys = [cb.itemData(i) for i in range(cb.count())]
         self.assertEqual(keys, ['none', 'alphakt', 'MieGruneisenDebye',
-                                'MieGruneisenEinstein'])
+                                'MieGruneisenEinstein', 'Sokolova2016'])
 
     def test_selecting_mgd_updates_model_and_rows(self):
         cb = self.jcpds_widget.thermal_type_cb

@@ -148,6 +148,7 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self.thermal_type_cb.addItem('Constant α, dK/dT', 'alphakt')
         self.thermal_type_cb.addItem('Mie-Grüneisen-Debye', 'MieGruneisenDebye')
         self.thermal_type_cb.addItem('Mie-Grüneisen-Einstein', 'MieGruneisenEinstein')
+        self.thermal_type_cb.addItem('Sokolova et al. (2016)', 'Sokolova2016')
         self._eos_layout.addWidget(LabelAlignRight('Thermal:'), 7, 0)
         self._eos_layout.addWidget(self.thermal_type_cb, 7, 1, 1, 2)
 
@@ -248,12 +249,16 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         'alphakt': ('alpha_t0', 'd_alpha_dt', 'dk0dt', 'dk0pdt'),
         'MieGruneisenDebye': ('theta_t0', 'gamma_t0', 'q_t0', 't_ref'),
         'MieGruneisenEinstein': ('theta_t0', 'gamma_t0', 'q_t0', 't_ref'),
+        # The complete source parameter dictionary is preserved on the
+        # phase. Only its reference temperature has an existing scalar UI.
+        'Sokolova2016': ('t_ref',),
     }
     #: peritheos thermal models additionally need the material data for
     #: the molar conversion — union'd into the EoS parameter rows
     THERMAL_MATERIAL_KEYS = {
         'MieGruneisenDebye': ('n', 'Zc'),
         'MieGruneisenEinstein': ('n', 'Zc'),
+        'Sokolova2016': ('n', 'Z', 'Zc'),
     }
 
     def _add_thermal_param_row(self, key, widget, label_str, unit, row):
