@@ -51,6 +51,10 @@ from scipy.optimize import minimize, OptimizeResult
 import os
 
 
+class EosCalculationError(ArithmeticError):
+    """The selected EoS cannot produce a physical state at the request."""
+
+
 class jcpds_reflection:
     """
     Class that defines a reflection.
@@ -653,6 +657,12 @@ class jcpds:
         else:
             self.params['temperature'] = temperature
 
+        if not np.isfinite(pressure):
+            raise EosCalculationError("Pressure must be finite")
+        if not np.isfinite(temperature) or temperature < 0:
+            raise EosCalculationError(
+                "Temperature must be finite and non-negative")
+
         # Assume 0 K really means room T
         if temperature == 0: temperature = 298.
 
@@ -691,6 +701,14 @@ class jcpds:
                 self.params['v'] = self._solve_volume_at_pressure(
                     k0, k0p, self.mod_pressure)
 
+        self._require_physical_volume(self.params['v'])
+
+    @staticmethod
+    def _require_physical_volume(volume: float) -> None:
+        if not np.isfinite(volume) or volume <= 0:
+            raise EosCalculationError(
+                f"Equation of state returned a non-physical volume: {volume}")
+
     def _thermal_engine_volume(self, pressure: float, temperature: float) -> bool:
         """
         Compute the volume through the phase's peritheos thermal model
@@ -719,7 +737,12 @@ class jcpds:
         # derived coefficient values meaningful for displays
         self.params['alpha_t'] = self.params['alpha_t0']
         self.params['k0p'] = self.params['k0p0']
-        self.params['v'] = eos.volume(pressure, temperature)
+        try:
+            volume = eos.volume(pressure, temperature)
+        except (ArithmeticError, RuntimeError, ValueError) as error:
+            raise EosCalculationError(str(error)) from error
+        self._require_physical_volume(volume)
+        self.params['v'] = volume
         return True
 
     def _solve_volume_at_pressure(self, k0: float, k0p: float, pressure: float) -> float:
@@ -752,7 +775,12 @@ class jcpds:
                 "computing with the legacy BM3 solver instead.",
                 eos_type, self.name, e)
             return self._legacy_bm3_volume(k0, k0p, pressure)
-        return eos.volume(pressure)
+        try:
+            volume = eos.volume(pressure)
+        except (ArithmeticError, RuntimeError, ValueError) as error:
+            raise EosCalculationError(str(error)) from error
+        self._require_physical_volume(volume)
+        return volume
 
     def _legacy_bm3_volume(self, k0: float, k0p: float, pressure: float) -> float:
         """
@@ -765,7 +793,8 @@ class jcpds:
                        args=(k0, k0p, pressure),
                        method='Nelder-Mead')
         if not res.success:
-            raise ArithmeticError("minimize didn't find a minimum!\n" + str(res))
+            raise EosCalculationError(
+                "Legacy BM3 volume inversion did not converge")
         return self.params['v0'] / float(res.x[0])
 
     def bm3_inverse(self, v0_v: float, k0: float, k0p: float, pressure: float) -> float:

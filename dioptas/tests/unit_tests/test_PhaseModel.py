@@ -8,7 +8,7 @@ import pytest
 from xypattern import Pattern
 
 from ...model.PhaseModel import PhaseLoadError, PhaseModel
-from ...model.util.jcpds import jcpds_reflection
+from ...model.util.jcpds import EosCalculationError, jcpds_reflection
 
 unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, '../data')
@@ -256,6 +256,33 @@ def test_set_pressure_temperature(phase_model):
     phase_model.set_pressure_temperature(0, 10.0, 1500.0)
     assert phase_model.phases[0].params['pressure'] == 10.0
     assert phase_model.phases[0].params['temperature'] == 1500.0
+
+
+def test_failed_condition_change_restores_all_phases(phase_model, monkeypatch):
+    """Apply-to-all must not leave phases at a mixture of old/new states."""
+    load_phase(phase_model, 'pt.jcpds')
+    load_phase(phase_model, 'pt.jcpds')
+    old_temperatures = [phase.params['temperature']
+                        for phase in phase_model.phases]
+    old_d = [[reflection.d for reflection in phase.reflections]
+             for phase in phase_model.phases]
+    rejected = []
+    phase_model.condition_rejected.connect(
+        lambda *args: rejected.append(args))
+
+    def fail_after_mutating(*args, **kwargs):
+        phase_model.phases[1].params['temperature'] = 5000.0
+        raise EosCalculationError("outside invertible range")
+
+    monkeypatch.setattr(phase_model.phases[1], 'compute_d',
+                        fail_after_mutating)
+
+    assert not phase_model.set_temperature(0, 5000.0)
+    assert [phase.params['temperature'] for phase in phase_model.phases] \
+        == old_temperatures
+    assert [[reflection.d for reflection in phase.reflections]
+            for phase in phase_model.phases] == old_d
+    assert rejected and rejected[0][:2] == (0, "temperature")
 
 
 # --- set_color ---

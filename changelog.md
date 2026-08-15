@@ -1,3 +1,9 @@
+# 0.10.1 (15.08.2026)
+
+## Fixes
+
+- Phase temperatures can no longer be set below absolute zero. If a very high temperature or pressure lies outside the numerical domain of the selected equation of state, Dioptas now keeps the last valid phase condition and reflection positions and shows a brief tooltip instead of exposing a calculation error. Changes made with **apply to all** are atomic, and switching to an EoS reference that cannot evaluate the current conditions is likewise rolled back safely.
+
 # 0.10.0 (14.08.2026)
 
 ## Highlights

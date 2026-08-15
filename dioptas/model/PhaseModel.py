@@ -13,7 +13,7 @@ from typing import Any
 
 from .util import Signal
 from .state import PhaseParams, PhaseItemParams
-from .util.jcpds import jcpds, jcpds_reflection
+from .util.jcpds import EosCalculationError, jcpds, jcpds_reflection
 from .util.cif import CifConverter
 from .util.HelperModule import calculate_color
 
@@ -75,6 +75,7 @@ class PhaseModel:
         self.phase_removed: Signal = Signal(int)  # phase ind
         self.phase_changed: Signal = Signal(int)  # phase ind
         self.phase_reloaded: Signal = Signal(int)  # phase ind
+        self.condition_rejected: Signal = Signal(int, str, str)
 
         self.reflection_added: Signal = Signal(int)
         self.reflection_deleted: Signal = Signal(int, int)  # phase index, reflection index
@@ -294,49 +295,91 @@ class PhaseModel:
         extension = os.path.splitext(self.items[ind].filename)[1].lower()
         return extension in ('.jcpds', '.cif', '.eosmat')
 
-    def set_pressure(self, ind: int, pressure: float) -> None:
+    def set_pressure(self, ind: int, pressure: float) -> bool:
         """
         Sets the pressure of a phase with index ind. In case same_conditions is true,
         all phase pressures will be updated.
         """
         logger.debug("Setting pressure for phase %d to %.2f GPa", ind, pressure)
-        if self.same_conditions:
-            for j in range(len(self.phases)):
-                self._set_pressure(j, pressure)
-                self.phase_changed.emit(j)
-        else:
-            self._set_pressure(ind, pressure)
-            self.phase_changed.emit(ind)
+        indices = list(range(len(self.phases))) if self.same_conditions else [ind]
+        return self._apply_conditions(
+            ind, indices, "pressure", f"{pressure:g} GPa",
+            lambda phase: phase.compute_d(pressure=pressure),
+        )
 
-    def _set_pressure(self, ind: int, pressure: float) -> None:
-        self.phases[ind].compute_d(pressure=pressure)
-        self.get_lines_d(ind)
-
-    def set_temperature(self, ind: int, temperature: float) -> None:
+    def set_temperature(self, ind: int, temperature: float) -> bool:
         """
         Sets the temperature of a phase with index ind. In case same_conditions is true,
         all phase temperatures will be updated.
         """
         logger.debug("Setting temperature for phase %d to %.1f K", ind, temperature)
-        if self.same_conditions:
-            for j in range(len(self.phases)):
-                self._set_temperature(j, temperature)
-                self.phase_changed.emit(j)
-        else:
-            self._set_temperature(ind, temperature)
-            self.phase_changed.emit(ind)
-
-    def _set_temperature(self, ind: int, temperature: float) -> None:
-        if self.phases[ind].has_thermal_expansion():
-            self.phases[ind].compute_d(temperature=temperature)
-            self.get_lines_d(ind)
+        indices = list(range(len(self.phases))) if self.same_conditions else [ind]
+        return self._apply_conditions(
+            ind, indices, "temperature", f"{temperature:g} K",
+            lambda phase: (
+                phase.compute_d(temperature=temperature)
+                if phase.has_thermal_expansion() else None
+            ),
+        )
 
     def set_pressure_temperature(
         self, ind: int, pressure: float, temperature: float
-    ) -> None:
-        self.phases[ind].compute_d(temperature=temperature, pressure=pressure)
-        self.get_lines_d(ind)
-        self.phase_changed.emit(ind)
+    ) -> bool:
+        return self._apply_conditions(
+            ind, [ind], "pressure and temperature",
+            f"{pressure:g} GPa, {temperature:g} K",
+            lambda phase: phase.compute_d(
+                temperature=temperature, pressure=pressure),
+        )
+
+    @staticmethod
+    def _condition_snapshot(phase: jcpds) -> tuple:
+        """Capture all state that a failed ``compute_d`` may have changed."""
+        return (
+            deepcopy(phase.state),
+            deepcopy(phase.params._derived),
+            [reflection.d for reflection in phase.reflections],
+        )
+
+    @staticmethod
+    def _restore_condition_snapshot(phase: jcpds, snapshot: tuple) -> None:
+        state, derived, reflection_d = snapshot
+        phase.state = state
+        phase.params._state = state
+        phase.params._derived = derived
+        for reflection, d_spacing in zip(phase.reflections, reflection_d):
+            reflection.d = d_spacing
+
+    def _apply_conditions(self, source_ind: int, indices: list[int],
+                          condition: str, requested: str, operation) -> bool:
+        """Apply a P/T change atomically, retaining the last valid state."""
+        snapshots = {
+            index: self._condition_snapshot(self.phases[index])
+            for index in indices
+        }
+        try:
+            for index in indices:
+                operation(self.phases[index])
+        except EosCalculationError as error:
+            for index, snapshot in snapshots.items():
+                self._restore_condition_snapshot(self.phases[index], snapshot)
+                self.phase_changed.emit(index)
+            logger.info(
+                "Rejected %s %s for phase %d: %s",
+                condition, requested, source_ind, error,
+            )
+            message = (
+                f"{requested} was not applied because the selected equation "
+                "of state cannot be evaluated there. The last valid "
+                "condition was retained."
+            )
+            self.condition_rejected.emit(source_ind, condition, message)
+            return False
+
+        for index in indices:
+            self.get_lines_d(index)
+            self.phase_changed.emit(index)
+        return True
 
     def set_param(self, ind: int, param: str, value: Any) -> None:
         """
@@ -615,7 +658,7 @@ class PhaseModel:
         self.phases[ind].params['modified'] = True
         self.phase_changed.emit(ind)
 
-    def set_eos_reference(self, ind: int, ref_ind: int) -> None:
+    def set_eos_reference(self, ind: int, ref_ind: int) -> bool:
         """
         Switches the phase with index ind to another of its EoS records
         (different literature reference for the same material). Applies
@@ -633,20 +676,22 @@ class PhaseModel:
         phase = self.phases[ind]
         records = phase.params['eos_records']
         if not 0 <= ref_ind < len(records):
-            return
+            return False
         record = records[ref_ind]
         from .eos import reference_text
         logger.debug("Switching phase %d to EoS reference '%s'",
                      ind, reference_text(record.get('reference')))
 
-        phase.params['eos_current_index'] = ref_ind
-        apply_eos_record(phase, record)
+        def apply_reference(candidate: jcpds) -> None:
+            candidate.params['eos_current_index'] = ref_ind
+            apply_eos_record(candidate, record)
+            candidate.compute_d()  # use the phase's current P and T
+            candidate.params['modified'] = bool(
+                candidate.params.get('eos_records_modified'))
 
-        phase.compute_d()  # recompute at the phase's current P and T
-        phase.params['modified'] = bool(
-            phase.params.get('eos_records_modified'))
-        self.get_lines_d(ind)
-        self.phase_changed.emit(ind)
+        label = reference_text(record.get('reference')) or "selected reference"
+        return self._apply_conditions(
+            ind, [ind], "reference", label, apply_reference)
 
     def get_eos_reference_labels(self, ind: int) -> list:
         """Reference labels available for the phase with index ind."""

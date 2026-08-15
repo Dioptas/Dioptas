@@ -80,6 +80,8 @@ class PhaseController:
         self.model.phase_model.phase_added.connect(self.phase_added)
         self.model.phase_model.phase_changed.connect(self.phase_changed)
         self.model.phase_model.phase_removed.connect(self.phase_removed)
+        self.model.phase_model.condition_rejected.connect(
+            self.phase_widget.show_condition_rejected)
 
     def connect_click_function(self, emitter, function):
         emitter.clicked.connect(function)

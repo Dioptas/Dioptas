@@ -260,9 +260,13 @@ class PhaseWidget(QtWidgets.QWidget):
 
         temperature_sb = DoubleSpinBoxAlignRight()
         temperature_sb.setFixedWidth(80)
-        temperature_sb.setMinimum(-9999999)
+        temperature_sb.setMinimum(0)
         temperature_sb.setMaximum(9999999)
         temperature_sb.setValue(300)
+        temperature_sb.setToolTip(
+            "Absolute temperature in kelvin. 0 uses the legacy "
+            "room-temperature convention."
+        )
         temperature_sb.setSingleStep(self.temperature_step_msb.value())
         temperature_sb.valueChanged.connect(
             partial(self.temperature_sb_callback, temperature_sb)
@@ -417,3 +421,18 @@ class PhaseWidget(QtWidgets.QWidget):
                                         QtCore.Qt.ToolTipRole)
         reference_cb.setToolTip(tooltip or reference_cb.currentText())
         self.reference_changed.emit(ind, reference_cb.currentIndex())
+
+    def show_condition_rejected(self, ind, condition, message):
+        """Give non-modal feedback beside the control that was restored."""
+        if not 0 <= ind < len(self.temperature_sbs):
+            return
+        if condition == "temperature":
+            control = self.temperature_sbs[ind]
+        elif condition == "pressure":
+            control = self.pressure_sbs[ind]
+        elif condition == "reference":
+            control = self.reference_cbs[ind]
+        else:
+            control = self.phase_tw
+        QtWidgets.QToolTip.showText(
+            control.mapToGlobal(control.rect().bottomLeft()), message, control)

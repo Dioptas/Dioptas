@@ -50,6 +50,14 @@ class PhaseWidgetTest(QtTest):
             table.columnWidth(4), self.phase_widget.temperature_sbs[0].width()
         )
 
+    def test_temperature_spinbox_disallows_negative_kelvin(self):
+        self.phase_widget.add_phase("Au", "#ffd700")
+        temperature = self.phase_widget.temperature_sbs[0]
+
+        self.assertEqual(temperature.minimum(), 0.0)
+        temperature.setValue(-1.0)
+        self.assertEqual(temperature.value(), 0.0)
+
     def test_layout_update_preserves_name_and_reference_column_widths(self):
         table = self.phase_widget.phase_tw
         table.setColumnWidth(2, 150)

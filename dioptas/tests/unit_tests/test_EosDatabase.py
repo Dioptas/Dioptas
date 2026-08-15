@@ -13,6 +13,7 @@ import pytest
 from ...model import eos
 from ...model.eos.material import Material, _parse_formula
 from ...model.PhaseModel import PhaseModel
+from ...model.util.jcpds import EosCalculationError
 from ...model.util.phasesmith import material_has_complete_structure
 from ...model.util.eos_phase import EosPhase
 
@@ -98,6 +99,41 @@ def test_gold_has_multiple_references(gold):
     labels = [eos.record_label(r) for r in gold.eos_records]
     assert all(labels), "every record needs a display label"
     assert len(set(labels)) == len(labels), "labels must be unique"
+
+
+def test_unreachable_gold_temperature_retains_last_valid_state(gold):
+    """A Peritheos inversion limit is user input feedback, not a traceback."""
+    model = PhaseModel()
+    model.same_conditions = False
+    phase = eos.build_jcpds(gold)  # Fei et al. MGD record
+    model.add_jcpds_object(phase)
+    assert model.set_pressure(0, 10.0)
+    previous_temperature = phase.params["temperature"]
+    previous_volume = phase.params["v"]
+    previous_d = [reflection.d for reflection in phase.reflections]
+
+    assert not model.set_temperature(0, 100000.0)
+    assert phase.params["temperature"] == previous_temperature
+    assert phase.params["v"] == previous_volume
+    assert [reflection.d for reflection in phase.reflections] == previous_d
+
+
+def test_unreachable_gold_reference_switch_is_rolled_back(gold, monkeypatch):
+    model = PhaseModel()
+    model.same_conditions = False
+    phase = eos.build_jcpds(gold)
+    model.add_jcpds_object(phase)
+    previous_index = phase.params["eos_current_index"]
+    previous_type = phase.params["eos_type"]
+
+    def fail_at_current_conditions(*args, **kwargs):
+        raise EosCalculationError("outside invertible range")
+
+    monkeypatch.setattr(phase, "compute_d", fail_at_current_conditions)
+
+    assert not model.set_eos_reference(0, 3)
+    assert phase.params["eos_current_index"] == previous_index
+    assert phase.params["eos_type"] == previous_type
 
 
 def test_search(materials):
