@@ -28,7 +28,7 @@ from .util.ImgCorrection import (
 )
 from dioptas.model.loader.LambdaLoader import LambdaImage
 from dioptas.model.loader.KaraboLoader import KaraboFile
-from dioptas.model.loader.hdf5Loader import Hdf5Image
+from dioptas.model.loader.hdf5Loader import Hdf5ExternalLinkError, Hdf5Image
 from dioptas.model.loader.FabioLoader import FabioLoader
 
 logger = logging.getLogger(__name__)
@@ -484,6 +484,8 @@ class ImgModel:
         """Loads an ESRF hdf5 file."""
         try:
             hdf5_image = Hdf5Image(filename)
+        except Hdf5ExternalLinkError as error:
+            raise FileLoadingError(str(error)) from error
         except OSError:
             # not an HDF5 file at all
             return None

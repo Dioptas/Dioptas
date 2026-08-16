@@ -25,6 +25,42 @@ BITSHUFFLE_FILTER_ID = 32008
 _NUM_CPUS: int = max((os.cpu_count() or 4) - 1, 1)
 
 
+class Hdf5ExternalLinkError(RuntimeError):
+    """Raised when an HDF5 file contains an external link that cannot open."""
+
+    def __init__(
+        self,
+        source_filename: str,
+        link_filename: str,
+        link_path: str,
+    ) -> None:
+        source_filename = os.path.abspath(source_filename)
+        if os.path.isabs(link_filename):
+            resolved_filename = link_filename
+        else:
+            resolved_filename = os.path.join(
+                os.path.dirname(source_filename), link_filename
+            )
+
+        source_basename = os.path.basename(source_filename)
+        if not os.path.isfile(resolved_filename):
+            message = (
+                f'Could not load "{source_basename}": its image data is stored '
+                "in an external HDF5 companion file that is missing:\n"
+                f'"{resolved_filename}"\n\n'
+                "Copy the companion data file to that location and try again."
+            )
+        else:
+            message = (
+                f'Could not load "{source_basename}": its external HDF5 data '
+                f'file "{resolved_filename}" could not be opened at dataset '
+                f'"{link_path}". The companion file may be damaged or may not '
+                "contain the expected dataset."
+            )
+
+        super().__init__(message)
+
+
 def _decompress_bitshuffle_lz4(
     raw_bytes: bytes,
     shape: tuple[int, ...],
@@ -64,7 +100,11 @@ class Hdf5Image:
         """Loads an Hdf5 image produced by ESRF."""
         self.filename: str = filename
         self.f: h5py.File = h5py.File(filename, "r")
-        self.image_sources: list[str] = find_image_sources(self.f)
+        try:
+            self.image_sources: list[str] = find_image_sources(self.f)
+        except Exception:
+            self.f.close()
+            raise
 
         self.dataset: h5py.Dataset = self.f[self.image_sources[0]]
         self.series_max: int = self.dataset.shape[0]
@@ -160,7 +200,19 @@ def find_image_sources(hd5_file: h5py.File) -> list[str]:
                 image_paths.append(parent_path)
         else:  # node is a group
             for key in group.keys():
-                traverse_groups(group[key], parent_path + "/" + key)
+                child_path = parent_path + "/" + key
+                try:
+                    child = group[key]
+                except (KeyError, OSError) as error:
+                    link = group.get(key, getlink=True)
+                    if isinstance(link, h5py.ExternalLink):
+                        raise Hdf5ExternalLinkError(
+                            str(hd5_file.filename),
+                            os.fsdecode(link.filename),
+                            link.path,
+                        ) from error
+                    raise
+                traverse_groups(child, child_path)
 
     traverse_groups(hd5_file)
 

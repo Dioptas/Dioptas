@@ -4,6 +4,7 @@ import pytest
 from mock import MagicMock, patch
 import os
 
+import h5py
 import numpy as np
 
 from ...model.ImgModel import ImgModel, BackgroundDimensionWrongException
@@ -278,6 +279,46 @@ def test_loading_ESRF_hdf5_file(img_model):
     img_model.select_source(img_model.sources[2])
     img2 = img_model.img_data
     assert np.sum(img1 - img2) != 0
+
+
+def test_loading_hdf5_with_missing_external_data_shows_clear_error(tmp_path):
+    from dioptas.model.util.file_type import FileLoadingError
+
+    master_filename = tmp_path / "scan_master.h5"
+    companion_basename = "scan_data_000001.h5"
+    with h5py.File(master_filename, "w") as master_file:
+        data_group = master_file.create_group("entry/data")
+        data_group["data_000001"] = h5py.ExternalLink(
+            companion_basename, "/entry/data/data"
+        )
+
+    with pytest.raises(FileLoadingError) as exc_info:
+        ImgModel().load(str(master_filename))
+
+    message = str(exc_info.value)
+    assert "external HDF5 companion file" in message
+    assert "missing" in message
+    assert str(tmp_path / companion_basename) in message
+
+
+def test_loading_hdf5_follows_external_data_link(tmp_path):
+    master_filename = tmp_path / "scan_master.h5"
+    companion_basename = "scan_data_000001.h5"
+    companion_filename = tmp_path / companion_basename
+    image = np.arange(6, dtype=np.uint16).reshape(1, 2, 3)
+
+    with h5py.File(companion_filename, "w") as companion_file:
+        companion_file.create_dataset("entry/data/data", data=image)
+    with h5py.File(master_filename, "w") as master_file:
+        data_group = master_file.create_group("entry/data")
+        data_group["data_000001"] = h5py.ExternalLink(
+            companion_basename, "/entry/data/data"
+        )
+
+    img_model = ImgModel()
+    img_model.load(str(master_filename))
+
+    assert np.array_equal(img_model.img_data, image[0][::-1])
 
 
 def test_summing_files(img_model):
