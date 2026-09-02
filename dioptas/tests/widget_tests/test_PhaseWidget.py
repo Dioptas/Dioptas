@@ -1,8 +1,12 @@
 # SPDX-License-Identifier: MIT
 
+import os
+import re
+
 from qtpy import QtWidgets
 
 from ..utility import QtTest
+from ...paths import style_path
 from ...widgets.integration.control.PhaseWidget import PhaseWidget
 
 
@@ -57,6 +61,32 @@ class PhaseWidgetTest(QtTest):
         self.assertEqual(temperature.minimum(), 0.0)
         temperature.setValue(-1.0)
         self.assertEqual(temperature.value(), 0.0)
+
+    def test_phase_table_arrow_icons_indicate_enabled_state(self):
+        with open(os.path.join(style_path, "qt_material.css")) as style_file:
+            stylesheet = style_file.read().replace("{{", "{").replace("}}", "}")
+
+        expected_icons = {
+            "#phase_table_widget QComboBox::down-arrow":
+                "primary/downarrow.svg",
+            "#phase_table_widget QComboBox::down-arrow:disabled":
+                "active/downarrow.svg",
+            "#phase_table_widget QDoubleSpinBox::up-button":
+                "primary/uparrow.svg",
+            "#phase_table_widget QDoubleSpinBox::down-button":
+                "primary/downarrow.svg",
+            "#phase_table_widget QDoubleSpinBox::up-button:disabled":
+                "active/uparrow.svg",
+            "#phase_table_widget QDoubleSpinBox::down-button:disabled":
+                "active/downarrow.svg",
+        }
+        for selector, expected_icon in expected_icons.items():
+            with self.subTest(selector=selector):
+                rule = re.search(
+                    rf"{re.escape(selector)}\s*\{{([^}}]*)\}}", stylesheet
+                )
+                self.assertIsNotNone(rule)
+                self.assertIn(f"image: url(icon:/{expected_icon})", rule.group(1))
 
     def test_layout_update_preserves_name_and_reference_column_widths(self):
         table = self.phase_widget.phase_tw

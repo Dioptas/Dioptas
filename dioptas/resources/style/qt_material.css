@@ -237,6 +237,37 @@ QRadioButton:disabled {{
 }}
 
 /*  ------------------------------------------------------------------------  */
+/*  Phase table controls                                                       */
+/*  qt_material normally uses its neutral "active" icons for enabled arrows   */
+/*  and secondaryLightColor for disabled ones. In this theme that secondary    */
+/*  colour is amber, which visually reverses their availability. Keep amber    */
+/*  for controls that can be used and neutral grey for disabled controls.      */
+
+#phase_table_widget QComboBox::down-arrow {{
+    image: url(icon:/primary/downarrow.svg);
+}}
+
+#phase_table_widget QComboBox::down-arrow:disabled {{
+    image: url(icon:/active/downarrow.svg);
+}}
+
+#phase_table_widget QDoubleSpinBox::up-button {{
+    image: url(icon:/primary/uparrow.svg);
+}}
+
+#phase_table_widget QDoubleSpinBox::down-button {{
+    image: url(icon:/primary/downarrow.svg);
+}}
+
+#phase_table_widget QDoubleSpinBox::up-button:disabled {{
+    image: url(icon:/active/uparrow.svg);
+}}
+
+#phase_table_widget QDoubleSpinBox::down-button:disabled {{
+    image: url(icon:/active/downarrow.svg);
+}}
+
+/*  ------------------------------------------------------------------------  */
 /*  Pattern plot edge controls                                                 */
 /*  The unit/scale/background toggles beside the pattern plot are two-letter   */
 /*  micro-buttons; the global flat-checked border alone is easy to miss at     */

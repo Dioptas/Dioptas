@@ -4,6 +4,10 @@
 
 - The offline EoS material library now comes directly from Peritheos 0.6.0 instead of being duplicated inside Dioptas. This brings Peritheos's primary-source-audited records and corrections into the **DB** browser, keeps `.eosmat` validation in one place, and evaluates its newer thermal models with Peritheos's material-record engine.
 
+## Fixes
+
+- Enabled drop-down and numeric controls in the phase table now use orange arrows, while unavailable controls use grey arrows instead of appearing active.
+
 # 0.10.1 (15.08.2026)
 
 ## Fixes
