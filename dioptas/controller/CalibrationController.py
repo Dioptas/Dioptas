@@ -1624,6 +1624,9 @@ class CalibrationController:
             self.model.current_configuration.integrate_image_1d()
             progress_dialog.close()
         self.widget.cake_widget.plot_image(self.model.cake_data, False)
+        self.widget.cake_widget.set_cake_coordinates(
+            self.model.cake_tth, self.model.cake_azi
+        )
         self.widget.cake_widget.auto_level()
 
         self.widget.pattern_widget.plot_data(*self.model.pattern.data)

@@ -6,7 +6,11 @@ import pytest
 from pyqtgraph import GraphicsLayoutWidget
 from qtpy.QtCore import QPointF
 
-from dioptas.widgets.plot_widgets.ImgWidget import ImgWidget, MaskImgWidget
+from dioptas.widgets.plot_widgets.ImgWidget import (
+    CalibrationCakeWidget,
+    ImgWidget,
+    MaskImgWidget,
+)
 
 
 @pytest.fixture
@@ -76,3 +80,28 @@ def test_mask_plot_uses_binary_storage_and_fixed_levels(qapp, qWidgetFactory):
 
     assert widget.mask_data.dtype == np.int8
     assert tuple(widget.mask_img_item.getLevels()) == (0, 1)
+
+
+def test_calibration_cake_has_physical_axes(qapp, qWidgetFactory):
+    layout_widget = qWidgetFactory(GraphicsLayoutWidget)
+    widget = CalibrationCakeWidget(layout_widget)
+    widget.plot_image(np.zeros((4, 5), dtype=np.int32))
+    widget.set_cake_coordinates(
+        np.linspace(14.0, 46.0, 5),
+        np.linspace(-135.0, 135.0, 4),
+    )
+    widget.img_view_box.setRange(xRange=(0, 5), yRange=(0, 4), padding=0)
+    qapp.processEvents()
+
+    assert widget.bottom_axis_cake.labelText == "2θ"
+    assert widget.bottom_axis_cake.labelUnits == "°"
+    assert widget.left_axis_cake.labelText == "Azimuth"
+    assert widget.left_axis_cake.labelUnits == "°"
+    assert widget.bottom_axis_cake.range == pytest.approx([10.0, 50.0])
+    assert widget.left_axis_cake.range == pytest.approx([-180.0, 180.0])
+
+    widget.img_view_box.setRange(xRange=(1, 3), yRange=(1, 3), padding=0)
+    qapp.processEvents()
+
+    assert widget.bottom_axis_cake.range == pytest.approx([18.0, 34.0])
+    assert widget.left_axis_cake.range == pytest.approx([-90.0, 90.0])

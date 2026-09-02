@@ -327,11 +327,75 @@ class ImgWidget(QtCore.QObject):
 
 
 class CalibrationCakeWidget(ImgWidget):
-    def __init__(self, pg_layout, orientation="vertical", padding=0.01):
+    def __init__(
+        self,
+        pg_layout,
+        orientation="vertical",
+        padding=0.01,
+        show_axes=True,
+    ):
         super().__init__(pg_layout, orientation, padding)
         self.img_view_box.setAspectLocked(False)
+        self.cake_tth = None
+        self.cake_azi = None
+        if show_axes:
+            self.add_cake_axes()
         self.create_vertical_line()
         self.mouse_left_clicked.connect(self.set_vertical_line_pos)
+
+    def add_cake_axes(self):
+        """Adds physical-coordinate axes around the cake image."""
+        self.left_axis_cake = pg.AxisItem("left")
+        self.bottom_axis_cake = pg.AxisItem("bottom")
+        self.bottom_axis_cake.setLabel("2θ", "°")
+        self.left_axis_cake.setLabel("Azimuth", "°")
+
+        self.pg_layout.addItem(self.left_axis_cake, row=1, col=0)
+        self.pg_layout.addItem(self.bottom_axis_cake, row=2, col=1)
+        self.img_view_box.sigRangeChanged.connect(self.update_cake_axes_range)
+
+    def set_cake_coordinates(self, tth, azi):
+        """Sets the 2θ and azimuth values represented by the cake bins."""
+        self.cake_tth = None if tth is None else np.asarray(tth)
+        self.cake_azi = None if azi is None else np.asarray(azi)
+        self.update_cake_axes_range()
+
+    @staticmethod
+    def _physical_axis_range(coordinates, view_min, view_max, extent):
+        if coordinates is None or coordinates.size == 0 or extent <= 0:
+            return None
+        if coordinates.size == 1:
+            return coordinates[0] - 0.5, coordinates[0] + 0.5
+        bin_width = extent / coordinates.size
+        scale = (coordinates[-1] - coordinates[0]) / (extent - bin_width)
+        return (
+            coordinates[0] + scale * (view_min - bin_width / 2),
+            coordinates[0] + scale * (view_max - bin_width / 2),
+        )
+
+    def update_cake_axes_range(self, *_):
+        """Keeps the physical axes synchronized while the cake is zoomed."""
+        if not hasattr(self, "bottom_axis_cake"):
+            return
+
+        view_rect = self.img_view_rect()
+        image_rect = self.img_bounding_rect()
+        tth_range = self._physical_axis_range(
+            self.cake_tth,
+            view_rect.left(),
+            view_rect.right(),
+            image_rect.width(),
+        )
+        azi_range = self._physical_axis_range(
+            self.cake_azi,
+            view_rect.top(),
+            view_rect.bottom(),
+            image_rect.height(),
+        )
+        if tth_range is not None:
+            self.bottom_axis_cake.setRange(*tth_range)
+        if azi_range is not None:
+            self.left_axis_cake.setRange(*azi_range)
 
     def create_vertical_line(self):
         self.vertical_line = pg.InfiniteLine(
@@ -614,7 +678,9 @@ class IntegrationImgWidget(MaskImgWidget):
 
 class IntegrationCakeWidget(CalibrationCakeWidget):
     def __init__(self, pg_layout, orientation="vertical", padding=0.01):
-        super().__init__(pg_layout, orientation, padding)
+        # This view has its own three-column cake/integral layout and its
+        # axes are managed by ImageController.
+        super().__init__(pg_layout, orientation, padding, show_axes=False)
         self.img_view_box.setAspectLocked(False)
         self.create_mouse_click_item()
         self.add_cake_axes()
