@@ -249,6 +249,7 @@ class CalibrationController:
         self.widget.pattern_widget.deactivate_pos_line()
         self.widget.cake_widget.deactivate_vertical_line()
         self._calibrant_overlays_dirty = True
+        self._calibrant_overlay_image_shape = self.model.img_data.shape
         self.widget.img_widget.mouse_left_clicked.connect(self.validation_img_click)
         self.widget.cake_widget.mouse_left_clicked.connect(self.validation_cake_click)
         self.widget.pattern_widget.mouse_left_clicked.connect(
@@ -485,6 +486,12 @@ class CalibrationController:
     def _calibrant_overlays_changed(self, *_):
         self._calibrant_overlays_dirty = True
         if self._on_validation_step():
+            self._update_calibrant_overlays()
+
+    def _recalculate_calibrant_overlays(self):
+        """Rebuild overlays immediately when their image-space data changes."""
+        self._calibrant_overlays_dirty = True
+        if self._mode_active:
             self._update_calibrant_overlays()
 
     #: alpha for the calibrant overlays, so the peaks stay visible underneath
@@ -789,7 +796,7 @@ class CalibrationController:
                 name=self._calibrants_file_names_list[current_index],
             )
         # the calibrant's reflections are part of the validation overlays
-        self._calibrant_overlays_changed()
+        self._recalculate_calibrant_overlays()
 
     def set_calibrant(self, index):
         """
@@ -803,8 +810,12 @@ class CalibrationController:
         """
         Plots the current image loaded in img_data and autoscales the intensity.
         """
+        image_shape = self.model.img_data.shape
         self.widget.img_widget.plot_image(self.model.img_data, autoscale)
         self.widget.set_img_filename(self.model.img_model.filename)
+        if image_shape != self._calibrant_overlay_image_shape:
+            self._calibrant_overlay_image_shape = image_shape
+            self._recalculate_calibrant_overlays()
 
     def search_peaks(self, x, y):
         """

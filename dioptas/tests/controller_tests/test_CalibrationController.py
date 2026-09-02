@@ -787,6 +787,38 @@ def test_only_calibrant_lines_are_drawn_in_validation_views(
     assert len(widget.pattern_widget.phases) == 0
 
 
+def test_selecting_calibrant_recalculates_lines_before_validation(
+    calibration_controller,
+):
+    assert not calibration_controller._on_validation_step()
+
+    calibration_controller._update_calibrant_overlays = MagicMock()
+    calibrant_index = calibration_controller.widget.calibrant_cb.findText("CeO2")
+    calibration_controller.widget.calibrant_cb.setCurrentIndex(calibrant_index)
+
+    calibration_controller._update_calibrant_overlays.assert_called_once_with()
+
+
+def test_image_shape_change_recalculates_calibrant_lines(
+    calibration_controller, dioptas_model
+):
+    update_overlays = MagicMock()
+    calibration_controller._update_calibrant_overlays = update_overlays
+    calibration_controller.widget.img_widget.plot_image = MagicMock()
+
+    dioptas_model.img_model._img_data = np.zeros_like(
+        dioptas_model.img_model._img_data
+    )
+    calibration_controller.plot_image()
+    update_overlays.assert_not_called()
+
+    dioptas_model.img_model._img_data = np.zeros((1000, 1000))
+    calibration_controller.plot_image()
+
+    update_overlays.assert_called_once_with()
+    assert calibration_controller._calibrant_overlay_image_shape == (1000, 1000)
+
+
 def test_calibrant_lines_and_numbers_can_be_hidden(
     calibration_controller, calibration_model, dioptas_model
 ):
