@@ -148,7 +148,7 @@ Phase controls are similar to overlay controls:
   lossless reflection source. A dialog asks for the **Intensity Cutoff** and
   **Minimum d-spacing** for reflections. Multiple files can be selected at
   once.
-- *DB*: Browse the bundled, offline EoS material database. A selected material
+- *DB*: Browse Peritheos's bundled, offline EoS material library. A selected material
   can be loaded directly as a phase; exporting it as ``.eosmat`` is optional
   and is intended for sharing or portability.
 - *Edit*: Open the Phase Editor.
@@ -165,16 +165,17 @@ Check **Apply to all phases** to change all phases simultaneously.
 **Show in Pattern** controls whether P/T values appear in the phase legend.
 
 
-Bundled EoS database
-~~~~~~~~~~~~~~~~~~~~
+Peritheos EoS material library
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. figure:: images/eos_database.png
     :align: center
     :width: 720
 
-    The bundled database shows a material's published EoS records and their provenance.
+    The Peritheos library shows a material's published EoS records and their provenance.
 
-Click **DB** to search the equation-of-state material database shipped with Dioptas. Search accepts
+Click **DB** to search the audited equation-of-state material library supplied by Peritheos. The
+library is installed with Dioptas and remains fully available offline. Search accepts
 material and mineral names, aliases, and formulas. Formula matching understands equivalent
 stoichiometries and composition families: for example, ``MgFeO`` or ``MgFe`` can find a stored
 mixed Mg-Fe oxide even when its formula uses decimal or integer-ratio subscripts. Exact matches are
@@ -229,15 +230,15 @@ from temporary phase parameters:
   literature-reference, uncertainty, fixed-parameter and fit-range metadata.
 - **Duplicate** makes a user-owned copy of any record.
 - **Edit**, **Delete** and **Set Default** operate on user-owned records.
-- Records loaded from the bundled database are read-only. Duplicate a
+- Records loaded from the Peritheos library are read-only. Duplicate a
   published record before changing its values; this prevents edited numbers
   from continuing to carry the original publication attribution.
 
 Records loaded from a user ``.eosmat`` file and records created from a CIF are
 editable. **Set Default** marks the preferred user-owned record; save the material
 as ``.eosmat`` or save the session as a project to retain that choice. Changes to
-a loaded bundled phase never write into the application database; that database
-is updated only through repository curation.
+a loaded library phase never write into the installed catalog; catalog updates
+arrive through new Peritheos releases.
 
 A "0" suffix indicates ambient-condition values; values without "0" correspond to the current P/T conditions.
 

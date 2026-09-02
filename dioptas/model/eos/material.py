@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray diffraction data
 """
-Material and EoS-record structures for the bundled equation-of-state
-database.
+Dioptas's mutable view of Peritheos material and EoS-record documents.
 
-One material document (a ``.json`` file in ``resources/eos_database/``, or
-a user-saved ``.eosmat`` file — same content) uses the shared format defined
-by Peritheos. Dioptas continues to read its legacy format 2 and preserves all
-format-3 fields, including extensions it does not interpret::
+Peritheos supplies the installed material library and owns the shared
+``.eosmat`` format. Dioptas adapts those documents for structure editing,
+reflection calculation, and project storage. It continues to read its legacy
+format 2 and preserves all format-3 fields, including extensions it does not
+interpret::
 
     {
       "format": "peritheos.material",
@@ -75,7 +75,7 @@ schema change::
 ``reference.authors`` stores the publication's complete, ordered author list.
 ``reference.authors_truncated`` remains supported for imported user files
 whose source metadata supplies only the first author followed by "et al.";
-bundled database records do not use it. ``volume``, ``locator``, ``doi``, and
+Peritheos library records do not use it. ``volume``, ``locator``, ``doi``, and
 a free-form ``details`` field (for example, a table or supplementary workbook)
 are optional.
 
@@ -115,6 +115,7 @@ experimental limit only qualitatively.
 from __future__ import annotations
 
 import re
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -208,7 +209,7 @@ class Material:
             return None
 
     def to_dict(self) -> dict:
-        document = dict(self.extensions)
+        document = deepcopy(self.extensions)
         document.update({
             "format_version": self.format_version,
             "name": self.name,
@@ -227,7 +228,7 @@ class Material:
             "source": dict(self.source),
             "notes": self.notes,
             "peaks": [list(peak) for peak in self.peaks],
-            "eos_records": self.eos_records,
+            "eos_records": deepcopy(self.eos_records),
         })
         if self.format_version >= 3 or self.format:
             document["format"] = self.format or "peritheos.material"
@@ -269,15 +270,15 @@ class Material:
             source=dict(document.get("source") or {}),
             notes=document.get("notes") or "",
             peaks=[list(peak) for peak in document.get("peaks", [])],
-            eos_records=list(document.get("eos_records", [])),
+            eos_records=deepcopy(document.get("eos_records", [])),
             format=document.get("format") or "",
             format_version=int(document.get("format_version") or 2),
             identifier=document.get("identifier") or "",
             phase=document.get("phase") or "",
             cell_contents=document.get("cell_contents") or "",
             units=dict(document.get("units") or {}),
-            extensions={key: value for key, value in document.items()
-                        if key not in known},
+            extensions=deepcopy({key: value for key, value in document.items()
+                                 if key not in known}),
         )
 
 

@@ -4,17 +4,18 @@
 Turns an EoS-database Material into a Dioptas jcpds phase, and reads/
 writes ``.eosmat`` material files.
 
-A ``.eosmat`` file is simply one material document in JSON — byte-for-byte
-the same schema as the bundled ``resources/eos_database/*.json`` files
-(see material.py), so exported materials, bundled materials and the
-records stored inside ``.dio`` projects all share one format.
+A ``.eosmat`` file is one material document in the format owned by Peritheos.
+Exported materials, Peritheos library materials, and records stored inside
+``.dio`` projects therefore share one format.
 """
 
 from __future__ import annotations
 
 import copy
-import json
 from math import pi
+import re
+
+from peritheos import load_eosmat, save_eosmat
 
 from .material import (Material, record_eos_type, record_label,
                        reference_text)
@@ -224,8 +225,21 @@ def apply_eos_record(phase, record: dict) -> None:
         phase.params["d_alpha_dt"] = 0.0
         phase.params["dk0dt"] = 0.0
         phase.params["dk0pdt"] = 0.0
+    elif thermal_type and (
+            thermal_type != "AlphaKT" or thermal.get("model")):
+        # Canonical Peritheos records can use models that do not map onto
+        # the legacy JCPDS coefficient fields. Keep their complete component
+        # and let Peritheos's material-record dispatcher evaluate it.
+        phase.params["thermal_type"] = thermal_type
+        phase.params["theta_t0"] = 0.0
+        phase.params["gamma_t0"] = 0.0
+        phase.params["q_t0"] = 1.0
+        phase.params["alpha_t0"] = 0.0
+        phase.params["d_alpha_dt"] = 0.0
+        phase.params["dk0dt"] = 0.0
+        phase.params["dk0pdt"] = 0.0
     else:
-        # 'AlphaKT' (the classic correction) or no thermal data at all
+        # Legacy AlphaKT records use Dioptas's coefficient correction.
         phase.params["thermal_type"] = ""
         if thermal_type != "AlphaKT":
             thermal_parameters = {}
@@ -294,44 +308,64 @@ def material_from_jcpds(phase) -> Material:
 
 
 def save_material_file(path: str, material: Material) -> None:
-    """Write a material as a ``.eosmat`` (JSON) file."""
-    with open(path, "w", encoding="utf-8") as fh:
-        fh.write(_format_material_json(material.to_dict()))
+    """Validate and write a material through Peritheos's ``.eosmat`` API."""
+    document = material.to_dict()
+    _complete_record_metadata(document)
+    save_eosmat(path, document)
 
 
-def _format_material_json(document: dict) -> str:
-    """Render each peak and atom site compactly on one line."""
-    document = copy.deepcopy(document)
-    replacements = {}
-    compact_peaks = []
-    for index, peak in enumerate(document.get("peaks", [])):
-        marker = f"\0DIOPTAS_PEAK_ROW_{index:06d}\0"
-        encoded_marker = json.dumps(marker)
-        replacements[encoded_marker] = json.dumps(
-            peak, ensure_ascii=False, separators=(", ", ": ")
-        )
-        compact_peaks.append(marker)
-    document["peaks"] = compact_peaks
+def _complete_record_metadata(document: dict) -> None:
+    """Supply neutral metadata omitted by old or user-authored records.
 
-    compact_sites = []
-    for index, site in enumerate(document.get("atom_sites", [])):
-        marker = f"\0DIOPTAS_ATOM_SITE_{index:06d}\0"
-        encoded_marker = json.dumps(marker)
-        replacements[encoded_marker] = json.dumps(
-            site, ensure_ascii=False, separators=(", ", ": ")
-        )
-        compact_sites.append(marker)
-    document["atom_sites"] = compact_sites
+    Peritheos deliberately validates the interchange format more strictly
+    than Dioptas's former JSON writer. Empty references and unknown errors
+    remain explicit here; canonical custom records are marked unvalidated.
+    """
+    from ..util.eos_phase import (
+        EOS_MODEL_IDENTIFIERS,
+        THERMAL_MODEL_IDENTIFIERS,
+    )
 
-    rendered = json.dumps(document, indent=1, ensure_ascii=False)
-    for marker, peak_row in replacements.items():
-        if rendered.count(marker) != 1:
-            raise ValueError("Peak-row serialization marker is not unique")
-        rendered = rendered.replace(marker, peak_row)
-    return rendered + "\n"
+    canonical = (
+        document.get("format") == "peritheos.material"
+        and document.get("format_version") == 3
+    )
+    used_identifiers = {
+        str(record.get("identifier"))
+        for record in document.get("eos_records", [])
+        if record.get("identifier")
+    }
+    for index, record in enumerate(document.get("eos_records", []), start=1):
+        record.setdefault("reference", "")
+        record.setdefault("parameter_errors", {})
+        record.setdefault("fixed_parameters", [])
+        thermal = record.get("thermal")
+        if not canonical:
+            continue
+
+        if not record.get("identifier"):
+            stem = re.sub(
+                r"[^a-z0-9]+", "_",
+                str(record.get("label") or f"custom_{index}").lower(),
+            ).strip("_") or f"custom_{index}"
+            identifier = stem
+            suffix = 2
+            while identifier in used_identifiers:
+                identifier = f"{stem}_{suffix}"
+                suffix += 1
+            record["identifier"] = identifier
+            used_identifiers.add(identifier)
+        eos = record.get("eos") or {}
+        if not eos.get("model"):
+            eos["model"] = EOS_MODEL_IDENTIFIERS[eos["type"]]
+        if thermal and not thermal.get("model"):
+            thermal["model"] = THERMAL_MODEL_IDENTIFIERS[thermal["type"]]
+        record.setdefault("scientific_validation", {
+            "status": "deferred",
+            "note": "User-created Dioptas record; not primary-source validated.",
+        })
 
 
 def load_material_file(path: str) -> Material:
-    """Read a ``.eosmat`` (JSON) material file."""
-    with open(path, "r", encoding="utf-8") as fh:
-        return Material.from_dict(json.load(fh))
+    """Read and validate a material through Peritheos's ``.eosmat`` API."""
+    return Material.from_dict(load_eosmat(path))

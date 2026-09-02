@@ -1,60 +1,61 @@
 # -*- coding: utf-8 -*-
 # Dioptas - GUI program for fast processing of 2D X-ray diffraction data
-"""
-Loader and search for the bundled EoS material database.
-
-The database ships with Dioptas as one JSON file per material in
-``resources/eos_database/`` (see material.py for the schema). It is
-curated in the repository like the calibrant files: new materials or
-literature references are added by pull request and become part of the
-next release — versioned, citable, and available offline.
-"""
+"""Load and search the EoS material library provided by Peritheos."""
 
 from __future__ import annotations
 
-import json
 import logging
 import math
 import os
 
-from ...paths import resources_path
+from peritheos import (
+    get_material_document,
+    list_material_documents,
+    load_eosmat,
+)
+
 from .material import Material, _parse_formula
 
 logger = logging.getLogger(__name__)
-
-eos_database_path = os.path.join(resources_path, "eos_database")
 
 _cache: dict = {}
 
 
 def load_materials(directory: str | None = None) -> list:
     """
-    All materials of the bundled database (or of *directory*), sorted by
-    name. Loaded once per directory and cached; unreadable files are
-    skipped with a warning rather than breaking the whole database.
+    All materials in Peritheos's bundled library, sorted by name.
+
+    Passing *directory* remains available for tests and private material
+    collections. Both ``.eosmat`` and the former ``.json`` extension are
+    accepted there. Loaded collections are cached; unreadable files are
+    skipped with a warning rather than breaking the whole library.
     """
-    directory = directory or eos_database_path
-    if directory in _cache:
-        return _cache[directory]
+    cache_key = os.fspath(directory) if directory is not None else None
+    if cache_key in _cache:
+        return _cache[cache_key]
 
     materials = []
-    try:
-        filenames = sorted(os.listdir(directory))
-    except OSError as e:
-        logger.warning("EoS database directory unreadable: %s", e)
-        filenames = []
-    for filename in filenames:
-        if not filename.endswith(".json"):
-            continue
-        path = os.path.join(directory, filename)
+    if directory is None:
+        for identifier in list_material_documents():
+            materials.append(Material.from_dict(
+                get_material_document(identifier)))
+    else:
         try:
-            with open(path, "r", encoding="utf-8") as fh:
-                materials.append(Material.from_dict(json.load(fh)))
-        except (OSError, ValueError, KeyError) as e:
-            logger.warning("Skipping unreadable EoS database file %s: %s",
-                           filename, e)
+            filenames = sorted(os.listdir(directory))
+        except OSError as e:
+            logger.warning("EoS material directory unreadable: %s", e)
+            filenames = []
+        for filename in filenames:
+            if not filename.endswith((".eosmat", ".json")):
+                continue
+            path = os.path.join(directory, filename)
+            try:
+                materials.append(Material.from_dict(load_eosmat(path)))
+            except (OSError, ValueError, KeyError, TypeError) as e:
+                logger.warning("Skipping unreadable EoS material file %s: %s",
+                               filename, e)
     materials.sort(key=lambda m: m.name.lower())
-    _cache[directory] = materials
+    _cache[cache_key] = materials
     return materials
 
 

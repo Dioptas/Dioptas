@@ -41,6 +41,7 @@ import inspect
 from typing import Optional
 
 from peritheos.eos import rt, thermal
+from peritheos import Material as PeritheosMaterial
 
 #: Peritheos rt classes selectable as a phase's equation of state. The
 #: names are the class names; a record's parameters go straight into the
@@ -77,6 +78,45 @@ EOS_DISPLAY_NAMES = {
     "MieGruneisenEinstein": "Mie-Grüneisen-Einstein",
     "Sokolova2016": "Sokolova et al. (2016)",
 }
+
+# Stable model identifiers required by canonical Peritheos .eosmat records.
+# Dioptas exposes class names in its UI but must update both fields when a
+# user-owned copy changes equation type.
+EOS_MODEL_IDENTIFIERS = {
+    "BM2": "birch_murnaghan_2",
+    "BM3": "birch_murnaghan_3",
+    "BM4": "birch_murnaghan_4",
+    "Murnaghan": "murnaghan",
+    "Vinet": "vinet",
+    "ModifiedTait": "modified_tait",
+    "NaturalStrain2": "natural_strain_2",
+    "NaturalStrain3": "natural_strain_3",
+    "NaturalStrain4": "natural_strain_4",
+    "Holzapfel": "holzapfel",
+}
+
+# Stable model identifiers used by Peritheos's canonical thermal components.
+# This includes models that Dioptas preserves and executes through the complete
+# material-record dispatcher even when they are not directly editable in the
+# Phase Editor.
+THERMAL_MODEL_IDENTIFIERS = {
+    "AlphaKT": "thermal_reference_state",
+    "AsymptoticPowerLawMieGruneisenDebye": (
+        "asymptotic_power_law_mie_gruneisen_debye"),
+    "DoubleDebyeHelmholtz": "double_debye_helmholtz",
+    "LinearThermalPressure": "linear_thermal_pressure",
+    "LogVolumeThermalPressure": "log_volume_thermal_pressure",
+    "MieGruneisenDebye": "mie_gruneisen_debye",
+    "MieGruneisenEinstein": "mie_gruneisen_einstein",
+    "MultiOscillatorGruneisen": (
+        "multi_oscillator_gruneisen_thermal_pressure"),
+    "Sokolova2016": "multi_oscillator_gruneisen_thermal_pressure",
+    "ThermalModifiedTait": "thermal_modified_tait",
+}
+
+
+class BundledEosValidationError(RuntimeError):
+    """A bundled record failed Peritheos primary-source validation."""
 
 
 def eos_parameter_names(eos_type: str) -> list:
@@ -125,6 +165,7 @@ class EosPhase:
                 f"Unsupported EoS type '{eos_type}'. "
                 f"Supported: {', '.join(RT_EOS_TYPES)}")
         self.eos_type = canonical
+        self._record = None
         eos_class = getattr(rt, canonical)
 
         thermal_canonical = None
@@ -253,6 +294,10 @@ class EosPhase:
                  temperature: Optional[float] = None) -> float:
         """Pressure (GPa) at a given unit-cell volume (Å³). With a
         thermal model, at the given *temperature* (K)."""
+        if self._record is not None:
+            record_temperature = temperature if self._record.is_thermal else None
+            return float(self._record.pressure(
+                volume, record_temperature, check_validity=False))
         if self.thermal_type:
             return float(self._eos.pressure(
                 volume * self._scale,
@@ -263,6 +308,10 @@ class EosPhase:
                temperature: Optional[float] = None) -> float:
         """Unit-cell volume (Å³) at a given pressure (GPa). With a
         thermal model, at the given *temperature* (K)."""
+        if self._record is not None:
+            record_temperature = temperature if self._record.is_thermal else None
+            return float(self._record.volume(
+                pressure, record_temperature, check_validity=False))
         if self.thermal_type:
             return float(self._eos.calculate_volume(
                 pressure,
@@ -296,8 +345,50 @@ class EosPhase:
         records = p.get("eos_records") or []
         index = p.get("eos_current_index") or 0
         if 0 <= index < len(records):
+            record = records[index]
             record_parameters = dict(
-                (records[index].get("eos") or {}).get("parameters") or {})
+                (record.get("eos") or {}).get("parameters") or {})
+            material_document = p.get("material_document") or {}
+            record_has_thermal = bool(record.get("thermal"))
+            use_complete_record = (
+                material_document.get("format") == "peritheos.material"
+                and material_document.get("format_version") == 3
+                and record.get("identifier")
+                and record_has_thermal == with_thermal
+            )
+            if use_complete_record:
+                document = {
+                    **material_document,
+                    "eos_records": [record],
+                }
+                origins = p.get("eos_record_origins") or []
+                record_origin = (
+                    origins[index] if index < len(origins)
+                    else p.get("material_origin")
+                )
+                require_primary_validation = record_origin == "bundled"
+                try:
+                    executable = PeritheosMaterial.from_eosmat(
+                        document,
+                        require_primary_validation=require_primary_validation,
+                    )
+                except ValueError as error:
+                    if require_primary_validation:
+                        raise BundledEosValidationError(
+                            "Bundled Peritheos record "
+                            f"'{record.get('identifier')}' failed "
+                            f"primary-source validation: {error}"
+                        ) from error
+                    raise
+                instance = cls.__new__(cls)
+                instance._record = executable.eos_records[0]
+                instance._eos = instance._record.eos
+                instance._scale = instance._record.volume_scale
+                instance.eos_type = (
+                    (record.get("eos") or {}).get("type") or "BM3")
+                instance.thermal_type = (
+                    (record.get("thermal") or {}).get("type") or None)
+                return instance
         return cls(
             eos_type=eos_type or p.get("eos_type") or "BM3",
             parameters={

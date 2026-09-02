@@ -9,8 +9,11 @@ from qtpy import QtCore, QtGui, QtWidgets
 
 from ..model.util.eos_phase import (
     EOS_DISPLAY_NAMES,
+    EOS_MODEL_IDENTIFIERS,
     EosPhase,
     RT_EOS_TYPES,
+    THERMAL_EOS_TYPES,
+    THERMAL_MODEL_IDENTIFIERS,
     eos_parameter_names,
 )
 
@@ -34,6 +37,7 @@ class EosRecordDialog(QtWidgets.QDialog):
                  title: str = "EoS Record"):
         super().__init__(parent)
         self._source_record = deepcopy(record or {})
+        self._thermal_parameters = dict(_THERMAL_PARAMETERS)
         self._result_record = None
         # Parameter rows appear and disappear with the selected equations.
         # Keep edits for hidden rows so switching away and back is lossless.
@@ -184,8 +188,13 @@ class EosRecordDialog(QtWidgets.QDialog):
         self.eos_type_cb.setCurrentIndex(max(
             0, self.eos_type_cb.findData(eos_type)))
         thermal = record.get("thermal") or {}
+        thermal_type = thermal.get("type") or ""
+        if self.thermal_type_cb.findData(thermal_type) < 0:
+            self.thermal_type_cb.addItem(str(thermal_type), thermal_type)
+            self._thermal_parameters[thermal_type] = tuple(
+                (thermal.get("parameters") or {}).keys())
         self.thermal_type_cb.setCurrentIndex(max(
-            0, self.thermal_type_cb.findData(thermal.get("type") or "")))
+            0, self.thermal_type_cb.findData(thermal_type)))
 
         reference = record.get("reference") or {}
         if isinstance(reference, str):
@@ -262,7 +271,7 @@ class EosRecordDialog(QtWidgets.QDialog):
         keys.extend(("EoS", name) for name in eos_parameter_names(eos_type))
         thermal_type = self.thermal_type_cb.currentData() or ""
         keys.extend(("Thermal", name)
-                    for name in _THERMAL_PARAMETERS[thermal_type])
+                    for name in self._thermal_parameters[thermal_type])
         self.parameters_table.setRowCount(len(keys))
         for row, (scope, name) in enumerate(keys):
             scope_item = QtWidgets.QTableWidgetItem(scope)
@@ -306,6 +315,9 @@ class EosRecordDialog(QtWidgets.QDialog):
 
     def _build_record(self) -> dict:
         record = deepcopy(self._source_record)
+        canonical_record = bool(
+            (self._source_record.get("eos") or {}).get("model")
+        )
         record["label"] = self.label_edit.text().strip() or "Custom EoS"
         eos_parameters = {}
         eos_errors = {}
@@ -335,21 +347,35 @@ class EosRecordDialog(QtWidgets.QDialog):
         if eos_parameters.get("K0", 0) <= 0:
             raise ValueError("K0 must be positive")
         eos_type = self.eos_type_cb.currentData() or "BM3"
-        record["eos"] = {
+        previous_eos = deepcopy(self._source_record.get("eos") or {})
+        if previous_eos.get("type") != eos_type:
+            previous_eos = {}
+        previous_eos.update({
             "type": eos_type,
             "parameters": eos_parameters,
-        }
+        })
+        if canonical_record:
+            previous_eos["model"] = EOS_MODEL_IDENTIFIERS[eos_type]
+        record["eos"] = previous_eos
         record["parameter_errors"] = eos_errors
         record["fixed_parameters"] = eos_fixed
 
         thermal_type = self.thermal_type_cb.currentData() or ""
         if thermal_type:
-            record["thermal"] = {
+            previous_thermal = deepcopy(
+                self._source_record.get("thermal") or {})
+            if previous_thermal.get("type") != thermal_type:
+                previous_thermal = {}
+            previous_thermal.update({
                 "type": thermal_type,
                 "parameters": thermal_parameters,
                 "parameter_errors": thermal_errors,
                 "fixed_parameters": thermal_fixed,
-            }
+            })
+            if canonical_record:
+                previous_thermal["model"] = (
+                    THERMAL_MODEL_IDENTIFIERS[thermal_type])
+            record["thermal"] = previous_thermal
         else:
             record.pop("thermal", None)
 
@@ -363,7 +389,10 @@ class EosRecordDialog(QtWidgets.QDialog):
         authors_text = self.authors_edit.text().strip()
         authors = [part.strip() for part in authors_text.split(";")
                    if part.strip()]
-        reference = {
+        source_reference = self._source_record.get("reference")
+        reference = (deepcopy(source_reference)
+                     if isinstance(source_reference, dict) else {})
+        editable_reference = {
             "authors": authors,
             "authors_truncated": self.authors_truncated_cb.isChecked(),
             "year": (int(self.year_edit.text())
@@ -374,10 +403,12 @@ class EosRecordDialog(QtWidgets.QDialog):
             "doi": self.doi_edit.text().strip(),
             "details": self.details_edit.text().strip(),
         }
-        record["reference"] = {
-            key: value for key, value in reference.items()
-            if value not in (None, "", [], False)
-        }
+        for key, value in editable_reference.items():
+            if value in (None, "", [], False):
+                reference.pop(key, None)
+            else:
+                reference[key] = value
+        record["reference"] = reference or ""
         pressure_range = self._read_range(
             self.pressure_min_edit, self.pressure_max_edit,
             "Experimental pressure range")
@@ -406,8 +437,8 @@ class EosRecordDialog(QtWidgets.QDialog):
         record.pop("default", None)
         return record
 
-    @staticmethod
     def _validate_engine_parameters(
+        self,
         eos_type: str,
         eos_parameters: dict,
         thermal_type: str,
@@ -426,7 +457,7 @@ class EosRecordDialog(QtWidgets.QDialog):
         # Peritheos thermal models, in contrast, must be complete records.
         if thermal_type and thermal_type != "AlphaKT":
             missing = [
-                name for name in _THERMAL_PARAMETERS[thermal_type]
+                name for name in self._thermal_parameters[thermal_type]
                 if thermal_parameters.get(name) is None
             ]
             if missing:
@@ -441,6 +472,9 @@ class EosRecordDialog(QtWidgets.QDialog):
         # Zc belongs to the material rather than an EoS record. A dummy value
         # lets the constructor validate every record-owned parameter here;
         # the phase editor separately exposes the real crystallographic Zc.
+        if thermal_type and thermal_type not in THERMAL_EOS_TYPES:
+            return
+
         EosPhase(
             eos_type,
             eos_parameters,

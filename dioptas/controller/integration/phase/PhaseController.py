@@ -136,9 +136,10 @@ class PhaseController:
 
     def _add_phase(self, filename):
         try:
-            if filename.endswith("jcpds"):
+            extension = os.path.splitext(filename)[1].lower()
+            if extension == ".jcpds":
                 self.model.phase_model.add_jcpds(filename)
-            elif filename.endswith(".cif"):
+            elif extension == ".cif":
                 minimum_d_spacing, wavelength = (
                     self._reflection_calculation_parameters()
                 )
@@ -152,7 +153,7 @@ class PhaseController:
                     self.cif_conversion_dialog.min_d_spacing,
                     wavelength,
                 )
-            elif filename.endswith(".eosmat"):
+            elif extension in (".eosmat", ".json"):
                 from ....model.eos import load_material_file, build_jcpds
                 minimum_d_spacing, wavelength = (
                     self._reflection_calculation_parameters()

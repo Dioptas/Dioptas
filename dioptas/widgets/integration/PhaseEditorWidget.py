@@ -364,6 +364,12 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         or a peritheos thermal class name."""
         index = self.thermal_type_cb.findData(key)
         self.thermal_type_cb.blockSignals(True)
+        if index < 0:
+            # Published Peritheos records may use a model that Dioptas does
+            # not offer for hand-authored records. Show its real name in the
+            # disabled selector instead of misrepresenting it as "None".
+            self.thermal_type_cb.addItem(str(key), key)
+            index = self.thermal_type_cb.count() - 1
         self.thermal_type_cb.setCurrentIndex(max(0, index))
         self.thermal_type_cb.blockSignals(False)
         self.update_thermal_parameter_visibility()
@@ -464,7 +470,7 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self.reload_file_btn.setEnabled(reloadable)
         self.reload_file_btn.setToolTip(
             'Discard local changes and reload the source file.' if reloadable
-            else 'This material was loaded from the built-in database and '
+            else 'This material was loaded from the Peritheos library and '
                  'has no source file to reload.')
 
     def set_eos_parameter_editable(self, editable):

@@ -43,9 +43,9 @@ dependencies = [
     # upper bound: Signal.has_listener relies on psygnal's private _slots
     # (see dioptas/model/util/signal.py) — verify before raising
     "psygnal>=0.15.1,<0.16",
-    # equation-of-state engine for phase lines at pressure
-    # (lower bound: first PyPI release with the full rt/thermal model set)
-    "peritheos>=0.5.0,<1.0",
+    # equation-of-state engine and audited bundled material library
+    # (lower bound: first release that owns the shared .eosmat catalog)
+    "peritheos>=0.6.0,<1.0",
     # exact-symmetry reflection generation and structure-factor intensities
     # lower bound: canonical cubic HKL representatives prefer (100) over (001)
     "phasesmith>=0.4.1,<0.5",

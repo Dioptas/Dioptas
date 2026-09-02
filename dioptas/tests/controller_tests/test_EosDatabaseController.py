@@ -63,11 +63,12 @@ class EosDatabaseControllerTest(QtTest):
 
         assert self.dialog.materials_table.item(0, 1).text() == ""
 
-    def test_h2o_search_shows_all_water_ice_phases(self):
+    def test_h2o_search_shows_water_ice_but_not_heavy_water(self):
         self.dialog.search_input.setText("H2O")
 
         names = {material.name for material in self.controller.shown_materials}
-        assert {"Ice VI", "Ice VII", "Ice VIII"} <= names
+        assert {"Ice VI", "Ice VII"} <= names
+        assert "Ice VIII (D2O)" not in names
 
     def test_formula_subset_search_finds_solid_solution(self):
         self.dialog.search_input.setText("MgFe")
@@ -75,7 +76,7 @@ class EosDatabaseControllerTest(QtTest):
         formulas = {
             material.formula for material in self.controller.shown_materials
         }
-        assert "Mg2Fe3O5" in formulas
+        assert "Mg0.4Fe0.6O" in formulas
 
     def test_single_search_result_keeps_material_table_full_width(self):
         self.dialog.resize(680, 520)
@@ -126,7 +127,7 @@ class EosDatabaseControllerTest(QtTest):
         assert table.horizontalHeaderItem(1).text() == "T"
         assert table.item(0, 1).text() == "✓"
         assert table.item(0, 1).toolTip() == (
-            "Constant α / dK/dT correction"
+            "Log-volume thermal-pressure model"
         )
 
         record_without_thermal = next(
@@ -191,28 +192,16 @@ class EosDatabaseControllerTest(QtTest):
         gold_rows = self.dialog.eos_table.rowCount()
         assert gold_rows > 0
 
-        self.dialog.search_input.setText("diamond")
+        self.dialog.search_input.setText("silver")
         material = self.controller.shown_materials[0]
-        assert material.formula == "C"
+        assert material.formula == "Ag"
         assert (self.dialog.eos_table.rowCount()
                 == len(material.eos_records))
         assert self.dialog.eos_table.rowCount() != gold_rows
 
-    def test_material_without_records_is_still_loadable(self):
-        materials = eos.load_materials()
-        material = next(
-            m for m in materials
-            if (not m.eos_records
-                and len(eos.search_materials(m.name, materials)) == 1)
-        )
-        self.dialog.search_input.setText(material.name)
-        self.dialog.materials_table.selectRow(0)
-        assert self.dialog.eos_table.rowCount() == 0
-        assert self.dialog.load_btn.isEnabled()
-        self.dialog.load_btn.click()
-        phase = self.controller.result_phase
-        assert phase is not None
-        assert len(phase.reflections) > 0
+    def test_every_library_material_has_an_eos_record(self):
+        assert all(material.eos_records
+                   for material in self.controller.materials)
 
 
 def test_record_row_displays_reported_errors_and_fixed_parameters():

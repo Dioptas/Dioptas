@@ -141,11 +141,12 @@ def test_search(materials):
     # Names and material-owned aliases find the corresponding formula.
     assert any(m.formula == "Au" for m in eos.search_materials("gold"))
     assert any(m.formula == "MgO" for m in eos.search_materials("periclase"))
-    assert any(m.formula == "Mg2Fe3O5"
+    assert any(m.formula == "Mg0.4Fe0.6O"
                for m in eos.search_materials("ferropericlase"))
     # Every bundled water-ice phase is discoverable by its chemistry.
     water_ice_names = {m.name for m in eos.search_materials("H2O")}
-    assert {"Ice VI", "Ice VII", "Ice VIII"} <= water_ice_names
+    assert {"Ice VI", "Ice VII"} <= water_ice_names
+    assert "Ice VIII (D2O)" not in water_ice_names
     assert any(m.name == "Zinc oxide (wurtzite B4)"
                for m in eos.search_materials("zincite"))
     assert any(m.name == "Calcium carbonate (post-aragonite Pmmn)"
@@ -325,11 +326,15 @@ def test_build_jcpds_distinguishes_polymorph_name_from_formula(materials):
     assert "Siersch" not in phase.name
 
 
-def test_build_jcpds_without_records(materials):
-    # some materials carry peak provenance but no published EoS
-    material = next(
-        m for m in materials
-        if not m.eos_records and not material_has_complete_structure(m)
+def test_build_jcpds_without_records():
+    # Structure-only user materials remain supported even though Peritheos's
+    # bundled catalog intentionally contains only materials with EoS records.
+    material = Material(
+        name="Structure only",
+        formula="X",
+        symmetry="CUBIC",
+        lattice=eos.Lattice(a=4.0),
+        peaks=[[1, 0, 0, 4.0, 100.0]],
     )
     phase = eos.build_jcpds(material)
     # loadable anyway: peaks at ambient conditions, V0 from the lattice
@@ -584,14 +589,12 @@ def test_format3_eosmat_preserves_crystallography_and_extensions():
     assert rendered["consumer_extension"] == {"kept": True}
 
 
-def test_eosmat_keeps_each_atom_site_on_one_line(tmp_path):
+def test_eosmat_writer_preserves_atom_sites(tmp_path):
     material = next(m for m in eos.load_materials() if m.formula == "MgO")
     path = str(tmp_path / "MgO.eosmat")
     eos.save_material_file(path, material)
-    rendered = open(path, encoding="utf-8").read()
-    site_lines = [line for line in rendered.splitlines()
-                  if line.startswith('  {"element"')]
-    assert len(site_lines) == len(material.atom_sites)
+    loaded = eos.load_material_file(path)
+    assert loaded.atom_sites == material.atom_sites
 
 
 def test_alias_search_is_case_insensitive():
@@ -616,11 +619,11 @@ def test_mgd_record_applies_thermal_state(gold):
     phase.compute_volume(pressure=10.0, temperature=1500.0)
     assert phase.params["v"] > v300
 
-    # switching away from MGD clears the engine's MGD thermal state
+    # switching away from MGD clears the engine's thermal state
     model = PhaseModel()
     model.add_jcpds_object(phase, filename=phase.filename)
     other = next(i for i, r in enumerate(gold.eos_records)
-                 if (r.get("thermal") or {}).get("type") == "AlphaKT")
+                 if not r.get("thermal"))
     model.set_eos_reference(0, other)
     assert model.get_thermal_type(0) == ""
 

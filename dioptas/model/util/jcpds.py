@@ -719,7 +719,7 @@ class jcpds:
         """
         thermal_type = str(self.params.get('thermal_type') or '')
         try:
-            from .eos_phase import EosPhase
+            from .eos_phase import BundledEosValidationError, EosPhase
         except ImportError as e:
             logger.warning(
                 "Peritheos is not available (%s); ignoring thermal model "
@@ -727,6 +727,8 @@ class jcpds:
             return False
         try:
             eos = EosPhase.from_jcpds(self, with_thermal=True)
+        except BundledEosValidationError as error:
+            raise EosCalculationError(str(error)) from error
         except ValueError as e:
             logger.warning(
                 "Thermal model '%s' cannot be constructed for phase '%s' "
@@ -760,7 +762,7 @@ class jcpds:
         """
         eos_type = str(self.params.get('eos_type') or 'BM3')
         try:
-            from .eos_phase import EosPhase
+            from .eos_phase import BundledEosValidationError, EosPhase
         except ImportError as e:
             logger.warning(
                 "Peritheos is not available (%s); computing '%s' with the "
@@ -769,6 +771,8 @@ class jcpds:
         try:
             eos = EosPhase.from_jcpds(self, eos_type=eos_type,
                                       k0=k0, k0p=k0p)
+        except BundledEosValidationError as error:
+            raise EosCalculationError(str(error)) from error
         except ValueError as e:
             logger.warning(
                 "EoS '%s' cannot be constructed for phase '%s' (%s); "

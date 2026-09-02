@@ -3,6 +3,7 @@
 from ..utility import QtTest, click_button, click_checkbox
 import os
 import gc
+from types import SimpleNamespace
 
 import pytest
 from qtpy import QtWidgets, QtCore, QtGui
@@ -12,6 +13,7 @@ from mock import MagicMock
 from ...controller.integration import PatternController
 from ...controller.integration import PhaseController
 from ...model.DioptasModel import DioptasModel
+from ...model.PhaseModel import PhaseModel
 from ...widgets.integration import IntegrationWidget
 
 unittest_path = os.path.dirname(__file__)
@@ -371,6 +373,37 @@ def test_save_phaselist(qapp, tmp_path):
     phase_controller.load_list_btn_clicked_callback()
 
     assert len(model.phase_model.phases) == 2
+
+
+def test_add_phase_accepts_json_material_file(tmp_path):
+    from ...model import eos
+
+    material = eos.Material(
+        name="JSON material",
+        formula="Au",
+        symmetry="CUBIC",
+        lattice=eos.Lattice(a=4.08),
+        peaks=[[1, 1, 1, 2.35, 100.0]],
+        eos_records=[{
+            "label": "Test fit",
+            "eos": {"type": "BM3", "parameters": {
+                "V0": 67.9, "K0": 167.0, "K0_prime": 5.0,
+            }},
+        }],
+    )
+    filename = tmp_path / "material.JSON"
+    eos.save_material_file(str(filename), material)
+    phase_model = PhaseModel()
+    controller = SimpleNamespace(
+        model=SimpleNamespace(phase_model=phase_model),
+        _reflection_calculation_parameters=lambda: (0.5, 0.31),
+    )
+
+    PhaseController._add_phase(controller, str(filename))
+
+    assert len(phase_model.phases) == 1
+    assert phase_model.phases[0].name == "JSON material (Au)"
+    assert phase_model.items[0].filename == str(filename)
 
 
 @pytest.fixture

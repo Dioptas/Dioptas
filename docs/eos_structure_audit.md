@@ -2,6 +2,10 @@
 
 Audit date: 2026-08-14.
 
+This records the structure audit of the 120-document library originally
+shipped in Dioptas 0.10.0. Peritheos 0.6.0 now owns and distributes the
+EOS-bearing subset consumed by current Dioptas releases.
+
 The bundled EoS materials use PhaseSmith for reflection generation and
 structure-factor intensities. A complete structure entry contains the
 Hermann-Mauguin symbol, International Tables number, crystallographic `Z`,

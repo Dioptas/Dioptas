@@ -107,7 +107,9 @@ def test_reload_cif_phase_from_source(phase_model: PhaseModel):
     assert phase_model.phases[0].params['material_origin'] == 'cif'
 
 
-def test_reload_eosmat_phase_from_source(phase_model: PhaseModel, tmp_path):
+@pytest.mark.parametrize('extension', ['.eosmat', '.JSON'])
+def test_reload_eosmat_phase_from_source(
+        phase_model: PhaseModel, tmp_path, extension):
     from ...model import eos
 
     material = eos.Material(
@@ -121,13 +123,14 @@ def test_reload_eosmat_phase_from_source(phase_model: PhaseModel, tmp_path):
             }},
         }],
     )
-    filename = tmp_path / 'test.eosmat'
+    filename = tmp_path / f'test{extension}'
     eos.save_material_file(str(filename), material)
     phase = eos.build_jcpds(material, origin='file')
     phase._filename = str(filename)
     phase_model.add_jcpds_object(phase, filename=str(filename))
     phase_model.set_param(0, 'k0', 999.0)
 
+    assert phase_model.can_reload(0)
     phase_model.reload(0)
 
     assert phase_model.phases[0].params['k0'] == pytest.approx(160.0)

@@ -259,7 +259,7 @@ class PhaseModel:
                 )
                 reloaded = converter.convert_cif_to_jcpds(source)
                 self.items[ind].jcpds = reloaded
-            elif extension == '.eosmat':
+            elif extension in ('.eosmat', '.json'):
                 from .eos import build_jcpds, load_material_file
 
                 q_max = phase.state.reflection_q_max
@@ -293,7 +293,7 @@ class PhaseModel:
         if not 0 <= ind < len(self.items):
             return False
         extension = os.path.splitext(self.items[ind].filename)[1].lower()
-        return extension in ('.jcpds', '.cif', '.eosmat')
+        return extension in ('.jcpds', '.cif', '.eosmat', '.json')
 
     def set_pressure(self, ind: int, pressure: float) -> bool:
         """
@@ -484,11 +484,20 @@ class PhaseModel:
 
     def eos_record_from_phase(self, ind: int, base: dict | None = None) -> dict:
         """Snapshot the live EoS/thermal parameters into one record dict."""
-        from .util.eos_phase import eos_parameter_names
+        from .util.eos_phase import (
+            EOS_MODEL_IDENTIFIERS,
+            THERMAL_MODEL_IDENTIFIERS,
+            eos_parameter_names,
+        )
 
         phase = self.phases[ind]
         p = phase.params
         record = deepcopy(base or {})
+        material_document = p.get('material_document') or {}
+        is_canonical_record = (
+            material_document.get('format') == 'peritheos.material'
+            and material_document.get('format_version') == 3
+        )
         eos_type = str(p.get('eos_type') or 'BM3')
         parameter_map = {
             'K0': p.get('k0'),
@@ -503,7 +512,13 @@ class PhaseModel:
             value = parameter_map.get(name)
             if value is not None:
                 parameters[name] = value
-        record['eos'] = {'type': eos_type, 'parameters': parameters}
+        previous_eos = deepcopy(record.get('eos') or {})
+        if previous_eos.get('type') != eos_type:
+            previous_eos = {}
+        previous_eos.update({'type': eos_type, 'parameters': parameters})
+        if is_canonical_record:
+            previous_eos['model'] = EOS_MODEL_IDENTIFIERS[eos_type]
+        record['eos'] = previous_eos
 
         thermal_type = str(p.get('thermal_type') or '')
         if thermal_type:
@@ -512,11 +527,24 @@ class PhaseModel:
                                  'MieGruneisenEinstein')
                     and p.get('n') is not None):
                 thermal_parameters.setdefault('n', p['n'])
+            previous_thermal = deepcopy(record.get('thermal') or {})
+            if previous_thermal.get('type') != thermal_type:
+                previous_thermal = {}
+            for configuration_name in (
+                    'debye_temperature_law',
+                    'thermal_expansion_law',
+                    'reference_volume_law'):
+                if configuration_name in thermal_parameters:
+                    previous_thermal[configuration_name] = (
+                        thermal_parameters.pop(configuration_name))
             record['thermal'] = {
-                **deepcopy(record.get('thermal') or {}),
+                **previous_thermal,
                 'type': thermal_type,
                 'parameters': thermal_parameters,
             }
+            if is_canonical_record:
+                record['thermal']['model'] = (
+                    THERMAL_MODEL_IDENTIFIERS[thermal_type])
         elif any(p.get(key) for key in
                  ('alpha_t0', 'd_alpha_dt', 'dk0dt', 'dk0pdt')):
             record['thermal'] = {
@@ -529,6 +557,9 @@ class PhaseModel:
                     'dK_prime_dT': p.get('dk0pdt') or 0.0,
                 },
             }
+            if is_canonical_record:
+                record['thermal']['model'] = (
+                    THERMAL_MODEL_IDENTIFIERS['AlphaKT'])
         else:
             record.pop('thermal', None)
         record['temperature_ref'] = p.get('t_ref') or 298.15
@@ -603,6 +634,25 @@ class PhaseModel:
         if record is None:
             label = duplicate.get('label') or 'EoS record'
             duplicate['label'] = f"{label} (custom)"
+        material_document = self.phases[ind].params.get('material_document') or {}
+        if material_document.get('format') == 'peritheos.material':
+            existing_identifiers = {
+                item.get('identifier') for item in records
+                if item.get('identifier')
+            }
+            stem = f"{duplicate.get('identifier') or 'record'}_custom"
+            identifier = stem
+            suffix = 2
+            while identifier in existing_identifiers:
+                identifier = f"{stem}_{suffix}"
+                suffix += 1
+            duplicate['identifier'] = identifier
+            duplicate['scientific_validation'] = {
+                'status': 'deferred',
+                'note': ('User-owned copy; parameter changes are not '
+                         'primary-source validated.'),
+            }
+            duplicate.pop('audit_corrections', None)
         return self.add_eos_record(ind, duplicate, origin='custom')
 
     def delete_eos_record(self, ind: int, ref_ind: int) -> None:

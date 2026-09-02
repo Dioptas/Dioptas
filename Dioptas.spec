@@ -24,7 +24,7 @@ block_cipher = None
 import sys
 import os
 from sys import platform as _platform
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 pristine_sys_module = list(sys.modules.keys())
 
@@ -49,9 +49,10 @@ extra_datas = [
 fabio_hiddenimports = collect_submodules("fabio")
 pyqtgraph_hiddenimports = collect_submodules("pyqtgraph")
 pyFAI_hiddenimports = collect_submodules("pyFAI")
-# peritheos is imported lazily inside jcpds.compute_volume — make sure the
-# static analysis doesn't miss it
+# Peritheos supplies both lazily dispatched EoS implementations and the
+# offline material library. Include its modules and packaged .eosmat data.
 peritheos_hiddenimports = collect_submodules("peritheos")
+extra_datas += collect_data_files("peritheos")
 
 hiddenimports = (fabio_hiddenimports + pyqtgraph_hiddenimports
                  + pyFAI_hiddenimports + peritheos_hiddenimports)

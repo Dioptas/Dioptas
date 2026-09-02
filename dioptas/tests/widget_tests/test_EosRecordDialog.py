@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 import pytest
+from peritheos import Material as PeritheosMaterial, get_material_document
 
 from ...widgets.EosRecordDialog import EosRecordDialog
 
@@ -95,6 +96,86 @@ def test_record_dialog_accepts_complete_peritheos_thermal_model(qapp):
     result = dialog.record()
 
     assert result["thermal"]["parameters"] == values
+    dialog.close()
+
+
+def test_record_dialog_preserves_newer_peritheos_thermal_model(qapp):
+    record = _record()
+    record["thermal"] = {
+        "type": "LogVolumeThermalPressure",
+        "model": "log_volume_thermal_pressure",
+        "parameters": {
+            "Tr": 300.0,
+            "alpha_KT_ref": 0.00714,
+            "dK_dT_V": -0.0115,
+        },
+    }
+    dialog = EosRecordDialog(record)
+
+    result = dialog.record()
+
+    assert dialog.thermal_type_cb.currentData() == "LogVolumeThermalPressure"
+    assert result["thermal"]["type"] == record["thermal"]["type"]
+    assert result["thermal"]["model"] == record["thermal"]["model"]
+    assert result["thermal"]["parameters"] == record["thermal"]["parameters"]
+    dialog.close()
+
+
+def test_record_dialog_updates_canonical_eos_model_when_type_changes(qapp):
+    document = get_material_document("gold")
+    record = document["eos_records"][0]
+    dialog = EosRecordDialog(record)
+    dialog.eos_type_cb.setCurrentIndex(
+        dialog.eos_type_cb.findData("Vinet"))
+
+    result = dialog.record()
+
+    assert result["eos"]["type"] == "Vinet"
+    assert result["eos"]["model"] == "vinet"
+    executable = PeritheosMaterial.from_eosmat(
+        {**document, "eos_records": [result]},
+        require_primary_validation=False,
+    )
+    assert executable.eos_records[0].volume(
+        50.0, 1000.0, check_validity=False
+    ) == pytest.approx(56.93480581339129)
+    dialog.close()
+
+
+def test_record_dialog_updates_canonical_thermal_model_when_type_changes(qapp):
+    record = get_material_document("gold")["eos_records"][0]
+    dialog = EosRecordDialog(record)
+    dialog.thermal_type_cb.setCurrentIndex(
+        dialog.thermal_type_cb.findData("MieGruneisenDebye"))
+    values = {
+        "Tr": 300.0,
+        "theta0": 500.0,
+        "gamma0": 1.5,
+        "q": 1.0,
+        "n": 1.0,
+    }
+    for name, value in values.items():
+        row = _parameter_row(dialog, name, scope="Thermal")
+        dialog.parameters_table.item(row, 2).setText(str(value))
+
+    result = dialog.record()
+
+    assert result["thermal"]["type"] == "MieGruneisenDebye"
+    assert result["thermal"]["model"] == "mie_gruneisen_debye"
+    dialog.close()
+
+
+def test_record_dialog_preserves_native_reference_extensions(qapp):
+    record = next(
+        record for record in get_material_document("diamond")["eos_records"]
+        if record["identifier"] == "diamond_benedict_2014_double_debye_4"
+    )
+    dialog = EosRecordDialog(record)
+
+    result = dialog.record()
+
+    assert result["reference"]["title"] == record["reference"]["title"]
+    assert result["reference"]["locations"] == record["reference"]["locations"]
     dialog.close()
 
 

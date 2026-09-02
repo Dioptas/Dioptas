@@ -2,7 +2,7 @@
 # Dioptas - GUI program for fast processing of 2D X-ray diffraction data
 """
 Controller for the EoS material database browser dialog. Owns the
-dialog's content and behavior: loading the bundled database, filtering,
+dialog's content and behavior: loading Peritheos's library, filtering,
 showing a material's EoS records, exporting .eosmat files, and building
 the jcpds phase the user asked to load.
 """
@@ -142,6 +142,9 @@ def _thermal_tooltip(record: dict) -> str:
         "MieGruneisenDebye": "Mie–Grüneisen–Debye model",
         "MieGruneisenEinstein": "Mie–Grüneisen–Einstein model",
         "Sokolova2016": "Sokolova et al. (2016) thermal model",
+        "LinearThermalPressure": "Linear thermal-pressure model",
+        "LogVolumeThermalPressure": "Log-volume thermal-pressure model",
+        "DoubleDebyeHelmholtz": "Double-Debye Helmholtz model",
     }
     return names.get(thermal_type, thermal_type)
 

@@ -116,6 +116,17 @@ def main():
         app.exec_()
     else:  # with command line arguments
         if sys.argv[1] == "test":
+            # Exercise packaged EoS data as part of the release smoke test.
+            # Constructing MainController alone does not open the database
+            # browser, where the Peritheos library is normally loaded lazily.
+            from .model.eos.database import load_materials
+
+            materials = load_materials()
+            if not materials:
+                raise RuntimeError("Peritheos EoS material library is empty")
+            logger.info(
+                "Loaded %d EoS materials from Peritheos", len(materials)
+            )
             controller = MainController(use_settings=False)
             controller.show_window()
 
