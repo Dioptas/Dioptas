@@ -244,7 +244,11 @@ A "0" suffix indicates ambient-condition values; values without "0" correspond t
 - *Save As*: Save a complete reusable material as ``.eosmat``, use ``.jcpds``
   for legacy interoperability (advanced EoS/thermal metadata is not retained),
   or export the displayed reflection table as text. A ``.dio`` project remains
-  the format for saving the complete analysis session.
+  the format for saving the complete analysis session. ``.eosmat`` is the
+  shared material format defined by Peritheos: it carries both the
+  crystallographic structure used by Dioptas and literature EoS records.
+  Dioptas preserves format-3 extension fields it does not interpret and also
+  continues to read its older format-2 material files.
 - *Reload File*: Discard local changes and rebuild a JCPDS, CIF or ``.eosmat``
   phase from its source file. Bundled database materials have no source file
   and are already read-only, so this action is disabled for them.
@@ -526,6 +530,24 @@ Options (X Tab)
 - *Azimuth Bins*: Number of azimuthal bins for the cake image.
 - *Azimuth Range*: Restrict the azimuthal range of the cake.
 - *Integral Width*: Width of the azimuthal integration range when clicking on the cake.
+
+
+Responsiveness during integration
+---------------------------------
+
+Automatic pyFAI and Dioptrin integrations are coalesced briefly and calculated
+on a worker thread. Each backend instance is persistent and reused until its
+calibration geometry changes, preserving its geometry-dependent lookup state.
+If several image, mask, or integration settings change in quick succession,
+Dioptas applies only the newest result. Map loading, batch integration, and
+batch background extraction use the same worker boundary, so their progress
+dialogs remain interactive and can be cancelled without pumping nested Qt
+events.
+
+Event-loop monitoring is disabled during normal use. Developers diagnosing a
+stall can enable it by setting ``DIOPTAS_EVENT_LOOP_WARN_MS`` to a positive
+warning threshold in milliseconds, for example ``250``. A stall warning then
+includes the two most recent existing Dioptas log records as context.
 
 
 Quick Actions

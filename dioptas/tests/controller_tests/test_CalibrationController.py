@@ -40,7 +40,9 @@ class TestCalibrationController(QtTest):
 
         self.widget = CalibrationWidget()
         self.controller = CalibrationController(
-            widget=self.widget, dioptas_model=self.model
+            widget=self.widget,
+            dioptas_model=self.model,
+            run_async_integration=False,
         )
 
     def tearDown(self):

@@ -96,6 +96,7 @@ class CalibrationModel:
         self.points_changed: Signal = Signal()
 
         self._dioptrin_integrator: Any = None
+        self._dioptrin_integrator_key: tuple | None = None
 
         # side effects of settings changes live here (not in the property
         # setters), so a direct params write behaves exactly like the
@@ -352,17 +353,32 @@ class CalibrationModel:
         }
 
     def _create_dioptrin_integrator(self) -> None:
+        poni = self._get_poni_dict()
+        raw_image = self.img_model.raw_img_data
+        image_shape = None if raw_image is None else raw_image.shape
+        key = (
+            tuple(sorted(poni.items())),
+            self.polarization_factor,
+            image_shape,
+        )
+        if (
+            self._dioptrin_integrator is not None
+            and self._dioptrin_integrator_key == key
+        ):
+            return
         try:
             import dioptrin
 
             self._dioptrin_integrator = dioptrin.Integrator.from_poni_dict(
-                self._get_poni_dict(),
+                poni,
                 method="pixel_split",
                 polarization_factor=self.polarization_factor,
                 unit="2th_deg",
             )
+            self._dioptrin_integrator_key = key
         except Exception:
             self._dioptrin_integrator = None
+            self._dioptrin_integrator_key = None
             logger.info("Dioptrin integrator not available, using pyFAI")
             self.use_dioptrin = False
 
@@ -702,9 +718,16 @@ class CalibrationModel:
         # geometry too — the params must follow it like any other result
         self._sync_calibration_params()
 
-    def _check_detector_and_image_shape(self) -> None:
+    def _check_detector_and_image_shape(
+        self, img_shape: tuple[int, int] | None = None
+    ) -> None:
+        if img_shape is None:
+            img_data = self.img_model.img_data
+            if img_data is None:
+                return
+            img_shape = img_data.shape
         if self.detector.shape is not None:
-            if self.detector.shape != self.img_model.img_data.shape:
+            if self.detector.shape != img_shape:
                 self.reset_detector()
                 self.detector_reset.emit()
                 if self.use_dioptrin and self._dioptrin_integrator is not None:

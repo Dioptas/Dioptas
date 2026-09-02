@@ -6,7 +6,7 @@ import pytest
 from pyqtgraph import GraphicsLayoutWidget
 from qtpy.QtCore import QPointF
 
-from dioptas.widgets.plot_widgets.ImgWidget import ImgWidget
+from dioptas.widgets.plot_widgets.ImgWidget import ImgWidget, MaskImgWidget
 
 
 @pytest.fixture
@@ -47,3 +47,32 @@ def test_mouse_moved_reports_data_coordinates_when_smoothed(qapp, img_widget):
     x, y = _moved_position(qapp, img_widget, 3.5, 6.5)
     assert x == pytest.approx(3.5, abs=1e-6)
     assert y == pytest.approx(6.5, abs=1e-6)
+
+
+def test_plot_image_uses_dioptas_auto_level_only(qapp, qWidgetFactory, monkeypatch):
+    layout_widget = qWidgetFactory(GraphicsLayoutWidget)
+    widget = ImgWidget(layout_widget)
+    calls = []
+    original_set_image = widget.data_img_item.setImage
+
+    def record_set_image(image=None, **kwargs):
+        if image is not None:
+            calls.append(kwargs)
+        return original_set_image(image, **kwargs)
+
+    monkeypatch.setattr(widget.data_img_item, "setImage", record_set_image)
+    widget.plot_image(np.arange(100).reshape(10, 10), auto_level=True)
+
+    assert calls == [{"autoLevels": False}]
+
+
+def test_mask_plot_uses_binary_storage_and_fixed_levels(qapp, qWidgetFactory):
+    layout_widget = qWidgetFactory(GraphicsLayoutWidget)
+    widget = MaskImgWidget(layout_widget)
+    mask = np.zeros((10, 10), dtype=bool)
+    mask[2:4, 5:8] = True
+
+    widget.plot_mask(mask)
+
+    assert widget.mask_data.dtype == np.int8
+    assert tuple(widget.mask_img_item.getLevels()) == (0, 1)

@@ -307,7 +307,6 @@ dependencies = [
     { name = "scikit-image" },
     { name = "scipy" },
     { name = "sharedmem" },
-    { name = "watchdog" },
     { name = "xraydb" },
     { name = "xypattern" },
 ]
@@ -332,7 +331,7 @@ requires-dist = [
     { name = "numexpr", specifier = ">=2.10.2,<3.0" },
     { name = "numpy", specifier = ">=2.0,<3.0" },
     { name = "pandas", specifier = ">=2.1.1,<3.0" },
-    { name = "peritheos", specifier = ">=0.4.0,<1.0" },
+    { name = "peritheos", specifier = ">=0.5.0,<1.0" },
     { name = "phasesmith", specifier = ">=0.4.1,<0.5" },
     { name = "psutil", specifier = ">=5.9.5,<6.0" },
     { name = "psygnal", specifier = ">=0.15.1,<0.16" },
@@ -351,7 +350,6 @@ requires-dist = [
     { name = "scikit-image", specifier = ">=0.26.0,<0.27" },
     { name = "scipy", specifier = ">=1.16.3,<2.0" },
     { name = "sharedmem", specifier = ">=0.3.8,<0.4" },
-    { name = "watchdog", specifier = ">=6.0.0,<7.0" },
     { name = "xraydb", specifier = ">=4.5.8" },
     { name = "xypattern", specifier = ">=1.2.2,<2.0" },
 ]
@@ -1004,15 +1002,29 @@ wheels = [
 
 [[package]]
 name = "peritheos"
-version = "0.4.0"
+version = "0.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
     { name = "scipy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8a/5e/0e499c23da0e2fb72cee77784dd8dc69b8145e3ac16345ac6141e501c774/peritheos-0.4.0.tar.gz", hash = "sha256:469815a0e88fd4e9232692fb8dce53aa6fbffa9ec49364d1e21a91c02b2e3e98", size = 68919, upload-time = "2026-08-09T05:31:15.41Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/98/4a/c02edfa9badeb353bb78327042d56e8e391ade173bf60450879d3d2b245f/peritheos-0.6.0.tar.gz", hash = "sha256:43f355c1468fe090c8c025610c835173e59d1fa131065ad827c3f0f60af91d51", size = 1083221, upload-time = "2026-09-01T18:46:47.312Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/17/da/774c0723108de9856f1c68cdaed93b06ad8fb4faede54bf0e8da8f9f8973/peritheos-0.4.0-py3-none-any.whl", hash = "sha256:868b3d65f13fec19c7c11a0dcd23929944c6d061e63a6e9bf61a63bd40f01b62", size = 39899, upload-time = "2026-08-09T05:31:14.041Z" },
+    { url = "https://files.pythonhosted.org/packages/ef/43/155c7f5385d23e5365ac3ea809c77421c9ad6bbdf0687a2f7855d0885d39/peritheos-0.6.0-cp311-cp311-macosx_10_12_x86_64.whl", hash = "sha256:eac31c0b50d1d06e99ab5a55cb45d6f9454ada3b34f2c75aff82b245d2b23053", size = 836837, upload-time = "2026-09-01T18:45:57.898Z" },
+    { url = "https://files.pythonhosted.org/packages/04/94/15a755bf60eb24dec6893431af570839ef89d4724efcdf89b8b45871e806/peritheos-0.6.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:e8b616f6546d64eddb9e6f8d5f73c53c60e4a758c13f12bb6a88ad11868c85bd", size = 826425, upload-time = "2026-09-01T18:45:59.526Z" },
+    { url = "https://files.pythonhosted.org/packages/9c/a1/7b87370151b2a80c0dd60c760a47edef93453a32f1fc491ab9dcbf0511cd/peritheos-0.6.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b7a999cdb8480aaeed516159816d5de08e3fbcb33821e5f9c1aa4b4960f06bbd", size = 879861, upload-time = "2026-09-01T18:46:01.061Z" },
+    { url = "https://files.pythonhosted.org/packages/56/04/2056b4e23da293b79e2a526c1438102f5bdc681e1078748b61cfd642f882/peritheos-0.6.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5ba90ff965b6eb3760f84dba1060d137a61fd0f88cab570f63c96551c78686f9", size = 908274, upload-time = "2026-09-01T18:46:02.75Z" },
+    { url = "https://files.pythonhosted.org/packages/cc/6f/ba8232040495e80920a532578f2e3c2981b2f0625ba33bfe1224b54c3d3c/peritheos-0.6.0-cp311-cp311-win_amd64.whl", hash = "sha256:2f6fe3b746cb2c0db09f051401d51324c0d1d4796f67446569cbac8062b06ae5", size = 725167, upload-time = "2026-09-01T18:46:04.403Z" },
+    { url = "https://files.pythonhosted.org/packages/8a/c4/9bf4c6f04d80e7781b323fd2e868298cdab38eaa6080d0dcf63404b360ee/peritheos-0.6.0-cp312-cp312-macosx_10_12_x86_64.whl", hash = "sha256:9639f73995703490f7e0138cd4fc5073b321dccd267dea7ae6a90fe3e4f5062f", size = 839430, upload-time = "2026-09-01T18:46:06.093Z" },
+    { url = "https://files.pythonhosted.org/packages/72/c5/97e02a1d16bf26cb8bc64722476b24ac4d80e1a8c8abd10cfde7b1cdb82e/peritheos-0.6.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:35a9cb11f3c490c0db9dc519ff93434062b4820a0013d7ebfdd264ee38abee7e", size = 816382, upload-time = "2026-09-01T18:46:07.507Z" },
+    { url = "https://files.pythonhosted.org/packages/d9/1a/9c6668d1cb4313e8291e7dea95d6c20fd172d08af5d9624447e355a2b160/peritheos-0.6.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:176a8b3ad3cd764ea8175a17ccbc471143d0a300e093f7f923836ad39a2edb73", size = 873766, upload-time = "2026-09-01T18:46:09.203Z" },
+    { url = "https://files.pythonhosted.org/packages/45/90/ffae77a879443546a597ab4a7a76c0eba44e2283dcc75a57dace91f8c2d6/peritheos-0.6.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:db2a0edb43e031f35be603071e68a6d7ace392e04bf713a7daefa5af91553f81", size = 903050, upload-time = "2026-09-01T18:46:10.688Z" },
+    { url = "https://files.pythonhosted.org/packages/39/ae/9880e94e528aabb0fbba0e000c5cdce52f784e5fe1a1283f764ad0bca626/peritheos-0.6.0-cp312-cp312-win_amd64.whl", hash = "sha256:99d50476aa8b1948d2b6148357058e8f368303ff19f46a760cbb92f49f87b5f4", size = 721702, upload-time = "2026-09-01T18:46:12.254Z" },
+    { url = "https://files.pythonhosted.org/packages/8c/2d/20c597e7518fbfef7405e3cdc9bc2a90b1bd987f2eb6ed994a93f11f3001/peritheos-0.6.0-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:ee3d6449de28b1529b910ecd9420af064672a268bc4e0d1381e825158a2c8e9c", size = 838147, upload-time = "2026-09-01T18:46:13.771Z" },
+    { url = "https://files.pythonhosted.org/packages/d9/94/10a2cad9c0a82b0bbc6e4cdddc070719c7ff9cd3d9f97d320409bf57251e/peritheos-0.6.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:7e2394574ac92fd55e7a625aefac24092c9413d6e3c970ad20252436ec92ea4c", size = 815988, upload-time = "2026-09-01T18:46:15.353Z" },
+    { url = "https://files.pythonhosted.org/packages/bc/01/ac1f037b0a72a7f1e951652fb6f5d927e66c8d747a762afaf2702ff82afe/peritheos-0.6.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a6a3d37fffc0d8a7a3da33c449818632b1cce3c919639c0fb588e2c5ce5bb63d", size = 873963, upload-time = "2026-09-01T18:46:17.088Z" },
+    { url = "https://files.pythonhosted.org/packages/49/4d/17d52a0fb3a71fc26834c3c7e5575ef14e37501a9c3eff46ce5ea00608b4/peritheos-0.6.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e2982b28c61dd82cad84b6d5f15e1cb5010dab3540fdf180354a56b955278485", size = 902477, upload-time = "2026-09-01T18:46:18.718Z" },
+    { url = "https://files.pythonhosted.org/packages/32/20/525714d2b0813e949caf09a6130b2f51cf56eb038e3430022c2a57632188/peritheos-0.6.0-cp313-cp313-win_amd64.whl", hash = "sha256:adfbd6170b4fb700587a75f5e9cc8c3eca1927d41d55c665cf9e56d8983f1f71", size = 720128, upload-time = "2026-09-01T18:46:20.446Z" },
 ]
 
 [[package]]
@@ -1698,33 +1710,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/59/15/55707176cc0f1803efc87b36873f8b5a6df79d724ddd3c4373820c4df24a/uncertainties-3.2.4.tar.gz", hash = "sha256:52ea797bffa4947be6b0bdbcf4b3886cd32960506e2d80102e02bc27f5c4bb69", size = 162075, upload-time = "2026-01-09T23:10:12.196Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a0/dc/77d17e732e6c7c19ea255f7058df35e737405b7498e362f299fc6695c37d/uncertainties-3.2.4-py3-none-any.whl", hash = "sha256:b124a9a15abe5cfbacef36849835107a00e92ed2ab840b51c685f10924302f5f", size = 60572, upload-time = "2026-01-09T23:10:10.552Z" },
-]
-
-[[package]]
-name = "watchdog"
-version = "6.0.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/db/7d/7f3d619e951c88ed75c6037b246ddcf2d322812ee8ea189be89511721d54/watchdog-6.0.0.tar.gz", hash = "sha256:9ddf7c82fda3ae8e24decda1338ede66e1c99883db93711d8fb941eaa2d8c282", size = 131220, upload-time = "2024-11-01T14:07:13.037Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e0/24/d9be5cd6642a6aa68352ded4b4b10fb0d7889cb7f45814fb92cecd35f101/watchdog-6.0.0-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:6eb11feb5a0d452ee41f824e271ca311a09e250441c262ca2fd7ebcf2461a06c", size = 96393, upload-time = "2024-11-01T14:06:31.756Z" },
-    { url = "https://files.pythonhosted.org/packages/63/7a/6013b0d8dbc56adca7fdd4f0beed381c59f6752341b12fa0886fa7afc78b/watchdog-6.0.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:ef810fbf7b781a5a593894e4f439773830bdecb885e6880d957d5b9382a960d2", size = 88392, upload-time = "2024-11-01T14:06:32.99Z" },
-    { url = "https://files.pythonhosted.org/packages/d1/40/b75381494851556de56281e053700e46bff5b37bf4c7267e858640af5a7f/watchdog-6.0.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:afd0fe1b2270917c5e23c2a65ce50c2a4abb63daafb0d419fde368e272a76b7c", size = 89019, upload-time = "2024-11-01T14:06:34.963Z" },
-    { url = "https://files.pythonhosted.org/packages/39/ea/3930d07dafc9e286ed356a679aa02d777c06e9bfd1164fa7c19c288a5483/watchdog-6.0.0-cp312-cp312-macosx_10_13_universal2.whl", hash = "sha256:bdd4e6f14b8b18c334febb9c4425a878a2ac20efd1e0b231978e7b150f92a948", size = 96471, upload-time = "2024-11-01T14:06:37.745Z" },
-    { url = "https://files.pythonhosted.org/packages/12/87/48361531f70b1f87928b045df868a9fd4e253d9ae087fa4cf3f7113be363/watchdog-6.0.0-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:c7c15dda13c4eb00d6fb6fc508b3c0ed88b9d5d374056b239c4ad1611125c860", size = 88449, upload-time = "2024-11-01T14:06:39.748Z" },
-    { url = "https://files.pythonhosted.org/packages/5b/7e/8f322f5e600812e6f9a31b75d242631068ca8f4ef0582dd3ae6e72daecc8/watchdog-6.0.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:6f10cb2d5902447c7d0da897e2c6768bca89174d0c6e1e30abec5421af97a5b0", size = 89054, upload-time = "2024-11-01T14:06:41.009Z" },
-    { url = "https://files.pythonhosted.org/packages/68/98/b0345cabdce2041a01293ba483333582891a3bd5769b08eceb0d406056ef/watchdog-6.0.0-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:490ab2ef84f11129844c23fb14ecf30ef3d8a6abafd3754a6f75ca1e6654136c", size = 96480, upload-time = "2024-11-01T14:06:42.952Z" },
-    { url = "https://files.pythonhosted.org/packages/85/83/cdf13902c626b28eedef7ec4f10745c52aad8a8fe7eb04ed7b1f111ca20e/watchdog-6.0.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:76aae96b00ae814b181bb25b1b98076d5fc84e8a53cd8885a318b42b6d3a5134", size = 88451, upload-time = "2024-11-01T14:06:45.084Z" },
-    { url = "https://files.pythonhosted.org/packages/fe/c4/225c87bae08c8b9ec99030cd48ae9c4eca050a59bf5c2255853e18c87b50/watchdog-6.0.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:a175f755fc2279e0b7312c0035d52e27211a5bc39719dd529625b1930917345b", size = 89057, upload-time = "2024-11-01T14:06:47.324Z" },
-    { url = "https://files.pythonhosted.org/packages/a9/c7/ca4bf3e518cb57a686b2feb4f55a1892fd9a3dd13f470fca14e00f80ea36/watchdog-6.0.0-py3-none-manylinux2014_aarch64.whl", hash = "sha256:7607498efa04a3542ae3e05e64da8202e58159aa1fa4acddf7678d34a35d4f13", size = 79079, upload-time = "2024-11-01T14:06:59.472Z" },
-    { url = "https://files.pythonhosted.org/packages/5c/51/d46dc9332f9a647593c947b4b88e2381c8dfc0942d15b8edc0310fa4abb1/watchdog-6.0.0-py3-none-manylinux2014_armv7l.whl", hash = "sha256:9041567ee8953024c83343288ccc458fd0a2d811d6a0fd68c4c22609e3490379", size = 79078, upload-time = "2024-11-01T14:07:01.431Z" },
-    { url = "https://files.pythonhosted.org/packages/d4/57/04edbf5e169cd318d5f07b4766fee38e825d64b6913ca157ca32d1a42267/watchdog-6.0.0-py3-none-manylinux2014_i686.whl", hash = "sha256:82dc3e3143c7e38ec49d61af98d6558288c415eac98486a5c581726e0737c00e", size = 79076, upload-time = "2024-11-01T14:07:02.568Z" },
-    { url = "https://files.pythonhosted.org/packages/ab/cc/da8422b300e13cb187d2203f20b9253e91058aaf7db65b74142013478e66/watchdog-6.0.0-py3-none-manylinux2014_ppc64.whl", hash = "sha256:212ac9b8bf1161dc91bd09c048048a95ca3a4c4f5e5d4a7d1b1a7d5752a7f96f", size = 79077, upload-time = "2024-11-01T14:07:03.893Z" },
-    { url = "https://files.pythonhosted.org/packages/2c/3b/b8964e04ae1a025c44ba8e4291f86e97fac443bca31de8bd98d3263d2fcf/watchdog-6.0.0-py3-none-manylinux2014_ppc64le.whl", hash = "sha256:e3df4cbb9a450c6d49318f6d14f4bbc80d763fa587ba46ec86f99f9e6876bb26", size = 79078, upload-time = "2024-11-01T14:07:05.189Z" },
-    { url = "https://files.pythonhosted.org/packages/62/ae/a696eb424bedff7407801c257d4b1afda455fe40821a2be430e173660e81/watchdog-6.0.0-py3-none-manylinux2014_s390x.whl", hash = "sha256:2cce7cfc2008eb51feb6aab51251fd79b85d9894e98ba847408f662b3395ca3c", size = 79077, upload-time = "2024-11-01T14:07:06.376Z" },
-    { url = "https://files.pythonhosted.org/packages/b5/e8/dbf020b4d98251a9860752a094d09a65e1b436ad181faf929983f697048f/watchdog-6.0.0-py3-none-manylinux2014_x86_64.whl", hash = "sha256:20ffe5b202af80ab4266dcd3e91aae72bf2da48c0d33bdb15c66658e685e94e2", size = 79078, upload-time = "2024-11-01T14:07:07.547Z" },
-    { url = "https://files.pythonhosted.org/packages/07/f6/d0e5b343768e8bcb4cda79f0f2f55051bf26177ecd5651f84c07567461cf/watchdog-6.0.0-py3-none-win32.whl", hash = "sha256:07df1fdd701c5d4c8e55ef6cf55b8f0120fe1aef7ef39a1c6fc6bc2e606d517a", size = 79065, upload-time = "2024-11-01T14:07:09.525Z" },
-    { url = "https://files.pythonhosted.org/packages/db/d9/c495884c6e548fce18a8f40568ff120bc3a4b7b99813081c8ac0c936fa64/watchdog-6.0.0-py3-none-win_amd64.whl", hash = "sha256:cbafb470cf848d93b5d013e2ecb245d4aa1c8fd0504e863ccefa32445359d680", size = 79070, upload-time = "2024-11-01T14:07:10.686Z" },
-    { url = "https://files.pythonhosted.org/packages/33/e8/e40370e6d74ddba47f002a32919d91310d6074130fe4e17dabcafc15cbf1/watchdog-6.0.0-py3-none-win_ia64.whl", hash = "sha256:a1914259fa9e1454315171103c6a30961236f508b9b623eae470268bbcc6a22f", size = 79067, upload-time = "2024-11-01T14:07:11.845Z" },
 ]
 
 [[package]]

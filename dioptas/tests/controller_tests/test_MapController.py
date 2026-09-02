@@ -37,7 +37,7 @@ def map_controller(qapp, dioptas_model: DioptasModel):
     """Fixture providing a MainController instance"""
     widget = MapWidget()
     model = dioptas_model
-    controller = MapController(widget, model)
+    controller = MapController(widget, model, run_async_map=False)
     controller.widget.setAttribute(QtCore.Qt.WA_DeleteOnClose)
     QTest.qWaitForWindowExposed(controller.widget)
     try:

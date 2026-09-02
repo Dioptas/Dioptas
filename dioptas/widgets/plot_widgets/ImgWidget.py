@@ -97,7 +97,9 @@ class ImgWidget(QtCore.QObject):
 
     def plot_image(self, img_data, auto_level=False):
         self.img_data = img_data
-        self.data_img_item.setImage(img_data.T, auto_level)
+        # Dioptas has its own detector-aware auto-level calculation below.
+        # Asking ImageItem to auto-level as well scans the full image twice.
+        self.data_img_item.setImage(img_data.T, autoLevels=False)
         if auto_level:
             self.auto_level()
         self.auto_range_rescale()
@@ -403,9 +405,14 @@ class MaskImgWidget(ImgWidget):
         if self.img_data is not None and mask_data.shape != self.img_data.shape:
             self.deactivate_mask()
             return
-        self.mask_data = np.int16(mask_data)
+        # A mask is binary, so histogram/level scans and a view auto-range on
+        # every brush stroke are both redundant. int8 also halves the upload
+        # size compared with the previous int16 representation.
+        self.mask_data = np.asarray(mask_data, dtype=np.int8)
         self.mask_img_item.setImage(
-            self.mask_data.T, autoRange=True, autoHistogramRange=True, autoLevels=True
+            self.mask_data.T,
+            autoLevels=False,
+            levels=(0, 1),
         )
 
     def create_color_map(self, color):

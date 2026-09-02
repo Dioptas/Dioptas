@@ -30,7 +30,13 @@ class IntegrationController:
     This controller hosts all the Subcontroller of the integration tab.
     """
 
-    def __init__(self, widget: IntegrationWidget, dioptas_model: DioptasModel):
+    def __init__(
+        self,
+        widget: IntegrationWidget,
+        dioptas_model: DioptasModel,
+        *,
+        run_async_batch: bool = True,
+    ):
         """
         :param widget: Reference to an IntegrationWidget
         :param dioptas_model: Reference to a DioptasModel object
@@ -40,6 +46,7 @@ class IntegrationController:
         """
         self.widget = widget
         self.model = dioptas_model
+        self._run_async_batch = run_async_batch
 
         self.create_sub_controller()
 
@@ -55,7 +62,11 @@ class IntegrationController:
         self.background_controller = BackgroundController(self.widget, self.model)
         self.correction_controller = CorrectionController(self.widget, self.model)
         self.options_controller = OptionsController(self.widget, self.model)
-        self.batch_controller = BatchController(self.widget, self.model)
+        self.batch_controller = BatchController(
+            self.widget,
+            self.model,
+            run_async_integration=self._run_async_batch,
+        )
         self.map_roi_controller = MapRoiInPatternController(
             self.widget.pattern_widget, self.model
         )

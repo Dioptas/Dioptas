@@ -3,6 +3,7 @@
 import os
 import gc
 import shutil
+import threading
 import numpy as np
 from mock import MagicMock
 
@@ -48,6 +49,31 @@ def test_automatic_file_processing(
 
     # clean up
     os.remove(os.path.join(unittest_data_path, "image_003.tif"))
+
+
+def test_automatic_file_processing_crosses_to_qt_thread(
+    qtbot,
+    image_controller,
+    dioptas_model,
+    monkeypatch,
+):
+    gui_thread = threading.get_ident()
+    loaded = []
+    monkeypatch.setattr(
+        dioptas_model.img_model,
+        "load",
+        lambda filepath: loaded.append((filepath, threading.get_ident())),
+    )
+
+    worker = threading.Thread(
+        target=image_controller._on_autoprocess_file_added,
+        args=("new-image.tif",),
+    )
+    worker.start()
+    worker.join()
+    qtbot.waitUntil(lambda: bool(loaded), timeout=1000)
+
+    assert loaded == [("new-image.tif", gui_thread)]
 
 
 def test_configuration_selected_changes_mask_mode(

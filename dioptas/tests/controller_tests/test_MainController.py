@@ -11,6 +11,10 @@ unittest_path = os.path.dirname(__file__)
 data_path = os.path.join(unittest_path, os.pardir, "data")
 
 
+def test_event_loop_monitor_is_disabled_by_default(main_controller):
+    assert main_controller.event_loop_monitor is None
+
+
 def test_image_is_shown_correctly_after_tab_change(main_controller: MainController):
     dioptas_model = main_controller.model
     main_widget = main_controller.widget
@@ -97,7 +101,11 @@ def test_load_with_configuration(qapp, tmp_path):
     }
     json.dump(config, open(config_file, "w"))
 
-    main_controller = MainController(use_settings=False, config_file=config_file)
+    main_controller = MainController(
+        use_settings=False,
+        config_file=config_file,
+        run_async_processing=False,
+    )
     assert main_controller.configuration == config
     assert main_controller.widget.external_action_btns["A"].text() == "A"
     assert main_controller.widget.external_action_btns["B"].text() == "B"

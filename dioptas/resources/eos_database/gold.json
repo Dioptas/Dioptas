@@ -95,6 +95,7 @@
    "experimental_pressure_range_gpa": [0.0, 89.0],
    "thermal": {
     "type": "MieGruneisenDebye",
+    "debye_temperature_law": "variable_exponent",
     "parameters": {
      "Tr": 300.0,
      "theta0": 170.0,

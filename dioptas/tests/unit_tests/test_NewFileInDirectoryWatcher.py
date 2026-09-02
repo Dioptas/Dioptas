@@ -89,6 +89,22 @@ def test_preexisting_files_are_not_emitted(tmp_path):
     assert received == [str(tmp_path / "new_image.tif")]
 
 
+def test_poll_does_not_stat_files_already_in_the_baseline(tmp_path, monkeypatch):
+    (tmp_path / "old_image.tif").write_bytes(b"already there")
+    watcher, _received = make_watcher(tmp_path)
+    original_stat = os.stat
+    stat_calls = []
+
+    def recording_stat(path, *args, **kwargs):
+        stat_calls.append(path)
+        return original_stat(path, *args, **kwargs)
+
+    monkeypatch.setattr(os, "stat", recording_stat)
+    watcher.poll_once()
+
+    assert stat_calls == []
+
+
 def test_only_watched_file_types_are_announced(tmp_path):
     watcher, received = make_watcher(tmp_path)
 
@@ -121,6 +137,18 @@ def test_changing_the_path_starts_fresh(tmp_path):
     watcher.poll_once()
     watcher.poll_once()
     assert received == [str(second / "fresh.tif")]
+
+
+def test_reassigning_same_path_does_not_hide_new_files(tmp_path):
+    watcher, received = make_watcher(tmp_path)
+    fresh = tmp_path / "fresh.tif"
+    fresh.write_bytes(b"new")
+
+    watcher.path = str(tmp_path)
+    watcher.poll_once()
+    watcher.poll_once()
+
+    assert received == [str(fresh)]
 
 
 def test_unreadable_directory_is_survived(tmp_path):

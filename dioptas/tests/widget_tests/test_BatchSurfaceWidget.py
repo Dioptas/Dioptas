@@ -22,7 +22,8 @@ class SurfaceView(QtTest):
 
         self.controller = BatchController(
             widget=self.widget,
-            dioptas_model=self.model)
+            dioptas_model=self.model,
+            run_async_integration=False)
 
         self.phase_controller = PhaseController(self.widget, self.model)
 

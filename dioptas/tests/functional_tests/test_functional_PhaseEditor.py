@@ -3,6 +3,7 @@ import unittest
 from mock import MagicMock
 import os
 import gc
+import tempfile
 
 import numpy as np
 from qtpy import QtWidgets, QtCore
@@ -33,6 +34,8 @@ def calculate_cubic_q_value(h, k, l, a):
 
 class PhaseEditorFunctionalTest(QtTest):
     def setUp(self):
+        self._temporary_directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self._temporary_directory.cleanup)
         self.model = DioptasModel()
         self.phase_model = self.model.phase_model
 
@@ -433,7 +436,10 @@ class PhaseEditorFunctionalTest(QtTest):
         )
 
         # then he sees the save_as button and is happy to save his non-sense for later users
-        filename = os.path.join(jcpds_path, "au_mal_anders.jcpds")
+        filename = os.path.join(
+            self._temporary_directory.name,
+            "au_mal_anders.jcpds",
+        )
         self.jcpds_controller.save_as_btn_clicked(filename)
         self.assertTrue(os.path.exists(filename))
 
@@ -470,7 +476,9 @@ class PhaseEditorFunctionalTest(QtTest):
     ):
         # Erwin opens up the program, loads image and calibration and some phases
 
-        self.main_controller = MainController(use_settings=False)
+        self.main_controller = MainController(
+            use_settings=False, run_async_processing=False
+        )
         self.main_controller.model.calibration_model.integrate_1d = (
             self.model.calibration_model.integrate_1d
         )
@@ -612,7 +620,9 @@ class PhaseEditorFunctionalTest(QtTest):
     def test_connection_between_main_gui_and_jcpds_editor_reflections(self):
         # Erwin loads Dioptas with a previous calibration and image file then he adds several phases and looks into the
         # jcpds editor for the first phase. He sees that everything seems to be correct
-        self.main_controller = MainController(use_settings=False)
+        self.main_controller = MainController(
+            use_settings=False, run_async_processing=False
+        )
         self.main_controller.model.calibration_model.integrate_1d = (
             self.model.calibration_model.integrate_1d
         )
@@ -713,7 +723,9 @@ class PhaseEditorFunctionalTest(QtTest):
         self.assertEqual(len(self.jcpds_in_spec.line_visible), 4)
 
     def test_phase_name_difference_after_modified(self):
-        self.main_controller = MainController(use_settings=False)
+        self.main_controller = MainController(
+            use_settings=False, run_async_processing=False
+        )
         self.main_controller.model.calibration_model.integrate_1d = (
             self.model.calibration_model.integrate_1d
         )
@@ -764,7 +776,9 @@ class PhaseEditorFunctionalTest(QtTest):
         )
 
     def test_high_pressure_values_are_shown_in_jcpds_editor(self):
-        self.main_controller = MainController(use_settings=False)
+        self.main_controller = MainController(
+            use_settings=False, run_async_processing=False
+        )
         self.main_controller.model.calibration_model.integrate_1d = (
             self.model.calibration_model.integrate_1d
         )

@@ -4,6 +4,7 @@ import logging
 import os
 import queue
 import time
+from functools import partial
 
 import numpy as np
 import pyqtgraph as pg
@@ -16,11 +17,15 @@ from dioptas.model import map_layout
 from dioptas.model.DioptasModel import DioptasModel
 from dioptas.model.util.NewFileWatcher import NewFileInDirectoryWatcher
 from dioptas.model.util.signal import Signal
+from dioptas.model.map_task import apply_map_integration, compute_map_integration
+from dioptas.model.worker_configuration import capture_worker_configuration
 from dioptas.widgets.MapGridPopup import MapGridPopup
 from dioptas.widgets.MapPanelWidget import MapPanelWidget
 
 from ..widgets.UtilityWidgets import get_progress_dialog, open_files_dialog
 from ..widgets.UtilityWidgets import save_file_dialog
+from .async_job import AsyncJobRunner
+from .job_progress import JobProgress
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +40,16 @@ class MapPanelController:
 
     _CONTOUR_UPSAMPLE = 3
 
-    def __init__(self, widget: MapPanelWidget, dioptas_model: DioptasModel):
+    def __init__(
+        self,
+        widget: MapPanelWidget,
+        dioptas_model: DioptasModel,
+        *,
+        run_async_load: bool = True,
+    ):
         self.widget = widget
         self.model = dioptas_model
+        self._run_async_load = run_async_load
 
         #: emitted with the point index when a point is picked in the map plot,
         #: so hosts can follow the selection with their own widgets
@@ -48,6 +60,11 @@ class MapPanelController:
         self.blank_selected = Signal(int)
 
         self._contour_items: list[pg.IsocurveItem] = []
+        self._map_runner = AsyncJobRunner(widget)
+        self._map_runner.succeeded.connect(self._map_load_succeeded)
+        self._map_runner.failed.connect(self._map_load_failed)
+        self._map_jobs = {}
+        self._shutting_down = False
 
         self.grid_popup = MapGridPopup(self.widget)
 
@@ -293,6 +310,8 @@ class MapPanelController:
 
     def load_map(self):
         """Asks for image files and builds a map from them."""
+        if self._shutting_down:
+            return
         self.stop_live()
         filenames = open_files_dialog(
             self.widget,
@@ -307,38 +326,109 @@ class MapPanelController:
             "Abort Integration",
             100,
             self.widget.map_pg_layout,
+            window_modality=(
+                QtCore.Qt.NonModal
+                if self._run_async_load
+                else QtCore.Qt.ApplicationModal
+            ),
+            auto_close=not self._run_async_load,
         )
         progressDialog.setMinimumDuration(0)
-        progressDialog.setWindowModality(QtCore.Qt.ApplicationModal)
         label = progressDialog.findChild(QtWidgets.QLabel)
         if label is not None:
             label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
-        t_start = time.time()
+        if not self._run_async_load:
+            t_start = time.time()
 
-        def callback_fn(current, n_total):
-            if progressDialog.wasCanceled():
-                return False
-            progressDialog.setValue(int(current / n_total * 100))
-            elapsed = time.time() - t_start
-            rate = current / elapsed if elapsed > 0 else 0
-            progressDialog.setLabelText(
-                f"Image {current} of {n_total}\n"
-                f"{elapsed:.1f}s elapsed\n"
-                f"{rate:.1f} img/s"
-            )
-            QtWidgets.QApplication.processEvents()
-            return not progressDialog.wasCanceled()
+            def callback_fn(current, n_total):
+                if progressDialog.wasCanceled():
+                    return False
+                progressDialog.setValue(int(current / n_total * 100))
+                elapsed = time.time() - t_start
+                rate = current / elapsed if elapsed > 0 else 0
+                progressDialog.setLabelText(
+                    f"Image {current} of {n_total}\n"
+                    f"{elapsed:.1f}s elapsed\n"
+                    f"{rate:.1f} img/s"
+                )
+                QtWidgets.QApplication.processEvents()
+                return not progressDialog.wasCanceled()
 
+            try:
+                self.model.map_model.load(filenames, callback_fn=callback_fn)
+                self.model.map_model.select_point(0, 0)
+            except Exception as exc:
+                QtWidgets.QMessageBox.critical(
+                    self.widget, "Error loading image data.", str(exc)
+                )
+            finally:
+                progressDialog.close()
+            return
+
+        progress = JobProgress(progressDialog)
+        progress.value_changed.connect(progressDialog.setValue)
+        progress.label_changed.connect(progressDialog.setLabelText)
+        progressDialog.canceled.connect(progress.cancel)
+        configuration = self.model.current_configuration
+        state = capture_worker_configuration(configuration)
+        job_id = self._map_runner.submit(
+            partial(compute_map_integration, state, filenames, progress.update)
+        )
+        self._map_jobs[job_id] = (configuration, progressDialog, progress)
+        self.widget.map_plot_control_widget.load_btn.setEnabled(False)
+
+    def _map_load_succeeded(self, job_id, result):
+        context = self._map_jobs.pop(job_id, None)
+        if context is None:
+            return
+        configuration, progress_dialog, progress = context
         try:
-            self.model.map_model.load(filenames, callback_fn=callback_fn)
-            self.model.map_model.select_point(0, 0)
-        except Exception as e:
+            if progress.was_cancelled or self._shutting_down:
+                return
+            if configuration not in self.model.configurations:
+                return
+            apply_map_integration(configuration.map_model, result)
+            # Loading a point mutates the live image model and can trigger
+            # automatic integration. Only do that when this is still the
+            # configuration the user is looking at.
+            if configuration is self.model.current_configuration:
+                configuration.map_model.select_point(0, 0)
+        except Exception as exc:
             QtWidgets.QMessageBox.critical(
-                self.widget, "Error loading image data.", str(e)
+                self.widget, "Error applying integrated map data.", str(exc)
             )
         finally:
-            progressDialog.close()
+            self._finish_map_job_ui(progress_dialog)
+
+    def _map_load_failed(self, job_id, exc, _traceback_text):
+        context = self._map_jobs.pop(job_id, None)
+        if context is None:
+            return
+        _configuration, progress_dialog, progress = context
+        self._finish_map_job_ui(progress_dialog)
+        if not progress.was_cancelled and not self._shutting_down:
+            QtWidgets.QMessageBox.critical(
+                self.widget, "Error loading image data.", str(exc)
+            )
+
+    def _finish_map_job_ui(self, progress_dialog):
+        progress_dialog.close()
+        progress_dialog.deleteLater()
+        if not self._shutting_down:
+            self.widget.map_plot_control_widget.load_btn.setEnabled(True)
+
+    def shutdown(self):
+        """Detach outstanding map jobs without waiting on application close."""
+        if self._shutting_down:
+            return
+        self._shutting_down = True
+        self.stop_live()
+        for _configuration, progress_dialog, progress in self._map_jobs.values():
+            progress.cancel()
+            progress_dialog.close()
+        # Keep contexts alive until their worker emits a terminal signal. In
+        # particular JobProgress must outlive callbacks already in flight.
 
     def _grid_btn_clicked(self):
         self._update_grid_popup()

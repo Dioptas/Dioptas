@@ -22,6 +22,8 @@ from .MaskController import MaskController
 from .ConfigurationController import ConfigurationController
 from .MapController import MapController
 from .MapPanelController import MapPanelController
+from .event_loop import EventLoopLagMonitor
+from .integration_coordinator import AsyncIntegrationCoordinator
 
 from dioptas import __version__
 from ..model.UpdateChecker import check_for_update
@@ -34,7 +36,14 @@ class MainController:
     Creates the main controller for Dioptas. Creates all the data objects and connects them with the other controllers
     """
 
-    def __init__(self, use_settings=True, settings_directory="default", config_file=None):
+    def __init__(
+        self,
+        use_settings=True,
+        settings_directory="default",
+        config_file=None,
+        *,
+        run_async_processing=True,
+    ):
         """
         :param use_settings: whether to use previously auto saved state of dioptas
         :param settings_directory: directory where the settings are saved
@@ -42,6 +51,24 @@ class MainController:
         """
         self.use_settings = use_settings
         self.widget = MainWidget()
+        self.event_loop_monitor = None
+        warning_threshold = os.environ.get("DIOPTAS_EVENT_LOOP_WARN_MS")
+        if warning_threshold is not None:
+            try:
+                warning_threshold = int(warning_threshold)
+                if warning_threshold <= 0:
+                    raise ValueError
+            except ValueError:
+                logger.warning(
+                    "Ignoring invalid DIOPTAS_EVENT_LOOP_WARN_MS=%r; "
+                    "event-loop monitoring is disabled",
+                    warning_threshold,
+                )
+            else:
+                self.event_loop_monitor = EventLoopLagMonitor(
+                    self.widget,
+                    warning_threshold_ms=warning_threshold,
+                )
 
         # create data
         if settings_directory == "default":
@@ -50,18 +77,30 @@ class MainController:
             self.settings_directory = settings_directory
 
         self.model = DioptasModel()
+        self.integration_coordinator = (
+            AsyncIntegrationCoordinator(self.model, self.widget)
+            if run_async_processing
+            else None
+        )
 
         self.calibration_controller = CalibrationController(
-            self.widget.calibration_widget, self.model
+            self.widget.calibration_widget,
+            self.model,
+            run_async_integration=run_async_processing,
+            integration_coordinator=self.integration_coordinator,
         )
         self.mask_controller = MaskController(self.widget.mask_widget, self.model)
         self.integration_controller = IntegrationController(
-            self.widget.integration_widget, self.model
+            self.widget.integration_widget,
+            self.model,
+            run_async_batch=run_async_processing,
         )
         # The map panel moves between the map mode and its own window, so it
         # is owned here rather than by the mode it happens to sit in.
         self.map_panel_controller = MapPanelController(
-            self.widget.map_widget.map_panel_widget, self.model
+            self.widget.map_widget.map_panel_widget,
+            self.model,
+            run_async_load=run_async_processing,
         )
         self.map_controller = MapController(
             self.widget.map_widget, self.model, self.map_panel_controller
@@ -151,6 +190,13 @@ class MainController:
         Displays the main window on the screen and makes it active.
         """
         self.widget.show()
+        if (
+            self.event_loop_monitor is not None
+            and not self.event_loop_monitor.is_active
+        ):
+            # Startup performs substantial widget and font initialization;
+            # begin measuring once the interactive window actually exists.
+            self.event_loop_monitor.start()
 
         if _platform == "darwin":
             self.widget.setWindowState(
@@ -475,6 +521,13 @@ class MainController:
         """
         logger.info("Closing Dioptas")
         self._closing = True
+        if self.event_loop_monitor is not None:
+            self.event_loop_monitor.stop()
+        self.map_panel_controller.shutdown()
+        self.integration_controller.batch_controller.shutdown()
+        if self.integration_coordinator is not None:
+            self.integration_coordinator.shutdown()
+        self.calibration_controller.shutdown()
         if self.use_settings:
             self.save_default_settings()
             self.save_directories()

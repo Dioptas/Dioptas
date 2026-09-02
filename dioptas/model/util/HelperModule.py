@@ -5,34 +5,11 @@ import logging
 import os
 import re
 import time
-from collections.abc import Callable
 
 import numpy as np
 from colorsys import hsv_to_rgb
 
 logger = logging.getLogger(__name__)
-
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEvent, FileSystemEventHandler
-
-
-class _DirectoryChangeHandler(FileSystemEventHandler):
-    """Watchdog handler that calls a callback on any directory change."""
-
-    def __init__(self, callback: Callable[[], None]) -> None:
-        super().__init__()
-        self._callback: Callable[[], None] = callback
-
-    def on_any_event(self, event: FileSystemEvent) -> None:
-        self._callback()
-
-
-# Shared observer for all FileNameIterator instances.
-# FSEvents on macOS does not allow multiple observers watching the same path,
-# so we use a single Observer and schedule/unschedule individual watches.
-_shared_observer: Observer = Observer()
-_shared_observer.daemon = True
-_shared_observer.start()
 
 
 class FileNameIterator:
@@ -41,10 +18,6 @@ class FileNameIterator:
 
     def __init__(self, filename: str | None = None) -> None:
         self.acceptable_file_endings: list[str] = []
-        self._watch: object | None = None
-        self._dir_handler: _DirectoryChangeHandler = _DirectoryChangeHandler(
-            self.add_new_files_to_list
-        )
         self.create_timed_file_list: bool = False
 
         if filename is None:
@@ -186,6 +159,11 @@ class FileNameIterator:
             return None
 
         if mode == "time":
+            # Refresh only when the user asks to browse by time. A permanent
+            # polling observer repeatedly scans large beamline directories and
+            # can contend for the GIL long enough to stall Qt; native FSEvents
+            # teardown is also unsafe in watchdog on macOS.
+            self.update_file_list()
             time_stat = os.path.getctime(self.complete_path)
             cur_ind = self.ordered_file_list.index((time_stat, self.complete_path))
             try:
@@ -216,6 +194,7 @@ class FileNameIterator:
             return None
 
         if mode == "time":
+            self.update_file_list()
             time_stat = os.path.getctime(self.complete_path)
             cur_ind = self.ordered_file_list.index((time_stat, self.complete_path))
             if cur_ind > 0:
@@ -251,36 +230,16 @@ class FileNameIterator:
     def update_filename(self, new_filename: str) -> None:
         self.complete_path = os.path.abspath(new_filename)
         new_directory, file_str = os.path.split(self.complete_path)
-        try:
-            self.acceptable_file_endings.append(file_str.split(".")[-1])
-        except AttributeError:
-            logger.debug("Observer not initialized, skipping stop")
+        ending = file_str.rsplit(".", 1)[-1]
+        if ending not in self.acceptable_file_endings:
+            self.acceptable_file_endings.append(ending)
         if self.directory != new_directory:
-            self._stop_observing()
             self.directory = new_directory
-            self._start_observing()
             if self.create_timed_file_list:
                 self.update_file_list()
 
         if self.create_timed_file_list and self.ordered_file_list == []:
             self.update_file_list()
-
-    def _start_observing(self) -> None:
-        if self.directory and os.path.isdir(self.directory):
-            self._watch = _shared_observer.schedule(
-                self._dir_handler, self.directory, recursive=False
-            )
-
-    def _stop_observing(self) -> None:
-        if self._watch is not None:
-            try:
-                _shared_observer.unschedule(self._watch)
-            except KeyError:
-                logger.debug("Observer watch not found, skipping unwatch")
-            self._watch = None
-
-    def __del__(self) -> None:
-        self._stop_observing()
 
     def add_new_files_to_list(self) -> None:
         """Checks for new files in folder and adds them to the sorted file list."""

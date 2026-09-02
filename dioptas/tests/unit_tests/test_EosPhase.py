@@ -223,6 +223,22 @@ def test_mgd_expands_with_temperature_and_roundtrips():
         30.0, abs=1e-2)
 
 
+def test_mgd_dispatches_the_recorded_debye_temperature_law():
+    variable = EosPhase(
+        "Vinet", GOLD, n=1, formula_units_per_cell=4,
+        thermal_type="MieGruneisenDebye",
+        thermal_parameters={
+            **GOLD_MGD,
+            "debye_temperature_law": "variable_exponent",
+        },
+    )
+    integrated = _gold_mgd()
+
+    assert variable._eos.debye_temperature_law == "variable_exponent"
+    assert variable.pressure(55.0, 2000.0) != pytest.approx(
+        integrated.pressure(55.0, 2000.0))
+
+
 def test_mgd_thermal_pressure_magnitude_matches_alpha_k0():
     # At fixed volume, the MGD thermal pressure over 1000 K should be in
     # the same ballpark as the classic alpha*K0*dT estimate for gold

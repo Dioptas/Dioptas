@@ -677,6 +677,39 @@ def test_dioptrin_integrator_recreated_on_image_shape_change(calibration_model, 
     calibration_model._create_dioptrin_integrator.assert_not_called()
 
 
+def test_dioptrin_integrator_is_reused_until_geometry_changes(
+    calibration_model,
+    monkeypatch,
+):
+    created = []
+
+    class FakeIntegratorFactory:
+        @staticmethod
+        def from_poni_dict(*_args, **_kwargs):
+            integrator = object()
+            created.append(integrator)
+            return integrator
+
+    monkeypatch.setitem(
+        sys.modules,
+        "dioptrin",
+        SimpleNamespace(Integrator=FakeIntegratorFactory),
+    )
+    calibration_model._dioptrin_integrator = None
+    calibration_model._dioptrin_integrator_key = None
+
+    calibration_model._create_dioptrin_integrator()
+    calibration_model._create_dioptrin_integrator()
+
+    assert created == [calibration_model._dioptrin_integrator]
+
+    calibration_model.pattern_geometry.dist += 0.001
+    calibration_model._create_dioptrin_integrator()
+
+    assert len(created) == 2
+    assert calibration_model._dioptrin_integrator is created[-1]
+
+
 def test_clear_peaks(calibration_model, img_model):
     load_pilatus_1M(img_model)
     calibration_model.find_peaks_automatic(517.664434674, 646, 0)

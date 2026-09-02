@@ -2,6 +2,7 @@
 
 import logging
 import os
+from functools import partial
 from qtpy import QtWidgets, QtCore, QtGui
 
 import numpy as np
@@ -16,6 +17,8 @@ from .. import calibrants_path
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ..widgets.CalibrationWidget import CalibrationWidget, WIZARD_STEP_TITLES
 from ..model.DioptasModel import DioptasModel
+from ..model.integration_task import PersistentIntegrationEngine
+from .async_job import DedicatedAsyncJobRunner
 from .binding import Binder
 from ..model.CalibrationGuide import CalibrationGuide, Step
 from ..model.CalibrationModel import (
@@ -32,7 +35,14 @@ class CalibrationController:
     CalibrationController handles all the interaction between the CalibrationView and the CalibrationData class
     """
 
-    def __init__(self, widget, dioptas_model):
+    def __init__(
+        self,
+        widget,
+        dioptas_model,
+        *,
+        run_async_integration=True,
+        integration_coordinator=None,
+    ):
         """Manages the connection between the calibration GUI and data
 
         :param widget: Gives the Calibration Widget
@@ -45,6 +55,32 @@ class CalibrationController:
         self.widget = widget
         self.model = dioptas_model
         self.binder = Binder()
+        self._run_async_integration = run_async_integration
+        self._integration_coordinator = integration_coordinator
+        self._integration_engine = None
+        self._integration_runner = None
+        if run_async_integration and integration_coordinator is None:
+            self._integration_engine = PersistentIntegrationEngine()
+            self._integration_runner = DedicatedAsyncJobRunner(
+                widget,
+                finalizer=self._integration_engine.close,
+            )
+            self._integration_runner.succeeded.connect(
+                self._on_integration_succeeded
+            )
+            self._integration_runner.failed.connect(self._on_integration_failed)
+        self._integration_contexts = {}
+        self._coordinated_integration_contexts = {}
+        if integration_coordinator is not None:
+            integration_coordinator.completed.connect(
+                self._on_coordinated_integration_completed
+            )
+            integration_coordinator.failed.connect(
+                self._on_coordinated_integration_failed
+            )
+            integration_coordinator.stale_result_discarded.connect(
+                self._on_coordinated_integration_stale
+            )
         # calibration is the mode the application starts in; activate()/
         # deactivate() track mode switches so hidden validation views are
         # not redrawn from signals fired in other modes
@@ -1307,7 +1343,14 @@ class CalibrationController:
         self.update_calibration_parameter_in_view()
 
     def create_progress_dialog(
-        self, text_str, abort_str, end_value, show_cancel_btn=True
+        self,
+        text_str,
+        abort_str,
+        end_value,
+        show_cancel_btn=True,
+        *,
+        window_modality=QtCore.Qt.WindowModal,
+        auto_close=True,
     ):
         """Creates a Progress Bar Dialog.
         :param text_str:  Main message string
@@ -1336,7 +1379,10 @@ class CalibrationController:
         )
 
         progress_dialog.setWindowTitle("   ")
-        progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
+        progress_dialog.setWindowModality(window_modality)
+        progress_dialog.setAutoClose(auto_close)
+        if not auto_close:
+            progress_dialog.setAutoReset(False)
         progress_dialog.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         if not show_cancel_btn:
             progress_dialog.setCancelButton(None)
@@ -1516,6 +1562,56 @@ class CalibrationController:
         Performs 1d and 2d integration based on the current calibration parameter set. Updates the GUI interface
         accordingly with the new diffraction pattern and cake image.
         """
+        if integrate and self._run_async_integration:
+            configuration = self.model.current_configuration
+            if self._integration_coordinator is not None:
+                progress_dialog = self.create_progress_dialog(
+                    "Integrating image data.",
+                    "",
+                    0,
+                    show_cancel_btn=False,
+                    window_modality=QtCore.Qt.NonModal,
+                    auto_close=False,
+                )
+                generation = self._integration_coordinator.request(
+                    configuration,
+                    calculate_pattern=True,
+                    calculate_cake=True,
+                    immediate=True,
+                )
+                previous = self._coordinated_integration_contexts.pop(
+                    configuration, None
+                )
+                if previous is not None:
+                    previous[1].close()
+                    previous[1].deleteLater()
+                self._coordinated_integration_contexts[configuration] = (
+                    generation,
+                    progress_dialog,
+                )
+                return
+            task = configuration.create_integration_task(
+                calculate_pattern=True,
+                calculate_cake=True,
+            )
+            if task is not None:
+                progress_dialog = self.create_progress_dialog(
+                    "Integrating image data.",
+                    "",
+                    0,
+                    show_cancel_btn=False,
+                    window_modality=QtCore.Qt.NonModal,
+                    auto_close=False,
+                )
+                job_id = self._integration_runner.submit(
+                    partial(self._integration_engine.compute, task)
+                )
+                self._integration_contexts[job_id] = (
+                    configuration,
+                    progress_dialog,
+                )
+                return
+
         if integrate:
             progress_dialog = self.create_progress_dialog(
                 "Integrating to cake.", "", 0, show_cancel_btn=False
@@ -1561,6 +1657,83 @@ class CalibrationController:
         # the validation page, where image, cake and pattern are shown
         # side by side and the overlays get drawn once
         self.go_to_wizard_step(3)
+
+    def _on_integration_succeeded(self, job_id, result):
+        context = self._integration_contexts.pop(job_id, None)
+        if context is None:
+            return
+        configuration, progress_dialog = context
+        progress_dialog.close()
+        progress_dialog.deleteLater()
+        if configuration not in self.model.configurations:
+            return
+        try:
+            applied = configuration.apply_integration_result(result)
+        except Exception as exc:
+            QtWidgets.QMessageBox.critical(
+                self.widget,
+                "Integration failed",
+                str(exc),
+            )
+        else:
+            if applied and configuration is self.model.current_configuration:
+                self.update_all(integrate=False)
+
+    def _on_integration_failed(self, job_id, exc, _traceback_text):
+        context = self._integration_contexts.pop(job_id, None)
+        if context is None:
+            return
+        _configuration, progress_dialog = context
+        progress_dialog.close()
+        progress_dialog.deleteLater()
+        QtWidgets.QMessageBox.critical(
+            self.widget,
+            "Integration failed",
+            str(exc),
+        )
+
+    def _on_coordinated_integration_completed(self, configuration, generation):
+        context = self._coordinated_integration_contexts.get(configuration)
+        if context is None or context[0] != generation:
+            return
+        self._coordinated_integration_contexts.pop(configuration)
+        context[1].close()
+        context[1].deleteLater()
+        if configuration is self.model.current_configuration:
+            self.update_all(integrate=False)
+
+    def _on_coordinated_integration_failed(self, configuration, generation, exc):
+        context = self._coordinated_integration_contexts.get(configuration)
+        if context is None or context[0] != generation:
+            return
+        self._coordinated_integration_contexts.pop(configuration)
+        context[1].close()
+        context[1].deleteLater()
+        QtWidgets.QMessageBox.critical(
+            self.widget,
+            "Integration failed",
+            str(exc),
+        )
+
+    def _on_coordinated_integration_stale(self, configuration, generation):
+        context = self._coordinated_integration_contexts.get(configuration)
+        if context is None or context[0] != generation:
+            return
+        self._coordinated_integration_contexts.pop(configuration)
+        context[1].close()
+        context[1].deleteLater()
+
+    def shutdown(self):
+        for _configuration, progress_dialog in self._integration_contexts.values():
+            progress_dialog.close()
+            progress_dialog.deleteLater()
+        self._integration_contexts.clear()
+        for _generation, progress_dialog in self._coordinated_integration_contexts.values():
+            progress_dialog.close()
+            progress_dialog.deleteLater()
+        self._coordinated_integration_contexts.clear()
+        if self._integration_runner is not None:
+            self._integration_runner.shutdown(wait=False)
 
     def update_calibration_parameter_in_view(self):
         """

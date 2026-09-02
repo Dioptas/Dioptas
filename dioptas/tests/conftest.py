@@ -96,7 +96,7 @@ def main_controller(qapp):
     from dioptas.controller.MainController import MainController
     from qtpy import QtCore
 
-    controller = MainController(use_settings=False)
+    controller = MainController(use_settings=False, run_async_processing=False)
     controller.show_window()
     controller.widget.setAttribute(QtCore.Qt.WA_DeleteOnClose)
     QTest.qWaitForWindowExposed(controller.widget)
@@ -162,7 +162,11 @@ def batch_model(dioptas_model):
 def batch_controller(integration_widget, dioptas_model):
     from dioptas.controller.integration import BatchController
 
-    return BatchController(integration_widget, dioptas_model)
+    return BatchController(
+        integration_widget,
+        dioptas_model,
+        run_async_integration=False,
+    )
 
 
 @pytest.fixture
@@ -185,7 +189,11 @@ def image_controller(integration_widget, dioptas_model, qtbot):
 @pytest.fixture
 def calibration_controller(calibration_widget, dioptas_model, qtbot):
     from dioptas.controller import CalibrationController
-    return CalibrationController(calibration_widget, dioptas_model)
+    return CalibrationController(
+        calibration_widget,
+        dioptas_model,
+        run_async_integration=False,
+    )
 
 
 @pytest.fixture

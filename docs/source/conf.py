@@ -58,7 +58,6 @@ _ALL_MOCK_IMPORTS = [
     'qt_material',
     'scipy',
     'skimage',
-    'watchdog',
     'xypattern',
     'bitshuffle',
     'xraydb',
@@ -216,5 +215,4 @@ texinfo_documents = [
      author, 'Dioptas', 'One line description of project.',
      'Miscellaneous'),
 ]
-
 

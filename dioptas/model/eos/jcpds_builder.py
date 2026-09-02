@@ -172,7 +172,12 @@ def apply_eos_record(phase, record: dict) -> None:
     phase.params["k0pp0"] = parameters.get("K0_double_prime") or 0.0
     thermal = record.get("thermal") or {}
     thermal_type = thermal.get("type") or ""
-    thermal_parameters = thermal.get("parameters") or {}
+    thermal_parameters = dict(thermal.get("parameters") or {})
+    thermal_configuration = dict(thermal.get("configuration") or {})
+    if thermal.get("debye_temperature_law") is not None:
+        thermal_configuration["debye_temperature_law"] = thermal[
+            "debye_temperature_law"]
+    thermal_parameters.update(thermal_configuration)
 
     material_document = phase.params.get("material_document") or {}
     base_material = Material.from_dict(material_document) if material_document else None

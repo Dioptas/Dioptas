@@ -546,6 +546,44 @@ def test_eosmat_round_trip(materials, tmp_path):
     assert len(peak_lines) == len(coesite.peaks)
 
 
+def test_format3_eosmat_preserves_crystallography_and_extensions():
+    document = {
+        "format": "peritheos.material",
+        "format_version": 3,
+        "identifier": "gold_fcc",
+        "name": "Gold",
+        "formula": "Au",
+        "phase": "fcc",
+        "cell_contents": "4 Au atoms per conventional cubic cell",
+        "units": {
+            "pressure": "GPa", "temperature": "K",
+            "volume": "angstrom^3/conventional_unit_cell",
+        },
+        "symmetry": "CUBIC",
+        "lattice": {"a": 4.0862, "b": None, "c": None,
+                    "alpha": 90.0, "beta": 90.0, "gamma": 90.0},
+        "formula_units_per_cell": 4,
+        "space_group": "Fm-3m",
+        "space_group_number": 225,
+        "atom_sites": [{"element": "Au", "x": 0.0, "y": 0.0,
+                        "z": 0.0, "occupancy": 1.0}],
+        "consumer_extension": {"kept": True},
+        "eos_records": [],
+    }
+
+    rendered = Material.from_dict(document).to_dict()
+
+    assert rendered["format"] == "peritheos.material"
+    assert rendered["format_version"] == 3
+    assert rendered["identifier"] == "gold_fcc"
+    assert rendered["phase"] == "fcc"
+    assert rendered["cell_contents"] == document["cell_contents"]
+    assert rendered["units"] == document["units"]
+    assert rendered["lattice"] == document["lattice"]
+    assert rendered["atom_sites"] == document["atom_sites"]
+    assert rendered["consumer_extension"] == {"kept": True}
+
+
 def test_eosmat_keeps_each_atom_site_on_one_line(tmp_path):
     material = next(m for m in eos.load_materials() if m.formula == "MgO")
     path = str(tmp_path / "MgO.eosmat")
@@ -568,6 +606,8 @@ def test_mgd_record_applies_thermal_state(gold):
     assert phase.params["thermal_type"] == "MieGruneisenDebye"
     assert phase.params["theta_t0"] == pytest.approx(170.0)
     assert phase.params["gamma_t0"] == pytest.approx(2.97)
+    assert phase.params["thermal_parameters"]["debye_temperature_law"] == (
+        "variable_exponent")
     assert phase.has_thermal_expansion()
 
     # temperature genuinely moves the volume through the engine

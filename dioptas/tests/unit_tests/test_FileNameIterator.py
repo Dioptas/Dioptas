@@ -86,3 +86,26 @@ def test_get_previous_filename_with_larger_Step(filename_iterator):
     filename_iterator.update_filename(os.path.join(data_path, filename))
     new_filename = os.path.basename(filename_iterator.get_previous_filename(step=2))
     assert new_filename == 'image_001.tif'
+
+
+def test_time_iteration_refreshes_directory_only_when_browsing(
+    filename_iterator, tmp_path, monkeypatch
+):
+    first = tmp_path / "image_001.tif"
+    second = tmp_path / "image_002.tif"
+    first.write_bytes(b"first")
+    creation_times = {
+        str(first): 1.0,
+        str(second): 2.0,
+    }
+    monkeypatch.setattr(
+        os.path,
+        "getctime",
+        lambda filename: creation_times[str(filename)],
+    )
+
+    filename_iterator.create_timed_file_list = True
+    filename_iterator.update_filename(str(first))
+    second.write_bytes(b"second")
+
+    assert filename_iterator.get_next_filename(mode="time") == str(second)

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 import logging
 import os
+from collections.abc import Callable
 import numpy as np
 
 from .util import Signal
@@ -23,6 +25,7 @@ from .MaskPluginManager import MaskPluginManager
 from .util.plugin_discovery import discover_mask_plugins
 from .util.mask_plugins import BUILTIN_MASK_PLUGINS
 from .MapModel import MapModel
+from .integration_task import IntegrationResult, IntegrationTask
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +61,8 @@ class Configuration:
             self.params = ConfigurationParams(working_directories=working_directories)
 
         self.cake_changed: Signal = Signal()
+        self.integration_scheduler: Callable[..., int] | None = None
+        self._integration_revision = 0
         self._connect_signals()
 
         # Derived computations: re-run integration when the image changes.
@@ -66,12 +71,12 @@ class Configuration:
         # Created after _connect_signals so integration runs after the mask
         # dimension/plugin handlers on img_changed.
         self.pattern_integration: Derived = Derived(
-            self.integrate_image_1d,
+            self._request_pattern_integration,
             dependencies=[self.img_model.img_changed],
             active=self.params.auto_integrate_pattern,
         )
         self.cake_integration: Derived = Derived(
-            self.integrate_image_2d,
+            self._request_cake_integration,
             dependencies=[self.img_model.img_changed],
             active=self.params.auto_integrate_cake,
         )
@@ -90,6 +95,26 @@ class Configuration:
         # and Configuration is what owns both models
         self._reconciling_corrections = False
         self.img_model.params.events.connect(self._on_img_params_changed)
+
+    def _request_pattern_integration(self) -> None:
+        if self.integration_scheduler is None:
+            self.integrate_image_1d()
+        else:
+            self.integration_scheduler(
+                self,
+                calculate_pattern=True,
+                calculate_cake=False,
+            )
+
+    def _request_cake_integration(self) -> None:
+        if self.integration_scheduler is None:
+            self.integrate_image_2d()
+        else:
+            self.integration_scheduler(
+                self,
+                calculate_pattern=False,
+                calculate_cake=True,
+            )
 
     def _on_img_params_changed(self, info) -> None:
         if info.signal.name == "corrections" and not self._reconciling_corrections:
@@ -188,6 +213,15 @@ class Configuration:
 
     def _on_own_params_changed(self, info) -> None:
         field = info.signal.name
+        if field in {
+            "integration_rad_points",
+            "cake_azimuth_points",
+            "cake_azimuth_range",
+            "oned_azimuth_range",
+            "calculate_poisson_errors",
+            "integration_unit",
+        }:
+            self._mark_integration_inputs_changed()
         if field == "integration_rad_points":
             self.pattern_integration.recompute()
             self.cake_integration.invalidate()
@@ -210,6 +244,19 @@ class Configuration:
             self.cake_integration.active = info.args[0]
 
     def _on_calibration_params_changed(self, info) -> None:
+        if info.signal.name in {
+            "polarization_factor",
+            "supersampling_factor",
+            "correct_solid_angle",
+            "distortion_spline_filename",
+            "use_dioptrin",
+            "geometry",
+            "detector_mode",
+            "detector_name",
+            "detector_filename",
+            "is_calibrated",
+        }:
+            self._mark_integration_inputs_changed()
         if info.signal.name == "correct_solid_angle":
             self.pattern_integration.invalidate()
             self.cake_integration.invalidate()
@@ -230,15 +277,29 @@ class Configuration:
 
     def _connect_signals(self) -> None:
         """Connects the img_changed signal to responding functions."""
+        self.img_model.img_changed.connect(
+            self._mark_integration_inputs_changed
+        )
+        self.mask_model.mask_changed.connect(
+            self._mark_integration_inputs_changed
+        )
         self.img_model.img_changed.connect(self.update_mask_dimension)
         self.img_model.img_changed.connect(self._update_plugin_masks)
         self.mask_plugin_manager.mask_changed.connect(
             self.mask_model.mask_changed.emit
         )
 
+    def _mark_integration_inputs_changed(self, *_args) -> None:
+        self._integration_revision += 1
+
+    @property
+    def integration_revision(self) -> int:
+        return self._integration_revision
+
     def _update_plugin_masks(self) -> None:
         """Update dynamic mask plugins with the current image data."""
-        if self.img_model.img_data is not None:
+        image = self.img_model.img_data
+        if image is not None:
             # Pass user-drawn mask so plugins can exclude pre-masked pixels
             # (e.g., detector gaps) from their statistics.
             user_mask = self.mask_model.get_img()
@@ -246,9 +307,9 @@ class Configuration:
             # update_image will trigger plot_mask -> update_plugin_existing_mask,
             # which must see the current sum to break the recursion cycle.
             self._last_user_mask_sum = int(user_mask.sum())
-            self._update_plugin_geometry()
+            self._update_plugin_geometry(image.shape)
             self.mask_plugin_manager.update_image(
-                self.img_model.img_data, existing_mask=user_mask
+                image, existing_mask=user_mask
             )
 
     def update_plugin_existing_mask(self) -> None:
@@ -264,7 +325,9 @@ class Configuration:
         if current_sum != self._last_user_mask_sum:
             self._update_plugin_masks()
 
-    def _update_plugin_geometry(self) -> None:
+    def _update_plugin_geometry(
+        self, img_shape: tuple[int, int] | None = None
+    ) -> None:
         """Build GeometryContext from calibration and pass to plugin manager."""
         from .util.MaskPlugin import GeometryContext
 
@@ -274,7 +337,12 @@ class Configuration:
 
         try:
             geo = self.calibration_model.pattern_geometry
-            img_shape = self.img_model.img_data.shape
+            if img_shape is None:
+                image = self.img_model.img_data
+                if image is None:
+                    self.mask_plugin_manager.update_geometry(None)
+                    return
+                img_shape = image.shape
             geometry = GeometryContext(
                 tth_array=geo.center_array(img_shape, unit="2th_rad"),
                 azi_array=geo.center_array(img_shape, unit="chi_rad"),
@@ -373,6 +441,115 @@ class Configuration:
         )
 
         self.cake_changed.emit()
+
+    def create_integration_task(
+        self,
+        *,
+        calculate_pattern: bool = True,
+        calculate_cake: bool = False,
+    ) -> IntegrationTask | None:
+        """Capture worker-safe integration inputs from the current state.
+
+        The returned task owns its processed image and mask arrays and carries
+        a serializable geometry config.  A worker can therefore calculate it
+        without reading or mutating live models or emitting model signals.
+        """
+        if not self.calibration_model.is_calibrated:
+            return None
+        image = self.img_model.img_data
+        if image is None:
+            return None
+
+        calibration = self.calibration_model
+        calibration._check_detector_and_image_shape(image.shape)
+        if self.use_mask:
+            mask = self.mask_model.get_mask()
+        elif self.mask_model.roi is not None:
+            mask = self.mask_model.roi_mask
+        else:
+            mask = None
+        mask = calibration._prepare_integration_mask(mask)
+        effective_pattern = calculate_pattern and not (
+            mask is not None and np.all(mask)
+        )
+
+        # ImgModel.img_data already returns a processed, independent array for
+        # the common factor path.  ascontiguousarray avoids another copy while
+        # ensuring pyFAI receives stable storage after the task is submitted.
+        image = np.ascontiguousarray(image)
+        if mask is not None:
+            mask = np.array(mask, dtype=bool, copy=True, order="C")
+
+        return IntegrationTask(
+            image=image,
+            revision=self.integration_revision,
+            mask=mask,
+            geometry_config=deepcopy(calibration.pattern_geometry.get_config()),
+            filename=str(self.img_model.filename),
+            unit=self.integration_unit,
+            polarization_factor=calibration.polarization_factor,
+            correct_solid_angle=calibration.correct_solid_angle,
+            supersampling_factor=calibration.supersampling_factor,
+            pattern_num_points=self.integration_rad_points,
+            pattern_azimuth_range=(
+                tuple(self.oned_azimuth_range)
+                if self.oned_azimuth_range is not None
+                else None
+            ),
+            trim_trailing_zeros=self.trim_trailing_zeros,
+            calculate_errors=self.calculate_poisson_errors,
+            calculate_pattern=effective_pattern,
+            cake_radial_points=self.integration_rad_points,
+            cake_azimuth_points=self.cake_azimuth_points,
+            cake_azimuth_range=(
+                tuple(self.cake_azimuth_range)
+                if self.cake_azimuth_range is not None
+                else None
+            ),
+            calculate_cake=calculate_cake,
+            prefer_dioptrin=bool(calibration.use_dioptrin),
+            dioptrin_geometry_config=(
+                deepcopy(calibration._get_poni_dict())
+                if calibration.use_dioptrin
+                else None
+            ),
+        )
+
+    def apply_integration_result(self, result: IntegrationResult) -> bool:
+        """Commit a current worker result on the caller thread.
+
+        Returns ``False`` when any integration input changed after the task
+        snapshot was captured. This also protects explicit integrations when
+        automatic integration is disabled, where no newer scheduler request
+        would otherwise exist to mark the result stale.
+        """
+        if result.revision != self.integration_revision:
+            return False
+        calibration = self.calibration_model
+        if result.pattern is not None:
+            pattern = result.pattern
+            calibration.tth = pattern.radial
+            calibration.int = pattern.intensity
+            calibration.sigma = pattern.sigma
+            calibration.num_points = pattern.num_points
+            self.pattern_model.set_pattern(
+                pattern.radial,
+                pattern.intensity,
+                result.filename,
+                unit=result.unit,
+                errors=pattern.sigma,
+            )
+            if self.auto_save_integrated_pattern:
+                self._auto_save_patterns()
+
+        if result.cake is not None:
+            cake = result.cake
+            calibration.cake_img = cake.intensity
+            calibration.cake_tth = cake.radial
+            calibration.cake_azi = cake.azimuthal
+            calibration.num_points = cake.num_points
+            self.cake_changed.emit()
+        return True
 
     def save_pattern(self, filename: str | None = None, subtract_background: bool = False) -> None:
         """Save the current integrated pattern.

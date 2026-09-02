@@ -21,6 +21,8 @@ class MapController:
         widget: MapWidget,
         dioptas_model: DioptasModel,
         panel_controller: Optional[MapPanelController] = None,
+        *,
+        run_async_map: bool = True,
     ):
         self.widget = widget
         self.model = dioptas_model
@@ -29,7 +31,9 @@ class MapController:
         # is normally owned by the MainController and passed in here.
         if panel_controller is None:
             panel_controller = MapPanelController(
-                self.widget.map_panel_widget, self.model
+                self.widget.map_panel_widget,
+                self.model,
+                run_async_load=run_async_map,
             )
         self.panel_controller = panel_controller
 
@@ -514,13 +518,14 @@ class MapController:
         )
 
     def update_image(self):
-        if self.model.img_model.img_data is None:
+        image = self.model.img_model.img_data
+        if image is None:
             self.widget.img_plot_widget.plot_image(np.array([[], []]))
         else:
             auto_level = self.widget.img_autoscale_btn.isChecked()
             self._setting_levels = True
             self.widget.img_plot_widget.plot_image(
-                self.model.img_model.img_data, auto_level=auto_level
+                image, auto_level=auto_level
             )
             self._setting_levels = False
             self.plot_mask()

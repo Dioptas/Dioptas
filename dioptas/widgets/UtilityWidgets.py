@@ -230,11 +230,23 @@ def get_progress_dialog(
     abort_text: str,
     num_points: int,
     parent=None,
+    *,
+    window_modality=QtCore.Qt.WindowModal,
+    auto_close: bool = True,
 ) -> QtWidgets.QProgressDialog:
     progress_dialog = QtWidgets.QProgressDialog(
         message, abort_text, 0, int(num_points), parent=parent
     )
-    progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
+    # Window modality has to be chosen before the first show(). Qt does not
+    # apply a modality change to an already visible native window on all
+    # platforms (notably macOS), which can leave an asynchronous progress
+    # dialog blocking its parent even after callers request NonModal.
+    progress_dialog.setWindowModality(window_modality)
+    progress_dialog.setAutoClose(auto_close)
+    if not auto_close:
+        # The controller owns the terminal state and closes the dialog after
+        # the result has been committed. Avoid an intermediate reset at 100%.
+        progress_dialog.setAutoReset(False)
     progress_dialog.setWindowFlags(QtCore.Qt.Dialog | QtCore.Qt.FramelessWindowHint)
     pos = parent.rect().center()
     progress_dialog.move(

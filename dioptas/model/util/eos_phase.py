@@ -198,14 +198,30 @@ class EosPhase:
                     f"{thermal_canonical} requires a non-zero Grüneisen "
                     "parameter gamma0")
             thermal_class = getattr(thermal, thermal_canonical)
-            self._eos = thermal_class(
-                rt_eos=self._eos,
-                Tr=tp.get("Tr") or 298.15,
-                theta0=theta0,
-                gamma0=gamma0,
-                q=tp.get("q", 1.0),
-                n=n,
-            )
+            thermal_kwargs = {
+                "rt_eos": self._eos,
+                "Tr": tp.get("Tr") or 298.15,
+                "theta0": theta0,
+                "gamma0": gamma0,
+                "q": tp.get("q", 1.0),
+                "n": n,
+            }
+            if thermal_canonical == "MieGruneisenDebye":
+                law = tp.get(
+                    "debye_temperature_law", "integrated_gruneisen")
+                if law not in ("integrated_gruneisen", "variable_exponent"):
+                    raise ValueError(
+                        "Unsupported Debye-temperature law "
+                        f"'{law}'")
+                signature = inspect.signature(thermal_class.__init__)
+                if "debye_temperature_law" not in signature.parameters:
+                    if law != "integrated_gruneisen":
+                        raise ValueError(
+                            "This pressure scale requires Peritheos with "
+                            "debye_temperature_law support")
+                else:
+                    thermal_kwargs["debye_temperature_law"] = law
+            self._eos = thermal_class(**thermal_kwargs)
         elif thermal_canonical == "Sokolova2016":
             if canonical != "Holzapfel":
                 raise ValueError(

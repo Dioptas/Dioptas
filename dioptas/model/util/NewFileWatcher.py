@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import stat
 import threading
 
 from . import Signal
@@ -54,7 +55,9 @@ class NewFileInDirectoryWatcher:
             path = os.getcwd()
         self._path: str = str(path)
 
-        self.file_types: set[str] = set(file_types) if file_types else set()
+        self._file_types: set[str] = set()
+        self._suffixes: tuple[str, ...] = ()
+        self.file_types = file_types or []
         self.poll_interval: float = poll_interval
 
         self.file_added: Signal = Signal(str)  # to be used signal from outside
@@ -98,10 +101,25 @@ class NewFileInDirectoryWatcher:
 
     @path.setter
     def path(self, new_path: str | os.PathLike) -> None:
+        new_path = str(new_path)
         with self._lock:
-            self._path = str(new_path)
+            if os.path.abspath(new_path) == os.path.abspath(self._path):
+                return
+            self._path = new_path
             # only files added from now on count, as for the initial path
             self._take_baseline()
+
+    @property
+    def file_types(self) -> set[str]:
+        return self._file_types
+
+    @file_types.setter
+    def file_types(self, values) -> None:
+        self._file_types = set(values) if values else set()
+        self._suffixes = tuple(
+            "." + value.lower().lstrip(".")
+            for value in sorted(self._file_types)
+        )
 
     def _poll_loop(self) -> None:
         # Event.wait doubles as an interruptible sleep, so deactivate() never
@@ -116,20 +134,19 @@ class NewFileInDirectoryWatcher:
         and has finished being written (stats unchanged since the last look).
         """
         with self._lock:
-            entries = self._scan()
-            if entries is None:
+            scan = self._scan()
+            if scan is None:
                 return
+            current_names, candidate_stats = scan
 
             # a vanished file may be re-created later; that counts as new again
-            self._known &= set(entries)
+            self._known &= current_names
             for name in list(self._pending):
-                if name not in entries:
+                if name not in current_names:
                     del self._pending[name]
 
             ready: list[tuple[float, str]] = []
-            for name, file_stat in entries.items():
-                if name in self._known:
-                    continue
+            for name, file_stat in candidate_stats.items():
                 if self._pending.get(name) == file_stat and file_stat[0] > 0:
                     ready.append((file_stat[1], name))
                     self._known.add(name)
@@ -147,43 +164,55 @@ class NewFileInDirectoryWatcher:
             logger.info("New file detected: %s", file_path)
             self.file_added.emit(file_path)
 
-    def _scan(self) -> dict[str, tuple[int, float]] | None:
-        """Lists the matching files with their (size, mtime).
+    def _scan(
+        self,
+    ) -> tuple[set[str], dict[str, tuple[int, float]]] | None:
+        """List matching names and stat only not-yet-announced files.
 
         Opens the directory fresh each time — this is also what defeats the
-        NFS attribute cache. Returns None if the directory cannot be read.
+        NFS attribute cache. Avoiding ``stat`` calls for every known image is
+        important for large beamline directories and network mounts. Returns
+        None if the directory cannot be read.
         """
+        current_names = self._matching_names()
+        if current_names is None:
+            return None
+
+        candidate_stats: dict[str, tuple[int, float]] = {}
+        for name in current_names - self._known:
+            try:
+                file_stat = os.stat(os.path.join(self._path, name))
+            except OSError:
+                continue
+            if stat.S_ISREG(file_stat.st_mode):
+                candidate_stats[name] = (
+                    file_stat.st_size,
+                    file_stat.st_mtime,
+                )
+        return current_names, candidate_stats
+
+    def _matching_names(self) -> set[str] | None:
         try:
-            with os.scandir(self._path) as dir_iterator:
-                entries: dict[str, tuple[int, float]] = {}
-                for entry in dir_iterator:
-                    if not self._matches(entry.name):
-                        continue
-                    try:
-                        if not entry.is_file():
-                            continue
-                        file_stat = entry.stat()
-                    except OSError:
-                        continue
-                    entries[entry.name] = (file_stat.st_size, file_stat.st_mtime)
-                return entries
+            # listdir performs the directory walk in C. This matters for
+            # directories containing tens of thousands of detector images:
+            # iterating DirEntry objects in Python once per second can contend
+            # with the Qt thread even before any stat calls are made.
+            return {
+                name for name in os.listdir(self._path) if self._matches(name)
+            }
         except OSError:
             logger.debug("Cannot list watched directory: %s", self._path)
             return None
 
     def _matches(self, filename: str) -> bool:
-        if not self.file_types:
+        if not self._suffixes:
             return True
-        lowered = filename.lower()
-        return any(
-            lowered.endswith("." + file_type.lower().lstrip("."))
-            for file_type in self.file_types
-        )
+        return filename.lower().endswith(self._suffixes)
 
     def _take_baseline(self) -> None:
         """Remembers the files already there, which are never announced."""
-        entries = self._scan()
-        self._known = set(entries) if entries else set()
+        names = self._matching_names()
+        self._known = names if names else set()
         self._pending = {}
 
     def __del__(self) -> None:

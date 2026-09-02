@@ -23,6 +23,24 @@ from ..binding import Binder
 logger = logging.getLogger(__name__)
 
 
+class _AutoProcessBridge(QtCore.QObject):
+    """Queue watcher notifications onto the object's Qt thread."""
+
+    file_received = QtCore.Signal(str)
+
+    def __init__(self, callback, parent=None):
+        super().__init__(parent)
+        self._callback = callback
+        self.file_received.connect(
+            self._deliver,
+            QtCore.Qt.QueuedConnection,
+        )
+
+    @QtCore.Slot(str)
+    def _deliver(self, filepath):
+        self._callback(filepath)
+
+
 class ImageController:
     """
     The ImageController manages the Image actions in the Integration Window. It connects the file actions, as
@@ -37,6 +55,10 @@ class ImageController:
         self.widget = widget
         self.model = dioptas_model
         self.binder = Binder(field_events=self.model.configuration_params_changed)
+        self._autoprocess_bridge = _AutoProcessBridge(
+            self._load_autoprocess_file,
+            widget,
+        )
 
         self.epics_controller = EpicsController(self.widget, self.model)
 
@@ -1045,8 +1067,11 @@ class ImageController:
         self.model.img_model.autoprocess = enable
 
     def _on_autoprocess_file_added(self, filepath):
-        """Handle file_added signal from background thread by dispatching load to the main Qt thread."""
-        QtCore.QTimer.singleShot(0, lambda: self.model.img_model.load(filepath))
+        """Queue a poll-thread notification for delivery on the Qt thread."""
+        self._autoprocess_bridge.file_received.emit(filepath)
+
+    def _load_autoprocess_file(self, filepath):
+        self.model.img_model.load(filepath)
 
     def save_img(self, filename=None):
         if not filename:

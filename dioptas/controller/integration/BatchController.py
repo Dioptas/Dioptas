@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 from glob import glob
+from functools import partial
 import logging
 import os
 import time
@@ -13,12 +14,22 @@ from qtpy import QtWidgets, QtCore
 from pyqtgraph import makeQImage
 
 from ...model.util.HelperModule import get_partial_value, get_partial_index
+from ...model.batch_task import (
+    BatchBackgroundTask,
+    BatchIntegrationTask,
+    apply_batch_integration,
+    compute_batch_background,
+    compute_batch_integration,
+)
+from ...model.worker_configuration import capture_worker_configuration
 from ...widgets.UtilityWidgets import (
     get_progress_dialog,
     open_files_dialog,
     save_file_dialog,
 )
 from ...widgets.integration.BatchWidget import open_gl
+from ..async_job import AsyncJobRunner
+from ..job_progress import JobProgress
 
 logger = logging.getLogger(__name__)
 
@@ -33,13 +44,29 @@ class BatchController:
     well as interaction with the image_view.
     """
 
-    def __init__(self, widget: IntegrationWidget, dioptas_model: DioptasModel):
+    def __init__(
+        self,
+        widget: IntegrationWidget,
+        dioptas_model: DioptasModel,
+        *,
+        run_async_integration: bool = True,
+    ):
         """
         :param widget: Reference to IntegrationView
         :param dioptas_model: Reference to DioptasModel object
         """
         self.widget = widget
         self.model = dioptas_model
+        self._run_async_integration = run_async_integration
+        self._batch_runner = AsyncJobRunner(widget.batch_widget)
+        self._batch_runner.succeeded.connect(self._batch_integration_succeeded)
+        self._batch_runner.failed.connect(self._batch_integration_failed)
+        self._batch_jobs = {}
+        self._background_runner = AsyncJobRunner(widget.batch_widget)
+        self._background_runner.succeeded.connect(self._background_succeeded)
+        self._background_runner.failed.connect(self._background_failed)
+        self._background_jobs = {}
+        self._shutting_down = False
 
         self.clicks = 0
         self.rect = None
@@ -518,6 +545,8 @@ class BatchController:
         """
         Extract background from batch data
         """
+        if self._shutting_down:
+            return
         if self.model.batch_model.n_img is None:
             return
 
@@ -526,7 +555,44 @@ class BatchController:
             "Abort",
             self.model.batch_model.n_img,
             self.widget.batch_widget,
+            window_modality=(
+                QtCore.Qt.NonModal
+                if self._run_async_integration
+                else QtCore.Qt.WindowModal
+            ),
+            auto_close=not self._run_async_integration,
         )
+
+        parameters = (
+            self.widget.integration_control_widget.background_control_widget.get_bkg_pattern_parameters()
+        )
+        if self._run_async_integration:
+            progress_dialog.setRange(0, 100)
+            progress_dialog.setMinimumDuration(0)
+            progress = JobProgress(
+                progress_dialog, total=self.model.batch_model.n_img
+            )
+            progress.value_changed.connect(progress_dialog.setValue)
+            progress.label_changed.connect(progress_dialog.setLabelText)
+            progress_dialog.canceled.connect(progress.cancel)
+            batch_model = self.model.batch_model
+            source_data = batch_model.data
+            task = BatchBackgroundTask(
+                binning=np.array(batch_model.binning, copy=True),
+                data=np.array(source_data, copy=True),
+                parameters=parameters,
+            )
+            job_id = self._background_runner.submit(
+                partial(compute_batch_background, task, progress.update)
+            )
+            self._background_jobs[job_id] = (
+                batch_model,
+                source_data,
+                progress_dialog,
+                progress,
+            )
+            self.widget.batch_widget.control_widget.calc_bkg_btn.setEnabled(False)
+            return
 
         def callback_fn(current_index):
             if progress_dialog.wasCanceled():
@@ -535,11 +601,38 @@ class BatchController:
             QtWidgets.QApplication.processEvents()
             return not progress_dialog.wasCanceled()
 
-        parameters = (
-            self.widget.integration_control_widget.background_control_widget.get_bkg_pattern_parameters()
-        )
         self.model.batch_model.extract_background(parameters, callback_fn)
         progress_dialog.close()
+
+    def _background_succeeded(self, job_id, background):
+        context = self._background_jobs.pop(job_id, None)
+        if context is None:
+            return
+        batch_model, source_data, progress_dialog, progress = context
+        try:
+            if (
+                not self._shutting_down
+                and not progress.was_cancelled
+                and batch_model.data is source_data
+            ):
+                batch_model.bkg = background
+        finally:
+            self._finish_background_ui(progress_dialog)
+
+    def _background_failed(self, job_id, exc, _traceback_text):
+        context = self._background_jobs.pop(job_id, None)
+        if context is None:
+            return
+        _batch_model, _source_data, progress_dialog, progress = context
+        self._finish_background_ui(progress_dialog)
+        if not progress.was_cancelled and not self._shutting_down:
+            self.widget.show_error_msg(str(exc))
+
+    def _finish_background_ui(self, progress_dialog):
+        progress_dialog.close()
+        progress_dialog.deleteLater()
+        if not self._shutting_down:
+            self.widget.batch_widget.control_widget.calc_bkg_btn.setEnabled(True)
 
     def set_hard_minimum(self, ev, scale):
         if ev.button() == QtCore.Qt.RightButton:
@@ -1390,6 +1483,8 @@ class BatchController:
         """
         Integrate images in the batch
         """
+        if self._shutting_down:
+            return
         if not self.model.calibration_model.is_calibrated:
             self.widget.show_error_msg(
                 "Can not integrate multiple images without calibration."
@@ -1417,12 +1512,48 @@ class BatchController:
             "Abort Integration",
             n_total,
             self.widget.batch_widget,
+            window_modality=(
+                QtCore.Qt.NonModal
+                if self._run_async_integration
+                else QtCore.Qt.ApplicationModal
+            ),
+            auto_close=not self._run_async_integration,
         )
         progress_dialog.setMinimumDuration(0)
-        progress_dialog.setWindowModality(QtCore.Qt.ApplicationModal)
         label = progress_dialog.findChild(QtWidgets.QLabel)
         if label is not None:
             label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+
+        if self._run_async_integration:
+            progress_dialog.setRange(0, 100)
+            progress = JobProgress(progress_dialog, total=n_total)
+            progress.value_changed.connect(progress_dialog.setValue)
+            progress.label_changed.connect(progress_dialog.setLabelText)
+            progress_dialog.canceled.connect(progress.cancel)
+            batch_model = self.model.batch_model
+            task = BatchIntegrationTask(
+                configuration=capture_worker_configuration(
+                    self.model.current_configuration
+                ),
+                files=tuple(str(path) for path in batch_model.files),
+                pos_map=np.array(batch_model.pos_map, copy=True),
+                pos_map_all=np.array(batch_model.pos_map_all, copy=True),
+                start=start,
+                stop=stop + 1,
+                step=step,
+                use_all=self.widget.batch_widget.mode_widget.view_f_btn.isChecked(),
+            )
+            job_id = self._batch_runner.submit(
+                partial(compute_batch_integration, task, progress.update)
+            )
+            self._batch_jobs[job_id] = (
+                batch_model,
+                task.files,
+                progress_dialog,
+                progress,
+            )
+            self.widget.batch_widget.control_widget.integrate_btn.setEnabled(False)
+            return
 
         t_start = time.time()
 
@@ -1449,6 +1580,63 @@ class BatchController:
         )
 
         progress_dialog.close()
+        self._finish_batch_integration_gui()
+
+    def _batch_integration_succeeded(self, job_id, result):
+        context = self._batch_jobs.pop(job_id, None)
+        if context is None:
+            return
+        batch_model, input_files, progress_dialog, progress = context
+        try:
+            current_files = tuple(str(path) for path in batch_model.files)
+            if (
+                self._shutting_down
+                or progress.was_cancelled
+                or current_files != input_files
+            ):
+                return
+            apply_batch_integration(batch_model, result)
+            if batch_model is self.model.batch_model:
+                self._finish_batch_integration_gui()
+        except Exception as exc:
+            if not self._shutting_down:
+                self.widget.show_error_msg(str(exc))
+        finally:
+            self._finish_batch_integration_ui(progress_dialog)
+
+    def _batch_integration_failed(self, job_id, exc, _traceback_text):
+        context = self._batch_jobs.pop(job_id, None)
+        if context is None:
+            return
+        _batch_model, _input_files, progress_dialog, progress = context
+        self._finish_batch_integration_ui(progress_dialog)
+        if not progress.was_cancelled and not self._shutting_down:
+            self.widget.show_error_msg(str(exc))
+
+    def _finish_batch_integration_ui(self, progress_dialog):
+        progress_dialog.close()
+        progress_dialog.deleteLater()
+        if not self._shutting_down:
+            self.widget.batch_widget.control_widget.integrate_btn.setEnabled(True)
+
+    def shutdown(self):
+        """Cancel UI ownership of batch jobs without blocking application close."""
+        if self._shutting_down:
+            return
+        self._shutting_down = True
+        for _batch_model, _files, progress_dialog, progress in self._batch_jobs.values():
+            progress.cancel()
+            progress_dialog.close()
+        for (
+            _batch_model,
+            _source_data,
+            progress_dialog,
+            progress,
+        ) in self._background_jobs.values():
+            progress.cancel()
+            progress_dialog.close()
+
+    def _finish_batch_integration_gui(self):
         self.show_metadata_info()
 
         n_img = self.model.batch_model.n_img

@@ -5,12 +5,20 @@ Material and EoS-record structures for the bundled equation-of-state
 database.
 
 One material document (a ``.json`` file in ``resources/eos_database/``, or
-a user-saved ``.eosmat`` file — same content) looks like::
+a user-saved ``.eosmat`` file — same content) uses the shared format defined
+by Peritheos. Dioptas continues to read its legacy format 2 and preserves all
+format-3 fields, including extensions it does not interpret::
 
     {
-      "format_version": 2,
+      "format": "peritheos.material",
+      "format_version": 3,
+      "identifier": "gold_fcc",
       "name": "Gold",
       "formula": "Au",
+      "phase": "fcc",
+      "cell_contents": "4 Au atoms per conventional cubic cell",
+      "units": {"pressure": "GPa", "temperature": "K",
+                "volume": "angstrom^3/conventional_unit_cell"},
       "aliases": ["native gold"],
       "symmetry": "CUBIC",
       "lattice": {"a": 4.0786, "b": null, "c": null,
@@ -71,7 +79,7 @@ bundled database records do not use it. ``volume``, ``locator``, ``doi``, and
 a free-form ``details`` field (for example, a table or supplementary workbook)
 are optional.
 
-``thermal.type`` is reserved for ``peritheos.eos.thermal`` class names
+``thermal.type`` is reserved for stable shared model names
 (``MieGruneisenDebye``, ``HollandPowell2011``, ...); the one exception is
 ``AlphaKT``, the classic JCPDS-style correction (thermal expansion alpha0
 and dK/dT applied as a pressure shift) that Dioptas computes itself.
@@ -79,6 +87,11 @@ Thermal ``parameters`` likewise use the selected Peritheos constructor's
 names verbatim. ``thermal.parameter_errors`` and
 ``thermal.fixed_parameters`` have the same meaning as their room-temperature
 counterparts.
+
+For ``MieGruneisenDebye``, ``thermal.debye_temperature_law`` selects either
+``integrated_gruneisen`` (the default when absent) or ``variable_exponent``.
+Dioptas passes this choice to Peritheos and never substitutes one law for the
+other.
 
 Records are handled as plain dicts throughout: the same dict is stored in
 the bundled files, on ``CrystalState.eos_records`` (and therefore in
@@ -152,6 +165,15 @@ class Material:
     peaks: list = field(default_factory=list)
     #: EoS record dicts, schema in the module docstring
     eos_records: list = field(default_factory=list)
+    #: Shared Peritheos/Dioptas interchange metadata. Format-2 bundled files
+    #: leave these at their defaults; format-3 files preserve them losslessly.
+    format: str = ""
+    format_version: int = 2
+    identifier: str = ""
+    phase: str = ""
+    cell_contents: str = ""
+    units: dict = field(default_factory=dict)
+    extensions: dict = field(default_factory=dict)
 
     @property
     def display_name(self) -> str:
@@ -186,8 +208,9 @@ class Material:
             return None
 
     def to_dict(self) -> dict:
-        return {
-            "format_version": 2,
+        document = dict(self.extensions)
+        document.update({
+            "format_version": self.format_version,
             "name": self.name,
             "formula": self.formula,
             "aliases": list(self.aliases),
@@ -205,11 +228,25 @@ class Material:
             "notes": self.notes,
             "peaks": [list(peak) for peak in self.peaks],
             "eos_records": self.eos_records,
-        }
+        })
+        if self.format_version >= 3 or self.format:
+            document["format"] = self.format or "peritheos.material"
+            document["identifier"] = self.identifier
+            document["phase"] = self.phase
+            document["cell_contents"] = self.cell_contents
+            document["units"] = dict(self.units)
+        return document
 
     @classmethod
     def from_dict(cls, document: dict) -> "Material":
         lattice = document.get("lattice") or {}
+        known = {
+            "format", "format_version", "identifier", "name", "formula",
+            "phase", "cell_contents", "units", "aliases", "symmetry",
+            "lattice", "formula_units_per_cell", "space_group",
+            "space_group_number", "atom_sites", "source", "notes", "peaks",
+            "eos_records",
+        }
         return cls(
             name=document.get("name") or "",
             formula=document.get("formula") or "",
@@ -233,6 +270,14 @@ class Material:
             notes=document.get("notes") or "",
             peaks=[list(peak) for peak in document.get("peaks", [])],
             eos_records=list(document.get("eos_records", [])),
+            format=document.get("format") or "",
+            format_version=int(document.get("format_version") or 2),
+            identifier=document.get("identifier") or "",
+            phase=document.get("phase") or "",
+            cell_contents=document.get("cell_contents") or "",
+            units=dict(document.get("units") or {}),
+            extensions={key: value for key, value in document.items()
+                        if key not in known},
         )
 
 

@@ -32,7 +32,9 @@ class IntegrationFunctionalTest(QtTest):
 
         self.integration_widget = IntegrationWidget()
         self.integration_controller = IntegrationController(
-            widget=self.integration_widget, dioptas_model=self.model
+            widget=self.integration_widget,
+            dioptas_model=self.model,
+            run_async_batch=False,
         )
         self.model.calibration_model.load(
             os.path.join(data_path, "CeO2_Pilatus1M.poni")
@@ -174,7 +176,9 @@ class BatchIntegrationFunctionalTest(QtTest):
 
         self.integration_widget = IntegrationWidget()
         self.integration_controller = IntegrationController(
-            widget=self.integration_widget, dioptas_model=self.model
+            widget=self.integration_widget,
+            dioptas_model=self.model,
+            run_async_batch=False,
         )
 
         pattern = Pattern(

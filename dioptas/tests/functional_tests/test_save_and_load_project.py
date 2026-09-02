@@ -76,7 +76,9 @@ pressure = 12.0
 
 class ProjectSaveLoadTest(QtTest):
     def setUp(self):
-        self.controller = MainController(use_settings=False)
+        self.controller = MainController(
+            use_settings=False, run_async_processing=False
+        )
         self.model = self.controller.model
         self.widget = self.controller.widget
         self.config_widget = self.controller.widget.configuration_widget
@@ -595,7 +597,9 @@ class ProjectSaveLoadTest(QtTest):
             self.load_image(test_image_file_name)
             self.controller.widget.close()
             self.controller = MainController(
-                use_settings=True, settings_directory=data_path
+                use_settings=True,
+                settings_directory=data_path,
+                run_async_processing=False,
             )
             self.assertEqual(self.model.img_model.filename, test_image_file_name)
 
