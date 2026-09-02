@@ -111,6 +111,12 @@ class PatternModel:
             if not self._syncing_file_params:
                 self._reconcile_file_params()
             return
+        if info.signal.name == "file_iteration_mode":
+            mode = info.args[0]
+            self.file_name_iterator.create_timed_file_list = mode == "time"
+            if mode == "time":
+                self.file_name_iterator.update_filename(self.pattern_filename)
+            return
         if info.signal.name in self._AUTO_BKG_FIELDS and not self._applying_auto_bkg:
             self._apply_auto_background()
 
@@ -324,11 +330,8 @@ class PatternModel:
     def set_file_iteration_mode(self, mode: str) -> None:
         if mode == "number":
             self.file_iteration_mode = "number"
-            self.file_name_iterator.create_timed_file_list = False
         elif mode == "time":
             self.file_iteration_mode = "time"
-            self.file_name_iterator.create_timed_file_list = True
-            self.file_name_iterator.update_filename(self.pattern_filename)
 
     @property
     def background_pattern(self) -> Pattern | None:

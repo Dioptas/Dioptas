@@ -7,7 +7,7 @@ from pyqtgraph import GraphicsLayoutWidget
 
 from ...plot_widgets.ImgWidget import IntegrationImgWidget, IntegrationCakeWidget
 from ...CustomWidgets import FlatButton, CheckableFlatButton, HorizontalSpacerItem, SaveIconButton, \
-    DarkCheckableFlatButton, PLOT_ICON_COLOR, PLOT_ICON_SIZE
+    DarkCheckableFlatButton, PLOT_ICON_COLOR, PLOT_ICON_SIZE, MaskControlsWidget
 from ..CustomWidgets import MouseCurrentAndClickedWidget, MouseUnitCurrentAndClickedWidget
 from .. import CLICKED_COLOR
 
@@ -57,10 +57,11 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
         self.roi_btn = CheckableFlatButton('ROI')
         self.mode_btn = FlatButton('Cake')
         self.cake_shift_azimuth_sl = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.mask_btn = CheckableFlatButton('Mask')
+        self.mask_controls = MaskControlsWidget()
+        self.mask_btn = self.mask_controls.use_mask_cb
         self.phases_btn = CheckableFlatButton('Show Phases')
         self.show_background_subtracted_img_btn = CheckableFlatButton('bkg')
-        self.transparent_cb = QtWidgets.QCheckBox('trans')
+        self.transparent_cb = self.mask_controls.transparent_mask_cb
         self.autoscale_btn = CheckableFlatButton('AutoScale')
         self.undock_btn = FlatButton('Undock')
 
@@ -68,8 +69,7 @@ class IntegrationImgDisplayWidget(QtWidgets.QWidget):
         self._control_layout.addWidget(self.roi_btn)
         self._control_layout.addWidget(self.mode_btn)
         self._control_layout.addWidget(self.cake_shift_azimuth_sl)
-        self._control_layout.addWidget(self.mask_btn)
-        self._control_layout.addWidget(self.transparent_cb)
+        self._control_layout.addWidget(self.mask_controls)
         self._control_layout.addWidget(self.show_background_subtracted_img_btn)
         self._control_layout.addWidget(self.phases_btn)
         self._control_layout.addSpacerItem(HorizontalSpacerItem())

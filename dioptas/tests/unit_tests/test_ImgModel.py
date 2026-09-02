@@ -370,6 +370,10 @@ def test_img_model_settings_delegate_to_params():
 
     img_model.file_iteration_mode = "time"
     assert img_model.params.file_iteration_mode == "time"
+    assert img_model.file_name_iterator.create_timed_file_list is True
+
+    img_model.params.file_iteration_mode = "number"
+    assert img_model.file_name_iterator.create_timed_file_list is False
 
 
 def test_transformations_are_canonical_in_params():

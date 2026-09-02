@@ -66,8 +66,6 @@ class IntegrationWidget(QtWidgets.QWidget):
 
         self.qa_bkg_pattern_inspect_btn.setVisible(False)
 
-        self.mask_transparent_cb.setVisible(False)
-
         self.file_info_widget = FileInfoWidget(self)
         self.move_widget = MoveStageWidget(self)
         # self.map_2D_widget = Map2DWidget(self)

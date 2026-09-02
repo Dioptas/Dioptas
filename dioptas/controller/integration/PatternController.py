@@ -80,6 +80,12 @@ class PatternController:
         self.widget.pattern_browse_by_time_rb.clicked.connect(
             self.set_iteration_mode_time
         )
+        self.binder.add_render(
+            self._render_file_iteration_mode,
+            self.widget.pattern_browse_by_name_rb,
+            self.widget.pattern_browse_by_time_rb,
+            field="pattern.file_iteration_mode",
+        )
 
         self.widget.pattern_directory_txt.editingFinished.connect(
             self.pattern_directory_txt_changed
@@ -350,6 +356,11 @@ class PatternController:
 
     def set_iteration_mode_time(self):
         self.model.pattern_model.set_file_iteration_mode("time")
+
+    def _render_file_iteration_mode(self):
+        mode = self.model.pattern_model.file_iteration_mode
+        self.widget.pattern_browse_by_name_rb.setChecked(mode == "number")
+        self.widget.pattern_browse_by_time_rb.setChecked(mode == "time")
 
     # (axis label, unit suffix, inverted x-axis) per integration unit
     _UNIT_DISPLAY = {

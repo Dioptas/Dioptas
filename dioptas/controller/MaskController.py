@@ -65,14 +65,36 @@ class MaskController:
         self.widget.save_mask_btn.clicked.connect(self.save_mask_btn_click)
         self.widget.load_mask_btn.clicked.connect(self.load_mask_btn_click)
         self.widget.add_mask_btn.clicked.connect(self.add_mask_btn_click)
-        self.widget.mask_rb.clicked.connect(self.mask_rb_click)
-        self.widget.unmask_rb.clicked.connect(self.unmask_rb_click)
         self.binder.bind_radio_pair(
-            self.widget.transparent_rb,
-            self.widget.fill_rb,
+            self.widget.mask_rb,
+            self.widget.unmask_rb,
+            lambda: self.model.mask_model,
+            "mode",
+            event_field="mask.mode",
+            on_changed=self._apply_mask_drawing_mode,
+        )
+        self.binder.bind_checkbox(
+            self.widget.use_mask_cb,
+            lambda: self.model.current_configuration,
+            "use_mask",
+        )
+        self.binder.add_render(
+            self.widget.mask_controls.sync_transparency_enabled,
+            field="use_mask",
+        )
+        self.widget.use_mask_cb.toggled.connect(
+            lambda _checked: self.model.mask_changed.emit()
+        )
+        self.binder.bind_checkbox(
+            self.widget.mask_transparent_cb,
             lambda: self.model.current_configuration,
             "transparent_mask",
-            on_changed=self._apply_mask_transparency,
+        )
+        self.binder.add_render(
+            lambda: self._apply_mask_transparency(
+                self.model.transparent_mask
+            ),
+            field="transparent_mask",
         )
 
         self.widget.point_size_sb.valueChanged.connect(self.set_point_size)
@@ -575,12 +597,16 @@ class MaskController:
 
     def mask_rb_click(self):
         self.model.mask_model.set_mode(True)
-        self.widget.img_widget.mask_preview_fill_color = QtGui.QColor(255, 0, 0, 150)
-        self.update_shape_preview_fill_color()
+        self._apply_mask_drawing_mode(True)
 
     def unmask_rb_click(self):
         self.model.mask_model.set_mode(False)
-        self.widget.img_widget.mask_preview_fill_color = QtGui.QColor(0, 255, 0, 150)
+        self._apply_mask_drawing_mode(False)
+
+    def _apply_mask_drawing_mode(self, masking):
+        self.widget.img_widget.mask_preview_fill_color = QtGui.QColor(
+            255, 0, 0, 150
+        ) if masking else QtGui.QColor(0, 255, 0, 150)
         self.update_shape_preview_fill_color()
 
     def _apply_mask_transparency(self, transparent):

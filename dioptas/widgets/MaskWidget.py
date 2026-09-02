@@ -6,7 +6,7 @@ from pyqtgraph import GraphicsLayoutWidget
 from .plot_widgets import MaskImgWidget
 
 from .CustomWidgets import NumberTextField, LabelAlignRight, SpinBoxAlignRight, HorizontalSpacerItem, \
-    CheckableButton, VerticalSpacerItem, HorizontalLine
+    CheckableButton, VerticalSpacerItem, HorizontalLine, MaskControlsWidget
 from .MaskPluginWidget import MaskPluginWidget
 
 
@@ -42,6 +42,10 @@ class MaskWidget(QtWidgets.QWidget):
         self._display_layout.addWidget(self.img_layout_widget)
 
         self._status_layout = QtWidgets.QHBoxLayout()
+        self.mask_controls = MaskControlsWidget()
+        self.use_mask_cb = self.mask_controls.use_mask_cb
+        self.mask_transparent_cb = self.mask_controls.transparent_mask_cb
+        self._status_layout.addWidget(self.mask_controls)
         self._status_layout.addSpacerItem(HorizontalSpacerItem())
 
         self.pos_lbl = LabelAlignRight('')
@@ -134,15 +138,6 @@ class MaskWidget(QtWidgets.QWidget):
         self.plugin_widget.hide()
         self._plugin_separator.hide()
 
-        self._visibility_widget = QtWidgets.QWidget()
-        self._visibility_layout = QtWidgets.QHBoxLayout()
-        self.fill_rb = QtWidgets.QRadioButton('Fill')
-        self.transparent_rb = QtWidgets.QRadioButton('Transparent')
-        self._visibility_layout.addWidget(self.fill_rb)
-        self._visibility_layout.addWidget(self.transparent_rb)
-        self._visibility_widget.setLayout(self._visibility_layout)
-        self._control_layout.addWidget(self._visibility_widget)
-
         self._control_layout.addSpacerItem(VerticalSpacerItem())
 
         self._file_layout = QtWidgets.QGridLayout()
@@ -158,7 +153,6 @@ class MaskWidget(QtWidgets.QWidget):
 
     def style_widgets(self):
         self.mask_rb.setChecked(True)
-        self.fill_rb.setChecked(True)
         self.point_size_sb.setValue(20)
 
         self._control_widget.setMinimumWidth(200)

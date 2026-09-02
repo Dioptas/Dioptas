@@ -198,6 +198,11 @@ class ImgModel:
                 self._directory_watcher.activate()
             else:
                 self._directory_watcher.deactivate()
+        elif field == "file_iteration_mode":
+            mode = info.args[0]
+            self.file_name_iterator.create_timed_file_list = mode == "time"
+            if mode == "time":
+                self.file_name_iterator.update_filename(self.filename)
 
     def _sync_file_params(self) -> None:
         """Writes the on-screen file state into the params.
@@ -747,11 +752,8 @@ class ImgModel:
         """
         if mode == "number":
             self.file_iteration_mode = "number"
-            self.file_name_iterator.create_timed_file_list = False
         elif mode == "time":
             self.file_iteration_mode = "time"
-            self.file_name_iterator.create_timed_file_list = True
-            self.file_name_iterator.update_filename(self.filename)
 
     def _calculate_img_data(self) -> None:
         """

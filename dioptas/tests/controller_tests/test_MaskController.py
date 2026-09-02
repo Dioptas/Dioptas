@@ -109,18 +109,19 @@ class MaskControllerTest(QtTest):
         click_button(self.mask_widget.load_mask_btn)
         self.model.add_configuration()
         self.model.mask_model.mask_below_threshold(self.model.img_data, 1)
-        click_checkbox(self.mask_widget.transparent_rb)
-        self.assertTrue(self.mask_widget.transparent_rb.isChecked())
+        click_checkbox(self.mask_widget.use_mask_cb)
+        click_checkbox(self.mask_widget.mask_transparent_cb)
+        self.assertTrue(self.mask_widget.mask_transparent_cb.isChecked())
 
         transparent_color = self.mask_widget.img_widget.create_color_map([255, 0, 0, 100])
         filled_color = self.mask_widget.img_widget.create_color_map([255, 0, 0, 255])
 
         self.assertTrue(self.model.transparent_mask)
         self.model.select_configuration(0)
-        self.assertTrue(self.mask_widget.fill_rb.isChecked())
+        self.assertFalse(self.mask_widget.mask_transparent_cb.isChecked())
         self.assertTrue(np.array_equal(self.mask_widget.img_widget.mask_img_item.lut, filled_color))
         self.model.select_configuration(1)
-        self.assertTrue(self.mask_widget.transparent_rb.isChecked())
+        self.assertTrue(self.mask_widget.mask_transparent_cb.isChecked())
         self.assertTrue(np.array_equal(self.mask_widget.img_widget.mask_img_item.lut, transparent_color))
 
     def test_apply_cosmic_removal(self):

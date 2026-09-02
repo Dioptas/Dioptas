@@ -254,6 +254,16 @@ def test_set_file_iteration_mode_time(pattern_model: PatternModel):
     assert pattern_model.file_name_iterator.create_timed_file_list is True
 
 
+def test_direct_file_iteration_mode_change_updates_iterator(
+    pattern_model: PatternModel,
+):
+    pattern_model.params.file_iteration_mode = "time"
+    assert pattern_model.file_name_iterator.create_timed_file_list is True
+
+    pattern_model.params.file_iteration_mode = "number"
+    assert pattern_model.file_name_iterator.create_timed_file_list is False
+
+
 def test_background_pattern_setter(pattern_model: PatternModel):
     """Setting a background pattern should apply it to the internal pattern."""
     x = np.linspace(0, 10, 100)

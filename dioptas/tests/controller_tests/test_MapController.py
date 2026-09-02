@@ -903,11 +903,11 @@ def test_image_moves_into_the_tabs_only_when_the_panel_is_narrow(map_controller)
         "Points",
         "Layers",
     ]
-    assert tabs.widget(0) is widget.img_pg_layout
+    assert tabs.widget(0) is widget.img_frame
 
     widget._set_image_tabbed(False)
     assert [tabs.tabText(i) for i in range(tabs.count())] == ["Points", "Layers"]
-    assert widget.upper_right_splitter.widget(0) is widget.img_pg_layout
+    assert widget.upper_right_splitter.widget(0) is widget.img_frame
 
 
 def test_image_home_follows_the_available_width(map_controller):

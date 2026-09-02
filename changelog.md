@@ -4,9 +4,13 @@
 
 - The offline EoS material library now comes directly from Peritheos 0.6.0 instead of being duplicated inside Dioptas. This brings Peritheos's primary-source-audited records and corrections into the **DB** browser, keeps `.eosmat` validation in one place, and evaluates its newer thermal models with Peritheos's material-record engine.
 
+- **Mask** and **transparent** controls now sit below the detector image in calibration, mask, integration and map modes, so the same mask settings remain accessible throughout the workflow. Transparency is available only while the mask is enabled.
+
 - The integrated cake on the calibration validation step now has synchronized **2θ** and **azimuth** axes that follow zooming and panning.
 
 ## Fixes
+
+- Loading a project or recovering the previous session now restores **By Name**/**By Time** browsing for images and patterns, including the iterator behavior behind the controls. The saved mask/unmask drawing mode now also returns with the matching radio button and preview color.
 
 - Enabled drop-down and numeric controls in the phase table now use orange arrows, while unavailable controls use grey arrows instead of appearing active.
 

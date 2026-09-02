@@ -54,7 +54,9 @@ class CalibrationController:
         """
         self.widget = widget
         self.model = dioptas_model
-        self.binder = Binder()
+        self.binder = Binder(
+            field_events=self.model.configuration_params_changed
+        )
         self._run_async_integration = run_async_integration
         self._integration_coordinator = integration_coordinator
         self._integration_engine = None
@@ -209,10 +211,28 @@ class CalibrationController:
                 pyfai_cb, calibrate_cb, on_toggled=lambda _checked: None
             )
 
-        self.widget.use_mask_cb.stateChanged.connect(self.use_mask_cb_changed)
-        self.widget.mask_transparent_cb.stateChanged.connect(
-            self.mask_transparent_status_changed
+        self.binder.bind_checkbox(
+            self.widget.use_mask_cb,
+            lambda: self.model.current_configuration,
+            "use_mask",
         )
+        self.binder.add_render(
+            self.widget.calibration_display_widget.mask_controls.sync_transparency_enabled,
+            field="use_mask",
+        )
+        self.widget.use_mask_cb.toggled.connect(self.use_mask_cb_changed)
+        self.binder.bind_checkbox(
+            self.widget.mask_transparent_cb,
+            lambda: self.model.current_configuration,
+            "transparent_mask",
+        )
+        self.binder.add_render(
+            lambda: self.mask_transparent_status_changed(
+                self.model.transparent_mask
+            ),
+            field="transparent_mask",
+        )
+        self.binder.refresh()
 
         self.widget.wizard_back_btn.clicked.connect(self.wizard_back)
         self.widget.wizard_next_btn.clicked.connect(self.wizard_next)
@@ -1528,12 +1548,10 @@ class CalibrationController:
         Updates the mask checkbox and transparency state from the current
         configuration, then replots the mask.
         """
-        self.widget.use_mask_cb.setChecked(bool(self.model.use_mask))
-        self.widget.mask_transparent_cb.setChecked(bool(self.model.transparent_mask))
+        self.binder.refresh()
         self.plot_mask()
 
-    def use_mask_cb_changed(self):
-        self.model.use_mask = self.widget.use_mask_cb.isChecked()
+    def use_mask_cb_changed(self, _checked=None):
         self.model.mask_changed.emit()
 
     def plot_mask(self):

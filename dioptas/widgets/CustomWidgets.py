@@ -386,6 +386,45 @@ def VerticalSpacerItem():
     )
 
 
+class _MaskCheckBox(QtWidgets.QCheckBox):
+    """A checkbox whose whole layout slot is clickable.
+
+    This keeps the compact footer controls easy to operate even when a Qt
+    layout gives a checkbox more space than its label needs.
+    """
+
+    def hitButton(self, pos):
+        return self.rect().contains(pos)
+
+
+class MaskControlsWidget(QtWidgets.QWidget):
+    """The mask settings shown directly below every detector image."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.use_mask_cb = _MaskCheckBox("mask")
+        self.transparent_mask_cb = _MaskCheckBox("transparent")
+
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+        layout.addWidget(self.use_mask_cb)
+        layout.addWidget(self.transparent_mask_cb)
+
+        self.use_mask_cb.setToolTip(
+            "Use the current mask for calibration and integration."
+        )
+        self.transparent_mask_cb.setToolTip(
+            "Show masked pixels with a transparent overlay."
+        )
+        self.use_mask_cb.toggled.connect(self.sync_transparency_enabled)
+        self.sync_transparency_enabled()
+
+    def sync_transparency_enabled(self, _checked=None):
+        """Transparency only has a visible effect while the mask is used."""
+        self.transparent_mask_cb.setEnabled(self.use_mask_cb.isChecked())
+
+
 class MenuTabWidget(QtWidgets.QWidget):
     """
     A widget that switches between added widgets using a menu on the left.

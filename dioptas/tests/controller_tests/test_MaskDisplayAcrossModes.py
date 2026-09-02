@@ -30,6 +30,130 @@ def _switch_to_mode(mc, mode, qapp):
     qapp.processEvents()
 
 
+def test_mask_controls_are_below_every_detector_image(main_controller):
+    widgets = main_controller.widget
+    calibration_display = (
+        widgets.calibration_widget.calibration_display_widget
+    )
+
+    assert (
+        calibration_display._status_layout.indexOf(
+            calibration_display.show_calibrant_numbers_cb
+        )
+        < calibration_display._status_layout.indexOf(
+            calibration_display.mask_controls_separator
+        )
+        < calibration_display._status_layout.indexOf(
+            calibration_display.mask_controls
+        )
+    )
+    assert (
+        calibration_display._status_layout.indexOf(
+            calibration_display.mask_controls
+        )
+        >= 0
+    )
+    assert (
+        widgets.mask_widget._status_layout.indexOf(
+            widgets.mask_widget.mask_controls
+        )
+        >= 0
+    )
+    assert (
+        widgets.integration_widget.integration_image_widget
+        ._control_layout.indexOf(
+            widgets.integration_widget.integration_image_widget.mask_controls
+        )
+        >= 0
+    )
+    assert (
+        widgets.map_widget._img_layout.indexOf(
+            widgets.map_widget.mask_controls
+        )
+        >= 0
+    )
+
+
+def test_mask_controls_in_every_mode_share_configuration_state(
+    main_controller, qapp
+):
+    widgets = main_controller.widget
+    model = main_controller.model
+    mask_controls = [
+        widgets.calibration_widget.calibration_display_widget.mask_controls,
+        widgets.mask_widget.mask_controls,
+        widgets.integration_widget.integration_image_widget.mask_controls,
+        widgets.map_widget.mask_controls,
+    ]
+
+    for controls in mask_controls:
+        assert controls.use_mask_cb.text() == "mask"
+        assert controls.transparent_mask_cb.text() == "transparent"
+        assert not controls.transparent_mask_cb.isEnabled()
+
+    for controls in mask_controls:
+        controls.use_mask_cb.click()
+        qapp.processEvents()
+        assert model.use_mask
+        assert all(item.use_mask_cb.isChecked() for item in mask_controls)
+        assert all(
+            item.transparent_mask_cb.isEnabled() for item in mask_controls
+        )
+
+        controls.transparent_mask_cb.click()
+        qapp.processEvents()
+        assert model.transparent_mask
+        assert all(
+            item.transparent_mask_cb.isChecked() for item in mask_controls
+        )
+
+        controls.transparent_mask_cb.click()
+        qapp.processEvents()
+        assert not model.transparent_mask
+        assert not any(
+            item.transparent_mask_cb.isChecked() for item in mask_controls
+        )
+
+        controls.use_mask_cb.click()
+        qapp.processEvents()
+        assert not model.use_mask
+        assert not any(item.use_mask_cb.isChecked() for item in mask_controls)
+        assert not any(
+            item.transparent_mask_cb.isEnabled() for item in mask_controls
+        )
+
+
+def test_project_reload_restores_file_browsing_and_mask_drawing_modes(
+    main_controller, qapp, tmp_path
+):
+    mc = main_controller
+    model = mc.model
+    integration = mc.widget.integration_widget
+
+    integration.img_step_file_widget.browse_by_time_rb.click()
+    integration.pattern_browse_by_time_rb.click()
+    _switch_to_mode(mc, "mask", qapp)
+    mc.widget.mask_widget.unmask_rb.click()
+
+    filename = tmp_path / "navigation-state.dio"
+    model.save(filename)
+    model.reset()
+    qapp.processEvents()
+
+    assert integration.img_step_file_widget.browse_by_name_rb.isChecked()
+    assert integration.pattern_browse_by_name_rb.isChecked()
+    assert mc.widget.mask_widget.mask_rb.isChecked()
+
+    model.load(filename)
+    qapp.processEvents()
+
+    assert integration.img_step_file_widget.browse_by_time_rb.isChecked()
+    assert integration.pattern_browse_by_time_rb.isChecked()
+    assert mc.widget.mask_widget.unmask_rb.isChecked()
+    assert model.img_model.file_name_iterator.create_timed_file_list
+    assert model.pattern_model.file_name_iterator.create_timed_file_list
+
+
 # ---------------------------------------------------------------------------
 # Mask mode: switching configurations
 # ---------------------------------------------------------------------------
@@ -84,15 +208,15 @@ def test_mask_mode_config_switch_updates_transparency(main_controller, qapp):
     qapp.processEvents()
     model.transparent_mask = True
 
-    # switch back to config 0 — fill radio should be checked
+    # switch back to config 0 — transparency should be off
     model.select_configuration(0)
     qapp.processEvents()
-    assert mask_widget.fill_rb.isChecked()
+    assert not mask_widget.mask_transparent_cb.isChecked()
 
     # switch to config 1 — transparent radio should be checked
     model.select_configuration(1)
     qapp.processEvents()
-    assert mask_widget.transparent_rb.isChecked()
+    assert mask_widget.mask_transparent_cb.isChecked()
 
 
 # ---------------------------------------------------------------------------

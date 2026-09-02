@@ -157,7 +157,7 @@ def test_configuration_selected_updates_mask_transparency(
     dioptas_model.add_configuration()
 
     assert not integration_widget.img_mask_btn.isChecked()
-    assert not integration_widget.mask_transparent_cb.isVisible()
+    assert not integration_widget.mask_transparent_cb.isHidden()
 
 
 def test_configuration_selected_updates_roi_mode(

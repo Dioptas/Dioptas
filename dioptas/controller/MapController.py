@@ -10,6 +10,7 @@ from dioptas.model.util.calc import convert_units
 from dioptas.widgets.MapWidget import MapWidget
 
 from .MapPanelController import MapPanelController
+from .binding import Binder
 from .integration.MapRoiInPatternController import MapRoiInPatternController
 from .integration.phase.PhaseInPatternController import PhaseInPatternController
 from .integration.overlay.OverlayInPatternController import OverlayInPatternController
@@ -26,6 +27,9 @@ class MapController:
     ):
         self.widget = widget
         self.model = dioptas_model
+        self.binder = Binder(
+            field_events=self.model.configuration_params_changed
+        )
 
         # The map panel is shared with the integration view, so its controller
         # is normally owned by the MainController and passed in here.
@@ -110,6 +114,30 @@ class MapController:
         self.widget.img_plot_widget.img_histogram_LUT_horizontal.sigLevelChangeFinished.connect(
             self._img_levels_manually_changed
         )
+        self.binder.bind_checkbox(
+            self.widget.use_mask_cb,
+            lambda: self.model.current_configuration,
+            "use_mask",
+        )
+        self.binder.add_render(
+            self.widget.mask_controls.sync_transparency_enabled,
+            field="use_mask",
+        )
+        self.widget.use_mask_cb.toggled.connect(
+            lambda _checked: self.model.mask_changed.emit()
+        )
+        self.binder.bind_checkbox(
+            self.widget.mask_transparent_cb,
+            lambda: self.model.current_configuration,
+            "transparent_mask",
+        )
+        self.binder.add_render(
+            lambda: self._apply_mask_transparency(
+                self.model.transparent_mask
+            ),
+            field="transparent_mask",
+        )
+        self.binder.refresh()
 
         self.panel_controller.point_selected.connect(self.map_point_selected)
         # a blank cell has no point, but its row in the list is where the
@@ -151,11 +179,13 @@ class MapController:
 
     def activate_model_signals(self):
         self.model.img_changed.connect(self.update_image)
+        self.model.mask_changed.connect(self.plot_mask)
         self.model.configuration_selected.connect(self.configuration_selected)
 
     def deactivate(self):
         self._active = False
         self.model.img_changed.disconnect(self.update_image)
+        self.model.mask_changed.disconnect(self.plot_mask)
         self.model.configuration_selected.disconnect(self.configuration_selected)
         self.model.current_configuration.auto_integrate_pattern = True
 
@@ -537,6 +567,12 @@ class MapController:
         else:
             self.widget.img_plot_widget.deactivate_mask()
 
+    def _apply_mask_transparency(self, transparent):
+        self.widget.img_plot_widget.set_mask_color(
+            [255, 0, 0, 100] if transparent else [255, 0, 0, 255]
+        )
+        self.plot_mask()
+
     def update_pattern(self):
         self.widget.pattern_plot_widget.plot_data(
             self.model.pattern.x, self.model.pattern.y, self.model.pattern.name
@@ -762,6 +798,7 @@ class MapController:
         self.update_point_actions()
 
     def configuration_selected(self):
+        self.binder.refresh()
         self._update_map_model_connection()
         self._map_changed()
         self.update_image()

@@ -76,7 +76,7 @@ class ImageController:
         self.create_mouse_behavior()
 
         self.binder.add_render(
-            lambda: self.widget.img_mask_btn.setChecked(bool(self.model.use_mask)),
+            self._render_use_mask,
             self.widget.img_mask_btn,
             field="use_mask",
         )
@@ -198,6 +198,12 @@ class ImageController:
 
         self.widget.img_step_file_widget.browse_by_name_rb.clicked.connect(self.set_iteration_mode_number)
         self.widget.img_step_file_widget.browse_by_time_rb.clicked.connect(self.set_iteration_mode_time)
+        self.binder.add_render(
+            self._render_file_iteration_mode,
+            self.widget.img_step_file_widget.browse_by_name_rb,
+            self.widget.img_step_file_widget.browse_by_time_rb,
+            field="img.file_iteration_mode",
+        )
 
         self.widget.image_control_widget.sources_cb.currentTextChanged.connect(self.select_source)
 
@@ -514,14 +520,17 @@ class ImageController:
 
     def change_mask_mode(self):
         self.model.use_mask = self.widget.integration_image_widget.mask_btn.isChecked()
-        self.widget.mask_transparent_cb.setVisible(self.model.use_mask)
         self.model.mask_changed.emit()
         self.model.img_model.img_changed.emit()
 
     def update_mask_mode(self):
         self.widget.integration_image_widget.mask_btn.setChecked(bool(self.model.use_mask))
-        self.widget.mask_transparent_cb.setVisible(bool(self.model.use_mask))
+        self.widget.integration_image_widget.mask_controls.sync_transparency_enabled()
         self.widget.mask_transparent_cb.setChecked(bool(self.model.transparent_mask))
+
+    def _render_use_mask(self):
+        self.widget.img_mask_btn.setChecked(bool(self.model.use_mask))
+        self.widget.integration_image_widget.mask_controls.sync_transparency_enabled()
 
     def update_img_mode(self):
         self.widget.img_mode_btn.click()
@@ -1002,6 +1011,15 @@ class ImageController:
 
     def set_iteration_mode_time(self):
         self.model.img_model.set_file_iteration_mode('time')
+
+    def _render_file_iteration_mode(self):
+        mode = self.model.img_model.file_iteration_mode
+        self.widget.img_step_file_widget.browse_by_name_rb.setChecked(
+            mode == "number"
+        )
+        self.widget.img_step_file_widget.browse_by_time_rb.setChecked(
+            mode == "time"
+        )
 
     def select_source(self, source):
         self.model.img_model.select_source(source)

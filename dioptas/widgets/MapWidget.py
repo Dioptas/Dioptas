@@ -6,7 +6,7 @@ from dioptas.widgets.plot_widgets import PatternWidget
 from dioptas.widgets.plot_widgets.ImgWidget import IntegrationImgWidget
 
 from .integration.CustomWidgets import MouseUnitCurrentAndClickedWidget
-from .CustomWidgets import CheckableFlatButton, IconActionButton
+from .CustomWidgets import CheckableFlatButton, IconActionButton, MaskControlsWidget
 from .MapLayerWidget import MapLayerWidget
 from .MapPanelWidget import (
     MapPanelHost,
@@ -42,6 +42,15 @@ class MapWidget(QtWidgets.QWidget):
         self.img_autoscale_btn.setFixedSize(22, 22)
         self.img_autoscale_btn.raise_()
         self.img_pg_layout.installEventFilter(self)
+
+        self.img_frame = QtWidgets.QWidget()
+        self._img_layout = TightVBoxLayout()
+        self._img_layout.addWidget(self.img_pg_layout)
+        self.mask_controls = MaskControlsWidget()
+        self.use_mask_cb = self.mask_controls.use_mask_cb
+        self.mask_transparent_cb = self.mask_controls.transparent_mask_cb
+        self._img_layout.addWidget(self.mask_controls)
+        self.img_frame.setLayout(self._img_layout)
 
         self.pattern_pg_layout = GraphicsLayoutWidget()
         # the window region is put up by MapRoiInPatternController
@@ -106,7 +115,7 @@ class MapWidget(QtWidgets.QWidget):
         # squeezed each other until neither was usable.
         self.upper_right_splitter = QtWidgets.QSplitter()
         self.upper_right_splitter.setOrientation(QtCore.Qt.Horizontal)
-        self.upper_right_splitter.addWidget(self.img_pg_layout)
+        self.upper_right_splitter.addWidget(self.img_frame)
         self.upper_right_splitter.addWidget(self.control_widget)
         self.upper_right_splitter.setStretchFactor(0, 1)
         self.upper_right_splitter.setStretchFactor(1, 1)
@@ -190,17 +199,17 @@ class MapWidget(QtWidgets.QWidget):
         tab_widget = self.control_widget.tab_widget
         if tabbed:
             current = tab_widget.currentWidget()
-            tab_widget.insertTab(0, self.img_pg_layout, "Image")
+            tab_widget.insertTab(0, self.img_frame, "Image")
             if current is not None:
                 tab_widget.setCurrentWidget(current)
         else:
-            index = tab_widget.indexOf(self.img_pg_layout)
+            index = tab_widget.indexOf(self.img_frame)
             if index >= 0:
                 tab_widget.removeTab(index)
-            self.upper_right_splitter.insertWidget(0, self.img_pg_layout)
+            self.upper_right_splitter.insertWidget(0, self.img_frame)
             self.upper_right_splitter.setStretchFactor(0, 1)
             self.upper_right_splitter.setStretchFactor(1, 1)
-            self.img_pg_layout.show()
+            self.img_frame.show()
             # deferred: at the moment of the flip the surrounding splitters
             # are mid-resize and still report their old width, so a split
             # computed now would be scaled from the wrong total

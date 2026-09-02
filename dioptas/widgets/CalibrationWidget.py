@@ -11,7 +11,8 @@ from ..widgets.plot_widgets import PatternWidget
 from ..widgets.plot_widgets.ImgWidget import IntegrationImgWidget
 
 from .CustomWidgets import NumberTextField, LabelAlignRight, SpinBoxAlignRight, \
-    DoubleSpinBoxAlignRight, OpenIconButton, ResetIconButton, EmptyStateOverlay
+    DoubleSpinBoxAlignRight, OpenIconButton, ResetIconButton, EmptyStateOverlay, \
+    MaskControlsWidget, VerticalLine
 
 
 #: the wizard's step titles — shared between the top indicator and the
@@ -268,9 +269,12 @@ class CalibrationWidget(QtWidgets.QWidget):
         self.sv_distance_cb = sv_gb.distance_cb
         self.sv_polarisation_txt = sv_gb.polarization_txt
 
+        self.use_mask_cb = self.calibration_display_widget.mask_controls.use_mask_cb
+        self.mask_transparent_cb = (
+            self.calibration_display_widget.mask_controls.transparent_mask_cb
+        )
+
         refinement_options_gb = self.calibration_control_widget.calibration_parameters_widget.refinement_options_gb
-        self.use_mask_cb = refinement_options_gb.use_mask_cb
-        self.mask_transparent_cb = refinement_options_gb.mask_transparent_cb
         self.options_automatic_refinement_cb = refinement_options_gb.automatic_refinement_cb
         self.options_num_rings_sb = refinement_options_gb.number_of_rings_sb
         self.options_peaksearch_algorithm_cb = refinement_options_gb.peak_search_algorithm_cb
@@ -540,6 +544,8 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
         self._status_layout.setContentsMargins(6, 0, 0, 0)
         self.position_lbl = QtWidgets.QLabel("")
 
+        self.mask_controls = MaskControlsWidget()
+
         # visible on every wizard step, like the calibrant overlays they
         # control
         self.show_calibrant_lines_cb = QtWidgets.QCheckBox("calibrant lines")
@@ -554,6 +560,11 @@ class CalibrationDisplayWidget(QtWidgets.QWidget):
         )
         self._status_layout.addWidget(self.show_calibrant_lines_cb)
         self._status_layout.addWidget(self.show_calibrant_numbers_cb)
+        self._status_layout.addSpacing(4)
+        self.mask_controls_separator = VerticalLine()
+        self._status_layout.addWidget(self.mask_controls_separator)
+        self._status_layout.addSpacing(4)
+        self._status_layout.addWidget(self.mask_controls)
 
         self._status_layout.addSpacerItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding,
                                                                 QtWidgets.QSizePolicy.Minimum))
@@ -1019,15 +1030,9 @@ class RefinementOptionsGroupBox(QtWidgets.QGroupBox):
         self._layout.setSpacing(3)
         self._layout.setContentsMargins(6, 8, 6, 6)
 
-        self.use_mask_cb = QtWidgets.QCheckBox('use mask')
-        self._layout.addWidget(self.use_mask_cb, 0, 0)
-
-        self.mask_transparent_cb = QtWidgets.QCheckBox('transparent')
-        self._layout.addWidget(self.mask_transparent_cb, 0, 1)
-
         self.automatic_refinement_cb = QtWidgets.QCheckBox('automatic refinement')
         self.automatic_refinement_cb.setChecked(True)
-        self._layout.addWidget(self.automatic_refinement_cb, 1, 0, 1, 2)
+        self._layout.addWidget(self.automatic_refinement_cb, 0, 0, 1, 2)
 
         # the parameters below belong to the automatic refinement — they
         # are only shown while it is enabled
@@ -1061,7 +1066,7 @@ class RefinementOptionsGroupBox(QtWidgets.QGroupBox):
         self._automatic_layout.addWidget(LabelAlignRight('Number of rings:'), 4, 0)
         self._automatic_layout.addWidget(self.number_of_rings_sb, 4, 1)
 
-        self._layout.addWidget(self.automatic_refinement_content, 2, 0, 1, 2)
+        self._layout.addWidget(self.automatic_refinement_content, 1, 0, 1, 2)
         self.automatic_refinement_cb.toggled.connect(
             self.automatic_refinement_content.setVisible)
 
