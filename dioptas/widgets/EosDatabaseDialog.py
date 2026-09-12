@@ -18,6 +18,17 @@ _SUBSCRIPT_DIGITS = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉"
 _SCREW_AXIS_PREFIX = re.compile(r"^([PABCIFR]\s*)([2346])([1-5])")
 
 
+class _NumericTableItem(QtWidgets.QTableWidgetItem):
+    """Sort formatted values by their number, ignoring error annotations."""
+
+    def __lt__(self, other):
+        def key(text):
+            match = re.match(r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?", text)
+            return (0, float(match.group())) if match else (1, text.casefold())
+
+        return key(self.text()) < key(other.text())
+
+
 def _display_space_group(space_group: str) -> str:
     """Render compact Hermann-Mauguin symbols in crystallographic form."""
     displayed = _SCREW_AXIS_PREFIX.sub(
@@ -38,7 +49,7 @@ def _display_space_group(space_group: str) -> str:
 class EosDatabaseDialog(QtWidgets.QDialog):
 
     search_changed = QtCore.Signal(str)
-    material_selected = QtCore.Signal(int)   # row in the materials table
+    material_selected = QtCore.Signal(int)   # index in the supplied materials
     load_clicked = QtCore.Signal()
     export_clicked = QtCore.Signal()
 
@@ -98,6 +109,10 @@ class EosDatabaseDialog(QtWidgets.QDialog):
                 QtWidgets.QAbstractItemView.SingleSelection)
             table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
             table.verticalHeader().setVisible(False)
+            # Preserve library/recent order until the user chooses a column.
+            table.horizontalHeader().setSortIndicator(
+                -1, QtCore.Qt.AscendingOrder)
+            table.setSortingEnabled(True)
         self.materials_table.setAlternatingRowColors(True)
         # Keep the material columns governed by persistent resize modes.
         # A one-shot resizeColumnsToContents() briefly shrinks the header to
@@ -191,13 +206,23 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         # selectionChanged, leaving the EoS table below showing the
         # records of whatever material sat at that row before.
         table.clearSelection()
+        # Sorting and replacing items can move the current index. Do not
+        # let those intermediate changes select a partially populated row.
+        selection_blocker = QtCore.QSignalBlocker(table.selectionModel())
+        sorting_enabled = table.isSortingEnabled()
+        table.setSortingEnabled(False)
         table.setRowCount(len(rows))
         for r, (name, space_group) in enumerate(rows):
-            table.setItem(r, 0, QtWidgets.QTableWidgetItem(name))
+            name_item = QtWidgets.QTableWidgetItem(name)
+            name_item.setData(QtCore.Qt.UserRole, r)
+            table.setItem(r, 0, name_item)
             space_group_item = QtWidgets.QTableWidgetItem(
                 _display_space_group(space_group)
             )
             table.setItem(r, 1, space_group_item)
+        table.setSortingEnabled(sorting_enabled)
+        table.clearSelection()
+        selection_blocker.unblock()
 
     def fill_eos_records(self, rows, selected_row=0,
                          reference_tooltips=None, thermal_tooltips=None):
@@ -205,10 +230,16 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         table = self.eos_table
         reference_tooltips = reference_tooltips or []
         thermal_tooltips = thermal_tooltips or []
+        table.clearSelection()
+        sorting_enabled = table.isSortingEnabled()
+        table.setSortingEnabled(False)
         table.setRowCount(len(rows))
         for r, row in enumerate(rows):
             for c, text in enumerate(row):
-                item = QtWidgets.QTableWidgetItem(text)
+                item_type = _NumericTableItem if c >= 3 else QtWidgets.QTableWidgetItem
+                item = item_type(text)
+                if c == 0:
+                    item.setData(QtCore.Qt.UserRole, r)
                 if c in (2, 3) and r < len(reference_tooltips):
                     item.setToolTip(reference_tooltips[r])
                 elif c == 1:
@@ -216,8 +247,12 @@ class EosDatabaseDialog(QtWidgets.QDialog):
                     if r < len(thermal_tooltips):
                         item.setToolTip(thermal_tooltips[r])
                 table.setItem(r, c, item)
+        selected_item = (
+            table.item(max(0, min(selected_row, len(rows) - 1)), 0)
+            if rows else None)
+        table.setSortingEnabled(sorting_enabled)
         if rows:
-            table.selectRow(max(0, min(selected_row, len(rows) - 1)))
+            table.selectRow(selected_item.row())
         # A material without EoS records is still loadable — its peak
         # positions at ambient conditions are useful on their own.
         material_selected = self.selected_material_row() >= 0
@@ -225,8 +260,8 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         self.export_btn.setEnabled(material_selected)
 
     def selected_material_row(self) -> int:
-        rows = self.materials_table.selectionModel().selectedRows()
-        return rows[0].row() if rows else -1
+        """Return the source index, independent of the current sort order."""
+        return self._selected_source_row(self.materials_table)
 
     def set_phase_load_enabled(self, enabled: bool):
         self.load_btn.setEnabled(enabled)
@@ -236,5 +271,12 @@ class EosDatabaseDialog(QtWidgets.QDialog):
             "diffraction phase lines. The material can still be exported.")
 
     def selected_eos_row(self) -> int:
-        rows = self.eos_table.selectionModel().selectedRows()
-        return rows[0].row() if rows else -1
+        """Return the source record index, independent of sort order."""
+        return self._selected_source_row(self.eos_table)
+
+    @staticmethod
+    def _selected_source_row(table) -> int:
+        rows = table.selectionModel().selectedRows()
+        if not rows:
+            return -1
+        return table.item(rows[0].row(), 0).data(QtCore.Qt.UserRole)

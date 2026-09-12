@@ -5,8 +5,11 @@ dialog, search filters the bundled materials, and loading builds a jcpds
 phase carrying the full reference-switcher state.
 """
 import gc
+from functools import cmp_to_key
+from unittest.mock import patch
 
-from qtpy import QtWidgets
+from qtpy import QtCore, QtWidgets
+from qtpy.QtTest import QTest
 
 from ..utility import QtTest
 
@@ -28,6 +31,85 @@ class EosDatabaseControllerTest(QtTest):
     def test_all_materials_shown_on_open(self):
         assert (self.dialog.materials_table.rowCount()
                 == len(eos.load_materials()))
+
+    def test_material_headers_sort_and_keep_selection_attached_to_material(self):
+        self.dialog.search_input.setText("Mg")
+        self.dialog.show()
+        QtWidgets.QApplication.processEvents()
+        table = self.dialog.materials_table
+        selected = self.dialog.selected_material_row()
+        header = table.horizontalHeader()
+        collator = QtCore.QCollator()
+        for column in (0, 1):
+            position = QtCore.QPoint(
+                header.sectionViewportPosition(column)
+                + header.sectionSize(column) // 2, header.height() // 2)
+            for _ in range(2):
+                QTest.mouseClick(header.viewport(), QtCore.Qt.LeftButton,
+                                 pos=position)
+                values = [table.item(row, column).text()
+                          for row in range(table.rowCount())]
+                descending = header.sortIndicatorOrder() == QtCore.Qt.DescendingOrder
+                assert values == sorted(values, key=cmp_to_key(collator.compare),
+                                        reverse=descending)
+                assert self.dialog.selected_material_row() == selected
+
+        table.selectRow(0)
+        material = self.controller.shown_materials[self.dialog.selected_material_row()]
+        assert table.item(0, 0).text() == material.display_name
+        assert self.dialog.eos_table.rowCount() == len(material.eos_records)
+        with patch.object(QtWidgets.QFileDialog, "getSaveFileName",
+                          return_value=("selected.eosmat", "")), \
+                patch.object(eos, "save_material_file") as save:
+            self.dialog.export_btn.click()
+        save.assert_called_once_with("selected.eosmat", material)
+
+    def test_sorted_tables_refill_without_mixing_rows_and_load_selected_record(self):
+        self.dialog.materials_table.sortItems(0, QtCore.Qt.DescendingOrder)
+        self.dialog.eos_table.sortItems(5, QtCore.Qt.DescendingOrder)
+        for query in ("gold", "silver", "Mg", "gold"):
+            self.dialog.search_input.setText(query)
+            table = self.dialog.materials_table
+            for row in range(table.rowCount()):
+                table.selectRow(row)
+                material = self.controller.shown_materials[self.dialog.selected_material_row()]
+                assert table.item(row, 0).text() == material.display_name
+                assert self.dialog.selected_eos_row() == material.default_eos_index
+                records = self.dialog.eos_table
+                for record_row in range(records.rowCount()):
+                    records.selectRow(record_row)
+                    record = material.eos_records[self.dialog.selected_eos_row()]
+                    assert tuple(records.item(record_row, c).text()
+                                 for c in range(8)) == _record_row(record)
+
+        records.selectRow(0)
+        record_index = self.dialog.selected_eos_row()
+        with patch.object(eos, "build_jcpds") as build:
+            records.doubleClicked.emit(records.model().index(0, 0))
+        assert build.call_args.args == (material, record_index)
+
+    def test_eos_headers_sort_formatted_values_numerically(self):
+        self.dialog.search_input.setText("gold")
+        self.dialog.fill_eos_records([
+            ("Vinet", "—", "A", "2000", "100–200 GPa",
+             "100.0 ± 2", "10.00 (fixed)", "100.000 (error n/r)"),
+            ("BM3", "✓", "B", "1999", "9–80 GPa",
+             "9.0 (error n/r)", "2.00 ± 0.1", "9.000 ± 0.2"),
+        ])
+        self.dialog.show()
+        QtWidgets.QApplication.processEvents()
+        table = self.dialog.eos_table
+        header = table.horizontalHeader()
+        for column in range(3, 8):
+            position = QtCore.QPoint(
+                header.sectionViewportPosition(column)
+                + header.sectionSize(column) // 2, header.height() // 2)
+            for _ in range(2):
+                QTest.mouseClick(header.viewport(), QtCore.Qt.LeftButton,
+                                 pos=position)
+                descending = header.sortIndicatorOrder() == QtCore.Qt.DescendingOrder
+                assert table.item(0, 0).text() == ("Vinet" if descending else "BM3")
+                assert self.dialog.selected_eos_row() == 0
 
     def test_search_filters_and_alias_works(self):
         self.dialog.search_input.setText("gold")
