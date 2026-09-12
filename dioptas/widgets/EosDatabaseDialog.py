@@ -127,14 +127,16 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         # contents are narrower
         materials_header.setMinimumSectionSize(120)
         eos_header = self.eos_table.horizontalHeader()
-        for column in (0, 1, 3, 5, 6, 7):
-            eos_header.setSectionResizeMode(
-                column, QtWidgets.QHeaderView.ResizeToContents)
-        # The two descriptive columns share the available width. Giving all
-        # of it to Authors makes that column dominate the result table.
-        for column in (2, 4):
-            eos_header.setSectionResizeMode(
-                column, QtWidgets.QHeaderView.Stretch)
+        # Set widths once so changing materials never shifts the columns.
+        # Interactive sections support dragging and double-clicking a border
+        # to fit its current contents; Qt keeps those widths on later refills.
+        eos_header.setSectionResizeMode(QtWidgets.QHeaderView.Interactive)
+        eos_header.setToolTip(
+            "Drag column borders to resize; double-click a border to fit contents.")
+        eos_widths = (95, 35, 150, 65, 150, 130, 120, 150)
+        for column, width in enumerate(eos_widths):
+            eos_header.resizeSection(column, width)
+        self.resize(sum(eos_widths) + 40, 520)
 
         self.export_btn = FlatButton("Export .eosmat…")
         self.export_btn.setEnabled(False)
