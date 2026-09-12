@@ -4,6 +4,24 @@ import pytest
 from peritheos import Material as PeritheosMaterial, get_material_document
 
 from ...widgets.EosRecordDialog import EosRecordDialog
+from ...model import eos
+
+
+def test_every_library_record_preserves_its_model_and_parameters(qapp):
+    for material in eos.load_materials():
+        for record in material.eos_records:
+            dialog = EosRecordDialog(record)
+            try:
+                result = dialog.record()
+                for component in ("eos", "thermal"):
+                    for field in ("type", "model", "parameters", "configuration"):
+                        assert result.get(component, {}).get(field) == (
+                            record.get(component, {}).get(field)
+                        ), (material.identifier, record["identifier"], component, field)
+            finally:
+                dialog.close()
+                dialog.deleteLater()
+        qapp.processEvents()
 
 
 def _record():
@@ -123,7 +141,9 @@ def test_record_dialog_preserves_newer_peritheos_thermal_model(qapp):
 
 def test_record_dialog_updates_canonical_eos_model_when_type_changes(qapp):
     document = get_material_document("gold")
-    record = document["eos_records"][0]
+    record_index = next(i for i, record in enumerate(document["eos_records"])
+                        if not record.get("thermal"))
+    record = document["eos_records"][record_index]
     dialog = EosRecordDialog(record)
     dialog.eos_type_cb.setCurrentIndex(
         dialog.eos_type_cb.findData("Vinet"))
@@ -132,13 +152,17 @@ def test_record_dialog_updates_canonical_eos_model_when_type_changes(qapp):
 
     assert result["eos"]["type"] == "Vinet"
     assert result["eos"]["model"] == "vinet"
+    document["eos_records"][record_index] = result
     executable = PeritheosMaterial.from_eosmat(
-        {**document, "eos_records": [result]},
+        document,
+        record_identifiers=[result["identifier"]],
         require_primary_validation=False,
     )
+    from peritheos.eos.rt import Vinet
+    expected = Vinet(**result["eos"]["parameters"]).volume(50.0)
     assert executable.eos_records[0].volume(
-        50.0, 1000.0, check_validity=False
-    ) == pytest.approx(56.93480581339129)
+        50.0, 300.0, check_validity=False
+    ) == pytest.approx(expected)
     dialog.close()
 
 

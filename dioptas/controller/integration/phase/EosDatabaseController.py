@@ -12,6 +12,7 @@ import logging
 from qtpy import QtWidgets
 
 from ....model import eos
+from ....model.util.phasesmith import material_has_diffraction_data
 from ....widgets.EosDatabaseDialog import EosDatabaseDialog
 
 logger = logging.getLogger(__name__)
@@ -68,10 +69,12 @@ class EosDatabaseController(object):
             thermal_tooltips=[
                 _thermal_tooltip(record) for record in material.eos_records
             ])
+        self.dialog.set_phase_load_enabled(
+            material_has_diffraction_data(material))
 
     def load(self):
         material = self._selected_material(self.dialog.selected_material_row())
-        if material is None:
+        if material is None or not material_has_diffraction_data(material):
             return
         record_index = self.dialog.selected_eos_row()
         if record_index < 0:

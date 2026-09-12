@@ -14,7 +14,7 @@ from ...model import eos
 from ...model.eos.material import Material, _parse_formula
 from ...model.PhaseModel import PhaseModel
 from ...model.util.jcpds import EosCalculationError
-from ...model.util.phasesmith import material_has_complete_structure
+from ...model.util.phasesmith import material_has_diffraction_data
 from ...model.util.eos_phase import EosPhase
 
 
@@ -39,36 +39,47 @@ def test_bundled_database_loads(materials):
         "Iron carbide (orthorhombic Fe7C3)",
         "Calcium carbonate (post-aragonite Pmmn)",
     } <= names
-    # Complete structures are calculated by PhaseSmith; legacy records keep
-    # a stored peak table only when they cannot be calculated.
+    # The scientific catalog also includes liquids and EoS-only documents.
+    # Keep these searchable/exportable without inventing diffraction data.
     for m in materials:
-        assert m.lattice.a > 0
-        if material_has_complete_structure(m):
-            assert not m.peaks
+        if material_has_diffraction_data(m):
+            assert eos.build_jcpds(m).reflections, m.identifier
         else:
-            assert m.peaks
+            with pytest.raises(ValueError, match="no crystal structure"):
+                eos.build_jcpds(m)
 
 
 def test_every_bundled_eos_record_constructs_and_evaluates(materials):
     """Database curation must never rely on the silent BM3 fallback."""
     evaluated = 0
     for material in materials:
+        if not material_has_diffraction_data(material):
+            continue
         for index, record in enumerate(material.eos_records):
-            phase = eos.build_jcpds(material, record_index=index)
+            phase = eos.build_jcpds(material, record_index=index, origin="bundled")
             thermal_type = phase.params.get("thermal_type") or ""
+            pressure = 20.0
+            if record.get("equation_kind") == "hugoniot":
+                bounds = record["validity"]["pressure_gpa"]
+                pressure = sum(bounds) / 2
             try:
                 engine = EosPhase.from_jcpds(
                     phase, with_thermal=bool(thermal_type)
                 )
-                volume = engine.volume(20.0, 1000.0)
+                volume = engine.volume(pressure, 1000.0)
+                phase.compute_d(pressure, 1000.0)
             except Exception as error:
                 pytest.fail(
                     f"{material.name} record {index} "
                     f"({record.get('label')}) is not constructible: {error}"
                 )
             assert math.isfinite(volume) and volume > 0
+            assert phase.params["v"] == pytest.approx(volume)
+            assert all(math.isfinite(r.d) and r.d > 0 for r in phase.reflections)
             evaluated += 1
-    assert evaluated == 147
+    assert evaluated == sum(len(m.eos_records) for m in materials
+                            if material_has_diffraction_data(m))
+    assert evaluated >= 147
 
 
 @pytest.mark.parametrize(
@@ -95,7 +106,7 @@ def test_phase_expansion_materials_build_structure_reflections(
 
 
 def test_gold_has_multiple_references(gold):
-    assert len(gold.eos_records) == 4
+    assert len(gold.eos_records) >= 4
     labels = [eos.record_label(r) for r in gold.eos_records]
     assert all(labels), "every record needs a display label"
     assert len(set(labels)) == len(labels), "labels must be unique"
@@ -309,10 +320,12 @@ def test_build_jcpds_carries_everything(gold):
 def test_build_jcpds_uses_explicit_material_default(gold):
     phase = eos.build_jcpds(gold)
 
-    assert gold.default_eos_index == 1
-    assert phase.params["eos_current_index"] == 1
+    default_index = next(i for i, r in enumerate(gold.eos_records)
+                         if r.get("default"))
+    assert gold.default_eos_index == default_index
+    assert phase.params["eos_current_index"] == default_index
     assert phase.params["comments"] == [
-        eos.reference_text(gold.eos_records[1]["reference"])
+        eos.reference_text(gold.eos_records[default_index]["reference"])
     ]
 
 
@@ -327,8 +340,7 @@ def test_build_jcpds_distinguishes_polymorph_name_from_formula(materials):
 
 
 def test_build_jcpds_without_records():
-    # Structure-only user materials remain supported even though Peritheos's
-    # bundled catalog intentionally contains only materials with EoS records.
+    # Structure-only materials remain useful at ambient conditions.
     material = Material(
         name="Structure only",
         formula="X",

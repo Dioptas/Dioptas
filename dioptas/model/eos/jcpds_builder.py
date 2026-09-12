@@ -43,6 +43,12 @@ def build_jcpds(
     save/load and undo.
     """
     from ..util.jcpds import jcpds, jcpds_reflection
+    from ..util.phasesmith import material_has_diffraction_data
+
+    if not material_has_diffraction_data(material):
+        raise ValueError(
+            f"{material.display_name} has no crystal structure or reference "
+            "peak table for diffraction phase lines.")
 
     obj = jcpds()
 
@@ -289,8 +295,12 @@ def material_from_jcpds(phase) -> Material:
 
     records = copy.deepcopy(phase.params.get("eos_records") or [])
     default_index = phase.params.get("eos_default_index") or 0
+    default_is_hugoniot = bool(records and
+        records[default_index].get("equation_kind") == "hugoniot")
     for index, record in enumerate(records):
-        record.pop("default", None)
+        if (record.get("equation_kind") == "hugoniot") == default_is_hugoniot:
+            record.pop("default", None)
+            record.pop("default_for", None)
         if index == default_index:
             record["default"] = True
     material.eos_records = records

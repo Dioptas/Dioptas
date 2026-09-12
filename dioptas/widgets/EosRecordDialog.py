@@ -185,6 +185,8 @@ class EosRecordDialog(QtWidgets.QDialog):
         self.label_edit.setText(str(record.get("label") or ""))
         eos = record.get("eos") or {}
         eos_type = eos.get("type") or "BM3"
+        if self.eos_type_cb.findData(eos_type) < 0:
+            self.eos_type_cb.addItem(str(eos_type), eos_type)
         self.eos_type_cb.setCurrentIndex(max(
             0, self.eos_type_cb.findData(eos_type)))
         thermal = record.get("thermal") or {}
@@ -268,7 +270,7 @@ class EosRecordDialog(QtWidgets.QDialog):
 
         eos_type = self.eos_type_cb.currentData() or "BM3"
         keys = [("EoS", "V0")]
-        keys.extend(("EoS", name) for name in eos_parameter_names(eos_type))
+        keys.extend(("EoS", name) for name in self._eos_parameter_names(eos_type))
         thermal_type = self.thermal_type_cb.currentData() or ""
         keys.extend(("Thermal", name)
                     for name in self._thermal_parameters[thermal_type])
@@ -302,6 +304,15 @@ class EosRecordDialog(QtWidgets.QDialog):
         text = text.strip()
         return None if not text else float(text)
 
+    def _eos_parameter_names(self, eos_type):
+        if eos_type in RT_EOS_TYPES:
+            return eos_parameter_names(eos_type)
+        # New published models retain their own parameter table. They are
+        # executable through the material dispatcher, even without a form
+        # for creating that model from scratch.
+        return [name for name in self._source_record["eos"]["parameters"]
+                if name != "V0"]
+
     def _read_range(self, low_edit, high_edit, label):
         low = self._optional_float(low_edit.text())
         high = self._optional_float(high_edit.text())
@@ -319,10 +330,16 @@ class EosRecordDialog(QtWidgets.QDialog):
             (self._source_record.get("eos") or {}).get("model")
         )
         record["label"] = self.label_edit.text().strip() or "Custom EoS"
-        eos_parameters = {}
+        eos_type = self.eos_type_cb.currentData() or "BM3"
+        thermal_type = self.thermal_type_cb.currentData() or ""
+        source_eos = self._source_record.get("eos") or {}
+        source_thermal = self._source_record.get("thermal") or {}
+        eos_parameters = (deepcopy(source_eos.get("parameters") or {})
+                          if source_eos.get("type") == eos_type else {})
         eos_errors = {}
         eos_fixed = []
-        thermal_parameters = {}
+        thermal_parameters = (deepcopy(source_thermal.get("parameters") or {})
+                              if source_thermal.get("type") == thermal_type else {})
         thermal_errors = {}
         thermal_fixed = []
         for row in range(self.parameters_table.rowCount()):
@@ -337,14 +354,18 @@ class EosRecordDialog(QtWidgets.QDialog):
             target = eos_parameters if scope == "EoS" else thermal_parameters
             errors = eos_errors if scope == "EoS" else thermal_errors
             fixed_names = eos_fixed if scope == "EoS" else thermal_fixed
-            if value is not None:
+            # Explicit nulls have meaning in canonical models (for example
+            # DoubleDebyeHelmholtz.Tr=None); preserve them as well as optional
+            # parameters for which the editor has no visible row.
+            if value is not None or name in target:
                 target[name] = value
             errors[name] = error
             if fixed:
                 fixed_names.append(name)
-        if eos_parameters.get("V0", 0) <= 0:
+        if (eos_parameters.get("V0") or 0) <= 0:
             raise ValueError("V0 must be positive")
-        if eos_parameters.get("K0", 0) <= 0:
+        if ("K0" in self._eos_parameter_names(eos_type)
+                and (eos_parameters.get("K0") or 0) <= 0):
             raise ValueError("K0 must be positive")
         eos_type = self.eos_type_cb.currentData() or "BM3"
         previous_eos = deepcopy(self._source_record.get("eos") or {})
@@ -355,7 +376,8 @@ class EosRecordDialog(QtWidgets.QDialog):
             "parameters": eos_parameters,
         })
         if canonical_record:
-            previous_eos["model"] = EOS_MODEL_IDENTIFIERS[eos_type]
+            previous_eos["model"] = EOS_MODEL_IDENTIFIERS.get(
+                eos_type, previous_eos.get("model"))
         record["eos"] = previous_eos
         record["parameter_errors"] = eos_errors
         record["fixed_parameters"] = eos_fixed
@@ -374,7 +396,8 @@ class EosRecordDialog(QtWidgets.QDialog):
             })
             if canonical_record:
                 previous_thermal["model"] = (
-                    THERMAL_MODEL_IDENTIFIERS[thermal_type])
+                    THERMAL_MODEL_IDENTIFIERS.get(
+                        thermal_type, previous_thermal.get("model")))
             record["thermal"] = previous_thermal
         else:
             record.pop("thermal", None)
@@ -445,7 +468,7 @@ class EosRecordDialog(QtWidgets.QDialog):
         thermal_parameters: dict,
     ) -> None:
         """Reject records that the selected Peritheos engines cannot use."""
-        required_eos = ["V0", *eos_parameter_names(eos_type)]
+        required_eos = ["V0", *self._eos_parameter_names(eos_type)]
         missing = [name for name in required_eos
                    if eos_parameters.get(name) is None]
         if missing:
@@ -459,6 +482,12 @@ class EosRecordDialog(QtWidgets.QDialog):
             missing = [
                 name for name in self._thermal_parameters[thermal_type]
                 if thermal_parameters.get(name) is None
+                and not (
+                    thermal_type not in THERMAL_EOS_TYPES
+                    and name in thermal_parameters
+                    and (self._source_record.get("thermal") or {})
+                    .get("parameters", {}).get(name) is None
+                )
             ]
             if missing:
                 raise ValueError(
@@ -472,7 +501,8 @@ class EosRecordDialog(QtWidgets.QDialog):
         # Zc belongs to the material rather than an EoS record. A dummy value
         # lets the constructor validate every record-owned parameter here;
         # the phase editor separately exposes the real crystallographic Zc.
-        if thermal_type and thermal_type not in THERMAL_EOS_TYPES:
+        if eos_type not in RT_EOS_TYPES or (
+                thermal_type and thermal_type not in THERMAL_EOS_TYPES):
             return
 
         EosPhase(

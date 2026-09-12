@@ -228,6 +228,13 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         rows = self.materials_table.selectionModel().selectedRows()
         return rows[0].row() if rows else -1
 
+    def set_phase_load_enabled(self, enabled: bool):
+        self.load_btn.setEnabled(enabled)
+        self.load_btn.setToolTip(
+            "" if enabled else
+            "No crystal structure or reference peak table is available for "
+            "diffraction phase lines. The material can still be exported.")
+
     def selected_eos_row(self) -> int:
         rows = self.eos_table.selectionModel().selectedRows()
         return rows[0].row() if rows else -1

@@ -692,7 +692,15 @@ class jcpds:
             else:
                 self.params['v'] = self.params['v0'] * (1 - pressure / self.params['k0'])
         else:
-            if self.params['k0'] <= 0.:
+            # Canonical records such as a shock Hugoniot do not use K0.
+            # Their complete Peritheos model still determines compression.
+            material_document = self.params.get('material_document') or {}
+            has_material_record = (
+                material_document.get('format') == 'peritheos.material'
+                and material_document.get('format_version') == 3
+                and bool(self.params.get('eos_records'))
+            )
+            if self.params['k0'] <= 0. and not has_material_record:
                 logger.info('K0 is zero, computing zero pressure volume')
                 self.params['v'] = self.params['v0']
             else:

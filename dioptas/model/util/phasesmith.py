@@ -33,7 +33,17 @@ TWO_THETA_MERGE_TOLERANCE_DEG = 1.0e-5
 # provenance in every material document.
 _SPACE_GROUP_ALIASES = {
     "P21/a": "P 1 21/a 1",
+    "P21/n": "P 1 21/n 1",
 }
+
+
+def material_has_diffraction_data(material: Material) -> bool:
+    """Whether a material can supply phase-line positions in Dioptas."""
+    return bool(
+        (material.source.get("kind") == "cif" and material.source.get("text"))
+        or material_has_complete_structure(material)
+        or (material.lattice.a > 0 and material.peaks)
+    )
 
 
 def material_has_complete_structure(material: Material) -> bool:
@@ -93,12 +103,19 @@ def structure_from_material(material: Material) -> CrystalStructure:
         source_label = str(
             site.get("label") or f"{element} {site.get('wyckoff', index)}"
         )
+        # Material documents can use the chemical isotope symbols D/T.
+        # PhaseSmith expects hydrogen plus its mass number for scattering.
+        isotope = site.get("isotope")
+        element_symbol = element
+        if element in ("D", "T"):
+            element_symbol = "H"
+            isotope = 2 if element == "D" else 3
         sites.append(
             AtomSite(
                 site_id=site_id,
                 source_label=source_label,
                 type_symbol=str(site.get("type_symbol") or element),
-                element_symbol=element,
+                element_symbol=element_symbol,
                 fractional_xyz=(
                     float(site["x"]),
                     float(site["y"]),
@@ -111,7 +128,7 @@ def structure_from_material(material: Material) -> CrystalStructure:
                     else float(site["u_iso_angstrom2"])
                 ),
                 charge=site.get("charge"),
-                isotope=site.get("isotope"),
+                isotope=isotope,
             )
         )
 

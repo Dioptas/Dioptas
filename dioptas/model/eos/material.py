@@ -187,7 +187,12 @@ class Material:
     def default_eos_index(self) -> int:
         """Preferred EoS record, falling back to the first for old files."""
         for index, record in enumerate(self.eos_records):
-            if record.get("default") is True:
+            if (record.get("default_for") == "equilibrium"
+                    or (record.get("default") is True
+                        and record.get("equation_kind") != "hugoniot")):
+                return index
+        for index, record in enumerate(self.eos_records):
+            if record.get("default") is True or record.get("default_for"):
                 return index
         return 0
 

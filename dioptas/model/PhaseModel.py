@@ -486,6 +486,7 @@ class PhaseModel:
         """Snapshot the live EoS/thermal parameters into one record dict."""
         from .util.eos_phase import (
             EOS_MODEL_IDENTIFIERS,
+            RT_EOS_TYPES,
             THERMAL_MODEL_IDENTIFIERS,
             eos_parameter_names,
         )
@@ -506,18 +507,21 @@ class PhaseModel:
             'n': p.get('n'),
             'Z': p.get('z'),
         }
-        names = eos_parameter_names(eos_type)
-        parameters = {'V0': p.get('v0')}
+        previous_eos = deepcopy(record.get('eos') or {})
+        if previous_eos.get('type') != eos_type:
+            previous_eos = {}
+        parameters = deepcopy(previous_eos.get('parameters') or {})
+        names = (eos_parameter_names(eos_type) if eos_type in RT_EOS_TYPES
+                 else [name for name in parameters if name != 'V0'])
+        parameters['V0'] = p.get('v0')
         for name in names:
             value = parameter_map.get(name)
             if value is not None:
                 parameters[name] = value
-        previous_eos = deepcopy(record.get('eos') or {})
-        if previous_eos.get('type') != eos_type:
-            previous_eos = {}
         previous_eos.update({'type': eos_type, 'parameters': parameters})
         if is_canonical_record:
-            previous_eos['model'] = EOS_MODEL_IDENTIFIERS[eos_type]
+            previous_eos['model'] = EOS_MODEL_IDENTIFIERS.get(
+                eos_type, previous_eos.get('model'))
         record['eos'] = previous_eos
 
         thermal_type = str(p.get('thermal_type') or '')
@@ -530,6 +534,9 @@ class PhaseModel:
             previous_thermal = deepcopy(record.get('thermal') or {})
             if previous_thermal.get('type') != thermal_type:
                 previous_thermal = {}
+            for name in previous_thermal.get('configuration', {}):
+                if name in thermal_parameters:
+                    previous_thermal['configuration'][name] = thermal_parameters.pop(name)
             for configuration_name in (
                     'debye_temperature_law',
                     'thermal_expansion_law',
@@ -544,7 +551,8 @@ class PhaseModel:
             }
             if is_canonical_record:
                 record['thermal']['model'] = (
-                    THERMAL_MODEL_IDENTIFIERS[thermal_type])
+                    THERMAL_MODEL_IDENTIFIERS.get(
+                        thermal_type, previous_thermal.get('model')))
         elif any(p.get(key) for key in
                  ('alpha_t0', 'd_alpha_dt', 'dk0dt', 'dk0pdt')):
             record['thermal'] = {
@@ -588,6 +596,12 @@ class PhaseModel:
             for _ in range(len(records) - len(origins))
         )
         records.append(deepcopy(record))
+        # New records in canonical materials need identifiers before the
+        # complete document can be validated when any record is selected.
+        from .eos.jcpds_builder import _complete_record_metadata
+        document = {**(phase.params.get('material_document') or {}),
+                    'eos_records': records}
+        _complete_record_metadata(document)
         origins.append(origin)
         new_index = len(records) - 1
         phase.params['eos_records'] = records
@@ -631,6 +645,8 @@ class PhaseModel:
             raise IndexError(ref_ind)
         duplicate = deepcopy(record or records[ref_ind])
         duplicate.pop('default', None)
+        duplicate.pop('default_for', None)
+        duplicate.pop('aliases', None)
         if record is None:
             label = duplicate.get('label') or 'EoS record'
             duplicate['label'] = f"{label} (custom)"
@@ -662,6 +678,27 @@ class PhaseModel:
         records = list(phase.params['eos_records'])
         if not 0 <= ref_ind < len(records):
             raise IndexError(ref_ind)
+        identifier = records[ref_ind].get('identifier')
+        if identifier and any(
+                record.get('derived_from_record') == identifier
+                for index, record in enumerate(records) if index != ref_ind):
+            raise ValueError(
+                "Other EoS records are derived from this record. "
+                "Delete those derived records first.")
+        document = deepcopy(phase.params.get('material_document') or {})
+        if identifier:
+            for dataset in document.get('datasets', []):
+                if identifier in dataset.get('used_by_eos_records', []):
+                    dataset['used_by_eos_records'] = [
+                        value for value in dataset['used_by_eos_records']
+                        if value != identifier]
+            if 'datasets' in document:
+                # A dataset belongs to its linked records; canonical files
+                # cannot retain datasets with no remaining record links.
+                document['datasets'] = [
+                    dataset for dataset in document['datasets']
+                    if dataset.get('used_by_eos_records')]
+        phase.params['material_document'] = document
         origins = list(phase.params.get('eos_record_origins') or [])
         del records[ref_ind]
         if ref_ind < len(origins):

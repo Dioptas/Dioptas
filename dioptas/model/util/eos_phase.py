@@ -359,7 +359,10 @@ class EosPhase:
             if use_complete_record:
                 document = {
                     **material_document,
-                    "eos_records": [record],
+                    # Dataset and refit provenance can reference other records.
+                    # Preserve the complete document for schema validation and
+                    # let Peritheos select which equation to construct.
+                    "eos_records": records,
                 }
                 origins = p.get("eos_record_origins") or []
                 record_origin = (
@@ -370,6 +373,7 @@ class EosPhase:
                 try:
                     executable = PeritheosMaterial.from_eosmat(
                         document,
+                        record_identifiers=[record["identifier"]],
                         require_primary_validation=require_primary_validation,
                     )
                 except ValueError as error:

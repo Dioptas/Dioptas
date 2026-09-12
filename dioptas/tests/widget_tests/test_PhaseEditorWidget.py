@@ -123,6 +123,17 @@ class PhaseEditorWidgetTest(QtTest):
             self.jcpds_editor_widget.reflection_table_view.isEnabled())
         self.assertFalse(self.jcpds_editor_widget.reload_file_btn.isEnabled())
 
+    def test_published_equation_without_editor_form_keeps_its_name(self):
+        widget = self.jcpds_editor_widget
+        widget.configure_eos_types([("BM2", "Birch-Murnaghan 2", ["K0"])])
+        for name in ("RydbergStacey", "Vinet3", "LinearUsUpHugoniot"):
+            widget.set_eos_type(name)
+            assert widget.get_eos_type() == name
+            assert widget.eos_type_cb.currentText() == name
+        count = widget.eos_type_cb.count()
+        widget.set_eos_type("RydbergStacey")
+        assert widget.eos_type_cb.count() == count
+
     def test_custom_record_controls_are_editable(self):
         self.jcpds_editor_widget.update_eos_records(
             ['Custom fit'], 0, origins=['custom'], default_index=0)

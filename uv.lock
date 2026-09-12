@@ -331,7 +331,7 @@ requires-dist = [
     { name = "numexpr", specifier = ">=2.10.2,<3.0" },
     { name = "numpy", specifier = ">=2.0,<3.0" },
     { name = "pandas", specifier = ">=2.1.1,<3.0" },
-    { name = "peritheos", specifier = ">=0.6.0,<1.0" },
+    { name = "peritheos", specifier = ">=0.8.0,<1.0" },
     { name = "phasesmith", specifier = ">=0.4.1,<0.5" },
     { name = "psutil", specifier = ">=5.9.5,<6.0" },
     { name = "psygnal", specifier = ">=0.15.1,<0.16" },
@@ -1002,29 +1002,29 @@ wheels = [
 
 [[package]]
 name = "peritheos"
-version = "0.6.0"
+version = "0.8.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
     { name = "scipy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/98/4a/c02edfa9badeb353bb78327042d56e8e391ade173bf60450879d3d2b245f/peritheos-0.6.0.tar.gz", hash = "sha256:43f355c1468fe090c8c025610c835173e59d1fa131065ad827c3f0f60af91d51", size = 1083221, upload-time = "2026-09-01T18:46:47.312Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/68/51/cf541808091c8506f4d62fc6e7cd939961d29a57e70328890b26dfb33a6a/peritheos-0.8.0.tar.gz", hash = "sha256:e1e1f04af4d691d0de37b5b652d8999b650a58b222124ac1fdc7b6936ac54120", size = 3707147, upload-time = "2026-09-11T07:49:26.392Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ef/43/155c7f5385d23e5365ac3ea809c77421c9ad6bbdf0687a2f7855d0885d39/peritheos-0.6.0-cp311-cp311-macosx_10_12_x86_64.whl", hash = "sha256:eac31c0b50d1d06e99ab5a55cb45d6f9454ada3b34f2c75aff82b245d2b23053", size = 836837, upload-time = "2026-09-01T18:45:57.898Z" },
-    { url = "https://files.pythonhosted.org/packages/04/94/15a755bf60eb24dec6893431af570839ef89d4724efcdf89b8b45871e806/peritheos-0.6.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:e8b616f6546d64eddb9e6f8d5f73c53c60e4a758c13f12bb6a88ad11868c85bd", size = 826425, upload-time = "2026-09-01T18:45:59.526Z" },
-    { url = "https://files.pythonhosted.org/packages/9c/a1/7b87370151b2a80c0dd60c760a47edef93453a32f1fc491ab9dcbf0511cd/peritheos-0.6.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b7a999cdb8480aaeed516159816d5de08e3fbcb33821e5f9c1aa4b4960f06bbd", size = 879861, upload-time = "2026-09-01T18:46:01.061Z" },
-    { url = "https://files.pythonhosted.org/packages/56/04/2056b4e23da293b79e2a526c1438102f5bdc681e1078748b61cfd642f882/peritheos-0.6.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5ba90ff965b6eb3760f84dba1060d137a61fd0f88cab570f63c96551c78686f9", size = 908274, upload-time = "2026-09-01T18:46:02.75Z" },
-    { url = "https://files.pythonhosted.org/packages/cc/6f/ba8232040495e80920a532578f2e3c2981b2f0625ba33bfe1224b54c3d3c/peritheos-0.6.0-cp311-cp311-win_amd64.whl", hash = "sha256:2f6fe3b746cb2c0db09f051401d51324c0d1d4796f67446569cbac8062b06ae5", size = 725167, upload-time = "2026-09-01T18:46:04.403Z" },
-    { url = "https://files.pythonhosted.org/packages/8a/c4/9bf4c6f04d80e7781b323fd2e868298cdab38eaa6080d0dcf63404b360ee/peritheos-0.6.0-cp312-cp312-macosx_10_12_x86_64.whl", hash = "sha256:9639f73995703490f7e0138cd4fc5073b321dccd267dea7ae6a90fe3e4f5062f", size = 839430, upload-time = "2026-09-01T18:46:06.093Z" },
-    { url = "https://files.pythonhosted.org/packages/72/c5/97e02a1d16bf26cb8bc64722476b24ac4d80e1a8c8abd10cfde7b1cdb82e/peritheos-0.6.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:35a9cb11f3c490c0db9dc519ff93434062b4820a0013d7ebfdd264ee38abee7e", size = 816382, upload-time = "2026-09-01T18:46:07.507Z" },
-    { url = "https://files.pythonhosted.org/packages/d9/1a/9c6668d1cb4313e8291e7dea95d6c20fd172d08af5d9624447e355a2b160/peritheos-0.6.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:176a8b3ad3cd764ea8175a17ccbc471143d0a300e093f7f923836ad39a2edb73", size = 873766, upload-time = "2026-09-01T18:46:09.203Z" },
-    { url = "https://files.pythonhosted.org/packages/45/90/ffae77a879443546a597ab4a7a76c0eba44e2283dcc75a57dace91f8c2d6/peritheos-0.6.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:db2a0edb43e031f35be603071e68a6d7ace392e04bf713a7daefa5af91553f81", size = 903050, upload-time = "2026-09-01T18:46:10.688Z" },
-    { url = "https://files.pythonhosted.org/packages/39/ae/9880e94e528aabb0fbba0e000c5cdce52f784e5fe1a1283f764ad0bca626/peritheos-0.6.0-cp312-cp312-win_amd64.whl", hash = "sha256:99d50476aa8b1948d2b6148357058e8f368303ff19f46a760cbb92f49f87b5f4", size = 721702, upload-time = "2026-09-01T18:46:12.254Z" },
-    { url = "https://files.pythonhosted.org/packages/8c/2d/20c597e7518fbfef7405e3cdc9bc2a90b1bd987f2eb6ed994a93f11f3001/peritheos-0.6.0-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:ee3d6449de28b1529b910ecd9420af064672a268bc4e0d1381e825158a2c8e9c", size = 838147, upload-time = "2026-09-01T18:46:13.771Z" },
-    { url = "https://files.pythonhosted.org/packages/d9/94/10a2cad9c0a82b0bbc6e4cdddc070719c7ff9cd3d9f97d320409bf57251e/peritheos-0.6.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:7e2394574ac92fd55e7a625aefac24092c9413d6e3c970ad20252436ec92ea4c", size = 815988, upload-time = "2026-09-01T18:46:15.353Z" },
-    { url = "https://files.pythonhosted.org/packages/bc/01/ac1f037b0a72a7f1e951652fb6f5d927e66c8d747a762afaf2702ff82afe/peritheos-0.6.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a6a3d37fffc0d8a7a3da33c449818632b1cce3c919639c0fb588e2c5ce5bb63d", size = 873963, upload-time = "2026-09-01T18:46:17.088Z" },
-    { url = "https://files.pythonhosted.org/packages/49/4d/17d52a0fb3a71fc26834c3c7e5575ef14e37501a9c3eff46ce5ea00608b4/peritheos-0.6.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e2982b28c61dd82cad84b6d5f15e1cb5010dab3540fdf180354a56b955278485", size = 902477, upload-time = "2026-09-01T18:46:18.718Z" },
-    { url = "https://files.pythonhosted.org/packages/32/20/525714d2b0813e949caf09a6130b2f51cf56eb038e3430022c2a57632188/peritheos-0.6.0-cp313-cp313-win_amd64.whl", hash = "sha256:adfbd6170b4fb700587a75f5e9cc8c3eca1927d41d55c665cf9e56d8983f1f71", size = 720128, upload-time = "2026-09-01T18:46:20.446Z" },
+    { url = "https://files.pythonhosted.org/packages/eb/3e/8a4df64ae30498984b9d27d6a3366d90bca608dd1b4cca3af6422abce025/peritheos-0.8.0-cp311-cp311-macosx_10_12_x86_64.whl", hash = "sha256:71b6a1aa3e8eedd373c8c5bfc9ad74c4d8db637e0e8e7eb58a48b171dbc0bca6", size = 2368744, upload-time = "2026-09-11T07:48:33.795Z" },
+    { url = "https://files.pythonhosted.org/packages/c5/45/b6e84dfe9c12429112c0f2da655c3c6ee3220402246622b82cdc4e91685e/peritheos-0.8.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:a2ecb7d22d4609a4e427fd33fcf233ebdefe464a2ef7a2c17450e4ff11356624", size = 2348128, upload-time = "2026-09-11T07:48:35.389Z" },
+    { url = "https://files.pythonhosted.org/packages/62/a2/5c9c7a70c84bacbad74c4698ac7d51b3ed14b775ce2571708d90c3ab6f4a/peritheos-0.8.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1d95b547aa38ba48e6182e9a9c0bfd9445814651fea7433d086cacbc46030d67", size = 2409460, upload-time = "2026-09-11T07:48:37.039Z" },
+    { url = "https://files.pythonhosted.org/packages/e2/7c/feaf3985ad917ea8a8e690a4f4c7f3f9106ce06cdc7c084da741bd1c84ba/peritheos-0.8.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:de59ddaba54460b02f708f27cb127f5b867160dc1d32ad62d7d57abc3d515f26", size = 2448029, upload-time = "2026-09-11T07:48:38.856Z" },
+    { url = "https://files.pythonhosted.org/packages/8e/81/378f60c8edbbc3c09927821f867078ff936d3b5944583ed06dfbd57601b3/peritheos-0.8.0-cp311-cp311-win_amd64.whl", hash = "sha256:679de249d247df934856f3bdf3fa7ac8ed45615c120791b46f3e042c3dd74f00", size = 2261471, upload-time = "2026-09-11T07:48:40.799Z" },
+    { url = "https://files.pythonhosted.org/packages/3b/e1/e08c6c1cef9390209580f71e8933ac824158ffab9c67a0d0b17593ac009b/peritheos-0.8.0-cp312-cp312-macosx_10_12_x86_64.whl", hash = "sha256:66329d285a244bb68461acda897c9f4270f5e869e76264dd9f102d3eacc5d10c", size = 2373604, upload-time = "2026-09-11T07:48:42.538Z" },
+    { url = "https://files.pythonhosted.org/packages/45/76/3cd298f6e3aa744f329c0fe08ccf8660aae25a212d08fabfb78ad4ef2002/peritheos-0.8.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:b778df2522cec5900b11ef731d0712d536759633e7c9db3ba92904395905605b", size = 2339066, upload-time = "2026-09-11T07:48:44.297Z" },
+    { url = "https://files.pythonhosted.org/packages/ae/bb/7e9b231ecfb6e0ab3aea14b1968924d8acd1ae105f279f52f07c977ac095/peritheos-0.8.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ebbaa30ef388810900c0123df9fc56ed8dede1a08c260125f2856e212e45d69d", size = 2403085, upload-time = "2026-09-11T07:48:45.822Z" },
+    { url = "https://files.pythonhosted.org/packages/1e/4c/fc68a653dfd6bf25c9f598f71e6f64e9c065a01ceeff00c756a12ed8814d/peritheos-0.8.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1d8702bab46286ad8f59e2073700ea5939e113da7c02075e953f576b6f022524", size = 2443017, upload-time = "2026-09-11T07:48:47.488Z" },
+    { url = "https://files.pythonhosted.org/packages/0f/ec/f678b1db9e2bd69bb9284ee2984fea2fcaf8005b1a8718b0420f17708a5a/peritheos-0.8.0-cp312-cp312-win_amd64.whl", hash = "sha256:594a6f1058fe067723797adfc7ddc129553d4d42a709b851df52698b13978c79", size = 2257807, upload-time = "2026-09-11T07:48:49.213Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/57/17bb438dd17e67a54fdee8cb8e893816471d55b896357f6bc874acb0a35c/peritheos-0.8.0-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:b30ee0ade9ac151d16daa0e7a22dd26f5b7f80d1b62b1c492bcd3a876283b7e7", size = 2372624, upload-time = "2026-09-11T07:48:50.744Z" },
+    { url = "https://files.pythonhosted.org/packages/0e/94/924449bd57bb5fcd5e34c91895b1e87bf67571848d744c4277e5458ac307/peritheos-0.8.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:ef0edbebb5f6f3f78e82861e2d4f1268955628ccc38eb3890cbdbc38eb7bbc93", size = 2338121, upload-time = "2026-09-11T07:48:52.345Z" },
+    { url = "https://files.pythonhosted.org/packages/3e/b3/7e7cf974220e02be0d30a85c62e3c9d30a3db85f818ae5bf00b8fe7a000c/peritheos-0.8.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:615a6274cd082950e355233dffa059b1775886bab3c56341b73c92ba28218a8c", size = 2403170, upload-time = "2026-09-11T07:48:54.206Z" },
+    { url = "https://files.pythonhosted.org/packages/47/0a/8dc4401f56284139c7c265c9267cc6b6d908368920ddb69e17b3a8957017/peritheos-0.8.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:cbe0ae73d0190e0be5468f01584d27a03ee1167d2568402db8611e01974b448a", size = 2441868, upload-time = "2026-09-11T07:48:56.179Z" },
+    { url = "https://files.pythonhosted.org/packages/db/78/aaeb3058e7402e96db7c717555df1ccec082fa11436e06105047ec70e631/peritheos-0.8.0-cp313-cp313-win_amd64.whl", hash = "sha256:e960267f5f974adfcb3fe9da45cf8181e7e9cebd1d8f6fdaf8e63ea0c8b58f17", size = 2257082, upload-time = "2026-09-11T07:48:57.82Z" },
 ]
 
 [[package]]

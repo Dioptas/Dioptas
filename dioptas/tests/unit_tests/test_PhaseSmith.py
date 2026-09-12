@@ -12,6 +12,7 @@ from ...model.util.phasesmith import (
     calculate_material_reflections,
     material_has_complete_structure,
     minimum_d_spacing_for_pattern,
+    structure_from_material,
 )
 
 
@@ -49,6 +50,23 @@ def test_builder_ignores_stale_peaks_when_structure_is_complete():
     assert all(reflection.d0 != 99.0 for reflection in phase.reflections)
 
 
+def test_deuterium_sites_use_hydrogen_xray_scattering():
+    material = deepcopy(_material("D2O"))
+    before = deepcopy(material)
+    structure = structure_from_material(material)
+    deuterium = [site for site in structure.sites if site.type_symbol == "D"]
+    assert deuterium
+    assert all(site.element_symbol == "H" and site.isotope == 2
+               for site in deuterium)
+    heavy_rows = calculate_material_reflections(material)
+    for site in material.atom_sites:
+        if site["element"] == "D":
+            site["element"] = "H"
+    assert np.asarray(heavy_rows) == pytest.approx(
+        np.asarray(calculate_material_reflections(material)))
+    assert structure_from_material(before) == structure
+
+
 @pytest.mark.parametrize(
     ("unit", "x_values"),
     [
@@ -80,10 +98,9 @@ def test_gold_builder_uses_requested_pattern_coverage():
 
 
 def test_builder_uses_stored_peaks_for_incomplete_structure():
-    material = next(
-        item for item in eos.load_materials()
-        if not material_has_complete_structure(item)
-    )
+    material = deepcopy(_material("Au"))
+    material.atom_sites = []
+    material.peaks = [[1, 1, 1, 2.35917, 100.0]]
 
     phase = eos.build_jcpds(material)
 

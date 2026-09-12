@@ -19,8 +19,10 @@ def test_dioptas_loads_the_complete_peritheos_library():
 
     assert {material.identifier for material in materials} == set(
         list_material_documents())
-    assert len(materials) == 115
-    assert sum(len(material.eos_records) for material in materials) == 147
+    assert len(materials) >= 115
+    for material in materials:
+        assert material.eos_records == get_material_document(
+            material.identifier)["eos_records"]
 
 
 @pytest.mark.parametrize(
@@ -150,6 +152,75 @@ def test_save_material_file_does_not_mutate_material(tmp_path):
     eos.save_material_file(str(tmp_path / "gold.eosmat"), material)
 
     assert material == before
+
+
+def test_all_materials_export_and_all_phase_records_can_be_duplicated(tmp_path):
+    from ...model.util.phasesmith import material_has_diffraction_data
+
+    for material in eos.load_materials():
+        path = str(tmp_path / f"{material.identifier}.eosmat")
+        eos.save_material_file(path, material)
+        assert eos.load_material_file(path).eos_records == material.eos_records
+        if not material_has_diffraction_data(material):
+            continue
+        for index, record in enumerate(material.eos_records):
+            phase = eos.build_jcpds(material, record_index=index, origin="bundled")
+            model = PhaseModel()
+            model.add_jcpds_object(phase, filename=phase.filename)
+            custom_index = model.duplicate_eos_record(0, index)
+            custom = phase.params["eos_records"][custom_index]
+            assert "default_for" not in custom
+            assert "aliases" not in custom
+            snapshot = model.eos_record_from_phase(0, custom)
+            assert snapshot["eos"]["parameters"] == custom["eos"]["parameters"], (
+                material.identifier, record["identifier"])
+            eos.save_material_file(path, eos.material_from_jcpds(phase))
+            loaded = eos.load_material_file(path)
+            assert loaded.eos_records[custom_index]["identifier"] == custom["identifier"]
+
+
+def test_new_custom_record_keeps_other_canonical_records_executable():
+    material = eos.Material.from_dict(get_material_document("gold"))
+    phase = eos.build_jcpds(material, origin="bundled")
+    model = PhaseModel()
+    model.add_jcpds_object(phase)
+    custom_index = model.add_eos_record(0, {
+        "label": "My new fit",
+        "eos": {"type": "BM3", "parameters": {
+            "V0": 67.8, "K0": 170.0, "K0_prime": 5.0}},
+    })
+    assert phase.params["eos_records"][custom_index]["identifier"]
+    assert model.set_eos_reference(0, material.default_eos_index)
+    assert model.set_temperature(0, 1000.0)
+
+
+def test_deleting_file_record_keeps_datasets_exportable(tmp_path):
+    material = eos.Material.from_dict(get_material_document("gold"))
+    phase = eos.build_jcpds(material, origin="file")
+    model = PhaseModel()
+    model.add_jcpds_object(phase)
+    removed_id = material.eos_records[0]["identifier"]
+    model.delete_eos_record(0, 0)
+    path = str(tmp_path / "edited.eosmat")
+    eos.save_material_file(path, eos.material_from_jcpds(phase))
+    loaded = eos.load_material_file(path).to_dict()
+    assert loaded["datasets"]
+    assert all(removed_id not in dataset.get("used_by_eos_records", [])
+               for dataset in loaded["datasets"])
+
+
+def test_deleting_parent_record_preserves_derived_record_and_state():
+    material = eos.Material.from_dict(get_material_document("gold"))
+    phase = eos.build_jcpds(material, origin="file")
+    model = PhaseModel()
+    model.add_jcpds_object(phase)
+    custom_index = model.duplicate_eos_record(0, 0)
+    phase.params["eos_records"][custom_index]["derived_from_record"] = (
+        phase.params["eos_records"][0]["identifier"])
+    before = deepcopy(phase.params["eos_records"])
+    with pytest.raises(ValueError, match="derived from this record"):
+        model.delete_eos_record(0, 0)
+    assert phase.params["eos_records"] == before
 
 
 @pytest.mark.parametrize("origin,raises", [

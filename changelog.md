@@ -2,13 +2,17 @@
 
 ## Improvements
 
-- The offline EoS material library now comes directly from Peritheos 0.6.0 instead of being duplicated inside Dioptas. This brings Peritheos's primary-source-audited records and corrections into the **DB** browser, keeps `.eosmat` validation in one place, and evaluates its newer thermal models with Peritheos's material-record engine.
+- Peritheos 0.8.0 is now the minimum supported version.
+
+- The offline EoS material library now comes directly from Peritheos 0.8.0 instead of being duplicated inside Dioptas. This brings Peritheos's primary-source-audited records and corrections into the **DB** browser, keeps `.eosmat` validation in one place, and evaluates its newer thermal models with Peritheos's material-record engine. Materials without diffraction structures remain searchable and exportable, with **Load as Phase** disabled.
 
 - **Mask** and **transparent** controls now sit below the detector image in calibration, mask, integration and map modes, so the same mask settings remain accessible throughout the workflow. Transparency is available only while the mask is enabled.
 
 - The integrated cake on the calibration validation step now has synchronized **2θ** and **azimuth** axes that follow zooming and panning.
 
 ## Fixes
+
+- Peritheos material calculations preserve dataset and EoS cross-references, and shock Hugoniot records now calculate compression even without a K0 parameter. The phase editors preserve newer model names and optional parameters. Heavy-water structures and the P21/n space-group setting now generate diffraction reflections correctly.
 
 - Loading a project or recovering the previous session now restores **By Name**/**By Time** browsing for images and patterns, including the iterator behavior behind the controls. The saved mask/unmask drawing mode now also returns with the matching radio button and preview color.
 

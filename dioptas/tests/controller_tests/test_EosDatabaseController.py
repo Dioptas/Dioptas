@@ -125,8 +125,13 @@ class EosDatabaseControllerTest(QtTest):
 
         table = self.dialog.eos_table
         assert table.horizontalHeaderItem(1).text() == "T"
-        assert table.item(0, 1).text() == "✓"
-        assert table.item(0, 1).toolTip() == (
+        thermal_row = next(
+            row for row, record in enumerate(
+                self.controller.shown_materials[0].eos_records)
+            if record.get("thermal", {}).get("type") == "LogVolumeThermalPressure"
+        )
+        assert table.item(thermal_row, 1).text() == "✓"
+        assert table.item(thermal_row, 1).toolTip() == (
             "Log-volume thermal-pressure model"
         )
 
@@ -147,7 +152,7 @@ class EosDatabaseControllerTest(QtTest):
         assert (self.dialog.eos_table.rowCount()
                 == len(material.eos_records))
         assert (self.dialog.selected_eos_row()
-                == material.default_eos_index == 1)
+                == material.default_eos_index)
         assert self.dialog.load_btn.isEnabled()
 
     def test_load_builds_phase_with_selected_record(self):
@@ -171,7 +176,8 @@ class EosDatabaseControllerTest(QtTest):
         table.doubleClicked.emit(table.model().index(0, 0))
 
         assert self.controller.result_phase is not None
-        assert self.controller.result_phase.params["eos_current_index"] == 1
+        assert self.controller.result_phase.params["eos_current_index"] == (
+            self.controller.shown_materials[0].default_eos_index)
 
     def test_double_clicking_eos_record_loads_that_record(self):
         self.dialog.search_input.setText("gold")
@@ -199,9 +205,24 @@ class EosDatabaseControllerTest(QtTest):
                 == len(material.eos_records))
         assert self.dialog.eos_table.rowCount() != gold_rows
 
-    def test_every_library_material_has_an_eos_record(self):
-        assert all(material.eos_records
-                   for material in self.controller.materials)
+    def test_eos_only_material_is_exportable_but_cannot_load_as_phase(self):
+        from ...model.util.phasesmith import material_has_diffraction_data
+
+        row = next(i for i, material in enumerate(self.controller.shown_materials)
+                   if not material_has_diffraction_data(material))
+        self.dialog.materials_table.selectRow(row)
+
+        assert not self.dialog.load_btn.isEnabled()
+        assert "No crystal structure" in self.dialog.load_btn.toolTip()
+        assert self.dialog.export_btn.isEnabled()
+        self.controller.load()
+        self.dialog.materials_table.doubleClicked.emit(
+            self.dialog.materials_table.model().index(row, 0))
+        assert self.controller.result_phase is None
+
+        self.dialog.search_input.setText("gold")
+        assert self.dialog.load_btn.isEnabled()
+        assert self.dialog.load_btn.toolTip() == ""
 
 
 def test_record_row_displays_reported_errors_and_fixed_parameters():

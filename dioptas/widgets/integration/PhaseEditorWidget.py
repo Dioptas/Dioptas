@@ -418,6 +418,11 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         """Select the equation with the given key, without emitting."""
         index = self.eos_type_cb.findData(key)
         self.eos_type_cb.blockSignals(True)
+        if index < 0:
+            # Keep published models visible even if the editor has no form
+            # for creating them (for example RydbergStacey and Vinet3).
+            self.eos_type_cb.addItem(str(key), key)
+            index = self.eos_type_cb.count() - 1
         self.eos_type_cb.setCurrentIndex(max(0, index))
         self.eos_type_cb.blockSignals(False)
         self.update_eos_parameter_visibility()

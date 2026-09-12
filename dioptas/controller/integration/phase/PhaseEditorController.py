@@ -388,7 +388,11 @@ class PhaseEditorController(QtCore.QObject):
             QtWidgets.QMessageBox.No,
         )
         if answer == QtWidgets.QMessageBox.Yes:
-            self.phase_model.delete_eos_record(self.phase_ind, index)
+            try:
+                self.phase_model.delete_eos_record(self.phase_ind, index)
+            except ValueError as error:
+                QtWidgets.QMessageBox.information(
+                    self.jcpds_widget, 'Cannot Delete EoS Record', str(error))
 
     def set_default_eos_record(self):
         if self.phase_ind < 0:
