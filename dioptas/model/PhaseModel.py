@@ -76,6 +76,8 @@ class PhaseModel:
         self.phase_changed: Signal = Signal(int)  # phase ind
         self.phase_reloaded: Signal = Signal(int)  # phase ind
         self.condition_rejected: Signal = Signal(int, str, str)
+        self.dac_thermal_pressure_changed: Signal = Signal()
+        self.params.events.connect(self._on_dac_thermal_pressure_params_changed)
 
         self.reflection_added: Signal = Signal(int)
         self.reflection_deleted: Signal = Signal(int, int)  # phase index, reflection index
@@ -87,6 +89,47 @@ class PhaseModel:
     @same_conditions.setter
     def same_conditions(self, new_value: bool) -> None:
         self.params.same_conditions = new_value
+
+    @property
+    def dac_thermal_pressure_factor(self) -> float | None:
+        """Effective confinement fraction; None means disabled."""
+        return (self.params.dac_thermal_pressure_factor
+                if self.params.dac_thermal_pressure_enabled else None)
+
+    def _set_phase_dac_thermal_pressure(self, phase: jcpds) -> None:
+        # Derived runtime input: project/undo state belongs to PhaseParams,
+        # and exporting a material must never embed this experiment setting.
+        phase.params['dac_thermal_pressure_factor'] = self.dac_thermal_pressure_factor
+
+    def set_dac_thermal_pressure_enabled(self, enabled: bool) -> None:
+        self.params.dac_thermal_pressure_enabled = bool(enabled)
+
+    def set_dac_thermal_pressure_factor(self, factor: float) -> None:
+        if not np.isfinite(factor) or not 0 <= factor < 1:
+            raise ValueError("The DAC thermal-pressure fraction must be in [0, 1).")
+        self.params.dac_thermal_pressure_factor = float(factor)
+
+    def _on_dac_thermal_pressure_params_changed(self, info) -> None:
+        if info.signal.name not in (
+                'dac_thermal_pressure_enabled', 'dac_thermal_pressure_factor'):
+            return
+
+        def recompute(phase):
+            self._set_phase_dac_thermal_pressure(phase)
+            phase.compute_d()
+
+        def restore_setting():
+            with self.params.events.blocked():
+                setattr(self.params, info.signal.name, info.args[1])
+
+        factor = self.params.dac_thermal_pressure_factor
+        if (not np.isfinite(factor) or not 0 <= factor < 1
+                or not self._apply_conditions(
+                    0, list(range(len(self.phases))), 'dac thermal pressure',
+                    f'DAC fraction {factor:g}', recompute,
+                    on_rejected=restore_setting)):
+            restore_setting()
+        self.dac_thermal_pressure_changed.emit()
 
     # -- read-only views over the items -----------------------------------
     # The four lists used to be parallel and mutated in lockstep at every
@@ -160,6 +203,7 @@ class PhaseModel:
                 color=calculate_color(self._color_counter + 9)
             )
             self._color_counter += 1
+        self._set_phase_dac_thermal_pressure(jcpds_object)
         self.items.append(
             PhaseItem(
                 jcpds=jcpds_object,
@@ -283,6 +327,7 @@ class PhaseModel:
         phase = self.phases[ind]
         phase.params['pressure'] = pressure
         phase.params['temperature'] = temperature
+        self._set_phase_dac_thermal_pressure(phase)
         phase.compute_d()
         self.get_lines_d(ind)
         self.phase_reloaded.emit(ind)
@@ -351,7 +396,8 @@ class PhaseModel:
             reflection.d = d_spacing
 
     def _apply_conditions(self, source_ind: int, indices: list[int],
-                          condition: str, requested: str, operation) -> bool:
+                          condition: str, requested: str, operation,
+                          on_rejected=None) -> bool:
         """Apply a P/T change atomically, retaining the last valid state."""
         snapshots = {
             index: self._condition_snapshot(self.phases[index])
@@ -363,6 +409,9 @@ class PhaseModel:
         except EosCalculationError as error:
             for index, snapshot in snapshots.items():
                 self._restore_condition_snapshot(self.phases[index], snapshot)
+            if on_rejected is not None:
+                on_rejected()
+            for index in indices:
                 self.phase_changed.emit(index)
             logger.info(
                 "Rejected %s %s for phase %d: %s",
@@ -392,6 +441,9 @@ class PhaseModel:
             self._require_editable_eos_record(ind)
         if param in _STRUCTURE_PARAMS:
             self._require_editable_material(ind)
+        if param == 'thermal_parameters':
+            self._require_thermal_compatibility(
+                phase.params['eos_type'], phase.params['thermal_type'], value)
         phase.params[param] = value
         if param in _STRUCTURE_PARAMS:
             phase.compute_v0()
@@ -411,6 +463,9 @@ class PhaseModel:
         """
         logger.debug("Setting EoS type for phase %d to %s", ind, eos_type)
         self._require_editable_eos_record(ind)
+        self._require_thermal_compatibility(
+            eos_type, self.phases[ind].params['thermal_type'],
+            self.phases[ind].params['thermal_parameters'])
         self.phases[ind].params['eos_type'] = eos_type
         self._sync_active_eos_record(ind)
         self.phases[ind].compute_d()
@@ -421,7 +476,8 @@ class PhaseModel:
         """Returns the equation-of-state type of the phase with index ind."""
         return str(self.phases[ind].params.get('eos_type') or 'BM3')
 
-    def set_thermal_type(self, ind: int, thermal_type: str) -> None:
+    def set_thermal_type(self, ind: int, thermal_type: str, *,
+                         parameters: dict | None = None) -> None:
         """
         Changes the thermal model of the phase with index ind: '' for the
         classic constant-coefficient correction, or a peritheos thermal
@@ -432,11 +488,24 @@ class PhaseModel:
         logger.debug("Setting thermal model for phase %d to '%s'",
                      ind, thermal_type)
         self._require_editable_eos_record(ind)
+        phase = self.phases[ind]
+        self._require_thermal_compatibility(
+            phase.params['eos_type'], thermal_type,
+            parameters if parameters is not None else phase.params['thermal_parameters'])
+        if parameters is not None:
+            phase.params['thermal_parameters'] = dict(parameters)
         self.phases[ind].params['thermal_type'] = thermal_type
         self._sync_active_eos_record(ind)
         self.phases[ind].compute_d()
         self.get_lines_d(ind)
         self.phase_changed.emit(ind)
+
+    @staticmethod
+    def _require_thermal_compatibility(eos_type, thermal_type, parameters):
+        from .util.eos_phase import thermal_compatibility_error
+        error = thermal_compatibility_error(eos_type, thermal_type, parameters)
+        if error:
+            raise ValueError(error)
 
     def get_thermal_type(self, ind: int) -> str:
         """Returns the thermal model of the phase with index ind."""
@@ -527,23 +596,23 @@ class PhaseModel:
         thermal_type = str(p.get('thermal_type') or '')
         if thermal_type:
             thermal_parameters = deepcopy(p.get('thermal_parameters') or {})
-            if (thermal_type in ('MieGruneisenDebye',
-                                 'MieGruneisenEinstein')
+            from .util.eos_phase import THERMAL_CLASSES, thermal_parameter_signature
+            if (thermal_type in THERMAL_CLASSES
+                    and 'n' in thermal_parameter_signature(thermal_type)
                     and p.get('n') is not None):
-                thermal_parameters.setdefault('n', p['n'])
+                thermal_parameters['n'] = p['n']
             previous_thermal = deepcopy(record.get('thermal') or {})
             if previous_thermal.get('type') != thermal_type:
                 previous_thermal = {}
-            for name in previous_thermal.get('configuration', {}):
+            from .util.eos_phase import THERMAL_CONFIGURATION_CHOICES
+            configuration = previous_thermal.get('configuration', {})
+            for name in set(configuration) | set(THERMAL_CONFIGURATION_CHOICES):
                 if name in thermal_parameters:
-                    previous_thermal['configuration'][name] = thermal_parameters.pop(name)
-            for configuration_name in (
-                    'debye_temperature_law',
-                    'thermal_expansion_law',
-                    'reference_volume_law'):
-                if configuration_name in thermal_parameters:
-                    previous_thermal[configuration_name] = (
-                        thermal_parameters.pop(configuration_name))
+                    value = thermal_parameters.pop(name)
+                    if name in configuration:
+                        configuration[name] = value
+                    if name in THERMAL_CONFIGURATION_CHOICES:
+                        previous_thermal[name] = value
             record['thermal'] = {
                 **previous_thermal,
                 'type': thermal_type,

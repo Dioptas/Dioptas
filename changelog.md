@@ -2,7 +2,11 @@
 
 ## Improvements
 
-- Peritheos 0.8.0 is now the minimum supported version.
+- The **DB** phase browser opens on **Recent**, showing the last 20 loaded materials. **Favourites** keeps starred materials close at hand, and **All** opens the full library. Search starts across the database; switching tabs filters the results without clearing the query. Recent materials and favourites are saved across sessions.
+
+- **DAC thermal pressure** in **X → Phase**, with inline guidance on cold pressure and the retained fraction, applies a shared confinement fraction to all phases with a Peritheos thermal EoS. It is disabled by default with an initial fraction of 0.25. When enabled, table pressures represent cold/reference pressures and Peritheos predicts the confined heated volumes. The setting follows newly loaded phases and survives project save/load and undo/redo.
+
+- Peritheos 0.9.0 is now the minimum supported version. The phase editor exposes native thermal-model coefficients and configuration, supports BM2/BM3/BM4 with both double-Debye models, and allows Sokolova thermal corrections with other reference equations. Incompatible pairings are disabled with an explanation; incomplete thermal models show a visible diagnostic.
 
 - The offline EoS material library now comes directly from Peritheos 0.8.0 instead of being duplicated inside Dioptas. This brings Peritheos's primary-source-audited records and corrections into the **DB** browser, keeps `.eosmat` validation in one place, and evaluates its newer thermal models with Peritheos's material-record engine. Materials without diffraction structures remain searchable and exportable, with **Load as Phase** disabled.
 

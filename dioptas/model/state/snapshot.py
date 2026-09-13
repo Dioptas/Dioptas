@@ -456,7 +456,8 @@ class StateRecorder:
             phase_model.del_phase(ind)
 
         for state in states[common:]:
-            rebuilt = _jcpds_from_state(state)
+            rebuilt = _jcpds_from_state(
+                state, dac_factor=phase_model.dac_thermal_pressure_factor)
             # hand the display state in, so the phase is complete before
             # phase_added fires and the views paint it in its own colour
             phase_model.add_jcpds_object(
@@ -540,12 +541,13 @@ def _apply_phase_content(target: Any, state: "_PhaseState") -> None:
     target.compute_d()
 
 
-def _jcpds_from_state(state: "_PhaseState") -> Any:
+def _jcpds_from_state(state: "_PhaseState", *, dac_factor=None) -> Any:
     from ..util.jcpds import jcpds
 
     rebuilt = jcpds()
     rebuilt._filename = state.filename
     rebuilt._name = state.name
+    rebuilt.params['dac_thermal_pressure_factor'] = dac_factor
     _apply_phase_content(rebuilt, state)
     # the flag travels with the state; applying it must not invent an edit
     rebuilt.state.modified = bool(state.crystal.get("modified", False))

@@ -364,6 +364,10 @@ class PhaseParams:
 
     #: apply pressure/temperature changes to all phases at once
     same_conditions: bool = True
+    #: Fraction of thermal pressure retained by DAC confinement. This is an
+    #: experimental setting shared by all phases, not a material parameter.
+    dac_thermal_pressure_enabled: bool = False
+    dac_thermal_pressure_factor: float = 0.25
 
 
 @dataclass

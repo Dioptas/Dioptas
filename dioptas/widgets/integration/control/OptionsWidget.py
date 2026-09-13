@@ -11,6 +11,7 @@ from ...CustomWidgets import (
     ConservativeSpinBox,
     CheckableFlatButton,
     SaveIconButton,
+    DoubleSpinBoxAlignRight,
 )
 
 
@@ -20,6 +21,7 @@ class OptionsWidget(QtWidgets.QWidget):
 
         self.create_integration_gb()
         self.create_cake_gb()
+        self.create_phase_gb()
 
         self.style_integration_widgets()
         self.style_cake_widgets()
@@ -32,11 +34,68 @@ class OptionsWidget(QtWidgets.QWidget):
         self._tab_widget = MenuTabWidget()
         self._tab_widget.add_tab("1D Integration", self.integration_gb)
         self._tab_widget.add_tab("2D Integration", self.cake_gb)
+        self._tab_widget.add_tab("Phase", self.phase_gb)
 
         self._layout.addWidget(self._tab_widget)
 
         self.setLayout(self._layout)
         self.set_stylesheet()
+
+    def create_phase_gb(self):
+        self.phase_gb = QtWidgets.QGroupBox("Phase options")
+        layout = QtWidgets.QVBoxLayout(self.phase_gb)
+        layout.setContentsMargins(8, 8, 8, 7)
+        layout.setSpacing(10)
+
+        self.dac_thermal_pressure_cb = QtWidgets.QCheckBox("DAC thermal pressure")
+        self.dac_thermal_pressure_factor_sb = DoubleSpinBoxAlignRight()
+        self.dac_thermal_pressure_factor_sb.setDecimals(4)
+        self.dac_thermal_pressure_factor_sb.setRange(0.0, 0.9999)
+        self.dac_thermal_pressure_factor_sb.setSingleStep(0.01)
+        self.dac_thermal_pressure_factor_sb.setValue(0.25)
+        self.dac_thermal_pressure_factor_sb.setFixedWidth(70)
+        self.dac_thermal_pressure_factor_sb.setEnabled(False)
+        self.dac_thermal_pressure_cb.setToolTip(
+            "Predict heated phase volumes from cold/reference pressure, "
+            "including diamond-anvil-cell confinement.")
+        self.dac_thermal_pressure_factor_sb.setToolTip(
+            "Fraction of the thermal-pressure increase retained by confinement. "
+            "0.25 means 25%; the allowed range is 0 to less than 1.")
+
+        controls = QtWidgets.QHBoxLayout()
+        controls.addWidget(self.dac_thermal_pressure_cb)
+        controls.addSpacing(15)
+        controls.addWidget(QtWidgets.QLabel("Fraction"))
+        controls.addWidget(self.dac_thermal_pressure_factor_sb)
+        controls.addStretch()
+        layout.addLayout(controls)
+
+        self.dac_thermal_pressure_info = QtWidgets.QLabel(
+            "<p>Predicts phase-line positions during heating in a diamond anvil cell, "
+            "including the pressure rise caused by confinement.</p>"
+            "<p>When enabled, enter the <b>cold/reference pressure P₀</b> in the phase "
+            "table and choose the hot temperature. The same fraction applies to all "
+            "phases with a Peritheos thermal equation of state, including newly added phases.</p>"
+            "<p>A fraction of <b>0.25 retains 25%</b> of the thermal-pressure increase; "
+            "0 gives constant-pressure heating. Use a value below 1. "
+            "Leave this off if your input is already the measured hot pressure.</p>"
+        )
+        self.dac_thermal_pressure_info.setWordWrap(True)
+        self.dac_thermal_pressure_info.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
+        layout.addWidget(self.dac_thermal_pressure_info)
+        layout.addStretch()
+
+    def set_dac_thermal_pressure(self, enabled, factor):
+        with QtCore.QSignalBlocker(self.dac_thermal_pressure_cb), \
+                QtCore.QSignalBlocker(self.dac_thermal_pressure_factor_sb):
+            self.dac_thermal_pressure_cb.setChecked(enabled)
+            self.dac_thermal_pressure_factor_sb.setValue(factor)
+        self.dac_thermal_pressure_factor_sb.setEnabled(enabled)
+
+    def show_dac_condition_rejected(self, message):
+        control = self.dac_thermal_pressure_cb
+        QtWidgets.QToolTip.showText(
+            control.mapToGlobal(control.rect().bottomLeft()), message, control)
 
     def create_integration_gb(self):
         self.integration_gb = QtWidgets.QGroupBox("1D integration")

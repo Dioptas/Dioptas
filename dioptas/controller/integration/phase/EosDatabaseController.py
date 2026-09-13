@@ -8,8 +8,9 @@ the jcpds phase the user asked to load.
 """
 
 import logging
+from pathlib import Path
 
-from qtpy import QtWidgets
+from qtpy import QtCore, QtWidgets
 
 from ....model import eos
 from ....model.util.phasesmith import material_has_diffraction_data
@@ -20,18 +21,28 @@ logger = logging.getLogger(__name__)
 
 class EosDatabaseController(object):
 
+    RECENT_LIMIT = 20
+
     def __init__(
         self,
         parent_widget=None,
         *,
         minimum_d_spacing: float = 0.5,
         wavelength_angstrom: float = 0.31,
+        settings=None,
     ):
         self.dialog = EosDatabaseDialog(parent_widget)
         self.minimum_d_spacing = minimum_d_spacing
         self.wavelength_angstrom = wavelength_angstrom
         self.materials = eos.load_materials()
-        self.shown_materials = list(self.materials)
+        self.settings = settings if settings is not None else QtCore.QSettings(
+            str(Path.home() / ".Dioptas" / "eos_browser.ini"),
+            QtCore.QSettings.IniFormat,
+        )
+        self.recent_ids = self._read_ids("recent")[:self.RECENT_LIMIT]
+        self.favourite_ids = set(self._read_ids("favourites"))
+        self.shown_materials = []
+        self._view_before_search = None
         #: jcpds object built when the user clicks "Load as Phase"
         self.result_phase = None
 
@@ -39,8 +50,10 @@ class EosDatabaseController(object):
         self.dialog.material_selected.connect(self.show_material)
         self.dialog.load_clicked.connect(self.load)
         self.dialog.export_clicked.connect(self.export)
+        self.dialog.view_changed.connect(self.change_view)
+        self.dialog.favourite_clicked.connect(self.toggle_favourite)
 
-        self._fill_materials()
+        self._refresh_materials()
 
     def exec_(self):
         """
@@ -51,11 +64,69 @@ class EosDatabaseController(object):
         return self.result_phase
 
     def search(self, query: str):
-        self.shown_materials = eos.search_materials(query, self.materials)
+        # Start a new search across the library, but let subsequent tab
+        # clicks narrow it without discarding the query.
+        tabs = self.dialog.view_tabs
+        if query.strip() and self._view_before_search is None:
+            self._view_before_search = tabs.currentIndex()
+            with QtCore.QSignalBlocker(tabs):
+                tabs.setCurrentIndex(2)
+        elif not query.strip() and self._view_before_search is not None:
+            with QtCore.QSignalBlocker(tabs):
+                tabs.setCurrentIndex(self._view_before_search)
+            self._view_before_search = None
+        self._refresh_materials()
+
+    def change_view(self, view):
+        if self._view_before_search is not None:
+            # Clearing the query should keep a view explicitly chosen
+            # during the search.
+            self._view_before_search = view
+        self._refresh_materials()
+
+    def _read_ids(self, key):
+        value = self.settings.value(key, [])
+        if isinstance(value, str):
+            value = [value]
+        if not isinstance(value, (list, tuple)):
+            return []
+        known_ids = {material.identifier for material in self.materials}
+        return list(dict.fromkeys(
+            identifier for identifier in value
+            if isinstance(identifier, str) and identifier in known_ids))
+
+    def _refresh_materials(self, *_):
+        query = self.dialog.search_input.text().strip()
+        view = self.dialog.view_tabs.currentIndex()
+        if view == 2:
+            self.shown_materials = list(self.materials)
+            empty_message = "No materials match your search."
+        elif view == 1:
+            self.shown_materials = [
+                material for material in self.materials
+                if material.identifier in self.favourite_ids]
+            empty_message = (
+                "No favourites yet. Search or choose All, then select a "
+                "material and click ☆ Favourite.")
+        else:
+            by_id = {material.identifier: material for material in self.materials}
+            self.shown_materials = [by_id[key] for key in self.recent_ids
+                                    if key in by_id]
+            empty_message = (
+                "No recently used materials yet. Search or choose All to "
+                "load a phase; your last 20 materials will appear here.")
+        if query:
+            self.shown_materials = eos.search_materials(query, self.shown_materials)
+            empty_message = "No materials in this view match your search."
+        self.dialog.set_materials_summary(
+            len(self.shown_materials), bool(query), empty_message)
         self._fill_materials()
 
     def show_material(self, row: int):
         material = self._selected_material(row)
+        self.dialog.set_favourite(
+            material is not None,
+            material is not None and material.identifier in self.favourite_ids)
         if material is None:
             self.dialog.fill_eos_records([])
             return
@@ -72,6 +143,23 @@ class EosDatabaseController(object):
         self.dialog.set_phase_load_enabled(
             material_has_diffraction_data(material))
 
+    def toggle_favourite(self):
+        row = self.dialog.selected_material_row()
+        material = self._selected_material(row)
+        if material is None:
+            return
+        identifier = material.identifier
+        if identifier in self.favourite_ids:
+            self.favourite_ids.remove(identifier)
+        else:
+            self.favourite_ids.add(identifier)
+        self.settings.setValue("favourites", sorted(self.favourite_ids))
+        self.settings.sync()
+        if self.dialog.view_tabs.currentIndex() == 1:
+            self._refresh_materials()
+        else:
+            self.dialog.set_favourite(True, identifier in self.favourite_ids)
+
     def load(self):
         material = self._selected_material(self.dialog.selected_material_row())
         if material is None or not material_has_diffraction_data(material):
@@ -86,6 +174,11 @@ class EosDatabaseController(object):
             wavelength_angstrom=self.wavelength_angstrom,
             origin="bundled",
         )
+        self.recent_ids = [material.identifier] + [
+            key for key in self.recent_ids if key != material.identifier]
+        self.recent_ids = self.recent_ids[:self.RECENT_LIMIT]
+        self.settings.setValue("recent", self.recent_ids)
+        self.settings.sync()
         self.dialog.accept()
 
     def export(self):
@@ -107,6 +200,8 @@ class EosDatabaseController(object):
         # current material list — never a previous search's selection.
         if self.shown_materials:
             self.dialog.materials_table.selectRow(0)
+        else:
+            self.show_material(-1)
 
     def _selected_material(self, row: int):
         if 0 <= row < len(self.shown_materials):

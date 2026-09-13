@@ -52,6 +52,8 @@ class EosDatabaseDialog(QtWidgets.QDialog):
     material_selected = QtCore.Signal(int)   # index in the supplied materials
     load_clicked = QtCore.Signal()
     export_clicked = QtCore.Signal()
+    view_changed = QtCore.Signal(int)
+    favourite_clicked = QtCore.Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -79,8 +81,16 @@ class EosDatabaseDialog(QtWidgets.QDialog):
     def _create_widgets(self):
         self.search_input = QtWidgets.QLineEdit()
         self.search_input.setPlaceholderText(
-            "Search: Au, MgFe, gold, periclase, alumina…")
-        self.clear_btn = FlatButton("All")
+            "Search all materials: Au, MgFe, gold, periclase, alumina…")
+        self.clear_btn = FlatButton("Clear")
+        self.view_tabs = QtWidgets.QTabBar()
+        for title in ("Recent", "Favourites", "All"):
+            self.view_tabs.addTab(title)
+        self.materials_label = QtWidgets.QLabel("Materials:")
+        self.favourite_btn = FlatButton("☆ Favourite")
+        self.favourite_btn.setEnabled(False)
+        self.empty_label = QtWidgets.QLabel()
+        self.empty_label.setWordWrap(True)
 
         self.materials_table = QtWidgets.QTableWidget()
         self.materials_table.setColumnCount(2)
@@ -158,7 +168,13 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         search_row.addWidget(self.clear_btn)
         root.addLayout(search_row)
 
-        root.addWidget(QtWidgets.QLabel("Materials:"))
+        root.addWidget(self.view_tabs)
+        materials_row = QtWidgets.QHBoxLayout()
+        materials_row.addWidget(self.materials_label)
+        materials_row.addStretch()
+        materials_row.addWidget(self.favourite_btn)
+        root.addLayout(materials_row)
+        root.addWidget(self.empty_label)
         root.addWidget(self.materials_table, 3)
         root.addWidget(QtWidgets.QLabel("Equation of state records:"))
         root.addWidget(self.eos_table, 2)
@@ -175,6 +191,8 @@ class EosDatabaseDialog(QtWidgets.QDialog):
     def _connect_signals(self):
         self.search_input.textChanged.connect(self.search_changed)
         self.clear_btn.clicked.connect(self.search_input.clear)
+        self.view_tabs.currentChanged.connect(self.view_changed)
+        self.favourite_btn.clicked.connect(self.favourite_clicked)
         self.materials_table.selectionModel().selectionChanged.connect(
             self._emit_material_selected)
         self.materials_table.doubleClicked.connect(
@@ -199,6 +217,19 @@ class EosDatabaseDialog(QtWidgets.QDialog):
             self.load_clicked.emit()
 
     # -- view interface used by the controller -------------------------
+
+    def set_favourite(self, selected, favourite=False):
+        self.favourite_btn.setEnabled(selected)
+        self.favourite_btn.setText(
+            "★ Favourite" if favourite else "☆ Favourite")
+        self.favourite_btn.setToolTip(
+            "Remove from favourites" if favourite else "Add to favourites")
+
+    def set_materials_summary(self, count, searching, empty_message):
+        self.materials_label.setText(
+            f"{'Search results' if searching else 'Materials'} ({count}):")
+        self.empty_label.setText(empty_message)
+        self.empty_label.setVisible(count == 0)
 
     def fill_materials(self, rows):
         """*rows*: list of (display_name, space_group) tuples."""
@@ -225,6 +256,7 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         table.setSortingEnabled(sorting_enabled)
         table.clearSelection()
         selection_blocker.unblock()
+
 
     def fill_eos_records(self, rows, selected_row=0,
                          reference_tooltips=None, thermal_tooltips=None):

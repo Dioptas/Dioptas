@@ -36,6 +36,7 @@ class PhaseController:
         """
         self.integration_widget = integration_widget
         self.phase_widget = self.integration_widget.phase_widget
+        self.options_widget = integration_widget.integration_control_widget.integration_options_widget
         self.pattern_widget = self.integration_widget.pattern_widget
         self.model = dioptas_model
 
@@ -50,6 +51,7 @@ class PhaseController:
         self.create_signals()
         self.update_temperature_step()
         self.update_pressure_step()
+        self.update_dac_thermal_pressure_controls()
 
     def create_signals(self):
         # Button Callbacks
@@ -72,6 +74,10 @@ class PhaseController:
         self.phase_widget.color_btn_clicked.connect(self.color_btn_clicked)
         self.phase_widget.show_cb_state_changed.connect(self.model.phase_model.set_phase_visible)
         self.phase_widget.apply_to_all_cb.stateChanged.connect(self.apply_to_all_callback)
+        self.options_widget.dac_thermal_pressure_cb.toggled.connect(
+            self.model.phase_model.set_dac_thermal_pressure_enabled)
+        self.options_widget.dac_thermal_pressure_factor_sb.valueChanged.connect(
+            self.model.phase_model.set_dac_thermal_pressure_factor)
 
         # TableWidget
         self.phase_widget.phase_tw.horizontalHeader().sectionClicked.connect(self.phase_tw_header_section_clicked)
@@ -81,7 +87,21 @@ class PhaseController:
         self.model.phase_model.phase_changed.connect(self.phase_changed)
         self.model.phase_model.phase_removed.connect(self.phase_removed)
         self.model.phase_model.condition_rejected.connect(
-            self.phase_widget.show_condition_rejected)
+            self.show_condition_rejected)
+        self.model.phase_model.dac_thermal_pressure_changed.connect(
+            self.update_dac_thermal_pressure_controls)
+
+    def update_dac_thermal_pressure_controls(self):
+        params = self.model.phase_model.params
+        self.phase_widget.set_dac_thermal_pressure_enabled(params.dac_thermal_pressure_enabled)
+        self.options_widget.set_dac_thermal_pressure(
+            params.dac_thermal_pressure_enabled, params.dac_thermal_pressure_factor)
+
+    def show_condition_rejected(self, ind, condition, message):
+        if condition == "dac thermal pressure":
+            self.options_widget.show_dac_condition_rejected(message)
+        else:
+            self.phase_widget.show_condition_rejected(ind, condition, message)
 
     def connect_click_function(self, emitter, function):
         emitter.clicked.connect(function)
@@ -219,6 +239,7 @@ class PhaseController:
         self.phase_widget.temperature_sbs[ind].setEnabled(
             int(phase.has_thermal_expansion()))
         self._update_phase_references(ind)
+        self.update_dac_thermal_pressure_controls()
 
     def delete_btn_click_callback(self):
         """

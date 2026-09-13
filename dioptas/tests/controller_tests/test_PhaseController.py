@@ -36,6 +36,7 @@ class PhaseControllerTest(QtTest):
         self.widget.pattern_widget._auto_range = True
         self.phase_tw = self.widget.phase_tw
         self.phase_widget = self.widget.phase_widget
+        self.options_widget = self.widget.integration_control_widget.integration_options_widget
 
         self.pattern_controller = PatternController(self.widget, self.model)
         self.controller = PhaseController(self.widget, self.model)
@@ -48,6 +49,53 @@ class PhaseControllerTest(QtTest):
         self.model.delete_configurations()
         del self.model
         gc.collect()
+
+    def test_dac_controls_apply_to_all_phases_and_follow_undo(self):
+        from ...model import eos
+        from peritheos import get_material_document
+
+        phases = self.model.phase_model
+        phases.same_conditions = False
+        for temperature in (1200, 1800):
+            material = eos.Material.from_dict(get_material_document('gold'))
+            phases.add_jcpds_object(eos.build_jcpds(material, origin='bundled'))
+            phases.set_pressure_temperature(len(phases.phases)-1, 40, temperature)
+        before = [phase.params['v'] for phase in phases.phases]
+        checkbox = self.options_widget.dac_thermal_pressure_cb
+        fraction = self.options_widget.dac_thermal_pressure_factor_sb
+        assert not checkbox.isChecked()
+        assert fraction.value() == 0.25
+        assert not fraction.isEnabled()
+        self.model.history.reset()
+        checkbox.setChecked(True)
+        assert fraction.isEnabled()
+        assert all(phase.params['v'] < volume
+                   for phase, volume in zip(phases.phases, before))
+        assert self.phase_tw.horizontalHeaderItem(3).text() == 'P₀ (GPa)'
+        self.model.history.undo()
+        assert not checkbox.isChecked()
+        assert not fraction.isEnabled()
+        assert [phase.params['v'] for phase in phases.phases] == pytest.approx(before)
+        self.model.history.redo()
+        assert checkbox.isChecked()
+        quarter = [phase.params['v'] for phase in phases.phases]
+        fraction.setValue(0.5)
+        assert phases.params.dac_thermal_pressure_factor == 0.5
+        assert all(phase.params['v'] < volume
+                   for phase, volume in zip(phases.phases, quarter))
+
+    def test_rejected_dac_change_restores_checkbox(self):
+        from ...model import eos
+        from ...model.util.jcpds import EosCalculationError
+        from peritheos import get_material_document
+
+        phase = eos.build_jcpds(
+            eos.Material.from_dict(get_material_document('gold')), origin='bundled')
+        self.model.phase_model.add_jcpds_object(phase)
+        phase.compute_d = MagicMock(side_effect=EosCalculationError('no DAC volume'))
+        self.options_widget.dac_thermal_pressure_cb.setChecked(True)
+        assert not self.options_widget.dac_thermal_pressure_cb.isChecked()
+        assert not self.options_widget.dac_thermal_pressure_factor_sb.isEnabled()
 
     def test_manual_deleting_phases(self):
         self.load_phases()

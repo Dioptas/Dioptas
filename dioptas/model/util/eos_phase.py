@@ -22,9 +22,9 @@ Units
 -----
 Most rt equations are unit-agnostic, so they work directly in the
 Å³-per-unit-cell convention Dioptas uses. Holzapfel is not (its
-Fermi-gas reference term needs the absolute molar volume) — and neither
-are the thermal models, whose Debye/Einstein energy is per mole of
-formula units. Peritheos expects V in JBar⁻¹ (= cm³/mol / 10) per
+Fermi-gas reference term needs the absolute molar volume). Energy-based
+thermal models also require molar volume. AlphaKT and the direct pressure
+corrections in NON_MOLAR_THERMAL_TYPES retain the reference volume units. Peritheos expects V in JBar⁻¹ (= cm³/mol / 10) per
 chemical formula there, plus the number of atoms in the formula (n).
 EosPhase converts:
 
@@ -51,11 +51,65 @@ RT_EOS_TYPES = (
     "NaturalStrain2", "NaturalStrain3", "NaturalStrain4", "Holzapfel",
 )
 
-#: Peritheos thermal models selectable on top of the rt equation. (The
-#: Sokolova2016 is constrained to a Holzapfel room-temperature equation.
-THERMAL_EOS_TYPES = (
-    "MieGruneisenDebye", "MieGruneisenEinstein", "Sokolova2016",
-)
+# Material-record names mapped to their public Peritheos constructors.
+THERMAL_CLASSES = {
+    "AlphaKT": thermal.ThermalReferenceStateEOS,
+    "MieGruneisenDebye": thermal.MieGruneisenDebye,
+    "MieGruneisenEinstein": thermal.MieGruneisenEinstein,
+    "Sokolova2016": thermal.Sokolova2016,
+    "MultiOscillatorGruneisen": thermal.MultiOscillatorGruneisenThermalEOS,
+    "DoubleDebyeHelmholtz": thermal.DoubleDebyeHelmholtz,
+    "DoubleDebyeLogMomentHelmholtz": thermal.DoubleDebyeLogMomentHelmholtz,
+    "ThermalModifiedTait": thermal.ThermalModifiedTait,
+    "HollandPowellThermalPressure": thermal.HollandPowellThermalPressure,
+    "LinearThermalPressure": thermal.LinearThermalPressure,
+    "LogVolumeThermalPressure": thermal.LogVolumeThermalPressure,
+    "SecondOrderTaylorThermalPressure": thermal.SecondOrderTaylorThermalPressure,
+    "AsymptoticPowerLawMieGruneisenDebye": thermal.Tange2009Debye,
+    "AsymptoticPowerLawMieGruneisenDebyeExcess": thermal.AsymptoticPowerLawMieGruneisenDebyeExcess,
+    "Dewaele2006": thermal.Dewaele2006,
+    "DorogokupetsOganov2007": thermal.DorogokupetsOganov2007,
+    "DebyeQuadraticThermalPressure": thermal.DebyeQuadraticThermalPressure,
+    "SoundVelocityDebyeHelmholtz": thermal.SoundVelocityDebyeHelmholtz,
+}
+THERMAL_EOS_TYPES = tuple(THERMAL_CLASSES)
+# These corrections use the reference EOS's volume convention directly.
+NON_MOLAR_THERMAL_TYPES = {
+    "AlphaKT", "LinearThermalPressure", "LogVolumeThermalPressure",
+    "SecondOrderTaylorThermalPressure",
+}
+THERMAL_CONFIGURATION_CHOICES = {
+    "thermal_expansion_law": ("constant", "linear_temperature", "linear_reference_temperature"),
+    "reference_volume_law": ("integrated_expansivity", "linear_temperature", "berman"),
+    "bulk_modulus_law": ("linear_temperature", "reciprocal_cubic"),
+    "debye_temperature_law": ("integrated_gruneisen", "variable_exponent"),
+    "thermal_pressure_reference": ("reference_temperature", "absolute_zero", "reference_isentrope"),
+}
+
+
+def thermal_parameter_signature(thermal_type):
+    return {name: parameter for name, parameter in
+            inspect.signature(THERMAL_CLASSES[thermal_type]).parameters.items()
+            if name != "rt_eos"}
+
+
+def thermal_compatibility_error(eos_type, thermal_type, parameters=None):
+    """Composition restrictions in Peritheos 0.9, independent of fit values."""
+    if thermal_type not in (None, "", "none", "alphakt") and eos_type == "LinearUsUpHugoniot":
+        return "A Hugoniot reference cannot have a thermal correction."
+    if thermal_type in ("DoubleDebyeHelmholtz", "DoubleDebyeLogMomentHelmholtz"):
+        if eos_type not in ("BM2", "BM3", "BM4", "Vinet"):
+            return "Double-Debye requires BM2, BM3, BM4, or Vinet."
+    if thermal_type == "ThermalModifiedTait" and eos_type != "ModifiedTait":
+        return "Thermal Modified Tait requires a Modified Tait reference EOS."
+    if thermal_type == "AlphaKT" and (parameters or {}).get("kprime_log_coefficient"):
+        if eos_type not in ("BM3", "Baonza", "Murnaghan", "Morse3",
+                            "NaturalStrain3", "SunMorse3", "SunMorse4", "Vinet"):
+            return ("This AlphaKT model has a temperature-dependent K′ shift, "
+                    f"which Peritheos does not support with {eos_type}. "
+                    "Set kprime_log_coefficient to zero or choose a compatible EOS.")
+    return ""
+
 
 #: case-insensitive lookups, so 'VINET' (stored by earlier versions of
 #: this feature branch) still resolves
@@ -96,14 +150,20 @@ EOS_MODEL_IDENTIFIERS = {
 }
 
 # Stable model identifiers used by Peritheos's canonical thermal components.
-# This includes models that Dioptas preserves and executes through the complete
-# material-record dispatcher even when they are not directly editable in the
-# Phase Editor.
+# These identifiers are retained when editing or changing thermal models.
 THERMAL_MODEL_IDENTIFIERS = {
     "AlphaKT": "thermal_reference_state",
     "AsymptoticPowerLawMieGruneisenDebye": (
         "asymptotic_power_law_mie_gruneisen_debye"),
     "DoubleDebyeHelmholtz": "double_debye_helmholtz",
+    "DoubleDebyeLogMomentHelmholtz": "double_debye_log_moment_helmholtz",
+    "AsymptoticPowerLawMieGruneisenDebyeExcess": "asymptotic_power_law_mie_gruneisen_debye_excess",
+    "Dewaele2006": "dewaele_2006",
+    "DorogokupetsOganov2007": "dorogokupets_oganov_2007",
+    "HollandPowellThermalPressure": "holland_powell_thermal_pressure",
+    "DebyeQuadraticThermalPressure": "debye_quadratic_thermal_pressure",
+    "SecondOrderTaylorThermalPressure": "second_order_taylor_thermal_pressure",
+    "SoundVelocityDebyeHelmholtz": "sound_velocity_debye_helmholtz",
     "LinearThermalPressure": "linear_thermal_pressure",
     "LogVolumeThermalPressure": "log_volume_thermal_pressure",
     "MieGruneisenDebye": "mie_gruneisen_debye",
@@ -182,7 +242,8 @@ class EosPhase:
         # the conversion before building anything so the rt equation and
         # the thermal wrapper share the same units.
         self._scale = 1.0
-        needs_molar = canonical == "Holzapfel" or thermal_canonical
+        needs_molar = canonical == "Holzapfel" or (
+            thermal_canonical and thermal_canonical not in NON_MOLAR_THERMAL_TYPES)
         if needs_molar:
             what = canonical if canonical == "Holzapfel" else thermal_canonical
             if n is None:
@@ -225,70 +286,26 @@ class EosPhase:
 
         self._eos = eos_class(**kwargs)
 
-        if thermal_canonical in ("MieGruneisenDebye",
-                                 "MieGruneisenEinstein"):
-            tp = thermal_parameters or {}
-            theta0 = tp.get("theta0")
-            gamma0 = tp.get("gamma0")
-            if not theta0 or theta0 <= 0:
-                raise ValueError(
-                    f"{thermal_canonical} requires a positive Debye/"
-                    "Einstein temperature theta0")
-            if not gamma0:
-                raise ValueError(
-                    f"{thermal_canonical} requires a non-zero Grüneisen "
-                    "parameter gamma0")
-            thermal_class = getattr(thermal, thermal_canonical)
-            thermal_kwargs = {
-                "rt_eos": self._eos,
-                "Tr": tp.get("Tr") or 298.15,
-                "theta0": theta0,
-                "gamma0": gamma0,
-                "q": tp.get("q", 1.0),
-                "n": n,
-            }
-            if thermal_canonical == "MieGruneisenDebye":
-                law = tp.get(
-                    "debye_temperature_law", "integrated_gruneisen")
-                if law not in ("integrated_gruneisen", "variable_exponent"):
-                    raise ValueError(
-                        "Unsupported Debye-temperature law "
-                        f"'{law}'")
-                signature = inspect.signature(thermal_class.__init__)
-                if "debye_temperature_law" not in signature.parameters:
-                    if law != "integrated_gruneisen":
-                        raise ValueError(
-                            "This pressure scale requires Peritheos with "
-                            "debye_temperature_law support")
-                else:
-                    thermal_kwargs["debye_temperature_law"] = law
-            self._eos = thermal_class(**thermal_kwargs)
-        elif thermal_canonical == "Sokolova2016":
-            if canonical != "Holzapfel":
-                raise ValueError(
-                    "Sokolova2016 requires a Holzapfel room-temperature "
-                    "equation")
-            tp = thermal_parameters or {}
-            thermal_class = getattr(thermal, thermal_canonical)
-            signature = inspect.signature(thermal_class.__init__)
-            accepted = [name for name in signature.parameters
-                        if name not in ("self", "rt_eos")]
-            thermal_kwargs = {
-                key: value for key, value in tp.items()
-                if key in accepted and value is not None
-            }
-            missing = [
-                name for name in accepted
-                if name not in thermal_kwargs
-                and signature.parameters[name].default
-                is inspect.Parameter.empty
-            ]
+        if thermal_canonical:
+            tp = dict(thermal_parameters or {})
+            error = thermal_compatibility_error(canonical, thermal_canonical, tp)
+            if error:
+                raise ValueError(error)
+            signature = thermal_parameter_signature(thermal_canonical)
+            kwargs = {key: value for key, value in tp.items() if key in signature}
+            if "n" in signature and n is not None:
+                kwargs["n"] = n
+            if "Tr" in signature and "Tr" not in kwargs:
+                # Double-Debye's None means an absolute cold curve.
+                kwargs["Tr"] = (None if signature["Tr"].default is None
+                                else 298.15)
+            missing = [name for name, parameter in signature.items()
+                       if kwargs.get(name) is None
+                       and parameter.default is inspect.Parameter.empty]
             if missing:
                 raise ValueError(
-                    "Sokolova2016 requires parameters: "
-                    + ", ".join(missing))
-            self._eos = thermal_class(
-                rt_eos=self._eos, **thermal_kwargs)
+                    f"{thermal_canonical} requires parameters: {', '.join(missing)}")
+            self._eos = THERMAL_CLASSES[thermal_canonical](rt_eos=self._eos, **kwargs)
 
     def pressure(self, volume: float,
                  temperature: Optional[float] = None) -> float:
@@ -318,6 +335,15 @@ class EosPhase:
                 temperature if temperature is not None else 298.15)
             ) / self._scale
         return float(self._eos.calculate_volume(pressure)) / self._scale
+
+    def volume_with_dac_confinement(self, cold_pressure: float,
+                                    temperature: float, factor: float) -> float:
+        """Heated cell volume (Å³) at a cold pressure and retained fraction."""
+        if self._record is not None:
+            return float(self._record.volume_with_dac_confinement(
+                cold_pressure, temperature, f_dac=factor, check_validity=False))
+        return float(self._eos.volume_with_dac_confinement(
+            cold_pressure, temperature, f_dac=factor)) / self._scale
 
     @classmethod
     def from_jcpds(cls, jcpds_obj, eos_type: Optional[str] = None,

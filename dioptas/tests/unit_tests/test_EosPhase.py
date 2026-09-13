@@ -341,11 +341,7 @@ def test_sokolova2016_expands_and_roundtrips():
     assert eos.pressure(v_hot, 2000.0) == pytest.approx(100.0, abs=1e-6)
 
 
-def test_sokolova2016_requires_holzapfel_and_full_parameters():
-    with pytest.raises(ValueError, match="requires a Holzapfel"):
-        EosPhase(
-            "Vinet", GOLD, n=1, z=79, formula_units_per_cell=4,
-            thermal_type="Sokolova2016", thermal_parameters=GOLD_SOKOLOVA)
+def test_sokolova2016_requires_full_parameters():
     with pytest.raises(ValueError, match="QE1o"):
         EosPhase(
             "Holzapfel", GOLD, n=1, z=79, formula_units_per_cell=4,

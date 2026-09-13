@@ -2,6 +2,13 @@
 
 from qtpy import QtWidgets, QtCore, QtGui
 import numpy as np
+import inspect
+
+from ...model.util.eos_phase import (
+    THERMAL_EOS_TYPES, THERMAL_CONFIGURATION_CHOICES,
+    thermal_parameter_signature, thermal_compatibility_error,
+    NON_MOLAR_THERMAL_TYPES, EosPhase,
+)
 
 from ...widgets.CustomWidgets import NumberTextField, LabelAlignRight, DoubleSpinBoxAlignRight, HorizontalSpacerItem, \
     VerticalSpacerItem
@@ -194,7 +201,7 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         # constant-coefficient correction, or a peritheos thermal engine
         self.thermal_type_cb = QtWidgets.QComboBox()
         self.thermal_type_cb.addItem('None', 'none')
-        self.thermal_type_cb.addItem('Constant α, dK/dT', 'alphakt')
+        self.thermal_type_cb.addItem('Legacy α, dK/dT correction', 'alphakt')
         self.thermal_type_cb.addItem('Mie-Grüneisen-Debye', 'MieGruneisenDebye')
         self.thermal_type_cb.addItem('Mie-Grüneisen-Einstein', 'MieGruneisenEinstein')
         self.thermal_type_cb.addItem('Sokolova et al. (2016)', 'Sokolova2016')
@@ -239,10 +246,15 @@ class PhaseEditorWidget(QtWidgets.QWidget):
             self._add_thermal_param_row(
                 'sokolova_' + parameter, field, label, unit, row)
 
+        self._configure_thermal_fields()
+        self.eos_calculation_status_lbl = QtWidgets.QLabel()
+        self.eos_calculation_status_lbl.setWordWrap(True)
+        self.eos_calculation_status_lbl.hide()
         self.eos_scroll_area.setWidget(self._eos_contents)
         self._eos_group_layout = QtWidgets.QVBoxLayout()
         self._eos_group_layout.setContentsMargins(0, 0, 0, 0)
         self._eos_group_layout.addWidget(self._eos_record_widget)
+        self._eos_group_layout.addWidget(self.eos_calculation_status_lbl)
         self._eos_group_layout.addWidget(self.eos_scroll_area)
         self.eos_gb.setLayout(self._eos_group_layout)
 
@@ -295,10 +307,15 @@ class PhaseEditorWidget(QtWidgets.QWidget):
 
         # wide enough for the EoS/thermal display names ("Birch-Murnaghan
         # (3rd order)", "Constant α, dK/dT") and the unit labels
-        self.eos_gb.setMinimumWidth(380)
-        self.eos_gb.setMaximumWidth(430)
-        self.eos_gb.setMinimumHeight(240)
+        self.eos_gb.setMinimumWidth(440)
+        self.eos_gb.setMaximumWidth(520)
+        self.eos_gb.setMinimumHeight(340)
         self.eos_gb.setMaximumHeight(480)
+        for combo in (self.eos_type_cb, self.thermal_type_cb,
+                      *self.thermal_configuration_fields.values()):
+            combo.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
+            combo.setMinimumContentsLength(12)
+            combo.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
         self.eos_gb.setSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
         self.eos_gb.setStyleSheet("""
@@ -343,8 +360,100 @@ class PhaseEditorWidget(QtWidgets.QWidget):
     THERMAL_MATERIAL_KEYS = {
         'MieGruneisenDebye': ('n', 'Zc'),
         'MieGruneisenEinstein': ('n', 'Zc'),
-        'Sokolova2016': ('n', 'Z', 'Zc'),
+        'Sokolova2016': ('n', 'Zc'),
     }
+
+    def _configure_thermal_fields(self):
+        """Expose complete thermal constructors, preserving the familiar fields."""
+        self.THERMAL_PARAM_SETS = dict(self.THERMAL_PARAM_SETS)
+        self.THERMAL_MATERIAL_KEYS = dict(self.THERMAL_MATERIAL_KEYS)
+        self.thermal_parameter_fields = {}
+        self.thermal_configuration_fields = {}
+        familiar = {
+            'MieGruneisenDebye': {'Tr', 'theta0', 'gamma0', 'q', 'n'},
+            'MieGruneisenEinstein': {'Tr', 'theta0', 'gamma0', 'q', 'n'},
+            'Sokolova2016': {'Tr', 'n', *self.sokolova_parameter_fields},
+        }
+        labels = {
+            'AlphaKT': 'AlphaKT (thermal reference state)',
+            'DoubleDebyeHelmholtz': 'Double-Debye Helmholtz',
+            'DoubleDebyeLogMomentHelmholtz': 'Double-Debye (log moment)',
+            'MultiOscillatorGruneisen': 'Multi-oscillator Grüneisen',
+            'ThermalModifiedTait': 'Thermal Modified Tait',
+            'HollandPowellThermalPressure': 'Holland–Powell thermal pressure',
+        }
+        for model in THERMAL_EOS_TYPES:
+            if self.thermal_type_cb.findData(model) < 0:
+                self.thermal_type_cb.addItem(labels.get(model, model), model)
+            names = list(self.THERMAL_PARAM_SETS.get(model, ()))
+            if model not in NON_MOLAR_THERMAL_TYPES:
+                self.THERMAL_MATERIAL_KEYS[model] = ('n', 'Zc')
+            for name, parameter in thermal_parameter_signature(model).items():
+                if name in familiar.get(model, ()) or name == 'n':
+                    continue
+                key = model + '_' + name
+                if name in THERMAL_CONFIGURATION_CHOICES:
+                    field = QtWidgets.QComboBox()
+                    for choice in THERMAL_CONFIGURATION_CHOICES[name]:
+                        field.addItem(choice.replace('_', ' '), choice)
+                    self.thermal_configuration_fields[model, name] = field
+                else:
+                    field = NumberTextField()
+                    self.thermal_parameter_fields[model, name] = field
+                default = parameter.default
+                field.setToolTip(
+                    f'{name}: required' if default is inspect.Parameter.empty
+                    else f'{name}: default {default}; leave blank to use the default')
+                unit = 'K' if name == 'Tr' or name.startswith(('theta', 'QE', 'QB')) else None
+                if name in ('Vp', 'Ve'):
+                    unit = 'J/bar/mol'
+                elif name == 'dK_dT':
+                    unit = 'GPa/K'
+                elif model == 'AlphaKT' and name == 'alpha0':
+                    unit = '1/K'
+                parameter_label = {
+                    'Tr': 'T ref', 'alpha0': 'α₀', 'alpha1': 'α₁',
+                    'dK_dT': 'dK/dT', 'kprime_log_coefficient': 'K′ log coefficient',
+                }.get(name, name.replace('_', ' '))
+                if name == 'Tr' and default is None:
+                    field.setToolTip('Reference temperature in K. Blank uses the absolute 0 K cold curve, including zero-point pressure.')
+                self._add_thermal_param_row(key, field, parameter_label + ':',
+                                            unit, len(self._thermal_param_rows) + 8)
+                label = self._thermal_param_rows[key][0]
+                label.setWordWrap(True)
+                label.setMinimumWidth(120)
+                label.setMaximumWidth(130)
+                names.append(key)
+            self.THERMAL_PARAM_SETS[model] = names
+
+    def update_thermal_compatibility(self, phase):
+        parameters = phase.params.get('thermal_parameters') or {}
+        thermal_type = phase.params.get('thermal_type') or ''
+        eos_type = phase.params.get('eos_type') or 'BM3'
+        for index in range(self.eos_type_cb.count()):
+            key = self.eos_type_cb.itemData(index)
+            error = thermal_compatibility_error(key, thermal_type, parameters)
+            item = self.eos_type_cb.model().item(index)
+            item.setEnabled(not error)
+            item.setToolTip(error or self.eos_type_cb.itemText(index))
+        for index in range(self.thermal_type_cb.count()):
+            key = self.thermal_type_cb.itemData(index)
+            error = thermal_compatibility_error(
+                eos_type, key, parameters if key == thermal_type else {})
+            item = self.thermal_type_cb.model().item(index)
+            item.setEnabled(not error)
+            item.setToolTip(error or self.thermal_type_cb.itemText(index))
+        error = ''
+        if thermal_type:
+            try:
+                EosPhase.from_jcpds(phase, with_thermal=True)
+            except (ValueError, RuntimeError) as exception:
+                error = f'Cannot evaluate selected thermal model: {exception}'
+        self.show_eos_error(error)
+
+    def show_eos_error(self, message):
+        self.eos_calculation_status_lbl.setText(message)
+        self.eos_calculation_status_lbl.setVisible(bool(message))
 
     def _add_thermal_param_row(self, key, widget, label_str, unit, row):
         """One thermal parameter row, shown per selected thermal model
@@ -488,6 +597,8 @@ class PhaseEditorWidget(QtWidgets.QWidget):
             self.eos_dKdT_txt, self.eos_dKpdT_txt,
             self.eos_theta_txt, self.eos_gamma_txt, self.eos_qt_txt,
             self.eos_tref_txt, *self.sokolova_parameter_fields.values(),
+            *self.thermal_parameter_fields.values(),
+            *self.thermal_configuration_fields.values(),
         ]
         for widget in widgets:
             widget.setEnabled(editable)
@@ -591,6 +702,16 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         for parameter, field in self.sokolova_parameter_fields.items():
             value = thermal_parameters.get(parameter)
             field.setText('' if value is None else str(value))
+        for (model, parameter), field in self.thermal_parameter_fields.items():
+            default = thermal_parameter_signature(model)[parameter].default
+            value = thermal_parameters.get(parameter, default)
+            field.setText('' if value is None or value is inspect.Parameter.empty else str(value))
+        for (model, parameter), field in self.thermal_configuration_fields.items():
+            value = thermal_parameters.get(
+                parameter, thermal_parameter_signature(model)[parameter].default)
+            field.blockSignals(True)
+            field.setCurrentIndex(max(0, field.findData(value)))
+            field.blockSignals(False)
         thermal_type = str(jcpds_phase.params.get('thermal_type') or '')
         if thermal_type:
             self.set_thermal_type(thermal_type)
@@ -598,6 +719,7 @@ class PhaseEditorWidget(QtWidgets.QWidget):
             has_thermal = any(jcpds_phase.params[key] for key in
                               ('alpha_t0', 'd_alpha_dt', 'dk0dt', 'dk0pdt'))
             self.set_thermal_type('alphakt' if has_thermal else 'none')
+        self.update_thermal_compatibility(jcpds_phase)
 
     def update_name(self, jcpds_phase):
         self.filename_txt.setText(jcpds_phase.filename)

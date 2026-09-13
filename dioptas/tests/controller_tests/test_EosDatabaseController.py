@@ -6,6 +6,8 @@ phase carrying the full reference-switcher state.
 """
 import gc
 from functools import cmp_to_key
+import tempfile
+from pathlib import Path
 from unittest.mock import patch
 
 from qtpy import QtCore, QtWidgets
@@ -20,17 +22,32 @@ from ...model import eos
 
 class EosDatabaseControllerTest(QtTest):
     def setUp(self):
-        self.controller = EosDatabaseController()
+        self.settings_dir = tempfile.TemporaryDirectory()
+        self.settings_path = str(Path(self.settings_dir.name) / "browser.ini")
+        self.settings = QtCore.QSettings(
+            self.settings_path, QtCore.QSettings.IniFormat)
+        self.controller = EosDatabaseController(settings=self.settings)
         self.dialog = self.controller.dialog
 
     def tearDown(self):
         self.dialog.close()
         del self.controller
         gc.collect()
+        self.settings_dir.cleanup()
 
-    def test_all_materials_shown_on_open(self):
+    def test_recent_view_is_empty_on_first_open(self):
+        assert self.dialog.view_tabs.currentIndex() == 0
+        assert self.dialog.materials_table.rowCount() == 0
+        assert "No recently used" in self.dialog.empty_label.text()
+        assert not self.dialog.load_btn.isEnabled()
+        assert not self.dialog.export_btn.isEnabled()
+        assert not self.dialog.favourite_btn.isEnabled()
+
+    def test_all_view_shows_library(self):
+        self.dialog.view_tabs.setCurrentIndex(2)
         assert (self.dialog.materials_table.rowCount()
                 == len(eos.load_materials()))
+
 
     def test_material_headers_sort_and_keep_selection_attached_to_material(self):
         self.dialog.search_input.setText("Mg")
@@ -118,8 +135,114 @@ class EosDatabaseControllerTest(QtTest):
         assert "Au" in self.dialog.materials_table.item(0, 0).text()
 
         self.dialog.clear_btn.click()
-        assert (self.dialog.materials_table.rowCount()
-                == len(eos.load_materials()))
+        assert self.dialog.materials_table.rowCount() == 0
+        assert self.dialog.view_tabs.isEnabled()
+
+    def test_favourites_persist_and_can_be_removed(self):
+        self.dialog.search_input.setText("gold")
+        self.dialog.eos_table.selectRow(2)
+        self.dialog.favourite_btn.click()
+        assert self.dialog.selected_eos_row() == 2
+        gold = self.controller.shown_materials[0]
+        self.dialog.clear_btn.click()
+        self.dialog.view_tabs.setCurrentIndex(1)
+        assert self.controller.shown_materials == [gold]
+        settings = QtCore.QSettings(self.settings_path, QtCore.QSettings.IniFormat)
+        reopened = EosDatabaseController(settings=settings)
+        try:
+            reopened.dialog.view_tabs.setCurrentIndex(1)
+            assert reopened.shown_materials == [gold]
+            reopened.dialog.favourite_btn.click()
+            assert reopened.dialog.materials_table.rowCount() == 0
+            assert reopened.dialog.eos_table.rowCount() == 0
+            assert not reopened.dialog.load_btn.isEnabled()
+            assert not reopened.dialog.export_btn.isEnabled()
+            assert not reopened.dialog.favourite_btn.isEnabled()
+            assert settings.value("favourites") == []
+        finally:
+            reopened.dialog.close()
+
+    def test_recent_records_successful_loads_most_recent_first_without_duplicates(self):
+        for query in ("gold", "silver", "gold"):
+            self.dialog.search_input.setText(query)
+            self.controller.load()
+        settings = QtCore.QSettings(self.settings_path, QtCore.QSettings.IniFormat)
+        reopened = EosDatabaseController(settings=settings)
+        try:
+            assert [m.formula for m in reopened.shown_materials] == ["Au", "Ag"]
+            assert reopened.dialog.selected_material_row() == 0
+        finally:
+            reopened.dialog.close()
+
+    def test_recent_is_bounded_and_missing_materials_are_ignored(self):
+        identifiers = [m.identifier for m in self.controller.materials]
+        self.settings.setValue("recent", ["missing-material", *identifiers])
+        reopened = EosDatabaseController(settings=self.settings)
+        try:
+            assert len(reopened.shown_materials) == reopened.RECENT_LIMIT
+            reopened.dialog.search_input.setText("gold")
+            reopened.load()
+            assert len(reopened.recent_ids) == reopened.RECENT_LIMIT
+            assert reopened.recent_ids[0] == reopened.shown_materials[0].identifier
+        finally:
+            reopened.dialog.close()
+
+    def test_failed_load_does_not_update_recent(self):
+        self.dialog.search_input.setText("gold")
+        with patch.object(eos, "build_jcpds", side_effect=ValueError("failed")):
+            with self.assertRaises(ValueError):
+                self.controller.load()
+        assert self.controller.recent_ids == []
+        assert self.settings.value("recent", []) == []
+
+    def test_search_from_favourites_finds_any_material_and_restores_view(self):
+        self.dialog.view_tabs.setCurrentIndex(1)
+        self.dialog.search_input.setText("gold")
+        assert self.controller.shown_materials[0].formula == "Au"
+        assert self.dialog.view_tabs.isEnabled()
+        assert self.dialog.view_tabs.currentIndex() == 2
+        assert "Search results" in self.dialog.materials_label.text()
+        self.dialog.search_input.setText("no such material")
+        assert self.dialog.eos_table.rowCount() == 0
+        assert not self.dialog.load_btn.isEnabled()
+        self.dialog.clear_btn.click()
+        assert self.dialog.view_tabs.currentIndex() == 1
+        assert self.dialog.materials_table.rowCount() == 0
+
+    def test_switch_tabs_during_search_filters_without_clearing_query(self):
+        self.dialog.search_input.setText("gold")
+        self.dialog.favourite_btn.click()
+        self.dialog.search_input.setText("silver")
+        self.dialog.show()
+        QtWidgets.QApplication.processEvents()
+        tabs = self.dialog.view_tabs
+
+        def click_tab(index):
+            QTest.mouseClick(tabs, QtCore.Qt.LeftButton,
+                             pos=tabs.tabRect(index).center())
+            assert tabs.currentIndex() == index
+
+        click_tab(1)
+        assert self.dialog.search_input.text() == "silver"
+        assert self.controller.shown_materials == []
+        assert not self.dialog.load_btn.isEnabled()
+
+        click_tab(2)
+        assert self.dialog.search_input.text() == "silver"
+        assert self.controller.shown_materials[0].formula == "Ag"
+        assert self.dialog.load_btn.isEnabled()
+
+        click_tab(0)
+        assert self.controller.shown_materials == []
+        click_tab(1)
+        self.dialog.search_input.setText("gold")
+        assert tabs.currentIndex() == 1
+        assert self.controller.shown_materials[0].formula == "Au"
+        self.dialog.favourite_btn.click()
+        assert self.controller.shown_materials == []
+        assert self.dialog.eos_table.rowCount() == 0
+        self.dialog.clear_btn.click()
+        assert tabs.currentIndex() == 1
 
     def test_material_table_displays_space_group_not_crystal_system(self):
         self.dialog.search_input.setText("gold")
@@ -290,6 +413,7 @@ class EosDatabaseControllerTest(QtTest):
     def test_eos_only_material_is_exportable_but_cannot_load_as_phase(self):
         from ...model.util.phasesmith import material_has_diffraction_data
 
+        self.dialog.view_tabs.setCurrentIndex(2)
         row = next(i for i, material in enumerate(self.controller.shown_materials)
                    if not material_has_diffraction_data(material))
         self.dialog.materials_table.selectRow(row)

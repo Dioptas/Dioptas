@@ -342,8 +342,59 @@ class PhaseEditorControllerTest(QtTest):
     def test_thermal_dropdown_offers_peritheos_models(self):
         cb = self.jcpds_widget.thermal_type_cb
         keys = [cb.itemData(i) for i in range(cb.count())]
-        self.assertEqual(keys, ['none', 'alphakt', 'MieGruneisenDebye',
-                                'MieGruneisenEinstein', 'Sokolova2016'])
+        from ...model.util.eos_phase import THERMAL_EOS_TYPES
+        self.assertEqual(set(keys), {'none', 'alphakt', *THERMAL_EOS_TYPES})
+
+    def test_canonical_alphakt_is_editable_and_rejects_incompatible_switch(self):
+        from ...model import eos
+        from peritheos import get_material_document
+        material = eos.Material.from_dict(get_material_document('gold'))
+        index = next(i for i, r in enumerate(material.eos_records)
+                     if r['identifier'] == 'gold_hirose_2008_bm3_fit2')
+        phase = eos.build_jcpds(material, record_index=index, origin='bundled')
+        self.phase_model.add_jcpds_object(phase, filename=phase.filename)
+        self.phase_model.duplicate_eos_record(6, index)
+        self.controller.show_phase(phase, wavelength=0.31)
+        widget = self.jcpds_widget
+        self.assertEqual(widget.get_thermal_type(), 'AlphaKT')
+        field = widget.thermal_parameter_fields['AlphaKT', 'kprime_log_coefficient']
+        self.assertTrue(field.isVisibleTo(widget))
+        self.assertTrue(field.isEnabled())
+        bm2_index = widget.eos_type_cb.findData('BM2')
+        self.assertFalse(widget.eos_type_cb.model().item(bm2_index).isEnabled())
+        self.assertIn('K′', widget.eos_type_cb.itemData(bm2_index, QtCore.Qt.ToolTipRole))
+        # Programmatic changes must be safe too, even if they bypass a disabled item.
+        widget.eos_type_cb.setCurrentIndex(bm2_index)
+        self.assertEqual(phase.params['eos_type'], 'BM3')
+        self.assertEqual(widget.get_eos_type(), 'BM3')
+        field.setText('0')
+        field.editingFinished.emit()
+        self.assertTrue(widget.eos_type_cb.model().item(bm2_index).isEnabled())
+        widget.eos_type_cb.setCurrentIndex(bm2_index)
+        self.assertEqual(phase.params['eos_type'], 'BM2')
+        self.assertEqual(phase.params['thermal_type'], 'AlphaKT')
+        self.assertTrue(widget.eos_calculation_status_lbl.isHidden())
+
+    def test_selecting_native_alphakt_keeps_model_and_coefficients(self):
+        cb = self.jcpds_widget.thermal_type_cb
+        cb.setCurrentIndex(cb.findData('AlphaKT'))
+        self.assertEqual(self.phase_model.get_thermal_type(5), 'AlphaKT')
+        self.assertFalse(self.jcpds_widget.eos_calculation_status_lbl.isHidden())
+        for name, value in [('alpha0', '3e-5'), ('dK_dT', '-0.01')]:
+            field = self.jcpds_widget.thermal_parameter_fields['AlphaKT', name]
+            field.setText(value)
+            field.editingFinished.emit()
+        self.assertTrue(self.jcpds_widget.eos_calculation_status_lbl.isHidden())
+        self.phase_model.set_pressure_temperature(5, 10, 1000)
+        self.assertEqual(self.phase_model.get_thermal_type(5), 'AlphaKT')
+        self.assertEqual(self.phase_model.phases[5].params['thermal_parameters']['alpha0'], 3e-5)
+        previous_volume = self.phase_model.phases[5].params['v']
+        field = self.jcpds_widget.thermal_parameter_fields['AlphaKT', 'dK_dT']
+        field.setText('-100')
+        field.editingFinished.emit()
+        self.assertEqual(self.phase_model.phases[5].params['thermal_parameters']['dK_dT'], -.01)
+        self.assertEqual(self.phase_model.phases[5].params['v'], previous_volume)
+        self.assertFalse(self.jcpds_widget.eos_calculation_status_lbl.isHidden())
 
     def test_selecting_mgd_updates_model_and_rows(self):
         cb = self.jcpds_widget.thermal_type_cb

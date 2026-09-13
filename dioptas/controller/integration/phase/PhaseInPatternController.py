@@ -136,7 +136,9 @@ class PhaseInPatternController:
         parameter_str = ""
         pressure = self.model.phase_model.phases[ind].params["pressure"]
         temperature = self.model.phase_model.phases[ind].params["temperature"]
-        if pressure != 0:
+        if self.model.phase_model.params.dac_thermal_pressure_enabled:
+            parameter_str += "P₀={:0.2f} GPa ".format(pressure)
+        elif pressure != 0:
             parameter_str += "{:0.2f} GPa ".format(pressure)
         if temperature != 0 and temperature != 298 and temperature is not None:
             parameter_str += "{:0.2f} K ".format(temperature)

@@ -227,6 +227,7 @@ def load_project(model: Any, f: h5py.File, make_configuration) -> None:
     model.configuration_added.emit()
     model.select_configuration(model.configuration_ind)
 
+    _apply_params_dict(model.phase_model.params, document.get("phase", {}))
     for phase_document in document.get("phases", []):
         _add_phase(model.phase_model, phase_document)
 
@@ -238,7 +239,6 @@ def load_project(model: Any, f: h5py.File, make_configuration) -> None:
         )
         _apply_params_dict(overlay.params, overlay_document["params"])
 
-    _apply_params_dict(model.phase_model.params, document.get("phase", {}))
     _apply_params_dict(model.view, document.get("view", {}))
 
     # overlays exist now, so background references can be pointed at them
@@ -381,7 +381,6 @@ def _add_phase(phase_model: Any, document: dict) -> None:
         jcpds_reflection(h, k, l, intensity, d0)
         for h, k, l, intensity, d0 in document.get("reflections", [])
     ]
-    phase.compute_d()
     # applying the state must not invent an edit: the flag travels with it
     phase.state.modified = bool(document["crystal"].get("modified", False))
 

@@ -45,7 +45,7 @@ dependencies = [
     "psygnal>=0.15.1,<0.16",
     # equation-of-state engine and audited bundled material library
     # lower bound: verified material catalog and record APIs
-    "peritheos>=0.8.0,<1.0",
+    "peritheos>=0.9.0,<1.0",
     # exact-symmetry reflection generation and structure-factor intensities
     # lower bound: canonical cubic HKL representatives prefer (100) over (001)
     "phasesmith>=0.4.1,<0.5",

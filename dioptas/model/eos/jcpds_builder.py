@@ -181,9 +181,10 @@ def apply_eos_record(phase, record: dict) -> None:
     thermal_type = thermal.get("type") or ""
     thermal_parameters = dict(thermal.get("parameters") or {})
     thermal_configuration = dict(thermal.get("configuration") or {})
-    if thermal.get("debye_temperature_law") is not None:
-        thermal_configuration["debye_temperature_law"] = thermal[
-            "debye_temperature_law"]
+    for name in ("debye_temperature_law", "thermal_pressure_reference",
+                 "thermal_expansion_law", "reference_volume_law", "bulk_modulus_law"):
+        if thermal.get(name) is not None:
+            thermal_configuration[name] = thermal[name]
     thermal_parameters.update(thermal_configuration)
 
     material_document = phase.params.get("material_document") or {}

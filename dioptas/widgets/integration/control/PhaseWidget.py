@@ -114,6 +114,7 @@ class PhaseWidget(QtWidgets.QWidget):
             5, QtWidgets.QHeaderView.Interactive
         )
         self.phase_tw.setItemDelegate(NoRectDelegate())
+        self._dac_thermal_pressure_enabled = False
         self._body_layout.addWidget(self.phase_tw, 10)
         self._body_layout.addWidget(self.parameter_widget, 0)
 
@@ -247,7 +248,7 @@ class PhaseWidget(QtWidgets.QWidget):
         self.phase_tw.setItem(current_rows, 2, name_item)
 
         pressure_sb = DoubleSpinBoxAlignRight()
-        pressure_sb.setFixedWidth(70)
+        pressure_sb.setFixedWidth(self.phase_tw.columnWidth(3))
         pressure_sb.setMinimum(-9999999)
         pressure_sb.setMaximum(9999999)
         pressure_sb.setValue(0)
@@ -299,7 +300,8 @@ class PhaseWidget(QtWidgets.QWidget):
         self.phase_tw.horizontalHeader().setSectionResizeMode(
             3, QtWidgets.QHeaderView.Fixed
         )
-        self.phase_tw.setColumnWidth(3, 70)
+        self.phase_tw.setColumnWidth(
+            3, 85 if self._dac_thermal_pressure_enabled else 70)
         self.phase_tw.horizontalHeader().setSectionResizeMode(
             4, QtWidgets.QHeaderView.Fixed
         )
@@ -436,3 +438,20 @@ class PhaseWidget(QtWidgets.QWidget):
             control = self.phase_tw
         QtWidgets.QToolTip.showText(
             control.mapToGlobal(control.rect().bottomLeft()), message, control)
+
+    def set_dac_thermal_pressure_enabled(self, enabled):
+        self._dac_thermal_pressure_enabled = enabled
+        header = self.phase_tw.horizontalHeaderItem(3)
+        header.setText("P₀ (GPa)" if enabled else "P (GPa)")
+        pressure_width = 85 if enabled else 70
+        self.phase_tw.setColumnWidth(3, pressure_width)
+        pressure_tooltip = (
+            "Cold pressure at the thermal EoS reference temperature; "
+            "DAC confinement determines the heated volume. "
+            "Configure this in X → Phase."
+            if enabled else "Pressure in GPa."
+        )
+        header.setToolTip(pressure_tooltip)
+        for spinbox in self.pressure_sbs:
+            spinbox.setFixedWidth(pressure_width)
+            spinbox.setToolTip(pressure_tooltip)

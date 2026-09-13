@@ -2,6 +2,11 @@
 
 from copy import deepcopy
 from functools import partial
+import inspect
+
+from ....model.util.eos_phase import (
+    THERMAL_EOS_TYPES, thermal_parameter_signature,
+)
 
 import numpy as np
 from qtpy import QtWidgets, QtCore, QtGui
@@ -178,6 +183,12 @@ class PhaseEditorController(QtCore.QObject):
             field.editingFinished.connect(partial(
                 self.thermal_param_txt_changed,
                 widget=field, parameter=parameter))
+        for (model, parameter), field in self.jcpds_widget.thermal_parameter_fields.items():
+            field.editingFinished.connect(partial(
+                self.extra_thermal_parameter_changed, model, parameter, field))
+        for (model, parameter), field in self.jcpds_widget.thermal_configuration_fields.items():
+            field.currentIndexChanged.connect(partial(
+                self.extra_thermal_parameter_changed, model, parameter, field))
         self.jcpds_widget.eos_alphaT_txt.editingFinished.connect(partial(self.param_txt_changed,
                                                                          widget=self.jcpds_widget.eos_alphaT_txt,
                                                                          param='alpha_t0'))
@@ -250,7 +261,7 @@ class PhaseEditorController(QtCore.QObject):
             return
         if param == 'zc':
             value = int(value)
-        self.phase_model.set_param(self.phase_ind, param, value)
+        self._apply_eos_edit(lambda: self.phase_model.set_param(self.phase_ind, param, value))
 
     def thermal_param_txt_changed(self, widget, parameter,
                                   state_param=None):
@@ -264,19 +275,20 @@ class PhaseEditorController(QtCore.QObject):
         thermal_parameters = dict(
             self.jcpds_phase.params.get('thermal_parameters') or {})
         thermal_parameters[parameter] = value
-        # Keep the legacy scalar fields in sync for project compatibility
-        # and for UI code that reads them directly.
-        if state_param is not None:
-            self.jcpds_phase.params[state_param] = value
-        self.phase_model.set_param(
-            self.phase_ind, 'thermal_parameters', thermal_parameters)
+        def apply():
+            # Update both representations inside the rollback boundary.
+            if state_param is not None:
+                self.jcpds_phase.params[state_param] = value
+            self.phase_model.set_param(
+                self.phase_ind, 'thermal_parameters', thermal_parameters)
+        self._apply_eos_edit(apply)
 
     def eos_type_changed(self):
         eos_type = self.jcpds_widget.get_eos_type()
         if eos_type is None or self.phase_ind < 0:
             return
         self.jcpds_widget.update_eos_parameter_visibility()
-        self.phase_model.set_eos_type(self.phase_ind, eos_type)
+        self._apply_eos_edit(lambda: self.phase_model.set_eos_type(self.phase_ind, eos_type))
 
     def thermal_type_changed(self):
         if self.phase_ind < 0:
@@ -284,15 +296,27 @@ class PhaseEditorController(QtCore.QObject):
         key = self.jcpds_widget.get_thermal_type()
         self.jcpds_widget.update_thermal_parameter_visibility()
         self.jcpds_widget.update_eos_parameter_visibility()
-        if key in ('MieGruneisenDebye', 'MieGruneisenEinstein',
-                   'Sokolova2016'):
-            # full peritheos engine; computes once theta0/gamma0 (and
-            # n/Zc) are filled in — until then it logs and behaves like
-            # a phase without thermal expansion
-            self.phase_model.set_thermal_type(self.phase_ind, key)
+        if key in THERMAL_EOS_TYPES:
+            if key == self.phase_model.get_thermal_type(self.phase_ind):
+                return
+            # A different model has different coefficient meanings. Start from
+            # constructor defaults; required fitted coefficients remain blank.
+            parameters = {name: parameter.default for name, parameter in
+                          thermal_parameter_signature(key).items()
+                          if parameter.default is not inspect.Parameter.empty}
+            signature = thermal_parameter_signature(key)
+            if 'Tr' in signature and 'Tr' not in parameters:
+                parameters['Tr'] = self.jcpds_phase.params.get('t_ref') or 298.15
+            if key in ('MieGruneisenDebye', 'MieGruneisenEinstein'):
+                parameters.update(theta0=self.jcpds_phase.params['theta_t0'],
+                                  gamma0=self.jcpds_phase.params['gamma_t0'],
+                                  q=self.jcpds_phase.params['q_t0'])
+            self._apply_eos_edit(lambda: self.phase_model.set_thermal_type(
+                self.phase_ind, key, parameters=parameters))
             return
         if self.phase_model.get_thermal_type(self.phase_ind):
-            self.phase_model.set_thermal_type(self.phase_ind, '')
+            if not self._apply_eos_edit(lambda: self.phase_model.set_thermal_type(self.phase_ind, '')):
+                return
         if key == 'none':
             # removing the thermal model zeroes its coefficients — the
             # phase then computes purely from the room-temperature EoS
@@ -301,6 +325,40 @@ class PhaseEditorController(QtCore.QObject):
                     self.phase_model.set_param(self.phase_ind, param, 0.0)
         # selecting 'alphakt' only reveals its (zero-valued) fields;
         # nothing is written until the user enters coefficients
+
+    def _apply_eos_edit(self, operation):
+        snapshot = self.phase_model._condition_snapshot(self.jcpds_phase)
+        try:
+            operation()
+        except (ArithmeticError, ValueError, RuntimeError) as error:
+            self.phase_model._restore_condition_snapshot(self.jcpds_phase, snapshot)
+            self.jcpds_widget.update_eos_parameters(self.jcpds_phase)
+            self.jcpds_widget.show_eos_error(str(error))
+            return False
+        return True
+
+    def extra_thermal_parameter_changed(self, model, parameter, field, *_):
+        if self.phase_ind < 0 or self.phase_model.get_thermal_type(self.phase_ind) != model:
+            return
+        parameters = dict(self.jcpds_phase.params.get('thermal_parameters') or {})
+        if isinstance(field, QtWidgets.QComboBox):
+            value = field.currentData()
+        elif not field.text().strip():
+            value = thermal_parameter_signature(model)[parameter].default
+            if value is inspect.Parameter.empty:
+                parameters.pop(parameter, None)
+        else:
+            try:
+                value = float(field.text())
+                if not np.isfinite(value):
+                    raise ValueError('Coefficient must be finite')
+            except ValueError:
+                self.jcpds_widget.update_eos_parameters(self.jcpds_phase)
+                return
+        if value is not inspect.Parameter.empty:
+            parameters[parameter] = value
+        self._apply_eos_edit(lambda: self.phase_model.set_param(
+            self.phase_ind, 'thermal_parameters', parameters))
 
     def _update_eos_record_controls(self):
         if self.phase_ind < 0:

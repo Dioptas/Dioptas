@@ -738,6 +738,9 @@ class jcpds:
         except BundledEosValidationError as error:
             raise EosCalculationError(str(error)) from error
         except ValueError as e:
+            if self.params.get('dac_thermal_pressure_factor'):
+                raise EosCalculationError(
+                    f"Cannot apply DAC confinement to '{self.name}': {e}") from e
             logger.warning(
                 "Thermal model '%s' cannot be constructed for phase '%s' "
                 "(%s); computing without it.",
@@ -748,7 +751,12 @@ class jcpds:
         self.params['alpha_t'] = self.params['alpha_t0']
         self.params['k0p'] = self.params['k0p0']
         try:
-            volume = eos.volume(pressure, temperature)
+            factor = self.params.get('dac_thermal_pressure_factor')
+            if factor is not None and factor != 0:
+                volume = eos.volume_with_dac_confinement(
+                    pressure, temperature, factor)
+            else:
+                volume = eos.volume(pressure, temperature)
         except (ArithmeticError, RuntimeError, ValueError) as error:
             raise EosCalculationError(str(error)) from error
         self._require_physical_volume(volume)
