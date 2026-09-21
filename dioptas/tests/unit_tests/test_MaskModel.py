@@ -60,6 +60,44 @@ def test_growing_masks(mask_model):
     assert mask_model._mask_data[5, 4] == 1
 
 
+@pytest.mark.parametrize('outside', [False, True])
+@pytest.mark.parametrize('mode', [False, True])
+@pytest.mark.parametrize('lower, upper, inside', [
+    (1, 3, [False, True, True, True, False, False]),
+    (None, 2, [True, True, True, False, False, False]),
+    (2, None, [False, False, True, True, True, False]),
+])
+def test_radial_range_preserves_other_pixels(outside, mode, lower, upper, inside):
+    model = MaskModel((2, 6))
+    radial = np.tile([0., 1., 2., 3., np.inf, np.nan], (2, 1))
+    original = np.array([[True] * 6, [False] * 6])
+    model.set_mask(original.copy())
+    model.mode = mode
+    selected = np.tile(inside, (2, 1))
+    if outside:
+        selected = ~selected
+        selected[:, -1] = False
+    expected = original.copy()
+    expected[selected] = mode
+    model.mask_radial_range(radial, lower, upper, outside)
+    np.testing.assert_array_equal(model.get_img(), expected)
+
+
+@pytest.mark.parametrize('lower, upper', [
+    (None, None), (3, 1), (-1, 2), (0, np.inf), (np.nan, 2),
+])
+def test_invalid_radial_range_does_not_change_mask(mask_model, lower, upper):
+    original = mask_model.get_img().copy()
+    with pytest.raises(ValueError):
+        mask_model.mask_radial_range(np.ones((10, 10)), lower, upper)
+    np.testing.assert_array_equal(mask_model.get_img(), original)
+
+
+def test_radial_range_requires_matching_shape(mask_model):
+    with pytest.raises(ValueError, match='same shape'):
+        mask_model.mask_radial_range(np.ones((2, 2)), 0, 1)
+
+
 def test_shrink_mask(mask_model):
     mask_model._mask_data[4, 4] = 1
     mask_model._mask_data[0, 0] = 1
@@ -464,4 +502,3 @@ def test_set_mask_updates_dimension():
 
     # Mask must be preserved — not reset to zeros
     assert np.sum(mask_model.get_img()) == 100 * 100
-

@@ -2,6 +2,8 @@
 
 ## Improvements
 
+- Added range masking below the intensity thresholds for **2θ**, **q**, and **d-spacing**. Mask or unmask pixels inside or outside an interval, or leave one bound blank for a single cutoff. Uses the current calibration and supports undo/redo (#38).
+
 - The calibration validation page now includes a **Calibrant** selector, so reference lines can be checked against the correct material after loading a saved calibration. It stays synchronized with the selector on the calibration step (#260).
 
 - The **DB** phase browser opens on **Recent**, showing the last 20 loaded materials. **Favourites** keeps starred materials close at hand, and **All** opens the full library. Search starts across the database; switching tabs filters the results without clearing the query. Recent materials and favourites are saved across sessions.

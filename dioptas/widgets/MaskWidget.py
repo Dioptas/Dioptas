@@ -106,6 +106,30 @@ class MaskWidget(QtWidgets.QWidget):
 
         self._control_layout.addWidget(HorizontalLine())
 
+        self._range_layout = QtWidgets.QGridLayout()
+        self.range_unit_cb = QtWidgets.QComboBox()
+        for label, unit in [('2θ (°)', '2th_deg'), ('q (Å⁻¹)', 'q_A^-1'), ('d (Å)', 'd_A')]:
+            self.range_unit_cb.addItem(label, unit)
+        self._range_layout.addWidget(QtWidgets.QLabel('Range'), 0, 0)
+        self._range_layout.addWidget(self.range_unit_cb, 0, 1)
+        self.range_min_txt = NumberTextField('')
+        self.range_max_txt = NumberTextField('')
+        self.range_min_txt.setPlaceholderText('min')
+        self.range_max_txt.setPlaceholderText('max')
+        self.range_min_txt.setToolTip('Lower bound; leave blank for no lower cutoff')
+        self.range_max_txt.setToolTip('Upper bound; leave blank for no upper cutoff')
+        self._range_layout.addWidget(self.range_min_txt, 1, 0)
+        self._range_layout.addWidget(self.range_max_txt, 1, 1)
+        self.range_inside_btn = QtWidgets.QPushButton('Inside')
+        self.range_outside_btn = QtWidgets.QPushButton('Outside')
+        self.range_inside_btn.setToolTip('Mask/unmask pixels within the range, including its bounds. Requires calibration.')
+        self.range_outside_btn.setToolTip('Mask/unmask pixels below or above the range. Requires calibration.')
+        self._range_layout.addWidget(self.range_inside_btn, 2, 0)
+        self._range_layout.addWidget(self.range_outside_btn, 2, 1)
+        self._control_layout.addLayout(self._range_layout)
+
+        self._control_layout.addWidget(HorizontalLine())
+
         self._action_layout = QtWidgets.QGridLayout()
         self.grow_btn = QtWidgets.QPushButton('Grow')
         self.shrink_btn = QtWidgets.QPushButton('Shrink')

@@ -53,6 +53,24 @@ Threshold masking respects the current mask/unmask mode.
 This procedure can take a considerable amount of time.
 
 
+Angle and Radial Range Masking
+-----------------------------
+
+The **Range** controls below the intensity thresholds select pixels by **2θ (°)**,
+**q (Å⁻¹)**, or **d (Å)** using the current calibration. Load or perform a
+calibration first; q and d also require a valid wavelength.
+
+Enter a minimum and maximum, then click **Inside** to select pixels within
+the interval (including the bounds), or **Outside** to select pixels below
+the minimum or above the maximum. Leave one bound blank for a single cutoff.
+For example, a maximum of 20 in 2θ with **Outside** masks pixels above 20°.
+Changing units clears the entered bounds.
+
+Both actions respect **Mask/Unmask** mode, preserve pixels outside the selection,
+and support undo/redo. They write a pixel mask using the current calibration;
+the mask does not automatically change when the calibration changes.
+
+
 Control Buttons
 ---------------
 

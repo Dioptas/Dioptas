@@ -1463,6 +1463,21 @@ class CalibrationModel:
         shape = self.img_model.img_data.shape
         return self.pattern_geometry.center_array(shape, unit="chi_rad")
 
+    def get_pixel_two_theta_array(self) -> np.ndarray:
+        """Two theta in radians at the original image's pixel centers.
+
+        Integration may use smaller, supersampled detector pixels. Evaluate
+        the original centers without changing the live geometry or its cache.
+        """
+        if self.supersampling_factor == 1:
+            return self.tth_array
+        rows, columns = np.indices(self.img_model.img_data.shape, dtype=float)
+        factor = self.supersampling_factor
+        return self.pattern_geometry.tth(
+            (rows + 0.5) * factor - 0.5,
+            (columns + 0.5) * factor - 0.5,
+        )
+
     def get_two_theta_array(self) -> np.ndarray:
         return self.tth_array[
             :: self.supersampling_factor, :: self.supersampling_factor

@@ -14,6 +14,7 @@ from ..widgets.MaskPluginWidget import MaskPluginSettingsDialog
 from ..widgets.MaskWidget import MaskWidget
 from ..model.DioptasModel import DioptasModel
 from ..model.util.file_type import FileLoadingError
+from ..model.util.calc import convert_units
 
 from .binding import Binder
 
@@ -57,6 +58,11 @@ class MaskController:
         self.model.history.changed.connect(self._update_plugin_checkboxes)
         self.widget.below_thresh_btn.clicked.connect(self.below_thresh_btn_click)
         self.widget.above_thresh_btn.clicked.connect(self.above_thresh_btn_click)
+        self.widget.range_inside_btn.clicked.connect(lambda: self.apply_radial_range(False))
+        self.widget.range_outside_btn.clicked.connect(lambda: self.apply_radial_range(True))
+        self.widget.range_unit_cb.currentIndexChanged.connect(self._clear_radial_range)
+        self.binder.add_render(self._update_range_enabled, field='calibration.is_calibrated')
+        self._update_range_enabled()
         self.widget.cosmic_btn.clicked.connect(self.cosmic_btn_click)
         self.widget.grow_btn.clicked.connect(self.grow_btn_click)
         self.widget.shrink_btn.clicked.connect(self.shrink_btn_click)
@@ -481,6 +487,39 @@ class MaskController:
     def above_thresh_btn_click(self):
         thresh = np.float64(self.widget.above_thresh_txt.text())
         self.model.mask_model.mask_above_threshold(self.model.img_data, thresh)
+        self.plot_mask()
+
+    def _update_range_enabled(self):
+        calibrated = self.model.calibration_model.is_calibrated
+        self.widget.range_inside_btn.setEnabled(calibrated)
+        self.widget.range_outside_btn.setEnabled(calibrated)
+
+    def _clear_radial_range(self):
+        # Values in one unit must not silently become cutoffs in another.
+        self.widget.range_min_txt.clear()
+        self.widget.range_max_txt.clear()
+
+    def apply_radial_range(self, outside=False):
+        calibration = self.model.calibration_model
+        if not calibration.is_calibrated:
+            return
+        try:
+            lower_text = self.widget.range_min_txt.text().strip()
+            upper_text = self.widget.range_max_txt.text().strip()
+            lower = float(lower_text) if lower_text else None
+            upper = float(upper_text) if upper_text else None
+            unit = self.widget.range_unit_cb.currentData()
+            if unit != '2th_deg':
+                wavelength = calibration.wavelength
+                if wavelength is None or not np.isfinite(wavelength) or wavelength <= 0:
+                    raise ValueError('A positive calibrated wavelength is required for q and d ranges.')
+            tth = np.rad2deg(calibration.get_pixel_two_theta_array())
+            with np.errstate(divide='ignore', invalid='ignore'):
+                radial_data = convert_units(tth, calibration.wavelength, '2th_deg', unit)
+            self.model.mask_model.mask_radial_range(radial_data, lower, upper, outside)
+        except ValueError as error:
+            QtWidgets.QMessageBox.warning(self.widget, 'Invalid masking range', str(error))
+            return
         self.plot_mask()
 
     def grow_btn_click(self):

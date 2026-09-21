@@ -129,6 +129,35 @@ class MaskModel:
         self.mask_plugin_manager.set_enabled(plugin_name, False)
         self.mask_changed.emit()
 
+    def mask_radial_range(
+        self, radial_data: np.ndarray, lower: float | None, upper: float | None,
+        outside: bool = False,
+    ) -> None:
+        """Mask/unmask a radial interval in the units of *radial_data*.
+
+        Bounds are inclusive; None leaves that end open. Existing mask pixels
+        outside the selection are preserved. NaN coordinates are ignored.
+        """
+        if radial_data.shape != self._mask_data.shape:
+            raise ValueError('Radial coordinates and mask must have the same shape.')
+        if lower is None and upper is None:
+            raise ValueError('Enter at least one range bound.')
+        for bound in (lower, upper):
+            if bound is not None and (not np.isfinite(bound) or bound < 0):
+                raise ValueError('Range bounds must be finite, non-negative numbers.')
+        if lower is not None and upper is not None and lower > upper:
+            raise ValueError('The minimum must not exceed the maximum.')
+        selected = np.ones(radial_data.shape, dtype=bool)
+        if lower is not None:
+            selected &= radial_data >= lower
+        if upper is not None:
+            selected &= radial_data <= upper
+        if outside:
+            selected = ~selected
+        selected &= ~np.isnan(radial_data)
+        self._mask_data[selected] = self.mode
+        self.mask_changed.emit()
+
     def mask_below_threshold(self, img_data: np.ndarray, threshold: float) -> None:
         logger.debug("Masking below threshold: %s", threshold)
         self._mask_data[img_data < threshold] = self.mode
