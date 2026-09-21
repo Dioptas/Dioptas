@@ -16,7 +16,7 @@ jobs:
       DIOPTAS_REQUIRE_C_EXT: "1"
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
@@ -26,7 +26,7 @@ jobs:
         sudo apt-get install python3-opengl libgl1-mesa-dev libglib2.0-0
 
     - name: Setup Python 3.13
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v7
       with:
         python-version: '3.13'
         cache: 'pip'
@@ -105,7 +105,7 @@ jobs:
         ARCH=x86_64 ./appimagetool Dioptas.AppDir Dioptas_Linux.AppImage
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: linux-executable
         path: |
@@ -117,12 +117,12 @@ jobs:
     env:
       DIOPTAS_REQUIRE_C_EXT: "1"
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
     - name: Setup Python 3.13
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v7
       with:
         python-version: '3.13'
         cache: 'pip'
@@ -186,7 +186,7 @@ jobs:
         iscc /DDioptasVersion=$tag /DDioptasFolder=$folderName installer\windows\dioptas.iss
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: windows-executable
         path: |
@@ -199,7 +199,7 @@ jobs:
       DIOPTAS_REQUIRE_C_EXT: "1"
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
@@ -207,7 +207,7 @@ jobs:
       run: brew install libomp
 
     - name: Setup Python 3.13
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v7
       with:
         python-version: '3.13'
         cache: 'pip'
@@ -285,7 +285,7 @@ jobs:
         test -f Dioptas_MacOS.dmg
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: macos-executable
         path: |
@@ -319,7 +319,7 @@ jobs:
           # 0.8.6 PyPI release.)
           - os: macos-15-intel
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -328,7 +328,7 @@ jobs:
         run: brew install libomp
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.4.1
+        uses: pypa/cibuildwheel@v4.2.1
         env:
           CIBW_ENVIRONMENT_MACOS: ${{ matrix.cibw_env_macos }}
 
@@ -351,7 +351,7 @@ jobs:
           echo "All ${#wheels[@]} wheel(s) contain the C extension."
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-${{ matrix.os }}
           path: wheelhouse/*.whl
@@ -360,12 +360,12 @@ jobs:
     name: Build sdist
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
@@ -375,7 +375,7 @@ jobs:
           python -m build --sdist
 
       - name: Upload sdist
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sdist
           path: dist/*.tar.gz
@@ -384,7 +384,7 @@ jobs:
     needs: [build_linux, build_windows, build_macos]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Extract changelog for this version
       id: changelog
@@ -398,7 +398,7 @@ jobs:
         echo "tag=$TAG" >> $GITHUB_OUTPUT
 
     - name: Download all artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         path: artifacts
 
@@ -428,14 +428,14 @@ jobs:
       id-token: write
     steps:
       - name: Download wheels
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: wheels-*
           path: dist
           merge-multiple: true
 
       - name: Download sdist
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: sdist
           path: dist
@@ -444,7 +444,7 @@ jobs:
         run: ls -la dist
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@v1.14.2
 
   verify_release_complete:
     # The 0.8.6 release created the GitHub release but published nothing to

@@ -17,12 +17,12 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
     - name: Setup Python 3.13
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v7
       with:
         python-version: '3.13'
         cache: 'pip'
@@ -80,7 +80,7 @@ jobs:
         echo "folder_name=$(pwd | Select-Object | %{$_.ProviderPath.Split("\")[-1]})" >> $env:GITHUB_ENV
 
     - name: Upload Compressed App as Artifact to GitHub
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ env.folder_name }}
         path: dist\Dioptas*

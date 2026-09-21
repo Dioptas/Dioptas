@@ -18,7 +18,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
@@ -26,7 +26,7 @@ jobs:
       run: brew install libomp
 
     - name: Setup Python 3.13
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v7
       with:
         python-version: '3.13'
         cache: 'pip'
@@ -90,7 +90,7 @@ jobs:
         tar -czf DioptasMac.tar.gz Dioptas*.app
 
     - name: Upload Compressed App as Artifact to GitHub
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: DioptasMac
         path: dist/DioptasMac.tar.gz
