@@ -797,6 +797,40 @@ def test_selecting_calibrant_recalculates_lines_before_validation(
     calibration_controller.widget.calibrant_cb.setCurrentIndex(calibrant_index)
 
     calibration_controller._update_calibrant_overlays.assert_called_once_with()
+    assert calibration_controller.widget.validation_calibrant_cb.currentText() == "CeO2"
+
+
+def test_validation_calibrant_uses_loaded_wavelength_without_changing_geometry(
+    calibration_controller, calibration_model, qtbot
+):
+    widget = calibration_controller.widget
+    widget.show()
+    qtbot.addWidget(widget)
+    assert widget.validation_calibrant_cb.currentText() == "LaB6"
+    assert not widget.validation_calibrant_cb.isVisible()
+
+    with patch.object(
+        QtWidgets.QFileDialog, "getOpenFileName",
+        return_value=os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni"),
+    ):
+        calibration_controller.load_calibration()
+    assert widget.validation_calibrant_cb.isVisible()
+    geometry_before = calibration_model.pattern_geometry.get_config()
+    wavelength = calibration_model.pattern_geometry.wavelength
+    # The reference lines must follow the loaded geometry even when the
+    # setup wavelength is different.
+    widget.sv_wavelength_txt.setText("0.8")
+    calibration_controller._update_calibrant_overlays = MagicMock()
+    widget.validation_calibrant_cb.setCurrentText("CeO2")
+
+    assert widget.calibrant_cb.currentText() == "CeO2"
+    assert calibration_model.calibrant.wavelength == pytest.approx(wavelength)
+    assert calibration_model.pattern_geometry.get_config() == geometry_before
+    assert calibration_model.calibrant.dSpacing[0] == pytest.approx(3.1242, rel=1e-3)
+    calibration_controller._update_calibrant_overlays.assert_called_once_with()
+    positions, _, name = calibration_controller._calibrant_pattern_line_data
+    assert name == "CeO2"
+    assert len(positions) > 0
 
 
 def test_image_shape_change_recalculates_calibrant_lines(

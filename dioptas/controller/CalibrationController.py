@@ -135,6 +135,9 @@ class CalibrationController:
         self.widget.detector_reset_btn.clicked.connect(self.reset_detector_from_file)
 
         self.widget.calibrant_cb.currentIndexChanged.connect(self.load_calibrant)
+        self.widget.validation_calibrant_cb.currentIndexChanged.connect(
+            self._validation_calibrant_changed
+        )
         self.widget.load_img_btn.clicked.connect(self.load_img)
         self.widget.load_next_img_btn.clicked.connect(self.load_next_img)
         self.widget.load_previous_img_btn.clicked.connect(self.load_previous_img)
@@ -731,14 +734,19 @@ class CalibrationController:
                 self._calibrants_file_names_list.append(file.split(".")[:-1][0])
         self._calibrants_file_list.sort()
         self._calibrants_file_names_list.sort()
-        self.widget.calibrant_cb.blockSignals(True)
-        self.widget.calibrant_cb.clear()
-        self.widget.calibrant_cb.addItems(self._calibrants_file_names_list)
-        self.widget.calibrant_cb.blockSignals(False)
-        self.widget.calibrant_cb.setCurrentIndex(
-            self._calibrants_file_names_list.index("LaB6")
-        )  # to LaB6
+        for combo in (self.widget.calibrant_cb, self.widget.validation_calibrant_cb):
+            with QtCore.QSignalBlocker(combo):
+                combo.clear()
+                combo.addItems(self._calibrants_file_names_list)
+                combo.setCurrentIndex(self._calibrants_file_names_list.index("LaB6"))
         self.load_calibrant()
+
+    def _validation_calibrant_changed(self, index):
+        with QtCore.QSignalBlocker(self.widget.calibrant_cb):
+            self.widget.calibrant_cb.setCurrentIndex(index)
+        # Reference lines for a loaded calibration must use its wavelength,
+        # even if the setup page still contains different start values.
+        self.load_calibrant(wavelength_from="pyFAI")
 
     def load_calibrant(self, wavelength_from="start_values"):
         """
@@ -746,6 +754,8 @@ class CalibrationController:
         :param wavelength_from: determines which wavelength to use possible values: "start_values", "pyFAI"
         """
         current_index = self.widget.calibrant_cb.currentIndex()
+        with QtCore.QSignalBlocker(self.widget.validation_calibrant_cb):
+            self.widget.validation_calibrant_cb.setCurrentIndex(current_index)
         filename = os.path.join(
             self.model.calibration_model._calibrants_working_dir,
             self._calibrants_file_list[current_index],
@@ -922,6 +932,9 @@ class CalibrationController:
             lambda _: self._confirm_fields(detector_gb.pixel_height_txt)
         )
         widget.calibrant_cb.activated.connect(
+            lambda _: self._confirm_fields(widget.calibrant_cb)
+        )
+        widget.validation_calibrant_cb.activated.connect(
             lambda _: self._confirm_fields(widget.calibrant_cb)
         )
 

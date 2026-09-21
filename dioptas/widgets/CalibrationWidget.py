@@ -261,6 +261,7 @@ class CalibrationWidget(QtWidgets.QWidget):
 
         sv_gb = self.calibration_control_widget.calibration_parameters_widget.start_values_gb
         self.calibrant_cb = sv_gb.calibrant_cb
+        self.validation_calibrant_cb = parameters_widget.validation_calibrant_cb
 
         self.sv_wavelength_txt = sv_gb.wavelength_txt
         self.sv_wavelength_cb = sv_gb.wavelength_cb
@@ -737,6 +738,13 @@ class CalibrationParameterWidget(QtWidgets.QWidget):
         self._validation_page_layout = QtWidgets.QVBoxLayout(self.validation_page)
         self._validation_page_layout.setContentsMargins(0, 0, 0, 0)
         self._validation_page_layout.setSpacing(12)
+        self.validation_calibrant_cb = QtWidgets.QComboBox()
+        self.validation_calibrant_cb.setToolTip(
+            'Reference material for the displayed lines and refinement. '
+            'Changing it does not change the loaded geometry.')
+        calibrant_layout = QtWidgets.QFormLayout()
+        calibrant_layout.addRow('Calibrant:', self.validation_calibrant_cb)
+        self._validation_page_layout.addLayout(calibrant_layout)
         self._validation_page_layout.addWidget(self.parameters_tab_widget)
         self._validation_page_layout.addWidget(self.refine_btn)
         self._validation_page_layout.addWidget(self.save_calibration_btn)

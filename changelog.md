@@ -2,6 +2,8 @@
 
 ## Improvements
 
+- The calibration validation page now includes a **Calibrant** selector, so reference lines can be checked against the correct material after loading a saved calibration. It stays synchronized with the selector on the calibration step (#260).
+
 - The **DB** phase browser opens on **Recent**, showing the last 20 loaded materials. **Favourites** keeps starred materials close at hand, and **All** opens the full library. Search starts across the database; switching tabs filters the results without clearing the query. Recent materials and favourites are saved across sessions.
 
 - **DAC thermal pressure** in **X → Phase**, with inline guidance on cold pressure and the retained fraction, applies a shared confinement fraction to all phases with a Peritheos thermal EoS. It is disabled by default with an initial fraction of 0.25. When enabled, table pressures represent cold/reference pressures and Peritheos predicts the confined heated volumes. The setting follows newly loaded phases and survives project save/load and undo/redo.
