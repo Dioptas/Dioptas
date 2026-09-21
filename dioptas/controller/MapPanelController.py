@@ -316,10 +316,12 @@ class MapPanelController:
         filenames = open_files_dialog(
             self.widget,
             "Load image data file(s)",
-            self.model.working_directories["image"],
+            self.model.working_directories.get("map")
+            or self.model.working_directories["image"],
         )
         if len(filenames) == 0:
             return
+        self.model.working_directories["map"] = os.path.dirname(filenames[0])
 
         progressDialog = get_progress_dialog(
             "Integrating image data...",

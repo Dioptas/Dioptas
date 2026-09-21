@@ -106,6 +106,39 @@ def test_load_empty_filelist(map_controller, map_model: MapModel):
     assert map_controller.widget.control_widget.file_list.count() == 0
 
 
+@pytest.mark.parametrize("run_async", [False, True])
+def test_map_dialog_remembers_its_folder_independently(
+    map_controller, map_model, monkeypatch, tmp_path, run_async
+):
+    panel = map_controller.panel_controller
+    panel._run_async_load = run_async
+    monkeypatch.setattr(panel._map_runner, "submit", MagicMock(return_value=1))
+    monkeypatch.setattr(map_model, "load", MagicMock())
+    monkeypatch.setattr(map_model, "select_point", MagicMock())
+    image_dir = str(tmp_path / "images")
+    map_dir = str(tmp_path / "scan")
+    directories = map_controller.model.working_directories
+    directories["image"] = image_dir
+    directories.pop("map", None)  # includes settings from older versions
+    dialog = MagicMock(return_value=[os.path.join(map_dir, "frame.tif")])
+    monkeypatch.setattr(
+        "dioptas.controller.MapPanelController.open_files_dialog", dialog
+    )
+
+    panel.load_map()
+    assert dialog.call_args.args[2] == image_dir
+    assert directories["map"] == map_dir
+    assert directories["image"] == image_dir
+
+    # Loading an unrelated image must not redirect the next map dialog.
+    directories["image"] = str(tmp_path / "other_images")
+    dialog.return_value = []
+    panel.load_map()
+    assert dialog.call_args.args[2] == map_dir
+    assert directories["map"] == map_dir  # cancelling preserves the folder
+    panel.shutdown()
+
+
 def test_files_with_different_dimensions(map_controller, map_model: MapModel):
     load_calibration(map_controller)
     mock_open_filenames(
