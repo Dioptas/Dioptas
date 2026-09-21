@@ -643,7 +643,7 @@ def render_icon(filename, opacity=1.0, sizes=(14, 28, 56), color=None):
     if color is None:
         renderer = QtSvg.QSvgRenderer(path)
     else:
-        with open(path) as svg_file:
+        with open(path, encoding="utf-8") as svg_file:
             svg = svg_file.read().replace("#f1f1f1", color)
         renderer = QtSvg.QSvgRenderer(QtCore.QByteArray(svg.encode()))
     icon = QtGui.QIcon()

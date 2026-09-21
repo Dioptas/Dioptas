@@ -16,6 +16,8 @@
 
 ## Fixes
 
+- Fixed startup crashes on Chinese Windows by reading the bundled custom stylesheet and recolored SVG icons as UTF-8 instead of the system's GBK encoding (#261). CI now checks full startup under GBK, Big5, and Latin-1 encodings, plus encoding and Unicode-path regressions on Windows.
+
 - Peritheos material calculations preserve dataset and EoS cross-references, and shock Hugoniot records now calculate compression even without a K0 parameter. The phase editors preserve newer model names and optional parameters. Heavy-water structures and the P21/n space-group setting now generate diffraction reflections correctly.
 
 - Loading a project or recovering the previous session now restores **By Name**/**By Time** browsing for images and patterns, including the iterator behavior behind the controls. The saved mask/unmask drawing mode now also returns with the matching radio button and preview color.

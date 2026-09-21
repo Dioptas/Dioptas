@@ -1,0 +1,88 @@
+name: CI_locales
+
+on: [push, pull_request]
+
+jobs:
+  startup:
+    name: Startup / ${{ matrix.locale }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - locale: zh_CN.GBK
+            language: zh_CN
+            charmap: GBK
+            encoding: gbk
+          - locale: zh_TW.BIG5
+            language: zh_TW
+            charmap: BIG5
+            encoding: big5
+          - locale: de_DE.ISO-8859-1
+            language: de_DE
+            charmap: ISO-8859-1
+            encoding: iso8859-1
+    env:
+      QT_QPA_PLATFORM: offscreen
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+        cache: pip
+
+    - name: Install system dependencies and locale
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y locales libgl1-mesa-dev libglib2.0-0 libopengl0
+        sudo localedef -i '${{ matrix.language }}' -f '${{ matrix.charmap }}' '${{ matrix.locale }}'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install uv
+        uv sync --extra test
+
+    - name: Check encoding and launch the full application
+      env:
+        LC_ALL: ${{ matrix.locale }}
+        # Do not let Python silently switch legacy locales to UTF-8.
+        PYTHONUTF8: '0'
+        PYTHONCOERCECLOCALE: '0'
+        # Keep CI logs readable; this does not affect text-file encoding.
+        PYTHONIOENCODING: utf-8
+      run: uv run python -m scripts.check_locale_startup '${{ matrix.encoding }}'
+
+    - name: Run stylesheet regression tests
+      run: uv run pytest -n0 dioptas/tests/widget_tests/test_application_stylesheet.py dioptas/tests/widget_tests/test_PhaseWidget.py
+
+  windows:
+    name: Windows / encoding and Unicode paths
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      QT_QPA_PLATFORM: offscreen
+      PYTHONUTF8: '0'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+        cache: pip
+
+    - name: Install dependencies
+      run: |
+        python -m pip install uv
+        uv sync --extra test
+
+    # The hosted Windows runner keeps its system ANSI code page. These tests
+    # simulate legacy text-open defaults; chcp only changes the console page.
+    - name: Run encoding and Unicode path regression tests
+      run: uv run pytest -n0 dioptas/tests/widget_tests/test_application_stylesheet.py dioptas/tests/widget_tests/test_PhaseWidget.py dioptas/tests/unit_tests/test_unicode_paths.py
+
+    - name: Launch the full application
+      run: uv run python run.py test

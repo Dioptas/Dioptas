@@ -83,6 +83,15 @@ def _set_application_icon(app):
     app.setWindowIcon(QtGui.QIcon(os.path.join(icons_path, icon_file)))
 
 
+def _apply_application_stylesheet(app):
+    apply_stylesheet(app, theme=theme_path, extra={"density_scale": -2})
+    # qt-material's css_file reader uses the system encoding, which fails on
+    # Chinese Windows (GBK). Our bundled CSS is UTF-8; load it explicitly.
+    with open(qss_path, encoding="utf-8") as style_file:
+        stylesheet = style_file.read().format(**os.environ)
+    app.setStyleSheet(app.styleSheet() + stylesheet)
+
+
 def main():
     global _dioptrin_available
 
@@ -99,12 +108,7 @@ def main():
     app = QtWidgets.QApplication([])
     _set_application_icon(app)
 
-    apply_stylesheet(
-        app,
-        theme=theme_path,
-        css_file=qss_path,
-        extra={"density_scale": -2},
-    )
+    _apply_application_stylesheet(app)
     sys.excepthook = excepthook
     logger.info("Dioptas %s", __version__)
 

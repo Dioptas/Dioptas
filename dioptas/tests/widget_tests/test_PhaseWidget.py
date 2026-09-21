@@ -63,7 +63,7 @@ class PhaseWidgetTest(QtTest):
         self.assertEqual(temperature.value(), 0.0)
 
     def test_phase_table_arrow_icons_indicate_enabled_state(self):
-        with open(os.path.join(style_path, "qt_material.css")) as style_file:
+        with open(os.path.join(style_path, "qt_material.css"), encoding="utf-8") as style_file:
             stylesheet = style_file.read().replace("{{", "{").replace("}}", "}")
 
         expected_icons = {
