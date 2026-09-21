@@ -9,6 +9,7 @@ from .integration import IntegrationWidget
 from .MapWidget import MapWidget
 from .MapPanelWidget import MapPanelWindow
 from .CustomWidgets import (
+    ACCENT_COLOR,
     VerticalSpacerItem,
     CheckableFlatButton,
     FlatButton,
@@ -137,8 +138,14 @@ class MainWidget(QtWidgets.QWidget):
         # Two icons per button, swapped by set_history_enabled: with a
         # stylesheet applied Qt draws through QStyleSheetStyle, which ignores
         # an icon's disabled mode, so the fade has to be applied by hand.
-        self._undo_icons = (render_icon("undo.svg"), render_icon("undo.svg", 0.35))
-        self._redo_icons = (render_icon("redo.svg"), render_icon("redo.svg", 0.35))
+        self._undo_icons = (
+            render_icon("undo.svg", color=ACCENT_COLOR),
+            render_icon("undo.svg", 0.35),
+        )
+        self._redo_icons = (
+            render_icon("redo.svg", color=ACCENT_COLOR),
+            render_icon("redo.svg", 0.35),
+        )
 
         self.undo_btn = FlatButton(self)
         self.undo_btn.setObjectName("undo_btn")
