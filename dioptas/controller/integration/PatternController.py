@@ -50,6 +50,9 @@ class PatternController:
         # Gui subscriptions
         # self.widget.img_widget.roi.sigRegionChangeFinished.connect(self.image_changed)
         self.widget.pattern_widget.mouse_left_clicked.connect(self.pattern_left_click)
+        spread = self.widget.integration_pattern_widget.spottiness_view
+        spread.mouse_left_clicked.connect(self.pattern_left_click)
+        spread.mouse_moved.connect(self.show_pattern_mouse_position)
         self.model.clicked_tth_changed.connect(self.set_line_position)
         self.widget.pattern_widget.mouse_moved.connect(self.show_pattern_mouse_position)
 
@@ -57,6 +60,19 @@ class PatternController:
         """
         creating callbacks for the ui controls
         """
+
+        options = self.widget.integration_control_widget.integration_options_widget
+        self.binder.bind_checkbox(options.calculate_azimuthal_std_cb,
+                                  lambda: self.model.current_configuration,
+                                  "calculate_azimuthal_std")
+        self.binder.bind_checkbox(options.spottiness_relative_cb,
+                                  lambda: self.model.current_configuration,
+                                  "spottiness_relative")
+        self.binder.add_render(self.update_spottiness_plot,
+                               field="calculate_azimuthal_std")
+        self.binder.add_render(self.update_spottiness_plot,
+                               field="spottiness_relative")
+        options.save_spottiness_btn.clicked.connect(self.save_spottiness)
 
         # file callbacks
         self.binder.bind_checkbox(
@@ -208,6 +224,7 @@ class PatternController:
         return self.model.pattern_model.errors is not None
 
     def plot_pattern(self):
+        self.update_spottiness_plot()
         if self.widget.bkg_pattern_inspect_btn.isChecked():
             self.widget.pattern_widget.plot_data(
                 *self.model.pattern.auto_background_before_subtraction_pattern.data,
@@ -232,6 +249,39 @@ class PatternController:
             )
         else:
             self.widget.bkg_name_lbl.setText("")
+
+    def update_spottiness_plot(self):
+        from ...model.util.spottiness import relative_spread
+
+        config = self.model.current_configuration
+        display = self.widget.integration_pattern_widget
+        display.show_spottiness(config.calculate_azimuthal_std)
+        model = self.model.pattern_model
+        std = model.azimuthal_std
+        options = self.widget.integration_control_widget.integration_options_widget
+        options.save_spottiness_btn.setEnabled(std is not None)
+        options.spottiness_relative_cb.setEnabled(config.calculate_azimuthal_std)
+        if not config.calculate_azimuthal_std or std is None:
+            display.spottiness_curve.setData([], [])
+            return
+        x, mean = model.pattern.original_data
+        values = relative_spread(mean, std) if config.spottiness_relative else std
+        display.spottiness_curve.setData(x, values, connect="finite")
+        display.spottiness_plot.setLabel(
+            "left", "std / mean" if config.spottiness_relative else "Azimuthal std")
+        label, suffix, inverted = self._UNIT_DISPLAY.get(
+            config.integration_unit, (config.integration_unit, "", False))
+        display.spottiness_plot.setLabel("bottom", label, suffix)
+        display.spottiness_plot.invertX(inverted)
+
+    def save_spottiness(self):
+        stem = os.path.splitext(os.path.basename(self.model.img_model.filename))[0]
+        filename = save_file_dialog(
+            self.widget, "Save Spottiness", os.path.join(
+                self.model.working_directories["pattern"], stem + "_spottiness.csv"),
+            "Spottiness (*.csv)")
+        if filename:
+            self.model.current_configuration.save_spottiness(filename)
 
     def reset_background(self, popup=True):
         self.widget.show_cb_set_checked(
@@ -415,6 +465,7 @@ class PatternController:
             "bottom", label, unit_suffix
         )
         self.widget.pattern_widget.pattern_plot.invertX(inverted)
+        self.update_spottiness_plot()
 
     def update_x_range(self, previous_unit, new_unit):
         old_x_axis_range = self.widget.pattern_widget.pattern_plot.viewRange()[0]

@@ -5,6 +5,7 @@ from qtpy import QtWidgets, QtGui, QtCore
 from pyqtgraph import GraphicsLayoutWidget
 
 from ...plot_widgets import PatternWidget
+from ...plot_widgets.SpottinessWidget import SpottinessWidget
 from ...CustomWidgets import LabelAlignRight, FlatButton, CheckableFlatButton, HorizontalSpacerItem, VerticalSpacerItem, \
     SaveIconButton, PLOT_ICON_COLOR, PLOT_ICON_SIZE
 from .... import icons_path
@@ -105,6 +106,10 @@ class IntegrationPatternWidget(QtWidgets.QWidget):
         self._central_layout.addWidget(self.right_control_widget)
         self._frame_layout.addLayout(self._central_layout)
 
+        self.spottiness_view = SpottinessWidget(self.pattern_pg_layout, self.pattern_view)
+        self.spottiness_plot = self.spottiness_view.pattern_plot
+        self.spottiness_curve = self.spottiness_view.plot_item
+        self._spottiness_visible = False
         self.frame.setLayout(self._frame_layout)
 
         self._layout = QtWidgets.QVBoxLayout()
@@ -113,6 +118,23 @@ class IntegrationPatternWidget(QtWidgets.QWidget):
         self.setLayout(self._layout)
 
         self.style_widgets()
+
+    def show_spottiness(self, visible):
+        if visible == self._spottiness_visible:
+            return
+        self._spottiness_visible = visible
+        main = self.pattern_view.pattern_plot
+        if visible:
+            self.pattern_pg_layout.addItem(self.spottiness_plot, row=1, col=0)
+            self.pattern_pg_layout.ci.layout.setRowStretchFactor(0, 3)
+            self.pattern_pg_layout.ci.layout.setRowStretchFactor(1, 1)
+            main.getAxis("left").setWidth(80)
+            self.spottiness_plot.getAxis("left").setWidth(80)
+            self.spottiness_plot.setXLink(main)
+            self.spottiness_view.sync_phases()
+        else:
+            self.pattern_pg_layout.removeItem(self.spottiness_plot)
+            main.getAxis("left").setWidth(None)
 
     def style_widgets(self):
         self.tth_btn.setChecked(True)

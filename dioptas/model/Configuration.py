@@ -219,6 +219,7 @@ class Configuration:
             "cake_azimuth_range",
             "oned_azimuth_range",
             "calculate_poisson_errors",
+            "calculate_azimuthal_std",
             "integration_unit",
         }:
             self._mark_integration_inputs_changed()
@@ -229,10 +230,10 @@ class Configuration:
             self.cake_integration.invalidate()
         elif field == "oned_azimuth_range":
             self.pattern_integration.invalidate()
-        elif field == "calculate_poisson_errors":
-            # Enabling needs a new integration to produce sigma. Disabling
-            # only affects future integrations; the current pattern can keep
-            # the errors already calculated for it.
+        elif field in ("calculate_poisson_errors", "calculate_azimuthal_std"):
+            # Enabling needs a new integration to produce the statistic.
+            # Disabling affects future integrations; the current pattern can
+            # retain already calculated data for export.
             if info.args[0]:
                 self.pattern_integration.invalidate()
         elif field == "integration_unit":
@@ -273,6 +274,7 @@ class Configuration:
                     x, self.calibration_model.wavelength, old_unit, new_unit
                 )
             )
+            self.pattern_model.unit = new_unit
             self.pattern_integration.recompute()
 
     def _connect_signals(self) -> None:
@@ -403,6 +405,8 @@ class Configuration:
             )
             if self.calculate_poisson_errors:
                 integration_kwargs["calculate_errors"] = True
+            if self.calculate_azimuthal_std:
+                integration_kwargs["calculate_azimuthal_std"] = True
             x, y = self.calibration_model.integrate_1d(**integration_kwargs)
 
             if update_pattern_model:
@@ -411,6 +415,7 @@ class Configuration:
                     y,
                     self.img_model.filename,
                     unit=self.integration_unit,
+                    azimuthal_std=self.calibration_model.azimuthal_std,
                     errors=(
                         self.calibration_model.sigma
                         if self.calculate_poisson_errors
@@ -470,7 +475,7 @@ class Configuration:
             mask = None
         mask = calibration._prepare_integration_mask(mask)
         effective_pattern = calculate_pattern and not (
-            mask is not None and np.all(mask)
+            mask is not None and np.all(mask) and not self.calculate_azimuthal_std
         )
 
         # ImgModel.img_data already returns a processed, independent array for
@@ -498,6 +503,7 @@ class Configuration:
             ),
             trim_trailing_zeros=self.trim_trailing_zeros,
             calculate_errors=self.calculate_poisson_errors,
+            calculate_azimuthal_std=self.calculate_azimuthal_std,
             calculate_pattern=effective_pattern,
             cake_radial_points=self.integration_rad_points,
             cake_azimuth_points=self.cake_azimuth_points,
@@ -531,6 +537,7 @@ class Configuration:
             calibration.tth = pattern.radial
             calibration.int = pattern.intensity
             calibration.sigma = pattern.sigma
+            calibration.azimuthal_std = pattern.azimuthal_std
             calibration.num_points = pattern.num_points
             self.pattern_model.set_pattern(
                 pattern.radial,
@@ -538,6 +545,7 @@ class Configuration:
                 result.filename,
                 unit=result.unit,
                 errors=pattern.sigma,
+                azimuthal_std=pattern.azimuthal_std,
             )
             if self.auto_save_integrated_pattern:
                 self._auto_save_patterns()
@@ -550,6 +558,22 @@ class Configuration:
             calibration.num_points = cake.num_points
             self.cake_changed.emit()
         return True
+
+    def save_spottiness(self, filename: str) -> None:
+        """Export radial, original integrated mean, population std and std/mean.
+
+        Spread is a separate observable, never an XYE uncertainty column.
+        Background subtraction and display scaling do not change this data.
+        """
+        from .util.spottiness import relative_spread
+
+        model = self.pattern_model
+        if model.azimuthal_std is None:
+            raise ValueError("The current pattern has no azimuthal spread")
+        x, mean = model.pattern.original_data
+        np.savetxt(filename, np.column_stack((x, mean, model.azimuthal_std,
+                   relative_spread(mean, model.azimuthal_std))), delimiter=",",
+                   header=f"radial [{model.unit}],integrated_mean,azimuthal_std,relative_spread")
 
     def save_pattern(self, filename: str | None = None, subtract_background: bool = False) -> None:
         """Save the current integrated pattern.
@@ -644,6 +668,12 @@ class Configuration:
             filename = filename.replace("\\", "/")
             self.save_pattern(filename, subtract_background=False)
 
+        if self.calculate_azimuthal_std and self.pattern_model.azimuthal_std is not None:
+            stem = os.path.splitext(os.path.basename(str(self.img_model.filename)))[0]
+            self.save_spottiness(os.path.join(
+                self.working_directories["pattern"], stem + "_spottiness.csv"
+            ))
+
         pattern = self.pattern_model.pattern
 
         if pattern.background_pattern is not None or pattern.auto_bkg is not None:
@@ -718,6 +748,22 @@ class Configuration:
     @integration_rad_points.setter
     def integration_rad_points(self, new_value: int | None) -> None:
         self.params.integration_rad_points = new_value
+
+    @property
+    def calculate_azimuthal_std(self) -> bool:
+        return self.params.calculate_azimuthal_std
+
+    @calculate_azimuthal_std.setter
+    def calculate_azimuthal_std(self, value: bool) -> None:
+        self.params.calculate_azimuthal_std = value
+
+    @property
+    def spottiness_relative(self) -> bool:
+        return self.params.spottiness_relative
+
+    @spottiness_relative.setter
+    def spottiness_relative(self, value: bool) -> None:
+        self.params.spottiness_relative = value
 
     @property
     def calculate_poisson_errors(self) -> bool:

@@ -7,7 +7,7 @@ import gc
 from qtpy import QtWidgets
 from mock import MagicMock, patch
 
-from ..utility import enter_value_into_text_field, click_button
+from ..utility import enter_value_into_text_field, click_button, click_checkbox
 
 from ...controller.integration import OptionsController
 from ...model.DioptasModel import DioptasModel
@@ -56,7 +56,7 @@ class OptionsControllerTest(QtTest):
 
     def test_toggle_poisson_error_calculation(self):
         self.assertFalse(self.model.current_configuration.calculate_poisson_errors)
-        click_button(self.options_widget.calculate_poisson_errors_cb)
+        click_checkbox(self.options_widget.calculate_poisson_errors_cb)
         self.assertTrue(self.model.current_configuration.calculate_poisson_errors)
 
     def test_disabling_poisson_errors_disables_error_autosave_formats(self):
@@ -66,7 +66,7 @@ class OptionsControllerTest(QtTest):
         self.widget.pattern_header_fxye_cb.setChecked(True)
         configuration.integrated_patterns_file_formats = [".xy", ".xye", ".fxye"]
 
-        click_button(self.options_widget.calculate_poisson_errors_cb)
+        click_checkbox(self.options_widget.calculate_poisson_errors_cb)
 
         self.assertFalse(self.widget.pattern_header_xye_cb.isChecked())
         self.assertFalse(self.widget.pattern_header_fxye_cb.isChecked())

@@ -178,6 +178,8 @@ def _capture_configuration(
         "anonymous_background": anonymous_background,
         "pattern_x": payloads.put(getattr(pattern_model.pattern, "_original_x", None)),
         "pattern_y": payloads.put(getattr(pattern_model.pattern, "_original_y", None)),
+        "pattern_azimuthal_std": payloads.put(pattern_model.azimuthal_std),
+        "pattern_errors": payloads.put(pattern_model.errors),
     }
 
 
@@ -332,6 +334,8 @@ def _apply_configuration(
     pattern_y = payloads.get(document.get("pattern_y"))
     if pattern_x is not None and pattern_y is not None and len(pattern_x):
         configuration.pattern_model.pattern.data = (pattern_x, pattern_y)
+        configuration.pattern_model.azimuthal_std = payloads.get(document.get("pattern_azimuthal_std"))
+        configuration.pattern_model.errors = payloads.get(document.get("pattern_errors"))
     _apply_params_dict(
         configuration.pattern_model.params,
         document["pattern"],

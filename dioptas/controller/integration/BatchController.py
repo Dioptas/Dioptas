@@ -1126,10 +1126,18 @@ class BatchController:
             else:
                 self.model.img_model.blockSignals(True)
                 img_data = self.model.batch_model.data
-                pattern_x = self.model.batch_model.binning
+                batch = self.model.batch_model
+                unit = self.model.current_configuration.integration_unit
+                pattern_x = self.convert_x_value(batch.binning, batch.integration_unit, unit)
                 for y in range(img_data.shape[0]):
                     pattern_y = img_data[int(y)]
-                    self.model.pattern_model.set_pattern(pattern_x, pattern_y)
+                    self.model.pattern_model.set_pattern(
+                        pattern_x, pattern_y, unit=unit,
+                        azimuthal_std=None if batch.azimuthal_std is None else batch.azimuthal_std[y],
+                    )
+                    if batch.azimuthal_std is not None:
+                        self.model.current_configuration.save_spottiness(
+                            f"{name}_{y:03d}_spottiness.csv")
                     self.model.current_configuration.save_pattern(
                         f"{name}_{y:03d}{ext}"
                     )
@@ -1320,9 +1328,14 @@ class BatchController:
             f"I: {z:.1f}"
         )
         new_binning = self.convert_x_value(
-            binning, "2th_deg", self.model.current_configuration.integration_unit
+            binning, self.model.batch_model.integration_unit,
+            self.model.current_configuration.integration_unit
         )
-        self.model.pattern_model.set_pattern(new_binning, img[y])
+        spread = self.model.batch_model.azimuthal_std
+        self.model.pattern_model.set_pattern(
+            new_binning, img[y], unit=self.model.current_configuration.integration_unit,
+            azimuthal_std=None if spread is None else spread[y],
+        )
 
     def plot_image(self, y):
         """

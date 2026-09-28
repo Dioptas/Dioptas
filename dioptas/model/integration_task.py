@@ -13,6 +13,7 @@ from typing import Any
 import numpy as np
 from pyFAI.integrator.azimuthal import AzimuthalIntegrator
 
+from .util.spottiness import integrate_spottiness, trim_spread
 from .util.calc import supersample_image, trim_trailing_zeros
 
 logger = logging.getLogger(__name__)
@@ -53,6 +54,7 @@ class IntegrationTask:
     calculate_cake: bool
     prefer_dioptrin: bool = False
     dioptrin_geometry_config: dict[str, float] | None = None
+    calculate_azimuthal_std: bool = False
 
 
 @dataclass(frozen=True)
@@ -61,6 +63,7 @@ class PatternIntegrationResult:
     intensity: np.ndarray
     sigma: np.ndarray | None
     num_points: int
+    azimuthal_std: np.ndarray | None = None
 
 
 @dataclass(frozen=True)
@@ -335,9 +338,10 @@ def _integrate_pattern_dioptrin(
             image,
             num_points,
             **({"errors": True} if task.calculate_errors else {}),
+            **({"azimuthal_std": True} if task.calculate_azimuthal_std else {}),
         )
     except TypeError:
-        # Older Dioptrin versions cannot calculate propagated errors.
+        # Older Dioptrin versions may lack errors or independent spread.
         return None
 
     radial = np.asarray(result.radial)
@@ -349,14 +353,21 @@ def _integrate_pattern_dioptrin(
     )
     if task.calculate_errors and sigma is None:
         return None
+    std = getattr(result, "azimuthal_std", None) if task.calculate_azimuthal_std else None
+    if task.calculate_azimuthal_std and std is None:
+        return None
+    if std is not None:
+        std = np.asarray(std)
     if task.unit == "d_A":
         wavelength = task.geometry_config["wavelength"]
         radial = wavelength / (2 * np.sin(radial / 360 * np.pi)) * 1e10
-    if np.sum(intensity) != 0 and task.trim_trailing_zeros:
+    if std is None and np.sum(intensity) != 0 and task.trim_trailing_zeros:
         radial, intensity = trim_trailing_zeros(radial, intensity)
         if sigma is not None:
             sigma = sigma[: len(intensity)]
-    return PatternIntegrationResult(radial, intensity, sigma, num_points)
+    if std is not None and task.trim_trailing_zeros:
+        radial, intensity, sigma, std = trim_spread(radial, intensity, sigma, std)
+    return PatternIntegrationResult(radial, intensity, sigma, num_points, std)
 
 
 def _integrate_cake_dioptrin(
@@ -431,13 +442,18 @@ def _integrate_pattern(
     if task.calculate_errors:
         kwargs["error_model"] = "poisson"
 
-    try:
-        result = integrator.integrate1d(image, num_points, **kwargs)
-    except NameError:
-        # Preserve CalibrationModel's fallback for unavailable configured
-        # integration engines.
-        kwargs["method"] = "csr"
-        result = integrator.integrate1d(image, num_points, **kwargs)
+    std = None
+    if task.calculate_azimuthal_std:
+        result, spread_intensity, std = integrate_spottiness(
+            integrator, image, num_points, kwargs
+        )
+    else:
+        try:
+            result = integrator.integrate1d(image, num_points, **kwargs)
+        except NameError:
+            # Preserve the fallback for unavailable configured engines.
+            kwargs["method"] = "csr"
+            result = integrator.integrate1d(image, num_points, **kwargs)
 
     radial = np.asarray(result.radial)
     intensity = np.asarray(result.intensity)
@@ -446,15 +462,19 @@ def _integrate_pattern(
         if task.calculate_errors and result.sigma is not None
         else None
     )
+    if std is not None:
+        intensity = spread_intensity
     if task.unit == "d_A":
         radial = integrator.wavelength / (2 * np.sin(radial / 360 * np.pi)) * 1e10
 
-    if np.sum(intensity) != 0 and task.trim_trailing_zeros:
+    if std is None and np.sum(intensity) != 0 and task.trim_trailing_zeros:
         radial, intensity = trim_trailing_zeros(radial, intensity)
         if sigma is not None:
             sigma = sigma[: len(intensity)]
 
-    return PatternIntegrationResult(radial, intensity, sigma, num_points)
+    if std is not None and task.trim_trailing_zeros:
+        radial, intensity, sigma, std = trim_spread(radial, intensity, sigma, std)
+    return PatternIntegrationResult(radial, intensity, sigma, num_points, std)
 
 
 def _integrate_cake(
