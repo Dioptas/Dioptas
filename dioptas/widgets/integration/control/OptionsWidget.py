@@ -41,6 +41,26 @@ class OptionsWidget(QtWidgets.QWidget):
 
         self.setLayout(self._layout)
         self.set_stylesheet()
+        self._integration_columns = 2
+        self._integration_viewport = self._tab_widget.tab_widgets[0].viewport()
+        self._integration_viewport.installEventFilter(self)
+
+    def eventFilter(self, watched, event):
+        if watched is self._integration_viewport and event.type() == QtCore.QEvent.Resize:
+            groups = (self.sampling_gb, self.azimuth_gb,
+                      self.corrections_gb, self.spottiness_gb)
+            required = (max(groups[0].minimumSizeHint().width(), groups[2].minimumSizeHint().width())
+                        + max(groups[1].minimumSizeHint().width(), groups[3].minimumSizeHint().width())
+                        + 30)
+            columns = 2 if event.size().width() >= required else 1
+            if columns != self._integration_columns:
+                self._integration_columns = columns
+                for group in groups:
+                    self._integration_gb_layout.removeWidget(group)
+                for index, group in enumerate(groups):
+                    self._integration_gb_layout.addWidget(group, index // columns, index % columns)
+                self._integration_gb_layout.setColumnStretch(1, 1 if columns == 2 else 0)
+        return super().eventFilter(watched, event)
 
     def create_phase_gb(self):
         self.phase_gb = QtWidgets.QGroupBox("Phase options")

@@ -236,3 +236,20 @@ def test_spottiness_phase_lines_follow_positions_color_and_visibility(
     assert all(line.isVisible() for line in spread.phase_lines[0])
     main.del_phase(0)
     assert spread.phase_lines == []
+
+
+def test_options_reflow_without_horizontal_clipping(qtbot):
+    from dioptas.widgets.integration.control.OptionsWidget import OptionsWidget
+
+    widget = OptionsWidget()
+    qtbot.addWidget(widget)
+    widget.resize(450, 650)
+    widget.show()
+    qtbot.wait(20)
+    scroll = widget._tab_widget.tab_widgets[0]
+    assert scroll.horizontalScrollBar().maximum() == 0
+    assert widget.spottiness_gb.geometry().top() > widget.corrections_gb.geometry().top()
+    widget.resize(900, 650)
+    qtbot.wait(20)
+    assert scroll.horizontalScrollBar().maximum() == 0
+    assert widget.spottiness_gb.geometry().top() == widget.corrections_gb.geometry().top()
