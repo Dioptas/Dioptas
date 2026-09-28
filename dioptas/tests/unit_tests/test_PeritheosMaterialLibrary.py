@@ -296,7 +296,8 @@ def test_peritheos_011_argon_records_calculate_and_round_trip(material_id, tmp_p
         assert phase.params["eos_records"][index] == record
 
 
-def test_high_pressure_argon_loads_at_visible_source_conditions():
+@pytest.mark.parametrize("origin", ["bundled", "file"])
+def test_high_pressure_argon_loads_at_visible_source_conditions(origin):
     material = eos.Material.from_dict(get_material_document("argon_fcc"))
     for index, record in enumerate(material.eos_records):
         if record["identifier"] not in {
@@ -304,7 +305,7 @@ def test_high_pressure_argon_loads_at_visible_source_conditions():
             "argon_fcc_finger_1981_murnaghan2_debye",
         }:
             continue
-        phase = eos.build_jcpds(material, record_index=index, origin="bundled")
+        phase = eos.build_jcpds(material, record_index=index, origin=origin)
         model = PhaseModel()
         model.add_jcpds_object(phase)
         assert phase.params["pressure"] == record["experimental_pressure_range_gpa"][0]
