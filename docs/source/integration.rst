@@ -93,8 +93,8 @@ in each radial bin. A panel beneath the diffraction pattern shares its radial ax
 and horizontal zoom, with an independent, linear vertical scale. Clicking the panel
 moves the shared green cursor. Right-click zooms out one step, and double
 right-click restores the full range. Enabled phases appear as full-height lines
-in their phase colors. The 1D controls are arranged in a 2 × 2 grid: sampling,
-azimuth range, corrections and errors, and spottiness. Choose
+in their phase colors. The 1D controls group sampling, azimuth range, corrections and errors, and
+spottiness. The groups stack vertically in narrow panels. Choose
 **Relative spread (std / mean)** in the same Spottiness group to compare spread relative to the original
 integrated intensity. Pattern background subtraction and the main plot's log or
 square-root scale do not change this statistic.
@@ -247,7 +247,7 @@ The fit-pressure range is the range used to constrain the published EoS; it is *
 phase-stability range. A displayed ``±`` value is the uncertainty reported by the source.
 ``error n/r`` means that no verified error was recorded, not that the error is zero.
 
-Select the appropriate record and click **Load as Phase** (or double-click it). The material's records remain available afterward in the phase table's **Ref** selector, so its effect on
+Select the appropriate record and click **Load as Phase** (or double-click it). The material's records remain available afterward in the phase table's **Ref** selector, so their effects on
 the calculated lines can be compared immediately. **Export .eosmat…** is only needed to share the
 material or move it to a different Dioptas installation; loading from the database does not require
 an export.
@@ -371,7 +371,7 @@ Corrections
 
     Correction controls in the integration window.
 
-The **Cor** tab provides three types of intensity corrections:
+The **Cor** tab provides detector, sample-absorption and transfer-function corrections:
 
 
 cBN Seat Correction
