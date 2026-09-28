@@ -660,13 +660,20 @@ class ProjectSaveLoadTest(QtTest):
         from dioptas.model.loader.KaraboLoader import extra_data_installed
 
         if not extra_data_installed:
-            return
+            self.skipTest("Karabo series loading requires extra_data")
         self.check_calibration = False
         self.save_and_load_configuration(self.prepare_series_file)
         self.assertTrue(self.model.img_model.series_max > 1)
 
     def prepare_series_file(self):
-        self.model.img_model.load(os.path.join(data_path, "karabo_epix.h5"))
+        # The series has a different shape from the initial Pilatus image.
+        # Acknowledge the expected modal warning in this unattended GUI test.
+        with patch.object(
+            QtWidgets.QMessageBox, "critical", return_value=QtWidgets.QMessageBox.Ok
+        ) as warning:
+            self.model.img_model.load(os.path.join(data_path, "karabo_epix.h5"))
+        warning.assert_called_once()
+        self.assertEqual(warning.call_args.args[1], "Shape mismatch.")
         self.assertTrue(self.model.img_model.series_max > 1)
 
     ####################################################################################################################
