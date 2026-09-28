@@ -18,6 +18,7 @@ class PatternWidget(QtCore.QObject):
     mouse_left_clicked = QtCore.Signal(float, float)
     range_changed = QtCore.Signal(list)
     auto_range_status_changed = QtCore.Signal(bool)
+    phases_changed = QtCore.Signal()
 
     def __init__(self, pg_layout):
         super().__init__()
@@ -295,17 +296,22 @@ class PatternWidget(QtCore.QObject):
             )
         )
 
+        self.phases_changed.emit()
+
     def set_phase_color(self, ind, color):
         self.phases[ind].set_color(color)
         self.phases_legend.setItemColor(ind, color)
+        self.phases_changed.emit()
 
     def hide_phase(self, ind):
         self.phases[ind].hide()
         self.phases_legend.hideItem(ind)
+        self.phases_changed.emit()
 
     def show_phase(self, ind):
         self.phases[ind].show()
         self.phases_legend.showItem(ind)
+        self.phases_changed.emit()
 
     def rename_phase(self, ind, name):
         self.phases_legend.renameItem(ind, name)
@@ -313,19 +319,23 @@ class PatternWidget(QtCore.QObject):
     def update_phase_intensities(self, ind, positions, intensities, baseline=0):
         if len(self.phases):
             self.phases[ind].update_intensities(positions, intensities, baseline)
+            self.phases_changed.emit()
 
     def update_phase_line_visibility(self, ind):
         x_range = self.plot_item.dataBounds(0)
         self.phases[ind].update_visibilities(x_range)
+        self.phases_changed.emit()
 
     def update_phase_line_visibilities(self):
         x_range = self.plot_item.dataBounds(0)
         for phase in self.phases:
             phase.update_visibilities(x_range)
+        self.phases_changed.emit()
 
     def del_phase(self, ind):
         self.phases[ind].remove()
         del self.phases[ind]
+        self.phases_changed.emit()
 
     def plot_vertical_lines(self, positions, name=None, numbers=None):
         if len(self.phases_vlines) > 0:
@@ -400,8 +410,9 @@ class PatternWidget(QtCore.QObject):
         )
 
     def mouseMoved(self, pos):
-        pos = self.plot_item.mapFromScene(pos)
-        self.mouse_moved.emit(pos.x(), pos.y())
+        if self.view_box.scene() is not None and self.view_box.sceneBoundingRect().contains(pos):
+            point = self.view_box.mapSceneToView(pos)
+            self.mouse_moved.emit(point.x(), point.y())
 
     def modify_mouse_behavior(self):
         # different mouse handlers

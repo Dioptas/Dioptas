@@ -15,6 +15,7 @@ from ..model.util.eos_phase import (
     THERMAL_EOS_TYPES,
     THERMAL_MODEL_IDENTIFIERS,
     eos_parameter_names,
+    thermal_parameter_signature,
 )
 
 
@@ -479,9 +480,15 @@ class EosRecordDialog(QtWidgets.QDialog):
         # AlphaKT is Dioptas' optional legacy coefficient correction. The
         # Peritheos thermal models, in contrast, must be complete records.
         if thermal_type and thermal_type != "AlphaKT":
+            signature = (thermal_parameter_signature(thermal_type)
+                         if thermal_type in THERMAL_EOS_TYPES else {})
             missing = [
                 name for name in self._thermal_parameters[thermal_type]
                 if thermal_parameters.get(name) is None
+                # Double-Debye uses Tr=None for an absolute cold curve.
+                # Respect nullable constructor defaults without accepting
+                # missing required coefficients in other thermal models.
+                and not (name in signature and signature[name].default is None)
                 and not (
                     thermal_type not in THERMAL_EOS_TYPES
                     and name in thermal_parameters

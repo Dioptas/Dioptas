@@ -10,6 +10,7 @@ from ...CustomWidgets import (
     SpinBoxAlignRight,
     ConservativeSpinBox,
     CheckableFlatButton,
+    FlatButton,
     SaveIconButton,
     DoubleSpinBoxAlignRight,
 )
@@ -40,6 +41,26 @@ class OptionsWidget(QtWidgets.QWidget):
 
         self.setLayout(self._layout)
         self.set_stylesheet()
+        self._integration_columns = 2
+        self._integration_viewport = self._tab_widget.tab_widgets[0].viewport()
+        self._integration_viewport.installEventFilter(self)
+
+    def eventFilter(self, watched, event):
+        if watched is self._integration_viewport and event.type() == QtCore.QEvent.Resize:
+            groups = (self.sampling_gb, self.azimuth_gb,
+                      self.corrections_gb, self.spottiness_gb)
+            required = (max(groups[0].minimumSizeHint().width(), groups[2].minimumSizeHint().width())
+                        + max(groups[1].minimumSizeHint().width(), groups[3].minimumSizeHint().width())
+                        + 30)
+            columns = 2 if event.size().width() >= required else 1
+            if columns != self._integration_columns:
+                self._integration_columns = columns
+                for group in groups:
+                    self._integration_gb_layout.removeWidget(group)
+                for index, group in enumerate(groups):
+                    self._integration_gb_layout.addWidget(group, index // columns, index % columns)
+                self._integration_gb_layout.setColumnStretch(1, 1 if columns == 2 else 0)
+        return super().eventFilter(watched, event)
 
     def create_phase_gb(self):
         self.phase_gb = QtWidgets.QGroupBox("Phase options")
@@ -97,56 +118,74 @@ class OptionsWidget(QtWidgets.QWidget):
         QtWidgets.QToolTip.showText(
             control.mapToGlobal(control.rect().bottomLeft()), message, control)
 
+    @staticmethod
+    def _control_group(title):
+        group = QtWidgets.QGroupBox(title)
+        layout = QtWidgets.QGridLayout(group)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setHorizontalSpacing(8)
+        layout.setVerticalSpacing(6)
+        layout.setAlignment(QtCore.Qt.AlignTop)
+        return group, layout
+
     def create_integration_gb(self):
         self.integration_gb = QtWidgets.QGroupBox("1D integration")
-        self._integration_gb_layout = QtWidgets.QGridLayout()
-        self._integration_gb_layout.setContentsMargins(5, 8, 5, 7)
-        self._integration_gb_layout.setSpacing(5)
-        self.oned_azimuth_min_txt = NumberTextField("-180")
-        self.oned_azimuth_max_txt = NumberTextField("180")
-        self.oned_full_toggle_btn = CheckableFlatButton("Full")
+        self._integration_gb_layout = QtWidgets.QGridLayout(self.integration_gb)
+        self._integration_gb_layout.setContentsMargins(8, 8, 8, 8)
+        self._integration_gb_layout.setSpacing(10)
+        self._integration_gb_layout.setAlignment(QtCore.Qt.AlignTop)
+
+        self.sampling_gb, sampling = self._control_group("Sampling")
+        self.azimuth_gb, azimuth = self._control_group("Azimuth range")
+        self.corrections_gb, corrections = self._control_group("Corrections and errors")
+        self.spottiness_gb, spottiness = self._control_group("Spottiness")
+        for row, column, group in (
+            (0, 0, self.sampling_gb), (0, 1, self.azimuth_gb),
+            (1, 0, self.corrections_gb), (1, 1, self.spottiness_gb),
+        ):
+            self._integration_gb_layout.addWidget(group, row, column)
+        self._integration_gb_layout.setColumnStretch(0, 1)
+        self._integration_gb_layout.setColumnStretch(1, 1)
 
         self.bin_count_txt = IntegerTextField("0")
-        self.bin_count_cb = QtWidgets.QCheckBox("auto")
+        self.bin_count_cb = QtWidgets.QCheckBox("Auto")
         self.supersampling_sb = SpinBoxAlignRight()
-        self.correct_solid_angle_cb = QtWidgets.QCheckBox("correct Solid Angle")
-        self.correct_solid_angle_cb.setChecked(True)
-        self.calculate_poisson_errors_cb = QtWidgets.QCheckBox(
-            "Calculate Poisson errors"
-        )
-
-        self._integration_gb_layout.addWidget(LabelAlignRight("Radial bins:"), 0, 0)
-
-        self._integration_gb_layout.addWidget(self.bin_count_txt, 0, 1)
-        self._integration_gb_layout.addWidget(self.bin_count_cb, 0, 2)
-        self._integration_gb_layout.addWidget(LabelAlignRight("Azimuth range:"), 1, 0)
-        self._oned_azi_range_layout = QtWidgets.QHBoxLayout()
-        self._oned_azi_range_layout.setContentsMargins(0, 0, 0, 0)
-        self._oned_azi_range_layout.setSpacing(5)
-        self._oned_azi_range_layout.addWidget(self.oned_azimuth_min_txt)
-        self._oned_azi_range_layout.addWidget(LabelAlignRight("-"))
-        self._oned_azi_range_layout.addWidget(self.oned_azimuth_max_txt)
-        self._integration_gb_layout.addLayout(self._oned_azi_range_layout, 1, 1, 1, 2)
-        self._integration_gb_layout.addWidget(self.oned_full_toggle_btn, 1, 3)
-        self._integration_gb_layout.addWidget(self.correct_solid_angle_cb, 2, 1)
-        self._integration_gb_layout.addWidget(self.calculate_poisson_errors_cb, 3, 1)
-        self._integration_gb_layout.addWidget(LabelAlignRight("Supersampling:"), 4, 0)
-        self._integration_gb_layout.addWidget(self.supersampling_sb, 4, 1)
-
         self.use_dioptrin_cb = QtWidgets.QCheckBox("Use Dioptrin")
-        self._integration_gb_layout.addWidget(self.use_dioptrin_cb, 5, 1)
+        sampling.addWidget(LabelAlignRight("Radial bins:"), 0, 0)
+        sampling.addWidget(self.bin_count_txt, 0, 1)
+        sampling.addWidget(self.bin_count_cb, 0, 2)
+        sampling.addWidget(LabelAlignRight("Supersampling:"), 1, 0)
+        sampling.addWidget(self.supersampling_sb, 1, 1)
+        sampling.addWidget(self.use_dioptrin_cb, 2, 0, 1, 3)
 
-        self._integration_gb_layout.setRowStretch(0, 0)
-        self._integration_gb_layout.setRowStretch(1, 0)
-        self._integration_gb_layout.setRowStretch(2, 0)
-        self._integration_gb_layout.setRowStretch(6, 1)
-        self._integration_gb_layout.setColumnStretch(0, 0)
-        self._integration_gb_layout.setColumnStretch(1, 0)
-        self._integration_gb_layout.setColumnStretch(2, 0)
-        self._integration_gb_layout.setColumnStretch(3, 0)
-        self._integration_gb_layout.setColumnStretch(4, 1)
+        self.oned_azimuth_min_txt = NumberTextField("-180")
+        self.oned_azimuth_max_txt = NumberTextField("180")
+        self.oned_full_toggle_btn = CheckableFlatButton("Full range")
+        azimuth.addWidget(LabelAlignRight("From (°):"), 0, 0)
+        azimuth.addWidget(self.oned_azimuth_min_txt, 0, 1)
+        azimuth.addWidget(LabelAlignRight("To (°):"), 1, 0)
+        azimuth.addWidget(self.oned_azimuth_max_txt, 1, 1)
+        azimuth.addWidget(self.oned_full_toggle_btn, 2, 1)
 
-        self.integration_gb.setLayout(self._integration_gb_layout)
+        self.correct_solid_angle_cb = QtWidgets.QCheckBox("Correct solid angle")
+        self.correct_solid_angle_cb.setChecked(True)
+        self.calculate_poisson_errors_cb = QtWidgets.QCheckBox("Calculate Poisson errors")
+        corrections.addWidget(self.correct_solid_angle_cb, 0, 0, QtCore.Qt.AlignLeft)
+        corrections.addWidget(self.calculate_poisson_errors_cb, 1, 0, QtCore.Qt.AlignLeft)
+
+        self.calculate_azimuthal_std_cb = QtWidgets.QCheckBox("Show Spottiness")
+        self.calculate_azimuthal_std_cb.setToolTip(
+            "Calculate azimuthal standard deviation and show the Spottiness panel")
+        self.spottiness_relative_cb = QtWidgets.QCheckBox("Relative spread (std / mean)")
+        self.spottiness_relative_cb.setToolTip(
+            "Uses the original integrated mean. Nonpositive and near-zero means are omitted.")
+        self.spottiness_relative_cb.setEnabled(False)
+        self.save_spottiness_btn = FlatButton("Save Spottiness…")
+        self.save_spottiness_btn.setToolTip("Export mean, azimuthal std and relative spread to CSV")
+        self.save_spottiness_btn.setEnabled(False)
+        spottiness.addWidget(self.calculate_azimuthal_std_cb, 0, 0, QtCore.Qt.AlignLeft)
+        spottiness.addWidget(self.spottiness_relative_cb, 1, 0, QtCore.Qt.AlignLeft)
+        spottiness.addWidget(self.save_spottiness_btn, 2, 0)
 
     def create_cake_gb(self):
         self.cake_gb = QtWidgets.QGroupBox("2D (Cake-) integration")

@@ -26,6 +26,8 @@ class BatchModel:
 
     def __init__(self, configuration: Configuration) -> None:
         self.data: np.ndarray | None = None
+        self.azimuthal_std: np.ndarray | None = None
+        self.integration_unit: str = "2th_deg"
         self.bkg: np.ndarray | None = None
         self.binning: np.ndarray | None = None
         self.file_map: np.ndarray | None = None
@@ -43,6 +45,8 @@ class BatchModel:
 
     def reset_data(self) -> None:
         self.data = None
+        self.azimuthal_std = None
+        self.integration_unit = "2th_deg"
         self.bkg = None
         self.binning = None
         self.file_map = None
@@ -126,12 +130,18 @@ class BatchModel:
     def load_proc_data(self, filename: str) -> None:
         """Load diffraction patterns and metadata from h5 file."""
         logger.info("Loading processed batch data from %s", filename)
+        self.azimuthal_std = None
+        self.integration_unit = "2th_deg"
         with h5py.File(filename, "r") as data_file:
             # ToDo To be removed
             if "processed/result" not in data_file:
                 self.try_load_old_format(data_file)
                 return
             self.data = data_file["processed/result/data"][()]
+            result_group = data_file["processed/result"]
+            if "azimuthal_std" in result_group:
+                self.azimuthal_std = result_group["azimuthal_std"][()]
+            self.integration_unit = result_group["binning"].attrs.get("radial_unit", "2th_deg")
             self.binning = data_file["processed/result/binning"][()]
             self.n_img = self.data.shape[0]
             self.n_img_all = self.data.shape[0]
@@ -199,7 +209,7 @@ class BatchModel:
                 nxprocess["mask_shape"] = self.used_mask_shape
 
             nxprocess["int_method"] = "csr"
-            nxprocess["int_unit"] = "2th_deg"
+            nxprocess["int_unit"] = self.integration_unit
             nxprocess["num_points"] = self.binning.shape[0]
 
             if self.bkg is not None:
@@ -207,8 +217,14 @@ class BatchModel:
 
             nxdata.create_dataset("data", data=self.data)
             tth = nxdata.create_dataset("binning", data=self.binning)
-            tth.attrs["unit"] = "deg"
-            tth.attrs["long_name"] = "two_theta (degrees)"
+            tth.attrs["radial_unit"] = self.integration_unit
+            tth.attrs["unit"] = {"2th_deg": "deg", "q_A^-1": "1/angstrom",
+                                 "q_nm^-1": "1/nm", "d_A": "angstrom"}.get(self.integration_unit, self.integration_unit)
+            tth.attrs["long_name"] = self.integration_unit
+            if self.azimuthal_std is not None:
+                spread = nxdata.create_dataset("azimuthal_std", data=self.azimuthal_std)
+                spread.attrs["definition"] = "Population std of x=s/n with weights w=c*n; empty bins are NaN"
+                spread.attrs["long_name"] = "Azimuthal standard deviation (not uncertainty of the mean)"
 
             nxprocess.create_dataset("pos_map", data=self.pos_map)
             nxprocess.create_dataset("file_map", data=self.file_map)
@@ -216,7 +232,7 @@ class BatchModel:
             nxprocess.create_dataset("files", data=list(self.files), dtype=dt)
 
     def save_as_csv(self, filename: str) -> None:
-        """Save diffraction patterns to 3-columns csv file."""
+        """Save radial/frame/intensity CSV, with named spread columns when present."""
         if os.path.dirname(filename) != "":
             os.makedirs(os.path.dirname(filename), exist_ok=True)
         x = self.binning.repeat(self.n_img)
@@ -225,12 +241,14 @@ class BatchModel:
             .repeat(self.binning.shape[0], axis=0)
             .flatten()
         )
-        np.savetxt(
-            filename,
-            np.array(list(zip(x, y, self.data.T.flatten()))),
-            delimiter=",",
-            fmt="%f",
-        )
+        columns = [x, y, self.data.T.flatten()]
+        header = ""
+        if self.azimuthal_std is not None:
+            from .util.spottiness import relative_spread
+            columns.extend((self.azimuthal_std.T.flatten(),
+                            relative_spread(self.data, self.azimuthal_std).T.flatten()))
+            header = f"radial [{self.integration_unit}],frame,integrated_mean,azimuthal_std,relative_spread"
+        np.savetxt(filename, np.column_stack(columns), delimiter=",", fmt="%.12g", header=header)
 
     def integrate_raw_data(
         self,
@@ -255,7 +273,11 @@ class BatchModel:
         unit = self.configuration.integration_unit
         azi_range = self.configuration.oned_azimuth_range
 
-        if cal.can_use_dioptrin_batch(unit, azi_range):
+        self.azimuthal_std = None
+        self.integration_unit = unit
+        if cal.can_use_dioptrin_batch(unit, azi_range) and (
+            not self.configuration.calculate_azimuthal_std or cal.supports_dioptrin_spottiness()
+        ):
             self._integrate_raw_data_dioptrin_batch(
                 start, stop, step, use_all, callback_fn
             )
@@ -271,6 +293,7 @@ class BatchModel:
         callback_fn: Callable[[int], bool] | None = None,
     ) -> None:
         intensity_data = []
+        spread_data = []
         binning_data = []
         pos_map = []
         image_counter = 0
@@ -302,6 +325,8 @@ class BatchModel:
                 image_counter += 1
                 pos_map.append((file_index, pos))
                 intensity_data.append(intensity)
+                if self.configuration.calculate_azimuthal_std:
+                    spread_data.append(self.configuration.calibration_model.azimuthal_std)
                 binning_data.append(binning)
 
                 now = time.monotonic()
@@ -311,6 +336,9 @@ class BatchModel:
                         break
         finally:
             self.configuration.img_model.img_changed.blocked = False
+
+        if not intensity_data:
+            return
 
         # deal with different x lengths due to trimmed zeros:
         binning_lengths = [len(b) for b in binning_data]
@@ -329,6 +357,10 @@ class BatchModel:
         self.pos_map = np.array(pos_map)
         self.binning = np.array(binning)
         self.data = padded_data
+        if spread_data:
+            self.azimuthal_std = np.full_like(padded_data, np.nan)
+            for ind, spread in enumerate(spread_data):
+                self.azimuthal_std[ind, :len(spread)] = spread
         self.bkg = None
         self.n_img = self.data.shape[0]
 
@@ -374,6 +406,7 @@ class BatchModel:
             all_pos_map = [(source[i][0], source[i][1]) for i in indices]
 
             intensity_data: list[np.ndarray] = []
+            spread_data: list[np.ndarray] = []
             pos_map: list[tuple[int, int]] = []
             binning: np.ndarray | None = None
             aborted = False
@@ -388,7 +421,10 @@ class BatchModel:
                     abort_check=lambda: aborted,
                 )
 
-            result_iter = cal.dioptrin_batch1d_iter(frame_generator(), num_points)
+            result_iter = cal.dioptrin_batch1d_iter(
+                frame_generator(), num_points,
+                **({"azimuthal_std": True} if self.configuration.calculate_azimuthal_std else {}),
+            )
 
             last_callback_time = time.monotonic()
             for i, result in enumerate(result_iter):
@@ -403,6 +439,8 @@ class BatchModel:
                 if binning is None:
                     binning = x
                 intensity_data.append(y)
+                if self.configuration.calculate_azimuthal_std:
+                    spread_data.append(np.asarray(result.result.azimuthal_std))
                 pos_map.append(all_pos_map[i])
 
                 now = time.monotonic()
@@ -415,6 +453,8 @@ class BatchModel:
             self.configuration.img_model.img_changed.blocked = False
 
         self._finalize_batch_results(cal, intensity_data, pos_map, binning, unit)
+        if spread_data:
+            self.azimuthal_std = np.asarray(spread_data)
 
     def set_integration_results(self, results: dict) -> None:
         """Apply pre-computed integration results.
@@ -445,6 +485,8 @@ class BatchModel:
         self.pos_map = np.array(pos_map)
         self.binning = np.array(binning)
         self.data = intensity_data
+        self.azimuthal_std = results.get("azimuthal_std")
+        self.integration_unit = results.get("integration_unit", self.configuration.integration_unit)
         self.bkg = None
         self.n_img = self.data.shape[0]
 
@@ -494,6 +536,8 @@ class BatchModel:
         average_intensities = np.mean(self.data[:, range_ind[0] : range_ind[1]], axis=1)
         factors = average_intensities[0] / average_intensities
         self.data = (self.data.T * factors).T
+        if self.azimuthal_std is not None:
+            self.azimuthal_std = (self.azimuthal_std.T * np.abs(factors)).T
 
     def get_image_info(self, index: int, use_all: bool = False) -> tuple[str | None, int | None]:
         """Get filename and image position in the file."""

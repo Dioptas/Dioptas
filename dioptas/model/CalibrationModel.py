@@ -79,6 +79,7 @@ class CalibrationModel:
         self.tth: np.ndarray = np.linspace(0, 25)
         self.int: np.ndarray = np.sin(self.tth)
         self.sigma: np.ndarray | None = None
+        self.azimuthal_std: np.ndarray | None = None
         self.num_points: int = len(self.int)
 
         self.cake_img: np.ndarray = np.zeros((2048, 2048))
@@ -436,10 +437,22 @@ class CalibrationModel:
             images, num_points, num_workers=self.dioptrin_num_workers
         )
 
-    def dioptrin_batch1d_iter(self, images: Any, num_points: int) -> Iterator[Any]:
+    def supports_dioptrin_spottiness(self) -> bool:
+        """Older native backends use the pyFAI fallback for spread."""
+        import inspect
+        try:
+            return "azimuthal_std" in inspect.signature(
+                self._dioptrin_integrator.batch1d_iter
+            ).parameters
+        except (AttributeError, TypeError, ValueError):
+            return False
+
+    def dioptrin_batch1d_iter(self, images: Any, num_points: int,
+                            azimuthal_std: bool = False) -> Iterator[Any]:
         """Run streaming dioptrin batch 1D integration (supports generators)."""
         return self._dioptrin_integrator.batch1d_iter(
-            images, num_points, num_workers=self.dioptrin_num_workers
+            images, num_points, num_workers=self.dioptrin_num_workers,
+            **({"azimuthal_std": True} if azimuthal_std else {}),
         )
 
     def find_peaks_automatic(self, x: float, y: float, peak_ind: int) -> np.ndarray:
@@ -769,9 +782,11 @@ class CalibrationModel:
         azi_range: tuple[float, float] | None = None,
         trim_zeros: bool = True,
         calculate_errors: bool = False,
+        calculate_azimuthal_std: bool = False,
     ) -> tuple[np.ndarray, np.ndarray]:
         self.sigma = None
-        if mask is not None and np.all(mask):
+        self.azimuthal_std = None
+        if mask is not None and np.all(mask) and not calculate_azimuthal_std:
             # do not perform integration if the image is completely masked...
             return self.tth, self.int
 
@@ -821,14 +836,16 @@ class CalibrationModel:
                 self._dioptrin_integrator.set_polarization_factor(polarization_factor)
 
                 t1 = time.time()
-                if calculate_errors:
+                if calculate_errors or calculate_azimuthal_std:
                     try:
                         result = self._dioptrin_integrator.integrate1d(
-                            img_data, num_points, errors=True
+                            img_data, num_points,
+                            **({"errors": True} if calculate_errors else {}),
+                            **({"azimuthal_std": True} if calculate_azimuthal_std else {}),
                         )
                     except TypeError:
                         logger.info(
-                            "Installed Dioptrin does not support error calculation; "
+                            "Installed Dioptrin does not support the requested statistics; "
                             "using pyFAI"
                         )
                         result = None
@@ -839,11 +856,15 @@ class CalibrationModel:
 
                 if result is not None and (
                     not calculate_errors or getattr(result, "errors", None) is not None
+                ) and (
+                    not calculate_azimuthal_std or getattr(result, "azimuthal_std", None) is not None
                 ):
                     self.tth = np.array(result.radial)
                     self.int = np.array(result.intensity)
                     if calculate_errors:
                         self.sigma = np.array(result.errors)
+                    if calculate_azimuthal_std:
+                        self.azimuthal_std = np.array(result.azimuthal_std)
 
                     if unit == "d_A":
                         self.tth = (
@@ -859,13 +880,18 @@ class CalibrationModel:
                         )
                     )
 
-                    if np.sum(self.int) != 0 and trim_zeros:
+                    if self.azimuthal_std is None and np.sum(self.int) != 0 and trim_zeros:
                         self.tth, self.int = trim_trailing_zeros(
                             self.tth, self.int
                         )
                         if self.sigma is not None:
                             self.sigma = self.sigma[: len(self.int)]
 
+                    if self.azimuthal_std is not None and trim_zeros:
+                        from .util.spottiness import trim_spread
+                        self.tth, self.int, self.sigma, self.azimuthal_std = trim_spread(
+                            self.tth, self.int, self.sigma, self.azimuthal_std
+                        )
                     return self.tth, self.int
 
         # pyFAI path
@@ -890,18 +916,25 @@ class CalibrationModel:
         if calculate_errors:
             integration_kwargs["error_model"] = "poisson"
 
-        try:
-            result = self.pattern_geometry.integrate1d(
-                img_data, num_points, **integration_kwargs
+        if calculate_azimuthal_std:
+            from .util.spottiness import integrate_spottiness
+            result, spread_intensity, self.azimuthal_std = integrate_spottiness(
+                self.pattern_geometry, img_data, num_points, integration_kwargs
             )
-        except NameError:
-            integration_kwargs["method"] = "csr"
-            result = self.pattern_geometry.integrate1d(
-                img_data, num_points, **integration_kwargs
-            )
+        else:
+            try:
+                result = self.pattern_geometry.integrate1d(
+                    img_data, num_points, **integration_kwargs
+                )
+            except NameError:
+                integration_kwargs["method"] = "csr"
+                result = self.pattern_geometry.integrate1d(
+                    img_data, num_points, **integration_kwargs
+                )
 
         self.tth = np.array(result.radial)
-        self.int = np.array(result.intensity)
+        self.int = (spread_intensity if calculate_azimuthal_std
+                    else np.array(result.intensity))
         if calculate_errors and result.sigma is not None:
             self.sigma = np.array(result.sigma)
 
@@ -918,12 +951,17 @@ class CalibrationModel:
         )
 
         if (
-            np.sum(self.int) != 0 and trim_zeros
+            self.azimuthal_std is None and np.sum(self.int) != 0 and trim_zeros
         ):  # only trim zeros if not everything is 0 (e.g. bkg-subtraction of the same image)
             self.tth, self.int = trim_trailing_zeros(self.tth, self.int)
             if self.sigma is not None:
                 self.sigma = self.sigma[: len(self.int)]
 
+        if self.azimuthal_std is not None and trim_zeros:
+            from .util.spottiness import trim_spread
+            self.tth, self.int, self.sigma, self.azimuthal_std = trim_spread(
+                self.tth, self.int, self.sigma, self.azimuthal_std
+            )
         return self.tth, self.int
 
     def integrate_2d(

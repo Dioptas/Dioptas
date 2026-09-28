@@ -7,6 +7,7 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       QT_QPA_PLATFORM: offscreen
 
@@ -35,6 +36,10 @@ jobs:
 
     - name: Run tests
       run: |
-        uv run pytest dioptas/tests/functional_tests/test_functional_PhaseEditor.py
-        uv run pytest dioptas/tests/functional_tests/test_img_plots.py
-        uv run pytest dioptas/tests/functional_tests/test_functional_integration.py
+        # Legacy functional modules mutate global Qt dialog methods. Keep those
+        # mocks and deferred widget destruction out of subsequent modules.
+        for test_file in dioptas/tests/functional_tests/test_*.py; do
+          uv run pytest "$test_file" -v -o faulthandler_timeout=120
+        done
+        uv run pytest dioptas/tests/widget_tests/ --ignore=dioptas/tests/widget_tests/test_application_stylesheet.py -v -o faulthandler_timeout=120
+        uv run pytest dioptas/tests/widget_tests/test_application_stylesheet.py -v -o faulthandler_timeout=120

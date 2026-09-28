@@ -1,0 +1,27 @@
+name: CI_docs
+
+on: [push, pull_request]
+
+jobs:
+  documentation:
+    runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
+      - name: Install documentation dependencies
+        run: |
+          python -m pip install uv
+          uv sync --locked
+          uv pip install -r docs/requirements.txt
+      - name: Build documentation with warnings as errors
+        run: uv run --no-sync sphinx-build -W --keep-going -b html docs/source docs/_build/html
+      - uses: actions/upload-artifact@v7
+        with:
+          name: documentation-html
+          path: docs/_build/html

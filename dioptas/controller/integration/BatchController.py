@@ -756,10 +756,11 @@ class BatchController:
             )
         )
 
-        if img is None or x > img.shape[1] or x < 0 or y > img.shape[0] or y < 0:
+        if img is None or x >= img.shape[1] or x < 0 or y >= img.shape[0] or y < 0:
             return
-        scale = (binning[-1] - binning[0]) / binning.shape[0]
-        tth = x * scale + binning[0]
+        unit = self.model.current_configuration.integration_unit
+        coordinate = self.convert_x_value(
+            binning[int(x)], self.model.batch_model.integration_unit, unit)
 
         bkg = self.model.batch_model.bkg
         if (
@@ -774,7 +775,7 @@ class BatchController:
             f"Img: {int(y):.0f}"
         )
         self.widget.batch_widget.position_widget.mouse_pos_widget.cur_pos_widget.y_pos_lbl.setText(
-            f"2θ: {tth:.1f}"
+            f"{self._UNIT_DISPLAY[unit][0]}: {coordinate:.1f}"
         )
         self.widget.batch_widget.position_widget.mouse_pos_widget.cur_pos_widget.int_lbl.setText(
             f"I: {z:.1f}"
@@ -1126,10 +1127,18 @@ class BatchController:
             else:
                 self.model.img_model.blockSignals(True)
                 img_data = self.model.batch_model.data
-                pattern_x = self.model.batch_model.binning
+                batch = self.model.batch_model
+                unit = self.model.current_configuration.integration_unit
+                pattern_x = self.convert_x_value(batch.binning, batch.integration_unit, unit)
                 for y in range(img_data.shape[0]):
                     pattern_y = img_data[int(y)]
-                    self.model.pattern_model.set_pattern(pattern_x, pattern_y)
+                    self.model.pattern_model.set_pattern(
+                        pattern_x, pattern_y, unit=unit,
+                        azimuthal_std=None if batch.azimuthal_std is None else batch.azimuthal_std[y],
+                    )
+                    if batch.azimuthal_std is not None:
+                        self.model.current_configuration.save_spottiness(
+                            f"{name}_{y:03d}_spottiness.csv")
                     self.model.current_configuration.save_pattern(
                         f"{name}_{y:03d}{ext}"
                     )
@@ -1309,20 +1318,26 @@ class BatchController:
             or y < 0
         ):
             return
-        scale = (binning[-1] - binning[0]) / binning.shape[0]
-        tth = x * scale + binning[0]
+        unit = self.model.current_configuration.integration_unit
+        coordinate = self.convert_x_value(
+            binning[x], self.model.batch_model.integration_unit, unit)
         z = img[y, x]
 
         self.widget.batch_widget.position_widget.mouse_pos_widget.clicked_pos_widget.y_pos_lbl.setText(
-            f"2θ: {tth:.1f}"
+            f"{self._UNIT_DISPLAY[unit][0]}: {coordinate:.1f}"
         )
         self.widget.batch_widget.position_widget.mouse_pos_widget.clicked_pos_widget.int_lbl.setText(
             f"I: {z:.1f}"
         )
         new_binning = self.convert_x_value(
-            binning, "2th_deg", self.model.current_configuration.integration_unit
+            binning, self.model.batch_model.integration_unit,
+            self.model.current_configuration.integration_unit
         )
-        self.model.pattern_model.set_pattern(new_binning, img[y])
+        spread = self.model.batch_model.azimuthal_std
+        self.model.pattern_model.set_pattern(
+            new_binning, img[y], unit=self.model.current_configuration.integration_unit,
+            azimuthal_std=None if spread is None else spread[y],
+        )
 
     def plot_image(self, y):
         """
@@ -1424,6 +1439,12 @@ class BatchController:
         return ticks
 
     def convert_x_value(self, value, previous_unit, new_unit):
+        if previous_unit == new_unit:
+            return value
+        # Reciprocal-space conversions do not depend on the current
+        # calibration, which may differ from the one used for this batch.
+        if {previous_unit, new_unit} == {"q_A^-1", "d_A"}:
+            return 2 * np.pi / value
         wavelength = self.model.calibration_model.wavelength
         if previous_unit == "2th_deg":
             tth = value

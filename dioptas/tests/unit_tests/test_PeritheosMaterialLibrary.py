@@ -165,6 +165,10 @@ def test_all_materials_export_and_all_phase_records_can_be_duplicated(tmp_path):
             continue
         for index, record in enumerate(material.eos_records):
             phase = eos.build_jcpds(material, record_index=index, origin="bundled")
+            if record["scientific_validation"]["status"] != "primary_source_validated":
+                with pytest.raises(EosCalculationError, match="primary-source validation"):
+                    phase.compute_d(20.0, 1000.0)
+                continue
             model = PhaseModel()
             model.add_jcpds_object(phase, filename=phase.filename)
             custom_index = model.duplicate_eos_record(0, index)
@@ -245,3 +249,66 @@ def test_primary_validation_is_enforced_only_for_bundled_records(
     else:
         phase.compute_volume(pressure=20.0, temperature=300.0)
         assert phase.params["v"] > 0
+
+
+def test_switching_to_deferred_record_preserves_active_phase_and_export(tmp_path):
+    material = eos.Material.from_dict(get_material_document("feo"))
+    phase = eos.build_jcpds(material, origin="bundled")
+    model = PhaseModel()
+    model.add_jcpds_object(phase)
+    assert model.set_pressure_temperature(0, 20.0, 1000.0)
+    before = deepcopy(phase.params)
+    deferred_index = next(i for i, r in enumerate(material.eos_records)
+                          if r["scientific_validation"]["status"] == "deferred")
+
+    assert not model.set_eos_reference(0, deferred_index)
+    assert phase.params == before
+    path = str(tmp_path / "feo.eosmat")
+    eos.save_material_file(path, eos.material_from_jcpds(phase))
+    restored = eos.load_material_file(path).eos_records
+    assert [r["identifier"] for r in restored] == [
+        r["identifier"] for r in material.eos_records]
+    assert restored[deferred_index] == material.eos_records[deferred_index]
+
+
+@pytest.mark.parametrize("material_id", ["argon_fcc", "argon_hcp"])
+def test_peritheos_011_argon_records_calculate_and_round_trip(material_id, tmp_path):
+    """New native models must preserve their source isotherms and metadata."""
+    document = get_material_document(material_id)
+    material = eos.Material.from_dict(document)
+    exported = tmp_path / f"{material_id}.eosmat"
+    eos.save_material_file(str(exported), material)
+    restored = eos.load_material_file(str(exported))
+    assert restored.eos_records == material.eos_records
+    for index, record in enumerate(document["eos_records"]):
+        phase = eos.build_jcpds(restored, record_index=index, origin="bundled")
+        assert phase.reflections
+        temperature = record.get("temperature_ref", 298.15)
+        p_min, p_max = record.get("experimental_pressure_range_gpa", [0, 2])
+        pressure = (p_min + p_max) / 2
+        expected_record = PeritheosMaterial.from_eosmat(
+            document, record_identifiers=[record["identifier"]]
+        ).eos_records[0]
+        temperature = expected_record.reference_temperature
+        expected = expected_record.volume(pressure, temperature, check_validity=False)
+        phase.compute_volume(pressure=pressure, temperature=temperature)
+        assert phase.params["v"] == pytest.approx(expected), record["identifier"]
+        assert phase.params["eos_records"][index] == record
+
+
+@pytest.mark.parametrize("origin", ["bundled", "file"])
+def test_high_pressure_argon_loads_at_visible_source_conditions(origin):
+    material = eos.Material.from_dict(get_material_document("argon_fcc"))
+    for index, record in enumerate(material.eos_records):
+        if record["identifier"] not in {
+            "argon_fcc_dewaele_2021_vinet_mgd",
+            "argon_fcc_finger_1981_murnaghan2_debye",
+        }:
+            continue
+        phase = eos.build_jcpds(material, record_index=index, origin=origin)
+        model = PhaseModel()
+        model.add_jcpds_object(phase)
+        assert phase.params["pressure"] == record["experimental_pressure_range_gpa"][0]
+        assert phase.params["temperature"] == record["temperature_ref"]
+        assert phase.params["eos_records"][index] == record
+        assert all(reflection.d > 0 for reflection in phase.reflections)

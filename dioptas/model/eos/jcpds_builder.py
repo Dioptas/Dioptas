@@ -149,6 +149,22 @@ def build_jcpds(
         obj.compute_v0()
         obj.params["v"] = obj.params["v0"]
 
+    # Some high-pressure thermal models have no zero-pressure solution.
+    # Initialize those at documented source conditions, never with a different
+    # EOS or an invented ambient volume. The phase table shows the chosen P/T.
+    if (record is not None and material.format == "peritheos.material"
+            and record.get("scientific_validation", {}).get("status")
+            == "primary_source_validated" and obj.params.get("thermal_type")):
+        from ..util.jcpds import EosCalculationError
+        try:
+            obj.compute_volume()
+        except EosCalculationError:
+            bounds = record.get("experimental_pressure_range_gpa")
+            temperature = record.get("temperature_ref")
+            if not bounds or temperature is None:
+                raise
+            obj.compute_volume(pressure=float(bounds[0]), temperature=float(temperature))
+
     obj.params["modified"] = False
     return obj
 

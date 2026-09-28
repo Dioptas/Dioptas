@@ -24,7 +24,7 @@ The **Map** module allows you to visualize and explore 2D maps of diffraction da
     :align: center
     :width: 600 px
 
-    Location of module selectors.
+    Location of module selectors (overview from an earlier release).
 
 In addition to the GUI, Dioptas provides a :doc:`scripting API <scripting_api>` for headless integration
 from Python scripts and Jupyter notebooks.
@@ -83,5 +83,9 @@ Several keyboard shortcuts are available throughout the application:
   by one data point. Hold **Shift** as well to step by 10 points; hold **Ctrl/Cmd** as well
   to take a fractional (1/20th) step.
 - *Q/W Keys (Mask module):* Decrease/increase point mask size.
-- *Ctrl/Cmd + Z (Mask module):* Undo last mask action.
-- *Ctrl/Cmd + Y (Mask module):* Redo last mask action.
+- *Ctrl/Cmd + Z:* Undo the last action in any module.
+- *Redo:* Use the platform shortcut shown on the sidebar Redo button; Ctrl/Cmd + Y is also supported.
+
+Undo and redo share one application-wide history, including masks, calibration,
+phase edits and configuration changes. The sidebar buttons show which action
+will be undone or redone.

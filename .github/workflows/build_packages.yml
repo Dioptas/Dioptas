@@ -1,0 +1,100 @@
+# Build the same distribution artifacts for PR validation and tagged releases.
+name: Build packages
+
+on:
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: windows-latest
+          # Apple silicon: built WITH OpenMP. Homebrew's libomp on this runner
+          # has a minimum target of macOS 14, and delocate refuses to bundle a
+          # library into a wheel tagged for an older macOS, so the wheel's
+          # target is raised to match. Apple silicon Macs all run 14 or newer
+          # in practice; older ones fall back to the sdist.
+          - os: macos-14
+            openmp: true
+            cibw_env_macos: MACOSX_DEPLOYMENT_TARGET=14.0
+          # Intel: built WITHOUT OpenMP on purpose. Installing libomp here
+          # would force this wheel's minimum up to the runner's macOS version
+          # too, which would exclude most of the Intel Macs still in use. The
+          # omp pragma is simply ignored without it, so the spot-mask outlier
+          # detection runs serially and nothing else changes.
+          # (macos-13 was removed by GitHub: that job never got a runner and
+          # hung for the full 24h workflow limit, which is what blocked the
+          # 0.8.6 PyPI release.)
+          - os: macos-15-intel
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install OpenMP (macOS)
+        if: matrix.openmp
+        run: brew install libomp
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v4.2.1
+        env:
+          CIBW_ENVIRONMENT_MACOS: ${{ matrix.cibw_env_macos }}
+
+      - name: Verify each wheel contains the C extension
+        shell: bash
+        run: |
+          shopt -s nullglob
+          wheels=(wheelhouse/*.whl)
+          if [ ${#wheels[@]} -eq 0 ]; then
+            echo "ERROR: cibuildwheel produced no wheels"
+            exit 1
+          fi
+          for wheel in "${wheels[@]}"; do
+            if ! unzip -l "$wheel" | grep -qE '_powder_outlier_c\.[^/[:space:]]+\.(so|pyd)$'; then
+              echo "ERROR: $wheel does not contain _powder_outlier_c"
+              unzip -l "$wheel" | grep -i powder || true
+              exit 1
+            fi
+          done
+          echo "All ${#wheels[@]} wheel(s) contain the C extension."
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v7
+        with:
+          name: wheels-${{ matrix.os }}
+          path: wheelhouse/*.whl
+
+  build_sdist:
+    name: Build sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Build sdist
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build --sdist
+
+      - name: Upload sdist
+        uses: actions/upload-artifact@v7
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+

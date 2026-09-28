@@ -433,6 +433,7 @@ class ImageController:
                 y,
                 filename,
                 unit=self.get_integration_unit(),
+                azimuthal_std=self.model.calibration_model.azimuthal_std,
                 errors=(
                     self.model.calibration_model.sigma
                     if self.model.current_configuration.calculate_poisson_errors
@@ -450,6 +451,18 @@ class ImageController:
                 self.model.current_configuration.save_pattern(
                     filename, subtract_background=True
                 )
+
+        if self.model.current_configuration.calculate_azimuthal_std:
+            if not file_endings:
+                self.model.pattern_model.set_pattern(
+                    x, y, base_filename, unit=self.get_integration_unit(),
+                    azimuthal_std=self.model.calibration_model.azimuthal_std,
+                    errors=(self.model.calibration_model.sigma
+                            if self.model.current_configuration.calculate_poisson_errors
+                            else None),
+                )
+            self.model.current_configuration.save_spottiness(os.path.join(
+                working_directory, os.path.splitext(base_filename)[0] + "_spottiness.csv"))
 
     def _get_pattern_file_endings(self):
         res = []
@@ -512,10 +525,14 @@ class ImageController:
         else:
             num_points = None
         integration_kwargs = dict(
-            mask=mask, unit=integration_unit, num_points=num_points
+            mask=mask, unit=integration_unit, num_points=num_points,
+            azi_range=self.model.current_configuration.oned_azimuth_range,
+            trim_zeros=self.model.current_configuration.trim_trailing_zeros,
         )
         if self.model.current_configuration.calculate_poisson_errors:
             integration_kwargs["calculate_errors"] = True
+        if self.model.current_configuration.calculate_azimuthal_std:
+            integration_kwargs["calculate_azimuthal_std"] = True
         return self.model.calibration_model.integrate_1d(**integration_kwargs)
 
     def change_mask_mode(self):

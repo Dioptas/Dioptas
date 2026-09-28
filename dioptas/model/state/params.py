@@ -436,6 +436,8 @@ class ConfigurationParams:
     oned_azimuth_range: list[float] | None = None
     trim_trailing_zeros: bool = True
     calculate_poisson_errors: bool = False
+    calculate_azimuthal_std: bool = False
+    spottiness_relative: bool = False
 
     cake_azimuth_points: int = 360
     cake_azimuth_range: list[float] | None = None

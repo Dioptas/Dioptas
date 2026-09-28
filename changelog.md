@@ -1,6 +1,21 @@
-# 0.10.2 (in development)
+# 0.11.0 (28.09.2026)
+
+<!-- 0.10.1 and 0.10.2 were development headings, not published releases.
+Their changes are included here; the previous published release is 0.10.0. -->
+
+## Highlights
+
+- **Inspect azimuthal spottiness alongside the integrated pattern.** Enable it in **X → 1D Integration** to plot absolute or relative intensity spread. Export it separately as CSV, or retain it in batch CSV/HDF5 output and projects. Spread includes texture, spots and counting noise; it is distinct from the Poisson uncertainty of the integrated mean.
+
+- **Keep working during integration.** Image and cake integration run outside the Qt event loop. Results from superseded requests are discarded so rapid browsing cannot replace the current image's pattern with an older result.
 
 ## Improvements
+
+- Extended the Python compatibility range through 3.15, with backend and
+  controller CI on 3.14 and 3.15 and wheel builds for both. Python 3.15 is
+  currently a prerelease and requires source builds for several dependencies.
+
+- Updated to Peritheos 0.11.0 and PhaseSmith 0.7.0. The material browser keeps deferred source records searchable and exportable while disabling phase loading for those records. Qandilite reflections now preserve the explicit space-group origin choice.
 
 - Added range masking below the intensity thresholds for **2θ**, **q**, and **d-spacing**. Mask or unmask pixels inside or outside an interval, or leave one bound blank for a single cutoff. Uses the current calibration and supports undo/redo (#38).
 
@@ -10,15 +25,23 @@
 
 - **DAC thermal pressure** in **X → Phase**, with inline guidance on cold pressure and the retained fraction, applies a shared confinement fraction to all phases with a Peritheos thermal EoS. It is disabled by default with an initial fraction of 0.25. When enabled, table pressures represent cold/reference pressures and Peritheos predicts the confined heated volumes. The setting follows newly loaded phases and survives project save/load and undo/redo.
 
-- Peritheos 0.9.0 is now the minimum supported version. The phase editor exposes native thermal-model coefficients and configuration, supports BM2/BM3/BM4 with both double-Debye models, and allows Sokolova thermal corrections with other reference equations. Incompatible pairings are disabled with an explanation; incomplete thermal models show a visible diagnostic.
+- The phase editor exposes native thermal-model coefficients and configuration, supports BM2/BM3/BM4 with both double-Debye models, and allows Sokolova thermal corrections with other reference equations. Incompatible pairings are disabled with an explanation; incomplete thermal models show a visible diagnostic.
 
-- The offline EoS material library now comes directly from Peritheos 0.8.0 instead of being duplicated inside Dioptas. This brings Peritheos's primary-source-audited records and corrections into the **DB** browser, keeps `.eosmat` validation in one place, and evaluates its newer thermal models with Peritheos's material-record engine. Materials without diffraction structures remain searchable and exportable, with **Load as Phase** disabled.
+- The offline EoS material library now comes directly from Peritheos instead of being duplicated inside Dioptas. This brings Peritheos's primary-source-audited records and corrections into the **DB** browser, keeps `.eosmat` validation in one place, and evaluates its newer thermal models with Peritheos's material-record engine. Materials without diffraction structures remain searchable and exportable, with **Load as Phase** disabled.
 
 - **Mask** and **transparent** controls now sit below the detector image in calibration, mask, integration and map modes, so the same mask settings remain accessible throughout the workflow. Transparency is available only while the mask is enabled.
 
 - The integrated cake on the calibration validation step now has synchronized **2θ** and **azimuth** axes that follow zooming and panning.
 
 ## Fixes
+
+- Integration option groups stack vertically in narrow panels so their controls remain accessible.
+
+- Bundled thermal records without a zero-pressure solution, including the Dewaele and Finger argon models, initialize at documented source conditions shown in the phase table.
+
+- Fixed the Linux AppImage launcher so it locates the bundled application correctly.
+
+- The EoS record editor preserves an empty reference temperature for double-Debye models, where it represents an absolute cold curve.
 
 - Map loading now remembers its own last selected folder instead of returning to the image folder. The first map selection falls back to the image folder, and cancelling the dialog preserves the saved location (#260).
 
@@ -29,10 +52,6 @@
 - Loading a project or recovering the previous session now restores **By Name**/**By Time** browsing for images and patterns, including the iterator behavior behind the controls. The saved mask/unmask drawing mode now also returns with the matching radio button and preview color.
 
 - Enabled drop-down and numeric controls in the phase table now use orange arrows, while unavailable controls use grey arrows instead of appearing active.
-
-# 0.10.1 (15.08.2026)
-
-## Fixes
 
 - Phase temperatures can no longer be set below absolute zero. If a very high temperature or pressure lies outside the numerical domain of the selected equation of state, Dioptas now keeps the last valid phase condition and reflection positions and shows a brief tooltip instead of exposing a calculation error. Changes made with **apply to all** are atomic, and switching to an EoS reference that cannot evaluate the current conditions is likewise rolled back safely.
 

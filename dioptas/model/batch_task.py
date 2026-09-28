@@ -36,6 +36,8 @@ class BatchIntegrationResult:
     used_mask: str | None
     used_mask_shape: tuple[int, ...] | None
     used_calibration: str | None
+    azimuthal_std: np.ndarray | None = None
+    integration_unit: str = "2th_deg"
 
 
 @dataclass(frozen=True)
@@ -70,11 +72,15 @@ def compute_batch_integration(
         used_mask=batch_model.used_mask,
         used_mask_shape=batch_model.used_mask_shape,
         used_calibration=batch_model.used_calibration,
+        azimuthal_std=batch_model.azimuthal_std,
+        integration_unit=batch_model.integration_unit,
     )
 
 
 def apply_batch_integration(batch_model, result: BatchIntegrationResult) -> None:
     batch_model.data = result.data
+    batch_model.azimuthal_std = result.azimuthal_std
+    batch_model.integration_unit = result.integration_unit
     batch_model.binning = result.binning
     batch_model.pos_map = result.pos_map
     batch_model.bkg = None

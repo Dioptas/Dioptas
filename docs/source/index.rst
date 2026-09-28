@@ -10,6 +10,7 @@ Welcome to Dioptas's documentation!
 .. toctree::
    :maxdepth: 2
 
+   installation
    introduction
    calibration
    mask

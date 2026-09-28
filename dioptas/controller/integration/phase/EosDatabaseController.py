@@ -48,6 +48,7 @@ class EosDatabaseController(object):
 
         self.dialog.search_changed.connect(self.search)
         self.dialog.material_selected.connect(self.show_material)
+        self.dialog.eos_selected.connect(self._update_phase_load_enabled)
         self.dialog.load_clicked.connect(self.load)
         self.dialog.export_clicked.connect(self.export)
         self.dialog.view_changed.connect(self.change_view)
@@ -140,8 +141,29 @@ class EosDatabaseController(object):
             thermal_tooltips=[
                 _thermal_tooltip(record) for record in material.eos_records
             ])
-        self.dialog.set_phase_load_enabled(
-            material_has_diffraction_data(material))
+        self._update_phase_load_enabled()
+
+    def _phase_load_error(self):
+        material = self._selected_material(self.dialog.selected_material_row())
+        if material is None or not material_has_diffraction_data(material):
+            return ("No crystal structure or reference peak table is available for "
+                    "diffraction phase lines. The material can still be exported.")
+        index = self.dialog.selected_eos_row()
+        if index < 0:
+            index = material.default_eos_index
+        if 0 <= index < len(material.eos_records):
+            record = material.eos_records[index]
+            validation = record.get("scientific_validation") or {}
+            if (material.format == "peritheos.material"
+                    and validation.get("status") != "primary_source_validated"):
+                return (f"This record is {validation.get('status', 'unvalidated')} "
+                        "and is retained as source data only. Select a validated "
+                        "record to load a phase. The material can still be exported.")
+        return ""
+
+    def _update_phase_load_enabled(self):
+        reason = self._phase_load_error()
+        self.dialog.set_phase_load_enabled(not reason, reason)
 
     def toggle_favourite(self):
         row = self.dialog.selected_material_row()
@@ -162,7 +184,7 @@ class EosDatabaseController(object):
 
     def load(self):
         material = self._selected_material(self.dialog.selected_material_row())
-        if material is None or not material_has_diffraction_data(material):
+        if material is None or self._phase_load_error():
             return
         record_index = self.dialog.selected_eos_row()
         if record_index < 0:

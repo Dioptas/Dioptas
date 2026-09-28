@@ -161,3 +161,4 @@ class PhaseInPatternController:
 
     def reflection_deleted(self, phase_ind, reflection_ind):
         self.pattern_widget.phases[phase_ind].delete_line(reflection_ind)
+        self.pattern_widget.phases_changed.emit()

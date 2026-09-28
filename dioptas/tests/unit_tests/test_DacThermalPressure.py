@@ -60,6 +60,10 @@ def test_all_bundled_thermal_phase_records_match_dac_solver():
             if not record.get('thermal'):
                 continue
             phase = eos.build_jcpds(material, record_index=index, origin='bundled')
+            if record['scientific_validation']['status'] != 'primary_source_validated':
+                with pytest.raises(EosCalculationError, match='primary-source validation'):
+                    phase.compute_d(20.0, 1000.0)
+                continue
             model = PhaseModel()
             model.add_jcpds_object(phase)
             assert model.set_pressure_temperature(0, 20.0, 1000.0)

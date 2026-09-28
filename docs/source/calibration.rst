@@ -109,14 +109,14 @@ Enter the **start values** for the calibration:
   After a successful calibration the fields show the fitted values.
 - *Calibrant*: choose the correct calibrant from the drop-down list. If your calibrant is not
   available, you can add your own by placing a text file containing a list of d-spacings in the
-  ``dioptas/calibrants`` folder. Dioptas will automatically make this calibrant available after a
+  ``dioptas/resources/calibrants`` folder. Dioptas will automatically make this calibrant available after a
   restart.
 
 The **refinement options** control what happens after the initial geometry fit:
 
-- *Use mask / transparent*:
-    Constrain the refinement to a certain image area using a mask previously defined in the Mask
-    module. The mask can be made transparent to see the image underneath.
+- *Mask / transparent* (below the detector image):
+    Constrain refinement using a mask previously defined in the Mask module.
+    Transparency changes only its display, allowing you to see the image underneath.
 
 - *Automatic refinement*:
     When enabled (the default), Dioptas searches for additional peaks on all rings after the
@@ -148,8 +148,13 @@ step, which shows the detector image, the 360-degree cake and the integrated pat
    :align: center
    :width: 600 px
 
-   Step 4 — image, cake and pattern with the calibrant's reflections overlaid (red) and the
-   linked position marker (green) after a click in the pattern.
+   Step 4 — image, cake and pattern for inspecting a loaded calibration.
+   Choose the matching calibrant in the panel to compare reference lines.
+
+Choose the **Calibrant** in the validation panel, especially after loading a saved
+calibration. This selector stays synchronized with the one on the Calibrate step;
+it changes the reference overlays without changing the fitted geometry. The cake's
+2θ and azimuth axes follow zooming and panning.
 
 Judging the calibration:
 

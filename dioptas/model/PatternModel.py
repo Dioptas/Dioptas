@@ -29,6 +29,7 @@ class PatternModel:
         super().__init__()
         self.pattern: Pattern = Pattern()
         self.errors: np.ndarray | None = None
+        self.azimuthal_std: np.ndarray | None = None
         self.pattern_filename: str = ""
         #: how the current pattern came to be: "integrated" or "file"
         self.pattern_source: str = "integrated"
@@ -181,10 +182,14 @@ class PatternModel:
         filename: str = "",
         unit: str = "",
         errors: np.ndarray | None = None,
+        azimuthal_std: np.ndarray | None = None,
     ) -> None:
         """Set the current data pattern."""
         if errors is not None and len(errors) != len(x):
             raise ValueError("Pattern errors must have the same length as the data")
+        if azimuthal_std is not None and len(azimuthal_std) != len(x):
+            raise ValueError("Azimuthal spread must have the same length as the data")
+        self.azimuthal_std = (None if azimuthal_std is None else np.asarray(azimuthal_std))
         self.pattern_filename = filename
         self.pattern_source = "integrated"
         self.pattern.data = (x, y)
@@ -209,6 +214,7 @@ class PatternModel:
             raise file_loading_error(filename, "pattern") from e
 
         self.errors = None
+        self.azimuthal_std = None
         self.pattern_filename = filename
         self.pattern_source = "file"
         self.file_name_iterator.update_filename(filename)

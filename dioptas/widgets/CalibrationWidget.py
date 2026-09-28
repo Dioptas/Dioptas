@@ -599,7 +599,7 @@ class CalibrationControlWidget(QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
 
         self._layout = QtWidgets.QVBoxLayout(self)
-        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setContentsMargins(0, 8, 0, 0)
 
         self.calibration_parameters_widget = CalibrationParameterWidget()
         self._layout.addWidget(self.calibration_parameters_widget)

@@ -76,10 +76,19 @@ jobs:
         cd dist/Dioptas*
         xvfb-run -e /dev/stdout ./Dioptas test
 
+    - name: Build and test AppImage
+      run: bash installer/linux/build_appimage.sh
+
+    - name: Upload AppImage
+      uses: actions/upload-artifact@v7
+      with:
+        name: DioptasLinux-AppImage
+        path: dist/Dioptas_Linux.AppImage
+
     - name: Determine Folder Name
       run: |
         cd dist
-        echo "folder_name=$(ls | grep Dioptas)" >> $GITHUB_ENV
+        echo "folder_name=$(find . -maxdepth 1 -type d -name 'Dioptas_Linux*' -printf '%f\n')" >> $GITHUB_ENV
 
     - name: Upload Compressed App as Artifact to GitHub
       uses: actions/upload-artifact@v7
