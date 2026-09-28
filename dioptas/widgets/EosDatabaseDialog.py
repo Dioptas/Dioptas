@@ -50,6 +50,7 @@ class EosDatabaseDialog(QtWidgets.QDialog):
 
     search_changed = QtCore.Signal(str)
     material_selected = QtCore.Signal(int)   # index in the supplied materials
+    eos_selected = QtCore.Signal()
     load_clicked = QtCore.Signal()
     export_clicked = QtCore.Signal()
     view_changed = QtCore.Signal(int)
@@ -199,6 +200,8 @@ class EosDatabaseDialog(QtWidgets.QDialog):
             self._load_material_from_double_click)
         self.eos_table.doubleClicked.connect(
             self._load_eos_from_double_click)
+        self.eos_table.selectionModel().selectionChanged.connect(
+            self.eos_selected)
         self.load_btn.clicked.connect(self.load_clicked)
         self.export_btn.clicked.connect(self.export_clicked)
         self.close_btn.clicked.connect(self.reject)
@@ -297,10 +300,10 @@ class EosDatabaseDialog(QtWidgets.QDialog):
         """Return the source index, independent of the current sort order."""
         return self._selected_source_row(self.materials_table)
 
-    def set_phase_load_enabled(self, enabled: bool):
+    def set_phase_load_enabled(self, enabled: bool, reason: str = ""):
         self.load_btn.setEnabled(enabled)
         self.load_btn.setToolTip(
-            "" if enabled else
+            "" if enabled else reason or
             "No crystal structure or reference peak table is available for "
             "diffraction phase lines. The material can still be exported.")
 

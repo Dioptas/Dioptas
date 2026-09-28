@@ -34,6 +34,9 @@ TWO_THETA_MERGE_TOLERANCE_DEG = 1.0e-5
 _SPACE_GROUP_ALIASES = {
     "P21/a": "P 1 21/a 1",
     "P21/n": "P 1 21/n 1",
+    # Qandilite uses origin choice 2; use its explicit Hall symbol so the
+    # origin is preserved even when the HM :2 suffix is not recognized.
+    "F d -3 m:2": "-F 4vw 2vw 3",
 }
 
 

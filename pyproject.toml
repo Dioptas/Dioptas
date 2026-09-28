@@ -45,10 +45,10 @@ dependencies = [
     "psygnal>=0.15.1,<0.16",
     # equation-of-state engine and audited bundled material library
     # lower bound: verified material catalog and record APIs
-    "peritheos>=0.9.0,<1.0",
+    "peritheos>=0.11.0,<1.0",
     # exact-symmetry reflection generation and structure-factor intensities
-    # lower bound: canonical cubic HKL representatives prefer (100) over (001)
-    "phasesmith>=0.4.1,<0.5",
+    # verified reflection/CIF APIs and conventional cubic HKL representatives
+    "phasesmith>=0.7.0,<0.8",
 ]
 
 [project.optional-dependencies]
@@ -80,7 +80,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 version_file = "dioptas/_version.py"
-fallback_version = "0.10.0"
+fallback_version = "0.11.0"
 
 [tool.cibuildwheel]
 # Project requires Python >=3.11,<3.14

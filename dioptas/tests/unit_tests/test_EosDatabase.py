@@ -57,8 +57,14 @@ def test_every_bundled_eos_record_constructs_and_evaluates(materials):
             continue
         for index, record in enumerate(material.eos_records):
             phase = eos.build_jcpds(material, record_index=index, origin="bundled")
+            if record["scientific_validation"]["status"] != "primary_source_validated":
+                with pytest.raises(EosCalculationError, match="primary-source validation"):
+                    phase.compute_d(20.0, 1000.0)
+                continue
             thermal_type = phase.params.get("thermal_type") or ""
-            pressure = 20.0
+            pressure_bounds = record.get("experimental_pressure_range_gpa", [10.0, 30.0])
+            pressure = sum(pressure_bounds) / 2
+            temperature = record.get("temperature_ref", 298.15)
             if record.get("equation_kind") == "hugoniot":
                 bounds = record["validity"]["pressure_gpa"]
                 pressure = sum(bounds) / 2
@@ -66,8 +72,8 @@ def test_every_bundled_eos_record_constructs_and_evaluates(materials):
                 engine = EosPhase.from_jcpds(
                     phase, with_thermal=bool(thermal_type)
                 )
-                volume = engine.volume(pressure, 1000.0)
-                phase.compute_d(pressure, 1000.0)
+                volume = engine.volume(pressure, temperature)
+                phase.compute_d(pressure, temperature)
             except Exception as error:
                 pytest.fail(
                     f"{material.name} record {index} "
@@ -77,8 +83,10 @@ def test_every_bundled_eos_record_constructs_and_evaluates(materials):
             assert phase.params["v"] == pytest.approx(volume)
             assert all(math.isfinite(r.d) and r.d > 0 for r in phase.reflections)
             evaluated += 1
-    assert evaluated == sum(len(m.eos_records) for m in materials
-                            if material_has_diffraction_data(m))
+    assert evaluated == sum(
+        r["scientific_validation"]["status"] == "primary_source_validated"
+        for m in materials if material_has_diffraction_data(m)
+        for r in m.eos_records)
     assert evaluated >= 147
 
 

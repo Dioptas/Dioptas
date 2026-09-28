@@ -67,6 +67,20 @@ def test_deuterium_sites_use_hydrogen_xray_scattering():
     assert structure_from_material(before) == structure
 
 
+def test_qandilite_preserves_explicit_origin_choice_two():
+    material = next(m for m in eos.load_materials() if m.identifier == "qandilite")
+    original_symbol = material.space_group
+    structure = structure_from_material(material)
+    from phasesmith.io.space_groups import space_group_by_symbol
+    expected = space_group_by_symbol("-F 4vw 2vw 3")
+    assert expected.number == 227
+    assert expected.setting == "2"
+    assert structure.space_group == expected.space_group
+    rows = calculate_material_reflections(material)
+    assert rows and max(row[4] for row in rows) == pytest.approx(100.0)
+    assert material.space_group == original_symbol == "F d -3 m:2"
+
+
 @pytest.mark.parametrize(
     ("unit", "x_values"),
     [

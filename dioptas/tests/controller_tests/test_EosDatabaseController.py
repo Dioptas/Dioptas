@@ -430,6 +430,49 @@ class EosDatabaseControllerTest(QtTest):
         assert self.dialog.load_btn.isEnabled()
         assert self.dialog.load_btn.toolTip() == ""
 
+    def test_deferred_record_remains_exportable_but_cannot_load(self):
+        self.dialog.view_tabs.setCurrentIndex(2)
+        row = next(i for i, m in enumerate(self.controller.shown_materials)
+                   if m.identifier == "feo")
+        self.dialog.materials_table.selectRow(row)
+        material = self.controller.shown_materials[row]
+        deferred_index = next(i for i, r in enumerate(material.eos_records)
+                              if r["scientific_validation"]["status"] == "deferred")
+        self.dialog.eos_table.sortItems(5, QtCore.Qt.DescendingOrder)
+        table = self.dialog.eos_table
+        deferred_row = next(i for i in range(table.rowCount())
+                            if table.item(i, 0).data(QtCore.Qt.UserRole) == deferred_index)
+        table.selectRow(deferred_row)
+        assert not self.dialog.load_btn.isEnabled()
+        assert "deferred" in self.dialog.load_btn.toolTip()
+        assert self.dialog.export_btn.isEnabled()
+        with patch.object(eos, "build_jcpds") as build:
+            self.controller.load()
+            table.doubleClicked.emit(table.model().index(deferred_row, 0))
+            build.assert_not_called()
+        assert self.controller.result_phase is None
+        assert self.controller.recent_ids == []
+        table.selectRow(next(i for i in range(table.rowCount()) if i != deferred_row))
+        assert self.dialog.load_btn.isEnabled()
+        self.controller.load()
+        assert self.controller.result_phase is not None
+        assert self.controller.result_phase.params["eos_records"] == material.eos_records
+
+    def test_material_with_only_deferred_records_cannot_load_default(self):
+        self.dialog.view_tabs.setCurrentIndex(2)
+        row = next(i for i, m in enumerate(self.controller.shown_materials)
+                   if m.identifier == "fe_fcc")
+        self.dialog.materials_table.selectRow(row)
+        assert not self.dialog.load_btn.isEnabled()
+        assert "deferred" in self.dialog.load_btn.toolTip()
+        assert self.dialog.export_btn.isEnabled()
+        with patch.object(eos, "build_jcpds") as build:
+            self.dialog.materials_table.doubleClicked.emit(
+                self.dialog.materials_table.model().index(row, 0))
+            build.assert_not_called()
+        self.dialog.search_input.setText("gold")
+        assert self.dialog.load_btn.isEnabled()
+
 
 def test_record_row_displays_reported_errors_and_fixed_parameters():
     record = {
