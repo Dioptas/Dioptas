@@ -15,10 +15,10 @@ Clemens Prescher (clemens.prescher@gmail.com)
 
 ## Requirements
 
-- Python 3.11, 3.12, or 3.13
+- Python 3.11–3.15 (3.15 is currently a prerelease)
 
 Dioptas runs on 64-bit Windows, macOS, and Linux. Python packages support
-Python 3.11–3.13. The standalone macOS application targets Apple silicon;
+Python 3.11–3.15. The standalone macOS application targets Apple silicon;
 Intel Mac users can install the Python package.
 
 The offline material library and EoS calculations are supplied by Peritheos
@@ -46,7 +46,9 @@ xattr -dr com.apple.quarantine /Applications/Dioptas_*.app
 
 ### Python Package
 
-Use a Python 3.11–3.13 environment and install the Dioptas package with pip.
+Use a Python 3.11–3.15 environment and install the Dioptas package with pip.
+Python 3.15 currently requires source builds of several dependencies and a
+native build toolchain; Python 3.13 is the simpler installation choice.
 
 ```bash
 python -m pip install dioptas

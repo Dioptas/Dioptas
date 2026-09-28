@@ -33,7 +33,7 @@ catalog; no separate Python installation is needed.
 Python package
 --------------
 
-Use Python **3.11, 3.12 or 3.13** in a virtual environment. For example::
+Use Python **3.11–3.15** in a virtual environment. For example::
 
     python3.13 -m venv dioptas-env
 
@@ -43,6 +43,11 @@ Activate it with ``source dioptas-env/bin/activate`` on macOS/Linux, or
     python -m pip install dioptas
     dioptas
 
+Python 3.15 is currently a prerelease. Several dependencies do not yet provide
+3.15 wheels, so installation requires source builds and native build tools,
+including HDF5 development libraries. Use Python 3.13 for the simplest
+installation. Free-threaded Python builds are not covered by this support range.
+
 To upgrade an existing Python installation::
 
     python -m pip install --upgrade dioptas
@@ -51,6 +56,12 @@ Dioptas 0.11 requires Peritheos 0.11 or newer and PhaseSmith 0.7. Pip installs
 these dependencies automatically. Catalog contents follow the installed
 Peritheos version; standalone applications contain the version selected when
 that application was built.
+
+On macOS older than 26, xypattern 1.2.4 has no compatible Apple-silicon wheel;
+Intel Macs also require its source build. Install Apple's Command Line Tools
+with ``xcode-select --install`` before installing the Python package, or use
+the standalone Apple-silicon application, which bundles a source-built
+xypattern and does not require a compiler on your computer.
 
 Conda-forge packages are maintained separately and may become available later
 than GitHub and PyPI. Check the version selected by conda before relying on a

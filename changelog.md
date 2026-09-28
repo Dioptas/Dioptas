@@ -1,5 +1,8 @@
 # 0.11.0 (in development)
 
+<!-- 0.10.1 and 0.10.2 were development headings, not published releases.
+Their changes are included here; the previous published release is 0.10.0. -->
+
 ## Highlights
 
 - **Inspect azimuthal spottiness alongside the integrated pattern.** Enable it in **X → 1D Integration** to plot absolute or relative intensity spread. Export it separately as CSV, or retain it in batch CSV/HDF5 output and projects. Spread includes texture, spots and counting noise; it is distinct from the Poisson uncertainty of the integrated mean.
@@ -7,6 +10,10 @@
 - **Keep working during integration.** Image and cake integration run outside the Qt event loop. Results from superseded requests are discarded so rapid browsing cannot replace the current image's pattern with an older result.
 
 ## Improvements
+
+- Extended the Python compatibility range through 3.15, with backend and
+  controller CI on 3.14 and 3.15 and wheel builds for both. Python 3.15 is
+  currently a prerelease and requires source builds for several dependencies.
 
 - Updated to Peritheos 0.11.0 and PhaseSmith 0.7.0. The material browser keeps deferred source records searchable and exportable while disabling phase loading for those records. Qandilite reflections now preserve the explicit space-group origin choice.
 

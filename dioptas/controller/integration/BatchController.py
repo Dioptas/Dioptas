@@ -756,10 +756,11 @@ class BatchController:
             )
         )
 
-        if img is None or x > img.shape[1] or x < 0 or y > img.shape[0] or y < 0:
+        if img is None or x >= img.shape[1] or x < 0 or y >= img.shape[0] or y < 0:
             return
-        scale = (binning[-1] - binning[0]) / binning.shape[0]
-        tth = x * scale + binning[0]
+        unit = self.model.current_configuration.integration_unit
+        coordinate = self.convert_x_value(
+            binning[int(x)], self.model.batch_model.integration_unit, unit)
 
         bkg = self.model.batch_model.bkg
         if (
@@ -774,7 +775,7 @@ class BatchController:
             f"Img: {int(y):.0f}"
         )
         self.widget.batch_widget.position_widget.mouse_pos_widget.cur_pos_widget.y_pos_lbl.setText(
-            f"2θ: {tth:.1f}"
+            f"{self._UNIT_DISPLAY[unit][0]}: {coordinate:.1f}"
         )
         self.widget.batch_widget.position_widget.mouse_pos_widget.cur_pos_widget.int_lbl.setText(
             f"I: {z:.1f}"
@@ -1317,12 +1318,13 @@ class BatchController:
             or y < 0
         ):
             return
-        scale = (binning[-1] - binning[0]) / binning.shape[0]
-        tth = x * scale + binning[0]
+        unit = self.model.current_configuration.integration_unit
+        coordinate = self.convert_x_value(
+            binning[x], self.model.batch_model.integration_unit, unit)
         z = img[y, x]
 
         self.widget.batch_widget.position_widget.mouse_pos_widget.clicked_pos_widget.y_pos_lbl.setText(
-            f"2θ: {tth:.1f}"
+            f"{self._UNIT_DISPLAY[unit][0]}: {coordinate:.1f}"
         )
         self.widget.batch_widget.position_widget.mouse_pos_widget.clicked_pos_widget.int_lbl.setText(
             f"I: {z:.1f}"
@@ -1437,6 +1439,12 @@ class BatchController:
         return ticks
 
     def convert_x_value(self, value, previous_unit, new_unit):
+        if previous_unit == new_unit:
+            return value
+        # Reciprocal-space conversions do not depend on the current
+        # calibration, which may differ from the one used for this batch.
+        if {previous_unit, new_unit} == {"q_A^-1", "d_A"}:
+            return 2 * np.pi / value
         wavelength = self.model.calibration_model.wavelength
         if previous_unit == "2th_deg":
             tth = value

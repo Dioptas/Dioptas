@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 import numpy as np
+import pytest
 from xypattern import Pattern
 
 
@@ -128,9 +129,22 @@ def test_image_multifile_export_keeps_spread_and_poisson_separate(
     np.testing.assert_allclose(spread[:, 2], [2.0, 3.0, 4.0])
     np.testing.assert_allclose(xye[:, 2], [0.5, 0.6, 0.7])
 
+    monkeypatch.setattr(controller, "_get_pattern_file_endings", lambda: [])
+    controller._save_pattern("spread_only.tif", str(tmp_path), x, y)
+    np.testing.assert_allclose(config.pattern_model.errors, [0.5, 0.6, 0.7])
+    config.save_pattern(str(tmp_path / "later.xye"))
+    np.testing.assert_allclose(np.loadtxt(tmp_path / "later.xye")[:, 2], [.5, .6, .7])
 
+
+@pytest.mark.parametrize("batch_unit,display_unit", [
+    ("2th_deg", "2th_deg"),
+    ("q_A^-1", "q_A^-1"),
+    ("d_A", "d_A"),
+    ("q_A^-1", "d_A"),
+    ("d_A", "q_A^-1"),
+])
 def test_batch_selection_and_multifile_export_keep_spread(
-    batch_controller, tmp_path, monkeypatch
+    batch_controller, tmp_path, monkeypatch, batch_unit, display_unit
 ):
     import importlib
 
@@ -138,11 +152,26 @@ def test_batch_selection_and_multifile_export_keep_spread(
     config = controller.model.current_configuration
     config.auto_integrate_pattern = False
     config.calculate_azimuthal_std = True
+    config.integration_unit = display_unit
+    # These q values are valid for a synchrotron batch, but exceed the
+    # inverse-sine domain of the current Cu calibration. q/d conversion
+    # and identity conversion must still preserve every coordinate.
+    config.calibration_model.pattern_geometry.wavelength = 1.5406e-10
     batch = controller.model.batch_model
     batch.data = np.array([[10.0, 20.0, 30.0], [12.0, 24.0, 36.0]])
-    batch.binning = np.array([1.0, 2.0, 3.0])
+    q = np.array([2.0, 10.0, 15.0])
+    batch.binning = 2 * np.pi / q if batch_unit == "d_A" else q
+    batch.integration_unit = batch_unit
+    expected_x = (batch.binning if batch_unit == display_unit
+                  else 2 * np.pi / batch.binning)
     batch.azimuthal_std = np.array([[2.0, 3.0, 4.0], [3.0, 4.0, 5.0]])
     controller.plot_pattern(1, 1)
+    np.testing.assert_allclose(controller.model.pattern.original_data[0], expected_x)
+    label = controller._UNIT_DISPLAY[display_unit][0]
+    positions = controller.widget.batch_widget.position_widget.mouse_pos_widget
+    assert positions.clicked_pos_widget.y_pos_lbl.text() == f"{label}: {expected_x[1]:.1f}"
+    controller.show_img_mouse_position(1.2, 0)
+    assert positions.cur_pos_widget.y_pos_lbl.text() == f"{label}: {expected_x[1]:.1f}"
     np.testing.assert_allclose(
         controller.model.pattern_model.azimuthal_std, [3.0, 4.0, 5.0]
     )
@@ -153,6 +182,9 @@ def test_batch_selection_and_multifile_export_keep_spread(
     controller.save_data()
     for i in range(2):
         table = np.loadtxt(tmp_path / f"batch_{i:03d}_spottiness.csv", delimiter=",")
+        pattern = np.loadtxt(tmp_path / f"batch_{i:03d}.xy")
+        np.testing.assert_allclose(pattern[:, 0], expected_x, rtol=1e-6)
+        np.testing.assert_allclose(table[:, 0], expected_x)
         np.testing.assert_allclose(table[:, 1], batch.data[i])
         np.testing.assert_allclose(table[:, 2], batch.azimuthal_std[i])
 

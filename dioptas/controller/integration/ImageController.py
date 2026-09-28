@@ -457,6 +457,9 @@ class ImageController:
                 self.model.pattern_model.set_pattern(
                     x, y, base_filename, unit=self.get_integration_unit(),
                     azimuthal_std=self.model.calibration_model.azimuthal_std,
+                    errors=(self.model.calibration_model.sigma
+                            if self.model.current_configuration.calculate_poisson_errors
+                            else None),
                 )
             self.model.current_configuration.save_spottiness(os.path.join(
                 working_directory, os.path.splitext(base_filename)[0] + "_spottiness.csv"))

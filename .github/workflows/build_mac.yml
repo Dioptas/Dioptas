@@ -14,6 +14,9 @@ jobs:
     env:
       folder_name: 'DioptasMac'
       DIOPTAS_REQUIRE_C_EXT: "1"
+      # xypattern 1.2.4's published arm64 wheels require macOS 26.
+      UV_NO_BINARY_PACKAGE: xypattern
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:

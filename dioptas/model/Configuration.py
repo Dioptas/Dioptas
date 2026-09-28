@@ -268,14 +268,14 @@ class Configuration:
         valid_units = {"2th_deg", "q_A^-1", "d_A"}
         if old_unit not in valid_units or new_unit not in valid_units:
             return
-        if x is not None and len(x) > 1:
+        if x is not None and len(x):
             pattern.transform_x(
                 lambda x: convert_units(
                     x, self.calibration_model.wavelength, old_unit, new_unit
                 )
             )
-            self.pattern_model.unit = new_unit
-            self.pattern_integration.recompute()
+        self.pattern_model.unit = new_unit
+        self.pattern_integration.recompute()
 
     def _connect_signals(self) -> None:
         """Connects the img_changed signal to responding functions."""

@@ -387,3 +387,53 @@ def test_each_bin_uses_its_own_origin_and_ignores_masked_outlier():
     mean, std = weighted_spread(lut, signal, np.ones(5))
     np.testing.assert_allclose(mean, [1e20, 1.000001], rtol=1e-15)
     np.testing.assert_allclose(std, [0.0, 1e-6], rtol=1e-9)
+
+
+@pytest.mark.parametrize("size", [0, 1])
+def test_unit_change_updates_short_patterns(size):
+    from dioptas.model.Configuration import Configuration
+    from dioptas.model.util.calc import convert_units
+
+    config = Configuration()
+    config.auto_integrate_pattern = False
+    x = np.full(size, 10.0)
+    config.pattern_model.set_pattern(x, np.ones(size), unit="2th_deg",
+                                     azimuthal_std=np.ones(size))
+    config.integration_unit = "q_A^-1"
+    assert config.pattern_model.unit == "q_A^-1"
+    np.testing.assert_allclose(config.pattern_model.pattern.original_data[0],
+                              convert_units(x, config.calibration_model.wavelength,
+                                            "2th_deg", "q_A^-1"))
+
+
+def test_spread_supersamples_detector_corrections_and_csr_fallback(monkeypatch):
+    ai = AzimuthalIntegrator(dist=.1, pixel1=.001, pixel2=.001)
+    dark = np.full((4, 4), 7.)
+    flat = np.arange(1., 17.).reshape(4, 4)
+    mask = np.zeros((4, 4), dtype=bool)
+    mask[0, 0] = True
+    ai.detector.darkcurrent = dark
+    ai.detector.flatfield = flat
+    ai.detector.mask = mask
+    image = np.repeat(np.repeat(45 * flat + dark, 2, axis=0), 2, axis=1)
+    image[:2, :2] = 1e8  # masked detector pixel remains masked after expansion
+    original = ai.integrate1d
+    methods = []
+
+    def unavailable_engine(*args, **kwargs):
+        methods.append(kwargs["method"])
+        if len(methods) == 1:
+            raise NameError("configured engine unavailable")
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(ai, "integrate1d", unavailable_engine)
+    result, mean, std = integrate_spottiness(
+        ai, image, 8, dict(unit="2th_deg", correctSolidAngle=False))
+    assert methods == [("bbox", "csr", "cython"), "csr"]
+    populated = np.isfinite(std)
+    np.testing.assert_allclose(mean[populated], 45.)
+    np.testing.assert_allclose(std[populated], 0., atol=1e-12)
+    np.testing.assert_allclose(result.intensity[populated], mean[populated], rtol=1e-6)
+    np.testing.assert_array_equal(ai.detector.darkcurrent, dark)
+    np.testing.assert_array_equal(ai.detector.flatfield, flat)
+    np.testing.assert_array_equal(ai.detector.mask, mask)

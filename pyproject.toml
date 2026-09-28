@@ -3,7 +3,7 @@ name = "dioptas"
 dynamic = ["version"]
 description = "GUI program for reduction and exploration of 2D X-ray diffraction data"
 readme = "README.md"
-requires-python = ">=3.11,<3.14"
+requires-python = ">=3.11,<3.16"
 license = { text = "MIT" }
 authors = [{ name = "Clemens Prescher", email = "clemens.prescher@gmail.com" }]
 classifiers = [
@@ -33,7 +33,8 @@ dependencies = [
     "sharedmem>=0.3.8,<0.4",
     "pyopengl>=3.1.7,<4.0",
     "pyopengl-accelerate>=3.1.7,<4.0",
-    "xypattern>=1.2.2,<2.0",
+    "xypattern>=1.2.3,<2.0; python_version < '3.14'",
+    "xypattern>=1.2.4,<2.0; python_version >= '3.14'",
     "numpy>=2.0,<3.0",
     "scipy>=1.16.3,<2.0",
     "numexpr>=2.10.2,<3.0",
@@ -83,8 +84,9 @@ version_file = "dioptas/_version.py"
 fallback_version = "0.11.0"
 
 [tool.cibuildwheel]
-# Project requires Python >=3.11,<3.14
-build = "cp311-* cp312-* cp313-*"
+# Standard CPython builds; free-threaded builds are not yet validated.
+build = "cp311-* cp312-* cp313-* cp314-* cp315-*"
+enable = ["cpython-prerelease"]
 # Skip Alpine, 32-bit Linux, PyPy, and Windows ARM64 (no PyQt6 wheel)
 skip = "*-musllinux_* *-manylinux_i686 pp* *-win_arm64"
 build-verbosity = 1

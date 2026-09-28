@@ -6,6 +6,10 @@ on: [push, pull_request]
 
 jobs:
   test:
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.14', '3.15']
     runs-on: ubuntu-latest
     env:
       QT_QPA_PLATFORM: offscreen
@@ -14,10 +18,11 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v7
 
-    - name: Setup Python 3.11
+    - name: Setup Python ${{ matrix.python-version }}
       uses: actions/setup-python@v7
       with:
-        python-version: '3.11'
+        python-version: ${{ matrix.python-version }}
+        allow-prereleases: true
         cache: 'pip'
 
     - name: Install uv
@@ -26,7 +31,7 @@ jobs:
     - name: Install Apt Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install python3-opengl libgl1-mesa-dev libglib2.0-0
+        sudo apt-get install python3-opengl libgl1-mesa-dev libglib2.0-0 libhdf5-dev pkg-config
 
     - name: Install dependencies
       run: uv sync --extra test
@@ -39,5 +44,5 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v7
       with:
-        name: coverage-report
+        name: coverage-report-${{ matrix.python-version }}
         path: coverage.xml

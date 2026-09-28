@@ -64,11 +64,26 @@ def weighted_spread(lut, signal, normalization):
     return mean, std
 
 
+def _correction_for_shape(array, shape):
+    """Repeat detector corrections onto an integer supersampling grid."""
+    if array is None or array.shape == shape:
+        return array
+    if (array.ndim != 2 or len(shape) != 2
+            or any(target % source for target, source in zip(shape, array.shape))):
+        raise ValueError("Detector correction does not match the integration image")
+    factors = tuple(target // source for target, source in zip(shape, array.shape))
+    if factors[0] != factors[1] or factors[0] < 1:
+        raise ValueError("Detector correction requires uniform integer supersampling")
+    return np.repeat(np.repeat(array, factors[0], axis=0), factors[1], axis=1)
+
+
 def integrate_spottiness(integrator, image, num_points, kwargs):
     """Integrate with pyFAI and calculate population spread on the same bins."""
     kwargs = dict(kwargs, method=("bbox", "csr", "cython"))
     signal = np.asarray(image, dtype=np.float64)
-    dark = integrator.detector.darkcurrent
+    dark = _correction_for_shape(integrator.detector.darkcurrent, image.shape)
+    if dark is not None:
+        kwargs["dark"] = dark
     if dark is not None:
         signal = signal - dark
     norm = np.ones(image.shape, dtype=np.float64)
@@ -77,18 +92,25 @@ def integrate_spottiness(integrator, image, num_points, kwargs):
     polarization = kwargs.get("polarization_factor")
     if polarization is not None:
         norm *= integrator.polarization(image.shape, factor=polarization)
-    flat = integrator.detector.flatfield
+    flat = _correction_for_shape(integrator.detector.flatfield, image.shape)
     if flat is not None:
+        kwargs["flat"] = flat
         norm *= flat
     invalid = ~np.isfinite(signal) | ~np.isfinite(norm) | (norm <= 0)
     # Passing an explicit mask replaces the detector mask in pyFAI.
     mask = kwargs.get("mask")
     if mask is None:
-        mask = integrator.detector.mask
+        mask = _correction_for_shape(integrator.detector.mask, image.shape)
     if mask is not None:
         invalid |= np.asarray(mask, dtype=bool)
     kwargs["mask"] = invalid
-    result = integrator.integrate1d(image, num_points, **kwargs)
+    try:
+        result = integrator.integrate1d(image, num_points, **kwargs)
+    except NameError:
+        # Let pyFAI resolve an available CSR implementation, retaining a LUT
+        # for the independent population statistic.
+        kwargs["method"] = "csr"
+        result = integrator.integrate1d(image, num_points, **kwargs)
     engine = integrator.engines[result.method].engine
     intensity, std = weighted_spread(engine.lut, signal, norm)
     return result, intensity, std
