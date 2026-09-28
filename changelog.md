@@ -1,4 +1,4 @@
-# 0.11.0 (in development)
+# 0.11.0 (28.09.2026)
 
 <!-- 0.10.1 and 0.10.2 were development headings, not published releases.
 Their changes are included here; the previous published release is 0.10.0. -->
