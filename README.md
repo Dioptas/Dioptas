@@ -17,7 +17,14 @@ Clemens Prescher (clemens.prescher@gmail.com)
 
 - Python 3.11, 3.12, or 3.13
 
-Dioptas runs on 64-bit Windows, macOS, and Linux.
+Dioptas runs on 64-bit Windows, macOS, and Linux. Python packages support
+Python 3.11–3.13. The standalone macOS application targets Apple silicon;
+Intel Mac users can install the Python package.
+
+The offline material library and EoS calculations are supplied by Peritheos
+(0.11.0 or newer), with diffraction reflections calculated by PhaseSmith 0.7.
+Both dependencies are installed automatically with the Python package and
+included in standalone applications.
 
 ## Installation
 
@@ -34,15 +41,15 @@ On macOS, open the `.dmg` and drag Dioptas to Applications. A `.tar.gz` archive 
 If macOS shows a warning that the app "cannot be verified", you need to remove the quarantine attribute by running the following command in the Terminal:
 
 ```bash
-find Dioptas_*.app -exec xattr -c {} \;
+xattr -dr com.apple.quarantine /Applications/Dioptas_*.app
 ```
 
 ### Python Package
 
-The easiest way to install the dioptas python package is using pip.
+Use a Python 3.11–3.13 environment and install the Dioptas package with pip.
 
 ```bash
-pip install dioptas
+python -m pip install dioptas
 ```
 
 and then run Dioptas by typing:
@@ -53,7 +60,8 @@ dioptas
 
 on the command line.
 
-Dioptas is also available from conda-forge:
+Dioptas is also available from conda-forge. Its available version can lag behind
+GitHub and PyPI; check the resolved version before relying on new features:
 
 ```bash
 conda config --add channels conda-forge

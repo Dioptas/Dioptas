@@ -38,6 +38,9 @@ Pattern files should be 2-column files, optionally with a '#'-commented header.
 
 Images loaded will be automatically integrated if a calibration is available (either from performing it in the
 Calibration module or by loading a ``.poni`` file).
+Image and cake integration run in the background so the window remains responsive.
+When you browse quickly or change settings, superseded results are discarded;
+the displayed result is updated when the current request completes.
 
 There are two modes for file browsing (using the **<** and **>** buttons):
 
@@ -74,6 +77,57 @@ The ``.xye`` and ``.fxye`` choices require **Calculate Poisson errors** in the *
 current integrated pattern has no errors, selecting either format offers to enable the option and
 reintegrate the current image. Turning error calculation off also turns off both error-bearing
 auto-save formats. The other formats remain available without error calculation.
+
+
+Spottiness
+~~~~~~~~~~
+
+.. figure:: images/integration_spottiness.png
+    :align: center
+    :width: 850
+
+    Azimuthal spread below the integrated pattern, with a shared radial axis.
+
+Enable **Show Spottiness** in the **Spottiness** group under **X → 1D Integration** to calculate azimuthal standard deviation
+in each radial bin. A panel beneath the diffraction pattern shares its radial axis
+and horizontal zoom, with an independent, linear vertical scale. Clicking the panel
+moves the shared green cursor. Right-click zooms out one step, and double
+right-click restores the full range. Enabled phases appear as full-height lines
+in their phase colors. The 1D controls are arranged in a 2 × 2 grid: sampling,
+azimuth range, corrections and errors, and spottiness. Choose
+**Relative spread (std / mean)** in the same Spottiness group to compare spread relative to the original
+integrated intensity. Pattern background subtraction and the main plot's log or
+square-root scale do not change this statistic.
+
+For corrected pixel intensity ``x = s / n`` and pixel/bin overlap ``c``, the weight
+is ``w = c * n``. Here ``s`` is pixel signal and ``n`` is the correction
+normalization, including solid angle and polarization when enabled. The displayed
+population standard deviation is::
+
+    mean = sum(w * x) / sum(w)
+    std = sqrt(sum(w * (x - mean)**2) / sum(w))
+
+Masks and the selected azimuth range apply to this calculation. Empty bins have
+undefined spread (NaN); a bin with one valid contribution has zero spread. Relative
+spread is omitted for nonpositive means and means at or below ``1e-12`` times the
+larger of one and the largest absolute finite mean in that pattern. Spread includes
+azimuthal texture, spots and counting noise; it is independent of the Poisson
+uncertainty of the integrated mean.
+
+**Save Spottiness…**, also in that group, exports a separate CSV with radial coordinate, integrated
+mean, absolute standard deviation and relative spread. Pattern auto-save also
+writes a ``*_spottiness.csv`` companion while the option is enabled. The ordinary
+``.xye`` and ``.fxye`` uncertainty columns continue to contain Poisson errors.
+Batch CSV exports include separately named spread columns, and processed batch
+HDF5 files store spread in ``processed/result/azimuthal_std``. Settings and the
+current pattern's spread are saved in projects.
+
+Dioptrin 0.5.3 and later calculate spread natively. With pyFAI or older Dioptrin,
+Dioptas computes the same weighted population statistic using pyFAI's integration
+overlap weights; it does not use pyFAI's differently weighted ``result.std``.
+Backend geometry and pixel-splitting approximations can still give slightly
+different numerical results. Spread is optional and adds computation and memory
+usage when enabled.
 
 
 Batch Processing
@@ -181,17 +235,34 @@ stoichiometries and composition families: for example, ``MgFeO`` or ``MgFe`` can
 mixed Mg-Fe oxide even when its formula uses decimal or integer-ratio subscripts. Exact matches are
 listed first.
 
+The browser opens on **Recent**, containing the last 20 loaded materials.
+Star a material to retain it under **Favourites**, or select **All** for the full
+library. Typing a search starts across the library; selecting a tab then filters
+the results without clearing your search. Recent entries and favourites persist
+across sessions.
+
 Select a material to see all its EoS records. The table reports the equation, whether a thermal
 model is available, publication, experimental fit-pressure range, and the principal parameters.
 The fit-pressure range is the range used to constrain the published EoS; it is **not** a
 phase-stability range. A displayed ``±`` value is the uncertainty reported by the source.
 ``error n/r`` means that no verified error was recorded, not that the error is zero.
 
-Select the appropriate record and click **Load as Phase** (or double-click it). Every record for
-that material remains available afterward in the phase table's **Ref** selector, so its effect on
+Select the appropriate record and click **Load as Phase** (or double-click it). The material's records remain available afterward in the phase table's **Ref** selector, so its effect on
 the calculated lines can be compared immediately. **Export .eosmat…** is only needed to share the
 material or move it to a different Dioptas installation; loading from the database does not require
 an export.
+
+If a bundled thermal model cannot evaluate at the default zero-pressure,
+room-temperature conditions, it starts at the lower documented fit pressure and
+the record's reference temperature. The phase table displays those initial values;
+set them to your experimental conditions before interpreting the reflections.
+
+Some source records are **deferred**: they remain available for inspection and
+export but cannot be loaded as executable phases. Materials without a usable
+diffraction structure also have **Load as Phase** disabled. Inspect the record's
+diagnostic rather than interpreting either case as an absent literature source.
+Published models and independent refits retain their own identifiers, references,
+validation status and fit ranges; a refit is not the original publication's model.
 
 
 Phase Editor
@@ -222,6 +293,38 @@ The **Thermal** selector adds temperature dependence to the room-temperature equ
 Mie-Grüneisen-Einstein model for a full thermal EoS, or the Sokolova et al. model when applicable.
 The editor reveals only the parameters required by the selected model. If the active record has no
 thermal model, changing the phase temperature does not move its reflections.
+
+The editor also supports the native coefficients and configuration of Peritheos
+thermal models, including double-Debye models with BM2/BM3/BM4 references.
+Unavailable combinations are disabled with an explanation, and incomplete models
+show a diagnostic. For double-Debye records, an empty reference temperature can
+represent an absolute cold curve; do not replace it with an assumed room temperature.
+
+DAC thermal pressure
+^^^^^^^^^^^^^^^^^^^^
+
+.. figure:: images/dac_thermal_pressure.png
+    :align: center
+    :width: 650
+
+    Cold-pressure input and confinement guidance under X → Phase.
+
+Open **X → Phase** and enable **DAC thermal pressure** to predict heated phase
+volumes with a shared confinement fraction. It is off by default, with an initial
+fraction of 0.25. When enabled, enter the **cold/reference pressure** in the phase
+table and the desired hot temperature. The fraction applies to all phases with a
+Peritheos thermal EoS, including newly loaded phases.
+
+A fraction of 0.25 retains 25% of the model's thermal-pressure increment; zero
+means constant-pressure heating. The allowed fraction is at least zero and less
+than one. This is an assumed confinement model, not a measured hot pressure;
+report the fraction and check how sensitive your interpretation is to it.
+Leave the option off when the pressure entered is already the measured hot pressure.
+The setting is retained in projects and supports undo/redo.
+
+Material records
+^^^^^^^^^^^^^^^^
+
 
 The **Material record** controls distinguish reusable, referenced EoS records
 from temporary phase parameters:

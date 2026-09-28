@@ -54,7 +54,7 @@ This procedure can take a considerable amount of time.
 
 
 Angle and Radial Range Masking
------------------------------
+------------------------------
 
 The **Range** controls below the intensity thresholds select pixels by **2θ (°)**,
 **q (Å⁻¹)**, or **d (Å)** using the current calibration. Load or perform a
@@ -87,8 +87,18 @@ Control Buttons
     Removes the entire mask.
 
 - *Undo/Redo*:
-    Undo or redo mask actions. Up to 50 actions can be undone.
-    Keyboard shortcuts: **Ctrl/Cmd + Z** for undo, **Ctrl/Cmd + Y** for redo.
+    Use the application-wide sidebar buttons to undo or redo actions in any module.
+    **Ctrl/Cmd + Z** undoes; the Redo button shows the platform shortcut.
+    **Ctrl/Cmd + Y** is also supported.
+
+
+Mask Visibility
+---------------
+
+The **Mask** and **transparent** controls sit below the detector image in all
+four modules. **Mask** enables the mask; **transparent** changes its display so
+you can inspect the excluded pixels underneath. Transparency is available only
+while the mask is enabled.
 
 
 File Handling
@@ -111,7 +121,7 @@ Mask Plugins
 Dioptas supports mask plugins for automated masking — built-in plugins include a Threshold
 Mask, a Cosmic Ray Mask, and a Spot Mask (median/MAD outlier detection per 2-theta bin for
 single-crystal spot removal in powder data). If any plugins are installed, they appear in
-the control panel between the Cosmic Removal button and the visibility toggles.
+the control panel below the range-masking controls.
 
 .. figure:: images/mask_plugins_panel.png
     :align: center

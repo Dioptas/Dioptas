@@ -114,3 +114,20 @@ Project files can also be loaded by the :doc:`scripting API <scripting_api>` for
 
 This restores the full setup (calibration, mask, corrections, orientation) and enables integration
 without the GUI. See :doc:`scripting_api` for details.
+
+
+Persistence and Compatibility
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Projects retain the selected material record, phase pressure/temperature and DAC
+thermal-pressure setting. Each configuration retains its integration options,
+including spottiness settings and the current pattern's calculated spread.
+Image and pattern **By Name**/**By Time** browsing modes and the selected
+mask/unmask drawing mode are restored as well.
+
+Dioptas 0.11 reads projects written by Dioptas 0.9 and 0.10. Projects written by
+0.8.7 or earlier use an older format and cannot be opened directly. Keep the
+original project and use its matching older Dioptas release to recover or export
+images, patterns, calibration and masks, then build a new project in the current
+version. Those standalone formats are unaffected by the project-format change.
+Save an upgraded project under a new filename if you need to retain the original.
