@@ -1,0 +1,4 @@
+#!/bin/sh
+# Resolve the bundle root independently of the caller's working directory.
+HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+exec "$HERE/usr/bin/Dioptas" "$@"

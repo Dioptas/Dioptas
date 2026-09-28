@@ -98,11 +98,14 @@ jobs:
         cp ../dioptas/resources/icons/icon.png Dioptas.AppDir/usr/share/icons/hicolor/256x256/apps/dioptas.png
 
         # Create AppRun
-        printf '#!/bin/bash\nSELF=$(readlink -f "$0")\nHERE=${SELF%%/*}\nexec "${HERE}/usr/bin/Dioptas" "$@"\n' > Dioptas.AppDir/AppRun
+        cp ../installer/linux/AppRun Dioptas.AppDir/AppRun
         chmod +x Dioptas.AppDir/AppRun
 
         # Build AppImage
         ARCH=x86_64 ./appimagetool Dioptas.AppDir Dioptas_Linux.AppImage
+
+    - name: Test AppImage entry point
+      run: APPIMAGE_EXTRACT_AND_RUN=1 xvfb-run -a dist/Dioptas_Linux.AppImage test
 
     - name: Upload artifact
       uses: actions/upload-artifact@v7
