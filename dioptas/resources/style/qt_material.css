@@ -141,6 +141,11 @@ QToolTip {{
     color: {QTMATERIAL_PRIMARYTEXTCOLOR};
 }}
 
+/* Keep compact EoS database headers readable, including T's sort arrow. */
+QHeaderView#eos_database_header::section {{
+    padding: 0 4px;
+}}
+
 /* QToolBox */
 
 QToolBox::tab {{
