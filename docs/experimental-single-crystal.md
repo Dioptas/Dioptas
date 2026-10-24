@@ -143,3 +143,20 @@ and [measured CPU timings](omega-background-performance.md). On an M4 Pro with
 eight workers, a 76-frame 2048 × 2048 Fe7C3 scan took 17.8 seconds including
 individual-frame export, with zero-padding excluded. At the default iteration
 cap, 7.6% of processed pixels were flagged as unconverged.
+
+On a machine where automatic discovery of external HDF5 plugins stalls during
+startup, the opt-in development wrapper configures HDF5 before importing Dioptas:
+
+```sh
+.venv/bin/python run_experimental_single_crystal.py --no-hdf5-plugin-autoload \
+  /path/to/sample_001.tif --sidecar-angles --find-positions
+```
+
+This uses the bundled HDF5 library's public `H5PLset_loading_state(0)` API for
+that process only. It leaves global plugin files and settings untouched.
+`hdf5plugin` still explicitly registers its bundled compression filters; a
+compressed Blosc HDF5 write/read test checks this path. Omit the flag when
+external automatic plugin discovery is needed. The ordinary launcher and normal
+Dioptas startup do not change. The observed local startup stall reproduced with
+h5py alone, including a clean environment; dependency versions were restored
+after diagnosis.

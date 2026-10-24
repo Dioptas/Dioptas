@@ -164,3 +164,34 @@ def test_background_series_browsing_and_stale_work(qapp, qtbot, tmp_path, monkey
     finally:
         release.set()
         c.widget.close()
+
+
+def test_isolated_launcher_registers_bundled_hdf5_filters(tmp_path):
+    from pathlib import Path
+    import subprocess
+    import sys
+
+    root = Path(__file__).parents[3]
+    code = """
+import run_experimental_single_crystal as launcher
+launcher.disable_external_hdf5_plugins()
+import h5py, hdf5plugin, numpy as np, tempfile
+from pathlib import Path
+with tempfile.TemporaryDirectory() as folder:
+    path=Path(folder)/'counts.h5'
+    data=np.arange(100).reshape(10,10)
+    with h5py.File(path,'w') as f:
+        f.create_dataset('counts',data=data,**hdf5plugin.Blosc())
+    with h5py.File(path,'r') as f:
+        np.testing.assert_array_equal(f['counts'][...],data)
+print('bundled filter round trip passed')
+"""
+    completed = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    assert "bundled filter round trip passed" in completed.stdout
