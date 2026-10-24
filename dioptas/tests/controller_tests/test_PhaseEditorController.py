@@ -8,7 +8,7 @@ import os
 import gc
 from qtpy import QtWidgets
 
-from mock import MagicMock
+from mock import MagicMock, patch
 import numpy as np
 
 from ..utility import click_button, enter_value_into_text_field, delete_if_exists
@@ -286,7 +286,111 @@ class PhaseEditorControllerTest(QtTest):
         # a plain jcpds phase starts as 3rd-order Birch-Murnaghan
         self.assertEqual(self.jcpds_widget.get_eos_type(), 'BM3')
 
+    def test_editing_atomic_position_updates_material_and_hkl_table(self):
+        from ...model import eos
+        from peritheos import get_material_document
+
+        phase = eos.build_jcpds(eos.Material.from_dict(get_material_document('diopside')),
+                                origin='file')
+        self.phase_model.add_jcpds_object(phase)
+        self.controller.show_phase(phase)
+        widget = self.jcpds_widget
+        widget.parameter_tabs.setCurrentIndex(0)
+        table = widget.structure_sites_table
+        column = next(col for col in range(table.columnCount())
+                      if table.item(3, col).data(QtCore.Qt.UserRole) == 'x')
+        before = widget.reflection_table_model.reflection_data.copy()
+        table.item(3, column).setText('0.13')
+
+        self.assertEqual(phase.params['material_document']['atom_sites'][3]['x'], .13)
+        self.assertEqual(widget.structure_composition_lbl.text(),
+                         'Calculated Z = 4 · formula matches')
+        data = widget.reflection_table_model.reflection_data
+        self.assertTrue(before.shape != data.shape or not np.allclose(before, data))
+        np.testing.assert_allclose(data[:, 3], [r.intensity for r in phase.reflections])
+        self.assertTrue(widget.structure_edit_status_lbl.isHidden())
+
+        lines = data.copy()
+        depth = self.model.history.depth
+        table.item(3, column).setText('nan')
+        self.assertEqual(phase.params['material_document']['atom_sites'][3]['x'], .13)
+        self.assertEqual(table.item(3, column).text(), '0.13')
+        np.testing.assert_array_equal(widget.reflection_table_model.reflection_data, lines)
+        self.assertFalse(widget.structure_edit_status_lbl.isHidden())
+        self.assertIn('finite', widget.structure_edit_status_lbl.text())
+        self.assertEqual(self.model.history.depth, depth)
+
+    def test_element_picker_and_site_buttons_recalculate_user_material(self):
+        from ...model import eos
+        from peritheos import get_material_document
+
+        phase = eos.build_jcpds(eos.Material.from_dict(get_material_document('diopside')),
+                                origin='file')
+        self.phase_model.add_jcpds_object(phase)
+        self.controller.show_phase(phase)
+        widget = self.jcpds_widget
+        table = widget.structure_sites_table
+        count = table.rowCount()
+        column = next(col for col in range(table.columnCount())
+                      if table.item(0, col).data(QtCore.Qt.UserRole) == 'element')
+        module = 'dioptas.controller.integration.phase.PhaseEditorController'
+        with patch(module + '.ElementPickerDialog') as picker:
+            picker.return_value.exec_.return_value = QtWidgets.QDialog.Accepted
+            picker.return_value.element = 'Fe'
+            table.cellDoubleClicked.emit(0, column)
+        self.assertEqual(phase.params['material_document']['atom_sites'][0]['element'], 'Fe')
+        self.assertEqual(widget.structure_composition_lbl.text(), 'Formula mismatch · no common Z')
+        with patch(module + '.AtomicSiteDialog') as form:
+            form.return_value.exec_.return_value = QtWidgets.QDialog.Accepted
+            form.return_value.site.return_value = {
+                'element': 'O', 'x': .12, 'y': .23, 'z': .34, 'occupancy': .5}
+            widget.structure_site_add_btn.click()
+        self.assertEqual(table.rowCount(), count + 1)
+        self.assertTrue(widget.structure_site_remove_btn.isEnabled())
+        widget.structure_site_remove_btn.click()
+        self.assertEqual(table.rowCount(), count)
+        np.testing.assert_allclose(widget.reflection_table_model.reflection_data[:, 3],
+                                   [r.intensity for r in phase.reflections])
+        before = self.phase_model._condition_snapshot(phase)
+        with patch(module + '.ElementPickerDialog') as picker:
+            picker.return_value.exec_.return_value = QtWidgets.QDialog.Rejected
+            self.controller.choose_atomic_element(0)
+        self.assertEqual(self.phase_model._condition_snapshot(phase), before)
+
+    def test_space_group_apply_and_invalid_entry_update_the_editor(self):
+        from ...model import eos
+        from peritheos import get_material_document
+
+        phase = eos.build_jcpds(eos.Material.from_dict(get_material_document('gold')),
+                                origin='file')
+        self.phase_model.add_jcpds_object(phase)
+        self.controller.show_phase(phase)
+        widget = self.jcpds_widget
+        widget.space_group_cb.setCurrentIndex(220)
+        widget.space_group_cb.activated.emit(220)
+        self.assertEqual(phase.params['material_document']['space_group_number'], 221)
+        self.assertEqual(widget.space_group_cb.currentText(), '221 — Pm-3m')
+        self.assertIn((1, 0, 0), {(r.h, r.k, r.l) for r in phase.reflections})
+        self.assertEqual(widget.structure_composition_lbl.text(),
+                         'Calculated Z = 1 · differs from stored Z')
+        self.assertEqual(phase.params['zc'], 4)
+        np.testing.assert_allclose(widget.reflection_table_model.reflection_data[:, 3],
+                                   [r.intensity for r in phase.reflections])
+        before = self.phase_model._condition_snapshot(phase)
+        depth = self.model.history.depth
+        widget.space_group_apply_btn.click()
+        self.assertEqual(widget.space_group_cb.currentText(), '221 — Pm-3m')
+        self.assertEqual(self.model.history.depth, depth)
+        widget.space_group_txt.setText('invalid group')
+        QTest.keyClick(widget.space_group_txt, QtCore.Qt.Key_Return)
+        self.assertEqual(self.phase_model._condition_snapshot(phase), before)
+        self.assertEqual(widget.space_group_cb.value(), phase.params['material_document']['space_group'])
+        self.assertEqual(widget.space_group_cb.currentText(), '221 — Pm-3m')
+        self.assertFalse(widget.structure_edit_status_lbl.isHidden())
+        self.assertEqual(self.model.history.depth, depth)
+
     def test_selecting_eos_updates_model_and_parameter_rows(self):
+        self.jcpds_widget.parameter_tabs.setCurrentWidget(self.jcpds_widget.eos_gb)
         cb = self.jcpds_widget.eos_type_cb
         cb.setCurrentIndex(cb.findData('BM4'))
         self.assertEqual(self.phase_model.get_eos_type(5), 'BM4')
@@ -299,6 +403,7 @@ class PhaseEditorControllerTest(QtTest):
             self.jcpds_widget))
 
     def test_holzapfel_shows_material_data_rows(self):
+        self.jcpds_widget.parameter_tabs.setCurrentWidget(self.jcpds_widget.eos_gb)
         cb = self.jcpds_widget.eos_type_cb
         cb.setCurrentIndex(cb.findData('Holzapfel'))
         for field in (self.jcpds_widget.eos_n_txt,
@@ -317,6 +422,7 @@ class PhaseEditorControllerTest(QtTest):
             self.phase_model.phases[5].params['k0pp0'], -0.04)
 
     def test_thermal_selector_derived_from_values(self):
+        self.jcpds_widget.parameter_tabs.setCurrentWidget(self.jcpds_widget.eos_gb)
         # au_Anderson.jcpds carries thermal expansion -> AlphaKT selected
         self.setup_selected_row(2)
         click_button(self.phase_widget.edit_btn)
@@ -328,6 +434,7 @@ class PhaseEditorControllerTest(QtTest):
             self.jcpds_widget))
 
     def test_selecting_no_thermal_model_zeroes_coefficients(self):
+        self.jcpds_widget.parameter_tabs.setCurrentWidget(self.jcpds_widget.eos_gb)
         self.setup_selected_row(2)
         click_button(self.phase_widget.edit_btn)
         cb = self.jcpds_widget.thermal_type_cb
@@ -346,6 +453,7 @@ class PhaseEditorControllerTest(QtTest):
         self.assertEqual(set(keys), {'none', 'alphakt', *THERMAL_EOS_TYPES})
 
     def test_canonical_alphakt_is_editable_and_rejects_incompatible_switch(self):
+        self.jcpds_widget.parameter_tabs.setCurrentWidget(self.jcpds_widget.eos_gb)
         from ...model import eos
         from peritheos import get_material_document
         material = eos.Material.from_dict(get_material_document('gold'))
@@ -397,6 +505,7 @@ class PhaseEditorControllerTest(QtTest):
         self.assertFalse(self.jcpds_widget.eos_calculation_status_lbl.isHidden())
 
     def test_selecting_mgd_updates_model_and_rows(self):
+        self.jcpds_widget.parameter_tabs.setCurrentWidget(self.jcpds_widget.eos_gb)
         cb = self.jcpds_widget.thermal_type_cb
         cb.setCurrentIndex(cb.findData('MieGruneisenDebye'))
         self.assertEqual(self.phase_model.get_thermal_type(5),

@@ -4,6 +4,7 @@ import os
 import unittest
 
 from qtpy import QtCore
+from qtpy.QtTest import QTest
 
 from ..utility import QtTest, QtWidgets
 from ...model.util import jcpds
@@ -141,6 +142,172 @@ class PhaseEditorWidgetTest(QtTest):
         self.assertTrue(self.jcpds_editor_widget.eos_K_txt.isEnabled())
         self.assertTrue(self.jcpds_editor_widget.eos_record_edit_btn.isEnabled())
         self.assertTrue(self.jcpds_editor_widget.eos_record_delete_btn.isEnabled())
+
+    def test_full_assessment_is_available_on_demand_when_narrow(self):
+        widget = self.jcpds_editor_widget
+        detail = ("Parameter agreement: Parameter parity.\n"
+                  "Source validation: primary source validated.\n"
+                  "Original-author fit reproduction: Not established by this scoped numerical assessment.\n"
+                  "Recommendation: Not recommended for quantitative use.")
+        title = "A long publication title with a thermal EOS and source qualification"
+        widget.update_eos_records([title], origins=['bundled'],
+                                  reproduction_details=[detail],
+                                  record_warnings=['Not recommended'])
+        widget.resize(760, 660)
+        widget.show()
+        for _ in range(3):
+            QtWidgets.QApplication.processEvents()
+        assert widget.eos_reproduction_lbl.isHidden()
+        assert widget.eos_warning_lbl.text() == '⚠ Not recommended'
+        status = widget.eos_record_status_lbl
+        assert status.text() == 'Published · read-only'
+        assert title in widget.eos_record_cb.toolTip()
+        widget.eos_details_btn.click()
+        QtWidgets.QApplication.processEvents()
+        dialog = widget._eos_details_dialog
+        text = dialog.findChild(QtWidgets.QPlainTextEdit)
+        assert detail in text.toPlainText()
+        assert text.isReadOnly()
+        dialog.close()
+
+    def test_cell_parameter_fields_keep_a_compact_width(self):
+        widget = self.jcpds_editor_widget
+        widget.show()
+        for width in (900, 1200):
+            widget.resize(width, 700)
+            QtWidgets.QApplication.processEvents()
+            for field in (widget.lattice_a_sb, widget.lattice_b_sb,
+                          widget.lattice_c_sb, widget.lattice_eos_a_txt,
+                          widget.lattice_volume_txt):
+                assert field.width() == 88
+            assert widget.lattice_parameters_gb.width() < width * .8
+
+    def test_parameter_tabs_give_eos_full_height_beside_hkl(self):
+        widget = self.jcpds_editor_widget
+        widget.resize(1120, 740)
+        widget.show()
+        QtWidgets.QApplication.processEvents()
+        tabs = widget.parameter_tabs.geometry()
+        hkl = widget.reflections_gb.geometry()
+        assert tabs.top() == hkl.top()
+        assert tabs.bottom() == hkl.bottom()
+        assert tabs.right() < hkl.left()
+        assert widget.parameter_tabs.tabText(0) == 'Volume && structure'
+        assert widget.parameter_tabs.tabText(1) == 'Equation of state'
+        for index, page in enumerate((widget.lattice_parameters_gb, widget.eos_gb)):
+            widget.parameter_tabs.setCurrentIndex(index)
+            QtWidgets.QApplication.processEvents()
+            assert page.isVisible()
+            assert page.height() > 500
+            assert widget.reflections_gb.isVisible()
+
+    def test_structure_summary_and_site_permissions_follow_selected_phase(self):
+        widget = self.jcpds_editor_widget
+        assert widget.structure_summary_widget.isHidden()
+        self.jcpds.params['material_document'] = {
+            'formula': 'Au',
+            'space_group': 'Fm-3m', 'space_group_number': 225,
+            'formula_units_per_cell': 4,
+            'atom_sites': [{'element': 'Au', 'x': 0., 'y': 0., 'z': 0.,
+                            'occupancy': 1., 'b_iso': .25}],
+            'source': {'assumed_structure': {'note': 'Approximate intensities.'}},
+        }
+        widget.show_jcpds(self.jcpds)
+        assert not widget.structure_summary_widget.isHidden()
+        assert widget.structure_summary_lbl.text() == 'Assumed structure · Stored Z = 4'
+        assert widget.structure_composition_lbl.text() == 'Calculated Z = 4 · formula matches'
+        assert 'Atoms per cell: Au: 4' in widget.structure_composition_lbl.toolTip()
+        assert widget.space_group_cb.currentText() == '225 — Fm-3m'
+        assert widget.space_group_cb.value() == 'Fm-3m'
+        assert not widget.space_group_txt.isReadOnly()
+        assert widget.space_group_apply_btn.isEnabled()
+        assert 'Approximate intensities.' in widget.structure_summary_lbl.toolTip()
+        assert 'checked independently' in widget.structure_summary_lbl.toolTip()
+        widget.show()
+        QtWidgets.QApplication.processEvents()
+        table = widget.structure_sites_table
+        assert table.isVisible()
+        assert widget.structure_note_lbl.text() == 'Approximate intensities.'
+        assert widget.structure_note_lbl.isVisible()
+        assert table.rowCount() == 1
+        assert table.editTriggers() != QtWidgets.QAbstractItemView.NoEditTriggers
+        for column in range(table.columnCount()):
+            item = table.item(0, column)
+            key = item.data(QtCore.Qt.UserRole)
+            assert bool(item.flags() & QtCore.Qt.ItemIsEditable) == (key in {'x', 'y', 'z', 'occupancy'})
+        headers = [table.horizontalHeaderItem(i).text() for i in range(table.columnCount())]
+        assert 'B Iso' in headers
+        assert table.item(0, headers.index('B Iso')).text() == '0.25'
+        assert widget.structure_site_add_btn.isEnabled()
+        element_column = headers.index('Element')
+        requested = []
+        widget.element_edit_requested.connect(requested.append)
+        table.cellDoubleClicked.emit(0, element_column)
+        table.setCurrentCell(0, element_column)
+        QTest.keyClick(table, QtCore.Qt.Key_F2)
+        assert requested == [0, 0]
+        assert not widget.structure_site_remove_btn.isEnabled()  # keep the last site
+        widget.set_material_editable(False)
+        assert widget.space_group_txt.isReadOnly()
+        assert not widget.space_group_apply_btn.isEnabled()
+        assert not widget.structure_site_add_btn.isEnabled()
+        table.cellDoubleClicked.emit(0, element_column)
+        assert requested == [0, 0]
+        assert table.editTriggers() == QtWidgets.QAbstractItemView.NoEditTriggers
+        assert all(not table.item(0, col).flags() & QtCore.Qt.ItemIsEditable
+                   for col in range(table.columnCount()))
+        self.jcpds.params['zc'] = 8
+        widget.update_structure_information(self.jcpds)
+        assert 'Z = 8' in widget.structure_summary_lbl.text()
+        assert widget.structure_composition_lbl.text() == 'Calculated Z = 4 · differs from stored Z'
+        self.jcpds.params['material_document']['atom_sites'][0]['element'] = 'Pt'
+        widget.update_structure_information(self.jcpds)
+        assert widget.structure_composition_lbl.text() == 'Formula mismatch · no common Z'
+        assert 'different elements' in widget.structure_composition_lbl.toolTip()
+        assert self.jcpds.params['zc'] == 8
+        self.jcpds.params['material_document']['formula'] = 'unknown'
+        widget.update_structure_information(self.jcpds)
+        assert widget.structure_composition_lbl.text() == 'Calculated Z unavailable'
+        self.jcpds.params['zc'] = None
+        self.jcpds.params['material_document'] = {}
+        widget.show_jcpds(self.jcpds)
+        assert widget.structure_summary_widget.isHidden()
+        assert table.rowCount() == 0
+
+    def test_units_stay_next_to_values_with_wide_model_selectors(self):
+        widget = self.jcpds_editor_widget
+        widget.parameter_tabs.setCurrentWidget(widget.eos_gb)
+        widget.show()
+        for thermal in ('none', 'MieGruneisenDebye', 'AlphaKT'):
+            widget.set_thermal_type(thermal)
+            widget.resize(1200, 740)
+            QtWidgets.QApplication.processEvents()
+            rows = [*widget._eos_param_rows.values(),
+                    *widget._thermal_param_rows.values()]
+            for row in rows:
+                if len(row) == 3 and row[1].isVisible():
+                    gap = row[2].geometry().left() - row[1].geometry().right() - 1
+                    assert 0 <= gap <= widget._eos_layout.horizontalSpacing() + 1
+
+    def test_last_thermal_parameter_can_be_scrolled_into_view(self):
+        widget = self.jcpds_editor_widget
+        widget.parameter_tabs.setCurrentWidget(widget.eos_gb)
+        self.jcpds.params['thermal_type'] = 'Sokolova2016'
+        self.jcpds.params['thermal_parameters'] = {
+            'Tr': 298.15, 'QE1o': 179.5, 'mE1': 1.5,
+            'QE2o': 83., 'mE2': 1.5, 'delta': .134, 't': .087,
+            'a_0': 0., 'm': 0., 'g': 0., 'e_0': 0.,
+        }
+        widget.update_eos_parameters(self.jcpds)
+        widget.resize(900, 660)
+        widget.show()
+        QtWidgets.QApplication.processEvents()
+        field = widget.sokolova_parameter_fields['e_0']
+        widget.eos_scroll_area.ensureWidgetVisible(field)
+        QtWidgets.QApplication.processEvents()
+        viewport = widget.eos_scroll_area.viewport()
+        assert viewport.rect().contains(field.mapTo(viewport, field.rect().center()))
+        assert widget.eos_scroll_area.verticalScrollBar().value() > 0
 
     def test_visible_eos_rows_are_compacted(self):
         widget = self.jcpds_editor_widget

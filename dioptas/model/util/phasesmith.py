@@ -40,6 +40,17 @@ _SPACE_GROUP_ALIASES = {
 }
 
 
+def normalize_element_symbol(value: str) -> str:
+    """Accept elemental symbols with available X-ray factors, plus D and T."""
+    from phasesmith.scattering import xray_species_metadata
+
+    symbol = str(value).strip().capitalize()
+    if (not symbol or len(symbol) > 2 or not symbol.isalpha()
+            or xray_species_metadata('H' if symbol in ('D', 'T') else symbol) is None):
+        raise ValueError('Choose an element with available X-ray scattering data, e.g. Fe or O.')
+    return symbol
+
+
 def material_has_diffraction_data(material: Material) -> bool:
     """Whether a material can supply phase-line positions in Dioptas."""
     return bool(
@@ -76,6 +87,41 @@ def _space_group_info(symbol: str, expected_number: int | None):
     return info
 
 
+def resolve_space_group(value):
+    """Resolve a number or symbol without dropping a non-reference setting."""
+    from phasesmith.io.space_groups import space_group_by_number
+
+    symbol = str(value).strip()
+    if symbol.isdigit():
+        info = space_group_by_number(int(symbol))
+        reference = _space_group_info(info.hm_symbol, None)
+        symbol = info.hm_symbol if reference.hall_symbol == info.hall_symbol else info.hall_symbol
+    else:
+        info = _space_group_info(symbol, None)
+    return symbol, info
+
+
+def space_group_lattice_symmetry(info, lattice):
+    """Check metric compatibility and choose a supported JCPDS cell model."""
+    from phasesmith import UnitCell
+
+    g = UnitCell(lattice.a, lattice.b or lattice.a, lattice.c or lattice.a,
+                 lattice.alpha, lattice.beta, lattice.gamma).geometry().direct_metric
+    metric = np.array([g[0, 0], g[1, 1], g[2, 2], g[1, 2], g[0, 2], g[0, 1]])
+    # Permit rounding in entered cell parameters, rather than changing them.
+    if not np.allclose(info.space_group.metric_constraints.equations @ metric,
+                       0., rtol=0., atol=1e-5 * np.max(np.abs(metric))):
+        raise ValueError('The current cell is incompatible with this space group and setting. '
+                         'Adjust the lattice parameters before applying it.')
+    symmetry = info.space_group.crystal_system.upper()
+    if symmetry == 'TRIGONAL' and info.setting == 'R':
+        symmetry = 'RHOMBOHEDRAL'
+    if symmetry == 'MONOCLINIC' and info.setting and not info.setting.startswith('b'):
+        raise ValueError('Monoclinic editing uses unique axis b. Choose a b setting, '
+                         'or transform the cell and coordinates before applying it.')
+    return symmetry
+
+
 @lru_cache(maxsize=256)
 def _reflection_generator(symbol: str, expected_number: int | None):
     from phasesmith import PreparedReflectionGenerator
@@ -95,6 +141,7 @@ def structure_from_material(material: Material) -> CrystalStructure:
 
     lattice = material.lattice
     info = _space_group_info(material.space_group, material.space_group_number)
+    neutral_cif = material.source.get('kind') == 'cif'
     sites = []
     for index, site in enumerate(material.atom_sites, start=1):
         element = str(site.get("element") or "").strip()
@@ -117,7 +164,7 @@ def structure_from_material(material: Material) -> CrystalStructure:
             AtomSite(
                 site_id=site_id,
                 source_label=source_label,
-                type_symbol=str(site.get("type_symbol") or element),
+                type_symbol=(element_symbol if neutral_cif else str(site.get("type_symbol") or element)),
                 element_symbol=element_symbol,
                 fractional_xyz=(
                     float(site["x"]),
@@ -130,7 +177,9 @@ def structure_from_material(material: Material) -> CrystalStructure:
                     if site.get("u_iso_angstrom2") is None
                     else float(site["u_iso_angstrom2"])
                 ),
-                charge=site.get("charge"),
+                # CIF phase loading uses neutral-atom scattering. Keep that
+                # convention when edited coordinates replace the raw CIF input.
+                charge=None if neutral_cif else (site.get("charge") or None),
                 isotope=isotope,
             )
         )

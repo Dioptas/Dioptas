@@ -557,6 +557,158 @@ class PhaseModel:
                 ".eosmat file before changing the structure."
             )
 
+    def set_atom_site_parameter(self, ind: int, site_index: int, parameter: str,
+                                value: Any, *, wavelength_angstrom=None) -> None:
+        """Validate a site edit and replace its calculated reflections atomically."""
+        from .eos import material_from_jcpds
+
+        self._require_editable_material(ind)
+        if parameter == 'element':
+            from .util.phasesmith import normalize_element_symbol
+            value = normalize_element_symbol(value)
+        elif parameter in {'x', 'y', 'z', 'occupancy', 'u_iso_angstrom2'}:
+            value = self._validate_atom_site_number(parameter, value)
+        else:
+            raise ValueError('This atomic-site property is read-only.')
+        phase = self.phases[ind]
+        material = material_from_jcpds(phase)
+        if not 0 <= site_index < len(material.atom_sites):
+            raise IndexError(site_index)
+        site = material.atom_sites[site_index]
+        if site.get(parameter) == value:
+            return
+        site[parameter] = value
+        if parameter == 'element':
+            # These describe the old chemical species, not the site's identity.
+            for key in ('type_symbol', 'charge', 'isotope'):
+                site.pop(key, None)
+        if parameter in {'x', 'y', 'z'}:
+            # A source Wyckoff assignment need not survive moving the atom.
+            # Do not display it as a newly established site classification.
+            site.pop('wyckoff', None)
+        self._apply_atom_sites(ind, material, wavelength_angstrom)
+
+    @staticmethod
+    def _validate_atom_site_number(parameter, value):
+        value = float(value)
+        if not np.isfinite(value):
+            raise ValueError('Atomic-site values must be finite numbers.')
+        if parameter == 'occupancy' and not 0 <= value <= 1:
+            raise ValueError('Occupancy must be between 0 and 1.')
+        if parameter == 'u_iso_angstrom2' and value < 0:
+            raise ValueError('The isotropic displacement parameter must be non-negative.')
+        return value
+
+    def add_atom_site(self, ind: int, element: str, x=0., y=0., z=0., occupancy=1.,
+                      *, wavelength_angstrom=None) -> int:
+        from .eos import material_from_jcpds
+        from .util.phasesmith import normalize_element_symbol
+
+        self._require_editable_material(ind)
+        material = material_from_jcpds(self.phases[ind])
+        site = {'element': normalize_element_symbol(element)}
+        for key, value in (('x', x), ('y', y), ('z', z), ('occupancy', occupancy)):
+            site[key] = self._validate_atom_site_number(key, value)
+        labels = {str(atom.get(key)) for atom in material.atom_sites
+                  for key in ('label', '_label', 'site_id')}
+        number = 1
+        while f'{site["element"]}{number}' in labels:
+            number += 1
+        label_key = ('_label' if any('_label' in atom for atom in material.atom_sites)
+                     and not any('label' in atom for atom in material.atom_sites) else 'label')
+        site[label_key] = f'{site["element"]}{number}'
+        if any('site_id' in atom for atom in material.atom_sites):
+            site['site_id'] = site[label_key]
+        index = len(material.atom_sites)
+        material.atom_sites.append(site)
+        self._apply_atom_sites(ind, material, wavelength_angstrom)
+        return index
+
+    def remove_atom_sites(self, ind: int, indices: list[int], *, wavelength_angstrom=None) -> None:
+        from .eos import material_from_jcpds
+
+        self._require_editable_material(ind)
+        material = material_from_jcpds(self.phases[ind])
+        indices = set(indices)
+        if not indices:
+            return
+        if any(index < 0 or index >= len(material.atom_sites) for index in indices):
+            raise IndexError('Atomic-site index is out of range.')
+        if len(indices) >= len(material.atom_sites):
+            raise ValueError('Keep at least one atomic site to calculate diffraction.')
+        material.atom_sites = [site for index, site in enumerate(material.atom_sites)
+                               if index not in indices]
+        self._apply_atom_sites(ind, material, wavelength_angstrom)
+
+    def set_space_group(self, ind: int, value: str, *, wavelength_angstrom=None) -> None:
+        """Change a user structure's group and derived reflections together."""
+        from .eos import material_from_jcpds
+        from .util.phasesmith import resolve_space_group, space_group_lattice_symmetry
+
+        self._require_editable_material(ind)
+        material = material_from_jcpds(self.phases[ind])
+        if not material.atom_sites:
+            raise ValueError('Atomic sites are needed to recalculate a space-group change.')
+        symbol, info = resolve_space_group(value)
+        if symbol == material.space_group and info.number == material.space_group_number:
+            return
+        material.symmetry = space_group_lattice_symmetry(info, material.lattice)
+        try:
+            old_info = resolve_space_group(material.space_group)[1]
+        except ValueError:
+            old_info = None
+        material.space_group = symbol
+        material.space_group_number = info.number
+        if old_info is None or old_info.hall_symbol != info.hall_symbol:
+            for site in material.atom_sites:
+                site.pop('wyckoff', None)
+        self._apply_atom_sites(ind, material, wavelength_angstrom)
+
+    def _apply_atom_sites(self, ind, material, wavelength_angstrom):
+        from .util.phasesmith import (
+            DEFAULT_MIN_D_SPACING_ANGSTROM, DEFAULT_WAVELENGTH_ANGSTROM,
+            calculate_material_reflections,
+        )
+
+        phase = self.phases[ind]
+        material.source['structure_modified'] = True
+
+        wavelength = (wavelength_angstrom or phase.state.reflection_wavelength
+                      or DEFAULT_WAVELENGTH_ANGSTROM)
+        if not np.isfinite(wavelength) or wavelength <= 0:
+            raise ValueError('The diffraction wavelength must be positive and finite.')
+        q_max = phase.state.reflection_q_max or 2 * pi / DEFAULT_MIN_D_SPACING_ANGSTROM
+        q_max = min(q_max, np.nextafter(4 * pi / wavelength, 0.))
+        rows = calculate_material_reflections(
+            material, minimum_d_spacing=2 * pi / q_max,
+            minimum_intensity=phase.state.reflection_intensity_cutoff,
+            wavelength_angstrom=wavelength)
+
+        candidate = deepcopy(phase)
+        candidate.params['symmetry'] = material.symmetry
+        document = material.to_dict()
+        document['eos_records'] = []
+        candidate.params['material_document'] = document
+        structure_document = deepcopy(document)
+        structure_document['peaks'] = []
+        candidate.state.reflection_source = {'kind': 'material', 'material': structure_document}
+        candidate.state.reflection_q_max = q_max
+        candidate.state.reflection_wavelength = wavelength
+        candidate.reflections = [
+            jcpds_reflection(h=h, k=k, l=l, d=d0, intensity=intensity)
+            for h, k, l, d0, intensity in rows]
+        candidate.compute_d()
+        candidate.state.modified = True
+
+        # Keep the live phase object's identity for controllers, and publish
+        # only after both diffraction and the current P/T calculation succeed.
+        phase.state = candidate.state
+        phase.params._state = phase.state
+        phase.params._derived = candidate.params._derived
+        phase.reflections = candidate.reflections
+        self.get_lines_d(ind)
+        self.phase_changed.emit(ind)
+
     def eos_record_from_phase(self, ind: int, base: dict | None = None) -> dict:
         """Snapshot the live EoS/thermal parameters into one record dict."""
         from .util.eos_phase import (
@@ -880,7 +1032,9 @@ class PhaseModel:
             apply_eos_record(candidate, record)
             candidate.compute_d()  # use the phase's current P and T
             candidate.params['modified'] = bool(
-                candidate.params.get('eos_records_modified'))
+                candidate.params.get('eos_records_modified')
+                or (candidate.params.get('material_document') or {}).get(
+                    'source', {}).get('structure_modified'))
 
         label = reference_text(record.get('reference')) or "selected reference"
         return self._apply_conditions(

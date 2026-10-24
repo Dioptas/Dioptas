@@ -13,6 +13,10 @@ Their changes are included here; the previous published release is 0.10.0. -->
 
 - Batch normalization can be toggled off to restore the original intensities. Its settings select the bin interval and reference frame; backgrounds and azimuthal spread follow the same scaling.
 
+- User-owned crystal structures can be edited in the phase editor, including atomic sites, elements, occupancies and space groups. Valid edits recalculate diffraction lines and persist in material files and projects; published library structures remain read-only.
+
+- The phase editor automatically checks crystallographic Z from symmetry-expanded atomic sites and occupancies against the chemical formula. Formula mismatches and disagreements with stored Z are shown inline, with element counts and multiplicities available on hover; stored formula and EoS normalization are preserved.
+
 - Extended the Python compatibility range through 3.15, with backend and
   controller CI on 3.14 and 3.15 and wheel builds for both. Python 3.15 is
   currently a prerelease and requires source builds for several dependencies.

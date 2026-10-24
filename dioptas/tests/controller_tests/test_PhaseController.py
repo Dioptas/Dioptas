@@ -84,6 +84,39 @@ class PhaseControllerTest(QtTest):
         assert all(phase.params['v'] < volume
                    for phase, volume in zip(phases.phases, quarter))
 
+    def test_nonreproduced_eos_warning_follows_reference_and_editor_selection(self):
+        from ...model import eos
+
+        material = next(m for m in eos.load_materials() if m.identifier == 'ca_perovskite')
+        index = next(i for i, r in enumerate(material.eos_records)
+                     if r['identifier'] == 'ca_perovskite_fu_2023_bm3_mgd_refit')
+        phases = self.model.phase_model
+        phase = eos.build_jcpds(material, record_index=index, origin='bundled')
+        phases.add_jcpds_object(phase)
+        combo = self.phase_widget.reference_cbs[0]
+        assert combo.currentText().startswith('⚠ ')
+        assert 'Parameter agreement: Not reproduced' in combo.toolTip()
+        editor = self.controller.phase_editor_controller
+        editor.phase_ind = 0
+        editor._update_eos_record_controls()
+        assert 'Not reproduced' in editor.jcpds_widget.eos_reproduction_lbl.text()
+        assert editor.jcpds_widget.eos_reproduction_lbl.isHidden()
+        assert 'Not recommended' in editor.jcpds_widget.eos_warning_lbl.text()
+
+        other = next(i for i, r in enumerate(material.eos_records)
+                     if r['identifier'] == 'ca_perovskite_fu_2023_candidate_data_unweighted_bm3_mgd_refit')
+        phases.set_eos_reference(0, other)
+        assert not combo.currentText().startswith('⚠ ')
+        assert 'Independent refit' in combo.toolTip()
+        editor._update_eos_record_controls()
+        assert 'Independent refit' in editor.jcpds_widget.eos_reproduction_lbl.text()
+
+        phases.duplicate_eos_record(0, other)
+        editor._update_eos_record_controls()
+        assert 'Not assessed' in editor.jcpds_widget.eos_reproduction_lbl.text()
+        assert 'do not inherit' in editor.jcpds_widget.eos_reproduction_lbl.toolTip()
+        assert not editor.jcpds_widget.eos_warning_lbl.text()
+
     def test_rejected_dac_change_restores_checkbox(self):
         from ...model import eos
         from ...model.util.jcpds import EosCalculationError

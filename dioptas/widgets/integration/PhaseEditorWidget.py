@@ -10,15 +10,23 @@ from ...model.util.eos_phase import (
     NON_MOLAR_THERMAL_TYPES, EosPhase,
 )
 
-from ...widgets.CustomWidgets import NumberTextField, LabelAlignRight, DoubleSpinBoxAlignRight, HorizontalSpacerItem, \
-    VerticalSpacerItem
+from ...widgets.CustomWidgets import (
+    NumberTextField, LabelAlignRight, DoubleSpinBoxAlignRight, HorizontalSpacerItem)
 
 from ...model.util.HelperModule import convert_d_to_two_theta
+from ...model.eos.structure_composition import assess_structure_composition
+from ..SpaceGroupSelector import SpaceGroupSelector
 
 
 class PhaseEditorWidget(QtWidgets.QWidget):
+    element_edit_requested = QtCore.Signal(int)
+    EDITABLE_SITE_FIELDS = frozenset({'element', 'x', 'y', 'z', 'occupancy', 'u_iso_angstrom2'})
+
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._record_layout_timer = QtCore.QTimer(self)
+        self._record_layout_timer.setSingleShot(True)
+        self._record_layout_timer.timeout.connect(self._fit_record_details)
 
         self.setWindowTitle('Dioptas - Phase Editor')
 
@@ -37,8 +45,9 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self._file_layout.addWidget(self.filename_txt, 0, 1)
         self._layout.addLayout((self._file_layout))
 
-        self.lattice_parameters_gb = QtWidgets.QGroupBox('Lattice Parameters')
+        self.lattice_parameters_gb = QtWidgets.QGroupBox('Lattice && structure')
         self._lattice_parameters_layout = QtWidgets.QVBoxLayout()
+        self._lattice_parameters_layout.setSpacing(6)
 
         self._symmetry_layout = QtWidgets.QHBoxLayout()
         self._symmetry_layout.addWidget(LabelAlignRight('Symmetry'))
@@ -50,7 +59,24 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self._symmetry_layout.addSpacerItem(HorizontalSpacerItem())
         self._lattice_parameters_layout.addLayout(self._symmetry_layout)
 
+        self.space_group_widget = QtWidgets.QWidget()
+        space_group_layout = QtWidgets.QHBoxLayout(self.space_group_widget)
+        space_group_layout.setContentsMargins(0, 0, 0, 0)
+        space_group_layout.addWidget(QtWidgets.QLabel('Space group'))
+        self.space_group_cb = SpaceGroupSelector()
+        self.space_group_txt = self.space_group_cb.lineEdit()
+        self.space_group_cb.setToolTip(
+            'Search by symbol or International Tables number. '
+            'Reference settings are listed; explicit material settings are retained. '
+            'Coordinates stay in the current basis and origin.')
+        space_group_layout.addWidget(self.space_group_cb, 1)
+        self.space_group_apply_btn = QtWidgets.QPushButton('Apply')
+        space_group_layout.addWidget(self.space_group_apply_btn)
+        self.space_group_widget.hide()
+        self._lattice_parameters_layout.addWidget(self.space_group_widget)
+
         self._parameters_layout = QtWidgets.QGridLayout()
+        self._parameters_layout.setVerticalSpacing(4)
 
         self.lattice_a_sb = DoubleSpinBoxAlignRight()
         self.lattice_a_sb.setSingleStep(0.01)
@@ -72,7 +98,6 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self.add_field(self._parameters_layout, self.lattice_a_sb, 'a0:', u"Å", 0, 0)
         self.add_field(self._parameters_layout, self.lattice_b_sb, 'b0:', u"Å", 0, 3)
         self.add_field(self._parameters_layout, self.lattice_c_sb, 'c0:', u"Å", 0, 6)
-        self.add_field(self._parameters_layout, self.lattice_length_step_txt, 'st:', u"Å", 0, 9)
 
         self.lattice_eos_a_txt = NumberTextField()
         self.lattice_eos_b_txt = NumberTextField()
@@ -93,7 +118,6 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self.add_field(self._parameters_layout, self.lattice_alpha_sb, u'α:', u"°", 2, 0)
         self.add_field(self._parameters_layout, self.lattice_beta_sb, u'β:', u"°", 2, 3)
         self.add_field(self._parameters_layout, self.lattice_gamma_sb, u'γ:', u"°", 2, 6)
-        self.add_field(self._parameters_layout, self.lattice_angle_step_txt, u'st:', u"°", 2, 9)
 
         self.lattice_volume_txt = NumberTextField()
         self.lattice_eos_volume_txt = NumberTextField()
@@ -112,15 +136,83 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self.add_field(self._parameters_layout, self.lattice_ab_sb, 'a/b:', None, 4, 0)
         self.add_field(self._parameters_layout, self.lattice_ca_sb, 'c/a:', None, 4, 3)
         self.add_field(self._parameters_layout, self.lattice_cb_sb, 'c/b:', None, 4, 6)
-        self.add_field(self._parameters_layout, self.lattice_ratio_step_txt, 'st:', None, 4, 9)
 
         self._lattice_parameters_layout.addLayout(self._parameters_layout)
+        steps_layout = QtWidgets.QHBoxLayout()
+        steps_layout.addWidget(QtWidgets.QLabel('Steps:'))
+        for label, field, unit in (
+                ('Length', self.lattice_length_step_txt, 'Å'),
+                ('Angle', self.lattice_angle_step_txt, '°'),
+                ('Ratio', self.lattice_ratio_step_txt, None)):
+            steps_layout.addWidget(QtWidgets.QLabel(label))
+            steps_layout.addWidget(field)
+            if unit:
+                steps_layout.addWidget(QtWidgets.QLabel(unit))
+        steps_layout.addStretch()
+        self._lattice_parameters_layout.addLayout(steps_layout)
+        self.structure_summary_widget = QtWidgets.QWidget()
+        structure_layout = QtWidgets.QVBoxLayout(self.structure_summary_widget)
+        structure_layout.setContentsMargins(0, 8, 0, 0)
+        structure_heading = QtWidgets.QLabel('Atomic positions')
+        heading_font = structure_heading.font()
+        heading_font.setBold(True)
+        structure_heading.setFont(heading_font)
+        structure_layout.addWidget(structure_heading)
+        self.structure_summary_lbl = QtWidgets.QLabel()
+        self.structure_summary_lbl.setWordWrap(True)
+        structure_layout.addWidget(self.structure_summary_lbl)
+        self.structure_composition_lbl = QtWidgets.QLabel()
+        self.structure_composition_lbl.setTextFormat(QtCore.Qt.PlainText)
+        self.structure_composition_lbl.setWordWrap(True)
+        structure_layout.addWidget(self.structure_composition_lbl)
+        self.structure_note_lbl = QtWidgets.QLabel()
+        self.structure_note_lbl.setWordWrap(True)
+        structure_layout.addWidget(self.structure_note_lbl)
+        self.structure_sites_caption = QtWidgets.QLabel('x, y, z: fractional coordinates')
+        structure_layout.addWidget(self.structure_sites_caption)
+        self.structure_sites_table = QtWidgets.QTableWidget()
+        self.structure_sites_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.structure_sites_table.setShowGrid(False)
+        self.structure_sites_table.setStyleSheet('QTableWidget { border: none; }')
+        self.structure_sites_table.setMinimumHeight(110)
+        self.structure_sites_table.cellDoubleClicked.connect(self._request_element_edit)
+        self.structure_sites_table.itemSelectionChanged.connect(self._update_site_buttons)
+        self.structure_sites_table.installEventFilter(self)
+        self.structure_sites_table.horizontalHeader().setStyleSheet(
+            'QHeaderView::section { padding: 0 4px; }')
+        structure_layout.addWidget(self.structure_sites_table, 1)
+        site_buttons = QtWidgets.QHBoxLayout()
+        self.structure_site_add_btn = QtWidgets.QPushButton('Add site…')
+        self.structure_site_remove_btn = QtWidgets.QPushButton('Remove site')
+        site_buttons.addWidget(self.structure_site_add_btn)
+        site_buttons.addWidget(self.structure_site_remove_btn)
+        site_buttons.addStretch()
+        structure_layout.addLayout(site_buttons)
+        self.structure_edit_status_lbl = QtWidgets.QLabel()
+        self.structure_edit_status_lbl.setWordWrap(True)
+        self.structure_edit_status_lbl.hide()
+        structure_layout.addWidget(self.structure_edit_status_lbl)
+        self.structure_summary_widget.hide()
+        self._lattice_parameters_layout.addWidget(self.structure_summary_widget, 1)
         self.lattice_parameters_gb.setLayout(self._lattice_parameters_layout)
 
         self.eos_gb = QtWidgets.QGroupBox('Equation of State')
         self.eos_record_cb = QtWidgets.QComboBox()
+        self.eos_record_cb.setSizeAdjustPolicy(
+            QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
+        self.eos_record_cb.setMinimumContentsLength(16)
+        self.eos_record_cb.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
         self.eos_record_status_lbl = QtWidgets.QLabel()
         self.eos_record_status_lbl.setWordWrap(True)
+        self.eos_reproduction_lbl = QtWidgets.QLabel(self)
+        self.eos_reproduction_lbl.setWordWrap(True)
+        self.eos_reproduction_lbl.setVisible(False)
+        self.eos_warning_lbl = QtWidgets.QLabel()
+        self.eos_details_btn = QtWidgets.QToolButton()
+        self.eos_details_btn.setText('Details…')
+        self.eos_details_btn.setToolTip('Full source assessment and qualifications')
+        self.eos_details_btn.clicked.connect(self.show_eos_details)
         self.eos_record_add_btn = QtWidgets.QPushButton('Add…')
         self.eos_record_duplicate_btn = QtWidgets.QPushButton('Duplicate…')
         self.eos_record_edit_btn = QtWidgets.QPushButton('Edit…')
@@ -133,7 +225,14 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         record_layout.setVerticalSpacing(4)
         record_layout.addWidget(QtWidgets.QLabel('Material record:'), 0, 0)
         record_layout.addWidget(self.eos_record_cb, 0, 1)
-        record_layout.addWidget(self.eos_record_status_lbl, 1, 0, 1, 2)
+        record_layout.addWidget(self.eos_details_btn, 0, 2)
+        summary = QtWidgets.QHBoxLayout()
+        summary.setContentsMargins(0, 0, 0, 0)
+        summary.setSpacing(12)
+        summary.addWidget(self.eos_record_status_lbl)
+        summary.addWidget(self.eos_warning_lbl)
+        summary.addStretch()
+        record_layout.addLayout(summary, 1, 0, 1, 3)
 
         # Keep actions grouped at their natural widths. Putting each button
         # in a separate grid column made the row expand across the panel.
@@ -148,7 +247,7 @@ class PhaseEditorWidget(QtWidgets.QWidget):
                 QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
             self._eos_record_button_layout.addWidget(button)
         self._eos_record_button_layout.addStretch()
-        record_layout.addLayout(self._eos_record_button_layout, 2, 0, 1, 2)
+        record_layout.addLayout(self._eos_record_button_layout, 2, 0, 1, 3)
         record_layout.setColumnStretch(1, 1)
         # Thermal equations can have substantially more parameters than a
         # room-temperature EoS. Keep that column usable without letting the
@@ -164,6 +263,11 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self._eos_layout.setHorizontalSpacing(6)
         self._eos_layout.setVerticalSpacing(4)
         self._eos_layout.setAlignment(QtCore.Qt.AlignTop)
+        # Model selectors span the value/unit columns. Extra width belongs
+        # after the units, keeping each unit beside its 80 px value field.
+        self._eos_layout.setColumnMinimumWidth(0, 120)
+        self._eos_layout.setColumnMinimumWidth(1, 80)
+        self._eos_layout.setColumnStretch(2, 1)
 
         # the equation itself is selectable; the parameter rows below are
         # shown or hidden per equation (see set_eos_parameter_names). The
@@ -196,6 +300,11 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self._add_eos_param_row('Z', self.eos_z_txt, 'Z:', 'e per formula', 5)
         self._add_eos_param_row('Zc', self.eos_zc_txt, 'Z<sub>cell</sub>:',
                                 'formula/cell', 6)
+        self.eos_z_txt.setToolTip('Electrons per chemical formula, initialized from the formula or record. '
+                                 'Not recalculated by atomic-site or space-group edits.')
+        self.eos_zc_txt.setToolTip('Formula units per cell, imported or explicitly set. '
+                                  'Compared with the independently calculated Z in Volume & structure; '
+                                  'retained after structural edits.')
 
         # thermal model on top of the equation above: the classic
         # constant-coefficient correction, or a peritheos thermal engine
@@ -258,7 +367,7 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self._eos_group_layout.addWidget(self.eos_scroll_area)
         self.eos_gb.setLayout(self._eos_group_layout)
 
-        self.reflections_gb = QtWidgets.QGroupBox('Reflections')
+        self.reflections_gb = QtWidgets.QGroupBox('HKL reflections')
         self._reflection_layout = QtWidgets.QGridLayout()
         self.reflection_table_view = QtWidgets.QTableView()
         self.reflection_table_model = ReflectionTableModel()
@@ -275,10 +384,16 @@ class PhaseEditorWidget(QtWidgets.QWidget):
 
         self.reflections_gb.setLayout(self._reflection_layout)
 
+        self.parameter_tabs = QtWidgets.QTabWidget()
+        self.parameter_tabs.addTab(self.lattice_parameters_gb, 'Volume && structure')
+        self.parameter_tabs.addTab(self.eos_gb, 'Equation of state')
+        self.parameter_tabs.currentChanged.connect(
+            lambda _index: self._record_layout_timer.start(0))
         self._body_layout = QtWidgets.QGridLayout()
-        self._body_layout.addWidget(self.eos_gb, 0, 0)
-        self._body_layout.addItem(VerticalSpacerItem(), 1, 0)
-        self._body_layout.addWidget(self.reflections_gb, 0, 1, 2, 1)
+        self._body_layout.addWidget(self.parameter_tabs, 0, 0)
+        self._body_layout.addWidget(self.reflections_gb, 0, 1)
+        self._body_layout.setColumnStretch(1, 1)
+        self._body_layout.setRowStretch(0, 1)
 
         self._button_layout = QtWidgets.QHBoxLayout()
         self.save_as_btn = QtWidgets.QPushButton('Save As…')
@@ -288,17 +403,33 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self._button_layout.addWidget(self.reload_file_btn)
         self._button_layout.addSpacerItem(HorizontalSpacerItem())
 
-        self._layout.addWidget(self.lattice_parameters_gb)
         self._layout.addLayout(self._body_layout)
         self._layout.addLayout(self._button_layout)
         self.setLayout(self._layout)
 
         self.style_widgets()
+        self.resize(1200, 740)
 
     def style_widgets(self):
-        self.lattice_angle_step_txt.setMaximumWidth(60)
-        self.lattice_length_step_txt.setMaximumWidth(60)
-        self.lattice_ratio_step_txt.setMaximumWidth(60)
+        for field in (
+                self.lattice_a_sb, self.lattice_b_sb, self.lattice_c_sb,
+                self.lattice_eos_a_txt, self.lattice_eos_b_txt, self.lattice_eos_c_txt,
+                self.lattice_alpha_sb, self.lattice_beta_sb, self.lattice_gamma_sb,
+                self.lattice_volume_txt, self.lattice_eos_volume_txt,
+                self.lattice_ab_sb, self.lattice_ca_sb, self.lattice_cb_sb):
+            field.setFixedWidth(88)
+        for field in (self.lattice_angle_step_txt, self.lattice_length_step_txt,
+                      self.lattice_ratio_step_txt):
+            field.setFixedWidth(48)
+
+        # Tab labels identify the pages; keep the content free of duplicate
+        # headings and leave spare lattice-page space below the compact form.
+        for page in (self.lattice_parameters_gb, self.eos_gb):
+            page.setTitle('')
+            page.setFlat(True)
+        self._lattice_parameters_layout.setAlignment(QtCore.Qt.AlignTop)
+        self.parameter_tabs.setMinimumWidth(520)
+        self.parameter_tabs.setMaximumWidth(560)
 
         self.reflection_table_view.setShowGrid(False)
         self.reflection_table_view.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
@@ -307,17 +438,14 @@ class PhaseEditorWidget(QtWidgets.QWidget):
 
         # wide enough for the EoS/thermal display names ("Birch-Murnaghan
         # (3rd order)", "Constant α, dK/dT") and the unit labels
-        self.eos_gb.setMinimumWidth(440)
-        self.eos_gb.setMaximumWidth(520)
-        self.eos_gb.setMinimumHeight(340)
-        self.eos_gb.setMaximumHeight(480)
+        self.eos_gb.setMinimumHeight(300)
         for combo in (self.eos_type_cb, self.thermal_type_cb,
                       *self.thermal_configuration_fields.values()):
             combo.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
             combo.setMinimumContentsLength(12)
             combo.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
         self.eos_gb.setSizePolicy(
-            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
         self.eos_gb.setStyleSheet("""
             QLineEdit {
                 max-width: 80;
@@ -335,6 +463,39 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self.setWindowState(self.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
         self.activateWindow()
         self.raise_()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._record_layout_timer.start(0)
+
+    def _fit_record_details(self):
+        # QLabel's wrapped height can change after the grid is laid out.
+        # Reserve that height before allocating the remaining space to the
+        # scrollable coefficients, so status and assessment lines never overlap.
+        height = self._eos_record_widget.heightForWidth(self._eos_record_widget.width())
+        if height >= 0:
+            self._eos_record_widget.setMinimumHeight(height)
+
+    def show_eos_details(self):
+        """Keep the complete scientific assessment available on demand."""
+        dialog = QtWidgets.QDialog(self)
+        dialog.setWindowTitle('EoS record details')
+        dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        layout = QtWidgets.QVBoxLayout(dialog)
+        title = QtWidgets.QLabel(self.eos_record_cb.currentText())
+        title.setWordWrap(True)
+        layout.addWidget(title)
+        details = QtWidgets.QPlainTextEdit()
+        details.setReadOnly(True)
+        details.setPlainText(self.eos_record_status_lbl.toolTip() + '\n\n'
+                             + self.eos_reproduction_lbl.toolTip())
+        layout.addWidget(details)
+        buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Close)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+        dialog.resize(640, 440)
+        self._eos_details_dialog = dialog
+        dialog.open()
 
     def add_field(self, layout, widget, label_str, unit, x, y):
         layout.addWidget(LabelAlignRight(label_str), x, y)
@@ -542,15 +703,21 @@ class PhaseEditorWidget(QtWidgets.QWidget):
 
     def update_eos_records(self, labels, current_index=0, *, origins=None,
                            default_index=0, material_origin='legacy',
-                           reloadable=None):
+                           reloadable=None, reproduction_details=None,
+                           record_warnings=None):
         """Refresh the material-record selector without emitting a change."""
         origins = origins or []
+        reproduction_details = reproduction_details or []
         self.eos_record_cb.blockSignals(True)
         self.eos_record_cb.clear()
         if labels:
             for index, label in enumerate(labels):
                 prefix = '★ ' if index == default_index else ''
                 self.eos_record_cb.addItem(prefix + label)
+                if index < len(reproduction_details):
+                    self.eos_record_cb.setItemData(
+                        index, label + '\n\n' + reproduction_details[index],
+                        QtCore.Qt.ToolTipRole)
             self.eos_record_cb.setCurrentIndex(
                 max(0, min(current_index, len(labels) - 1)))
             self.eos_record_cb.setEnabled(True)
@@ -558,6 +725,19 @@ class PhaseEditorWidget(QtWidgets.QWidget):
             self.eos_record_cb.addItem('No saved EoS record')
             self.eos_record_cb.setEnabled(False)
         self.eos_record_cb.blockSignals(False)
+        detail = (reproduction_details[current_index] if
+                  labels and 0 <= current_index < len(reproduction_details) else '')
+        self.eos_record_cb.setToolTip(
+            self.eos_record_cb.currentText() + '\n\n' + detail if labels else '')
+        self.eos_reproduction_lbl.setText(detail.split('\n\n', 1)[0])
+        self.eos_reproduction_lbl.setToolTip(detail)
+        self.eos_reproduction_lbl.hide()
+        self.eos_details_btn.setEnabled(bool(labels and detail))
+        warning = ((record_warnings or [])[current_index] if
+                   labels and 0 <= current_index < len(record_warnings or []) else '')
+        self.eos_warning_lbl.setText('⚠ ' + warning if warning else '')
+        self.eos_warning_lbl.setToolTip(detail)
+        self.eos_warning_lbl.setVisible(bool(warning))
 
         origin = origins[current_index] if (
             labels and 0 <= current_index < len(origins)) else ''
@@ -569,7 +749,13 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         else:
             status = ('These are unsaved phase parameters. Add a record to '
                       'attach reference and fit provenance.')
-        self.eos_record_status_lbl.setText(status)
+        short_status = ('Published · read-only' if origin == 'bundled' else
+                        'Custom record' if origin == 'custom' else
+                        'User record' if labels else 'Unsaved parameters')
+        self.eos_record_status_lbl.setText(short_status)
+        self.eos_record_status_lbl.setToolTip(status)
+        self.eos_record_duplicate_btn.setToolTip(
+            'Make an editable copy of the selected record.')
         editable = origin != 'bundled'
         self.eos_record_duplicate_btn.setEnabled(bool(labels))
         self.eos_record_edit_btn.setEnabled(bool(labels) and editable)
@@ -586,6 +772,7 @@ class PhaseEditorWidget(QtWidgets.QWidget):
             'Discard local changes and reload the source file.' if reloadable
             else 'This material was loaded from the Peritheos library and '
                  'has no source file to reload.')
+        self._record_layout_timer.start(0)
 
     def set_eos_parameter_editable(self, editable):
         """Lock the calculation fields when a bundled record is active."""
@@ -605,6 +792,7 @@ class PhaseEditorWidget(QtWidgets.QWidget):
 
     def set_material_editable(self, editable):
         """Lock the curated structure and reflection table of DB materials."""
+        self._set_atomic_positions_editable(editable)
         widgets = [
             self.symmetry_cb,
             self.lattice_a_sb, self.lattice_b_sb, self.lattice_c_sb,
@@ -663,7 +851,10 @@ class PhaseEditorWidget(QtWidgets.QWidget):
             if row_widgets[0].isHidden():
                 continue
             for column, widget in enumerate(row_widgets):
-                self._eos_layout.addWidget(widget, grid_row, column)
+                if column == 1 and isinstance(widget, QtWidgets.QComboBox):
+                    self._eos_layout.addWidget(widget, grid_row, column, 1, 2)
+                else:
+                    self._eos_layout.addWidget(widget, grid_row, column)
             grid_row += 1
 
         # Any extra height belongs below the form, never between fields.
@@ -671,10 +862,166 @@ class PhaseEditorWidget(QtWidgets.QWidget):
 
     def show_jcpds(self, jcpds_phase, wavelength=None):
         self.update_name(jcpds_phase)
+        self.update_structure_information(jcpds_phase)
         self.update_lattice_parameters(jcpds_phase)
         self.update_eos_parameters(jcpds_phase)
         self.reflection_table_model.update_reflection_data(jcpds_phase.reflections,
                                                            wavelength)
+
+    def _update_structure_composition(self, document, stored_z):
+        label = self.structure_composition_lbl
+        label.setVisible(bool(document.get('atom_sites')))
+        if not document.get('atom_sites'):
+            return
+        result = assess_structure_composition(document)
+        tooltip = f"Chemical formula: {document.get('formula') or 'not available'}\n" + result.details()
+        warning = result.status != 'consistent'
+        if result.z is not None:
+            text = f'Calculated Z = {result.z:.6g} · formula matches'
+            if stored_z is not None and not np.isclose(
+                    float(stored_z), result.z, rtol=1e-4, atol=1e-8):
+                text = f'Calculated Z = {result.z:.6g} · differs from stored Z'
+                tooltip += f'\nStored Z = {stored_z}; calculated Z = {result.z:.6g}.'
+                warning = True
+        elif result.status == 'mismatch':
+            text = 'Formula mismatch · no common Z'
+        else:
+            text = 'Calculated Z unavailable'
+        label.setText(text)
+        label.setToolTip(tooltip)
+        label.setStyleSheet('color: #e6ab50;' if warning else '')
+
+    def update_structure_information(self, jcpds_phase):
+        document = jcpds_phase.params.get('material_document') or {}
+        self._structure_can_add = bool(document.get('space_group'))
+        self._structure_sites = document.get('atom_sites') or []
+        parts = []
+        symbol = document.get('space_group')
+        number = document.get('space_group_number')
+        self.space_group_cb.set_applied_group(symbol, number)
+        self.space_group_widget.setVisible(bool(symbol or number or self._structure_sites))
+        z = jcpds_phase.params.get('zc')
+        if z is None:
+            z = document.get('formula_units_per_cell')
+        if z is not None:
+            parts.append(f'Stored Z = {z}')
+        assumed = (document.get('source') or {}).get('assumed_structure') or {}
+        if assumed:
+            parts.insert(0, 'Assumed structure')
+        if (document.get('source') or {}).get('structure_modified'):
+            parts.insert(0, 'Edited structure')
+        self._structure_note = assumed.get('note', '')
+        self.structure_summary_lbl.setText(' · '.join(parts))
+        self.structure_summary_lbl.setToolTip(
+            (self._structure_note + '\n\n' if self._structure_note else '')
+            + 'Stored Z: formula units per cell used by the EoS, imported or explicitly set. '
+              'The calculated Z below is checked independently after structural edits.')
+        self.structure_summary_lbl.setVisible(bool(parts))
+        self._update_structure_composition(document, z)
+        self.structure_note_lbl.setText(self._structure_note)
+        self.structure_note_lbl.setVisible(bool(self._structure_note))
+        self.structure_sites_caption.setVisible(bool(self._structure_sites))
+        self.structure_sites_table.setVisible(bool(self._structure_sites))
+        self.structure_summary_widget.setVisible(bool(parts or self._structure_sites or symbol or number))
+        self.structure_edit_status_lbl.hide()
+        # Keep optional source fields, including displacement parameters, rather
+        # than silently reducing sites to position and element alone.
+        keys = dict.fromkeys(key for site in self._structure_sites for key in site)
+        preferred = ('label', '_label', 'element', 'x', 'y', 'z', 'occupancy', 'wyckoff')
+        columns = [key for key in preferred if key in keys]
+        columns.extend(key for key in keys if key not in columns)
+        table = self.structure_sites_table
+        blocker = QtCore.QSignalBlocker(table)
+        selected_row = table.currentRow()
+        selected_key = (table.currentItem().data(QtCore.Qt.UserRole)
+                        if table.currentItem() else None)
+        table.clear()
+        table.setRowCount(len(self._structure_sites))
+        table.setColumnCount(len(columns))
+        headings = {'occupancy': 'Occ.', 'wyckoff': 'Site', 'u_iso_angstrom2': 'Uiso (Å²)'}
+        table.setHorizontalHeaderLabels([
+            headings.get(key, key.lstrip('_').replace('_', ' ').title()) for key in columns])
+        for column, key in enumerate(columns):
+            table.horizontalHeaderItem(column).setToolTip(
+                {'wyckoff': 'Wyckoff site',
+                 'u_iso_angstrom2': 'Isotropic mean-square displacement (Å²)'}.get(
+                    key, key.lstrip('_').replace('_', ' ').title()))
+        for row, site in enumerate(self._structure_sites):
+            for column, key in enumerate(columns):
+                value = site.get(key)
+                item = QtWidgets.QTableWidgetItem('' if value is None else str(value))
+                item.setData(QtCore.Qt.UserRole, key)
+                item.setToolTip(item.text())
+                if isinstance(value, (int, float)):
+                    item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+                table.setItem(row, column, item)
+        table.resizeColumnsToContents()
+        header = table.horizontalHeader()
+        for column in range(len(columns)):
+            label = table.horizontalHeaderItem(column).text()
+            # Allow for capitalization and this table's compact header padding.
+            width = header.fontMetrics().horizontalAdvance(label.upper()) + 12
+            table.setColumnWidth(column, max(table.columnWidth(column), width))
+        self._set_atomic_positions_editable(jcpds_phase.params.get('material_origin') != 'bundled')
+        if 0 <= selected_row < table.rowCount() and selected_key in columns:
+            table.setCurrentCell(selected_row, columns.index(selected_key))
+        del blocker
+        self._update_site_buttons()
+
+    def _request_element_edit(self, row, column):
+        item = self.structure_sites_table.item(row, column)
+        if (getattr(self, '_atomic_sites_editable', False) and item is not None
+                and item.data(QtCore.Qt.UserRole) == 'element'):
+            self.element_edit_requested.emit(row)
+
+    def eventFilter(self, watched, event):
+        if (watched is self.structure_sites_table and event.type() == QtCore.QEvent.KeyPress
+                and event.key() in (QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter, QtCore.Qt.Key_F2)):
+            item = self.structure_sites_table.currentItem()
+            if (getattr(self, '_atomic_sites_editable', False) and item is not None
+                    and item.data(QtCore.Qt.UserRole) == 'element'):
+                self.element_edit_requested.emit(item.row())
+                return True
+        return super().eventFilter(watched, event)
+
+    def selected_atomic_site_rows(self):
+        return sorted({index.row() for index in self.structure_sites_table.selectedIndexes()})
+
+    def _update_site_buttons(self):
+        editable = getattr(self, '_atomic_sites_editable', False)
+        self.structure_site_add_btn.setEnabled(editable and getattr(self, '_structure_can_add', False))
+        rows = self.selected_atomic_site_rows()
+        self.structure_site_remove_btn.setEnabled(
+            editable and bool(rows) and len(rows) < self.structure_sites_table.rowCount())
+        self.structure_site_remove_btn.setToolTip(
+            'Remove selected sites and recalculate reflections. Keep at least one atomic site.')
+
+    def _set_atomic_positions_editable(self, editable):
+        self._atomic_sites_editable = editable
+        can_edit_group = editable and bool(getattr(self, '_structure_sites', []))
+        self.space_group_txt.setReadOnly(not can_edit_group)
+        self.space_group_cb.setEnabled(can_edit_group)
+        self.space_group_apply_btn.setEnabled(can_edit_group)
+        table = self.structure_sites_table
+        table.setEditTriggers(
+            (QtWidgets.QAbstractItemView.DoubleClicked | QtWidgets.QAbstractItemView.EditKeyPressed)
+            if editable else QtWidgets.QAbstractItemView.NoEditTriggers)
+        blocker = QtCore.QSignalBlocker(table)
+        for row in range(table.rowCount()):
+            for column in range(table.columnCount()):
+                item = table.item(row, column)
+                flags = item.flags() & ~QtCore.Qt.ItemIsEditable
+                key = item.data(QtCore.Qt.UserRole)
+                if editable and key in self.EDITABLE_SITE_FIELDS and key != 'element':
+                    flags |= QtCore.Qt.ItemIsEditable
+                item.setFlags(flags)
+        table.setToolTip(
+            'Double-click an element to open the periodic table, or edit a coordinate, '
+            'occupancy or isotropic displacement. '
+            'Reflections are recalculated after each valid edit.' if editable else
+            'Published structure — read-only. Export and reload an .eosmat file to edit it.')
+        del blocker
+        self._update_site_buttons()
 
     def update_eos_parameters(self, jcpds_phase):
         self.set_eos_type(str(jcpds_phase.params.get('eos_type') or 'BM3'))

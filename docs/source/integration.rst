@@ -336,6 +336,55 @@ Phase Editor
 
 The Phase Editor allows modifying phase parameters interactively.
 All changes are immediately reflected in the pattern line positions.
+The **Volume & structure** and **Equation of state** tabs sit beside a
+full-height **HKL reflections** table. Each tab uses the full panel height, while
+lattice controls stay compact as the window grows. Where available, the volume
+and structure tab shows the space group and formula units per cell. The
+**Atomic positions** table sits below the lattice controls and shows the stored
+fractional coordinates, occupancy and other site properties for inspection.
+Assumed structures remain labelled, with their qualifications above the table.
+For user materials with atomic sites, the searchable **Space group** dropdown
+shows the number and symbol for all 230 reference groups. Search by either,
+then choose an entry to recalculate the structure, HKL list and intensities.
+Typed symbols or numbers can also be committed with **Apply** or Enter.
+The current explicit non-reference setting remains available in the dropdown.
+Symbols may specify an
+explicit setting or origin; numbers use the library's reference setting.
+The current cell must be compatible with the chosen group. Coordinates stay in
+their current basis and origin, and old Wyckoff assignments are cleared rather
+than relabelled automatically. Monoclinic editing uses unique axis b. Invalid
+or incompatible edits leave the previous group, cell and reflections intact.
+Crystallographic **Z** is the number of formula units per cell. **Calculated Z**
+is checked automatically from the current atomic sites, occupancies and space
+group, including special-position multiplicities. Each element's cell count
+must equal the same Z times its chemical-formula count (relative tolerance
+0.01%, absolute tolerance 1e-8 atoms). A mismatch is flagged instead of assigning
+a Z from the total atom count alone. Hover over the result for cell counts,
+element ratios, multiplicities and any unavailable-input explanation. Fixed
+formulas can include decimal coefficients, grouped terms and middle-dot
+hydrates; variable compositions cannot be checked. D and T count as hydrogen
+for this elemental comparison. Symmetry-equivalent rows may describe mixed
+occupancies, but summed occupancy above one prevents a Z assignment.
+**Stored Z** retains the imported or explicitly entered value used by the EoS;
+a disagreement with calculated Z is flagged. Neither the formula nor the EoS
+normalization is silently changed by a structure edit. The EoS electron count
+**Z** is a separate quantity, initialized from the formula or record and retained
+after structural edits. A space-group choice alone does not determine Z.
+For user materials, double-click a coordinate, occupancy or isotropic displacement
+value to edit it. Double-click an element, or press Enter/F2 on its cell, to open
+a compact periodic-table picker; a symbol can also be typed into the picker.
+**Add site…** opens a form using the same element picker, fractional coordinates
+and occupancy. **Remove site** removes the selected sites; keep at least one site
+so diffraction remains defined. Element changes clear the previous species'
+charge, isotope and scattering-type overrides. The chemical formula and EoS
+parameters remain as entered; structural edits do not refit an EoS.
+Valid edits recalculate the HKL table and phase intensities at
+the current pressure and temperature. Invalid values leave the previous structure
+and reflections intact. A source Wyckoff assignment is cleared for a moved site;
+it is not reclassified automatically. Published database structures stay read-only,
+including when only their EoS record has been duplicated. Export and reload an
+``.eosmat`` file to create an editable material copy. Save as ``.eosmat`` or save
+the project to retain edited positions; JCPDS exports retain calculated peaks only.
 You can edit:
 
 - Symmetry
@@ -396,6 +445,13 @@ from temporary phase parameters:
 - Records loaded from the Peritheos library are read-only. Duplicate a
   published record before changing its values; this prevents edited numbers
   from continuing to carry the original publication attribution.
+
+The coefficient editor keeps its parameter table visible while **Literature
+reference** and **Fit domain and notes** tabs hold the accompanying metadata.
+In the phase editor, long thermal parameter lists scroll within the EoS panel.
+The selected record, ownership and any usage warning stay above the coefficients;
+**Details…** opens the full scientific assessment and its qualifications.
+Cell-parameter fields keep a compact width, and EoS units sit next to their values.
 
 Records loaded from a user ``.eosmat`` file and records created from a CIF are
 editable. **Set Default** marks the preferred user-owned record; save the material

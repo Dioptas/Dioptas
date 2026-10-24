@@ -220,14 +220,21 @@ class PhaseController:
     def _update_phase_references(self, ind):
         """Keep the phase-table selector aligned with record management."""
         phase = self.model.phase_model.phases[ind]
+        origins = phase.params.get('eos_record_origins') or []
+        assessments = [
+            eos.record_reproduction(
+                record, origin=origins[index] if index < len(origins) else None)
+            for index, record in enumerate(phase.params['eos_records'])]
+        labels = self.model.phase_model.get_eos_reference_labels(ind)
         self.phase_widget.set_phase_references(
             ind,
-            self.model.phase_model.get_eos_reference_labels(ind),
+            [f"⚠ {label}" if assessment[0] in {"Not reproduced", "Do not use"}
+             else label for label, assessment in zip(labels, assessments)],
             phase.params['eos_current_index'],
             tooltips=[
                 f"{eos.reference_text(record.get('reference'))} — "
-                f"{(record.get('eos') or {}).get('type', 'BM3')}"
-                for record in phase.params['eos_records']])
+                f"{(record.get('eos') or {}).get('type', 'BM3')}\n\n{assessment[1]}"
+                for record, assessment in zip(phase.params['eos_records'], assessments)])
 
     def phase_changed(self, ind):
         phase = self.model.phase_model.phases[ind]

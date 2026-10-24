@@ -15,8 +15,11 @@ from qtpy import QtWidgets, QtCore, QtGui
 
 from ....widgets.UtilityWidgets import save_file_dialog
 from ....widgets.EosRecordDialog import EosRecordDialog
+from ....widgets.ElementPickerDialog import ElementPickerDialog
+from ....widgets.AtomicSiteDialog import AtomicSiteDialog
 from ....widgets.integration.PhaseEditorWidget import PhaseEditorWidget
 from ....model.PhaseModel import PhaseLoadError
+from ....model import eos
 
 # imports for type hinting in PyCharm -- DO NOT DELETE
 from ....model.util.jcpds import jcpds, jcpds_reflection
@@ -130,6 +133,13 @@ class PhaseEditorController(QtCore.QObject):
         self.jcpds_widget.lattice_length_step_txt.editingFinished.connect(self.lattice_length_step_changed)
         self.jcpds_widget.lattice_angle_step_txt.editingFinished.connect(self.lattice_angle_step_changed)
         self.jcpds_widget.lattice_ratio_step_txt.editingFinished.connect(self.lattice_ratio_step_changed)
+        self.jcpds_widget.structure_sites_table.itemChanged.connect(self.atomic_position_changed)
+        self.jcpds_widget.element_edit_requested.connect(self.choose_atomic_element)
+        self.jcpds_widget.structure_site_add_btn.clicked.connect(self.add_atomic_site)
+        self.jcpds_widget.structure_site_remove_btn.clicked.connect(self.remove_atomic_sites)
+        self.jcpds_widget.space_group_apply_btn.clicked.connect(self.space_group_changed)
+        self.jcpds_widget.space_group_txt.returnPressed.connect(self.space_group_selected)
+        self.jcpds_widget.space_group_cb.activated.connect(self.space_group_selected)
 
         # Equation of state fields
         self.jcpds_widget.eos_type_cb.currentIndexChanged.connect(self.eos_type_changed)
@@ -253,6 +263,91 @@ class PhaseEditorController(QtCore.QObject):
     def param_sb_changed(self, widget, param):
         self.phase_model.set_param(self.phase_ind, param, widget.value())
 
+    def atomic_position_changed(self, item):
+        if self.phase_ind < 0:
+            return
+        row, parameter, text = item.row(), item.data(QtCore.Qt.UserRole), item.text()
+        if parameter not in self.jcpds_widget.EDITABLE_SITE_FIELDS:
+            return
+        self._apply_structure_edit(lambda: self.phase_model.set_atom_site_parameter(
+            self.phase_ind, row, parameter, text,
+            wavelength_angstrom=self.model.calibration_model.wavelength * 1e10))
+
+    def space_group_changed(self):
+        if self.phase_ind < 0 or not self.phase_model.is_material_editable(self.phase_ind):
+            return
+        value = self.jcpds_widget.space_group_cb.value()
+        if self._apply_structure_edit(lambda: self.phase_model.set_space_group(
+            self.phase_ind, value,
+            wavelength_angstrom=self.model.calibration_model.wavelength * 1e10)):
+            # Also refresh the applied selection when the model accepted a no-op.
+            self.jcpds_widget.update_structure_information(self.jcpds_phase)
+
+    def space_group_selected(self, *_args):
+        if self.phase_ind < 0:
+            return
+        selector = self.jcpds_widget.space_group_cb
+        document = self.jcpds_phase.params.get('material_document') or {}
+        if selector.value() != document.get('space_group', ''):
+            self.space_group_changed()
+        else:
+            # Editable combos can emit Return and activated for the same key.
+            # A second signal after rejection must not erase the error message.
+            text = selector.currentText()
+            selector.set_applied_group(document.get('space_group'), document.get('space_group_number'))
+            if selector.currentText() != text:
+                self.jcpds_widget.structure_edit_status_lbl.hide()
+
+    def _apply_structure_edit(self, operation):
+        try:
+            operation()
+        except (ArithmeticError, ValueError, RuntimeError, PermissionError, PeritheosError) as error:
+            self.jcpds_widget.update_structure_information(self.jcpds_phase)
+            self.jcpds_widget.structure_edit_status_lbl.setText(f'Edit not applied: {error}')
+            self.jcpds_widget.structure_edit_status_lbl.show()
+            return False
+        else:
+            if not self.active:
+                self.jcpds_widget.show_jcpds(
+                    self.jcpds_phase,
+                    wavelength=self.model.calibration_model.wavelength * 1e10)
+            self.jcpds_widget.structure_edit_status_lbl.hide()
+            return True
+
+    def choose_atomic_element(self, row):
+        if self.phase_ind < 0 or not self.phase_model.is_material_editable(self.phase_ind):
+            return
+        sites = self.jcpds_phase.params['material_document']['atom_sites']
+        dialog = ElementPickerDialog(sites[row]['element'], self.jcpds_widget)
+        if dialog.exec_() == QtWidgets.QDialog.Accepted:
+            self._apply_structure_edit(lambda: self.phase_model.set_atom_site_parameter(
+                self.phase_ind, row, 'element', dialog.element,
+                wavelength_angstrom=self.model.calibration_model.wavelength * 1e10))
+
+    def add_atomic_site(self):
+        if self.phase_ind < 0 or not self.phase_model.is_material_editable(self.phase_ind):
+            return
+        sites = self.jcpds_phase.params.get('material_document', {}).get('atom_sites', [])
+        row = self.jcpds_widget.structure_sites_table.currentRow()
+        element = sites[row]['element'] if 0 <= row < len(sites) else ''
+        dialog = AtomicSiteDialog(element, self.jcpds_widget)
+        if dialog.exec_() == QtWidgets.QDialog.Accepted:
+            index = len(sites)
+            if self._apply_structure_edit(lambda: self.phase_model.add_atom_site(
+                    self.phase_ind, **dialog.site(),
+                    wavelength_angstrom=self.model.calibration_model.wavelength * 1e10)):
+                self.jcpds_widget.structure_sites_table.selectRow(index)
+
+    def remove_atomic_sites(self):
+        if self.phase_ind < 0 or not self.phase_model.is_material_editable(self.phase_ind):
+            return
+        rows = self.jcpds_widget.selected_atomic_site_rows()
+        if rows and self._apply_structure_edit(lambda: self.phase_model.remove_atom_sites(
+                self.phase_ind, rows,
+                wavelength_angstrom=self.model.calibration_model.wavelength * 1e10)):
+            self.jcpds_widget.structure_sites_table.selectRow(
+                min(rows[0], self.jcpds_widget.structure_sites_table.rowCount() - 1))
+
     def param_txt_changed(self, widget, param):
         try:
             value = float(widget.text())
@@ -369,13 +464,35 @@ class PhaseEditorController(QtCore.QObject):
         if self.phase_ind < 0:
             return
         phase = self.phase_model.phases[self.phase_ind]
+        origins = list(phase.params.get('eos_record_origins') or [])
+        assessments = [
+            eos.record_reproduction(
+                record, origin=origins[index] if index < len(origins) else None)
+            for index, record in enumerate(phase.params['eos_records'])]
+        warnings = []
+        for index, record in enumerate(phase.params['eos_records']):
+            usage = str((record.get('scientific_validation') or {}).get(
+                'usage_recommendation') or '')
+            label = assessments[index][0]
+            if index < len(origins) and origins[index] == 'custom':
+                warning = ''
+            elif label == 'Do not use' or usage.upper().startswith('DO NOT USE'):
+                warning = 'Do not use'
+            elif usage in {'not_recommended_for_quantitative_use',
+                           'on_hold_not_recommended_pending_source_mapping_review'}:
+                warning = 'Not recommended'
+            else:
+                warning = label if label == 'Not reproduced' else ''
+            warnings.append(warning)
         self.jcpds_widget.update_eos_records(
             self.phase_model.get_eos_reference_labels(self.phase_ind),
             phase.params['eos_current_index'],
-            origins=list(phase.params.get('eos_record_origins') or []),
+            origins=origins,
             default_index=phase.params.get('eos_default_index') or 0,
             material_origin=phase.params.get('material_origin') or 'legacy',
             reloadable=self.phase_model.can_reload(self.phase_ind),
+            reproduction_details=[detail for _, detail in assessments],
+            record_warnings=warnings,
         )
 
     def eos_record_changed(self, record_index):
