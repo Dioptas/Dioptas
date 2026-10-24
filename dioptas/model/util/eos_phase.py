@@ -38,6 +38,7 @@ inside this class, so callers always work in Å³ per unit cell.
 from __future__ import annotations
 
 import inspect
+import math
 from typing import Optional
 
 from peritheos.eos import rt, thermal
@@ -196,6 +197,65 @@ def eos_parameter_names(eos_type: str) -> list:
 
 # Å³ per formula unit -> JBar⁻¹ (= cm³/mol / 10): Avogadro * 1e-24 / 10
 _A3_TO_JBAR = 0.060221415
+
+
+def eos_parameter_defaults(parameters=None, *, n=None, z=None):
+    """Editable starting estimates in Dioptas units, not fitted constants."""
+    values = {"V0": 100.0, "K0": 100.0, "K0_prime": 4.0,
+              "n": n if n is not None else 1.0,
+              "Z": z if z is not None else 1.0}
+    values.update({key: value for key, value in (parameters or {}).items()
+                   if value is not None})
+    values.setdefault("K0_double_prime", -values["K0_prime"] / (values["K0"] or 100.0))
+    return values
+
+
+def thermal_parameter_defaults(thermal_type, parameters=None, *, n=None,
+                               formula_units_per_cell=None, temperature_ref=None):
+    """Complete starting parameters, respecting nullable constructor defaults.
+
+    Fitted coefficients are illustrative seeds. Formula-unit molar volumes
+    use J/bar/mol, characteristic temperatures K, and velocities km/s.
+    """
+    reference = eos_parameter_defaults(parameters, n=n)
+    atom_count = n if n is not None else reference["n"]
+    molar_volume = reference["V0"] * _A3_TO_JBAR / (formula_units_per_cell or 1)
+    alpha_kt = 3e-5 * reference["K0"]
+    # A fixed -0.01 GPa/K makes soft materials' K(T) negative within a
+    # normal heating range. Use the same fractional slope for every K0.
+    dk_dt = -1e-4 * reference["K0"]
+    seeds = {
+        "Tr": temperature_ref if temperature_ref is not None else 298.15,
+        "n": atom_count, "theta0": 500., "theta": 500.,
+        "gamma0": 1.5, "gamma_inf": 1., "q": 1., "a": 1., "b": 1.,
+        "alpha0": 3e-5, "dK_dT": dk_dt,
+        "alpha_KT": alpha_kt, "alpha_KT_ref": alpha_kt, "dK_dT_V": dk_dt,
+        "QE1o": 500., "QE2o": 1000., "mE1": 1.5 * atom_count,
+        "mE2": 1.5 * atom_count, "delta": 0., "t": 1.,
+        "a_0": 0., "m": 0., "g": 0., "e_0": 0.,
+        "Vp": molar_volume, "theta_a0": 500., "theta_b0": 1000.,
+        "theta_1_0": 562.5, "theta_0_0": (500. * 1000.) ** .5 * math.exp(-1. / 3.),
+        "a_a": 0., "a_b": 0., "a_1": 0., "b_a": 1.5, "b_b": 1.5,
+        "b_1": 1.5, "b_0": 1.5,
+        "eta0": 0., "c0": 0., "c1": 0., "c2": alpha_kt,
+        "c3": 0., "c4": 0., "c5": 0.,
+        "beta0": 0., "beta": 1., "anharmonic_a": 0., "anharmonic_m": 1.,
+        "electronic_e": 0., "electronic_g": 1., "defect_H": 100000., "defect_S": 0.,
+        "theta_B1": 500., "theta_B2": 1000., "theta_E1": 500., "theta_E2": 1000.,
+        "d_B1": 1., "d_B2": 1.,
+        "m_B1": .75 * atom_count, "m_B2": .75 * atom_count,
+        "m_E1": .75 * atom_count, "m_E2": .75 * atom_count,
+        "A": 0., "molar_mass_g_mol": 50.,
+        "longitudinal_intercept": 5., "longitudinal_slope": 0.,
+        "shear_intercept": 3., "shear_slope": 0.,
+    }
+    signature = thermal_parameter_signature(thermal_type)
+    result = {name: (parameter.default
+                     if parameter.default is not inspect.Parameter.empty else seeds[name])
+              for name, parameter in signature.items()}
+    if "n" in signature:
+        result["n"] = atom_count
+    return result
 
 
 class EosPhase:
@@ -395,7 +455,9 @@ class EosPhase:
                     origins[index] if index < len(origins)
                     else p.get("material_origin")
                 )
-                require_primary_validation = record_origin == "bundled"
+                from ..eos.material import record_is_explicit_candidate
+                require_primary_validation = (
+                    record_origin == "bundled" and not record_is_explicit_candidate(record))
                 try:
                     executable = PeritheosMaterial.from_eosmat(
                         document,

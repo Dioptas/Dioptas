@@ -43,7 +43,11 @@ def test_bundled_database_loads(materials):
     # Keep these searchable/exportable without inventing diffraction data.
     for m in materials:
         if material_has_diffraction_data(m):
-            assert eos.build_jcpds(m).reflections, m.identifier
+            if m.default_eos_index < 0:
+                with pytest.raises(ValueError):
+                    eos.build_jcpds(m)
+            else:
+                assert eos.build_jcpds(m).reflections, m.identifier
         else:
             with pytest.raises(ValueError, match="no crystal structure"):
                 eos.build_jcpds(m)
@@ -51,13 +55,15 @@ def test_bundled_database_loads(materials):
 
 def test_every_bundled_eos_record_constructs_and_evaluates(materials):
     """Database curation must never rely on the silent BM3 fallback."""
+    from ...model.eos.material import record_is_explicit_candidate
     evaluated = 0
     for material in materials:
         if not material_has_diffraction_data(material):
             continue
         for index, record in enumerate(material.eos_records):
             phase = eos.build_jcpds(material, record_index=index, origin="bundled")
-            if record["scientific_validation"]["status"] != "primary_source_validated":
+            if (record["scientific_validation"]["status"] != "primary_source_validated"
+                    and not record_is_explicit_candidate(record)):
                 with pytest.raises(EosCalculationError, match="primary-source validation"):
                     phase.compute_d(20.0, 1000.0)
                 continue
@@ -84,7 +90,8 @@ def test_every_bundled_eos_record_constructs_and_evaluates(materials):
             assert all(math.isfinite(r.d) and r.d > 0 for r in phase.reflections)
             evaluated += 1
     assert evaluated == sum(
-        r["scientific_validation"]["status"] == "primary_source_validated"
+        (r["scientific_validation"]["status"] == "primary_source_validated"
+         or record_is_explicit_candidate(r))
         for m in materials if material_has_diffraction_data(m)
         for r in m.eos_records)
     assert evaluated >= 147
@@ -430,6 +437,8 @@ def test_bundled_records_are_immutable_but_custom_copies_are_editable(gold):
 def test_custom_record_lifecycle_and_last_delete(gold):
     structure_only = Material.from_dict(gold.to_dict())
     structure_only.eos_records = []
+    # A structure-only fixture has no EOS fits for source datasets to link to.
+    structure_only.extensions.pop("datasets", None)
     phase = eos.build_jcpds(structure_only, origin="cif")
     model = PhaseModel()
     model.add_jcpds_object(phase, filename=phase.filename)

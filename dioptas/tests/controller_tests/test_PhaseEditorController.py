@@ -379,7 +379,7 @@ class PhaseEditorControllerTest(QtTest):
         cb = self.jcpds_widget.thermal_type_cb
         cb.setCurrentIndex(cb.findData('AlphaKT'))
         self.assertEqual(self.phase_model.get_thermal_type(5), 'AlphaKT')
-        self.assertFalse(self.jcpds_widget.eos_calculation_status_lbl.isHidden())
+        self.assertTrue(self.jcpds_widget.eos_calculation_status_lbl.isHidden())
         for name, value in [('alpha0', '3e-5'), ('dK_dT', '-0.01')]:
             field = self.jcpds_widget.thermal_parameter_fields['AlphaKT', name]
             field.setText(value)
@@ -499,6 +499,36 @@ class PhaseEditorControllerTest(QtTest):
         self.assertEqual(self.phase_model.eos_record_origin(6), 'custom')
         self.assertTrue(self.jcpds_widget.eos_K_txt.isEnabled())
         self.assertTrue(self.jcpds_widget.eos_record_delete_btn.isEnabled())
+
+    def test_failed_duplicate_reports_error_and_preserves_phase(self):
+        from copy import deepcopy
+        from peritheos import get_material_document
+        from ...model import eos
+
+        document = get_material_document('gold')
+        index = next(i for i, record in enumerate(document['eos_records'])
+                     if record['eos']['type'] == 'Vinet' and not record.get('thermal'))
+        phase = eos.build_jcpds(eos.Material.from_dict(document),
+                                record_index=index, origin='bundled')
+        self.phase_model.add_jcpds_object(phase, filename=phase.filename)
+        self.phase_model.set_pressure_temperature(6, 20., 1000.)
+        self.controller.show_phase(phase, wavelength=0.31)
+        before = self.phase_model._condition_snapshot(phase)
+        record = deepcopy(phase.params['eos_records'][index])
+        record['equation_kind'] = 'thermal'
+        record['thermal'] = {
+            'type': 'AlphaKT', 'model': 'thermal_reference_state',
+            'parameters': {'Tr': 300., 'alpha0': 3e-5, 'dK_dT': -1.},
+        }
+        self.controller._record_dialog = MagicMock(return_value=record)
+        self.jcpds_widget.show_eos_error = MagicMock()
+
+        click_button(self.jcpds_widget.eos_record_duplicate_btn)
+
+        self.assertEqual(self.phase_model._condition_snapshot(phase), before)
+        self.jcpds_widget.show_eos_error.assert_called()
+        self.assertIn('non-positive bulk modulus',
+                      self.jcpds_widget.show_eos_error.call_args.args[0])
 
     def test_save_as_eosmat_preserves_records_and_structure(self):
         from ...model import eos

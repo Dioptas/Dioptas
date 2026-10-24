@@ -241,11 +241,62 @@ library. Typing a search starts across the library; selecting a tab then filters
 the results without clearing your search. Recent entries and favourites persist
 across sessions.
 
+Drag the divider between the material and EoS lists to give either list more
+space. The selected EoS stays visible when opening or resizing the browser.
+
+The **Diffraction** column distinguishes materials with a **Crystal structure**
+or **Reference peaks** from **EoS only** entries. EoS-only materials lack the
+structure or peak table needed to calculate diffraction lines. Their records
+remain available for inspection and export, but **Load as Phase** is disabled
+and the reason appears below the EoS table. Enable **Hide materials without
+diffraction data** to omit these entries from any view or search. A space-group
+symbol alone does not imply a complete crystal structure.
+
+Entries marked **Assumption required** have an explicit opt-in approximation
+available after selection. Loading requires enabling the assumed structure;
+the displayed note explains its limitations. These entries are also hidden
+when the diffraction-data filter is enabled.
+
 Select a material to see all its EoS records. The table reports the equation, whether a thermal
 model is available, publication, experimental fit-pressure range, and the principal parameters.
 The fit-pressure range is the range used to constrain the published EoS; it is **not** a
 phase-stability range. A displayed ``±`` value is the uncertainty reported by the source.
 ``error n/r`` means that no verified error was recorded, not that the error is zero.
+
+The **Assessment** column and the details below the table show the recorded
+numerical checks. **Parameter parity** means agreement with a documented
+independent check; **Curve parity** concerns the curve rather than the original
+regression. **Similar**, **Limited check**, **Not reproduced**, and **Not
+refittable** retain those distinct qualifications. **Not assessed** means no
+explicit outcome is recorded. Source-verified coefficients or available source
+data alone do not establish reproduction. Hover over the assessment for the
+source's scope, methods and limitations.
+
+With Peritheos 0.16, the assessment separately identifies source validation,
+the scoped numerical comparison, original-author fit reproduction and the
+recommendation for use. Parameter agreement or an equation reconstruction
+does not imply reproduction of the author's fitting workflow. **Open
+reconstruction report** opens the selected record's supplied web report,
+including its comparisons and qualifications. The report requires an internet
+connection; the stored assessments and the material library remain offline.
+
+When Peritheos puts a material's default on hold, no replacement EOS is
+selected automatically. The reason appears below the table and **Load as
+Phase** remains disabled until a record is explicitly selected. This prevents
+the separate Pd 0 K DFT calculation from silently replacing an experimental
+room-temperature default. Records whose source validation is deferred remain
+unavailable for calculation. Qualified records explicitly designated by
+Peritheos for diagnostic selection retain their warnings when selected.
+A diagnostic model without a reference ``V0`` remains available for inspection
+and export. Its characteristic volume is not substituted for the reference
+volume needed to scale diffraction lines.
+
+The phase editor also shows the selected record's reproduction assessment.
+The phase table's **Ref** selector marks unreproduced records with a warning
+symbol and includes the audit in its tooltip. An independent refit remains a
+separate record; edited custom copies do not inherit the source's assessment.
+Reproduction warnings qualify published records without changing their
+coefficients or automatically preventing comparisons.
 
 Select the appropriate record and click **Load as Phase** (or double-click it). The material's records remain available afterward in the phase table's **Ref** selector, so their effects on
 the calculated lines can be compared immediately. **Export .eosmat…** is only needed to share the
@@ -351,8 +402,14 @@ A "0" suffix indicates ambient-condition values; values without "0" correspond t
   the format for saving the complete analysis session. ``.eosmat`` is the
   shared material format defined by Peritheos: it carries both the
   crystallographic structure used by Dioptas and literature EoS records.
-  Dioptas preserves format-3 extension fields it does not interpret and also
-  continues to read its older format-2 material files.
+  Dioptas reads native EOSMAT v4 and historical v3, normalizes them through
+  Peritheos for editing and calculation, and exports canonical materials as
+  native v4. Scientific evidence, observations, uncertainty metadata and
+  unknown extensions are preserved. The Python export API also accepts
+  ``format_version=3`` for older consumers. Legacy format-2 material files
+  remain readable and retain their format when exported. Projects preserve
+  their embedded records and selected conditions independently of subsequent
+  catalog updates.
 - *Reload File*: Discard local changes and rebuild a JCPDS, CIF or ``.eosmat``
   phase from its source file. Bundled database materials have no source file
   and are already read-only, so this action is disabled for them.

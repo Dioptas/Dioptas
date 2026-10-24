@@ -48,6 +48,7 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 from scipy.optimize import minimize, OptimizeResult
+from peritheos.errors import PeritheosError
 import os
 
 
@@ -188,6 +189,18 @@ class CrystalState:
     #: whether the phase no longer matches the file it came from (the
     #: asterisk in the GUI); flipped by the params view on state writes
     modified: bool = False
+
+    def __post_init__(self):
+        # Projects and undo snapshots store records separately from the
+        # material document. Normalize the complete native file together so
+        # cross-record/dataset references remain valid and no EOS is guessed.
+        if self.material_document.get("format_version") == 4:
+            from ..eos.compat import normalize_material_document
+            document = normalize_material_document({
+                **self.material_document, "eos_records": self.eos_records,
+            })
+            self.eos_records = document.pop("eos_records")
+            self.material_document = document
 
 
 #: state keys whose direct edit marks the phase as modified (the asterisk)
@@ -668,10 +681,9 @@ class jcpds:
 
         # A peritheos thermal model (Mie-Grüneisen-Debye, ...) handles
         # the temperature inside the engine — no coefficient corrections
-        # or effective-pressure shift. Failures (Peritheos missing, or
-        # parameters incomplete — the UI asks for them) fall through to
-        # the legacy path below, which then behaves like a phase without
-        # thermal expansion.
+        # or effective-pressure shift. Incomplete legacy phases can fall
+        # through to the coefficient path. Invalid canonical material
+        # records raise an error so their thermal model is never ignored.
         if self.params.get('thermal_type') and pressure >= 0:
             if self._thermal_engine_volume(pressure, temperature):
                 return
@@ -722,8 +734,8 @@ class jcpds:
         Compute the volume through the phase's peritheos thermal model
         (params['thermal_type'], e.g. Mie-Grüneisen-Debye over the
         configured rt equation). Returns True when the volume was set;
-        False when the engine is unavailable or not constructible, so
-        compute_volume falls back to the legacy path.
+        False when the engine is unavailable or a legacy phase cannot
+        construct it. Invalid canonical records raise EosCalculationError.
         """
         thermal_type = str(self.params.get('thermal_type') or '')
         try:
@@ -738,6 +750,10 @@ class jcpds:
         except BundledEosValidationError as error:
             raise EosCalculationError(str(error)) from error
         except ValueError as e:
+            document = self.params.get('material_document') or {}
+            if (document.get('format') == 'peritheos.material'
+                    and document.get('format_version') == 3):
+                raise EosCalculationError(str(e)) from e
             if self.params.get('dac_thermal_pressure_factor'):
                 raise EosCalculationError(
                     f"Cannot apply DAC confinement to '{self.name}': {e}") from e
@@ -746,6 +762,8 @@ class jcpds:
                 "(%s); computing without it.",
                 thermal_type, self.name, e)
             return False
+        except PeritheosError as error:
+            raise EosCalculationError(str(error)) from error
         # the temperature dependence lives in the engine now — keep the
         # derived coefficient values meaningful for displays
         self.params['alpha_t'] = self.params['alpha_t0']
@@ -757,7 +775,7 @@ class jcpds:
                     pressure, temperature, factor)
             else:
                 volume = eos.volume(pressure, temperature)
-        except (ArithmeticError, RuntimeError, ValueError) as error:
+        except (ArithmeticError, RuntimeError, ValueError, PeritheosError) as error:
             raise EosCalculationError(str(error)) from error
         self._require_physical_volume(volume)
         self.params['v'] = volume
@@ -772,8 +790,8 @@ class jcpds:
         dispatching on ``params['eos_type']`` (a peritheos.eos.rt class
         name). Only two failures fall back to the legacy 3rd-order
         Birch-Murnaghan solver — Peritheos not importable, or the EoS not
-        constructible from the phase's parameters (the UI disables such
-        choices up front) — anything else propagates. The test suite
+        constructible from a legacy phase's parameters. Invalid canonical
+        material records and calculation errors propagate. The test suite
         cross-validates the legacy solver against Peritheos' BM3.
         """
         eos_type = str(self.params.get('eos_type') or 'BM3')
@@ -790,14 +808,20 @@ class jcpds:
         except BundledEosValidationError as error:
             raise EosCalculationError(str(error)) from error
         except ValueError as e:
+            document = self.params.get('material_document') or {}
+            if (document.get('format') == 'peritheos.material'
+                    and document.get('format_version') == 3):
+                raise EosCalculationError(str(e)) from e
             logger.warning(
                 "EoS '%s' cannot be constructed for phase '%s' (%s); "
                 "computing with the legacy BM3 solver instead.",
                 eos_type, self.name, e)
             return self._legacy_bm3_volume(k0, k0p, pressure)
+        except PeritheosError as error:
+            raise EosCalculationError(str(error)) from error
         try:
             volume = eos.volume(pressure)
-        except (ArithmeticError, RuntimeError, ValueError) as error:
+        except (ArithmeticError, RuntimeError, ValueError, PeritheosError) as error:
             raise EosCalculationError(str(error)) from error
         self._require_physical_volume(volume)
         return volume

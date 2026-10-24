@@ -15,7 +15,7 @@ Their changes are included here; the previous published release is 0.10.0. -->
   controller CI on 3.14 and 3.15 and wheel builds for both. Python 3.15 is
   currently a prerelease and requires source builds for several dependencies.
 
-- Updated to Peritheos 0.11.0 and PhaseSmith 0.7.0. The material browser keeps deferred source records searchable and exportable while disabling phase loading for those records. Qandilite reflections now preserve the explicit space-group origin choice.
+- Updated to Peritheos 0.16.0 and PhaseSmith 0.7.0. Native EOSMAT v4 imports use Peritheos's conversion API and canonical materials export as v4, retaining legacy v2/v3 readers and project compatibility. The material browser shows scoped reconstruction assessments, separate source/workflow/recommendation information and a link to the selected reconstruction report. Held defaults require explicit selection, including Pd without an automatic 0 K DFT substitute. Deferred source records remain searchable and exportable; qualified diagnostic records require explicit selection. Release startup checks cover native interchange, thermal calculations, source resources and assessments. Qandilite reflections preserve the explicit space-group origin choice.
 
 - Added range masking below the intensity thresholds for **2θ**, **q**, and **d-spacing**. Mask or unmask pixels inside or outside an interval, or leave one bound blank for a single cutoff. Uses the current calibration and supports undo/redo (#38).
 

@@ -10,10 +10,14 @@ the jcpds phase the user asked to load.
 import logging
 from pathlib import Path
 
-from qtpy import QtCore, QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets
 
 from ....model import eos
-from ....model.util.phasesmith import material_has_diffraction_data
+from ....model.eos.material import record_is_explicit_candidate
+from ....model.eos.assumed_structure import (
+    assume_tetragonal_perovskite, can_assume_tetragonal_perovskite)
+from ....model.util.phasesmith import (
+    material_has_complete_structure, material_has_diffraction_data)
 from ....widgets.EosDatabaseDialog import EosDatabaseDialog
 
 logger = logging.getLogger(__name__)
@@ -51,8 +55,12 @@ class EosDatabaseController(object):
         self.dialog.eos_selected.connect(self._update_phase_load_enabled)
         self.dialog.load_clicked.connect(self.load)
         self.dialog.export_clicked.connect(self.export)
+        self.dialog.report_clicked.connect(self.open_reconstruction_report)
         self.dialog.view_changed.connect(self.change_view)
         self.dialog.favourite_clicked.connect(self.toggle_favourite)
+        self.dialog.diffraction_filter_changed.connect(self._refresh_materials)
+        self.dialog.assume_structure_cb.toggled.connect(
+            self._update_phase_load_enabled)
 
         self._refresh_materials()
 
@@ -119,17 +127,30 @@ class EosDatabaseController(object):
         if query:
             self.shown_materials = eos.search_materials(query, self.shown_materials)
             empty_message = "No materials in this view match your search."
+        if self.dialog.hide_eos_only_cb.isChecked():
+            self.shown_materials = [
+                material for material in self.shown_materials
+                if material_has_diffraction_data(material)]
+            empty_message += (
+                " Materials without diffraction data are hidden; uncheck "
+                "the filter to include them.")
         self.dialog.set_materials_summary(
             len(self.shown_materials), bool(query), empty_message)
         self._fill_materials()
 
     def show_material(self, row: int):
         material = self._selected_material(row)
+        with QtCore.QSignalBlocker(self.dialog.assume_structure_cb):
+            self.dialog.assume_structure_cb.setChecked(False)
+        self.dialog.assume_structure_cb.setVisible(
+            can_assume_tetragonal_perovskite(material))
+        self.dialog.structure_note.setVisible(False)
         self.dialog.set_favourite(
             material is not None,
             material is not None and material.identifier in self.favourite_ids)
         if material is None:
             self.dialog.fill_eos_records([])
+            self._update_phase_load_enabled()
             return
         self.dialog.fill_eos_records([
             _record_row(record) for record in material.eos_records],
@@ -140,30 +161,78 @@ class EosDatabaseController(object):
             ],
             thermal_tooltips=[
                 _thermal_tooltip(record) for record in material.eos_records
+            ],
+            reproduction_tooltips=[
+                eos.record_reproduction(record)[1] for record in material.eos_records
             ])
         self._update_phase_load_enabled()
 
-    def _phase_load_error(self):
+    def _phase_material(self):
         material = self._selected_material(self.dialog.selected_material_row())
-        if material is None or not material_has_diffraction_data(material):
+        if (self.dialog.assume_structure_cb.isChecked()
+                and can_assume_tetragonal_perovskite(material)):
+            return assume_tetragonal_perovskite(material)
+        return material
+
+    def _phase_load_error(self):
+        material = self._phase_material()
+        if material is None:
+            return "Select a material to load as a phase."
+        if not material_has_diffraction_data(material):
             return ("No crystal structure or reference peak table is available for "
-                    "diffraction phase lines. The material can still be exported.")
+                    "diffraction phase lines. This material cannot be loaded as a "
+                    "phase. Its EoS records can still be viewed and exported.")
         index = self.dialog.selected_eos_row()
         if index < 0:
             index = material.default_eos_index
+        if material.eos_records and index < 0:
+            return ((material.recommendation_hold + "\n")
+                    if material.recommendation_hold else "") + (
+                "Select an EOS record explicitly; no automatic default is recommended.")
         if 0 <= index < len(material.eos_records):
             record = material.eos_records[index]
             validation = record.get("scientific_validation") or {}
             if (material.format == "peritheos.material"
-                    and validation.get("status") != "primary_source_validated"):
+                    and validation.get("status") != "primary_source_validated"
+                    and not record_is_explicit_candidate(record)):
                 return (f"This record is {validation.get('status', 'unvalidated')} "
                         "and is retained as source data only. Select a validated "
                         "record to load a phase. The material can still be exported.")
         return ""
 
     def _update_phase_load_enabled(self):
+        material = self._phase_material()
+        index = self.dialog.selected_eos_row()
+        detail = (eos.record_reproduction(material.eos_records[index])[1]
+                  if material is not None and 0 <= index < len(material.eos_records)
+                  else "")
+        self.dialog.set_reproduction_assessment(detail)
+        report_url = (eos.reconstruction_report_url(material.eos_records[index])
+                      if material is not None and 0 <= index < len(material.eos_records)
+                      else "")
+        self.dialog.report_btn.setEnabled(bool(report_url))
+        self.dialog.report_btn.setToolTip(report_url or "No reconstruction report is recorded.")
+        assumption = (material.source.get("assumed_structure", {})
+                      if material is not None else {})
         reason = self._phase_load_error()
+        notes = [reason] if reason and material is not None else []
+        if (reason and can_assume_tetragonal_perovskite(material)):
+            notes.append(
+                "To load approximate phase lines, explicitly enable the assumed "
+                "tetragonal perovskite structure above.")
+        if assumption:
+            notes.append(assumption.get("note", ""))
+        self.dialog.structure_note.setText("\n".join(notes))
+        self.dialog.structure_note.setVisible(bool(notes))
         self.dialog.set_phase_load_enabled(not reason, reason)
+
+    def open_reconstruction_report(self):
+        material = self._selected_material(self.dialog.selected_material_row())
+        index = self.dialog.selected_eos_row()
+        if material is not None and 0 <= index < len(material.eos_records):
+            url = eos.reconstruction_report_url(material.eos_records[index])
+            if url:
+                QtGui.QDesktopServices.openUrl(QtCore.QUrl(url))
 
     def toggle_favourite(self):
         row = self.dialog.selected_material_row()
@@ -183,7 +252,7 @@ class EosDatabaseController(object):
             self.dialog.set_favourite(True, identifier in self.favourite_ids)
 
     def load(self):
-        material = self._selected_material(self.dialog.selected_material_row())
+        material = self._phase_material()
         if material is None or self._phase_load_error():
             return
         record_index = self.dialog.selected_eos_row()
@@ -204,7 +273,7 @@ class EosDatabaseController(object):
         self.dialog.accept()
 
     def export(self):
-        material = self._selected_material(self.dialog.selected_material_row())
+        material = self._phase_material()
         if material is None:
             return
         default_name = f"{material.formula or material.name}.eosmat"
@@ -216,7 +285,8 @@ class EosDatabaseController(object):
 
     def _fill_materials(self):
         self.dialog.fill_materials([
-            (material.display_name, material.space_group)
+            (material.display_name, material.space_group,
+             *_diffraction_status(material))
             for material in self.shown_materials])
         # Select the first hit so the EoS table below always reflects the
         # current material list — never a previous search's selection.
@@ -229,6 +299,29 @@ class EosDatabaseController(object):
         if 0 <= row < len(self.shown_materials):
             return self.shown_materials[row]
         return None
+
+
+def _diffraction_status(material):
+    """Describe diffraction data separately from EOS validity or space group."""
+    if material_has_diffraction_data(material):
+        if (material_has_complete_structure(material)
+                or (material.source.get("kind") == "cif"
+                    and material.source.get("text"))):
+            return ("Crystal structure",
+                    "A crystal structure is available to calculate diffraction "
+                    "phase lines. Select a validated EoS record to load a phase.")
+        return ("Reference peaks",
+                "A reference peak table supplies diffraction phase lines, "
+                "although a complete crystal structure is unavailable.")
+    if can_assume_tetragonal_perovskite(material):
+        return ("Assumption required",
+                "No crystal structure or reference peak table is available. "
+                "Approximate phase lines require explicitly enabling an assumed "
+                "structure after selecting this material.")
+    return ("EoS only",
+            "No crystal structure or reference peak table is available. "
+            "EoS records can be viewed and exported, but this material cannot "
+            "be loaded as a diffraction phase.")
 
 
 def _record_row(record: dict) -> tuple:
@@ -249,6 +342,7 @@ def _record_row(record: dict) -> tuple:
         _parameter_text(record, "K0", ".1f"),
         k0p_text,
         _parameter_text(record, "V0", ".3f"),
+        eos.record_reproduction(record)[0],
     )
 
 
