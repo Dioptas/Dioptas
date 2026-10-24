@@ -64,9 +64,10 @@ image or exact mask: retain those inputs with the exported observations.
 Experimental results are session-local and are not silently inserted into the
 ordinary `.dio` project persistence format.
 
-No profile fitting, deblending, frame linking, lattice/grain indexing,
-partiality correction, absorption/geometry correction, scaling, merging or
-structure solution is implemented. The background is a local constant mean.
+The single-frame action has no profile fitting, deblending, indexing,
+partiality correction, absorption correction, scaling or structure solution.
+Rotation linking and experimental geometry/cell proposals are separate actions
+described below. The background is a local constant mean.
 Unresolved physical overlaps can form one detected component without an
 OVERLAP flag; that flag checks intersection of measurement apertures only.
 Uncertainties are conditional on independent pixels and declared noise. They
@@ -99,8 +100,8 @@ Position export writes a track CSV, an observations CSV with every source frame,
 and a JSON provenance sidecar. It has no integrated-intensity column. Detector
 sums are internal centroid weights only; exposure midpoints limit omega
 resolution. Ambiguous many-to-one links and scan-boundary candidates are flagged.
-This mode does not yet transform positions to reciprocal space, find a unit cell
-or assign symmetry/HKL. Rocking-curve integration follows indexing later.
+The separate geometry/cell action below transforms these positions to reciprocal
+space and proposes candidate HKLs/cells. Rocking-curve integration follows later.
 
 The existing single-frame measurement action remains available separately.
 No ordinary release switch or dependency was changed.
@@ -160,3 +161,43 @@ external automatic plugin discovery is needed. The ordinary launcher and normal
 Dioptas startup do not change. The observed local startup stall reproduced with
 h5py alone, including a clean environment; dependency versions were restored
 after diagnosis.
+
+## Geometry and blind cell search
+
+After finding series positions, select **Geometry and find unit cell…**. Choose
+the detector PONI calibration for the scan, its row convention, and the vertical
+rotation-axis sign. Use **Test both signs** when uncertain. The sign is defined
+in pyFAI's right-handed (1=vertical,2=horizontal,3=beam) basis, rather than an
+ambiguous clockwise label. The maximum cell edge is a generic search bound;
+the dialog has no material, expected cell, crystal system, space group or UB input.
+
+Legacy Dioptas calibrations describe displayed, vertically flipped rows; PONI
+files calibrated against original array rows require the second coordinate
+option. Additional Dioptas image flips/quarter turns are undone explicitly.
+The adapter uses pyFAI's calibrated rays and rejects non-affine detector geometry.
+Wavelength is required. Spatial distortion and parallax models are not supported.
+
+Every frame observation is transformed into the reference sample frame before
+one equal-observation mean is formed per track. The search uses each linked spot
+once, excluding flagged tracks, tracks with more than eight observations and
+reciprocal RMS spread above 0.03 Å^-1. It reserves five-frame blocks for checking
+the result, excluding links crossing partition boundaries. Both signs use an
+identical position selection. The native backend evaluates Fourier values,
+gradients and Hessians; NumPy orchestrates a bounded 256³ FFT and lattice fits.
+The job uses the same single-worker queue and discards stale results.
+
+The panel lists size-reduced, unconstrained cell metrics and training/held-out
+matching fractions. Passing these provisional checks does not prove a primitive
+cell, a space group, a unique lattice or a material identity. A cell from diamond
+or another phase is possible; the program does not identify chemistry. Multiple
+lattices, missing reflection classes and geometry errors remain limitations.
+
+**Export cell candidates…** writes JSON provenance and a CSV of selected track
+IDs, corrected q, provisional HKL, residual and training/validation membership
+for each tested sign's best candidate. It records calibration hashes, exact
+geometry vectors, source position metadata, algorithm hashes and search/filter
+settings. Original frames and position results remain unchanged. Candidate HKLs
+are diagnostic assignments, not integrated crystallographic intensities.
+
+See PhaseSmith's `docs/experimental-reciprocal-indexing.md` for equations,
+support conventions, search bounds, complexity and independent reference tests.

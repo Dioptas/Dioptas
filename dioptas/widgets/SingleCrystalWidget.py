@@ -112,7 +112,9 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         self.frame_slider.setRange(0, 0)
         self.frame_slider.setEnabled(False)
         viewer_layout.addWidget(self.frame_slider)
-        self.position_track_label = QtWidgets.QLabel("Select a spot to inspect its trajectory.")
+        self.position_track_label = QtWidgets.QLabel(
+            "Select a spot to inspect its trajectory."
+        )
         self.position_track_label.hide()
         viewer_layout.addWidget(self.position_track_label)
         self.position_plot = pg.PlotWidget()
@@ -176,6 +178,17 @@ class SingleCrystalWidget(QtWidgets.QWidget):
 
         self.detect_button = QtWidgets.QPushButton("Find spots and extract counts")
         panel.addWidget(self.detect_button)
+        self.cell_button = QtWidgets.QPushButton("Geometry and find unit cell…")
+        self.cell_button.setEnabled(False)
+        panel.addWidget(self.cell_button)
+        self.cell_summary = QtWidgets.QPlainTextEdit()
+        self.cell_summary.setReadOnly(True)
+        self.cell_summary.setMaximumHeight(210)
+        self.cell_summary.hide()
+        panel.addWidget(self.cell_summary)
+        self.cell_export_button = QtWidgets.QPushButton("Export cell candidates…")
+        self.cell_export_button.setEnabled(False)
+        panel.addWidget(self.cell_export_button)
         self.status_label = QtWidgets.QLabel("Experimental spot engine ready.")
         self.status_label.setWordWrap(True)
         panel.addWidget(self.status_label)

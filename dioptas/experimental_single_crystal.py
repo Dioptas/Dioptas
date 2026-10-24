@@ -19,6 +19,9 @@ def main():
     parser.add_argument("--omega-step", type=float)
     parser.add_argument("--omega-width", type=float)
     parser.add_argument("--find-positions", action="store_true")
+    parser.add_argument(
+        "--calibration", help="PONI file to prefill the blind cell-search dialog"
+    )
     parser.add_argument("--exclude-zero-padding", action="store_true")
     parser.add_argument(
         "--saturation", type=float, help="Flag pixels at this detector count level"
@@ -53,6 +56,10 @@ def main():
     controller.widget.resize(1500, 1000)
     controller.widget.single_crystal_mode_btn.click()
     controller.single_crystal_controller.load_series(series)
+    if args.calibration:
+        controller.single_crystal_controller.cell_calibration_filename = (
+            args.calibration
+        )
     controller.widget.single_crystal_widget.zero_padding.setChecked(
         args.exclude_zero_padding
     )

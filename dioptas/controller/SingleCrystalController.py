@@ -23,6 +23,14 @@ from ..model.rotation_series import (
 )
 from ..widgets.RotationSeriesDialog import RotationSeriesDialog
 from .OmegaBackgroundController import OmegaBackgroundController
+from ..model.single_crystal_indexing import (
+    CellSearchResult,
+    geometry_from_poni,
+    find_cells,
+    cell_summary,
+    export_cells,
+)
+from ..widgets.CellSearchDialog import CellSearchDialog
 
 
 class _SeriesCancelled(Exception):
@@ -33,6 +41,8 @@ class SingleCrystalController:
     def __init__(self, widget, model, *, run_async=True):
         self.widget, self.model = widget, model
         self.result = None
+        self.cell_result = None
+        self.cell_calibration_filename = ""
         self.series = None
         self._browsing_series = False
         self._active = False
@@ -46,6 +56,8 @@ class SingleCrystalController:
             self._runner.succeeded.connect(self._succeeded)
             self._runner.failed.connect(self._failed)
         widget.detect_button.clicked.connect(self.detect)
+        widget.cell_button.clicked.connect(self.index_cells)
+        widget.cell_export_button.clicked.connect(self.export_cell_candidates)
         widget.load_button.clicked.connect(self.open_image)
         widget.series_button.clicked.connect(self.open_series)
         widget.series_progress.connect(self._series_progress)
@@ -104,6 +116,10 @@ class SingleCrystalController:
             return
         self._generation += 1
         self.result = None
+        self.cell_result = None
+        self.widget.cell_summary.clear()
+        self.widget.cell_summary.hide()
+        self.widget.cell_export_button.setEnabled(False)
         self.widget.table_model.set_result(None)
         self.widget.position_table_model.set_result(None)
         self.widget.position_plot.clear()
@@ -117,6 +133,9 @@ class SingleCrystalController:
         busy = self._runner is not None and self._runner.is_busy
         self.widget.detect_button.setEnabled(
             self._available and not busy and not self._closed
+        )
+        self.widget.cell_button.setEnabled(
+            isinstance(self.result, SeriesPositions) and not busy and not self._closed
         )
         message = (
             "Ready to find 3D positions across the rotation series."
@@ -357,10 +376,20 @@ class SingleCrystalController:
         if not self._closed:
             self._set_ready()
             if generation == self._generation:
-                self.widget.status_label.setText(f"Spot measurement failed: {exc}")
+                self.widget.status_label.setText(f"Experimental processing failed: {exc}")
 
     def _show_result(self, result, generation):
         if generation != self._generation or self._closed:
+            return
+        if isinstance(result, CellSearchResult):
+            self.cell_result = result
+            self.widget.cell_summary.setPlainText(cell_summary(result))
+            self.widget.cell_summary.show()
+            self.widget.cell_export_button.setEnabled(True)
+            self._set_ready()
+            self.widget.status_label.setText(
+                "Cell search completed. Review the candidate cells and held-out matches below."
+            )
             return
         self.result = result
         table = result.table
@@ -374,6 +403,7 @@ class SingleCrystalController:
                 )
             self._plot_frame_positions(self.widget.frame_slider.value())
             self.widget.export_button.setEnabled(True)
+            self.widget.cell_button.setEnabled(True)
             self.widget.status_label.setText(
                 f"{len(table)} position candidates · {len(table.observations)} frame observations · "
                 f"{np.count_nonzero(table.flags)} flagged. Select a row to inspect its trajectory. "
@@ -397,6 +427,76 @@ class SingleCrystalController:
             f"{table.rejected_small_components} components below the size limit. "
             "Yellow markers: unflagged; red markers: inspect quality flags."
         )
+
+    def index_cells(self):
+        if (
+            not isinstance(self.result, SeriesPositions)
+            or self._closed
+            or (self._runner and self._runner.is_busy)
+        ):
+            return
+        filename = self.cell_calibration_filename
+        if not filename and self.model.calibration_model.is_calibrated:
+            filename = self.model.calibration_model.filename
+        dialog = CellSearchDialog(self.widget, filename=filename)
+        if dialog.exec() != QtWidgets.QDialog.Accepted:
+            return
+        try:
+            from phasesmith.experimental.indexing import IndexingOptions
+
+            filename = dialog.filename.text().strip()
+            self.cell_calibration_filename = filename
+            geometries = []
+            for sign in dialog.signs():
+                geometry, metadata = geometry_from_poni(
+                    filename,
+                    axis_sign=sign,
+                    shape=self.model.img_model.raw_img_data.shape,
+                    original_rows=dialog.rows.currentIndex() == 1,
+                    transformations=tuple(self.model.img_model.params.transformations),
+                )
+                geometries.append((sign, geometry, metadata))
+            options = IndexingOptions(max_length=dialog.maximum.value())
+            operation = partial(find_cells, self.result, geometries, options=options)
+        except Exception as exc:
+            self.widget.status_label.setText(f"Could not configure cell search: {exc}")
+            return
+        self.cell_result = None
+        self.widget.cell_summary.clear()
+        self.widget.cell_export_button.setEnabled(False)
+        generation = self._generation
+        if self._runner is None:
+            try:
+                self._show_result(operation(), generation)
+            except Exception as exc:
+                self.widget.status_label.setText(f"Cell search failed: {exc}")
+        else:
+            job = self._runner.submit(operation)
+            self._jobs[job] = generation
+            self._set_ready()
+            self.widget.status_label.setText(
+                "Correcting geometry and searching for a cell…"
+            )
+
+    def export_cell_candidates(self):
+        if self.cell_result is None:
+            return
+        filename = save_file_dialog(
+            self.widget,
+            "Export blind cell candidates",
+            "cell_candidates.json",
+            "JSON (*.json)",
+        )
+        if filename:
+            try:
+                export_cells(self.cell_result, filename)
+                self.widget.status_label.setText(
+                    "Exported candidates, reciprocal positions, assignments and provenance."
+                )
+            except Exception as exc:
+                self.widget.status_label.setText(
+                    f"Could not export cell candidates: {exc}"
+                )
 
     def open_image(self):
         filename = open_file_dialog(
