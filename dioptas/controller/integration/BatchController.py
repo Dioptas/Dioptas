@@ -77,6 +77,7 @@ class BatchController:
 
         self.min_val = {"lin": 0, "sqrt": 0.1, "log": 0.1, "current": 0}
         self.size_threshold = 500000
+        self._sync_normalization_controls()
 
     def create_signals(self):
         """
@@ -138,6 +139,12 @@ class BatchController:
         )
         self.widget.batch_widget.control_widget.normalize_btn.clicked.connect(
             self.normalize_btn_clicked
+        )
+        self.widget.batch_widget.control_widget.normalize_settings_btn.clicked.connect(
+            self.show_normalization_settings
+        )
+        self.widget.batch_widget.control_widget.normalization_popup.settings_applied.connect(
+            self.apply_normalization_settings
         )
 
         # set unit of x axis; display updates run in reaction to the model
@@ -991,6 +998,7 @@ class BatchController:
         """
         Plot batch of diffraction patters taking into account scale abd background subtraction
         """
+        self._sync_normalization_controls()
         data = self.model.batch_model.data
         bkg = self.model.batch_model.bkg
         if data is None:
@@ -1001,7 +1009,7 @@ class BatchController:
         ):
             data = data - bkg
         if self.min_val.get("current", None) is not None:
-            data[data < self.min_val["current"]] = self.min_val["current"]
+            data = np.maximum(data, self.min_val["current"])
         data = self.scale(data)
 
         start_x, stop_x = self._get_x_range()
@@ -1186,7 +1194,50 @@ class BatchController:
         self.widget.batch_widget.stack_plot_widget.img_view.auto_level()
 
     def normalize_btn_clicked(self):
-        self.model.batch_model.normalize()
+        batch = self.model.batch_model
+        if self.widget.batch_widget.control_widget.normalize_btn.isChecked():
+            try:
+                batch.normalize()
+            except ValueError as exc:
+                self.widget.show_error_msg(str(exc))
+        else:
+            batch.restore_normalization()
+        self.plot_batch()
+
+    def _sync_normalization_controls(self):
+        controls = self.widget.batch_widget.control_widget
+        batch = self.model.batch_model
+        available = batch.data is not None and batch.data.size > 0
+        controls.normalize_btn.setEnabled(available)
+        controls.normalize_settings_btn.setEnabled(available)
+        controls.normalize_btn.setChecked(batch.normalization_enabled)
+
+    def show_normalization_settings(self):
+        batch = self.model.batch_model
+        if batch.data is None or batch.data.size == 0:
+            return
+        controls = self.widget.batch_widget.control_widget
+        popup = controls.normalization_popup
+        popup.set_settings(batch.data.shape[1], batch.data.shape[0],
+                           batch.normalization_range, batch.normalization_reference)
+        popup.adjustSize()
+        anchor = controls.normalize_settings_btn.mapToGlobal(QtCore.QPoint(0, 0))
+        popup.move(anchor.x() + controls.normalize_settings_btn.width() - popup.width(),
+                   anchor.y() - popup.height())
+        popup.show()
+
+    def apply_normalization_settings(self, start, stop, reference):
+        batch = self.model.batch_model
+        if batch.normalization_enabled:
+            try:
+                batch.normalize((start, stop), reference)
+            except ValueError as exc:
+                self.widget.show_error_msg(str(exc))
+                return
+        else:
+            batch.normalization_range = (start, stop)
+            batch.normalization_reference = reference
+        self.widget.batch_widget.control_widget.normalization_popup.hide()
         self.plot_batch()
 
     def process_waterfall(self, x, y):
@@ -1726,3 +1777,5 @@ class BatchController:
         Apply integration unit from current_configuration
         """
         self._apply_unit(self.model.current_configuration.integration_unit)
+        self.widget.batch_widget.control_widget.normalization_popup.hide()
+        self._sync_normalization_controls()

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 import os
+import numpy as np
 import pytest
 from mock import MagicMock
 
@@ -183,4 +184,62 @@ def test_plot_waterfall(batch_controller, dioptas_model, load_proc_data):
 
 
 def test_normalize(batch_widget, batch_controller, load_proc_data):
+    batch_widget.activate_stack_plot()
+    batch_controller.plot_batch()
+    batch = batch_controller.model.batch_model
+    original = batch.data.copy()
     click_button(batch_widget.control_widget.normalize_btn)
+    assert batch_widget.control_widget.normalize_btn.isChecked()
+    assert batch.normalization_enabled
+    np.testing.assert_allclose(batch.data[:, 10:30].mean(axis=1),
+                               original[0, 10:30].mean())
+    click_button(batch_widget.control_widget.normalize_btn)
+    assert not batch_widget.control_widget.normalize_btn.isChecked()
+    np.testing.assert_array_equal(batch.data, original)
+
+
+def test_normalization_popup_applies_while_active(batch_widget, batch_controller, load_proc_data):
+    batch_widget.activate_stack_plot()
+    batch_controller.plot_batch()
+    click_button(batch_widget.control_widget.normalize_btn)
+    original = batch_controller.model.batch_model._normalization_source[0].copy()
+    click_button(batch_widget.control_widget.normalize_settings_btn)
+    popup = batch_widget.control_widget.normalization_popup
+    assert popup.isVisible()
+    popup.end_bin.setValue(49)
+    popup.start_bin.setValue(20)
+    popup.reference_frame.setValue(2)
+    click_button(popup.apply_btn)
+    batch = batch_controller.model.batch_model
+    assert batch.normalization_range == (20, 50)
+    assert batch.normalization_reference == 2
+    assert not popup.isVisible()
+    np.testing.assert_allclose(batch.data[:, 20:50].mean(axis=1), original[2, 20:50].mean())
+    click_button(batch_widget.control_widget.normalize_btn)
+    np.testing.assert_array_equal(batch.data, original)
+
+
+def test_plotting_does_not_modify_original_intensities(batch_controller, load_proc_data):
+    batch = batch_controller.model.batch_model
+    batch.data[0, 0] = -1
+    original = batch.data.copy()
+    batch_controller.plot_batch()
+    np.testing.assert_array_equal(batch.data, original)
+
+
+def test_normalization_controls_follow_batch_view(batch_widget, batch_controller):
+    batch_widget.activate_stack_plot()
+    assert not batch_widget.control_widget.normalization_widget.isHidden()
+    batch_widget.activate_files_view()
+    assert batch_widget.control_widget.normalization_widget.isHidden()
+    batch_widget.activate_surface_view()
+    assert batch_widget.control_widget.normalization_widget.isHidden()
+
+
+def test_normalization_settings_do_not_enable_normalization(batch_widget, batch_controller, load_proc_data):
+    batch = batch_controller.model.batch_model
+    original = batch.data.copy()
+    batch_controller.apply_normalization_settings(20, 50, 2)
+    assert not batch.normalization_enabled
+    assert not batch_widget.control_widget.normalize_btn.isChecked()
+    np.testing.assert_array_equal(batch.data, original)

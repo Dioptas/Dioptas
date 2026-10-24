@@ -78,6 +78,7 @@ def compute_batch_integration(
 
 
 def apply_batch_integration(batch_model, result: BatchIntegrationResult) -> None:
+    batch_model.clear_normalization()
     batch_model.data = result.data
     batch_model.azimuthal_std = result.azimuthal_std
     batch_model.integration_unit = result.integration_unit

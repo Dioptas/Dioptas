@@ -142,6 +142,15 @@ In the **Image** tab, batch operations allow processing multiple images at once:
 
 A progress dialog shows the integration status.
 
+In the batch stack view, **Normalize** matches each frame's mean intensity to
+the reference frame over a selected bin interval. The adjacent settings button
+selects the first and last bins (both inclusive) and reference frame; all
+indices start at zero. Every frame must have a positive, finite mean in that
+interval. Backgrounds and azimuthal spread receive the same scale factor as
+the intensities. Turn **Normalize** off to restore the original data. Changing
+the settings while normalization is active always starts from the original
+intensities, so repeated adjustments do not accumulate scaling errors.
+
 
 Overlays
 --------

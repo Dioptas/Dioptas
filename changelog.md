@@ -11,6 +11,8 @@ Their changes are included here; the previous published release is 0.10.0. -->
 
 ## Improvements
 
+- Batch normalization can be toggled off to restore the original intensities. Its settings select the bin interval and reference frame; backgrounds and azimuthal spread follow the same scaling.
+
 - Extended the Python compatibility range through 3.15, with backend and
   controller CI on 3.14 and 3.15 and wheel builds for both. Python 3.15 is
   currently a prerelease and requires source builds for several dependencies.

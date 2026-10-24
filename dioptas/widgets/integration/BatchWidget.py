@@ -14,6 +14,7 @@ from ..CustomWidgets import (
     LabelExpandable,
     EmptyStateOverlay,
     render_icon,
+    VerticalLine,
 )
 
 from . import CLICKED_COLOR
@@ -136,7 +137,7 @@ class BatchWidget(QtWidgets.QWidget):
         self.control_widget.waterfall_btn.hide()
         self.control_widget.phases_btn.hide()
         self.control_widget.autoscale_btn.hide()
-        self.control_widget.normalize_btn.hide()
+        self.control_widget.normalization_widget.hide()
         self.control_widget.integrate_btn.show()
 
     def activate_stack_plot(self):
@@ -152,7 +153,7 @@ class BatchWidget(QtWidgets.QWidget):
         self.control_widget.waterfall_btn.show()
         self.control_widget.phases_btn.show()
         self.control_widget.autoscale_btn.show()
-        self.control_widget.normalize_btn.show()
+        self.control_widget.normalization_widget.show()
         self.control_widget.integrate_btn.hide()
 
     def activate_surface_view(self):
@@ -172,7 +173,7 @@ class BatchWidget(QtWidgets.QWidget):
         self.control_widget.waterfall_btn.hide()
         self.control_widget.phases_btn.hide()
         self.control_widget.autoscale_btn.hide()
-        self.control_widget.normalize_btn.hide()
+        self.control_widget.normalization_widget.hide()
         self.control_widget.integrate_btn.hide()
 
     def raise_widget(self):
@@ -548,6 +549,52 @@ class BatchSurfaceViewNavigationWidget(QtWidgets.QWidget):
         )
 
 
+class BatchNormalizationPopup(QtWidgets.QFrame):
+    settings_applied = QtCore.Signal(int, int, int)
+
+    def __init__(self, parent):
+        super().__init__(parent, QtCore.Qt.Popup)
+        self.setWindowTitle("Normalization settings")
+        self.setFrameStyle(QtWidgets.QFrame.Panel | QtWidgets.QFrame.Raised)
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(QtWidgets.QLabel("Normalization settings"))
+        description = QtWidgets.QLabel(
+            "Match each frame's mean intensity to the reference\n"
+            "over the selected bins. Bin and frame numbers start at 0."
+        )
+        layout.addWidget(description)
+        form = QtWidgets.QFormLayout()
+        self.start_bin = QtWidgets.QSpinBox()
+        self.end_bin = QtWidgets.QSpinBox()
+        self.reference_frame = QtWidgets.QSpinBox()
+        form.addRow("First bin (inclusive):", self.start_bin)
+        form.addRow("Last bin (inclusive):", self.end_bin)
+        form.addRow("Reference frame:", self.reference_frame)
+        layout.addLayout(form)
+        self.start_bin.valueChanged.connect(self.end_bin.setMinimum)
+        self.end_bin.valueChanged.connect(self.start_bin.setMaximum)
+        self.apply_btn = FlatButton("Apply")
+        self.apply_btn.clicked.connect(self.apply_settings)
+        layout.addWidget(self.apply_btn)
+
+    def set_settings(self, n_bins, n_frames, bin_range, reference):
+        blockers = [QtCore.QSignalBlocker(spin) for spin in
+                    (self.start_bin, self.end_bin, self.reference_frame)]
+        start = min(bin_range[0], n_bins - 1)
+        end = min(bin_range[1] - 1, n_bins - 1)
+        self.start_bin.setRange(0, end)
+        self.end_bin.setRange(start, n_bins - 1)
+        self.reference_frame.setRange(0, n_frames - 1)
+        self.start_bin.setValue(start)
+        self.end_bin.setValue(end)
+        self.reference_frame.setValue(min(reference, n_frames - 1))
+        del blockers
+
+    def apply_settings(self):
+        self.settings_applied.emit(self.start_bin.value(), self.end_bin.value() + 1,
+                                   self.reference_frame.value())
+
+
 class BatchControlWidget(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
@@ -560,7 +607,20 @@ class BatchControlWidget(QtWidgets.QWidget):
 
         self.phases_btn = CheckableFlatButton("Show Phases")
         self.autoscale_btn = FlatButton("AutoScale")
-        self.normalize_btn = FlatButton("Normalize")
+        self.normalize_btn = CheckableFlatButton("Normalize")
+        self.normalize_settings_btn = FlatButton()
+        self.normalize_settings_btn.setIcon(render_icon("settings.svg"))
+        self.normalize_settings_btn.setFixedWidth(28)
+        self.normalize_settings_btn.setAccessibleName("Normalization settings")
+        self.normalization_widget = QtWidgets.QWidget()
+        normalization_layout = QtWidgets.QHBoxLayout(self.normalization_widget)
+        normalization_layout.setContentsMargins(8, 0, 0, 0)
+        normalization_layout.setSpacing(4)
+        normalization_layout.addWidget(VerticalLine())
+        normalization_layout.addSpacing(8)
+        normalization_layout.addWidget(self.normalize_btn)
+        normalization_layout.addWidget(self.normalize_settings_btn)
+        self.normalization_popup = BatchNormalizationPopup(self)
 
         self._layout = QtWidgets.QHBoxLayout()
 
@@ -574,7 +634,7 @@ class BatchControlWidget(QtWidgets.QWidget):
         self._layout.addWidget(self.waterfall_btn)
         self._layout.addWidget(self.phases_btn)
         self._layout.addWidget(self.autoscale_btn)
-        self._layout.addWidget(self.normalize_btn)
+        self._layout.addWidget(self.normalization_widget)
 
         self._layout.addSpacerItem(HorizontalSpacerItem())
 
@@ -583,6 +643,8 @@ class BatchControlWidget(QtWidgets.QWidget):
     def set_tooltips(self):
         self.waterfall_btn.setToolTip("Create waterfall plot")
         self.calc_bkg_btn.setToolTip("Extract background")
+        self.normalize_btn.setToolTip("Toggle normalization; turn off to restore original intensities")
+        self.normalize_settings_btn.setToolTip("Normalization settings")
 
     def style_widgets(self):
         self._layout.setContentsMargins(6, 6, 6, 6)

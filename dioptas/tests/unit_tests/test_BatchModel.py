@@ -113,6 +113,87 @@ def test_normalize(batch_model):
     assert pytest.approx(0) == np.sum(np.diff(batch_model.data[:, 1]))
 
 
+def test_normalization_restores_data_spread_and_background(batch_model):
+    original = np.array([[1., 3., 5.], [4., 8., 12.]])
+    spread = np.full_like(original, 0.5)
+    background = original * 0.1
+    batch_model.data = original.copy()
+    batch_model.azimuthal_std = spread.copy()
+    batch_model.bkg = background.copy()
+
+    for _ in range(3):
+        batch_model.normalize((0, 2))
+        assert batch_model.normalization_enabled
+        np.testing.assert_allclose(batch_model.data.mean(axis=1), [3., 8. / 3.])
+        np.testing.assert_allclose(batch_model.azimuthal_std[1], spread[1] / 3)
+        np.testing.assert_allclose(batch_model.bkg[1], background[1] / 3)
+        batch_model.restore_normalization()
+        assert not batch_model.normalization_enabled
+        np.testing.assert_array_equal(batch_model.data, original)
+        np.testing.assert_array_equal(batch_model.azimuthal_std, spread)
+        np.testing.assert_array_equal(batch_model.bkg, background)
+
+
+def test_changing_normalization_uses_original_data(batch_model):
+    original = np.array([[1., 3., 5.], [4., 8., 12.]])
+    batch_model.data = original.copy()
+    batch_model.normalize((0, 2))
+    batch_model.normalize((1, 3), reference_index=1)
+    np.testing.assert_allclose(batch_model.data, original * np.array([[2.5], [1.]]))
+    batch_model.restore_normalization()
+    np.testing.assert_array_equal(batch_model.data, original)
+
+
+def test_invalid_settings_preserve_active_normalization(batch_model):
+    original = np.array([[1., 3., 0.], [4., 8., 0.]])
+    batch_model.data = original.copy()
+    batch_model.normalize((0, 2))
+    normalized = batch_model.data.copy()
+    with pytest.raises(ValueError):
+        batch_model.normalize((2, 3))
+    assert batch_model.normalization_enabled
+    assert batch_model.normalization_range == (0, 2)
+    np.testing.assert_array_equal(batch_model.data, normalized)
+    batch_model.restore_normalization()
+    np.testing.assert_array_equal(batch_model.data, original)
+
+
+@pytest.mark.parametrize("data, interval, reference", [
+    ([[1., 2.], [0., 0.]], (0, 2), 0),
+    ([[1., 2.], [np.nan, 1.]], (0, 2), 0),
+    ([[1., 2.]], (1, 1), 0),
+    ([[1., 2.]], (0, 3), 0),
+    ([[1., 2.]], (0, 2), 1),
+])
+def test_invalid_normalization_preserves_data(batch_model, data, interval, reference):
+    batch_model.data = np.array(data)
+    original = batch_model.data.copy()
+    with pytest.raises(ValueError):
+        batch_model.normalize(interval, reference)
+    assert not batch_model.normalization_enabled
+    np.testing.assert_array_equal(batch_model.data, original)
+
+
+def test_background_calculated_while_normalized_can_be_restored(batch_model):
+    batch_model.data = np.array([[1., 3.], [4., 8.]])
+    batch_model.normalize((0, 2))
+    batch_model.bkg = np.ones((2, 2))
+    batch_model.restore_normalization()
+    np.testing.assert_allclose(batch_model.bkg, [[1., 1.], [3., 3.]])
+
+
+def test_reloading_batch_clears_normalization(batch_model, tmp_path):
+    batch_model.integrate_raw_data(5, 10, 2, use_all=True)
+    original = batch_model.data.copy()
+    path = str(tmp_path / "batch.nxs")
+    batch_model.save_proc_data(path)
+    batch_model.normalize()
+    batch_model.load_proc_data(path)
+    assert not batch_model.normalization_enabled
+    batch_model.restore_normalization()
+    np.testing.assert_array_equal(batch_model.data, original)
+
+
 def test_iterate_folder():
     assert iterate_folder("r001", 1) == "r002"
     assert iterate_folder("r009", 1) == "r010"

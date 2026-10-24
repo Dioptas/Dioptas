@@ -42,8 +42,15 @@ class BatchModel:
         self.used_mask: str | None = None
         self.used_mask_shape: tuple[int, ...] | None = None
         self.used_calibration: str | None = None
+        self.normalization_range = (10, 30)
+        self.normalization_reference = 0
+        self._normalization_source = None
+        self._normalized_data = None
+        self._normalized_background = None
+        self._normalization_factors = None
 
     def reset_data(self) -> None:
+        self.clear_normalization()
         self.data = None
         self.azimuthal_std = None
         self.integration_unit = "2th_deg"
@@ -97,6 +104,7 @@ class BatchModel:
         self.file_map = np.array(file_map)
 
     def try_load_old_format(self, data_file: h5py.File | h5py.Group) -> None:
+        self.clear_normalization()
         self.data = data_file["data"][()]
         self.binning = data_file["binning"][()]
         self.file_map = data_file["file_map"][()]
@@ -130,7 +138,9 @@ class BatchModel:
     def load_proc_data(self, filename: str) -> None:
         """Load diffraction patterns and metadata from h5 file."""
         logger.info("Loading processed batch data from %s", filename)
+        self.clear_normalization()
         self.azimuthal_std = None
+        self.bkg = None
         self.integration_unit = "2th_deg"
         with h5py.File(filename, "r") as data_file:
             # ToDo To be removed
@@ -263,6 +273,7 @@ class BatchModel:
         If callback_fn returns False the integration will be aborted.
         """
         logger.info("Batch integrating raw data: frames %d to %d, step %d", start, stop, step)
+        self.restore_normalization()
         if self.configuration.use_mask:
             if self.configuration.mask_model.filename != "":
                 self.used_mask = self.configuration.mask_model.filename
@@ -462,6 +473,7 @@ class BatchModel:
         Accepts both pyFAI-style results (``binning_data`` with variable-length
         arrays) and dioptrin-style results (``binning`` with a single array).
         """
+        self.clear_normalization()
         intensity_data = results["intensity_data"]
         pos_map = results["pos_map"]
 
@@ -504,6 +516,7 @@ class BatchModel:
         if not intensity_data:
             return
 
+        self.clear_normalization()
         if unit == "d_A":
             binning = convert_tth_to_d(binning, cal.pattern_geometry.wavelength)
 
@@ -530,14 +543,66 @@ class BatchModel:
             bkg[i] = auto_bkg.extract_background(Pattern(self.binning, y))
         self.bkg = bkg
 
-    def normalize(self, range_ind: tuple[int, int] = (10, 30)) -> None:
+    @property
+    def normalization_enabled(self) -> bool:
+        return self._normalization_source is not None and self.data is self._normalized_data
+
+    def clear_normalization(self) -> None:
+        """Forget the previous normalization when replacing the batch."""
+        self._normalization_source = None
+        self._normalized_data = None
+        self._normalized_background = None
+        self._normalization_factors = None
+
+    def restore_normalization(self) -> None:
+        """Restore original intensities and spread without a lossy inverse scaling."""
+        if self.normalization_enabled:
+            data, spread, background = self._normalization_source
+            self.data = data
+            self.azimuthal_std = spread
+            if self.bkg is self._normalized_background:
+                self.bkg = background
+            elif self.bkg is not None:
+                # A background extracted while normalization was active uses
+                # the normalized intensity scale too.
+                self.bkg = self.bkg / self._normalization_factors[:, None]
+        self.clear_normalization()
+
+    def normalize(self, range_ind: tuple[int, int] | None = None,
+                  reference_index: int | None = None) -> None:
+        """Match mean intensity in a bin interval to the selected reference frame.
+
+        Repeated calls always start from the original data. Invalid intervals
+        and non-positive/non-finite means leave the current batch unchanged.
+        """
         if self.data is None:
             return
-        average_intensities = np.mean(self.data[:, range_ind[0] : range_ind[1]], axis=1)
-        factors = average_intensities[0] / average_intensities
-        self.data = (self.data.T * factors).T
+        range_ind = self.normalization_range if range_ind is None else range_ind
+        reference_index = self.normalization_reference if reference_index is None else reference_index
+        source = self._normalization_source[0] if self.normalization_enabled else self.data
+        start, stop = range_ind
+        if not 0 <= start < stop <= source.shape[1]:
+            raise ValueError("Choose a non-empty normalization range within the batch bins.")
+        if not 0 <= reference_index < source.shape[0]:
+            raise ValueError("Choose a reference frame within the batch.")
+        average_intensities = np.mean(source[:, start:stop], axis=1)
+        if not np.all(np.isfinite(average_intensities) & (average_intensities > 0)):
+            raise ValueError("Normalization requires a positive, finite mean intensity in every frame. Choose another bin range.")
+        factors = average_intensities[reference_index] / average_intensities
+        if not np.all(np.isfinite(factors) & (factors > 0)):
+            raise ValueError("Normalization factors are outside the supported intensity range.")
+        self.restore_normalization()
+        self._normalization_source = (self.data, self.azimuthal_std, self.bkg)
+        self._normalization_factors = factors
+        self.data = self.data * factors[:, None]
+        self._normalized_data = self.data
         if self.azimuthal_std is not None:
-            self.azimuthal_std = (self.azimuthal_std.T * np.abs(factors)).T
+            self.azimuthal_std = self.azimuthal_std * factors[:, None]
+        if self.bkg is not None:
+            self.bkg = self.bkg * factors[:, None]
+        self._normalized_background = self.bkg
+        self.normalization_range = range_ind
+        self.normalization_reference = reference_index
 
     def get_image_info(self, index: int, use_all: bool = False) -> tuple[str | None, int | None]:
         """Get filename and image position in the file."""
