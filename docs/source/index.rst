@@ -15,6 +15,7 @@ Welcome to Dioptas's documentation!
    calibration
    mask
    integration
+   omega_background
    configurations_and_projects
    map
    scripting_api

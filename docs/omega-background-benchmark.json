@@ -1,0 +1,145 @@
+{
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "machine": "arm64",
+  "logical_cpus": 14,
+  "backend": "Native CPU + OpenMP",
+  "parameters": {
+    "smoothness": 10000.0,
+    "tolerance": 0.001,
+    "max_iterations": 30
+  },
+  "seed": 20261024,
+  "workload": "synthetic; all pixels noisy, 10% have a narrow reflection",
+  "array_shape_pixels_frames": [
+    262144,
+    180
+  ],
+  "compute": [
+    {
+      "workers": 1,
+      "runs": [
+        {
+          "seconds": 4.963048417004757,
+          "checksum": 5275663532.601724,
+          "unconverged_pixels": 729,
+          "mean_iterations": 5.965065002441406
+        },
+        {
+          "seconds": 5.152668165974319,
+          "checksum": 5275663532.601724,
+          "unconverged_pixels": 729,
+          "mean_iterations": 5.965065002441406
+        },
+        {
+          "seconds": 5.178023333020974,
+          "checksum": 5275663532.601724,
+          "unconverged_pixels": 729,
+          "mean_iterations": 5.965065002441406
+        }
+      ],
+      "median_seconds": 5.152668165974319
+    },
+    {
+      "workers": 4,
+      "runs": [
+        {
+          "seconds": 1.539565292012412,
+          "checksum": 5275663532.601724,
+          "unconverged_pixels": 729,
+          "mean_iterations": 5.965065002441406
+        },
+        {
+          "seconds": 1.5402099170023575,
+          "checksum": 5275663532.601724,
+          "unconverged_pixels": 729,
+          "mean_iterations": 5.965065002441406
+        },
+        {
+          "seconds": 1.5515071249683388,
+          "checksum": 5275663532.601724,
+          "unconverged_pixels": 729,
+          "mean_iterations": 5.965065002441406
+        }
+      ],
+      "median_seconds": 1.5402099170023575
+    },
+    {
+      "workers": 8,
+      "runs": [
+        {
+          "seconds": 0.8663585419999436,
+          "checksum": 5275663532.601724,
+          "unconverged_pixels": 729,
+          "mean_iterations": 5.965065002441406
+        },
+        {
+          "seconds": 0.8509894579765387,
+          "checksum": 5275663532.601724,
+          "unconverged_pixels": 729,
+          "mean_iterations": 5.965065002441406
+        },
+        {
+          "seconds": 0.9302850420353934,
+          "checksum": 5275663532.601724,
+          "unconverged_pixels": 729,
+          "mean_iterations": 5.965065002441406
+        }
+      ],
+      "median_seconds": 0.8663585419999436
+    }
+  ],
+  "reference_check": {
+    "pixels": 256,
+    "scipy_seconds": 0.03799012501258403,
+    "native_serial_seconds": 0.005515334021765739,
+    "max_absolute_baseline_difference": 1.3787371244688984e-10
+  },
+  "synthetic_pipeline": {
+    "seconds": {
+      "read": 0.6160850829910487,
+      "processing": 1.3001930839964189,
+      "write": 0.32155241700820625,
+      "total": 2.237838249944616
+    },
+    "frames": 180,
+    "image_shape": [
+      512,
+      512
+    ],
+    "backend": "Native CPU + OpenMP",
+    "workers": 8,
+    "export_frames": true,
+    "unconverged_pixels": 727,
+    "mean_iterations": 5.964916229248047,
+    "output_bytes": 194612374
+  },
+  "measured_scan_pipeline": {
+    "frames": 76,
+    "image_shape": [
+      2048,
+      2048
+    ],
+    "backend": "Native CPU + OpenMP",
+    "requested_workers": 8,
+    "parameters": {
+      "smoothness": 10000.0,
+      "tolerance": 0.001,
+      "max_iterations": 30
+    },
+    "seconds": {
+      "read": 3.043286584026646,
+      "processing": 12.95742925000377,
+      "write": 1.7648516669869423,
+      "total": 17.765577000041958
+    },
+    "masked_pixels": 900837,
+    "unconverged_pixels": 249020,
+    "mean_iterations": 9.685787955367399,
+    "exclude_zero_padding": true,
+    "scan": "Fe7C3_P2_C2_D1s",
+    "output_bytes": 1363356581
+  },
+  "cpu": "Apple M4 Pro",
+  "memory_gib": 48,
+  "date": "2026-10-24"
+}

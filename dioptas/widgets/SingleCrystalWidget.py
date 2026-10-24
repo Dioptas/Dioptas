@@ -141,6 +141,8 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         self.load_button = QtWidgets.QPushButton("Open image…")
         self.series_button = QtWidgets.QPushButton("Open rotation series…")
         panel.addWidget(self.series_button)
+        self.omega_background_button = QtWidgets.QPushButton("Omega background…")
+        panel.addWidget(self.omega_background_button)
         panel.addWidget(self.load_button)
         form = QtWidgets.QFormLayout()
         panel.addLayout(form)

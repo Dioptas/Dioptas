@@ -117,3 +117,29 @@ For missing metadata, replace `--sidecar-angles` with
 `--omega-start -38 --omega-step 0.5 --omega-width 0.5` (use the measured values).
 `--exclude-zero-padding` is opt-in. Optional `--saturation N` flags pixels at N
 counts; N must come from detector knowledge rather than an assumed full-well.
+
+## CPU omega-background subtraction
+
+After opening a rotation series, select **Omega background…**. This separate
+operation estimates a baseline along omega at each detector pixel, using an
+independent implementation of arPLS with native CPU/OpenMP acceleration and a
+SciPy fallback. The omega-sequence application is credited to **Konstantin
+Glazyrin's background-sc**; the arPLS method is credited to Baek et al. (2015).
+No code from background-sc is reused and there is no GPU requirement.
+
+The dialog can export every corrected frame as signed float32 TIFF with omega
+bounds, source metadata and masks, plus summed images and convergence maps.
+**Open corrected series** reopens those frames with their angles and exported
+mask. Original detector files remain unchanged. The worker is cancellable;
+partial results are removed and existing result directories are never replaced.
+
+This requires uniformly spaced frame midpoints and one image file per exposure.
+Broad or persistent scattering can enter the baseline; corrected counts alone
+do not supply valid intensity uncertainties. Use this output for inspection and
+position hunting until intensity preservation is validated for the experiment.
+
+See [method, boundaries and export conventions](source/omega_background.rst)
+and [measured CPU timings](omega-background-performance.md). On an M4 Pro with
+eight workers, a 76-frame 2048 × 2048 Fe7C3 scan took 17.8 seconds including
+individual-frame export, with zero-padding excluded. At the default iteration
+cap, 7.6% of processed pixels were flagged as unconverged.

@@ -42,6 +42,13 @@ optimize_cflags = [] if sys.platform == "win32" else ["-O3"]
 
 extensions = [
     Extension(
+        "dioptas.model.util._omega_arpls",
+        sources=["dioptas/model/util/_omega_arpls.c"],
+        include_dirs=[np.get_include()],
+        extra_compile_args=optimize_cflags + omp_cflags,
+        extra_link_args=omp_ldflags,
+    ),
+    Extension(
         "dioptas.model.util.mask_plugins._powder_outlier_c",
         sources=["dioptas/model/util/mask_plugins/_powder_outlier_c.c"],
         include_dirs=[np.get_include()],
@@ -54,8 +61,8 @@ extensions = [
 class OptionalBuildExt(build_ext):
     """Build C extensions, falling back to a pure-Python install on failure.
 
-    The Spot Mask plugin has a NumPy fallback (see
-    dioptas/model/util/mask_plugins/powder_outlier.py), so users on
+    Spot Mask and omega background subtraction have Python/SciPy fallbacks,
+    so users on
     platforms without a working C toolchain can still ``pip install dioptas``
     and use a slower implementation rather than failing outright.
 
@@ -72,7 +79,7 @@ class OptionalBuildExt(build_ext):
                 raise
             print(
                 f"WARNING: C extension build skipped ({exc}); "
-                "the Spot Mask plugin will fall back to a slower NumPy implementation."
+                "Spot Mask and omega background subtraction will use their Python/SciPy fallbacks."
             )
 
     def build_extension(self, ext):

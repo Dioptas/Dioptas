@@ -22,6 +22,7 @@ from ..model.rotation_series import (
     locate_positions,
 )
 from ..widgets.RotationSeriesDialog import RotationSeriesDialog
+from .OmegaBackgroundController import OmegaBackgroundController
 
 
 class _SeriesCancelled(Exception):
@@ -39,6 +40,7 @@ class SingleCrystalController:
         self._generation = 0
         self._jobs = {}
         self._available = backend_available()
+        self.omega_background_controller = OmegaBackgroundController(self)
         self._runner = DedicatedAsyncJobRunner(widget) if run_async else None
         if self._runner is not None:
             self._runner.succeeded.connect(self._succeeded)
@@ -92,6 +94,7 @@ class SingleCrystalController:
 
     def shutdown(self):
         self._closed = True
+        self.omega_background_controller.cancel()
         self._generation += 1
         if self._runner is not None:
             self._runner.shutdown(wait=False)
