@@ -125,7 +125,25 @@ def verify_app(app):
                            "hardened runtime and the expected team ID")
 
 
-def notarize(path):
+def notary_response(arguments, log_path):
+    result = subprocess.run(
+        ["xcrun", "notarytool", *arguments, "--output-format", "json"],
+        capture_output=True, text=True, check=False,
+    )
+    log_path.write_text(result.stdout)
+    log_path.with_suffix(".stderr.txt").write_text(result.stderr)
+    # notarytool emits timeout JSON on stderr, with an empty stdout.
+    for output in (result.stdout, result.stderr):
+        try:
+            response = json.loads(output)
+        except ValueError:
+            continue
+        if isinstance(response, dict):
+            return result.returncode, response
+    raise RuntimeError("notarytool returned no JSON; see notarization logs")
+
+
+def notarize(path, submission_id=None):
     keychain = os.environ["DIOPTAS_SIGNING_KEYCHAIN"]
     auth = ("--keychain-profile", PROFILE, "--keychain", keychain)
     logs = Path("dist/notarization")
@@ -133,32 +151,48 @@ def notarize(path):
     archive = path
     if path.suffix == ".app":
         verify_app(path)
-        archive = signing_dir() / "Dioptas-notarization.zip"
-        run("ditto", "-c", "-k", "--keepParent", str(path), str(archive))
+        if not submission_id:
+            payloads = Path("dist/notarization-payloads")
+            payloads.mkdir(parents=True, exist_ok=True)
+            archive = payloads / "Dioptas-signed-unnotarized.zip"
+            run("ditto", "-c", "-k", "--keepParent", str(path), str(archive))
     elif path.suffix == ".dmg":
-        run("codesign", "--force", "--timestamp", "--sign",
-            os.environ["DIOPTAS_CODESIGN_IDENTITY"], str(path))
+        # A resumed submission must use the original bytes and signature.
+        if not submission_id:
+            run("codesign", "--force", "--timestamp", "--sign",
+                os.environ["DIOPTAS_CODESIGN_IDENTITY"], str(path))
         run("codesign", "--verify", "--strict", str(path))
     else:
         raise RuntimeError("Notarization expects a .app or .dmg")
 
-    result = subprocess.run(
-        ["xcrun", "notarytool", "submit", str(archive), *auth,
-         "--wait", "--timeout", "30m", "--output-format", "json"],
-        capture_output=True, text=True, check=False,
+    if not submission_id:
+        code, submission = notary_response(
+            ("submit", str(archive), *auth), logs / f"{path.name}-submission.json",
+        )
+        submission_id = submission.get("id")
+        if code or not submission_id:
+            raise RuntimeError("Apple upload failed; see notarization logs")
+    print(f"Apple submission ID: {submission_id}", flush=True)
+    # Save the ID before waiting, so a slow Apple response cannot hide it.
+    (logs / f"{path.name}-submission-id.txt").write_text(submission_id + "\n")
+    code, result = notary_response(
+        ("wait", submission_id, *auth, "--timeout", "90m"),
+        logs / f"{path.name}-wait.json",
     )
-    (logs / f"{path.name}-submission.json").write_text(result.stdout)
-    (logs / f"{path.name}-stderr.txt").write_text(result.stderr)
-    try:
-        submission = json.loads(result.stdout)
-    except ValueError:
-        raise RuntimeError("notarytool returned no JSON; see notarization logs") from None
-    print(f"Notarization: {submission.get('id')} — {submission.get('status')}")
-    if result.returncode or submission.get("status") != "Accepted":
-        if submission.get("id"):
-            run("xcrun", "notarytool", "log", submission["id"], *auth,
+    status = result.get("status")
+    print(f"Notarization: {submission_id} — {status or result.get('message')}", flush=True)
+    if code or status != "Accepted":
+        if status in ("Invalid", "Rejected"):
+            run("xcrun", "notarytool", "log", submission_id, *auth,
                 str(logs / f"{path.name}-issues.json"))
-        raise RuntimeError("Apple did not accept this build; see notarization logs")
+            raise RuntimeError("Apple rejected this build; see notarization logs")
+        raise RuntimeError(
+            f"Notarization has not returned Accepted for {submission_id}; "
+            "check Apple status before resubmitting. Signed payloads and logs "
+            "are retained in the macos-notarization-recovery artifact."
+        )
+    run("xcrun", "notarytool", "log", submission_id, *auth,
+        str(logs / f"{path.name}-issues.json"))
     run("xcrun", "stapler", "staple", str(path))
     run("xcrun", "stapler", "validate", str(path))
     if path.suffix == ".app":
@@ -173,7 +207,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("setup", "cleanup", "notarize", "verify"))
     parser.add_argument("path", type=Path, nargs="?")
+    parser.add_argument("--submission-id", help="Resume an existing submission without uploading or re-signing")
     args = parser.parse_args()
+    if args.submission_id and args.command != "notarize":
+        parser.error("--submission-id is only valid with notarize")
     if args.command in ("verify", "notarize"):
         if args.path is None or not args.path.exists():
             parser.error("provide an existing app bundle or disk image")
@@ -185,7 +222,7 @@ def main():
         elif args.command == "verify":
             verify_app(args.path)
         else:
-            notarize(args.path)
+            notarize(args.path, args.submission_id)
     except (RuntimeError, ValueError, OSError) as error:
         print(f"::error::{error}", file=sys.stderr)
         return 1

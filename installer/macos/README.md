@@ -151,10 +151,29 @@ xcrun stapler validate "$HOME/Downloads/Dioptas_MacOS.dmg"
 ```
 
 The `macos-notarization-logs` artifact contains submission IDs, status responses,
-and rejection details when Apple provides them. A submission must return
-`Accepted` before stapling or artifact upload. A 30-minute wait timeout also
-fails the build; Apple may still be processing that submission, so inspect its
-ID before submitting another build. First submissions can take longer.
+and rejection details when Apple provides them. Submission IDs are logged and
+saved immediately after upload, before waiting for Apple's result. A submission
+must return `Accepted` before stapling or uploading the finished downloads.
+The workflow allows up to 90 minutes for each notarization. A wait timeout
+fails the build while Apple may still be processing that submission; inspect
+its ID before submitting another build. First submissions can take longer.
+
+If notarization or subsequent packaging fails, the separate
+`macos-notarization-recovery` artifact preserves the exact signed app ZIP,
+submission records and any existing DMG for seven days. These are recovery
+payloads, not the finished downloads. Keep the original bytes: rebuilding or
+re-signing produces a different submission. Once Apple accepts a preserved
+payload, restore it and resume with the signing helper in an environment with
+the signing keychain configured:
+
+```sh
+python installer/macos/signing.py notarize dist/Dioptas_VERSION.app \
+  --submission-id ORIGINAL_SUBMISSION_UUID
+```
+
+This waits for the existing submission and staples its ticket without uploading
+again. For a preserved DMG the same option also avoids changing its signature.
+Use an original submission ID only with its exact original signed payload.
 
 To inspect Apple's recent submissions without building or uploading anything,
 run the status-only check:

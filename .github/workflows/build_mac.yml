@@ -43,7 +43,7 @@ jobs:
     if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.notarization_status_only) }}
     # The type of runner that the job will run on
     runs-on: macos-latest
-    timeout-minutes: 120
+    timeout-minutes: 240
     env:
       folder_name: 'DioptasMac'
       DIOPTAS_REQUIRE_C_EXT: "1"
@@ -161,6 +161,18 @@ jobs:
         name: macos-notarization-logs
         path: dist/notarization/
         if-no-files-found: ignore
+
+    - name: Preserve signed payloads if notarization or packaging fails
+      if: ${{ failure() && env.DIOPTAS_CODESIGN_IDENTITY != '' }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: macos-notarization-recovery
+        retention-days: 7
+        if-no-files-found: ignore
+        path: |
+          dist/notarization-payloads/
+          dist/notarization/
+          dist/Dioptas_MacOS.dmg
 
     - name: Remove signing keychain and credentials
       if: always()

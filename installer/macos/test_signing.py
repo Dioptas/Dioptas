@@ -111,7 +111,9 @@ class SigningTests(unittest.TestCase):
         signing.signing_dir().mkdir()
         result = subprocess.CompletedProcess([], 0, json.dumps({"id": "test-id", "status": "Accepted"}), "")
         with patch.object(signing, "verify_app") as verify, patch.object(signing, "run") as run, patch.object(
-            signing.subprocess, "run", return_value=result,
+            signing.subprocess, "run", side_effect=[
+                subprocess.CompletedProcess([], 0, '{"id":"test-id"}', ""), result,
+            ],
         ):
             signing.notarize(Path("Dioptas.app"))
         self.assertEqual(verify.call_count, 2)
@@ -127,7 +129,7 @@ class SigningTests(unittest.TestCase):
             events.append(args)
 
         def submit(*args, **kwargs):
-            events.append(("submit",))
+            events.append((args[0][2],))
             return subprocess.CompletedProcess([], 0, '{"id":"test-id","status":"Accepted"}', "")
 
         with patch.object(signing, "run", side_effect=run), patch.object(
@@ -140,19 +142,57 @@ class SigningTests(unittest.TestCase):
         self.assertIn("context:primary-signature", events[-1])
 
     def test_rejection_timeout_and_malformed_response_never_staple(self):
-        cases = [(0, '{"id":"test-id","status":"Invalid"}'),
-                 (1, '{"id":"test-id","status":"In Progress"}'), (1, "")]
-        for code, response in cases:
+        cases = [(0, '{"id":"test-id","status":"Invalid"}', ""),
+                 (1, '{"id":"test-id","status":"In Progress"}', ""),
+                 (1, "", '{"id":"test-id","message":"Timeout of 5400 second(s) was reached"}'),
+                 (1, "", "test stderr")]
+        for code, response, stderr in cases:
             with self.subTest(response=response), patch.object(signing, "run") as run, patch.object(
                 signing.subprocess, "run",
-                return_value=subprocess.CompletedProcess([], code, response, "test stderr"),
+                side_effect=[subprocess.CompletedProcess([], 0, '{"id":"test-id"}', ""),
+                             subprocess.CompletedProcess([], code, response, stderr)],
             ):
                 with self.assertRaises(RuntimeError):
                     signing.notarize(Path("Dioptas.dmg"))
                 calls = [call.args for call in run.call_args_list]
                 self.assertFalse(any(call[:2] == ("xcrun", "stapler") for call in calls))
                 self.assertFalse(any(call[0] == "spctl" for call in calls))
-                self.assertEqual(Path("dist/notarization/Dioptas.dmg-submission.json").read_text(), response)
+                self.assertEqual(Path("dist/notarization/Dioptas.dmg-wait.json").read_text(), response)
+                self.assertEqual(Path("dist/notarization/Dioptas.dmg-submission-id.txt").read_text(), "test-id\n")
+
+    def test_timeout_preserves_signed_payload_outside_temporary_keychain(self):
+        signing.signing_dir().mkdir()
+
+        def run(*args, **kwargs):
+            if args[0] == "ditto":
+                Path(args[-1]).write_bytes(b"original signed app archive")
+
+        def notary(args, **kwargs):
+            if args[2] == "submit":
+                return subprocess.CompletedProcess([], 0, '{"id":"test-id"}', "")
+            self.assertEqual(Path("dist/notarization/Dioptas.app-submission-id.txt").read_text(), "test-id\n")
+            return subprocess.CompletedProcess([], 1, "", '{"id":"test-id","message":"Timeout"}')
+
+        with patch.object(signing, "verify_app"), patch.object(signing, "run", side_effect=run), patch.object(
+            signing.subprocess, "run", side_effect=notary,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "check Apple status before resubmitting"):
+                signing.notarize(Path("Dioptas.app"))
+            signing.cleanup()
+        self.assertEqual(Path("dist/notarization-payloads/Dioptas-signed-unnotarized.zip").read_bytes(),
+                         b"original signed app archive")
+
+    def test_resume_dmg_does_not_resubmit_or_change_its_signature(self):
+        result = subprocess.CompletedProcess([], 0, '{"id":"existing-id","status":"Accepted"}', "")
+        with patch.object(signing, "run") as run, patch.object(
+            signing.subprocess, "run", return_value=result,
+        ) as notary:
+            signing.notarize(Path("Dioptas.dmg"), submission_id="existing-id")
+        self.assertEqual(notary.call_count, 1)
+        self.assertEqual(notary.call_args.args[0][2:4], ["wait", "existing-id"])
+        calls = [call.args for call in run.call_args_list]
+        self.assertFalse(any(call[0] == "codesign" and "--sign" in call for call in calls))
+        self.assertIn(("xcrun", "stapler", "staple", "Dioptas.dmg"), calls)
 
 
 if __name__ == "__main__":
