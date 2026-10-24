@@ -4,8 +4,9 @@ Measured on 24 October 2026 on an Apple M4 Pro, 14 logical CPUs, 48 GiB RAM,
 macOS 26.6.2, Python 3.13.5, NumPy 2.4.1, SciPy 1.16.3. Native C extension built
 with Homebrew LLVM and OpenMP, `-O3`; no fast-math and no GPU. These are local
 wall-clock measurements with other work possible on the machine, not guaranteed
-throughput on other systems. No comparison with background-sc's performance is
-claimed.
+throughput on other systems. These measurements describe Dioptas itself;
+a subsequent [direct comparison with background-sc](omega-background-cpu-comparison.md)
+measures the unchanged upstream CPU arPLS function separately.
 
 All measurements use λ=10000, relative weight tolerance=0.001, at most 30 solves
 per pixel, 4096-pixel tiles, float64 computation and signed float32 TIFF export.

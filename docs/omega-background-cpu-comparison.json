@@ -1,0 +1,99 @@
+{
+  "workload": "8192 deterministic randomly selected measured Fe7C3 pixel traces, all 76 frames, same five-value edge padding on each end",
+  "seed": 20261024,
+  "shape": [
+    8192,
+    86
+  ],
+  "workers": 1,
+  "parameters": {
+    "smoothness": 300.0,
+    "tolerance": 1e-06,
+    "max_solves": 6,
+    "upstream_niter": 5
+  },
+  "upstream_sha256": "8be405e6a1b0fcecb0dd423723c3958368fa718337d1bee9f26a829b59f3a076",
+  "upstream_commit": "43e7aef63123e6ce893f6c67c276870ec18adae6",
+  "runs": [
+    {
+      "upstream_seconds": 5.440616040956229,
+      "dioptas_seconds": 0.09048891597194597,
+      "speedup": 60.12466811562831,
+      "upstream_mean_solves": 6.0,
+      "dioptas_mean_solves": 6.0,
+      "dioptas_capped": 8192,
+      "upstream_nonfinite_values": 0,
+      "dioptas_nonfinite_values": 0,
+      "baseline_max_absolute_difference": 0.21120949828414837,
+      "baseline_rms_difference": 0.0023226106074176324
+    },
+    {
+      "upstream_seconds": 5.4151125000207685,
+      "dioptas_seconds": 0.08570191700709984,
+      "speedup": 63.185430257903825,
+      "upstream_mean_solves": 6.0,
+      "dioptas_mean_solves": 6.0,
+      "dioptas_capped": 8192,
+      "upstream_nonfinite_values": 0,
+      "dioptas_nonfinite_values": 0,
+      "baseline_max_absolute_difference": 0.21120949828414837,
+      "baseline_rms_difference": 0.0023226106074176324
+    },
+    {
+      "upstream_seconds": 5.265470208018087,
+      "dioptas_seconds": 0.08973329199943691,
+      "speedup": 58.67911552883994,
+      "upstream_mean_solves": 6.0,
+      "dioptas_mean_solves": 6.0,
+      "dioptas_capped": 8192,
+      "upstream_nonfinite_values": 0,
+      "dioptas_nonfinite_values": 0,
+      "baseline_max_absolute_difference": 0.21120949828414837,
+      "baseline_rms_difference": 0.0023226106074176324
+    }
+  ],
+  "median_upstream_seconds": 5.4151125000207685,
+  "median_dioptas_seconds": 0.08973329199943691,
+  "ratio_of_medians": 60.34674956597768,
+  "full_scan_dioptas_matched_parameters": {
+    "scan": "Fe7C3_P2_C2_D1s",
+    "shape": [
+      76,
+      2048,
+      2048
+    ],
+    "selected_pixels": 3293467,
+    "excluded_pixels": 900837,
+    "workers": 8,
+    "lambda_": 300.0,
+    "ratio": 1e-06,
+    "max_solves": 6,
+    "upstream_niter": 5,
+    "upstream_edge_padding": 5,
+    "dioptas_padding": 0,
+    "dioptas_sums": {
+      "seconds": {
+        "read": 3.082089042000007,
+        "processing": 5.877968624990899,
+        "write": 0.060141417023260146,
+        "total": 9.02020866703242
+      },
+      "mean_iterations": 5.9994303874913575,
+      "unconverged_pixels": 3281794,
+      "backend": "Native CPU + OpenMP"
+    },
+    "dioptas_frames": {
+      "seconds": {
+        "read": 2.757110000005923,
+        "processing": 5.492656708986033,
+        "write": 1.600037916970905,
+        "total": 9.84981174999848
+      },
+      "mean_iterations": 5.9994303874913575,
+      "unconverged_pixels": 3281794,
+      "backend": "Native CPU + OpenMP"
+    }
+  },
+  "parallel_upstream_timings_valid": false,
+  "parallel_upstream_note": "Workers externally suspended (OS stopped state), then terminated; elapsed times excluded."
+}
