@@ -144,11 +144,14 @@ static PyObject *baselines(PyObject *self, PyObject *args) {
     npy_int32 *counts = (npy_int32 *)PyArray_DATA(iterations);
     npy_bool *converged = (npy_bool *)PyArray_DATA(flags);
     int failure = 0;
+    /* MSVC's OpenMP 2.0 requires the induction variable to be declared
+     * outside the parallel-for statement, as in the Spot Mask extension. */
+    npy_intp row;
     Py_BEGIN_ALLOW_THREADS
 #ifdef _OPENMP
     #pragma omp parallel for num_threads(workers) schedule(static) reduction(|:failure)
 #endif
-    for (npy_intp row = 0; row < rows; ++row) {
+    for (row = 0; row < rows; ++row) {
         int worker = 0, steps = 0;
 #ifdef _OPENMP
         worker = omp_get_thread_num();
