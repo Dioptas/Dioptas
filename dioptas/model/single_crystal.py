@@ -53,6 +53,8 @@ def quality_labels(flags: int) -> str:
         (16, "Insufficient background"),
         (32, "Large component"),
         (64, "No centroid"),
+        (128, "Ambiguous frame links"),
+        (256, "Scan boundary"),
     ]
     return "; ".join(label for bit, label in labels if flags & bit) or "Unflagged"
 

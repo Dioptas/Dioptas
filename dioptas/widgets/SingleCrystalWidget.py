@@ -63,7 +63,32 @@ class SpotTableModel(QtCore.QAbstractTableModel):
         return "—" if not math.isfinite(value) else f"{value:.5g}"
 
 
+class PositionTableModel(SpotTableModel):
+    headers = (
+        "Spot",
+        "x (px)",
+        "y (px)",
+        "ω (°)",
+        "ω RMS (°)",
+        "Observations",
+        "Quality",
+    )
+
+    def data(self, index, role=QtCore.Qt.DisplayRole):
+        if not index.isValid() or self.table is None or role != QtCore.Qt.DisplayRole:
+            return None
+        row, column = index.row(), index.column()
+        if column == 0:
+            return row + 1
+        if column == 6:
+            return quality_labels(int(self.table.flags[row]))
+        value = self.table.values[row, column - 1]
+        return "—" if not math.isfinite(value) else f"{value:.6g}"
+
+
 class SingleCrystalWidget(QtWidgets.QWidget):
+    series_progress = QtCore.Signal(int, int, int)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         layout = QtWidgets.QHBoxLayout(self)
@@ -71,13 +96,32 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         layout.addWidget(splitter)
 
+        viewer = QtWidgets.QWidget()
+        viewer_layout = QtWidgets.QVBoxLayout(viewer)
+        viewer_layout.setContentsMargins(0, 0, 0, 0)
         graphics = pg.GraphicsLayoutWidget()
+        viewer_layout.addWidget(graphics, 1)
         self.img_widget = MaskImgWidget(graphics)
         self.spot_overlay = pg.ScatterPlotItem(
             symbol="o", size=13, pen=pg.mkPen("y", width=2), brush=None
         )
         self.img_widget.img_view_box.addItem(self.spot_overlay)
-        splitter.addWidget(graphics)
+        self.frame_label = QtWidgets.QLabel("No rotation series loaded.")
+        viewer_layout.addWidget(self.frame_label)
+        self.frame_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.frame_slider.setRange(0, 0)
+        self.frame_slider.setEnabled(False)
+        viewer_layout.addWidget(self.frame_slider)
+        self.position_track_label = QtWidgets.QLabel("Select a spot to inspect its trajectory.")
+        self.position_track_label.hide()
+        viewer_layout.addWidget(self.position_track_label)
+        self.position_plot = pg.PlotWidget()
+        self.position_plot.setLabel("bottom", "Omega", units="°")
+        self.position_plot.setLabel("left", "Detector position", units="px")
+        self.position_plot.setMaximumHeight(180)
+        self.position_plot.hide()
+        viewer_layout.addWidget(self.position_plot)
+        splitter.addWidget(viewer)
 
         controls = QtWidgets.QWidget()
         controls.setMinimumWidth(500)
@@ -86,8 +130,8 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         title.setStyleSheet("font-size: 18px; font-weight: bold;")
         panel.addWidget(title)
         description = QtWidgets.QLabel(
-            "Find spots in an unknown sample and measure their detector counts. "
-            "No material or structure is required. Indexing is a later step."
+            "Open a rotation series and find spot positions in x, y and omega. "
+            "These position candidates precede unit-cell finding and intensity integration."
         )
         description.setWordWrap(True)
         panel.addWidget(description)
@@ -95,6 +139,8 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         self.source_label.setWordWrap(True)
         panel.addWidget(self.source_label)
         self.load_button = QtWidgets.QPushButton("Open image…")
+        self.series_button = QtWidgets.QPushButton("Open rotation series…")
+        panel.addWidget(self.series_button)
         panel.addWidget(self.load_button)
         form = QtWidgets.QFormLayout()
         panel.addLayout(form)
@@ -114,6 +160,7 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         self.background_margin = number("Background ring width (px)", 4, 1, 128, 0)
         self.gain = number("Photons/electrons per count", 1, 0.0001, 1e8, 4)
         self.read_noise = number("Read noise (counts)", 0, 0, 1e8)
+        self.link_radius = number("Link distance per frame (px)", 5, 0.1, 100)
         self.saturation_enabled = QtWidgets.QCheckBox("Flag saturated pixels")
         form.addRow(self.saturation_enabled)
         self.saturation = number("Saturation level (counts)", 65535, 1, 1e12, 0)
@@ -132,6 +179,7 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         panel.addWidget(self.status_label)
         self.table_view = QtWidgets.QTableView()
         self.table_model = SpotTableModel(self.table_view)
+        self.position_table_model = PositionTableModel(self.table_view)
         self.table_view.setModel(self.table_model)
         self.table_view.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.table_view.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
@@ -143,14 +191,18 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         self.export_button = QtWidgets.QPushButton("Export spots…")
         self.export_button.setEnabled(False)
         panel.addWidget(self.export_button)
-        note = QtWidgets.QLabel(
+        self.measurement_note = QtWidgets.QLabel(
             "Raw counts with local background subtraction. Error estimates assume independent "
             "pixels and the noise settings above. Flagged spots are retained; overlaps are not separated. "
             "These measurements are not corrected crystallographic intensities."
         )
-        note.setWordWrap(True)
-        panel.addWidget(note)
-        splitter.addWidget(controls)
+        self.measurement_note.setWordWrap(True)
+        panel.addWidget(self.measurement_note)
+        scroll = QtWidgets.QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(controls)
+        scroll.setMinimumWidth(520)
+        splitter.addWidget(scroll)
         splitter.setStretchFactor(0, 3)
         splitter.setStretchFactor(1, 2)
 
@@ -163,5 +215,6 @@ class SingleCrystalWidget(QtWidgets.QWidget):
             self.background_margin,
             self.gain,
             self.read_noise,
+            self.link_radius,
             self.saturation,
         )

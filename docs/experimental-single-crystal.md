@@ -77,3 +77,43 @@ the exact numerical contract and quality flags.
 The dedicated CI workflow builds the experimental backend and tests the
 integration on Linux, macOS and Windows. Adding this matrix is not evidence
 of a completed passing run; check its actual results before promotion.
+
+## Rotation-series position hunt
+
+The primary development workflow is now **Open rotation series → confirm angles
+→ Find 3D positions**. Choose any numbered frame; the importer selects that run's
+matching filename prefix and sorts by numeric suffix. It requires explicit omega
+bounds: confirm the per-frame sidecar interpretation or enter first start, step
+and exposure width separately. Missing frame numbers keep their angular gaps.
+Source sidecars and any user override remain in exported provenance.
+
+The slider browses the whole run with exposure start/end and midpoint readouts.
+The position table lists x, y, omega, detected omega RMS, observation count and
+quality. Selecting a row plots its detected x/y trajectory against omega and
+shows a frame from that candidate. Frame browsing preserves results; changing
+mask, orientation, configuration or detection settings invalidates them. Work
+runs in the existing single-worker queue, reports frame progress and discards
+stale results. Only one detector image is read at a time.
+
+Position export writes a track CSV, an observations CSV with every source frame,
+and a JSON provenance sidecar. It has no integrated-intensity column. Detector
+sums are internal centroid weights only; exposure midpoints limit omega
+resolution. Ambiguous many-to-one links and scan-boundary candidates are flagged.
+This mode does not yet transform positions to reciprocal space, find a unit cell
+or assign symmetry/HKL. Rocking-curve integration follows indexing later.
+
+The existing single-frame measurement action remains available separately.
+No ordinary release switch or dependency was changed.
+
+A separate development launcher opens a run directly without loading or saving
+the regular Dioptas settings:
+
+```sh
+.venv/bin/python -m dioptas.experimental_single_crystal /path/to/sample_001.tif \
+  --sidecar-angles --find-positions
+```
+
+For missing metadata, replace `--sidecar-angles` with
+`--omega-start -38 --omega-step 0.5 --omega-width 0.5` (use the measured values).
+`--exclude-zero-padding` is opt-in. Optional `--saturation N` flags pixels at N
+counts; N must come from detector knowledge rather than an assumed full-well.
