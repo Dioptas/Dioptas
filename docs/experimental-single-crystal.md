@@ -283,3 +283,9 @@ Shared file helpers also disable custom directory-icon lookup. The behavior is
 unchanged by default on Windows/Linux, and no system services or saved settings
 are modified. `DIOPTAS_QT_FILE_DIALOGS=1` explicitly enables the same fallback for
 ordinary mode in this checkout. See [Qt file-dialog options](https://doc.qt.io/qt-6/qfiledialog.html#Option-enum).
+
+
+The plot beneath the image appears after selecting a row in **Positions**. It
+shows that one linked spot's detector x (yellow) and y (cyan) coordinates against
+omega over its observed frames. It helps inspect linking and spot motion; it is
+not an intensity or rocking-curve plot. It remains hidden before selection.

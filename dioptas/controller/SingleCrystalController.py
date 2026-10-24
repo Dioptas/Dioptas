@@ -147,6 +147,11 @@ class SingleCrystalController:
         self.widget.table_model.set_result(None)
         self.widget.position_table_model.set_result(None)
         self.widget.position_plot.clear()
+        self.widget.position_plot.hide()
+        self.widget.position_track_label.setText(
+            "Select a spot row in the Positions tab to inspect its motion across frames."
+        )
+        self.widget.position_track_label.setVisible(self.series is not None)
         self.widget.spot_overlay.clear()
         self.widget.export_button.setEnabled(False)
         self._set_ready()
@@ -315,7 +320,7 @@ class SingleCrystalController:
         slider.setEnabled(True)
         slider.blockSignals(False)
         self.widget.update_frame_buttons()
-        self.widget.position_plot.show()
+        self.widget.position_plot.hide()
         self.widget.position_track_label.show()
         self.widget.detect_button.setText("Find 3D positions")
         self.widget.export_button.setText("Export positions…")
@@ -350,6 +355,7 @@ class SingleCrystalController:
             self.widget.status_label.setText(f"Could not open series: {exc}")
 
     def show_position_track(self, *_):
+        self.widget.position_plot.hide()
         if not isinstance(self.result, SeriesPositions):
             return
         selected = self.widget.table_view.selectionModel().selectedRows()
@@ -361,11 +367,13 @@ class SingleCrystalController:
         plot = self.widget.position_plot
         plot.clear()
         self.widget.position_track_label.setText(
-            f"Spot {track + 1}: detected x (yellow) and y (cyan) versus omega"
+            f"Spot {track + 1}: detector coordinates across frames · position, not intensity"
         )
-        plot.plot(rows[:, 4], rows[:, 2], pen="y", symbol="o")
-        plot.plot(rows[:, 4], rows[:, 3], pen="c", symbol="o")
+        plot.plot(rows[:, 4], rows[:, 2], pen="y", symbol="o", name="x position")
+        plot.plot(rows[:, 4], rows[:, 3], pen="c", symbol="o", name="y position")
         if len(rows):
+            plot.show()
+            plot.getViewBox().autoRange()
             self.widget.frame_slider.setValue(int(rows[len(rows) // 2, 1]))
 
     def _task(self):
