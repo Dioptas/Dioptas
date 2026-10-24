@@ -3,9 +3,10 @@
 
 from functools import partial
 from pathlib import Path
+from threading import Lock
 
 import numpy as np
-from qtpy import QtWidgets
+from qtpy import QtCore, QtWidgets
 
 from .async_job import DedicatedAsyncJobRunner
 from ..model.single_crystal import (
@@ -62,6 +63,13 @@ class SingleCrystalController:
         self._closed = False
         self._generation = 0
         self._jobs = {}
+        self._preview_lock = Lock()
+        self._pending_preview = None
+        self._preview_frame = None
+        self._preview_generation = None
+        self._preview_timer = QtCore.QTimer(widget)
+        self._preview_timer.setInterval(100)
+        self._preview_timer.timeout.connect(self._show_pending_preview)
         self._available = backend_available()
         self.omega_background_controller = OmegaBackgroundController(self)
         self._runner = DedicatedAsyncJobRunner(widget) if run_async else None
@@ -83,6 +91,7 @@ class SingleCrystalController:
         widget.load_button.clicked.connect(self.open_image)
         widget.series_button.clicked.connect(self.open_series)
         widget.series_progress.connect(self._series_progress)
+        widget.follow_search.toggled.connect(self._follow_search_changed)
         widget.frame_slider.valueChanged.connect(self.browse_frame)
         widget.table_view.selectionModel().selectionChanged.connect(
             self.select_position
@@ -110,15 +119,91 @@ class SingleCrystalController:
         if self.series is not None:
             self.series = None
             self.widget.frame_slider.setEnabled(False)
+            self.widget.follow_search.setEnabled(False)
             self.widget.update_frame_buttons()
             self.widget.detect_button.setText("Find spots and extract counts")
         self.invalidate()
 
     def _series_progress(self, generation, done, total):
-        if not self._closed and generation == self._generation:
+        if (
+            not self._closed
+            and generation == self._generation
+            and generation == self._preview_generation
+        ):
             self.widget.status_label.setText(
                 f"Finding positions: frame {done}/{total}…"
+                if done < total
+                else f"All {total} frames searched; linking spots across omega…"
             )
+
+    def _queue_preview(self, generation, preview):
+        # Worker-only presentation handoff: replace one snapshot, never queue
+        # full detector images in Qt events. No widget access on this thread.
+        with self._preview_lock:
+            if self._closed or generation != self._generation:
+                raise _SeriesCancelled
+            self._pending_preview = (generation, preview)
+
+    def _show_pending_preview(self):
+        if (
+            self._closed
+            or not self._active
+            or not self.widget.follow_search.isChecked()
+        ):
+            return
+        with self._preview_lock:
+            pending, self._pending_preview = self._pending_preview, None
+        if pending is None:
+            return
+        generation, preview = pending
+        if generation != self._generation or self.series is None:
+            return
+        self._preview_frame = preview
+        w = self.widget
+        w.frame_slider.blockSignals(True)
+        w.frame_slider.setValue(preview.index)
+        w.frame_slider.blockSignals(False)
+        w.update_frame_buttons()
+        # Display the already-read worker frame without loading it again or
+        # changing the shared image model / triggering integrations per frame.
+        w.img_widget.plot_image(preview.image, auto_level=False)
+        mask = self.model.mask_model.get_mask()
+        if self.model.use_mask and mask.shape == preview.image.shape:
+            w.img_widget.plot_mask(mask)
+            w.img_widget.activate_mask()
+        else:
+            w.img_widget.deactivate_mask()
+        table = preview.table
+        w.show_spots(table.column("x") + 0.5, table.column("y") + 0.5, table.flags)
+        a, b = self.series.omega_bounds[preview.index]
+        name = Path(self.series.files[preview.index]).name
+        w.source_label.setText(f"Completed: {name} · spots found: {len(table)}")
+        w.frame_label.setText(
+            f"Search preview · completed frame {preview.index + 1}/{len(self.series.files)} · "
+            f"file #{self.series.frame_numbers[preview.index]} · ω {a:g} → {b:g}°"
+        )
+
+    def _stop_preview(self):
+        self._preview_timer.stop()
+        with self._preview_lock:
+            self._pending_preview = None
+        self._preview_frame = None
+        self._preview_generation = None
+
+    def _finish_preview(self):
+        self._show_pending_preview()
+        last = self._preview_frame
+        self._stop_preview()
+        if last is not None and self.series is not None:
+            # Synchronize the actual model once, after processing. Final masks,
+            # prediction filters and other modes then reference the shown file.
+            self.browse_frame(last.index)
+
+    def _follow_search_changed(self, checked):
+        if checked:
+            self._show_pending_preview()
+        elif self._preview_frame is not None:
+            self.browse_frame(self._preview_frame.index)
 
     def activate(self):
         self._active = True
@@ -126,9 +211,11 @@ class SingleCrystalController:
 
     def deactivate(self):
         self._active = False
+        self._preview_frame = None
 
     def shutdown(self):
         self._closed = True
+        self._stop_preview()
         self.omega_background_controller.cancel()
         self._generation += 1
         if self._runner is not None:
@@ -138,6 +225,7 @@ class SingleCrystalController:
         if self._closed or self._browsing_series:
             return
         self._generation += 1
+        self._stop_preview()
         self.result = None
         self.cell_result = None
         self._clear_refinement()
@@ -207,7 +295,16 @@ class SingleCrystalController:
             f"{image.shape[1]} × {image.shape[0]} pixels · raw counts"
         )
         if self.series is not None:
-            i = self.widget.frame_slider.value()
+            filename = self.model.img_model.filename
+            i = (
+                self.series.files.index(filename)
+                if filename in self.series.files
+                else self.widget.frame_slider.value()
+            )
+            self.widget.frame_slider.blockSignals(True)
+            self.widget.frame_slider.setValue(i)
+            self.widget.frame_slider.blockSignals(False)
+            self.widget.update_frame_buttons()
             a, b = self.series.omega_bounds[i]
             self.widget.frame_label.setText(
                 f"Frame {i + 1}/{len(self.series.files)} · file #{self.series.frame_numbers[i]} · "
@@ -281,14 +378,16 @@ class SingleCrystalController:
             return
         t = self.result.table
         rows = t.observations[t.observations[:, 1] == i]
-        brushes = ["r" if t.flags[int(track)] else "y" for track in rows[:, 0]]
-        self.widget.spot_overlay.setData(
-            x=rows[:, 2] + 0.5, y=rows[:, 3] + 0.5, pen=None, brush=brushes, size=8
+        self.widget.show_spots(
+            rows[:, 2] + 0.5, rows[:, 3] + 0.5, t.flags[rows[:, 0].astype(int)]
         )
 
     def browse_frame(self, index):
         if self.series is None:
             return
+        self._preview_frame = None
+        if self._preview_timer.isActive():
+            self.widget.follow_search.setChecked(False)
         self._browsing_series = True
         try:
             self.model.img_model.load(self.series.files[index])
@@ -309,6 +408,7 @@ class SingleCrystalController:
         finally:
             self._browsing_series = False
         self.series = series
+        self.widget.follow_search.setEnabled(True)
         slider = self.widget.frame_slider
         slider.blockSignals(True)
         slider.setRange(0, len(series.files) - 1)
@@ -434,6 +534,11 @@ class SingleCrystalController:
                     task.transformations,
                 )
                 task.mask.flags.writeable = False
+                self._preview_generation = generation
+                self._preview_timer.start()
+
+                def preview(frame):
+                    self._queue_preview(generation, frame)
 
                 def progress(done, total):
                     if self._closed or generation != self._generation:
@@ -442,7 +547,9 @@ class SingleCrystalController:
 
                 def operation(task):
                     try:
-                        return locate_positions(task, progress=progress)
+                        return locate_positions(
+                            task, progress=progress, preview=preview
+                        )
                     except _SeriesCancelled:
                         return None  # Generation/closed checks discard this result.
         except Exception as exc:
@@ -450,8 +557,12 @@ class SingleCrystalController:
             return
         if self._runner is None:
             try:
-                self._show_result(operation(task), generation)
+                result = operation(task)
+                self._finish_preview()
+                self._show_result(result, generation)
             except Exception as exc:
+                self._stop_preview()
+                self.plot_image()
                 self.widget.status_label.setText(str(exc))
         else:
             job = self._runner.submit(partial(operation, task))
@@ -462,6 +573,8 @@ class SingleCrystalController:
         generation = self._jobs.pop(job, -1)
         if self._closed:
             return
+        if generation == self._generation:
+            self._finish_preview()
         self._set_ready()
         if generation == self._generation:
             self._show_result(result, generation)
@@ -471,6 +584,9 @@ class SingleCrystalController:
         if not self._closed:
             self._set_ready()
             if generation == self._generation:
+                self._stop_preview()
+                self.plot_image()
+                self.widget.spot_overlay.clear()
                 self.widget.status_label.setText(
                     f"Experimental processing failed: {exc}"
                 )
@@ -535,13 +651,8 @@ class SingleCrystalController:
         self.widget.table_view.setModel(self.widget.table_model)
         self.widget.export_button.setText("Export spots…")
         self.widget.table_model.set_result(table)
-        brushes = ["r" if flag else "y" for flag in table.flags]
-        self.widget.spot_overlay.setData(
-            x=table.column("x") + 0.5,
-            y=table.column("y") + 0.5,
-            pen=None,
-            brush=brushes,
-            size=8,
+        self.widget.show_spots(
+            table.column("x") + 0.5, table.column("y") + 0.5, table.flags
         )
         self.widget.export_button.setEnabled(True)
         self.widget.status_label.setText(

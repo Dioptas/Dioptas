@@ -282,3 +282,24 @@ Shared file helpers also disable custom directory-icon lookup. The behavior is
 unchanged by default on Windows/Linux, and no system services or saved settings
 are modified. `DIOPTAS_QT_FILE_DIALOGS=1` explicitly enables the same fallback for
 ordinary mode in this checkout. See [Qt file-dialog options](https://doc.qt.io/qt-6/qfiledialog.html#Option-enum).
+
+
+### Live peak-search preview
+
+During series detection, **Follow search** displays the latest completed frame
+with its spot candidates, filename, frame count and omega range. Marker centres
+remain yellow (unflagged) or red (flagged), with a two-pixel black outline and a
+fixed screen size so they remain visible over bright image features.
+
+The worker supplies immutable images/detections after each frame. A GUI timer
+updates at most ten times per second and retains only the newest pending frame;
+fast searches may skip intermediate previews. Image data are not queued per frame,
+re-read for preview, or loaded into the shared model while the search runs.
+Preview uses the current contrast and image view. Uncheck Follow search or browse
+manually to inspect a frame without stopping processing; recheck it to catch up.
+
+These frame detections precede cross-frame linking. The status explains when all
+frames are complete and linking begins. Final tracks replace the provisional
+markers when the job finishes, and the shared model is synchronized to the shown
+frame once. Source/settings changes and closing the window discard stale previews.
+The observer does not change detection, track values, flags or source hashes.

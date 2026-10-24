@@ -133,10 +133,10 @@ def test_background_series_browsing_and_stale_work(qapp, qtbot, tmp_path, monkey
     original = module.locate_positions
     started, release = threading.Event(), threading.Event()
 
-    def delayed(task, progress=None):
+    def delayed(task, progress=None, preview=None):
         started.set()
         assert release.wait(10)
-        return original(task, progress=progress)
+        return original(task, progress=progress, preview=preview)
 
     monkeypatch.setattr(module, "locate_positions", delayed)
     c = MainController(
@@ -244,4 +244,122 @@ def test_select_one_frame_discovers_only_its_run(qapp, tmp_path, monkeypatch):
         assert not w.previous_frame_button.isEnabled()
         assert not w.next_frame_button.isEnabled()
     finally:
+        c.widget.close()
+
+
+def test_preview_snapshots_preserve_position_results(tmp_path):
+    task = SeriesTask(import_series(make_run(tmp_path)), np.zeros((48, 60), bool), {})
+    frames = []
+    result = locate_positions(task, preview=frames.append)
+    original = locate_positions(task)
+    assert [f.index for f in frames] == list(range(5))
+    assert [len(f.table) for f in frames] == [0, 1, 1, 1, 0]
+    for frame in frames:
+        assert not frame.image.flags.writeable
+        assert not frame.table.values.flags.writeable
+        np.testing.assert_array_equal(
+            frame.image, read_frame(task.series.files[frame.index])
+        )
+    np.testing.assert_array_equal(
+        result.table.observations, original.table.observations
+    )
+    np.testing.assert_array_equal(result.table.values, original.table.values)
+    assert result.table.frame_hashes == original.table.frame_hashes
+
+
+@pytest.mark.parametrize("invalidate", [False, True])
+def test_completed_frames_preview_async_pause_and_stale_discard(
+    qapp, qtbot, tmp_path, monkeypatch, invalidate
+):
+    import importlib
+    import threading
+    from qtpy import QtCore
+
+    module = importlib.import_module("dioptas.controller.SingleCrystalController")
+    original = module.locate_positions
+    first, second = threading.Event(), threading.Event()
+    release_first, release_second = threading.Event(), threading.Event()
+
+    def delayed(task, progress=None, preview=None):
+        def frame_ready(frame):
+            assert QtCore.QThread.currentThread() is not qapp.thread()
+            preview(frame)
+            if frame.index == 1:
+                first.set()
+                assert release_first.wait(10)
+            if frame.index == 3:
+                second.set()
+                assert release_second.wait(10)
+
+        return original(task, progress=progress, preview=frame_ready)
+
+    monkeypatch.setattr(module, "locate_positions", delayed)
+    c = MainController(
+        use_settings=False, run_async_processing=True, experimental_single_crystal=True
+    )
+    try:
+        c.widget.single_crystal_mode_btn.click()
+        sc, w = c.single_crystal_controller, c.widget.single_crystal_widget
+        sc.load_series(import_series(make_run(tmp_path)))
+        model_file = c.model.img_model.filename
+        render_threads = []
+        plot = w.img_widget.plot_image
+
+        def render(*args, **kwargs):
+            render_threads.append(QtCore.QThread.currentThread())
+            return plot(*args, **kwargs)
+
+        monkeypatch.setattr(w.img_widget, "plot_image", render)
+        w.detect_button.click()
+        qtbot.waitUntil(
+            lambda: first.is_set() and "completed frame 2/5" in w.frame_label.text(),
+            timeout=5000,
+        )
+        assert sc._runner.is_busy and sc.result is None
+        assert w.frame_slider.value() == 1
+        assert "sample_011.tif" in w.source_label.text()
+        assert "spots found: 1" in w.source_label.text()
+        assert (
+            c.model.img_model.filename == model_file
+        )  # preview does not trigger model loading/integration
+        np.testing.assert_array_equal(
+            w.img_widget.img_data, read_frame(sc.series.files[1])
+        )
+        np.testing.assert_allclose(w.spot_overlay.getData()[0], [26.5], atol=1e-12)
+        assert all(thread is qapp.thread() for thread in render_threads)
+        assert w.spot_overlay.opts["pen"].color().name() == "#000000"
+        assert w.spot_overlay.opts["pen"].widthF() >= 2
+        if invalidate:
+            w.threshold.setValue(6)
+            assert not sc._preview_timer.isActive()
+            assert sc._pending_preview is None
+            release_first.set()
+            release_second.set()
+            qtbot.waitUntil(lambda: not sc._runner.is_busy, timeout=5000)
+            assert sc.result is None
+            assert "Search preview" not in w.frame_label.text()
+            assert w.frame_slider.value() == 0
+            assert len(w.spot_overlay.getData()[0]) == 0
+        else:
+            w.follow_search.setChecked(False)
+            assert c.model.img_model.filename == sc.series.files[1]
+            release_first.set()
+            qtbot.waitUntil(second.is_set, timeout=5000)
+            assert w.frame_slider.value() == 1
+            assert sc._pending_preview[1].index == 3
+            w.follow_search.setChecked(True)
+            assert "completed frame 4/5" in w.frame_label.text()
+            assert w.frame_slider.value() == 3
+            w.previous_frame_button.click()
+            assert not w.follow_search.isChecked()
+            assert w.frame_slider.value() == 2
+            release_second.set()
+            qtbot.waitUntil(lambda: sc.result is not None, timeout=5000)
+            assert w.frame_slider.value() == 2
+            assert c.model.img_model.filename == sc.series.files[2]
+            assert not sc._preview_timer.isActive()
+            assert sc._pending_preview is None
+    finally:
+        release_first.set()
+        release_second.set()
         c.widget.close()

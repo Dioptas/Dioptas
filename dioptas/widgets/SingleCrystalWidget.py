@@ -103,7 +103,7 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         viewer_layout.addWidget(graphics, 1)
         self.img_widget = MaskImgWidget(graphics)
         self.spot_overlay = pg.ScatterPlotItem(
-            symbol="o", size=13, pen=pg.mkPen("y", width=2), brush=None
+            symbol="o", size=10, pen=pg.mkPen("k", width=2), brush="y", pxMode=True
         )
         self.img_widget.img_view_box.addItem(self.spot_overlay)
         self.predicted_overlay = pg.ScatterPlotItem(
@@ -111,7 +111,17 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         )
         self.img_widget.img_view_box.addItem(self.predicted_overlay)
         self.frame_label = QtWidgets.QLabel("No rotation series loaded.")
-        viewer_layout.addWidget(self.frame_label)
+        frame_header = QtWidgets.QHBoxLayout()
+        frame_header.addWidget(self.frame_label, 1)
+        self.follow_search = QtWidgets.QCheckBox("Follow search")
+        self.follow_search.setChecked(True)
+        self.follow_search.setEnabled(False)
+        self.follow_search.setToolTip(
+            "Display the latest completed frame and its detections while searching. "
+            "Uncheck or browse a frame to pause the live preview."
+        )
+        frame_header.addWidget(self.follow_search)
+        viewer_layout.addLayout(frame_header)
         self.frame_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.frame_slider.setRange(0, 0)
         self.frame_slider.setEnabled(False)
@@ -284,6 +294,15 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         splitter.addWidget(controls)
         splitter.setStretchFactor(0, 3)
         splitter.setStretchFactor(1, 2)
+
+    def show_spots(self, x, y, flags):
+        self.spot_overlay.setData(
+            x=x,
+            y=y,
+            brush=["r" if flag else "y" for flag in flags],
+            pen=pg.mkPen("k", width=2),
+            size=10,
+        )
 
     def update_frame_buttons(self, *_):
         enabled = self.frame_slider.isEnabled()

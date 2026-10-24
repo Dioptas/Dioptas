@@ -55,6 +55,15 @@ class SeriesPositions:
     metadata: dict
 
 
+@dataclass(frozen=True)
+class SeriesFramePreview:
+    """One owned read-only source image and immutable, unlinked frame detections."""
+
+    index: int
+    image: np.ndarray
+    table: object
+
+
 def series_files(seed: str | Path) -> tuple[tuple[str, ...], tuple[int, ...]]:
     """Same filename prefix/extension, sorted by numeric suffix; never mix runs."""
     seed = Path(seed)
@@ -159,7 +168,7 @@ def read_frame(filename: str, transformations=()) -> np.ndarray:
     return np.ascontiguousarray(data)
 
 
-def locate_positions(task: SeriesTask, progress=None) -> SeriesPositions:
+def locate_positions(task: SeriesTask, progress=None, preview=None) -> SeriesPositions:
     """Read one frame at a time; source and masks are fingerprinted by PhaseSmith."""
     from phasesmith import _core
     from phasesmith.experimental import rotation
@@ -167,8 +176,10 @@ def locate_positions(task: SeriesTask, progress=None) -> SeriesPositions:
 
     shape = task.mask.shape
     cached = {}
+    current_image = None
 
     def load(i):
+        nonlocal current_image
         data = read_frame(task.series.files[i], task.transformations)
         if data.shape != shape:
             raise ValueError(
@@ -179,10 +190,16 @@ def locate_positions(task: SeriesTask, progress=None) -> SeriesPositions:
         if task.exclude_zero_padding:
             mask |= data == 0
         cached[i] = mask
+        data.flags.writeable = False
+        current_image = data
         return data
 
     def mask(i):
         return cached.pop(i)
+
+    def completed(index, table):
+        if preview is not None:
+            preview(SeriesFramePreview(index, current_image, table))
 
     options = SpotOptions(**task.spot_options)
     rotation_options = rotation.RotationOptions(link_radius=task.link_radius)
@@ -196,6 +213,7 @@ def locate_positions(task: SeriesTask, progress=None) -> SeriesPositions:
         read_noise=task.read_noise,
         saturation=task.saturation,
         progress=progress,
+        frame_finished=completed if preview is not None else None,
     )
     metadata = dict(
         schema="dioptas.experimental.rotation-positions.v1",
