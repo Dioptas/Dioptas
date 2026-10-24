@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: MIT
 
+import os
+
 from qtpy import QtWidgets, QtCore
 
 from .ConfigurationWidget import ConfigurationWidget
@@ -20,8 +22,14 @@ from .CustomWidgets import (
 
 
 class MainWidget(QtWidgets.QWidget):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, experimental_single_crystal=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.experimental_single_crystal = (
+            os.environ.get("DIOPTAS_EXPERIMENTAL_SINGLE_CRYSTAL") == "1"
+            if experimental_single_crystal is None else bool(experimental_single_crystal)
+        )
+        self.single_crystal_mode_btn = None
+        self.single_crystal_widget = None
 
         self._create_layouts()
 
@@ -105,6 +113,12 @@ class MainWidget(QtWidgets.QWidget):
         self._mode_layout.addWidget(self.integration_mode_btn)
         self._mode_layout.addWidget(HorizontalLine())
         self._mode_layout.addWidget(self.map_mode_btn)
+        if self.experimental_single_crystal:
+            self.single_crystal_mode_btn = CheckableFlatButton("SINGLE\nCRYSTAL", self)
+            self.single_crystal_mode_btn.setToolTip("Single crystal (experimental)")
+            self.mode_btn_group.addButton(self.single_crystal_mode_btn)
+            self._mode_layout.addWidget(HorizontalLine())
+            self._mode_layout.addWidget(self.single_crystal_mode_btn)
         self._mode_layout.addSpacerItem(VerticalSpacerItem())
 
     def _create_menu(self):
@@ -200,6 +214,11 @@ class MainWidget(QtWidgets.QWidget):
         self._layout_main_frame.addWidget(self.mask_widget)
         self._layout_main_frame.addWidget(self.integration_widget)
         self._layout_main_frame.addWidget(self.map_widget)
+        if self.experimental_single_crystal:
+            from .SingleCrystalWidget import SingleCrystalWidget
+            self.single_crystal_widget = SingleCrystalWidget(self)
+            self._layout_main_frame.addWidget(self.single_crystal_widget)
+            self.single_crystal_widget.hide()
 
         self.mask_widget.setVisible(False)
         self.integration_widget.setVisible(False)
@@ -252,6 +271,8 @@ class MainWidget(QtWidgets.QWidget):
             # btn.setCheckable(True)
             btn.setFixedWidth(mode_btn_width)
             btn.setFixedHeight(mode_btn_height)
+        if self.single_crystal_mode_btn is not None:
+            self.single_crystal_mode_btn.setFixedSize(mode_btn_width, mode_btn_height)
 
     def add_menu_popup(self):
         self.menu_btn.clicked.connect(self.show_menu_popup)

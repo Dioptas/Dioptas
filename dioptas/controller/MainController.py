@@ -43,6 +43,7 @@ class MainController:
         config_file=None,
         *,
         run_async_processing=True,
+        experimental_single_crystal=None,
     ):
         """
         :param use_settings: whether to use previously auto saved state of dioptas
@@ -50,7 +51,7 @@ class MainController:
         :param config_file: a json file path with configuration, currently only used for quick_actions
         """
         self.use_settings = use_settings
-        self.widget = MainWidget()
+        self.widget = MainWidget(experimental_single_crystal=experimental_single_crystal)
         self.event_loop_monitor = None
         warning_threshold = os.environ.get("DIOPTAS_EVENT_LOOP_WARN_MS")
         if warning_threshold is not None:
@@ -107,6 +108,11 @@ class MainController:
         )
         self._map_panel_host = self.widget.map_widget.map_panel_host
         self._closing = False
+        self.single_crystal_controller = None
+        if self.widget.single_crystal_widget is not None:
+            from .SingleCrystalController import SingleCrystalController
+            self.single_crystal_controller = SingleCrystalController(
+                self.widget.single_crystal_widget, self.model, run_async=run_async_processing)
 
         self.calibration_controller.activate()
         self.integration_controller.image_controller.deactivate()
@@ -224,6 +230,9 @@ class MainController:
             self.widget.integration_widget.setVisible
         )
         self.widget.map_mode_btn.toggled.connect(self.widget.map_widget.setVisible)
+        if self.widget.single_crystal_mode_btn is not None:
+            self.widget.single_crystal_mode_btn.toggled.connect(
+                self.widget.single_crystal_widget.setVisible)
 
         self.widget.mode_btn_group.buttonToggled.connect(self.tab_changed)
 
@@ -316,6 +325,9 @@ class MainController:
             ind = 2
         elif self.widget.map_mode_btn.isChecked():
             ind = 3
+        elif (self.widget.single_crystal_mode_btn is not None
+              and self.widget.single_crystal_mode_btn.isChecked()):
+            ind = 4
         else:
             return
 
@@ -324,7 +336,7 @@ class MainController:
 
         old_index = self.current_tab_index
         self.current_tab_index = ind
-        logger.info("Switched to %s mode", ["calibration", "mask", "integration", "map"][ind])
+        logger.info("Switched to %s mode", ["calibration", "mask", "integration", "map", "single crystal"][ind])
 
         # changing from mask tab will reintegrate the image
         if old_index == 1:  # mask tab
@@ -388,6 +400,8 @@ class MainController:
             self.integration_controller.image_controller,
             self.map_controller
         ]
+        if self.single_crystal_controller is not None:
+            controllers.append(self.single_crystal_controller)
         for i, controller in enumerate(controllers):
             if i == mode_ind:
                 controller.activate()
@@ -401,6 +415,8 @@ class MainController:
             self.widget.integration_widget.img_widget,
             self.widget.map_widget.img_plot_widget
         ]
+        if self.widget.single_crystal_widget is not None:
+            img_widgets.append(self.widget.single_crystal_widget.img_widget)
         old_display_state = img_widgets[old_index].get_display_state()
         img_widgets[new_index].set_display_state(*old_display_state)
 
@@ -528,6 +544,8 @@ class MainController:
         if self.integration_coordinator is not None:
             self.integration_coordinator.shutdown()
         self.calibration_controller.shutdown()
+        if self.single_crystal_controller is not None:
+            self.single_crystal_controller.shutdown()
         if self.use_settings:
             self.save_default_settings()
             self.save_directories()
