@@ -80,7 +80,7 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         splitter.addWidget(graphics)
 
         controls = QtWidgets.QWidget()
-        controls.setMinimumWidth(360)
+        controls.setMinimumWidth(500)
         panel = QtWidgets.QVBoxLayout(controls)
         title = QtWidgets.QLabel("Single crystal · experimental")
         title.setStyleSheet("font-size: 18px; font-weight: bold;")
@@ -136,6 +136,9 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         self.table_view.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.table_view.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
         self.table_view.horizontalHeader().setStretchLastSection(True)
+        self.table_view.horizontalHeader().setSectionResizeMode(
+            QtWidgets.QHeaderView.ResizeToContents
+        )
         panel.addWidget(self.table_view, 1)
         self.export_button = QtWidgets.QPushButton("Export spots…")
         self.export_button.setEnabled(False)
