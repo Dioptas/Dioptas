@@ -305,7 +305,9 @@ class SingleCrystalController:
 
     def load_series(self, series, selected_file=None):
         index = (
-            series.files.index(str(selected_file)) if selected_file is not None else 0
+            series.files.index(str(Path(selected_file)))
+            if selected_file is not None
+            else 0
         )
         self._browsing_series = True
         try:

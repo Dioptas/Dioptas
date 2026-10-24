@@ -227,6 +227,9 @@ def test_select_one_frame_discovers_only_its_run(qapp, tmp_path, monkeypatch):
         assert len(sc.series.files) == 5
         assert w.frame_slider.value() == 2
         assert c.model.img_model.filename == str(seed)
+        # Command-line and dialog paths may include a redundant ./ component.
+        sc.load_series(sc.series, str(seed.parent) + "/./" + seed.name)
+        assert w.frame_slider.value() == 2
         w.previous_frame_button.click()
         assert w.frame_slider.value() == 1
         w.next_frame_button.click()
