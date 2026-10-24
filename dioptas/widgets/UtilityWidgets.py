@@ -4,6 +4,7 @@ from qtpy import QtCore, QtWidgets, QtGui
 import os
 from .CustomWidgets import FlatButton
 from .. import style_path
+from ..file_dialogs import file_dialog_kwargs
 
 
 class CifConversionParametersDialog(QtWidgets.QDialog):
@@ -178,7 +179,11 @@ class ErrorMessageBox(QtWidgets.QDialog):
 
 def open_file_dialog(parent_widget, caption, directory, filter=None):
     filename = QtWidgets.QFileDialog.getOpenFileName(
-        parent_widget, caption=caption, directory=directory, filter=filter
+        parent_widget,
+        caption=caption,
+        directory=directory,
+        filter=filter,
+        **file_dialog_kwargs(),
     )
     if isinstance(filename, tuple):  # PyQt5 returns a tuple...
         return str(filename[0])
@@ -187,7 +192,11 @@ def open_file_dialog(parent_widget, caption, directory, filter=None):
 
 def open_files_dialog(parent_widget, caption, directory, filter=None):
     filenames = QtWidgets.QFileDialog.getOpenFileNames(
-        parent_widget, caption=caption, directory=directory, filter=filter
+        parent_widget,
+        caption=caption,
+        directory=directory,
+        filter=filter,
+        **file_dialog_kwargs(),
     )
     if isinstance(filenames, tuple):  # PyQt5 returns a tuple...
         filenames = filenames[0]
@@ -196,7 +205,11 @@ def open_files_dialog(parent_widget, caption, directory, filter=None):
 
 def save_file_dialog(parent_widget, caption, directory, filter=None):
     filename = QtWidgets.QFileDialog.getSaveFileName(
-        parent_widget, caption, directory=directory, filter=filter
+        parent_widget,
+        caption,
+        directory=directory,
+        filter=filter,
+        **file_dialog_kwargs(),
     )
     if isinstance(filename, tuple):  # PyQt5 returns a tuple...
         return set_extension(str(filename[0]), str(filename[1]))
@@ -250,7 +263,8 @@ def get_progress_dialog(
     progress_dialog.setWindowFlags(QtCore.Qt.Dialog | QtCore.Qt.FramelessWindowHint)
     pos = parent.rect().center()
     progress_dialog.move(
-        int(pos.x() - progress_dialog.width() / 2), int(pos.y() - progress_dialog.height() / 2)
+        int(pos.x() - progress_dialog.width() / 2),
+        int(pos.y() - progress_dialog.height() / 2),
     )
     progress_dialog.show()
     return progress_dialog

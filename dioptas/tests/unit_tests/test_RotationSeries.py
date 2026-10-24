@@ -195,3 +195,48 @@ print('bundled filter round trip passed')
     )
     assert completed.returncode == 0, completed.stdout + completed.stderr
     assert "bundled filter round trip passed" in completed.stdout
+
+
+def test_select_one_frame_discovers_only_its_run(qapp, tmp_path, monkeypatch):
+    seed = make_run(tmp_path)
+    # Nearby files, including sidecars and a different numeric run, stay separate.
+    for name in ("other_012.tif", "sample_012.tif.bak", "sample_0120.png"):
+        (tmp_path / name).write_text("unrelated")
+    monkeypatch.setattr(
+        QtWidgets.QFileDialog, "getOpenFileName", lambda *a, **k: (str(seed), "")
+    )
+
+    def confirm(dialog):
+        dialog.confirm()
+        return dialog.result()
+
+    monkeypatch.setattr(RotationSeriesDialog, "exec_", confirm)
+    c = MainController(
+        use_settings=False, run_async_processing=False, experimental_single_crystal=True
+    )
+    try:
+        sc, w = c.single_crystal_controller, c.widget.single_crystal_widget
+        sc.open_series()
+        assert len(sc.series.files) == 5
+        assert w.frame_slider.value() == 2
+        assert c.model.img_model.filename == str(seed)
+        w.previous_frame_button.click()
+        assert w.frame_slider.value() == 1
+        w.next_frame_button.click()
+        assert w.frame_slider.value() == 2
+        w.frame_slider.setValue(0)
+        assert not w.previous_frame_button.isEnabled()
+        assert w.next_frame_button.isEnabled()
+        w.frame_slider.setValue(4)
+        assert w.previous_frame_button.isEnabled()
+        assert not w.next_frame_button.isEnabled()
+        assert w.sections.count() == 5
+        for index in range(5):
+            w.sections.setCurrentIndex(index)
+            assert sc.series is not None
+        # Changing to an unrelated image disables both navigation buttons.
+        sc._image_changed()
+        assert not w.previous_frame_button.isEnabled()
+        assert not w.next_frame_button.isEnabled()
+    finally:
+        c.widget.close()

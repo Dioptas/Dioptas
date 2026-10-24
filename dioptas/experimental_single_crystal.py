@@ -48,6 +48,9 @@ def main():
         )
     except (ValueError, OSError) as exc:
         parser.error(str(exc))
+    from .file_dialogs import configure_file_dialogs
+
+    configure_file_dialogs(experimental=True)
     app = QtWidgets.QApplication([])
     app.setApplicationName("Dioptas Experimental")
     _set_application_icon(app)
@@ -55,7 +58,7 @@ def main():
     controller = MainController(use_settings=False, experimental_single_crystal=True)
     controller.widget.resize(1500, 1000)
     controller.widget.single_crystal_mode_btn.click()
-    controller.single_crystal_controller.load_series(series)
+    controller.single_crystal_controller.load_series(series, args.frame)
     if args.calibration:
         controller.single_crystal_controller.cell_calibration_filename = (
             args.calibration

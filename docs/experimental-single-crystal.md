@@ -244,3 +244,42 @@ The scan envelope is limited to 180°, 10,000 exposures, 250,000 raw enumerated
 HKLs and one million frame-assigned predictions; exceeded budgets fail explicitly.
 See PhaseSmith's `docs/experimental-spot-prediction.md` for equations, analytical
 derivatives, half-open detector/exposure support and independent validation.
+
+### Series navigation, plot gestures and metric settings
+
+Use **Open series from one frame…** and select any numbered image. Dioptas finds
+all files with the same filename prefix and extension, sorts their numeric frame
+IDs and previews the range/missing numbers with the angle metadata. Confirm that
+preview or enter explicit angles if metadata are absent. The selected frame opens
+first; previous/next buttons to the right of the slider step through the discovered
+files and stop at the ends. Numeric gaps remain angular gaps. Other run prefixes
+are excluded. Browsing keeps the detected positions and cell results.
+
+The experimental sidebar has separate Series, Detection, Cell, Predictions and
+Positions tabs. The trajectory and all six residual plots share pattern-style
+controls: left-drag rectangle zoom, right/Ctrl-left drag pan, right/Ctrl-left click
+zoom out, double right/Ctrl-left click reset, and wheel zoom bounded by the data
+extent. Bounds include all plotted populations, excluding reference lines.
+
+After blind indexing, **Find orthorhombic setting and fit** searches integer lattice
+axes within 0.3° of perpendicular and performs a constrained three-length plus
+three-orientation fit. Settings retain their integer change of basis, lattice
+index and P/A/B/C/I/F translations; conventional-cell predictions retain the
+original reciprocal-lattice selection. The training/held-out split, assignments
+and instrument remain fixed. A metric candidate is not a proven primitive lattice,
+intensity symmetry or space group. Exports preserve the transform, search bounds,
+both models and held-out residuals; an unimproved held-out result leaves the
+initial overlay selected. The unconstrained fit remains separately available.
+
+
+### macOS file-dialog fallback
+
+The experimental mode uses Qt widget file dialogs on macOS for every open/save/
+directory action, including actions outside its own tab. This process-local
+application flag avoids a reproduced native AppKit open/save panel initialization
+stall; a minimal native panel remained blocked in `NSSavePanel._initBridgeAndStuff`,
+while a Qt panel opened the same measured-data folder in about 0.06 seconds.
+Shared file helpers also disable custom directory-icon lookup. The behavior is
+unchanged by default on Windows/Linux, and no system services or saved settings
+are modified. `DIOPTAS_QT_FILE_DIALOGS=1` explicitly enables the same fallback for
+ordinary mode in this checkout. See [Qt file-dialog options](https://doc.qt.io/qt-6/qfiledialog.html#Option-enum).

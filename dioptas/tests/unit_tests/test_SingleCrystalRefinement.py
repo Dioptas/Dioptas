@@ -148,3 +148,40 @@ def test_stale_refinement_is_discarded(qapp, qtbot, tmp_path, experiment, monkey
     finally:
         release.set()
         c.widget.close()
+
+
+def test_orthorhombic_metric_service_and_ui_action(qapp, experiment, tmp_path):
+    from fabio.tifimage import TifImage
+    from dioptas.controller.MainController import MainController
+
+    positions, cells, _ = experiment
+    result = refine_positions(positions, cells, (2048, 2048), symmetry="orthorhombic")
+    np.testing.assert_allclose(result.refinement.cell[3:], 90, atol=3e-13)
+    setting = result.metadata["orthorhombic_setting"]
+    assert setting["centring"] == "P" and setting["lattice_index"] == 1
+    assert result.metadata["material_or_cell_priors"] is False
+    record = json.loads(
+        export_refinement(result, tmp_path / "orthorhombic.json")[0].read_text()
+    )
+    assert record["metric_constraint"] == "orthorhombic"
+    assert record["orthorhombic_setting"]["transform"] == setting["transform"]
+    c = MainController(
+        use_settings=False, run_async_processing=False, experimental_single_crystal=True
+    )
+    try:
+        path = tmp_path / "unknown.tif"
+        TifImage(data=np.full((2048, 2048), 100, np.uint16)).write(str(path))
+        c.model.img_model.load(str(path))
+        sc, w = c.single_crystal_controller, c.widget.single_crystal_widget
+        sc._show_result(positions, sc._generation)
+        sc._show_result(cells, sc._generation)
+        assert w.orthorhombic_button.isEnabled()
+        assert w.sections.currentIndex() == 2
+        w.orthorhombic_button.click()
+        assert sc.refinement_result.metadata["metric_constraint"] == "orthorhombic"
+        assert w.prediction_model.itemText(1) == "Orthorhombic model"
+        assert w.sections.currentIndex() == 3
+        sc.invalidate()
+        assert not w.orthorhombic_button.isEnabled()
+    finally:
+        c.widget.close()

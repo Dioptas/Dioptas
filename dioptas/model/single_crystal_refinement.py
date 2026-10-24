@@ -69,7 +69,9 @@ def detector_qmax(geometry, shape):
     return float(np.max(np.linalg.norm(reciprocal_vectors(corners, geometry), axis=1)))
 
 
-def refine_positions(positions, cells, image_shape, *, progress=None):
+def refine_positions(
+    positions, cells, image_shape, *, progress=None, symmetry="triclinic"
+):
     from phasesmith.experimental.reciprocal import PanelGeometry
     from phasesmith.experimental.prediction import (
         refine_crystal,
@@ -88,23 +90,58 @@ def refine_positions(positions, cells, image_shape, *, progress=None):
     ids = cells.track_ids
     observed = positions.table.values[ids, :3]
     basis = np.linalg.inv(candidate.direct_basis).T
+    setting_metadata = None
+    hkl = candidate.hkl
+    if symmetry == "orthorhombic":
+        from phasesmith.experimental.orthorhombic import find_orthorhombic_settings
+
+        settings = find_orthorhombic_settings(candidate.direct_basis)
+        if not settings:
+            raise ValueError(
+                "No orthorhombic setting within 0.3° in the bounded integer-axis search."
+            )
+        setting = settings[0]
+        hkl = hkl @ setting.transform.T
+        basis = np.linalg.inv(setting.direct_basis).T
+        setting_metadata = dict(
+            centring=setting.centring,
+            lattice_index=setting.index,
+            transform=setting.transform.tolist(),
+            max_angle_deviation_deg=setting.max_angle_deviation,
+            candidates=len(settings),
+            angle_tolerance_deg=0.3,
+            coefficient_limit=3,
+            selection="smallest lattice index, then minimum maximum angular deviation; no validation selection",
+            interpretation="metric candidate preserving the input lattice, not a proven Bravais class or space group",
+        )
     options = RefinementOptions()
     result = refine_crystal(
         observed,
-        candidate.hkl,
+        hkl,
         basis,
         geometry,
         training=search.training,
         eligible=candidate.indexed,
         options=options,
         progress=progress,
+        symmetry=symmetry,
     )
     if progress:
         progress(options.max_iterations, options.max_iterations)
     qmax = detector_qmax(geometry, image_shape)
     bounds = positions.table.omega_bounds
+    lattice_transform = (
+        None
+        if setting_metadata is None
+        else np.asarray(setting_metadata["transform"], dtype=np.int64)
+    )
     initial_scan = predict_scan(
-        basis, geometry, bounds, tuple(map(int, image_shape)), qmax=qmax
+        basis,
+        geometry,
+        bounds,
+        tuple(map(int, image_shape)),
+        qmax=qmax,
+        lattice_transform=lattice_transform,
     )
     refined_scan = predict_scan(
         result.reciprocal_basis,
@@ -112,6 +149,7 @@ def refine_positions(positions, cells, image_shape, *, progress=None):
         bounds,
         tuple(map(int, image_shape)),
         qmax=qmax,
+        lattice_transform=lattice_transform,
     )
     initial_orientation = orientation_matrix(basis)
     final_orientation = orientation_matrix(result.reciprocal_basis)
@@ -135,13 +173,15 @@ def refine_positions(positions, cells, image_shape, *, progress=None):
         selection="largest training indexed fraction; volume breaks ties; provisional pass required",
         observed="one original detected-signal-weighted x,y,omega centroid per linked track",
         fixed_instrument=True,
+        metric_constraint=symmetry,
+        orthorhombic_setting=setting_metadata,
         material_or_cell_priors=False,
         options=asdict(options),
         initial_orientation=initial_orientation.tolist(),
         refined_orientation=final_orientation.tolist(),
         orientation_change_deg=float(angle),
         qmax_A_inverse=qmax,
-        predictions="all integer HKLs crossing the panel within exposure; no intensity or extinction model",
+        predictions="HKLs of the input reciprocal lattice crossing the panel within exposure; no intensity or space-group extinction model",
         native_engine_sha256=hashlib.sha256(
             Path(_core.__file__).read_bytes()
         ).hexdigest(),
@@ -172,6 +212,20 @@ def refinement_summary(result):
             f"{label.title()} ({metrics['count']}): detector RMS {a['rms_xy']:.3f} → {b['rms_xy']:.3f} px; "
             f"omega RMS {a['rms_omega']:.4f} → {b['rms_omega']:.4f}°"
         )
+    setting = result.metadata.get("orthorhombic_setting")
+    if setting:
+        lines.insert(
+            0,
+            f"Orthorhombic metric candidate · {setting['centring']} setting · lattice index {setting['lattice_index']}",
+        )
+        lines.insert(
+            1,
+            f"Initial angular departure ≤{setting['max_angle_deviation_deg']:.4f}°; fit fixes all angles at 90°.",
+        )
+        lines.append("Integer setting transform (rows): " + str(setting["transform"]))
+        lines.append(
+            "Bounded metric search only: primitive lattice and space group remain unproven."
+        )
     if fit.metrics["validation_improved"]:
         lines.append("The combined held-out positional residual improved.")
     else:
@@ -179,7 +233,7 @@ def refinement_summary(result):
             "Held-out residual did not improve. Initial model remains the default overlay; inspect both."
         )
     lines.append(
-        "No symmetry, chemical identity or intensity model assigned. Loss scales are not calibrated uncertainties."
+        "No space group, chemical identity or intensity model assigned. Loss scales are not calibrated uncertainties."
     )
     return "\n".join(lines)
 

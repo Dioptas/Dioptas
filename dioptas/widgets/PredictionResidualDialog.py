@@ -4,6 +4,7 @@
 import numpy as np
 import pyqtgraph as pg
 from qtpy import QtWidgets
+from .plot_widgets.PatternMouseViewBox import PatternMouseViewBox
 
 
 class PredictionResidualDialog(QtWidgets.QDialog):
@@ -34,7 +35,9 @@ class PredictionResidualDialog(QtWidgets.QDialog):
             (0, 2, "Measured x (px)", "Δomega (°)"),
         ]
         for i, (x, y, xlabel, ylabel) in enumerate(specs):
-            plot = self.graphics.addPlot(row=i // 2, col=i % 2)
+            plot = self.graphics.addPlot(
+                row=i // 2, col=i % 2, viewBox=PatternMouseViewBox()
+            )
             plot.setLabel("bottom", xlabel)
             plot.setLabel("left", ylabel)
             plot.addItem(pg.InfiniteLine(pos=0, angle=0, pen=pg.mkPen("#707780")))

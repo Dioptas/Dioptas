@@ -7,6 +7,7 @@ import pyqtgraph as pg
 from qtpy import QtCore, QtWidgets
 
 from .plot_widgets import MaskImgWidget
+from .plot_widgets.PatternMouseViewBox import PatternMouseViewBox
 from ..model.single_crystal import quality_labels
 
 
@@ -115,13 +116,35 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         self.frame_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.frame_slider.setRange(0, 0)
         self.frame_slider.setEnabled(False)
-        viewer_layout.addWidget(self.frame_slider)
+        frame_controls = QtWidgets.QHBoxLayout()
+        frame_controls.addWidget(self.frame_slider, 1)
+        self.previous_frame_button = QtWidgets.QToolButton()
+        self.previous_frame_button.setText("◀")
+        self.previous_frame_button.setToolTip("Previous frame")
+        self.next_frame_button = QtWidgets.QToolButton()
+        self.next_frame_button.setText("▶")
+        self.next_frame_button.setToolTip("Next frame")
+        for button, step in (
+            (self.previous_frame_button, -1),
+            (self.next_frame_button, 1),
+        ):
+            button.setAutoRepeat(True)
+            button.clicked.connect(
+                lambda checked=False, delta=step: self.frame_slider.setValue(
+                    self.frame_slider.value() + delta
+                )
+            )
+            frame_controls.addWidget(button)
+        self.frame_slider.valueChanged.connect(self.update_frame_buttons)
+        self.frame_slider.rangeChanged.connect(self.update_frame_buttons)
+        self.update_frame_buttons()
+        viewer_layout.addLayout(frame_controls)
         self.position_track_label = QtWidgets.QLabel(
             "Select a spot to inspect its trajectory."
         )
         self.position_track_label.hide()
         viewer_layout.addWidget(self.position_track_label)
-        self.position_plot = pg.PlotWidget()
+        self.position_plot = pg.PlotWidget(viewBox=PatternMouseViewBox())
         self.position_plot.setLabel("bottom", "Omega", units="°")
         self.position_plot.setLabel("left", "Detector position", units="px")
         self.position_plot.setMaximumHeight(180)
@@ -144,14 +167,24 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         self.source_label = QtWidgets.QLabel("Load a detector image to start.")
         self.source_label.setWordWrap(True)
         panel.addWidget(self.source_label)
+        self.sections = QtWidgets.QTabWidget()
+        panel.addWidget(self.sections, 1)
+        section_layouts = []
+        for name in ("Series", "Detection", "Cell", "Predictions", "Positions"):
+            page = QtWidgets.QWidget()
+            section_layouts.append(QtWidgets.QVBoxLayout(page))
+            self.sections.addTab(page, name)
+        series_panel, detection_panel, cell_panel, prediction_panel, positions_panel = (
+            section_layouts
+        )
         self.load_button = QtWidgets.QPushButton("Open image…")
-        self.series_button = QtWidgets.QPushButton("Open rotation series…")
-        panel.addWidget(self.series_button)
+        self.series_button = QtWidgets.QPushButton("Open series from one frame…")
+        series_panel.addWidget(self.series_button)
         self.omega_background_button = QtWidgets.QPushButton("Omega background…")
-        panel.addWidget(self.omega_background_button)
-        panel.addWidget(self.load_button)
+        series_panel.addWidget(self.omega_background_button)
+        series_panel.addWidget(self.load_button)
         form = QtWidgets.QFormLayout()
-        panel.addLayout(form)
+        detection_panel.addLayout(form)
 
         def number(label, default, minimum, maximum, decimals=2):
             widget = QtWidgets.QDoubleSpinBox()
@@ -181,50 +214,53 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         form.addRow(self.zero_padding)
 
         self.detect_button = QtWidgets.QPushButton("Find spots and extract counts")
-        panel.addWidget(self.detect_button)
+        detection_panel.addWidget(self.detect_button)
         self.cell_button = QtWidgets.QPushButton("Geometry and find unit cell…")
         self.cell_button.setEnabled(False)
-        panel.addWidget(self.cell_button)
+        cell_panel.addWidget(self.cell_button)
         self.cell_summary = QtWidgets.QPlainTextEdit()
         self.cell_summary.setReadOnly(True)
         self.cell_summary.setMaximumHeight(210)
         self.cell_summary.hide()
-        panel.addWidget(self.cell_summary)
+        cell_panel.addWidget(self.cell_summary)
         self.cell_export_button = QtWidgets.QPushButton("Export cell candidates…")
         self.cell_export_button.setEnabled(False)
-        panel.addWidget(self.cell_export_button)
-        self.refine_button = QtWidgets.QPushButton(
-            "Predict spots and refine cell/orientation"
-        )
+        cell_panel.addWidget(self.cell_export_button)
+        self.refine_button = QtWidgets.QPushButton("Unconstrained cell/orientation fit")
         self.refine_button.setEnabled(False)
-        panel.addWidget(self.refine_button)
+        self.orthorhombic_button = QtWidgets.QPushButton(
+            "Find orthorhombic setting and fit"
+        )
+        self.orthorhombic_button.setEnabled(False)
+        cell_panel.addWidget(self.orthorhombic_button)
+        cell_panel.addWidget(self.refine_button)
         self.prediction_enabled = QtWidgets.QCheckBox(
             "Show predicted Bragg centres (+)"
         )
         self.prediction_enabled.setChecked(True)
-        panel.addWidget(self.prediction_enabled)
+        prediction_panel.addWidget(self.prediction_enabled)
         self.prediction_model = QtWidgets.QComboBox()
         self.prediction_model.addItems(["Initial indexed model", "Refined model"])
         self.prediction_model.setEnabled(False)
-        panel.addWidget(self.prediction_model)
+        prediction_panel.addWidget(self.prediction_model)
         self.prediction_note = QtWidgets.QLabel(
             "Predictions require an indexed cell. No intensity or extinction model."
         )
         self.prediction_note.setWordWrap(True)
-        panel.addWidget(self.prediction_note)
+        prediction_panel.addWidget(self.prediction_note)
         self.refinement_summary = QtWidgets.QPlainTextEdit()
         self.refinement_summary.setReadOnly(True)
         self.refinement_summary.setMaximumHeight(210)
         self.refinement_summary.hide()
-        panel.addWidget(self.refinement_summary)
+        prediction_panel.addWidget(self.refinement_summary)
         self.residual_button = QtWidgets.QPushButton("Residual plots…")
         self.residual_button.setEnabled(False)
-        panel.addWidget(self.residual_button)
+        prediction_panel.addWidget(self.residual_button)
         self.refinement_export_button = QtWidgets.QPushButton(
             "Export predictions and refinement…"
         )
         self.refinement_export_button.setEnabled(False)
-        panel.addWidget(self.refinement_export_button)
+        prediction_panel.addWidget(self.refinement_export_button)
         self.status_label = QtWidgets.QLabel("Experimental spot engine ready.")
         self.status_label.setWordWrap(True)
         panel.addWidget(self.status_label)
@@ -238,25 +274,37 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         self.table_view.horizontalHeader().setSectionResizeMode(
             QtWidgets.QHeaderView.ResizeToContents
         )
-        panel.addWidget(self.table_view, 1)
+        positions_panel.addWidget(self.table_view, 1)
         self.export_button = QtWidgets.QPushButton("Export spots…")
         self.export_button.setEnabled(False)
-        panel.addWidget(self.export_button)
+        positions_panel.addWidget(self.export_button)
         self.measurement_note = QtWidgets.QLabel(
             "Raw counts with local background subtraction. Error estimates assume independent "
             "pixels and the noise settings above. Flagged spots are retained; overlaps are not separated. "
             "These measurements are not corrected crystallographic intensities."
         )
         self.measurement_note.setWordWrap(True)
-        panel.addWidget(self.measurement_note)
-        scroll = QtWidgets.QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(controls)
-        self.control_scroll = scroll
-        scroll.setMinimumWidth(520)
-        splitter.addWidget(scroll)
+        detection_panel.addWidget(self.measurement_note)
+        hint = QtWidgets.QLabel(
+            "Select any numbered image. Matching frames in that folder are found automatically; "
+            "the angle preview shows the detected range and any missing frame numbers."
+        )
+        hint.setWordWrap(True)
+        series_panel.addWidget(hint)
+        for section in (series_panel, detection_panel, cell_panel, prediction_panel):
+            section.addStretch(1)
+        splitter.addWidget(controls)
         splitter.setStretchFactor(0, 3)
         splitter.setStretchFactor(1, 2)
+
+    def update_frame_buttons(self, *_):
+        enabled = self.frame_slider.isEnabled()
+        self.previous_frame_button.setEnabled(
+            enabled and self.frame_slider.value() > self.frame_slider.minimum()
+        )
+        self.next_frame_button.setEnabled(
+            enabled and self.frame_slider.value() < self.frame_slider.maximum()
+        )
 
     def parameter_widgets(self):
         return (

@@ -105,6 +105,9 @@ def main():
             "com.dioptas.Dioptas"
         )
 
+    from .file_dialogs import configure_file_dialogs
+
+    configure_file_dialogs()
     app = QtWidgets.QApplication([])
     _set_application_icon(app)
 

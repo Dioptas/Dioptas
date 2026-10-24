@@ -47,6 +47,9 @@ class _SeriesCancelled(Exception):
 
 class SingleCrystalController:
     def __init__(self, widget, model, *, run_async=True):
+        from ..file_dialogs import configure_file_dialogs
+
+        configure_file_dialogs(experimental=True)
         self.widget, self.model = widget, model
         self.result = None
         self.cell_result = None
@@ -68,7 +71,10 @@ class SingleCrystalController:
         widget.detect_button.clicked.connect(self.detect)
         widget.cell_button.clicked.connect(self.index_cells)
         widget.cell_export_button.clicked.connect(self.export_cell_candidates)
-        widget.refine_button.clicked.connect(self.refine_positions)
+        widget.refine_button.clicked.connect(lambda: self.refine_positions())
+        widget.orthorhombic_button.clicked.connect(
+            lambda: self.refine_positions(symmetry="orthorhombic")
+        )
         widget.residual_button.clicked.connect(self.show_refinement_residuals)
         widget.refinement_export_button.clicked.connect(self.export_position_refinement)
         widget.prediction_enabled.toggled.connect(self.plot_predictions)
@@ -104,6 +110,7 @@ class SingleCrystalController:
         if self.series is not None:
             self.series = None
             self.widget.frame_slider.setEnabled(False)
+            self.widget.update_frame_buttons()
             self.widget.detect_button.setText("Find spots and extract counts")
         self.invalidate()
 
@@ -162,6 +169,9 @@ class SingleCrystalController:
             except ValueError:
                 pass
         self.widget.refine_button.setEnabled(
+            can_refine and not busy and not self._closed
+        )
+        self.widget.orthorhombic_button.setEnabled(
             can_refine and not busy and not self._closed
         )
         message = (
@@ -288,19 +298,23 @@ class SingleCrystalController:
         finally:
             self._browsing_series = False
 
-    def load_series(self, series):
+    def load_series(self, series, selected_file=None):
+        index = (
+            series.files.index(str(selected_file)) if selected_file is not None else 0
+        )
         self._browsing_series = True
         try:
-            self.model.img_model.load(series.files[0])
+            self.model.img_model.load(series.files[index])
         finally:
             self._browsing_series = False
         self.series = series
         slider = self.widget.frame_slider
         slider.blockSignals(True)
         slider.setRange(0, len(series.files) - 1)
-        slider.setValue(0)
+        slider.setValue(index)
         slider.setEnabled(True)
         slider.blockSignals(False)
+        self.widget.update_frame_buttons()
         self.widget.position_plot.show()
         self.widget.position_track_label.show()
         self.widget.detect_button.setText("Find 3D positions")
@@ -323,14 +337,15 @@ class SingleCrystalController:
             if current
             else self.model.working_directories["image"],
             "Images (*)",
-            options=QtWidgets.QFileDialog.DontUseNativeDialog,
+            options=QtWidgets.QFileDialog.DontUseNativeDialog
+            | QtWidgets.QFileDialog.DontUseCustomDirectoryIcons,
         )
         if not filename:
             return
         try:
             dialog = RotationSeriesDialog(filename, self.widget)
             if dialog.exec_() == QtWidgets.QDialog.Accepted:
-                self.load_series(dialog.series)
+                self.load_series(dialog.series, filename)
         except Exception as exc:
             self.widget.status_label.setText(f"Could not open series: {exc}")
 
@@ -476,6 +491,7 @@ class SingleCrystalController:
             self.cell_result = result
             self.widget.cell_summary.setPlainText(cell_summary(result))
             self.widget.cell_summary.show()
+            self.widget.sections.setCurrentIndex(2)
             self.widget.cell_export_button.setEnabled(True)
             self._set_ready()
             self.widget.status_label.setText(
@@ -486,14 +502,19 @@ class SingleCrystalController:
             self.refinement_result = result
             self.widget.refinement_summary.setPlainText(refinement_summary(result))
             self.widget.refinement_summary.show()
+            self.widget.prediction_model.setItemText(
+                1,
+                "Orthorhombic model"
+                if result.metadata.get("metric_constraint") == "orthorhombic"
+                else "Refined model",
+            )
             self.widget.prediction_model.setEnabled(True)
             self.widget.prediction_model.setCurrentIndex(
                 1 if result.refinement.metrics["validation_improved"] else 0
             )
             self.widget.residual_button.setEnabled(True)
             self.widget.refinement_export_button.setEnabled(True)
-            self.widget.control_scroll.widget().layout().activate()
-            self.widget.control_scroll.ensureWidgetVisible(self.widget.residual_button)
+            self.widget.sections.setCurrentIndex(3)
             self._set_ready()
             self.plot_predictions()
             self.widget.status_label.setText(
@@ -588,7 +609,7 @@ class SingleCrystalController:
                 "Correcting geometry and searching for a cell…"
             )
 
-    def refine_positions(self):
+    def refine_positions(self, *, symmetry="triclinic"):
         if (
             self.cell_result is None
             or not isinstance(self.result, SeriesPositions)
@@ -607,7 +628,9 @@ class SingleCrystalController:
 
         def operation():
             try:
-                return refine_positions(positions, cells, shape, progress=progress)
+                return refine_positions(
+                    positions, cells, shape, progress=progress, symmetry=symmetry
+                )
             except _SeriesCancelled:
                 return None
 
