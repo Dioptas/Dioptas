@@ -31,6 +31,14 @@ from ..model.single_crystal_indexing import (
     export_cells,
 )
 from ..widgets.CellSearchDialog import CellSearchDialog
+from ..model.single_crystal_refinement import (
+    PositionRefinement,
+    preferred_candidate,
+    refine_positions,
+    refinement_summary,
+    export_refinement,
+)
+from ..widgets.PredictionResidualDialog import PredictionResidualDialog
 
 
 class _SeriesCancelled(Exception):
@@ -42,6 +50,8 @@ class SingleCrystalController:
         self.widget, self.model = widget, model
         self.result = None
         self.cell_result = None
+        self.refinement_result = None
+        self._residual_dialog = None
         self.cell_calibration_filename = ""
         self.series = None
         self._browsing_series = False
@@ -58,6 +68,12 @@ class SingleCrystalController:
         widget.detect_button.clicked.connect(self.detect)
         widget.cell_button.clicked.connect(self.index_cells)
         widget.cell_export_button.clicked.connect(self.export_cell_candidates)
+        widget.refine_button.clicked.connect(self.refine_positions)
+        widget.residual_button.clicked.connect(self.show_refinement_residuals)
+        widget.refinement_export_button.clicked.connect(self.export_position_refinement)
+        widget.prediction_enabled.toggled.connect(self.plot_predictions)
+        widget.prediction_model.currentIndexChanged.connect(self.plot_predictions)
+        widget.predicted_overlay.sigClicked.connect(self._prediction_clicked)
         widget.load_button.clicked.connect(self.open_image)
         widget.series_button.clicked.connect(self.open_series)
         widget.series_progress.connect(self._series_progress)
@@ -117,6 +133,7 @@ class SingleCrystalController:
         self._generation += 1
         self.result = None
         self.cell_result = None
+        self._clear_refinement()
         self.widget.cell_summary.clear()
         self.widget.cell_summary.hide()
         self.widget.cell_export_button.setEnabled(False)
@@ -136,6 +153,16 @@ class SingleCrystalController:
         )
         self.widget.cell_button.setEnabled(
             isinstance(self.result, SeriesPositions) and not busy and not self._closed
+        )
+        can_refine = False
+        if self.cell_result is not None:
+            try:
+                preferred_candidate(self.cell_result)
+                can_refine = True
+            except ValueError:
+                pass
+        self.widget.refine_button.setEnabled(
+            can_refine and not busy and not self._closed
         )
         message = (
             "Ready to find 3D positions across the rotation series."
@@ -178,6 +205,67 @@ class SingleCrystalController:
                 f"ω {a:g} → {b:g}° · midpoint {(a + b) / 2:g}°"
             )
             self._plot_frame_positions(i)
+            self.plot_predictions()
+
+    def _clear_refinement(self):
+        self.refinement_result = None
+        self.widget.predicted_overlay.clear()
+        self.widget.prediction_note.setText(
+            "Predictions require an indexed cell. No intensity or extinction model."
+        )
+        self.widget.prediction_model.setEnabled(False)
+        self.widget.refinement_summary.clear()
+        self.widget.refinement_summary.hide()
+        self.widget.residual_button.setEnabled(False)
+        self.widget.refinement_export_button.setEnabled(False)
+        if self._residual_dialog is not None:
+            self._residual_dialog.close()
+            self._residual_dialog.deleteLater()
+            self._residual_dialog = None
+
+    def plot_predictions(self, *_):
+        w = self.widget
+        w.predicted_overlay.clear()
+        if self.refinement_result is None or not w.prediction_enabled.isChecked():
+            return
+        predictions = (
+            self.refinement_result.initial_scan
+            if w.prediction_model.currentIndex() == 0
+            else self.refinement_result.refined_scan
+        )
+        rows = np.flatnonzero(predictions.frame_indices == w.frame_slider.value())
+        values = predictions.values[rows]
+        image = self.model.img_model.raw_img_data
+        if image is None:
+            return
+        x, y = np.floor(values[:, :2] + 0.5).astype(int).T
+        valid = np.isfinite(image[y, x])
+        if w.zero_padding.isChecked():
+            valid &= image[y, x] != 0
+        if self.model.use_mask:
+            mask = self.model.mask_model.get_mask()
+            if mask.shape == image.shape:
+                valid &= ~mask[y, x]
+        rows, values = rows[valid], values[valid]
+        data = [
+            (*map(int, predictions.hkl[i]), float(predictions.values[i, 2]))
+            for i in rows
+        ]
+        w.predicted_overlay.setData(
+            x=values[:, 0] + 0.5, y=values[:, 1] + 0.5, data=data
+        )
+        w.prediction_note.setText(
+            f"{len(rows)} possible Bragg centres in this exposure · cyan +. "
+            "Click a prediction for HKL/omega. Weak or systematically absent reflections may be predicted."
+        )
+
+    def _prediction_clicked(self, _item, points, *_):
+        if points:
+            h, k, l, omega = points[0].data()
+            self.widget.prediction_note.setText(
+                f"Calculated HKL ({h}, {k}, {l}) · Bragg centre ω={omega:.4f}°. "
+                "No intensity or space-group assumption."
+            )
 
     def _plot_frame_positions(self, i):
         if not isinstance(self.result, SeriesPositions):
@@ -376,12 +464,15 @@ class SingleCrystalController:
         if not self._closed:
             self._set_ready()
             if generation == self._generation:
-                self.widget.status_label.setText(f"Experimental processing failed: {exc}")
+                self.widget.status_label.setText(
+                    f"Experimental processing failed: {exc}"
+                )
 
     def _show_result(self, result, generation):
         if generation != self._generation or self._closed:
             return
         if isinstance(result, CellSearchResult):
+            self._clear_refinement()
             self.cell_result = result
             self.widget.cell_summary.setPlainText(cell_summary(result))
             self.widget.cell_summary.show()
@@ -389,6 +480,24 @@ class SingleCrystalController:
             self._set_ready()
             self.widget.status_label.setText(
                 "Cell search completed. Review the candidate cells and held-out matches below."
+            )
+            return
+        if isinstance(result, PositionRefinement):
+            self.refinement_result = result
+            self.widget.refinement_summary.setPlainText(refinement_summary(result))
+            self.widget.refinement_summary.show()
+            self.widget.prediction_model.setEnabled(True)
+            self.widget.prediction_model.setCurrentIndex(
+                1 if result.refinement.metrics["validation_improved"] else 0
+            )
+            self.widget.residual_button.setEnabled(True)
+            self.widget.refinement_export_button.setEnabled(True)
+            self.widget.control_scroll.widget().layout().activate()
+            self.widget.control_scroll.ensureWidgetVisible(self.widget.residual_button)
+            self._set_ready()
+            self.plot_predictions()
+            self.widget.status_label.setText(
+                "Prediction/refinement complete. Compare models and inspect residual plots."
             )
             return
         self.result = result
@@ -462,6 +571,7 @@ class SingleCrystalController:
             self.widget.status_label.setText(f"Could not configure cell search: {exc}")
             return
         self.cell_result = None
+        self._clear_refinement()
         self.widget.cell_summary.clear()
         self.widget.cell_export_button.setEnabled(False)
         generation = self._generation
@@ -477,6 +587,70 @@ class SingleCrystalController:
             self.widget.status_label.setText(
                 "Correcting geometry and searching for a cell…"
             )
+
+    def refine_positions(self):
+        if (
+            self.cell_result is None
+            or not isinstance(self.result, SeriesPositions)
+            or self._closed
+            or (self._runner and self._runner.is_busy)
+        ):
+            return
+        generation = self._generation
+        positions, cells = self.result, self.cell_result
+        shape = self.model.img_model.raw_img_data.shape
+        self._clear_refinement()
+
+        def progress(_done, _total):
+            if self._closed or generation != self._generation:
+                raise _SeriesCancelled
+
+        def operation():
+            try:
+                return refine_positions(positions, cells, shape, progress=progress)
+            except _SeriesCancelled:
+                return None
+
+        if self._runner is None:
+            try:
+                self._show_result(operation(), generation)
+            except Exception as exc:
+                self.widget.status_label.setText(f"Prediction/refinement failed: {exc}")
+        else:
+            job = self._runner.submit(operation)
+            self._jobs[job] = generation
+            self._set_ready()
+            self.widget.status_label.setText(
+                "Refining cell/orientation and predicting Bragg centres…"
+            )
+
+    def show_refinement_residuals(self):
+        if self.refinement_result is None:
+            return
+        if self._residual_dialog is None:
+            self._residual_dialog = PredictionResidualDialog(
+                self.refinement_result, self.widget
+            )
+        self._residual_dialog.show()
+        self._residual_dialog.raise_()
+
+    def export_position_refinement(self):
+        if self.refinement_result is None:
+            return
+        filename = save_file_dialog(
+            self.widget,
+            "Export positional refinement",
+            "position_refinement.json",
+            "JSON (*.json)",
+        )
+        if filename:
+            try:
+                export_refinement(self.refinement_result, filename)
+                self.widget.status_label.setText(
+                    "Exported initial/refined predictions, residuals and provenance."
+                )
+            except Exception as exc:
+                self.widget.status_label.setText(f"Could not export refinement: {exc}")
 
     def export_cell_candidates(self):
         if self.cell_result is None:

@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           repository: CPrescher/PhaseSmith
-          ref: 7cab0dc30c05cab331376eaaa34258f79320165d
+          ref: ee9342f2259d03225e4618932e6b8177d7405c98
           path: experimental-backend
       - uses: actions/setup-python@v7
         with:
@@ -37,4 +37,4 @@ jobs:
       - run: python -c "from dioptas.model.single_crystal import backend_available; assert backend_available()"
       - run: python -c "from dioptas.model.util.omega_background import _omega_arpls; assert _omega_arpls is not None"
       - run: python -m pytest -n0 dioptas/tests/unit_tests/test_OmegaBackground.py dioptas/tests/controller_tests/test_OmegaBackgroundController.py
-      - run: python -m pytest -n0 dioptas/tests/unit_tests/test_SingleCrystalSpots.py dioptas/tests/controller_tests/test_SingleCrystalController.py dioptas/tests/unit_tests/test_RotationSeries.py dioptas/tests/unit_tests/test_SingleCrystalIndexing.py
+      - run: python -m pytest -n0 dioptas/tests/unit_tests/test_SingleCrystalSpots.py dioptas/tests/controller_tests/test_SingleCrystalController.py dioptas/tests/unit_tests/test_RotationSeries.py dioptas/tests/unit_tests/test_SingleCrystalIndexing.py dioptas/tests/unit_tests/test_SingleCrystalRefinement.py

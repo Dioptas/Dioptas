@@ -201,3 +201,46 @@ are diagnostic assignments, not integrated crystallographic intensities.
 
 See PhaseSmith's `docs/experimental-reciprocal-indexing.md` for equations,
 support conventions, search bounds, complexity and independent reference tests.
+
+## Predicted spots and positional cell/orientation refinement
+
+After a candidate cell passes the provisional checks, select **Predict spots
+and refine cell/orientation**. The strongest training-supported candidate is
+chosen; wavelength, detector geometry and rotation axis stay fixed. PhaseSmith
+fits nine reciprocal-basis coefficients against one original measured
+x/y/omega centroid per linked track. HKLs and training/held-out membership stay
+fixed. The robust loss uses explicit scales of 2 px and 0.3°; these are not
+calibrated uncertainties. No known cell, material, extinction or intensity model
+is used. Existing position/cell results and original frames remain unchanged.
+
+Cyan crosses overlay geometrically possible **Bragg centres** on each exposure
+as the frame slider moves. The calculation solves both Ewald crossings and uses
+the current panel orientation. Enabled masks/nonfinite pixels and optional zero
+padding filter the displayed crosses. Click a cross for its provisional HKL and
+omega. Weak or systematically absent reflections can still be predicted. The
+overlay is not an intensity, rocking-width or completeness prediction: a real
+spot can persist on adjacent frames around its calculated Bragg centre.
+
+Switch between **Initial indexed model** and **Refined model** without refitting.
+The summary reports both cells, orientation change and detector/omega RMS
+residuals on the same eligible populations. A converged fit is not automatically
+better: when the combined held-out residual does not improve, the initial model
+remains selected by default. The refined trial and all diagnostics stay visible.
+This does not choose a different fitting iteration using validation data.
+
+**Residual plots…** opens six plots of calculated-minus-measured x, y and omega
+against scan angle/detector position. Grey denotes the initial model, blue the
+refined training points and orange the held-out points. Outliers are retained in
+these comparisons; robust weighting affects fitting, not the plotted population.
+
+**Export predictions and refinement…** writes JSON with both reciprocal bases,
+orientation matrices, fixed geometry, loss settings, validation metrics and
+source/code hashes. A centroid CSV retains every selected track, including
+unmatched/excluded rows, with frozen HKLs, partition, predictions, residuals and
+failure flags. Another CSV lists all possible integer-HKL panel crossings for
+both models before display-mask exclusions. No integrated intensities are added.
+
+The scan envelope is limited to 180°, 10,000 exposures, 250,000 raw enumerated
+HKLs and one million frame-assigned predictions; exceeded budgets fail explicitly.
+See PhaseSmith's `docs/experimental-spot-prediction.md` for equations, analytical
+derivatives, half-open detector/exposure support and independent validation.

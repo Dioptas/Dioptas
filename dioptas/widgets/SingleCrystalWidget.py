@@ -106,6 +106,10 @@ class SingleCrystalWidget(QtWidgets.QWidget):
             symbol="o", size=13, pen=pg.mkPen("y", width=2), brush=None
         )
         self.img_widget.img_view_box.addItem(self.spot_overlay)
+        self.predicted_overlay = pg.ScatterPlotItem(
+            symbol="+", size=12, pen=pg.mkPen("#48d8eb", width=1.5), brush=None
+        )
+        self.img_widget.img_view_box.addItem(self.predicted_overlay)
         self.frame_label = QtWidgets.QLabel("No rotation series loaded.")
         viewer_layout.addWidget(self.frame_label)
         self.frame_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
@@ -189,6 +193,38 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         self.cell_export_button = QtWidgets.QPushButton("Export cell candidates…")
         self.cell_export_button.setEnabled(False)
         panel.addWidget(self.cell_export_button)
+        self.refine_button = QtWidgets.QPushButton(
+            "Predict spots and refine cell/orientation"
+        )
+        self.refine_button.setEnabled(False)
+        panel.addWidget(self.refine_button)
+        self.prediction_enabled = QtWidgets.QCheckBox(
+            "Show predicted Bragg centres (+)"
+        )
+        self.prediction_enabled.setChecked(True)
+        panel.addWidget(self.prediction_enabled)
+        self.prediction_model = QtWidgets.QComboBox()
+        self.prediction_model.addItems(["Initial indexed model", "Refined model"])
+        self.prediction_model.setEnabled(False)
+        panel.addWidget(self.prediction_model)
+        self.prediction_note = QtWidgets.QLabel(
+            "Predictions require an indexed cell. No intensity or extinction model."
+        )
+        self.prediction_note.setWordWrap(True)
+        panel.addWidget(self.prediction_note)
+        self.refinement_summary = QtWidgets.QPlainTextEdit()
+        self.refinement_summary.setReadOnly(True)
+        self.refinement_summary.setMaximumHeight(210)
+        self.refinement_summary.hide()
+        panel.addWidget(self.refinement_summary)
+        self.residual_button = QtWidgets.QPushButton("Residual plots…")
+        self.residual_button.setEnabled(False)
+        panel.addWidget(self.residual_button)
+        self.refinement_export_button = QtWidgets.QPushButton(
+            "Export predictions and refinement…"
+        )
+        self.refinement_export_button.setEnabled(False)
+        panel.addWidget(self.refinement_export_button)
         self.status_label = QtWidgets.QLabel("Experimental spot engine ready.")
         self.status_label.setWordWrap(True)
         panel.addWidget(self.status_label)
@@ -216,6 +252,7 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         scroll = QtWidgets.QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setWidget(controls)
+        self.control_scroll = scroll
         scroll.setMinimumWidth(520)
         splitter.addWidget(scroll)
         splitter.setStretchFactor(0, 3)
