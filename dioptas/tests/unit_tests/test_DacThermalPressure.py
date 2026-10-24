@@ -11,6 +11,7 @@ from ...model.PhaseModel import PhaseModel
 from ...model.util.eos_phase import EosPhase
 from ...model.util.jcpds import EosCalculationError
 from ...model.util.phasesmith import material_has_diffraction_data
+from ...model.eos.material import record_is_explicit_candidate
 
 
 def gold_phase():
@@ -23,7 +24,8 @@ def reference_record(phase):
     return PeritheosMaterial.from_eosmat({
         **phase.params['material_document'],
         'eos_records': phase.params['eos_records'],
-    }, record_identifiers=[record['identifier']]).eos_records[0]
+    }, record_identifiers=[record['identifier']],
+        require_primary_validation=not record_is_explicit_candidate(record)).eos_records[0]
 
 
 @pytest.mark.parametrize('factor', [0.0, 0.25, 0.75])
@@ -60,7 +62,8 @@ def test_all_bundled_thermal_phase_records_match_dac_solver():
             if not record.get('thermal'):
                 continue
             phase = eos.build_jcpds(material, record_index=index, origin='bundled')
-            if record['scientific_validation']['status'] != 'primary_source_validated':
+            if (record['scientific_validation']['status'] != 'primary_source_validated'
+                    and not record_is_explicit_candidate(record)):
                 with pytest.raises(EosCalculationError, match='primary-source validation'):
                     phase.compute_d(20.0, 1000.0)
                 continue

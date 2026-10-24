@@ -5,6 +5,7 @@ dialog, search filters the bundled materials, and loading builds a jcpds
 phase carrying the full reference-switcher state.
 """
 import gc
+from copy import deepcopy
 from functools import cmp_to_key
 import tempfile
 from pathlib import Path
@@ -16,7 +17,7 @@ from qtpy.QtTest import QTest
 from ..utility import QtTest
 
 from ...controller.integration.phase.EosDatabaseController import (
-    EosDatabaseController, _record_row)
+    EosDatabaseController, _diffraction_status, _record_row)
 from ...model import eos
 
 
@@ -43,10 +44,69 @@ class EosDatabaseControllerTest(QtTest):
         assert not self.dialog.export_btn.isEnabled()
         assert not self.dialog.favourite_btn.isEnabled()
 
+    def test_held_default_stays_unselected_after_sorting_and_can_be_chosen_explicitly(self):
+        self.dialog.eos_table.sortItems(5, QtCore.Qt.DescendingOrder)
+        self.dialog.search_input.setText("gold")
+        assert self.dialog.selected_eos_row() >= 0
+        self.dialog.search_input.setText("palladium")
+        assert self.dialog.selected_eos_row() == -1
+        assert not self.dialog.load_btn.isEnabled()
+        assert not self.dialog.report_btn.isEnabled()
+        assert "Select an EOS record explicitly" in self.dialog.load_btn.toolTip()
+        assert "0 K DFT" in self.dialog.structure_note.text()
+        self.dialog.materials_table.doubleClicked.emit(
+            self.dialog.materials_table.model().index(0, 0))
+        assert self.controller.result_phase is None
+        assert self.dialog.export_btn.isEnabled()
+        self.dialog.eos_table.selectRow(0)
+        assert self.dialog.load_btn.isEnabled()
+        index = self.dialog.selected_eos_row()
+        assert index >= 0
+        self.controller.load()
+        assert self.controller.result_phase.params["eos_current_index"] == index
+        assert self.controller.result_phase.params["eos_default_index"] == -1
+
+    def test_report_action_follows_sorted_selection_and_clears(self):
+        self.dialog.search_input.setText("gold")
+        self.dialog.eos_table.sortItems(5, QtCore.Qt.DescendingOrder)
+        self.dialog.eos_table.selectRow(0)
+        material = self.controller.shown_materials[self.dialog.selected_material_row()]
+        record = material.eos_records[self.dialog.selected_eos_row()]
+        expected = eos.reconstruction_report_url(record)
+        assert expected
+        assert self.dialog.report_btn.isEnabled()
+        with patch("qtpy.QtGui.QDesktopServices.openUrl", return_value=True) as open_url:
+            self.dialog.report_btn.click()
+        assert open_url.call_args.args[0].toString() == expected
+        self.dialog.search_input.setText("no such material")
+        assert not self.dialog.report_btn.isEnabled()
+        assert not self.dialog.reproduction_note.text()
+
     def test_all_view_shows_library(self):
         self.dialog.view_tabs.setCurrentIndex(2)
         assert (self.dialog.materials_table.rowCount()
                 == len(eos.load_materials()))
+
+    def test_selected_eos_stays_fully_visible_after_open_resize_and_splitter_move(self):
+        self.dialog.search_input.setText("gold")
+        self.dialog.show()
+        table = self.dialog.eos_table
+        expected = self.controller.shown_materials[0].default_eos_index
+        for width, height in [(1095, 660), (800, 520), (900, 700)]:
+            self.dialog.resize(width, height)
+            for _ in range(3):
+                QtWidgets.QApplication.processEvents()
+            assert self.dialog.selected_eos_row() == expected
+            selected = table.selectionModel().selectedRows()[0]
+            rect = table.visualRect(selected)
+            assert rect.top() >= 0
+            assert rect.bottom() < table.viewport().height()
+        self.dialog.tables_splitter.moveSplitter(250, 1)
+        for _ in range(3):
+            QtWidgets.QApplication.processEvents()
+        rect = table.visualRect(table.selectionModel().selectedRows()[0])
+        assert rect.top() >= 0
+        assert rect.bottom() < table.viewport().height()
 
 
     def test_material_headers_sort_and_keep_selection_attached_to_material(self):
@@ -57,7 +117,7 @@ class EosDatabaseControllerTest(QtTest):
         selected = self.dialog.selected_material_row()
         header = table.horizontalHeader()
         collator = QtCore.QCollator()
-        for column in (0, 1):
+        for column in (0, 1, 2):
             position = QtCore.QPoint(
                 header.sectionViewportPosition(column)
                 + header.sectionSize(column) // 2, header.height() // 2)
@@ -97,7 +157,7 @@ class EosDatabaseControllerTest(QtTest):
                     records.selectRow(record_row)
                     record = material.eos_records[self.dialog.selected_eos_row()]
                     assert tuple(records.item(record_row, c).text()
-                                 for c in range(8)) == _record_row(record)
+                                 for c in range(9)) == _record_row(record)
 
         records.selectRow(0)
         record_index = self.dialog.selected_eos_row()
@@ -264,7 +324,7 @@ class EosDatabaseControllerTest(QtTest):
         assert self.dialog.materials_table.item(row, 1).text() == "P3\u208221"
 
     def test_material_table_keeps_missing_space_group_blank(self):
-        self.dialog.fill_materials([("Legacy material", "")])
+        self.dialog.fill_materials([("Legacy material", "", "EoS only", "")])
 
         assert self.dialog.materials_table.item(0, 1).text() == ""
 
@@ -420,6 +480,8 @@ class EosDatabaseControllerTest(QtTest):
 
         assert not self.dialog.load_btn.isEnabled()
         assert "No crystal structure" in self.dialog.load_btn.toolTip()
+        assert not self.dialog.structure_note.isHidden()
+        assert "cannot be loaded as a phase" in self.dialog.structure_note.text()
         assert self.dialog.export_btn.isEnabled()
         self.controller.load()
         self.dialog.materials_table.doubleClicked.emit(
@@ -429,6 +491,118 @@ class EosDatabaseControllerTest(QtTest):
         self.dialog.search_input.setText("gold")
         assert self.dialog.load_btn.isEnabled()
         assert self.dialog.load_btn.toolTip() == ""
+        assert self.dialog.structure_note.isHidden()
+
+    def test_diffraction_column_stays_attached_to_material_when_sorted(self):
+        self.dialog.view_tabs.setCurrentIndex(2)
+        table = self.dialog.materials_table
+        table.sortItems(2, QtCore.Qt.DescendingOrder)
+        for row in range(table.rowCount()):
+            source_row = table.item(row, 0).data(QtCore.Qt.UserRole)
+            material = self.controller.shown_materials[source_row]
+            status, tooltip = _diffraction_status(material)
+            assert table.item(row, 2).text() == status
+            assert table.item(row, 2).toolTip() == tooltip
+            if status == "EoS only":
+                table.selectRow(row)
+                assert not self.dialog.load_btn.isEnabled()
+                assert not self.dialog.structure_note.isHidden()
+
+    def test_reproduction_warning_follows_sorted_record_selection_and_clears(self):
+        self.dialog.search_input.setText("CaSiO3")
+        row = next(i for i, m in enumerate(self.controller.shown_materials)
+                   if m.identifier == "ca_perovskite")
+        self.dialog.materials_table.selectRow(row)
+        table = self.dialog.eos_table
+        table.sortItems(8, QtCore.Qt.DescendingOrder)
+        records = self.controller.shown_materials[row].eos_records
+        fu_row = next(i for i in range(table.rowCount()) if
+                      records[table.item(i, 0).data(QtCore.Qt.UserRole)]["identifier"]
+                      == "ca_perovskite_fu_2023_bm3_mgd_refit")
+        table.selectRow(fu_row)
+        assert table.item(fu_row, 8).text() == "Not reproduced"
+        assert "Not reproduced" in self.dialog.reproduction_note.text()
+        assert "174 reconstructed candidate" in self.dialog.reproduction_note.toolTip()
+        # Non-reproduction qualifies the fit; it does not override source
+        # validation or silently prohibit comparison with the published EOS.
+        assert self.dialog.load_btn.isEnabled()
+        self.dialog.search_input.setText("no such material")
+        assert self.dialog.reproduction_note.isHidden()
+        assert self.dialog.reproduction_note.text() == ""
+
+    def test_diffraction_filter_refills_search_and_explains_empty_results(self):
+        from ...model.util.phasesmith import material_has_diffraction_data
+
+        self.dialog.search_input.setText("CaSiO3")
+        all_matches = list(self.controller.shown_materials)
+        assert any(not material_has_diffraction_data(m) for m in all_matches)
+        self.dialog.hide_eos_only_cb.setChecked(True)
+        assert self.controller.shown_materials == [
+            m for m in all_matches if material_has_diffraction_data(m)]
+        assert self.dialog.load_btn.isEnabled()
+        assert self.dialog.assume_structure_cb.isHidden()
+
+        unavailable = next(m for m in all_matches
+                           if not material_has_diffraction_data(m))
+        self.dialog.search_input.setText(unavailable.identifier)
+        assert self.controller.shown_materials == []
+        assert self.dialog.eos_table.rowCount() == 0
+        assert not self.dialog.load_btn.isEnabled()
+        assert not self.dialog.export_btn.isEnabled()
+        assert self.dialog.structure_note.isHidden()
+        assert "uncheck" in self.dialog.empty_label.text()
+
+        self.dialog.hide_eos_only_cb.setChecked(False)
+        assert self.controller.shown_materials == [unavailable]
+        assert not self.dialog.load_btn.isEnabled()
+        assert self.dialog.export_btn.isEnabled()
+        assert not self.dialog.structure_note.isHidden()
+
+    def test_reference_peak_fallback_remains_loadable_without_atomic_sites(self):
+        material = deepcopy(next(m for m in self.controller.materials
+                                 if m.identifier == "gold"))
+        material.atom_sites = []
+        material.peaks = [[1, 1, 1, 2.35, 100.0]]
+        self.controller.materials = [material]
+        self.dialog.hide_eos_only_cb.setChecked(True)
+        self.dialog.view_tabs.setCurrentIndex(2)
+        assert self.controller.shown_materials == [material]
+        assert self.dialog.materials_table.item(0, 2).text() == "Reference peaks"
+        assert self.dialog.load_btn.isEnabled()
+        assert self.dialog.structure_note.isHidden()
+
+        # A space group alone must never imply a loadable diffraction phase.
+        material.peaks = []
+        assert _diffraction_status(material)[0] == "EoS only"
+
+    def test_tetragonal_perovskites_load_with_explicit_assumed_structure(self):
+        self.dialog.search_input.setText("CaSiO3")
+        for identifier in ("casio3_perovskite_tetragonal", "ca_perovskite_tetragonal"):
+            row = next(i for i, material in enumerate(self.controller.shown_materials)
+                       if material.identifier == identifier)
+            self.dialog.materials_table.selectRow(row)
+            assert not self.dialog.assume_structure_cb.isHidden()
+            assert not self.dialog.assume_structure_cb.isChecked()
+            assert not self.dialog.load_btn.isEnabled()
+            assert self.dialog.materials_table.item(row, 2).text() == "Assumption required"
+            assert "explicitly enable" in self.dialog.structure_note.text()
+            self.dialog.assume_structure_cb.setChecked(True)
+            assert self.dialog.load_btn.isEnabled()
+            assert "Intensities are approximate" in self.dialog.structure_note.text()
+            self.dialog.assume_structure_cb.setChecked(False)
+            assert not self.dialog.load_btn.isEnabled()
+            self.dialog.assume_structure_cb.setChecked(True)
+            self.dialog.load_btn.click()
+            phase = self.controller.result_phase
+            assert phase.reflections
+            assert "assumed structure" in phase.name
+            material = self.controller.shown_materials[row]
+            assert not material.atom_sites
+            assert phase.params["eos_records"] == material.eos_records
+        self.dialog.search_input.setText("gold")
+        assert self.dialog.assume_structure_cb.isHidden()
+        assert self.dialog.structure_note.isHidden()
+        assert self.dialog.load_btn.isEnabled()
 
     def test_deferred_record_remains_exportable_but_cannot_load(self):
         self.dialog.view_tabs.setCurrentIndex(2)
@@ -491,6 +665,7 @@ def test_record_row_displays_reported_errors_and_fixed_parameters():
         "Vinet", "—", "A publication", "", "12–80.5 GPa", "395.0 ± 2",
         "3.62 (error n/r)",
         "47.250 ± 0.0048 (fixed)",
+        "Not assessed",
     )
 
 
@@ -500,6 +675,6 @@ def test_record_row_displays_implicit_bm2_derivative_as_fixed():
         "parameter_errors": {"V0": None, "K0": 1.0},
         "fixed_parameters": [],
     }
-    assert _record_row(record)[5:] == (
+    assert _record_row(record)[5:8] == (
         "20.0 ± 1", "4 (fixed)", "10.000 (error n/r)",
     )

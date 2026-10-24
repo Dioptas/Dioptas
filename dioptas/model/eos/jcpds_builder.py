@@ -15,7 +15,7 @@ import copy
 from math import pi
 import re
 
-from peritheos import load_eosmat, save_eosmat
+from peritheos import convert_eosmat, load_eosmat, save_eosmat
 
 from .material import (Material, record_eos_type, record_label,
                        reference_text)
@@ -58,7 +58,10 @@ def build_jcpds(
     if records:
         if record_index is None:
             record_index = material.default_eos_index
-        record_index = max(0, min(record_index, len(records) - 1))
+        if not 0 <= record_index < len(records):
+            raise ValueError(material.recommendation_hold or
+                             "Select an EOS record explicitly; no automatic "
+                             "default is recommended for this material.")
         record = records[record_index]
 
     obj._name = material.display_name or chemistry
@@ -95,7 +98,8 @@ def build_jcpds(
     )
     cif_source = (
         material.source
-        if material.source.get("kind") == "cif" and material.source.get("text")
+        if (material.source.get("kind") == "cif" and material.source.get("text")
+            and not material.source.get("structure_modified"))
         else None
     )
     if cif_source or material_has_complete_structure(material):
@@ -204,6 +208,10 @@ def apply_eos_record(phase, record: dict) -> None:
     thermal_parameters.update(thermal_configuration)
 
     material_document = phase.params.get("material_document") or {}
+    assumption_note = material_document.get("source", {}).get(
+        "assumed_structure", {}).get("note")
+    if assumption_note:
+        phase.params["comments"] = ([reference] if reference else []) + [assumption_note]
     base_material = Material.from_dict(material_document) if material_document else None
     if parameters.get("n") is not None:
         phase.params["n"] = parameters["n"]
@@ -283,6 +291,22 @@ def apply_eos_record(phase, record: dict) -> None:
     if parameters.get("V0"):
         phase.params["v0"] = parameters["V0"]
         phase.params["v"] = parameters["V0"]
+        assumption = material_document.get("source", {}).get("assumed_structure", {})
+        if assumption.get("normalize_to_eos_v0"):
+            # The assumed shape is fixed, but each source record has its own
+            # reference volume. Keep a²c consistent when switching references.
+            lattice_volume = (phase.params["a0"] * phase.params["b0"]
+                              * phase.params["c0"])
+            scale = (parameters["V0"] / lattice_volume) ** (1 / 3)
+            for axis in ("a", "b", "c"):
+                phase.params[f"{axis}0"] *= scale
+                phase.params[axis] = phase.params[f"{axis}0"]
+            phase.compute_d0()
+            lattice = {axis: phase.params[f"{axis}0"] for axis in ("a", "b", "c")}
+            material_document["lattice"].update(lattice)
+            source = phase.state.reflection_source
+            if source.get("kind") == "material":
+                source["material"]["lattice"].update(lattice)
 
 
 def material_from_jcpds(phase) -> Material:
@@ -311,15 +335,19 @@ def material_from_jcpds(phase) -> Material:
         material.formula_units_per_cell = phase.params["zc"]
 
     records = copy.deepcopy(phase.params.get("eos_records") or [])
-    default_index = phase.params.get("eos_default_index") or 0
-    default_is_hugoniot = bool(records and
+    material.eos_records = records
+    default_index = phase.params.get("eos_default_index", 0)
+    has_default = 0 <= default_index < len(records)
+    default_changed = has_default and default_index != material.default_eos_index
+    default_is_hugoniot = bool(has_default and
         records[default_index].get("equation_kind") == "hugoniot")
     for index, record in enumerate(records):
-        if (record.get("equation_kind") == "hugoniot") == default_is_hugoniot:
-            record.pop("default", None)
-            record.pop("default_for", None)
-        if index == default_index:
-            record["default"] = True
+        if default_changed:
+            if (record.get("equation_kind") == "hugoniot") == default_is_hugoniot:
+                record.pop("default", None)
+                record.pop("default_for", None)
+            if index == default_index:
+                record["default"] = True
     material.eos_records = records
 
     has_structure = bool(material.atom_sites and material.space_group)
@@ -334,10 +362,20 @@ def material_from_jcpds(phase) -> Material:
     return material
 
 
-def save_material_file(path: str, material: Material) -> None:
-    """Validate and write a material through Peritheos's ``.eosmat`` API."""
+def save_material_file(path: str, material: Material, *,
+                       format_version: int | None = None) -> None:
+    """Export canonical materials as native v4; retain legacy v2 support.
+
+    Request ``format_version=3`` for historical consumers. Layout conversion
+    belongs to Peritheos, including all scientific evidence and extensions.
+    """
     document = material.to_dict()
     _complete_record_metadata(document)
+    if document.get("format_version") == 3:
+        document = convert_eosmat(
+            document, version=4 if format_version is None else format_version)
+    elif format_version not in (None, document.get("format_version")):
+        raise ValueError("Legacy v2 materials must be exported in their original format.")
     save_eosmat(path, document)
 
 

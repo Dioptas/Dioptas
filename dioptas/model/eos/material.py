@@ -7,7 +7,8 @@ Peritheos supplies the installed material library and owns the shared
 ``.eosmat`` format. Dioptas adapts those documents for structure editing,
 reflection calculation, and project storage. It continues to read its legacy
 format 2 and preserves all format-3 fields, including extensions it does not
-interpret::
+interpret. Native EOSMAT v4 is converted through Peritheos to this internal
+representation for editing and calculation::
 
     {
       "format": "peritheos.material",
@@ -119,6 +120,8 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Optional
 
+from .compat import normalize_material_document
+
 
 @dataclass
 class Lattice:
@@ -185,16 +188,28 @@ class Material:
 
     @property
     def default_eos_index(self) -> int:
-        """Preferred EoS record, falling back to the first for old files."""
+        """Preferred record, or -1 when a source hold needs explicit selection."""
+        if self.recommendation_hold:
+            return -1
         for index, record in enumerate(self.eos_records):
             if (record.get("default_for") == "equilibrium"
                     or (record.get("default") is True
                         and record.get("equation_kind") != "hugoniot")):
-                return index
+                return -1 if record_requires_explicit_selection(record) else index
         for index, record in enumerate(self.eos_records):
             if record.get("default") is True or record.get("default_for"):
-                return index
-        return 0
+                return -1 if record_requires_explicit_selection(record) else index
+        return next((index for index, record in enumerate(self.eos_records)
+                     if not record_requires_explicit_selection(record)),
+                    -1 if self.eos_records else 0)
+
+    @property
+    def recommendation_hold(self) -> str:
+        """Explain a source's held default without selecting a replacement."""
+        hold = self.extensions.get("recommendation_hold") or {}
+        if isinstance(hold, dict) and hold.get("status") == "on_hold":
+            return hold.get("reason") or "The source's default EOS is on hold."
+        return ""
 
     def atoms_per_formula(self) -> Optional[float]:
         """Number of atoms in the chemical formula, e.g. MgO -> 2."""
@@ -245,6 +260,7 @@ class Material:
 
     @classmethod
     def from_dict(cls, document: dict) -> "Material":
+        document = normalize_material_document(document)
         lattice = document.get("lattice") or {}
         known = {
             "format", "format_version", "identifier", "name", "formula",
@@ -285,6 +301,30 @@ class Material:
             extensions=deepcopy({key: value for key, value in document.items()
                                  if key not in known}),
         )
+
+
+def record_requires_explicit_selection(record: dict) -> bool:
+    """Scientific qualifications that must never become an automatic default."""
+    validation = record.get("scientific_validation") or {}
+    reproduction = record.get("reproduction") or {}
+    return (record.get("catalog_access") == "explicit_selection"
+            or validation.get("usage_recommendation") in {
+                "not_recommended_for_quantitative_use",
+                "on_hold_not_recommended_pending_source_mapping_review",
+            }
+            or reproduction.get("do_not_use") is True)
+
+
+def record_is_explicit_candidate(record: dict) -> bool:
+    """Qualified explicit equations with a reference V0 for diffraction scaling.
+
+    A model's characteristic volume is not an ambient reference volume. Such
+    diagnostic models remain inspectable without inventing a diffraction anchor.
+    """
+    volume = ((record.get("eos") or {}).get("parameters") or {}).get("V0")
+    return (record.get("catalog_access") == "explicit_selection"
+            and (record.get("scientific_validation") or {}).get("status")
+            == "not_reproduced" and isinstance(volume, (int, float)) and volume > 0)
 
 
 def record_label(record: dict) -> str:

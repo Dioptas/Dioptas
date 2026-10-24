@@ -14,6 +14,55 @@ from ...model.PhaseModel import PhaseModel
 from ...model.util.jcpds import EosCalculationError
 
 
+@pytest.mark.parametrize("operation", ["duplicate", "update"])
+def test_failed_custom_record_calculation_preserves_phase_and_lines(operation):
+    document = get_material_document("gold")
+    index = next(i for i, record in enumerate(document["eos_records"])
+                 if record["eos"]["type"] == "Vinet" and not record.get("thermal"))
+    phase = eos.build_jcpds(eos.Material.from_dict(document),
+                            record_index=index, origin="bundled")
+    model = PhaseModel()
+    model.add_jcpds_object(phase, filename=phase.filename)
+    if operation == "update":
+        index = model.duplicate_eos_record(0, index)
+    assert model.set_pressure_temperature(0, 20., 1000.)
+    before = model._condition_snapshot(phase)
+    lines = model.items[0].reflections.copy()
+    record = deepcopy(phase.params["eos_records"][index])
+    record["equation_kind"] = "thermal"
+    record["thermal"] = {
+        "type": "AlphaKT", "model": "thermal_reference_state",
+        "parameters": {"Tr": 300., "alpha0": 3e-5, "dK_dT": -1.},
+    }
+    # Valid constructor coefficients, but K(T) becomes negative at the
+    # phase's current temperature. No partial append/update may survive.
+    with pytest.raises(EosCalculationError, match="non-positive bulk modulus"):
+        if operation == "duplicate":
+            model.duplicate_eos_record(0, index, record)
+        else:
+            model.update_eos_record(0, index, record)
+    assert model._condition_snapshot(phase) == before
+    assert (model.items[0].reflections == lines).all()
+
+
+@pytest.mark.parametrize("thermal", [False, True])
+def test_invalid_canonical_custom_record_does_not_use_a_fallback(thermal):
+    document = get_material_document("gold")
+    index = next(i for i, record in enumerate(document["eos_records"])
+                 if bool(record.get("thermal")) == thermal)
+    phase = eos.build_jcpds(eos.Material.from_dict(document),
+                            record_index=index, origin="bundled")
+    model = PhaseModel()
+    model.add_jcpds_object(phase, filename=phase.filename)
+    custom = model.duplicate_eos_record(0, index)
+    component = "thermal" if thermal else "eos"
+    record = phase.params["eos_records"][custom]
+    record[component]["parameters"]["unexpected_parameter"] = 1.
+    phase.params["eos_records"] = phase.params["eos_records"]
+    with pytest.raises(EosCalculationError, match="Invalid parameters"):
+        phase.compute_volume(pressure=20., temperature=1000.)
+
+
 def test_dioptas_loads_the_complete_peritheos_library():
     materials = eos.load_materials()
 
@@ -111,14 +160,13 @@ def test_phase_editor_type_changes_keep_canonical_component_models():
     custom_index = model.duplicate_eos_record(0, source_index)
 
     model.set_eos_type(0, "Vinet")
-    model.set_param(0, "thermal_parameters", {
+    model.set_thermal_type(0, "MieGruneisenDebye", parameters={
         "Tr": 298.15,
         "theta0": 170.0,
         "gamma0": 2.5,
         "q": 1.0,
         "n": 1.0,
     })
-    model.set_thermal_type(0, "MieGruneisenDebye")
     custom = phase.params["eos_records"][custom_index]
 
     assert custom["eos"]["model"] == "vinet"
@@ -156,6 +204,7 @@ def test_save_material_file_does_not_mutate_material(tmp_path):
 
 def test_all_materials_export_and_all_phase_records_can_be_duplicated(tmp_path):
     from ...model.util.phasesmith import material_has_diffraction_data
+    from ...model.eos.material import record_is_explicit_candidate
 
     for material in eos.load_materials():
         path = str(tmp_path / f"{material.identifier}.eosmat")
@@ -165,7 +214,8 @@ def test_all_materials_export_and_all_phase_records_can_be_duplicated(tmp_path):
             continue
         for index, record in enumerate(material.eos_records):
             phase = eos.build_jcpds(material, record_index=index, origin="bundled")
-            if record["scientific_validation"]["status"] != "primary_source_validated":
+            if (record["scientific_validation"]["status"] != "primary_source_validated"
+                    and not record_is_explicit_candidate(record)):
                 with pytest.raises(EosCalculationError, match="primary-source validation"):
                     phase.compute_d(20.0, 1000.0)
                 continue
@@ -274,6 +324,7 @@ def test_switching_to_deferred_record_preserves_active_phase_and_export(tmp_path
 @pytest.mark.parametrize("material_id", ["argon_fcc", "argon_hcp"])
 def test_peritheos_011_argon_records_calculate_and_round_trip(material_id, tmp_path):
     """New native models must preserve their source isotherms and metadata."""
+    from ...model.eos.material import record_is_explicit_candidate
     document = get_material_document(material_id)
     material = eos.Material.from_dict(document)
     exported = tmp_path / f"{material_id}.eosmat"
@@ -283,11 +334,17 @@ def test_peritheos_011_argon_records_calculate_and_round_trip(material_id, tmp_p
     for index, record in enumerate(document["eos_records"]):
         phase = eos.build_jcpds(restored, record_index=index, origin="bundled")
         assert phase.reflections
+        if (record["scientific_validation"]["status"] != "primary_source_validated"
+                and not record_is_explicit_candidate(record)):
+            with pytest.raises(EosCalculationError):
+                phase.compute_d(20., 300.)
+            continue
         temperature = record.get("temperature_ref", 298.15)
         p_min, p_max = record.get("experimental_pressure_range_gpa", [0, 2])
         pressure = (p_min + p_max) / 2
         expected_record = PeritheosMaterial.from_eosmat(
-            document, record_identifiers=[record["identifier"]]
+            document, record_identifiers=[record["identifier"]],
+            require_primary_validation=not record_is_explicit_candidate(record),
         ).eos_records[0]
         temperature = expected_record.reference_temperature
         expected = expected_record.volume(pressure, temperature, check_validity=False)

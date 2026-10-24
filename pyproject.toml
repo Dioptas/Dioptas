@@ -45,8 +45,8 @@ dependencies = [
     # (see dioptas/model/util/signal.py) — verify before raising
     "psygnal>=0.15.1,<0.16",
     # equation-of-state engine and audited bundled material library
-    # lower bound: verified material catalog and record APIs
-    "peritheos>=0.11.0,<1.0",
+    # Verified native EOSMAT v4 conversion and scoped assessment APIs.
+    "peritheos>=0.16.0,<0.17",
     # exact-symmetry reflection generation and structure-factor intensities
     # verified reflection/CIF APIs and conventional cubic HKL representatives
     "phasesmith>=0.7.0,<0.8",

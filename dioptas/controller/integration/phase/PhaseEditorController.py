@@ -3,9 +3,11 @@
 from copy import deepcopy
 from functools import partial
 import inspect
+from peritheos.errors import PeritheosError
 
 from ....model.util.eos_phase import (
     THERMAL_EOS_TYPES, thermal_parameter_signature,
+    NON_MOLAR_THERMAL_TYPES, thermal_parameter_defaults,
 )
 
 import numpy as np
@@ -299,20 +301,23 @@ class PhaseEditorController(QtCore.QObject):
         if key in THERMAL_EOS_TYPES:
             if key == self.phase_model.get_thermal_type(self.phase_ind):
                 return
-            # A different model has different coefficient meanings. Start from
-            # constructor defaults; required fitted coefficients remain blank.
-            parameters = {name: parameter.default for name, parameter in
-                          thermal_parameter_signature(key).items()
-                          if parameter.default is not inspect.Parameter.empty}
-            signature = thermal_parameter_signature(key)
-            if 'Tr' in signature and 'Tr' not in parameters:
-                parameters['Tr'] = self.jcpds_phase.params.get('t_ref') or 298.15
-            if key in ('MieGruneisenDebye', 'MieGruneisenEinstein'):
-                parameters.update(theta0=self.jcpds_phase.params['theta_t0'],
-                                  gamma0=self.jcpds_phase.params['gamma_t0'],
-                                  q=self.jcpds_phase.params['q_t0'])
-            self._apply_eos_edit(lambda: self.phase_model.set_thermal_type(
-                self.phase_ind, key, parameters=parameters))
+            phase_parameters = self.jcpds_phase.params
+            parameters = thermal_parameter_defaults(
+                key, {"V0": phase_parameters['v0'], "K0": phase_parameters['k0']},
+                n=phase_parameters.get('n'),
+                formula_units_per_cell=phase_parameters.get('zc'),
+                temperature_ref=phase_parameters.get('t_ref'))
+
+            def apply_model():
+                if key not in NON_MOLAR_THERMAL_TYPES:
+                    if phase_parameters.get('n') is None:
+                        phase_parameters['n'] = parameters.get('n', 1.)
+                    if not phase_parameters.get('zc'):
+                        phase_parameters['zc'] = 1
+                self.phase_model.set_thermal_type(
+                    self.phase_ind, key, parameters=parameters)
+
+            self._apply_eos_edit(apply_model)
             return
         if self.phase_model.get_thermal_type(self.phase_ind):
             if not self._apply_eos_edit(lambda: self.phase_model.set_thermal_type(self.phase_ind, '')):
@@ -330,7 +335,7 @@ class PhaseEditorController(QtCore.QObject):
         snapshot = self.phase_model._condition_snapshot(self.jcpds_phase)
         try:
             operation()
-        except (ArithmeticError, ValueError, RuntimeError) as error:
+        except (ArithmeticError, ValueError, RuntimeError, PeritheosError) as error:
             self.phase_model._restore_condition_snapshot(self.jcpds_phase, snapshot)
             self.jcpds_widget.update_eos_parameters(self.jcpds_phase)
             self.jcpds_widget.show_eos_error(str(error))
@@ -379,7 +384,10 @@ class PhaseEditorController(QtCore.QObject):
         self.phase_model.set_eos_reference(self.phase_ind, record_index)
 
     def _record_dialog(self, record, title):
-        dialog = EosRecordDialog(record, self.jcpds_widget, title=title)
+        dialog = EosRecordDialog(
+            record, self.jcpds_widget, title=title,
+            parameter_context={key: self.jcpds_phase.params.get(key)
+                               for key in ('n', 'z', 'zc')})
         if dialog.exec_() != QtWidgets.QDialog.Accepted:
             return None
         return dialog.record()
@@ -391,8 +399,8 @@ class PhaseEditorController(QtCore.QObject):
         record.setdefault('label', 'Custom EoS')
         edited = self._record_dialog(record, 'Add EoS Record')
         if edited is not None:
-            self.phase_model.add_eos_record(
-                self.phase_ind, edited, origin='custom')
+            self._apply_eos_edit(lambda: self.phase_model.add_eos_record(
+                self.phase_ind, edited, origin='custom'))
 
     def duplicate_eos_record(self):
         if self.phase_ind < 0:
@@ -407,8 +415,8 @@ class PhaseEditorController(QtCore.QObject):
         record['label'] = f"{record.get('label') or 'EoS record'} (custom)"
         edited = self._record_dialog(record, 'Duplicate as Custom EoS Record')
         if edited is not None:
-            self.phase_model.duplicate_eos_record(
-                self.phase_ind, index, edited)
+            self._apply_eos_edit(lambda: self.phase_model.duplicate_eos_record(
+                self.phase_ind, index, edited))
 
     def edit_eos_record(self):
         if self.phase_ind < 0:
@@ -424,8 +432,8 @@ class PhaseEditorController(QtCore.QObject):
             self.phase_ind, records[index])
         edited = self._record_dialog(live_record, 'Edit EoS Record')
         if edited is not None:
-            self.phase_model.update_eos_record(
-                self.phase_ind, index, edited)
+            self._apply_eos_edit(lambda: self.phase_model.update_eos_record(
+                self.phase_ind, index, edited))
 
     def delete_eos_record(self):
         if self.phase_ind < 0:

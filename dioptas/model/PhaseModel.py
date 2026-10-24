@@ -3,6 +3,7 @@
 import logging
 import os
 from copy import deepcopy
+from contextlib import contextmanager, nullcontext
 from math import isclose, pi
 
 import numpy as np
@@ -444,14 +445,17 @@ class PhaseModel:
         if param == 'thermal_parameters':
             self._require_thermal_compatibility(
                 phase.params['eos_type'], phase.params['thermal_type'], value)
-        phase.params[param] = value
-        if param in _STRUCTURE_PARAMS:
-            phase.compute_v0()
-            phase.compute_d0()
-        if param in _EOS_EDIT_PARAMS or param in _STRUCTURE_PARAMS:
-            self._sync_active_eos_record(ind)
-        phase.compute_d()
-        self.get_lines_d(ind)
+        transaction = (self._eos_record_transaction(ind)
+                       if param in _EOS_EDIT_PARAMS else nullcontext())
+        with transaction:
+            phase.params[param] = value
+            if param in _STRUCTURE_PARAMS:
+                phase.compute_v0()
+                phase.compute_d0()
+            if param in _EOS_EDIT_PARAMS or param in _STRUCTURE_PARAMS:
+                self._sync_active_eos_record(ind)
+            phase.compute_d()
+            self.get_lines_d(ind)
         self.phase_changed.emit(ind)
 
     def set_eos_type(self, ind: int, eos_type: str) -> None:
@@ -466,10 +470,11 @@ class PhaseModel:
         self._require_thermal_compatibility(
             eos_type, self.phases[ind].params['thermal_type'],
             self.phases[ind].params['thermal_parameters'])
-        self.phases[ind].params['eos_type'] = eos_type
-        self._sync_active_eos_record(ind)
-        self.phases[ind].compute_d()
-        self.get_lines_d(ind)
+        with self._eos_record_transaction(ind):
+            self.phases[ind].params['eos_type'] = eos_type
+            self._sync_active_eos_record(ind)
+            self.phases[ind].compute_d()
+            self.get_lines_d(ind)
         self.phase_changed.emit(ind)
 
     def get_eos_type(self, ind: int) -> str:
@@ -492,12 +497,13 @@ class PhaseModel:
         self._require_thermal_compatibility(
             phase.params['eos_type'], thermal_type,
             parameters if parameters is not None else phase.params['thermal_parameters'])
-        if parameters is not None:
-            phase.params['thermal_parameters'] = dict(parameters)
-        self.phases[ind].params['thermal_type'] = thermal_type
-        self._sync_active_eos_record(ind)
-        self.phases[ind].compute_d()
-        self.get_lines_d(ind)
+        with self._eos_record_transaction(ind):
+            if parameters is not None:
+                phase.params['thermal_parameters'] = dict(parameters)
+            self.phases[ind].params['thermal_type'] = thermal_type
+            self._sync_active_eos_record(ind)
+            self.phases[ind].compute_d()
+            self.get_lines_d(ind)
         self.phase_changed.emit(ind)
 
     @staticmethod
@@ -640,7 +646,31 @@ class PhaseModel:
         else:
             record.pop('thermal', None)
         record['temperature_ref'] = p.get('t_ref') or 298.15
+        if is_canonical_record and 'equation_kind' in record:
+            record['equation_kind'] = (
+                'thermal' if record.get('thermal') else
+                'hugoniot' if eos_type == 'LinearUsUpHugoniot' else 'isothermal')
         return record
+
+    @contextmanager
+    def _eos_record_transaction(self, ind: int):
+        """Keep failed record edits from changing the phase or its selection."""
+        phase = self.phases[ind]
+        snapshot = self._condition_snapshot(phase)
+        try:
+            yield
+        except Exception:
+            self._restore_condition_snapshot(phase, snapshot)
+            raise
+
+    @staticmethod
+    def _validate_record_document(document: dict, record: dict) -> None:
+        if (document.get('format') == 'peritheos.material'
+                and document.get('format_version') == 3):
+            from peritheos import Material as PeritheosMaterial
+            PeritheosMaterial.from_eosmat(
+                document, record_identifiers=[record['identifier']],
+                require_primary_validation=False)
 
     def _sync_active_eos_record(self, ind: int) -> None:
         """Keep an editable active record aligned with Phase Editor values."""
@@ -658,7 +688,7 @@ class PhaseModel:
                        origin: str = 'custom', select: bool = True) -> int:
         """Append a user-owned EoS record and optionally make it active."""
         phase = self.phases[ind]
-        records = list(phase.params['eos_records'])
+        records = deepcopy(phase.params['eos_records'])
         origins = list(phase.params.get('eos_record_origins') or [])
         origins.extend(
             str(phase.params.get('material_origin') or 'legacy')
@@ -671,20 +701,22 @@ class PhaseModel:
         document = {**(phase.params.get('material_document') or {}),
                     'eos_records': records}
         _complete_record_metadata(document)
+        self._validate_record_document(document, records[-1])
         origins.append(origin)
         new_index = len(records) - 1
-        phase.params['eos_records'] = records
-        phase.params['eos_record_origins'] = origins
-        phase.params['eos_records_modified'] = True
-        if len(records) == 1:
-            phase.params['eos_default_index'] = 0
-        if select:
-            phase.params['eos_current_index'] = new_index
-            from .eos import apply_eos_record
-            apply_eos_record(phase, records[new_index])
-            phase.compute_d()
-            self.get_lines_d(ind)
-        phase.params['modified'] = True
+        with self._eos_record_transaction(ind):
+            phase.params['eos_records'] = records
+            phase.params['eos_record_origins'] = origins
+            phase.params['eos_records_modified'] = True
+            if len(records) == 1:
+                phase.params['eos_default_index'] = 0
+            if select:
+                phase.params['eos_current_index'] = new_index
+                from .eos import apply_eos_record
+                apply_eos_record(phase, records[new_index])
+                phase.compute_d()
+                self.get_lines_d(ind)
+            phase.params['modified'] = True
         self.phase_changed.emit(ind)
         return new_index
 
@@ -696,14 +728,18 @@ class PhaseModel:
         if not 0 <= ref_ind < len(records):
             raise IndexError(ref_ind)
         records[ref_ind] = deepcopy(record)
-        phase.params['eos_records'] = records
-        phase.params['eos_records_modified'] = True
-        if phase.params['eos_current_index'] == ref_ind:
-            from .eos import apply_eos_record
-            apply_eos_record(phase, records[ref_ind])
-            phase.compute_d()
-            self.get_lines_d(ind)
-        phase.params['modified'] = True
+        document = {**(phase.params.get('material_document') or {}),
+                    'eos_records': records}
+        self._validate_record_document(document, records[ref_ind])
+        with self._eos_record_transaction(ind):
+            phase.params['eos_records'] = records
+            phase.params['eos_records_modified'] = True
+            if phase.params['eos_current_index'] == ref_ind:
+                from .eos import apply_eos_record
+                apply_eos_record(phase, records[ref_ind])
+                phase.compute_d()
+                self.get_lines_d(ind)
+            phase.params['modified'] = True
         self.phase_changed.emit(ind)
 
     def duplicate_eos_record(self, ind: int, ref_ind: int,
@@ -776,11 +812,12 @@ class PhaseModel:
         phase.params['eos_record_origins'] = origins
         phase.params['eos_records_modified'] = True
 
-        default_index = phase.params.get('eos_default_index') or 0
-        if default_index > ref_ind:
-            default_index -= 1
-        phase.params['eos_default_index'] = max(
-            0, min(default_index, len(records) - 1)) if records else 0
+        default_index = phase.params.get('eos_default_index', 0)
+        if default_index >= 0:
+            if default_index > ref_ind:
+                default_index -= 1
+            default_index = max(0, min(default_index, len(records) - 1)) if records else 0
+        phase.params['eos_default_index'] = default_index
 
         if records:
             current = max(0, min(ref_ind, len(records) - 1))
