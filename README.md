@@ -38,11 +38,16 @@ The executable versions are self-contained and do not need a Python installation
 Under Windows and Linux the program can be started by running the executable (e.g. Dioptas.exe or Dioptas).
 On macOS, open the `.dmg` and drag Dioptas to Applications. A `.tar.gz` archive of the application is also available.
 
-If macOS shows a warning that the app "cannot be verified", you need to remove the quarantine attribute by running the following command in the Terminal:
+Signed and notarized releases use macOS's normal first-launch confirmation.
+Older releases and ordinary branch builds may show a warning that the app
+"cannot be verified". For those builds, remove the quarantine attribute in Terminal:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/Dioptas_*.app
 ```
+
+Maintainers: see the [macOS signing setup guide](installer/macos/README.md) for
+certificate creation, GitHub secrets, and a signed test build before releasing.
 
 ### Python Package
 

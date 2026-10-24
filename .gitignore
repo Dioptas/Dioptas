@@ -188,5 +188,10 @@ $RECYCLE.BIN/
 # Mac desktop service store files
 .DS_Store
 
+# Apple signing credentials must never be committed.
+*.p12
+*.p8
+*.keychain-db
+
 .vscode/
 __pycache__/

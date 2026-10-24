@@ -30,6 +30,11 @@ pristine_sys_module = list(sys.modules.keys())
 
 folder = os.getcwd()
 
+# PyInstaller signs collected libraries as well as the executable and bundle.
+# A real identity enables hardened runtime and secure timestamps. Without an
+# identity, local and ordinary branch builds retain PyInstaller's ad-hoc signing.
+codesign_identity = os.environ.get("DIOPTAS_CODESIGN_IDENTITY") if _platform == "darwin" else None
+
 import PyQt6 # needs to be imported before qt_material
 import qt_material
 import pyFAI
@@ -132,6 +137,7 @@ exe = EXE(
     upx=False,
     console=False,
     icon="dioptas/resources/icons/icon.ico",
+    codesign_identity=codesign_identity,
 )
 
 coll = COLLECT(

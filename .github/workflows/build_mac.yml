@@ -5,12 +5,22 @@ name: CD_MACOS
 on:
   push:
     branches: ['**']
+  workflow_dispatch:
+    inputs:
+      sign_and_notarize:
+        description: Sign with Developer ID and notarize (requires Apple secrets)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   build_macos:
     # The type of runner that the job will run on
     runs-on: macos-latest
+    timeout-minutes: 120
     env:
       folder_name: 'DioptasMac'
       DIOPTAS_REQUIRE_C_EXT: "1"
@@ -33,6 +43,16 @@ jobs:
       with:
         python-version: '3.13'
         cache: 'pip'
+
+    - name: Set up Developer ID signing and notarization
+      if: ${{ github.event_name == 'workflow_dispatch' && inputs.sign_and_notarize }}
+      run: python installer/macos/signing.py setup
+      env:
+        MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+        MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        APPLE_ID: ${{ secrets.APPLE_ID }}
+        APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
 
     - name: Install uv
       run: python -m pip install --upgrade pip uv
@@ -72,14 +92,13 @@ jobs:
         echo "Found C extension in bundle:"
         echo "$matches"
 
-    # - name: Clean Up Executable Folder
-    #   run: |
-    #     cd dist/Dioptas*.app
-    #     cd Contents/Resources
-    #     rm libopenblas.0.dylib
-
     - name: Ad-hoc Codesign App Bundle
+      if: ${{ env.DIOPTAS_CODESIGN_IDENTITY == '' }}
       run: codesign --force --deep --sign - dist/Dioptas*.app
+
+    - name: Verify Developer ID signature
+      if: ${{ env.DIOPTAS_CODESIGN_IDENTITY != '' }}
+      run: python installer/macos/signing.py verify dist/Dioptas*.app
 
     - name: Run Dioptas Executable
       run: |
@@ -87,33 +106,39 @@ jobs:
         cd Contents/MacOS
         ./run_dioptas test
 
+    - name: Notarize and staple app before packaging
+      if: ${{ env.DIOPTAS_CODESIGN_IDENTITY != '' }}
+      run: python installer/macos/signing.py notarize dist/Dioptas*.app
+
     - name: Create tar archive to preserve symlinks
       run: |
         cd dist
         tar -czf DioptasMac.tar.gz Dioptas*.app
 
+    - name: Create DMG
+      if: ${{ env.DIOPTAS_CODESIGN_IDENTITY != '' }}
+      run: bash installer/macos/create_dmg.sh
+
+    - name: Sign, notarize and staple DMG
+      if: ${{ env.DIOPTAS_CODESIGN_IDENTITY != '' }}
+      run: python installer/macos/signing.py notarize dist/Dioptas_MacOS.dmg
+
     - name: Upload Compressed App as Artifact to GitHub
       uses: actions/upload-artifact@v7
       with:
         name: DioptasMac
-        path: dist/DioptasMac.tar.gz
+        path: |
+          dist/DioptasMac.tar.gz
+          dist/Dioptas_MacOS.dmg
 
-#     DROPBOX UPLOAD
-#     disabled for now, since we can use the GitHub artifacts
-#    - name: Compress App
-#      run: |
-#        cd dist
-#        export DIOPTAS_FOLDER=$(ls | grep Dioptas*.app)
-#        echo $DIOPTAS_FOLDER
-#        zip -r $DIOPTAS_FOLDER.zip $DIOPTAS_FOLDER
-#        du -sh $DIOPTAS_FOLDER.zip
+    - name: Upload notarization logs
+      if: ${{ always() && env.DIOPTAS_CODESIGN_IDENTITY != '' }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: macos-notarization-logs
+        path: dist/notarization/
+        if-no-files-found: ignore
 
-#    - name: Upload Compressed App to Dropbox
-#      env:
-#        DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
-#      run: |
-#        pip install dropbox
-#        cd dist
-#        export compressedFile=$(ls | grep .zip)
-#        export targetFile='/develop/macos/'$compressedFile
-#        python ../scripts/dropbox_upload.py $compressedFile $targetFile
+    - name: Remove signing keychain and credentials
+      if: always()
+      run: python installer/macos/signing.py cleanup

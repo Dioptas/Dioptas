@@ -13,9 +13,10 @@ catalog; no separate Python installation is needed.
   ``Dioptas.exe``. Keep the executable with its accompanying folders.
 - **macOS (Apple silicon):** open the DMG and drag the application to
   Applications, or unpack the application archive. Intel Mac users can use the
-  Python package below. If macOS blocks an application you downloaded from the
-  official release, remove its quarantine attribute in Terminal, adjusting the
-  path to the application you installed::
+  Python package below. Signed and notarized releases use macOS's normal
+  first-launch confirmation. Older releases and ordinary branch builds may
+  require removing the quarantine attribute in Terminal, adjusting the path
+  to the application you installed::
 
       xattr -dr com.apple.quarantine /Applications/Dioptas_*.app
 
