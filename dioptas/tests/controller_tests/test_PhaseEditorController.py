@@ -315,6 +315,7 @@ class PhaseEditorControllerTest(QtTest):
 
     def test_reference_pressure_legacy_export_shows_an_explanation(self):
         from tempfile import TemporaryDirectory
+        from unittest.mock import patch
 
         cb = self.jcpds_widget.eos_type_cb
         cb.setCurrentIndex(cb.findData('BM2Reference'))

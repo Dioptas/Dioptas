@@ -8,6 +8,9 @@ on:
 permissions:
   contents: write
 
+env:
+  DIOPTRIN_RELEASE: "v0.6.1"
+
 jobs:
   build_linux:
     runs-on: ubuntu-latest
@@ -46,8 +49,9 @@ jobs:
         DIOPTRIN_TOKEN: ${{ secrets.DIOPTRIN_TOKEN }}
         GH_TOKEN: ${{ secrets.DIOPTRIN_TOKEN }}
       run: |
-        gh release download --repo CPrescher/Dioptrin --pattern "*cp313*manylinux*x86_64*.whl" --dir /tmp/dioptrin_wheels
+        gh release download "$DIOPTRIN_RELEASE" --repo CPrescher/Dioptrin --pattern "*cp313*manylinux*x86_64*.whl" --dir /tmp/dioptrin_wheels
         uv pip install /tmp/dioptrin_wheels/*.whl
+        uv run python -c "import os; from importlib.metadata import version; actual = version('dioptrin'); expected = os.environ['DIOPTRIN_RELEASE'].removeprefix('v'); assert actual == expected, f'Expected Dioptrin {expected}, got {actual}'; print(f'Dioptrin {actual}')"
 
     - name: Install PyInstaller
       run: uv pip install pyinstaller
@@ -122,8 +126,9 @@ jobs:
         DIOPTRIN_TOKEN: ${{ secrets.DIOPTRIN_TOKEN }}
         GH_TOKEN: ${{ secrets.DIOPTRIN_TOKEN }}
       run: |
-        gh release download --repo CPrescher/Dioptrin --pattern "*cp313*win*.whl" --dir "${{ runner.temp }}/dioptrin_wheels"
+        gh release download "$DIOPTRIN_RELEASE" --repo CPrescher/Dioptrin --pattern "*cp313*win*.whl" --dir "${{ runner.temp }}/dioptrin_wheels"
         uv pip install "${{ runner.temp }}"/dioptrin_wheels/*.whl
+        uv run python -c "import os; from importlib.metadata import version; actual = version('dioptrin'); expected = os.environ['DIOPTRIN_RELEASE'].removeprefix('v'); assert actual == expected, f'Expected Dioptrin {expected}, got {actual}'; print(f'Dioptrin {actual}')"
 
     - name: Install PyInstaller
       run: uv pip install pyinstaller
@@ -219,8 +224,9 @@ jobs:
         DIOPTRIN_TOKEN: ${{ secrets.DIOPTRIN_TOKEN }}
         GH_TOKEN: ${{ secrets.DIOPTRIN_TOKEN }}
       run: |
-        gh release download --repo CPrescher/Dioptrin --pattern "*cp313*arm64*.whl" --dir /tmp/dioptrin_wheels
+        gh release download "$DIOPTRIN_RELEASE" --repo CPrescher/Dioptrin --pattern "*cp313*arm64*.whl" --dir /tmp/dioptrin_wheels
         uv pip install /tmp/dioptrin_wheels/*.whl
+        uv run python -c "import os; from importlib.metadata import version; actual = version('dioptrin'); expected = os.environ['DIOPTRIN_RELEASE'].removeprefix('v'); assert actual == expected, f'Expected Dioptrin {expected}, got {actual}'; print(f'Dioptrin {actual}')"
 
     - name: Install PyInstaller
       run: uv pip install pyinstaller
