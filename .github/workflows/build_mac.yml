@@ -11,13 +11,36 @@ on:
         description: Sign with Developer ID and notarize (requires Apple secrets)
         type: boolean
         default: true
+      notarization_status_only:
+        description: Only query Apple's recent submissions (do not build or submit)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
+  notarization_status:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.notarization_status_only }}
+    runs-on: macos-latest
+    timeout-minutes: 5
+    steps:
+    - name: Query Apple notarization history
+      env:
+        APPLE_ID: ${{ secrets.APPLE_ID }}
+        APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      run: |
+        : "${APPLE_ID:?Missing APPLE_ID secret}"
+        : "${APPLE_TEAM_ID:?Missing APPLE_TEAM_ID secret}"
+        : "${APPLE_APP_SPECIFIC_PASSWORD:?Missing APPLE_APP_SPECIFIC_PASSWORD secret}"
+        xcrun notarytool history --apple-id "$APPLE_ID" \
+          --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+          --output-format json
+
   build_macos:
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.notarization_status_only) }}
     # The type of runner that the job will run on
     runs-on: macos-latest
     timeout-minutes: 120

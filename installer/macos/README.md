@@ -156,6 +156,18 @@ and rejection details when Apple provides them. A submission must return
 fails the build; Apple may still be processing that submission, so inspect its
 ID before submitting another build. First submissions can take longer.
 
+To inspect Apple's recent submissions without building or uploading anything,
+run the status-only check:
+
+```sh
+gh workflow run build_mac.yml --repo Dioptas/Dioptas \
+  --ref BRANCH_WITH_SIGNING -f notarization_status_only=true
+```
+
+Its `notarization_status` job prints submission IDs and their current status.
+The build job is skipped in this mode, so it can run while another build waits
+for notarization.
+
 Tagged releases use the same signing path and fail if any secret is missing,
 the P12 is invalid, its team differs, notarization fails or times out, or
 signature/Gatekeeper checks fail. They cannot silently publish an ad-hoc macOS
