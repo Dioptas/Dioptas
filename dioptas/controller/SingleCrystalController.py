@@ -85,7 +85,7 @@ class SingleCrystalController:
         widget.series_progress.connect(self._series_progress)
         widget.frame_slider.valueChanged.connect(self.browse_frame)
         widget.table_view.selectionModel().selectionChanged.connect(
-            self.show_position_track
+            self.select_position
         )
         widget.export_button.clicked.connect(self.export)
         for item in widget.parameter_widgets():
@@ -146,12 +146,6 @@ class SingleCrystalController:
         self.widget.cell_export_button.setEnabled(False)
         self.widget.table_model.set_result(None)
         self.widget.position_table_model.set_result(None)
-        self.widget.position_plot.clear()
-        self.widget.position_plot.hide()
-        self.widget.position_track_label.setText(
-            "Select a spot row in the Positions tab to inspect its motion across frames."
-        )
-        self.widget.position_track_label.setVisible(self.series is not None)
         self.widget.spot_overlay.clear()
         self.widget.export_button.setEnabled(False)
         self._set_ready()
@@ -322,8 +316,6 @@ class SingleCrystalController:
         slider.setEnabled(True)
         slider.blockSignals(False)
         self.widget.update_frame_buttons()
-        self.widget.position_plot.hide()
-        self.widget.position_track_label.show()
         self.widget.detect_button.setText("Find 3D positions")
         self.widget.export_button.setText("Export positions…")
         self.widget.measurement_note.setText(
@@ -356,8 +348,7 @@ class SingleCrystalController:
         except Exception as exc:
             self.widget.status_label.setText(f"Could not open series: {exc}")
 
-    def show_position_track(self, *_):
-        self.widget.position_plot.hide()
+    def select_position(self, *_):
         if not isinstance(self.result, SeriesPositions):
             return
         selected = self.widget.table_view.selectionModel().selectedRows()
@@ -366,16 +357,7 @@ class SingleCrystalController:
         track = selected[0].row()
         rows = self.result.table.observations
         rows = rows[rows[:, 0] == track]
-        plot = self.widget.position_plot
-        plot.clear()
-        self.widget.position_track_label.setText(
-            f"Spot {track + 1}: detector coordinates across frames · position, not intensity"
-        )
-        plot.plot(rows[:, 4], rows[:, 2], pen="y", symbol="o", name="x position")
-        plot.plot(rows[:, 4], rows[:, 3], pen="c", symbol="o", name="y position")
         if len(rows):
-            plot.show()
-            plot.getViewBox().autoRange()
             self.widget.frame_slider.setValue(int(rows[len(rows) // 2, 1]))
 
     def _task(self):
@@ -539,14 +521,14 @@ class SingleCrystalController:
             if self.widget.table_view.model() is not model:
                 self.widget.table_view.setModel(model)
                 self.widget.table_view.selectionModel().selectionChanged.connect(
-                    self.show_position_track
+                    self.select_position
                 )
             self._plot_frame_positions(self.widget.frame_slider.value())
             self.widget.export_button.setEnabled(True)
             self.widget.cell_button.setEnabled(True)
             self.widget.status_label.setText(
                 f"{len(table)} position candidates · {len(table.observations)} frame observations · "
-                f"{np.count_nonzero(table.flags)} flagged. Select a row to inspect its trajectory. "
+                f"{np.count_nonzero(table.flags)} flagged. Select a row to show its frame. "
                 "No unit cell, symmetry or integrated intensities have been determined."
             )
             return

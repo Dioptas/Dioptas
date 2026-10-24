@@ -7,7 +7,6 @@ import pyqtgraph as pg
 from qtpy import QtCore, QtWidgets
 
 from .plot_widgets import MaskImgWidget
-from .plot_widgets.PatternMouseViewBox import PatternMouseViewBox
 from ..model.single_crystal import quality_labels
 
 
@@ -139,21 +138,6 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         self.frame_slider.rangeChanged.connect(self.update_frame_buttons)
         self.update_frame_buttons()
         viewer_layout.addLayout(frame_controls)
-        self.position_track_label = QtWidgets.QLabel(
-            "Select a spot row in the Positions tab to inspect its motion across frames."
-        )
-        self.position_track_label.hide()
-        viewer_layout.addWidget(self.position_track_label)
-        self.position_plot = pg.PlotWidget(viewBox=PatternMouseViewBox())
-        self.position_plot.setLabel("bottom", "Omega", units="°")
-        self.position_plot.setLabel("left", "Detector position", units="px")
-        self.position_plot.setTitle(
-            "Selected spot · detector motion across rotation frames"
-        )
-        self.position_plot.addLegend()
-        self.position_plot.setMaximumHeight(180)
-        self.position_plot.hide()
-        viewer_layout.addWidget(self.position_plot)
         splitter.addWidget(viewer)
 
         controls = QtWidgets.QWidget()

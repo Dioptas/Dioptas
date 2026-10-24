@@ -90,8 +90,7 @@ Source sidecars and any user override remain in exported provenance.
 
 The slider browses the whole run with exposure start/end and midpoint readouts.
 The position table lists x, y, omega, detected omega RMS, observation count and
-quality. Selecting a row plots its detected x/y trajectory against omega and
-shows a frame from that candidate. Frame browsing preserves results; changing
+quality. Selecting a row shows a frame from that candidate. Frame browsing preserves results; changing
 mask, orientation, configuration or detection settings invalidates them. Work
 runs in the existing single-worker queue, reports frame progress and discards
 stale results. Only one detector image is read at a time.
@@ -256,7 +255,7 @@ files and stop at the ends. Numeric gaps remain angular gaps. Other run prefixes
 are excluded. Browsing keeps the detected positions and cell results.
 
 The experimental sidebar has separate Series, Detection, Cell, Predictions and
-Positions tabs. The trajectory and all six residual plots share pattern-style
+Positions tabs. All six residual plots share pattern-style
 controls: left-drag rectangle zoom, right/Ctrl-left drag pan, right/Ctrl-left click
 zoom out, double right/Ctrl-left click reset, and wheel zoom bounded by the data
 extent. Bounds include all plotted populations, excluding reference lines.
@@ -283,9 +282,3 @@ Shared file helpers also disable custom directory-icon lookup. The behavior is
 unchanged by default on Windows/Linux, and no system services or saved settings
 are modified. `DIOPTAS_QT_FILE_DIALOGS=1` explicitly enables the same fallback for
 ordinary mode in this checkout. See [Qt file-dialog options](https://doc.qt.io/qt-6/qfiledialog.html#Option-enum).
-
-
-The plot beneath the image appears after selecting a row in **Positions**. It
-shows that one linked spot's detector x (yellow) and y (cyan) coordinates against
-omega over its observed frames. It helps inspect linking and spot motion; it is
-not an intensity or rocking-curve plot. It remains hidden before selection.

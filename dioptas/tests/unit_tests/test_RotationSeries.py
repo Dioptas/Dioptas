@@ -110,21 +110,16 @@ def test_ui_browsing_preserves_positions_and_settings_invalidate(qapp, tmp_path)
         result = sc.result
         assert result is not None and len(result.table) == 1
         assert w.table_view.model() is w.position_table_model
-        assert w.position_plot.isHidden()
         w.frame_slider.setValue(2)
         assert sc.result is result
         assert "midpoint -3.75" in w.frame_label.text()
         assert len(w.spot_overlay.getData()[0]) == 1
+        w.frame_slider.setValue(0)
         w.table_view.selectRow(0)
-        assert len(w.position_plot.listDataItems()) == 2
-        assert not w.position_plot.isHidden()
-        assert {item.name() for item in w.position_plot.listDataItems()} == {
-            "x position",
-            "y position",
-        }
+        assert w.frame_slider.value() == 2
+        assert sc.result is result
         w.threshold.setValue(6)
         assert sc.result is None
-        assert w.position_plot.isHidden()
         assert not w.export_button.isEnabled()
     finally:
         c.widget.close()
