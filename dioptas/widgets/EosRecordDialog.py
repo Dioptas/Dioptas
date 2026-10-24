@@ -293,6 +293,12 @@ class EosRecordDialog(QtWidgets.QDialog):
         }
 
         eos_type = self.eos_type_cb.currentData() or "BM3"
+        reference_note = (
+            " V0 and K0 are defined at reference pressure P0; K' at P0 is fixed to 4."
+            if eos_type == "BM2Reference" else "")
+        self.defaults_label.setText(
+            "New coefficients use editable starting estimates. Review them for your material."
+            + reference_note)
         # Some catalog models have a characteristic volume rather than V0.
         # Preserve their actual parameter table without inventing a coefficient.
         needs_v0 = (eos_type in RT_EOS_TYPES
@@ -333,6 +339,12 @@ class EosRecordDialog(QtWidgets.QDialog):
             scope_item.setData(QtCore.Qt.UserRole, scope)
             scope_item.setFlags(scope_item.flags() & ~QtCore.Qt.ItemIsEditable)
             name_item = QtWidgets.QTableWidgetItem(name)
+            if scope == "EoS" and eos_type == "BM2Reference":
+                name_item.setToolTip({
+                    "V0": "Reference volume at P0, not necessarily at zero pressure.",
+                    "K0": "Bulk modulus at reference pressure P0.",
+                    "P0": "Reference pressure in GPa, defining V0 and K0.",
+                }.get(name, ""))
             state_key = ((scope, thermal_type, name) if scope == "Thermal"
                          else (scope, name))
             name_item.setData(QtCore.Qt.UserRole, state_key)

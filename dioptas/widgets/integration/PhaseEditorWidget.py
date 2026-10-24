@@ -175,6 +175,10 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         self._eos_layout.addWidget(self.eos_type_cb, 0, 1, 1, 2)
 
         self.eos_K_txt = NumberTextField()
+        self.eos_P0_txt = NumberTextField()
+        self.eos_P0_txt.setToolTip(
+            'Reference pressure: V0 and K0 are defined at this pressure. '
+            "BM2Reference fixes K' at the reference state to 4.")
         self.eos_Kp_txt = NumberTextField()
         self.eos_Kpp_txt = NumberTextField()
         self.eos_n_txt = NumberTextField()
@@ -246,6 +250,8 @@ class PhaseEditorWidget(QtWidgets.QWidget):
             self._add_thermal_param_row(
                 'sokolova_' + parameter, field, label, unit, row)
 
+        self._add_eos_param_row('P0', self.eos_P0_txt, 'P<sub>ref</sub>:',
+                                'GPa', self._eos_layout.rowCount())
         self._configure_thermal_fields()
         self.eos_calculation_status_lbl = QtWidgets.QLabel()
         self.eos_calculation_status_lbl.setWordWrap(True)
@@ -591,7 +597,7 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         """Lock the calculation fields when a bundled record is active."""
         widgets = [
             self.eos_type_cb, self.thermal_type_cb,
-            self.eos_K_txt, self.eos_Kp_txt, self.eos_Kpp_txt,
+            self.eos_K_txt, self.eos_Kp_txt, self.eos_Kpp_txt, self.eos_P0_txt,
             self.eos_n_txt, self.eos_z_txt, self.eos_zc_txt,
             self.eos_alphaT_txt, self.eos_dalphadT_txt,
             self.eos_dKdT_txt, self.eos_dKpdT_txt,
@@ -679,6 +685,7 @@ class PhaseEditorWidget(QtWidgets.QWidget):
     def update_eos_parameters(self, jcpds_phase):
         self.set_eos_type(str(jcpds_phase.params.get('eos_type') or 'BM3'))
         self.eos_K_txt.setText(str(jcpds_phase.params['k0']))
+        self.eos_P0_txt.setText(str(jcpds_phase.params.get('p0', 0.0)))
         self.eos_Kp_txt.setText(str(jcpds_phase.params['k0p']))
         self.eos_Kpp_txt.setText(str(jcpds_phase.params.get('k0pp0') or 0.0))
         for field, key in ((self.eos_n_txt, 'n'), (self.eos_z_txt, 'z'),

@@ -122,6 +122,8 @@ class CrystalState:
     #: JCPDS files imply 3rd-order Birch-Murnaghan; phases from the EoS
     #: database carry their own.
     eos_type: str = "BM3"
+    #: Pressure in GPa at which BM2Reference defines V0 and K0.
+    p0: float = 0.0
     #: Holzapfel only: atoms per chemical formula (n), summed/effective atomic
     #: number parameter of the formula (z), and formula units per unit cell (zc,
     #: the crystallographic Z). Set for material-backed phases; None for
@@ -201,13 +203,17 @@ class CrystalState:
             })
             self.eos_records = document.pop("eos_records")
             self.material_document = document
+        if 0 <= self.eos_current_index < len(self.eos_records):
+            eos = self.eos_records[self.eos_current_index].get("eos") or {}
+            if eos.get("type") == "BM2Reference":
+                self.p0 = eos["parameters"]["P0"]
 
 
 #: state keys whose direct edit marks the phase as modified (the asterisk)
 _FLAGGING_KEYS = frozenset(
     ["comments", "a0", "b0", "c0", "alpha0", "beta0", "gamma0", "symmetry",
      "k0", "k0p0", "k0pp0", "dk0dt", "dk0pdt", "alpha_t0", "d_alpha_dt",
-     "reflections", "eos_type",
+     "reflections", "eos_type", "p0",
      "thermal_type", "thermal_parameters", "theta_t0", "gamma_t0",
      "q_t0", "t_ref"]
 )
@@ -532,6 +538,10 @@ class jcpds:
            j.read_file('alumina_old.jcpds')
            j.write_file('alumina_new.jcpds')
         """
+        if self.params['eos_type'] == 'BM2Reference' and self.params['p0'] != 0:
+            raise ValueError(
+                "JCPDS cannot preserve a nonzero reference pressure. "
+                "Save this BM2Reference phase as an .eosmat material instead.")
         fp = open(filename, 'w')
         fp.write('VERSION:   4\n')
         for comment in self.params['comments']:

@@ -19,7 +19,7 @@ from .test_EosPhase import GOLD, GOLD_SOKOLOVA
 def test_composable_thermal_models_roundtrip(reference, thermal):
     parameters = ({'Tr': 298.15, 'alpha0': 3e-5, 'dK_dT': -.01}
                   if thermal == 'AlphaKT' else GOLD_SOKOLOVA)
-    engine = EosPhase(reference, {**GOLD, 'K0_double_prime': -.04},
+    engine = EosPhase(reference, {**GOLD, 'K0_double_prime': -.04, 'P0': 32.7},
                       n=1, z=79, formula_units_per_cell=4,
                       thermal_type=thermal, thermal_parameters=parameters)
     volume = engine.volume(20., 1000.)
@@ -77,7 +77,7 @@ def test_incompatible_alphakt_edit_does_not_mutate_record():
 @pytest.mark.parametrize('reference', RT_EOS_TYPES)
 def test_compatibility_checks_agree_with_peritheos(reference):
     cls = getattr(rt, reference)
-    values = {**GOLD, 'K0_double_prime': -.04, 'n': 1., 'Z': 79.}
+    values = {**GOLD, 'K0_double_prime': -.04, 'P0': 32.7, 'n': 1., 'Z': 79.}
     base = cls(**{name: values[name] for name in inspect.signature(cls).parameters})
     diamond = get_material_document('diamond')
     double_parameters = next(r['thermal']['parameters'] for r in diamond['eos_records']

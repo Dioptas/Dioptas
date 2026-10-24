@@ -11,6 +11,10 @@ Their changes are included here; the previous published release is 0.10.0. -->
 
 ## Improvements
 
+- Updated the material library and calculation engine to Peritheos 0.17.0.
+  BM2Reference retains its nonzero reference pressure in calculations, editing,
+  material files and projects; legacy JCPDS export cannot discard that pressure.
+
 - Extended the Python compatibility range through 3.15, with backend and
   controller CI on 3.14 and 3.15 and wheel builds for both. Python 3.15 is
   currently a prerelease and requires source builds for several dependencies.
