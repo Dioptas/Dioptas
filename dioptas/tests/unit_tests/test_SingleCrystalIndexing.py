@@ -200,3 +200,80 @@ def test_controller_search_result_keeps_positions_and_invalidates(qapp, tmp_path
         assert sc.cell_result is None and not sc.widget.cell_export_button.isEnabled()
     finally:
         controller.widget.close()
+
+
+def test_fft_grain_backend_and_full_candidate_exports(tmp_path):
+    from phasesmith.experimental.grains import GrainSearchOptions
+
+    positions, geometry, volume = synthetic_tracks()
+    result = find_cells(
+        positions,
+        [(1, geometry, {})],
+        options=GrainSearchOptions(max_length=15, grid_size=128, max_grains=3),
+        backend="fft_grains",
+    )
+    search = result.reports[0][2]
+    assert search.method == "fft_grains" and search.candidates[0].accepted
+    assert search.candidates[0].volume == pytest.approx(volume, rel=0.001)
+    files = export_cells(result, tmp_path / "grains.json")
+    metadata = json.loads(files[0].read_text())
+    assert metadata["backend"] == "fft_grains"
+    assert metadata["reports"][0]["diagnostics"]
+    assert len(files) == 1 + len(search.candidates)
+    assert "SFSCXRD" not in cell_summary(result)
+
+
+def test_table_all_candidates_sorted_selection_and_failed_gate(qapp):
+    from dataclasses import replace
+    from qtpy import QtCore
+    from dioptas.controller.MainController import MainController
+    from dioptas.model.single_crystal_refinement import preferred_candidate
+
+    positions, geometry, _ = synthetic_tracks()
+    result = find_cells(
+        positions,
+        [(1, geometry, {})],
+        options=IndexingOptions(max_length=15, grid_size=128),
+    )
+    sign, corrected, search = result.reports[0]
+    first = search.candidates[0]
+    # More rows than the former five-row cap, including an explicitly failed model.
+    candidates = tuple(replace(first, accepted=i != 6) for i in range(7))
+    result = replace(
+        result, reports=((sign, corrected, replace(search, candidates=candidates)),)
+    )
+    c = MainController(
+        use_settings=False, run_async_processing=False, experimental_single_crystal=True
+    )
+    try:
+        sc, w = c.single_crystal_controller, c.widget.single_crystal_widget
+        sc.result = positions
+        sc._show_result(result, sc._generation)
+        assert w.cell_table_model.rowCount() == 7
+        w.cell_table.sortByColumn(0, QtCore.Qt.DescendingOrder)
+        w.cell_table.selectRow(0)
+        assert sc.cell_selection == (sign, 6)
+        assert not w.refine_button.isEnabled()
+        with pytest.raises(ValueError, match="held-out"):
+            preferred_candidate(result, sc.cell_selection)
+        w.cell_table.selectRow(1)
+        assert sc.cell_selection == (sign, 5)
+        assert w.refine_button.isEnabled()
+        assert preferred_candidate(result, sc.cell_selection)[1] == 5
+        sc.invalidate()
+        assert sc.cell_selection is None and w.cell_table_model.rowCount() == 0
+        assert not w.cell_table_button.isEnabled()
+    finally:
+        c.widget.close()
+
+
+def test_search_dialog_public_naming(qapp):
+    from dioptas.widgets.CellSearchDialog import CellSearchDialog
+
+    dialog = CellSearchDialog()
+    try:
+        assert dialog.backend.currentText() == "FFT grain search"
+        dialog.backend.setCurrentIndex(1)
+        assert not dialog.max_grains.isEnabled()
+    finally:
+        dialog.close()

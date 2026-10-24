@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           repository: CPrescher/PhaseSmith
-          ref: 259f93ad10dc730b536120e0ef72a1a28b20f0b8
+          ref: 3221097ed1df37fbf669f30d7ca9cb647df5dd60
           path: experimental-backend
       - uses: actions/setup-python@v7
         with:

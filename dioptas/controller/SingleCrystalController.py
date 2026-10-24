@@ -54,6 +54,7 @@ class SingleCrystalController:
         self.widget, self.model = widget, model
         self.result = None
         self.cell_result = None
+        self.cell_selection = None
         self.refinement_result = None
         self._residual_dialog = None
         self.cell_calibration_filename = ""
@@ -77,6 +78,7 @@ class SingleCrystalController:
             self._runner.succeeded.connect(self._succeeded)
             self._runner.failed.connect(self._failed)
         widget.detect_button.clicked.connect(self.detect)
+        widget.cell_table.selectionModel().selectionChanged.connect(self._cell_selected)
         widget.cell_button.clicked.connect(self.index_cells)
         widget.cell_export_button.clicked.connect(self.export_cell_candidates)
         widget.refine_button.clicked.connect(lambda: self.refine_positions())
@@ -228,7 +230,11 @@ class SingleCrystalController:
         self._stop_preview()
         self.result = None
         self.cell_result = None
+        self.cell_selection = None
         self._clear_refinement()
+        self.widget.cell_table_model.set_result(None)
+        self.widget.cell_table.hide()
+        self.widget.cell_table_button.setEnabled(False)
         self.widget.cell_summary.clear()
         self.widget.cell_summary.hide()
         self.widget.cell_export_button.setEnabled(False)
@@ -248,10 +254,11 @@ class SingleCrystalController:
         self.widget.cell_button.setEnabled(
             isinstance(self.result, SeriesPositions) and not busy and not self._closed
         )
+        self.widget.cell_table.setEnabled(not busy and not self._closed)
         can_refine = False
         if self.cell_result is not None:
             try:
-                preferred_candidate(self.cell_result)
+                preferred_candidate(self.cell_result, self.cell_selection)
                 can_refine = True
             except ValueError:
                 pass
@@ -597,8 +604,28 @@ class SingleCrystalController:
         if isinstance(result, CellSearchResult):
             self._clear_refinement()
             self.cell_result = result
+            self.widget.cell_table_model.set_result(result)
+            self.widget.cell_table.setVisible(bool(self.widget.cell_table_model.rows))
+            self.widget.cell_table_button.setEnabled(
+                bool(self.widget.cell_table_model.rows)
+            )
             self.widget.cell_summary.setPlainText(cell_summary(result))
             self.widget.cell_summary.show()
+            # Training-based default only; users can choose any displayed row.
+            try:
+                sign, index, _, _ = preferred_candidate(result)
+                source_row = next(
+                    i
+                    for i, row in enumerate(self.widget.cell_table_model.rows)
+                    if row[0] == (sign, index)
+                )
+            except ValueError:
+                source_row = 0
+            if self.widget.cell_table_model.rows:
+                mapped = self.widget.cell_table_proxy.mapFromSource(
+                    self.widget.cell_table_model.index(source_row, 0)
+                )
+                self.widget.cell_table.selectRow(mapped.row())
             self.widget.sections.setCurrentIndex(2)
             self.widget.cell_export_button.setEnabled(True)
             self._set_ready()
@@ -676,6 +703,7 @@ class SingleCrystalController:
             return
         try:
             from phasesmith.experimental.indexing import IndexingOptions
+            from phasesmith.experimental.grains import GrainSearchOptions
 
             filename = dialog.filename.text().strip()
             self.cell_calibration_filename = filename
@@ -689,13 +717,27 @@ class SingleCrystalController:
                     transformations=tuple(self.model.img_model.params.transformations),
                 )
                 geometries.append((sign, geometry, metadata))
-            options = IndexingOptions(max_length=dialog.maximum.value())
-            operation = partial(find_cells, self.result, geometries, options=options)
+            backend = dialog.backend.currentData()
+            options = (
+                GrainSearchOptions(
+                    max_length=dialog.maximum.value(),
+                    max_grains=dialog.max_grains.value(),
+                )
+                if backend == "fft_grains"
+                else IndexingOptions(max_length=dialog.maximum.value())
+            )
+            operation = partial(
+                find_cells, self.result, geometries, options=options, backend=backend
+            )
         except Exception as exc:
             self.widget.status_label.setText(f"Could not configure cell search: {exc}")
             return
         self.cell_result = None
+        self.cell_selection = None
         self._clear_refinement()
+        self.widget.cell_table_model.set_result(None)
+        self.widget.cell_table.hide()
+        self.widget.cell_table_button.setEnabled(False)
         self.widget.cell_summary.clear()
         self.widget.cell_export_button.setEnabled(False)
         generation = self._generation
@@ -712,6 +754,27 @@ class SingleCrystalController:
                 "Correcting geometry and searching for a cell…"
             )
 
+    def _cell_selected(self, *_):
+        index = self.widget.cell_table.currentIndex()
+        selection = index.data(QtCore.Qt.UserRole) if index.isValid() else None
+        if selection == self.cell_selection:
+            return
+        self.cell_selection = selection
+        self._clear_refinement()
+        if selection is not None and self.cell_result is not None:
+            sign, number = selection
+            search = next(r[2] for r in self.cell_result.reports if r[0] == sign)
+            candidate = search.candidates[number]
+            self.widget.cell_summary.setPlainText(
+                f"Candidate {number + 1}, axis {sign:+d}: {'passes' if candidate.accepted else 'fails'} held-out checks.\n"
+                f"Angles: {candidate.cell[3]:.3f}, {candidate.cell[4]:.3f}, {candidate.cell[5]:.3f}°; "
+                f"V={candidate.volume:.2f} Å³.\n"
+                f"Training {candidate.training_fraction:.1%}; held out {candidate.validation_fraction:.1%}; "
+                f"control ≤{candidate.null_fraction:.1%}.\n"
+                "Select a passing candidate for prediction/refinement. Cell symmetry and primitivity remain unproven."
+            )
+        self._set_ready()
+
     def refine_positions(self, *, symmetry="triclinic"):
         if (
             self.cell_result is None
@@ -722,6 +785,7 @@ class SingleCrystalController:
             return
         generation = self._generation
         positions, cells = self.result, self.cell_result
+        selection = self.cell_selection
         shape = self.model.img_model.raw_img_data.shape
         self._clear_refinement()
 
@@ -732,7 +796,12 @@ class SingleCrystalController:
         def operation():
             try:
                 return refine_positions(
-                    positions, cells, shape, progress=progress, symmetry=symmetry
+                    positions,
+                    cells,
+                    shape,
+                    progress=progress,
+                    symmetry=symmetry,
+                    selection=selection,
                 )
             except _SeriesCancelled:
                 return None

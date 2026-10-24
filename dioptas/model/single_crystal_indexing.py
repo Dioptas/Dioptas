@@ -98,13 +98,27 @@ class CellSearchResult:
     metadata: dict
 
 
-def find_cells(positions, geometries, *, options=None):
+def find_cells(positions, geometries, *, options=None, backend=None):
     from phasesmith.experimental.reciprocal import correct_positions
     from phasesmith.experimental.indexing import find_lattices, IndexingOptions
     from phasesmith import _core
     from phasesmith.experimental import indexing, reciprocal
 
-    options = options or IndexingOptions()
+    from phasesmith.experimental import grains
+
+    backend = backend or (
+        "fft_grains"
+        if isinstance(options, grains.GrainSearchOptions)
+        else "compact_fft"
+    )
+    if backend == "fft_grains":
+        options = options or grains.GrainSearchOptions()
+        search_function = grains.find_grains
+    elif backend == "compact_fft":
+        options = options or IndexingOptions()
+        search_function = find_lattices
+    else:
+        raise ValueError("Unknown experimental cell search backend.")
     table = positions.table
     start, end = table.frame_ranges.T
     # Entire five-frame blocks and whole linked spots stay in one partition.
@@ -127,13 +141,16 @@ def find_cells(positions, geometries, *, options=None):
         (
             sign,
             result,
-            find_lattices(result.points[ids], training=training[ids], options=options),
+            search_function(
+                result.points[ids], training=training[ids], options=options
+            ),
         )
         for sign, result, _ in corrected
     )
     ids.flags.writeable = False
     metadata = dict(
-        schema="dioptas.experimental.blind-cell.v1",
+        schema="dioptas.experimental.blind-cell.v2",
+        backend=backend,
         input_positions=positions.metadata,
         geometry=[r[2] for r in corrected],
         options=asdict(options),
@@ -148,6 +165,7 @@ def find_cells(positions, geometries, *, options=None):
         python_algorithm_sha256=hashlib.sha256(
             Path(indexing.__file__).read_bytes()
             + Path(reciprocal.__file__).read_bytes()
+            + Path(grains.__file__).read_bytes()
         ).hexdigest(),
         adapter_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
     )
@@ -161,10 +179,11 @@ def cell_summary(result):
         for i, c in enumerate(search.candidates):
             cell = ", ".join(f"{v:.4f}" for v in c.cell)
             lines.append(
-                f"{i + 1}. a,b,c (Å), α,β,γ (°): {cell}\n"
+                f"{i + 1}. {'PASS' if c.accepted else 'REJECTED'} · a,b,c (Å), α,β,γ (°): {cell}\n"
                 f"V={c.volume:.2f} Å³ · training {c.training_fraction:.1%} · "
-                f"held out {c.validation_fraction:.1%} ({c.validation_count} positions) · "
-                f"shifted control ≤{c.null_fraction:.1%}"
+                f"held out {np.count_nonzero(c.indexed & ~search.training)}/{c.validation_count} "
+                f"({c.validation_fraction:.1%}) · "
+                f"control ≤{c.null_fraction:.1%}"
             )
     lines.append(
         "\nSize-reduced cell proposals; primitivity and space group are unproven. "
@@ -174,7 +193,7 @@ def cell_summary(result):
 
 
 def export_cells(result, filename):
-    """JSON candidate/provenance and one CSV for each sign's best assignment."""
+    """JSON audit and one position/assignment CSV for every returned candidate."""
     path = Path(filename).with_suffix(".json")
     metadata = dict(result.metadata, summary=cell_summary(result), reports=[])
     paths = [path]
@@ -190,14 +209,22 @@ def export_cells(result, filename):
                     validation_fraction=c.validation_fraction,
                     null_fraction=c.null_fraction,
                     accepted=c.accepted,
+                    training_count=int(np.count_nonzero(c.indexed & search.training)),
+                    heldout_count=int(np.count_nonzero(c.indexed & ~search.training)),
                 )
             )
         metadata["reports"].append(
-            dict(axis_sign=sign, message=search.message, candidates=candidates)
+            dict(
+                axis_sign=sign,
+                method=search.method,
+                message=search.message,
+                candidates=candidates,
+                diagnostics=list(search.diagnostics),
+            )
         )
-        if search.candidates:
-            best = search.candidates[0]
-            csv_path = path.with_name(path.stem + f"_axis_{sign:+d}.csv")
+        for number, best in enumerate(search.candidates, 1):
+            suffix = "" if number == 1 else f"_candidate_{number:02d}"
+            csv_path = path.with_name(path.stem + f"_axis_{sign:+d}{suffix}.csv")
             with csv_path.open("w", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
                 writer.writerow(

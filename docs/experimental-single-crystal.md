@@ -181,9 +181,26 @@ one equal-observation mean is formed per track. The search uses each linked spot
 once, excluding flagged tracks, tracks with more than eight observations and
 reciprocal RMS spread above 0.03 Å^-1. It reserves five-frame blocks for checking
 the result, excluding links crossing partition boundaries. Both signs use an
-identical position selection. The native backend evaluates Fourier values,
-gradients and Hessians; NumPy orchestrates a bounded 256³ FFT and lattice fits.
+identical position selection. PhaseSmith evaluates fused Fourier values,
+gradients and Hessians and runs a bounded native FFT (at most 256³).
 The job uses the same single-worker queue and discards stale results.
+
+Choose **FFT grain search** to discover competing lattice orientations from
+unindexed positions, or **Compact FFT cell search (comparison)** for the earlier
+method. No input HKLs, cell or material are required. The numerical engine is part
+of PhaseSmith; no research checkout is needed at runtime. Grain search uses at
+most four private native workers and a declared grain budget. Training-only
+reassignment freezes the complete pool before rotated held-out controls are run;
+rejected models remain in the result. There is no all-data polish after validation.
+
+The candidate table lists every returned model within the search bounds, with
+cell edges, angles, volume, training/held-out percentages, residual RMS, rotation
+sign and pass/rejection status. Hover for match counts/control support. Sort
+columns and use **Open candidate table…** for a wider view. Select a row for
+subsequent prediction/refinement; changing selection clears the previous fit.
+Several grain orientations can share the same cell. The compact method retains
+up to 40 distinct cell proposals; the grain method retains the frozen model pool
+and exports its complete per-round proposal/reassignment audit.
 
 The panel lists size-reduced, unconstrained cell metrics and training/held-out
 matching fractions. Passing these provisional checks does not prove a primitive
@@ -193,7 +210,7 @@ lattices, missing reflection classes and geometry errors remain limitations.
 
 **Export cell candidates…** writes JSON provenance and a CSV of selected track
 IDs, corrected q, provisional HKL, residual and training/validation membership
-for each tested sign's best candidate. It records calibration hashes, exact
+for every returned candidate under each tested sign, including rejected ones. It records calibration hashes, exact
 geometry vectors, source position metadata, algorithm hashes and search/filter
 settings. Original frames and position results remain unchanged. Candidate HKLs
 are diagnostic assignments, not integrated crystallographic intensities.
@@ -203,9 +220,9 @@ support conventions, search bounds, complexity and independent reference tests.
 
 ## Predicted spots and positional cell/orientation refinement
 
-After a candidate cell passes the provisional checks, select **Predict spots
-and refine cell/orientation**. The strongest training-supported candidate is
-chosen; wavelength, detector geometry and rotation axis stay fixed. PhaseSmith
+After a candidate cell passes the provisional checks, select its table row and
+choose **Unconstrained cell/orientation fit**. The selected model is used;
+wavelength, detector geometry and rotation axis stay fixed. PhaseSmith
 fits nine reciprocal-basis coefficients against one original measured
 x/y/omega centroid per linked track. HKLs and training/held-out membership stay
 fixed. The robust loss uses explicit scales of 2 px and 0.3°; these are not
@@ -303,3 +320,9 @@ frames are complete and linking begins. Final tracks replace the provisional
 markers when the job finishes, and the shared model is synchronized to the shown
 frame once. Source/settings changes and closing the window discard stale previews.
 The observer does not change detection, track values, flags or source hashes.
+
+
+See PhaseSmith's `docs/experimental-grain-search.md` for FFT grain search equations,
+ambiguity rules, strict distance boundaries, reserved-data gates, computational
+budgets and provenance. This remains in the experimental branch and opt-in native
+feature; standard releases and dependencies are unchanged.

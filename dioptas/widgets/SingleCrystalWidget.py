@@ -86,6 +86,104 @@ class PositionTableModel(SpotTableModel):
         return "—" if not math.isfinite(value) else f"{value:.6g}"
 
 
+class CellCandidateModel(QtCore.QAbstractTableModel):
+    """All returned candidates, with stable keys independent of table sorting."""
+
+    headers = (
+        "ID",
+        "Axis",
+        "Check",
+        "Cell edges (Å)",
+        "a (Å)",
+        "b (Å)",
+        "c (Å)",
+        "α (°)",
+        "β (°)",
+        "γ (°)",
+        "V (Å³)",
+        "Train %",
+        "Held out %",
+        "RMS (Å⁻¹)",
+    )
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.rows = []
+
+    def set_result(self, result):
+        import numpy as np
+
+        self.beginResetModel()
+        self.rows = []
+        if result is not None:
+            for sign, _, search in result.reports:
+                for i, c in enumerate(search.candidates):
+                    rms = (
+                        float(np.sqrt(np.mean(c.residual[c.indexed] ** 2)))
+                        if np.any(c.indexed)
+                        else None
+                    )
+                    values = (
+                        i + 1,
+                        sign,
+                        "Pass" if c.accepted else "Rejected",
+                        ", ".join(f"{v:.3f}" for v in c.cell[:3]),
+                        *map(float, c.cell),
+                        c.volume,
+                        100 * c.training_fraction,
+                        100 * c.validation_fraction,
+                        rms,
+                    )
+                    self.rows.append(((sign, i), values, search, c))
+        self.endResetModel()
+
+    def rowCount(self, parent=QtCore.QModelIndex()):
+        return 0 if parent.isValid() else len(self.rows)
+
+    def columnCount(self, parent=QtCore.QModelIndex()):
+        return 0 if parent.isValid() else len(self.headers)
+
+    def headerData(self, section, orientation, role=QtCore.Qt.DisplayRole):
+        if role == QtCore.Qt.DisplayRole and orientation == QtCore.Qt.Horizontal:
+            return self.headers[section]
+        return None
+
+    def data(self, index, role=QtCore.Qt.DisplayRole):
+        if not index.isValid():
+            return None
+        key, values, search, candidate = self.rows[index.row()]
+        if role == QtCore.Qt.UserRole:
+            return key
+        if role == QtCore.Qt.ToolTipRole:
+            import numpy as np
+
+            training = np.count_nonzero(candidate.indexed & search.training)
+            heldout = np.count_nonzero(candidate.indexed & ~search.training)
+            return (
+                f"{'FFT grain search' if search.method == 'fft_grains' else 'Compact FFT'} · "
+                f"training {training}/{np.count_nonzero(search.training)} · "
+                f"held out {heldout}/{candidate.validation_count} · "
+                f"control ≤{candidate.null_fraction:.1%}. "
+                "Different orientations can share the same cell. Symmetry and primitivity are unproven."
+            )
+        value = values[index.column()]
+        if role == QtCore.Qt.EditRole:
+            return value
+        if role == QtCore.Qt.DisplayRole:
+            return (
+                "—"
+                if value is None
+                else (
+                    f"{value:.1f}"
+                    if isinstance(value, float) and index.column() in (11, 12)
+                    else f"{value:.4f}"
+                    if isinstance(value, float)
+                    else str(value)
+                )
+            )
+        return None
+
+
 class SingleCrystalWidget(QtWidgets.QWidget):
     series_progress = QtCore.Signal(int, int, int)
 
@@ -216,9 +314,34 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         self.cell_button = QtWidgets.QPushButton("Geometry and find unit cell…")
         self.cell_button.setEnabled(False)
         cell_panel.addWidget(self.cell_button)
+        self.cell_table_model = CellCandidateModel(self)
+        self.cell_table_proxy = QtCore.QSortFilterProxyModel(self)
+        self.cell_table_proxy.setSourceModel(self.cell_table_model)
+        self.cell_table_proxy.setSortRole(QtCore.Qt.EditRole)
+        self.cell_table = QtWidgets.QTableView()
+        self.cell_table.setModel(self.cell_table_proxy)
+        self.cell_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.cell_table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        self.cell_table.setSortingEnabled(True)
+        self.cell_table.horizontalHeader().setMinimumSectionSize(30)
+        self.cell_table.horizontalHeader().setSectionResizeMode(
+            QtWidgets.QHeaderView.ResizeToContents
+        )
+        # Sidebar stays compact; the expanded table shows all numerical columns.
+        for column in (*range(4, 12), 13):
+            self.cell_table.setColumnHidden(column, True)
+        self.cell_table.verticalHeader().hide()
+        self.cell_table.setMinimumHeight(330)
+        self.cell_table.setMaximumHeight(360)
+        self.cell_table.hide()
+        cell_panel.addWidget(self.cell_table, 1)
+        self.cell_table_button = QtWidgets.QPushButton("Open candidate table…")
+        self.cell_table_button.clicked.connect(self.open_cell_table)
+        self.cell_table_button.setEnabled(False)
+        cell_panel.addWidget(self.cell_table_button)
         self.cell_summary = QtWidgets.QPlainTextEdit()
         self.cell_summary.setReadOnly(True)
-        self.cell_summary.setMaximumHeight(210)
+        self.cell_summary.setMaximumHeight(110)
         self.cell_summary.hide()
         cell_panel.addWidget(self.cell_summary)
         self.cell_export_button = QtWidgets.QPushButton("Export cell candidates…")
@@ -303,6 +426,30 @@ class SingleCrystalWidget(QtWidgets.QWidget):
             pen=pg.mkPen("k", width=2),
             size=10,
         )
+
+    def open_cell_table(self):
+        dialog = QtWidgets.QDialog(self)
+        dialog.setWindowTitle("Candidate cells and grain orientations · experimental")
+        layout = QtWidgets.QVBoxLayout(dialog)
+        note = QtWidgets.QLabel(
+            "All returned candidates within the search bounds. Select a row to use it for prediction/refinement. Multiple grains can share one cell."
+        )
+        note.setWordWrap(True)
+        layout.addWidget(note)
+        view = QtWidgets.QTableView()
+        view.setModel(self.cell_table_proxy)
+        view.setSelectionModel(self.cell_table.selectionModel())
+        view.setColumnHidden(3, True)
+        view.verticalHeader().hide()
+        view.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        view.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        view.setSortingEnabled(True)
+        view.horizontalHeader().setSectionResizeMode(
+            QtWidgets.QHeaderView.ResizeToContents
+        )
+        layout.addWidget(view)
+        dialog.resize(1200, 550)
+        dialog.exec()
 
     def update_frame_buttons(self, *_):
         enabled = self.frame_slider.isEnabled()

@@ -19,7 +19,16 @@ class PositionRefinement:
     metadata: dict
 
 
-def preferred_candidate(cells):
+def preferred_candidate(cells, selection=None):
+    if selection is not None:
+        sign, index = selection
+        search = next((r[2] for r in cells.reports if r[0] == sign), None)
+        if search is None or not 0 <= index < len(search.candidates):
+            raise ValueError("Selected candidate is no longer available.")
+        candidate = search.candidates[index]
+        if not candidate.accepted:
+            raise ValueError("Selected candidate did not pass the held-out checks.")
+        return sign, index, search, candidate
     choices = [
         (c.training_fraction, -c.volume, sign, i, search, c)
         for sign, _, search in cells.reports
@@ -70,7 +79,13 @@ def detector_qmax(geometry, shape):
 
 
 def refine_positions(
-    positions, cells, image_shape, *, progress=None, symmetry="triclinic"
+    positions,
+    cells,
+    image_shape,
+    *,
+    progress=None,
+    symmetry="triclinic",
+    selection=None,
 ):
     from phasesmith.experimental.reciprocal import PanelGeometry
     from phasesmith.experimental.prediction import (
@@ -82,7 +97,7 @@ def refine_positions(
     from phasesmith.experimental import prediction
     from phasesmith import _core
 
-    sign, candidate_index, search, candidate = preferred_candidate(cells)
+    sign, candidate_index, search, candidate = preferred_candidate(cells, selection)
     snapshot = next(m for m in cells.metadata["geometry"] if m["axis_sign"] == sign)
     geometry = PanelGeometry(
         np.asarray(snapshot["vectors"]), snapshot["wavelength_angstrom"]
@@ -170,7 +185,11 @@ def refine_positions(
         omega_bounds=bounds.tolist(),
         axis_sign=sign,
         candidate_index=candidate_index,
-        selection="largest training indexed fraction; volume breaks ties; provisional pass required",
+        selection=(
+            "explicit candidate selection; provisional pass required"
+            if selection is not None
+            else "largest training indexed fraction; volume breaks ties; provisional pass required"
+        ),
         observed="one original detected-signal-weighted x,y,omega centroid per linked track",
         fixed_instrument=True,
         metric_constraint=symmetry,

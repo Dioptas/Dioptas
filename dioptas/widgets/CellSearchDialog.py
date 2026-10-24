@@ -37,6 +37,19 @@ class CellSearchDialog(QtWidgets.QDialog):
             ["Test both signs (uncertain)", "Axis +vertical", "Axis −vertical"]
         )
         form.addRow("Omega rotation", self.direction)
+        self.backend = QtWidgets.QComboBox()
+        self.backend.addItem("FFT grain search", "fft_grains")
+        self.backend.addItem("Compact FFT cell search (comparison)", "compact_fft")
+        form.addRow("Search method", self.backend)
+        self.max_grains = QtWidgets.QSpinBox()
+        self.max_grains.setRange(1, 40)
+        self.max_grains.setValue(8)
+        form.addRow("Maximum grain candidates", self.max_grains)
+        self.backend.currentIndexChanged.connect(
+            lambda: self.max_grains.setEnabled(
+                self.backend.currentData() == "fft_grains"
+            )
+        )
         self.maximum = QtWidgets.QDoubleSpinBox()
         self.maximum.setRange(3, 100)
         self.maximum.setValue(30)

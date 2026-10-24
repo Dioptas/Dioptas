@@ -185,3 +185,23 @@ def test_orthorhombic_metric_service_and_ui_action(qapp, experiment, tmp_path):
         assert not w.orthorhombic_button.isEnabled()
     finally:
         c.widget.close()
+
+
+def test_explicit_selected_candidate_drives_refinement(experiment):
+    from dataclasses import replace
+
+    positions, cells, _ = experiment
+    sign, corrected, search = cells.reports[0]
+    selected = replace(
+        search,
+        candidates=(
+            replace(search.candidates[0], accepted=False),
+            search.candidates[0],
+        ),
+    )
+    cells = replace(cells, reports=((sign, corrected, selected),))
+    result = refine_positions(positions, cells, (2048, 2048), selection=(sign, 1))
+    assert result.metadata["candidate_index"] == 1
+    assert "explicit candidate selection" in result.metadata["selection"]
+    with pytest.raises(ValueError, match="held-out"):
+        refine_positions(positions, cells, (2048, 2048), selection=(sign, 0))
