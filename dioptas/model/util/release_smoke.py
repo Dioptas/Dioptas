@@ -15,7 +15,7 @@ def check_release_runtime():
     from peritheos import Material as PeritheosMaterial, get_material, load_eosmat
 
     peritheos_version = version("peritheos")
-    if not peritheos_version.startswith("0.16."):
+    if not peritheos_version.startswith("0.17."):
         raise RuntimeError(f"Unsupported bundled Peritheos version: {peritheos_version}")
 
     if _c_compute_binned is None:
@@ -33,6 +33,18 @@ def check_release_runtime():
     for identifier in ("palladium", "wadsleyite"):
         if materials[identifier].default_eos_index != -1:
             raise RuntimeError(f"Recommendation hold lost for {identifier}")
+
+    reference_material = materials["coesite_iv"]
+    reference_index = next(i for i, record in enumerate(reference_material.eos_records)
+                           if record["eos"]["type"] == "BM2Reference")
+    reference_parameters = reference_material.eos_records[reference_index]["eos"]["parameters"]
+    # This material has an EOS but no diffraction structure. Verify its
+    # reference-state calculation without inventing crystal geometry.
+    from dioptas.model.util.eos_phase import EosPhase
+    reference_engine = EosPhase("BM2Reference", reference_parameters)
+    if not np.isclose(reference_engine.volume(reference_parameters["P0"]),
+                      reference_parameters["V0"], rtol=1e-10):
+        raise RuntimeError("BM2Reference lost its nonzero pressure reference")
 
     gold = materials["gold"]
     record = gold.eos_records[gold.default_eos_index]

@@ -53,13 +53,17 @@ To upgrade an existing Python installation::
 
     python -m pip install --upgrade dioptas
 
-Dioptas 0.11 requires Peritheos 0.16.x and PhaseSmith 0.7. Pip installs
+Dioptas 0.11 requires Peritheos 0.17.x and PhaseSmith 0.7. Pip installs
 these dependencies automatically. Catalog contents follow the installed
 Peritheos version; standalone applications contain the version selected when
-that application was built. The lock file selects the tested Peritheos 0.16.0
+that application was built. The lock file selects the tested Peritheos 0.17.0
 release. Source and standalone startup checks report the installed version
 and exercise native EOSMAT conversion, thermal calculations, packaged source
 data and scientific assessments.
+
+The BM2Reference equation retains its explicit reference pressure: its V0 and
+K0 describe the state at P0, which can be nonzero. Use ``.eosmat`` or a Dioptas
+project to preserve that reference state; legacy JCPDS files cannot store it.
 
 On macOS older than 26, xypattern 1.2.4 has no compatible Apple-silicon wheel;
 Intel Macs also require its source build. Install Apple's Command Line Tools

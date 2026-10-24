@@ -48,7 +48,7 @@ from peritheos import Material as PeritheosMaterial
 #: names are the class names; a record's parameters go straight into the
 #: constructor.
 RT_EOS_TYPES = (
-    "BM2", "BM3", "BM4", "Murnaghan", "Vinet", "ModifiedTait",
+    "BM2", "BM2Reference", "BM3", "BM4", "Murnaghan", "Vinet", "ModifiedTait",
     "NaturalStrain2", "NaturalStrain3", "NaturalStrain4", "Holzapfel",
 )
 
@@ -120,6 +120,7 @@ _THERMAL_CANONICAL = {name.upper(): name for name in THERMAL_EOS_TYPES}
 #: human-readable names for the UI (phase editor comboboxes etc.)
 EOS_DISPLAY_NAMES = {
     "BM2": "Birch-Murnaghan (2nd order)",
+    "BM2Reference": "Birch-Murnaghan (2nd order, reference pressure)",
     "BM3": "Birch-Murnaghan (3rd order)",
     "BM4": "Birch-Murnaghan (4th order)",
     "Murnaghan": "Murnaghan",
@@ -139,6 +140,7 @@ EOS_DISPLAY_NAMES = {
 # user-owned copy changes equation type.
 EOS_MODEL_IDENTIFIERS = {
     "BM2": "birch_murnaghan_2",
+    "BM2Reference": "birch_murnaghan_2_reference",
     "BM3": "birch_murnaghan_3",
     "BM4": "birch_murnaghan_4",
     "Murnaghan": "murnaghan",
@@ -201,7 +203,7 @@ _A3_TO_JBAR = 0.060221415
 
 def eos_parameter_defaults(parameters=None, *, n=None, z=None):
     """Editable starting estimates in Dioptas units, not fitted constants."""
-    values = {"V0": 100.0, "K0": 100.0, "K0_prime": 4.0,
+    values = {"V0": 100.0, "K0": 100.0, "K0_prime": 4.0, "P0": 0.0,
               "n": n if n is not None else 1.0,
               "Z": z if z is not None else 1.0}
     values.update({key: value for key, value in (parameters or {}).items()
@@ -487,6 +489,7 @@ class EosPhase:
                 **record_parameters,
                 "V0": p["v0"],
                 "K0": k0 if k0 is not None else p["k0"],
+                "P0": p.get("p0", record_parameters.get("P0", 0.0)),
                 "K0_prime": k0p if k0p is not None
                 else (p.get("k0p0") or p.get("k0p")),
                 "K0_double_prime": p.get("k0pp0") or 0.0,

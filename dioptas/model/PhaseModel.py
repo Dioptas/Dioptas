@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 _EOS_EDIT_PARAMS = frozenset({
-    "k0", "k0p0", "k0pp0", "n", "z", "zc", "dk0dt", "dk0pdt",
+    "k0", "k0p0", "k0pp0", "p0", "n", "z", "zc", "dk0dt", "dk0pdt",
     "alpha_t0", "d_alpha_dt", "thermal_parameters", "theta_t0",
     "gamma_t0", "q_t0", "t_ref",
 })
@@ -731,6 +731,7 @@ class PhaseModel:
             'K0': p.get('k0'),
             'K0_prime': p.get('k0p0'),
             'K0_double_prime': p.get('k0pp0'),
+            'P0': p.get('p0'),
             'n': p.get('n'),
             'Z': p.get('z'),
         }

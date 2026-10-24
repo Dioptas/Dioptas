@@ -8,6 +8,21 @@ from ...model import eos
 from ...model.util.eos_phase import RT_EOS_TYPES, THERMAL_EOS_TYPES
 
 
+def test_reference_pressure_record_explains_and_preserves_its_reference(qapp):
+    document = get_material_document("coesite_iv")
+    record = next(record for record in document["eos_records"]
+                  if record["eos"]["type"] == "BM2Reference")
+    dialog = EosRecordDialog(record)
+    row = _parameter_row(dialog, "P0")
+    assert "Reference pressure" in dialog.parameters_table.item(row, 1).toolTip()
+    assert "defined at reference pressure P0" in dialog.defaults_label.text()
+    assert dialog.record()["eos"] == record["eos"]
+    dialog.parameters_table.item(row, 2).setText("35")
+    assert dialog.record()["eos"]["parameters"]["P0"] == 35.
+    assert record["eos"]["parameters"]["P0"] == 32.7
+    dialog.close()
+
+
 @pytest.mark.parametrize("model", RT_EOS_TYPES)
 def test_new_equation_has_complete_editable_defaults(qapp, model):
     from ...model.util.eos_phase import EosPhase

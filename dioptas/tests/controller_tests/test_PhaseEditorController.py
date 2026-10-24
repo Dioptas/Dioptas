@@ -402,6 +402,34 @@ class PhaseEditorControllerTest(QtTest):
         self.assertFalse(self.jcpds_widget.eos_Kpp_txt.isVisibleTo(
             self.jcpds_widget))
 
+    def test_reference_pressure_field_updates_the_live_equation(self):
+        from ...model.util.eos_phase import EosPhase
+
+        cb = self.jcpds_widget.eos_type_cb
+        cb.setCurrentIndex(cb.findData('BM2Reference'))
+        field = self.jcpds_widget.eos_P0_txt
+        self.assertFalse(field.isHidden())
+        field.setText('32.7')
+        field.editingFinished.emit()
+        phase = self.phase_model.phases[5]
+        self.assertEqual(phase.params['p0'], 32.7)
+        self.assertAlmostEqual(EosPhase.from_jcpds(phase).pressure(phase.params['v0']), 32.7)
+        cb.setCurrentIndex(cb.findData('BM3'))
+        self.assertTrue(field.isHidden())
+
+    def test_reference_pressure_legacy_export_shows_an_explanation(self):
+        from tempfile import TemporaryDirectory
+
+        cb = self.jcpds_widget.eos_type_cb
+        cb.setCurrentIndex(cb.findData('BM2Reference'))
+        self.jcpds_widget.eos_P0_txt.setText('32.7')
+        self.jcpds_widget.eos_P0_txt.editingFinished.emit()
+        with TemporaryDirectory() as directory, patch.object(self.widget, 'show_error_msg') as error:
+            path = os.path.join(directory, 'reference.jcpds')
+            self.controller.save_as_btn_clicked(path)
+            self.assertFalse(os.path.exists(path))
+        self.assertIn('.eosmat', error.call_args.args[0])
+
     def test_holzapfel_shows_material_data_rows(self):
         self.jcpds_widget.parameter_tabs.setCurrentWidget(self.jcpds_widget.eos_gb)
         cb = self.jcpds_widget.eos_type_cb

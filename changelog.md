@@ -11,6 +11,10 @@ Their changes are included here; the previous published release is 0.10.0. -->
 
 ## Improvements
 
+- Updated the material library and calculation engine to Peritheos 0.17.0.
+  BM2Reference retains its nonzero reference pressure in calculations, editing,
+  material files and projects; legacy JCPDS export cannot discard that pressure.
+
 - Batch normalization can be toggled off to restore the original intensities. Its settings select the bin interval and reference frame; backgrounds and azimuthal spread follow the same scaling.
 
 - User-owned crystal structures can be edited in the phase editor, including atomic sites, elements, occupancies and space groups. Valid edits recalculate diffraction lines and persist in material files and projects; published library structures remain read-only.

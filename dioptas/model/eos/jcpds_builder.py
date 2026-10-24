@@ -191,10 +191,11 @@ def apply_eos_record(phase, record: dict) -> None:
     if reference:
         phase.params["comments"] = [reference]
     phase.params["k0"] = parameters.get("K0") or 0.0
+    phase.params["p0"] = parameters.get("P0", 0.0)
     # BM2 fixes K0' = 4 by definition; carry that so switching the phase
     # to a 3rd-order equation later starts from the sensible value.
     phase.params["k0p0"] = (parameters.get("K0_prime")
-                            or (4.0 if eos.get("type") == "BM2" else 0.0))
+                            or (4.0 if eos.get("type") in ("BM2", "BM2Reference") else 0.0))
     phase.params["k0p"] = phase.params["k0p0"]
     phase.params["k0pp0"] = parameters.get("K0_double_prime") or 0.0
     thermal = record.get("thermal") or {}

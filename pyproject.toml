@@ -46,7 +46,7 @@ dependencies = [
     "psygnal>=0.15.1,<0.16",
     # equation-of-state engine and audited bundled material library
     # Verified native EOSMAT v4 conversion and scoped assessment APIs.
-    "peritheos>=0.16.0,<0.17",
+    "peritheos>=0.17.0,<0.18",
     # exact-symmetry reflection generation and structure-factor intensities
     # verified reflection/CIF APIs and conventional cubic HKL representatives
     "phasesmith>=0.7.0,<0.8",

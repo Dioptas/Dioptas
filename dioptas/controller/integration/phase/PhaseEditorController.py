@@ -159,6 +159,8 @@ class PhaseEditorController(QtCore.QObject):
         self.jcpds_widget.eos_K_txt.editingFinished.connect(partial(self.param_txt_changed,
                                                                     widget=self.jcpds_widget.eos_K_txt,
                                                                     param='k0'))
+        self.jcpds_widget.eos_P0_txt.editingFinished.connect(partial(
+            self.param_txt_changed, widget=self.jcpds_widget.eos_P0_txt, param='p0'))
         self.jcpds_widget.eos_Kp_txt.editingFinished.connect(partial(self.param_txt_changed,
                                                                      widget=self.jcpds_widget.eos_Kp_txt,
                                                                      param='k0p0'))
@@ -724,7 +726,11 @@ class PhaseEditorController(QtCore.QObject):
                 save_material_file(
                     filename, material_from_jcpds(self.jcpds_phase))
             elif filename.endswith('.jcpds'):
-                self.phase_model.save_phase_as(self.phase_ind, filename)
+                try:
+                    self.phase_model.save_phase_as(self.phase_ind, filename)
+                except ValueError as error:
+                    self.integration_widget.show_error_msg(str(error))
+                    return
             elif filename.endswith('.txt'):
                 self.export_table_data(filename)
             self.show_phase(self.jcpds_phase)
