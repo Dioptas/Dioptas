@@ -8,6 +8,13 @@ and DMG path without creating a release or publishing to PyPI.
 This setup targets GitHub-hosted macOS runners. It does not require an App Store
 listing or a provisioning profile for Dioptas's current capabilities.
 
+The current build candidate locks Peritheos to 0.17.0 and downloads the
+Dioptrin `v0.6.1` release explicitly when `DIOPTRIN_TOKEN` is available. It checks
+the installed wheel's version before building. Publish that Dioptrin release
+before starting the signed build; a missing release or wheel must fail rather
+than silently bundle an older backend. Update `DIOPTRIN_RELEASE` in both the
+macOS test workflow and release workflow when advancing the backend version.
+
 ## 1. Prepare this Mac
 
 If Apple tools report that the Xcode licence has not been accepted, run this in
