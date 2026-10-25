@@ -71,6 +71,7 @@ class SingleCrystalController:
         self._hover_position = None
         self._hover_geometry = None
         self._selecting_image_spot = False
+        self._rank_after_search_generation = None
         self.series = None
         self._browsing_series = False
         self._active = False
@@ -249,6 +250,7 @@ class SingleCrystalController:
         if self._closed or self._browsing_series:
             return
         self._generation += 1
+        self._rank_after_search_generation = None
         self._stop_preview()
         self.result = None
         self.cell_result = None
@@ -927,6 +929,14 @@ class SingleCrystalController:
             self.widget.status_label.setText(
                 "Cell search completed. Review the candidate cells and held-out matches below."
             )
+            if self._rank_after_search_generation == generation:
+                self._rank_after_search_generation = None
+                if self.widget.rank_button.isEnabled():
+                    self.compare_ranked_cells()
+                else:
+                    self.widget.status_label.setText(
+                        "No passing lattice to rank. Inspect the lattice candidates and their checks."
+                    )
             return
         if isinstance(result, PositionRefinement):
             ranked = result.metadata.get("ranked_setting")
@@ -1058,6 +1068,7 @@ class SingleCrystalController:
         self.widget.cell_summary.clear()
         self.widget.cell_export_button.setEnabled(False)
         generation = self._generation
+        self._rank_after_search_generation = generation
         if self._runner is None:
             try:
                 self._show_result(operation(), generation)

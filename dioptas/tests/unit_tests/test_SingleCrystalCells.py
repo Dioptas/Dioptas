@@ -234,6 +234,82 @@ def test_sorted_row_selection_previews_actual_fit_and_invalidates(
         c.widget.close()
 
 
+@pytest.mark.parametrize("asynchronous", [False, True])
+def test_find_cells_automatically_opens_ranked_settings(
+    qapp, qtbot, tmp_path, ranked_experiment, monkeypatch, asynchronous
+):
+    from qtpy import QtWidgets
+    from dioptas.widgets.CellSearchDialog import CellSearchDialog
+
+    positions, cells, _ = ranked_experiment
+    c, sc, w = controller_scene(tmp_path, positions, cells, asynchronous=asynchronous)
+    module = importlib.import_module("dioptas.controller.SingleCrystalController")
+    dialog = CellSearchDialog(w, filename="detector.poni")
+    monkeypatch.setattr(dialog, "exec", lambda: QtWidgets.QDialog.Accepted)
+    monkeypatch.setattr(module, "CellSearchDialog", lambda *a, **kw: dialog)
+    monkeypatch.setattr(
+        module,
+        "geometry_from_poni",
+        lambda *a, **kw: (None, cells.metadata["geometry"][0]),
+    )
+    monkeypatch.setattr(module, "find_cells", lambda *a, **kw: cells)
+    try:
+        w.cell_button.click()
+        qtbot.waitUntil(
+            lambda: sc.ranked_result is not None and sc.refinement_result is not None,
+            timeout=15000,
+        )
+        assert w.cell_view.currentIndex() == 1
+        assert sc.ranked_result.comparison.recommended.setting.symbol == "oP"
+        assert sc._rank_after_search_generation is None
+        assert sc.cell_result is cells
+        sc.invalidate()
+        assert sc._rank_after_search_generation is None
+    finally:
+        dialog.close()
+        c.widget.close()
+
+
+def test_failed_lattice_search_stays_visible_without_auto_ranking(
+    qapp, tmp_path, ranked_experiment, monkeypatch
+):
+    from dataclasses import replace
+
+    positions, cells, _ = ranked_experiment
+    failed = replace(
+        cells,
+        reports=tuple(
+            (
+                sign,
+                q,
+                replace(
+                    search,
+                    candidates=tuple(
+                        replace(candidate, accepted=False)
+                        for candidate in search.candidates
+                    ),
+                ),
+            )
+            for sign, q, search in cells.reports
+        ),
+    )
+    c, sc, w = controller_scene(tmp_path, positions, cells)
+
+    def unexpected():
+        pytest.fail("Failed lattices must not be automatically ranked")
+
+    monkeypatch.setattr(sc, "compare_ranked_cells", unexpected)
+    try:
+        sc._rank_after_search_generation = sc._generation
+        sc._show_result(failed, sc._generation)
+        assert sc.ranked_result is None
+        assert sc._rank_after_search_generation is None
+        assert w.cell_table_model.rowCount() > 0
+        assert "No passing lattice" in w.status_label.text()
+    finally:
+        c.widget.close()
+
+
 def test_rapid_selection_discards_old_preview_and_keeps_latest(
     qapp, qtbot, tmp_path, ranked_experiment, monkeypatch
 ):

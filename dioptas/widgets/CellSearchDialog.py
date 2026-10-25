@@ -14,6 +14,8 @@ class CellSearchDialog(QtWidgets.QDialog):
             "Use the detector calibration for this run. "
             "The search uses positions only and assumes a vertical sample axis. "
             "Both rotation signs can be tested when the direction is uncertain."
+            " Primitive and Bravais cell settings are ranked automatically after "
+            "a passing lattice is found."
         )
         note.setWordWrap(True)
         layout.addWidget(note)

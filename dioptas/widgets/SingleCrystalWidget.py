@@ -442,10 +442,10 @@ class SingleCrystalWidget(QtWidgets.QWidget):
 
         self.detect_button = QtWidgets.QPushButton("Find spots and extract counts")
         detection_panel.addWidget(self.detect_button)
-        self.cell_button = QtWidgets.QPushButton("Geometry and find unit cell…")
+        self.cell_button = QtWidgets.QPushButton("Find lattices and rank cells…")
         self.cell_button.setEnabled(False)
         cell_panel.addWidget(self.cell_button)
-        self.rank_button = QtWidgets.QPushButton("Compare and rank cell settings")
+        self.rank_button = QtWidgets.QPushButton("Compare settings of selected lattice")
         self.rank_button.setEnabled(False)
         cell_panel.addWidget(self.rank_button)
         self.cell_view = QtWidgets.QComboBox()

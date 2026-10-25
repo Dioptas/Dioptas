@@ -309,6 +309,14 @@ frame, original file number and omega exposure bounds. Choosing an entry opens
 that frame without changing the spot selection; missing observations are not
 filled in from a first/last-frame range.
 
+“Find lattices and rank cells” runs lattice discovery and then automatically
+compares primitive/Bravais settings of the default passing lattice, opening the
+ranked list and its selected preview. The separate “Compare settings of selected
+lattice” action is for explicitly comparing another lattice from the candidate
+list. A failed lattice search remains visible for diagnosis without automatic
+cell comparison. These are two processing stages within one user action; the
+ranked settings are not a list of independently detected grains.
+
 The experimental sidebar has separate Series, Detection, Cell, Predictions and
 Positions tabs. All six residual plots share pattern-style
 controls: left-drag rectangle zoom, right/Ctrl-left drag pan, right/Ctrl-left click
