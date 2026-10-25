@@ -511,11 +511,15 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         self.cell_table.horizontalHeader().setSectionResizeMode(
             QtWidgets.QHeaderView.ResizeToContents
         )
-        for column, width in ((0, 38), (1, 48)):
+        for column, width in ((0, 42), (1, 48)):
             self.cell_table.horizontalHeader().setSectionResizeMode(
                 column, QtWidgets.QHeaderView.Fixed
             )
             self.cell_table.setColumnWidth(column, width)
+        for table in (self.cell_table, self.rank_table):
+            table.horizontalHeader().setStyleSheet(
+                "QHeaderView::section { padding: 0 6px; }"
+            )
         # Sidebar stays compact; the expanded table shows all numerical columns.
         for column in (*range(4, 12), 13):
             self.cell_table.setColumnHidden(column, True)
