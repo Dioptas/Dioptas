@@ -23,6 +23,8 @@ def main():
         "--calibration", help="PONI file to prefill the blind cell-search dialog"
     )
     parser.add_argument("--exclude-zero-padding", action="store_true")
+    parser.add_argument("--diamond-mask", action="store_true",
+                        help="Enable the experimental broad diamond exclusion mask")
     parser.add_argument(
         "--saturation", type=float, help="Flag pixels at this detector count level"
     )
@@ -69,6 +71,9 @@ def main():
     if args.saturation is not None:
         controller.widget.single_crystal_widget.saturation.setValue(args.saturation)
         controller.widget.single_crystal_widget.saturation_enabled.setChecked(True)
+    if args.diamond_mask:
+        controller.widget.single_crystal_widget.diamond_enabled.setChecked(True)
+        controller.widget.single_crystal_widget.sections.setCurrentIndex(1)
     controller.widget.setWindowTitle("Dioptas — experimental rotation-series positions")
     controller.show_window()
     print(f"Opened {len(series.files)} frames. {series.angle_source}", flush=True)

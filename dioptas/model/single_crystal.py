@@ -16,7 +16,7 @@ import numpy as np
 
 @dataclass(frozen=True)
 class SpotTask:
-    """Owned raw-count snapshot. No calibration or crystal model is an inverse input."""
+    """Owned raw counts; optional calibrated diamond exclusions are recorded separately."""
 
     image: np.ndarray
     mask: np.ndarray
@@ -27,6 +27,7 @@ class SpotTask:
     saturation: float | None = None
     transformations: tuple[str, ...] = ()
     mask_policy: dict[str, Any] | None = None
+    diamond_mask: np.ndarray | None = None
 
 
 @dataclass(frozen=True)
@@ -74,6 +75,11 @@ def measure_spots(task: SpotTask) -> SpotResult:
         read_noise=task.read_noise,
         saturation=task.saturation,
     )
+    rejected_diamond = 0
+    if task.diamond_mask is not None:
+        from .single_crystal_diamond import exclude_overlapping_spots
+
+        table, rejected_diamond = exclude_overlapping_spots(table, task.diamond_mask)
     metadata = dict(
         schema="dioptas.experimental.spots.v1",
         algorithm="annular-mean-2pass-aperture-v1",
@@ -102,6 +108,7 @@ def measure_spots(task: SpotTask) -> SpotResult:
         noise_model=table.noise_model,
         rejected_small_components=table.rejected_small_components,
         records=len(table),
+        rejected_diamond_overlaps=rejected_diamond,
         flagged=int(np.count_nonzero(table.flags)),
         native_workers=1,
         uncertainty="conditional independent-pixel propagation; no selection-bias, "

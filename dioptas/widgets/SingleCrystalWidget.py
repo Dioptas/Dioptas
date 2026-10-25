@@ -440,6 +440,36 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         )
         form.addRow(self.zero_padding)
 
+        self.diamond_enabled = QtWidgets.QCheckBox("Exclude broad diamond spots")
+        self.diamond_enabled.setToolTip(
+            "Experimental spacing-aware mask. Reflections overlapping its footprint "
+            "are excluded as a whole. Review the overlay before using the results."
+        )
+        form.addRow(self.diamond_enabled)
+        calibration_row = QtWidgets.QWidget()
+        calibration_layout = QtWidgets.QHBoxLayout(calibration_row)
+        calibration_layout.setContentsMargins(0, 0, 0, 0)
+        self.diamond_calibration = QtWidgets.QLineEdit()
+        self.diamond_calibration.setPlaceholderText("PONI calibration file")
+        self.diamond_calibration_button = QtWidgets.QPushButton("Choose…")
+        calibration_layout.addWidget(self.diamond_calibration, 1)
+        calibration_layout.addWidget(self.diamond_calibration_button)
+        form.addRow("Diamond calibration", calibration_row)
+        self.diamond_original_rows = QtWidgets.QCheckBox("Calibration uses original TIFF rows")
+        self.diamond_original_rows.setToolTip(
+            "Leave off for a legacy Dioptas calibration made on the displayed image. "
+            "Enable if the calibration describes the original unflipped TIFF rows."
+        )
+        form.addRow(self.diamond_original_rows)
+        self.diamond_a = number("Diamond a (Å)", 3.567, 2, 5, 4)
+        self.diamond_tolerance = number("Diamond spacing tolerance (±%)", 3, 0.1, 20, 1)
+        self.diamond_status = QtWidgets.QLabel("Diamond mask off.")
+        self.diamond_status.setWordWrap(True)
+        form.addRow(self.diamond_status)
+        for control in (self.diamond_original_rows, self.diamond_a, self.diamond_tolerance):
+            control.setEnabled(False)
+            self.diamond_enabled.toggled.connect(control.setEnabled)
+
         self.detect_button = QtWidgets.QPushButton("Find spots and extract counts")
         detection_panel.addWidget(self.detect_button)
         self.cell_button = QtWidgets.QPushButton("Find lattices and rank cells…")
@@ -743,4 +773,6 @@ class SingleCrystalWidget(QtWidgets.QWidget):
             self.read_noise,
             self.link_radius,
             self.saturation,
+            self.diamond_a,
+            self.diamond_tolerance,
         )

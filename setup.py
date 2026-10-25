@@ -42,6 +42,12 @@ optimize_cflags = [] if sys.platform == "win32" else ["-O3"]
 
 extensions = [
     Extension(
+        "dioptas.model.util.mask_plugins._diamond_roi_c",
+        sources=["dioptas/model/util/mask_plugins/_diamond_roi_c.c"],
+        include_dirs=[np.get_include()],
+        extra_compile_args=optimize_cflags,
+    ),
+    Extension(
         "dioptas.model.util._omega_arpls",
         sources=["dioptas/model/util/_omega_arpls.c"],
         include_dirs=[np.get_include()],

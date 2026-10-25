@@ -47,6 +47,7 @@ class SeriesTask:
     read_noise: float = 0.0
     saturation: float | None = None
     transformations: tuple[str, ...] = ()
+    diamond_plan: object | None = None
 
 
 @dataclass(frozen=True)
@@ -62,6 +63,7 @@ class SeriesFramePreview:
     index: int
     image: np.ndarray
     table: object
+    mask: np.ndarray | None = None
 
 
 def series_files(seed: str | Path) -> tuple[tuple[str, ...], tuple[int, ...]]:
@@ -176,6 +178,8 @@ def locate_positions(task: SeriesTask, progress=None, preview=None) -> SeriesPos
 
     shape = task.mask.shape
     cached = {}
+    diamond_masks, preview_masks = {}, {}
+    rejected_observations = set()
     current_image = None
 
     def load(i):
@@ -189,6 +193,13 @@ def locate_positions(task: SeriesTask, progress=None, preview=None) -> SeriesPos
         mask |= ~np.isfinite(data)
         if task.exclude_zero_padding:
             mask |= data == 0
+        if task.diamond_plan is not None:
+            diamond = task.diamond_plan.compute(data, mask, frame=i)
+            mask |= diamond
+            diamond_masks[i] = diamond
+        if preview is not None:
+            mask.flags.writeable = False
+            preview_masks[i] = mask
         cached[i] = mask
         data.flags.writeable = False
         current_image = data
@@ -198,8 +209,21 @@ def locate_positions(task: SeriesTask, progress=None, preview=None) -> SeriesPos
         return cached.pop(i)
 
     def completed(index, table):
+        shown_table = table
+        if task.diamond_plan is not None:
+            from .single_crystal_diamond import (
+                overlapping_supports, observation_key, exclude_overlapping_spots,
+            )
+
+            diamond = diamond_masks.pop(index)
+            bad = overlapping_supports(table, diamond)
+            rejected_observations.update(
+                observation_key(index, x, y)
+                for x, y in table.values[bad, :2]
+            )
+            shown_table, _ = exclude_overlapping_spots(table, diamond)
         if preview is not None:
-            preview(SeriesFramePreview(index, current_image, table))
+            preview(SeriesFramePreview(index, current_image, shown_table, preview_masks.pop(index)))
 
     options = SpotOptions(**task.spot_options)
     rotation_options = rotation.RotationOptions(link_radius=task.link_radius)
@@ -213,8 +237,13 @@ def locate_positions(task: SeriesTask, progress=None, preview=None) -> SeriesPos
         read_noise=task.read_noise,
         saturation=task.saturation,
         progress=progress,
-        frame_finished=completed if preview is not None else None,
+        frame_finished=completed if preview is not None or task.diamond_plan is not None else None,
     )
+    rejected_tracks = 0
+    if task.diamond_plan is not None:
+        from .single_crystal_diamond import exclude_overlapping_tracks
+
+        table, rejected_tracks = exclude_overlapping_tracks(table, rejected_observations)
     metadata = dict(
         schema="dioptas.experimental.rotation-positions.v1",
         algorithm="adjacent-frame-position-hunt-v1",
@@ -224,7 +253,12 @@ def locate_positions(task: SeriesTask, progress=None, preview=None) -> SeriesPos
         ).hexdigest(),
         adapter_sha256=hashlib.sha256(Path(rotation.__file__).read_bytes()).hexdigest(),
         dioptas_adapter_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-        application_mask_policy="fixed current combined mask applied to every frame",
+        application_mask_policy=("fixed application mask plus a fresh diamond mask per frame"
+                                 if task.diamond_plan is not None else
+                                 "fixed current combined mask applied to every frame"),
+        diamond_mask=(dict(task.diamond_plan.metadata(), rejected_tracks=rejected_tracks,
+                           rejected_observations=len(rejected_observations))
+                      if task.diamond_plan is not None else None),
         source_files=task.series.files,
         frame_numbers=task.series.frame_numbers,
         frame_image_mask_hashes=table.frame_hashes,

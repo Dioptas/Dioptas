@@ -48,6 +48,7 @@ from ..model.single_crystal_cells import (
 from ..model.single_crystal_inspection import spot_cell_details
 from ..model.reciprocal_explorer import reciprocal_snapshot
 from ..widgets.ReciprocalSpaceDialog import ReciprocalSpaceDialog
+from ..model.single_crystal_diamond import DiamondMaskPlan, available as diamond_available
 
 
 class _SeriesCancelled(Exception):
@@ -89,6 +90,9 @@ class SingleCrystalController:
         self._preview_timer.setInterval(100)
         self._preview_timer.timeout.connect(self._show_pending_preview)
         self._available = backend_available()
+        self._diamond_plan = None
+        self._diamond_key = None
+        self._diamond_cached = None
         self.omega_background_controller = OmegaBackgroundController(self)
         self._runner = DedicatedAsyncJobRunner(widget) if run_async else None
         if self._runner is not None:
@@ -123,6 +127,13 @@ class SingleCrystalController:
             item.valueChanged.connect(self.invalidate)
         widget.saturation_enabled.toggled.connect(self.invalidate)
         widget.zero_padding.toggled.connect(self.invalidate)
+        widget.diamond_enabled.toggled.connect(self.invalidate)
+        widget.diamond_original_rows.toggled.connect(self.invalidate)
+        widget.diamond_calibration.editingFinished.connect(self.invalidate)
+        widget.diamond_calibration_button.clicked.connect(self.choose_diamond_calibration)
+        if not diamond_available():
+            widget.diamond_enabled.setEnabled(False)
+            widget.diamond_status.setText("Diamond mask unavailable in this build.")
         # Remain subscribed while hidden to invalidate work when its source changes.
         for signal in (
             model.mask_changed,
@@ -190,12 +201,9 @@ class SingleCrystalController:
         # changing the shared image model / triggering integrations per frame.
         w.img_widget.plot_image(preview.image, auto_level=False)
         self._refresh_mouse_position()
-        mask = self.model.mask_model.get_mask()
-        if self.model.use_mask and mask.shape == preview.image.shape:
-            w.img_widget.plot_mask(mask)
-            w.img_widget.activate_mask()
-        else:
-            w.img_widget.deactivate_mask()
+        self._plot_detector_mask(preview.image, preview.mask)
+        if preview.mask is not None and w.diamond_enabled.isChecked():
+            w.diamond_status.setText("Diamond mask recalculated for this preview frame.")
         table = preview.table
         w.show_spots(table.column("x") + 0.5, table.column("y") + 0.5, table.flags)
         a, b = self.series.omega_bounds[preview.index]
@@ -250,6 +258,7 @@ class SingleCrystalController:
         if self._closed or self._browsing_series:
             return
         self._generation += 1
+        self._diamond_cached = None
         self._stop_preview()
         self.result = None
         self.cell_result = None
@@ -313,12 +322,7 @@ class SingleCrystalController:
             return
         self.widget.img_widget.plot_image(image, auto_level=True)
         self._refresh_mouse_position()
-        mask = self.model.mask_model.get_mask()
-        if self.model.use_mask and mask.shape == image.shape:
-            self.widget.img_widget.plot_mask(mask)
-            self.widget.img_widget.activate_mask()
-        else:
-            self.widget.img_widget.deactivate_mask()
+        self._plot_detector_mask(image)
         filename = self.model.img_model.filename
         self.widget.source_label.setText(
             f"{Path(filename).name or 'Current image'} · "
@@ -344,6 +348,80 @@ class SingleCrystalController:
             self.plot_predictions()
         else:
             self._plot_selected_position()
+
+    def choose_diamond_calibration(self):
+        filename = open_file_dialog(self.widget, "Diamond mask calibration", "", "PONI files (*.poni)")
+        if filename:
+            self.widget.diamond_calibration.setText(filename)
+            self.invalidate()
+
+    def _prepare_diamond(self, image):
+        w = self.widget
+        filename = w.diamond_calibration.text().strip()
+        if not filename:
+            filename = self.cell_calibration_filename
+            if not filename and self.model.calibration_model.is_calibrated:
+                filename = self.model.calibration_model.filename
+            if filename:
+                w.diamond_calibration.setText(filename)
+        if not filename:
+            raise ValueError("Choose a PONI calibration for the diamond mask.")
+        path = Path(filename).expanduser().resolve()
+        stat = path.stat()
+        transformations = tuple(self.model.img_model.params.transformations)
+        key = (str(path), stat.st_mtime_ns, stat.st_size, image.shape, transformations,
+               w.diamond_original_rows.isChecked(), w.diamond_a.value(),
+               w.diamond_tolerance.value(), w.zero_padding.isChecked())
+        if key != self._diamond_key:
+            self._diamond_plan = DiamondMaskPlan(
+                str(path), image.shape, transformations=transformations,
+                original_rows=w.diamond_original_rows.isChecked(),
+                lattice_a=w.diamond_a.value(), tolerance=w.diamond_tolerance.value(),
+                exclude_zero=w.zero_padding.isChecked(),
+            )
+            self._diamond_key = key
+            self._diamond_cached = None
+        return self._diamond_plan
+
+    def _diamond_mask(self, image, existing_mask=None):
+        if not self.widget.diamond_enabled.isChecked():
+            return None
+        plan = self._prepare_diamond(image)
+        cached = self._diamond_cached
+        if cached is None or cached[0] != self._generation or cached[1] is not image or cached[2] is not plan:
+            mask = plan.compute(image, existing_mask)
+            self._diamond_cached = (self._generation, image, plan, mask)
+        else:
+            mask = cached[3]
+        last = plan.records[-1]
+        self.widget.diamond_status.setText(
+            f"Diamond mask: {last['pixels']:,} pixels · {last['runtime_ms']:.2f} ms. "
+            "Overlapping reflections are excluded."
+        )
+        return mask
+
+    def _plot_detector_mask(self, image, snapshot=None):
+        w = self.widget
+        if snapshot is None:
+            mask = (self.model.mask_model.get_mask() if self.model.use_mask
+                    else np.zeros(image.shape, bool))
+            if mask.shape != image.shape:
+                mask = np.zeros(image.shape, bool)
+            try:
+                diamond = self._diamond_mask(image, mask)
+                if diamond is not None:
+                    mask = mask | diamond
+            except Exception as exc:
+                w.diamond_status.setText(f"Diamond mask not applied: {exc}")
+        else:
+            mask = snapshot
+        if not w.diamond_enabled.isChecked() and diamond_available():
+            w.diamond_status.setText("Diamond mask off.")
+        if self.model.use_mask or w.diamond_enabled.isChecked() or snapshot is not None:
+            w.img_widget.plot_mask(mask)
+            w.img_widget.activate_mask()
+        else:
+            w.img_widget.deactivate_mask()
 
     def _hover_geometry_context(self):
         image = self.widget.img_widget.img_data
@@ -795,6 +873,9 @@ class SingleCrystalController:
         if mask.shape != image.shape:
             raise ValueError("The enabled mask does not match this image.")
         mask = np.array(mask, dtype=bool, order="C", copy=True)
+        diamond_mask = self._diamond_mask(raw, mask)
+        if diamond_mask is not None:
+            mask |= diamond_mask
         # Detector gaps represented by NaN are explicit exclusions, not zeros.
         mask |= ~np.isfinite(image)
         if self.widget.zero_padding.isChecked():
@@ -821,7 +902,9 @@ class SingleCrystalController:
                 application_mask_enabled=bool(self.model.use_mask),
                 exclude_zero_padding=self.widget.zero_padding.isChecked(),
                 exclude_nonfinite=True,
+                diamond=(self._diamond_plan.metadata() if diamond_mask is not None else None),
             ),
+            diamond_mask,
         )
 
     def detect(self):
@@ -854,6 +937,8 @@ class SingleCrystalController:
                     task.read_noise,
                     task.saturation,
                     task.transformations,
+                    diamond_plan=(self._diamond_plan.copy()
+                                  if self.widget.diamond_enabled.isChecked() else None),
                 )
                 task.mask.flags.writeable = False
                 self._preview_generation = generation
