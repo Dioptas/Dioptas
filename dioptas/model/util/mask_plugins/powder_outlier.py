@@ -46,12 +46,21 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
     is_dynamic = True
 
     def __init__(self):
+        self.algorithm = "powder"
         self.esdmul = 3.0
         self.num_bins = 445
         self.method = "median"  # "mean" (fast) or "median" (robust)
         self.iterations = 1
         self.smooth_sigma = 1.0
         self.smooth_threshold = 0.3
+        self.broad_seed_sigma = 5.0
+        self.broad_grow_sigma = 0.8
+        self.broad_min_pixels = 100
+        self.broad_background_radius = 128
+        self.broad_smooth_sigma = 1.5
+        self.broad_exclude_zero = True
+        self.broad_max_growth = 32.0
+        self.broad_min_seed_radius = 8.0
 
         # Cached geometry-derived data (recomputed only when geometry/bins change)
         self._cached_bin_indices: np.ndarray | None = None
@@ -66,6 +75,26 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
         if geometry is None:
             return np.zeros(img_data.shape, dtype=bool)
 
+        if self.algorithm == "broad":
+            from .broad_spots import broad_spot_mask
+
+            if geometry.tth_array.shape != img_data.shape:
+                raise ValueError("Image and geometry must have the same shape")
+            return broad_spot_mask(
+                img_data, _get_bin_indices(self, geometry, self.num_bins),
+                self.num_bins, existing_mask,
+                seed_sigma=self.broad_seed_sigma,
+                grow_sigma=self.broad_grow_sigma,
+                min_pixels=self.broad_min_pixels,
+                background_radius=self.broad_background_radius,
+                smooth_sigma=self.broad_smooth_sigma,
+                exclude_zero=self.broad_exclude_zero,
+                radial_coordinates=geometry.tth_array,
+                seed_ranges=self._seed_ranges(geometry),
+                max_growth=self.broad_max_growth,
+                min_seed_radius=self.broad_min_seed_radius,
+            )
+
         return _compute_powder_outlier_mask(
             img_data,
             geometry=geometry,
@@ -79,8 +108,22 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
             plugin=self,
         )
 
+    def _seed_ranges(self, geometry):
+        return None
+
     def get_settings_schema(self) -> dict:
         return {
+            "algorithm": {
+                "type": "choice", "default": "powder", "label": "Algorithm",
+                "choices": ["powder", "broad"],
+                "description": (
+                    "'powder': original per-ring outlier mask. 'broad': experimental "
+                    "local-background and connected-wing detection. Selects broad "
+                    "regions, not diamond specifically; review sample overlap. "
+                    "The broad controls below apply only to 'broad'; Method, Sigma "
+                    "multiplier, Iterations and Smooth controls apply only to 'powder'."
+                ),
+            },
             "method": {
                 "type": "choice",
                 "default": "median",
@@ -160,9 +203,60 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
                     "Lower values expand masked regions."
                 ),
             },
+            "broad_seed_sigma": {
+                "type": "float", "default": 5.0, "label": "Broad: seed contrast",
+                "min": 0.1, "max": 50.0, "decimals": 1, "step": 0.1,
+                "description": "High threshold in radial MAD units after local-background removal.",
+            },
+            "broad_grow_sigma": {
+                "type": "float", "default": 0.8, "label": "Broad: wing contrast",
+                "min": 0.1, "max": 50.0, "decimals": 1, "step": 0.1,
+                "description": "Grow connected seeds to this lower contrast; capped at seed contrast when higher.",
+            },
+            "broad_min_pixels": {
+                "type": "int", "default": 100, "label": "Broad: minimum seed area (px)",
+                "min": 1, "max": 1000000,
+                "description": "Reject smaller connected seed regions. This is a size filter, not phase identification.",
+            },
+            "broad_background_radius": {
+                "type": "int", "default": 128, "label": "Broad: background radius (px)",
+                "min": 1, "max": 2048,
+                "description": "Local background half-window; choose larger than the feature wings. No maximum spot size is imposed.",
+            },
+            "broad_smooth_sigma": {
+                "type": "float", "default": 1.5, "label": "Broad: contrast smoothing (px)",
+                "min": 0.0, "max": 10.0, "decimals": 1, "step": 0.1,
+                "description": "Smooth contrast before detection and growth; zero disables smoothing.",
+            },
+            "broad_exclude_zero": {
+                "type": "bool", "default": True, "label": "Broad: exclude zero padding",
+                "description": "Exclude exact zero pixels from background estimates and output. Disable for valid zero counts.",
+            },
+            "broad_max_growth": {
+                "type": "float", "default": 32.0, "label": "Broad: maximum wing reach (px)",
+                "min": 0.0, "max": 1024.0, "decimals": 1, "step": 1.0,
+                "description": "Limit outward growth from accepted seeds to prevent weak bridges reaching unrelated diffraction. Zero keeps seeds only.",
+            },
+            "broad_min_seed_radius": {
+                "type": "float", "default": 8.0, "label": "Broad: minimum seed half-width (px)",
+                "min": 0.0, "max": 100.0, "decimals": 1, "step": 0.5,
+                "description": "Require this interior distance from a seed edge. Rejects thin powder arcs and narrow sample spots; zero disables this filter.",
+            },
         }
 
     def update_settings(self, settings: dict) -> None:
+        algorithm = settings.get("algorithm", self.algorithm)
+        seed = settings.get("broad_seed_sigma", self.broad_seed_sigma)
+        grow = settings.get("broad_grow_sigma", self.broad_grow_sigma)
+        if algorithm not in ("powder", "broad") or not (
+            np.isfinite(seed) and np.isfinite(grow) and 0 < grow and 0 < seed
+        ):
+            raise ValueError("Invalid algorithm or broad-region thresholds")
+        self.algorithm = algorithm
+        for name in ("broad_seed_sigma", "broad_grow_sigma", "broad_min_pixels",
+                     "broad_background_radius", "broad_smooth_sigma", "broad_exclude_zero",
+                     "broad_max_growth", "broad_min_seed_radius"):
+            setattr(self, name, settings.get(name, getattr(self, name)))
         old_num_bins = self.num_bins
         self.method = settings.get("method", self.method)
         self.esdmul = settings.get("esdmul", self.esdmul)
@@ -177,6 +271,15 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
 
     def get_settings(self) -> dict:
         return {
+            "algorithm": self.algorithm,
+            "broad_seed_sigma": self.broad_seed_sigma,
+            "broad_grow_sigma": self.broad_grow_sigma,
+            "broad_min_pixels": self.broad_min_pixels,
+            "broad_background_radius": self.broad_background_radius,
+            "broad_smooth_sigma": self.broad_smooth_sigma,
+            "broad_exclude_zero": self.broad_exclude_zero,
+            "broad_max_growth": self.broad_max_growth,
+            "broad_min_seed_radius": self.broad_min_seed_radius,
             "method": self.method,
             "esdmul": self.esdmul,
             "num_bins": self.num_bins,
@@ -205,11 +308,19 @@ def _get_bin_indices(
 def _compute_bin_indices(tth_array: np.ndarray, num_bins: int) -> np.ndarray:
     """Compute equal-width bin indices from 2-theta array."""
     tth_flat = tth_array.ravel()
-    tth_min = np.nanmin(tth_flat)
-    tth_max = np.nanmax(tth_flat)
+    finite = np.isfinite(tth_flat)
+    bin_indices = np.full(tth_flat.shape, -1, dtype=np.int32)
+    if not np.any(finite):
+        return bin_indices
+    tth_min = tth_flat[finite].min()
+    tth_max = tth_flat[finite].max()
+    if tth_max == tth_min:
+        bin_indices[finite] = 0
+        return bin_indices
     dtth = (tth_max - tth_min) / num_bins
-    bin_indices = ((tth_flat - tth_min) / dtth).astype(np.int32)
-    np.clip(bin_indices, 0, num_bins - 1, out=bin_indices)
+    bin_indices[finite] = np.clip(
+        ((tth_flat[finite] - tth_min) / dtth).astype(np.int32), 0, num_bins - 1
+    )
     return bin_indices
 
 

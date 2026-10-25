@@ -287,6 +287,9 @@ class Configuration:
         )
         self.img_model.img_changed.connect(self.update_mask_dimension)
         self.img_model.img_changed.connect(self._update_plugin_masks)
+        # Loading/refining calibration does not emit img_changed. Geometry-
+        # aware plugins must refresh now, even if the frame stays the same.
+        self.calibration_model.parameters_changed.connect(self._update_plugin_geometry)
         self.mask_plugin_manager.mask_changed.connect(
             self.mask_model.mask_changed.emit
         )
