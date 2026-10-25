@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MIT
- * Coarse discovery and bounded full-resolution windows. Optional OpenMP row
- * workers; the serial path does not require an OpenMP runtime.
+ * Serial, portable C implementation: coarse discovery and bounded full-resolution
+ * windows. No OpenMP, Python loops over pixels, or full-resolution image copy.
  */
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
@@ -10,29 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
-#ifdef _OPENMP
-#include <omp.h>
-#ifdef _MSC_VER
-#define PARALLEL_POOL __pragma(omp parallel for schedule(static) num_threads(c->threads) if(c->threads>1))
-#define PARALLEL_ROWS __pragma(omp parallel for schedule(static) num_threads(c->threads) if(c->threads>1 && c->parallel_rows))
-#else
-#define PARALLEL_POOL _Pragma("omp parallel for schedule(static) num_threads(c->threads) if(c->threads>1)")
-#define PARALLEL_ROWS _Pragma("omp parallel for schedule(static) num_threads(c->threads) if(c->threads>1 && c->parallel_rows)")
-#endif
-#else
-#define PARALLEL_POOL
-#define PARALLEL_ROWS
-#endif
 
-#ifdef DIOPTAS_DIAMOND_OMP
-#define MODULE_NAME "_diamond_roi_omp"
-#define MODULE_INIT PyInit__diamond_roi_omp
-#define CAPSULE_NAME "dioptas.diamond_roi.omp.v1"
-#else
-#define MODULE_NAME "_diamond_roi_c"
-#define MODULE_INIT PyInit__diamond_roi_c
 #define CAPSULE_NAME "dioptas.diamond_roi.v1"
-#endif
 typedef struct {
     int h,w,ch,cw,n,block,radius,min_area,min_radius,growth,max_work,exclude_zero,nranges;
     double seed,wing;
@@ -43,7 +22,6 @@ typedef struct {
     int *labels,*queue,*deque;
     double *integral;
     int stat_capacity,busy;
-    int threads,parallel_rows;
 } Context;
 
 typedef struct {
@@ -67,24 +45,16 @@ static void destroy_context(PyObject *capsule) {
 static PyObject *create_context(PyObject *self, PyObject *args) {
     PyObject *angle_obj,*range_obj;
     int h,w,block,radius,area,min_radius,growth,max_work,zero;
-    int threads=1,parallel_rows=0;
     double seed,wing;
-    if (!PyArg_ParseTuple(args,"OO(ii)iiddiiiip|ip",&angle_obj,&range_obj,&h,&w,
-                          &block,&radius,&seed,&wing,&area,&min_radius,&growth,&max_work,&zero,
-                          &threads,&parallel_rows)) return NULL;
+    if (!PyArg_ParseTuple(args,"OO(ii)iiddiiiip",&angle_obj,&range_obj,&h,&w,
+                          &block,&radius,&seed,&wing,&area,&min_radius,&growth,&max_work,&zero)) return NULL;
     if (h<1 || w<1 || h>INT_MAX/16 || w>INT_MAX/16 || (int64_t)h*w>INT_MAX/8 ||
         block<1 || block>64 || radius<1 || radius>INT_MAX/2 ||
         area<1 || area>INT_MAX/2 || min_radius<1 || min_radius>254 ||
         growth<0 || growth>254 || max_work<1 || max_work>INT_MAX/8 ||
-        threads<1 || threads>16 ||
         !isfinite(seed) || !isfinite(wing) || seed<=0 || wing<=0 || wing>seed) {
         PyErr_SetString(PyExc_ValueError,"Invalid native detector dimensions or settings"); return NULL;
     }
-#ifndef _OPENMP
-    if(threads>1) {
-        PyErr_SetString(PyExc_RuntimeError,"Parallel diamond ROI detection requires an OpenMP build");return NULL;
-    }
-#endif
     PyArrayObject *angles=(PyArrayObject*)PyArray_FROM_OTF(angle_obj,NPY_DOUBLE,NPY_ARRAY_IN_ARRAY);
     PyArrayObject *ranges=(PyArrayObject*)PyArray_FROM_OTF(range_obj,NPY_DOUBLE,NPY_ARRAY_IN_ARRAY);
     if (!angles || !ranges) { Py_XDECREF(angles); Py_XDECREF(ranges); return NULL; }
@@ -100,7 +70,6 @@ static PyObject *create_context(PyObject *self, PyObject *args) {
     c->radius=(radius+block-1)/block;c->seed=seed;c->wing=wing;
     c->min_area=(area+block*block-1)/(block*block);c->min_radius=min_radius;c->growth=growth;
     c->max_work=max_work;c->exclude_zero=zero;c->nranges=(int)PyArray_DIM(ranges,0);
-    c->threads=threads;c->parallel_rows=parallel_rows;
     c->stat_capacity=c->n>8*(h+w)?c->n:8*(h+w);
     int queue_capacity=max_work>c->n?max_work:c->n;
 #define ALLOC(field,count,type) c->field=(type*)calloc((size_t)(count),sizeof(type)); if(!c->field) goto oom
@@ -148,9 +117,7 @@ static int usable(const Image *im,int y,int x,double v,int exclude_zero) {
 } while(0)
 #define FAST_POOL(NAME,TYPE,HAS_MASK) \
 static void NAME(Context *c,const Image *im) { \
-    int cy; \
-    PARALLEL_POOL \
-    for(cy=0;cy<c->ch;cy++)for(int cx=0;cx<c->cw;cx++) { \
+    for(int cy=0;cy<c->ch;cy++)for(int cx=0;cx<c->cw;cx++) { \
         double s0=0,s1=0,s2=0,s3=0;int count=0; \
         int y1=(cy+1)*8<c->h?(cy+1)*8:c->h; \
         int x0=cx*8,x1=x0+8<c->w?x0+8:c->w; \
@@ -180,7 +147,7 @@ FAST_POOL(pool_f64_mask,double,1)
 #undef ADD_PIXEL
 
 static void pool_image(Context *c,const Image *im) {
-    int block=c->block,cy;
+    int block=c->block;
     if(block==8&&(!im->mask||im->mx==1)) {
 #define FAST_CASE(TYPE,CTYPE,NAME) case TYPE:if(im->sx==sizeof(CTYPE)){ \
     if(im->mask)NAME##_mask(c,im);else NAME(c,im);return;}break
@@ -195,8 +162,7 @@ static void pool_image(Context *c,const Image *im) {
     }
     /* Specialize the inner pixel loop by dtype; preserve arbitrary row flips. */
 #define POOL(TYPE) \
-    PARALLEL_POOL \
-    for(cy=0;cy<c->ch;cy++) for(int cx=0;cx<c->cw;cx++) { \
+    for(int cy=0;cy<c->ch;cy++) for(int cx=0;cx<c->cw;cx++) { \
         double sum=0;int count=0; \
         int y1=(cy+1)*block<c->h?(cy+1)*block:c->h; \
         int x1=(cx+1)*block<c->w?(cx+1)*block:c->w; \
@@ -243,9 +209,7 @@ static void extreme(Context *c,const float *src,float *dst,int is_max,int vertic
         extreme_line(src+y*c->cw,dst+y*c->cw,c->cw,1,c->radius,is_max,c->deque);
 }
 static void smooth_grid(Context *c) {
-    int y;
-    PARALLEL_ROWS
-    for(y=0;y<c->ch;y++)for(int x=0;x<c->cw;x++) {
+    for(int y=0;y<c->ch;y++)for(int x=0;x<c->cw;x++) {
         double sum=0,weight=0;
         for(int dy=-1;dy<=1;dy++)for(int dx=-1;dx<=1;dx++) {
             int yy=y+dy,xx=x+dx;
@@ -318,11 +282,10 @@ static int solve_plane(double m[3][3],double v[3],double out[3]) {
 }
 
 static int process_roi(Context *c,const Image *im,npy_bool *out,int id,int x0,int x1,int y0,int y1,int *work) {
-    int w=x1-x0,h=y1-y0,n=w*h,y;
+    int w=x1-x0,h=y1-y0,n=w*h;
     if(n>c->max_work || *work>c->max_work-n)return -1;
     *work+=n;
-    PARALLEL_ROWS
-    for(y=0;y<h;y++)for(int x=0;x<w;x++) {
+    for(int y=0;y<h;y++)for(int x=0;x<w;x++) {
         double v=read_pixel(im,y+y0,x+x0);
         c->roi[y*w+x]=usable(im,y+y0,x+x0,v,c->exclude_zero)?(float)v:NAN;
     }
@@ -370,16 +333,14 @@ static int process_roi(Context *c,const Image *im,npy_bool *out,int id,int x0,in
     if(peak<=high_border+c->seed*sigma)return 0;
     /* Separable normalized binomial filter: keep the missing-value weights
        until the second pass, so this equals the 3x3 stencil even at gaps. */
-    PARALLEL_ROWS
-    for(y=0;y<h;y++)for(int x=0;x<w;x++) {
+    for(int y=0;y<h;y++)for(int x=0;x<w;x++) {
         int p=y*w+x,weight=0;double sum=0;
         if(x>0&&isfinite(c->roi[p-1])){sum+=c->roi[p-1];weight++;}
         if(isfinite(c->roi[p])){sum+=2.0*c->roi[p];weight+=2;}
         if(x+1<w&&isfinite(c->roi[p+1])){sum+=c->roi[p+1];weight++;}
         c->horizontal[p]=sum;c->distance[p]=(uint8_t)weight;
     }
-    PARALLEL_ROWS
-    for(y=0;y<h;y++)for(int x=0;x<w;x++) {
+    for(int y=0;y<h;y++)for(int x=0;x<w;x++) {
         int p=y*w+x,weight=2*c->distance[p];double sum=2*c->horizontal[p];
         if(y>0){sum+=c->horizontal[p-w];weight+=c->distance[p-w];}
         if(y+1<h){sum+=c->horizontal[p+w];weight+=c->distance[p+w];}
@@ -526,15 +487,5 @@ static PyMethodDef methods[]={
     {"compute",compute,METH_VARARGS,"Detect diamond candidates; return owned mask, ROI count, visited window pixels."},
     {NULL,NULL,0,NULL}
 };
-static struct PyModuleDef module={PyModuleDef_HEAD_INIT,MODULE_NAME,NULL,-1,methods};
-PyMODINIT_FUNC MODULE_INIT(void){
-    import_array();
-    PyObject *m=PyModule_Create(&module);if(!m)return NULL;
-#ifdef _OPENMP
-    int enabled=1;
-#else
-    int enabled=0;
-#endif
-    if(PyModule_AddIntConstant(m,"OPENMP_ENABLED",enabled)<0){Py_DECREF(m);return NULL;}
-    return m;
-}
+static struct PyModuleDef module={PyModuleDef_HEAD_INIT,"_diamond_roi_c",NULL,-1,methods};
+PyMODINIT_FUNC PyInit__diamond_roi_c(void){import_array();return PyModule_Create(&module);}

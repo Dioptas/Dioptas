@@ -15,52 +15,6 @@ calibrated angles and diamond bands once, then uses serial portable C without
 OpenMP or a GPU. Build with `python setup.py build_ext --inplace`. If the native
 extension is absent, construction fails explicitly; there is no slow fallback.
 
-### Optional parallel experiment
-
-`DiamondROIDetector(geometry, threads=4)` selects a separately built OpenMP
-backend. The default remains `threads=1`, using the original serial backend
-without OpenMP startup/barrier overhead. OpenMP is optional: requesting multiple
-workers when unavailable raises explicitly. `DIOPTAS_NO_OPENMP=1` still allows
-the serial build. No global OpenMP thread count or waiting policy is changed.
-
-Workers split independent image-tile rows, coarse smoothing, ROI pixel loading
-and the two normalized-filter passes. Each output element has one writer, and
-barriers separate dependent passes. Median selection, background extrema,
-component labelling, width traversal and connected growth remain serial.
-Overlapping windows are processed in their original order, avoiding writes to
-the same mask pixels from different workers. `parallel_rows=False` limits the
-experiment to parallel image reduction only.
-
-On the same Apple M4 Pro, a fresh 608-call comparison per case gave:
-
-| Full Configuration update | Serial | 2 workers | 4 workers |
-|---|---:|---:|---:|
-| Original uint16, median ms | 5.60 | 5.21 | 5.07 |
-| Original uint16, p95 ms | 6.93 | 6.38 | 6.29 |
-| float64 + user mask, median ms | 6.64 | 6.37 | 5.68 |
-| float64 + user mask, p95 ms | 7.86 | 7.66 | 6.88 |
-
-The gain is modest (about 9–14% in the four-worker pipeline comparison), not
-fourfold. Eight workers did not improve the full row-parallel detector over
-four. All returned unmasked masks matched the frozen serial masks; returned
-masked-frame hashes also matched their serial counterparts. The first detector
-call is included; no detector warmup is removed.
-
-**Tail latency remains a limit.** In the initial pipeline runs the serial
-uint16 update reached 10.41 ms (detector 8.51 ms), while one four-worker uint16
-detection reached 10.13 ms and was rejected (12.50 ms including failure logging).
-The four-worker reduction-only experiment also rejected two calls. Later
-four-worker repeats and tests of passive waiting had no rejected calls, but do
-not erase these observations. Two-worker pipeline maxima were 7.60 ms (uint16)
-and 9.09 ms (float64/masked), with no rejections in those runs. OS scheduling
-and other simultaneous work prevent treating any observed maximum as a hard
-real-time guarantee. The ≥10 ms detection rejection remains active.
-
-Threading stays opt-in and the detector stays outside the GUI. The complete
-thread-count sweep, repeats, environment settings, raw samples and comparisons
-are saved in the local report's `parallel-roi/` section. Passive-wait settings
-were applied only to benchmark subprocesses, not to Dioptas or the user's shell.
-
 Each frame is discovered afresh:
 
 1. Read all image pixels into 8×8 tile means, excluding user masks, nonfinite
