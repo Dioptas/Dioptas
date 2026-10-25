@@ -418,6 +418,48 @@ and the retained/excluded support of every primitive hypothesis, including rejec
 ones. Predictions and residuals for the current row can be exported through
 **Cell**. Existing plot mouse controls and frame buttons are unchanged.
 
+## 3D reciprocal-space explorer
+
+**Reciprocal space…** in Cell opens a non-modal, rotatable 3D point cloud for
+the selected ranked cell. It follows cell/lattice selections and clears when
+the source is invalidated. Drag left to rotate, wheel to zoom, right/Ctrl-drag
+to pan, and double-click to reset. Buttons orient the camera along hk, hl or kl
+planes. These are camera presets in the same 3D viewer. The default Cartesian
+q coordinates preserve physical angles and equal scales, in Å⁻¹ with `|q|=1/d`.
+Fractional-index mode shows unrounded h/k/l; its axis lengths and angles are
+coordinate units rather than physical reciprocal distances.
+
+PhaseSmith's native `reciprocal_vectors` owns detector/omega conversion.
+The display adapter expresses q in the selected fitted reciprocal basis B using
+`q = h B`, without rounding h or reassigning reflections. Linked-centre mode
+uses original signal-weighted x/y/omega centres, matching cell comparison;
+individual-observation mode converts every original frame observation separately.
+Nonfinite centres are omitted and counted. Indexed (cyan), unassigned (orange)
+and excluded/unassessed (grey) colours retain the same frozen assignment/eligible
+population as selected-spot details. Each population can be hidden independently.
+Reference lattice planes mark integer indices, not allowed/predicted reflections;
+empty nodes do not establish systematic absences or a smaller cell.
+
+Clicking a point selects its original track, scrolls to its Positions row and
+highlights the detector spot. An individual observation also opens its exact
+frame. Overlapping points are picked nearest the cursor, then frontmost for
+near ties. Table/image selections highlight the same track in magenta.
+**Centre selected** moves the rotation pivot to that spot. **Slices…** opens an
+optional three-panel hk/hl/kl inspection tool, with adjustable normal-coordinate
+centres and full slab thickness. Both boundaries are included:
+`abs(normal - centre) <= thickness / 2`. Slice mouse gestures match the pattern
+plots, and grids are excluded from zoom bounds. This is a measured-position
+viewer, not an intensity reconstruction or diffuse-scattering volume.
+
+The 3D view uses orthographic projection and Qt's CPU raster painter, without an
+OpenGL requirement or additional GPU library. Depth is drawn back-to-front in
+24 buckets, with cyan winning ties within a bucket. Coordinate conversion,
+projection, picking and bounded-bucket rendering are O(N); storage is O(N).
+The cloud (and each optional slice) displays at most 50,000 points with
+deterministic evenly spaced sampling and reports shown/total counts. Large
+clouds may lose small features when capped. The experimental CI runs on Windows,
+macOS and Linux; local interactive review is on macOS.
+
 Local P1 validation (2026-10-25) used its archived measured position table and
 re-ran the blind FFT lattice search before ranking; no known cell/material was
 supplied. All five settings were selected in an offscreen real-frame review and

@@ -46,6 +46,8 @@ from ..model.single_crystal_cells import (
     export_ranked_cells,
 )
 from ..model.single_crystal_inspection import spot_cell_details
+from ..model.reciprocal_explorer import reciprocal_snapshot
+from ..widgets.ReciprocalSpaceDialog import ReciprocalSpaceDialog
 
 
 class _SeriesCancelled(Exception):
@@ -66,6 +68,7 @@ class SingleCrystalController:
         self._pending_rank_preview = False
         self.refinement_result = None
         self._residual_dialog = None
+        self._reciprocal_dialog = None
         self.cell_calibration_filename = ""
         self._hover_position = None
         self._hover_geometry = None
@@ -94,6 +97,7 @@ class SingleCrystalController:
         widget.detect_button.clicked.connect(self.detect)
         widget.cell_table.selectionModel().selectionChanged.connect(self._cell_selected)
         widget.cell_button.clicked.connect(self.index_cells)
+        widget.reciprocal_button.clicked.connect(self.show_reciprocal_space)
         widget.rank_table.selectionModel().selectionChanged.connect(self._rank_selected)
         widget.rank_export_button.clicked.connect(self.export_ranked_candidates)
         widget.cell_export_button.clicked.connect(self.export_cell_candidates)
@@ -234,6 +238,8 @@ class SingleCrystalController:
 
     def shutdown(self):
         self._closed = True
+        if self._reciprocal_dialog is not None:
+            self._reciprocal_dialog.close()
         self._stop_preview()
         self.omega_background_controller.cancel()
         self._generation += 1
@@ -277,6 +283,12 @@ class SingleCrystalController:
         )
         self.widget.rank_table.setEnabled(
             self.ranked_result is not None and not self._closed
+        )
+        self.widget.reciprocal_button.setEnabled(
+            isinstance(self.result, SeriesPositions)
+            and self.ranked_result is not None
+            and self.refinement_result is not None
+            and not self._closed
         )
         message = (
             "Ready to find 3D positions across the rotation series."
@@ -411,6 +423,9 @@ class SingleCrystalController:
 
     def _clear_refinement(self):
         self.refinement_result = None
+        self.widget.reciprocal_button.setEnabled(False)
+        if self._reciprocal_dialog is not None:
+            self._reciprocal_dialog.clear_snapshot()
         self.widget.predicted_overlay.hide()
         self.widget.predicted_overlay.clear()
         self.widget.prediction_note.setText(
@@ -554,6 +569,10 @@ class SingleCrystalController:
     def _refresh_selected_position_details(self):
         w = self.widget
         selected = w.table_view.selectionModel().selectedRows()
+        if self._reciprocal_dialog is not None:
+            self._reciprocal_dialog.select_track(
+                selected[0].row() if self.result is not None and selected else None
+            )
         if self.result is None or not selected:
             w.position_details.hide()
             return
@@ -636,6 +655,55 @@ class SingleCrystalController:
             self.widget.status_label.setText(f"Could not load series frame: {exc}")
         finally:
             self._browsing_series = False
+
+    def show_reciprocal_space(self):
+        if not self.widget.reciprocal_button.isEnabled():
+            return
+        if self._reciprocal_dialog is None:
+            dialog = ReciprocalSpaceDialog(self.widget)
+            self._reciprocal_dialog = dialog
+            dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            dialog.destroyed.connect(lambda: setattr(self, "_reciprocal_dialog", None))
+            dialog.spot_selected.connect(self._select_reciprocal_position)
+        self._update_reciprocal_explorer()
+        self._reciprocal_dialog.show()
+        self._reciprocal_dialog.raise_()
+
+    def _update_reciprocal_explorer(self):
+        if self._reciprocal_dialog is None or self.refinement_result is None:
+            return
+        try:
+            snapshot = reciprocal_snapshot(
+                self.result, self.ranked_result, self.ranked_selection
+            )
+        except (ValueError, RuntimeError, np.linalg.LinAlgError) as exc:
+            self._reciprocal_dialog.clear_snapshot()
+            self._reciprocal_dialog.description.setText(
+                f"Reciprocal view unavailable: {exc}"
+            )
+            return
+        self._reciprocal_dialog.set_snapshot(snapshot)
+        selected = self.widget.table_view.selectionModel().selectedRows()
+        self._reciprocal_dialog.select_track(selected[0].row() if selected else None)
+
+    def _select_reciprocal_position(self, track, frame):
+        if not isinstance(self.result, SeriesPositions) or not 0 <= track < len(
+            self.result.table
+        ):
+            return
+        table = self.widget.table_view
+        self._selecting_image_spot = frame >= 0
+        try:
+            if frame >= 0:
+                self.widget.frame_slider.setValue(frame)
+            table.selectRow(track)
+            self.select_position()
+        finally:
+            self._selecting_image_spot = False
+        self.widget.sections.setCurrentWidget(self.widget.positions_section)
+        table.scrollTo(
+            table.model().index(track, 0), QtWidgets.QAbstractItemView.PositionAtCenter
+        )
 
     def load_series(self, series, selected_file=None):
         index = (
@@ -939,6 +1007,7 @@ class SingleCrystalController:
             self.widget.sections.setCurrentWidget(self.widget.cell_section)
             self._set_ready()
             self.plot_predictions()
+            self._update_reciprocal_explorer()
             self.widget.status_label.setText(
                 f"Displaying rank {ranked['rank']} · {ranked['symbol']}. Select another row to compare cells."
                 if ranked

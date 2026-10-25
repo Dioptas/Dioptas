@@ -445,6 +445,12 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         self.cell_button = QtWidgets.QPushButton("Find lattices and rank cells…")
         self.cell_button.setEnabled(False)
         cell_panel.addWidget(self.cell_button)
+        self.reciprocal_button = QtWidgets.QPushButton("Reciprocal space…")
+        self.reciprocal_button.setEnabled(False)
+        self.reciprocal_button.setToolTip(
+            "Explore a rotatable 3D cloud of measured reciprocal positions for the selected cell."
+        )
+        cell_panel.addWidget(self.reciprocal_button)
         self.cell_tables = QtWidgets.QSplitter(QtCore.Qt.Vertical)
         self.cell_tables.setChildrenCollapsible(False)
         cell_panel.addWidget(self.cell_tables, 1)
