@@ -34,6 +34,10 @@ jobs:
         run: |
           python -m pip install uv
           uv sync --extra test
+      - name: Require parallel backend on Linux and Windows
+        if: runner.os != 'macOS'
+        run: >-
+          uv run python -c "from dioptas.model.util.mask_plugins.diamond_roi import parallel_native; assert parallel_native is not None and parallel_native.OPENMP_ENABLED"
       - name: Test masks, spacing rules, missing data, saturation and transforms
         run: >-
           uv run pytest -q

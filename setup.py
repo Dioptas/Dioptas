@@ -48,6 +48,14 @@ extensions = [
         extra_compile_args=optimize_cflags,
     ),
     Extension(
+        "dioptas.model.util.mask_plugins._diamond_roi_omp",
+        sources=["dioptas/model/util/mask_plugins/_diamond_roi_omp.c"],
+        depends=["dioptas/model/util/mask_plugins/_diamond_roi_c.c"],
+        include_dirs=[np.get_include()],
+        extra_compile_args=optimize_cflags + omp_cflags,
+        extra_link_args=omp_ldflags,
+    ),
+    Extension(
         "dioptas.model.util.mask_plugins._powder_outlier_c",
         sources=["dioptas/model/util/mask_plugins/_powder_outlier_c.c"],
         include_dirs=[np.get_include()],

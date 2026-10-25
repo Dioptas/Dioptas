@@ -13,6 +13,11 @@ try:
 except ImportError:
     native = None
 
+try:
+    from . import _diamond_roi_omp as parallel_native
+except ImportError:
+    parallel_native = None
+
 
 class DiamondROIDetector:
     """Reuse preparation/scratch; return independently owned full-size masks.
@@ -24,9 +29,18 @@ class DiamondROIDetector:
     def __init__(self, geometry, *, block=8, background_radius=128,
                  seed_contrast=5.0, wing_contrast=0.8, min_seed_pixels=100, min_seed_radius=8,
                  max_growth=32, max_window_pixels=1_000_000, exclude_zero=True,
-                 lattice_a=3.567, d_tolerance_percent=3.0):
+                 lattice_a=3.567, d_tolerance_percent=3.0, threads=1, parallel_rows=True):
         if native is None:
             raise RuntimeError("The compiled diamond ROI experiment is unavailable")
+        if not isinstance(threads, (int, np.integer)) or not 1 <= threads <= 16:
+            raise ValueError("threads must be an integer from 1 to 16")
+        self.threads = int(threads)
+        if self.threads > 1:
+            if parallel_native is None or not parallel_native.OPENMP_ENABLED:
+                raise RuntimeError("Parallel diamond ROI detection requires an OpenMP build")
+            self._backend = parallel_native
+        else:
+            self._backend = native
         self.shape = geometry.tth_array.shape
         if len(self.shape) != 2 or not 1 <= block <= 64:
             raise ValueError("Invalid detector shape or block size")
@@ -44,10 +58,11 @@ class DiamondROIDetector:
             rows = np.minimum(np.arange(ch) * block + dy, self.shape[0] - 1)
             columns = np.minimum(np.arange(cw) * block + dx, self.shape[1] - 1)
             coarse_angles += geometry.tth_array[np.ix_(rows, columns)] / 4
-        self._context = native.create(coarse_angles, ranges, self.shape, int(block),
+        self._context = self._backend.create(coarse_angles, ranges, self.shape, int(block),
                                       int(background_radius), float(seed_contrast),
                                       float(wing_contrast), int(min_seed_pixels), int(min_seed_radius),
-                                      int(max_growth), int(max_window_pixels), bool(exclude_zero))
+                                      int(max_growth), int(max_window_pixels), bool(exclude_zero),
+                                      self.threads, bool(parallel_rows))
         self._lock = Lock()
         self.last_regions = 0
         self.last_window_pixels = 0
@@ -62,7 +77,7 @@ class DiamondROIDetector:
                     and existing_mask.dtype == np.bool_ and existing_mask.shape == self.shape
                     and not existing_mask.any()):
                 existing_mask = None
-            mask, self.last_regions, self.last_window_pixels = native.compute(
+            mask, self.last_regions, self.last_window_pixels = self._backend.compute(
                 self._context, image, existing_mask)
             self.last_runtime_ms = (perf_counter_ns() - start) / 1e6
             if self.last_runtime_ms >= 10:

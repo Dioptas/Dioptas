@@ -172,3 +172,44 @@ def test_gap_through_entire_core_can_prevent_width_confirmation(detector_scene):
     # Intentionally conservative: no unbroken broad interior remains. No filling
     # of missing detector counts or invented width evidence is allowed.
     assert not detector.compute_mask(image, existing).any()
+
+
+@pytest.mark.parametrize("threads", [2, 4, 8])
+@pytest.mark.parametrize("parallel_rows", [False, True])
+def test_parallel_rows_match_serial_with_gaps_and_strides(detector_scene, threads, parallel_rows):
+    serial, image, geometry, _, _ = detector_scene
+    if diamond_roi.parallel_native is None or not diamond_roi.parallel_native.OPENMP_ENABLED:
+        with pytest.raises(RuntimeError, match="OpenMP"):
+            diamond_roi.DiamondROIDetector(geometry, threads=threads)
+        return
+    parallel = diamond_roi.DiamondROIDetector(
+        geometry, background_radius=40, d_tolerance_percent=0.5,
+        threads=threads, parallel_rows=parallel_rows,
+    )
+    image[68:72, 88:105] = np.nan
+    image[76:80, 88:105] = 0
+    mask = np.zeros(image.shape, bool)
+    mask[60:65, 88:105] = True
+    # Native numerical comparison excludes a timing assertion on shared CI
+    # runners; the wrapper's deadline rejection has its own deterministic test.
+    expected = diamond_roi.native.compute(serial._context, image, mask)[0]
+    for array in [image, image[:, ::-1].copy()[:, ::-1]]:
+        for repeat in range(3):
+            actual = parallel._backend.compute(parallel._context, array, mask)[0]
+            np.testing.assert_array_equal(actual, expected)
+
+
+@pytest.mark.parametrize("threads", [0, 17, 1.5])
+def test_invalid_thread_count(detector_scene, threads):
+    _, _, geometry, _, _ = detector_scene
+    with pytest.raises(ValueError, match="threads"):
+        diamond_roi.DiamondROIDetector(geometry, threads=threads)
+
+
+def test_missing_optional_openmp_backend_keeps_serial_available(monkeypatch, detector_scene):
+    _, image, geometry, _, _ = detector_scene
+    monkeypatch.setattr(diamond_roi, "parallel_native", None)
+    with pytest.raises(RuntimeError, match="OpenMP"):
+        diamond_roi.DiamondROIDetector(geometry, threads=2)
+    serial = diamond_roi.DiamondROIDetector(geometry, background_radius=40)
+    assert serial.compute_mask(image).any()
