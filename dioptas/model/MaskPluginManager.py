@@ -11,6 +11,7 @@ from .util import Signal
 from .util.MaskPlugin import MaskPluginBase, GeometryContext
 
 logger = logging.getLogger(__name__)
+_KEEP_GEOMETRY = object()
 
 
 @dataclass
@@ -79,14 +80,20 @@ class MaskPluginManager:
         self.mask_changed.emit()
 
     def update_image(
-        self, img_data: np.ndarray, existing_mask: np.ndarray | None = None
+        self, img_data: np.ndarray, existing_mask: np.ndarray | None = None,
+        *, geometry: GeometryContext | None | object = _KEEP_GEOMETRY,
     ) -> None:
         """Called when a new image is loaded. Recomputes dynamic plugin masks.
 
         :param img_data: The current image data array.
         :param existing_mask: User-drawn mask (detector gaps, etc.) passed to
             plugins that declare ``needs_existing_mask = True``.
+        :param geometry: Optionally replace geometry atomically with the image,
+            avoiding a calculation on the previous image during frame changes.
         """
+        geometry_updated = geometry is not _KEEP_GEOMETRY
+        if geometry_updated:
+            self._geometry = geometry
         self._current_img_data = img_data
         self._existing_mask = existing_mask
         new_shape = img_data.shape[:2]
@@ -98,11 +105,13 @@ class MaskPluginManager:
             if not entry.enabled:
                 # a disabled dynamic plugin's cache describes an image that
                 # is now gone; keeping it would show the old mask on enable
-                if shape_changed or entry.plugin.is_dynamic:
+                if (shape_changed or entry.plugin.is_dynamic
+                        or (geometry_updated and entry.plugin.needs_geometry)):
                     entry.cached_mask = None
                 continue
 
-            if entry.plugin.is_dynamic or shape_changed or entry.cached_mask is None:
+            if (entry.plugin.is_dynamic or shape_changed or entry.cached_mask is None
+                    or (geometry_updated and entry.plugin.needs_geometry)):
                 if self._compute_plugin_mask(entry):
                     changed = True
 
@@ -115,7 +124,10 @@ class MaskPluginManager:
 
         changed = False
         for entry in self._plugins.values():
-            if not entry.plugin.needs_geometry or not entry.enabled:
+            if not entry.plugin.needs_geometry:
+                continue
+            if not entry.enabled:
+                entry.cached_mask = None
                 continue
             if self._current_img_data is not None:
                 if self._compute_plugin_mask(entry):

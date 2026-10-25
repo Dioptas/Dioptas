@@ -42,6 +42,12 @@ optimize_cflags = [] if sys.platform == "win32" else ["-O3"]
 
 extensions = [
     Extension(
+        "dioptas.model.util.mask_plugins._diamond_roi_c",
+        sources=["dioptas/model/util/mask_plugins/_diamond_roi_c.c"],
+        include_dirs=[np.get_include()],
+        extra_compile_args=optimize_cflags,
+    ),
+    Extension(
         "dioptas.model.util.mask_plugins._powder_outlier_c",
         sources=["dioptas/model/util/mask_plugins/_powder_outlier_c.c"],
         include_dirs=[np.get_include()],
@@ -58,6 +64,8 @@ class OptionalBuildExt(build_ext):
     dioptas/model/util/mask_plugins/powder_outlier.py), so users on
     platforms without a working C toolchain can still ``pip install dioptas``
     and use a slower implementation rather than failing outright.
+    The experimental diamond ROI detector has no Python fallback and remains
+    unavailable if its extension cannot be built.
 
     Set ``DIOPTAS_REQUIRE_C_EXT=1`` to make a build failure fatal — used by
     CI when producing wheels and PyInstaller bundles that *must* include the

@@ -560,3 +560,25 @@ def test_static_plugin_cache_survives_same_shape_image_changes():
     manager.update_image(np.ones((4, 4)) * 2)
     manager.set_enabled(plugin.name, True)
     assert manager.plugins[plugin.name].cached_mask is cached
+
+
+def test_atomic_image_geometry_clears_and_invalidates_static_geometry_cache():
+    manager = MaskPluginManager()
+    plugin = GeometryAwareStaticPlugin()
+    manager.register(plugin)
+    image = np.ones((4, 4))
+    geometry = _make_geometry(image.shape)
+    geometry.tth_array = np.full(image.shape, 2.0)
+    manager.update_image(image, geometry=geometry)
+    manager.set_enabled(plugin.name, True)
+    assert manager.get_combined_mask().all()
+    manager.update_image(image, geometry=None)
+    assert not manager.get_combined_mask().any()
+    manager.set_enabled(plugin.name, False)
+    manager.update_geometry(geometry)
+    manager.set_enabled(plugin.name, True)
+    assert manager.get_combined_mask().all()
+    manager.set_enabled(plugin.name, False)
+    manager.update_image(image, geometry=None)
+    manager.set_enabled(plugin.name, True)
+    assert not manager.get_combined_mask().any()

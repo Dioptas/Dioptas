@@ -311,10 +311,10 @@ class Configuration:
             # Update sum FIRST: any signals emitted from update_geometry or
             # update_image will trigger plot_mask -> update_plugin_existing_mask,
             # which must see the current sum to break the recursion cycle.
-            self._last_user_mask_sum = int(user_mask.sum())
-            self._update_plugin_geometry(image.shape)
+            self._last_user_mask_sum = int(np.count_nonzero(user_mask))
             self.mask_plugin_manager.update_image(
-                image, existing_mask=user_mask
+                image, existing_mask=user_mask,
+                geometry=self._get_plugin_geometry(image.shape),
             )
 
     def update_plugin_existing_mask(self) -> None:
@@ -326,7 +326,7 @@ class Configuration:
         """
         if self.img_model.img_data is None:
             return
-        current_sum = int(self.mask_model.get_img().sum())
+        current_sum = int(np.count_nonzero(self.mask_model.get_img()))
         if current_sum != self._last_user_mask_sum:
             self._update_plugin_masks()
 
@@ -334,23 +334,27 @@ class Configuration:
         self, img_shape: tuple[int, int] | None = None
     ) -> None:
         """Build GeometryContext from calibration and pass to plugin manager."""
+        self.mask_plugin_manager.update_geometry(self._get_plugin_geometry(img_shape))
+
+    def _get_plugin_geometry(self, img_shape: tuple[int, int] | None = None):
+        """Read the current cached calibration maps without recomputing masks."""
         from .util.MaskPlugin import GeometryContext
 
         if not self.calibration_model.is_calibrated:
-            self.mask_plugin_manager.update_geometry(None)
-            return
+            return None
 
         try:
             geo = self.calibration_model.pattern_geometry
             if img_shape is None:
                 image = self.img_model.img_data
                 if image is None:
-                    self.mask_plugin_manager.update_geometry(None)
-                    return
+                    return None
                 img_shape = image.shape
-            geometry = GeometryContext(
-                tth_array=geo.center_array(img_shape, unit="2th_rad"),
-                azi_array=geo.center_array(img_shape, unit="chi_rad"),
+            return GeometryContext(
+                # Radian units already use SI scale. Return cached maps rather
+                # than allocating two full-size copies on every image event.
+                tth_array=geo.center_array(img_shape, unit="2th_rad", scale=False),
+                azi_array=geo.center_array(img_shape, unit="chi_rad", scale=False),
                 dist=geo.dist,
                 wavelength=geo.wavelength,
                 poni1=geo.poni1,
@@ -361,12 +365,11 @@ class Configuration:
                 pixel1=geo.detector.pixel1,
                 pixel2=geo.detector.pixel2,
             )
-            self.mask_plugin_manager.update_geometry(geometry)
         except Exception:
             logger.debug(
                 "Failed to build geometry context for mask plugins", exc_info=True
             )
-            self.mask_plugin_manager.update_geometry(None)
+            return None
 
     def _register_mask_plugins(self) -> None:
         """Register built-in and discovered mask plugins."""

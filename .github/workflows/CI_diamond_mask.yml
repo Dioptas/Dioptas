@@ -9,6 +9,7 @@ on:
       - 'dioptas/model/util/mask_plugins/**'
       - 'dioptas/tests/unit_tests/test_BroadSpotMask.py'
       - 'dioptas/tests/unit_tests/test_DiamondSpotMask.py'
+      - 'dioptas/tests/unit_tests/test_DiamondROI.py'
       - '.github/workflows/CI_diamond_mask.yml'
 
 jobs:
@@ -20,6 +21,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       QT_QPA_PLATFORM: offscreen
+      DIOPTAS_REQUIRE_C_EXT: '1'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -37,6 +39,7 @@ jobs:
           uv run pytest -q
           dioptas/tests/unit_tests/test_BroadSpotMask.py
           dioptas/tests/unit_tests/test_DiamondSpotMask.py
+          dioptas/tests/unit_tests/test_DiamondROI.py
           dioptas/tests/unit_tests/test_PowderOutlierMaskPlugin.py
           dioptas/tests/unit_tests/test_MaskPlugin.py
           dioptas/tests/unit_tests/test_MaskCalibrationRefresh.py
