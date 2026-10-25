@@ -35,6 +35,21 @@ class ReciprocalSpaceDialog(QtWidgets.QDialog):
         )
         controls.addWidget(self.guides)
         controls.addStretch()
+        controls.addWidget(QtWidgets.QLabel("Point size"))
+        self.point_size = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.point_size.setRange(50, 250)
+        self.point_size.setSingleStep(10)
+        self.point_size.setPageStep(25)
+        self.point_size.setValue(100)
+        self.point_size.setFixedWidth(110)
+        self.point_size.setAccessibleName("3D point size")
+        self.point_size.setToolTip(
+            "Adjust point diameter from 50% to 250%. Zoom scaling is retained."
+        )
+        controls.addWidget(self.point_size)
+        self.point_size_value = QtWidgets.QLabel("100%")
+        self.point_size_value.setFixedWidth(40)
+        controls.addWidget(self.point_size_value)
         self.slice_button = QtWidgets.QPushButton("Slices…")
         controls.addWidget(self.slice_button)
         layout.addLayout(controls)
@@ -84,8 +99,14 @@ class ReciprocalSpaceDialog(QtWidgets.QDialog):
         self.mode.currentIndexChanged.connect(lambda: self.redraw(reset=True))
         self.observations.toggled.connect(lambda: self.redraw(reset=True))
         self.guides.toggled.connect(self._guides_changed)
+        self.point_size.valueChanged.connect(self._point_size_changed)
         self.slice_button.clicked.connect(self.show_slices)
         self.clear_snapshot()
+
+    def _point_size_changed(self, value):
+        self.canvas.point_size_scale = value / 100
+        self.point_size_value.setText(f"{value}%")
+        self.canvas.update()
 
     def _guides_changed(self, checked):
         self.canvas.show_guides = checked

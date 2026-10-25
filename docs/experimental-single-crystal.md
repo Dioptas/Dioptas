@@ -426,6 +426,8 @@ the source is invalidated. Drag left to rotate, wheel to zoom, right/Ctrl-drag
 to pan, and double-click to reset. Buttons orient the camera along hk, hl or kl
 planes. Markers grow gently with zoom (at most 1.8× their initial pixel diameter),
 with a matching increase in click tolerance to keep magnified spots selectable.
+The compact **Point size** slider adjusts their diameter from 50% to 250%
+of the default, independently of camera position; it retains the zoom scaling.
 These are camera presets in the same 3D viewer. The default Cartesian
 q coordinates preserve physical angles and equal scales, in Å⁻¹ with `|q|=1/d`.
 Fractional-index mode shows unrounded h/k/l; its axis lengths and angles are

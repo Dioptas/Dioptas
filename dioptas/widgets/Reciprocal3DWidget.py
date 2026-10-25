@@ -27,6 +27,7 @@ class Reciprocal3DWidget(QtWidgets.QWidget):
         self.basis = np.eye(3)
         self.guides = np.empty((0, 3))
         self.show_guides = True
+        self.point_size_scale = 1.0
         self.names = ("q1", "q2", "q3")
         self._press = None
         self.reset_view()
@@ -121,7 +122,7 @@ class Reciprocal3DWidget(QtWidgets.QWidget):
         # Grow gently in screen pixels as the cloud spreads out, without
         # allowing markers to grow at the full geometric zoom rate.
         base = 5.5 if len(self.coords) < 10000 else 3.5
-        return base * min(1.8, self.zoom**0.18)
+        return base * self.point_size_scale * min(1.8, self.zoom**0.18)
 
     def paintEvent(self, event):
         painter = QtGui.QPainter(self)
