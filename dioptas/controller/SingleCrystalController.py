@@ -69,6 +69,7 @@ class SingleCrystalController:
         self.cell_calibration_filename = ""
         self._hover_position = None
         self._hover_geometry = None
+        self._selecting_image_spot = False
         self.series = None
         self._browsing_series = False
         self._active = False
@@ -104,6 +105,7 @@ class SingleCrystalController:
         widget.prediction_enabled.toggled.connect(self.plot_predictions)
         widget.prediction_model.currentIndexChanged.connect(self.plot_predictions)
         widget.predicted_overlay.sigClicked.connect(self._prediction_clicked)
+        widget.spot_overlay.sigClicked.connect(self._spot_clicked)
         widget.img_widget.mouse_moved.connect(self.show_image_mouse_position)
         widget.load_button.clicked.connect(self.open_image)
         widget.series_button.clicked.connect(self.open_series)
@@ -494,9 +496,42 @@ class SingleCrystalController:
         t = self.result.table
         rows = t.observations[t.observations[:, 1] == i]
         self.widget.show_spots(
-            rows[:, 2] + 0.5, rows[:, 3] + 0.5, t.flags[rows[:, 0].astype(int)]
+            rows[:, 2] + 0.5,
+            rows[:, 3] + 0.5,
+            t.flags[rows[:, 0].astype(int)],
+            row_ids=rows[:, 0].astype(int),
         )
         self._plot_selected_position()
+
+    def _spot_clicked(self, _item, points, event=None):
+        if self.result is None:
+            return
+        # Preview detections have no linked track IDs yet. Never treat their
+        # frame-local ordinal as a row in the final positions table.
+        points = [p for p in points if p.data() is not None]
+        if not points:
+            return
+
+        def distance(point):
+            delta = point.pos() - event.pos()
+            return delta.x() ** 2 + delta.y() ** 2
+
+        point = min(points, key=distance) if event is not None else points[0]
+        row = int(point.data())
+        table = self.widget.table_view
+        if not 0 <= row < table.model().rowCount():
+            return
+        self.widget.sections.setCurrentIndex(4)
+        self._selecting_image_spot = True
+        try:
+            table.selectRow(row)
+            # Repeated clicks on an already selected row emit no change signal.
+            self.select_position()
+        finally:
+            self._selecting_image_spot = False
+        table.scrollTo(
+            table.model().index(row, 0), QtWidgets.QAbstractItemView.PositionAtCenter
+        )
 
     def _plot_selected_position(self):
         self.widget.show_selected_spot()
@@ -596,7 +631,7 @@ class SingleCrystalController:
             self.widget.show_selected_spot()
             return
         track = selected[0].row()
-        if isinstance(self.result, SeriesPositions):
+        if isinstance(self.result, SeriesPositions) and not self._selecting_image_spot:
             rows = self.result.table.observations
             rows = rows[rows[:, 0] == track]
             if len(rows):
@@ -870,7 +905,10 @@ class SingleCrystalController:
         self.widget.export_button.setText("Export spots…")
         self.widget.table_model.set_result(table)
         self.widget.show_spots(
-            table.column("x") + 0.5, table.column("y") + 0.5, table.flags
+            table.column("x") + 0.5,
+            table.column("y") + 0.5,
+            table.flags,
+            row_ids=np.arange(len(table)),
         )
         self._plot_selected_position()
         self.widget.export_button.setEnabled(True)

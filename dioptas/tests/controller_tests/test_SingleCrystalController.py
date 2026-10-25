@@ -183,14 +183,21 @@ def test_table_shows_quality_and_nonfinite_values(experimental_controller, tmp_p
 
 
 @native
-def test_single_frame_spot_selection_ring(experimental_controller, tmp_path):
+def test_single_frame_spot_selection_ring(
+    experimental_controller, tmp_path, qtbot, qapp
+):
     c = experimental_controller
     load_scene(c, tmp_path)
     c.widget.single_crystal_mode_btn.click()
     sc, w = c.single_crystal_controller, c.widget.single_crystal_widget
     sc.detect()
     assert not w.selected_spot_overlay.isVisible()
-    w.table_view.selectRow(0)
+    qapp.processEvents()
+    point = w.spot_overlay.points()[0]
+    graphics = w.img_widget.pg_layout
+    position = graphics.mapFromScene(w.spot_overlay.mapToScene(point.pos()))
+    qtbot.mouseClick(graphics.viewport(), QtCore.Qt.LeftButton, pos=position)
+    assert [i.row() for i in w.table_view.selectionModel().selectedRows()] == [0]
     assert w.selected_spot_overlay.isVisible()
     np.testing.assert_allclose(
         [

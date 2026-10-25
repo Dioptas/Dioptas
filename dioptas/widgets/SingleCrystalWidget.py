@@ -300,6 +300,7 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         self.spot_overlay = pg.ScatterPlotItem(
             symbol="o", size=10, pen=pg.mkPen("k", width=2), brush="y", pxMode=True
         )
+        self.spot_overlay.setZValue(2)
         self.img_widget.img_view_box.addItem(self.spot_overlay)
         self.predicted_overlay = pg.ScatterPlotItem(
             symbol="+", size=12, pen=pg.mkPen("#48d8eb", width=1.5), brush=None
@@ -602,10 +603,11 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         splitter.setStretchFactor(0, 3)
         splitter.setStretchFactor(1, 2)
 
-    def show_spots(self, x, y, flags):
+    def show_spots(self, x, y, flags, *, row_ids=None):
         self.spot_overlay.setData(
             x=x,
             y=y,
+            data=[None] * len(flags) if row_ids is None else row_ids,
             brush=["r" if flag else "y" for flag in flags],
             pen=pg.mkPen("k", width=2),
             size=10,

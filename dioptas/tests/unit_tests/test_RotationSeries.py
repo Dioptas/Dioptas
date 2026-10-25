@@ -186,6 +186,77 @@ def test_selected_position_ring_follows_observations_and_clears(qapp, tmp_path):
         c.widget.close()
 
 
+def test_image_click_selects_linked_row_without_changing_frame(qapp, qtbot, tmp_path):
+    from qtpy import QtCore
+
+    seed = make_run(tmp_path)
+    # A spot in an earlier frame means the current frame's only detection is
+    # not row zero in the final linked table.
+    image = np.full((48, 60), 5, np.uint16)
+    image[34:37, 8:11] += 100
+    TifImage(data=image).write(str(tmp_path / "sample_010.tif"))
+    c = MainController(
+        use_settings=False, run_async_processing=False, experimental_single_crystal=True
+    )
+    try:
+        c.widget.resize(1400, 950)
+        c.show_window()
+        c.widget.single_crystal_mode_btn.click()
+        sc, w = c.single_crystal_controller, c.widget.single_crystal_widget
+        sc.load_series(import_series(seed))
+        sc.detect()
+        assert len(sc.result.table) == 2
+        w.frame_slider.setValue(1)
+        qapp.processEvents()
+        points = w.spot_overlay.points()
+        assert len(points) == 1 and points[0].data() == 1
+
+        def click_spot(button=QtCore.Qt.LeftButton):
+            point = w.spot_overlay.points()[0]
+            graphics = w.img_widget.pg_layout
+            position = graphics.mapFromScene(w.spot_overlay.mapToScene(point.pos()))
+            qtbot.mouseClick(graphics.viewport(), button, pos=position)
+
+        click_spot()
+        assert w.sections.currentIndex() == 4
+        assert [i.row() for i in w.table_view.selectionModel().selectedRows()] == [1]
+        assert w.table_view.visualRect(w.table_view.model().index(1, 0)).intersects(
+            w.table_view.viewport().rect()
+        )
+        assert w.frame_slider.value() == 1
+        assert w.selected_spot_overlay.isVisible()
+        expected = points[0].pos()
+        np.testing.assert_allclose(
+            [
+                w.selected_spot_overlay.getData()[0][0],
+                w.selected_spot_overlay.getData()[1][0],
+            ],
+            [expected.x(), expected.y()],
+            atol=1e-12,
+            rtol=0,
+        )
+        click_spot()  # Already selected: retain frame and highlight.
+        assert w.frame_slider.value() == 1
+        w.frame_slider.setValue(3)
+        click_spot()
+        assert w.frame_slider.value() == 3
+        w.table_view.clearSelection()
+        click_spot(QtCore.Qt.RightButton)
+        assert not w.table_view.selectionModel().selectedRows()
+        # Table-driven selection still chooses the middle observed frame.
+        w.table_view.selectRow(1)
+        assert w.frame_slider.value() == 2
+        w.table_view.clearSelection()
+        w.show_spots([10.5], [10.5], [0])  # Unlinked live-preview detection.
+        sc._spot_clicked(w.spot_overlay, w.spot_overlay.points())
+        assert not w.table_view.selectionModel().selectedRows()
+        w.threshold.setValue(6)
+        sc._spot_clicked(w.spot_overlay, points)
+        assert not w.table_view.selectionModel().selectedRows()
+    finally:
+        c.widget.close()
+
+
 def test_background_series_browsing_and_stale_work(qapp, qtbot, tmp_path, monkeypatch):
     import importlib
     import threading

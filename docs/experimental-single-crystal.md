@@ -287,6 +287,10 @@ follows the selected track's per-frame measured x/y positions while browsing,
 and hides on frames without an observation. Selection clearing and invalidation
 remove it. Selecting a spot outside the current view recentres without changing
 the zoom. The same marker is available for single-frame spot measurements.
+Clicking a detected spot in the image selects and scrolls to its linked row in
+the Positions tab while retaining the current frame. Detected spots take click
+priority over predictions. Unlinked live-search preview markers become selectable
+after the final positions table is available.
 
 The experimental sidebar has separate Series, Detection, Cell, Predictions and
 Positions tabs. All six residual plots share pattern-style
