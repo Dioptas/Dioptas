@@ -429,7 +429,13 @@ with a matching increase in click tolerance to keep magnified spots selectable.
 The compact **Point size** slider adjusts their diameter from 50% to 250%
 of the default, independently of camera position; it retains the zoom scaling.
 These are camera presets in the same 3D viewer. The default Cartesian
-q coordinates preserve physical angles and equal scales, in Å⁻¹ with `|q|=1/d`.
+q coordinates use equal physical units, in Å⁻¹ with `|q|=1/d`.
+Markers are shaded spheres. **Perspective** is on by default: a camera three
+cloud radii in front of the pivot projects both point positions and marker
+diameters with the factor `3r / (3r - z)`. Nearer spheres appear larger; marker
+size indicates camera depth, not measured intensity. Turning Perspective off
+restores orthographic projection and equal marker diameters. Hit targets and
+selection rings follow the projected sphere sizes in both modes.
 Fractional-index mode shows unrounded h/k/l; its axis lengths and angles are
 coordinate units rather than physical reciprocal distances.
 
@@ -446,8 +452,9 @@ empty nodes do not establish systematic absences or a smaller cell.
 
 Clicking a point selects its original track, scrolls to its Positions row and
 highlights the detector spot. An individual observation also opens its exact
-frame. Overlapping points are picked nearest the cursor, then frontmost for
-near ties. Table/image selections highlight the same track in magenta.
+frame. When spheres overlap, clicking selects the frontmost sphere under the
+cursor. In empty space the padded click targets prefer the nearest centre,
+then frontmost for near ties. Table/image selections highlight the same track in magenta.
 **Centre selected** moves the rotation pivot to that spot. **Slices…** opens an
 optional three-panel hk/hl/kl inspection tool, with adjustable normal-coordinate
 centres and full slab thickness. Both boundaries are included:
@@ -455,10 +462,12 @@ centres and full slab thickness. Both boundaries are included:
 plots, and grids are excluded from zoom bounds. This is a measured-position
 viewer, not an intensity reconstruction or diffuse-scattering volume.
 
-The 3D view uses orthographic projection and Qt's CPU raster painter, without an
-OpenGL requirement or additional GPU library. Depth is drawn back-to-front in
-24 buckets, with cyan winning ties within a bucket. Coordinate conversion,
-projection, picking and bounded-bucket rendering are O(N); storage is O(N).
+The 3D view uses Qt's CPU raster painter, without an
+OpenGL requirement or additional GPU library. Cached sphere sprites are drawn
+in exact back-to-front order (stable input order for equal depths). Coordinate
+conversion, projection and picking are O(N); sorting for rendering is
+O(N log N), and storage is O(N). Reference guide segments crossing the camera's
+near plane are omitted.
 The cloud (and each optional slice) displays at most 50,000 points with
 deterministic evenly spaced sampling and reports shown/total counts. Large
 clouds may lose small features when capped. The experimental CI runs on Windows,

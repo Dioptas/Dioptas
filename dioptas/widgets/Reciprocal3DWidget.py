@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""CPU-rendered, pickable orthographic 3D cloud using Qt's raster painter."""
+"""CPU-rendered, pickable perspective cloud with shaded sphere markers."""
 
 import numpy as np
 from qtpy import QtCore, QtGui, QtWidgets
@@ -28,6 +28,8 @@ class Reciprocal3DWidget(QtWidgets.QWidget):
         self.guides = np.empty((0, 3))
         self.show_guides = True
         self.point_size_scale = 1.0
+        self.perspective_enabled = True
+        self._sphere_sprites = None
         self.names = ("q1", "q2", "q3")
         self._press = None
         self.reset_view()
@@ -98,11 +100,44 @@ class Reciprocal3DWidget(QtWidgets.QWidget):
         view = (points - self.centre) @ self.rotation.T
         scale = 0.43 * min(self.width(), self.height()) * self.zoom / self.radius
         xy = (
-            view[:, :2] * [scale, -scale]
+            view[:, :2] * self._perspective(view[:, 2])[:, None] * [scale, -scale]
             + [self.width() / 2, self.height() / 2]
             + self.pan
         )
         return xy, view[:, 2]
+
+    def _perspective(self, depth):
+        if not self.perspective_enabled:
+            return np.ones_like(depth)
+        # Camera is three cloud radii in front of the rotation pivot. All
+        # measured points stay beyond the near plane, including after centring.
+        distance = 3 * self.radius
+        return distance / np.maximum(distance - depth, 0.1 * self.radius)
+
+    def _point_diameters(self, depth):
+        return self._point_size() * self._perspective(depth)
+
+    def _make_sphere_sprites(self):
+        # Cache a lit sphere for each population. Scaling these sprites avoids
+        # creating a gradient for every measured point on every mouse move.
+        sprites = []
+        for colour in self.colours:
+            pixmap = QtGui.QPixmap(64, 64)
+            pixmap.fill(QtCore.Qt.transparent)
+            painter = QtGui.QPainter(pixmap)
+            painter.setRenderHint(QtGui.QPainter.Antialiasing)
+            base = QtGui.QColor(colour)
+            gradient = QtGui.QRadialGradient(24, 22, 39)
+            gradient.setColorAt(0, base.lighter(190))
+            gradient.setColorAt(0.25, base.lighter(135))
+            gradient.setColorAt(0.55, base)
+            gradient.setColorAt(1, base.darker(280))
+            painter.setBrush(QtGui.QBrush(gradient))
+            painter.setPen(QtGui.QPen(QtGui.QColor("#050608"), 2))
+            painter.drawEllipse(QtCore.QRectF(1, 1, 62, 62))
+            painter.end()
+            sprites.append(pixmap)
+        self._sphere_sprites = sprites
 
     def select_track(self, track):
         self.selected_track = track
@@ -128,53 +163,52 @@ class Reciprocal3DWidget(QtWidgets.QWidget):
         painter = QtGui.QPainter(self)
         painter.fillRect(self.rect(), QtGui.QColor("#101216"))
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.setRenderHint(QtGui.QPainter.SmoothPixmapTransform)
         if self.show_guides and len(self.guides):
-            xy, _ = self.project(self.guides)
+            xy, guide_depth = self.project(self.guides)
             painter.setPen(QtGui.QPen(QtGui.QColor("#39404c"), 0.7))
-            for a, b in xy.reshape(-1, 2, 2):
+            lines = xy.reshape(-1, 2, 2)
+            # Reference guides can extend beyond the measured cloud. Omit
+            # segments crossing the camera's near plane rather than invert them.
+            if self.perspective_enabled:
+                lines = lines[
+                    (guide_depth.reshape(-1, 2) < 2.9 * self.radius).all(axis=1)
+                ]
+            for a, b in lines:
                 painter.drawLine(
                     QtCore.QPointF(*map(float, a)), QtCore.QPointF(*map(float, b))
                 )
         if len(self.coords):
             xy, depth = self.project(self.coords)
-            span = np.ptp(depth)
-            bins = np.clip(
-                ((depth - depth.min()) * (23 / span if span > 0 else 0)).astype(int),
-                0,
-                23,
-            )
-            # Back-to-front depth buckets preserve occlusion without a Python
-            # painter call per point; cyan wins ties within a thin depth bucket.
-            size = self._point_size()
-            for bucket in range(24):
-                for category in (2, 0, 1):
-                    rows = xy[(bins == bucket) & (self.status == category)]
-                    if not len(rows):
-                        continue
-                    polygon = QtGui.QPolygonF(
-                        [QtCore.QPointF(float(x), float(y)) for x, y in rows]
-                    )
-                    painter.setPen(
-                        QtGui.QPen(
-                            QtGui.QColor("#050608"),
-                            size + 1.5,
-                            QtCore.Qt.SolidLine,
-                            QtCore.Qt.RoundCap,
-                        )
-                    )
-                    painter.drawPoints(polygon)
-                    painter.setPen(
-                        QtGui.QPen(
-                            QtGui.QColor(self.colours[category]),
-                            size,
-                            QtCore.Qt.SolidLine,
-                            QtCore.Qt.RoundCap,
-                        )
-                    )
-                    painter.drawPoints(polygon)
+            diameters = self._point_diameters(depth)
+            if self._sphere_sprites is None:
+                self._make_sphere_sprites()
+            # Exact back-to-front order keeps the same frontmost sphere visible
+            # and selectable even where depths are very close.
+            for row in np.argsort(depth, kind="stable"):
+                x, y = xy[row]
+                diameter = float(diameters[row] + 1.5)
+                if (
+                    x + diameter < 0
+                    or y + diameter < 0
+                    or x - diameter > self.width()
+                    or y - diameter > self.height()
+                ):
+                    continue
+                painter.drawPixmap(
+                    QtCore.QRectF(
+                        float(x - diameter / 2),
+                        float(y - diameter / 2),
+                        diameter,
+                        diameter,
+                    ),
+                    self._sphere_sprites[self.status[row]],
+                    QtCore.QRectF(0, 0, 64, 64),
+                )
             painter.setBrush(QtCore.Qt.NoBrush)
-            selection_radius = max(8.0, size / 2 + 4)
-            for point in xy[self.tracks == self.selected_track]:
+            for row in np.flatnonzero(self.tracks == self.selected_track):
+                point = xy[row]
+                selection_radius = max(8.0, float(diameters[row]) / 2 + 4)
                 centre = QtCore.QPointF(*map(float, point))
                 painter.setPen(QtGui.QPen(QtGui.QColor("black"), 5))
                 painter.drawEllipse(centre, selection_radius, selection_radius)
@@ -199,11 +233,17 @@ class Reciprocal3DWidget(QtWidgets.QWidget):
             return None
         xy, depth = self.project(self.coords)
         distance = np.sum((xy - pos) ** 2, axis=1)
-        pick_radius = max(9.0, self._point_size() / 2 + 6)
-        rows = np.flatnonzero(distance <= pick_radius**2)
+        diameters = self._point_diameters(depth)
+        # Prefer the actual sphere under the cursor over a hidden sphere whose
+        # centre happens to be closer. Use the padded target only in empty space.
+        rows = np.flatnonzero(distance <= ((diameters + 1.5) / 2) ** 2)
         if not len(rows):
-            return None
-        rows = rows[distance[rows] <= distance[rows].min() + 4]
+            pick_radius = np.maximum(9.0, diameters / 2 + 6)
+            rows = np.flatnonzero(distance <= pick_radius**2)
+            if not len(rows):
+                return None
+            rows = rows[distance[rows] <= distance[rows].min() + 4]
+        rows = rows[::-1]  # Last painted wins exact depth ties.
         return int(rows[np.argmax(depth[rows])])
 
     @staticmethod

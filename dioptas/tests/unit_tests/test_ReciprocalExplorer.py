@@ -263,5 +263,48 @@ def test_3d_picking_prefers_frontmost_overlapping_point(qapp):
     )
     cloud.rotation = np.eye(3)
     assert cloud._pick(np.array([cloud.width() / 2, cloud.height() / 2])) == 1
+    # A slightly offset foreground sphere still covers the rear sphere's
+    # centre; selecting that pixel must select the visible foreground sphere.
+    cloud.coords[1, 0] = 0.01
+    assert cloud._pick(np.array([cloud.width() / 2, cloud.height() / 2])) == 1
     assert cloud._pick(np.array([0.0, 0.0])) is None
     cloud.close()
+
+
+def test_perspective_scales_positions_spheres_and_click_targets(qapp):
+    from dioptas.widgets.ReciprocalSpaceDialog import ReciprocalSpaceDialog
+
+    dialog = ReciprocalSpaceDialog()
+    cloud = dialog.canvas
+    cloud.set_points(
+        np.array([[0.2, 0.0, -1.0], [0.2, 0.0, 1.0]]),
+        np.array([0, 1]),
+        np.array([-1, -1]),
+        np.array([0, 1]),
+        np.eye(3),
+        ("q1", "q2", "q3"),
+    )
+    cloud.centre = np.zeros(3)
+    cloud.radius = 1.1
+    cloud.rotation = np.eye(3)
+    try:
+        xy, depth = cloud.project(cloud.coords)
+        diameter = cloud._point_diameters(depth)
+        screen_centre = np.array([cloud.width() / 2, cloud.height() / 2])
+        assert diameter[1] > diameter[0]
+        assert xy[1, 0] - screen_centre[0] > xy[0, 0] - screen_centre[0]
+        # Large foreground spheres remain clickable near their visible rim.
+        dialog.point_size.setValue(250)
+        cloud.zoom = 4
+        xy, depth = cloud.project(cloud.coords)
+        diameter = cloud._point_diameters(depth)
+        assert cloud._pick(xy[1] + [0, diameter[1] / 2]) == 1
+        assert not cloud.grab().isNull()
+        assert len(cloud._sphere_sprites) == 3
+        dialog.perspective.setChecked(False)
+        xy, depth = cloud.project(cloud.coords)
+        np.testing.assert_allclose(xy[0], xy[1], atol=1e-12)
+        np.testing.assert_allclose(cloud._point_diameters(depth), cloud._point_size())
+        assert cloud._pick(xy[0]) == 1
+    finally:
+        dialog.close()

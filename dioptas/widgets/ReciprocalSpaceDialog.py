@@ -62,6 +62,12 @@ class ReciprocalSpaceDialog(QtWidgets.QDialog):
             check.toggled.connect(self.redraw)
             views.addWidget(check)
             self.layers.append(check)
+        self.perspective = QtWidgets.QCheckBox("Perspective")
+        self.perspective.setChecked(True)
+        self.perspective.setToolTip(
+            "Nearby spots appear larger. Turn off for an orthographic view."
+        )
+        views.addWidget(self.perspective)
         views.addStretch()
         for name, axes in (
             ("hk view", (0, 1)),
@@ -90,7 +96,7 @@ class ReciprocalSpaceDialog(QtWidgets.QDialog):
         help_text = QtWidgets.QLabel(
             "Drag to rotate · wheel to zoom · right/Ctrl-drag to pan · click a spot to select it · double-click to reset.\n"
             "Cyan: indexed · orange: no accepted assignment · grey: excluded from cell search. "
-            "Measured positions, with the selected cell’s existing assignments. Orthographic 3D view."
+            "Measured positions, with the selected cell’s existing assignments. Shaded spheres; size indicates depth, not intensity."
         )
         help_text.setWordWrap(True)
         layout.addWidget(help_text)
@@ -100,12 +106,17 @@ class ReciprocalSpaceDialog(QtWidgets.QDialog):
         self.observations.toggled.connect(lambda: self.redraw(reset=True))
         self.guides.toggled.connect(self._guides_changed)
         self.point_size.valueChanged.connect(self._point_size_changed)
+        self.perspective.toggled.connect(self._perspective_changed)
         self.slice_button.clicked.connect(self.show_slices)
         self.clear_snapshot()
 
     def _point_size_changed(self, value):
         self.canvas.point_size_scale = value / 100
         self.point_size_value.setText(f"{value}%")
+        self.canvas.update()
+
+    def _perspective_changed(self, checked):
+        self.canvas.perspective_enabled = checked
         self.canvas.update()
 
     def _guides_changed(self, checked):
