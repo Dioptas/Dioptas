@@ -333,9 +333,11 @@ class SingleCrystalWidget(QtWidgets.QWidget):
             "Calibrated scattering angle, d-spacing, Q = 2π/d and azimuth. "
             "Uses the cell-search detector geometry when available."
         )
-        for label in (self.mouse_pixel_label, self.mouse_geometry_label):
-            label.setWordWrap(True)
-            viewer_layout.addWidget(label)
+        mouse_readout = QtWidgets.QHBoxLayout()
+        mouse_readout.addWidget(self.mouse_pixel_label)
+        mouse_readout.addWidget(self.mouse_geometry_label)
+        mouse_readout.addStretch(1)
+        viewer_layout.addLayout(mouse_readout)
         self.frame_label = QtWidgets.QLabel("No rotation series loaded.")
         frame_header = QtWidgets.QHBoxLayout()
         frame_header.addWidget(self.frame_label, 1)
