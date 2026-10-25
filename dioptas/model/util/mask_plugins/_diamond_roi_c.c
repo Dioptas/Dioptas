@@ -17,6 +17,7 @@ typedef struct {
     double seed,wing;
     double *angles,*ranges;
     float *pool,*smooth,*back,*a,*b,*stat,*roi,*filtered;
+    double *horizontal;
     uint8_t *valid,*seed_pixels,*opened,*distance;
     int *labels,*queue,*deque;
     double *integral;
@@ -33,7 +34,7 @@ static void release_context(Context *c) {
     if (!c) return;
     free(c->angles); free(c->ranges); free(c->pool); free(c->smooth);
     free(c->back); free(c->a); free(c->b); free(c->stat); free(c->roi);
-    free(c->filtered); free(c->valid); free(c->seed_pixels); free(c->opened);
+    free(c->filtered); free(c->horizontal); free(c->valid); free(c->seed_pixels); free(c->opened);
     free(c->distance); free(c->labels); free(c->queue); free(c->deque);
     free(c->integral); free(c);
 }
@@ -76,6 +77,7 @@ static PyObject *create_context(PyObject *self, PyObject *args) {
     ALLOC(pool,c->n,float); ALLOC(smooth,c->n,float); ALLOC(back,c->n,float);
     ALLOC(a,c->n,float); ALLOC(b,c->n,float); ALLOC(stat,c->stat_capacity,float);
     ALLOC(roi,max_work,float); ALLOC(filtered,max_work,float);
+    ALLOC(horizontal,max_work,double);
     ALLOC(valid,c->n,uint8_t); ALLOC(seed_pixels,c->n,uint8_t); ALLOC(opened,c->n,uint8_t);
     ALLOC(distance,max_work,uint8_t); ALLOC(labels,c->n,int);
     ALLOC(queue,queue_capacity,int); ALLOC(deque,(ch>cw?ch:cw),int);
@@ -106,8 +108,58 @@ static int usable(const Image *im,int y,int x,double v,int exclude_zero) {
            (!im->mask || !*(const npy_bool*)(im->mask+y*im->my+x*im->mx));
 }
 
+/* Default 8-pixel rows: four independent sums avoid a long dependency chain
+   for double inputs. Integer sums remain exact. Missing-value tests are kept;
+   no fast-math assumptions or architecture-specific vector API are needed. */
+#define ADD_PIXEL(K,S,M) do { \
+    double v=row[K];int ok=isfinite(v)&&(!c->exclude_zero||v!=0)&&(!M||!mask_row[K]); \
+    S+=ok?v:0;count+=ok; \
+} while(0)
+#define FAST_POOL(NAME,TYPE,HAS_MASK) \
+static void NAME(Context *c,const Image *im) { \
+    for(int cy=0;cy<c->ch;cy++)for(int cx=0;cx<c->cw;cx++) { \
+        double s0=0,s1=0,s2=0,s3=0;int count=0; \
+        int y1=(cy+1)*8<c->h?(cy+1)*8:c->h; \
+        int x0=cx*8,x1=x0+8<c->w?x0+8:c->w; \
+        for(int y=cy*8;y<y1;y++) { \
+            const TYPE *row=(const TYPE*)(im->data+y*im->sy)+x0; \
+            const npy_bool *mask_row=HAS_MASK?(const npy_bool*)(im->mask+y*im->my)+x0:NULL; \
+            if(x1-x0==8) { \
+                ADD_PIXEL(0,s0,HAS_MASK);ADD_PIXEL(1,s1,HAS_MASK);ADD_PIXEL(2,s2,HAS_MASK);ADD_PIXEL(3,s3,HAS_MASK); \
+                ADD_PIXEL(4,s0,HAS_MASK);ADD_PIXEL(5,s1,HAS_MASK);ADD_PIXEL(6,s2,HAS_MASK);ADD_PIXEL(7,s3,HAS_MASK); \
+            } else for(int k=0;k<x1-x0;k++) {ADD_PIXEL(k,s0,HAS_MASK);} \
+        } \
+        int p=cy*c->cw+cx;c->valid[p]=(count>0); \
+        c->pool[p]=count?(float)(((s0+s1)+(s2+s3))/count):NAN; \
+    } \
+}
+FAST_POOL(pool_u16,uint16_t,0)
+FAST_POOL(pool_u32,uint32_t,0)
+FAST_POOL(pool_i32,int32_t,0)
+FAST_POOL(pool_f32,float,0)
+FAST_POOL(pool_f64,double,0)
+FAST_POOL(pool_u16_mask,uint16_t,1)
+FAST_POOL(pool_u32_mask,uint32_t,1)
+FAST_POOL(pool_i32_mask,int32_t,1)
+FAST_POOL(pool_f32_mask,float,1)
+FAST_POOL(pool_f64_mask,double,1)
+#undef FAST_POOL
+#undef ADD_PIXEL
+
 static void pool_image(Context *c,const Image *im) {
     int block=c->block;
+    if(block==8&&(!im->mask||im->mx==1)) {
+#define FAST_CASE(TYPE,CTYPE,NAME) case TYPE:if(im->sx==sizeof(CTYPE)){ \
+    if(im->mask)NAME##_mask(c,im);else NAME(c,im);return;}break
+        switch(im->type) {
+            FAST_CASE(NPY_UINT16,uint16_t,pool_u16);
+            FAST_CASE(NPY_UINT32,uint32_t,pool_u32);
+            FAST_CASE(NPY_INT32,int32_t,pool_i32);
+            FAST_CASE(NPY_FLOAT32,float,pool_f32);
+            FAST_CASE(NPY_FLOAT64,double,pool_f64);
+        }
+#undef FAST_CASE
+    }
     /* Specialize the inner pixel loop by dtype; preserve arbitrary row flips. */
 #define POOL(TYPE) \
     for(int cy=0;cy<c->ch;cy++) for(int cx=0;cx<c->cw;cx++) { \
@@ -279,15 +331,20 @@ static int process_roi(Context *c,const Image *im,npy_bool *out,int id,int x0,in
             peak=fmax(peak,c->smooth[p]-bg);
         }
     if(peak<=high_border+c->seed*sigma)return 0;
+    /* Separable normalized binomial filter: keep the missing-value weights
+       until the second pass, so this equals the 3x3 stencil even at gaps. */
     for(int y=0;y<h;y++)for(int x=0;x<w;x++) {
-        double sum=0,weight=0;
-        for(int dy=-1;dy<=1;dy++)for(int dx=-1;dx<=1;dx++) {
-            int yy=y+dy,xx=x+dx;
-            if(yy<0||yy>=h||xx<0||xx>=w)continue;
-            float value=c->roi[yy*w+xx];
-            if(isfinite(value)){int v=(dy==0?2:1)*(dx==0?2:1);sum+=value*v;weight+=v;}
-        }
-        c->filtered[y*w+x]=weight?(float)(sum/weight):NAN;
+        int p=y*w+x,weight=0;double sum=0;
+        if(x>0&&isfinite(c->roi[p-1])){sum+=c->roi[p-1];weight++;}
+        if(isfinite(c->roi[p])){sum+=2.0*c->roi[p];weight+=2;}
+        if(x+1<w&&isfinite(c->roi[p+1])){sum+=c->roi[p+1];weight++;}
+        c->horizontal[p]=sum;c->distance[p]=(uint8_t)weight;
+    }
+    for(int y=0;y<h;y++)for(int x=0;x<w;x++) {
+        int p=y*w+x,weight=2*c->distance[p];double sum=2*c->horizontal[p];
+        if(y>0){sum+=c->horizontal[p-w];weight+=c->distance[p-w];}
+        if(y+1<h){sum+=c->horizontal[p+w];weight+=c->distance[p+w];}
+        c->filtered[p]=weight?(float)(sum/weight):NAN;
     }
     /* Pooling broadens a very bright, narrow spike. Verify width again at
        detector resolution. The square-distance test requires an interior of

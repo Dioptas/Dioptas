@@ -45,14 +45,20 @@ An exceeded work cap raises instead of returning a partial mask. A measured
 call of **10 ms or more raises without returning its mask**. This post-call
 check rejects an over-budget result; it cannot promise operating-system latency.
 
-On this macOS ARM64 machine, 76 original, uncorrected 2048² uint16 P1 frames,
-8 calls each (608 calls): full Configuration mask-update path **6.98 ms median,
-8.30 ms p95, 9.57 ms maximum**. Detector time within it: **6.47 / 7.78 / 9.03 ms**.
+On this Apple M4 Pro, 76 original, uncorrected 2048² uint16 P1 frames,
+8 calls each (608 calls): full Configuration mask-update path **5.50 ms median,
+6.58 ms p95, 7.91 ms maximum**. Detector time within it: **5.00 / 6.06 / 7.33 ms**.
 The path includes current image scaling, user-mask handling, cached geometry,
 mask allocation and manager updates; it excludes file decoding, plotting and
-integration. One-time preparation was **4.20 ms**, separately measured; adding
-it to detection can exceed 10 ms. Nonempty masks, corrected floating-point
-images, other hardware and settings require their own timing qualification.
+integration. One-time preparation was **4.56 ms**, separately measured; adding
+it to detection can exceed 10 ms. A second 608-update run with the same frame
+values represented as float64 and a nonempty user mask (first 10 rows) took
+**6.64 / 7.95 / 8.86 ms** through Configuration, with no over-budget calls.
+This checks representation and mask handling, not a specific image correction.
+Other correction patterns, masks, hardware and settings need qualification.
+The final native kernel uses four independent row sums during tile reduction
+and a separable, missing-value-normalized local filter. The earlier timings and
+over-budget floating-point/masked cases are retained in the report history.
 
 Frame 039 `(383,1668)` has 356 missed pixels out of 11,145 in the fixed local
 background-excess proxy, versus 1,539 with the original powder mask. All 123

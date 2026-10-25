@@ -67,6 +67,22 @@ def test_supported_types_and_negative_strides(detector_scene, dtype):
     view = image[::-1, ::-1].copy()[::-1, ::-1]
     mask = np.zeros(image.shape, bool)[::-1, ::-1]
     np.testing.assert_array_equal(detector.compute_mask(view, mask), expected)
+    mask[60:65, 88:105] = True
+    expected_masked = detector.compute_mask(image, mask.copy())
+    np.testing.assert_array_equal(detector.compute_mask(view, mask), expected_masked)
+
+
+@pytest.mark.parametrize("shape", [(1, 1), (7, 9), (17, 25), (79, 133), (129, 97)])
+def test_partial_tiles_agree_with_generic_stride_path(detector_scene, shape):
+    _, _, geometry, _, _ = detector_scene
+    y, x = np.indices(shape)
+    image = np.random.default_rng(345).integers(100, 120, shape, dtype=np.uint16)
+    image = image + (5000*np.exp(-((x-shape[1]/2)**2+(y-shape[0]/2)**2)/200)).astype(np.uint16)
+    geometry = replace(geometry, tth_array=np.full(shape, geometry.tth_array[70,70]))
+    detector = diamond_roi.DiamondROIDetector(geometry, background_radius=40, min_seed_radius=2)
+    expected = detector.compute_mask(image)
+    view = image[:, ::-1].copy()[:, ::-1]
+    np.testing.assert_array_equal(detector.compute_mask(view), expected)
 
 
 @pytest.mark.parametrize("transform", [np.flipud, np.fliplr, np.rot90])
