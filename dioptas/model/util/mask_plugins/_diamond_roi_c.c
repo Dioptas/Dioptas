@@ -148,8 +148,9 @@ static int usable(const Image *im,int y,int x,double v,int exclude_zero) {
 } while(0)
 #define FAST_POOL(NAME,TYPE,HAS_MASK) \
 static void NAME(Context *c,const Image *im) { \
+    int cy; \
     PARALLEL_POOL \
-    for(int cy=0;cy<c->ch;cy++)for(int cx=0;cx<c->cw;cx++) { \
+    for(cy=0;cy<c->ch;cy++)for(int cx=0;cx<c->cw;cx++) { \
         double s0=0,s1=0,s2=0,s3=0;int count=0; \
         int y1=(cy+1)*8<c->h?(cy+1)*8:c->h; \
         int x0=cx*8,x1=x0+8<c->w?x0+8:c->w; \
@@ -179,7 +180,7 @@ FAST_POOL(pool_f64_mask,double,1)
 #undef ADD_PIXEL
 
 static void pool_image(Context *c,const Image *im) {
-    int block=c->block;
+    int block=c->block,cy;
     if(block==8&&(!im->mask||im->mx==1)) {
 #define FAST_CASE(TYPE,CTYPE,NAME) case TYPE:if(im->sx==sizeof(CTYPE)){ \
     if(im->mask)NAME##_mask(c,im);else NAME(c,im);return;}break
@@ -195,7 +196,7 @@ static void pool_image(Context *c,const Image *im) {
     /* Specialize the inner pixel loop by dtype; preserve arbitrary row flips. */
 #define POOL(TYPE) \
     PARALLEL_POOL \
-    for(int cy=0;cy<c->ch;cy++) for(int cx=0;cx<c->cw;cx++) { \
+    for(cy=0;cy<c->ch;cy++) for(int cx=0;cx<c->cw;cx++) { \
         double sum=0;int count=0; \
         int y1=(cy+1)*block<c->h?(cy+1)*block:c->h; \
         int x1=(cx+1)*block<c->w?(cx+1)*block:c->w; \
@@ -242,8 +243,9 @@ static void extreme(Context *c,const float *src,float *dst,int is_max,int vertic
         extreme_line(src+y*c->cw,dst+y*c->cw,c->cw,1,c->radius,is_max,c->deque);
 }
 static void smooth_grid(Context *c) {
+    int y;
     PARALLEL_ROWS
-    for(int y=0;y<c->ch;y++)for(int x=0;x<c->cw;x++) {
+    for(y=0;y<c->ch;y++)for(int x=0;x<c->cw;x++) {
         double sum=0,weight=0;
         for(int dy=-1;dy<=1;dy++)for(int dx=-1;dx<=1;dx++) {
             int yy=y+dy,xx=x+dx;
@@ -316,11 +318,11 @@ static int solve_plane(double m[3][3],double v[3],double out[3]) {
 }
 
 static int process_roi(Context *c,const Image *im,npy_bool *out,int id,int x0,int x1,int y0,int y1,int *work) {
-    int w=x1-x0,h=y1-y0,n=w*h;
+    int w=x1-x0,h=y1-y0,n=w*h,y;
     if(n>c->max_work || *work>c->max_work-n)return -1;
     *work+=n;
     PARALLEL_ROWS
-    for(int y=0;y<h;y++)for(int x=0;x<w;x++) {
+    for(y=0;y<h;y++)for(int x=0;x<w;x++) {
         double v=read_pixel(im,y+y0,x+x0);
         c->roi[y*w+x]=usable(im,y+y0,x+x0,v,c->exclude_zero)?(float)v:NAN;
     }
@@ -369,7 +371,7 @@ static int process_roi(Context *c,const Image *im,npy_bool *out,int id,int x0,in
     /* Separable normalized binomial filter: keep the missing-value weights
        until the second pass, so this equals the 3x3 stencil even at gaps. */
     PARALLEL_ROWS
-    for(int y=0;y<h;y++)for(int x=0;x<w;x++) {
+    for(y=0;y<h;y++)for(int x=0;x<w;x++) {
         int p=y*w+x,weight=0;double sum=0;
         if(x>0&&isfinite(c->roi[p-1])){sum+=c->roi[p-1];weight++;}
         if(isfinite(c->roi[p])){sum+=2.0*c->roi[p];weight+=2;}
@@ -377,7 +379,7 @@ static int process_roi(Context *c,const Image *im,npy_bool *out,int id,int x0,in
         c->horizontal[p]=sum;c->distance[p]=(uint8_t)weight;
     }
     PARALLEL_ROWS
-    for(int y=0;y<h;y++)for(int x=0;x<w;x++) {
+    for(y=0;y<h;y++)for(int x=0;x<w;x++) {
         int p=y*w+x,weight=2*c->distance[p];double sum=2*c->horizontal[p];
         if(y>0){sum+=c->horizontal[p-w];weight+=c->distance[p-w];}
         if(y+1<h){sum+=c->horizontal[p+w];weight+=c->distance[p+w];}
