@@ -809,6 +809,7 @@ class SingleCrystalController:
             "Positions use detected signal as centroid weights. Omega values use exposure "
             "midpoints; the listed omega RMS is a detected spread, not an error estimate. "
             "The current application mask applies to every frame. "
+            "Optional diamond exclusions are recalculated for each frame. "
             "These are position candidates for later indexing, not integrated intensities."
         )
         self.invalidate()
