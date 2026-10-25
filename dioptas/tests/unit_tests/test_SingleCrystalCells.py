@@ -165,6 +165,7 @@ def test_position_details_refresh_when_cell_or_prediction_model_changes(
 
 
 def controller_scene(tmp_path, positions, cells, *, asynchronous=False):
+    from unittest.mock import patch
     from fabio.tifimage import TifImage
     from dioptas.controller.MainController import MainController
 
@@ -178,7 +179,10 @@ def controller_scene(tmp_path, positions, cells, *, asynchronous=False):
     c.model.img_model.load(str(path))
     sc, w = c.single_crystal_controller, c.widget.single_crystal_widget
     sc._show_result(positions, sc._generation)
-    sc._show_result(cells, sc._generation)
+    # Start tests from a preloaded lattice snapshot; tests below trigger the
+    # comparison/selection they exercise themselves.
+    with patch.object(sc, "compare_ranked_cells"):
+        sc._show_result(cells, sc._generation)
     w.frame_slider.setRange(0, 179)
     return c, sc, w
 
@@ -228,7 +232,8 @@ def test_sorted_row_selection_previews_actual_fit_and_invalidates(
         sc.invalidate()
         assert sc.ranked_result is None and sc.ranked_selection is None
         assert w.rank_table_model.rowCount() == 0
-        assert sc.refinement_result is None and not w.rank_button.isEnabled()
+        assert sc.refinement_result is None
+        assert not hasattr(w, "rank_button")
         assert not w.rank_export_button.isEnabled()
     finally:
         c.widget.close()
@@ -261,10 +266,10 @@ def test_find_cells_automatically_opens_ranked_settings(
         )
         assert w.cell_view.currentIndex() == 1
         assert sc.ranked_result.comparison.recommended.setting.symbol == "oP"
-        assert sc._rank_after_search_generation is None
+        assert not sc._pending_cell_comparison
         assert sc.cell_result is cells
         sc.invalidate()
-        assert sc._rank_after_search_generation is None
+        assert not sc._pending_cell_comparison
     finally:
         dialog.close()
         c.widget.close()
@@ -300,13 +305,120 @@ def test_failed_lattice_search_stays_visible_without_auto_ranking(
 
     monkeypatch.setattr(sc, "compare_ranked_cells", unexpected)
     try:
-        sc._rank_after_search_generation = sc._generation
         sc._show_result(failed, sc._generation)
         assert sc.ranked_result is None
-        assert sc._rank_after_search_generation is None
+        assert not sc._pending_cell_comparison
         assert w.cell_table_model.rowCount() > 0
-        assert "No passing lattice" in w.status_label.text()
+        assert "did not pass" in w.status_label.text()
     finally:
+        c.widget.close()
+
+
+@pytest.mark.parametrize("first_result", ["stale", "failed", "invalidated", "returned"])
+def test_lattice_selection_coalesces_and_never_publishes_old_cells(
+    qapp, qtbot, tmp_path, ranked_experiment, monkeypatch, first_result
+):
+    from dataclasses import replace
+
+    positions, cells, _ = ranked_experiment
+    sign, q, search = cells.reports[0]
+    candidate = search.candidates[0]
+    cells = replace(
+        cells,
+        reports=(
+            (
+                sign,
+                q,
+                replace(
+                    search,
+                    candidates=(
+                        candidate,
+                        candidate,
+                        candidate,
+                        replace(candidate, accepted=False),
+                    ),
+                ),
+            ),
+        ),
+    )
+    c, sc, w = controller_scene(tmp_path, positions, cells, asynchronous=True)
+    module = importlib.import_module("dioptas.controller.SingleCrystalController")
+    original = module.rank_cells
+    started, release = threading.Event(), threading.Event()
+    second_started, second_release = threading.Event(), threading.Event()
+    calls = []
+
+    def delayed(*args, **kwargs):
+        calls.append(kwargs["selection"])
+        if len(calls) == 1:
+            started.set()
+            assert release.wait(10)
+            if first_result == "failed":
+                raise RuntimeError("Previous lattice comparison failed")
+        else:
+            second_started.set()
+            assert second_release.wait(10)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(module, "rank_cells", delayed)
+
+    def select(number):
+        source = next(
+            i
+            for i, row in enumerate(w.cell_table_model.rows)
+            if row[0] == (sign, number)
+        )
+        w.cell_table.selectRow(
+            w.cell_table_proxy.mapFromSource(w.cell_table_model.index(source, 0)).row()
+        )
+
+    try:
+        assert not hasattr(w, "rank_button")
+        select(1)
+        qtbot.waitUntil(started.is_set, timeout=5000)
+        assert w.cell_table.isEnabled()
+        select(2)
+        select(0)
+        assert sc._pending_cell_comparison
+        if first_result == "returned":
+            select(1)
+            release.set()
+            qtbot.waitUntil(
+                lambda: sc.refinement_result is not None and not sc._runner.is_busy,
+                timeout=15000,
+            )
+            assert calls == [(sign, 1)]
+            assert sc.ranked_result.selection == (sign, 1)
+            assert not sc._pending_cell_comparison
+            return
+        if first_result == "invalidated":
+            sc.invalidate()
+            assert not sc._pending_cell_comparison
+            release.set()
+            qtbot.waitUntil(lambda: not sc._runner.is_busy, timeout=10000)
+            assert calls == [(sign, 1)]
+            assert sc.ranked_result is None
+            return
+        release.set()
+        qtbot.waitUntil(second_started.is_set, timeout=10000)
+        assert calls == [(sign, 1), (sign, 0)]
+        assert sc.ranked_result is None
+        assert w.rank_table_model.rowCount() == 0
+        second_release.set()
+        qtbot.waitUntil(
+            lambda: sc.refinement_result is not None and not sc._runner.is_busy,
+            timeout=15000,
+        )
+        assert sc.ranked_result.selection == (sign, 0)
+        assert sc.refinement_result.metadata["candidate_index"] == 0
+        assert w.cell_view.currentIndex() == 1
+        select(3)
+        assert sc.ranked_result is None and sc.refinement_result is None
+        assert not w.predicted_overlay.isVisible()
+        assert not sc._pending_cell_comparison
+    finally:
+        release.set()
+        second_release.set()
         c.widget.close()
 
 

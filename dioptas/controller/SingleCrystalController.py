@@ -71,7 +71,8 @@ class SingleCrystalController:
         self._hover_position = None
         self._hover_geometry = None
         self._selecting_image_spot = False
-        self._rank_after_search_generation = None
+        self._updating_cell_result = False
+        self._pending_cell_comparison = False
         self.series = None
         self._browsing_series = False
         self._active = False
@@ -94,7 +95,6 @@ class SingleCrystalController:
         widget.detect_button.clicked.connect(self.detect)
         widget.cell_table.selectionModel().selectionChanged.connect(self._cell_selected)
         widget.cell_button.clicked.connect(self.index_cells)
-        widget.rank_button.clicked.connect(self.compare_ranked_cells)
         widget.rank_table.selectionModel().selectionChanged.connect(self._rank_selected)
         widget.rank_export_button.clicked.connect(self.export_ranked_candidates)
         widget.cell_export_button.clicked.connect(self.export_cell_candidates)
@@ -250,7 +250,6 @@ class SingleCrystalController:
         if self._closed or self._browsing_series:
             return
         self._generation += 1
-        self._rank_after_search_generation = None
         self._stop_preview()
         self.result = None
         self.cell_result = None
@@ -280,7 +279,9 @@ class SingleCrystalController:
         self.widget.cell_button.setEnabled(
             isinstance(self.result, SeriesPositions) and not busy and not self._closed
         )
-        self.widget.cell_table.setEnabled(not busy and not self._closed)
+        self.widget.cell_table.setEnabled(
+            self.cell_result is not None and not self._closed
+        )
         can_refine = False
         if self.cell_result is not None:
             try:
@@ -288,7 +289,6 @@ class SingleCrystalController:
                 can_refine = True
             except ValueError:
                 pass
-        self.widget.rank_button.setEnabled(can_refine and not busy and not self._closed)
         self.widget.rank_table.setEnabled(
             self.ranked_result is not None and not self._closed
         )
@@ -417,6 +417,7 @@ class SingleCrystalController:
         )
 
     def _clear_ranked(self):
+        self._pending_cell_comparison = False
         self.ranked_result = None
         self.ranked_selection = None
         self._pending_rank_preview = False
@@ -424,7 +425,7 @@ class SingleCrystalController:
         self.widget.rank_table_button.setEnabled(False)
         self.widget.rank_export_button.setEnabled(False)
         self.widget.rank_summary.setText(
-            "Compare a passing lattice to obtain ranked cells."
+            "Select a passing lattice to obtain ranked cells."
         )
         self.widget.cell_view.setCurrentIndex(0)
 
@@ -854,14 +855,16 @@ class SingleCrystalController:
         self._set_ready()
         if generation == self._generation:
             self._show_result(result, generation)
-        if self._pending_rank_preview and not self._closed:
+        if self._pending_cell_comparison and not self._closed:
+            self.compare_ranked_cells()
+        elif self._pending_rank_preview and not self._closed:
             self._preview_rank_selection()
 
     def _failed(self, job, exc, _traceback):
         generation = self._jobs.pop(job, -1)
         if not self._closed:
             self._set_ready()
-            if generation == self._generation:
+            if generation == self._generation and not self._pending_cell_comparison:
                 self._stop_preview()
                 self.plot_image()
                 self.widget.spot_overlay.clear()
@@ -869,7 +872,9 @@ class SingleCrystalController:
                     f"Experimental processing failed: {exc}"
                 )
 
-        if self._pending_rank_preview and not self._closed:
+        if self._pending_cell_comparison and not self._closed:
+            self.compare_ranked_cells()
+        elif self._pending_rank_preview and not self._closed:
             self._preview_rank_selection()
 
     def _show_result(self, result, generation):
@@ -882,6 +887,7 @@ class SingleCrystalController:
                 return
             if result.selection != origin:
                 return
+            self._pending_cell_comparison = False
             self.ranked_result = result
             self.widget.rank_table_model.set_result(result)
             self.widget.rank_table_button.setEnabled(True)
@@ -898,9 +904,11 @@ class SingleCrystalController:
         if isinstance(result, CellSearchResult):
             self._clear_ranked()
             self._clear_refinement()
+            self.cell_selection = None
             self.cell_result = result
             if result.metadata.get("geometry"):
                 self._remember_image_geometry(result.metadata["geometry"][0])
+            self._updating_cell_result = True
             self.widget.cell_table_model.set_result(result)
             self.widget.cell_table.setVisible(bool(self.widget.cell_table_model.rows))
             self.widget.cell_table_button.setEnabled(
@@ -929,14 +937,8 @@ class SingleCrystalController:
             self.widget.status_label.setText(
                 "Cell search completed. Review the candidate cells and held-out matches below."
             )
-            if self._rank_after_search_generation == generation:
-                self._rank_after_search_generation = None
-                if self.widget.rank_button.isEnabled():
-                    self.compare_ranked_cells()
-                else:
-                    self.widget.status_label.setText(
-                        "No passing lattice to rank. Inspect the lattice candidates and their checks."
-                    )
+            self._updating_cell_result = False
+            self._cell_selected()
             return
         if isinstance(result, PositionRefinement):
             ranked = result.metadata.get("ranked_setting")
@@ -1068,7 +1070,6 @@ class SingleCrystalController:
         self.widget.cell_summary.clear()
         self.widget.cell_export_button.setEnabled(False)
         generation = self._generation
-        self._rank_after_search_generation = generation
         if self._runner is None:
             try:
                 self._show_result(operation(), generation)
@@ -1083,6 +1084,8 @@ class SingleCrystalController:
             )
 
     def _cell_selected(self, *_):
+        if self._updating_cell_result:
+            return
         index = self.widget.cell_table.currentIndex()
         selection = index.data(QtCore.Qt.UserRole) if index.isValid() else None
         if selection == self.cell_selection:
@@ -1105,13 +1108,26 @@ class SingleCrystalController:
         self._set_ready()
 
         self._refresh_selected_position_details()
+        if selection is not None and self.cell_result is not None:
+            if candidate.accepted:
+                self.compare_ranked_cells()
+            else:
+                self.widget.status_label.setText(
+                    "Selected lattice did not pass its checks; no ranked cells. "
+                    "Inspect the lattice candidates."
+                )
 
     def compare_ranked_cells(self):
-        if (
-            self._closed
-            or self.cell_result is None
-            or (self._runner and self._runner.is_busy)
-        ):
+        if self._closed or self.cell_result is None:
+            return
+        try:
+            preferred_candidate(self.cell_result, self.cell_selection)
+        except ValueError:
+            self._pending_cell_comparison = False
+            return
+        if self._runner and self._runner.is_busy:
+            self._pending_cell_comparison = True
+            self.widget.status_label.setText("Waiting to compare the selected lattice…")
             return
         generation = self._generation
         self._clear_ranked()

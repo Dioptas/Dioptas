@@ -311,9 +311,11 @@ filled in from a first/last-frame range.
 
 “Find lattices and rank cells” runs lattice discovery and then automatically
 compares primitive/Bravais settings of the default passing lattice, opening the
-ranked list and its selected preview. The separate “Compare settings of selected
-lattice” action is for explicitly comparing another lattice from the candidate
-list. A failed lattice search remains visible for diagnosis without automatic
+ranked list and its selected preview. Selecting another passing lattice from the
+candidate list automatically replaces the ranked list and predictions. Rapid
+selection changes coalesce to the latest lattice while a comparison is running;
+results belonging to previous selections are discarded. No separate comparison
+button is required. A failed lattice search remains visible for diagnosis without automatic
 cell comparison. These are two processing stages within one user action; the
 ranked settings are not a list of independently detected grains.
 
@@ -375,8 +377,8 @@ feature; standard releases and dependencies are unchanged.
 
 ## Ranked cell settings and direct selection
 
-After **Geometry and find unit cell**, select a passing lattice and choose
-**Compare and rank cell settings**. PhaseSmith compares primitive hypotheses and
+**Find lattices and rank cells** automatically compares settings of the selected
+passing lattice; choosing a different lattice repeats the comparison. PhaseSmith compares primitive hypotheses and
 all 14 Bravais types using measured positions and the inferred lattice, with no
 known material, cell, saved UB or reference indexing. This uses the
 `f166525af743bcfa63c6e132101730d907b5927d` experimental backend or a compatible
