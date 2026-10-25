@@ -188,7 +188,7 @@ class RankedCellModel(QtCore.QAbstractTableModel):
     """PhaseSmith fit-pool IDs remain stable when users sort by any diagnostic."""
 
     headers = (
-        "Rank",
+        "",
         "Cell",
         "Cell edges (Å)",
         "α, β, γ (°)",
