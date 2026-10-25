@@ -31,8 +31,9 @@ $env:DIOPTAS_EXPERIMENTAL_SINGLE_CRYSTAL = '1'
 ```
 
 There are no external executables, system-specific scientific libraries,
-process workers or DIALS dependencies. PhaseSmith runs one native numerical
-thread outside the interpreter lock. Dioptas queues one job at a time and
+process workers or DIALS dependencies. Each PhaseSmith detector runs one native
+thread outside the interpreter lock; rotation scans use four concurrent frame
+detectors by default. Dioptas queues one application job at a time and
 discards results after changes to images, masks, configurations or settings.
 
 ## First milestone
@@ -92,8 +93,12 @@ The slider browses the whole run with exposure start/end and midpoint readouts.
 The position table lists x, y, omega, detected omega RMS, observation count and
 quality. Selecting a row shows a frame from that candidate. Frame browsing preserves results; changing
 mask, orientation, configuration or detection settings invalidates them. Work
-runs in the existing single-worker queue, reports frame progress and discards
-stale results. Only one detector image is read at a time.
+runs in the existing background-job queue, reports frame progress and discards
+stale results. Images are read serially; up to four frames can be detected concurrently.
+The bounded pipeline consumes detections in source order before linking and
+calculating position centroids. Preview images are retained by frame index so
+read-ahead cannot mismatch an image and its detections. Export provenance records
+the frame worker count; numerical records and source fingerprints are unchanged.
 
 Position export writes a track CSV, an observations CSV with every source frame,
 and a JSON provenance sidecar. It has no integrated-intensity column. Detector
@@ -220,14 +225,12 @@ support conventions, search bounds, complexity and independent reference tests.
 
 ## Predicted spots and positional cell/orientation refinement
 
-After a candidate cell passes the provisional checks, select its table row and
-choose **Unconstrained cell/orientation fit**. The selected model is used;
-wavelength, detector geometry and rotation axis stay fixed. PhaseSmith
-fits nine reciprocal-basis coefficients against one original measured
-x/y/omega centroid per linked track. HKLs and training/held-out membership stay
-fixed. The robust loss uses explicit scales of 2 px and 0.3°; these are not
-calibrated uncertainties. No known cell, material, extinction or intensity model
-is used. Existing position/cell results and original frames remain unchanged.
+Selecting a ranked cell already selects its fitted cell and orientation. The
+**Predictions** tab names that cell and offers **Show predicted positions (+)**,
+an overlay legend, residual plots and export. It has no additional cell-search
+or refinement buttons, initial/refined selector, or fitting summary. Browsing
+frames or choosing a different cell updates positions automatically, without a
+new fit. Instrument geometry remains fixed; no intensity model is supplied.
 
 Cyan crosses overlay geometrically possible **Bragg centres** on each exposure
 as the frame slider moves. The calculation solves both Ewald crossings and uses
@@ -237,19 +240,17 @@ omega. Weak or systematically absent reflections can still be predicted. The
 overlay is not an intensity, rocking-width or completeness prediction: a real
 spot can persist on adjacent frames around its calculated Bragg centre.
 
-Switch between **Initial indexed model** and **Refined model** without refitting.
-The summary reports both cells, orientation change and detector/omega RMS
-residuals on the same eligible populations. A converged fit is not automatically
-better: when the combined held-out residual does not improve, the initial model
-remains selected by default. The refined trial and all diagnostics stay visible.
-This does not choose a different fitting iteration using validation data.
+The image always uses the selected fitted setting, as do the selected-spot hkl
+and residual readouts. Initial predictions remain in diagnostic plots and audit
+exports. Neither overlay visibility nor frame browsing changes the fit or
+selects an iteration using validation data.
 
 **Residual plots…** opens six plots of calculated-minus-measured x, y and omega
 against scan angle/detector position. Grey denotes the initial model, blue the
 refined training points and orange the held-out points. Outliers are retained in
 these comparisons; robust weighting affects fitting, not the plotted population.
 
-**Export predictions and refinement…** writes JSON with both reciprocal bases,
+**Export predicted positions…** writes JSON with both reciprocal bases,
 orientation matrices, fixed geometry, loss settings, validation metrics and
 source/code hashes. A centroid CSV retains every selected track, including
 unmatched/excluded rows, with frozen HKLs, partition, predictions, residuals and
@@ -296,7 +297,7 @@ The Positions tab shows a compact selected-spot panel: selected cell/model,
 indexing status, assigned conventional hkl, and Δxy/Δx/Δy (pixels) plus Δω
 (degrees). Residuals are calculated minus the signal-weighted linked-spot
 centroid, matching positional refinement, not the current frame midpoint.
-Changing the selected cell or initial/fitted model updates these diagnostics
+Changing the selected cell updates these diagnostics
 even when prediction overlays are hidden. Inspection reads existing frozen
 assignments and uses PhaseSmith's existing spot predictor; it performs no
 refitting, reassignment, or ranking changes. “Indexed” means inclusion in that
@@ -325,15 +326,15 @@ controls: left-drag rectangle zoom, right/Ctrl-left drag pan, right/Ctrl-left cl
 zoom out, double right/Ctrl-left click reset, and wheel zoom bounded by the data
 extent. Bounds include all plotted populations, excluding reference lines.
 
-After blind indexing, **Find orthorhombic setting and fit** searches integer lattice
+The retained programmatic orthorhombic refinement API searches integer lattice
 axes within 0.3° of perpendicular and performs a constrained three-length plus
 three-orientation fit. Settings retain their integer change of basis, lattice
 index and P/A/B/C/I/F translations; conventional-cell predictions retain the
 original reciprocal-lattice selection. The training/held-out split, assignments
 and instrument remain fixed. A metric candidate is not a proven primitive lattice,
 intensity symmetry or space group. Exports preserve the transform, search bounds,
-both models and held-out residuals; an unimproved held-out result leaves the
-initial overlay selected. The unconstrained fit remains separately available.
+both models and held-out residuals. These legacy fitting APIs remain available
+for numerical diagnostics; their controls are absent from the Predictions tab.
 
 
 ### macOS file-dialog fallback
@@ -394,14 +395,12 @@ residuals, symmetry order and fit status. It shares the sidebar selection. Point
 symmetry does not increase just because a conventional cell is centred.
 
 Clicking a row immediately queues predictions for **that fitted setting**. It
-performs no new refinement or ranking. The initial and selected-cell overlays,
+performs no new refinement or ranking. The selected-cell overlays,
 residual plots and exports use that row's stable PhaseSmith fit-pool index and
 integer lattice transformation; centred conventional predictions retain the
 primitive-lattice restriction. The selected fitted model stays visible even if
-its held-out residual is worse, with that limitation stated in the residual
-summary. Selecting an invalid fit explains the problem rather than substituting
-another cell. The normal unconstrained/orthorhombic refinement actions stay in
-the **Predictions** tab and retain their existing behaviour.
+its held-out residual is worse; both metrics remain in the plots and exports.
+Selecting an invalid fit explains the problem rather than substituting another cell.
 
 Higher lattice symmetry comes first among finite fits within the declared
 training-score window (default delta <=10 on one fixed reflection population).

@@ -36,7 +36,6 @@ from ..model.single_crystal_refinement import (
     PositionRefinement,
     preferred_candidate,
     refine_positions,
-    refinement_summary,
     export_refinement,
 )
 from ..widgets.PredictionResidualDialog import PredictionResidualDialog
@@ -98,14 +97,9 @@ class SingleCrystalController:
         widget.rank_table.selectionModel().selectionChanged.connect(self._rank_selected)
         widget.rank_export_button.clicked.connect(self.export_ranked_candidates)
         widget.cell_export_button.clicked.connect(self.export_cell_candidates)
-        widget.refine_button.clicked.connect(lambda: self.refine_positions())
-        widget.orthorhombic_button.clicked.connect(
-            lambda: self.refine_positions(symmetry="orthorhombic")
-        )
         widget.residual_button.clicked.connect(self.show_refinement_residuals)
         widget.refinement_export_button.clicked.connect(self.export_position_refinement)
         widget.prediction_enabled.toggled.connect(self.plot_predictions)
-        widget.prediction_model.currentIndexChanged.connect(self.plot_predictions)
         widget.predicted_overlay.sigClicked.connect(self._prediction_clicked)
         widget.spot_overlay.sigClicked.connect(self._spot_clicked)
         widget.img_widget.mouse_moved.connect(self.show_image_mouse_position)
@@ -281,21 +275,8 @@ class SingleCrystalController:
         self.widget.cell_table.setEnabled(
             self.cell_result is not None and not self._closed
         )
-        can_refine = False
-        if self.cell_result is not None:
-            try:
-                preferred_candidate(self.cell_result, self.cell_selection)
-                can_refine = True
-            except ValueError:
-                pass
         self.widget.rank_table.setEnabled(
             self.ranked_result is not None and not self._closed
-        )
-        self.widget.refine_button.setEnabled(
-            can_refine and not busy and not self._closed
-        )
-        self.widget.orthorhombic_button.setEnabled(
-            can_refine and not busy and not self._closed
         )
         message = (
             "Ready to find 3D positions across the rotation series."
@@ -433,11 +414,13 @@ class SingleCrystalController:
         self.widget.predicted_overlay.hide()
         self.widget.predicted_overlay.clear()
         self.widget.prediction_note.setText(
-            "Predictions require an indexed cell. No intensity or extinction model."
+            "Select a ranked cell in Cell to show its predicted positions."
         )
-        self.widget.prediction_model.setEnabled(False)
-        self.widget.refinement_summary.clear()
-        self.widget.refinement_summary.hide()
+        self.widget.prediction_selected_cell_label.setText(
+            "Preparing positions for the selected cell…"
+            if self.ranked_result is not None and self.ranked_selection is not None
+            else "No ranked cell selected."
+        )
         self.widget.residual_button.setEnabled(False)
         self.widget.refinement_export_button.setEnabled(False)
         self._refresh_selected_position_details()
@@ -458,11 +441,7 @@ class SingleCrystalController:
             return
         if self.refinement_result is None:
             return
-        predictions = (
-            self.refinement_result.initial_scan
-            if w.prediction_model.currentIndex() == 0
-            else self.refinement_result.refined_scan
-        )
+        predictions = self.refinement_result.refined_scan
         rows = np.flatnonzero(predictions.frame_indices == w.frame_slider.value())
         values = predictions.values[rows]
         image = self.model.img_model.raw_img_data
@@ -594,7 +573,7 @@ class SingleCrystalController:
                 ranked=self.ranked_result,
                 setting_index=self.ranked_selection,
                 refinement=self.refinement_result,
-                refined=w.prediction_model.currentIndex() == 1,
+                refined=True,
             )
             w.position_cell_label.setText(detail.model)
             status = (
@@ -951,19 +930,10 @@ class SingleCrystalController:
             ):
                 return
             self.refinement_result = result
-            self.widget.refinement_summary.setPlainText(refinement_summary(result))
-            self.widget.refinement_summary.show()
-            self.widget.prediction_model.setItemText(
-                1,
-                f"Selected rank {ranked['rank']} · {ranked['symbol']}"
+            self.widget.prediction_selected_cell_label.setText(
+                f"Selected cell: rank {ranked['rank']} · {ranked['symbol']}"
                 if ranked
-                else "Orthorhombic model"
-                if result.metadata.get("metric_constraint") == "orthorhombic"
-                else "Refined model",
-            )
-            self.widget.prediction_model.setEnabled(True)
-            self.widget.prediction_model.setCurrentIndex(
-                1 if ranked or result.refinement.metrics["validation_improved"] else 0
+                else f"Selected cell: {result.metadata.get('metric_constraint', 'triclinic')}"
             )
             self.widget.residual_button.setEnabled(True)
             self.widget.refinement_export_button.setEnabled(True)

@@ -540,38 +540,33 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         self.cell_export_button.setEnabled(False)
         lattice_actions.addWidget(self.cell_export_button)
         lattice_panel.addLayout(lattice_actions)
-        self.refine_button = QtWidgets.QPushButton("Unconstrained cell/orientation fit")
-        self.refine_button.setEnabled(False)
-        self.orthorhombic_button = QtWidgets.QPushButton(
-            "Find orthorhombic setting and fit"
+        self.prediction_selected_cell_label = QtWidgets.QLabel(
+            "No ranked cell selected."
         )
-        self.orthorhombic_button.setEnabled(False)
-        prediction_panel.addWidget(self.orthorhombic_button)
-        prediction_panel.addWidget(self.refine_button)
-        self.prediction_enabled = QtWidgets.QCheckBox(
-            "Show predicted Bragg centres (+)"
-        )
+        self.prediction_selected_cell_label.setWordWrap(True)
+        prediction_panel.addWidget(self.prediction_selected_cell_label)
+        self.prediction_enabled = QtWidgets.QCheckBox("Show predicted positions (+)")
         self.prediction_enabled.setChecked(True)
         prediction_panel.addWidget(self.prediction_enabled)
-        self.prediction_model = QtWidgets.QComboBox()
-        self.prediction_model.addItems(["Initial indexed model", "Refined model"])
-        self.prediction_model.setEnabled(False)
-        prediction_panel.addWidget(self.prediction_model)
+        legend = QtWidgets.QLabel(
+            "Cyan +: predicted reflection positions.\n"
+            "Yellow/red circles: detected spots.\n\n"
+            "Predictions use the cell and orientation selected in Cell. "
+            "Browse the omega frames to compare them with the detected spots. "
+            "Click a prediction to see its hkl and omega."
+        )
+        legend.setWordWrap(True)
+        prediction_panel.addWidget(legend)
         self.prediction_note = QtWidgets.QLabel(
-            "Predictions require an indexed cell. No intensity or extinction model."
+            "Select a ranked cell in Cell to show its predicted positions."
         )
         self.prediction_note.setWordWrap(True)
         prediction_panel.addWidget(self.prediction_note)
-        self.refinement_summary = QtWidgets.QPlainTextEdit()
-        self.refinement_summary.setReadOnly(True)
-        self.refinement_summary.setMaximumHeight(210)
-        self.refinement_summary.hide()
-        prediction_panel.addWidget(self.refinement_summary)
         self.residual_button = QtWidgets.QPushButton("Residual plots…")
         self.residual_button.setEnabled(False)
         prediction_panel.addWidget(self.residual_button)
         self.refinement_export_button = QtWidgets.QPushButton(
-            "Export predictions and refinement…"
+            "Export predicted positions…"
         )
         self.refinement_export_button.setEnabled(False)
         prediction_panel.addWidget(self.refinement_export_button)

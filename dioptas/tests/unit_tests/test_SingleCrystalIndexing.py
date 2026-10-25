@@ -253,12 +253,11 @@ def test_table_all_candidates_sorted_selection_and_failed_gate(qapp):
         w.cell_table.sortByColumn(0, QtCore.Qt.DescendingOrder)
         w.cell_table.selectRow(0)
         assert sc.cell_selection == (sign, 6)
-        assert not w.refine_button.isEnabled()
+        assert not hasattr(w, "refine_button")
         with pytest.raises(ValueError, match="held-out"):
             preferred_candidate(result, sc.cell_selection)
         w.cell_table.selectRow(1)
         assert sc.cell_selection == (sign, 5)
-        assert w.refine_button.isEnabled()
         assert preferred_candidate(result, sc.cell_selection)[1] == 5
         sc.invalidate()
         assert sc.cell_selection is None and w.cell_table_model.rowCount() == 0

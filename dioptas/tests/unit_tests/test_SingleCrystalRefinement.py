@@ -89,10 +89,10 @@ def test_controller_overlay_model_toggle_plots_and_invalidation(
         assert len(w.predicted_overlay.getData()[0]) > 0
         assert sc.result is positions
         assert w.residual_button.isEnabled() and w.refinement_export_button.isEnabled()
-        w.prediction_model.setCurrentIndex(0)
-        mask = result.initial_scan.frame_indices == frame
+        assert not hasattr(w, "prediction_model")
+        mask = result.refined_scan.frame_indices == frame
         np.testing.assert_allclose(
-            w.predicted_overlay.getData()[0], result.initial_scan.values[mask, 0] + 0.5
+            w.predicted_overlay.getData()[0], result.refined_scan.values[mask, 0] + 0.5
         )
         w.prediction_enabled.setChecked(False)
         assert len(w.predicted_overlay.getData()[0]) == 0
@@ -175,14 +175,14 @@ def test_orthorhombic_metric_service_and_ui_action(qapp, experiment, tmp_path):
         sc, w = c.single_crystal_controller, c.widget.single_crystal_widget
         sc._show_result(positions, sc._generation)
         sc._show_result(cells, sc._generation)
-        assert w.orthorhombic_button.isEnabled()
+        assert not hasattr(w, "orthorhombic_button")
         assert w.sections.currentIndex() == 2
-        w.orthorhombic_button.click()
+        sc.refine_positions(symmetry="orthorhombic")
         assert sc.refinement_result.metadata["metric_constraint"] == "orthorhombic"
-        assert w.prediction_model.itemText(1) == "Orthorhombic model"
+        assert "orthorhombic" in w.prediction_selected_cell_label.text()
         assert w.sections.currentIndex() == 3
         sc.invalidate()
-        assert not w.orthorhombic_button.isEnabled()
+        assert sc.refinement_result is None
     finally:
         c.widget.close()
 

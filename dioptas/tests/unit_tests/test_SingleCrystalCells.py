@@ -130,7 +130,7 @@ def test_spot_details_distinguish_missing_assignment_and_invalid_prediction():
     assert spot_cell_details(None, 7).indexed is None
 
 
-def test_position_details_refresh_when_cell_or_prediction_model_changes(
+def test_position_details_refresh_when_selected_cell_changes(
     qapp, tmp_path, ranked_experiment
 ):
     positions, cells, ranked = ranked_experiment
@@ -153,8 +153,8 @@ def test_position_details_refresh_when_cell_or_prediction_model_changes(
             assert w.position_residual_label.text().startswith("Δxy ")
         w.prediction_enabled.setChecked(False)
         assert w.position_indexing_label.text() == "Yes"
-        w.prediction_model.setCurrentIndex(0)
-        assert "initial" in w.position_cell_label.text()
+        assert not hasattr(w, "prediction_model")
+        assert "fitted" in w.position_cell_label.text()
         w.table_view.clearSelection()
         assert w.position_details.isHidden()
         w.table_view.selectRow(track)
@@ -200,7 +200,7 @@ def test_sorted_row_selection_previews_actual_fit_and_invalidates(
         assert w.rank_table_model.headerData(3, QtCore.Qt.Horizontal) == "α, β, γ (°)"
         assert w.rank_table_model.data(w.rank_table_model.index(0, 3)) == "90, 90, 90"
         assert w.sections.currentIndex() == 2
-        assert w.prediction_model.currentIndex() == 1
+        assert "rank 1" in w.prediction_selected_cell_label.text()
         assert sc.ranked_selection == ranked.comparison.recommended_setting_index
         w.rank_table.sortByColumn(0, QtCore.Qt.DescendingOrder)
         w.rank_table.selectRow(0)
@@ -226,7 +226,7 @@ def test_sorted_row_selection_previews_actual_fit_and_invalidates(
         # A non-improving held-out metric must not silently substitute another cell.
         preview.refinement.metrics["validation_improved"] = False
         sc._show_result(preview, sc._generation)
-        assert w.prediction_model.currentIndex() == 1
+        assert sc.refinement_result is preview
         sc.show_refinement_residuals()
         assert len(sc._residual_dialog.plots) == 6
         sc.invalidate()
