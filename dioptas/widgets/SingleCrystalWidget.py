@@ -580,6 +580,41 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         self.table_view.horizontalHeader().setSectionResizeMode(
             QtWidgets.QHeaderView.ResizeToContents
         )
+        self.position_details = QtWidgets.QGroupBox("Selected spot")
+        details = QtWidgets.QFormLayout(self.position_details)
+        self.position_cell_label = QtWidgets.QLabel()
+        self.position_indexing_label = QtWidgets.QLabel()
+        self.position_hkl_label = QtWidgets.QLabel()
+        self.position_residual_label = QtWidgets.QLabel()
+        for title, label in (
+            ("Cell", self.position_cell_label),
+            ("Indexed", self.position_indexing_label),
+            ("hkl", self.position_hkl_label),
+            ("Residual", self.position_residual_label),
+        ):
+            label.setWordWrap(True)
+            label.setTextFormat(QtCore.Qt.PlainText)
+            label.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
+            details.addRow(title, label)
+        self.position_residual_label.setToolTip(
+            "Calculated minus measured linked-spot centroid. Δxy is detector distance; "
+            "Δω compares the Bragg centre with the signal-weighted measured omega. "
+            "These are not residuals to the current frame midpoint."
+        )
+        self.position_indexing_label.setToolTip(
+            "Membership in the selected cell's fixed indexed/fit set. "
+            "Tracks excluded from the cell search are not assessed."
+        )
+        self.position_frames_label = QtWidgets.QLabel("Observed frames")
+        self.position_frames = QtWidgets.QComboBox()
+        self.position_frames.setSizeAdjustPolicy(
+            QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon
+        )
+        self.position_frames.setMinimumContentsLength(12)
+        self.position_frames.setPlaceholderText("Choose an observed frame…")
+        details.addRow(self.position_frames_label, self.position_frames)
+        self.position_details.hide()
+        positions_panel.addWidget(self.position_details)
         positions_panel.addWidget(self.table_view, 1)
         self.export_button = QtWidgets.QPushButton("Export spots…")
         self.export_button.setEnabled(False)

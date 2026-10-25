@@ -292,6 +292,23 @@ the Positions tab while retaining the current frame. Detected spots take click
 priority over predictions. Unlinked live-search preview markers become selectable
 after the final positions table is available.
 
+The Positions tab shows a compact selected-spot panel: selected cell/model,
+indexing status, assigned conventional hkl, and Δxy/Δx/Δy (pixels) plus Δω
+(degrees). Residuals are calculated minus the signal-weighted linked-spot
+centroid, matching positional refinement, not the current frame midpoint.
+Changing the selected cell or initial/fitted model updates these diagnostics
+even when prediction overlays are hidden. Inspection reads existing frozen
+assignments and uses PhaseSmith's existing spot predictor; it performs no
+refitting, reassignment, or ranking changes. “Indexed” means inclusion in that
+cell snapshot's accepted indexed/fit population, not a fresh fit-quality test.
+Tracks filtered out before cell searching show “Not assessed”, rather than “No”.
+Unassigned tracks have no assigned hkl/residual; invalid predicted crossings
+retain the assignment but explicitly lack a detector residual.
+The observed-frame dropdown lists every actual observation with its series
+frame, original file number and omega exposure bounds. Choosing an entry opens
+that frame without changing the spot selection; missing observations are not
+filled in from a first/last-frame range.
+
 The experimental sidebar has separate Series, Detection, Cell, Predictions and
 Positions tabs. All six residual plots share pattern-style
 controls: left-drag rectangle zoom, right/Ctrl-left drag pan, right/Ctrl-left click

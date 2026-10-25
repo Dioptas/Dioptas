@@ -118,8 +118,17 @@ def test_ui_browsing_preserves_positions_and_settings_invalidate(qapp, tmp_path)
         w.table_view.selectRow(0)
         assert w.frame_slider.value() == 2
         assert sc.result is result
+        assert not w.position_details.isHidden()
+        assert w.position_indexing_label.text().startswith("Not assessed")
+        assert w.position_frames.count() == 3
+        assert "file #11" in w.position_frames.itemText(0)
+        assert "ω -4.5 → -4°" in w.position_frames.itemText(0)
+        w.position_frames.setCurrentIndex(2)
+        assert w.frame_slider.value() == 3
+        assert w.selected_spot_overlay.isVisible()
         w.threshold.setValue(6)
         assert sc.result is None
+        assert w.position_details.isHidden()
         assert not w.export_button.isEnabled()
     finally:
         c.widget.close()

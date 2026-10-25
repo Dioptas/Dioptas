@@ -16,6 +16,7 @@ from dioptas.model.single_crystal_cells import (
     preview_ranked_cell,
     export_ranked_cells,
 )
+from dioptas.model.single_crystal_inspection import spot_cell_details
 
 
 @pytest.fixture(scope="module")
@@ -50,6 +51,117 @@ def test_adapter_rank_support_export_and_no_refitting(ranked_experiment, tmp_pat
     assert any(not p["supported"] for p in data["primitive_hypotheses"])
     with pytest.raises(ValueError):
         preview_ranked_cell(ranked, positions, (2048, 2048), -1)
+
+
+def test_spot_details_match_selected_setting_hkl_and_centroid_residual(
+    ranked_experiment,
+):
+    positions, cells, ranked = ranked_experiment
+    for row in ranked.comparison.ranking:
+        setting = ranked.comparison.settings[row.setting_index]
+        i = int(np.flatnonzero(setting.eligible)[0])
+        track = int(ranked.track_ids[i])
+        preview = preview_ranked_cell(
+            ranked, positions, (2048, 2048), row.setting_index
+        )
+        for refined in (False, True):
+            detail = spot_cell_details(
+                positions,
+                track,
+                ranked=ranked,
+                setting_index=row.setting_index,
+                refined=refined,
+            )
+            assert detail.indexed is True
+            assert detail.hkl == tuple(setting.hkl[i])
+            assert detail.model.startswith(
+                f"Rank {row.rank} · {setting.setting.symbol}"
+            )
+            predicted = (
+                preview.refinement.predictions
+                if refined
+                else preview.refinement.initial_predictions
+            )
+            np.testing.assert_allclose(
+                detail.residual,
+                predicted.values[i] - ranked.observed[i],
+                atol=1e-12,
+                rtol=0,
+            )
+    sign, number = ranked.selection
+    candidate = next(r[2] for r in cells.reports if r[0] == sign).candidates[number]
+    i = int(np.flatnonzero(candidate.indexed)[0])
+    detail = spot_cell_details(
+        positions, int(cells.track_ids[i]), cells=cells, selection=ranked.selection
+    )
+    assert detail.indexed is True and detail.hkl == tuple(candidate.hkl[i])
+    assert detail.residual is not None
+
+
+def test_spot_details_distinguish_missing_assignment_and_invalid_prediction():
+    from types import SimpleNamespace as Record
+
+    # Stable track IDs need not equal row numbers in the filtered cell snapshot.
+    fit = Record(
+        hkl=np.array([[1, -2, 3], [4, 0, 1]]),
+        eligible=np.array([True, False]),
+        observed=np.array([[10.0, 20.0, -5.0], [30.0, 40.0, -4.0]]),
+        predictions=Record(
+            values=np.array([[10.25, 19.5, -4.9], [31.0, 42.0, -3.0]]),
+            flags=np.array([0, 0]),
+        ),
+    )
+    result = Record(
+        refinement=fit, track_ids=np.array([7, 2]), metadata={"candidate_index": 0}
+    )
+    detail = spot_cell_details(None, 7, refinement=result)
+    assert detail.hkl == (1, -2, 3) and detail.indexed is True
+    np.testing.assert_allclose(detail.residual, [0.25, -0.5, 0.1], atol=1e-12, rtol=0)
+    rejected = spot_cell_details(None, 2, refinement=result)
+    assert (
+        rejected.indexed is False and rejected.hkl is None and rejected.residual is None
+    )
+    excluded = spot_cell_details(None, 3, refinement=result)
+    assert excluded.indexed is None and "Excluded" in excluded.note
+    fit.predictions.flags[0] = 1
+    invalid = spot_cell_details(None, 7, refinement=result)
+    assert invalid.indexed is True and invalid.hkl == (1, -2, 3)
+    assert invalid.residual is None and "No valid" in invalid.note
+    assert spot_cell_details(None, 7).indexed is None
+
+
+def test_position_details_refresh_when_cell_or_prediction_model_changes(
+    qapp, tmp_path, ranked_experiment
+):
+    positions, cells, ranked = ranked_experiment
+    c, sc, w = controller_scene(tmp_path, positions, cells)
+    try:
+        sc._show_result(ranked, sc._generation)
+        eligible = np.logical_and.reduce(
+            [f.eligible for f in ranked.comparison.settings]
+        )
+        i = int(np.flatnonzero(eligible)[0])
+        track = int(ranked.track_ids[i])
+        w.table_view.selectRow(track)
+        assert not w.position_details.isHidden()
+        assert w.position_indexing_label.text() == "Yes"
+        for row in range(w.rank_table_model.rowCount()):
+            w.rank_table.selectRow(row)
+            fit = ranked.comparison.settings[sc.ranked_selection]
+            assert w.position_hkl_label.text() == " ".join(map(str, fit.hkl[i]))
+            assert "fitted" in w.position_cell_label.text()
+            assert w.position_residual_label.text().startswith("Δxy ")
+        w.prediction_enabled.setChecked(False)
+        assert w.position_indexing_label.text() == "Yes"
+        w.prediction_model.setCurrentIndex(0)
+        assert "initial" in w.position_cell_label.text()
+        w.table_view.clearSelection()
+        assert w.position_details.isHidden()
+        w.table_view.selectRow(track)
+        sc.invalidate()
+        assert w.position_details.isHidden()
+    finally:
+        c.widget.close()
 
 
 def controller_scene(tmp_path, positions, cells, *, asynchronous=False):

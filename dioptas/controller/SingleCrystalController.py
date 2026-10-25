@@ -46,6 +46,7 @@ from ..model.single_crystal_cells import (
     preview_ranked_cell,
     export_ranked_cells,
 )
+from ..model.single_crystal_inspection import spot_cell_details
 
 
 class _SeriesCancelled(Exception):
@@ -112,6 +113,9 @@ class SingleCrystalController:
         widget.series_progress.connect(self._series_progress)
         widget.follow_search.toggled.connect(self._follow_search_changed)
         widget.frame_slider.valueChanged.connect(self.browse_frame)
+        widget.position_frames.currentIndexChanged.connect(
+            self._browse_selected_observation
+        )
         widget.table_view.selectionModel().selectionChanged.connect(
             self.select_position
         )
@@ -434,6 +438,7 @@ class SingleCrystalController:
         self.widget.refinement_summary.hide()
         self.widget.residual_button.setEnabled(False)
         self.widget.refinement_export_button.setEnabled(False)
+        self._refresh_selected_position_details()
         if self._residual_dialog is not None:
             self._residual_dialog.close()
             self._residual_dialog.deleteLater()
@@ -441,6 +446,7 @@ class SingleCrystalController:
 
     def plot_predictions(self, *_):
         w = self.widget
+        self._refresh_selected_position_details()
         # Hide while the old bounds still exist, so Qt invalidates the painted
         # crosses. ScatterPlotItem.clear() alone resets bounds before updating.
         w.predicted_overlay.hide()
@@ -535,6 +541,7 @@ class SingleCrystalController:
 
     def _plot_selected_position(self):
         self.widget.show_selected_spot()
+        self._refresh_selected_position_details()
         if self.result is None:
             return
         selected = self.widget.table_view.selectionModel().selectedRows()
@@ -558,6 +565,83 @@ class SingleCrystalController:
         point = (float(x) + 0.5, float(y) + 0.5)
         self.widget.show_selected_spot(*point)
         return point
+
+    def _browse_selected_observation(self, index):
+        frame = self.widget.position_frames.itemData(index)
+        if frame is not None and self.series is not None:
+            self.widget.frame_slider.setValue(frame)
+
+    def _refresh_selected_position_details(self):
+        w = self.widget
+        selected = w.table_view.selectionModel().selectedRows()
+        if self.result is None or not selected:
+            w.position_details.hide()
+            return
+        track = selected[0].row()
+        if not 0 <= track < len(self.result.table):
+            w.position_details.hide()
+            return
+        w.position_details.setTitle(f"Selected spot {track + 1}")
+        w.position_details.show()
+        try:
+            detail = spot_cell_details(
+                self.result,
+                track,
+                cells=self.cell_result,
+                selection=self.cell_selection,
+                ranked=self.ranked_result,
+                setting_index=self.ranked_selection,
+                refinement=self.refinement_result,
+                refined=w.prediction_model.currentIndex() == 1,
+            )
+            w.position_cell_label.setText(detail.model)
+            status = (
+                "Not assessed"
+                if detail.indexed is None
+                else "Yes"
+                if detail.indexed
+                else "No"
+            )
+            w.position_indexing_label.setText(
+                status + (f" · {detail.note}" if detail.note else "")
+            )
+            w.position_hkl_label.setText(
+                "—" if detail.hkl is None else " ".join(map(str, detail.hkl))
+            )
+            if detail.residual is None:
+                w.position_residual_label.setText("—")
+            else:
+                dx, dy, domega = detail.residual
+                w.position_residual_label.setText(
+                    f"Δxy {np.hypot(dx, dy):.3f} px · Δω {domega:+.4f}°\n"
+                    f"Δx {dx:+.3f}, Δy {dy:+.3f} px"
+                )
+        except (ValueError, IndexError, StopIteration, RuntimeError) as exc:
+            w.position_cell_label.setText("Selected cell")
+            w.position_indexing_label.setText(f"Not assessed · {exc}")
+            w.position_hkl_label.setText("—")
+            w.position_residual_label.setText("—")
+        combo = w.position_frames
+        blocker = QtCore.QSignalBlocker(combo)
+        combo.clear()
+        if isinstance(self.result, SeriesPositions):
+            rows = self.result.table.observations
+            frames = np.unique(rows[rows[:, 0] == track, 1].astype(int))
+            for frame in frames:
+                a, b = self.result.table.omega_bounds[frame]
+                numbers = self.result.metadata.get("frame_numbers")
+                file_number = f" · file #{numbers[frame]}" if numbers else ""
+                combo.addItem(
+                    f"Frame {frame + 1}{file_number} · ω {a:g} → {b:g}°", int(frame)
+                )
+            w.position_frames_label.setText(f"Observed frames ({len(frames)})")
+            combo.setCurrentIndex(combo.findData(w.frame_slider.value()))
+            combo.setEnabled(self.series is not None)
+        else:
+            w.position_frames_label.setText("Observed frames (1)")
+            combo.addItem("Current image · omega unavailable")
+            combo.setEnabled(False)
+        del blocker
 
     def browse_frame(self, index):
         if self.series is None:
@@ -629,6 +713,7 @@ class SingleCrystalController:
         selected = self.widget.table_view.selectionModel().selectedRows()
         if self.result is None or not selected:
             self.widget.show_selected_spot()
+            self._refresh_selected_position_details()
             return
         track = selected[0].row()
         if isinstance(self.result, SeriesPositions) and not self._selecting_image_spot:
@@ -1007,6 +1092,8 @@ class SingleCrystalController:
                 "Select a passing candidate for prediction/refinement. Cell symmetry and primitivity remain unproven."
             )
         self._set_ready()
+
+        self._refresh_selected_position_details()
 
     def compare_ranked_cells(self):
         if (
