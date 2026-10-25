@@ -195,7 +195,7 @@ def test_sorted_row_selection_previews_actual_fit_and_invalidates(
     try:
         sc._show_result(ranked, sc._generation)
         assert w.rank_table_model.rowCount() == len(ranked.comparison.settings)
-        assert w.cell_view.currentIndex() == 1
+        assert not w.cell_table.isHidden() and not w.rank_table.isHidden()
         assert not w.rank_table.isColumnHidden(3)
         assert w.rank_table_model.headerData(3, QtCore.Qt.Horizontal) == "α, β, γ (°)"
         assert w.rank_table_model.data(w.rank_table_model.index(0, 3)) == "90, 90, 90"
@@ -264,7 +264,7 @@ def test_find_cells_automatically_opens_ranked_settings(
             lambda: sc.ranked_result is not None and sc.refinement_result is not None,
             timeout=15000,
         )
-        assert w.cell_view.currentIndex() == 1
+        assert not w.cell_table.isHidden() and not w.rank_table.isHidden()
         assert sc.ranked_result.comparison.recommended.setting.symbol == "oP"
         assert not sc._pending_cell_comparison
         assert sc.cell_result is cells
@@ -411,7 +411,7 @@ def test_lattice_selection_coalesces_and_never_publishes_old_cells(
         )
         assert sc.ranked_result.selection == (sign, 0)
         assert sc.refinement_result.metadata["candidate_index"] == 0
-        assert w.cell_view.currentIndex() == 1
+        assert not w.cell_table.isHidden() and not w.rank_table.isHidden()
         select(3)
         assert sc.ranked_result is None and sc.refinement_result is None
         assert not w.predicted_overlay.isVisible()

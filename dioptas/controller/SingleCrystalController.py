@@ -257,7 +257,6 @@ class SingleCrystalController:
         self._clear_ranked()
         self._clear_refinement()
         self.widget.cell_table_model.set_result(None)
-        self.widget.cell_table.hide()
         self.widget.cell_table_button.setEnabled(False)
         self.widget.cell_summary.clear()
         self.widget.cell_summary.hide()
@@ -427,7 +426,7 @@ class SingleCrystalController:
         self.widget.rank_summary.setText(
             "Select a passing lattice to obtain ranked cells."
         )
-        self.widget.cell_view.setCurrentIndex(0)
+        self.widget.ranked_group.setTitle("Ranked cell settings")
 
     def _clear_refinement(self):
         self.refinement_result = None
@@ -892,7 +891,10 @@ class SingleCrystalController:
             self.widget.rank_table_model.set_result(result)
             self.widget.rank_table_button.setEnabled(True)
             self.widget.rank_export_button.setEnabled(True)
-            self.widget.cell_view.setCurrentIndex(1)
+            sign, number = result.selection
+            self.widget.ranked_group.setTitle(
+                f"Cells for lattice {number + 1} · axis {sign:+d}"
+            )
             self.widget.sections.setCurrentIndex(2)
             self._set_ready()
             self.widget.rank_table.selectRow(
@@ -910,7 +912,6 @@ class SingleCrystalController:
                 self._remember_image_geometry(result.metadata["geometry"][0])
             self._updating_cell_result = True
             self.widget.cell_table_model.set_result(result)
-            self.widget.cell_table.setVisible(bool(self.widget.cell_table_model.rows))
             self.widget.cell_table_button.setEnabled(
                 bool(self.widget.cell_table_model.rows)
             )
@@ -1065,7 +1066,6 @@ class SingleCrystalController:
         self._clear_ranked()
         self._clear_refinement()
         self.widget.cell_table_model.set_result(None)
-        self.widget.cell_table.hide()
         self.widget.cell_table_button.setEnabled(False)
         self.widget.cell_summary.clear()
         self.widget.cell_export_button.setEnabled(False)

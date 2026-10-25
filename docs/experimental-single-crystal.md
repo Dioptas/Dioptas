@@ -384,9 +384,11 @@ known material, cell, saved UB or reference indexing. This uses the
 `f166525af743bcfa63c6e132101730d907b5927d` experimental backend or a compatible
 newer build; the experimental CI pins this exact revision on Windows/macOS/Linux.
 
-The **Cell** section switches between **Lattice candidates** and **Ranked cell
-settings**, keeping the sidebar compact. The ranked view shows rank, Bravais
-symbol, edges, α/β/γ angles and training-score difference. **Open ranked cell table** opens a
+The **Cell** section shows **Lattice candidates** above **Ranked cell settings**
+in a vertical splitter, with both selections visible and independent table
+scrolling. Drag the divider to adjust their space. The lower table's heading
+identifies its selected lattice/axis. The ranked view shows rank, Bravais
+symbol, edges, α/β/γ angles and training-score difference. **Full ranked table** opens a
 non-modal sortable table with angles, volume, training/held-out xy and omega
 residuals, symmetry order and fit status. It shares the sidebar selection. Point
 symmetry does not increase just because a conventional cell is centred.
@@ -399,7 +401,7 @@ primitive-lattice restriction. The selected fitted model stays visible even if
 its held-out residual is worse, with that limitation stated in the residual
 summary. Selecting an invalid fit explains the problem rather than substituting
 another cell. The normal unconstrained/orthorhombic refinement actions stay in
-the lattice view and retain their existing behaviour.
+the **Predictions** tab and retain their existing behaviour.
 
 Higher lattice symmetry comes first among finite fits within the declared
 training-score window (default delta <=10 on one fixed reflection population).

@@ -445,21 +445,20 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         self.cell_button = QtWidgets.QPushButton("Find lattices and rank cells…")
         self.cell_button.setEnabled(False)
         cell_panel.addWidget(self.cell_button)
-        self.cell_view = QtWidgets.QComboBox()
-        self.cell_view.addItems(["Lattice candidates", "Ranked cell settings"])
-        cell_panel.addWidget(self.cell_view)
-        self.cell_views = QtWidgets.QStackedWidget()
-        self.cell_view.currentIndexChanged.connect(self.cell_views.setCurrentIndex)
-        cell_panel.addWidget(self.cell_views, 1)
-        lattice_page, ranked_page = QtWidgets.QWidget(), QtWidgets.QWidget()
+        self.cell_tables = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+        self.cell_tables.setChildrenCollapsible(False)
+        cell_panel.addWidget(self.cell_tables, 1)
+        self.lattice_group = QtWidgets.QGroupBox("Lattice candidates")
+        self.ranked_group = QtWidgets.QGroupBox("Ranked cell settings")
         lattice_panel, ranked_panel = (
-            QtWidgets.QVBoxLayout(lattice_page),
-            QtWidgets.QVBoxLayout(ranked_page),
+            QtWidgets.QVBoxLayout(self.lattice_group),
+            QtWidgets.QVBoxLayout(self.ranked_group),
         )
-        lattice_panel.setContentsMargins(0, 0, 0, 0)
-        ranked_panel.setContentsMargins(0, 0, 0, 0)
-        self.cell_views.addWidget(lattice_page)
-        self.cell_views.addWidget(ranked_page)
+        self.cell_tables.addWidget(self.lattice_group)
+        self.cell_tables.addWidget(self.ranked_group)
+        self.cell_tables.setStretchFactor(0, 1)
+        self.cell_tables.setStretchFactor(1, 1)
+        self.cell_tables.setSizes([330, 450])
         self.rank_table_model = RankedCellModel(self)
         self.rank_table_proxy = QtCore.QSortFilterProxyModel(self)
         self.rank_table_proxy.setSourceModel(self.rank_table_model)
@@ -475,26 +474,29 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         )
         self.rank_table.verticalHeader().hide()
         self.rank_table.horizontalHeader().setMinimumSectionSize(30)
-        for column in (0, 1):
+        for column, width in ((0, 34), (1, 40)):
             self.rank_table.horizontalHeader().setSectionResizeMode(
                 column, QtWidgets.QHeaderView.Fixed
             )
-            self.rank_table.setColumnWidth(column, 56)
+            self.rank_table.setColumnWidth(column, width)
         for column in range(5, len(self.rank_table_model.headers)):
             self.rank_table.setColumnHidden(column, True)
         ranked_panel.addWidget(self.rank_table, 1)
-        self.rank_table_button = QtWidgets.QPushButton("Open ranked cell table…")
+        self.rank_table.setMinimumHeight(90)
+        self.rank_table_button = QtWidgets.QPushButton("Full ranked table…")
         self.rank_table_button.clicked.connect(self.open_rank_table)
         self.rank_table_button.setEnabled(False)
-        ranked_panel.addWidget(self.rank_table_button)
+        ranked_actions = QtWidgets.QHBoxLayout()
+        ranked_actions.addWidget(self.rank_table_button)
         self.rank_summary = QtWidgets.QLabel(
-            "Compare a passing lattice to obtain ranked cells."
+            "Select a passing lattice to obtain ranked cells."
         )
         self.rank_summary.setWordWrap(True)
         ranked_panel.addWidget(self.rank_summary)
         self.rank_export_button = QtWidgets.QPushButton("Export ranked cells…")
         self.rank_export_button.setEnabled(False)
-        ranked_panel.addWidget(self.rank_export_button)
+        ranked_actions.addWidget(self.rank_export_button)
+        ranked_panel.addLayout(ranked_actions)
         self._rank_dialog = None
         self.cell_table_model = CellCandidateModel(self)
         self.cell_table_proxy = QtCore.QSortFilterProxyModel(self)
@@ -509,34 +511,39 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         self.cell_table.horizontalHeader().setSectionResizeMode(
             QtWidgets.QHeaderView.ResizeToContents
         )
+        for column, width in ((0, 38), (1, 48)):
+            self.cell_table.horizontalHeader().setSectionResizeMode(
+                column, QtWidgets.QHeaderView.Fixed
+            )
+            self.cell_table.setColumnWidth(column, width)
         # Sidebar stays compact; the expanded table shows all numerical columns.
         for column in (*range(4, 12), 13):
             self.cell_table.setColumnHidden(column, True)
         self.cell_table.verticalHeader().hide()
-        self.cell_table.setMinimumHeight(330)
-        self.cell_table.setMaximumHeight(360)
-        self.cell_table.hide()
+        self.cell_table.setMinimumHeight(90)
         lattice_panel.addWidget(self.cell_table, 1)
-        self.cell_table_button = QtWidgets.QPushButton("Open candidate table…")
+        self.cell_table_button = QtWidgets.QPushButton("Full lattice table…")
         self.cell_table_button.clicked.connect(self.open_cell_table)
         self.cell_table_button.setEnabled(False)
-        lattice_panel.addWidget(self.cell_table_button)
+        lattice_actions = QtWidgets.QHBoxLayout()
+        lattice_actions.addWidget(self.cell_table_button)
         self.cell_summary = QtWidgets.QPlainTextEdit()
         self.cell_summary.setReadOnly(True)
-        self.cell_summary.setMaximumHeight(110)
+        self.cell_summary.setMaximumHeight(65)
         self.cell_summary.hide()
         lattice_panel.addWidget(self.cell_summary)
         self.cell_export_button = QtWidgets.QPushButton("Export cell candidates…")
         self.cell_export_button.setEnabled(False)
-        lattice_panel.addWidget(self.cell_export_button)
+        lattice_actions.addWidget(self.cell_export_button)
+        lattice_panel.addLayout(lattice_actions)
         self.refine_button = QtWidgets.QPushButton("Unconstrained cell/orientation fit")
         self.refine_button.setEnabled(False)
         self.orthorhombic_button = QtWidgets.QPushButton(
             "Find orthorhombic setting and fit"
         )
         self.orthorhombic_button.setEnabled(False)
-        lattice_panel.addWidget(self.orthorhombic_button)
-        lattice_panel.addWidget(self.refine_button)
+        prediction_panel.addWidget(self.orthorhombic_button)
+        prediction_panel.addWidget(self.refine_button)
         self.prediction_enabled = QtWidgets.QCheckBox(
             "Show predicted Bragg centres (+)"
         )
@@ -629,7 +636,7 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         )
         hint.setWordWrap(True)
         series_panel.addWidget(hint)
-        for section in (series_panel, detection_panel, cell_panel, prediction_panel):
+        for section in (series_panel, detection_panel, prediction_panel):
             section.addStretch(1)
         splitter.addWidget(controls)
         splitter.setStretchFactor(0, 3)
