@@ -40,6 +40,12 @@ from ..model.single_crystal_refinement import (
     export_refinement,
 )
 from ..widgets.PredictionResidualDialog import PredictionResidualDialog
+from ..model.single_crystal_cells import (
+    RankedCells,
+    rank_cells,
+    preview_ranked_cell,
+    export_ranked_cells,
+)
 
 
 class _SeriesCancelled(Exception):
@@ -55,6 +61,9 @@ class SingleCrystalController:
         self.result = None
         self.cell_result = None
         self.cell_selection = None
+        self.ranked_result = None
+        self.ranked_selection = None
+        self._pending_rank_preview = False
         self.refinement_result = None
         self._residual_dialog = None
         self.cell_calibration_filename = ""
@@ -80,6 +89,9 @@ class SingleCrystalController:
         widget.detect_button.clicked.connect(self.detect)
         widget.cell_table.selectionModel().selectionChanged.connect(self._cell_selected)
         widget.cell_button.clicked.connect(self.index_cells)
+        widget.rank_button.clicked.connect(self.compare_ranked_cells)
+        widget.rank_table.selectionModel().selectionChanged.connect(self._rank_selected)
+        widget.rank_export_button.clicked.connect(self.export_ranked_candidates)
         widget.cell_export_button.clicked.connect(self.export_cell_candidates)
         widget.refine_button.clicked.connect(lambda: self.refine_positions())
         widget.orthorhombic_button.clicked.connect(
@@ -231,6 +243,7 @@ class SingleCrystalController:
         self.result = None
         self.cell_result = None
         self.cell_selection = None
+        self._clear_ranked()
         self._clear_refinement()
         self.widget.cell_table_model.set_result(None)
         self.widget.cell_table.hide()
@@ -262,6 +275,10 @@ class SingleCrystalController:
                 can_refine = True
             except ValueError:
                 pass
+        self.widget.rank_button.setEnabled(can_refine and not busy and not self._closed)
+        self.widget.rank_table.setEnabled(
+            self.ranked_result is not None and not self._closed
+        )
         self.widget.refine_button.setEnabled(
             can_refine and not busy and not self._closed
         )
@@ -319,6 +336,18 @@ class SingleCrystalController:
             )
             self._plot_frame_positions(i)
             self.plot_predictions()
+
+    def _clear_ranked(self):
+        self.ranked_result = None
+        self.ranked_selection = None
+        self._pending_rank_preview = False
+        self.widget.rank_table_model.set_result(None)
+        self.widget.rank_table_button.setEnabled(False)
+        self.widget.rank_export_button.setEnabled(False)
+        self.widget.rank_summary.setText(
+            "Compare a passing lattice to obtain ranked cells."
+        )
+        self.widget.cell_view.setCurrentIndex(0)
 
     def _clear_refinement(self):
         self.refinement_result = None
@@ -585,6 +614,8 @@ class SingleCrystalController:
         self._set_ready()
         if generation == self._generation:
             self._show_result(result, generation)
+        if self._pending_rank_preview and not self._closed:
+            self._preview_rank_selection()
 
     def _failed(self, job, exc, _traceback):
         generation = self._jobs.pop(job, -1)
@@ -598,10 +629,34 @@ class SingleCrystalController:
                     f"Experimental processing failed: {exc}"
                 )
 
+        if self._pending_rank_preview and not self._closed:
+            self._preview_rank_selection()
+
     def _show_result(self, result, generation):
         if generation != self._generation or self._closed:
             return
+        if isinstance(result, RankedCells):
+            try:
+                origin = preferred_candidate(self.cell_result, self.cell_selection)[:2]
+            except (ValueError, AttributeError):
+                return
+            if result.selection != origin:
+                return
+            self.ranked_result = result
+            self.widget.rank_table_model.set_result(result)
+            self.widget.rank_table_button.setEnabled(True)
+            self.widget.rank_export_button.setEnabled(True)
+            self.widget.cell_view.setCurrentIndex(1)
+            self.widget.sections.setCurrentIndex(2)
+            self._set_ready()
+            self.widget.rank_table.selectRow(
+                self.widget.rank_table_proxy.mapFromSource(
+                    self.widget.rank_table_model.index(0, 0)
+                ).row()
+            )
+            return
         if isinstance(result, CellSearchResult):
+            self._clear_ranked()
             self._clear_refinement()
             self.cell_result = result
             self.widget.cell_table_model.set_result(result)
@@ -634,26 +689,38 @@ class SingleCrystalController:
             )
             return
         if isinstance(result, PositionRefinement):
+            ranked = result.metadata.get("ranked_setting")
+            if ranked is not None and (
+                self.ranked_result is None
+                or ranked["setting_index"] != self.ranked_selection
+                or (result.metadata["axis_sign"], result.metadata["candidate_index"])
+                != self.ranked_result.selection
+            ):
+                return
             self.refinement_result = result
             self.widget.refinement_summary.setPlainText(refinement_summary(result))
             self.widget.refinement_summary.show()
             self.widget.prediction_model.setItemText(
                 1,
-                "Orthorhombic model"
+                f"Selected rank {ranked['rank']} · {ranked['symbol']}"
+                if ranked
+                else "Orthorhombic model"
                 if result.metadata.get("metric_constraint") == "orthorhombic"
                 else "Refined model",
             )
             self.widget.prediction_model.setEnabled(True)
             self.widget.prediction_model.setCurrentIndex(
-                1 if result.refinement.metrics["validation_improved"] else 0
+                1 if ranked or result.refinement.metrics["validation_improved"] else 0
             )
             self.widget.residual_button.setEnabled(True)
             self.widget.refinement_export_button.setEnabled(True)
-            self.widget.sections.setCurrentIndex(3)
+            self.widget.sections.setCurrentIndex(2 if ranked else 3)
             self._set_ready()
             self.plot_predictions()
             self.widget.status_label.setText(
-                "Prediction/refinement complete. Compare models and inspect residual plots."
+                f"Displaying rank {ranked['rank']} · {ranked['symbol']}. Select another row to compare cells."
+                if ranked
+                else "Prediction/refinement complete. Compare models and inspect residual plots."
             )
             return
         self.result = result
@@ -734,6 +801,7 @@ class SingleCrystalController:
             return
         self.cell_result = None
         self.cell_selection = None
+        self._clear_ranked()
         self._clear_refinement()
         self.widget.cell_table_model.set_result(None)
         self.widget.cell_table.hide()
@@ -760,6 +828,7 @@ class SingleCrystalController:
         if selection == self.cell_selection:
             return
         self.cell_selection = selection
+        self._clear_ranked()
         self._clear_refinement()
         if selection is not None and self.cell_result is not None:
             sign, number = selection
@@ -774,6 +843,102 @@ class SingleCrystalController:
                 "Select a passing candidate for prediction/refinement. Cell symmetry and primitivity remain unproven."
             )
         self._set_ready()
+
+    def compare_ranked_cells(self):
+        if (
+            self._closed
+            or self.cell_result is None
+            or (self._runner and self._runner.is_busy)
+        ):
+            return
+        generation = self._generation
+        self._clear_ranked()
+        self._clear_refinement()
+        operation = partial(
+            rank_cells, self.result, self.cell_result, selection=self.cell_selection
+        )
+        if self._runner is None:
+            try:
+                self._show_result(operation(), generation)
+            except Exception as exc:
+                self.widget.status_label.setText(f"Cell comparison failed: {exc}")
+        else:
+            job = self._runner.submit(operation)
+            self._jobs[job] = generation
+            self._set_ready()
+            self.widget.status_label.setText(
+                "Comparing primitive hypotheses and ranking Bravais settings…"
+            )
+
+    def _rank_selected(self, *_):
+        index = self.widget.rank_table.currentIndex()
+        selected = index.data(QtCore.Qt.UserRole) if index.isValid() else None
+        if (
+            self.ranked_result is None
+            or selected is None
+            or selected == self.ranked_selection
+        ):
+            return
+        self.ranked_selection = selected
+        self._clear_refinement()
+        row = next(
+            r
+            for r in self.ranked_result.comparison.ranking
+            if r.setting_index == selected
+        )
+        fit = self.ranked_result.comparison.settings[selected]
+        self.widget.rank_summary.setText(
+            f"Rank {row.rank} · {fit.setting.symbol} · Δ score {row.score_delta:.3f}. "
+            f"{row.reason}. Select a row to preview its fitted cell; no new refinement. "
+            "Lattice metric only; physical primitivity and space group remain unproven."
+        )
+        self._pending_rank_preview = True
+        self._preview_rank_selection()
+
+    def _preview_rank_selection(self):
+        if self._closed or self.ranked_result is None or self.ranked_selection is None:
+            self._pending_rank_preview = False
+            return
+        if self._runner and self._runner.is_busy:
+            return  # Coalesce rapid selections; only the last requested row is previewed next.
+        self._pending_rank_preview = False
+        operation = partial(
+            preview_ranked_cell,
+            self.ranked_result,
+            self.result,
+            self.model.img_model.raw_img_data.shape,
+            self.ranked_selection,
+        )
+        generation = self._generation
+        if self._runner is None:
+            try:
+                self._show_result(operation(), generation)
+            except Exception as exc:
+                self.widget.status_label.setText(f"Cell preview failed: {exc}")
+        else:
+            job = self._runner.submit(operation)
+            self._jobs[job] = generation
+            self._set_ready()
+            self.widget.status_label.setText(
+                "Predicting spots for the selected ranked cell…"
+            )
+
+    def export_ranked_candidates(self):
+        if self.ranked_result is None:
+            return
+        filename = save_file_dialog(
+            self.widget, "Export ranked cells", "ranked_cells.json", "JSON (*.json)"
+        )
+        if filename:
+            try:
+                export_ranked_cells(self.ranked_result, filename)
+                self.widget.status_label.setText(
+                    "Exported ranks, fitted settings and rejected primitive support."
+                )
+            except Exception as exc:
+                self.widget.status_label.setText(
+                    f"Could not export ranked cells: {exc}"
+                )
 
     def refine_positions(self, *, symmetry="triclinic"):
         if (

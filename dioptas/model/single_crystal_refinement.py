@@ -245,11 +245,22 @@ def refinement_summary(result):
         lines.append(
             "Bounded metric search only: primitive lattice and space group remain unproven."
         )
+    ranked = result.metadata.get("ranked_setting")
+    if ranked:
+        lines.insert(
+            0,
+            f"Rank {ranked['rank']} · {ranked['symbol']} · Δ score {ranked['score_delta']:.3f}",
+        )
+        lines.append(
+            "This row uses its existing PhaseSmith fit. Selecting it performs no refitting or held-out selection."
+        )
     if fit.metrics["validation_improved"]:
         lines.append("The combined held-out positional residual improved.")
     else:
         lines.append(
-            "Held-out residual did not improve. Initial model remains the default overlay; inspect both."
+            "Held-out residual did not improve. The selected ranked model is displayed for comparison."
+            if ranked
+            else "Held-out residual did not improve. Initial model remains the default overlay; inspect both."
         )
     lines.append(
         "No space group, chemical identity or intensity model assigned. Loss scales are not calibrated uncertainties."

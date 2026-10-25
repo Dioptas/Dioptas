@@ -326,3 +326,51 @@ See PhaseSmith's `docs/experimental-grain-search.md` for FFT grain search equati
 ambiguity rules, strict distance boundaries, reserved-data gates, computational
 budgets and provenance. This remains in the experimental branch and opt-in native
 feature; standard releases and dependencies are unchanged.
+
+## Ranked cell settings and direct selection
+
+After **Geometry and find unit cell**, select a passing lattice and choose
+**Compare and rank cell settings**. PhaseSmith compares primitive hypotheses and
+all 14 Bravais types using measured positions and the inferred lattice, with no
+known material, cell, saved UB or reference indexing. This uses the
+`f166525af743bcfa63c6e132101730d907b5927d` experimental backend or a compatible
+newer build; the experimental CI pins this exact revision on Windows/macOS/Linux.
+
+The **Cell** section switches between **Lattice candidates** and **Ranked cell
+settings**, keeping the sidebar compact. The ranked view shows rank, Bravais
+symbol, edges, α/β/γ angles and training-score difference. **Open ranked cell table** opens a
+non-modal sortable table with angles, volume, training/held-out xy and omega
+residuals, symmetry order and fit status. It shares the sidebar selection. Point
+symmetry does not increase just because a conventional cell is centred.
+
+Clicking a row immediately queues predictions for **that fitted setting**. It
+performs no new refinement or ranking. The initial and selected-cell overlays,
+residual plots and exports use that row's stable PhaseSmith fit-pool index and
+integer lattice transformation; centred conventional predictions retain the
+primitive-lattice restriction. The selected fitted model stays visible even if
+its held-out residual is worse, with that limitation stated in the residual
+summary. Selecting an invalid fit explains the problem rather than substituting
+another cell. The normal unconstrained/orthorhombic refinement actions stay in
+the lattice view and retain their existing behaviour.
+
+Higher lattice symmetry comes first among finite fits within the declared
+training-score window (default delta <=10 on one fixed reflection population).
+Less comparable fits remain selectable for inspection. This is a provisional
+proposal ranking, not a space-group probability or proof of physical primitivity.
+Changing the selected lattice clears its ranked settings. Source/mask/parameter
+changes invalidate ranks and overlays. Rapid row changes coalesce to the latest
+selection; stale predictions cannot replace that cell's overlay. All numerical
+work remains in the existing dedicated background worker.
+
+**Export ranked cells** saves all ranks, fixed fits, geometry, comparison options
+and the retained/excluded support of every primitive hypothesis, including rejected
+ones. Predictions and residuals for the current row can be exported through
+**Predictions**. Existing plot mouse controls and frame buttons are unchanged.
+
+Local P1 validation (2026-10-25) used its archived measured position table and
+re-ran the blind FFT lattice search before ranking; no known cell/material was
+supplied. All five settings were selected in an offscreen real-frame review and
+matched their exact stored PhaseSmith fit matrices. At frame 39/76 their predicted
+visible spots numbered 24/23/24/24/23 (ranks 1..5). The local review and captures
+are under `PhaseSmith/runs/p1-dioptas-ranked-20261025/`; it leaves oP rank 1
+selected. The larger-cell question and provisional symmetry limitations remain.
