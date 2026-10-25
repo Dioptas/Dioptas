@@ -180,7 +180,17 @@ class ReciprocalSpaceDialog(QtWidgets.QDialog):
                 f"{self.snapshot.name} · {len(coords):,} / {total:,} measured points shown · {units} · {self.snapshot.omitted_tracks} nonfinite track centres omitted"
             )
         names = ("h", "k", "l") if self.mode.currentIndex() == 1 else ("q1", "q2", "q3")
-        self.canvas.set_points(coords, tracks, frames, status, basis, names)
+        self.canvas.set_points(
+            coords,
+            tracks,
+            frames,
+            status,
+            basis,
+            names,
+            assigned_hkl=self.snapshot.assigned_hkl[tracks]
+            if self.snapshot is not None
+            else None,
+        )
         if not reset:
             (
                 self.canvas.rotation,

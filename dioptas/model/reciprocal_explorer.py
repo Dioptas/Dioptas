@@ -19,6 +19,7 @@ class ReciprocalSnapshot:
     status: np.ndarray  # per original track: 0 unindexed, 1 indexed, 2 unassessed
     omitted_tracks: int
     reciprocal_basis: np.ndarray
+    assigned_hkl: np.ndarray  # per original track; only indexed rows have assignments
 
     def points(self, observations=False, fractional=True):
         if observations:
@@ -74,6 +75,9 @@ def reciprocal_snapshot(positions, ranked, setting_index):
     observation_h = np.linalg.solve(fit.reciprocal_basis.T, observation_q.T).T
     status = np.full(len(values), 2, dtype=np.uint8)
     status[ranked.track_ids] = fit.eligible.astype(np.uint8)
+    assigned_hkl = np.zeros((len(values), 3), dtype=np.int64)
+    assigned_hkl[ranked.track_ids] = fit.hkl
+    assigned_hkl.flags.writeable = False
     arrays = (ids, q, h, obs_ids, frames, observation_q, observation_h, status)
     arrays = tuple(np.ascontiguousarray(a) for a in arrays)
     for a in arrays:
@@ -85,4 +89,5 @@ def reciprocal_snapshot(positions, ranked, setting_index):
         *arrays,
         len(values) - len(ids),
         basis,
+        assigned_hkl,
     )

@@ -24,6 +24,7 @@ class Reciprocal3DWidget(QtWidgets.QWidget):
         self.coords = np.empty((0, 3))
         self.tracks = self.frames = self.status = np.empty(0, dtype=int)
         self.selected_track = None
+        self.assigned_hkl = None
         self.basis = np.eye(3)
         self.guides = np.empty((0, 3))
         self.show_guides = True
@@ -34,7 +35,9 @@ class Reciprocal3DWidget(QtWidgets.QWidget):
         self._press = None
         self.reset_view()
 
-    def set_points(self, coords, tracks, frames, status, basis, names):
+    def set_points(
+        self, coords, tracks, frames, status, basis, names, *, assigned_hkl=None
+    ):
         self.coords, self.tracks, self.frames, self.status = (
             coords,
             tracks,
@@ -42,6 +45,7 @@ class Reciprocal3DWidget(QtWidgets.QWidget):
             status,
         )
         self.basis, self.names = basis, names
+        self.assigned_hkl = assigned_hkl
         self.centre = (
             (coords.min(axis=0) + coords.max(axis=0)) / 2
             if len(coords)
@@ -251,6 +255,18 @@ class Reciprocal3DWidget(QtWidgets.QWidget):
         point = event.position() if hasattr(event, "position") else event.pos()
         return np.array([point.x(), point.y()])
 
+    def _hover_text(self, row):
+        values = ", ".join(f"{v:.4f}" for v in self.coords[row])
+        frame = f" · frame {self.frames[row] + 1}" if self.frames[row] >= 0 else ""
+        status = ("Unindexed", "Indexed", "Excluded (not assessed)")[self.status[row]]
+        if self.status[row] == 1 and self.assigned_hkl is not None:
+            hkl = ", ".join(str(int(v)) for v in self.assigned_hkl[row])
+            assignment = f"hkl = ({hkl})"
+        else:
+            assignment = "hkl: —"
+        units = "fractional (h, k, l)" if self.names == ("h", "k", "l") else "q (Å⁻¹)"
+        return f"Spot {self.tracks[row] + 1}{frame} · {status} · {assignment} · {units} = ({values})"
+
     def mousePressEvent(self, event):
         self._press = self._last = self._pos(event)
         self._dragged = False
@@ -279,11 +295,7 @@ class Reciprocal3DWidget(QtWidgets.QWidget):
         else:
             row = self._pick(pos)
             if row is not None:
-                values = ", ".join(f"{v:.4f}" for v in self.coords[row])
-                frame = (
-                    f" · frame {self.frames[row] + 1}" if self.frames[row] >= 0 else ""
-                )
-                self.hovered.emit(f"Spot {self.tracks[row] + 1}{frame} · ({values})")
+                self.hovered.emit(self._hover_text(row))
             else:
                 self.hovered.emit(" ")
         event.accept()

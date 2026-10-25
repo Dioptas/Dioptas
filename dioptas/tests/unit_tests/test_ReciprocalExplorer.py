@@ -42,6 +42,8 @@ def test_snapshot_uses_phasesmith_vectors_and_unrounded_display_coordinates(
         snapshot.status[ranked.track_ids], fit.eligible.astype(np.uint8)
     )
     assert snapshot.track_q.flags.writeable is False
+    np.testing.assert_array_equal(snapshot.assigned_hkl[ranked.track_ids], fit.hkl)
+    assert snapshot.assigned_hkl.flags.writeable is False
     assert snapshot.observation_hkl.flags.writeable is False
     assert len(snapshot.points()[0]) == len(positions.table)
     assert (snapshot.points()[2] == -1).all()
@@ -178,6 +180,7 @@ def test_slice_edges_are_inclusive_and_grid_is_not_reflection_data(qapp):
         np.ones(3, dtype=np.uint8),
         0,
         np.eye(3),
+        np.zeros((3, 3), dtype=np.int64),
     )
     dialog = ReciprocalSliceDialog()
     try:
@@ -207,6 +210,23 @@ def test_3d_cloud_rotation_depth_picking_and_linked_observations(
         qapp.processEvents()
         assert len(cloud.coords) == len(positions.table)
         np.testing.assert_array_equal(cloud.coords, dialog.snapshot.track_q)
+        np.testing.assert_array_equal(
+            cloud.assigned_hkl, dialog.snapshot.assigned_hkl[cloud.tracks]
+        )
+        xy, _ = cloud.project(cloud.coords)
+        pixel = QtCore.QPoint(*map(int, xy[len(xy) // 2]))
+        hovered_row = cloud._pick(np.array([pixel.x(), pixel.y()]))
+        qtbot.mouseMove(cloud, pixel)
+        assert dialog.hover.text() == cloud._hover_text(hovered_row)
+        for category, row in zip(*np.unique(cloud.status, return_index=True)):
+            text = cloud._hover_text(row)
+            if category == 1:
+                expected = ", ".join(
+                    str(int(v)) for v in dialog.snapshot.assigned_hkl[cloud.tracks[row]]
+                )
+                assert f"Indexed · hkl = ({expected})" in text
+            else:
+                assert "hkl: —" in text and "hkl = (" not in text
         before = cloud.rotation.copy()
         centre = cloud.rect().center()
         qtbot.mousePress(cloud, QtCore.Qt.LeftButton, pos=centre)
@@ -237,6 +257,10 @@ def test_3d_cloud_rotation_depth_picking_and_linked_observations(
         assert not dialog.grab().isNull()
         dialog.mode.setCurrentIndex(1)
         np.testing.assert_array_equal(cloud.coords, dialog.snapshot.observation_hkl)
+        np.testing.assert_array_equal(
+            cloud.assigned_hkl, dialog.snapshot.assigned_hkl[cloud.tracks]
+        )
+        assert "fractional (h, k, l)" in cloud._hover_text(0)
         dialog.layers[1].setChecked(False)
         assert not (cloud.status == 1).any()
         w.rank_table.selectRow(1)
