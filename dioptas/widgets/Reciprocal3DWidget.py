@@ -117,6 +117,12 @@ class Reciprocal3DWidget(QtWidgets.QWidget):
             self.pan = np.zeros(2)
             self.update()
 
+    def _point_size(self):
+        # Grow gently in screen pixels as the cloud spreads out, without
+        # allowing markers to grow at the full geometric zoom rate.
+        base = 5.5 if len(self.coords) < 10000 else 3.5
+        return base * min(1.8, self.zoom**0.18)
+
     def paintEvent(self, event):
         painter = QtGui.QPainter(self)
         painter.fillRect(self.rect(), QtGui.QColor("#101216"))
@@ -138,7 +144,7 @@ class Reciprocal3DWidget(QtWidgets.QWidget):
             )
             # Back-to-front depth buckets preserve occlusion without a Python
             # painter call per point; cyan wins ties within a thin depth bucket.
-            size = 5.5 if len(xy) < 10000 else 3.5
+            size = self._point_size()
             for bucket in range(24):
                 for category in (2, 0, 1):
                     rows = xy[(bins == bucket) & (self.status == category)]
@@ -166,12 +172,13 @@ class Reciprocal3DWidget(QtWidgets.QWidget):
                     )
                     painter.drawPoints(polygon)
             painter.setBrush(QtCore.Qt.NoBrush)
+            selection_radius = max(8.0, size / 2 + 4)
             for point in xy[self.tracks == self.selected_track]:
                 centre = QtCore.QPointF(*map(float, point))
                 painter.setPen(QtGui.QPen(QtGui.QColor("black"), 5))
-                painter.drawEllipse(centre, 8, 8)
+                painter.drawEllipse(centre, selection_radius, selection_radius)
                 painter.setPen(QtGui.QPen(QtGui.QColor("#ff55dd"), 2.5))
-                painter.drawEllipse(centre, 8, 8)
+                painter.drawEllipse(centre, selection_radius, selection_radius)
         else:
             painter.setPen(QtGui.QColor("#c8cdd6"))
             painter.drawText(
@@ -191,7 +198,8 @@ class Reciprocal3DWidget(QtWidgets.QWidget):
             return None
         xy, depth = self.project(self.coords)
         distance = np.sum((xy - pos) ** 2, axis=1)
-        rows = np.flatnonzero(distance <= 9**2)
+        pick_radius = max(9.0, self._point_size() / 2 + 6)
+        rows = np.flatnonzero(distance <= pick_radius**2)
         if not len(rows):
             return None
         rows = rows[distance[rows] <= distance[rows].min() + 4]

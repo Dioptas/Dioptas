@@ -424,7 +424,9 @@ ones. Predictions and residuals for the current row can be exported through
 the selected ranked cell. It follows cell/lattice selections and clears when
 the source is invalidated. Drag left to rotate, wheel to zoom, right/Ctrl-drag
 to pan, and double-click to reset. Buttons orient the camera along hk, hl or kl
-planes. These are camera presets in the same 3D viewer. The default Cartesian
+planes. Markers grow gently with zoom (at most 1.8× their initial pixel diameter),
+with a matching increase in click tolerance to keep magnified spots selectable.
+These are camera presets in the same 3D viewer. The default Cartesian
 q coordinates preserve physical angles and equal scales, in Å⁻¹ with `|q|=1/d`.
 Fractional-index mode shows unrounded h/k/l; its axis lengths and angles are
 coordinate units rather than physical reciprocal distances.
