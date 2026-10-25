@@ -288,6 +288,12 @@ does not imply reproduction of the author's fitting workflow. **Open
 reconstruction report** opens the selected record's supplied web report,
 including its comparisons and qualifications. The report requires an internet
 connection; the stored assessments and the material library remain offline.
+**View EOS in Peritheos** opens the selected record's section in the readable
+material documentation, including its parameters, provenance and qualifications.
+This link is also available in the phase editor's **Details…** dialog for
+catalog records. User-edited copies do not inherit a catalog-record link.
+Online documentation follows Peritheos's latest version and can differ from
+the library installed with Dioptas.
 
 When Peritheos puts a material's default on hold, no replacement EOS is
 selected automatically. The reason appears below the table and **Load as

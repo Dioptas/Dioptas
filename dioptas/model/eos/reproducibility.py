@@ -6,7 +6,8 @@ reproduction are separate claims. Only explicit assessment fields determine
 the summary; prose and the presence of data are not treated as a pass/fail test.
 """
 
-from urllib.parse import urlparse
+from functools import lru_cache
+from urllib.parse import quote, urlparse
 
 
 def _metadata(value):
@@ -60,6 +61,33 @@ def _is_user_copy(record, origin):
     return (origin == "custom" or (
         validation.get("status") == "deferred"
         and str(validation.get("note", "")).startswith("User-owned copy;")))
+
+
+@lru_cache(maxsize=512)
+def _catalog_record_identifiers(material_identifier):
+    from peritheos import get_material_document
+    from peritheos.errors import MaterialLookupError
+
+    try:
+        document = get_material_document(material_identifier)
+    except MaterialLookupError:
+        return "", frozenset()
+    return document["identifier"], frozenset(
+        record["identifier"] for record in document["eos_records"])
+
+
+def peritheos_record_url(material_identifier, record, *, origin=None):
+    """Link known catalog records to their readable Peritheos documentation."""
+    if _is_user_copy(record, origin) or not isinstance(material_identifier, str):
+        return ""
+    identifier = record.get("identifier")
+    if not material_identifier or not isinstance(identifier, str):
+        return ""
+    material_identifier, records = _catalog_record_identifiers(material_identifier)
+    if identifier not in records:
+        return ""
+    return ("https://peritheos.readthedocs.io/en/latest/material-summaries/"
+            f"{quote(material_identifier, safe='')}/#record-{quote(identifier, safe='')}")
 
 
 def reconstruction_report_url(record, *, origin=None):

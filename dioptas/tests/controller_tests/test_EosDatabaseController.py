@@ -52,6 +52,7 @@ class EosDatabaseControllerTest(QtTest):
         assert self.dialog.selected_eos_row() == -1
         assert not self.dialog.load_btn.isEnabled()
         assert not self.dialog.report_btn.isEnabled()
+        assert not self.dialog.peritheos_btn.isEnabled()
         assert "Select an EOS record explicitly" in self.dialog.load_btn.toolTip()
         assert "0 K DFT" in self.dialog.structure_note.text()
         self.dialog.materials_table.doubleClicked.emit(
@@ -86,6 +87,35 @@ class EosDatabaseControllerTest(QtTest):
         self.dialog.view_tabs.setCurrentIndex(2)
         assert (self.dialog.materials_table.rowCount()
                 == len(eos.load_materials()))
+
+    def test_peritheos_action_follows_sorted_record_selection_and_clears(self):
+        self.dialog.search_input.setText("gold")
+        self.dialog.eos_table.sortItems(5, QtCore.Qt.DescendingOrder)
+        for row in (0, 1):
+            self.dialog.eos_table.selectRow(row)
+            material = self.controller.shown_materials[self.dialog.selected_material_row()]
+            record = material.eos_records[self.dialog.selected_eos_row()]
+            expected = ("https://peritheos.readthedocs.io/en/latest/material-summaries/"
+                        f"gold/#record-{record['identifier']}")
+            assert self.dialog.peritheos_btn.isEnabled()
+            with patch("qtpy.QtGui.QDesktopServices.openUrl", return_value=True) as open_url:
+                self.dialog.peritheos_btn.click()
+            assert open_url.call_args.args[0].toString() == expected
+        self.dialog.search_input.setText("no such material")
+        assert not self.dialog.peritheos_btn.isEnabled()
+        with patch("qtpy.QtGui.QDesktopServices.openUrl") as open_url:
+            self.controller.open_peritheos_record()
+        open_url.assert_not_called()
+
+    def test_eos_only_material_can_open_peritheos_without_loading_a_phase(self):
+        self.dialog.search_input.setText("coesite")
+        row = next(index for index, material in enumerate(self.controller.shown_materials)
+                   if material.identifier == "coesite_iv")
+        self.dialog.materials_table.selectRow(row)
+        self.dialog.eos_table.selectRow(0)
+        assert not self.dialog.load_btn.isEnabled()
+        assert self.dialog.peritheos_btn.isEnabled()
+        assert "/material-summaries/coesite_iv/#record-" in self.dialog.peritheos_btn.toolTip()
 
     def test_selected_eos_stays_fully_visible_after_open_resize_and_splitter_move(self):
         self.dialog.search_input.setText("gold")

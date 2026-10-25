@@ -7,6 +7,29 @@ import pytest
 from ...model import eos
 
 
+def test_peritheos_record_link_targets_the_selected_catalog_record():
+    record = {"identifier": "gold_fei_2007_vinet_2"}
+    assert eos.peritheos_record_url("gold", record) == (
+        "https://peritheos.readthedocs.io/en/latest/material-summaries/"
+        "gold/#record-gold_fei_2007_vinet_2")
+    assert not eos.peritheos_record_url("gold", record, origin="custom")
+    record["scientific_validation"] = {
+        "status": "deferred", "note": "User-owned copy; coefficients changed."}
+    assert not eos.peritheos_record_url("gold", record)
+
+
+@pytest.mark.parametrize("material,record", [
+    (None, {"identifier": "gold_fei_2007_vinet_2"}),
+    ("", {"identifier": "gold_fei_2007_vinet_2"}),
+    ("gold", {}),
+    ("gold", {"identifier": "custom_record"}),
+    ("palladium", {"identifier": "gold_fei_2007_vinet_2"}),
+    ("unknown-material", {"identifier": "custom_record"}),
+])
+def test_non_catalog_records_have_no_peritheos_link(material, record):
+    assert not eos.peritheos_record_url(material, record)
+
+
 def test_source_verification_and_data_do_not_imply_reproduction():
     record = {"scientific_validation": {
         "status": "primary_source_validated",

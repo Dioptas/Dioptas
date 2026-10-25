@@ -278,6 +278,23 @@ class PhaseEditorControllerTest(QtTest):
     # EoS selection
     #######################
 
+    def test_peritheos_link_follows_record_and_does_not_pass_to_custom_copy(self):
+        from ...model import eos
+        from peritheos import get_material_document
+
+        phase = eos.build_jcpds(
+            eos.Material.from_dict(get_material_document('gold')), origin='bundled')
+        self.phase_model.add_jcpds_object(phase)
+        self.controller.show_phase(phase)
+        index = phase.params['eos_current_index']
+        identifier = phase.params['eos_records'][index]['identifier']
+        assert self.jcpds_widget.eos_record_cb.currentData() == (
+            "https://peritheos.readthedocs.io/en/latest/material-summaries/"
+            f"gold/#record-{identifier}")
+        self.phase_model.duplicate_eos_record(self.controller.phase_ind, index)
+        self.controller._update_eos_record_controls()
+        assert not self.jcpds_widget.eos_record_cb.currentData()
+
     def test_eos_combobox_offers_all_peritheos_equations(self):
         from dioptas.model.util.eos_phase import RT_EOS_TYPES
         cb = self.jcpds_widget.eos_type_cb

@@ -7,7 +7,8 @@ from .material import (Material, Lattice, record_label, record_eos_type,
                        record_pressure_range, reference_authors,
                        reference_short, reference_text, reference_year)
 from .database import load_materials, search_materials
-from .reproducibility import record_reproduction, reconstruction_report_url
+from .reproducibility import (record_reproduction, reconstruction_report_url,
+                              peritheos_record_url)
 from .jcpds_builder import (build_jcpds, apply_eos_record, material_from_jcpds,
                             save_material_file, load_material_file)
 
@@ -15,7 +16,7 @@ __all__ = [
     "Material", "Lattice", "record_label", "record_eos_type",
     "record_pressure_range", "reference_authors", "reference_short",
     "reference_text", "reference_year",
-    "record_reproduction", "reconstruction_report_url",
+    "record_reproduction", "reconstruction_report_url", "peritheos_record_url",
     "load_materials", "search_materials",
     "build_jcpds", "apply_eos_record", "material_from_jcpds",
     "save_material_file", "load_material_file",

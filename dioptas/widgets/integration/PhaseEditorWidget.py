@@ -496,6 +496,12 @@ class PhaseEditorWidget(QtWidgets.QWidget):
         details.setPlainText(self.eos_record_status_lbl.toolTip() + '\n\n'
                              + self.eos_reproduction_lbl.toolTip())
         layout.addWidget(details)
+        record_url = self.eos_record_cb.currentData(QtCore.Qt.UserRole)
+        if record_url:
+            link = QtWidgets.QLabel(f'<a href="{record_url}">View EOS in Peritheos</a>')
+            link.setOpenExternalLinks(True)
+            link.setToolTip(record_url)
+            layout.addWidget(link)
         buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Close)
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
@@ -710,7 +716,7 @@ class PhaseEditorWidget(QtWidgets.QWidget):
     def update_eos_records(self, labels, current_index=0, *, origins=None,
                            default_index=0, material_origin='legacy',
                            reloadable=None, reproduction_details=None,
-                           record_warnings=None):
+                           record_warnings=None, record_urls=None):
         """Refresh the material-record selector without emitting a change."""
         origins = origins or []
         reproduction_details = reproduction_details or []
@@ -720,6 +726,8 @@ class PhaseEditorWidget(QtWidgets.QWidget):
             for index, label in enumerate(labels):
                 prefix = '★ ' if index == default_index else ''
                 self.eos_record_cb.addItem(prefix + label)
+                if index < len(record_urls or []):
+                    self.eos_record_cb.setItemData(index, record_urls[index])
                 if index < len(reproduction_details):
                     self.eos_record_cb.setItemData(
                         index, label + '\n\n' + reproduction_details[index],

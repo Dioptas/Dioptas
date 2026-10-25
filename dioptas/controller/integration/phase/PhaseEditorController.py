@@ -495,6 +495,10 @@ class PhaseEditorController(QtCore.QObject):
             reloadable=self.phase_model.can_reload(self.phase_ind),
             reproduction_details=[detail for _, detail in assessments],
             record_warnings=warnings,
+            record_urls=[eos.peritheos_record_url(
+                (phase.params.get('material_document') or {}).get('identifier'),
+                record, origin=origins[index] if index < len(origins) else None)
+                for index, record in enumerate(phase.params['eos_records'])],
         )
 
     def eos_record_changed(self, record_index):

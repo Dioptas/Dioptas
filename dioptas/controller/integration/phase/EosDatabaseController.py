@@ -56,6 +56,7 @@ class EosDatabaseController(object):
         self.dialog.load_clicked.connect(self.load)
         self.dialog.export_clicked.connect(self.export)
         self.dialog.report_clicked.connect(self.open_reconstruction_report)
+        self.dialog.peritheos_clicked.connect(self.open_peritheos_record)
         self.dialog.view_changed.connect(self.change_view)
         self.dialog.favourite_clicked.connect(self.toggle_favourite)
         self.dialog.diffraction_filter_changed.connect(self._refresh_materials)
@@ -212,6 +213,12 @@ class EosDatabaseController(object):
                       else "")
         self.dialog.report_btn.setEnabled(bool(report_url))
         self.dialog.report_btn.setToolTip(report_url or "No reconstruction report is recorded.")
+        record_url = (eos.peritheos_record_url(material.identifier, material.eos_records[index])
+                      if material is not None and 0 <= index < len(material.eos_records)
+                      else "")
+        self.dialog.peritheos_btn.setEnabled(bool(record_url))
+        self.dialog.peritheos_btn.setToolTip(
+            record_url or "Select a Peritheos catalog record to view its documentation.")
         assumption = (material.source.get("assumed_structure", {})
                       if material is not None else {})
         reason = self._phase_load_error()
@@ -225,6 +232,14 @@ class EosDatabaseController(object):
         self.dialog.structure_note.setText("\n".join(notes))
         self.dialog.structure_note.setVisible(bool(notes))
         self.dialog.set_phase_load_enabled(not reason, reason)
+
+    def open_peritheos_record(self):
+        material = self._selected_material(self.dialog.selected_material_row())
+        index = self.dialog.selected_eos_row()
+        if material is not None and 0 <= index < len(material.eos_records):
+            url = eos.peritheos_record_url(material.identifier, material.eos_records[index])
+            if url:
+                QtGui.QDesktopServices.openUrl(QtCore.QUrl(url))
 
     def open_reconstruction_report(self):
         material = self._selected_material(self.dialog.selected_material_row())
