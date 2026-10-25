@@ -38,6 +38,7 @@ class Reciprocal3DWidget(QtWidgets.QWidget):
     def set_points(
         self, coords, tracks, frames, status, basis, names, *, assigned_hkl=None
     ):
+        self._clear_hover()
         self.coords, self.tracks, self.frames, self.status = (
             coords,
             tracks,
@@ -78,6 +79,7 @@ class Reciprocal3DWidget(QtWidgets.QWidget):
         self.guides = np.array(segments)
 
     def reset_view(self):
+        self._clear_hover()
         self.rotation = _rotation(1, np.deg2rad(35)) @ _rotation(0, np.deg2rad(-25))
         self.zoom = 1.0
         self.pan = np.zeros(2)
@@ -91,6 +93,7 @@ class Reciprocal3DWidget(QtWidgets.QWidget):
         self.update()
 
     def orient_plane(self, x, y):
+        self._clear_hover()
         horizontal = self.basis[x] / np.linalg.norm(self.basis[x])
         normal = np.cross(self.basis[x], self.basis[y])
         normal /= np.linalg.norm(normal)
@@ -148,6 +151,7 @@ class Reciprocal3DWidget(QtWidgets.QWidget):
         self.update()
 
     def centre_selected(self):
+        self._clear_hover()
         points = self.coords[self.tracks == self.selected_track]
         if len(points):
             self.centre = points.mean(axis=0)
@@ -255,19 +259,41 @@ class Reciprocal3DWidget(QtWidgets.QWidget):
         point = event.position() if hasattr(event, "position") else event.pos()
         return np.array([point.x(), point.y()])
 
-    def _hover_text(self, row):
-        values = ", ".join(f"{v:.4f}" for v in self.coords[row])
-        frame = f" · frame {self.frames[row] + 1}" if self.frames[row] >= 0 else ""
+    def _assignment_text(self, row):
         status = ("Unindexed", "Indexed", "Excluded (not assessed)")[self.status[row]]
         if self.status[row] == 1 and self.assigned_hkl is not None:
             hkl = ", ".join(str(int(v)) for v in self.assigned_hkl[row])
             assignment = f"hkl = ({hkl})"
         else:
             assignment = "hkl: —"
+        return status, assignment
+
+    def _tooltip_text(self, row):
+        status, assignment = self._assignment_text(row)
+        frame = f" · frame {self.frames[row] + 1}" if self.frames[row] >= 0 else ""
+        return f"Spot {self.tracks[row] + 1}{frame} · {status}\n{assignment}"
+
+    def _hover_text(self, row):
+        values = ", ".join(f"{v:.4f}" for v in self.coords[row])
+        frame = f" · frame {self.frames[row] + 1}" if self.frames[row] >= 0 else ""
+        status, assignment = self._assignment_text(row)
         units = "fractional (h, k, l)" if self.names == ("h", "k", "l") else "q (Å⁻¹)"
         return f"Spot {self.tracks[row] + 1}{frame} · {status} · {assignment} · {units} = ({values})"
 
+    def _clear_hover(self):
+        QtWidgets.QToolTip.hideText()
+        self.hovered.emit(" ")
+
+    def leaveEvent(self, event):
+        self._clear_hover()
+        super().leaveEvent(event)
+
+    def hideEvent(self, event):
+        self._clear_hover()
+        super().hideEvent(event)
+
     def mousePressEvent(self, event):
+        self._clear_hover()
         self._press = self._last = self._pos(event)
         self._dragged = False
         self._panning = event.button() != QtCore.Qt.LeftButton or bool(
@@ -296,8 +322,14 @@ class Reciprocal3DWidget(QtWidgets.QWidget):
             row = self._pick(pos)
             if row is not None:
                 self.hovered.emit(self._hover_text(row))
+                local = QtCore.QPoint(int(pos[0]), int(pos[1]))
+                QtWidgets.QToolTip.showText(
+                    self.mapToGlobal(local) + QtCore.QPoint(12, 16),
+                    self._tooltip_text(row),
+                    self,
+                )
             else:
-                self.hovered.emit(" ")
+                self._clear_hover()
         event.accept()
 
     def mouseReleaseEvent(self, event):
@@ -322,6 +354,7 @@ class Reciprocal3DWidget(QtWidgets.QWidget):
         event.accept()
 
     def wheelEvent(self, event):
+        self._clear_hover()
         factor = np.exp(event.angleDelta().y() / 120 * 0.15)
         new_zoom = float(np.clip(self.zoom * factor, 1, 40))
         centre = np.array([self.width() / 2, self.height() / 2])

@@ -436,8 +436,10 @@ diameters with the factor `3r / (3r - z)`. Nearer spheres appear larger; marker
 size indicates camera depth, not measured intensity. Turning Perspective off
 restores orthographic projection and equal marker diameters. Hit targets and
 selection rings follow the projected sphere sizes in both modes.
-Hovering a sphere shows its spot/frame, indexing status and the selected cell's
-frozen integer hkl assignment alongside the plotted coordinates. Unindexed and
+Hovering a sphere shows a compact tooltip beside the cursor with its spot/frame,
+indexing status and the selected cell's frozen integer hkl assignment. It hides
+when leaving the ball/view, dragging, zooming or replacing the cell data. The
+bottom readout also retains the plotted coordinates. Unindexed and
 excluded/unassessed tracks have no displayed hkl assignment. Fractional plotted
 coordinates remain unrounded and are labelled separately from assigned hkl.
 Fractional-index mode shows unrounded h/k/l; its axis lengths and angles are
