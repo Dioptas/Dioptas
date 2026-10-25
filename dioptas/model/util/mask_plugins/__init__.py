@@ -9,5 +9,4 @@ BUILTIN_MASK_PLUGINS = [
     ThresholdMaskPlugin,
     CosmicRayMaskPlugin,
     PowderDiffSpotMaskPlugin,
-    DiamondSpotMaskPlugin,
 ]

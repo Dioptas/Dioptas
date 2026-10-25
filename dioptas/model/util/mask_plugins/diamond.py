@@ -75,7 +75,7 @@ class DiamondSpotMaskPlugin(PowderDiffSpotMaskPlugin):
         return ranges
 
     def get_settings_schema(self):
-        common = super().get_settings_schema()
+        common = self._get_all_settings_schema()
         return {
             "lattice_a": {
                 "type": "float",

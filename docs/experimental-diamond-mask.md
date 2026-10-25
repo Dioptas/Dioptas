@@ -1,8 +1,12 @@
 # Experimental diamond spot masking
 
-This is an opt-in mask plugin, disabled by default, on the
-`codex/dynamic-spot-mask` investigation branch. It is not a production diamond
-classifier or a change to the experimental PhaseSmith spot finder.
+This is a benchmark prototype on the `codex/dynamic-spot-mask` investigation
+branch. **It is not registered in Dioptas and cannot be selected in the GUI.**
+Its measured computation time of about 2.94 seconds per 2048² frame fails the
+user's required **less than 10 ms** limit. The optional broad algorithm is also
+hidden from the ordinary Spot Mask settings. A lighter 8 px sampling experiment
+also failed: 10.58 ms minimum, 16.19 ms median, 60.93 ms p95 over 380 calls.
+Neither implementation is suitable for interactive use under that constraint.
 
 ## Intended behaviour
 
@@ -15,11 +19,10 @@ should be flagged/rejected if its integration support intersects the diamond
 mask. Summing only its surviving pixels does not recover its full intensity.
 This branch does not alter the separate single-crystal integration checkout.
 
-Enable the plugin in Mask mode. Review the overlay, and enable **Use Mask** for
-integration. The original **Spot Mask** remains the default powder-oriented
-method. Its optional `broad` algorithm is the spatial detector without a
-diamond prior; enabling both plugins ORs their masks and can mask additional
-sample diffraction.
+The original **Spot Mask** remains the available powder-oriented method.
+The prototypes remain callable by benchmark scripts so their scientific
+results and rejected performance can be reproduced. Saved GUI captures predate
+removal from the plugin registry and do not show a currently available feature.
 
 ## Spacing prior and spatial algorithm
 
@@ -71,6 +74,14 @@ Calibration `parameters_changed` now refreshes plugin geometry. Previously,
 loading/refining calibration without changing the image could leave an enabled
 geometry-aware plugin empty or using stale geometry until the next image event.
 A regression test reproduces that loading order and verifies the correction.
+
+A further real-image check found that existing manual flips/rotations can leave
+the cached scattering-angle map stale (488–947 mask-pixel differences in the P1
+checks). Materializing corners and explicitly invalidating geometry removed
+those differences in that trial. A broader transform/reset investigation did
+not pass all cases, so that proposed change was not retained. The P1 benchmark
+has no extra transforms and is unaffected. General transformed-detector support
+is not established by the synthetic array-transform tests.
 
 ## P1 investigation
 

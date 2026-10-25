@@ -31,3 +31,11 @@ def test_loading_calibration_refreshes_enabled_masks_without_reloading_image(qap
     )
     assert c.mask_plugin_manager.get_combined_mask()[0, 0]
     assert c.mask_plugin_manager._geometry.wavelength == c.calibration_model.wavelength
+
+
+def test_slow_mask_prototypes_are_not_selectable(qapp):
+    c = Configuration()
+    assert "Diamond Spot Mask (experimental)" not in c.mask_plugin_manager.plugin_names
+    schema = c.mask_plugin_manager.get_plugin("Spot Mask").get_settings_schema()
+    assert "algorithm" not in schema
+    assert not any(key.startswith("broad_") for key in schema)

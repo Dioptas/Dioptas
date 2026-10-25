@@ -112,6 +112,12 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
         return None
 
     def get_settings_schema(self) -> dict:
+        # The broad prototype exceeds the interactive latency budget. Keep it
+        # available only to benchmark code, not the ordinary settings dialog.
+        return {key: value for key, value in self._get_all_settings_schema().items()
+                if key != "algorithm" and not key.startswith("broad_")}
+
+    def _get_all_settings_schema(self) -> dict:
         return {
             "algorithm": {
                 "type": "choice", "default": "powder", "label": "Algorithm",
