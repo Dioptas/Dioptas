@@ -305,6 +305,7 @@ class SingleCrystalWidget(QtWidgets.QWidget):
             symbol="+", size=12, pen=pg.mkPen("#48d8eb", width=1.5), brush=None
         )
         self.img_widget.img_view_box.addItem(self.predicted_overlay)
+        self.predicted_overlay.hide()
         self.frame_label = QtWidgets.QLabel("No rotation series loaded.")
         frame_header = QtWidgets.QHBoxLayout()
         frame_header.addWidget(self.frame_label, 1)

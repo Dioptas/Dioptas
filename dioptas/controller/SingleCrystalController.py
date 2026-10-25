@@ -351,6 +351,7 @@ class SingleCrystalController:
 
     def _clear_refinement(self):
         self.refinement_result = None
+        self.widget.predicted_overlay.hide()
         self.widget.predicted_overlay.clear()
         self.widget.prediction_note.setText(
             "Predictions require an indexed cell. No intensity or extinction model."
@@ -367,8 +368,14 @@ class SingleCrystalController:
 
     def plot_predictions(self, *_):
         w = self.widget
+        # Hide while the old bounds still exist, so Qt invalidates the painted
+        # crosses. ScatterPlotItem.clear() alone resets bounds before updating.
+        w.predicted_overlay.hide()
         w.predicted_overlay.clear()
-        if self.refinement_result is None or not w.prediction_enabled.isChecked():
+        if not w.prediction_enabled.isChecked():
+            w.prediction_note.setText("Predicted Bragg centres are hidden.")
+            return
+        if self.refinement_result is None:
             return
         predictions = (
             self.refinement_result.initial_scan
@@ -396,6 +403,7 @@ class SingleCrystalController:
         w.predicted_overlay.setData(
             x=values[:, 0] + 0.5, y=values[:, 1] + 0.5, data=data
         )
+        w.predicted_overlay.show()
         w.prediction_note.setText(
             f"{len(rows)} possible Bragg centres in this exposure · cyan +. "
             "Click a prediction for HKL/omega. Weak or systematically absent reflections may be predicted."

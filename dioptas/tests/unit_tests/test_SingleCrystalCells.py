@@ -143,6 +143,7 @@ def test_rapid_selection_discards_old_preview_and_keeps_latest(
     try:
         sc._show_result(ranked, sc._generation)
         qtbot.waitUntil(started.is_set, timeout=5000)
+        w.prediction_enabled.setChecked(False)
         w.rank_table.selectRow(1)
         w.rank_table.selectRow(w.rank_table_model.rowCount() - 1)
         selected = sc.ranked_selection
@@ -153,6 +154,8 @@ def test_rapid_selection_discards_old_preview_and_keeps_latest(
         assert calls[-1] == selected
         assert sc.refinement_result.metadata["setting_index"] == selected
         assert sc.ranked_selection == selected
+        assert not w.predicted_overlay.isVisible()
+        assert len(w.predicted_overlay.getData()[0]) == 0
     finally:
         release.set()
         c.widget.close()
@@ -171,5 +174,38 @@ def test_stale_preview_after_source_change_is_rejected(
         sc._show_result(old, generation)
         assert sc.refinement_result is None
         assert w.rank_table_model.rowCount() == 0
+    finally:
+        c.widget.close()
+
+
+def test_prediction_checkbox_hides_graphics_across_cell_and_frame_changes(
+    qapp, tmp_path, ranked_experiment
+):
+    positions, cells, ranked = ranked_experiment
+    c, sc, w = controller_scene(tmp_path, positions, cells)
+    try:
+        sc._show_result(ranked, sc._generation)
+        scan = sc.refinement_result.refined_scan
+        frame = int(scan.frame_indices[len(scan.frame_indices) // 2])
+        w.frame_slider.setValue(frame)
+        sc.plot_predictions()
+        assert w.predicted_overlay.isVisible()
+        assert len(w.predicted_overlay.getData()[0]) > 0
+        w.prediction_enabled.setChecked(False)
+        # Clearing data alone can leave cached crosses in a QGraphicsView.
+        assert not w.predicted_overlay.isVisible()
+        assert len(w.predicted_overlay.getData()[0]) == 0
+        w.rank_table.selectRow(1)
+        w.frame_slider.setValue((frame + 1) % 180)
+        sc.plot_predictions()
+        assert not w.predicted_overlay.isVisible()
+        assert len(w.predicted_overlay.getData()[0]) == 0
+        scan = sc.refinement_result.refined_scan
+        w.frame_slider.setValue(int(scan.frame_indices[len(scan.frame_indices) // 2]))
+        w.prediction_enabled.setChecked(True)
+        assert w.predicted_overlay.isVisible()
+        assert len(w.predicted_overlay.getData()[0]) > 0
+        sc.invalidate()
+        assert not w.predicted_overlay.isVisible()
     finally:
         c.widget.close()
