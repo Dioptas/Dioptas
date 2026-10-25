@@ -226,8 +226,10 @@ support conventions, search bounds, complexity and independent reference tests.
 ## Predicted spots and positional cell/orientation refinement
 
 Selecting a ranked cell already selects its fitted cell and orientation. The
-**Predictions** tab names that cell and offers **Show predicted positions (+)**,
-an overlay legend, residual plots and export. It has no additional cell-search
+**Cell** section names that cell and offers **Show predicted positions (+)**
+above its ranked table, with residual plots and prediction export below. The
+visibility toggle's tooltip explains the overlay colours. There is no separate
+Predictions tab. This section has no additional cell-search
 or refinement buttons, initial/refined selector, or fitting summary. Browsing
 frames or choosing a different cell updates positions automatically, without a
 new fit. Instrument geometry remains fixed; no intensity model is supplied.
@@ -320,7 +322,7 @@ button is required. A failed lattice search remains visible for diagnosis withou
 cell comparison. These are two processing stages within one user action; the
 ranked settings are not a list of independently detected grains.
 
-The experimental sidebar has separate Series, Detection, Cell, Predictions and
+The experimental sidebar has separate Series, Detection, Cell and
 Positions tabs. All six residual plots share pattern-style
 controls: left-drag rectangle zoom, right/Ctrl-left drag pan, right/Ctrl-left click
 zoom out, double right/Ctrl-left click reset, and wheel zoom bounded by the data
@@ -334,7 +336,7 @@ original reciprocal-lattice selection. The training/held-out split, assignments
 and instrument remain fixed. A metric candidate is not a proven primitive lattice,
 intensity symmetry or space group. Exports preserve the transform, search bounds,
 both models and held-out residuals. These legacy fitting APIs remain available
-for numerical diagnostics; their controls are absent from the Predictions tab.
+for numerical diagnostics; their controls are absent from the sidebar.
 
 
 ### macOS file-dialog fallback
@@ -414,7 +416,7 @@ work remains in the existing dedicated background worker.
 **Export ranked cells** saves all ranks, fixed fits, geometry, comparison options
 and the retained/excluded support of every primitive hypothesis, including rejected
 ones. Predictions and residuals for the current row can be exported through
-**Predictions**. Existing plot mouse controls and frame buttons are unchanged.
+**Cell**. Existing plot mouse controls and frame buttons are unchanged.
 
 Local P1 validation (2026-10-25) used its archived measured position table and
 re-ran the blind FFT lattice search before ranking; no known cell/material was

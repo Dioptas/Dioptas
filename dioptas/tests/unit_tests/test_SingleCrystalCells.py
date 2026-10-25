@@ -195,6 +195,12 @@ def test_sorted_row_selection_previews_actual_fit_and_invalidates(
     try:
         sc._show_result(ranked, sc._generation)
         assert w.rank_table_model.rowCount() == len(ranked.comparison.settings)
+        assert [w.sections.tabText(i) for i in range(w.sections.count())] == [
+            "Series",
+            "Detection",
+            "Cell",
+            "Positions",
+        ]
         assert not w.cell_table.isHidden() and not w.rank_table.isHidden()
         assert not w.rank_table.isColumnHidden(3)
         assert w.rank_table_model.headerData(3, QtCore.Qt.Horizontal) == "α, β, γ (°)"

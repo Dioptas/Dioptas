@@ -180,7 +180,7 @@ def test_orthorhombic_metric_service_and_ui_action(qapp, experiment, tmp_path):
         sc.refine_positions(symmetry="orthorhombic")
         assert sc.refinement_result.metadata["metric_constraint"] == "orthorhombic"
         assert "orthorhombic" in w.prediction_selected_cell_label.text()
-        assert w.sections.currentIndex() == 3
+        assert w.sections.currentWidget() is w.cell_section
         sc.invalidate()
         assert sc.refinement_result is None
     finally:

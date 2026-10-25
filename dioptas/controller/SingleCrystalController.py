@@ -414,7 +414,7 @@ class SingleCrystalController:
         self.widget.predicted_overlay.hide()
         self.widget.predicted_overlay.clear()
         self.widget.prediction_note.setText(
-            "Select a ranked cell in Cell to show its predicted positions."
+            "Select a ranked cell to show its predicted positions."
         )
         self.widget.prediction_selected_cell_label.setText(
             "Preparing positions for the selected cell…"
@@ -465,8 +465,7 @@ class SingleCrystalController:
         )
         w.predicted_overlay.show()
         w.prediction_note.setText(
-            f"{len(rows)} possible Bragg centres in this exposure · cyan +. "
-            "Click a prediction for HKL/omega. Weak or systematically absent reflections may be predicted."
+            f"{len(rows)} predicted positions in this frame · cyan +."
         )
 
     def _prediction_clicked(self, _item, points, *_):
@@ -508,7 +507,7 @@ class SingleCrystalController:
         table = self.widget.table_view
         if not 0 <= row < table.model().rowCount():
             return
-        self.widget.sections.setCurrentIndex(4)
+        self.widget.sections.setCurrentWidget(self.widget.positions_section)
         self._selecting_image_spot = True
         try:
             table.selectRow(row)
@@ -874,7 +873,7 @@ class SingleCrystalController:
             self.widget.ranked_group.setTitle(
                 f"Cells for lattice {number + 1} · axis {sign:+d}"
             )
-            self.widget.sections.setCurrentIndex(2)
+            self.widget.sections.setCurrentWidget(self.widget.cell_section)
             self._set_ready()
             self.widget.rank_table.selectRow(
                 self.widget.rank_table_proxy.mapFromSource(
@@ -911,7 +910,7 @@ class SingleCrystalController:
                     self.widget.cell_table_model.index(source_row, 0)
                 )
                 self.widget.cell_table.selectRow(mapped.row())
-            self.widget.sections.setCurrentIndex(2)
+            self.widget.sections.setCurrentWidget(self.widget.cell_section)
             self.widget.cell_export_button.setEnabled(True)
             self._set_ready()
             self.widget.status_label.setText(
@@ -937,7 +936,7 @@ class SingleCrystalController:
             )
             self.widget.residual_button.setEnabled(True)
             self.widget.refinement_export_button.setEnabled(True)
-            self.widget.sections.setCurrentIndex(2 if ranked else 3)
+            self.widget.sections.setCurrentWidget(self.widget.cell_section)
             self._set_ready()
             self.plot_predictions()
             self.widget.status_label.setText(

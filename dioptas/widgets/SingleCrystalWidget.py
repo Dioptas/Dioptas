@@ -397,13 +397,13 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         self.sections = QtWidgets.QTabWidget()
         panel.addWidget(self.sections, 1)
         section_layouts = []
-        for name in ("Series", "Detection", "Cell", "Predictions", "Positions"):
+        for name in ("Series", "Detection", "Cell", "Positions"):
             page = QtWidgets.QWidget()
             section_layouts.append(QtWidgets.QVBoxLayout(page))
             self.sections.addTab(page, name)
-        series_panel, detection_panel, cell_panel, prediction_panel, positions_panel = (
-            section_layouts
-        )
+        series_panel, detection_panel, cell_panel, positions_panel = section_layouts
+        self.cell_section = self.sections.widget(2)
+        self.positions_section = self.sections.widget(3)
         self.load_button = QtWidgets.QPushButton("Open image…")
         self.series_button = QtWidgets.QPushButton("Open series from one frame…")
         series_panel.addWidget(self.series_button)
@@ -544,32 +544,34 @@ class SingleCrystalWidget(QtWidgets.QWidget):
             "No ranked cell selected."
         )
         self.prediction_selected_cell_label.setWordWrap(True)
-        prediction_panel.addWidget(self.prediction_selected_cell_label)
         self.prediction_enabled = QtWidgets.QCheckBox("Show predicted positions (+)")
         self.prediction_enabled.setChecked(True)
-        prediction_panel.addWidget(self.prediction_enabled)
-        legend = QtWidgets.QLabel(
-            "Cyan +: predicted reflection positions.\n"
-            "Yellow/red circles: detected spots.\n\n"
-            "Predictions use the cell and orientation selected in Cell. "
-            "Browse the omega frames to compare them with the detected spots. "
-            "Click a prediction to see its hkl and omega."
+        self.prediction_enabled.setToolTip(
+            "Cyan +: positions predicted by the selected cell and orientation. "
+            "Yellow/red circles: detected spots. Browse omega frames to compare them. "
+            "Click a prediction for hkl and omega; weak or absent reflections may be predicted."
         )
-        legend.setWordWrap(True)
-        prediction_panel.addWidget(legend)
+        prediction_header = QtWidgets.QHBoxLayout()
+        prediction_header.addWidget(self.prediction_enabled)
+        prediction_header.addStretch(1)
+        prediction_header.addWidget(self.prediction_selected_cell_label)
+        ranked_panel.insertLayout(0, prediction_header)
         self.prediction_note = QtWidgets.QLabel(
-            "Select a ranked cell in Cell to show its predicted positions."
+            "Select a ranked cell to show its predicted positions."
         )
         self.prediction_note.setWordWrap(True)
-        prediction_panel.addWidget(self.prediction_note)
+        self.prediction_note.setToolTip(self.prediction_enabled.toolTip())
+        ranked_panel.insertWidget(1, self.prediction_note)
         self.residual_button = QtWidgets.QPushButton("Residual plots…")
         self.residual_button.setEnabled(False)
-        prediction_panel.addWidget(self.residual_button)
+        prediction_actions = QtWidgets.QHBoxLayout()
+        prediction_actions.addWidget(self.residual_button)
         self.refinement_export_button = QtWidgets.QPushButton(
             "Export predicted positions…"
         )
         self.refinement_export_button.setEnabled(False)
-        prediction_panel.addWidget(self.refinement_export_button)
+        prediction_actions.addWidget(self.refinement_export_button)
+        ranked_panel.addLayout(prediction_actions)
         self.status_label = QtWidgets.QLabel("Experimental spot engine ready.")
         self.status_label.setWordWrap(True)
         panel.addWidget(self.status_label)
@@ -635,7 +637,7 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         )
         hint.setWordWrap(True)
         series_panel.addWidget(hint)
-        for section in (series_panel, detection_panel, prediction_panel):
+        for section in (series_panel, detection_panel):
             section.addStretch(1)
         splitter.addWidget(controls)
         splitter.setStretchFactor(0, 3)

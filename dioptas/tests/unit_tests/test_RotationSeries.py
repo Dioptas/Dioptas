@@ -227,7 +227,7 @@ def test_image_click_selects_linked_row_without_changing_frame(qapp, qtbot, tmp_
             qtbot.mouseClick(graphics.viewport(), button, pos=position)
 
         click_spot()
-        assert w.sections.currentIndex() == 4
+        assert w.sections.currentWidget() is w.positions_section
         assert [i.row() for i in w.table_view.selectionModel().selectedRows()] == [1]
         assert w.table_view.visualRect(w.table_view.model().index(1, 0)).intersects(
             w.table_view.viewport().rect()
@@ -376,8 +376,8 @@ def test_select_one_frame_discovers_only_its_run(qapp, tmp_path, monkeypatch):
         w.frame_slider.setValue(4)
         assert w.previous_frame_button.isEnabled()
         assert not w.next_frame_button.isEnabled()
-        assert w.sections.count() == 5
-        for index in range(5):
+        assert w.sections.count() == 4
+        for index in range(w.sections.count()):
             w.sections.setCurrentIndex(index)
             assert sc.series is not None
         # Changing to an unrelated image disables both navigation buttons.
