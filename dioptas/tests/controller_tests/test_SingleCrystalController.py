@@ -197,3 +197,111 @@ def test_zero_padding_mask_is_opt_in_and_exported(experimental_controller, tmp_p
     result = c.single_crystal_controller.result
     assert result.metadata["masked_pixels"] == 4 * 80
     assert result.metadata["mask_policy"]["exclude_zero_padding"]
+
+
+def test_hover_uses_displayed_raw_pixels_and_clears_outside_image(
+    experimental_controller, tmp_path
+):
+    c = experimental_controller
+    load_scene(c, tmp_path)
+    c.widget.single_crystal_mode_btn.click()
+    w = c.widget.single_crystal_widget
+    c.model.img_model.factor = 7
+    image = c.model.img_model.raw_img_data
+    # Include the first/last pixels; the upper edge belongs outside the image.
+    for x, y in [(0.1, 0.1), (79.9, 63.9), (18.5, 50.5)]:
+        w.img_widget.mouse_moved.emit(x, y)
+        assert f"I: {image[int(y), int(x)]:.6g} counts" in w.mouse_pixel_label.text()
+        assert "2θ: —" in w.mouse_geometry_label.text()
+    # Live search previews are deliberately separate from the shared image model.
+    w.img_widget.plot_image(np.full(image.shape, 4321.25))
+    w.img_widget.mouse_moved.emit(18.5, 50.5)
+    assert "I: 4321.25 counts" in w.mouse_pixel_label.text()
+    c.single_crystal_controller.plot_image()
+    assert f"I: {image[50, 18]:.6g} counts" in w.mouse_pixel_label.text()
+    for x, y in [(-0.1, 0.1), (80, 12), (5, 64), (np.nan, 5)]:
+        w.img_widget.mouse_moved.emit(x, y)
+        assert w.mouse_pixel_label.text() == "x: —   y: —   I: —"
+        assert w.mouse_geometry_label.text() == "2θ: —   d: —   Q: —   χ: —"
+
+
+@pytest.fixture
+def hover_calibration(tmp_path):
+    path = tmp_path / "hover.poni"
+    path.write_text(
+        "PixelSize1: 0.00008\nPixelSize2: 0.00009\n"
+        "Distance: 0.2\nPoni1: 0.0012\nPoni2: 0.0020\nRot1: 0.02\n"
+        "Rot2: -0.01\nRot3: 0.04\nWavelength: 4e-11\nSplineFile: None\n"
+    )
+    return path
+
+
+@native
+@pytest.mark.parametrize("original_rows", [False, True])
+@pytest.mark.parametrize("transforms", [(), ("flipud", "rotate_matrix_p90")])
+def test_hover_matches_pyfai_cell_geometry(
+    experimental_controller,
+    tmp_path,
+    hover_calibration,
+    original_rows,
+    transforms,
+    monkeypatch,
+):
+    import pyFAI
+    from qtpy import QtWidgets
+    from dioptas.model.single_crystal_indexing import geometry_from_poni
+
+    c = experimental_controller
+    # The normal calibration controller warns when a non-square uncalibrated
+    # detector is rotated; this test exercises the separate SC geometry snapshot.
+    monkeypatch.setattr(
+        QtWidgets.QMessageBox, "critical", lambda *args: QtWidgets.QMessageBox.Ok
+    )
+    load_scene(c, tmp_path)
+    c.widget.single_crystal_mode_btn.click()
+    c.model.img_model.set_transformations(list(transforms))
+    sc, w = c.single_crystal_controller, c.widget.single_crystal_widget
+    path = hover_calibration
+    _, meta = geometry_from_poni(
+        path,
+        axis_sign=-1,
+        shape=w.img_widget.img_data.shape,
+        original_rows=original_rows,
+        transformations=transforms,
+    )
+    sc._remember_image_geometry(meta)
+    ai = pyFAI.load(str(path))
+    for x, y in [(0.5, 0.5), (18.2, 30.8)]:
+        mapped = np.array(meta["image_to_calibration"]) @ [x - 0.5, y - 0.5, 1]
+        tth = ai.tth(np.array([mapped[1]]), np.array([mapped[0]]))[0]
+        azi = ai.chi(np.array([mapped[1]]), np.array([mapped[0]]))[0]
+        q = 4 * np.pi * np.sin(tth / 2) / (ai.wavelength * 1e10)
+        expected = (
+            f"2θ: {np.degrees(tth):.3f}°   d: {2 * np.pi / q:.4f} Å   "
+            f"Q: {q:.4f} Å⁻¹   χ: {np.degrees(azi):.2f}°"
+        )
+        w.img_widget.mouse_moved.emit(x, y)
+        assert w.mouse_geometry_label.text() == expected
+    # Detector calibration remains valid after threshold changes, while source
+    # configuration changes must not leak the old geometry into a new image.
+    w.threshold.setValue(w.threshold.value() + 1)
+    assert w.mouse_geometry_label.text() == expected
+    c.model.add_configuration()
+    sc.plot_image()
+    w.img_widget.mouse_moved.emit(18.2, 30.8)
+    assert "2θ: —" in w.mouse_geometry_label.text()
+
+
+def test_hover_uses_normal_calibration_before_cell_search(
+    experimental_controller, tmp_path, hover_calibration
+):
+    c = experimental_controller
+    load_scene(c, tmp_path)
+    c.model.calibration_model.load(str(hover_calibration))
+    c.widget.single_crystal_mode_btn.click()
+    w = c.widget.single_crystal_widget
+    w.img_widget.mouse_moved.emit(18.5, 30.5)
+    angle = np.degrees(c.model.calibration_model.get_two_theta_img(30.5, 18.5))
+    assert f"2θ: {angle:.3f}°" in w.mouse_geometry_label.text()
+    w.img_widget.mouse_moved.emit(-1, 30)
+    assert "2θ: —" in w.mouse_geometry_label.text()

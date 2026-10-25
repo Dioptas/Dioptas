@@ -67,6 +67,8 @@ class SingleCrystalController:
         self.refinement_result = None
         self._residual_dialog = None
         self.cell_calibration_filename = ""
+        self._hover_position = None
+        self._hover_geometry = None
         self.series = None
         self._browsing_series = False
         self._active = False
@@ -102,6 +104,7 @@ class SingleCrystalController:
         widget.prediction_enabled.toggled.connect(self.plot_predictions)
         widget.prediction_model.currentIndexChanged.connect(self.plot_predictions)
         widget.predicted_overlay.sigClicked.connect(self._prediction_clicked)
+        widget.img_widget.mouse_moved.connect(self.show_image_mouse_position)
         widget.load_button.clicked.connect(self.open_image)
         widget.series_button.clicked.connect(self.open_series)
         widget.series_progress.connect(self._series_progress)
@@ -181,6 +184,7 @@ class SingleCrystalController:
         # Display the already-read worker frame without loading it again or
         # changing the shared image model / triggering integrations per frame.
         w.img_widget.plot_image(preview.image, auto_level=False)
+        self._refresh_mouse_position()
         mask = self.model.mask_model.get_mask()
         if self.model.use_mask and mask.shape == preview.image.shape:
             w.img_widget.plot_mask(mask)
@@ -307,6 +311,7 @@ class SingleCrystalController:
         if image is None:
             return
         self.widget.img_widget.plot_image(image, auto_level=True)
+        self._refresh_mouse_position()
         mask = self.model.mask_model.get_mask()
         if self.model.use_mask and mask.shape == image.shape:
             self.widget.img_widget.plot_mask(mask)
@@ -336,6 +341,69 @@ class SingleCrystalController:
             )
             self._plot_frame_positions(i)
             self.plot_predictions()
+
+    def _hover_geometry_context(self):
+        image = self.widget.img_widget.img_data
+        return (
+            id(self.model.current_configuration),
+            None if image is None else image.shape,
+            tuple(self.model.img_model.params.transformations),
+            self.cell_calibration_filename,
+        )
+
+    def _remember_image_geometry(self, metadata):
+        # Retain detector calibration across detection-parameter changes, but
+        # never reuse it for a different configuration, image shape or transform.
+        self._hover_geometry = (self._hover_geometry_context(), metadata)
+        self._refresh_mouse_position()
+
+    def _refresh_mouse_position(self):
+        if self._hover_position is not None:
+            self.show_image_mouse_position(*self._hover_position)
+
+    def show_image_mouse_position(self, x, y):
+        self._hover_position = (x, y)
+        w = self.widget
+        w.mouse_pixel_label.setText("x: —   y: —   I: —")
+        w.mouse_geometry_label.setText("2θ: —   d: —   Q: —   χ: —")
+        image = w.img_widget.img_data
+        if (
+            image is None
+            or not np.isfinite([x, y]).all()
+            or not (0 <= x < image.shape[1] and 0 <= y < image.shape[0])
+        ):
+            return
+        # Image coordinates describe pixel edges; array indices describe centres.
+        # Read the actual displayed array, including asynchronous search previews.
+        value = image[int(np.floor(y)), int(np.floor(x))]
+        w.mouse_pixel_label.setText(f"x: {x:.1f}   y: {y:.1f}   I: {value:.6g} counts")
+        if (
+            self._hover_geometry is not None
+            and self._hover_geometry[0] == self._hover_geometry_context()
+        ):
+            meta = self._hover_geometry[1]
+            origin, fast, slow = np.asarray(meta["vectors"])[:3]
+            ray = origin + (x - 0.5) * fast + (y - 0.5) * slow
+            tth = np.arctan2(np.hypot(ray[0], ray[1]), ray[2])
+            azi = np.arctan2(ray[0], ray[1])
+            wavelength = meta["wavelength_angstrom"]
+        elif self.model.calibration_model.is_calibrated:
+            calibration = self.model.calibration_model
+            tth = calibration.get_two_theta_img(y, x)
+            azi = calibration.get_azi_img(y, x)
+            wavelength = calibration.wavelength
+            if wavelength is not None:
+                wavelength *= 1e10
+        else:
+            return
+        if wavelength is None or not np.isfinite(wavelength) or wavelength <= 0:
+            return
+        q = 4 * np.pi * np.sin(tth / 2) / wavelength
+        d = 2 * np.pi / q if q > 0 else np.inf
+        w.mouse_geometry_label.setText(
+            f"2θ: {np.degrees(tth):.3f}°   d: {d:.4f} Å   "
+            f"Q: {q:.4f} Å⁻¹   χ: {np.degrees(azi):.2f}°"
+        )
 
     def _clear_ranked(self):
         self.ranked_result = None
@@ -667,6 +735,8 @@ class SingleCrystalController:
             self._clear_ranked()
             self._clear_refinement()
             self.cell_result = result
+            if result.metadata.get("geometry"):
+                self._remember_image_geometry(result.metadata["geometry"][0])
             self.widget.cell_table_model.set_result(result)
             self.widget.cell_table.setVisible(bool(self.widget.cell_table_model.rows))
             self.widget.cell_table_button.setEnabled(
@@ -792,6 +862,7 @@ class SingleCrystalController:
                     transformations=tuple(self.model.img_model.params.transformations),
                 )
                 geometries.append((sign, geometry, metadata))
+            self._remember_image_geometry(geometries[0][2])
             backend = dialog.backend.currentData()
             options = (
                 GrainSearchOptions(

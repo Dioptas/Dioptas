@@ -325,6 +325,9 @@ def test_completed_frames_preview_async_pause_and_stale_discard(
         np.testing.assert_array_equal(
             w.img_widget.img_data, read_frame(sc.series.files[1])
         )
+        w.img_widget.mouse_moved.emit(26.5, 18.5)
+        shown_count = w.img_widget.img_data[18, 26]
+        assert f"I: {shown_count:.6g} counts" in w.mouse_pixel_label.text()
         np.testing.assert_allclose(w.spot_overlay.getData()[0], [26.5], atol=1e-12)
         assert all(thread is qapp.thread() for thread in render_threads)
         assert w.spot_overlay.opts["pen"].color().name() == "#000000"

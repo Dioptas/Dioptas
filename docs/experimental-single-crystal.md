@@ -271,6 +271,16 @@ first; previous/next buttons to the right of the slider step through the discove
 files and stop at the ends. Numeric gaps remain angular gaps. Other run prefixes
 are excluded. Browsing keeps the detected positions and cell results.
 
+Hovering over the single-crystal image displays x/y pixel coordinates, raw
+detector counts, 2θ (degrees), d-spacing (Å), Q = 2π/d (Å⁻¹), and azimuth χ
+(degrees). Counts come from the displayed frame, including live search previews.
+Scattering coordinates use the detector snapshot selected for cell finding,
+including the original/displayed row convention and image transformations;
+before cell finding they use the active Dioptas calibration. Without calibration,
+only pixel coordinates and counts are shown. Values clear outside the detector.
+Image coordinates refer to pixel edges (pixel centres are at index + 0.5).
+The readout evaluates one detector ray per mouse event, without full image arrays.
+
 The experimental sidebar has separate Series, Detection, Cell, Predictions and
 Positions tabs. All six residual plots share pattern-style
 controls: left-drag rectangle zoom, right/Ctrl-left drag pan, right/Ctrl-left click

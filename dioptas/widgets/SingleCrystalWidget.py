@@ -306,6 +306,18 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         )
         self.img_widget.img_view_box.addItem(self.predicted_overlay)
         self.predicted_overlay.hide()
+        self.mouse_pixel_label = QtWidgets.QLabel("x: —   y: —   I: —")
+        self.mouse_geometry_label = QtWidgets.QLabel("2θ: —   d: —   Q: —   χ: —")
+        self.mouse_pixel_label.setToolTip(
+            "Displayed pixel coordinates and raw detector counts."
+        )
+        self.mouse_geometry_label.setToolTip(
+            "Calibrated scattering angle, d-spacing, Q = 2π/d and azimuth. "
+            "Uses the cell-search detector geometry when available."
+        )
+        for label in (self.mouse_pixel_label, self.mouse_geometry_label):
+            label.setWordWrap(True)
+            viewer_layout.addWidget(label)
         self.frame_label = QtWidgets.QLabel("No rotation series loaded.")
         frame_header = QtWidgets.QHBoxLayout()
         frame_header.addWidget(self.frame_label, 1)
