@@ -125,6 +125,67 @@ def test_ui_browsing_preserves_positions_and_settings_invalidate(qapp, tmp_path)
         c.widget.close()
 
 
+def test_selected_position_ring_follows_observations_and_clears(qapp, tmp_path):
+    from qtpy import QtCore
+
+    seed = make_run(tmp_path)
+    for i in range(1, 4):
+        image = np.full((48, 60), 5, np.uint16)
+        image[20:23, 24 + i : 27 + i] += 100
+        image[8:11, 40:43] += 100
+        TifImage(data=image).write(str(tmp_path / f"sample_{i + 10:03d}.tif"))
+    c = MainController(
+        use_settings=False, run_async_processing=False, experimental_single_crystal=True
+    )
+    try:
+        c.widget.single_crystal_mode_btn.click()
+        sc, w = c.single_crystal_controller, c.widget.single_crystal_widget
+        sc.load_series(import_series(seed))
+        sc.detect()
+        assert len(sc.result.table) == 2
+        track = int(np.argmin(sc.result.table.column("x")))
+        w.table_view.selectRow(track)
+        assert w.frame_slider.value() == 2
+        assert "magenta ring" in w.status_label.text()
+        for frame in (1, 2, 3):
+            w.frame_slider.setValue(frame)
+            rows = sc.result.table.observations
+            observed = rows[(rows[:, 0] == track) & (rows[:, 1] == frame)][0]
+            for ring in (w.selected_spot_overlay, w.selected_spot_outline):
+                assert ring.isVisible()
+                np.testing.assert_allclose(
+                    [ring.getData()[0][0], ring.getData()[1][0]],
+                    observed[2:4] + 0.5,
+                    atol=1e-12,
+                    rtol=0,
+                )
+        # Selection on the same frame must move the ring immediately. Recenter
+        # an off-screen selected spot without changing the zoom level.
+        view = w.img_widget.img_view_box
+        view.setRange(rect=QtCore.QRectF(0, 0, 5, 5), padding=0)
+        w.table_view.selectRow(1 - track)
+        assert w.frame_slider.value() == 2
+        x, y = w.selected_spot_overlay.getData()
+        assert x[0] == 41.5 and y[0] == 38.5
+        assert view.viewRect().contains(QtCore.QPointF(x[0], y[0]))
+        w.prediction_enabled.setChecked(False)
+        assert w.selected_spot_overlay.isVisible()
+        w.frame_slider.setValue(0)
+        assert not w.selected_spot_overlay.isVisible()
+        w.frame_slider.setValue(2)
+        assert w.selected_spot_overlay.isVisible()
+        w.table_view.clearSelection()
+        assert not w.selected_spot_overlay.isVisible()
+        assert not w.selected_spot_outline.isVisible()
+        w.table_view.selectRow(track)
+        assert w.selected_spot_overlay.isVisible()
+        w.threshold.setValue(6)
+        assert not w.selected_spot_overlay.isVisible()
+        assert not w.selected_spot_outline.isVisible()
+    finally:
+        c.widget.close()
+
+
 def test_background_series_browsing_and_stale_work(qapp, qtbot, tmp_path, monkeypatch):
     import importlib
     import threading

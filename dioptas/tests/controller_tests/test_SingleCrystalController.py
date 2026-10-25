@@ -183,6 +183,32 @@ def test_table_shows_quality_and_nonfinite_values(experimental_controller, tmp_p
 
 
 @native
+def test_single_frame_spot_selection_ring(experimental_controller, tmp_path):
+    c = experimental_controller
+    load_scene(c, tmp_path)
+    c.widget.single_crystal_mode_btn.click()
+    sc, w = c.single_crystal_controller, c.widget.single_crystal_widget
+    sc.detect()
+    assert not w.selected_spot_overlay.isVisible()
+    w.table_view.selectRow(0)
+    assert w.selected_spot_overlay.isVisible()
+    np.testing.assert_allclose(
+        [
+            w.selected_spot_overlay.getData()[0][0],
+            w.selected_spot_overlay.getData()[1][0],
+        ],
+        sc.result.table.values[0, :2] + 0.5,
+        atol=1e-12,
+        rtol=0,
+    )
+    w.table_view.clearSelection()
+    assert not w.selected_spot_overlay.isVisible()
+    w.table_view.selectRow(0)
+    c.model.img_changed.emit()
+    assert not w.selected_spot_overlay.isVisible()
+
+
+@native
 def test_zero_padding_mask_is_opt_in_and_exported(experimental_controller, tmp_path):
     c = experimental_controller
     load_scene(c, tmp_path)

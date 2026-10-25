@@ -258,6 +258,7 @@ class SingleCrystalController:
         self.widget.table_model.set_result(None)
         self.widget.position_table_model.set_result(None)
         self.widget.spot_overlay.clear()
+        self.widget.show_selected_spot()
         self.widget.export_button.setEnabled(False)
         self._set_ready()
         if self._active:
@@ -341,6 +342,8 @@ class SingleCrystalController:
             )
             self._plot_frame_positions(i)
             self.plot_predictions()
+        else:
+            self._plot_selected_position()
 
     def _hover_geometry_context(self):
         image = self.widget.img_widget.img_data
@@ -493,6 +496,33 @@ class SingleCrystalController:
         self.widget.show_spots(
             rows[:, 2] + 0.5, rows[:, 3] + 0.5, t.flags[rows[:, 0].astype(int)]
         )
+        self._plot_selected_position()
+
+    def _plot_selected_position(self):
+        self.widget.show_selected_spot()
+        if self.result is None:
+            return
+        selected = self.widget.table_view.selectionModel().selectedRows()
+        if not selected:
+            return
+        track = selected[0].row()
+        if isinstance(self.result, SeriesPositions):
+            rows = self.result.table.observations
+            rows = rows[
+                (rows[:, 0] == track) & (rows[:, 1] == self.widget.frame_slider.value())
+            ]
+            if not len(rows):
+                return
+            # Mark this frame's observation, rather than the merged x/y centroid.
+            x, y = rows[0, 2:4]
+        else:
+            if track >= len(self.result.table):
+                return
+            x = self.result.table.column("x")[track]
+            y = self.result.table.column("y")[track]
+        point = (float(x) + 0.5, float(y) + 0.5)
+        self.widget.show_selected_spot(*point)
+        return point
 
     def browse_frame(self, index):
         if self.series is None:
@@ -561,16 +591,28 @@ class SingleCrystalController:
             self.widget.status_label.setText(f"Could not open series: {exc}")
 
     def select_position(self, *_):
-        if not isinstance(self.result, SeriesPositions):
-            return
         selected = self.widget.table_view.selectionModel().selectedRows()
-        if not selected:
+        if self.result is None or not selected:
+            self.widget.show_selected_spot()
             return
         track = selected[0].row()
-        rows = self.result.table.observations
-        rows = rows[rows[:, 0] == track]
-        if len(rows):
-            self.widget.frame_slider.setValue(int(rows[len(rows) // 2, 1]))
+        if isinstance(self.result, SeriesPositions):
+            rows = self.result.table.observations
+            rows = rows[rows[:, 0] == track]
+            if len(rows):
+                self.widget.frame_slider.setValue(int(rows[len(rows) // 2, 1]))
+        # Also update when selecting another spot on the already displayed frame.
+        point = self._plot_selected_position()
+        if point is not None:
+            view = self.widget.img_widget.img_view_box
+            rect = view.viewRect()
+            if not rect.contains(QtCore.QPointF(*point)):
+                rect.moveCenter(QtCore.QPointF(*point))
+                view.setRange(rect=rect, padding=0)
+            self.widget.status_label.setText(
+                f"Selected spot {track + 1} · magenta ring · "
+                f"x {point[0] - 0.5:.2f}, y {point[1] - 0.5:.2f} px"
+            )
 
     def _task(self):
         raw = self.model.img_model.raw_img_data
@@ -820,12 +862,17 @@ class SingleCrystalController:
                 "No unit cell, symmetry or integrated intensities have been determined."
             )
             return
-        self.widget.table_view.setModel(self.widget.table_model)
+        if self.widget.table_view.model() is not self.widget.table_model:
+            self.widget.table_view.setModel(self.widget.table_model)
+            self.widget.table_view.selectionModel().selectionChanged.connect(
+                self.select_position
+            )
         self.widget.export_button.setText("Export spots…")
         self.widget.table_model.set_result(table)
         self.widget.show_spots(
             table.column("x") + 0.5, table.column("y") + 0.5, table.flags
         )
+        self._plot_selected_position()
         self.widget.export_button.setEnabled(True)
         self.widget.status_label.setText(
             f"{len(table)} spots · {np.count_nonzero(table.flags)} flagged · "

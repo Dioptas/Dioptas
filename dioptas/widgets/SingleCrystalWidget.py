@@ -306,6 +306,24 @@ class SingleCrystalWidget(QtWidgets.QWidget):
         )
         self.img_widget.img_view_box.addItem(self.predicted_overlay)
         self.predicted_overlay.hide()
+        # A hollow ring leaves the measured centre and its quality colour visible.
+        self.selected_spot_outline = pg.ScatterPlotItem(
+            symbol="o", size=28, pen=pg.mkPen("k", width=7), brush=None, pxMode=True
+        )
+        self.selected_spot_overlay = pg.ScatterPlotItem(
+            symbol="o",
+            size=28,
+            pen=pg.mkPen("#ff55dd", width=3),
+            brush=None,
+            pxMode=True,
+        )
+        for z, item in enumerate(
+            (self.selected_spot_outline, self.selected_spot_overlay), start=10
+        ):
+            item.setZValue(z)
+            item.setAcceptedMouseButtons(QtCore.Qt.NoButton)
+            self.img_widget.img_view_box.addItem(item)
+            item.hide()
         self.mouse_pixel_label = QtWidgets.QLabel("x: —   y: —   I: —")
         self.mouse_geometry_label = QtWidgets.QLabel("2θ: —   d: —   Q: —   χ: —")
         self.mouse_pixel_label.setToolTip(
@@ -590,6 +608,15 @@ class SingleCrystalWidget(QtWidgets.QWidget):
             pen=pg.mkPen("k", width=2),
             size=10,
         )
+
+    def show_selected_spot(self, x=None, y=None):
+        for item in (self.selected_spot_outline, self.selected_spot_overlay):
+            # Hide before clearing cached bounds so the old ring is repainted.
+            item.hide()
+            item.clear()
+            if x is not None and y is not None:
+                item.setData(x=[x], y=[y])
+                item.show()
 
     def open_rank_table(self):
         if self._rank_dialog is not None:

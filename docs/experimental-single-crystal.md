@@ -281,6 +281,13 @@ only pixel coordinates and counts are shown. Values clear outside the detector.
 Image coordinates refer to pixel edges (pixel centres are at index + 0.5).
 The readout evaluates one detector ray per mouse event, without full image arrays.
 
+Selecting a position row opens its middle observed frame and marks the spot with
+a hollow magenta ring outlined in black, above the other overlays. The ring
+follows the selected track's per-frame measured x/y positions while browsing,
+and hides on frames without an observation. Selection clearing and invalidation
+remove it. Selecting a spot outside the current view recentres without changing
+the zoom. The same marker is available for single-frame spot measurements.
+
 The experimental sidebar has separate Series, Detection, Cell, Predictions and
 Positions tabs. All six residual plots share pattern-style
 controls: left-drag rectangle zoom, right/Ctrl-left drag pan, right/Ctrl-left click
