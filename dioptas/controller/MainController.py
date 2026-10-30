@@ -142,15 +142,14 @@ class MainController:
 
     def _check_for_update(self):
         """Run update check in a background thread to avoid blocking startup."""
+        self._update_result = None
 
         def _do_check():
-            result = check_for_update(__version__)
-            if result is not None:
-                self._update_result = result
+            self._update_result = check_for_update(__version__)
 
         def _on_check_finished():
             result = getattr(self, "_update_result", None)
-            if result is not None:
+            if result is not None and not self._closing:
                 self._show_update_notification(result["version"], result["url"])
 
         self._update_thread = threading.Thread(target=_do_check, daemon=True)
