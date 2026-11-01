@@ -169,8 +169,11 @@ fold away, while the existing left navigation / right controls arrangement stays
 
 ## Integration workflow
 
-Integration now has Qt-style Image, Pattern, Options, Background, Corrections,
-Overlay and Phase groups, connected to the existing local models. Native file
+Integration follows Qt's pane arrangement: a full-height image/cake on the left,
+with tabbed controls above the integrated pattern on the right. Drag either
+divider to resize the panes; Image/Cake switches the left display and preserves
+its independent intensity controls. The Image, Pattern, Options, Background,
+Corrections, Overlay and Phase groups connect to the existing local models. Native file
 choosers cover pattern/background/phase files and output/input folders. See
 [Integration parity and limitations](INTEGRATION_PARITY.md) for the implemented
 controls, scientific qualifications, tests and shared contracts.

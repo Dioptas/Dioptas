@@ -1078,10 +1078,8 @@ export function IntegrationDisplayControls({
       aria-label="Integration display"
     >
       {[
-        ["all", "Image + Cake + Pattern"],
-        ["image", "Image + Pattern"],
-        ["cake", "Cake + Pattern"],
-        ["pattern", "Pattern"],
+        ["image", "Image"],
+        ["cake", "Cake"],
       ].map(([key, label]) => (
         <button
           key={key}

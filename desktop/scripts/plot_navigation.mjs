@@ -79,6 +79,14 @@ export async function verifyPlotNavigation(page) {
     ["cake-canvas", "Cake zoom mode"],
     ["pattern-canvas", "Pattern zoom mode"],
   ]) {
+    if (await page.locator(".integration-layout").count())
+      await page
+        .getByRole("group", { name: "Integration display", exact: true })
+        .getByRole("button", {
+          name: id === "cake-canvas" ? "Cake" : "Image",
+          exact: true,
+        })
+        .click();
     await page.getByLabel(label, { exact: true }).selectOption("rectangle");
     const canvas = page.getByTestId(id);
     await canvas.scrollIntoViewIfNeeded();
@@ -144,7 +152,7 @@ export async function verifyPlotNavigation(page) {
     .selectOption("horizontal");
   // Right navigation remains available in the peak-picking tool and never picks.
   const sidebar = await page.locator(".sidebar").boundingBox();
-  const main = await page.locator("main").boundingBox();
+  const main = await page.locator(".workspace-content").boundingBox();
   const modes = await page
     .getByRole("navigation", { name: "Workspace modes" })
     .boundingBox();
