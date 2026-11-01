@@ -36,6 +36,9 @@ import type {
   Unit,
 } from "./types";
 import { number, unitLabel } from "./types";
+import { MaskView } from "./MaskView";
+import { MaskPanel } from "./MaskPanel";
+import { useMaskTools } from "./maskDomain";
 import { RasterView } from "./RasterView";
 import { PatternView } from "./PatternView";
 import { CalibrationControls } from "./CalibrationControls";
@@ -107,9 +110,10 @@ export default function App() {
   const [cakeZoom, setCakeZoom] = useState<ZoomMode>("rectangle");
   const [patternZoom, setPatternZoom] = useState<ZoomMode>("horizontal");
   const [setupDirty, setSetupDirty] = useState(false);
-  const [mode, setMode] = useState<"calibration" | "integration">(
+  const [mode, setMode] = useState<"calibration" | "integration" | "mask">(
     "calibration",
   );
+  const maskTools = useMaskTools();
   const [ring, setRing] = useState(1),
     [automatic, setAutomatic] = useState(true);
   const [rings, setRings] = useState<RingOverlay[]>([]);
@@ -321,7 +325,7 @@ export default function App() {
         void run("open_image", {}, "Opening image…");
       } else if (mod && key === "s") {
         event.preventDefault();
-        void run("save_project", {}, "Saving project…");
+        void run(mode === "mask" ? "mask_file" : "save_project", mode === "mask" ? {save:true} : {}, "Saving…");
       } else if (mod && key === "z") {
         event.preventDefault();
         void run(
@@ -329,10 +333,21 @@ export default function App() {
             ? event.shiftKey
               ? "redo_calibration"
               : "undo_calibration"
-            : "undo_mask",
+            : event.shiftKey ? "redo_mask" : "undo_mask",
           {},
           "Restoring previous state…",
         );
+      } else if (mod && key === "y") {
+        event.preventDefault();
+        void run(mode === "calibration" ? "redo_calibration" : "redo_mask");
+      } else if (mode === "mask") {
+        if (mod) return;
+        if (key === "b") {maskTools.setShape("point");maskTools.setErase(false);}
+        if (key === "e") {maskTools.setShape("point");maskTools.setErase(true);}
+        if (key === "v") maskTools.setShape("navigate");
+        if (key === "f") setResetKey(k=>k+1);
+        if (key === "escape") setHelp(false);
+        return;
       } else if (mod) return;
       else if (key === "v") setTool("pan");
       else if (key === "b") setTool("mask");
@@ -358,7 +373,7 @@ export default function App() {
     }
     window.addEventListener("keydown", keyboard);
     return () => window.removeEventListener("keydown", keyboard);
-  }, [run, state?.hasImage, state?.calibrated, mode, selectedPicks]);
+  }, [run, state?.hasImage, state?.calibrated, mode, selectedPicks, maskTools]);
   const onHover = useCallback((point: { x: number; y: number } | null) => {
     hoverLatest.current = point;
     if (!point) {
@@ -425,7 +440,7 @@ export default function App() {
           <span>{state?.projectName ?? "Untitled experiment"}</span>
           <ChevronRight size={13} />
           <strong>
-            {mode === "calibration" ? "Calibration" : "Integration"}
+            {mode === "calibration" ? "Calibration" : mode === "mask" ? "Mask" : "Integration"}
           </strong>
         </div>
         <div className="header-actions">
@@ -503,9 +518,18 @@ export default function App() {
             <span>Integration</span>
             {mode === "integration" && <span className="active-dot" />}
           </button>
+          <button
+            className={`workspace-nav ${mode === "mask" ? "workspace-active" : ""}`}
+            onClick={() => { setMode("mask"); setTool("pan"); }}
+          >
+            <Layers size={17} />
+            <span>Mask</span>
+            {mode === "mask" && <span className="active-dot" />}
+          </button>
         </nav>
 
-        <main className={mode === "calibration" ? "calibration-mode" : ""}>
+        <main className={mode === "calibration" ? "calibration-mode" : mode === "mask" ? "mask-mode" : ""}>
+          {mode === "mask" ? <MaskView image={image} mask={mask} state={state} ready={ready} busy={!!busy} run={run} tools={maskTools} resetKey={resetKey} onHover={onHover} pixel={pixel}/> : <>
           {mode === "calibration" && (
             <div className="workspace-toolbar">
               <div
@@ -1008,12 +1032,14 @@ export default function App() {
               </section>
             )}
           </div>
+          </>}
         </main>
         <aside
           className={`sidebar ${mode === "calibration" ? "calibration-task-panel" : ""}`}
         >
-          <div className="options-label">EXPERIMENT OPTIONS</div>
+          <div className="options-label">{mode === "mask" ? "MASK OPTIONS" : "EXPERIMENT OPTIONS"}</div>
           <div className="sidebar-scroll">
+            {mode === "mask" ? <MaskPanel state={state} ready={ready} run={run} tools={maskTools}/> : <>
             {mode === "calibration" && calibrationStep > 0 ? (
               <div
                 className="calibration-source-mini"
@@ -1358,6 +1384,7 @@ export default function App() {
                 </section>
               </>
             )}
+            </>}
           </div>
           {mode === "calibration" && (
             <div className="task-navigation">
@@ -1434,7 +1461,7 @@ export default function App() {
           )}
           <span role="status">
             {progress?.running
-              ? `Refining ring ${progress.current} / ${progress.total}`
+              ? `${progress.label ?? "Refining ring"} ${progress.current} / ${progress.total}`
               : busy ||
                 (mode === "calibration"
                   ? !state?.hasImage

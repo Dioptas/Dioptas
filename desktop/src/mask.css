@@ -1,0 +1,121 @@
+.mask-mode {
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  min-height: 0;
+}
+.mask-view {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+.mask-view .panel-heading {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.mask-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+.mask-controls .sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.mask-controls input:not([type="checkbox"]):not([type="radio"]),
+.mask-controls select {
+  width: 100%;
+  min-width: 0;
+}
+.mask-controls button,
+.mask-controls input,
+.mask-controls select {
+  font-size: 14px;
+}
+.app[data-text-size="large"] .mask-controls button,
+.app[data-text-size="large"] .mask-controls input,
+.app[data-text-size="large"] .mask-controls select {
+  font-size: 17px;
+}
+.mask-setting {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+.mask-help {
+  color: var(--muted, #9b9da1);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+}
+.mask-wide {
+  width: 100%;
+}
+.mask-plugin-row {
+  border-top: 1px solid #ffffff15;
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mask-plugin summary {
+  cursor: pointer;
+  font-size: 14px;
+  color: #bbbcc1;
+}
+.mask-plugin[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.mask-plugin p {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.mask-plugin .mask-setting {
+  margin-block: 8px;
+}
+.mask-filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+  font-size: 13px;
+}
+.mask-selection-status {
+  position: absolute;
+  bottom: 38px;
+  left: 12px;
+  right: 140px;
+  padding: 8px 12px;
+  background: #232429ed;
+  border: 1px solid #ffffff20;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.mask-controls .check-line,
+.mask-view .check-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.4;
+}
+.mask-controls input[type="radio"] {
+  accent-color: var(--accent);
+  width: 17px;
+  height: 17px;
+  margin: 0;
+}
+.mask-view .panel-heading > div:last-child {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.mask-controls button[aria-pressed="true"] {
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}

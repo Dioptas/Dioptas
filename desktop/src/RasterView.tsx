@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Cake, Palette, Raster, Tool, RingOverlay } from "./types";
+import type { MaskOverlay } from "./maskDomain";
 import { colorsFor } from "./colorMaps";
 import { number, unitLabel } from "./types";
 import {
@@ -40,6 +41,8 @@ export function RasterView({
   showNumbers = false,
   activeRing,
   maskOpacity = 0.72,
+  overlay,
+  onImageDoubleClick,
   peaks = [],
   rings = [],
 }: {
@@ -62,6 +65,8 @@ export function RasterView({
   showNumbers?: boolean;
   activeRing?: number;
   maskOpacity?: number;
+  overlay?: MaskOverlay;
+  onImageDoubleClick?: () => void;
   peaks?: { x: number; y: number; ring: number; selected?: boolean }[];
   rings?: RingOverlay[];
 }) {
@@ -336,6 +341,40 @@ export function RasterView({
         context.fill();
       }
     }
+    if (overlay && !cake) {
+      context.strokeStyle = overlay.erase ? "#87e4ae" : "#ffa069";
+      context.fillStyle = overlay.erase ? "#65c58b30" : "#ff985330";
+      context.lineWidth = 1.5;
+      for (const path of overlay.paths) {
+        context.beginPath();
+        path.forEach(([x, y], i) => {
+          const px = ox + x * sx,
+            py = oy + (raster.fullHeight - y) * sy;
+          if (i) context.lineTo(px, py);
+          else context.moveTo(px, py);
+        });
+        if (path.length > 2) {
+          context.closePath();
+          context.fill();
+        }
+        context.stroke();
+      }
+      if (overlay.ellipse) {
+        const e = overlay.ellipse;
+        context.beginPath();
+        context.ellipse(
+          ox + e.cx * sx,
+          oy + (raster.fullHeight - e.cy) * sy,
+          e.rx * sx,
+          e.ry * sy,
+          0,
+          0,
+          Math.PI * 2,
+        );
+        context.fill();
+        context.stroke();
+      }
+    }
     if (cursor && (tool === "mask" || tool === "erase") && !cake) {
       context.strokeStyle = tool === "erase" ? "#d4ece4" : "#f5a2a7";
       context.lineWidth = 1;
@@ -420,6 +459,7 @@ export function RasterView({
     linkedPosition,
     showNumbers,
     activeRing,
+    overlay,
   ]);
   function position(event: React.PointerEvent<HTMLCanvasElement>) {
     const box = event.currentTarget.getBoundingClientRect();
@@ -481,6 +521,9 @@ export function RasterView({
         data-view-x-max={view.xMax}
         data-view-y-min={view.yMin}
         data-view-y-max={view.yMax}
+        onDoubleClick={(event) => {
+          if (event.button === 0 && !busy) onImageDoubleClick?.();
+        }}
         onContextMenu={(event) => event.preventDefault()}
         onAuxClick={(event) => event.preventDefault()}
         onPointerDown={(event) => {

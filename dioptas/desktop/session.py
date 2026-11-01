@@ -29,6 +29,7 @@ from dioptas import calibrants_path
 from .engines import available_engines, make_engine
 from .calibration import CalibrationWorkflow
 from .display import image_levels
+from .mask import MaskWorkflow
 
 logger = logging.getLogger(__name__)
 UNITS = {"2th_deg", "q_A^-1", "d_A"}
@@ -94,7 +95,7 @@ def _finite_number(value: Any, name: str, low: float, high: float) -> float:
     return number
 
 
-class DesktopSession(CalibrationWorkflow):
+class DesktopSession(MaskWorkflow, CalibrationWorkflow):
     """One scientific session. A native window can supply its file picker."""
 
     def __init__(self, choose_file=None):
@@ -107,7 +108,6 @@ class DesktopSession(CalibrationWorkflow):
         self._pattern: dict | None = None
         self._cake: dict | None = None
         self._elapsed: float | None = None
-        self._undo_masks: list[np.ndarray] = []
         self._revision = 0
         self._calibrant_name = "LaB6"
         self._fit_dirty = False
@@ -176,8 +176,11 @@ class DesktopSession(CalibrationWorkflow):
             "settings": self._settings,
             "integrate": self._integrate,
             "mask_stroke": self._mask_stroke,
-            "clear_mask": self._clear_mask,
-            "undo_mask": self._undo_mask,
+            "clear_mask": lambda: self._mask_edit("clear"),
+            "mask_edit": self._mask_edit,
+            "mask_plugin": self._mask_plugin,
+            "redo_mask": lambda: self._mask_history_step(redo=True),
+            "undo_mask": self._mask_history_step,
             "pixel": self._pixel,
             "image_levels": self._image_levels,
             "calibration_setup": self._calibration_setup,
@@ -216,6 +219,8 @@ class DesktopSession(CalibrationWorkflow):
                     "validation_position",
                     "undo_calibration",
                     "redo_calibration",
+                    "undo_mask",
+                    "redo_mask",
                     "example",
                     "open_project",
                     "save_project",
@@ -272,7 +277,9 @@ class DesktopSession(CalibrationWorkflow):
                 "useMask": c.use_mask,
                 "transparentMask": c.transparent_mask,
                 "maskedPixels": int(np.count_nonzero(mask)) if mask is not None else 0,
-                "canUndoMask": bool(self._undo_masks),
+                "canUndoMask": self._model.history.can_undo,
+                "canRedoMask": self._model.history.can_redo,
+                "maskDetails": self._mask_details(),
                 "exampleAvailable": self.example_paths() is not None,
                 "elapsedMs": self._elapsed,
                 "configurationCount": len(self._model.configurations),
@@ -345,7 +352,6 @@ class DesktopSession(CalibrationWorkflow):
         )
         self._project = None
         self._geometry_source = "none"
-        self._undo_masks.clear()
         image, calibration = paths
         # This example starts with a raw calibrant image, not a solved PONI.
         self._calibrant_name = "CeO2"
@@ -374,7 +380,6 @@ class DesktopSession(CalibrationWorkflow):
         self.configuration.calibration_model.clear_peaks()
         self._fit_rms = None
         self._has_image = True
-        self._undo_masks.clear()
         self._calculate()
         return self._snapshot(include_image=True)
 
@@ -435,7 +440,6 @@ class DesktopSession(CalibrationWorkflow):
         self._fit_rms = metadata.get("rms_degrees")
         self._has_image = candidate.img_model.img_data is not None
         self._project = path
-        self._undo_masks.clear()
         self._calculate()
         return self._snapshot(include_image=True)
 
@@ -766,59 +770,6 @@ class DesktopSession(CalibrationWorkflow):
         ):
             raise ValueError("Open an image and a .poni calibration first.")
         self._calculate()
-        return self._snapshot()
-
-    def _remember_mask(self):
-        self._undo_masks.append(self.configuration.mask_model.get_img().copy())
-        del self._undo_masks[:-8]
-
-    def _mask_stroke(self, points, radius, erase=False):
-        if not self._has_image:
-            raise ValueError("Open an image before editing its mask.")
-        radius = _finite_number(radius, "Brush radius", 1, 300)
-        if not isinstance(points, list) or not 1 <= len(points) <= 10000:
-            raise ValueError("A brush stroke needs between 1 and 10000 points.")
-        height, width = self.configuration.img_model.img_data.shape
-        validated = []
-        for point in points:
-            if len(point) != 2:
-                raise ValueError("A brush point needs x and y coordinates.")
-            validated.append(
-                (
-                    _finite_number(point[0], "x", 0, width - 1),
-                    _finite_number(point[1], "y", 0, height - 1),
-                )
-            )
-        self._remember_mask()
-        mask = self.configuration.mask_model.get_img().copy()
-        for x, y in validated:
-            left, right = max(0, int(x - radius)), min(width, math.ceil(x + radius + 1))
-            bottom, top = (
-                max(0, int(y - radius)),
-                min(height, math.ceil(y + radius + 1)),
-            )
-            yy, xx = np.ogrid[bottom:top, left:right]
-            region = (xx - x) ** 2 + (yy - y) ** 2 <= radius**2
-            mask[bottom:top, left:right][region] = not erase
-        self.configuration.mask_model.set_mask_data(mask)
-        self.configuration.use_mask = True
-        self._calculate()
-        return self._snapshot()
-
-    def _clear_mask(self):
-        if not self._has_image:
-            raise ValueError("Open an image before editing its mask.")
-        self._remember_mask()
-        self.configuration.mask_model.set_mask_data(
-            np.zeros(self.configuration.img_model.img_data.shape, dtype=bool)
-        )
-        self._calculate()
-        return self._snapshot()
-
-    def _undo_mask(self):
-        if self._undo_masks:
-            self.configuration.mask_model.set_mask_data(self._undo_masks.pop())
-            self._calculate()
         return self._snapshot()
 
     def _image_levels(self, mode="percentile", percentile=0.4, filter_gaps=True, source="detector"):

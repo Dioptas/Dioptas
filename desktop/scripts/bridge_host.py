@@ -26,8 +26,11 @@ def choose_file(kind, save):
                 "project": "experiment.dio",
                 "pattern": "pattern.xy",
                 "calibration": "calibration.poni",
+                "mask": "mask.mask",
             }[kind]
         )
+    if kind == "mask":
+        return str(artifacts / "mask.mask")
     if kind == "project":
         return str(artifacts / "experiment.dio")
     if kind == "calibration":

@@ -47,6 +47,8 @@ export interface State {
   transparentMask: boolean;
   maskedPixels: number;
   canUndoMask: boolean;
+  canRedoMask: boolean;
+  maskDetails: import("./maskDomain").MaskDetails;
   exampleAvailable: boolean;
   elapsedMs: number | null;
   configurationCount: number;
@@ -125,7 +127,12 @@ export interface Response {
   nextRing?: number;
   levels?: [number, number] | null;
   display?: "detector" | "cake";
-  progress?: { running: boolean; current: number; total: number };
+  progress?: {
+    running: boolean;
+    current: number;
+    total: number;
+    label?: string;
+  };
   linked?: { twoTheta: number; radial: number; contours: RingOverlay[] };
   rings?: RingOverlay[];
 }
