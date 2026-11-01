@@ -2,8 +2,7 @@
 (async () => {
   if (window.__dioptasMapSmokeRunning) return;
   window.__dioptasMapSmokeRunning = true;
-  const call = (action, payload = {}) =>
-    window.__TAURI_INTERNALS__.invoke("desktop_invoke", { action, payload });
+  const call = window.__dioptasNativeCall;
   const delay = (ms = 80) => new Promise((resolve) => setTimeout(resolve, ms));
   const check = (value, message) => {
     if (!value) throw Error(message);

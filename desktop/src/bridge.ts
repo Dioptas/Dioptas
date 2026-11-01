@@ -1,3 +1,4 @@
+import { RasterTransfer } from "./rasterTransfer";
 import type { Invoke } from "./types";
 import { isTauri, invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -9,9 +10,12 @@ export async function updateWindowTitle(imageName: string | null | undefined) {
 }
 
 export async function connect(): Promise<Invoke> {
-  if (isTauri())
-    return (action, payload = {}) =>
-      invoke("desktop_invoke", { action, payload });
+  if (isTauri()) {
+    const transfer = new RasterTransfer((action, payload, cachedBuffers) =>
+      invoke<ArrayBuffer>("desktop_invoke", { action, payload, cachedBuffers }),
+    );
+    return (action, payload = {}) => transfer.call(action, payload);
+  }
   if (window.pywebview?.api.invoke) return window.pywebview.api.invoke;
   return new Promise((resolve, reject) => {
     const ready = () => {

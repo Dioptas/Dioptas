@@ -2,8 +2,7 @@
 (async () => {
   if (window.__dioptasNativeSmokeRunning) return;
   window.__dioptasNativeSmokeRunning = true;
-  const call = (action, payload = {}) =>
-    window.__TAURI_INTERNALS__.invoke("desktop_invoke", { action, payload });
+  const call = window.__dioptasNativeCall;
   const delay = (ms = 60) => new Promise((r) => setTimeout(r, ms));
   const check = (condition, message) => {
     if (!condition) throw Error(message);
@@ -255,6 +254,17 @@
       delay,
       check,
     });
+    const binaryTransfer = await window.__dioptasBinaryNativeSmoke({
+      call,
+      click,
+      ready,
+      delay,
+      check,
+      root: initial.state.imagePath.slice(
+        0,
+        initial.state.imagePath.lastIndexOf("/dioptas/tests/data/"),
+      ),
+    });
     let hotReloadVerified = false;
     if (location.hostname === "127.0.0.1") {
       const token = {};
@@ -296,6 +306,7 @@
         integrationPatternSaved: savedPattern.savedPath,
         hotReloadVerified,
         maskWorkflow,
+        binaryTransfer,
       },
     });
   } catch (error) {

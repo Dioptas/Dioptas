@@ -2,7 +2,7 @@
 
 mod processor;
 
-use processor::Processor;
+use processor::{Packet, Processor};
 use serde_json::{json, Value};
 use std::sync::Arc;
 use tauri::{Manager, State};
@@ -140,11 +140,13 @@ async fn desktop_invoke(
     host: State<'_, Host>,
     action: String,
     payload: Option<Value>,
-) -> Result<Value, String> {
+    cached_buffers: Option<Vec<String>>,
+) -> Result<tauri::ipc::Response, String> {
     if window.label() != "main" {
         return Err("Unknown desktop window.".into());
     }
     let processor = host.processor.clone()?;
+    let cached = cached_buffers.unwrap_or_default();
     let mut payload = payload.unwrap_or_else(|| json!({}));
     if !payload.is_object() {
         return Err("Command arguments must be an object.".into());
@@ -156,7 +158,7 @@ async fn desktop_invoke(
         ) && payload["path"].is_null()
         {
             let Some(selected) = app.dialog().file().blocking_pick_folder() else {
-                return Ok(json!({"ok": true, "cancelled": true}));
+                return Ok(Packet::metadata(json!({"ok": true, "cancelled": true})));
             };
             payload["path"] = Value::String(
                 selected
@@ -174,7 +176,7 @@ async fn desktop_invoke(
                 .add_filter("All files", &["*"]);
             if action == "map_load" {
                 let Some(selected) = dialog.blocking_pick_files() else {
-                    return Ok(json!({"ok": true, "cancelled": true}));
+                    return Ok(Packet::metadata(json!({"ok": true, "cancelled": true})));
                 };
                 let mut paths = Vec::new();
                 for file in selected {
@@ -186,7 +188,7 @@ async fn desktop_invoke(
                     );
                 }
                 payload["paths"] = json!(paths);
-                return processor.request(&action, payload);
+                return processor.request_packet(&action, payload, cached);
             }
             let selected = if choice.save {
                 dialog.set_file_name(choice.name).blocking_save_file()
@@ -194,15 +196,16 @@ async fn desktop_invoke(
                 dialog.blocking_pick_file()
             };
             let Some(selected) = selected else {
-                return Ok(json!({"ok": true, "cancelled": true}));
+                return Ok(Packet::metadata(json!({"ok": true, "cancelled": true})));
             };
             let path = selected.into_path().map_err(|e| e.to_string())?;
             payload["path"] = Value::String(path.to_string_lossy().into_owned());
         }
-        processor.request(&action, payload)
+        processor.request_packet(&action, payload, cached)
     })
     .await
     .map_err(|e| e.to_string())?
+    .map(|packet| tauri::ipc::Response::new(packet.bytes))
 }
 
 #[tauri::command]
@@ -254,6 +257,8 @@ fn main() {
         })
         .on_page_load(move |webview, payload| {
             if smoke && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+                let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
+                let _ = webview.eval(include_str!("../../scripts/binary_native_smoke.js"));
                 let _ = webview.eval(include_str!("../../scripts/mask_native_smoke.js"));
                 let _ = webview.eval(if map_smoke {
                     include_str!("../../scripts/tauri_map_smoke.js")

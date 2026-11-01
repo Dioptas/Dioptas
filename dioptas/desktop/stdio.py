@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: MIT
-"""Local Tauri processing transport. Stdin/stdout carry JSON; no sockets.
+"""Local Tauri processing transport, without sockets.
+
+Stdin carries commands; stdout carries metadata followed by binary buffers.
 
 Scientific objects keep the same dedicated owning thread as the pywebview
 host. Progress/cancel are dispatched by the reader even while fitting is busy.
@@ -15,7 +17,9 @@ import sys
 import threading
 
 
-def serve(stream, protocol, session):
+def serve(stream, protocol, session, *, binary=False):
+    from .binary import encode_frame
+
     write_lock = threading.Lock()
 
     def dispatch(request):
@@ -23,6 +27,13 @@ def serve(stream, protocol, session):
         try:
             if not isinstance(request, dict) or not isinstance(identifier, int):
                 raise ValueError("A request needs an integer id.")
+            known = request.get("cachedBuffers", [])
+            if (
+                not isinstance(known, list)
+                or len(known) > 64
+                or not all(isinstance(x, str) for x in known)
+            ):
+                raise ValueError("Invalid cached buffer list.")
             action = request.get("action")
             if not isinstance(action, str):
                 raise ValueError("A request needs a command name.")
@@ -39,7 +50,7 @@ def serve(stream, protocol, session):
                 )
                 result = {
                     "ok": True,
-                    "protocol": 1,
+                    "protocol": 2 if binary else 1,
                     "transport": "stdio",
                     "pid": os.getpid(),
                     "qtApplication": bool(widgets and widgets.QApplication.instance()),
@@ -47,11 +58,21 @@ def serve(stream, protocol, session):
                 }
             else:
                 result = session.invoke(action, request.get("payload"))
-            encoded = json.dumps({"id": identifier, "result": result}, allow_nan=False)
+            encoded = (
+                encode_frame(identifier, result, known)
+                if binary
+                else (json.dumps({"id": identifier, "result": result}, allow_nan=False) + "\n",)
+            )
         except Exception as exc:
-            encoded = json.dumps({"id": identifier, "result": {"ok": False, "error": str(exc)}})
+            error = {"ok": False, "error": str(exc)}
+            encoded = (
+                encode_frame(identifier, error)
+                if binary
+                else (json.dumps({"id": identifier, "result": error}) + "\n",)
+            )
         with write_lock:
-            protocol.write(encoded + "\n")
+            for segment in encoded:
+                protocol.write(segment)
             protocol.flush()
 
     workers = ThreadPoolExecutor(max_workers=4, thread_name_prefix="dioptas-command")
@@ -80,20 +101,20 @@ def main():
 
     # Protect framing from Python prints AND native-library writes to fd 1.
     # Only the duplicated descriptor remains connected to the host's pipe.
-    protocol = os.fdopen(os.dup(sys.stdout.fileno()), "w", encoding="utf-8", buffering=1)
+    protocol = os.fdopen(os.dup(sys.stdout.fileno()), "wb")
     os.dup2(sys.stderr.fileno(), sys.stdout.fileno())
     sys.stdout = sys.stderr
 
     from .bridge import DesktopBridge
 
-    session = DesktopBridge()
+    session = DesktopBridge(binary_images=True)
     if args.example:
         result = session.invoke("example")
         if not result["ok"]:
             session.close()
             raise RuntimeError(result["error"])
     try:
-        serve(sys.stdin, protocol, session)
+        serve(sys.stdin, protocol, session, binary=True)
     finally:
         protocol.close()
 

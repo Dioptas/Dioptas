@@ -40,6 +40,25 @@ worker without accessing native objects. Pipe responses carry request IDs so a
 long fit does not block progress/cancel responses. Window closure drops the pipe,
 cancels pending refinement and reaps the child, with a bounded kill fallback.
 
+Native image transfer uses binary buffers through both the Python pipe and
+Tauri IPC. Commands and metadata remain JSON. Detector, mask, cake and map
+pixels never become base64 strings on this path. A response contains a
+little-endian uint32 header length, the UTF-8 JSON header, then the raw buffers
+listed in that header. Buffer IDs identify immutable content; the window
+advertises the IDs it still retains so unchanged pixels need not be resent.
+
+The Python display cache retains up to 128 MiB of pixel buffers and associated
+statistics, keyed by the complete source content, shape, dtype and display
+options. This detects in-place image/mask changes while retaining statistics
+from the original scientific precision. The window retains up to 128 MiB of
+binary buffers and 96 MiB of colour-mapped canvases. Both caches evict older
+entries. Render keys include mask content, palette, linear/log scaling and
+intensity limits. Pending requests keep their advertised buffers alive even if
+another response evicts them. Ring contours are reused only while the angular
+array and calibrant angles agree; integrations continue to use the current
+scientific models. The legacy pywebview host and browser-test bridge keep their
+compatible JSON/base64 path.
+
 This is still a **source-checkout preview**, not a portable installer or a
 Rust-only scientific implementation. The host finds this checkout's `.venv`;
 `DIOPTAS_SOURCE_ROOT` and `DIOPTAS_PYTHON` can override those paths explicitly.
@@ -370,3 +389,26 @@ and cake at full resolution. The live check confirms CSS HMR without losing the
 document. Closing either test window reaps its processing child. Native open
 dialog cancellation and opening the CeO2 TIFF were also checked interactively
 in the locally built `.app`. The processing runtime is still checkout-local.
+
+## Binary transfer verification (2026-11-01)
+
+Started from UI checkpoint `3fda11a7`. Styles and layout components are unchanged;
+the raw calibration browser screenshot is pixel-identical to that checkpoint.
+Python coverage includes every full-resolution detector pixel, mask undo/redo,
+in-place mutation, full-precision statistics, eviction and binary progress/cancel.
+Frontend coverage includes malformed frames and concurrent eviction. Native
+checks exercise calibration, masks, Integration, Map and project persistence.
+
+In the local macOS debug build, calibrated switching between the 2048 × 2048
+`image_001.tif` and `image_002.tif` fixtures took 140–160 ms after warming the
+caches (click through two animation frames after display). Scientific-command
+round trips were 92–97 ms. The first measured response was 21,604,769 bytes;
+a warm response was 416,976 bytes of metadata with zero pixel bytes. Warm UI
+switches performed no detector recolouring. These are local measurements,
+not latency guarantees for other files, settings or machines.
+
+Run `npm test` for frontend cache/framing tests and the normal Python/browser
+suites above. The native smoke adds a `binaryTransfer` record with timings,
+transferred pixel bytes and rendered-cache checks. Filename/title assertions
+still require the existing window-title capability override when building the
+native test window; the binary transport adds no permissions.

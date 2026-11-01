@@ -1,7 +1,7 @@
 use serde_json::{json, Value};
 use std::{
     collections::HashMap,
-    io::{BufRead, BufReader, Write},
+    io::{BufReader, Read, Write},
     path::{Path, PathBuf},
     process::{Child, ChildStdin, Command, Stdio},
     sync::{
@@ -12,7 +12,82 @@ use std::{
     time::Duration,
 };
 
-type Reply = Result<Value, String>;
+#[derive(Debug)]
+pub struct Packet {
+    #[cfg(test)]
+    pub result: Value,
+    pub bytes: Vec<u8>,
+}
+
+impl Packet {
+    pub fn metadata(result: Value) -> Self {
+        let header = json!({"result": result, "buffers": []})
+            .to_string()
+            .into_bytes();
+        let mut bytes = (header.len() as u32).to_le_bytes().to_vec();
+        bytes.extend_from_slice(&header);
+        Self {
+            #[cfg(test)]
+            result,
+            bytes,
+        }
+    }
+}
+
+type Reply = Result<Packet, String>;
+
+// The child is local and trusted, but reject broken framing before allocating.
+const MAX_HEADER: usize = 16 * 1024 * 1024;
+const MAX_BUFFERS: usize = 1024 * 1024 * 1024;
+fn read_packet(reader: &mut impl Read) -> Result<(u64, Packet), String> {
+    let mut prefix = [0u8; 4];
+    reader.read_exact(&mut prefix).map_err(|e| e.to_string())?;
+    let length = u32::from_le_bytes(prefix) as usize;
+    if length > MAX_HEADER {
+        return Err("Oversized processing header".into());
+    }
+    let mut header = vec![0; length];
+    reader.read_exact(&mut header).map_err(|e| e.to_string())?;
+    let value: Value = serde_json::from_slice(&header).map_err(|e| e.to_string())?;
+    let id = value["id"]
+        .as_u64()
+        .ok_or("Missing processing request id")?;
+    let buffers = value["buffers"]
+        .as_array()
+        .ok_or("Missing binary buffer table")?;
+    let total = buffers.iter().try_fold(0usize, |size, buffer| {
+        let n = buffer["length"]
+            .as_u64()
+            .and_then(|v| usize::try_from(v).ok())
+            .ok_or("Invalid binary buffer length")?;
+        size.checked_add(n)
+            .filter(|v| *v <= MAX_BUFFERS)
+            .ok_or("Oversized processing buffers")
+    })?;
+    let mut bytes = Vec::with_capacity(4 + length + total);
+    bytes.extend_from_slice(&prefix);
+    bytes.extend_from_slice(&header);
+    bytes.resize(4 + length + total, 0);
+    reader
+        .read_exact(&mut bytes[4 + length..])
+        .map_err(|e| e.to_string())?;
+    #[cfg(test)]
+    let result = value
+        .get("result")
+        .ok_or("Missing processing result")?
+        .clone();
+    if value.get("result").is_none() {
+        return Err("Missing processing result".into());
+    }
+    Ok((
+        id,
+        Packet {
+            #[cfg(test)]
+            result,
+            bytes,
+        },
+    ))
+}
 
 #[derive(Default)]
 struct Replies {
@@ -82,25 +157,13 @@ impl Processor {
         let replies = Arc::new(Mutex::new(Replies::default()));
         let reader_replies = replies.clone();
         thread::spawn(move || {
-            let mut failure =
-                "Local processing stopped. Restart this preview to open a new session.".to_string();
-            for line in BufReader::new(output).lines() {
-                let response = match line {
-                    Ok(line) => serde_json::from_str::<Value>(&line).map_err(|e| e.to_string()),
-                    Err(e) => Err(e.to_string()),
-                };
-                match response {
-                    Ok(value) => {
-                        if let (Some(id), Some(result)) =
-                            (value["id"].as_u64(), value.get("result"))
-                        {
-                            if let Some(waiter) = reader_replies.lock().unwrap().waiting.remove(&id)
-                            {
-                                let _ = waiter.send(Ok(result.clone()));
-                            }
-                        } else {
-                            failure = "Local processing returned an invalid response.".into();
-                            break;
+            let failure;
+            let mut reader = BufReader::new(output);
+            loop {
+                match read_packet(&mut reader) {
+                    Ok((id, packet)) => {
+                        if let Some(waiter) = reader_replies.lock().unwrap().waiting.remove(&id) {
+                            let _ = waiter.send(Ok(packet));
                         }
                     }
                     Err(error) => {
@@ -124,7 +187,13 @@ impl Processor {
         })
     }
 
-    pub fn request(&self, action: &str, payload: Value) -> Reply {
+    #[cfg(test)]
+    pub fn request(&self, action: &str, payload: Value) -> Result<Value, String> {
+        self.request_packet(action, payload, vec![])
+            .map(|p| p.result)
+    }
+
+    pub fn request_packet(&self, action: &str, payload: Value, cached: Vec<String>) -> Reply {
         if self.closed.load(Ordering::SeqCst) {
             return Err("The desktop session is closed.".into());
         }
@@ -137,7 +206,10 @@ impl Processor {
             }
             replies.waiting.insert(id, sender);
         }
-        let encoded = json!({"id": id, "action": action, "payload": payload}).to_string() + "\n";
+        let encoded =
+            json!({"id": id, "action": action, "payload": payload, "cachedBuffers": cached})
+                .to_string()
+                + "\n";
         let sent = {
             let mut input = self.input.lock().unwrap();
             match input.as_mut() {
@@ -220,6 +292,61 @@ mod tests {
             .unwrap()
             .is_some());
         assert!(processor.request("state", json!({})).is_err());
+    }
+
+    #[test]
+    fn raw_buffers_roundtrip_and_cached_images_are_not_resent() {
+        let processor = Processor::start(false).unwrap();
+        let path = Processor::source_root().join("dioptas/tests/data/image_001.tif");
+        let first = processor
+            .request_packet("open_image", json!({"path": path}), vec![])
+            .unwrap();
+        let table = |p: &Packet| -> Value {
+            let n = u32::from_le_bytes(p.bytes[..4].try_into().unwrap()) as usize;
+            serde_json::from_slice::<Value>(&p.bytes[4..4 + n]).unwrap()["buffers"].clone()
+        };
+        let known = |p: &Packet| -> Vec<String> {
+            ["image", "mask"]
+                .iter()
+                .map(|key| p.result[key]["bufferId"].as_str().unwrap().to_string())
+                .collect()
+        };
+        assert_eq!(first.result["image"]["step"], 1);
+        assert!(first.result["image"].get("data").is_none());
+        assert_eq!(table(&first).as_array().unwrap().len(), 2);
+        let mut cached = known(&first);
+        let second = processor
+            .request_packet("next_image", json!({"direction":1}), cached.clone())
+            .unwrap();
+        assert_eq!(table(&second).as_array().unwrap().len(), 1); // unchanged mask omitted
+        cached.extend(known(&second));
+        cached.sort();
+        cached.dedup();
+        let warm = processor
+            .request_packet("next_image", json!({"direction":-1}), cached)
+            .unwrap();
+        assert_eq!(
+            warm.result["image"]["bufferId"],
+            first.result["image"]["bufferId"]
+        );
+        assert_eq!(table(&warm), json!([]));
+        assert!(warm.bytes.len() < 100_000);
+        assert!(first.bytes.len() > 20_000_000);
+        processor.shutdown();
+    }
+
+    #[test]
+    fn frames_preserve_arbitrary_binary_bytes_and_reject_truncation() {
+        let header =
+            json!({"id":9,"result":{"ok":true},"buffers":[{"id":"pixels","length":5}]}).to_string();
+        let mut bytes = (header.len() as u32).to_le_bytes().to_vec();
+        bytes.extend_from_slice(header.as_bytes());
+        bytes.extend_from_slice(&[0, 255, 10, 13, 42]);
+        let (id, p) = read_packet(&mut bytes.as_slice()).unwrap();
+        assert_eq!(id, 9);
+        assert_eq!(&p.bytes[p.bytes.len() - 5..], &[0, 255, 10, 13, 42]);
+        assert!(read_packet(&mut &bytes[..bytes.len() - 1]).is_err());
+        assert!(read_packet(&mut &(MAX_HEADER as u32 + 1).to_le_bytes()[..]).is_err());
     }
 
     #[test]

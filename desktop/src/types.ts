@@ -20,7 +20,8 @@ export interface Raster {
   step: number;
   dtype: "u8" | "f32le";
   limits: [number, number];
-  data: string;
+  data: string | ArrayBuffer;
+  bufferId?: string;
   histogram?: { edges: number[]; counts: number[]; finitePixels: number };
 }
 export interface Cake extends Raster {

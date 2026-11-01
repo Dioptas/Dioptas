@@ -16,7 +16,7 @@ class DesktopBridge:
     Only the plain progress data and cancellation event bypass this worker.
     """
 
-    def __init__(self, choose_file=None):
+    def __init__(self, choose_file=None, *, binary_images=False):
         self._dispatch_lock = threading.Lock()
         self._closed = False
         self._worker = ThreadPoolExecutor(
@@ -24,7 +24,7 @@ class DesktopBridge:
         )
         try:
             self._session = self._worker.submit(
-                DesktopSession, choose_file=choose_file
+                DesktopSession, choose_file=choose_file, binary_images=binary_images
             ).result()
         except BaseException:
             self._worker.shutdown()

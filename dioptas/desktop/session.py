@@ -1,13 +1,14 @@
 # SPDX-License-Identifier: MIT
 """Small, serialized command boundary around the existing scientific models.
 
-Only preview arrays cross the JSON bridge. Integrations and mask edits always
-use the original image resolution. Rows use Dioptas's bottom-left origin.
+Full-resolution display arrays use a binary native bridge. Integrations and
+mask edits always use the original image resolution. Rows use Dioptas's bottom-left origin.
 """
 
 from __future__ import annotations
 
 import base64
+import hashlib
 from copy import deepcopy
 import logging
 import math
@@ -29,6 +30,7 @@ from dioptas import calibrants_path
 from .engines import available_engines, make_engine
 from .calibration import CalibrationWorkflow
 from .display import image_levels
+from .binary import RasterCache
 from .integration import IntegrationWorkflow
 from .mask import MaskWorkflow
 from .map import MapWorkflow
@@ -43,6 +45,7 @@ def raster(
     *,
     mask: bool = False,
     histogram: bool = False,
+    binary: bool = False,
 ) -> dict:
     height, width = array.shape
     step = 1 if max_side is None else max(1, math.ceil(max(height, width) / max_side))
@@ -56,11 +59,13 @@ def raster(
         limits = [0, 1]
     else:
         values = np.ascontiguousarray(array[::step, ::step], dtype="<f4")
-        finite = values[np.isfinite(values)]
-        finite = finite[finite >= 0]
-        limits = np.percentile(finite, [1, 99.5]).tolist() if finite.size else [0, 1]
-        if limits[1] <= limits[0]:
-            limits[1] = limits[0] + 1
+        limits = [0, 1]
+        if not histogram:
+            finite = values[np.isfinite(values)]
+            finite = finite[finite >= 0]
+            limits = np.percentile(finite, [1, 99.5]).tolist() if finite.size else [0, 1]
+            if limits[1] <= limits[0]:
+                limits[1] = limits[0] + 1
     result = {
         "width": int(values.shape[1]),
         "height": int(values.shape[0]),
@@ -69,7 +74,11 @@ def raster(
         "step": step,
         "dtype": "u8" if mask else "f32le",
         "limits": limits,
-        "data": base64.b64encode(values.tobytes()).decode("ascii"),
+        "data": (
+            values.tobytes()
+            if binary
+            else base64.b64encode(values.tobytes()).decode("ascii")
+        ),
     }
     if histogram:
         # Use every finite source pixel, not the reduced display preview.
@@ -100,7 +109,10 @@ def _finite_number(value: Any, name: str, low: float, high: float) -> float:
 class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, MapWorkflow):
     """One scientific session. A native window can supply its file picker."""
 
-    def __init__(self, choose_file=None):
+    def __init__(self, choose_file=None, *, binary_images=False):
+        self._binary_images = binary_images
+        self._raster_cache = RasterCache()
+        self._ring_cache = None
         self._lock = threading.RLock()
         self._choose_file = choose_file
         self._engine = make_engine("pyfai")
@@ -335,19 +347,24 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
             }
         }
 
+    def _raster(self, array, **options):
+        if self._binary_images:
+            return self._raster_cache.raster(array, raster, binary=True, **options)
+        return raster(array, **options)
+
     def _snapshot(self, include_image=False):
         result = self._state()
         result.update(self._map_snapshot())
         result.update(pattern=self._pattern, cake=self._cake)
         result["rings"] = self._rings
         if self._has_image:
-            result["mask"] = raster(
+            result["mask"] = self._raster(
                 self.configuration.mask_model.get_display_mask(),
                 mask=True,
                 max_side=None,
             )
             if include_image:
-                result["image"] = raster(
+                result["image"] = self._raster(
                     self.configuration.img_model.img_data, max_side=None, histogram=True
                 )
         return result
@@ -551,7 +568,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         self._integration_calculate_cake()
         calibration = c.calibration_model
         self._cake = {
-            **raster(calibration.cake_img, max_side=None, histogram=True),
+            **self._raster(calibration.cake_img, max_side=None, histogram=True),
             "radialRange": [
                 float(calibration.cake_tth[0]),
                 float(calibration.cake_tth[-1]),
@@ -571,6 +588,15 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
 
         c = self.configuration
         angles = c.calibration_model.get_pixel_two_theta_array()
+        key = (
+            angles.shape,
+            angles.dtype.str,
+            hashlib.sha256(np.ascontiguousarray(angles)).digest(),
+            tuple(c.calibration_model.calibrant.get_2th()),
+        )
+        if self._ring_cache is not None and self._ring_cache[0] == key:
+            self._rings = self._ring_cache[1]
+            return
         step = max(1, math.ceil(max(angles.shape) / 450))
         preview = angles[::step, ::step]
         low, high = float(angles.min()), float(angles.max())
@@ -586,6 +612,8 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
                         ],
                     }
                 )
+
+        self._ring_cache = (key, self._rings)
 
     def _select_engine(self, engine):
         # Construct and validate first, so a missing dependency/license cannot

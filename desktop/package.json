@@ -11,7 +11,8 @@
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "smoke": "node scripts/smoke.mjs",
-    "format": "prettier --write src 'scripts/*.{mjs,js}' vite.config.ts src-tauri/*.json src-tauri/capabilities/*.json"
+    "format": "prettier --write src 'scripts/*.{mjs,js}' vite.config.ts src-tauri/*.json src-tauri/capabilities/*.json",
+    "test": "node --test scripts/plot_ticks.test.mjs scripts/raster_transfer.test.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Cake, Palette, Raster, Tool, RingOverlay } from "./types";
 import type { MaskOverlay } from "./maskDomain";
+import { ByteCache, decodeRaster } from "./rasterTransfer";
 import { colorsFor } from "./colorMaps";
 import { number, unitLabel } from "./types";
 import {
@@ -11,18 +12,8 @@ import {
 
 const EMPTY_CONTOURS: number[][][] = [];
 
-function decode(raster: Raster) {
-  const raw = atob(raster.data);
-  const bytes = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-  if (raster.dtype === "u8") return bytes;
-  // Explicit little-endian payload, independent of host endianness.
-  const view = new DataView(bytes.buffer);
-  const values = new Float32Array(bytes.length / 4);
-  for (let i = 0; i < values.length; i++)
-    values[i] = view.getFloat32(i * 4, true);
-  return values;
-}
+// Keep recently colour-mapped images without retaining their source buffers.
+const rendered = new ByteCache<string, HTMLCanvasElement>(96 * 1024 * 1024, 12);
 export function RasterView({
   raster,
   mask,
@@ -88,10 +79,29 @@ export function RasterView({
   const drag = useRef<{ x: number; y: number; points: number[][] } | null>(
     null,
   );
-  const data = useMemo(() => decode(raster), [raster]);
-  const maskData = useMemo(() => (mask ? decode(mask) : null), [mask]);
+  const data = useMemo(() => decodeRaster(raster), [raster.data, raster.dtype]);
+  const maskData = useMemo(
+    () => (mask ? decodeRaster(mask) : null),
+    [mask?.data, mask?.dtype],
+  );
   const [lower, upper] = limits ?? raster.limits;
   const image = useMemo(() => {
+    const cacheKey = raster.bufferId
+      ? JSON.stringify([
+          raster.bufferId,
+          raster.dtype,
+          raster.width,
+          raster.height,
+          mask?.bufferId,
+          lower,
+          upper,
+          log,
+          palette,
+          maskOpacity,
+        ])
+      : null;
+    const cached = cacheKey ? rendered.get(cacheKey) : undefined;
+    if (cached) return cached;
     const offscreen = document.createElement("canvas");
     offscreen.width = raster.width;
     offscreen.height = raster.height;
@@ -129,8 +139,24 @@ export function RasterView({
       pixels.data[4 * i + 3] = 255;
     }
     context.putImageData(pixels, 0, 0);
+    if (cacheKey)
+      rendered.set(cacheKey, offscreen, 4 * raster.width * raster.height);
     return offscreen;
-  }, [raster, data, maskData, lower, upper, log, palette, maskOpacity]);
+  }, [
+    raster.data,
+    raster.bufferId,
+    raster.dtype,
+    raster.width,
+    raster.height,
+    mask?.bufferId,
+    data,
+    maskData,
+    lower,
+    upper,
+    log,
+    palette,
+    maskOpacity,
+  ]);
   useEffect(() => {
     const observer = new ResizeObserver(([entry]) =>
       setSize({

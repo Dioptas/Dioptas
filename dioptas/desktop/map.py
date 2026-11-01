@@ -42,7 +42,6 @@ class MapWorkflow:
         }
 
     def _map_snapshot(self):
-        from .session import raster
         m = self.configuration.map_model
         if m.map is None:
             return {"map": None}
@@ -58,7 +57,7 @@ class MapWorkflow:
         coords = m.get_point_coordinates(selection) if selection is not None else None
         # Qt plots flipud(map) and translates y back to top-origin rows.
         payload = {
-            "raster": raster(np.flipud(m.map), max_side=None, histogram=True),
+            "raster": self._raster(np.flipud(m.map), max_side=None, histogram=True),
             "unit": m.pattern_unit,
             "points": m.num_points,
             "canRebuild": bool(m.filepaths),
@@ -251,7 +250,6 @@ class MapWorkflow:
         return self._map_response()
 
     def _map_select(self, index=None, row=None, column=None, slot=None, reintegrate=False):
-        from .session import raster
         m = self._require_map()
         if row is not None and column is not None:
             row, column = int(row), int(column)
@@ -274,8 +272,8 @@ class MapWorkflow:
             if info.filepath and Path(info.filepath).is_file():
                 m.select_point_by_index(index)
                 self._has_image = True
-                response["image"] = raster(self.configuration.img_model.img_data, max_side=None, histogram=True)
-                response["mask"] = raster(self.configuration.mask_model.get_display_mask(), mask=True, max_side=None)
+                response["image"] = self._raster(self.configuration.img_model.img_data, max_side=None, histogram=True)
+                response["mask"] = self._raster(self.configuration.mask_model.get_display_mask(), mask=True, max_side=None)
             else:
                 self._has_image = False
                 warning = "Raw detector image unavailable; showing the stored pattern."
@@ -354,7 +352,6 @@ class MapWorkflow:
         return self._map_select(index=index) if index is not None else self._map_response()
 
     def _map_display(self, smooth=1, contours=0):
-        from .session import raster
         from .map_display import preview
         m = self._require_map()
         if int(smooth) != smooth or not 1 <= smooth <= 10 or int(contours) != contours or not 0 <= contours <= 20:
@@ -362,7 +359,7 @@ class MapWorkflow:
         if m.map.size * max(smooth*smooth, 9 if contours else 1) > 4_000_000:
             raise ValueError("Display interpolation would exceed 4 million cells; reduce smoothing or disable contours.")
         image, paths = preview(m.map, int(smooth), int(contours))
-        result = raster(image, max_side=None)
+        result = self._raster(image, max_side=None)
         # RasterView draws the upsampled bitmap over the original scan extent.
         result.update(fullWidth=m.map.shape[1], fullHeight=m.map.shape[0], step=1/smooth)
         return {"mapPreview": result, "mapContours": paths}
