@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-desktop-invoke"
+description = "Enables the desktop_invoke command without any pre-configured scope."
+commands.allow = ["desktop_invoke"]
+
+[[permission]]
+identifier = "deny-desktop-invoke"
+description = "Denies the desktop_invoke command without any pre-configured scope."
+commands.deny = ["desktop_invoke"]

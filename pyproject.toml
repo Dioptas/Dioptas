@@ -53,6 +53,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+desktop = ["pywebview>=6.0,<7.0"]
+# Optional scientific engine; desktop functionality does not require it.
+dioptrin = ["dioptrin==0.6.1"]
 test = [
     "pytest>=7.4.0,<10.0",
     "pytest-cov>=6.0,<7.0",
@@ -63,12 +66,13 @@ test = [
 
 [project.scripts]
 dioptas = "dioptas:main"
+dioptas-desktop = "dioptas.desktop.__main__:main"
 
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.package-data]
-dioptas = ["resources/**"]
+dioptas = ["resources/**", "desktop/ui/**"]
 
 [tool.setuptools.packages.find]
 where = ["."]

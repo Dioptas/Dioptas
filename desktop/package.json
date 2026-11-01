@@ -1,0 +1,33 @@
+{
+  "name": "dioptas-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build --no-bundle",
+    "tauri:smoke": "node scripts/tauri_smoke.mjs",
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "smoke": "node scripts/smoke.mjs",
+    "format": "prettier --write src 'scripts/*.{mjs,js}' vite.config.ts src-tauri/*.json src-tauri/capabilities/*.json"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.12.4",
+    "lucide-react": "^1.66.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "playwright": "^1.64.1",
+    "prettier": "^3.9.10",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vite-plugin-singlefile": "^2.3.4"
+  }
+}

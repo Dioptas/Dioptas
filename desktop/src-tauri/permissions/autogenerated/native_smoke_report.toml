@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-native-smoke-report"
+description = "Enables the native_smoke_report command without any pre-configured scope."
+commands.allow = ["native_smoke_report"]
+
+[[permission]]
+identifier = "deny-native-smoke-report"
+description = "Denies the native_smoke_report command without any pre-configured scope."
+commands.deny = ["native_smoke_report"]

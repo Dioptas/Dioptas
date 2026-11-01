@@ -1,0 +1,144 @@
+export type Unit = "2th_deg" | "q_A^-1" | "d_A";
+export type Tool = "pan" | "mask" | "erase" | "pick";
+export type Palette = string;
+export interface AutoLevels {
+  mode: "percentile" | "minmax" | "mean3std";
+  percentile: number;
+  filter_gaps: boolean;
+}
+export interface ImageDisplayPreferences {
+  size: "compact" | "large";
+  orientation: "vertical" | "horizontal";
+  auto: AutoLevels;
+}
+export interface Raster {
+  width: number;
+  height: number;
+  fullWidth: number;
+  fullHeight: number;
+  step: number;
+  dtype: "u8" | "f32le";
+  limits: [number, number];
+  data: string;
+  histogram?: { edges: number[]; counts: number[]; finitePixels: number };
+}
+export interface Cake extends Raster {
+  radialRange: [number, number];
+  azimuthRange: [number, number];
+  unit: Unit;
+}
+export interface Pattern {
+  x: number[];
+  y: (number | null)[];
+  unit: Unit;
+}
+export interface State {
+  revision: number;
+  hasImage: boolean;
+  imageName: string | null;
+  imagePath: string | null;
+  shape: [number, number] | null;
+  calibrationName: string | null;
+  calibrated: boolean;
+  projectName: string | null;
+  unit: Unit;
+  bins: number;
+  useMask: boolean;
+  transparentMask: boolean;
+  maskedPixels: number;
+  canUndoMask: boolean;
+  exampleAvailable: boolean;
+  elapsedMs: number | null;
+  configurationCount: number;
+  configurationIndex: number;
+  geometry: {
+    dist: number;
+    poni1: number;
+    poni2: number;
+    wavelength: number;
+    rot1: number;
+    rot2: number;
+    rot3: number;
+  };
+  calibration: Calibration;
+}
+export interface Calibration {
+  setupConfirmed: boolean;
+  detectorIsCustom: boolean;
+  referenceLines: { ring: number; x: number }[];
+  workflow: {
+    autoIncrement: boolean;
+    searchSize: number;
+    automaticRefinement: boolean;
+    algorithm: string;
+    deltaTth: number;
+    meanFactor: number;
+    intensityLimit: number;
+    numberOfRings: number;
+  };
+  parameters: Record<string, { value: number; refine: boolean }>;
+  freeParameterCount: number;
+  polarization: number;
+  fitWavelength: boolean;
+  detectorFile: string | null;
+  distortionFile: string | null;
+  transformations: string[];
+  pyfai: Record<string, number>;
+  fit2d: Record<string, number>;
+  steps: string[];
+  geometrySource: string;
+  canUndo: boolean;
+  canRedo: boolean;
+  engine: string;
+  engineLabel: string;
+  engines: { id: string; label: string; available: boolean }[];
+  calibrant: string;
+  calibrants: string[];
+  detectors: string[];
+  detector: string;
+  pixelX: number;
+  pixelY: number;
+  distance: number;
+  wavelength: number;
+  fitTilts: boolean;
+  fitDirty: boolean;
+  rmsDegrees: number | null;
+  saved: boolean;
+  picks: { ring: number; points: number[][] }[];
+  rings: { ring: number; twoTheta: number }[];
+}
+export interface RingOverlay {
+  ring: number;
+  points: number[][];
+}
+export interface Response {
+  ok: boolean;
+  error?: string;
+  cancelled?: boolean;
+  state?: State;
+  image?: Raster;
+  mask?: Raster;
+  cake?: Cake | null;
+  pattern?: Pattern | null;
+  savedPath?: string;
+  pixel?: { x: number; y: number; value: number | null };
+  nextRing?: number;
+  levels?: [number, number] | null;
+  display?: "detector" | "cake";
+  progress?: { running: boolean; current: number; total: number };
+  linked?: { twoTheta: number; radial: number; contours: RingOverlay[] };
+  rings?: RingOverlay[];
+}
+export type Invoke = (
+  command: string,
+  args?: Record<string, unknown>,
+) => Promise<Response>;
+declare global {
+  interface Window {
+    pywebview?: { api: { invoke: Invoke } };
+  }
+}
+export const unitLabel = (unit: Unit) =>
+  ({ "2th_deg": "2θ (°)", "q_A^-1": "Q (Å⁻¹)", d_A: "d (Å)" })[unit];
+export const number = (value: number, digits = 2) =>
+  value.toLocaleString("en-US", { maximumFractionDigits: digits });

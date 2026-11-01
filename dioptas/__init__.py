@@ -11,16 +11,6 @@ setup_logging()
 
 logger = logging.getLogger(__name__)
 
-# If QT_API is not set, use PyQt6 by default
-if "QT_API" not in os.environ:
-    try:
-        import PyQt6.QtCore
-    except ImportError:
-        pass
-
-from qtpy import QtWidgets
-from qt_material import apply_stylesheet
-
 try:
     from pyshortcuts import make_shortcut
 except ImportError:
@@ -36,8 +26,6 @@ except Exception:
         __version__ = "0.0.0"
 
 from .paths import resources_path, calibrants_path, icons_path, data_path, style_path
-from .excepthook import excepthook
-from .controller.MainController import MainController
 
 
 theme_path = os.path.join(style_path, "dark_orange.xml")
@@ -58,6 +46,8 @@ def _check_dioptrin_license():
     except dioptrin.LicenseNotFoundError:
         return False
     except dioptrin.LicenseExpiredError:
+        from qtpy import QtWidgets
+
         QtWidgets.QMessageBox.warning(
             None,
             "Dioptrin License Expired",
@@ -84,6 +74,8 @@ def _set_application_icon(app):
 
 
 def _apply_application_stylesheet(app):
+    from qt_material import apply_stylesheet
+
     apply_stylesheet(app, theme=theme_path, extra={"density_scale": -2})
     # qt-material's css_file reader uses the system encoding, which fails on
     # Chinese Windows (GBK). Our bundled CSS is UTF-8; load it explicitly.
@@ -94,6 +86,18 @@ def _apply_application_stylesheet(app):
 
 def main():
     global _dioptrin_available
+
+    # GUI imports belong to the Qt entry point. Scripts and the React desktop
+    # client use the models without importing Dioptas widgets/controllers.
+    # Scientific dependencies may still probe their own optional Qt helpers.
+    if "QT_API" not in os.environ:
+        try:
+            import PyQt6.QtCore
+        except ImportError:
+            pass
+    from qtpy import QtWidgets
+    from .excepthook import excepthook
+    from .controller.MainController import MainController
 
     if _platform == "win32":
         # Windows resolves the taskbar button's icon through the application

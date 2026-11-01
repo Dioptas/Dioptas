@@ -195,3 +195,13 @@ $RECYCLE.BIN/
 
 .vscode/
 __pycache__/
+
+# React desktop build and local verification artifacts
+desktop/node_modules/
+dioptas/desktop/ui/
+desktop/artifacts/
+desktop/src-tauri/target/
+desktop/src-tauri/gen/
+
+# Disposable hot-reload smoke probe (normally removed automatically)
+desktop/src/__dioptas_live_check_*.css
