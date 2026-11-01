@@ -128,7 +128,6 @@ export function MaskPanel({
   return (
     <div className="mask-controls">
       <section className="sidebar-section">
-        <div className="section-label">DRAWING</div>
         <div
           className="mask-grid"
           role="radiogroup"
