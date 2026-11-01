@@ -297,12 +297,24 @@ class CalibrationWorkflow:
         }
         if operation not in operations:
             raise ValueError("Unknown image transformation.")
+        # Keep the user mask attached to the same source pixels across transforms.
+        from dioptas.model.ImgModel import TRANSFORMATION_FUNCTIONS
+        mask = self.configuration.mask_model.get_img().copy()
+        if operation == "reset":
+            inverse = {"rotate_matrix_p90": "rotate_matrix_m90", "rotate_matrix_m90": "rotate_matrix_p90"}
+            for name in reversed(image.params.transformations):
+                mask = TRANSFORMATION_FUNCTIONS[inverse.get(name, name)](mask)
+        else:
+            name = {"rotate_left": "rotate_matrix_m90", "rotate_right": "rotate_matrix_p90",
+                    "flip_horizontal": "fliplr", "flip_vertical": "flipud"}[operation]
+            mask = TRANSFORMATION_FUNCTIONS[name](mask)
         for transform in operations[operation]:
             transform()
+        self.configuration.mask_model.set_mask_data(mask.copy())
+        self.configuration._update_plugin_masks()
         c.clear_peaks()
         self._fit_rms = None
         self._fit_dirty = c.is_calibrated
-        self._undo_masks.clear()
         self._calculate()
         return self._snapshot(include_image=True)
 
@@ -347,22 +359,6 @@ class CalibrationWorkflow:
         self._fit_dirty = c.is_calibrated
         self._fit_rms = None
         return self._state()
-
-    def _mask_file(self, path=None, save=False):
-        if not self._has_image:
-            raise ValueError("Open an image first.")
-        path = self._path(path, "mask", save=save)
-        if path is None:
-            return {"cancelled": True}
-        if save:
-            self.configuration.mask_model.save_mask(path)
-            return {"savedPath": path}
-        self._remember_mask()
-        if not self.configuration.mask_model.load_mask(path):
-            raise ValueError("Mask dimensions do not match the current image.")
-        self.configuration.use_mask = True
-        self._calculate()
-        return self._snapshot()
 
     def _manual_geometry(self, convention, values):
         c = self.configuration.calibration_model

@@ -86,8 +86,16 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
         "integration_save_batch" => ("Integrated batch", &["h5", "csv"], "integrated.h5", true),
         "mask_file" => (
             "Detector mask",
-            &["mask", "npy", "tif", "edf"],
-            "mask.mask",
+            if payload["flipud"] == true {
+                &["npy", "edf"]
+            } else {
+                &["mask", "npy", "tif", "tiff", "edf"]
+            },
+            if payload["flipud"] == true {
+                "mask.npy"
+            } else {
+                "mask.mask"
+            },
             payload["save"] == true,
         ),
         "detector_file" => ("Detector definition", &["h5", "hdf5", "nxs"], "", false),
@@ -207,6 +215,7 @@ fn main() {
         })
         .on_page_load(move |webview, payload| {
             if smoke && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+                let _ = webview.eval(include_str!("../../scripts/mask_native_smoke.js"));
                 let _ = webview.eval(include_str!("../../scripts/tauri_smoke.js"));
             }
         })
@@ -258,6 +267,14 @@ mod tests {
                 .unwrap()
                 .save
         );
+        assert!(
+            !file_choice("mask_file", &json!({"add": true}))
+                .unwrap()
+                .save
+        );
+        let flipped = file_choice("mask_file", &json!({"save": true, "flipud": true})).unwrap();
+        assert_eq!(flipped.name, "mask.npy");
+        assert_eq!(flipped.extensions, &["npy", "edf"]);
         assert!(file_choice("state", &json!({})).is_none());
     }
 }

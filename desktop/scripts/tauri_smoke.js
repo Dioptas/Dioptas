@@ -191,6 +191,14 @@
       document.querySelectorAll(".intensity-histogram").length === 2,
       "Integration histograms are not independent",
     );
+    const maskWorkflow = await window.__dioptasMaskNativeSmoke({
+      call,
+      click,
+      input,
+      ready,
+      delay,
+      check,
+    });
     let hotReloadVerified = false;
     if (location.hostname === "127.0.0.1") {
       const token = {};
@@ -230,6 +238,7 @@
         integrationPhaseLines: phase.pattern.phaseLines.length,
         integrationPatternSaved: savedPattern.savedPath,
         hotReloadVerified,
+        maskWorkflow,
       },
     });
   } catch (error) {

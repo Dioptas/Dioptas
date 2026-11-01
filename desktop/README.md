@@ -82,10 +82,11 @@ Its `--dev` option still supports live frontend updates independently of Tauri.
    groups, or undo/redo edits; refine again after editing selections.
 7. Save a `.poni` calibration. Alternatively, load an existing PONI or enter
    complete geometry using the pyFAI or Fit2D editor, without picking peaks.
-8. Switch to **Integration** for image/cake/pattern display, integration options,
-   shared masks, backgrounds, corrections, overlays/phases and Qt-style pattern
-   save/autocreate controls. See INTEGRATION_PARITY.md for coverage and limits.
-   Calibration also offers mask load/save/use,
+8. Switch to **Mask** for drawing, geometric selections, thresholds, automatic
+   masks and mask files; see [Mask parity](MASK_PARITY.md). Switch to
+   **Integration** for image/cake/pattern display, integration options, shared
+   masks, backgrounds, corrections, overlays/phases and Qt-style pattern saving;
+   see [Integration parity](INTEGRATION_PARITY.md). Calibration also offers mask load/save/use,
    image transformations, detector definitions, distortion splines, and custom
    calibrant `.D` files.
 
