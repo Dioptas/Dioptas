@@ -41,6 +41,7 @@ export function RasterView({
   showNumbers = false,
   activeRing,
   maskOpacity = 0.72,
+  imagePadding = 4,
   overlay,
   onImageDoubleClick,
   peaks = [],
@@ -65,6 +66,7 @@ export function RasterView({
   showNumbers?: boolean;
   activeRing?: number;
   maskOpacity?: number;
+  imagePadding?: number;
   overlay?: MaskOverlay;
   onImageDoubleClick?: () => void;
   peaks?: { x: number; y: number; ring: number; selected?: boolean }[];
@@ -135,10 +137,10 @@ export function RasterView({
     navigation.reset();
     setStroke([]);
   }, [raster.fullWidth, raster.fullHeight, resetKey]);
-  const left = cake ? 60 : 4,
-    right = cake ? 22 : 4,
-    top = cake ? 20 : 4,
-    bottom = cake ? 44 : 4;
+  const left = cake ? 60 : imagePadding,
+    right = cake ? 22 : imagePadding,
+    top = cake ? 20 : imagePadding,
+    bottom = cake ? 44 : imagePadding;
   const plotWidth = Math.max(1, size.width - left - right),
     plotHeight = Math.max(1, size.height - top - bottom);
   const fitX = cake

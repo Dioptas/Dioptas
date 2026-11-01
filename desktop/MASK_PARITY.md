@@ -43,8 +43,9 @@ that switch unchanged while editing.
 
 - `MaskView.tsx`, `MaskPanel.tsx`, `maskDomain.ts` and `mask.css` own the mode's
   layout, controls, preview construction and selection state.
-- `RasterView` has two opt-in props: `overlay` (source-pixel paths or ellipse)
-  and `onImageDoubleClick`. Their defaults leave calibration/cake behavior
+- `RasterView` has opt-in props: `overlay` (source-pixel paths or ellipse),
+  `onImageDoubleClick`, and `imagePadding` (Mask uses zero inset).
+  Their defaults leave calibration/cake behavior
   unchanged. Shapes use the existing `onPick` hook. The renderer remains the
   only owner of coordinate mapping, orientation, zoom, pan, wheel capture,
   resizing and square-pixel display. No renderer or gesture code was copied.

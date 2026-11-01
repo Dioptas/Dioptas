@@ -153,6 +153,7 @@ export function MaskView({
         <div className="detector-workspace">
           <RasterView
             raster={image}
+            imagePadding={0}
             mask={show ? (mask ?? undefined) : undefined}
             maskOpacity={state?.transparentMask ? 0.4 : 1}
             limits={limits}
