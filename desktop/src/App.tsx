@@ -13,7 +13,6 @@ import {
   Hand,
   Layers,
   LoaderCircle,
-  Maximize,
   Plus,
   Save,
   Sparkles,
@@ -153,8 +152,7 @@ export default function App() {
     [radius, setRadius] = useState(20);
   const [logImage, setLogImage] = useState(false),
     [logPattern, setLogPattern] = useState(false);
-  const [palette, setPalette] = useState<Palette>("grey"),
-    [showMask, setShowMask] = useState(true);
+  const [palette, setPalette] = useState<Palette>("grey");
   const [limits, setLimits] = useState<[number, number]>([0, 100]);
   const cakeSource = useRef<Cake | null>(null);
   const [cakeLimits, setCakeLimits] = useState<[number, number]>([0, 100]);
@@ -696,32 +694,6 @@ export default function App() {
                 className={`views-grid ${mode === "calibration" ? (calibrationStep === 3 ? "validation-views" : "image-only") : ""}`}
               >
                 <section className="panel detector-panel">
-                  <div className="panel-heading">
-                    <div>
-                      <span className="panel-dot amber" />
-                      <h2>Detector image</h2>
-                      {state?.shape && (
-                        <span className="panel-meta">
-                          {state.shape[1]} × {state.shape[0]}
-                        </span>
-                      )}
-                    </div>
-                    <div>
-                      <ZoomModeSelect
-                        value={detectorZoom}
-                        onChange={setDetectorZoom}
-                        label="Detector zoom mode"
-                      />
-                      <button
-                        className="icon-button"
-                        aria-label="Fit detector image"
-                        title="Fit image · F"
-                        onClick={() => setResetKey((k) => k + 1)}
-                      >
-                        <Maximize size={14} />
-                      </button>
-                    </div>
-                  </div>
                   <div className="detector-toolbar">
                     <div className="tool-group">
                       {mode === "calibration" && (
@@ -811,22 +783,18 @@ export default function App() {
                     >
                       <Trash2 size={14} />
                     </button>
-                    <label className="overlay-toggle">
-                      <input
-                        type="checkbox"
-                        aria-label="Show mask overlay"
-                        checked={showMask}
-                        onChange={(e) => setShowMask(e.target.checked)}
-                      />
-                      Mask
-                    </label>
+                    <ZoomModeSelect
+                      value={detectorZoom}
+                      onChange={setDetectorZoom}
+                      label="Detector zoom mode"
+                    />
                   </div>
                   {image ? (
                     <div className="detector-workspace">
                       <RasterView
                         raster={image}
                         zoomMode={detectorZoom}
-                        mask={showMask ? (mask ?? undefined) : undefined}
+                        mask={mask ?? undefined}
                         maskOpacity={
                           state?.transparentMask?.valueOf() ? 0.72 : 1
                         }
@@ -991,30 +959,6 @@ export default function App() {
                 </section>
                 {(mode === "integration" || calibrationStep === 3) && (
                   <section className="panel cake-panel">
-                    <div className="panel-heading">
-                      <div>
-                        <span className="panel-dot teal" />
-                        <h2>Azimuthal cake</h2>
-                      </div>
-                      <div>
-                        <ZoomModeSelect
-                          value={cakeZoom}
-                          onChange={setCakeZoom}
-                          label="Cake zoom mode"
-                        />
-                        <span className="panel-meta">
-                          {cake
-                            ? `${(cake.azimuthRange[1] - cake.azimuthRange[0]).toFixed(1)}°`
-                            : ""}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="cake-subheading">
-                      <span>Radial intensity by azimuth</span>
-                      <span>
-                        {state?.calibration.engineLabel ?? "pyFAI"} · 2D
-                      </span>
-                    </div>
                     {cake ? (
                       <div className="detector-workspace cake-workspace">
                         <RasterView
@@ -1072,12 +1016,14 @@ export default function App() {
                     <div className="panel-footer">
                       <span>
                         {cake
-                          ? `${cake.fullWidth} radial × ${cake.fullHeight} azimuthal bins`
+                          ? unitLabel(cake.unit)
                           : "Awaiting calibrated image"}
                       </span>
-                      <span>
-                        {cake ? unitLabel(cake.unit) : "2D integration"}
-                      </span>
+                      <ZoomModeSelect
+                        value={cakeZoom}
+                        onChange={setCakeZoom}
+                        label="Cake zoom mode"
+                      />
                     </div>
                   </section>
                 )}

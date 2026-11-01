@@ -381,10 +381,6 @@ export function MapView({
             className="panel map-detector-panel"
             aria-label="Map detector image"
           >
-            <div className="panel-heading">
-              <span>Detector image</span>
-              {zoom(detectorZoom, setDetectorZoom, "Map detector zoom mode")}
-            </div>
             {image && state?.hasImage ? (
               <div className="detector-workspace">
                 <RasterView
@@ -444,6 +440,7 @@ export function MapView({
                 {detectorReadout ||
                   (state?.hasImage ? state.imageName : "No image selected")}
               </span>
+              {zoom(detectorZoom, setDetectorZoom, "Map detector zoom mode")}
             </div>
           </section>
           <div

@@ -9,10 +9,6 @@
   min-height: 0;
   position: relative;
 }
-.mask-view .panel-heading {
-  flex-wrap: wrap;
-  gap: 8px;
-}
 .mask-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -108,11 +104,6 @@
   width: 17px;
   height: 17px;
   margin: 0;
-}
-.mask-view .panel-heading > div:last-child {
-  display: flex;
-  align-items: center;
-  gap: 14px;
 }
 .mask-controls button[aria-pressed="true"] {
   color: var(--accent);

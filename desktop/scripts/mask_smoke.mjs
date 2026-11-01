@@ -151,8 +151,8 @@ try {
   await square();
   const originalImage = (await state()).image.data;
   await button("Configure detector display").click();
-  await page.getByLabel("Image scale", {exact:true}).selectOption("log");
-  await page.getByLabel("Maximum intensity", {exact:true}).fill("1000");
+  await page.getByLabel("Image scale", { exact: true }).selectOption("log");
+  await page.getByLabel("Maximum intensity", { exact: true }).fill("1000");
   await button("Close detector display settings").click();
   await selectColorMap(page, "Color map", "thermal");
   const detector = page.getByTestId("detector-canvas");
@@ -192,11 +192,16 @@ try {
   assert.equal(bytes[500 * 981 + 460], 1);
   const zoomBeforeUndo = await detector.getAttribute("data-view-x-min");
   const contrastBeforeUndo = await detector.getAttribute("data-intensity-max");
-  await button("Undo mask").click();await waitReady();
+  await button("Undo mask").click();
+  await waitReady();
   assert.equal(await detector.getAttribute("data-view-x-min"), zoomBeforeUndo);
-  assert.equal(await detector.getAttribute("data-intensity-max"), contrastBeforeUndo);
-  await button("Redo mask").click();await waitReady();
-  await button("Fit mask detector").click();
+  assert.equal(
+    await detector.getAttribute("data-intensity-max"),
+    contrastBeforeUndo,
+  );
+  await button("Redo mask").click();
+  await waitReady();
+  await page.keyboard.press("f");
   await square();
   await button("Circle").click();
   await clickSource(300, 400);
@@ -248,9 +253,12 @@ try {
   await page.getByLabel("Use mask", { exact: true }).click();
   await waitReady();
   assert.equal((await state()).state.useMask, false);
-  await page.getByLabel("Display mask", { exact: true }).uncheck();
+  assert.equal(
+    await page.getByLabel("Display mask", { exact: true }).count(),
+    0,
+  );
+  assert.equal(await button("Fit mask detector").count(), 0);
   assert.equal((await state()).mask.data, saved);
-  await page.getByLabel("Display mask", { exact: true }).check();
   await button("Clear").click();
   await waitReady();
   await page.getByLabel("Above threshold counts", { exact: true }).fill("1000");
@@ -311,7 +319,7 @@ try {
   assert.ok((await state()).state.maskedPixels > 0);
   await page.getByLabel("Mask radial unit").selectOption("q_A^-1");
   assert.equal(await page.getByLabel("Mask range minimum").inputValue(), "");
-  await page.locator(".sidebar-scroll").evaluate(el=>el.scrollTop=0);
+  await page.locator(".sidebar-scroll").evaluate((el) => (el.scrollTop = 0));
   await page.waitForTimeout(4600);
   await page.screenshot({ path: path.join(artifacts, "mask-mode.png") });
   await page.setViewportSize({ width: 1000, height: 760 });

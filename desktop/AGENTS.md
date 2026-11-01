@@ -12,6 +12,9 @@ and CALIBRATION_PARITY.md before changing its command or plot boundaries.
   view headlines. Controls use readable 14–15 px text, with the existing larger
   text option. Neutral charcoal backgrounds, orange accents, green elongated
   crystal identity. Do not turn backgrounds green.
+- Images have no extra title/dimension header, Fit button or Display mask
+  toggle. Keep zoom choices in existing toolbars/footers; F and right double
+  click restore the view. Mask-use and transparency controls belong to task options.
 - Every image has independent intensity limits, linear/log (linear default),
   Auto modes and visual colour-map selector. Use existing ImageIntensity:
   default right in single-image views, top in multi-image views.

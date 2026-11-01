@@ -22,7 +22,7 @@ operations, including radial range masking and the three built-in plugins.
 | Automatic masking plugins | Runtime discovery, enable/disable, schema-based settings, defaults draft, Apply and imprint; built-in Threshold Mask, Cosmic Ray Mask and Spot Mask |
 | File load / add / save | `.mask` (TIFF), NumPy, EDF and TIFF, shape and numeric validation, OR merging and native dialogs |
 | Vertically flipped files | Explicit file-orientation checkbox, matching Qt's flipped NumPy/EDF choices; native chooser defaults to `mask.npy` when enabled |
-| Use / display / transparency | Separate use and display switches; transparency changes the overlay only |
+| Use / transparency | Mask remains visible while editing; separate use switch controls processing, transparency changes the overlay only |
 | Undo / redo | Existing application history, including edits, file loads, plugin settings/imprints and transforms; Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z and Ctrl+Y |
 
 Clear, invert, grow and shrink operate on the user mask, as in Qt. Active

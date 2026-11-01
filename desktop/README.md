@@ -148,14 +148,17 @@ The detector image has no axes, ticks or surrounding card. Its pixels stay
 square during zoom, pan, histogram resizing and window resizing. Cake and
 pattern retain their scientific axes.
 
-Each plot header offers **Horizontal** and **Rectangle** modes. The integrated
+Each plot offers **Horizontal** and **Rectangle** modes. The integrated
 pattern defaults to Horizontal, retaining its automatic intensity scaling.
 Rectangle mode selects both radial and intensity ranges. Detector and cake
 plots default to Rectangle; detector views preserve square pixels.
 
 In the Pick rings step, a stationary left click picks peaks. A left drag zooms
 without adding peaks. In a mask/eraser tool, left drag paints; right-button
-navigation remains available. `F` or the detector fit button restores the image.
+navigation remains available. `F` or right double-click restores the image.
+Detector and cake images have no extra title/dimension header, Fit button or
+Display mask toggle. Zoom choices use the existing toolbar/footer; masks remain
+visible, with use and transparency controlled in task options.
 
 The interface defaults to warm orange accents, with a green hexagonal-prism
 symbol elongated along its c direction. Its six-sided prism has an inclined

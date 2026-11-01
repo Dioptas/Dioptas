@@ -43,10 +43,8 @@ export function MaskView({
     image?.limits ?? [0, 100],
   );
   const [log, setLog] = useState(false),
-    [palette, setPalette] = useState("grey"),
-    [show, setShow] = useState(true);
-  const [fit, setFit] = useState(0),
-    [points, setPoints] = useState<MaskPoint[]>([]),
+    [palette, setPalette] = useState("grey");
+  const [points, setPoints] = useState<MaskPoint[]>([]),
     [hover, setHover] = useState<MaskPoint | null>(null);
   const [preferences, setPreferences] = useState<ImageDisplayPreferences>({
     size: "compact",
@@ -119,41 +117,11 @@ export function MaskView({
       className="panel detector-panel mask-view"
       aria-label="Mask detector workspace"
     >
-      <div className="panel-heading">
-        <div>
-          <span className="panel-dot amber" />
-          <h2>Detector image</h2>
-          {state?.shape && (
-            <span className="panel-meta">
-              {state.shape[1]} × {state.shape[0]}
-            </span>
-          )}
-        </div>
-        <div>
-          <button
-            onClick={() => {
-              setFit(fit + 1);
-              setPoints([]);
-            }}
-            aria-label="Fit mask detector"
-          >
-            Fit
-          </button>
-          <label className="check-line">
-            <input
-              type="checkbox"
-              checked={show}
-              onChange={(e) => setShow(e.target.checked)}
-            />
-            Display mask
-          </label>
-        </div>
-      </div>
       {image ? (
         <div className="detector-workspace">
           <RasterView
             raster={image}
-            mask={show ? (mask ?? undefined) : undefined}
+            mask={mask ?? undefined}
             maskOpacity={state?.transparentMask ? 0.4 : 1}
             limits={limits}
             log={log}
@@ -169,7 +137,7 @@ export function MaskView({
             }
             radius={tools.diameter / 2}
             busy={busy}
-            resetKey={resetKey + fit}
+            resetKey={resetKey}
             onPick={pick}
             overlay={previewMask(tools.shape, points, hover, tools.erase)}
             onImageDoubleClick={() => {
