@@ -6,6 +6,9 @@ import { fileURLToPath } from "node:url";
 
 const desktop = fileURLToPath(new URL("../", import.meta.url));
 const live = process.argv.includes("--live");
+const mapSmoke = process.argv.includes("--map");
+if (live && mapSmoke)
+  throw Error("Map native smoke uses bundled assets; run with --map only.");
 const artifacts = new URL("../artifacts/", import.meta.url);
 const probe = new URL("../src/__dioptas_live_check_tauri.css", import.meta.url);
 await mkdir(artifacts, { recursive: true });
@@ -24,7 +27,7 @@ const child = spawn(
   live ? "npm" : "src-tauri/target/debug/dioptas-desktop",
   live
     ? ["run", "tauri:dev", "--", "--", "--", "--example", "--smoke"]
-    : ["--example", "--smoke"],
+    : ["--example", "--smoke", ...(mapSmoke ? ["--map-smoke"] : [])],
   { cwd: desktop, stdio: ["ignore", "pipe", "pipe"] },
 );
 const logs = [];
@@ -54,7 +57,7 @@ try {
     true,
     report?.error ?? "No native smoke report received",
   );
-  assert.equal(report.hotReloadVerified, live);
+  if (!mapSmoke) assert.equal(report.hotReloadVerified, live);
   assert.throws(
     () => process.kill(report.processingPid, 0),
     { code: "ESRCH" },
@@ -63,7 +66,11 @@ try {
   report.processingReaped = true;
   await writeFile(
     new URL(
-      live ? "tauri-live-smoke.json" : "tauri-native-smoke.json",
+      mapSmoke
+        ? "tauri-map-smoke.json"
+        : live
+          ? "tauri-live-smoke.json"
+          : "tauri-native-smoke.json",
       artifacts,
     ),
     JSON.stringify(report, null, 2) + "\n",
@@ -71,7 +78,11 @@ try {
 } finally {
   await writeFile(
     new URL(
-      live ? "tauri-live-smoke.log" : "tauri-native-smoke.log",
+      mapSmoke
+        ? "tauri-map-smoke.log"
+        : live
+          ? "tauri-live-smoke.log"
+          : "tauri-native-smoke.log",
       artifacts,
     ),
     logs.join("\n") + "\n",

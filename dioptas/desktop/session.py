@@ -29,6 +29,7 @@ from dioptas import calibrants_path
 from .engines import available_engines, make_engine
 from .calibration import CalibrationWorkflow
 from .display import image_levels
+from .map import MapWorkflow
 
 logger = logging.getLogger(__name__)
 UNITS = {"2th_deg", "q_A^-1", "d_A"}
@@ -94,7 +95,7 @@ def _finite_number(value: Any, name: str, low: float, high: float) -> float:
     return number
 
 
-class DesktopSession(CalibrationWorkflow):
+class DesktopSession(CalibrationWorkflow, MapWorkflow):
     """One scientific session. A native window can supply its file picker."""
 
     def __init__(self, choose_file=None):
@@ -203,6 +204,7 @@ class DesktopSession(CalibrationWorkflow):
             "manual_geometry": self._manual_geometry,
             "validation_position": self._validation_position,
         }
+        handlers.update(self._map_commands())
         with self._lock:
             try:
                 if action not in handlers:
@@ -224,7 +226,7 @@ class DesktopSession(CalibrationWorkflow):
                 }
                 context = (
                     nullcontext()
-                    if action in readonly
+                    if action in readonly or action.startswith("map_")
                     else self._model.history.transaction(action)
                 )
                 with context:
@@ -321,6 +323,7 @@ class DesktopSession(CalibrationWorkflow):
 
     def _snapshot(self, include_image=False):
         result = self._state()
+        result.update(self._map_snapshot())
         result.update(pattern=self._pattern, cake=self._cake)
         result["rings"] = self._rings
         if self._has_image:
@@ -435,6 +438,7 @@ class DesktopSession(CalibrationWorkflow):
         self._fit_rms = metadata.get("rms_degrees")
         self._has_image = candidate.img_model.img_data is not None
         self._project = path
+        self._restore_map_normalization(path)
         self._undo_masks.clear()
         self._calculate()
         return self._snapshot(include_image=True)
@@ -454,6 +458,7 @@ class DesktopSession(CalibrationWorkflow):
         try:
             self._model.save(temporary)
             with h5py.File(temporary, "r+") as project:
+                self._save_map_normalization(project)
                 project.attrs["react_desktop"] = json.dumps(
                     {
                         "version": 1,

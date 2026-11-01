@@ -21,6 +21,11 @@ struct FileChoice {
 }
 
 fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
+    if action == "map_load"
+        && (payload.get("paths").is_some_and(|v| !v.is_null()) || payload["reintegrate"] == true)
+    {
+        return None;
+    }
     if payload.get("path").is_some_and(|v| !v.is_null()) || payload["reset"] == true {
         return None;
     }
@@ -30,6 +35,23 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
             &["tif", "tiff", "edf", "cbf", "h5", "hdf5", "nxs", "mar3450"],
             "",
             false,
+        ),
+        "map_load" => (
+            "Scan detector images",
+            &["tif", "tiff", "edf", "cbf", "h5", "hdf5", "nxs", "mar3450"],
+            "",
+            false,
+        ),
+        "map_batch" => ("Processed batch", &["h5", "hdf5", "nxs"], "", false),
+        "map_export" => (
+            "Map data",
+            &["txt", "tiff", "png"],
+            if payload.get("png_data").is_some() {
+                "map.png"
+            } else {
+                "map.txt"
+            },
+            true,
         ),
         "open_calibration" => ("PONI calibration", &["poni"], "", false),
         "save_calibration" => ("PONI calibration", &["poni"], "calibration.poni", true),
@@ -72,12 +94,41 @@ async fn desktop_invoke(
         return Err("Command arguments must be an object.".into());
     }
     tauri::async_runtime::spawn_blocking(move || {
+        if action == "map_folder" && payload.get("path").is_none_or(|v| v.is_null()) {
+            let selected = app.dialog().file().blocking_pick_folder();
+            let Some(selected) = selected else {
+                return Ok(json!({"ok": true, "cancelled": true}));
+            };
+            payload["path"] = Value::String(
+                selected
+                    .into_path()
+                    .map_err(|e| e.to_string())?
+                    .to_string_lossy()
+                    .into_owned(),
+            );
+        }
         if let Some(choice) = file_choice(&action, &payload) {
             let dialog = app
                 .dialog()
                 .file()
                 .add_filter(choice.label, choice.extensions)
                 .add_filter("All files", &["*"]);
+            if action == "map_load" {
+                let Some(selected) = dialog.blocking_pick_files() else {
+                    return Ok(json!({"ok": true, "cancelled": true}));
+                };
+                let mut paths = Vec::new();
+                for file in selected {
+                    paths.push(
+                        file.into_path()
+                            .map_err(|e| e.to_string())?
+                            .to_string_lossy()
+                            .into_owned(),
+                    );
+                }
+                payload["paths"] = json!(paths);
+                return processor.request(&action, payload);
+            }
             let selected = if choice.save {
                 dialog.set_file_name(choice.name).blocking_save_file()
             } else {
@@ -115,6 +166,7 @@ fn native_smoke_report(
 fn main() {
     let args: Vec<_> = std::env::args().collect();
     let smoke = args.iter().any(|a| a == "--smoke");
+    let map_smoke = args.iter().any(|a| a == "--map-smoke");
     let example = args.iter().any(|a| a == "--example");
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -143,7 +195,11 @@ fn main() {
         })
         .on_page_load(move |webview, payload| {
             if smoke && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
-                let _ = webview.eval(include_str!("../../scripts/tauri_smoke.js"));
+                let _ = webview.eval(if map_smoke {
+                    include_str!("../../scripts/tauri_map_smoke.js")
+                } else {
+                    include_str!("../../scripts/tauri_smoke.js")
+                });
             }
         })
         .build(tauri::generate_context!())
@@ -175,5 +231,16 @@ mod tests {
                 .save
         );
         assert!(file_choice("state", &json!({})).is_none());
+        assert!(file_choice("map_load", &json!({})).is_some());
+        assert!(file_choice("map_load", &json!({"paths": ["a.tif"]})).is_none());
+        assert!(file_choice("map_load", &json!({"reintegrate": true})).is_none());
+        assert!(file_choice("map_batch", &json!({})).is_some());
+        assert!(file_choice("map_export", &json!({})).unwrap().save);
+        assert_eq!(
+            file_choice("map_export", &json!({"png_data": "png"}))
+                .unwrap()
+                .name,
+            "map.png"
+        );
     }
 }

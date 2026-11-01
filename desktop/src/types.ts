@@ -1,3 +1,4 @@
+import type { MapData } from "./mapDomain";
 export type Unit = "2th_deg" | "q_A^-1" | "d_A";
 export type Tool = "pan" | "mask" | "erase" | "pick";
 export type Palette = string;
@@ -112,6 +113,11 @@ export interface RingOverlay {
   points: number[][];
 }
 export interface Response {
+  map?: MapData | null;
+  mapLevels?: [number, number];
+  mapWarning?: string | null;
+  mapPreview?: Raster;
+  mapContours?: number[][][];
   ok: boolean;
   error?: string;
   cancelled?: boolean;
@@ -125,7 +131,12 @@ export interface Response {
   nextRing?: number;
   levels?: [number, number] | null;
   display?: "detector" | "cake";
-  progress?: { running: boolean; current: number; total: number };
+  progress?: {
+    running: boolean;
+    current: number;
+    total: number;
+    label?: string;
+  };
   linked?: { twoTheta: number; radial: number; contours: RingOverlay[] };
   rings?: RingOverlay[];
 }

@@ -69,6 +69,14 @@ command and numerical round-trip tests remain.
 
 ## Remaining scope
 
+Map-branch recheck (2026-11-01): Python/browser calibration regressions pass, but
+this branch's bundled native calibration smoke timed out. The timeout was also
+reproduced with baseline UI components and the Python session restored. Native
+Map workflow and chooser checks pass; see [Map parity](MAP_PARITY.md). The native
+calibration timeout remains a qualification gap alongside the earlier evidence
+below.
+
+
 Tauri host verification (2026-11-01): embedded-asset and live native windows both
 complete measured-image peak picking, fitting and detector/cake validation.
 The live window applies a disposable CSS edit without a document reload.
@@ -79,8 +87,9 @@ The existing browser interaction checks still pass. Scientific Python and
 optional-engine boundaries are unchanged; a portable Python bundle is pending.
 
 The preview still lacks the complete integration/correction, phases/overlays,
-configuration switching, acquisition/map/batch and explicit HDF5 dataset-selection
-interfaces. Project configurations are preserved, but only the selected one is
+configuration switching, acquisition/full batch and explicit HDF5 dataset-selection
+interfaces. A dedicated Map mode is documented in [Map parity](MAP_PARITY.md).
+Project configurations are preserved, but only the selected one is
 displayed. There is no new uncertainty estimator or geometry-identifiability
 diagnostic. The native host now supports Tauri/WKWebView, with a local stdio
 process using the existing Python scientific runtime. The earlier pywebview host

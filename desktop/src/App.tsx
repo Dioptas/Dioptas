@@ -36,6 +36,9 @@ import type {
   Unit,
 } from "./types";
 import { number, unitLabel } from "./types";
+import { MapView } from "./MapView";
+import { MapControls } from "./MapControls";
+import type { MapData } from "./mapDomain";
 import { RasterView } from "./RasterView";
 import { PatternView } from "./PatternView";
 import { CalibrationControls } from "./CalibrationControls";
@@ -107,9 +110,23 @@ export default function App() {
   const [cakeZoom, setCakeZoom] = useState<ZoomMode>("rectangle");
   const [patternZoom, setPatternZoom] = useState<ZoomMode>("horizontal");
   const [setupDirty, setSetupDirty] = useState(false);
-  const [mode, setMode] = useState<"calibration" | "integration">(
+  const [mode, setMode] = useState<"calibration" | "integration" | "map">(
     "calibration",
   );
+  const [map, setMap] = useState<MapData | null>(null);
+  const [mapLevels, setMapLevels] = useState<[number, number]>();
+  const [mapWarning, setMapWarning] = useState<string | null>(null);
+  const [mapReintegrate, setMapReintegrate] = useState(false);
+  const requestMap = async (command: string, args: Record<string, unknown> = {}) => {
+    if (!bridge.current || inFlight.current) return;
+    try {
+      const result = await bridge.current(command, args);
+      if (!result.ok) setError(result.error ?? "Map command failed.");
+      return result;
+    } catch (error) {
+      setError(String(error));
+    }
+  };
   const [ring, setRing] = useState(1),
     [automatic, setAutomatic] = useState(true);
   const [rings, setRings] = useState<RingOverlay[]>([]);
@@ -173,6 +190,9 @@ export default function App() {
   const apply = useCallback((result: Response) => {
     if (!result.ok)
       throw new Error(result.error || "The operation could not be completed.");
+    if ("map" in result) setMap(result.map ?? null);
+    if (result.mapLevels) setMapLevels(result.mapLevels);
+    if ("mapWarning" in result) setMapWarning(result.mapWarning ?? null);
     if (result.state) {
       setState(result.state);
       setBins(String(result.state.bins));
@@ -425,7 +445,9 @@ export default function App() {
           <span>{state?.projectName ?? "Untitled experiment"}</span>
           <ChevronRight size={13} />
           <strong>
-            {mode === "calibration" ? "Calibration" : "Integration"}
+            {mode === "calibration"
+              ? "Calibration"
+              : mode === "map" ? "Map" : "Integration"}
           </strong>
         </div>
         <div className="header-actions">
@@ -457,7 +479,7 @@ export default function App() {
           </button>
           <button
             className="quiet"
-            disabled={!ready || !state?.hasImage}
+            disabled={!ready || (!state?.hasImage && !map)}
             onClick={() => run("save_project", {}, "Saving project…")}
             title="Save project · ⌘S"
           >
@@ -503,9 +525,25 @@ export default function App() {
             <span>Integration</span>
             {mode === "integration" && <span className="active-dot" />}
           </button>
+          <button
+            className={`workspace-nav ${mode === "map" ? "workspace-active" : ""}`}
+            onClick={() => { setMode("map"); setTool("pan"); }}
+          >
+            <Layers size={17} />
+            <span>Map</span>
+            {mode === "map" && <span className="active-dot" />}
+          </button>
         </nav>
 
-        <main className={mode === "calibration" ? "calibration-mode" : ""}>
+        <main className={mode === "calibration" ? "calibration-mode" : mode === "map" ? "map-mode" : ""}>
+          {mode === "map" ? (
+            <MapView
+              map={map} image={image} mask={mask} pattern={pattern}
+              state={state} ready={ready} run={run} request={requestMap}
+              warning={mapWarning} reintegrate={mapReintegrate}
+              mapLevels={mapLevels} linked={linked}
+            />
+          ) : <>
           {mode === "calibration" && (
             <div className="workspace-toolbar">
               <div
@@ -1008,12 +1046,19 @@ export default function App() {
               </section>
             )}
           </div>
+          </>}
         </main>
         <aside
-          className={`sidebar ${mode === "calibration" ? "calibration-task-panel" : ""}`}
+          className={`sidebar ${mode === "calibration" ? "calibration-task-panel" : mode === "map" ? "map-task-panel" : ""}`}
         >
           <div className="options-label">EXPERIMENT OPTIONS</div>
           <div className="sidebar-scroll">
+            {mode === "map" ? (
+              <MapControls
+                map={map} state={state} ready={ready} run={run}
+                reintegrate={mapReintegrate} onReintegrate={setMapReintegrate}
+              />
+            ) : <>
             {mode === "calibration" && calibrationStep > 0 ? (
               <div
                 className="calibration-source-mini"
@@ -1358,6 +1403,7 @@ export default function App() {
                 </section>
               </>
             )}
+          </>}
           </div>
           {mode === "calibration" && (
             <div className="task-navigation">
@@ -1434,7 +1480,7 @@ export default function App() {
           )}
           <span role="status">
             {progress?.running
-              ? `Refining ring ${progress.current} / ${progress.total}`
+              ? `${progress.label ?? "Refining ring"} ${progress.current} / ${progress.total}`
               : busy ||
                 (mode === "calibration"
                   ? !state?.hasImage
@@ -1445,6 +1491,8 @@ export default function App() {
                         "Check fit parameters, then calibrate the detector.",
                         "Inspect the rings and residual, then save the calibration.",
                       ][calibrationStep]
+                  : mode === "map"
+                    ? map ? "Select a map cell to inspect its detector image and pattern." : "Load scan images or a processed batch."
                   : canIntegrate
                     ? "Ready"
                     : "Load a calibration to integrate this image.")}
@@ -1458,7 +1506,7 @@ export default function App() {
                 void bridge.current?.("cancel_refinement");
               }}
             >
-              Cancel refinement
+              {mode === "map" ? "Cancel map integration" : "Cancel refinement"}
             </button>
           )}
           <span>{state?.imageName ?? "No image loaded"}</span>

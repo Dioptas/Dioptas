@@ -1,8 +1,9 @@
 # Dioptas React / Tauri desktop preview
 
-An experimental React desktop interface for Dioptas, starting with detector
-calibration. It lives beside the existing Qt application and uses its scientific
-models and file formats. It is not a complete replacement yet.
+An experimental React desktop interface for Dioptas, with detector
+calibration and a dedicated Map workflow. See [Map parity](MAP_PARITY.md) for
+scan loading, linked selection, layers, layout and validation. It lives beside
+the existing Qt application and uses its scientific models and file formats. It is not a complete replacement yet.
 
 ## Run this checkout
 
@@ -247,7 +248,7 @@ transport tests verify cancellation bypass even when every request worker is bus
 - The frontend offers seeded calibration plus staged automatic ring refinement,
   not Dioptrin's full automatic calibration/ring-identification workflow.
 - Uncertainty estimates, background/correction controls, phases,
-  external overlays, batch/map/acquisition workflows, explicit HDF5 dataset
+  external overlays, the full batch/acquisition workspaces, explicit HDF5 dataset
   selection, and configuration switching do not yet have frontend controls.
   Existing `.dio` configurations are retained;
   only the selected configuration is displayed.
@@ -269,6 +270,12 @@ is Tauri; the scientific implementation still uses Python. WASM/browser-only
 execution is not implemented.
 
 ## Verification on 2026-11-01
+
+Map-branch recheck: Map's bundled native workflow and native file dialogs pass.
+The separate bundled calibration smoke timed out, also with the baseline UI and
+Python session restored; Python/browser calibration regressions pass. See
+[Map parity](MAP_PARITY.md) for this qualification and current validation counts.
+
 
 On macOS with CPython 3.13.5, checks cover the real CeO2 image workflow,
 individual fixed/free constraints, wavelength refinement, peak editing/history,
