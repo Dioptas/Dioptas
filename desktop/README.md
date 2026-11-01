@@ -412,3 +412,42 @@ suites above. The native smoke adds a `binaryTransfer` record with timings,
 transferred pixel bytes and rendered-cache checks. Filename/title assertions
 still require the existing window-title capability override when building the
 native test window; the binary transport adds no permissions.
+
+### Matched Qt/Python comparison
+
+The native smoke now saves `artifacts/qt-comparison.dio` for the Qt timing
+script. The measured comparison used the Qt checkout in
+`/Users/clemens/Programming/Dioptas`, the same two source images, exact saved
+geometry/mask/corrections, pyFAI, 600 radial bins and 90 cake azimuth bins.
+Both clients were 1440 × 908 logical pixels at device pixel ratio 1. Eight
+alternating switches were measured after warming each path. The final
+image_001 integrated patterns agreed exactly.
+
+| Complete switch, including repaint settling | Median |
+| --- | ---: |
+| Tauri, binary transfer and display caches | 160 ms |
+| Qt/Python, normal asynchronous processing | 166 ms |
+| Qt/Python, synchronous processing | 172 ms |
+
+Qt's asynchronous detector plot finished painting at a median 73 ms, while
+integration completed at 130 ms. The settled endpoint adds two 16-ms Qt waits;
+Tauri uses two animation-frame callbacks after its state becomes ready.
+These are approximate application comparisons with different event loops,
+so the small differences above should not be read as a renderer ranking or
+an isolated IPC measurement.
+
+Run the Qt side from the repository root without reading or writing user
+settings (only its own benchmark window is closed):
+
+```sh
+.venv/bin/python desktop/scripts/qt_image_benchmark.py \
+  --project desktop/artifacts/qt-comparison.dio \
+  --output desktop/artifacts/qt-image-benchmark-async.json
+```
+
+Add `--synchronous` for the synchronous Qt path, or `--qt-source PATH` to
+measure another Qt checkout using the same Python environment. The script
+uses the native report's client dimensions when
+`artifacts/qt-comparison-native.json` is available (`--native-report` overrides
+its path). Reports distinguish slot return, image-item paint, complete
+viewport paint, integration completion and settling time.

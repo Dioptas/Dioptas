@@ -10,6 +10,11 @@ window.__dioptasBinaryNativeSmoke = async ({
   const first = await call("open_image", {
     path: root + "/dioptas/tests/data/image_001.tif",
   });
+  // Preserve this exact geometry, mask and integration state for the Qt
+  // comparison, without changing any scientific inputs for the benchmark.
+  const comparisonProject = root + "/desktop/artifacts/qt-comparison.dio";
+  const saved = await call("save_project", { path: comparisonProject });
+  check(saved.ok, "Could not save the matched Qt benchmark project");
   const second = await call("next_image", { direction: 1 });
   const warm = await call("next_image", { direction: -1 });
   check(
@@ -36,7 +41,7 @@ window.__dioptasBinaryNativeSmoke = async ({
     "Cached arrays were resent over native IPC",
   );
   const times = [];
-  for (const direction of [1, -1, 1, -1]) {
+  for (const direction of [1, -1, 1, -1, 1, -1, 1, -1]) {
     const start = performance.now();
     const response = await call("next_image", { direction });
     times.push(performance.now() - start);
@@ -82,7 +87,7 @@ window.__dioptasBinaryNativeSmoke = async ({
   };
   const uiTimes = [];
   try {
-    for (const d of [1, -1, 1, -1]) uiTimes.push(await step(d));
+    for (const d of [1, -1, 1, -1, 1, -1, 1, -1]) uiTimes.push(await step(d));
   } finally {
     CanvasRenderingContext2D.prototype.createImageData = create;
   }
@@ -92,6 +97,15 @@ window.__dioptasBinaryNativeSmoke = async ({
   );
   await ready();
   return {
+    comparisonProject,
+    windowSize: [innerWidth, innerHeight],
+    devicePixelRatio,
+    integrationSettings: {
+      bins: first.state.bins,
+      unit: first.state.unit,
+      geometry: first.state.geometry,
+      integration: first.state.integration,
+    },
     firstTransferBytes: first.binaryTransfer.bytes,
     warmTransferBytes: warm.binaryTransfer.bytes,
     warmTransferredPixelBytes: warm.binaryTransfer.bufferBytes,
