@@ -12,6 +12,7 @@ import {
   type State,
 } from "./types";
 import type { MapData, MapRun } from "./mapDomain";
+import type { ReportPlot, PatternHover } from "./plotReadout";
 import type { ZoomMode } from "./usePlotNavigation";
 import "./map.css";
 const preferences = (): ImageDisplayPreferences => ({
@@ -47,10 +48,13 @@ export function MapView({
   ready,
   run,
   request,
-  warning,
   reintegrate,
   mapLevels,
   linked,
+  reportPlot,
+  onDetectorHover,
+  onPatternHover,
+  patternZoom,
 }: {
   map: MapData | null;
   image: Raster | null;
@@ -63,10 +67,13 @@ export function MapView({
     command: string,
     args?: Record<string, unknown>,
   ) => Promise<Response | undefined>;
-  warning: string | null;
   reintegrate: boolean;
   mapLevels?: [number, number];
   linked?: Response["linked"];
+  reportPlot: ReportPlot;
+  onDetectorHover: (point: { x: number; y: number } | null) => void;
+  onPatternHover: (point: PatternHover | null) => void;
+  patternZoom: ZoomMode;
 }) {
   const [smooth, setSmooth] = useState(false),
     [smoothFactor, setSmoothFactor] = useState(5);
@@ -98,38 +105,16 @@ export function MapView({
   }, [map, ready, smooth, smoothFactor, showContours, contourCount]);
   const display = useDisplay(map?.raster ?? null),
     detector = useDisplay(image);
-  const [mapZoom, setMapZoom] = useState<ZoomMode>("rectangle"),
-    [detectorZoom, setDetectorZoom] = useState<ZoomMode>("rectangle"),
-    [patternZoom, setPatternZoom] = useState<ZoomMode>("horizontal");
   const [logPattern, setLogPattern] = useState(false),
     [editRegions, setEditRegions] = useState(false);
-  const [readout, setReadout] = useState(""),
-    [detectorReadout, setDetectorReadout] = useState("");
   const [mapOnly, setMapOnly] = useState(false),
     [share, setShare] = useState(43),
     [upperShare, setUpperShare] = useState(48);
   const layout = useRef<HTMLDivElement>(null),
     mapPanel = useRef<HTMLElement>(null);
-  const hoverAt = useRef(0),
-    hoverBusy = useRef(false);
   useEffect(() => {
     if (mapLevels) display.setLimits(mapLevels);
   }, [mapLevels]);
-  const zoom = (
-    value: ZoomMode,
-    setter: (v: ZoomMode) => void,
-    label: string,
-  ) => (
-    <select
-      className="zoom-mode"
-      aria-label={label}
-      value={value}
-      onChange={(e) => setter(e.target.value as ZoomMode)}
-    >
-      <option value="rectangle">Rectangle</option>
-      <option value="horizontal">Horizontal</option>
-    </select>
-  );
   const intensity = (
     raster: Raster,
     d: ReturnType<typeof useDisplay>,
@@ -193,7 +178,6 @@ export function MapView({
               )}
             </select>
           </div>
-          {zoom(mapZoom, setMapZoom, "Map zoom mode")}
         </div>
         <div className="map-toolbar">
           <button onClick={() => setMapOnly((v) => !v)}>
@@ -264,7 +248,7 @@ export function MapView({
               limits={display.limits}
               log={display.log}
               palette={display.palette}
-              zoomMode={mapZoom}
+              zoomMode="rectangle"
               tool="pan"
               busy={!ready}
               peaks={
@@ -292,16 +276,17 @@ export function MapView({
               }
               onHover={(point) => {
                 if (!point) {
-                  setReadout("");
+                  reportPlot("map", null);
                   return;
                 }
                 const row = map.raster.height - 1 - Math.floor(point.y),
                   col = Math.floor(point.x),
                   value = map.values[row]?.[col],
                   index = map.indices[row]?.[col];
-                setReadout(
-                  `Row ${row} · column ${col} · ${value == null ? "no value" : `I ${number(value, 5)}`} · ${index == null || index < 0 ? "blank" : `point ${index}`}`,
-                );
+                reportPlot("map", {
+                  text: `Row ${row} · column ${col} · ${value == null ? "no value" : `I ${number(value, 5)}`} · ${index == null || index < 0 ? "blank" : `point ${index}`}`,
+                  hint: "Click a map cell to inspect its detector image and pattern.",
+                });
               }}
             />
             {intensity(map.raster, display, "map")}
@@ -322,19 +307,6 @@ export function MapView({
               Load images…
             </button>
           </div>
-        )}
-        <div className="panel-footer">
-          <span data-testid="map-readout">
-            {readout ||
-              (map
-                ? `${map.raster.height} rows × ${map.raster.width} columns · ${map.points} points`
-                : "Scan map")}
-          </span>
-        </div>
-        {warning && (
-          <p role="status" className="map-warning">
-            {warning}
-          </p>
         )}
       </section>
       {!mapOnly && (
@@ -391,7 +363,7 @@ export function MapView({
                   log={detector.log}
                   palette={detector.palette}
                   busy={!ready}
-                  zoomMode={detectorZoom}
+                  zoomMode="rectangle"
                   rings={linked?.contours ?? []}
                   onInspect={(point) => {
                     if (state.calibrated)
@@ -400,29 +372,7 @@ export function MapView({
                         ...point,
                       });
                   }}
-                  onHover={async (point) => {
-                    if (!point) {
-                      setDetectorReadout("");
-                      return;
-                    }
-                    if (
-                      !ready ||
-                      hoverBusy.current ||
-                      performance.now() - hoverAt.current < 100
-                    )
-                      return;
-                    hoverAt.current = performance.now();
-                    hoverBusy.current = true;
-                    try {
-                      const r = await request("pixel", point);
-                      if (r?.pixel)
-                        setDetectorReadout(
-                          `X ${r.pixel.x} · row ${image.fullHeight - 1 - r.pixel.y} · I ${r.pixel.value == null ? "—" : number(r.pixel.value)}`,
-                        );
-                    } finally {
-                      hoverBusy.current = false;
-                    }
-                  }}
+                  onHover={onDetectorHover}
                 />
                 {intensity(image, detector, "detector")}
               </div>
@@ -435,13 +385,6 @@ export function MapView({
                 </p>
               </div>
             )}
-            <div className="panel-footer">
-              <span>
-                {detectorReadout ||
-                  (state?.hasImage ? state.imageName : "No image selected")}
-              </span>
-              {zoom(detectorZoom, setDetectorZoom, "Map detector zoom mode")}
-            </div>
           </section>
           <div
             className="map-divider map-row-divider"
@@ -497,7 +440,6 @@ export function MapView({
                 >
                   Log
                 </button>
-                {zoom(patternZoom, setPatternZoom, "Map pattern zoom mode")}
               </div>
             </div>
             {pattern ? (
@@ -505,6 +447,12 @@ export function MapView({
                 pattern={pattern}
                 log={logPattern}
                 zoomMode={patternZoom}
+                onHover={onPatternHover}
+                hoverHint={
+                  editRegions
+                    ? "Drag a window or its edges · right drag pans"
+                    : undefined
+                }
                 linkedPosition={
                   pattern.unit === state?.unit ? linked?.radial : undefined
                 }
@@ -531,13 +479,6 @@ export function MapView({
                 pattern.
               </div>
             )}
-            <div className="panel-footer">
-              <span>
-                {editRegions
-                  ? "Drag a window or its edges · right drag pans"
-                  : "Left drag zooms · right drag pans · right double-click fits"}
-              </span>
-            </div>
           </section>
         </>
       )}

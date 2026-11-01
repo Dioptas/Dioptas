@@ -1,0 +1,296 @@
+import { useEffect, useRef, useState } from "react";
+import {
+  ArrowLeft,
+  ArrowLeftRight,
+  Check,
+  Keyboard,
+  Scan,
+  SlidersHorizontal,
+  Type,
+} from "lucide-react";
+import type { ZoomMode } from "./usePlotNavigation";
+import type { State } from "./types";
+import type { IntegrationRun } from "./integration";
+import { IntegrationSettings } from "./IntegrationSettings";
+import "./settings.css";
+
+const categories = [
+  {
+    name: "General",
+    icon: SlidersHorizontal,
+    description: "Make the workspace comfortable for the way you work.",
+  },
+  {
+    name: "Integration",
+    icon: Scan,
+    description:
+      "Configure radial binning, azimuth ranges and integration corrections.",
+  },
+  {
+    name: "Keyboard shortcuts",
+    icon: Keyboard,
+    description: "A quick reference for working with images and plots.",
+  },
+] as const;
+
+const shortcuts = [
+  {
+    title: "Files & editing",
+    rows: [
+      ["Open detector image", "⌘ / Ctrl + O"],
+      ["Save project · save mask in Mask mode", "⌘ / Ctrl + S"],
+      ["Undo calibration or mask edit", "⌘ / Ctrl + Z"],
+      ["Redo edit", "⌘ / Ctrl + Shift + Z"],
+    ],
+  },
+  {
+    title: "Tools & navigation",
+    rows: [
+      ["Pick calibration rings", "P"],
+      ["Mask brush / eraser", "B / E"],
+      ["Navigate in Mask mode", "V"],
+      ["Restore detector view", "F"],
+      ["Integrate calibrated image", "Enter"],
+      ["Return from Settings", "Esc"],
+    ],
+  },
+  {
+    title: "Plot gestures",
+    rows: [
+      ["Zoom under pointer", "Scroll"],
+      ["Zoom selection", "Left drag"],
+      ["Pan", "Right drag"],
+      ["Zoom out one step", "Right click"],
+      ["Restore fitted view", "Right double-click"],
+    ],
+  },
+];
+
+export function SettingsWorkspace({
+  state,
+  ready,
+  run,
+  largeText,
+  onLargeText,
+  onClose,
+  returnLabel,
+  patternZoom,
+  onPatternZoom,
+  patternLabel,
+}: {
+  state: State | null;
+  ready: boolean;
+  run: IntegrationRun;
+  largeText: boolean;
+  onLargeText: (large: boolean) => void;
+  onClose: () => void;
+  returnLabel: string;
+  patternZoom: ZoomMode;
+  onPatternZoom: (mode: ZoomMode) => void;
+  patternLabel: string;
+}) {
+  const [section, setSection] = useState(0);
+  const tabs = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    tabs.current
+      ?.querySelector<HTMLButtonElement>("[aria-selected=true]")
+      ?.focus();
+    const key = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, [onClose]);
+
+  return (
+    <section
+      id="settings-workspace"
+      className="settings-workspace"
+      aria-labelledby="settings-title"
+    >
+      <header className="settings-header">
+        <h1 id="settings-title">Settings</h1>
+        <button
+          className="quiet settings-return"
+          aria-label="Close settings"
+          onClick={onClose}
+        >
+          <ArrowLeft size={16} /> Back to {returnLabel}
+        </button>
+      </header>
+      <div className="settings-layout">
+        <div className="settings-category-column">
+          <div
+            ref={tabs}
+            className="settings-categories"
+            role="tablist"
+            aria-label="Settings categories"
+            aria-orientation="vertical"
+          >
+            {categories.map(({ name, icon: Icon }, index) => (
+              <button
+                key={name}
+                id={`settings-tab-${index === 2 ? "shortcuts" : name.toLowerCase()}`}
+                role="tab"
+                aria-selected={section === index}
+                aria-controls={`settings-panel-${index}`}
+                tabIndex={section === index ? 0 : -1}
+                onClick={() => setSection(index)}
+                onKeyDown={(event) => {
+                  const next =
+                    event.key === "ArrowDown"
+                      ? (index + 1) % categories.length
+                      : event.key === "ArrowUp"
+                        ? (index + categories.length - 1) % categories.length
+                        : event.key === "Home"
+                          ? 0
+                          : event.key === "End"
+                            ? categories.length - 1
+                            : null;
+                  if (next === null) return;
+                  event.preventDefault();
+                  setSection(next);
+                  tabs.current
+                    ?.querySelectorAll<HTMLButtonElement>("button")
+                    [next]?.focus();
+                }}
+              >
+                <Icon size={18} />
+                <span>{name}</span>
+              </button>
+            ))}
+          </div>
+          <p className="settings-navigation-note">
+            Return to your work at any time using the modes on the left.
+          </p>
+        </div>
+        <div className="settings-content">
+          <div className="settings-section-heading">
+            <h2>{categories[section].name}</h2>
+            <p>{categories[section].description}</p>
+          </div>
+          <div
+            id="settings-panel-0"
+            className="settings-tabpanel settings-general"
+            role="tabpanel"
+            aria-labelledby="settings-tab-general"
+            hidden={section !== 0}
+          >
+            <section className="settings-card">
+              <div className="settings-card-heading">
+                <Type size={18} />
+                <h3>Interface text</h3>
+              </div>
+              <p>Choose a comfortable reading size for labels and controls.</p>
+              <div
+                className="settings-size-options"
+                role="group"
+                aria-label="Interface text size"
+              >
+                {[false, true].map((large) => (
+                  <button
+                    key={String(large)}
+                    className="settings-size-option"
+                    aria-pressed={largeText === large}
+                    aria-label={large ? "Larger" : "Standard"}
+                    onClick={() => onLargeText(large)}
+                  >
+                    <span
+                      className={`settings-type-sample ${large ? "is-large" : ""}`}
+                      aria-hidden="true"
+                    >
+                      Aa<span>2θ · Q · Å</span>
+                    </span>
+                    <span className="settings-option-caption">
+                      <span>{large ? "Larger" : "Standard"}</span>
+                      <Check
+                        size={16}
+                        style={{
+                          visibility:
+                            largeText === large ? "visible" : "hidden",
+                        }}
+                      />
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </section>
+            <section className="settings-card">
+              <div className="settings-card-heading">
+                <ArrowLeftRight size={18} />
+                <h3>Pattern navigation</h3>
+              </div>
+              <div className="settings-preference-row">
+                <div>
+                  <label htmlFor="settings-pattern-zoom">
+                    Pattern drag zoom
+                  </label>
+                  <p>
+                    {patternLabel}. Choose the axes selected by a left drag.
+                  </p>
+                </div>
+                <select
+                  id="settings-pattern-zoom"
+                  aria-label="Pattern zoom mode"
+                  value={patternZoom}
+                  onChange={(event) =>
+                    onPatternZoom(event.target.value as ZoomMode)
+                  }
+                >
+                  <option value="horizontal">Horizontal</option>
+                  <option value="rectangle">Rectangle</option>
+                </select>
+              </div>
+              <p className="settings-detail">
+                {patternZoom === "horizontal"
+                  ? "Select a radial range; intensity scales automatically."
+                  : "Select both a radial range and an intensity range."}
+              </p>
+            </section>
+            <p className="settings-save-note">
+              <Check size={14} /> General preferences take effect immediately.
+            </p>
+          </div>
+          <div
+            id="settings-panel-1"
+            className="settings-tabpanel settings-integration"
+            role="tabpanel"
+            aria-labelledby="settings-tab-integration"
+            hidden={section !== 1}
+          >
+            {state?.integration ? (
+              <IntegrationSettings state={state} ready={ready} run={run} />
+            ) : (
+              <p className="settings-detail">
+                Integration options will be available when the workspace is
+                ready.
+              </p>
+            )}
+          </div>
+          <div
+            id="settings-panel-2"
+            className="settings-tabpanel settings-shortcuts"
+            role="tabpanel"
+            aria-labelledby="settings-tab-shortcuts"
+            hidden={section !== 2}
+          >
+            {shortcuts.map(({ title, rows }) => (
+              <section className="settings-card" key={title}>
+                <h3>{title}</h3>
+                {rows.map(([label, key]) => (
+                  <div className="settings-shortcut" key={label}>
+                    <span>{label}</span>
+                    <kbd>{key}</kbd>
+                  </div>
+                ))}
+              </section>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

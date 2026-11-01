@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Settings } from "lucide-react";
 import type {
   Palette,
   Raster,
@@ -7,6 +8,7 @@ import type {
   ImageDisplayPreferences,
 } from "./types";
 import { ColorMapPicker } from "./ColorMapPicker";
+import type { ColorMapPickerHandle } from "./ColorMapPicker";
 import { colorsFor } from "./colorMaps";
 
 type WindowDrag = {
@@ -14,6 +16,8 @@ type WindowDrag = {
   start: number;
   min: number;
   max: number;
+  axisMin: number;
+  axisMax: number;
 };
 const compact = (value: number) =>
   value.toLocaleString("en-US", {
@@ -50,10 +54,16 @@ export function ImageIntensity({
 }) {
   const id = useId(),
     container = useRef<HTMLDivElement>(null);
+  const colorMapPicker = useRef<ColorMapPickerHandle>(null);
   const [size, setSize] = useState({ width: 136, height: 300 });
   const small = preferences.size === "compact";
   const horizontal = preferences.orientation === "horizontal";
   const auto = preferences.auto;
+  const [autoActive, setAutoActive] = useState(true);
+  const applyAuto = (settings: AutoLevels) => {
+    setAutoActive(true);
+    return onAuto(settings);
+  };
   const setSmall = (small: boolean) =>
     onPreferences({ ...preferences, size: small ? "compact" : "large" });
   const setHorizontal = (horizontal: boolean) =>
@@ -63,8 +73,10 @@ export function ImageIntensity({
     });
   const setAuto = (auto: AutoLevels) => onPreferences({ ...preferences, auto });
   const [dialog, setDialog] = useState<{ x: number; y: number } | null>(null);
-  const previousSource = useRef(raster.data),
-    drag = useRef<WindowDrag | null>(null);
+  const previousSource = useRef(raster.data);
+  const [drag, setDrag] = useState<WindowDrag | null>(null);
+  const [hover, setHover] = useState<WindowDrag["kind"] | null>(null);
+  const active = drag?.kind ?? hover;
   const label = (text: string) =>
     display === "detector"
       ? text
@@ -85,7 +97,7 @@ export function ImageIntensity({
   useEffect(() => {
     if (previousSource.current === raster.data) return;
     previousSource.current = raster.data;
-    const timer = setTimeout(() => onAuto(auto), 0);
+    const timer = setTimeout(() => applyAuto(auto), 0);
     return () => clearTimeout(timer);
   }, [raster.data]);
   useEffect(() => {
@@ -102,12 +114,14 @@ export function ImageIntensity({
   const updateAuto = (change: Partial<AutoLevels>) => {
     const next = { ...auto, ...change };
     setAuto(next);
-    onAuto(next);
+    applyAuto(next);
   };
   const edges = raster.histogram?.edges ?? [0, Math.max(1, raster.limits[1])],
     counts = raster.histogram?.counts ?? [0];
-  const min = Math.asinh(edges[0]),
-    max = Math.asinh(edges.at(-1)!),
+  // Freeze the axis during a gesture so extending the range does not change
+  // the pointer-to-intensity mapping. Fit the extended limits on release.
+  const min = drag?.axisMin ?? Math.asinh(Math.min(edges[0], limits[0])),
+    max = drag?.axisMax ?? Math.asinh(Math.max(edges.at(-1)!, limits[1])),
     span = Math.max(1e-9, max - min),
     gap = span / 1000;
   const length = Math.max(40, horizontal ? size.width : size.height),
@@ -120,25 +134,40 @@ export function ImageIntensity({
     lower = Math.max(16, Math.min(length - 16, y(limits[0])));
   const peak = Math.max(1, ...counts.map((n) => Math.log1p(n)));
   const update = (low: number, high: number) => {
-    if (Number.isFinite(low) && Number.isFinite(high) && low < high)
+    if (Number.isFinite(low) && Number.isFinite(high) && low < high) {
+      setAutoActive(false);
       onLimits([low, high]);
+    }
   };
   const coordinate = (event: React.PointerEvent<SVGSVGElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
     const f = horizontal
       ? (event.clientX - box.left) / box.width
       : (event.clientY - box.top) / box.height;
-    return Math.max(
-      min,
-      Math.min(
-        max,
-        min +
-          (horizontal
-            ? (f * length - 16) / plotLength
-            : 1 - (f * length - 16) / plotLength) *
-            span,
-      ),
+    return (
+      min +
+      (horizontal
+        ? (f * length - 16) / plotLength
+        : 1 - (f * length - 16) / plotLength) *
+        span
     );
+  };
+  // Hover and drag use the same hit area, including the generous handle margin.
+  const targetAt = (event: React.PointerEvent<SVGSVGElement>) => {
+    const box = event.currentTarget.getBoundingClientRect();
+    const cross = horizontal
+      ? (small ? 130 : 136) -
+        ((event.clientY - box.top) / box.height) * thickness
+      : ((event.clientX - box.left) / box.width) * thickness + offset;
+    if (cross < 39 || cross > 94) return null;
+    const value = coordinate(event),
+      a = Math.asinh(limits[0]),
+      b = Math.asinh(limits[1]),
+      near = (span * 12) / plotLength;
+    if (Math.min(Math.abs(value - a), Math.abs(value - b)) < near)
+      return Math.abs(value - a) <= Math.abs(value - b) ? "min" : "max";
+    if (value > a && value < b) return "window";
+    return Math.abs(value - a) < Math.abs(value - b) ? "min" : "max";
   };
   const move = (value: number, current: WindowDrag) => {
     if (current.kind === "min")
@@ -152,10 +181,7 @@ export function ImageIntensity({
         Math.sinh(Math.max(value, Math.asinh(limits[0]) + gap)),
       );
     else {
-      const shift = Math.max(
-        min - current.min,
-        Math.min(max - current.max, value - current.start),
-      );
+      const shift = value - current.start;
       update(Math.sinh(current.min + shift), Math.sinh(current.max + shift));
     }
   };
@@ -163,18 +189,16 @@ export function ImageIntensity({
     <>
       <aside
         className="image-intensity"
+        data-display={display}
         data-size={small ? "compact" : "expanded"}
         data-orientation={horizontal ? "horizontal" : "vertical"}
         aria-label={`${title} intensity controls`}
-        onContextMenu={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          open(event.clientX, event.clientY);
-        }}
       >
         <div className="histogram-container" ref={container}>
           <svg
             className="intensity-histogram"
+            data-active-target={active ?? undefined}
+            data-dragging={!!drag}
             data-testid={
               display === "cake"
                 ? "cake-intensity-histogram"
@@ -189,44 +213,45 @@ export function ImageIntensity({
             aria-label={`${title} intensity histogram`}
             onDoubleClick={(event) => open(event.clientX, event.clientY)}
             onPointerDown={(event) => {
-              const box = event.currentTarget.getBoundingClientRect();
-              const cross = horizontal
-                ? (small ? 130 : 136) -
-                  ((event.clientY - box.top) / box.height) * thickness
-                : ((event.clientX - box.left) / box.width) * thickness + offset;
-              if (cross < 39 || cross > 106) return;
+              if (event.button !== 0) return;
+              const kind = targetAt(event);
+              if (!kind) return;
               const value = coordinate(event),
                 a = Math.asinh(limits[0]),
-                b = Math.asinh(limits[1]),
-                near = (span * 12) / plotLength;
-              const kind =
-                Math.abs(value - a) < near
-                  ? "min"
-                  : Math.abs(value - b) < near
-                    ? "max"
-                    : value > a && value < b
-                      ? "window"
-                      : Math.abs(value - a) < Math.abs(value - b)
-                        ? "min"
-                        : "max";
-              drag.current = { kind, start: value, min: a, max: b };
+                b = Math.asinh(limits[1]);
+              const current: WindowDrag = {
+                kind,
+                start: value,
+                min: a,
+                max: b,
+                axisMin: min,
+                axisMax: max,
+              };
+              setHover(kind);
+              setDrag(current);
               event.currentTarget.setPointerCapture(event.pointerId);
-              if (kind !== "window") move(value, drag.current);
+              if (kind !== "window") move(value, current);
               event.preventDefault();
             }}
             onPointerMove={(event) => {
-              if (drag.current) move(coordinate(event), drag.current);
+              if (drag) move(coordinate(event), drag);
+              else setHover(targetAt(event));
             }}
+            onPointerLeave={() => setHover(null)}
             onPointerUp={(event) => {
-              drag.current = null;
+              setDrag(null);
+              // The axis can refit on release; let the next move resolve hover.
+              setHover(null);
               if (event.currentTarget.hasPointerCapture(event.pointerId))
                 event.currentTarget.releasePointerCapture(event.pointerId);
             }}
             onPointerCancel={() => {
-              drag.current = null;
+              setDrag(null);
+              setHover(null);
             }}
+            onLostPointerCapture={() => setDrag(null)}
           >
-            <title>{`${title} intensity. Drag the window or handles. Click the colour scale, double-click or right-click for display settings.`}</title>
+            <title>{`${title} intensity. Drag the window or handles. Left or right click the colour scale to choose a colour map. Use the settings button or double-click the histogram for display settings.`}</title>
             <defs>
               <linearGradient id={`${id}-ramp`} x1="0" y1="1" x2="0" y2="0">
                 {colorsFor(palette).map((rgb, i, colors) => (
@@ -249,9 +274,9 @@ export function ImageIntensity({
                 data-testid="intensity-selected-window"
                 x="42"
                 y={upper}
-                width="62"
+                width="50"
                 height={Math.max(0, lower - upper)}
-                fill="#edbc801a"
+                fill="#ff95001a"
               />
               {counts.map((count, i) => {
                 const top = Math.max(
@@ -264,7 +289,7 @@ export function ImageIntensity({
                     key={i}
                     x="42"
                     y={top}
-                    width={(Math.log1p(count) / peak) * 62}
+                    width={(Math.log1p(count) / peak) * 50}
                     height={Math.max(0.6, bottom - top)}
                     fill="#829ba8"
                     fillOpacity=".8"
@@ -272,24 +297,41 @@ export function ImageIntensity({
                 );
               })}
               <rect
+                className="intensity-window-feedback"
+                x="42"
+                y={upper}
+                width="50"
+                height={Math.max(0, lower - upper)}
+                pointerEvents="none"
+              />
+              <rect
                 data-testid="intensity-colour-bar"
-                x="111"
+                className="intensity-colour-bar"
+                x="101"
                 y="16"
-                width="11"
+                width="21"
                 height={plotLength}
                 fill={`url(#${id}-ramp)`}
                 role="button"
                 tabIndex={0}
-                aria-label={`Configure ${display} display`}
+                aria-label={label("Color map")}
+                data-color-map={palette}
+                aria-haspopup="listbox"
                 onClick={(event) => {
                   event.stopPropagation();
-                  open(event.clientX, event.clientY);
+                  colorMapPicker.current?.open(event.currentTarget);
                 }}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  colorMapPicker.current?.open(event.currentTarget);
+                }}
+                onDoubleClick={(event) => event.stopPropagation()}
                 onKeyDown={(event) => {
                   if (["Enter", " "].includes(event.key)) {
                     event.preventDefault();
-                    const box = event.currentTarget.getBoundingClientRect();
-                    open(box.left, box.bottom);
+                    event.stopPropagation();
+                    colorMapPicker.current?.open(event.currentTarget);
                   }
                 }}
               />
@@ -301,6 +343,8 @@ export function ImageIntensity({
               ).map(([kind, position, value]) => (
                 <g
                   key={kind}
+                  className="intensity-handle"
+                  data-active={active === kind}
                   role="slider"
                   tabIndex={0}
                   aria-label={label(
@@ -309,8 +353,8 @@ export function ImageIntensity({
                       : "Upper intensity handle",
                   )}
                   aria-orientation={horizontal ? "horizontal" : "vertical"}
-                  aria-valuemin={edges[0]}
-                  aria-valuemax={edges.at(-1)}
+                  aria-valuemin={Math.sinh(min)}
+                  aria-valuemax={Math.sinh(max)}
                   aria-valuenow={value}
                   onKeyDown={(event) => {
                     if (
@@ -329,39 +373,40 @@ export function ImageIntensity({
                     )
                       ? 1
                       : -1;
-                    move(
-                      Math.max(
-                        min,
-                        Math.min(
-                          max,
-                          Math.asinh(value) + (direction * span) / 100,
-                        ),
-                      ),
-                      { kind, start: 0, min: 0, max: 0 },
-                    );
+                    move(Math.asinh(value) + (direction * span) / 100, {
+                      kind,
+                      start: 0,
+                      min: 0,
+                      max: 0,
+                      axisMin: min,
+                      axisMax: max,
+                    });
                   }}
                 >
                   <title>{value.toLocaleString()}</title>
                   <rect
+                    className="intensity-handle-feedback"
                     x="39"
                     y={position - 9}
-                    width="66"
+                    width="54"
                     height="18"
                     fill="transparent"
                   />
                   <path
-                    d={`M42 ${position}H104`}
+                    d={`M42 ${position}H92`}
                     stroke="#10151b"
                     strokeWidth="5"
                   />
                   <path
-                    d={`M42 ${position}H104`}
-                    stroke="#edbc80"
+                    className="intensity-handle-line"
+                    d={`M42 ${position}H92`}
+                    stroke="#ff9500"
                     strokeWidth="2"
                   />
                   <path
-                    d={`M104 ${position - 5} 98 ${position} 104 ${position + 5}Z`}
-                    fill="#edbc80"
+                    className="intensity-handle-marker"
+                    d={`M92 ${position - 5} 86 ${position} 92 ${position + 5}Z`}
+                    fill="#ff9500"
                   />
                 </g>
               ))}
@@ -384,15 +429,31 @@ export function ImageIntensity({
           </svg>
         </div>
         <div className="intensity-basic-controls">
-          <button
-            aria-label={label("Auto intensity")}
-            disabled={!ready}
-            title="Apply auto levels. Click the colour bar or right-click for settings."
-            onClick={() => onAuto(auto)}
-          >
-            Auto
-          </button>
+          <div className="intensity-actions">
+            <button
+              aria-label={label("Auto intensity")}
+              aria-pressed={autoActive}
+              disabled={!ready}
+              title="Apply auto levels"
+              onClick={() => applyAuto(auto)}
+            >
+              Auto
+            </button>
+            <button
+              aria-label={`${title} histogram settings`}
+              aria-haspopup="dialog"
+              aria-expanded={!!dialog}
+              title={`${title} histogram settings`}
+              onClick={(event) => {
+                const box = event.currentTarget.getBoundingClientRect();
+                open(box.left, box.bottom);
+              }}
+            >
+              <Settings size={16} aria-hidden="true" />
+            </button>
+          </div>
           <ColorMapPicker
+            ref={colorMapPicker}
             label={label("Color map")}
             value={palette}
             onChange={onPalette}
@@ -430,7 +491,10 @@ export function ImageIntensity({
                 <select
                   aria-label={label("Image scale")}
                   value={log ? "log" : "linear"}
-                  onChange={(event) => onLog(event.target.value === "log")}
+                  onChange={(event) => {
+                    setAutoActive(false);
+                    onLog(event.target.value === "log");
+                  }}
                 >
                   <option value="linear">Linear</option>
                   <option value="log">Logarithmic</option>
@@ -470,7 +534,7 @@ export function ImageIntensity({
                         percentile: Number(event.target.value),
                       })
                     }
-                    onBlur={() => onAuto(auto)}
+                    onBlur={() => applyAuto(auto)}
                   />
                 </label>
               )}

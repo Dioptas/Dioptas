@@ -1,5 +1,15 @@
 import assert from "node:assert/strict";
 
+export async function setInterfaceTextSize(page, large) {
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page
+    .getByRole("button", { name: large ? "Larger" : "Standard", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Close settings", exact: true })
+    .click();
+}
+
 const settle = (page) =>
   page.evaluate(
     () =>
@@ -23,17 +33,15 @@ const close = (actual, expected, message) =>
   );
 async function point(canvas, fx, fy) {
   const box = await canvas.boundingBox();
-  const pattern =
-    (await canvas.getAttribute("data-testid")) === "pattern-canvas";
-  const detector =
-    (await canvas.getAttribute("data-testid")) === "detector-canvas";
-  const left = pattern ? 76 : detector ? 4 : 60,
-    top = pattern ? 18 : detector ? 4 : 20,
-    right = pattern ? 24 : detector ? 4 : 22,
-    bottom = detector ? 4 : 44;
+  const bounds = await canvas.evaluate((el) => ({
+    left: +el.dataset.plotLeft,
+    top: +el.dataset.plotTop,
+    width: +el.dataset.plotWidth,
+    height: +el.dataset.plotHeight,
+  }));
   return {
-    x: box.x + left + (box.width - left - right) * fx,
-    y: box.y + top + (box.height - top - bottom) * fy,
+    x: box.x + bounds.left + bounds.width * fx,
+    y: box.y + bounds.top + bounds.height * fy,
   };
 }
 async function drag(page, canvas, from, to, button = "left") {
@@ -55,10 +63,14 @@ async function restore(page, canvas) {
 export async function verifyPlotNavigation(page) {
   const checks = [];
   const pattern = page.getByTestId("pattern-canvas");
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   assert.equal(
     await page.getByLabel("Pattern zoom mode", { exact: true }).inputValue(),
     "horizontal",
   );
+  await page
+    .getByRole("button", { name: "Close settings", exact: true })
+    .click();
   const patternFit = await read(pattern);
   // Preserve the original horizontal drag, including a perfectly flat gesture.
   await drag(page, pattern, [0.25, 0.65], [0.75, 0.65]);
@@ -87,7 +99,15 @@ export async function verifyPlotNavigation(page) {
           exact: true,
         })
         .click();
-    await page.getByLabel(label, { exact: true }).selectOption("rectangle");
+    if (id === "pattern-canvas") {
+      await page.getByRole("button", { name: "Settings", exact: true }).click();
+      await page.getByLabel(label, { exact: true }).selectOption("rectangle");
+      await page
+        .getByRole("button", { name: "Close settings", exact: true })
+        .click();
+    } else
+      assert.equal(await page.getByLabel(label, { exact: true }).count(), 0);
+
     const canvas = page.getByTestId(id);
     await canvas.scrollIntoViewIfNeeded();
     await settle(page);
@@ -147,9 +167,13 @@ export async function verifyPlotNavigation(page) {
       `${id}: rectangle zoom, right pan, single unzoom / double full fit`,
     );
   }
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page
     .getByLabel("Pattern zoom mode", { exact: true })
     .selectOption("horizontal");
+  await page
+    .getByRole("button", { name: "Close settings", exact: true })
+    .click();
   // Right navigation remains available in the peak-picking tool and never picks.
   const sidebar = await page.locator(".sidebar").boundingBox();
   const main = await page.locator(".workspace-content").boundingBox();

@@ -2,24 +2,38 @@ import assert from "node:assert/strict";
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function selectColorMap(page, label, name) {
-  await page.getByRole("combobox", { name: label, exact: true }).click();
+  await page.getByRole("button", { name: label, exact: true }).click();
   await page
     .getByRole("listbox", { name: `${label} choices`, exact: true })
     .locator(`[role="option"][data-color-map="${name}"]`)
     .click();
+  assert.equal(
+    await page
+      .getByRole("button", { name: label, exact: true })
+      .evaluate((el) => getComputedStyle(el).outlineStyle),
+    "none",
+    "Choosing a colour map with the mouse must not leave a selection outline",
+  );
 }
 
 export async function verifyImageControls(page, invoke, pixelRequests) {
   const canvas = page.getByTestId("detector-canvas");
   const detector = page.locator(".detector-panel");
+  const autoButton = page.getByRole("button", {
+    name: "Auto intensity",
+    exact: true,
+  });
+  assert.equal(await autoButton.getAttribute("aria-pressed"), "true");
   assert.equal(
     await detector.locator(".image-intensity").getAttribute("data-size"),
     "compact",
   );
   assert.equal(await canvas.getAttribute("data-intensity-scale"), "linear");
   assert.equal(await detector.locator(".intensity-header").count(), 0);
+  await detector.getByTestId("intensity-histogram").click({ button: "right" });
+  assert.equal(await page.getByRole("dialog").count(), 0);
   await page
-    .getByRole("button", { name: "Configure detector display", exact: true })
+    .getByRole("button", { name: "Detector histogram settings", exact: true })
     .click();
   await page
     .getByLabel("Histogram size", { exact: true })
@@ -116,6 +130,7 @@ export async function verifyImageControls(page, invoke, pixelRequests) {
   );
   await page.mouse.up();
   await pause(120);
+  assert.equal(await autoButton.getAttribute("aria-pressed"), "false");
   assert.ok(
     Number(await canvas.getAttribute("data-intensity-max")) >
       original.image.limits[1],
@@ -138,6 +153,151 @@ export async function verifyImageControls(page, invoke, pixelRequests) {
     "Contrast edits must not alter source intensities",
   );
   assert.deepEqual(after.state.geometry, original.state.geometry);
+  const histogram = detector.getByTestId("intensity-histogram");
+  const [dataMin, dataMax] = [
+    original.image.histogram.edges[0],
+    original.image.histogram.edges.at(-1),
+  ];
+  for (const orientation of ["horizontal", "vertical"]) {
+    const resetRange = async () => {
+      await page
+        .getByRole("button", {
+          name: "Detector histogram settings",
+          exact: true,
+        })
+        .click();
+      await page
+        .getByLabel("Histogram orientation", { exact: true })
+        .selectOption(orientation);
+      await page
+        .getByLabel("Minimum intensity", { exact: true })
+        .fill(String(dataMin));
+      await page
+        .getByLabel("Maximum intensity", { exact: true })
+        .fill(String(dataMax));
+      await page
+        .getByRole("button", {
+          name: "Close detector display settings",
+          exact: true,
+        })
+        .click();
+    };
+    const dragTo = async (target, beyond, kind) => {
+      const box = await target.boundingBox();
+      const graph = await histogram.boundingBox();
+      const x = box.x + box.width / 2,
+        y = box.y + box.height / 2;
+      await page.mouse.move(x, y);
+      assert.equal(await histogram.getAttribute("data-active-target"), kind);
+      assert.equal(
+        await histogram.evaluate((el) => getComputedStyle(el).cursor),
+        kind === "window"
+          ? "grab"
+          : orientation === "horizontal"
+            ? "ew-resize"
+            : "ns-resize",
+      );
+      if (kind === "window") {
+        assert.equal(
+          await histogram
+            .locator(".intensity-window-feedback")
+            .evaluate((el) => getComputedStyle(el).fill),
+          "rgba(255, 149, 0, 0.05)",
+          "Hovering the middle subtly tints the whole selected range",
+        );
+      } else {
+        assert.equal(
+          await target
+            .locator(".intensity-handle-line")
+            .evaluate((el) => getComputedStyle(el).stroke),
+          "rgb(255, 179, 71)",
+          "Only the endpoint that will move is highlighted",
+        );
+        assert.equal(
+          await histogram
+            .locator('.intensity-handle[data-active="true"]')
+            .count(),
+          1,
+        );
+      }
+      await page.screenshot({
+        path: `artifacts/histogram-${orientation}-${kind}-hover.png`,
+      });
+      await page.mouse.down();
+      await page.mouse.move(
+        orientation === "horizontal"
+          ? beyond === "max"
+            ? graph.x + graph.width + 20
+            : graph.x - 20
+          : x,
+        orientation === "vertical"
+          ? beyond === "max"
+            ? graph.y - 20
+            : graph.y + graph.height + 20
+          : y,
+        { steps: 8 },
+      );
+      assert.equal(
+        await histogram.getAttribute("data-active-target"),
+        kind,
+        "The dragged target stays highlighted outside the histogram",
+      );
+      if (kind === "window")
+        assert.equal(
+          await histogram.evaluate((el) => getComputedStyle(el).cursor),
+          "grabbing",
+        );
+      await page.mouse.up();
+      await page.mouse.move(graph.x - 30, graph.y - 30);
+      assert.equal(await histogram.getAttribute("data-active-target"), null);
+    };
+    for (const [kind, direction] of [
+      ["Upper", "max"],
+      ["Lower", "min"],
+    ]) {
+      await resetRange();
+      await dragTo(
+        page.getByRole("slider", {
+          name: `${kind} intensity handle`,
+          exact: true,
+        }),
+        direction,
+        direction,
+      );
+      const limit = Number(
+        await canvas.getAttribute(`data-intensity-${direction}`),
+      );
+      assert.ok(
+        direction === "max" ? limit > dataMax : limit < dataMin,
+        `${orientation}: ${kind} handle must extend beyond the source histogram`,
+      );
+    }
+    await resetRange();
+    const width = Math.asinh(dataMax) - Math.asinh(dataMin);
+    await dragTo(
+      detector.getByTestId("intensity-selected-window"),
+      "max",
+      "window",
+    );
+    const low = Number(await canvas.getAttribute("data-intensity-min"));
+    const high = Number(await canvas.getAttribute("data-intensity-max"));
+    assert.ok(
+      high > dataMax,
+      `${orientation}: the whole region must move beyond the source histogram`,
+    );
+    assert.ok(
+      Math.abs(Math.asinh(high) - Math.asinh(low) - width) < 1e-8,
+      "Moving the region preserves its width on the histogram axis",
+    );
+    await resetRange();
+    await page
+      .getByRole("slider", { name: "Lower intensity handle", exact: true })
+      .press("ArrowDown");
+    assert.ok(
+      Number(await canvas.getAttribute("data-intensity-min")) < dataMin,
+      "Keyboard controls can also extend beyond the data range",
+    );
+  }
   await page
     .getByRole("button", { name: "Auto intensity", exact: true })
     .click();
@@ -147,8 +307,9 @@ export async function verifyImageControls(page, invoke, pixelRequests) {
         .intensityMax === expected,
     original.image.limits[1],
   );
+  assert.equal(await autoButton.getAttribute("aria-pressed"), "true");
   await page
-    .getByRole("button", { name: "Configure detector display", exact: true })
+    .getByRole("button", { name: "Detector histogram settings", exact: true })
     .click();
   for (const mode of ["minmax", "mean3std", "percentile"]) {
     await page
@@ -164,14 +325,31 @@ export async function verifyImageControls(page, invoke, pixelRequests) {
         Math.abs(+el.dataset.intensityMax - expected[1]) < 1e-8
       );
     }, expected);
+    assert.equal(await autoButton.getAttribute("aria-pressed"), "true");
   }
+  await page.getByLabel("Maximum intensity", { exact: true }).fill("1000");
+  assert.equal(await autoButton.getAttribute("aria-pressed"), "false");
+  await page.getByLabel("Image scale", { exact: true }).selectOption("log");
   await page
     .getByRole("button", {
       name: "Close detector display settings",
       exact: true,
     })
     .click();
-  await page.getByRole("combobox", { name: "Color map", exact: true }).click();
+  await autoButton.click();
+  assert.equal(await autoButton.getAttribute("aria-pressed"), "true");
+  await page
+    .getByRole("button", { name: "Detector histogram settings", exact: true })
+    .click();
+  await page.getByLabel("Image scale", { exact: true }).selectOption("linear");
+  assert.equal(await autoButton.getAttribute("aria-pressed"), "false");
+  await page
+    .getByRole("button", {
+      name: "Close detector display settings",
+      exact: true,
+    })
+    .click();
+  await page.getByRole("button", { name: "Color map", exact: true }).click();
   const choices = page.getByRole("listbox", {
     name: "Color map choices",
     exact: true,
@@ -212,7 +390,7 @@ export async function verifyImageControls(page, invoke, pixelRequests) {
   }
   await selectColorMap(page, "Color map", "grey");
   await page
-    .getByRole("button", { name: "Configure detector display", exact: true })
+    .getByRole("button", { name: "Detector histogram settings", exact: true })
     .click();
   await page
     .getByLabel("Histogram size", { exact: true })
@@ -269,7 +447,7 @@ export async function verifyImageControls(page, invoke, pixelRequests) {
     original.image.limits[1],
   );
   await page
-    .getByRole("button", { name: "Configure detector display", exact: true })
+    .getByRole("button", { name: "Detector histogram settings", exact: true })
     .click();
   await page
     .getByLabel("Histogram orientation", { exact: true })
@@ -281,9 +459,15 @@ export async function verifyImageControls(page, invoke, pixelRequests) {
     })
     .click();
 
-  // Keep moving without a stationary pause: the former debounce produced no readout here.
-  const box = await canvas.boundingBox(),
-    started = performance.now();
+  // Keep moving without a stationary pause: completed samples must stay visible
+  // until their replacements arrive, including across the footer throttle.
+  const box = await canvas.boundingBox();
+  await page.mouse.move(box.x + box.width * 0.35, box.y + box.height * 0.35);
+  await page.waitForFunction(() => {
+    const el = document.querySelector('[data-testid="mouse-readout"]');
+    return el?.dataset.plot === "detector" && /I [-\d]/.test(el.textContent);
+  });
+  const started = performance.now();
   const readouts = new Set();
   for (let i = 0; i < 28; i++) {
     await page.mouse.move(
@@ -293,6 +477,10 @@ export async function verifyImageControls(page, invoke, pixelRequests) {
     await pause(35);
     readouts.add(await page.getByTestId("mouse-readout").innerText());
   }
+  assert.ok(
+    [...readouts].every((reading) => !/I\s*—/.test(reading)),
+    "Moving over finite pixels must not replace completed intensities with a pending placeholder",
+  );
   const elapsed = performance.now() - started;
   const requests = pixelRequests.filter((request) => request.time >= started);
   assert.ok(

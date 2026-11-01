@@ -17,6 +17,11 @@ groups use the width of the upper-right pane rather than a tall sidebar. Left
 mode navigation remains unchanged. This is a working, scoped workflow, not full
 Qt replacement.
 
+The former Options tab now lives in Settings → Integration: radial units,
+automatic/manual binning, supersampling, 1D/cake azimuth ranges, cake bins,
+solid angle, polarization, Poisson errors and zero trimming. The command and
+project storage are unchanged; task controls stay in the Integration workspace.
+
 | Qt workflow | Desktop implementation |
 | --- | --- |
 | Load image, previous/next, file step, number/time order | Existing ImgModel/FileNameIterator; file step and order controls; multiframe index shown when available; File Info exposes actual metadata |

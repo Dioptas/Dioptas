@@ -2,18 +2,22 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import { createServer } from "vite";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
 const directory = fileURLToPath(
   new URL("../src-tauri/icons/", import.meta.url),
 );
 await mkdir(directory, { recursive: true });
+const server = await createServer({ server: { middlewareMode: true } });
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 256, height: 256 } });
-  await page.goto(
-    new URL("../../dioptas/desktop/ui/index.html", import.meta.url).href,
-  );
-  const svg = await page.locator(".brand-mark svg").evaluate((element) => {
+  const { CrystalMark } = await server.ssrLoadModule("/src/CrystalMark.tsx");
+  const markup = renderToStaticMarkup(createElement(CrystalMark));
+  await page.setContent(markup);
+  const svg = await page.locator("svg").evaluate((element) => {
     element.setAttribute("xmlns", "http://www.w3.org/2000/svg");
     element.setAttribute("width", "256");
     element.setAttribute("height", "256");
@@ -27,4 +31,5 @@ try {
   });
 } finally {
   await browser.close();
+  await server.close();
 }

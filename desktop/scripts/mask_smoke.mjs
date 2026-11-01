@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { chromium } from "playwright";
 import {
+  setInterfaceTextSize,
   verifyPlotNavigation,
   verifyCalibrationNavigation,
 } from "./plot_navigation.mjs";
@@ -150,7 +151,7 @@ try {
   assert.equal(await page.locator(".intensity-histogram").count(), 1);
   await square();
   const originalImage = (await state()).image.data;
-  await button("Configure detector display").click();
+  await button("Detector histogram settings").click();
   await page.getByLabel("Image scale", { exact: true }).selectOption("log");
   await page.getByLabel("Maximum intensity", { exact: true }).fill("1000");
   await button("Close detector display settings").click();
@@ -212,9 +213,23 @@ try {
   await clickSource(200, 300);
   await clickSource(240, 300);
   await clickSource(220, 340);
+  const beforePendingPolygon = (await state()).state.maskedPixels;
+  await button("Settings").click();
+  await page.keyboard.press("Enter");
+  await waitReady();
+  assert.equal(
+    (await state()).state.maskedPixels,
+    beforePendingPolygon,
+    "Settings must not commit the pending mask polygon",
+  );
+  await page.keyboard.press("Escape");
   await page.keyboard.press("Enter");
   await waitReady();
   const polygonCount = (await state()).state.maskedPixels;
+  assert.ok(
+    polygonCount > beforePendingPolygon,
+    "Returning from Settings preserves the pending polygon",
+  );
   await clickSource(200, 300);
   await page.keyboard.press("Escape");
   assert.equal((await state()).state.maskedPixels, polygonCount);
@@ -292,6 +307,10 @@ try {
   await waitReady();
   await button("Calibration").click();
   await button("Step 1: Image & setup").click();
+  await page.getByText("More setup options", { exact: true }).click();
+  await page
+    .getByText("Image orientation & detector files", { exact: true })
+    .click();
   await button("Rotate image +90°").click();
   await waitReady();
   await button("Mask").click();
@@ -331,7 +350,7 @@ try {
     ),
     false,
   );
-  await button("Larger text").click();
+  await setInterfaceTextSize(page, true);
   assert.ok(
     (await button("Circle").evaluate((el) =>
       parseFloat(getComputedStyle(el).fontSize),

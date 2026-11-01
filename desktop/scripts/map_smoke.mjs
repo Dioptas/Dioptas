@@ -1,3 +1,4 @@
+import { setInterfaceTextSize } from "./plot_navigation.mjs";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
@@ -147,7 +148,11 @@ try {
   const roi = state.map.rois[1],
     min = Math.min(state.pattern.x[0], state.pattern.x.at(-1)),
     max = Math.max(state.pattern.x[0], state.pattern.x.at(-1));
-  const x = b.x + 76 + ((roi.min - min) / (max - min)) * (b.width - 100);
+  const bounds = await pattern.evaluate((el) => ({
+    left: +el.dataset.plotLeft,
+    width: +el.dataset.plotWidth,
+  }));
+  const x = b.x + bounds.left + ((roi.min - min) / (max - min)) * bounds.width;
   await page.mouse.move(x, b.y + b.height / 2);
   await page.mouse.down();
   await page.mouse.move(x + 15, b.y + b.height / 2, { steps: 6 });
@@ -197,7 +202,7 @@ try {
   assert.ok(requests.includes("map_display"));
   await page.getByLabel("Smooth map", { exact: true }).click();
   await page.getByLabel("Map contours", { exact: true }).click();
-  await click("Larger text");
+  await setInterfaceTextSize(page, true);
   assert.equal(
     await page
       .locator(".map-controls input[type=number]")
@@ -205,7 +210,7 @@ try {
       .evaluate((el) => getComputedStyle(el).fontSize),
     "16px",
   );
-  await click("Larger text");
+  await setInterfaceTextSize(page, false);
   await page.locator(".sidebar-scroll").evaluate((el) => (el.scrollTop = 0));
   await page.screenshot({
     path: path.join(artifacts, "map-desktop.png"),

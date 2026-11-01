@@ -6,12 +6,17 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { chromium } from "playwright";
 import {
+  setInterfaceTextSize,
   verifyPlotNavigation,
   verifyCalibrationNavigation,
 } from "./plot_navigation.mjs";
 
-import { verifyIntegrationControls } from "./integration_controls.mjs";
+import {
+  openIntegrationSettings,
+  verifyIntegrationControls,
+} from "./integration_controls.mjs";
 import { verifyIntegrationLayout } from "./integration_layout.mjs";
+import { verifyCalibrationSetup } from "./calibration_setup.mjs";
 import { verifyDetectorGeometry } from "./detector_geometry.mjs";
 import {
   verifyImageControls,
@@ -78,6 +83,7 @@ page.on("console", (message) => {
 });
 await page.exposeFunction("__dioptasInvoke", invoke);
 await page.addInitScript(() => {
+  localStorage.setItem("dioptas-accent-v2", "green");
   const draw = CanvasRenderingContext2D.prototype.drawImage;
   CanvasRenderingContext2D.prototype.drawImage = function (...args) {
     if (this.canvas.dataset.testid === "detector-canvas" && args.length === 5) {
@@ -117,19 +123,29 @@ try {
   await page.goto("file://" + path.join(root, "dioptas/desktop/ui/index.html"));
   await waitReady();
   if (process.argv.includes("--dioptrin")) {
+    await page.getByText("More setup options", { exact: true }).click();
+    await page
+      .getByText("Custom calibrant & processing", { exact: true })
+      .click();
     await page
       .getByLabel("Processing engine", { exact: true })
       .selectOption("dioptrin");
     await waitReady();
+    await page.getByText("More setup options", { exact: true }).click();
   }
   assert.equal(
-    await page.locator(".app").getAttribute("data-accent"),
-    "orange",
+    await page.getByLabel("Accent color", { exact: true }).count(),
+    0,
   );
-  await page.getByLabel("Accent color", { exact: true }).selectOption("green");
-  assert.equal(await page.locator(".app").getAttribute("data-accent"), "green");
-  await page.getByLabel("Accent color", { exact: true }).selectOption("orange");
-  await page.getByRole("button", { name: "Larger text", exact: true }).click();
+  assert.equal(
+    await page
+      .locator(".app")
+      .evaluate((el) =>
+        getComputedStyle(el).getPropertyValue("--accent").trim(),
+      ),
+    "#ff9500",
+  );
+  await setInterfaceTextSize(page, true);
   assert.equal(
     await page.locator(".app").getAttribute("data-text-size"),
     "large",
@@ -139,7 +155,32 @@ try {
       .getByLabel("Processing engine", { exact: true })
       .evaluate((el) => parseFloat(getComputedStyle(el).fontSize))) >= 17,
   );
-  await page.getByRole("button", { name: "Larger text", exact: true }).click();
+  await setInterfaceTextSize(page, false);
+  const settingsButton = page.getByRole("button", {
+    name: "Settings",
+    exact: true,
+  });
+  const settingsBox = await settingsButton.boundingBox();
+  const navigationBox = await page
+    .getByRole("navigation", { name: "Workspace modes" })
+    .boundingBox();
+  assert.ok(
+    settingsBox.y > navigationBox.y + navigationBox.height * 0.75,
+    "Settings belongs at the bottom of the left sidebar",
+  );
+  await settingsButton.click();
+  await page.getByRole("button", { name: "Larger", exact: true }).click();
+  assert.equal(
+    await page.locator(".app").getAttribute("data-text-size"),
+    "large",
+  );
+  await page.getByRole("button", { name: "Standard", exact: true }).click();
+  await page.screenshot({ path: path.join(artifacts, "settings.png") });
+  await page.keyboard.press("Escape");
+  assert.equal(
+    await page.getByRole("region", { name: "Settings", exact: true }).count(),
+    0,
+  );
   await page.screenshot({ path: path.join(artifacts, "empty-workspace.png") });
   await page
     .getByRole("button", { name: "Explore example", exact: true })
@@ -153,9 +194,12 @@ try {
     "Example must start without an imported calibration",
   );
   assert.equal(current.state.calibration.picks.length, 0);
-  await page
-    .getByRole("button", { name: "Step 2: Pick rings", exact: true })
-    .click();
+  const calibrationSetupChecks = await verifyCalibrationSetup(
+    page,
+    invoke,
+    artifacts,
+    waitReady,
+  );
   const detectorGeometryChecks = await verifyDetectorGeometry(page, invoke);
   const imageControlChecks = await verifyImageControls(
     page,
@@ -185,21 +229,23 @@ try {
   for (const [x, y, ring] of seeds) {
     await page.getByLabel("Current calibrant ring").fill(String(ring));
     const box = await detector.boundingBox();
-    const width = 981,
-      height = 1043,
-      left = 4,
-      right = 4,
-      top = 4,
-      bottom = 4;
-    const fit = Math.min(
-      (box.width - left - right) / width,
-      (box.height - top - bottom) / height,
-    );
-    const ox = left + (box.width - left - right - width * fit) / 2,
-      oy = top + (box.height - top - bottom - height * fit) / 2;
+    const view = await detector.evaluate((el) => ({
+      left: +el.dataset.plotLeft,
+      top: +el.dataset.plotTop,
+      width: +el.dataset.plotWidth,
+      height: +el.dataset.plotHeight,
+      xMin: +el.dataset.viewXMin,
+      xMax: +el.dataset.viewXMax,
+      yMin: +el.dataset.viewYMin,
+      yMax: +el.dataset.viewYMax,
+    }));
     await page.mouse.click(
-      box.x + ox + x * fit,
-      box.y + oy + (height - y) * fit,
+      box.x +
+        view.left +
+        ((x - view.xMin) / (view.xMax - view.xMin)) * view.width,
+      box.y +
+        view.top +
+        ((view.yMax - y) / (view.yMax - view.yMin)) * view.height,
     );
     await waitReady();
     assert.match(
@@ -344,7 +390,7 @@ try {
     .getByTestId("cake-canvas")
     .evaluate((el) => el.toDataURL());
   await page
-    .getByRole("button", { name: "Configure cake display", exact: true })
+    .getByRole("button", { name: "Cake histogram settings", exact: true })
     .click();
   await page
     .getByLabel("Cake image scale", { exact: true })
@@ -389,7 +435,7 @@ try {
   await selectColorMap(page, "Cake color map", "viridis");
   assert.equal(
     await page
-      .getByRole("combobox", { name: "Color map", exact: true })
+      .getByRole("button", { name: "Color map", exact: true })
       .getAttribute("data-color-map"),
     "grey",
   );
@@ -430,16 +476,11 @@ try {
   );
   await page.mouse.move(10, 10);
   await page.screenshot({ path: path.join(artifacts, "calibration-fit.png") });
-  await page.getByLabel("Accent color", { exact: true }).selectOption("green");
-  await page.screenshot({
-    path: path.join(artifacts, "calibration-green.png"),
-  });
-  await page.getByLabel("Accent color", { exact: true }).selectOption("orange");
-  await page.getByRole("button", { name: "Larger text", exact: true }).click();
+  await setInterfaceTextSize(page, true);
   await page.screenshot({
     path: path.join(artifacts, "calibration-large-text.png"),
   });
-  await page.getByRole("button", { name: "Larger text", exact: true }).click();
+  await setInterfaceTextSize(page, false);
 
   await page
     .getByRole("button", { name: "Step 2: Pick rings", exact: true })
@@ -498,15 +539,66 @@ try {
     ...(await verifyPlotNavigation(page)),
     ...(await verifyWheelCapture(page)),
   ];
+  const patternBox = await page.getByTestId("pattern-canvas").boundingBox();
+  await page.mouse.move(
+    patternBox.x + patternBox.width / 2,
+    patternBox.y + patternBox.height / 2,
+  );
+  await page.waitForFunction(
+    () =>
+      document.querySelector('[data-testid="mouse-readout"]')?.dataset.plot ===
+      "pattern",
+  );
+  assert.equal(
+    await page.locator('.app-status [data-testid="mouse-readout"]').count(),
+    1,
+  );
+  assert.equal(
+    await page.locator(".views-grid .panel-footer, .plot-readout").count(),
+    0,
+  );
+  await page
+    .getByRole("group", { name: "Integration display", exact: true })
+    .getByRole("button", { name: "Cake", exact: true })
+    .click();
+  const cakeCanvas = page.getByTestId("cake-canvas");
+  await cakeCanvas.scrollIntoViewIfNeeded();
+  const cakeBox = await cakeCanvas.boundingBox();
+  await page.mouse.move(
+    cakeBox.x + cakeBox.width / 2,
+    cakeBox.y + cakeBox.height / 2,
+  );
+  await page.waitForFunction(
+    () =>
+      document.querySelector('[data-testid="mouse-readout"]')?.dataset.plot ===
+      "cake",
+  );
+  assert.match(
+    await page.getByTestId("mouse-readout").innerText(),
+    /2θ .*χ .*I /,
+  );
   const afterNavigation = await invoke("state");
   assert.equal(
     afterNavigation.state.calibration.picks.length,
     pickCount,
     "Rectangle dragging and right navigation do not pick calibration peaks",
   );
-  await page.getByRole("tab", { name: "Options", exact: true }).click();
+  await openIntegrationSettings(page);
   await page.getByLabel("Radial coordinate").selectOption("q_A^-1");
   await waitReady();
+  await page.getByLabel("Radial bins", { exact: true }).fill("0");
+  await page
+    .getByRole("button", { name: "Apply integration options", exact: true })
+    .click();
+  await page.getByRole("alert").waitFor();
+  assert.equal(await page.locator('.app-status [role="alert"]').count(), 1);
+  await page
+    .getByRole("button", { name: "Close settings", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Dismiss error", exact: true })
+    .click();
+  await openIntegrationSettings(page);
   await page.getByLabel("Radial bins", { exact: true }).fill("1000");
   await page
     .getByRole("button", { name: "Apply integration options", exact: true })
@@ -520,7 +612,11 @@ try {
     "Cake coordinates must retain their actual units",
   );
   assert.equal(current.state.bins, 1000);
-  await page.getByRole("button", { name: "Mask brush", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Close settings", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Mask", exact: true }).click();
+  await page.getByRole("button", { name: "Point", exact: true }).click();
   const box = await detector.boundingBox();
   await page.mouse.move(box.x + box.width * 0.55, box.y + box.height * 0.5);
   await page.mouse.down();
@@ -532,12 +628,11 @@ try {
   current = await invoke("state");
   assert.ok(current.state.maskedPixels > 0);
   const maskedPixels = current.state.maskedPixels;
-  await page
-    .getByRole("button", { name: "Undo mask stroke", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Undo mask", exact: true }).click();
   await waitReady();
   current = await invoke("state");
   assert.equal(current.state.maskedPixels, 0);
+  await page.getByRole("button", { name: "Integration", exact: true }).click();
   const exported = await invoke("export_pattern");
   assert.ok(exported.ok, exported.error);
   await page.getByRole("button", { name: "Save", exact: true }).click();
@@ -547,10 +642,11 @@ try {
   current = await invoke("state");
   assert.equal(current.state.bins, 1000);
   assert.equal(current.state.unit, "q_A^-1");
-  await selectColorMap(page, "Color map", "thermal");
   await page
-    .getByRole("button", { name: "Plot navigation", exact: true })
+    .getByRole("group", { name: "Integration display", exact: true })
+    .getByRole("button", { name: "Image", exact: true })
     .click();
+  await selectColorMap(page, "Color map", "thermal");
   await page.mouse.move(10, 10);
   await page.screenshot({ path: path.join(artifacts, "integration.png") });
   await page.setViewportSize({ width: 1000, height: 760 });
@@ -562,7 +658,7 @@ try {
     () => document.documentElement.scrollWidth > window.innerWidth,
   );
   assert.equal(overflow, false, "Minimum desktop width must not overflow");
-  await page.getByRole("button", { name: "Larger text", exact: true }).click();
+  await setInterfaceTextSize(page, true);
   assert.equal(
     await page.evaluate(
       () => document.documentElement.scrollWidth > window.innerWidth,
@@ -572,7 +668,7 @@ try {
   await page.screenshot({
     path: path.join(artifacts, "compact-large-text.png"),
   });
-  await page.getByRole("button", { name: "Larger text", exact: true }).click();
+  await setInterfaceTextSize(page, false);
   const integrationChecks = await verifyIntegrationControls(
     page,
     invoke,
@@ -592,11 +688,11 @@ try {
     navigationChecks,
     imageControlChecks,
     detectorGeometryChecks,
+    calibrationSetupChecks,
     screenshots: [
       "calibration-start.png",
       "calibration-fit.png",
       "calibration-ring-selected.png",
-      "calibration-green.png",
       "calibration-large-text.png",
       "integration.png",
       "compact.png",

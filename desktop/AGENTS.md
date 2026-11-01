@@ -13,8 +13,17 @@ and CALIBRATION_PARITY.md before changing its command or plot boundaries.
   text option. Neutral charcoal backgrounds, orange accents, green elongated
   crystal identity. Do not turn backgrounds green.
 - Images have no extra title/dimension header, Fit button or Display mask
-  toggle. Keep zoom choices in existing toolbars/footers; F and right double
-  click restore the view. Mask-use and transparency controls belong to task options.
+  toggle, and no tool/zoom selection strip above them. Pick rings automatically
+  enables picking; images use rectangle zoom, while the pattern's optional
+  horizontal/rectangle choice lives in Settings. Mask drawing controls stay
+  in the right task panel. F and right double click restore the image view.
+- Settings is anchored at the bottom of the left sidebar. Coordinates,
+  intensities, plot hints, selection feedback and processing/save/error messages
+  use one app footer beside the full-height left sidebar: active plot readout
+  left, messages right. No per-plot
+  readout/footer rows or floating pattern readout. Detector readouts omit the
+  source label and reserve fixed-width x/y fields so digits do not move the
+  following coordinate. Keep updates near 10 Hz.
 - Every image has independent intensity limits, linear/log (linear default),
   Auto modes and visual colour-map selector. Use existing ImageIntensity:
   default right in single-image views, top in multi-image views.

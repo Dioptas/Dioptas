@@ -173,6 +173,7 @@ export function MaskPanel({
                 >
                   <input
                     aria-label="Mask point diameter"
+                    className="numeric-stepper"
                     type="number"
                     min="2"
                     max="600"

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { Pattern } from "./types";
-import { number, unitLabel } from "./types";
+import type { PatternHover } from "./plotReadout";
+import { unitLabel } from "./types";
+import { linearTicks, logTicks } from "./plotTicks";
 import {
   usePlotNavigation,
   usePlotWheel,
@@ -29,6 +31,8 @@ export function PatternView({
   log,
   zoomMode = "horizontal",
   onPick,
+  onHover,
+  hoverHint,
   linkedPosition,
   calibrantLines = [],
   showNumbers = false,
@@ -42,6 +46,8 @@ export function PatternView({
   log: boolean;
   zoomMode?: ZoomMode;
   onPick?: (x: number) => void;
+  onHover?: (point: PatternHover | null) => void;
+  hoverHint?: string;
   linkedPosition?: number;
   calibrantLines?: { x: number; ring: number }[];
   showNumbers?: boolean;
@@ -54,6 +60,7 @@ export function PatternView({
   const canvas = useRef<HTMLCanvasElement>(null),
     container = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 900, height: 230 });
+  const [left, setLeft] = useState(76);
   const regionDrag = useRef<{
     name: string;
     mode: "min" | "max" | "move";
@@ -81,12 +88,11 @@ export function PatternView({
     navigation.reset();
     setHover(null);
   }, [pattern.unit, pattern.x[0], pattern.x.at(-1), log]);
-  const left = 76,
-    right = 24,
+  const right = 32,
     top = 18,
-    bottom = 44;
-  const w = size.width - left - right,
-    h = size.height - top - bottom;
+    bottom = 52;
+  const w = Math.max(1, size.width - left - right),
+    h = Math.max(1, size.height - top - bottom);
   const [fitXMin, fitXMax] = extent([
     ...pattern.x,
     ...curves.flatMap((curve) => curve.x),
@@ -146,12 +152,36 @@ export function PatternView({
     canvas.current.width = Math.round(size.width * dpr);
     canvas.current.height = Math.round(size.height * dpr);
     context.scale(dpr, dpr);
-    context.fillStyle = "#10151b";
-    context.fillRect(0, 0, size.width, size.height);
+    // Resizing clears the canvas; transparent margins reveal the workspace surface.
     context.font = "13px ui-monospace, SFMono-Regular, monospace";
-    for (let i = 0; i <= 4; i++) {
-      const y = top + (h * i) / 4,
-        value = ymin + yspan * (1 - i / 4);
+    const yTicks = (log ? logTicks : linearTicks)(
+      ymin,
+      ymax,
+      Math.max(1, Math.floor(h / 48)),
+    );
+    // Keep a separate gutter for the rotated title, regardless of intensity magnitude.
+    const tickWidth = Math.max(
+      0,
+      ...yTicks.map((tick) => context.measureText(tick.label).width),
+    );
+    setLeft(Math.max(64, Math.ceil(tickWidth) + 44));
+    let intervals = Math.max(1, Math.floor(w / 80));
+    let xTicks = linearTicks(xmin, xmax, intervals);
+    while (intervals > 1) {
+      const widest = Math.max(
+        0,
+        ...xTicks.map((tick) => context.measureText(tick.label).width),
+      );
+      const spacing =
+        xTicks.length > 1
+          ? ((xTicks[1].value - xTicks[0].value) / (xmax - xmin)) * w
+          : w;
+      if (spacing >= widest + 18) break;
+      xTicks = linearTicks(xmin, xmax, --intervals);
+    }
+    context.textBaseline = "middle";
+    for (const tick of yTicks) {
+      const y = top + h - ((tick.value - ymin) / yspan) * h;
       context.strokeStyle = "#222c36";
       context.beginPath();
       context.moveTo(left, y);
@@ -159,15 +189,41 @@ export function PatternView({
       context.stroke();
       context.fillStyle = "#7e8994";
       context.textAlign = "right";
-      context.fillText(number(log ? 10 ** value : value, 1), left - 10, y + 3);
-      const x = left + (w * i) / 4;
+      context.fillText(tick.label, left - 10, y);
+      context.strokeStyle = "#65717d";
+      context.beginPath();
+      context.moveTo(left - 4, y);
+      context.lineTo(left, y);
+      context.stroke();
+    }
+    for (const tick of xTicks) {
+      const x = left + ((tick.value - xmin) / (xmax - xmin)) * w;
+      context.strokeStyle = "#222c36";
+      context.beginPath();
+      context.moveTo(x, top);
+      context.lineTo(x, top + h);
+      context.stroke();
+      context.strokeStyle = "#65717d";
+      context.beginPath();
+      context.moveTo(x, top + h);
+      context.lineTo(x, top + h + 4);
+      context.stroke();
+      context.fillStyle = "#7e8994";
       context.textAlign = "center";
+      const halfLabel = context.measureText(tick.label).width / 2;
       context.fillText(
-        number(xmin + ((xmax - xmin) * i) / 4),
-        x,
-        size.height - 22,
+        tick.label,
+        Math.max(halfLabel + 6, Math.min(size.width - halfLabel - 6, x)),
+        top + h + 18,
       );
     }
+    context.strokeStyle = "#65717d";
+    context.beginPath();
+    context.moveTo(left, top);
+    context.lineTo(left, top + h);
+    context.lineTo(left + w, top + h);
+    context.stroke();
+    context.textBaseline = "alphabetic";
     context.save();
     context.beginPath();
     context.rect(left, top, w, h);
@@ -185,7 +241,7 @@ export function PatternView({
       context.textAlign = "left";
       context.fillText(region.name, x0 + 5, top + 14);
     }
-    context.strokeStyle = "#efba77";
+    context.strokeStyle = "#ff9500";
     context.lineWidth = 1.4;
     context.beginPath();
     let started = false;
@@ -265,8 +321,8 @@ export function PatternView({
     }
     if (navigation.selection) {
       const { start, end } = navigation.selection;
-      context.fillStyle = "#efba7720";
-      context.strokeStyle = "#efba77";
+      context.fillStyle = "#ff950020";
+      context.strokeStyle = "#ff9500";
       const x = Math.min(start.x, end.x),
         y = Math.min(start.y, end.y);
       const width = Math.abs(end.x - start.x),
@@ -285,10 +341,11 @@ export function PatternView({
     context.restore();
     context.fillStyle = "#929ca7";
     context.textAlign = "center";
-    context.fillText(unitLabel(pattern.unit), left + w / 2, size.height - 5);
+    context.fillText(unitLabel(pattern.unit), left + w / 2, size.height - 8);
     context.save();
-    context.translate(12, top + h / 2);
+    context.translate(16, top + h / 2);
     context.rotate(-Math.PI / 2);
+    context.textBaseline = "middle";
     context.fillText("Intensity (a.u.)", 0, 0);
     context.restore();
   }, [
@@ -305,6 +362,7 @@ export function PatternView({
     referenceLines,
     regions,
     regionDraft,
+    left,
   ]);
   const xvalue =
     hover === null ? null : xmin + ((hover - left) / w) * (xmax - xmin);
@@ -318,6 +376,18 @@ export function PatternView({
               : best,
           0,
         );
+  useEffect(() => {
+    onHover?.(
+      nearest >= 0
+        ? {
+            x: pattern.x[nearest],
+            y: pattern.y[nearest],
+            unit: pattern.unit,
+            hint: hoverHint,
+          }
+        : null,
+    );
+  }, [nearest, pattern, onHover, hoverHint]);
   return (
     <div ref={container} className="pattern-container">
       <canvas
@@ -329,6 +399,10 @@ export function PatternView({
         data-reference-count={referenceLines.length}
         data-linked-position={linkedPosition}
         data-zoom-mode={zoomMode}
+        data-plot-left={left}
+        data-plot-top={top}
+        data-plot-width={w}
+        data-plot-height={h}
         data-view-x-min={xmin}
         data-view-x-max={xmax}
         data-view-y-min={ymin}
@@ -401,14 +475,6 @@ export function PatternView({
         }}
         onPointerLeave={() => setHover(null)}
       />
-      {nearest >= 0 && (
-        <div className="plot-readout">
-          {unitLabel(pattern.unit)} <b>{number(pattern.x[nearest], 4)}</b>
-          <span>
-            I <b>{number(pattern.y[nearest] ?? 0)}</b>
-          </span>
-        </div>
-      )}
     </div>
   );
 }

@@ -201,6 +201,7 @@
 .map-file-list button span {
   color: #aaa;
   font-variant-numeric: tabular-nums;
+  text-align: right;
   min-width: 24px;
 }
 .map-file-list [aria-selected="true"] {
@@ -213,7 +214,7 @@
 }
 .map-warning {
   padding: 8px 12px;
-  color: #edc08b;
+  color: #ff9500;
   line-height: 1.5;
   font-size: 13px;
 }

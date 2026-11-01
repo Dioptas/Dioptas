@@ -1,20 +1,25 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useImperativeHandle, useRef, useState } from "react";
+import type { Ref } from "react";
 import { createPortal } from "react-dom";
 import { colorMaps, colorMapPreview } from "./colorMaps";
+
+export type ColorMapPickerHandle = { open: (trigger: SVGRectElement) => void };
 
 export function ColorMapPicker({
   value,
   onChange,
   label,
+  ref,
 }: {
   value: string;
   onChange: (value: string) => void;
   label: string;
+  ref?: Ref<ColorMapPickerHandle>;
 }) {
   const names = Object.keys(colorMaps),
     selected = colorMaps[value] ? value : "grey",
     id = useId();
-  const button = useRef<HTMLButtonElement>(null),
+  const trigger = useRef<SVGRectElement | null>(null),
     list = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{
     left: number;
@@ -24,14 +29,15 @@ export function ColorMapPicker({
   const [active, setActive] = useState(names.indexOf(selected));
   const close = () => {
     setPosition(null);
-    button.current?.focus({ preventScroll: true });
+    trigger.current?.focus({ preventScroll: true });
   };
   const choose = (name: string) => {
     onChange(name);
     close();
   };
-  const open = () => {
-    const box = button.current!.getBoundingClientRect(),
+  const open = (element: SVGRectElement) => {
+    trigger.current = element;
+    const box = element.getBoundingClientRect(),
       height = Math.min(520, window.innerHeight - 16);
     setActive(names.indexOf(selected));
     setPosition({
@@ -43,6 +49,7 @@ export function ColorMapPicker({
       height,
     });
   };
+  useImperativeHandle(ref, () => ({ open }));
   useEffect(() => {
     if (!position) return;
     const option = list.current?.querySelector<HTMLElement>(
@@ -58,8 +65,7 @@ export function ColorMapPicker({
       close();
     } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
-      if (!position) open();
-      else
+      if (position)
         setActive(
           (index) =>
             (index + (event.key === "ArrowDown" ? 1 : -1) + names.length) %
@@ -71,31 +77,10 @@ export function ColorMapPicker({
     } else if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       if (position) choose(names[active]);
-      else open();
     } else if (event.key === "Tab") setPosition(null);
   };
   return (
     <>
-      <button
-        type="button"
-        ref={button}
-        className="color-map-picker"
-        role="combobox"
-        aria-label={label}
-        aria-haspopup="listbox"
-        aria-controls={position ? id : undefined}
-        aria-expanded={!!position}
-        data-color-map={selected}
-        title={`${colorMaps[selected].label} colour scale`}
-        onClick={() => (position ? close() : open())}
-        onKeyDown={keyboard}
-      >
-        <img
-          src={colorMapPreview(selected)}
-          alt={`${colorMaps[selected].label} colour scale`}
-        />
-        <span aria-hidden="true">▾</span>
-      </button>
       {position &&
         createPortal(
           <div className="color-map-backdrop" onPointerDown={close}>

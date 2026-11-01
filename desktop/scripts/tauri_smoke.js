@@ -62,7 +62,30 @@
         initial.image.width === initial.image.fullWidth,
       "Detector resolution was reduced",
     );
-    click("Step 2: Pick rings");
+    const expectedTitle = `${initial.state.imageName} — Dioptas`;
+    await wait(
+      () => document.title === expectedTitle,
+      "Image document title did not update",
+    );
+    const nativeTitle = await window.__TAURI_INTERNALS__.invoke(
+      "plugin:window|title",
+      { label: "main" },
+    );
+    check(
+      nativeTitle === expectedTitle,
+      "Native title does not show the image filename",
+    );
+    check(
+      document.querySelector(".setup-image-filename")?.textContent ===
+        initial.state.imageName,
+      "Filename missing below Open image",
+    );
+    click("Apply & pick rings ›");
+    await ready();
+    await wait(
+      () => document.querySelector('[aria-label="Current calibrant ring"]'),
+      "Apply setup did not continue to peak picking",
+    );
     await delay();
     const canvas = document.querySelector('[data-testid="detector-canvas"]');
     // Synthetic pointer events cannot acquire native pointer capture. Real
@@ -79,10 +102,17 @@
       input("Current calibrant ring", String(ring));
       await delay();
       const box = canvas.getBoundingClientRect();
-      const scale = Math.min((box.width - 8) / 981, (box.height - 8) / 1043);
-      const clientX = box.x + (box.width - 981 * scale) / 2 + x * scale;
+      const view = canvas.dataset;
+      const clientX =
+        box.x +
+        +view.plotLeft +
+        ((x - +view.viewXMin) / (+view.viewXMax - +view.viewXMin)) *
+          +view.plotWidth;
       const clientY =
-        box.y + (box.height - 1043 * scale) / 2 + (1043 - y) * scale;
+        box.y +
+        +view.plotTop +
+        ((+view.viewYMax - y) / (+view.viewYMax - +view.viewYMin)) *
+          +view.plotHeight;
       for (const type of ["pointerdown", "pointerup"])
         canvas.dispatchEvent(
           new PointerEvent(type, {
@@ -161,7 +191,13 @@
       imageBox.height > controlsBox.height + patternBox.height - 50,
       "Native Integration image must fill the left column",
     );
-    click("Options");
+    click("Settings");
+    await delay();
+    document
+      .querySelector(
+        '#settings-workspace [role="tab"][id="settings-tab-integration"]',
+      )
+      .click();
     await delay();
     input("Radial bins", "600");
     input("Cake azimuth bins", "90");
@@ -174,6 +210,8 @@
       integrated.state.bins === 600 && integrated.cake.height === 90,
       "Native integration options were not applied",
     );
+    click("Close settings");
+    await delay();
     click("Overlay");
     await delay();
     click("Add pattern");

@@ -1,5 +1,13 @@
 import assert from "node:assert/strict";
 
+export async function openIntegrationSettings(page) {
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page
+    .getByRole("region", { name: "Settings", exact: true })
+    .getByRole("tab", { name: "Integration", exact: true })
+    .click();
+}
+
 /** Real-model Integration UI checks, composed with the calibration smoke harness. */
 export async function verifyIntegrationControls(page, invoke, waitReady) {
   const tab = async (name) =>
@@ -9,7 +17,23 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
     await waitReady();
   };
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await tab("Options");
+  const settle = () =>
+    page.evaluate(
+      () =>
+        new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        ),
+    );
+  await settle();
+  await page.getByTestId("detector-canvas").evaluate((el) => {
+    window.__settingsDetector = el;
+    window.__settingsDetectorRange = [
+      el.dataset.viewXMin,
+      el.dataset.viewXMax,
+      (Number(el.dataset.viewYMin) + Number(el.dataset.viewYMax)) / 2,
+    ];
+  });
+  await openIntegrationSettings(page);
   await page
     .getByLabel("Radial coordinate", { exact: true })
     .selectOption("2th_deg");
@@ -27,6 +51,118 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
   assert.equal(current.cake.height, 60);
   assert.equal(current.cake.step, 1);
   const revision = current.state.revision;
+  await page
+    .getByRole("button", { name: "Close settings", exact: true })
+    .click();
+  assert.equal(
+    await page.getByRole("tab", { name: "Options", exact: true }).count(),
+    0,
+  );
+  await openIntegrationSettings(page);
+  assert.equal(
+    await page.getByLabel("Radial bins", { exact: true }).inputValue(),
+    "360",
+  );
+  assert.equal(
+    await page.getByLabel("Cake azimuth bins", { exact: true }).inputValue(),
+    "60",
+  );
+  await page.getByLabel("Radial bins", { exact: true }).fill("361");
+  // Settings participates in normal keyboard navigation; the workspace is inert.
+  const apply = page.getByRole("button", {
+    name: "Apply integration options",
+    exact: true,
+  });
+  await apply.focus();
+  await page.keyboard.press("Shift+Tab");
+  assert.equal(
+    await page
+      .getByLabel("Polarization factor", { exact: true })
+      .evaluate((el) => el === document.activeElement),
+    true,
+  );
+  const settingsRegion = page.getByRole("region", {
+    name: "Settings",
+    exact: true,
+  });
+  const beforeCategory = await settingsRegion.boundingBox();
+  await page.getByRole("tab", { name: "General", exact: true }).click();
+  assert.deepEqual(await settingsRegion.boundingBox(), beforeCategory);
+  await page
+    .getByRole("tab", { name: "Keyboard shortcuts", exact: true })
+    .click();
+  assert.deepEqual(await settingsRegion.boundingBox(), beforeCategory);
+  assert.equal(await page.getByRole("dialog").count(), 0);
+  await page.getByRole("tab", { name: "Integration", exact: true }).click();
+  assert.equal(
+    await page.getByLabel("Radial bins", { exact: true }).inputValue(),
+    "361",
+  );
+  await page.getByLabel("Radial bins", { exact: true }).fill("360");
+  assert.equal(
+    await page.locator(".workspace-content").evaluate((el) => el.inert),
+    true,
+  );
+  await page.keyboard.press("b");
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Mask", exact: true })
+      .getAttribute("aria-pressed"),
+    "false",
+  );
+  await page.setViewportSize({ width: 1000, height: 760 });
+  assert.equal(
+    await page
+      .getByRole("region", { name: "Settings", exact: true })
+      .evaluate((el) => {
+        const bounds = el.getBoundingClientRect();
+        return (
+          bounds.top >= 0 &&
+          bounds.bottom <= innerHeight &&
+          el.scrollWidth <= el.clientWidth
+        );
+      }),
+    true,
+  );
+  assert.equal(
+    await apply.evaluate((el) => {
+      const bounds = el.getBoundingClientRect();
+      return bounds.top >= 0 && bounds.bottom <= innerHeight;
+    }),
+    true,
+    "Apply stays visible in a compact window",
+  );
+  await page.screenshot({
+    path: new URL("../artifacts/integration-settings.png", import.meta.url)
+      .pathname,
+  });
+  await page.keyboard.press("Escape");
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Settings", exact: true })
+      .evaluate((el) => el === document.activeElement),
+    true,
+  );
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await settle();
+  assert.equal(
+    await page
+      .getByTestId("detector-canvas")
+      .evaluate((el) => el === window.__settingsDetector),
+    true,
+    "Opening Settings retains the detector renderer",
+  );
+  assert.deepEqual(
+    await page
+      .getByTestId("detector-canvas")
+      .evaluate((el) => [
+        el.dataset.viewXMin,
+        el.dataset.viewXMax,
+        (Number(el.dataset.viewYMin) + Number(el.dataset.viewYMax)) / 2,
+      ]),
+    await page.evaluate(() => window.__settingsDetectorRange),
+    "Returning from Settings retains detector zoom",
+  );
   const display = page.getByRole("group", {
     name: "Integration display",
     exact: true,
@@ -39,12 +175,12 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
   assert.equal(await page.getByTestId("cake-canvas").isVisible(), true);
   assert.equal((await invoke("state")).state.revision, revision);
   assert.equal(await page.locator(".intensity-histogram").count(), 2);
-  await page.getByLabel("Configure cake display", { exact: true }).click();
+  await page.getByLabel("Cake histogram settings", { exact: true }).click();
   await page.getByLabel("Cake minimum intensity", { exact: true }).fill("10");
   await page.getByLabel("Close cake display settings", { exact: true }).click();
   await tab("Overlay");
   await click("Add pattern");
-  await page.getByLabel("Configure cake display", { exact: true }).click();
+  await page.getByLabel("Cake histogram settings", { exact: true }).click();
   assert.equal(
     await page
       .getByLabel("Cake minimum intensity", { exact: true })
@@ -132,11 +268,21 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
     (await invoke("state")).state.integration.corrections.oiadac.enabled,
     true,
   );
-  await tab("Options");
+  await openIntegrationSettings(page);
   await page.getByLabel("1D azimuth full range", { exact: true }).check();
   await click("Apply integration options");
+  await page
+    .getByRole("button", { name: "Close settings", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("button", { name: "Integration", exact: true }).click();
+  assert.equal(
+    await page.getByRole("region", { name: "Settings", exact: true }).count(),
+    0,
+    "Mode navigation returns directly from Settings",
+  );
   return [
-    "Qt control groups and real integration options / wrapped azimuth",
+    "Settings workspace, stable category bounds, keyboard navigation, compact layout and wrapped azimuth",
     "Qt Image/Cake switching and independent histograms",
     "overlay capture, scale, visibility and rendered curves",
     "phase loading, pressure and rendered reflections",

@@ -1,3 +1,4 @@
+import { setInterfaceTextSize } from "./plot_navigation.mjs";
 import assert from "node:assert/strict";
 import path from "node:path";
 
@@ -101,13 +102,13 @@ export async function verifyIntegrationLayout(page, artifacts) {
   await page.setViewportSize({ width: 1000, height: 760 });
   await settle(page);
   await checkLayout();
-  await page.getByRole("button", { name: "Larger text", exact: true }).click();
+  await setInterfaceTextSize(page, true);
   await settle(page);
   await checkLayout();
   await page.screenshot({
     path: path.join(artifacts, "integration-qt-compact-large.png"),
   });
-  await page.getByRole("button", { name: "Larger text", exact: true }).click();
+  await setInterfaceTextSize(page, false);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await settle(page);
   return [

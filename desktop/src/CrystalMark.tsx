@@ -15,8 +15,23 @@ export function CrystalMark() {
   const id = useId();
   const paint = (name: string) => `url(#${id}-${name})`;
   return (
-    <svg width="28" height="34" viewBox="0 0 32 40" aria-hidden="true">
+    <svg width="36" height="36" viewBox="0 0 40 40" aria-hidden="true">
       <defs>
+        {/* Orange follows primaryColor in resources/style/dark_orange.xml. */}
+        <linearGradient id={`${id}-glass`} x1="0" y1="0" x2=".8" y2="1">
+          <stop stopColor="#ffc675" />
+          <stop offset=".42" stopColor="#ff9500" />
+          <stop offset="1" stopColor="#b95708" />
+        </linearGradient>
+        <linearGradient id={`${id}-sheen`} x1="0" y1="0" x2=".3" y2="1">
+          <stop stopColor="#fff7e8" stopOpacity=".6" />
+          <stop offset="1" stopColor="#fff7e8" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id={`${id}-rim`} x1="0" y1="0" x2=".7" y2="1">
+          <stop stopColor="#ffe8c5" stopOpacity=".9" />
+          <stop offset=".5" stopColor="#ffb44e" stopOpacity=".4" />
+          <stop offset="1" stopColor="#ffcb84" stopOpacity=".65" />
+        </linearGradient>
         <linearGradient id={`${id}-right`} x1="0" y1="0" x2="1" y2="1">
           <stop stopColor="#087768" />
           <stop offset=".5" stopColor="#003b35" />
@@ -44,49 +59,82 @@ export function CrystalMark() {
           <stop offset="1" stopColor="#56b9a1" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <g stroke="#176954" strokeWidth=".45" strokeLinejoin="round">
-        {["right", "front", "left"].map((face, index) => (
-          <polygon
-            key={face}
-            points={points([
-              endFace[index],
-              endFace[index + 1],
-              alongC(endFace[index + 1]),
-              alongC(endFace[index]),
-            ])}
-            fill={paint(face)}
-          />
-        ))}
-        <polygon points={points(endFace)} fill={paint("termination")} />
+      <rect x="1" y="1" width="38" height="38" rx="10" fill={paint("glass")} />
+      <path
+        d="M11 2H29Q38 2 38 11V13C27 11 17 21 2 23V11Q2 2 11 2Z"
+        fill={paint("sheen")}
+      />
+      <path
+        d="M6 30C16 35 26 36 35 30"
+        fill="none"
+        stroke="#ffdcaa"
+        strokeOpacity=".3"
+        strokeWidth=".7"
+      />
+      <rect
+        x="1.5"
+        y="1.5"
+        width="37"
+        height="37"
+        rx="9.5"
+        fill="none"
+        stroke={paint("rim")}
+        strokeWidth=".8"
+      />
+      <rect
+        x="1"
+        y="1"
+        width="38"
+        height="38"
+        rx="10"
+        fill="#000"
+        fillOpacity=".07"
+      />
+      <g transform="translate(6.2 3) scale(.9)">
+        <g stroke="#176954" strokeWidth=".45" strokeLinejoin="round">
+          {["right", "front", "left"].map((face, index) => (
+            <polygon
+              key={face}
+              points={points([
+                endFace[index],
+                endFace[index + 1],
+                alongC(endFace[index + 1]),
+                alongC(endFace[index]),
+              ])}
+              fill={paint(face)}
+            />
+          ))}
+          <polygon points={points(endFace)} fill={paint("termination")} />
+        </g>
+        {/* Narrow reflections follow the long faces rather than outlining a box. */}
+        <path
+          d="M12.5 10.4 13.9 10.8 13 28.4 12.1 30.2Z"
+          fill={paint("reflection")}
+        />
+        <path
+          d="M7.2 5.8 8.3 6.8 7.5 23.5 6.8 21.8Z"
+          fill={paint("reflection")}
+        />
+        <path
+          d="M7.2 3.8 11.2 1.8 17 3.1 12.6 5.6 10 6Z"
+          fill="#c4e6e2"
+          fillOpacity=".85"
+        />
+        <path
+          d="M6 3.8 4.8 29.8 M21 11.0 19.8 37"
+          fill="none"
+          stroke="#7ac5b4"
+          strokeOpacity=".65"
+          strokeWidth=".55"
+        />
+        <path
+          d="M11 8.8 9.8 34.8 M4.8 29.8 9.8 34.8 19.8 37 24.8 34.2"
+          fill="none"
+          stroke="#21a688"
+          strokeOpacity=".8"
+          strokeWidth=".5"
+        />
       </g>
-      {/* Narrow reflections follow the long faces rather than outlining a box. */}
-      <path
-        d="M12.5 10.4 13.9 10.8 13 28.4 12.1 30.2Z"
-        fill={paint("reflection")}
-      />
-      <path
-        d="M7.2 5.8 8.3 6.8 7.5 23.5 6.8 21.8Z"
-        fill={paint("reflection")}
-      />
-      <path
-        d="M7.2 3.8 11.2 1.8 17 3.1 12.6 5.6 10 6Z"
-        fill="#c4e6e2"
-        fillOpacity=".85"
-      />
-      <path
-        d="M6 3.8 4.8 29.8 M21 11.0 19.8 37"
-        fill="none"
-        stroke="#7ac5b4"
-        strokeOpacity=".65"
-        strokeWidth=".55"
-      />
-      <path
-        d="M11 8.8 9.8 34.8 M4.8 29.8 9.8 34.8 19.8 37 24.8 34.2"
-        fill="none"
-        stroke="#21a688"
-        strokeOpacity=".8"
-        strokeWidth=".5"
-      />
     </svg>
   );
 }

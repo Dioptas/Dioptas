@@ -81,8 +81,8 @@ export function CalibrationExtras({
   return (
     <>
       {step === 0 && (
-        <details className="compact-section" open={step === 0}>
-          <summary>Image & detector</summary>
+        <details className="compact-section">
+          <summary>Image orientation & detector files</summary>
           <div className="orientation-tools">
             {(
               [
@@ -308,7 +308,7 @@ export function CalibrationExtras({
         </details>
       )}
       {(step === 0 || step === 3) && (
-        <details className="compact-section" open={step === 0}>
+        <details className="compact-section">
           <summary>Detector mask</summary>
           <label className="check-row">
             <input
@@ -326,6 +326,17 @@ export function CalibrationExtras({
             />
             Use detector mask
           </label>
+          <label className="check-row">
+            <input
+              aria-label="Transparent mask overlay"
+              type="checkbox"
+              checked={state?.transparentMask ?? false}
+              disabled={!ready || !state?.useMask}
+              onChange={(e) => run("settings", { transparent_mask: e.target.checked })}
+            />
+            Transparent mask
+          </label>
+          <p className="control-note">Draw or edit the mask in Mask mode on the left.</p>
           <div className="file-actions">
             <button
               disabled={!ready || !state?.hasImage}

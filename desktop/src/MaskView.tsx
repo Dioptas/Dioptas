@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { RasterView } from "./RasterView";
 import { ImageIntensity } from "./ImageIntensity";
 import type { Raster, State, ImageDisplayPreferences } from "./types";
-import { number } from "./types";
 import {
   previewMask,
   shapeHelp,
@@ -17,6 +16,7 @@ export type MaskRun = (
 ) => Promise<void>;
 
 export function MaskView({
+  active = true,
   image,
   mask,
   state,
@@ -26,8 +26,9 @@ export function MaskView({
   tools,
   resetKey,
   onHover,
-  pixel,
+  onSelectionStatus,
 }: {
+  active?: boolean;
   image: Raster | null;
   mask: Raster | null;
   state: State | null;
@@ -37,7 +38,9 @@ export function MaskView({
   tools: MaskTools;
   resetKey: number;
   onHover: (point: { x: number; y: number } | null) => void;
-  pixel: { x: number; y: number; value: number | null } | null;
+  onSelectionStatus: (
+    status: { text: string; cancel: () => void } | null,
+  ) => void;
 }) {
   const [limits, setLimits] = useState<[number, number]>(
     image?.limits ?? [0, 100],
@@ -56,6 +59,18 @@ export function MaskView({
     setPoints([]);
   }, [image]);
   useEffect(() => setPoints([]), [tools.shape, tools.erase, resetKey]);
+  const cancelSelection = useCallback(() => setPoints([]), []);
+  useEffect(() => {
+    onSelectionStatus(
+      points.length
+        ? {
+            text: `${points.length} point${points.length > 1 ? "s" : ""} selected · ${shapeHelp[tools.shape]}`,
+            cancel: cancelSelection,
+          }
+        : null,
+    );
+  }, [points.length, tools.shape, onSelectionStatus, cancelSelection]);
+  useEffect(() => () => onSelectionStatus(null), [onSelectionStatus]);
   const finish = (vertices = points) => {
     if (vertices.length < 3 || busy) return;
     void run(
@@ -66,9 +81,12 @@ export function MaskView({
     setPoints([]);
   };
   useEffect(() => {
+    if (!active) return;
     const key = (event: KeyboardEvent) => {
       if (
-        (event.target as HTMLElement).closest("input,select,textarea") ||
+        (event.target as HTMLElement).closest(
+          'input,select,textarea,[role="dialog"]',
+        ) ||
         event.ctrlKey ||
         event.metaKey
       )
@@ -95,7 +113,7 @@ export function MaskView({
     };
     window.addEventListener("keydown", key, true);
     return () => window.removeEventListener("keydown", key, true);
-  }, [points, tools, busy]);
+  }, [points, tools, busy, active]);
   const pick = ({ x, y }: { x: number; y: number }) => {
     if (tools.shape === "navigate" || tools.shape === "point") return;
     const next: MaskPoint[] = [...points, [x, y]];
@@ -182,21 +200,6 @@ export function MaskView({
           <button disabled={!ready} onClick={() => void run("open_image")}>
             Open detector image
           </button>
-        </div>
-      )}
-      <div className="panel-footer detector-readout">
-        <span data-testid="mask-mouse-readout">
-          {pixel && image
-            ? `x ${pixel.x} · y ${image.fullHeight - 1 - pixel.y} · I ${pixel.value === null ? "—" : number(pixel.value, 3)}`
-            : shapeHelp[tools.shape]}
-        </span>
-        <span>{number(state?.maskedPixels ?? 0, 0)} masked</span>
-      </div>
-      {points.length > 0 && (
-        <div className="mask-selection-status" role="status">
-          {points.length} point{points.length > 1 ? "s" : ""} selected ·{" "}
-          {shapeHelp[tools.shape]}{" "}
-          <button onClick={() => setPoints([])}>Cancel selection</button>
         </div>
       )}
     </section>

@@ -1,118 +1,8 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import type { State } from "./types";
 import type { IntegrationRun, IntegrationState } from "./integration";
+import { Check, Field, Group } from "./IntegrationFields";
 import "./integration.css";
-
-function Field({
-  label,
-  value,
-  onChange,
-  min,
-  max,
-  step = "any",
-  disabled = false,
-}: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-  min?: number;
-  max?: number;
-  step?: number | string;
-  disabled?: boolean;
-}) {
-  return (
-    <label className="field-label">
-      {label}
-      <input
-        aria-label={label}
-        type="number"
-        value={value}
-        min={min}
-        max={max}
-        step={step}
-        disabled={disabled}
-        onChange={(e) => onChange(Number(e.target.value))}
-      />
-    </label>
-  );
-}
-function Check({
-  label,
-  checked,
-  onChange,
-  disabled = false,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <label className="check-row">
-      <input
-        aria-label={label}
-        type="checkbox"
-        checked={checked}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      {label}
-    </label>
-  );
-}
-function Group({
-  title,
-  children,
-  open = false,
-}: {
-  title: string;
-  children: ReactNode;
-  open?: boolean;
-}) {
-  return (
-    <details className="integration-group" open={open}>
-      <summary>{title}</summary>
-      <div className="integration-group-body">{children}</div>
-    </details>
-  );
-}
-function Sector({
-  title,
-  value,
-  onChange,
-}: {
-  title: string;
-  value: [number, number] | null;
-  onChange: (v: [number, number] | null) => void;
-}) {
-  return (
-    <div className="integration-sector">
-      <Check
-        label={`${title} full range`}
-        checked={!value}
-        onChange={(full) => onChange(full ? null : [-180, 180])}
-      />
-      <div className="integration-fields">
-        <Field
-          label={`${title} minimum (°)`}
-          value={value?.[0] ?? -180}
-          disabled={!value}
-          min={-180}
-          max={180}
-          onChange={(v) => onChange([v, value![1]])}
-        />
-        <Field
-          label={`${title} maximum (°)`}
-          value={value?.[1] ?? 180}
-          disabled={!value}
-          min={-180}
-          max={180}
-          onChange={(v) => onChange([value![0], v])}
-        />
-      </div>
-    </div>
-  );
-}
 
 /** Qt control groups; all science is dispatched to IntegrationWorkflow on the existing worker. */
 export function IntegrationView({
@@ -126,7 +16,6 @@ export function IntegrationView({
 }) {
   const source = state?.integration;
   const [draft, setDraft] = useState<IntegrationState | undefined>(source);
-  const [bins, setBins] = useState(state?.bins ?? 1500);
   const [tab, setTab] = useState("Image");
   const [subtract, setSubtract] = useState(false);
   const [bkgRange, setBkgRange] = useState(false);
@@ -136,7 +25,6 @@ export function IntegrationView({
   const [fileStep, setFileStep] = useState(1);
   useEffect(() => {
     setDraft(source);
-    setBins(state?.bins ?? 1500);
     setBkgRange(!!source?.patternBackground.range);
     if (source?.patternBackground.range) {
       setBkgMin(source.patternBackground.range[0]);
@@ -150,18 +38,6 @@ export function IntegrationView({
   ) => setDraft((d) => d && { ...d, [key]: value });
   const action = (command: string, args: Record<string, unknown> = {}) =>
     void run(command, args, "Updating integration…");
-  const settings = () =>
-    action("integration_settings", {
-      bins: draft.automaticBinning ? null : bins,
-      supersampling: draft.supersampling,
-      azimuth_range: draft.azimuthRange,
-      cake_azimuth_range: draft.cakeAzimuthRange,
-      cake_bins: draft.cakeBins,
-      solid_angle: draft.solidAngle,
-      poisson_errors: draft.poissonErrors,
-      polarization: draft.polarization,
-      trim_zeros: draft.trimZeros,
-    });
   return (
     <div className="integration-controls">
       <div
@@ -172,7 +48,6 @@ export function IntegrationView({
         {[
           "Image",
           "Pattern",
-          "Options",
           "Background",
           "Corrections",
           "Overlay",
@@ -444,104 +319,6 @@ export function IntegrationView({
                 Autocreate is off when reopening a project.
               </p>
             </Group>
-          </>
-        )}
-        {tab === "Options" && (
-          <>
-            <Group title="Integration" open>
-              <label className="field-label">
-                Radial coordinate
-                <select
-                  aria-label="Radial coordinate"
-                  value={state?.unit ?? "2th_deg"}
-                  onChange={(e) =>
-                    action("integration_settings", { unit: e.target.value })
-                  }
-                >
-                  <option value="2th_deg">2θ · degrees</option>
-                  <option value="q_A^-1">Q · Å⁻¹</option>
-                  <option value="d_A">d · Å</option>
-                </select>
-              </label>
-              <Check
-                label="Automatic radial binning"
-                checked={draft.automaticBinning}
-                onChange={(v) => set("automaticBinning", v)}
-              />
-              <Field
-                label="Radial bins"
-                value={bins}
-                disabled={draft.automaticBinning}
-                min={1}
-                max={100000}
-                step={1}
-                onChange={setBins}
-              />
-              <p className="integration-note">
-                Current integration: {source.actualBins} bins
-              </p>
-              <Field
-                label="Supersampling"
-                value={draft.supersampling}
-                min={1}
-                max={20}
-                step={1}
-                onChange={(v) => set("supersampling", v)}
-              />
-              <Sector
-                title="1D azimuth"
-                value={draft.azimuthRange}
-                onChange={(v) => set("azimuthRange", v)}
-              />
-              <p className="integration-note">
-                Minimum &gt; maximum selects a sector across ±180°.
-              </p>
-              <Check
-                label="Trim trailing zeros"
-                checked={draft.trimZeros}
-                onChange={(v) => set("trimZeros", v)}
-              />
-            </Group>
-            <Group title="Cake" open>
-              <Field
-                label="Cake azimuth bins"
-                value={draft.cakeBins}
-                min={1}
-                max={10000}
-                step={1}
-                onChange={(v) => set("cakeBins", v)}
-              />
-              <Sector
-                title="Cake azimuth"
-                value={draft.cakeAzimuthRange}
-                onChange={(v) => set("cakeAzimuthRange", v)}
-              />
-              <p className="integration-note">
-                Cake radial axis remains 2θ, following Qt's configuration model.
-              </p>
-            </Group>
-            <Group title="Integration corrections" open>
-              <Check
-                label="Correct solid angle"
-                checked={draft.solidAngle}
-                onChange={(v) => set("solidAngle", v)}
-              />
-              <Check
-                label="Calculate Poisson errors"
-                checked={draft.poissonErrors}
-                onChange={(v) => set("poissonErrors", v)}
-              />
-              <Field
-                label="Polarization factor"
-                value={draft.polarization}
-                min={-1}
-                max={1}
-                onChange={(v) => set("polarization", v)}
-              />
-            </Group>
-            <button className="primary full-input" onClick={settings}>
-              Apply integration options
-            </button>
           </>
         )}
         {tab === "Background" && (

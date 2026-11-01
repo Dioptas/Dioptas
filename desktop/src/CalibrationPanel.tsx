@@ -59,6 +59,7 @@ export function CalibrationPanel({
               <label htmlFor="ring-number">Current ring number</label>
               <input
                 id="ring-number"
+                className="numeric-stepper"
                 aria-label="Current calibrant ring"
                 type="number"
                 min="1"
@@ -78,6 +79,7 @@ export function CalibrationPanel({
               />
             </div>
             <p className="current-ring-angle">
+              <span data-testid="active-ring">Picking ring {ring}</span> ·{" "}
               {number(c?.rings.find((r) => r.ring === ring)?.twoTheta ?? 0, 3)}°
               · 2θ
             </p>
@@ -118,6 +120,7 @@ export function CalibrationPanel({
                 Search size
                 <input
                   aria-label="Single-peak search size"
+                  className="numeric-stepper"
                   type="number"
                   min="1"
                   max="1000"
@@ -150,7 +153,7 @@ export function CalibrationPanel({
                 c.picks.map((pick, index) => (
                   <div className="peak-row" key={index}>
                     <span
-                      className={`ring-color ring-${(pick.ring - 1) % 4}`}
+                      className={`ring-color${pick.ring === ring ? " current-ring" : ""}${selected.includes(index) ? " selected-peak" : ""}`}
                     />
                     <input
                       type="checkbox"
@@ -214,7 +217,8 @@ export function CalibrationPanel({
                 <div className="no-peaks">
                   No peaks selected yet.
                   <br />
-                  Use the crosshair tool to start picking.
+                  Picking is active in Pick rings. Click bright positions on the
+                  current ring.
                 </div>
               )}
             </div>

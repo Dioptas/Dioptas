@@ -63,10 +63,15 @@ Its `--dev` option still supports live frontend updates independently of Tauri.
 
 1. Open a calibrant image, or explore the raw CeO2 example.
 2. Choose the calibrant and detector. Check pixel sizes, wavelength or energy,
-   and starting distance; press **Apply setup** after editing numbers.
+   and starting distance. Press the fixed **Apply & pick rings** action to confirm
+   the values and continue. Previous/next arrows sit beside **Open image**.
+   **Load .poni** opens an existing calibration; custom references,
+   processing engines, image transforms, detector files, masks and manual geometry
+   are under **More setup options**.
 3. Continue to **Pick rings**. The task panel follows Qt: **Current ring number**,
    **Automatic increase**, automatic/single peak search and search size. The
-   image toolbar always shows which ring will be picked next. Pick bright
+   step automatically enables picking; the right task panel identifies the
+   current ring. Pick bright
    positions around the ring; use the group table to inspect or reassign picks.
 4. Check **Fit parameters**: distance, wavelength, PONI 1/2 and rotations 1/2/3
    each have a value and an independent fit checkbox. The defaults match Qt:
@@ -106,7 +111,12 @@ precision in Python.
 
 ## Layout and plot interaction
 
-Mode navigation stays on the left, plots occupy the main workspace, and
+The app has no top header or in-app logo. Mode navigation stays on the left,
+with Undo/Redo side by side above Open/Save project and Settings at the bottom.
+Project actions use the same muted styling as the other sidebar controls. The current project
+name appears above its actions, with the full name available on hover. Text size
+and keyboard shortcuts are in Settings at the bottom of the sidebar.
+Plots occupy the main workspace, and
 one changing task panel stays on the right, following the existing Dioptas
 arrangement. The working calibration steps show the image alone; cake and
 pattern appear on Validate. Back/Next actions guide the sequence, and the fit
@@ -114,25 +124,37 @@ action stays visible at the bottom of the task panel.
 
 Each image (detector and cake) has an adjacent histogram, with independent
 limits, colour map, linear/log mode and auto settings. Both start in linear
-mode. Only Auto and the colour-map selector stay visible. Click the colour
-bar, double-click or right-click the histogram to open its small settings
+mode. Auto and a settings button stay visible; the adjacent colour bar opens
+the colour-map picker. Auto is
+highlighted after automatic levels are applied; manual range or linear/log scale
+changes clear its selection. Click the
+settings button or double-click the histogram to open its small settings
 dialog: numeric limits, auto mode, clipping, gap filtering, linear/log, compact
 or large size, and vertical (right of image) or horizontal (above image) layout. Single-image
 calibration defaults to a right-hand bar; multi-image validation/integration
 defaults to top bars for both detector and cake. Selection
 shading and boundary handles stay inside the histogram graph, clear of the
-colour bar. Auto modes match Qt: Percentile (configurable tail clipping),
+colour bar. Drag either handle or the whole selected region beyond the data
+range to extend its intensity limits; the histogram axis fits the extended
+range when released. Arrow keys and numeric limits can also extend the range.
+Auto modes match Qt: Percentile (configurable tail clipping),
 Min/max and Mean ± 3 Std, with optional detector-gap filtering. The picker shows actual ramp images in one flat list of standard Dioptas/
-pyqtgraph scales, with Grey as the default. CET/PAL and custom preview palettes
+pyqtgraph scales, with Grey as the default. Left or right click the colour bar to
+open the colour-map picker. CET/PAL and custom preview palettes
 are excluded.
 Lookup tables are generated at build time; see `scripts/export_colormaps.py`
 and `licenses/colormaps/` for source attribution.
 Histogram counts include every finite source pixel, including zero and negative
 values; its intensity axis is logarithmic away from zero. Display adjustments do
 not modify source arrays. Ring overlays use a dark halo and numbered labels;
-the current picking ring has a brighter stroke and label. Mouse coordinates and
-source intensity update during movement at roughly 10 Hz, with one pixel read
-in flight at most.
+the current picking ring has a brighter stroke and label.
+Picked calibration peaks follow Qt: solid red dots, orange for the current
+ring, with larger dots and an opaque white outline for selected groups. Marker
+diameters stay at 7/9 screen pixels while zooming; table swatches match the image.
+Mouse coordinates and source intensity update together during movement at roughly
+10 Hz, with one pixel read in flight at most. The last completed reading remains
+visible while a new source-pixel lookup is pending; the final cursor position is
+sampled even when movement stops during a lookup.
 
 All current plots (detector, cake, integrated pattern) share these controls:
 
@@ -148,26 +170,48 @@ The detector image has no axes, ticks or surrounding card. Its pixels stay
 square during zoom, pan, histogram resizing and window resizing. Cake and
 pattern retain their scientific axes.
 
-Each plot offers **Horizontal** and **Rectangle** modes. The integrated
-pattern defaults to Horizontal, retaining its automatic intensity scaling.
-Rectangle mode selects both radial and intensity ranges. Detector and cake
-plots default to Rectangle; detector views preserve square pixels.
+Image plots use Rectangle zoom and detector views preserve square pixels.
+The integrated pattern defaults to Horizontal, retaining automatic intensity
+scaling. Settings offers Rectangle mode to select both radial and intensity
+ranges, independently for the main pattern and Map pattern.
 
 In the Pick rings step, a stationary left click picks peaks. A left drag zooms
 without adding peaks. In a mask/eraser tool, left drag paints; right-button
 navigation remains available. `F` or right double-click restores the image.
 Detector and cake images have no extra title/dimension header, Fit button or
-Display mask toggle. Zoom choices use the existing toolbar/footer; masks remain
-visible, with use and transparency controlled in task options.
+Display mask toggle or tool-selection strip. Picking follows the calibration
+step automatically. Drawing and erasing belong to the dedicated Mask workspace;
+masks remain visible, with use and transparency controlled in task options.
 
-The interface defaults to warm orange accents, with a green hexagonal-prism
+Settings is anchored at the bottom of the left mode sidebar. It opens a full,
+fixed-size workspace inside the main window, with a category column for General,
+Integration and Keyboard shortcuts. General contains interface text size and
+pattern drag-zoom mode. Categories scroll independently of the header and the
+Integration Apply bar. Back, Escape or a mode button returns to the plots;
+opening Settings retains the mounted plots and their zoom, layout and drafts.
+Settings → Integration contains radial coordinates and binning, supersampling,
+1D/cake azimuth ranges, cake resolution, solid angle, Poisson errors,
+polarization and zero trimming. These use the existing session/project settings
+and explicit Apply action. A shared
+app footer starts beside the full-height left sidebar and shows the active plot's
+coordinates/intensity on the left, with workflow, processing, selection, save
+and error messages on the right. Detector,
+cake, pattern and map readings identify their source and update at about
+10 Hz; leaving a plot clears its reading. Plot-local status rows and floating
+pattern readouts are removed. Calibrant display switches sit at the right end
+of the calibration step toolbar above the image.
+
+The interface uses the original Dioptas orange (`#ff9500`, from
+`dioptas/resources/style/dark_orange.xml`) for accents, with a green hexagonal-prism
 symbol elongated along its c direction. Its six-sided prism has an inclined
 termination, dark glassy faces and narrow reflections inspired by the supplied
-crystal photographs. Workspace, panels
-and input backgrounds retain their neutral dark colours. **Accent color** also
-offers dioptase green; the crystal symbol keeps its own green identity. The normal interface uses
-14–15 px control text; **Aa** switches to 16–17 px text and wider options.
-Secondary metadata remains smaller. Plot annotations are 13 px. Color and text
+crystal photographs. The native app icon uses a rounded orange glass tile with soft
+reflections; its artwork is exported from the React crystal component. Workspace, panels
+and input backgrounds retain their neutral dark colours. The crystal symbol
+keeps its own green identity. The normal interface uses
+14–15 px control text; Settings → Interface text → Larger switches to
+16–17 px text and wider options.
+Secondary metadata remains smaller. Plot annotations are 13 px. Text-size
 preferences are retained when local storage is available. The large calibration
 title/header is removed; compact step buttons take its place. Advanced groups
 fold away, while the existing left navigation / right controls arrangement stays.
@@ -177,8 +221,7 @@ fold away, while the existing left navigation / right controls arrangement stays
 Integration follows Qt's pane arrangement: a full-height image/cake on the left,
 with tabbed controls above the integrated pattern on the right. Drag either
 divider to resize the panes; Image/Cake switches the left display and preserves
-its independent intensity controls. The Image, Pattern, Options, Background,
-Corrections, Overlay and Phase groups connect to the existing local models. Native file
+its independent intensity controls. The Image, Pattern, Background, Corrections, Overlay and Phase groups connect to the existing local models. Native file
 choosers cover pattern/background/phase files and output/input folders. See
 [Integration parity and limitations](INTEGRATION_PARITY.md) for the implemented
 controls, scientific qualifications, tests and shared contracts.
@@ -313,7 +356,7 @@ also covered fixed distance/rotation and free wavelength. Exact results are reco
 
 The browser checks use the real Python models and have exercised both engines,
 peak clicks/edits, constraint controls, save/reopen/export, mask/undo, plot gestures,
-linked validation, both accents and text sizes, and compact layout. Native startup
+linked validation, orange accents and both text sizes, and compact layout. Native startup
 reports WKWebView, a working bridge, no Qt application and zero TCP listeners.
 
 These are scoped regression and interaction checks, not full application or

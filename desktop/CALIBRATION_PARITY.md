@@ -12,13 +12,13 @@ preview replaces the complete application. The original Qt interface is unchange
 | Qt calibration option / interaction | React preview |
 | --- | --- |
 | Image → Pick rings → Calibrate → Validate | Compact step toolbar with Back/Next, one changing task panel and fixed fit action; image alone until Validate |
-| Load image; previous/next image | Source card and previous/next buttons, using the existing file iterator |
+| Load image; previous/next image | Compact Open image button with adjacent previous/next arrows, using the existing file iterator |
 | ±90° rotation; horizontal/vertical flip; reset | Image & detector section; detector and image transformations stay aligned; stale peaks are cleared |
 | Custom/predefined detector; detector file/reset | Experiment setup and Image & detector; loaded detector pixel pitches cannot be edited as custom pixels |
 | Distortion spline load/reset | Image & detector |
 | Calibrant selection | Bundled references plus custom `.D` import; custom content is owned by the session and embedded in project metadata |
 | Wavelength / energy; distance; pixel sizes | Unit-labelled fields with linked wavelength/energy conversion and explicit Apply setup |
-| Confirmation of experiment defaults | Required before fitting; the example explicitly supplies its known fixture inputs |
+| Confirmation of experiment defaults | Fixed Apply & pick rings action confirms numeric inputs before continuing; the example explicitly supplies its known fixture inputs |
 | Individual distance/wavelength/PONI/rotation fit checkboxes | Fit parameters; all six geometry parameters free and wavelength fixed by default, matching Qt |
 | Polarization factor | Fit parameters and both manual geometry conventions |
 | Seeded automatic peak search / single local maximum | Qt-style automatic/single search radio buttons and search-size field, default 10 source pixels |
@@ -29,14 +29,14 @@ preview replaces the complete application. The original Qt interface is unchange
 | Initial fit / subsequent refinement | Same pyFAI model entry points; optional separately installed Dioptrin adapter |
 | Automatic refinement | Staged ring search/refit; enabled by default; Massif/Blob, Δ2θ, mean factor, intensity ceiling, ring count; Qt default values retained |
 | Refinement progress / abort | Progress and cancel command remain responsive while the scientific session is busy; failure/cancel restores the pre-command geometry and picks |
-| Mask use and transparency | Load/save mask, use-mask switch, transparent display; brush/erase and stroke undo in Integration |
+| Mask use and transparency | Load/save mask, use-mask switch, transparent display; drawing/erasing/history in the dedicated Mask mode |
 | Calibrant lines and numbers | Independent display switches; reference lines also appear in the integrated pattern in its actual radial unit |
 | Validation reference selection without changing geometry | Dedicated Validation calibrant selector uses the loaded/fitted geometry wavelength; changing reference clears the old RMS diagnostic |
 | Linked detector/cake/pattern validation | Stationary validation click propagates the matching 2θ contour, cake line and pattern position; Q/d conversion uses the actual wavelength |
 | pyFAI and Fit2D geometry inspection/input | Collapsible manual editor with complete unit-labelled fields; can create a geometry without peaks |
 | Load/save calibration | Existing PONI reader/writer, plus standard `.dio` project save/reopen |
 | Image intensity/log/colormap | Each image has its own histogram, Auto and colour picker; small settings dialog for limits, auto modes, linear/log, size and horizontal/vertical layout; counts use every finite source pixel |
-| Moving mouse readout | Coordinates and original-pixel intensity sampled during continuous movement at about 10 Hz |
+| Moving mouse readout | Coordinates and original-pixel intensity sampled during continuous movement at about 10 Hz; one app footer also reports cake/pattern/map values and workflow messages |
 | Wheel zoom | Non-passive native wheel listener captures the event in each plot; the workspace does not also scroll |
 | Plot rectangle zoom, pan, zoom out | Shared implementation for detector, cake and pattern; per-plot horizontal/rectangle choice |
 
@@ -54,7 +54,8 @@ preview replaces the complete application. The original Qt interface is unchange
   equation count, not a claim of identifiability or a well-constrained geometry;
   users should distribute peaks across rings and azimuths.
 - Numeric setup, fit constraints and refinement options have explicit Apply
-  actions. Fitting is disabled while their drafts differ from the applied state.
+  actions. Setup applies and continues with one fixed action; optional setup tools
+  start folded. Fitting is disabled while drafts differ from the applied state.
 - The native adapter corrects the existing Fit2D model path's pixel-X/pixel-Y
   swap for non-square pixels. This is local to the new adapter; the original
   model and Qt application were not modified.
@@ -98,8 +99,8 @@ process using the existing Python scientific runtime. The earlier pywebview host
 remains for comparison. There is no WASM implementation or portable bundled
 Python runtime/installer yet.
 
-Control text defaults to 14–15 px, with an Aa option for 16–17 px; secondary
-metadata is 13/14 px and plot annotations are 13 px. Warm orange is the default accent; optional dioptase green remains selectable.
+Control text defaults to 14–15 px, with a Settings option for 16–17 px; secondary
+metadata is 13/14 px and plot annotations are 13 px. Original Dioptas orange (`#ff9500`) is the fixed interface accent.
 The green crystal symbol has a six-sided prism, an inclined termination and
 long reflective faces along c, independent of the control accent.
 Scientific color maps are independent of the accent. Accessibility is improved,
@@ -125,7 +126,7 @@ but this is not a formal accessibility conformance audit.
   removed from the preview environment.
 - `desktop/scripts/smoke.mjs` exercises those central operations through the
   built React UI against real Python models, including gestures in every plot,
-  peak edits, constraint controls, reference changes, both accents and text sizes,
+  peak edits, constraint controls, reference changes, orange accents and both text sizes,
   independent detector/cake controls with linear defaults and a settings dialog
   for compact/large and horizontal/vertical layouts, full-resolution auto levels
   checked against Qt, visual standard colour choices (no CET/PAL) and full-resolution image/mask transfer, histogram dragging/keyboard

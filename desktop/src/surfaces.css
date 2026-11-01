@@ -1,0 +1,47 @@
+/* Quiet material and broad tonal variation on the application chrome. */
+.app {
+  --surface-grain: url("./assets/surface-grain.svg");
+  background: #111519;
+}
+.app main {
+  background: #111519;
+}
+/* Plot margins, headings and histograms share the central workspace surface. */
+.app main .panel,
+.app main .panel-heading,
+.app main .image-intensity {
+  background: transparent;
+}
+.app main .panel.pattern-panel,
+.app main .panel.cake-panel {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.app .mode-navigation,
+.app .sidebar {
+  background-color: #191d22;
+  background-image:
+    var(--surface-grain),
+    linear-gradient(
+      170deg,
+      rgb(225 230 235 / 3%),
+      transparent 55%,
+      rgb(0 0 0 / 7%)
+    );
+}
+.app .mode-navigation {
+  border-right-color: rgb(202 210 218 / 8%);
+}
+.app .sidebar {
+  border-left-color: rgb(202 210 218 / 10%);
+  box-shadow: -6px 0 18px rgb(0 0 0 / 8%);
+}
+.app .task-navigation,
+.app .app-status {
+  background-color: #191d22;
+  background-image: var(--surface-grain);
+}
+.app .task-navigation {
+  border-top-color: rgb(202 210 218 / 9%);
+}

@@ -1,5 +1,12 @@
 import type { Invoke } from "./types";
 import { isTauri, invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+
+export async function updateWindowTitle(imageName: string | null | undefined) {
+  const title = imageName ? `${imageName} — Dioptas` : "Dioptas";
+  document.title = title;
+  if (isTauri()) await getCurrentWindow().setTitle(title);
+}
 
 export async function connect(): Promise<Invoke> {
   if (isTauri())

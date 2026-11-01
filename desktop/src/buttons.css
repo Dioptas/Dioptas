@@ -1,0 +1,81 @@
+/* Restrained matte controls; depth comes from the surrounding surfaces. */
+.app button {
+  --button-fill: #252b31;
+  --button-edge: rgb(184 201 216 / 16%);
+  --button-sheen: linear-gradient(180deg, rgb(255 255 255 / 3%), transparent);
+  background-color: var(--button-fill);
+  background-image: var(--button-sheen);
+  border-color: var(--button-edge);
+  box-shadow: none;
+  transition:
+    background-color 0.12s,
+    border-color 0.12s,
+    box-shadow 0.12s;
+}
+.app button:not(:disabled):hover {
+  --button-fill: #2e353c;
+  --button-edge: rgb(202 217 231 / 27%);
+  background-color: var(--button-fill);
+  background-image: var(--button-sheen);
+  border-color: var(--button-edge);
+}
+.app button.primary {
+  --button-fill: var(--dioptas-orange);
+  --button-edge: #ee8b00;
+  color: #262019;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 14%);
+}
+.app button.primary:not(:disabled):hover {
+  --button-fill: #ffa21f;
+  --button-edge: #ffbe63;
+}
+.app button:is(.quiet, .icon-button, .workspace-nav, .text-button),
+.app .calibration-step-buttons button,
+.app .map-file-list button {
+  --button-fill: transparent;
+  --button-edge: transparent;
+  --button-sheen: none;
+  background-image: var(--button-sheen);
+  box-shadow: none;
+}
+.app
+  button:is(.quiet, .icon-button, .workspace-nav, .text-button):not(
+    :disabled
+  ):hover,
+.app .calibration-step-buttons button:not(:disabled):hover,
+.app .map-file-list button:not(:disabled):hover {
+  --button-fill: rgb(255 255 255 / 4%);
+  --button-sheen: none;
+  background-image: var(--button-sheen);
+  box-shadow: none;
+}
+.app
+  button:is(
+    .workspace-active,
+    .active,
+    [aria-pressed="true"],
+    [aria-selected="true"]
+  ),
+.app .segmented button.selected {
+  --button-fill: rgb(255 149 0 / 7%);
+  --button-edge: rgb(255 149 0 / 35%);
+  color: var(--dioptas-orange);
+  --button-sheen: none;
+  background-color: var(--button-fill);
+  background-image: var(--button-sheen);
+  box-shadow: none;
+}
+.app
+  button:is(
+    .workspace-active,
+    .active,
+    [aria-pressed="true"],
+    [aria-selected="true"]
+  ):not(:disabled):hover,
+.app .segmented button.selected:not(:disabled):hover {
+  --button-fill: rgb(255 149 0 / 11%);
+  --button-edge: rgb(255 149 0 / 55%);
+}
+.app button:not(:disabled):active {
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 18%);
+}

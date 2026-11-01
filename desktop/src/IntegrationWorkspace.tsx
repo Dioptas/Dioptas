@@ -5,10 +5,12 @@ import { useRef, useState, type CSSProperties, type ReactNode } from "react";
  */
 export function IntegrationWorkspace({
   active,
+  concealed = false,
   display,
   children,
 }: {
   active: boolean;
+  concealed?: boolean;
   display: string;
   children: ReactNode;
 }) {
@@ -87,6 +89,9 @@ export function IntegrationWorkspace({
   return (
     <div
       ref={container}
+      inert={concealed}
+      aria-hidden={concealed || undefined}
+      data-concealed={concealed}
       className={`workspace-content ${active ? "integration-layout" : ""}`}
       data-integration-display={display}
       style={

@@ -42,8 +42,9 @@ export function RasterView({
   linkedPosition,
   showNumbers = false,
   activeRing,
+  currentPeakRing = activeRing,
   maskOpacity = 0.72,
-  imagePadding = 4,
+  imagePadding = 0,
   overlay,
   onImageDoubleClick,
   peaks = [],
@@ -62,12 +63,15 @@ export function RasterView({
   cake?: boolean;
   zoomMode?: ZoomMode;
   onStroke?: (points: number[][], erase: boolean) => void;
-  onHover?: (point: { x: number; y: number } | null) => void;
+  onHover?: (
+    point: { x: number; y: number; value: number | null } | null,
+  ) => void;
   onPick?: (point: { x: number; y: number }) => void;
   onInspect?: (point: { x: number; y: number }) => void;
   linkedPosition?: number;
   showNumbers?: boolean;
   activeRing?: number;
+  currentPeakRing?: number;
   maskOpacity?: number;
   imagePadding?: number;
   overlay?: MaskOverlay;
@@ -178,8 +182,7 @@ export function RasterView({
     canvas.current.width = Math.round(size.width * dpr);
     canvas.current.height = Math.round(size.height * dpr);
     context.scale(dpr, dpr);
-    context.fillStyle = cake ? "#10151b" : "#101419";
-    context.fillRect(0, 0, size.width, size.height);
+    // Resizing clears the canvas; transparent margins reveal the workspace surface.
     context.save();
     context.beginPath();
     context.rect(left, top, plotWidth, plotHeight);
@@ -299,15 +302,24 @@ export function RasterView({
         });
         context.stroke();
       }
-      for (const peak of peaks) {
+      // Match Qt CalibrationController.plot_points: solid 7/9 px dots,
+      // orange for the current ring, red otherwise, white selection outline.
+      // Draw selected groups last so overlapping picks cannot hide them.
+      const orderedPeaks = [...peaks].sort(
+        (a, b) => Number(!!a.selected) - Number(!!b.selected),
+      );
+      for (const peak of orderedPeaks) {
         const x = ox + (peak.x + 0.5) * sx,
           y = oy + (raster.fullHeight - peak.y - 0.5) * sy;
-        context.strokeStyle = ["#eebc7e", "#8bd0c4", "#c6a1d6", "#9bbdeb"][
-          (peak.ring - 1) % 4
-        ];
-        context.lineWidth = peak.selected ? 2 : 1.5;
+        context.fillStyle =
+          peak.ring === currentPeakRing ? "#ff8c00" : "#ff0000";
+        context.strokeStyle = peak.selected
+          ? "#ffffff"
+          : "rgba(255, 255, 255, 0.353)";
+        context.lineWidth = peak.selected ? 2 : 1;
         context.beginPath();
-        context.arc(x, y, peak.selected ? 5 : 3.5, 0, Math.PI * 2);
+        context.arc(x, y, peak.selected ? 4.5 : 3.5, 0, Math.PI * 2);
+        context.fill();
         context.stroke();
       }
     }
@@ -327,8 +339,8 @@ export function RasterView({
     }
     if (navigation.selection) {
       const { start, end } = navigation.selection;
-      context.fillStyle = "#edbc8025";
-      context.strokeStyle = "#edbc80";
+      context.fillStyle = "#ff950025";
+      context.strokeStyle = "#ff9500";
       context.lineWidth = 1;
       context.fillRect(
         Math.min(start.x, end.x),
@@ -478,6 +490,7 @@ export function RasterView({
     linkedPosition,
     showNumbers,
     activeRing,
+    currentPeakRing,
     overlay,
   ]);
   function position(event: React.PointerEvent<HTMLCanvasElement>) {
@@ -558,7 +571,15 @@ export function RasterView({
         onPointerMove={(event) => {
           const { point, screen } = position(event);
           setCursor(screen);
-          onHover?.(point);
+          if (point) {
+            const x = Math.floor(point.x / raster.step),
+              y = Math.floor(point.y / raster.step);
+            const value = data[y * raster.width + x];
+            onHover?.({
+              ...point,
+              value: Number.isFinite(value) ? value : null,
+            });
+          } else onHover?.(null);
           navigation.onPointerMove(event);
           if (drag.current && point) addPoint(point);
         }}
