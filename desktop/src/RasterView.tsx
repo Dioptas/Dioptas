@@ -43,6 +43,7 @@ export function RasterView({
   showNumbers = false,
   activeRing,
   maskOpacity = 0.72,
+  imagePadding = 4,
   overlay,
   onImageDoubleClick,
   peaks = [],
@@ -68,6 +69,7 @@ export function RasterView({
   showNumbers?: boolean;
   activeRing?: number;
   maskOpacity?: number;
+  imagePadding?: number;
   overlay?: MaskOverlay;
   onImageDoubleClick?: () => void;
   peaks?: { x: number; y: number; ring: number; selected?: boolean }[];
@@ -95,7 +97,7 @@ export function RasterView({
     const ramp = colorsFor(palette),
       last = ramp.length - 1;
     const logSpan = Math.log1p(span);
-    const maskColor = [231, 100, 107];
+    const maskColor = [255, 0, 0];
     for (let i = 0; i < data.length; i++) {
       const value = data[i];
       const t = log
@@ -139,10 +141,10 @@ export function RasterView({
     navigation.reset();
     setStroke([]);
   }, [raster.fullWidth, raster.fullHeight, resetKey]);
-  const left = cake ? 60 : 4,
-    right = cake ? 22 : 4,
-    top = cake ? 20 : 4,
-    bottom = cake ? 44 : 4;
+  const left = cake ? 60 : imagePadding,
+    right = cake ? 22 : imagePadding,
+    top = cake ? 20 : imagePadding,
+    bottom = cake ? 44 : imagePadding;
   const plotWidth = Math.max(1, size.width - left - right),
     plotHeight = Math.max(1, size.height - top - bottom);
   const fitX = cake
@@ -342,7 +344,7 @@ export function RasterView({
       );
     }
     if (stroke.length) {
-      context.fillStyle = "rgba(235,111,119,.5)";
+      context.fillStyle = "rgba(255,0,0,.5)";
       for (const [x, y] of stroke) {
         context.beginPath();
         context.ellipse(
@@ -358,8 +360,8 @@ export function RasterView({
       }
     }
     if (overlay && !cake) {
-      context.strokeStyle = overlay.erase ? "#87e4ae" : "#ffa069";
-      context.fillStyle = overlay.erase ? "#65c58b30" : "#ff985330";
+      context.strokeStyle = overlay.erase ? "#87e4ae" : "#ff0000";
+      context.fillStyle = overlay.erase ? "#65c58b30" : "#ff000030";
       context.lineWidth = 1.5;
       for (const path of overlay.paths) {
         context.beginPath();
@@ -392,7 +394,7 @@ export function RasterView({
       }
     }
     if (cursor && (tool === "mask" || tool === "erase") && !cake) {
-      context.strokeStyle = tool === "erase" ? "#d4ece4" : "#f5a2a7";
+      context.strokeStyle = tool === "erase" ? "#d4ece4" : "#ff0000";
       context.lineWidth = 1;
       context.beginPath();
       context.ellipse(

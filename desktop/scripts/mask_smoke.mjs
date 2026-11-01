@@ -175,7 +175,7 @@ try {
   assert.equal((await state()).state.maskedPixels, 3000);
   await button("Clear").click();
   await waitReady();
-  await button("Navigate").click();
+  await page.keyboard.press("v");
   let box = await page.getByTestId("detector-canvas").boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.wheel(0, -250);
