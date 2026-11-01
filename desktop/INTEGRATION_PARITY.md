@@ -129,9 +129,9 @@ or Pattern only. This is a working, scoped workflow, not full Qt replacement.
   calibration and Integration settings (600 radial / 90 azimuth bins), overlay
   rendering, phase reflections and pattern save through stdio. Both histograms
   remain visible. No Qt application or scientific TCP listener; its own
-  processing child is reaped. No primary-preview port is used. A later native
-  rerun built successfully but timed out while macOS was locked; the final
-  scientific and browser checks include the subsequent geometry/cache guards.
+  processing child is reaped. No primary-preview port is used. The final native
+  rerun passed after macOS was unlocked, including the completed geometry/cache
+  guards and original-pixel PONI save handling.
 
 Evidence lives under ignored `desktop/artifacts/`, including
 `integration-pytest.log`, `integration-regressions.log`, `browser-smoke.json`,
