@@ -82,8 +82,10 @@ Its `--dev` option still supports live frontend updates independently of Tauri.
    groups, or undo/redo edits; refine again after editing selections.
 7. Save a `.poni` calibration. Alternatively, load an existing PONI or enter
    complete geometry using the pyFAI or Fit2D editor, without picking peaks.
-8. Switch to **Integration** for mask brush/eraser, radial coordinate and bin
-   controls. The Export pattern button has been removed from the preview. Calibration also offers mask load/save/use,
+8. Switch to **Integration** for image/cake/pattern display, integration options,
+   shared masks, backgrounds, corrections, overlays/phases and Qt-style pattern
+   save/autocreate controls. See INTEGRATION_PARITY.md for coverage and limits.
+   Calibration also offers mask load/save/use,
    image transformations, detector definitions, distortion splines, and custom
    calibrant `.D` files.
 
@@ -164,6 +166,14 @@ Secondary metadata remains smaller. Plot annotations are 13 px. Color and text
 preferences are retained when local storage is available. The large calibration
 title/header is removed; compact step buttons take its place. Advanced groups
 fold away, while the existing left navigation / right controls arrangement stays.
+
+## Integration workflow
+
+Integration now has Qt-style Image, Pattern, Options, Background, Corrections,
+Overlay and Phase groups, connected to the existing local models. Native file
+choosers cover pattern/background/phase files and output/input folders. See
+[Integration parity and limitations](INTEGRATION_PARITY.md) for the implemented
+controls, scientific qualifications, tests and shared contracts.
 
 ## Optional processing engine
 
@@ -246,9 +256,11 @@ transport tests verify cancellation bypass even when every request worker is bus
   pywebview host also needs a supported renderer if used there.
 - The frontend offers seeded calibration plus staged automatic ring refinement,
   not Dioptrin's full automatic calibration/ring-identification workflow.
-- Uncertainty estimates, background/correction controls, phases,
-  external overlays, batch/map/acquisition workflows, explicit HDF5 dataset
+- Full uncertainty diagnostics, Map/acquisition workflows, explicit HDF5 dataset
   selection, and configuration switching do not yet have frontend controls.
+  Integration now exposes backgrounds, selected corrections, phases/overlays,
+  pattern saving/autocreate and folder integration; its remaining Qt scope is
+  listed in [INTEGRATION_PARITY.md](INTEGRATION_PARITY.md).
   Existing `.dio` configurations are retained;
   only the selected configuration is displayed.
 - Project saves use standard `.dio` data and an optional `react_desktop` HDF5

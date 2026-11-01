@@ -7,6 +7,15 @@ import {
   type ZoomMode,
 } from "./usePlotNavigation";
 
+const extent = (values: number[]) =>
+  values.reduce(
+    ([low, high], value) =>
+      Number.isFinite(value)
+        ? [Math.min(low, value), Math.max(high, value)]
+        : [low, high],
+    [Infinity, -Infinity],
+  );
+
 export function PatternView({
   pattern,
   log,
@@ -15,6 +24,8 @@ export function PatternView({
   linkedPosition,
   calibrantLines = [],
   showNumbers = false,
+  curves = [],
+  referenceLines = [],
 }: {
   pattern: Pattern;
   log: boolean;
@@ -23,6 +34,8 @@ export function PatternView({
   linkedPosition?: number;
   calibrantLines?: { x: number; ring: number }[];
   showNumbers?: boolean;
+  curves?: NonNullable<Pattern["curves"]>;
+  referenceLines?: NonNullable<Pattern["phaseLines"]>;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null),
     container = useRef<HTMLDivElement>(null);
@@ -48,18 +61,21 @@ export function PatternView({
     bottom = 44;
   const w = size.width - left - right,
     h = size.height - top - bottom;
-  const fitXMin = Math.min(pattern.x[0], pattern.x.at(-1)!);
-  const fitXMax = Math.max(pattern.x[0], pattern.x.at(-1)!);
+  const [fitXMin, fitXMax] = extent([
+    ...pattern.x,
+    ...curves.flatMap((curve) => curve.x),
+  ]);
   const transform = (y: number) => (log ? Math.log10(Math.max(1e-6, y)) : y);
-  const visible = pattern.y.filter(
+  const plottedY = [...pattern.y, ...curves.flatMap((curve) => curve.y)];
+  const visible = plottedY.filter(
     (y): y is number => y !== null && Number.isFinite(y) && (!log || y > 0),
   );
   const fitYMin = visible.length
     ? log
-      ? Math.min(...visible.map(transform))
-      : Math.min(0, ...visible)
+      ? extent(visible.map(transform))[0]
+      : Math.min(0, extent(visible)[0])
     : 0;
-  const fitYMax = visible.length ? Math.max(...visible.map(transform)) : 1;
+  const fitYMax = visible.length ? extent(visible.map(transform))[1] : 1;
   const fitYSpan = Math.max(1e-6, fitYMax - fitYMin) * 1.08;
   const navigation = usePlotNavigation(
     {
@@ -72,19 +88,25 @@ export function PatternView({
     false,
     zoomMode,
     (xMin, xMax) => {
-      const values = pattern.y.filter(
-        (y, i): y is number =>
-          y !== null &&
-          Number.isFinite(y) &&
-          (!log || y > 0) &&
-          pattern.x[i] >= xMin &&
-          pattern.x[i] <= xMax,
+      const plottedPoints = [pattern, ...curves].flatMap((curve) =>
+        curve.x.map((x, i) => ({ x, y: curve.y[i] })),
       );
+      const values = plottedPoints
+        .filter(
+          (point): point is { x: number; y: number } =>
+            point.y !== null &&
+            Number.isFinite(point.y) &&
+            (!log || point.y > 0) &&
+            point.x >= xMin &&
+            point.x <= xMax,
+        )
+        .map((point) => point.y);
+
       if (!values.length) return [fitYMin, fitYMin + fitYSpan];
       const lower = log
-        ? Math.min(...values.map(transform))
-        : Math.min(0, ...values);
-      const upper = Math.max(...values.map(transform));
+        ? extent(values.map(transform))[0]
+        : Math.min(0, extent(values)[0]);
+      const upper = extent(values.map(transform))[1];
       return [lower, lower + Math.max(1e-6, upper - lower) * 1.08];
     },
   );
@@ -141,6 +163,44 @@ export function PatternView({
       started = true;
     });
     context.stroke();
+    // Models own measured-curve scaling and reference coordinates. All use
+    // the same plot axes, clipping and navigation as the primary pattern.
+    for (const curve of curves) {
+      context.strokeStyle = curve.color;
+      context.lineWidth = 1.2;
+      context.beginPath();
+      let drawing = false;
+      curve.x.forEach((x, i) => {
+        const y = curve.y[i];
+        if (y == null || !Number.isFinite(y) || (log && y <= 0)) {
+          drawing = false;
+          return;
+        }
+        const px = left + ((x - xmin) / (xmax - xmin)) * w;
+        const py = top + h - ((transform(y) - ymin) / yspan) * h;
+        if (drawing) context.lineTo(px, py);
+        else context.moveTo(px, py);
+        drawing = true;
+      });
+      context.stroke();
+    }
+    const largestReference = Math.max(
+      1,
+      extent(referenceLines.map((line) => line.intensity))[1],
+    );
+    for (const line of referenceLines) {
+      const x = left + ((line.x - xmin) / (xmax - xmin)) * w;
+      if (x < left || x > left + w) continue;
+      context.strokeStyle = line.color;
+      context.lineWidth = 1.3;
+      context.beginPath();
+      context.moveTo(x, top + h);
+      context.lineTo(
+        x,
+        top + h - h * 0.3 * Math.max(0.05, line.intensity / largestReference),
+      );
+      context.stroke();
+    }
     for (const reference of calibrantLines) {
       const x = left + ((reference.x - xmin) / (xmax - xmin)) * w;
       if (x < left || x > left + w) continue;
@@ -202,6 +262,8 @@ export function PatternView({
     linkedPosition,
     calibrantLines,
     showNumbers,
+    curves,
+    referenceLines,
   ]);
   const xvalue =
     hover === null ? null : xmin + ((hover - left) / w) * (xmax - xmin);
@@ -222,6 +284,8 @@ export function PatternView({
         data-testid="pattern-canvas"
         aria-label={`Integrated diffraction pattern; left-drag ${zoomMode} zoom, right-drag pan, right-click zoom out`}
         style={{ width: "100%", height: "100%" }}
+        data-curve-count={curves.length}
+        data-reference-count={referenceLines.length}
         data-linked-position={linkedPosition}
         data-zoom-mode={zoomMode}
         data-view-x-min={xmin}

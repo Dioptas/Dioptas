@@ -141,6 +141,56 @@
       document.querySelectorAll(".intensity-histogram").length === 2,
       "Both images need histograms",
     );
+    click("Integration");
+    await delay();
+    click("Options");
+    await delay();
+    input("Radial bins", "600");
+    input("Cake azimuth bins", "90");
+    await delay();
+    click("Apply integration options");
+    await delay();
+    await ready();
+    const integrated = await call("state");
+    check(
+      integrated.state.bins === 600 && integrated.cake.height === 90,
+      "Native integration options were not applied",
+    );
+    click("Overlay");
+    await delay();
+    click("Add pattern");
+    await delay();
+    await ready();
+    check(
+      document.querySelector('[data-testid="pattern-canvas"]').dataset
+        .curveCount === "1",
+      "Native overlay did not render",
+    );
+    const sourceRoot = initial.state.imagePath.split("/dioptas/tests/data/")[0];
+    const savedPattern = await call("integration_save_pattern", {
+      path: sourceRoot + "/desktop/artifacts/native-integration.xy",
+    });
+    check(savedPattern.ok, savedPattern.error);
+    const phase = await call("integration_phase", {
+      operation: "load",
+      path: sourceRoot + "/dioptas/tests/data/jcpds/au_version3.jcpds",
+    });
+    check(
+      phase.ok && phase.pattern.phaseLines.length > 0,
+      phase.error || "Native phase reference failed",
+    );
+    click("Integrate image ↵");
+    await delay();
+    await ready();
+    check(
+      +document.querySelector('[data-testid="pattern-canvas"]').dataset
+        .referenceCount > 0,
+      "Native phase lines did not render",
+    );
+    check(
+      document.querySelectorAll(".intensity-histogram").length === 2,
+      "Integration histograms are not independent",
+    );
     let hotReloadVerified = false;
     if (location.hostname === "127.0.0.1") {
       const token = {};
@@ -174,6 +224,11 @@
         fittedDistanceMm: fitted.state.geometry.dist * 1000,
         wheelPrevented,
         validationImages: 2,
+        integrationBins: integrated.state.bins,
+        integrationCakeBins: integrated.cake.height,
+        integrationOverlay: true,
+        integrationPhaseLines: phase.pattern.phaseLines.length,
+        integrationPatternSaved: savedPattern.savedPath,
         hotReloadVerified,
       },
     });

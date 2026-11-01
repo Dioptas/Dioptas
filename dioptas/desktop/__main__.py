@@ -33,6 +33,9 @@ def main():
     window = None
 
     def choose_file(kind, save):
+        if kind == "directory":
+            result = window.create_file_dialog(webview.FileDialog.FOLDER)
+            return result if isinstance(result, str) else result[0] if result else None
         filters = {
             "image": (
                 "Detector images (*.tif;*.tiff;*.edf;*.cbf;*.h5;*.hdf5;*.nxs;*.mar3450)",
@@ -40,7 +43,9 @@ def main():
             ),
             "calibration": ("PONI calibration (*.poni)",),
             "project": ("Dioptas project (*.dio)",),
-            "pattern": ("XY pattern (*.xy)",),
+            "pattern": ("Diffraction pattern (*.xy;*.xye;*.chi;*.dat;*.fxye)",),
+            "phase": ("Diffraction phase (*.jcpds;*.cif;*.eosmat;*.json)",),
+            "batch": ("Integrated batch (*.h5;*.csv)",),
             "mask": ("Detector mask (*.mask;*.npy;*.tif;*.edf)",),
             "detector": ("Detector definition (*.h5;*.hdf5;*.nxs)",),
             "distortion": ("Distortion spline (*.spline)",),

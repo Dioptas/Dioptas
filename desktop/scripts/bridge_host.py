@@ -26,8 +26,15 @@ def choose_file(kind, save):
                 "project": "experiment.dio",
                 "pattern": "pattern.xy",
                 "calibration": "calibration.poni",
+                "batch": "batch.h5",
             }[kind]
         )
+    if kind == "pattern":
+        return str(artifacts / "pattern.xy")
+    if kind == "phase":
+        return str(root / "dioptas/tests/data/jcpds/au_version3.jcpds")
+    if kind == "directory":
+        return str(artifacts)
     if kind == "project":
         return str(artifacts / "experiment.dio")
     if kind == "calibration":

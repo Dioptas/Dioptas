@@ -31,6 +31,14 @@ export interface Pattern {
   x: number[];
   y: (number | null)[];
   unit: Unit;
+  curves?: { name: string; color: string; x: number[]; y: (number | null)[] }[];
+  phaseLines?: {
+    x: number;
+    intensity: number;
+    name: string;
+    color: string;
+    hkl: number[];
+  }[];
 }
 export interface State {
   revision: number;
@@ -42,7 +50,7 @@ export interface State {
   calibrated: boolean;
   projectName: string | null;
   unit: Unit;
-  bins: number;
+  bins: number | null;
   useMask: boolean;
   transparentMask: boolean;
   maskedPixels: number;
@@ -60,6 +68,7 @@ export interface State {
     rot2: number;
     rot3: number;
   };
+  integration: import("./integration").IntegrationState;
   calibration: Calibration;
 }
 export interface Calibration {

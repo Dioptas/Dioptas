@@ -10,6 +10,7 @@ import {
   verifyCalibrationNavigation,
 } from "./plot_navigation.mjs";
 
+import { verifyIntegrationControls } from "./integration_controls.mjs";
 import { verifyDetectorGeometry } from "./detector_geometry.mjs";
 import {
   verifyImageControls,
@@ -498,11 +499,12 @@ try {
     pickCount,
     "Rectangle dragging and right navigation do not pick calibration peaks",
   );
+  await page.getByRole("tab", { name: "Options", exact: true }).click();
   await page.getByLabel("Radial coordinate").selectOption("q_A^-1");
   await waitReady();
   await page.getByLabel("Radial bins", { exact: true }).fill("1000");
   await page
-    .getByRole("button", { name: "Apply radial bins", exact: true })
+    .getByRole("button", { name: "Apply integration options", exact: true })
     .click();
   await waitReady();
   current = await invoke("state");
@@ -566,8 +568,17 @@ try {
     path: path.join(artifacts, "compact-large-text.png"),
   });
   await page.getByRole("button", { name: "Larger text", exact: true }).click();
+  const integrationChecks = await verifyIntegrationControls(
+    page,
+    invoke,
+    waitReady,
+  );
+  await page.screenshot({
+    path: path.join(artifacts, "integration-controls.png"),
+  });
   assert.deepEqual(errors, []);
   const report = {
+    integrationChecks,
     passed: true,
     scientificFit,
     maskedPixels,

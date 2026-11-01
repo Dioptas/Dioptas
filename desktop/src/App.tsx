@@ -14,7 +14,6 @@ import {
   Layers,
   LoaderCircle,
   Maximize,
-  Play,
   Plus,
   Save,
   Sparkles,
@@ -33,7 +32,6 @@ import type {
   Response,
   State,
   Tool,
-  Unit,
 } from "./types";
 import { number, unitLabel } from "./types";
 import { RasterView } from "./RasterView";
@@ -42,6 +40,7 @@ import { CalibrationControls } from "./CalibrationControls";
 import { CalibrationPanel } from "./CalibrationPanel";
 import { ImageIntensity } from "./ImageIntensity";
 import { colorMaps } from "./colorMaps";
+import { IntegrationView, IntegrationDisplayControls } from "./IntegrationView";
 import { CalibrationExtras, GeometryEditor } from "./CalibrationExtras";
 import type { RingOverlay } from "./types";
 import type { ZoomMode } from "./usePlotNavigation";
@@ -70,6 +69,7 @@ function ZoomModeSelect({
 }
 
 export default function App() {
+  const [integrationDisplay, setIntegrationDisplay] = useState("all");
   const [calibrationStep, setCalibrationStep] = useState(0);
   const [selectedPicks, setSelectedPicks] = useState<number[]>([]);
   const [advancedDirty, setAdvancedDirty] = useState(false);
@@ -131,6 +131,7 @@ export default function App() {
   const [palette, setPalette] = useState<Palette>("grey"),
     [showMask, setShowMask] = useState(true);
   const [limits, setLimits] = useState<[number, number]>([0, 100]);
+  const cakeSource = useRef<Cake | null>(null);
   const [cakeLimits, setCakeLimits] = useState<[number, number]>([0, 100]);
   const [cakeLog, setCakeLog] = useState(false);
   const [cakePalette, setCakePalette] = useState<Palette>("grey");
@@ -157,8 +158,7 @@ export default function App() {
     if (!colorMaps[palette]) setPalette("grey");
     if (!colorMaps[cakePalette]) setCakePalette("grey");
   }, [palette, cakePalette]);
-  const [resetKey, setResetKey] = useState(0),
-    [bins, setBins] = useState("1500");
+  const [resetKey, setResetKey] = useState(0);
   const [pixel, setPixel] = useState<{
     x: number;
     y: number;
@@ -175,7 +175,6 @@ export default function App() {
       throw new Error(result.error || "The operation could not be completed.");
     if (result.state) {
       setState(result.state);
-      setBins(String(result.state.bins));
     }
     if (result.image) {
       ++hoverSequence.current;
@@ -207,7 +206,14 @@ export default function App() {
     if ("pattern" in result) setPattern(result.pattern ?? null);
     if ("cake" in result) {
       setCake(result.cake ?? null);
-      if (result.cake) setCakeLimits(result.cake.limits);
+      if (
+        result.cake &&
+        (result.cake.data !== cakeSource.current?.data ||
+          result.cake.width !== cakeSource.current?.width ||
+          result.cake.height !== cakeSource.current?.height)
+      )
+        setCakeLimits(result.cake.limits);
+      cakeSource.current = result.cake ?? null;
     }
     if (result.savedPath) {
       setNotice(`Saved ${result.savedPath.split(/[\\/]/).at(-1)}`);
@@ -505,7 +511,18 @@ export default function App() {
           </button>
         </nav>
 
-        <main className={mode === "calibration" ? "calibration-mode" : ""}>
+        <main
+          className={
+            mode === "calibration" ? "calibration-mode" : "integration-mode"
+          }
+          data-integration-display={integrationDisplay}
+        >
+          {mode === "integration" && (
+            <IntegrationDisplayControls
+              value={integrationDisplay}
+              onChange={setIntegrationDisplay}
+            />
+          )}
           {mode === "calibration" && (
             <div className="workspace-toolbar">
               <div
@@ -737,7 +754,10 @@ export default function App() {
                         );
                     }}
                     onInspect={(point) => {
-                      if (state?.calibrated && calibrationStep === 3)
+                      if (
+                        state?.calibrated &&
+                        (mode === "integration" || calibrationStep === 3)
+                      )
                         void run("validation_position", {
                           source: "image",
                           ...point,
@@ -864,7 +884,11 @@ export default function App() {
                       onChange={setCakeZoom}
                       label="Cake zoom mode"
                     />
-                    <span className="panel-meta">360°</span>
+                    <span className="panel-meta">
+                      {cake
+                        ? `${(cake.azimuthRange[1] - cake.azimuthRange[0]).toFixed(1)}°`
+                        : ""}
+                    </span>
                   </div>
                 </div>
                 <div className="cake-subheading">
@@ -981,6 +1005,10 @@ export default function App() {
                       showRings ? state?.calibration.referenceLines : []
                     }
                     showNumbers={showNumbers}
+                    curves={mode === "integration" ? pattern.curves : undefined}
+                    referenceLines={
+                      mode === "integration" ? pattern.phaseLines : undefined
+                    }
                     onPick={(x) => {
                       if (state?.calibrated)
                         void run("validation_position", {
@@ -1022,7 +1050,7 @@ export default function App() {
                 <FileImage size={16} />
                 <span>{state?.imageName ?? "No image"}</span>
               </div>
-            ) : (
+            ) : mode === "calibration" ? (
               <>
                 <section className="sidebar-section">
                   <div className="section-label">DATA SOURCE</div>
@@ -1096,7 +1124,7 @@ export default function App() {
                   )}
                 </section>
               </>
-            )}
+            ) : null}
             {mode === "calibration" &&
               (calibrationStep === 0 || calibrationStep === 2) && (
                 <CalibrationControls
@@ -1212,151 +1240,7 @@ export default function App() {
               </>
             )}
             {mode === "integration" && (
-              <>
-                <section className="sidebar-section">
-                  <div className="section-label">CALIBRATION</div>
-                  <button
-                    className="calibration-card"
-                    disabled={!ready}
-                    onClick={() =>
-                      run("open_calibration", {}, "Loading calibration…")
-                    }
-                    title="Open a .poni calibration"
-                  >
-                    <span
-                      className={
-                        state?.calibrated
-                          ? "status-icon"
-                          : "status-icon pending"
-                      }
-                    >
-                      {state?.calibrated ? (
-                        <Check size={13} />
-                      ) : (
-                        <Plus size={13} />
-                      )}
-                    </span>
-                    <div>
-                      <strong>
-                        {state?.calibrationName ?? "Load calibration"}
-                      </strong>
-                      <small>
-                        {state?.calibrated
-                          ? "PONI geometry loaded"
-                          : "Choose a .poni file"}
-                      </small>
-                    </div>
-                    <ChevronRight size={14} />
-                  </button>
-                  {state?.calibrated && (
-                    <div className="geometry-grid">
-                      <div>
-                        <small>Distance</small>
-                        <span>
-                          {number(state.geometry.dist * 1000, 2)} <em>mm</em>
-                        </span>
-                      </div>
-                      <div>
-                        <small>Wavelength</small>
-                        <span>
-                          {number(state.geometry.wavelength * 1e10, 4)}{" "}
-                          <em>Å</em>
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </section>
-                <section className="sidebar-section">
-                  <div className="section-label">INTEGRATION</div>
-                  <label className="field-label" htmlFor="unit">
-                    Radial coordinate
-                  </label>
-                  <select
-                    id="unit"
-                    aria-label="Radial coordinate"
-                    value={state?.unit ?? "2th_deg"}
-                    disabled={!ready}
-                    onChange={(event) =>
-                      run(
-                        "settings",
-                        { unit: event.target.value as Unit },
-                        "Updating radial coordinate…",
-                      )
-                    }
-                  >
-                    <option value="2th_deg">2θ · degrees</option>
-                    <option value="q_A^-1">Q · Å⁻¹</option>
-                    <option value="d_A">d · Å</option>
-                  </select>
-                  <label className="field-label" htmlFor="bins">
-                    Radial bins
-                  </label>
-                  <div className="input-action">
-                    <input
-                      id="bins"
-                      type="number"
-                      min="100"
-                      max="10000"
-                      step="100"
-                      value={bins}
-                      disabled={!ready}
-                      onChange={(event) => setBins(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter")
-                          void run("settings", { bins: Number(bins) });
-                      }}
-                    />
-                    <button
-                      aria-label="Apply radial bins"
-                      title="Apply radial bins"
-                      disabled={
-                        !ready ||
-                        Number(bins) === state?.bins ||
-                        !Number.isInteger(Number(bins)) ||
-                        Number(bins) < 100 ||
-                        Number(bins) > 10000
-                      }
-                      onClick={() =>
-                        run(
-                          "settings",
-                          { bins: Number(bins) },
-                          "Updating radial bins…",
-                        )
-                      }
-                    >
-                      <Check size={15} />
-                    </button>
-                  </div>
-                  <label className="check-row">
-                    <input
-                      type="checkbox"
-                      checked={state?.useMask ?? false}
-                      disabled={!ready || !state?.hasImage}
-                      onChange={(event) =>
-                        run(
-                          "settings",
-                          { use_mask: event.target.checked },
-                          "Updating mask…",
-                        )
-                      }
-                    />
-                    <span>Apply detector mask</span>
-                    <span className="count">
-                      {number(state?.maskedPixels ?? 0, 0)}
-                    </span>
-                  </label>
-                  <button
-                    className="primary integrate-button"
-                    disabled={!ready || !canIntegrate}
-                    onClick={() =>
-                      run("integrate", {}, "Integrating image and cake…")
-                    }
-                  >
-                    <Play size={14} fill="currentColor" />
-                    Integrate image<span>↵</span>
-                  </button>
-                </section>
-              </>
+              <IntegrationView state={state} ready={ready} run={run} />
             )}
           </div>
           {mode === "calibration" && (
@@ -1434,7 +1318,9 @@ export default function App() {
           )}
           <span role="status">
             {progress?.running
-              ? `Refining ring ${progress.current} / ${progress.total}`
+              ? mode === "integration"
+                ? `Processing ${progress.current} / ${progress.total}`
+                : `Refining ring ${progress.current} / ${progress.total}`
               : busy ||
                 (mode === "calibration"
                   ? !state?.hasImage
@@ -1458,7 +1344,9 @@ export default function App() {
                 void bridge.current?.("cancel_refinement");
               }}
             >
-              Cancel refinement
+              {mode === "integration"
+                ? "Cancel processing"
+                : "Cancel refinement"}
             </button>
           )}
           <span>{state?.imageName ?? "No image loaded"}</span>

@@ -29,6 +29,7 @@ from dioptas import calibrants_path
 from .engines import available_engines, make_engine
 from .calibration import CalibrationWorkflow
 from .display import image_levels
+from .integration import IntegrationWorkflow
 
 logger = logging.getLogger(__name__)
 UNITS = {"2th_deg", "q_A^-1", "d_A"}
@@ -94,7 +95,7 @@ def _finite_number(value: Any, name: str, low: float, high: float) -> float:
     return number
 
 
-class DesktopSession(CalibrationWorkflow):
+class DesktopSession(CalibrationWorkflow, IntegrationWorkflow):
     """One scientific session. A native window can supply its file picker."""
 
     def __init__(self, choose_file=None):
@@ -203,6 +204,7 @@ class DesktopSession(CalibrationWorkflow):
             "manual_geometry": self._manual_geometry,
             "validation_position": self._validation_position,
         }
+        handlers.update(self._integration_handlers())
         with self._lock:
             try:
                 if action not in handlers:
@@ -229,6 +231,10 @@ class DesktopSession(CalibrationWorkflow):
                 )
                 with context:
                     result = handlers[action](**(arguments or {}))
+                    if action in {"open_image", "next_image"} and not result.get(
+                        "cancelled"
+                    ):
+                        self._integration_image_loaded()
                 if "state" in result:
                     result["state"] = self._state()["state"]
                 return {"ok": True, **result}
@@ -289,6 +295,7 @@ class DesktopSession(CalibrationWorkflow):
                         "rot3",
                     )
                 },
+                "integration": self._integration_state(),
                 "calibration": {
                     **self._calibration_details(),
                     "engine": self._engine.id,
@@ -325,7 +332,9 @@ class DesktopSession(CalibrationWorkflow):
         result["rings"] = self._rings
         if self._has_image:
             result["mask"] = raster(
-                self.configuration.mask_model.get_display_mask(), mask=True, max_side=None
+                self.configuration.mask_model.get_display_mask(),
+                mask=True,
+                max_side=None,
             )
             if include_image:
                 result["image"] = raster(
@@ -344,6 +353,7 @@ class DesktopSession(CalibrationWorkflow):
             self._engine.id == "dioptrin"
         )
         self._project = None
+        self._integration_auto_save = False
         self._geometry_source = "none"
         self._undo_masks.clear()
         image, calibration = paths
@@ -415,6 +425,7 @@ class DesktopSession(CalibrationWorkflow):
         if candidate.calibration_model.is_calibrated:
             candidate.calibration_model.create_cake_geometry()
         self._model = candidate
+        self._integration_auto_save = False
         name = metadata.get("calibrant")
         if metadata.get("custom_calibrant"):
             custom = metadata["custom_calibrant"]
@@ -522,16 +533,13 @@ class DesktopSession(CalibrationWorkflow):
         if not self._has_image or not c.calibration_model.is_calibrated:
             return
         start = time.perf_counter()
-        result = c.integrate_image_1d()
+        self._integration_prepare_corrections()
+        result = self._integration_calculate_pattern()
         if result is None:
             raise RuntimeError("Integration did not return a pattern.")
         x, y = result
-        self._pattern = {
-            "x": np.asarray(x).tolist(),
-            "y": [float(v) if np.isfinite(v) else None for v in y],
-            "unit": c.integration_unit,
-        }
-        c.integrate_image_2d()
+        self._refresh_integration_pattern()
+        self._integration_calculate_cake()
         calibration = c.calibration_model
         self._cake = {
             **raster(calibration.cake_img, max_side=None, histogram=True),
@@ -553,9 +561,7 @@ class DesktopSession(CalibrationWorkflow):
         from skimage.measure import find_contours
 
         c = self.configuration
-        angles = c.calibration_model.pattern_geometry.center_array(
-            c.img_model.img_data.shape, unit="2th_rad"
-        )
+        angles = c.calibration_model.get_pixel_two_theta_array()
         step = max(1, math.ceil(max(angles.shape) / 450))
         preview = angles[::step, ::step]
         low, high = float(angles.min()), float(angles.max())
@@ -756,7 +762,16 @@ class DesktopSession(CalibrationWorkflow):
             return {"cancelled": True}
         if not path.lower().endswith(".poni"):
             path += ".poni"
-        self.configuration.calibration_model.save(path)
+        calibration = self.configuration.calibration_model
+        # Integration supersampling is computational sampling, not a change
+        # to the physical detector pixels written to a PONI calibration.
+        factor = calibration.supersampling_factor
+        try:
+            calibration.reset_supersampling()
+            calibration.save(path)
+        finally:
+            calibration.set_supersampling(factor)
+            calibration.cake_geometry.reset()
         return {**self._state(), "savedPath": path}
 
     def _integrate(self):
@@ -821,13 +836,22 @@ class DesktopSession(CalibrationWorkflow):
             self._calculate()
         return self._snapshot()
 
-    def _image_levels(self, mode="percentile", percentile=0.4, filter_gaps=True, source="detector"):
+    def _image_levels(
+        self, mode="percentile", percentile=0.4, filter_gaps=True, source="detector"
+    ):
         if source not in {"detector", "cake"}:
             raise ValueError("Choose the detector or cake display.")
         if not self._has_image or (source == "cake" and self._cake is None):
             return {"levels": None, "display": source}
-        data = self.configuration.calibration_model.cake_img if source == "cake" else self.configuration.img_model.img_data
-        return {"levels": image_levels(data, mode, percentile, filter_gaps), "display": source}
+        data = (
+            self.configuration.calibration_model.cake_img
+            if source == "cake"
+            else self.configuration.img_model.img_data
+        )
+        return {
+            "levels": image_levels(data, mode, percentile, filter_gaps),
+            "display": source,
+        }
 
     def _pixel(self, x, y):
         if not self._has_image:

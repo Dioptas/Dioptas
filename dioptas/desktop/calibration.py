@@ -306,13 +306,16 @@ class CalibrationWorkflow:
         self._calculate()
         return self._snapshot(include_image=True)
 
-    def _next_image(self, direction=1):
+    def _next_image(self, direction=1, step=1):
         if not self._has_image:
             raise ValueError("Open an image first.")
         if direction not in (-1, 1):
             raise ValueError("Image direction must be -1 or 1.")
+        step = int(finite(step, "File step", 1, 100000))
         image = self.configuration.img_model
-        (image.load_next_file if direction == 1 else image.load_previous_file)()
+        (image.load_next_file if direction == 1 else image.load_previous_file)(
+            step=step
+        )
         self.configuration.calibration_model.clear_peaks()
         self._fit_rms = None
         self._calculate()
@@ -496,8 +499,14 @@ class CalibrationWorkflow:
         if source == "image":
             h, w = self.configuration.img_model.img_data.shape
             row, col = int(finite(y, "y", 0, h - 1)), int(finite(x, "x", 0, w - 1))
+            factor = c.supersampling_factor
             tth = float(
-                np.rad2deg(c.pattern_geometry.tth(np.array([row]), np.array([col]))[0])
+                np.rad2deg(
+                    c.pattern_geometry.tth(
+                        np.array([(row + 0.5) * factor - 0.5]),
+                        np.array([(col + 0.5) * factor - 0.5]),
+                    )[0]
+                )
             )
         elif source == "cake":
             tth = x
@@ -521,9 +530,7 @@ class CalibrationWorkflow:
                 self.configuration.integration_unit,
             )
         )
-        angles = c.pattern_geometry.center_array(
-            self.configuration.img_model.img_data.shape, unit="2th_rad"
-        )
+        angles = c.get_pixel_two_theta_array()
         step = max(1, math.ceil(max(angles.shape) / 450))
         contours = [
             {

@@ -24,6 +24,23 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
     if payload.get("path").is_some_and(|v| !v.is_null()) || payload["reset"] == true {
         return None;
     }
+    if action == "integration_overlay" && payload["operation"] != "load" {
+        return None;
+    }
+    if action == "integration_phase" && payload["operation"] != "load" {
+        return None;
+    }
+    if action == "integration_open_pattern" && !payload["direction"].is_null() {
+        return None;
+    }
+    if action == "integration_image_background"
+        && (!payload["scale"].is_null() || !payload["offset"].is_null())
+    {
+        return None;
+    }
+    if action == "integration_flat_field" && !payload["enabled"].is_null() {
+        return None;
+    }
     let (label, extensions, name, save): (_, &[&str], _, _) = match action {
         "open_image" => (
             "Detector images",
@@ -36,6 +53,37 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
         "open_project" => ("Dioptas project", &["dio"], "", false),
         "save_project" => ("Dioptas project", &["dio"], "experiment.dio", true),
         "export_pattern" => ("XY pattern", &["xy"], "pattern.xy", true),
+        "integration_save_pattern" => (
+            "Diffraction pattern",
+            &["xy", "xye", "chi", "dat", "fxye"],
+            "pattern.xy",
+            true,
+        ),
+        "integration_save_background" => (
+            "Background pattern",
+            &["xy", "chi", "dat"],
+            "background.xy",
+            true,
+        ),
+        "integration_open_pattern" | "integration_overlay" => (
+            "Diffraction pattern",
+            &["xy", "xye", "chi", "dat", "fxye"],
+            "",
+            false,
+        ),
+        "integration_phase" => (
+            "Diffraction phase",
+            &["jcpds", "cif", "eosmat", "json"],
+            "",
+            false,
+        ),
+        "integration_image_background" | "integration_flat_field" => (
+            "Detector image",
+            &["tif", "tiff", "edf", "cbf", "h5", "hdf5"],
+            "",
+            false,
+        ),
+        "integration_save_batch" => ("Integrated batch", &["h5", "csv"], "integrated.h5", true),
         "mask_file" => (
             "Detector mask",
             &["mask", "npy", "tif", "edf"],
@@ -72,6 +120,22 @@ async fn desktop_invoke(
         return Err("Command arguments must be an object.".into());
     }
     tauri::async_runtime::spawn_blocking(move || {
+        if matches!(
+            action.as_str(),
+            "integration_output_directory" | "integration_batch"
+        ) && payload["path"].is_null()
+        {
+            let Some(selected) = app.dialog().file().blocking_pick_folder() else {
+                return Ok(json!({"ok": true, "cancelled": true}));
+            };
+            payload["path"] = Value::String(
+                selected
+                    .into_path()
+                    .map_err(|e| e.to_string())?
+                    .to_string_lossy()
+                    .into_owned(),
+            );
+        }
         if let Some(choice) = file_choice(&action, &payload) {
             let dialog = app
                 .dialog()
@@ -171,6 +235,26 @@ mod tests {
         assert!(file_choice("detector_file", &json!({"reset": true})).is_none());
         assert!(
             file_choice("mask_file", &json!({"save": true}))
+                .unwrap()
+                .save
+        );
+        assert!(file_choice("integration_open_pattern", &json!({})).is_some());
+        assert!(file_choice("integration_open_pattern", &json!({"direction": 1})).is_none());
+        assert!(file_choice("integration_overlay", &json!({"operation": "load"})).is_some());
+        assert!(file_choice("integration_overlay", &json!({"operation": "capture"})).is_none());
+        assert!(file_choice("integration_phase", &json!({"operation": "update"})).is_none());
+        assert!(file_choice("integration_phase", &json!({"operation": "load"})).is_some());
+        assert!(file_choice("integration_image_background", &json!({"scale": 2})).is_none());
+        assert!(file_choice("integration_image_background", &json!({})).is_some());
+        assert!(file_choice("integration_flat_field", &json!({"enabled": true})).is_none());
+        assert!(file_choice("integration_flat_field", &json!({})).is_some());
+        assert!(
+            file_choice("integration_save_pattern", &json!({}))
+                .unwrap()
+                .save
+        );
+        assert!(
+            file_choice("integration_save_batch", &json!({}))
                 .unwrap()
                 .save
         );
