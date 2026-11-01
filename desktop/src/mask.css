@@ -123,3 +123,14 @@
   border: 1px solid var(--accent);
   background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
+
+.mask-point-diameter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.mask-point-diameter span {
+  color: var(--muted, #9b9da1);
+  font-size: 14px;
+}

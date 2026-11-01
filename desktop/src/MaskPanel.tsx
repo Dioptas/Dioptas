@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import type { State, Unit } from "./types";
 import { number } from "./types";
 import type { MaskPlugin, MaskTools } from "./maskDomain";
@@ -153,35 +153,42 @@ export function MaskPanel({
               ["point", "Point"],
               ["polygon", "Polygon"],
               ["arc", "Arc"],
-              ["navigate", "Navigate"],
             ] as const
           ).map(([shape, label]) => (
-            <button
-              disabled={!enabled}
-              key={shape}
-              className={tools.shape === shape ? "active" : ""}
-              aria-pressed={tools.shape === shape}
-              onClick={() => tools.setShape(shape)}
-            >
-              {label}
-            </button>
+            <Fragment key={shape}>
+              <button
+                disabled={!enabled}
+                className={tools.shape === shape ? "active" : ""}
+                aria-pressed={tools.shape === shape}
+                onClick={() =>
+                  tools.setShape(tools.shape === shape ? "navigate" : shape)
+                }
+              >
+                {label}
+              </button>
+              {shape === "point" && (
+                <label
+                  className="mask-point-diameter"
+                  title="Point diameter in source pixels"
+                >
+                  <input
+                    aria-label="Mask point diameter"
+                    type="number"
+                    min="2"
+                    max="600"
+                    value={tools.diameter}
+                    onChange={(e) =>
+                      tools.setDiameter(
+                        Math.max(2, Math.min(600, Number(e.target.value) || 2)),
+                      )
+                    }
+                  />
+                  <span aria-hidden="true">px</span>
+                </label>
+              )}
+            </Fragment>
           ))}
         </div>
-        <label className="mask-setting">
-          <span>Point diameter (px)</span>
-          <input
-            aria-label="Mask point diameter"
-            type="number"
-            min="2"
-            max="600"
-            value={tools.diameter}
-            onChange={(e) =>
-              tools.setDiameter(
-                Math.max(2, Math.min(600, Number(e.target.value) || 2)),
-              )
-            }
-          />
-        </label>
         <p className="mask-help">{shapeHelp[tools.shape]}</p>
       </section>
       <section className="sidebar-section">
@@ -341,7 +348,9 @@ export function MaskPanel({
                 Imprint
               </button>
             </div>
-            {Object.keys(plugin.schema).length > 0 && <PluginSettings plugin={plugin} ready={enabled} run={run} />}
+            {Object.keys(plugin.schema).length > 0 && (
+              <PluginSettings plugin={plugin} ready={enabled} run={run} />
+            )}
           </div>
         ))}
         <p className="mask-help">
