@@ -46,6 +46,7 @@ import { CalibrationPanel } from "./CalibrationPanel";
 import { ImageIntensity } from "./ImageIntensity";
 import { colorMaps } from "./colorMaps";
 import { IntegrationView, IntegrationDisplayControls } from "./IntegrationView";
+import { IntegrationWorkspace } from "./IntegrationWorkspace";
 import { CalibrationExtras, GeometryEditor } from "./CalibrationExtras";
 import type { RingOverlay } from "./types";
 import type { ZoomMode } from "./usePlotNavigation";
@@ -74,7 +75,7 @@ function ZoomModeSelect({
 }
 
 export default function App() {
-  const [integrationDisplay, setIntegrationDisplay] = useState("all");
+  const [integrationDisplay, setIntegrationDisplay] = useState("image");
   const [calibrationStep, setCalibrationStep] = useState(0);
   const [selectedPicks, setSelectedPicks] = useState<number[]>([]);
   const [advancedDirty, setAdvancedDirty] = useState(false);
@@ -588,6 +589,7 @@ export default function App() {
           </button>
         </nav>
 
+        <IntegrationWorkspace active={mode === "integration"} display={integrationDisplay}>
         <main
           className={`${mode}-mode`}
           data-integration-display={integrationDisplay}
@@ -1415,6 +1417,7 @@ export default function App() {
             </div>
           )}
         </aside>
+        </IntegrationWorkspace>
       </div>
       <footer className="app-status">
         <div>

@@ -8,16 +8,20 @@ The reference includes `widgets/integration/control/{ImageWidget,PatternWidget,
 OptionsWidget,BackgroundWidget,CorrectionsWidget,OverlayWidget,PhaseWidget}.py`,
 `widgets/integration/display/`, and `controller/integration/` (including the
 nested overlay/phase controllers). The Qt view places its image/cake on the
-left and control groups plus pattern on the right. This desktop keeps the
-established left mode navigation and right task panel, with detector/cake above
-the shared pattern. Display buttons also select Image + Pattern, Cake + Pattern,
-or Pattern only. This is a working, scoped workflow, not full Qt replacement.
+left and control groups above the pattern on the right. The desktop now uses
+that arrangement: the image/cake occupies the full-height left half, with the
+controls in the upper-right pane and integrated pattern below them. Image/Cake
+buttons switch the left display, retaining independent histograms. Both Qt-style
+dividers support dragging, arrow keys and Home/double-click reset. The control
+groups use the width of the upper-right pane rather than a tall sidebar. Left
+mode navigation remains unchanged. This is a working, scoped workflow, not full
+Qt replacement.
 
 | Qt workflow | Desktop implementation |
 | --- | --- |
 | Load image, previous/next, file step, number/time order | Existing ImgModel/FileNameIterator; file step and order controls; multiframe index shown when available; File Info exposes actual metadata |
 | Load calibration | Native PONI chooser, existing CalibrationModel, shared calibration workflow retained |
-| Image / cake switching and pattern inspection | Shared RasterView, PatternView and plot navigation; detector/cake/pattern visibility choices; linked clicks in all three views |
+| Image / cake switching and pattern inspection | Shared RasterView, PatternView and plot navigation; Qt Image/Cake switching, full-height image pane and controls-over-pattern split; linked clicks in all three views |
 | Image intensity controls | Independent ImageIntensity for detector and cake, both default above the images; full-resolution arrays, original orientation, top-origin display rows, square detector pixels and existing gestures |
 | Radial units and automatic/manual binning | Existing Configuration integration for 2θ, Q, d; Auto passes None to model; actual count displayed; manual counts 1–100000 |
 | Supersampling | Existing CalibrationModel.set_supersampling, with fresh cake geometry to invalidate old pyFAI array caches; original image is still displayed at source resolution |
@@ -72,7 +76,8 @@ or Pattern only. This is a working, scoped workflow, not full Qt replacement.
   1D/2D adapters, and triggers autocreate after image loads.
 - `desktop/src/integration.ts` owns IntegrationState and its command callback.
   `IntegrationView.tsx` contains the controls and display-choice toolbar;
-  `integration.css` scopes its layout. App continues composing the existing
+  `integration.css` scopes its layout. `IntegrationWorkspace.tsx` owns the two
+  resizable Qt-style dividers. App continues composing the existing
   detector/cake/pattern renderers. No renderer or gestures were copied. Identical
   cake payloads from overlay/phase-only changes preserve manual intensity limits.
 - `State.bins` now accepts `null` for Qt automatic binning. `State.integration`
@@ -137,3 +142,22 @@ Evidence lives under ignored `desktop/artifacts/`, including
 `integration-pytest.log`, `integration-regressions.log`, `browser-smoke.json`,
 `integration-controls.png` and `tauri-native-smoke.json`. These are scoped
 workflow checks, not detector-wide scientific accuracy qualification.
+
+## Qt layout revision (2026-11-01)
+
+The image spans the left column; controls and pattern share the right column,
+with controls above the pattern. The initial image/analysis split is 50/50, with
+38% of the right column assigned to controls. Splitters preserve usable minimum
+pane sizes. Image/Cake selection does not integrate or recreate scientific
+models. Both shared image instances retain their display preferences.
+
+`integration_layout.mjs` checks pane alignment and proportions, pointer/keyboard
+resizing, Image/Cake switching, 1000 × 760 layout and larger text. The expanded
+browser suite also exercises calibration, all three plot gestures and the
+scientific Integration controls in this arrangement. Native smoke checks the
+same pane geometry before exercising the existing real-model workflow. Build,
+expanded browser smoke and bundled WKWebView smoke pass for this revision.
+Screenshots are `artifacts/integration-qt-layout.png`, `integration-qt-cake.png`
+and `integration-qt-compact-large.png`; native evidence includes
+`qtIntegrationLayout: true` and processing-child cleanup. Scientific model code
+is unchanged by the layout revision.

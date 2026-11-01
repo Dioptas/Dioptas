@@ -143,6 +143,24 @@
     );
     click("Integration");
     await delay();
+    const imageBox = document
+      .querySelector(".detector-panel")
+      .getBoundingClientRect();
+    const controlsBox = document
+      .querySelector(".sidebar")
+      .getBoundingClientRect();
+    const patternBox = document
+      .querySelector(".pattern-panel")
+      .getBoundingClientRect();
+    check(
+      imageBox.right <= controlsBox.left &&
+        controlsBox.bottom <= patternBox.top,
+      "Native Integration must use the Qt image-left / controls-over-pattern layout",
+    );
+    check(
+      imageBox.height > controlsBox.height + patternBox.height - 50,
+      "Native Integration image must fill the left column",
+    );
     click("Options");
     await delay();
     input("Radial bins", "600");
@@ -232,6 +250,7 @@
         fittedDistanceMm: fitted.state.geometry.dist * 1000,
         wheelPrevented,
         validationImages: 2,
+        qtIntegrationLayout: true,
         integrationBins: integrated.state.bins,
         integrationCakeBins: integrated.cake.height,
         integrationOverlay: true,

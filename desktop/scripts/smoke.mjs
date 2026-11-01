@@ -11,6 +11,7 @@ import {
 } from "./plot_navigation.mjs";
 
 import { verifyIntegrationControls } from "./integration_controls.mjs";
+import { verifyIntegrationLayout } from "./integration_layout.mjs";
 import { verifyDetectorGeometry } from "./detector_geometry.mjs";
 import {
   verifyImageControls,
@@ -481,7 +482,11 @@ try {
     .selectOption("CeO2");
   await waitReady();
   await page.getByRole("button", { name: "Integration", exact: true }).click();
-  await page.getByTestId("cake-canvas").waitFor();
+  await page.getByTestId("cake-canvas").waitFor({ state: "attached" });
+  const integrationLayoutChecks = await verifyIntegrationLayout(
+    page,
+    artifacts,
+  );
   const pickCount = current.state.calibration.picks.length;
   assert.equal(
     await page
@@ -579,6 +584,7 @@ try {
   assert.deepEqual(errors, []);
   const report = {
     integrationChecks,
+    integrationLayoutChecks,
     passed: true,
     scientificFit,
     maskedPixels,

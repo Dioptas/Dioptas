@@ -81,49 +81,6 @@
 .integration-formats .check-row {
   margin: 0;
 }
-.integration-display-controls {
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.integration-display-controls button {
-  padding: 6px 9px;
-  font-size: var(--text-small);
-}
-.integration-display-controls .active {
-  color: var(--accent);
-  border-color: var(--accent);
-}
-.integration-mode .views-grid {
-  min-height: 0;
-  grid-template-rows: minmax(340px, 1.4fr) minmax(230px, 1fr);
-}
-.integration-mode[data-integration-display="image"] .cake-panel,
-.integration-mode[data-integration-display="cake"] .detector-panel,
-.integration-mode[data-integration-display="pattern"] .detector-panel,
-.integration-mode[data-integration-display="pattern"] .cake-panel {
-  display: none;
-}
-.integration-mode[data-integration-display="image"] .views-grid,
-.integration-mode[data-integration-display="cake"] .views-grid,
-.integration-mode[data-integration-display="pattern"] .views-grid {
-  grid-template-columns: minmax(0, 1fr);
-}
-.integration-mode[data-integration-display="pattern"] .views-grid {
-  grid-template-rows: minmax(360px, 1fr);
-}
-@media (max-width: 1200px) {
-  main.integration-mode .views-grid {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 460px 340px 260px;
-  }
-  main.integration-mode[data-integration-display="image"] .views-grid,
-  main.integration-mode[data-integration-display="cake"] .views-grid {
-    grid-template-rows: 460px 260px;
-  }
-  main.integration-mode[data-integration-display="pattern"] .views-grid {
-    grid-template-rows: 460px;
-  }
-}
 .integration-file-info pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -136,4 +93,209 @@
   top: 0;
   z-index: 3;
   background: #171d23;
+}
+
+/* The wrapper is transparent to calibration's established flex layout. */
+.workspace-content {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.workspace-content.integration-layout {
+  display: grid;
+  grid-template-columns:
+    minmax(300px, var(--integration-image-share))
+    8px minmax(340px, 1fr);
+  grid-template-rows:
+    38px minmax(170px, calc(var(--integration-controls-share) - 38px))
+    8px minmax(200px, 1fr);
+  flex: 1;
+  position: relative;
+  min-width: 0;
+  padding: 8px 10px;
+  overflow: hidden;
+  gap: 0;
+}
+.integration-layout main.integration-mode,
+.integration-layout main.integration-mode .views-grid {
+  display: contents;
+}
+.integration-layout .integration-display-controls {
+  grid-column: 1;
+  grid-row: 1;
+  justify-content: flex-start;
+  gap: 4px;
+  padding: 0 8px;
+  margin: 0;
+  min-height: 0;
+}
+.integration-display-controls button {
+  padding: 5px 14px;
+  font-size: var(--text-small);
+}
+.integration-display-controls .active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.integration-layout .detector-panel,
+.integration-layout .cake-panel {
+  grid-column: 1;
+  grid-row: 2 / 5;
+  min-width: 0;
+  min-height: 0;
+}
+.integration-layout[data-integration-display="image"] .cake-panel,
+.integration-layout[data-integration-display="cake"] .detector-panel {
+  display: none;
+}
+.integration-layout main.integration-mode .pattern-panel {
+  grid-column: 3;
+  grid-row: 4;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 5px;
+}
+.app .workspace-content.integration-layout > .sidebar {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  width: auto;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.integration-layout .sidebar-scroll {
+  padding: 0 10px 8px;
+  overflow: hidden;
+  display: flex;
+  min-height: 0;
+}
+.integration-layout .integration-controls {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 6px;
+}
+.integration-layout .integration-tabs {
+  position: static;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 6px 0;
+  gap: 2px;
+  background: transparent;
+}
+.integration-layout .integration-tabs button {
+  padding: 6px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.integration-layout .integration-fieldset {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(185px, 100%), 1fr));
+  gap: 8px 14px;
+  align-content: start;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.integration-layout .integration-group {
+  padding: 2px 0 5px;
+  min-width: 0;
+  align-self: start;
+}
+.integration-layout .integration-group-body {
+  padding-top: 5px;
+  gap: 6px;
+}
+.integration-layout .integration-note {
+  font-size: var(--text-meta);
+  line-height: 1.4;
+}
+.integration-layout .integration-fieldset > button.primary {
+  grid-column: 1 / -1;
+}
+.integration-layout .integrate-button {
+  margin: 0;
+  width: 100%;
+  min-height: 32px;
+}
+.integration-layout .pattern-actions {
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.integration-layout .pattern-legend,
+.integration-layout .pattern-actions > .panel-meta {
+  display: none;
+}
+.integration-layout .pattern-panel .panel-footer {
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.integration-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  user-select: none;
+  z-index: 2;
+}
+.integration-divider span {
+  border-radius: 2px;
+  background: #56616a;
+  opacity: 0.55;
+}
+.integration-divider-image {
+  grid-column: 2;
+  grid-row: 1 / 5;
+  cursor: col-resize;
+}
+.integration-divider-image span {
+  width: 2px;
+  height: 38px;
+}
+.integration-divider-controls {
+  grid-column: 3;
+  grid-row: 3;
+  cursor: row-resize;
+}
+.integration-divider-controls span {
+  height: 2px;
+  width: 38px;
+}
+.integration-divider:hover span,
+.integration-divider:focus-visible span {
+  background: var(--accent);
+  opacity: 1;
+}
+.integration-layout .error-banner,
+.integration-layout .info-banner {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 8;
+}
+@media (max-width: 1100px) {
+  .workspace-content.integration-layout {
+    padding: 6px;
+    grid-template-columns:
+      minmax(290px, var(--integration-image-share))
+      8px minmax(320px, 1fr);
+  }
+  .integration-layout .panel-heading {
+    flex-wrap: wrap;
+    min-height: 40px;
+    height: auto;
+    gap: 3px;
+    padding: 5px 7px;
+  }
+  .integration-layout .panel-footer {
+    font-size: var(--text-meta);
+  }
+  .integration-layout .integration-tabs button {
+    padding-inline: 6px;
+  }
 }

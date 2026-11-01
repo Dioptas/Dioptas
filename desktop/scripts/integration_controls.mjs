@@ -27,14 +27,16 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
   assert.equal(current.cake.height, 60);
   assert.equal(current.cake.step, 1);
   const revision = current.state.revision;
-  await click("Image + Pattern");
+  const display = page.getByRole("group", {
+    name: "Integration display",
+    exact: true,
+  });
+  await display.getByRole("button", { name: "Image", exact: true }).click();
   assert.equal(await page.getByTestId("cake-canvas").isVisible(), false);
   assert.equal(await page.getByTestId("detector-canvas").isVisible(), true);
-  await click("Cake + Pattern");
+  await display.getByRole("button", { name: "Cake", exact: true }).click();
   assert.equal(await page.getByTestId("detector-canvas").isVisible(), false);
-  await click("Pattern");
-  assert.equal(await page.getByTestId("pattern-canvas").isVisible(), true);
-  await click("Image + Cake + Pattern");
+  assert.equal(await page.getByTestId("cake-canvas").isVisible(), true);
   assert.equal((await invoke("state")).state.revision, revision);
   assert.equal(await page.locator(".intensity-histogram").count(), 2);
   await page.getByLabel("Configure cake display", { exact: true }).click();
@@ -135,7 +137,7 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
   await click("Apply integration options");
   return [
     "Qt control groups and real integration options / wrapped azimuth",
-    "shared image/cake/pattern visibility and independent histograms",
+    "Qt Image/Cake switching and independent histograms",
     "overlay capture, scale, visibility and rendered curves",
     "phase loading, pressure and rendered reflections",
     "pattern background, save and load",

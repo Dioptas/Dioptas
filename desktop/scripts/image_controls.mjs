@@ -326,6 +326,14 @@ export async function verifyImageControls(page, invoke, pixelRequests) {
 export async function verifyWheelCapture(page) {
   const checks = [];
   for (const id of ["detector-canvas", "cake-canvas", "pattern-canvas"]) {
+    if (await page.locator(".integration-layout").count())
+      await page
+        .getByRole("group", { name: "Integration display", exact: true })
+        .getByRole("button", {
+          name: id === "cake-canvas" ? "Cake" : "Image",
+          exact: true,
+        })
+        .click();
     const canvas = page.getByTestId(id);
     await canvas.scrollIntoViewIfNeeded();
     await page.evaluate(() => {
