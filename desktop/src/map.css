@@ -1,0 +1,274 @@
+.map-mode {
+  overflow: auto;
+  padding: 14px;
+}
+.map-layout {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  min-height: 590px;
+  height: 100%;
+}
+.map-layout .panel {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.map-scan-panel {
+  grid-column: 1;
+  grid-row: 1 / 4;
+}
+.map-column-divider {
+  grid-column: 2;
+  grid-row: 1 / 4;
+  cursor: col-resize;
+}
+.map-detector-panel {
+  grid-column: 3;
+  grid-row: 1;
+}
+.map-row-divider {
+  grid-column: 3;
+  grid-row: 2;
+  cursor: row-resize;
+}
+.map-pattern-panel {
+  grid-column: 3;
+  grid-row: 3;
+}
+.map-divider {
+  touch-action: none;
+  background: transparent;
+  border-radius: 3px;
+}
+.map-divider:hover,
+.map-divider:focus {
+  background: var(--accent);
+  outline: none;
+}
+.map-only .map-scan-panel {
+  grid-column: 1;
+}
+.map-heading {
+  flex-wrap: wrap;
+  height: auto;
+  min-height: 45px;
+  gap: 8px;
+  padding: 9px 10px;
+}
+.map-heading select {
+  min-width: 0;
+}
+.map-layer-select {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+}
+.map-layer-select select {
+  width: 100%;
+}
+.map-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 10px;
+}
+.map-layout .detector-workspace {
+  flex: 1;
+}
+.map-layout .pattern-container {
+  flex: 1;
+  min-height: 0;
+}
+.map-layout .panel-footer {
+  height: auto;
+  min-height: 32px;
+  flex-shrink: 0;
+  white-space: normal;
+  line-height: 1.4;
+  padding: 6px 10px;
+}
+.map-layout .panel-heading > span {
+  font-size: 14px;
+}
+.map-pattern-actions {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.map-pattern-actions button,
+.map-toolbar button {
+  font-size: 14px;
+  padding: 5px 8px;
+  min-height: 30px;
+}
+.map-controls {
+  font-size: 14px;
+}
+.map-controls .full-input {
+  margin-top: 8px;
+}
+.map-controls .field-label {
+  margin-top: 9px;
+}
+.map-controls select,
+.map-controls input {
+  width: 100%;
+  min-width: 0;
+  font-size: 14px;
+}
+.map-controls input[type="checkbox"] {
+  width: 17px;
+}
+.map-tabs {
+  display: flex;
+  padding: 10px 16px;
+  gap: 5px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #202226;
+}
+.map-tabs button {
+  flex: 1;
+}
+.map-tabs [aria-selected="true"],
+.map-pattern-actions .active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.map-field-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+.map-window {
+  margin: 10px 0;
+  padding: 4px 10px 12px;
+  border: 1px solid #45484d;
+  border-left: 3px solid;
+  border-radius: 7px;
+  min-width: 0;
+}
+.map-window-active {
+  background: #ffffff06;
+}
+.map-window .file-actions {
+  margin-top: 10px;
+}
+.map-window legend {
+  padding: 0 5px;
+}
+.map-note {
+  color: #b7b8bb;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 10px 0;
+}
+.map-expression {
+  display: flex;
+  gap: 4px;
+  margin-top: 7px;
+}
+.map-expression > button:first-child {
+  flex: 1;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.map-file-list {
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  max-height: 270px;
+  border: 1px solid #414348;
+  border-radius: 5px;
+  margin: 8px 0;
+}
+.map-file-list button {
+  display: flex;
+  gap: 9px;
+  border: 0;
+  border-radius: 0;
+  font-size: 14px;
+  text-align: left;
+  white-space: nowrap;
+  min-height: 33px;
+}
+.map-file-list button span {
+  color: #aaa;
+  font-variant-numeric: tabular-nums;
+  min-width: 24px;
+}
+.map-file-list [aria-selected="true"] {
+  color: var(--accent);
+  background: #ffffff12;
+}
+.map-file-list .map-excluded {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+.map-warning {
+  padding: 8px 12px;
+  color: #edc08b;
+  line-height: 1.5;
+  font-size: 13px;
+}
+.map-normalization {
+  margin-top: 18px;
+}
+.map-normalization summary {
+  cursor: pointer;
+  padding: 7px 0;
+}
+.app[data-text-size="large"] .map-controls,
+.app[data-text-size="large"] .map-controls input,
+.app[data-text-size="large"] .map-controls select,
+.app[data-text-size="large"] .map-controls button {
+  font-size: 16px;
+}
+@media (max-width: 1150px) {
+  .map-layout:not(.map-only) {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: 420px 380px 300px !important;
+    height: auto;
+  }
+  .map-layout:not(.map-only) .map-scan-panel {
+    grid-row: 1;
+    grid-column: 1;
+  }
+  .map-layout .map-divider {
+    display: none;
+  }
+  .map-layout .map-detector-panel {
+    grid-row: 2;
+    grid-column: 1;
+  }
+  .map-layout .map-pattern-panel {
+    grid-row: 3;
+    grid-column: 1;
+  }
+}
+
+.map-task-panel {
+  width: 310px;
+}
+.app[data-text-size="large"] .map-task-panel {
+  width: 350px;
+}
+.map-display-controls {
+  align-items: center;
+  font-size: var(--text-small);
+}
+.map-display-controls label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.map-display-controls input[type="range"] {
+  width: 80px;
+  min-width: 40px;
+}

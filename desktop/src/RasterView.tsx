@@ -9,6 +9,8 @@ import {
   type ZoomMode,
 } from "./usePlotNavigation";
 
+const EMPTY_CONTOURS: number[][][] = [];
+
 function decode(raster: Raster) {
   const raw = atob(raster.data);
   const bytes = new Uint8Array(raw.length);
@@ -45,6 +47,7 @@ export function RasterView({
   onImageDoubleClick,
   peaks = [],
   rings = [],
+  contours = EMPTY_CONTOURS,
 }: {
   raster: Raster;
   mask?: Raster;
@@ -69,6 +72,7 @@ export function RasterView({
   onImageDoubleClick?: () => void;
   peaks?: { x: number; y: number; ring: number; selected?: boolean }[];
   rings?: RingOverlay[];
+  contours?: number[][][];
 }) {
   const container = useRef<HTMLDivElement>(null),
     canvas = useRef<HTMLCanvasElement>(null);
@@ -281,6 +285,18 @@ export function RasterView({
         context.fillStyle = label.active ? "#171c20" : "#fff0d6";
         context.fillText(label.text, label.x + 8, label.y - 2);
       }
+      context.strokeStyle = "#ffffff88";
+      context.lineWidth = 1;
+      for (const contour of contours) {
+        context.beginPath();
+        contour.forEach(([x, y], i) => {
+          const px = ox + x * sx,
+            py = oy + (raster.fullHeight - y) * sy;
+          if (i) context.lineTo(px, py);
+          else context.moveTo(px, py);
+        });
+        context.stroke();
+      }
       for (const peak of peaks) {
         const x = ox + (peak.x + 0.5) * sx,
           y = oy + (raster.fullHeight - peak.y - 0.5) * sy;
@@ -455,6 +471,7 @@ export function RasterView({
     oy,
     peaks,
     rings,
+    contours,
     navigation.selection,
     linkedPosition,
     showNumbers,

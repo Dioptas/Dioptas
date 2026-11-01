@@ -1,8 +1,9 @@
 # Dioptas React / Tauri desktop preview
 
-An experimental React desktop interface for Dioptas, starting with detector
-calibration. It lives beside the existing Qt application and uses its scientific
-models and file formats. It is not a complete replacement yet.
+An experimental React/Tauri desktop interface for Dioptas with Calibration,
+Mask, Integration and Map modes. It lives beside the existing Qt application
+and uses its scientific models and file formats. It is not a complete
+replacement yet.
 
 ## Run this checkout
 
@@ -257,7 +258,7 @@ transport tests verify cancellation bypass even when every request worker is bus
   pywebview host also needs a supported renderer if used there.
 - The frontend offers seeded calibration plus staged automatic ring refinement,
   not Dioptrin's full automatic calibration/ring-identification workflow.
-- Full uncertainty diagnostics, Map/acquisition workflows, explicit HDF5 dataset
+- Full uncertainty diagnostics, live acquisition watching, explicit HDF5 dataset
   selection, and configuration switching do not yet have frontend controls.
   Integration now exposes backgrounds, selected corrections, phases/overlays,
   pattern saving/autocreate and folder integration; its remaining Qt scope is
@@ -282,6 +283,19 @@ is Tauri; the scientific implementation still uses Python. WASM/browser-only
 execution is not implemented.
 
 ## Verification on 2026-11-01
+
+Combined-view verification: the main checkout includes the finished Mask,
+Integration and Map branches. The combined desktop suite passed 90 tests with
+four optional-engine skips. An additional cross-view test passes: masked
+Integration results agree with stored Map patterns, and a project round trip
+retains mask, map and integration settings. The three Rust tests pass.
+Calibration/Integration, Mask and Map browser workflows pass. Both bundled
+Tauri smoke checks pass, covering calibration, Mask/Integration controls and
+Map loading/linked inspection/project persistence; both processing children
+are reaped. The earlier Map-branch calibration-smoke timeout remains a
+historical result in [Map parity](MAP_PARITY.md); it did not reproduce in
+the combined native check.
+
 
 On macOS with CPython 3.13.5, checks cover the real CeO2 image workflow,
 individual fixed/free constraints, wavelength refinement, peak editing/history,

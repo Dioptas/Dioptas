@@ -34,6 +34,9 @@ import type {
   Tool,
 } from "./types";
 import { number, unitLabel } from "./types";
+import { MapView } from "./MapView";
+import { MapControls } from "./MapControls";
+import type { MapData } from "./mapDomain";
 import { MaskView } from "./MaskView";
 import { MaskPanel } from "./MaskPanel";
 import { useMaskTools } from "./maskDomain";
@@ -110,10 +113,28 @@ export default function App() {
   const [cakeZoom, setCakeZoom] = useState<ZoomMode>("rectangle");
   const [patternZoom, setPatternZoom] = useState<ZoomMode>("horizontal");
   const [setupDirty, setSetupDirty] = useState(false);
-  const [mode, setMode] = useState<"calibration" | "integration" | "mask">(
-    "calibration",
-  );
+  const [mode, setMode] = useState<
+    "calibration" | "integration" | "mask" | "map"
+  >("calibration");
   const maskTools = useMaskTools();
+  const [map, setMap] = useState<MapData | null>(null);
+  const [mapLevels, setMapLevels] = useState<[number, number]>();
+  const [mapWarning, setMapWarning] = useState<string | null>(null);
+  const [mapReintegrate, setMapReintegrate] = useState(false);
+  const requestMap = async (
+    command: string,
+    args: Record<string, unknown> = {},
+  ) => {
+    if (!bridge.current || inFlight.current) return;
+    try {
+      const result = await bridge.current(command, args);
+      if (!result.ok) setError(result.error ?? "Map command failed.");
+      return result;
+    } catch (error) {
+      setError(String(error));
+    }
+  };
+
   const [ring, setRing] = useState(1),
     [automatic, setAutomatic] = useState(true);
   const [rings, setRings] = useState<RingOverlay[]>([]);
@@ -177,6 +198,9 @@ export default function App() {
   const apply = useCallback((result: Response) => {
     if (!result.ok)
       throw new Error(result.error || "The operation could not be completed.");
+    if ("map" in result) setMap(result.map ?? null);
+    if (result.mapLevels) setMapLevels(result.mapLevels);
+    if ("mapWarning" in result) setMapWarning(result.mapWarning ?? null);
     if (result.state) {
       setState(result.state);
     }
@@ -462,7 +486,9 @@ export default function App() {
               ? "Calibration"
               : mode === "mask"
                 ? "Mask"
-                : "Integration"}
+                : mode === "map"
+                  ? "Map"
+                  : "Integration"}
           </strong>
         </div>
         <div className="header-actions">
@@ -494,7 +520,7 @@ export default function App() {
           </button>
           <button
             className="quiet"
-            disabled={!ready || !state?.hasImage}
+            disabled={!ready || (!state?.hasImage && !map)}
             onClick={() => run("save_project", {}, "Saving project…")}
             title="Save project · ⌘S"
           >
@@ -551,13 +577,39 @@ export default function App() {
             <span>Mask</span>
             {mode === "mask" && <span className="active-dot" />}
           </button>
+          <button
+            className={`workspace-nav ${mode === "map" ? "workspace-active" : ""}`}
+            onClick={() => {
+              setMode("map");
+              setTool("pan");
+            }}
+          >
+            <Layers size={17} />
+            <span>Map</span>
+            {mode === "map" && <span className="active-dot" />}
+          </button>
         </nav>
 
         <main
           className={`${mode}-mode`}
           data-integration-display={integrationDisplay}
         >
-          {mode === "mask" ? (
+          {mode === "map" ? (
+            <MapView
+              map={map}
+              image={image}
+              mask={mask}
+              pattern={pattern}
+              state={state}
+              ready={ready}
+              run={run}
+              request={requestMap}
+              warning={mapWarning}
+              reintegrate={mapReintegrate}
+              mapLevels={mapLevels}
+              linked={linked}
+            />
+          ) : mode === "mask" ? (
             <MaskView
               image={image}
               mask={mask}
@@ -1121,13 +1173,22 @@ export default function App() {
           )}
         </main>
         <aside
-          className={`sidebar ${mode === "calibration" ? "calibration-task-panel" : ""}`}
+          className={`sidebar ${mode === "calibration" ? "calibration-task-panel" : mode === "map" ? "map-task-panel" : ""}`}
         >
           <div className="options-label">
             {mode === "mask" ? "MASK OPTIONS" : "EXPERIMENT OPTIONS"}
           </div>
           <div className="sidebar-scroll">
-            {mode === "mask" ? (
+            {mode === "map" ? (
+              <MapControls
+                map={map}
+                state={state}
+                ready={ready}
+                run={run}
+                reintegrate={mapReintegrate}
+                onReintegrate={setMapReintegrate}
+              />
+            ) : mode === "mask" ? (
               <MaskPanel
                 state={state}
                 ready={ready}
@@ -1429,9 +1490,13 @@ export default function App() {
                         "Check fit parameters, then calibrate the detector.",
                         "Inspect the rings and residual, then save the calibration.",
                       ][calibrationStep]
-                  : canIntegrate
-                    ? "Ready"
-                    : "Load a calibration to integrate this image.")}
+                  : mode === "map"
+                    ? map
+                      ? "Select a map cell to inspect its detector image and pattern."
+                      : "Load scan images or a processed batch."
+                    : canIntegrate
+                      ? "Ready"
+                      : "Load a calibration to integrate this image.")}
           </span>
         </div>
         <div>
@@ -1442,9 +1507,13 @@ export default function App() {
                 void bridge.current?.("cancel_refinement");
               }}
             >
-              {mode === "integration"
-                ? "Cancel processing"
-                : "Cancel refinement"}
+              {mode === "map"
+                ? "Cancel map integration"
+                : mode === "integration"
+                  ? "Cancel processing"
+                  : mode === "mask"
+                    ? "Cancel mask processing"
+                    : "Cancel refinement"}
             </button>
           )}
           <span>{state?.imageName ?? "No image loaded"}</span>

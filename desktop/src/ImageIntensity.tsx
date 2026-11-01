@@ -46,7 +46,7 @@ export function ImageIntensity({
   onPalette: (value: Palette) => void;
   onAuto: (settings: AutoLevels) => unknown;
   ready: boolean;
-  display?: "detector" | "cake";
+  display?: "detector" | "cake" | "map";
 }) {
   const id = useId(),
     container = useRef<HTMLDivElement>(null);
@@ -66,8 +66,11 @@ export function ImageIntensity({
   const previousSource = useRef(raster.data),
     drag = useRef<WindowDrag | null>(null);
   const label = (text: string) =>
-    display === "cake" ? `Cake ${text[0].toLowerCase()}${text.slice(1)}` : text;
-  const title = display === "cake" ? "Cake" : "Detector";
+    display === "detector"
+      ? text
+      : `${display === "map" ? "Map" : "Cake"} ${text[0].toLowerCase()}${text.slice(1)}`;
+  const title =
+    display === "map" ? "Map" : display === "cake" ? "Cake" : "Detector";
   const open = (x: number, y: number) => setDialog({ x, y });
   useEffect(() => {
     const observer = new ResizeObserver(([entry]) =>

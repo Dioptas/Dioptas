@@ -69,6 +69,14 @@ command and numerical round-trip tests remain.
 
 ## Remaining scope
 
+Map-branch recheck (2026-11-01): Python/browser calibration regressions pass, but
+this branch's bundled native calibration smoke timed out. The timeout was also
+reproduced with baseline UI components and the Python session restored. Native
+Map workflow and chooser checks pass; see [Map parity](MAP_PARITY.md). The native
+calibration timeout remains a qualification gap alongside the earlier evidence
+below.
+
+
 Tauri host verification (2026-11-01): embedded-asset and live native windows both
 complete measured-image peak picking, fitting and detector/cake validation.
 The live window applies a disposable CSS edit without a document reload.
@@ -78,11 +86,12 @@ command workers. Native open-file/cancel dialogs were checked in the macOS app.
 The existing browser interaction checks still pass. Scientific Python and
 optional-engine boundaries are unchanged; a portable Python bundle is pending.
 
-Integration now has a scoped implementation of settings, backgrounds, selected
-corrections, phases/overlays, saving/autocreate and folder processing; see
-[INTEGRATION_PARITY.md](INTEGRATION_PARITY.md) for coverage and limitations.
-Configuration switching, acquisition/Map and explicit HDF5 dataset-selection
-interfaces remain outside this branch. Project configurations are preserved, but only the selected one is
+Mask, Integration and Map have scoped implementations; see
+[MASK_PARITY.md](MASK_PARITY.md), [INTEGRATION_PARITY.md](INTEGRATION_PARITY.md)
+and [MAP_PARITY.md](MAP_PARITY.md) for their coverage and limitations.
+Configuration switching, live acquisition and explicit HDF5 dataset-selection
+interfaces remain outside the preview. Project configurations are preserved,
+but only the selected one is
 displayed. There is no new uncertainty estimator or geometry-identifiability
 diagnostic. The native host now supports Tauri/WKWebView, with a local stdio
 process using the existing Python scientific runtime. The earlier pywebview host

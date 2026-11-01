@@ -1,5 +1,20 @@
 # Mask, Integration and Map implementation
 
+All three view branches are integrated into `codex/react-desktop`. The left
+navigation exposes Calibration, Integration, Mask and Map in one Tauri session.
+The merge retains shared renderers, including mask shape overlays, map
+contours/ROI editing and integration overlay curves/phase lines. The former
+brush-only undo stack was removed from Map selection as well as the shared
+session; all mask edits use the application's history implementation.
+
+Combined verification: 90 desktop tests passed / four optional-engine skips,
+plus one cross-view project/numerical regression; three Rust tests; existing
+calibration/Integration browser checks; dedicated Mask and Map browser checks;
+bundled Tauri calibration/Mask/Integration smoke and bundled Map smoke. Both
+native processing children exit after their test windows close. Builds and
+original-resolution detector checks pass. Per-view reports below retain
+their implementation scope and remaining limitations.
+
 The reference is current Qt Dioptas source in
 `/Users/clemens/Programming/Dioptas` (read-only), together with equivalent files
 in this checkout. Preserve Qt organization and established user interactions,

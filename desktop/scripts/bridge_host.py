@@ -19,6 +19,14 @@ artifacts.mkdir(exist_ok=True)
 
 
 def choose_file(kind, save):
+    if kind == "map_images":
+        return sorted(str(p) for p in (root / "dioptas/tests/data/map").glob("*.tif"))
+    if kind == "map_png":
+        return str(artifacts / "map.png")
+    if kind == "map_export":
+        return str(artifacts / "map.txt")
+    if kind == "map_batch":
+        return str(artifacts / "map-batch.h5")
     if save:
         return str(
             artifacts
