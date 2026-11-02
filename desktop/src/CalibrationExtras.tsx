@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { CalibrationTabs } from "./CalibrationLayout";
 import type { Calibration, State } from "./types";
+import { CalibrationHelp, calibrationHelp } from "./CalibrationHelp";
 
 type Run = (
   command: string,
@@ -363,9 +364,13 @@ export function CalibrationExtras({
                   ["numberOfRings", "Number of rings"],
                 ] as const
               ).map(([key, label]) => (
-                <label className="calibration-field-row" key={key}>
-                  <span>{label}</span>
+                <div
+                  className="calibration-field-row calibration-refinement-field"
+                  key={key}
+                >
+                  <label htmlFor={`refinement-${key}`}>{label}</label>
                   <input
+                    id={`refinement-${key}`}
                     className="full-input"
                     aria-label={label}
                     type="number"
@@ -379,7 +384,8 @@ export function CalibrationExtras({
                       }))
                     }
                   />
-                </label>
+                  <CalibrationHelp label={label} text={calibrationHelp[key]} />
+                </div>
               ))}
               {refinementDirty && (
                 <button

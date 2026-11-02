@@ -439,3 +439,36 @@
 .calibration-task-panel .calibration-setup-page .field-label {
   margin: 6px 0 4px;
 }
+
+.calibration-refinement-field {
+  grid-template-columns: minmax(0, 1fr) minmax(75px, 90px) 22px;
+  column-gap: 6px;
+}
+.calibration-refinement-field > label {
+  min-width: 0;
+}
+.app .calibration-help-button {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 24px;
+  min-height: 24px;
+  padding: 2px;
+  color: var(--muted);
+}
+.app .calibration-help-button:is(:hover, :focus-visible) {
+  color: var(--accent);
+}
+.calibration-help-tooltip {
+  position: fixed;
+  z-index: 1000;
+  width: min(320px, calc(100vw - 24px));
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #292d32;
+  color: #e2e6ea;
+  box-shadow: 0 4px 16px #0006;
+  font-size: var(--text-small);
+  font-weight: 400;
+  line-height: 1.5;
+}
