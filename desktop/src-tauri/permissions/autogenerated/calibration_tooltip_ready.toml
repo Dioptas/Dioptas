@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-calibration-tooltip-ready"
+description = "Enables the calibration_tooltip_ready command without any pre-configured scope."
+commands.allow = ["calibration_tooltip_ready"]
+
+[[permission]]
+identifier = "deny-calibration-tooltip-ready"
+description = "Denies the calibration_tooltip_ready command without any pre-configured scope."
+commands.deny = ["calibration_tooltip_ready"]

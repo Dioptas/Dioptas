@@ -1,6 +1,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod calibration_tooltip;
 mod processor;
+
+use calibration_tooltip::{
+    calibration_tooltip_ready, hide_calibration_tooltip, present_calibration_tooltip,
+    show_calibration_tooltip, TooltipState,
+};
 
 use processor::{Packet, Processor};
 use serde_json::{json, Value};
@@ -234,18 +240,24 @@ fn native_smoke_report(
 
 fn main() {
     let args: Vec<_> = std::env::args().collect();
-    let smoke = args.iter().any(|a| a == "--smoke");
+    let tooltip_smoke = args.iter().any(|a| a == "--tooltip-smoke");
+    let smoke = tooltip_smoke || args.iter().any(|a| a == "--smoke");
     let map_smoke = args.iter().any(|a| a == "--map-smoke");
     let example = args.iter().any(|a| a == "--example");
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .manage(TooltipState::default())
         .manage(Host {
             processor: Processor::start(example).map(Arc::new),
             smoke,
         })
         .invoke_handler(tauri::generate_handler![
             desktop_invoke,
-            native_smoke_report
+            native_smoke_report,
+            show_calibration_tooltip,
+            hide_calibration_tooltip,
+            calibration_tooltip_ready,
+            present_calibration_tooltip
         ])
         .setup(move |app| {
             let window = app.get_webview_window("main").unwrap();
@@ -263,15 +275,43 @@ fn main() {
             Ok(())
         })
         .on_page_load(move |webview, payload| {
-            if smoke && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
-                let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
-                let _ = webview.eval(include_str!("../../scripts/binary_native_smoke.js"));
-                let _ = webview.eval(include_str!("../../scripts/mask_native_smoke.js"));
-                let _ = webview.eval(if map_smoke {
+            if smoke
+                && webview.label() == "main"
+                && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished)
+            {
+                if !tooltip_smoke {
+                    let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
+                    let _ = webview.eval(include_str!("../../scripts/binary_native_smoke.js"));
+                    let _ = webview.eval(include_str!("../../scripts/mask_native_smoke.js"));
+                }
+                let _ = webview.eval(if tooltip_smoke {
+                    include_str!("../../scripts/calibration_tooltip_native_smoke.js")
+                } else if map_smoke {
                     include_str!("../../scripts/tauri_map_smoke.js")
                 } else {
                     include_str!("../../scripts/tauri_smoke.js")
                 });
+            }
+        })
+        .on_window_event(|window, event| {
+            if window.label() != "main" {
+                return;
+            }
+            if matches!(
+                event,
+                tauri::WindowEvent::Focused(false)
+                    | tauri::WindowEvent::Moved(_)
+                    | tauri::WindowEvent::Resized(_)
+            ) {
+                let _ = calibration_tooltip::dismiss(window.app_handle(), None);
+            }
+            if matches!(event, tauri::WindowEvent::Destroyed) {
+                if let Some(popup) = window
+                    .app_handle()
+                    .get_webview_window("calibration-tooltip")
+                {
+                    let _ = popup.destroy();
+                }
             }
         })
         .build(tauri::generate_context!())

@@ -596,3 +596,14 @@
   font-weight: 400;
   line-height: 1.5;
 }
+
+.native-calibration-tooltip,
+.native-calibration-tooltip body {
+  background: #292d32;
+  overflow: hidden;
+}
+.native-tooltip-content {
+  position: static;
+  border-radius: 0;
+  box-shadow: none;
+}

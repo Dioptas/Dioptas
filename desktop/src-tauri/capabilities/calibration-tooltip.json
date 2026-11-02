@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "calibration-tooltip",
+  "description": "The non-focusing calibration help popup can read and present its own help text.",
+  "windows": ["calibration-tooltip"],
+  "permissions": [
+    "allow-calibration-tooltip-ready",
+    "allow-present-calibration-tooltip"
+  ]
+}

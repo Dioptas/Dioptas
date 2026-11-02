@@ -1,6 +1,8 @@
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CircleHelp } from "lucide-react";
+import { isTauri } from "@tauri-apps/api/core";
+import { nativeTooltipCommand } from "./NativeCalibrationTooltip";
 
 // Text follows the refinement options in docs/source/calibration.rst.
 // Search thresholds are checked against CalibrationModel.search_peaks_on_ring.
@@ -29,6 +31,8 @@ export function CalibrationHelp({
     undefined,
   );
   const [open, setOpen] = useState(false);
+  const [nativeFailed, setNativeFailed] = useState(false);
+  const native = isTauri() && !nativeFailed;
   const [position, setPosition] = useState({ left: 0, top: 0 });
   const show = () => {
     clearTimeout(closeTimer.current);
@@ -40,34 +44,66 @@ export function CalibrationHelp({
 
   useLayoutEffect(() => {
     if (!open) return;
+    let active = true;
     const place = () => {
       const anchor = button.current?.getBoundingClientRect();
       const box = tooltip.current?.getBoundingClientRect();
       if (!anchor || !box) return;
+      if (native) {
+        void nativeTooltipCommand("show_calibration_tooltip", {
+          payload: {
+            source: id,
+            text,
+            fontSize: getComputedStyle(tooltip.current!).fontSize,
+            width: box.width,
+            height: box.height,
+            anchor: {
+              left: anchor.left,
+              right: anchor.right,
+              top: anchor.top,
+              bottom: anchor.bottom,
+            },
+          },
+        }).catch(() => {
+          if (active) setNativeFailed(true);
+        });
+        return;
+      }
+      const right = anchor.right + 8;
+      const left = anchor.left - box.width - 8;
       setPosition({
-        left: Math.max(12, Math.min(anchor.left, innerWidth - box.width - 12)),
-        top: Math.max(
+        left: Math.max(
           12,
-          anchor.bottom + box.height + 8 < innerHeight - 12
-            ? anchor.bottom + 8
-            : anchor.top - box.height - 8,
+          Math.min(
+            right + box.width <= innerWidth - 12 ? right : left,
+            innerWidth - box.width - 12,
+          ),
         ),
+        top: Math.max(12, anchor.top - box.height - 8),
       });
     };
     const dismiss = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
     };
+    const close = () => setOpen(false);
     place();
     window.addEventListener("resize", place);
     window.addEventListener("scroll", place, true);
     window.addEventListener("keydown", dismiss);
+    window.addEventListener("blur", close);
     return () => {
+      active = false;
       clearTimeout(closeTimer.current);
+      if (native)
+        void nativeTooltipCommand("hide_calibration_tooltip", {
+          source: id,
+        }).catch(() => undefined);
       window.removeEventListener("resize", place);
       window.removeEventListener("scroll", place, true);
       window.removeEventListener("keydown", dismiss);
+      window.removeEventListener("blur", close);
     };
-  }, [open]);
+  }, [open, native, id, text]);
 
   return (
     <>
@@ -92,7 +128,9 @@ export function CalibrationHelp({
             id={id}
             role="tooltip"
             className="calibration-help-tooltip"
-            style={position}
+            style={
+              native ? { left: -10000, top: 0, visibility: "hidden" } : position
+            }
             onMouseEnter={show}
             onMouseLeave={hide}
           >

@@ -117,9 +117,10 @@ to all picked groups through table scrolling. They assert that controls fit with
 the sidebar and table bounds, rather than merely hiding scrollbar tracks.
 The real-image workflow also covers geometry application and restoration.
 The embedded WKWebView smoke passes calibration, validation and return from
-Mask/Integration, and confirms that its processing child exits. Its test build
-uses temporary window-title read/set capabilities because the normal capability
-file lacks those permissions; this change does not alter that file.
+Mask/Integration, and confirms that its processing child exits. The main window
+now explicitly grants title read/set permissions for its existing title behavior
+and native smoke. The calibration-help popup has a separate capability limited
+to reading and presenting its own help content.
 
 ## Remaining scope
 
@@ -209,3 +210,19 @@ the Python worker validates/applies them in the same command transaction before
 fitting. Invalid values cannot start a fit; a complete field set confirms the
 starting setup. Numeric refinement options apply on blur or Enter, with no Apply
 button; the automatic-refinement checkbox and algorithm selector apply immediately.
+
+## Native refinement help (2026-11-02)
+
+Tauri presents refinement help in a non-focusing native popup above and to the
+right of its button, allowing text to extend outside the app. Placement uses the
+monitor work area, including Retina scaling and negative screen origins, and
+falls back to the upper left at the screen edge. Escape, leaving the button,
+focus changes and moving/resizing the main window dismiss help; queued IPC uses
+generation checks to prevent stale content reopening it. Browser/legacy previews
+keep an in-window fallback.
+
+The seven Rust tests pass, including popup placement checks. The dedicated
+native smoke passes all four help buttons, outside-app placement, screen-edge
+fallback and focus preservation on recheck; its first run failed the focus
+assertion. The bundled native workflow smoke also passes and reaps its processing
+child. These checks do not establish Windows/Linux popup behavior.

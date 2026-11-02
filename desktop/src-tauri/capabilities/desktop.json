@@ -3,5 +3,12 @@
   "identifier": "desktop",
   "description": "The local Dioptas window may call the bounded scientific command interface.",
   "windows": ["main"],
-  "permissions": ["allow-desktop-invoke", "allow-native-smoke-report"]
+  "permissions": [
+    "allow-desktop-invoke",
+    "allow-show-calibration-tooltip",
+    "allow-hide-calibration-tooltip",
+    "allow-native-smoke-report",
+    "core:window:allow-title",
+    "core:window:allow-set-title"
+  ]
 }

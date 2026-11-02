@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-hide-calibration-tooltip"
+description = "Enables the hide_calibration_tooltip command without any pre-configured scope."
+commands.allow = ["hide_calibration_tooltip"]
+
+[[permission]]
+identifier = "deny-hide-calibration-tooltip"
+description = "Denies the hide_calibration_tooltip command without any pre-configured scope."
+commands.deny = ["hide_calibration_tooltip"]

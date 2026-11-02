@@ -164,6 +164,11 @@ Validate. Image contains image/detector controls only.
 Parameters and Refinement are stacked in the Fit pane and scroll together when
 needed, with a visible scrollbar; the fit action stays fixed below them.
 Fit drafts survive visits to Peaks.
+Refinement help opens above and to the right of its help button. In Tauri it
+uses a non-focusing native popup that can extend outside the application window;
+it switches to the upper left only when the screen's available area requires it.
+Escape, leaving the help button, changing focus or moving the window dismisses
+the popup. Browser and legacy previews keep help inside their web view.
 The peak table scrolls within the available height,
 with pinned column headers and load/save/trash/clear-all icons beside Ring selections.
 Load and Save use standalone `calibration-peaks.json` files. Save includes all
@@ -335,6 +340,7 @@ npm run smoke
 npm run tauri:smoke
 npm run tauri:smoke -- --live
 cargo test --manifest-path src-tauri/Cargo.toml
+node scripts/calibration_tooltip_native_smoke.mjs
 cd ..
 .venv/bin/python -m dioptas.desktop --example --smoke
 ```
