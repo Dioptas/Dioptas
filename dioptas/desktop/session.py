@@ -768,7 +768,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
     def _calibrate(self, automatic=None):
         if not self._setup_confirmed:
             raise ValueError(
-                "Check detector pixel sizes, distance, and beam wavelength; confirm with Apply setup before calibrating."
+                "Check detector pixel sizes and confirm the start values with Apply fit parameters in Calibrate before fitting."
             )
         c = self.configuration.calibration_model
         points = c.get_point_array()

@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   ArrowLeftRight,
   Check,
+  Cpu,
   Keyboard,
   Scan,
   SlidersHorizontal,
@@ -216,6 +217,47 @@ export function SettingsWorkspace({
                     </span>
                   </button>
                 ))}
+              </div>
+            </section>
+            <section className="settings-card">
+              <div className="settings-card-heading">
+                <Cpu size={18} />
+                <h3>Processing</h3>
+              </div>
+              <div className="settings-preference-row">
+                <div>
+                  <label htmlFor="settings-processing-engine">
+                    Processing engine
+                  </label>
+                  <p>Peak searches and detector-geometry fitting.</p>
+                </div>
+                <select
+                  id="settings-processing-engine"
+                  value={state?.calibration.engine ?? "pyfai"}
+                  disabled={!ready}
+                  onChange={(event) =>
+                    run(
+                      "calibration_engine",
+                      { engine: event.target.value },
+                      "Changing processing engine…",
+                    )
+                  }
+                >
+                  {(
+                    state?.calibration.engines ?? [
+                      { id: "pyfai", label: "pyFAI", available: true },
+                    ]
+                  ).map((engine) => (
+                    <option
+                      key={engine.id}
+                      value={engine.id}
+                      disabled={!engine.available}
+                    >
+                      {engine.label}
+                      {!engine.available ? " · not installed" : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
             </section>
             <section className="settings-card">

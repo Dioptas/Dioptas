@@ -238,6 +238,9 @@ class CalibrationWorkflow:
         c.set_start_values(values)
         c.set_fixed_values(fixed)
         c.fit_wavelength = fit_wavelength
+        # Confirm complete start values here; the Image step only applies pixels.
+        if set(parameters) == valid:
+            self._setup_confirmed = True
         c.calibrant.setWavelength_change2th(values["wavelength"])
         self._fit_dirty = c.is_calibrated
         self._fit_rms = None

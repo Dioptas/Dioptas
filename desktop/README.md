@@ -81,37 +81,45 @@ Its `--dev` option still supports live frontend updates independently of Tauri.
 ## Calibrate first
 
 1. Open a calibrant image, or explore the raw CeO2 example.
-2. Choose the calibrant and detector. Check pixel sizes, wavelength or energy,
-   and starting distance. Press the fixed **Apply & pick rings** action to confirm
-   the values and continue. Previous/next arrows sit beside **Open image**.
-   **Load .poni** opens an existing calibration; custom references,
-   processing engines, image transforms, detector files, masks and manual geometry
-   are under **More setup options**.
+2. In **Image & setup**, check image orientation, detector and pixel sizes.
+   Press **Next: Pick rings** to apply the detector settings and continue.
+   Previous/next arrows sit beside **Open image**. Detector definitions and
+   distortion files follow the transformation buttons, separated by a divider.
+   **Load .poni** and **Enter manually** stay available below the step actions;
+   mask use, transparency and mask loading are directly below the detector
+   tools. The processing engine lives in **Settings → General**.
 3. Continue to **Pick rings**. The task panel follows Qt: **Current ring number**,
    **Automatic increase**, automatic/single peak search and search size. The
    step automatically enables picking; the right task panel identifies the
    current ring. Pick bright
    positions around the ring; use the group table to inspect or reassign picks.
-4. Check **Fit parameters**: distance, wavelength, PONI 1/2 and rotations 1/2/3
+4. Open Calibrate → **Parameters**: distance, wavelength, PONI 1/2 and rotations 1/2/3
    each have a value and an independent fit checkbox. The defaults match Qt:
-   geometry parameters free, wavelength fixed. Select enough peaks for the
-   free parameters and spread them across several rings.
+   geometry parameters free, wavelength fixed. The folder button beside the
+   calibrant selector loads custom `.D` spacings. Wavelength/energy, starting
+   distance, polarization and fit constraints live here, not on the Image step.
+   Apply complete fit parameters to confirm start values before a first fit;
+   the example explicitly supplies its own known fixture values. Select enough
+   peaks for the free parameters and spread them across several rings.
 5. Continue to **Calibrate** and press the fixed **Calibrate detector** action at
-   the bottom of the task panel. Automatic refinement searches further rings
-   using the selected Massif/Blob settings; its progress is shown and it can
+   the bottom of the task panel. The **Refinement** tab configures automatic
+   ring searches using the selected Massif/Blob settings; its progress is shown and it can
    be cancelled. Disable it to fit only the manually selected points.
 6. Validate the ring overlays, cake, integrated pattern, and RMS residual.
    Click a plot to link its radial position across the other views. Change
    **Validation calibrant** to inspect a different reference without changing
    the geometry. Use the peak table to reassign groups, select/delete several
    groups, or undo/redo edits; refine again after editing selections.
-7. Save a `.poni` calibration. Alternatively, load an existing PONI or enter
-   complete geometry using the pyFAI or Fit2D editor, without picking peaks.
+7. Inspect or edit complete geometry through the visible **pyFAI / Fit2D** tabs,
+   then save a `.poni` calibration with the fixed bottom action. Geometry drafts
+   persist while switching tabs; apply changes before refining or saving.
+   Alternatively, use **Load .poni** or **Enter manually** from any step, without
+   picking peaks.
 8. Switch to **Mask** for drawing, geometric selections, thresholds, automatic
    masks and mask files; see [Mask parity](MASK_PARITY.md). Switch to
    **Integration** for image/cake/pattern display, integration options, shared
    masks, backgrounds, corrections, overlays/phases and Qt-style pattern saving;
-   see [Integration parity](INTEGRATION_PARITY.md). Calibration also offers mask load/save/use,
+   see [Integration parity](INTEGRATION_PARITY.md). Calibration also offers mask load/use,
    image transformations, detector definitions, distortion splines, and custom
    calibrant `.D` files.
 
@@ -140,8 +148,13 @@ and keyboard shortcuts are in Settings at the bottom of the sidebar.
 Plots occupy the main workspace, and
 one changing task panel stays on the right, following the existing Dioptas
 arrangement. The working calibration steps show the image alone; cake and
-pattern appear on Validate. Back/Next actions guide the sequence, and the fit
-action stays visible at the bottom of the task panel.
+pattern appear on Validate. The calibration sidebar fits without scrolling:
+The Image step contains image/detector controls only. Parameters / Refinement
+split the Calibrate step, while the peak table pages its groups according to
+available height. Tab labels are flat, with a thin active underline.
+Positions remain visible at both text sizes. Back/Next, fit/apply, save and
+load/manual actions stay fixed at the bottom. Mask controls are directly visible
+in the Image sidebar. Validation keeps complete geometry visible in pyFAI / Fit2D tabs.
 
 Each image (detector and cake) has an adjacent histogram, with independent
 limits, colour map, linear/log mode and auto settings. Both start in linear
@@ -207,7 +220,7 @@ masks remain visible, with use and transparency controlled in task options.
 
 Settings is anchored at the bottom of the left mode sidebar. It opens a full,
 fixed-size workspace inside the main window, with a category column for General,
-Integration and Keyboard shortcuts. General contains interface text size and
+Integration and Keyboard shortcuts. General contains interface text size, the processing-engine selector and
 pattern drag-zoom mode. Categories scroll independently of the header and the
 Integration Apply bar. Back, Escape or a mode button returns to the plots;
 opening Settings retains the mounted plots and their zoom, layout and drafts.
@@ -260,7 +273,7 @@ To install the optional Dioptrin engine:
 uv sync --python 3.13 --extra dioptrin
 ```
 
-Then select **Dioptrin (optional)** in the Processing engine selector. Selection
+Then select **Dioptrin (optional)** under **Settings → General → Processing engine**. Selection
 checks its calibration API and normal license validation before changing the
 session. Installing the package does not select it automatically. The engine
 choice is local to the session, not restored from another computer's project.

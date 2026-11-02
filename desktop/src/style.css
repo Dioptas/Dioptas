@@ -133,7 +133,8 @@ button.quiet {
 .app {
   height: 100dvh;
   min-width: 1000px;
-  min-height: 700px;
+  /* The native window's minimum includes its title bar; fit the actual webview. */
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;

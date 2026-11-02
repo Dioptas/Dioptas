@@ -56,6 +56,24 @@ def engine_picked(session, request):
     return session
 
 
+def test_complete_fit_parameters_confirm_start_values_after_detector_setup():
+    session = DesktopSession()
+    call(session, "open_image", path=str(DATA / "CeO2_Pilatus1M.tif"))
+    result = call(session, "calibration_setup", pixel_x=172, pixel_y=172)
+    assert not result["state"]["calibration"]["setupConfirmed"]
+    result = call(session, "fit_parameters", parameters={"dist": {"value": 200, "refine": True}})
+    assert not result["state"]["calibration"]["setupConfirmed"]
+    parameters = result["state"]["calibration"]["parameters"]
+    parameters["wavelength"]["value"] = 0.406626
+    invalid = {key: dict(entry) for key, entry in parameters.items()}
+    invalid["dist"]["value"] = -1
+    assert not session.invoke("fit_parameters", {"parameters": invalid})["ok"]
+    assert not call(session, "state")["state"]["calibration"]["setupConfirmed"]
+    result = call(session, "fit_parameters", parameters=parameters, polarization=0.99)
+    assert result["state"]["calibration"]["setupConfirmed"]
+    assert result["state"]["calibration"]["wavelength"] == pytest.approx(0.406626)
+
+
 def test_distance_and_tilt_constraints_are_honored(engine_picked):
     picked = engine_picked
     call(

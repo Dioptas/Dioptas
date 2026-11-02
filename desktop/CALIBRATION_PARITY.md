@@ -13,28 +13,28 @@ preview replaces the complete application. The original Qt interface is unchange
 | --- | --- |
 | Image → Pick rings → Calibrate → Validate | Compact step toolbar with Back/Next, one changing task panel and fixed fit action; image alone until Validate |
 | Load image; previous/next image | Compact Open image button with adjacent previous/next arrows, using the existing file iterator |
-| ±90° rotation; horizontal/vertical flip; reset | Image & detector section; detector and image transformations stay aligned; stale peaks are cleared |
+| ±90° rotation; horizontal/vertical flip; reset | Visible labelled buttons in Image & detector; detector and image transformations stay aligned; stale peaks are cleared |
 | Custom/predefined detector; detector file/reset | Experiment setup and Image & detector; loaded detector pixel pitches cannot be edited as custom pixels |
 | Distortion spline load/reset | Image & detector |
 | Calibrant selection | Bundled references plus custom `.D` import; custom content is owned by the session and embedded in project metadata |
-| Wavelength / energy; distance; pixel sizes | Unit-labelled fields with linked wavelength/energy conversion and explicit Apply setup |
-| Confirmation of experiment defaults | Fixed Apply & pick rings action confirms numeric inputs before continuing; the example explicitly supplies its known fixture inputs |
+| Wavelength / energy; distance; pixel sizes | Pixel sizes on Image; start values and linked wavelength/energy conversion in Calibrate → Parameters |
+| Confirmation of experiment defaults | Image applies detector pixels on Next; applying the complete fit-parameter set confirms start values in Calibrate. The example supplies known fixture values |
 | Individual distance/wavelength/PONI/rotation fit checkboxes | Fit parameters; all six geometry parameters free and wavelength fixed by default, matching Qt |
 | Polarization factor | Fit parameters and both manual geometry conventions |
 | Seeded automatic peak search / single local maximum | Qt-style automatic/single search radio buttons and search-size field, default 10 source pixels |
 | Ring number and automatic increment | Qt-style current-ring spinbox, automatic-increase checkbox, image-side picking badge and highlighted fitted ring |
-| Group positions and ring reassignment | Peak table with mean source pixel coordinates and editable ring assignment |
+| Group positions and ring reassignment | Height-adaptive paged table with mean source pixel coordinates and editable ring assignment; positions remain visible at both text sizes |
 | Multiple selection, delete, clear | Group checkboxes, select all, delete selected, individual removal, clear all; selected groups highlighted on the image |
 | Peak edit history | Undo / redo buttons; Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z in calibration |
 | Initial fit / subsequent refinement | Same pyFAI model entry points; optional separately installed Dioptrin adapter |
 | Automatic refinement | Staged ring search/refit; enabled by default; Massif/Blob, Δ2θ, mean factor, intensity ceiling, ring count; Qt default values retained |
 | Refinement progress / abort | Progress and cancel command remain responsive while the scientific session is busy; failure/cancel restores the pre-command geometry and picks |
-| Mask use and transparency | Load/save mask, use-mask switch, transparent display; drawing/erasing/history in the dedicated Mask mode |
+| Mask use and transparency | Load mask, use-mask switch, transparent display; saving, drawing/erasing/history in the dedicated Mask mode |
 | Calibrant lines and numbers | Independent display switches; reference lines also appear in the integrated pattern in its actual radial unit |
 | Validation reference selection without changing geometry | Dedicated Validation calibrant selector uses the loaded/fitted geometry wavelength; changing reference clears the old RMS diagnostic |
 | Linked detector/cake/pattern validation | Stationary validation click propagates the matching 2θ contour, cake line and pattern position; Q/d conversion uses the actual wavelength |
-| pyFAI and Fit2D geometry inspection/input | Collapsible manual editor with complete unit-labelled fields; can create a geometry without peaks |
-| Load/save calibration | Existing PONI reader/writer, plus standard `.dio` project save/reopen |
+| pyFAI and Fit2D geometry inspection/input | Visible validation tabs with complete unit-labelled fields; Enter manually opens the same editor in a dialog from any step |
+| Load/save calibration | Fixed Load .poni / Enter manually entry actions on every step; fixed Refine / Save actions on validation; existing PONI reader/writer and `.dio` project persistence |
 | Image intensity/log/colormap | Each image has its own histogram, Auto and colour picker; small settings dialog for limits, auto modes, linear/log, size and horizontal/vertical layout; counts use every finite source pixel |
 | Moving mouse readout | Coordinates and original-pixel intensity sampled during continuous movement at about 10 Hz; one app footer also reports cake/pattern/map values and workflow messages |
 | Wheel zoom | Non-passive native wheel listener captures the event in each plot; the workspace does not also scroll |
@@ -54,8 +54,8 @@ preview replaces the complete application. The original Qt interface is unchange
   equation count, not a claim of identifiability or a well-constrained geometry;
   users should distribute peaks across rings and azimuths.
 - Numeric setup, fit constraints and refinement options have explicit Apply
-  actions. Setup applies and continues with one fixed action; optional setup tools
-  start folded. Fitting is disabled while drafts differ from the applied state.
+  actions. Image applies detector settings and continues with Next; complete
+  start values are confirmed on Calibrate. Mask controls stay directly visible in Image. Fitting is disabled while drafts differ from the applied state.
 - The native adapter corrects the existing Fit2D model path's pixel-X/pixel-Y
   swap for non-square pixels. This is local to the new adapter; the original
   model and Qt application were not modified.
@@ -67,6 +67,51 @@ preview replaces the complete application. The original Qt interface is unchange
 
 The Export pattern button has been removed as requested; the underlying export
 command and numerical round-trip tests remain.
+
+## Sidebar layout recheck (2026-11-01)
+
+Rechecked the original Qt checkout's `CalibrationControlWidget`,
+`CalibrationParameterWidget`, `StartValuesGroupBox`, `PeakSelectionWidget`,
+`RefinementOptionsGroupBox`, and geometry widgets. An isolated offscreen Qt
+widget capture confirmed the form grouping and persistent alternative-entry
+buttons without loading or writing user settings.
+
+The React sidebar now exposes image transformations and detector files directly,
+uses aligned value/unit/fit columns and compact refinement rows, and keeps one
+set of fit inputs on Calibrate. Validation starts with its reference selector
+and visible pyFAI/Fit2D tabs rather than a collapsed editor and a partial geometry
+summary. The sidebar requires no scrolling: Image contains only image/detector
+controls; Parameters / Refinement tabs divide Calibrate, and the peak table pages its
+rows to match the available height. All controls, group positions and actions
+remain visible with normal or larger text. Refine/apply, save and load/manual
+entry actions are fixed below the content. Mask use, transparency and the mask-load
+button sit directly below the detector tools; no extra setup menu is needed.
+Manual entry uses a modal dialog with Escape/focus handling. Geometry drafts
+survive tab changes; unapplied changes disable refine/save, and Apply geometry submits the
+active convention from the fixed action bar. Cancelling Load .poni retains the
+current step.
+
+The processing-engine selector is available only under Settings → General;
+custom calibrant loading sits beside the Calibrate → Parameters calibrant
+selector, and mask controls sit directly in the Image sidebar.
+
+Start values now live only in Calibrate, following Qt's grouping. Applying the
+complete, validated fit-parameter set confirms those values; partial parameter
+updates do not confirm an otherwise unconfirmed session. The Image step only
+applies detector pixels. A divider separates Reset transformations from the
+detector-file tools. Fit/geometry tabs use flat labels with a thin underline.
+Geometry calculations, units and the processing runtime are unchanged. This is
+layout reconciliation rather than exact widget-for-widget parity.
+
+Browser layout checks cover 1000 × 668 CSS pixels with both text sizes,
+including clean and edited geometry, image controls and every fit/geometry tab, and access
+to all picked groups through pagination. They assert that controls fit within
+the sidebar and table bounds, rather than merely hiding scrollbar tracks.
+The real-image workflow also covers geometry application and restoration.
+The embedded WKWebView smoke passes calibration, validation and return from
+Mask/Integration, and confirms that its processing child exits. Its test build
+uses temporary window-title read/set capabilities because the normal capability
+file lacks those permissions; this change does not alter that file.
 
 ## Remaining scope
 

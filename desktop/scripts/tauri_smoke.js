@@ -82,11 +82,11 @@
         initial.state.imageName,
       "Filename missing below Open image",
     );
-    click("Apply & pick rings ›");
+    click("Next: Pick rings ›");
     await ready();
     await wait(
       () => document.querySelector('[aria-label="Current calibrant ring"]'),
-      "Apply setup did not continue to peak picking",
+      "Image Next did not continue to peak picking",
     );
     await delay();
     const canvas = document.querySelector('[data-testid="detector-canvas"]');
@@ -136,6 +136,8 @@
     );
     click("Step 3: Calibrate");
     await delay();
+    click("Refinement");
+    await delay();
     const automatic = document.querySelector(
       'input[aria-label="Automatic refinement"]',
     );
@@ -143,6 +145,8 @@
     if (automatic.checked) automatic.click();
     await delay();
     await ready();
+    click("Parameters");
+    await delay();
     click("Calibrate detector");
     await delay();
     await ready();

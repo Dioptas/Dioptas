@@ -16,6 +16,10 @@ import {
   verifyIntegrationControls,
 } from "./integration_controls.mjs";
 import { verifyIntegrationLayout } from "./integration_layout.mjs";
+import {
+  verifyCalibrationSizes,
+  verifyCalibrationFits,
+} from "./calibration_layout.mjs";
 import { verifyCalibrationSetup } from "./calibration_setup.mjs";
 import { verifyDetectorGeometry } from "./detector_geometry.mjs";
 import {
@@ -126,15 +130,13 @@ try {
   await page.goto("file://" + path.join(root, "dioptas/desktop/ui/index.html"));
   await waitReady();
   if (process.argv.includes("--dioptrin")) {
-    await page.getByText("More setup options", { exact: true }).click();
-    await page
-      .getByText("Custom calibrant & processing", { exact: true })
-      .click();
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
+
     await page
       .getByLabel("Processing engine", { exact: true })
       .selectOption("dioptrin");
     await waitReady();
-    await page.getByText("More setup options", { exact: true }).click();
+    await page.keyboard.press("Escape");
   }
   assert.equal(
     await page.getByLabel("Accent color", { exact: true }).count(),
@@ -153,10 +155,41 @@ try {
     await page.locator(".app").getAttribute("data-text-size"),
     "large",
   );
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   assert.ok(
     (await page
       .getByLabel("Processing engine", { exact: true })
       .evaluate((el) => parseFloat(getComputedStyle(el).fontSize))) >= 17,
+  );
+  assert.equal(
+    await page
+      .locator("#settings-panel-0")
+      .getByLabel("Processing engine", { exact: true })
+      .isVisible(),
+    true,
+  );
+  const engineOptions = await page
+    .getByLabel("Processing engine", { exact: true })
+    .locator("option")
+    .evaluateAll((options) =>
+      options.map((option) => ({
+        id: option.value,
+        disabled: option.disabled,
+      })),
+    );
+  assert.deepEqual(
+    engineOptions,
+    (await invoke("state")).state.calibration.engines.map((engine) => ({
+      id: engine.id,
+      disabled: !engine.available,
+    })),
+  );
+  await page
+    .getByRole("button", { name: "Close settings", exact: true })
+    .click();
+  assert.equal(
+    await page.getByLabel("Processing engine", { exact: true }).count(),
+    0,
   );
   await setInterfaceTextSize(page, false);
   const settingsButton = page.getByRole("button", {
@@ -185,6 +218,10 @@ try {
     0,
   );
   await page.screenshot({ path: path.join(artifacts, "empty-workspace.png") });
+  await verifyCalibrationSizes(page, {
+    screenshots: artifacts,
+    prefix: "empty-calibration-sidebar",
+  });
   await page
     .getByRole("button", { name: "Explore example", exact: true })
     .click();
@@ -257,6 +294,19 @@ try {
       "Automatic increase must visibly identify the next picking ring",
     );
   }
+  await verifyCalibrationSizes(page, {
+    screenshots: artifacts,
+    prefix: "picked-sidebar",
+    expectedGroups: seeds.length,
+  });
+  while (
+    await page
+      .getByRole("button", { name: "Previous peak page", exact: true })
+      .isEnabled()
+  )
+    await page
+      .getByRole("button", { name: "Previous peak page", exact: true })
+      .click();
   const originalRing = (await invoke("state")).state.calibration.picks[0].ring;
   await page.getByLabel("Ring assignment 1", { exact: true }).fill("3");
   await page.getByLabel("Ring assignment 1", { exact: true }).press("Tab");
@@ -300,6 +350,18 @@ try {
     await page.getByLabel("Refine wavelength", { exact: true }).isChecked(),
     false,
   );
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Load custom calibrant…", exact: true })
+      .isVisible(),
+    true,
+  );
+  await verifyCalibrationSizes(page, {
+    tabs: ["Parameters", "Refinement"],
+    screenshots: artifacts,
+    prefix: "calibrate-sidebar",
+  });
+  await page.getByRole("tab", { name: "Parameters", exact: true }).click();
   await page.getByLabel("Refine rotation 1", { exact: true }).uncheck();
   await page
     .getByRole("button", { name: "Apply fit parameters", exact: true })
@@ -314,6 +376,7 @@ try {
     .getByRole("button", { name: "Apply fit parameters", exact: true })
     .click();
   await waitReady();
+  await page.getByRole("tab", { name: "Refinement", exact: true }).click();
   await page.getByLabel("Number of rings", { exact: true }).fill("4");
   await page
     .getByLabel("Refinement peak-search algorithm", { exact: true })
@@ -338,13 +401,15 @@ try {
   await waitReady();
   await page.getByLabel("Automatic refinement", { exact: true }).uncheck();
   await waitReady();
-  await page.getByText("Experiment setup", { exact: true }).click();
-  await page.getByLabel("Wavelength in angstroms", { exact: true }).fill("0.5");
+  await page.getByRole("tab", { name: "Parameters", exact: true }).click();
+  await page
+    .getByLabel("Wavelength constraint value", { exact: true })
+    .fill("0.5");
   await page.waitForFunction(
     () => document.querySelector(".fit-button").disabled,
   );
   await page
-    .getByLabel("Wavelength in angstroms", { exact: true })
+    .getByLabel("Wavelength constraint value", { exact: true })
     .fill("0.406626");
   await page
     .getByRole("button", { name: "Calibrate detector", exact: true })
@@ -442,6 +507,58 @@ try {
       .getAttribute("data-color-map"),
     "grey",
   );
+  await page.getByRole("tab", { name: "Fit2D", exact: true }).click();
+  assert.equal(
+    await page.getByLabel("Manual center x", { exact: true }).isVisible(),
+    true,
+  );
+  await page.getByRole("tab", { name: "pyFAI", exact: true }).click();
+  assert.equal(
+    await page.getByLabel("Manual rotation 3", { exact: true }).isVisible(),
+    true,
+  );
+  await verifyCalibrationSizes(page, {
+    tabs: ["pyFAI", "Fit2D"],
+    screenshots: artifacts,
+    prefix: "validation-sidebar",
+  });
+  await page.getByRole("tab", { name: "pyFAI", exact: true }).click();
+  const rotation = page.getByLabel("Manual rotation 1", { exact: true });
+  const originalRotation = await rotation.inputValue();
+  await rotation.fill("0.01");
+  await page.waitForFunction(
+    () =>
+      [...document.querySelectorAll("button")].find((button) =>
+        button.textContent.includes("Save .poni calibration"),
+      )?.disabled,
+  );
+  await page.getByRole("tab", { name: "Fit2D", exact: true }).click();
+  await page.getByRole("tab", { name: "pyFAI", exact: true }).click();
+  assert.equal(await rotation.inputValue(), "0.01");
+  await verifyCalibrationSizes(page, {
+    tabs: ["pyFAI", "Fit2D"],
+    screenshots: artifacts,
+    prefix: "validation-draft",
+  });
+  await page.getByRole("tab", { name: "pyFAI", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Apply geometry", exact: true })
+    .click();
+  await waitReady();
+  assert.ok(
+    Math.abs((await invoke("state")).state.geometry.rot1 - 0.01) < 1e-10,
+  );
+  await rotation.fill(originalRotation);
+  await page
+    .getByRole("button", { name: "Apply geometry", exact: true })
+    .click();
+  await waitReady();
+  assert.ok(
+    Math.abs(
+      (await invoke("state")).state.geometry.rot1 - Number(originalRotation),
+    ) < 1e-10,
+  );
+
   const scientificFit = {
     engine: current.state.calibration.engineLabel,
     distanceMm: current.state.geometry.dist * 1000,

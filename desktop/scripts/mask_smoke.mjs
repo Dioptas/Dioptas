@@ -444,10 +444,6 @@ try {
   await waitReady();
   await button("Calibration").click();
   await button("Step 1: Image & setup").click();
-  await page.getByText("More setup options", { exact: true }).click();
-  await page
-    .getByText("Image orientation & detector files", { exact: true })
-    .click();
   await button("Rotate image +90°").click();
   await waitReady();
   await button("Mask").click();

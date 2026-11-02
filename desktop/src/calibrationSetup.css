@@ -42,11 +42,400 @@
   min-height: 34px;
   padding: 4px;
 }
-.setup-more-options > .compact-section {
-  margin-left: 8px;
-  padding-left: 10px;
-  border-left: 1px solid var(--border);
+
+/* Calibration follows Qt's aligned form rows and persistent workflow actions. */
+.calibration-task-panel .compact-section {
+  padding: 10px 0;
 }
-.setup-more-options > .compact-section:last-child {
+.calibration-task-panel .compact-section .compact-section {
   border-bottom: 0;
+  padding-bottom: 0;
+}
+.calibration-task-panel .field-label {
+  font-size: var(--text-small);
+}
+.calibration-task-panel .constraint-heading,
+.calibration-task-panel .constraint-row {
+  grid-template-columns: minmax(85px, 1fr) minmax(90px, 1.15fr) 30px 20px;
+  column-gap: 5px;
+}
+.calibration-task-panel .constraint-heading > :last-child {
+  grid-column: 4;
+}
+.calibration-task-panel .constraint-row {
+  margin: 4px 0;
+}
+.calibration-task-panel .constraint-row input[type="number"] {
+  padding: 5px 6px;
+}
+.calibration-unit {
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+.calibration-field-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(90px, 112px);
+  gap: 8px;
+  align-items: center;
+  margin: 5px 0;
+  font-size: var(--text-small);
+}
+.calibration-field-row > input,
+.calibration-field-row > select {
+  min-width: 0;
+  width: 100%;
+  margin: 0;
+}
+.image-detector-tools > summary {
+  font-size: var(--text-small);
+}
+.calibration-task-panel .orientation-tools {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+.calibration-task-panel .orientation-tools button {
+  padding: 6px 4px;
+  min-width: 0;
+  font-size: var(--text-small);
+}
+.calibration-task-panel .orientation-tools button:last-child {
+  grid-column: 1 / -1;
+}
+.calibration-task-panel .orientation-tools svg {
+  flex-shrink: 0;
+}
+.calibration-task-footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  background: inherit;
+}
+.calibration-task-footer .task-navigation {
+  border: 0;
+  background: transparent;
+  padding-bottom: 7px;
+}
+.calibration-task-footer .task-navigation:has(.primary + .primary),
+.calibration-task-footer .task-navigation:has(button:nth-child(3)) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+.calibration-task-footer .task-navigation button:last-child:nth-child(3) {
+  grid-column: 1 / -1;
+}
+.calibration-alternative-entry {
+  padding: 0 14px 10px;
+  font-size: var(--text-small);
+  color: var(--muted);
+}
+.calibration-alternative-entry > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+}
+.calibration-alternative-entry button {
+  min-width: 0;
+  padding: 6px 5px;
+  font-size: var(--text-small);
+}
+.geometry-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  margin: 10px 0;
+  gap: 4px;
+}
+.geometry-tabs button {
+  flex: 1;
+  border-radius: 4px 4px 0 0;
+  background: transparent;
+}
+.geometry-tabs button[aria-selected="true"] {
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent);
+  background: #ff95000c;
+}
+.geometry-editor .geometry-field {
+  grid-template-columns: minmax(0, 1fr) minmax(90px, 1.2fr) 32px;
+  margin: 4px 0;
+}
+.geometry-editor .geometry-field > input {
+  min-width: 0;
+}
+.manual-geometry-dialog {
+  width: min(440px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  color: inherit;
+  background: #232323;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px;
+}
+.manual-geometry-dialog::backdrop {
+  background: #0009;
+}
+.manual-geometry-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.manual-geometry-heading h2 {
+  font-size: var(--text-body);
+  margin: 0;
+}
+.manual-geometry-heading button {
+  padding: 5px 9px;
+}
+.calibration-task-panel .calibration-panel .panel-heading {
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.calibration-task-panel .image-detector-tools .file-actions button:last-child {
+  flex: 0 0 52px;
+}
+.calibration-task-panel .image-detector-tools .file-actions button:first-child {
+  white-space: nowrap;
+}
+
+/* Every calibration step fits the sidebar; longer groups use tabs or dialogs. */
+.calibration-task-panel .sidebar-scroll {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.calibration-task-panel [hidden] {
+  display: none !important;
+}
+.calibration-task-panel .setup-image-source {
+  padding: 6px 0 8px;
+}
+.calibration-task-panel .setup-image-filename {
+  margin-top: 4px;
+}
+.calibration-section-tabs {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+  margin: 6px 0 9px;
+  border-bottom: 1px solid var(--border);
+}
+.calibration-section-tabs button {
+  flex: 1;
+  min-height: 32px;
+  padding: 5px 6px;
+  font-size: var(--text-body);
+  border-radius: 4px 4px 0 0;
+}
+.calibration-section-tabs button[aria-selected="true"] {
+  border-bottom: 2px solid var(--accent);
+  color: var(--accent);
+}
+.calibration-group-label {
+  margin: 10px 0 6px;
+  font-size: var(--text-small);
+  color: #b5bdc6;
+}
+.calibration-task-panel .file-path {
+  margin: 4px 0;
+}
+.calibration-task-panel .calibration-validation-reference {
+  padding: 4px 0;
+}
+.calibration-validation-reference > button {
+  padding: 4px;
+  min-height: 27px;
+  font-size: var(--text-small);
+}
+.calibration-task-panel .geometry-tabs {
+  margin: 5px 0 8px;
+}
+.calibration-task-panel .geometry-tabs button {
+  min-height: 30px;
+  padding: 4px;
+}
+.calibration-task-panel .geometry-editor .geometry-field {
+  margin: 3px 0;
+}
+.calibration-task-panel .geometry-editor .geometry-field input {
+  padding: 5px 6px;
+}
+.calibration-task-panel .calibration-panel {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.calibration-task-panel .calibration-panel .panel-heading {
+  flex-shrink: 0;
+  padding: 4px 0;
+  min-height: 32px;
+}
+.calibration-task-panel .calibration-panel-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 6px 0 0;
+}
+.calibration-task-panel .calibration-panel-body > * {
+  flex-shrink: 0;
+}
+.calibration-task-panel .current-ring-angle {
+  margin: 3px 0 6px;
+}
+.calibration-task-panel .peak-search-options {
+  padding: 0 0 6px;
+}
+.calibration-task-panel .check-row {
+  margin: 7px 0;
+}
+.calibration-task-panel .calibration-panel .peak-list {
+  flex: 1;
+  min-height: 36px;
+  max-height: none;
+  margin-bottom: 0;
+  overflow: hidden;
+}
+.calibration-task-panel .peak-row {
+  height: 36px;
+}
+.peak-pagination {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--text-small);
+  color: #b3bdc5;
+  margin-top: 5px;
+}
+.peak-pagination button {
+  min-height: 28px;
+  min-width: 30px;
+}
+.calibration-task-panel .peak-table-heading {
+  margin: 3px 0;
+  padding: 5px 0;
+}
+.calibration-task-panel .constraint-heading {
+  margin-top: 7px;
+}
+.calibration-task-panel .calibration-fit-page > .control-note {
+  margin: 7px 0 0;
+}
+.calibration-task-panel .calibration-fit-page > .full-input {
+  margin-top: 4px;
+}
+.calibration-task-panel .image-detector-tools .file-actions {
+  margin: 4px 0;
+}
+
+.calibration-auxiliary-row {
+  font-size: var(--text-small);
+}
+.calibration-task-panel .geometry-editor .geometry-field {
+  grid-template-columns: minmax(0, 1fr) minmax(90px, 1.2fr) 42px;
+}
+.calibration-task-panel .calibration-validation-reference {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 30px;
+  gap: 7px;
+  align-items: center;
+}
+.calibration-task-panel
+  .calibration-validation-reference
+  .calibration-field-row {
+  display: contents;
+}
+.calibration-validation-reference .icon-button {
+  width: 30px;
+  height: 32px;
+}
+.app[data-text-size="large"] .calibration-task-panel .peak-row {
+  height: 36px;
+}
+.app[data-text-size="large"] .calibration-task-panel .peak-row .pick-position {
+  display: block;
+}
+
+.calibration-task-panel .calibration-calibrant-row {
+  grid-template-columns: auto minmax(0, 1fr) 30px;
+}
+.calibration-calibrant-row .icon-button {
+  width: 30px;
+  height: 32px;
+}
+
+.calibration-tool-divider {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 10px 0 8px;
+}
+/* Flat tab labels, with the active pane marked by one restrained underline. */
+.app .calibration-section-tabs button,
+.app .geometry-tabs button {
+  --button-fill: transparent;
+  --button-edge: transparent;
+  --button-sheen: none;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  box-shadow: none;
+  color: #a3adb7;
+  font-weight: 500;
+}
+.app .calibration-section-tabs button[aria-selected="true"],
+.app .geometry-tabs button[aria-selected="true"] {
+  --button-fill: transparent;
+  --button-edge: transparent;
+  background: transparent;
+  --calibration-tab-indicator: var(--accent);
+  border-bottom-color: var(--calibration-tab-indicator);
+  color: #e2e6ea;
+  font-weight: 600;
+}
+.app .calibration-section-tabs button:not(:disabled):hover,
+.app .geometry-tabs button:not(:disabled):hover {
+  --button-fill: transparent;
+  --button-edge: transparent;
+  --button-sheen: none;
+  background: #ffffff06;
+  border-color: transparent;
+  border-bottom-color: var(--calibration-tab-indicator, transparent);
+  color: #e2e6ea;
+}
+
+.calibration-mask-controls {
+  border-top: 1px solid var(--border);
+  padding-top: 4px;
+  margin-top: 4px;
+}
+.calibration-mask-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.calibration-mask-row > .check-row {
+  flex: 1;
+  min-width: 0;
+}
+.calibration-task-panel .calibration-mask-controls .check-row {
+  margin: 0;
+  white-space: nowrap;
+}
+.calibration-task-panel .calibration-mask-controls > .check-row {
+  margin-top: 4px;
+}
+.calibration-mask-row .icon-button {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+}
+.calibration-task-panel .calibration-setup-page .field-label {
+  margin: 6px 0 4px;
 }
