@@ -54,6 +54,7 @@ export function MapView({
   onDetectorHover,
   onPatternHover,
   patternZoom,
+  onPatternZoom,
 }: {
   map: MapData | null;
   image: Raster | null;
@@ -73,6 +74,7 @@ export function MapView({
   onDetectorHover: (point: { x: number; y: number } | null) => void;
   onPatternHover: (point: PatternHover | null) => void;
   patternZoom: ZoomMode;
+  onPatternZoom: (mode: ZoomMode) => void;
 }) {
   const [smooth, setSmooth] = useState(false),
     [smoothFactor, setSmoothFactor] = useState(5);
@@ -446,6 +448,7 @@ export function MapView({
                 pattern={pattern}
                 log={logPattern}
                 zoomMode={patternZoom}
+                onZoomMode={onPatternZoom}
                 onHover={onPatternHover}
                 hoverHint={
                   editRegions

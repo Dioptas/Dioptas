@@ -289,12 +289,56 @@ export async function verifyPlotNavigation(page) {
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   assert.equal(
     await page.getByLabel("Pattern zoom mode", { exact: true }).inputValue(),
-    "horizontal",
+    "rectangle",
   );
   await page
     .getByRole("button", { name: "Close settings", exact: true })
     .click();
   const patternFit = await read(pattern);
+  const patternControls = page.locator(".pattern-container");
+  assert.equal(await patternControls.innerText(), "");
+  // Exercise the complete app cascade, including buttons.css selected styles.
+  for (const name of ["Pattern rectangle zoom", "Pattern X-range zoom"]) {
+    const button = patternControls.getByRole("button", { name, exact: true });
+    await page.mouse.move(0, 0);
+    await page.waitForTimeout(150);
+    const idle = await button.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return {
+        background: style.backgroundColor,
+        image: style.backgroundImage,
+        shadow: style.boxShadow,
+        radius: style.borderRadius,
+      };
+    });
+    assert.deepEqual(
+      idle,
+      {
+        background: "rgba(0, 0, 0, 0)",
+        image: "none",
+        shadow: "none",
+        radius: "1px",
+      },
+      `${name}: only the icon is visible at rest`,
+    );
+    await button.hover();
+    await page.waitForTimeout(150);
+    assert.notEqual(
+      await button.evaluate((el) => getComputedStyle(el).backgroundColor),
+      "rgba(0, 0, 0, 0)",
+      `${name}: hovering reveals the button background`,
+    );
+  }
+  await page.mouse.move(0, 0);
+  assert.equal(
+    await patternControls
+      .getByRole("button", { name: "Pattern rectangle zoom", exact: true })
+      .getAttribute("aria-pressed"),
+    "true",
+  );
+  await patternControls
+    .getByRole("button", { name: "Pattern X-range zoom", exact: true })
+    .click();
   // Preserve the original horizontal drag, including a perfectly flat gesture.
   await drag(page, pattern, [0.25, 0.65], [0.75, 0.65]);
   const horizontal = await read(pattern);
@@ -306,8 +350,31 @@ export async function verifyPlotNavigation(page) {
     spanY(horizontal) <= spanY(patternFit) * 1.01,
     "Horizontal pattern zoom keeps automatic intensity scaling",
   );
+  const horizontalPoint = await point(pattern, 0.5, 0.5);
+  await page.mouse.click(horizontalPoint.x, horizontalPoint.y, {
+    button: "right",
+  });
+  await settle(page);
+  const expanded = await read(pattern);
+  close(
+    spanX(expanded),
+    spanX(patternFit),
+    "X-range right-click restores the full x span regardless of intensity span",
+  );
+  close(
+    expanded.yMin,
+    patternFit.yMin,
+    "X-range right-click refits the intensity minimum",
+  );
+  close(
+    expanded.yMax,
+    patternFit.yMax,
+    "X-range right-click refits the intensity maximum",
+  );
   await restore(page, pattern);
-  checks.push("pattern horizontal zoom remains the default");
+  checks.push(
+    "icon-only plot selectors default to rectangle; X-range zoom-out refits both intensity limits",
+  );
 
   for (const [id, label] of [
     ["detector-canvas", "Detector zoom mode"],
@@ -323,10 +390,8 @@ export async function verifyPlotNavigation(page) {
         })
         .click();
     if (id === "pattern-canvas") {
-      await page.getByRole("button", { name: "Settings", exact: true }).click();
-      await page.getByLabel(label, { exact: true }).selectOption("rectangle");
-      await page
-        .getByRole("button", { name: "Close settings", exact: true })
+      await patternControls
+        .getByRole("button", { name: "Pattern rectangle zoom", exact: true })
         .click();
     } else
       assert.equal(await page.getByLabel(label, { exact: true }).count(), 0);
@@ -397,7 +462,7 @@ export async function verifyPlotNavigation(page) {
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page
     .getByLabel("Pattern zoom mode", { exact: true })
-    .selectOption("horizontal");
+    .selectOption("rectangle");
   await page
     .getByRole("button", { name: "Close settings", exact: true })
     .click();

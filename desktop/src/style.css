@@ -812,6 +812,24 @@ h2 {
 .pattern-container canvas {
   touch-action: none;
 }
+.plot-zoom-button {
+  position: absolute;
+  width: 20px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 1px;
+  background: transparent;
+  color: #606b76;
+}
+.plot-zoom-button:not(:disabled):hover {
+  color: #dce2e7;
+  background: #ffffff0a;
+}
+.plot-zoom-button[aria-pressed="true"],
+.plot-zoom-button[aria-pressed="true"]:not(:disabled):hover {
+  color: var(--accent);
+}
 .plot-readout {
   position: absolute;
   top: 9px;

@@ -15,8 +15,12 @@ and CALIBRATION_PARITY.md before changing its command or plot boundaries.
 - Images have no extra title/dimension header, Fit button or Display mask
   toggle, and no tool/zoom selection strip above them. The shared Ring / Auto /
   Pick peaks strip stays above the calibration tabs; its switch controls picking
-  in every calibration tab. Images use rectangle zoom, while the pattern's optional
-  horizontal/rectangle choice lives in Settings. Mask drawing controls stay
+  in every calibration tab. All plots default to rectangle zoom; cake and pattern
+  have separate icon-only rectangle/X-range selectors in the empty corner below
+  the y-axis and left of the x-axis. Keep them small and rectangular, with a
+  little left inset and transparent backgrounds; the selected icon is orange,
+  other icons are neutral, and the neutral button background appears only on hover.
+  The pattern choice is also available in Settings. Mask drawing controls stay
   in the right task panel. F and right double click restore the image view.
 - Settings is anchored at the bottom of the left sidebar. Coordinates,
   intensities, plot hints, selection feedback and processing/save/error messages
@@ -33,7 +37,8 @@ and CALIBRATION_PARITY.md before changing its command or plot boundaries.
   scientific arrays/control points retain the existing Dioptas convention.
 - Shared gestures: left rectangle zoom, right drag pan, right click 2× out,
   right double-click full fit; wheel zoom must not scroll the workspace. Pattern
-  defaults to horizontal zoom with optional rectangle. Moving readout ~10 Hz.
+  and cake offer X-range zoom: horizontal zoom-out preserves cake azimuth and
+  fits both pattern intensity limits to visible data. Moving readout ~10 Hz.
 - Keep calibration working. Do not restore the removed top-level Export pattern
   button. Normal Qt-style file/save workflows can live in appropriate
   integration controls.

@@ -126,3 +126,27 @@
   --button-fill: rgb(255 255 255 / 5%);
   color: #f3f5f7;
 }
+
+/* Plot modes stay icon-only, including the selected mode. */
+.app button.plot-zoom-button {
+  --button-fill: transparent;
+  --button-edge: transparent;
+  --button-sheen: none;
+  border: 0;
+  border-radius: 1px;
+  background: transparent;
+  box-shadow: none;
+  color: #606b76;
+}
+.app button.plot-zoom-button:not(:disabled):hover {
+  --button-fill: rgb(255 255 255 / 4%);
+  background: var(--button-fill);
+  color: #dce2e7;
+}
+.app button.plot-zoom-button[aria-pressed="true"],
+.app button.plot-zoom-button[aria-pressed="true"]:not(:disabled):hover {
+  color: var(--accent);
+}
+.app button.plot-zoom-button:active {
+  box-shadow: none;
+}

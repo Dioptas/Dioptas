@@ -3,6 +3,7 @@ import type { Pattern } from "./types";
 import type { PatternHover } from "./plotReadout";
 import { unitLabel } from "./types";
 import { linearAxisTicks, linearTicks, logTicks } from "./plotTicks";
+import { PlotZoomControls } from "./PlotZoomControls";
 import {
   usePlotNavigation,
   usePlotWheel,
@@ -17,6 +18,15 @@ const extent = (values: number[]) =>
         : [low, high],
     [Infinity, -Infinity],
   );
+const paddedExtent = (values: number[]): [number, number] => {
+  const [lower, upper] = extent(values);
+  const padding = Math.max(
+    (upper - lower) * 0.04,
+    Math.abs(lower) * 1e-6,
+    1e-6,
+  );
+  return [lower - padding, upper + padding];
+};
 type PatternRegion = {
   name: string;
   min: number;
@@ -33,7 +43,8 @@ export function PatternView({
   antialias = true,
   autoRange = false,
   onAutoRange,
-  zoomMode = "horizontal",
+  zoomMode = "rectangle",
+  onZoomMode,
   onPick,
   onHover,
   hoverHint,
@@ -54,6 +65,7 @@ export function PatternView({
   autoRange?: boolean;
   onAutoRange?: (enabled: boolean) => void;
   zoomMode?: ZoomMode;
+  onZoomMode?: (mode: ZoomMode) => void;
   onPick?: (x: number) => void;
   onHover?: (point: PatternHover | null) => void;
   hoverHint?: string;
@@ -119,19 +131,15 @@ export function PatternView({
   const visible = plottedY.filter(
     (y): y is number => y !== null && Number.isFinite(y) && (!log || y > 0),
   );
-  const fitYMin = visible.length
-    ? log
-      ? extent(visible.map(transform))[0]
-      : Math.min(0, transform(extent(visible)[0]))
-    : 0;
-  const fitYMax = visible.length ? extent(visible.map(transform))[1] : 1;
-  const fitYSpan = Math.max(1e-6, fitYMax - fitYMin) * 1.08;
+  const [fitYMin, fitYMax] = visible.length
+    ? paddedExtent(visible.map(transform))
+    : [0, 1];
   const navigation = usePlotNavigation(
     {
       xMin: fitXMin,
       xMax: Math.max(fitXMin + 1e-12, fitXMax),
       yMin: fitYMin,
-      yMax: fitYMin + fitYSpan,
+      yMax: fitYMax,
     },
     { left, top, width: w, height: h },
     false,
@@ -151,12 +159,8 @@ export function PatternView({
         )
         .map((point) => point.y);
 
-      if (!values.length) return [fitYMin, fitYMin + fitYSpan];
-      const lower = log
-        ? extent(values.map(transform))[0]
-        : Math.min(0, transform(extent(values)[0]));
-      const upper = extent(values.map(transform))[1];
-      return [lower, lower + Math.max(1e-6, upper - lower) * 1.08];
+      if (!values.length) return [fitYMin, fitYMax];
+      return paddedExtent(values.map(transform));
     },
   );
   useEffect(() => {
@@ -550,7 +554,8 @@ export function PatternView({
             return;
           }
           const result = navigation.onPointerUp(e);
-          if (result === "zoom" || result === "pan") onAutoRange?.(false);
+          if (result === "zoom" || result === "pan" || result === "unzoom")
+            onAutoRange?.(false);
           if (result === "click")
             onPick?.(navigation.data(navigation.screen(e)).x);
         }}
@@ -561,6 +566,15 @@ export function PatternView({
         }}
         onPointerLeave={() => setHover(null)}
       />
+      {onZoomMode && (
+        <PlotZoomControls
+          mode={zoomMode}
+          onChange={onZoomMode}
+          left={left}
+          bottom={bottom}
+          label="Pattern"
+        />
+      )}
     </div>
   );
 }

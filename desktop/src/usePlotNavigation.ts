@@ -122,16 +122,30 @@ export function usePlotNavigation(
       height = current.yMax - current.yMin;
     const fitWidth = fit.xMax - fit.xMin,
       fitHeight = fit.yMax - fit.yMin;
+    const center = anchor ?? {
+      x: (current.xMin + current.xMax) / 2,
+      y: (current.yMin + current.yMax) / 2,
+    };
+    if (zoomMode === "horizontal" && !aspectLocked) {
+      const fullWidth = factor > 1 && width * factor >= fitWidth * (1 - 1e-10);
+      const xMin = fullWidth
+        ? fit.xMin
+        : center.x + (current.xMin - center.x) * factor;
+      const xMax = fullWidth
+        ? fit.xMax
+        : center.x + (current.xMax - center.x) * factor;
+      const [yMin, yMax] = horizontalYRange?.(xMin, xMax) ?? [
+        current.yMin,
+        current.yMax,
+      ];
+      return { xMin, xMax, yMin, yMax };
+    }
     if (
       factor > 1 &&
       width * factor >= fitWidth * (1 - 1e-10) &&
       height * factor >= fitHeight * (1 - 1e-10)
     )
       return null;
-    const center = anchor ?? {
-      x: (current.xMin + current.xMax) / 2,
-      y: (current.yMin + current.yMax) / 2,
-    };
     return {
       xMin: center.x + (current.xMin - center.x) * factor,
       xMax: center.x + (current.xMax - center.x) * factor,

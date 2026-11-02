@@ -267,6 +267,41 @@
       document.querySelector('[data-testid="cake-canvas"]'),
       "Validation cake is missing",
     );
+    for (const [label, id] of [
+      ["Pattern", "pattern"],
+      ["Cake", "cake"],
+    ]) {
+      const canvas = document.querySelector(`[data-testid="${id}-canvas"]`);
+      check(
+        canvas.dataset.zoomMode === "rectangle",
+        `${label} must default to rectangle zoom`,
+      );
+      const box = canvas.getBoundingClientRect();
+      for (const mode of ["rectangle", "X-range"]) {
+        const button = document.querySelector(
+          `button[aria-label="${label} ${mode} zoom"]`,
+        );
+        check(
+          button && !button.textContent.trim(),
+          `${label} zoom controls must be icon-only`,
+        );
+        const bounds = button.getBoundingClientRect();
+        check(
+          bounds.right <= box.left + +canvas.dataset.plotLeft &&
+            bounds.top >=
+              box.top + +canvas.dataset.plotTop + +canvas.dataset.plotHeight,
+          `${label} zoom buttons must sit outside the axes in the lower-left corner`,
+        );
+      }
+      click(`${label} X-range zoom`);
+      await delay();
+      check(
+        canvas.dataset.zoomMode === "horizontal",
+        `${label} X-range selector did not apply`,
+      );
+      click(`${label} rectangle zoom`);
+      await delay();
+    }
     const event = new WheelEvent("wheel", {
       bubbles: true,
       cancelable: true,
@@ -417,6 +452,7 @@
         fittedDistanceMm: fitted.state.geometry.dist * 1000,
         wheelPrevented,
         validationImages: 2,
+        plotZoomSelectors: true,
         qtIntegrationLayout: true,
         integrationBins: integrated.state.bins,
         integrationCakeBins: integrated.cake.height,

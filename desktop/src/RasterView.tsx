@@ -5,6 +5,7 @@ import { ByteCache, decodeRaster } from "./rasterTransfer";
 import { colorsFor } from "./colorMaps";
 import { number, unitLabel } from "./types";
 import { linearAxisTicks, linearTicks } from "./plotTicks";
+import { PlotZoomControls } from "./PlotZoomControls";
 import {
   usePlotNavigation,
   usePlotWheel,
@@ -30,6 +31,7 @@ export function RasterView({
   onHover,
   cake = false,
   zoomMode = "rectangle",
+  onZoomMode,
   onPick,
   onInspect,
   linkedPosition,
@@ -57,6 +59,7 @@ export function RasterView({
   resetKey?: number;
   cake?: boolean;
   zoomMode?: ZoomMode;
+  onZoomMode?: (mode: ZoomMode) => void;
   onStroke?: (points: number[][], erase: boolean) => void;
   onHover?: (
     point: { x: number; y: number; value: number | null } | null,
@@ -695,7 +698,7 @@ export function RasterView({
         data-testid={cake ? "cake-canvas" : "detector-canvas"}
         aria-label={
           cake
-            ? "Azimuthal cake; left-drag rectangle zoom, right-drag pan, right-click zoom out"
+            ? `Azimuthal cake; left-drag ${zoomMode} zoom, right-drag pan, right-click zoom out`
             : "Detector image; left-drag rectangle zoom, right-drag pan, right-click zoom out"
         }
         style={{
@@ -778,6 +781,15 @@ export function RasterView({
           onHover?.(null);
         }}
       />
+      {cake && onZoomMode && (
+        <PlotZoomControls
+          mode={zoomMode}
+          onChange={onZoomMode}
+          left={left}
+          bottom={bottom}
+          label="Cake"
+        />
+      )}
       <span className="zoom-badge">{number(zoom, 1)}×</span>
     </div>
   );

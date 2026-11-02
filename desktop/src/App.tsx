@@ -126,7 +126,8 @@ export default function App() {
   const [linked, setLinked] = useState<Response["linked"]>();
   const [progress, setProgress] = useState<Response["progress"]>();
   const progressGeneration = useRef(0);
-  const [patternZoom, setPatternZoom] = useState<ZoomMode>("horizontal");
+  const [patternZoom, setPatternZoom] = useState<ZoomMode>("rectangle");
+  const [cakeZoom, setCakeZoom] = useState<ZoomMode>("rectangle");
   const [setupDirty, setSetupDirty] = useState(false);
   const [setupValid, setSetupValid] = useState(true);
   const [mode, setMode] = useState<
@@ -151,7 +152,7 @@ export default function App() {
     text: string;
     cancel: () => void;
   } | null>(null);
-  const [mapPatternZoom, setMapPatternZoom] = useState<ZoomMode>("horizontal");
+  const [mapPatternZoom, setMapPatternZoom] = useState<ZoomMode>("rectangle");
   const [map, setMap] = useState<MapData | null>(null);
   const [mapLevels, setMapLevels] = useState<[number, number]>();
   const [mapWarning, setMapWarning] = useState<string | null>(null);
@@ -953,6 +954,7 @@ export default function App() {
                   onDetectorHover={onHover}
                   onPatternHover={onPatternHover}
                   patternZoom={mapPatternZoom}
+                  onPatternZoom={setMapPatternZoom}
                 />
               ) : mode === "mask" ? (
                 <MaskView
@@ -1234,7 +1236,8 @@ export default function App() {
                                   x,
                                 });
                               }}
-                              zoomMode="rectangle"
+                              zoomMode={cakeZoom}
+                              onZoomMode={setCakeZoom}
                               cake
                               limits={cakeLimits}
                               log={cakeLog}
@@ -1321,6 +1324,7 @@ export default function App() {
                                 : undefined
                             }
                             zoomMode={patternZoom}
+                            onZoomMode={setPatternZoom}
                             onHover={onPatternHover}
                             linkedPosition={linked?.radial}
                             activeRing={

@@ -270,9 +270,7 @@ export function SettingsWorkspace({
                   <label htmlFor="settings-pattern-zoom">
                     Pattern drag zoom
                   </label>
-                  <p>
-                    {patternLabel}. Choose the axes selected by a left drag.
-                  </p>
+                  <p>{patternLabel}. Also available in the plot’s corner.</p>
                 </div>
                 <select
                   id="settings-pattern-zoom"
@@ -282,13 +280,13 @@ export function SettingsWorkspace({
                     onPatternZoom(event.target.value as ZoomMode)
                   }
                 >
-                  <option value="horizontal">Horizontal</option>
                   <option value="rectangle">Rectangle</option>
+                  <option value="horizontal">X-range</option>
                 </select>
               </div>
               <p className="settings-detail">
                 {patternZoom === "horizontal"
-                  ? "Select a radial range; intensity scales automatically."
+                  ? "Select a radial range; both intensity limits fit the visible data. Right-click expands the radial range."
                   : "Select both a radial range and an intensity range."}
               </p>
             </section>

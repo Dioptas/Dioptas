@@ -47,8 +47,10 @@ preview replaces the complete application. The original Qt interface is unchange
   fitted view, matching Qt. Square detector pixels are retained while resizing
   an already zoomed view. The detector's axes, ticks and outer card are removed;
   its readout and peak table use top-origin display rows without flipping data.
-- The integrated pattern defaults to horizontal zoom with automatic intensity
-  scaling. Detector and cake default to rectangle zoom. Both modes are selectable.
+- All plots default to rectangle zoom. Cake and pattern have icon-only Rectangle /
+  X-range selectors below the y-axis and left of the x-axis. X-range selection, wheel zoom
+  and right-click zoom-out fit both pattern intensity limits to the visible data
+  with padding; the cake preserves its current azimuth limits.
 - Pick peaks is an explicit, shared switch: stationary detector clicks pick on
   any calibration tab when enabled, and inspect radial positions when disabled.
   Dragging continues to zoom without adding points. Cake/pattern clicks inspect.

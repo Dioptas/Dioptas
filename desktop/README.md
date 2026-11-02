@@ -233,7 +233,9 @@ All current plots (detector, cake, integrated pattern) share these controls:
   surrounding workspace does not scroll or jump.
 - **Left drag:** zoom in using the selected zoom mode.
 - **Right drag:** pan both axes. Ctrl + left drag also pans.
-- **Right click:** zoom out one step (2× range).
+- **Right click:** zoom out one step (2× range). X-range mode expands only
+  the horizontal range, refitting both pattern intensity limits to visible data
+  with a small margin and preserving the cake's current azimuth limits.
 - **Right double-click:** completely restore the fitted view, including after
   deep zoom or resizing.
 
@@ -241,10 +243,15 @@ The detector image has no axes, ticks or surrounding card. Its pixels stay
 square during zoom, pan, histogram resizing and window resizing. Cake and
 pattern retain their scientific axes.
 
-Image plots use Rectangle zoom and detector views preserve square pixels.
-The integrated pattern defaults to Horizontal, retaining automatic intensity
-scaling. Settings offers Rectangle mode to select both radial and intensity
-ranges, independently for the main pattern and Map pattern.
+All plots default to Rectangle zoom and detector views preserve square pixels.
+The cake and integrated patterns have two separate icon-only buttons in the empty
+corner below the y-axis and left of the x-axis for Rectangle and X-range zoom.
+Both buttons have transparent backgrounds and a subtle rectangular background only
+on hover; the selected icon is orange and the other icon is neutral. X-range selection fits the pattern's
+minimum and maximum intensity to the visible data instead of forcing a zero
+baseline; the cake keeps its current azimuth range. Wheel zoom follows the selected
+mode too. Settings also offers the pattern choice, independently for the main
+pattern and Map pattern.
 
 When Pick peaks is enabled, a stationary left click picks peaks in any
 calibration tab. A left drag zooms
