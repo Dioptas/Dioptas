@@ -93,14 +93,52 @@ input[type="number"]:not(.numeric-stepper)::-webkit-outer-spin-button {
 }
 input[type="checkbox"],
 input[type="radio"] {
-  accent-color: #a7b1bc;
-}
-input[type="checkbox"] {
+  /* Keep WKWebView's active-window native tint from lightening the fill. */
+  -webkit-appearance: none;
+  appearance: none;
   width: 13px;
   height: 13px;
   margin: 0;
   padding: 0;
   flex-shrink: 0;
+  border: 1px solid #626c77;
+  border-radius: 4px;
+  background: #171c22 center / 100% 100% no-repeat;
+}
+input[type="radio"] {
+  width: 17px;
+  height: 17px;
+  min-height: 17px;
+  border-radius: 50%;
+}
+input[type="checkbox"]:checked,
+input[type="checkbox"]:indeterminate,
+input[type="radio"]:checked {
+  border-color: #626c77;
+  background-color: #343b43;
+}
+input[type="checkbox"]:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m3.5 8 3 3 6-6' fill='none' stroke='%23e3e7eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+input[type="checkbox"]:indeterminate {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8h8' stroke='%23e3e7eb' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+input[type="radio"]:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='3' fill='%23e3e7eb'/%3E%3C/svg%3E");
+}
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled {
+  opacity: 0.45;
+}
+@media (forced-colors: active) {
+  input[type="checkbox"],
+  input[type="checkbox"]:is(:checked, :indeterminate),
+  input[type="radio"],
+  input[type="radio"]:checked {
+    -webkit-appearance: auto;
+    appearance: auto;
+    background-image: none;
+  }
 }
 input[type="range"] {
   accent-color: var(--accent);

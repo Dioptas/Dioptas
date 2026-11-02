@@ -342,7 +342,7 @@ export function PatternView({
       });
       if (antialias) context.stroke();
     };
-    drawCurve(pattern, "#ff9500", 1.4);
+    drawCurve(pattern, "#ffffff", 1.4);
     // Measured curves and background inspection share the same axes and drawing mode.
     for (const curve of curves) drawCurve(curve, curve.color, 1.2);
     const largestReference = Math.max(
