@@ -32,18 +32,20 @@ def main():
     check_encoding()
 
     import dioptas
+    from qtpy import QtWidgets
+    from dioptas import excepthook as exception_handler
 
-    class LocaleApplication(dioptas.QtWidgets.QApplication):
+    class LocaleApplication(QtWidgets.QApplication):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             locale.setlocale(locale.LC_CTYPE, requested_locale)
             check_encoding()
 
     with (
-        patch.object(dioptas.QtWidgets, "QApplication", LocaleApplication),
+        patch.object(QtWidgets, "QApplication", LocaleApplication),
         patch.object(sys, "argv", ["dioptas", "test"]),
         # Report failures to CI instead of opening the GUI error dialog.
-        patch.object(dioptas, "excepthook", sys.__excepthook__),
+        patch.object(exception_handler, "excepthook", sys.__excepthook__),
         patch.object(sys, "excepthook", sys.__excepthook__),
     ):
         dioptas.main()
