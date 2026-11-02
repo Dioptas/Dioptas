@@ -798,7 +798,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         self._fit_rms = None
         return self._state()
 
-    def _calibrate(self, automatic=None, parameters=None, polarization=None):
+    def _calibrate(self, automatic=None, parameters=None, polarization=None, restart=False):
         if parameters is not None:
             self._fit_parameters(parameters, polarization=polarization)
         if not self._setup_confirmed:
@@ -824,6 +824,11 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         self._cancel_refinement.clear()
         self._publish_calibration_progress(0, 1, "Fitting calibration")
         try:
+            if restart:
+                # Both engines initialize a fresh geometry from the current
+                # picks/start values when no calibrated solution is active.
+                # Keep this inside the transaction so failure restores it.
+                c.is_calibrated = False
             c.calibrant.setWavelength_change2th(c.start_values["wavelength"])
             self._fit_rms = self._engine.fit(c, points, self._calibrant_path())
             self._geometry_source = "fitted"

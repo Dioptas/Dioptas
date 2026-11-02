@@ -27,7 +27,7 @@ preview replaces the complete application. The original Qt interface is unchange
 | Multiple selection, delete, clear | Group checkboxes, select all, delete selected, individual removal, clear all; selected groups highlighted on the image |
 | Standalone picked-peak files | Load/save icons beside the table; versioned JSON preserves every picked group, exact source coordinates and ring assignments; compatible image dimensions/orientation and calibrant required; loading replaces groups with Undo/Redo |
 | Peak edit history | Undo / redo buttons; Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z in calibration |
-| Initial fit / subsequent refinement | Same pyFAI model entry points; optional separately installed Dioptrin adapter |
+| Initial fit / subsequent refinement | Fit and Validate show both Calibrate (fresh geometry from current peaks/start values) and Refine (continue the existing solution), with explanatory tooltips. Refine requires an existing geometry. Same pyFAI model entry points; optional separately installed Dioptrin adapter |
 | Automatic refinement | Staged ring search/refit; enabled by default; Massif/Blob, Δ2θ, mean factor, intensity ceiling, ring count; Qt default values retained |
 | Refinement progress / abort | Live detector previews show accumulated points, the active ring and updated fitted contours while fitting; progress and cancel remain responsive, and failure/cancel restores the pre-command geometry and picks |
 | Mask use and transparency | Load mask, use-mask switch, transparent display; saving, drawing/erasing/history in the dedicated Mask mode |

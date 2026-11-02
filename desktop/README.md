@@ -103,15 +103,20 @@ Its `--dev` option still supports live frontend updates independently of Tauri.
    geometry parameters free, wavelength fixed. The folder button beside the
    calibrant selector loads custom `.D` spacings. Wavelength/energy, starting
    distance, polarization and fit constraints live here, not on the Image step.
-   Calibrate detector uses the current parameter values and fit checkboxes
+   Calibrate uses the current parameter values and fit checkboxes
    directly; there is no separate Apply step. The example supplies its own known
    fixture values. Select enough
    peaks for the free parameters and spread them across several rings.
-5. In **Fit**, press the fixed **Calibrate detector** action at
+5. In **Fit**, press the fixed **Calibrate** action at
    the bottom of the task panel. The **Refinement** controls below Parameters configure automatic
    ring searches using the selected Massif/Blob settings; its progress is shown and it can
    be cancelled. Numeric options apply on blur or Enter, without an Apply button.
    Disable it to fit only the manually selected points.
+   **Calibrate** and **Refine** are available together on both
+   Fit and Validate, with short explanatory tooltips. Calibrate starts a fresh
+   geometry from the current peak selections, distance/wavelength start values
+   and fixed parameters. Refine continues from the existing geometry and is
+   enabled once a geometry has been fitted, loaded or entered manually.
 6. Validate the ring overlays, cake, integrated pattern, and RMS residual.
    Turn Pick peaks off to link detector clicks across the plots; cake and
    pattern clicks always inspect radial positions. Change

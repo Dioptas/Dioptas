@@ -268,21 +268,25 @@ def test_refinement_publishes_detached_live_points_and_fitted_contours(fitted, m
     assert "calibration" not in fitted.invoke("progress")["progress"]
 
 
-def test_empty_automatic_search_restores_picked_peaks(fitted, monkeypatch):
+@pytest.mark.parametrize("restart", [False, True])
+def test_empty_automatic_search_restores_picked_peaks(fitted, monkeypatch, restart):
     c = fitted.configuration.calibration_model
     points = c.params.peak_selections
     geometry = c.pattern_geometry.get_config()
     monkeypatch.setattr(c, "search_peaks_on_ring", lambda *args: None)
-    result = fitted.invoke("calibrate", {"automatic": True})
+    result = fitted.invoke("calibrate", {"automatic": True, "restart": restart})
     assert not result["ok"] and "restored" in result["error"]
     assert c.params.peak_selections == points
     assert c.pattern_geometry.dist == pytest.approx(geometry["dist"])
+    assert c.is_calibrated
     assert "calibration" not in fitted.invoke("progress")["progress"]
 
 
-def test_cancellation_is_readable_without_session_lock(fitted, monkeypatch):
+@pytest.mark.parametrize("restart", [False, True])
+def test_cancellation_is_readable_without_session_lock(fitted, monkeypatch, restart):
     c = fitted.configuration.calibration_model
     points = c.params.peak_selections
+    geometry = c.get_pyFAI_config()
     entered = threading.Event()
     release = threading.Event()
 
@@ -293,7 +297,7 @@ def test_cancellation_is_readable_without_session_lock(fitted, monkeypatch):
     monkeypatch.setattr(c, "search_peaks_on_ring", search)
     result = {}
     worker = threading.Thread(
-        target=lambda: result.update(fitted.invoke("calibrate", {"automatic": True}))
+        target=lambda: result.update(fitted.invoke("calibrate", {"automatic": True, "restart": restart}))
     )
     worker.start()
     assert entered.wait(5)
@@ -307,6 +311,8 @@ def test_cancellation_is_readable_without_session_lock(fitted, monkeypatch):
     assert not worker.is_alive()
     assert not result["ok"] and "cancelled" in result["error"]
     assert c.params.peak_selections == points
+    assert c.is_calibrated
+    assert c.get_pyFAI_config() == geometry
     assert "calibration" not in fitted.invoke("progress")["progress"]
 
 
@@ -380,3 +386,35 @@ def test_invalid_current_fit_fields_do_not_start_calibration(picked):
     after = call(picked, "state")
     assert not after["state"]["calibrated"]
     assert after["state"]["calibration"]["parameters"] == before["state"]["calibration"]["parameters"]
+
+
+def test_recalibration_uses_current_picks_instead_of_previous_geometry(engine_picked):
+    session = engine_picked
+    call(session, "calibrate", automatic=False)
+    call(session, "remove_pick", index=0)
+    c = session.configuration.calibration_model
+    points = c.get_point_array().copy()
+    # A fresh fit from the edited selection is the reference result.
+    reference = call(session, "calibrate", automatic=False, restart=True)
+    geometry = reference["state"]["geometry"]
+    # Start with a different, valid geometry to distinguish restarting from
+    # continuing refinement of the previous solution.
+    altered = c.get_pyFAI_config()
+    altered.update(dist=0.4, poni1=0.02, poni2=0.03, rot1=0.2, rot2=-0.2)
+    c.set_pyFAI_config(altered)
+    c.is_calibrated = True
+    result = call(session, "calibrate", automatic=False, restart=True)
+    for key in ("dist", "poni1", "poni2", "rot1", "rot2", "rot3", "wavelength"):
+        assert result["state"]["geometry"][key] == pytest.approx(geometry[key], abs=1e-12)
+    np.testing.assert_array_equal(c.get_point_array(), points)
+    assert not result["state"]["calibration"]["fitDirty"]
+
+
+def test_refinement_keeps_existing_pyfai_geometry(fitted):
+    c = fitted.configuration.calibration_model
+    geometry = c.pattern_geometry
+    call(fitted, "remove_pick", index=0)
+    result = call(fitted, "calibrate", automatic=False)
+    assert c.pattern_geometry is geometry
+    np.testing.assert_array_equal(geometry.data, c.get_point_array())
+    assert not result["state"]["calibration"]["fitDirty"]

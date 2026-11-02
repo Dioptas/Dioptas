@@ -251,7 +251,7 @@
     if (automatic.checked) automatic.click();
     await delay();
     await ready();
-    click("Calibrate detector");
+    click("Calibrate");
     await delay();
     await ready();
     const fitted = await call("state");

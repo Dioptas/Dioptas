@@ -655,7 +655,7 @@ try {
     .getByLabel("Wavelength constraint value", { exact: true })
     .fill("0.406626");
   await page
-    .getByRole("button", { name: "Calibrate detector", exact: true })
+    .getByRole("button", { name: "Calibrate", exact: true })
     .click();
   await page.getByTestId("pattern-canvas").waitFor({ timeout: 45000 });
   await waitReady();

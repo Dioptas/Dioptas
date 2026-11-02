@@ -71,6 +71,19 @@ export async function verifyCalibrationFits(page) {
       .count(),
     0,
   );
+  for (const button of await page
+    .locator(".calibration-main-action button")
+    .all()) {
+    const bounds = await button.boundingBox();
+    assert.ok(
+      bounds.x >= panelBounds.x &&
+        bounds.x + bounds.width <= panelBounds.x + panelBounds.width + 1,
+    );
+    assert.ok(
+      await button.evaluate((el) => el.scrollWidth <= el.clientWidth),
+      "Calibration actions fit at both text sizes",
+    );
+  }
   const result = await page
     .locator(".calibration-task-panel .sidebar-scroll")
     .evaluate((body) => {

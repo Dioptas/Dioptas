@@ -60,6 +60,14 @@ export async function verifyCalibrationWorkspace(
   ]) {
     await restore();
     await tab(name).click();
+    if (["Step 3: Calibrate", "Step 4: Validate"].includes(name)) {
+      for (const action of ["Calibrate", "Refine"]) {
+        const control = page.getByRole("button", { name: action, exact: true });
+        assert.ok(await control.isVisible(), `${action} is visible on ${name}`);
+        assert.ok(await control.isEnabled(), `${action} is enabled on ${name}`);
+        assert.match(await control.getAttribute("title"), /current peaks/);
+      }
+    }
     await selectCalibrationRing(page, 1);
     await automatic.check();
     await waitReady();
@@ -117,6 +125,72 @@ export async function verifyCalibrationWorkspace(
     );
   }
   await restore();
+  assert.ok((await invoke("remove_pick", { index: 0 })).ok);
+  await page.reload();
+  await waitReady();
+  const editedPicks = (await invoke("state")).state.calibration.picks;
+  await page.evaluate(() => {
+    window.__recalibrationInvoke = window.__dioptasInvoke;
+    window.__calibrationFitRequests = [];
+    window.__dioptasInvoke = (command, args) => {
+      if (command === "calibrate") window.__calibrationFitRequests.push(args);
+      return window.__recalibrationInvoke(command, args);
+    };
+  });
+  await tab("Step 3: Calibrate").click();
+  await page.getByLabel("Automatic refinement", { exact: true }).uncheck();
+  await waitReady();
+  const recalibrate = page.getByRole("button", {
+    name: "Calibrate",
+    exact: true,
+  });
+  assert.ok(
+    await recalibrate.isEnabled(),
+    "Calibration stays available after a fit and peak edits",
+  );
+  await recalibrate.click();
+  await waitReady();
+  assert.deepEqual(
+    (await invoke("state")).state.calibration.picks,
+    editedPicks,
+  );
+  await tab("Step 3: Calibrate").click();
+  assert.ok(
+    await recalibrate.isEnabled(),
+    "Calibration stays available after recalibrating",
+  );
+  await page
+    .getByRole("button", { name: "Refine", exact: true })
+    .click();
+  await waitReady();
+  await tab("Step 4: Validate").click();
+  await recalibrate.click();
+  await waitReady();
+  await tab("Step 4: Validate").click();
+  await page
+    .getByRole("button", { name: "Refine", exact: true })
+    .click();
+  await waitReady();
+  const requests = await page.evaluate(() => window.__calibrationFitRequests);
+  assert.equal(requests.length, 4);
+  for (const offset of [0, 2]) {
+    assert.equal(
+      requests[offset].restart,
+      true,
+      "Calibrate initializes a fresh geometry on either tab",
+    );
+    assert.notEqual(
+      requests[offset + 1].restart,
+      true,
+      "Refine continues the current geometry on either tab",
+    );
+  }
+  await page.evaluate(() => {
+    window.__dioptasInvoke = window.__recalibrationInvoke;
+    delete window.__recalibrationInvoke;
+    delete window.__calibrationFitRequests;
+  });
+  await restore();
   await tab("Step 4: Validate").click();
   await picking.uncheck();
   await tab("Step 4: Validate").focus();
@@ -151,5 +225,5 @@ export async function verifyCalibrationWorkspace(
   assert.ok(await save.isDisabled(), "Fit drafts block Save on every tab");
   await restore();
   await tab("Step 4: Validate").click();
-  return "Shared ring and Auto controls, picking/inspection and Save across all four tabs; draft protection and fixed Save position";
+  return "Shared ring and Auto controls, picking/inspection and Save across all four tabs; recalibration from edited peaks, separate refinement, draft protection and fixed Save position";
 }

@@ -775,7 +775,7 @@ export default function App() {
                   : "Picking is off. Click the detector to inspect its radial position.",
                 "Check fit parameters, then calibrate the detector.",
                 state.calibration.fitDirty
-                  ? "Ring selections changed. Refine the geometry before saving."
+                  ? "Ring selections changed. Calibrate or refine the geometry before saving."
                   : "Inspect the rings and residual. Save .poni is available in every tab.",
               ][calibrationStep]
           : mode === "map"
@@ -1707,49 +1707,44 @@ export default function App() {
                 <div className="calibration-task-footer">
                   {calibrationStep >= 2 && (
                     <div className="calibration-main-action">
-                      {calibrationStep === 2 && (
+                      {calibrationStep === 3 && geometryDirty && (
                         <button
-                          className="primary fit-button"
-                          title={!fitReady ? fitBlocker : undefined}
-                          disabled={!fitReady || geometryDirty}
-                          onClick={() =>
-                            run(
-                              "calibrate",
-                              fitDraft ?? {},
-                              "Fitting detector geometry…",
-                            )
-                          }
+                          type="submit"
+                          form="validation-geometry-form"
+                          className="primary calibration-apply-geometry"
+                          disabled={!ready}
                         >
-                          {state?.calibrated
-                            ? "Refine geometry"
-                            : "Calibrate detector"}
+                          Apply geometry
                         </button>
                       )}
-                      {calibrationStep === 3 &&
-                        (geometryDirty ? (
-                          <button
-                            type="submit"
-                            form="validation-geometry-form"
-                            className="primary"
-                            disabled={!ready}
-                          >
-                            Apply geometry
-                          </button>
-                        ) : (
-                          <button
-                            className="secondary"
-                            disabled={!fitReady}
-                            onClick={() =>
-                              run(
-                                "calibrate",
-                                fitDraft ?? {},
-                                "Refining detector geometry…",
-                              )
-                            }
-                          >
-                            Refine geometry
-                          </button>
-                        ))}
+                      <button
+                        className="primary fit-button"
+                        title={`Start a fresh geometry from the current peaks and start values.${!fitReady ? ` ${fitBlocker}` : ""}`}
+                        disabled={!fitReady}
+                        onClick={() =>
+                          run(
+                            "calibrate",
+                            { ...fitDraft, restart: true },
+                            "Calibrating detector geometry…",
+                          )
+                        }
+                      >
+                        Calibrate
+                      </button>
+                      <button
+                        className="secondary"
+                        title={`Adjust the existing geometry using the current peaks.${!state?.calibrated ? " Calibrate or load a geometry first." : !fitReady ? ` ${fitBlocker}` : ""}`}
+                        disabled={!fitReady || !state?.calibrated}
+                        onClick={() =>
+                          run(
+                            "calibrate",
+                            fitDraft ?? {},
+                            "Refining detector geometry…",
+                          )
+                        }
+                      >
+                        Refine
+                      </button>
                     </div>
                   )}
                   <div className="calibration-general-actions">

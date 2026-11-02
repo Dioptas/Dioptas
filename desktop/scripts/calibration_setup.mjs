@@ -193,7 +193,13 @@ export async function verifyCalibrationSetup(
   });
   assert.equal(await button("Step 3: Calibrate").isEnabled(), true);
   await button("Step 3: Calibrate").click();
-  assert.equal(await button("Calibrate detector").isDisabled(), true);
+  assert.equal(await button("Calibrate").isDisabled(), true);
+  assert.equal(await button("Refine").isVisible(), true);
+  assert.equal(await button("Refine").isDisabled(), true);
+  assert.match(
+    await button("Refine").getAttribute("title"),
+    /Calibrate or load a geometry first/,
+  );
   await button("Step 2: Pick rings").click();
   return "Reachable controls at 1000×668 with both text sizes; automatic detector updates without navigation, pixel validation, visible transforms, inline mask controls and manual entry";
 }
