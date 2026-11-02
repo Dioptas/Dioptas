@@ -1001,6 +1001,19 @@ try {
   await openIntegrationSettings(page);
   await page.getByLabel("Radial coordinate").selectOption("q_A^-1");
   await waitReady();
+  assert.equal(
+    await page
+      .getByLabel("Automatic radial binning", { exact: true })
+      .isChecked(),
+    true,
+  );
+  const automaticBins = (await invoke("state")).state.integration.actualBins;
+  assert.ok(automaticBins > 0);
+  assert.equal(
+    await page.getByLabel("Radial bins", { exact: true }).inputValue(),
+    String(automaticBins),
+  );
+  await page.getByLabel("Automatic radial binning", { exact: true }).uncheck();
   await page.getByLabel("Radial bins", { exact: true }).fill("0");
   await page
     .getByRole("button", { name: "Apply integration options", exact: true })
@@ -1014,6 +1027,7 @@ try {
     .getByRole("button", { name: "Dismiss error", exact: true })
     .click();
   await openIntegrationSettings(page);
+  await page.getByLabel("Automatic radial binning", { exact: true }).uncheck();
   await page.getByLabel("Radial bins", { exact: true }).fill("1000");
   await page
     .getByRole("button", { name: "Apply integration options", exact: true })

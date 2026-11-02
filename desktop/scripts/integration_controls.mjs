@@ -38,6 +38,34 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
     .getByLabel("Radial coordinate", { exact: true })
     .selectOption("2th_deg");
   await waitReady();
+  await page.getByLabel("Automatic radial binning", { exact: true }).check();
+  await click("Apply integration options");
+  const automaticBins = (await invoke("state")).state.integration.actualBins;
+  assert.ok(automaticBins > 0);
+  assert.equal(
+    await page.getByLabel("Radial bins", { exact: true }).inputValue(),
+    String(automaticBins),
+  );
+  assert.equal(
+    await page.getByLabel("Radial bins", { exact: true }).isDisabled(),
+    true,
+  );
+  await page.getByLabel("Supersampling", { exact: true }).fill("2");
+  await click("Apply integration options");
+  const supersampledBins = (await invoke("state")).state.integration.actualBins;
+  assert.notEqual(supersampledBins, automaticBins);
+  assert.equal(
+    await page.getByLabel("Radial bins", { exact: true }).inputValue(),
+    String(supersampledBins),
+  );
+  await page.getByLabel("Supersampling", { exact: true }).fill("1");
+  await click("Apply integration options");
+  await page.getByLabel("Automatic radial binning", { exact: true }).uncheck();
+  assert.equal(
+    await page.getByLabel("Radial bins", { exact: true }).inputValue(),
+    String(automaticBins),
+    "Manual binning starts from the current automatic count",
+  );
   await page.getByLabel("Radial bins", { exact: true }).fill("360");
   await page.getByLabel("Cake azimuth bins", { exact: true }).fill("60");
   await page.getByLabel("1D azimuth full range", { exact: true }).uncheck();

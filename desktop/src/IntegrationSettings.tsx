@@ -15,10 +15,10 @@ export function IntegrationSettings({
 }) {
   const source = state?.integration;
   const [draft, setDraft] = useState(source);
-  const [bins, setBins] = useState(state?.bins ?? 1500);
+  const [bins, setBins] = useState(state?.bins ?? source?.actualBins ?? 0);
   useEffect(() => {
     setDraft(source);
-    setBins(state?.bins ?? 1500);
+    setBins(state?.bins ?? source?.actualBins ?? 0);
   }, [state?.revision, source]);
   if (!source || !draft) return null;
   const set = <K extends keyof IntegrationState>(
@@ -64,7 +64,7 @@ export function IntegrationSettings({
           />
           <Field
             label="Radial bins"
-            value={bins}
+            value={draft.automaticBinning ? source.actualBins : bins}
             disabled={draft.automaticBinning}
             min={1}
             max={100000}

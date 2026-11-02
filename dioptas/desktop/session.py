@@ -412,7 +412,6 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         )
         self._fit_dirty = False
         self._fit_rms = None
-        self.configuration.integration_rad_points = 1500
         self.configuration.params.cake_azimuth_points = 360
         self.configuration.img_model.load(str(image))
         self._has_image = True

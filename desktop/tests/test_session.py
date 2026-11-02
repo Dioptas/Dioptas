@@ -78,6 +78,8 @@ def test_example_starts_uncalibrated(raw):
     assert state["hasImage"] and not state["calibrated"]
     assert state["calibration"]["picks"] == []
     assert state["calibration"]["wavelength"] == pytest.approx(0.406626)
+    assert state["bins"] is None
+    assert state["integration"]["automaticBinning"] is True
     assert not raw.invoke("calibrate")["ok"]
 
 

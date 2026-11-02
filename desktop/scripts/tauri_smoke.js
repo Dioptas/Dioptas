@@ -309,6 +309,12 @@
       )
       .click();
     await delay();
+    const automaticBinning = document.querySelector(
+      'input[aria-label="Automatic radial binning"]',
+    );
+    check(automaticBinning, "Automatic radial binning control is missing");
+    if (automaticBinning.checked) automaticBinning.click();
+    await delay();
     input("Radial bins", "600");
     input("Cake azimuth bins", "90");
     await delay();
