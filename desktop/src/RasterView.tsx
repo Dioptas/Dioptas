@@ -310,7 +310,7 @@ export function RasterView({
         path();
         context.strokeStyle =
           ring.color ??
-          (active ? "#fff36be6" : linked ? "#83f5d0" : "#ffe0a38c");
+          (linked ? "#83f5d0" : active ? "#ff4040d9" : "#ff4040b3");
         context.lineWidth = active ? 1.35 : linked ? 2 : 0.8;
         context.stroke();
         if (
@@ -363,7 +363,7 @@ export function RasterView({
         context.beginPath();
         context.roundRect(label.x + 3, label.y - 18, width, 22, 3);
         context.fill();
-        context.fillStyle = label.active ? "#fff36b" : "#d8c9af";
+        context.fillStyle = "#ff4040";
         context.fillText(label.text, label.x + 8, label.y - 2);
       }
       context.strokeStyle = "#ffffff88";
@@ -378,9 +378,11 @@ export function RasterView({
         });
         context.stroke();
       }
-      // Match Qt CalibrationController.plot_points: solid 7/9 px dots,
-      // orange for the current ring, red otherwise, white selection outline.
+      // Start with Qt's 7/9 px dots at fit, then grow gently with zoom so
+      // picked points remain visible without covering the enlarged peaks.
+      // Orange for the current ring, red otherwise, white selection outline.
       // Draw selected groups last so overlapping picks cannot hide them.
+      const peakScale = Math.min(2.5, Math.sqrt(Math.max(1, zoom)));
       const orderedPeaks = [...peaks].sort(
         (a, b) => Number(!!a.selected) - Number(!!b.selected),
       );
@@ -394,7 +396,13 @@ export function RasterView({
           : "rgba(255, 255, 255, 0.353)";
         context.lineWidth = peak.selected ? 2 : 1;
         context.beginPath();
-        context.arc(x, y, peak.selected ? 4.5 : 3.5, 0, Math.PI * 2);
+        context.arc(
+          x,
+          y,
+          (peak.selected ? 4.5 : 3.5) * peakScale,
+          0,
+          Math.PI * 2,
+        );
         context.fill();
         context.stroke();
       }
@@ -410,7 +418,7 @@ export function RasterView({
       for (const line of calibrantLines) {
         const x = lineX(line.twoTheta);
         if (!Number.isFinite(x) || x < left || x > left + plotWidth) continue;
-        context.strokeStyle = line.color ?? "#ffe0a38c";
+        context.strokeStyle = line.color ?? "#ff4040b3";
         context.lineWidth = 0.8;
         context.beginPath();
         context.moveTo(x, top);
@@ -425,7 +433,7 @@ export function RasterView({
           context.beginPath();
           context.roundRect(labelX, top + 4, width, 22, 3);
           context.fill();
-          context.fillStyle = "#d8c9af";
+          context.fillStyle = "#ff4040";
           context.fillText(text, labelX + 5, top + 20);
           lastLabelRight = labelX + width;
         }
@@ -633,6 +641,7 @@ export function RasterView({
     sy,
     ox,
     oy,
+    zoom,
     peaks,
     rings,
     contours,

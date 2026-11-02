@@ -363,14 +363,14 @@ export function PatternView({
     for (const reference of calibrantLines) {
       const x = left + ((reference.x - xmin) / (xmax - xmin)) * w;
       if (x < left || x > left + w) continue;
-      context.strokeStyle = "#7bb5a877";
+      context.strokeStyle = "#ff4040b3";
       context.lineWidth = 1;
       context.beginPath();
       context.moveTo(x, top);
       context.lineTo(x, top + h);
       context.stroke();
       if (showNumbers) {
-        context.fillStyle = "#a2c7ba";
+        context.fillStyle = "#ff4040";
         context.fillText(String(reference.ring), x + 4, top + 14);
       }
     }
