@@ -85,8 +85,11 @@ input[type="number"]:not(.numeric-stepper)::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #a7b1bc;
+}
 input[type="checkbox"] {
-  accent-color: var(--accent);
   width: 13px;
   height: 13px;
   margin: 0;
@@ -1897,7 +1900,6 @@ input[type="checkbox"] {
   width: 17px;
   height: 17px;
   margin: 0;
-  accent-color: var(--accent);
 }
 .search-size {
   display: flex;

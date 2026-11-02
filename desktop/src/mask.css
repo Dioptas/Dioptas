@@ -146,7 +146,6 @@
   line-height: 1.4;
 }
 .mask-controls input[type="radio"] {
-  accent-color: var(--accent);
   width: 17px;
   height: 17px;
   margin: 0;
