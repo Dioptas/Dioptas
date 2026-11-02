@@ -720,10 +720,10 @@ export default function App() {
                 onClick={() => run("open_project", {}, "Opening project…")}
               >
                 <FolderOpen size={20} />
-                <span>Open</span>
               </button>
               <button
                 className="workspace-nav project-action"
+                aria-label="Save project"
                 disabled={!ready || (!state?.hasImage && !map)}
                 onClick={() => run("save_project", {}, "Saving project…")}
                 title={
@@ -733,7 +733,6 @@ export default function App() {
                 }
               >
                 <Save size={20} />
-                <span>Save</span>
               </button>
             </div>
             <button
@@ -748,7 +747,6 @@ export default function App() {
               title="Settings"
             >
               <Settings size={20} />
-              <span>Settings</span>
             </button>
           </div>
         </nav>

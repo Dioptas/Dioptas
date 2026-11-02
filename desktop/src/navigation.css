@@ -1,0 +1,57 @@
+/* Neutral selection surface; orange is confined to the active icon. */
+.app .mode-navigation {
+  padding-top: 10px;
+}
+.app .mode-navigation > .workspace-nav {
+  min-height: 66px;
+  margin: 0 6px 5px;
+  padding: 10px 2px;
+  gap: 7px;
+  color: #aeb7c1;
+  font-weight: 500;
+  border-radius: 8px;
+}
+.app .mode-navigation > .workspace-nav:not(:disabled):hover {
+  --button-fill: rgb(255 255 255 / 5%);
+  --button-edge: transparent;
+  color: #f2f4f6;
+}
+.app .mode-navigation > .workspace-nav.workspace-active,
+.app .mode-navigation .workspace-nav.navigation-settings.workspace-active {
+  --button-fill: #343a42;
+  --button-edge: rgb(230 235 240 / 10%);
+  color: #f3f5f7;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 14%);
+}
+.app .mode-navigation > .workspace-nav.workspace-active > svg,
+.app .mode-navigation .navigation-settings.workspace-active > svg {
+  color: var(--accent);
+}
+.app .mode-navigation > .workspace-nav.workspace-active:not(:disabled):hover,
+.app
+  .mode-navigation
+  .workspace-nav.navigation-settings.workspace-active:hover {
+  --button-fill: #3b424a;
+  --button-edge: rgb(230 235 240 / 14%);
+}
+.app .mode-navigation > .workspace-nav:focus-visible {
+  outline-offset: -2px;
+}
+
+/* Utility buttons stay within the rail, including the selected Settings state. */
+.app .mode-navigation .navigation-group {
+  margin: 4px 10px 8px;
+  padding-top: 10px;
+}
+.app .mode-navigation .navigation-group .project-action,
+.app .mode-navigation .workspace-nav.navigation-settings {
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  margin: 0 auto 5px;
+  border-radius: 10px;
+}
+.app .mode-navigation .workspace-nav.navigation-settings {
+  margin-bottom: 12px;
+}

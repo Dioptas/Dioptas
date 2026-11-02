@@ -638,7 +638,7 @@ try {
   await page.getByRole("button", { name: "Integration", exact: true }).click();
   const exported = await invoke("export_pattern");
   assert.ok(exported.ok, exported.error);
-  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("button", { name: "Save project", exact: true }).click();
   await waitReady();
   await page.getByRole("button", { name: "Open project", exact: true }).click();
   await waitReady();

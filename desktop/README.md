@@ -132,7 +132,9 @@ precision in Python.
 
 The app has no top header or in-app logo. Mode navigation stays on the left,
 with Undo/Redo side by side above Open/Save project and Settings at the bottom.
-Project actions use the same muted styling as the other sidebar controls. The current project
+Mode selection uses a neutral charcoal fill, light text and an orange icon.
+Open project, Save project and Settings use compact icon-only buttons with
+tooltips; Settings retains the same size when selected. The current project
 name appears above its actions, with the full name available on hover. Text size
 and keyboard shortcuts are in Settings at the bottom of the sidebar.
 Plots occupy the main workspace, and
