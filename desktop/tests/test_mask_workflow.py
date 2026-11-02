@@ -115,7 +115,8 @@ def test_geometry_and_unmask_are_model_equivalent(session):
     expected.mask_rect(21, 11, 40, 30)
     np.testing.assert_array_equal(pixels(s), expected.get_img())
     call(s, "mask_edit", operation="circle", points=[[50, 70], [100, 110]])
-    expected.mask_ellipse(75, 90, 25, 20)
+    radius = int(np.hypot(50, 40))
+    expected.mask_ellipse(50, 70, radius, radius)
     call(
         s,
         "mask_edit",
@@ -131,6 +132,23 @@ def test_geometry_and_unmask_are_model_equivalent(session):
     assert not np.array_equal(pixels(s), after)
     call(s, "redo_mask")
     np.testing.assert_array_equal(pixels(s), after)
+
+
+@pytest.mark.parametrize("offset", [(50, 0), (0, -50), (30, 40), (-30, -40)])
+def test_circle_keeps_first_click_as_center_and_unmasks(session, offset):
+    s = session
+    center = [300, 400]
+    edge = [center[0] + offset[0], center[1] + offset[1]]
+    call(s, "mask_edit", operation="circle", points=[center, edge])
+    expected = MaskModel(pixels(s).shape)
+    expected.mask_ellipse(300, 400, 50, 50)
+    np.testing.assert_array_equal(pixels(s), expected.get_img())
+    # Equal distances in all four directions stay inside the same circle.
+    for x, y in [(300, 400), (251, 400), (349, 400), (300, 351), (300, 449)]:
+        assert pixels(s)[y, x]
+    assert not pixels(s)[440, 340]
+    call(s, "mask_edit", operation="circle", points=[center, edge], erase=True)
+    assert not pixels(s).any()
 
 
 def test_arc_matches_qt_model_construction_and_degenerate_is_atomic(session):

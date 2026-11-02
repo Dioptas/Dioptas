@@ -116,12 +116,10 @@ class MaskWorkflow:
                 candidate.mask_rect(y1, x1, y2 - y1, x2 - x1)
             elif operation == "circle":
                 (x1, y1), (x2, y2) = vertices
-                candidate.mask_ellipse(
-                    int((x1 + x2) / 2),
-                    int((y1 + y2) / 2),
-                    max(1, int(abs(x2 - x1) / 2)),
-                    max(1, int(abs(y2 - y1) / 2)),
-                )
+                # Qt's MyCircle fixes the first click as the center and uses
+                # the pointer distance as its radius in every direction.
+                radius = int(math.hypot(x2 - x1, y2 - y1))
+                candidate.mask_ellipse(int(x1), int(y1), radius, radius)
             elif operation == "polygon":
                 candidate.mask_polygon(*np.asarray(vertices).T)
             elif operation == "arc":

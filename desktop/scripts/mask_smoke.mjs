@@ -105,6 +105,21 @@ await page.addInitScript(() => {
       window.__detectorLabels.push(args[0]);
     return text.apply(this, args);
   };
+  const ellipse = CanvasRenderingContext2D.prototype.ellipse;
+  CanvasRenderingContext2D.prototype.ellipse = function (...args) {
+    if (this.canvas.dataset.testid === "detector-canvas") {
+      const d = this.canvas.dataset;
+      const sx = (+d.viewXMax - +d.viewXMin) / +d.plotWidth;
+      const sy = (+d.viewYMax - +d.viewYMin) / +d.plotHeight;
+      window.__maskCircle = {
+        cx: +d.viewXMin + (args[0] - +d.plotLeft) * sx,
+        cy: +d.viewYMax - (args[1] - +d.plotTop) * sy,
+        rx: args[2] * sx,
+        ry: args[3] * sy,
+      };
+    }
+    return ellipse.apply(this, args);
+  };
   window.pywebview = {
     api: {
       invoke: async (command, payload) => {
@@ -147,8 +162,8 @@ const sourcePixel = (x, y) =>
       ),
     { x, y },
   );
-const clickSource = async (x, y, options = {}) => {
-  const target = await page.getByTestId("detector-canvas").evaluate(
+const sourcePosition = (x, y) =>
+  page.getByTestId("detector-canvas").evaluate(
     (el, { x, y }) => {
       const b = el.getBoundingClientRect(),
         d = el.dataset;
@@ -165,7 +180,23 @@ const clickSource = async (x, y, options = {}) => {
     },
     { x, y },
   );
+const clickSource = async (x, y, options = {}) => {
+  const target = await sourcePosition(x, y);
   await page.mouse.click(target.x, target.y, options);
+};
+const dragSource = async (from, to, modifier) => {
+  const start = await sourcePosition(...from);
+  const end = await sourcePosition(...to);
+  if (modifier) await page.keyboard.down(modifier);
+  try {
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(end.x, end.y, { steps: 8 });
+    await page.mouse.up();
+  } finally {
+    if (modifier) await page.keyboard.up(modifier);
+  }
+  await page.evaluate(() => new Promise(requestAnimationFrame));
 };
 const square = async () => {
   await page.waitForTimeout(80);
@@ -293,10 +324,41 @@ try {
   await page.keyboard.press("f");
   await square();
   await button("Circle").click();
-  await clickSource(300, 400);
-  await clickSource(360, 460);
+  await clickSource(300.2, 400.2);
+  const beforeCircle = (await state()).state.maskedPixels;
+  for (const [x, y] of [
+    [330.2, 440.2],
+    [250.2, 400.2],
+    [300.2, 450.2],
+  ]) {
+    const target = await sourcePosition(x, y);
+    await page.mouse.move(target.x, target.y);
+    await page.waitForFunction(() => window.__maskCircle?.rx > 0);
+    await page.waitForTimeout(50);
+    const preview = await page.evaluate(() => window.__maskCircle);
+    for (const [key, value] of Object.entries({
+      cx: 300.2,
+      cy: 400.2,
+      rx: 50,
+      ry: 50,
+    }))
+      assert.ok(Math.abs(preview[key] - value) < 0.02, JSON.stringify(preview));
+    assert.equal((await state()).state.maskedPixels, beforeCircle);
+  }
+  // Stay clear of integer-pixel boundaries after browser coordinate mapping.
+  await clickSource(300.2, 450.4);
   await waitReady();
   assert.ok((await state()).state.maskedPixels > 1200);
+  bytes = maskBytes(await state());
+  for (const [x, y] of [
+    [300, 400],
+    [251, 400],
+    [349, 400],
+    [300, 351],
+    [300, 449],
+  ])
+    assert.equal(bytes[y * 981 + x], 1, `Circle must contain (${x}, ${y})`);
+  assert.equal(bytes[440 * 981 + 340], 0);
   await button("Polygon").click();
   await clickSource(200, 300);
   await clickSource(240, 300);
@@ -340,6 +402,63 @@ try {
   bytes = maskBytes(await state());
   assert.equal(bytes[600 * 981 + 500], 0);
   await page.getByRole("radio", { name: "Mask", exact: true }).check();
+  const beforePointZoom = await state();
+  const beforePointRange = await detector.getAttribute("data-view-x-max");
+  const strokeCount = commands.filter(
+    (command) => command === "mask_stroke",
+  ).length;
+  await dragSource([430.2, 530.2], [650.2, 750.2]);
+  await waitReady();
+  assert.notEqual(
+    await detector.getAttribute("data-view-x-max"),
+    beforePointRange,
+  );
+  assert.equal(
+    (await state()).mask.data,
+    beforePointZoom.mask.data,
+    "Ordinary Point drag must zoom without modifying the mask",
+  );
+  assert.equal(
+    commands.filter((command) => command === "mask_stroke").length,
+    strokeCount,
+  );
+  const pointZoom = await detector.getAttribute("data-view-x-min");
+  await dragSource([510.2, 610.2], [570.2, 650.2], "Shift");
+  await waitReady();
+  bytes = maskBytes(await state());
+  for (const [x, y] of [
+    [510, 610],
+    [540, 630],
+    [570, 650],
+  ])
+    assert.equal(
+      bytes[y * 981 + x],
+      1,
+      "Shift-drag must paint a continuous stroke",
+    );
+  assert.equal(await detector.getAttribute("data-view-x-min"), pointZoom);
+  await page.getByRole("radio", { name: "Unmask", exact: true }).check();
+  await dragSource([510.2, 610.2], [570.2, 650.2], "Shift");
+  await waitReady();
+  bytes = maskBytes(await state());
+  for (const [x, y] of [
+    [510, 610],
+    [540, 630],
+    [570, 650],
+  ])
+    assert.equal(bytes[y * 981 + x], 0, "Shift-drag must erase in Unmask mode");
+  const beforePointPan = (await state()).mask.data;
+  await dragSource([510.2, 610.2], [530.2, 630.2], "Control");
+  await waitReady();
+  assert.notEqual(await detector.getAttribute("data-view-x-min"), pointZoom);
+  assert.equal(
+    (await state()).mask.data,
+    beforePointPan,
+    "Ctrl-drag must pan without painting",
+  );
+  await page.getByRole("radio", { name: "Mask", exact: true }).check();
+  await page.keyboard.press("f");
+  await square();
   await button("Save Mask").click();
   await waitReady();
   const saved = (await state()).mask.data;
@@ -416,24 +535,136 @@ try {
   await button("Clear").click();
   await waitReady();
   for (const plugin of (await state()).state.maskDetails.plugins) {
+    const help = button(`Help: ${plugin.name}`);
+    await help.hover();
+    await page.getByRole("tooltip").waitFor({ state: "visible" });
+    assert.equal(
+      await page.getByRole("tooltip").textContent(),
+      plugin.description,
+    );
+    await page.keyboard.press("Escape");
     const settings = button(`${plugin.name} settings`);
     await settings.click();
     assert.equal(await settings.getAttribute("aria-expanded"), "true");
+    for (const [key, spec] of Object.entries(plugin.schema)) {
+      if (!spec.description) continue;
+      const parameterHelp = button(
+        `Help: ${plugin.name}: ${spec.label ?? key}`,
+      );
+      await parameterHelp.focus();
+      await page.getByRole("tooltip").waitFor({ state: "visible" });
+      assert.equal(
+        await page.getByRole("tooltip").textContent(),
+        spec.description,
+      );
+      await page.keyboard.press("Escape");
+    }
     await settings.click();
     assert.equal(await settings.getAttribute("aria-expanded"), "false");
   }
   await button("Threshold Mask settings").click();
-  await page
-    .getByLabel("Threshold Mask: Upper threshold", { exact: true })
-    .fill("1000");
+  assert.equal(
+    await page.getByText("DYNAMIC MASKING PLUGINS", { exact: true }).count(),
+    1,
+  );
+  assert.equal(await button("Apply settings").count(), 0);
+  const dynamicHelp = button("Help: Dynamic masking plugins");
+  await dynamicHelp.hover();
+  const dynamicTooltip = page.getByRole("tooltip");
+  await dynamicTooltip.waitFor({ state: "visible" });
+  assert.match(
+    await dynamicTooltip.textContent(),
+    /every image using its pixel intensities/,
+  );
+  const helpBox = await dynamicHelp.boundingBox();
+  const headingBox = await page
+    .locator(".mask-plugins > .section-label")
+    .boundingBox();
+  assert.ok(
+    helpBox.x >= headingBox.x &&
+      helpBox.x + helpBox.width <= headingBox.x + headingBox.width,
+  );
+  await page.keyboard.press("Escape");
+  await dynamicTooltip.waitFor({ state: "hidden" });
+  await dynamicHelp.focus();
+  await dynamicTooltip.waitFor({ state: "visible" });
+  await page.keyboard.press("Tab");
+  await dynamicTooltip.waitFor({ state: "hidden" });
   const plugin = page.locator(".mask-plugin-row").filter({
     has: button("Threshold Mask settings"),
   });
-  await plugin
-    .getByRole("button", { name: "Apply settings", exact: true })
-    .click();
-  await waitReady();
   await page.getByLabel("Threshold Mask", { exact: true }).click();
+  await waitReady();
+  const upperThreshold = page.getByLabel("Threshold Mask: Upper threshold", {
+    exact: true,
+  });
+  const pluginCommandCount = () =>
+    commands.filter((command) => command === "mask_plugin").length;
+  const beforeEnter = pluginCommandCount();
+  await upperThreshold.fill("1000");
+  assert.equal(
+    pluginCommandCount(),
+    beforeEnter,
+    "Typing keeps the incomplete number local",
+  );
+  await upperThreshold.press("Enter");
+  await waitReady();
+  assert.equal(
+    pluginCommandCount(),
+    beforeEnter + 1,
+    "Enter commits exactly once",
+  );
+  assert.equal((await state()).state.maskedPixels, threshold);
+  await upperThreshold.fill("2000");
+  await upperThreshold.press("Tab");
+  await waitReady();
+  const afterBlur = (await state()).state;
+  assert.equal(afterBlur.maskDetails.plugins[0].settings.above_value, 2000);
+  assert.ok(
+    afterBlur.maskedPixels < threshold,
+    "Blur recomputes the enabled mask",
+  );
+  await page
+    .getByLabel("Threshold Mask: Mask above", { exact: true })
+    .uncheck();
+  await waitReady();
+  assert.equal(
+    (await state()).state.maskedPixels,
+    0,
+    "Checkbox updates immediately",
+  );
+  await upperThreshold.fill("3000");
+  const beforeDefaults = pluginCommandCount();
+  await plugin.getByRole("button", { name: "Defaults", exact: true }).click();
+  await waitReady();
+  assert.equal(
+    pluginCommandCount(),
+    beforeDefaults + 1,
+    "Defaults replaces the draft in one command",
+  );
+  assert.deepEqual((await state()).state.maskDetails.plugins[0].settings, {
+    above_enabled: true,
+    above_value: 1e7,
+    below_enabled: false,
+    below_value: 0,
+  });
+  assert.equal(await upperThreshold.inputValue(), "10000000");
+  assert.equal(
+    (await state()).state.maskedPixels,
+    0,
+    "Defaults recomputes without Apply",
+  );
+  await upperThreshold.fill("");
+  const beforeEmpty = pluginCommandCount();
+  await upperThreshold.press("Tab");
+  assert.equal(
+    pluginCommandCount(),
+    beforeEmpty,
+    "Empty numbers do not become zero",
+  );
+  assert.equal(await upperThreshold.inputValue(), "10000000");
+  await upperThreshold.fill("1000");
+  await upperThreshold.press("Enter");
   await waitReady();
   assert.equal((await state()).state.maskedPixels, threshold);
   await plugin
@@ -604,6 +835,7 @@ try {
         transformSourcePixels: true,
         fileActions: true,
         pluginImprint: true,
+        dynamicPluginUpdates: true,
         radialRange: true,
         squarePixels: true,
         compact: true,

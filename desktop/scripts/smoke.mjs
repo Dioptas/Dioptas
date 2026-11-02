@@ -1050,11 +1050,13 @@ try {
   await page.getByRole("button", { name: "Point", exact: true }).click();
   const box = await detector.boundingBox();
   await page.mouse.move(box.x + box.width * 0.55, box.y + box.height * 0.5);
+  await page.keyboard.down("Shift");
   await page.mouse.down();
   await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.55, {
     steps: 8,
   });
   await page.mouse.up();
+  await page.keyboard.up("Shift");
   await waitReady();
   current = await invoke("state");
   assert.ok(current.state.maskedPixels > 0);

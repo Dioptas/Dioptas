@@ -86,6 +86,7 @@ export function RasterView({
   const [cakeAxisWidth, setCakeAxisWidth] = useState(60);
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
   const [stroke, setStroke] = useState<number[][]>([]);
+  const painting = tool === "mask" || tool === "erase";
   const drag = useRef<{ x: number; y: number; points: number[][] } | null>(
     null,
   );
@@ -477,7 +478,8 @@ export function RasterView({
       );
     }
     if (stroke.length) {
-      context.fillStyle = "rgba(255,0,0,.5)";
+      context.fillStyle =
+        tool === "erase" ? "rgba(101,197,139,.5)" : "rgba(255,0,0,.5)";
       for (const [x, y] of stroke) {
         context.beginPath();
         context.ellipse(
@@ -542,7 +544,7 @@ export function RasterView({
       }
     }
     if (cursor && (tool === "mask" || tool === "erase") && !cake) {
-      context.strokeStyle = tool === "erase" ? "#d4ece4" : "#ff0000";
+      context.strokeStyle = tool === "erase" ? "#87e4ae" : "#ff0000";
       context.lineWidth = 1;
       context.beginPath();
       context.ellipse(
@@ -699,7 +701,9 @@ export function RasterView({
         aria-label={
           cake
             ? `Azimuthal cake; left-drag ${zoomMode} zoom, right-drag pan, right-click zoom out`
-            : "Detector image; left-drag rectangle zoom, right-drag pan, right-click zoom out"
+            : painting
+              ? "Detector image; click to stamp, left-drag rectangle zoom, Shift-drag paint, right-drag pan, right-click zoom out"
+              : "Detector image; left-drag rectangle zoom, right-drag pan, right-click zoom out"
         }
         style={{
           width: "100%",
@@ -732,11 +736,11 @@ export function RasterView({
         onContextMenu={(event) => event.preventDefault()}
         onAuxClick={(event) => event.preventDefault()}
         onPointerDown={(event) => {
-          const painting = tool === "mask" || tool === "erase";
+          const brushDrag = painting && event.shiftKey && !event.ctrlKey;
           // Navigation is available in every tool, including while processing.
-          if (navigation.onPointerDown(event, !painting || !!busy, cake))
+          if (navigation.onPointerDown(event, !brushDrag || !!busy, cake))
             return;
-          if (busy || !painting || event.button !== 0 || event.ctrlKey) return;
+          if (busy || !brushDrag || event.button !== 0) return;
           const { point, screen } = position(event);
           event.currentTarget.setPointerCapture(event.pointerId);
           drag.current = { x: screen.x, y: screen.y, points: [] };
@@ -761,9 +765,11 @@ export function RasterView({
           const result = navigation.onPointerUp(event);
           const { point } = position(event);
           if (result === "click" && point && !busy) {
-            if (tool === "pick") onPick?.(point);
+            if (painting) onStroke?.([[point.x, point.y]], tool === "erase");
+            else if (tool === "pick") onPick?.(point);
             else onInspect?.(point);
           }
+          if (drag.current && point) addPoint(point);
           const points = drag.current?.points;
           drag.current = null;
           if (event.currentTarget.hasPointerCapture(event.pointerId))

@@ -40,8 +40,9 @@ export type MaskTools = ReturnType<typeof useMaskTools>;
 export const shapeHelp: Record<MaskShape, string> = {
   navigate: "Left-drag zoom · right-drag pan · right-click out",
   point:
-    "Paint with left drag. Q/W adjusts the point diameter. Right drag pans.",
-  circle: "Click opposite corners of an ellipse. Esc cancels the selection.",
+    "Click to stamp · drag to zoom · Shift-drag to paint · Ctrl-drag or right-drag to pan · Q/W adjusts diameter",
+  circle:
+    "Click the center, move outward, then click the circle's edge. Esc cancels.",
   rectangle: "Click two opposite corners. Esc cancels the selection.",
   polygon: "Click vertices; double-click or Enter to finish. Esc cancels.",
   arc: "Click start, middle and end along an arc, then click its width. Esc cancels.",
@@ -59,10 +60,10 @@ export function previewMask(
     const [[x1, y1], [x2, y2]] = p;
     if (shape === "circle")
       result.ellipse = {
-        cx: (x1 + x2) / 2,
-        cy: (y1 + y2) / 2,
-        rx: Math.abs(x2 - x1) / 2,
-        ry: Math.abs(y2 - y1) / 2,
+        cx: x1,
+        cy: y1,
+        rx: Math.hypot(x2 - x1, y2 - y1),
+        ry: Math.hypot(x2 - x1, y2 - y1),
       };
     else
       result.paths = [

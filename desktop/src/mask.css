@@ -100,6 +100,9 @@
   gap: 4px;
 }
 .mask-plugins > .section-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin-bottom: 0;
 }
 .mask-plugin-row {
@@ -109,7 +112,7 @@
 }
 .mask-plugin-heading {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
   align-items: center;
   gap: 8px;
 }
@@ -125,6 +128,15 @@
 }
 .mask-plugin .mask-setting {
   margin-block: 0;
+}
+.mask-setting-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.mask-setting-label > label {
+  min-width: 0;
 }
 .mask-selection-status {
   position: absolute;

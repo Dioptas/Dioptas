@@ -83,6 +83,18 @@ window.__dioptasMaskNativeSmoke = async ({
   click("Clear");
   await delay();
   await ready();
+  click("Circle");
+  await delay();
+  await point(300.2, 400.2);
+  await point(330.2, 440.4);
+  const circlePixels = (await call("state")).state.maskedPixels;
+  check(
+    circlePixels > 7800 && circlePixels < 8000,
+    "Native circle must use the first click as center and pointer distance as radius",
+  );
+  click("Clear");
+  await delay();
+  await ready();
   input("Above threshold counts", "1000");
   await delay();
   click("Above Thresh");

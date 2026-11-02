@@ -10,16 +10,16 @@ operations, including radial range masking and the three built-in plugins.
 | Qt workflow | Desktop implementation |
 | --- | --- |
 | Mask / unmask | Applies to point strokes, geometry, intensity thresholds and radial ranges |
-| Circle | Two opposite corners define the ellipse, matching Qt's bounding-box tool |
+| Circle | First click fixes the center; moving outward sets the radius, second click commits, matching Qt's `MyCircle` |
 | Rectangle | Two clicks, either direction; row/column adaptation delegates to `MaskModel.mask_rect` |
-| Point | Paint / erase strokes, interpolated at source-pixel spacing; explicit diameter, Q/W adjustment |
+| Point | Click to stamp; left-drag rectangle zoom; Shift-drag paints / erases continuous strokes, interpolated at source-pixel spacing; Ctrl-drag / right-drag pan; explicit diameter, Q/W adjustment |
 | Polygon | Click vertices, double-click or Enter to finish; Escape cancels |
 | Arc | Three points along the circle and a fourth point for width; the model's circumcenter, angular sampling and polygon rasterization |
 | Above / below thresholds | Original image counts, strict comparisons via the mask model |
 | Inside / outside radial range | Calibrated 2θ, q or d arrays, inclusive interval and optional open bounds; changing unit clears input bounds |
 | Grow / shrink / invert / clear | Existing model operations, including their exact morphology behavior |
 | Cosmic Removal | Same two LA Cosmic passes and parameters as `MaskModel.remove_cosmic`; cancellation between passes |
-| Automatic masking plugins | Runtime discovery, enable/disable, schema-based settings, defaults draft, Apply and imprint; built-in Threshold Mask, Cosmic Ray Mask and Spot Mask |
+| Dynamic masking plugins | Runtime discovery, enable/disable, schema-based settings applied on Enter or blur, immediate checkbox/menu changes, Defaults with recomputation and imprint; built-in Threshold Mask, Cosmic Ray Mask and Spot Mask |
 | File load / add / save | `.mask` (TIFF), NumPy, EDF and TIFF, shape and numeric validation, OR merging and native dialogs |
 | Vertically flipped files | Explicit file-orientation checkbox, matching Qt's flipped NumPy/EDF choices; native chooser defaults to `mask.npy` when enabled |
 | Use / transparency | Mask remains visible while editing; separate use switch controls processing, transparency changes the overlay only |
@@ -34,7 +34,7 @@ Dioptrin engine is mandatory.
 
 The point control consistently means diameter. Qt labels it as diameter but
 passes its value as a radius; this interface intentionally resolves that
-ambiguity. Ellipse selection follows Qt's integer center/radius conversion.
+ambiguity. Circle selection follows Qt's integer center/radius conversion.
 Edits and file loads enable Use mask, retaining the existing desktop preview
 convention; switch it off to compare integration without the mask. Qt leaves
 that switch unchanged while editing.
@@ -104,9 +104,10 @@ ignored `desktop/artifacts/`.
 - Plugin algorithms have no internal cancellation callback. Progress/cancel
   requests remain responsive; cancellation discards the result when a plugin
   call returns. LA Cosmic cancellation is checked between its two passes.
-- The plugin settings panel uses an explicit Apply action; edits and Defaults
-  are a draft until applied. Qt uses a modal dialog with live recomputation
-  and restoration on Cancel. Repeated expensive recomputation is avoided here.
+- Plugin settings appear inline. Numeric/text edits apply on Enter or focus
+  loss; checkboxes and menus apply immediately. Defaults resets and recomputes
+  in one action. There is no separate Apply button. Qt uses a modal dialog
+  with live recomputation and restoration on Cancel.
 - Installed third-party plugins are discovered and schema-driven, but this
   validation uses the bundled plugins. Individual external plugins and
   cross-platform native file dialogs are not qualified by these checks.

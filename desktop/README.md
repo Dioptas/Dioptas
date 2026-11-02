@@ -255,7 +255,8 @@ pattern and Map pattern.
 
 When Pick peaks is enabled, a stationary left click picks peaks in any
 calibration tab. A left drag zooms
-without adding peaks. In a mask/eraser tool, left drag paints; right-button
+without adding peaks. In the Point mask/eraser tool, click to stamp, left drag
+zooms to a rectangle, and Shift + left drag paints continuously; right-button
 navigation remains available. `F` or right double-click restores the image.
 Detector and cake images have no extra title/dimension header, Fit button or
 Display mask toggle or tool-selection strip above the plots. Picking is

@@ -1,8 +1,9 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useId, useState } from "react";
 import { FolderOpen, Plus, Save, Settings, Stamp } from "lucide-react";
 import type { State, Unit } from "./types";
 import type { MaskPlugin, MaskTools } from "./maskDomain";
 import type { MaskRun } from "./MaskView";
+import { CalibrationHelp } from "./CalibrationHelp";
 
 function PluginSettings({
   plugin,
@@ -13,30 +14,55 @@ function PluginSettings({
   ready: boolean;
   run: MaskRun;
 }) {
+  const id = useId();
   const [values, setValues] = useState(plugin.settings);
   useEffect(
     () => setValues(plugin.settings),
     [JSON.stringify(plugin.settings)],
   );
+  const updateSettings = (settings: MaskPlugin["settings"]) => {
+    if (!ready) return;
+    void run(
+      "mask_plugin",
+      { name: plugin.name, settings },
+      "Updating dynamic mask…",
+    );
+  };
   return (
     <div className="mask-plugin">
       {Object.entries(plugin.schema).map(([key, spec]) => (
-        <label key={key} className="mask-setting" title={spec.description}>
-          <span>{spec.label ?? key}</span>
+        <div key={key} className="mask-setting">
+          <div className="mask-setting-label">
+            <label htmlFor={`${id}-${key}`}>{spec.label ?? key}</label>
+            {spec.description && (
+              <CalibrationHelp
+                label={`${plugin.name}: ${spec.label ?? key}`}
+                text={spec.description}
+              />
+            )}
+          </div>
           {spec.type === "bool" ? (
             <input
+              id={`${id}-${key}`}
               type="checkbox"
               aria-label={`${plugin.name}: ${spec.label ?? key}`}
+              disabled={!ready}
               checked={!!values[key]}
-              onChange={(e) =>
-                setValues({ ...values, [key]: e.target.checked })
-              }
+              onChange={(e) => {
+                setValues({ ...values, [key]: e.target.checked });
+                updateSettings({ [key]: e.target.checked });
+              }}
             />
           ) : spec.type === "choice" ? (
             <select
+              id={`${id}-${key}`}
               aria-label={`${plugin.name}: ${spec.label ?? key}`}
+              disabled={!ready}
               value={String(values[key])}
-              onChange={(e) => setValues({ ...values, [key]: e.target.value })}
+              onChange={(e) => {
+                setValues({ ...values, [key]: e.target.value });
+                updateSettings({ [key]: e.target.value });
+              }}
             >
               {spec.choices?.map((v) => (
                 <option key={v}>{v}</option>
@@ -44,52 +70,58 @@ function PluginSettings({
             </select>
           ) : (
             <input
+              id={`${id}-${key}`}
               aria-label={`${plugin.name}: ${spec.label ?? key}`}
               type={spec.type === "str" ? "text" : "number"}
+              disabled={!ready}
               min={spec.min}
               max={spec.max}
               step={spec.type === "int" ? 1 : (spec.step ?? "any")}
               value={String(values[key] ?? "")}
-              onChange={(e) =>
-                setValues({
-                  ...values,
-                  [key]:
-                    spec.type === "str"
-                      ? e.target.value
-                      : e.target.value === ""
-                        ? ""
-                        : Number(e.target.value),
-                })
-              }
+              onChange={(e) => setValues({ ...values, [key]: e.target.value })}
+              onBlur={(e) => {
+                const input = e.currentTarget;
+                if (!input.reportValidity()) return;
+                const value =
+                  spec.type === "str" ? input.value : Number(input.value);
+                if (
+                  spec.type !== "str" &&
+                  (input.value.trim() === "" || !Number.isFinite(value))
+                ) {
+                  setValues((current) => ({
+                    ...current,
+                    [key]: plugin.settings[key],
+                  }));
+                  return;
+                }
+                if (value !== plugin.settings[key])
+                  updateSettings({ [key]: value });
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  e.currentTarget.blur();
+                }
+              }}
             />
           )}
-        </label>
+        </div>
       ))}
       <div className="mask-grid">
         <button
           disabled={!ready}
-          onClick={() =>
-            void run(
-              "mask_plugin",
-              { name: plugin.name, settings: values },
-              "Updating automatic mask…",
-            )
-          }
-        >
-          Apply settings
-        </button>
-        <button
-          disabled={!ready}
-          onClick={() =>
-            setValues(
-              Object.fromEntries(
-                Object.entries(plugin.schema).map(([k, s]) => [
-                  k,
-                  s.default ?? "",
-                ]),
-              ),
-            )
-          }
+          // Reset directly without first committing the focused field's draft.
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => {
+            const defaults = Object.fromEntries(
+              Object.entries(plugin.schema).map(([k, s]) => [
+                k,
+                s.default ?? "",
+              ]),
+            );
+            setValues(defaults);
+            updateSettings(defaults);
+          }}
         >
           Defaults
         </button>
@@ -293,7 +325,13 @@ export function MaskPanel({
           </div>
         </section>
         <section className="sidebar-section mask-plugins">
-          <div className="section-label">AUTOMATIC MASKING PLUGINS</div>
+          <div className="section-label">
+            <span>DYNAMIC MASKING PLUGINS</span>
+            <CalibrationHelp
+              label="Dynamic masking plugins"
+              text="Enabled plugins recalculate their mask for every image using its pixel intensities, the chosen settings and, where needed, calibration. The masked pixels can therefore change from image to image. Changing a setting also recalculates the current mask."
+            />
+          </div>
           {state?.maskDetails.plugins.map((plugin) => (
             <div key={plugin.name} className="mask-plugin-row">
               <div className="mask-plugin-heading">
@@ -306,12 +344,19 @@ export function MaskPanel({
                       void run(
                         "mask_plugin",
                         { name: plugin.name, enabled: e.target.checked },
-                        "Computing automatic mask…",
+                        "Computing dynamic mask…",
                       )
                     }
                   />
                   {plugin.name}
                 </label>
+                <CalibrationHelp
+                  label={plugin.name}
+                  text={
+                    plugin.description ||
+                    "Configure this plugin with the settings button. Enable it to include its calculated mask; Imprint copies the current result into the user mask."
+                  }
+                />
                 <button
                   className="mask-plugin-icon-button"
                   aria-label={`${plugin.name} settings`}
