@@ -22,15 +22,16 @@ export async function verifyIntegrationLayout(page, artifacts) {
     assert.ok(
       Math.abs(controls.x - pattern.x) < 1 &&
         Math.abs(controls.width - pattern.width) < 1,
-      "Controls and pattern share the right column",
+      `Controls and pattern share the right column: ${JSON.stringify({ controls, pattern })}`,
     );
     assert.ok(
       controls.y + controls.height <= pattern.y + 1,
       "Qt controls sit above the pattern",
     );
     assert.ok(
-      image.height > controls.height + pattern.height - 50,
-      "Image fills the full left column",
+      image.height + (await box(".integration-image-tools")).height >
+        controls.height + pattern.height - 12,
+      "Image and its local toolbar fill the full left column",
     );
     assert.ok(
       pattern.height >= 200 && controls.height >= 200,

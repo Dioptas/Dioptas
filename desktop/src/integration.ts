@@ -1,5 +1,6 @@
 /** Integration-only command/state contract; shared mask and calibration stay owned by Session. */
 export interface IntegrationState {
+  roi: [number, number, number, number] | null;
   automaticBinning: boolean;
   actualBins: number;
   supersampling: number;

@@ -80,7 +80,8 @@ project storage are unchanged; task controls stay in the Integration workspace.
   `state.integration`, refreshes PatternModel display data, invokes the scoped
   1D/2D adapters, and triggers autocreate after image loads.
 - `desktop/src/integration.ts` owns IntegrationState and its command callback.
-  `IntegrationView.tsx` contains the controls and display-choice toolbar;
+  `IntegrationView.tsx` contains the task tabs; `IntegrationPlotControls.tsx`
+  contains the image toolbar and pattern tools;
   `integration.css` scopes its layout. `IntegrationWorkspace.tsx` owns the two
   resizable Qt-style dividers. App continues composing the existing
   detector/cake/pattern renderers. No renderer or gestures were copied. Identical
@@ -102,13 +103,14 @@ project storage are unchanged; task controls stay in the Integration workspace.
 ## Remaining Qt scope
 
 - No new-file watcher / continuous beamline acquisition, image sum/average/save
-  batch modes, stage/EPICS controls, or image ROI editing. Explicit loads and
+  batch modes or stage/EPICS controls. Explicit loads and
   folder integration work; automatic unattended acquisition is not claimed.
 - No transfer-function correction editor or formula/density-driven sample
   slab/cylinder/sphere/plate editor. Existing project data for these remain
   owned by the original models; this UI edits flat field, cBN and OIADAC only.
-- No spottiness display/export, background inspection overlay, cake integral,
-  azimuth-shift slider, image/cake export or detachable plot windows.
+- No spottiness display/export, cake integral, image/cake export or detachable
+  plot windows. Detector ROI limits can be edited numerically; graphical
+  resize handles are not implemented.
 - Phase database browsing, material/reflection/EOS editing and phase-list
   save/load are not implemented. File loading and existing reference choices
   work. CIF conversion currently uses model defaults for cutoff/minimum d.
@@ -166,3 +168,52 @@ Screenshots are `artifacts/integration-qt-layout.png`, `integration-qt-cake.png`
 and `integration-qt-compact-large.png`; native evidence includes
 `qtIntegrationLayout: true` and processing-child cleanup. Scientific model code
 is unchanged by the layout revision.
+
+
+## Qt controls revision (2026-11-02)
+
+The detector/cake toolbar sits below the left plot, as in Qt. It exposes Image /
+Cake, mask use and transparency, raw/corrected image display, ROI use and numeric
+limits, phase guides and continuous intensity autoscale. Full-circle cakes have
+an azimuth-shift slider; it rolls complete display rows and adjusts axis/readout
+coordinates without changing the scientific cake. Detector and cake histograms
+remain independent. ROI uses Configuration.roi and its existing integration mask;
+the display shades the excluded area. Raw display/readout does not disable
+background subtraction or absorption corrections in the integration model.
+
+Pattern controls are grouped down the right edge: 2θ / Q / d, Log / √,
+background subtraction / inspection, AA and automatic axis range. Manual plot
+navigation clears automatic range; enabling it refits the axes. Square-root
+scaling clips negative display intensities to zero as Qt does. Background
+inspection draws the original measured curve and model-extracted background
+alongside the subtracted pattern. The top pattern row provides save, capture as
+overlay/background and calibration loading. No inactive placeholder buttons were
+added for undocking or image export.
+
+The task tabs use one flat tab strip, compact aligned forms and fixed relevant
+Apply actions. Background and Corrections have Qt-style category menus; overlays
+and phases use rows with visibility, color and editable values instead of tall
+per-item forms. The image tab focuses on files/navigation, mask files and folder
+integration. Calibration loading and quick mask controls live beside their plots.
+
+Quick unit switching exposed xypattern background extraction during an
+intermediate descending d-spacing conversion. The desktop adapter suspends
+extraction during conversion, restores the same background parameters after the
+new radial samples exist, and preserves enabled state. Regression checks cover
+2θ → Q → d → 2θ with full and restricted background ranges.
+
+Validation for this revision: build and JS tests pass; desktop Python tests have
+128 passed and 4 optional skips, including 27 integration workflow checks. The
+browser checks exercise the new plot tools, ROI editing, azimuth shift, unit
+switching with fitted backgrounds, frozen/automatic ranges and compact/larger-text
+layout. Bundled Tauri/WKWebView smoke passes the existing calibration, Integration,
+Mask and binary-transfer workflows. The main window now has explicit read/set
+title permissions, which were required by the existing title behavior and native
+smoke. Screenshots remain under ignored desktop/artifacts/.
+
+
+The Integration tab strip shares Calibration's flat tab styling and keyboard
+navigation (arrows, Home and End). Its order is Image, Pattern, Overlay, Phase,
+Background, Corrections. There is no manual Integrate image button; image loads
+and integration-setting changes calculate automatically. Only relevant background
+and correction Apply actions occupy the fixed task footer.

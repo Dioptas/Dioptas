@@ -381,6 +381,9 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
                 result["image"] = self._raster(
                     self.configuration.img_model.img_data, max_side=None, histogram=True
                 )
+                result["rawImage"] = self._raster(
+                    self.configuration.img_model.raw_img_data, max_side=None, histogram=True
+                )
         return result
 
     def _example(self):
@@ -877,24 +880,25 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
     def _image_levels(
         self, mode="percentile", percentile=2.5, filter_gaps=True, source="detector"
     ):
-        if source not in {"detector", "cake"}:
+        if source not in {"detector", "cake", "raw_detector"}:
             raise ValueError("Choose the detector or cake display.")
         if not self._has_image or (source == "cake" and self._cake is None):
             return {"levels": None, "display": source}
         data = (
             self.configuration.calibration_model.cake_img
             if source == "cake"
+            else self.configuration.img_model.raw_img_data if source == "raw_detector"
             else self.configuration.img_model.img_data
         )
         return {
             "levels": image_levels(data, mode, percentile, filter_gaps),
-            "display": source,
+            "display": "detector" if source == "raw_detector" else source,
         }
 
-    def _pixel(self, x, y):
+    def _pixel(self, x, y, raw=False):
         if not self._has_image:
             return {"pixel": None}
-        image = self.configuration.img_model.img_data
+        image = self.configuration.img_model.raw_img_data if raw else self.configuration.img_model.img_data
         height, width = image.shape
         x = int(_finite_number(x, "x", 0, width - 1))
         y = int(_finite_number(y, "y", 0, height - 1))

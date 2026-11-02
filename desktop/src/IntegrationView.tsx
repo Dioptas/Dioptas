@@ -17,6 +17,8 @@ export function IntegrationView({
   const source = state?.integration;
   const [draft, setDraft] = useState<IntegrationState | undefined>(source);
   const [tab, setTab] = useState("Image");
+  const [backgroundTab, setBackgroundTab] = useState("pattern");
+  const [correctionTab, setCorrectionTab] = useState("flat");
   const [subtract, setSubtract] = useState(false);
   const [bkgRange, setBkgRange] = useState(false);
   const [bkgMin, setBkgMin] = useState(0),
@@ -41,22 +43,56 @@ export function IntegrationView({
   return (
     <div className="integration-controls">
       <div
-        className="integration-tabs"
+        className="integration-tabs calibration-workflow-tabs"
         role="tablist"
         aria-label="Integration controls"
       >
         {[
           "Image",
           "Pattern",
-          "Background",
-          "Corrections",
           "Overlay",
           "Phase",
+          "Background",
+          "Corrections",
         ].map((name) => (
           <button
             key={name}
             role="tab"
             aria-selected={tab === name}
+            aria-controls="integration-tabpanel"
+            tabIndex={tab === name ? 0 : -1}
+            onKeyDown={(event) => {
+              const names = [
+                "Image",
+                "Pattern",
+                "Overlay",
+                "Phase",
+                "Background",
+                "Corrections",
+              ];
+              if (
+                ["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
+              ) {
+                event.preventDefault();
+                const next =
+                  event.key === "Home"
+                    ? names[0]
+                    : event.key === "End"
+                      ? names[names.length - 1]
+                      : names[
+                          (names.indexOf(tab) +
+                            (event.key === "ArrowLeft" ? -1 : 1) +
+                            names.length) %
+                            names.length
+                        ];
+                setTab(next);
+                (
+                  event.currentTarget.parentElement?.children[
+                    names.indexOf(next)
+                  ] as HTMLButtonElement
+                )?.focus();
+              }
+            }}
             onClick={() => setTab(name)}
           >
             {name}
@@ -65,9 +101,10 @@ export function IntegrationView({
       </div>
       <fieldset
         disabled={!ready}
-        className="integration-fieldset"
+        className={`integration-fieldset integration-tab-${tab.toLowerCase()}`}
         role="tabpanel"
         aria-label={`${tab} controls`}
+        id="integration-tabpanel"
       >
         {tab === "Image" && (
           <>
@@ -102,10 +139,7 @@ export function IntegrationView({
               >
                 {state?.imageName ?? "No image loaded"}
               </p>
-              <p className="integration-note">
-                {state?.shape?.[1]} × {state?.shape?.[0]} source pixels ·
-                top-origin display rows
-              </p>
+
               <Field
                 label="File step"
                 value={fileStep}
@@ -143,31 +177,7 @@ export function IntegrationView({
                 </pre>
               </details>
             </Group>
-            <Group title="Calibration" open>
-              <button
-                className="secondary full-input"
-                onClick={() => action("open_calibration")}
-              >
-                Load calibration…
-              </button>
-              <p className="integration-filename">
-                {state?.calibrationName ??
-                  "Load a PONI or calibrate in Calibration"}
-              </p>
-              {state?.calibrated && (
-                <p className="integration-note">
-                  {(state.geometry.dist * 1000).toFixed(3)} mm · λ{" "}
-                  {(state.geometry.wavelength * 1e10).toFixed(6)} Å
-                </p>
-              )}
-            </Group>
-            <Group title="Mask" open>
-              <Check
-                label="Apply detector mask"
-                checked={state?.useMask ?? false}
-                disabled={!state?.hasImage}
-                onChange={(v) => action("settings", { use_mask: v })}
-              />
+            <Group title="Mask files" open>
               <div className="file-actions">
                 <button
                   disabled={!state?.hasImage}
@@ -182,22 +192,11 @@ export function IntegrationView({
                   Save mask…
                 </button>
               </div>
-              <Check
-                label="Integration transparent mask"
-                checked={state?.transparentMask ?? false}
-                onChange={(v) => action("settings", { transparent_mask: v })}
-              />
               <p className="integration-note">
-                {state?.maskedPixels.toLocaleString()} masked pixels · shared
-                with Calibration and Mask
+                {state?.maskedPixels.toLocaleString()} masked pixels
               </p>
             </Group>
-            <Group title="Folder integration">
-              <p className="integration-note">
-                Integrate files with the current image extension in a chosen
-                folder, including their frames. Uses current geometry, mask and
-                corrections. Save the completed batch below.
-              </p>
+            <Group title="Folder integration" open>
               <button
                 className="secondary full-input"
                 disabled={!state?.calibrated || !state.hasImage}
@@ -243,9 +242,7 @@ export function IntegrationView({
               <p className="integration-filename">
                 {source.patternName || "No pattern"}
               </p>
-              <p className="integration-note">
-                Loaded patterns and overlays use the selected radial coordinate.
-              </p>
+
               <Check
                 label="Save background subtracted"
                 checked={subtract}
@@ -323,245 +320,253 @@ export function IntegrationView({
         )}
         {tab === "Background" && (
           <>
-            <Group title="Image Background" open>
-              <p className="integration-filename">
-                {source.imageBackground.filename ?? "None"}
-              </p>
-              <div className="file-actions">
+            <nav className="integration-subnav" aria-label="Background type">
+              <button
+                aria-pressed={backgroundTab === "image"}
+                onClick={() => setBackgroundTab("image")}
+              >
+                Image Bkg
+              </button>
+              <button
+                aria-pressed={backgroundTab === "pattern"}
+                onClick={() => setBackgroundTab("pattern")}
+              >
+                Pattern Bkg
+              </button>
+            </nav>
+            {backgroundTab === "image" && (
+              <Group title="Image Background" open>
+                <p className="integration-filename">
+                  {source.imageBackground.filename ?? "None"}
+                </p>
+                <div className="file-actions">
+                  <button
+                    disabled={!state?.hasImage}
+                    onClick={() => action("integration_image_background")}
+                  >
+                    Load background…
+                  </button>
+                  <button
+                    disabled={!source.imageBackground.filename}
+                    onClick={() =>
+                      action("integration_image_background", { reset: true })
+                    }
+                  >
+                    Remove
+                  </button>
+                </div>
+                <Field
+                  label="Image background scale"
+                  value={draft.imageBackground.scale}
+                  onChange={(v) =>
+                    set("imageBackground", {
+                      ...draft.imageBackground,
+                      scale: v,
+                    })
+                  }
+                />
+                <Field
+                  label="Image background offset"
+                  value={draft.imageBackground.offset}
+                  onChange={(v) =>
+                    set("imageBackground", {
+                      ...draft.imageBackground,
+                      offset: v,
+                    })
+                  }
+                />
                 <button
-                  disabled={!state?.hasImage}
-                  onClick={() => action("integration_image_background")}
-                >
-                  Load background…
-                </button>
-                <button
+                  className="secondary full-input"
                   disabled={!source.imageBackground.filename}
                   onClick={() =>
-                    action("integration_image_background", { reset: true })
+                    action("integration_image_background", {
+                      scale: draft.imageBackground.scale,
+                      offset: draft.imageBackground.offset,
+                    })
                   }
                 >
-                  Remove
+                  Apply image background
                 </button>
-              </div>
-              <Field
-                label="Image background scale"
-                value={draft.imageBackground.scale}
-                onChange={(v) =>
-                  set("imageBackground", { ...draft.imageBackground, scale: v })
-                }
-              />
-              <Field
-                label="Image background offset"
-                value={draft.imageBackground.offset}
-                onChange={(v) =>
-                  set("imageBackground", {
-                    ...draft.imageBackground,
-                    offset: v,
-                  })
-                }
-              />
-              <button
-                className="secondary full-input"
-                disabled={!source.imageBackground.filename}
-                onClick={() =>
-                  action("integration_image_background", {
-                    scale: draft.imageBackground.scale,
-                    offset: draft.imageBackground.offset,
-                  })
-                }
-              >
-                Apply image background
-              </button>
-            </Group>
-            <Group title="Pattern Background" open>
-              <Check
-                label="Subtract automatic pattern background"
-                checked={draft.patternBackground.enabled}
-                onChange={(v) =>
-                  set("patternBackground", {
-                    ...draft.patternBackground,
-                    enabled: v,
-                  })
-                }
-              />
-              <Field
-                label="Smooth width"
-                value={draft.patternBackground.smoothing}
-                min={0.000001}
-                onChange={(v) =>
-                  set("patternBackground", {
-                    ...draft.patternBackground,
-                    smoothing: v,
-                  })
-                }
-              />
-              <div className="integration-fields">
-                <Field
-                  label="Iterations"
-                  value={draft.patternBackground.iterations}
-                  min={1}
-                  max={99999}
-                  step={1}
+              </Group>
+            )}
+            {backgroundTab === "pattern" && (
+              <Group title="Pattern Background" open>
+                <Check
+                  label="Subtract automatic pattern background"
+                  checked={draft.patternBackground.enabled}
                   onChange={(v) =>
                     set("patternBackground", {
                       ...draft.patternBackground,
-                      iterations: v,
+                      enabled: v,
                     })
                   }
                 />
                 <Field
-                  label="Polynomial order"
-                  value={draft.patternBackground.order}
-                  min={1}
-                  max={1000}
-                  step={1}
+                  label="Smooth width"
+                  value={draft.patternBackground.smoothing}
+                  min={0.000001}
                   onChange={(v) =>
                     set("patternBackground", {
                       ...draft.patternBackground,
-                      order: v,
+                      smoothing: v,
                     })
                   }
                 />
-              </div>
-              <Check
-                label="Limit background range"
-                checked={bkgRange}
-                onChange={setBkgRange}
-              />
-              {bkgRange && (
                 <div className="integration-fields">
                   <Field
-                    label="Background minimum"
-                    value={bkgMin}
-                    onChange={setBkgMin}
+                    label="Iterations"
+                    value={draft.patternBackground.iterations}
+                    min={1}
+                    max={99999}
+                    step={1}
+                    onChange={(v) =>
+                      set("patternBackground", {
+                        ...draft.patternBackground,
+                        iterations: v,
+                      })
+                    }
                   />
                   <Field
-                    label="Background maximum"
-                    value={bkgMax}
-                    onChange={setBkgMax}
+                    label="Polynomial order"
+                    value={draft.patternBackground.order}
+                    min={1}
+                    max={1000}
+                    step={1}
+                    onChange={(v) =>
+                      set("patternBackground", {
+                        ...draft.patternBackground,
+                        order: v,
+                      })
+                    }
                   />
                 </div>
-              )}
-              <button
-                className="primary full-input"
-                onClick={() =>
-                  action("integration_background", {
-                    enabled: draft.patternBackground.enabled,
-                    smoothing: draft.patternBackground.smoothing,
-                    iterations: draft.patternBackground.iterations,
-                    order: draft.patternBackground.order,
-                    range: bkgRange ? [bkgMin, bkgMax] : null,
-                  })
-                }
-              >
-                Apply pattern background
-              </button>
-              <button
-                className="secondary full-input"
-                disabled={!source.patternBackground.enabled}
-                onClick={() => action("integration_save_background")}
-              >
-                Save background…
-              </button>
-              {source.patternBackground.overlay && (
-                <>
-                  <p className="integration-note">
-                    An overlay is also assigned as background.
-                  </p>
-                  <button
-                    className="secondary full-input"
-                    onClick={() => action("integration_clear_background")}
-                  >
-                    Remove overlay background
-                  </button>
-                </>
-              )}
-            </Group>
+                <Check
+                  label="Limit background range"
+                  checked={bkgRange}
+                  onChange={setBkgRange}
+                />
+                {bkgRange && (
+                  <div className="integration-fields">
+                    <Field
+                      label="Background minimum"
+                      value={bkgMin}
+                      onChange={setBkgMin}
+                    />
+                    <Field
+                      label="Background maximum"
+                      value={bkgMax}
+                      onChange={setBkgMax}
+                    />
+                  </div>
+                )}
+                {source.patternBackground.overlay && (
+                  <>
+                    <p className="integration-note">
+                      An overlay is also assigned as background.
+                    </p>
+                    <button
+                      className="secondary full-input"
+                      onClick={() => action("integration_clear_background")}
+                    >
+                      Remove overlay background
+                    </button>
+                  </>
+                )}
+              </Group>
+            )}
           </>
         )}
         {tab === "Corrections" && (
           <>
-            <Group title="Flat Field" open>
-              <p className="integration-filename">
-                {source.flatField.filename ?? "None"}
-              </p>
-              <div className="file-actions">
-                <button onClick={() => action("integration_flat_field")}>
-                  Load flat field…
-                </button>
+            <nav className="integration-subnav" aria-label="Correction type">
+              {[
+                ["flat", "Flat field"],
+                ["cbn", "cBN seat"],
+                ["oiadac", "Inc. Abs."],
+              ].map(([key, name]) => (
                 <button
-                  disabled={!source.flatField.filename}
-                  onClick={() =>
-                    action("integration_flat_field", { reset: true })
-                  }
+                  key={key}
+                  aria-pressed={correctionTab === key}
+                  onClick={() => setCorrectionTab(key)}
                 >
-                  Remove
+                  {name}
                 </button>
-              </div>
-              <Check
-                label="Apply flat field"
-                checked={source.flatField.enabled}
-                disabled={!source.flatField.filename}
-                onChange={(enabled) =>
-                  action("integration_flat_field", { enabled })
-                }
-              />
-              <p className="integration-note">
-                Uses Qt's mean-normalized response correction.
-              </p>
-            </Group>
-            {Object.entries(draft.corrections).map(([kind, correction]) => (
-              <Group
-                key={kind}
-                title={
-                  kind === "cbn" ? "cBN Seat" : "Oblique detector absorption"
-                }
-              >
+              ))}
+            </nav>
+            {correctionTab === "flat" && (
+              <Group title="Flat Field" open>
+                <p className="integration-filename">
+                  {source.flatField.filename ?? "None"}
+                </p>
+                <div className="file-actions">
+                  <button onClick={() => action("integration_flat_field")}>
+                    Load flat field…
+                  </button>
+                  <button
+                    disabled={!source.flatField.filename}
+                    onClick={() =>
+                      action("integration_flat_field", { reset: true })
+                    }
+                  >
+                    Remove
+                  </button>
+                </div>
                 <Check
-                  label={`Apply ${kind === "cbn" ? "cBN seat" : "detector absorption"}`}
-                  checked={correction.enabled}
+                  label="Apply flat field"
+                  checked={source.flatField.enabled}
+                  disabled={!source.flatField.filename}
                   onChange={(enabled) =>
-                    set("corrections", {
-                      ...draft.corrections,
-                      [kind]: { ...correction, enabled },
-                    })
+                    action("integration_flat_field", { enabled })
                   }
                 />
-                {Object.entries(correction.fields).map(([key, field]) => (
-                  <Field
-                    key={key}
-                    label={field.label}
-                    value={correction.parameters[key]}
-                    min={field.min}
-                    max={field.max}
-                    onChange={(value) =>
+                <p className="integration-note">
+                  Uses Qt's mean-normalized response correction.
+                </p>
+              </Group>
+            )}
+            {Object.entries(draft.corrections)
+              .filter(([kind]) => kind === correctionTab)
+              .map(([kind, correction]) => (
+                <Group
+                  key={kind}
+                  open
+                  title={
+                    kind === "cbn" ? "cBN Seat" : "Oblique detector absorption"
+                  }
+                >
+                  <Check
+                    label={`Apply ${kind === "cbn" ? "cBN seat" : "detector absorption"}`}
+                    checked={correction.enabled}
+                    onChange={(enabled) =>
                       set("corrections", {
                         ...draft.corrections,
-                        [kind]: {
-                          ...correction,
-                          parameters: {
-                            ...correction.parameters,
-                            [key]: value,
-                          },
-                        },
+                        [kind]: { ...correction, enabled },
                       })
                     }
                   />
-                ))}
-                <button
-                  className="primary full-input"
-                  onClick={() =>
-                    action("integration_correction", {
-                      kind,
-                      enabled: correction.enabled,
-                      parameters: correction.parameters,
-                    })
-                  }
-                >
-                  Apply correction
-                </button>
-              </Group>
-            ))}
+                  {Object.entries(correction.fields).map(([key, field]) => (
+                    <Field
+                      key={key}
+                      label={field.label}
+                      value={correction.parameters[key]}
+                      min={field.min}
+                      max={field.max}
+                      onChange={(value) =>
+                        set("corrections", {
+                          ...draft.corrections,
+                          [kind]: {
+                            ...correction,
+                            parameters: {
+                              ...correction.parameters,
+                              [key]: value,
+                            },
+                          },
+                        })
+                      }
+                    />
+                  ))}
+                </Group>
+              ))}
           </>
         )}
         {tab === "Overlay" && (
@@ -587,36 +592,51 @@ export function IntegrationView({
               Overlays use their file's numerical x coordinates. Select matching
               units before loading.
             </p>
-            {source.overlays.map((overlay, index) => (
-              <Group
-                key={index}
-                title={overlay.name || `Overlay ${index + 1}`}
-                open
+            <div
+              className="integration-list"
+              role="table"
+              aria-label="Overlays"
+            >
+              <div
+                className="integration-list-head integration-overlay-row"
+                role="row"
               >
-                <Check
-                  label={`Show overlay ${index + 1}`}
-                  checked={overlay.visible}
-                  onChange={(visible) =>
-                    action("integration_overlay", {
-                      operation: "update",
-                      index,
-                      visible,
-                    })
-                  }
-                />
-                <input
-                  type="color"
-                  aria-label={`Overlay ${index + 1} color`}
-                  value={overlay.color}
-                  onChange={(e) =>
-                    action("integration_overlay", {
-                      operation: "update",
-                      index,
-                      color: e.target.value,
-                    })
-                  }
-                />
-                <div className="integration-fields">
+                <span>Show</span>
+                <span>Pattern</span>
+                <span>Scale</span>
+                <span>Offset</span>
+                <span />
+              </div>
+              {source.overlays.map((overlay, index) => (
+                <div className="integration-overlay-row" role="row" key={index}>
+                  <Check
+                    label={`Show overlay ${index + 1}`}
+                    checked={overlay.visible}
+                    onChange={(visible) =>
+                      action("integration_overlay", {
+                        operation: "update",
+                        index,
+                        visible,
+                      })
+                    }
+                  />
+                  <div className="integration-list-name">
+                    <input
+                      type="color"
+                      aria-label={`Overlay ${index + 1} color`}
+                      value={overlay.color}
+                      onChange={(e) =>
+                        action("integration_overlay", {
+                          operation: "update",
+                          index,
+                          color: e.target.value,
+                        })
+                      }
+                    />
+                    <span title={overlay.name}>
+                      {overlay.name || `Overlay ${index + 1}`}
+                    </span>
+                  </div>
                   <CommitField
                     label={`Overlay ${index + 1} scale`}
                     value={overlay.scale}
@@ -639,32 +659,39 @@ export function IntegrationView({
                       })
                     }
                   />
+                  <div className="integration-row-actions">
+                    <button
+                      title="Use this overlay as pattern background"
+                      onClick={() =>
+                        action("integration_overlay", {
+                          operation: "background",
+                          index,
+                        })
+                      }
+                    >
+                      Bkg
+                    </button>
+                    <button
+                      aria-label={`Delete overlay ${index + 1}`}
+                      onClick={() =>
+                        action("integration_overlay", {
+                          operation: "remove",
+                          index,
+                        })
+                      }
+                    >
+                      ×
+                    </button>
+                  </div>
                 </div>
-                <div className="file-actions">
-                  <button
-                    onClick={() =>
-                      action("integration_overlay", {
-                        operation: "background",
-                        index,
-                      })
-                    }
-                  >
-                    As Bkg
-                  </button>
-                  <button
-                    onClick={() =>
-                      action("integration_overlay", {
-                        operation: "remove",
-                        index,
-                      })
-                    }
-                  >
-                    Delete
-                  </button>
-                </div>
-              </Group>
-            ))}
-            <Group title="Waterfall">
+              ))}
+              {!source.overlays.length && (
+                <p className="integration-empty-list">
+                  Add a pattern file or capture the current pattern.
+                </p>
+              )}
+            </div>
+            <Group title="Waterfall" open>
               <Field
                 label="Waterfall separation"
                 value={separation}
@@ -702,10 +729,7 @@ export function IntegrationView({
             >
               Add phase…
             </button>
-            <p className="integration-note">
-              JCPDS · CIF · EOSMAT. Conditions and reference selection use the
-              existing phase model.
-            </p>
+            <p className="integration-note">JCPDS · CIF · EOSMAT</p>
             <Check
               label="Apply conditions to all phases"
               checked={source.sameConditions}
@@ -716,97 +740,158 @@ export function IntegrationView({
                 })
               }
             />
-            {source.phases.map((phase, index) => (
-              <Group key={index} title={phase.name} open>
-                <Check
-                  label={`Show phase ${index + 1}`}
-                  checked={phase.visible}
-                  onChange={(visible) =>
-                    action("integration_phase", {
-                      operation: "update",
-                      index,
-                      visible,
-                    })
-                  }
-                />
-                <input
-                  type="color"
-                  aria-label={`Phase ${index + 1} color`}
-                  value={phase.color}
-                  onChange={(e) =>
-                    action("integration_phase", {
-                      operation: "update",
-                      index,
-                      color: e.target.value,
-                    })
-                  }
-                />
-                <div className="integration-fields">
-                  <CommitField
-                    label={`Phase ${index + 1} pressure (GPa)`}
-                    value={phase.pressure}
-                    onCommit={(pressure) =>
-                      action("integration_phase", {
-                        operation: "update",
-                        index,
-                        pressure,
-                      })
-                    }
-                  />
-                  <CommitField
-                    label={`Phase ${index + 1} temperature (K)`}
-                    value={phase.temperature}
-                    onCommit={(temperature) =>
-                      action("integration_phase", {
-                        operation: "update",
-                        index,
-                        temperature,
-                      })
-                    }
-                  />
-                </div>
-                {phase.references.length > 0 && (
-                  <label className="field-label">
-                    Reference
-                    <select
-                      aria-label={`Phase ${index + 1} reference`}
-                      value={phase.reference}
-                      onChange={(e) =>
+            <div className="integration-list" role="table" aria-label="Phases">
+              <div
+                className="integration-list-head integration-phase-row"
+                role="row"
+              >
+                <span>Show</span>
+                <span>Phase</span>
+                <span>P (GPa)</span>
+                <span>T (K)</span>
+                <span />
+              </div>
+              {source.phases.map((phase, index) => (
+                <div className="integration-phase-entry" key={index}>
+                  <div className="integration-phase-row" role="row">
+                    <Check
+                      label={`Show phase ${index + 1}`}
+                      checked={phase.visible}
+                      onChange={(visible) =>
                         action("integration_phase", {
                           operation: "update",
                           index,
-                          reference: Number(e.target.value),
+                          visible,
+                        })
+                      }
+                    />
+                    <div className="integration-list-name">
+                      <input
+                        type="color"
+                        aria-label={`Phase ${index + 1} color`}
+                        value={phase.color}
+                        onChange={(e) =>
+                          action("integration_phase", {
+                            operation: "update",
+                            index,
+                            color: e.target.value,
+                          })
+                        }
+                      />
+                      <span title={phase.name}>{phase.name}</span>
+                    </div>
+                    <CommitField
+                      label={`Phase ${index + 1} pressure (GPa)`}
+                      value={phase.pressure}
+                      onCommit={(pressure) =>
+                        action("integration_phase", {
+                          operation: "update",
+                          index,
+                          pressure,
+                        })
+                      }
+                    />
+                    <CommitField
+                      label={`Phase ${index + 1} temperature (K)`}
+                      value={phase.temperature}
+                      onCommit={(temperature) =>
+                        action("integration_phase", {
+                          operation: "update",
+                          index,
+                          temperature,
+                        })
+                      }
+                    />
+                    <button
+                      aria-label={`Delete phase ${index + 1}`}
+                      onClick={() =>
+                        action("integration_phase", {
+                          operation: "remove",
+                          index,
                         })
                       }
                     >
-                      {phase.references.map((ref, i) => (
-                        <option key={i} value={i}>
-                          {ref}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                )}
-                <button
-                  className="secondary full-input"
-                  onClick={() =>
-                    action("integration_phase", { operation: "remove", index })
-                  }
-                >
-                  Delete phase
-                </button>
-              </Group>
-            ))}
+                      ×
+                    </button>
+                  </div>
+                  {phase.references.length > 0 && (
+                    <label className="field-label integration-phase-reference">
+                      Reference
+                      <select
+                        aria-label={`Phase ${index + 1} reference`}
+                        value={phase.reference}
+                        onChange={(e) =>
+                          action("integration_phase", {
+                            operation: "update",
+                            index,
+                            reference: Number(e.target.value),
+                          })
+                        }
+                      >
+                        {phase.references.map((ref, i) => (
+                          <option key={i} value={i}>
+                            {ref}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                </div>
+              ))}
+              {!source.phases.length && (
+                <p className="integration-empty-list">
+                  Load a JCPDS, CIF or EOSMAT reference.
+                </p>
+              )}
+            </div>
           </>
         )}
       </fieldset>
-      <button
-        className="primary integrate-button"
-        disabled={!ready || !state?.calibrated || !state.hasImage}
-        onClick={() => action("integrate")}
-      >
-        Integrate image <span>↵</span>
-      </button>
+      {((tab === "Background" && backgroundTab === "pattern") ||
+        (tab === "Corrections" && correctionTab !== "flat")) && (
+        <div className="integration-task-actions">
+          {tab === "Background" && backgroundTab === "pattern" ? (
+            <>
+              <button
+                className="secondary"
+                disabled={!ready || !source.patternBackground.enabled}
+                onClick={() => action("integration_save_background")}
+              >
+                Save background…
+              </button>
+              <button
+                className="primary"
+                disabled={!ready || !source.patternName}
+                onClick={() =>
+                  action("integration_background", {
+                    enabled: draft.patternBackground.enabled,
+                    smoothing: draft.patternBackground.smoothing,
+                    iterations: draft.patternBackground.iterations,
+                    order: draft.patternBackground.order,
+                    range: bkgRange ? [bkgMin, bkgMax] : null,
+                  })
+                }
+              >
+                Apply pattern background
+              </button>
+            </>
+          ) : tab === "Corrections" && correctionTab !== "flat" ? (
+            <button
+              className="primary"
+              disabled={!ready || !state?.hasImage}
+              onClick={() =>
+                action("integration_correction", {
+                  kind: correctionTab,
+                  enabled: draft.corrections[correctionTab].enabled,
+                  parameters: draft.corrections[correctionTab].parameters,
+                })
+              }
+            >
+              Apply correction
+            </button>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }
@@ -837,36 +922,5 @@ function CommitField({
         }}
       />
     </label>
-  );
-}
-
-/** Compose the shared renderers; visibility never changes scientific arrays. */
-export function IntegrationDisplayControls({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div
-      className="workspace-toolbar integration-display-controls"
-      role="group"
-      aria-label="Integration display"
-    >
-      {[
-        ["image", "Image"],
-        ["cake", "Cake"],
-      ].map(([key, label]) => (
-        <button
-          key={key}
-          aria-pressed={value === key}
-          className={value === key ? "active" : ""}
-          onClick={() => onChange(key)}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
   );
 }

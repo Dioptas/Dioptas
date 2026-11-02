@@ -122,6 +122,8 @@ class IntegrationWorkflow:
     def _integration_handlers(self):
         return {
             "integration_settings": self._integration_settings,
+            "integration_roi": self._integration_roi,
+            "integration_phase_guides": self._integration_phase_guides,
             "integration_navigation": self._integration_navigation,
             "integration_clear_background": self._integration_clear_background,
             "integration_background": self._integration_background,
@@ -143,6 +145,7 @@ class IntegrationWorkflow:
         p = c.pattern_model.params
         image = c.img_model
         return {
+            "roi": list(c.roi) if c.roi is not None else None,
             "automaticBinning": c.integration_rad_points is None,
             "actualBins": int(c.calibration_model.num_points or 0),
             "supersampling": c.calibration_model.supersampling_factor,
@@ -268,13 +271,62 @@ class IntegrationWorkflow:
                             "hkl": [int(v) for v in reflection[2:5]],
                         }
                     )
+        inspection = []
+        background = c.pattern_model.pattern.auto_background_pattern
+        if background is not None and c.pattern_model.params.auto_bkg_enabled:
+            ox, oy = c.pattern_model.pattern.original_data
+            bx, by = background.data
+            inspection = [
+                {"name": "Original pattern", "color": "#8196a6", "x": np.asarray(ox).tolist(), "y": values(oy)},
+                {"name": "Fitted background", "color": "#73bba6", "x": np.asarray(bx).tolist(), "y": values(by)},
+            ]
         self._pattern = {
             "x": np.asarray(x).tolist(),
             "y": values(y),
             "unit": c.pattern_model.unit,
             "curves": curves,
             "phaseLines": phase_lines,
+            "backgroundCurves": inspection,
         }
+
+    def _integration_roi(self, limits=None):
+        if not self._has_image:
+            raise ValueError("Open an image first.")
+        if limits is not None:
+            if not isinstance(limits, list) or len(limits) != 4:
+                raise ValueError("ROI needs row minimum/maximum and column minimum/maximum.")
+            height, width = self.configuration.img_model.img_data.shape
+            limits = [finite(v, "ROI limit", 0, height if i < 2 else width, True) for i, v in enumerate(limits)]
+            if limits[0] >= limits[1] or limits[2] >= limits[3]:
+                raise ValueError("ROI minimum must be below maximum.")
+        self.configuration.roi = tuple(limits) if limits is not None else None
+        self._calculate()
+        return self._snapshot()
+
+    def _integration_phase_guides(self):
+        """Phase guides use the calibrated angular array, as the Qt image view does."""
+        from skimage.measure import find_contours
+        c = self.configuration
+        if not self._has_image or not c.calibration_model.is_calibrated:
+            return {"phaseGuides": []}
+        angles = np.degrees(c.calibration_model.get_pixel_two_theta_array())
+        step = max(1, math.ceil(max(angles.shape) / 512))
+        sampled = angles[::step, ::step]
+        guides = []
+        phases = self._model.phase_model
+        for i, phase in enumerate(phases.phases):
+            if not phases.phase_visible[i]:
+                continue
+            color = "#%02x%02x%02x" % tuple(int(v) for v in phases.phase_colors[i])
+            positions = phases.get_phase_line_positions(i, "2th_deg", c.calibration_model.wavelength * 1e10)
+            for position in positions:
+                if not np.isfinite(position):
+                    continue
+                contours = [[[float(x * step), float(y * step)] for y, x in line[::2]]
+                            for line in find_contours(sampled, float(position))]
+                for points in contours:
+                    guides.append({"ring": 0, "twoTheta": float(position), "color": color, "points": points})
+        return {"phaseGuides": guides}
 
     def _integration_settings(self, **changes):
         c = self.configuration
@@ -317,48 +369,71 @@ class IntegrationWorkflow:
             raise ValueError("Enable Calculate Poisson errors for XYE/FXYE output.")
         previous_unit = c.integration_unit
         background_range = c.pattern_model.params.auto_bkg_roi
-        for key, value in validated.items():
-            if key == "auto_save":
-                self._integration_auto_save = value
-            elif key == "supersampling":
-                c.calibration_model.set_supersampling(value)
-                if c.is_calibrated:
-                    c.calibration_model.create_cake_geometry()
-            elif key == "polarization":
-                c.calibration_model.polarization_factor = value
-            else:
-                name = {
-                    "unit": "integration_unit",
-                    "bins": "integration_rad_points",
-                    "cake_bins": "cake_azimuth_points",
-                    "azimuth_range": "oned_azimuth_range",
-                    "solid_angle": "correct_solid_angle",
-                    "poisson_errors": "calculate_poisson_errors",
-                    "trim_zeros": "trim_trailing_zeros",
-                    "formats": "integrated_patterns_file_formats",
-                }.get(key, key)
-                setattr(c, name, value)
         if "unit" in validated and background_range is not None:
             converted = convert_units(
-                np.asarray(background_range),
-                c.calibration_model.wavelength,
-                previous_unit,
-                c.integration_unit,
+                np.asarray(background_range), c.calibration_model.wavelength,
+                previous_unit, validated["unit"],
             )
             if not np.all(np.isfinite(converted)):
-                raise ValueError(
-                    "Background range cannot be converted to this radial coordinate."
+                raise ValueError("Background range cannot be converted to this radial coordinate.")
+            background_range = sorted(converted.tolist())
+        background_params = c.pattern_model.params
+        restore_background = (
+            validated.get("unit", previous_unit) != previous_unit
+            and background_params.auto_bkg_enabled
+        )
+        if restore_background:
+            # xypattern transforms to descending d before the fresh integration.
+            # Suspend extraction across that intermediate state; restore the same
+            # parameters after the new, ascending radial samples are available.
+            c.pattern_model.unset_auto_background_subtraction()
+        try:
+            for key, value in validated.items():
+                if key == "auto_save":
+                    self._integration_auto_save = value
+                elif key == "supersampling":
+                    c.calibration_model.set_supersampling(value)
+                    if c.is_calibrated:
+                        c.calibration_model.create_cake_geometry()
+                elif key == "polarization":
+                    c.calibration_model.polarization_factor = value
+                else:
+                    name = {
+                        "unit": "integration_unit",
+                        "bins": "integration_rad_points",
+                        "cake_bins": "cake_azimuth_points",
+                        "azimuth_range": "oned_azimuth_range",
+                        "solid_angle": "correct_solid_angle",
+                        "poisson_errors": "calculate_poisson_errors",
+                        "trim_zeros": "trim_trailing_zeros",
+                        "formats": "integrated_patterns_file_formats",
+                    }.get(key, key)
+                    setattr(c, name, value)
+            if "unit" in validated and background_range is not None:
+                c.pattern_model.params.auto_bkg_roi = background_range
+            if (
+                set(validated) - {"auto_save", "formats"}
+                and self._has_image
+                and c.is_calibrated
+            ):
+                self._calculate()
+            else:
+                self._revision += 1
+                self._refresh_integration_pattern()
+        finally:
+            if restore_background:
+                x, y = c.pattern_model.pattern.original_data
+                if len(x) > 1 and np.any(np.diff(x) < 0):
+                    order = np.argsort(x)
+                    scale, offset = c.pattern_model.pattern.scaling, c.pattern_model.pattern.offset
+                    c.pattern_model.pattern.data = (x[order], y[order])
+                    c.pattern_model.pattern.scaling = scale
+                    c.pattern_model.pattern.offset = offset
+                c.pattern_model.set_auto_background_subtraction(
+                    [background_params.auto_bkg_smoothing, background_params.auto_bkg_iterations, background_params.auto_bkg_poly_order],
+                    c.pattern_model.params.auto_bkg_roi,
                 )
-            c.pattern_model.params.auto_bkg_roi = sorted(converted.tolist())
-        if (
-            set(validated) - {"auto_save", "formats"}
-            and self._has_image
-            and c.is_calibrated
-        ):
-            self._calculate()
-        else:
-            self._revision += 1
-            self._refresh_integration_pattern()
+                self._refresh_integration_pattern()
         return self._snapshot()
 
     def _integration_image_background(
@@ -569,6 +644,11 @@ class IntegrationWorkflow:
             if self._pattern is None:
                 raise ValueError("Load or integrate a pattern first.")
             model.add_overlay_pattern(self.configuration.pattern_model.pattern)
+        elif operation == "capture_background":
+            if self._pattern is None:
+                raise ValueError("Load or integrate a pattern first.")
+            model.add_overlay_pattern(deepcopy(self.configuration.pattern_model.pattern))
+            self.configuration.pattern_model.background_pattern = model.overlays[-1]
         elif operation == "clear":
             model.reset()
         elif operation == "waterfall":

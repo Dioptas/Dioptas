@@ -46,7 +46,13 @@ import { CalibrationRingControls } from "./CalibrationRingControls";
 import { ImageIntensity } from "./ImageIntensity";
 import { useImageDisplayPreferences } from "./useImageDisplayPreferences";
 import { colorMaps } from "./colorMaps";
-import { IntegrationView, IntegrationDisplayControls } from "./IntegrationView";
+import { IntegrationView } from "./IntegrationView";
+import {
+  IntegrationImageControls,
+  IntegrationPatternActions,
+  IntegrationPatternTools,
+  useShiftedCake,
+} from "./IntegrationPlotControls";
 import { IntegrationWorkspace } from "./IntegrationWorkspace";
 import {
   CalibrationExtras,
@@ -59,6 +65,21 @@ import type { ZoomMode } from "./usePlotNavigation";
 
 export default function App() {
   const [integrationDisplay, setIntegrationDisplay] = useState("image");
+  const [sqrtPattern, setSqrtPattern] = useState(false);
+  const [patternAntialias, setPatternAntialias] = useState(true);
+  const [patternAutoRange, setPatternAutoRange] = useState(true);
+  const [inspectBackground, setInspectBackground] = useState(false);
+  const [cakeShift, setCakeShift] = useState(0);
+  const [imageAutoScale, setImageAutoScale] = useState(true);
+  const imageAutoScaleRef = useRef(true);
+  imageAutoScaleRef.current = imageAutoScale;
+  const [correctedImage, setCorrectedImage] = useState(true);
+  const correctedImageRef = useRef(true);
+  correctedImageRef.current = correctedImage;
+  const [rawImage, setRawImage] = useState<Raster | null>(null);
+  const [showImagePhases, setShowImagePhases] = useState(false);
+  const [phaseGuides, setPhaseGuides] = useState<RingOverlay[]>([]);
+  const phaseGuideRevision = useRef<number | null>(null);
   const [calibrationStep, setCalibrationStep] = useState(0);
   const [validationConvention, setValidationConvention] = useState<
     "pyfai" | "fit2d"
@@ -166,6 +187,10 @@ export default function App() {
     [mask, setMask] = useState<Raster | null>(null);
   const [cake, setCake] = useState<Cake | null>(null),
     [pattern, setPattern] = useState<Pattern | null>(null);
+  const displayedCake = useShiftedCake(
+    cake,
+    mode === "integration" ? cakeShift : 0,
+  );
   const [busy, setBusy] = useState("Connecting to Dioptas…"),
     [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -219,6 +244,8 @@ export default function App() {
       canDeferIntegration.current = "integrationDirty" in result.state;
       setState(result.state);
     }
+    if (result.phaseGuides) setPhaseGuides(result.phaseGuides);
+    if (result.rawImage) setRawImage(result.rawImage);
     if (result.image) {
       const sourceChanged =
         result.image.data !== imageSource.current?.data ||
@@ -232,8 +259,19 @@ export default function App() {
       setPixel(null);
       setLinked(undefined);
       setImage(result.image);
-      // Recovery may resend the same image; preserve contrast and zoom.
-      if (sourceChanged) setLimits(result.image.limits);
+      // Recovery and state refreshes can resend the same detector image.
+      // Only a changed source should replace the user's contrast limits.
+      if (
+        sourceChanged &&
+        (activeMode.current !== "integration" || imageAutoScaleRef.current)
+      )
+        setLimits(
+          activeMode.current === "integration" &&
+            !correctedImageRef.current &&
+            result.rawImage
+            ? result.rawImage.limits
+            : result.image.limits,
+        );
       if (resetImageView) setResetKey((k) => k + 1);
     }
     if (result.levels)
@@ -261,7 +299,8 @@ export default function App() {
           result.cake.width !== cakeSource.current?.width ||
           result.cake.height !== cakeSource.current?.height)
       )
-        setCakeLimits(result.cake.limits);
+        if (activeMode.current !== "integration" || imageAutoScaleRef.current)
+          setCakeLimits(result.cake.limits);
       cakeSource.current = result.cake ?? null;
     }
     if (result.savedPath) {
@@ -544,7 +583,12 @@ export default function App() {
         hoverRequest.current = true;
         const epoch = hoverSequence.current;
         try {
-          const result = await bridge.current("pixel", sample);
+          const result = await bridge.current("pixel", {
+            ...sample,
+            raw:
+              activeMode.current === "integration" &&
+              !correctedImageRef.current,
+          });
           // Publish coordinates and intensity together; pending reads must not
           // replace a valid reading with a temporary missing-value marker.
           if (epoch === hoverSequence.current && result.ok)
@@ -605,6 +649,21 @@ export default function App() {
   }, [mode, settingsOpen, onHover, clearPlot]);
 
   const ready = !!state && !busy;
+  useEffect(() => {
+    if (!showImagePhases) {
+      phaseGuideRevision.current = null;
+      return;
+    }
+    if (
+      mode === "integration" &&
+      ready &&
+      state &&
+      phaseGuideRevision.current !== state.revision
+    ) {
+      phaseGuideRevision.current = state.revision;
+      void run("integration_phase_guides", {}, "Updating phase guides…");
+    }
+  }, [mode, showImagePhases, state?.revision, ready]);
   const canIntegrate = !!state?.hasImage && !!state?.calibrated;
   const fitPoints =
     state?.calibration.picks.reduce(
@@ -881,12 +940,6 @@ export default function App() {
                 />
               ) : (
                 <>
-                  {mode === "integration" && (
-                    <IntegrationDisplayControls
-                      value={integrationDisplay === "cake" ? "cake" : "image"}
-                      onChange={setIntegrationDisplay}
-                    />
-                  )}
                   {mode === "calibration" && (
                     <div className="workspace-toolbar">
                       {state?.calibration.rmsDegrees != null && (
@@ -932,7 +985,13 @@ export default function App() {
                       {image ? (
                         <div className="detector-workspace">
                           <RasterView
-                            raster={image}
+                            raster={
+                              mode === "integration" &&
+                              !correctedImage &&
+                              rawImage
+                                ? rawImage
+                                : image
+                            }
                             zoomMode="rectangle"
                             mask={mask ?? undefined}
                             maskOpacity={
@@ -960,7 +1019,15 @@ export default function App() {
                             rings={
                               mode === "calibration" && showRings
                                 ? [...rings, ...(linked?.contours ?? [])]
-                                : (linked?.contours ?? [])
+                                : [
+                                    ...(showImagePhases ? phaseGuides : []),
+                                    ...(linked?.contours ?? []),
+                                  ]
+                            }
+                            roi={
+                              mode === "integration"
+                                ? state?.integration.roi
+                                : undefined
                             }
                             showNumbers={mode === "calibration" && showNumbers}
                             currentPeakRing={
@@ -1004,12 +1071,24 @@ export default function App() {
                                 ? setMultiDetectorPreferences
                                 : setDetectorPreferences
                             }
-                            raster={image}
+                            raster={
+                              mode === "integration" &&
+                              !correctedImage &&
+                              rawImage
+                                ? rawImage
+                                : image
+                            }
                             ready={ready}
                             onAuto={(settings) =>
                               run(
                                 "image_levels",
-                                { ...settings },
+                                {
+                                  ...settings,
+                                  source:
+                                    mode === "integration" && !correctedImage
+                                      ? "raw_detector"
+                                      : "detector",
+                                },
                                 "Updating intensity range…",
                               )
                             }
@@ -1066,13 +1145,13 @@ export default function App() {
                         {cake ? (
                           <div className="detector-workspace cake-workspace">
                             <RasterView
-                              raster={cake}
+                              raster={displayedCake ?? cake}
                               onHover={(point) =>
                                 reportPlot(
                                   "cake",
                                   point && cake
                                     ? {
-                                        text: `2θ ${number(cake.radialRange[0] + (point.x / cake.fullWidth) * (cake.radialRange[1] - cake.radialRange[0]), 4)}° · χ ${number(cake.azimuthRange[0] + (point.y / cake.fullHeight) * (cake.azimuthRange[1] - cake.azimuthRange[0]), 2)}° · I ${point.value === null ? "—" : number(point.value, 3)}`,
+                                        text: `2θ ${number(cake.radialRange[0] + (point.x / cake.fullWidth) * (cake.radialRange[1] - cake.radialRange[0]), 4)}° · χ ${number((displayedCake ?? cake).azimuthRange[0] + (point.y / cake.fullHeight) * (cake.azimuthRange[1] - cake.azimuthRange[0]), 2)}° · I ${point.value === null ? "—" : number(point.value, 3)}`,
                                         hint: "Left drag zooms · right drag pans · right double-click restores the fitted view.",
                                       }
                                     : null,
@@ -1080,9 +1159,28 @@ export default function App() {
                               }
                               linkedPosition={linked?.twoTheta}
                               calibrantLines={
-                                showRings ? state?.calibration.rings : undefined
+                                mode === "integration"
+                                  ? showImagePhases
+                                    ? phaseGuides
+                                        .filter(
+                                          (g, i, all) =>
+                                            all.findIndex(
+                                              (v) => v.twoTheta === g.twoTheta,
+                                            ) === i,
+                                        )
+                                        .map((g) => ({
+                                          ring: 0,
+                                          twoTheta: g.twoTheta!,
+                                          color: g.color,
+                                        }))
+                                    : []
+                                  : showRings
+                                    ? state?.calibration.rings
+                                    : undefined
                               }
-                              showNumbers={showNumbers}
+                              showNumbers={
+                                mode === "calibration" && showNumbers
+                              }
                               onInspect={(point) => {
                                 const x =
                                   cake.radialRange[0] +
@@ -1138,37 +1236,65 @@ export default function App() {
                       mode === "integration") && (
                       <section className="panel pattern-panel">
                         {mode === "integration" && (
-                          <div className="pattern-display-controls">
-                            <div className="segmented small">
-                              <button
-                                className={!logPattern ? "selected" : ""}
-                                onClick={() => setLogPattern(false)}
-                              >
-                                Linear
-                              </button>
-                              <button
-                                className={logPattern ? "selected" : ""}
-                                onClick={() => setLogPattern(true)}
-                              >
-                                Log
-                              </button>
-                            </div>
-                          </div>
+                          <>
+                            <IntegrationPatternActions
+                              state={state}
+                              ready={ready}
+                              run={run}
+                            />
+                            <IntegrationPatternTools
+                              state={state}
+                              ready={ready}
+                              run={run}
+                              log={logPattern}
+                              sqrt={sqrtPattern}
+                              onScale={(scale) => {
+                                setLogPattern(scale === "log");
+                                setSqrtPattern(scale === "sqrt");
+                              }}
+                              inspect={inspectBackground}
+                              onInspect={() => setInspectBackground((v) => !v)}
+                              antialias={patternAntialias}
+                              onAntialias={() => setPatternAntialias((v) => !v)}
+                              autoRange={patternAutoRange}
+                              onAutoRange={() => setPatternAutoRange((v) => !v)}
+                            />
+                          </>
                         )}
                         {pattern ? (
                           <PatternView
                             pattern={pattern}
                             log={logPattern}
+                            sqrt={mode === "integration" && sqrtPattern}
+                            antialias={
+                              mode !== "integration" || patternAntialias
+                            }
+                            autoRange={
+                              mode === "integration" && patternAutoRange
+                            }
+                            onAutoRange={
+                              mode === "integration"
+                                ? setPatternAutoRange
+                                : undefined
+                            }
                             zoomMode={patternZoom}
                             onHover={onPatternHover}
                             linkedPosition={linked?.radial}
                             calibrantLines={
-                              showRings ? state?.calibration.referenceLines : []
+                              mode === "calibration" && showRings
+                                ? state?.calibration.referenceLines
+                                : []
                             }
                             showNumbers={showNumbers}
                             curves={
                               mode === "integration"
-                                ? pattern.curves
+                                ? [
+                                    ...(pattern.curves ?? []),
+                                    ...(inspectBackground &&
+                                    state?.integration.patternBackground.enabled
+                                      ? (pattern.backgroundCurves ?? [])
+                                      : []),
+                                  ]
                                 : undefined
                             }
                             referenceLines={
@@ -1196,6 +1322,67 @@ export default function App() {
                       </section>
                     )}
                   </div>
+                  {mode === "integration" && (
+                    <IntegrationImageControls
+                      cakeShift={cakeShift}
+                      onCakeShift={setCakeShift}
+                      fullCake={
+                        !!cake &&
+                        (Math.abs(cake.azimuthRange[1] - cake.azimuthRange[0]) *
+                          cake.height) /
+                          Math.max(1, cake.height - 1) >=
+                          359
+                      }
+                      value={integrationDisplay}
+                      onChange={setIntegrationDisplay}
+                      state={state}
+                      ready={ready}
+                      run={run}
+                      autoScale={imageAutoScale}
+                      onAutoScale={() => {
+                        setImageAutoScale((v) => !v);
+                        if (!imageAutoScale)
+                          void run("image_levels", {
+                            ...(integrationDisplay === "cake"
+                              ? cakePreferences
+                              : multiDetectorPreferences
+                            ).auto,
+                            source:
+                              integrationDisplay === "cake"
+                                ? "cake"
+                                : correctedImage
+                                  ? "detector"
+                                  : "raw_detector",
+                          });
+                      }}
+                      showPhases={showImagePhases}
+                      onShowPhases={() => setShowImagePhases((v) => !v)}
+                      corrected={correctedImage}
+                      onCorrected={() => {
+                        setCorrectedImage((v) => !v);
+                        if (imageAutoScale)
+                          setLimits(
+                            (correctedImage ? rawImage : image)?.limits ??
+                              limits,
+                          );
+                        onHover(null);
+                      }}
+                      roi={!!state?.integration.roi}
+                      onRoi={() => {
+                        const [h, w] = state?.shape ?? [1, 1];
+                        void run("integration_roi", {
+                          limits: state?.integration.roi
+                            ? null
+                            : [
+                                Math.floor(h * 0.1),
+                                Math.ceil(h * 0.9),
+                                Math.floor(w * 0.1),
+                                Math.ceil(w * 0.9),
+                              ],
+                        });
+                      }}
+                    />
+                  )}
                 </>
               )}
             </main>

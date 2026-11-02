@@ -364,3 +364,78 @@ def test_supersampling_keeps_original_pixel_geometry_and_poni(loaded, tmp_path):
     actual = reopened.configuration.calibration_model
     assert actual.orig_pixel1 == pytest.approx(original[0])
     assert actual.orig_pixel2 == pytest.approx(original[1])
+
+
+def test_inspection_curves_preserve_background_subtracted_pattern(loaded):
+    result = call(loaded, "integration_background", enabled=True, smoothing=0.2, iterations=10, order=5)
+    pattern = loaded.configuration.pattern_model.pattern
+    original, background = result["pattern"]["backgroundCurves"]
+    np.testing.assert_allclose(original["x"], pattern.original_data[0])
+    np.testing.assert_allclose(original["y"], pattern.original_data[1])
+    np.testing.assert_allclose(background["x"], pattern.auto_background_pattern.data[0])
+    np.testing.assert_allclose(background["y"], pattern.auto_background_pattern.data[1])
+    np.testing.assert_allclose(result["pattern"]["y"], pattern.data[1])
+    disabled = call(loaded, "integration_background", enabled=False)
+    assert disabled["pattern"]["backgroundCurves"] == []
+
+
+def test_detector_roi_uses_qt_mask_and_rejects_invalid_limits(loaded):
+    before = np.array(call(loaded, "state")["pattern"]["y"])
+    limits = [100, 800, 150, 700]
+    result = call(loaded, "integration_roi", limits=limits)
+    assert result["state"]["integration"]["roi"] == limits
+    expected_x, expected_y = loaded.configuration.integrate_image_1d()
+    np.testing.assert_allclose(result["pattern"]["x"], expected_x)
+    np.testing.assert_allclose(result["pattern"]["y"], expected_y)
+    assert not np.allclose(result["pattern"]["y"], before)
+    for invalid in ([800, 100, 150, 700], [0, 99999, 0, 700], [0, 1, 2], [0.5, 800, 0, 700]):
+        assert not loaded.invoke("integration_roi", {"limits": invalid})["ok"]
+        assert list(loaded.configuration.roi) == limits
+    restored = call(loaded, "integration_roi")
+    assert restored["state"]["integration"]["roi"] is None
+    np.testing.assert_allclose(restored["pattern"]["y"], before)
+
+
+def test_raw_image_display_and_readout_do_not_remove_scientific_corrections(loaded, tmp_path):
+    raw = loaded.configuration.img_model.raw_img_data.copy()
+    bkg = tmp_path / "display-background.tif"
+    Image.fromarray(np.ones_like(raw, dtype=np.float32) * 5).save(bkg)
+    result = call(loaded, "integration_image_background", path=str(bkg))
+    raw_display = np.frombuffer(base64.b64decode(result["rawImage"]["data"]), dtype="<f4").reshape(raw.shape)
+    np.testing.assert_allclose(raw_display, raw)
+    np.testing.assert_allclose(loaded.configuration.img_model.img_data, raw - 5)
+    assert call(loaded, "pixel", x=200, y=300, raw=True)["pixel"]["value"] == float(raw[300, 200])
+    assert call(loaded, "pixel", x=200, y=300)["pixel"]["value"] == float(raw[300, 200] - 5)
+    np.testing.assert_allclose(loaded.configuration.img_model.img_data, raw - 5)
+
+
+def test_phase_guides_follow_real_phase_and_detector_geometry(loaded):
+    assert call(loaded, "integration_phase_guides")["phaseGuides"] == []
+    call(loaded, "integration_phase", operation="load", path=str(DATA / "jcpds/au_version3.jcpds"))
+    guides = call(loaded, "integration_phase_guides")["phaseGuides"]
+    assert guides and any(len(g["points"]) > 2 for g in guides)
+    positions = loaded._model.phase_model.get_phase_line_positions(0, "2th_deg", loaded.configuration.calibration_model.wavelength * 1e10)
+    assert all(any(np.isclose(g["twoTheta"], p) for p in positions) for g in guides)
+    call(loaded, "integration_phase", operation="update", index=0, visible=False)
+    assert call(loaded, "integration_phase_guides")["phaseGuides"] == []
+
+
+def test_capture_as_background_copies_pattern(loaded):
+    call(loaded, "integration_overlay", operation="capture_background")
+    background = loaded.configuration.pattern_model.background_pattern
+    assert background is not loaded.configuration.pattern_model.pattern
+    np.testing.assert_allclose(loaded.configuration.pattern_model.pattern.data[1], 0, atol=1e-8)
+    call(loaded, "integration_clear_background")
+    assert loaded.configuration.pattern_model.background_pattern is None
+
+
+@pytest.mark.parametrize("background_range", [None, [2, 10]])
+def test_quick_unit_toggles_preserve_automatic_background(loaded, background_range):
+    call(loaded, "integration_background", enabled=True, smoothing=0.2, iterations=10, order=5, range=background_range)
+    for unit in ("q_A^-1", "d_A", "2th_deg"):
+        result = call(loaded, "integration_settings", unit=unit)
+        assert result["state"]["integration"]["patternBackground"]["enabled"]
+        assert result["pattern"]["unit"] == unit
+        assert len(result["pattern"]["x"]) > 2
+        assert len(result["pattern"]["backgroundCurves"]) == 2
+        assert np.all(np.diff(result["pattern"]["x"]) > 0)

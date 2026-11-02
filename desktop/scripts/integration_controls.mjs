@@ -243,8 +243,8 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
   await click("Load pattern…");
   current = await invoke("state");
   assert.ok(current.pattern.x.length > 10);
-  await click("Integrate image ↵");
   await tab("Image");
+  await click("Load image…");
   await page
     .getByLabel("Image file order", { exact: true })
     .selectOption("time");
@@ -255,12 +255,9 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
   await waitReady();
   assert.equal((await invoke("state")).state.useMask, true);
   await tab("Corrections");
-  const group = page.locator("details.integration-group").filter({
-    has: page.locator("summary", { hasText: "Oblique detector absorption" }),
-  });
-  await group.locator("summary").click();
+  await page.getByRole("button", { name: "Inc. Abs.", exact: true }).click();
   await page.getByLabel("Apply detector absorption", { exact: true }).check();
-  await group
+  await page
     .getByRole("button", { name: "Apply correction", exact: true })
     .click();
   await waitReady();
@@ -281,6 +278,7 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
     0,
     "Mode navigation returns directly from Settings",
   );
+  await verifyIntegrationPlotTools(page, invoke, waitReady);
   return [
     "Settings workspace, stable category bounds, keyboard navigation, compact layout and wrapped azimuth",
     "Qt Image/Cake switching and independent histograms",
@@ -288,5 +286,158 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
     "phase loading, pressure and rendered reflections",
     "pattern background, save and load",
     "shared mask, file order and detector absorption",
+    "Qt plot controls: units, log/sqrt, background inspection, AA, auto/frozen axes, raw image, ROI, phase guides and cake azimuth shift",
   ];
+}
+
+async function verifyIntegrationPlotTools(page, invoke, waitReady) {
+  const canvas = page.getByTestId("pattern-canvas");
+  const click = async (label) => {
+    await page.getByRole("button", { name: label, exact: true }).click();
+    await waitReady();
+  };
+  const revision = (await invoke("state")).state.revision;
+  if (
+    (await page
+      .getByRole("button", { name: "Pattern auto range", exact: true })
+      .getAttribute("aria-pressed")) !== "true"
+  )
+    await click("Pattern auto range");
+  await click("Square root pattern intensity");
+  assert.equal(await canvas.getAttribute("data-intensity-scale"), "sqrt");
+  await click("Logarithmic pattern intensity");
+  assert.equal(await canvas.getAttribute("data-intensity-scale"), "log");
+  assert.equal(
+    await page
+      .getByRole("button", {
+        name: "Square root pattern intensity",
+        exact: true,
+      })
+      .getAttribute("aria-pressed"),
+    "false",
+  );
+  await click("Logarithmic pattern intensity");
+  assert.equal(await canvas.getAttribute("data-intensity-scale"), "linear");
+  await click("Antialias pattern");
+  assert.equal(await canvas.getAttribute("data-antialias"), "false");
+  await click("Antialias pattern");
+  await click("Inspect pattern background");
+  assert.equal(Number(await canvas.getAttribute("data-curve-count")), 3);
+  await click("Inspect pattern background");
+  assert.equal(
+    (await invoke("state")).state.revision,
+    revision,
+    "Display toggles must not change scientific state",
+  );
+  for (const [label, unit] of [
+    ["Q", "q_A^-1"],
+    ["d", "d_A"],
+    ["2θ", "2th_deg"],
+  ]) {
+    await click(`Pattern unit ${label}`);
+    assert.equal((await invoke("state")).state.unit, unit);
+  }
+  await click("Pattern auto range");
+  const bounds = () =>
+    canvas.evaluate((el) => [
+      el.dataset.viewXMin,
+      el.dataset.viewXMax,
+      el.dataset.viewYMin,
+      el.dataset.viewYMax,
+    ]);
+  const frozen = await bounds();
+  await page.getByRole("tab", { name: "Overlay", exact: true }).click();
+  await page.getByLabel("Overlay 1 offset", { exact: true }).fill("1000000");
+  await page.getByLabel("Overlay 1 offset", { exact: true }).press("Enter");
+  await waitReady();
+  assert.deepEqual(
+    await bounds(),
+    frozen,
+    "Auto range off preserves the axes across pattern changes",
+  );
+  await click("Pattern auto range");
+  await page.waitForFunction(
+    (limit) =>
+      Number(
+        document.querySelector('[data-testid="pattern-canvas"]').dataset
+          .viewYMax,
+      ) > limit,
+    Number(frozen[3]) * 10,
+  );
+  await page.getByLabel("Overlay 1 offset", { exact: true }).fill("0");
+  await page.getByLabel("Overlay 1 offset", { exact: true }).press("Enter");
+  await waitReady();
+  const display = page.getByRole("group", {
+    name: "Integration display",
+    exact: true,
+  });
+  await display.getByRole("button", { name: "Image", exact: true }).click();
+  await click("Image autoscale");
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Image autoscale", exact: true })
+      .getAttribute("aria-pressed"),
+    "false",
+  );
+  await click("Image autoscale");
+  const imageBefore = await page
+    .getByTestId("detector-canvas")
+    .evaluate((el) => el.toDataURL());
+  await click("Show corrected image");
+  const imageAfter = await page
+    .getByTestId("detector-canvas")
+    .evaluate((el) => el.toDataURL());
+  assert.notEqual(
+    imageAfter,
+    imageBefore,
+    "Raw and absorption-corrected detector displays differ",
+  );
+  await click("Show corrected image");
+  await click("Image region of interest");
+  assert.ok((await invoke("state")).state.integration.roi);
+  await page.getByText("Edit ROI", { exact: true }).click();
+  await page.getByLabel("ROI first row", { exact: true }).fill("120");
+  await click("Apply ROI");
+  const state = (await invoke("state")).state;
+  assert.equal(state.integration.roi[1], state.shape[0] - 120);
+  await click("Image region of interest");
+  assert.equal((await invoke("state")).state.integration.roi, null);
+  await click("Show image phases");
+  await page.waitForFunction(
+    () =>
+      Number(
+        document.querySelector('[data-testid="detector-canvas"]').dataset
+          .ringCount,
+      ) > 0,
+  );
+  await display.getByRole("button", { name: "Cake", exact: true }).click();
+  const beforeShift = (await invoke("state")).state.revision;
+  const shiftCake = async (value) =>
+    page
+      .getByLabel("Cake azimuth shift", { exact: true })
+      .evaluate((el, value) => {
+        Object.getOwnPropertyDescriptor(
+          HTMLInputElement.prototype,
+          "value",
+        ).set.call(el, value);
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      }, value);
+  await shiftCake("90");
+  await page.waitForFunction(
+    () =>
+      Number(
+        document.querySelector('[data-testid="cake-canvas"]').dataset
+          .azimuthMin,
+      ) < -200,
+  );
+  assert.ok(
+    Number(
+      await page.getByTestId("cake-canvas").getAttribute("data-azimuth-min"),
+    ) < -200,
+  );
+  assert.equal((await invoke("state")).state.revision, beforeShift);
+  await shiftCake("0");
+  await click("Save pattern");
+  await click("Show image phases");
+  await display.getByRole("button", { name: "Image", exact: true }).click();
 }

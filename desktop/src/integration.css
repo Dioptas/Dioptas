@@ -1,101 +1,4 @@
-.integration-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.integration-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 4px 0 12px;
-  border-bottom: 1px solid var(--border);
-}
-.integration-tabs button {
-  padding: 7px 9px;
-  font-size: var(--text-small);
-}
-.integration-tabs button[aria-selected="true"] {
-  color: var(--accent);
-  border-color: var(--accent);
-  background: #282b2e;
-}
-.integration-fieldset {
-  border: 0;
-  margin: 0;
-  padding: 0;
-  min-width: 0;
-}
-.integration-group {
-  border-bottom: 1px solid var(--border);
-  padding: 9px 0;
-}
-.integration-group summary {
-  cursor: pointer;
-  font-weight: 600;
-  padding: 4px 0;
-  color: #d7dadd;
-}
-.integration-group-body {
-  padding: 10px 0 3px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.integration-group-body .field-label {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  font-size: var(--text-small);
-}
-.integration-fields {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 8px;
-}
-.integration-fields input {
-  width: 100%;
-  min-width: 0;
-}
-.integration-sector {
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
-}
-.integration-note {
-  color: #a2a8ae;
-  font-size: var(--text-small);
-  line-height: 1.5;
-  margin: 2px 0;
-}
-.integration-filename {
-  overflow-wrap: anywhere;
-  color: #d2d5d8;
-  font-size: var(--text-small);
-  margin: 0;
-}
-.integration-formats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.integration-formats .check-row {
-  margin: 0;
-}
-.integration-file-info pre {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  max-height: 240px;
-  overflow: auto;
-  font-size: var(--text-small);
-}
-.integration-tabs {
-  position: sticky;
-  top: 0;
-  z-index: 3;
-  background: #171d23;
-}
-
-/* The wrapper is transparent to calibration's established flex layout. */
+/* Integration follows Qt: image left, task tabs above the pattern, local plot tools. */
 .workspace-content {
   display: flex;
   flex: 1;
@@ -105,14 +8,12 @@
 .workspace-content.integration-layout {
   display: grid;
   grid-template-columns:
-    minmax(300px, var(--integration-image-share))
+    minmax(290px, var(--integration-image-share))
     8px minmax(340px, 1fr);
   grid-template-rows:
-    38px minmax(170px, calc(var(--integration-controls-share) - 38px))
-    8px minmax(200px, 1fr);
-  flex: 1;
+    minmax(208px, var(--integration-controls-share))
+    8px minmax(240px, 1fr) auto;
   position: relative;
-  min-width: 0;
   padding: 8px 10px;
   overflow: hidden;
   gap: 0;
@@ -121,27 +22,10 @@
 .integration-layout main.integration-mode .views-grid {
   display: contents;
 }
-.integration-layout .integration-display-controls {
-  grid-column: 1;
-  grid-row: 1;
-  justify-content: flex-start;
-  gap: 4px;
-  padding: 0 8px;
-  margin: 0;
-  min-height: 0;
-}
-.integration-display-controls button {
-  padding: 5px 14px;
-  font-size: var(--text-small);
-}
-.integration-display-controls .active {
-  color: var(--accent);
-  border-color: var(--accent);
-}
 .integration-layout .detector-panel,
 .integration-layout .cake-panel {
   grid-column: 1;
-  grid-row: 2 / 5;
+  grid-row: 1 / 4;
   min-width: 0;
   min-height: 0;
 }
@@ -149,90 +33,367 @@
 .integration-layout[data-integration-display="cake"] .detector-panel {
   display: none;
 }
-.integration-layout main.integration-mode .pattern-panel {
-  grid-column: 3;
-  grid-row: 4;
-  min-width: 0;
-  min-height: 0;
-  border-radius: 5px;
-}
 .app .workspace-content.integration-layout > .sidebar {
   grid-column: 3;
-  grid-row: 1 / 3;
+  grid-row: 1;
   width: auto;
   min-width: 0;
   min-height: 0;
-  border: 1px solid var(--border);
-  border-radius: 5px;
   overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #202225;
+}
+.integration-layout .options-label {
+  display: none;
 }
 .integration-layout .sidebar-scroll {
-  padding: 0 10px 8px;
-  overflow: hidden;
   display: flex;
+  padding: 0;
+  overflow: hidden;
   min-height: 0;
 }
-.integration-layout .integration-controls {
+.integration-controls {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   flex: 1;
   min-width: 0;
   min-height: 0;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: 6px;
 }
-.integration-layout .integration-tabs {
-  position: static;
+.integration-tabs {
+  display: flex;
   flex-wrap: nowrap;
   overflow-x: auto;
-  padding: 6px 0;
-  gap: 2px;
-  background: transparent;
-}
-.integration-layout .integration-tabs button {
-  padding: 6px 8px;
-  white-space: nowrap;
   flex-shrink: 0;
+  gap: 0;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--border);
+  scrollbar-width: thin;
 }
-.integration-layout .integration-fieldset {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(185px, 100%), 1fr));
-  gap: 8px 14px;
-  align-content: start;
-  overflow-y: auto;
-  padding-right: 4px;
+.integration-tabs button {
+  flex: 1 0 auto;
+  white-space: nowrap;
 }
-.integration-layout .integration-group {
-  padding: 2px 0 5px;
+.integration-fieldset {
   min-width: 0;
+  min-height: 0;
+  border: 0;
+  margin: 0;
+  padding: 10px 12px;
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px 18px;
+}
+.integration-tab-image,
+.integration-tab-pattern {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.integration-tab-image > .integration-group:first-child {
+  grid-row: span 2;
+}
+.integration-group {
+  min-width: 0;
+  border: 0;
+  padding: 0;
   align-self: start;
 }
-.integration-layout .integration-group-body {
-  padding-top: 5px;
-  gap: 6px;
+.integration-group summary {
+  list-style: none;
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: #dce0e3;
+  padding: 0 0 7px;
+  cursor: pointer;
 }
-.integration-layout .integration-note {
-  font-size: var(--text-meta);
-  line-height: 1.4;
-}
-.integration-layout .integration-fieldset > button.primary {
-  grid-column: 1 / -1;
-}
-.integration-layout .integrate-button {
-  margin: 0;
-  width: 100%;
-  min-height: 32px;
-}
-.integration-layout .pattern-actions {
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.integration-layout .pattern-legend,
-.integration-layout .pattern-actions > .panel-meta {
+.integration-group summary::-webkit-details-marker {
   display: none;
 }
-.integration-layout .pattern-panel .panel-footer {
-  gap: 4px;
+.integration-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+.integration-controls button {
+  min-height: 29px;
+}
+.integration-controls .file-actions {
+  display: flex;
+  gap: 5px;
+  min-width: 0;
+}
+.integration-controls .file-actions > button {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  white-space: nowrap;
+}
+.integration-controls .field-label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(70px, 110px);
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+  font-size: var(--text-small);
+  color: #c0c4c9;
+}
+.integration-controls input[type="number"],
+.integration-controls select {
+  width: 100%;
+  min-width: 0;
+  padding: 5px 7px;
+  height: 30px;
+}
+.integration-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+.integration-controls .integration-fields .field-label {
+  grid-template-columns: minmax(0, 1fr) 80px;
+}
+.integration-controls .check-row {
+  margin: 0;
+  font-size: var(--text-small);
+  gap: 7px;
+  color: #c0c4c9;
+}
+.integration-note {
+  color: #9a9fa6;
+  font-size: var(--text-meta);
+  line-height: 1.4;
+  margin: 0;
+}
+.integration-filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #bbc1c8;
+  font-size: var(--text-small);
+  margin: 0;
+  min-height: 18px;
+}
+.integration-formats {
+  display: flex;
   flex-wrap: wrap;
+  gap: 6px 10px;
+}
+.integration-file-info pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 200px;
+  overflow: auto;
+  font-size: var(--text-small);
+}
+.integration-file-info summary {
+  font-size: var(--text-small);
+  cursor: pointer;
+  color: #b7bdc4;
+}
+.integration-tab-background,
+.integration-tab-corrections {
+  grid-template-columns: 100px minmax(0, 1fr);
+  gap: 12px;
+}
+.integration-subnav {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-right: 1px solid var(--border);
+  padding-right: 8px;
+  align-self: stretch;
+}
+.integration-subnav button {
+  border: 0;
+  border-radius: 3px;
+  text-align: left;
+  background: transparent;
+  color: #b7bdc4;
+  padding: 7px 8px;
+}
+.integration-subnav button[aria-pressed="true"] {
+  background: #ffffff09;
+  color: var(--accent);
+}
+.integration-tab-background .integration-group-body,
+.integration-tab-corrections .integration-group-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+.integration-tab-background .integration-group-body > :not(.field-label),
+.integration-tab-corrections .integration-group-body > :not(.field-label) {
+  grid-column: 1 / -1;
+}
+.integration-tab-background .integration-group-body > .field-label,
+.integration-tab-corrections .integration-group-body > .field-label {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+.integration-tab-overlay > .file-actions,
+.integration-tab-overlay > .integration-note,
+.integration-tab-phase > .integration-note {
+  margin: 0;
+}
+.integration-list {
+  min-width: 0;
+  font-size: var(--text-small);
+}
+.integration-overlay-row,
+.integration-phase-row {
+  display: grid;
+  grid-template-columns: 35px minmax(80px, 1fr) 75px 75px auto;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 0;
+  border-bottom: 1px solid #ffffff0b;
+}
+.integration-list-head {
+  color: #969da4;
+  font-size: var(--text-meta);
+}
+.integration-list .check-row {
+  font-size: 0;
+}
+.integration-list .field-label {
+  font-size: 0;
+  display: block;
+}
+.integration-list-name {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+.integration-list-name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.integration-list input[type="color"] {
+  width: 20px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: none;
+  flex-shrink: 0;
+}
+.integration-row-actions {
+  display: flex;
+  gap: 3px;
+}
+.integration-row-actions button,
+.integration-phase-row > button {
+  padding: 4px 6px;
+}
+.integration-empty-list {
+  color: #9a9fa6;
+  margin: 8px 0;
+}
+.integration-controls .integration-phase-reference {
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 4px 0 6px 41px;
+}
+.integration-pattern-actions,
+.integration-image-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+.integration-pattern-actions {
+  grid-column: 1 / 3;
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.integration-pattern-actions button,
+.integration-image-tools button {
+  font-size: var(--text-small);
+  padding: 5px 8px;
+  min-height: 28px;
+  background: #24272a;
+  border: 1px solid #3b4045;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.integration-pattern-calibration {
+  margin-left: auto;
+  font-size: var(--text-meta);
+  color: #9da5ad;
+  white-space: nowrap;
+}
+.integration-layout main.integration-mode .pattern-panel {
+  grid-column: 3;
+  grid-row: 3 / 5;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 36px;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.integration-layout .pattern-container,
+.integration-layout .empty-pattern {
+  grid-column: 1;
+  grid-row: 2;
+  min-width: 0;
+  min-height: 0;
+}
+.integration-pattern-tools {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 3px 8px 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+.plot-tool-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.integration-pattern-tools button {
+  min-height: 26px;
+  padding: 3px 0;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  font-size: var(--text-small);
+  background: #24272a;
+  color: #b8bec5;
+  flex-shrink: 0;
+}
+.integration-pattern-tools > button:last-child {
+  margin-top: auto;
+}
+.integration-image-tools {
+  grid-column: 1;
+  grid-row: 4;
+  padding: 7px 3px 0;
+  position: relative;
+}
+.integration-image-mode {
+  display: flex;
+  gap: 3px;
+}
+.plot-tool-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 2px;
+}
+.integration-image-tools button[aria-pressed="true"],
+.integration-pattern-tools button[aria-pressed="true"] {
+  color: var(--accent);
+  border-color: #ff950066;
+  background: #ff95000c;
 }
 .integration-divider {
   display: flex;
@@ -258,7 +419,7 @@
 }
 .integration-divider-controls {
   grid-column: 3;
-  grid-row: 3;
+  grid-row: 2;
   cursor: row-resize;
 }
 .integration-divider-controls span {
@@ -281,21 +442,112 @@
 @media (max-width: 1100px) {
   .workspace-content.integration-layout {
     padding: 6px;
-    grid-template-columns:
-      minmax(290px, var(--integration-image-share))
-      8px minmax(320px, 1fr);
   }
-  .integration-layout .panel-heading {
-    flex-wrap: wrap;
-    min-height: 40px;
-    height: auto;
+  .integration-fieldset {
+    padding: 8px;
+    gap: 10px;
+  }
+  .integration-controls .field-label {
+    grid-template-columns: minmax(0, 1fr) 80px;
+  }
+  .integration-pattern-actions {
     gap: 3px;
-    padding: 5px 7px;
   }
-  .integration-layout .panel-footer {
-    font-size: var(--text-meta);
-  }
-  .integration-layout .integration-tabs button {
+  .integration-pattern-actions button {
     padding-inline: 6px;
+  }
+  .integration-pattern-calibration {
+    width: auto;
+  }
+  .integration-tab-background,
+  .integration-tab-corrections {
+    grid-template-columns: 90px minmax(0, 1fr);
+  }
+  .integration-tab-corrections .integration-group-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.integration-controls .file-actions {
+  margin: 0;
+}
+.integration-task-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  border-top: 1px solid var(--border);
+  padding: 7px 10px;
+}
+.integration-task-actions .primary {
+  flex: 1;
+  min-height: 31px;
+  padding: 6px 10px;
+}
+.integration-task-actions button {
+  font-size: var(--text-small);
+  white-space: nowrap;
+}
+.integration-tab-image .field-label:has(select) {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+.integration-roi-editor > summary {
+  cursor: pointer;
+  padding: 4px 6px;
+  color: var(--accent);
+  font-size: var(--text-small);
+}
+.integration-roi-editor > form {
+  position: absolute;
+  z-index: 9;
+  left: 0;
+  bottom: 38px;
+  background: #24272a;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px;
+  box-shadow: 0 6px 30px #0009;
+  display: grid;
+  gap: 8px;
+}
+.integration-roi-editor label {
+  display: grid;
+  grid-template-columns: 1fr 90px;
+  align-items: center;
+  gap: 12px;
+  font-size: var(--text-small);
+}
+.integration-roi-editor input {
+  width: 90px;
+  padding: 5px;
+}
+.integration-roi-editor small {
+  color: #a7aeb5;
+}
+.integration-cake-shift {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-small);
+  color: #b8bec5;
+}
+.integration-cake-shift input {
+  width: 75px;
+}
+.integration-cake-shift span {
+  min-width: 35px;
+}
+/* Background parameters share one aligned label/value column, like Qt's form. */
+.integration-tab-background .integration-group-body > .field-label {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) 110px;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 1100px) {
+  .integration-tab-corrections .integration-group-body > .field-label {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 90px;
+    align-items: center;
+    gap: 8px;
   }
 }

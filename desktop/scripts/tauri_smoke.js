@@ -345,7 +345,7 @@
       phase.ok && phase.pattern.phaseLines.length > 0,
       phase.error || "Native phase reference failed",
     );
-    click("Integrate image ↵");
+    click("Pattern unit 2θ");
     await delay();
     await ready();
     check(
