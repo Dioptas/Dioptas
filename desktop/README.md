@@ -236,8 +236,8 @@ cake, pattern and map readings identify their source and update at about
 pattern readouts are removed. Calibrant display switches sit at the right end
 of the calibration step toolbar above the image.
 
-The interface uses the original Dioptas orange (`#ff9500`, from
-`dioptas/resources/style/dark_orange.xml`) for accents, with a green hexagonal-prism
+The interface uses the original Dioptas orange (`#ff9500`) for accents and primary actions,
+with soft tonal buttons, compact groups for related tools, and a green hexagonal-prism
 symbol elongated along its c direction. Its six-sided prism has an inclined
 termination, dark glassy faces and narrow reflections inspired by the supplied
 crystal photographs. The native app icon uses a rounded orange glass tile with soft

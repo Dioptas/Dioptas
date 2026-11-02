@@ -15,7 +15,7 @@
   --text-body: 15px;
   --border: #29313a;
   --muted: #7f8b98;
-  /* Matches primaryColor in dioptas/resources/style/dark_orange.xml. */
+  /* Original Dioptas orange, shared by flat actions and interface accents. */
   --dioptas-orange: #ff9500;
   --accent: var(--dioptas-orange);
   --surface: #161c23;

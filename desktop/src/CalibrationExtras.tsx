@@ -122,7 +122,7 @@ export function CalibrationExtras({
               <button
                 type="button"
                 key={operation}
-                className="secondary"
+                className={operation === "reset" ? "quiet" : "secondary"}
                 title={label}
                 aria-label={label}
                 disabled={!ready || !state?.hasImage}
@@ -150,6 +150,7 @@ export function CalibrationExtras({
             </button>
             <button
               type="button"
+              className="quiet"
               disabled={!ready || !c?.detectorFile}
               onClick={() => run("detector_file", { reset: true })}
             >
@@ -170,6 +171,7 @@ export function CalibrationExtras({
             </button>
             <button
               type="button"
+              className="quiet"
               disabled={!ready || !c?.distortionFile}
               onClick={() => run("distortion_file", { reset: true })}
             >

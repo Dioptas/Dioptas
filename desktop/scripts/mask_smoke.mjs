@@ -546,10 +546,23 @@ try {
     );
     const finish = await selected.evaluate((button) => {
       const style = getComputedStyle(button);
-      return { background: style.backgroundImage, shadow: style.boxShadow };
+      return {
+        image: style.backgroundImage,
+        shadow: style.boxShadow,
+        fill: style.backgroundColor,
+      };
     });
-    assert.match(finish.background, /linear-gradient/);
-    assert.notEqual(finish.shadow, "none");
+    assert.equal(finish.image, "none");
+    assert.equal(finish.shadow, "none");
+    const inactiveFill = await page
+      .locator('.mask-shape-grid button[aria-pressed="false"]')
+      .first()
+      .evaluate((button) => getComputedStyle(button).backgroundColor);
+    assert.notEqual(
+      finish.fill,
+      inactiveFill,
+      "The active tool stays distinct",
+    );
   };
   await verifyPinnedMaskFiles();
   await verifyMaskShapeLayout();

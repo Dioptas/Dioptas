@@ -257,7 +257,11 @@ export function CalibrationPanel({
             ›
           </button>
         </div>
-        <div className="file-actions">
+        <div
+          className="file-actions compact-actions"
+          role="group"
+          aria-label="Peak selection actions"
+        >
           <button
             aria-label="Delete selected"
             disabled={!ready || !selected.length}

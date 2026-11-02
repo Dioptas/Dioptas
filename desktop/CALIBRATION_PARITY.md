@@ -145,7 +145,7 @@ remains for comparison. There is no WASM implementation or portable bundled
 Python runtime/installer yet.
 
 Control text defaults to 14–15 px, with a Settings option for 16–17 px; secondary
-metadata is 13/14 px and plot annotations are 13 px. Original Dioptas orange (`#ff9500`) is the fixed interface accent.
+metadata is 13/14 px and plot annotations are 13 px. Original Dioptas orange (`#ff9500`) is the fixed interface accent; buttons use soft tonal fills and compact tool groups.
 The green crystal symbol has a six-sided prism, an inclined termination and
 long reflective faces along c, independent of the control accent.
 Scientific color maps are independent of the accent. Accessibility is improved,
