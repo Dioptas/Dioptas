@@ -3,7 +3,10 @@ import type { Ref } from "react";
 import { createPortal } from "react-dom";
 import { colorMaps, colorMapPreview } from "./colorMaps";
 
-export type ColorMapPickerHandle = { open: (trigger: SVGRectElement) => void };
+type MenuPoint = { clientX: number; clientY: number };
+export type ColorMapPickerHandle = {
+  open: (trigger: SVGRectElement, point?: MenuPoint) => void;
+};
 
 export function ColorMapPicker({
   value,
@@ -35,17 +38,25 @@ export function ColorMapPicker({
     onChange(name);
     close();
   };
-  const open = (element: SVGRectElement) => {
+  const open = (element: SVGRectElement, point?: MenuPoint) => {
     trigger.current = element;
     const box = element.getBoundingClientRect(),
-      height = Math.min(520, window.innerHeight - 16);
+      x = point?.clientX ?? box.left + box.width / 2,
+      y = Math.max(
+        12,
+        Math.min(
+          point?.clientY ?? box.top + box.height / 2,
+          window.innerHeight - 12,
+        ),
+      ),
+      below = window.innerHeight - y - 12,
+      above = y - 12,
+      openBelow = below >= Math.min(260, above),
+      height = Math.min(520, openBelow ? below : above);
     setActive(names.indexOf(selected));
     setPosition({
-      left: Math.max(8, Math.min(box.left, window.innerWidth - 276)),
-      top:
-        box.bottom + height + 4 <= window.innerHeight
-          ? box.bottom + 4
-          : Math.max(8, box.top - height - 4),
+      left: Math.max(8, Math.min(x + 4, window.innerWidth - 268)),
+      top: openBelow ? y + 4 : y - height - 4,
       height,
     });
   };

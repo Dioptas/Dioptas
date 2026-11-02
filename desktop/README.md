@@ -176,6 +176,10 @@ Min/max and Mean ± 3 Std, with optional detector-gap filtering. The picker show
 pyqtgraph scales, with Grey as the default. Left or right click the colour bar to
 open the colour-map picker. CET/PAL and custom preview palettes
 are excluded.
+Percentile clipping defaults to 2.5% per tail. Each image view saves its auto
+mode, clipping percentage and gap-filter setting across app restarts, and applies
+them when an image loads. Numeric clipping and intensity-limit edits apply on
+Enter or when leaving the field, allowing complete numbers to be typed first.
 Lookup tables are generated at build time; see `scripts/export_colormaps.py`
 and `licenses/colormaps/` for source attribution.
 Histogram counts include every finite source pixel, including zero and negative

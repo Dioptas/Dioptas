@@ -316,7 +316,7 @@ export async function verifyImageControls(page, invoke, pixelRequests) {
       .getByLabel("Auto intensity mode", { exact: true })
       .selectOption(mode);
     const expected = (
-      await invoke("image_levels", { mode, percentile: 0.4, filter_gaps: true })
+      await invoke("image_levels", { mode, percentile: 2.5, filter_gaps: true })
     ).levels;
     await page.waitForFunction((expected) => {
       const el = document.querySelector('[data-testid="detector-canvas"]');
@@ -328,6 +328,7 @@ export async function verifyImageControls(page, invoke, pixelRequests) {
     assert.equal(await autoButton.getAttribute("aria-pressed"), "true");
   }
   await page.getByLabel("Maximum intensity", { exact: true }).fill("1000");
+  await page.getByLabel("Maximum intensity", { exact: true }).press("Enter");
   assert.equal(await autoButton.getAttribute("aria-pressed"), "false");
   await page.getByLabel("Image scale", { exact: true }).selectOption("log");
   await page

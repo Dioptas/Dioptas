@@ -22,7 +22,6 @@ import { usePlotReadout, type PatternHover } from "./plotReadout";
 import { shapeHelp } from "./maskDomain";
 import type {
   Cake,
-  ImageDisplayPreferences,
   Invoke,
   Palette,
   Pattern,
@@ -43,6 +42,7 @@ import { PatternView } from "./PatternView";
 import { CalibrationControls } from "./CalibrationControls";
 import { CalibrationPanel } from "./CalibrationPanel";
 import { ImageIntensity } from "./ImageIntensity";
+import { useImageDisplayPreferences } from "./useImageDisplayPreferences";
 import { colorMaps } from "./colorMaps";
 import { IntegrationView, IntegrationDisplayControls } from "./IntegrationView";
 import { IntegrationWorkspace } from "./IntegrationWorkspace";
@@ -153,23 +153,13 @@ export default function App() {
   const [cakeLog, setCakeLog] = useState(false);
   const [cakePalette, setCakePalette] = useState<Palette>("grey");
   const [detectorPreferences, setDetectorPreferences] =
-    useState<ImageDisplayPreferences>({
-      size: "compact",
-      orientation: "vertical",
-      auto: { mode: "percentile", percentile: 0.4, filter_gaps: true },
-    });
-  const [cakePreferences, setCakePreferences] =
-    useState<ImageDisplayPreferences>({
-      size: "compact",
-      orientation: "horizontal",
-      auto: { mode: "percentile", percentile: 0.4, filter_gaps: true },
-    });
+    useImageDisplayPreferences("detector", "vertical");
+  const [cakePreferences, setCakePreferences] = useImageDisplayPreferences(
+    "cake",
+    "horizontal",
+  );
   const [multiDetectorPreferences, setMultiDetectorPreferences] =
-    useState<ImageDisplayPreferences>({
-      size: "compact",
-      orientation: "horizontal",
-      auto: { mode: "percentile", percentile: 0.4, filter_gaps: true },
-    });
+    useImageDisplayPreferences("multi-detector", "horizontal");
   const multipleImages = mode === "integration" || calibrationStep === 3;
   useEffect(() => {
     if (!colorMaps[palette]) setPalette("grey");

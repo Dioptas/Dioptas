@@ -142,11 +142,15 @@ export function usePlotNavigation(
   function onPointerDown(
     event: PointerEvent<HTMLCanvasElement>,
     allowLeft = true,
+    allowMarginSelection = false,
   ) {
     const right = event.button === 2 || (event.button === 0 && event.ctrlKey);
     const p = screen(event);
     if (!right) rightClick.current = null;
-    if ((!right && (event.button !== 0 || !allowLeft)) || !inside(p))
+    if (
+      (!right && (event.button !== 0 || !allowLeft)) ||
+      (!inside(p) && (right || !allowMarginSelection))
+    )
       return false;
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -180,15 +184,23 @@ export function usePlotNavigation(
         yMin: current.range.yMin + dy,
         yMax: current.range.yMax + dy,
       });
-    } else
+    } else {
+      // Margin-enabled drags may start on the axes. Select the intersection with
+      // the plot, keeping gestures that stay in the margins inert.
+      const start = clamp(current.start),
+        end = clamp(p);
       setSelection(
-        zoomMode === "horizontal"
-          ? {
-              start: { x: current.start.x, y: bounds.top },
-              end: { x: clamp(p).x, y: bounds.top + bounds.height },
-            }
-          : { start: current.start, end: clamp(p) },
+        Math.abs(end.x - start.x) < 4 ||
+          (zoomMode === "rectangle" && Math.abs(end.y - start.y) < 4)
+          ? null
+          : zoomMode === "horizontal"
+            ? {
+                start: { x: start.x, y: bounds.top },
+                end: { x: end.x, y: bounds.top + bounds.height },
+              }
+            : { start, end },
       );
+    }
   }
   function onPointerUp(event: PointerEvent<HTMLCanvasElement>) {
     const current = gesture.current;
@@ -215,14 +227,15 @@ export function usePlotNavigation(
       } else rightClick.current = null;
       return current.moved ? "pan" : "unzoom";
     }
-    if (!current.moved) return "click";
-    const end = clamp(screen(event));
+    if (!current.moved) return inside(current.start) ? "click" : null;
+    const start = clamp(current.start),
+      end = clamp(screen(event));
     if (
-      Math.abs(end.x - current.start.x) < 4 ||
-      (zoomMode === "rectangle" && Math.abs(end.y - current.start.y) < 4)
+      Math.abs(end.x - start.x) < 4 ||
+      (zoomMode === "rectangle" && Math.abs(end.y - start.y) < 4)
     )
       return "drag";
-    const a = data(current.start, current.range),
+    const a = data(start, current.range),
       b = data(end, current.range);
     if (zoomMode === "horizontal") {
       const xMin = Math.min(a.x, b.x),
@@ -278,6 +291,7 @@ export function usePlotNavigation(
   }
   return {
     view,
+    hold: () => setRange(view),
     selection,
     reset,
     screen,

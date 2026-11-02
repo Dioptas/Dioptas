@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Pattern } from "./types";
 import type { PatternHover } from "./plotReadout";
 import { unitLabel } from "./types";
-import { linearTicks, logTicks } from "./plotTicks";
+import { linearAxisTicks, linearTicks, logTicks } from "./plotTicks";
 import {
   usePlotNavigation,
   usePlotWheel,
@@ -29,6 +29,10 @@ const EMPTY_REGIONS: PatternRegion[] = [];
 export function PatternView({
   pattern,
   log,
+  sqrt = false,
+  antialias = true,
+  autoRange = false,
+  onAutoRange,
   zoomMode = "horizontal",
   onPick,
   onHover,
@@ -44,6 +48,10 @@ export function PatternView({
 }: {
   pattern: Pattern;
   log: boolean;
+  sqrt?: boolean;
+  antialias?: boolean;
+  autoRange?: boolean;
+  onAutoRange?: (enabled: boolean) => void;
   zoomMode?: ZoomMode;
   onPick?: (x: number) => void;
   onHover?: (point: PatternHover | null) => void;
@@ -87,7 +95,13 @@ export function PatternView({
   useEffect(() => {
     navigation.reset();
     setHover(null);
-  }, [pattern.unit, pattern.x[0], pattern.x.at(-1), log]);
+  }, [
+    pattern.unit,
+    onAutoRange ? null : pattern.x[0],
+    onAutoRange ? null : pattern.x.at(-1),
+    log,
+    sqrt,
+  ]);
   const right = 32,
     top = 18,
     bottom = 52;
@@ -97,7 +111,8 @@ export function PatternView({
     ...pattern.x,
     ...curves.flatMap((curve) => curve.x),
   ]);
-  const transform = (y: number) => (log ? Math.log10(Math.max(1e-6, y)) : y);
+  const transform = (y: number) =>
+    log ? Math.log10(Math.max(1e-6, y)) : sqrt ? Math.sqrt(Math.max(0, y)) : y;
   const plottedY = [...pattern.y, ...curves.flatMap((curve) => curve.y)];
   const visible = plottedY.filter(
     (y): y is number => y !== null && Number.isFinite(y) && (!log || y > 0),
@@ -105,7 +120,7 @@ export function PatternView({
   const fitYMin = visible.length
     ? log
       ? extent(visible.map(transform))[0]
-      : Math.min(0, extent(visible)[0])
+      : Math.min(0, transform(extent(visible)[0]))
     : 0;
   const fitYMax = visible.length ? extent(visible.map(transform))[1] : 1;
   const fitYSpan = Math.max(1e-6, fitYMax - fitYMin) * 1.08;
@@ -137,12 +152,19 @@ export function PatternView({
       if (!values.length) return [fitYMin, fitYMin + fitYSpan];
       const lower = log
         ? extent(values.map(transform))[0]
-        : Math.min(0, extent(values)[0]);
+        : Math.min(0, transform(extent(values)[0]));
       const upper = extent(values.map(transform))[1];
       return [lower, lower + Math.max(1e-6, upper - lower) * 1.08];
     },
   );
-  usePlotWheel(canvas, navigation.onWheel);
+  useEffect(() => {
+    if (autoRange) navigation.reset();
+    else if (onAutoRange) navigation.hold();
+  }, [pattern, autoRange]);
+  usePlotWheel(canvas, (event) => {
+    onAutoRange?.(false);
+    navigation.onWheel(event);
+  });
   const { xMin: xmin, xMax: xmax, yMin: ymin, yMax: ymax } = navigation.view;
   const yspan = ymax - ymin;
   useEffect(() => {
@@ -154,11 +176,21 @@ export function PatternView({
     context.scale(dpr, dpr);
     // Resizing clears the canvas; transparent margins reveal the workspace surface.
     context.font = "13px ui-monospace, SFMono-Regular, monospace";
-    const yTicks = (log ? logTicks : linearTicks)(
-      ymin,
-      ymax,
-      Math.max(1, Math.floor(h / 48)),
-    );
+    const intervalsY = Math.max(1, Math.floor(h / 48));
+    const inverse = (v: number) => Math.max(0, v) ** 2;
+    const yAxis = log
+      ? { ticks: logTicks(ymin, ymax, intervalsY), annotation: null }
+      : linearAxisTicks(
+          sqrt ? inverse(ymin) : ymin,
+          sqrt ? inverse(ymax) : ymax,
+          intervalsY,
+        );
+    const yTicks = sqrt
+      ? yAxis.ticks.map((tick) => ({
+          ...tick,
+          value: transform(tick.value),
+        }))
+      : yAxis.ticks;
     // Keep a separate gutter for the rotated title, regardless of intensity magnitude.
     const tickWidth = Math.max(
       0,
@@ -224,6 +256,11 @@ export function PatternView({
     context.lineTo(left + w, top + h);
     context.stroke();
     context.textBaseline = "alphabetic";
+    if (yAxis.annotation) {
+      context.textAlign = "left";
+      context.fillStyle = "#7e8994";
+      context.fillText(yAxis.annotation, left, top - 6);
+    }
     context.save();
     context.beginPath();
     context.rect(left, top, w, h);
@@ -241,44 +278,71 @@ export function PatternView({
       context.textAlign = "left";
       context.fillText(region.name, x0 + 5, top + 14);
     }
-    context.strokeStyle = "#ff9500";
-    context.lineWidth = 1.4;
-    context.beginPath();
-    let started = false;
-    pattern.x.forEach((x, i) => {
-      const y = pattern.y[i];
-      if (y === null || !Number.isFinite(y) || (log && y <= 0)) {
-        started = false;
-        return;
-      }
-      const px = left + ((x - xmin) / (xmax - xmin)) * w;
-      const py = top + h - ((transform(y) - ymin) / yspan) * h;
-      if (started) context.lineTo(px, py);
-      else context.moveTo(px, py);
-      started = true;
-    });
-    context.stroke();
-    // Models own measured-curve scaling and reference coordinates. All use
-    // the same plot axes, clipping and navigation as the primary pattern.
-    for (const curve of curves) {
-      context.strokeStyle = curve.color;
-      context.lineWidth = 1.2;
+    const drawCurve = (
+      curve: { x: number[]; y: (number | null)[] },
+      color: string,
+      width: number,
+    ) => {
+      context.strokeStyle = color;
+      context.fillStyle = color;
+      context.lineWidth = width;
       context.beginPath();
-      let drawing = false;
+      let previous: [number, number] | null = null;
       curve.x.forEach((x, i) => {
         const y = curve.y[i];
         if (y == null || !Number.isFinite(y) || (log && y <= 0)) {
-          drawing = false;
+          previous = null;
           return;
         }
-        const px = left + ((x - xmin) / (xmax - xmin)) * w;
-        const py = top + h - ((transform(y) - ymin) / yspan) * h;
-        if (drawing) context.lineTo(px, py);
-        else context.moveTo(px, py);
-        drawing = true;
+        const point: [number, number] = [
+          left + ((x - xmin) / (xmax - xmin)) * w,
+          top + h - ((transform(y) - ymin) / yspan) * h,
+        ];
+        if (antialias) {
+          if (previous) context.lineTo(...point);
+          else context.moveTo(...point);
+        } else if (previous) {
+          // Clip before stepping to keep deeply zoomed, off-screen segments bounded.
+          const dx = point[0] - previous[0],
+            dy = point[1] - previous[1];
+          let start = 0,
+            end = 1;
+          for (const [origin, delta, low, high] of [
+            [previous[0], dx, left, left + w],
+            [previous[1], dy, top, top + h],
+          ]) {
+            if (delta === 0) {
+              if (origin < low || origin > high) end = -1;
+            } else {
+              const t0 = (low - origin) / delta,
+                t1 = (high - origin) / delta;
+              start = Math.max(start, Math.min(t0, t1));
+              end = Math.min(end, Math.max(t0, t1));
+            }
+          }
+          if (end >= start) {
+            const steps = Math.max(
+              1,
+              Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) * (end - start)),
+            );
+            for (let j = 0; j <= steps; j++) {
+              const t = start + ((end - start) * j) / steps;
+              context.fillRect(
+                Math.floor(previous[0] + dx * t),
+                Math.floor(previous[1] + dy * t),
+                1,
+                1,
+              );
+            }
+          }
+        }
+        previous = point;
       });
-      context.stroke();
-    }
+      if (antialias) context.stroke();
+    };
+    drawCurve(pattern, "#ff9500", 1.4);
+    // Measured curves and background inspection share the same axes and drawing mode.
+    for (const curve of curves) drawCurve(curve, curve.color, 1.2);
     const largestReference = Math.max(
       1,
       extent(referenceLines.map((line) => line.intensity))[1],
@@ -351,6 +415,8 @@ export function PatternView({
   }, [
     pattern,
     log,
+    sqrt,
+    antialias,
     size,
     hover,
     navigation.view,
@@ -395,6 +461,9 @@ export function PatternView({
         data-testid="pattern-canvas"
         aria-label={`Integrated diffraction pattern; left-drag ${zoomMode} zoom, right-drag pan, right-click zoom out`}
         style={{ width: "100%", height: "100%" }}
+        data-intensity-scale={log ? "log" : sqrt ? "sqrt" : "linear"}
+        data-antialias={antialias}
+        data-auto-range={autoRange}
         data-curve-count={curves.length}
         data-reference-count={referenceLines.length}
         data-linked-position={linkedPosition}
@@ -410,8 +479,18 @@ export function PatternView({
         onContextMenu={(e) => e.preventDefault()}
         onAuxClick={(e) => e.preventDefault()}
         onPointerDown={(e) => {
-          if (editRegions && e.button === 0 && !e.ctrlKey && onRegionChange) {
-            const x = navigation.data(navigation.screen(e)).x;
+          const point = navigation.screen(e);
+          if (
+            editRegions &&
+            e.button === 0 &&
+            !e.ctrlKey &&
+            onRegionChange &&
+            point.x >= left &&
+            point.x <= left + w &&
+            point.y >= top &&
+            point.y <= top + h
+          ) {
+            const x = navigation.data(point).x;
             const tolerance = ((xmax - xmin) * 9) / w;
             const region = [...regions]
               .sort((a, b) => Number(!!b.active) - Number(!!a.active))
@@ -433,7 +512,7 @@ export function PatternView({
               return;
             }
           }
-          navigation.onPointerDown(e);
+          navigation.onPointerDown(e, true, zoomMode === "rectangle");
         }}
         onPointerMove={(e) => {
           const drag = regionDrag.current;
@@ -465,7 +544,9 @@ export function PatternView({
               e.currentTarget.releasePointerCapture(e.pointerId);
             return;
           }
-          if (navigation.onPointerUp(e) === "click")
+          const result = navigation.onPointerUp(e);
+          if (result === "zoom" || result === "pan") onAutoRange?.(false);
+          if (result === "click")
             onPick?.(navigation.data(navigation.screen(e)).x);
         }}
         onPointerCancel={(e) => {

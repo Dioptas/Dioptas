@@ -844,7 +844,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         return self._snapshot()
 
     def _image_levels(
-        self, mode="percentile", percentile=0.4, filter_gaps=True, source="detector"
+        self, mode="percentile", percentile=2.5, filter_gaps=True, source="detector"
     ):
         if source not in {"detector", "cake"}:
             raise ValueError("Choose the detector or cake display.")

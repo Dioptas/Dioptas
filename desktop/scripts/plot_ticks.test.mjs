@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { linearTicks, logTicks } from "../src/plotTicks.ts";
+import { linearAxisTicks, linearTicks, logTicks } from "../src/plotTicks.ts";
 
 test("linear ticks use rounded multiples within irregular view limits", () => {
   assert.deepEqual(
@@ -53,4 +53,52 @@ test("log ticks use powers of ten, then 1/2/5 and rounded values at closer zoom"
 test("invalid and degenerate ranges do not produce ticks", () => {
   for (const ticks of [linearTicks(1, 1), linearTicks(NaN, 3), logTicks(2, 1)])
     assert.deepEqual(ticks, []);
+});
+
+test("axis labels factor out small powers of ten", () => {
+  const axis = linearAxisTicks(0.00001, 0.00005, 4);
+  assert.equal(axis.annotation, "×10⁻⁵");
+  assert.deepEqual(
+    axis.ticks.map((tick) => tick.label),
+    ["1", "2", "3", "4", "5"],
+  );
+});
+
+test("axis offsets and scales preserve original tick coordinates and precision", () => {
+  for (const [min, max] of [
+    [123.45601, 123.45605],
+    [-179.45605, -179.45601],
+    [1e9, 1e9 + 1000],
+    [0, 5e6],
+    [-0.00005, -0.00001],
+  ]) {
+    const original = linearTicks(min, max, 5);
+    const axis = linearAxisTicks(min, max, 5);
+    assert.ok(axis.annotation);
+    assert.deepEqual(
+      axis.ticks.map((tick) => tick.value),
+      original.map((tick) => tick.value),
+    );
+    assert.equal(
+      new Set(axis.ticks.map((tick) => tick.label)).size,
+      axis.ticks.length,
+    );
+    for (const tick of axis.ticks) {
+      assert.ok(tick.label.length <= 5, `Compact tick: ${tick.label}`);
+      const reconstructed = axis.offset + axis.scale * Number(tick.label);
+      assert.ok(
+        Math.abs(reconstructed - tick.value) <
+          Math.max(1e-15, Math.abs(tick.value) * 1e-13),
+      );
+    }
+  }
+});
+
+test("ordinary axis labels stay familiar without annotations", () => {
+  const axis = linearAxisTicks(-180, 180, 6);
+  assert.equal(axis.annotation, null);
+  assert.equal(axis.offset, 0);
+  assert.equal(axis.scale, 1);
+  assert.deepEqual(axis.ticks, linearTicks(-180, 180, 6));
+  assert.deepEqual(linearAxisTicks(1, 1).ticks, []);
 });

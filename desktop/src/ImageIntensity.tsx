@@ -24,6 +24,8 @@ const compact = (value: number) =>
     notation: "compact",
     maximumSignificantDigits: 2,
   });
+const editableIntensity = (value: number) =>
+  String(Number(value.toPrecision(7)));
 
 export function ImageIntensity({
   raster,
@@ -59,6 +61,21 @@ export function ImageIntensity({
   const small = preferences.size === "compact";
   const horizontal = preferences.orientation === "horizontal";
   const auto = preferences.auto;
+  const [percentileDraft, setPercentileDraft] = useState(
+    String(auto.percentile),
+  );
+  const [minimumDraft, setMinimumDraft] = useState(() =>
+    editableIntensity(limits[0]),
+  );
+  const [maximumDraft, setMaximumDraft] = useState(() =>
+    editableIntensity(limits[1]),
+  );
+  useEffect(
+    () => setPercentileDraft(String(auto.percentile)),
+    [auto.percentile],
+  );
+  useEffect(() => setMinimumDraft(editableIntensity(limits[0])), [limits[0]]);
+  useEffect(() => setMaximumDraft(editableIntensity(limits[1])), [limits[1]]);
   const [autoActive, setAutoActive] = useState(true);
   const applyAuto = (settings: AutoLevels) => {
     setAutoActive(true);
@@ -73,7 +90,7 @@ export function ImageIntensity({
     });
   const setAuto = (auto: AutoLevels) => onPreferences({ ...preferences, auto });
   const [dialog, setDialog] = useState<{ x: number; y: number } | null>(null);
-  const previousSource = useRef(raster.data);
+  const previousSource = useRef<Raster["data"] | null>(null);
   const [drag, setDrag] = useState<WindowDrag | null>(null);
   const [hover, setHover] = useState<WindowDrag["kind"] | null>(null);
   const active = drag?.kind ?? hover;
@@ -95,11 +112,13 @@ export function ImageIntensity({
     return () => observer.disconnect();
   }, []);
   useEffect(() => {
-    if (previousSource.current === raster.data) return;
-    previousSource.current = raster.data;
-    const timer = setTimeout(() => applyAuto(auto), 0);
+    if (!ready || previousSource.current === raster.data) return;
+    const timer = setTimeout(() => {
+      previousSource.current = raster.data;
+      applyAuto(auto);
+    }, 0);
     return () => clearTimeout(timer);
-  }, [raster.data]);
+  }, [raster.data, ready]);
   useEffect(() => {
     if (!dialog) return;
     const escape = (event: KeyboardEvent) => {
@@ -115,6 +134,18 @@ export function ImageIntensity({
     const next = { ...auto, ...change };
     setAuto(next);
     applyAuto(next);
+  };
+  const commitPercentile = () => {
+    const percentile = Number(percentileDraft);
+    if (
+      percentileDraft.trim() &&
+      Number.isFinite(percentile) &&
+      percentile >= 0.01 &&
+      percentile <= 25
+    ) {
+      setPercentileDraft(String(percentile));
+      updateAuto({ percentile });
+    } else setPercentileDraft(String(auto.percentile));
   };
   const edges = raster.histogram?.edges ?? [0, Math.max(1, raster.limits[1])],
     counts = raster.histogram?.counts ?? [0];
@@ -138,6 +169,16 @@ export function ImageIntensity({
       setAutoActive(false);
       onLimits([low, high]);
     }
+  };
+  const commitLimit = (index: 0 | 1, draft: string) => {
+    const value = draft.trim() ? Number(draft) : NaN;
+    const next: [number, number] = [...limits];
+    next[index] = value;
+    const valid = Number.isFinite(value) && next[0] < next[1];
+    if (valid) update(...next);
+    (index === 0 ? setMinimumDraft : setMaximumDraft)(
+      editableIntensity(valid ? value : limits[index]),
+    );
   };
   const coordinate = (event: React.PointerEvent<SVGSVGElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
@@ -319,12 +360,12 @@ export function ImageIntensity({
                 aria-haspopup="listbox"
                 onClick={(event) => {
                   event.stopPropagation();
-                  colorMapPicker.current?.open(event.currentTarget);
+                  colorMapPicker.current?.open(event.currentTarget, event);
                 }}
                 onContextMenu={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
-                  colorMapPicker.current?.open(event.currentTarget);
+                  colorMapPicker.current?.open(event.currentTarget, event);
                 }}
                 onDoubleClick={(event) => event.stopPropagation()}
                 onKeyDown={(event) => {
@@ -526,15 +567,16 @@ export function ImageIntensity({
                     min="0.01"
                     max="25"
                     step=".01"
-                    value={auto.percentile}
+                    value={percentileDraft}
                     disabled={!ready}
-                    onChange={(event) =>
-                      setAuto({
-                        ...auto,
-                        percentile: Number(event.target.value),
-                      })
-                    }
-                    onBlur={() => applyAuto(auto)}
+                    onChange={(event) => setPercentileDraft(event.target.value)}
+                    onBlur={commitPercentile}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        commitPercentile();
+                      }
+                    }}
                   />
                 </label>
               )}
@@ -556,10 +598,15 @@ export function ImageIntensity({
                   aria-label={label("Minimum intensity")}
                   type="number"
                   step="any"
-                  value={Number(limits[0].toPrecision(7))}
-                  onChange={(event) =>
-                    update(Number(event.target.value), limits[1])
-                  }
+                  value={minimumDraft}
+                  onChange={(event) => setMinimumDraft(event.target.value)}
+                  onBlur={() => commitLimit(0, minimumDraft)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      commitLimit(0, minimumDraft);
+                    }
+                  }}
                 />
               </label>
               <label>
@@ -568,10 +615,15 @@ export function ImageIntensity({
                   aria-label={label("Maximum intensity")}
                   type="number"
                   step="any"
-                  value={Number(limits[1].toPrecision(7))}
-                  onChange={(event) =>
-                    update(limits[0], Number(event.target.value))
-                  }
+                  value={maximumDraft}
+                  onChange={(event) => setMaximumDraft(event.target.value)}
+                  onBlur={() => commitLimit(1, maximumDraft)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      commitLimit(1, maximumDraft);
+                    }
+                  }}
                 />
               </label>
               <label>

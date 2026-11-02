@@ -33,6 +33,12 @@ export interface Pattern {
   x: number[];
   y: (number | null)[];
   unit: Unit;
+  backgroundCurves?: {
+    name: string;
+    color: string;
+    x: number[];
+    y: (number | null)[];
+  }[];
   curves?: { name: string; color: string; x: number[]; y: (number | null)[] }[];
   phaseLines?: {
     x: number;
@@ -123,6 +129,8 @@ export interface Calibration {
 }
 export interface RingOverlay {
   ring: number;
+  color?: string;
+  twoTheta?: number;
   points: number[][];
 }
 export interface Response {
@@ -136,6 +144,8 @@ export interface Response {
   cancelled?: boolean;
   state?: State;
   image?: Raster;
+  rawImage?: Raster;
+  phaseGuides?: RingOverlay[];
   mask?: Raster;
   cake?: Cake | null;
   pattern?: Pattern | null;

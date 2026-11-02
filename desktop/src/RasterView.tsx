@@ -4,6 +4,7 @@ import type { MaskOverlay } from "./maskDomain";
 import { ByteCache, decodeRaster } from "./rasterTransfer";
 import { colorsFor } from "./colorMaps";
 import { number, unitLabel } from "./types";
+import { linearAxisTicks, linearTicks } from "./plotTicks";
 import {
   usePlotNavigation,
   usePlotWheel,
@@ -11,6 +12,7 @@ import {
 } from "./usePlotNavigation";
 
 const EMPTY_CONTOURS: number[][][] = [];
+const EMPTY_CALIBRANT_LINES: { ring: number; twoTheta: number }[] = [];
 
 // Keep recently colour-mapped images without retaining their source buffers.
 const rendered = new ByteCache<string, HTMLCanvasElement>(96 * 1024 * 1024, 12);
@@ -31,12 +33,14 @@ export function RasterView({
   onPick,
   onInspect,
   linkedPosition,
+  calibrantLines = EMPTY_CALIBRANT_LINES,
   showNumbers = false,
   activeRing,
   currentPeakRing = activeRing,
   maskOpacity = 0.72,
   imagePadding = 0,
   overlay,
+  roi,
   onImageDoubleClick,
   peaks = [],
   rings = [],
@@ -60,12 +64,14 @@ export function RasterView({
   onPick?: (point: { x: number; y: number }) => void;
   onInspect?: (point: { x: number; y: number }) => void;
   linkedPosition?: number;
+  calibrantLines?: { ring: number; twoTheta: number; color?: string }[];
   showNumbers?: boolean;
   activeRing?: number;
   currentPeakRing?: number;
   maskOpacity?: number;
   imagePadding?: number;
   overlay?: MaskOverlay;
+  roi?: [number, number, number, number] | null;
   onImageDoubleClick?: () => void;
   peaks?: { x: number; y: number; ring: number; selected?: boolean }[];
   rings?: RingOverlay[];
@@ -74,6 +80,7 @@ export function RasterView({
   const container = useRef<HTMLDivElement>(null),
     canvas = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ width: 500, height: 380 });
+  const [cakeAxisWidth, setCakeAxisWidth] = useState(60);
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
   const [stroke, setStroke] = useState<number[][]>([]);
   const drag = useRef<{ x: number; y: number; points: number[][] } | null>(
@@ -217,7 +224,7 @@ export function RasterView({
     navigation.reset();
     setStroke([]);
   }, [raster.fullWidth, raster.fullHeight, resetKey]);
-  const left = cake ? 60 : imagePadding,
+  const left = cake ? cakeAxisWidth : imagePadding,
     right = cake ? 22 : imagePadding,
     top = cake ? 20 : imagePadding,
     bottom = cake ? 44 : imagePadding;
@@ -301,11 +308,9 @@ export function RasterView({
           context.stroke();
         }
         path();
-        context.strokeStyle = active
-          ? "#fff36be6"
-          : linked
-            ? "#83f5d0"
-            : "#ffe0a38c";
+        context.strokeStyle =
+          ring.color ??
+          (active ? "#fff36be6" : linked ? "#83f5d0" : "#ffe0a38c");
         context.lineWidth = active ? 1.35 : linked ? 2 : 0.8;
         context.stroke();
         if (
@@ -324,7 +329,7 @@ export function RasterView({
             .filter(
               (p) =>
                 p.x > left + 20 &&
-                p.x < left + plotWidth - (active ? 65 : 24) &&
+                p.x < left + plotWidth - 24 &&
                 p.y > top + 18 &&
                 p.y < top + plotHeight - 16,
             )
@@ -343,7 +348,7 @@ export function RasterView({
           if (point) {
             labels.push({
               ...point,
-              text: active ? `Ring ${ring.ring}` : String(ring.ring),
+              text: String(ring.ring),
               active,
             });
             numbered.add(ring.ring);
@@ -394,19 +399,46 @@ export function RasterView({
         context.stroke();
       }
     }
-    if (cake && linkedPosition !== undefined) {
+    if (cake) {
       const range = (raster as Cake).radialRange;
-      const x =
+      const lineX = (twoTheta: number) =>
         ox +
-        ((linkedPosition - range[0]) / (range[1] - range[0])) *
-          raster.fullWidth *
-          sx;
-      context.strokeStyle = "#8af0c4";
-      context.lineWidth = 1.5;
-      context.beginPath();
-      context.moveTo(x, top);
-      context.lineTo(x, top + plotHeight);
-      context.stroke();
+        ((twoTheta - range[0]) / (range[1] - range[0])) * raster.fullWidth * sx;
+      let lastLabelRight = -Infinity;
+      context.font = "400 13px -apple-system, sans-serif";
+      context.textAlign = "left";
+      for (const line of calibrantLines) {
+        const x = lineX(line.twoTheta);
+        if (!Number.isFinite(x) || x < left || x > left + plotWidth) continue;
+        context.strokeStyle = line.color ?? "#ffe0a38c";
+        context.lineWidth = 0.8;
+        context.beginPath();
+        context.moveTo(x, top);
+        context.lineTo(x, top + plotHeight);
+        context.stroke();
+        if (showNumbers) {
+          const text = String(line.ring);
+          const width = context.measureText(text).width + 10;
+          const labelX = Math.min(x + 3, left + plotWidth - width);
+          if (labelX < lastLabelRight + 6) continue;
+          context.fillStyle = "#202226dd";
+          context.beginPath();
+          context.roundRect(labelX, top + 4, width, 22, 3);
+          context.fill();
+          context.fillStyle = "#d8c9af";
+          context.fillText(text, labelX + 5, top + 20);
+          lastLabelRight = labelX + width;
+        }
+      }
+      if (linkedPosition !== undefined) {
+        const x = lineX(linkedPosition);
+        context.strokeStyle = "#8af0c4";
+        context.lineWidth = 1.5;
+        context.beginPath();
+        context.moveTo(x, top);
+        context.lineTo(x, top + plotHeight);
+        context.stroke();
+      }
     }
     if (navigation.selection) {
       const { start, end } = navigation.selection;
@@ -441,6 +473,21 @@ export function RasterView({
         );
         context.fill();
       }
+    }
+    if (roi && !cake) {
+      const [rowMin, rowMax, colMin, colMax] = roi;
+      const x0 = ox + colMin * sx,
+        x1 = ox + colMax * sx;
+      const y0 = oy + (raster.fullHeight - rowMax) * sy,
+        y1 = oy + (raster.fullHeight - rowMin) * sy;
+      context.fillStyle = "#00000080";
+      context.beginPath();
+      context.rect(left, top, plotWidth, plotHeight);
+      context.rect(x0, y0, x1 - x0, y1 - y0);
+      context.fill("evenodd");
+      context.strokeStyle = "#ff9500";
+      context.lineWidth = 1.5;
+      context.strokeRect(x0, y0, x1 - x0, y1 - y0);
     }
     if (overlay && !cake) {
       context.strokeStyle = overlay.erase ? "#87e4ae" : "#ff0000";
@@ -497,47 +544,79 @@ export function RasterView({
       context.fillStyle = "#77828d";
       context.strokeStyle = "#35404a";
       context.lineWidth = 1;
-      for (let i = 0; i <= 4; i++) {
-        const x = left + (plotWidth * i) / 4;
-        const px = (x - ox) / sx;
+      const { radialRange: xr, azimuthRange: yr } = raster as Cake;
+      const radial = (pixel: number) =>
+        xr[0] + (pixel / raster.fullWidth) * (xr[1] - xr[0]);
+      const azimuth = (pixel: number) =>
+        yr[0] + (pixel / raster.fullHeight) * (yr[1] - yr[0]);
+      const xMin = radial(view.xMin),
+        xMax = radial(view.xMax);
+      const yMin = azimuth(view.yMin),
+        yMax = azimuth(view.yMax);
+      const yAxis = linearAxisTicks(
+        yMin,
+        yMax,
+        Math.max(1, Math.floor(plotHeight / 48)),
+      );
+      const tickWidth = Math.max(
+        0,
+        ...yAxis.ticks.map((tick) => context.measureText(tick.label).width),
+      );
+      // Reserve separate space for the rotated title even without an offset.
+      setCakeAxisWidth(Math.max(60, Math.ceil(tickWidth) + 36));
+      let intervals = Math.max(1, Math.floor(plotWidth / 80));
+      let xTicks = linearTicks(xMin, xMax, intervals);
+      while (intervals > 1) {
+        const widest = Math.max(
+          0,
+          ...xTicks.map((tick) => context.measureText(tick.label).width),
+        );
+        const spacing =
+          xTicks.length > 1
+            ? ((xTicks[1].value - xTicks[0].value) / (xMax - xMin)) * plotWidth
+            : plotWidth;
+        if (spacing >= widest + 18) break;
+        xTicks = linearTicks(xMin, xMax, --intervals);
+      }
+      context.textAlign = "center";
+      for (const tick of xTicks) {
+        const x = left + ((tick.value - xMin) / (xMax - xMin)) * plotWidth;
         context.beginPath();
         context.moveTo(x, top + plotHeight);
         context.lineTo(x, top + plotHeight + 4);
         context.stroke();
-        context.textAlign = "center";
-        const xr = (raster as Cake).radialRange;
+        const halfLabel = context.measureText(tick.label).width / 2;
         context.fillText(
-          number(
-            cake ? xr[0] + (px / raster.fullWidth) * (xr[1] - xr[0]) : px,
-            cake ? 1 : 0,
-          ),
-          x,
+          tick.label,
+          Math.max(halfLabel + 6, Math.min(size.width - halfLabel - 6, x)),
           size.height - 18,
         );
-        const y = top + (plotHeight * i) / 4;
-        const py = raster.fullHeight - (y - oy) / sy;
-        const yr = (raster as Cake).azimuthRange;
-        context.textAlign = "right";
-        context.fillText(
-          number(
-            cake ? yr[0] + (py / raster.fullHeight) * (yr[1] - yr[0]) : py,
-            0,
-          ),
-          left - 8,
-          y + 3,
-        );
+      }
+      context.textAlign = "right";
+      for (const tick of yAxis.ticks) {
+        const y = top + ((yMax - tick.value) / (yMax - yMin)) * plotHeight;
+        context.beginPath();
+        context.moveTo(left - 4, y);
+        context.lineTo(left, y);
+        context.stroke();
+        context.fillText(tick.label, left - 8, y + 3);
+      }
+      if (yAxis.annotation) {
+        context.textAlign = "left";
+        context.fillText(yAxis.annotation, left, top - 6);
       }
       context.fillStyle = "#929ca7";
       context.textAlign = "center";
       context.fillText(
-        cake ? unitLabel((raster as Cake).unit) : "x · pixels",
+        unitLabel((raster as Cake).unit),
         left + plotWidth / 2,
         size.height - 3,
       );
       context.save();
       context.translate(11, top + plotHeight / 2);
       context.rotate(-Math.PI / 2);
-      context.fillText(cake ? "Azimuth (°)" : "y · pixels", 0, 0);
+      context.textBaseline = "middle";
+      context.fillText("Azimuth (°)", 0, 0);
       context.restore();
     }
   }, [
@@ -559,10 +638,12 @@ export function RasterView({
     contours,
     navigation.selection,
     linkedPosition,
+    calibrantLines,
     showNumbers,
     activeRing,
     currentPeakRing,
     overlay,
+    roi,
   ]);
   function position(event: React.PointerEvent<HTMLCanvasElement>) {
     const box = event.currentTarget.getBoundingClientRect();
@@ -617,7 +698,9 @@ export function RasterView({
         data-colour-map={palette}
         data-intensity-min={lower}
         data-intensity-max={upper}
-        data-ring-count={rings.length}
+        data-azimuth-min={cake ? (raster as Cake).azimuthRange[0] : undefined}
+        data-azimuth-max={cake ? (raster as Cake).azimuthRange[1] : undefined}
+        data-ring-count={cake ? calibrantLines.length : rings.length}
         data-linked-position={linkedPosition}
         data-zoom-mode={zoomMode}
         data-view-x-min={view.xMin}
@@ -632,7 +715,8 @@ export function RasterView({
         onPointerDown={(event) => {
           const painting = tool === "mask" || tool === "erase";
           // Navigation is available in every tool, including while processing.
-          if (navigation.onPointerDown(event, !painting || !!busy)) return;
+          if (navigation.onPointerDown(event, !painting || !!busy, cake))
+            return;
           if (busy || !painting || event.button !== 0 || event.ctrlKey) return;
           const { point, screen } = position(event);
           event.currentTarget.setPointerCapture(event.pointerId);

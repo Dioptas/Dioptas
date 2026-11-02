@@ -45,6 +45,53 @@ export function linearTicks(
   );
 }
 
+/** Keep tick positions in data units; factor shared digits out of their labels.
+ * A labelled value represents offset + scale * label, as on scientific axes. */
+export function linearAxisTicks(min: number, max: number, intervals = 5) {
+  const ticks = linearTicks(min, max, intervals);
+  const span = max - min;
+  if (!ticks.length) return { ticks, offset: 0, scale: 1, annotation: null };
+  const step = ticks.length > 1 ? ticks[1].value - ticks[0].value : span;
+  let offset = 0;
+  const offsetUnit = 10 ** Math.ceil(Math.log10(span));
+  if (
+    Math.abs((min + max) / 2) >= span * 100 &&
+    ticks.some((tick) => tick.label.length > 6)
+  ) {
+    offset = Number(
+      (Math.floor(min / offsetUnit + 1e-10) * offsetUnit).toPrecision(14),
+    );
+  }
+  const residuals = ticks.map((tick) => {
+    const value = tick.value - offset;
+    return Math.abs(value) < step * 1e-8 ? 0 : value;
+  });
+  const magnitude = Math.max(...residuals.map(Math.abs));
+  const exponent = magnitude ? Math.floor(Math.log10(magnitude)) : 0;
+  const scale = exponent <= -3 || exponent >= 4 ? 10 ** exponent : 1;
+  const superscripts = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+  const scaleLabel =
+    scale === 1
+      ? ""
+      : `×10${String(exponent)
+          .split("")
+          .map((digit) => (digit === "-" ? "⁻" : superscripts[Number(digit)]))
+          .join("")}`;
+  const offsetLabel =
+    offset === 0
+      ? ""
+      : `${offset > 0 ? "+" : "−"}${label(Math.abs(offset), offsetUnit)}`;
+  return {
+    ticks: ticks.map((tick, i) => ({
+      value: tick.value,
+      label: label(residuals[i] / scale, step / scale),
+    })),
+    offset,
+    scale,
+    annotation: [scaleLabel, offsetLabel].filter(Boolean).join("  ") || null,
+  };
+}
+
 /** Log viewport values are exponents; labels still show actual intensities. */
 export function logTicks(min: number, max: number, intervals = 5): PlotTick[] {
   const span = max - min;

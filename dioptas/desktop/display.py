@@ -13,7 +13,7 @@ def _gap_value(image):
     return None
 
 
-def image_levels(image, mode="percentile", percentile=0.4, filter_gaps=True):
+def image_levels(image, mode="percentile", percentile=2.5, filter_gaps=True):
     if mode not in {"percentile", "minmax", "mean3std"}:
         raise ValueError("Choose Percentile, Min/max, or Mean ± 3 Std.")
     if not isinstance(filter_gaps, bool):

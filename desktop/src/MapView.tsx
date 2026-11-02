@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { RasterView } from "./RasterView";
 import { PatternView } from "./PatternView";
 import { ImageIntensity } from "./ImageIntensity";
+import { useImageDisplayPreferences } from "./useImageDisplayPreferences";
 import {
   number,
   unitLabel,
-  type ImageDisplayPreferences,
   type Pattern,
   type Raster,
   type Response,
@@ -15,16 +15,15 @@ import type { MapData, MapRun } from "./mapDomain";
 import type { ReportPlot, PatternHover } from "./plotReadout";
 import type { ZoomMode } from "./usePlotNavigation";
 import "./map.css";
-const preferences = (): ImageDisplayPreferences => ({
-  size: "compact",
-  orientation: "horizontal",
-  auto: { mode: "percentile", percentile: 0.4, filter_gaps: false },
-});
-function useDisplay(raster: Raster | null) {
+function useDisplay(raster: Raster | null, display: string) {
   const [limits, setLimits] = useState<[number, number]>([0, 1]);
   const [log, setLog] = useState(false),
     [palette, setPalette] = useState("grey");
-  const [prefs, setPrefs] = useState(preferences);
+  const [prefs, setPrefs] = useImageDisplayPreferences(
+    display,
+    "horizontal",
+    false,
+  );
   useEffect(() => {
     if (raster) setLimits(raster.limits);
   }, [raster?.data]);
@@ -103,8 +102,8 @@ export function MapView({
       current = false;
     };
   }, [map, ready, smooth, smoothFactor, showContours, contourCount]);
-  const display = useDisplay(map?.raster ?? null),
-    detector = useDisplay(image);
+  const display = useDisplay(map?.raster ?? null, "map"),
+    detector = useDisplay(image, "map-detector");
   const [logPattern, setLogPattern] = useState(false),
     [editRegions, setEditRegions] = useState(false);
   const [mapOnly, setMapOnly] = useState(false),

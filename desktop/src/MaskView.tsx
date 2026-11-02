@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { RasterView } from "./RasterView";
 import { ImageIntensity } from "./ImageIntensity";
-import type { Raster, State, ImageDisplayPreferences } from "./types";
+import type { Raster, State } from "./types";
+import { useImageDisplayPreferences } from "./useImageDisplayPreferences";
 import {
   previewMask,
   shapeHelp,
@@ -55,11 +56,10 @@ export function MaskView({
     null,
   );
   const drawingSequence = useRef(0);
-  const [preferences, setPreferences] = useState<ImageDisplayPreferences>({
-    size: "compact",
-    orientation: "vertical",
-    auto: { mode: "percentile", percentile: 0.4, filter_gaps: true },
-  });
+  const [preferences, setPreferences] = useImageDisplayPreferences(
+    "mask-detector",
+    "vertical",
+  );
   useEffect(() => {
     if (image) setLimits(image.limits);
     setPoints([]);
