@@ -78,6 +78,10 @@ export default function App() {
   const [mode, setMode] = useState<
     "calibration" | "integration" | "mask" | "map"
   >("calibration");
+  const activeMode = useRef(mode);
+  useEffect(() => {
+    activeMode.current = mode;
+  }, [mode]);
   const maskTools = useMaskTools();
   const {
     reading: plotReading,
@@ -117,6 +121,8 @@ export default function App() {
   const [rings, setRings] = useState<RingOverlay[]>([]);
   const bridge = useRef<Invoke | null>(null),
     inFlight = useRef(false);
+  const commandTail = useRef<Promise<void> | null>(null);
+  const pendingMaskDraws = useRef(0);
   const [state, setState] = useState<State | null>(null);
   useEffect(() => {
     void updateWindowTitle(state?.imageName).catch((error) =>
@@ -175,6 +181,7 @@ export default function App() {
   const hoverLastSent = useRef(0);
   const hoverRequest = useRef(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const canDeferIntegration = useRef(false);
   const apply = useCallback((result: Response) => {
     if (!result.ok)
       throw new Error(result.error || "The operation could not be completed.");
@@ -182,6 +189,9 @@ export default function App() {
     if (result.mapLevels) setMapLevels(result.mapLevels);
     if ("mapWarning" in result) setMapWarning(result.mapWarning ?? null);
     if (result.state) {
+      // An existing live preview may still have the earlier Python worker
+      // loaded until the user restarts it.
+      canDeferIntegration.current = "integrationDirty" in result.state;
       setState(result.state);
     }
     if (result.image) {
@@ -236,9 +246,31 @@ export default function App() {
       message = "Processing…",
       onSuccess?: (result: Response) => void,
     ) => {
-      if (!bridge.current || inFlight.current) return;
+      if (!bridge.current || (inFlight.current && !pendingMaskDraws.current))
+        return;
+      const commandMode = activeMode.current;
+      const maskDrawing =
+        commandMode === "mask" &&
+        (command === "mask_stroke" ||
+          (command === "mask_edit" &&
+            ["rectangle", "circle", "polygon", "arc"].includes(
+              String(args.operation),
+            )));
+      // Keep rapid drawing and the following edit in order without disabling
+      // every control for each small mask update.
+      const previous = commandTail.current;
+      let release!: () => void;
+      const completion = new Promise<void>((resolve) => (release = resolve));
+      commandTail.current = completion;
+      if (maskDrawing) pendingMaskDraws.current++;
+      if (previous) await previous;
       inFlight.current = true;
-      setBusy(message);
+      const displayOnly =
+        command === "settings" &&
+        typeof args.transparent_mask === "boolean" &&
+        Object.keys(args).length === 1;
+      const quiet = displayOnly || maskDrawing;
+      if (!quiet) setBusy(message);
       setError(null);
       if (command === "workflow_settings")
         setState((s) =>
@@ -253,7 +285,12 @@ export default function App() {
             : s,
         );
       try {
-        const result = await bridge.current(command, args);
+        const result = await bridge.current(
+          command,
+          commandMode === "mask" && canDeferIntegration.current
+            ? { ...args, defer_integration: true }
+            : args,
+        );
         apply(result);
         if (
           [
@@ -285,12 +322,36 @@ export default function App() {
           /* Keep the original error visible. */
         }
       } finally {
-        setBusy("");
+        if (!quiet) setBusy("");
         inFlight.current = false;
+        if (maskDrawing) pendingMaskDraws.current--;
+        if (commandTail.current === completion) commandTail.current = null;
+        release();
       }
     },
     [apply],
   );
+  useEffect(() => {
+    if (
+      state?.integrationDirty &&
+      state.hasImage &&
+      state.calibrated &&
+      !busy &&
+      !error &&
+      !settingsOpen &&
+      mode !== "mask"
+    )
+      void run("integrate", {}, "Integrating image and cake…");
+  }, [
+    state?.integrationDirty,
+    state?.hasImage,
+    state?.calibrated,
+    busy,
+    error,
+    settingsOpen,
+    mode,
+    run,
+  ]);
   useEffect(() => {
     let mounted = true;
     connect()

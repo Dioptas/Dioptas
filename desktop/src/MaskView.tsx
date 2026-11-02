@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { RasterView } from "./RasterView";
 import { ImageIntensity } from "./ImageIntensity";
 import type { Raster, State, ImageDisplayPreferences } from "./types";
@@ -7,6 +7,7 @@ import {
   shapeHelp,
   type MaskTools,
   type MaskPoint,
+  type MaskOverlay,
 } from "./maskDomain";
 import "./mask.css";
 export type MaskRun = (
@@ -49,6 +50,11 @@ export function MaskView({
     [palette, setPalette] = useState("grey");
   const [points, setPoints] = useState<MaskPoint[]>([]),
     [hover, setHover] = useState<MaskPoint | null>(null);
+  const [pending, setPending] = useState(0);
+  const [pendingOverlay, setPendingOverlay] = useState<MaskOverlay | null>(
+    null,
+  );
+  const drawingSequence = useRef(0);
   const [preferences, setPreferences] = useState<ImageDisplayPreferences>({
     size: "compact",
     orientation: "vertical",
@@ -57,6 +63,8 @@ export function MaskView({
   useEffect(() => {
     if (image) setLimits(image.limits);
     setPoints([]);
+    setPendingOverlay(null);
+    drawingSequence.current++;
   }, [image]);
   useEffect(() => setPoints([]), [tools.shape, tools.erase, resetKey]);
   const cancelSelection = useCallback(() => setPoints([]), []);
@@ -71,14 +79,32 @@ export function MaskView({
     );
   }, [points.length, tools.shape, onSelectionStatus, cancelSelection]);
   useEffect(() => () => onSelectionStatus(null), [onSelectionStatus]);
-  const finish = (vertices = points) => {
-    if (vertices.length < 3 || busy) return;
-    void run(
+  const submitDrawing = async (
+    command: string,
+    args: Record<string, unknown>,
+    preview: MaskOverlay | null,
+  ) => {
+    const sequence = ++drawingSequence.current;
+    setPending((count) => count + 1);
+    setPendingOverlay(preview);
+    try {
+      await run(command, args, "Applying mask…");
+    } finally {
+      setPending((count) => count - 1);
+      if (sequence === drawingSequence.current) setPendingOverlay(null);
+    }
+  };
+  const commitShape = (vertices: MaskPoint[]) => {
+    void submitDrawing(
       "mask_edit",
       { operation: tools.shape, points: vertices, erase: tools.erase },
-      "Applying selection…",
+      previewMask(tools.shape, vertices, null, tools.erase),
     );
     setPoints([]);
+  };
+  const finish = (vertices = points) => {
+    if (vertices.length < 3 || busy) return;
+    commitShape(vertices);
   };
   useEffect(() => {
     if (!active) return;
@@ -122,18 +148,14 @@ export function MaskView({
         next.length === 2) ||
       (tools.shape === "arc" && next.length === 4)
     ) {
-      void run(
-        "mask_edit",
-        { operation: tools.shape, points: next, erase: tools.erase },
-        "Applying selection…",
-      );
-      setPoints([]);
+      commitShape(next);
     } else setPoints(next);
   };
   return (
     <section
       className="panel detector-panel mask-view"
       aria-label="Mask detector workspace"
+      aria-busy={pending > 0}
     >
       {image ? (
         <div className="detector-workspace">
@@ -158,7 +180,11 @@ export function MaskView({
             busy={busy}
             resetKey={resetKey}
             onPick={pick}
-            overlay={previewMask(tools.shape, points, hover, tools.erase)}
+            overlay={
+              points.length
+                ? previewMask(tools.shape, points, hover, tools.erase)
+                : (pendingOverlay ?? undefined)
+            }
             onImageDoubleClick={() => {
               if (tools.shape === "polygon") finish();
             }}
@@ -167,10 +193,10 @@ export function MaskView({
               onHover(p);
             }}
             onStroke={(points, erase) =>
-              void run(
+              void submitDrawing(
                 "mask_stroke",
                 { points, radius: tools.diameter / 2, erase },
-                "Applying mask…",
+                null,
               )
             }
           />

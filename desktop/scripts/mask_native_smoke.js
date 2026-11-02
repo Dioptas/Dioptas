@@ -46,14 +46,14 @@ window.__dioptasMaskNativeSmoke = async ({
     "Native rectangle lost source coordinates",
   );
   const baseline = current.mask.data;
-  click("Undo mask");
+  click("Undo");
   await delay();
   await ready();
   check(
     (await call("state")).state.maskedPixels === 0,
     "Native mask undo failed",
   );
-  click("Redo mask");
+  click("Redo");
   await delay();
   await ready();
   check(
@@ -101,6 +101,13 @@ window.__dioptasMaskNativeSmoke = async ({
   await ready();
   click("Calibration");
   await delay();
+  await ready();
+  for (
+    let i = 0;
+    i < 100 && !document.querySelector('[data-testid="cake-canvas"]');
+    i++
+  )
+    await delay();
   check(
     document.querySelector('[data-testid="cake-canvas"]'),
     "Returning from Mask lost calibration validation",

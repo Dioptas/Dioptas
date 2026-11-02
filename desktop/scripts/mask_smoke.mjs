@@ -30,6 +30,7 @@ let nextId = 0;
 const pending = new Map();
 const diagnostics = [];
 const pixelRequests = [];
+const commands = [];
 host.stderr.on("data", (chunk) => diagnostics.push(chunk.toString()));
 createInterface({ input: host.stdout }).on("line", (line) => {
   try {
@@ -52,6 +53,7 @@ host.on("exit", (code) => {
   pending.clear();
 });
 function invoke(action, payload = {}) {
+  commands.push(action);
   if (action === "pixel")
     pixelRequests.push({ time: performance.now(), ...payload });
   return new Promise((resolve, reject) => {
@@ -77,9 +79,16 @@ page.on("console", (message) => {
 });
 await page.exposeFunction("__dioptasInvoke", invoke);
 await page.addInitScript(() => {
+  window.__colourBuilds = 0;
+  const createPixels = CanvasRenderingContext2D.prototype.createImageData;
+  CanvasRenderingContext2D.prototype.createImageData = function (...args) {
+    if (args[0] === 981 && args[1] === 1043) window.__colourBuilds++;
+    return createPixels.apply(this, args);
+  };
   const draw = CanvasRenderingContext2D.prototype.drawImage;
   CanvasRenderingContext2D.prototype.drawImage = function (...args) {
     if (this.canvas.dataset.testid === "detector-canvas" && args.length === 5) {
+      window.__detectorSource = args[0];
       const matrix = this.getTransform();
       window.__detectorDraw = {
         sx: Math.abs((args[3] * matrix.a) / +this.canvas.dataset.fullWidth),
@@ -98,14 +107,24 @@ await page.addInitScript(() => {
   };
   window.pywebview = {
     api: {
-      invoke: (command, payload) => window.__dioptasInvoke(command, payload),
+      invoke: async (command, payload) => {
+        const result = await window.__dioptasInvoke(command, payload);
+        if (command === "mask_edit" && window.__maskResponseDelay)
+          await new Promise((resolve) =>
+            setTimeout(resolve, window.__maskResponseDelay),
+          );
+        return result;
+      },
     },
   };
 });
 const waitReady = async () => {
-  await page.waitForFunction(() => !document.querySelector(".spin"), {
-    timeout: 45000,
-  });
+  await page.waitForFunction(
+    () => !document.querySelector('.spin, .mask-view[aria-busy="true"]'),
+    {
+      timeout: 45000,
+    },
+  );
   assert.equal(
     await page.getByRole("alert").count(),
     0,
@@ -116,6 +135,14 @@ const waitReady = async () => {
 const button = (name) => page.getByRole("button", { name, exact: true });
 const state = () => invoke("state");
 const maskBytes = (result) => Buffer.from(result.mask.data, "base64");
+const sourcePixel = (x, y) =>
+  page.evaluate(
+    ({ x, y }) =>
+      Array.from(
+        window.__detectorSource.getContext("2d").getImageData(x, y, 1, 1).data,
+      ),
+    { x, y },
+  );
 const clickSource = async (x, y, options = {}) => {
   const target = await page.getByTestId("detector-canvas").evaluate(
     (el, { x, y }) => {
@@ -159,23 +186,80 @@ try {
   const detector = page.getByTestId("detector-canvas");
   assert.equal(await detector.getAttribute("data-intensity-scale"), "log");
   assert.equal((await state()).image.data, originalImage);
+  await page.evaluate(() => {
+    window.__maskResponseDelay = 300;
+    window.__drawingDisabledChanges = [];
+    window.__drawingObserver = new MutationObserver((changes) => {
+      window.__drawingDisabledChanges.push(
+        ...changes.map((c) => c.target.outerHTML),
+      );
+    });
+    window.__drawingObserver.observe(document.querySelector(".mask-controls"), {
+      attributes: true,
+      attributeFilter: ["disabled"],
+      subtree: true,
+    });
+  });
+  const colourBuilds = await page.evaluate(() => window.__colourBuilds);
+  const beforeShapePixel = await sourcePixel(120, 220);
   await button("Rectangle").click();
   await clickSource(101.2, 201.2);
   await clickSource(161.2, 251.2);
+  assert.equal(
+    await page.getByLabel("Mask detector workspace").getAttribute("aria-busy"),
+    "true",
+  );
+  assert.equal(await button("Circle").isEnabled(), true);
+  assert.equal(await page.locator(".spin").count(), 0);
   await waitReady();
+  const drawingChanges = await page.evaluate(() => {
+    window.__drawingObserver.disconnect();
+    window.__maskResponseDelay = 0;
+    return window.__drawingDisabledChanges;
+  });
+  assert.deepEqual(drawingChanges, []);
+  assert.equal(await page.evaluate(() => window.__colourBuilds), colourBuilds);
   let current = await state();
   let bytes = maskBytes(current);
   assert.equal(current.state.maskedPixels, 60 * 50);
   assert.equal(bytes[220 * 981 + 120], 1);
   assert.equal(bytes[120 * 981 + 220], 0);
-  await button("Undo mask").click();
+  const opacity = current.state.transparentMask ? 0.4 : 1;
+  assert.deepEqual(
+    await sourcePixel(120, 220),
+    Array.from(
+      new Uint8ClampedArray([
+        255 * opacity + beforeShapePixel[0] * (1 - opacity),
+        beforeShapePixel[1] * (1 - opacity),
+        beforeShapePixel[2] * (1 - opacity),
+        255,
+      ]),
+    ),
+  );
+  await button("Undo").click();
   await waitReady();
   assert.equal((await state()).state.maskedPixels, 0);
-  await button("Redo mask").click();
+  assert.deepEqual(await sourcePixel(120, 220), beforeShapePixel);
+  await button("Redo").click();
   await waitReady();
   assert.equal((await state()).state.maskedPixels, 3000);
   await button("Clear").click();
   await waitReady();
+  // Hold responses long enough to finish another shape, then an ordinary
+  // edit. All requests must reach the model in order without losing an edit.
+  await page.evaluate(() => (window.__maskResponseDelay = 500));
+  await clickSource(10.2, 10.2);
+  await clickSource(30.2, 30.2);
+  await clickSource(50.2, 10.2);
+  await clickSource(70.2, 30.2);
+  await waitReady();
+  assert.equal((await state()).state.maskedPixels, 800);
+  await clickSource(90.2, 10.2);
+  await clickSource(110.2, 30.2);
+  await button("Clear").click();
+  await waitReady();
+  assert.equal((await state()).state.maskedPixels, 0);
+  await page.evaluate(() => (window.__maskResponseDelay = 0));
   await page.keyboard.press("v");
   let box = await page.getByTestId("detector-canvas").boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -193,14 +277,14 @@ try {
   assert.equal(bytes[500 * 981 + 460], 1);
   const zoomBeforeUndo = await detector.getAttribute("data-view-x-min");
   const contrastBeforeUndo = await detector.getAttribute("data-intensity-max");
-  await button("Undo mask").click();
+  await button("Undo").click();
   await waitReady();
   assert.equal(await detector.getAttribute("data-view-x-min"), zoomBeforeUndo);
   assert.equal(
     await detector.getAttribute("data-intensity-max"),
     contrastBeforeUndo,
   );
-  await button("Redo mask").click();
+  await button("Redo").click();
   await waitReady();
   await page.keyboard.press("f");
   await square();
@@ -263,11 +347,55 @@ try {
   await button("Add Mask").click();
   await waitReady();
   assert.equal((await state()).mask.data, saved);
-  await page.getByLabel("Transparent mask", { exact: true }).click();
+  const beforeTransparency = (await state()).state;
+  await page.evaluate(() => {
+    const controls = document.querySelector(".mask-controls");
+    window.__transparencyButtons = [...controls.querySelectorAll("button")];
+    window.__transparencyDisabledChanges = [];
+    window.__transparencyObserver = new MutationObserver((changes) => {
+      window.__transparencyDisabledChanges.push(
+        ...changes.map((c) => c.target.outerHTML),
+      );
+    });
+    window.__transparencyObserver.observe(controls, {
+      attributes: true,
+      attributeFilter: ["disabled"],
+      subtree: true,
+    });
+  });
+  const transparency = page.getByRole("checkbox", {
+    name: "Transparent",
+    exact: true,
+  });
+  await transparency.click();
   await waitReady();
-  await page.getByLabel("Use mask", { exact: true }).click();
+  assert.equal(
+    (await state()).state.transparentMask,
+    !beforeTransparency.transparentMask,
+  );
+  assert.equal(
+    await transparency.isChecked(),
+    !beforeTransparency.transparentMask,
+  );
+  await transparency.click();
   await waitReady();
-  assert.equal((await state()).state.useMask, false);
+  assert.equal(
+    (await state()).state.transparentMask,
+    beforeTransparency.transparentMask,
+  );
+  assert.equal((await state()).state.useMask, beforeTransparency.useMask);
+  const transparencyUpdates = await page.evaluate(() => {
+    window.__transparencyObserver.disconnect();
+    return {
+      disabledChanges: window.__transparencyDisabledChanges,
+      sameButtons: window.__transparencyButtons.every(
+        (button) => button.isConnected,
+      ),
+    };
+  });
+  assert.deepEqual(transparencyUpdates.disabledChanges, []);
+  assert.equal(transparencyUpdates.sameButtons, true);
+  assert.equal(await page.getByLabel("Use mask", { exact: true }).count(), 0);
   assert.equal(
     await page.getByLabel("Display mask", { exact: true }).count(),
     0,
@@ -283,12 +411,19 @@ try {
   assert.ok(threshold > 0);
   await button("Clear").click();
   await waitReady();
-  await page.getByText("Threshold Mask settings", { exact: true }).click();
+  for (const plugin of (await state()).state.maskDetails.plugins) {
+    const settings = button(`${plugin.name} settings`);
+    await settings.click();
+    assert.equal(await settings.getAttribute("aria-expanded"), "true");
+    await settings.click();
+    assert.equal(await settings.getAttribute("aria-expanded"), "false");
+  }
+  await button("Threshold Mask settings").click();
   await page
     .getByLabel("Threshold Mask: Upper threshold", { exact: true })
     .fill("1000");
   const plugin = page.locator(".mask-plugin-row").filter({
-    has: page.getByText("Threshold Mask settings", { exact: true }),
+    has: button("Threshold Mask settings"),
   });
   await plugin
     .getByRole("button", { name: "Apply settings", exact: true })
@@ -297,10 +432,12 @@ try {
   await page.getByLabel("Threshold Mask", { exact: true }).click();
   await waitReady();
   assert.equal((await state()).state.maskedPixels, threshold);
-  await plugin.getByRole("button", { name: "Imprint", exact: true }).click();
+  await plugin
+    .getByRole("button", { name: "Imprint Threshold Mask", exact: true })
+    .click();
   await waitReady();
   assert.equal((await state()).state.maskDetails.plugins[0].enabled, false);
-  await button("Undo mask").click();
+  await button("Undo").click();
   await waitReady();
   assert.equal((await state()).state.maskDetails.plugins[0].enabled, true);
   await page.getByLabel("Threshold Mask", { exact: true }).click();
@@ -335,14 +472,97 @@ try {
   await page.getByLabel("Mask range maximum").fill("8");
   await button("Inside").click();
   await waitReady();
-  assert.ok((await state()).state.maskedPixels > 0);
+  current = await state();
+  assert.ok(current.state.maskedPixels > 0);
+  assert.equal(current.state.integrationDirty, true);
+  assert.equal(current.pattern, null);
+  assert.equal(current.cake, null);
+  const integrationCount = () =>
+    commands.filter((c) => c === "integrate").length;
+  const beforeRefresh = integrationCount();
+  await button("Integration").click();
+  await waitReady();
+  current = await state();
+  assert.equal(current.state.integrationDirty, false);
+  assert.ok(current.pattern && current.cake);
+  assert.equal(integrationCount(), beforeRefresh + 1);
+  await button("Mask").click();
+  await button("Integration").click();
+  await waitReady();
+  assert.equal(integrationCount(), beforeRefresh + 1);
+  await button("Mask").click();
+  await button("Undo").click();
+  await waitReady();
+  assert.equal((await state()).state.integrationDirty, true);
+  assert.equal(integrationCount(), beforeRefresh + 1);
+  await button("Map").click();
+  await waitReady();
+  current = await state();
+  assert.equal(current.state.integrationDirty, false);
+  assert.ok(current.pattern && current.cake);
+  assert.equal(integrationCount(), beforeRefresh + 2);
+  await button("Mask").click();
+  await button("Redo").click();
+  await waitReady();
+  assert.equal((await state()).state.integrationDirty, true);
+  assert.equal(integrationCount(), beforeRefresh + 2);
+  await button("Calibration").click();
+  await waitReady();
+  assert.equal((await state()).state.integrationDirty, false);
+  assert.equal(integrationCount(), beforeRefresh + 3);
+  await button("Step 4: Validate").click();
+  await waitReady();
+  assert.equal((await state()).state.integrationDirty, false);
+  assert.equal(integrationCount(), beforeRefresh + 3);
+  await button("Mask").click();
   await page.getByLabel("Mask radial unit").selectOption("q_A^-1");
   assert.equal(await page.getByLabel("Mask range minimum").inputValue(), "");
-  await page.locator(".sidebar-scroll").evaluate((el) => (el.scrollTop = 0));
+  const verifyPinnedMaskFiles = async () => {
+    const footer = page.locator(".mask-file-actions");
+    const before = await footer.boundingBox();
+    const sidebar = await page.locator("aside.sidebar").boundingBox();
+    assert.ok(
+      Math.abs(before.y + before.height - sidebar.y - sidebar.height) < 2,
+    );
+    const controls = page.locator(".mask-controls-scroll");
+    await controls.evaluate((el) => (el.scrollTop = el.scrollHeight));
+    const after = await footer.boundingBox();
+    assert.equal(after.y, before.y);
+    for (const label of ["Load Mask", "Add Mask", "Save Mask"]) {
+      const bounds = await button(label).boundingBox();
+      assert.ok(bounds.y >= after.y);
+      assert.ok(bounds.y + bounds.height <= after.y + after.height);
+    }
+    await controls.evaluate((el) => (el.scrollTop = 0));
+  };
+  const verifyMaskShapeLayout = async () => {
+    const heights = await page
+      .locator(".mask-shape-grid > button")
+      .evaluateAll((buttons) =>
+        buttons.map((button) => button.getBoundingClientRect().height),
+      );
+    const diameter = await page.getByLabel("Mask point diameter").boundingBox();
+    assert.ok(
+      heights.every((height) => Math.abs(height - diameter.height) < 1),
+    );
+    const selected = page.locator(
+      '.mask-shape-grid button[aria-pressed="true"]',
+    );
+    const finish = await selected.evaluate((button) => {
+      const style = getComputedStyle(button);
+      return { background: style.backgroundImage, shadow: style.boxShadow };
+    });
+    assert.match(finish.background, /linear-gradient/);
+    assert.notEqual(finish.shadow, "none");
+  };
+  await verifyPinnedMaskFiles();
+  await verifyMaskShapeLayout();
   await page.waitForTimeout(4600);
   await page.screenshot({ path: path.join(artifacts, "mask-mode.png") });
   await page.setViewportSize({ width: 1000, height: 760 });
   await square();
+  await verifyPinnedMaskFiles();
+  await verifyMaskShapeLayout();
   await page.screenshot({ path: path.join(artifacts, "mask-compact.png") });
   assert.equal(
     await page.evaluate(
@@ -351,6 +571,8 @@ try {
     false,
   );
   await setInterfaceTextSize(page, true);
+  await verifyPinnedMaskFiles();
+  await verifyMaskShapeLayout();
   assert.ok(
     (await button("Circle").evaluate((el) =>
       parseFloat(getComputedStyle(el).fontSize),
@@ -364,6 +586,7 @@ try {
         ok: true,
         shapes: ["rectangle", "circle", "point", "polygon", "arc"],
         undoRedo: true,
+        deferredIntegration: true,
         zoomResizeSourcePixels: true,
         transformSourcePixels: true,
         fileActions: true,

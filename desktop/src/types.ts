@@ -61,6 +61,7 @@ export interface State {
   maskDetails: import("./maskDomain").MaskDetails;
   exampleAvailable: boolean;
   elapsedMs: number | null;
+  integrationDirty: boolean;
   configurationCount: number;
   configurationIndex: number;
   geometry: {

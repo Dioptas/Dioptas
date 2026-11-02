@@ -110,9 +110,12 @@ await page.addInitScript(() => {
   };
 });
 const waitReady = async () => {
-  await page.waitForFunction(() => !document.querySelector(".spin"), {
-    timeout: 45000,
-  });
+  await page.waitForFunction(
+    () => !document.querySelector('.spin, .mask-view[aria-busy="true"]'),
+    {
+      timeout: 45000,
+    },
+  );
   assert.equal(
     await page.getByRole("alert").count(),
     0,
@@ -628,7 +631,7 @@ try {
   current = await invoke("state");
   assert.ok(current.state.maskedPixels > 0);
   const maskedPixels = current.state.maskedPixels;
-  await page.getByRole("button", { name: "Undo mask", exact: true }).click();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
   await waitReady();
   current = await invoke("state");
   assert.equal(current.state.maskedPixels, 0);

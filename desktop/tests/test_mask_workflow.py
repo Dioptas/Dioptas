@@ -1,6 +1,7 @@
 """Source-pixel and real-model parity for the desktop Mask mode."""
 
 from pathlib import Path
+from unittest.mock import Mock
 
 import numpy as np
 import pytest
@@ -28,6 +29,83 @@ def session():
 
 def pixels(s):
     return s.configuration.mask_model.get_img().copy()
+
+
+def test_mask_mode_defers_pattern_and_cake_until_requested(session, monkeypatch, tmp_path):
+    s = session
+    call(s, "open_calibration", path=str(s.example_paths()[1]))
+    baseline = np.array(s._pattern["y"], dtype=float)
+    pattern = Mock(wraps=s._integration_calculate_pattern)
+    cake = Mock(wraps=s._integration_calculate_cake)
+    monkeypatch.setattr(s, "_integration_calculate_pattern", pattern)
+    monkeypatch.setattr(s, "_integration_calculate_cake", cake)
+
+    def edit(command, **args):
+        result = call(s, command, defer_integration=True, **args)
+        assert result["state"]["integrationDirty"]
+        assert result["pattern"] is None and result["cake"] is None
+        assert result["state"]["elapsedMs"] is None
+        pattern.assert_not_called()
+        cake.assert_not_called()
+        return result
+
+    edit("mask_edit", operation="rectangle", points=[[11, 21], [41, 61]])
+    edit("mask_stroke", points=[[100, 100], [110, 110]], radius=5)
+    edit("undo_mask")
+    edit("redo_mask")
+    edit(
+        "mask_plugin",
+        name="Threshold Mask",
+        settings={"above_value": 1000},
+        enabled=True,
+    )
+    edit("mask_plugin", name="Threshold Mask", imprint=True)
+    path = str(tmp_path / "deferred.mask")
+    call(s, "mask_file", path=path, save=True, defer_integration=True)
+    edit("clear_mask")
+    edit("mask_file", path=path)
+    edit("settings", use_mask=False)
+    result = edit("settings", use_mask=True)
+    assert result["state"]["maskedPixels"] > 0
+
+    result = call(s, "integrate")
+    assert not result["state"]["integrationDirty"]
+    assert result["pattern"] is not None and result["cake"] is not None
+    assert not np.allclose(result["pattern"]["y"], baseline, equal_nan=True)
+    pattern.assert_called_once()
+    cake.assert_called_once()
+    # Deferral is request-scoped: normal calibration/integration settings keep
+    # their immediate calculation, using the same underlying scientific model.
+    result = call(s, "settings", use_mask=False)
+    np.testing.assert_allclose(result["pattern"]["y"], baseline, equal_nan=True)
+
+
+@pytest.mark.parametrize("dirty", [False, True])
+def test_transparency_preserves_integration_and_pixels(session, monkeypatch, dirty):
+    s = session
+    call(s, "open_calibration", path=str(s.example_paths()[1]))
+    if dirty:
+        call(
+            s, "mask_edit", operation="rectangle", points=[[11, 21], [41, 61]],
+            defer_integration=True,
+        )
+    pattern, cake, rings = s._pattern, s._cake, s._rings
+    elapsed = s._elapsed
+    revision = s._revision
+    calculate = Mock(wraps=s._calculate)
+    raster = Mock(wraps=s._raster)
+    monkeypatch.setattr(s, "_calculate", calculate)
+    monkeypatch.setattr(s, "_raster", raster)
+    for transparent in (False, True):
+        result = call(s, "settings", transparent_mask=transparent, defer_integration=dirty)
+        assert result["state"]["transparentMask"] is transparent
+        assert result["state"]["integrationDirty"] is dirty
+        assert s._pattern is pattern and s._cake is cake and s._rings is rings
+        assert s._elapsed == elapsed
+        assert not {"image", "mask", "pattern", "cake", "rings"} & result.keys()
+        calculate.assert_not_called()
+        raster.assert_not_called()
+    assert s._revision == revision + 2
 
 
 def test_geometry_and_unmask_are_model_equivalent(session):

@@ -85,19 +85,18 @@ export function RasterView({
     [mask?.data, mask?.dtype],
   );
   const [lower, upper] = limits ?? raster.limits;
-  const image = useMemo(() => {
+  const colourImage = useMemo(() => {
     const cacheKey = raster.bufferId
       ? JSON.stringify([
+          "colour",
           raster.bufferId,
           raster.dtype,
           raster.width,
           raster.height,
-          mask?.bufferId,
           lower,
           upper,
           log,
           palette,
-          maskOpacity,
         ])
       : null;
     const cached = cacheKey ? rendered.get(cacheKey) : undefined;
@@ -111,7 +110,6 @@ export function RasterView({
     const ramp = colorsFor(palette),
       last = ramp.length - 1;
     const logSpan = Math.log1p(span);
-    const maskColor = [255, 0, 0];
     for (let i = 0; i < data.length; i++) {
       const value = data[i];
       const t = log
@@ -122,8 +120,7 @@ export function RasterView({
         fraction = k - index;
       const a = ramp[index],
         b = ramp[index + 1];
-      const valid = Number.isFinite(value),
-        masked = maskData?.[i];
+      const valid = Number.isFinite(value);
       for (let c = 0; c < 3; c++) {
         const intensity = valid
           ? Math.round(a[c] * (1 - fraction) + b[c] * fraction)
@@ -132,9 +129,7 @@ export function RasterView({
             : c === 1
               ? 25
               : 30;
-        pixels.data[4 * i + c] = masked
-          ? maskColor[c] * maskOpacity + intensity * (1 - maskOpacity)
-          : intensity;
+        pixels.data[4 * i + c] = intensity;
       }
       pixels.data[4 * i + 3] = 255;
     }
@@ -148,9 +143,60 @@ export function RasterView({
     raster.dtype,
     raster.width,
     raster.height,
-    mask?.bufferId,
     data,
+    lower,
+    upper,
+    log,
+    palette,
+  ]);
+  const image = useMemo(() => {
+    if (!maskData) return colourImage;
+    const cacheKey =
+      raster.bufferId && mask?.bufferId
+        ? JSON.stringify([
+            "mask",
+            raster.bufferId,
+            raster.dtype,
+            raster.width,
+            raster.height,
+            mask.bufferId,
+            lower,
+            upper,
+            log,
+            palette,
+            maskOpacity,
+          ])
+        : null;
+    const cached = cacheKey ? rendered.get(cacheKey) : undefined;
+    if (cached) return cached;
+    // Reuse the unchanged detector colours. Drawing or changing opacity only
+    // blends the mask pixels, without repeating log scaling or colour mapping.
+    const pixels = colourImage
+      .getContext("2d")!
+      .getImageData(0, 0, raster.width, raster.height);
+    const maskColor = [255, 0, 0];
+    for (let i = 0; i < maskData.length; i++) {
+      if (!maskData[i]) continue;
+      for (let c = 0; c < 3; c++)
+        pixels.data[4 * i + c] =
+          maskColor[c] * maskOpacity +
+          pixels.data[4 * i + c] * (1 - maskOpacity);
+    }
+    const offscreen = document.createElement("canvas");
+    offscreen.width = raster.width;
+    offscreen.height = raster.height;
+    offscreen.getContext("2d")!.putImageData(pixels, 0, 0);
+    if (cacheKey)
+      rendered.set(cacheKey, offscreen, 4 * raster.width * raster.height);
+    return offscreen;
+  }, [
+    colourImage,
     maskData,
+    mask?.bufferId,
+    raster.bufferId,
+    raster.dtype,
+    raster.width,
+    raster.height,
     lower,
     upper,
     log,

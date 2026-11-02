@@ -53,6 +53,10 @@ that switch unchanged while editing.
   levels, auto settings and colormap. Mask display choices are independent of
   calibration and cake choices. Mask-only undo retains image contrast and
   viewport, and does not dirty an unchanged calibration fit.
+  While Mask mode is active, edits, mask files, plugins and undo/redo update
+  the mask without integrating the image. Stale pattern/cake results are
+  cleared and refreshed once when leaving Mask for any other mode, including
+  Map and future modes; further mode switches reuse the refreshed results.
 - `dioptas/desktop/mask.py` owns the command adapter. `session.py` only mixes it
   in, routes commands and exposes mask state. Existing brush/file operations
   moved out of shared session/calibration code. `mask_file` remains the native

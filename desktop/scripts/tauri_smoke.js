@@ -17,7 +17,10 @@
     throw Error(message);
   };
   const ready = () =>
-    wait(() => !document.querySelector(".spin"), "Processing did not finish");
+    wait(
+      () => !document.querySelector('.spin, .mask-view[aria-busy="true"]'),
+      "Processing did not finish",
+    );
   const click = (label) => {
     const button = [...document.querySelectorAll("button")].find(
       (b) =>

@@ -122,6 +122,8 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         self._pattern: dict | None = None
         self._cake: dict | None = None
         self._elapsed: float | None = None
+        self._defer_integration = False
+        self._integration_dirty = False
         self._revision = 0
         self._calibrant_name = "LaB6"
         self._fit_dirty = False
@@ -228,6 +230,11 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
                     raise ValueError(f"Unknown desktop command: {action}")
                 if arguments is not None and not isinstance(arguments, dict):
                     raise ValueError("Command arguments must be an object.")
+                arguments = dict(arguments or {})
+                defer_integration = arguments.pop("defer_integration", False)
+                if not isinstance(defer_integration, bool):
+                    raise ValueError("Defer integration must be a boolean.")
+                self._defer_integration = defer_integration
                 readonly = {
                     "state",
                     "pixel",
@@ -260,6 +267,8 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
             except Exception as exc:
                 logger.exception("Desktop command %s failed", action)
                 return {"ok": False, "error": str(exc) or type(exc).__name__}
+            finally:
+                self._defer_integration = False
 
     def _path(self, path, kind, save=False):
         if path is None:
@@ -302,6 +311,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
                 "maskDetails": self._mask_details(),
                 "exampleAvailable": self.example_paths() is not None,
                 "elapsedMs": self._elapsed,
+                "integrationDirty": self._integration_dirty,
                 "configurationCount": len(self._model.configurations),
                 "configurationIndex": self._model.configuration_ind,
                 "geometry": {
@@ -541,6 +551,11 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         c = self.configuration
         if transparent_mask is not None:
             c.transparent_mask = transparent_mask
+            if unit is None and bins is None and use_mask is None:
+                # Opacity changes only the display; preserve integration caches
+                # and do not resend unchanged detector or mask pixels.
+                self._revision += 1
+                return self._state()
         if unit is not None:
             c.integration_unit = unit
         if bins is not None:
@@ -557,6 +572,13 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         self._elapsed = None
         c = self.configuration
         if not self._has_image or not c.calibration_model.is_calibrated:
+            self._integration_dirty = False
+            return
+        # Mask mode needs the edited overlay immediately, but neither of its
+        # hidden integration views. Clear stale results and calculate once
+        # when a view that uses them becomes active again.
+        self._integration_dirty = True
+        if self._defer_integration:
             return
         start = time.perf_counter()
         self._integration_prepare_corrections()
@@ -582,6 +604,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         }
         self._update_rings()
         self._elapsed = round((time.perf_counter() - start) * 1000)
+        self._integration_dirty = False
 
     def _update_rings(self):
         from skimage.measure import find_contours
