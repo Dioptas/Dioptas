@@ -167,8 +167,9 @@ Lookup tables are generated at build time; see `scripts/export_colormaps.py`
 and `licenses/colormaps/` for source attribution.
 Histogram counts include every finite source pixel, including zero and negative
 values; its intensity axis is logarithmic away from zero. Display adjustments do
-not modify source arrays. Ring overlays use a dark halo and numbered labels;
-the current picking ring has a brighter stroke and label.
+not modify source arrays. Calibrant rings use thin, translucent solid lines
+without a halo and quiet, borderless numbered labels; the current picking ring
+has a slightly stronger stroke and a yellow label.
 Picked calibration peaks follow Qt: solid red dots, orange for the current
 ring, with larger dots and an opaque white outline for selected groups. Marker
 diameters stay at 7/9 screen pixels while zooming; table swatches match the image.

@@ -294,17 +294,19 @@ export function RasterView({
           });
         };
         context.setLineDash([]);
-        path();
-        context.strokeStyle = "#03070ce6";
-        context.lineWidth = active ? 5.5 : 3.5;
-        context.stroke();
+        if (linked) {
+          path();
+          context.strokeStyle = "#03070ce6";
+          context.lineWidth = 3.5;
+          context.stroke();
+        }
         path();
         context.strokeStyle = active
-          ? "#fff36b"
+          ? "#fff36be6"
           : linked
             ? "#83f5d0"
-            : "#ffe0a3";
-        context.lineWidth = active ? 2.5 : linked ? 2 : 1.35;
+            : "#ffe0a38c";
+        context.lineWidth = active ? 1.35 : linked ? 2 : 0.8;
         context.stroke();
         if (
           (showNumbers || active) &&
@@ -348,18 +350,15 @@ export function RasterView({
           }
         }
       }
-      context.font = "600 14px -apple-system, sans-serif";
+      context.font = "400 13px -apple-system, sans-serif";
       context.textAlign = "left";
       for (const label of labels) {
         const width = context.measureText(label.text).width + 10;
-        context.fillStyle = label.active ? "#fff36b" : "#10151bf0";
-        context.strokeStyle = label.active ? "#10151b" : "#ffe0a3";
-        context.lineWidth = 1;
+        context.fillStyle = "#202226dd";
         context.beginPath();
         context.roundRect(label.x + 3, label.y - 18, width, 22, 3);
         context.fill();
-        context.stroke();
-        context.fillStyle = label.active ? "#171c20" : "#fff0d6";
+        context.fillStyle = label.active ? "#fff36b" : "#d8c9af";
         context.fillText(label.text, label.x + 8, label.y - 2);
       }
       context.strokeStyle = "#ffffff88";
