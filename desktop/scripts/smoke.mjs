@@ -1,3 +1,8 @@
+import {
+  selectCalibrationRing,
+  verifyCalibrationRingPicker,
+  verifyFiftyRingPicker,
+} from "./calibration_ring_picker.mjs";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
@@ -9,6 +14,7 @@ import {
   setInterfaceTextSize,
   verifyPlotNavigation,
   verifyCalibrationNavigation,
+  verifyCakeMarginNavigation,
 } from "./plot_navigation.mjs";
 
 import {
@@ -21,6 +27,7 @@ import {
   verifyCalibrationFits,
 } from "./calibration_layout.mjs";
 import { verifyCalibrationSetup } from "./calibration_setup.mjs";
+import { verifyCalibrationWorkspace } from "./calibration_workspace.mjs";
 import { verifyDetectorGeometry } from "./detector_geometry.mjs";
 import {
   verifyImageControls,
@@ -126,6 +133,57 @@ const waitReady = async () => {
     JSON.stringify(await page.getByRole("alert").allTextContents()),
   );
 };
+async function verifyCakeCalibrantLines(snapshot) {
+  const lines = page.getByLabel("Show calibrant lines", { exact: true });
+  const cakeCanvas = page.getByTestId("cake-canvas");
+  await lines.uncheck();
+  await cakeCanvas.evaluate((canvas) => {
+    window.__cakeWithoutCalibrants = canvas
+      .getContext("2d")
+      .getImageData(0, 0, canvas.width, canvas.height).data;
+  });
+  await lines.check();
+  const result = await cakeCanvas.evaluate(
+    (canvas, { rings, range }) => {
+      const d = canvas.dataset;
+      const current = canvas
+        .getContext("2d")
+        .getImageData(0, 0, canvas.width, canvas.height).data;
+      const baseline = window.__cakeWithoutCalibrants;
+      const visible = rings
+        .map(({ twoTheta }) => {
+          const pixel =
+            ((twoTheta - range[0]) / (range[1] - range[0])) * +d.fullWidth;
+          return (
+            +d.plotLeft +
+            ((pixel - +d.viewXMin) / (+d.viewXMax - +d.viewXMin)) * +d.plotWidth
+          );
+        })
+        .filter(
+          (x) => x > +d.plotLeft + 3 && x < +d.plotLeft + +d.plotWidth - 3,
+        );
+      const changed = visible.filter((x) =>
+        [-1, 0, 1].some((dx) => {
+          const y = Math.floor(+d.plotTop + +d.plotHeight * 0.5);
+          const i = (y * canvas.width + Math.floor(x) + dx) * 4;
+          return [0, 1, 2].some((c) => current[i + c] !== baseline[i + c]);
+        }),
+      );
+      delete window.__cakeWithoutCalibrants;
+      return { visible: visible.length, changed: changed.length };
+    },
+    {
+      rings: snapshot.state.calibration.rings,
+      range: snapshot.cake.radialRange,
+    },
+  );
+  assert.ok(result.visible > 2, "Fixture must show several calibrant rings");
+  assert.equal(
+    result.changed,
+    result.visible,
+    "Cake guides must render at the calibrant's actual 2θ positions",
+  );
+}
 try {
   await page.goto("file://" + path.join(root, "dioptas/desktop/ui/index.html"));
   await waitReady();
@@ -266,8 +324,11 @@ try {
     [350.5, 592.8, 1],
     [554.3, 367.9, 1],
   ];
-  for (const [x, y, ring] of seeds) {
-    await page.getByLabel("Current calibrant ring").fill(String(ring));
+  // Pick additional real-image groups to exercise scrolling at compact sizes;
+  // remove the extras before running the existing scientific fit checks.
+  const layoutSeeds = [...seeds, ...seeds, ...seeds];
+  for (const [x, y, ring] of layoutSeeds) {
+    await selectCalibrationRing(page, ring);
     const box = await detector.boundingBox();
     const view = await detector.evaluate((el) => ({
       left: +el.dataset.plotLeft,
@@ -288,25 +349,174 @@ try {
         ((view.yMax - y) / (view.yMax - view.yMin)) * view.height,
     );
     await waitReady();
-    assert.match(
-      await page.getByTestId("active-ring").innerText(),
-      new RegExp(`ring ${ring + 1}$`),
+    assert.equal(
+      await page
+        .getByLabel("Current calibrant ring", { exact: true })
+        .getAttribute("data-ring"),
+      String(ring + 1),
       "Automatic increase must visibly identify the next picking ring",
     );
   }
   await verifyCalibrationSizes(page, {
     screenshots: artifacts,
     prefix: "picked-sidebar",
-    expectedGroups: seeds.length,
+    expectedGroups: layoutSeeds.length,
   });
-  while (
+  const savedPeakGroups = (await invoke("state")).state.calibration.picks;
+  await page
+    .getByRole("button", { name: "Save picked peaks", exact: true })
+    .click();
+  await waitReady();
+  const peakFile = JSON.parse(
+    await readFile(path.join(artifacts, "calibration-peaks.json"), "utf8"),
+  );
+  assert.deepEqual(peakFile.groups, savedPeakGroups);
+  const selectAllGroups = page.getByRole("checkbox", {
+    name: "Select all peak groups",
+    exact: true,
+  });
+  await selectAllGroups.check();
+  assert.equal(
+    await page.locator('.peak-row input[type="checkbox"]:checked').count(),
+    layoutSeeds.length,
+  );
+  await page.getByLabel("Select peak group 1", { exact: true }).uncheck();
+  assert.ok(await selectAllGroups.evaluate((el) => el.indeterminate));
+  await selectAllGroups.check();
+  assert.ok(await selectAllGroups.isChecked());
+  await selectAllGroups.uncheck();
+  assert.equal(
+    await page.locator('.peak-row input[type="checkbox"]:checked').count(),
+    0,
+  );
+  assert.ok(
     await page
-      .getByRole("button", { name: "Previous peak page", exact: true })
-      .isEnabled()
-  )
+      .getByRole("button", { name: "Delete selected", exact: true })
+      .isDisabled(),
+  );
+  await page
+    .getByRole("button", { name: "Clear calibration peaks", exact: true })
+    .click();
+  const clearPeaksDialog = page.getByRole("dialog", {
+    name: "Clear all peaks?",
+    exact: true,
+  });
+  await clearPeaksDialog.waitFor();
+  assert.equal(
+    (await invoke("state")).state.calibration.picks.length,
+    layoutSeeds.length,
+    "Opening Clear all does not remove peaks",
+  );
+  assert.ok(
+    await clearPeaksDialog
+      .getByRole("button", { name: "Cancel", exact: true })
+      .evaluate((el) => el === document.activeElement),
+    "Cancel receives focus by default",
+  );
+  const confirmationBounds = await clearPeaksDialog.boundingBox();
+  const triggerBounds = await page
+    .getByRole("button", {
+      name: "Clear calibration peaks",
+      exact: true,
+    })
+    .boundingBox();
+  assert.ok(
+    Math.abs(
+      confirmationBounds.y - (triggerBounds.y + triggerBounds.height + 8),
+    ) <= 1 &&
+      Math.abs(
+        confirmationBounds.x +
+          confirmationBounds.width -
+          (triggerBounds.x + triggerBounds.width),
+      ) <= 1,
+    "Confirmation opens directly below the Clear all icon, aligned to its right edge",
+  );
+  await page.screenshot({
+    path: path.join(artifacts, "clear-peaks-confirmation.png"),
+  });
+  await clearPeaksDialog
+    .getByRole("button", { name: "Cancel", exact: true })
+    .click();
+  assert.equal(
+    (await invoke("state")).state.calibration.picks.length,
+    layoutSeeds.length,
+    "Cancel preserves every peak group",
+  );
+  const clearPeaksButton = page.getByRole("button", {
+    name: "Clear calibration peaks",
+    exact: true,
+  });
+  assert.ok(
+    await clearPeaksButton.evaluate((el) => el === document.activeElement),
+  );
+  await clearPeaksButton.click();
+  await page.mouse.click(triggerBounds.x - 80, triggerBounds.y + 15);
+  assert.ok(await clearPeaksDialog.isHidden());
+  assert.equal(
+    (await invoke("state")).state.calibration.picks.length,
+    layoutSeeds.length,
+    "Clicking outside dismisses the confirmation without changing peaks",
+  );
+  await clearPeaksButton.click();
+  await page.keyboard.press("Escape");
+  assert.ok(await clearPeaksDialog.isHidden());
+  await clearPeaksButton.click();
+  await page.keyboard.press("Enter");
+  assert.ok(await clearPeaksDialog.isHidden());
+  assert.equal(
+    (await invoke("state")).state.calibration.picks.length,
+    layoutSeeds.length,
+    "Escape and default Enter preserve every peak group",
+  );
+  await clearPeaksButton.click();
+  await clearPeaksDialog
+    .getByRole("button", { name: "Clear all", exact: true })
+    .click();
+  await waitReady();
+  assert.equal((await invoke("state")).state.calibration.picks.length, 0);
+  assert.ok(await selectAllGroups.isDisabled());
+  assert.ok(
     await page
-      .getByRole("button", { name: "Previous peak page", exact: true })
-      .click();
+      .getByRole("button", { name: "Save picked peaks", exact: true })
+      .isDisabled(),
+  );
+  await page
+    .getByRole("button", { name: "Load picked peaks", exact: true })
+    .click();
+  await waitReady();
+  assert.deepEqual(
+    (await invoke("state")).state.calibration.picks,
+    savedPeakGroups,
+  );
+  assert.equal(
+    await page.locator('.peak-row input[type="checkbox"]:checked').count(),
+    0,
+  );
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await waitReady();
+  assert.equal((await invoke("state")).state.calibration.picks.length, 0);
+  await page.getByRole("button", { name: "Redo", exact: true }).click();
+  await waitReady();
+  assert.equal(
+    (await invoke("state")).state.calibration.picks.length,
+    layoutSeeds.length,
+  );
+  for (const checkbox of await page
+    .locator('.peak-row input[type="checkbox"]')
+    .all())
+    await checkbox.uncheck();
+  for (let index = seeds.length; index < layoutSeeds.length; index++)
+    await page
+      .getByLabel(`Select peak group ${index + 1}`, { exact: true })
+      .check();
+  await page
+    .getByRole("button", { name: "Delete selected", exact: true })
+    .click();
+  await waitReady();
+  assert.equal(
+    (await invoke("state")).state.calibration.picks.length,
+    seeds.length,
+  );
   const originalRing = (await invoke("state")).state.calibration.picks[0].ring;
   await page.getByLabel("Ring assignment 1", { exact: true }).fill("3");
   await page.getByLabel("Ring assignment 1", { exact: true }).press("Tab");
@@ -340,7 +550,7 @@ try {
     beforeDeletion,
   );
   await page
-    .getByRole("button", { name: "Step 3: Calibrate", exact: true })
+    .getByRole("tab", { name: "Step 3: Calibrate", exact: true })
     .click();
   assert.equal(
     await page.getByLabel("Refine rotation 3", { exact: true }).isChecked(),
@@ -357,27 +567,18 @@ try {
     true,
   );
   await verifyCalibrationSizes(page, {
-    tabs: ["Parameters", "Refinement"],
     screenshots: artifacts,
     prefix: "calibrate-sidebar",
   });
-  await page.getByRole("tab", { name: "Parameters", exact: true }).click();
   await page.getByLabel("Refine rotation 1", { exact: true }).uncheck();
-  await page
-    .getByRole("button", { name: "Apply fit parameters", exact: true })
-    .click();
-  await waitReady();
   assert.equal(
-    (await invoke("state")).state.calibration.parameters.rot1.refine,
+    await page.getByLabel("Refine rotation 1", { exact: true }).isChecked(),
     false,
   );
   await page.getByLabel("Refine rotation 1", { exact: true }).check();
-  await page
-    .getByRole("button", { name: "Apply fit parameters", exact: true })
-    .click();
-  await waitReady();
-  await page.getByRole("tab", { name: "Refinement", exact: true }).click();
   await page.getByLabel("Number of rings", { exact: true }).fill("4");
+  await page.getByLabel("Number of rings", { exact: true }).press("Tab");
+  await waitReady();
   await page
     .getByLabel("Refinement peak-search algorithm", { exact: true })
     .selectOption("Blob");
@@ -385,15 +586,25 @@ try {
   assert.equal(
     await page.getByLabel("Number of rings", { exact: true }).inputValue(),
     "4",
-    "Algorithm selection must preserve the refinement draft",
+    "Algorithm selection must preserve the applied refinement options",
   );
-  await page
-    .getByRole("button", { name: "Apply refinement options", exact: true })
-    .click();
-  await waitReady();
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Apply refinement options", exact: true })
+      .count(),
+    0,
+  );
   assert.equal(
     (await invoke("state")).state.calibration.workflow.numberOfRings,
     4,
+  );
+  const searchWidth = page.getByLabel("Search width Δ2θ · °", { exact: true });
+  await searchWidth.fill("0.2");
+  await searchWidth.press("Enter");
+  await waitReady();
+  assert.equal(
+    (await invoke("state")).state.calibration.workflow.deltaTth,
+    0.2,
   );
   await page
     .getByLabel("Refinement peak-search algorithm", { exact: true })
@@ -401,12 +612,44 @@ try {
   await waitReady();
   await page.getByLabel("Automatic refinement", { exact: true }).uncheck();
   await waitReady();
-  await page.getByRole("tab", { name: "Parameters", exact: true }).click();
+  await page
+    .getByLabel("Distance constraint value", { exact: true })
+    .fill("203");
+  await page
+    .getByRole("tab", { name: "Step 2: Pick rings", exact: true })
+    .click();
+  await page
+    .getByRole("tab", { name: "Step 3: Calibrate", exact: true })
+    .click();
+  assert.equal(
+    await page
+      .getByLabel("Distance constraint value", { exact: true })
+      .inputValue(),
+    "203",
+    "Fit drafts survive visits to Peaks",
+  );
+  await page
+    .getByLabel("Distance constraint value", { exact: true })
+    .fill("200");
   await page
     .getByLabel("Wavelength constraint value", { exact: true })
-    .fill("0.5");
+    .fill("-0.5");
   await page.waitForFunction(
     () => document.querySelector(".fit-button").disabled,
+  );
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Apply fit parameters", exact: true })
+      .count(),
+    0,
+  );
+  assert.equal(
+    await page.getByRole("tab", { name: "Parameters", exact: true }).count(),
+    0,
+  );
+  assert.equal(
+    await page.getByRole("tab", { name: "Refinement", exact: true }).count(),
+    0,
   );
   await page
     .getByLabel("Wavelength constraint value", { exact: true })
@@ -424,6 +667,16 @@ try {
   );
   assert.ok(current.state.calibration.rmsDegrees < 0.03);
   assert.ok(current.rings.length > 2);
+  await verifyCakeCalibrantLines(current);
+  const cakeGuideCanvas = page.getByTestId("cake-canvas");
+  const cakeGuideBounds = await cakeGuideCanvas.boundingBox();
+  await page.mouse.move(
+    cakeGuideBounds.x + cakeGuideBounds.width * 0.5,
+    cakeGuideBounds.y + cakeGuideBounds.height * 0.5,
+  );
+  await page.mouse.wheel(0, -180);
+  await verifyCakeCalibrantLines(current);
+  await cakeGuideCanvas.dblclick({ button: "right" });
   assert.equal(await page.locator(".cake-panel .image-intensity").count(), 1);
   assert.equal(
     await page
@@ -476,7 +729,7 @@ try {
     await invoke("image_levels", {
       source: "cake",
       mode: "mean3std",
-      percentile: 0.4,
+      percentile: 2.5,
       filter_gaps: true,
     })
   ).levels;
@@ -512,6 +765,28 @@ try {
     await page.getByLabel("Manual center x", { exact: true }).isVisible(),
     true,
   );
+  await page
+    .getByRole("tab", { name: "Step 2: Pick rings", exact: true })
+    .click();
+  await page
+    .getByRole("tab", { name: "Step 4: Validate", exact: true })
+    .click();
+  assert.equal(
+    await page
+      .getByRole("tab", { name: "Fit2D", exact: true })
+      .getAttribute("aria-selected"),
+    "true",
+    "Validate retains its selected tab after switching steps",
+  );
+  await page.getByRole("button", { name: "Integration", exact: true }).click();
+  await page.getByRole("button", { name: "Calibration", exact: true }).click();
+  assert.equal(
+    await page
+      .getByRole("tab", { name: "Fit2D", exact: true })
+      .getAttribute("aria-selected"),
+    "true",
+    "Validate retains its selected tab after switching modes",
+  );
   await page.getByRole("tab", { name: "pyFAI", exact: true }).click();
   assert.equal(
     await page.getByLabel("Manual rotation 3", { exact: true }).isVisible(),
@@ -528,8 +803,9 @@ try {
   await rotation.fill("0.01");
   await page.waitForFunction(
     () =>
-      [...document.querySelectorAll("button")].find((button) =>
-        button.textContent.includes("Save .poni calibration"),
+      [...document.querySelectorAll("button")].find(
+        (button) =>
+          button.getAttribute("aria-label") === "Save .poni calibration",
       )?.disabled,
   );
   await page.getByRole("tab", { name: "Fit2D", exact: true }).click();
@@ -559,6 +835,19 @@ try {
     ) < 1e-10,
   );
 
+  const ringPickerChecks = [
+    await verifyCalibrationRingPicker(
+      page,
+      (await invoke("state")).state.calibration,
+    ),
+    await verifyFiftyRingPicker(page, invoke, artifacts, waitReady),
+  ];
+  const calibrationWorkspaceChecks = await verifyCalibrationWorkspace(
+    page,
+    invoke,
+    artifacts,
+    waitReady,
+  );
   const scientificFit = {
     engine: current.state.calibration.engineLabel,
     distanceMm: current.state.geometry.dist * 1000,
@@ -573,6 +862,8 @@ try {
     /Distance/,
   );
   await page.mouse.move(10, 10);
+  // Inspection is explicit and available independently of the calibration tab.
+  await page.getByLabel("Pick peaks", { exact: true }).uncheck();
   // A stationary validation click links image, cake, and the current radial unit.
   const fitBox = await detector.boundingBox();
   await page.mouse.click(
@@ -603,9 +894,9 @@ try {
   await setInterfaceTextSize(page, false);
 
   await page
-    .getByRole("button", { name: "Step 2: Pick rings", exact: true })
+    .getByRole("tab", { name: "Step 2: Pick rings", exact: true })
     .click();
-  await page.getByLabel("Current calibrant ring", { exact: true }).fill("3");
+  await selectCalibrationRing(page, 3);
   assert.equal(await detector.getAttribute("data-active-ring"), "3");
   await page.waitForFunction(() => {
     const pixels = document
@@ -619,7 +910,9 @@ try {
       ).data;
     let count = 0;
     for (let i = 0; i < pixels.length; i += 4)
-      if (pixels[i] === 255 && pixels[i + 1] === 243 && pixels[i + 2] === 107)
+      // The active ring is translucent; the compact numeric label alone need
+      // not contain many fully opaque yellow pixels.
+      if (pixels[i] > 200 && pixels[i + 1] > 180 && pixels[i + 2] < 140)
         count++;
     return count > 20;
   });
@@ -627,13 +920,14 @@ try {
     path: path.join(artifacts, "calibration-ring-selected.png"),
   });
   await page
-    .getByRole("button", { name: "Step 4: Validate", exact: true })
+    .getByRole("tab", { name: "Step 4: Validate", exact: true })
     .click();
   const geometryBeforeReference = (await invoke("state")).state.geometry;
   await page
     .getByLabel("Validation calibrant", { exact: true })
     .selectOption("LaB6");
   await waitReady();
+  await verifyCakeCalibrantLines(await invoke("state"));
   assert.deepEqual(
     (await invoke("state")).state.geometry,
     geometryBeforeReference,
@@ -642,6 +936,7 @@ try {
     .getByLabel("Validation calibrant", { exact: true })
     .selectOption("CeO2");
   await waitReady();
+  await verifyCakeMarginNavigation(page);
   await page.getByRole("button", { name: "Integration", exact: true }).click();
   await page.getByTestId("cake-canvas").waitFor({ state: "attached" });
   const integrationLayoutChecks = await verifyIntegrationLayout(
@@ -735,6 +1030,8 @@ try {
   await page
     .getByRole("button", { name: "Close settings", exact: true })
     .click();
+  await page.getByRole("button", { name: "Calibration", exact: true }).click();
+  await verifyCakeCalibrantLines(current);
   await page.getByRole("button", { name: "Mask", exact: true }).click();
   await page.getByRole("button", { name: "Point", exact: true }).click();
   const box = await detector.boundingBox();
@@ -797,6 +1094,32 @@ try {
   await page.screenshot({
     path: path.join(artifacts, "integration-controls.png"),
   });
+  await page.getByRole("button", { name: "Calibration", exact: true }).click();
+  await page
+    .getByRole("tab", { name: "Step 4: Validate", exact: true })
+    .click();
+  for (const tab of ["Fit2D", "pyFAI"]) {
+    await page.getByRole("tab", { name: tab, exact: true }).click();
+    await page.reload();
+    await waitReady();
+    await page
+      .getByRole("tab", { name: "Step 4: Validate", exact: true })
+      .click();
+    assert.equal(
+      await page
+        .getByRole("tab", { name: tab, exact: true })
+        .getAttribute("aria-selected"),
+      "true",
+      `Validate restores ${tab} after reopening the interface`,
+    );
+    await page.waitForFunction(
+      () => document.querySelector('[aria-label="Manual wavelength"]')?.value,
+    );
+    await page.getByLabel("Manual wavelength", { exact: true }).focus();
+    await page.screenshot({
+      path: path.join(artifacts, `validation-${tab.toLowerCase()}-focused.png`),
+    });
+  }
   assert.deepEqual(errors, []);
   const report = {
     integrationChecks,
@@ -809,6 +1132,8 @@ try {
     imageControlChecks,
     detectorGeometryChecks,
     calibrationSetupChecks,
+    calibrationWorkspaceChecks,
+    ringPickerChecks,
     screenshots: [
       "calibration-start.png",
       "calibration-fit.png",

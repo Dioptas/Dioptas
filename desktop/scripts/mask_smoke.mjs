@@ -132,7 +132,11 @@ const waitReady = async () => {
   );
 };
 
-const button = (name) => page.getByRole("button", { name, exact: true });
+const button = (name) =>
+  page.getByRole(name.startsWith("Step ") ? "tab" : "button", {
+    name,
+    exact: true,
+  });
 const state = () => invoke("state");
 const maskBytes = (result) => Buffer.from(result.mask.data, "base64");
 const sourcePixel = (x, y) =>

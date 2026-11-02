@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { fileURLToPath } from "node:url";
 
 export async function setInterfaceTextSize(page, large) {
   await page.getByRole("button", { name: "Settings", exact: true }).click();
@@ -26,9 +27,10 @@ const read = (canvas) =>
   }));
 const spanX = (view) => view.xMax - view.xMin;
 const spanY = (view) => view.yMax - view.yMin;
-const close = (actual, expected, message) =>
+const close = (actual, expected, message, tolerance = 0) =>
   assert.ok(
-    Math.abs(actual - expected) < Math.max(1e-7, Math.abs(expected) * 1e-7),
+    Math.abs(actual - expected) <
+      Math.max(tolerance, 1e-7, Math.abs(expected) * 1e-7),
     `${message}: ${actual} vs ${expected}`,
   );
 async function point(canvas, fx, fy) {
@@ -58,6 +60,227 @@ async function restore(page, canvas) {
   for (let i = 0; i < 10; i++)
     await page.mouse.click(p.x, p.y, { button: "right" });
   await settle(page);
+}
+
+export async function verifyCakeMarginNavigation(page) {
+  return verifyRectangleMarginNavigation(page, "cake-canvas");
+}
+
+async function verifyRectangleMarginNavigation(page, id) {
+  const canvas = page.getByTestId(id);
+  await restore(page, canvas);
+  const fit = await read(canvas);
+  const { width, height } = await canvas.evaluate((el) => ({
+    width: +el.dataset.plotWidth,
+    height: +el.dataset.plotHeight,
+  }));
+  const mx = 10 / width,
+    my = 10 / height;
+  for (const [name, from, to] of [
+    ["left axis", [-mx, 0.2], [0.65, 0.75]],
+    ["above image", [0.2, -my], [0.75, 0.65]],
+    ["bottom axis", [0.2, 1 + my], [0.75, 0.35]],
+    ["right margin", [1 + mx, 0.2], [0.35, 0.75]],
+    ["outside corner", [-mx, -my], [0.65, 0.75]],
+    ["release outside", [0.25, 0.3], [1 + mx, 1 + my]],
+  ]) {
+    await drag(page, canvas, from, to);
+    const selected = await read(canvas);
+    const clamp = (v) => Math.max(0, Math.min(1, v));
+    const [x1, y1] = from.map(clamp),
+      [x2, y2] = to.map(clamp);
+    close(
+      selected.xMin,
+      fit.xMin + Math.min(x1, x2) * spanX(fit),
+      `${name}: clipped x minimum`,
+      (spanX(fit) / width) * 0.01,
+    );
+    close(
+      selected.xMax,
+      fit.xMin + Math.max(x1, x2) * spanX(fit),
+      `${name}: clipped x maximum`,
+      (spanX(fit) / width) * 0.01,
+    );
+    close(
+      selected.yMin,
+      fit.yMax - Math.max(y1, y2) * spanY(fit),
+      `${name}: clipped y minimum`,
+      (spanY(fit) / height) * 0.01,
+    );
+    close(
+      selected.yMax,
+      fit.yMax - Math.min(y1, y2) * spanY(fit),
+      `${name}: clipped y maximum`,
+      (spanY(fit) / height) * 0.01,
+    );
+    await restore(page, canvas);
+  }
+  // Check inert margins while zoomed so an accidental fit reset also fails.
+  await drag(page, canvas, [0.2, 0.25], [0.8, 0.75]);
+  const zoomed = await read(canvas);
+  const linked = await canvas.getAttribute("data-linked-position");
+  for (const [from, to] of [
+    [
+      [-mx, 0.2],
+      [-mx / 2, 0.8],
+    ],
+    [
+      [0.2, -my],
+      [0.8, -my / 2],
+    ],
+    [
+      [0.2, 1 + my],
+      [0.8, 1 + my / 2],
+    ],
+    [
+      [1 + mx, 0.2],
+      [1 + mx / 2, 0.8],
+    ],
+  ]) {
+    await drag(page, canvas, from, to);
+    assert.deepEqual(
+      await read(canvas),
+      zoomed,
+      `${id}: drag entirely outside plot does nothing`,
+    );
+  }
+  const margin = await point(canvas, -mx, 0.5);
+  await page.mouse.click(margin.x, margin.y);
+  await settle(page);
+  assert.deepEqual(
+    await read(canvas),
+    zoomed,
+    `${id}: margin click preserves zoom`,
+  );
+  assert.equal(
+    await canvas.getAttribute("data-linked-position"),
+    linked,
+    `${id}: margin gestures do not inspect radial positions`,
+  );
+  await restore(page, canvas);
+  return [
+    `${id}: rectangle drags start on axes/margins, clip to plot, and ignore outside-only gestures`,
+  ];
+}
+
+async function verifyCompactAxisLabels(page, id) {
+  const canvas = page.getByTestId(id);
+  await canvas.evaluate((el) => {
+    const context = el.getContext("2d");
+    const fillText = context.fillText,
+      scale = context.scale;
+    el.__axisText = [];
+    context.scale = function (...args) {
+      if (this.getTransform().isIdentity) el.__axisText = [];
+      return scale.apply(this, args);
+    };
+    context.fillText = function (text, x, y, ...args) {
+      const metrics = this.measureText(text),
+        transform = this.getTransform();
+      const corners = [
+        [
+          x - metrics.actualBoundingBoxLeft,
+          y - metrics.actualBoundingBoxAscent,
+        ],
+        [
+          x + metrics.actualBoundingBoxRight,
+          y - metrics.actualBoundingBoxAscent,
+        ],
+        [
+          x - metrics.actualBoundingBoxLeft,
+          y + metrics.actualBoundingBoxDescent,
+        ],
+        [
+          x + metrics.actualBoundingBoxRight,
+          y + metrics.actualBoundingBoxDescent,
+        ],
+      ].map(([px, py]) => new DOMPoint(px, py).matrixTransform(transform));
+      el.__axisText.push({
+        text,
+        x,
+        y,
+        left: Math.min(...corners.map((p) => p.x)) / devicePixelRatio,
+        right: Math.max(...corners.map((p) => p.x)) / devicePixelRatio,
+        top: Math.min(...corners.map((p) => p.y)) / devicePixelRatio,
+        bottom: Math.max(...corners.map((p) => p.y)) / devicePixelRatio,
+      });
+      return fillText.call(this, text, x, y, ...args);
+    };
+    el.__restoreAxisCapture = () => {
+      context.fillText = fillText;
+      context.scale = scale;
+    };
+  });
+  try {
+    for (let i = 0; i < 14; i++) {
+      await drag(page, canvas, [0.2, 0.1], [0.8, 0.3]);
+      if (
+        i >= 7 &&
+        (await canvas.evaluate((el) =>
+          el.__axisText.some((t) => t.text.includes("×10")),
+        ))
+      )
+        break;
+    }
+    const rendered = await canvas.evaluate((el) => {
+      const left = +el.dataset.plotLeft,
+        top = +el.dataset.plotTop;
+      return {
+        width: el.clientWidth,
+        plotLeft: left,
+        plotTop: top,
+        title: el.__axisText.find(
+          (t) => t.text === "Azimuth (°)" || t.text === "Intensity (a.u.)",
+        ),
+        ticks: el.__axisText.filter(
+          (t) =>
+            t.x < left &&
+            t.x >= left - 16 &&
+            t.y >= top &&
+            Number.isFinite(Number(t.text)),
+        ),
+        annotation: el.__axisText.find((t) => t.text.includes("×10")),
+      };
+    });
+    assert.ok(
+      rendered.annotation,
+      `${id}: close zoom factors out a power of ten`,
+    );
+    assert.ok(rendered.title && rendered.ticks.length >= 2);
+    assert.ok(
+      rendered.annotation.top >= 0 &&
+        rendered.annotation.bottom < rendered.plotTop,
+    );
+    assert.ok(
+      rendered.annotation.left >= rendered.plotLeft &&
+        rendered.annotation.right <= rendered.width,
+    );
+    for (const tick of rendered.ticks) {
+      assert.ok(
+        tick.left >= rendered.title.right + 6,
+        `${id}: tick ${tick.text} clears the rotated title`,
+      );
+      assert.ok(
+        tick.left >= 0 && tick.right < rendered.plotLeft,
+        `${id}: tick stays inside its axis margin`,
+      );
+      assert.ok(
+        tick.text.length <= 5,
+        `${id}: close-zoom tick is compact: ${tick.text}`,
+      );
+    }
+    await canvas.screenshot({
+      path: fileURLToPath(
+        new URL(`../artifacts/${id}-compact-axis.png`, import.meta.url),
+      ),
+    });
+  } finally {
+    await canvas.evaluate((el) => el.__restoreAxisCapture());
+    await restore(page, canvas);
+  }
+  return [
+    `${id}: scaled/offset ticks stay inside the axis margin and clear the rotated title at deep zoom`,
+  ];
 }
 
 export async function verifyPlotNavigation(page) {
@@ -166,6 +389,10 @@ export async function verifyPlotNavigation(page) {
     checks.push(
       `${id}: rectangle zoom, right pan, single unzoom / double full fit`,
     );
+    if (id === "cake-canvas" || id === "pattern-canvas") {
+      checks.push(...(await verifyRectangleMarginNavigation(page, id)));
+      checks.push(...(await verifyCompactAxisLabels(page, id)));
+    }
   }
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page
@@ -191,9 +418,84 @@ export async function verifyPlotNavigation(page) {
 export async function verifyCalibrationNavigation(page) {
   const canvas = page.getByTestId("detector-canvas");
   const initial = await read(canvas);
+  await page
+    .getByRole("slider", { name: "Lower intensity handle", exact: true })
+    .press("ArrowDown");
+  await page
+    .getByRole("slider", { name: "Upper intensity handle", exact: true })
+    .press("ArrowUp");
+  const intensity = () =>
+    canvas.evaluate((el) => [el.dataset.intensityMin, el.dataset.intensityMax]);
+  const manualLimits = await intensity();
   // Peak picking remains active: only a stationary left click selects peaks.
   await drag(page, canvas, [0.3, 0.3], [0.7, 0.7]);
   assert.ok(spanX(await read(canvas)) < spanX(initial) * 0.5);
+  const zoomed = await read(canvas);
+  // A missed pick triggers a full state refresh. That refresh must not turn
+  // a left double-click into a fitted-view reset.
+  await page.evaluate(() => {
+    window.__doubleClickInvoke = window.__dioptasInvoke;
+    window.__doubleClickRecovery = 0;
+    window.__doubleClickFail = true;
+    window.__dioptasInvoke = async (command, args) => {
+      if (command === "pick_peak")
+        return window.__doubleClickFail
+          ? { ok: false, error: "No peak found here (navigation check)." }
+          : { ok: true };
+      const result = await window.__doubleClickInvoke(command, args);
+      if (command === "state") window.__doubleClickRecovery++;
+      return result;
+    };
+  });
+  try {
+    const p = await point(canvas, 0.5, 0.5);
+    await page.mouse.dblclick(p.x, p.y);
+    await page.waitForFunction(() => window.__doubleClickRecovery > 0);
+    await page.waitForFunction(() => !document.querySelector(".spin"));
+    await settle(page);
+    assert.deepEqual(
+      await read(canvas),
+      zoomed,
+      "Left double-click preserves the image view after a failed peak pick",
+    );
+    assert.deepEqual(
+      await intensity(),
+      manualLimits,
+      "Failed peak picking preserves manual intensity limits during recovery",
+    );
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Auto intensity", exact: true })
+        .getAttribute("aria-pressed"),
+      "false",
+    );
+    await page.evaluate(() => {
+      window.__doubleClickFail = false;
+    });
+    await page.mouse.dblclick(p.x, p.y);
+    await settle(page);
+    assert.deepEqual(
+      await read(canvas),
+      zoomed,
+      "Left double-click preserves the image view after a successful pick",
+    );
+    assert.deepEqual(
+      await intensity(),
+      manualLimits,
+      "Successful peak picking preserves manual intensity limits",
+    );
+  } finally {
+    await page.evaluate(() => {
+      window.__dioptasInvoke = window.__doubleClickInvoke;
+      delete window.__doubleClickInvoke;
+      delete window.__doubleClickRecovery;
+      delete window.__doubleClickFail;
+    });
+  }
+  await page
+    .getByRole("button", { name: "Auto intensity", exact: true })
+    .click();
+  await settle(page);
   await drag(page, canvas, [0.4, 0.4], [0.5, 0.5], "right");
   await restore(page, canvas);
   close(

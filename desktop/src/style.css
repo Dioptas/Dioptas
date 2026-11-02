@@ -59,6 +59,12 @@ select:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
+input:not([type="checkbox"]):not([type="radio"]):focus-visible,
+select:focus-visible {
+  border-color: var(--accent);
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
 button svg {
   flex-shrink: 0;
 }
@@ -1181,29 +1187,6 @@ h2 {
   border-bottom: 1px solid #26323d;
   color: #a6b7c3;
 }
-.peak-row > span:nth-child(3) {
-  margin-left: auto;
-  color: #718b9e;
-  font:
-    var(--text-small) ui-monospace,
-    SFMono-Regular,
-    monospace;
-}
-.ring-color {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #ff0000;
-  border: 1px solid #ffffff5a;
-}
-.ring-color.current-ring {
-  background: #ff8c00;
-}
-.ring-color.selected-peak {
-  width: 9px;
-  height: 9px;
-  border: 2px solid white;
-}
 .no-peaks {
   font-size: var(--text-small);
   line-height: 1.9;
@@ -1598,9 +1581,6 @@ input[type="checkbox"] {
 .peak-list {
   max-height: 250px;
 }
-.peak-row > span:nth-child(3) {
-  font-size: var(--text-small);
-}
 .calibration-panel-body {
   padding: 12px;
 }
@@ -1915,7 +1895,7 @@ input[type="checkbox"] {
 }
 .calibration-task-panel .peak-row {
   display: grid;
-  grid-template-columns: 5px 17px 42px minmax(0, 1fr) 57px 24px;
+  grid-template-columns: 17px 42px minmax(0, 1fr) 57px 24px;
   gap: 5px;
 }
 .calibration-task-panel .peak-row input.ring-input {
@@ -2049,7 +2029,7 @@ input[type="checkbox"] {
 }
 .calibration-task-panel .peak-row,
 .calibration-task-panel .peak-table-headers {
-  grid-template-columns: 5px 17px 42px 55px minmax(0, 1fr) 24px;
+  grid-template-columns: 17px 42px 55px minmax(0, 1fr) 24px;
 }
 .peak-table-headers {
   display: grid;

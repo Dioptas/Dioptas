@@ -41,6 +41,8 @@ import { RasterView } from "./RasterView";
 import { PatternView } from "./PatternView";
 import { CalibrationControls } from "./CalibrationControls";
 import { CalibrationPanel } from "./CalibrationPanel";
+import { CalibrationWorkflowTabs } from "./CalibrationWorkflowTabs";
+import { CalibrationRingControls } from "./CalibrationRingControls";
 import { ImageIntensity } from "./ImageIntensity";
 import { useImageDisplayPreferences } from "./useImageDisplayPreferences";
 import { colorMaps } from "./colorMaps";
@@ -48,6 +50,7 @@ import { IntegrationView, IntegrationDisplayControls } from "./IntegrationView";
 import { IntegrationWorkspace } from "./IntegrationWorkspace";
 import {
   CalibrationExtras,
+  type CalibrationFitDraft,
   GeometryEditor,
   ManualGeometryDialog,
 } from "./CalibrationExtras";
@@ -57,10 +60,32 @@ import type { ZoomMode } from "./usePlotNavigation";
 export default function App() {
   const [integrationDisplay, setIntegrationDisplay] = useState("image");
   const [calibrationStep, setCalibrationStep] = useState(0);
+  const [validationConvention, setValidationConvention] = useState<
+    "pyfai" | "fit2d"
+  >(() => {
+    try {
+      return localStorage.getItem("dioptas-validation-convention") === "fit2d"
+        ? "fit2d"
+        : "pyfai";
+    } catch {
+      return "pyfai";
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "dioptas-validation-convention",
+        validationConvention,
+      );
+    } catch {
+      /* Keep the session preference when local storage is unavailable. */
+    }
+  }, [validationConvention]);
   const [manualGeometryOpen, setManualGeometryOpen] = useState(false);
   const [geometryDirty, setGeometryDirty] = useState(false);
   const [selectedPicks, setSelectedPicks] = useState<number[]>([]);
   const [advancedDirty, setAdvancedDirty] = useState(false);
+  const [fitDraft, setFitDraft] = useState<CalibrationFitDraft | null>(null);
   const [largeText, setLargeText] = useState(() => {
     try {
       return localStorage.getItem("dioptas-large-text") === "true";
@@ -81,6 +106,7 @@ export default function App() {
   const [progress, setProgress] = useState<Response["progress"]>();
   const [patternZoom, setPatternZoom] = useState<ZoomMode>("horizontal");
   const [setupDirty, setSetupDirty] = useState(false);
+  const [setupValid, setSetupValid] = useState(true);
   const [mode, setMode] = useState<
     "calibration" | "integration" | "mask" | "map"
   >("calibration");
@@ -122,6 +148,7 @@ export default function App() {
     }
   };
 
+  const [pickingEnabled, setPickingEnabled] = useState(true);
   const [ring, setRing] = useState(1),
     [automatic, setAutomatic] = useState(true);
   const [rings, setRings] = useState<RingOverlay[]>([]);
@@ -142,12 +169,14 @@ export default function App() {
   const [busy, setBusy] = useState("Connecting to Dioptas…"),
     [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const canPick = !!state?.hasImage && !setupDirty && !geometryDirty;
   const tool: Tool =
-    mode === "calibration" && calibrationStep === 1 ? "pick" : "pan";
+    mode === "calibration" && pickingEnabled && canPick ? "pick" : "pan";
   const [logImage, setLogImage] = useState(false),
     [logPattern, setLogPattern] = useState(false);
   const [palette, setPalette] = useState<Palette>("grey");
   const [limits, setLimits] = useState<[number, number]>([0, 100]);
+  const imageSource = useRef<Raster | null>(null);
   const cakeSource = useRef<Cake | null>(null);
   const [cakeLimits, setCakeLimits] = useState<[number, number]>([0, 100]);
   const [cakeLog, setCakeLog] = useState(false);
@@ -178,7 +207,7 @@ export default function App() {
   const hoverRequest = useRef(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const canDeferIntegration = useRef(false);
-  const apply = useCallback((result: Response) => {
+  const apply = useCallback((result: Response, resetImageView = true) => {
     if (!result.ok)
       throw new Error(result.error || "The operation could not be completed.");
     if ("map" in result) setMap(result.map ?? null);
@@ -191,6 +220,11 @@ export default function App() {
       setState(result.state);
     }
     if (result.image) {
+      const sourceChanged =
+        result.image.data !== imageSource.current?.data ||
+        result.image.width !== imageSource.current?.width ||
+        result.image.height !== imageSource.current?.height;
+      imageSource.current = result.image;
       ++hoverSequence.current;
       hoverLatest.current = null;
       if (hoverTimer.current) clearTimeout(hoverTimer.current);
@@ -198,8 +232,9 @@ export default function App() {
       setPixel(null);
       setLinked(undefined);
       setImage(result.image);
-      setLimits(result.image.limits);
-      setResetKey((k) => k + 1);
+      // Recovery may resend the same image; preserve contrast and zoom.
+      if (sourceChanged) setLimits(result.image.limits);
+      if (resetImageView) setResetKey((k) => k + 1);
     }
     if (result.levels)
       (result.display === "cake" ? setCakeLimits : setLimits)(result.levels);
@@ -242,7 +277,12 @@ export default function App() {
       message = "Processing…",
       onSuccess?: (result: Response) => void,
     ) => {
-      if (!bridge.current || (inFlight.current && !pendingMaskDraws.current))
+      if (
+        !bridge.current ||
+        (inFlight.current &&
+          !pendingMaskDraws.current &&
+          command !== "image_levels")
+      )
         return;
       const commandMode = activeMode.current;
       const maskDrawing =
@@ -265,7 +305,7 @@ export default function App() {
         command === "settings" &&
         typeof args.transparent_mask === "boolean" &&
         Object.keys(args).length === 1;
-      const quiet = displayOnly || maskDrawing;
+      const quiet = displayOnly || maskDrawing || command === "image_levels";
       if (!quiet) setBusy(message);
       setError(null);
       if (command === "workflow_settings")
@@ -289,6 +329,7 @@ export default function App() {
         );
         apply(result);
         if (
+          (command === "load_peaks" && !result.cancelled) ||
           [
             "undo_calibration",
             "redo_calibration",
@@ -312,7 +353,9 @@ export default function App() {
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
         try {
-          apply(await bridge.current("state"));
+          // Recovery refreshes the current image too. A failed peak pick must
+          // keep the user's zoom so they can retry at the same location.
+          apply(await bridge.current("state"), false);
         } catch {
           /* Keep the original error visible. */
         }
@@ -439,9 +482,9 @@ export default function App() {
         setMode("mask");
         maskTools.setShape("point");
         maskTools.setErase(key === "e");
-      } else if (key === "p" && state?.hasImage && !setupDirty) {
+      } else if (key === "p" && canPick) {
         setMode("calibration");
-        setCalibrationStep(1);
+        setPickingEnabled(true);
       } else if (key === "f") setResetKey((k) => k + 1);
       else if (
         (event.key === "Delete" || event.key === "Backspace") &&
@@ -462,6 +505,7 @@ export default function App() {
     state?.calibrated,
     state?.calibration.setupConfirmed,
     setupDirty,
+    canPick,
     mode,
     selectedPicks,
     maskTools,
@@ -567,21 +611,55 @@ export default function App() {
       (sum, group) => sum + group.points.length,
       0,
     ) ?? 0;
+  const freeFitParameters = Object.values(
+    fitDraft?.parameters ?? state?.calibration.parameters ?? {},
+  ).filter((p) => p.refine).length;
+  const validFitDraft =
+    !fitDraft ||
+    (Object.values(fitDraft.parameters).every((p) =>
+      Number.isFinite(p.value),
+    ) &&
+      fitDraft.parameters.dist?.value > 0 &&
+      fitDraft.parameters.wavelength?.value > 0 &&
+      Number.isFinite(fitDraft.polarization) &&
+      Math.abs(fitDraft.polarization) <= 1);
   const fitReady =
     ready &&
-    !!state?.calibration.setupConfirmed &&
+    (!!fitDraft || !!state?.calibration.setupConfirmed) &&
     !setupDirty &&
     !advancedDirty &&
+    !geometryDirty &&
+    validFitDraft &&
     fitPoints > 0 &&
-    fitPoints >= (state?.calibration.freeParameterCount ?? 6);
-  const fitBlocker =
-    setupDirty || advancedDirty
-      ? "Apply your parameter changes before fitting."
-      : !state?.calibration.setupConfirmed
-        ? "Confirm the start values with Apply fit parameters."
-        : fitPoints < (state?.calibration.freeParameterCount ?? 6)
-          ? `Select at least ${state?.calibration.freeParameterCount ?? 6} peaks for the current free parameters.`
-          : "Processing…";
+    fitPoints >= freeFitParameters;
+  const fitDraftDirty =
+    !!fitDraft &&
+    (fitDraft.polarization !== state?.calibration.polarization ||
+      Object.entries(fitDraft.parameters).some(([key, parameter]) => {
+        const applied = state?.calibration.parameters[key];
+        return (
+          parameter.value !== applied?.value ||
+          parameter.refine !== applied?.refine
+        );
+      }));
+  const canSaveCalibration =
+    ready &&
+    !!state?.calibrated &&
+    !state.calibration.fitDirty &&
+    !setupDirty &&
+    !geometryDirty &&
+    !fitDraftDirty;
+  const fitBlocker = geometryDirty
+    ? "Apply geometry changes on Validate before fitting."
+    : setupDirty
+      ? "Finish entering valid detector pixel sizes on Image."
+      : advancedDirty
+        ? "Finish entering valid refinement options."
+        : !validFitDraft
+          ? "Enter valid fit parameters."
+          : fitPoints < Math.max(1, freeFitParameters)
+            ? `Select at least ${Math.max(1, freeFitParameters)} peaks for the current free parameters.`
+            : "Processing…";
   const statusMessage =
     error ||
     (progress?.running
@@ -601,10 +679,14 @@ export default function App() {
           ? !state?.hasImage
             ? "Open a calibrant image to begin."
             : [
-                "Check image orientation and detector settings, then continue to Pick rings.",
-                `Pick ring ${ring}. ${state.calibration.workflow.autoIncrement ? "Ring number increases after each pick." : "Ring number stays fixed."}`,
+                "Check detector settings. Pick peaks on the image or open another tab.",
+                pickingEnabled
+                  ? `Pick ring ${ring}. ${state.calibration.workflow.autoIncrement ? "Ring number increases after each pick." : "Ring number stays fixed."}`
+                  : "Picking is off. Click the detector to inspect its radial position.",
                 "Check fit parameters, then calibrate the detector.",
-                "Inspect the rings and residual, then save the calibration.",
+                state.calibration.fitDirty
+                  ? "Ring selections changed. Refine the geometry before saving."
+                  : "Inspect the rings and residual. Save .poni is available in every tab.",
               ][calibrationStep]
           : mode === "map"
             ? map
@@ -807,41 +889,6 @@ export default function App() {
                   )}
                   {mode === "calibration" && (
                     <div className="workspace-toolbar">
-                      <div
-                        className="calibration-step-buttons"
-                        role="group"
-                        aria-label="Calibration steps"
-                      >
-                        {[
-                          "Image & setup",
-                          "Pick rings",
-                          "Calibrate",
-                          "Validate",
-                        ].map((label, index) => (
-                          <button
-                            key={label}
-                            aria-label={`Step ${index + 1}: ${label}`}
-                            aria-pressed={calibrationStep === index}
-                            className={
-                              calibrationStep === index ? "active" : ""
-                            }
-                            disabled={
-                              (index > 0 && setupDirty) ||
-                              (index === 1 && !state?.hasImage) ||
-                              (index === 3 && !state?.calibrated) ||
-                              (index === 2 &&
-                                !state?.calibration.picks.length &&
-                                !state?.calibrated)
-                            }
-                            onClick={() => {
-                              setCalibrationStep(index);
-                            }}
-                          >
-                            {index + 1}. {label}
-                          </button>
-                        ))}
-                      </div>
-
                       {state?.calibration.rmsDegrees != null && (
                         <span className="fit-summary">
                           RMS {number(state.calibration.rmsDegrees, 5)}°
@@ -915,19 +962,18 @@ export default function App() {
                                 ? [...rings, ...(linked?.contours ?? [])]
                                 : (linked?.contours ?? [])
                             }
-                            showNumbers={showNumbers}
+                            showNumbers={mode === "calibration" && showNumbers}
                             currentPeakRing={
                               mode === "calibration" ? ring : undefined
                             }
                             activeRing={
-                              mode === "calibration" && calibrationStep === 1
-                                ? ring
-                                : undefined
+                              mode === "calibration" ? ring : undefined
                             }
                             onPick={(point) => {
                               if (
                                 mode === "calibration" &&
-                                calibrationStep === 1
+                                pickingEnabled &&
+                                canPick
                               )
                                 void run(
                                   "pick_peak",
@@ -939,7 +985,7 @@ export default function App() {
                               if (
                                 state?.calibrated &&
                                 (mode === "integration" ||
-                                  calibrationStep === 3)
+                                  mode === "calibration")
                               )
                                 void run("validation_position", {
                                   source: "image",
@@ -1033,6 +1079,10 @@ export default function App() {
                                 )
                               }
                               linkedPosition={linked?.twoTheta}
+                              calibrantLines={
+                                showRings ? state?.calibration.rings : undefined
+                              }
+                              showNumbers={showNumbers}
                               onInspect={(point) => {
                                 const x =
                                   cake.radialRange[0] +
@@ -1151,11 +1201,60 @@ export default function App() {
             </main>
             <aside
               className={`sidebar ${mode === "calibration" ? "calibration-task-panel" : mode === "map" ? "map-task-panel" : ""}`}
+              data-calibration-section={
+                mode === "calibration" ? calibrationStep : undefined
+              }
             >
               <div className="options-label">
                 {mode === "mask" ? "MASK OPTIONS" : "EXPERIMENT OPTIONS"}
               </div>
-              <div className="sidebar-scroll">
+              {mode === "calibration" && (
+                <CalibrationRingControls
+                  calibration={state?.calibration}
+                  ring={ring}
+                  onRingChange={(value) => {
+                    setRing(value);
+                    setSelectedPicks(
+                      state?.calibration.picks.flatMap((pick, index) =>
+                        pick.ring === value ? [index] : [],
+                      ) ?? [],
+                    );
+                  }}
+                  picking={pickingEnabled}
+                  onPickingChange={setPickingEnabled}
+                  onAutoAdvanceChange={(autoIncrement) =>
+                    run("workflow_settings", { autoIncrement })
+                  }
+                  ready={ready}
+                  canPick={canPick}
+                />
+              )}
+              {mode === "calibration" && (
+                <CalibrationWorkflowTabs
+                  active={calibrationStep}
+                  disabled={[
+                    false,
+                    !setupValid || !state?.hasImage,
+                    !setupValid || !state?.hasImage,
+                    !setupValid || !state?.calibrated,
+                  ]}
+                  onChange={setCalibrationStep}
+                />
+              )}
+              <div
+                className="sidebar-scroll"
+                id={
+                  mode === "calibration"
+                    ? "calibration-task-content"
+                    : undefined
+                }
+                role={mode === "calibration" ? "tabpanel" : undefined}
+                aria-labelledby={
+                  mode === "calibration"
+                    ? `calibration-section-${calibrationStep}`
+                    : undefined
+                }
+              >
                 {mode === "map" ? (
                   <MapControls
                     map={map}
@@ -1257,14 +1356,14 @@ export default function App() {
                     {mode === "calibration" && calibrationStep === 0 && (
                       <CalibrationControls
                         onDirtyChange={setSetupDirty}
-                        onContinue={() => setCalibrationStep(1)}
+                        onValidityChange={setSetupValid}
                         additionalOptions={
                           <CalibrationExtras
                             state={state}
                             step={0}
                             ready={ready}
                             run={run}
-                            onDirtyChange={setAdvancedDirty}
+                            onDirtyChange={() => {}}
                             imageToolsOnly
                           />
                         }
@@ -1274,7 +1373,7 @@ export default function App() {
                             step={0}
                             ready={ready}
                             run={run}
-                            onDirtyChange={setAdvancedDirty}
+                            onDirtyChange={() => {}}
                             hideImageTools
                           />
                         }
@@ -1326,45 +1425,39 @@ export default function App() {
                             </button>
                           </section>
                         )}
-                        {calibrationStep === 3 && (
+                        <div hidden={calibrationStep !== 3}>
                           <GeometryEditor
                             calibration={state?.calibration}
                             ready={ready}
                             run={run}
                             embedded
                             formId="validation-geometry-form"
+                            convention={validationConvention}
+                            onConventionChange={setValidationConvention}
                             onDirtyChange={setGeometryDirty}
                           />
-                        )}
+                        </div>
                         {calibrationStep === 1 && (
                           <CalibrationPanel
                             selected={selectedPicks}
                             onSelected={setSelectedPicks}
+                            onRingChange={setRing}
                             state={state}
                             ready={ready}
                             ring={ring}
-                            setRing={(value) => {
-                              setRing(value);
-                              setSelectedPicks(
-                                state?.calibration.picks.flatMap((p, i) =>
-                                  p.ring === value ? [i] : [],
-                                ) ?? [],
-                              );
-                            }}
                             automatic={automatic}
                             setAutomatic={setAutomatic}
                             run={run}
                           />
                         )}
-                        {calibrationStep === 2 && (
-                          <CalibrationExtras
-                            state={state}
-                            step={calibrationStep}
-                            ready={ready}
-                            run={run}
-                            onDirtyChange={setAdvancedDirty}
-                          />
-                        )}
+                        <CalibrationExtras
+                          state={state}
+                          step={calibrationStep === 2 ? 2 : -1}
+                          ready={ready}
+                          run={run}
+                          onDirtyChange={setAdvancedDirty}
+                          onFitDraftChange={setFitDraft}
+                        />
                       </>
                     )}
                     {mode === "integration" && (
@@ -1375,117 +1468,68 @@ export default function App() {
               </div>
               {mode === "calibration" && (
                 <div className="calibration-task-footer">
-                  <div className="task-navigation">
-                    {calibrationStep > 0 && (
-                      <button
-                        className="secondary"
-                        onClick={() => {
-                          const next = calibrationStep - 1;
-                          setCalibrationStep(next);
-                        }}
-                      >
-                        ‹ Back
-                      </button>
-                    )}
-                    {calibrationStep === 0 && (
-                      <>
-                        <button
-                          type="submit"
-                          form="calibration-setup-form"
-                          className="primary"
-                          disabled={!ready || !state?.hasImage}
-                        >
-                          Next: Pick rings ›
-                        </button>
-                      </>
-                    )}
-                    {calibrationStep === 1 && (
-                      <button
-                        className="primary"
-                        disabled={!ready || !state?.calibration.picks.length}
-                        onClick={() => {
-                          const next = calibrationStep + 1;
-                          setCalibrationStep(next);
-                        }}
-                      >
-                        {
-                          ["Next: Pick rings", "Next: Calibrate"][
-                            calibrationStep
-                          ]
-                        }{" "}
-                        ›
-                      </button>
-                    )}
-                    {calibrationStep === 2 && (
-                      <>
+                  {calibrationStep >= 2 && (
+                    <div className="calibration-main-action">
+                      {calibrationStep === 2 && (
                         <button
                           className="primary fit-button"
                           title={!fitReady ? fitBlocker : undefined}
-                          disabled={!fitReady}
+                          disabled={!fitReady || geometryDirty}
                           onClick={() =>
-                            run("calibrate", {}, "Fitting detector geometry…")
+                            run(
+                              "calibrate",
+                              fitDraft ?? {},
+                              "Fitting detector geometry…",
+                            )
                           }
                         >
                           {state?.calibrated
                             ? "Refine geometry"
                             : "Calibrate detector"}
                         </button>
-                      </>
-                    )}
-                    {calibrationStep === 3 && (
-                      <>
-                        {geometryDirty ? (
+                      )}
+                      {calibrationStep === 3 &&
+                        (geometryDirty ? (
                           <button
                             type="submit"
                             form="validation-geometry-form"
-                            className="secondary"
+                            className="primary"
                             disabled={!ready}
                           >
                             Apply geometry
                           </button>
                         ) : (
-                          <>
-                            <button
-                              className="secondary"
-                              disabled={!fitReady || geometryDirty}
-                              onClick={() =>
-                                run(
-                                  "calibrate",
-                                  {},
-                                  "Refining detector geometry…",
-                                )
-                              }
-                            >
-                              Refine geometry
-                            </button>
-                          </>
-                        )}
-                        <button
-                          className="primary"
-                          disabled={
-                            !ready ||
-                            geometryDirty ||
-                            !state?.calibrated ||
-                            state?.calibration.fitDirty
-                          }
-                          onClick={() =>
-                            run(
-                              "save_calibration",
-                              {},
-                              "Saving PONI calibration…",
-                            )
-                          }
-                        >
-                          <Save size={14} />
-                          Save .poni calibration
-                        </button>
-                      </>
-                    )}
-                  </div>
-                  <div className="calibration-alternative-entry">
-                    <div>
+                          <button
+                            className="secondary"
+                            disabled={!fitReady}
+                            onClick={() =>
+                              run(
+                                "calibrate",
+                                fitDraft ?? {},
+                                "Refining detector geometry…",
+                              )
+                            }
+                          >
+                            Refine geometry
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                  <div className="calibration-general-actions">
+                    <button
+                      className="secondary calibration-save"
+                      aria-label="Save .poni calibration"
+                      disabled={!canSaveCalibration}
+                      onClick={() =>
+                        run("save_calibration", {}, "Saving PONI calibration…")
+                      }
+                    >
+                      <Save size={15} />
+                      Save .poni
+                    </button>
+                    <div className="calibration-secondary-actions">
                       <button
-                        className="secondary"
+                        className="quiet"
                         disabled={!ready}
                         onClick={() =>
                           run(
@@ -1499,7 +1543,7 @@ export default function App() {
                         Load .poni
                       </button>
                       <button
-                        className="secondary"
+                        className="quiet"
                         disabled={!ready}
                         onClick={() => setManualGeometryOpen(true)}
                       >

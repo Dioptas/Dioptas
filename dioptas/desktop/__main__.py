@@ -42,6 +42,7 @@ def main():
                 "All files (*.*)",
             ),
             "calibration": ("PONI calibration (*.poni)",),
+            "peaks": ("Dioptas calibration peaks (*.json)",),
             "project": ("Dioptas project (*.dio)",),
             "pattern": ("Diffraction pattern (*.xy;*.xye;*.chi;*.dat;*.fxye)",),
             "phase": ("Diffraction phase (*.jcpds;*.cif;*.eosmat;*.json)",),
@@ -59,6 +60,7 @@ def main():
                 "project": "experiment.dio",
                 "pattern": "pattern.xy",
                 "calibration": "calibration.poni",
+                "peaks": "calibration-peaks.json",
             }.get(kind, ""),
         )
         return result if isinstance(result, str) else result[0] if result else None

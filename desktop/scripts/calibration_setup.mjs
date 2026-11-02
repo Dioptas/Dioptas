@@ -11,7 +11,11 @@ export async function verifyCalibrationSetup(
   artifacts,
   waitReady,
 ) {
-  const button = (name) => page.getByRole("button", { name, exact: true });
+  const button = (name) =>
+    page.getByRole(name.startsWith("Step ") ? "tab" : "button", {
+      name,
+      exact: true,
+    });
   const pixelWidth = page.getByLabel("Pixel width in micrometres");
   const loadedImage = (await invoke("state")).state;
   assert.equal(await page.title(), `${loadedImage.imageName} — Dioptas`);
@@ -33,7 +37,7 @@ export async function verifyCalibrationSetup(
   await button("Load .poni").click();
   await waitReady();
   assert.equal(
-    await button("Step 1: Image & setup").getAttribute("aria-pressed"),
+    await button("Step 1: Image & setup").getAttribute("aria-selected"),
     "true",
     "Cancelling the calibration chooser preserves the current step",
   );
@@ -54,7 +58,7 @@ export async function verifyCalibrationSetup(
   await button("Rotate image +90°").click();
   await waitReady();
   assert.equal(
-    await button("Step 1: Image & setup").getAttribute("aria-pressed"),
+    await button("Step 1: Image & setup").getAttribute("aria-selected"),
     "true",
     "Transforms must not submit setup",
   );
@@ -64,6 +68,9 @@ export async function verifyCalibrationSetup(
   await page.screenshot({ path: path.join(artifacts, "image-setup.png") });
 
   const original = (await invoke("state")).state.calibration;
+  // Pixel sizes round-trip through metres in Python; allow roundoff in µm.
+  const pixelTolerance = 1e-9;
+  assert.equal(await button("Apply detector settings").count(), 0);
   assert.equal(
     await page.getByRole("tab", { name: "Start values", exact: true }).count(),
     0,
@@ -91,13 +98,13 @@ export async function verifyCalibrationSetup(
   await page.getByLabel("Detector", { exact: true }).selectOption("Custom");
   await waitReady();
   await pixelWidth.fill("");
-  await button("Next: Pick rings ›").click();
+  await pixelWidth.press("Enter");
   assert.equal(
     await pixelWidth.evaluate((el) => el.validity.valueMissing),
     true,
   );
   assert.equal(
-    await button("Step 1: Image & setup").getAttribute("aria-pressed"),
+    await button("Step 1: Image & setup").getAttribute("aria-selected"),
     "true",
   );
   await pixelWidth.fill(String(Number(original.pixelX.toPrecision(7))));
@@ -141,17 +148,52 @@ export async function verifyCalibrationSetup(
     prefix: "image-setup",
   });
   await verifyCalibrationFits(page);
-  await button("Next: Pick rings ›").click();
+  await pixelWidth.fill(String(original.pixelX + 1));
+  assert.ok(
+    Math.abs(
+      (await invoke("state")).state.calibration.pixelX - original.pixelX,
+    ) < pixelTolerance,
+    "Editing pixel width must not change the applied value before submission",
+  );
+  assert.equal(
+    await page.getByLabel("Pick peaks", { exact: true }).isDisabled(),
+    true,
+  );
+  await pixelWidth.press("Enter");
   await waitReady();
+  assert.ok(
+    Math.abs(
+      (await invoke("state")).state.calibration.pixelX - (original.pixelX + 1),
+    ) < pixelTolerance,
+    "Submitted pixel width must match within floating-point roundoff",
+  );
+  assert.equal(
+    await button("Step 1: Image & setup").getAttribute("aria-selected"),
+    "true",
+    "Automatic detector updates stay on Image",
+  );
+  await pixelWidth.fill(String(original.pixelX));
+  await pixelWidth.press("Tab");
+  await waitReady();
+  assert.ok(
+    Math.abs(
+      (await invoke("state")).state.calibration.pixelX - original.pixelX,
+    ) < pixelTolerance,
+    "Restored pixel width must match within floating-point roundoff",
+  );
   assert.equal(
     (await invoke("state")).state.calibration.distance,
     original.distance,
     "Image step only applies detector settings",
   );
+  await button("Step 2: Pick rings").click();
   await verifyCalibrationSizes(page, {
     screenshots: artifacts,
     prefix: "pick-sidebar",
   });
-  assert.equal(await button("Step 3: Calibrate").isDisabled(), true);
-  return "No scrolling or clipped controls at 1000×668 with both text sizes; image-only setup, pixel validation, transformation/file divider, visible transforms, inline mask controls and manual entry";
+  assert.equal(await button("Step 3: Calibrate").isEnabled(), true);
+  await button("Step 3: Calibrate").click();
+  assert.equal(await button("Calibrate detector").isDisabled(), true);
+  await button("Step 2: Pick rings").click();
+  return "Reachable controls at 1000×668 with both text sizes; automatic detector updates without navigation, pixel validation, visible transforms, inline mask controls and manual entry";
 }

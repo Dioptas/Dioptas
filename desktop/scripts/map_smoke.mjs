@@ -192,7 +192,7 @@ try {
   assert.equal((await invoke("state")).map.normalized, false);
   await click("Save PNG…");
   await click("Save map data…");
-  await click("Save");
+  await click("Save project");
   await click("Expand map");
   assert.equal(await page.locator(".map-detector-panel").count(), 0);
   await click("Dock detector / pattern");
@@ -233,7 +233,7 @@ try {
   await click("Calibration");
   assert.equal(
     await page
-      .getByRole("button", { name: "Step 2: Pick rings", exact: true })
+      .getByRole("tab", { name: "Step 2: Pick rings", exact: true })
       .count(),
     1,
   );

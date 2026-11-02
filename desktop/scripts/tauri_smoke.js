@@ -82,11 +82,62 @@
         initial.state.imageName,
       "Filename missing below Open image",
     );
-    click("Next: Pick rings ›");
+    // Picking and its ring control remain available on Image, before visiting Peaks.
     await ready();
+    const ringStrip = document.querySelector(".calibration-ring-controls");
+    const tabs = document.querySelector(".calibration-workflow-tabs");
+    check(
+      ringStrip &&
+        tabs &&
+        ringStrip.getBoundingClientRect().bottom <=
+          tabs.getBoundingClientRect().top,
+      "Shared ring controls must be above the tabs",
+    );
+    check(
+      ![...document.querySelectorAll(".calibration-task-footer button")].some(
+        (button) =>
+          /Back|Next:|Apply detector settings/.test(button.textContent),
+      ),
+      "Wizard actions remain in the footer",
+    );
+    const pixelWidth = document.querySelector(
+      '[aria-label="Pixel width in micrometres"]',
+    );
+    input(
+      "Pixel width in micrometres",
+      String(initial.state.calibration.pixelX + 1),
+    );
+    pixelWidth.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+    );
+    await delay();
+    await ready();
+    check(
+      Math.abs(
+        (await call("state")).state.calibration.pixelX -
+          initial.state.calibration.pixelX -
+          1,
+      ) < 1e-9,
+      "Enter did not apply detector pixels automatically",
+    );
+    input(
+      "Pixel width in micrometres",
+      String(initial.state.calibration.pixelX),
+    );
+    pixelWidth.focus();
+    pixelWidth.blur();
+    await delay();
+    await ready();
+    check(
+      Math.abs(
+        (await call("state")).state.calibration.pixelX -
+          initial.state.calibration.pixelX,
+      ) < 1e-9,
+      "Leaving the detector field did not apply its value",
+    );
     await wait(
       () => document.querySelector('[aria-label="Current calibrant ring"]'),
-      "Image Next did not continue to peak picking",
+      "Persistent ring picker is missing",
     );
     await delay();
     const canvas = document.querySelector('[data-testid="detector-canvas"]');
@@ -101,7 +152,13 @@
       [554.3, 367.9, 1],
     ];
     for (const [x, y, ring] of seeds) {
-      input("Current calibrant ring", String(ring));
+      click("Current calibrant ring");
+      await delay();
+      const option = document.querySelector(
+        `.calibration-ring-options [data-ring="${ring}"]`,
+      );
+      check(option, `Missing ring ${ring}`);
+      option.click();
       await delay();
       const box = canvas.getBoundingClientRect();
       const view = canvas.dataset;
@@ -134,10 +191,59 @@
       picked.state.calibration.picks.length === seeds.length,
       "Native image picking lost peak groups",
     );
+    const peakPath =
+      initial.state.imagePath.split("/dioptas/tests/data/")[0] +
+      "/desktop/artifacts/native-calibration-peaks.json";
+    const savedPeaks = await call("save_peaks", { path: peakPath });
+    check(savedPeaks.ok, savedPeaks.error || "Native peaks save failed");
+    check((await call("clear_peaks")).ok, "Native peaks clear failed");
+    const loadedPeaks = await call("load_peaks", { path: peakPath });
+    check(
+      loadedPeaks.ok &&
+        JSON.stringify(loadedPeaks.state.calibration.picks) ===
+          JSON.stringify(picked.state.calibration.picks),
+      loadedPeaks.error || "Native peaks round trip changed the picked groups",
+    );
+    const undonePeaks = await call("undo_calibration");
+    check(
+      undonePeaks.ok && undonePeaks.state.calibration.picks.length === 0,
+      "Undo did not restore the table before loading peaks",
+    );
+    const redonePeaks = await call("redo_calibration");
+    check(
+      redonePeaks.ok &&
+        redonePeaks.state.calibration.picks.length === seeds.length,
+      "Redo did not restore the loaded peaks",
+    );
     click("Step 3: Calibrate");
     await delay();
-    click("Refinement");
+    const fitControls = document.querySelector(".calibration-fit-controls");
+    check(fitControls, "Fit controls are missing");
+    const originalFitHeight = fitControls.style.maxHeight;
+    const footer = document.querySelector(".calibration-task-footer");
+    const footerTop = footer.getBoundingClientRect().top;
+    fitControls.style.maxHeight = "300px";
     await delay();
+    const fitScrollbar = {
+      overflow: fitControls.scrollHeight - fitControls.clientHeight,
+      width: fitControls.offsetWidth - fitControls.clientWidth,
+    };
+    check(
+      fitScrollbar.overflow > 0 && fitScrollbar.width > 0,
+      "Overflowing Fit controls need a visible scrollbar before interaction",
+    );
+    const lastFitControl = [
+      ...fitControls.querySelectorAll("input,select,button"),
+    ].at(-1);
+    lastFitControl.scrollIntoView({ block: "nearest" });
+    await delay();
+    check(fitControls.scrollTop > 0, "Lower Fit controls are unreachable");
+    check(
+      footer.getBoundingClientRect().top === footerTop,
+      "Scrolling Fit moved the calibration action",
+    );
+    fitControls.scrollTop = 0;
+    fitControls.style.maxHeight = originalFitHeight;
     const automatic = document.querySelector(
       'input[aria-label="Automatic refinement"]',
     );
@@ -145,8 +251,6 @@
     if (automatic.checked) automatic.click();
     await delay();
     await ready();
-    click("Parameters");
-    await delay();
     click("Calibrate detector");
     await delay();
     await ready();
@@ -302,6 +406,8 @@
         tcpListeners: host.tcpListeners,
         fullResolution: initial.image.step === 1,
         pickedGroups: seeds.length,
+        peakFileRoundTrip: true,
+        fitScrollbar,
         fittedDistanceMm: fitted.state.geometry.dist * 1000,
         wheelPrevented,
         validationImages: 2,

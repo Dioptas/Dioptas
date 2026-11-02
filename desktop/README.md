@@ -81,39 +81,48 @@ Its `--dev` option still supports live frontend updates independently of Tauri.
 ## Calibrate first
 
 1. Open a calibrant image, or explore the raw CeO2 example.
-2. In **Image & setup**, check image orientation, detector and pixel sizes.
-   Press **Next: Pick rings** to apply the detector settings and continue.
+2. In **Image**, check image orientation, detector and pixel sizes.
+   Valid pixel-size edits apply when leaving the field or pressing Enter;
+   there is no separate Apply button and the selected tab stays unchanged.
    Previous/next arrows sit beside **Open image**. Detector definitions and
    distortion files follow the transformation buttons, separated by a divider.
-   **Load .poni** and **Enter manually** stay available below the step actions;
+   **Load .poni** and **Enter manually** stay available as quiet footer actions;
    mask use, transparency and mask loading are directly below the detector
    tools. The processing engine lives in **Settings → General**.
-3. Continue to **Pick rings**. The task panel follows Qt: **Current ring number**,
-   **Automatic increase**, automatic/single peak search and search size. The
-   step automatically enables picking; the right task panel identifies the
-   current ring. Pick bright
+3. The shared strip above the tabs shows **Ring**, **Auto advance** and **Pick peaks**.
+   Previous/next buttons step through rings; the ring menu shows picked-point totals
+   and supports number entry followed by Enter to jump to a ring. Clicking a
+   peak-table row selects that group and updates the active ring. Auto advance
+   increases the ring number after each selection. With Pick peaks enabled,
+   stationary detector clicks pick peaks in any calibration tab; turn it off
+   to inspect radial positions. **Peaks** holds automatic/single peak search,
+   search size and the group table. Pick bright
    positions around the ring; use the group table to inspect or reassign picks.
-4. Open Calibrate → **Parameters**: distance, wavelength, PONI 1/2 and rotations 1/2/3
+4. Open **Fit**: distance, wavelength, PONI 1/2 and rotations 1/2/3
    each have a value and an independent fit checkbox. The defaults match Qt:
    geometry parameters free, wavelength fixed. The folder button beside the
    calibrant selector loads custom `.D` spacings. Wavelength/energy, starting
    distance, polarization and fit constraints live here, not on the Image step.
-   Apply complete fit parameters to confirm start values before a first fit;
-   the example explicitly supplies its own known fixture values. Select enough
+   Calibrate detector uses the current parameter values and fit checkboxes
+   directly; there is no separate Apply step. The example supplies its own known
+   fixture values. Select enough
    peaks for the free parameters and spread them across several rings.
-5. Continue to **Calibrate** and press the fixed **Calibrate detector** action at
-   the bottom of the task panel. The **Refinement** tab configures automatic
+5. In **Fit**, press the fixed **Calibrate detector** action at
+   the bottom of the task panel. The **Refinement** controls below Parameters configure automatic
    ring searches using the selected Massif/Blob settings; its progress is shown and it can
-   be cancelled. Disable it to fit only the manually selected points.
+   be cancelled. Numeric options apply on blur or Enter, without an Apply button.
+   Disable it to fit only the manually selected points.
 6. Validate the ring overlays, cake, integrated pattern, and RMS residual.
-   Click a plot to link its radial position across the other views. Change
+   Turn Pick peaks off to link detector clicks across the plots; cake and
+   pattern clicks always inspect radial positions. Change
    **Validation calibrant** to inspect a different reference without changing
    the geometry. Use the peak table to reassign groups, select/delete several
    groups, or undo/redo edits; refine again after editing selections.
 7. Inspect or edit complete geometry through the visible **pyFAI / Fit2D** tabs,
-   then save a `.poni` calibration with the fixed bottom action. Geometry drafts
-   persist while switching tabs; apply changes before refining or saving.
-   Alternatively, use **Load .poni** or **Enter manually** from any step, without
+   then save a `.poni` calibration with the general footer action, available on
+   every tab. Geometry and fit drafts persist while switching tabs; apply
+   geometry edits or refit changed selections before saving.
+   Alternatively, use **Load .poni** or **Enter manually** from any tab, without
    picking peaks.
 8. Switch to **Mask** for drawing, geometric selections, thresholds, automatic
    masks and mask files; see [Mask parity](MASK_PARITY.md). Switch to
@@ -147,14 +156,31 @@ name appears above its actions, with the full name available on hover. Text size
 and keyboard shortcuts are in Settings at the bottom of the sidebar.
 Plots occupy the main workspace, and
 one changing task panel stays on the right, following the existing Dioptas
-arrangement. The working calibration steps show the image alone; cake and
-pattern appear on Validate. The calibration sidebar fits without scrolling:
-The Image step contains image/detector controls only. Parameters / Refinement
-split the Calibrate step, while the peak table pages its groups according to
-available height. Tab labels are flat, with a thin active underline.
-Positions remain visible at both text sizes. Back/Next, fit/apply, save and
-load/manual actions stay fixed at the bottom. Mask controls are directly visible
+arrangement. A shared Ring / Auto advance / Pick peaks strip sits above horizontal
+Image / Peaks / Fit / Validate tabs in the right calibration panel; the active
+section has an orange underline. Tabs provide navigation, without Back/Next
+buttons. The detector image stays visible; cake and pattern also appear on
+Validate. Image contains image/detector controls only.
+Parameters and Refinement are stacked in the Fit pane and scroll together when
+needed, with a visible scrollbar; the fit action stays fixed below them.
+Fit drafts survive visits to Peaks.
+The peak table scrolls within the available height,
+with pinned column headers and load/save/trash/clear-all icons beside Ring selections.
+Load and Save use standalone `calibration-peaks.json` files. Save includes all
+picked groups, their ring assignments and exact source coordinates. Load replaces
+the table and supports Undo/Redo; it requires matching image dimensions,
+rotations/flips and calibrant d spacings. The file is versioned JSON using
+Dioptas bottom-left row/column coordinates and one-based ring numbers.
+The header checkbox selects or deselects all groups. Clear all asks for
+confirmation beside its icon, with Cancel focused by default; Escape or clicking
+outside dismisses the confirmation. New or selected groups
+scroll into view. Tab labels are flat, with a thin active underline.
+Positions remain accessible at both text sizes. Long image/geometry forms use
+visible scrollbars. Fit/apply actions stay in one fixed footer position;
+Save .poni is available on every tab, with quieter load/manual controls below.
+Mask controls are directly visible
 in the Image sidebar. Validation keeps complete geometry visible in pyFAI / Fit2D tabs.
+The selected validation tab is retained across steps, modes and app restarts.
 
 Each image (detector and cake) has an adjacent histogram, with independent
 limits, colour map, linear/log mode and auto settings. Both start in linear
@@ -184,12 +210,13 @@ Lookup tables are generated at build time; see `scripts/export_colormaps.py`
 and `licenses/colormaps/` for source attribution.
 Histogram counts include every finite source pixel, including zero and negative
 values; its intensity axis is logarithmic away from zero. Display adjustments do
-not modify source arrays. Calibrant rings use thin, translucent solid lines
-without a halo and quiet, borderless numbered labels; the current picking ring
-has a slightly stronger stroke and a yellow label.
+not modify source arrays. Calibrant guides on the detector and cake use thin,
+translucent solid lines without a halo and quiet, borderless numbered labels;
+cake lines stay at their 2θ positions when the pattern's radial unit changes.
+The current picking ring has a slightly stronger stroke and a yellow label.
 Picked calibration peaks follow Qt: solid red dots, orange for the current
 ring, with larger dots and an opaque white outline for selected groups. Marker
-diameters stay at 7/9 screen pixels while zooming; table swatches match the image.
+diameters stay at 7/9 screen pixels while zooming.
 Mouse coordinates and source intensity update together during movement at roughly
 10 Hz, with one pixel read in flight at most. The last completed reading remains
 visible while a new source-pixel lookup is pending; the final cursor position is
@@ -214,12 +241,13 @@ The integrated pattern defaults to Horizontal, retaining automatic intensity
 scaling. Settings offers Rectangle mode to select both radial and intensity
 ranges, independently for the main pattern and Map pattern.
 
-In the Pick rings step, a stationary left click picks peaks. A left drag zooms
+When Pick peaks is enabled, a stationary left click picks peaks in any
+calibration tab. A left drag zooms
 without adding peaks. In a mask/eraser tool, left drag paints; right-button
 navigation remains available. `F` or right double-click restores the image.
 Detector and cake images have no extra title/dimension header, Fit button or
-Display mask toggle or tool-selection strip. Picking follows the calibration
-step automatically. Drawing and erasing belong to the dedicated Mask workspace;
+Display mask toggle or tool-selection strip above the plots. Picking is
+controlled by the shared right-panel switch. Drawing and erasing belong to the dedicated Mask workspace;
 masks remain visible, with use and transparency controlled in task options.
 
 Settings is anchored at the bottom of the left mode sidebar. It opens a full,

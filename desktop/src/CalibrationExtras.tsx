@@ -7,7 +7,6 @@ import {
   FlipHorizontal,
   FlipVertical,
 } from "lucide-react";
-import { CalibrationTabs } from "./CalibrationLayout";
 import type { Calibration, State } from "./types";
 import { CalibrationHelp, calibrationHelp } from "./CalibrationHelp";
 
@@ -24,13 +23,19 @@ const fields = [
   ["rot3", "Rotation 3", "rad"],
   ["poni1", "PONI 1", "mm"],
   ["poni2", "PONI 2", "mm"],
-];
+] as const;
+export type CalibrationFitDraft = {
+  parameters: Calibration["parameters"];
+  polarization: number;
+};
+
 export function CalibrationExtras({
   state,
   ready,
   run,
   step,
   onDirtyChange,
+  onFitDraftChange,
   imageToolsOnly = false,
   hideImageTools = false,
 }: {
@@ -39,11 +44,11 @@ export function CalibrationExtras({
   run: Run;
   step: number;
   onDirtyChange: (value: boolean) => void;
+  onFitDraftChange?: (draft: CalibrationFitDraft | null) => void;
   imageToolsOnly?: boolean;
   hideImageTools?: boolean;
 }) {
   const c = state?.calibration;
-  const [fitTab, setFitTab] = useState(0);
   const [parameters, setParameters] = useState<Calibration["parameters"]>(
     c?.parameters ?? {},
   );
@@ -58,14 +63,10 @@ export function CalibrationExtras({
     }
   }, [JSON.stringify(c?.parameters), c?.polarization]);
 
-  const dirty =
-    !!c &&
-    (Object.entries(parameters).some(
-      ([key, p]) =>
-        p.value !== c.parameters[key]?.value ||
-        p.refine !== c.parameters[key]?.refine,
-    ) ||
-      Number(polarization) !== c.polarization);
+  useEffect(() => {
+    onFitDraftChange?.({ parameters, polarization: Number(polarization) });
+  }, [parameters, polarization, onFitDraftChange]);
+  useEffect(() => () => onFitDraftChange?.(null), [onFitDraftChange]);
   const [refinementDraft, setRefinementDraft] = useState<
     Record<string, string>
   >({});
@@ -85,8 +86,8 @@ export function CalibrationExtras({
         Number(value) !== Number(workflow[key as keyof typeof workflow]),
     );
   useEffect(() => {
-    onDirtyChange(dirty || refinementDirty);
-  }, [dirty, refinementDirty, onDirtyChange]);
+    onDirtyChange(refinementDirty);
+  }, [refinementDirty, onDirtyChange]);
   const toggle = (name: string, value: unknown) =>
     run("workflow_settings", { [name]: value });
   return (
@@ -181,237 +182,228 @@ export function CalibrationExtras({
         </section>
       )}
       {step === 2 && (
-        <CalibrationTabs
-          label="Calibration fit sections"
-          tabs={["Parameters", "Refinement"]}
-          active={fitTab}
-          onChange={setFitTab}
-        />
-      )}
-      {step === 2 && (
-        <section className="calibration-fit-page" hidden={fitTab !== 0}>
-          <div className="calibration-field-row calibration-calibrant-row">
-            <label htmlFor="calibration-calibrant">Calibrant</label>
-            <select
-              id="calibration-calibrant"
-              aria-label="Calibration calibrant"
-              disabled={!ready}
-              value={c?.calibrant ?? "CeO2"}
-              onChange={(e) =>
-                run(
-                  "calibration_setup",
-                  { calibrant: e.target.value },
-                  "Loading calibrant…",
-                )
-              }
-            >
-              {(c?.calibrants ?? ["CeO2"]).map((name) => (
-                <option key={name}>{name}</option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className="icon-button"
-              aria-label="Load custom calibrant…"
-              title="Load custom calibrant spacings (.D)"
-              disabled={!ready}
-              onClick={() =>
-                run("open_calibrant", {}, "Loading calibrant spacings…")
-              }
-            >
-              <FolderOpen size={16} />
-            </button>
-          </div>
-          <div className="constraint-heading">
-            <span>Parameter</span>
-            <span>Value</span>
-            <span title="Checked parameters are refined; unchecked parameters stay fixed at their entered value.">
-              Fit
-            </span>
-          </div>
-          {fields.map(([key, label, unit]) => (
-            <Fragment key={key}>
-              <div className="constraint-row">
-                <label htmlFor={`constraint-${key}`}>{label}</label>
-                <input
-                  id={`constraint-${key}`}
-                  aria-label={`${label} constraint value`}
-                  type="number"
-                  step="any"
-                  disabled={!ready}
-                  value={parameters[key]?.value ?? ""}
-                  onChange={(e) => {
-                    setParameters((p) => ({
-                      ...p,
-                      [key]: { ...p[key], value: Number(e.target.value) },
-                    }));
-                  }}
-                />
-                <span className="calibration-unit">{unit}</span>
-                <input
-                  aria-label={`Refine ${label.toLowerCase()}`}
-                  title="Checked: refine this parameter. Unchecked: hold it fixed."
-                  type="checkbox"
-                  disabled={!ready}
-                  checked={parameters[key]?.refine ?? true}
-                  onChange={(e) => {
-                    setParameters((p) => ({
-                      ...p,
-                      [key]: { ...p[key], refine: e.target.checked },
-                    }));
-                  }}
-                />
-              </div>
-              {key === "wavelength" && (
-                <>
-                  <label className="constraint-row calibration-auxiliary-row">
-                    <span>Energy</span>
-                    <input
-                      aria-label="Fit energy in kiloelectronvolts"
-                      type="number"
-                      step="any"
-                      min="0"
-                      disabled={!ready}
-                      value={
-                        parameters.wavelength?.value > 0
-                          ? Number(
-                              (
-                                12.39841984332 / parameters.wavelength.value
-                              ).toFixed(4),
-                            )
-                          : ""
-                      }
-                      onChange={(e) => {
-                        const value = Number(e.target.value);
-                        if (value > 0)
-                          setParameters((p) => ({
-                            ...p,
-                            wavelength: {
-                              ...p.wavelength,
-                              value: 12.39841984332 / value,
-                            },
-                          }));
-                      }}
-                    />
-                    <span className="calibration-unit">keV</span>
-                  </label>
-                  <label className="constraint-row calibration-auxiliary-row">
-                    <span>Polarization</span>
-                    <input
-                      className="full-input"
-                      aria-label="Polarization factor"
-                      type="number"
-                      step=".01"
-                      min="-1"
-                      max="1"
-                      value={polarization}
-                      disabled={!ready}
-                      onChange={(e) => {
-                        setPolarization(e.target.value);
-                      }}
-                    />
-                  </label>
-                </>
-              )}
-            </Fragment>
-          ))}
-          <button
-            type="button"
-            className="secondary full-input"
-            disabled={!ready || (!dirty && !!c?.setupConfirmed)}
-            onClick={() =>
-              run(
-                "fit_parameters",
-                { parameters, polarization: Number(polarization) },
-                "Applying fit constraints…",
-              )
-            }
-          >
-            <Check size={14} />
-            Apply fit parameters
-          </button>
-        </section>
-      )}
-      {step === 2 && (
-        <section className="calibration-fit-page" hidden={fitTab !== 1}>
-          <label className="check-row">
-            <input
-              aria-label="Automatic refinement"
-              type="checkbox"
-              disabled={!ready}
-              checked={workflow?.automaticRefinement ?? true}
-              onChange={(e) => toggle("automaticRefinement", e.target.checked)}
-            />
-            Automatic refinement
-          </label>
-          {workflow?.automaticRefinement && (
-            <>
-              <label className="calibration-field-row">
-                <span>Peak-search algorithm</span>
-                <select
-                  aria-label="Refinement peak-search algorithm"
-                  value={workflow.algorithm}
-                  disabled={!ready}
-                  onChange={(e) => toggle("algorithm", e.target.value)}
-                >
-                  <option>Massif</option>
-                  <option>Blob</option>
-                </select>
-              </label>
-              {(
-                [
-                  ["deltaTth", "Search width Δ2θ · °"],
-                  ["meanFactor", "Intensity mean factor"],
-                  ["intensityLimit", "Upper intensity limit"],
-                  ["numberOfRings", "Number of rings"],
-                ] as const
-              ).map(([key, label]) => (
-                <div
-                  className="calibration-field-row calibration-refinement-field"
-                  key={key}
-                >
-                  <label htmlFor={`refinement-${key}`}>{label}</label>
+        <div className="calibration-fit-controls">
+          <section className="calibration-fit-page" aria-label="Fit parameters">
+            <h3 className="calibration-fit-heading">Parameters</h3>
+            <div className="calibration-field-row calibration-calibrant-row">
+              <label htmlFor="calibration-calibrant">Calibrant</label>
+              <select
+                id="calibration-calibrant"
+                aria-label="Calibration calibrant"
+                disabled={!ready}
+                value={c?.calibrant ?? "CeO2"}
+                onChange={(e) =>
+                  run(
+                    "calibration_setup",
+                    { calibrant: e.target.value },
+                    "Loading calibrant…",
+                  )
+                }
+              >
+                {(c?.calibrants ?? ["CeO2"]).map((name) => (
+                  <option key={name}>{name}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="Load custom calibrant…"
+                title="Load custom calibrant spacings (.D)"
+                disabled={!ready}
+                onClick={() =>
+                  run("open_calibrant", {}, "Loading calibrant spacings…")
+                }
+              >
+                <FolderOpen size={16} />
+              </button>
+            </div>
+            <div className="constraint-heading">
+              <span>Parameter</span>
+              <span>Value</span>
+              <span title="Checked parameters are refined; unchecked parameters stay fixed at their entered value.">
+                Fit
+              </span>
+            </div>
+            {fields.map(([key, label, unit]) => (
+              <Fragment key={key}>
+                <div className="constraint-row">
+                  <label htmlFor={`constraint-${key}`}>{label}</label>
                   <input
-                    id={`refinement-${key}`}
-                    className="full-input"
-                    aria-label={label}
+                    id={`constraint-${key}`}
+                    aria-label={`${label} constraint value`}
                     type="number"
-                    step={key === "numberOfRings" ? 1 : "any"}
+                    step="any"
                     disabled={!ready}
-                    value={refinementDraft[key] ?? String(workflow[key])}
-                    onChange={(e) =>
-                      setRefinementDraft((draft) => ({
-                        ...draft,
-                        [key]: e.target.value,
-                      }))
-                    }
+                    value={parameters[key]?.value ?? ""}
+                    onChange={(e) => {
+                      setParameters((p) => ({
+                        ...p,
+                        [key]: { ...p[key], value: Number(e.target.value) },
+                      }));
+                    }}
                   />
-                  <CalibrationHelp label={label} text={calibrationHelp[key]} />
+                  <span className="calibration-unit">{unit}</span>
+                  <input
+                    aria-label={`Refine ${label.toLowerCase()}`}
+                    title="Checked: refine this parameter. Unchecked: hold it fixed."
+                    type="checkbox"
+                    disabled={!ready}
+                    checked={parameters[key]?.refine ?? true}
+                    onChange={(e) => {
+                      setParameters((p) => ({
+                        ...p,
+                        [key]: { ...p[key], refine: e.target.checked },
+                      }));
+                    }}
+                  />
                 </div>
-              ))}
-              {refinementDirty && (
-                <button
-                  type="button"
-                  className="secondary full-input"
-                  disabled={!ready}
-                  onClick={() =>
-                    run(
-                      "workflow_settings",
-                      Object.fromEntries(
-                        Object.entries(refinementDraft).map(([key, value]) => [
-                          key,
-                          Number(value),
-                        ]),
-                      ),
-                    )
-                  }
-                >
-                  Apply refinement options
-                </button>
-              )}
-            </>
-          )}
-        </section>
+                {key === "wavelength" && (
+                  <>
+                    <div className="constraint-row calibration-auxiliary-row">
+                      <label htmlFor="fit-energy">Energy</label>
+                      <input
+                        id="fit-energy"
+                        aria-label="Fit energy in kiloelectronvolts"
+                        type="number"
+                        step="any"
+                        min="0"
+                        disabled={!ready}
+                        value={
+                          parameters.wavelength?.value > 0
+                            ? Number(
+                                (
+                                  12.39841984332 / parameters.wavelength.value
+                                ).toFixed(4),
+                              )
+                            : ""
+                        }
+                        onChange={(e) => {
+                          const value = Number(e.target.value);
+                          if (value > 0)
+                            setParameters((p) => ({
+                              ...p,
+                              wavelength: {
+                                ...p.wavelength,
+                                value: 12.39841984332 / value,
+                              },
+                            }));
+                        }}
+                      />
+                      <span className="calibration-unit">keV</span>
+                    </div>
+                    <div className="constraint-row calibration-auxiliary-row">
+                      <label htmlFor="fit-polarization">Polarization</label>
+                      <input
+                        id="fit-polarization"
+                        className="full-input"
+                        aria-label="Polarization factor"
+                        type="number"
+                        step=".01"
+                        min="-1"
+                        max="1"
+                        value={polarization}
+                        disabled={!ready}
+                        onChange={(e) => {
+                          setPolarization(e.target.value);
+                        }}
+                      />
+                    </div>
+                  </>
+                )}
+              </Fragment>
+            ))}
+          </section>
+          <section
+            className="calibration-fit-page calibration-refinement-section"
+            aria-label="Refinement options"
+          >
+            <h3 className="calibration-fit-heading">Refinement</h3>
+            <label className="check-row">
+              <input
+                aria-label="Automatic refinement"
+                type="checkbox"
+                disabled={!ready}
+                checked={workflow?.automaticRefinement ?? true}
+                onChange={(e) =>
+                  toggle("automaticRefinement", e.target.checked)
+                }
+              />
+              Automatic refinement
+            </label>
+            {workflow?.automaticRefinement && (
+              <>
+                <div className="calibration-field-row">
+                  <label htmlFor="refinement-algorithm">
+                    Peak-search algorithm
+                  </label>
+                  <select
+                    id="refinement-algorithm"
+                    aria-label="Refinement peak-search algorithm"
+                    value={workflow.algorithm}
+                    disabled={!ready}
+                    onChange={(e) => toggle("algorithm", e.target.value)}
+                  >
+                    <option>Massif</option>
+                    <option>Blob</option>
+                  </select>
+                </div>
+                {(
+                  [
+                    ["deltaTth", "Search width Δ2θ · °"],
+                    ["meanFactor", "Intensity mean factor"],
+                    ["intensityLimit", "Upper intensity limit"],
+                    ["numberOfRings", "Number of rings"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <div
+                    className="calibration-field-row calibration-refinement-field"
+                    key={key}
+                  >
+                    <label htmlFor={`refinement-${key}`}>{label}</label>
+                    <input
+                      id={`refinement-${key}`}
+                      className="full-input"
+                      aria-label={label}
+                      type="number"
+                      step={key === "numberOfRings" ? 1 : "any"}
+                      min={key === "numberOfRings" ? 1 : 0.00001}
+                      max={key === "numberOfRings" ? 100 : 1e15}
+                      required
+                      disabled={!ready}
+                      value={refinementDraft[key] ?? String(workflow[key])}
+                      onChange={(e) =>
+                        setRefinementDraft((draft) => ({
+                          ...draft,
+                          [key]: e.target.value,
+                        }))
+                      }
+                      onBlur={(e) => {
+                        const value = e.currentTarget.valueAsNumber;
+                        if (
+                          ready &&
+                          e.currentTarget.validity.valid &&
+                          value !== workflow[key]
+                        )
+                          toggle(key, value);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (e.currentTarget.reportValidity())
+                            e.currentTarget.blur();
+                        }
+                      }}
+                    />
+                    <CalibrationHelp
+                      label={label}
+                      text={calibrationHelp[key]}
+                    />
+                  </div>
+                ))}
+              </>
+            )}
+          </section>
+        </div>
       )}
       {!imageToolsOnly && (step === 0 || step === 3) && (
         <section
@@ -495,6 +487,8 @@ export function GeometryEditor({
   embedded = false,
   onDirtyChange,
   formId,
+  convention: savedConvention,
+  onConventionChange,
 }: {
   calibration?: Calibration;
   ready: boolean;
@@ -502,9 +496,18 @@ export function GeometryEditor({
   open?: boolean;
   embedded?: boolean;
   formId?: string;
+  convention?: "pyfai" | "fit2d";
+  onConventionChange?: (convention: "pyfai" | "fit2d") => void;
   onDirtyChange?: (dirty: boolean) => void;
 }) {
-  const [convention, setConvention] = useState<"pyfai" | "fit2d">("pyfai");
+  const [localConvention, setLocalConvention] = useState<"pyfai" | "fit2d">(
+    "pyfai",
+  );
+  const convention = savedConvention ?? localConvention;
+  const setConvention = (value: "pyfai" | "fit2d") => {
+    setLocalConvention(value);
+    onConventionChange?.(value);
+  };
   const [drafts, setDrafts] = useState<
     Record<"pyfai" | "fit2d", Record<string, string>>
   >({ pyfai: {}, fit2d: {} });

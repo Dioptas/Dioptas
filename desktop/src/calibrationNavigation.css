@@ -1,0 +1,266 @@
+/* Keep calibration navigation attached to its controls, above their scroll area. */
+.app .calibration-task-panel > .calibration-workflow-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  flex-shrink: 0;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--border);
+}
+.app .calibration-workflow-tabs button {
+  --button-fill: transparent;
+  --button-edge: transparent;
+  --button-sheen: none;
+  min-width: 0;
+  min-height: 42px;
+  padding: 9px 3px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: #aeb7c1;
+  font-size: var(--text-small);
+  font-weight: 500;
+  box-shadow: none;
+}
+.app .calibration-workflow-tabs button[aria-selected="true"] {
+  --button-fill: transparent;
+  --button-edge: transparent;
+  color: #f3f5f7;
+  background: transparent;
+  border-bottom-color: var(--accent);
+  box-shadow: none;
+}
+.app .calibration-workflow-tabs button:not(:disabled):hover {
+  background: rgb(255 255 255 / 4%);
+  border-color: transparent;
+  border-bottom-color: transparent;
+  color: #f3f5f7;
+}
+.app .calibration-workflow-tabs button[aria-selected="true"]:hover {
+  border-bottom-color: var(--accent);
+}
+.app .calibration-workflow-tabs button:focus-visible {
+  outline-offset: -3px;
+}
+
+/* Recover the header's space from gaps, keeping image controls readable. */
+.calibration-task-panel .sidebar-scroll {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+.calibration-task-panel .setup-image-source {
+  padding: 4px 0 6px;
+}
+.calibration-task-panel .setup-image-filename {
+  margin-top: 0;
+}
+.calibration-task-panel .setup-open-image {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.calibration-task-panel .calibration-setup-page .field-label {
+  margin: 4px 0 2px;
+}
+.calibration-task-panel .calibration-setup-page .calibration-group-label {
+  margin: 6px 0 4px;
+}
+.calibration-task-panel .calibration-setup-page .calibration-tool-divider {
+  margin: 6px 0;
+}
+.calibration-task-panel .orientation-tools button {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+.calibration-task-panel .calibration-section-tabs {
+  margin: 4px 0 5px;
+}
+.calibration-task-panel .constraint-heading {
+  margin-top: 3px;
+}
+.calibration-task-panel .geometry-tabs {
+  margin: 3px 0 5px;
+}
+
+.calibration-ring-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 5px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--text-small);
+}
+.calibration-ring-picker {
+  position: relative;
+  min-width: 0;
+}
+.calibration-ring-navigation {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+.app .calibration-ring-navigation button {
+  flex-shrink: 0;
+  min-width: 24px;
+  min-height: 32px;
+  padding: 4px 2px;
+  border-radius: 5px;
+}
+.app .calibration-ring-navigation .calibration-ring-trigger {
+  flex: 1;
+  gap: 4px;
+  padding-inline: 4px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.calibration-picking-options {
+  display: grid;
+  gap: 5px;
+}
+.calibration-ring-menu {
+  position: absolute;
+  z-index: 100;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 238px;
+  max-width: calc(100vw - 32px);
+  padding: 4px;
+  color: #dce2e7;
+  background: #20262d;
+  border: 1px solid #414b56;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+}
+.calibration-ring-menu-heading,
+.calibration-ring-options [role="option"] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 10px;
+}
+.calibration-ring-menu-heading {
+  color: #adb7c2;
+  font-size: var(--text-meta);
+  border-bottom: 1px solid var(--border);
+}
+.calibration-ring-options {
+  max-height: min(306px, calc(100vh - 160px));
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: auto;
+  scrollbar-color: #65707c #151b22;
+  outline: none;
+}
+.calibration-ring-options::-webkit-scrollbar {
+  width: 10px;
+  background: #151b22;
+}
+.calibration-ring-options::-webkit-scrollbar-thumb {
+  border: 2px solid #151b22;
+  border-radius: 6px;
+  background: #65707c;
+}
+.calibration-ring-options [role="option"] {
+  min-height: 34px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.calibration-ring-options [role="option"]:hover {
+  background: rgb(255 255 255 / 6%);
+}
+.calibration-ring-options [aria-selected="true"] {
+  color: var(--accent);
+  background: rgb(255 149 0 / 15%);
+}
+.calibration-ring-options:focus-visible [data-active="true"] {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+.calibration-ring-point-count {
+  color: #adb7c2;
+}
+.calibration-task-panel .peak-row {
+  cursor: pointer;
+}
+.calibration-task-panel .peak-row[data-selected="true"] {
+  background: rgb(255 149 0 / 10%);
+}
+.calibration-task-panel .peak-row:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+.calibration-picking-switch {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.calibration-main-action {
+  display: flex;
+  padding: 9px 14px 0;
+}
+.calibration-main-action button {
+  width: 100%;
+  min-height: 38px;
+  padding: 7px 10px;
+  font-size: var(--text-small);
+}
+.calibration-general-actions {
+  padding: 9px 14px 6px;
+}
+.calibration-general-actions .calibration-save {
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 8px;
+  font-size: var(--text-small);
+}
+.calibration-secondary-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  margin-top: 4px;
+}
+.calibration-secondary-actions button.quiet {
+  min-width: 0;
+  padding: 5px 0;
+  font-size: var(--text-small);
+  color: #aeb7c1;
+  white-space: nowrap;
+}
+
+/* Let long setup/geometry forms scroll without moving the ring controls or actions. */
+.calibration-task-panel:is(
+    [data-calibration-section="0"],
+    [data-calibration-section="3"]
+  )
+  .sidebar-scroll {
+  display: block;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: auto;
+  scrollbar-color: auto;
+  scrollbar-gutter: stable;
+}
+.calibration-task-panel .sidebar-scroll::-webkit-scrollbar {
+  width: 10px;
+  background: #151b22;
+}
+.calibration-task-panel .sidebar-scroll::-webkit-scrollbar-thumb {
+  min-height: 28px;
+  border: 2px solid #151b22;
+  border-radius: 6px;
+  background: #65707c;
+}
+.calibration-task-panel .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: #89939e;
+}
+@supports not selector(::-webkit-scrollbar) {
+  .calibration-task-panel .sidebar-scroll {
+    scrollbar-color: #65707c #151b22;
+  }
+}

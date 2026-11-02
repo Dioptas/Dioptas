@@ -13,8 +13,9 @@ and CALIBRATION_PARITY.md before changing its command or plot boundaries.
   text option. Neutral charcoal backgrounds, orange accents, green elongated
   crystal identity. Do not turn backgrounds green.
 - Images have no extra title/dimension header, Fit button or Display mask
-  toggle, and no tool/zoom selection strip above them. Pick rings automatically
-  enables picking; images use rectangle zoom, while the pattern's optional
+  toggle, and no tool/zoom selection strip above them. The shared Ring / Auto /
+  Pick peaks strip stays above the calibration tabs; its switch controls picking
+  in every calibration tab. Images use rectangle zoom, while the pattern's optional
   horizontal/rectangle choice lives in Settings. Mask drawing controls stay
   in the right task panel. F and right double click restore the image view.
 - Settings is anchored at the bottom of the left sidebar. Coordinates,

@@ -72,6 +72,13 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
         ),
         "open_calibration" => ("PONI calibration", &["poni"], "", false),
         "save_calibration" => ("PONI calibration", &["poni"], "calibration.poni", true),
+        "load_peaks" => ("Dioptas calibration peaks", &["json"], "", false),
+        "save_peaks" => (
+            "Dioptas calibration peaks",
+            &["json"],
+            "calibration-peaks.json",
+            true,
+        ),
         "open_project" => ("Dioptas project", &["dio"], "", false),
         "save_project" => ("Dioptas project", &["dio"], "experiment.dio", true),
         "export_pattern" => ("XY pattern", &["xy"], "pattern.xy", true),
@@ -287,6 +294,9 @@ mod tests {
     #[test]
     fn dialogs_only_for_file_commands_without_explicit_paths_or_reset() {
         assert!(file_choice("open_image", &json!({})).is_some());
+        assert!(!file_choice("load_peaks", &json!({})).unwrap().save);
+        assert!(file_choice("save_peaks", &json!({})).unwrap().save);
+        assert!(file_choice("load_peaks", &json!({"path": "/tmp/peaks.json"})).is_none());
         assert!(file_choice("open_image", &json!({"path": "/tmp/image.tif"})).is_none());
         assert!(file_choice("distortion_file", &json!({"reset": true})).is_none());
         assert!(file_choice("detector_file", &json!({"reset": true})).is_none());

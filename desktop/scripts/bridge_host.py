@@ -34,6 +34,7 @@ def choose_file(kind, save):
                 "project": "experiment.dio",
                 "pattern": "pattern.xy",
                 "calibration": "calibration.poni",
+                "peaks": "calibration-peaks.json",
                 "batch": "batch.h5",
                 "mask": "mask.mask",
             }[kind]
@@ -50,6 +51,8 @@ def choose_file(kind, save):
         return str(artifacts / "experiment.dio")
     if kind == "calibration":
         return str(artifacts / "calibration.poni")
+    if kind == "peaks":
+        return str(artifacts / "calibration-peaks.json")
     return str(root / "dioptas/tests/data/CeO2_Pilatus1M.tif")
 
 

@@ -7,17 +7,17 @@ export function CalibrationControls({
   hasImage,
   run,
   onDirtyChange,
-  onContinue,
+  onValidityChange,
   additionalOptions,
   maskControls,
 }: {
   calibration?: Calibration;
   ready: boolean;
   hasImage: boolean;
-  onContinue: () => void;
   additionalOptions: ReactNode;
   maskControls: ReactNode;
   onDirtyChange: (dirty: boolean) => void;
+  onValidityChange: (valid: boolean) => void;
   run: (
     command: string,
     args?: Record<string, unknown>,
@@ -44,9 +44,26 @@ export function CalibrationControls({
         Math.abs(Number(draft) - Number(saved)) >
           Math.max(1e-10, Math.abs(Number(saved)) * 1e-6),
     );
+  const valid = [px, py].every(
+    (value) =>
+      value.trim() !== "" &&
+      Number.isFinite(Number(value)) &&
+      Number(value) >= 0.1 &&
+      Number(value) <= 5000,
+  );
   useEffect(() => {
     onDirtyChange(dirty);
   }, [dirty, onDirtyChange]);
+  useEffect(() => {
+    onValidityChange(valid);
+  }, [valid, onValidityChange]);
+  useEffect(
+    () => () => {
+      onDirtyChange(false);
+      onValidityChange(true);
+    },
+    [onDirtyChange, onValidityChange],
+  );
   const applySetup = async () => {
     await run(
       "calibration_setup",
@@ -58,7 +75,6 @@ export function CalibrationControls({
       (result) => {
         if (!result.cancelled && result.state?.hasImage) {
           onDirtyChange(false);
-          onContinue();
         }
       },
     );
@@ -67,9 +83,18 @@ export function CalibrationControls({
     <>
       <form
         id="calibration-setup-form"
+        onKeyDown={(event) => {
+          if (
+            event.key === "Enter" &&
+            event.target instanceof HTMLInputElement
+          ) {
+            event.preventDefault();
+            event.currentTarget.requestSubmit();
+          }
+        }}
         onSubmit={(event) => {
           event.preventDefault();
-          if (ready && hasImage) void applySetup();
+          if (ready && hasImage && dirty && valid) void applySetup();
         }}
       >
         <section className="calibration-setup-page">
@@ -115,6 +140,10 @@ export function CalibrationControls({
                 step="any"
                 disabled={!ready || !c?.detectorIsCustom}
                 onChange={(e) => setPx(e.target.value)}
+                onBlur={(event) => {
+                  if (!event.currentTarget.reportValidity()) return;
+                  if (ready && hasImage && dirty && valid) void applySetup();
+                }}
               />
             </label>
             <label className="field-label">
@@ -129,6 +158,10 @@ export function CalibrationControls({
                 step="any"
                 disabled={!ready || !c?.detectorIsCustom}
                 onChange={(e) => setPy(e.target.value)}
+                onBlur={(event) => {
+                  if (!event.currentTarget.reportValidity()) return;
+                  if (ready && hasImage && dirty && valid) void applySetup();
+                }}
               />
             </label>
           </div>

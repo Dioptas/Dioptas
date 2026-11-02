@@ -1,3 +1,4 @@
+import { selectCalibrationRing } from "./calibration_ring_picker.mjs";
 import assert from "node:assert/strict";
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -78,13 +79,15 @@ export async function verifyImageControls(page, invoke, pixelRequests) {
   assert.equal(
     await page
       .getByLabel("Current calibrant ring", { exact: true })
-      .getAttribute("type"),
-    "number",
+      .getAttribute("aria-haspopup"),
+    "listbox",
   );
-  await page.getByLabel("Current calibrant ring", { exact: true }).fill("3");
-  assert.match(
-    await page.getByTestId("active-ring").innerText(),
-    /Picking ring 3/,
+  await selectCalibrationRing(page, 3);
+  assert.equal(
+    await page
+      .getByLabel("Current calibrant ring", { exact: true })
+      .getAttribute("data-ring"),
+    "3",
   );
   await page
     .getByRole("radio", { name: "Single peak search", exact: true })
@@ -98,7 +101,7 @@ export async function verifyImageControls(page, invoke, pixelRequests) {
   await page
     .getByRole("radio", { name: "Automatic peak search", exact: true })
     .check();
-  await page.getByLabel("Current calibrant ring", { exact: true }).fill("1");
+  await selectCalibrationRing(page, 1);
 
   const original = await invoke("state");
   assert.equal(

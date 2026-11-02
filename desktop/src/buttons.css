@@ -107,16 +107,6 @@
   --button-fill: #3c434b;
 }
 
-/* Keep related image tools together without enlarging dense task panels. */
-.app :is(.orientation-tools, .setup-image-navigation) {
-  gap: 3px;
-  padding: 3px;
-  border-radius: 10px;
-  background: #111519;
-}
-.app :is(.orientation-tools, .setup-image-navigation) button {
-  border-radius: 6px;
-}
 .app .orientation-tools button.quiet {
   color: #b5bfc9;
 }

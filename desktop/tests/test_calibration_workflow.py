@@ -322,3 +322,28 @@ def test_validation_reference_preserves_loaded_geometry_and_uses_its_wavelength(
     assert not result["state"]["calibration"]["fitDirty"]
     assert result["state"]["calibration"]["calibrant"] == "LaB6"
     call(session, "save_calibration", path=str(tmp_path / "unchanged.poni"))
+
+
+def test_calibrate_uses_complete_current_fields_without_separate_apply(picked):
+    parameters = call(picked, "state")["state"]["calibration"]["parameters"]
+    parameters["dist"] = {"value": 208.65, "refine": False}
+    parameters["rot1"] = {"value": 0.0, "refine": False}
+    # Complete fields must also confirm an as-yet-unconfirmed starting setup.
+    picked._setup_confirmed = False
+    result = call(picked, "calibrate", automatic=False, parameters=parameters, polarization=0.95)
+    assert result["state"]["calibrated"]
+    assert result["state"]["calibration"]["setupConfirmed"]
+    assert result["state"]["geometry"]["dist"] == pytest.approx(0.20865, abs=1e-12)
+    assert result["state"]["geometry"]["rot1"] == pytest.approx(0.0, abs=1e-12)
+    assert result["state"]["calibration"]["polarization"] == 0.95
+
+
+def test_invalid_current_fit_fields_do_not_start_calibration(picked):
+    before = call(picked, "state")
+    parameters = {key: dict(value) for key, value in before["state"]["calibration"]["parameters"].items()}
+    parameters["dist"]["value"] = -1
+    result = picked.invoke("calibrate", {"parameters": parameters, "automatic": False})
+    assert not result["ok"]
+    after = call(picked, "state")
+    assert not after["state"]["calibrated"]
+    assert after["state"]["calibration"]["parameters"] == before["state"]["calibration"]["parameters"]

@@ -29,6 +29,7 @@ from dioptas.model.CalibrationModel import get_available_detectors
 from dioptas import calibrants_path
 from .engines import available_engines, make_engine
 from .calibration import CalibrationWorkflow
+from .peak_files import load_peaks, save_peaks
 from .display import image_levels
 from .binary import RasterCache
 from .integration import IntegrationWorkflow
@@ -204,6 +205,8 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
             "pick_peak": self._pick_peak,
             "remove_pick": self._remove_pick,
             "clear_peaks": self._clear_peaks,
+            "load_peaks": self._load_peaks,
+            "save_peaks": self._save_peaks,
             "calibrate": self._calibrate,
             "save_calibration": self._save_calibration,
             "workflow_settings": self._workflow_settings,
@@ -249,6 +252,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
                     "save_project",
                     "export_pattern",
                     "save_calibration",
+                    "save_peaks",
                 }
                 context = (
                     nullcontext()
@@ -765,10 +769,37 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         self._fit_rms = None
         return self._state()
 
-    def _calibrate(self, automatic=None):
+    def _save_peaks(self, path=None):
+        calibration = self.configuration.calibration_model
+        if not self._has_image or not calibration.params.peak_selections:
+            raise ValueError("Pick calibration peaks before saving them.")
+        path = self._path(path, "peaks", save=True)
+        if path is None:
+            return {"cancelled": True}
+        if not Path(path).suffix:
+            path += ".json"
+        save_peaks(path, calibration, self.configuration.img_model, self._calibrant_name)
+        return {**self._state(), "savedPath": path}
+
+    def _load_peaks(self, path=None):
+        if not self._has_image:
+            raise ValueError("Open a calibrant image before loading peaks.")
+        path = self._path(path, "peaks")
+        if path is None:
+            return {"cancelled": True}
+        calibration = self.configuration.calibration_model
+        selections = load_peaks(path, calibration, self.configuration.img_model)
+        calibration.params.peak_selections = selections
+        self._fit_dirty = True
+        self._fit_rms = None
+        return self._state()
+
+    def _calibrate(self, automatic=None, parameters=None, polarization=None):
+        if parameters is not None:
+            self._fit_parameters(parameters, polarization=polarization)
         if not self._setup_confirmed:
             raise ValueError(
-                "Check detector pixel sizes and confirm the start values with Apply fit parameters in Calibrate before fitting."
+                "Check detector pixel sizes and the fit start values before fitting."
             )
         c = self.configuration.calibration_model
         points = c.get_point_array()
