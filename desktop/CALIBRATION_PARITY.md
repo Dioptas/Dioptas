@@ -29,7 +29,7 @@ preview replaces the complete application. The original Qt interface is unchange
 | Peak edit history | Undo / redo buttons; Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z in calibration |
 | Initial fit / subsequent refinement | Same pyFAI model entry points; optional separately installed Dioptrin adapter |
 | Automatic refinement | Staged ring search/refit; enabled by default; Massif/Blob, Δ2θ, mean factor, intensity ceiling, ring count; Qt default values retained |
-| Refinement progress / abort | Progress and cancel command remain responsive while the scientific session is busy; failure/cancel restores the pre-command geometry and picks |
+| Refinement progress / abort | Live detector previews show accumulated points, the active ring and updated fitted contours while fitting; progress and cancel remain responsive, and failure/cancel restores the pre-command geometry and picks |
 | Mask use and transparency | Load mask, use-mask switch, transparent display; saving, drawing/erasing/history in the dedicated Mask mode |
 | Calibrant lines and numbers | Independent display switches; soft solid reference lines and numbers appear on the detector and cake. Cake lines use 2θ; integrated-pattern references use its actual radial unit |
 | Validation reference selection without changing geometry | Dedicated Validation calibrant selector uses the loaded/fitted geometry wavelength; changing reference clears the old RMS diagnostic |

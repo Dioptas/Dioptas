@@ -2,6 +2,7 @@
 
 from pathlib import Path
 import importlib.util
+import json
 import threading
 
 import numpy as np
@@ -240,6 +241,33 @@ def test_automatic_refinement_finds_real_rings(fitted):
     assert not fitted.invoke("progress")["progress"]["running"]
 
 
+def test_refinement_publishes_detached_live_points_and_fitted_contours(fitted, monkeypatch):
+    call(fitted, "workflow_settings", numberOfRings=4)
+    publish = fitted._publish_calibration_progress
+    previews = []
+
+    def capture(*args, **kwargs):
+        publish(*args, **kwargs)
+        progress = fitted.invoke("progress")["progress"]
+        previews.append((progress, json.dumps(progress)))
+
+    monkeypatch.setattr(fitted, "_publish_calibration_progress", capture)
+    result = call(fitted, "calibrate", automatic=True)
+    # Live frames are ordinary JSON; later searches and final integration must
+    # not mutate data already being serialized by a concurrent progress reader.
+    assert all(json.dumps(progress) == saved for progress, saved in previews)
+    searches = [p for p, _ in previews if p["label"] == "Finding peaks on ring"]
+    assert [p["calibration"]["activeRing"] for p in searches] == [1, 2, 3, 4]
+    assert not searches[0]["calibration"]["picks"]
+    assert searches[1]["calibration"]["picks"]
+    assert all(p["calibration"]["rings"] for p in searches)
+    refined = [p for p, _ in previews if p["label"] == "Refining ring"]
+    assert len(refined[-1]["calibration"]["picks"]) > len(refined[0]["calibration"]["picks"])
+    assert refined[-1]["calibration"]["picks"] == result["state"]["calibration"]["picks"]
+    assert refined[-1]["calibration"]["rings"] == result["rings"]
+    assert "calibration" not in fitted.invoke("progress")["progress"]
+
+
 def test_empty_automatic_search_restores_picked_peaks(fitted, monkeypatch):
     c = fitted.configuration.calibration_model
     points = c.params.peak_selections
@@ -249,6 +277,7 @@ def test_empty_automatic_search_restores_picked_peaks(fitted, monkeypatch):
     assert not result["ok"] and "restored" in result["error"]
     assert c.params.peak_selections == points
     assert c.pattern_geometry.dist == pytest.approx(geometry["dist"])
+    assert "calibration" not in fitted.invoke("progress")["progress"]
 
 
 def test_cancellation_is_readable_without_session_lock(fitted, monkeypatch):
@@ -268,13 +297,17 @@ def test_cancellation_is_readable_without_session_lock(fitted, monkeypatch):
     )
     worker.start()
     assert entered.wait(5)
-    assert fitted.invoke("progress")["progress"]["running"]
+    progress = fitted.invoke("progress")["progress"]
+    assert progress["running"]
+    assert progress["calibration"]["activeRing"] == 1
+    assert progress["calibration"]["rings"]
     assert fitted.invoke("cancel_refinement")["ok"]
     release.set()
     worker.join(5)
     assert not worker.is_alive()
     assert not result["ok"] and "cancelled" in result["error"]
     assert c.params.peak_selections == points
+    assert "calibration" not in fitted.invoke("progress")["progress"]
 
 
 def test_custom_calibrant_is_owned_and_survives_project_reopen(session, tmp_path):

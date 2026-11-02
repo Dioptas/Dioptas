@@ -311,7 +311,7 @@ export function RasterView({
         context.strokeStyle =
           ring.color ??
           (linked ? "#83f5d0" : active ? "#ff4040d9" : "#ff4040b3");
-        context.lineWidth = active ? 1.35 : linked ? 2 : 0.8;
+        context.lineWidth = active ? 2.2 : linked ? 2 : 0.8;
         context.stroke();
         if (
           (showNumbers || active) &&
@@ -409,6 +409,10 @@ export function RasterView({
     }
     if (cake) {
       const range = (raster as Cake).radialRange;
+      const calibrantWidthBoost = Math.min(
+        2,
+        0.6 * Math.log2(Math.max(1, zoom)),
+      );
       const lineX = (twoTheta: number) =>
         ox +
         ((twoTheta - range[0]) / (range[1] - range[0])) * raster.fullWidth * sx;
@@ -418,8 +422,11 @@ export function RasterView({
       for (const line of calibrantLines) {
         const x = lineX(line.twoTheta);
         if (!Number.isFinite(x) || x < left || x > left + plotWidth) continue;
-        context.strokeStyle = line.color ?? "#ff4040b3";
-        context.lineWidth = 0.8;
+        const active = line.ring === activeRing;
+        context.strokeStyle =
+          line.color ?? (active ? "#ff4040d9" : "#ff4040b3");
+        context.lineWidth =
+          (active ? 2.2 : 0.8) + (line.color ? 0 : calibrantWidthBoost);
         context.beginPath();
         context.moveTo(x, top);
         context.lineTo(x, top + plotHeight);

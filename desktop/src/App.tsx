@@ -125,6 +125,7 @@ export default function App() {
     [showNumbers, setShowNumbers] = useState(true);
   const [linked, setLinked] = useState<Response["linked"]>();
   const [progress, setProgress] = useState<Response["progress"]>();
+  const progressGeneration = useRef(0);
   const [patternZoom, setPatternZoom] = useState<ZoomMode>("horizontal");
   const [setupDirty, setSetupDirty] = useState(false);
   const [setupValid, setSetupValid] = useState(true);
@@ -345,7 +346,11 @@ export default function App() {
         typeof args.transparent_mask === "boolean" &&
         Object.keys(args).length === 1;
       const quiet = displayOnly || maskDrawing || command === "image_levels";
-      if (!quiet) setBusy(message);
+      if (!quiet) {
+        ++progressGeneration.current;
+        setProgress(undefined);
+        setBusy(message);
+      }
       setError(null);
       if (command === "workflow_settings")
         setState((s) =>
@@ -399,7 +404,11 @@ export default function App() {
           /* Keep the original error visible. */
         }
       } finally {
-        if (!quiet) setBusy("");
+        if (!quiet) {
+          ++progressGeneration.current;
+          setProgress(undefined);
+          setBusy("");
+        }
         inFlight.current = false;
         if (maskDrawing) pendingMaskDraws.current--;
         if (commandTail.current === completion) commandTail.current = null;
@@ -456,15 +465,27 @@ export default function App() {
       setProgress(undefined);
       return;
     }
+    let active = true;
+    let polling = false;
+    const generation = progressGeneration.current;
     const timer = setInterval(() => {
+      if (polling) return;
+      polling = true;
       void bridge
         .current?.("progress")
         .then((r) => {
-          if (r.ok) setProgress(r.progress);
+          if (active && generation === progressGeneration.current && r.ok)
+            setProgress(r.progress);
         })
-        .catch(() => {});
-    }, 350);
-    return () => clearInterval(timer);
+        .catch(() => {})
+        .finally(() => {
+          polling = false;
+        });
+    }, 150);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
   }, [busy]);
   useEffect(() => {
     function keyboard(event: KeyboardEvent) {
@@ -665,6 +686,15 @@ export default function App() {
     }
   }, [mode, showImagePhases, state?.revision, ready]);
   const canIntegrate = !!state?.hasImage && !!state?.calibrated;
+  const calibrationPreview =
+    mode === "calibration" && busy ? progress?.calibration : undefined;
+  const displayedRing = calibrationPreview?.activeRing ?? ring;
+  const displayedCalibration =
+    state?.calibration && calibrationPreview
+      ? { ...state.calibration, picks: calibrationPreview.picks }
+      : state?.calibration;
+  const displayedRms =
+    calibrationPreview?.rmsDegrees ?? state?.calibration.rmsDegrees;
   const fitPoints =
     state?.calibration.picks.reduce(
       (sum, group) => sum + group.points.length,
@@ -942,9 +972,9 @@ export default function App() {
                 <>
                   {mode === "calibration" && (
                     <div className="workspace-toolbar">
-                      {state?.calibration.rmsDegrees != null && (
+                      {displayedRms != null && (
                         <span className="fit-summary">
-                          RMS {number(state.calibration.rmsDegrees, 5)}°
+                          RMS {number(displayedRms, 5)}°
                         </span>
                       )}
                       <div className="image-overlay-controls">
@@ -1006,19 +1036,27 @@ export default function App() {
                             onHover={onHover}
                             peaks={
                               mode === "calibration"
-                                ? state?.calibration.picks.flatMap((p, index) =>
-                                    p.points.map(([y, x]) => ({
-                                      x,
-                                      y,
-                                      ring: p.ring,
-                                      selected: selectedPicks.includes(index),
-                                    })),
+                                ? displayedCalibration?.picks.flatMap(
+                                    (p, index) =>
+                                      p.points.map(([y, x]) => ({
+                                        x,
+                                        y,
+                                        ring: p.ring,
+                                        selected:
+                                          !calibrationPreview &&
+                                          selectedPicks.includes(index),
+                                      })),
                                   )
                                 : []
                             }
                             rings={
                               mode === "calibration" && showRings
-                                ? [...rings, ...(linked?.contours ?? [])]
+                                ? [
+                                    ...(calibrationPreview?.rings ?? rings),
+                                    ...(!calibrationPreview
+                                      ? (linked?.contours ?? [])
+                                      : []),
+                                  ]
                                 : [
                                     ...(showImagePhases ? phaseGuides : []),
                                     ...(linked?.contours ?? []),
@@ -1031,10 +1069,10 @@ export default function App() {
                             }
                             showNumbers={mode === "calibration" && showNumbers}
                             currentPeakRing={
-                              mode === "calibration" ? ring : undefined
+                              mode === "calibration" ? displayedRing : undefined
                             }
                             activeRing={
-                              mode === "calibration" ? ring : undefined
+                              mode === "calibration" ? displayedRing : undefined
                             }
                             onPick={(point) => {
                               if (
@@ -1158,6 +1196,11 @@ export default function App() {
                                 )
                               }
                               linkedPosition={linked?.twoTheta}
+                              activeRing={
+                                mode === "calibration"
+                                  ? displayedRing
+                                  : undefined
+                              }
                               calibrantLines={
                                 mode === "integration"
                                   ? showImagePhases
@@ -1280,6 +1323,9 @@ export default function App() {
                             zoomMode={patternZoom}
                             onHover={onPatternHover}
                             linkedPosition={linked?.radial}
+                            activeRing={
+                              mode === "calibration" ? displayedRing : undefined
+                            }
                             calibrantLines={
                               mode === "calibration" && showRings
                                 ? state?.calibration.referenceLines
@@ -1397,8 +1443,8 @@ export default function App() {
               </div>
               {mode === "calibration" && (
                 <CalibrationRingControls
-                  calibration={state?.calibration}
-                  ring={ring}
+                  calibration={displayedCalibration}
+                  ring={displayedRing}
                   onRingChange={(value) => {
                     setRing(value);
                     setSelectedPicks(

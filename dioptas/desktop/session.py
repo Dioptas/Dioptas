@@ -630,11 +630,12 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         step = max(1, math.ceil(max(angles.shape) / 450))
         preview = angles[::step, ::step]
         low, high = float(angles.min()), float(angles.max())
+        rings = []
         for index, angle in enumerate(c.calibration_model.calibrant.get_2th()):
             if angle is None or not low < angle < high:
                 continue
             for contour in find_contours(preview, float(angle)):
-                self._rings.append(
+                rings.append(
                     {
                         "ring": index + 1,
                         "points": [
@@ -643,7 +644,8 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
                     }
                 )
 
-        self._ring_cache = (key, self._rings)
+        self._rings = rings
+        self._ring_cache = (key, rings)
 
     def _select_engine(self, engine):
         # Construct and validate first, so a missing dependency/license cannot
@@ -820,10 +822,14 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
             self._fit_dirty,
             self._geometry_source,
         )
+        self._cancel_refinement.clear()
+        self._publish_calibration_progress(0, 1, "Fitting calibration")
         try:
             c.calibrant.setWavelength_change2th(c.start_values["wavelength"])
             self._fit_rms = self._engine.fit(c, points, self._calibrant_path())
             self._geometry_source = "fitted"
+            self._update_rings()
+            self._publish_calibration_progress(1, 1, "Initial fit complete")
             if (
                 automatic
                 if automatic is not None
@@ -831,6 +837,17 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
             ):
                 self._automatic_refinement()
             c.calibrant.setWavelength_change2th(c.pattern_geometry.wavelength)
+            if self._cancel_refinement.is_set():
+                raise InterruptedError(
+                    "Calibration cancelled; previous geometry and picked peaks restored."
+                )
+            self._publish_calibration_progress(
+                1, 1, "Integrating calibrated image",
+                self._progress.get("calibration", {}).get("activeRing"),
+            )
+            self._fit_dirty = False
+            self._calculate()
+            return self._snapshot()
         except Exception:
             geometry, picks, calibrated, name, filename, rms, dirty, source = previous
             c.set_pyFAI_config(geometry)
@@ -842,9 +859,11 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
             self._fit_rms, self._fit_dirty, self._geometry_source = rms, dirty, source
             self._calculate()
             raise
-        self._fit_dirty = False
-        self._calculate()
-        return self._snapshot()
+        finally:
+            self._progress = {
+                **{key: value for key, value in self._progress.items() if key != "calibration"},
+                "running": False,
+            }
 
     def _save_calibration(self, path=None):
         if not self.configuration.calibration_model.is_calibrated or self._fit_dirty:

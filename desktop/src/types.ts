@@ -159,6 +159,12 @@ export interface Response {
     current: number;
     total: number;
     label?: string;
+    calibration?: {
+      activeRing: number | null;
+      picks: Calibration["picks"];
+      rings: RingOverlay[];
+      rmsDegrees: number | null;
+    };
   };
   linked?: { twoTheta: number; radial: number; contours: RingOverlay[] };
   rings?: RingOverlay[];

@@ -38,6 +38,7 @@ export function PatternView({
   onHover,
   hoverHint,
   linkedPosition,
+  activeRing,
   calibrantLines = [],
   showNumbers = false,
   curves = [],
@@ -57,6 +58,7 @@ export function PatternView({
   onHover?: (point: PatternHover | null) => void;
   hoverHint?: string;
   linkedPosition?: number;
+  activeRing?: number;
   calibrantLines?: { x: number; ring: number }[];
   showNumbers?: boolean;
   curves?: NonNullable<Pattern["curves"]>;
@@ -363,8 +365,9 @@ export function PatternView({
     for (const reference of calibrantLines) {
       const x = left + ((reference.x - xmin) / (xmax - xmin)) * w;
       if (x < left || x > left + w) continue;
-      context.strokeStyle = "#ff4040b3";
-      context.lineWidth = 1;
+      const active = reference.ring === activeRing;
+      context.strokeStyle = active ? "#ff4040d9" : "#ff4040b3";
+      context.lineWidth = active ? 2.2 : 1;
       context.beginPath();
       context.moveTo(x, top);
       context.lineTo(x, top + h);
@@ -422,6 +425,7 @@ export function PatternView({
     navigation.view,
     navigation.selection,
     linkedPosition,
+    activeRing,
     calibrantLines,
     showNumbers,
     curves,
@@ -467,6 +471,7 @@ export function PatternView({
         data-curve-count={curves.length}
         data-reference-count={referenceLines.length}
         data-linked-position={linkedPosition}
+        data-active-ring={activeRing}
         data-zoom-mode={zoomMode}
         data-plot-left={left}
         data-plot-top={top}

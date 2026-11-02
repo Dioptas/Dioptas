@@ -431,6 +431,32 @@ class CalibrationWorkflow:
         self._calculate()
         return self._snapshot()
 
+    def _publish_calibration_progress(self, current, total, label, active_ring=None):
+        """Publish detached display data on the scientific worker only.
+
+        Progress requests bypass that worker. Replace the complete dictionary;
+        never expose models or lists that subsequent searches mutate.
+        """
+        c = self.configuration.calibration_model
+        self._progress = {
+            "running": True,
+            "current": current,
+            "total": total,
+            "label": label,
+            "calibration": {
+                "activeRing": active_ring,
+                "picks": [
+                    {
+                        "ring": ring + 1,
+                        "points": [[float(y), float(x)] for y, x in positions],
+                    }
+                    for ring, positions in c.params.peak_selections
+                ],
+                "rings": self._rings,
+                "rmsDegrees": self._fit_rms,
+            },
+        }
+
     def _automatic_refinement(self):
         """Qt's staged ring search/refinement, with transactional cancellation."""
         c = self.configuration.calibration_model
@@ -438,26 +464,24 @@ class CalibrationWorkflow:
         previous = copy.deepcopy(c.params.peak_selections)
         previous_geometry = c.get_pyFAI_config()
         previous_rms = self._fit_rms
-        self._cancel_refinement.clear()
-        self._progress = {
-            "running": True,
-            "current": 0,
-            "total": options["numberOfRings"],
-        }
         try:
             c.clear_peaks()
+            total = min(options["numberOfRings"], len(c.calibrant.get_2th()))
+            self._publish_calibration_progress(0, total, "Preparing peak search", 1)
             c.setup_peak_search_algorithm(options["algorithm"])
             mask = (
                 self.configuration.mask_model.get_mask()
                 if self.configuration.use_mask
                 else None
             )
-            total = min(options["numberOfRings"], len(c.calibrant.get_2th()))
             for ring in range(total):
                 if self._cancel_refinement.is_set():
                     raise InterruptedError(
                         "Automatic refinement cancelled; picked peaks and initial fit restored."
                     )
+                self._publish_calibration_progress(
+                    ring + 1, total, "Finding peaks on ring", ring + 1
+                )
                 c.search_peaks_on_ring(
                     ring,
                     options["deltaTth"],
@@ -465,11 +489,17 @@ class CalibrationWorkflow:
                     options["intensityLimit"],
                     mask,
                 )
+                self._publish_calibration_progress(
+                    ring + 1, total, "Refining ring", ring + 1
+                )
                 if ring >= 1 and len(c.get_point_array()) >= self._free_count():
                     self._fit_rms = self._engine.fit(
                         c, c.get_point_array(), self._calibrant_path()
                     )
-                self._progress = {"running": True, "current": ring + 1, "total": total}
+                    self._update_rings()
+                self._publish_calibration_progress(
+                    ring + 1, total, "Refining ring", ring + 1
+                )
             if not c.points:
                 raise ValueError(
                     "Automatic ring search found no peaks; picked peaks and initial fit restored."
@@ -480,8 +510,6 @@ class CalibrationWorkflow:
             c._sync_calibration_params()
             self._fit_rms = previous_rms
             raise
-        finally:
-            self._progress = {**self._progress, "running": False}
 
     def _free_count(self):
         c = self.configuration.calibration_model
