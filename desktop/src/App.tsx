@@ -185,6 +185,7 @@ export default function App() {
   const bridge = useRef<Invoke | null>(null),
     inFlight = useRef(false);
   const commandTail = useRef<Promise<void> | null>(null);
+  const autoProcessInFlight = useRef(false);
   const pendingMaskDraws = useRef(0);
   const pendingOverlayEdits = useRef(0);
   const currentState = useRef<State | null>(null);
@@ -358,7 +359,10 @@ export default function App() {
           historyLabel === "integration_overlay");
       if (
         !bridge.current ||
+        (command === "integration_autoprocess_poll" &&
+          (inFlight.current || commandTail.current)) ||
         (inFlight.current &&
+          !autoProcessInFlight.current &&
           !pendingMaskDraws.current &&
           !pendingOverlayEdits.current &&
           command !== "image_levels")
@@ -382,6 +386,7 @@ export default function App() {
       if (overlayEditing) pendingOverlayEdits.current++;
       if (previous) await previous;
       inFlight.current = true;
+      autoProcessInFlight.current = command === "integration_autoprocess_poll";
       const displayOnly =
         command === "settings" &&
         typeof args.transparent_mask === "boolean" &&
@@ -390,13 +395,14 @@ export default function App() {
         displayOnly ||
         maskDrawing ||
         overlayEditing ||
+        command === "integration_autoprocess_poll" ||
         command === "image_levels";
       if (!quiet) {
         ++progressGeneration.current;
         setProgress(undefined);
         setBusy(message);
       }
-      setError(null);
+      if (command !== "integration_autoprocess_poll") setError(null);
       if (command === "workflow_settings")
         setState((s) =>
           s
@@ -417,6 +423,8 @@ export default function App() {
             : args,
         );
         apply(result);
+        if (command === "integration_autoprocess_poll" && result.state)
+          setError(result.state.integration.autoProcessError || null);
         if (
           (command === "load_peaks" && !result.cancelled) ||
           [
@@ -455,6 +463,7 @@ export default function App() {
           setBusy("");
         }
         inFlight.current = false;
+        autoProcessInFlight.current = false;
         if (maskDrawing) pendingMaskDraws.current--;
         if (overlayEditing) pendingOverlayEdits.current--;
         if (commandTail.current === completion) commandTail.current = null;
@@ -463,6 +472,13 @@ export default function App() {
     },
     [apply],
   );
+  useEffect(() => {
+    if (mode !== "integration" || !state?.integration.autoProcess) return;
+    const timer = setInterval(() => {
+      if (!settingsOpen) void run("integration_autoprocess_poll", {}, "");
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [mode, state?.integration.autoProcess, settingsOpen, run]);
   useEffect(() => {
     if (
       state?.integrationDirty &&

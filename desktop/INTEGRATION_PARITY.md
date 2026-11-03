@@ -387,3 +387,87 @@ ordering, Undo/Redo, hidden-state `.dio` round trips with and without overlays,
 unchanged numerical pattern data, and invalid boolean rejection. Chromium and
 WebKit checks include checkbox/plot synchronization and stable detector/cake
 canvases and table fields across visibility Undo/Redo.
+
+
+## Image file browser and autoprocess (2026-11-02)
+
+The Image tab follows Qt's BrowseFileWidget: Load image and Autoprocess beside
+previous/next, a real native step spinbox and By Name / By Time choices. Step
+sits directly beside its value. Filename and directory are editable; Enter in
+the filename loads it relative to the entered directory, and Load image also
+loads an edited filename. With an unchanged filename, Load image opens the
+native chooser in that directory. Enter in the directory changes the working
+folder; its ellipsis button opens the native folder chooser. File Info expands
+actual metadata. Mask-file and folder-integration controls are removed from
+this tab. Frame selection remains available for multiframe images, and file
+step survives tab switches.
+
+Autoprocess can be enabled after selecting a folder, even before loading the
+first image. While Integration is open (and Settings closed), commands poll the
+existing NewFileInDirectoryWatcher once per second on the scientific worker.
+The watcher does not start another thread: its file notifications only enqueue
+paths. It baselines existing files and accepts new supported detector files once
+they are nonempty and have stable size/modification time across two scans.
+Every ready file is loaded and integrated in queue order using the current
+geometry, mask and corrections. Autocreate also saves these patterns when
+separately enabled. An unreadable image is reported in the shared footer and
+does not block subsequent files. Foreground actions wait for an in-flight
+automatic load instead of being dropped. Disabling clears the queue; changing
+folders starts a new baseline. Autoprocess is off after opening a project or
+the example. It does not integrate files already present when enabled, and
+arbitrary multi-image selection and the remaining Qt batch modes are separate.
+
+Focused Chromium/WebKit checks cover the spinbox, label alignment, folder
+chooser, typed directory/filename, Enter/Load, real incoming-file integration,
+disable and Escape, plus normal/large-text layout and existing splitters and
+Image/Cake behavior. The controls occupy 174–175 px without scrolling at
+1440 × 1000 and 1000 × 760. Seven new Python tests cover stable/empty/growing
+files, every queued image, failed-file recovery, folder changes, real numerical
+integration, autocreate and session reset. Screenshots and the focused runner
+are under ignored `artifacts/integration-image-*`; reusable browser assertions
+live in `scripts/integration_image_files.mjs`.
+
+Validation for this revision: build, 20 JavaScript tests, eight Rust tests,
+167 Python tests (five skips), focused Chromium/WebKit file-browser checks and
+bundled Tauri/WKWebView smoke pass. The native smoke confirms the existing
+calibration/Integration/Mask workflows, binary transfer and processing-child
+cleanup; incoming-file behavior is covered by the focused real-model browser
+checks and Python tests.
+
+
+
+
+## Qt Pattern file controls (2026-11-02)
+
+The Pattern tab follows Qt PatternWidget/BrowseFileWidget: Load pattern above
+Autocreate, previous/next above a real step spinbox, By Name / By Time choices,
+editable filename and directory rows, a native directory chooser and one row
+of Pattern types (.xy, .xye, .chi, .dat, .fxye). Image and Pattern share
+IntegrationFileNavigator and integrationFileControls.css so their spacing,
+alignment and native steppers stay consistent. Each tab retains its own step
+across tab switches; file order is owned independently by its existing model.
+
+Enter or Load loads an edited filename relative to the selected directory.
+The native load chooser starts in that directory. Loaded patterns display their
+actual filename, including extension. Browsing uses PatternModel's existing
+number/creation-time iterator with the selected step. The directory is also
+the autocreate output folder, matching Qt. Autocreate and format selections
+apply immediately, without Apply autocreate or a separate tall form. Existing
+format validation and Poisson-error prerequisites are preserved. The save icon
+beside the pattern remains the manual save action and saves the displayed
+background-subtracted pattern, as Qt does; the duplicate save controls are
+removed from the tab. Changing file order, formats or Autocreate preserves the
+loaded curve and existing scientific corrections/backgrounds.
+
+Seven new Python checks cover filename/folder entry, number/time browsing and
+custom steps, invalid-entry preservation, chooser cancellation and immediate
+autocreate with actual output files. The focused Chromium/WebKit runner checks
+both Image and Pattern controls against real models, spinbox behavior and
+retained values, independent file orders, and actual autocreated XY/CHI files.
+It also checks both tabs at 1440 × 1000 and 1000 × 760 with both text sizes;
+Pattern controls fit without scrolling. Screenshots are under ignored
+artifacts/integration-pattern-*.png, and reusable browser checks are in
+scripts/integration_pattern_files.mjs.
+
+Validation: build, 174 Python tests (five skips), 24 JavaScript tests, focused
+Chromium/WebKit Image-and-Pattern checks and bundled Tauri/WKWebView smoke pass.

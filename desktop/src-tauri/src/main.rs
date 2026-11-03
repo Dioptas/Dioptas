@@ -27,6 +27,16 @@ struct FileChoice {
     save: bool,
 }
 
+fn folder_choice(action: &str, payload: &Value) -> bool {
+    matches!(
+        action,
+        "integration_output_directory"
+            | "integration_image_directory"
+            | "integration_batch"
+            | "map_folder"
+    ) && payload["path"].is_null()
+}
+
 fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
     if action == "map_load"
         && (payload.get("paths").is_some_and(|v| !v.is_null()) || payload["reintegrate"] == true)
@@ -167,11 +177,7 @@ async fn desktop_invoke(
         return Err("Command arguments must be an object.".into());
     }
     tauri::async_runtime::spawn_blocking(move || {
-        if matches!(
-            action.as_str(),
-            "integration_output_directory" | "integration_batch" | "map_folder"
-        ) && payload["path"].is_null()
-        {
+        if folder_choice(&action, &payload) {
             let Some(selected) = app.dialog().file().blocking_pick_folder() else {
                 return Ok(Packet::metadata(json!({"ok": true, "cancelled": true})));
             };
@@ -336,6 +342,17 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn image_directory_uses_folder_dialog_only_without_explicit_path() {
+        assert!(folder_choice("integration_image_directory", &json!({})));
+        assert!(!folder_choice(
+            "integration_image_directory",
+            &json!({"path": "/tmp/images"})
+        ));
+        assert!(!folder_choice("open_image", &json!({})));
+        assert!(file_choice("open_image", &json!({"directory": "/tmp/images"})).is_some());
+    }
+
     #[test]
     fn dialogs_only_for_file_commands_without_explicit_paths_or_reset() {
         assert!(file_choice("open_image", &json!({})).is_some());

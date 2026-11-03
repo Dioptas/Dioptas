@@ -1,0 +1,121 @@
+/* Qt's load/watch, navigation and order columns share two compact rows. */
+.integration-file-controls {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 5px;
+  min-width: 0;
+  font-size: var(--text-small);
+}
+.integration-file-browser {
+  display: grid;
+  grid-template-columns: max-content 140px max-content;
+  align-items: start;
+  gap: 8px 16px;
+  padding-bottom: 3px;
+}
+.integration-file-loading,
+.integration-file-navigation,
+.integration-file-order {
+  display: grid;
+  gap: 3px;
+}
+.integration-controls .integration-file-load {
+  padding: 5px 12px;
+  white-space: nowrap;
+}
+.integration-file-browser .check-row {
+  min-height: 30px;
+  white-space: nowrap;
+}
+.integration-controls .integration-file-controls button {
+  border-radius: 3px;
+  min-height: 30px;
+}
+.integration-controls .integration-file-navigation button {
+  padding: 0 8px;
+  font-size: var(--text-body);
+}
+.integration-file-step {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  color: #c0c4c9;
+}
+.integration-controls .integration-file-step input {
+  width: 72px;
+  appearance: auto;
+  -moz-appearance: auto;
+  padding: 3px 4px;
+}
+.integration-file-step input::-webkit-inner-spin-button {
+  opacity: 1;
+}
+.integration-file-controls .integration-file-path {
+  width: 100%;
+  min-width: 0;
+  height: 30px;
+  padding: 4px 8px;
+  color: #bbc1c8;
+  font: inherit;
+  text-overflow: ellipsis;
+  border-radius: 3px;
+}
+.integration-file-directory {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px;
+  gap: 5px;
+}
+.integration-controls .integration-file-directory button {
+  padding: 0;
+}
+.integration-image-info {
+  min-width: 0;
+}
+.integration-image-info > summary {
+  width: fit-content;
+  cursor: pointer;
+  padding: 5px 8px;
+  border-radius: 3px;
+  list-style: none;
+  background: #2b3036;
+  color: #dce0e3;
+}
+.integration-image-info > summary::-webkit-details-marker {
+  display: none;
+}
+.integration-image-info > summary:hover {
+  background: #383f46;
+}
+.integration-image-info > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.integration-image-info pre {
+  max-height: 200px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: var(--text-small);
+}
+@media (max-width: 1100px) {
+  .integration-file-browser {
+    grid-template-columns: max-content minmax(90px, 120px) max-content;
+    gap: 6px;
+  }
+  .integration-controls .integration-file-load {
+    padding-inline: 8px;
+  }
+}
+.integration-pattern-types {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 12px;
+  color: #c0c4c9;
+  min-width: 0;
+  min-height: 30px;
+}

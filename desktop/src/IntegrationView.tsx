@@ -3,6 +3,8 @@ import type { State } from "./types";
 import type { IntegrationRun, IntegrationState } from "./integration";
 import { Check, Field, Group } from "./IntegrationFields";
 import "./integration.css";
+import { IntegrationImageControls } from "./IntegrationImageControls";
+import { IntegrationPatternControls } from "./IntegrationPatternControls";
 import { IntegrationOverlayControls } from "./IntegrationOverlayControls";
 
 let retainedTab = "Image";
@@ -30,14 +32,16 @@ export function IntegrationView({
   const source = state?.integration;
   const [draft, setDraft] = useState<IntegrationState | undefined>(source);
   const [tab, setTab] = useState(retainedTab);
-  useEffect(() => { retainedTab = tab; }, [tab]);
+  useEffect(() => {
+    retainedTab = tab;
+  }, [tab]);
   const [backgroundTab, setBackgroundTab] = useState("pattern");
   const [correctionTab, setCorrectionTab] = useState("flat");
-  const [subtract, setSubtract] = useState(false);
   const [bkgRange, setBkgRange] = useState(false);
   const [bkgMin, setBkgMin] = useState(0),
     [bkgMax, setBkgMax] = useState(50);
   const [fileStep, setFileStep] = useState(1);
+  const [patternStep, setPatternStep] = useState(1);
   useEffect(() => {
     setDraft(source);
     setBkgRange(!!source?.patternBackground.range);
@@ -120,61 +124,14 @@ export function IntegrationView({
         id="integration-tabpanel"
       >
         {tab === "Image" && (
-          <>
-            <Group title="Image" open>
-              <button
-                className="secondary full-input"
-                onClick={() => action("open_image")}
-              >
-                Load image…
-              </button>
-              <div className="file-actions">
-                <button
-                  aria-label="Integration previous image"
-                  onClick={() =>
-                    action("next_image", { direction: -1, step: fileStep })
-                  }
-                >
-                  ← Previous
-                </button>
-                <button
-                  aria-label="Integration next image"
-                  onClick={() =>
-                    action("next_image", { direction: 1, step: fileStep })
-                  }
-                >
-                  Next →
-                </button>
-              </div>
-              <p
-                className="integration-filename"
-                title={state?.imagePath ?? ""}
-              >
-                {state?.imageName ?? "No image loaded"}
-              </p>
-
-              <Field
-                label="File step"
-                value={fileStep}
-                min={1}
-                max={100000}
-                step={1}
-                onChange={setFileStep}
-              />
-              <label className="field-label">
-                Browse by
-                <select
-                  aria-label="Image file order"
-                  value={source.fileIteration}
-                  onChange={(e) =>
-                    action("integration_navigation", { mode: e.target.value })
-                  }
-                >
-                  <option value="number">Filename number</option>
-                  <option value="time">Creation time</option>
-                </select>
-              </label>
-              {source.frames > 1 && (
+          <IntegrationImageControls
+            state={state}
+            source={source}
+            fileStep={fileStep}
+            setFileStep={setFileStep}
+            action={action}
+            frameControl={
+              source.frames > 1 && (
                 <CommitField
                   label={`Frame (1–${source.frames})`}
                   value={source.frame}
@@ -182,154 +139,17 @@ export function IntegrationView({
                     action("integration_navigation", { frame })
                   }
                 />
-              )}
-              <details className="integration-file-info">
-                <summary>File Info</summary>
-                <pre>
-                  {source.fileInfo || state?.imagePath || "No file loaded"}
-                </pre>
-              </details>
-            </Group>
-            <Group title="Mask files" open>
-              <div className="file-actions">
-                <button
-                  disabled={!state?.hasImage}
-                  onClick={() => action("mask_file")}
-                >
-                  Load mask…
-                </button>
-                <button
-                  disabled={!state?.hasImage}
-                  onClick={() => action("mask_file", { save: true })}
-                >
-                  Save mask…
-                </button>
-              </div>
-              <p className="integration-note">
-                {state?.maskedPixels.toLocaleString()} masked pixels
-              </p>
-            </Group>
-            <Group title="Folder integration" open>
-              <button
-                className="secondary full-input"
-                disabled={!state?.calibrated || !state.hasImage}
-                onClick={() => action("integration_batch")}
-              >
-                Integrate folder…
-              </button>
-              <button
-                className="secondary full-input"
-                disabled={!source.batchFrames}
-                onClick={() => action("integration_save_batch")}
-              >
-                Save batch… ({source.batchFrames} frames)
-              </button>
-            </Group>
-          </>
+              )
+            }
+          />
         )}
         {tab === "Pattern" && (
-          <>
-            <Group title="Pattern files" open>
-              <button
-                className="secondary full-input"
-                onClick={() => action("integration_open_pattern")}
-              >
-                Load pattern…
-              </button>
-              <div className="file-actions">
-                <button
-                  onClick={() =>
-                    action("integration_open_pattern", { direction: -1 })
-                  }
-                >
-                  ← Previous
-                </button>
-                <button
-                  onClick={() =>
-                    action("integration_open_pattern", { direction: 1 })
-                  }
-                >
-                  Next →
-                </button>
-              </div>
-              <p className="integration-filename">
-                {source.patternName || "No pattern"}
-              </p>
-
-              <Check
-                label="Save background subtracted"
-                checked={subtract}
-                onChange={setSubtract}
-              />
-              <button
-                className="primary full-input"
-                disabled={!source.patternName}
-                onClick={() =>
-                  action("integration_save_pattern", {
-                    subtract_background: subtract,
-                  })
-                }
-              >
-                Save pattern…
-              </button>
-              <p className="integration-note">
-                XY · XYE · CHI · DAT · FXYE. Error formats require Poisson
-                errors.
-              </p>
-            </Group>
-            <Group title="Autocreate" open>
-              <button
-                className="secondary full-input"
-                onClick={() => action("integration_output_directory")}
-              >
-                Output folder…
-              </button>
-              <p
-                title={source.outputDirectory}
-                className="integration-filename"
-              >
-                {source.outputDirectory}
-              </p>
-              <div className="integration-formats">
-                {[".xy", ".xye", ".chi", ".dat", ".fxye"].map((format) => (
-                  <Check
-                    key={format}
-                    label={format}
-                    checked={draft.formats.includes(format)}
-                    onChange={(v) =>
-                      set(
-                        "formats",
-                        v
-                          ? [...draft.formats, format]
-                          : draft.formats.filter((f) => f !== format),
-                      )
-                    }
-                  />
-                ))}
-              </div>
-              <Check
-                label="Autocreate patterns on image load"
-                checked={draft.autoSave}
-                onChange={(v) => set("autoSave", v)}
-              />
-              <button
-                className="secondary full-input"
-                onClick={() =>
-                  action("integration_settings", {
-                    auto_save: draft.autoSave,
-                    formats: draft.formats,
-                  })
-                }
-              >
-                Apply autocreate
-              </button>
-              <p className="integration-note">
-                Saves on explicit Load / Previous / Next image.
-                Background-subtracted patterns also go into bkg_subtracted.
-                Autocreate is off when reopening a project.
-              </p>
-            </Group>
-          </>
+          <IntegrationPatternControls
+            source={source}
+            action={action}
+            step={patternStep}
+            setStep={setPatternStep}
+          />
         )}
         {tab === "Background" && (
           <>

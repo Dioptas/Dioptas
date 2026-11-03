@@ -9,9 +9,11 @@ from __future__ import annotations
 
 from pathlib import Path
 from copy import deepcopy
+from collections import deque
 import math
 import numpy as np
 
+from dioptas.model.util.NewFileWatcher import NewFileInDirectoryWatcher
 from dioptas.model.util.calc import convert_units
 from dioptas.model.util.ImgCorrection import (
     FlatFieldCorrection,
@@ -125,6 +127,9 @@ class IntegrationWorkflow:
             "integration_roi": self._integration_roi,
             "integration_phase_guides": self._integration_phase_guides,
             "integration_navigation": self._integration_navigation,
+            "integration_image_directory": self._integration_image_directory,
+            "integration_autoprocess": self._integration_autoprocess,
+            "integration_autoprocess_poll": self._integration_autoprocess_poll,
             "integration_clear_background": self._integration_clear_background,
             "integration_background": self._integration_background,
             "integration_image_background": self._integration_image_background,
@@ -133,6 +138,8 @@ class IntegrationWorkflow:
             "integration_overlay": self._integration_overlay,
             "integration_phase": self._integration_phase,
             "integration_open_pattern": self._integration_open_pattern,
+            "integration_pattern_navigation": self._integration_pattern_navigation,
+            "integration_autocreate": self._integration_autocreate,
             "integration_save_pattern": self._integration_save_pattern,
             "integration_save_background": self._integration_save_background,
             "integration_output_directory": self._integration_output_directory,
@@ -226,8 +233,12 @@ class IntegrationWorkflow:
             "patternPath": c.pattern_model.pattern_filename if c.pattern_model.pattern_source == "file" else "",
             "originalPatternColor": c.pattern_model.params.color,
             "originalPatternVisible": c.pattern_model.params.visible,
+            "patternFileIteration": c.pattern_model.file_iteration_mode,
             "fileInfo": str(image.file_info),
             "fileIteration": image.file_iteration_mode,
+            "imageDirectory": c.working_directories["image"],
+            "autoProcess": getattr(self, "_integration_auto_process", False),
+            "autoProcessError": getattr(self, "_integration_auto_process_error", ""),
             "frame": image.series_pos,
             "frames": image.series_max,
         }
@@ -479,6 +490,75 @@ class IntegrationWorkflow:
         self._calculate()
         return self._snapshot(include_image=True)
 
+    def _integration_reset_autoprocess(self):
+        # This watcher is polled by desktop commands on the processing worker;
+        # it never starts its own thread or invokes science from a callback.
+        self._integration_auto_process = False
+        self._integration_auto_process_error = ""
+        self._integration_file_watcher = None
+        self._integration_incoming = deque()
+
+    def _integration_watch_directory(self, directory):
+        watcher = NewFileInDirectoryWatcher(
+            directory,
+            file_types=list(self.configuration.img_model._directory_watcher.file_types),
+        )
+        self._integration_incoming = deque()
+        watcher.file_added.connect(self._integration_incoming.append)
+        watcher._take_baseline()
+        self._integration_file_watcher = watcher
+
+    def _integration_image_directory(self, path=None):
+        if path is None:
+            if self._choose_file is None:
+                raise ValueError("Choose an image directory in the desktop application.")
+            path = self._choose_file("directory", False)
+        if not path:
+            return {"cancelled": True}
+        directory = Path(path).expanduser().resolve()
+        if not directory.is_dir():
+            raise ValueError(f"Image directory does not exist: {directory}")
+        previous = self.configuration.working_directories["image"]
+        if str(directory) != previous:
+            self.configuration.working_directories["image"] = str(directory)
+            self._integration_auto_process_error = ""
+            if getattr(self, "_integration_auto_process", False):
+                self._integration_watch_directory(str(directory))
+        return self._state()
+
+    def _integration_autoprocess(self, enabled, directory=None):
+        enabled = boolean(enabled, "Autoprocess")
+        if enabled:
+            if directory is not None:
+                self._integration_image_directory(path=directory)
+            directory = self.configuration.working_directories["image"]
+            if not Path(directory).is_dir():
+                raise ValueError("Choose an existing image directory first.")
+            if not getattr(self, "_integration_auto_process", False):
+                self._integration_watch_directory(directory)
+            self._integration_auto_process = True
+            self._integration_auto_process_error = ""
+        else:
+            self._integration_reset_autoprocess()
+        return self._state()
+
+    def _integration_autoprocess_poll(self):
+        if not getattr(self, "_integration_auto_process", False):
+            return {}
+        self._integration_file_watcher.poll_once()
+        if not self._integration_incoming:
+            return {}
+        path = self._integration_incoming.popleft()
+        try:
+            result = self._open_image(path=path)
+            self._integration_image_loaded()
+        except Exception as exc:
+            # A bad image must not block the remaining acquisition queue.
+            self._integration_auto_process_error = f"{Path(path).name}: {exc}"
+            return self._snapshot(include_image=True)
+        self._integration_auto_process_error = ""
+        return result
+
     def _integration_navigation(self, mode=None, frame=None):
         image = self.configuration.img_model
         if mode is not None:
@@ -725,17 +805,35 @@ class IntegrationWorkflow:
         self._revision += 1
         return self._snapshot()
 
-    def _integration_open_pattern(self, path=None, direction=None):
+    def _integration_autocreate(self, enabled, directory=None):
+        enabled = boolean(enabled, "Autocreate")
+        if enabled and directory:
+            self._integration_output_directory(path=directory)
+        return self._integration_settings(auto_save=enabled)
+
+    def _integration_pattern_navigation(self, mode):
+        if mode not in {"number", "time"}:
+            raise ValueError("Choose filename number or creation time navigation.")
+        self.configuration.pattern_model.set_file_iteration_mode(mode)
+        return self._state()
+
+    def _integration_open_pattern(self, path=None, direction=None, step=1, directory=None):
         model = self.configuration.pattern_model
         if direction is not None:
             if direction not in {-1, 1}:
                 raise ValueError("Pattern direction must be -1 or 1.")
-            (model.load_next_file if direction == 1 else model.load_previous_file)()
+            step = finite(step, "Pattern file step", 1, 100000, True)
+            if model.pattern_source != "file":
+                raise ValueError("Load a pattern file before browsing files.")
+            (model.load_next_file if direction == 1 else model.load_previous_file)(step=step)
         else:
+            if path and directory and not Path(path).expanduser().is_absolute():
+                path = str(Path(directory).expanduser() / path)
             path = self._path(path, "pattern")
             if path is None:
                 return {"cancelled": True}
             model.load_pattern(path)
+        self.configuration.working_directories["pattern"] = str(Path(model.pattern_filename).resolve().parent)
         model.unit = self.configuration.integration_unit
         self._refresh_integration_pattern()
         self._revision += 1
@@ -892,6 +990,9 @@ class IntegrationWorkflow:
         return {"savedPath": path}
 
     def _integration_image_loaded(self):
-        """Qt's autocreate, limited to explicit successful image-load actions."""
+        """Keep the image working directory and Qt autocreate in sync."""
+        directory = str(Path(self.configuration.img_model.filename).resolve().parent)
+        if directory != self.configuration.working_directories["image"]:
+            self._integration_image_directory(path=directory)
         if getattr(self, "_integration_auto_save", False) and self._pattern is not None:
             self.configuration._auto_save_patterns()

@@ -55,11 +55,15 @@ export interface IntegrationState {
   }[];
   batchFrames: number;
   patternName: string;
-  patternPath: string;
   originalPatternColor?: string;
   originalPatternVisible?: boolean;
+  patternPath: string;
+  patternFileIteration: string;
   fileInfo: string;
   fileIteration: string;
+  imageDirectory: string;
+  autoProcess: boolean;
+  autoProcessError: string;
   frame: number;
   frames: number;
 }

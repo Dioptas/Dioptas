@@ -255,6 +255,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
                     "export_pattern",
                     "save_calibration",
                     "save_peaks",
+                    "integration_autoprocess_poll",
                 }
                 overlay_key = None
                 if action == "integration_overlay" and arguments.get("operation") == "update":
@@ -270,7 +271,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
                 )
                 with context:
                     result = handlers[action](**(arguments or {}))
-                    if action in {"open_image", "next_image"} and not result.get(
+                    if action in {"open_image", "next_image", "example"} and not result.get(
                         "cancelled"
                     ):
                         self._integration_image_loaded()
@@ -409,6 +410,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         )
         self._project = None
         self._integration_auto_save = False
+        self._integration_reset_autoprocess()
         self._geometry_source = "none"
         image, calibration = paths
         # This example starts with a raw calibrant image, not a solved PONI.
@@ -429,7 +431,9 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         self._calculate()
         return self._snapshot(include_image=True)
 
-    def _open_image(self, path=None):
+    def _open_image(self, path=None, directory=None):
+        if path and directory and not Path(path).expanduser().is_absolute():
+            path = str(Path(directory).expanduser() / path)
         path = self._path(path, "image")
         if path is None:
             return {"cancelled": True}
@@ -478,6 +482,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
             candidate.calibration_model.create_cake_geometry()
         self._model = candidate
         self._integration_auto_save = False
+        self._integration_reset_autoprocess()
         name = metadata.get("calibrant")
         if metadata.get("custom_calibrant"):
             custom = metadata["custom_calibrant"]
