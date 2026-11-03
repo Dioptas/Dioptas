@@ -88,18 +88,21 @@ export function NativePhaseEditor() {
   const run = useCallback<IntegrationRun>(
     async (command, args = {}, _message, onSuccess) => {
       if (!bridge.current) return;
-      const current = ++generation.current;
+      const target =
+        typeof args.editor_uid === "string" ? args.editor_uid : uid.current;
+      const current =
+        target === uid.current ? ++generation.current : generation.current;
       pending.current = true;
       setReady(false);
       setError("");
       try {
         const result = await bridge.current(command, {
           ...args,
-          editor_uid: uid.current,
+          editor_uid: target,
           editor_only: true,
         });
         if (!result.ok) throw Error(result.error);
-        if (current === generation.current) {
+        if (current === generation.current && target === uid.current) {
           if (result.phaseEditor)
             uid.current = (result.phaseEditor as EditorData).uid;
           onSuccess?.(result);

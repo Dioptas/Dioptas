@@ -519,3 +519,97 @@
 .pe-reflection-scroll table[data-position-columns="2"] {
   min-width: 400px;
 }
+.pe-source {
+  display: grid;
+  gap: 5px;
+}
+.pe-source .pe-material-name-field {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  margin: 0;
+}
+.pe-source .pe-file-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: var(--text-meta);
+}
+.pe-file-state input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  height: 22px;
+  font-size: inherit;
+}
+.pe-file-state > span:last-child {
+  margin-left: auto;
+  white-space: nowrap;
+}
+.pe-record-tools {
+  font-size: var(--text-meta);
+  margin: 6px 0 10px;
+}
+.pe-record-tools summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+.pe-space-group output {
+  color: var(--muted);
+  margin-left: 8px;
+  font-size: var(--text-meta);
+}
+.pe-site-element {
+  display: flex !important;
+  max-width: none !important;
+  gap: 3px;
+}
+.pe-sites-scroll .pe-site-element input {
+  width: 50px;
+}
+.pe-site-element button {
+  padding: 0 4px;
+  min-width: 22px;
+}
+.phase-dialog.pe-element-dialog {
+  width: min(680px, calc(100vw - 30px));
+}
+.pe-element-dialog form > input,
+.pe-element-dialog form > p {
+  margin: 10px 12px;
+}
+.pe-periodic-table {
+  display: grid;
+  grid-template-columns: repeat(18, minmax(0, 1fr));
+  grid-template-rows: repeat(10, 30px);
+  gap: 3px;
+  padding: 6px 12px;
+}
+.pe-periodic-table button {
+  padding: 0;
+  min-width: 0;
+  min-height: 30px;
+  font-size: var(--text-small);
+  border: 1px solid var(--border);
+}
+.pe-periodic-table button[aria-pressed="true"] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.pe-new-site label:has(button) {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.pe-new-site label:has(button) input {
+  grid-column: 1;
+}
+.pe-new-site label button {
+  margin: 0;
+  padding: 0 5px;
+}
+.pe-element-dialog::backdrop {
+  background: #0007;
+}
+.pe-element-dialog form {
+  min-height: 0;
+  overflow: auto;
+}

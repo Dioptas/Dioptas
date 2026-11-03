@@ -50,6 +50,7 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
     if action == "integration_overlay" && payload.get("paths").is_some_and(|v| !v.is_null()) {
         return None;
     }
+    if action == "integration_phase_export" && payload["save_current"] == true { return None; }
     if payload.get("path").is_some_and(|v| !v.is_null()) || payload["reset"] == true {
         return None;
     }
@@ -139,6 +140,7 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
             false,
         ),
         "integration_phase_list" => ("Phase List", &["txt"], "phase_list.txt", payload["save"] == true),
+        "integration_phase_export" if payload["format"] == "eosmat" => ("Material", &["eosmat"], "material.eosmat", true),
         "integration_phase_export" if payload["format"] == "txt" => ("Reflection table", &["txt"], "reflections.txt", true),
         "integration_phase_export" => ("Phase or material", &["eosmat", "jcpds", "txt"], "phase.eosmat", true),
         "integration_phase" | "integration_phase_files" => (
@@ -244,7 +246,7 @@ async fn desktop_invoke(
                 return processor.request_packet(&action, payload, cached);
             }
             let selected = if choice.save {
-                let name = if action == "integration_save_image" {
+                let name = if action == "integration_save_image" || action == "integration_phase_export" {
                     payload["suggested_name"].as_str().unwrap_or(choice.name)
                 } else {
                     choice.name

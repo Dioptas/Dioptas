@@ -16,10 +16,10 @@ Compared against Qt's `PhaseEditorWidget`, `PhaseEditorController`, `EosRecordDi
 | Thermal models | None, the legacy constant-coefficient correction, and all 18 installed constructor models. Fields and required/optional defaults come from their actual signatures; configuration choices use the shared model definitions. Nullable defaults are omitted from EOSMAT rather than serialized as invalid null coefficients. |
 | AlphaKT distinction | The constructor-based thermal-reference-state model retains its explicit model identifier in legacy v2 records and exports. It is not silently interpreted as the older JCPDS coefficient correction when reloaded or reselected. |
 | Records | Selection, add from session values, duplicate as custom, rename, delete and set default. Published bundled records and bundled structures remain protected by PhaseModel. Custom copies keep source records intact and receive the existing model's unvalidated/custom status. Complete record metadata, including reported errors, fixed parameters and source evidence, is inspectable and retained. |
-| Atomic positions | Element, fractional coordinates, occupancy and existing isotropic displacement fields; add/remove sites; editable space group by symbol/number, with the same 230 reference-group choices as Qt and retention of an explicit material setting. All edits use Qt's PhaseModel entry points and recalculate diffraction at the session wavelength. |
-| Composition | Assumed/edited structure flags, original site metadata, stored Z, independently calculated Z and the composition diagnostic. Structural edits do not rewrite the formula, stored Z, electron count or EoS normalization. Coordinates stay in their existing basis and origin. |
+| Atomic positions | Validated element symbols and a periodic-table picker, fractional coordinates, Occ. and existing isotropic displacement fields; add/remove sites; editable space group by symbol/number with the number displayed, the same 230 reference-group choices as Qt and retention of an explicit material setting. All edits use Qt's PhaseModel entry points and recalculate diffraction at the session wavelength. Derived Wyckoff labels use the declared Hall setting and each site's orbit, including coincident sites. |
+| Composition | Assumed/edited structure flags and original site metadata are retained. Structural edits do not rewrite the formula, stored Z, electron count or EoS normalization. Coordinates stay in their existing basis and origin. Composition diagnostics remain available in the model but are omitted from the editor. |
 | Reflections | Compact signed h/k/l fields and intensity displayed to four significant digits (full precision on focus, in calculations and export); calculated reference/current d, 2θ and Q pairs with a position-column selector; stable-index view sorting, select all/multiple delete, copy selected/all rows, add, confirmed clear, and a dedicated TXT export chooser. The displayed table is rounded; copy retains the underlying numbers and TXT export retains 17 significant digits. |
-| Save/reload | Valid edits apply immediately to the session; Save As writes a file and Reload restores its source. EOSMAT exports include a legacy phase's live EoS even without a named record. Legacy JCPDS export is allowed for BM3 peak tables, and rejected before writing when it would discard advanced EoS models, records/provenance or atomic structure. Use EOSMAT for those materials. |
+| Save/reload | Valid edits apply immediately to the session. Material names are editable independently of filenames. Save As atomically writes EOSMAT and associates the editable phase with that file; Save writes subsequent changes to the same file, and Reload restores it. EOSMAT exports include a legacy phase's live EoS even without a named record. Legacy JCPDS export is allowed for BM3 peak tables, and rejected before writing when it would discard advanced EoS models, records/provenance or atomic structure. Use EOSMAT for those materials. |
 
 New model selection uses Qt's existing starting-estimate helper. These are
 explicitly described as starting estimates, not measured or fitted coefficients.
@@ -41,7 +41,14 @@ it for editing, without any export/import step. The original bundled phase is
 retained. Scientific values and reflection coverage are copied without refitting;
 source identity and validation metadata are recorded as provenance, and the
 copy's EoS records are explicitly marked as user-owned/unvalidated. Copies can
-be saved in a project or exported as EOSMAT.
+be saved in a project or as EOSMAT. Edit a copy is beside Save and Save As in
+the fixed footer. Record-management actions and parameter-default explanations
+are collapsed initially; material and EoS names have distinct editable fields.
+
+Wyckoff annotations use the pinned Moyo v0.15.0 reference table (MIT license;
+attribution and generation inputs are in `dioptas/resources/data/wyckoff/`).
+Classification does not infer a different symmetry or overwrite source labels.
+Unknown settings or unmatched coordinates report an unavailable derived label.
 
 The parameter column follows Qt's **Volume & structure / Equation of state**
 pages, beside an independently scrolling reflection table. Both parameter panes
@@ -73,16 +80,21 @@ are unchanged.
   edits and hot P/T results against direct PhaseModel calls used by Qt.
 - Round trips cover custom/bundled ownership and source-record preservation,
   Debye parameters, constructor AlphaKT, structure edits and lossless EOSMAT
-  saves; invalid edits restore values and JCPDS loss is rejected before writing.
+  saves, independent material names, file association and subsequent Save;
+  invalid edits restore values and JCPDS loss is rejected before writing.
+- Site-label checks cover all 3,467 representatives across all 530 Hall settings,
+  coincident gold sites and rhombohedral/hexagonal setting distinctions.
 - Browser interactions use the real Python bridge in Chromium and WebKit:
   draft validation, Escape, Tab/focus, rapid entry, sorting/copy, reflection
-  actions/export, constructor/configuration controls, site/group edits, record
+  actions/export, constructor/configuration controls, periodic-table selection,
+  site/group edits, material-name/save actions, record
   actions, focus return, and both text sizes at 1000 × 668.
 - Existing phase-controls browser regression, Qt editor/controller tests,
   integration/calibration/combined-view regressions, JS tests and build pass.
 - Bundled Tauri/WKWebView smoke exercises numeric validation/Escape,
   independent native title-bar movement, persistent parameter scrollbars,
-  compact indices, lossless intensity display/editing, lattice/reflection/thermal-constructor editing, existing calibration and
+  compact indices, lossless intensity display/editing, material naming and Save,
+  lattice/reflection/thermal-constructor editing, existing calibration and
   integration workflows, full-resolution transfer and processing-child cleanup.
   No primary-preview server or user window is used.
   The native probe focuses inputs, uses cancelable keyboard events and waits
@@ -109,7 +121,6 @@ complete provenance form. Unsupported published equation types remain
 inspectable through their complete record metadata; the room-temperature
 selector offers the adapter's existing editable types.
 
-Elements are entered as validated symbols rather than chosen in Qt's periodic
-table dialog. Native macOS and browser tests do not qualify Windows/Linux
+Native macOS and browser tests do not qualify Windows/Linux
 packaging. Source-only scientific records retain the existing model's loading
 and validation restrictions. This is scoped parity, not complete Qt replacement.

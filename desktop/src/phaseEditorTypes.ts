@@ -15,6 +15,8 @@ export interface EditorField {
 }
 export interface EditorData extends BasePhaseEditorData {
   name: string;
+  materialName: string;
+  canSaveCurrent: boolean;
   uid: string;
   copiedFrom: string;
   reflections: (BasePhaseEditorData["reflections"][number] & {
@@ -43,6 +45,17 @@ export interface EditorData extends BasePhaseEditorData {
     spaceGroupNumber: number | null;
     groups: { number: number; symbol: string }[];
     sites: Record<string, string | number | null>[];
+    siteWyckoff: {
+      label: string | null;
+      multiplicity: number | null;
+      detail: string;
+    }[];
+    elements: {
+      number: number;
+      symbol: string;
+      name: string;
+      enabled: boolean;
+    }[];
     formula: string;
     storedZ: number | null;
     calculatedZ: number | null;

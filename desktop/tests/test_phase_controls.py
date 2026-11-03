@@ -117,8 +117,10 @@ def test_editor_changes_lattice_and_reflections_through_real_model(session, tmp_
     call(session, 'integration_phase_export', index=0, path=path)
     restored = eos.load_material_file(path)
     assert restored.lattice.a == 4.2
+    call(session, 'integration_phase', operation='parameter', index=0, parameter='a0', value=4.3)
     call(session, 'integration_phase', operation='reload', index=0)
-    assert session._model.phase_model.phases[0].params['a0'] != 4.2
+    assert session._model.phase_model.phases[0].params['a0'] == 4.2
+    assert session._model.phase_model.phase_files[0] == path
 
 
 def test_prepare_cif_and_import_use_experimental_cutoff_and_wavelength(session):

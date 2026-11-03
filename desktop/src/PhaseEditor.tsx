@@ -109,6 +109,7 @@ export function PhaseEditor({
     setLegacy(data.thermalSelection === "alphakt");
   }, [data.reference, data.thermalSelection]);
   const act: Edit = (operation, args = {}) => {
+    const target = content.current;
     setPending((n) => n + 1);
     const result = queue.current.then(async () => {
       setMessage("");
@@ -119,13 +120,15 @@ export function PhaseEditor({
         {
           operation: "editor_transaction",
           edit_operation: operation,
-          index: content.current.index,
+          index: target.index,
+          editor_uid: target.uid,
           editor: true,
           ...args,
         },
         "Updating phase…",
         (r) => {
           if (r.phaseEditor) {
+            content.current = r.phaseEditor as EditorData;
             responded = true;
             onData(r.phaseEditor);
             const rejection = (r.phaseEditor as EditorData).editError;
@@ -140,7 +143,7 @@ export function PhaseEditor({
         );
         await run(
           "integration_phase_editor",
-          { index: content.current.index },
+          { index: target.index, editor_uid: target.uid },
           "",
           (r) => {
             if (r.phaseEditor) onData(r.phaseEditor);
@@ -239,7 +242,7 @@ export function PhaseEditor({
   const close = () => {
     void queue.current.then(onClose);
   };
-  const save = async (format?: string) => {
+  const save = async (format?: string, overwrite = false) => {
     const invalid = dialog.current?.querySelector<HTMLInputElement>(
       '[aria-invalid="true"]',
     );
@@ -255,14 +258,23 @@ export function PhaseEditor({
     }
     // A preceding blur has already queued its edit before this click.
     await queue.current;
+    const applied = content.current;
     await run(
       "integration_phase_export",
-      { index: data.index, ...(format ? { format } : {}) },
+      {
+        index: applied.index,
+        editor_uid: applied.uid,
+        ...(format ? { format } : {}),
+        save_current: overwrite && applied.canSaveCurrent,
+        suggested_name: `${applied.materialName.replace(/[\/:*?"<>|]/g, "-").slice(0, 100) || "material"}.${format === "txt" ? "txt" : "eosmat"}`,
+      },
       "Saving phase…",
-      () => {
-        void run("integration_phase_editor", { index: data.index }, "", (r) => {
-          if (r.phaseEditor) onData(r.phaseEditor);
-        });
+      (result) => {
+        if (result.cancelled) return;
+        if (result.phaseEditor) onData(result.phaseEditor);
+        setMessage(
+          `${format === "txt" ? "Exported table" : "Saved"} ${result.savedPath?.split(/[\/]/).at(-1) || "material"}`,
+        );
       },
     );
   };
@@ -287,30 +299,43 @@ export function PhaseEditor({
         </button>
       </header>
       <div className="pe-source">
-        <label>
-          Filename{" "}
-          <input
-            readOnly
-            value={data.filename}
-            title={data.filename}
-            placeholder="Not saved to a file"
+        <label className="pe-material-name-field">
+          Material name
+          <TextEdit
+            label="Material name"
+            value={data.materialName}
+            disabled={!data.editable}
+            onCommit={(value) => act("editor_name", { value })}
           />
         </label>
-        <span>
-          {data.modified ? "Modified in session" : "Session values"} ·{" "}
-          {data.origin === "bundled"
-            ? "Bundled material"
-            : data.copiedFrom
-              ? `Custom copy of ${data.copiedFrom}`
-              : "User material"}
-        </span>
-        <button
-          disabled={locked}
-          title="Create an independent editable copy in this session"
-          onClick={() => void act("editor_copy")}
-        >
-          Edit a copy
-        </button>
+        <div className="pe-file-state">
+          <span>
+            {data.origin === "bundled"
+              ? "Bundled database"
+              : data.filename
+                ? "File"
+                : "Unsaved material"}
+          </span>
+          {data.filename && data.origin !== "bundled" && (
+            <input
+              aria-label="Material file"
+              readOnly
+              value={data.filename}
+              title={data.filename}
+            />
+          )}
+          <span>
+            {data.modified
+              ? "Modified"
+              : data.origin === "bundled"
+                ? "Bundled material"
+                : data.filename
+                  ? data.canSaveCurrent
+                    ? "Saved"
+                    : "Loaded material"
+                  : "Session values"}
+          </span>
+        </div>
       </div>
       <div className="pe-body">
         <section className="pe-parameters" aria-label="Phase parameters">
@@ -475,7 +500,7 @@ export function PhaseEditor({
             {!!data.references.length && (
               <>
                 <label className="pe-selector">
-                  Material record{" "}
+                  EoS record{" "}
                   <select
                     aria-label="Editor material record"
                     value={data.reference}
@@ -504,47 +529,52 @@ export function PhaseEditor({
                 </details>
               </>
             )}
-            <div className="pe-record-actions">
-              <button
-                disabled={locked || !data.references.length}
-                onClick={() =>
-                  void act("editor_record", { action: "duplicate" })
-                }
-              >
-                Duplicate as custom
-              </button>
-              <button
-                disabled={locked}
-                onClick={() => void act("editor_record", { action: "add" })}
-              >
-                Add record
-              </button>
-              <button
-                disabled={
-                  locked ||
-                  !data.eosEditable ||
-                  !data.references.length ||
-                  data.defaultReference === data.reference
-                }
-                onClick={() => void act("editor_record", { action: "default" })}
-              >
-                Set default
-              </button>
-              <button
-                disabled={
-                  locked || !data.eosEditable || !data.references.length
-                }
-                onClick={() => setConfirm("record")}
-              >
-                Delete record…
-              </button>
-            </div>
+            <details className="pe-record-tools">
+              <summary>Manage EoS records</summary>
+              <div className="pe-record-actions">
+                <button
+                  disabled={locked || !data.references.length}
+                  onClick={() =>
+                    void act("editor_record", { action: "duplicate" })
+                  }
+                >
+                  Duplicate as custom
+                </button>
+                <button
+                  disabled={locked}
+                  onClick={() => void act("editor_record", { action: "add" })}
+                >
+                  Add record
+                </button>
+                <button
+                  disabled={
+                    locked ||
+                    !data.eosEditable ||
+                    !data.references.length ||
+                    data.defaultReference === data.reference
+                  }
+                  onClick={() =>
+                    void act("editor_record", { action: "default" })
+                  }
+                >
+                  Set default
+                </button>
+                <button
+                  disabled={
+                    locked || !data.eosEditable || !data.references.length
+                  }
+                  onClick={() => setConfirm("record")}
+                >
+                  Delete record…
+                </button>
+              </div>
+            </details>
             {data.eosEditable && !!data.references.length && (
               <label className="pe-selector">
-                Record label
+                EoS name
                 <TextEdit
                   key={`${data.index}-${data.reference}`}
-                  label="Record label"
+                  label="EoS name"
                   value={data.recordLabel}
                   disabled={locked}
                   onCommit={(value) =>
@@ -555,8 +585,8 @@ export function PhaseEditor({
             )}
             {!data.eosEditable && (
               <p className="pe-note">
-                Duplicate this record as custom to edit its parameters. The
-                published record is retained.
+                Published record. Use Manage EoS records to duplicate it for
+                editing.
               </p>
             )}
             <label className="pe-selector">
@@ -650,11 +680,14 @@ export function PhaseEditor({
             </label>
             {(data.thermalType || legacy) && (
               <>
-                <p className="pe-help">
-                  {data.thermalType
-                    ? "Constructor parameters. Blank optional fields use the stated model default. Selecting a different model initializes Qt’s starting estimates."
-                    : "Legacy constant-coefficient correction."}
-                </p>
+                <details className="pe-record-details">
+                  <summary>Parameter defaults</summary>
+                  <p>
+                    {data.thermalType
+                      ? "Blank optional fields use the model default. Selecting another thermal model initializes starting estimates."
+                      : "Legacy constant-coefficient correction."}
+                  </p>
+                </details>
                 <div className="pe-eos-fields">
                   {data.thermalFields.map((f) => field(f, !!data.thermalType))}
                 </div>
@@ -889,10 +922,8 @@ export function PhaseEditor({
             </button>
           </div>
           <p className="pe-help">
-            Enter or Tab applies a value; Escape restores it. Select rows to
-            copy or delete. ₀ denotes the reference lattice; unmarked positions
-            use the current P/T. Intensities display four significant digits;
-            focus a field for full precision.
+            ₀: reference · unmarked: current P/T. Intensities: 4 significant
+            digits; full precision on focus.
           </p>
         </section>
       </div>
@@ -922,7 +953,11 @@ export function PhaseEditor({
           {message ||
             (pending
               ? "Applying edit…"
-              : "Valid edits apply to this session. Save As writes a file.")}
+              : data.modified
+                ? "Unsaved changes"
+                : data.filename
+                  ? "Saved"
+                  : "Session material")}
         </p>
         <button
           disabled={locked || !data.canReload}
@@ -932,8 +967,29 @@ export function PhaseEditor({
         </button>
         <button
           disabled={locked}
+          title="Create an independent editable material"
+          onClick={() => void act("editor_copy")}
+        >
+          Edit a copy
+        </button>
+        <button
+          className="primary"
+          title={
+            data.editable
+              ? "Save this material"
+              : "Use Edit a copy to create an editable material"
+          }
+          disabled={
+            locked || !data.editable || (!data.modified && data.canSaveCurrent)
+          }
+          onClick={() => void save("eosmat", data.canSaveCurrent)}
+        >
+          Save
+        </button>
+        <button
+          disabled={locked}
           title="Save .eosmat to retain EoS records, provenance and atomic positions"
-          onClick={() => void save()}
+          onClick={() => void save("eosmat")}
         >
           Save As…
         </button>

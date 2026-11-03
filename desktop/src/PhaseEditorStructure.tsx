@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { DataTable, TableScroll } from "./DataTable";
 import { EditorNumber, TextEdit } from "./PhaseEditorFields";
+import { PhaseElementPicker } from "./PhaseElementPicker";
 import type { EditorData, EditorEdit as Edit } from "./phaseEditorTypes";
 
 export function PhaseEditorStructure({
@@ -23,6 +24,7 @@ export function PhaseEditorStructure({
     occupancy: "1",
   });
   const [error, setError] = useState("");
+  const [pickElement, setPickElement] = useState<number | "new" | null>(null);
   const structure = data.structure;
   useEffect(() => {
     setGroup(structure.spaceGroup);
@@ -45,7 +47,7 @@ export function PhaseEditorStructure({
   ].filter(
     (k) =>
       structure.sites.some((s) => k in s) ||
-      ["element", "x", "y", "z", "occupancy"].includes(k),
+      ["element", "x", "y", "z", "occupancy", "wyckoff"].includes(k),
   );
   if (!structure.spaceGroup && !structure.sites.length)
     return (
@@ -66,10 +68,17 @@ export function PhaseEditorStructure({
       <h3>Atomic positions</h3>
       <div className="pe-space-group">
         <label>
-          Space group
+          <span>
+            Space group{" "}
+            <output aria-label="Space group number">
+              No. {structure.spaceGroupNumber ?? "—"}
+            </output>
+          </span>
           <input
             aria-label="Space group"
             list="pe-space-groups"
+            placeholder="Symbol or number"
+            title="Coordinates remain in their current basis and origin"
             value={group}
             disabled={!data.editable || !structure.sites.length}
             onChange={(e) => setGroup(e.target.value)}
@@ -103,47 +112,23 @@ export function PhaseEditorStructure({
           Apply group
         </button>
       </div>
-      <p className="pe-help">
-        Search by symbol or number. Coordinates remain in the current basis and
-        origin.
-      </p>
       {structure.assumption && (
         <p className="pe-note">Assumed structure: {structure.assumption}</p>
       )}
-      <p className="pe-composition" title={structure.compositionDetail}>
-        {structure.modified ? "Edited structure · " : ""}
-        {structure.formula || "Formula unavailable"} · Stored Z ={" "}
-        {structure.storedZ ?? "unavailable"}
-        <br />
-        {structure.calculatedZ != null
-          ? `Calculated Z = ${structure.calculatedZ.toPrecision(6)}`
-          : structure.compositionStatus === "mismatch"
-            ? "Formula mismatch · no common Z"
-            : "Calculated Z unavailable"}
-        {structure.calculatedZ != null &&
-          structure.storedZ != null &&
-          Math.abs(structure.calculatedZ - structure.storedZ) >
-            1e-4 * structure.storedZ &&
-          " · differs from stored Z"}
-      </p>
-      <details className="pe-record-details">
-        <summary>Composition diagnostic</summary>
-        <p>{structure.compositionDetail}</p>
-      </details>
-      <p className="pe-help">
-        x, y, z are fractional coordinates. Site edits recalculate reflections;
-        stored Z and EoS normalization are retained.
-      </p>
       <TableScroll className="pe-sites-scroll">
         <DataTable aria-label="Atomic sites">
           <thead>
             <tr>
-              <th>Select</th>
+              <th aria-label="Site selection" />
               {keys.map((key) => (
                 <th key={key}>
                   {key === "u_iso_angstrom2"
                     ? "Uiso (Å²)"
-                    : key.replace(/^_/, "")}
+                    : key === "occupancy"
+                      ? "Occ."
+                      : key === "wyckoff"
+                        ? "Site"
+                        : key.replace(/^_/, "")}
                 </th>
               ))}
             </tr>
@@ -168,19 +153,29 @@ export function PhaseEditorStructure({
                 {keys.map((key) => (
                   <td key={key}>
                     {key === "element" ? (
-                      <TextEdit
-                        label={`Site ${row + 1} element`}
-                        value={String(site[key] ?? "")}
-                        disabled={!data.editable}
-                        onCommit={(value) =>
-                          act("editor_site", {
-                            action: "update",
-                            row,
-                            parameter: key,
-                            value,
-                          })
-                        }
-                      />
+                      <span className="pe-site-element">
+                        <TextEdit
+                          label={`Site ${row + 1} element`}
+                          value={String(site[key] ?? "")}
+                          disabled={!data.editable}
+                          onCommit={(value) =>
+                            act("editor_site", {
+                              action: "update",
+                              row,
+                              parameter: key,
+                              value,
+                            })
+                          }
+                        />
+                        <button
+                          type="button"
+                          disabled={locked || !data.editable}
+                          aria-label={`Choose element for site ${row + 1}`}
+                          onClick={() => setPickElement(row)}
+                        >
+                          …
+                        </button>
+                      </span>
                     ) : [
                         "x",
                         "y",
@@ -207,6 +202,15 @@ export function PhaseEditorStructure({
                           })
                         }
                       />
+                    ) : key === "wyckoff" ? (
+                      <span
+                        title={
+                          structure.siteWyckoff[row]?.detail ||
+                          "Source Wyckoff label"
+                        }
+                      >
+                        {structure.siteWyckoff[row]?.label || site[key] || "—"}
+                      </span>
                     ) : (
                       <span title={String(site[key] ?? "")}>
                         {String(site[key] ?? "")}
@@ -274,11 +278,11 @@ export function PhaseEditorStructure({
             });
           }}
         >
-          <p>New site · fractional coordinates</p>
+          <p>New site</p>
           <div>
             {Object.entries(newSite).map(([key, value]) => (
               <label key={key}>
-                {key}
+                {key === "occupancy" ? "Occ." : key}
                 <input
                   aria-label={`New site ${key}`}
                   autoFocus={key === "element"}
@@ -288,6 +292,15 @@ export function PhaseEditorStructure({
                     setNewSite((s) => ({ ...s, [key]: e.target.value }))
                   }
                 />
+                {key === "element" && (
+                  <button
+                    type="button"
+                    aria-label="Choose new site element"
+                    onClick={() => setPickElement("new")}
+                  >
+                    …
+                  </button>
+                )}
               </label>
             ))}
           </div>
@@ -297,6 +310,28 @@ export function PhaseEditorStructure({
           </button>
           <button disabled={locked}>Add site</button>
         </form>
+      )}
+      {pickElement !== null && (
+        <PhaseElementPicker
+          elements={structure.elements}
+          value={
+            pickElement === "new"
+              ? newSite.element
+              : String(structure.sites[pickElement].element || "")
+          }
+          onClose={() => setPickElement(null)}
+          onChoose={(value) => {
+            if (pickElement === "new")
+              setNewSite((s) => ({ ...s, element: value }));
+            else
+              void act("editor_site", {
+                action: "update",
+                row: pickElement,
+                parameter: "element",
+                value,
+              });
+          }}
+        />
       )}
     </div>
   );

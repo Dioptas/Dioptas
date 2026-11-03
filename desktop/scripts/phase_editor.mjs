@@ -324,7 +324,15 @@ try {
   await click("Apply group");
   assert.equal((await state()).structure.spaceGroupNumber, 1);
   await click("Add atomic site…");
-  await page.getByLabel("New site element", { exact: true }).fill("Au");
+  await click("Choose new site element");
+  await page
+    .getByRole("dialog", { name: "Choose element", exact: true })
+    .waitFor();
+  await click("Choose Gold");
+  assert.equal(
+    await page.getByLabel("New site element", { exact: true }).inputValue(),
+    "Au",
+  );
   await click("Add site");
   assert.equal((await state()).structure.sites.length, siteCount + 1);
   await page
@@ -421,13 +429,14 @@ try {
     .click();
   assert.ok(await page.getByLabel("K₀", { exact: true }).isDisabled());
   const publishedReference = (await state()).reference;
+  await page.getByText("Manage EoS records", { exact: true }).click();
   await click("Duplicate as custom");
   assert.equal(
     await page.getByLabel("K₀", { exact: true }).isDisabled(),
     false,
   );
   await edit("K₀", 180);
-  await edit("Record label", "Diagnostic custom EOS");
+  await edit("EoS name", "Diagnostic custom EOS");
   assert.equal((await state()).recordLabel, "Diagnostic custom EOS");
   const customReference = (await state()).reference;
   const recordSelector = page.getByLabel("Editor material record", {
@@ -466,6 +475,36 @@ try {
   assert.ok(copy.editable && copy.eosEditable && !copy.canReload);
   await edit("a₀", copy.lattice.a0 * 1.01);
   assert.equal((await state()).lattice.a0, original.lattice.a0);
+  await edit("Material name", "My named gold material");
+  await click("Save As…");
+  const savedCopy = (await call("integration_phase_editor", { index: 1 }))
+    .phaseEditor;
+  assert.equal(savedCopy.materialName, "My named gold material");
+  assert.ok(
+    savedCopy.filename.endsWith("phase.eosmat") &&
+      savedCopy.canSaveCurrent &&
+      !savedCopy.modified,
+  );
+  await edit("Material name", "Updated gold material");
+  await click("Save");
+  const savedAgain = (await call("integration_phase_editor", { index: 1 }))
+    .phaseEditor;
+  assert.equal(savedAgain.materialName, "Updated gold material");
+  assert.equal(savedAgain.filename, savedCopy.filename);
+  assert.equal(savedAgain.modified, false);
+  assert.equal(
+    JSON.parse(await readFile(savedCopy.filename, "utf8")).name,
+    "Updated gold material",
+  );
+  assert.equal(
+    await page.getByLabel("Material file", { exact: true }).inputValue(),
+    savedCopy.filename,
+  );
+  assert.ok(
+    await page
+      .getByRole("button", { name: "Edit a copy", exact: true })
+      .evaluate((el) => !!el.closest("footer")),
+  );
   await page.screenshot({
     path: artifacts + "/phase-editor-editable-copy.png",
   });

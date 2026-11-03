@@ -132,6 +132,46 @@
         volume.offsetWidth - volume.clientWidth >= 10,
       "Volume scrollbar is not persistent",
     );
+    const target = new URLSearchParams(location.search).get("phase_uid");
+    const original = await window.__dioptasNativeCall(
+      "integration_phase_editor",
+      { editor_uid: target },
+    );
+    const root = original.phaseEditor.filename.split("/dioptas/tests/")[0];
+    check(
+      root && root !== original.phaseEditor.filename,
+      "Unexpected native fixture path",
+    );
+    await set("Material name", "Native saved material");
+    const firstSave = await window.__dioptasNativeCall(
+      "integration_phase_export",
+      {
+        editor_uid: target,
+        format: "eosmat",
+        path: root + "/desktop/artifacts/native-editor-material.eosmat",
+      },
+    );
+    check(firstSave.ok, firstSave.error || "Native material save failed");
+    await invoke("plugin:event|emit", {
+      event: "phase-editor-changed",
+      payload: {},
+    });
+    await wait(() =>
+      document
+        .querySelector('input[aria-label="Material file"]')
+        ?.value.endsWith("/native-editor-material.eosmat"),
+    );
+    await set("Material name", "Renamed native material");
+    await click("Save");
+    const saved = await window.__dioptasNativeCall("integration_phase_editor", {
+      editor_uid: target,
+    });
+    check(
+      saved.phaseEditor.materialName === "Renamed native material" &&
+        !saved.phaseEditor.modified &&
+        saved.phaseEditor.canSaveCurrent,
+      "Native Save did not retain the material name/file association",
+    );
     await click("Equation of state");
     await choose("Thermal model", "MieGruneisenDebye");
     await set("theta0", 650);
@@ -153,6 +193,7 @@
       persistentScrollbars: true,
       compactIndices: true,
       intensityPrecision: true,
+      materialNameAndSave: true,
     };
   } catch (error) {
     report = { ok: false, error: String(error) };

@@ -108,11 +108,18 @@ def editor_metadata(model, index):
     from dioptas.model.eos.structure_composition import assess_structure_composition
     composition = assess_structure_composition(document)
     source = document.get('source') or {}
+    from .phase_sites import site_labels, element_choices
+    group_number = document.get('space_group_number')
+    if document.get('space_group'):
+        from dioptas.model.util.phasesmith import _space_group_info
+        group_number = _space_group_info(document['space_group'], group_number).number
     thermal_kind = params['thermal_type'] or ('alphakt' if any(
         params[k] for k in LEGACY_FIELDS) else 'none')
     return dict(
         uid=phase_editor_uid(phase),
         copiedFrom=(source.get('copied_from') or {}).get('phase_name') or '',
+        materialName=document.get('name') or phase._name,
+        canSaveCurrent=bool(model.is_material_editable(index) and phase._filename and phase._filename.lower().endswith('.eosmat')),
         name=phase.name, pressure=params['pressure'], temperature=params['temperature'],
         coldPressure=bool(model.params.dac_thermal_pressure_enabled),
         modified=bool(params.get('modified') or params.get('eos_records_modified')),
@@ -133,7 +140,8 @@ def editor_metadata(model, index):
             params['eos_type'], '' if kind in ('none', 'alphakt') else kind))
             for kind in ('none', 'alphakt', *THERMAL_EOS_TYPES)],
         structure=dict(spaceGroup=document.get('space_group') or '',
-            spaceGroupNumber=document.get('space_group_number'),
+            spaceGroupNumber=group_number,
+            siteWyckoff=site_labels(document), elements=element_choices(),
             groups=space_groups(), sites=deepcopy(document.get('atom_sites') or []),
             formula=document.get('formula') or '', storedZ=params.get('zc'),
             calculatedZ=composition.z, compositionStatus=composition.status,
@@ -149,7 +157,23 @@ def apply_editor_edit(workflow, model, index, operation, changes):
     phase = model.phases[index]
     params = phase.params
     wavelength = workflow.configuration.calibration_model.wavelength * 1e10
-    if operation == 'editor_ratio':
+    if operation == 'editor_name':
+        model._require_editable_material(index)
+        name = str(changes['value']).strip()
+        if not name or len(name) > 250 or any(ord(c) < 32 for c in name):
+            raise ValueError('A material name needs 1–250 printable characters.')
+        document = deepcopy(params.get('material_document') or {})
+        if not document:
+            from dioptas.model import eos
+            document = eos.material_from_jcpds(phase).to_dict()
+            if not params.get('chemistry'):
+                document['formula'] = ''  # A display/file name is not a declared chemical formula.
+        document['name'] = name
+        phase._name = name
+        params['material_document'] = document
+        params['modified'] = True
+        model.phase_changed.emit(index)
+    elif operation == 'editor_ratio':
         key = changes['parameter']
         allowed = {'a/b': ('a0', 'b0'), 'c/a': ('c0', 'a0'), 'c/b': ('c0', 'b0')}
         if key not in allowed:
@@ -277,6 +301,9 @@ def export_material(model, index):
     from dioptas.model import eos
     phase = model.phases[index]
     material = eos.material_from_jcpds(phase)
+    document = phase.params.get('material_document') or {}
+    if 'formula' in document and document['formula'] == '':
+        material.formula = ''
     if not material.eos_records and phase.params['k0']:
         record = live_record(model, index)
         record['label'] = 'Session EoS'

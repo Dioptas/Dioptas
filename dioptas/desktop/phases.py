@@ -224,11 +224,21 @@ class PhaseWorkflow:
             reflections=reflection_rows(phase, wavelength),
         )}
 
-    def _integration_phase_export(self, index=None, material_id=None, path=None, format=None, editor_only=False, editor_uid=None):
+    def _integration_phase_export(self, index=None, material_id=None, path=None, format=None, editor_only=False, editor_uid=None, save_current=False, suggested_name=None):
         if editor_uid is not None:
             from .phase_editor import resolve_editor_index
             index = resolve_editor_index(self._model.phase_model, editor_uid=editor_uid)
-        if format not in (None, 'txt'):
+        if save_current:
+            if material_id is not None or index is None:
+                raise ValueError('Select an editable material to save.')
+            model = self._model.phase_model
+            from .integration import finite
+            index = finite(index, 'Phase index', 0, len(model.phases)-1, True)
+            phase = model.phases[index]
+            if not model.is_material_editable(index) or not (phase._filename or '').lower().endswith('.eosmat'):
+                raise ValueError('Use Save As to choose an EOSMAT file for this material.')
+            path = phase._filename
+        if format not in (None, 'txt', 'eosmat'):
             raise ValueError('Unknown phase export format.')
         path = self._path(path, 'phase_reflections' if format == 'txt' else 'phase_export', save=True)
         if path is None:
@@ -237,6 +247,8 @@ class PhaseWorkflow:
         if not suffix:
             path += '.txt' if format == 'txt' else '.eosmat'
             suffix = Path(path).suffix.lower()
+        if format == 'eosmat' and suffix != '.eosmat':
+            raise ValueError('Choose an .eosmat material file.')
         if format == 'txt' and suffix != '.txt':
             raise ValueError('Choose a .txt file for the reflection table.')
         if suffix not in ({'.eosmat'} if material_id is not None else {'.eosmat', '.jcpds', '.txt'}):
@@ -259,11 +271,32 @@ class PhaseWorkflow:
                             ('h', 'k', 'l', 'intensity', 'd0', 'd', 'twoTheta0', 'twoTheta', 'q0', 'q')) + '\n')
             else:
                 from .phase_editor import export_material
-                eos.save_material_file(path, export_material(model, index))
+                # A failed save must leave an existing material file intact.
+                import os
+                import tempfile
+                target = Path(path)
+                with tempfile.NamedTemporaryFile(dir=target.parent, suffix='.eosmat', delete=False) as temporary:
+                    temporary_path = temporary.name
+                try:
+                    eos.save_material_file(temporary_path, export_material(model, index))
+                    os.replace(temporary_path, path)
+                finally:
+                    if os.path.exists(temporary_path):
+                        os.unlink(temporary_path)
+                if model.is_material_editable(index):
+                    phase = model.phases[index]
+                    phase._filename = path
+                    model.items[index].filename = path
+                    phase.params['modified'] = False
+                    phase.params['eos_records_modified'] = False
+                    self._refresh_integration_pattern()
         self._revision += 1
         if editor_only:
             return {**self._integration_phase_editor(index), 'savedPath': path}
-        return {**self._snapshot(), 'savedPath': path}
+        result = {**self._snapshot(), 'savedPath': path}
+        if index is not None:
+            result.update(self._integration_phase_editor(index))
+        return result
 
     def _integration_phase(self, **arguments):
         editor_only = arguments.pop('editor_only', False)
@@ -404,6 +437,8 @@ class PhaseWorkflow:
                         raise ValueError('Unknown phase option.')
             else:
                 raise ValueError('Unknown phase operation.')
+        if index is not None and index < len(model.phases) and (operation in {'parameter', 'reflection'} or operation.startswith('editor_')):
+            model.phases[index].params['modified'] = True
         self._refresh_integration_pattern()
         self._revision += 1
         result = self._snapshot()

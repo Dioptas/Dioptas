@@ -280,3 +280,81 @@ def test_native_phase_refresh_preserves_detector_view_payload(session):
     assert result['patternOnly']
     assert 'image' not in result and 'rawImage' not in result
     assert result['state']['integration']['phases'][0]['name'].endswith('*')
+
+
+def test_material_name_save_as_and_save_keep_file_independent_and_reloadable(session, tmp_path):
+    original = call(session, 'integration_phase_editor', index=0)['phaseEditor']
+    renamed = edit(session, 'editor_name', value='My measured gold')
+    assert renamed['materialName'] == 'My measured gold'
+    assert renamed['modified']
+    assert renamed['lattice'] == original['lattice']
+    path = str(tmp_path / 'anything-I-want.eosmat')
+    result = call(session, 'integration_phase_export', index=0, path=path, format='eosmat')
+    saved = result['phaseEditor']
+    assert saved['filename'] == path and saved['canSaveCurrent'] and saved['canReload']
+    assert saved['materialName'] == 'My measured gold' and not saved['modified']
+    assert eos.load_material_file(path).name == 'My measured gold'
+    edit(session, 'editor_name', value='Second material name')
+    edit(session, 'parameter', parameter='a0', value=4.3)
+    result = call(session, 'integration_phase_export', index=0, save_current=True, editor_only=True)
+    assert result['savedPath'] == path
+    assert not result['phaseEditor']['modified']
+    assert eos.load_material_file(path).name == 'Second material name'
+    assert eos.load_material_file(path).lattice.a == 4.3
+    reloaded = edit(session, 'reload')
+    assert reloaded['materialName'] == 'Second material name'
+    assert reloaded['lattice']['a0'] == 4.3
+
+
+def test_derived_wyckoff_labels_for_coincident_and_moved_sites(session):
+    from dioptas.desktop.phase_sites import site_labels
+    document = dict(space_group='F m -3 m', space_group_number=225,
+        atom_sites=[dict(element='Au', x=0, y=0, z=0, occupancy=.5),
+                    dict(element='Cu', x=0, y=0, z=0, occupancy=.5),
+                    dict(element='Au', x=.5, y=.5, z=.5),
+                    dict(element='Au', x=.25, y=.25, z=.25),
+                    dict(element='Au', x=.123, y=.234, z=.345)])
+    labels = site_labels(document)
+    assert [site['label'] for site in labels] == ['4a', '4a', '4b', '8c', '192l']
+    assert all('wyckoff' not in site for site in document['atom_sites'])
+    document['space_group'] = 'R -3 m:R'
+    document['space_group_number'] = 166
+    assert site_labels(document)[0]['label'] == '1a'
+    document['space_group'] = 'R -3 m:H'
+    assert site_labels(document)[0]['label'] == '3a'
+
+
+def test_wyckoff_reference_representatives_across_all_space_group_types():
+    from dioptas.desktop.phase_sites import affine_space, classify_site, wyckoff_settings, hall_key
+    from dioptas.model.util.phasesmith import resolve_space_group
+    tested = 0
+    parameters = np.array([.123456789, .271828182, .414213562])
+    for number in range(1, 231):
+        symbol, info = resolve_space_group(str(number))
+        setting = wyckoff_settings()[(hall_key(info.hall_symbol), info.setting)]
+        for multiplicity, letter, _symmetry, coordinates in setting['positions']:
+            linear, origin, _projection = affine_space(coordinates)
+            xyz = tuple((linear @ parameters + origin) % 1)
+            label = classify_site(symbol, number, xyz)
+            assert label['multiplicity'] == multiplicity, (number, letter, xyz, label)
+            assert label['label'] == f'{multiplicity}{letter}', (number, letter, xyz, label)
+            tested += 1
+    assert tested > 1700
+
+
+def test_wyckoff_representatives_in_all_hall_settings():
+    from types import SimpleNamespace
+    from phasesmith.io.space_groups import space_group_from_hall_symbol
+    from dioptas.desktop.phase_sites import affine_space, classify_with_info, wyckoff_settings
+    tested = 0
+    parameters = np.array([.123456789, .271828182, .414213562])
+    for setting in wyckoff_settings().values():
+        info = SimpleNamespace(number=setting['number'], hall_symbol=setting['hall'], hm_symbol=setting['hall'], setting=setting['setting'],
+            space_group=space_group_from_hall_symbol(setting['hall'].replace('=', '"')))
+        for multiplicity, letter, _symmetry, coordinates in setting['positions']:
+            linear, origin, _projection = affine_space(coordinates)
+            xyz = tuple((linear @ parameters + origin) % 1)
+            result = classify_with_info(info, xyz)
+            assert result['label'] == f'{multiplicity}{letter}', (setting['hall'], coordinates, result)
+            tested += 1
+    assert tested == 3467
