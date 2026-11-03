@@ -234,6 +234,7 @@ export function usePlotNavigation(
             6
         ) {
           reset();
+          return "reset";
         } else {
           rightClick.current = { time: event.timeStamp, point };
           setRange(scaled(view, 2));

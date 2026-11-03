@@ -95,7 +95,7 @@ Its `--dev` option still supports live frontend updates independently of Tauri.
    peak-table row selects that group and updates the active ring. Auto advance
    increases the ring number after each selection. With Pick peaks enabled,
    stationary detector clicks pick peaks in any calibration tab; turn it off
-   to inspect radial positions. **Peaks** holds automatic/single peak search,
+   to navigate without adding peaks. **Peaks** holds automatic/single peak search,
    search size and the group table. Pick bright
    positions around the ring; use the group table to inspect or reassign picks.
 4. Open **Fit**: distance, wavelength, PONI 1/2 and rotations 1/2/3
@@ -118,8 +118,7 @@ Its `--dev` option still supports live frontend updates independently of Tauri.
    and fixed parameters. Refine continues from the existing geometry and is
    enabled once a geometry has been fitted, loaded or entered manually.
 6. Validate the ring overlays, cake, integrated pattern, and RMS residual.
-   Turn Pick peaks off to link detector clicks across the plots; cake and
-   pattern clicks always inspect radial positions. Change
+   Linked click inspection is available in Integration. Change
    **Validation calibrant** to inspect a different reference without changing
    the geometry. Use the peak table to reassign groups, select/delete several
    groups, or undo/redo edits; refine again after editing selections.
@@ -232,6 +231,29 @@ Mouse coordinates and source intensity update together during movement at roughl
 visible while a new source-pixel lookup is pending; the final cursor position is
 sampled even when movement stops during a lookup.
 
+The shared footer stays on one line, without source labels, with fixed coordinate
+fields. Coordinate precision follows the visible axis range and plot size: broad
+intensity ranges show whole numbers, and zooming reveals finer digits. Pattern
+x/y follow the pointer; I reports the nearest curve
+sample independently of the pointer's height, including log and square-root
+display modes. Only Integration adds a compact **Click** position alongside the
+live readout, with green text and the selected azimuth. Hover and clicked radial
+positions always show **2θ**, **Q** and **d** together, independently of the plot's
+selected unit. These are degrees, Å⁻¹ and Å respectively (also named in the field
+tooltips). Conversions use the session wavelength, and carry the source coordinate's
+resolution into each unit. Calibrated detector hover also includes all three
+radial units at the sampled original pixel centre. Unavailable conversions use
+an em dash. At compact window widths, the clicked azimuth is available in the
+Click tooltip so that all three radial units stay visible on one line.
+Stationary inspection clicks leave green radial guides and linked image/cake crosses;
+pattern clicks retain the last selected azimuth. Selections survive
+display refreshes and radial-unit changes, and clear when the image or geometry
+changes. Calibration and Mask show only the live mouse readout.
+
+`node scripts/position_readout.mjs` (optionally `--webkit`) checks footer alignment,
+pointer coordinates, persistent click readings, painted linked crosses,
+shifted-cake inspection and radial-unit changes against real Python models.
+
 All current plots (detector, cake, integrated pattern) share these controls:
 
 - **Wheel:** zoom the plot under the pointer; the event is captured so the
@@ -281,7 +303,7 @@ and explicit Apply action. A shared
 app footer starts beside the full-height left sidebar and shows the active plot's
 coordinates/intensity on the left, with workflow, processing, selection, save
 and error messages on the right. Detector,
-cake, pattern and map readings identify their source and update at about
+cake, pattern and map readings update at about
 10 Hz; leaving a plot clears its reading. Plot-local status rows and floating
 pattern readouts are removed. Calibrant display switches sit at the right end
 of the calibration step toolbar above the image.

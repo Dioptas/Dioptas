@@ -140,8 +140,8 @@ class IntegrationWorkflow:
             "integration_open_pattern": self._integration_open_pattern,
             "integration_pattern_navigation": self._integration_pattern_navigation,
             "integration_autocreate": self._integration_autocreate,
-            "integration_save_pattern": self._integration_save_pattern,
             "integration_save_image": self._integration_save_image,
+            "integration_save_pattern": self._integration_save_pattern,
             "integration_save_background": self._integration_save_background,
             "integration_output_directory": self._integration_output_directory,
             "integration_batch": self._integration_batch,
@@ -231,9 +231,9 @@ class IntegrationWorkflow:
             ],
             "batchFrames": int(c.batch_model.n_img or 0),
             "patternName": c.pattern_model.pattern.name,
-            "patternPath": c.pattern_model.pattern_filename if c.pattern_model.pattern_source == "file" else "",
             "originalPatternColor": c.pattern_model.params.color,
             "originalPatternVisible": c.pattern_model.params.visible,
+            "patternPath": c.pattern_model.pattern_filename if c.pattern_model.pattern_source == "file" else "",
             "patternFileIteration": c.pattern_model.file_iteration_mode,
             "fileInfo": str(image.file_info),
             "fileIteration": image.file_iteration_mode,
@@ -283,6 +283,7 @@ class IntegrationWorkflow:
                 if np.isfinite(position):
                     phase_lines.append(
                         {
+                            "phaseIndex": i,
                             "x": float(position),
                             "intensity": float(reflection[1]),
                             "name": phase.name,
@@ -343,13 +344,21 @@ class IntegrationWorkflow:
                 continue
             color = "#%02x%02x%02x" % tuple(int(v) for v in phases.phase_colors[i])
             positions = phases.get_phase_line_positions(i, "2th_deg", c.calibration_model.wavelength * 1e10)
-            for position in positions:
+            intensities = np.asarray([reflection[1] for reflection in phases.reflections[i]], dtype=float)
+            intensities = np.where(np.isfinite(intensities), np.maximum(intensities, 0), 0)
+            maximum = float(np.max(intensities)) if intensities.size else 0
+            for reflection_index, (position, intensity) in enumerate(zip(positions, intensities)):
                 if not np.isfinite(position):
                     continue
+                # Match CakePhasePlot.update_pen: stronger reflections are
+                # thicker and more opaque, normalized independently per phase.
+                scaling = float(intensity / maximum) if maximum > 0 else 0
+                style = {"lineWidth": 1 + 3 * scaling, "opacity": 0.3 + 0.4 * scaling}
                 contours = [[[float(x * step), float(y * step)] for y, x in line[::2]]
                             for line in find_contours(sampled, float(position))]
                 for points in contours:
-                    guides.append({"ring": 0, "twoTheta": float(position), "color": color, "points": points})
+                    guides.append({"ring": 0, "twoTheta": float(position), "color": color, "points": points,
+                                   "phaseIndex": i, "reflectionIndex": reflection_index, **style})
         return {"phaseGuides": guides}
 
     def _integration_settings(self, **changes):

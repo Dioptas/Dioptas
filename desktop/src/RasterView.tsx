@@ -15,6 +15,16 @@ import { number, unitLabel } from "./types";
 import { linearAxisTicks, linearTicks } from "./plotTicks";
 import { PlotZoomControls } from "./PlotZoomControls";
 import {
+  roiHandles,
+  useRoiInteraction,
+  type DetectorRoi,
+} from "./useRoiInteraction";
+import { POSITION_LINE_COLOR } from "./plotColors";
+import {
+  drawRangeSelection,
+  RANGE_SELECTION_COLOR,
+} from "./drawRangeSelection";
+import {
   usePlotNavigation,
   usePlotWheel,
   type ZoomMode,
@@ -49,12 +59,14 @@ export function RasterView({
   resetKey = 0,
   onStroke,
   onHover,
+  onResolution,
   cake = false,
   zoomMode = "rectangle",
   onZoomMode,
   onPick,
   onInspect,
   linkedPosition,
+  clickedPoint,
   calibrantLines = EMPTY_CALIBRANT_LINES,
   showNumbers = false,
   activeRing,
@@ -63,6 +75,7 @@ export function RasterView({
   imagePadding = 0,
   overlay,
   roi,
+  onRoiChange,
   onImageDoubleClick,
   peaks = EMPTY_PEAKS,
   rings = EMPTY_RINGS,
@@ -83,19 +96,36 @@ export function RasterView({
   onZoomMode?: (mode: ZoomMode) => void;
   onStroke?: (points: number[][], erase: boolean) => void;
   onHover?: (
-    point: { x: number; y: number; value: number | null } | null,
+    point: {
+      x: number;
+      y: number;
+      value: number | null;
+      xResolution?: number;
+      yResolution?: number;
+    } | null,
   ) => void;
+  onResolution?: (resolution: { x: number; y: number }) => void;
   onPick?: (point: { x: number; y: number }) => void;
-  onInspect?: (point: { x: number; y: number }) => void;
+  onInspect?: (point: {
+    x: number;
+    y: number;
+    value: number | null;
+    xResolution?: number;
+    yResolution?: number;
+  }) => void;
   linkedPosition?: number;
-  calibrantLines?: { ring: number; twoTheta: number; color?: string }[];
+  clickedPoint?: { x: number; y: number } | null;
+  calibrantLines?: (Omit<RingOverlay, "points" | "twoTheta"> & {
+    twoTheta: number;
+  })[];
   showNumbers?: boolean;
   activeRing?: number;
   currentPeakRing?: number;
   maskOpacity?: number;
   imagePadding?: number;
   overlay?: MaskOverlay;
-  roi?: [number, number, number, number] | null;
+  roi?: DetectorRoi | null;
+  onRoiChange?: (roi: DetectorRoi) => Promise<void>;
   onImageDoubleClick?: () => void;
   peaks?: { x: number; y: number; ring: number; selected?: boolean }[];
   rings?: RingOverlay[];
@@ -272,13 +302,29 @@ export function RasterView({
     !cake,
     zoomMode,
   );
-  usePlotWheel(canvas, navigation.onWheel);
   const view = navigation.view;
   const sx = plotWidth / (view.xMax - view.xMin),
     sy = plotHeight / (view.yMax - view.yMin);
   const ox = left - view.xMin * sx,
     oy = top + (view.yMax - raster.fullHeight) * sy;
+  useEffect(() => {
+    if (size.width > 100 && size.height > 100)
+      onResolution?.({ x: 1 / sx, y: 1 / sy });
+  }, [onResolution, sx, sy, size.width, size.height]);
+  const roiInteraction = useRoiInteraction({
+    roi: cake ? null : roi,
+    width: raster.fullWidth,
+    height: raster.fullHeight,
+    projection: { ox, yBase: oy + raster.fullHeight * sy, sx, sy },
+    busy,
+    onChange: cake ? undefined : onRoiChange,
+  });
+  const displayedRoi = roiInteraction.roi;
+  usePlotWheel(canvas, (event) => {
+    if (!roiInteraction.dragging) navigation.onWheel(event);
+  });
   const zoom = fitWidth / (view.xMax - view.xMin);
+  const editableRoi = !!onRoiChange;
   const draw = useCallback(
     (output: HTMLCanvasElement, exporting = false) => {
       const context = output.getContext("2d");
@@ -289,6 +335,7 @@ export function RasterView({
       output.width = Math.round(size.width * dpr);
       output.height = Math.max(1, Math.round(size.height * dpr));
       context.scale(dpr, dpr);
+      // PNG exports use Qt's 2048-pixel width and retain the current plot view.
       if (exporting) {
         context.fillStyle = "#101518";
         context.fillRect(0, 0, size.width, size.height);
@@ -327,7 +374,8 @@ export function RasterView({
         );
         for (const ring of ordered) {
           const active = ring.ring === activeRing,
-            linked = ring.ring < 0;
+            linked = ring.ring <= 0 && !ring.color;
+          if (exporting && linked) continue;
           const path = () => {
             context.beginPath();
             ring.points.forEach(([x, y], i) => {
@@ -347,9 +395,12 @@ export function RasterView({
           path();
           context.strokeStyle =
             ring.color ??
-            (linked ? "#83f5d0" : active ? "#ff4040d9" : "#ff4040b3");
-          context.lineWidth = active ? 2.2 : linked ? 2 : 0.8;
+            (linked ? POSITION_LINE_COLOR : active ? "#ff4040d9" : "#ff4040b3");
+          context.lineWidth =
+            ring.lineWidth ?? (active ? 2.2 : linked ? 2 : 0.8);
+          context.globalAlpha = ring.opacity ?? 1;
           context.stroke();
+          context.globalAlpha = 1;
           if (
             (showNumbers || active) &&
             ring.ring > 0 &&
@@ -467,11 +518,14 @@ export function RasterView({
           context.strokeStyle =
             line.color ?? (active ? "#ff4040d9" : "#ff4040b3");
           context.lineWidth =
+            line.lineWidth ??
             (active ? 2.2 : 0.8) + (line.color ? 0 : calibrantWidthBoost);
+          context.globalAlpha = line.opacity ?? 1;
           context.beginPath();
           context.moveTo(x, top);
           context.lineTo(x, top + plotHeight);
           context.stroke();
+          context.globalAlpha = 1;
           if (showNumbers) {
             const text = String(line.ring);
             const width = context.measureText(text).width + 10;
@@ -486,9 +540,9 @@ export function RasterView({
             lastLabelRight = labelX + width;
           }
         }
-        if (!exporting && linkedPosition !== undefined) {
+        if (linkedPosition !== undefined && !exporting) {
           const x = lineX(linkedPosition);
-          context.strokeStyle = "#8af0c4";
+          context.strokeStyle = POSITION_LINE_COLOR;
           context.lineWidth = 1.5;
           context.beginPath();
           context.moveTo(x, top);
@@ -496,25 +550,49 @@ export function RasterView({
           context.stroke();
         }
       }
-      if (!exporting && navigation.selection) {
-        const { start, end } = navigation.selection;
-        context.fillStyle = "#ff950025";
-        context.strokeStyle = "#ff9500";
-        context.lineWidth = 1;
-        context.fillRect(
-          Math.min(start.x, end.x),
-          Math.min(start.y, end.y),
-          Math.abs(end.x - start.x),
-          Math.abs(end.y - start.y),
-        );
-        context.strokeRect(
-          Math.min(start.x, end.x),
-          Math.min(start.y, end.y),
-          Math.abs(end.x - start.x),
-          Math.abs(end.y - start.y),
-        );
+      if (clickedPoint && !exporting) {
+        const x = ox + clickedPoint.x * sx;
+        const y = oy + (raster.fullHeight - clickedPoint.y) * sy;
+        // A screen-sized cross stays visible at any zoom, like Qt's click item.
+        const cross = () => {
+          context.beginPath();
+          context.moveTo(x - 7, y);
+          context.lineTo(x + 7, y);
+          context.moveTo(x, y - 7);
+          context.lineTo(x, y + 7);
+          context.stroke();
+        };
+        context.strokeStyle = "#101010";
+        context.lineWidth = 4;
+        cross();
+        context.strokeStyle = POSITION_LINE_COLOR;
+        context.lineWidth = 1.5;
+        cross();
       }
-      if (!exporting && stroke.length) {
+      if (navigation.selection && !exporting) {
+        const { start, end } = navigation.selection;
+        const x = Math.min(start.x, end.x),
+          y = Math.min(start.y, end.y),
+          width = Math.abs(end.x - start.x),
+          height = Math.abs(end.y - start.y);
+        if (cake && zoomMode === "horizontal") {
+          drawRangeSelection(
+            context,
+            x,
+            x + width,
+            y,
+            height,
+            RANGE_SELECTION_COLOR,
+          );
+        } else {
+          context.fillStyle = RANGE_SELECTION_COLOR + "25";
+          context.strokeStyle = RANGE_SELECTION_COLOR;
+          context.lineWidth = 1;
+          context.fillRect(x, y, width, height);
+          context.strokeRect(x, y, width, height);
+        }
+      }
+      if (stroke.length && !exporting) {
         context.fillStyle =
           tool === "erase" ? "rgba(101,197,139,.5)" : "rgba(255,0,0,.5)";
         for (const [x, y] of stroke) {
@@ -531,8 +609,8 @@ export function RasterView({
           context.fill();
         }
       }
-      if (!exporting && roi && !cake) {
-        const [rowMin, rowMax, colMin, colMax] = roi;
+      if (displayedRoi && !cake && !exporting) {
+        const [rowMin, rowMax, colMin, colMax] = displayedRoi;
         const x0 = ox + colMin * sx,
           x1 = ox + colMax * sx;
         const y0 = oy + (raster.fullHeight - rowMax) * sy,
@@ -545,8 +623,21 @@ export function RasterView({
         context.strokeStyle = "#ff9500";
         context.lineWidth = 1.5;
         context.strokeRect(x0, y0, x1 - x0, y1 - y0);
+        if (editableRoi) {
+          const { handles } = roiHandles(displayedRoi, {
+            ox,
+            yBase: oy + raster.fullHeight * sy,
+            sx,
+            sy,
+          });
+          context.fillStyle = "#202225";
+          for (const [, x, y] of handles) {
+            context.fillRect(x - 3, y - 3, 6, 6);
+            context.strokeRect(x - 3, y - 3, 6, 6);
+          }
+        }
       }
-      if (overlay && !cake) {
+      if (overlay && !cake && !exporting) {
         context.strokeStyle = overlay.erase ? "#87e4ae" : "#ff0000";
         context.fillStyle = overlay.erase ? "#65c58b30" : "#ff000030";
         context.lineWidth = 1.5;
@@ -581,10 +672,10 @@ export function RasterView({
         }
       }
       if (
-        !exporting &&
         cursor &&
         (tool === "mask" || tool === "erase") &&
-        !cake
+        !cake &&
+        !exporting
       ) {
         context.strokeStyle = tool === "erase" ? "#87e4ae" : "#ff0000";
         context.lineWidth = 1;
@@ -705,13 +796,16 @@ export function RasterView({
       rings,
       contours,
       navigation.selection,
+      clickedPoint,
+      zoomMode,
       linkedPosition,
       calibrantLines,
       showNumbers,
       activeRing,
       currentPeakRing,
       overlay,
-      roi,
+      displayedRoi,
+      editableRoi,
     ],
   );
   useEffect(() => {
@@ -763,15 +857,18 @@ export function RasterView({
         aria-label={
           cake
             ? `Azimuthal cake; left-drag ${zoomMode} zoom, right-drag pan, right-click zoom out`
-            : painting
-              ? "Detector image; click to stamp, left-drag rectangle zoom, Shift-drag paint, right-drag pan, right-click zoom out"
-              : "Detector image; left-drag rectangle zoom, right-drag pan, right-click zoom out"
+            : displayedRoi && onRoiChange
+              ? "Detector image; drag inside the ROI to move, drag edges or corners to resize, Escape cancels; left-drag outside zooms, right-drag pans"
+              : painting
+                ? "Detector image; click to stamp, left-drag rectangle zoom, Shift-drag paint, right-drag pan, right-click zoom out"
+                : "Detector image; left-drag rectangle zoom, right-drag pan, right-click zoom out"
         }
         style={{
           width: "100%",
           height: "100%",
-          cursor: "crosshair",
+          cursor: roiInteraction.cursor(cursor),
         }}
+        data-roi={displayedRoi?.join(",")}
         data-full-width={raster.fullWidth}
         data-full-height={raster.fullHeight}
         data-plot-left={left}
@@ -786,6 +883,8 @@ export function RasterView({
         data-azimuth-min={cake ? (raster as Cake).azimuthRange[0] : undefined}
         data-azimuth-max={cake ? (raster as Cake).azimuthRange[1] : undefined}
         data-ring-count={cake ? calibrantLines.length : rings.length}
+        data-click-x={clickedPoint?.x}
+        data-click-y={clickedPoint?.y}
         data-linked-position={linkedPosition}
         data-zoom-mode={zoomMode}
         data-view-x-min={view.xMin}
@@ -798,6 +897,7 @@ export function RasterView({
         onContextMenu={(event) => event.preventDefault()}
         onAuxClick={(event) => event.preventDefault()}
         onPointerDown={(event) => {
+          if (roiInteraction.onPointerDown(event)) return;
           const brushDrag = painting && event.shiftKey && !event.ctrlKey;
           // Navigation is available in every tool, including while processing.
           if (navigation.onPointerDown(event, !brushDrag || !!busy, cake))
@@ -817,19 +917,35 @@ export function RasterView({
             const value = data[y * raster.width + x];
             onHover?.({
               ...point,
+              xResolution: 1 / sx,
+              yResolution: 1 / sy,
               value: Number.isFinite(value) ? value : null,
             });
           } else onHover?.(null);
+          if (roiInteraction.onPointerMove(event)) return;
           navigation.onPointerMove(event);
           if (drag.current && point) addPoint(point);
         }}
         onPointerUp={(event) => {
+          if (roiInteraction.onPointerUp(event)) return;
           const result = navigation.onPointerUp(event);
           const { point } = position(event);
           if (result === "click" && point && !busy) {
             if (painting) onStroke?.([[point.x, point.y]], tool === "erase");
             else if (tool === "pick") onPick?.(point);
-            else onInspect?.(point);
+            else {
+              const value =
+                data[
+                  Math.floor(point.y / raster.step) * raster.width +
+                    Math.floor(point.x / raster.step)
+                ];
+              onInspect?.({
+                ...point,
+                xResolution: 1 / sx,
+                yResolution: 1 / sy,
+                value: Number.isFinite(value) ? value : null,
+              });
+            }
           }
           if (drag.current && point) addPoint(point);
           const points = drag.current?.points;
@@ -840,10 +956,12 @@ export function RasterView({
           setStroke([]);
         }}
         onPointerCancel={(event) => {
+          roiInteraction.onPointerCancel();
           navigation.onPointerCancel(event);
           drag.current = null;
           setStroke([]);
         }}
+        onLostPointerCapture={roiInteraction.onLostPointerCapture}
         onPointerLeave={() => {
           setCursor(null);
           onHover?.(null);

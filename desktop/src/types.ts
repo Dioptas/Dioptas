@@ -47,6 +47,7 @@ export interface Pattern {
     selected?: boolean;
   }[];
   phaseLines?: {
+    phaseIndex?: number;
     x: number;
     intensity: number;
     name: string;
@@ -138,6 +139,10 @@ export interface Calibration {
 export interface RingOverlay {
   ring: number;
   color?: string;
+  lineWidth?: number;
+  opacity?: number;
+  phaseIndex?: number;
+  reflectionIndex?: number;
   twoTheta?: number;
   points: number[][];
 }
@@ -159,7 +164,13 @@ export interface Response {
   cake?: Cake | null;
   pattern?: Pattern | null;
   savedPath?: string;
-  pixel?: { x: number; y: number; value: number | null };
+  pixel?: {
+    x: number;
+    y: number;
+    value: number | null;
+    twoTheta?: number;
+    twoThetaResolution?: number;
+  };
   nextRing?: number;
   levels?: [number, number] | null;
   display?: "detector" | "cake";
@@ -175,7 +186,13 @@ export interface Response {
       rmsDegrees: number | null;
     };
   };
-  linked?: { twoTheta: number; radial: number; contours: RingOverlay[] };
+  linked?: {
+    twoTheta: number;
+    radial: number;
+    contours: RingOverlay[];
+    azimuth?: number | null;
+    imagePoint?: { x: number; y: number } | null;
+  } | null;
   rings?: RingOverlay[];
 }
 export type Invoke = (

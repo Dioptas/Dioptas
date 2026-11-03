@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Activity,
   ArrowUpRight,
   Crosshair,
   FileImage,
@@ -15,10 +14,21 @@ import {
   Undo2,
 } from "lucide-react";
 import { connect, updateWindowTitle } from "./bridge";
-import { MapModeIcon, MaskModeIcon } from "./ModeIcons";
+import { IntegrationModeIcon, MapModeIcon, MaskModeIcon } from "./ModeIcons";
 import { SettingsWorkspace } from "./SettingsWorkspace";
 import "./sharedFooter.css";
 import { usePlotReadout, type PatternHover } from "./plotReadout";
+import {
+  ReadingFields,
+  sourceLabel,
+  patternReading,
+  detectorReading,
+  cakeReading,
+  cakeCoordinates,
+  coordinateValue,
+  type SourcedReading,
+} from "./PlotStatus";
+import { radialFields } from "./radialReadout";
 import { shapeHelp } from "./maskDomain";
 import type {
   Cake,
@@ -30,7 +40,7 @@ import type {
   State,
   Tool,
 } from "./types";
-import { number, unitLabel } from "./types";
+import { number } from "./types";
 import { MapView } from "./MapView";
 import { MapControls } from "./MapControls";
 import type { MapData } from "./mapDomain";
@@ -76,12 +86,8 @@ export default function App() {
   const [selectedOverlayUid, setSelectedOverlayUid] = useState<string | null>(
     null,
   );
-
   const [inspectBackground, setInspectBackground] = useState(false);
   const [cakeShift, setCakeShift] = useState(0);
-  const [imageAutoScale, setImageAutoScale] = useState(true);
-  const imageAutoScaleRef = useRef(true);
-  imageAutoScaleRef.current = imageAutoScale;
   const [correctedImage, setCorrectedImage] = useState(true);
   const correctedImageRef = useRef(true);
   correctedImageRef.current = correctedImage;
@@ -133,6 +139,19 @@ export default function App() {
   const [showRings, setShowRings] = useState(true),
     [showNumbers, setShowNumbers] = useState(true);
   const [linked, setLinked] = useState<Response["linked"]>();
+  const [clickedReading, setClickedReading] = useState<SourcedReading | null>(
+    null,
+  );
+  const [localImageClick, setLocalImageClick] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [localPatternClick, setLocalPatternClick] = useState<number>();
+  const [patternResolution, setPatternResolution] = useState(0.01);
+  const [cakePixelResolution, setCakePixelResolution] = useState({
+    x: 1,
+    y: 1,
+  });
   const [progress, setProgress] = useState<Response["progress"]>();
   const progressGeneration = useRef(0);
   const [patternZoom, setPatternZoom] = useState<ZoomMode>("rectangle");
@@ -234,11 +253,9 @@ export default function App() {
     if (!colorMaps[cakePalette]) setCakePalette("grey");
   }, [palette, cakePalette]);
   const [resetKey, setResetKey] = useState(0);
-  const [pixel, setPixel] = useState<{
-    x: number;
-    y: number;
-    value: number | null;
-  } | null>(null);
+  const [pixel, setPixel] = useState<NonNullable<Response["pixel"]> | null>(
+    null,
+  );
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
     hoverSequence = useRef(0);
   const hoverLatest = useRef<{ x: number; y: number } | null>(null);
@@ -288,14 +305,10 @@ export default function App() {
       if (hoverTimer.current) clearTimeout(hoverTimer.current);
       hoverTimer.current = null;
       setPixel(null);
-      setLinked(undefined);
       setImage(result.image);
       // Recovery and state refreshes can resend the same detector image.
       // Only a changed source should replace the user's contrast limits.
-      if (
-        sourceChanged &&
-        (activeMode.current !== "integration" || imageAutoScaleRef.current)
-      )
+      if (sourceChanged)
         setLimits(
           activeMode.current === "integration" &&
             !correctedImageRef.current &&
@@ -308,7 +321,7 @@ export default function App() {
     if (result.levels)
       (result.display === "cake" ? setCakeLimits : setLimits)(result.levels);
     if (result.nextRing !== undefined) setRing(result.nextRing);
-    if (result.linked) setLinked(result.linked);
+    if ("linked" in result) setLinked(result.linked);
     if (result.mask)
       setMask((previous) =>
         previous?.data === result.mask!.data &&
@@ -319,7 +332,6 @@ export default function App() {
       );
     if (result.rings) {
       setRings(result.rings);
-      if (!result.linked) setLinked(undefined);
     }
     if ("pattern" in result) setPattern(result.pattern ?? null);
     if ("cake" in result) {
@@ -330,8 +342,7 @@ export default function App() {
           result.cake.width !== cakeSource.current?.width ||
           result.cake.height !== cakeSource.current?.height)
       )
-        if (activeMode.current !== "integration" || imageAutoScaleRef.current)
-          setCakeLimits(result.cake.limits);
+        setCakeLimits(result.cake.limits);
       cakeSource.current = result.cake ?? null;
     }
     if (result.savedPath) {
@@ -346,6 +357,7 @@ export default function App() {
       args: Record<string, unknown> = {},
       message = "Processing…",
       onSuccess?: (result: Response) => void,
+      shouldRun?: () => boolean,
     ) => {
       const historyLabel = command.startsWith("redo")
         ? currentState.current?.redoLabel
@@ -387,6 +399,12 @@ export default function App() {
       if (maskDrawing) pendingMaskDraws.current++;
       if (overlayEditing) pendingOverlayEdits.current++;
       if (previous) await previous;
+      if (shouldRun && !shouldRun()) {
+        if (overlayEditing) pendingOverlayEdits.current--;
+        if (commandTail.current === completion) commandTail.current = null;
+        release();
+        return;
+      }
       inFlight.current = true;
       autoProcessInFlight.current = command === "integration_autoprocess_poll";
       const displayOnly =
@@ -395,8 +413,8 @@ export default function App() {
         Object.keys(args).length === 1;
       const quiet =
         displayOnly ||
-        maskDrawing ||
         overlayEditing ||
+        maskDrawing ||
         command === "integration_autoprocess_poll" ||
         command === "image_levels";
       if (!quiet) {
@@ -641,7 +659,7 @@ export default function App() {
         "pattern",
         point
           ? {
-              text: `${unitLabel(point.unit)} ${number(point.x, 4)} · I ${point.y === null ? "—" : number(point.y, 3)}`,
+              ...patternReading(point, state?.geometry.wavelength),
               hint:
                 point.hint ??
                 "Left drag zooms · right drag pans · right double-click restores the fitted view.",
@@ -649,7 +667,7 @@ export default function App() {
           : null,
       );
     },
-    [reportPlot],
+    [reportPlot, state?.geometry.wavelength],
   );
   const sampleHover = useCallback(function scheduleHover() {
     if (hoverTimer.current || hoverRequest.current || !hoverLatest.current)
@@ -716,10 +734,11 @@ export default function App() {
       "detector",
       pixel
         ? {
-            text: `x ${pixel.x} · y ${image ? image.fullHeight - 1 - pixel.y : pixel.y} · I ${pixel.value === null ? "—" : number(pixel.value, 3)}`,
-            x: pixel.x,
-            value: pixel.value,
-            row: image ? image.fullHeight - 1 - pixel.y : pixel.y,
+            ...detectorReading(
+              pixel,
+              image ? image.fullHeight - 1 - pixel.y : pixel.y,
+              state?.geometry.wavelength,
+            ),
             hint:
               mode === "mask"
                 ? shapeHelp[maskTools.shape]
@@ -727,13 +746,108 @@ export default function App() {
           }
         : null,
     );
-  }, [pixel, image?.fullHeight, mode, maskTools.shape, reportPlot]);
+  }, [
+    pixel,
+    image?.fullHeight,
+    mode,
+    maskTools.shape,
+    reportPlot,
+    state?.geometry.wavelength,
+  ]);
   useEffect(() => {
     onHover(null);
     clearPlot();
   }, [mode, settingsOpen, onHover, clearPlot]);
+  useEffect(() => {
+    setClickedReading(null);
+    setLocalImageClick(null);
+    setLocalPatternClick(undefined);
+  }, [
+    state?.imagePath,
+    state?.configurationIndex,
+    state?.projectName,
+    state?.integration.frame,
+    state?.integration.patternName,
+    JSON.stringify(state?.calibration.transformations),
+    JSON.stringify(state?.geometry),
+    JSON.stringify(state?.shape),
+  ]);
+  useEffect(() => setLocalPatternClick(undefined), [state?.unit]);
+
+  const cakeClick = useMemo(() => {
+    const view = displayedCake ?? cake;
+    if (!view || linked?.azimuth == null) return null;
+    const [low, high] = view.azimuthRange;
+    const period =
+      ((high - low) * view.fullHeight) / Math.max(1, view.fullHeight - 1);
+    const azi =
+      period >= 359
+        ? low + ((((linked.azimuth - low) % 360) + 360) % 360)
+        : linked.azimuth;
+    if (azi < low || azi > high) return null;
+    return {
+      x:
+        ((linked.twoTheta - view.radialRange[0]) /
+          (view.radialRange[1] - view.radialRange[0])) *
+        view.fullWidth,
+      y: ((azi - low) / (high - low)) * view.fullHeight,
+    };
+  }, [linked, displayedCake, cake]);
+  const clickPositionReading =
+    clickedReading && linked && state
+      ? {
+          text: clickedReading.text,
+          fields: [
+            ...radialFields(
+              linked.radial,
+              state.unit,
+              state.geometry.wavelength,
+              patternResolution,
+            ),
+            ...(linked.azimuth == null
+              ? []
+              : [
+                  {
+                    label: "χ",
+                    title: "Azimuth χ (°)",
+                    kind: "coordinate" as const,
+                    value: coordinateValue(
+                      linked.azimuth,
+                      cake
+                        ? (cakePixelResolution.y / cake.fullHeight) *
+                            (cake.azimuthRange[1] - cake.azimuthRange[0])
+                        : 0.1,
+                    ),
+                  },
+                ]),
+          ],
+        }
+      : clickedReading
+        ? {
+            ...clickedReading,
+            fields: clickedReading.fields?.filter((f) => !!f.unit) ?? [
+              {
+                label: "x",
+                value: String(clickedReading.x),
+                kind: "pixel" as const,
+              },
+              {
+                label: "y",
+                value: String(clickedReading.row),
+                kind: "pixel" as const,
+              },
+            ],
+          }
+        : null;
 
   const ready = !!state && !busy;
+  const originalPatternVisible = showOriginalPattern;
+  const displayedPattern = pattern;
+  // Curve payloads follow the visible OverlayModel order.
+  const selectedOverlayIndex =
+    state?.integration.overlays
+      .filter((overlay) => overlay.visible)
+      .findIndex((overlay) => overlay.uid === selectedOverlayUid) ?? -1;
   useEffect(() => {
     if (!showImagePhases) {
       phaseGuideRevision.current = null;
@@ -760,24 +874,23 @@ export default function App() {
   const detectorPeaks = useMemo(
     () =>
       mode === "calibration"
-        ? displayedCalibration?.picks.flatMap((p, index) =>
+        ? (displayedCalibration?.picks.flatMap((p, index) =>
             p.points.map(([y, x]) => ({
               x,
               y,
               ring: p.ring,
               selected: !calibrationPreview && selectedPicks.includes(index),
             })),
-          )
+          ) ?? [])
         : [],
     [mode, displayedCalibration, calibrationPreview, selectedPicks],
   );
   const detectorRings = useMemo(
     () =>
-      mode === "calibration" && showRings
-        ? [
-            ...(calibrationPreview?.rings ?? rings),
-            ...(!calibrationPreview ? (linked?.contours ?? []) : []),
-          ]
+      mode === "calibration"
+        ? showRings
+          ? (calibrationPreview?.rings ?? rings)
+          : []
         : [
             ...(showImagePhases ? phaseGuides : []),
             ...(linked?.contours ?? []),
@@ -799,12 +912,20 @@ export default function App() {
           ? phaseGuides
               .filter(
                 (g, i, all) =>
-                  all.findIndex((v) => v.twoTheta === g.twoTheta) === i,
+                  all.findIndex(
+                    (v) =>
+                      v.phaseIndex === g.phaseIndex &&
+                      v.reflectionIndex === g.reflectionIndex &&
+                      v.twoTheta === g.twoTheta &&
+                      v.color === g.color,
+                  ) === i,
               )
               .map((g) => ({
                 ring: 0,
                 twoTheta: g.twoTheta!,
                 color: g.color,
+                lineWidth: g.lineWidth,
+                opacity: g.opacity,
               }))
           : []
         : showRings
@@ -812,11 +933,6 @@ export default function App() {
           : undefined,
     [mode, showImagePhases, phaseGuides, showRings, state?.calibration],
   );
-  const originalPatternVisible = showOriginalPattern;
-  const selectedOverlayIndex =
-    state?.integration.overlays
-      .filter((overlay) => overlay.visible)
-      .findIndex((overlay) => overlay.uid === selectedOverlayUid) ?? -1;
   const displayedRms =
     calibrationPreview?.rmsDegrees ?? state?.calibration.rmsDegrees;
   const fitPoints =
@@ -895,7 +1011,7 @@ export default function App() {
                 "Check detector settings. Pick peaks on the image or open another tab.",
                 pickingEnabled
                   ? `Pick ring ${ring}. ${state.calibration.workflow.autoIncrement ? "Ring number increases after each pick." : "Ring number stays fixed."}`
-                  : "Picking is off. Click the detector to inspect its radial position.",
+                  : "Picking is off. Move over the plots to inspect coordinates and intensity.",
                 "Check fit parameters, then calibrate the detector.",
                 state.calibration.fitDirty
                   ? "Ring selections changed. Calibrate or refine the geometry before saving."
@@ -950,7 +1066,7 @@ export default function App() {
               setMode("integration");
             }}
           >
-            <Activity size={20} />
+            <IntegrationModeIcon />
             <span>Int</span>
           </button>
           <button
@@ -1149,7 +1265,11 @@ export default function App() {
                                 : image
                             }
                             zoomMode="rectangle"
-                            mask={mask ?? undefined}
+                            mask={
+                              mode !== "integration" || state?.useMask
+                                ? (mask ?? undefined)
+                                : undefined
+                            }
                             maskOpacity={
                               state?.transparentMask?.valueOf() ? 0.72 : 1
                             }
@@ -1160,11 +1280,26 @@ export default function App() {
                             busy={!!busy}
                             resetKey={resetKey}
                             onHover={onHover}
+                            clickedPoint={
+                              mode === "integration"
+                                ? (linked?.imagePoint ?? localImageClick)
+                                : null
+                            }
                             peaks={detectorPeaks}
                             rings={detectorRings}
                             roi={
                               mode === "integration"
                                 ? state?.integration.roi
+                                : undefined
+                            }
+                            onRoiChange={
+                              mode === "integration"
+                                ? (limits) =>
+                                    run(
+                                      "integration_roi",
+                                      { limits },
+                                      "Updating integration region…",
+                                    )
                                 : undefined
                             }
                             showNumbers={mode === "calibration" && showNumbers}
@@ -1187,14 +1322,20 @@ export default function App() {
                                 );
                             }}
                             onInspect={(point) => {
-                              if (
-                                state?.calibrated &&
-                                (mode === "integration" ||
-                                  mode === "calibration")
-                              )
+                              if (mode !== "integration") return;
+                              setLocalImageClick(point);
+                              setClickedReading({
+                                source: "detector",
+                                text: "Image click",
+                                x: Math.floor(point.x),
+                                row: image.fullHeight - 1 - Math.floor(point.y),
+                                value: point.value,
+                              });
+                              if (state?.calibrated)
                                 void run("validation_position", {
                                   source: "image",
-                                  ...point,
+                                  x: point.x,
+                                  y: point.y,
                                 });
                             }}
                           />
@@ -1285,18 +1426,31 @@ export default function App() {
                             <RasterView
                               exportRef={cakeExport}
                               raster={displayedCake ?? cake}
+                              onResolution={setCakePixelResolution}
+                              busy={!!busy}
                               onHover={(point) =>
                                 reportPlot(
                                   "cake",
                                   point && cake
                                     ? {
-                                        text: `2θ ${number(cake.radialRange[0] + (point.x / cake.fullWidth) * (cake.radialRange[1] - cake.radialRange[0]), 4)}° · χ ${number((displayedCake ?? cake).azimuthRange[0] + (point.y / cake.fullHeight) * (cake.azimuthRange[1] - cake.azimuthRange[0]), 2)}° · I ${point.value === null ? "—" : number(point.value, 3)}`,
+                                        ...cakeReading(
+                                          displayedCake ?? cake,
+                                          point,
+                                          state?.geometry.wavelength,
+                                        ),
                                         hint: "Left drag zooms · right drag pans · right double-click restores the fitted view.",
                                       }
                                     : null,
                                 )
                               }
-                              linkedPosition={linked?.twoTheta}
+                              linkedPosition={
+                                mode === "integration"
+                                  ? linked?.twoTheta
+                                  : undefined
+                              }
+                              clickedPoint={
+                                mode === "integration" ? cakeClick : null
+                              }
                               activeRing={
                                 mode === "calibration"
                                   ? displayedRing
@@ -1307,13 +1461,23 @@ export default function App() {
                                 mode === "calibration" && showNumbers
                               }
                               onInspect={(point) => {
-                                const x =
-                                  cake.radialRange[0] +
-                                  (point.x / cake.fullWidth) *
-                                    (cake.radialRange[1] - cake.radialRange[0]);
+                                if (mode !== "integration") return;
+                                setLocalImageClick(null);
+                                setClickedReading({
+                                  source: "cake",
+                                  ...cakeReading(
+                                    displayedCake ?? cake,
+                                    point,
+                                    state?.geometry.wavelength,
+                                  ),
+                                });
+                                const coords = cakeCoordinates(
+                                  displayedCake ?? cake,
+                                  point,
+                                );
                                 void run("validation_position", {
                                   source: "cake",
-                                  x,
+                                  ...coords,
                                 });
                               }}
                               zoomMode={cakeZoom}
@@ -1402,23 +1566,7 @@ export default function App() {
                               mode === "integration" &&
                               selectedOverlayUid === ORIGINAL_PATTERN_UID
                             }
-                            overlayLegend={
-                              mode === "integration"
-                                ? [
-                                    ...(originalPatternVisible
-                                      ? [
-                                          {
-                                            name:
-                                              state?.integration.patternName ??
-                                              "",
-                                            color: originalPatternColor,
-                                          },
-                                        ]
-                                      : []),
-                                    ...(pattern.curves ?? []),
-                                  ]
-                                : undefined
-                            }
+                            compact={mode === "integration"}
                             log={logPattern}
                             sqrt={mode === "integration" && sqrtPattern}
                             antialias={
@@ -1435,7 +1583,12 @@ export default function App() {
                             zoomMode={patternZoom}
                             onZoomMode={setPatternZoom}
                             onHover={onPatternHover}
-                            linkedPosition={linked?.radial}
+                            onResolution={setPatternResolution}
+                            linkedPosition={
+                              mode === "integration"
+                                ? (linked?.radial ?? localPatternClick)
+                                : undefined
+                            }
                             activeRing={
                               mode === "calibration" ? displayedRing : undefined
                             }
@@ -1445,6 +1598,23 @@ export default function App() {
                                 : []
                             }
                             showNumbers={showNumbers}
+                            overlayLegend={
+                              mode === "integration"
+                                ? [
+                                    ...(originalPatternVisible
+                                      ? [
+                                          {
+                                            name:
+                                              state?.integration?.patternName ??
+                                              "",
+                                            color: originalPatternColor,
+                                          },
+                                        ]
+                                      : []),
+                                    ...(pattern.curves ?? []),
+                                  ]
+                                : undefined
+                            }
                             curves={
                               mode === "integration"
                                 ? [
@@ -1467,7 +1637,32 @@ export default function App() {
                                 ? pattern.phaseLines
                                 : undefined
                             }
-                            onPick={(x) => {
+                            onPick={(x, mouseY, resolution) => {
+                              if (!ready || mode !== "integration") return;
+                              const nearest = displayedPattern!.x.reduce(
+                                (best, value, i) =>
+                                  Math.abs(value - x) <
+                                  Math.abs(displayedPattern!.x[best] - x)
+                                    ? i
+                                    : best,
+                                0,
+                              );
+                              setLocalPatternClick(x);
+                              setLocalImageClick(null);
+                              setClickedReading({
+                                source: "pattern",
+                                ...patternReading(
+                                  {
+                                    x,
+                                    mouseY,
+                                    xResolution: resolution.x,
+                                    yResolution: resolution.y,
+                                    y: displayedPattern!.y[nearest],
+                                    unit: displayedPattern!.unit,
+                                  },
+                                  state?.geometry.wavelength,
+                                ),
+                              });
                               if (state?.calibrated)
                                 void run("validation_position", {
                                   source: "pattern",
@@ -1477,7 +1672,7 @@ export default function App() {
                           />
                         ) : (
                           <div className="empty-pattern">
-                            <Activity size={25} strokeWidth={1} />
+                            <IntegrationModeIcon size={25} />
                             <span>
                               Your integrated diffraction pattern will appear
                               here.
@@ -1520,33 +1715,14 @@ export default function App() {
                       state={state}
                       ready={ready}
                       run={run}
-                      autoScale={imageAutoScale}
-                      onAutoScale={() => {
-                        setImageAutoScale((v) => !v);
-                        if (!imageAutoScale)
-                          void run("image_levels", {
-                            ...(integrationDisplay === "cake"
-                              ? cakePreferences
-                              : multiDetectorPreferences
-                            ).auto,
-                            source:
-                              integrationDisplay === "cake"
-                                ? "cake"
-                                : correctedImage
-                                  ? "detector"
-                                  : "raw_detector",
-                          });
-                      }}
                       showPhases={showImagePhases}
                       onShowPhases={() => setShowImagePhases((v) => !v)}
                       corrected={correctedImage}
                       onCorrected={() => {
                         setCorrectedImage((v) => !v);
-                        if (imageAutoScale)
-                          setLimits(
-                            (correctedImage ? rawImage : image)?.limits ??
-                              limits,
-                          );
+                        setLimits(
+                          (correctedImage ? rawImage : image)?.limits ?? limits,
+                        );
                         onHover(null);
                       }}
                       roi={!!state?.integration.roi}
@@ -1979,50 +2155,43 @@ export default function App() {
         </div>
         <footer className="app-status">
           <div className="plot-status">
-            {plotReading && plotReading.source !== "detector" && (
-              <span className="plot-status-source">
-                {
-                  {
-                    cake: "Cake",
-                    pattern: "Pattern",
-                    map: "Map",
-                  }[plotReading.source]
-                }
+            <div className="plot-status-line">
+              <span
+                data-testid="mouse-readout"
+                className="plot-status-reading"
+                data-plot={plotReading?.source}
+                data-pixel-x={plotReading?.x}
+                data-pixel-row={plotReading?.row}
+                title={plotReading?.text}
+              >
+                {plotReading ? (
+                  <ReadingFields reading={plotReading} />
+                ) : (
+                  (state?.imageName ?? "No image loaded")
+                )}
               </span>
+            </div>
+            {mode === "integration" && (
+              <div className="plot-status-line clicked-position">
+                <span className="plot-status-kind">Click</span>
+                <span
+                  data-testid="click-readout"
+                  data-plot={clickedReading?.source}
+                  className="plot-status-reading"
+                  title={
+                    clickedReading
+                      ? `${sourceLabel(clickedReading.source)} · ${clickPositionReading?.fields?.map((f) => `${f.label} ${f.value}`).join(" · ") ?? clickedReading.text}`
+                      : "Click an image, cake or pattern to mark a linked position"
+                  }
+                >
+                  {clickPositionReading ? (
+                    <ReadingFields reading={clickPositionReading} />
+                  ) : (
+                    "—"
+                  )}
+                </span>
+              </div>
             )}
-            <span
-              data-testid="mouse-readout"
-              className="plot-status-reading"
-              data-plot={plotReading?.source}
-              data-pixel-x={plotReading?.x}
-              data-pixel-row={plotReading?.row}
-              title={plotReading?.text}
-            >
-              {plotReading?.source === "detector" ? (
-                <>
-                  <span className="plot-coordinate">
-                    x{" "}
-                    <span className="plot-coordinate-value">
-                      {plotReading.x}
-                    </span>
-                  </span>{" "}
-                  <span className="plot-coordinate">
-                    y{" "}
-                    <span className="plot-coordinate-value">
-                      {plotReading.row}
-                    </span>
-                  </span>{" "}
-                  <span>
-                    I{" "}
-                    {plotReading.value == null
-                      ? "—"
-                      : number(plotReading.value, 3)}
-                  </span>
-                </>
-              ) : (
-                (plotReading?.text ?? state?.imageName ?? "No image loaded")
-              )}
-            </span>
           </div>
           <div className="workflow-status">
             {busy ? (

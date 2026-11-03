@@ -308,8 +308,8 @@
 }
 .integration-pattern-actions {
   grid-column: 1 / 3;
-  padding: 5px 6px;
-  border-bottom: 1px solid var(--border);
+  padding: 0;
+  gap: 8px;
 }
 .integration-pattern-actions button,
 .integration-image-tools button {
@@ -327,11 +327,15 @@
   color: #9da5ad;
   white-space: nowrap;
 }
+.integration-pattern-actions button {
+  min-width: 0;
+  padding: 3px;
+}
 .integration-layout main.integration-mode .pattern-panel {
   grid-column: 3;
   grid-row: 3 / 5;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 36px;
+  grid-template-columns: minmax(0, 1fr) max-content;
   grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
   min-height: 0;
@@ -350,8 +354,9 @@
   grid-row: 2;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 8px 3px 8px 0;
+  gap: 22px;
+  padding: 0;
+  min-width: 0;
   min-height: 0;
   overflow-y: auto;
 }
@@ -359,10 +364,12 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
+  flex-shrink: 0;
 }
 .integration-pattern-tools button {
   min-height: 26px;
-  padding: 3px 0;
+  min-width: 0;
+  padding: 3px 2px;
   border: 1px solid transparent;
   border-radius: 3px;
   font-size: var(--text-small);
@@ -382,6 +389,18 @@
 .integration-image-mode {
   display: flex;
   gap: 3px;
+}
+.integration-image-tools .integration-display-switch {
+  min-width: 56px;
+}
+.integration-image-tools .check-row {
+  margin: 0 4px;
+  min-height: 28px;
+  gap: 5px;
+  white-space: nowrap;
+}
+.integration-image-tools .check-row input {
+  margin: 0;
 }
 .plot-tool-divider {
   width: 1px;
@@ -450,12 +469,6 @@
   .integration-controls .field-label {
     grid-template-columns: minmax(0, 1fr) 80px;
   }
-  .integration-pattern-actions {
-    gap: 3px;
-  }
-  .integration-pattern-actions button {
-    padding-inline: 6px;
-  }
   .integration-pattern-calibration {
     width: auto;
   }
@@ -489,39 +502,6 @@
 .integration-tab-image .field-label:has(select) {
   grid-template-columns: auto minmax(0, 1fr);
 }
-.integration-roi-editor > summary {
-  cursor: pointer;
-  padding: 4px 6px;
-  color: var(--accent);
-  font-size: var(--text-small);
-}
-.integration-roi-editor > form {
-  position: absolute;
-  z-index: 9;
-  left: 0;
-  bottom: 38px;
-  background: #24272a;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 12px;
-  box-shadow: 0 6px 30px #0009;
-  display: grid;
-  gap: 8px;
-}
-.integration-roi-editor label {
-  display: grid;
-  grid-template-columns: 1fr 90px;
-  align-items: center;
-  gap: 12px;
-  font-size: var(--text-small);
-}
-.integration-roi-editor input {
-  width: 90px;
-  padding: 5px;
-}
-.integration-roi-editor small {
-  color: #a7aeb5;
-}
 .integration-cake-shift {
   display: flex;
   align-items: center;
@@ -529,11 +509,19 @@
   font-size: var(--text-small);
   color: #b8bec5;
 }
+/* Reserve the same toolbar space in both views, including wrapped rows. */
+.integration-cake-shift[data-visible="false"] {
+  visibility: hidden;
+}
 .integration-cake-shift input {
   width: 75px;
+  height: 20px;
+  min-height: 0;
+  padding: 0;
 }
-.integration-cake-shift span {
-  min-width: 35px;
+.integration-cake-shift > span:last-child {
+  width: 5ch;
+  font-variant-numeric: tabular-nums;
 }
 /* Background parameters share one aligned label/value column, like Qt's form. */
 .integration-tab-background .integration-group-body > .field-label {

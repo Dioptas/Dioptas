@@ -35,6 +35,22 @@ def loaded():
     return session
 
 
+@pytest.mark.parametrize("supersampling", [1, 2])
+def test_pixel_readout_uses_original_pixel_centres_for_all_radial_units(loaded, supersampling):
+    call(loaded, "integration_settings", supersampling=supersampling)
+    pixel = call(loaded, "pixel", x=500, y=400)["pixel"]
+    c = loaded.configuration.calibration_model
+    expected = np.rad2deg(c.pattern_geometry.tth(
+        (np.array([400., 400., 401.]) + 0.5) * supersampling - 0.5,
+        (np.array([500., 501., 500.]) + 0.5) * supersampling - 0.5,
+    ))
+    assert pixel["twoTheta"] == pytest.approx(expected[0])
+    assert pixel["twoThetaResolution"] == pytest.approx(np.max(np.abs(expected[1:] - expected[0])))
+    raw = call(loaded, "pixel", x=500, y=400, raw=True)["pixel"]
+    assert raw["twoTheta"] == pixel["twoTheta"]
+    assert raw["twoThetaResolution"] == pixel["twoThetaResolution"]
+
+
 @pytest.mark.parametrize(
     "unit,sector,cake_sector",
     [
@@ -416,8 +432,32 @@ def test_phase_guides_follow_real_phase_and_detector_geometry(loaded):
     assert guides and any(len(g["points"]) > 2 for g in guides)
     positions = loaded._model.phase_model.get_phase_line_positions(0, "2th_deg", loaded.configuration.calibration_model.wavelength * 1e10)
     assert all(any(np.isclose(g["twoTheta"], p) for p in positions) for g in guides)
+    intensities = loaded._model.phase_model.reflections[0][:, 1]
+    assert len({g["lineWidth"] for g in guides}) > 1
+    for guide in guides:
+        scaling = intensities[guide["reflectionIndex"]] / max(intensities)
+        assert guide["phaseIndex"] == 0
+        assert guide["lineWidth"] == pytest.approx(1 + 3 * scaling)
+        assert guide["opacity"] == pytest.approx(0.3 + 0.4 * scaling)
+    # Absolute intensities of another phase must not change relative styling.
+    call(loaded, "integration_phase", operation="load", path=str(DATA / "jcpds/au_version3.jcpds"))
+    loaded._model.phase_model.reflections[1][:, 1] *= 0.01
+    combined = call(loaded, "integration_phase_guides")["phaseGuides"]
+    for guide in combined:
+        original = next(g for g in guides if g["reflectionIndex"] == guide["reflectionIndex"])
+        assert guide["lineWidth"] == pytest.approx(original["lineWidth"])
+        assert guide["opacity"] == pytest.approx(original["opacity"])
+    call(loaded, "integration_phase", operation="update", index=1, visible=False)
     call(loaded, "integration_phase", operation="update", index=0, visible=False)
     assert call(loaded, "integration_phase_guides")["phaseGuides"] == []
+
+
+def test_zero_intensity_phase_guides_have_finite_minimum_style(loaded):
+    call(loaded, "integration_phase", operation="load", path=str(DATA / "jcpds/au_version3.jcpds"))
+    loaded._model.phase_model.reflections[0][:, 1] = 0
+    guides = call(loaded, "integration_phase_guides")["phaseGuides"]
+    assert guides
+    assert all(g["lineWidth"] == 1 and g["opacity"] == 0.3 for g in guides)
 
 
 def test_capture_as_background_copies_pattern(loaded):

@@ -482,3 +482,28 @@ rows and int32 convention. Cake TXT/CSV includes radial/azimuth coordinates;
 scientific exports retain the original array independently of display shifts.
 The native dialog offers only formats valid for the current source. Python tests
 cover real image/cake data, orientation, coordinates, PNG decoding and validation.
+
+
+## Pattern phase-line scaling (2026-11-02)
+
+Pattern phase sticks now follow Qt `PhaseModel.get_phase_line_intensities`:
+each phase's strongest reflection within the visible x-range reaches the
+measured pattern maximum in that range, capped at the upper y-limit, with
+the lower y-limit as its baseline. Relative intensities are preserved without
+the former fixed 30% height or minimum-height floor. Overlay and background
+inspection curves do not set the phase height. Zoom, pan and new pattern data
+recalculate the scaling locally; phase indices keep normalization independent
+even when phase names and colors coincide. Log and square-root modes use the
+transformed measured maximum and preserve relative stick heights on screen.
+
+`scripts/phase_line_scaling.test.mjs` covers numerical scaling, zoom limits,
+independent phases, overlays, descending d-spacing, display transforms and
+empty/invalid data. Its linear reference cases were also checked directly
+against the Qt model method. `node scripts/phase_line_scaling.mjs` checks actual
+canvas strokes through rectangle/X-range zoom, pan, wheel, reset and both
+nonlinear intensity scales in an isolated browser fixture.
+
+Validation: build, 20 JavaScript tests, 28 integration workflow tests, the
+dedicated phase-line browser checks and bundled Tauri/WKWebView smoke pass.
+The broader browser smoke timed out at its calibration active-ring pixel-color
+assertion; it did not complete on this run.

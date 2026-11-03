@@ -1,4 +1,23 @@
 // Match the sidebar's Lucide icons while showing the scientific view directly.
+export function IntegrationModeIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M3 20h1.5c1 0 1-7 2-7s1 7 2 7H10c1 0 1-16 2-16s1 16 2 16h1.5c1 0 1-10 2-10s1 10 2 10H21" />
+    </svg>
+  );
+}
+
 export function MaskModeIcon({ size = 20 }: { size?: number }) {
   return (
     <svg

@@ -21,6 +21,7 @@ export function PlotToggle({
 }) {
   return (
     <button
+      className="plot-tool-button"
       type="button"
       aria-label={label}
       title={title}
@@ -39,8 +40,6 @@ export function IntegrationImageControls({
   state,
   ready,
   run,
-  autoScale,
-  onAutoScale,
   showPhases,
   onShowPhases,
   corrected,
@@ -57,8 +56,6 @@ export function IntegrationImageControls({
   state: State | null;
   ready: boolean;
   run: IntegrationRun;
-  autoScale: boolean;
-  onAutoScale: () => void;
   showPhases: boolean;
   onShowPhases: () => void;
   corrected: boolean;
@@ -94,7 +91,7 @@ export function IntegrationImageControls({
       </button>
       <PlotToggle
         label="Image region of interest"
-        title="Restrict integration to a detector region"
+        title="Restrict integration to a detector region; drag inside to move it or drag an edge or corner to resize"
         pressed={roi}
         disabled={!ready || !state?.hasImage || value === "cake"}
         onClick={onRoi}
@@ -106,136 +103,58 @@ export function IntegrationImageControls({
         role="group"
         aria-label="Integration display"
       >
-        {[
-          ["image", "Image"],
-          ["cake", "Cake"],
-        ].map(([key, label]) => (
-          <PlotToggle
-            key={key}
-            label={label}
-            title={`Show ${label.toLowerCase()}`}
-            pressed={value === key}
-            onClick={() => onChange(key)}
-          >
-            {label}
-          </PlotToggle>
-        ))}
-      </div>
-      {roi && value === "image" && state?.integration.roi && (
-        <details className="integration-roi-editor">
-          <summary>Edit ROI</summary>
-          <form
-            key={state.integration.roi.join(",")}
-            onSubmit={(event) => {
-              event.preventDefault();
-              const data = new FormData(event.currentTarget);
-              const h = state.shape![0];
-              void run("integration_roi", {
-                limits: [
-                  h - Number(data.get("rowEnd")),
-                  h - Number(data.get("rowStart")),
-                  Number(data.get("colStart")),
-                  Number(data.get("colEnd")),
-                ],
-              });
-              event.currentTarget.closest("details")?.removeAttribute("open");
-            }}
-          >
-            {[
-              [
-                "rowStart",
-                "ROI first row",
-                state.shape![0] - state.integration.roi[1],
-                state.shape![0],
-              ],
-              [
-                "rowEnd",
-                "ROI last row",
-                state.shape![0] - state.integration.roi[0],
-                state.shape![0],
-              ],
-              [
-                "colStart",
-                "ROI first column",
-                state.integration.roi[2],
-                state.shape![1],
-              ],
-              [
-                "colEnd",
-                "ROI last column",
-                state.integration.roi[3],
-                state.shape![1],
-              ],
-            ].map(([key, label, value, max]) => (
-              <label key={key}>
-                {label}
-                <input
-                  aria-label={String(label)}
-                  name={String(key)}
-                  type="number"
-                  defaultValue={value}
-                  min={0}
-                  max={max}
-                  step={1}
-                  required
-                />
-              </label>
-            ))}
-            <small>Top-origin pixels; last row and column are exclusive.</small>
-            <button type="submit" disabled={!ready}>
-              Apply ROI
-            </button>
-          </form>
-        </details>
-      )}
-      {value === "cake" && (
-        <label
-          className="integration-cake-shift"
-          title="Roll the full cake in azimuth without reintegrating"
+        <button
+          className="plot-tool-button integration-display-switch"
+          type="button"
+          title={value === "image" ? "Show cake" : "Show image"}
+          onClick={() => onChange(value === "image" ? "cake" : "image")}
         >
-          χ
-          <input
-            aria-label="Cake azimuth shift"
-            type="range"
-            min={-180}
-            max={180}
-            value={cakeShift}
-            disabled={!fullCake}
-            onChange={(e) => onCakeShift(Number(e.target.value))}
-          />
-          <span>{cakeShift}°</span>
-        </label>
-      )}
+          {value === "image" ? "Cake" : "Image"}
+        </button>
+      </div>
       <span className="plot-tool-divider" />
-      <PlotToggle
-        label="Apply detector mask"
-        title="Use the detector mask for integration"
-        pressed={!!state?.useMask}
-        disabled={!ready || !state?.hasImage}
-        onClick={() => void run("settings", { use_mask: !state?.useMask })}
+      <label
+        className="check-row"
+        title="Use the detector mask for integration and show it on the image"
       >
+        <input
+          aria-label="Apply detector mask"
+          type="checkbox"
+          checked={!!state?.useMask}
+          disabled={!ready || !state?.hasImage}
+          onChange={(event) =>
+            void run("settings", { use_mask: event.target.checked })
+          }
+        />
         Mask
-      </PlotToggle>
-      <PlotToggle
-        label="Integration transparent mask"
+      </label>
+      <label
+        className="check-row"
         title="Show masked pixels through a transparent mask"
-        pressed={!!state?.transparentMask}
-        disabled={!ready || !state?.hasImage}
-        onClick={() =>
-          void run("settings", { transparent_mask: !state?.transparentMask })
-        }
       >
-        T
-      </PlotToggle>
-      <PlotToggle
-        label="Show corrected image"
-        title="Display the background-subtracted and corrected detector image"
-        pressed={corrected}
-        disabled={!state?.hasImage || value === "cake"}
-        onClick={onCorrected}
-      >
-        bkg
-      </PlotToggle>
+        <input
+          aria-label="Integration transparent mask"
+          type="checkbox"
+          checked={!!state?.transparentMask}
+          disabled={!ready || !state?.hasImage}
+          onChange={(event) =>
+            void run("settings", { transparent_mask: event.target.checked })
+          }
+        />
+        Transparent
+      </label>
+      <span className="plot-tool-divider" aria-hidden="true" />
+      {state?.integration.imageBackground.filename && (
+        <PlotToggle
+          label="Show corrected image"
+          title="Display the background-subtracted and corrected detector image"
+          pressed={corrected}
+          disabled={!state?.hasImage || value === "cake"}
+          onClick={onCorrected}
+        >
+          bkg
+        </PlotToggle>
+      )}
       <PlotToggle
         label="Show image phases"
         title="Show phase reference lines on the image or cake"
@@ -245,14 +164,25 @@ export function IntegrationImageControls({
       >
         Phases
       </PlotToggle>
-      <PlotToggle
-        label="Image autoscale"
-        title="Automatically update intensity limits when images change"
-        pressed={autoScale}
-        onClick={onAutoScale}
+      <label
+        className="integration-cake-shift"
+        data-visible={value === "cake"}
+        aria-hidden={value !== "cake"}
+        title="Roll the full cake in azimuth without reintegrating"
       >
-        AutoScale
-      </PlotToggle>
+        <span className="plot-tool-divider" aria-hidden="true" />
+        χ
+        <input
+          aria-label="Cake azimuth shift"
+          type="range"
+          min={-180}
+          max={180}
+          value={cakeShift}
+          disabled={value !== "cake" || !fullCake}
+          onChange={(e) => onCakeShift(Number(e.target.value))}
+        />
+        <span>{cakeShift}°</span>
+      </label>
     </div>
   );
 }

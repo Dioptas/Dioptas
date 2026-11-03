@@ -5,6 +5,12 @@ import { unitLabel } from "./types";
 import { linearAxisTicks, linearTicks, logTicks } from "./plotTicks";
 import { PlotZoomControls } from "./PlotZoomControls";
 import { OverlayPlotLegend } from "./OverlayPlotLegend";
+import { POSITION_LINE_COLOR } from "./plotColors";
+import { scalePhaseLines } from "./phaseLineScaling";
+import {
+  drawRangeSelection,
+  RANGE_SELECTION_COLOR,
+} from "./drawRangeSelection";
 import {
   usePlotNavigation,
   usePlotWheel,
@@ -33,7 +39,11 @@ type PatternRegion = {
   min: number;
   max: number;
   color: string;
+  appearance?: "range";
   active?: boolean;
+  bounds?: [number, number];
+  minWidth?: number;
+  movable?: boolean;
 };
 const EMPTY_REGIONS: PatternRegion[] = [];
 
@@ -45,12 +55,14 @@ export function PatternView({
   log,
   sqrt = false,
   antialias = true,
+  compact = false,
   autoRange = false,
   onAutoRange,
   zoomMode = "rectangle",
   onZoomMode,
   onPick,
   onHover,
+  onResolution,
   hoverHint,
   linkedPosition,
   activeRing,
@@ -62,6 +74,10 @@ export function PatternView({
   regions = EMPTY_REGIONS,
   editRegions = false,
   onRegionChange,
+  onRegionInput,
+  onRegionDragStart,
+  onRegionCancel,
+  regionsUpdating = false,
 }: {
   pattern: Pattern;
   patternColor?: string;
@@ -70,12 +86,18 @@ export function PatternView({
   log: boolean;
   sqrt?: boolean;
   antialias?: boolean;
+  compact?: boolean;
   autoRange?: boolean;
   onAutoRange?: (enabled: boolean) => void;
   zoomMode?: ZoomMode;
   onZoomMode?: (mode: ZoomMode) => void;
-  onPick?: (x: number) => void;
+  onPick?: (
+    x: number,
+    mouseY: number,
+    resolution: { x: number; y: number },
+  ) => void;
   onHover?: (point: PatternHover | null) => void;
+  onResolution?: (x: number) => void;
   hoverHint?: string;
   linkedPosition?: number;
   activeRing?: number;
@@ -87,17 +109,27 @@ export function PatternView({
   regions?: PatternRegion[];
   editRegions?: boolean;
   onRegionChange?: (name: string, min: number, max: number) => void;
+  onRegionInput?: (name: string, min: number, max: number) => void;
+  onRegionDragStart?: () => void;
+  onRegionCancel?: () => void;
+  regionsUpdating?: boolean;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null),
     container = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 900, height: 230 });
   const [left, setLeft] = useState(76);
+  const [axisAnnotation, setAxisAnnotation] = useState(false);
+  const navigating = useRef(false);
   const regionDrag = useRef<{
     name: string;
     mode: "min" | "max" | "move";
-    start: number;
+    startPixel: number;
+    scale: number;
     min: number;
     max: number;
+    bounds?: [number, number];
+    minWidth?: number;
+    next: { name: string; min: number; max: number } | null;
   } | null>(null);
   const [regionDraft, setRegionDraft] = useState<{
     name: string;
@@ -105,6 +137,29 @@ export function PatternView({
     max: number;
   } | null>(null);
   const [hover, setHover] = useState<number | null>(null);
+  const [hoverY, setHoverY] = useState<number>(0);
+  const regionKey = JSON.stringify(regions);
+  const cancelRegionDrag = (restore = false) => {
+    const dragging = !!regionDrag.current;
+    regionDrag.current = null;
+    setRegionDraft(null);
+    if (restore && dragging) onRegionCancel?.();
+  };
+  useEffect(() => {
+    // Responses and optimistic edge positions must not end a live gesture.
+    if (!editRegions || !onRegionInput) cancelRegionDrag();
+  }, [editRegions, regionKey]);
+  useEffect(() => cancelRegionDrag(), [pattern.unit]);
+  useEffect(() => {
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && regionDrag.current) {
+        event.preventDefault();
+        cancelRegionDrag(true);
+      }
+    };
+    window.addEventListener("keydown", escape);
+    return () => window.removeEventListener("keydown", escape);
+  }, [onRegionCancel]);
   useEffect(() => {
     const observer = new ResizeObserver(([entry]) =>
       setSize({
@@ -125,17 +180,18 @@ export function PatternView({
     log,
     sqrt,
   ]);
-  const right = 32,
-    top = 18,
+  // Integration tools sit against the plot; reserve headroom only for an exponent.
+  const right = compact ? 0 : 32,
+    top = compact && !axisAnnotation ? 6 : 18,
     bottom = 52;
   const w = Math.max(1, size.width - left - right),
     h = Math.max(1, size.height - top - bottom);
   const visibleCurves = showPattern ? [pattern, ...curves] : curves;
-  const plottedX = visibleCurves.flatMap((curve) => curve.x);
+  const plottedX = visibleCurves.flatMap(curve => curve.x);
   const [fitXMin, fitXMax] = plottedX.length ? extent(plottedX) : [0, 1];
   const transform = (y: number) =>
     log ? Math.log10(Math.max(1e-6, y)) : sqrt ? Math.sqrt(Math.max(0, y)) : y;
-  const plottedY = visibleCurves.flatMap((curve) => curve.y);
+  const plottedY = visibleCurves.flatMap(curve => curve.y);
   const visible = plottedY.filter(
     (y): y is number => y !== null && Number.isFinite(y) && (!log || y > 0),
   );
@@ -172,6 +228,7 @@ export function PatternView({
     },
   );
   useEffect(() => {
+    if (navigating.current || (regionDrag.current && onRegionInput)) return;
     if (autoRange) navigation.reset();
     else if (onAutoRange) navigation.hold();
   }, [pattern, autoRange, showPattern]);
@@ -181,6 +238,73 @@ export function PatternView({
   });
   const { xMin: xmin, xMax: xmax, yMin: ymin, yMax: ymax } = navigation.view;
   const yspan = ymax - ymin;
+  const regionAt = (x: number) => {
+    const tolerance = ((xmax - xmin) * 9) / w;
+    return [...regions]
+      .sort((a, b) => Number(!!b.active) - Number(!!a.active))
+      .find((r) =>
+        r.movable === false
+          ? Math.min(Math.abs(x - r.min), Math.abs(x - r.max)) <= tolerance
+          : x >= r.min - tolerance && x <= r.max + tolerance,
+      );
+  };
+  const updateRegionDrag = (point: { x: number; y: number }) => {
+    const drag = regionDrag.current;
+    if (!drag) return;
+    let dx = (point.x - drag.startPixel) * drag.scale;
+    const [lower, upper] = drag.bounds ?? [-Infinity, Infinity];
+    const gap = drag.minWidth ?? Number.EPSILON;
+    if (drag.mode === "move")
+      dx = Math.max(lower - drag.min, Math.min(upper - drag.max, dx));
+    const min =
+      drag.mode === "max"
+        ? drag.min
+        : Math.max(
+            lower,
+            Math.min(
+              drag.mode === "min" ? drag.max - gap : Infinity,
+              drag.min + dx,
+            ),
+          );
+    const max =
+      drag.mode === "min"
+        ? drag.max
+        : Math.min(
+            upper,
+            Math.max(
+              drag.mode === "max" ? drag.min + gap : -Infinity,
+              drag.max + dx,
+            ),
+          );
+    if (min < max) {
+      const changed =
+        !drag.next || drag.next.min !== min || drag.next.max !== max;
+      const moved = !!drag.next || min !== drag.min || max !== drag.max;
+      drag.next = { name: drag.name, min, max };
+      setRegionDraft(drag.next);
+      if (changed && moved) onRegionInput?.(drag.name, min, max);
+    }
+  };
+  const hoveredRegion =
+    editRegions && hover !== null
+      ? regionAt(xmin + ((hover - left) / w) * (xmax - xmin))
+      : undefined;
+  const regionCursor = regionDrag.current
+    ? regionDrag.current.mode === "move"
+      ? "grabbing"
+      : "ew-resize"
+    : hoveredRegion
+      ? Math.min(
+          Math.abs(
+            hover! - (left + ((hoveredRegion.min - xmin) / (xmax - xmin)) * w),
+          ),
+          Math.abs(
+            hover! - (left + ((hoveredRegion.max - xmin) / (xmax - xmin)) * w),
+          ),
+        ) < 9
+        ? "ew-resize"
+        : "grab"
+      : undefined;
   useEffect(() => {
     const context = canvas.current?.getContext("2d");
     if (!context || !canvas.current) return;
@@ -199,6 +323,7 @@ export function PatternView({
           sqrt ? inverse(ymax) : ymax,
           intervalsY,
         );
+    setAxisAnnotation(!!yAxis.annotation);
     const yTicks = sqrt
       ? yAxis.ticks.map((tick) => ({
           ...tick,
@@ -283,11 +408,39 @@ export function PatternView({
       const current = regionDraft?.name === region.name ? regionDraft : region;
       const x0 = left + ((current.min - xmin) / (xmax - xmin)) * w;
       const x1 = left + ((current.max - xmin) / (xmax - xmin)) * w;
-      context.fillStyle = region.color + (region.active ? "28" : "12");
-      context.fillRect(x0, top, x1 - x0, h);
-      context.strokeStyle = region.color;
-      context.lineWidth = region.active ? 2 : 1;
-      context.strokeRect(x0, top, x1 - x0, h);
+      const range = region.appearance === "range";
+      const drag =
+        regionDrag.current?.name === region.name ? regionDrag.current : null;
+      const hovered = hoveredRegion?.name === region.name;
+      if (range) {
+        const activeEdge = drag
+          ? drag.mode === "move"
+            ? undefined
+            : drag.mode
+          : hovered && hover !== null
+            ? Math.abs(hover - x0) < 9
+              ? "min"
+              : Math.abs(hover - x1) < 9
+                ? "max"
+                : undefined
+            : undefined;
+        drawRangeSelection(
+          context,
+          x0,
+          x1,
+          top,
+          h,
+          region.color,
+          activeEdge,
+          drag?.mode === "move" || (hovered && regionCursor === "grab"),
+        );
+      } else {
+        context.fillStyle = region.color + (region.active ? "28" : "12");
+        context.fillRect(x0, top, x1 - x0, h);
+        context.strokeStyle = region.color;
+        context.lineWidth = region.active ? 2 : 1;
+        context.strokeRect(x0, top, x1 - x0, h);
+      }
       context.fillStyle = region.color;
       context.textAlign = "left";
       context.fillText(region.name, x0 + 5, top + 14);
@@ -358,26 +511,23 @@ export function PatternView({
     if (showPattern && !emphasizePattern) drawCurve(pattern, patternColor, 1.4);
     // Measured curves and background inspection share the same axes and drawing mode.
     // Draw the selected overlay last so it remains identifiable where curves overlap.
-    for (const curve of curves.filter((curve) => !curve.selected))
-      drawCurve(curve, curve.color, 1.2);
-    for (const curve of curves.filter((curve) => curve.selected))
-      drawCurve(curve, curve.color, 2.4);
+    for (const curve of curves.filter(curve => !curve.selected)) drawCurve(curve, curve.color, 1.2);
+    for (const curve of curves.filter(curve => curve.selected)) drawCurve(curve, curve.color, 2.4);
     if (showPattern && emphasizePattern) drawCurve(pattern, patternColor, 2.4);
-    const largestReference = Math.max(
-      1,
-      extent(referenceLines.map((line) => line.intensity))[1],
+    const phaseLineTops = scalePhaseLines(
+      pattern,
+      referenceLines,
+      navigation.view,
+      (y) => (log && y <= 0 ? NaN : transform(y)),
     );
-    for (const line of referenceLines) {
+    for (const [index, line] of referenceLines.entries()) {
       const x = left + ((line.x - xmin) / (xmax - xmin)) * w;
       if (x < left || x > left + w) continue;
       context.strokeStyle = line.color;
       context.lineWidth = 1.3;
       context.beginPath();
       context.moveTo(x, top + h);
-      context.lineTo(
-        x,
-        top + h - h * 0.3 * Math.max(0.05, line.intensity / largestReference),
-      );
+      context.lineTo(x, top + h - ((phaseLineTops[index] - ymin) / yspan) * h);
       context.stroke();
     }
     for (const reference of calibrantLines) {
@@ -397,23 +547,37 @@ export function PatternView({
     }
     if (linkedPosition !== undefined) {
       const x = left + ((linkedPosition - xmin) / (xmax - xmin)) * w;
-      context.strokeStyle = "#8af0c4";
+      context.strokeStyle = POSITION_LINE_COLOR;
       context.lineWidth = 1.5;
+      // Qt DashLine uses four pen widths on, two off.
+      context.setLineDash([6, 3]);
       context.beginPath();
       context.moveTo(x, top);
       context.lineTo(x, top + h);
       context.stroke();
+      context.setLineDash([]);
     }
     if (navigation.selection) {
       const { start, end } = navigation.selection;
-      context.fillStyle = "#ff950020";
-      context.strokeStyle = "#ff9500";
       const x = Math.min(start.x, end.x),
         y = Math.min(start.y, end.y);
       const width = Math.abs(end.x - start.x),
         height = Math.abs(end.y - start.y);
-      context.fillRect(x, y, width, height);
-      context.strokeRect(x, y, width, height);
+      if (zoomMode === "horizontal") {
+        drawRangeSelection(
+          context,
+          x,
+          x + width,
+          y,
+          height,
+          RANGE_SELECTION_COLOR,
+        );
+      } else {
+        context.fillStyle = RANGE_SELECTION_COLOR + "20";
+        context.strokeStyle = RANGE_SELECTION_COLOR;
+        context.fillRect(x, y, width, height);
+        context.strokeRect(x, y, width, height);
+      }
     }
     if (hover !== null) {
       context.setLineDash([3, 4]);
@@ -445,6 +609,7 @@ export function PatternView({
     hover,
     navigation.view,
     navigation.selection,
+    zoomMode,
     linkedPosition,
     activeRing,
     calibrantLines,
@@ -452,11 +617,29 @@ export function PatternView({
     curves,
     referenceLines,
     regions,
+    editRegions,
     regionDraft,
     left,
+    top,
+    right,
   ]);
   const xvalue =
     hover === null ? null : xmin + ((hover - left) / w) * (xmax - xmin);
+  const mouseValue = (y: number) =>
+    log ? 10 ** y : sqrt ? Math.max(0, y) ** 2 : y;
+  const mouseY = mouseValue(ymax - ((hoverY - top) / h) * (ymax - ymin));
+  const xResolution = Math.abs(xmax - xmin) / w;
+  const yResolutionAt = (y: number) =>
+    Math.abs(
+      mouseValue(y + (ymax - ymin) / h / 2) -
+        mouseValue(y - (ymax - ymin) / h / 2),
+    );
+  const yResolution = yResolutionAt(
+    ymax - ((hoverY - top) / h) * (ymax - ymin),
+  );
+  useEffect(() => {
+    if (w > 1) onResolution?.(xResolution);
+  }, [w, xResolution, onResolution]);
   const nearest =
     xvalue === null
       ? -1
@@ -471,26 +654,46 @@ export function PatternView({
     onHover?.(
       nearest >= 0
         ? {
-            x: pattern.x[nearest],
+            x: xvalue!,
             y: pattern.y[nearest],
+            mouseY,
+            xResolution,
+            yResolution,
             unit: pattern.unit,
             hint: hoverHint,
           }
         : null,
     );
-  }, [nearest, pattern, onHover, hoverHint]);
+  }, [
+    nearest,
+    xvalue,
+    mouseY,
+    xResolution,
+    yResolution,
+    pattern,
+    onHover,
+    hoverHint,
+  ]);
   return (
     <div ref={container} className="pattern-container">
       <canvas
         ref={canvas}
+        tabIndex={-1}
         data-testid="pattern-canvas"
         aria-label={`Integrated diffraction pattern; left-drag ${zoomMode} zoom, right-drag pan, right-click zoom out`}
-        style={{ width: "100%", height: "100%" }}
+        style={{ width: "100%", height: "100%", cursor: regionCursor }}
+        data-regions={JSON.stringify(
+          regions.map((r) =>
+            regionDraft?.name === r.name ? { ...r, ...regionDraft } : r,
+          ),
+        )}
+        data-edit-regions={editRegions}
+        data-region-updating={regionsUpdating}
         data-intensity-scale={log ? "log" : sqrt ? "sqrt" : "linear"}
         data-antialias={antialias}
         data-auto-range={autoRange}
-        data-original-visible={showPattern}
         data-curve-count={curves.length}
+        data-original-visible={showPattern}
         data-reference-count={referenceLines.length}
         data-linked-position={linkedPosition}
         data-active-ring={activeRing}
@@ -519,15 +722,17 @@ export function PatternView({
           ) {
             const x = navigation.data(point).x;
             const tolerance = ((xmax - xmin) * 9) / w;
-            const region = [...regions]
-              .sort((a, b) => Number(!!b.active) - Number(!!a.active))
-              .find((r) => x >= r.min - tolerance && x <= r.max + tolerance);
+            const region = regionAt(x);
             if (region) {
               regionDrag.current = {
                 name: region.name,
-                start: x,
+                startPixel: point.x,
+                scale: (xmax - xmin) / w,
                 min: region.min,
                 max: region.max,
+                bounds: region.bounds,
+                minWidth: region.minWidth,
+                next: null,
                 mode:
                   Math.abs(x - region.min) < tolerance
                     ? "min"
@@ -535,36 +740,44 @@ export function PatternView({
                       ? "max"
                       : "move",
               };
+              onRegionDragStart?.();
+              e.currentTarget.focus({ preventScroll: true });
+              if (onRegionInput) navigation.hold();
+              e.preventDefault();
               e.currentTarget.setPointerCapture(e.pointerId);
               return;
             }
           }
-          navigation.onPointerDown(e, true, zoomMode === "rectangle");
+          navigating.current = navigation.onPointerDown(
+            e,
+            true,
+            zoomMode === "rectangle",
+          );
         }}
         onPointerMove={(e) => {
           const drag = regionDrag.current;
           if (drag) {
-            const dx = navigation.data(navigation.screen(e)).x - drag.start;
-            const min = drag.min + (drag.mode === "max" ? 0 : dx);
-            const max = drag.max + (drag.mode === "min" ? 0 : dx);
-            if (min < max) setRegionDraft({ name: drag.name, min, max });
+            updateRegionDrag(navigation.screen(e));
             return;
           }
-          const x = Math.max(
-            left,
-            Math.min(size.width - right, navigation.screen(e).x),
+          const point = navigation.screen(e);
+          setHover(
+            point.x >= left &&
+              point.x <= left + w &&
+              point.y >= top &&
+              point.y <= top + h
+              ? point.x
+              : null,
           );
-          setHover(x);
+          setHoverY(point.y);
           navigation.onPointerMove(e);
         }}
         onPointerUp={(e) => {
           if (regionDrag.current) {
-            if (regionDraft)
-              onRegionChange?.(
-                regionDraft.name,
-                regionDraft.min,
-                regionDraft.max,
-              );
+            updateRegionDrag(navigation.screen(e));
+            const { next, min, max } = regionDrag.current;
+            if (next && (next.min !== min || next.max !== max))
+              onRegionChange?.(next.name, next.min, next.max);
             regionDrag.current = null;
             setRegionDraft(null);
             if (e.currentTarget.hasPointerCapture(e.pointerId))
@@ -572,18 +785,32 @@ export function PatternView({
             return;
           }
           const result = navigation.onPointerUp(e);
+          navigating.current = false;
+          if (result === "reset") onAutoRange?.(true);
           if (result === "zoom" || result === "pan" || result === "unzoom")
             onAutoRange?.(false);
-          if (result === "click")
-            onPick?.(navigation.data(navigation.screen(e)).x);
+          if (result === "click") {
+            const point = navigation.data(navigation.screen(e));
+            onPick?.(point.x, mouseValue(point.y), {
+              x: xResolution,
+              y: yResolutionAt(point.y),
+            });
+          }
         }}
         onPointerCancel={(e) => {
-          regionDrag.current = null;
-          setRegionDraft(null);
+          navigating.current = false;
+          cancelRegionDrag(true);
           navigation.onPointerCancel(e);
+        }}
+        onLostPointerCapture={() => {
+          navigating.current = false;
+          cancelRegionDrag(true);
         }}
         onPointerLeave={() => setHover(null)}
       />
+      {overlayLegend && (
+        <OverlayPlotLegend entries={overlayLegend} left={left + w - 10} top={top + 5} width={w * 0.6} height={h * 0.5} />
+      )}
       {onZoomMode && (
         <PlotZoomControls
           mode={zoomMode}
@@ -591,15 +818,6 @@ export function PatternView({
           left={left}
           bottom={bottom}
           label="Pattern"
-        />
-      )}
-      {overlayLegend && (
-        <OverlayPlotLegend
-          entries={overlayLegend}
-          left={left + w - 10}
-          top={top + 5}
-          width={w * 0.6}
-          height={h * 0.5}
         />
       )}
     </div>

@@ -17,12 +17,26 @@
 }
 .app-status > .plot-status {
   min-width: 0;
-  max-width: 60%;
+  max-width: calc(100% - 40px);
   flex-shrink: 0;
   color: var(--text);
+  align-items: center;
+  gap: 8px;
 }
-.app-status {
+.app .app-status {
   gap: 20px;
+  height: 32px;
+}
+.plot-status-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  max-width: 100%;
+}
+.plot-status-kind {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: var(--text-small);
 }
 .plot-status-reading {
   color: #d4dce6;
@@ -34,16 +48,42 @@
   font-variant-numeric: tabular-nums;
 }
 .plot-coordinate {
-  display: inline-grid;
-  grid-template-columns: auto 6ch;
-  column-gap: 0.5ch;
+  display: inline-block;
+  margin-right: 0.5ch;
+}
+.plot-coordinate:last-child {
+  margin-right: 0;
 }
 .plot-coordinate-value {
+  display: inline-block;
+  width: 6.5ch;
+  margin-left: 0.5ch;
   text-align: left;
 }
-.plot-status-source {
+.plot-coordinate[data-kind="radial"] .plot-coordinate-value {
+  width: 6ch;
+}
+.plot-coordinate[data-kind="pixel"] .plot-coordinate-value {
+  width: 4ch;
+}
+.plot-coordinate[data-kind="intensity"] .plot-coordinate-value {
+  width: 6ch;
+}
+.clicked-position {
+  border-left: 1px solid var(--border);
+  padding-left: 8px;
   flex-shrink: 0;
-  color: var(--accent);
+}
+.clicked-position .plot-status-kind,
+.clicked-position .plot-status-reading {
+  color: #73d68c;
+}
+@media (max-width: 1100px) {
+  /* Keep all three radial units visible in the single compact footer line.
+     The selected azimuth remains in the Click tooltip and linked cake cross. */
+  .clicked-position [data-field="χ"] {
+    display: none;
+  }
 }
 .app-status [role="alert"] {
   min-width: 0;

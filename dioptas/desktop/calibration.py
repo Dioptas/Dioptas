@@ -25,6 +25,7 @@ def finite(value, label, low=-1e6, high=1e6):
 
 class CalibrationWorkflow:
     def _init_workflow(self):
+        self._inspection = None
         self._workflow = {
             "autoIncrement": True,
             "searchSize": 10,
@@ -527,14 +528,48 @@ class CalibrationWorkflow:
             for key in ("dist", "poni1", "poni2", "rot1", "rot2", "rot3")
         ) + int(c.fit_wavelength)
 
-    def _validation_position(self, source, x, y=None):
+    def _inspection_context(self):
+        c = self.configuration
+        return (
+            id(c),
+            str(c.img_model.filename),
+            c.img_model.series_pos,
+            c.img_model.img_data.shape,
+            tuple(c.img_model.params.transformations),
+            repr(c.calibration_model.get_pyFAI_config()),
+        )
+
+    def _linked_snapshot(self):
+        if self._inspection is None:
+            return None
+        context, linked = self._inspection
+        if not self._has_image or context != self._inspection_context():
+            self._inspection = None
+            return None
+        return {
+            **linked,
+            "radial": float(
+                convert_units(
+                    linked["twoTheta"],
+                    self.configuration.calibration_model.pattern_geometry.wavelength,
+                    "2th_deg",
+                    self.configuration.integration_unit,
+                )
+            ),
+        }
+
+    def _validation_position(self, source, x, y=None, azimuth=None):
         c = self.configuration.calibration_model
         if not c.is_calibrated or not self._has_image:
             raise ValueError("Calibrate an image before inspecting a linked position.")
         x = finite(x, "Position")
+        previous = self._linked_snapshot()
+        azi = previous.get("azimuth") if previous else None
+        image_point = None
         if source == "image":
             h, w = self.configuration.img_model.img_data.shape
-            row, col = int(finite(y, "y", 0, h - 1)), int(finite(x, "x", 0, w - 1))
+            row = int(finite(y, "y", 0, h - 1e-9))
+            col = int(finite(x, "x", 0, w - 1e-9))
             factor = c.supersampling_factor
             tth = float(
                 np.rad2deg(
@@ -544,8 +579,17 @@ class CalibrationWorkflow:
                     )[0]
                 )
             )
+            azi = float(
+                np.rad2deg(c.pattern_geometry.chi(
+                    np.array([(row + 0.5) * factor - 0.5]),
+                    np.array([(col + 0.5) * factor - 0.5]),
+                )[0])
+            )
+            image_point = {"x": col + 0.5, "y": row + 0.5}
         elif source == "cake":
             tth = x
+            if azimuth is not None:
+                azi = ((finite(azimuth, "Azimuth") + 180) % 360) - 180
         elif source == "pattern":
             tth = float(
                 convert_units(
@@ -575,4 +619,29 @@ class CalibrationWorkflow:
             }
             for contour in find_contours(angles[::step, ::step], np.deg2rad(tth))
         ]
-        return {"linked": {"twoTheta": tth, "radial": radial, "contours": contours}}
+        # Keep the last azimuth for pattern clicks, as in Qt. Choose the closest
+        # point on the full-resolution contour using a circular angular distance.
+        if azi is not None and image_point is None:
+            paths = find_contours(angles, np.deg2rad(tth))
+            if paths:
+                points = np.vstack(paths)
+                factor = c.supersampling_factor
+                chis = c.pattern_geometry.chi(
+                    (points[:, 0] + 0.5) * factor - 0.5,
+                    (points[:, 1] + 0.5) * factor - 0.5,
+                )
+                delta = np.angle(np.exp(1j * (chis - np.deg2rad(azi))))
+                index = int(np.argmin(np.abs(delta)))
+                # A limited detector need not intersect the selected azimuth.
+                if abs(delta[index]) < np.deg2rad(1):
+                    row, col = points[index]
+                    image_point = {"x": float(col + 0.5), "y": float(row + 0.5)}
+        linked = {
+            "twoTheta": tth,
+            "radial": radial,
+            "contours": contours,
+            "azimuth": azi,
+            "imagePoint": image_point,
+        }
+        self._inspection = (self._inspection_context(), linked)
+        return {"linked": linked}

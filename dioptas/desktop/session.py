@@ -151,7 +151,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
     @staticmethod
     def _new_model():
         model = DioptasModel()
-        # xypattern supplies a demonstration curve; the desktop starts empty.
+        # xypattern supplies a demonstration curve by default; the desktop starts empty.
         model.pattern.data = (np.empty(0), np.empty(0))
         DesktopSession._disable_automatic_processing(model)
         return model
@@ -384,6 +384,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         result.update(self._map_snapshot())
         result.update(pattern=self._pattern, cake=self._cake)
         result["rings"] = self._rings
+        result["linked"] = self._linked_snapshot()
         if self._has_image:
             result["mask"] = self._raster(
                 self.configuration.mask_model.get_display_mask(),
@@ -943,6 +944,20 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         x = int(_finite_number(x, "x", 0, width - 1))
         y = int(_finite_number(y, "y", 0, height - 1))
         value = float(image[y, x])
-        return {
-            "pixel": {"x": x, "y": y, "value": value if math.isfinite(value) else None}
-        }
+        pixel = {"x": x, "y": y, "value": value if math.isfinite(value) else None}
+        calibration = self.configuration.calibration_model
+        if calibration.is_calibrated:
+            factor = calibration.supersampling_factor
+            rows = np.array([y, y, y + 1 if y + 1 < height else max(0, y - 1)], dtype=float)
+            columns = np.array([x, x + 1 if x + 1 < width else max(0, x - 1), x], dtype=float)
+            angles = np.rad2deg(calibration.pattern_geometry.tth(
+                (rows + 0.5) * factor - 0.5,
+                (columns + 0.5) * factor - 0.5,
+            ))
+            if np.isfinite(angles[0]):
+                pixel["twoTheta"] = float(angles[0])
+                differences = np.abs(angles[1:] - angles[0])
+                finite_differences = differences[np.isfinite(differences)]
+                if finite_differences.size:
+                    pixel["twoThetaResolution"] = float(np.max(finite_differences))
+        return {"pixel": pixel}

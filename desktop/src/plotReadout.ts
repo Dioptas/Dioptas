@@ -2,8 +2,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Unit } from "./types";
 
 export type PlotSource = "detector" | "cake" | "pattern" | "map";
+export type PlotField = {
+  label: string;
+  value: string;
+  title?: string;
+  unit?: Unit;
+  kind?: "radial" | "pixel" | "coordinate" | "intensity";
+};
 export type PlotReading = {
   text: string;
+  fields?: PlotField[];
   x?: number;
   row?: number;
   value?: number | null;
@@ -16,6 +24,9 @@ export type ReportPlot = (
 export type PatternHover = {
   x: number;
   y: number | null;
+  mouseY: number;
+  xResolution?: number;
+  yResolution?: number;
   unit: Unit;
   hint?: string;
 };
