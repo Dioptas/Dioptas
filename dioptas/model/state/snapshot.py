@@ -393,13 +393,18 @@ class StateRecorder:
             # restoring a mismatched snapshot would corrupt state silently
             return
 
+        configuration_changed = False
         with ExitStack() as stack:
             # one undo must cost one integration, not one per field it touches
             for configuration in configurations:
                 stack.enter_context(configuration.pattern_integration.hold())
                 stack.enter_context(configuration.cake_integration.hold())
             for state, configuration in zip(snapshot.configurations, configurations):
-                self._restore_configuration(state, configuration)
+                # Overlay-only history must not reset masks or invalidate detector
+                # integrations by reapplying an unchanged configuration.
+                if state != self._capture_configuration(configuration):
+                    configuration_changed = True
+                    self._restore_configuration(state, configuration)
             _apply_dict(model.phase_model.params, snapshot.phase)
             self._restore_overlays(snapshot.overlays)
             self._restore_phases(snapshot.phases)
@@ -407,7 +412,8 @@ class StateRecorder:
             # restored; re-point every configuration now that the list is back
             model.resolve_background_overlays()
 
-        self._mask_cache.clear()
+        if configuration_changed:
+            self._mask_cache.clear()
 
     def _restore_overlays(self, states: tuple) -> None:
         # untouched overlays must be left strictly alone: rebuilding them
@@ -490,7 +496,10 @@ class StateRecorder:
         # mismatched mask back would leave one on screen that does not match
         # the image, which surfaces as a blocking dialog.
         payload = self._model.payloads.get(state.mask_data)
-        if tuple(payload.shape) == tuple(configuration.mask_model.mask_dimension):
+        if (
+            tuple(payload.shape) == tuple(configuration.mask_model.mask_dimension)
+            and state.mask_data != self._capture_mask(configuration.mask_model)
+        ):
             configuration.mask_model.set_mask_data(payload.array())
 
 

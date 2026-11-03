@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod calibration_tooltip;
+mod color_picker;
 mod processor;
 
 use calibration_tooltip::{
@@ -32,6 +33,7 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
     {
         return None;
     }
+    if action == "integration_overlay" && payload.get("paths").is_some_and(|v| !v.is_null()) { return None; }
     if payload.get("path").is_some_and(|v| !v.is_null()) || payload["reset"] == true {
         return None;
     }
@@ -182,12 +184,13 @@ async fn desktop_invoke(
             );
         }
         if let Some(choice) = file_choice(&action, &payload) {
-            let dialog = app
+            let mut dialog = app
                 .dialog()
                 .file()
                 .add_filter(choice.label, choice.extensions)
                 .add_filter("All files", &["*"]);
-            if action == "map_load" {
+            if let Some(directory) = payload["directory"].as_str() { dialog = dialog.set_directory(directory); }
+            if action == "map_load" || action == "integration_overlay" {
                 let Some(selected) = dialog.blocking_pick_files() else {
                     return Ok(Packet::metadata(json!({"ok": true, "cancelled": true})));
                 };
@@ -252,6 +255,7 @@ fn main() {
             smoke,
         })
         .invoke_handler(tauri::generate_handler![
+            color_picker::prepare_color_picker,
             desktop_invoke,
             native_smoke_report,
             show_calibration_tooltip,
@@ -260,6 +264,7 @@ fn main() {
             present_calibration_tooltip
         ])
         .setup(move |app| {
+            color_picker::install()?;
             let window = app.get_webview_window("main").unwrap();
             if tauri::is_dev() {
                 window.set_title("Dioptas · Tauri live preview")?;
@@ -349,6 +354,7 @@ mod tests {
         assert!(file_choice("integration_open_pattern", &json!({"direction": 1})).is_none());
         assert!(file_choice("integration_overlay", &json!({"operation": "load"})).is_some());
         assert!(file_choice("integration_overlay", &json!({"operation": "capture"})).is_none());
+        assert!(file_choice("integration_overlay", &json!({"operation": "load", "paths": ["a.xy", "b.xy"]})).is_none());
         assert!(file_choice("integration_phase", &json!({"operation": "update"})).is_none());
         assert!(file_choice("integration_phase", &json!({"operation": "load"})).is_some());
         assert!(file_choice("integration_image_background", &json!({"scale": 2})).is_none());

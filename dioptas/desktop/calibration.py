@@ -267,11 +267,17 @@ class CalibrationWorkflow:
         return self._state()
 
     def _history_step(self, redo=False):
+        history = self._model.history
+        overlay_only = (history.redo_label if redo else history.undo_label) == "integration_overlay"
         if redo:
             self._model.history.redo()
         else:
             self._model.history.undo()
         self._disable_automatic_processing(self._model)
+        if overlay_only:
+            self._refresh_integration_pattern()
+            self._revision += 1
+            return {**self._state(), "pattern": self._pattern, "patternOnly": True}
         c = self.configuration.calibration_model
         c.use_dioptrin = self._engine.id == "dioptrin"
         if c.is_calibrated:
@@ -279,6 +285,9 @@ class CalibrationWorkflow:
         self._fit_rms = None
         self._fit_dirty = bool(c.points)
         self._calculate()
+        # Standalone pattern/overlay files remain displayable without detector geometry.
+        if not self._has_image or self.configuration.pattern_model.pattern_source == "file":
+            self._refresh_integration_pattern()
         result = self._snapshot(include_image=True)
         if self._workflow["autoIncrement"]:
             result["nextRing"] = max(c.points_index, default=-1) + 2

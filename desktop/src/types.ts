@@ -39,7 +39,13 @@ export interface Pattern {
     x: number[];
     y: (number | null)[];
   }[];
-  curves?: { name: string; color: string; x: number[]; y: (number | null)[] }[];
+  curves?: {
+    name: string;
+    color: string;
+    x: number[];
+    y: (number | null)[];
+    selected?: boolean;
+  }[];
   phaseLines?: {
     x: number;
     intensity: number;
@@ -64,6 +70,8 @@ export interface State {
   maskedPixels: number;
   canUndoMask: boolean;
   canRedoMask: boolean;
+  undoLabel?: string;
+  redoLabel?: string;
   maskDetails: import("./maskDomain").MaskDetails;
   exampleAvailable: boolean;
   elapsedMs: number | null;
@@ -142,6 +150,7 @@ export interface Response {
   ok: boolean;
   error?: string;
   cancelled?: boolean;
+  patternOnly?: boolean;
   state?: State;
   image?: Raster;
   rawImage?: Raster;

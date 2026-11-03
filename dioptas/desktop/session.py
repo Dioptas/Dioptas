@@ -151,6 +151,8 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
     @staticmethod
     def _new_model():
         model = DioptasModel()
+        # xypattern supplies a demonstration curve; the desktop starts empty.
+        model.pattern.data = (np.empty(0), np.empty(0))
         DesktopSession._disable_automatic_processing(model)
         return model
 
@@ -254,10 +256,17 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
                     "save_calibration",
                     "save_peaks",
                 }
+                overlay_key = None
+                if action == "integration_overlay" and arguments.get("operation") == "update":
+                    fields = set(arguments) - {"operation", "index"}
+                    index = arguments.get("index")
+                    overlays = self._model.overlay_model.overlays
+                    if fields in ({"scale"}, {"offset"}) and isinstance(index, int) and 0 <= index < len(overlays):
+                        overlay_key = ("overlay", overlays[index].params.uid, next(iter(fields)))
                 context = (
                     nullcontext()
                     if action in readonly or action.startswith("map_")
-                    else self._model.history.transaction(action)
+                    else self._model.history.transaction(action, key=overlay_key, merge_consecutive=overlay_key is not None)
                 )
                 with context:
                     result = handlers[action](**(arguments or {}))
@@ -312,6 +321,8 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
                 "maskedPixels": int(np.count_nonzero(mask)) if mask is not None else 0,
                 "canUndoMask": self._model.history.can_undo,
                 "canRedoMask": self._model.history.can_redo,
+                "undoLabel": self._model.history.undo_label,
+                "redoLabel": self._model.history.redo_label,
                 "maskDetails": self._mask_details(),
                 "exampleAvailable": self.example_paths() is not None,
                 "elapsedMs": self._elapsed,

@@ -12,6 +12,13 @@ import {
   type ZoomMode,
 } from "./usePlotNavigation";
 
+const EMPTY_PEAKS: {
+  x: number;
+  y: number;
+  ring: number;
+  selected?: boolean;
+}[] = [];
+const EMPTY_RINGS: RingOverlay[] = [];
 const EMPTY_CONTOURS: number[][][] = [];
 const EMPTY_CALIBRANT_LINES: { ring: number; twoTheta: number }[] = [];
 
@@ -44,8 +51,8 @@ export function RasterView({
   overlay,
   roi,
   onImageDoubleClick,
-  peaks = [],
-  rings = [],
+  peaks = EMPTY_PEAKS,
+  rings = EMPTY_RINGS,
   contours = EMPTY_CONTOURS,
 }: {
   raster: Raster;
@@ -642,7 +649,10 @@ export function RasterView({
   }, [
     image,
     size,
-    view,
+    view.xMin,
+    view.xMax,
+    view.yMin,
+    view.yMax,
     cursor,
     stroke,
     radius,

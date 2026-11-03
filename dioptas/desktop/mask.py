@@ -17,6 +17,9 @@ from dioptas.model.state import params_to_dict
 
 class MaskWorkflow:
     def _mask_history_step(self, redo=False):
+        history = self._model.history
+        if (history.redo_label if redo else history.undo_label) == "integration_overlay":
+            return self._history_step(redo=redo)
         # Qt history is application-wide. Mask-only undo should keep the image
         # viewport/contrast and an unchanged fit's diagnostic state.
         before_image = (

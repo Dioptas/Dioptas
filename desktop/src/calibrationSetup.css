@@ -357,6 +357,7 @@
 }
 .app .peak-table-actions .peak-clear-all {
   margin-left: 5px;
+  color: #ed7979;
 }
 .app .peak-table-actions .peak-delete-selected {
   margin-left: 5px;

@@ -35,7 +35,9 @@ def main():
     def choose_file(kind, save):
         if kind == "directory":
             result = window.create_file_dialog(webview.FileDialog.FOLDER)
-            return result if isinstance(result, str) else result[0] if result else None
+            if kind == "overlays":
+            return result
+        return result if isinstance(result, str) else result[0] if result else None
         filters = {
             "image": (
                 "Detector images (*.tif;*.tiff;*.edf;*.cbf;*.h5;*.hdf5;*.nxs;*.mar3450)",
@@ -44,6 +46,7 @@ def main():
             "calibration": ("PONI calibration (*.poni)",),
             "peaks": ("Dioptas calibration peaks (*.json)",),
             "project": ("Dioptas project (*.dio)",),
+            "overlays": ("Diffraction pattern (*.xy;*.xye;*.chi;*.dat;*.fxye)",),
             "pattern": ("Diffraction pattern (*.xy;*.xye;*.chi;*.dat;*.fxye)",),
             "phase": ("Diffraction phase (*.jcpds;*.cif;*.eosmat;*.json)",),
             "batch": ("Integrated batch (*.h5;*.csv)",),
@@ -54,7 +57,7 @@ def main():
         }
         result = window.create_file_dialog(
             webview.FileDialog.SAVE if save else webview.FileDialog.OPEN,
-            allow_multiple=False,
+            allow_multiple=kind == "overlays",
             file_types=filters[kind],
             save_filename={
                 "project": "experiment.dio",

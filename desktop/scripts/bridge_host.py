@@ -39,6 +39,8 @@ def choose_file(kind, save):
                 "mask": "mask.mask",
             }[kind]
         )
+    if kind == "overlays":
+        return [str(artifacts / "overlay-one.xy"), str(artifacts / "overlay-two.xy")]
     if kind == "pattern":
         return str(artifacts / "pattern.xy")
     if kind == "phase":

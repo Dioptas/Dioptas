@@ -5,6 +5,7 @@
   "windows": ["main"],
   "permissions": [
     "allow-desktop-invoke",
+    "allow-prepare-color-picker",
     "allow-show-calibration-tooltip",
     "allow-hide-calibration-tooltip",
     "allow-native-smoke-report",

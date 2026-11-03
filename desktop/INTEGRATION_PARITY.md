@@ -217,3 +217,173 @@ navigation (arrows, Home and End). Its order is Image, Pattern, Overlay, Phase,
 Background, Corrections. There is no manual Integrate image button; image loads
 and integration-setting changes calculate automatically. Only relevant background
 and correction Apply actions occupy the fixed task footer.
+
+
+## Overlay Qt recheck (2026-11-02)
+
+Compared directly with `OverlayWidget`, `OverlayController`,
+`OverlayInPatternController`, `PatternWidget` and its `ExLegendItem`. An isolated
+offscreen capture of the original widget is in
+`artifacts/overlay-qt-reference.png`; no user Qt window/settings were used.
+
+The Overlay pane retains Qt's left icon rail (load, delete, clear, up/down),
+central selected-row table (show, color, Name, Scale, Offset), and right parameter
+rail (Scale Step, Offset Step, Waterfall/separation/Reset and As Bkg). Names edit
+on double click or F2/Enter. New rows select and scroll into view; selection
+follows the same overlay through reordering. The selected overlay curve draws
+slightly thicker and above the other curves, including without antialiasing;
+selection changes no scientific data. Table checkboxes remain vertically
+centered, and As Bkg matches Waterfall's button height and padding. The active tab, selected row and
+local step sizes survive visits to other modes. Following the 2026-11-03 interface
+correction, numeric fields use standard native spin boxes, while Scale Step,
+Offset Step and waterfall separation retain Qt's 1–2–5 progression for both
+mouse arrows, keyboard stepping and mouse-wheel input. Row Scale/Offset wheel
+steps use their respective step-size fields, and numeric-field wheel events
+do not scroll the parameter rail. Waterfall has a compact Reset icon beside it;
+As Bkg is pinned below the scrolling options so it remains visible at the
+minimum pane height. Table rows and options use the same explicitly sized
+visible scrollbars as calibration, including a horizontal scrollbar when columns
+exceed the available width. The table header sits above the scrolling items and
+follows their horizontal position. The left action rail retains spacing within Open/Delete and Up/Down pairs;
+only the Clear-all group and its divider spacing collapse when the pane shrinks.
+Every icon fits at the minimum pane height without a scrollbar. Scientific numeric
+limits remain enforced, including the model's clamping of negative scaling to zero. The show-column header toggles all overlays. Clear all uses the same red ListX
+icon and anchored confirmation dialog as calibration peaks, with Cancel focused
+and Escape/outside-click dismissal. Right click or
+Shift+F10 opens Match intensity, using the same overlap/interpolation and
+least-squares factor as the original Qt controller.
+
+Load selects multiple files and remembers the overlay directory. All numerical
+work uses the existing OverlayModel. Waterfall keeps Qt's bottom-up negative
+offsets and stores separation in the existing project view state. As Bkg toggles
+the selected overlay, hides it while assigned, and restores visibility when
+unassigned/replaced. Assignment uses the stable overlay UID, surviving reorder
+and project round trips; removing/clearing an assigned overlay clears its
+background reference. The pattern plot shows Qt-style borderless, colored,
+right-aligned names, which can be dragged. Files can be displayed before a
+current pattern or calibration exists. The desktop starts with empty pattern
+data so xypattern's default demonstration curve cannot appear in this case.
+
+Remaining interface differences are the native browser color picker rather
+than QColorDialog, numeric text edits committing on Enter/blur (spin buttons
+and arrow keys apply immediately), and scrolling inside table/parameter rails
+at compact pane sizes. Overlay file x coordinates retain Qt's numerical-unit
+semantics; no automatic unit reinterpretation was introduced. The native
+multi-file dialog route is covered by Rust tests and the real-model chooser
+harness; the modal OS picker was not manually exercised in this recheck.
+
+Verification in the assigned `codex/overlay-qt-controls` checkout:
+
+- Build and 20 existing JavaScript tests pass; eight Rust tests pass.
+- Desktop Python suite: 162 passed, five skipped, including seven focused
+  Overlay cases for Qt intensity-match parity, visibility, order, waterfall,
+  background subtraction/persistence/removal, multi-file load and empty startup.
+- `scripts/overlay_controls.mjs` passes Chromium and WebKit at 1440 × 1000 and
+  1000 × 668, with both text sizes, exercising real-model controls, overlay-only
+  plotting, selected-row/step retention across modes, legend dragging and table
+  scrolling. Reports/screenshots: `artifacts/overlay-*`.
+- The complete browser smoke passes calibration and existing Integration
+  regressions. Bundled Tauri/WKWebView smoke passes, including overlay capture,
+  selected-row reorder, As Bkg toggle, waterfall/reset/delete and processing-child
+  cleanup. No development server or port 1420 was used.
+
+Implementation is isolated in `src/IntegrationOverlayControls.tsx`,
+`src/integrationOverlayControls.css`, `src/OverlayPlotLegend.tsx`,
+`src/overlayPlotLegend.css` and `dioptas/desktop/overlay.py`, with narrow state,
+view, dialog and session initialization hooks. Existing snapshotted changes
+were preserved; this work was not committed, pushed or merged.
+
+
+
+## Overlay import into the main preview (2026-11-03)
+
+The Overlay changes were applied to `codex/react-desktop`, preserving the newer
+Image/Pattern file controls and adaptive readout work. The live Tauri development
+preview rebuilt and restarted its Python worker with the imported boundary.
+Build, 43 focused Overlay/Pattern/Integration Python tests, Chromium/WebKit Overlay
+checks and bundled native smoke pass in the primary checkout. The native binary
+benchmark now waits for the calibration controls to become ready before stepping
+images; its first import check clicked a still-disabled Next image button.
+Changes remain uncommitted.
+
+
+### Original-pattern visibility for waterfall figures (2026-11-03)
+
+The table has a pinned **Original · filename** row with a visibility checkbox,
+a white color swatch and read-only Scale 1 / Offset 0. It stays above the scrolling
+overlay items and cannot be renamed, reordered, deleted or assigned as its own
+background. Selecting it emphasizes the measured curve. Arrow-key navigation
+includes this fixed row; ordinary overlays retain their stable-UID selection.
+Clear all removes only actual overlays and leaves the Original row in place.
+
+The checkbox is checked by default and replaces the separate checkbox beside
+Waterfall. Unchecking hides the measured curve and its legend entry while
+preserving overlays. Auto range and X-range fitting use the visible curves;
+manually held ranges are preserved. Clearing all overlays restores the original,
+and its checkbox remains usable even without overlays. Visibility affects
+only display: scientific arrays, background subtraction and numerical pattern
+saves are unchanged. It is stored in `PatternParams.visible`, saved in `.dio`
+projects and included in the shared Undo/Redo history. No placeholder overlay
+is added to the scientific model.
+
+
+
+## Overlay display refinements (2026-11-03)
+
+The pinned Original row has the same square native color well as other rows.
+Its color and visibility affect only the displayed measured pattern. The color
+is stored in `PatternParams.color`, saved in `.dio` projects, and participates
+in the same chronological Undo/Redo history as overlay edits. Original
+visibility follows the same history and persistence rules, including when no
+overlays exist. Restoring Original color or visibility uses the pattern-only
+update path and leaves unchanged mask pixels alone. Clearing all overlays or
+removing the final overlay restores Original visibility as part of that same
+undoable operation. Signed waterfall separation follows the 1–2–5 stepping sequence through zero, including
+mouse-wheel and native spin-button interactions.
+
+The Color header offers Viridis, Plasma, Magma, Inferno, Cividis and Turbo with
+reversal. Dark endpoints are trimmed against the charcoal background; previews
+use the same sampled range. Applying a scale affects actual overlays in table
+order and is one undoable transaction, retaining the Original color.
+
+Overlay edits return a pattern-only response. They neither disable the task
+controls nor resend mask, image, cake, rings or linked-selection payloads.
+Overlay Undo/Redo preserves calibration diagnostics and skips calibration,
+detector, mask and cake recomputation. Unchanged configurations are left alone
+during shared model history restoration. Detector/cake draw callbacks depend
+on actual view coordinates and stable guide inputs, avoiding redraws from
+unrelated React renders. Consecutive scale edits to one overlay form one Undo
+step; offset edits form a separate step. Another changed field/overlay or
+history navigation ends the group, including when edits are separated by pauses.
+
+Table rows use 23px native numeric fields and minimal vertical padding (about
+26px total), with centered checkboxes and unchanged 20px square color wells.
+The larger macOS native color panel is anchored to the initiating color well
+and constrained to that display's visible work area. Its command is explicitly
+registered in the Tauri manifest and main-window capability. Window-update
+notifications cover floating panels that open without becoming key.
+
+Validation: Chromium and WebKit overlay interaction checks include full
+command completion, grouped Undo/Redo, stable table enabled states, and no
+detector/cake canvas redraws during overlay color, scale, offset, visibility
+or history changes. Python checks guard against calibration/image/mask/raster
+work on those paths. Native picker tracing confirmed a visible 250×397-point
+panel directly below the initiating 20×20-point swatch. The primary preview was
+saved and restored across its normal native-host rebuild; backups are in
+`desktop/artifacts/main-preview-overlay-final-20261103*.dio`.
+
+
+Original-color history checks cover mixed Original/overlay color ordering,
+Undo and Redo, invalid-color rejection, `.dio` round trips, unchanged detector
+and cake canvases, and stable table enabled states in Chromium and WebKit.
+The direct native smoke runner timed out without a report in this session;
+the same built application passed the smoke check when launched as the
+registered macOS test bundle. Desktop/Pattern/History Python checks passed
+226 tests (5 skipped); model-state/project regressions passed 63 (1 skipped).
+
+
+Original-visibility history checks cover mixed visibility/color/overlay edit
+ordering, Undo/Redo, hidden-state `.dio` round trips with and without overlays,
+unchanged numerical pattern data, and invalid boolean rejection. Chromium and
+WebKit checks include checkbox/plot synchronization and stable detector/cake
+canvases and table fields across visibility Undo/Redo.

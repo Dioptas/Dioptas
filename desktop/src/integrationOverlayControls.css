@@ -1,0 +1,363 @@
+.integration-fieldset.integration-tab-overlay {
+  display: flex;
+  padding: 6px;
+  overflow: hidden;
+}
+.qt-overlay-controls {
+  display: grid;
+  grid-template-columns: 29px minmax(0, 1fr) 128px;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  font-size: var(--text-small);
+}
+.qt-overlay-parameter-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.qt-overlay-controls button {
+  flex-shrink: 0;
+  padding: 3px 5px;
+  border-radius: 3px;
+}
+.qt-overlay-actions button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  min-height: 25px;
+  height: 25px;
+  padding: 3px;
+}
+.qt-overlay-actions {
+  padding-bottom: 1px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: 0;
+  overflow: hidden;
+}
+.qt-overlay-actions .qt-overlay-spacer {
+  min-height: 0;
+}
+.qt-overlay-action-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.qt-overlay-clear-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.qt-overlay-actions .qt-overlay-clear-group hr {
+  margin: 0;
+}
+.qt-overlay-clear-group .qt-overlay-spacer {
+  flex: 1;
+}
+.qt-overlay-actions .danger {
+  color: #ed7979;
+}
+.qt-overlay-controls hr {
+  width: 100%;
+  margin: 2px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.qt-overlay-spacer {
+  flex: 1;
+  min-height: 5px;
+}
+.qt-overlay-table-region {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.qt-overlay-table-scroll {
+  display: block;
+  overflow: auto;
+  min-width: 0;
+  min-height: 0;
+}
+.qt-overlay-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+}
+.qt-overlay-table thead,
+.qt-overlay-original-group {
+  min-width: 0;
+  background: #25282c;
+  display: block;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.qt-overlay-table tr {
+  display: grid;
+  grid-template-columns: 23px 25px minmax(72px, 1fr) 75px 75px;
+  min-width: 270px;
+}
+.qt-overlay-table th {
+  display: flex;
+  align-items: center;
+  background: #25282c;
+  text-align: left;
+  color: #b9bec4;
+  font-weight: 500;
+  height: 29px;
+}
+.qt-overlay-table th:nth-child(1) {
+  width: 23px;
+}
+.qt-overlay-table th:nth-child(2) {
+  width: 25px;
+}
+.qt-overlay-table th:nth-child(4),
+.qt-overlay-table th:nth-child(5) {
+  width: 75px;
+}
+.qt-overlay-table td {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 1px 2px;
+  border-bottom: 1px solid #ffffff0b;
+}
+.qt-overlay-table tr[aria-selected="true"] td {
+  background: #ff950018;
+}
+.qt-overlay-table tr:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+.qt-overlay-controls .qt-overlay-show-all {
+  min-height: 25px;
+  padding: 0;
+  width: 22px;
+  background: none;
+}
+.qt-overlay-controls input[type="number"] {
+  width: 100%;
+  min-width: 0;
+  padding: 6px 5px;
+  appearance: auto;
+  -moz-appearance: auto;
+  text-align: right;
+  font-size: inherit;
+}
+/* Compact table rows retain the normal native number steppers. */
+.qt-overlay-controls .qt-overlay-table input[type="number"],
+.qt-overlay-name-cell > input {
+  min-height: 23px;
+  height: 23px;
+  padding: 1px 3px;
+  line-height: 1.1;
+}
+/* Override the shared 32px input minimum as well as the preferred size. */
+.qt-overlay-table input[type="color"] {
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  min-height: 20px;
+  max-height: 20px;
+  flex: 0 0 20px;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  background: none;
+  vertical-align: middle;
+  cursor: pointer;
+}
+/* Remove native picker insets so the visible color itself stays square. */
+.qt-overlay-table input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.qt-overlay-table input[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: 2px;
+}
+.qt-overlay-table input[type="color"]::-moz-color-swatch {
+  border: 0;
+  border-radius: 2px;
+}
+.qt-overlay-table input[type="checkbox"] {
+  margin: 0;
+  vertical-align: middle;
+}
+.qt-overlay-controls .qt-overlay-name-cell {
+  position: relative;
+}
+.qt-overlay-name-cell > input {
+  width: 100%;
+  min-width: 0;
+  padding: 1px 2px;
+  font-size: inherit;
+  text-overflow: ellipsis;
+}
+.qt-overlay-name-cell > input[readonly] {
+  border-color: transparent;
+  background: transparent;
+  cursor: default;
+}
+.qt-overlay-parameter-scroll > label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  white-space: nowrap;
+}
+.qt-overlay-parameters {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.qt-overlay-parameter-scroll {
+  flex: 1;
+  min-width: 0;
+}
+.qt-overlay-parameter-scroll > * {
+  flex-shrink: 0;
+}
+.qt-overlay-parameters button {
+  font-size: inherit;
+  min-height: 30px;
+  padding: 5px 6px;
+  border-radius: 5px;
+}
+.qt-overlay-waterfall-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+.qt-overlay-waterfall-actions > button:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.qt-overlay-waterfall-actions > button:last-child {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  padding: 4px;
+}
+.qt-overlay-background-action {
+  flex-shrink: 0;
+  padding-top: 6px;
+  margin-top: 6px;
+  border-top: 1px solid var(--border);
+}
+.qt-overlay-background-action > button {
+  width: 100%;
+}
+.qt-overlay-parameters button[aria-pressed="true"] {
+  color: var(--accent);
+  background: #ff950020;
+  border-color: #ff950080;
+}
+.qt-overlay-empty {
+  color: #9a9fa6;
+  padding: 8px;
+  margin: 0;
+}
+.qt-overlay-menu {
+  position: fixed;
+  z-index: 50;
+  background: #292d31;
+  padding: 4px;
+  border: 1px solid #62676d;
+  box-shadow: 0 3px 12px #0008;
+}
+.qt-overlay-menu button {
+  white-space: nowrap;
+  font-size: var(--text-small);
+}
+
+.qt-overlay-controls input::-webkit-inner-spin-button {
+  opacity: 1;
+}
+.integration-overlay-page {
+  display: contents;
+}
+.integration-overlay-page[hidden] {
+  display: none;
+}
+
+/* Match calibration's persistent macOS overflow cue instead of auto-hide bars. */
+.qt-overlay-controls
+  :is(.qt-overlay-table-scroll, .qt-overlay-parameter-scroll) {
+  scrollbar-gutter: stable;
+  scrollbar-width: auto;
+  scrollbar-color: auto;
+  overscroll-behavior: contain;
+}
+.qt-overlay-controls
+  :is(
+    .qt-overlay-table-scroll,
+    .qt-overlay-parameter-scroll
+  )::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+  background: #151b22;
+}
+.qt-overlay-controls
+  :is(
+    .qt-overlay-table-scroll,
+    .qt-overlay-parameter-scroll
+  )::-webkit-scrollbar-thumb {
+  min-height: 28px;
+  min-width: 28px;
+  border: 2px solid #151b22;
+  border-radius: 6px;
+  background: #65707c;
+}
+.qt-overlay-controls
+  :is(
+    .qt-overlay-table-scroll,
+    .qt-overlay-parameter-scroll
+  )::-webkit-scrollbar-thumb:hover {
+  background: #89939e;
+}
+.qt-overlay-table-scroll::-webkit-scrollbar-corner {
+  background: #151b22;
+}
+@supports not selector(::-webkit-scrollbar) {
+  .qt-overlay-controls
+    :is(.qt-overlay-table-scroll, .qt-overlay-parameter-scroll) {
+    scrollbar-color: #65707c #151b22;
+  }
+}
+
+.qt-overlay-original-row {
+  min-height: 39px;
+}
+.qt-overlay-original-row td {
+  border-bottom-color: #62676d;
+}
+.qt-overlay-original-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.qt-overlay-fixed-value {
+  width: 100%;
+  padding: 6px 5px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: #aab0b6;
+}

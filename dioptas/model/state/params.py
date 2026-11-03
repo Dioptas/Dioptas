@@ -384,6 +384,11 @@ class PatternParams:
     #: unit of the current pattern's x-axis ("", "2th_deg", "q_A^-1", "d_A")
     unit: str = ""
 
+    #: Measured-pattern display color; independent of intensity data.
+    color: str = "#ffffff"
+    #: Display visibility; hiding the measured curve does not alter its data.
+    visible: bool = True
+
     # Where the current pattern came from. "integrated" patterns are derived
     # (recomputed from image + calibration on restore) and their filename is
     # the *image* the integration ran on — reloading it as a pattern file

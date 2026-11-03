@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   ArrowUpRight,
@@ -39,6 +39,7 @@ import { MaskPanel } from "./MaskPanel";
 import { useMaskTools } from "./maskDomain";
 import { RasterView } from "./RasterView";
 import { PatternView } from "./PatternView";
+import { ORIGINAL_PATTERN_UID } from "./integration";
 import { CalibrationControls } from "./CalibrationControls";
 import { CalibrationPanel } from "./CalibrationPanel";
 import { CalibrationWorkflowTabs } from "./CalibrationWorkflowTabs";
@@ -68,6 +69,12 @@ export default function App() {
   const [sqrtPattern, setSqrtPattern] = useState(false);
   const [patternAntialias, setPatternAntialias] = useState(true);
   const [patternAutoRange, setPatternAutoRange] = useState(true);
+  const [showOriginalPattern, setShowOriginalPattern] = useState(true);
+  const [originalPatternColor, setOriginalPatternColor] = useState("#ffffff");
+  const [selectedOverlayUid, setSelectedOverlayUid] = useState<string | null>(
+    null,
+  );
+
   const [inspectBackground, setInspectBackground] = useState(false);
   const [cakeShift, setCakeShift] = useState(0);
   const [imageAutoScale, setImageAutoScale] = useState(true);
@@ -179,6 +186,8 @@ export default function App() {
     inFlight = useRef(false);
   const commandTail = useRef<Promise<void> | null>(null);
   const pendingMaskDraws = useRef(0);
+  const pendingOverlayEdits = useRef(0);
+  const currentState = useRef<State | null>(null);
   const [state, setState] = useState<State | null>(null);
   useEffect(() => {
     void updateWindowTitle(state?.imageName).catch((error) =>
@@ -241,10 +250,27 @@ export default function App() {
     if (result.mapLevels) setMapLevels(result.mapLevels);
     if ("mapWarning" in result) setMapWarning(result.mapWarning ?? null);
     if (result.state) {
+      currentState.current = result.state;
+      if (typeof result.state.integration.originalPatternVisible === "boolean")
+        setShowOriginalPattern(result.state.integration.originalPatternVisible);
+      if (result.state.integration.originalPatternColor)
+        setOriginalPatternColor(result.state.integration.originalPatternColor);
       // An existing live preview may still have the earlier Python worker
       // loaded until the user restarts it.
       canDeferIntegration.current = "integrationDirty" in result.state;
-      setState(result.state);
+      if (result.patternOnly)
+        phaseGuideRevision.current = result.state.revision;
+      setState((previous) => {
+        const next = result.state!;
+        if (!previous || !result.patternOnly) return next;
+        // Retain unchanged detector/controls inputs during a pattern-only edit.
+        return {
+          ...next,
+          calibration: previous.calibration,
+          geometry: previous.geometry,
+          integration: { ...next.integration, roi: previous.integration.roi },
+        };
+      });
     }
     if (result.phaseGuides) setPhaseGuides(result.phaseGuides);
     if (result.rawImage) setRawImage(result.rawImage);
@@ -318,10 +344,23 @@ export default function App() {
       message = "Processing…",
       onSuccess?: (result: Response) => void,
     ) => {
+      const historyLabel = command.startsWith("redo")
+        ? currentState.current?.redoLabel
+        : currentState.current?.undoLabel;
+      const overlayEditing =
+        (command === "integration_overlay" && args.operation !== "load") ||
+        ([
+          "undo_mask",
+          "redo_mask",
+          "undo_calibration",
+          "redo_calibration",
+        ].includes(command) &&
+          historyLabel === "integration_overlay");
       if (
         !bridge.current ||
         (inFlight.current &&
           !pendingMaskDraws.current &&
+          !pendingOverlayEdits.current &&
           command !== "image_levels")
       )
         return;
@@ -340,13 +379,18 @@ export default function App() {
       const completion = new Promise<void>((resolve) => (release = resolve));
       commandTail.current = completion;
       if (maskDrawing) pendingMaskDraws.current++;
+      if (overlayEditing) pendingOverlayEdits.current++;
       if (previous) await previous;
       inFlight.current = true;
       const displayOnly =
         command === "settings" &&
         typeof args.transparent_mask === "boolean" &&
         Object.keys(args).length === 1;
-      const quiet = displayOnly || maskDrawing || command === "image_levels";
+      const quiet =
+        displayOnly ||
+        maskDrawing ||
+        overlayEditing ||
+        command === "image_levels";
       if (!quiet) {
         ++progressGeneration.current;
         setProgress(undefined);
@@ -412,6 +456,7 @@ export default function App() {
         }
         inFlight.current = false;
         if (maskDrawing) pendingMaskDraws.current--;
+        if (overlayEditing) pendingOverlayEdits.current--;
         if (commandTail.current === completion) commandTail.current = null;
         release();
       }
@@ -694,6 +739,66 @@ export default function App() {
     state?.calibration && calibrationPreview
       ? { ...state.calibration, picks: calibrationPreview.picks }
       : state?.calibration;
+  const detectorPeaks = useMemo(
+    () =>
+      mode === "calibration"
+        ? displayedCalibration?.picks.flatMap((p, index) =>
+            p.points.map(([y, x]) => ({
+              x,
+              y,
+              ring: p.ring,
+              selected: !calibrationPreview && selectedPicks.includes(index),
+            })),
+          )
+        : [],
+    [mode, displayedCalibration, calibrationPreview, selectedPicks],
+  );
+  const detectorRings = useMemo(
+    () =>
+      mode === "calibration" && showRings
+        ? [
+            ...(calibrationPreview?.rings ?? rings),
+            ...(!calibrationPreview ? (linked?.contours ?? []) : []),
+          ]
+        : [
+            ...(showImagePhases ? phaseGuides : []),
+            ...(linked?.contours ?? []),
+          ],
+    [
+      mode,
+      showRings,
+      calibrationPreview,
+      rings,
+      showImagePhases,
+      phaseGuides,
+      linked,
+    ],
+  );
+  const cakeCalibrantLines = useMemo(
+    () =>
+      mode === "integration"
+        ? showImagePhases
+          ? phaseGuides
+              .filter(
+                (g, i, all) =>
+                  all.findIndex((v) => v.twoTheta === g.twoTheta) === i,
+              )
+              .map((g) => ({
+                ring: 0,
+                twoTheta: g.twoTheta!,
+                color: g.color,
+              }))
+          : []
+        : showRings
+          ? state?.calibration.rings
+          : undefined,
+    [mode, showImagePhases, phaseGuides, showRings, state?.calibration],
+  );
+  const originalPatternVisible = showOriginalPattern;
+  const selectedOverlayIndex =
+    state?.integration.overlays
+      .filter((overlay) => overlay.visible)
+      .findIndex((overlay) => overlay.uid === selectedOverlayUid) ?? -1;
   const displayedRms =
     calibrationPreview?.rmsDegrees ?? state?.calibration.rmsDegrees;
   const fitPoints =
@@ -852,7 +957,7 @@ export default function App() {
               <button
                 className="workspace-nav"
                 aria-label="Undo"
-                title={`Undo ${mode === "calibration" ? "calibration" : "mask"} edit · ⌘/Ctrl+Z`}
+                title={`Undo ${mode === "calibration" ? "calibration" : mode === "integration" ? "integration" : "mask"} edit · ⌘/Ctrl+Z`}
                 disabled={
                   !ready ||
                   !(mode === "calibration"
@@ -868,7 +973,7 @@ export default function App() {
               <button
                 className="workspace-nav"
                 aria-label="Redo"
-                title={`Redo ${mode === "calibration" ? "calibration" : "mask"} edit · ⇧⌘/Ctrl+Z`}
+                title={`Redo ${mode === "calibration" ? "calibration" : mode === "integration" ? "integration" : "mask"} edit · ⇧⌘/Ctrl+Z`}
                 disabled={
                   !ready ||
                   !(mode === "calibration"
@@ -1036,34 +1141,8 @@ export default function App() {
                             busy={!!busy}
                             resetKey={resetKey}
                             onHover={onHover}
-                            peaks={
-                              mode === "calibration"
-                                ? displayedCalibration?.picks.flatMap(
-                                    (p, index) =>
-                                      p.points.map(([y, x]) => ({
-                                        x,
-                                        y,
-                                        ring: p.ring,
-                                        selected:
-                                          !calibrationPreview &&
-                                          selectedPicks.includes(index),
-                                      })),
-                                  )
-                                : []
-                            }
-                            rings={
-                              mode === "calibration" && showRings
-                                ? [
-                                    ...(calibrationPreview?.rings ?? rings),
-                                    ...(!calibrationPreview
-                                      ? (linked?.contours ?? [])
-                                      : []),
-                                  ]
-                                : [
-                                    ...(showImagePhases ? phaseGuides : []),
-                                    ...(linked?.contours ?? []),
-                                  ]
-                            }
+                            peaks={detectorPeaks}
+                            rings={detectorRings}
                             roi={
                               mode === "integration"
                                 ? state?.integration.roi
@@ -1203,26 +1282,7 @@ export default function App() {
                                   ? displayedRing
                                   : undefined
                               }
-                              calibrantLines={
-                                mode === "integration"
-                                  ? showImagePhases
-                                    ? phaseGuides
-                                        .filter(
-                                          (g, i, all) =>
-                                            all.findIndex(
-                                              (v) => v.twoTheta === g.twoTheta,
-                                            ) === i,
-                                        )
-                                        .map((g) => ({
-                                          ring: 0,
-                                          twoTheta: g.twoTheta!,
-                                          color: g.color,
-                                        }))
-                                    : []
-                                  : showRings
-                                    ? state?.calibration.rings
-                                    : undefined
-                              }
+                              calibrantLines={cakeCalibrantLines}
                               showNumbers={
                                 mode === "calibration" && showNumbers
                               }
@@ -1310,6 +1370,35 @@ export default function App() {
                         {pattern ? (
                           <PatternView
                             pattern={pattern}
+                            patternColor={
+                              mode === "integration"
+                                ? originalPatternColor
+                                : "#ffffff"
+                            }
+                            showPattern={
+                              mode !== "integration" || originalPatternVisible
+                            }
+                            emphasizePattern={
+                              mode === "integration" &&
+                              selectedOverlayUid === ORIGINAL_PATTERN_UID
+                            }
+                            overlayLegend={
+                              mode === "integration"
+                                ? [
+                                    ...(originalPatternVisible
+                                      ? [
+                                          {
+                                            name:
+                                              state?.integration.patternName ??
+                                              "",
+                                            color: originalPatternColor,
+                                          },
+                                        ]
+                                      : []),
+                                    ...(pattern.curves ?? []),
+                                  ]
+                                : undefined
+                            }
                             log={logPattern}
                             sqrt={mode === "integration" && sqrtPattern}
                             antialias={
@@ -1339,7 +1428,13 @@ export default function App() {
                             curves={
                               mode === "integration"
                                 ? [
-                                    ...(pattern.curves ?? []),
+                                    ...(pattern.curves ?? []).map(
+                                      (curve, index) => ({
+                                        ...curve,
+                                        selected:
+                                          index === selectedOverlayIndex,
+                                      }),
+                                    ),
                                     ...(inspectBackground &&
                                     state?.integration.patternBackground.enabled
                                       ? (pattern.backgroundCurves ?? [])
@@ -1698,7 +1793,26 @@ export default function App() {
                       </>
                     )}
                     {mode === "integration" && (
-                      <IntegrationView state={state} ready={ready} run={run} />
+                      <IntegrationView
+                        state={state}
+                        ready={ready}
+                        run={run}
+                        onOverlaySelectionChange={setSelectedOverlayUid}
+                        showOriginalPattern={originalPatternVisible}
+                        onShowOriginalPatternChange={(visible) => {
+                          void run("integration_overlay", {
+                            operation: "original_visibility",
+                            visible,
+                          });
+                        }}
+                        originalPatternColor={originalPatternColor}
+                        onOriginalPatternColorChange={(color) => {
+                          void run("integration_overlay", {
+                            operation: "original_color",
+                            color,
+                          });
+                        }}
+                      />
                     )}
                   </>
                 )}

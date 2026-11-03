@@ -342,3 +342,26 @@ def test_uncomparable_state_is_treated_as_changed(clock):
     pos["i"] = 1
     history.record("weird")
     assert history.depth == 1
+
+
+def test_keyed_transactions_group_consecutive_edits_after_a_pause(doc, history, clock):
+    for value in [1, 2, 3]:
+        with history.transaction("scale", key=("overlay-a", "scale"), merge_consecutive=True):
+            doc.values["a"] = value
+            history.record()
+        clock.advance(10)
+    history.undo()
+    assert doc.values["a"] == 0
+    history.redo()
+    assert doc.values["a"] == 3
+    with history.transaction("offset", key=("overlay-a", "offset"), merge_consecutive=True):
+        doc.values["b"] = 2
+        history.record()
+    history.undo()
+    assert doc.values == {"a": 3, "b": 0}
+    # Editing after Undo starts a new group, even when its key matches the prior step.
+    with history.transaction("scale", key=("overlay-a", "scale"), merge_consecutive=True):
+        doc.values["a"] = 5
+        history.record()
+    history.undo()
+    assert doc.values["a"] == 3

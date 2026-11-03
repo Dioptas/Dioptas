@@ -3,27 +3,40 @@ import type { State } from "./types";
 import type { IntegrationRun, IntegrationState } from "./integration";
 import { Check, Field, Group } from "./IntegrationFields";
 import "./integration.css";
+import { IntegrationOverlayControls } from "./IntegrationOverlayControls";
+
+let retainedTab = "Image";
 
 /** Qt control groups; all science is dispatched to IntegrationWorkflow on the existing worker. */
 export function IntegrationView({
   state,
   ready,
   run,
+  onOverlaySelectionChange,
+  showOriginalPattern,
+  onShowOriginalPatternChange,
+  originalPatternColor,
+  onOriginalPatternColorChange,
 }: {
   state: State | null;
   ready: boolean;
   run: IntegrationRun;
+  onOverlaySelectionChange: (uid: string | null) => void;
+  showOriginalPattern: boolean;
+  onShowOriginalPatternChange: (visible: boolean) => void;
+  originalPatternColor: string;
+  onOriginalPatternColorChange: (color: string) => void;
 }) {
   const source = state?.integration;
   const [draft, setDraft] = useState<IntegrationState | undefined>(source);
-  const [tab, setTab] = useState("Image");
+  const [tab, setTab] = useState(retainedTab);
+  useEffect(() => { retainedTab = tab; }, [tab]);
   const [backgroundTab, setBackgroundTab] = useState("pattern");
   const [correctionTab, setCorrectionTab] = useState("flat");
   const [subtract, setSubtract] = useState(false);
   const [bkgRange, setBkgRange] = useState(false);
   const [bkgMin, setBkgMin] = useState(0),
     [bkgMax, setBkgMax] = useState(50);
-  const [separation, setSeparation] = useState(100);
   const [fileStep, setFileStep] = useState(1);
   useEffect(() => {
     setDraft(source);
@@ -569,158 +582,17 @@ export function IntegrationView({
               ))}
           </>
         )}
-        {tab === "Overlay" && (
-          <>
-            <div className="file-actions">
-              <button
-                onClick={() =>
-                  action("integration_overlay", { operation: "load" })
-                }
-              >
-                Add file…
-              </button>
-              <button
-                disabled={!source.patternName}
-                onClick={() =>
-                  action("integration_overlay", { operation: "capture" })
-                }
-              >
-                Add pattern
-              </button>
-            </div>
-            <p className="integration-note">
-              Overlays use their file's numerical x coordinates. Select matching
-              units before loading.
-            </p>
-            <div
-              className="integration-list"
-              role="table"
-              aria-label="Overlays"
-            >
-              <div
-                className="integration-list-head integration-overlay-row"
-                role="row"
-              >
-                <span>Show</span>
-                <span>Pattern</span>
-                <span>Scale</span>
-                <span>Offset</span>
-                <span />
-              </div>
-              {source.overlays.map((overlay, index) => (
-                <div className="integration-overlay-row" role="row" key={index}>
-                  <Check
-                    label={`Show overlay ${index + 1}`}
-                    checked={overlay.visible}
-                    onChange={(visible) =>
-                      action("integration_overlay", {
-                        operation: "update",
-                        index,
-                        visible,
-                      })
-                    }
-                  />
-                  <div className="integration-list-name">
-                    <input
-                      type="color"
-                      aria-label={`Overlay ${index + 1} color`}
-                      value={overlay.color}
-                      onChange={(e) =>
-                        action("integration_overlay", {
-                          operation: "update",
-                          index,
-                          color: e.target.value,
-                        })
-                      }
-                    />
-                    <span title={overlay.name}>
-                      {overlay.name || `Overlay ${index + 1}`}
-                    </span>
-                  </div>
-                  <CommitField
-                    label={`Overlay ${index + 1} scale`}
-                    value={overlay.scale}
-                    onCommit={(scale) =>
-                      action("integration_overlay", {
-                        operation: "update",
-                        index,
-                        scale,
-                      })
-                    }
-                  />
-                  <CommitField
-                    label={`Overlay ${index + 1} offset`}
-                    value={overlay.offset}
-                    onCommit={(offset) =>
-                      action("integration_overlay", {
-                        operation: "update",
-                        index,
-                        offset,
-                      })
-                    }
-                  />
-                  <div className="integration-row-actions">
-                    <button
-                      title="Use this overlay as pattern background"
-                      onClick={() =>
-                        action("integration_overlay", {
-                          operation: "background",
-                          index,
-                        })
-                      }
-                    >
-                      Bkg
-                    </button>
-                    <button
-                      aria-label={`Delete overlay ${index + 1}`}
-                      onClick={() =>
-                        action("integration_overlay", {
-                          operation: "remove",
-                          index,
-                        })
-                      }
-                    >
-                      ×
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {!source.overlays.length && (
-                <p className="integration-empty-list">
-                  Add a pattern file or capture the current pattern.
-                </p>
-              )}
-            </div>
-            <Group title="Waterfall" open>
-              <Field
-                label="Waterfall separation"
-                value={separation}
-                onChange={setSeparation}
-              />
-              <div className="file-actions">
-                <button
-                  onClick={() =>
-                    action("integration_overlay", {
-                      operation: "waterfall",
-                      separation,
-                    })
-                  }
-                >
-                  Waterfall
-                </button>
-                <button
-                  onClick={() =>
-                    action("integration_overlay", {
-                      operation: "reset_offsets",
-                    })
-                  }
-                >
-                  Reset
-                </button>
-              </div>
-            </Group>
-          </>
-        )}
+        <div className="integration-overlay-page" hidden={tab !== "Overlay"}>
+          <IntegrationOverlayControls
+            source={source}
+            run={run}
+            onSelectionChange={onOverlaySelectionChange}
+            showOriginal={showOriginalPattern}
+            onShowOriginalChange={onShowOriginalPatternChange}
+            originalColor={originalPatternColor}
+            onOriginalColorChange={onOriginalPatternColorChange}
+          />
+        </div>
         {tab === "Phase" && (
           <>
             <button

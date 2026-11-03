@@ -74,7 +74,10 @@ class History:
         self._txn_depth = 0
         self._txn_dirty = False
         self._txn_label = ""
+        self._txn_key = None
+        self._txn_merge_consecutive = False
         self._restoring = False
+        self._navigation_boundary = False
 
         #: emitted whenever the available undo/redo steps change, so views can
         #: re-render their enabled state and labels
@@ -135,7 +138,7 @@ class History:
             return
         self._push(label, key)
 
-    def _push(self, label: str, key: Any = None) -> None:
+    def _push(self, label: str, key: Any = None, merge_consecutive: bool = False) -> None:
         state = self._capture()
         current = self._steps[self._cursor]
         if _same(state, current.state):
@@ -144,6 +147,7 @@ class History:
             return
 
         now = self._clock()
+        had_redo = self.can_redo
         del self._steps[self._cursor + 1 :]  # a new edit invalidates the redo tail
 
         # Merges a run of writes to the same field — a spinbox being dragged.
@@ -153,12 +157,14 @@ class History:
         # the occasional extra step.
         coalescing = (
             key is not None
+            and not had_redo
+            and not self._navigation_boundary
             and key == current.key
             # once the stack has been trimmed, steps[0] is the oldest state
             # still reachable rather than a pristine baseline; overwriting it
             # would edit history the user can still undo into
             and self._cursor > 0
-            and now - current.at <= self._coalesce_seconds
+            and (merge_consecutive or now - current.at <= self._coalesce_seconds)
         )
         if coalescing:
             # the first record names the action; anything merged into it is a
@@ -171,6 +177,7 @@ class History:
             self._steps.append(_Step(state, label, key, now))
             self._cursor += 1
             self._trim()
+        self._navigation_boundary = False
         self.changed.emit()
 
     def _trim(self) -> None:
@@ -201,6 +208,7 @@ class History:
     def undo(self) -> bool:
         if not self.can_undo:
             return False
+        self._navigation_boundary = True
         self._cursor -= 1
         self._apply(self._steps[self._cursor].state)
         return True
@@ -208,6 +216,7 @@ class History:
     def redo(self) -> bool:
         if not self.can_redo:
             return False
+        self._navigation_boundary = True
         self._cursor += 1
         self._apply(self._steps[self._cursor].state)
         return True
@@ -245,9 +254,11 @@ class History:
             self._suspend_depth -= 1
 
     @contextmanager
-    def transaction(self, label: str = "") -> Iterator[None]:
+    def transaction(self, label: str = "", *, key: Any = None, merge_consecutive: bool = False) -> Iterator[None]:
         """Collapses every record inside the context into one step.
 
+        A key can group repeated edits; merge_consecutive keeps that group open
+        until another action or history navigation, rather than a time limit.
         Nested transactions join the outermost one. If nothing was recorded,
         no step is created.
         """
@@ -256,6 +267,8 @@ class History:
             return
         if self._txn_depth == 0:
             self._txn_label = label
+            self._txn_key = key
+            self._txn_merge_consecutive = merge_consecutive
         self._txn_depth += 1
         try:
             yield
@@ -265,7 +278,7 @@ class History:
                 dirty, self._txn_dirty = self._txn_dirty, False
                 label, self._txn_label = self._txn_label, ""
                 if dirty:
-                    self._push(label)
+                    self._push(label, self._txn_key, self._txn_merge_consecutive)
 
 
 def _same(a: Any, b: Any) -> bool:

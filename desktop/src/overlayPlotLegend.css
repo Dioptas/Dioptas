@@ -1,0 +1,17 @@
+.overlay-plot-legend {
+  position: absolute;
+  transform: translateX(-100%);
+  touch-action: none;
+  user-select: none;
+  cursor: move;
+  overflow: hidden;
+  text-align: right;
+  font-size: 13px;
+  line-height: 1.35;
+  z-index: 1;
+}
+.overlay-plot-legend > div {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

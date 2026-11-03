@@ -193,8 +193,12 @@ class IntegrationWorkflow:
                 }
                 for key, (_, fields) in CORRECTIONS.items()
             },
+            "overlayDirectory": self._model.working_directories["overlay"],
+            "waterfallSeparation": self._model.view.waterfall_separation,
             "overlays": [
                 {
+                    "uid": o.params.uid,
+                    "background": c.pattern_model.background_pattern is o,
                     "name": o.name,
                     "visible": o.visible,
                     "color": o.color,
@@ -219,6 +223,9 @@ class IntegrationWorkflow:
             ],
             "batchFrames": int(c.batch_model.n_img or 0),
             "patternName": c.pattern_model.pattern.name,
+            "patternPath": c.pattern_model.pattern_filename if c.pattern_model.pattern_source == "file" else "",
+            "originalPatternColor": c.pattern_model.params.color,
+            "originalPatternVisible": c.pattern_model.params.visible,
             "fileInfo": str(image.file_info),
             "fileIteration": image.file_iteration_mode,
             "frame": image.series_pos,
@@ -236,7 +243,7 @@ class IntegrationWorkflow:
         """Use PatternModel's displayed (background-subtracted) data, like Qt."""
         c = self.configuration
         x, y = c.pattern_model.pattern.data
-        if not len(x):
+        if not len(x) and not self._model.overlay_model.overlays:
             self._pattern = None
             return
         curves = []
@@ -491,7 +498,9 @@ class IntegrationWorkflow:
         return self._state()
 
     def _integration_clear_background(self):
-        self.configuration.pattern_model.background_pattern = None
+        from .overlay import set_background
+
+        set_background(self, None)
         self._refresh_integration_pattern()
         self._revision += 1
         return self._snapshot()
@@ -633,56 +642,10 @@ class IntegrationWorkflow:
                 correction = self._integration_build_correction(kind, parameters)
                 image.add_img_correction(correction, kind)
 
-    def _integration_overlay(self, operation, index=None, path=None, **changes):
-        model = self._model.overlay_model
-        if operation == "load":
-            path = self._path(path, "pattern")
-            if path is None:
-                return {"cancelled": True}
-            model.add_overlay_file(path)
-        elif operation == "capture":
-            if self._pattern is None:
-                raise ValueError("Load or integrate a pattern first.")
-            model.add_overlay_pattern(self.configuration.pattern_model.pattern)
-        elif operation == "capture_background":
-            if self._pattern is None:
-                raise ValueError("Load or integrate a pattern first.")
-            model.add_overlay_pattern(deepcopy(self.configuration.pattern_model.pattern))
-            self.configuration.pattern_model.background_pattern = model.overlays[-1]
-        elif operation == "clear":
-            model.reset()
-        elif operation == "waterfall":
-            model.overlay_waterfall(
-                finite(changes.get("separation", 100), "Separation")
-            )
-        elif operation == "reset_offsets":
-            model.reset_overlay_offsets()
-        else:
-            index = finite(index, "Overlay index", 0, len(model.overlays) - 1, True)
-            if operation == "remove":
-                model.remove_overlay(index)
-            elif operation == "background":
-                self.configuration.pattern_model.background_pattern = model.overlays[
-                    index
-                ]
-            elif operation == "update":
-                for key, value in changes.items():
-                    if key in {"scale", "offset"}:
-                        value = finite(value, key, 0 if key == "scale" else -1e12)
-                    elif key == "visible":
-                        value = boolean(value, key)
-                    elif key == "color":
-                        value = self._integration_color(value)
-                    elif key != "name":
-                        raise ValueError("Unknown overlay option.")
-                    getattr(model, "set_overlay_" + {"scale": "scaling"}.get(key, key))(
-                        index, value
-                    )
-            else:
-                raise ValueError("Unknown overlay operation.")
-        self._refresh_integration_pattern()
-        self._revision += 1
-        return self._snapshot()
+    def _integration_overlay(self, operation, index=None, path=None, paths=None, **changes):
+        from .overlay import update_overlay
+
+        return update_overlay(self, operation, index, path, paths, **changes)
 
     @staticmethod
     def _integration_color(value):

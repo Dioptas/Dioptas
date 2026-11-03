@@ -4,6 +4,7 @@ import type { PatternHover } from "./plotReadout";
 import { unitLabel } from "./types";
 import { linearAxisTicks, linearTicks, logTicks } from "./plotTicks";
 import { PlotZoomControls } from "./PlotZoomControls";
+import { OverlayPlotLegend } from "./OverlayPlotLegend";
 import {
   usePlotNavigation,
   usePlotWheel,
@@ -38,6 +39,9 @@ const EMPTY_REGIONS: PatternRegion[] = [];
 
 export function PatternView({
   pattern,
+  patternColor = "#ffffff",
+  showPattern = true,
+  emphasizePattern = false,
   log,
   sqrt = false,
   antialias = true,
@@ -52,6 +56,7 @@ export function PatternView({
   activeRing,
   calibrantLines = [],
   showNumbers = false,
+  overlayLegend,
   curves = [],
   referenceLines = [],
   regions = EMPTY_REGIONS,
@@ -59,6 +64,9 @@ export function PatternView({
   onRegionChange,
 }: {
   pattern: Pattern;
+  patternColor?: string;
+  showPattern?: boolean;
+  emphasizePattern?: boolean;
   log: boolean;
   sqrt?: boolean;
   antialias?: boolean;
@@ -73,6 +81,7 @@ export function PatternView({
   activeRing?: number;
   calibrantLines?: { x: number; ring: number }[];
   showNumbers?: boolean;
+  overlayLegend?: { name: string; color: string }[];
   curves?: NonNullable<Pattern["curves"]>;
   referenceLines?: NonNullable<Pattern["phaseLines"]>;
   regions?: PatternRegion[];
@@ -121,13 +130,12 @@ export function PatternView({
     bottom = 52;
   const w = Math.max(1, size.width - left - right),
     h = Math.max(1, size.height - top - bottom);
-  const [fitXMin, fitXMax] = extent([
-    ...pattern.x,
-    ...curves.flatMap((curve) => curve.x),
-  ]);
+  const visibleCurves = showPattern ? [pattern, ...curves] : curves;
+  const plottedX = visibleCurves.flatMap((curve) => curve.x);
+  const [fitXMin, fitXMax] = plottedX.length ? extent(plottedX) : [0, 1];
   const transform = (y: number) =>
     log ? Math.log10(Math.max(1e-6, y)) : sqrt ? Math.sqrt(Math.max(0, y)) : y;
-  const plottedY = [...pattern.y, ...curves.flatMap((curve) => curve.y)];
+  const plottedY = visibleCurves.flatMap((curve) => curve.y);
   const visible = plottedY.filter(
     (y): y is number => y !== null && Number.isFinite(y) && (!log || y > 0),
   );
@@ -145,7 +153,7 @@ export function PatternView({
     false,
     zoomMode,
     (xMin, xMax) => {
-      const plottedPoints = [pattern, ...curves].flatMap((curve) =>
+      const plottedPoints = visibleCurves.flatMap((curve) =>
         curve.x.map((x, i) => ({ x, y: curve.y[i] })),
       );
       const values = plottedPoints
@@ -166,7 +174,7 @@ export function PatternView({
   useEffect(() => {
     if (autoRange) navigation.reset();
     else if (onAutoRange) navigation.hold();
-  }, [pattern, autoRange]);
+  }, [pattern, autoRange, showPattern]);
   usePlotWheel(canvas, (event) => {
     onAutoRange?.(false);
     navigation.onWheel(event);
@@ -292,6 +300,7 @@ export function PatternView({
       context.strokeStyle = color;
       context.fillStyle = color;
       context.lineWidth = width;
+      const pixelWidth = width > 2 ? Math.round(width) : 1;
       context.beginPath();
       let previous: [number, number] | null = null;
       curve.x.forEach((x, i) => {
@@ -334,10 +343,10 @@ export function PatternView({
             for (let j = 0; j <= steps; j++) {
               const t = start + ((end - start) * j) / steps;
               context.fillRect(
-                Math.floor(previous[0] + dx * t),
-                Math.floor(previous[1] + dy * t),
-                1,
-                1,
+                Math.floor(previous[0] + dx * t - (pixelWidth - 1) / 2),
+                Math.floor(previous[1] + dy * t - (pixelWidth - 1) / 2),
+                pixelWidth,
+                pixelWidth,
               );
             }
           }
@@ -346,9 +355,14 @@ export function PatternView({
       });
       if (antialias) context.stroke();
     };
-    drawCurve(pattern, "#ffffff", 1.4);
+    if (showPattern && !emphasizePattern) drawCurve(pattern, patternColor, 1.4);
     // Measured curves and background inspection share the same axes and drawing mode.
-    for (const curve of curves) drawCurve(curve, curve.color, 1.2);
+    // Draw the selected overlay last so it remains identifiable where curves overlap.
+    for (const curve of curves.filter((curve) => !curve.selected))
+      drawCurve(curve, curve.color, 1.2);
+    for (const curve of curves.filter((curve) => curve.selected))
+      drawCurve(curve, curve.color, 2.4);
+    if (showPattern && emphasizePattern) drawCurve(pattern, patternColor, 2.4);
     const largestReference = Math.max(
       1,
       extent(referenceLines.map((line) => line.intensity))[1],
@@ -421,6 +435,9 @@ export function PatternView({
     context.restore();
   }, [
     pattern,
+    showPattern,
+    emphasizePattern,
+    patternColor,
     log,
     sqrt,
     antialias,
@@ -472,6 +489,7 @@ export function PatternView({
         data-intensity-scale={log ? "log" : sqrt ? "sqrt" : "linear"}
         data-antialias={antialias}
         data-auto-range={autoRange}
+        data-original-visible={showPattern}
         data-curve-count={curves.length}
         data-reference-count={referenceLines.length}
         data-linked-position={linkedPosition}
@@ -573,6 +591,15 @@ export function PatternView({
           left={left}
           bottom={bottom}
           label="Pattern"
+        />
+      )}
+      {overlayLegend && (
+        <OverlayPlotLegend
+          entries={overlayLegend}
+          left={left + w - 10}
+          top={top + 5}
+          width={w * 0.6}
+          height={h * 0.5}
         />
       )}
     </div>

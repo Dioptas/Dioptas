@@ -32,7 +32,11 @@ export interface IntegrationState {
       fields: Record<string, { label: string; min: number; max: number }>;
     }
   >;
+  overlayDirectory: string;
+  waterfallSeparation: number;
   overlays: {
+    uid: string;
+    background: boolean;
     name: string;
     visible: boolean;
     color: string;
@@ -51,6 +55,9 @@ export interface IntegrationState {
   }[];
   batchFrames: number;
   patternName: string;
+  patternPath: string;
+  originalPatternColor?: string;
+  originalPatternVisible?: boolean;
   fileInfo: string;
   fileIteration: string;
   frame: number;
@@ -61,3 +68,6 @@ export type IntegrationRun = (
   args?: Record<string, unknown>,
   message?: string,
 ) => Promise<void>;
+
+/** UI-only identity for the non-removable measured-pattern row. */
+export const ORIGINAL_PATTERN_UID = "original-pattern";
