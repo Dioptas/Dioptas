@@ -279,7 +279,7 @@ export function IntegrationOverlayControls({
             </tr>
           </thead>
           <tbody className="qt-overlay-original-group" ref={originalGroup}>
-            {source.patternName && (
+            {Boolean(source.patternName) && (
               <tr
                 className="qt-overlay-original-row"
                 aria-label="Original pattern row"
