@@ -18,6 +18,7 @@ import type {
   PhaseMaterial,
 } from "./integrationPhase";
 import { PhaseEditor } from "./PhaseEditor";
+import { useSpinBoxWheel } from "./spinBoxWheel";
 import "./integrationPhaseControls.css";
 
 /** Qt's PhaseWidget: action rail, row table, P/T steps and list files. */
@@ -34,13 +35,18 @@ export function IntegrationPhaseControls({
 }) {
   // Parent run invokes its callback while its command lock is held. Defer local
   // follow-up actions until that command has completed (file selection → load).
+  const commandQueue = useRef(Promise.resolve());
   const run = useCallback<IntegrationRun>(
     async (command, args, message, onSuccess) => {
-      let result: Parameters<NonNullable<typeof onSuccess>>[0] | undefined;
-      await parentRun(command, args, message, (r) => {
-        result = r;
+      const queued = commandQueue.current.then(async () => {
+        let result: Parameters<NonNullable<typeof onSuccess>>[0] | undefined;
+        await parentRun(command, args, message, (r) => {
+          result = r;
+        });
+        if (result) onSuccess?.(result);
       });
-      if (result) onSuccess?.(result);
+      commandQueue.current = queued.catch(() => {});
+      await queued;
     },
     [parentRun],
   );
@@ -98,7 +104,7 @@ export function IntegrationPhaseControls({
     previousCount.current = source.phases.length;
   }, [source.phases.length, selected]);
   const action = (operation: string, args: Record<string, unknown> = {}) =>
-    void run("integration_phase", { operation, ...args }, "Updating phases…");
+    run("integration_phase", { operation, ...args }, "Updating phases…");
   const inspect = (index: number) =>
     void run(
       "integration_phase_editor",
@@ -511,7 +517,7 @@ export function PhaseNumber({
   label: string;
   title?: string;
   value: number;
-  onCommit: (v: number) => void;
+  onCommit: (v: number) => void | Promise<void>;
   disabled?: boolean;
   step?: number | string;
   multiply?: boolean;
@@ -519,11 +525,33 @@ export function PhaseNumber({
   max?: number;
 }) {
   const [text, setText] = useState(String(value));
+  const input = useRef<HTMLInputElement>(null);
+  const pending = useRef(0);
+  const draftGeneration = useRef(0);
+  const applied = useRef(value);
+  applied.current = value;
   const last = useRef(value);
   useEffect(() => {
+    if (pending.current) return;
     setText(String(value));
     last.current = value;
-  }, [value, onCommit]);
+  }, [value]);
+  const send = (n: number) => {
+    const generation = ++draftGeneration.current;
+    last.current = n;
+    pending.current++;
+    void Promise.resolve(onCommit(n))
+      .catch(() => {})
+      .finally(() => {
+        pending.current--;
+        requestAnimationFrame(() => {
+          if (!pending.current && generation === draftGeneration.current) {
+            setText(String(applied.current));
+            last.current = applied.current;
+          }
+        });
+      });
+  };
   const commit = (input: HTMLInputElement) => {
     const n = Number(text);
     if (
@@ -533,8 +561,7 @@ export function PhaseNumber({
       (max === undefined || n <= max)
     ) {
       if (n !== last.current) {
-        last.current = n;
-        onCommit(n);
+        send(n);
       }
     } else {
       setText(String(value));
@@ -543,7 +570,8 @@ export function PhaseNumber({
     input.setCustomValidity("");
   };
   const increment = (direction: number) => {
-    const current = Number(text) || value;
+    const current =
+      text.trim() && Number.isFinite(Number(text)) ? Number(text) : value;
     const power = 10 ** Math.floor(Math.log10(Math.max(current, 1e-10)));
     const ratio = current / power;
     const multiple =
@@ -563,15 +591,19 @@ export function PhaseNumber({
     const next = multiply
       ? power * multiple
       : current + direction * (typeof step === "number" ? step : 1);
-    const n = Math.max(min ?? -Infinity, Math.min(max ?? Infinity, next));
+    const n = Math.max(
+      min ?? -Infinity,
+      Math.min(max ?? Infinity, Number(next.toPrecision(12))),
+    );
     setText(String(n));
     if (n !== last.current) {
-      last.current = n;
-      onCommit(n);
+      send(n);
     }
   };
+  useSpinBoxWheel(input, increment);
   return (
     <input
+      ref={input}
       className="numeric-stepper"
       type="number"
       aria-label={label}
@@ -588,7 +620,10 @@ export function PhaseNumber({
           Number(e.target.value) !== Number(text)
         )
           increment(Number(e.target.value) > Number(text) ? 1 : -1);
-        else setText(e.target.value);
+        else {
+          draftGeneration.current++;
+          setText(e.target.value);
+        }
       }}
       onBlur={(e) => commit(e.currentTarget)}
       onKeyDown={(e) => {
@@ -601,6 +636,7 @@ export function PhaseNumber({
           commit(e.currentTarget);
         }
         if (e.key === "Escape") {
+          draftGeneration.current++;
           setText(String(value));
           last.current = value;
         }

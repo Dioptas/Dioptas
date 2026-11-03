@@ -119,6 +119,24 @@
       document.querySelector('input[aria-label="a₀"]').value === "4.2",
       "Native lattice decrement failed",
     );
+    const latticeField = document.querySelector('input[aria-label="a₀"]');
+    latticeField.dispatchEvent(
+      new WheelEvent("wheel", {
+        deltaY: -100,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    await idle();
+    check(latticeField.value === "4.22", "Native lattice wheel failed");
+    latticeField.dispatchEvent(
+      new WheelEvent("wheel", { deltaY: 100, bubbles: true, cancelable: true }),
+    );
+    await idle();
+    check(
+      latticeField.value === "4.2",
+      "Native lattice wheel decrement failed",
+    );
     const intensity = await set("Reflection 1 intensity", 66.0396789);
     intensity.blur();
     await idle();

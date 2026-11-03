@@ -94,6 +94,31 @@ try {
   };
   const state = async () =>
     (await call("integration_phase_editor", { index: 0 })).phaseEditor;
+  const wheel = async (label, direction, count = 1) => {
+    const input = page.getByLabel(label, { exact: true });
+    const scroll = await page
+      .locator(".pe-parameter-scroll:not([hidden])")
+      .evaluate((el) => el.scrollTop);
+    for (let i = 0; i < count; i++) {
+      const prevented = await input.evaluate((el, deltaY) => {
+        const event = new WheelEvent("wheel", {
+          deltaY,
+          bubbles: true,
+          cancelable: true,
+        });
+        el.dispatchEvent(event);
+        return event.defaultPrevented;
+      }, direction * 100);
+      assert.ok(prevented);
+    }
+    await ready();
+    assert.equal(
+      await page
+        .locator(".pe-parameter-scroll:not([hidden])")
+        .evaluate((el) => el.scrollTop),
+      scroll,
+    );
+  };
   await page.goto("file://" + root + "/dioptas/desktop/ui/index.html");
   await click("Integration");
   await page.getByRole("tab", { name: "Phase", exact: true }).click();
@@ -144,6 +169,24 @@ try {
   assert.equal((await state()).lattice.a0, 4.2);
   await click("Increase a₀");
   assert.equal((await state()).lattice.a0, 4.22);
+  await wheel("a₀", -1, 3);
+  assert.equal((await state()).lattice.a0, 4.28);
+  await wheel("a₀", 1, 3);
+  assert.equal((await state()).lattice.a0, 4.22);
+  await page
+    .getByRole("button", { name: "Increase a₀", exact: true })
+    .evaluate((button) =>
+      button.dispatchEvent(
+        new WheelEvent("wheel", {
+          deltaY: -100,
+          bubbles: true,
+          cancelable: true,
+        }),
+      ),
+    );
+  await ready();
+  assert.equal((await state()).lattice.a0, 4.24);
+  await wheel("a₀", 1);
   assert.ok(
     await page
       .getByRole("button", { name: "Increase b₀", exact: true })
@@ -158,6 +201,10 @@ try {
   assert.equal((await state()).lattice.alpha0, 87.5);
   await click("Increase α₀");
   assert.equal((await state()).lattice.alpha0, 90);
+  await wheel("α₀", 1);
+  assert.equal((await state()).lattice.alpha0, 87.5);
+  await wheel("α₀", -1);
+  assert.equal((await state()).lattice.alpha0, 90);
   await page
     .getByLabel("Phase symmetry", { exact: true })
     .selectOption("orthorhombic");
@@ -169,6 +216,10 @@ try {
   await click("Decrease c/a");
   latticeState = (await state()).lattice;
   assert.ok(Math.abs(latticeState.c0 / latticeState.a0 - 1) < 1e-12);
+  await wheel("c/a", -1);
+  latticeState = (await state()).lattice;
+  assert.ok(Math.abs(latticeState.c0 / latticeState.a0 - 1.025) < 1e-12);
+  await wheel("c/a", 1);
   await edit("c/a", 1.5, "Tab");
   assert.equal((await state()).lattice.c0, 4.22 * 1.5);
   assert.equal(
@@ -205,6 +256,12 @@ try {
       .inputValue(),
     "66.04",
   );
+  await wheel("Reflection 1 intensity", -1);
+  assert.equal((await state()).reflections[0].intensity, 67.0396789);
+  await wheel("Reflection 1 intensity", 1);
+  assert.equal((await state()).reflections[0].intensity, 66.0396789);
+  await page.getByLabel("Reflection 1 intensity", { exact: true }).blur();
+  await ready();
   const beforeFocus = (await call("state")).state.revision;
   await page.getByLabel("Reflection 1 intensity", { exact: true }).focus();
   assert.equal(

@@ -36,6 +36,21 @@ window.__dioptasPhaseNativeSmoke = async ({
     state.state.integration.phases[0].pressure === 2,
     "Native phase pressure step did not reach PhaseModel",
   );
+  pressure.dispatchEvent(
+    new WheelEvent("wheel", { deltaY: -100, bubbles: true, cancelable: true }),
+  );
+  await delay();
+  await ready();
+  state = await call("state");
+  check(
+    state.state.integration.phases[0].pressure === 4,
+    "Native phase-table wheel failed",
+  );
+  pressure.dispatchEvent(
+    new WheelEvent("wheel", { deltaY: 100, bubbles: true, cancelable: true }),
+  );
+  await delay();
+  await ready();
   click("Pattern");
   await delay();
   click("Phase");
@@ -130,6 +145,7 @@ window.__dioptasPhaseNativeSmoke = async ({
     multiplicativeSteps: true,
     tabPersistence: true,
     realPressure: true,
+    wheelStepping: true,
     latticeEditing: true,
     editorThermalConstructor: true,
     editorNumericValidation: true,

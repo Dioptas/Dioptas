@@ -68,6 +68,14 @@ by its configured Length, Angle or Ratio increment. Constrained fields keep
 their controls disabled. Lattice rows share label, input and unit column widths;
 dimensionless ratios reserve the same unit space. Parameter tabs support
 arrow/Home/End navigation.
+Wheel scrolling over editable numeric fields also steps their values and consumes
+the event, so it does not scroll the containing pane. Native number inputs share
+this behavior throughout the application; explicit steps and bounds are retained
+(an unspecified increment is 1). Phase P/T fields use the configured increments,
+and phase step selectors retain their multiplicative 1/2/5 sequence. Rapid phase
+condition edits are queued without disabling the table; the editor accumulates
+wheel changes while an earlier edit is being applied. Disabled/read-only native
+fields are unchanged. The shared handler ignores horizontal scroll/pinch gestures.
 Adding a reflection focuses its h field; closing restores focus to the opener.
 
 Feature code is isolated in `PhaseEditor*.tsx`, `NativePhaseEditor.tsx`,
@@ -90,7 +98,8 @@ are unchanged.
   coincident gold sites and rhombohedral/hexagonal setting distinctions.
 - Browser interactions use the real Python bridge in Chromium and WebKit:
   draft validation, Escape, Tab/focus, rapid entry, sorting/copy, reflection
-  actions/export, constructor/configuration controls, periodic-table selection,
+  actions/export, numeric wheel stepping (including bursts, bounds, intensity
+  precision and pane-scroll suppression), constructor/configuration controls, periodic-table selection,
   site/group edits, material-name/save actions, record
   actions, focus return, and both text sizes at 1000 × 668.
 - Existing phase-controls browser regression, Qt editor/controller tests,
@@ -98,11 +107,15 @@ are unchanged.
 - Bundled Tauri/WKWebView smoke exercises numeric validation/Escape,
   independent native title-bar movement, persistent parameter scrollbars,
   compact indices, lossless intensity display/editing, material naming and Save,
-  lattice/reflection/thermal-constructor editing, existing calibration and
+  lattice/reflection/thermal-constructor editing, lattice and phase-table wheel
+  stepping, existing calibration and
   integration workflows, full-resolution transfer and processing-child cleanup.
   No primary-preview server or user window is used.
   The native probe focuses inputs, uses cancelable keyboard events and waits
   for the editor queue; earlier timing-only probe attempts intermittently failed.
+- The focused phase-controls check also covers existing overlay wheel stepping.
+  The broader overlay script timed out at its earlier curve-selection stroke
+  assertion, before reaching its wheel checks; no overlay component was changed.
 
 Run the focused checks from this checkout:
 

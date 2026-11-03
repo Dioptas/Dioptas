@@ -94,8 +94,88 @@ try {
     await ready();
   };
   await page.goto("file://" + root + "/dioptas/desktop/ui/index.html");
+  // Native number inputs use the shared wheel behavior, including unfocused hover.
+  const wheel = async (label, deltaY) => {
+    const prevented = await page
+      .getByLabel(label, { exact: true })
+      .evaluate((input, deltaY) => {
+        const event = new WheelEvent("wheel", {
+          deltaY,
+          bubbles: true,
+          cancelable: true,
+        });
+        input.dispatchEvent(event);
+        return event.defaultPrevented;
+      }, deltaY);
+    assert.ok(prevented, `Wheel should be consumed by ${label}`);
+  };
   await page.getByRole("button", { name: "Integration", exact: true }).click();
   await ready();
+  const fileStep = page.getByLabel("File step", { exact: true });
+  await fileStep.waitFor();
+  await wheel("File step", -100);
+  assert.equal(Number(await fileStep.inputValue()), 2);
+  await wheel("File step", 100);
+  assert.equal(Number(await fileStep.inputValue()), 1);
+  await wheel("File step", 100);
+  assert.equal(
+    Number(await fileStep.inputValue()),
+    1,
+    "Wheel must respect the lower bound",
+  );
+  await fileStep.hover();
+  await page.mouse.wheel(0, -100);
+  await page.waitForFunction(
+    () => document.querySelector('input[aria-label="File step"]').value === "2",
+  );
+  await wheel("File step", 100);
+  await fileStep.evaluate((input) => {
+    for (const options of [
+      { deltaY: -100, ctrlKey: true },
+      { deltaY: 1, deltaX: 100 },
+    ]) {
+      input.dispatchEvent(
+        new WheelEvent("wheel", {
+          bubbles: true,
+          cancelable: true,
+          ...options,
+        }),
+      );
+    }
+  });
+  assert.equal(
+    Number(await fileStep.inputValue()),
+    1,
+    "Horizontal scroll and pinch must not change values",
+  );
+  await page.getByRole("tab", { name: "Overlay", exact: true }).click();
+  const scaleStep = page.getByLabel("Scale Step", { exact: true });
+  const initialScaleStep = Number(await scaleStep.inputValue());
+  await scaleStep.hover();
+  await page.mouse.wheel(0, -100);
+  await page.waitForFunction(
+    (start) =>
+      Number(document.querySelector('input[aria-label="Scale Step"]').value) >
+      start,
+    initialScaleStep,
+  );
+  assert.ok(Number(await scaleStep.inputValue()) > initialScaleStep);
+  await wheel("Scale Step", 100);
+  assert.equal(Number(await scaleStep.inputValue()), initialScaleStep);
+  const initialScale = (await call("state")).state.integration.overlays[0]
+    .scale;
+  await wheel("Overlay 1 scale", -100);
+  await ready();
+  assert.equal(
+    (await call("state")).state.integration.overlays[0].scale,
+    initialScale + initialScaleStep,
+  );
+  await wheel("Overlay 1 scale", 100);
+  await ready();
+  assert.equal(
+    (await call("state")).state.integration.overlays[0].scale,
+    initialScale,
+  );
   await page.getByRole("tab", { name: "Phase", exact: true }).click();
   await click("Add phase…");
   await page.getByLabel("Phase 1 pressure (GPa)", { exact: true }).waitFor();
@@ -129,6 +209,31 @@ try {
     "2.5",
   );
   await edit("Phase 1 pressure (GPa)", 12);
+  const phaseScroll = await page
+    .locator(".phase-table-scroll")
+    .evaluate((el) => el.scrollTop);
+  // Burst updates must all reach PhaseModel even while earlier updates run.
+  for (let i = 0; i < 3; i++) await wheel("Phase 1 pressure (GPa)", -100);
+  for (let i = 0; i < 100; i++) {
+    if ((await call("state")).state.integration.phases[0].pressure === 19.5)
+      break;
+    await page.waitForTimeout(20);
+  }
+  assert.equal(
+    (await call("state")).state.integration.phases[0].pressure,
+    19.5,
+  );
+  assert.equal(
+    await page.locator(".phase-table-scroll").evaluate((el) => el.scrollTop),
+    phaseScroll,
+  );
+  for (let i = 0; i < 3; i++) await wheel("Phase 1 pressure (GPa)", 100);
+  for (let i = 0; i < 100; i++) {
+    if ((await call("state")).state.integration.phases[0].pressure === 12)
+      break;
+    await page.waitForTimeout(20);
+  }
+  await ready();
   assert.deepEqual(
     (await call("state")).state.integration.phases.map((p) => p.pressure),
     [12, 12],
@@ -223,6 +328,26 @@ try {
   await page.screenshot({ path: artifacts + "/phase-database.png" });
   await click("Load as Phase");
   assert.equal((await call("state")).state.integration.phases.length, 4);
+  const temperature = page.getByLabel("Phase 4 temperature (K)", {
+    exact: true,
+  });
+  assert.ok(await temperature.isEnabled());
+  const initialTemperature = Number(await temperature.inputValue());
+  const temperatureStep = Number(
+    await page.getByLabel("T Step", { exact: true }).inputValue(),
+  );
+  await wheel("Phase 4 temperature (K)", -100);
+  await ready();
+  assert.equal(
+    (await call("state")).state.integration.phases[3].temperature,
+    initialTemperature + temperatureStep,
+  );
+  await wheel("Phase 4 temperature (K)", 100);
+  await ready();
+  assert.equal(
+    (await call("state")).state.integration.phases[3].temperature,
+    initialTemperature,
+  );
   await click("Edit selected Phase");
   assert.equal(await page.getByLabel("a₀", { exact: true }).isDisabled(), true);
   assert.equal(await page.getByLabel("K₀", { exact: true }).isDisabled(), true);
@@ -307,12 +432,10 @@ try {
     const phaseStyle = await readStyle(".phase-table");
     await page.getByRole("tab", { name: "Overlay", exact: true }).click();
     const overlayStyle = await readStyle(".qt-overlay-table");
-    await page
-      .locator(".qt-overlay-controls")
-      .screenshot({
-        path:
-          artifacts + `/shared-table-overlay-${large ? "large" : "normal"}.png`,
-      });
+    await page.locator(".qt-overlay-controls").screenshot({
+      path:
+        artifacts + `/shared-table-overlay-${large ? "large" : "normal"}.png`,
+    });
     assert.deepEqual(
       phaseStyle,
       overlayStyle,
@@ -331,12 +454,9 @@ try {
         headerFont: getComputedStyle(header).fontSize,
         headerWeight: getComputedStyle(header).fontWeight,
       }));
-    await page
-      .locator(".calibration-panel")
-      .screenshot({
-        path:
-          artifacts + `/shared-table-peaks-${large ? "large" : "normal"}.png`,
-      });
+    await page.locator(".calibration-panel").screenshot({
+      path: artifacts + `/shared-table-peaks-${large ? "large" : "normal"}.png`,
+    });
     for (const key of Object.keys(peakStyle))
       assert.equal(
         peakStyle[key],

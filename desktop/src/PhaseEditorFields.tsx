@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { useSpinBoxWheel } from "./spinBoxWheel";
 
 /** A draft survives parent renders. Enter/blur commit; Escape restores the model. */
 export function EditorNumber({
@@ -41,6 +42,10 @@ export function EditorNumber({
   const [text, setText] = useState(display(value));
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [wheelBusy, setWheelBusy] = useState(false);
+  const pendingAction = useRef<Promise<boolean | void> | null>(null);
+  const wheelTarget = useRef<number | null>(null);
+  const wheelRunning = useRef(false);
   const last = useRef(value);
   const generation = useRef(0);
   const id = useId();
@@ -53,6 +58,10 @@ export function EditorNumber({
     last.current = value;
   };
   useEffect(() => {
+    if (wheelTarget.current != null) {
+      last.current = value;
+      return;
+    }
     setText(
       focused.current ? (value == null ? "" : String(value)) : display(value),
     );
@@ -61,7 +70,7 @@ export function EditorNumber({
     setError("");
   }, [value, significantDigits]);
   const commit = async (draft = text) => {
-    if (pending || disabled) return false;
+    if (pendingAction.current || disabled) return false;
     if (!dirty.current) return true;
     const empty = !draft.trim();
     const n = empty ? null : Number(draft);
@@ -88,7 +97,18 @@ export function EditorNumber({
     last.current = n;
     const revision = ++generation.current;
     setPending(true);
-    const accepted = await onCommit(n);
+    const applying = Promise.resolve(onCommit(n));
+    pendingAction.current = applying;
+    let accepted;
+    try {
+      accepted = await applying;
+    } catch {
+      setPending(false);
+      restore();
+      return false;
+    } finally {
+      pendingAction.current = null;
+    }
     if (revision === generation.current) {
       setPending(false);
       if (accepted === false) restore();
@@ -96,15 +116,15 @@ export function EditorNumber({
     }
     return accepted !== false;
   };
-  const nudge = (direction: number) => {
-    if (disabled || pending || step === "any") return;
+  const nudge = (direction: number, quantum = step === "any" ? 1 : step) => {
+    if (disabled || pending) return;
     const n = Number(text);
     if (!text.trim() || !Number.isFinite(n)) return;
     const next = Math.min(
       max ?? Infinity,
       Math.max(
         min ?? -Infinity,
-        Number((n + direction * step).toPrecision(12)),
+        Number((n + direction * quantum).toPrecision(12)),
       ),
     );
     input.current?.focus();
@@ -112,6 +132,48 @@ export function EditorNumber({
     setText(String(next));
     void commit(String(next));
   };
+  useSpinBoxWheel(input, (direction) => {
+    const current =
+      wheelTarget.current ??
+      (dirty.current ? Number(input.current?.value) : value);
+    if (
+      disabled ||
+      current == null ||
+      !input.current?.value.trim() ||
+      !Number.isFinite(current)
+    )
+      return;
+    input.current.focus({ preventScroll: true });
+    const quantum = step === "any" ? 1 : step;
+    wheelTarget.current = Math.min(
+      max ?? Infinity,
+      Math.max(
+        min ?? -Infinity,
+        Number((current + direction * quantum).toPrecision(12)),
+      ),
+    );
+    setText(String(wheelTarget.current));
+    if (wheelRunning.current) return;
+    wheelRunning.current = true;
+    setWheelBusy(true);
+    void (async () => {
+      try {
+        while (wheelTarget.current != null) {
+          if (pendingAction.current) await pendingAction.current;
+          const target = wheelTarget.current;
+          dirty.current = true;
+          if (!(await commit(String(target)))) {
+            wheelTarget.current = null;
+            break;
+          }
+          if (wheelTarget.current === target) wheelTarget.current = null;
+        }
+      } finally {
+        wheelRunning.current = false;
+        setWheelBusy(false);
+      }
+    })();
+  });
   return (
     <span className={`pe-number${stepper ? " pe-number-stepped" : ""}`}>
       <input
@@ -122,8 +184,8 @@ export function EditorNumber({
         title={title || (value == null ? undefined : String(value))}
         value={text}
         disabled={disabled}
-        readOnly={pending}
-        aria-busy={pending}
+        readOnly={pending || wheelBusy}
+        aria-busy={pending || wheelBusy}
         aria-invalid={!!error}
         aria-describedby={error ? id : undefined}
         data-editor-number="true"

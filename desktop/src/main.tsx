@@ -5,6 +5,7 @@ import { isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { NativeCalibrationTooltip } from "./NativeCalibrationTooltip";
 import { installNativeColorPickerAnchors } from "./nativeColorPicker";
+import { installSpinBoxWheel } from "./spinBoxWheel";
 import "./style.css";
 import "./buttons.css";
 import "./surfaces.css";
@@ -17,6 +18,7 @@ import "./calibrationNavigation.css";
 document.addEventListener("contextmenu", (event) => event.preventDefault());
 
 installNativeColorPickerAnchors();
+installSpinBoxWheel();
 
 createRoot(document.getElementById("root")!).render(
   isTauri() && getCurrentWindow().label === "calibration-tooltip" ? (

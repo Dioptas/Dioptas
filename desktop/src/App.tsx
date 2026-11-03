@@ -377,6 +377,11 @@ export default function App() {
           historyLabel === "integration_overlay");
       const liveBackground =
         command === "integration_background" && message === "";
+      const livePhaseConditions =
+        command === "integration_phase" &&
+        args.operation === "update" &&
+        (typeof args.pressure === "number" ||
+          typeof args.temperature === "number");
       if (
         !bridge.current ||
         (command === "integration_autoprocess_poll" &&
@@ -426,6 +431,7 @@ export default function App() {
         overlayEditing ||
         maskDrawing ||
         liveBackground ||
+        livePhaseConditions ||
         command === "integration_autoprocess_poll" ||
         command === "image_levels";
       if (!quiet) {
