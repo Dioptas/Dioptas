@@ -601,10 +601,18 @@ class IntegrationWorkflow:
         return self._snapshot()
 
     def _integration_background(
-        self, enabled, smoothing=0.1, iterations=150, order=50, range=None
+        self, enabled, smoothing=None, iterations=None, order=None, range=...
     ):
         model = self.configuration.pattern_model
         boolean(enabled, "Background enabled")
+        if smoothing is None:
+            smoothing = 0.1 if enabled else model.params.auto_bkg_smoothing
+        if iterations is None:
+            iterations = 150 if enabled else model.params.auto_bkg_iterations
+        if order is None:
+            order = 50 if enabled else model.params.auto_bkg_poly_order
+        if range is ...:
+            range = None if enabled else model.params.auto_bkg_roi
         smoothing = finite(smoothing, "Smooth width", 0.000001, 1e7)
         iterations = finite(iterations, "Iterations", 1, 99999, True)
         order = finite(order, "Order", 1, 1000, True)
@@ -620,6 +628,12 @@ class IntegrationWorkflow:
             model.set_auto_background_subtraction([smoothing, iterations, order], range)
         else:
             model.unset_auto_background_subtraction()
+            # Retain automatic control edits while subtraction is switched off.
+            # The disabled model emits updates without extracting a background.
+            model.params.auto_bkg_smoothing = smoothing
+            model.params.auto_bkg_iterations = iterations
+            model.params.auto_bkg_poly_order = order
+            model.params.auto_bkg_roi = model._clamped_roi(range)
         self._refresh_integration_pattern()
         self._revision += 1
         return self._snapshot()

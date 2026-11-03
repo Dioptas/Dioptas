@@ -507,3 +507,15 @@ Validation: build, 20 JavaScript tests, 28 integration workflow tests, the
 dedicated phase-line browser checks and bundled Tauri/WKWebView smoke pass.
 The broader browser smoke timed out at its calibration active-ring pixel-color
 assertion; it did not complete on this run.
+
+
+## Live pattern-background editing
+
+Background parameters and range edits refit automatically through PatternModel;
+there is no separate pattern-background Apply action. A bounded queue retains
+only the latest waiting settings, while optimistic edge positions remain visible
+until their fit returns. Inspect shows the original measured curve, fitted
+background and draggable range edges; dragging inside still zooms. Escape
+restores the pre-drag range. Disabled settings persist for the next enable, and
+range bounds follow the measurement and radial unit. Focused browser helpers
+cover numeric validation, edge dragging, cancellation and serialized live fits.

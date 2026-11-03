@@ -206,6 +206,29 @@ def test_pattern_background_export_and_unit_range_conversion(loaded, tmp_path):
     call(loaded, "integration_background", enabled=False)
 
 
+def test_background_settings_can_be_edited_while_disabled(loaded):
+    result = call(
+        loaded, "integration_background", enabled=False, smoothing=0.3,
+        iterations=12, order=6, range=[2, 10],
+    )
+    settings = result["state"]["integration"]["patternBackground"]
+    assert not settings["enabled"]
+    assert settings["smoothing"] == 0.3
+    assert settings["iterations"] == 12
+    assert settings["order"] == 6
+    assert settings["range"] == [2, 10]
+    assert result["pattern"]["backgroundCurves"] == []
+    assert loaded.configuration.pattern_model.pattern.auto_bkg is None
+    unchanged = call(loaded, "integration_background", enabled=False)
+    assert unchanged["state"]["integration"]["patternBackground"] == settings
+    enabled = call(
+        loaded, "integration_background", enabled=True,
+        smoothing=settings["smoothing"], iterations=settings["iterations"],
+        order=settings["order"], range=settings["range"],
+    )
+    assert len(enabled["pattern"]["backgroundCurves"]) == 2
+
+
 @pytest.mark.parametrize("suffix", [".xy", ".xye", ".chi", ".dat", ".fxye"])
 def test_standard_pattern_save_formats(loaded, tmp_path, suffix):
     call(loaded, "integration_settings", poisson_errors=True)

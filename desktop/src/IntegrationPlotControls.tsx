@@ -3,6 +3,7 @@ import { decodeRaster } from "./rasterTransfer";
 import { Save } from "lucide-react";
 import type { Cake, State, Unit } from "./types";
 import type { IntegrationRun } from "./integration";
+import type { BackgroundSettings } from "./useLiveBackground";
 
 export function PlotToggle({
   label,
@@ -265,6 +266,8 @@ export function IntegrationPatternTools({
   onAntialias,
   autoRange,
   onAutoRange,
+  background,
+  onBackgroundChange,
 }: {
   state: State | null;
   ready: boolean;
@@ -278,8 +281,10 @@ export function IntegrationPatternTools({
   onAntialias: () => void;
   autoRange: boolean;
   onAutoRange: () => void;
+  background: BackgroundSettings;
+  onBackgroundChange: (patch: Partial<BackgroundSettings>) => void;
 }) {
-  const bkg = state?.integration.patternBackground;
+  const bkg = background;
   return (
     <div
       className="integration-pattern-tools"
@@ -338,22 +343,14 @@ export function IntegrationPatternTools({
           title="Subtract the fitted automatic pattern background"
           pressed={!!bkg?.enabled}
           disabled={!ready || !state?.integration.patternName}
-          onClick={() =>
-            void run("integration_background", {
-              enabled: !bkg?.enabled,
-              smoothing: bkg?.smoothing,
-              iterations: bkg?.iterations,
-              order: bkg?.order,
-              range: bkg?.range,
-            })
-          }
+          onClick={() => onBackgroundChange({ enabled: !bkg.enabled })}
         >
           bg
         </PlotToggle>
         <PlotToggle
           label="Inspect pattern background"
-          title="Show the original pattern and fitted background"
-          pressed={inspect}
+          title="Show the original pattern and fitted background; drag either range edge to refit live"
+          pressed={inspect && !!bkg?.enabled}
           disabled={!bkg?.enabled}
           onClick={onInspect}
         >

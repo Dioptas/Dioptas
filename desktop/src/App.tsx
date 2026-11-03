@@ -50,6 +50,8 @@ import { useMaskTools } from "./maskDomain";
 import { RasterView, type RasterExport } from "./RasterView";
 import { PatternView } from "./PatternView";
 import { ORIGINAL_PATTERN_UID } from "./integration";
+import { useLiveBackground, DEFAULT_BACKGROUND } from "./useLiveBackground";
+import { BACKGROUND_RANGE_COLOR } from "./drawRangeSelection";
 import { CalibrationControls } from "./CalibrationControls";
 import { CalibrationPanel } from "./CalibrationPanel";
 import { CalibrationWorkflowTabs } from "./CalibrationWorkflowTabs";
@@ -208,6 +210,7 @@ export default function App() {
   const commandTail = useRef<Promise<void> | null>(null);
   const autoProcessInFlight = useRef(false);
   const pendingMaskDraws = useRef(0);
+  const pendingBackgroundUpdates = useRef(0);
   const pendingOverlayEdits = useRef(0);
   const currentState = useRef<State | null>(null);
   const [state, setState] = useState<State | null>(null);
@@ -371,6 +374,8 @@ export default function App() {
           "redo_calibration",
         ].includes(command) &&
           historyLabel === "integration_overlay");
+      const liveBackground =
+        command === "integration_background" && message === "";
       if (
         !bridge.current ||
         (command === "integration_autoprocess_poll" &&
@@ -378,7 +383,9 @@ export default function App() {
         (inFlight.current &&
           !autoProcessInFlight.current &&
           !pendingMaskDraws.current &&
+          !pendingBackgroundUpdates.current &&
           !pendingOverlayEdits.current &&
+          !liveBackground &&
           command !== "image_levels")
       )
         return;
@@ -398,8 +405,10 @@ export default function App() {
       commandTail.current = completion;
       if (maskDrawing) pendingMaskDraws.current++;
       if (overlayEditing) pendingOverlayEdits.current++;
+      if (liveBackground) pendingBackgroundUpdates.current++;
       if (previous) await previous;
       if (shouldRun && !shouldRun()) {
+        if (liveBackground) pendingBackgroundUpdates.current--;
         if (overlayEditing) pendingOverlayEdits.current--;
         if (commandTail.current === completion) commandTail.current = null;
         release();
@@ -415,6 +424,7 @@ export default function App() {
         displayOnly ||
         overlayEditing ||
         maskDrawing ||
+        liveBackground ||
         command === "integration_autoprocess_poll" ||
         command === "image_levels";
       if (!quiet) {
@@ -486,6 +496,7 @@ export default function App() {
         autoProcessInFlight.current = false;
         if (maskDrawing) pendingMaskDraws.current--;
         if (overlayEditing) pendingOverlayEdits.current--;
+        if (liveBackground) pendingBackgroundUpdates.current--;
         if (commandTail.current === completion) commandTail.current = null;
         release();
       }
@@ -841,13 +852,69 @@ export default function App() {
         : null;
 
   const ready = !!state && !busy;
+  const backgroundContext = (s: State | null) =>
+    JSON.stringify([
+      s?.unit,
+      s?.configurationIndex,
+      s?.imagePath,
+      s?.integration.patternName,
+      s?.projectName,
+    ]);
+  const backgroundKey = backgroundContext(state);
+  const liveBackground = useLiveBackground(
+    backgroundKey,
+    state?.integration.patternBackground ?? DEFAULT_BACKGROUND,
+    (settings, isCurrent) => {
+      return run(
+        "integration_background",
+        {
+          enabled: settings.enabled,
+          smoothing: settings.smoothing,
+          iterations: settings.iterations,
+          order: settings.order,
+          range: settings.range,
+        },
+        "",
+        undefined,
+        () =>
+          isCurrent() &&
+          backgroundContext(currentState.current) === backgroundKey,
+      );
+    },
+  );
+  const inspectedBackground =
+    mode === "integration" &&
+    inspectBackground &&
+    liveBackground.settings.enabled
+      ? liveBackground.settings
+      : undefined;
+  const inspectedOriginal = inspectedBackground
+    ? pattern?.backgroundCurves?.[0]
+    : undefined;
   const originalPatternVisible = showOriginalPattern;
-  const displayedPattern = pattern;
   // Curve payloads follow the visible OverlayModel order.
   const selectedOverlayIndex =
     state?.integration.overlays
       .filter((overlay) => overlay.visible)
       .findIndex((overlay) => overlay.uid === selectedOverlayUid) ?? -1;
+  const displayedPattern = useMemo(
+    () =>
+      pattern && inspectedOriginal
+        ? { ...pattern, x: inspectedOriginal.x, y: inspectedOriginal.y }
+        : pattern,
+    [pattern, inspectedOriginal],
+  );
+  // The subtracted pattern can be cropped to the fitted range. Keep the slice
+  // bounded by the original measurement so its edges can expand again.
+  const backgroundX = pattern?.backgroundCurves?.[0]?.x ?? pattern?.x ?? [];
+  const backgroundBounds = backgroundX.reduce<[number, number]>(
+    ([min, max], x) =>
+      Number.isFinite(x) ? [Math.min(min, x), Math.max(max, x)] : [min, max],
+    [Infinity, -Infinity],
+  );
+  const backgroundRange = inspectedBackground
+    ? (liveBackground.settings.range ?? backgroundBounds)
+    : undefined;
   useEffect(() => {
     if (!showImagePhases) {
       phaseGuideRevision.current = null;
@@ -1536,6 +1603,8 @@ export default function App() {
                               state={state}
                               ready={ready}
                               run={run}
+                              background={liveBackground.settings}
+                              onBackgroundChange={liveBackground.change}
                               log={logPattern}
                               sqrt={sqrtPattern}
                               onScale={(scale) => {
@@ -1553,7 +1622,7 @@ export default function App() {
                         )}
                         {pattern ? (
                           <PatternView
-                            pattern={pattern}
+                            pattern={displayedPattern!}
                             patternColor={
                               mode === "integration"
                                 ? originalPatternColor
@@ -1598,6 +1667,52 @@ export default function App() {
                                 : []
                             }
                             showNumbers={showNumbers}
+                            regions={
+                              backgroundRange &&
+                              backgroundBounds[0] < backgroundBounds[1]
+                                ? [
+                                    {
+                                      name: "Background range",
+                                      appearance: "range",
+                                      min: backgroundRange[0],
+                                      max: backgroundRange[1],
+                                      color: BACKGROUND_RANGE_COLOR,
+                                      active: true,
+                                      movable: false,
+                                      bounds: [
+                                        Math.min(
+                                          backgroundBounds[0],
+                                          backgroundRange[0],
+                                        ),
+                                        Math.max(
+                                          backgroundBounds[1],
+                                          backgroundRange[1],
+                                        ),
+                                      ],
+                                      minWidth:
+                                        ((backgroundBounds[1] -
+                                          backgroundBounds[0]) /
+                                          Math.max(1, backgroundX.length - 1)) *
+                                        2,
+                                    },
+                                  ]
+                                : undefined
+                            }
+                            editRegions={!!inspectedBackground && ready}
+                            hoverHint={
+                              inspectedBackground
+                                ? "Drag an edge to update the background · drag inside to zoom · right drag pans"
+                                : undefined
+                            }
+                            onRegionDragStart={liveBackground.begin}
+                            regionsUpdating={liveBackground.updating}
+                            onRegionInput={(_, min, max) =>
+                              liveBackground.change({ range: [min, max] })
+                            }
+                            onRegionCancel={liveBackground.cancel}
+                            onRegionChange={(_, min, max) =>
+                              liveBackground.change({ range: [min, max] })
+                            }
                             overlayLegend={
                               mode === "integration"
                                 ? [
@@ -1625,9 +1740,10 @@ export default function App() {
                                           index === selectedOverlayIndex,
                                       }),
                                     ),
-                                    ...(inspectBackground &&
-                                    state?.integration.patternBackground.enabled
-                                      ? (pattern.backgroundCurves ?? [])
+                                    ...(inspectedBackground
+                                      ? (pattern.backgroundCurves ?? []).slice(
+                                          inspectedOriginal ? 1 : 0,
+                                        )
                                       : []),
                                   ]
                                 : undefined
@@ -2010,6 +2126,9 @@ export default function App() {
                         state={state}
                         ready={ready}
                         run={run}
+                        backgroundSettings={liveBackground.settings}
+                        onBackgroundChange={liveBackground.change}
+                        backgroundUpdating={liveBackground.updating}
                         onOverlaySelectionChange={setSelectedOverlayUid}
                         showOriginalPattern={originalPatternVisible}
                         onShowOriginalPatternChange={(visible) => {

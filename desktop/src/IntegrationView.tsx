@@ -2,11 +2,17 @@ import { useEffect, useState } from "react";
 import type { State } from "./types";
 import type { IntegrationRun, IntegrationState } from "./integration";
 import { Check, Field, Group } from "./IntegrationFields";
-import "./integration.css";
-import { IntegrationImageControls } from "./IntegrationImageControls";
+import {
+  BackgroundRangeFields,
+  BackgroundNumberField,
+} from "./BackgroundRangeFields";
+import type { BackgroundSettings } from "./useLiveBackground";
 import { IntegrationPatternControls } from "./IntegrationPatternControls";
+import { IntegrationImageControls } from "./IntegrationImageControls";
+import "./integration.css";
 import { IntegrationOverlayControls } from "./IntegrationOverlayControls";
 
+// Qt keeps the active Integration tab while visiting another mode.
 let retainedTab = "Image";
 
 /** Qt control groups; all science is dispatched to IntegrationWorkflow on the existing worker. */
@@ -14,6 +20,9 @@ export function IntegrationView({
   state,
   ready,
   run,
+  backgroundSettings,
+  onBackgroundChange,
+  backgroundUpdating,
   onOverlaySelectionChange,
   showOriginalPattern,
   onShowOriginalPatternChange,
@@ -23,18 +32,19 @@ export function IntegrationView({
   state: State | null;
   ready: boolean;
   run: IntegrationRun;
+  backgroundSettings: BackgroundSettings;
+  onBackgroundChange: (patch: Partial<BackgroundSettings>) => void;
+  backgroundUpdating: boolean;
   onOverlaySelectionChange: (uid: string | null) => void;
   showOriginalPattern: boolean;
-  onShowOriginalPatternChange: (visible: boolean) => void;
+  onShowOriginalPatternChange: (show: boolean) => void;
   originalPatternColor: string;
   onOriginalPatternColorChange: (color: string) => void;
 }) {
   const source = state?.integration;
   const [draft, setDraft] = useState<IntegrationState | undefined>(source);
   const [tab, setTab] = useState(retainedTab);
-  useEffect(() => {
-    retainedTab = tab;
-  }, [tab]);
+  useEffect(() => { retainedTab = tab; }, [tab]);
   const [backgroundTab, setBackgroundTab] = useState("pattern");
   const [correctionTab, setCorrectionTab] = useState("flat");
   const [bkgRange, setBkgRange] = useState(false);
@@ -42,14 +52,15 @@ export function IntegrationView({
     [bkgMax, setBkgMax] = useState(50);
   const [fileStep, setFileStep] = useState(1);
   const [patternStep, setPatternStep] = useState(1);
+  const currentBackgroundRange = backgroundSettings.range;
   useEffect(() => {
     setDraft(source);
-    setBkgRange(!!source?.patternBackground.range);
-    if (source?.patternBackground.range) {
-      setBkgMin(source.patternBackground.range[0]);
-      setBkgMax(source.patternBackground.range[1]);
+    setBkgRange(!!currentBackgroundRange);
+    if (currentBackgroundRange) {
+      setBkgMin(currentBackgroundRange[0]);
+      setBkgMax(currentBackgroundRange[1]);
     }
-  }, [state?.revision, source]);
+  }, [state?.revision, source, currentBackgroundRange]);
   if (!source || !draft) return null;
   const set = <K extends keyof IntegrationState>(
     key: K,
@@ -226,71 +237,56 @@ export function IntegrationView({
               <Group title="Pattern Background" open>
                 <Check
                   label="Subtract automatic pattern background"
-                  checked={draft.patternBackground.enabled}
-                  onChange={(v) =>
-                    set("patternBackground", {
-                      ...draft.patternBackground,
-                      enabled: v,
-                    })
-                  }
+                  checked={backgroundSettings.enabled}
+                  disabled={!source.patternName}
+                  onChange={(enabled) => onBackgroundChange({ enabled })}
                 />
-                <Field
+                <BackgroundNumberField
                   label="Smooth width"
-                  value={draft.patternBackground.smoothing}
+                  value={backgroundSettings.smoothing}
                   min={0.000001}
-                  onChange={(v) =>
-                    set("patternBackground", {
-                      ...draft.patternBackground,
-                      smoothing: v,
-                    })
-                  }
+                  max={1e7}
+                  onChange={(smoothing) => onBackgroundChange({ smoothing })}
                 />
                 <div className="integration-fields">
-                  <Field
+                  <BackgroundNumberField
                     label="Iterations"
-                    value={draft.patternBackground.iterations}
+                    value={backgroundSettings.iterations}
                     min={1}
                     max={99999}
                     step={1}
-                    onChange={(v) =>
-                      set("patternBackground", {
-                        ...draft.patternBackground,
-                        iterations: v,
-                      })
+                    onChange={(iterations) =>
+                      onBackgroundChange({ iterations })
                     }
                   />
-                  <Field
+                  <BackgroundNumberField
                     label="Polynomial order"
-                    value={draft.patternBackground.order}
+                    value={backgroundSettings.order}
                     min={1}
                     max={1000}
                     step={1}
-                    onChange={(v) =>
-                      set("patternBackground", {
-                        ...draft.patternBackground,
-                        order: v,
-                      })
-                    }
+                    onChange={(order) => onBackgroundChange({ order })}
                   />
                 </div>
                 <Check
                   label="Limit background range"
                   checked={bkgRange}
-                  onChange={setBkgRange}
+                  onChange={(limited) => {
+                    setBkgRange(limited);
+                    onBackgroundChange({
+                      range: limited ? [bkgMin, bkgMax] : null,
+                    });
+                  }}
                 />
                 {bkgRange && (
-                  <div className="integration-fields">
-                    <Field
-                      label="Background minimum"
-                      value={bkgMin}
-                      onChange={setBkgMin}
-                    />
-                    <Field
-                      label="Background maximum"
-                      value={bkgMax}
-                      onChange={setBkgMax}
-                    />
-                  </div>
+                  <BackgroundRangeFields
+                    range={[bkgMin, bkgMax]}
+                    onChange={(range) => {
+                      setBkgMin(range[0]);
+                      setBkgMax(range[1]);
+                      if (range[0] < range[1]) onBackgroundChange({ range });
+                    }}
+                  />
                 )}
                 {source.patternBackground.overlay && (
                   <>
@@ -403,15 +399,7 @@ export function IntegrationView({
           </>
         )}
         <div className="integration-overlay-page" hidden={tab !== "Overlay"}>
-          <IntegrationOverlayControls
-            source={source}
-            run={run}
-            onSelectionChange={onOverlaySelectionChange}
-            showOriginal={showOriginalPattern}
-            onShowOriginalChange={onShowOriginalPatternChange}
-            originalColor={originalPatternColor}
-            onOriginalColorChange={onOriginalPatternColorChange}
-          />
+          <IntegrationOverlayControls source={source} run={run} onSelectionChange={onOverlaySelectionChange} showOriginal={showOriginalPattern} onShowOriginalChange={onShowOriginalPatternChange} originalColor={originalPatternColor} onOriginalColorChange={onOriginalPatternColorChange} />
         </div>
         {tab === "Phase" && (
           <>
@@ -546,25 +534,12 @@ export function IntegrationView({
             <>
               <button
                 className="secondary"
-                disabled={!ready || !source.patternBackground.enabled}
+                disabled={
+                  !ready || !backgroundSettings.enabled || backgroundUpdating
+                }
                 onClick={() => action("integration_save_background")}
               >
                 Save background…
-              </button>
-              <button
-                className="primary"
-                disabled={!ready || !source.patternName}
-                onClick={() =>
-                  action("integration_background", {
-                    enabled: draft.patternBackground.enabled,
-                    smoothing: draft.patternBackground.smoothing,
-                    iterations: draft.patternBackground.iterations,
-                    order: draft.patternBackground.order,
-                    range: bkgRange ? [bkgMin, bkgMax] : null,
-                  })
-                }
-              >
-                Apply pattern background
               </button>
             </>
           ) : tab === "Corrections" && correctionTab !== "flat" ? (
