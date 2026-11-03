@@ -37,8 +37,8 @@ project storage are unchanged; task controls stay in the Integration workspace.
 | Pattern background | Existing SmoothBruckner/PatternModel, smoothing, iterations, polynomial order and optional radial range; displayed data uses PatternModel.data; background range converts with radial unit changes; save fitted background |
 | Corrections | Mean-normalized flat field with load/remove/use; cBN seat and oblique detector absorption with existing model parameters; active corrections rebuild on geometry changes |
 | Pattern load / previous / next / save | Existing PatternModel iterators and Configuration writers; XY, XYE, CHI, DAT, FXYE; raw or background-subtracted save; background-only XY/CHI/DAT; no top-level Export pattern button |
-| Autocreate | Existing Configuration._auto_save_patterns on explicit successful image load/navigation; output-folder chooser, selected formats and explicit Apply; normal and bkg_subtracted folders follow Qt; off after project reopen |
-| Folder integration | Existing configuration.batch_model discovers same-extension files and their frames, integrates with current geometry/mask/corrections, reports progress and permits cancellation between frames; complete batch saves to model HDF5 or CSV; no duplicated Map workspace |
+| Autocreate | Existing Configuration._auto_save_patterns on explicit successful image load/navigation; editable folder/filename, native folder chooser, immediate Autocreate and format choices; normal and bkg_subtracted folders follow Qt; off after project reopen |
+| Backend folder integration (no Image-tab button) | Existing configuration.batch_model discovers same-extension files and their frames, integrates with current geometry/mask/corrections, reports progress and permits cancellation between frames; complete batch saves to model HDF5 or CSV; no duplicated Map workspace |
 | Overlays | Native file import/current-pattern capture, visibility/color/scale/offset, delete, waterfall/reset, assign/remove pattern background; measured curves render on shared axes and participate in auto scaling |
 | Phases | JCPDS/CIF/EOSMAT import, real PhaseModel pressure/temperature, apply-to-all, literature-reference selection when available, visibility/color/delete; computed reference sticks render in actual pattern units |
 | Project persistence | Standard .dio models retain settings, backgrounds, corrections, overlays and phases. Autocreate is a session opt-in, never silently restored from a project. |
@@ -70,6 +70,10 @@ project storage are unchanged; task controls stay in the Integration workspace.
   matching coordinates. Phase positions use PhaseModel conversion instead.
 - Phase sticks show relative source reflection intensities (normalized to 30%
   of plot height); they are reference marks, not predicted measured counts.
+  Image and cake phase guides follow Qt's `CakePhasePlot.update_pen`: with
+  relative intensity r normalized independently per phase, width is 1 + 3r
+  screen pixels and opacity is 0.3 + 0.4r. These widths stay fixed while zooming;
+  zero-intensity phases use the minimum width and opacity.
 - Numerical controls use explicit Apply actions. These do not launch model
   signal-driven background processing, a scientific HTTP service or Qt app.
 
@@ -102,15 +106,14 @@ project storage are unchanged; task controls stay in the Integration workspace.
 
 ## Remaining Qt scope
 
-- No new-file watcher / continuous beamline acquisition, image sum/average/save
-  batch modes or stage/EPICS controls. Explicit loads and
-  folder integration work; automatic unattended acquisition is not claimed.
+- New-file autoprocess works while Integration is open; see the file-browser
+  section below. No image sum/average/save batch modes or stage/EPICS controls.
+  Backend folder integration remains available without an Image-tab button.
 - No transfer-function correction editor or formula/density-driven sample
   slab/cylinder/sphere/plate editor. Existing project data for these remain
   owned by the original models; this UI edits flat field, cBN and OIADAC only.
-- No spottiness display/export, cake integral, image/cake export or detachable
-  plot windows. Detector ROI limits can be edited numerically; graphical
-  resize handles are not implemented.
+- No spottiness display/export, cake integral or detachable plot windows.
+  Detector ROI moves and resizes directly on the image.
 - Phase database browsing, material/reflection/EOS editing and phase-list
   save/load are not implemented. File loading and existing reference choices
   work. CIF conversion currently uses model defaults for cutoff/minimum d.
@@ -172,29 +175,53 @@ is unchanged by the layout revision.
 
 ## Qt controls revision (2026-11-02)
 
-The detector/cake toolbar sits below the left plot, as in Qt. It exposes Image /
-Cake, mask use and transparency, raw/corrected image display, ROI use and numeric
-limits, phase guides and continuous intensity autoscale. Full-circle cakes have
+The detector/cake toolbar sits below the left plot, as in Qt. A save icon at the
+far left opens the native image-save dialog. PNG exports the current view at
+Qt's 2048-pixel width, including colour settings and phase guides, with ROI and
+inspection markers omitted. TIFF exports corrected detector data or the original
+cake array using Qt's flipped-row int32 convention. Cake TXT/CSV includes radial
+coordinates in the first row and azimuth in the first column; CSV uses commas.
+PNG follows the displayed azimuth shift, while data exports use the original
+scientific arrays. The toolbar shows the button
+for the other Image/Cake view, mask-use and transparency checkboxes, ROI controls
+and phase guides. The bkg display toggle appears when an image background is loaded.
+An unchecked Mask hides its overlay in Integration; Mask mode always shows it.
+Each histogram retains its own Auto control. Full-circle cakes have
 an azimuth-shift slider; it rolls complete display rows and adjusts axis/readout
 coordinates without changing the scientific cake. Detector and cake histograms
 remain independent. ROI uses Configuration.roi and its existing integration mask;
-the display shades the excluded area. Raw display/readout does not disable
+the display shades the excluded area. Drag inside the ROI to move it, or drag any
+edge or corner to resize it using the eight visible handles. Screen motion maps
+to full-resolution, integer source-pixel limits; the region stays inside the
+detector and at least one pixel wide and high. Movement previews locally and
+commits one integration update on release. Escape or pointer cancellation restores
+the previous region. ROI editing happens directly on the image. Right-drag pan and wheel
+zoom work inside the ROI; left-drag outside it still zooms. Raw display/readout does not disable
 background subtraction or absorption corrections in the integration model.
 
 Pattern controls are grouped down the right edge: 2θ / Q / d, Log / √,
 background subtraction / inspection, AA and automatic axis range. Manual plot
 navigation clears automatic range; enabling it refits the axes. Square-root
 scaling clips negative display intensities to zero as Qt does. Background
-inspection draws the original measured curve and model-extracted background
-alongside the subtracted pattern. The top pattern row provides save, capture as
+inspection draws the original measured curve with the model-extracted background.
+Inspect also shows a shaded background-range
+slice: drag either edge to refit the background continuously; dragging inside
+zooms the plot. Fits run one at a time with only the latest waiting range retained,
+and the latest edge positions remain visible until their fit returns. Numeric
+range changes in the Background tab also refit automatically. Escape restores
+the range from before the drag. Smooth width, iterations and polynomial order
+also update automatically; there is no pattern-background Apply action. Invalid
+or incomplete numeric edits are not sent to the model, and settings edited while
+subtraction is disabled are retained for the next enable. The slice uses the
+original measurement's extent and follows radial unit changes. The top pattern row provides save, capture as
 overlay/background and calibration loading. No inactive placeholder buttons were
-added for undocking or image export.
+added for undocking.
 
 The task tabs use one flat tab strip, compact aligned forms and fixed relevant
 Apply actions. Background and Corrections have Qt-style category menus; overlays
 and phases use rows with visibility, color and editable values instead of tall
-per-item forms. The image tab focuses on files/navigation, mask files and folder
-integration. Calibration loading and quick mask controls live beside their plots.
+per-item forms. The image tab focuses on file navigation and folder acquisition.
+Calibration loading and quick mask controls live beside their plots.
 
 Quick unit switching exposed xypattern background extraction during an
 intermediate descending d-spacing conversion. The desktop adapter suspends
@@ -218,6 +245,110 @@ Background, Corrections. There is no manual Integrate image button; image loads
 and integration-setting changes calculate automatically. Only relevant background
 and correction Apply actions occupy the fixed task footer.
 
+## Pattern phase-line scaling (2026-11-02)
+
+Pattern phase sticks now follow Qt `PhaseModel.get_phase_line_intensities`:
+each phase's strongest reflection within the visible x-range reaches the
+measured pattern maximum in that range, capped at the upper y-limit, with
+the lower y-limit as its baseline. Relative intensities are preserved without
+the former fixed 30% height or minimum-height floor. Overlay and background
+inspection curves do not set the phase height. Zoom, pan and new pattern data
+recalculate the scaling locally; phase indices keep normalization independent
+even when phase names and colors coincide. Log and square-root modes use the
+transformed measured maximum and preserve relative stick heights on screen.
+
+`scripts/phase_line_scaling.test.mjs` covers numerical scaling, zoom limits,
+independent phases, overlays, descending d-spacing, display transforms and
+empty/invalid data. Its linear reference cases were also checked directly
+against the Qt model method. `node scripts/phase_line_scaling.mjs` checks actual
+canvas strokes through rectangle/X-range zoom, pan, wheel, reset and both
+nonlinear intensity scales in an isolated browser fixture.
+
+Validation: build, 20 JavaScript tests, 28 integration workflow tests, the
+dedicated phase-line browser checks and bundled Tauri/WKWebView smoke pass.
+The broader browser smoke timed out at its calibration active-ring pixel-color
+assertion; it did not complete on this run.
+
+## Image file browser and autoprocess (2026-11-02)
+
+The Image tab follows Qt's BrowseFileWidget: Load image and Autoprocess beside
+previous/next, a real native step spinbox and By Name / By Time choices. Step
+sits directly beside its value. Filename and directory are editable; Enter in
+the filename loads it relative to the entered directory, and Load image also
+loads an edited filename. With an unchanged filename, Load image opens the
+native chooser in that directory. Enter in the directory changes the working
+folder; its ellipsis button opens the native folder chooser. File Info expands
+actual metadata. Mask-file and folder-integration controls are removed from
+this tab. Frame selection remains available for multiframe images, and file
+step survives tab switches.
+
+Autoprocess can be enabled after selecting a folder, even before loading the
+first image. While Integration is open (and Settings closed), commands poll the
+existing NewFileInDirectoryWatcher once per second on the scientific worker.
+The watcher does not start another thread: its file notifications only enqueue
+paths. It baselines existing files and accepts new supported detector files once
+they are nonempty and have stable size/modification time across two scans.
+Every ready file is loaded and integrated in queue order using the current
+geometry, mask and corrections. Autocreate also saves these patterns when
+separately enabled. An unreadable image is reported in the shared footer and
+does not block subsequent files. Foreground actions wait for an in-flight
+automatic load instead of being dropped. Disabling clears the queue; changing
+folders starts a new baseline. Autoprocess is off after opening a project or
+the example. It does not integrate files already present when enabled, and
+arbitrary multi-image selection and the remaining Qt batch modes are separate.
+
+Focused Chromium/WebKit checks cover the spinbox, label alignment, folder
+chooser, typed directory/filename, Enter/Load, real incoming-file integration,
+disable and Escape, plus normal/large-text layout and existing splitters and
+Image/Cake behavior. The controls occupy 174–175 px without scrolling at
+1440 × 1000 and 1000 × 760. Seven new Python tests cover stable/empty/growing
+files, every queued image, failed-file recovery, folder changes, real numerical
+integration, autocreate and session reset. Screenshots and the focused runner
+are under ignored `artifacts/integration-image-*`; reusable browser assertions
+live in `scripts/integration_image_files.mjs`.
+
+Validation for this revision: build, 20 JavaScript tests, eight Rust tests,
+167 Python tests (five skips), focused Chromium/WebKit file-browser checks and
+bundled Tauri/WKWebView smoke pass. The native smoke confirms the existing
+calibration/Integration/Mask workflows, binary transfer and processing-child
+cleanup; incoming-file behavior is covered by the focused real-model browser
+checks and Python tests.
+
+
+## Qt Pattern file controls (2026-11-02)
+
+The Pattern tab follows Qt PatternWidget/BrowseFileWidget: Load pattern above
+Autocreate, previous/next above a real step spinbox, By Name / By Time choices,
+editable filename and directory rows, a native directory chooser and one row
+of Pattern types (.xy, .xye, .chi, .dat, .fxye). Image and Pattern share
+IntegrationFileNavigator and integrationFileControls.css so their spacing,
+alignment and native steppers stay consistent. Each tab retains its own step
+across tab switches; file order is owned independently by its existing model.
+
+Enter or Load loads an edited filename relative to the selected directory.
+The native load chooser starts in that directory. Loaded patterns display their
+actual filename, including extension. Browsing uses PatternModel's existing
+number/creation-time iterator with the selected step. The directory is also
+the autocreate output folder, matching Qt. Autocreate and format selections
+apply immediately, without Apply autocreate or a separate tall form. Existing
+format validation and Poisson-error prerequisites are preserved. The save icon
+beside the pattern remains the manual save action and saves the displayed
+background-subtracted pattern, as Qt does; the duplicate save controls are
+removed from the tab. Changing file order, formats or Autocreate preserves the
+loaded curve and existing scientific corrections/backgrounds.
+
+Seven new Python checks cover filename/folder entry, number/time browsing and
+custom steps, invalid-entry preservation, chooser cancellation and immediate
+autocreate with actual output files. The focused Chromium/WebKit runner checks
+both Image and Pattern controls against real models, spinbox behavior and
+retained values, independent file orders, and actual autocreated XY/CHI files.
+It also checks both tabs at 1440 × 1000 and 1000 × 760 with both text sizes;
+Pattern controls fit without scrolling. Screenshots are under ignored
+artifacts/integration-pattern-*.png, and reusable browser checks are in
+scripts/integration_pattern_files.mjs.
+
+Validation: build, 174 Python tests (five skips), 24 JavaScript tests, focused
+Chromium/WebKit Image-and-Pattern checks and bundled Tauri/WKWebView smoke pass.
 
 ## Overlay Qt recheck (2026-11-02)
 
@@ -294,7 +425,6 @@ view, dialog and session initialization hooks. Existing snapshotted changes
 were preserved; this work was not committed, pushed or merged.
 
 
-
 ## Overlay import into the main preview (2026-11-03)
 
 The Overlay changes were applied to `codex/react-desktop`, preserving the newer
@@ -325,7 +455,6 @@ only display: scientific arrays, background subtraction and numerical pattern
 saves are unchanged. It is stored in `PatternParams.visible`, saved in `.dio`
 projects and included in the shared Undo/Redo history. No placeholder overlay
 is added to the scientific model.
-
 
 
 ## Overlay display refinements (2026-11-03)
@@ -387,135 +516,3 @@ ordering, Undo/Redo, hidden-state `.dio` round trips with and without overlays,
 unchanged numerical pattern data, and invalid boolean rejection. Chromium and
 WebKit checks include checkbox/plot synchronization and stable detector/cake
 canvases and table fields across visibility Undo/Redo.
-
-
-## Image file browser and autoprocess (2026-11-02)
-
-The Image tab follows Qt's BrowseFileWidget: Load image and Autoprocess beside
-previous/next, a real native step spinbox and By Name / By Time choices. Step
-sits directly beside its value. Filename and directory are editable; Enter in
-the filename loads it relative to the entered directory, and Load image also
-loads an edited filename. With an unchanged filename, Load image opens the
-native chooser in that directory. Enter in the directory changes the working
-folder; its ellipsis button opens the native folder chooser. File Info expands
-actual metadata. Mask-file and folder-integration controls are removed from
-this tab. Frame selection remains available for multiframe images, and file
-step survives tab switches.
-
-Autoprocess can be enabled after selecting a folder, even before loading the
-first image. While Integration is open (and Settings closed), commands poll the
-existing NewFileInDirectoryWatcher once per second on the scientific worker.
-The watcher does not start another thread: its file notifications only enqueue
-paths. It baselines existing files and accepts new supported detector files once
-they are nonempty and have stable size/modification time across two scans.
-Every ready file is loaded and integrated in queue order using the current
-geometry, mask and corrections. Autocreate also saves these patterns when
-separately enabled. An unreadable image is reported in the shared footer and
-does not block subsequent files. Foreground actions wait for an in-flight
-automatic load instead of being dropped. Disabling clears the queue; changing
-folders starts a new baseline. Autoprocess is off after opening a project or
-the example. It does not integrate files already present when enabled, and
-arbitrary multi-image selection and the remaining Qt batch modes are separate.
-
-Focused Chromium/WebKit checks cover the spinbox, label alignment, folder
-chooser, typed directory/filename, Enter/Load, real incoming-file integration,
-disable and Escape, plus normal/large-text layout and existing splitters and
-Image/Cake behavior. The controls occupy 174–175 px without scrolling at
-1440 × 1000 and 1000 × 760. Seven new Python tests cover stable/empty/growing
-files, every queued image, failed-file recovery, folder changes, real numerical
-integration, autocreate and session reset. Screenshots and the focused runner
-are under ignored `artifacts/integration-image-*`; reusable browser assertions
-live in `scripts/integration_image_files.mjs`.
-
-Validation for this revision: build, 20 JavaScript tests, eight Rust tests,
-167 Python tests (five skips), focused Chromium/WebKit file-browser checks and
-bundled Tauri/WKWebView smoke pass. The native smoke confirms the existing
-calibration/Integration/Mask workflows, binary transfer and processing-child
-cleanup; incoming-file behavior is covered by the focused real-model browser
-checks and Python tests.
-
-
-
-
-## Qt Pattern file controls (2026-11-02)
-
-The Pattern tab follows Qt PatternWidget/BrowseFileWidget: Load pattern above
-Autocreate, previous/next above a real step spinbox, By Name / By Time choices,
-editable filename and directory rows, a native directory chooser and one row
-of Pattern types (.xy, .xye, .chi, .dat, .fxye). Image and Pattern share
-IntegrationFileNavigator and integrationFileControls.css so their spacing,
-alignment and native steppers stay consistent. Each tab retains its own step
-across tab switches; file order is owned independently by its existing model.
-
-Enter or Load loads an edited filename relative to the selected directory.
-The native load chooser starts in that directory. Loaded patterns display their
-actual filename, including extension. Browsing uses PatternModel's existing
-number/creation-time iterator with the selected step. The directory is also
-the autocreate output folder, matching Qt. Autocreate and format selections
-apply immediately, without Apply autocreate or a separate tall form. Existing
-format validation and Poisson-error prerequisites are preserved. The save icon
-beside the pattern remains the manual save action and saves the displayed
-background-subtracted pattern, as Qt does; the duplicate save controls are
-removed from the tab. Changing file order, formats or Autocreate preserves the
-loaded curve and existing scientific corrections/backgrounds.
-
-Seven new Python checks cover filename/folder entry, number/time browsing and
-custom steps, invalid-entry preservation, chooser cancellation and immediate
-autocreate with actual output files. The focused Chromium/WebKit runner checks
-both Image and Pattern controls against real models, spinbox behavior and
-retained values, independent file orders, and actual autocreated XY/CHI files.
-It also checks both tabs at 1440 × 1000 and 1000 × 760 with both text sizes;
-Pattern controls fit without scrolling. Screenshots are under ignored
-artifacts/integration-pattern-*.png, and reusable browser checks are in
-scripts/integration_pattern_files.mjs.
-
-Validation: build, 174 Python tests (five skips), 24 JavaScript tests, focused
-Chromium/WebKit Image-and-Pattern checks and bundled Tauri/WKWebView smoke pass.
-
-
-## Scientific image and cake export
-
-The image toolbar save icon exports the current view to PNG at Qt's 2048-pixel
-width, retaining the plot range, palette and phase guides while omitting ROI and
-inspection markers. TIFF saves scientific detector/cake arrays with Qt's flipped
-rows and int32 convention. Cake TXT/CSV includes radial/azimuth coordinates;
-scientific exports retain the original array independently of display shifts.
-The native dialog offers only formats valid for the current source. Python tests
-cover real image/cake data, orientation, coordinates, PNG decoding and validation.
-
-
-## Pattern phase-line scaling (2026-11-02)
-
-Pattern phase sticks now follow Qt `PhaseModel.get_phase_line_intensities`:
-each phase's strongest reflection within the visible x-range reaches the
-measured pattern maximum in that range, capped at the upper y-limit, with
-the lower y-limit as its baseline. Relative intensities are preserved without
-the former fixed 30% height or minimum-height floor. Overlay and background
-inspection curves do not set the phase height. Zoom, pan and new pattern data
-recalculate the scaling locally; phase indices keep normalization independent
-even when phase names and colors coincide. Log and square-root modes use the
-transformed measured maximum and preserve relative stick heights on screen.
-
-`scripts/phase_line_scaling.test.mjs` covers numerical scaling, zoom limits,
-independent phases, overlays, descending d-spacing, display transforms and
-empty/invalid data. Its linear reference cases were also checked directly
-against the Qt model method. `node scripts/phase_line_scaling.mjs` checks actual
-canvas strokes through rectangle/X-range zoom, pan, wheel, reset and both
-nonlinear intensity scales in an isolated browser fixture.
-
-Validation: build, 20 JavaScript tests, 28 integration workflow tests, the
-dedicated phase-line browser checks and bundled Tauri/WKWebView smoke pass.
-The broader browser smoke timed out at its calibration active-ring pixel-color
-assertion; it did not complete on this run.
-
-
-## Live pattern-background editing
-
-Background parameters and range edits refit automatically through PatternModel;
-there is no separate pattern-background Apply action. A bounded queue retains
-only the latest waiting settings, while optimistic edge positions remain visible
-until their fit returns. Inspect shows the original measured curve, fitted
-background and draggable range edges; dragging inside still zooms. Escape
-restores the pre-drag range. Disabled settings persist for the next enable, and
-range bounds follow the measurement and radial unit. Focused browser helpers
-cover numeric validation, edge dragging, cancellation and serialized live fits.

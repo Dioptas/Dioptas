@@ -22,6 +22,7 @@ import {
   verifyIntegrationControls,
 } from "./integration_controls.mjs";
 import { verifyIntegrationLayout } from "./integration_layout.mjs";
+import { selectIntegrationDisplay } from "./integration_display.mjs";
 import {
   verifyCalibrationSizes,
   verifyCalibrationFits,
@@ -114,18 +115,28 @@ await page.addInitScript(() => {
       window.__detectorLabels.push(args[0]);
     return text.apply(this, args);
   };
+  window.__dioptasUiPending = 0;
   window.pywebview = {
     api: {
-      invoke: (command, payload) => window.__dioptasInvoke(command, payload),
+      invoke: async (command, payload) => {
+        const track = !["pixel", "progress"].includes(command);
+        if (track) window.__dioptasUiPending++;
+        try {
+          return await window.__dioptasInvoke(command, payload);
+        } finally {
+          if (track) window.__dioptasUiPending--;
+        }
+      },
     },
   };
 });
 const waitReady = async () => {
   await page.waitForFunction(
-    () => !document.querySelector('.spin, .mask-view[aria-busy="true"]'),
-    {
-      timeout: 45000,
-    },
+    () =>
+      !document.querySelector('.spin, .mask-view[aria-busy="true"]') &&
+      !window.__dioptasUiPending,
+    undefined,
+    { timeout: 45000 },
   );
   assert.equal(
     await page.getByRole("alert").count(),
@@ -654,9 +665,7 @@ try {
   await page
     .getByLabel("Wavelength constraint value", { exact: true })
     .fill("0.406626");
-  await page
-    .getByRole("button", { name: "Calibrate", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Calibrate", exact: true }).click();
   await page.getByTestId("pattern-canvas").waitFor({ timeout: 45000 });
   await waitReady();
   current = await invoke("state");
@@ -862,29 +871,25 @@ try {
     /Distance/,
   );
   await page.mouse.move(10, 10);
-  // Inspection is explicit and available independently of the calibration tab.
+  // Calibration clicks do not leave inspection markers; these belong to Integration.
   await page.getByLabel("Pick peaks", { exact: true }).uncheck();
-  // A stationary validation click links image, cake, and the current radial unit.
   const fitBox = await detector.boundingBox();
   await page.mouse.click(
     fitBox.x + fitBox.width * 0.6,
     fitBox.y + fitBox.height * 0.45,
   );
   await waitReady();
-  assert.ok(
-    Number(
-      await page
-        .getByTestId("cake-canvas")
-        .getAttribute("data-linked-position"),
-    ) > 0,
+  assert.equal(
+    await page.getByTestId("cake-canvas").getAttribute("data-linked-position"),
+    null,
   );
-  assert.ok(
-    Number(
-      await page
-        .getByTestId("pattern-canvas")
-        .getAttribute("data-linked-position"),
-    ) > 0,
+  assert.equal(
+    await page
+      .getByTestId("pattern-canvas")
+      .getAttribute("data-linked-position"),
+    null,
   );
+  assert.equal(await page.getByTestId("click-readout").count(), 0);
   await page.mouse.move(10, 10);
   await page.screenshot({ path: path.join(artifacts, "calibration-fit.png") });
   await setInterfaceTextSize(page, true);
@@ -910,9 +915,14 @@ try {
       ).data;
     let count = 0;
     for (let i = 0; i < pixels.length; i += 4)
-      // The active ring is translucent; the compact numeric label alone need
-      // not contain many fully opaque yellow pixels.
-      if (pixels[i] > 200 && pixels[i + 1] > 180 && pixels[i + 2] < 140)
+      // Selected-ring peak markers use Qt orange (#ff8c00); calibrant
+      // contours and their numeric labels use red.
+      if (
+        pixels[i] > 200 &&
+        pixels[i + 1] > 100 &&
+        pixels[i + 1] < 180 &&
+        pixels[i + 2] < 80
+      )
         count++;
     return count > 20;
   });
@@ -972,10 +982,7 @@ try {
     await page.locator(".views-grid .panel-footer, .plot-readout").count(),
     0,
   );
-  await page
-    .getByRole("group", { name: "Integration display", exact: true })
-    .getByRole("button", { name: "Cake", exact: true })
-    .click();
+  await selectIntegrationDisplay(page, "cake");
   const cakeCanvas = page.getByTestId("cake-canvas");
   await cakeCanvas.scrollIntoViewIfNeeded();
   const cakeBox = await cakeCanvas.boundingBox();
@@ -1075,10 +1082,7 @@ try {
   current = await invoke("state");
   assert.equal(current.state.bins, 1000);
   assert.equal(current.state.unit, "q_A^-1");
-  await page
-    .getByRole("group", { name: "Integration display", exact: true })
-    .getByRole("button", { name: "Image", exact: true })
-    .click();
+  await selectIntegrationDisplay(page, "image");
   await selectColorMap(page, "Color map", "thermal");
   await page.mouse.move(10, 10);
   await page.screenshot({ path: path.join(artifacts, "integration.png") });

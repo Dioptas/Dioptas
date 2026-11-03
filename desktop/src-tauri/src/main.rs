@@ -43,7 +43,9 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
     {
         return None;
     }
-    if action == "integration_overlay" && payload.get("paths").is_some_and(|v| !v.is_null()) { return None; }
+    if action == "integration_overlay" && payload.get("paths").is_some_and(|v| !v.is_null()) {
+        return None;
+    }
     if payload.get("path").is_some_and(|v| !v.is_null()) || payload["reset"] == true {
         return None;
     }
@@ -209,7 +211,9 @@ async fn desktop_invoke(
                 .file()
                 .add_filter(choice.label, choice.extensions)
                 .add_filter("All files", &["*"]);
-            if let Some(directory) = payload["directory"].as_str() { dialog = dialog.set_directory(directory); }
+            if let Some(directory) = payload["directory"].as_str() {
+                dialog = dialog.set_directory(directory);
+            }
             if action == "map_load" || action == "integration_overlay" {
                 let Some(selected) = dialog.blocking_pick_files() else {
                     return Ok(Packet::metadata(json!({"ok": true, "cancelled": true})));

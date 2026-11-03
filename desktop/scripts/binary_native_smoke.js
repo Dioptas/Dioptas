@@ -56,6 +56,7 @@ window.__dioptasBinaryNativeSmoke = async ({
   check(setup, "Image/setup toolbar missing");
   setup.click();
   await delay();
+  await ready();
   const spinFree = () => !document.querySelector(".spin");
   const waitPaint = (name) =>
     new Promise((resolve, reject) => {
@@ -70,6 +71,7 @@ window.__dioptasBinaryNativeSmoke = async ({
       requestAnimationFrame(checkFrame);
     });
   const step = async (direction) => {
+    await ready();
     const name = direction === 1 ? "image_002.tif" : "image_001.tif";
     const start = performance.now();
     click(direction === 1 ? "Next image" : "Previous image");

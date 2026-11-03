@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
+import { selectIntegrationDisplay } from "./integration_display.mjs";
 
 export async function setInterfaceTextSize(page, large) {
   await page.getByRole("button", { name: "Settings", exact: true }).click();
@@ -70,18 +71,36 @@ async function verifyRectangleMarginNavigation(page, id) {
   const canvas = page.getByTestId(id);
   await restore(page, canvas);
   const fit = await read(canvas);
-  const { width, height } = await canvas.evaluate((el) => ({
-    width: +el.dataset.plotWidth,
-    height: +el.dataset.plotHeight,
-  }));
+  const { width, height, left, top, right, bottom } = await canvas.evaluate(
+    (el) => ({
+      width: +el.dataset.plotWidth,
+      height: +el.dataset.plotHeight,
+      left: +el.dataset.plotLeft,
+      top: +el.dataset.plotTop,
+      right: el.clientWidth - +el.dataset.plotLeft - +el.dataset.plotWidth,
+      bottom: el.clientHeight - +el.dataset.plotTop - +el.dataset.plotHeight,
+    }),
+  );
   const mx = 10 / width,
-    my = 10 / height;
+    my = 10 / height,
+    axisLeft = Math.min(10, left / 2) / width,
+    axisTop = Math.min(10, top / 2) / height,
+    axisRight = Math.min(10, right / 2) / width,
+    axisBottom = Math.min(10, bottom / 2) / height;
+  // Compact plots can end at the canvas edge; start margin gestures only in
+  // existing gutters. Pointer capture still covers releases beyond any edge.
   for (const [name, from, to] of [
-    ["left axis", [-mx, 0.2], [0.65, 0.75]],
-    ["above image", [0.2, -my], [0.75, 0.65]],
-    ["bottom axis", [0.2, 1 + my], [0.75, 0.35]],
-    ["right margin", [1 + mx, 0.2], [0.35, 0.75]],
-    ["outside corner", [-mx, -my], [0.65, 0.75]],
+    ...(left > 1 ? [["left axis", [-axisLeft, 0.2], [0.65, 0.75]]] : []),
+    ...(top > 1 ? [["above image", [0.2, -axisTop], [0.75, 0.65]]] : []),
+    ...(bottom > 1
+      ? [["bottom axis", [0.2, 1 + axisBottom], [0.75, 0.35]]]
+      : []),
+    ...(right > 1
+      ? [["right margin", [1 + axisRight, 0.2], [0.35, 0.75]]]
+      : []),
+    ...(left > 1 && top > 1
+      ? [["outside corner", [-axisLeft, -axisTop], [0.65, 0.75]]]
+      : []),
     ["release outside", [0.25, 0.3], [1 + mx, 1 + my]],
   ]) {
     await drag(page, canvas, from, to);
@@ -120,22 +139,38 @@ async function verifyRectangleMarginNavigation(page, id) {
   const zoomed = await read(canvas);
   const linked = await canvas.getAttribute("data-linked-position");
   for (const [from, to] of [
-    [
-      [-mx, 0.2],
-      [-mx / 2, 0.8],
-    ],
-    [
-      [0.2, -my],
-      [0.8, -my / 2],
-    ],
-    [
-      [0.2, 1 + my],
-      [0.8, 1 + my / 2],
-    ],
-    [
-      [1 + mx, 0.2],
-      [1 + mx / 2, 0.8],
-    ],
+    ...(left > 1
+      ? [
+          [
+            [-axisLeft, 0.2],
+            [-axisLeft / 2, 0.8],
+          ],
+        ]
+      : []),
+    ...(top > 1
+      ? [
+          [
+            [0.2, -axisTop],
+            [0.8, -axisTop / 2],
+          ],
+        ]
+      : []),
+    ...(bottom > 1
+      ? [
+          [
+            [0.2, 1 + axisBottom],
+            [0.8, 1 + axisBottom / 2],
+          ],
+        ]
+      : []),
+    ...(right > 1
+      ? [
+          [
+            [1 + axisRight, 0.2],
+            [1 + axisRight / 2, 0.8],
+          ],
+        ]
+      : []),
   ]) {
     await drag(page, canvas, from, to);
     assert.deepEqual(
@@ -296,7 +331,11 @@ export async function verifyPlotNavigation(page) {
     .click();
   const patternFit = await read(pattern);
   const patternControls = page.locator(".pattern-container");
-  assert.equal(await patternControls.innerText(), "");
+  assert.deepEqual(
+    await patternControls.getByRole("button").allTextContents(),
+    ["", ""],
+    "Plot zoom selectors stay icon-only alongside Qt pattern-name legends",
+  );
   // Exercise the complete app cascade, including buttons.css selected styles.
   for (const name of ["Pattern rectangle zoom", "Pattern X-range zoom"]) {
     const button = patternControls.getByRole("button", { name, exact: true });
@@ -382,13 +421,10 @@ export async function verifyPlotNavigation(page) {
     ["pattern-canvas", "Pattern zoom mode"],
   ]) {
     if (await page.locator(".integration-layout").count())
-      await page
-        .getByRole("group", { name: "Integration display", exact: true })
-        .getByRole("button", {
-          name: id === "cake-canvas" ? "Cake" : "Image",
-          exact: true,
-        })
-        .click();
+      await selectIntegrationDisplay(
+        page,
+        id === "cake-canvas" ? "cake" : "image",
+      );
     if (id === "pattern-canvas") {
       await patternControls
         .getByRole("button", { name: "Pattern rectangle zoom", exact: true })

@@ -1,4 +1,24 @@
 import assert from "node:assert/strict";
+import { verifyIntegrationPatternFiles } from "./integration_pattern_files.mjs";
+import { verifyIntegrationImageFiles } from "./integration_image_files.mjs";
+import {
+  verifyBackgroundRange,
+  verifyBackgroundParameters,
+} from "./integration_background_range.mjs";
+import { verifyIntegrationRoi } from "./integration_roi.mjs";
+import { verifyIntegrationImageExport } from "./integration_image_export.mjs";
+import {
+  capturePhaseGuideStrokes,
+  verifyPhaseGuideStrokes,
+} from "./integration_phase_guides.mjs";
+
+const settle = (page) =>
+  page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
+  );
 
 export async function openIntegrationSettings(page) {
   await page.getByRole("button", { name: "Settings", exact: true }).click();
@@ -17,14 +37,7 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
     await waitReady();
   };
   await page.setViewportSize({ width: 1440, height: 1000 });
-  const settle = () =>
-    page.evaluate(
-      () =>
-        new Promise((resolve) =>
-          requestAnimationFrame(() => requestAnimationFrame(resolve)),
-        ),
-    );
-  await settle();
+  await settle(page);
   await page.getByTestId("detector-canvas").evaluate((el) => {
     window.__settingsDetector = el;
     window.__settingsDetectorRange = [
@@ -172,7 +185,7 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
     true,
   );
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await settle();
+  await settle(page);
   assert.equal(
     await page
       .getByTestId("detector-canvas")
@@ -195,7 +208,8 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
     name: "Integration display",
     exact: true,
   });
-  await display.getByRole("button", { name: "Image", exact: true }).click();
+  if (await display.getByRole("button", { name: "Image", exact: true }).count())
+    await display.getByRole("button", { name: "Image", exact: true }).click();
   assert.equal(await page.getByTestId("cake-canvas").isVisible(), false);
   assert.equal(await page.getByTestId("detector-canvas").isVisible(), true);
   await display.getByRole("button", { name: "Cake", exact: true }).click();
@@ -207,7 +221,7 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
   await page.getByLabel("Cake minimum intensity", { exact: true }).fill("10");
   await page.getByLabel("Close cake display settings", { exact: true }).click();
   await tab("Overlay");
-  await click("Add pattern");
+  await click("As Overlay");
   await page.getByLabel("Cake histogram settings", { exact: true }).click();
   assert.equal(
     await page
@@ -254,30 +268,20 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
     12,
   );
   await tab("Background");
-  await page
-    .getByLabel("Subtract automatic pattern background", { exact: true })
-    .check();
-  await page.getByLabel("Iterations", { exact: true }).fill("10");
-  await page.getByLabel("Polynomial order", { exact: true }).fill("5");
-  await click("Apply pattern background");
+  await verifyBackgroundParameters(page, invoke, waitReady);
   assert.equal(
     (await invoke("state")).state.integration.patternBackground.enabled,
     true,
   );
   await click("Save background…");
   await tab("Pattern");
-  await page.getByLabel("Save background subtracted", { exact: true }).check();
-  await click("Save pattern…");
+  await click("Save pattern");
   await click("Load pattern…");
   current = await invoke("state");
   assert.ok(current.pattern.x.length > 10);
+  await verifyIntegrationPatternFiles(page, invoke, waitReady);
   await tab("Image");
-  await click("Load image…");
-  await page
-    .getByLabel("Image file order", { exact: true })
-    .selectOption("time");
-  await waitReady();
-  assert.equal((await invoke("state")).state.integration.fileIteration, "time");
+  await verifyIntegrationImageFiles(page, invoke, waitReady);
   if (!(await invoke("state")).state.useMask)
     await page.getByLabel("Apply detector mask", { exact: true }).click();
   await waitReady();
@@ -307,12 +311,16 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
     "Mode navigation returns directly from Settings",
   );
   await verifyIntegrationPlotTools(page, invoke, waitReady);
+  await verifyIntegrationImageExport(page, invoke, waitReady);
   return [
+    "Image/Cake save: PNG display exports, TIFF data and cake text",
     "Settings workspace, stable category bounds, keyboard navigation, compact layout and wrapped azimuth",
     "Qt Image/Cake switching and independent histograms",
     "overlay capture, scale, visibility and rendered curves",
-    "phase loading, pressure and rendered reflections",
+    "phase loading, pressure, rendered reflections and Qt intensity-scaled image/cake strokes",
     "pattern background, save and load",
+    "live background edge fitting, stable release, interior zoom and automatic numeric range edits",
+    "automatic background smoothing, iterations and polynomial order; disabled settings and invalid edits",
     "shared mask, file order and detector absorption",
     "Qt plot controls: units, log/sqrt, background inspection, AA, auto/frozen axes, raw image, ROI, phase guides and cake azimuth shift",
   ];
@@ -350,13 +358,14 @@ async function verifyIntegrationPlotTools(page, invoke, waitReady) {
   assert.equal(await canvas.getAttribute("data-antialias"), "false");
   await click("Antialias pattern");
   await click("Inspect pattern background");
-  assert.equal(Number(await canvas.getAttribute("data-curve-count")), 3);
+  assert.equal(Number(await canvas.getAttribute("data-curve-count")), 2);
   await click("Inspect pattern background");
   assert.equal(
     (await invoke("state")).state.revision,
     revision,
     "Display toggles must not change scientific state",
   );
+  await verifyBackgroundRange(page, invoke, waitReady);
   for (const [label, unit] of [
     ["Q", "q_A^-1"],
     ["d", "d_A"],
@@ -365,7 +374,6 @@ async function verifyIntegrationPlotTools(page, invoke, waitReady) {
     await click(`Pattern unit ${label}`);
     assert.equal((await invoke("state")).state.unit, unit);
   }
-  await click("Pattern auto range");
   const bounds = () =>
     canvas.evaluate((el) => [
       el.dataset.viewXMin,
@@ -373,6 +381,38 @@ async function verifyIntegrationPlotTools(page, invoke, waitReady) {
       el.dataset.viewYMin,
       el.dataset.viewYMax,
     ]);
+  const center = await canvas.evaluate((el) => {
+    const box = el.getBoundingClientRect();
+    return {
+      x:
+        box.left +
+        Number(el.dataset.plotLeft) +
+        Number(el.dataset.plotWidth) / 2,
+      y:
+        box.top +
+        Number(el.dataset.plotTop) +
+        Number(el.dataset.plotHeight) / 2,
+    };
+  });
+  const autoRangeButton = page.getByRole("button", {
+    name: "Pattern auto range",
+    exact: true,
+  });
+  await page.mouse.move(center.x, center.y);
+  await page.mouse.wheel(0, -600);
+  await settle(page);
+  assert.equal(
+    await autoRangeButton.getAttribute("aria-pressed"),
+    "false",
+    "Zooming disables automatic rescaling",
+  );
+  await page.mouse.click(center.x, center.y, { button: "right" });
+  await settle(page);
+  assert.equal(
+    await autoRangeButton.getAttribute("aria-pressed"),
+    "false",
+    "A single right-click keeps automatic rescaling disabled",
+  );
   const frozen = await bounds();
   await page.getByRole("tab", { name: "Overlay", exact: true }).click();
   await page.getByLabel("Overlay 1 offset", { exact: true }).fill("1000000");
@@ -383,7 +423,16 @@ async function verifyIntegrationPlotTools(page, invoke, waitReady) {
     frozen,
     "Auto range off preserves the axes across pattern changes",
   );
-  await click("Pattern auto range");
+  // Keep this double-click separate from the preceding single right-click.
+  await page.waitForTimeout(460);
+  await page.mouse.dblclick(center.x, center.y, { button: "right" });
+  await settle(page);
+  assert.equal(
+    await autoRangeButton.getAttribute("aria-pressed"),
+    "true",
+    "A right double-click re-enables automatic rescaling",
+  );
+  assert.equal(await canvas.getAttribute("data-auto-range"), "true");
   await page.waitForFunction(
     (limit) =>
       Number(
@@ -395,19 +444,34 @@ async function verifyIntegrationPlotTools(page, invoke, waitReady) {
   await page.getByLabel("Overlay 1 offset", { exact: true }).fill("0");
   await page.getByLabel("Overlay 1 offset", { exact: true }).press("Enter");
   await waitReady();
+  assert.ok(
+    Number((await bounds())[3]) < Number(frozen[3]) * 10,
+    "Automatic rescaling continues to follow subsequent pattern changes",
+  );
   const display = page.getByRole("group", {
     name: "Integration display",
     exact: true,
   });
-  await display.getByRole("button", { name: "Image", exact: true }).click();
-  await click("Image autoscale");
+  if (await display.getByRole("button", { name: "Image", exact: true }).count())
+    await display.getByRole("button", { name: "Image", exact: true }).click();
   assert.equal(
     await page
       .getByRole("button", { name: "Image autoscale", exact: true })
-      .getAttribute("aria-pressed"),
-    "false",
+      .count(),
+    0,
   );
-  await click("Image autoscale");
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Show corrected image", exact: true })
+      .count(),
+    0,
+    "Image background toggle is hidden without an image background",
+  );
+  await page.getByRole("tab", { name: "Background", exact: true }).click();
+  await click("Image Bkg");
+  await click("Load background…");
+  await page.getByLabel("Image background scale", { exact: true }).fill("0.1");
+  await click("Apply image background");
   const imageBefore = await page
     .getByTestId("detector-canvas")
     .evaluate((el) => el.toDataURL());
@@ -418,18 +482,23 @@ async function verifyIntegrationPlotTools(page, invoke, waitReady) {
   assert.notEqual(
     imageAfter,
     imageBefore,
-    "Raw and absorption-corrected detector displays differ",
+    "Raw and background-subtracted detector displays differ",
   );
   await click("Show corrected image");
+  await click("Remove");
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Show corrected image", exact: true })
+      .count(),
+    0,
+    "Removing the image background hides its display toggle",
+  );
   await click("Image region of interest");
   assert.ok((await invoke("state")).state.integration.roi);
-  await page.getByText("Edit ROI", { exact: true }).click();
-  await page.getByLabel("ROI first row", { exact: true }).fill("120");
-  await click("Apply ROI");
-  const state = (await invoke("state")).state;
-  assert.equal(state.integration.roi[1], state.shape[0] - 120);
+  await verifyIntegrationRoi(page, invoke, waitReady);
   await click("Image region of interest");
   assert.equal((await invoke("state")).state.integration.roi, null);
+  await capturePhaseGuideStrokes(page);
   await click("Show image phases");
   await page.waitForFunction(
     () =>
@@ -465,7 +534,10 @@ async function verifyIntegrationPlotTools(page, invoke, waitReady) {
   );
   assert.equal((await invoke("state")).state.revision, beforeShift);
   await shiftCake("0");
+  await settle(page);
+  await verifyPhaseGuideStrokes(page, invoke);
   await click("Save pattern");
   await click("Show image phases");
-  await display.getByRole("button", { name: "Image", exact: true }).click();
+  if (await display.getByRole("button", { name: "Image", exact: true }).count())
+    await display.getByRole("button", { name: "Image", exact: true }).click();
 }

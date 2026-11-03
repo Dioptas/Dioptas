@@ -1,5 +1,6 @@
 import { selectCalibrationRing } from "./calibration_ring_picker.mjs";
 import assert from "node:assert/strict";
+import { selectIntegrationDisplay } from "./integration_display.mjs";
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function selectColorMap(page, label, name) {
@@ -519,13 +520,10 @@ export async function verifyWheelCapture(page) {
   const checks = [];
   for (const id of ["detector-canvas", "cake-canvas", "pattern-canvas"]) {
     if (await page.locator(".integration-layout").count())
-      await page
-        .getByRole("group", { name: "Integration display", exact: true })
-        .getByRole("button", {
-          name: id === "cake-canvas" ? "Cake" : "Image",
-          exact: true,
-        })
-        .click();
+      await selectIntegrationDisplay(
+        page,
+        id === "cake-canvas" ? "cake" : "image",
+      );
     const canvas = page.getByTestId(id);
     await canvas.scrollIntoViewIfNeeded();
     await page.evaluate(() => {

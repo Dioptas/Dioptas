@@ -93,19 +93,39 @@ export async function verifyIntegrationLayout(page, artifacts) {
   );
   await vertical.press("Home");
   const display = page.getByRole("group", { name: "Integration display" });
-  await display.getByRole("button", { name: "Cake", exact: true }).click();
-  assert.equal(await page.getByTestId("detector-canvas").isVisible(), false);
-  assert.equal(await page.getByTestId("cake-canvas").isVisible(), true);
-  await page.screenshot({
-    path: path.join(artifacts, "integration-qt-cake.png"),
-  });
-  await display.getByRole("button", { name: "Image", exact: true }).click();
+  const verifyViewSwitch = async () => {
+    const before = await box(".integration-image-tools");
+    assert.deepEqual(await display.getByRole("button").allTextContents(), [
+      "Cake",
+    ]);
+    await display.getByRole("button", { name: "Cake", exact: true }).click();
+    await settle(page);
+    assert.deepEqual(await display.getByRole("button").allTextContents(), [
+      "Image",
+    ]);
+    assert.equal(await page.getByTestId("detector-canvas").isVisible(), false);
+    assert.equal(await page.getByTestId("cake-canvas").isVisible(), true);
+    const after = await box(".integration-image-tools");
+    assert.ok(
+      Math.abs(before.y - after.y) < 1 &&
+        Math.abs(before.height - after.height) < 1,
+      "Image/Cake switching keeps the toolbar height and bottom spacing stable",
+    );
+    await page.screenshot({
+      path: path.join(artifacts, "integration-qt-cake.png"),
+    });
+    await display.getByRole("button", { name: "Image", exact: true }).click();
+    await settle(page);
+  };
+  await verifyViewSwitch();
   await page.setViewportSize({ width: 1000, height: 760 });
   await settle(page);
   await checkLayout();
+  await verifyViewSwitch();
   await setInterfaceTextSize(page, true);
   await settle(page);
   await checkLayout();
+  await verifyViewSwitch();
   await page.screenshot({
     path: path.join(artifacts, "integration-qt-compact-large.png"),
   });

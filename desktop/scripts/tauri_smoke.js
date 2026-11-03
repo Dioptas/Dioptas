@@ -365,7 +365,7 @@
     await delay();
     click("Overlay");
     await delay();
-    click("Add pattern");
+    click("As Overlay");
     await delay();
     await ready();
     check(
@@ -373,7 +373,92 @@
         .curveCount === "1",
       "Native overlay did not render",
     );
+    check(
+      document.querySelector('.qt-overlay-table tr[aria-selected="true"]'),
+      "Overlay table must select the added row",
+    );
+    click("As Overlay");
+    await delay();
+    await ready();
+    const overlayUids = (await call("state")).state.integration.overlays.map(
+      (o) => o.uid,
+    );
+    click("Move overlay up");
+    await delay();
+    await ready();
+    check(
+      (await call("state")).state.integration.overlays[0].uid ===
+        overlayUids[1],
+      "Overlay reordering failed",
+    );
+    const backgroundToggle = () =>
+      document
+        .querySelector(".qt-overlay-parameters button[aria-pressed]")
+        .click();
+    backgroundToggle();
+    await delay();
+    await ready();
+    check(
+      (await call("state")).state.integration.overlays[0].background,
+      "Selected overlay did not become background",
+    );
+    backgroundToggle();
+    await delay();
+    await ready();
+    click("Waterfall");
+    await delay();
+    await ready();
+    check(
+      (await call("state")).state.integration.overlays[0].offset === -200,
+      "Qt waterfall ordering differs",
+    );
+    click("Reset");
+    await delay();
+    await ready();
+    click("Delete selected overlay");
+    await delay();
+    await ready();
+    check(
+      (await call("state")).state.integration.overlays.length === 1,
+      "Selected overlay deletion failed",
+    );
     const sourceRoot = initial.state.imagePath.split("/dioptas/tests/data/")[0];
+    // Native IPC is immutable. Check the toolbar control, then verify image
+    // writing through the real native/Python path using explicit test filenames.
+    // The browser smoke exercises the button's 2048-pixel export renderer.
+    const imageExports = [];
+    for (const source of ["image", "cake"]) {
+      if (
+        document.querySelector(".integration-layout").dataset
+          .integrationDisplay !== source
+      )
+        click(source === "image" ? "Image" : "Cake");
+      await delay();
+      const saveButton = document.querySelector(
+        ".integration-image-tools button",
+      );
+      check(
+        saveButton?.getAttribute("aria-label") === "Save image" &&
+          !saveButton.disabled,
+        "Save image must be the first enabled toolbar action",
+      );
+      const canvas = document.querySelector(
+        `[data-testid="${source === "cake" ? "cake" : "detector"}-canvas"]`,
+      );
+      const path = sourceRoot + `/desktop/artifacts/native-saved-${source}.png`;
+      const saved = await call("integration_save_image", {
+        path,
+        source,
+        png_data: canvas.toDataURL("image/png").split(",")[1],
+      });
+      check(
+        saved.ok && saved.savedPath === path,
+        saved.error || "Native image export failed",
+      );
+      imageExports.push(path);
+    }
+    click("Image");
+    await delay();
     const savedPattern = await call("integration_save_pattern", {
       path: sourceRoot + "/desktop/artifacts/native-integration.xy",
     });
@@ -459,6 +544,7 @@
         integrationOverlay: true,
         integrationPhaseLines: phase.pattern.phaseLines.length,
         integrationPatternSaved: savedPattern.savedPath,
+        integrationImagesSaved: imageExports,
         hotReloadVerified,
         maskWorkflow,
         binaryTransfer,
