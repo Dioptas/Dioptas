@@ -323,6 +323,8 @@ fn main() {
                     let _ = webview.eval(include_str!("../../scripts/binary_native_smoke.js"));
                     let _ = webview.eval(include_str!("../../scripts/mask_native_smoke.js"));
                     let _ = webview.eval(include_str!("../../scripts/phase_native_smoke.js"));
+                    let _ =
+                        webview.eval(include_str!("../../scripts/phase_database_native_smoke.js"));
                 }
                 let _ = webview.eval(if tooltip_smoke {
                     include_str!("../../scripts/calibration_tooltip_native_smoke.js")

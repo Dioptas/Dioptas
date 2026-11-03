@@ -8,6 +8,8 @@ from pathlib import Path
 
 import numpy as np
 
+from .phase_database import catalog_payload, database_material, open_documentation
+
 from dioptas.model import eos
 from dioptas.model.eos.material import record_is_explicit_candidate
 from dioptas.model.util.phasesmith import (
@@ -106,21 +108,10 @@ class PhaseWorkflow:
             raise ValueError('Choose a JCPDS, CIF or EOSMAT phase file.')
 
     def _integration_phase_catalog(self, query=''):
-        materials = eos.search_materials(query)
-        return {'phaseCatalog': [dict(
-            id=m.identifier, name=m.display_name, spaceGroup=m.space_group,
-            diffraction=material_has_diffraction_data(m), defaultReference=m.default_eos_index,
-            hold=m.recommendation_hold or '',
-            references=[dict(
-                label=eos.record_label(r), eos=(r.get('eos') or {}).get('type', ''),
-                thermal=(r.get('thermal') or {}).get('type', ''),
-                pressureRange=eos.record_pressure_range(r),
-                parameters=(r.get('eos') or {}).get('parameters', {}),
-                errors=r.get('parameter_errors') or {}, fixed=r.get('fixed_parameters') or [],
-                assessment=eos.record_reproduction(r)[0], detail=eos.reference_text(r.get('reference')) + '\n\n' + eos.record_reproduction(r)[1],
-                loadError=load_error(m, i),
-            ) for i, r in enumerate(m.eos_records)],
-        ) for m in materials]}
+        return catalog_payload(query, load_error)
+
+    def _integration_phase_documentation(self, material_id, reference, kind):
+        return open_documentation(self._phase_material(material_id), reference, kind)
 
     def _phase_material(self, identifier):
         material = next((m for m in eos.load_materials() if m.identifier == identifier), None)
@@ -219,7 +210,7 @@ class PhaseWorkflow:
                     if r.d > 0 and wavelength <= 2*r.d else None) for r in phase.reflections],
         )}
 
-    def _integration_phase_export(self, index=None, material_id=None, path=None):
+    def _integration_phase_export(self, index=None, material_id=None, path=None, assume_structure=False):
         path = self._path(path, 'phase_export', save=True)
         if path is None:
             return {'cancelled': True}
@@ -230,7 +221,7 @@ class PhaseWorkflow:
         if suffix not in ({'.eosmat'} if material_id is not None else {'.eosmat', '.jcpds', '.txt'}):
             raise ValueError('Choose an EOSMAT material, JCPDS phase or TXT reflection table.')
         if material_id is not None:
-            eos.save_material_file(path, self._phase_material(material_id))
+            eos.save_material_file(path, database_material(self._phase_material(material_id), assume_structure))
         else:
             from .integration import finite
             model = self._model.phase_model
@@ -276,7 +267,8 @@ class PhaseWorkflow:
                 model.items = original_items
                 raise
         elif operation == 'load_database':
-            material = self._phase_material(changes['material_id'])
+            material = database_material(self._phase_material(changes['material_id']),
+                                         changes.get('assume_structure', False))
             reference = finite(changes['reference'], 'Reference', 0, len(material.eos_records)-1, True) if material.eos_records else None
             reason = load_error(material, reference)
             if reason:
