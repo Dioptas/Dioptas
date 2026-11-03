@@ -741,7 +741,7 @@ try {
   // aligned. Long normalization units stay in the first column group.
   await click("Close");
   await setInterfaceTextSize(page, false);
-  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.setViewportSize({ width: 1200, height: 1000 });
   await click("Edit selected Phase");
   await page
     .getByRole("tab", { name: "Equation of state", exact: true })
@@ -764,6 +764,7 @@ try {
             x: input.x,
             width: input.width,
             unit: unit.x,
+            unitRight: unit.right,
             labelRight: label.right,
           };
         })
@@ -776,6 +777,7 @@ try {
         selectorX,
         width: pane.clientWidth,
         scroll: pane.scrollWidth,
+        right: pane.getBoundingClientRect().right,
       };
     });
   assert.ok(paired.scroll <= paired.width + 1, JSON.stringify(paired));
@@ -790,6 +792,7 @@ try {
       assert.equal(row.width, rows[0].width);
       assert.equal(row.unit, rows[0].unit);
       assert.ok(row.x - row.labelRight <= 8);
+      assert.ok(row.unitRight <= paired.right + 1, JSON.stringify(paired));
     }
   }
   const k0 = paired.rows.find((row) => row.key === "K₀");

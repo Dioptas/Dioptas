@@ -55,7 +55,8 @@ with tooltips and accessible names for duplicate, add, set default, delete and
 clear all. Material and EoS names have distinct editable fields. Numeric EoS,
 normalization and thermal parameters use shared, fixed label, value and unit
 columns. A wide parameter pane fits two groups per row; a narrow pane uses a
-compact single group. The breakpoint follows text size. Long units and
+compact single group. Pairing starts at 37.5 em of available pane width
+(525 px at standard text size); the breakpoint follows text size. Long units and
 configuration choices span the full row and align with the first group.
 Labels align right beside their controls, including model/record selectors and
 configuration choices. Unitless rows reserve the unit column. Constructor

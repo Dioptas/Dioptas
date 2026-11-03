@@ -328,14 +328,14 @@
 }
 /* Each half keeps its own fixed label/value/unit columns. Long units and
    configuration choices use the full row, aligned with the first half. */
-@container phase-parameters (min-width: 42em) {
+@container phase-parameters (min-width: 37.5em) {
   .pe-eos-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 16px;
+    column-gap: 12px;
   }
   .pe-eos-fields .pe-field {
     width: 100%;
-    grid-template-columns: 112px 100px minmax(0, 1fr);
+    grid-template-columns: 112px 90px minmax(0, 1fr);
     gap: 6px;
   }
   .pe-eos-fields .pe-field > span:first-child {
