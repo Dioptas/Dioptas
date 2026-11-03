@@ -1,0 +1,471 @@
+/* PhaseWidget's two narrow tool columns flank a single, scrollable phase table. */
+.integration-tab-phase {
+  padding: 6px;
+  display: flex;
+  overflow: hidden;
+}
+.phase-controls {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 100px;
+  gap: 6px;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  font-size: var(--text-small);
+}
+.phase-action-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.phase-action-rail button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 4px;
+  background: transparent;
+}
+.phase-action-rail svg {
+  width: 17px;
+  height: 17px;
+}
+.phase-action-rail button:hover {
+  background: #ffffff0b;
+}
+.phase-controls hr {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 0;
+}
+.phase-table-scroll {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  background: #191b1e;
+}
+.phase-controls table {
+  width: 100%;
+  min-width: 425px;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: inherit;
+}
+.phase-controls th,
+.phase-controls td {
+  padding: 2px 3px;
+  height: 30px;
+  text-align: left;
+  border-bottom: 1px solid #ffffff0b;
+}
+.phase-controls thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #282a2e;
+}
+.phase-controls th {
+  font-size: var(--text-meta);
+  font-weight: 400;
+  white-space: nowrap;
+}
+.phase-show-col {
+  width: 24px;
+}
+.phase-color-col {
+  width: 26px;
+}
+.phase-name-col {
+  width: auto;
+}
+.phase-value-col {
+  width: 80px;
+}
+.phase-reference-col {
+  width: 110px;
+}
+.phase-controls tr[aria-selected="true"],
+.phase-dialog tr[aria-selected="true"] {
+  background: #ff950019;
+}
+.phase-controls tr:focus-visible,
+.phase-dialog tr:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+.phase-controls .phase-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+.phase-controls input[type="number"],
+.phase-controls select {
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  padding: 2px 3px;
+  font-size: inherit;
+  border-color: transparent;
+  background-color: #ffffff04;
+  border-radius: 2px;
+}
+.phase-controls input[type="number"] {
+  text-align: right;
+}
+.phase-controls input[type="checkbox"] {
+  margin: 0;
+  width: 15px;
+  height: 15px;
+  vertical-align: middle;
+}
+.phase-controls input[type="color"] {
+  width: 21px;
+  height: 24px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+.phase-controls .phase-show-all {
+  padding: 0;
+  width: 100%;
+  background: transparent;
+  min-height: 24px;
+}
+.phase-parameters {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+.phase-step-controls > label {
+  display: grid;
+  gap: 2px;
+}
+.phase-parameters .phase-apply-all {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  gap: 4px;
+  font-size: var(--text-meta);
+  margin: 3px 0;
+}
+.phase-list-actions {
+  margin-top: auto;
+  padding-top: 5px;
+  display: grid;
+  gap: 4px;
+}
+.phase-list-actions button {
+  padding: 4px 5px;
+  white-space: nowrap;
+  font-size: inherit;
+}
+.phase-empty {
+  color: var(--muted);
+  line-height: 1.5;
+  padding: 0 8px;
+}
+.phase-dialog {
+  color: var(--text);
+  background: #202225;
+  border: 1px solid #505257;
+  border-radius: 5px;
+  padding: 0;
+  width: min(430px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  box-shadow: 0 14px 60px #0009;
+  font-family: inherit;
+  font-size: var(--text-small);
+}
+.phase-dialog::backdrop {
+  background: #0008;
+}
+.phase-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+.phase-dialog-wide {
+  width: min(1040px, calc(100vw - 40px));
+}
+.phase-dialog header,
+.phase-dialog footer {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+}
+.phase-dialog header {
+  border-bottom: 1px solid var(--border);
+}
+.phase-dialog header h2 {
+  margin: 0;
+  font-size: var(--text-main);
+  font-weight: 500;
+  flex: 1;
+}
+.phase-dialog header button {
+  font-size: 19px;
+  padding: 2px 9px;
+}
+.phase-dialog footer {
+  border-top: 1px solid var(--border);
+  justify-content: flex-end;
+}
+.phase-dialog-body {
+  padding: 12px;
+  overflow: auto;
+  min-height: 0;
+}
+.phase-dialog input,
+.phase-dialog select {
+  min-width: 0;
+  font-size: inherit;
+}
+.phase-dialog table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: inherit;
+}
+.phase-dialog th {
+  text-align: left;
+  font-weight: 500;
+  color: #b8bac0;
+  background: #2b2d31;
+  position: sticky;
+  top: 0;
+  white-space: nowrap;
+}
+.phase-dialog th,
+.phase-dialog td {
+  padding: 5px 7px;
+  border-bottom: 1px solid #ffffff0b;
+}
+.phase-dialog td {
+  vertical-align: middle;
+}
+.phase-dialog button {
+  font-size: inherit;
+}
+.phase-import-fields {
+  display: grid;
+  gap: 8px;
+}
+.phase-import-fields label {
+  display: grid;
+  grid-template-columns: 1fr 100px 20px;
+  align-items: center;
+  gap: 8px;
+}
+.phase-database {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.phase-db-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.phase-db-tools [role="tablist"] {
+  display: flex;
+  gap: 3px;
+  margin-right: auto;
+}
+.phase-db-tools label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.phase-db-tools button[aria-selected="true"] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.phase-materials-scroll {
+  overflow: auto;
+  min-height: 100px;
+  height: 220px;
+  flex-shrink: 0;
+  scrollbar-width: thin;
+}
+.phase-records-scroll {
+  overflow: auto;
+  min-height: 70px;
+  max-height: 210px;
+  flex-shrink: 0;
+  scrollbar-width: thin;
+}
+.phase-materials-scroll tr,
+.phase-records-scroll tr {
+  cursor: pointer;
+}
+.phase-assessment {
+  white-space: pre-wrap;
+  color: #b6bac0;
+  line-height: 1.5;
+  margin: 4px 0;
+}
+.phase-condition-note {
+  color: #e1b77b;
+  margin: 4px 0;
+  line-height: 1.5;
+}
+.phase-editor {
+  display: grid;
+  gap: 12px;
+}
+.phase-editor-filename {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+.phase-editor fieldset {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 10px;
+}
+.phase-editor fieldset > label {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+}
+.phase-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 16px;
+  padding: 8px 0;
+}
+.phase-editor-grid label {
+  display: grid;
+  grid-template-columns: 55px minmax(0, 1fr) 23px;
+  align-items: center;
+  gap: 5px;
+}
+.phase-editor-grid input {
+  width: 100%;
+  text-align: right;
+}
+.phase-lattice-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  align-items: center;
+}
+.phase-lattice-steps label {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.phase-lattice-steps input {
+  width: 90px;
+}
+.phase-reflection-actions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 7px;
+}
+.phase-reflections-scroll {
+  max-height: 300px;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+.phase-reflections-scroll input[type="number"] {
+  width: 100%;
+  min-width: 60px;
+  padding: 3px;
+  text-align: right;
+}
+@media (max-width: 1100px) {
+  .phase-controls {
+    grid-template-columns: 28px minmax(0, 1fr) 92px;
+    gap: 4px;
+  }
+  .phase-editor-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.phase-controls[hidden] {
+  display: none;
+}
+.phase-action-rail {
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.phase-action-rail button {
+  width: 25px;
+  height: 25px;
+  min-height: 25px;
+  flex-shrink: 0;
+}
+.phase-step-controls > label {
+  line-height: 1.15;
+}
+.phase-parameters input[type="number"] {
+  height: 24px;
+}
+.phase-list-actions button {
+  min-height: 25px;
+  padding: 3px;
+}
+/* Override the generic Integration form heights without shrinking its other tabs. */
+.integration-controls .phase-action-rail button {
+  min-height: 25px;
+}
+.integration-controls .phase-controls input[type="number"],
+.integration-controls .phase-controls select {
+  height: 28px;
+  padding: 2px 3px;
+}
+.integration-controls .phase-parameters input[type="number"] {
+  height: 24px;
+}
+.integration-controls .phase-list-actions button {
+  min-height: 25px;
+  padding: 3px;
+}
+
+.phase-parameters {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  overflow: hidden;
+  gap: 0;
+}
+.phase-step-controls {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.phase-step-controls > label {
+  flex-shrink: 0;
+}
+.phase-list-actions {
+  margin-top: 0;
+  padding-top: 3px;
+}
+
+.phase-step-controls {
+  gap: 1px;
+}
+.phase-step-controls > label {
+  gap: 0;
+}
+.phase-step-controls .phase-apply-all {
+  margin: 1px 0;
+}

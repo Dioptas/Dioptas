@@ -483,6 +483,14 @@
       document.querySelectorAll(".intensity-histogram").length === 2,
       "Integration histograms are not independent",
     );
+    const phaseControls = await window.__dioptasPhaseNativeSmoke({
+      call,
+      click,
+      ready,
+      delay,
+      check,
+      root: sourceRoot,
+    });
     const maskWorkflow = await window.__dioptasMaskNativeSmoke({
       call,
       click,
@@ -543,6 +551,7 @@
         integrationCakeBins: integrated.cake.height,
         integrationOverlay: true,
         integrationPhaseLines: phase.pattern.phaseLines.length,
+        phaseControls,
         integrationPatternSaved: savedPattern.savedPath,
         integrationImagesSaved: imageExports,
         hotReloadVerified,

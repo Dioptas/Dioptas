@@ -40,7 +40,7 @@ project storage are unchanged; task controls stay in the Integration workspace.
 | Autocreate | Existing Configuration._auto_save_patterns on explicit successful image load/navigation; editable folder/filename, native folder chooser, immediate Autocreate and format choices; normal and bkg_subtracted folders follow Qt; off after project reopen |
 | Backend folder integration (no Image-tab button) | Existing configuration.batch_model discovers same-extension files and their frames, integrates with current geometry/mask/corrections, reports progress and permits cancellation between frames; complete batch saves to model HDF5 or CSV; no duplicated Map workspace |
 | Overlays | Native file import/current-pattern capture, visibility/color/scale/offset, delete, waterfall/reset, assign/remove pattern background; measured curves render on shared axes and participate in auto scaling |
-| Phases | JCPDS/CIF/EOSMAT import, real PhaseModel pressure/temperature, apply-to-all, literature-reference selection when available, visibility/color/delete; computed reference sticks render in actual pattern units |
+| Phases | Qt action rail/table/P–T steps/list files, multi-file JCPDS/CIF/EOSMAT import, real database and scoped editor; PhaseModel conditions/references and qualified reference-line rendering; see [Phase parity](PHASE_PARITY.md) |
 | Project persistence | Standard .dio models retain settings, backgrounds, corrections, overlays and phases. Autocreate is a session opt-in, never silently restored from a project. |
 
 ## Deliberate boundary handling
@@ -114,9 +114,9 @@ project storage are unchanged; task controls stay in the Integration workspace.
   owned by the original models; this UI edits flat field, cBN and OIADAC only.
 - No spottiness display/export, cake integral or detachable plot windows.
   Detector ROI moves and resizes directly on the image.
-- Phase database browsing, material/reflection/EOS editing and phase-list
-  save/load are not implemented. File loading and existing reference choices
-  work. CIF conversion currently uses model defaults for cutoff/minimum d.
+- Phase database browsing, scoped lattice/EoS/reflection editing, CIF options
+  and Qt-format phase-list save/load are implemented. Advanced atomic-site and
+  material-record management remain gaps; see [Phase parity](PHASE_PARITY.md).
 - No overlay drag/reorder or intensity matching; scale/offset and waterfall work.
 - No configuration switching, explicit HDF5 source/dataset chooser, portable
   Python bundle or Windows/Linux qualification. Background unit conversion and

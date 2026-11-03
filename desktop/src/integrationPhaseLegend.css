@@ -1,0 +1,15 @@
+.integration-phase-legend {
+  position: absolute;
+  top: 10px;
+  max-width: calc(100% - 115px);
+  max-height: 45%;
+  overflow: hidden;
+  pointer-events: none;
+  font-size: var(--text-meta);
+  line-height: 1.4;
+}
+.integration-phase-legend > div {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

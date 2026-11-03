@@ -13,6 +13,8 @@ from collections import deque
 import math
 import numpy as np
 
+from .phases import PhaseWorkflow
+
 from dioptas.model.util.NewFileWatcher import NewFileInDirectoryWatcher
 from dioptas.model.util.calc import convert_units
 from dioptas.model.util.ImgCorrection import (
@@ -84,7 +86,7 @@ def values(array):
     return [float(x) if np.isfinite(x) else None for x in array]
 
 
-class IntegrationWorkflow:
+class IntegrationWorkflow(PhaseWorkflow):
     @staticmethod
     def _integration_wrapped(angles):
         return angles is not None and angles[0] > angles[1]
@@ -137,6 +139,11 @@ class IntegrationWorkflow:
             "integration_flat_field": self._integration_flat_field,
             "integration_overlay": self._integration_overlay,
             "integration_phase": self._integration_phase,
+            "integration_phase_files": self._integration_phase_files,
+            "integration_phase_catalog": self._integration_phase_catalog,
+            "integration_phase_list": self._integration_phase_list,
+            "integration_phase_editor": self._integration_phase_editor,
+            "integration_phase_export": self._integration_phase_export,
             "integration_open_pattern": self._integration_open_pattern,
             "integration_pattern_navigation": self._integration_pattern_navigation,
             "integration_autocreate": self._integration_autocreate,
@@ -216,19 +223,8 @@ class IntegrationWorkflow:
                 for o in self._model.overlay_model.overlays
             ],
             "sameConditions": self._model.phase_model.same_conditions,
-            "phases": [
-                {
-                    "name": phase.name,
-                    "pressure": phase.params["pressure"],
-                    "temperature": phase.params["temperature"],
-                    "visible": self._model.phase_model.phase_visible[i],
-                    "color": "#%02x%02x%02x"
-                    % tuple(int(v) for v in self._model.phase_model.phase_colors[i]),
-                    "references": self._model.phase_model.get_eos_reference_labels(i),
-                    "reference": phase.params["eos_current_index"],
-                }
-                for i, phase in enumerate(self._model.phase_model.phases)
-            ],
+            "phases": self._phase_state(),
+            "phaseColdPressure": self._model.phase_model.params.dac_thermal_pressure_enabled,
             "batchFrames": int(c.batch_model.n_img or 0),
             "patternName": c.pattern_model.pattern.name,
             "originalPatternColor": c.pattern_model.params.color,
@@ -286,7 +282,7 @@ class IntegrationWorkflow:
                             "phaseIndex": i,
                             "x": float(position),
                             "intensity": float(reflection[1]),
-                            "name": phase.name,
+                            "name": self._phase_legend_name(phase),
                             "color": color,
                             "hkl": [int(v) for v in reflection[2:5]],
                         }
@@ -766,73 +762,6 @@ class IntegrationWorkflow:
         ):
             raise ValueError("Choose a hexadecimal RGB color.")
         return value
-
-    def _integration_phase(self, operation, index=None, path=None, **changes):
-        model = self._model.phase_model
-        if operation == "load":
-            path = self._path(path, "phase")
-            if path is None:
-                return {"cancelled": True}
-            if Path(path).suffix.lower() == ".cif":
-                model.add_cif(
-                    path,
-                    wavelength_angstrom=self.configuration.calibration_model.wavelength
-                    * 1e10,
-                )
-            elif Path(path).suffix.lower() in {".eosmat", ".json"}:
-                from dioptas.model.eos import load_material_file, build_jcpds
-
-                model.add_jcpds_object(
-                    build_jcpds(
-                        load_material_file(path),
-                        wavelength_angstrom=self.configuration.calibration_model.wavelength
-                        * 1e10,
-                        origin="file",
-                    ),
-                    filename=path,
-                )
-            else:
-                model.add_jcpds(path)
-        elif operation == "same_conditions":
-            model.same_conditions = boolean(changes["enabled"], "Same conditions")
-        elif operation == "clear":
-            model.reset()
-        else:
-            index = finite(index, "Phase index", 0, len(model.phases) - 1, True)
-            if operation == "remove":
-                model.del_phase(index)
-            elif operation == "update":
-                for key, value in changes.items():
-                    if key in {"pressure", "temperature"}:
-                        value = finite(
-                            value, key, -100 if key == "pressure" else 0, 10000
-                        )
-                        if not getattr(model, "set_" + key)(index, value):
-                            raise ValueError(f"Phase model rejected {key} {value:g}.")
-                    elif key == "reference":
-                        value = finite(
-                            value,
-                            key,
-                            0,
-                            len(model.get_eos_reference_labels(index)) - 1,
-                            True,
-                        )
-                        if not model.set_eos_reference(index, value):
-                            raise ValueError("Phase model rejected this reference.")
-                    elif key == "visible":
-                        model.set_phase_visible(index, boolean(value, key))
-                    elif key == "color":
-                        color = self._integration_color(value)
-                        model.set_color(
-                            index, tuple(int(color[i : i + 2], 16) for i in (1, 3, 5))
-                        )
-                    else:
-                        raise ValueError("Unknown phase option.")
-            else:
-                raise ValueError("Unknown phase operation.")
-        self._refresh_integration_pattern()
-        self._revision += 1
-        return self._snapshot()
 
     def _integration_autocreate(self, enabled, directory=None):
         enabled = boolean(enabled, "Autocreate")

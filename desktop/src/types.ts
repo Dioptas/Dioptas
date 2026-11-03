@@ -1,3 +1,8 @@
+import type {
+  PhaseEditorData,
+  PhaseImport,
+  PhaseMaterial,
+} from "./integrationPhase";
 import type { MapData } from "./mapDomain";
 export type Unit = "2th_deg" | "q_A^-1" | "d_A";
 export type Tool = "pan" | "mask" | "erase" | "pick";
@@ -147,6 +152,9 @@ export interface RingOverlay {
   points: number[][];
 }
 export interface Response {
+  phaseEditor?: PhaseEditorData;
+  phaseImport?: PhaseImport;
+  phaseCatalog?: PhaseMaterial[];
   map?: MapData | null;
   mapLevels?: [number, number];
   mapWarning?: string | null;

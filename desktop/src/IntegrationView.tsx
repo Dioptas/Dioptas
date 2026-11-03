@@ -9,6 +9,7 @@ import {
 import type { BackgroundSettings } from "./useLiveBackground";
 import { IntegrationPatternControls } from "./IntegrationPatternControls";
 import { IntegrationImageControls } from "./IntegrationImageControls";
+import { IntegrationPhaseControls } from "./IntegrationPhaseControls";
 import "./integration.css";
 import { IntegrationOverlayControls } from "./IntegrationOverlayControls";
 
@@ -401,131 +402,7 @@ export function IntegrationView({
         <div className="integration-overlay-page" hidden={tab !== "Overlay"}>
           <IntegrationOverlayControls source={source} run={run} onSelectionChange={onOverlaySelectionChange} showOriginal={showOriginalPattern} onShowOriginalChange={onShowOriginalPatternChange} originalColor={originalPatternColor} onOriginalColorChange={onOriginalPatternColorChange} />
         </div>
-        {tab === "Phase" && (
-          <>
-            <button
-              className="secondary full-input"
-              onClick={() => action("integration_phase", { operation: "load" })}
-            >
-              Add phase…
-            </button>
-            <p className="integration-note">JCPDS · CIF · EOSMAT</p>
-            <Check
-              label="Apply conditions to all phases"
-              checked={source.sameConditions}
-              onChange={(enabled) =>
-                action("integration_phase", {
-                  operation: "same_conditions",
-                  enabled,
-                })
-              }
-            />
-            <div className="integration-list" role="table" aria-label="Phases">
-              <div
-                className="integration-list-head integration-phase-row"
-                role="row"
-              >
-                <span>Show</span>
-                <span>Phase</span>
-                <span>P (GPa)</span>
-                <span>T (K)</span>
-                <span />
-              </div>
-              {source.phases.map((phase, index) => (
-                <div className="integration-phase-entry" key={index}>
-                  <div className="integration-phase-row" role="row">
-                    <Check
-                      label={`Show phase ${index + 1}`}
-                      checked={phase.visible}
-                      onChange={(visible) =>
-                        action("integration_phase", {
-                          operation: "update",
-                          index,
-                          visible,
-                        })
-                      }
-                    />
-                    <div className="integration-list-name">
-                      <input
-                        type="color"
-                        aria-label={`Phase ${index + 1} color`}
-                        value={phase.color}
-                        onChange={(e) =>
-                          action("integration_phase", {
-                            operation: "update",
-                            index,
-                            color: e.target.value,
-                          })
-                        }
-                      />
-                      <span title={phase.name}>{phase.name}</span>
-                    </div>
-                    <CommitField
-                      label={`Phase ${index + 1} pressure (GPa)`}
-                      value={phase.pressure}
-                      onCommit={(pressure) =>
-                        action("integration_phase", {
-                          operation: "update",
-                          index,
-                          pressure,
-                        })
-                      }
-                    />
-                    <CommitField
-                      label={`Phase ${index + 1} temperature (K)`}
-                      value={phase.temperature}
-                      onCommit={(temperature) =>
-                        action("integration_phase", {
-                          operation: "update",
-                          index,
-                          temperature,
-                        })
-                      }
-                    />
-                    <button
-                      aria-label={`Delete phase ${index + 1}`}
-                      onClick={() =>
-                        action("integration_phase", {
-                          operation: "remove",
-                          index,
-                        })
-                      }
-                    >
-                      ×
-                    </button>
-                  </div>
-                  {phase.references.length > 0 && (
-                    <label className="field-label integration-phase-reference">
-                      Reference
-                      <select
-                        aria-label={`Phase ${index + 1} reference`}
-                        value={phase.reference}
-                        onChange={(e) =>
-                          action("integration_phase", {
-                            operation: "update",
-                            index,
-                            reference: Number(e.target.value),
-                          })
-                        }
-                      >
-                        {phase.references.map((ref, i) => (
-                          <option key={i} value={i}>
-                            {ref}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-                </div>
-              ))}
-              {!source.phases.length && (
-                <p className="integration-empty-list">
-                  Load a JCPDS, CIF or EOSMAT reference.
-                </p>
-              )}
-            </div>
-          </>
-        )}
+        <IntegrationPhaseControls active={tab === "Phase"} source={source} ready={ready} run={run} />
       </fieldset>
       {((tab === "Background" && backgroundTab === "pattern") ||
         (tab === "Corrections" && correctionTab !== "flat")) && (

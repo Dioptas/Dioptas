@@ -1,3 +1,4 @@
+import { IntegrationPhaseLegend } from "./IntegrationPhaseLegend";
 import { useEffect, useRef, useState } from "react";
 import type { Pattern } from "./types";
 import type { PatternHover } from "./plotReadout";
@@ -676,6 +677,7 @@ export function PatternView({
   ]);
   return (
     <div ref={container} className="pattern-container">
+      <IntegrationPhaseLegend lines={referenceLines} left={left} />
       <canvas
         ref={canvas}
         tabIndex={-1}

@@ -38,6 +38,9 @@ fn folder_choice(action: &str, payload: &Value) -> bool {
 }
 
 fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
+    if matches!(action, "integration_phase_files" | "integration_phase") && payload.get("paths").is_some_and(|v| !v.is_null()) {
+        return None;
+    }
     if action == "map_load"
         && (payload.get("paths").is_some_and(|v| !v.is_null()) || payload["reintegrate"] == true)
     {
@@ -134,7 +137,9 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
             "",
             false,
         ),
-        "integration_phase" => (
+        "integration_phase_list" => ("Phase List", &["txt"], "phase_list.txt", payload["save"] == true),
+        "integration_phase_export" => ("Phase or material", &["eosmat", "jcpds", "txt"], "phase.eosmat", true),
+        "integration_phase" | "integration_phase_files" => (
             "Diffraction phase",
             &["jcpds", "cif", "eosmat", "json"],
             "",
@@ -214,7 +219,7 @@ async fn desktop_invoke(
             if let Some(directory) = payload["directory"].as_str() {
                 dialog = dialog.set_directory(directory);
             }
-            if action == "map_load" || action == "integration_overlay" {
+            if action == "map_load" || action == "integration_overlay" || action == "integration_phase_files" {
                 let Some(selected) = dialog.blocking_pick_files() else {
                     return Ok(Packet::metadata(json!({"ok": true, "cancelled": true})));
                 };
@@ -317,6 +322,7 @@ fn main() {
                     let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
                     let _ = webview.eval(include_str!("../../scripts/binary_native_smoke.js"));
                     let _ = webview.eval(include_str!("../../scripts/mask_native_smoke.js"));
+                    let _ = webview.eval(include_str!("../../scripts/phase_native_smoke.js"));
                 }
                 let _ = webview.eval(if tooltip_smoke {
                     include_str!("../../scripts/calibration_tooltip_native_smoke.js")
@@ -408,6 +414,12 @@ mod tests {
         assert!(file_choice("integration_overlay", &json!({"operation": "load", "paths": ["a.xy", "b.xy"]})).is_none());
         assert!(file_choice("integration_phase", &json!({"operation": "update"})).is_none());
         assert!(file_choice("integration_phase", &json!({"operation": "load"})).is_some());
+        assert!(file_choice("integration_phase", &json!({"operation": "load", "paths": ["/tmp/phase.cif"]})).is_none());
+        assert!(file_choice("integration_phase_files", &json!({})).is_some());
+        assert!(file_choice("integration_phase_files", &json!({"paths": ["/tmp/phase.cif"]})).is_none());
+        assert!(file_choice("integration_phase_list", &json!({"save": true})).unwrap().save);
+        assert!(!file_choice("integration_phase_list", &json!({"save": false})).unwrap().save);
+        assert!(file_choice("integration_phase_export", &json!({"index": 0})).unwrap().save);
         assert!(file_choice("integration_image_background", &json!({"scale": 2})).is_none());
         assert!(file_choice("integration_image_background", &json!({})).is_some());
         assert!(file_choice("integration_flat_field", &json!({"enabled": true})).is_none());

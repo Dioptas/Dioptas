@@ -33,6 +33,8 @@ def choose_file(kind, save):
             / {
                 "project": "experiment.dio",
                 "pattern": "pattern.xy",
+                "phase_list": "phase_list.txt",
+                "phase_export": "phase.eosmat",
                 "calibration": "calibration.poni",
                 "peaks": "calibration-peaks.json",
                 "batch": "batch.h5",
@@ -41,6 +43,8 @@ def choose_file(kind, save):
                 "cake_export": "saved-cake.png",
             }[kind]
         )
+    if kind == "phase_list":
+        return str(artifacts / "phase_list.txt")
     if kind == "overlays":
         return [str(artifacts / "overlay-one.xy"), str(artifacts / "overlay-two.xy")]
     if kind == "pattern":

@@ -1,3 +1,5 @@
+import type { Response } from "./types";
+import type { PhaseReference } from "./integrationPhase";
 /** Integration-only command/state contract; shared mask and calibration stay owned by Session. */
 export interface IntegrationState {
   roi: [number, number, number, number] | null;
@@ -44,6 +46,7 @@ export interface IntegrationState {
     offset: number;
   }[];
   sameConditions: boolean;
+  phaseColdPressure: boolean;
   phases: {
     name: string;
     pressure: number;
@@ -52,6 +55,9 @@ export interface IntegrationState {
     color: string;
     references: string[];
     reference: number;
+    thermal: boolean;
+    fileBacked: boolean;
+    referenceDetails: PhaseReference[];
   }[];
   batchFrames: number;
   patternName: string;
@@ -71,6 +77,7 @@ export type IntegrationRun = (
   command: string,
   args?: Record<string, unknown>,
   message?: string,
+  onSuccess?: (result: Response) => void,
 ) => Promise<void>;
 
 /** UI-only identity for the non-removable measured-pattern row. */
