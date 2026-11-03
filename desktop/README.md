@@ -51,7 +51,8 @@ The Python display cache retains up to 128 MiB of pixel buffers and associated
 statistics, keyed by the complete source content, shape, dtype and display
 options. This detects in-place image/mask changes while retaining statistics
 from the original scientific precision. The window retains up to 128 MiB of
-binary buffers and 96 MiB of colour-mapped canvases. Both caches evict older
+binary buffers. Detector and cake views normally render with WebGL 2; the
+Canvas fallback and PNG export share a 96 MiB colour-image cache. Both caches evict older
 entries. Render keys include mask content, palette, linear/log scaling and
 intensity limits. Pending requests keep their advertised buffers alive even if
 another response evicts them. Ring contours are reused only while the angular
@@ -148,6 +149,42 @@ resolution (no display decimation). Zoom therefore resolves the original
 detector pixels; calculations, brush edits and pixel readouts also use original
 resolution. Display payloads use float32; scientific arrays retain their source
 precision in Python.
+
+## Image and pattern rendering
+
+Detector and cake images use WebGL 2 (`src/WebGLRaster.ts`). Each mounted view
+retains one full-resolution R32F intensity texture, an R8 mask and the selected
+colour lookup table. Intensity limits, linear/log mapping and mask transparency
+are shader uniforms; navigation changes the image projection. These operations
+do not re-upload unchanged source pixels or run a JavaScript colour loop.
+Nearest-neighbour sampling preserves individual detector pixels and the existing
+bottom-origin projection. Calibration guides, masks under construction, ROI
+handles, selections and cake axes remain on a transparent Canvas 2D layer above
+the image, using the same projection and clip.
+
+WebGL support is optional: unavailable contexts, texture dimensions beyond the
+GPU limit and upload failures use the existing Canvas renderer. Context loss
+switches to Canvas; restoration rebuilds the textures. Unmounting releases GPU
+resources. PNG export deliberately uses the software colour renderer, retaining
+its existing 2048-pixel width, current view and annotations without reading back
+the GPU. Display rendering does not change scientific arrays, integration,
+calibration or original-pixel readouts.
+
+The pattern remains Canvas 2D (`src/PatternView.tsx`). Curve and reference-line
+pixels are cached separately from the cursor, zoom selection and editable range.
+Canvas backing stores resize only when dimensions change. Data extents and
+application overlay props are memoized. For monotonic ascending or descending
+coordinates, binary search finds visible samples (including boundary neighbours)
+and the nearest readout sample. Unordered coordinates retain the general path;
+no displayed samples inside the view are decimated, and gaps remain gaps.
+
+Run `npm run test:rendering` and `npm run test:rendering -- --webkit` for shader
+pixel comparisons, texture reuse, square pixels, context recovery, unsupported
+GPU/texture-limit fallback, export and 100,000-point pattern navigation checks.
+The test serves an isolated component fixture on an automatically assigned port,
+without using the primary preview's port 1420. Add `--baseline=44504cc2` to compare
+the pattern against the pre-change component from that commit. Reports and
+screenshots are written to `desktop/artifacts/`.
 
 ## Layout and plot interaction
 

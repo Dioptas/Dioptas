@@ -1,5 +1,6 @@
 import { IntegrationPhaseLegend } from "./IntegrationPhaseLegend";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { nearestSample, visibleSamples } from "./patternSamples";
 import type { Pattern } from "./types";
 import type { PatternHover } from "./plotReadout";
 import { unitLabel } from "./types";
@@ -47,6 +48,9 @@ type PatternRegion = {
   movable?: boolean;
 };
 const EMPTY_REGIONS: PatternRegion[] = [];
+const EMPTY_CALIBRANTS: { x: number; ring: number }[] = [];
+const EMPTY_CURVES: NonNullable<Pattern["curves"]> = [];
+const EMPTY_REFERENCES: NonNullable<Pattern["phaseLines"]> = [];
 
 export function PatternView({
   pattern,
@@ -67,11 +71,11 @@ export function PatternView({
   hoverHint,
   linkedPosition,
   activeRing,
-  calibrantLines = [],
+  calibrantLines = EMPTY_CALIBRANTS,
   showNumbers = false,
   overlayLegend,
-  curves = [],
-  referenceLines = [],
+  curves = EMPTY_CURVES,
+  referenceLines = EMPTY_REFERENCES,
   regions = EMPTY_REGIONS,
   editRegions = false,
   onRegionChange,
@@ -115,12 +119,20 @@ export function PatternView({
   onRegionCancel?: () => void;
   regionsUpdating?: boolean;
 }) {
+  // Parents sometimes pass fresh empty arrays during footer readout updates.
+  if (!calibrantLines.length) calibrantLines = EMPTY_CALIBRANTS;
+  if (!curves.length) curves = EMPTY_CURVES;
+  if (!referenceLines.length) referenceLines = EMPTY_REFERENCES;
   const canvas = useRef<HTMLCanvasElement>(null),
     container = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 900, height: 230 });
   const [left, setLeft] = useState(76);
   const [axisAnnotation, setAxisAnnotation] = useState(false);
   const navigating = useRef(false);
+  const curveCache = useRef<{
+    key: unknown[];
+    canvas: HTMLCanvasElement;
+  } | null>(null);
   const regionDrag = useRef<{
     name: string;
     mode: "min" | "max" | "move";
@@ -187,18 +199,39 @@ export function PatternView({
     bottom = 52;
   const w = Math.max(1, size.width - left - right),
     h = Math.max(1, size.height - top - bottom);
-  const visibleCurves = showPattern ? [pattern, ...curves] : curves;
-  const plottedX = visibleCurves.flatMap(curve => curve.x);
-  const [fitXMin, fitXMax] = plottedX.length ? extent(plottedX) : [0, 1];
+  const visibleCurves = useMemo(
+    () => (showPattern ? [pattern, ...curves] : curves),
+    [showPattern, pattern, curves],
+  );
   const transform = (y: number) =>
     log ? Math.log10(Math.max(1e-6, y)) : sqrt ? Math.sqrt(Math.max(0, y)) : y;
-  const plottedY = visibleCurves.flatMap(curve => curve.y);
-  const visible = plottedY.filter(
-    (y): y is number => y !== null && Number.isFinite(y) && (!log || y > 0),
-  );
-  const [fitYMin, fitYMax] = visible.length
-    ? paddedExtent(visible.map(transform))
-    : [0, 1];
+  // Extents do not depend on cursor or view; scan only on data/scale changes.
+  const [fitXMin, fitXMax, fitYMin, fitYMax] = useMemo(() => {
+    let xmin = Infinity,
+      xmax = -Infinity,
+      ymin = Infinity,
+      ymax = -Infinity;
+    for (const curve of visibleCurves) {
+      for (const x of curve.x)
+        if (Number.isFinite(x)) {
+          xmin = Math.min(xmin, x);
+          xmax = Math.max(xmax, x);
+        }
+      for (const y of curve.y)
+        if (y !== null && Number.isFinite(y) && (!log || y > 0)) {
+          const value = transform(y);
+          ymin = Math.min(ymin, value);
+          ymax = Math.max(ymax, value);
+        }
+    }
+    const [low, high] = ymin === Infinity ? [0, 1] : paddedExtent([ymin, ymax]);
+    return [
+      xmin === Infinity ? 0 : xmin,
+      xmax === -Infinity ? 1 : xmax,
+      low,
+      high,
+    ];
+  }, [visibleCurves, log, sqrt]);
   const navigation = usePlotNavigation(
     {
       xMin: fitXMin,
@@ -210,22 +243,28 @@ export function PatternView({
     false,
     zoomMode,
     (xMin, xMax) => {
-      const plottedPoints = visibleCurves.flatMap((curve) =>
-        curve.x.map((x, i) => ({ x, y: curve.y[i] })),
-      );
-      const values = plottedPoints
-        .filter(
-          (point): point is { x: number; y: number } =>
-            point.y !== null &&
-            Number.isFinite(point.y) &&
-            (!log || point.y > 0) &&
-            point.x >= xMin &&
-            point.x <= xMax,
-        )
-        .map((point) => point.y);
-
-      if (!values.length) return [fitYMin, fitYMax];
-      return paddedExtent(values.map(transform));
+      let min = Infinity,
+        max = -Infinity;
+      for (const curve of visibleCurves) {
+        const [start, end] = visibleSamples(curve.x, xMin, xMax, false);
+        for (let i = start; i < end; i++) {
+          const x = curve.x[i],
+            y = curve.y[i];
+          if (
+            !Number.isFinite(x) ||
+            x < xMin ||
+            x > xMax ||
+            y === null ||
+            !Number.isFinite(y) ||
+            (log && y <= 0)
+          )
+            continue;
+          const value = transform(y);
+          min = Math.min(min, value);
+          max = Math.max(max, value);
+        }
+      }
+      return min === Infinity ? [fitYMin, fitYMax] : paddedExtent([min, max]);
     },
   );
   useEffect(() => {
@@ -310,10 +349,15 @@ export function PatternView({
     const context = canvas.current?.getContext("2d");
     if (!context || !canvas.current) return;
     const dpr = window.devicePixelRatio || 1;
-    canvas.current.width = Math.round(size.width * dpr);
-    canvas.current.height = Math.round(size.height * dpr);
+    const width = Math.max(1, Math.round(size.width * dpr));
+    const height = Math.max(1, Math.round(size.height * dpr));
+    if (canvas.current.width !== width) canvas.current.width = width;
+    if (canvas.current.height !== height) canvas.current.height = height;
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    context.clearRect(0, 0, width, height);
     context.scale(dpr, dpr);
-    // Resizing clears the canvas; transparent margins reveal the workspace surface.
+    context.lineWidth = 1;
+    context.setLineDash([]);
     context.font = "13px ui-monospace, SFMono-Regular, monospace";
     const intervalsY = Math.max(1, Math.floor(h / 48));
     const inverse = (v: number) => Math.max(0, v) ** 2;
@@ -446,106 +490,174 @@ export function PatternView({
       context.textAlign = "left";
       context.fillText(region.name, x0 + 5, top + 14);
     }
-    const drawCurve = (
-      curve: { x: number[]; y: (number | null)[] },
-      color: string,
-      width: number,
-    ) => {
-      context.strokeStyle = color;
-      context.fillStyle = color;
-      context.lineWidth = width;
-      const pixelWidth = width > 2 ? Math.round(width) : 1;
-      context.beginPath();
-      let previous: [number, number] | null = null;
-      curve.x.forEach((x, i) => {
-        const y = curve.y[i];
-        if (y == null || !Number.isFinite(y) || (log && y <= 0)) {
-          previous = null;
-          return;
-        }
-        const point: [number, number] = [
-          left + ((x - xmin) / (xmax - xmin)) * w,
-          top + h - ((transform(y) - ymin) / yspan) * h,
-        ];
-        if (antialias) {
-          if (previous) context.lineTo(...point);
-          else context.moveTo(...point);
-        } else if (previous) {
-          // Clip before stepping to keep deeply zoomed, off-screen segments bounded.
-          const dx = point[0] - previous[0],
-            dy = point[1] - previous[1];
-          let start = 0,
-            end = 1;
-          for (const [origin, delta, low, high] of [
-            [previous[0], dx, left, left + w],
-            [previous[1], dy, top, top + h],
-          ]) {
-            if (delta === 0) {
-              if (origin < low || origin > high) end = -1;
-            } else {
-              const t0 = (low - origin) / delta,
-                t1 = (high - origin) / delta;
-              start = Math.max(start, Math.min(t0, t1));
-              end = Math.min(end, Math.max(t0, t1));
-            }
-          }
-          if (end >= start) {
-            const steps = Math.max(
-              1,
-              Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) * (end - start)),
-            );
-            for (let j = 0; j <= steps; j++) {
-              const t = start + ((end - start) * j) / steps;
-              context.fillRect(
-                Math.floor(previous[0] + dx * t - (pixelWidth - 1) / 2),
-                Math.floor(previous[1] + dy * t - (pixelWidth - 1) / 2),
-                pixelWidth,
-                pixelWidth,
-              );
-            }
-          }
-        }
-        previous = point;
-      });
-      if (antialias) context.stroke();
-    };
-    if (showPattern && !emphasizePattern) drawCurve(pattern, patternColor, 1.4);
-    // Measured curves and background inspection share the same axes and drawing mode.
-    // Draw the selected overlay last so it remains identifiable where curves overlap.
-    for (const curve of curves.filter(curve => !curve.selected)) drawCurve(curve, curve.color, 1.2);
-    for (const curve of curves.filter(curve => curve.selected)) drawCurve(curve, curve.color, 2.4);
-    if (showPattern && emphasizePattern) drawCurve(pattern, patternColor, 2.4);
-    const phaseLineTops = scalePhaseLines(
+    // Reuse curve pixels when only the cursor, selection or editable region changes.
+    const curveKey = [
       pattern,
+      showPattern,
+      emphasizePattern,
+      patternColor,
+      log,
+      sqrt,
+      antialias,
+      width,
+      height,
+      dpr,
+      left,
+      top,
+      w,
+      h,
+      xmin,
+      xmax,
+      ymin,
+      ymax,
+      curves,
       referenceLines,
-      navigation.view,
-      (y) => (log && y <= 0 ? NaN : transform(y)),
-    );
-    for (const [index, line] of referenceLines.entries()) {
-      const x = left + ((line.x - xmin) / (xmax - xmin)) * w;
-      if (x < left || x > left + w) continue;
-      context.strokeStyle = line.color;
-      context.lineWidth = 1.3;
-      context.beginPath();
-      context.moveTo(x, top + h);
-      context.lineTo(x, top + h - ((phaseLineTops[index] - ymin) / yspan) * h);
-      context.stroke();
-    }
-    for (const reference of calibrantLines) {
-      const x = left + ((reference.x - xmin) / (xmax - xmin)) * w;
-      if (x < left || x > left + w) continue;
-      const active = reference.ring === activeRing;
-      context.strokeStyle = active ? "#ff4040d9" : "#ff4040b3";
-      context.lineWidth = active ? 2.2 : 1;
-      context.beginPath();
-      context.moveTo(x, top);
-      context.lineTo(x, top + h);
-      context.stroke();
-      if (showNumbers) {
-        context.fillStyle = "#ff4040";
-        context.fillText(String(reference.ring), x + 4, top + 14);
+      calibrantLines,
+      activeRing,
+      showNumbers,
+    ];
+    if (
+      !curveCache.current ||
+      curveKey.some((v, i) => !Object.is(v, curveCache.current!.key[i]))
+    ) {
+      const layer =
+        curveCache.current?.canvas ?? document.createElement("canvas");
+      layer.dataset.testid = "pattern-curves";
+      if (layer.width !== width) layer.width = width;
+      if (layer.height !== height) layer.height = height;
+      const curveContext = layer.getContext("2d")!;
+      curveContext.setTransform(1, 0, 0, 1, 0, 0);
+      curveContext.clearRect(0, 0, width, height);
+      curveContext.scale(dpr, dpr);
+      curveContext.font = context.font;
+      curveContext.save();
+      curveContext.beginPath();
+      curveContext.rect(left, top, w, h);
+      curveContext.clip();
+      const drawCurve = (
+        curve: { x: number[]; y: (number | null)[] },
+        color: string,
+        width: number,
+      ) => {
+        curveContext.strokeStyle = color;
+        curveContext.fillStyle = color;
+        curveContext.lineWidth = width;
+        const pixelWidth = width > 2 ? Math.round(width) : 1;
+        curveContext.beginPath();
+        let previous: [number, number] | null = null;
+        const [startIndex, endIndex] = visibleSamples(curve.x, xmin, xmax);
+        for (let i = startIndex; i < endIndex; i++) {
+          const x = curve.x[i],
+            y = curve.y[i];
+          if (
+            !Number.isFinite(x) ||
+            y == null ||
+            !Number.isFinite(y) ||
+            (log && y <= 0)
+          ) {
+            previous = null;
+            continue;
+          }
+          const point: [number, number] = [
+            left + ((x - xmin) / (xmax - xmin)) * w,
+            top + h - ((transform(y) - ymin) / yspan) * h,
+          ];
+          if (antialias) {
+            if (previous) curveContext.lineTo(...point);
+            else curveContext.moveTo(...point);
+          } else if (previous) {
+            // Clip before stepping to keep deeply zoomed, off-screen segments bounded.
+            const dx = point[0] - previous[0],
+              dy = point[1] - previous[1];
+            let start = 0,
+              end = 1;
+            for (const [origin, delta, low, high] of [
+              [previous[0], dx, left, left + w],
+              [previous[1], dy, top, top + h],
+            ]) {
+              if (delta === 0) {
+                if (origin < low || origin > high) end = -1;
+              } else {
+                const t0 = (low - origin) / delta,
+                  t1 = (high - origin) / delta;
+                start = Math.max(start, Math.min(t0, t1));
+                end = Math.min(end, Math.max(t0, t1));
+              }
+            }
+            if (end >= start) {
+              const steps = Math.max(
+                1,
+                Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) * (end - start)),
+              );
+              for (let j = 0; j <= steps; j++) {
+                const t = start + ((end - start) * j) / steps;
+                curveContext.fillRect(
+                  Math.floor(previous[0] + dx * t - (pixelWidth - 1) / 2),
+                  Math.floor(previous[1] + dy * t - (pixelWidth - 1) / 2),
+                  pixelWidth,
+                  pixelWidth,
+                );
+              }
+            }
+          }
+          previous = point;
+        }
+        if (antialias) curveContext.stroke();
+      };
+      if (showPattern && !emphasizePattern)
+        drawCurve(pattern, patternColor, 1.4);
+      // Measured curves and background inspection share the same axes and drawing mode.
+      // Draw the selected overlay last so it remains identifiable where curves overlap.
+      for (const curve of curves.filter((curve) => !curve.selected))
+        drawCurve(curve, curve.color, 1.2);
+      for (const curve of curves.filter((curve) => curve.selected))
+        drawCurve(curve, curve.color, 2.4);
+      if (showPattern && emphasizePattern)
+        drawCurve(pattern, patternColor, 2.4);
+      const phaseLineTops = scalePhaseLines(
+        pattern,
+        referenceLines,
+        navigation.view,
+        (y) => (log && y <= 0 ? NaN : transform(y)),
+      );
+      for (const [index, line] of referenceLines.entries()) {
+        const x = left + ((line.x - xmin) / (xmax - xmin)) * w;
+        if (x < left || x > left + w) continue;
+        curveContext.strokeStyle = line.color;
+        curveContext.lineWidth = 1.3;
+        curveContext.beginPath();
+        curveContext.moveTo(x, top + h);
+        curveContext.lineTo(
+          x,
+          top + h - ((phaseLineTops[index] - ymin) / yspan) * h,
+        );
+        curveContext.stroke();
       }
+      for (const reference of calibrantLines) {
+        const x = left + ((reference.x - xmin) / (xmax - xmin)) * w;
+        if (x < left || x > left + w) continue;
+        const active = reference.ring === activeRing;
+        curveContext.strokeStyle = active ? "#ff4040d9" : "#ff4040b3";
+        curveContext.lineWidth = active ? 2.2 : 1;
+        curveContext.beginPath();
+        curveContext.moveTo(x, top);
+        curveContext.lineTo(x, top + h);
+        curveContext.stroke();
+        if (showNumbers) {
+          curveContext.fillStyle = "#ff4040";
+          curveContext.fillText(String(reference.ring), x + 4, top + 14);
+        }
+      }
+      curveContext.restore();
+      curveCache.current = { key: curveKey, canvas: layer };
     }
+    context.drawImage(
+      curveCache.current.canvas,
+      0,
+      0,
+      width / dpr,
+      height / dpr,
+    );
     if (linkedPosition !== undefined) {
       const x = left + ((linkedPosition - xmin) / (xmax - xmin)) * w;
       context.strokeStyle = POSITION_LINE_COLOR;
@@ -608,7 +720,10 @@ export function PatternView({
     antialias,
     size,
     hover,
-    navigation.view,
+    xmin,
+    xmax,
+    ymin,
+    ymax,
     navigation.selection,
     zoomMode,
     linkedPosition,
@@ -641,16 +756,7 @@ export function PatternView({
   useEffect(() => {
     if (w > 1) onResolution?.(xResolution);
   }, [w, xResolution, onResolution]);
-  const nearest =
-    xvalue === null
-      ? -1
-      : pattern.x.reduce(
-          (best, x, i) =>
-            Math.abs(x - xvalue) < Math.abs(pattern.x[best] - xvalue)
-              ? i
-              : best,
-          0,
-        );
+  const nearest = xvalue === null ? -1 : nearestSample(pattern.x, xvalue);
   useEffect(() => {
     onHover?.(
       nearest >= 0
@@ -811,7 +917,13 @@ export function PatternView({
         onPointerLeave={() => setHover(null)}
       />
       {overlayLegend && (
-        <OverlayPlotLegend entries={overlayLegend} left={left + w - 10} top={top + 5} width={w * 0.6} height={h * 0.5} />
+        <OverlayPlotLegend
+          entries={overlayLegend}
+          left={left + w - 10}
+          top={top + 5}
+          width={w * 0.6}
+          height={h * 0.5}
+        />
       )}
       {onZoomMode && (
         <PlotZoomControls

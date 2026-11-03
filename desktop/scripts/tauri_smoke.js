@@ -3,6 +3,20 @@
   if (window.__dioptasNativeSmokeRunning) return;
   window.__dioptasNativeSmokeRunning = true;
   const call = window.__dioptasNativeCall;
+  // Capture only in this test window, before the compositor discards a GPU frame.
+  const frames = new WeakMap();
+  const drawArrays = WebGL2RenderingContext.prototype.drawArrays;
+  WebGL2RenderingContext.prototype.drawArrays = function (...args) {
+    const result = drawArrays.apply(this, args);
+    if (/^(detector|cake)-gpu$/.test(this.canvas.dataset.testid ?? "")) {
+      const frame = frames.get(this.canvas) ?? document.createElement("canvas");
+      frame.width = this.canvas.width;
+      frame.height = this.canvas.height;
+      frame.getContext("2d").drawImage(this.canvas, 0, 0);
+      frames.set(this.canvas, frame);
+    }
+    return result;
+  };
   const delay = (ms = 60) => new Promise((r) => setTimeout(r, ms));
   const check = (condition, message) => {
     if (!condition) throw Error(message);
@@ -53,6 +67,12 @@
     check(
       host.tcpListeners === 0,
       "The native host or processing child opened a TCP listener",
+    );
+    await wait(
+      () =>
+        document.querySelector('[data-testid="detector-canvas"]')?.dataset
+          .renderer === "webgl2",
+      "Native detector did not use WebGL 2",
     );
     const initial = await call("state");
     check(
@@ -267,6 +287,12 @@
       document.querySelector('[data-testid="cake-canvas"]'),
       "Validation cake is missing",
     );
+    await wait(
+      () =>
+        document.querySelector('[data-testid="cake-canvas"]')?.dataset
+          .renderer === "webgl2",
+      "Native cake did not use WebGL 2",
+    );
     for (const [label, id] of [
       ["Pattern", "pattern"],
       ["Cake", "cake"],
@@ -445,11 +471,21 @@
       const canvas = document.querySelector(
         `[data-testid="${source === "cake" ? "cake" : "detector"}-canvas"]`,
       );
+      const composite = document.createElement("canvas");
+      composite.width = canvas.width;
+      composite.height = canvas.height;
+      const context = composite.getContext("2d");
+      const gpuCanvas = canvas.previousElementSibling;
+      if (canvas.dataset.renderer === "webgl2") {
+        check(frames.has(gpuCanvas), "GPU image was not captured");
+        context.drawImage(frames.get(gpuCanvas), 0, 0);
+      }
+      context.drawImage(canvas, 0, 0);
       const path = sourceRoot + `/desktop/artifacts/native-saved-${source}.png`;
       const saved = await call("integration_save_image", {
         path,
         source,
-        png_data: canvas.toDataURL("image/png").split(",")[1],
+        png_data: composite.toDataURL("image/png").split(",")[1],
       });
       check(
         saved.ok && saved.savedPath === path,
@@ -499,6 +535,7 @@
       delay,
       check,
     });
+    WebGL2RenderingContext.prototype.drawArrays = drawArrays;
     const binaryTransfer = await window.__dioptasBinaryNativeSmoke({
       call,
       click,
@@ -545,6 +582,7 @@
         fittedDistanceMm: fitted.state.geometry.dist * 1000,
         wheelPrevented,
         validationImages: 2,
+        rasterRenderer: "webgl2",
         plotZoomSelectors: true,
         qtIntegrationLayout: true,
         integrationBins: integrated.state.bins,

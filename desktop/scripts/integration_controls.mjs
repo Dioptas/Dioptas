@@ -472,13 +472,13 @@ async function verifyIntegrationPlotTools(page, invoke, waitReady) {
   await click("Load background…");
   await page.getByLabel("Image background scale", { exact: true }).fill("0.1");
   await click("Apply image background");
-  const imageBefore = await page
-    .getByTestId("detector-canvas")
-    .evaluate((el) => el.toDataURL());
+  const imageBefore = (
+    await page.getByTestId("detector-canvas").screenshot()
+  ).toString("base64");
   await click("Show corrected image");
-  const imageAfter = await page
-    .getByTestId("detector-canvas")
-    .evaluate((el) => el.toDataURL());
+  const imageAfter = (
+    await page.getByTestId("detector-canvas").screenshot()
+  ).toString("base64");
   assert.notEqual(
     imageAfter,
     imageBefore,

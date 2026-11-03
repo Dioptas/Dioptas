@@ -1,3 +1,4 @@
+import { visibleSamples } from "./patternSamples.ts";
 import type { Pattern } from "./types";
 import type { PlotRange } from "./usePlotNavigation";
 
@@ -10,7 +11,8 @@ export function scalePhaseLines(
 ): number[] {
   if (!lines.length) return [];
   let maximum = -Infinity;
-  for (let i = 0; i < pattern.x.length; i++) {
+  const [start, end] = visibleSamples(pattern.x, view.xMin, view.xMax, false);
+  for (let i = start; i < end; i++) {
     const x = pattern.x[i],
       y = pattern.y[i];
     if (x > view.xMin && x < view.xMax && y != null && Number.isFinite(y)) {

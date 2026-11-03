@@ -134,7 +134,9 @@ export async function verifyBackgroundRange(page, invoke, waitReady) {
     };
     CanvasRenderingContext2D.prototype.stroke = function (...args) {
       if (
-        this.canvas.dataset.testid === "pattern-canvas" &&
+        ["pattern-canvas", "pattern-curves"].includes(
+          this.canvas.dataset.testid,
+        ) &&
         this.strokeStyle === "#73bba6"
       )
         window.__backgroundDrawnPoints = counts.get(this) + 1;

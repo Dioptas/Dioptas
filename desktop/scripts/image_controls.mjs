@@ -121,7 +121,7 @@ export async function verifyImageControls(page, invoke, pixelRequests) {
     original.image.histogram.finitePixels,
     original.image.fullWidth * original.image.fullHeight,
   );
-  const renderedBefore = await canvas.evaluate((el) => el.toDataURL());
+  const renderedBefore = (await canvas.screenshot()).toString("base64");
   const upper = await page
     .getByRole("slider", { name: "Upper intensity handle", exact: true })
     .boundingBox();
@@ -140,7 +140,7 @@ export async function verifyImageControls(page, invoke, pixelRequests) {
       original.image.limits[1],
   );
   assert.notEqual(
-    await canvas.evaluate((el) => el.toDataURL()),
+    (await canvas.screenshot()).toString("base64"),
     renderedBefore,
   );
   await page
@@ -389,7 +389,7 @@ export async function verifyImageControls(page, invoke, pixelRequests) {
   ]) {
     await selectColorMap(page, "Color map", name);
     assert.notEqual(
-      await canvas.evaluate((el) => el.toDataURL()),
+      (await canvas.screenshot()).toString("base64"),
       renderedBefore,
     );
   }
