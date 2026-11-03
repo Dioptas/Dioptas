@@ -313,6 +313,10 @@
 .pe-dialog footer {
   flex-wrap: wrap;
 }
+.phase-dialog.pe-dialog > footer > button {
+  padding: 2px 6px;
+  font-weight: inherit;
+}
 .pe-dialog footer p {
   flex: 1;
   min-width: 200px;
