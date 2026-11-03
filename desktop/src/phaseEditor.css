@@ -288,6 +288,9 @@
   line-height: 1.5;
   margin: 8px 0;
 }
+.pe-eos-page {
+  container: phase-parameters / inline-size;
+}
 .pe-eos-page .pe-selector {
   grid-template-columns: 128px minmax(0, 1fr);
 }
@@ -297,6 +300,7 @@
   margin: 8px 0 14px;
 }
 .pe-eos-fields .pe-field {
+  width: min(100%, 358px);
   grid-template-columns: 128px 110px minmax(0, 1fr);
   gap: 8px;
   padding: 4px 0;
@@ -311,6 +315,9 @@
   white-space: normal;
   overflow-wrap: normal;
 }
+.pe-eos-fields .pe-field-choice {
+  width: 100%;
+}
 .pe-eos-fields .pe-field-choice select {
   grid-column: 2 / -1;
   width: 100%;
@@ -318,6 +325,31 @@
 }
 .pe-eos-fields .pe-field-choice .pe-unit {
   display: none;
+}
+/* Each half keeps its own fixed label/value/unit columns. Long units and
+   configuration choices use the full row, aligned with the first half. */
+@container phase-parameters (min-width: 42em) {
+  .pe-eos-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 16px;
+  }
+  .pe-eos-fields .pe-field {
+    width: 100%;
+    grid-template-columns: 112px 100px minmax(0, 1fr);
+    gap: 6px;
+  }
+  .pe-eos-fields .pe-field > span:first-child {
+    white-space: normal;
+    overflow-wrap: normal;
+  }
+  .pe-eos-fields .pe-field-wide,
+  .pe-eos-fields .pe-field-choice {
+    grid-column: 1 / -1;
+  }
+  .pe-eos-page .pe-selector {
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 6px;
+  }
 }
 .pe-default {
   font-size: var(--text-meta);

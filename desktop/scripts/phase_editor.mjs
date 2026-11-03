@@ -737,6 +737,68 @@ try {
   await page.screenshot({
     path: artifacts + "/phase-editor-thermal-symbols.png",
   });
+  // Wider panes pair parameters while keeping each label/value/unit column
+  // aligned. Long normalization units stay in the first column group.
+  await click("Close");
+  await setInterfaceTextSize(page, false);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await click("Edit selected Phase");
+  await page
+    .getByRole("tab", { name: "Equation of state", exact: true })
+    .click();
+  const paired = await page
+    .locator(".pe-parameter-scroll:not([hidden])")
+    .evaluate((pane) => {
+      const rows = [
+        ...pane.querySelectorAll(
+          ".pe-eos-fields .pe-field:not(.pe-field-choice)",
+        ),
+      ]
+        .map((field) => {
+          const input = field.querySelector("input").getBoundingClientRect();
+          const unit = field.querySelector(".pe-unit").getBoundingClientRect();
+          const label = field.firstElementChild.getBoundingClientRect();
+          return {
+            key: field.querySelector("input").getAttribute("aria-label"),
+            y: input.y,
+            x: input.x,
+            width: input.width,
+            unit: unit.x,
+            labelRight: label.right,
+          };
+        })
+        .filter((row) => row.width > 0);
+      const selectorX = pane
+        .querySelector('select[aria-label="Equation of state model"]')
+        .getBoundingClientRect().x;
+      return {
+        rows,
+        selectorX,
+        width: pane.clientWidth,
+        scroll: pane.scrollWidth,
+      };
+    });
+  assert.ok(paired.scroll <= paired.width + 1, JSON.stringify(paired));
+  const starts = [...new Set(paired.rows.map((row) => row.x))].sort(
+    (a, b) => a - b,
+  );
+  assert.equal(starts.length, 2, JSON.stringify(paired));
+  assert.equal(paired.selectorX, starts[0], JSON.stringify(paired));
+  for (const start of starts) {
+    const rows = paired.rows.filter((row) => row.x === start);
+    for (const row of rows) {
+      assert.equal(row.width, rows[0].width);
+      assert.equal(row.unit, rows[0].unit);
+      assert.ok(row.x - row.labelRight <= 8);
+    }
+  }
+  const k0 = paired.rows.find((row) => row.key === "K₀");
+  const kp = paired.rows.find((row) => row.key === "K₀′");
+  assert.equal(k0.y, kp.y);
+  assert.notEqual(k0.x, kp.x);
+  await page.screenshot({
+    path: artifacts + "/phase-editor-paired-parameters.png",
+  });
   const mao = userMaterial.references.findIndex((r) =>
     /dewaele.*mao ruby/i.test(r.label),
   );

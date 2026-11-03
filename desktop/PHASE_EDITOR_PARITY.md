@@ -53,10 +53,12 @@ be saved in a project or as EOSMAT. Edit a copy is beside Save and Save As in
 the fixed footer. Record actions are always visible in a compact icon toolbar,
 with tooltips and accessible names for duplicate, add, set default, delete and
 clear all. Material and EoS names have distinct editable fields. Numeric EoS,
-normalization and thermal parameters use one parameter per row with shared,
-fixed label, value and unit columns. Labels align right beside their controls,
-including model/record selectors and configuration choices. Unitless rows reserve the unit column;
-configuration selectors span the value and unit columns. Constructor
+normalization and thermal parameters use shared, fixed label, value and unit
+columns. A wide parameter pane fits two groups per row; a narrow pane uses a
+compact single group. The breakpoint follows text size. Long units and
+configuration choices span the full row and align with the first group.
+Labels align right beside their controls, including model/record selectors and
+configuration choices. Unitless rows reserve the unit column. Constructor
 defaults have an inline asterisk and tooltip, with explanations in a disclosure.
 Thermal coefficients use scientific symbols, explicit constructor units and
 plain-language tooltips (including constant-volume derivatives). Model-specific

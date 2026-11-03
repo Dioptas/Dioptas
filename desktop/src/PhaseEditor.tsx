@@ -166,7 +166,7 @@ export function PhaseEditor({
   const locked = !ready && pending === 0;
   const field = (f: EditorField, thermal = false) => (
     <label
-      className={`pe-field${f.choices?.length ? " pe-field-choice" : ""}`}
+      className={`pe-field${f.choices?.length ? " pe-field-choice" : ""}${(f.unit?.length ?? 0) > 8 ? " pe-field-wide" : ""}`}
       key={`${data.index}-${data.reference}-${f.key}`}
     >
       <span title={f.description ? `${f.description} · ${f.key}` : f.key}>
