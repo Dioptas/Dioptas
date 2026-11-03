@@ -220,6 +220,7 @@ export function PhaseEditor({
         min={key.includes("0") && key.length > 2 ? 0.001 : 0.000001}
         max={key.length > 2 ? 179.999 : 99999}
         step={step}
+        stepper
         title={
           data.latticeEditable.includes(key)
             ? "Reference lattice; Enter or Tab applies"
@@ -431,12 +432,13 @@ export function PhaseEditor({
                     disabled={!ratioAllowed(key)}
                     min={0.000001}
                     step={ratioStep}
+                    stepper
                     title="Ratio of reference lattice lengths; changes the numerator length"
                     onCommit={(value) =>
                       act("editor_ratio", { parameter: key, value })
                     }
                   />
-                  <span />
+                  <span className="pe-unit" aria-hidden="true" />
                 </label>
               ))}
             </div>

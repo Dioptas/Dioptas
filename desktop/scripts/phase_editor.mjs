@@ -140,10 +140,35 @@ try {
   await page.getByLabel("a₀", { exact: true }).press("ArrowUp");
   await ready();
   assert.equal((await state()).lattice.a0, 4.22);
+  await click("Decrease a₀");
+  assert.equal((await state()).lattice.a0, 4.2);
+  await click("Increase a₀");
+  assert.equal((await state()).lattice.a0, 4.22);
+  assert.ok(
+    await page
+      .getByRole("button", { name: "Increase b₀", exact: true })
+      .isDisabled(),
+  );
+  await page
+    .getByLabel("Phase symmetry", { exact: true })
+    .selectOption("triclinic");
+  await ready();
+  await edit("Lattice angle step", 2.5);
+  await click("Decrease α₀");
+  assert.equal((await state()).lattice.alpha0, 87.5);
+  await click("Increase α₀");
+  assert.equal((await state()).lattice.alpha0, 90);
   await page
     .getByLabel("Phase symmetry", { exact: true })
     .selectOption("orthorhombic");
   await ready();
+  await edit("Lattice ratio step", 0.025);
+  await click("Increase c/a");
+  let latticeState = (await state()).lattice;
+  assert.ok(Math.abs(latticeState.c0 / latticeState.a0 - 1.025) < 1e-12);
+  await click("Decrease c/a");
+  latticeState = (await state()).lattice;
+  assert.ok(Math.abs(latticeState.c0 / latticeState.a0 - 1) < 1e-12);
   await edit("c/a", 1.5, "Tab");
   assert.equal((await state()).lattice.c0, 4.22 * 1.5);
   assert.equal(
@@ -383,6 +408,17 @@ try {
             .backgroundColor,
           tableClient: table.clientHeight,
           font: getComputedStyle(el.querySelector(".pe-number input")).fontSize,
+          latticeInputs: [
+            ...el.querySelectorAll(".pe-lattice-grid .pe-field"),
+          ].map((field) => {
+            const input = field.querySelector("input").getBoundingClientRect();
+            return {
+              x: input.x,
+              width: input.width,
+              unitWidth: field.querySelector(".pe-unit").getBoundingClientRect()
+                .width,
+            };
+          }),
         };
       });
       assert.ok(
@@ -394,6 +430,17 @@ try {
       assert.ok(m.parameterGutter >= 10, JSON.stringify(m));
       assert.ok(m.tableClient >= 120, JSON.stringify(m));
       assert.equal(m.font, large ? "16px" : "14px");
+      if (tab.startsWith("Volume")) {
+        m.latticeInputs.forEach((input, index) => {
+          const column = m.latticeInputs[index % 3];
+          assert.ok(Math.abs(input.x - column.x) < 1, JSON.stringify(m));
+          assert.ok(
+            Math.abs(input.width - column.width) < 1,
+            JSON.stringify(m),
+          );
+          assert.ok(input.unitWidth > 0, JSON.stringify(m));
+        });
+      }
       metrics.push({ large, tab, ...m });
       await page.screenshot({
         path:

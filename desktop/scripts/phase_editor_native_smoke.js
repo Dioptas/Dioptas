@@ -108,6 +108,17 @@
       "Draft Escape closed the native editor",
     );
     await set("a₀", 4.2);
+    await set("Lattice length step", 0.02);
+    await click("Increase a₀");
+    check(
+      document.querySelector('input[aria-label="a₀"]').value === "4.22",
+      "Native lattice step did not use the length increment",
+    );
+    await click("Decrease a₀");
+    check(
+      document.querySelector('input[aria-label="a₀"]').value === "4.2",
+      "Native lattice decrement failed",
+    );
     const intensity = await set("Reflection 1 intensity", 66.0396789);
     intensity.blur();
     await idle();

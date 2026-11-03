@@ -157,6 +157,45 @@
   padding: 4px 5px;
   font-variant-numeric: tabular-nums;
 }
+.pe-number-stepped {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 18px;
+}
+.pe-number-stepped input {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  padding-right: 22px;
+}
+.pe-number-stepped .pe-field-error {
+  grid-column: 1 / -1;
+}
+.pe-number-steps {
+  grid-column: 2;
+  grid-row: 1;
+  z-index: 1;
+  margin: 1px 1px 1px 0;
+  display: grid;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+.phase-dialog.pe-dialog .pe-number-steps button {
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+  color: var(--muted);
+}
+.pe-number-steps button:first-child {
+  border-top-right-radius: 4px;
+}
+.pe-number-steps button:last-child {
+  border-bottom-right-radius: 4px;
+}
+.pe-number-steps svg {
+  width: 12px;
+  height: 10px;
+}
 .pe-number input[aria-invalid="true"] {
   border-color: #eda66a;
 }
@@ -171,6 +210,9 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px 12px;
+}
+.pe-lattice-grid .pe-field {
+  grid-template-columns: 2em minmax(0, 1fr) 2.5ch;
 }
 .pe-ratios {
   margin: 12px 0;

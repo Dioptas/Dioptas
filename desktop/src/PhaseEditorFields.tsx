@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 /** A draft survives parent renders. Enter/blur commit; Escape restores the model. */
 export function EditorNumber({
@@ -13,6 +14,7 @@ export function EditorNumber({
   integer = false,
   title,
   significantDigits,
+  stepper = false,
 }: {
   label: string;
   value: number | null;
@@ -25,6 +27,7 @@ export function EditorNumber({
   integer?: boolean;
   title?: string;
   significantDigits?: number;
+  stepper?: boolean;
 }) {
   const display = (n: number | null) =>
     n == null
@@ -33,6 +36,7 @@ export function EditorNumber({
         ? String(Number(n.toPrecision(significantDigits)))
         : String(n);
   const focused = useRef(false);
+  const input = useRef<HTMLInputElement>(null);
   const dirty = useRef(false);
   const [text, setText] = useState(display(value));
   const [error, setError] = useState("");
@@ -92,9 +96,26 @@ export function EditorNumber({
     }
     return accepted !== false;
   };
+  const nudge = (direction: number) => {
+    if (disabled || pending || step === "any") return;
+    const n = Number(text);
+    if (!text.trim() || !Number.isFinite(n)) return;
+    const next = Math.min(
+      max ?? Infinity,
+      Math.max(
+        min ?? -Infinity,
+        Number((n + direction * step).toPrecision(12)),
+      ),
+    );
+    input.current?.focus();
+    dirty.current = true;
+    setText(String(next));
+    void commit(String(next));
+  };
   return (
-    <span className="pe-number">
+    <span className={`pe-number${stepper ? " pe-number-stepped" : ""}`}>
       <input
+        ref={input}
         type="text"
         inputMode="decimal"
         aria-label={label}
@@ -139,23 +160,28 @@ export function EditorNumber({
             !pending
           ) {
             e.preventDefault();
-            const n = Number(text);
-            if (!text.trim() || !Number.isFinite(n)) return;
-            const next = Math.min(
-              max ?? Infinity,
-              Math.max(
-                min ?? -Infinity,
-                Number(
-                  (n + (e.key === "ArrowUp" ? step : -step)).toPrecision(12),
-                ),
-              ),
-            );
-            dirty.current = true;
-            setText(String(next));
-            void commit(String(next));
+            nudge(e.key === "ArrowUp" ? 1 : -1);
           }
         }}
       />
+      {stepper && step !== "any" && (
+        <span className="pe-number-steps">
+          {[1, -1].map((direction) => (
+            <button
+              key={direction}
+              type="button"
+              tabIndex={-1}
+              aria-label={`${direction === 1 ? "Increase" : "Decrease"} ${label}`}
+              title={`${direction === 1 ? "Increase" : "Decrease"} by ${step}`}
+              disabled={disabled || pending}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => nudge(direction)}
+            >
+              {direction === 1 ? <ChevronUp /> : <ChevronDown />}
+            </button>
+          ))}
+        </span>
+      )}
       {error && (
         <span id={id} className="pe-field-error">
           {error}

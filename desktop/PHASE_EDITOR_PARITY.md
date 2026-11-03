@@ -63,7 +63,11 @@ Escape restores the applied value without closing the dialog. Invalid values
 have an inline message and cannot be saved as a draft. Edits are serialized so
 rapid Tab-driven entry survives model updates. Backend scientific rejection
 restores the complete phase state and displays the reason inside the modal.
-Arrow keys step lattice values; parameter tabs support arrow/Home/End navigation.
+Visible up/down controls and arrow keys step each editable lattice/ratio field
+by its configured Length, Angle or Ratio increment. Constrained fields keep
+their controls disabled. Lattice rows share label, input and unit column widths;
+dimensionless ratios reserve the same unit space. Parameter tabs support
+arrow/Home/End navigation.
 Adding a reflection focuses its h field; closing restores focus to the opener.
 
 Feature code is isolated in `PhaseEditor*.tsx`, `NativePhaseEditor.tsx`,
