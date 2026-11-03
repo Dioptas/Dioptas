@@ -1,6 +1,15 @@
 // Injected exclusively in the detached child of our --smoke native process.
 (async () => {
   const invoke = window.__TAURI_INTERNALS__.invoke;
+  let editorReads = 0;
+  window.__TAURI_INTERNALS__.invoke = (command, args, options) => {
+    if (
+      command === "desktop_invoke" &&
+      args?.action === "integration_phase_editor"
+    )
+      editorReads++;
+    return invoke(command, args, options);
+  };
   const delay = (ms = 30) => new Promise((resolve) => setTimeout(resolve, ms));
   const check = (ok, text) => {
     if (!ok) throw Error(text);
@@ -113,7 +122,13 @@
       document.querySelector(".pe-native"),
       "Draft Escape closed the native editor",
     );
+    const readsBeforeEdit = editorReads;
     await set("a₀", 4.2);
+    await delay(150);
+    check(
+      editorReads === readsBeforeEdit,
+      "The main preview echoed the editor's own update back as another read",
+    );
     await set("Lattice length step", 0.02);
     await click("Increase a₀");
     check(
@@ -208,7 +223,10 @@
       "Native Save did not retain the material name/file association",
     );
     await click("Equation of state");
-    document.querySelector(".pe-record-tools").open = true;
+    check(
+      document.querySelector('[role="toolbar"][aria-label="EoS records"]'),
+      "EoS toolbar is not always visible",
+    );
     await click("Add record");
     await click("Duplicate as custom");
     const recordsBefore = (
@@ -221,8 +239,8 @@
       'dialog[aria-label="Delete EoS record?"]',
     );
     check(confirmation?.open, "Native record confirmation did not open");
-    const anchor = [...document.querySelectorAll("button")]
-      .find((b) => b.textContent.trim() === "Delete record…")
+    const anchor = document
+      .querySelector('button[aria-label="Delete record…"]')
       .getBoundingClientRect();
     const popup = confirmation.getBoundingClientRect();
     check(
@@ -275,6 +293,8 @@
       compactIndices: true,
       intensityPrecision: true,
       materialNameAndSave: true,
+      noRefreshEcho: true,
+      persistentRecordToolbar: true,
     };
   } catch (error) {
     report = { ok: false, error: String(error) };

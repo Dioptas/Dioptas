@@ -392,7 +392,7 @@ def test_native_editor_identity_survives_row_removal_and_bounds_payload(session)
     call(session, 'integration_phase', operation='remove', index=0)
     response = call(session, 'integration_phase', operation='editor_transaction', edit_operation='parameter', index=1,
         editor=True, editor_uid=copy['uid'], editor_only=True, parameter='a0', value=4.3)
-    assert set(response) == {'ok', 'phaseEditor'}
+    assert set(response) == {'ok', 'phaseEditor', 'phaseRevision'}
     assert response['phaseEditor']['index'] == 0
     assert response['phaseEditor']['lattice']['a0'] == 4.3
     rejected = session.invoke('integration_phase', dict(operation='parameter', editor_uid=original['uid'], parameter='a0', value=5))
@@ -414,8 +414,22 @@ def test_native_phase_refresh_preserves_detector_view_payload(session):
     edit(session, 'parameter', parameter='a0', value=4.2)
     result = call(session, 'integration_phase_state')
     assert result['patternOnly']
-    assert 'image' not in result and 'rawImage' not in result
+    assert not {'image', 'rawImage', 'mask', 'cake', 'rings', 'map'} & result.keys()
+    assert result['phaseOnly']
     assert result['state']['integration']['phases'][0]['name'].endswith('*')
+
+
+def test_native_edit_avoids_building_discarded_workspace_snapshots(session, monkeypatch):
+    def no_snapshot(*args, **kwargs):
+        raise AssertionError('Phase edit tried to rebuild detector/map state')
+    monkeypatch.setattr(session, '_snapshot', no_snapshot)
+    result = call(session, 'integration_phase', operation='editor_transaction', edit_operation='parameter',
+                  index=0, editor=True, editor_only=True, parameter='a0', value=4.2)
+    assert result['phaseRevision'] == session._revision
+    assert result['phaseEditor']['lattice']['a0'] == 4.2
+    update = call(session, 'integration_phase', operation='update', index=0, pressure=10)
+    assert update['phaseOnly']
+    assert update['state']['integration']['phases'][0]['pressure'] == 10
 
 
 def test_material_name_save_as_and_save_keep_file_independent_and_reloadable(session, tmp_path):

@@ -478,6 +478,19 @@ try {
                 .width,
             };
           }),
+          parameterGaps: [
+            ...el.querySelectorAll(
+              ".pe-eos-fields .pe-field:not(.pe-field-choice)",
+            ),
+          ]
+            .map((field) => {
+              const label = field.firstElementChild.getBoundingClientRect();
+              const value = field
+                .querySelector("input")
+                .getBoundingClientRect();
+              return value.width > 0 ? value.left - label.right : null;
+            })
+            .filter((gap) => gap != null),
         };
       });
       assert.ok(
@@ -489,6 +502,21 @@ try {
       assert.ok(m.parameterGutter >= 10, JSON.stringify(m));
       assert.ok(m.tableClient >= 120, JSON.stringify(m));
       assert.equal(m.font, large ? "16px" : "14px");
+      if (tab.startsWith("Equation")) {
+        assert.ok(
+          await page
+            .getByRole("toolbar", { name: "EoS records", exact: true })
+            .isVisible(),
+        );
+        assert.ok(
+          m.parameterGaps.every((gap) => gap >= 0 && gap <= 8),
+          JSON.stringify(m),
+        );
+        assert.equal(
+          await page.getByText("Manage EoS records", { exact: true }).count(),
+          0,
+        );
+      }
       if (tab.startsWith("Volume")) {
         m.latticeInputs.forEach((input, index) => {
           const column = m.latticeInputs[index % 3];
@@ -535,7 +563,11 @@ try {
     .click();
   assert.ok(await page.getByLabel("K₀", { exact: true }).isDisabled());
   const publishedReference = (await state()).reference;
-  await page.getByText("Manage EoS records", { exact: true }).click();
+  assert.ok(
+    await page
+      .getByRole("toolbar", { name: "EoS records", exact: true })
+      .isVisible(),
+  );
   await click("Duplicate as custom");
   assert.equal(
     await page.getByLabel("K₀", { exact: true }).isDisabled(),
@@ -618,8 +650,6 @@ try {
   await page
     .getByRole("tab", { name: "Equation of state", exact: true })
     .click();
-  if (!(await page.locator(".pe-record-tools").evaluate((el) => el.open)))
-    await page.getByText("Manage EoS records", { exact: true }).click();
   let userMaterial = (await call("integration_phase_editor", { index: 1 }))
     .phaseEditor;
   const mao = userMaterial.references.findIndex((r) =>
@@ -678,8 +708,6 @@ try {
     !userMaterial.references.some((r) => /dewaele.*mao ruby/i.test(r.label)),
   );
   const structureBeforeClear = userMaterial.structure.sites;
-  if (!(await page.locator(".pe-record-tools").evaluate((el) => el.open)))
-    await page.getByText("Manage EoS records", { exact: true }).click();
   await click("Clear all records…");
   await page
     .getByRole("dialog", { name: "Clear all EoS records?", exact: true })

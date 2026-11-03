@@ -64,7 +64,9 @@ class PhaseWorkflow:
 
     def _phase_state(self):
         model = self._model.phase_model
+        from .phase_editor import phase_editor_uid
         return [dict(
+            uid=phase_editor_uid(phase),
             name=phase.name, pressure=phase.params['pressure'],
             temperature=phase.params['temperature'],
             thermal=bool(phase.has_thermal_expansion()),
@@ -184,8 +186,9 @@ class PhaseWorkflow:
         return self._snapshot()
 
     def _integration_phase_state(self):
-        # Updating phase lines must retain the detector/cake contrast and zoom.
-        return {**self._snapshot(), 'patternOnly': True}
+        # Phase edits change table rows and reference lines, never detector pixels.
+        return {**self._state(), 'pattern': self._pattern,
+                'patternOnly': True, 'phaseOnly': True}
 
     def _integration_phase_editor(self, index=None, editor_uid=None):
         from .integration import finite
@@ -211,7 +214,7 @@ class PhaseWorkflow:
             'TRICLINIC': ['a0','b0','c0','alpha0','beta0','gamma0'],
         }
         from .phase_editor import editor_metadata, reflection_rows
-        return {'phaseEditor': dict(
+        return {'phaseRevision': self._revision, 'phaseEditor': dict(
             **editor_metadata(model, index),
             index=index, filename=str(phase._filename),
             editable=model.is_material_editable(index), eosEditable=model.is_eos_record_editable(index),
@@ -308,8 +311,8 @@ class PhaseWorkflow:
         original = deepcopy(model.items)
         original_counter = model._color_counter
         try:
-            result = self._phase_command(**arguments)
-            return {'phaseEditor': result['phaseEditor']} if editor_only else result
+            result = self._phase_command(**arguments, editor_only=editor_only)
+            return result
         except Exception as error:
             model.items = original
             model._color_counter = original_counter
@@ -318,12 +321,13 @@ class PhaseWorkflow:
                 # restored authoritative editor, with an explicit rejected-edit
                 # message; ordinary command clients retain normal error responses.
                 self._refresh_integration_pattern()
-                result = {**self._snapshot(), **self._integration_phase_editor(arguments['index'])}
+                result = {**({} if editor_only else self._integration_phase_state()),
+                          **self._integration_phase_editor(arguments['index'])}
                 result['phaseEditor']['editError'] = str(error)
-                return {'phaseEditor': result['phaseEditor']} if editor_only else result
+                return result
             raise
 
-    def _phase_command(self, operation, index=None, path=None, paths=None, editor=False, **changes):
+    def _phase_command(self, operation, index=None, path=None, paths=None, editor=False, editor_only=False, **changes):
         from .integration import finite, boolean
         model = self._model.phase_model
         if operation == 'editor_transaction':
@@ -391,12 +395,8 @@ class PhaseWorkflow:
                     value = finite(changes['value'], key, *limits[key])
                 else:
                     raise ValueError('Unknown phase parameter.')
-                original = deepcopy(model.items[index])
-                try:
-                    model.set_param(index, key, value)
-                except Exception:
-                    model.items[index] = original
-                    raise
+                # _integration_phase owns the complete rollback boundary.
+                model.set_param(index, key, value)
             elif operation == 'reflection':
                 action = changes['action']
                 if action == 'add':
@@ -441,7 +441,7 @@ class PhaseWorkflow:
             model.phases[index].params['modified'] = True
         self._refresh_integration_pattern()
         self._revision += 1
-        result = self._snapshot()
+        result = {} if editor_only else self._integration_phase_state()
         if editor and index is not None and index < len(model.phases):
             result.update(self._integration_phase_editor(index))
         return result

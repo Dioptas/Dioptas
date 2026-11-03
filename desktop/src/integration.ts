@@ -48,6 +48,7 @@ export interface IntegrationState {
   sameConditions: boolean;
   phaseColdPressure: boolean;
   phases: {
+    uid?: string;
     name: string;
     pressure: number;
     temperature: number;

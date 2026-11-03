@@ -242,6 +242,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
                 self._defer_integration = defer_integration
                 readonly = {
                     "integration_phase_state",
+                    "integration_phase_guides",
                     "integration_phase_editor",
                     "state",
                     "pixel",

@@ -34,7 +34,11 @@ use a small confirmation popup beside the invoking button, with Escape/Cancel
 and focus return, rather than an extra row below the editor.
 It shares the existing processing session, can be moved beside the main plots,
 and does not block the main workspace. Edits refresh the phase table and plot
-without resending the detector image or resetting its zoom/contrast. Stable
+using phase-only replies, without rebuilding detector/cake/mask snapshots,
+resending the detector image or resetting its zoom/contrast. Live refreshes do
+not activate the main window's global busy state. Revision-aware synchronization
+avoids reading the editor again for its own completed edit; genuine external
+changes still refresh it. Stable
 phase identities prevent a detached editor from changing a different phase
 after list removal or project replacement. Closing an editor does not stop
 processing; an in-flight edit finishes before its window closes. Browser and
@@ -46,8 +50,12 @@ retained. Scientific values and reflection coverage are copied without refitting
 source identity and validation metadata are recorded as provenance, and the
 copy's EoS records are explicitly marked as user-owned/unvalidated. Copies can
 be saved in a project or as EOSMAT. Edit a copy is beside Save and Save As in
-the fixed footer. Record-management actions and parameter-default explanations
-are collapsed initially; material and EoS names have distinct editable fields.
+the fixed footer. Record actions are always visible in a compact icon toolbar,
+with tooltips and accessible names for duplicate, add, set default, delete and
+clear all. Material and EoS names have distinct editable fields. Numeric EoS and
+thermal parameters use compact paired rows with each label immediately beside
+its value and unit; long-unit and choice rows span both columns. Constructor
+defaults have an inline asterisk and tooltip, with explanations in a disclosure.
 Projects written by the earlier deletion implementation reconcile stale dataset
 record links before constructing their EoS on load. Export performs the same
 repair for explicitly edited record sets; remaining cross-record dependencies
@@ -81,8 +89,11 @@ the event, so it does not scroll the containing pane. Native number inputs share
 this behavior throughout the application; explicit steps and bounds are retained
 (an unspecified increment is 1). Phase P/T fields use the configured increments,
 and phase step selectors retain their multiplicative 1/2/5 sequence. Rapid phase
-condition edits are queued without disabling the table; the editor accumulates
-wheel changes while an earlier edit is being applied. Disabled/read-only native
+condition edits are queued without disabling the table. Consecutive pending
+pressure or temperature values for the same phase are coalesced to the latest
+requested value while an earlier edit is being applied. Discrete commands such
+as Save, Delete, and linked-condition changes remain ordering barriers. Stable
+phase identities also protect queued edits after list changes. Disabled/read-only native
 fields are unchanged. The shared handler ignores horizontal scroll/pinch gestures.
 Adding a reflection focuses its h field; closing restores focus to the opener.
 
@@ -112,8 +123,11 @@ are unchanged.
   draft validation, Escape, Tab/focus, rapid entry, sorting/copy, reflection
   actions/export, numeric wheel stepping (including bursts, bounds, intensity
   precision and pane-scroll suppression), constructor/configuration controls, periodic-table selection,
-  site/group edits, material-name/save actions, record
-  actions, focus return, and both text sizes at 1000 × 668.
+  site/group edits, material-name/save actions, always-visible record
+  actions, adjacent parameter labels, focus return, and both text sizes at
+  1000 × 668. Gated 25-notch pressure bursts in both directions produce at most
+  two calculations (in flight and latest pending), keep the table enabled and
+  apply the final conditions to both linked phases.
 - Existing phase-controls browser regression, Qt editor/controller tests,
   integration/calibration/combined-view regressions, JS tests and build pass.
 - Bundled Tauri/WKWebView smoke exercises numeric validation/Escape,
@@ -121,7 +135,8 @@ are unchanged.
   compact indices, lossless intensity display/editing, material naming and Save,
   lattice/reflection/thermal-constructor editing, adjacent record-confirmation
   placement, delete/save and clear/cancel, absence of a duplicate native close
-  header, lattice and phase-table wheel
+  header, no main-window busy flicker during edits, no redundant editor refresh
+  after a local edit, lattice and phase-table wheel
   stepping, existing calibration and
   integration workflows, full-resolution transfer and processing-child cleanup.
   No primary-preview server or user window is used.
@@ -130,6 +145,9 @@ are unchanged.
 - The focused phase-controls check also covers existing overlay wheel stepping.
   The broader overlay script timed out at its earlier curve-selection stroke
   assertion, before reaching its wheel checks; no overlay component was changed.
+- Command-queue unit checks cover coalescing, discrete-action ordering, independent
+  phases/fields and recovery after a rejected request. Backend checks assert that
+  live native edits and P/T updates do not construct a full workspace snapshot.
 
 Run the focused checks from this checkout:
 

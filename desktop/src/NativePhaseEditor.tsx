@@ -28,12 +28,20 @@ export function NativePhaseEditor() {
   );
   const generation = useRef(0);
   const pending = useRef(false);
-  const refreshQueued = useRef(false);
+  const refreshQueued = useRef<{ revision?: number } | null>(null);
+  const appliedRevision = useRef(-1);
   const closeQueued = useRef(false);
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (revision?: number) => {
     if (!bridge.current) return;
+    if (revision != null && revision <= appliedRevision.current) return;
     if (pending.current) {
-      refreshQueued.current = true;
+      const previous = refreshQueued.current;
+      refreshQueued.current =
+        previous == null
+          ? { revision }
+          : previous.revision != null && revision != null
+            ? { revision: Math.max(previous.revision, revision) }
+            : {};
       return;
     }
     const current = ++generation.current;
@@ -44,6 +52,8 @@ export function NativePhaseEditor() {
       if (current !== generation.current) return;
       if (!result.ok) throw Error(result.error);
       if (result.phaseEditor) {
+        appliedRevision.current =
+          result.phaseRevision ?? appliedRevision.current;
         setData(result.phaseEditor as EditorData);
         setError("");
       }
@@ -65,11 +75,15 @@ export function NativePhaseEditor() {
     const subscriptions = [
       listen<{ uid: string }>("phase-editor-target", (e) => {
         uid.current = e.payload.uid;
+        appliedRevision.current = -1;
         ++generation.current;
         setData(null);
         void refresh();
       }),
-      listen("phase-editor-refresh", () => void refresh()),
+      listen<{ revision?: number }>(
+        "phase-editor-refresh",
+        (event) => void refresh(event.payload?.revision),
+      ),
     ];
     void connect().then((invoke) => {
       if (!disposed) {
@@ -103,12 +117,16 @@ export function NativePhaseEditor() {
         });
         if (!result.ok) throw Error(result.error);
         if (current === generation.current && target === uid.current) {
+          appliedRevision.current =
+            result.phaseRevision ?? appliedRevision.current;
           if (result.phaseEditor)
             uid.current = (result.phaseEditor as EditorData).uid;
           onSuccess?.(result);
         }
         if (command !== "integration_phase_editor" && !result.cancelled)
-          await emit("phase-editor-changed");
+          await emit("phase-editor-changed", {
+            revision: result.phaseRevision,
+          });
       } catch (e) {
         setError(String(e));
       } finally {
@@ -116,8 +134,9 @@ export function NativePhaseEditor() {
         setReady(true);
         if (closeQueued.current) void getCurrentWindow().close();
         else if (refreshQueued.current) {
-          refreshQueued.current = false;
-          void refresh();
+          const queued = refreshQueued.current;
+          refreshQueued.current = null;
+          void refresh(queued.revision);
         }
       }
     },

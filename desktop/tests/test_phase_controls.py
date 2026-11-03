@@ -57,7 +57,9 @@ def test_phase_list_roundtrip_appends_and_preserves_false_names_colors_condition
     result = call(session, 'integration_phase_list', path=path)
     phases = result['state']['integration']['phases']
     assert len(phases) == 4
-    assert phases[:2] == phases[2:]
+    assert [{k: v for k, v in phase.items() if k != 'uid'} for phase in phases[:2]] == [
+        {k: v for k, v in phase.items() if k != 'uid'} for phase in phases[2:]]
+    assert len({phase['uid'] for phase in phases}) == 4
     assert phases[2]['visible'] is False
     assert phases[2]['name'] == 'Gold, named with comma'
     assert phases[2]['color'] == '#12ab45'

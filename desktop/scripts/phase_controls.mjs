@@ -63,14 +63,31 @@ try {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   let importCif = false;
-  await page.exposeFunction("__dioptasInvoke", (action, payload) =>
-    invoke(
+  let conditionGate = null;
+  const conditionCalls = [];
+  const burstCalculations = [];
+  await page.exposeFunction("__dioptasInvoke", async (action, payload) => {
+    const condition =
+      action === "integration_phase" &&
+      payload.operation === "update" &&
+      typeof payload.pressure === "number";
+    if (condition) {
+      conditionCalls.push(payload.pressure);
+      if (conditionGate) await conditionGate;
+    }
+    const result = await invoke(
       action,
       action === "integration_phase_files" && importCif
         ? { paths: [root + "/dioptas/tests/data/cif/fcc.cif"] }
         : payload,
-    ),
-  );
+    );
+    if (condition)
+      assert.ok(
+        !("mask" in result) && !("cake" in result) && result.phaseOnly,
+        "Pressure changes must not transfer detector/cake buffers",
+      );
+    return result;
+  });
   await page.addInitScript(() => {
     window.pywebview = {
       api: { invoke: (a, p) => window.__dioptasInvoke(a, p) },
@@ -212,27 +229,69 @@ try {
   const phaseScroll = await page
     .locator(".phase-table-scroll")
     .evaluate((el) => el.scrollTop);
-  // Burst updates must all reach PhaseModel even while earlier updates run.
-  for (let i = 0; i < 3; i++) await wheel("Phase 1 pressure (GPa)", -100);
-  for (let i = 0; i < 100; i++) {
-    if ((await call("state")).state.integration.phases[0].pressure === 19.5)
-      break;
-    await page.waitForTimeout(20);
-  }
-  assert.equal(
-    (await call("state")).state.integration.phases[0].pressure,
-    19.5,
-  );
+  // Hold one calculation while the user wheels: only its latest successor runs.
+  const burst = async (deltaY, expected) => {
+    let release;
+    conditionGate = new Promise((resolve) => {
+      release = resolve;
+    });
+    const before = conditionCalls.length;
+    for (let i = 0; i < 25; i++) await wheel("Phase 1 pressure (GPa)", deltaY);
+    assert.equal(
+      Number(
+        await page
+          .getByLabel("Phase 1 pressure (GPa)", { exact: true })
+          .inputValue(),
+      ),
+      expected,
+    );
+    assert.ok(
+      conditionCalls.length - before <= 1,
+      "A wheel burst should not create a backlog of calculations",
+    );
+    assert.equal(
+      await page.locator(".spin").count(),
+      0,
+      "Live phase changes must not flash the global busy state",
+    );
+    assert.ok(
+      await page
+        .getByLabel("Phase 1 pressure (GPa)", { exact: true })
+        .isEnabled(),
+    );
+    conditionGate = null;
+    release();
+    for (let i = 0; i < 100; i++) {
+      if (
+        (await call("state")).state.integration.phases.every(
+          (phase) => phase.pressure === expected,
+        )
+      )
+        break;
+      await page.waitForTimeout(20);
+    }
+    assert.deepEqual(
+      (await call("state")).state.integration.phases.map(
+        (phase) => phase.pressure,
+      ),
+      [expected, expected],
+    );
+    assert.ok(
+      conditionCalls.length - before <= 2,
+      "Only the in-flight and latest requested values should be calculated",
+    );
+    burstCalculations.push({
+      notches: 25,
+      calculations: conditionCalls.length - before,
+      finalPressure: expected,
+    });
+  };
+  await burst(-100, 74.5);
   assert.equal(
     await page.locator(".phase-table-scroll").evaluate((el) => el.scrollTop),
     phaseScroll,
   );
-  for (let i = 0; i < 3; i++) await wheel("Phase 1 pressure (GPa)", 100);
-  for (let i = 0; i < 100; i++) {
-    if ((await call("state")).state.integration.phases[0].pressure === 12)
-      break;
-    await page.waitForTimeout(20);
-  }
+  await burst(100, 12);
   await ready();
   assert.deepEqual(
     (await call("state")).state.integration.phases.map((p) => p.pressure),
@@ -507,6 +566,7 @@ try {
         ok: true,
         browser: process.argv.includes("--webkit") ? "WebKit" : "Chromium",
         layout,
+        burstCalculations,
       },
       null,
       2,

@@ -2,13 +2,7 @@ import { isTauri } from "@tauri-apps/api/core";
 import { openNativePhaseEditor } from "./phaseEditorWindow";
 import type { EditorData } from "./phaseEditorTypes";
 import { DataTable, TableScroll, TableActions } from "./DataTable";
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Database, FolderOpen, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import type { IntegrationRun, IntegrationState } from "./integration";
@@ -19,6 +13,7 @@ import type {
 } from "./integrationPhase";
 import { PhaseEditor } from "./PhaseEditor";
 import { useSpinBoxWheel } from "./spinBoxWheel";
+import { createPhaseCommandQueue } from "./phaseCommandQueue";
 import "./integrationPhaseControls.css";
 
 /** Qt's PhaseWidget: action rail, row table, P/T steps and list files. */
@@ -35,21 +30,12 @@ export function IntegrationPhaseControls({
 }) {
   // Parent run invokes its callback while its command lock is held. Defer local
   // follow-up actions until that command has completed (file selection → load).
-  const commandQueue = useRef(Promise.resolve());
-  const run = useCallback<IntegrationRun>(
-    async (command, args, message, onSuccess) => {
-      const queued = commandQueue.current.then(async () => {
-        let result: Parameters<NonNullable<typeof onSuccess>>[0] | undefined;
-        await parentRun(command, args, message, (r) => {
-          result = r;
-        });
-        if (result) onSuccess?.(result);
-      });
-      commandQueue.current = queued.catch(() => {});
-      await queued;
-    },
-    [parentRun],
-  );
+  const latestRun = useRef(parentRun);
+  latestRun.current = parentRun;
+  const commandQueue = useRef<IntegrationRun | null>(null);
+  if (!commandQueue.current)
+    commandQueue.current = createPhaseCommandQueue(() => latestRun.current);
+  const run = commandQueue.current;
   const [selected, setSelected] = useState(source.phases.length - 1);
   const previousCount = useRef(source.phases.length);
   const tableRef = useRef<HTMLTableElement>(null);
@@ -234,7 +220,7 @@ export function IntegrationPhaseControls({
           <tbody>
             {source.phases.map((p, index) => (
               <tr
-                key={index}
+                key={p.uid ?? index}
                 aria-selected={index === selected}
                 onClick={() => {
                   setSelected(index);
@@ -308,7 +294,7 @@ export function IntegrationPhaseControls({
                     min={-9999999}
                     max={9999999}
                     onCommit={(pressure) =>
-                      action("update", { index, pressure })
+                      action("update", { index, editor_uid: p.uid, pressure })
                     }
                   />
                 </td>
@@ -322,7 +308,11 @@ export function IntegrationPhaseControls({
                     min={0}
                     max={9999999}
                     onCommit={(temperature) =>
-                      action("update", { index, temperature })
+                      action("update", {
+                        index,
+                        editor_uid: p.uid,
+                        temperature,
+                      })
                     }
                   />
                 </td>
@@ -527,6 +517,13 @@ export function PhaseNumber({
   const [text, setText] = useState(String(value));
   const input = useRef<HTMLInputElement>(null);
   const pending = useRef(0);
+  const disposed = useRef(false);
+  useEffect(
+    () => () => {
+      disposed.current = true;
+    },
+    [],
+  );
   const draftGeneration = useRef(0);
   const applied = useRef(value);
   applied.current = value;
@@ -545,7 +542,11 @@ export function PhaseNumber({
       .finally(() => {
         pending.current--;
         requestAnimationFrame(() => {
-          if (!pending.current && generation === draftGeneration.current) {
+          if (
+            !disposed.current &&
+            !pending.current &&
+            generation === draftGeneration.current
+          ) {
             setText(String(applied.current));
             last.current = applied.current;
           }

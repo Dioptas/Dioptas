@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { CopyPlus, ListX, Plus, Star, Trash2 } from "lucide-react";
 import { DataTable, TableScroll } from "./DataTable";
 import type { IntegrationRun } from "./integration";
 import type { PhaseEditorData } from "./integrationPhase";
@@ -165,10 +166,17 @@ export function PhaseEditor({
   const locked = !ready && pending === 0;
   const field = (f: EditorField, thermal = false) => (
     <label
-      className="pe-field"
+      className={`pe-field${f.choices?.length ? " pe-field-choice" : ""}${(f.unit?.length ?? 0) > 8 ? " pe-field-wide" : ""}`}
       key={`${data.index}-${data.reference}-${f.key}`}
     >
-      <span title={f.key}>{f.label}</span>
+      <span title={f.key}>
+        {f.label}
+        {f.isDefault && (
+          <sup className="pe-default" title="Model default">
+            *
+          </sup>
+        )}
+      </span>
       {!!f.choices?.length ? (
         <select
           aria-label={f.label}
@@ -212,7 +220,6 @@ export function PhaseEditor({
         />
       )}
       <span className="pe-unit">{f.unit}</span>
-      {f.isDefault && <span className="pe-default">default</span>}
     </label>
   );
   const lattice = (key: string, label: string, unit: string, step: number) => (
@@ -538,59 +545,76 @@ export function PhaseEditor({
                 </details>
               </>
             )}
-            <details className="pe-record-tools">
-              <summary>Manage EoS records</summary>
-              <div className="pe-record-actions">
-                <button
-                  disabled={locked || !data.references.length}
-                  onClick={() =>
-                    void act("editor_record", { action: "duplicate" })
-                  }
-                >
-                  Duplicate as custom
-                </button>
-                <button
-                  disabled={locked}
-                  onClick={() => void act("editor_record", { action: "add" })}
-                >
-                  Add record
-                </button>
-                <button
-                  disabled={
-                    locked ||
-                    !data.eosEditable ||
-                    !data.references.length ||
-                    data.defaultReference === data.reference
-                  }
-                  onClick={() =>
-                    void act("editor_record", { action: "default" })
-                  }
-                >
-                  Set default
-                </button>
-                <button
-                  ref={deleteRecord}
-                  disabled={
-                    locked || !data.eosEditable || !data.references.length
-                  }
-                  onClick={() => setConfirm("record")}
-                >
-                  Delete record…
-                </button>
-                <button
-                  ref={clearRecords}
-                  disabled={locked || !data.editable || !data.references.length}
-                  title={
-                    data.editable
-                      ? "Keep the structure and remove all EoS records"
-                      : "Edit a copy to clear its EoS records"
-                  }
-                  onClick={() => setConfirm("records")}
-                >
-                  Clear all records…
-                </button>
-              </div>
-            </details>
+            <div
+              className="pe-record-actions"
+              role="toolbar"
+              aria-label="EoS records"
+            >
+              <button
+                type="button"
+                aria-label="Duplicate as custom"
+                title="Duplicate this EoS as a custom record"
+                disabled={locked || !data.references.length}
+                onClick={() =>
+                  void act("editor_record", { action: "duplicate" })
+                }
+              >
+                <CopyPlus aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                aria-label="Add record"
+                title="Add an EoS record from the current parameters"
+                disabled={locked}
+                onClick={() => void act("editor_record", { action: "add" })}
+              >
+                <Plus aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                aria-label="Set default"
+                aria-pressed={
+                  !!data.references.length &&
+                  data.defaultReference === data.reference
+                }
+                title="Set this EoS as the default"
+                disabled={
+                  locked ||
+                  !data.eosEditable ||
+                  !data.references.length ||
+                  data.defaultReference === data.reference
+                }
+                onClick={() => void act("editor_record", { action: "default" })}
+              >
+                <Star aria-hidden="true" />
+              </button>
+              <button
+                ref={deleteRecord}
+                type="button"
+                aria-label="Delete record…"
+                title="Delete this EoS record"
+                disabled={
+                  locked || !data.eosEditable || !data.references.length
+                }
+                onClick={() => setConfirm("record")}
+              >
+                <Trash2 aria-hidden="true" />
+              </button>
+              <button
+                ref={clearRecords}
+                type="button"
+                aria-label="Clear all records…"
+                disabled={locked || !data.editable || !data.references.length}
+                title={
+                  data.editable
+                    ? "Keep the structure and remove all EoS records"
+                    : "Edit a copy to clear its EoS records"
+                }
+                onClick={() => setConfirm("records")}
+              >
+                <ListX aria-hidden="true" />
+              </button>
+            </div>
             {data.eosEditable && !!data.references.length && (
               <label className="pe-selector">
                 EoS name
@@ -607,8 +631,7 @@ export function PhaseEditor({
             )}
             {!data.eosEditable && (
               <p className="pe-note">
-                Published record. Use Manage EoS records to duplicate it for
-                editing.
+                Published record. Duplicate as custom to edit its parameters.
               </p>
             )}
             <label className="pe-selector">
@@ -636,7 +659,11 @@ export function PhaseEditor({
                 ))}
               </select>
             </label>
-            <div className="pe-eos-fields">
+            <div
+              className="pe-eos-fields"
+              role="group"
+              aria-label="Equation of state parameters"
+            >
               {data.eosFields.map((f) => field(f))}
             </div>
             {!!data.materialFields.length && (
@@ -647,7 +674,11 @@ export function PhaseEditor({
                   cell: formula units per cell used by the EoS. Structural edits
                   retain these values.
                 </p>
-                <div className="pe-eos-fields">
+                <div
+                  className="pe-eos-fields"
+                  role="group"
+                  aria-label="Material normalization parameters"
+                >
                   {data.materialFields.map((f) => field(f))}
                 </div>
               </details>
@@ -710,7 +741,11 @@ export function PhaseEditor({
                       : "Legacy constant-coefficient correction."}
                   </p>
                 </details>
-                <div className="pe-eos-fields">
+                <div
+                  className="pe-eos-fields"
+                  role="group"
+                  aria-label="Thermal parameters"
+                >
                   {data.thermalFields.map((f) => field(f, !!data.thermalType))}
                 </div>
               </>

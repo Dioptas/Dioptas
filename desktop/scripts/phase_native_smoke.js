@@ -75,8 +75,28 @@ window.__dioptasPhaseNativeSmoke = async ({
       { once: true },
     );
   });
+  let sawOpening = false,
+    watchingEdits = false,
+    previewFlickered = false;
+  const observer = new MutationObserver(() => {
+    const busy = !!document.querySelector(".spin");
+    if (!watchingEdits) {
+      if (busy) sawOpening = true;
+      else if (sawOpening) watchingEdits = true;
+    } else if (busy) previewFlickered = true;
+  });
+  observer.observe(document.body, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+  });
   click("Edit selected Phase");
   const editorReport = await editorComplete;
+  observer.disconnect();
+  check(
+    !previewFlickered,
+    "Editor live updates repeatedly disabled/re-enabled the main GUI",
+  );
   check(editorReport.ok, editorReport.error || "Native editor failed");
   check(
     !document.querySelector('dialog[aria-label="Phase Editor"]'),
@@ -151,6 +171,7 @@ window.__dioptasPhaseNativeSmoke = async ({
     editorNumericValidation: true,
     editorReflections: true,
     editorDetached: editorReport,
+    livePreviewStable: !previewFlickered,
 
     phaseList: true,
     database: true,
