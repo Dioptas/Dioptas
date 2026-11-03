@@ -1,3 +1,6 @@
+import { isTauri } from "@tauri-apps/api/core";
+import { openNativePhaseEditor } from "./phaseEditorWindow";
+import type { EditorData } from "./phaseEditorTypes";
 import { DataTable, TableScroll, TableActions } from "./DataTable";
 import {
   useCallback,
@@ -102,7 +105,13 @@ export function IntegrationPhaseControls({
       { index },
       "Opening phase editor…",
       (result) => {
-        if (result.phaseEditor) setEditor(result.phaseEditor);
+        if (result.phaseEditor) {
+          if (isTauri())
+            void openNativePhaseEditor(
+              (result.phaseEditor as EditorData).uid,
+            ).catch(() => setEditor(result.phaseEditor!));
+          else setEditor(result.phaseEditor);
+        }
       },
     );
   const load = (files: PhaseImport) => {

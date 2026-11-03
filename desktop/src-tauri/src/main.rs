@@ -3,6 +3,7 @@
 mod calibration_tooltip;
 mod color_picker;
 mod processor;
+mod phase_editor;
 
 use calibration_tooltip::{
     calibration_tooltip_ready, hide_calibration_tooltip, present_calibration_tooltip,
@@ -189,14 +190,20 @@ async fn desktop_invoke(
     payload: Option<Value>,
     cached_buffers: Option<Vec<String>>,
 ) -> Result<tauri::ipc::Response, String> {
-    if window.label() != "main" {
+    if window.label() != "main" && window.label() != "phase-editor" {
         return Err("Unknown desktop window.".into());
+    }
+    if window.label() == "phase-editor" && !matches!(action.as_str(), "integration_phase_editor" | "integration_phase" | "integration_phase_export") {
+        return Err("This command is not available to the phase editor.".into());
     }
     let processor = host.processor.clone()?;
     let cached = cached_buffers.unwrap_or_default();
     let mut payload = payload.unwrap_or_else(|| json!({}));
     if !payload.is_object() {
         return Err("Command arguments must be an object.".into());
+    }
+    if window.label() == "phase-editor" && action != "integration_phase_editor" {
+        payload["editor_only"] = json!(true);
     }
     tauri::async_runtime::spawn_blocking(move || {
         if folder_choice(&action, &payload) {
@@ -292,6 +299,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             color_picker::prepare_color_picker,
             desktop_invoke,
+            phase_editor::open_phase_editor,
             native_smoke_report,
             show_calibration_tooltip,
             hide_calibration_tooltip,
@@ -315,6 +323,10 @@ fn main() {
             Ok(())
         })
         .on_page_load(move |webview, payload| {
+            if smoke && webview.label() == "phase-editor" && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+                let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
+                let _ = webview.eval(include_str!("../../scripts/phase_editor_native_smoke.js"));
+            }
             if smoke
                 && webview.label() == "main"
                 && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished)
@@ -347,6 +359,7 @@ fn main() {
                 let _ = calibration_tooltip::dismiss(window.app_handle(), None);
             }
             if matches!(event, tauri::WindowEvent::Destroyed) {
+                if let Some(editor) = window.app_handle().get_webview_window("phase-editor") { let _ = editor.destroy(); }
                 if let Some(popup) = window
                     .app_handle()
                     .get_webview_window("calibration-tooltip")

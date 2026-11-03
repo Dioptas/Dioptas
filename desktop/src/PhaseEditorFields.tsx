@@ -12,6 +12,7 @@ export function EditorNumber({
   optional = false,
   integer = false,
   title,
+  significantDigits,
 }: {
   label: string;
   value: number | null;
@@ -23,25 +24,41 @@ export function EditorNumber({
   optional?: boolean;
   integer?: boolean;
   title?: string;
+  significantDigits?: number;
 }) {
-  const [text, setText] = useState(value == null ? "" : String(value));
+  const display = (n: number | null) =>
+    n == null
+      ? ""
+      : significantDigits
+        ? String(Number(n.toPrecision(significantDigits)))
+        : String(n);
+  const focused = useRef(false);
+  const dirty = useRef(false);
+  const [text, setText] = useState(display(value));
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const last = useRef(value);
   const generation = useRef(0);
   const id = useId();
   const restore = () => {
-    setText(value == null ? "" : String(value));
+    setText(
+      focused.current ? (value == null ? "" : String(value)) : display(value),
+    );
+    dirty.current = false;
     setError("");
     last.current = value;
   };
   useEffect(() => {
-    setText(value == null ? "" : String(value));
+    setText(
+      focused.current ? (value == null ? "" : String(value)) : display(value),
+    );
+    dirty.current = false;
     last.current = value;
     setError("");
-  }, [value]);
+  }, [value, significantDigits]);
   const commit = async (draft = text) => {
-    if (pending || disabled) return;
+    if (pending || disabled) return false;
+    if (!dirty.current) return true;
     const empty = !draft.trim();
     const n = empty ? null : Number(draft);
     if (
@@ -57,10 +74,13 @@ export function EditorNumber({
           ? "Enter a value."
           : `Enter ${integer ? "an integer" : "a number"}${min != null ? ` ≥ ${min}` : ""}${max != null ? ` and ≤ ${max}` : ""}.`,
       );
-      return;
+      return false;
     }
     setError("");
-    if (n === last.current) return;
+    if (n === last.current) {
+      dirty.current = false;
+      return true;
+    }
     last.current = n;
     const revision = ++generation.current;
     setPending(true);
@@ -68,7 +88,9 @@ export function EditorNumber({
     if (revision === generation.current) {
       setPending(false);
       if (accepted === false) restore();
+      else dirty.current = false;
     }
+    return accepted !== false;
   };
   return (
     <span className="pe-number">
@@ -76,7 +98,7 @@ export function EditorNumber({
         type="text"
         inputMode="decimal"
         aria-label={label}
-        title={title}
+        title={title || (value == null ? undefined : String(value))}
         value={text}
         disabled={disabled}
         readOnly={pending}
@@ -84,11 +106,23 @@ export function EditorNumber({
         aria-invalid={!!error}
         aria-describedby={error ? id : undefined}
         data-editor-number="true"
+        onFocus={() => {
+          focused.current = true;
+          if (!dirty.current && !error)
+            setText(value == null ? "" : String(value));
+        }}
         onChange={(e) => {
+          dirty.current = true;
           setText(e.target.value);
           setError("");
         }}
-        onBlur={() => void commit()}
+        onBlur={() => {
+          focused.current = false;
+          const draft = text;
+          void commit().then((ok) => {
+            if (ok) setText(display(draft.trim() ? Number(draft) : null));
+          });
+        }}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             e.preventDefault();
@@ -116,6 +150,7 @@ export function EditorNumber({
                 ),
               ),
             );
+            dirty.current = true;
             setText(String(next));
             void commit(String(next));
           }

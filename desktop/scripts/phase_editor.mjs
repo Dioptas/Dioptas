@@ -171,6 +171,41 @@ try {
   await page.keyboard.press("Escape");
   await edit("Reflection 1 intensity", 3);
   assert.equal((await state()).reflections[0].intensity, 3);
+  await edit("Reflection 1 intensity", 66.0396789);
+  await page.getByLabel("Reflection 1 intensity", { exact: true }).blur();
+  await ready();
+  assert.equal(
+    await page
+      .getByLabel("Reflection 1 intensity", { exact: true })
+      .inputValue(),
+    "66.04",
+  );
+  const beforeFocus = (await call("state")).state.revision;
+  await page.getByLabel("Reflection 1 intensity", { exact: true }).focus();
+  assert.equal(
+    await page
+      .getByLabel("Reflection 1 intensity", { exact: true })
+      .inputValue(),
+    "66.0396789",
+  );
+  await page.getByLabel("Reflection 1 intensity", { exact: true }).blur();
+  await ready();
+  assert.equal((await state()).reflections[0].intensity, 66.0396789);
+  assert.equal((await call("state")).state.revision, beforeFocus);
+  const indexWidth = await page
+    .locator(".pe-index-cell input")
+    .first()
+    .evaluate((el) => el.getBoundingClientRect().width);
+  assert.ok(indexWidth <= 45, String(indexWidth));
+  await page
+    .getByLabel("Reflection position columns", { exact: true })
+    .selectOption("all");
+  await page.getByRole("button", { name: "Q₀ (Å⁻¹)", exact: true }).waitFor();
+  await page.getByRole("button", { name: "2θ₀ (°)", exact: true }).waitFor();
+  await page
+    .getByLabel("Reflection position columns", { exact: true })
+    .selectOption("d-angle");
+  await edit("Reflection 1 intensity", 3);
   await click("Add");
   const count = (await state()).reflections.length;
   await page.waitForFunction(
@@ -297,6 +332,15 @@ try {
     .check();
   await click("Remove selected sites");
   assert.equal((await state()).structure.sites.length, siteCount);
+  // Keep both parameter pages taller than the viewport for scrollbar checks.
+  await page
+    .getByRole("tab", { name: "Equation of state", exact: true })
+    .click();
+  await edit("K₀", 100);
+  await page
+    .getByLabel("Thermal model", { exact: true })
+    .selectOption("AlphaKT");
+  await ready();
   const metrics = [];
   await click("Close");
   for (const large of [false, true]) {
@@ -324,6 +368,11 @@ try {
           bodyScroll: body.scrollWidth,
           parameterClient: parameter.clientHeight,
           parameterScroll: parameter.scrollHeight,
+          parameterGutter: parameter.offsetWidth - parameter.clientWidth,
+          scrollbarWidth: getComputedStyle(parameter, "::-webkit-scrollbar")
+            .width,
+          thumbColor: getComputedStyle(parameter, "::-webkit-scrollbar-thumb")
+            .backgroundColor,
           tableClient: table.clientHeight,
           font: getComputedStyle(el.querySelector(".pe-number input")).fontSize,
         };
@@ -333,6 +382,8 @@ try {
         JSON.stringify(m),
       );
       assert.ok(m.bodyScroll <= m.bodyClient + 1, JSON.stringify(m));
+      assert.ok(m.parameterScroll > m.parameterClient, JSON.stringify(m));
+      assert.ok(m.parameterGutter >= 10, JSON.stringify(m));
       assert.ok(m.tableClient >= 120, JSON.stringify(m));
       assert.equal(m.font, large ? "16px" : "14px");
       metrics.push({ large, tab, ...m });
@@ -399,6 +450,25 @@ try {
   await click("Delete record…");
   await click("Confirm delete");
   assert.ok(await page.getByLabel("K₀", { exact: true }).isDisabled());
+  await page
+    .getByRole("tab", { name: "Volume & structure", exact: true })
+    .click();
+  const original = await state();
+  await click("Edit a copy");
+  assert.equal(
+    await page.getByLabel("a₀", { exact: true }).isDisabled(),
+    false,
+  );
+  const copy = (await call("integration_phase_editor", { index: 1 }))
+    .phaseEditor;
+  assert.deepEqual(copy.reflections, original.reflections);
+  assert.deepEqual(copy.lattice, original.lattice);
+  assert.ok(copy.editable && copy.eosEditable && !copy.canReload);
+  await edit("a₀", copy.lattice.a0 * 1.01);
+  assert.equal((await state()).lattice.a0, original.lattice.a0);
+  await page.screenshot({
+    path: artifacts + "/phase-editor-editable-copy.png",
+  });
   assert.deepEqual(errors, []);
   await writeFile(
     artifacts +

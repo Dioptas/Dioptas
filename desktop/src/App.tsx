@@ -1,3 +1,4 @@
+import { useNativePhaseEditorSync } from "./phaseEditorWindow";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowUpRight,
@@ -503,6 +504,7 @@ export default function App() {
     },
     [apply],
   );
+  useNativePhaseEditorSync(run, state?.revision);
   useEffect(() => {
     if (mode !== "integration" || !state?.integration.autoProcess) return;
     const timer = setInterval(() => {

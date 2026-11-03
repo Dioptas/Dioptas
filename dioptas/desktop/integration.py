@@ -143,6 +143,7 @@ class IntegrationWorkflow(PhaseWorkflow):
             "integration_phase_catalog": self._integration_phase_catalog,
             "integration_phase_list": self._integration_phase_list,
             "integration_phase_editor": self._integration_phase_editor,
+            "integration_phase_state": self._integration_phase_state,
             "integration_phase_export": self._integration_phase_export,
             "integration_open_pattern": self._integration_open_pattern,
             "integration_pattern_navigation": self._integration_pattern_navigation,

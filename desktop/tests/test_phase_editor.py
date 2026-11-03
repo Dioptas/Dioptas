@@ -154,7 +154,7 @@ def test_export_reflections_and_unique_deletion(session, tmp_path):
     path = str(tmp_path / 'reflections')
     result = call(session, 'integration_phase_export', index=0, format='txt', path=path)
     text = Path(result['savedPath']).read_text()
-    assert text.startswith('h\tk\tl\tIntensity\td0 (Å)\td (Å)\t2θ (°)\n')
+    assert text.startswith('h\tk\tl\tIntensity\td0 (Å)\td (Å)\t2θ0 (°)\t2θ (°)\tQ0 (Å⁻¹)\tQ (Å⁻¹)\n')
     assert len(text.splitlines()) == len(original['reflections']) + 1
     result = edit(session, 'reflection', action='remove', rows=[2, 0, 2])
     assert len(result['reflections']) == len(original['reflections']) - 2
@@ -213,3 +213,70 @@ def test_jcpds_export_rejects_scientific_loss_before_creating_a_file(session, tm
     edit(session, 'editor_record', action='add')
     result = session.invoke('integration_phase_export', dict(index=0, path=str(path)))
     assert not result['ok'] and not path.exists()
+
+
+def test_editable_material_copy_preserves_values_provenance_and_original(session, tmp_path):
+    catalog = call(session, 'integration_phase_catalog', query='Au')['phaseCatalog']
+    material = next(m for m in catalog if m['diffraction'] and m['defaultReference'] >= 0 and not m['references'][m['defaultReference']]['loadError'])
+    call(session, 'integration_phase', operation='clear')
+    call(session, 'integration_phase', operation='load_database', material_id=material['id'], reference=material['defaultReference'])
+    edit(session, 'update', pressure=12)
+    source = call(session, 'integration_phase_editor', index=0)['phaseEditor']
+    source_params = deepcopy(session._model.phase_model.phases[0].state)
+    result = edit(session, 'editor_copy')
+    assert result['index'] == 1 and result['uid'] != source['uid']
+    assert result['editable'] and result['eosEditable'] and not result['canReload']
+    assert result['lattice'] == source['lattice']
+    assert result['reflections'] == source['reflections']
+    assert result['pressure'] == 12
+    assert result['copiedFrom']
+    model = session._model.phase_model
+    uid = result['uid']
+    call(session, 'integration_phase', operation='parameter', index=1, parameter='a0', value=result['lattice']['a0'] * 1.01)
+    call(session, 'integration_phase', operation='editor_parameter', index=1, parameter='k0', value=180)
+    assert model.phases[0].state == source_params
+    path = str(tmp_path / 'copy.eosmat')
+    call(session, 'integration_phase_export', editor_uid=uid, path=path)
+    material_copy = eos.load_material_file(path)
+    assert material_copy.source['copied_from']['material_identifier'] == material['id']
+    assert all(r['scientific_validation']['status'] == 'deferred' for r in material_copy.eos_records)
+    restored = eos.build_jcpds(material_copy, result['reference'], origin='file')
+    assert restored.params['a0'] == pytest.approx(model.phases[1].params['a0'])
+    project = str(tmp_path / 'copies.dio')
+    call(session, 'save_project', path=project)
+    call(session, 'open_project', path=project)
+    assert len(session._model.phase_model.phases) == 2
+    assert session._model.phase_model.is_material_editable(1)
+    assert not session._model.phase_model.is_material_editable(0)
+
+
+def test_native_editor_identity_survives_row_removal_and_bounds_payload(session):
+    original = call(session, 'integration_phase_editor', index=0)['phaseEditor']
+    copy = edit(session, 'editor_copy')
+    call(session, 'integration_phase', operation='remove', index=0)
+    response = call(session, 'integration_phase', operation='editor_transaction', edit_operation='parameter', index=1,
+        editor=True, editor_uid=copy['uid'], editor_only=True, parameter='a0', value=4.3)
+    assert set(response) == {'ok', 'phaseEditor'}
+    assert response['phaseEditor']['index'] == 0
+    assert response['phaseEditor']['lattice']['a0'] == 4.3
+    rejected = session.invoke('integration_phase', dict(operation='parameter', editor_uid=original['uid'], parameter='a0', value=5))
+    assert not rejected['ok']
+    assert session._model.phase_model.phases[0].params['a0'] == 4.3
+
+
+def test_complete_reflection_positions_match_qt_reference_and_current_lattices(session):
+    result = edit(session, 'update', pressure=30)
+    from dioptas.widgets.integration.PhaseEditorWidget import ReflectionTableModel
+    wavelength = session.configuration.calibration_model.wavelength * 1e10
+    qt = ReflectionTableModel()
+    qt.update_reflection_data(session._model.phase_model.phases[0].reflections, wavelength)
+    rows = [[r[k] for k in ('h', 'k', 'l', 'intensity', 'd0', 'd', 'twoTheta0', 'twoTheta', 'q0', 'q')] for r in result['reflections']]
+    np.testing.assert_allclose(rows, qt.reflection_data)
+
+
+def test_native_phase_refresh_preserves_detector_view_payload(session):
+    edit(session, 'parameter', parameter='a0', value=4.2)
+    result = call(session, 'integration_phase_state')
+    assert result['patternOnly']
+    assert 'image' not in result and 'rawImage' not in result
+    assert result['state']['integration']['phases'][0]['name'].endswith('*')

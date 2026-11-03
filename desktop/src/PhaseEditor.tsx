@@ -18,17 +18,42 @@ export function PhaseEditor({
   run,
   onData,
   onClose,
+  detached = false,
 }: {
   data: PhaseEditorData;
   ready: boolean;
   run: IntegrationRun;
   onData: (v: PhaseEditorData) => void;
   onClose: () => void;
+  detached?: boolean;
 }) {
   const data = base as EditorData;
   const dialog = useRef<HTMLDialogElement>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
   const [tab, setTab] = useState("Volume & structure");
+  const [positionView, setPositionView] = useState("d-angle");
+  const positions = (
+    [
+      ["d0", "d₀ (Å)", "d"],
+      ["d", "d (Å)", "d"],
+      ["twoTheta0", "2θ₀ (°)", "angle"],
+      ["twoTheta", "2θ (°)", "angle"],
+      ["q0", "Q₀ (Å⁻¹)", "q"],
+      ["q", "Q (Å⁻¹)", "q"],
+    ] as const
+  ).filter(
+    ([, , group]) =>
+      positionView === "all" ||
+      positionView === group ||
+      (positionView === "d-angle" && group !== "q"),
+  );
+  const columns = [
+    ["h", "h"],
+    ["k", "k"],
+    ["l", "l"],
+    ["intensity", "Intensity"],
+    ...positions.map(([key, label]) => [key, label] as const),
+  ] as const;
   const [selected, setSelected] = useState<number[]>([]);
   const [sort, setSort] = useState<{
     key: keyof EditorData["reflections"][number];
@@ -61,9 +86,9 @@ export function PhaseEditor({
             '.phase-action-rail button[aria-label="Edit selected Phase"]',
           )
         : (document.activeElement as HTMLElement);
-    dialog.current?.showModal();
+    if (!detached) dialog.current?.showModal();
     return () => {
-      dialog.current?.close();
+      if (!detached) dialog.current?.close();
       const target = returnFocus.current;
       requestAnimationFrame(() => target?.focus());
     };
@@ -241,10 +266,11 @@ export function PhaseEditor({
       },
     );
   };
-  return createPortal(
-    <dialog
+  const Surface = detached ? "section" : "dialog";
+  const surfaceContent = (
+    <Surface
       ref={dialog}
-      className="phase-dialog pe-dialog"
+      className={`phase-dialog pe-dialog${detached ? " pe-native" : ""}`}
       aria-label="Phase Editor"
       onCancel={(e) => {
         e.preventDefault();
@@ -263,12 +289,28 @@ export function PhaseEditor({
       <div className="pe-source">
         <label>
           Filename{" "}
-          <input readOnly value={data.filename} title={data.filename} />
+          <input
+            readOnly
+            value={data.filename}
+            title={data.filename}
+            placeholder="Not saved to a file"
+          />
         </label>
         <span>
           {data.modified ? "Modified in session" : "Session values"} ·{" "}
-          {data.origin === "bundled" ? "Bundled material" : "User material"}
+          {data.origin === "bundled"
+            ? "Bundled material"
+            : data.copiedFrom
+              ? `Custom copy of ${data.copiedFrom}`
+              : "User material"}
         </span>
+        <button
+          disabled={locked}
+          title="Create an independent editable copy in this session"
+          onClick={() => void act("editor_copy")}
+        >
+          Edit a copy
+        </button>
       </div>
       <div className="pe-body">
         <section className="pe-parameters" aria-label="Phase parameters">
@@ -312,8 +354,8 @@ export function PhaseEditor({
           >
             {!data.editable && (
               <p className="pe-note">
-                Bundled structure is read-only. Export and reload an .eosmat
-                file to edit it.
+                Bundled structure is read-only. Choose Edit a copy to change its
+                lattice, atomic sites or reflections.
               </p>
             )}
             <label className="pe-selector">
@@ -631,6 +673,20 @@ export function PhaseEditor({
                 : "h, k, l and intensity editable"}
             </span>
           </div>
+          <label className="pe-position-choice">
+            Positions{" "}
+            <select
+              aria-label="Reflection position columns"
+              value={positionView}
+              onChange={(e) => setPositionView(e.target.value)}
+            >
+              <option value="d-angle">d + 2θ</option>
+              <option value="d">d only</option>
+              <option value="angle">2θ only</option>
+              <option value="q">Q only</option>
+              <option value="all">All positions</option>
+            </select>
+          </label>
           <TableScroll
             className="pe-reflection-scroll"
             tabIndex={0}
@@ -658,29 +714,29 @@ export function PhaseEditor({
               e.clipboardData.setData(
                 "text/plain",
                 [
-                  "h\tk\tl\tIntensity\td0 (Å)\td (Å)\t2θ (°)",
-                  ...rows.map((i) => {
-                    const r = data.reflections[i];
-                    return [
-                      r.h,
-                      r.k,
-                      r.l,
-                      r.intensity,
-                      r.d0,
-                      r.d,
-                      r.twoTheta ?? "",
-                    ].join("\t");
-                  }),
+                  columns.map(([, label]) => label).join("\t"),
+                  ...rows.map((i) =>
+                    columns
+                      .map(([key]) => data.reflections[i][key] ?? "")
+                      .join("\t"),
+                  ),
                 ].join("\n"),
               );
               e.preventDefault();
             }}
           >
-            <DataTable aria-label="Phase reflections">
+            <DataTable
+              aria-label="Phase reflections"
+              data-position-columns={positions.length}
+            >
               <colgroup>
                 <col className="pe-check-col" />
-                {Array.from({ length: 7 }, (_, i) => (
-                  <col key={i} />
+                <col className="pe-index-col" />
+                <col className="pe-index-col" />
+                <col className="pe-index-col" />
+                <col className="pe-intensity-col" />
+                {positions.map(([key]) => (
+                  <col className="pe-position-col" key={key} />
                 ))}
               </colgroup>
               <thead>
@@ -702,17 +758,7 @@ export function PhaseEditor({
                       }
                     />
                   </th>
-                  {(
-                    [
-                      ["h", "h"],
-                      ["k", "k"],
-                      ["l", "l"],
-                      ["intensity", "Intensity"],
-                      ["d0", "d₀ (Å)"],
-                      ["d", "d (Å)"],
-                      ["twoTheta", "2θ (°)"],
-                    ] as const
-                  ).map(([key, label]) => (
+                  {columns.map(([key, label]) => (
                     <th
                       key={key}
                       aria-sort={
@@ -762,10 +808,18 @@ export function PhaseEditor({
                       />
                     </td>
                     {(["h", "k", "l", "intensity"] as const).map((p) => (
-                      <td key={p}>
+                      <td
+                        key={p}
+                        className={
+                          p === "intensity"
+                            ? "pe-intensity-cell"
+                            : "pe-index-cell"
+                        }
+                      >
                         <EditorNumber
                           label={`Reflection ${row + 1} ${p}`}
                           value={r[p]}
+                          significantDigits={p === "intensity" ? 4 : undefined}
                           disabled={!data.editable}
                           min={p === "intensity" ? 0 : -10000}
                           max={p === "intensity" ? 1e9 : 10000}
@@ -781,17 +835,18 @@ export function PhaseEditor({
                         />
                       </td>
                     ))}
-                    <td title={String(r.d0)}>{r.d0.toFixed(4)}</td>
-                    <td title={String(r.d)}>{r.d.toFixed(4)}</td>
-                    <td
-                      title={
-                        r.twoTheta == null
-                          ? "Outside the Bragg condition at this wavelength"
-                          : String(r.twoTheta)
-                      }
-                    >
-                      {r.twoTheta?.toFixed(4) ?? "—"}
-                    </td>
+                    {positions.map(([key]) => (
+                      <td
+                        key={key}
+                        title={
+                          r[key] == null
+                            ? "Unavailable at the session wavelength"
+                            : String(r[key])
+                        }
+                      >
+                        {r[key]?.toFixed(4) ?? "—"}
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
@@ -835,7 +890,9 @@ export function PhaseEditor({
           </div>
           <p className="pe-help">
             Enter or Tab applies a value; Escape restores it. Select rows to
-            copy or delete. d and 2θ are calculated.
+            copy or delete. ₀ denotes the reference lattice; unmarked positions
+            use the current P/T. Intensities display four significant digits;
+            focus a field for full precision.
           </p>
         </section>
       </div>
@@ -882,7 +939,12 @@ export function PhaseEditor({
         </button>
         <button onClick={close}>Close</button>
       </footer>
-    </dialog>,
-    document.querySelector(".app") || document.body,
+    </Surface>
   );
+  return detached
+    ? surfaceContent
+    : createPortal(
+        surfaceContent,
+        document.querySelector(".app") || document.body,
+      );
 }

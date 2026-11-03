@@ -241,6 +241,8 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
                     raise ValueError("Defer integration must be a boolean.")
                 self._defer_integration = defer_integration
                 readonly = {
+                    "integration_phase_state",
+                    "integration_phase_editor",
                     "state",
                     "pixel",
                     "image_levels",

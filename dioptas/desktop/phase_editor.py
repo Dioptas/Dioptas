@@ -111,6 +111,8 @@ def editor_metadata(model, index):
     thermal_kind = params['thermal_type'] or ('alphakt' if any(
         params[k] for k in LEGACY_FIELDS) else 'none')
     return dict(
+        uid=phase_editor_uid(phase),
+        copiedFrom=(source.get('copied_from') or {}).get('phase_name') or '',
         name=phase.name, pressure=params['pressure'], temperature=params['temperature'],
         coldPressure=bool(model.params.dac_thermal_pressure_enabled),
         modified=bool(params.get('modified') or params.get('eos_records_modified')),
@@ -299,3 +301,73 @@ def validate_jcpds_export(phase):
         raise ValueError(
             "JCPDS stores legacy BM3 peak tables and cannot retain this phase's "
             'EoS models, material records or atomic structure. Save as .eosmat instead.')
+
+
+def phase_editor_uid(phase):
+    from uuid import uuid4
+    if not getattr(phase, '_desktop_editor_uid', None):
+        phase._desktop_editor_uid = uuid4().hex
+    return phase._desktop_editor_uid
+
+
+def resolve_editor_index(model, index=None, editor_uid=None):
+    from .integration import finite
+    if editor_uid is not None:
+        for row, phase in enumerate(model.phases):
+            if getattr(phase, '_desktop_editor_uid', None) == editor_uid:
+                return row
+        raise ValueError('This phase is no longer in the session. Select a phase in the main window.')
+    return finite(index, 'Phase index', 0, len(model.phases)-1, True)
+
+
+def copy_phase_for_editing(model, index):
+    """Copy the complete live state, with no file roundtrip or diffraction refit."""
+    from uuid import uuid4
+    source = model.phases[index]
+    phase = deepcopy(source)
+    names = {p._name for p in model.phases}
+    stem = source._name + ' (custom)'
+    name = stem
+    number = 2
+    while name in names:
+        name = source._name + f' (custom {number})'
+        number += 1
+    phase._name = name
+    phase._filename = ''
+    phase._desktop_editor_uid = uuid4().hex
+    p = phase.params
+    document = deepcopy(p.get('material_document') or {})
+    provenance = dict(material_identifier=document.get('identifier'),
+        phase_name=source._name, filename=source._filename,
+        scientific_validation=[deepcopy(record.get('scientific_validation')) for record in p['eos_records']])
+    document['name'] = name
+    if document.get('identifier'):
+        document['identifier'] += '_custom_' + phase._desktop_editor_uid[:8]
+    document.setdefault('source', {})['copied_from'] = provenance
+    p['material_document'] = document
+    p['material_origin'] = 'custom'
+    records = deepcopy(p['eos_records'])
+    for record in records:
+        record['scientific_validation'] = dict(status='deferred', note=
+            'Editable material copy; source values are retained, subsequent edits are not primary-source validated.')
+    p['eos_records'] = records
+    p['eos_record_origins'] = ['custom'] * len(records)
+    p['modified'] = True
+    same_conditions = model.same_conditions
+    try:
+        model.same_conditions = False
+        model.add_jcpds_object(phase)
+    finally:
+        model.same_conditions = same_conditions
+    model.items[-1].filename = ''
+    return len(model.phases)-1
+
+
+def reflection_rows(phase, wavelength):
+    import numpy as np
+    def angle(spacing):
+        return float(np.degrees(2*np.arcsin(wavelength/(2*spacing)))) if spacing > 0 and wavelength <= 2*spacing else None
+    return [dict(h=float(r.h), k=float(r.k), l=float(r.l), intensity=float(r.intensity),
+        d0=float(r.d0), d=float(r.d), twoTheta0=angle(r.d0), twoTheta=angle(r.d),
+        q0=float(2*np.pi/r.d0) if r.d0 > 0 else None,
+        q=float(2*np.pi/r.d) if r.d > 0 else None) for r in phase.reflections]

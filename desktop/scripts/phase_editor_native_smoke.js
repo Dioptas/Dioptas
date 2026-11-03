@@ -1,0 +1,166 @@
+// Injected exclusively in the detached child of our --smoke native process.
+(async () => {
+  const invoke = window.__TAURI_INTERNALS__.invoke;
+  const delay = (ms = 30) => new Promise((resolve) => setTimeout(resolve, ms));
+  const check = (ok, text) => {
+    if (!ok) throw Error(text);
+  };
+  const wait = async (predicate) => {
+    for (let i = 0; i < 1000; i++) {
+      if (predicate()) return;
+      await delay();
+    }
+    throw Error("Detached editor did not settle: " + document.body.innerText);
+  };
+  const idle = async () => {
+    await delay();
+    await wait(
+      () =>
+        !document.querySelector('input[aria-busy="true"]') &&
+        !document
+          .querySelector('footer [role="status"]')
+          ?.textContent.includes("Applying edit"),
+    );
+  };
+  const click = async (text) => {
+    const button = [...document.querySelectorAll("button")].find(
+      (b) =>
+        b.textContent.trim() === text || b.getAttribute("aria-label") === text,
+    );
+    check(button && !button.disabled, "Missing editor button: " + text);
+    button.click();
+    await idle();
+  };
+  const set = async (label, value) => {
+    const field = document.querySelector(`input[aria-label="${label}"]`);
+    check(field, "Missing detached input: " + label);
+    field.focus();
+    await delay();
+    Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    ).set.call(field, String(value));
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+    await delay();
+    field.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Enter",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    await idle();
+    return field;
+  };
+  const choose = async (label, value) => {
+    const field = document.querySelector(`select[aria-label="${label}"]`);
+    check(field && !field.disabled, "Missing detached selector: " + label);
+    field.value = value;
+    field.dispatchEvent(new Event("change", { bubbles: true }));
+    await idle();
+  };
+  let report;
+  try {
+    await wait(() =>
+      document.querySelector('.pe-native input[aria-label="a₀"]'),
+    );
+    check(
+      !document.querySelector("dialog"),
+      "Detached editor is a modal dialog",
+    );
+    check(
+      await invoke("plugin:window|is_decorated", { label: "phase-editor" }),
+      "No native title bar",
+    );
+    const position = await invoke("plugin:window|outer_position", {
+      label: "phase-editor",
+    });
+    await invoke("plugin:window|set_position", {
+      label: "phase-editor",
+      value: { Physical: { x: position.x + 80, y: position.y + 30 } },
+    });
+    const moved = await invoke("plugin:window|outer_position", {
+      label: "phase-editor",
+    });
+    check(
+      moved.x !== position.x,
+      "The editor window did not move independently",
+    );
+    await invoke("plugin:window|set_size", {
+      label: "phase-editor",
+      value: { Logical: { width: 1000, height: 480 } },
+    });
+    const field = await set("a₀", "invalid");
+    check(
+      field.getAttribute("aria-invalid") === "true",
+      "Missing numeric validation",
+    );
+    field.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Escape",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    await idle();
+    check(
+      document.querySelector(".pe-native"),
+      "Draft Escape closed the native editor",
+    );
+    await set("a₀", 4.2);
+    const intensity = await set("Reflection 1 intensity", 66.0396789);
+    intensity.blur();
+    await idle();
+    check(
+      intensity.value === "66.04",
+      "Intensity is not displayed to four significant digits",
+    );
+    intensity.focus();
+    await delay();
+    check(
+      intensity.value === "66.0396789",
+      "Editing lost full scientific precision",
+    );
+    intensity.blur();
+    const index = document
+      .querySelector(".pe-index-cell input")
+      .getBoundingClientRect();
+    check(index.width <= 45, "Miller index input is too wide");
+    const volume = document.querySelector(".pe-parameter-scroll:not([hidden])");
+    check(
+      volume.scrollHeight > volume.clientHeight &&
+        volume.offsetWidth - volume.clientWidth >= 10,
+      "Volume scrollbar is not persistent",
+    );
+    await click("Equation of state");
+    await choose("Thermal model", "MieGruneisenDebye");
+    await set("theta0", 650);
+    const eos = document.querySelector(".pe-parameter-scroll:not([hidden])");
+    check(
+      eos.scrollHeight > eos.clientHeight &&
+        eos.offsetWidth - eos.clientWidth >= 10,
+      "EoS scrollbar is not persistent",
+    );
+    await choose("Reflection position columns", "all");
+    check(
+      document.querySelector('th[aria-sort] button[title="Sort by Q₀ (Å⁻¹)"]'),
+      "Reference Q column missing",
+    );
+    report = {
+      ok: true,
+      nativeTitleBar: true,
+      independentlyMoved: true,
+      persistentScrollbars: true,
+      compactIndices: true,
+      intensityPrecision: true,
+    };
+  } catch (error) {
+    report = { ok: false, error: String(error) };
+  }
+  await invoke("plugin:event|emit", {
+    event: "phase-editor-smoke",
+    payload: report,
+  });
+  await delay(150);
+  await invoke("plugin:window|close", { label: "phase-editor" });
+})();

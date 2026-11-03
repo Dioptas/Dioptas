@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { NativePhaseEditor } from "./NativePhaseEditor";
 import { isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { NativeCalibrationTooltip } from "./NativeCalibrationTooltip";
@@ -20,6 +21,8 @@ installNativeColorPickerAnchors();
 createRoot(document.getElementById("root")!).render(
   isTauri() && getCurrentWindow().label === "calibration-tooltip" ? (
     <NativeCalibrationTooltip />
+  ) : isTauri() && getCurrentWindow().label === "phase-editor" ? (
+    <NativePhaseEditor />
   ) : (
     <App />
   ),

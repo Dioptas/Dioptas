@@ -183,10 +183,15 @@ class PhaseWorkflow:
         self._revision += 1
         return self._snapshot()
 
-    def _integration_phase_editor(self, index):
+    def _integration_phase_state(self):
+        # Updating phase lines must retain the detector/cake contrast and zoom.
+        return {**self._snapshot(), 'patternOnly': True}
+
+    def _integration_phase_editor(self, index=None, editor_uid=None):
         from .integration import finite
         model = self._model.phase_model
-        index = finite(index, 'Phase index', 0, len(model.phases) - 1, True)
+        from .phase_editor import resolve_editor_index
+        index = resolve_editor_index(model, index, editor_uid)
         phase = model.phases[index]
         params = phase.params
         wavelength = self.configuration.calibration_model.wavelength * 1e10
@@ -205,10 +210,10 @@ class PhaseWorkflow:
             'ORTHORHOMBIC': ['a0','b0','c0'], 'MONOCLINIC': ['a0','b0','c0','beta0'],
             'TRICLINIC': ['a0','b0','c0','alpha0','beta0','gamma0'],
         }
-        from .phase_editor import editor_metadata
+        from .phase_editor import editor_metadata, reflection_rows
         return {'phaseEditor': dict(
             **editor_metadata(model, index),
-            index=index, filename=str(phase.filename),
+            index=index, filename=str(phase._filename),
             editable=model.is_material_editable(index), eosEditable=model.is_eos_record_editable(index),
             canReload=model.can_reload(index), symmetry=params['symmetry'].lower(),
             lattice={k: float(params[k]) for k in ('a0', 'b0', 'c0', 'alpha0', 'beta0', 'gamma0', 'v0', 'a', 'b', 'c', 'v')},
@@ -216,12 +221,13 @@ class PhaseWorkflow:
             eosType=params['eos_type'], thermalType=params['thermal_type'],
             eosParameters={k: float(params[k]) for k in eos_keys},
             references=reference_details(phase), reference=params['eos_current_index'],
-            reflections=[dict(h=float(r.h), k=float(r.k), l=float(r.l), intensity=float(r.intensity),
-                d0=float(r.d0), d=float(r.d), twoTheta=float(np.degrees(2*np.arcsin(wavelength/(2*r.d))))
-                    if r.d > 0 and wavelength <= 2*r.d else None) for r in phase.reflections],
+            reflections=reflection_rows(phase, wavelength),
         )}
 
-    def _integration_phase_export(self, index=None, material_id=None, path=None, format=None):
+    def _integration_phase_export(self, index=None, material_id=None, path=None, format=None, editor_only=False, editor_uid=None):
+        if editor_uid is not None:
+            from .phase_editor import resolve_editor_index
+            index = resolve_editor_index(self._model.phase_model, editor_uid=editor_uid)
         if format not in (None, 'txt'):
             raise ValueError('Unknown phase export format.')
         path = self._path(path, 'phase_reflections' if format == 'txt' else 'phase_export', save=True)
@@ -247,22 +253,30 @@ class PhaseWorkflow:
                 model.save_phase_as(index, path)
             elif Path(path).suffix.lower() == '.txt':
                 with open(path, 'w', encoding='utf-8') as stream:
-                    stream.write('h\tk\tl\tIntensity\td0 (Å)\td (Å)\t2θ (°)\n')
+                    stream.write('h\tk\tl\tIntensity\td0 (Å)\td (Å)\t2θ0 (°)\t2θ (°)\tQ0 (Å⁻¹)\tQ (Å⁻¹)\n')
                     for row in self._integration_phase_editor(index)['phaseEditor']['reflections']:
                         stream.write('\t'.join('' if row[k] is None else f'{row[k]:.17g}' for k in
-                            ('h', 'k', 'l', 'intensity', 'd0', 'd', 'twoTheta')) + '\n')
+                            ('h', 'k', 'l', 'intensity', 'd0', 'd', 'twoTheta0', 'twoTheta', 'q0', 'q')) + '\n')
             else:
                 from .phase_editor import export_material
                 eos.save_material_file(path, export_material(model, index))
         self._revision += 1
+        if editor_only:
+            return {**self._integration_phase_editor(index), 'savedPath': path}
         return {**self._snapshot(), 'savedPath': path}
 
     def _integration_phase(self, **arguments):
+        editor_only = arguments.pop('editor_only', False)
+        editor_uid = arguments.pop('editor_uid', None)
+        from .phase_editor import resolve_editor_index
+        if editor_uid is not None:
+            arguments['index'] = resolve_editor_index(self._model.phase_model, editor_uid=editor_uid)
         model = self._model.phase_model
         original = deepcopy(model.items)
         original_counter = model._color_counter
         try:
-            return self._phase_command(**arguments)
+            result = self._phase_command(**arguments)
+            return {'phaseEditor': result['phaseEditor']} if editor_only else result
         except Exception as error:
             model.items = original
             model._color_counter = original_counter
@@ -273,7 +287,7 @@ class PhaseWorkflow:
                 self._refresh_integration_pattern()
                 result = {**self._snapshot(), **self._integration_phase_editor(arguments['index'])}
                 result['phaseEditor']['editError'] = str(error)
-                return result
+                return {'phaseEditor': result['phaseEditor']} if editor_only else result
             raise
 
     def _phase_command(self, operation, index=None, path=None, paths=None, editor=False, **changes):
@@ -322,7 +336,11 @@ class PhaseWorkflow:
                 model.del_phase(index)
             elif operation.startswith('editor_'):
                 from .phase_editor import apply_editor_edit
-                apply_editor_edit(self, model, index, operation, changes)
+                if operation == 'editor_copy':
+                    from .phase_editor import copy_phase_for_editing
+                    index = copy_phase_for_editing(model, index)
+                else:
+                    apply_editor_edit(self, model, index, operation, changes)
             elif operation == 'reload':
                 model.reload(index)
             elif operation == 'parameter':

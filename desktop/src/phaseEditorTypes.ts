@@ -15,6 +15,13 @@ export interface EditorField {
 }
 export interface EditorData extends BasePhaseEditorData {
   name: string;
+  uid: string;
+  copiedFrom: string;
+  reflections: (BasePhaseEditorData["reflections"][number] & {
+    twoTheta0: number | null;
+    q0: number | null;
+    q: number | null;
+  })[];
   editError?: string;
   pressure: number;
   coldPressure: boolean;
