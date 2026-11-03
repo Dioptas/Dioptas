@@ -35,6 +35,7 @@ def choose_file(kind, save):
                 "pattern": "pattern.xy",
                 "phase_list": "phase_list.txt",
                 "phase_export": "phase.eosmat",
+                "phase_reflections": "reflections.txt",
                 "calibration": "calibration.poni",
                 "peaks": "calibration-peaks.json",
                 "batch": "batch.h5",

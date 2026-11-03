@@ -205,7 +205,9 @@ class PhaseWorkflow:
             'ORTHORHOMBIC': ['a0','b0','c0'], 'MONOCLINIC': ['a0','b0','c0','beta0'],
             'TRICLINIC': ['a0','b0','c0','alpha0','beta0','gamma0'],
         }
+        from .phase_editor import editor_metadata
         return {'phaseEditor': dict(
+            **editor_metadata(model, index),
             index=index, filename=str(phase.filename),
             editable=model.is_material_editable(index), eosEditable=model.is_eos_record_editable(index),
             canReload=model.can_reload(index), symmetry=params['symmetry'].lower(),
@@ -219,14 +221,18 @@ class PhaseWorkflow:
                     if r.d > 0 and wavelength <= 2*r.d else None) for r in phase.reflections],
         )}
 
-    def _integration_phase_export(self, index=None, material_id=None, path=None):
-        path = self._path(path, 'phase_export', save=True)
+    def _integration_phase_export(self, index=None, material_id=None, path=None, format=None):
+        if format not in (None, 'txt'):
+            raise ValueError('Unknown phase export format.')
+        path = self._path(path, 'phase_reflections' if format == 'txt' else 'phase_export', save=True)
         if path is None:
             return {'cancelled': True}
         suffix = Path(path).suffix.lower()
         if not suffix:
-            path += '.eosmat'
-            suffix = '.eosmat'
+            path += '.txt' if format == 'txt' else '.eosmat'
+            suffix = Path(path).suffix.lower()
+        if format == 'txt' and suffix != '.txt':
+            raise ValueError('Choose a .txt file for the reflection table.')
         if suffix not in ({'.eosmat'} if material_id is not None else {'.eosmat', '.jcpds', '.txt'}):
             raise ValueError('Choose an EOSMAT material, JCPDS phase or TXT reflection table.')
         if material_id is not None:
@@ -236,15 +242,18 @@ class PhaseWorkflow:
             model = self._model.phase_model
             index = finite(index, 'Phase index', 0, len(model.phases) - 1, True)
             if Path(path).suffix.lower() == '.jcpds':
+                from .phase_editor import validate_jcpds_export
+                validate_jcpds_export(model.phases[index])
                 model.save_phase_as(index, path)
             elif Path(path).suffix.lower() == '.txt':
                 with open(path, 'w', encoding='utf-8') as stream:
                     stream.write('h\tk\tl\tIntensity\td0 (Å)\td (Å)\t2θ (°)\n')
                     for row in self._integration_phase_editor(index)['phaseEditor']['reflections']:
-                        stream.write('\t'.join('' if row[k] is None else f'{row[k]:g}' for k in
+                        stream.write('\t'.join('' if row[k] is None else f'{row[k]:.17g}' for k in
                             ('h', 'k', 'l', 'intensity', 'd0', 'd', 'twoTheta')) + '\n')
             else:
-                eos.save_material_file(path, eos.material_from_jcpds(model.phases[index]))
+                from .phase_editor import export_material
+                eos.save_material_file(path, export_material(model, index))
         self._revision += 1
         return {**self._snapshot(), 'savedPath': path}
 
@@ -254,14 +263,28 @@ class PhaseWorkflow:
         original_counter = model._color_counter
         try:
             return self._phase_command(**arguments)
-        except Exception:
+        except Exception as error:
             model.items = original
             model._color_counter = original_counter
+            if arguments.get('operation') == 'editor_transaction':
+                # Inline rejection feedback belongs inside the modal. Return the
+                # restored authoritative editor, with an explicit rejected-edit
+                # message; ordinary command clients retain normal error responses.
+                self._refresh_integration_pattern()
+                result = {**self._snapshot(), **self._integration_phase_editor(arguments['index'])}
+                result['phaseEditor']['editError'] = str(error)
+                return result
             raise
 
     def _phase_command(self, operation, index=None, path=None, paths=None, editor=False, **changes):
         from .integration import finite, boolean
         model = self._model.phase_model
+        if operation == 'editor_transaction':
+            operation = changes.pop('edit_operation')
+            if operation not in {'parameter', 'reflection', 'update', 'reload'} and not operation.startswith('editor_'):
+                raise ValueError('Unknown editor edit.')
+            if operation == 'editor_transaction':
+                raise ValueError('Nested editor transactions are not supported.')
         if operation == 'load':
             if paths is None:
                 path = self._path(path, 'phase')
@@ -297,6 +320,9 @@ class PhaseWorkflow:
             index = finite(index, 'Phase index', 0, len(model.phases)-1, True)
             if operation == 'remove':
                 model.del_phase(index)
+            elif operation.startswith('editor_'):
+                from .phase_editor import apply_editor_edit
+                apply_editor_edit(self, model, index, operation, changes)
             elif operation == 'reload':
                 model.reload(index)
             elif operation == 'parameter':
@@ -327,7 +353,7 @@ class PhaseWorkflow:
                 elif action == 'clear':
                     model.clear_reflections(index)
                 elif action == 'remove':
-                    rows = [finite(v, 'Reflection', 0, len(model.phases[index].reflections)-1, True) for v in changes['rows']]
+                    rows = sorted({finite(v, 'Reflection', 0, len(model.phases[index].reflections)-1, True) for v in changes['rows']})
                     model.delete_multiple_reflections(index, rows)
                 elif action == 'update':
                     row = finite(changes['row'], 'Reflection', 0, len(model.phases[index].reflections)-1, True)

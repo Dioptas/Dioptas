@@ -1,0 +1,888 @@
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { DataTable, TableScroll } from "./DataTable";
+import type { IntegrationRun } from "./integration";
+import type { PhaseEditorData } from "./integrationPhase";
+import type {
+  EditorData,
+  EditorField,
+  EditorEdit as Edit,
+} from "./phaseEditorTypes";
+import { EditorNumber, TextEdit } from "./PhaseEditorFields";
+import { PhaseEditorStructure } from "./PhaseEditorStructure";
+import "./phaseEditor.css";
+
+export function PhaseEditor({
+  data: base,
+  ready,
+  run,
+  onData,
+  onClose,
+}: {
+  data: PhaseEditorData;
+  ready: boolean;
+  run: IntegrationRun;
+  onData: (v: PhaseEditorData) => void;
+  onClose: () => void;
+}) {
+  const data = base as EditorData;
+  const dialog = useRef<HTMLDialogElement>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const [tab, setTab] = useState("Volume & structure");
+  const [selected, setSelected] = useState<number[]>([]);
+  const [sort, setSort] = useState<{
+    key: keyof EditorData["reflections"][number];
+    direction: number;
+  } | null>(null);
+  const focusAddedReflection = useRef(false);
+  const orderedRows = data.reflections.map((r, row) => ({ r, row }));
+  if (sort)
+    orderedRows.sort((a, b) => {
+      const left = a.r[sort.key],
+        right = b.r[sort.key];
+      if (left == null) return right == null ? a.row - b.row : 1;
+      if (right == null) return -1;
+      return (left - right) * sort.direction || a.row - b.row;
+    });
+  const [lengthStep, setLengthStep] = useState(0.01);
+  const [angleStep, setAngleStep] = useState(1);
+  const [ratioStep, setRatioStep] = useState(0.01);
+  const [legacy, setLegacy] = useState(data.thermalSelection === "alphakt");
+  const [message, setMessage] = useState("");
+  const [pending, setPending] = useState(0);
+  const [confirm, setConfirm] = useState("");
+  const queue = useRef(Promise.resolve());
+  const content = useRef(data);
+  content.current = data;
+  useEffect(() => {
+    returnFocus.current =
+      document.activeElement === document.body
+        ? document.querySelector<HTMLElement>(
+            '.phase-action-rail button[aria-label="Edit selected Phase"]',
+          )
+        : (document.activeElement as HTMLElement);
+    dialog.current?.showModal();
+    return () => {
+      dialog.current?.close();
+      const target = returnFocus.current;
+      requestAnimationFrame(() => target?.focus());
+    };
+  }, []);
+  useEffect(() => {
+    setSelected([]);
+    setConfirm("");
+    if (focusAddedReflection.current) {
+      focusAddedReflection.current = false;
+      const target = dialog.current?.querySelector<HTMLInputElement>(
+        `input[aria-label="Reflection ${data.reflections.length} h"]`,
+      );
+      target?.focus();
+      target?.select();
+    }
+  }, [data.index, data.reflections.length]);
+  useEffect(() => {
+    setLegacy(data.thermalSelection === "alphakt");
+  }, [data.reference, data.thermalSelection]);
+  const act: Edit = (operation, args = {}) => {
+    setPending((n) => n + 1);
+    const result = queue.current.then(async () => {
+      setMessage("");
+      let accepted = false;
+      let responded = false;
+      await run(
+        "integration_phase",
+        {
+          operation: "editor_transaction",
+          edit_operation: operation,
+          index: content.current.index,
+          editor: true,
+          ...args,
+        },
+        "Updating phase…",
+        (r) => {
+          if (r.phaseEditor) {
+            responded = true;
+            onData(r.phaseEditor);
+            const rejection = (r.phaseEditor as EditorData).editError;
+            if (rejection) setMessage(`Edit not applied: ${rejection}`);
+            accepted = !rejection;
+          }
+        },
+      );
+      if (!responded) {
+        setMessage(
+          "Edit was not applied. Previous values are restored; see the application message for details.",
+        );
+        await run(
+          "integration_phase_editor",
+          { index: content.current.index },
+          "",
+          (r) => {
+            if (r.phaseEditor) onData(r.phaseEditor);
+          },
+        );
+      }
+      setPending((n) => n - 1);
+      return accepted;
+    });
+    queue.current = result.then(() => undefined);
+    return result;
+  };
+  // Local edits are serialized without removing keyboard focus during processing.
+  const locked = !ready && pending === 0;
+  const field = (f: EditorField, thermal = false) => (
+    <label
+      className="pe-field"
+      key={`${data.index}-${data.reference}-${f.key}`}
+    >
+      <span title={f.key}>{f.label}</span>
+      {!!f.choices?.length ? (
+        <select
+          aria-label={f.label}
+          value={String(f.value ?? "")}
+          disabled={locked || !data.eosEditable}
+          onChange={(e) =>
+            void act("editor_thermal_parameter", {
+              parameter: f.key,
+              value: e.target.value,
+            })
+          }
+        >
+          {f.choices.map((v) => (
+            <option key={v} value={v}>
+              {v.replaceAll("_", " ")}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <EditorNumber
+          label={f.label}
+          value={f.value == null ? null : Number(f.value)}
+          disabled={!data.eosEditable}
+          min={f.min}
+          max={f.max}
+          integer={f.integer}
+          optional={thermal && !f.required}
+          title={
+            thermal
+              ? `${f.key}${f.isDefault ? " · constructor default" : ""}${!f.required ? `; blank uses default ${f.default ?? "unset"}` : "; required"}`
+              : f.key
+          }
+          onCommit={(value) =>
+            act(
+              thermal && data.thermalType
+                ? "editor_thermal_parameter"
+                : "editor_parameter",
+              { parameter: f.key, value },
+            )
+          }
+        />
+      )}
+      <span className="pe-unit">{f.unit}</span>
+      {f.isDefault && <span className="pe-default">default</span>}
+    </label>
+  );
+  const lattice = (key: string, label: string, unit: string, step: number) => (
+    <label className="pe-field" key={key}>
+      <span>{label}</span>
+      <EditorNumber
+        label={label}
+        value={data.lattice[key]}
+        disabled={!data.editable || !data.latticeEditable.includes(key)}
+        min={key.includes("0") && key.length > 2 ? 0.001 : 0.000001}
+        max={key.length > 2 ? 179.999 : 99999}
+        step={step}
+        title={
+          data.latticeEditable.includes(key)
+            ? "Reference lattice; Enter or Tab applies"
+            : "Constrained by symmetry"
+        }
+        onCommit={(value) => act("parameter", { parameter: key, value })}
+      />
+      <span className="pe-unit">{unit}</span>
+    </label>
+  );
+  const ratioAllowed = (key: string) =>
+    data.editable &&
+    (key === "a/b" || key === "c/b"
+      ? ["orthorhombic", "monoclinic", "triclinic"].includes(data.symmetry)
+      : data.latticeEditable.includes("c0"));
+  const removeReflections = () => {
+    void act("reflection", { action: "remove", rows: selected });
+    setSelected([]);
+  };
+  const close = () => {
+    void queue.current.then(onClose);
+  };
+  const save = async (format?: string) => {
+    const invalid = dialog.current?.querySelector<HTMLInputElement>(
+      '[aria-invalid="true"]',
+    );
+    if (invalid) {
+      setMessage("Resolve the invalid value before saving.");
+      const panel = invalid.closest('[role="tabpanel"]');
+      if (panel)
+        setTab(
+          panel.id === "pe-page-0" ? "Volume & structure" : "Equation of state",
+        );
+      requestAnimationFrame(() => invalid.focus());
+      return;
+    }
+    // A preceding blur has already queued its edit before this click.
+    await queue.current;
+    await run(
+      "integration_phase_export",
+      { index: data.index, ...(format ? { format } : {}) },
+      "Saving phase…",
+      () => {
+        void run("integration_phase_editor", { index: data.index }, "", (r) => {
+          if (r.phaseEditor) onData(r.phaseEditor);
+        });
+      },
+    );
+  };
+  return createPortal(
+    <dialog
+      ref={dialog}
+      className="phase-dialog pe-dialog"
+      aria-label="Phase Editor"
+      onCancel={(e) => {
+        e.preventDefault();
+        if (confirm) setConfirm("");
+        else close();
+      }}
+    >
+      <header>
+        <h2>
+          Phase Editor <span className="pe-material-name">· {data.name}</span>
+        </h2>
+        <button type="button" aria-label="Close Phase Editor" onClick={close}>
+          ×
+        </button>
+      </header>
+      <div className="pe-source">
+        <label>
+          Filename{" "}
+          <input readOnly value={data.filename} title={data.filename} />
+        </label>
+        <span>
+          {data.modified ? "Modified in session" : "Session values"} ·{" "}
+          {data.origin === "bundled" ? "Bundled material" : "User material"}
+        </span>
+      </div>
+      <div className="pe-body">
+        <section className="pe-parameters" aria-label="Phase parameters">
+          <div className="pe-tabs" role="tablist" aria-label="Phase parameters">
+            {["Volume & structure", "Equation of state"].map((name, i) => (
+              <button
+                key={name}
+                role="tab"
+                id={`pe-tab-${i}`}
+                aria-selected={tab === name}
+                aria-controls={`pe-page-${i}`}
+                tabIndex={tab === name ? 0 : -1}
+                onClick={() => setTab(name)}
+                onKeyDown={(e) => {
+                  if (
+                    ["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)
+                  ) {
+                    e.preventDefault();
+                    const next = i === 0 ? 1 : 0;
+                    const index =
+                      e.key === "Home" ? 0 : e.key === "End" ? 1 : next;
+                    setTab(
+                      index === 0 ? "Volume & structure" : "Equation of state",
+                    );
+                    dialog.current
+                      ?.querySelector<HTMLButtonElement>(`#pe-tab-${index}`)
+                      ?.focus();
+                  }
+                }}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+          <div
+            className="pe-parameter-scroll"
+            role="tabpanel"
+            id="pe-page-0"
+            aria-labelledby="pe-tab-0"
+            hidden={tab !== "Volume & structure"}
+          >
+            {!data.editable && (
+              <p className="pe-note">
+                Bundled structure is read-only. Export and reload an .eosmat
+                file to edit it.
+              </p>
+            )}
+            <label className="pe-selector">
+              Symmetry{" "}
+              <select
+                aria-label="Phase symmetry"
+                disabled={locked || !data.editable}
+                value={data.symmetry}
+                onChange={(e) =>
+                  void act("parameter", {
+                    parameter: "symmetry",
+                    value: e.target.value,
+                  })
+                }
+              >
+                {[
+                  "cubic",
+                  "tetragonal",
+                  "hexagonal",
+                  "trigonal",
+                  "rhombohedral",
+                  "orthorhombic",
+                  "monoclinic",
+                  "triclinic",
+                ].map((v) => (
+                  <option key={v}>{v}</option>
+                ))}
+              </select>
+            </label>
+            <h3>Reference lattice</h3>
+            <div className="pe-lattice-grid">
+              {["a0", "b0", "c0"].map((p) =>
+                lattice(p, `${p[0]}₀`, "Å", lengthStep),
+              )}
+              {["alpha0", "beta0", "gamma0"].map((p, i) =>
+                lattice(p, ["α₀", "β₀", "γ₀"][i], "°", angleStep),
+              )}
+            </div>
+            <div className="pe-lattice-grid pe-ratios">
+              {["a/b", "c/a", "c/b"].map((key) => (
+                <label className="pe-field" key={key}>
+                  <span>{key}</span>
+                  <EditorNumber
+                    label={key}
+                    value={
+                      data.lattice[`${key[0]}0`] / data.lattice[`${key[2]}0`]
+                    }
+                    disabled={!ratioAllowed(key)}
+                    min={0.000001}
+                    step={ratioStep}
+                    title="Ratio of reference lattice lengths; changes the numerator length"
+                    onCommit={(value) =>
+                      act("editor_ratio", { parameter: key, value })
+                    }
+                  />
+                  <span />
+                </label>
+              ))}
+            </div>
+            <div className="pe-steps">
+              <span>Steps</span>
+              {[
+                ["Length", lengthStep, setLengthStep, "Å"],
+                ["Angle", angleStep, setAngleStep, "°"],
+                ["Ratio", ratioStep, setRatioStep, ""],
+              ].map(([label, value, setter, unit]) => (
+                <label key={String(label)}>
+                  {String(label)}
+                  <EditorNumber
+                    label={`Lattice ${String(label).toLowerCase()} step`}
+                    value={Number(value)}
+                    min={0.000001}
+                    onCommit={(n) => {
+                      (setter as (n: number) => void)(n!);
+                    }}
+                  />
+                  {String(unit)}
+                </label>
+              ))}
+            </div>
+            <h3
+              title={
+                data.coldPressure
+                  ? "Input cold pressure at the thermal EoS reference temperature"
+                  : "Current pressure and temperature"
+              }
+            >
+              {data.coldPressure ? "P₀ = " : "At "}
+              {data.pressure.toLocaleString()} GPa ·{" "}
+              {data.temperature.toLocaleString()} K
+            </h3>
+            <div className="pe-lattice-grid">
+              {["a", "b", "c", "v0", "v"].map((p) => (
+                <label className="pe-field" key={p}>
+                  <span>{p === "v0" ? "V₀" : p === "v" ? "V" : p}</span>
+                  <input
+                    aria-label={`Current lattice ${p}`}
+                    readOnly
+                    value={data.lattice[p].toPrecision(8)}
+                    title={String(data.lattice[p])}
+                  />
+                  <span className="pe-unit">
+                    {p.startsWith("v") ? "Å³" : "Å"}
+                  </span>
+                </label>
+              ))}
+            </div>
+            <PhaseEditorStructure data={data} locked={locked} act={act} />
+          </div>
+          <div
+            className="pe-parameter-scroll"
+            role="tabpanel"
+            id="pe-page-1"
+            aria-labelledby="pe-tab-1"
+            hidden={tab !== "Equation of state"}
+          >
+            {!!data.references.length && (
+              <>
+                <label className="pe-selector">
+                  Material record{" "}
+                  <select
+                    aria-label="Editor material record"
+                    value={data.reference}
+                    disabled={locked}
+                    onChange={(e) =>
+                      void act("update", { reference: Number(e.target.value) })
+                    }
+                  >
+                    {data.references.map((r, i) => (
+                      <option key={i} value={i}>
+                        {r.label}
+                        {i === data.defaultReference ? " · default" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p className="pe-record-state">
+                  {data.recordOrigin === "bundled"
+                    ? "Published record · read-only"
+                    : `${data.recordOrigin || "User"} record · editable`}{" "}
+                  · {data.references[data.reference]?.assessment}
+                </p>
+                <details className="pe-record-details">
+                  <summary>Reference &amp; scientific assessment</summary>
+                  <p>{data.references[data.reference]?.detail}</p>
+                </details>
+              </>
+            )}
+            <div className="pe-record-actions">
+              <button
+                disabled={locked || !data.references.length}
+                onClick={() =>
+                  void act("editor_record", { action: "duplicate" })
+                }
+              >
+                Duplicate as custom
+              </button>
+              <button
+                disabled={locked}
+                onClick={() => void act("editor_record", { action: "add" })}
+              >
+                Add record
+              </button>
+              <button
+                disabled={
+                  locked ||
+                  !data.eosEditable ||
+                  !data.references.length ||
+                  data.defaultReference === data.reference
+                }
+                onClick={() => void act("editor_record", { action: "default" })}
+              >
+                Set default
+              </button>
+              <button
+                disabled={
+                  locked || !data.eosEditable || !data.references.length
+                }
+                onClick={() => setConfirm("record")}
+              >
+                Delete record…
+              </button>
+            </div>
+            {data.eosEditable && !!data.references.length && (
+              <label className="pe-selector">
+                Record label
+                <TextEdit
+                  key={`${data.index}-${data.reference}`}
+                  label="Record label"
+                  value={data.recordLabel}
+                  disabled={locked}
+                  onCommit={(value) =>
+                    act("editor_record", { action: "rename", value })
+                  }
+                />
+              </label>
+            )}
+            {!data.eosEditable && (
+              <p className="pe-note">
+                Duplicate this record as custom to edit its parameters. The
+                published record is retained.
+              </p>
+            )}
+            <label className="pe-selector">
+              EoS{" "}
+              <select
+                aria-label="Equation of state model"
+                value={data.eosType}
+                disabled={locked || !data.eosEditable}
+                onChange={(e) =>
+                  void act("editor_eos_type", { value: e.target.value })
+                }
+              >
+                {!data.eosOptions.some((o) => o.value === data.eosType) && (
+                  <option>{data.eosType}</option>
+                )}
+                {data.eosOptions.map((o) => (
+                  <option
+                    key={o.value}
+                    value={o.value}
+                    disabled={!!o.error}
+                    title={o.error}
+                  >
+                    {o.value}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="pe-eos-fields">
+              {data.eosFields.map((f) => field(f))}
+            </div>
+            {!!data.materialFields.length && (
+              <details className="pe-record-details">
+                <summary>Material normalization data</summary>
+                <p>
+                  n: atoms per formula; Z electrons: electrons per formula; Z
+                  cell: formula units per cell used by the EoS. Structural edits
+                  retain these values.
+                </p>
+                <div className="pe-eos-fields">
+                  {data.materialFields.map((f) => field(f))}
+                </div>
+              </details>
+            )}
+            {data.recordData && (
+              <details className="pe-record-details">
+                <summary>Complete record metadata</summary>
+                <p>
+                  Source parameters, reported errors, fixed parameters, scope
+                  and provenance are retained in the material file.
+                </p>
+                <pre className="pe-record-json">
+                  {JSON.stringify(data.recordData, null, 2)}
+                </pre>
+              </details>
+            )}
+            <label className="pe-selector">
+              Thermal model{" "}
+              <select
+                aria-label="Thermal model"
+                value={
+                  !data.thermalType && legacy
+                    ? "alphakt"
+                    : data.thermalSelection
+                }
+                disabled={locked || !data.eosEditable}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setLegacy(value === "alphakt");
+                  if (value !== "alphakt" || data.thermalType)
+                    void act("editor_thermal_type", { value });
+                }}
+              >
+                {!data.thermalOptions.some(
+                  (o) => o.value === data.thermalSelection,
+                ) && <option>{data.thermalSelection}</option>}
+                {data.thermalOptions.map((o) => (
+                  <option
+                    key={o.value}
+                    value={o.value}
+                    disabled={!!o.error}
+                    title={o.error}
+                  >
+                    {o.value === "none"
+                      ? "None"
+                      : o.value === "alphakt"
+                        ? "Legacy α, dK/dT correction"
+                        : o.value}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {(data.thermalType || legacy) && (
+              <>
+                <p className="pe-help">
+                  {data.thermalType
+                    ? "Constructor parameters. Blank optional fields use the stated model default. Selecting a different model initializes Qt’s starting estimates."
+                    : "Legacy constant-coefficient correction."}
+                </p>
+                <div className="pe-eos-fields">
+                  {data.thermalFields.map((f) => field(f, !!data.thermalType))}
+                </div>
+              </>
+            )}
+          </div>
+        </section>
+        <section className="pe-reflections" aria-label="HKL reflections">
+          <div className="pe-reflection-heading">
+            <h3>
+              HKL reflections <span>{data.reflections.length}</span>
+            </h3>
+            <span>
+              {selected.length
+                ? `${selected.length} selected`
+                : "h, k, l and intensity editable"}
+            </span>
+          </div>
+          <TableScroll
+            className="pe-reflection-scroll"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if ((e.target as HTMLElement).closest("input")) return;
+              if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "a") {
+                e.preventDefault();
+                setSelected(data.reflections.map((_, i) => i));
+              }
+              if (
+                (e.key === "Delete" || e.key === "Backspace") &&
+                data.editable &&
+                !locked &&
+                selected.length
+              ) {
+                e.preventDefault();
+                removeReflections();
+              }
+            }}
+            onCopy={(e) => {
+              if ((e.target as HTMLElement).closest("input")) return;
+              const rows = orderedRows
+                .filter(({ row }) => !selected.length || selected.includes(row))
+                .map(({ row }) => row);
+              e.clipboardData.setData(
+                "text/plain",
+                [
+                  "h\tk\tl\tIntensity\td0 (Å)\td (Å)\t2θ (°)",
+                  ...rows.map((i) => {
+                    const r = data.reflections[i];
+                    return [
+                      r.h,
+                      r.k,
+                      r.l,
+                      r.intensity,
+                      r.d0,
+                      r.d,
+                      r.twoTheta ?? "",
+                    ].join("\t");
+                  }),
+                ].join("\n"),
+              );
+              e.preventDefault();
+            }}
+          >
+            <DataTable aria-label="Phase reflections">
+              <colgroup>
+                <col className="pe-check-col" />
+                {Array.from({ length: 7 }, (_, i) => (
+                  <col key={i} />
+                ))}
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    <input
+                      type="checkbox"
+                      aria-label="Select all reflections"
+                      checked={
+                        !!data.reflections.length &&
+                        selected.length === data.reflections.length
+                      }
+                      onChange={(e) =>
+                        setSelected(
+                          e.target.checked
+                            ? data.reflections.map((_, i) => i)
+                            : [],
+                        )
+                      }
+                    />
+                  </th>
+                  {(
+                    [
+                      ["h", "h"],
+                      ["k", "k"],
+                      ["l", "l"],
+                      ["intensity", "Intensity"],
+                      ["d0", "d₀ (Å)"],
+                      ["d", "d (Å)"],
+                      ["twoTheta", "2θ (°)"],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <th
+                      key={key}
+                      aria-sort={
+                        sort?.key === key
+                          ? sort.direction === 1
+                            ? "ascending"
+                            : "descending"
+                          : "none"
+                      }
+                    >
+                      <button
+                        className="pe-sort"
+                        title={`Sort by ${label}`}
+                        onClick={() =>
+                          setSort((s) => ({
+                            key,
+                            direction: s?.key === key ? -s.direction : 1,
+                          }))
+                        }
+                      >
+                        {label}
+                        {sort?.key === key
+                          ? sort.direction === 1
+                            ? " ↑"
+                            : " ↓"
+                          : ""}
+                      </button>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody key={`${data.index}-${data.reflections.length}`}>
+                {orderedRows.map(({ r, row }) => (
+                  <tr key={row} aria-selected={selected.includes(row)}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        aria-label={`Select reflection ${row + 1}`}
+                        checked={selected.includes(row)}
+                        onChange={(e) =>
+                          setSelected((s) =>
+                            e.target.checked
+                              ? [...s, row]
+                              : s.filter((n) => n !== row),
+                          )
+                        }
+                      />
+                    </td>
+                    {(["h", "k", "l", "intensity"] as const).map((p) => (
+                      <td key={p}>
+                        <EditorNumber
+                          label={`Reflection ${row + 1} ${p}`}
+                          value={r[p]}
+                          disabled={!data.editable}
+                          min={p === "intensity" ? 0 : -10000}
+                          max={p === "intensity" ? 1e9 : 10000}
+                          step={p === "intensity" ? "any" : 1}
+                          onCommit={(value) =>
+                            act("reflection", {
+                              action: "update",
+                              row,
+                              parameter: p,
+                              value,
+                            })
+                          }
+                        />
+                      </td>
+                    ))}
+                    <td title={String(r.d0)}>{r.d0.toFixed(4)}</td>
+                    <td title={String(r.d)}>{r.d.toFixed(4)}</td>
+                    <td
+                      title={
+                        r.twoTheta == null
+                          ? "Outside the Bragg condition at this wavelength"
+                          : String(r.twoTheta)
+                      }
+                    >
+                      {r.twoTheta?.toFixed(4) ?? "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </DataTable>
+            {!data.reflections.length && (
+              <p className="pe-help">
+                No reflections. Add a reflection or reload the source file.
+              </p>
+            )}
+          </TableScroll>
+          <div className="pe-reflection-actions">
+            <button
+              disabled={locked || !data.editable}
+              onClick={() => {
+                focusAddedReflection.current = true;
+                void act("reflection", { action: "add" }).then((ok) => {
+                  if (!ok) focusAddedReflection.current = false;
+                });
+              }}
+            >
+              Add
+            </button>
+            <button
+              disabled={locked || !data.editable || !selected.length}
+              onClick={removeReflections}
+            >
+              Delete
+            </button>
+            <button
+              disabled={locked || !data.editable || !data.reflections.length}
+              onClick={() => setConfirm("reflections")}
+            >
+              Clear…
+            </button>
+            <button
+              disabled={locked || !data.reflections.length}
+              onClick={() => void save("txt")}
+            >
+              Export table…
+            </button>
+          </div>
+          <p className="pe-help">
+            Enter or Tab applies a value; Escape restores it. Select rows to
+            copy or delete. d and 2θ are calculated.
+          </p>
+        </section>
+      </div>
+      {confirm && (
+        <div className="pe-confirm" role="group" aria-label="Confirm deletion">
+          <span>
+            {confirm === "record"
+              ? "Delete this custom EoS record?"
+              : "Clear all reflections?"}
+          </span>
+          <button onClick={() => setConfirm("")}>Cancel</button>
+          <button
+            disabled={locked}
+            onClick={() => {
+              void act(confirm === "record" ? "editor_record" : "reflection", {
+                action: confirm === "record" ? "delete" : "clear",
+              });
+              setConfirm("");
+            }}
+          >
+            Confirm delete
+          </button>
+        </div>
+      )}
+      <footer>
+        <p className={message ? "pe-edit-error" : "pe-status"} role="status">
+          {message ||
+            (pending
+              ? "Applying edit…"
+              : "Valid edits apply to this session. Save As writes a file.")}
+        </p>
+        <button
+          disabled={locked || !data.canReload}
+          onClick={() => void act("reload")}
+        >
+          Reload File
+        </button>
+        <button
+          disabled={locked}
+          title="Save .eosmat to retain EoS records, provenance and atomic positions"
+          onClick={() => void save()}
+        >
+          Save As…
+        </button>
+        <button onClick={close}>Close</button>
+      </footer>
+    </dialog>,
+    document.querySelector(".app") || document.body,
+  );
+}

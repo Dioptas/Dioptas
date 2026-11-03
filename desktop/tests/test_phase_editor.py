@@ -1,0 +1,215 @@
+"""Editor parity with Qt entry points, including record and structure ownership."""
+from copy import deepcopy
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+from dioptas.desktop.session import DesktopSession
+from dioptas.model import eos
+from dioptas.model.PhaseModel import PhaseModel
+from dioptas.model.util.eos_phase import (
+    RT_EOS_TYPES, THERMAL_EOS_TYPES, thermal_parameter_signature,
+)
+
+DATA = Path(__file__).resolve().parents[2] / 'dioptas/tests/data'
+GOLD = str(DATA / 'jcpds/au_version3.jcpds')
+
+
+def call(s, command, **args):
+    result = s.invoke(command, args)
+    assert result['ok'], result.get('error')
+    return result
+
+
+def edit(s, operation, **args):
+    return call(s, 'integration_phase', operation=operation, index=0, editor=True, **args)['phaseEditor']
+
+
+@pytest.fixture
+def session():
+    s = DesktopSession()
+    call(s, 'integration_phase', operation='load', path=GOLD)
+    return s
+
+
+def test_lattice_ratios_and_symmetry_match_qt_model(session):
+    reference = PhaseModel()
+    reference.add_jcpds(GOLD)
+    reference.set_param(0, 'symmetry', 'TETRAGONAL')
+    reference.set_param(0, 'c0', reference.phases[0].params['a0'] * 1.3)
+    edit(session, 'parameter', parameter='symmetry', value='tetragonal')
+    result = edit(session, 'editor_ratio', parameter='c/a', value=1.3)
+    assert result['lattice']['c0'] == reference.phases[0].params['c0']
+    np.testing.assert_allclose(session._model.phase_model.get_lines_d(0), reference.get_lines_d(0))
+    rejected = session.invoke('integration_phase', dict(operation='editor_ratio', index=0, parameter='a/b', value=2))
+    assert not rejected['ok']
+    assert session._model.phase_model.phases[0].params['a0'] == reference.phases[0].params['a0']
+    edit(session, 'parameter', parameter='symmetry', value='rhombohedral')
+    result = edit(session, 'parameter', parameter='alpha0', value=87)
+    assert result['lattice']['alpha0'] == result['lattice']['beta0'] == result['lattice']['gamma0'] == 87
+
+
+def test_eos_types_and_complete_thermal_constructor_roundtrip(session, tmp_path):
+    result = edit(session, 'editor_eos_type', value='BM2Reference')
+    assert [f['key'] for f in result['eosFields']] == ['k0', 'p0']
+    result = edit(session, 'editor_parameter', parameter='p0', value=2)
+    assert next(f for f in result['eosFields'] if f['key'] == 'p0')['value'] == 2
+    edit(session, 'editor_eos_type', value='BM3')
+    result = edit(session, 'editor_thermal_type', value='MieGruneisenDebye')
+    assert {f['key'] for f in result['thermalFields']} == set(thermal_parameter_signature('MieGruneisenDebye')) - {'n'}
+    assert {'n', 'zc'} <= {f['key'] for f in result['eosFields']}
+    result = edit(session, 'editor_thermal_parameter', parameter='theta0', value=650)
+    reference = PhaseModel()
+    reference.add_jcpds_object(deepcopy(session._model.phase_model.phases[0]))
+    reference.set_pressure_temperature(0, 10, 800)
+    edit(session, 'update', pressure=10, temperature=800)
+    np.testing.assert_allclose(session._model.phase_model.get_lines_d(0), reference.get_lines_d(0))
+    path = str(tmp_path / 'thermal.eosmat')
+    call(session, 'integration_phase_export', index=0, path=path)
+    assert eos.load_material_file(path).eos_records[0]['thermal']['parameters']['theta0'] == 650
+    edit(session, 'editor_thermal_type', value='none')
+    assert not session._model.phase_model.phases[0].has_thermal_expansion()
+    assert all(session._model.phase_model.phases[0].params[k] == 0 for k in ('alpha_t0', 'd_alpha_dt', 'dk0dt', 'dk0pdt'))
+
+
+def test_all_constructor_fields_and_option_restrictions(session):
+    from dioptas.desktop.phase_editor import thermal_fields
+    params = session._model.phase_model.phases[0].params
+    for kind in THERMAL_EOS_TYPES:
+        p = dict(params)
+        p.update(thermal_type=kind, thermal_parameters={})
+        assert {f['key'] for f in thermal_fields(p)} == set(thermal_parameter_signature(kind)) - {'n'}
+    result = edit(session, 'editor_eos_type', value='Murnaghan')
+    assert {o['value'] for o in result['eosOptions']} == set(RT_EOS_TYPES)
+    assert next(o for o in result['thermalOptions'] if o['value'] == 'DoubleDebyeHelmholtz')['error']
+    original = deepcopy(session._model.phase_model.phases[0].params['thermal_parameters'])
+    result = session.invoke('integration_phase', dict(operation='editor_thermal_type', index=0, value='DoubleDebyeHelmholtz'))
+    assert not result['ok']
+    assert session._model.phase_model.phases[0].params['thermal_parameters'] == original
+
+
+def test_published_copy_is_custom_and_retains_source_record(session, tmp_path):
+    catalog = call(session, 'integration_phase_catalog', query='Au')['phaseCatalog']
+    material = next(m for m in catalog if m['diffraction'] and m['defaultReference'] >= 0 and not m['references'][m['defaultReference']]['loadError'])
+    call(session, 'integration_phase', operation='clear')
+    call(session, 'integration_phase', operation='load_database', material_id=material['id'], reference=material['defaultReference'])
+    model = session._model.phase_model
+    source = deepcopy(model.phases[0].params['eos_records'])
+    result = edit(session, 'editor_record', action='duplicate')
+    assert not result['editable'] and result['eosEditable']
+    assert result['recordOrigin'] == 'custom'
+    edit(session, 'editor_parameter', parameter='k0', value=180)
+    edit(session, 'editor_record', action='rename', value='My diagnostic EOS')
+    result = edit(session, 'editor_record', action='default')
+    assert result['reference'] == result['defaultReference']
+    assert model.phases[0].params['eos_records'][:-1] == source
+    path = str(tmp_path / 'custom.eosmat')
+    call(session, 'integration_phase_export', index=0, path=path)
+    loaded = eos.load_material_file(path)
+    assert loaded.eos_records[-1]['label'] == 'My diagnostic EOS'
+    assert loaded.eos_records[-1]['scientific_validation']['status'] == 'deferred'
+    assert loaded.eos_records[-1]['eos']['parameters']['K0'] == 180
+    result = edit(session, 'editor_record', action='delete')
+    assert not result['eosEditable']
+    assert model.phases[0].params['eos_records'] == source
+
+
+def test_atomic_edits_match_qt_and_preserve_composition_provenance(session, tmp_path):
+    path = str(DATA / 'cif/fcc.cif')
+    call(session, 'integration_phase', operation='clear')
+    call(session, 'integration_phase', operation='load', path=path, minimum_d_spacing=1.5)
+    model = session._model.phase_model
+    reference = PhaseModel()
+    reference.add_jcpds_object(deepcopy(model.phases[0]))
+    wavelength = session.configuration.calibration_model.wavelength * 1e10
+    reference.set_atom_site_parameter(0, 0, 'occupancy', .75, wavelength_angstrom=wavelength)
+    original_z = model.phases[0].params['zc']
+    result = edit(session, 'editor_site', action='update', row=0, parameter='occupancy', value=.75)
+    np.testing.assert_allclose(model.get_lines_d(0), reference.get_lines_d(0))
+    assert result['structure']['modified']
+    assert model.phases[0].params['zc'] == original_z
+    assert result['structure']['storedZ'] == original_z
+    sites = deepcopy(model.phases[0].params['material_document']['atom_sites'])
+    rejected = session.invoke('integration_phase', dict(operation='editor_site', index=0, action='update', row=0, parameter='occupancy', value=1.5))
+    assert not rejected['ok']
+    assert model.phases[0].params['material_document']['atom_sites'] == sites
+    reference.set_space_group(0, 'P 1', wavelength_angstrom=wavelength)
+    result = edit(session, 'editor_space_group', value='P 1')
+    np.testing.assert_allclose(model.get_lines_d(0), reference.get_lines_d(0))
+    assert result['structure']['spaceGroupNumber'] == 1
+    result = edit(session, 'editor_site', action='add', site=dict(element='Au', x=.2, y=.3, z=.4, occupancy=.5))
+    assert len(result['structure']['sites']) == len(sites) + 1
+    result = edit(session, 'editor_site', action='remove', rows=[len(sites)])
+    assert len(result['structure']['sites']) == len(sites)
+    path = str(tmp_path / 'edited.eosmat')
+    call(session, 'integration_phase_export', index=0, path=path)
+    loaded = eos.load_material_file(path)
+    assert loaded.atom_sites[0]['occupancy'] == .75
+    assert loaded.source['structure_modified']
+
+
+def test_export_reflections_and_unique_deletion(session, tmp_path):
+    original = call(session, 'integration_phase_editor', index=0)['phaseEditor']
+    path = str(tmp_path / 'reflections')
+    result = call(session, 'integration_phase_export', index=0, format='txt', path=path)
+    text = Path(result['savedPath']).read_text()
+    assert text.startswith('h\tk\tl\tIntensity\td0 (Å)\td (Å)\t2θ (°)\n')
+    assert len(text.splitlines()) == len(original['reflections']) + 1
+    result = edit(session, 'reflection', action='remove', rows=[2, 0, 2])
+    assert len(result['reflections']) == len(original['reflections']) - 2
+
+
+def test_constructor_alphakt_survives_legacy_record_selection_and_export(session, tmp_path):
+    edit(session, 'editor_thermal_type', value='AlphaKT')
+    edit(session, 'editor_thermal_parameter', parameter='alpha1', value=1e-8)
+    edit(session, 'editor_thermal_parameter', parameter='thermal_expansion_law', value='linear_temperature')
+    edit(session, 'update', pressure=15, temperature=1000)
+    model = session._model.phase_model
+    expected = model.phases[0].params['v']
+    result = edit(session, 'editor_record', action='add')
+    assert result['thermalType'] == 'AlphaKT'
+    assert model.phases[0].params['v'] == pytest.approx(expected)
+    path = str(tmp_path / 'constructor.eosmat')
+    call(session, 'integration_phase_export', index=0, path=path)
+    restored = eos.build_jcpds(eos.load_material_file(path))
+    restored.compute_d(pressure=15, temperature=1000)
+    assert restored.params['thermal_type'] == 'AlphaKT'
+    assert restored.params['v'] == pytest.approx(expected)
+    # Selecting a constructor on an existing v2 record also keeps the marker.
+    edit(session, 'editor_thermal_type', value='none')
+    result = edit(session, 'editor_thermal_type', value='AlphaKT')
+    assert result['recordData']['thermal']['model']
+    assert result['thermalType'] == 'AlphaKT'
+
+
+def test_material_normalization_allows_holzapfel_without_invented_values(session):
+    initial = call(session, 'integration_phase_editor', index=0)['phaseEditor']
+    assert {f['key'] for f in initial['materialFields']} == {'n', 'z', 'zc'}
+    edit(session, 'editor_parameter', parameter='n', value=1)
+    edit(session, 'editor_parameter', parameter='z', value=79)
+    edit(session, 'editor_parameter', parameter='zc', value=4)
+    result = edit(session, 'editor_eos_type', value='Holzapfel')
+    assert {'n', 'z', 'zc'} <= {f['key'] for f in result['eosFields']}
+    assert result['eosType'] == 'Holzapfel'
+    # Inline editor rejections carry the unchanged authoritative data.
+    before = result['lattice']
+    result = call(session, 'integration_phase', operation='editor_transaction', edit_operation='editor_parameter', index=0, editor=True, parameter='zc', value=1.5)['phaseEditor']
+    assert result['editError']
+    assert result['lattice'] == before
+    assert next(f for f in result['eosFields'] if f['key'] == 'zc')['value'] == 4
+
+
+def test_jcpds_export_rejects_scientific_loss_before_creating_a_file(session, tmp_path):
+    legacy = str(tmp_path / 'legacy.jcpds')
+    call(session, 'integration_phase_export', index=0, path=legacy)
+    assert Path(legacy).is_file()
+    edit(session, 'editor_eos_type', value='Vinet')
+    path = tmp_path / 'unsupported.jcpds'
+    result = session.invoke('integration_phase_export', dict(index=0, path=str(path)))
+    assert not result['ok'] and '.eosmat' in result['error']
+    assert not path.exists()
+    edit(session, 'editor_eos_type', value='BM3')
+    edit(session, 'editor_record', action='add')
+    result = session.invoke('integration_phase_export', dict(index=0, path=str(path)))
+    assert not result['ok'] and not path.exists()

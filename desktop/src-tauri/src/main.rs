@@ -138,6 +138,7 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
             false,
         ),
         "integration_phase_list" => ("Phase List", &["txt"], "phase_list.txt", payload["save"] == true),
+        "integration_phase_export" if payload["format"] == "txt" => ("Reflection table", &["txt"], "reflections.txt", true),
         "integration_phase_export" => ("Phase or material", &["eosmat", "jcpds", "txt"], "phase.eosmat", true),
         "integration_phase" | "integration_phase_files" => (
             "Diffraction phase",
