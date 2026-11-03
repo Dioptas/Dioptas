@@ -142,7 +142,24 @@ export async function verifyBackgroundRange(page, invoke, waitReady) {
         window.__backgroundDrawnPoints = counts.get(this) + 1;
       return stroke.apply(this, args);
     };
+    const glDraw = WebGL2RenderingContext.prototype.drawArraysInstanced;
+    WebGL2RenderingContext.prototype.drawArraysInstanced = function (...args) {
+      if (this.canvas.dataset.testid === "pattern-gpu") {
+        const program = this.getParameter(this.CURRENT_PROGRAM);
+        const location = this.getUniformLocation(program, "color");
+        const color = location && this.getUniform(program, location);
+        if (
+          color &&
+          Math.round(color[0] * 255) === 115 &&
+          Math.round(color[1] * 255) === 187 &&
+          Math.round(color[2] * 255) === 166
+        )
+          window.__backgroundDrawnPoints = args[3] + 1;
+      }
+      return glDraw.apply(this, args);
+    };
     window.__restoreBackgroundStrokes = () => {
+      WebGL2RenderingContext.prototype.drawArraysInstanced = glDraw;
       CanvasRenderingContext2D.prototype.beginPath = begin;
       CanvasRenderingContext2D.prototype.lineTo = line;
       CanvasRenderingContext2D.prototype.stroke = stroke;

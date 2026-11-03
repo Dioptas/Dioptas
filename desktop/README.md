@@ -150,6 +150,14 @@ detector pixels; calculations, brush edits and pixel readouts also use original
 resolution. Display payloads use float32; scientific arrays retain their source
 precision in Python.
 
+## WebGL pattern benchmark
+
+The renderer comparison is described in
+[PATTERN_WEBGL_BENCHMARK.md](PATTERN_WEBGL_BENCHMARK.md). It covers ordinary and
+large-pattern navigation, CPU drawing cost, frame cadence, upload behavior and
+curve geometry. WebGL is the default; `VITE_DIOPTAS_PATTERN_RENDERER=canvas2d`
+selects the Canvas renderer for diagnostics and comparisons.
+
 ## Image and pattern rendering
 
 Detector and cake images use WebGL 2 (`src/WebGLRaster.ts`). Each mounted view
@@ -170,13 +178,19 @@ its existing 2048-pixel width, current view and annotations without reading back
 the GPU. Display rendering does not change scientific arrays, integration,
 calibration or original-pixel readouts.
 
-The pattern remains Canvas 2D (`src/PatternView.tsx`). Curve and reference-line
-pixels are cached separately from the cursor, zoom selection and editable range.
-Canvas backing stores resize only when dimensions change. Data extents and
-application overlay props are memoized. For monotonic ascending or descending
-coordinates, binary search finds visible samples (including boundary neighbours)
-and the nearest readout sample. Unordered coordinates retain the general path;
-no displayed samples inside the view are decimated, and gaps remain gaps.
+Pattern curves use WebGL 2 (`src/WebGLPattern.ts`) by default, while axes,
+reference lines, editable ranges and the cursor use layered Canvas 2D surfaces
+(`src/PatternView.tsx`). GPU buffers retain the curve coordinates and change only
+when source arrays or intensity scaling change. High/low coordinate pairs retain
+precision when zooming around large offsets. Unsupported or lost contexts and
+upload failures use the cached Canvas renderer; turning antialiasing off keeps
+the established Canvas pixel-line appearance. Context restoration rebuilds GPU
+resources. Data extents and application overlay props are memoized. For monotonic
+ascending or descending coordinates, binary search finds visible samples
+(including boundary neighbours) and the nearest readout sample. Unordered
+coordinates retain the general path; displayed samples inside the view are not
+decimated, and gaps remain gaps. `npm run test:pattern-quality` checks curve
+geometry, default rendering, fallback and context recovery.
 
 Run `npm run test:rendering` and `npm run test:rendering -- --webkit` for shader
 pixel comparisons, texture reuse, square pixels, context recovery, unsupported

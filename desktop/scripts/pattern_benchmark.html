@@ -1,0 +1,15 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Dioptas pattern rendering benchmark</title>
+  </head>
+  <body style="margin: 0; background: #101518">
+    <div id="fixture" style="display: flex; width: 1000px; height: 600px"></div>
+    <script type="module">
+      import { installPatternBenchmark } from "../src/patternBenchmark";
+      import "../src/style.css";
+      installPatternBenchmark(document.getElementById("fixture"));
+    </script>
+  </body>
+</html>

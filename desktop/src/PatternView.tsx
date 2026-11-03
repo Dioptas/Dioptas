@@ -1,3 +1,4 @@
+import { WebGLPattern, type PatternCurve } from "./WebGLPattern";
 import { IntegrationPhaseLegend } from "./IntegrationPhaseLegend";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { nearestSample, visibleSamples } from "./patternSamples";
@@ -83,7 +84,20 @@ export function PatternView({
   onRegionDragStart,
   onRegionCancel,
   regionsUpdating = false,
+  onRender,
+  curveRenderer = import.meta.env.VITE_DIOPTAS_PATTERN_RENDERER === "canvas2d"
+    ? "canvas2d"
+    : "webgl2",
 }: {
+  curveRenderer?: "canvas2d" | "webgl2";
+  onRender?: (sample: {
+    cpuMs: number;
+    renderer: string;
+    xMin: number;
+    xMax: number;
+    uploads?: number;
+    uploadBytes?: number;
+  }) => void;
   pattern: Pattern;
   patternColor?: string;
   showPattern?: boolean;
@@ -125,6 +139,39 @@ export function PatternView({
   if (!referenceLines.length) referenceLines = EMPTY_REFERENCES;
   const canvas = useRef<HTMLCanvasElement>(null),
     container = useRef<HTMLDivElement>(null);
+  const renderObserver = useRef(onRender);
+  renderObserver.current = onRender;
+  const backdrop = useRef<HTMLCanvasElement>(null);
+  const gpuCanvas = useRef<HTMLCanvasElement>(null);
+  const gpu = useRef<WebGLPattern | null>(null);
+  const [gpuVersion, setGpuVersion] = useState(0);
+  const [activeRenderer, setActiveRenderer] = useState("canvas2d");
+  useEffect(() => {
+    if (curveRenderer !== "webgl2") return;
+    const element = gpuCanvas.current!;
+    const initialize = () => {
+      try {
+        gpu.current = new WebGLPattern(element);
+      } catch {
+        gpu.current = null;
+      }
+      setGpuVersion((v) => v + 1);
+    };
+    const lost = (event: Event) => {
+      event.preventDefault();
+      gpu.current = null;
+      setGpuVersion((v) => v + 1);
+    };
+    element.addEventListener("webglcontextlost", lost);
+    element.addEventListener("webglcontextrestored", initialize);
+    initialize();
+    return () => {
+      element.removeEventListener("webglcontextlost", lost);
+      element.removeEventListener("webglcontextrestored", initialize);
+      gpu.current?.dispose();
+      gpu.current = null;
+    };
+  }, [curveRenderer]);
   const [size, setSize] = useState({ width: 900, height: 230 });
   const [left, setLeft] = useState(76);
   const [axisAnnotation, setAxisAnnotation] = useState(false);
@@ -132,6 +179,7 @@ export function PatternView({
   const curveCache = useRef<{
     key: unknown[];
     canvas: HTMLCanvasElement;
+    renderer: "webgl2" | "canvas2d";
   } | null>(null);
   const regionDrag = useRef<{
     name: string;
@@ -346,13 +394,15 @@ export function PatternView({
         : "grab"
       : undefined;
   useEffect(() => {
-    const context = canvas.current?.getContext("2d");
-    if (!context || !canvas.current) return;
+    const started = performance.now();
+    const backgroundContext = backdrop.current?.getContext("2d");
+    if (!backgroundContext || !backdrop.current || !canvas.current) return;
+    let context: CanvasRenderingContext2D = backgroundContext;
     const dpr = window.devicePixelRatio || 1;
     const width = Math.max(1, Math.round(size.width * dpr));
     const height = Math.max(1, Math.round(size.height * dpr));
-    if (canvas.current.width !== width) canvas.current.width = width;
-    if (canvas.current.height !== height) canvas.current.height = height;
+    if (backdrop.current.width !== width) backdrop.current.width = width;
+    if (backdrop.current.height !== height) backdrop.current.height = height;
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.clearRect(0, 0, width, height);
     context.scale(dpr, dpr);
@@ -368,7 +418,8 @@ export function PatternView({
           sqrt ? inverse(ymax) : ymax,
           intervalsY,
         );
-    setAxisAnnotation(!!yAxis.annotation);
+    if (axisAnnotation !== !!yAxis.annotation)
+      setAxisAnnotation(!!yAxis.annotation);
     const yTicks = sqrt
       ? yAxis.ticks.map((tick) => ({
           ...tick,
@@ -380,7 +431,8 @@ export function PatternView({
       0,
       ...yTicks.map((tick) => context.measureText(tick.label).width),
     );
-    setLeft(Math.max(64, Math.ceil(tickWidth) + 44));
+    const nextLeft = Math.max(64, Math.ceil(tickWidth) + 44);
+    if (nextLeft !== left) setLeft(nextLeft);
     let intervals = Math.max(1, Math.floor(w / 80));
     let xTicks = linearTicks(xmin, xmax, intervals);
     while (intervals > 1) {
@@ -490,8 +542,25 @@ export function PatternView({
       context.textAlign = "left";
       context.fillText(region.name, x0 + 5, top + 14);
     }
+    context.restore();
+    const backdropFont = context.font;
+    context = canvas.current.getContext("2d")!;
+    if (canvas.current.width !== width) canvas.current.width = width;
+    if (canvas.current.height !== height) canvas.current.height = height;
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    context.clearRect(0, 0, width, height);
+    context.scale(dpr, dpr);
+    context.font = backdropFont;
+    context.lineWidth = 1;
+    context.setLineDash([]);
+    context.save();
+    context.beginPath();
+    context.rect(left, top, w, h);
+    context.clip();
     // Reuse curve pixels when only the cursor, selection or editable region changes.
     const curveKey = [
+      gpuVersion,
+      curveRenderer,
       pattern,
       showPattern,
       emphasizePattern,
@@ -604,16 +673,43 @@ export function PatternView({
         }
         if (antialias) curveContext.stroke();
       };
-      if (showPattern && !emphasizePattern)
-        drawCurve(pattern, patternColor, 1.4);
-      // Measured curves and background inspection share the same axes and drawing mode.
-      // Draw the selected overlay last so it remains identifiable where curves overlap.
-      for (const curve of curves.filter((curve) => !curve.selected))
-        drawCurve(curve, curve.color, 1.2);
-      for (const curve of curves.filter((curve) => curve.selected))
-        drawCurve(curve, curve.color, 2.4);
-      if (showPattern && emphasizePattern)
-        drawCurve(pattern, patternColor, 2.4);
+      let usingGPU = false;
+      if (curveRenderer === "webgl2" && gpu.current && antialias) {
+        const ordered: PatternCurve[] = [];
+        if (showPattern && !emphasizePattern)
+          ordered.push({ ...pattern, color: patternColor, width: 1.4 });
+        for (const curve of curves.filter((c) => !c.selected))
+          ordered.push({ ...curve, width: 1.2 });
+        for (const curve of curves.filter((c) => c.selected))
+          ordered.push({ ...curve, width: 2.4 });
+        if (showPattern && emphasizePattern)
+          ordered.push({ ...pattern, color: patternColor, width: 2.4 });
+        try {
+          gpu.current.draw({
+            curves: ordered,
+            scale: log ? "log" : sqrt ? "sqrt" : "linear",
+            view: { xMin: xmin, xMax: xmax, yMin: ymin, yMax: ymax },
+            bounds: { left, top, width: w, height: h },
+            size: { ...size, dpr },
+          });
+          usingGPU = true;
+        } catch {
+          usingGPU = false;
+        }
+      }
+      setActiveRenderer(usingGPU ? "webgl2" : "canvas2d");
+      if (!usingGPU) {
+        if (showPattern && !emphasizePattern)
+          drawCurve(pattern, patternColor, 1.4);
+        // Measured curves and background inspection share the same axes and drawing mode.
+        // Draw the selected overlay last so it remains identifiable where curves overlap.
+        for (const curve of curves.filter((curve) => !curve.selected))
+          drawCurve(curve, curve.color, 1.2);
+        for (const curve of curves.filter((curve) => curve.selected))
+          drawCurve(curve, curve.color, 2.4);
+        if (showPattern && emphasizePattern)
+          drawCurve(pattern, patternColor, 2.4);
+      }
       const phaseLineTops = scalePhaseLines(
         pattern,
         referenceLines,
@@ -649,7 +745,11 @@ export function PatternView({
         }
       }
       curveContext.restore();
-      curveCache.current = { key: curveKey, canvas: layer };
+      curveCache.current = {
+        key: curveKey,
+        canvas: layer,
+        renderer: usingGPU ? "webgl2" : "canvas2d",
+      };
     }
     context.drawImage(
       curveCache.current.canvas,
@@ -710,7 +810,17 @@ export function PatternView({
     context.textBaseline = "middle";
     context.fillText("Intensity (a.u.)", 0, 0);
     context.restore();
+    renderObserver.current?.({
+      cpuMs: performance.now() - started,
+      renderer: curveCache.current.renderer,
+      xMin: xmin,
+      xMax: xmax,
+      uploads: gpu.current?.stats.uploads,
+      uploadBytes: gpu.current?.stats.uploadBytes,
+    });
   }, [
+    gpuVersion,
+    curveRenderer,
     pattern,
     showPattern,
     emphasizePattern,
@@ -785,9 +895,27 @@ export function PatternView({
     <div ref={container} className="pattern-container">
       <IntegrationPhaseLegend lines={referenceLines} left={left} />
       <canvas
+        ref={backdrop}
+        className="pattern-background-layer"
+        data-testid="pattern-axes"
+        aria-hidden="true"
+      />
+      <canvas
+        ref={gpuCanvas}
+        key={curveRenderer}
+        className="pattern-gpu-layer"
+        data-testid="pattern-gpu"
+        aria-hidden="true"
+        style={{
+          visibility: activeRenderer === "webgl2" ? "visible" : "hidden",
+        }}
+      />
+      <canvas
         ref={canvas}
         tabIndex={-1}
         data-testid="pattern-canvas"
+        data-curve-renderer={activeRenderer}
+        data-requested-curve-renderer={curveRenderer}
         aria-label={`Integrated diffraction pattern; left-drag ${zoomMode} zoom, right-drag pan, right-click zoom out`}
         style={{ width: "100%", height: "100%", cursor: regionCursor }}
         data-regions={JSON.stringify(
