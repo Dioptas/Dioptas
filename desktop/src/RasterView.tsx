@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  type Ref,
+} from "react";
 import type { Cake, Palette, Raster, Tool, RingOverlay } from "./types";
 import type { MaskOverlay } from "./maskDomain";
 import { ByteCache, decodeRaster } from "./rasterTransfer";
@@ -11,6 +19,10 @@ import {
   usePlotWheel,
   type ZoomMode,
 } from "./usePlotNavigation";
+
+export interface RasterExport {
+  png: () => string;
+}
 
 const EMPTY_PEAKS: {
   x: number;
@@ -26,6 +38,7 @@ const EMPTY_CALIBRANT_LINES: { ring: number; twoTheta: number }[] = [];
 const rendered = new ByteCache<string, HTMLCanvasElement>(96 * 1024 * 1024, 12);
 export function RasterView({
   raster,
+  exportRef,
   mask,
   limits,
   log,
@@ -56,6 +69,7 @@ export function RasterView({
   contours = EMPTY_CONTOURS,
 }: {
   raster: Raster;
+  exportRef?: Ref<RasterExport>;
   mask?: Raster;
   limits?: [number, number];
   log: boolean;
@@ -265,417 +279,455 @@ export function RasterView({
   const ox = left - view.xMin * sx,
     oy = top + (view.yMax - raster.fullHeight) * sy;
   const zoom = fitWidth / (view.xMax - view.xMin);
-  useEffect(() => {
-    const context = canvas.current?.getContext("2d");
-    if (!context || !canvas.current) return;
-    const dpr = window.devicePixelRatio || 1;
-    canvas.current.width = Math.round(size.width * dpr);
-    canvas.current.height = Math.round(size.height * dpr);
-    context.scale(dpr, dpr);
-    // Resizing clears the canvas; transparent margins reveal the workspace surface.
-    context.save();
-    context.beginPath();
-    context.rect(left, top, plotWidth, plotHeight);
-    context.clip();
-    context.imageSmoothingEnabled = false;
-    context.translate(ox, oy + raster.fullHeight * sy);
-    context.scale(1, -1);
-    context.drawImage(
-      image,
-      0,
-      0,
-      raster.fullWidth * sx,
-      raster.fullHeight * sy,
-    );
-    context.restore();
-    context.save();
-    context.beginPath();
-    context.rect(left, top, plotWidth, plotHeight);
-    context.clip();
-    if (!cake) {
-      const labels: { x: number; y: number; text: string; active: boolean }[] =
-        [];
-      const numbered = new Set<number>();
-      const ordered = [...rings].sort(
-        (a, b) => Number(a.ring === activeRing) - Number(b.ring === activeRing),
+  const draw = useCallback(
+    (output: HTMLCanvasElement, exporting = false) => {
+      const context = output.getContext("2d");
+      if (!context) return;
+      const dpr = exporting
+        ? 2048 / Math.max(1, size.width)
+        : window.devicePixelRatio || 1;
+      output.width = Math.round(size.width * dpr);
+      output.height = Math.max(1, Math.round(size.height * dpr));
+      context.scale(dpr, dpr);
+      if (exporting) {
+        context.fillStyle = "#101518";
+        context.fillRect(0, 0, size.width, size.height);
+      }
+      // Resizing clears the canvas; transparent margins reveal the workspace surface.
+      context.save();
+      context.beginPath();
+      context.rect(left, top, plotWidth, plotHeight);
+      context.clip();
+      context.imageSmoothingEnabled = false;
+      context.translate(ox, oy + raster.fullHeight * sy);
+      context.scale(1, -1);
+      context.drawImage(
+        image,
+        0,
+        0,
+        raster.fullWidth * sx,
+        raster.fullHeight * sy,
       );
-      for (const ring of ordered) {
-        const active = ring.ring === activeRing,
-          linked = ring.ring < 0;
-        const path = () => {
+      context.restore();
+      context.save();
+      context.beginPath();
+      context.rect(left, top, plotWidth, plotHeight);
+      context.clip();
+      if (!cake) {
+        const labels: {
+          x: number;
+          y: number;
+          text: string;
+          active: boolean;
+        }[] = [];
+        const numbered = new Set<number>();
+        const ordered = [...rings].sort(
+          (a, b) =>
+            Number(a.ring === activeRing) - Number(b.ring === activeRing),
+        );
+        for (const ring of ordered) {
+          const active = ring.ring === activeRing,
+            linked = ring.ring < 0;
+          const path = () => {
+            context.beginPath();
+            ring.points.forEach(([x, y], i) => {
+              const px = ox + x * sx,
+                py = oy + (raster.fullHeight - y) * sy;
+              if (i) context.lineTo(px, py);
+              else context.moveTo(px, py);
+            });
+          };
+          context.setLineDash([]);
+          if (linked) {
+            path();
+            context.strokeStyle = "#03070ce6";
+            context.lineWidth = 3.5;
+            context.stroke();
+          }
+          path();
+          context.strokeStyle =
+            ring.color ??
+            (linked ? "#83f5d0" : active ? "#ff4040d9" : "#ff4040b3");
+          context.lineWidth = active ? 2.2 : linked ? 2 : 0.8;
+          context.stroke();
+          if (
+            (showNumbers || active) &&
+            ring.ring > 0 &&
+            !numbered.has(ring.ring)
+          ) {
+            const angle = ring.ring * 0.65;
+            const tx = left + plotWidth * (0.5 + 0.32 * Math.cos(angle)),
+              ty = top + plotHeight * (0.5 + 0.32 * Math.sin(angle));
+            const candidates = ring.points
+              .map(([x, y]) => ({
+                x: ox + x * sx,
+                y: oy + (raster.fullHeight - y) * sy,
+              }))
+              .filter(
+                (p) =>
+                  p.x > left + 20 &&
+                  p.x < left + plotWidth - 24 &&
+                  p.y > top + 18 &&
+                  p.y < top + plotHeight - 16,
+              )
+              .sort(
+                (a, b) =>
+                  Math.hypot(a.x - tx, a.y - ty) -
+                  Math.hypot(b.x - tx, b.y - ty),
+              );
+            const point = candidates.find(
+              (p) =>
+                active ||
+                labels.every(
+                  (other) =>
+                    Math.abs(other.x - p.x) > 30 ||
+                    Math.abs(other.y - p.y) > 23,
+                ),
+            );
+            if (point) {
+              labels.push({
+                ...point,
+                text: String(ring.ring),
+                active,
+              });
+              numbered.add(ring.ring);
+            }
+          }
+        }
+        context.font = "400 13px -apple-system, sans-serif";
+        context.textAlign = "left";
+        for (const label of labels) {
+          const width = context.measureText(label.text).width + 10;
+          context.fillStyle = "#202226dd";
           context.beginPath();
-          ring.points.forEach(([x, y], i) => {
+          context.roundRect(label.x + 3, label.y - 18, width, 22, 3);
+          context.fill();
+          context.fillStyle = "#ff4040";
+          context.fillText(label.text, label.x + 8, label.y - 2);
+        }
+        context.strokeStyle = "#ffffff88";
+        context.lineWidth = 1;
+        for (const contour of contours) {
+          context.beginPath();
+          contour.forEach(([x, y], i) => {
             const px = ox + x * sx,
               py = oy + (raster.fullHeight - y) * sy;
             if (i) context.lineTo(px, py);
             else context.moveTo(px, py);
           });
-        };
-        context.setLineDash([]);
-        if (linked) {
-          path();
-          context.strokeStyle = "#03070ce6";
-          context.lineWidth = 3.5;
           context.stroke();
         }
-        path();
-        context.strokeStyle =
-          ring.color ??
-          (linked ? "#83f5d0" : active ? "#ff4040d9" : "#ff4040b3");
-        context.lineWidth = active ? 2.2 : linked ? 2 : 0.8;
-        context.stroke();
-        if (
-          (showNumbers || active) &&
-          ring.ring > 0 &&
-          !numbered.has(ring.ring)
-        ) {
-          const angle = ring.ring * 0.65;
-          const tx = left + plotWidth * (0.5 + 0.32 * Math.cos(angle)),
-            ty = top + plotHeight * (0.5 + 0.32 * Math.sin(angle));
-          const candidates = ring.points
-            .map(([x, y]) => ({
-              x: ox + x * sx,
-              y: oy + (raster.fullHeight - y) * sy,
-            }))
-            .filter(
-              (p) =>
-                p.x > left + 20 &&
-                p.x < left + plotWidth - 24 &&
-                p.y > top + 18 &&
-                p.y < top + plotHeight - 16,
-            )
-            .sort(
-              (a, b) =>
-                Math.hypot(a.x - tx, a.y - ty) - Math.hypot(b.x - tx, b.y - ty),
-            );
-          const point = candidates.find(
-            (p) =>
-              active ||
-              labels.every(
-                (other) =>
-                  Math.abs(other.x - p.x) > 30 || Math.abs(other.y - p.y) > 23,
-              ),
+        // Start with Qt's 7/9 px dots at fit, then grow gently with zoom so
+        // picked points remain visible without covering the enlarged peaks.
+        // Orange for the current ring, red otherwise, white selection outline.
+        // Draw selected groups last so overlapping picks cannot hide them.
+        const peakScale = Math.min(2.5, Math.sqrt(Math.max(1, zoom)));
+        const orderedPeaks = [...peaks].sort(
+          (a, b) => Number(!!a.selected) - Number(!!b.selected),
+        );
+        for (const peak of orderedPeaks) {
+          const x = ox + (peak.x + 0.5) * sx,
+            y = oy + (raster.fullHeight - peak.y - 0.5) * sy;
+          context.fillStyle =
+            peak.ring === currentPeakRing ? "#ff8c00" : "#ff0000";
+          context.strokeStyle = peak.selected
+            ? "#ffffff"
+            : "rgba(255, 255, 255, 0.353)";
+          context.lineWidth = peak.selected ? 2 : 1;
+          context.beginPath();
+          context.arc(
+            x,
+            y,
+            (peak.selected ? 4.5 : 3.5) * peakScale,
+            0,
+            Math.PI * 2,
           );
-          if (point) {
-            labels.push({
-              ...point,
-              text: String(ring.ring),
-              active,
-            });
-            numbered.add(ring.ring);
+          context.fill();
+          context.stroke();
+        }
+      }
+      if (cake) {
+        const range = (raster as Cake).radialRange;
+        const calibrantWidthBoost = Math.min(
+          2,
+          0.6 * Math.log2(Math.max(1, zoom)),
+        );
+        const lineX = (twoTheta: number) =>
+          ox +
+          ((twoTheta - range[0]) / (range[1] - range[0])) *
+            raster.fullWidth *
+            sx;
+        let lastLabelRight = -Infinity;
+        context.font = "400 13px -apple-system, sans-serif";
+        context.textAlign = "left";
+        for (const line of calibrantLines) {
+          const x = lineX(line.twoTheta);
+          if (!Number.isFinite(x) || x < left || x > left + plotWidth) continue;
+          const active = line.ring === activeRing;
+          context.strokeStyle =
+            line.color ?? (active ? "#ff4040d9" : "#ff4040b3");
+          context.lineWidth =
+            (active ? 2.2 : 0.8) + (line.color ? 0 : calibrantWidthBoost);
+          context.beginPath();
+          context.moveTo(x, top);
+          context.lineTo(x, top + plotHeight);
+          context.stroke();
+          if (showNumbers) {
+            const text = String(line.ring);
+            const width = context.measureText(text).width + 10;
+            const labelX = Math.min(x + 3, left + plotWidth - width);
+            if (labelX < lastLabelRight + 6) continue;
+            context.fillStyle = "#202226dd";
+            context.beginPath();
+            context.roundRect(labelX, top + 4, width, 22, 3);
+            context.fill();
+            context.fillStyle = "#ff4040";
+            context.fillText(text, labelX + 5, top + 20);
+            lastLabelRight = labelX + width;
           }
         }
-      }
-      context.font = "400 13px -apple-system, sans-serif";
-      context.textAlign = "left";
-      for (const label of labels) {
-        const width = context.measureText(label.text).width + 10;
-        context.fillStyle = "#202226dd";
-        context.beginPath();
-        context.roundRect(label.x + 3, label.y - 18, width, 22, 3);
-        context.fill();
-        context.fillStyle = "#ff4040";
-        context.fillText(label.text, label.x + 8, label.y - 2);
-      }
-      context.strokeStyle = "#ffffff88";
-      context.lineWidth = 1;
-      for (const contour of contours) {
-        context.beginPath();
-        contour.forEach(([x, y], i) => {
-          const px = ox + x * sx,
-            py = oy + (raster.fullHeight - y) * sy;
-          if (i) context.lineTo(px, py);
-          else context.moveTo(px, py);
-        });
-        context.stroke();
-      }
-      // Start with Qt's 7/9 px dots at fit, then grow gently with zoom so
-      // picked points remain visible without covering the enlarged peaks.
-      // Orange for the current ring, red otherwise, white selection outline.
-      // Draw selected groups last so overlapping picks cannot hide them.
-      const peakScale = Math.min(2.5, Math.sqrt(Math.max(1, zoom)));
-      const orderedPeaks = [...peaks].sort(
-        (a, b) => Number(!!a.selected) - Number(!!b.selected),
-      );
-      for (const peak of orderedPeaks) {
-        const x = ox + (peak.x + 0.5) * sx,
-          y = oy + (raster.fullHeight - peak.y - 0.5) * sy;
-        context.fillStyle =
-          peak.ring === currentPeakRing ? "#ff8c00" : "#ff0000";
-        context.strokeStyle = peak.selected
-          ? "#ffffff"
-          : "rgba(255, 255, 255, 0.353)";
-        context.lineWidth = peak.selected ? 2 : 1;
-        context.beginPath();
-        context.arc(
-          x,
-          y,
-          (peak.selected ? 4.5 : 3.5) * peakScale,
-          0,
-          Math.PI * 2,
-        );
-        context.fill();
-        context.stroke();
-      }
-    }
-    if (cake) {
-      const range = (raster as Cake).radialRange;
-      const calibrantWidthBoost = Math.min(
-        2,
-        0.6 * Math.log2(Math.max(1, zoom)),
-      );
-      const lineX = (twoTheta: number) =>
-        ox +
-        ((twoTheta - range[0]) / (range[1] - range[0])) * raster.fullWidth * sx;
-      let lastLabelRight = -Infinity;
-      context.font = "400 13px -apple-system, sans-serif";
-      context.textAlign = "left";
-      for (const line of calibrantLines) {
-        const x = lineX(line.twoTheta);
-        if (!Number.isFinite(x) || x < left || x > left + plotWidth) continue;
-        const active = line.ring === activeRing;
-        context.strokeStyle =
-          line.color ?? (active ? "#ff4040d9" : "#ff4040b3");
-        context.lineWidth =
-          (active ? 2.2 : 0.8) + (line.color ? 0 : calibrantWidthBoost);
-        context.beginPath();
-        context.moveTo(x, top);
-        context.lineTo(x, top + plotHeight);
-        context.stroke();
-        if (showNumbers) {
-          const text = String(line.ring);
-          const width = context.measureText(text).width + 10;
-          const labelX = Math.min(x + 3, left + plotWidth - width);
-          if (labelX < lastLabelRight + 6) continue;
-          context.fillStyle = "#202226dd";
+        if (!exporting && linkedPosition !== undefined) {
+          const x = lineX(linkedPosition);
+          context.strokeStyle = "#8af0c4";
+          context.lineWidth = 1.5;
           context.beginPath();
-          context.roundRect(labelX, top + 4, width, 22, 3);
-          context.fill();
-          context.fillStyle = "#ff4040";
-          context.fillText(text, labelX + 5, top + 20);
-          lastLabelRight = labelX + width;
+          context.moveTo(x, top);
+          context.lineTo(x, top + plotHeight);
+          context.stroke();
         }
       }
-      if (linkedPosition !== undefined) {
-        const x = lineX(linkedPosition);
-        context.strokeStyle = "#8af0c4";
-        context.lineWidth = 1.5;
-        context.beginPath();
-        context.moveTo(x, top);
-        context.lineTo(x, top + plotHeight);
-        context.stroke();
+      if (!exporting && navigation.selection) {
+        const { start, end } = navigation.selection;
+        context.fillStyle = "#ff950025";
+        context.strokeStyle = "#ff9500";
+        context.lineWidth = 1;
+        context.fillRect(
+          Math.min(start.x, end.x),
+          Math.min(start.y, end.y),
+          Math.abs(end.x - start.x),
+          Math.abs(end.y - start.y),
+        );
+        context.strokeRect(
+          Math.min(start.x, end.x),
+          Math.min(start.y, end.y),
+          Math.abs(end.x - start.x),
+          Math.abs(end.y - start.y),
+        );
       }
-    }
-    if (navigation.selection) {
-      const { start, end } = navigation.selection;
-      context.fillStyle = "#ff950025";
-      context.strokeStyle = "#ff9500";
-      context.lineWidth = 1;
-      context.fillRect(
-        Math.min(start.x, end.x),
-        Math.min(start.y, end.y),
-        Math.abs(end.x - start.x),
-        Math.abs(end.y - start.y),
-      );
-      context.strokeRect(
-        Math.min(start.x, end.x),
-        Math.min(start.y, end.y),
-        Math.abs(end.x - start.x),
-        Math.abs(end.y - start.y),
-      );
-    }
-    if (stroke.length) {
-      context.fillStyle =
-        tool === "erase" ? "rgba(101,197,139,.5)" : "rgba(255,0,0,.5)";
-      for (const [x, y] of stroke) {
+      if (!exporting && stroke.length) {
+        context.fillStyle =
+          tool === "erase" ? "rgba(101,197,139,.5)" : "rgba(255,0,0,.5)";
+        for (const [x, y] of stroke) {
+          context.beginPath();
+          context.ellipse(
+            ox + x * sx,
+            oy + (raster.fullHeight - y) * sy,
+            radius * sx,
+            radius * sy,
+            0,
+            0,
+            Math.PI * 2,
+          );
+          context.fill();
+        }
+      }
+      if (!exporting && roi && !cake) {
+        const [rowMin, rowMax, colMin, colMax] = roi;
+        const x0 = ox + colMin * sx,
+          x1 = ox + colMax * sx;
+        const y0 = oy + (raster.fullHeight - rowMax) * sy,
+          y1 = oy + (raster.fullHeight - rowMin) * sy;
+        context.fillStyle = "#00000080";
+        context.beginPath();
+        context.rect(left, top, plotWidth, plotHeight);
+        context.rect(x0, y0, x1 - x0, y1 - y0);
+        context.fill("evenodd");
+        context.strokeStyle = "#ff9500";
+        context.lineWidth = 1.5;
+        context.strokeRect(x0, y0, x1 - x0, y1 - y0);
+      }
+      if (overlay && !cake) {
+        context.strokeStyle = overlay.erase ? "#87e4ae" : "#ff0000";
+        context.fillStyle = overlay.erase ? "#65c58b30" : "#ff000030";
+        context.lineWidth = 1.5;
+        for (const path of overlay.paths) {
+          context.beginPath();
+          path.forEach(([x, y], i) => {
+            const px = ox + x * sx,
+              py = oy + (raster.fullHeight - y) * sy;
+            if (i) context.lineTo(px, py);
+            else context.moveTo(px, py);
+          });
+          if (path.length > 2) {
+            context.closePath();
+            context.fill();
+          }
+          context.stroke();
+        }
+        if (overlay.ellipse) {
+          const e = overlay.ellipse;
+          context.beginPath();
+          context.ellipse(
+            ox + e.cx * sx,
+            oy + (raster.fullHeight - e.cy) * sy,
+            e.rx * sx,
+            e.ry * sy,
+            0,
+            0,
+            Math.PI * 2,
+          );
+          context.fill();
+          context.stroke();
+        }
+      }
+      if (
+        !exporting &&
+        cursor &&
+        (tool === "mask" || tool === "erase") &&
+        !cake
+      ) {
+        context.strokeStyle = tool === "erase" ? "#87e4ae" : "#ff0000";
+        context.lineWidth = 1;
         context.beginPath();
         context.ellipse(
-          ox + x * sx,
-          oy + (raster.fullHeight - y) * sy,
+          cursor.x,
+          cursor.y,
           radius * sx,
           radius * sy,
           0,
           0,
           Math.PI * 2,
         );
-        context.fill();
-      }
-    }
-    if (roi && !cake) {
-      const [rowMin, rowMax, colMin, colMax] = roi;
-      const x0 = ox + colMin * sx,
-        x1 = ox + colMax * sx;
-      const y0 = oy + (raster.fullHeight - rowMax) * sy,
-        y1 = oy + (raster.fullHeight - rowMin) * sy;
-      context.fillStyle = "#00000080";
-      context.beginPath();
-      context.rect(left, top, plotWidth, plotHeight);
-      context.rect(x0, y0, x1 - x0, y1 - y0);
-      context.fill("evenodd");
-      context.strokeStyle = "#ff9500";
-      context.lineWidth = 1.5;
-      context.strokeRect(x0, y0, x1 - x0, y1 - y0);
-    }
-    if (overlay && !cake) {
-      context.strokeStyle = overlay.erase ? "#87e4ae" : "#ff0000";
-      context.fillStyle = overlay.erase ? "#65c58b30" : "#ff000030";
-      context.lineWidth = 1.5;
-      for (const path of overlay.paths) {
-        context.beginPath();
-        path.forEach(([x, y], i) => {
-          const px = ox + x * sx,
-            py = oy + (raster.fullHeight - y) * sy;
-          if (i) context.lineTo(px, py);
-          else context.moveTo(px, py);
-        });
-        if (path.length > 2) {
-          context.closePath();
-          context.fill();
-        }
         context.stroke();
       }
-      if (overlay.ellipse) {
-        const e = overlay.ellipse;
-        context.beginPath();
-        context.ellipse(
-          ox + e.cx * sx,
-          oy + (raster.fullHeight - e.cy) * sy,
-          e.rx * sx,
-          e.ry * sy,
-          0,
-          0,
-          Math.PI * 2,
-        );
-        context.fill();
-        context.stroke();
-      }
-    }
-    if (cursor && (tool === "mask" || tool === "erase") && !cake) {
-      context.strokeStyle = tool === "erase" ? "#87e4ae" : "#ff0000";
-      context.lineWidth = 1;
-      context.beginPath();
-      context.ellipse(
-        cursor.x,
-        cursor.y,
-        radius * sx,
-        radius * sy,
-        0,
-        0,
-        Math.PI * 2,
-      );
-      context.stroke();
-    }
-    context.restore();
-    if (cake) {
-      context.font = "13px ui-monospace, SFMono-Regular, monospace";
-      context.fillStyle = "#77828d";
-      context.strokeStyle = "#35404a";
-      context.lineWidth = 1;
-      const { radialRange: xr, azimuthRange: yr } = raster as Cake;
-      const radial = (pixel: number) =>
-        xr[0] + (pixel / raster.fullWidth) * (xr[1] - xr[0]);
-      const azimuth = (pixel: number) =>
-        yr[0] + (pixel / raster.fullHeight) * (yr[1] - yr[0]);
-      const xMin = radial(view.xMin),
-        xMax = radial(view.xMax);
-      const yMin = azimuth(view.yMin),
-        yMax = azimuth(view.yMax);
-      const yAxis = linearAxisTicks(
-        yMin,
-        yMax,
-        Math.max(1, Math.floor(plotHeight / 48)),
-      );
-      const tickWidth = Math.max(
-        0,
-        ...yAxis.ticks.map((tick) => context.measureText(tick.label).width),
-      );
-      // Reserve separate space for the rotated title even without an offset.
-      setCakeAxisWidth(Math.max(60, Math.ceil(tickWidth) + 36));
-      let intervals = Math.max(1, Math.floor(plotWidth / 80));
-      let xTicks = linearTicks(xMin, xMax, intervals);
-      while (intervals > 1) {
-        const widest = Math.max(
-          0,
-          ...xTicks.map((tick) => context.measureText(tick.label).width),
-        );
-        const spacing =
-          xTicks.length > 1
-            ? ((xTicks[1].value - xTicks[0].value) / (xMax - xMin)) * plotWidth
-            : plotWidth;
-        if (spacing >= widest + 18) break;
-        xTicks = linearTicks(xMin, xMax, --intervals);
-      }
-      context.textAlign = "center";
-      for (const tick of xTicks) {
-        const x = left + ((tick.value - xMin) / (xMax - xMin)) * plotWidth;
-        context.beginPath();
-        context.moveTo(x, top + plotHeight);
-        context.lineTo(x, top + plotHeight + 4);
-        context.stroke();
-        const halfLabel = context.measureText(tick.label).width / 2;
-        context.fillText(
-          tick.label,
-          Math.max(halfLabel + 6, Math.min(size.width - halfLabel - 6, x)),
-          size.height - 18,
-        );
-      }
-      context.textAlign = "right";
-      for (const tick of yAxis.ticks) {
-        const y = top + ((yMax - tick.value) / (yMax - yMin)) * plotHeight;
-        context.beginPath();
-        context.moveTo(left - 4, y);
-        context.lineTo(left, y);
-        context.stroke();
-        context.fillText(tick.label, left - 8, y + 3);
-      }
-      if (yAxis.annotation) {
-        context.textAlign = "left";
-        context.fillText(yAxis.annotation, left, top - 6);
-      }
-      context.fillStyle = "#929ca7";
-      context.textAlign = "center";
-      context.fillText(
-        unitLabel((raster as Cake).unit),
-        left + plotWidth / 2,
-        size.height - 3,
-      );
-      context.save();
-      context.translate(11, top + plotHeight / 2);
-      context.rotate(-Math.PI / 2);
-      context.textBaseline = "middle";
-      context.fillText("Azimuth (°)", 0, 0);
       context.restore();
-    }
-  }, [
-    image,
-    size,
-    view.xMin,
-    view.xMax,
-    view.yMin,
-    view.yMax,
-    cursor,
-    stroke,
-    radius,
-    tool,
-    cake,
-    raster,
-    sx,
-    sy,
-    ox,
-    oy,
-    zoom,
-    peaks,
-    rings,
-    contours,
-    navigation.selection,
-    linkedPosition,
-    calibrantLines,
-    showNumbers,
-    activeRing,
-    currentPeakRing,
-    overlay,
-    roi,
-  ]);
+      if (cake) {
+        context.font = "13px ui-monospace, SFMono-Regular, monospace";
+        context.fillStyle = "#77828d";
+        context.strokeStyle = "#35404a";
+        context.lineWidth = 1;
+        const { radialRange: xr, azimuthRange: yr } = raster as Cake;
+        const radial = (pixel: number) =>
+          xr[0] + (pixel / raster.fullWidth) * (xr[1] - xr[0]);
+        const azimuth = (pixel: number) =>
+          yr[0] + (pixel / raster.fullHeight) * (yr[1] - yr[0]);
+        const xMin = radial(view.xMin),
+          xMax = radial(view.xMax);
+        const yMin = azimuth(view.yMin),
+          yMax = azimuth(view.yMax);
+        const yAxis = linearAxisTicks(
+          yMin,
+          yMax,
+          Math.max(1, Math.floor(plotHeight / 48)),
+        );
+        const tickWidth = Math.max(
+          0,
+          ...yAxis.ticks.map((tick) => context.measureText(tick.label).width),
+        );
+        // Reserve separate space for the rotated title even without an offset.
+        setCakeAxisWidth(Math.max(60, Math.ceil(tickWidth) + 36));
+        let intervals = Math.max(1, Math.floor(plotWidth / 80));
+        let xTicks = linearTicks(xMin, xMax, intervals);
+        while (intervals > 1) {
+          const widest = Math.max(
+            0,
+            ...xTicks.map((tick) => context.measureText(tick.label).width),
+          );
+          const spacing =
+            xTicks.length > 1
+              ? ((xTicks[1].value - xTicks[0].value) / (xMax - xMin)) *
+                plotWidth
+              : plotWidth;
+          if (spacing >= widest + 18) break;
+          xTicks = linearTicks(xMin, xMax, --intervals);
+        }
+        context.textAlign = "center";
+        for (const tick of xTicks) {
+          const x = left + ((tick.value - xMin) / (xMax - xMin)) * plotWidth;
+          context.beginPath();
+          context.moveTo(x, top + plotHeight);
+          context.lineTo(x, top + plotHeight + 4);
+          context.stroke();
+          const halfLabel = context.measureText(tick.label).width / 2;
+          context.fillText(
+            tick.label,
+            Math.max(halfLabel + 6, Math.min(size.width - halfLabel - 6, x)),
+            size.height - 18,
+          );
+        }
+        context.textAlign = "right";
+        for (const tick of yAxis.ticks) {
+          const y = top + ((yMax - tick.value) / (yMax - yMin)) * plotHeight;
+          context.beginPath();
+          context.moveTo(left - 4, y);
+          context.lineTo(left, y);
+          context.stroke();
+          context.fillText(tick.label, left - 8, y + 3);
+        }
+        if (yAxis.annotation) {
+          context.textAlign = "left";
+          context.fillText(yAxis.annotation, left, top - 6);
+        }
+        context.fillStyle = "#929ca7";
+        context.textAlign = "center";
+        context.fillText(
+          unitLabel((raster as Cake).unit),
+          left + plotWidth / 2,
+          size.height - 3,
+        );
+        context.save();
+        context.translate(11, top + plotHeight / 2);
+        context.rotate(-Math.PI / 2);
+        context.textBaseline = "middle";
+        context.fillText("Azimuth (°)", 0, 0);
+        context.restore();
+      }
+    },
+    [
+      image,
+      size,
+      view.xMin,
+      view.xMax,
+      view.yMin,
+      view.yMax,
+      cursor,
+      stroke,
+      radius,
+      tool,
+      cake,
+      raster,
+      sx,
+      sy,
+      ox,
+      oy,
+      zoom,
+      peaks,
+      rings,
+      contours,
+      navigation.selection,
+      linkedPosition,
+      calibrantLines,
+      showNumbers,
+      activeRing,
+      currentPeakRing,
+      overlay,
+      roi,
+    ],
+  );
+  useEffect(() => {
+    if (canvas.current) draw(canvas.current);
+  }, [draw]);
+  useImperativeHandle(
+    exportRef,
+    () => ({
+      png: () => {
+        const output = document.createElement("canvas");
+        draw(output, true);
+        return output.toDataURL("image/png").split(",")[1];
+      },
+    }),
+    [draw],
+  );
   function position(event: React.PointerEvent<HTMLCanvasElement>) {
     const box = event.currentTarget.getBoundingClientRect();
     const screen = { x: event.clientX - box.left, y: event.clientY - box.top };

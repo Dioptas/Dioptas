@@ -471,3 +471,14 @@ scripts/integration_pattern_files.mjs.
 
 Validation: build, 174 Python tests (five skips), 24 JavaScript tests, focused
 Chromium/WebKit Image-and-Pattern checks and bundled Tauri/WKWebView smoke pass.
+
+
+## Scientific image and cake export
+
+The image toolbar save icon exports the current view to PNG at Qt's 2048-pixel
+width, retaining the plot range, palette and phase guides while omitting ROI and
+inspection markers. TIFF saves scientific detector/cake arrays with Qt's flipped
+rows and int32 convention. Cake TXT/CSV includes radial/azimuth coordinates;
+scientific exports retain the original array independently of display shifts.
+The native dialog offers only formats valid for the current source. Python tests
+cover real image/cake data, orientation, coordinates, PNG decoding and validation.

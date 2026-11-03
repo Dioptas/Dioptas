@@ -50,6 +50,7 @@ export function IntegrationImageControls({
   cakeShift,
   onCakeShift,
   fullCake,
+  onSaveImage,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -67,6 +68,7 @@ export function IntegrationImageControls({
   cakeShift: number;
   onCakeShift: (shift: number) => void;
   fullCake: boolean;
+  onSaveImage: () => void;
 }) {
   return (
     <div
@@ -74,6 +76,22 @@ export function IntegrationImageControls({
       role="group"
       aria-label="Integration image controls"
     >
+      <button
+        className="plot-tool-button"
+        type="button"
+        aria-label="Save image"
+        title={
+          value === "cake"
+            ? "Save cake image or data"
+            : "Save detector image or data"
+        }
+        disabled={
+          !ready || !state?.hasImage || (value === "cake" && !state?.calibrated)
+        }
+        onClick={onSaveImage}
+      >
+        <Save size={15} />
+      </button>
       <PlotToggle
         label="Image region of interest"
         title="Restrict integration to a detector region"

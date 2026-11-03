@@ -37,7 +37,7 @@ import type { MapData } from "./mapDomain";
 import { MaskView } from "./MaskView";
 import { MaskPanel } from "./MaskPanel";
 import { useMaskTools } from "./maskDomain";
-import { RasterView } from "./RasterView";
+import { RasterView, type RasterExport } from "./RasterView";
 import { PatternView } from "./PatternView";
 import { ORIGINAL_PATTERN_UID } from "./integration";
 import { CalibrationControls } from "./CalibrationControls";
@@ -65,6 +65,8 @@ import type { RingOverlay } from "./types";
 import type { ZoomMode } from "./usePlotNavigation";
 
 export default function App() {
+  const detectorExport = useRef<RasterExport>(null);
+  const cakeExport = useRef<RasterExport>(null);
   const [integrationDisplay, setIntegrationDisplay] = useState("image");
   const [sqrtPattern, setSqrtPattern] = useState(false);
   const [patternAntialias, setPatternAntialias] = useState(true);
@@ -1138,6 +1140,7 @@ export default function App() {
                       {image ? (
                         <div className="detector-workspace">
                           <RasterView
+                            exportRef={detectorExport}
                             raster={
                               mode === "integration" &&
                               !correctedImage &&
@@ -1280,6 +1283,7 @@ export default function App() {
                         {cake ? (
                           <div className="detector-workspace cake-workspace">
                             <RasterView
+                              exportRef={cakeExport}
                               raster={displayedCake ?? cake}
                               onHover={(point) =>
                                 reportPlot(
@@ -1485,6 +1489,23 @@ export default function App() {
                   </div>
                   {mode === "integration" && (
                     <IntegrationImageControls
+                      onSaveImage={() => {
+                        const source =
+                          integrationDisplay === "cake" ? "cake" : "image";
+                        const exporter = (
+                          source === "cake" ? cakeExport : detectorExport
+                        ).current;
+                        if (!exporter) return;
+                        void run(
+                          "integration_save_image",
+                          {
+                            source,
+                            png_data: exporter.png(),
+                            suggested_name: `${state?.imageName?.replace(/\.[^.]+$/, "") ?? "image"}${source === "cake" ? "_cake" : ""}.png`,
+                          },
+                          "Saving image…",
+                        );
+                      }}
                       cakeShift={cakeShift}
                       onCakeShift={setCakeShift}
                       fullCake={

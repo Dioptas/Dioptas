@@ -141,6 +141,7 @@ class IntegrationWorkflow:
             "integration_pattern_navigation": self._integration_pattern_navigation,
             "integration_autocreate": self._integration_autocreate,
             "integration_save_pattern": self._integration_save_pattern,
+            "integration_save_image": self._integration_save_image,
             "integration_save_background": self._integration_save_background,
             "integration_output_directory": self._integration_output_directory,
             "integration_batch": self._integration_batch,
@@ -306,6 +307,11 @@ class IntegrationWorkflow:
             "phaseLines": phase_lines,
             "backgroundCurves": inspection,
         }
+
+    def _integration_save_image(self, **settings):
+        from .image_export import save_image
+
+        return save_image(self, **settings)
 
     def _integration_roi(self, limits=None):
         if not self._has_image:

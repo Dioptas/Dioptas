@@ -306,7 +306,11 @@ fold away, while the existing left navigation / right controls arrangement stays
 Integration follows Qt's pane arrangement: a full-height image/cake on the left,
 with tabbed controls above the integrated pattern on the right. Drag either
 divider to resize the panes; Image/Cake switches the left display and preserves
-its independent intensity controls. The Image, Pattern, Background, Corrections, Overlay and Phase groups connect to the existing local models. Native file
+its independent intensity controls. The save icon at the far left of the lower
+image toolbar saves the current Image/Cake view as PNG, scientific image/cake data
+as TIFF, or cake data as TXT/CSV through the native file dialog. PNG preserves the
+current view and colour settings and omits ROI/inspection markers, matching Qt's
+2048-pixel export width. The Image, Pattern, Background, Corrections, Overlay and Phase groups connect to the existing local models. Native file
 choosers cover pattern/background/phase files and output/input folders. See
 [Integration parity and limitations](INTEGRATION_PARITY.md) for the implemented
 controls, scientific qualifications, tests and shared contracts.

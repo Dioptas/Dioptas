@@ -100,6 +100,20 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
         "open_project" => ("Dioptas project", &["dio"], "", false),
         "save_project" => ("Dioptas project", &["dio"], "experiment.dio", true),
         "export_pattern" => ("XY pattern", &["xy"], "pattern.xy", true),
+        "integration_save_image" => (
+            "Image or data",
+            if payload["source"] == "cake" {
+                &["png", "tif", "tiff", "txt", "csv"]
+            } else {
+                &["png", "tif", "tiff"]
+            },
+            if payload["source"] == "cake" {
+                "cake.png"
+            } else {
+                "image.png"
+            },
+            true,
+        ),
         "integration_save_pattern" => (
             "Diffraction pattern",
             &["xy", "xye", "chi", "dat", "fxye"],
@@ -213,7 +227,12 @@ async fn desktop_invoke(
                 return processor.request_packet(&action, payload, cached);
             }
             let selected = if choice.save {
-                dialog.set_file_name(choice.name).blocking_save_file()
+                let name = if action == "integration_save_image" {
+                    payload["suggested_name"].as_str().unwrap_or(choice.name)
+                } else {
+                    choice.name
+                };
+                dialog.set_file_name(name).blocking_save_file()
             } else {
                 dialog.blocking_pick_file()
             };
@@ -366,6 +385,17 @@ mod tests {
             file_choice("mask_file", &json!({"save": true}))
                 .unwrap()
                 .save
+        );
+        let image = file_choice("integration_save_image", &json!({"source": "image"})).unwrap();
+        assert!(image.save);
+        assert_eq!(image.name, "image.png");
+        assert_eq!(image.extensions, &["png", "tif", "tiff"]);
+        let cake = file_choice("integration_save_image", &json!({"source": "cake"})).unwrap();
+        assert!(cake.save);
+        assert_eq!(cake.name, "cake.png");
+        assert_eq!(cake.extensions, &["png", "tif", "tiff", "txt", "csv"]);
+        assert!(
+            file_choice("integration_save_image", &json!({"path": "/tmp/image.png"})).is_none()
         );
         assert!(file_choice("integration_open_pattern", &json!({})).is_some());
         assert!(file_choice("integration_open_pattern", &json!({"direction": 1})).is_none());

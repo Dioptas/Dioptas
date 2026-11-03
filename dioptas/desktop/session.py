@@ -255,6 +255,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
                     "export_pattern",
                     "save_calibration",
                     "save_peaks",
+                    "integration_save_image",
                     "integration_autoprocess_poll",
                 }
                 overlay_key = None

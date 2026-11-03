@@ -37,6 +37,8 @@ def choose_file(kind, save):
                 "peaks": "calibration-peaks.json",
                 "batch": "batch.h5",
                 "mask": "mask.mask",
+                "image_export": "saved-image.png",
+                "cake_export": "saved-cake.png",
             }[kind]
         )
     if kind == "overlays":
