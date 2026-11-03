@@ -24,6 +24,16 @@
 * {
   box-sizing: border-box;
 }
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  /* Keep wheel/trackpad gestures from scrolling or bouncing the desktop shell.
+     Panels with overflow: auto retain their own scrolling. */
+  overscroll-behavior: none;
+}
 body {
   margin: 0;
 }
