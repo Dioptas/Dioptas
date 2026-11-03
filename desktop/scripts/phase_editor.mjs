@@ -348,7 +348,7 @@ try {
     .getByLabel("Thermal model", { exact: true })
     .selectOption("MieGruneisenDebye");
   await ready();
-  await edit("theta0", 650);
+  await edit("θ₀", 650);
   assert.equal(
     (await state()).thermalFields.find((f) => f.key === "theta0").value,
     650,
@@ -358,7 +358,7 @@ try {
     .selectOption("AlphaKT");
   await ready();
   await page
-    .getByLabel("thermal expansion law", { exact: true })
+    .getByLabel("Expansion law", { exact: true })
     .selectOption("linear_temperature");
   await ready();
   await edit("α₁", "1e-8");
@@ -652,6 +652,35 @@ try {
     .click();
   let userMaterial = (await call("integration_phase_editor", { index: 1 }))
     .phaseEditor;
+  const anderson = userMaterial.references.findIndex((r) =>
+    /Anderson.*1989/i.test(r.label),
+  );
+  assert.ok(anderson >= 0);
+  await page
+    .getByLabel("Editor material record", { exact: true })
+    .selectOption(String(anderson));
+  await ready();
+  for (const label of ["(αKₜ)ᵣ", "(∂Kₜ/∂T)ᵥ"]) {
+    const input = page.getByLabel(label, { exact: true });
+    assert.ok(await input.isVisible());
+    assert.equal(
+      await input
+        .locator("xpath=ancestor::label")
+        .locator(".pe-unit")
+        .innerText(),
+      "GPa/K",
+    );
+    assert.match(
+      await input.getAttribute("title"),
+      /reference state|constant volume/,
+    );
+  }
+  await page
+    .getByRole("group", { name: "Thermal parameters", exact: true })
+    .scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: artifacts + "/phase-editor-thermal-symbols.png",
+  });
   const mao = userMaterial.references.findIndex((r) =>
     /dewaele.*mao ruby/i.test(r.label),
   );

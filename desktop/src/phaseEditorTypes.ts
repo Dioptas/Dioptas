@@ -3,6 +3,7 @@ import type { PhaseEditorData as BasePhaseEditorData } from "./integrationPhase"
 export interface EditorField {
   key: string;
   label: string;
+  description?: string;
   unit: string;
   value: number | string | null;
   min?: number;

@@ -81,6 +81,7 @@ def test_all_constructor_fields_and_option_restrictions(session):
         p = dict(params)
         p.update(thermal_type=kind, thermal_parameters={})
         assert {f['key'] for f in thermal_fields(p)} == set(thermal_parameter_signature(kind)) - {'n'}
+        assert all(f['description'] and '_' not in f['label'] for f in thermal_fields(p))
     result = edit(session, 'editor_eos_type', value='Murnaghan')
     assert {o['value'] for o in result['eosOptions']} == set(RT_EOS_TYPES)
     assert next(o for o in result['thermalOptions'] if o['value'] == 'DoubleDebyeHelmholtz')['error']
@@ -88,6 +89,23 @@ def test_all_constructor_fields_and_option_restrictions(session):
     result = session.invoke('integration_phase', dict(operation='editor_thermal_type', index=0, value='DoubleDebyeHelmholtz'))
     assert not result['ok']
     assert session._model.phase_model.phases[0].params['thermal_parameters'] == original
+
+
+def test_thermal_notation_and_model_specific_constructor_units():
+    from dioptas.desktop.thermal_field_labels import thermal_field_display
+    assert thermal_field_display('LogVolumeThermalPressure', 'alpha_KT_ref')[:2] == ('(αKₜ)ᵣ', 'GPa/K')
+    assert thermal_field_display('LogVolumeThermalPressure', 'dK_dT_V')[:2] == ('(∂Kₜ/∂T)ᵥ', 'GPa/K')
+    assert thermal_field_display('LinearThermalPressure', 'alpha_KT')[1] == 'GPa/K'
+    assert thermal_field_display('AlphaKT', 'dKprime_dT')[1] == 'K⁻¹'
+    assert thermal_field_display('MieGruneisenDebye', 'Cvmax')[1] == 'J mol⁻¹ K⁻¹'
+    assert thermal_field_display('HollandPowellThermalPressure', 'alpha0')[1] == 'K⁻¹'
+    # Display units retain constructor scaling; identical-looking keys need not
+    # have the same units in different models.
+    assert thermal_field_display('MultiOscillatorGruneisen', 'a_0')[1] == '10⁻⁶ K⁻¹'
+    assert thermal_field_display('DoubleDebyeLogMomentHelmholtz', 'a_0')[1] == 'bar mol/J'
+    assert thermal_field_display('Dewaele2006', 'anharmonic_a')[1] == 'K⁻¹'
+    assert thermal_field_display('DorogokupetsOganov2007', 'anharmonic_a')[1] == '10⁻⁶ K⁻¹'
+    assert thermal_field_display('SecondOrderTaylorThermalPressure', 'c4')[1] == 'GPa/K²'
 
 
 def test_published_copy_is_custom_and_retains_source_record(session, tmp_path):

@@ -292,7 +292,7 @@
   margin: 8px 0 14px;
 }
 .pe-eos-fields .pe-field {
-  grid-template-columns: minmax(40px, 1fr) minmax(68px, 110px) minmax(
+  grid-template-columns: minmax(max-content, 1fr) minmax(68px, 110px) minmax(
       16px,
       max-content
     );
@@ -303,6 +303,7 @@
 .pe-eos-fields .pe-field > span:first-child {
   text-align: right;
   line-height: 1.25;
+  white-space: nowrap;
 }
 .pe-eos-fields .pe-field-wide,
 .pe-eos-fields .pe-field-choice {

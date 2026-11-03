@@ -8,6 +8,8 @@ from copy import deepcopy
 from functools import lru_cache
 import inspect
 
+from .thermal_field_labels import thermal_field_display
+
 from dioptas.model.util.eos_phase import (
     RT_EOS_TYPES, THERMAL_EOS_TYPES, NON_MOLAR_THERMAL_TYPES,
     THERMAL_CONFIGURATION_CHOICES, eos_parameter_names,
@@ -81,20 +83,8 @@ def thermal_fields(params):
         required = parameter.default is inspect.Parameter.empty
         default = None if required else parameter.default
         value = values.get(name, fallback.get(name, default))
-        unit = ''
-        if name == 'Tr' or name.startswith(('theta', 'QE', 'QB')):
-            unit = 'K'
-        if name in ('Vp', 'Ve'):
-            unit = 'J/bar/mol'
-        elif name == 'dK_dT':
-            unit = 'GPa/K'
-        elif kind == 'AlphaKT':
-            unit = {'alpha0': 'K⁻¹', 'alpha1': 'K⁻²',
-                    'kprime_log_coefficient': ''}.get(name, unit)
-        elif kind == 'Sokolova2016' and name in ('a_0', 'e_0'):
-            unit = '10⁻⁶/K'
-        fields.append(dict(key=name, label={'Tr': 'T ref', 'alpha0': 'α₀',
-            'alpha1': 'α₁', 'dK_dT': 'dK/dT'}.get(name, name.replace('_', ' ')),
+        label, unit, description = thermal_field_display(kind, name)
+        fields.append(dict(key=name, label=label, description=description,
             unit=unit, value=value, required=required, default=default,
             choices=list(THERMAL_CONFIGURATION_CHOICES.get(name, ())),
             isDefault=name not in values and name not in fallback))

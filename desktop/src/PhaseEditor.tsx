@@ -169,7 +169,7 @@ export function PhaseEditor({
       className={`pe-field${f.choices?.length ? " pe-field-choice" : ""}${(f.unit?.length ?? 0) > 8 ? " pe-field-wide" : ""}`}
       key={`${data.index}-${data.reference}-${f.key}`}
     >
-      <span title={f.key}>
+      <span title={f.description ? `${f.description} · ${f.key}` : f.key}>
         {f.label}
         {f.isDefault && (
           <sup className="pe-default" title="Model default">
@@ -180,6 +180,7 @@ export function PhaseEditor({
       {!!f.choices?.length ? (
         <select
           aria-label={f.label}
+          title={f.description}
           value={String(f.value ?? "")}
           disabled={locked || !data.eosEditable}
           onChange={(e) =>
@@ -206,7 +207,7 @@ export function PhaseEditor({
           optional={thermal && !f.required}
           title={
             thermal
-              ? `${f.key}${f.isDefault ? " · constructor default" : ""}${!f.required ? `; blank uses default ${f.default ?? "unset"}` : "; required"}`
+              ? `${f.description ? `${f.description} · ` : ""}${f.key}${f.isDefault ? " · constructor default" : ""}${!f.required ? `; blank uses default ${f.default ?? "unset"}` : "; required"}`
               : f.key
           }
           onCommit={(value) =>

@@ -56,6 +56,11 @@ clear all. Material and EoS names have distinct editable fields. Numeric EoS and
 thermal parameters use compact paired rows with each label immediately beside
 its value and unit; long-unit and choice rows span both columns. Constructor
 defaults have an inline asterisk and tooltip, with explanations in a disclosure.
+Thermal coefficients use scientific symbols, explicit constructor units and
+plain-language tooltips (including constant-volume derivatives). Model-specific
+scaling is retained: for example, DO2007 coefficients displayed in 10⁻⁶ K⁻¹
+remain distinct from the Dewaele2006 K⁻¹ coefficients. Display notation does not
+change parameter keys, numerical values, calculations or exported records.
 Projects written by the earlier deletion implementation reconcile stale dataset
 record links before constructing their EoS on load. Export performs the same
 repair for explicitly edited record sets; remaining cross-record dependencies

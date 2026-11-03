@@ -273,7 +273,7 @@
       "Cancel left the native confirmation open",
     );
     await choose("Thermal model", "MieGruneisenDebye");
-    await set("theta0", 650);
+    await set("θ₀", 650);
     const eos = document.querySelector(".pe-parameter-scroll:not([hidden])");
     check(
       eos.scrollHeight > eos.clientHeight &&
