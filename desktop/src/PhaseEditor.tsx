@@ -10,6 +10,7 @@ import type {
 } from "./phaseEditorTypes";
 import { EditorNumber, TextEdit } from "./PhaseEditorFields";
 import { PhaseEditorStructure } from "./PhaseEditorStructure";
+import { PhaseEditorConfirm } from "./PhaseEditorConfirm";
 import "./phaseEditor.css";
 
 export function PhaseEditor({
@@ -76,6 +77,9 @@ export function PhaseEditor({
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(0);
   const [confirm, setConfirm] = useState("");
+  const deleteRecord = useRef<HTMLButtonElement>(null);
+  const clearRecords = useRef<HTMLButtonElement>(null);
+  const clearReflections = useRef<HTMLButtonElement>(null);
   const queue = useRef(Promise.resolve());
   const content = useRef(data);
   content.current = data;
@@ -108,6 +112,7 @@ export function PhaseEditor({
   useEffect(() => {
     setLegacy(data.thermalSelection === "alphakt");
   }, [data.reference, data.thermalSelection]);
+  useEffect(() => setConfirm(""), [data.uid, data.reference, tab]);
   const act: Edit = (operation, args = {}) => {
     const target = content.current;
     setPending((n) => n + 1);
@@ -291,14 +296,16 @@ export function PhaseEditor({
         else close();
       }}
     >
-      <header>
-        <h2>
-          Phase Editor <span className="pe-material-name">· {data.name}</span>
-        </h2>
-        <button type="button" aria-label="Close Phase Editor" onClick={close}>
-          ×
-        </button>
-      </header>
+      {!detached && (
+        <header>
+          <h2>
+            Phase Editor <span className="pe-material-name">· {data.name}</span>
+          </h2>
+          <button type="button" aria-label="Close Phase Editor" onClick={close}>
+            ×
+          </button>
+        </header>
+      )}
       <div className="pe-source">
         <label className="pe-material-name-field">
           Material name
@@ -562,12 +569,25 @@ export function PhaseEditor({
                   Set default
                 </button>
                 <button
+                  ref={deleteRecord}
                   disabled={
                     locked || !data.eosEditable || !data.references.length
                   }
                   onClick={() => setConfirm("record")}
                 >
                   Delete record…
+                </button>
+                <button
+                  ref={clearRecords}
+                  disabled={locked || !data.editable || !data.references.length}
+                  title={
+                    data.editable
+                      ? "Keep the structure and remove all EoS records"
+                      : "Edit a copy to clear its EoS records"
+                  }
+                  onClick={() => setConfirm("records")}
+                >
+                  Clear all records…
                 </button>
               </div>
             </details>
@@ -911,6 +931,7 @@ export function PhaseEditor({
               Delete
             </button>
             <button
+              ref={clearReflections}
               disabled={locked || !data.editable || !data.reflections.length}
               onClick={() => setConfirm("reflections")}
             >
@@ -930,25 +951,42 @@ export function PhaseEditor({
         </section>
       </div>
       {confirm && (
-        <div className="pe-confirm" role="group" aria-label="Confirm deletion">
-          <span>
-            {confirm === "record"
-              ? "Delete this custom EoS record?"
-              : "Clear all reflections?"}
-          </span>
-          <button onClick={() => setConfirm("")}>Cancel</button>
-          <button
-            disabled={locked}
-            onClick={() => {
-              void act(confirm === "record" ? "editor_record" : "reflection", {
+        <PhaseEditorConfirm
+          anchor={
+            confirm === "record"
+              ? deleteRecord.current
+              : confirm === "records"
+                ? clearRecords.current
+                : clearReflections.current
+          }
+          title={
+            confirm === "record"
+              ? "Delete EoS record?"
+              : confirm === "records"
+                ? "Clear all EoS records?"
+                : "Clear all reflections?"
+          }
+          detail={
+            confirm === "record"
+              ? `Delete “${data.recordLabel}” and its dataset links?`
+              : confirm === "records"
+                ? "Remove every EoS record and its dataset links. The lattice and atomic sites are kept."
+                : "Remove every reflection from this material?"
+          }
+          action={
+            confirm === "records" ? "Clear all records" : "Confirm delete"
+          }
+          onCancel={() => setConfirm("")}
+          onConfirm={() => {
+            void act(
+              confirm === "reflections" ? "reflection" : "editor_record",
+              {
                 action: confirm === "record" ? "delete" : "clear",
-              });
-              setConfirm("");
-            }}
-          >
-            Confirm delete
-          </button>
-        </div>
+              },
+            );
+            setConfirm("");
+          }}
+        />
       )}
       <footer>
         <p className={message ? "pe-edit-error" : "pe-status"} role="status">

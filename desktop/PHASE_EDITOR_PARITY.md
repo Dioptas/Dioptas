@@ -15,7 +15,7 @@ Compared against Qt's `PhaseEditorWidget`, `PhaseEditorController`, `EosRecordDi
 | EoS | The installed adapter's 11 room-temperature types. Dynamic fields include reference pressure for BM2Reference, K₀″ where supported, and material normalization data for Holzapfel and molar thermal models. |
 | Thermal models | None, the legacy constant-coefficient correction, and all 18 installed constructor models. Fields and required/optional defaults come from their actual signatures; configuration choices use the shared model definitions. Nullable defaults are omitted from EOSMAT rather than serialized as invalid null coefficients. |
 | AlphaKT distinction | The constructor-based thermal-reference-state model retains its explicit model identifier in legacy v2 records and exports. It is not silently interpreted as the older JCPDS coefficient correction when reloaded or reselected. |
-| Records | Selection, add from session values, duplicate as custom, rename, delete and set default. Published bundled records and bundled structures remain protected by PhaseModel. Custom copies keep source records intact and receive the existing model's unvalidated/custom status. Complete record metadata, including reported errors, fixed parameters and source evidence, is inspectable and retained. |
+| Records | Selection, add from session values, duplicate as custom, rename, delete, clear all and set default. Deletion reconciles pressure reductions and observation-view links while preserving shared observations. A record used as another record's parent cannot be deleted alone. Edits are validated and applied atomically. Clear all retains the structure, resets live EoS/thermal coefficients and allows a structure-only save or a new custom EoS. Bundled records/materials remain protected. Custom copies keep source records intact and receive the existing model's unvalidated/custom status. Complete record metadata, including reported errors, fixed parameters and source evidence, is inspectable and retained. |
 | Atomic positions | Validated element symbols and a periodic-table picker, fractional coordinates, Occ. and existing isotropic displacement fields; add/remove sites; editable space group by symbol/number with the number displayed, the same 230 reference-group choices as Qt and retention of an explicit material setting. All edits use Qt's PhaseModel entry points and recalculate diffraction at the session wavelength. Derived Wyckoff labels use the declared Hall setting and each site's orbit, including coincident sites. |
 | Composition | Assumed/edited structure flags and original site metadata are retained. Structural edits do not rewrite the formula, stored Z, electron count or EoS normalization. Coordinates stay in their existing basis and origin. Composition diagnostics remain available in the model but are omitted from the editor. |
 | Reflections | Compact signed h/k/l fields and intensity displayed to four significant digits (full precision on focus, in calculations and export); calculated reference/current d, 2θ and Q pairs with a position-column selector; stable-index view sorting, select all/multiple delete, copy selected/all rows, add, confirmed clear, and a dedicated TXT export chooser. The displayed table is rounded; copy retains the underlying numbers and TXT export retains 17 significant digits. |
@@ -28,6 +28,10 @@ Inspecting a source does not replace its scientific values with defaults.
 ## Organization and interaction
 
 On Tauri, Phase Editor is a separate, decorated and resizable native window.
+Its native title bar supplies the window controls; the embedded title/close
+header is rendered only in the browser fallback. Record deletion and clearing
+use a small confirmation popup beside the invoking button, with Escape/Cancel
+and focus return, rather than an extra row below the editor.
 It shares the existing processing session, can be moved beside the main plots,
 and does not block the main workspace. Edits refresh the phase table and plot
 without resending the detector image or resetting its zoom/contrast. Stable
@@ -44,6 +48,10 @@ copy's EoS records are explicitly marked as user-owned/unvalidated. Copies can
 be saved in a project or as EOSMAT. Edit a copy is beside Save and Save As in
 the fixed footer. Record-management actions and parameter-default explanations
 are collapsed initially; material and EoS names have distinct editable fields.
+Projects written by the earlier deletion implementation reconcile stale dataset
+record links before constructing their EoS on load. Export performs the same
+repair for explicitly edited record sets; remaining cross-record dependencies
+and other schema errors are still validated.
 
 Wyckoff annotations use the pinned Moyo v0.15.0 reference table (MIT license;
 attribution and generation inputs are in `dioptas/resources/data/wyckoff/`).
@@ -96,6 +104,10 @@ are unchanged.
   invalid edits restore values and JCPDS loss is rejected before writing.
 - Site-label checks cover all 3,467 representatives across all 530 Hall settings,
   coincident gold sites and rhombohedral/hexagonal setting distinctions.
+- Record regression checks cover each Gold record's delete/save/reload path,
+  shared pressure-reduction/observation links, dependency protection, rollback
+  after a failed calculation, clear/save/reload followed by a new EoS, and
+  recovery/export of a project affected by the earlier deletion implementation.
 - Browser interactions use the real Python bridge in Chromium and WebKit:
   draft validation, Escape, Tab/focus, rapid entry, sorting/copy, reflection
   actions/export, numeric wheel stepping (including bursts, bounds, intensity
@@ -107,7 +119,9 @@ are unchanged.
 - Bundled Tauri/WKWebView smoke exercises numeric validation/Escape,
   independent native title-bar movement, persistent parameter scrollbars,
   compact indices, lossless intensity display/editing, material naming and Save,
-  lattice/reflection/thermal-constructor editing, lattice and phase-table wheel
+  lattice/reflection/thermal-constructor editing, adjacent record-confirmation
+  placement, delete/save and clear/cancel, absence of a duplicate native close
+  header, lattice and phase-table wheel
   stepping, existing calibration and
   integration workflows, full-resolution transfer and processing-child cleanup.
   No primary-preview server or user window is used.

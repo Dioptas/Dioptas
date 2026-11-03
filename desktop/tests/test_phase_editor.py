@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from peritheos import get_material_document
 
 from dioptas.desktop.session import DesktopSession
 from dioptas.model import eos
@@ -113,6 +114,141 @@ def test_published_copy_is_custom_and_retains_source_record(session, tmp_path):
     result = edit(session, 'editor_record', action='delete')
     assert not result['eosEditable']
     assert model.phases[0].params['eos_records'] == source
+
+
+def gold_copy(session):
+    call(session, 'integration_phase', operation='clear')
+    material = next(m for m in call(session, 'integration_phase_catalog', query='Gold')['phaseCatalog'] if m['id'] == 'gold')
+    reference = next(i for i, r in enumerate(material['references']) if 'Anderson' in r['label'])
+    call(session, 'integration_phase', operation='load_database', material_id='gold', reference=reference)
+    return edit(session, 'editor_copy')
+
+
+@pytest.mark.parametrize('identifier', [r['identifier'] for r in get_material_document('gold')['eos_records']])
+def test_every_gold_record_delete_save_reload(session, tmp_path, identifier):
+    copied = gold_copy(session)
+    model = session._model.phase_model
+    original = deepcopy(model.phases[0].state)
+    before = deepcopy(model.phases[1].params['eos_records'])
+    selected = next(i for i, r in enumerate(before) if r['identifier'] == identifier)
+    call(session, 'integration_phase', operation='update', index=1, reference=selected)
+    depends = any(r.get('derived_from_record') == identifier or r.get('pressure_scale_variant_of') == identifier for r in before)
+    result = session.invoke('integration_phase', dict(operation='editor_record', index=1, action='delete', editor=True))
+    if depends:
+        assert not result['ok']
+        assert model.phases[1].params['eos_records'] == before
+    else:
+        assert result['ok'], result.get('error')
+    path = str(tmp_path / 'gold-copy.eosmat')
+    call(session, 'integration_phase_export', editor_uid=copied['uid'], path=path)
+    loaded = eos.load_material_file(path)
+    expected = before if depends else [r for r in before if r['identifier'] != identifier]
+    assert [r['identifier'] for r in loaded.eos_records] == [r['identifier'] for r in expected]
+    for retained, previous in zip(loaded.eos_records, expected):
+        assert retained['eos'] == previous['eos']
+        assert retained.get('thermal') == previous.get('thermal')
+    document = loaded.to_dict()
+    known = {r['identifier'] for r in loaded.eos_records}
+    for dataset in document.get('datasets', []):
+        assert set(dataset.get('used_by_eos_records', [])) <= known
+        assert all(r['eos_record'] in known for r in dataset.get('pressure_reductions', []))
+        assert all(set(v['eos_records']) <= known for v in dataset.get('observation_views', []))
+    restored = call(session, 'integration_phase', operation='reload', editor_uid=copied['uid'], editor=True)['phaseEditor']
+    assert len(restored['references']) == len(expected)
+    assert model.phases[0].state == original
+
+
+def test_clear_all_records_save_structure_and_create_new_eos(session, tmp_path):
+    copied = gold_copy(session)
+    model = session._model.phase_model
+    source = deepcopy(model.phases[0].state)
+    sites = deepcopy(copied['structure']['sites'])
+    reference = {k: copied['lattice'][k] for k in ('a0', 'b0', 'c0', 'alpha0', 'beta0', 'gamma0')}
+    denied = session.invoke('integration_phase', dict(operation='editor_record', index=0, action='clear'))
+    assert not denied['ok']
+    call(session, 'integration_phase', operation='editor_thermal_type', index=1, value='MieGruneisenDebye')
+    call(session, 'integration_phase', operation='editor_thermal_parameter', index=1, parameter='theta0', value=650)
+    cleared = call(session, 'integration_phase', operation='editor_record', index=1, action='clear', editor=True)['phaseEditor']
+    assert cleared['references'] == [] and cleared['eosEditable']
+    assert cleared['structure']['sites'] == sites
+    assert {k: cleared['lattice'][k] for k in reference} == reference
+    assert not model.phases[1].params['eos_parameter_errors']
+    assert not model.phases[1].has_thermal_expansion()
+    assert model.phases[1].params['theta_t0'] == 0
+    assert model.phases[1].params['gamma_t0'] == 0
+    assert model.phases[1].params['q_t0'] == 1
+    path = str(tmp_path / 'new-material.eosmat')
+    call(session, 'integration_phase_export', index=1, path=path)
+    assert eos.load_material_file(path).eos_records == []
+    call(session, 'integration_phase', operation='reload', index=1)
+    call(session, 'integration_phase', operation='editor_parameter', index=1, parameter='k0', value=180)
+    call(session, 'integration_phase', operation='editor_parameter', index=1, parameter='k0p0', value=4)
+    call(session, 'integration_phase', operation='editor_record', index=1, action='add')
+    call(session, 'integration_phase', operation='editor_record', index=1, action='rename', value='My new EoS')
+    call(session, 'integration_phase_export', index=1, save_current=True)
+    saved = eos.load_material_file(path)
+    assert len(saved.eos_records) == 1
+    assert saved.eos_records[0]['label'] == 'My new EoS'
+    assert saved.eos_records[0]['eos']['parameters']['K0'] == 180
+    assert saved.atom_sites == sites
+    assert model.phases[0].state == source
+
+
+def test_record_dataset_links_preserve_shared_measurements():
+    from dioptas.model.eos.record_links import remove_record_links
+    document = dict(datasets=[dict(identifier='shared', rows=[[1., 2.]], columns=['P', 'V'],
+        used_by_eos_records=['removed', 'kept'],
+        pressure_reductions=[dict(eos_record='removed', source='one'), dict(eos_record='kept', source='two')],
+        observation_views=[dict(eos_records=['removed'], note='drop'), dict(eos_records=['removed', 'kept'], note='retain')]),
+        dict(identifier='only-removed', used_by_eos_records=['removed']),
+        dict(identifier='unlinked', used_by_eos_records=[], rows=[[3., 4.]])])
+    before = deepcopy(document)
+    result = remove_record_links(document, {'removed'})
+    assert document == before
+    assert [d['identifier'] for d in result['datasets']] == ['shared', 'unlinked']
+    shared = result['datasets'][0]
+    assert shared['rows'] == before['datasets'][0]['rows']
+    assert shared['columns'] == before['datasets'][0]['columns']
+    assert shared['used_by_eos_records'] == ['kept']
+    assert shared['pressure_reductions'] == [before['datasets'][0]['pressure_reductions'][1]]
+    assert shared['observation_views'] == [dict(eos_records=['kept'], note='retain')]
+
+
+def test_failed_record_deletion_restores_model_without_desktop_wrapper(session, monkeypatch):
+    gold_copy(session)
+    model = session._model.phase_model
+    phase = model.phases[1]
+    index = next(i for i, r in enumerate(phase.params['eos_records']) if 'dewaele_2004_mao' in r['identifier'])
+    before = deepcopy(phase.state)
+    spacings = [r.d for r in phase.reflections]
+    def reject(*args):
+        raise ValueError('Cannot calculate the next record')
+    monkeypatch.setattr(eos, 'apply_eos_record', reject)
+    with pytest.raises(ValueError, match='Cannot calculate'):
+        model.delete_eos_record(1, index)
+    assert phase.state == before
+    assert [r.d for r in phase.reflections] == spacings
+
+
+def test_older_project_with_deleted_record_can_be_exported(session, tmp_path):
+    gold_copy(session)
+    phase = session._model.phase_model.phases[1]
+    old_document = deepcopy(phase.params['material_document'])
+    index = next(i for i, r in enumerate(phase.params['eos_records']) if 'dewaele_2004_mao' in r['identifier'])
+    deleted_id = phase.params['eos_records'][index]['identifier']
+    session._model.phase_model.delete_eos_record(1, index)
+    phase.params['material_document'] = old_document  # State written by the earlier editor.
+    project = str(tmp_path / 'old-edited-project.dio')
+    call(session, 'save_project', path=project)
+    restored = DesktopSession()
+    call(restored, 'open_project', path=project)
+    path = str(tmp_path / 'recovered.eosmat')
+    call(restored, 'integration_phase_export', index=1, path=path)
+    loaded = eos.load_material_file(path)
+    assert deleted_id not in {r['identifier'] for r in loaded.eos_records}
+    assert loaded.atom_sites == phase.params['material_document']['atom_sites']
+    assert all(r['eos_record'] != deleted_id for dataset in loaded.to_dict().get('datasets', [])
+               for r in dataset.get('pressure_reductions', []))
 
 
 def test_atomic_edits_match_qt_and_preserve_composition_provenance(session, tmp_path):

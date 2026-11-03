@@ -263,6 +263,8 @@ def apply_editor_edit(workflow, model, index, operation, changes):
             model.add_eos_record(index, record, origin='custom')
         elif action == 'delete':
             model.delete_eos_record(index, current)
+        elif action == 'clear':
+            model.clear_eos_records(index)
         elif action == 'default':
             model.set_eos_default(index, current)
         elif action == 'rename':

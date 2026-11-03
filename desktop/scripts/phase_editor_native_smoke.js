@@ -69,6 +69,12 @@
       "Detached editor is a modal dialog",
     );
     check(
+      !document.querySelector(
+        '.pe-native > header, .pe-native button[aria-label="Close Phase Editor"]',
+      ),
+      "Native editor still has a redundant close header",
+    );
+    check(
       await invoke("plugin:window|is_decorated", { label: "phase-editor" }),
       "No native title bar",
     );
@@ -202,6 +208,52 @@
       "Native Save did not retain the material name/file association",
     );
     await click("Equation of state");
+    document.querySelector(".pe-record-tools").open = true;
+    await click("Add record");
+    await click("Duplicate as custom");
+    const recordsBefore = (
+      await window.__dioptasNativeCall("integration_phase_editor", {
+        editor_uid: target,
+      })
+    ).phaseEditor.references.length;
+    await click("Delete record…");
+    const confirmation = document.querySelector(
+      'dialog[aria-label="Delete EoS record?"]',
+    );
+    check(confirmation?.open, "Native record confirmation did not open");
+    const anchor = [...document.querySelectorAll("button")]
+      .find((b) => b.textContent.trim() === "Delete record…")
+      .getBoundingClientRect();
+    const popup = confirmation.getBoundingClientRect();
+    check(
+      Math.min(
+        Math.abs(popup.top - anchor.bottom),
+        Math.abs(anchor.top - popup.bottom),
+      ) <= 8,
+      "Native confirmation was not beside Delete record",
+    );
+    await click("Confirm delete");
+    await click("Save");
+    const afterDelete = await window.__dioptasNativeCall(
+      "integration_phase_editor",
+      { editor_uid: target },
+    );
+    check(
+      afterDelete.phaseEditor.references.length === recordsBefore - 1 &&
+        !afterDelete.phaseEditor.modified,
+      "Native delete/save failed",
+    );
+    await click("Clear all records…");
+    check(
+      document.querySelector('dialog[aria-label="Clear all EoS records?"]')
+        ?.open,
+      "Native clear-record confirmation did not open",
+    );
+    await click("Cancel");
+    check(
+      !document.querySelector("dialog[open]"),
+      "Cancel left the native confirmation open",
+    );
     await choose("Thermal model", "MieGruneisenDebye");
     await set("theta0", 650);
     const eos = document.querySelector(".pe-parameter-scroll:not([hidden])");

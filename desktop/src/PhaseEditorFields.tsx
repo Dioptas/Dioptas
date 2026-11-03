@@ -59,7 +59,6 @@ export function EditorNumber({
   };
   useEffect(() => {
     if (wheelTarget.current != null) {
-      last.current = value;
       return;
     }
     setText(
@@ -135,7 +134,7 @@ export function EditorNumber({
   useSpinBoxWheel(input, (direction) => {
     const current =
       wheelTarget.current ??
-      (dirty.current ? Number(input.current?.value) : value);
+      (dirty.current || focused.current ? Number(input.current?.value) : value);
     if (
       disabled ||
       current == null ||

@@ -169,10 +169,12 @@ try {
   assert.equal((await state()).lattice.a0, 4.2);
   await click("Increase a₀");
   assert.equal((await state()).lattice.a0, 4.22);
-  await wheel("a₀", -1, 3);
-  assert.equal((await state()).lattice.a0, 4.28);
-  await wheel("a₀", 1, 3);
-  assert.equal((await state()).lattice.a0, 4.22);
+  for (let burst = 0; burst < 5; burst++) {
+    await wheel("a₀", -1, 3);
+    assert.equal((await state()).lattice.a0, 4.28);
+    await wheel("a₀", 1, 3);
+    assert.equal((await state()).lattice.a0, 4.22);
+  }
   await page
     .getByRole("button", { name: "Increase a₀", exact: true })
     .evaluate((button) =>
@@ -612,6 +614,93 @@ try {
   await page.screenshot({
     path: artifacts + "/phase-editor-editable-copy.png",
   });
+  // A copied Gold catalog must remain exportable after removing shared-data records.
+  await page
+    .getByRole("tab", { name: "Equation of state", exact: true })
+    .click();
+  if (!(await page.locator(".pe-record-tools").evaluate((el) => el.open)))
+    await page.getByText("Manage EoS records", { exact: true }).click();
+  let userMaterial = (await call("integration_phase_editor", { index: 1 }))
+    .phaseEditor;
+  const mao = userMaterial.references.findIndex((r) =>
+    /dewaele.*mao ruby/i.test(r.label),
+  );
+  assert.ok(mao >= 0);
+  await page
+    .getByLabel("Editor material record", { exact: true })
+    .selectOption(String(mao));
+  await ready();
+  const countBeforeDelete = userMaterial.references.length;
+  await click("Delete record…");
+  const confirmRecord = page.getByRole("dialog", {
+    name: "Delete EoS record?",
+    exact: true,
+  });
+  await confirmRecord.waitFor();
+  const popupBox = await confirmRecord.boundingBox();
+  const deleteBox = await page
+    .getByRole("button", { name: "Delete record…", exact: true })
+    .boundingBox();
+  assert.ok(
+    Math.min(
+      Math.abs(popupBox.y - deleteBox.y - deleteBox.height),
+      Math.abs(deleteBox.y - popupBox.y - popupBox.height),
+    ) <= 8,
+    "Confirmation should be beside Delete record",
+  );
+  await page.keyboard.press("Escape");
+  await confirmRecord.waitFor({ state: "detached" });
+  assert.ok(
+    await dialog.isVisible(),
+    "Escape should only close the small confirmation",
+  );
+  assert.equal(
+    (await call("integration_phase_editor", { index: 1 })).phaseEditor
+      .references.length,
+    countBeforeDelete,
+  );
+  assert.ok(
+    await page
+      .getByRole("button", { name: "Delete record…", exact: true })
+      .evaluate((el) => el === document.activeElement),
+  );
+  await click("Delete record…");
+  await page.screenshot({
+    path: artifacts + "/phase-editor-delete-popover.png",
+  });
+  await click("Confirm delete");
+  await click("Save");
+  await click("Reload File");
+  userMaterial = (await call("integration_phase_editor", { index: 1 }))
+    .phaseEditor;
+  assert.equal(userMaterial.references.length, countBeforeDelete - 1);
+  assert.ok(
+    !userMaterial.references.some((r) => /dewaele.*mao ruby/i.test(r.label)),
+  );
+  const structureBeforeClear = userMaterial.structure.sites;
+  if (!(await page.locator(".pe-record-tools").evaluate((el) => el.open)))
+    await page.getByText("Manage EoS records", { exact: true }).click();
+  await click("Clear all records…");
+  await page
+    .getByRole("dialog", { name: "Clear all EoS records?", exact: true })
+    .waitFor();
+  await click("Clear all records");
+  await click("Save");
+  await click("Reload File");
+  userMaterial = (await call("integration_phase_editor", { index: 1 }))
+    .phaseEditor;
+  assert.deepEqual(userMaterial.references, []);
+  assert.deepEqual(userMaterial.structure.sites, structureBeforeClear);
+  await edit("K₀", 180);
+  await edit("K₀′", 4);
+  await click("Add record");
+  await edit("EoS name", "New EoS after clearing");
+  await click("Save");
+  await click("Reload File");
+  userMaterial = (await call("integration_phase_editor", { index: 1 }))
+    .phaseEditor;
+  assert.equal(userMaterial.references.length, 1);
+  assert.equal(userMaterial.recordLabel, "New EoS after clearing");
   assert.deepEqual(errors, []);
   await writeFile(
     artifacts +
