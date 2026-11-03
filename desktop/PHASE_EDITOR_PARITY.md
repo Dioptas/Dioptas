@@ -54,7 +54,8 @@ the fixed footer. Record actions are always visible in a compact icon toolbar,
 with tooltips and accessible names for duplicate, add, set default, delete and
 clear all. Material and EoS names have distinct editable fields. Numeric EoS,
 normalization and thermal parameters use one parameter per row with shared,
-fixed label, value and unit columns. Unitless rows reserve the unit column;
+fixed label, value and unit columns. Labels align right beside their controls,
+including model/record selectors and configuration choices. Unitless rows reserve the unit column;
 configuration selectors span the value and unit columns. Constructor
 defaults have an inline asterisk and tooltip, with explanations in a disclosure.
 Thermal coefficients use scientific symbols, explicit constructor units and

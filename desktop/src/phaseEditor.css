@@ -119,10 +119,12 @@
   align-items: center;
   gap: 8px;
   margin: 5px 0 10px;
+  text-align: right;
 }
 .pe-selector select,
 .pe-selector input {
   width: 100%;
+  text-align: left;
 }
 .pe-field {
   display: grid;
@@ -134,6 +136,7 @@
 }
 .pe-field > span:first-child {
   overflow-wrap: anywhere;
+  text-align: right;
 }
 .pe-field > input {
   width: 100%;
@@ -300,7 +303,7 @@
   border-bottom: 1px solid #ffffff08;
 }
 .pe-eos-fields .pe-field > span:first-child {
-  text-align: left;
+  text-align: right;
   line-height: 1.25;
   white-space: nowrap;
 }
@@ -605,6 +608,10 @@
   display: grid;
   grid-template-columns: 110px minmax(0, 1fr);
   margin: 0;
+  text-align: right;
+}
+.pe-material-name-field input {
+  text-align: left;
 }
 .pe-source .pe-file-state {
   display: flex;
