@@ -1,21 +1,20 @@
-/* One visual contract for native tables and existing scientific grid/list views. */
+/* Original Overlay appearance, shared by the scientific tables and lists. */
 .app {
-  --table-background: #191b1e;
+  --table-background: transparent;
   --table-header-background: #25282c;
   --table-header-text: #b9bec4;
   --table-border: #ffffff0b;
   --table-selection: #ff950018;
-  --table-hover: #ffffff05;
   --table-row-height: 26px;
-  --table-header-height: 30px;
+  --table-header-height: 29px;
   --table-control-height: 23px;
-  --table-cell-padding: 1px 3px;
+  --table-cell-padding: 1px 2px;
+  --table-header-padding: 1px;
+  --table-control-background: #11171d;
+  --table-control-border: #333d48;
+  --table-control-radius: 5px;
   --table-scroll-track: #151b22;
   --table-scroll-thumb: #65707c;
-}
-.app[data-text-size="large"] {
-  --table-row-height: 28px;
-  --table-control-height: 25px;
 }
 .data-table,
 .data-table-grid,
@@ -42,7 +41,7 @@
 .app .data-table th,
 .app .data-table-grid .data-table-header {
   height: var(--table-header-height);
-  padding: var(--table-cell-padding);
+  padding: var(--table-header-padding);
   font-size: inherit;
   font-weight: 500;
   text-align: left;
@@ -61,11 +60,6 @@
 .app .data-table-grid .data-table-row {
   color: inherit;
   font-size: inherit;
-}
-.app .data-table tbody tr:hover > td,
-.app .data-table-grid .data-table-row:hover,
-.app .data-list .data-list-row:hover {
-  background: var(--table-hover);
 }
 .app .data-table tbody tr[aria-selected="true"] > td,
 .app .data-table-grid .data-table-row[data-selected="true"],
@@ -87,9 +81,9 @@
   height: var(--table-control-height);
   min-height: var(--table-control-height);
   padding: 1px 3px;
-  border: 1px solid transparent;
-  border-radius: 2px;
-  background-color: #ffffff04;
+  border: 1px solid var(--table-control-border);
+  border-radius: var(--table-control-radius);
+  background-color: var(--table-control-background);
   color: inherit;
   font-size: inherit;
   line-height: 1.1;
@@ -109,9 +103,9 @@
 }
 .app .data-table input[type="checkbox"],
 .app .data-table-grid input[type="checkbox"] {
-  width: 15px;
-  height: 15px;
-  min-height: 15px;
+  width: 17px;
+  height: 17px;
+  min-height: 17px;
   margin: 0;
   vertical-align: middle;
 }
@@ -184,7 +178,6 @@
 }
 .app .data-table-actions button {
   flex-shrink: 0;
-  border-radius: 3px;
 }
 .app .data-list .data-list-row {
   min-height: var(--table-row-height);
