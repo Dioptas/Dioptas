@@ -491,6 +491,27 @@ try {
               return value.width > 0 ? value.left - label.right : null;
             })
             .filter((gap) => gap != null),
+          parameterColumns: [
+            ...el.querySelectorAll(
+              ".pe-eos-fields .pe-field:not(.pe-field-choice)",
+            ),
+          ]
+            .map((field) => {
+              const label = field.firstElementChild.getBoundingClientRect();
+              const input = field
+                .querySelector("input")
+                .getBoundingClientRect();
+              const unit = field
+                .querySelector(".pe-unit")
+                .getBoundingClientRect();
+              return {
+                label: label.x,
+                value: input.x,
+                width: input.width,
+                unit: unit.x,
+              };
+            })
+            .filter((row) => row.width > 0),
         };
       });
       assert.ok(
@@ -512,6 +533,14 @@ try {
           m.parameterGaps.every((gap) => gap >= 0 && gap <= 8),
           JSON.stringify(m),
         );
+        for (const row of m.parameterColumns) {
+          for (const column of ["label", "value", "width", "unit"]) {
+            assert.ok(
+              Math.abs(row[column] - m.parameterColumns[0][column]) < 1,
+              JSON.stringify(m),
+            );
+          }
+        }
         assert.equal(
           await page.getByText("Manage EoS records", { exact: true }).count(),
           0,
@@ -660,6 +689,33 @@ try {
     .getByLabel("Editor material record", { exact: true })
     .selectOption(String(anderson));
   await ready();
+  // The user's Holzapfel + Anderson example includes long normalization units
+  // and dimensionless fields. All rows must retain the same three columns.
+  await page
+    .getByLabel("Equation of state model", { exact: true })
+    .selectOption("Holzapfel");
+  await ready();
+  const parameterColumns = await page
+    .locator(
+      ".pe-parameter-scroll:not([hidden]) .pe-eos-fields .pe-field:not(.pe-field-choice)",
+    )
+    .evaluateAll((fields) =>
+      fields
+        .map((field) => {
+          const input = field.querySelector("input").getBoundingClientRect();
+          const unit = field.querySelector(".pe-unit").getBoundingClientRect();
+          return { x: input.x, width: input.width, unit: unit.x };
+        })
+        .filter((row) => row.width > 0),
+    );
+  assert.ok(parameterColumns.length >= 8);
+  for (const row of parameterColumns) {
+    for (const key of ["x", "width", "unit"])
+      assert.ok(
+        Math.abs(row[key] - parameterColumns[0][key]) < 1,
+        JSON.stringify(parameterColumns),
+      );
+  }
   for (const label of ["(αKₜ)ᵣ", "(∂Kₜ/∂T)ᵥ"]) {
     const input = page.getByLabel(label, { exact: true });
     assert.ok(await input.isVisible());

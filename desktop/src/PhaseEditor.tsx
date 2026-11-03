@@ -166,7 +166,7 @@ export function PhaseEditor({
   const locked = !ready && pending === 0;
   const field = (f: EditorField, thermal = false) => (
     <label
-      className={`pe-field${f.choices?.length ? " pe-field-choice" : ""}${(f.unit?.length ?? 0) > 8 ? " pe-field-wide" : ""}`}
+      className={`pe-field${f.choices?.length ? " pe-field-choice" : ""}`}
       key={`${data.index}-${data.reference}-${f.key}`}
     >
       <span title={f.description ? `${f.description} · ${f.key}` : f.key}>
@@ -508,7 +508,7 @@ export function PhaseEditor({
             <PhaseEditorStructure data={data} locked={locked} act={act} />
           </div>
           <div
-            className="pe-parameter-scroll"
+            className="pe-parameter-scroll pe-eos-page"
             role="tabpanel"
             id="pe-page-1"
             aria-labelledby="pe-tab-1"

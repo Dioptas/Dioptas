@@ -285,32 +285,33 @@
   line-height: 1.5;
   margin: 8px 0;
 }
+.pe-eos-page .pe-selector {
+  grid-template-columns: 128px minmax(0, 1fr);
+}
 .pe-eos-fields {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 2px 12px;
+  grid-template-columns: minmax(0, 1fr);
   margin: 8px 0 14px;
 }
 .pe-eos-fields .pe-field {
-  grid-template-columns: minmax(max-content, 1fr) minmax(68px, 110px) minmax(
-      16px,
-      max-content
-    );
-  gap: 6px;
+  grid-template-columns: 128px 110px minmax(0, 1fr);
+  gap: 8px;
   padding: 4px 0;
   border-bottom: 1px solid #ffffff08;
 }
 .pe-eos-fields .pe-field > span:first-child {
-  text-align: right;
+  text-align: left;
   line-height: 1.25;
   white-space: nowrap;
 }
-.pe-eos-fields .pe-field-wide,
-.pe-eos-fields .pe-field-choice {
-  grid-column: 1 / -1;
+.pe-eos-fields .pe-field-choice > span:first-child {
+  white-space: normal;
+  overflow-wrap: normal;
 }
-.pe-eos-fields .pe-field-choice {
-  grid-template-columns: minmax(90px, max-content) minmax(0, 1fr);
+.pe-eos-fields .pe-field-choice select {
+  grid-column: 2 / -1;
+  width: 100%;
+  min-width: 0;
 }
 .pe-eos-fields .pe-field-choice .pe-unit {
   display: none;
