@@ -277,8 +277,9 @@ fn native_smoke_report(
 
 fn main() {
     let args: Vec<_> = std::env::args().collect();
+    let pattern_benchmark = args.iter().any(|a| a == "--pattern-benchmark");
     let tooltip_smoke = args.iter().any(|a| a == "--tooltip-smoke");
-    let smoke = tooltip_smoke || args.iter().any(|a| a == "--smoke");
+    let smoke = pattern_benchmark || tooltip_smoke || args.iter().any(|a| a == "--smoke");
     let map_smoke = args.iter().any(|a| a == "--map-smoke");
     let example = args.iter().any(|a| a == "--example");
     let app = tauri::Builder::default()
@@ -306,7 +307,7 @@ fn main() {
             if smoke {
                 let handle = app.handle().clone();
                 std::thread::spawn(move || {
-                    std::thread::sleep(std::time::Duration::from_secs(120));
+                    std::thread::sleep(std::time::Duration::from_secs(if pattern_benchmark { 600 } else { 120 }));
                     eprintln!("Native smoke timed out before receiving a report.");
                     handle.exit(1);
                 });
@@ -318,6 +319,11 @@ fn main() {
                 && webview.label() == "main"
                 && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished)
             {
+                if pattern_benchmark {
+                    let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
+                    let _ = webview.eval(include_str!("../../scripts/pattern_native_benchmark.js"));
+                    return;
+                }
                 if !tooltip_smoke {
                     let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
                     let _ = webview.eval(include_str!("../../scripts/binary_native_smoke.js"));

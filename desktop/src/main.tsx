@@ -17,10 +17,23 @@ document.addEventListener("contextmenu", (event) => event.preventDefault());
 
 installNativeColorPickerAnchors();
 
-createRoot(document.getElementById("root")!).render(
-  isTauri() && getCurrentWindow().label === "calibration-tooltip" ? (
-    <NativeCalibrationTooltip />
-  ) : (
-    <App />
-  ),
-);
+if (
+  import.meta.env.VITE_DIOPTAS_PATTERN_BENCHMARK === "1" &&
+  isTauri() &&
+  getCurrentWindow().label === "main"
+) {
+  import("./patternBenchmark").then(({ installPatternBenchmark }) => {
+    const element = document.getElementById("root")!;
+    element.style.cssText =
+      "display:flex;width:1000px;height:600px;background:#101518";
+    installPatternBenchmark(element);
+  });
+} else {
+  createRoot(document.getElementById("root")!).render(
+    isTauri() && getCurrentWindow().label === "calibration-tooltip" ? (
+      <NativeCalibrationTooltip />
+    ) : (
+      <App />
+    ),
+  );
+}

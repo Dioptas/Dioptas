@@ -293,6 +293,12 @@
           .renderer === "webgl2",
       "Native cake did not use WebGL 2",
     );
+    await wait(
+      () =>
+        document.querySelector('[data-testid="pattern-canvas"]')?.dataset
+          .curveRenderer === "webgl2",
+      "Native pattern did not use WebGL 2 by default",
+    );
     for (const [label, id] of [
       ["Pattern", "pattern"],
       ["Cake", "cake"],
@@ -583,6 +589,7 @@
         wheelPrevented,
         validationImages: 2,
         rasterRenderer: "webgl2",
+        patternRenderer: "webgl2",
         plotZoomSelectors: true,
         qtIntegrationLayout: true,
         integrationBins: integrated.state.bins,

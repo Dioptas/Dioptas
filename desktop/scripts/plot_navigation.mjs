@@ -201,50 +201,55 @@ async function verifyRectangleMarginNavigation(page, id) {
 async function verifyCompactAxisLabels(page, id) {
   const canvas = page.getByTestId(id);
   await canvas.evaluate((el) => {
-    const context = el.getContext("2d");
-    const fillText = context.fillText,
-      scale = context.scale;
+    const axes =
+      el.parentElement.querySelector('[data-testid="pattern-axes"]') ?? el;
     el.__axisText = [];
-    context.scale = function (...args) {
-      if (this.getTransform().isIdentity) el.__axisText = [];
-      return scale.apply(this, args);
-    };
-    context.fillText = function (text, x, y, ...args) {
-      const metrics = this.measureText(text),
-        transform = this.getTransform();
-      const corners = [
-        [
-          x - metrics.actualBoundingBoxLeft,
-          y - metrics.actualBoundingBoxAscent,
-        ],
-        [
-          x + metrics.actualBoundingBoxRight,
-          y - metrics.actualBoundingBoxAscent,
-        ],
-        [
-          x - metrics.actualBoundingBoxLeft,
-          y + metrics.actualBoundingBoxDescent,
-        ],
-        [
-          x + metrics.actualBoundingBoxRight,
-          y + metrics.actualBoundingBoxDescent,
-        ],
-      ].map(([px, py]) => new DOMPoint(px, py).matrixTransform(transform));
-      el.__axisText.push({
-        text,
-        x,
-        y,
-        left: Math.min(...corners.map((p) => p.x)) / devicePixelRatio,
-        right: Math.max(...corners.map((p) => p.x)) / devicePixelRatio,
-        top: Math.min(...corners.map((p) => p.y)) / devicePixelRatio,
-        bottom: Math.max(...corners.map((p) => p.y)) / devicePixelRatio,
-      });
-      return fillText.call(this, text, x, y, ...args);
-    };
-    el.__restoreAxisCapture = () => {
-      context.fillText = fillText;
-      context.scale = scale;
-    };
+    const contexts = [...new Set([axes.getContext("2d"), el.getContext("2d")])];
+    const restore = contexts.map((context, index) => {
+      const fillText = context.fillText,
+        scale = context.scale;
+      context.scale = function (...args) {
+        if (index === 0 && this.getTransform().isIdentity) el.__axisText = [];
+        return scale.apply(this, args);
+      };
+      context.fillText = function (text, x, y, ...args) {
+        const metrics = this.measureText(text),
+          transform = this.getTransform();
+        const corners = [
+          [
+            x - metrics.actualBoundingBoxLeft,
+            y - metrics.actualBoundingBoxAscent,
+          ],
+          [
+            x + metrics.actualBoundingBoxRight,
+            y - metrics.actualBoundingBoxAscent,
+          ],
+          [
+            x - metrics.actualBoundingBoxLeft,
+            y + metrics.actualBoundingBoxDescent,
+          ],
+          [
+            x + metrics.actualBoundingBoxRight,
+            y + metrics.actualBoundingBoxDescent,
+          ],
+        ].map(([px, py]) => new DOMPoint(px, py).matrixTransform(transform));
+        el.__axisText.push({
+          text,
+          x,
+          y,
+          left: Math.min(...corners.map((p) => p.x)) / devicePixelRatio,
+          right: Math.max(...corners.map((p) => p.x)) / devicePixelRatio,
+          top: Math.min(...corners.map((p) => p.y)) / devicePixelRatio,
+          bottom: Math.max(...corners.map((p) => p.y)) / devicePixelRatio,
+        });
+        return fillText.call(this, text, x, y, ...args);
+      };
+      return () => {
+        context.fillText = fillText;
+        context.scale = scale;
+      };
+    });
+    el.__restoreAxisCapture = () => restore.forEach((callback) => callback());
   });
   try {
     for (let i = 0; i < 14; i++) {

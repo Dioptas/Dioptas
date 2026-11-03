@@ -205,3 +205,6 @@ desktop/src-tauri/gen/
 
 # Disposable hot-reload smoke probe (normally removed automatically)
 desktop/src/__dioptas_live_check_*.css
+
+# Generated Canvas reference for isolated pattern renderer benchmarks.
+desktop/src/__CanvasBaseline.tsx
