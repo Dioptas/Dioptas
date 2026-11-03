@@ -1,3 +1,4 @@
+import { installRasterProbe } from "./raster_probe.mjs";
 import {
   selectCalibrationRing,
   verifyCalibrationRingPicker,
@@ -94,6 +95,7 @@ page.on("console", (message) => {
     errors.push(message.text());
 });
 await page.exposeFunction("__dioptasInvoke", invoke);
+await page.addInitScript(installRasterProbe);
 await page.addInitScript(() => {
   localStorage.setItem("dioptas-accent-v2", "green");
   const draw = CanvasRenderingContext2D.prototype.drawImage;
@@ -716,9 +718,9 @@ try {
     await page.getByTestId("cake-canvas").getAttribute("data-intensity-scale"),
     "linear",
   );
-  const cakeBefore = await page
-    .getByTestId("cake-canvas")
-    .evaluate((el) => el.toDataURL());
+  const cakeBefore = (
+    await page.getByTestId("cake-canvas").screenshot()
+  ).toString("base64");
   await page
     .getByRole("button", { name: "Cake histogram settings", exact: true })
     .click();
@@ -726,7 +728,7 @@ try {
     .getByLabel("Cake image scale", { exact: true })
     .selectOption("log");
   assert.notEqual(
-    await page.getByTestId("cake-canvas").evaluate((el) => el.toDataURL()),
+    (await page.getByTestId("cake-canvas").screenshot()).toString("base64"),
     cakeBefore,
   );
   assert.equal(await detector.getAttribute("data-intensity-scale"), "linear");

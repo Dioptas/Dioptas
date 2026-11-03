@@ -4,7 +4,9 @@ import { isTauri, invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 export async function updateWindowTitle(imageName: string | null | undefined) {
-  const title = imageName ? `${imageName} — Dioptas` : "Dioptas";
+  const base = imageName ? `${imageName} — Dioptas` : "Dioptas";
+  const previewLabel = import.meta.env.VITE_DIOPTAS_PREVIEW_LABEL;
+  const title = previewLabel ? `${base} · ${previewLabel}` : base;
   document.title = title;
   if (isTauri()) await getCurrentWindow().setTitle(title);
 }

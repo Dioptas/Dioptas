@@ -1,3 +1,4 @@
+import { installRasterProbe } from "./raster_probe.mjs";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
@@ -78,6 +79,7 @@ page.on("console", (message) => {
     errors.push(message.text());
 });
 await page.exposeFunction("__dioptasInvoke", invoke);
+await page.addInitScript(installRasterProbe);
 await page.addInitScript(() => {
   window.__colourBuilds = 0;
   const createPixels = CanvasRenderingContext2D.prototype.createImageData;
@@ -156,10 +158,32 @@ const state = () => invoke("state");
 const maskBytes = (result) => Buffer.from(result.mask.data, "base64");
 const sourcePixel = (x, y) =>
   page.evaluate(
-    ({ x, y }) =>
-      Array.from(
-        window.__detectorSource.getContext("2d").getImageData(x, y, 1, 1).data,
-      ),
+    ({ x, y }) => {
+      const el = document.querySelector('[data-testid="detector-canvas"]');
+      if (el.dataset.renderer !== "webgl2")
+        return Array.from(
+          window.__detectorSource.getContext("2d").getImageData(x, y, 1, 1)
+            .data,
+        );
+      const d = el.dataset,
+        frame = window.__detectorPixels;
+      const px = Math.floor(
+        ((+d.plotLeft +
+          ((x + 0.5 - +d.viewXMin) / (+d.viewXMax - +d.viewXMin)) *
+            +d.plotWidth) *
+          frame.width) /
+          el.clientWidth,
+      );
+      const py = Math.floor(
+        ((+d.plotTop +
+          ((+d.viewYMax - y - 0.5) / (+d.viewYMax - +d.viewYMin)) *
+            +d.plotHeight) *
+          frame.height) /
+          el.clientHeight,
+      );
+      const offset = ((frame.height - 1 - py) * frame.width + px) * 4;
+      return Array.from(frame.pixels.slice(offset, offset + 4));
+    },
     { x, y },
   );
 const sourcePosition = (x, y) =>

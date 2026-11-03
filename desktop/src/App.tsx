@@ -904,13 +904,43 @@ export default function App() {
         : pattern,
     [pattern, inspectedOriginal],
   );
+  const displayedCurves = useMemo(
+    () =>
+      mode === "integration"
+        ? [
+            ...(pattern?.curves ?? []).map((curve, index) => ({
+              ...curve,
+              selected: index === selectedOverlayIndex,
+            })),
+            ...(inspectedBackground
+              ? (pattern?.backgroundCurves ?? []).slice(
+                  inspectedOriginal ? 1 : 0,
+                )
+              : []),
+          ]
+        : undefined,
+    [
+      mode,
+      pattern?.curves,
+      pattern?.backgroundCurves,
+      selectedOverlayIndex,
+      !!inspectedBackground,
+      !!inspectedOriginal,
+    ],
+  );
   // The subtracted pattern can be cropped to the fitted range. Keep the slice
   // bounded by the original measurement so its edges can expand again.
   const backgroundX = pattern?.backgroundCurves?.[0]?.x ?? pattern?.x ?? [];
-  const backgroundBounds = backgroundX.reduce<[number, number]>(
-    ([min, max], x) =>
-      Number.isFinite(x) ? [Math.min(min, x), Math.max(max, x)] : [min, max],
-    [Infinity, -Infinity],
+  const backgroundBounds = useMemo(
+    () =>
+      backgroundX.reduce<[number, number]>(
+        ([min, max], x) =>
+          Number.isFinite(x)
+            ? [Math.min(min, x), Math.max(max, x)]
+            : [min, max],
+        [Infinity, -Infinity],
+      ),
+    [backgroundX],
   );
   const backgroundRange = inspectedBackground
     ? (liveBackground.settings.range ?? backgroundBounds)
@@ -1664,7 +1694,7 @@ export default function App() {
                             calibrantLines={
                               mode === "calibration" && showRings
                                 ? state?.calibration.referenceLines
-                                : []
+                                : undefined
                             }
                             showNumbers={showNumbers}
                             regions={
@@ -1730,24 +1760,7 @@ export default function App() {
                                   ]
                                 : undefined
                             }
-                            curves={
-                              mode === "integration"
-                                ? [
-                                    ...(pattern.curves ?? []).map(
-                                      (curve, index) => ({
-                                        ...curve,
-                                        selected:
-                                          index === selectedOverlayIndex,
-                                      }),
-                                    ),
-                                    ...(inspectedBackground
-                                      ? (pattern.backgroundCurves ?? []).slice(
-                                          inspectedOriginal ? 1 : 0,
-                                        )
-                                      : []),
-                                  ]
-                                : undefined
-                            }
+                            curves={displayedCurves}
                             referenceLines={
                               mode === "integration"
                                 ? pattern.phaseLines

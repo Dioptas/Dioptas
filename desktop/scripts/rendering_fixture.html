@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Dioptas rendering regression fixture</title>
+  </head>
+  <body style="margin: 0; background: #101518">
+    <div id="fixture" style="width: 800px; height: 500px; display: flex"></div>
+    <script type="module">
+      import React from "react";
+      import { createRoot } from "react-dom/client";
+      import { flushSync } from "react-dom";
+      import { RasterView } from "../src/RasterView";
+      import { PatternView } from "../src/PatternView";
+      import { WebGLRaster } from "../src/WebGLRaster";
+      import { rasterCanvas } from "../src/rasterCanvas";
+      import { colorsFor } from "../src/colorMaps";
+      import "../src/style.css";
+      const root = createRoot(document.getElementById("fixture"));
+      window.fixture = {
+        React,
+        root,
+        flushSync,
+        RasterView,
+        PatternView,
+        WebGLRaster,
+        rasterCanvas,
+        colorsFor,
+      };
+      window.paint = (Component, props) =>
+        flushSync(() => root.render(React.createElement(Component, props)));
+    </script>
+  </body>
+</html>

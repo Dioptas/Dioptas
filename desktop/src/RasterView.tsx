@@ -9,8 +9,10 @@ import {
 } from "react";
 import type { Cake, Palette, Raster, Tool, RingOverlay } from "./types";
 import type { MaskOverlay } from "./maskDomain";
-import { ByteCache, decodeRaster } from "./rasterTransfer";
+import { decodeRaster } from "./rasterTransfer";
 import { colorsFor } from "./colorMaps";
+import { WebGLRaster } from "./WebGLRaster";
+import { rasterCanvas } from "./rasterCanvas";
 import { number, unitLabel } from "./types";
 import { linearAxisTicks, linearTicks } from "./plotTicks";
 import { PlotZoomControls } from "./PlotZoomControls";
@@ -44,8 +46,6 @@ const EMPTY_RINGS: RingOverlay[] = [];
 const EMPTY_CONTOURS: number[][][] = [];
 const EMPTY_CALIBRANT_LINES: { ring: number; twoTheta: number }[] = [];
 
-// Keep recently colour-mapped images without retaining their source buffers.
-const rendered = new ByteCache<string, HTMLCanvasElement>(96 * 1024 * 1024, 12);
 export function RasterView({
   raster,
   exportRef,
@@ -147,124 +147,91 @@ export function RasterView({
     [mask?.data, mask?.dtype],
   );
   const [lower, upper] = limits ?? raster.limits;
-  const colourImage = useMemo(() => {
-    const cacheKey = raster.bufferId
-      ? JSON.stringify([
-          "colour",
-          raster.bufferId,
-          raster.dtype,
-          raster.width,
-          raster.height,
-          lower,
-          upper,
-          log,
-          palette,
-        ])
-      : null;
-    const cached = cacheKey ? rendered.get(cacheKey) : undefined;
-    if (cached) return cached;
-    const offscreen = document.createElement("canvas");
-    offscreen.width = raster.width;
-    offscreen.height = raster.height;
-    const context = offscreen.getContext("2d")!;
-    const pixels = context.createImageData(raster.width, raster.height);
-    const span = Math.max(upper - lower, 1e-12);
-    const ramp = colorsFor(palette),
-      last = ramp.length - 1;
-    const logSpan = Math.log1p(span);
-    for (let i = 0; i < data.length; i++) {
-      const value = data[i];
-      const t = log
-        ? Math.log1p(Math.max(0, value - lower)) / logSpan
-        : (value - lower) / span;
-      const k = Math.max(0, Math.min(1, Number.isFinite(t) ? t : 0)) * last;
-      const index = Math.min(Math.floor(k), last - 1),
-        fraction = k - index;
-      const a = ramp[index],
-        b = ramp[index + 1];
-      const valid = Number.isFinite(value);
-      for (let c = 0; c < 3; c++) {
-        const intensity = valid
-          ? Math.round(a[c] * (1 - fraction) + b[c] * fraction)
-          : c === 0
-            ? 23
-            : c === 1
-              ? 25
-              : 30;
-        pixels.data[4 * i + c] = intensity;
-      }
-      pixels.data[4 * i + 3] = 255;
-    }
-    context.putImageData(pixels, 0, 0);
-    if (cacheKey)
-      rendered.set(cacheKey, offscreen, 4 * raster.width * raster.height);
-    return offscreen;
-  }, [
-    raster.data,
-    raster.bufferId,
-    raster.dtype,
-    raster.width,
-    raster.height,
-    data,
-    lower,
-    upper,
-    log,
-    palette,
-  ]);
-  const image = useMemo(() => {
-    if (!maskData) return colourImage;
-    const cacheKey =
-      raster.bufferId && mask?.bufferId
-        ? JSON.stringify([
-            "mask",
-            raster.bufferId,
-            raster.dtype,
-            raster.width,
-            raster.height,
-            mask.bufferId,
+  const softwareCache = useRef<{
+    colourKey: unknown[];
+    key: unknown[];
+    colour: HTMLCanvasElement;
+    image: HTMLCanvasElement;
+  } | null>(null);
+  const softwareImage = useCallback(() => {
+    const colourKey = [
+      data,
+      raster.width,
+      raster.height,
+      lower,
+      upper,
+      log,
+      palette,
+    ];
+    const key = [...colourKey, maskData, maskOpacity];
+    const previous = softwareCache.current;
+    if (previous && key.every((v, i) => Object.is(v, previous.key[i])))
+      return previous.image;
+    const colour =
+      previous && colourKey.every((v, i) => Object.is(v, previous.colourKey[i]))
+        ? previous.colour
+        : rasterCanvas(
+            raster,
+            data,
+            undefined,
+            null,
             lower,
             upper,
             log,
             palette,
-            maskOpacity,
-          ])
-        : null;
-    const cached = cacheKey ? rendered.get(cacheKey) : undefined;
-    if (cached) return cached;
-    // Reuse the unchanged detector colours. Drawing or changing opacity only
-    // blends the mask pixels, without repeating log scaling or colour mapping.
-    const pixels = colourImage
-      .getContext("2d")!
-      .getImageData(0, 0, raster.width, raster.height);
-    const maskColor = [255, 0, 0];
-    for (let i = 0; i < maskData.length; i++) {
-      if (!maskData[i]) continue;
-      for (let c = 0; c < 3; c++)
-        pixels.data[4 * i + c] =
-          maskColor[c] * maskOpacity +
-          pixels.data[4 * i + c] * (1 - maskOpacity);
-    }
-    const offscreen = document.createElement("canvas");
-    offscreen.width = raster.width;
-    offscreen.height = raster.height;
-    offscreen.getContext("2d")!.putImageData(pixels, 0, 0);
-    if (cacheKey)
-      rendered.set(cacheKey, offscreen, 4 * raster.width * raster.height);
-    return offscreen;
-  }, [
-    colourImage,
-    maskData,
-    mask?.bufferId,
-    raster.bufferId,
-    raster.dtype,
-    raster.width,
-    raster.height,
-    lower,
-    upper,
-    log,
-    palette,
-    maskOpacity,
-  ]);
+            0,
+          );
+    const image = maskData
+      ? rasterCanvas(
+          raster,
+          data,
+          mask,
+          maskData,
+          lower,
+          upper,
+          log,
+          palette,
+          maskOpacity,
+          colour,
+        )
+      : colour;
+    softwareCache.current = { colourKey, key, colour, image };
+    return image;
+  }, [raster, data, mask, maskData, lower, upper, log, palette, maskOpacity]);
+  const gpuCanvas = useRef<HTMLCanvasElement>(null);
+  const gpu = useRef<WebGLRaster | null>(null);
+  const [renderer, setRenderer] = useState("pending");
+  const [contextVersion, setContextVersion] = useState(0);
+  useEffect(() => {
+    const element = gpuCanvas.current!;
+    let disposed = false;
+    const initialize = () => {
+      try {
+        gpu.current = new WebGLRaster(element);
+        setRenderer("webgl2");
+      } catch {
+        gpu.current = null;
+        setRenderer("canvas2d");
+      }
+      setContextVersion((v) => v + 1);
+    };
+    const lost = (event: Event) => {
+      if (disposed) return;
+      event.preventDefault();
+      gpu.current = null;
+      setRenderer("canvas2d");
+    };
+    element.addEventListener("webglcontextlost", lost);
+    element.addEventListener("webglcontextrestored", initialize);
+    initialize();
+    return () => {
+      disposed = true;
+      element.removeEventListener("webglcontextlost", lost);
+      element.removeEventListener("webglcontextrestored", initialize);
+      gpu.current?.dispose();
+      gpu.current = null;
+    };
+  }, []);
   useEffect(() => {
     const observer = new ResizeObserver(([entry]) =>
       setSize({
@@ -325,6 +292,56 @@ export function RasterView({
   });
   const zoom = fitWidth / (view.xMax - view.xMin);
   const editableRoi = !!onRoiChange;
+  useEffect(() => {
+    if (!gpu.current) return;
+    try {
+      gpu.current.draw({
+        data,
+        mask: maskData,
+        width: raster.width,
+        height: raster.height,
+        colors: colorsFor(palette),
+        lower,
+        upper,
+        log,
+        maskOpacity,
+        viewport: { ...size, dpr: window.devicePixelRatio || 1 },
+        image: {
+          x: ox,
+          y: oy,
+          width: raster.fullWidth * sx,
+          height: raster.fullHeight * sy,
+        },
+        clip: { left, top, width: plotWidth, height: plotHeight },
+      });
+      setRenderer("webgl2");
+    } catch {
+      // Includes unsupported texture dimensions and GPU allocation failure.
+      setRenderer("canvas2d");
+    }
+  }, [
+    data,
+    maskData,
+    raster.width,
+    raster.height,
+    raster.fullWidth,
+    raster.fullHeight,
+    palette,
+    lower,
+    upper,
+    log,
+    maskOpacity,
+    size,
+    ox,
+    oy,
+    sx,
+    sy,
+    left,
+    top,
+    plotWidth,
+    plotHeight,
+    contextVersion,
+  ]);
   const draw = useCallback(
     (output: HTMLCanvasElement, exporting = false) => {
       const context = output.getContext("2d");
@@ -332,9 +349,15 @@ export function RasterView({
       const dpr = exporting
         ? 2048 / Math.max(1, size.width)
         : window.devicePixelRatio || 1;
-      output.width = Math.round(size.width * dpr);
-      output.height = Math.max(1, Math.round(size.height * dpr));
+      const width = Math.max(1, Math.round(size.width * dpr));
+      const height = Math.max(1, Math.round(size.height * dpr));
+      if (output.width !== width) output.width = width;
+      if (output.height !== height) output.height = height;
+      context.setTransform(1, 0, 0, 1, 0, 0);
+      context.clearRect(0, 0, width, height);
       context.scale(dpr, dpr);
+      context.lineWidth = 1;
+      context.setLineDash([]);
       // PNG exports use Qt's 2048-pixel width and retain the current plot view.
       if (exporting) {
         context.fillStyle = "#101518";
@@ -345,16 +368,18 @@ export function RasterView({
       context.beginPath();
       context.rect(left, top, plotWidth, plotHeight);
       context.clip();
-      context.imageSmoothingEnabled = false;
-      context.translate(ox, oy + raster.fullHeight * sy);
-      context.scale(1, -1);
-      context.drawImage(
-        image,
-        0,
-        0,
-        raster.fullWidth * sx,
-        raster.fullHeight * sy,
-      );
+      if (exporting || renderer === "canvas2d" || !gpu.current) {
+        context.imageSmoothingEnabled = false;
+        context.translate(ox, oy + raster.fullHeight * sy);
+        context.scale(1, -1);
+        context.drawImage(
+          softwareImage(),
+          0,
+          0,
+          raster.fullWidth * sx,
+          raster.fullHeight * sy,
+        );
+      }
       context.restore();
       context.save();
       context.beginPath();
@@ -775,7 +800,8 @@ export function RasterView({
       }
     },
     [
-      image,
+      softwareImage,
+      renderer,
       size,
       view.xMin,
       view.xMax,
@@ -852,6 +878,13 @@ export function RasterView({
   return (
     <div className="raster-container" ref={container}>
       <canvas
+        ref={gpuCanvas}
+        className="raster-gpu-layer"
+        data-testid={cake ? "cake-gpu" : "detector-gpu"}
+        aria-hidden="true"
+        style={{ visibility: renderer === "webgl2" ? "visible" : "hidden" }}
+      />
+      <canvas
         ref={canvas}
         data-testid={cake ? "cake-canvas" : "detector-canvas"}
         aria-label={
@@ -868,6 +901,7 @@ export function RasterView({
           height: "100%",
           cursor: roiInteraction.cursor(cursor),
         }}
+        data-renderer={renderer}
         data-roi={displayedRoi?.join(",")}
         data-full-width={raster.fullWidth}
         data-full-height={raster.fullHeight}
