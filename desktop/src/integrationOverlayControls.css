@@ -253,7 +253,7 @@
 }
 
 .qt-overlay-original-row {
-  min-height: 39px;
+  min-height: var(--table-row-height);
 }
 .qt-overlay-original-row td {
   border-bottom-color: #62676d;
@@ -264,8 +264,12 @@
   white-space: nowrap;
 }
 .qt-overlay-fixed-value {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   width: 100%;
-  padding: 6px 5px;
+  height: var(--table-control-height);
+  padding: 1px 3px;
   text-align: right;
   font-variant-numeric: tabular-nums;
   color: #aab0b6;
