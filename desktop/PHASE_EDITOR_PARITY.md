@@ -15,7 +15,8 @@ Compared against Qt's `PhaseEditorWidget`, `PhaseEditorController`, `EosRecordDi
 | EoS | The installed adapter's 11 room-temperature types. Dynamic fields include reference pressure for BM2Reference, K₀″ where supported, and material normalization data for Holzapfel and molar thermal models. |
 | Thermal models | None, the legacy constant-coefficient correction, and all 18 installed constructor models. Fields and required/optional defaults come from their actual signatures; configuration choices use the shared model definitions. Nullable defaults are omitted from EOSMAT rather than serialized as invalid null coefficients. |
 | AlphaKT distinction | The constructor-based thermal-reference-state model retains its explicit model identifier in legacy v2 records and exports. It is not silently interpreted as the older JCPDS coefficient correction when reloaded or reselected. |
-| Records | Selection, add from session values, duplicate as custom, rename, delete, clear all and set default. Deletion reconciles pressure reductions and observation-view links while preserving shared observations. A record used as another record's parent cannot be deleted alone. Edits are validated and applied atomically. Clear all retains the structure, resets live EoS/thermal coefficients and allows a structure-only save or a new custom EoS. Bundled records/materials remain protected. Custom copies keep source records intact and receive the existing model's unvalidated/custom status. Complete record metadata, including reported errors, fixed parameters and source evidence, is inspectable and retained. |
+| Records | Selection is available for all materials. Adding, duplicating, renaming, deleting, clearing, choosing a default and editing EoS parameters require an editable material; bundled database materials first require Edit a copy. This is enforced by the UI and desktop processing boundary. Deletion reconciles pressure reductions and observation-view links while preserving shared observations. A record used as another record's parent cannot be deleted alone. Edits are validated and applied atomically. Clear all retains the structure, resets live EoS/thermal coefficients and allows a structure-only save or a new custom EoS. Custom copies keep source records intact and receive the existing model's unvalidated/custom status. Complete record metadata, including reported errors, fixed parameters and source evidence, is inspectable and retained. |
+| Ranges | Experimental P/T envelopes and intended-validity P/T limits are shown separately, in GPa and K. Custom records can edit or clear each pair; bundled records display them read-only. Apply ranges validates ordered, finite pairs and saves them atomically without rewriting source records. Pending drafts disable material Save/Save As until applied or reset. Range edits survive EOSMAT save/reload and retain source notes with an explicit user-edit qualification. |
 | Atomic positions | Validated element symbols and a periodic-table picker, fractional coordinates, Occ. and existing isotropic displacement fields; add/remove sites; editable space group by symbol/number with the number displayed, the same 230 reference-group choices as Qt and retention of an explicit material setting. All edits use Qt's PhaseModel entry points and recalculate diffraction at the session wavelength. Derived Wyckoff labels use the declared Hall setting and each site's orbit, including coincident sites. |
 | Composition | Assumed/edited structure flags and original site metadata are retained. Structural edits do not rewrite the formula, stored Z, electron count or EoS normalization. Coordinates stay in their existing basis and origin. Composition diagnostics remain available in the model but are omitted from the editor. |
 | Reflections | Compact signed h/k/l fields and intensity displayed to four significant digits (full precision on focus, in calculations and export); calculated reference/current d, 2θ and Q pairs with a position-column selector; stable-index view sorting, select all/multiple delete, copy selected/all rows, add, confirmed clear, and a dedicated TXT export chooser. The displayed table is rounded; copy retains the underlying numbers and TXT export retains 17 significant digits. |
@@ -70,6 +71,9 @@ Labels align right beside their controls, including model/record selectors and
 configuration choices. Unitless rows reserve the unit column. Constructor
 defaults retain an inline asterisk and per-field tooltip; there is no separate
 defaults disclosure.
+The EoS parameter pane scrolls vertically only. Controls, unit cells and expanded
+provenance wrap within the pane; horizontal scroll positions remain zero across
+both text sizes and the tested 1000, 1200 and 1440 px windows.
 Thermal coefficients use scientific symbols, explicit constructor units and
 plain-language tooltips (including constant-volume derivatives). Model-specific
 scaling is retained: for example, DO2007 coefficients displayed in 10⁻⁶ K⁻¹
@@ -138,6 +142,13 @@ are unchanged.
   shared pressure-reduction/observation links, dependency protection, rollback
   after a failed calculation, clear/save/reload followed by a new EoS, and
   recovery/export of a project affected by the earlier deletion implementation.
+- Protection checks reject direct bundled-material add/duplicate/edit commands
+  and retain the original records. Range checks cover independent experimental
+  and validity limits, clearing, invalid-pair rollback, save/reload, pending-draft
+  Save protection and unchanged source material.
+- Browser overflow checks cover four thermal models, all details expanded,
+  both text sizes and three widths, verifying control bounds and zero horizontal
+  scroll rather than merely hiding overflowing controls.
 - Browser interactions use the real Python bridge in Chromium and WebKit:
   draft validation, Escape, Tab/focus, rapid entry, sorting/copy, reflection
   actions/export, numeric wheel stepping (including bursts, bounds, intensity
@@ -186,7 +197,7 @@ npm run tauri:smoke
 
 Qt's full EosRecordDialog can edit citation, range, reported uncertainty and
 fixed-parameter metadata. React currently retains and exposes that metadata,
-but edits record labels and supported live model parameters rather than the
+but edits record labels, experimental/validity P/T ranges and supported live model parameters rather than the
 complete provenance form. Unsupported published equation types remain
 inspectable through their complete record metadata; the room-temperature
 selector offers the adapter's existing editable types.

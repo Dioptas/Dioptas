@@ -13,6 +13,7 @@ import { EditorNumber, TextEdit } from "./PhaseEditorFields";
 import { PhaseEditorStructure } from "./PhaseEditorStructure";
 import { PhaseEditorConfirm } from "./PhaseEditorConfirm";
 import { PhaseAssessmentBadge } from "./PhaseAssessmentBadge";
+import { PhaseEditorRanges } from "./PhaseEditorRanges";
 import "./phaseEditor.css";
 
 export function PhaseEditor({
@@ -88,6 +89,7 @@ export function PhaseEditor({
   const [legacy, setLegacy] = useState(data.thermalSelection === "alphakt");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(0);
+  const [rangesDirty, setRangesDirty] = useState(false);
   const [confirm, setConfirm] = useState("");
   const deleteRecord = useRef<HTMLButtonElement>(null);
   const clearRecords = useRef<HTMLButtonElement>(null);
@@ -555,8 +557,12 @@ export function PhaseEditor({
                 <button
                   type="button"
                   aria-label="Duplicate as custom"
-                  title="Duplicate this EoS as a custom record"
-                  disabled={locked || !data.references.length}
+                  title={
+                    data.editable
+                      ? "Duplicate this EoS as a custom record"
+                      : "Edit a copy to add or duplicate EoS records"
+                  }
+                  disabled={locked || !data.editable || !data.references.length}
                   onClick={() =>
                     void act("editor_record", { action: "duplicate" })
                   }
@@ -566,8 +572,12 @@ export function PhaseEditor({
                 <button
                   type="button"
                   aria-label="Add record"
-                  title="Add an EoS record from the current parameters"
-                  disabled={locked}
+                  title={
+                    data.editable
+                      ? "Add an EoS record from the current parameters"
+                      : "Edit a copy to add EoS records"
+                  }
+                  disabled={locked || !data.editable}
                   onClick={() => void act("editor_record", { action: "add" })}
                 >
                   <Plus aria-hidden="true" />
@@ -736,6 +746,15 @@ export function PhaseEditor({
                   {data.thermalFields.map((f) => field(f, !!data.thermalType))}
                 </div>
               </>
+            )}
+            {!!data.references.length && (
+              <PhaseEditorRanges
+                key={`${data.uid}-${data.reference}`}
+                data={data}
+                locked={locked}
+                act={act}
+                onDirty={setRangesDirty}
+              />
             )}
             {!!normalizationFields.length && (
               <details className="pe-record-details">
@@ -1048,6 +1067,7 @@ export function PhaseEditor({
       <footer>
         <p className={message ? "pe-edit-error" : "pe-status"} role="status">
           {message ||
+            (rangesDirty ? "Apply or reset range edits before saving." : "") ||
             (pending
               ? "Applying edit…"
               : data.modified
@@ -1077,14 +1097,17 @@ export function PhaseEditor({
               : "Use Edit a copy to create an editable material"
           }
           disabled={
-            locked || !data.editable || (!data.modified && data.canSaveCurrent)
+            locked ||
+            rangesDirty ||
+            !data.editable ||
+            (!data.modified && data.canSaveCurrent)
           }
           onClick={() => void save("eosmat", data.canSaveCurrent)}
         >
           Save
         </button>
         <button
-          disabled={locked}
+          disabled={locked || rangesDirty}
           title="Save .eosmat to retain EoS records, provenance and atomic positions"
           onClick={() => void save("eosmat")}
         >

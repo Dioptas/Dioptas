@@ -115,22 +115,30 @@ def test_published_copy_is_custom_and_retains_source_record(session, tmp_path):
     call(session, 'integration_phase', operation='load_database', material_id=material['id'], reference=material['defaultReference'])
     model = session._model.phase_model
     source = deepcopy(model.phases[0].params['eos_records'])
-    result = edit(session, 'editor_record', action='duplicate')
-    assert not result['editable'] and result['eosEditable']
+    for action in ('add', 'duplicate', 'delete', 'clear', 'default', 'rename'):
+        rejected = session.invoke('integration_phase', dict(operation='editor_record', index=0, action=action, value='Changed'))
+        assert not rejected['ok'] and 'Edit a copy' in rejected['error']
+        assert model.phases[0].params['eos_records'] == source
+    copied = edit(session, 'editor_copy')
+    baseline = deepcopy(model.phases[1].params['eos_records'])
+    def custom_edit(operation, **args):
+        return call(session, 'integration_phase', operation=operation, index=1, editor=True, **args)['phaseEditor']
+    result = custom_edit('editor_record', action='duplicate')
+    assert result['editable'] and result['eosEditable']
     assert result['recordOrigin'] == 'custom'
-    edit(session, 'editor_parameter', parameter='k0', value=180)
-    edit(session, 'editor_record', action='rename', value='My diagnostic EOS')
-    result = edit(session, 'editor_record', action='default')
+    custom_edit('editor_parameter', parameter='k0', value=180)
+    custom_edit('editor_record', action='rename', value='My diagnostic EOS')
+    result = custom_edit('editor_record', action='default')
     assert result['reference'] == result['defaultReference']
-    assert model.phases[0].params['eos_records'][:-1] == source
+    assert model.phases[1].params['eos_records'][:-1] == baseline
     path = str(tmp_path / 'custom.eosmat')
-    call(session, 'integration_phase_export', index=0, path=path)
+    call(session, 'integration_phase_export', index=1, path=path)
     loaded = eos.load_material_file(path)
     assert loaded.eos_records[-1]['label'] == 'My diagnostic EOS'
     assert loaded.eos_records[-1]['scientific_validation']['status'] == 'deferred'
     assert loaded.eos_records[-1]['eos']['parameters']['K0'] == 180
-    result = edit(session, 'editor_record', action='delete')
-    assert not result['eosEditable']
+    custom_edit('editor_record', action='delete')
+    assert model.phases[1].params['eos_records'] == baseline
     assert model.phases[0].params['eos_records'] == source
 
 
@@ -526,3 +534,38 @@ def test_wyckoff_representatives_in_all_hall_settings():
             assert result['label'] == f'{multiplicity}{letter}', (setting['hall'], coordinates, result)
             tested += 1
     assert tested == 3467
+
+
+def test_custom_ranges_roundtrip_clear_and_atomic_rejection(session, tmp_path):
+    copied = gold_copy(session)
+    model = session._model.phase_model
+    source = deepcopy(model.phases[0].params['eos_records'])
+    ranges = dict(experimental_pressure_range_gpa=[0, 125],
+                  experimental_temperature_range_k=[298, 2000],
+                  pressure_gpa=[-1, 150], temperature_k=[200, 2200])
+    def set_ranges(values):
+        return session.invoke('integration_phase', dict(operation='editor_ranges', index=1, ranges=values, editor=True))
+    assert set_ranges(ranges)['ok']
+    current = model.phases[1].params['eos_current_index']
+    record = model.phases[1].params['eos_records'][current]
+    assert record['experimental_pressure_range_gpa'] == [0, 125]
+    assert record['validity']['pressure_gpa'] == [-1, 150]
+    assert model.phases[0].params['eos_records'] == source
+    original = deepcopy(record)
+    for bad in ([100, 0], [0], [0, float('nan')]):
+        assert not set_ranges({**ranges, 'pressure_gpa': bad})['ok']
+        assert model.phases[1].params['eos_records'][current] == original
+    path = str(tmp_path / 'ranges.eosmat')
+    call(session, 'integration_phase_export', index=1, path=path)
+    loaded = eos.load_material_file(path).eos_records[current]
+    assert loaded['experimental_temperature_range_k'] == [298, 2000]
+    assert loaded['validity']['temperature_k'] == [200, 2200]
+    cleared = dict.fromkeys(ranges)
+    assert set_ranges(cleared)['ok']
+    call(session, 'integration_phase_export', index=1, path=path)
+    loaded = eos.load_material_file(path).eos_records[current]
+    assert 'experimental_pressure_range_gpa' not in loaded
+    assert 'pressure_gpa' not in loaded['validity']
+    assert model.phases[0].params['eos_records'] == source
+    denied = session.invoke('integration_phase', dict(operation='editor_ranges', index=0, ranges=ranges))
+    assert not denied['ok']

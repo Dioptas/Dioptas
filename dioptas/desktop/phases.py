@@ -217,7 +217,8 @@ class PhaseWorkflow:
         return {'phaseRevision': self._revision, 'phaseEditor': dict(
             **editor_metadata(model, index),
             index=index, filename=str(phase._filename),
-            editable=model.is_material_editable(index), eosEditable=model.is_eos_record_editable(index),
+            editable=model.is_material_editable(index),
+            eosEditable=model.is_material_editable(index) and model.is_eos_record_editable(index),
             canReload=model.can_reload(index), symmetry=params['symmetry'].lower(),
             lattice={k: float(params[k]) for k in ('a0', 'b0', 'c0', 'alpha0', 'beta0', 'gamma0', 'v0', 'a', 'b', 'c', 'v')},
             latticeEditable=lattice_keys.get(params['symmetry'].upper(), []),

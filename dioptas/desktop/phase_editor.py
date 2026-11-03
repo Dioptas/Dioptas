@@ -147,6 +147,10 @@ def apply_editor_edit(workflow, model, index, operation, changes):
     phase = model.phases[index]
     params = phase.params
     wavelength = workflow.configuration.calibration_model.wavelength * 1e10
+    if operation in {'editor_parameter', 'editor_eos_type', 'editor_thermal_type',
+                     'editor_thermal_parameter', 'editor_record', 'editor_ranges'}:
+        if not model.is_material_editable(index):
+            raise PermissionError('Bundled database materials are read-only. Choose Edit a copy before changing EoS records.')
     if operation == 'editor_name':
         model._require_editable_material(index)
         name = str(changes['value']).strip()
@@ -242,6 +246,50 @@ def apply_editor_edit(workflow, model, index, operation, changes):
         if alias and value is not None:
             params[alias] = values[key]
         model.set_param(index, 'thermal_parameters', values)
+    elif operation == 'editor_ranges':
+        current = params['eos_current_index']
+        model._require_editable_eos_record(index, current)
+        if not params['eos_records']:
+            raise ValueError('Add an EoS record before setting its ranges.')
+        ranges = changes['ranges']
+        definitions = {
+            'experimental_pressure_range_gpa': ('Experimental pressure', -1e9),
+            'experimental_temperature_range_k': ('Experimental temperature', 0),
+            'pressure_gpa': ('Validity pressure', -1e9),
+            'temperature_k': ('Validity temperature', 0),
+        }
+        if not isinstance(ranges, dict) or set(ranges) != set(definitions):
+            raise ValueError('Supply the four experimental and validity ranges.')
+        record = live_record(model, index, params['eos_records'][current])
+        validity = deepcopy(record.get('validity') or {})
+        changed_validity = False
+        for key, (label, minimum) in definitions.items():
+            values = ranges[key]
+            if values is not None:
+                if not isinstance(values, list) or len(values) != 2:
+                    raise ValueError(f'{label} requires both a minimum and maximum, or neither.')
+                values = [finite(value, label, minimum, 1e9) for value in values]
+                if values[0] > values[1]:
+                    raise ValueError(f'{label} minimum must not exceed its maximum.')
+            target = record if key.startswith('experimental_') else validity
+            changed = target.get(key) != values
+            if changed and target is validity:
+                changed_validity = True
+            if key == 'experimental_pressure_range_gpa' and changed:
+                record.pop('pressure_range_status', None)
+            if values is None:
+                target.pop(key, None)
+            else:
+                target[key] = values
+        if changed_validity:
+            note = 'User-edited validity limits; retained source notes refer to the original record.'
+            notes = list(validity.get('notes') or [])
+            if note not in notes:
+                notes.insert(0, note)
+            validity['notes'] = notes
+        if validity:
+            record['validity'] = validity
+        model.update_eos_record(index, current, record)
     elif operation == 'editor_record':
         action = changes['action']
         current = params['eos_current_index']

@@ -357,6 +357,50 @@
 }
 .pe-eos-page {
   container: phase-parameters / inline-size;
+  overflow-x: hidden;
+}
+.pe-eos-page > *,
+.pe-eos-page details,
+.pe-eos-page pre {
+  min-width: 0;
+  max-width: 100%;
+}
+.pe-eos-page select,
+.pe-eos-page input {
+  min-width: 0;
+}
+.pe-eos-fields .pe-unit {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.pe-range-row {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) minmax(0, 1fr) 28px 24px;
+  gap: 6px;
+  align-items: center;
+  margin: 5px 0;
+}
+.pe-range-row > span:first-child {
+  text-align: right;
+}
+.pe-range-row input {
+  width: 100%;
+  text-align: right;
+}
+.phase-dialog .pe-range-row button {
+  width: 24px;
+  height: 24px;
+  padding: 2px;
+}
+.pe-range-row button svg {
+  width: 14px;
+  height: 14px;
+}
+.pe-range-actions {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0;
+  flex-wrap: wrap;
 }
 .pe-eos-page .pe-selector {
   grid-template-columns: 128px minmax(0, 1fr);

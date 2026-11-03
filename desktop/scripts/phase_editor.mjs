@@ -680,43 +680,16 @@ try {
       .getByRole("toolbar", { name: "EoS records", exact: true })
       .isVisible(),
   );
-  await click("Duplicate as custom");
-  assert.equal(
-    await page.locator(".pe-assessment").innerText(),
-    "Not assessed",
-  );
-  assert.equal(
-    await page.locator(".pe-assessment").getAttribute("data-tone"),
-    "neutral",
-  );
-  assert.equal(
-    await page.getByLabel("K₀", { exact: true }).isDisabled(),
-    false,
-  );
-  await edit("K₀", 180);
-  await edit("EoS name", "Diagnostic custom EOS");
-  assert.equal((await state()).recordLabel, "Diagnostic custom EOS");
-  const customReference = (await state()).reference;
-  const recordSelector = page.getByLabel("Editor material record", {
-    exact: true,
-  });
-  await recordSelector.focus();
-  await recordSelector.selectOption(String(publishedReference));
-  await ready();
-  assert.ok(await page.getByLabel("K₀", { exact: true }).isDisabled());
   assert.ok(
-    await recordSelector.evaluate((el) => el === document.activeElement),
+    await page
+      .getByRole("button", { name: "Duplicate as custom", exact: true })
+      .isDisabled(),
   );
-  await recordSelector.selectOption(String(customReference));
-  await ready();
-  assert.equal(
-    Number(await page.getByLabel("K₀", { exact: true }).inputValue()),
-    180,
+  assert.ok(
+    await page
+      .getByRole("button", { name: "Add record", exact: true })
+      .isDisabled(),
   );
-  await click("Set default");
-  await click("Delete record…");
-  await click("Confirm delete");
-  assert.ok(await page.getByLabel("K₀", { exact: true }).isDisabled());
   await page
     .getByRole("tab", { name: "Volume & structure", exact: true })
     .click();
@@ -731,6 +704,34 @@ try {
   assert.deepEqual(copy.reflections, original.reflections);
   assert.deepEqual(copy.lattice, original.lattice);
   assert.ok(copy.editable && copy.eosEditable && !copy.canReload);
+  const customState = async () =>
+    (await call("integration_phase_editor", { index: 1 })).phaseEditor;
+  await page
+    .getByRole("tab", { name: "Equation of state", exact: true })
+    .click();
+  await click("Duplicate as custom");
+  assert.equal(
+    await page.locator(".pe-assessment").innerText(),
+    "Not assessed",
+  );
+  assert.equal(
+    await page.locator(".pe-assessment").getAttribute("data-tone"),
+    "neutral",
+  );
+  await edit("K₀", 180);
+  await edit("EoS name", "Diagnostic custom EOS");
+  assert.equal((await customState()).recordLabel, "Diagnostic custom EOS");
+  await click("Set default");
+  await click("Delete record…");
+  await click("Confirm delete");
+  await page
+    .getByLabel("Editor material record", { exact: true })
+    .selectOption(String(copy.reference));
+  await ready();
+  await page
+    .getByRole("tab", { name: "Volume & structure", exact: true })
+    .click();
+
   await edit("a₀", copy.lattice.a0 * 1.01);
   assert.equal((await state()).lattice.a0, original.lattice.a0);
   await edit("Material name", "My named gold material");
@@ -780,6 +781,61 @@ try {
     .getByLabel("Editor material record", { exact: true })
     .selectOption(String(anderson));
   await ready();
+  await page
+    .getByText("Experimental & validity ranges", { exact: true })
+    .click();
+  for (const [label, value] of [
+    ["Experimental pressure minimum", 0],
+    ["Experimental pressure maximum", 125],
+    ["Experimental temperature minimum", 298],
+    ["Experimental temperature maximum", 2000],
+    ["Validity pressure minimum", -1],
+    ["Validity pressure maximum", 150],
+    ["Validity temperature minimum", 200],
+    ["Validity temperature maximum", 2200],
+  ])
+    await page.getByLabel(label, { exact: true }).fill(String(value));
+  assert.ok(
+    await page.getByRole("button", { name: "Save", exact: true }).isDisabled(),
+  );
+  await click("Apply ranges");
+  await click("Save");
+  await click("Reload File");
+  await page
+    .getByLabel("Editor material record", { exact: true })
+    .selectOption(String(anderson));
+  await ready();
+  assert.deepEqual(
+    (await customState()).recordData.experimental_pressure_range_gpa,
+    [0, 125],
+  );
+  assert.deepEqual(
+    (await customState()).recordData.validity.temperature_k,
+    [200, 2200],
+  );
+  await page
+    .getByText("Experimental & validity ranges", { exact: true })
+    .click();
+  await page
+    .getByLabel("Validity pressure minimum", { exact: true })
+    .fill("200");
+  await click("Apply ranges");
+  assert.match(
+    await page.locator('.pe-ranges [role="alert"]').innerText(),
+    /ordered minimum/,
+  );
+  await click("Reset range edits");
+  for (const kind of [
+    "experimental pressure",
+    "experimental temperature",
+    "validity pressure",
+    "validity temperature",
+  ])
+    await click(`Clear ${kind} range`);
+  await click("Apply ranges");
+  await click("Save");
+  assert.ok(!("pressure_gpa" in (await customState()).recordData.validity));
+  await page.screenshot({ path: artifacts + "/phase-editor-ranges.png" });
   // The user's Holzapfel + Anderson example includes long normalization units
   // and dimensionless fields. All rows must retain the same three columns.
   await page
@@ -949,6 +1005,68 @@ try {
   assert.ok(
     !userMaterial.references.some((r) => /dewaele.*mao ruby/i.test(r.label)),
   );
+  const horizontalChecks = [];
+  for (const large of [false, true]) {
+    await click("Close");
+    await setInterfaceTextSize(page, large);
+    for (const width of [1000, 1200, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await click("Edit selected Phase");
+      await page
+        .getByRole("tab", { name: "Equation of state", exact: true })
+        .click();
+      for (const model of [
+        "AlphaKT",
+        "MieGruneisenDebye",
+        "Sokolova2016",
+        "SoundVelocityDebyeHelmholtz",
+      ]) {
+        const option = page
+          .getByLabel("Thermal model", { exact: true })
+          .locator(`option[value="${model}"]`);
+        if (await option.isDisabled()) continue;
+        await page
+          .getByLabel("Thermal model", { exact: true })
+          .selectOption(model);
+        await ready();
+        const check = await page.locator(".pe-eos-page").evaluate((pane) => {
+          for (const details of pane.querySelectorAll("details"))
+            details.open = true;
+          const width = pane.clientWidth,
+            scroll = pane.scrollWidth;
+          pane.scrollLeft = 9999;
+          const bounds = pane.getBoundingClientRect();
+          const overflow = [...pane.querySelectorAll("input, select, button")]
+            .filter((el) => {
+              const rect = el.getBoundingClientRect();
+              return (
+                rect.width > 0 &&
+                (rect.left < bounds.left - 1 || rect.right > bounds.right + 1)
+              );
+            })
+            .map((el) => el.getAttribute("aria-label") || el.textContent);
+          return { width, scroll, left: pane.scrollLeft, overflow };
+        });
+        horizontalChecks.push({ large, width, model, ...check });
+        assert.ok(
+          check.scroll <= check.width + 1,
+          JSON.stringify(horizontalChecks.at(-1)),
+        );
+        assert.equal(check.left, 0, JSON.stringify(horizontalChecks.at(-1)));
+        assert.deepEqual(
+          check.overflow,
+          [],
+          JSON.stringify(horizontalChecks.at(-1)),
+        );
+      }
+      await click("Close");
+    }
+    // Reopen for the next text-size setup's Close action.
+    await click("Edit selected Phase");
+  }
+  await page
+    .getByRole("tab", { name: "Equation of state", exact: true })
+    .click();
   const structureBeforeClear = userMaterial.structure.sites;
   await click("Clear all records…");
   await page
@@ -975,7 +1093,7 @@ try {
   await writeFile(
     artifacts +
       `/phase-editor-${engine === webkit ? "webkit" : "chromium"}.json`,
-    JSON.stringify({ ok: true, metrics, errors }, null, 2),
+    JSON.stringify({ ok: true, metrics, horizontalChecks, errors }, null, 2),
   );
   console.log(
     JSON.stringify({
