@@ -115,4 +115,21 @@ phase-controls-{chromium,webkit}.json, tauri-native-smoke.json.
 - Documentation: this file and the Phase entries in INTEGRATION_PARITY.md.
 
 The checkout already contained snapshotted changes from other chats. Those
-baseline modifications were preserved. No commit, push or merge was performed.
+baseline modifications were preserved when isolating the Phase commit. Phase
+was then integrated into codex/react-desktop alongside its newer Image, Pattern,
+Overlay and readout workflows. Table presentation is now shared with the other
+views through DataTable, TableScroll and TableActions; see desktop/README.md.
+
+## Integration verification (2026-11-03)
+
+The primary checkout passes the combined desktop Python suite (189 passed,
+5 skipped), the 35 JavaScript numerical/transfer checks, and the Phase/Overlay
+browser workflows. The Phase browser check also compares actual header, field
+and color-swatch styling across Phase, Overlay and calibration at both text
+sizes. The original source reflection-intensity behavior remains unchanged.
+
+The combined full browser regression, Map browser workflow, Chromium/WebKit
+Phase and Overlay workflows, and bundled Tauri smoke also pass after sharing
+the table primitives. Native checks retain the pressure/lattice/list/database
+operations, full-resolution pixels, independent histograms, and stdio child
+cleanup. All work remains local; no push was requested.

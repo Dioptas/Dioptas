@@ -1,3 +1,9 @@
+import {
+  DataTable,
+  TableBodyScroll,
+  TableScroll,
+  TableActions,
+} from "./DataTable";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { KeyboardEvent as RowKeyEvent } from "react";
@@ -172,7 +178,8 @@ export function IntegrationOverlayControls({
 
   return (
     <div className="qt-overlay-controls">
-      <div
+      <TableActions
+        orientation="vertical"
         className="qt-overlay-actions"
         role="group"
         aria-label="Overlay actions"
@@ -235,9 +242,14 @@ export function IntegrationOverlayControls({
             <ArrowDown size={17} />
           </button>
         </div>
-      </div>
+      </TableActions>
       <div className="qt-overlay-table-region">
-        <table className="qt-overlay-table" role="table" aria-label="Overlays">
+        <DataTable
+          layout="grid"
+          className="qt-overlay-table"
+          role="table"
+          aria-label="Overlays"
+        >
           <thead ref={tableHead}>
             <tr>
               <th>
@@ -327,7 +339,7 @@ export function IntegrationOverlayControls({
               </tr>
             )}
           </tbody>
-          <tbody
+          <TableBodyScroll
             className="qt-overlay-table-scroll"
             ref={tableScroll}
             onScroll={synchronizeHeader}
@@ -417,8 +429,8 @@ export function IntegrationOverlayControls({
                 </td>
               </tr>
             ))}
-          </tbody>
-        </table>
+          </TableBodyScroll>
+        </DataTable>
         {!overlays.length && (
           <p className="qt-overlay-empty">
             Load overlay files or use As Overlay below the pattern.
@@ -430,7 +442,7 @@ export function IntegrationOverlayControls({
         role="group"
         aria-label="Overlay parameters"
       >
-        <div className="qt-overlay-parameter-scroll">
+        <TableScroll className="qt-overlay-parameter-scroll">
           <label>
             Scale Step
             <OverlayNumber
@@ -482,7 +494,7 @@ export function IntegrationOverlayControls({
               action("waterfall_separation", { separation })
             }
           />
-        </div>
+        </TableScroll>
         <div className="qt-overlay-background-action">
           <button
             title="Set selected overlay as background"

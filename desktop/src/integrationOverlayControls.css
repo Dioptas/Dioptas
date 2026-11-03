@@ -139,13 +139,6 @@
   padding: 1px 2px;
   border-bottom: 1px solid #ffffff0b;
 }
-.qt-overlay-table tr[aria-selected="true"] td {
-  background: #ff950018;
-}
-.qt-overlay-table tr:focus-visible {
-  outline: 1px solid var(--accent);
-  outline-offset: -1px;
-}
 .qt-overlay-controls .qt-overlay-show-all {
   min-height: 25px;
   padding: 0;
@@ -160,45 +153,6 @@
   -moz-appearance: auto;
   text-align: right;
   font-size: inherit;
-}
-/* Compact table rows retain the normal native number steppers. */
-.qt-overlay-controls .qt-overlay-table input[type="number"],
-.qt-overlay-name-cell > input {
-  min-height: 23px;
-  height: 23px;
-  padding: 1px 3px;
-  line-height: 1.1;
-}
-/* Override the shared 32px input minimum as well as the preferred size. */
-.qt-overlay-table input[type="color"] {
-  width: 20px;
-  min-width: 20px;
-  height: 20px;
-  min-height: 20px;
-  max-height: 20px;
-  flex: 0 0 20px;
-  aspect-ratio: 1;
-  padding: 0;
-  border: 0;
-  background: none;
-  vertical-align: middle;
-  cursor: pointer;
-}
-/* Remove native picker insets so the visible color itself stays square. */
-.qt-overlay-table input[type="color"]::-webkit-color-swatch-wrapper {
-  padding: 0;
-}
-.qt-overlay-table input[type="color"]::-webkit-color-swatch {
-  border: 0;
-  border-radius: 2px;
-}
-.qt-overlay-table input[type="color"]::-moz-color-swatch {
-  border: 0;
-  border-radius: 2px;
-}
-.qt-overlay-table input[type="checkbox"] {
-  margin: 0;
-  vertical-align: middle;
 }
 .qt-overlay-controls .qt-overlay-name-cell {
   position: relative;
@@ -296,51 +250,6 @@
 }
 .integration-overlay-page[hidden] {
   display: none;
-}
-
-/* Match calibration's persistent macOS overflow cue instead of auto-hide bars. */
-.qt-overlay-controls
-  :is(.qt-overlay-table-scroll, .qt-overlay-parameter-scroll) {
-  scrollbar-gutter: stable;
-  scrollbar-width: auto;
-  scrollbar-color: auto;
-  overscroll-behavior: contain;
-}
-.qt-overlay-controls
-  :is(
-    .qt-overlay-table-scroll,
-    .qt-overlay-parameter-scroll
-  )::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-  background: #151b22;
-}
-.qt-overlay-controls
-  :is(
-    .qt-overlay-table-scroll,
-    .qt-overlay-parameter-scroll
-  )::-webkit-scrollbar-thumb {
-  min-height: 28px;
-  min-width: 28px;
-  border: 2px solid #151b22;
-  border-radius: 6px;
-  background: #65707c;
-}
-.qt-overlay-controls
-  :is(
-    .qt-overlay-table-scroll,
-    .qt-overlay-parameter-scroll
-  )::-webkit-scrollbar-thumb:hover {
-  background: #89939e;
-}
-.qt-overlay-table-scroll::-webkit-scrollbar-corner {
-  background: #151b22;
-}
-@supports not selector(::-webkit-scrollbar) {
-  .qt-overlay-controls
-    :is(.qt-overlay-table-scroll, .qt-overlay-parameter-scroll) {
-    scrollbar-color: #65707c #151b22;
-  }
 }
 
 .qt-overlay-original-row {

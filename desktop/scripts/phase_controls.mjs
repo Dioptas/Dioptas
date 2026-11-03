@@ -53,6 +53,7 @@ try {
     path: root + "/dioptas/tests/data/CeO2_Pilatus1M.poni",
   });
   await call("integration_settings", { bins: 160, cake_bins: 30 });
+  await call("integration_overlay", { operation: "capture" });
   browser = await (
     process.argv.includes("--webkit") ? webkit : chromium
   ).launch({ headless: true });
@@ -268,12 +269,86 @@ try {
     });
     const scrollEnd = await page
       .locator(".phase-table-scroll")
-      .evaluate((el) => el.scrollLeft + el.clientWidth >= el.scrollWidth - 1);
+      .evaluate((el) => {
+        const reference = el
+          .querySelector("tbody tr:last-child td:last-child select")
+          .getBoundingClientRect();
+        const area = el.getBoundingClientRect();
+        const scrollbar =
+          el.scrollHeight > el.clientHeight
+            ? el.offsetWidth - el.clientWidth
+            : 0;
+        return reference.right <= area.right - scrollbar + 1;
+      });
     assert.ok(scrollEnd);
     await page.screenshot({
       path: artifacts + `/phase-compact-${large ? "large" : "normal"}.png`,
     });
-    layout.push(metrics);
+    // Compare the visible controls in independent views at the same text size.
+    const readStyle = async (selector) =>
+      page.locator(selector).evaluate((table) => {
+        const header = table.querySelector("th:nth-child(3)");
+        const input = table.querySelector(
+          "tbody tr:last-child input[type=number]",
+        );
+        const swatch = table.querySelector(
+          "tbody tr:last-child input[type=color]",
+        );
+        return {
+          headerColor: getComputedStyle(header).backgroundColor,
+          headerFont: getComputedStyle(header).fontSize,
+          headerWeight: getComputedStyle(header).fontWeight,
+          fieldFont: getComputedStyle(input).fontSize,
+          fieldHeight: input.getBoundingClientRect().height,
+          colorWidth: swatch.getBoundingClientRect().width,
+          colorHeight: swatch.getBoundingClientRect().height,
+        };
+      });
+    const phaseStyle = await readStyle(".phase-table");
+    await page.getByRole("tab", { name: "Overlay", exact: true }).click();
+    const overlayStyle = await readStyle(".qt-overlay-table");
+    await page
+      .locator(".qt-overlay-controls")
+      .screenshot({
+        path:
+          artifacts + `/shared-table-overlay-${large ? "large" : "normal"}.png`,
+      });
+    assert.deepEqual(
+      phaseStyle,
+      overlayStyle,
+      "Phase and Overlay share table header, field and swatch styling",
+    );
+    await page
+      .getByRole("button", { name: "Calibration", exact: true })
+      .click();
+    await page
+      .getByRole("tab", { name: "Step 2: Pick rings", exact: true })
+      .click();
+    const peakStyle = await page
+      .locator(".peak-table-headers")
+      .evaluate((header) => ({
+        headerColor: getComputedStyle(header).backgroundColor,
+        headerFont: getComputedStyle(header).fontSize,
+        headerWeight: getComputedStyle(header).fontWeight,
+      }));
+    await page
+      .locator(".calibration-panel")
+      .screenshot({
+        path:
+          artifacts + `/shared-table-peaks-${large ? "large" : "normal"}.png`,
+      });
+    for (const key of Object.keys(peakStyle))
+      assert.equal(
+        peakStyle[key],
+        phaseStyle[key],
+        `Calibration shares ${key}`,
+      );
+    await page
+      .getByRole("button", { name: "Integration", exact: true })
+      .click();
+    await ready();
+    await page.getByRole("tab", { name: "Phase", exact: true }).click();
+    layout.push({ ...metrics, sharedTableStyle: phaseStyle });
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
   await setInterfaceTextSize(page, false);

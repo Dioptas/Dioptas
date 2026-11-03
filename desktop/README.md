@@ -151,6 +151,15 @@ precision in Python.
 
 ## Layout and plot interaction
 
+Calibration peak lists, Integration Phase/Overlay tables and material/reflection
+tables share `DataTable`, `TableScroll` and `TableActions` from
+`src/DataTable.tsx`. Header colors, compact row and field sizing, numeric
+alignment, color swatches, selection/focus states and persistent scrollbars live
+in `src/dataTable.css`. Map file lists use the same scroll surface and typography.
+Each view retains its scientific columns, row actions and selection behavior;
+Overlay retains its pinned Original pattern row. Both interface text sizes use
+the same shared table rules.
+
 The app has no top header or in-app logo. Mode navigation stays on the left,
 with Undo/Redo side by side above Open/Save project and Settings at the bottom.
 Mode selection uses a neutral charcoal fill, light text and an orange icon.

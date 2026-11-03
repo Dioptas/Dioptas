@@ -1,3 +1,4 @@
+import { TableScroll } from "./DataTable";
 import { useEffect, useState } from "react";
 import type { State } from "./types";
 import { unitLabel } from "./types";
@@ -243,8 +244,8 @@ export function MapControls({
                 patterns · {unitLabel(map.unit)}. Files remain in acquisition
                 order. Folder loading uses natural filename order.
               </p>
-              <div
-                className="map-file-list"
+              <TableScroll
+                className="map-file-list data-list"
                 role="listbox"
                 aria-label="Scan arrangement"
               >
@@ -261,8 +262,8 @@ export function MapControls({
                         key={slot}
                         className={
                           point !== null && map.excluded.includes(point)
-                            ? "map-excluded"
-                            : ""
+                            ? "data-list-row map-excluded"
+                            : "data-list-row"
                         }
                         onClick={() => run("map_select", { slot, reintegrate })}
                         title={label}
@@ -272,7 +273,7 @@ export function MapControls({
                       </button>
                     );
                   })}
-              </div>
+              </TableScroll>
               {map.labels.length > 100 && (
                 <div className="file-actions">
                   <button

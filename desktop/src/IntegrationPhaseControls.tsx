@@ -1,3 +1,4 @@
+import { DataTable, TableScroll, TableActions } from "./DataTable";
 import {
   useCallback,
   useEffect,
@@ -113,7 +114,8 @@ export function IntegrationPhaseControls({
       hidden={!active}
       data-testid="phase-controls"
     >
-      <div
+      <TableActions
+        orientation="vertical"
         className="phase-action-rail"
         role="toolbar"
         aria-label="Phase actions"
@@ -170,9 +172,9 @@ export function IntegrationPhaseControls({
         >
           <RotateCcw />
         </PhaseIcon>
-      </div>
-      <div className="phase-table-scroll">
-        <table ref={tableRef} className="phase-table" aria-label="Phases">
+      </TableActions>
+      <TableScroll className="phase-table-scroll">
+        <DataTable ref={tableRef} className="phase-table" aria-label="Phases">
           <colgroup>
             <col className="phase-show-col" />
             <col className="phase-color-col" />
@@ -344,14 +346,14 @@ export function IntegrationPhaseControls({
               </tr>
             ))}
           </tbody>
-        </table>
+        </DataTable>
         {!source.phases.length && (
           <p className="phase-empty">
             Load JCPDS, CIF or EOSMAT phase files, or browse the EoS Material
             Database.
           </p>
         )}
-      </div>
+      </TableScroll>
       <div className="phase-parameters">
         <div className="phase-step-controls">
           <label>
@@ -824,8 +826,8 @@ function PhaseDatabase({
               : "☆ Favourite"}
           </button>
         </div>
-        <div className="phase-materials-scroll">
-          <table>
+        <TableScroll className="phase-materials-scroll">
+          <DataTable>
             <thead>
               <tr>
                 <th>Material</th>
@@ -853,11 +855,11 @@ function PhaseDatabase({
                 </tr>
               ))}
             </tbody>
-          </table>
+          </DataTable>
           {!shown.length && <p>No materials in this view match your search.</p>}
-        </div>
-        <div ref={recordScroll} className="phase-records-scroll">
-          <table aria-label="Material EoS records">
+        </TableScroll>
+        <TableScroll ref={recordScroll} className="phase-records-scroll">
+          <DataTable aria-label="Material EoS records">
             <thead>
               <tr>
                 <th>EoS</th>
@@ -896,8 +898,8 @@ function PhaseDatabase({
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+          </DataTable>
+        </TableScroll>
         {record && <p className="phase-assessment">{record.detail}</p>}
         {reason && <p className="phase-condition-note">{reason}</p>}
       </div>
@@ -1183,8 +1185,8 @@ function PhaseEditor({
               Clear
             </button>
           </div>
-          <div className="phase-reflections-scroll">
-            <table aria-label="Phase reflections">
+          <TableScroll className="phase-reflections-scroll">
+            <DataTable aria-label="Phase reflections">
               <thead>
                 <tr>
                   <th>Select</th>
@@ -1242,8 +1244,8 @@ function PhaseEditor({
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </DataTable>
+          </TableScroll>
         </fieldset>
       </div>
       <footer>

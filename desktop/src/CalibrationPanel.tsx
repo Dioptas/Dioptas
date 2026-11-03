@@ -1,3 +1,4 @@
+import { TableScroll, TableActions } from "./DataTable";
 import { FolderOpen, ListX, Save, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import type { State } from "./types";
@@ -155,7 +156,7 @@ export function CalibrationPanel({
         </fieldset>
         <div className="peak-table-heading">
           <span>RING SELECTIONS</span>
-          <div
+          <TableActions
             className="peak-table-actions"
             role="group"
             aria-label="Peak selection actions"
@@ -203,15 +204,15 @@ export function CalibrationPanel({
             >
               <ListX size={18} aria-hidden="true" />
             </button>
-          </div>
+          </TableActions>
         </div>
-        <div
-          className="peak-list"
+        <TableScroll
+          className="peak-list data-table-grid"
           ref={list}
           role="region"
           aria-label="Picked peak groups"
         >
-          <div className="peak-table-headers">
+          <div className="peak-table-headers data-table-header">
             <input
               ref={selectAll}
               type="checkbox"
@@ -233,7 +234,7 @@ export function CalibrationPanel({
           {c?.picks.length ? (
             c.picks.map((pick, index) => (
               <div
-                className="peak-row"
+                className="peak-row data-table-row"
                 key={index}
                 role="group"
                 aria-label={`Peak group ${index + 1}, ring ${pick.ring}`}
@@ -328,7 +329,7 @@ export function CalibrationPanel({
               current ring.
             </div>
           )}
-        </div>
+        </TableScroll>
       </div>
       <dialog
         ref={clearDialog}

@@ -44,34 +44,12 @@
 .phase-table-scroll {
   min-width: 0;
   min-height: 0;
-  overflow: auto;
-  scrollbar-width: thin;
-  background: #191b1e;
 }
 .phase-controls table {
   width: 100%;
   min-width: 425px;
   table-layout: fixed;
-  border-collapse: collapse;
   font-size: inherit;
-}
-.phase-controls th,
-.phase-controls td {
-  padding: 2px 3px;
-  height: 30px;
-  text-align: left;
-  border-bottom: 1px solid #ffffff0b;
-}
-.phase-controls thead {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: #282a2e;
-}
-.phase-controls th {
-  font-size: var(--text-meta);
-  font-weight: 400;
-  white-space: nowrap;
 }
 .phase-show-col {
   width: 24px;
@@ -88,23 +66,13 @@
 .phase-reference-col {
   width: 110px;
 }
-.phase-controls tr[aria-selected="true"],
-.phase-dialog tr[aria-selected="true"] {
-  background: #ff950019;
-}
-.phase-controls tr:focus-visible,
-.phase-dialog tr:focus-visible {
-  outline: 1px solid var(--accent);
-  outline-offset: -1px;
-}
 .phase-controls .phase-name {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: default;
 }
-.phase-controls input[type="number"],
-.phase-controls select {
+.phase-parameters input[type="number"] {
   width: 100%;
   min-width: 0;
   height: 28px;
@@ -114,22 +82,11 @@
   background-color: #ffffff04;
   border-radius: 2px;
 }
-.phase-controls input[type="number"] {
-  text-align: right;
-}
-.phase-controls input[type="checkbox"] {
+.phase-parameters input[type="checkbox"] {
   margin: 0;
   width: 15px;
   height: 15px;
   vertical-align: middle;
-}
-.phase-controls input[type="color"] {
-  width: 21px;
-  height: 24px;
-  border: 0;
-  background: transparent;
-  padding: 0;
-  cursor: pointer;
 }
 .phase-controls .phase-show-all {
   padding: 0;
@@ -230,28 +187,6 @@
 .phase-dialog select {
   min-width: 0;
   font-size: inherit;
-}
-.phase-dialog table {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: inherit;
-}
-.phase-dialog th {
-  text-align: left;
-  font-weight: 500;
-  color: #b8bac0;
-  background: #2b2d31;
-  position: sticky;
-  top: 0;
-  white-space: nowrap;
-}
-.phase-dialog th,
-.phase-dialog td {
-  padding: 5px 7px;
-  border-bottom: 1px solid #ffffff0b;
-}
-.phase-dialog td {
-  vertical-align: middle;
 }
 .phase-dialog button {
   font-size: inherit;
@@ -424,11 +359,6 @@
 /* Override the generic Integration form heights without shrinking its other tabs. */
 .integration-controls .phase-action-rail button {
   min-height: 25px;
-}
-.integration-controls .phase-controls input[type="number"],
-.integration-controls .phase-controls select {
-  height: 28px;
-  padding: 2px 3px;
 }
 .integration-controls .phase-parameters input[type="number"] {
   height: 24px;
