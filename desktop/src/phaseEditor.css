@@ -243,6 +243,54 @@
   color: var(--muted);
   line-height: 1.5;
   margin: 6px 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+.pe-assessment {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  border: 1px solid #535a62;
+  border-radius: 4px;
+  color: #bdc5ce;
+  background: #ffffff06;
+  line-height: 1.3;
+}
+.pe-assessment svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+.pe-assessment[data-tone="success"] {
+  color: #86d4a5;
+  border-color: #376749;
+  background: #193528;
+}
+.pe-assessment[data-tone="warning"] {
+  color: #e7c17e;
+  border-color: #6b5734;
+  background: #352c1e;
+}
+.pe-assessment[data-tone="danger"] {
+  color: #f0a5a5;
+  border-color: #78434b;
+  background: #3b2529;
+}
+.pe-assessment[data-tone="info"] {
+  color: #99cbe8;
+  border-color: #426378;
+  background: #203440;
+}
+.pe-dialog .pe-parameter-heading {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: var(--text-meta);
+}
+.pe-parameter-heading + .pe-eos-fields {
+  margin-top: 3px;
 }
 .pe-record-details {
   font-size: var(--text-meta);
@@ -260,12 +308,31 @@
   margin: 6px 0;
   background: #ffffff04;
 }
-.pe-record-actions,
 .pe-reflection-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin: 8px 0 12px;
+}
+.pe-record-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 5px 0 4px;
+  min-width: 0;
+}
+.pe-record-picker .pe-selector {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.pe-record-picker select {
+  min-width: 0;
+}
+.pe-record-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
 }
 .phase-dialog.pe-dialog .pe-record-actions button {
   width: 30px;

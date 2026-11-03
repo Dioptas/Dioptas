@@ -50,9 +50,17 @@ retained. Scientific values and reflection coverage are copied without refitting
 source identity and validation metadata are recorded as provenance, and the
 copy's EoS records are explicitly marked as user-owned/unvalidated. Copies can
 be saved in a project or as EOSMAT. Edit a copy is beside Save and Save As in
-the fixed footer. Record actions are always visible in a compact icon toolbar,
-with tooltips and accessible names for duplicate, add, set default, delete and
-clear all. Material and EoS names have distinct editable fields. Numeric EoS,
+the fixed footer. Record actions are always visible beside the record selector
+in a compact icon toolbar, with tooltips and accessible names for duplicate,
+add, set default, delete and clear all. Record/name/model controls come first,
+followed by the EoS and thermal parameter tables. Normalization data, scientific
+assessment and complete record metadata are disclosed at the bottom. Published
+record names are visible but protected; custom names remain editable.
+The assessment badge retains the model's wording: green for reproduced/parity,
+amber for similar/limited checks, red for not reproduced/do not use, blue for
+documented reconstructions/refits and neutral for unavailable/unassessed results.
+Tooltips retain scope and qualifications. Custom copies remain unassessed and
+do not inherit a source's green badge. Material and EoS names have distinct editable fields. Numeric EoS,
 normalization and thermal parameters use shared, fixed label, value and unit
 columns. A wide parameter pane fits two groups per row; a narrow pane uses a
 compact single group. Pairing starts at 37.5 em of available pane width
@@ -60,7 +68,8 @@ compact single group. Pairing starts at 37.5 em of available pane width
 configuration choices span the full row and align with the first group.
 Labels align right beside their controls, including model/record selectors and
 configuration choices. Unitless rows reserve the unit column. Constructor
-defaults have an inline asterisk and tooltip, with explanations in a disclosure.
+defaults retain an inline asterisk and per-field tooltip; there is no separate
+defaults disclosure.
 Thermal coefficients use scientific symbols, explicit constructor units and
 plain-language tooltips (including constant-volume derivatives). Model-specific
 scaling is retained: for example, DO2007 coefficients displayed in 10⁻⁶ K⁻¹
@@ -134,7 +143,8 @@ are unchanged.
   actions/export, numeric wheel stepping (including bursts, bounds, intensity
   precision and pane-scroll suppression), constructor/configuration controls, periodic-table selection,
   site/group edits, material-name/save actions, always-visible record
-  actions, aligned label/value/unit columns (including Holzapfel normalization),
+  actions beside the selector, control/detail ordering, source badge colours,
+  unassessed custom copies, aligned label/value/unit columns (including Holzapfel normalization),
   focus return, and both text sizes at
   1000 × 668. Gated 25-notch pressure bursts in both directions produce at most
   two calculations (in flight and latest pending), keep the table enabled and

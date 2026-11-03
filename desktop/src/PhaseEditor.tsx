@@ -12,6 +12,7 @@ import type {
 import { EditorNumber, TextEdit } from "./PhaseEditorFields";
 import { PhaseEditorStructure } from "./PhaseEditorStructure";
 import { PhaseEditorConfirm } from "./PhaseEditorConfirm";
+import { PhaseAssessmentBadge } from "./PhaseAssessmentBadge";
 import "./phaseEditor.css";
 
 export function PhaseEditor({
@@ -30,6 +31,16 @@ export function PhaseEditor({
   detached?: boolean;
 }) {
   const data = base as EditorData;
+  const normalizationKeys = new Set(["n", "z", "zc"]);
+  const eosFields = data.eosFields.filter((f) => !normalizationKeys.has(f.key));
+  const normalizationFields = [
+    ...new Map(
+      [
+        ...data.eosFields.filter((f) => normalizationKeys.has(f.key)),
+        ...data.materialFields,
+      ].map((f) => [f.key, f] as const),
+    ).values(),
+  ];
   const dialog = useRef<HTMLDialogElement>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
   const [tab, setTab] = useState("Volume & structure");
@@ -514,12 +525,13 @@ export function PhaseEditor({
             aria-labelledby="pe-tab-1"
             hidden={tab !== "Equation of state"}
           >
-            {!!data.references.length && (
-              <>
+            <div className="pe-record-picker">
+              {!!data.references.length && (
                 <label className="pe-selector">
                   EoS record{" "}
                   <select
                     aria-label="Editor material record"
+                    title={data.references[data.reference]?.label}
                     value={data.reference}
                     disabled={locked}
                     onChange={(e) =>
@@ -534,106 +546,115 @@ export function PhaseEditor({
                     ))}
                   </select>
                 </label>
-                <p className="pe-record-state">
+              )}
+              <div
+                className="pe-record-actions"
+                role="toolbar"
+                aria-label="EoS records"
+              >
+                <button
+                  type="button"
+                  aria-label="Duplicate as custom"
+                  title="Duplicate this EoS as a custom record"
+                  disabled={locked || !data.references.length}
+                  onClick={() =>
+                    void act("editor_record", { action: "duplicate" })
+                  }
+                >
+                  <CopyPlus aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Add record"
+                  title="Add an EoS record from the current parameters"
+                  disabled={locked}
+                  onClick={() => void act("editor_record", { action: "add" })}
+                >
+                  <Plus aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Set default"
+                  aria-pressed={
+                    !!data.references.length &&
+                    data.defaultReference === data.reference
+                  }
+                  title="Set this EoS as the default"
+                  disabled={
+                    locked ||
+                    !data.eosEditable ||
+                    !data.references.length ||
+                    data.defaultReference === data.reference
+                  }
+                  onClick={() =>
+                    void act("editor_record", { action: "default" })
+                  }
+                >
+                  <Star aria-hidden="true" />
+                </button>
+                <button
+                  ref={deleteRecord}
+                  type="button"
+                  aria-label="Delete record…"
+                  title="Delete this EoS record"
+                  disabled={
+                    locked || !data.eosEditable || !data.references.length
+                  }
+                  onClick={() => setConfirm("record")}
+                >
+                  <Trash2 aria-hidden="true" />
+                </button>
+                <button
+                  ref={clearRecords}
+                  type="button"
+                  aria-label="Clear all records…"
+                  disabled={locked || !data.editable || !data.references.length}
+                  title={
+                    data.editable
+                      ? "Keep the structure and remove all EoS records"
+                      : "Edit a copy to clear its EoS records"
+                  }
+                  onClick={() => setConfirm("records")}
+                >
+                  <ListX aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+            {!!data.references.length && (
+              <div className="pe-record-state">
+                <span
+                  title={
+                    data.recordOrigin === "bundled"
+                      ? "Duplicate as custom to edit the published parameters."
+                      : undefined
+                  }
+                >
                   {data.recordOrigin === "bundled"
                     ? "Published record · read-only"
-                    : `${data.recordOrigin || "User"} record · editable`}{" "}
-                  · {data.references[data.reference]?.assessment}
-                </p>
-                <details className="pe-record-details">
-                  <summary>Reference &amp; scientific assessment</summary>
-                  <p>{data.references[data.reference]?.detail}</p>
-                </details>
-              </>
+                    : `${data.recordOrigin || "User"} record · editable`}
+                </span>
+                <PhaseAssessmentBadge
+                  reference={data.references[data.reference]}
+                />
+              </div>
             )}
-            <div
-              className="pe-record-actions"
-              role="toolbar"
-              aria-label="EoS records"
-            >
-              <button
-                type="button"
-                aria-label="Duplicate as custom"
-                title="Duplicate this EoS as a custom record"
-                disabled={locked || !data.references.length}
-                onClick={() =>
-                  void act("editor_record", { action: "duplicate" })
-                }
-              >
-                <CopyPlus aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                aria-label="Add record"
-                title="Add an EoS record from the current parameters"
-                disabled={locked}
-                onClick={() => void act("editor_record", { action: "add" })}
-              >
-                <Plus aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                aria-label="Set default"
-                aria-pressed={
-                  !!data.references.length &&
-                  data.defaultReference === data.reference
-                }
-                title="Set this EoS as the default"
-                disabled={
-                  locked ||
-                  !data.eosEditable ||
-                  !data.references.length ||
-                  data.defaultReference === data.reference
-                }
-                onClick={() => void act("editor_record", { action: "default" })}
-              >
-                <Star aria-hidden="true" />
-              </button>
-              <button
-                ref={deleteRecord}
-                type="button"
-                aria-label="Delete record…"
-                title="Delete this EoS record"
-                disabled={
-                  locked || !data.eosEditable || !data.references.length
-                }
-                onClick={() => setConfirm("record")}
-              >
-                <Trash2 aria-hidden="true" />
-              </button>
-              <button
-                ref={clearRecords}
-                type="button"
-                aria-label="Clear all records…"
-                disabled={locked || !data.editable || !data.references.length}
-                title={
-                  data.editable
-                    ? "Keep the structure and remove all EoS records"
-                    : "Edit a copy to clear its EoS records"
-                }
-                onClick={() => setConfirm("records")}
-              >
-                <ListX aria-hidden="true" />
-              </button>
-            </div>
-            {data.eosEditable && !!data.references.length && (
+            {!!data.references.length && (
               <label className="pe-selector">
                 EoS name
                 <TextEdit
                   key={`${data.index}-${data.reference}`}
                   label="EoS name"
-                  value={data.recordLabel}
-                  disabled={locked}
+                  value={
+                    data.recordLabel ||
+                    data.references[data.reference]?.label ||
+                    ""
+                  }
+                  disabled={locked || !data.eosEditable}
                   onCommit={(value) =>
                     act("editor_record", { action: "rename", value })
                   }
                 />
               </label>
-            )}
-            {!data.eosEditable && (
-              <p className="pe-note">
-                Published record. Duplicate as custom to edit its parameters.
-              </p>
             )}
             <label className="pe-selector">
               EoS{" "}
@@ -660,42 +681,6 @@ export function PhaseEditor({
                 ))}
               </select>
             </label>
-            <div
-              className="pe-eos-fields"
-              role="group"
-              aria-label="Equation of state parameters"
-            >
-              {data.eosFields.map((f) => field(f))}
-            </div>
-            {!!data.materialFields.length && (
-              <details className="pe-record-details">
-                <summary>Material normalization data</summary>
-                <p>
-                  n: atoms per formula; Z electrons: electrons per formula; Z
-                  cell: formula units per cell used by the EoS. Structural edits
-                  retain these values.
-                </p>
-                <div
-                  className="pe-eos-fields"
-                  role="group"
-                  aria-label="Material normalization parameters"
-                >
-                  {data.materialFields.map((f) => field(f))}
-                </div>
-              </details>
-            )}
-            {data.recordData && (
-              <details className="pe-record-details">
-                <summary>Complete record metadata</summary>
-                <p>
-                  Source parameters, reported errors, fixed parameters, scope
-                  and provenance are retained in the material file.
-                </p>
-                <pre className="pe-record-json">
-                  {JSON.stringify(data.recordData, null, 2)}
-                </pre>
-              </details>
-            )}
             <label className="pe-selector">
               Thermal model{" "}
               <select
@@ -732,16 +717,17 @@ export function PhaseEditor({
                 ))}
               </select>
             </label>
+            <h3 className="pe-parameter-heading">EoS parameters</h3>
+            <div
+              className="pe-eos-fields"
+              role="group"
+              aria-label="Equation of state parameters"
+            >
+              {eosFields.map((f) => field(f))}
+            </div>
             {(data.thermalType || legacy) && (
               <>
-                <details className="pe-record-details">
-                  <summary>Parameter defaults</summary>
-                  <p>
-                    {data.thermalType
-                      ? "Blank optional fields use the model default. Selecting another thermal model initializes starting estimates."
-                      : "Legacy constant-coefficient correction."}
-                  </p>
-                </details>
+                <h3 className="pe-parameter-heading">Thermal parameters</h3>
                 <div
                   className="pe-eos-fields"
                   role="group"
@@ -750,6 +736,41 @@ export function PhaseEditor({
                   {data.thermalFields.map((f) => field(f, !!data.thermalType))}
                 </div>
               </>
+            )}
+            {!!normalizationFields.length && (
+              <details className="pe-record-details">
+                <summary>Material normalization data</summary>
+                <p>
+                  n: atoms per formula; Z electrons: electrons per formula; Z
+                  cell: formula units per cell used by the EoS. Structural edits
+                  retain these values.
+                </p>
+                <div
+                  className="pe-eos-fields"
+                  role="group"
+                  aria-label="Material normalization parameters"
+                >
+                  {normalizationFields.map((f) => field(f))}
+                </div>
+              </details>
+            )}
+            {!!data.references.length && (
+              <details className="pe-record-details">
+                <summary>Reference &amp; scientific assessment</summary>
+                <p>{data.references[data.reference]?.detail}</p>
+              </details>
+            )}
+            {data.recordData && (
+              <details className="pe-record-details">
+                <summary>Complete record metadata</summary>
+                <p>
+                  Source parameters, reported errors, fixed parameters, scope
+                  and provenance are retained in the material file.
+                </p>
+                <pre className="pe-record-json">
+                  {JSON.stringify(data.recordData, null, 2)}
+                </pre>
+              </details>
             )}
           </div>
         </section>

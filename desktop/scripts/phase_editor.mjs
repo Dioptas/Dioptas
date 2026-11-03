@@ -512,6 +512,27 @@ try {
               };
             })
             .filter((row) => row.width > 0),
+          recordToolbar: (() => {
+            const selector = el
+              .querySelector('select[aria-label="Editor material record"]')
+              ?.getBoundingClientRect();
+            const toolbar = el
+              .querySelector(".pe-record-actions")
+              .getBoundingClientRect();
+            return selector
+              ? {
+                  gap: toolbar.left - selector.right,
+                  centerOffset:
+                    (toolbar.top +
+                      toolbar.bottom -
+                      selector.top -
+                      selector.bottom) /
+                    2,
+                  right: toolbar.right,
+                  paneRight: parameter.getBoundingClientRect().right,
+                }
+              : null;
+          })(),
         };
       });
       assert.ok(
@@ -524,6 +545,20 @@ try {
       assert.ok(m.tableClient >= 120, JSON.stringify(m));
       assert.equal(m.font, large ? "16px" : "14px");
       if (tab.startsWith("Equation")) {
+        if (m.recordToolbar) {
+          assert.ok(
+            m.recordToolbar.gap >= 0 && m.recordToolbar.gap <= 8,
+            JSON.stringify(m),
+          );
+          assert.ok(
+            Math.abs(m.recordToolbar.centerOffset) <= 1,
+            JSON.stringify(m),
+          );
+          assert.ok(
+            m.recordToolbar.right <= m.recordToolbar.paneRight + 1,
+            JSON.stringify(m),
+          );
+        }
         assert.ok(
           await page
             .getByRole("toolbar", { name: "EoS records", exact: true })
@@ -592,12 +627,68 @@ try {
     .click();
   assert.ok(await page.getByLabel("K₀", { exact: true }).isDisabled());
   const publishedReference = (await state()).reference;
+  const publishedData = await state();
+  assert.equal(
+    await page.locator(".pe-assessment").innerText(),
+    publishedData.references[publishedData.reference].assessment,
+  );
+  assert.ok(await page.getByLabel("EoS name", { exact: true }).isDisabled());
+  assert.equal(
+    await page.getByText("Parameter defaults", { exact: true }).count(),
+    0,
+  );
+  const paneOrder = await page.locator(".pe-eos-page").evaluate((pane) => {
+    const y = (selector) =>
+      pane.querySelector(selector).getBoundingClientRect().top;
+    return [
+      y('select[aria-label="Editor material record"]'),
+      y('input[aria-label="EoS name"]'),
+      y('select[aria-label="Equation of state model"]'),
+      y('select[aria-label="Thermal model"]'),
+      y('[aria-label="Equation of state parameters"]'),
+    ];
+  });
+  assert.ok(
+    paneOrder.every((y, i) => i === 0 || y > paneOrder[i - 1]),
+    JSON.stringify(paneOrder),
+  );
+  const sourceSelector = page.getByLabel("Editor material record", {
+    exact: true,
+  });
+  for (const [label, tone] of [
+    ["Parameter parity", "success"],
+    ["Similar", "warning"],
+    ["Not reproduced", "danger"],
+    ["Not refittable", "neutral"],
+  ]) {
+    const index = publishedData.references.findIndex(
+      (r) => r.assessment === label,
+    );
+    assert.ok(index >= 0, label);
+    await sourceSelector.selectOption(String(index));
+    await ready();
+    assert.equal(await page.locator(".pe-assessment").innerText(), label);
+    assert.equal(
+      await page.locator(".pe-assessment").getAttribute("data-tone"),
+      tone,
+    );
+  }
+  await sourceSelector.selectOption(String(publishedReference));
+  await ready();
   assert.ok(
     await page
       .getByRole("toolbar", { name: "EoS records", exact: true })
       .isVisible(),
   );
   await click("Duplicate as custom");
+  assert.equal(
+    await page.locator(".pe-assessment").innerText(),
+    "Not assessed",
+  );
+  assert.equal(
+    await page.locator(".pe-assessment").getAttribute("data-tone"),
+    "neutral",
+  );
   assert.equal(
     await page.getByLabel("K₀", { exact: true }).isDisabled(),
     false,
@@ -695,6 +786,7 @@ try {
     .getByLabel("Equation of state model", { exact: true })
     .selectOption("Holzapfel");
   await ready();
+  await page.getByText("Material normalization data", { exact: true }).click();
   const parameterColumns = await page
     .locator(
       ".pe-parameter-scroll:not([hidden]) .pe-eos-fields .pe-field:not(.pe-field-choice)",
