@@ -289,6 +289,7 @@ class MapWorkflow:
                 m.select_point_by_index(index)
                 self._has_image = True
                 response["image"] = self._raster(self.configuration.img_model.img_data, max_side=None, histogram=True)
+                response["rawImage"] = self._raster(self.configuration.img_model.raw_img_data, max_side=None, histogram=True)
                 response["mask"] = self._raster(self.configuration.mask_model.get_display_mask(), mask=True, max_side=None)
             else:
                 self._has_image = False
@@ -310,7 +311,14 @@ class MapWorkflow:
             self._has_image = False
             self._pattern = None
         self._cake = None
-        response.update(self._map_response(), pattern=self._pattern, cake=None, mapWarning=warning)
+        self._rings = []
+        self._elapsed = None
+        # Map needs only its selected 1D pattern. Defer the cake and validation
+        # overlays until Calibration/Integration becomes active, using the same
+        # shared image and geometry. Never leave a cleared cake marked current.
+        self._integration_dirty = self._has_image and self.configuration.is_calibrated
+        response.update(self._map_response(), pattern=self._pattern, cake=None,
+                        rings=self._rings, linked=self._linked_snapshot(), mapWarning=warning)
         return response
 
     def _map_arrange(self, op, slot=None, index=None, offset=0):

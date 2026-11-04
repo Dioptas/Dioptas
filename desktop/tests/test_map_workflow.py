@@ -258,6 +258,46 @@ def test_measured_image_integration_linked_selection_and_failed_load(tmp_path):
     assert m._window_sum_cache is reintegrated_cache
 
 
+@pytest.mark.parametrize("reintegrate", [False, True])
+def test_map_selection_defers_cake_for_shared_calibration_and_integration(tmp_path, reintegrate):
+    s = DesktopSession()
+    call(s, "settings", bins=120)
+    loaded = call(s, "open_calibration", path=str(DATA / "CeO2_Pilatus1M.poni"))
+    assert loaded["state"]["calibrated"] and not loaded["state"]["hasImage"]
+    # A different second image catches reuse of the previous detector/cake.
+    second = tmp_path / "scan_002.tif"
+    pixels = np.asarray(Image.open(DATA / "CeO2_Pilatus1M.tif"), dtype=np.float32)
+    Image.fromarray(pixels / 2).save(second)
+    result = call(s, "map_load", paths=[str(DATA / "CeO2_Pilatus1M.tif"), str(second)])
+    assert result["cake"] is None and result["state"]["integrationDirty"]
+    call(s, "integrate")  # First visit to Calibration/Integration.
+    result = call(s, "map_select", index=1, reintegrate=reintegrate)
+    assert result["state"]["calibrated"] and result["state"]["hasImage"]
+    assert result["state"]["geometry"] == loaded["state"]["geometry"]
+    assert result["cake"] is None and result["state"]["integrationDirty"]
+    assert result["rawImage"] == call(s, "state")["rawImage"]
+    stored_patterns = s.configuration.map_model.pattern_intensities.copy()
+
+    integrated = call(s, "integrate")  # Mode switch requests deferred results.
+    reference = DesktopSession()
+    call(reference, "settings", bins=120)
+    call(reference, "open_calibration", path=str(DATA / "CeO2_Pilatus1M.poni"))
+    expected = call(reference, "open_image", path=str(second))
+    assert integrated["cake"] == expected["cake"]
+    assert integrated["pattern"] == expected["pattern"]
+    assert not integrated["state"]["integrationDirty"]
+    np.testing.assert_array_equal(s.configuration.map_model.pattern_intensities, stored_patterns)
+
+    second.unlink()
+    missing = call(s, "map_select", index=1)
+    assert not missing["state"]["hasImage"]
+    assert not missing["state"]["integrationDirty"] and missing["cake"] is None
+    call(s, "map_grid", rows=1, columns=3)
+    blank = call(s, "map_select", row=0, column=2)
+    assert not blank["state"]["hasImage"]
+    assert not blank["state"]["integrationDirty"] and blank["cake"] is None
+
+
 def test_cancel_real_map_preserves_previous_map_and_bypasses_worker():
     with ThreadPoolExecutor(1) as executor:
         bridge = DesktopBridge()

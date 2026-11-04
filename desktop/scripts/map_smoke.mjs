@@ -109,23 +109,68 @@ async function scanClick(row, col, rows, cols) {
 }
 try {
   assert.equal((await invoke("example")).ok, true);
-  assert.equal(
-    (
-      await invoke("open_calibration", {
-        path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
-      })
-    ).ok,
-    true,
+  await copyFile(
+    path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+    path.join(artifacts, "calibration.poni"),
   );
   await page.goto("file://" + path.join(root, "dioptas/desktop/ui/index.html"));
   await ready();
   await click("Map");
+  await click("Load map calibration");
   await page
     .locator(".map-controls")
     .getByRole("button", { name: "Load images…", exact: true })
     .click();
   await ready();
   let state = await invoke("state");
+  assert.equal(state.map.points, 9);
+  assert.equal(state.state.calibrated, true);
+  assert.equal(state.state.integrationDirty, true);
+  assert.equal(state.cake, null);
+  const sharedGeometry = state.state.geometry;
+  const integrationsBefore = requests.filter((a) => a === "integrate").length;
+  await click("Integration");
+  await page
+    .locator('.cake-panel [data-testid="cake-canvas"]')
+    .waitFor({ state: "attached" });
+  await ready();
+  state = await invoke("state");
+  assert.ok(state.cake?.data, "Map selection did not produce a shared cake");
+  assert.equal(state.state.integrationDirty, false);
+  assert.deepEqual(state.state.geometry, sharedGeometry);
+  assert.equal(
+    requests.filter((a) => a === "integrate").length,
+    integrationsBefore + 1,
+  );
+  await click("Cake");
+  await page
+    .locator('.cake-panel [data-testid="cake-canvas"]')
+    .waitFor({ state: "visible" });
+  await click("Map");
+  await page
+    .getByRole("listbox", { name: "Scan arrangement" })
+    .getByRole("option")
+    .first()
+    .click();
+  await ready();
+  assert.equal((await invoke("state")).cake, null);
+  await click("Calibration");
+  await page
+    .locator('.cake-panel [data-testid="cake-canvas"]')
+    .waitFor({ state: "visible" });
+  await ready();
+  state = await invoke("state");
+  assert.ok(state.cake?.data);
+  assert.deepEqual(state.state.geometry, sharedGeometry);
+  assert.equal(state.state.integrationDirty, false);
+  await click("Map");
+  await page
+    .getByRole("listbox", { name: "Scan arrangement" })
+    .getByRole("option")
+    .first()
+    .click();
+  await ready();
+  state = await invoke("state");
   assert.equal(state.map.points, 9);
   assert.equal(
     await page.locator(".map-layout .intensity-histogram").count(),
@@ -1311,6 +1356,7 @@ try {
         ok: true,
         points: 9,
         linkedSelection: true,
+        sharedCalibrationCake: true,
         quietSelection: true,
         stableScanPreview: true,
         rapidSelectionQueue: true,

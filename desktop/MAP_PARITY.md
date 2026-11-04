@@ -21,6 +21,16 @@ this option is enabled and calibration is present. Normalized patterns retain
 their stored scaling; stored-only projects fall back to their saved pattern
 when raw reintegration is unavailable. Full-map reintegration remains separate.
 
+The selected raw image and loaded geometry are shared with Calibration and
+Integration. Map selection clears the previous cake and validation overlays and
+marks them for calculation on entry to either view. It also publishes the selected
+raw detector pixels for Integration's raw/corrected switch. Map navigation itself
+does not calculate a cake or modify the stored scan patterns. Missing raw files
+and blank cells retain their stored-pattern/empty behavior without requesting a
+cake. Python regression checks compare the deferred result with opening the same
+image directly; the headless Map check loads calibration in Map and visits both
+Integration's cake display and Calibration's Validate view.
+
 Point and file selection keep the controls enabled while loading the detector
 and pattern. Rapid selections use the command queue in click order. Selection
 metadata alone no longer clears or recomputes the scan's smoothing/contour
