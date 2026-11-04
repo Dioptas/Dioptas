@@ -288,18 +288,28 @@ export function MapSettingsDialog({
             </div>
           </>
         )}
-        <label className="field-label" title="Point index, starting at zero">
-          Reference point
-          <input
-            type="number"
-            min="0"
-            max={map.points - 1}
-            step="1"
+        <label className="field-label map-reference-file">
+          Reference file
+          <select
             required
             aria-label="Normalization reference"
+            title={map.labels[map.slots.indexOf(referenceValue)] ?? ""}
             value={reference}
             onChange={(event) => setReference(event.target.value)}
-          />
+          >
+            {map.slots.map((point, slot) => (
+              <option
+                key={slot}
+                value={point ?? `blank-${slot}`}
+                disabled={point === null}
+              >
+                {slot + 1} ·{" "}
+                {point === null
+                  ? "Blank cell"
+                  : map.labels[slot] || "Raw source unavailable"}
+              </option>
+            ))}
+          </select>
         </label>
         {!coordinates && (
           <p className="map-note">

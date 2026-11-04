@@ -22,7 +22,9 @@ their stored scaling; stored-only projects fall back to their saved pattern
 when raw reintegration is unavailable. Full-map reintegration remains separate.
 
 Normalization accepts a physical 2θ/Q/d range or the current bounds of an
-existing pattern window, plus a reference point. Unit switches convert both
+existing pattern window, plus a reference file. The reference selector shows
+the same 1-based arrangement row and filename as Points; blank cells are
+disabled, and rearranged rows resolve to their original stored pattern index. Unit switches convert both
 bounds. Angular conversion requires a loaded calibration; Q/d conversion does
 not. Applying a window reads its bounds at that time; editing it later does
 not silently renormalize patterns. Normalize and Restore, Escape/Close and

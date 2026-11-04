@@ -682,6 +682,33 @@ try {
       dialogBounds.y - gearBounds.y - gearBounds.height <= 8,
     "Map settings did not open next to its trigger",
   );
+  const referenceFile = normalizationDialog.getByLabel(
+    "Normalization reference",
+    { exact: true },
+  );
+  const referenceMap = (await invoke("state")).map;
+  const referenceSlot = referenceMap.slots.findIndex(
+    (point, slot) => point !== null && point !== slot,
+  );
+  assert.ok(
+    referenceSlot >= 0,
+    "Reference fixture must include rearranged points",
+  );
+  const referencePoint = referenceMap.slots[referenceSlot];
+  await referenceFile.selectOption(String(referencePoint));
+  assert.equal(
+    await referenceFile.locator("option:checked").textContent(),
+    `${referenceSlot + 1} · ${referenceMap.labels[referenceSlot]}`,
+  );
+  for (let slot = 0; slot < referenceMap.slots.length; slot++) {
+    const option = referenceFile.locator("option").nth(slot);
+    assert.ok((await option.textContent()).startsWith(`${slot + 1} · `));
+    assert.equal(
+      await option.evaluate((el) => el.disabled),
+      referenceMap.slots[slot] === null,
+      `Reference entry ${slot + 1} has the wrong blank-cell state`,
+    );
+  }
   const minimum = normalizationDialog.getByLabel("Normalization minimum", {
     exact: true,
   });
@@ -708,6 +735,11 @@ try {
   });
   await click("Normalize");
   assert.equal((await invoke("state")).map.normalized, true);
+  assert.equal(
+    (await invoke("state")).map.normalizationReference,
+    referencePoint,
+    "Reference file selection used its displayed row as the stored pattern index",
+  );
   await normalizationDialog
     .getByRole("button", { name: "Close", exact: true })
     .click();
@@ -724,6 +756,7 @@ try {
     "Automatic selection replaced the normalized pattern with a raw reintegration",
   );
   await normalizeButton.click();
+  assert.equal(await referenceFile.inputValue(), String(referencePoint));
   await click("Restore original");
   assert.equal((await invoke("state")).map.normalized, false);
   await normalizationDialog

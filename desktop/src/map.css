@@ -584,6 +584,10 @@
   margin: 6px 0 0;
   font-size: var(--text-small);
 }
+.map-settings-dialog .field-label.map-reference-file {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+}
 .map-settings-dialog .map-field-pair {
   gap: 10px;
 }
