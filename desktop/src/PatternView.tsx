@@ -80,6 +80,7 @@ export function PatternView({
   regions = EMPTY_REGIONS,
   editRegions = false,
   onRegionChange,
+  onRegionSelect,
   onRegionInput,
   onRegionDragStart,
   onRegionCancel,
@@ -128,6 +129,7 @@ export function PatternView({
   regions?: PatternRegion[];
   editRegions?: boolean;
   onRegionChange?: (name: string, min: number, max: number) => void;
+  onRegionSelect?: (name: string) => void;
   onRegionInput?: (name: string, min: number, max: number) => void;
   onRegionDragStart?: () => void;
   onRegionCancel?: () => void;
@@ -329,7 +331,14 @@ export function PatternView({
   const regionAt = (x: number) => {
     const tolerance = ((xmax - xmin) * 9) / w;
     return [...regions]
-      .sort((a, b) => Number(!!b.active) - Number(!!a.active))
+      .sort((a, b) => {
+        const edge = (r: PatternRegion) =>
+          Math.min(Math.abs(x - r.min), Math.abs(x - r.max));
+        const ae = edge(a),
+          be = edge(b);
+        if (ae <= tolerance || be <= tolerance) return ae - be;
+        return Number(!!b.active) - Number(!!a.active);
+      })
       .find((r) =>
         r.movable === false
           ? Math.min(Math.abs(x - r.min), Math.abs(x - r.max)) <= tolerance
@@ -514,12 +523,12 @@ export function PatternView({
           ? drag.mode === "move"
             ? undefined
             : drag.mode
-          : hovered && hover !== null
-            ? Math.abs(hover - x0) < 9
+          : hovered &&
+              hover !== null &&
+              Math.min(Math.abs(hover - x0), Math.abs(hover - x1)) < 9
+            ? Math.abs(hover - x0) <= Math.abs(hover - x1)
               ? "min"
-              : Math.abs(hover - x1) < 9
-                ? "max"
-                : undefined
+              : "max"
             : undefined;
         drawRangeSelection(
           context,
@@ -532,7 +541,8 @@ export function PatternView({
           drag?.mode === "move" || (hovered && regionCursor === "grab"),
         );
       } else {
-        context.fillStyle = region.color + (region.active ? "28" : "12");
+        context.fillStyle =
+          region.color + (hovered || drag ? "55" : region.active ? "2d" : "22");
         context.fillRect(x0, top, x1 - x0, h);
         context.strokeStyle = region.color;
         context.lineWidth = region.active ? 2 : 1;
@@ -970,11 +980,12 @@ export function PatternView({
                 minWidth: region.minWidth,
                 next: null,
                 mode:
-                  Math.abs(x - region.min) < tolerance
-                    ? "min"
-                    : Math.abs(x - region.max) < tolerance
-                      ? "max"
-                      : "move",
+                  Math.min(Math.abs(x - region.min), Math.abs(x - region.max)) <
+                  tolerance
+                    ? Math.abs(x - region.min) <= Math.abs(x - region.max)
+                      ? "min"
+                      : "max"
+                    : "move",
               };
               onRegionDragStart?.();
               e.currentTarget.focus({ preventScroll: true });
@@ -1011,9 +1022,10 @@ export function PatternView({
         onPointerUp={(e) => {
           if (regionDrag.current) {
             updateRegionDrag(navigation.screen(e));
-            const { next, min, max } = regionDrag.current;
+            const { name, next, min, max } = regionDrag.current;
             if (next && (next.min !== min || next.max !== max))
               onRegionChange?.(next.name, next.min, next.max);
+            else onRegionSelect?.(name);
             regionDrag.current = null;
             setRegionDraft(null);
             if (e.currentTarget.hasPointerCapture(e.pointerId))

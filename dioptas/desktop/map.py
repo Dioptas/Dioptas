@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import math
+import os
 import re
 
 import h5py
@@ -39,6 +40,8 @@ class MapWorkflow:
             "map_export": self._map_export,
             "map_levels": self._map_levels,
             "map_display": self._map_display,
+            "map_mask": self._map_mask,
+            "map_poll": self._map_poll,
         }
 
     def _map_snapshot(self):
@@ -188,7 +191,7 @@ class MapWorkflow:
         return self._map_response()
 
     def _map_roi(self, op="update", name=None, minimum=None, maximum=None,
-                 reduction=None, background=None, new_name=None):
+                 reduction=None, background=None, new_name=None, color=None, activate=False):
         m = self._require_map()
         if op == "add":
             roi = m.add_roi()
@@ -207,23 +210,29 @@ class MapWorkflow:
             kind = roi.reduction if reduction is None else reduction
             if kind not in REDUCTIONS:
                 raise ValueError("Unknown map reduction.")
+            if color is not None and (not isinstance(color, str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", color)):
+                raise ValueError("Choose a six-digit window color.")
             if new_name is not None and new_name != name:
                 if not new_name.isidentifier() or not m.rename_roi(name, new_name):
                     raise ValueError("Choose a unique window identifier.")
             m._suspend_rebuild = True
             try:
                 roi.x_min, roi.x_max = lo, hi
+                if color is not None:
+                    roi.color = color
                 roi.reduction = kind
                 if background is not None:
                     roi.subtract_background = bool(background)
             finally:
                 m._suspend_rebuild = False
             m._roi_changed()
+            if activate:
+                m.active_layer = roi.name
         else:
             raise ValueError("Unknown window action.")
         return self._map_response()
 
-    def _map_expression(self, name, expression="", remove=False):
+    def _map_expression(self, name, expression="", remove=False, new_name=None):
         m = self._require_map()
         if remove:
             m.remove_expression(name)
@@ -237,9 +246,14 @@ class MapWorkflow:
             values = map_expression.evaluate(expression, {r.name: m.layer_values(r.name) for r in m.rois}, ovl=m.overlay_window_value)
             if values is None or not np.any(np.isfinite(values)):
                 raise ValueError("Expression must use existing window names and produce finite values.")
-            if not m.set_expression(name, expression):
+            target = name if new_name is None else new_name.strip()
+            if not target or (target != name and (name not in m.expressions or target in m.layer_names())):
+                raise ValueError("Choose a unique expression layer name.")
+            if not m.set_expression(target, expression):
                 raise ValueError("Choose a layer name distinct from window names.")
-            m.active_layer = name
+            if target != name:
+                m.remove_expression(name)
+            m.active_layer = target
         return self._map_response()
 
     def _map_layer(self, name):
@@ -327,6 +341,80 @@ class MapWorkflow:
             else:
                 raise ValueError("Unknown arrangement action.")
         return self._map_response()
+
+    def _map_mask(self, use_mask=None, transparent_mask=None, reintegrate=False):
+        c = self.configuration
+        for value in (use_mask, transparent_mask):
+            if value is not None and not isinstance(value, bool):
+                raise ValueError("Mask settings must be boolean.")
+        if use_mask is not None:
+            c.use_mask = use_mask
+            self._integration_dirty = True
+        if transparent_mask is not None:
+            c.transparent_mask = transparent_mask
+        selected = self._map_snapshot()["map"]
+        if use_mask is not None and reintegrate and selected and selected["selected"] is not None:
+            return self._map_select(index=selected["selected"], reintegrate=True)
+        # Display changes must preserve the selected stored map pattern.
+        return self._map_response()
+
+    def _map_poll(self, follow=True, check_only=False):
+        """One bounded, owning-thread Live tick; no watcher or Qt event loop.
+
+        Require unchanged size/mtime in consecutive polls before opening a
+        numbered continuation. New frames in an already loaded HDF5 file are
+        not inferred from its file size; this follows Qt's new-file workflow.
+        """
+        from dioptas.model.map_layout import filename_number
+        m = self._require_map()
+        if not m.filepaths or not self.configuration.is_calibrated:
+            raise ValueError("Load the first calibrated scan images before starting Live.")
+        if self._map_normalization_model().normalization_enabled:
+            raise ValueError("Restore original patterns before appending live images.")
+        directory = Path(m.filepaths[-1]).resolve().parent
+        if not directory.is_dir():
+            raise ValueError("The live scan folder is unavailable.")
+        if getattr(self, "_map_poll_model", None) is not m:
+            self._map_poll_model, self._map_poll_signatures = m, {}
+        previous = self._map_poll_signatures
+        signatures = {}
+        extensions = {Path(p).suffix.lower() for p in m.filepaths}
+        prefix = os.path.commonprefix([Path(p).stem for p in m.filepaths]).rstrip("0123456789")
+        present = {str(Path(p).resolve()) for p in m.filepaths}
+        numbers = [filename_number(p) for p in m.filepaths]
+        highest = max((n for n in numbers if n is not None), default=None)
+        candidates = []
+        for path in directory.iterdir():
+            if not path.is_file() or path.suffix.lower() not in extensions or not path.name.startswith(prefix):
+                continue
+            resolved = str(path.resolve())
+            number = filename_number(path.name)
+            if resolved in present or number is None or highest is None or (number <= highest and resolved not in previous):
+                continue
+            try:
+                stat = path.stat()
+            except OSError:
+                continue
+            signature = (stat.st_size, stat.st_mtime_ns)
+            signatures[resolved] = signature
+            if stat.st_size > 0 and previous.get(resolved) == signature:
+                candidates.append((number, resolved))
+        self._map_poll_signatures = signatures
+        if check_only:
+            return {"mapPending": len(candidates)}
+        if not candidates:
+            return {}
+        # Restore the selected raw image after integration when Follow is off.
+        selected = self._map_snapshot()["map"]["selected"]
+        before = m.num_points
+        failed = m.append_files([p for _, p in sorted(candidates)[:2]])
+        if m.num_points == before:
+            return {"mapWarning": "Live: waiting for readable scan files."} if failed else {}
+        self._map_batch_owner = None
+        result = self._map_select(index=m.num_points - 1 if follow else selected)
+        if failed:
+            result["mapWarning"] = f"Live: {len(failed)} scan file(s) could not be read; retrying."
+        return result
 
     def _map_normalization_model(self):
         m = self.configuration.map_model

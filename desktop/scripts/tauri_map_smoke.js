@@ -83,7 +83,9 @@
     await delay();
     click("Apply grid");
     await ready();
-    const canvas = document.querySelector('[data-testid="scan-map"] canvas');
+    const canvas = document.querySelector(
+      '[data-testid="scan-map"] [data-testid="detector-canvas"]',
+    );
     check(canvas, "Native map canvas missing");
     canvas.setPointerCapture = canvas.releasePointerCapture = () => {};
     const b = canvas.getBoundingClientRect(),
@@ -108,7 +110,12 @@
       "Native map selection did not link to point 1",
     );
     check(
-      state.image.step === 1 && state.pattern.y.length === state.state.bins,
+      state.image.step === 1 &&
+        state.image.width === state.image.fullWidth &&
+        state.pattern.x.length > 0 &&
+        state.pattern.y.length === state.pattern.x.length &&
+        (state.state.bins == null ||
+          state.pattern.y.length === state.state.bins),
       "Native linked image/pattern resolution mismatch",
     );
     click("Layers");
@@ -117,6 +124,30 @@
     await ready();
     state = await call("state");
     check(state.map.rois.length === 2, "Native window creation failed");
+    check(
+      document.querySelectorAll(".map-window-table tbody tr").length === 2,
+      "Native window table missing",
+    );
+    click("Square root map pattern intensity");
+    await delay();
+    check(
+      document.querySelector('[data-testid="pattern-canvas"]').dataset
+        .intensityScale === "sqrt",
+      "Native square-root scale failed",
+    );
+    click("Map pattern unit Q");
+    await delay();
+    const regions = JSON.parse(
+      document.querySelector('[data-testid="pattern-canvas"]').dataset.regions,
+    );
+    check(
+      regions.length === 2 &&
+        regions.every((r) => Number.isFinite(r.min) && r.min < r.max && r.appearance === "range"),
+      "Native converted pattern windows missing",
+    );
+    click("Map pattern unit 2θ");
+    click("Square root map pattern intensity");
+    await delay();
     const event = new WheelEvent("wheel", {
       bubbles: true,
       cancelable: true,
