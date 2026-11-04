@@ -1,0 +1,340 @@
+.settings-custom-commands {
+  display: flex;
+}
+.custom-command-settings {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 0 3px 28px;
+}
+.custom-command-list,
+.custom-command-actions,
+.custom-command-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.custom-command-list button span {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.custom-command-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  max-width: 280px;
+}
+.custom-command-list > .custom-command-add {
+  justify-self: start;
+  width: 100%;
+  max-width: 100%;
+}
+.custom-command-entry {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 4px;
+}
+.custom-command-entry > .custom-command-edit {
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-start;
+  text-align: left;
+}
+.custom-command-entry > .custom-command-edit > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+.custom-command-entry > button:not(.custom-command-edit) {
+  width: 28px;
+  min-width: 28px;
+  padding: 0;
+}
+.app .custom-command-delete:not(:disabled):hover {
+  color: #f3b3ba;
+  --button-fill: #f3b3ba12;
+}
+.app .custom-command-entry > .custom-command-drag-handle {
+  width: 24px;
+  min-width: 24px;
+  cursor: grab;
+  --button-fill: transparent;
+  --button-edge: transparent;
+  color: var(--muted);
+}
+.app .custom-command-drag-handle:active {
+  cursor: grabbing;
+}
+.app .custom-command-drag-handle:disabled {
+  cursor: default;
+}
+.custom-command-entry[data-dragging="true"] {
+  opacity: 0.5;
+}
+.custom-command-entry[data-drop]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+  pointer-events: none;
+}
+.custom-command-entry[data-drop="before"]::after {
+  top: -5px;
+}
+.custom-command-entry[data-drop="after"]::after {
+  bottom: -5px;
+}
+.custom-command-name-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+}
+.custom-command-name-row > label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 22ch;
+  max-width: calc(100% - 100px);
+  font-size: var(--text-body);
+}
+.custom-command-label-preview {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+  width: 68px;
+  height: 64px;
+  flex-shrink: 0;
+  padding: 4px 2px;
+  gap: 4px;
+  background: #151b22;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+}
+.custom-command-label-preview > span {
+  width: 100%;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  text-align: center;
+  font-size: var(--text-meta);
+  line-height: 1.1;
+}
+.custom-command-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.custom-command-icon-selector {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: var(--text-body);
+}
+.app .custom-command-icon-trigger {
+  min-height: 40px;
+  gap: 10px;
+  min-width: 185px;
+  justify-content: flex-start;
+}
+.custom-command-icon-trigger > svg:last-child {
+  margin-left: auto;
+}
+.custom-command-icon-popup {
+  position: fixed;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  height: 380px;
+  padding: 12px;
+  gap: 10px;
+  border: 1px solid #ffffff26;
+  border-radius: 8px;
+  background: #20252b;
+  box-shadow: 0 8px 28px #0008;
+}
+.custom-command-icon-popup > input {
+  width: 100%;
+  min-height: 36px;
+  flex-shrink: 0;
+}
+.custom-command-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  grid-auto-rows: 40px;
+  align-content: start;
+  justify-items: center;
+  gap: 6px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px;
+}
+.app .custom-command-icon-grid button {
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+}
+.app .custom-command-icon-grid button[aria-pressed="true"] {
+  --button-fill: #ff950018;
+  --button-edge: #ff950080;
+  color: var(--accent);
+}
+.custom-command-icon-grid > p {
+  grid-column: 1 / -1;
+  font-size: var(--text-small);
+  color: var(--muted);
+}
+.custom-command-editor > label:not(.check-row) {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: var(--text-body);
+}
+.custom-command-editor input:not([type="checkbox"]),
+.custom-command-editor textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.custom-command-editor textarea {
+  resize: vertical;
+  min-height: 100px;
+  padding: 10px;
+  color: var(--text);
+  background: #13161a;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: var(--text-small);
+  line-height: 1.5;
+}
+.custom-command-context,
+.custom-command-output {
+  font-size: var(--text-small);
+  line-height: 1.6;
+}
+.custom-command-context dl > div {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) minmax(0, 2fr);
+  gap: 12px;
+  padding: 5px 0;
+}
+.custom-command-context dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #a3abb3;
+}
+.custom-command-output pre {
+  max-height: 240px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: #13161a;
+  padding: 10px;
+}
+.custom-command-output details {
+  margin-top: 12px;
+}
+.custom-command-error {
+  color: #f3b3ba !important;
+}
+.app .mode-navigation .navigation-group.navigation-custom-commands {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: visible;
+  margin-inline: 4px;
+}
+.app .mode-navigation .navigation-custom-commands .workspace-nav {
+  width: 100%;
+  height: 64px;
+  min-height: 64px;
+  padding: 4px 2px;
+  gap: 4px;
+  margin: 0;
+}
+.navigation-custom-commands .workspace-nav span {
+  width: 100%;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: var(--text-meta);
+  line-height: 1.1;
+}
+.custom-command-menu {
+  position: fixed;
+  z-index: 110;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  height: 440px;
+  padding: 12px;
+  gap: 10px;
+  border: 1px solid #ffffff26;
+  border-radius: 8px;
+  background: #20252b;
+  box-shadow: 0 8px 28px #0008;
+}
+.custom-command-menu-heading {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-body);
+}
+.custom-command-menu-heading > span {
+  color: var(--muted);
+}
+.custom-command-menu > input {
+  min-height: 36px;
+  flex-shrink: 0;
+}
+.custom-command-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+  overflow-y: auto;
+}
+.app .custom-command-menu-list button {
+  --button-fill: transparent;
+  --button-edge: transparent;
+  min-height: 44px;
+  width: 100%;
+  padding: 8px;
+  gap: 10px;
+  justify-content: flex-start;
+  text-align: left;
+  flex-shrink: 0;
+}
+.custom-command-menu-list button > svg {
+  flex-shrink: 0;
+}
+.custom-command-menu-list button > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.custom-command-menu-list small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: var(--text-meta);
+}
+.custom-command-menu-list > p {
+  font-size: var(--text-small);
+  color: var(--muted);
+}

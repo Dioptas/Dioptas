@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowLeftRight,
@@ -8,12 +8,15 @@ import {
   Scan,
   SlidersHorizontal,
   Type,
+  Terminal,
 } from "lucide-react";
 import type { ZoomMode } from "./usePlotNavigation";
 import type { State } from "./types";
 import type { IntegrationRun } from "./integration";
 import { IntegrationSettings } from "./IntegrationSettings";
 import "./settings.css";
+import { CustomCommandSettings } from "./CustomCommandSettings";
+import type { CustomCommandController } from "./customCommands";
 
 const categories = [
   {
@@ -32,6 +35,11 @@ const categories = [
     icon: Keyboard,
     description: "A quick reference for working with images and plots.",
   },
+  {
+    name: "Custom actions",
+    icon: Terminal,
+    description: "Create sidebar buttons for your own programs and scripts.",
+  },
 ] as const;
 
 const shortcuts = [
@@ -40,7 +48,7 @@ const shortcuts = [
     rows: [
       ["Open detector image", "⌘ / Ctrl + O"],
       ["Save project · save mask in Mask mode", "⌘ / Ctrl + S"],
-      ["Undo calibration or mask edit", "⌘ / Ctrl + Z"],
+      ["Undo scientific edit · action edit in Custom actions", "⌘ / Ctrl + Z"],
       ["Redo edit", "⌘ / Ctrl + Shift + Z"],
     ],
   },
@@ -78,6 +86,8 @@ export function SettingsWorkspace({
   patternZoom,
   onPatternZoom,
   patternLabel,
+  customCommands,
+  onCustomActionsActiveChange,
 }: {
   state: State | null;
   ready: boolean;
@@ -89,8 +99,14 @@ export function SettingsWorkspace({
   patternZoom: ZoomMode;
   onPatternZoom: (mode: ZoomMode) => void;
   patternLabel: string;
+  customCommands: CustomCommandController;
+  onCustomActionsActiveChange: (active: boolean) => void;
 }) {
   const [section, setSection] = useState(0);
+  useLayoutEffect(() => {
+    onCustomActionsActiveChange(section === 3);
+    return () => onCustomActionsActiveChange(false);
+  }, [section, onCustomActionsActiveChange]);
   const tabs = useRef<HTMLDivElement>(null);
   useEffect(() => {
     tabs.current
@@ -134,7 +150,7 @@ export function SettingsWorkspace({
             {categories.map(({ name, icon: Icon }, index) => (
               <button
                 key={name}
-                id={`settings-tab-${index === 2 ? "shortcuts" : name.toLowerCase()}`}
+                id={`settings-tab-${index === 2 ? "shortcuts" : name.toLowerCase().replaceAll(" ", "-")}`}
                 role="tab"
                 aria-selected={section === index}
                 aria-controls={`settings-panel-${index}`}
@@ -309,6 +325,15 @@ export function SettingsWorkspace({
                 ready.
               </p>
             )}
+          </div>
+          <div
+            id="settings-panel-3"
+            className="settings-tabpanel settings-custom-commands"
+            role="tabpanel"
+            aria-labelledby="settings-tab-custom-actions"
+            hidden={section !== 3}
+          >
+            <CustomCommandSettings controller={customCommands} ready={ready} />
           </div>
           <div
             id="settings-panel-2"

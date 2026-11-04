@@ -35,6 +35,7 @@ from .binary import RasterCache
 from .integration import IntegrationWorkflow
 from .mask import MaskWorkflow
 from .map import MapWorkflow
+from .custom_commands import CustomCommands, CustomCommandWorkflow
 
 logger = logging.getLogger(__name__)
 UNITS = {"2th_deg", "q_A^-1", "d_A"}
@@ -112,7 +113,7 @@ def _finite_number(value: Any, name: str, low: float, high: float) -> float:
     return number
 
 
-class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, MapWorkflow):
+class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, MapWorkflow, CustomCommandWorkflow):
     """One scientific session. A native window can supply its file picker."""
 
     def __init__(self, choose_file=None, *, binary_images=False):
@@ -121,6 +122,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         self._ring_cache = None
         self._lock = threading.RLock()
         self._choose_file = choose_file
+        self._custom_commands = CustomCommands()
         self._engine = make_engine("pyfai")
         self._model = self._new_model()
         self._has_image = False
@@ -191,6 +193,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
             return {"ok": True, "progress": self._progress.copy()}
         handlers = {
             "state": lambda: self._snapshot(include_image=True),
+            "custom_command": self._custom_command,
             "example": self._example,
             "open_image": self._open_image,
             "open_calibration": self._open_calibration,
@@ -250,6 +253,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
                     "integration_phase_guides",
                     "integration_phase_editor",
                     "state",
+                    "custom_command",
                     "pixel",
                     "image_levels",
                     "validation_position",

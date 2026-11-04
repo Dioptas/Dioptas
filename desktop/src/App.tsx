@@ -1,5 +1,5 @@
 import { useNativePhaseEditorSync } from "./phaseEditorWindow";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowUpRight,
   Crosshair,
@@ -17,6 +17,8 @@ import {
 import { connect, updateWindowTitle } from "./bridge";
 import { IntegrationModeIcon, MapModeIcon, MaskModeIcon } from "./ModeIcons";
 import { SettingsWorkspace } from "./SettingsWorkspace";
+import { useCustomCommands } from "./customCommands";
+import { CustomCommandButtons } from "./CustomCommandButtons";
 import "./sharedFooter.css";
 import { usePlotReadout, type PatternHover } from "./plotReadout";
 import {
@@ -196,6 +198,7 @@ export default function App() {
     clear: clearPlot,
   } = usePlotReadout();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [customActionsOpen, setCustomActionsOpen] = useState(false);
   const closeSettings = useCallback(() => {
     setSettingsOpen(false);
     document.querySelector<HTMLButtonElement>(".navigation-settings")?.focus();
@@ -955,6 +958,39 @@ export default function App() {
         : null;
 
   const ready = !!state && !busy;
+  const customInvoke = useCallback<Invoke>((command, args) => {
+    if (!bridge.current)
+      return Promise.reject(new Error("The desktop bridge is unavailable."));
+    return bridge.current(command, args);
+  }, []);
+  const customCommands = useCustomCommands(customInvoke, state);
+  const customHistoryActive = settingsOpen && customActionsOpen;
+  useLayoutEffect(() => {
+    if (!customHistoryActive) return;
+    const keyboard = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement;
+      if (
+        event.defaultPrevented ||
+        target.closest('input, textarea, select, [contenteditable="true"], [role="dialog"], dialog')
+      ) return;
+      if (!(event.metaKey || event.ctrlKey)) return;
+      const key = event.key.toLowerCase();
+      if (key !== "z" && key !== "y") return;
+      event.preventDefault();
+      if (key === "y" || event.shiftKey) {
+        if (customCommands.canRedo) void customCommands.redo();
+      }
+      else if (customCommands.canUndo) void customCommands.undo();
+    };
+    window.addEventListener("keydown", keyboard);
+    return () => window.removeEventListener("keydown", keyboard);
+  }, [
+    customHistoryActive,
+    customCommands.canUndo,
+    customCommands.canRedo,
+    customCommands.undo,
+    customCommands.redo,
+  ]);
   const mapWindow = useMapWindow({
     run: (command, args, message, done) =>
       run(command, args, message, done, undefined, true),
@@ -1369,6 +1405,7 @@ export default function App() {
             <span>Map</span>
           </button>
           <div className="navigation-utilities">
+            <CustomCommandButtons controller={customCommands} ready={ready} onError={setError} />
             <div
               className="navigation-group navigation-history"
               role="group"
@@ -1377,15 +1414,21 @@ export default function App() {
               <button
                 className="workspace-nav"
                 aria-label="Undo"
-                title={`Undo ${mode === "calibration" ? "calibration" : mode === "integration" ? "integration" : "mask"} edit · ⌘/Ctrl+Z`}
+                title={customHistoryActive
+                  ? (customCommands.historyHint ?? `Undo: ${customCommands.undoLabel ?? "custom action"} · ⌘/Ctrl+Z`)
+                  : `Undo ${mode === "calibration" ? "calibration" : mode === "integration" ? "integration" : "mask"} edit · ⌘/Ctrl+Z`}
                 disabled={
                   !ready ||
-                  !(mode === "calibration"
-                    ? state?.calibration.canUndo
-                    : state?.canUndoMask)
+                  !(customHistoryActive
+                    ? customCommands.canUndo
+                    : mode === "calibration"
+                      ? state?.calibration.canUndo
+                      : state?.canUndoMask)
                 }
                 onClick={() =>
-                  run(mode === "calibration" ? "undo_calibration" : "undo_mask")
+                  customHistoryActive
+                    ? void customCommands.undo()
+                    : run(mode === "calibration" ? "undo_calibration" : "undo_mask")
                 }
               >
                 <Undo2 size={18} />
@@ -1393,15 +1436,21 @@ export default function App() {
               <button
                 className="workspace-nav"
                 aria-label="Redo"
-                title={`Redo ${mode === "calibration" ? "calibration" : mode === "integration" ? "integration" : "mask"} edit · ⇧⌘/Ctrl+Z`}
+                title={customHistoryActive
+                  ? (customCommands.historyHint ?? `Redo: ${customCommands.redoLabel ?? "custom action"} · ⇧⌘/Ctrl+Z`)
+                  : `Redo ${mode === "calibration" ? "calibration" : mode === "integration" ? "integration" : "mask"} edit · ⇧⌘/Ctrl+Z`}
                 disabled={
                   !ready ||
-                  !(mode === "calibration"
-                    ? state?.calibration.canRedo
-                    : state?.canRedoMask)
+                  !(customHistoryActive
+                    ? customCommands.canRedo
+                    : mode === "calibration"
+                      ? state?.calibration.canRedo
+                      : state?.canRedoMask)
                 }
                 onClick={() =>
-                  run(mode === "calibration" ? "redo_calibration" : "redo_mask")
+                  customHistoryActive
+                    ? void customCommands.redo()
+                    : run(mode === "calibration" ? "redo_calibration" : "redo_mask")
                 }
               >
                 <Redo2 size={18} />
@@ -2359,6 +2408,8 @@ export default function App() {
           )}
           {settingsOpen && (
             <SettingsWorkspace
+              onCustomActionsActiveChange={setCustomActionsOpen}
+              customCommands={customCommands}
               state={state}
               ready={ready}
               run={run}

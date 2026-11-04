@@ -154,6 +154,12 @@ export interface RingOverlay {
   points: number[][];
 }
 export interface Response {
+  customCommands?: import("./customCommands").CustomCommand[];
+  customCommandRuns?: Record<
+    string,
+    import("./customCommands").CustomCommandRun
+  >;
+  customCommandContext?: import("./customCommands").CommandContext;
   phaseRevision?: number;
   phaseEditor?: PhaseEditorData;
   phaseImport?: PhaseImport;
