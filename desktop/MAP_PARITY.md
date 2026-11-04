@@ -11,7 +11,9 @@ layout and expression calculations continue to use the existing Python models.
 
 ## GUI follow-up
 
-Points now owns Load, Folder and Live/Follow. The redundant map-footer open
+Points now owns Load, Folder, Live/Follow and Check filename numbering. The
+numbering check sits with insert/remove blank in the point-arrangement toolbar;
+Grid contains dimensions and scan orientation. The redundant map-footer open
 button and processed-batch shortcut were removed on request. Calibration and
 full-map reintegration use compact icon buttons with descriptive tooltips.
 

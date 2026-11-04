@@ -10,6 +10,7 @@ import {
   RefreshCw,
   Radio,
   Crosshair,
+  ListOrdered,
 } from "lucide-react";
 import { MapLayers } from "./MapLayers";
 import {
@@ -423,6 +424,14 @@ export function MapControls({
                       <MinusSquare size={16} />
                     </button>
                     <button
+                      aria-label="Check filename numbering"
+                      title="Check filename numbering and insert blank cells for missing scan numbers"
+                      disabled={!ready}
+                      onClick={() => run("map_arrange", { op: "gaps" })}
+                    >
+                      <ListOrdered size={16} />
+                    </button>
+                    <button
                       aria-label={
                         map.selected != null &&
                         map.excluded.includes(map.selected)
@@ -629,12 +638,6 @@ export function MapControls({
                     {label}
                   </label>
                 ))}
-                <button
-                  disabled={!ready}
-                  onClick={() => run("map_arrange", { op: "gaps" })}
-                >
-                  Check filename numbering
-                </button>
               </section>
             )}
           </>

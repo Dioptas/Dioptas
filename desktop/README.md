@@ -168,7 +168,7 @@ Live/Follow are grouped in Points; calibration and full-map reintegration use
 compact icon buttons with tooltips. Grid dimensions apply on Enter or blur.
 Points, Layers and Grid show scrollbars as soon as content overflows.
 Points contains the scan arrangement with drag/keyboard reordering, blanks,
-exclude/include and optional reintegration. Layers contains editable window and
+filename-numbering checks, exclude/include and optional reintegration. Layers contains editable window and
 expression tables. Window colors link the table and pattern; edits apply on
 blur or Enter, keeping Tab navigation within the table. Its numeric ranges
 follow the displayed 2θ/Q/d unit. Pattern windows can be dragged, resized,
