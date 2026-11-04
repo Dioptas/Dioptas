@@ -319,6 +319,11 @@ def material_from_jcpds(phase) -> Material:
     omitted, so loading the resulting .eosmat creates a user-owned material.
     """
     document = copy.deepcopy(phase.params.get("material_document") or {})
+    if phase.params.get("eos_records_modified"):
+        # Older editor sessions removed the record but left its dataset links.
+        # Reconcile dataset links for this explicitly edited record set.
+        from .record_links import repair_removed_record_links
+        document = repair_removed_record_links(document, phase.params.get("eos_records", []))
     material = Material.from_dict(document) if document else Material()
 
     material.name = material.name or phase.name.rstrip("*") or "Material"

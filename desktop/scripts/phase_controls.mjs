@@ -63,14 +63,31 @@ try {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   let importCif = false;
-  await page.exposeFunction("__dioptasInvoke", (action, payload) =>
-    invoke(
+  let conditionGate = null;
+  const conditionCalls = [];
+  const burstCalculations = [];
+  await page.exposeFunction("__dioptasInvoke", async (action, payload) => {
+    const condition =
+      action === "integration_phase" &&
+      payload.operation === "update" &&
+      typeof payload.pressure === "number";
+    if (condition) {
+      conditionCalls.push(payload.pressure);
+      if (conditionGate) await conditionGate;
+    }
+    const result = await invoke(
       action,
       action === "integration_phase_files" && importCif
         ? { paths: [root + "/dioptas/tests/data/cif/fcc.cif"] }
         : payload,
-    ),
-  );
+    );
+    if (condition)
+      assert.ok(
+        !("mask" in result) && !("cake" in result) && result.phaseOnly,
+        "Pressure changes must not transfer detector/cake buffers",
+      );
+    return result;
+  });
   await page.addInitScript(() => {
     window.pywebview = {
       api: { invoke: (a, p) => window.__dioptasInvoke(a, p) },
@@ -94,8 +111,88 @@ try {
     await ready();
   };
   await page.goto("file://" + root + "/dioptas/desktop/ui/index.html");
+  // Native number inputs use the shared wheel behavior, including unfocused hover.
+  const wheel = async (label, deltaY) => {
+    const prevented = await page
+      .getByLabel(label, { exact: true })
+      .evaluate((input, deltaY) => {
+        const event = new WheelEvent("wheel", {
+          deltaY,
+          bubbles: true,
+          cancelable: true,
+        });
+        input.dispatchEvent(event);
+        return event.defaultPrevented;
+      }, deltaY);
+    assert.ok(prevented, `Wheel should be consumed by ${label}`);
+  };
   await page.getByRole("button", { name: "Integration", exact: true }).click();
   await ready();
+  const fileStep = page.getByLabel("File step", { exact: true });
+  await fileStep.waitFor();
+  await wheel("File step", -100);
+  assert.equal(Number(await fileStep.inputValue()), 2);
+  await wheel("File step", 100);
+  assert.equal(Number(await fileStep.inputValue()), 1);
+  await wheel("File step", 100);
+  assert.equal(
+    Number(await fileStep.inputValue()),
+    1,
+    "Wheel must respect the lower bound",
+  );
+  await fileStep.hover();
+  await page.mouse.wheel(0, -100);
+  await page.waitForFunction(
+    () => document.querySelector('input[aria-label="File step"]').value === "2",
+  );
+  await wheel("File step", 100);
+  await fileStep.evaluate((input) => {
+    for (const options of [
+      { deltaY: -100, ctrlKey: true },
+      { deltaY: 1, deltaX: 100 },
+    ]) {
+      input.dispatchEvent(
+        new WheelEvent("wheel", {
+          bubbles: true,
+          cancelable: true,
+          ...options,
+        }),
+      );
+    }
+  });
+  assert.equal(
+    Number(await fileStep.inputValue()),
+    1,
+    "Horizontal scroll and pinch must not change values",
+  );
+  await page.getByRole("tab", { name: "Overlay", exact: true }).click();
+  const scaleStep = page.getByLabel("Scale Step", { exact: true });
+  const initialScaleStep = Number(await scaleStep.inputValue());
+  await scaleStep.hover();
+  await page.mouse.wheel(0, -100);
+  await page.waitForFunction(
+    (start) =>
+      Number(document.querySelector('input[aria-label="Scale Step"]').value) >
+      start,
+    initialScaleStep,
+  );
+  assert.ok(Number(await scaleStep.inputValue()) > initialScaleStep);
+  await wheel("Scale Step", 100);
+  assert.equal(Number(await scaleStep.inputValue()), initialScaleStep);
+  const initialScale = (await call("state")).state.integration.overlays[0]
+    .scale;
+  await wheel("Overlay 1 scale", -100);
+  await ready();
+  assert.equal(
+    (await call("state")).state.integration.overlays[0].scale,
+    initialScale + initialScaleStep,
+  );
+  await wheel("Overlay 1 scale", 100);
+  await ready();
+  assert.equal(
+    (await call("state")).state.integration.overlays[0].scale,
+    initialScale,
+  );
   await page.getByRole("tab", { name: "Phase", exact: true }).click();
   await click("Add phase…");
   await page.getByLabel("Phase 1 pressure (GPa)", { exact: true }).waitFor();
@@ -129,6 +226,73 @@ try {
     "2.5",
   );
   await edit("Phase 1 pressure (GPa)", 12);
+  const phaseScroll = await page
+    .locator(".phase-table-scroll")
+    .evaluate((el) => el.scrollTop);
+  // Hold one calculation while the user wheels: only its latest successor runs.
+  const burst = async (deltaY, expected) => {
+    let release;
+    conditionGate = new Promise((resolve) => {
+      release = resolve;
+    });
+    const before = conditionCalls.length;
+    for (let i = 0; i < 25; i++) await wheel("Phase 1 pressure (GPa)", deltaY);
+    assert.equal(
+      Number(
+        await page
+          .getByLabel("Phase 1 pressure (GPa)", { exact: true })
+          .inputValue(),
+      ),
+      expected,
+    );
+    assert.ok(
+      conditionCalls.length - before <= 1,
+      "A wheel burst should not create a backlog of calculations",
+    );
+    assert.equal(
+      await page.locator(".spin").count(),
+      0,
+      "Live phase changes must not flash the global busy state",
+    );
+    assert.ok(
+      await page
+        .getByLabel("Phase 1 pressure (GPa)", { exact: true })
+        .isEnabled(),
+    );
+    conditionGate = null;
+    release();
+    for (let i = 0; i < 100; i++) {
+      if (
+        (await call("state")).state.integration.phases.every(
+          (phase) => phase.pressure === expected,
+        )
+      )
+        break;
+      await page.waitForTimeout(20);
+    }
+    assert.deepEqual(
+      (await call("state")).state.integration.phases.map(
+        (phase) => phase.pressure,
+      ),
+      [expected, expected],
+    );
+    assert.ok(
+      conditionCalls.length - before <= 2,
+      "Only the in-flight and latest requested values should be calculated",
+    );
+    burstCalculations.push({
+      notches: 25,
+      calculations: conditionCalls.length - before,
+      finalPressure: expected,
+    });
+  };
+  await burst(-100, 74.5);
+  assert.equal(
+    await page.locator(".phase-table-scroll").evaluate((el) => el.scrollTop),
+    phaseScroll,
+  );
+  await burst(100, 12);
+  await ready();
   assert.deepEqual(
     (await call("state")).state.integration.phases.map((p) => p.pressure),
     [12, 12],
@@ -223,6 +387,26 @@ try {
   await page.screenshot({ path: artifacts + "/phase-database.png" });
   await click("Load as Phase");
   assert.equal((await call("state")).state.integration.phases.length, 4);
+  const temperature = page.getByLabel("Phase 4 temperature (K)", {
+    exact: true,
+  });
+  assert.ok(await temperature.isEnabled());
+  const initialTemperature = Number(await temperature.inputValue());
+  const temperatureStep = Number(
+    await page.getByLabel("T Step", { exact: true }).inputValue(),
+  );
+  await wheel("Phase 4 temperature (K)", -100);
+  await ready();
+  assert.equal(
+    (await call("state")).state.integration.phases[3].temperature,
+    initialTemperature + temperatureStep,
+  );
+  await wheel("Phase 4 temperature (K)", 100);
+  await ready();
+  assert.equal(
+    (await call("state")).state.integration.phases[3].temperature,
+    initialTemperature,
+  );
   await click("Edit selected Phase");
   assert.equal(await page.getByLabel("a₀", { exact: true }).isDisabled(), true);
   assert.equal(await page.getByLabel("K₀", { exact: true }).isDisabled(), true);
@@ -307,12 +491,10 @@ try {
     const phaseStyle = await readStyle(".phase-table");
     await page.getByRole("tab", { name: "Overlay", exact: true }).click();
     const overlayStyle = await readStyle(".qt-overlay-table");
-    await page
-      .locator(".qt-overlay-controls")
-      .screenshot({
-        path:
-          artifacts + `/shared-table-overlay-${large ? "large" : "normal"}.png`,
-      });
+    await page.locator(".qt-overlay-controls").screenshot({
+      path:
+        artifacts + `/shared-table-overlay-${large ? "large" : "normal"}.png`,
+    });
     assert.deepEqual(
       phaseStyle,
       overlayStyle,
@@ -331,12 +513,9 @@ try {
         headerFont: getComputedStyle(header).fontSize,
         headerWeight: getComputedStyle(header).fontWeight,
       }));
-    await page
-      .locator(".calibration-panel")
-      .screenshot({
-        path:
-          artifacts + `/shared-table-peaks-${large ? "large" : "normal"}.png`,
-      });
+    await page.locator(".calibration-panel").screenshot({
+      path: artifacts + `/shared-table-peaks-${large ? "large" : "normal"}.png`,
+    });
     for (const key of Object.keys(peakStyle))
       assert.equal(
         peakStyle[key],
@@ -387,6 +566,7 @@ try {
         ok: true,
         browser: process.argv.includes("--webkit") ? "WebKit" : "Chromium",
         layout,
+        burstCalculations,
       },
       null,
       2,

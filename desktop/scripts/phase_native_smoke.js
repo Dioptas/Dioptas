@@ -36,6 +36,21 @@ window.__dioptasPhaseNativeSmoke = async ({
     state.state.integration.phases[0].pressure === 2,
     "Native phase pressure step did not reach PhaseModel",
   );
+  pressure.dispatchEvent(
+    new WheelEvent("wheel", { deltaY: -100, bubbles: true, cancelable: true }),
+  );
+  await delay();
+  await ready();
+  state = await call("state");
+  check(
+    state.state.integration.phases[0].pressure === 4,
+    "Native phase-table wheel failed",
+  );
+  pressure.dispatchEvent(
+    new WheelEvent("wheel", { deltaY: 100, bubbles: true, cancelable: true }),
+  );
+  await delay();
+  await ready();
   click("Pattern");
   await delay();
   click("Phase");
@@ -46,30 +61,69 @@ window.__dioptasPhaseNativeSmoke = async ({
   );
   const selected = controls.querySelector('tbody tr[aria-selected="true"]');
   check(selected, "No phase selected in native table");
+  const editorComplete = new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(Error("Native detached editor did not report")),
+      45000,
+    );
+    window.addEventListener(
+      "phase-editor-smoke",
+      (e) => {
+        clearTimeout(timer);
+        resolve(e.detail);
+      },
+      { once: true },
+    );
+  });
+  let sawOpening = false,
+    watchingEdits = false,
+    previewFlickered = false;
+  const observer = new MutationObserver(() => {
+    const busy = !!document.querySelector(".spin");
+    if (!watchingEdits) {
+      if (busy) sawOpening = true;
+      else if (sawOpening) watchingEdits = true;
+    } else if (busy) previewFlickered = true;
+  });
+  observer.observe(document.body, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+  });
   click("Edit selected Phase");
-  await delay();
-  await ready();
+  const editorReport = await editorComplete;
+  observer.disconnect();
   check(
-    document.querySelector('dialog[aria-label="Phase Editor"][open]'),
-    "Native phase editor did not open",
+    !previewFlickered,
+    "Editor live updates repeatedly disabled/re-enabled the main GUI",
   );
-  const a = document.querySelector('input[aria-label="a₀"]');
-  check(a && !a.disabled, "Legacy phase lattice should be editable");
-  a.dispatchEvent(
-    new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }),
+  check(editorReport.ok, editorReport.error || "Native editor failed");
+  check(
+    !document.querySelector('dialog[aria-label="Phase Editor"]'),
+    "The native editor still blocks the main workspace",
   );
-  await delay();
   await ready();
+  for (
+    let i = 0;
+    i < 100 &&
+    !controls.querySelector(".phase-name")?.textContent.includes("*");
+    i++
+  )
+    await delay(20);
+  check(
+    controls.querySelector(".phase-name")?.textContent.includes("*"),
+    "The main phase table did not refresh after an editor change",
+  );
   const editor = await call("integration_phase_editor", { index: 0 });
   check(
-    editor.ok && editor.phaseEditor.lattice.a0 > 4.078,
-    "Native lattice edit did not reach PhaseModel",
+    editor.phaseEditor.lattice.a0 === 4.2,
+    "Detached lattice edit did not reach the shared model",
   );
-  click("Reload File");
-  await delay();
-  await ready();
-  click("Close Phase Editor");
-  await delay();
+  check(
+    editor.phaseEditor.reflections[0].intensity === 66.0396789,
+    "Display rounding changed the scientific intensity",
+  );
+  await call("integration_phase", { operation: "reload", index: 0 });
   const saved = await call("integration_phase_list", {
     save: true,
     path: root + "/desktop/artifacts/native-phase-list.txt",
@@ -111,7 +165,14 @@ window.__dioptasPhaseNativeSmoke = async ({
     multiplicativeSteps: true,
     tabPersistence: true,
     realPressure: true,
+    wheelStepping: true,
     latticeEditing: true,
+    editorThermalConstructor: true,
+    editorNumericValidation: true,
+    editorReflections: true,
+    editorDetached: editorReport,
+    livePreviewStable: !previewFlickered,
+
     phaseList: true,
     database: true,
   };

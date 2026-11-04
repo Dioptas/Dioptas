@@ -64,7 +64,9 @@ class PhaseWorkflow:
 
     def _phase_state(self):
         model = self._model.phase_model
+        from .phase_editor import phase_editor_uid
         return [dict(
+            uid=phase_editor_uid(phase),
             name=phase.name, pressure=phase.params['pressure'],
             temperature=phase.params['temperature'],
             thermal=bool(phase.has_thermal_expansion()),
@@ -183,10 +185,16 @@ class PhaseWorkflow:
         self._revision += 1
         return self._snapshot()
 
-    def _integration_phase_editor(self, index):
+    def _integration_phase_state(self):
+        # Phase edits change table rows and reference lines, never detector pixels.
+        return {**self._state(), 'pattern': self._pattern,
+                'patternOnly': True, 'phaseOnly': True}
+
+    def _integration_phase_editor(self, index=None, editor_uid=None):
         from .integration import finite
         model = self._model.phase_model
-        index = finite(index, 'Phase index', 0, len(model.phases) - 1, True)
+        from .phase_editor import resolve_editor_index
+        index = resolve_editor_index(model, index, editor_uid)
         phase = model.phases[index]
         params = phase.params
         wavelength = self.configuration.calibration_model.wavelength * 1e10
@@ -205,28 +213,48 @@ class PhaseWorkflow:
             'ORTHORHOMBIC': ['a0','b0','c0'], 'MONOCLINIC': ['a0','b0','c0','beta0'],
             'TRICLINIC': ['a0','b0','c0','alpha0','beta0','gamma0'],
         }
-        return {'phaseEditor': dict(
-            index=index, filename=str(phase.filename),
-            editable=model.is_material_editable(index), eosEditable=model.is_eos_record_editable(index),
+        from .phase_editor import editor_metadata, reflection_rows
+        return {'phaseRevision': self._revision, 'phaseEditor': dict(
+            **editor_metadata(model, index),
+            index=index, filename=str(phase._filename),
+            editable=model.is_material_editable(index),
+            eosEditable=model.is_material_editable(index) and model.is_eos_record_editable(index),
             canReload=model.can_reload(index), symmetry=params['symmetry'].lower(),
             lattice={k: float(params[k]) for k in ('a0', 'b0', 'c0', 'alpha0', 'beta0', 'gamma0', 'v0', 'a', 'b', 'c', 'v')},
             latticeEditable=lattice_keys.get(params['symmetry'].upper(), []),
             eosType=params['eos_type'], thermalType=params['thermal_type'],
             eosParameters={k: float(params[k]) for k in eos_keys},
             references=reference_details(phase), reference=params['eos_current_index'],
-            reflections=[dict(h=float(r.h), k=float(r.k), l=float(r.l), intensity=float(r.intensity),
-                d0=float(r.d0), d=float(r.d), twoTheta=float(np.degrees(2*np.arcsin(wavelength/(2*r.d))))
-                    if r.d > 0 and wavelength <= 2*r.d else None) for r in phase.reflections],
+            reflections=reflection_rows(phase, wavelength),
         )}
 
-    def _integration_phase_export(self, index=None, material_id=None, path=None):
-        path = self._path(path, 'phase_export', save=True)
+    def _integration_phase_export(self, index=None, material_id=None, path=None, format=None, editor_only=False, editor_uid=None, save_current=False, suggested_name=None):
+        if editor_uid is not None:
+            from .phase_editor import resolve_editor_index
+            index = resolve_editor_index(self._model.phase_model, editor_uid=editor_uid)
+        if save_current:
+            if material_id is not None or index is None:
+                raise ValueError('Select an editable material to save.')
+            model = self._model.phase_model
+            from .integration import finite
+            index = finite(index, 'Phase index', 0, len(model.phases)-1, True)
+            phase = model.phases[index]
+            if not model.is_material_editable(index) or not (phase._filename or '').lower().endswith('.eosmat'):
+                raise ValueError('Use Save As to choose an EOSMAT file for this material.')
+            path = phase._filename
+        if format not in (None, 'txt', 'eosmat'):
+            raise ValueError('Unknown phase export format.')
+        path = self._path(path, 'phase_reflections' if format == 'txt' else 'phase_export', save=True)
         if path is None:
             return {'cancelled': True}
         suffix = Path(path).suffix.lower()
         if not suffix:
-            path += '.eosmat'
-            suffix = '.eosmat'
+            path += '.txt' if format == 'txt' else '.eosmat'
+            suffix = Path(path).suffix.lower()
+        if format == 'eosmat' and suffix != '.eosmat':
+            raise ValueError('Choose an .eosmat material file.')
+        if format == 'txt' and suffix != '.txt':
+            raise ValueError('Choose a .txt file for the reflection table.')
         if suffix not in ({'.eosmat'} if material_id is not None else {'.eosmat', '.jcpds', '.txt'}):
             raise ValueError('Choose an EOSMAT material, JCPDS phase or TXT reflection table.')
         if material_id is not None:
@@ -236,32 +264,79 @@ class PhaseWorkflow:
             model = self._model.phase_model
             index = finite(index, 'Phase index', 0, len(model.phases) - 1, True)
             if Path(path).suffix.lower() == '.jcpds':
+                from .phase_editor import validate_jcpds_export
+                validate_jcpds_export(model.phases[index])
                 model.save_phase_as(index, path)
             elif Path(path).suffix.lower() == '.txt':
                 with open(path, 'w', encoding='utf-8') as stream:
-                    stream.write('h\tk\tl\tIntensity\td0 (Å)\td (Å)\t2θ (°)\n')
+                    stream.write('h\tk\tl\tIntensity\td0 (Å)\td (Å)\t2θ0 (°)\t2θ (°)\tQ0 (Å⁻¹)\tQ (Å⁻¹)\n')
                     for row in self._integration_phase_editor(index)['phaseEditor']['reflections']:
-                        stream.write('\t'.join('' if row[k] is None else f'{row[k]:g}' for k in
-                            ('h', 'k', 'l', 'intensity', 'd0', 'd', 'twoTheta')) + '\n')
+                        stream.write('\t'.join('' if row[k] is None else f'{row[k]:.17g}' for k in
+                            ('h', 'k', 'l', 'intensity', 'd0', 'd', 'twoTheta0', 'twoTheta', 'q0', 'q')) + '\n')
             else:
-                eos.save_material_file(path, eos.material_from_jcpds(model.phases[index]))
+                from .phase_editor import export_material
+                # A failed save must leave an existing material file intact.
+                import os
+                import tempfile
+                target = Path(path)
+                with tempfile.NamedTemporaryFile(dir=target.parent, suffix='.eosmat', delete=False) as temporary:
+                    temporary_path = temporary.name
+                try:
+                    eos.save_material_file(temporary_path, export_material(model, index))
+                    os.replace(temporary_path, path)
+                finally:
+                    if os.path.exists(temporary_path):
+                        os.unlink(temporary_path)
+                if model.is_material_editable(index):
+                    phase = model.phases[index]
+                    phase._filename = path
+                    model.items[index].filename = path
+                    phase.params['modified'] = False
+                    phase.params['eos_records_modified'] = False
+                    self._refresh_integration_pattern()
         self._revision += 1
-        return {**self._snapshot(), 'savedPath': path}
+        if editor_only:
+            return {**self._integration_phase_editor(index), 'savedPath': path}
+        result = {**self._snapshot(), 'savedPath': path}
+        if index is not None:
+            result.update(self._integration_phase_editor(index))
+        return result
 
     def _integration_phase(self, **arguments):
+        editor_only = arguments.pop('editor_only', False)
+        editor_uid = arguments.pop('editor_uid', None)
+        from .phase_editor import resolve_editor_index
+        if editor_uid is not None:
+            arguments['index'] = resolve_editor_index(self._model.phase_model, editor_uid=editor_uid)
         model = self._model.phase_model
         original = deepcopy(model.items)
         original_counter = model._color_counter
         try:
-            return self._phase_command(**arguments)
-        except Exception:
+            result = self._phase_command(**arguments, editor_only=editor_only)
+            return result
+        except Exception as error:
             model.items = original
             model._color_counter = original_counter
+            if arguments.get('operation') == 'editor_transaction':
+                # Inline rejection feedback belongs inside the modal. Return the
+                # restored authoritative editor, with an explicit rejected-edit
+                # message; ordinary command clients retain normal error responses.
+                self._refresh_integration_pattern()
+                result = {**({} if editor_only else self._integration_phase_state()),
+                          **self._integration_phase_editor(arguments['index'])}
+                result['phaseEditor']['editError'] = str(error)
+                return result
             raise
 
-    def _phase_command(self, operation, index=None, path=None, paths=None, editor=False, **changes):
+    def _phase_command(self, operation, index=None, path=None, paths=None, editor=False, editor_only=False, **changes):
         from .integration import finite, boolean
         model = self._model.phase_model
+        if operation == 'editor_transaction':
+            operation = changes.pop('edit_operation')
+            if operation not in {'parameter', 'reflection', 'update', 'reload'} and not operation.startswith('editor_'):
+                raise ValueError('Unknown editor edit.')
+            if operation == 'editor_transaction':
+                raise ValueError('Nested editor transactions are not supported.')
         if operation == 'load':
             if paths is None:
                 path = self._path(path, 'phase')
@@ -297,6 +372,13 @@ class PhaseWorkflow:
             index = finite(index, 'Phase index', 0, len(model.phases)-1, True)
             if operation == 'remove':
                 model.del_phase(index)
+            elif operation.startswith('editor_'):
+                from .phase_editor import apply_editor_edit
+                if operation == 'editor_copy':
+                    from .phase_editor import copy_phase_for_editing
+                    index = copy_phase_for_editing(model, index)
+                else:
+                    apply_editor_edit(self, model, index, operation, changes)
             elif operation == 'reload':
                 model.reload(index)
             elif operation == 'parameter':
@@ -314,12 +396,8 @@ class PhaseWorkflow:
                     value = finite(changes['value'], key, *limits[key])
                 else:
                     raise ValueError('Unknown phase parameter.')
-                original = deepcopy(model.items[index])
-                try:
-                    model.set_param(index, key, value)
-                except Exception:
-                    model.items[index] = original
-                    raise
+                # _integration_phase owns the complete rollback boundary.
+                model.set_param(index, key, value)
             elif operation == 'reflection':
                 action = changes['action']
                 if action == 'add':
@@ -327,7 +405,7 @@ class PhaseWorkflow:
                 elif action == 'clear':
                     model.clear_reflections(index)
                 elif action == 'remove':
-                    rows = [finite(v, 'Reflection', 0, len(model.phases[index].reflections)-1, True) for v in changes['rows']]
+                    rows = sorted({finite(v, 'Reflection', 0, len(model.phases[index].reflections)-1, True) for v in changes['rows']})
                     model.delete_multiple_reflections(index, rows)
                 elif action == 'update':
                     row = finite(changes['row'], 'Reflection', 0, len(model.phases[index].reflections)-1, True)
@@ -360,9 +438,11 @@ class PhaseWorkflow:
                         raise ValueError('Unknown phase option.')
             else:
                 raise ValueError('Unknown phase operation.')
+        if index is not None and index < len(model.phases) and (operation in {'parameter', 'reflection'} or operation.startswith('editor_')):
+            model.phases[index].params['modified'] = True
         self._refresh_integration_pattern()
         self._revision += 1
-        result = self._snapshot()
+        result = {} if editor_only else self._integration_phase_state()
         if editor and index is not None and index < len(model.phases):
             result.update(self._integration_phase_editor(index))
         return result

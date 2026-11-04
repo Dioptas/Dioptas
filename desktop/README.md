@@ -30,6 +30,12 @@ in the running native window. If that port is occupied, it fails rather than
 opening a different project's server. Closing the window also stops Vite.
 Rust changes rebuild/restart the host. Python processing changes require a restart.
 
+For phase-editor work in its assigned checkout, use `npm run tauri:phase-dev`.
+This opens the raw-image example with live React/CSS updates on its dedicated
+port 1426, including the detached phase-editor window. It leaves the primary
+preview's port 1420 and existing bundled windows alone. Bundled `.app` previews
+contain the UI from their build and do not receive live edits.
+
 `src-tauri/` contains the Rust host. React calls one Tauri command, which sends
 requests over stdin/stdout to a local `dioptas.desktop.stdio` process. Native
 file dialogs belong to Tauri. There is no scientific HTTP/API server or remote

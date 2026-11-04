@@ -938,59 +938,78 @@ class PhaseModel:
             raise IndexError(ref_ind)
         identifier = records[ref_ind].get('identifier')
         if identifier and any(
-                record.get('derived_from_record') == identifier
+                (record.get('derived_from_record') == identifier
+                 or record.get('pressure_scale_variant_of') == identifier)
                 for index, record in enumerate(records) if index != ref_ind):
             raise ValueError(
-                "Other EoS records are derived from this record. "
+                "Other EoS records are derived from this record or use it "
+                "as a pressure-scale reference. "
                 "Delete those derived records first.")
-        document = deepcopy(phase.params.get('material_document') or {})
-        if identifier:
-            for dataset in document.get('datasets', []):
-                if identifier in dataset.get('used_by_eos_records', []):
-                    dataset['used_by_eos_records'] = [
-                        value for value in dataset['used_by_eos_records']
-                        if value != identifier]
-            if 'datasets' in document:
-                # A dataset belongs to its linked records; canonical files
-                # cannot retain datasets with no remaining record links.
-                document['datasets'] = [
-                    dataset for dataset in document['datasets']
-                    if dataset.get('used_by_eos_records')]
-        phase.params['material_document'] = document
-        origins = list(phase.params.get('eos_record_origins') or [])
-        del records[ref_ind]
-        if ref_ind < len(origins):
-            del origins[ref_ind]
-        phase.params['eos_records'] = records
-        phase.params['eos_record_origins'] = origins
-        phase.params['eos_records_modified'] = True
+        self._remove_eos_records(ind, {ref_ind})
 
-        default_index = phase.params.get('eos_default_index', 0)
-        if default_index >= 0:
-            if default_index > ref_ind:
-                default_index -= 1
-            default_index = max(0, min(default_index, len(records) - 1)) if records else 0
-        phase.params['eos_default_index'] = default_index
+    def clear_eos_records(self, ind: int) -> None:
+        """Keep the editable structure while removing every EoS and its links."""
+        self._require_editable_material(ind)
+        count = len(self.phases[ind].params['eos_records'])
+        for ref_ind in range(count):
+            self._require_editable_eos_record(ind, ref_ind)
+        self._remove_eos_records(ind, set(range(count)))
 
-        if records:
-            current = max(0, min(ref_ind, len(records) - 1))
-            phase.params['eos_current_index'] = current
-            from .eos import apply_eos_record
-            apply_eos_record(phase, records[current])
-        else:
-            phase.params['eos_current_index'] = 0
-            phase.params['k0'] = 0.0
-            phase.params['k0p0'] = 0.0
-            phase.params['k0pp0'] = 0.0
-            phase.params['eos_type'] = 'BM3'
-            phase.params['thermal_type'] = ''
-            phase.params['thermal_parameters'] = {}
-            for key in ('alpha_t0', 'd_alpha_dt', 'dk0dt', 'dk0pdt'):
-                phase.params[key] = 0.0
-            phase.compute_v0()
-        phase.compute_d()
-        phase.params['modified'] = True
-        self.get_lines_d(ind)
+    def _remove_eos_records(self, ind: int, removed: set[int]) -> None:
+        from .eos.record_links import remove_record_links
+        phase = self.phases[ind]
+        params = phase.params
+        previous = params['eos_records']
+        kept = [i for i in range(len(previous)) if i not in removed]
+        records = [deepcopy(previous[i]) for i in kept]
+        identifiers = {previous[i]['identifier'] for i in removed
+                       if previous[i].get('identifier')}
+        document = remove_record_links(
+            params.get('material_document') or {}, identifiers)
+        document['eos_records'] = []  # CrystalState stores the live list separately.
+        if (document.get('format') == 'peritheos.material'
+                and document.get('format_version') == 3):
+            from peritheos import validate_eosmat_document
+            validate_eosmat_document({**document, 'eos_records': records})
+        old_current = params['eos_current_index']
+        current = (kept.index(old_current) if old_current in kept else
+                   min(min(removed, default=0), max(0, len(records) - 1)))
+        old_default = params.get('eos_default_index', 0)
+        default = (kept.index(old_default) if old_default in kept else current)
+        if old_default < 0:
+            default = -1
+        origins = list(params.get('eos_record_origins') or [])
+        with self._eos_record_transaction(ind):
+            params['material_document'] = document
+            params['eos_records'] = records
+            params['eos_record_origins'] = [
+                origins[i] if i < len(origins) else
+                params.get('material_origin', 'legacy') for i in kept]
+            params['eos_records_modified'] = True
+            params['eos_default_index'] = default
+            params['eos_current_index'] = current
+            if records:
+                from .eos import apply_eos_record
+                apply_eos_record(phase, records[current])
+            else:
+                for key in ('k0', 'k0p0', 'k0p', 'k0pp0', 'p0', 'alpha_t0',
+                            'd_alpha_dt', 'dk0dt', 'dk0pdt'):
+                    params[key] = 0.0
+                params['eos_type'] = 'BM3'
+                params['thermal_type'] = ''
+                params['thermal_parameters'] = {}
+                for key, value in (('theta_t0', 0.0), ('gamma_t0', 0.0),
+                                   ('q_t0', 1.0), ('t_ref', 298.15)):
+                    params[key] = value
+                params['eos_parameter_errors'] = {}
+                params['eos_fixed_parameters'] = []
+                note = (document.get('source', {}).get('assumed_structure', {})
+                        .get('note'))
+                params['comments'] = [note] if note else []
+                phase.compute_v0()
+            phase.compute_d()
+            params['modified'] = True
+            self.get_lines_d(ind)
         self.phase_changed.emit(ind)
 
     def set_eos_default(self, ind: int, ref_ind: int) -> None:

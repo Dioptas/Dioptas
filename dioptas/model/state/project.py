@@ -387,6 +387,12 @@ def _add_phase(phase_model: Any, document: dict) -> None:
     ]
     # applying the state must not invent an edit: the flag travels with it
     phase.state.modified = bool(document["crystal"].get("modified", False))
+    if phase.params.get("eos_records_modified"):
+        from ..eos.record_links import repair_removed_record_links
+        phase.params["material_document"] = repair_removed_record_links(
+            phase.params.get("material_document") or {},
+            phase.params.get("eos_records") or [],
+        )
 
     phase_model.add_jcpds_object(phase, filename=document.get("filename", ""))
     _apply_params_dict(phase_model.items[-1].params, document["params"])
