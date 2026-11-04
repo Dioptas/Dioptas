@@ -216,6 +216,7 @@ export default function App() {
   const pendingBackgroundUpdates = useRef(0);
   const pendingOverlayEdits = useRef(0);
   const pendingMapSelections = useRef(0);
+  const pendingMapRegions = useRef(0);
   const currentState = useRef<State | null>(null);
   const [state, setState] = useState<State | null>(null);
   useEffect(() => {
@@ -396,6 +397,7 @@ export default function App() {
           historyLabel === "integration_overlay");
       const liveBackground =
         command === "integration_background" && message === "";
+      const liveMapRegion = command === "map_roi" && message === "";
       const livePhaseConditions =
         command === "integration_phase" &&
         args.operation === "update" &&
@@ -411,6 +413,8 @@ export default function App() {
           !pendingBackgroundUpdates.current &&
           !pendingOverlayEdits.current &&
           !pendingMapSelections.current &&
+          !pendingMapRegions.current &&
+          !liveMapRegion &&
           !liveBackground &&
           !livePhaseConditions &&
           command !== "integration_phase_state" &&
@@ -435,12 +439,14 @@ export default function App() {
       if (maskDrawing) pendingMaskDraws.current++;
       if (overlayEditing) pendingOverlayEdits.current++;
       if (command === "map_select") pendingMapSelections.current++;
+      if (liveMapRegion) pendingMapRegions.current++;
       if (liveBackground) pendingBackgroundUpdates.current++;
       if (previous) await previous;
       if (shouldRun && !shouldRun()) {
         if (liveBackground) pendingBackgroundUpdates.current--;
         if (overlayEditing) pendingOverlayEdits.current--;
         if (command === "map_select") pendingMapSelections.current--;
+        if (liveMapRegion) pendingMapRegions.current--;
         if (commandTail.current === completion) commandTail.current = null;
         release();
         return;
@@ -456,6 +462,7 @@ export default function App() {
         overlayEditing ||
         maskDrawing ||
         liveBackground ||
+        liveMapRegion ||
         livePhaseConditions ||
         command === "integration_phase_state" ||
         command === "integration_phase_guides" ||
@@ -492,9 +499,13 @@ export default function App() {
           command === "map_select" &&
           args.reintegrate === true &&
           !result.ok &&
-          result.error === "Reintegration needs the original image and a loaded calibration."
+          result.error ===
+            "Reintegration needs the original image and a loaded calibration."
         ) {
-          result = await bridge.current(command, { ...args, reintegrate: false });
+          result = await bridge.current(command, {
+            ...args,
+            reintegrate: false,
+          });
         }
         const display = detectorDisplay.current;
         const raw = commandMode === "integration" && !correctedImageRef.current;
@@ -550,6 +561,7 @@ export default function App() {
         if (maskDrawing) pendingMaskDraws.current--;
         if (overlayEditing) pendingOverlayEdits.current--;
         if (command === "map_select") pendingMapSelections.current--;
+        if (liveMapRegion) pendingMapRegions.current--;
         if (liveBackground) pendingBackgroundUpdates.current--;
         if (commandTail.current === completion) commandTail.current = null;
         release();

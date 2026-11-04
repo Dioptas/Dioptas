@@ -212,7 +212,14 @@ registry, snapshot hook and optional normalization persistence hooks.
 - PatternView has optional `regions`, `editRegions`, `onRegionChange` and
   `onRegionSelect` props. Calibration defaults remain unchanged. Map enables
   **Edit windows** initially; disabling it restores normal left-drag navigation
-  inside regions. Right-button navigation remains available during editing. Updates are committed on release, not on every move.
+  inside regions. Right-button navigation remains available during editing.
+  Map uses `onRegionInput`, `onRegionDragStart` and `onRegionCancel` for live
+  updates while dragging either boundary or the body. One reduction runs at a
+  time; pending pointer positions are replaced by the newest position. Release
+  flushes the final bounds, and Escape restores the bounds from before the drag.
+  Live responses keep the plot viewport and controls available and preserve an
+  active expression layer. Other PatternView callers retain their own update
+  behavior.
 - RasterView has an optional `contours` prop (arrays of x/y paths); no new gesture
   or detector-orientation implementation. Map selection uses its existing marker
   overlay. All renderers and navigation hooks are reused.
@@ -282,6 +289,40 @@ numeric Q/d table edits against independent inverse conversions.
 No native test window or preview restart is required for this frontend update.
 
 ## Merge verification (2026-11-04)
+
+Live window dragging follow-up: headless Chromium/WebKit checks verify changed
+scan pixels before pointer release for boundary resizing and body translation,
+continued dragging across responses, preserved expression selection and viewport,
+one in-flight reduction with a coalesced final position, and Escape restoration
+both before and after an update. The TypeScript/Vite build and 44 JavaScript
+checks pass. Scientific reductions were unchanged by that UI update. Before the
+prefix-cache optimization below, a synthetic 10,000-point ×
+1,000-bin map measured 16.3 ms median for a sum-window command plus JSON encoding
+over 24 warmed updates; this excludes IPC and browser rendering and is not a
+frame-rate guarantee.
+
+Sum and Mean now share a lazy float64 cumulative-sum cache in MapModel. Window,
+expression, color, active-layer and layout edits retain it. Loading, reintegration,
+project restoration, normalization/restore, live append and reset discard it
+through the data publication paths, including when the same array is republished
+after an in-place change. The cache is derived in memory and is not saved in
+projects; its storage is eight bytes per point per bin plus one leading column.
+Background-subtracted and peak-shape reductions retain the existing direct path.
+Strict endpoints, descending axes and empty-window NaNs are preserved. Disjoint
+sample selections use direct reduction; rows with nonfinite/overflowed prefixes
+or a numerically unstable subtraction use direct sums over the selected samples.
+
+The cache follow-up passes 158 focused Python model/desktop checks and 13
+offscreen Qt controller checks, the TypeScript/Vite build, and the complete
+headless Map workflow in Chromium and WebKit. Coverage includes real reintegration
+with changed bin counts, same-array data replacement, live append, normalization,
+project reopen/restore, shared cache reuse, and numerical edge cases. In a seeded
+10,000-point × 1,000-bin float64 benchmark over 25 windows of about 200 bins,
+warmed median reductions changed from 4.37 to 0.166 ms for Sum and 4.40 to
+0.142 ms for Mean. Cache construction took 27.4 ms and used 80,080,000 bytes.
+Including map layout/snapshot and JSON encoding changed the median from 19.08 to
+14.95 ms; these measurements exclude IPC and browser rendering. The local report
+is `desktop/artifacts/map-sum-cache-benchmark.json`.
 
 The combined Map and current React desktop tree passes the TypeScript/Vite
 build, all 44 JavaScript checks, 28 focused Python tests (Map, combined-view

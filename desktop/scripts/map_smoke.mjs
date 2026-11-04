@@ -44,9 +44,15 @@ const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 let delayWindowEdits = false;
+let windowEditGate = null;
+let windowEditsStarted = 0;
 let selectionGate = null;
 let selectionsStarted = 0;
 await page.exposeFunction("__dioptasInvoke", async (action, payload) => {
+  if (action === "map_roi") {
+    windowEditsStarted++;
+    if (windowEditGate) await windowEditGate;
+  }
   if (action === "map_select") {
     selectionsStarted++;
     if (selectionGate) await selectionGate;
@@ -61,7 +67,10 @@ await page.addInitScript(() => {
       invoke: async (a, p) => {
         window.__pendingCommands = (window.__pendingCommands ?? 0) + 1;
         try {
-          return await window.__dioptasInvoke(a, p);
+          const result = await window.__dioptasInvoke(a, p);
+          if (a === "map_roi")
+            window.__mapRoiResponses = (window.__mapRoiResponses ?? 0) + 1;
+          return result;
         } finally {
           window.__pendingCommands--;
         }
@@ -393,9 +402,38 @@ try {
     width: +el.dataset.plotWidth,
   }));
   const x = b.x + bounds.left + ((roi.min - min) / (max - min)) * bounds.width;
+  const edgeResponses = await page.evaluate(
+    () => window.__mapRoiResponses ?? 0,
+  );
+  const scanCanvas = page.locator(
+    '[data-testid="scan-map"] [data-testid="detector-canvas"]',
+  );
+  const beforeEdgePixels = await scanCanvas.screenshot();
   await page.mouse.move(x, b.y + b.height / 2);
   await page.mouse.down();
+  await page.mouse.move(x + 6, b.y + b.height / 2, { steps: 6 });
+  await page.waitForFunction(
+    (count) => (window.__mapRoiResponses ?? 0) > count,
+    edgeResponses,
+  );
+  await ready();
+  assert.ok(
+    (await invoke("state")).map.rois[1].min > roi.min,
+    "Window edge must update the real model before pointer release",
+  );
+  assert.notDeepEqual(
+    await scanCanvas.screenshot(),
+    beforeEdgePixels,
+    "Map pixels must redraw while the window edge is held",
+  );
+  const continuingResponses = await page.evaluate(
+    () => window.__mapRoiResponses ?? 0,
+  );
   await page.mouse.move(x + 15, b.y + b.height / 2, { steps: 6 });
+  await page.waitForFunction(
+    (count) => (window.__mapRoiResponses ?? 0) > count,
+    continuingResponses,
+  );
   await page.mouse.up();
   await ready();
   assert.ok(
@@ -586,8 +624,27 @@ try {
   };
   const moveBefore = (await invoke("state")).map.rois[1];
   let point = await plotPoint((moveBefore.min + moveBefore.max) / 2);
+  const beforeMovePixels = await scanCanvas.screenshot();
+  const moveResponses = await page.evaluate(
+    () => window.__mapRoiResponses ?? 0,
+  );
   await page.mouse.move(point.x, point.y);
   await page.mouse.down();
+  await page.mouse.move(point.x + 8, point.y, { steps: 6 });
+  await page.waitForFunction(
+    (count) => (window.__mapRoiResponses ?? 0) > count,
+    moveResponses,
+  );
+  await ready();
+  assert.ok(
+    (await invoke("state")).map.rois[1].min > moveBefore.min,
+    "Range body must update before pointer release",
+  );
+  assert.notDeepEqual(
+    await scanCanvas.screenshot(),
+    beforeMovePixels,
+    "Map pixels must redraw during body translation",
+  );
   await page.mouse.move(point.x + 18, point.y, { steps: 6 });
   await page.mouse.up();
   await ready();
@@ -603,11 +660,53 @@ try {
     "Range body changed its width",
   );
   point = await plotPoint(moveAfter.max);
+  let releaseWindowEdit;
+  windowEditGate = new Promise((resolve) => {
+    releaseWindowEdit = resolve;
+  });
+  const resizeStarted = windowEditsStarted;
+  const resizeResponses = await page.evaluate(
+    () => window.__mapRoiResponses ?? 0,
+  );
+  const resizeScale = await pattern.evaluate(
+    (canvas) =>
+      (+canvas.dataset.viewXMax - +canvas.dataset.viewXMin) /
+      +canvas.dataset.plotWidth,
+  );
   await page.mouse.move(point.x, point.y);
   await page.mouse.down();
+  await page.mouse.move(point.x + 2, point.y);
+  await page.waitForTimeout(50);
+  assert.equal(windowEditsStarted, resizeStarted + 1);
+  const heldView = await pattern.getAttribute("data-view-x-min");
   await page.mouse.move(point.x + 10, point.y, { steps: 5 });
+  assert.equal(
+    windowEditsStarted,
+    resizeStarted + 1,
+    "Slow reductions must coalesce pointer positions behind one request",
+  );
+  assert.equal(
+    await page.getByLabel("Edit windows", { exact: true }).isEnabled(),
+    true,
+  );
   await page.mouse.up();
+  windowEditGate = null;
+  releaseWindowEdit();
   await ready();
+  await page.waitForFunction(
+    (count) => (window.__mapRoiResponses ?? 0) >= count,
+    resizeResponses + 2,
+  );
+  await ready();
+  assert.ok(
+    windowEditsStarted <= resizeStarted + 2,
+    "Slow resize retained intermediate movements in the queue",
+  );
+  assert.equal(
+    await pattern.getAttribute("data-view-x-min"),
+    heldView,
+    "Live responses shifted the pattern viewport during resizing",
+  );
   const resized = (await invoke("state")).map.rois[1];
   assert.equal(
     resized.min,
@@ -615,6 +714,58 @@ try {
     "Moving upper range edge changed lower edge",
   );
   assert.ok(resized.max > moveAfter.max, "Upper range edge did not resize");
+  assert.ok(
+    Math.abs(resized.max - (moveAfter.max + 10 * resizeScale)) < 1e-8,
+    "Release did not retain the final pointer position",
+  );
+  // Escape restores the range even after an intermediate map was displayed.
+  point = await plotPoint((resized.min + resized.max) / 2);
+  const cancelResponses = await page.evaluate(
+    () => window.__mapRoiResponses ?? 0,
+  );
+  await page.mouse.move(point.x, point.y);
+  await page.mouse.down();
+  await page.mouse.move(point.x + 8, point.y, { steps: 5 });
+  await page.waitForFunction(
+    (count) => (window.__mapRoiResponses ?? 0) > count,
+    cancelResponses,
+  );
+  await ready();
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+  await ready();
+  assert.deepEqual(
+    (await invoke("state")).map.rois[1],
+    resized,
+    "Escape did not restore the range from before the drag",
+  );
+  // A move and Escape in the same frame must discard the unsent position.
+  const beforeFastCancel = windowEditsStarted;
+  await page.mouse.move(point.x, point.y);
+  await page.mouse.down();
+  await pattern.evaluate((canvas, point) => {
+    canvas.dispatchEvent(
+      new PointerEvent("pointermove", {
+        clientX: point.x + 8,
+        clientY: point.y,
+        bubbles: true,
+        pointerId: 1,
+        buttons: 1,
+      }),
+    );
+    canvas.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+  }, point);
+  await page.mouse.up();
+  await page.waitForTimeout(50);
+  await ready();
+  assert.equal(
+    windowEditsStarted,
+    beforeFastCancel,
+    "Escape retained an unsent pointer position",
+  );
+  assert.deepEqual((await invoke("state")).map.rois[1], resized);
   const toolbar = page.getByRole("group", {
     name: "Map pattern controls",
     exact: true,

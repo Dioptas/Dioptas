@@ -96,6 +96,7 @@ def test_expression_rename_invalid_and_nonfinite(stored):
 def test_normalization_project_round_trip_and_exports(stored, tmp_path):
     m = stored.configuration.map_model
     original = m.pattern_intensities.copy()
+    original_cache = m._window_sum_cache
     batch = stored.configuration.batch_model
     batch.data = np.arange(24, dtype=float).reshape(3, 8) + 1
     batch.normalize((1, 7), 0)
@@ -104,14 +105,21 @@ def test_normalization_project_round_trip_and_exports(stored, tmp_path):
     expected = original * (original[2, 1:10].mean()/original[:, 1:10].mean(axis=1))[:, None]
     assert batch.data is other_batch_data and batch.normalization_enabled
     np.testing.assert_allclose(m.pattern_intensities, expected)
+    assert m._window_sum_cache is not original_cache
+    np.testing.assert_allclose(m.window_intensities, expected[:, 1:10].sum(axis=1))
     call(stored, "map_grid", rows=2, columns=3, snake=True)
     call(stored, "save_project", path=str(tmp_path / "map.dio"))
     reopened = DesktopSession()
     result = call(reopened, "open_project", path=str(tmp_path / "map.dio"))
     assert result["map"]["normalized"] and result["map"]["snake"]
     np.testing.assert_allclose(reopened.configuration.map_model.pattern_intensities, expected)
+    reopened_cache = reopened.configuration.map_model._window_sum_cache
+    assert reopened_cache is not None
     call(reopened, "map_normalize", enabled=False)
     np.testing.assert_allclose(reopened.configuration.map_model.pattern_intensities, original)
+    assert reopened.configuration.map_model._window_sum_cache is not reopened_cache
+    np.testing.assert_allclose(reopened.configuration.map_model.window_intensities,
+                               original[:, 1:10].sum(axis=1))
     path = tmp_path / "map.txt"
     call(stored, "map_export", path=str(path))
     np.testing.assert_allclose(np.loadtxt(path), m.map, rtol=1e-5, equal_nan=True)
@@ -216,11 +224,24 @@ def test_measured_image_integration_linked_selection_and_failed_load(tmp_path):
     np.testing.assert_allclose(m.pattern_intensities[0][:len(expected)], expected)
     result = call(s, "map_select", index=2)
     assert result["map"]["selected"] == 2 and result["state"]["hasImage"]
+    # Keep a populated physical window after reducing the radial bin count.
+    call(s, "map_roi", name="A", minimum=5, maximum=15)
+    original_cache = m._window_sum_cache
+    call(s, "integration_settings", bins=64)
+    call(s, "map_load", reintegrate=True)
+    assert m.pattern_intensities.shape == (3, 64)
+    assert m._window_sum_cache is not original_cache
+    lo, hi = m.window
+    selected = (m.pattern_x > lo) & (m.pattern_x < hi)
+    np.testing.assert_allclose(m.window_intensities,
+        m.pattern_intensities[:, selected].astype(float).sum(axis=1))
+    reintegrated_cache = m._window_sum_cache
     original = m.pattern_intensities.copy()
     broken = tmp_path / "bad.tif"
     broken.write_text("not a detector image")
     assert not s.invoke("map_load", {"paths": [str(broken)]})["ok"]
     np.testing.assert_array_equal(m.pattern_intensities, original)
+    assert m._window_sum_cache is reintegrated_cache
 
 
 def test_cancel_real_map_preserves_previous_map_and_bypasses_worker():

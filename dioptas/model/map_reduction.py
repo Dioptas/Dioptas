@@ -31,6 +31,7 @@ __all__ = [
     "linear_background",
     "reduce_window",
     "window_indices",
+    "WindowSumCache",
 ]
 
 #: reduction key -> short label for the UI
@@ -74,6 +75,61 @@ def window_indices(pattern_x, window) -> np.ndarray:
     pattern_x = np.asarray(pattern_x)
     low, high = float(window[0]), float(window[1])
     return np.where((pattern_x > low) & (pattern_x < high))[0]
+
+
+class WindowSumCache:
+    """Float64 prefix sums shared by plain Sum and Mean windows.
+
+    The owner must discard this cache whenever the pattern intensities change.
+    Leading zeros make every contiguous interval a two-column subtraction;
+    the radial axis still uses the same strict endpoint rule as reduce_window.
+    """
+
+    def __init__(self, intensities):
+        self.intensities = np.asarray(intensities)
+        if self.intensities.ndim != 2:
+            raise ValueError("intensities must be a 2D (points x channels) array")
+        points, channels = self.intensities.shape
+        self.prefix = np.empty((points, channels + 1), dtype=float)
+        self.prefix[:, 0] = 0
+        with np.errstate(over="ignore", invalid="ignore"):
+            np.cumsum(self.intensities, axis=1, dtype=float, out=self.prefix[:, 1:])
+        # A NaN, infinity or overflow anywhere in a row poisons its prefix,
+        # even when it lies outside the requested window. Reduce just those
+        # rows directly so other windows keep their original finite values.
+        self.fallback_rows = ~np.isfinite(self.prefix[:, -1])
+
+    def reduce(self, pattern_x, window, reduction="sum"):
+        if reduction not in ("sum", "mean"):
+            raise ValueError("Prefix sums support only Sum and Mean")
+        indices = window_indices(pattern_x, window)
+        if not len(indices):
+            return np.full(len(self.intensities), np.nan)
+        if np.any(np.diff(indices) != 1):
+            # Unordered radial axes can select disjoint columns.
+            return reduce_window(pattern_x, self.intensities, window, reduction)
+        start, stop = int(indices[0]), int(indices[-1]) + 1
+        left, right = self.prefix[:, start], self.prefix[:, stop]
+        with np.errstate(over="ignore", invalid="ignore"):
+            values = right - left
+            # Avoid losing a small window behind a much larger preceding
+            # signal (e.g. 1e20 followed by counts of order one). Use the
+            # direct path when the subtraction's roundoff estimate threatens
+            # roughly 1e-10 relative accuracy.
+            cancellation = np.abs(values) * 1e-10 <= (
+                32 * np.finfo(float).eps * np.maximum(np.abs(left), np.abs(right))
+            )
+        fallback = self.fallback_rows | ~np.isfinite(values) | (
+            cancellation & ((left != 0) | (right != 0))
+        )
+        rows = np.flatnonzero(fallback)
+        if len(rows):
+            block = np.asarray(self.intensities[np.ix_(rows, indices)], dtype=float)
+            with np.errstate(over="ignore", invalid="ignore"):
+                values[rows] = block.sum(axis=1)
+        if reduction == "mean":
+            values /= len(indices)
+        return values
 
 
 def linear_background(x: np.ndarray, block: np.ndarray) -> np.ndarray:

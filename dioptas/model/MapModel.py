@@ -75,6 +75,8 @@ class MapModel:
         #: layer name -> values, dropped whenever anything it depends on
         #: changes. Reductions are cheap but the map redraws often.
         self._layer_cache: dict[str, np.ndarray] = {}
+        # Window edits reuse this; only changes to the patterns discard it.
+        self._window_sum_cache: map_reduction.WindowSumCache | None = None
 
         #: resolves an overlay name to its (x, y) data. Injected by the
         #: model that owns the overlays; the map model itself has no path
@@ -152,6 +154,15 @@ class MapModel:
     def _invalidate_layers(self):
         self._layer_cache.clear()
         self._overlay_interp_cache.clear()
+
+    def _patterns_changed(self):
+        """Discard all pattern-derived caches, including after in-place edits.
+
+        Called by the data publication paths, independently of ROI/layout
+        invalidation so moving a window keeps the expensive prefix sums.
+        """
+        self._window_sum_cache = None
+        self._invalidate_layers()
 
     def overlays_changed(self):
         """Recomputes every expression layer that references an overlay.
@@ -429,13 +440,22 @@ class MapModel:
 
         roi = self.get_roi(name)
         if roi is not None:
-            values = map_reduction.reduce_window(
-                self.pattern_x,
-                self.pattern_intensities,
-                (roi.x_min, roi.x_max),
-                reduction=roi.reduction,
-                subtract_background=roi.subtract_background,
-            )
+            if roi.reduction in ("sum", "mean") and not roi.subtract_background:
+                if self._window_sum_cache is None:
+                    self._window_sum_cache = map_reduction.WindowSumCache(
+                        self.pattern_intensities
+                    )
+                values = self._window_sum_cache.reduce(
+                    self.pattern_x, (roi.x_min, roi.x_max), roi.reduction
+                )
+            else:
+                values = map_reduction.reduce_window(
+                    self.pattern_x,
+                    self.pattern_intensities,
+                    (roi.x_min, roi.x_max),
+                    reduction=roi.reduction,
+                    subtract_background=roi.subtract_background,
+                )
         elif name in self.params.expressions:
             values = map_expression.evaluate(
                 self.params.expressions[name],
@@ -804,11 +824,11 @@ class MapModel:
         The counterpart of :meth:`_apply_new_data` for appending: where that
         one derives fresh defaults, this one preserves every choice the user
         made and only makes room."""
+        self._patterns_changed()
         self._suspend_rebuild = True
         try:
             # window_intensities still has the old length, and num_points
             # reads from it — recompute before sizing anything
-            self._invalidate_layers()
             self._recompute_window_intensities()
             num_points = len(self.point_infos)
             self.possible_dimensions = map_layout.possible_dimensions(num_points)
@@ -838,6 +858,7 @@ class MapModel:
             raise ValueError("Detector geometry is not calibrated")
 
         # initialize data structures
+        self._patterns_changed()
         self.pattern_x = []
         self.pattern_intensities = []
         self.point_infos = []
@@ -1046,6 +1067,7 @@ class MapModel:
         """Derives the defaults a fresh set of points needs, then builds the
         map. Params are written in one suspended batch so the map is built
         once rather than after every field."""
+        self._patterns_changed()
         self._suspend_rebuild = True
         try:
             if not keep_layout:
@@ -1058,7 +1080,6 @@ class MapModel:
                 self.add_roi(window=tuple(get_center_window(self.pattern_x)))
             if self.params.active_layer not in self.layer_names():
                 self.params.active_layer = self.params.rois[0].name
-            self._invalidate_layers()
             self._recompute_window_intensities()
 
             self.possible_dimensions = map_layout.possible_dimensions(self.num_points)
@@ -1118,6 +1139,7 @@ class MapModel:
         self.map_changed.emit()
 
     def _reset(self):
+        self._patterns_changed()
         self.filepaths = None
         self.point_infos = []
         self.pattern_intensities = None

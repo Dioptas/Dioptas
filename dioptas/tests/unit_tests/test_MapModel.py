@@ -958,6 +958,7 @@ def test_append_files_grows_the_map(
     keeps its columns and gains rows rather than being re-derived."""
     _calibrated_map(map_model, configuration, 6)
     assert map_model.dimension == (2, 3)
+    original_cache = map_model._window_sum_cache
 
     failed = map_model.append_files(map_img_file_paths[6:9])
 
@@ -968,6 +969,11 @@ def test_append_files_grows_the_map(
     assert len(map_model.window_intensities) == 9
     assert map_model.dimension == (3, 3)
     assert map_model.get_point_index(2, 2) == 8
+    assert map_model._window_sum_cache is not original_cache
+    lo, hi = map_model.window
+    selected = (map_model.pattern_x > lo) & (map_model.pattern_x < hi)
+    np.testing.assert_allclose(map_model.window_intensities,
+        map_model.pattern_intensities[:, selected].astype(float).sum(axis=1))
 
 
 def test_append_files_ignores_files_already_in_the_map(
@@ -975,6 +981,7 @@ def test_append_files_ignores_files_already_in_the_map(
 ):
     _calibrated_map(map_model, configuration, 6)
     changed = []
+    original_cache = map_model._window_sum_cache
     map_model.map_changed.connect(lambda: changed.append(True))
 
     failed = map_model.append_files(map_img_file_paths[:6])
@@ -982,6 +989,7 @@ def test_append_files_ignores_files_already_in_the_map(
     assert failed == []
     assert len(map_model.point_infos) == 6
     assert changed == []
+    assert map_model._window_sum_cache is original_cache
 
 
 def test_append_files_keeps_the_arrangement(

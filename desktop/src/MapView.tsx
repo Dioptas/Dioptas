@@ -13,6 +13,7 @@ import { MapControls } from "./MapControls";
 import { radialValues } from "./radialReadout";
 import { useImageDisplayPreferences } from "./useImageDisplayPreferences";
 import { useRasterLevels } from "./useRasterLevels";
+import { useLiveMapRegion } from "./useLiveMapRegion";
 import {
   number,
   type Pattern,
@@ -127,6 +128,7 @@ export function MapView({
   requestRef.current = request;
   const runRef = useRef(run);
   runRef.current = run;
+  const liveRegion = useLiveMapRegion(map, run);
   useEffect(() => {
     if (error) setLive(false);
   }, [error]);
@@ -295,7 +297,11 @@ export function MapView({
   }, [pattern, patternUnit, state?.geometry.wavelength, state?.calibrated]);
   const regions = useMemo(() => {
     if (!map || !viewPattern || !showRegions) return [];
-    return map.rois.flatMap((roi) => {
+    return map.rois.flatMap((stored) => {
+      const roi =
+        liveRegion.draft?.name === stored.name
+          ? { ...stored, ...liveRegion.draft }
+          : stored;
       const values = [roi.min, roi.max].map(
         (x) =>
           radialValues(x, map.unit, state?.geometry.wavelength)[
@@ -318,19 +324,33 @@ export function MapView({
         },
       ];
     });
-  }, [map, viewPattern?.unit, showRegions, state?.geometry.wavelength]);
-  const changeRegion = (name: string, min: number, max: number) => {
+  }, [
+    map,
+    liveRegion.draft,
+    viewPattern?.unit,
+    showRegions,
+    state?.geometry.wavelength,
+  ]);
+  const changeRegion = (
+    name: string,
+    min: number,
+    max: number,
+    flush = true,
+  ) => {
     if (!map || !viewPattern) return;
     const values = [min, max].map(
       (x) =>
         radialValues(x, viewPattern.unit, state?.geometry.wavelength)[map.unit],
     );
     if (values.every((x): x is number => x != null && Number.isFinite(x)))
-      void run("map_roi", {
-        name,
-        minimum: Math.min(...values),
-        maximum: Math.max(...values),
-      });
+      liveRegion.change(
+        {
+          name,
+          min: Math.min(...values),
+          max: Math.max(...values),
+        },
+        flush,
+      );
   };
   const intensity = (
     raster: Raster,
@@ -676,6 +696,11 @@ export function MapView({
                 regions={regions}
                 editRegions={editRegions && ready && showRegions}
                 onRegionChange={changeRegion}
+                onRegionDragStart={liveRegion.begin}
+                onRegionInput={(name, min, max) =>
+                  changeRegion(name, min, max, false)
+                }
+                onRegionCancel={liveRegion.cancel}
                 onRegionSelect={(name) => {
                   if (map?.active !== name) void run("map_layer", { name });
                 }}
