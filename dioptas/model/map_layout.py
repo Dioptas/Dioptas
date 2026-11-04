@@ -236,12 +236,25 @@ def slots_from_filenames(filenames: list[str]) -> list[int | None] | None:
     it into the wrong cell. Returns None when the numbering says nothing
     useful: unnumbered or non-increasing names, no gaps at all, or gaps so
     large that the numbers are evidently not a scan index.
+
+    Prefer the last numeric field. If it is constant across the entire list,
+    work leftward until a field varies (e.g. map_8_P1_E1_001.tif). A varying
+    but unusable field does not justify falling back to an earlier number.
     """
     if len(filenames) < 2:
         return None
 
-    numbers = [filename_number(name) for name in filenames]
-    if any(number is None for number in numbers):
+    fields = [
+        [int(value) for value in re.findall(r"\d+", os.path.splitext(os.path.basename(name))[0])]
+        for name in filenames
+    ]
+    # Compare corresponding fields from the right, using every filename:
+    # the counter may only start changing near the end of a scan.
+    for column in zip(*(reversed(values) for values in fields)):
+        if len(set(column)) > 1:
+            numbers = list(column)
+            break
+    else:
         return None
     if any(b <= a for a, b in zip(numbers, numbers[1:])):
         return None

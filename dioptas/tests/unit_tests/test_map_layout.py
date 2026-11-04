@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: MIT
 
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -112,6 +114,36 @@ def test_slots_from_filenames_inserts_blanks_for_missing_numbers():
 def test_slots_from_filenames_returns_none_when_nothing_is_missing():
     names = ["s_001.tif", "s_002.tif", "s_003.tif"]
     assert map_layout.slots_from_filenames(names) is None
+
+
+def test_slots_from_example_map_filenames():
+    folder = Path(__file__).resolve().parents[1] / "data/map"
+    names = [str(folder / f"Fe3O4C_M1_map_{n}_P1_E1_001.tif")
+             for n in (1, 2, 3, 6, 7, 8, 11, 12, 13)]
+    assert all(Path(name).is_file() for name in names)
+    assert map_layout.slots_from_filenames(names) == [
+        0, 1, 2, None, None, 3, 4, 5, None, None, 6, 7, 8,
+    ]
+
+
+@pytest.mark.parametrize("names,expected", [
+    # The final field wins when it varies, even if an earlier field has gaps.
+    (["map_1_001.tif", "map_3_002.tif", "map_5_003.tif"], None),
+    (["map_1_001.tif", "map_2_003.tif", "map_3_004.tif"], [0, None, 1, 2]),
+    # Inspect the whole list before treating a field as constant.
+    (["map_1_001.tif", "map_3_001.tif", "map_5_002.tif"], None),
+    # Do not skip a varying field that is reordered or implausibly sparse.
+    (["map_1_003.tif", "map_3_001.tif", "map_5_002.tif"], None),
+    (["map_1_001.tif", "map_3_900.tif", "map_5_901.tif"], None),
+    # The same validity checks apply to a field found further left.
+    (["map_3_P1_001.tif", "map_1_P1_001.tif"], None),
+    (["map_1_P1_001.tif", "map_900_P1_001.tif"], None),
+    (["map_1_P1_001.tif", "map_2_P1_001.tif"], None),
+    (["map_1_P1_001.tif", "map_1_P1_001.tif"], None),
+    (["map_1_P1_001.tif", "unnumbered.tif"], None),
+])
+def test_slots_from_filenames_selects_rightmost_varying_field(names, expected):
+    assert map_layout.slots_from_filenames(names) == expected
 
 
 def test_slots_from_filenames_ignores_unusable_numbering():

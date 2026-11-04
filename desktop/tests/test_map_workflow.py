@@ -79,6 +79,20 @@ def test_grid_transforms_blanks_and_selection(stored):
     assert not stored.invoke("map_grid", {"rows": 1, "columns": 2})["ok"]
 
 
+def test_filename_numbering_command_uses_varying_map_field(stored):
+    m = stored.configuration.map_model
+    paths = [str(DATA / "map" / f"Fe3O4C_M1_map_{n}_P1_E1_001.tif")
+             for n in (1, 2, 3, 6, 7, 8, 11, 12, 13)]
+    m.set_integration_results(m.pattern_x, np.tile(m.pattern_intensities[0], (9, 1)),
+                              [MapPointInfo(p, 0) for p in paths], paths,
+                              pattern_unit=m.pattern_unit)
+    result = call(stored, "map_arrange", op="gaps")
+    assert result["map"]["slots"][:13] == [
+        0, 1, 2, None, None, 3, 4, 5, None, None, 6, 7, 8,
+    ]
+    assert result["mapWarning"] == "Filename numbering: 4 blank cells inserted."
+
+
 def test_expression_rename_invalid_and_nonfinite(stored):
     call(stored, "map_roi", op="add")
     call(stored, "map_roi", name="B", minimum=0, maximum=10, reduction="sum")

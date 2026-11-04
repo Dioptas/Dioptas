@@ -484,8 +484,7 @@ def test_detect_gaps_from_filename_numbering(
     )
     map_model.load(map_img_file_paths[:6])
 
-    # the test images are named ..._map_<n>_P1_E1_001.tif, so the trailing
-    # number is the same for all of them and says nothing about gaps
+    # Retain coverage of the usual counter at the end of a filename.
     for index, info in enumerate(map_model.point_infos):
         info.filepath = f"/scan/point_{index if index < 3 else index + 2:03d}.tif"
 
@@ -497,6 +496,25 @@ def test_detect_gaps_from_filename_numbering(
     assert map_model.get_point_index(1, 2) == 3
 
 
+def test_detect_gaps_from_example_map_filenames(
+    map_model: MapModel, configuration: Configuration
+):
+    configuration.calibration_model.load(
+        os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
+    )
+    map_model.load([
+        os.path.join(map_img_path, f"Fe3O4C_M1_map_{n}_P1_E1_001.tif")
+        for n in (1, 2, 3, 6, 7, 8, 11, 12, 13)
+    ])
+    patterns = map_model.pattern_intensities.copy()
+
+    assert map_model.detect_gaps() == 4
+    assert map_model.get_slots()[:13] == [
+        0, 1, 2, None, None, 3, 4, 5, None, None, 6, 7, 8,
+    ]
+    np.testing.assert_array_equal(map_model.pattern_intensities, patterns)
+
+
 def test_detect_gaps_does_nothing_without_a_usable_numbering(
     map_model: MapModel, configuration: Configuration
 ):
@@ -504,6 +522,8 @@ def test_detect_gaps_does_nothing_without_a_usable_numbering(
         os.path.join(unittest_data_path, "CeO2_Pilatus1M.poni")
     )
     map_model.load(map_img_file_paths[:6])
+    for info in map_model.point_infos:
+        info.filepath = "/scan/unnumbered.tif"
 
     assert map_model.detect_gaps() == 0
     assert map_model.dimension == (2, 3)
