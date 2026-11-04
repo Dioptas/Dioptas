@@ -344,13 +344,6 @@
   font-size: var(--text-small);
   color: #aab0b6;
 }
-.map-normalization {
-  margin-top: 12px;
-}
-.map-normalization summary {
-  cursor: pointer;
-  padding: 5px 0;
-}
 .map-layers {
   padding: 8px;
   display: flex;
@@ -514,12 +507,57 @@
   max-height: none;
   height: 100%;
 }
-.map-normalization {
-  flex-shrink: 0;
-}
 
 .map-range-error {
   color: var(--accent);
   margin: 2px 0;
   font-size: var(--text-small);
+}
+
+.map-normalize-button {
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 7px;
+  font-size: var(--text-small);
+}
+.map-normalization-dialog {
+  width: min(370px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 16px;
+  border: 1px solid #41484f;
+  border-radius: 8px;
+  background: #202226;
+  color: #e2e6eb;
+}
+.map-normalization-dialog::backdrop {
+  background: #0008;
+}
+.map-normalization-dialog h3 {
+  margin: 0 0 9px;
+  font-size: var(--text-normal);
+}
+.map-normalization-dialog input {
+  min-width: 0;
+  width: 100%;
+  font-size: var(--text-small);
+}
+.map-normalization-dialog .field-label {
+  margin-top: 10px;
+}
+.map-normalization-dialog footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 18px;
+}
+.map-normalization-dialog footer > span {
+  flex: 1;
+}
+.map-normalization-dialog footer button {
+  font-size: var(--text-small);
+  min-height: 29px;
+  padding: 4px 7px;
+  white-space: nowrap;
 }

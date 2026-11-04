@@ -13,6 +13,7 @@ import {
   ListOrdered,
 } from "lucide-react";
 import { MapLayers } from "./MapLayers";
+import { MapNormalizationDialog } from "./MapNormalizationDialog";
 import {
   useEffect,
   useState,
@@ -21,7 +22,6 @@ import {
   type KeyboardEvent,
 } from "react";
 import type { State, Unit } from "./types";
-import { unitLabel } from "./types";
 import type { MapData, MapRun } from "./mapDomain";
 
 export function MapControls({
@@ -29,8 +29,6 @@ export function MapControls({
   state,
   ready,
   run,
-  reintegrate,
-  onReintegrate,
   live,
   onLive,
   follow,
@@ -44,8 +42,6 @@ export function MapControls({
   state: State | null;
   ready: boolean;
   run: MapRun;
-  reintegrate: boolean;
-  onReintegrate: (v: boolean) => void;
   live: boolean;
   onLive: (v: boolean) => void;
   follow: boolean;
@@ -56,9 +52,9 @@ export function MapControls({
     [columns, setColumns] = useState(() => String(map?.dimension[1] ?? 1));
   const gridPending = useRef<string | null>(null);
   const submittedGrid = useRef<{ rows: string; columns: string } | null>(null);
-  const [start, setStart] = useState(0),
-    [stop, setStop] = useState(100),
-    [reference, setReference] = useState(0);
+  const [normalizationOpen, setNormalizationOpen] = useState(false);
+  const normalizationTrigger = useRef<HTMLButtonElement>(null);
+  const reintegrate = !!state?.calibrated && !map?.normalized;
   const [page, setPage] = useState(0);
   useEffect(() => {
     setPage(map?.selectedSlot == null ? 0 : Math.floor(map.selectedSlot / 100));
@@ -79,13 +75,6 @@ export function MapControls({
       submittedGrid.current = null;
     }
   }, [map?.dimension[0], map?.dimension[1]]);
-  useEffect(() => {
-    if (map) {
-      setStart(map.normalizationRange[0]);
-      setStop(map.normalizationRange[1]);
-      setReference(map.normalizationReference);
-    }
-  }, [map?.normalized]);
   const list = useRef<HTMLDivElement>(null);
   const draggedSlot = useRef<number | null>(null);
   const keyboardSelection = useRef(false);
@@ -260,30 +249,6 @@ export function MapControls({
           <>
             {tab === "Points" && (
               <section className="sidebar-section map-points-section">
-                <label className="check-row">
-                  <input
-                    type="checkbox"
-                    checked={reintegrate}
-                    disabled={
-                      !ready ||
-                      (!reintegrate && (!state?.hasImage || !state?.calibrated))
-                    }
-                    onChange={(e) => {
-                      onReintegrate(e.target.checked);
-                      if (map.selected !== null)
-                        void run("map_select", {
-                          index: map.selected,
-                          reintegrate: e.target.checked,
-                        });
-                    }}
-                  />
-                  Reintegrate selected image
-                </label>
-                <p className="map-note">
-                  {map.points} points ·{" "}
-                  {map.normalized ? "normalized" : "stored"} patterns ·{" "}
-                  {unitLabel(map.unit)}.
-                </p>
                 <div className="map-points-tools" ref={list}>
                   <TableScroll
                     className="map-file-list data-list"
@@ -477,63 +442,17 @@ export function MapControls({
                     </button>
                   </div>
                 )}
-                <details className="map-normalization">
-                  <summary>Normalize patterns</summary>
-                  <p className="map-note">
-                    Match mean intensity in the selected bin interval [start,
-                    stop) to a reference point. Original values are retained for
-                    Restore.
-                  </p>
-                  <div className="map-field-pair">
-                    <label className="field-label">
-                      Start bin
-                      <input
-                        aria-label="Normalization start bin"
-                        type="number"
-                        min="0"
-                        value={start}
-                        onChange={(e) => setStart(+e.target.value)}
-                      />
-                    </label>
-                    <label className="field-label">
-                      Stop bin
-                      <input
-                        aria-label="Normalization stop bin"
-                        type="number"
-                        min="1"
-                        value={stop}
-                        onChange={(e) => setStop(+e.target.value)}
-                      />
-                    </label>
-                  </div>
-                  <label className="field-label">
-                    Reference point (0 based)
-                    <input
-                      aria-label="Normalization reference"
-                      type="number"
-                      min="0"
-                      max={map.points - 1}
-                      value={reference}
-                      onChange={(e) => setReference(+e.target.value)}
-                    />
-                  </label>
-                  <div className="file-actions">
-                    <button
-                      disabled={!ready}
-                      onClick={() =>
-                        run("map_normalize", { start, stop, reference })
-                      }
-                    >
-                      Normalize
-                    </button>
-                    <button
-                      disabled={!ready || !map.normalized}
-                      onClick={() => run("map_normalize", { enabled: false })}
-                    >
-                      Restore original
-                    </button>
-                  </div>
-                </details>
+                <button
+                  ref={normalizationTrigger}
+                  className="quiet map-normalize-button"
+                  aria-label="Normalize patterns"
+                  title="Normalize patterns…"
+                  aria-pressed={map.normalized}
+                  disabled={!ready}
+                  onClick={() => setNormalizationOpen(true)}
+                >
+                  Normalize…
+                </button>
               </section>
             )}
             {tab === "Layers" && (
@@ -643,6 +562,15 @@ export function MapControls({
           </>
         )}
       </TableScroll>
+      {map && normalizationOpen && (
+        <MapNormalizationDialog
+          map={map}
+          ready={ready}
+          run={run}
+          anchor={normalizationTrigger.current}
+          onClose={() => setNormalizationOpen(false)}
+        />
+      )}
     </div>
   );
 }

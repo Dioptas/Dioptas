@@ -1,4 +1,4 @@
-# Map workflow parity (2026-11-03)
+# Map workflow parity (2026-11-04)
 
 The GUI follow-up was developed in the assigned `codex/desktop-map` worktree
 from `codex/react-desktop` at `dd9795d3`. Integration into the primary
@@ -10,6 +10,15 @@ MapController and MapRoiInPatternController. Scientific integration, reduction,
 layout and expression calculations continue to use the existing Python models.
 
 ## GUI follow-up
+
+The Points reintegration checkbox and point-count/pattern/unit summary are
+removed. Available raw images are reintegrated automatically on point selection
+when calibration is present. Normalized patterns retain their stored scaling;
+stored-only projects fall back to their saved pattern when raw reintegration is
+unavailable. The full-map reintegration action remains separate. Normalization
+opens a small modal with editable bin limits/reference, Normalize and Restore,
+Escape/Close dismissal and focus restoration to its trigger.
+
 
 Points now owns Load, Folder, Live/Follow and Check filename numbering. The
 numbering check sits with insert/remove blank in the point-arrangement toolbar;
@@ -74,9 +83,10 @@ the stored range. Untouched fields retain the original precision.
   selection. Trailing structural blanks are changed by resizing the grid.
   The list is paged in groups of 100 for large scans.
 - Detector Mask and Transparent controls match the other desktop views. Mask
-  display changes retain the selected stored pattern. Reintegration is explicit
-  through Reintegrate selected image or Rebuild; normal integration is deferred
-  while Map is active if its shared mask settings have changed.
+  display changes reintegrate the selected raw image automatically when
+  possible. Stored-only and normalized patterns remain intact. Full-map
+  reintegration is a separate action; deferred main integration stays outside
+  Map mode.
 - Live appends numbered continuations in the loaded scan folder, using the
   loaded files' common nonnumeric prefix and extensions. Files must have the
   same nonzero size and mtime in consecutive polls. A lightweight pending-file
@@ -212,6 +222,16 @@ registry, snapshot hook and optional normalization persistence hooks.
   selected task tab and displayed radial unit are local to the mounted view.
   Map scientific state is persisted. No portable Python runtime or Windows/Linux
   qualification is claimed.
+
+## Compact normalization and automatic selection verification (2026-11-04)
+
+Build and all 44 JavaScript checks pass. The complete headless Map workflows
+pass in Chromium and WebKit, including automatic selection with changed radial
+bin settings, normalized-pattern preservation, stored-pattern fallback when a
+raw file disappears, and the compact normalization dialog's application,
+restore, Close/Escape behavior and focus return. The point-summary line and
+reintegration checkbox are absent. This update does not require a Python or
+native-window restart.
 
 ## Numeric editing and control cleanup verification (2026-11-04)
 

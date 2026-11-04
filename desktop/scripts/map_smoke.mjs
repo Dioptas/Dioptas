@@ -113,9 +113,22 @@ try {
         .getAttribute("data-orientation"),
       "horizontal",
     );
+  const previousBins = state.state.bins;
+  assert.equal((await invoke("integration_settings", { bins: 120 })).ok, true);
   await scanClick(1, 2, 3, 3);
   state = await invoke("state");
   assert.equal(state.map.selected, 5);
+  assert.equal(
+    state.pattern.y.length,
+    120,
+    "Point selection did not automatically apply current integration settings",
+  );
+  assert.equal(
+    (await invoke("integration_settings", { bins: previousBins })).ok,
+    true,
+  );
+  await scanClick(1, 2, 3, 3);
+  state = await invoke("state");
   assert.equal(
     await page
       .locator('.map-detector-panel [data-testid="detector-canvas"]')
@@ -609,11 +622,74 @@ try {
   assert.ok((await invoke("state")).map.excluded.length > 0);
   await click("Include point");
   assert.equal((await invoke("state")).map.excluded.length, 0);
-  await page.getByText("Normalize patterns", { exact: true }).click();
+  assert.equal(
+    await page.getByText("Reintegrate selected image", { exact: true }).count(),
+    0,
+  );
+  assert.equal(
+    await page.locator(".map-points-section > .map-note").count(),
+    0,
+  );
+  const normalizeButton = page.getByRole("button", {
+    name: "Normalize patterns",
+    exact: true,
+  });
+  await normalizeButton.click();
+  const normalizationDialog = page.getByRole("dialog", {
+    name: "Normalize patterns",
+    exact: true,
+  });
+  assert.ok(await normalizationDialog.isVisible());
+  const dialogBounds = await normalizationDialog.boundingBox();
+  assert.ok(
+    dialogBounds.width <= 390 && dialogBounds.height <= 420,
+    "Normalization dialog is not compact",
+  );
+  const startBin = normalizationDialog.getByLabel("Normalization start bin", {
+    exact: true,
+  });
+  await startBin.fill("");
+  assert.equal(await startBin.inputValue(), "");
+  await startBin.fill("0");
   await click("Normalize");
   assert.equal((await invoke("state")).map.normalized, true);
+  await normalizationDialog
+    .getByRole("button", { name: "Close", exact: true })
+    .click();
+  await options.first().click();
+  await ready();
+  const normalizedSelection = await invoke("state");
+  const expectedNormalized = await invoke("map_select", {
+    index: normalizedSelection.map.selected,
+    reintegrate: false,
+  });
+  assert.deepEqual(
+    normalizedSelection.pattern,
+    expectedNormalized.pattern,
+    "Automatic selection replaced the normalized pattern with a raw reintegration",
+  );
+  await normalizeButton.click();
   await click("Restore original");
   assert.equal((await invoke("state")).map.normalized, false);
+  await normalizationDialog
+    .getByRole("button", { name: "Close", exact: true })
+    .click();
+  await page.waitForFunction(
+    () => !document.querySelector(".map-normalization-dialog"),
+  );
+  assert.ok(
+    await normalizeButton.evaluate((el) => el === document.activeElement),
+    "Closing normalization did not restore focus",
+  );
+  await normalizeButton.click();
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(
+    () => !document.querySelector(".map-normalization-dialog"),
+  );
+  assert.ok(
+    await normalizeButton.evaluate((el) => el === document.activeElement),
+    "Escape did not return focus to normalization",
+  );
   await click("Save PNG…");
   await click("Save map data…");
   await page.getByLabel("Map layer", { exact: true }).selectOption("Ratio");
@@ -628,6 +704,7 @@ try {
   assert.ok(requests.includes("map_display"));
   await page.getByLabel("Smooth map", { exact: true }).click();
   await page.getByLabel("Map contours", { exact: true }).click();
+  await page.getByRole("tab", { name: "Grid", exact: true }).click();
   await setInterfaceTextSize(page, true);
   assert.equal(
     await page
@@ -754,6 +831,20 @@ try {
     assert.equal(liveState.map.points, 2);
     assert.equal(liveState.state.hasImage, true);
     await click("Live map");
+    // Automatic reintegration must retain stored-pattern access when raw files disappear.
+    await rm(firstImage);
+    await page
+      .getByRole("listbox", { name: "Scan arrangement" })
+      .getByRole("option")
+      .first()
+      .click();
+    await ready();
+    const storedOnly = await invoke("state");
+    assert.equal(storedOnly.state.hasImage, false);
+    assert.ok(
+      storedOnly.pattern?.y.length > 0,
+      "Missing raw source prevented stored-pattern selection",
+    );
   } finally {
     await rm(liveFolder, { recursive: true, force: true });
   }

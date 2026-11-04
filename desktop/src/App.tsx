@@ -186,7 +186,6 @@ export default function App() {
   const [map, setMap] = useState<MapData | null>(null);
   const [mapLevels, setMapLevels] = useState<[number, number]>();
   const [mapWarning, setMapWarning] = useState<string | null>(null);
-  const [mapReintegrate, setMapReintegrate] = useState(false);
   const requestMap = async (
     command: string,
     args: Record<string, unknown> = {},
@@ -457,12 +456,21 @@ export default function App() {
             : s,
         );
       try {
-        const result = await bridge.current(
+        let result = await bridge.current(
           command,
           commandMode === "mask" && canDeferIntegration.current
             ? { ...args, defer_integration: true }
             : args,
         );
+        // Stored-only map projects can be inspected even when their raw files are unavailable.
+        if (
+          command === "map_select" &&
+          args.reintegrate === true &&
+          !result.ok &&
+          result.error === "Reintegration needs the original image and a loaded calibration."
+        ) {
+          result = await bridge.current(command, { ...args, reintegrate: false });
+        }
         apply(result);
         if (command === "integration_autoprocess_poll" && result.state)
           setError(result.state.integration.autoProcessError || null);
@@ -1304,8 +1312,6 @@ export default function App() {
                   run={run}
                   request={requestMap}
                   error={error}
-                  reintegrate={mapReintegrate}
-                  onReintegrate={setMapReintegrate}
                   mapLevels={mapLevels}
                   reportPlot={reportPlot}
                   onDetectorHover={onHover}

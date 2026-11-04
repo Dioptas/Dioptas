@@ -84,8 +84,6 @@ export function MapView({
   error,
   run,
   request,
-  reintegrate,
-  onReintegrate,
   mapLevels,
   reportPlot,
   onDetectorHover,
@@ -105,8 +103,6 @@ export function MapView({
     command: string,
     args?: Record<string, unknown>,
   ) => Promise<Response | undefined>;
-  reintegrate: boolean;
-  onReintegrate: (value: boolean) => void;
   mapLevels?: [number, number];
   reportPlot: ReportPlot;
   onDetectorHover: (point: { x: number; y: number } | null) => void;
@@ -114,6 +110,7 @@ export function MapView({
   patternZoom: ZoomMode;
   onPatternZoom: (mode: ZoomMode) => void;
 }) {
+  const reintegrate = !!state?.calibrated && !map?.normalized;
   const [smooth, setSmooth] = usePreference<boolean>("smooth", false),
     [smoothFactor, setSmoothFactor] = usePreference<number>("smooth-factor", 5);
   const [showContours, setShowContours] = usePreference<boolean>(
@@ -613,8 +610,6 @@ export function MapView({
                 state={state}
                 ready={ready}
                 run={sourceRun}
-                reintegrate={reintegrate}
-                onReintegrate={onReintegrate}
                 live={live}
                 onLive={setLive}
                 follow={follow}
