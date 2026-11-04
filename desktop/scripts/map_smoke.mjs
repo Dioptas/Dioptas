@@ -207,6 +207,27 @@ try {
     8,
     "Queued range edit was lost",
   );
+  // An intermediate From > To must stay editable until the next field completes the pair.
+  await fromField.fill("18");
+  await fromField.press("Tab");
+  await ready();
+  assert.ok(await toField.evaluate((el) => el === document.activeElement));
+  assert.equal(Number(await fromField.inputValue()), 18);
+  assert.equal(
+    (await invoke("state")).map.rois[1].min,
+    4,
+    "Incomplete range changed the scientific map",
+  );
+  await toField.fill("20");
+  await toField.press("Enter");
+  await ready();
+  assert.equal((await invoke("state")).map.rois[1].min, 18);
+  assert.equal((await invoke("state")).map.rois[1].max, 20);
+  await fromField.fill("4");
+  await fromField.press("Tab");
+  await toField.fill("8");
+  await toField.press("Enter");
+  await ready();
   delayWindowEdits = false;
   await page.getByLabel("Expression layer name", { exact: true }).fill("Ratio");
   await page.getByLabel("Map expression", { exact: true }).fill("A/B");

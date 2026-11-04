@@ -10,12 +10,14 @@ function Cell({
   numeric = false,
   disabled,
   commit,
+  cancel,
 }: {
   value: string | number;
   label: string;
   numeric?: boolean;
   disabled: boolean;
   commit: (value: string) => void;
+  cancel?: () => void;
 }) {
   const shown =
     numeric && typeof value === "number"
@@ -58,6 +60,7 @@ function Cell({
         if (e.key === "Escape") {
           e.preventDefault();
           dirty.current = false;
+          cancel?.();
           setDraft(shown);
         }
       }}
@@ -83,7 +86,27 @@ export function MapLayers({
   const [pending, setPending] = useState(0);
   const [rangeError, setRangeError] = useState<string | null>(null);
   const canEdit = ready || pending > 0;
-  type Edit = { command: string; args: Record<string, unknown> };
+  type RangeDraft = { min?: number; max?: number; version: number };
+  const rangeDrafts = useRef<Record<string, RangeDraft>>({});
+  const rangeVersion = useRef(0);
+  const [, refreshRanges] = useState(0);
+  const rangeKey = (index: number, coordinate = unit) =>
+    `${index}:${coordinate}`;
+  const clearRange = (index: number) => {
+    delete rangeDrafts.current[rangeKey(index)];
+    setRangeError(null);
+    refreshRanges((n) => n + 1);
+  };
+  useEffect(() => {
+    rangeDrafts.current = {};
+    setRangeError(null);
+    refreshRanges((n) => n + 1);
+  }, [unit, map.labels[0]]);
+  type Edit = {
+    command: string;
+    args: Record<string, unknown>;
+    after?: () => void;
+  };
   const enqueue = (build: () => Edit | null) => {
     setPending((n) => n + 1);
     setRangeError(null);
@@ -96,6 +119,7 @@ export function MapLayers({
         await new Promise<void>((resolve) =>
           requestAnimationFrame(() => resolve()),
         );
+        edit?.after?.();
       })
       .finally(() => setPending((n) => n - 1));
     tail.current = task.catch(() => {});
@@ -125,6 +149,14 @@ export function MapLayers({
   };
   const updateRange = (index: number, edge: "min" | "max", value: number) => {
     const enteredUnit = unit;
+    const key = rangeKey(index, enteredUnit);
+    const snapshot = {
+      ...rangeDrafts.current[key],
+      [edge]: value,
+      version: ++rangeVersion.current,
+    };
+    rangeDrafts.current[key] = snapshot;
+    refreshRanges((n) => n + 1);
     return enqueue(() => {
       const source = latest.current.map,
         roi = source.rois[index];
@@ -134,7 +166,8 @@ export function MapLayers({
         setRangeError("This window cannot be converted to the displayed unit.");
         return null;
       }
-      range[edge === "min" ? 0 : 1] = value;
+      range[0] = snapshot.min ?? range[0];
+      range[1] = snapshot.max ?? range[1];
       if (!(range[0] < range[1])) {
         setRangeError("Window limits must be finite and increasing.");
         return null;
@@ -147,6 +180,12 @@ export function MapLayers({
       return {
         command: "map_roi",
         args: { name: roi.name, minimum: stored[0], maximum: stored[1] },
+        after: () => {
+          if (rangeDrafts.current[key]?.version === snapshot.version) {
+            delete rangeDrafts.current[key];
+            refreshRanges((n) => n + 1);
+          }
+        },
       };
     });
   };
@@ -197,7 +236,7 @@ export function MapLayers({
         </TableActions>
       </div>
       {rangeError && (
-        <p role="alert" className="map-range-error">
+        <p role="status" className="map-range-error">
           {rangeError}
         </p>
       )}
@@ -224,6 +263,11 @@ export function MapLayers({
           <tbody>
             {map.rois.map((roi, index) => {
               const range = rangeIn(roi.min, roi.max, map.unit, unit);
+              const draft = rangeDrafts.current[rangeKey(index)];
+              if (range && draft) {
+                range[0] = draft.min ?? range[0];
+                range[1] = draft.max ?? range[1];
+              }
               return (
                 <tr
                   key={index}
@@ -256,6 +300,7 @@ export function MapLayers({
                     <Cell
                       label={`Window ${roi.name} minimum`}
                       value={range?.[0] ?? ""}
+                      cancel={() => clearRange(index)}
                       numeric
                       disabled={!canEdit}
                       commit={(minimum) =>
@@ -267,6 +312,7 @@ export function MapLayers({
                     <Cell
                       label={`Window ${roi.name} maximum`}
                       value={range?.[1] ?? ""}
+                      cancel={() => clearRange(index)}
                       numeric
                       disabled={!canEdit}
                       commit={(maximum) =>

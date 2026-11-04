@@ -25,8 +25,9 @@ Window fields remain editable during their own saves. Edits are serialized,
 using the latest source range, so Tab and Enter preserve focus and a later
 field edit cannot overwrite an earlier one. The table follows the pattern's
 2θ/Q/d unit and converts edited bounds back to the stored scientific unit,
-including the reversed From/To correspondence in d spacing. Untouched fields
-retain the original precision.
+including the reversed From/To correspondence in d spacing. An unfinished
+From/To pair stays editable locally until both bounds are valid; Escape restores
+the stored range. Untouched fields retain the original precision.
 
 
 - Qt-like split layout: map on the left; detector and Points/Layers/Grid task
@@ -216,7 +217,8 @@ Build and all 44 JavaScript checks pass. Expanded headless Chromium/WebKit
 workflows verify clearing and replacing both grid dimensions, automatic commit
 on Enter and blur, visible scrollbars and unobscured controls in all three tabs,
 Live/Follow in Points, range-cell Tab/Enter focus during deliberately delayed
-saves, and numeric Q/d table edits against independent inverse conversions.
+saves, completing a range whose new From initially exceeds the old To, and
+numeric Q/d table edits against independent inverse conversions.
 No native test window or preview restart is required for this frontend update.
 
 ## Merge verification (2026-11-04)
