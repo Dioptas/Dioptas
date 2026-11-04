@@ -11,7 +11,8 @@ import { PatternView } from "./PatternView";
 import { ImageIntensity } from "./ImageIntensity";
 import { MapControls } from "./MapControls";
 import { mapPatternInUnit } from "./mapPattern";
-import { patternPositionInUnit, type PatternPosition } from "./linkedPosition";
+import type { PatternPosition } from "./linkedPosition";
+import { detectorPlotSetup, patternPlotSetup } from "./diffractionPlotSetup";
 import { radialValues } from "./radialReadout";
 import { useMapDisplay, useMapPreference } from "./mapPreferences";
 import { ScanMapPanel } from "./ScanMapPanel";
@@ -171,6 +172,20 @@ export function MapView({
         : pattern.unit;
     return mapPatternInUnit(pattern, unit, state?.geometry.wavelength);
   }, [pattern, patternUnit, state?.geometry.wavelength, state?.calibrated]);
+  const patternPlot = viewPattern
+    ? patternPlotSetup({
+        pattern: viewPattern,
+        patternColor: state?.integration.originalPatternColor,
+        showPattern: state?.integration.originalPatternVisible ?? true,
+        patternName: state?.integration.patternName,
+        curves: viewPattern.curves,
+        referenceLines: viewPattern.phaseLines,
+        linked,
+        localPatternClick,
+        wavelength: state?.geometry.wavelength,
+        onInspect: onPatternInspect,
+      })
+    : null;
   const regions = useMemo(() => {
     if (!map || !viewPattern || !showRegions) return [];
     return map.rois.flatMap((stored) => {
@@ -261,17 +276,19 @@ export function MapView({
         <div className="detector-workspace">
           <RasterView
             raster={image}
-            mask={state.useMask ? (mask ?? undefined) : undefined}
-            maskOpacity={state.transparentMask ? 0.72 : 1}
+            {...detectorPlotSetup({
+              state,
+              mask,
+              linked,
+              localImageClick,
+              onInspect: onDetectorInspect,
+            })}
             limits={detector.limits}
             log={detector.log}
             palette={detector.palette}
             busy={!ready}
-            zoomMode="rectangle"
             onHover={onDetectorHover}
             rings={linked?.contours}
-            clickedPoint={linked?.imagePoint ?? localImageClick}
-            onInspect={onDetectorInspect}
           />
           {intensity(image, detector, "detector")}
         </div>
@@ -457,47 +474,8 @@ export function MapView({
             {viewPattern && viewPattern.x.length ? (
               <PatternView
                 key={viewPattern.unit}
-                pattern={viewPattern}
-                linkedPosition={patternPositionInUnit(
-                  linked,
-                  localPatternClick,
-                  viewPattern.unit,
-                  state?.geometry.wavelength,
-                )}
-                onInspect={(x, mouseY, resolution) => {
-                  const nearest = viewPattern.x.reduce(
-                    (best, value, i) =>
-                      Math.abs(value - x) < Math.abs(viewPattern.x[best] - x)
-                        ? i
-                        : best,
-                    0,
-                  );
-                  onPatternInspect({
-                    x,
-                    mouseY,
-                    unit: viewPattern.unit,
-                    y: viewPattern.y[nearest],
-                    xResolution: resolution.x,
-                    yResolution: resolution.y,
-                  });
-                }}
-                patternColor={state?.integration.originalPatternColor}
-                showPattern={state?.integration.originalPatternVisible ?? true}
-                curves={viewPattern.curves}
-                referenceLines={viewPattern.phaseLines}
-                overlayLegend={[
-                  ...((state?.integration.originalPatternVisible ?? true)
-                    ? [
-                        {
-                          name: state?.integration.patternName ?? "",
-                          color:
-                            state?.integration.originalPatternColor ??
-                            "#ffffff",
-                        },
-                      ]
-                    : []),
-                  ...(viewPattern.curves ?? []),
-                ]}
+                {...patternPlot!.props}
+                onInspect={patternPlot!.inspect}
                 log={scale === "log"}
                 sqrt={scale === "sqrt"}
                 antialias={antialias}
