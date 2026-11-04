@@ -10,6 +10,7 @@ import { RasterView } from "./RasterView";
 import { PatternView } from "./PatternView";
 import { ImageIntensity } from "./ImageIntensity";
 import { MapControls } from "./MapControls";
+import { mapPatternInUnit } from "./mapPattern";
 import { radialValues } from "./radialReadout";
 import { useMapDisplay, useMapPreference } from "./mapPreferences";
 import { ScanMapPanel } from "./ScanMapPanel";
@@ -153,24 +154,7 @@ export function MapView({
       state?.calibrated
         ? requested
         : pattern.unit;
-    if (unit === pattern.unit) return pattern;
-    const converted = pattern.x
-      .map(
-        (x, i) =>
-          [
-            radialValues(x, pattern.unit, state?.geometry.wavelength)[unit],
-            pattern.y[i],
-          ] as const,
-      )
-      .filter(
-        (p): p is readonly [number, number | null] =>
-          p[0] != null && Number.isFinite(p[0]),
-      );
-    return {
-      x: converted.map((p) => p[0]),
-      y: converted.map((p) => p[1]),
-      unit,
-    };
+    return mapPatternInUnit(pattern, unit, state?.geometry.wavelength);
   }, [pattern, patternUnit, state?.geometry.wavelength, state?.calibrated]);
   const regions = useMemo(() => {
     if (!map || !viewPattern || !showRegions) return [];
@@ -456,6 +440,23 @@ export function MapView({
               <PatternView
                 key={viewPattern.unit}
                 pattern={viewPattern}
+                patternColor={state?.integration.originalPatternColor}
+                showPattern={state?.integration.originalPatternVisible ?? true}
+                curves={viewPattern.curves}
+                referenceLines={viewPattern.phaseLines}
+                overlayLegend={[
+                  ...((state?.integration.originalPatternVisible ?? true)
+                    ? [
+                        {
+                          name: state?.integration.patternName ?? "",
+                          color:
+                            state?.integration.originalPatternColor ??
+                            "#ffffff",
+                        },
+                      ]
+                    : []),
+                  ...(viewPattern.curves ?? []),
+                ]}
                 log={scale === "log"}
                 sqrt={scale === "sqrt"}
                 antialias={antialias}

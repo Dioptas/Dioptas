@@ -251,8 +251,9 @@ registry, snapshot hook and optional normalization persistence hooks.
   processing session is created. Window placement is retained; plot zoom is not restored
   on reopening. Live/follow-newest is implemented as
   described above; it does not monitor new frames inside existing HDF5 files.
-- Overlay loading/editing remains part of the shared integration work; Map can
-  evaluate references to overlays already present in a project. It does not
+- Overlay loading/editing remains in Integration. Map's pattern plot renders
+  the same visible overlays and phases, with shared colors, conditions and
+  scale/offset. Map can also evaluate overlay references in expressions. It does not
   implement the full integration, mask or batch workspaces (batch background
   extraction, frame-stack visualization and batch pattern export).
 - Scientific map coordinates retain their stored radial unit. The table and
@@ -491,3 +492,27 @@ complete application restart. Rust tests cover negative monitor origins,
 disconnected screens, duplicate monitor names, scaling/rearrangement and invalid
 saved data. Headless Chromium/WebKit checks cover the retained column bounds,
 icon-only docking, removed expansion control and existing linked selection.
+
+
+## Shared Map phase and overlay display (2026-11-04)
+
+Map and Integration use the same overlay/phase serialization and pattern
+renderer. Point selections retain shared visible reference curves and phase
+reflections, including legend names/colors and pressure/temperature. Overlay
+scale/offset and measured-pattern visibility/color follow the shared Integration
+settings; management controls remain in Integration. Both legends are displayed
+in Map. ROI windows and their editing retain the existing behavior.
+
+Map's local radial-unit display converts measured points, overlay coordinates
+and phase reflections together. When stored map units differ from the shared
+Integration unit, overlay coordinates are first converted into the stored map
+unit using the session wavelength. Stored and normalized map profiles are never
+modified by reference display. Structure-based phases extend their reflection
+coverage to the selected pattern's actual radial range/unit, matching Qt.
+
+Verification: `node desktop/scripts/map_references.mjs` (also `--webkit`)
+covers loaded references, map point changes, all radial units and intensity
+scales, shared visibility/pressure/temperature/scale/offset, and detach/dock.
+`npm --prefix desktop test` includes independent unit-conversion checks.
+Python Map/Integration tests cover shared reference values with mismatched
+stored/display units, normalized/stored-only profiles and extended CIF coverage.

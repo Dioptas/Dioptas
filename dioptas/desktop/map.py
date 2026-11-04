@@ -307,7 +307,8 @@ class MapWorkflow:
             else:
                 x, y, unit = m.pattern_x, m.pattern_intensities[index], m.pattern_unit
             self.configuration.pattern_model.set_pattern(x, y, info.filepath, unit=unit)
-            self._pattern = {"x": np.asarray(x).tolist(), "y": [float(v) if np.isfinite(v) else None for v in y], "unit": unit}
+            self._pattern = {"x": np.asarray(x).tolist(), "y": [float(v) if np.isfinite(v) else None for v in y], "unit": unit,
+                             **self._pattern_reference_data(unit)}
         else:
             self._has_image = False
             self._pattern = None

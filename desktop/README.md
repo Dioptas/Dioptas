@@ -210,6 +210,11 @@ apply on blur or Enter, keeping Tab navigation within the table. Its numeric ran
 follow the displayed 2θ/Q/d unit. Pattern windows can be dragged, resized,
 selected or recentered by clicking. Turn Edit off to zoom inside them. Pattern
 2θ/Q/d display and Log/√ scaling do not change stored map data. Each raster keeps its own histogram.
+Map's pattern plot shows the visible overlays and phase reflections shared with
+Integration, including colors, phase pressure/temperature, overlay scale/offset
+and measured-pattern visibility. Manage those references in Integration; Map
+retains its Points/Layers/Grid controls. Changing Map's 2θ/Q/d display converts
+references along with the measured curve without changing the stored profiles.
 
 Live watches the loaded scan folder for completed numbered continuation files.
 Follow selects the latest point; turn it off to retain the selected image.

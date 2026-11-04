@@ -252,14 +252,44 @@ class IntegrationWorkflow(PhaseWorkflow):
     def _refresh_integration_pattern(self):
         """Use PatternModel's displayed (background-subtracted) data, like Qt."""
         c = self.configuration
+        unit = c.pattern_model.unit or c.integration_unit
         x, y = c.pattern_model.pattern.data
         if not len(x) and not self._model.overlay_model.overlays:
             self._pattern = None
             return
+        inspection = []
+        background = c.pattern_model.pattern.auto_background_pattern
+        if background is not None and c.pattern_model.params.auto_bkg_enabled:
+            ox, oy = c.pattern_model.pattern.original_data
+            bx, by = background.data
+            inspection = [
+                {"name": "Original pattern", "color": "#8196a6", "x": np.asarray(ox).tolist(), "y": values(oy)},
+                {"name": "Fitted background", "color": "#73bba6", "x": np.asarray(bx).tolist(), "y": values(by)},
+            ]
+        self._pattern = {
+            "x": np.asarray(x).tolist(),
+            "y": values(y),
+            "unit": unit,
+            **self._pattern_reference_data(unit),
+            "backgroundCurves": inspection,
+        }
+
+    def _pattern_reference_data(self, unit):
+        """Shared visible overlays and phase conditions in the plot's radial unit."""
+        c = self.configuration
         curves = []
         for overlay in self._model.overlay_model.overlays:
             if overlay.visible:
                 ox, oy = overlay.data
+                if unit != c.integration_unit:
+                    # Overlays have the same coordinate convention as the
+                    # Integration plot. Map may retain a different stored unit.
+                    from dioptas.model.util.calc import convert_units
+                    with np.errstate(divide="ignore", invalid="ignore"):
+                        ox = convert_units(np.asarray(ox), c.calibration_model.wavelength,
+                                           c.integration_unit, unit)
+                    valid = np.isfinite(ox)
+                    ox, oy = np.asarray(ox)[valid], np.asarray(oy)[valid]
                 curves.append(
                     {
                         "name": overlay.name,
@@ -270,11 +300,14 @@ class IntegrationWorkflow(PhaseWorkflow):
                 )
         phase_lines = []
         model = self._model.phase_model
+        if model.phases:
+            spacing, wavelength = self._phase_calculation_parameters()
+            model.ensure_structure_reflection_coverage(spacing, wavelength)
         for i, phase in enumerate(model.phases):
             if not model.phase_visible[i]:
                 continue
             positions = model.get_phase_line_positions(
-                i, c.pattern_model.unit, c.calibration_model.wavelength * 1e10
+                i, unit, c.calibration_model.wavelength * 1e10
             )
             color = "#%02x%02x%02x" % tuple(int(v) for v in model.phase_colors[i])
             for position, reflection in zip(positions, model.reflections[i]):
@@ -289,23 +322,7 @@ class IntegrationWorkflow(PhaseWorkflow):
                             "hkl": [int(v) for v in reflection[2:5]],
                         }
                     )
-        inspection = []
-        background = c.pattern_model.pattern.auto_background_pattern
-        if background is not None and c.pattern_model.params.auto_bkg_enabled:
-            ox, oy = c.pattern_model.pattern.original_data
-            bx, by = background.data
-            inspection = [
-                {"name": "Original pattern", "color": "#8196a6", "x": np.asarray(ox).tolist(), "y": values(oy)},
-                {"name": "Fitted background", "color": "#73bba6", "x": np.asarray(bx).tolist(), "y": values(by)},
-            ]
-        self._pattern = {
-            "x": np.asarray(x).tolist(),
-            "y": values(y),
-            "unit": c.pattern_model.unit,
-            "curves": curves,
-            "phaseLines": phase_lines,
-            "backgroundCurves": inspection,
-        }
+        return {"curves": curves, "phaseLines": phase_lines}
 
     def _integration_save_image(self, **settings):
         from .image_export import save_image

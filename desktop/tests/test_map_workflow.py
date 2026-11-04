@@ -326,6 +326,77 @@ def test_detached_map_selection_refreshes_complete_integration_without_replacing
     np.testing.assert_array_equal(docked["pattern"]["y"], stored_profiles[1])
     assert call(s, "integrate")["cake"] is not None
 
+
+@pytest.mark.parametrize("stored_unit,shared_unit", [
+    ("q_A^-1", "2th_deg"), ("d_A", "2th_deg"), ("2th_deg", "q_A^-1"),
+])
+def test_map_uses_shared_phases_and_overlays_without_changing_stored_profiles(stored, tmp_path, stored_unit, shared_unit):
+    s = stored
+    s.configuration.calibration_model.pattern_geometry.wavelength = 1e-10
+    call(s, "integration_settings", unit=shared_unit)
+    m = s.configuration.map_model
+    m.set_integration_results(np.linspace(1, 11, 11), m.pattern_intensities.copy(),
+                              m.point_infos, m.filepaths, stored_unit, keep_layout=True)
+    x, y = np.array([2., 4., 6.]), np.array([5., 8., 9.])
+    overlay = tmp_path / "shared.xy"
+    np.savetxt(overlay, np.column_stack([x, y]))
+    call(s, "integration_overlay", operation="load", path=str(overlay))
+    call(s, "integration_overlay", operation="update", index=0,
+         scale=2, offset=3, color="#55aaff", name="Shared reference")
+    call(s, "integration_phase", operation="load", path=str(DATA / "jcpds/au_Anderson.jcpds"))
+    call(s, "integration_phase", operation="update", index=0,
+         pressure=20, temperature=600, color="#ee88cc")
+    before = m.pattern_intensities.copy()
+    first = call(s, "map_select", index=2)
+    assert first["pattern"]["unit"] == stored_unit
+    np.testing.assert_array_equal(first["pattern"]["y"], before[2])
+    curve = first["pattern"]["curves"][0]
+    assert curve["name"] == "Shared reference" and curve["color"] == "#55aaff"
+    np.testing.assert_allclose(curve["y"], 2*y + 3)
+    if stored_unit == "q_A^-1":
+        expected = 4*np.pi*np.sin(np.deg2rad(x/2))
+    elif stored_unit == "d_A":
+        expected = 1/(2*np.sin(np.deg2rad(x/2)))
+    else:
+        expected = 2*np.rad2deg(np.arcsin(x/(4*np.pi)))
+    np.testing.assert_allclose(curve["x"], expected)
+    phase = first["state"]["integration"]["phases"][0]
+    assert phase["pressure"] == 20 and phase["temperature"] == 600
+    lines = first["pattern"]["phaseLines"]
+    assert lines and all(line["color"] == "#ee88cc" for line in lines)
+    expected = s._model.phase_model.get_phase_line_positions(0, stored_unit, 1.)
+    np.testing.assert_allclose([line["x"] for line in lines], expected[np.isfinite(expected)])
+    # Normalized and stored-only points keep their data and the same references.
+    call(s, "map_normalize", start=1, stop=8, reference=0)
+    normalized = m.pattern_intensities.copy()
+    other = call(s, "map_select", index=3)
+    assert other["pattern"]["curves"] == first["pattern"]["curves"]
+    assert other["pattern"]["phaseLines"] == lines
+    np.testing.assert_array_equal(other["pattern"]["y"], normalized[3])
+    call(s, "integration_phase", operation="update", index=0, visible=False)
+    call(s, "integration_overlay", operation="update", index=0, visible=False)
+    hidden = call(s, "map_select", index=1)
+    assert hidden["pattern"]["curves"] == [] and hidden["pattern"]["phaseLines"] == []
+    np.testing.assert_array_equal(m.pattern_intensities, normalized)
+    call(s, "map_grid", rows=2, columns=3)
+    assert call(s, "map_select", row=1, column=2)["pattern"] is None
+
+
+def test_map_extends_structure_reflections_for_stored_unit_range(stored):
+    s = stored
+    s.configuration.calibration_model.pattern_geometry.wavelength = 0.2e-10
+    call(s, "integration_phase", operation="load", path=str(DATA / "cif/fcc.cif"), minimum_d_spacing=2)
+    phase = s._model.phase_model.phases[0]
+    initial_coverage = phase.state.reflection_q_max
+    m = s.configuration.map_model
+    m.set_integration_results(np.linspace(1, 30, 11), m.pattern_intensities.copy(),
+                              m.point_infos, m.filepaths, "q_A^-1", keep_layout=True)
+    result = call(s, "map_select", index=1)
+    assert s.configuration.integration_unit == "2th_deg"
+    assert phase.state.reflection_q_max == pytest.approx(30*1.05)
+    assert phase.state.reflection_q_max > initial_coverage
+    assert max(line["x"] for line in result["pattern"]["phaseLines"]) > 20
+
 def test_cancel_real_map_preserves_previous_map_and_bypasses_worker():
     with ThreadPoolExecutor(1) as executor:
         bridge = DesktopBridge()

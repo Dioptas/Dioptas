@@ -49,7 +49,8 @@ class PhaseWorkflow:
     def _phase_calculation_parameters(self):
         wavelength = self.configuration.calibration_model.wavelength * 1e10
         spacing = minimum_d_spacing_for_pattern(
-            self._model.pattern.data[0], self._model.integration_unit, wavelength)
+            self._model.pattern.data[0],
+            self.configuration.pattern_model.unit or self._model.integration_unit, wavelength)
         return spacing, wavelength
 
     def _phase_legend_name(self, phase):
