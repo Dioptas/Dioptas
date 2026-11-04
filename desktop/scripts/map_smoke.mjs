@@ -43,14 +43,23 @@ const browser = await (
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
-await page.exposeFunction("__dioptasInvoke", invoke);
+let delayWindowEdits = false;
+await page.exposeFunction("__dioptasInvoke", async (action, payload) => {
+  if (delayWindowEdits && action === "map_roi")
+    await new Promise((resolve) => setTimeout(resolve, 120));
+  return invoke(action, payload);
+});
 await page.addInitScript(() => {
   window.pywebview = {
     api: { invoke: (a, p) => window.__dioptasInvoke(a, p) },
   };
 });
 const ready = async () => {
-  await page.waitForFunction(() => !document.querySelector(".spin"));
+  await page.waitForFunction(
+    () =>
+      !document.querySelector(".spin") &&
+      !document.querySelector('.map-layers[aria-busy="true"]'),
+  );
   assert.equal(
     await page.getByRole("alert").count(),
     0,
@@ -118,9 +127,51 @@ try {
   await ready();
   await scanClick(1, 2, 3, 3);
   assert.equal((await invoke("state")).map.selected, 3);
-  await page.getByLabel("Map rows", { exact: true }).fill("2");
-  await page.getByLabel("Map columns", { exact: true }).fill("5");
-  await click("Apply grid");
+  const rowsInput = page.getByLabel("Map rows", { exact: true });
+  const columnsInput = page.getByLabel("Map columns", { exact: true });
+  await rowsInput.fill("");
+  assert.equal(
+    await rowsInput.inputValue(),
+    "",
+    "Clearing rows inserted a zero",
+  );
+  await rowsInput.fill("2");
+  await rowsInput.press("Enter");
+  await ready();
+  assert.deepEqual(
+    (await invoke("state")).map.dimension,
+    [3, 3],
+    "An incomplete, undersized grid was applied",
+  );
+  await columnsInput.fill("");
+  assert.equal(
+    await columnsInput.inputValue(),
+    "",
+    "Clearing columns inserted a zero",
+  );
+  await columnsInput.fill("5");
+  await columnsInput.press("Tab");
+  await ready();
+  assert.deepEqual(
+    (await invoke("state")).map.dimension,
+    [2, 5],
+    "Grid dimensions did not apply on blur",
+  );
+  await rowsInput.fill("3");
+  await rowsInput.press("Enter");
+  await ready();
+  assert.deepEqual(
+    (await invoke("state")).map.dimension,
+    [3, 5],
+    "Grid dimensions did not apply on Enter",
+  );
+  await rowsInput.fill("2");
+  await rowsInput.press("Enter");
+  await ready();
+  assert.equal(
+    await page.getByRole("button", { name: "Apply grid", exact: true }).count(),
+    0,
+  );
   await scanClick(1, 0, 2, 5); // trailing blank after snake
   state = await invoke("state");
   assert.equal(state.map.selected, null);
@@ -132,12 +183,31 @@ try {
   await scanClick(0, 0, 2, 5);
   await page.getByRole("tab", { name: "Layers", exact: true }).click();
   await click("Add window");
-  await page.getByLabel("Window B minimum", { exact: true }).fill("4");
-  await page.getByLabel("Window B minimum", { exact: true }).press("Enter");
+  delayWindowEdits = true;
+  const fromField = page.getByLabel("Window B minimum", { exact: true });
+  const toField = page.getByLabel("Window B maximum", { exact: true });
+  await fromField.fill("4");
+  await fromField.press("Tab");
+  assert.ok(
+    await toField.evaluate((el) => el === document.activeElement),
+    "Tab lost the next range field while saving",
+  );
+  await toField.fill("");
+  assert.equal(await toField.inputValue(), "");
+  await toField.fill("8");
+  await toField.press("Enter");
   await ready();
-  await page.getByLabel("Window B maximum", { exact: true }).fill("8");
-  await page.getByLabel("Window B maximum", { exact: true }).press("Enter");
-  await ready();
+  assert.ok(
+    await toField.evaluate((el) => el === document.activeElement),
+    "Range save moved the input focus",
+  );
+  assert.equal((await invoke("state")).map.rois[1].min, 4);
+  assert.equal(
+    (await invoke("state")).map.rois[1].max,
+    8,
+    "Queued range edit was lost",
+  );
+  delayWindowEdits = false;
   await page.getByLabel("Expression layer name", { exact: true }).fill("Ratio");
   await page.getByLabel("Map expression", { exact: true }).fill("A/B");
   await click("Apply expression");
@@ -190,12 +260,53 @@ try {
     original,
     "Display units changed stored ROI ranges",
   );
+  assert.match(await page.getByTestId("map-window-unit").textContent(), /Q/);
+  assert.ok(
+    Math.abs(Number(await fromField.inputValue()) - expectedQ) < 1e-5,
+    "Table minimum did not switch to Q",
+  );
+  const qMaximum = Number(await toField.inputValue());
+  const changedQ = expectedQ + (qMaximum - expectedQ) * 0.1;
+  await fromField.fill(String(changedQ));
+  await fromField.press("Enter");
+  await ready();
+  const storedAngleFromQ =
+    (Math.asin((changedQ * wavelength) / (4 * Math.PI)) * 360) / Math.PI;
+  assert.ok(
+    Math.abs((await invoke("state")).map.rois[1].min - storedAngleFromQ) < 1e-9,
+    "Q table edit was not converted to the stored angle",
+  );
+  await fromField.fill(String(expectedQ));
+  await fromField.press("Enter");
+  await ready();
   await click("Map pattern unit d");
   const dRegions = JSON.parse(await pattern.getAttribute("data-regions"));
   assert.ok(
     dRegions[1].min < dRegions[1].max,
     "Descending d conversion reversed the window",
   );
+  assert.match(await page.getByTestId("map-window-unit").textContent(), /d/);
+  assert.ok(
+    Math.abs(Number(await fromField.inputValue()) - dRegions[1].min) < 1e-5,
+    "Table From did not follow reversed d limits",
+  );
+  assert.ok(
+    Math.abs(Number(await toField.inputValue()) - dRegions[1].max) < 1e-5,
+    "Table To did not follow reversed d limits",
+  );
+  const changedD = dRegions[1].min + (dRegions[1].max - dRegions[1].min) * 0.1;
+  await fromField.fill(String(changedD));
+  await fromField.press("Enter");
+  await ready();
+  const storedAngleFromD =
+    (Math.asin(wavelength / (2 * changedD)) * 360) / Math.PI;
+  assert.ok(
+    Math.abs((await invoke("state")).map.rois[1].max - storedAngleFromD) < 1e-9,
+    "d table edit updated the wrong stored edge",
+  );
+  await fromField.fill(String(dRegions[1].min));
+  await fromField.press("Enter");
+  await ready();
   // Drag the lower d edge and independently verify that the *upper* stored angle changes.
   const dBox = await pattern.boundingBox();
   const initialDBounds = await pattern.evaluate((el) => ({
@@ -352,7 +463,6 @@ try {
   );
   for (const button of [
     toolbar.getByRole("button", { name: "Map pattern unit 2θ", exact: true }),
-    page.getByRole("button", { name: "Load map images", exact: true }),
   ]) {
     assert.equal(
       await button.evaluate((el) => getComputedStyle(el).backgroundColor),
@@ -397,6 +507,32 @@ try {
   await page.getByLabel("Layer Contrast name", { exact: true }).fill("Ratio");
   await page.getByLabel("Layer Contrast name", { exact: true }).press("Enter");
   await ready();
+  await page.getByRole("tab", { name: "Points", exact: true }).click();
+  assert.equal(
+    await page
+      .locator(".map-toolbar")
+      .getByRole("button", { name: "Live map", exact: true })
+      .count(),
+    0,
+  );
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Load map images", exact: true })
+      .count(),
+    0,
+  );
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Load processed batch…", exact: true })
+      .count(),
+    0,
+  );
+  assert.ok(
+    await page
+      .locator(".map-controls")
+      .getByRole("button", { name: "Live map", exact: true })
+      .isVisible(),
+  );
   await click("Live map");
   await page.waitForTimeout(1450);
   assert.ok(requests.includes("map_poll"));
@@ -480,6 +616,16 @@ try {
     "16px",
   );
   await setInterfaceTextSize(page, false);
+  await page.getByRole("tab", { name: "Points", exact: true }).click();
+  await page.screenshot({
+    path: path.join(artifacts, "map-points-controls.png"),
+    fullPage: true,
+  });
+  await page.getByRole("tab", { name: "Grid", exact: true }).click();
+  await page.screenshot({
+    path: path.join(artifacts, "map-grid-controls.png"),
+    fullPage: true,
+  });
   await page.getByRole("tab", { name: "Layers", exact: true }).click();
   await page.getByLabel("Map layer", { exact: true }).selectOption("Ratio");
   await ready();
@@ -516,6 +662,36 @@ try {
     ),
     false,
   );
+  await page.setViewportSize({ width: 1000, height: 700 });
+  const heightDivider = page.getByRole("separator", {
+    name: "Detector and pattern heights",
+    exact: true,
+  });
+  await heightDivider.focus();
+  for (let i = 0; i < 6; i++) await heightDivider.press("ArrowUp");
+  for (const tab of ["Points", "Layers", "Grid"]) {
+    await page.getByRole("tab", { name: tab, exact: true }).click();
+    await page.waitForTimeout(40);
+    const scroll = await page.locator("#map-tab-content").evaluate((el) => ({
+      overflow: el.scrollHeight > el.clientHeight,
+      reserved: el.offsetWidth - el.clientWidth,
+      track: getComputedStyle(el, "::-webkit-scrollbar").width,
+      fieldsFit: [...el.querySelectorAll("input, select, button")]
+        .filter((field) => field.getBoundingClientRect().width > 0)
+        .every(
+          (field) =>
+            field.getBoundingClientRect().right <=
+            el.getBoundingClientRect().left + el.clientWidth + 1,
+        ),
+    }));
+    assert.ok(scroll.overflow, `${tab} fixture did not exercise overflow`);
+    assert.ok(
+      scroll.reserved >= 10 && scroll.track === "10px",
+      `${tab} scrollbar was not visible immediately`,
+    );
+    assert.ok(scroll.fieldsFit, `${tab} controls overlapped the scrollbar`);
+  }
+  await heightDivider.press("Home");
   await page.setViewportSize({ width: 1600, height: 1000 });
   await click("Open project");
   assert.equal((await invoke("state")).map.active, "Ratio");

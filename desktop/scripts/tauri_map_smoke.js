@@ -81,7 +81,9 @@
     input(rows, "2");
     input(columns, "3");
     await delay();
-    click("Apply grid");
+    columns.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+    );
     await ready();
     const canvas = document.querySelector(
       '[data-testid="scan-map"] [data-testid="detector-canvas"]',
@@ -142,7 +144,10 @@
     );
     check(
       regions.length === 2 &&
-        regions.every((r) => Number.isFinite(r.min) && r.min < r.max && r.appearance === "range"),
+        regions.every(
+          (r) =>
+            Number.isFinite(r.min) && r.min < r.max && r.appearance === "range",
+        ),
       "Native converted pattern windows missing",
     );
     click("Map pattern unit 2θ");

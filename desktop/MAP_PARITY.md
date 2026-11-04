@@ -11,6 +11,24 @@ layout and expression calculations continue to use the existing Python models.
 
 ## GUI follow-up
 
+Points now owns Load, Folder and Live/Follow. The redundant map-footer open
+button and processed-batch shortcut were removed on request. Calibration and
+full-map reintegration use compact icon buttons with descriptive tooltips.
+
+Grid dimensions keep text drafts, allowing selection, deletion and replacement
+without inserting a zero. Valid complete dimensions apply on Enter or blur;
+there is no Apply grid button. Incomplete, undersized or oversized grids are
+not sent to the processing model. All task tabs use the shared visible scrollbar
+surface and reserve its gutter. The point list adapts to the available height.
+
+Window fields remain editable during their own saves. Edits are serialized,
+using the latest source range, so Tab and Enter preserve focus and a later
+field edit cannot overwrite an earlier one. The table follows the pattern's
+2θ/Q/d unit and converts edited bounds back to the stored scientific unit,
+including the reversed From/To correspondence in d spacing. Untouched fields
+retain the original precision.
+
+
 - Qt-like split layout: map on the left; detector and Points/Layers/Grid task
   tabs at upper right; pattern spanning the right side below them. Dividers
   support dragging, arrow keys, Home and double-click reset. Below 740 px of
@@ -104,7 +122,8 @@ branch's baseline; no original Qt or shared scientific implementation was edited
   single owning processing thread. Progress/cancel bypass that worker through
   the existing transport. Failed and cancelled loads retain the previous map.
   The current image is changed only after successful integration.
-- Processed HDF5/NeXus batch import through BatchModel, including stored radial
+- The processing adapter retains processed HDF5/NeXus batch import through
+  BatchModel; its Points shortcut was removed on request. This includes radial
   units and file/frame provenance. Import does not replace live calibration or
   mask. Missing raw sources show the stored pattern and an explicit message;
   no detector image is invented.
@@ -180,9 +199,9 @@ registry, snapshot hook and optional normalization persistence hooks.
   evaluate references to overlays already present in a project. It does not
   implement the full integration, mask or batch workspaces (batch background
   extraction, frame-stack visualization and batch pattern export).
-- The map and its table retain their stored radial unit. The pattern can now
-  display 2θ, Q or d independently, with converted ROI interaction and the
-  existing renderer's linear/log/square-root intensity scales.
+- Scientific map coordinates retain their stored radial unit. The table and
+  pattern display 2θ, Q or d together, converting edits back to that stored
+  unit. Pattern intensity uses the shared linear/log/square-root scales.
 - Explicit HDF5 dataset selection follows the existing desktop boundary's
   limitation; supported ImgModel default datasets and processed batch formats
   work. There is no arbitrary beamline motor-coordinate importer.
@@ -190,6 +209,15 @@ registry, snapshot hook and optional normalization persistence hooks.
   selected task tab and displayed radial unit are local to the mounted view.
   Map scientific state is persisted. No portable Python runtime or Windows/Linux
   qualification is claimed.
+
+## Numeric editing and control cleanup verification (2026-11-04)
+
+Build and all 44 JavaScript checks pass. Expanded headless Chromium/WebKit
+workflows verify clearing and replacing both grid dimensions, automatic commit
+on Enter and blur, visible scrollbars and unobscured controls in all three tabs,
+Live/Follow in Points, range-cell Tab/Enter focus during deliberately delayed
+saves, and numeric Q/d table edits against independent inverse conversions.
+No native test window or preview restart is required for this frontend update.
 
 ## Merge verification (2026-11-04)
 

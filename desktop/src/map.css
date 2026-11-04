@@ -463,29 +463,63 @@
 .app .map-controls .map-tabs button:hover {
   background: #ffffff08;
 }
-.map-source-actions {
-  display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr) minmax(0, 1fr);
-  gap: 5px;
+.map-source-actions.integration-image-tools {
+  display: flex;
+  grid-column: auto;
+  grid-row: auto;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0;
 }
 .map-source-actions button {
-  padding: 5px 6px;
+  min-height: 28px;
+  padding: 4px 5px;
   white-space: nowrap;
 }
-.map-source-calibration {
-  display: flex;
-  gap: 5px;
-  margin-top: 5px;
+.map-source-actions .map-source-icon {
+  width: 28px;
+  min-width: 28px;
+  padding: 4px;
 }
-.map-source-calibration > button:first-child {
+.map-source-actions .map-live-button {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+.map-source-actions .map-follow {
+  margin: 0 2px;
+}
+.map-source-spacer {
   flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: left;
 }
-.map-source-calibration button {
-  padding: 4px 6px;
-  min-height: 26px;
+.map-points-tab {
+  display: flex;
+  flex-direction: column;
+}
+.map-source-section {
+  flex-shrink: 0;
+}
+.map-points-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 240px;
+}
+.map-points-tools {
+  flex: 1;
+  min-height: 110px;
+}
+.map-points-tab .map-file-list {
+  max-height: none;
+  height: 100%;
+}
+.map-normalization {
+  flex-shrink: 0;
+}
+
+.map-range-error {
+  color: var(--accent);
+  margin: 2px 0;
+  font-size: var(--text-small);
 }

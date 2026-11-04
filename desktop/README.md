@@ -163,18 +163,22 @@ at upper right, and a wide pattern beneath them. When the analysis area is
 narrow, the detector moves into an Image tab. Drag the dividers to adjust the
 panels; double-click a divider to restore its default proportions.
 
-Load calibrated images, a scan folder, a processed batch or a saved project.
+Load calibrated images, a scan folder or a saved project. Load, Folder and
+Live/Follow are grouped in Points; calibration and full-map reintegration use
+compact icon buttons with tooltips. Grid dimensions apply on Enter or blur.
+Points, Layers and Grid show scrollbars as soon as content overflows.
 Points contains the scan arrangement with drag/keyboard reordering, blanks,
 exclude/include and optional reintegration. Layers contains editable window and
 expression tables. Window colors link the table and pattern; edits apply on
-blur or Enter. Pattern windows can be dragged, resized, selected or recentered
-by clicking. Turn Edit off to zoom inside them. Pattern 2θ/Q/d display and
+blur or Enter, keeping Tab navigation within the table. Its numeric ranges
+follow the displayed 2θ/Q/d unit. Pattern windows can be dragged, resized,
+selected or recentered by clicking. Turn Edit off to zoom inside them. Pattern 2θ/Q/d display and
 Log/√ scaling do not change stored map data. Each raster keeps its own histogram.
 
 Live watches the loaded scan folder for completed numbered continuation files.
 Follow selects the latest point; turn it off to retain the selected image.
-Rebuild applies changed integration settings to the full map. Save map data
-writes text/TIFF, PNG saves the map viewport, and Save project retains the
+The reintegration icon applies changed integration settings to the full map.
+Save map data writes text/TIFF, PNG saves the map viewport, and Save project retains the
 scientific map, windows, colors and layout. See [Map parity](MAP_PARITY.md) for
 validation and remaining limitations, including detached windows and growing
 HDF5 datasets.

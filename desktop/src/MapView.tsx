@@ -5,14 +5,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import {
-  Maximize2,
-  Minimize2,
-  Save,
-  FolderOpen,
-  Radio,
-  MoveHorizontal,
-} from "lucide-react";
+import { Maximize2, Minimize2, Save, MoveHorizontal } from "lucide-react";
 import { RasterView } from "./RasterView";
 import { PatternView } from "./PatternView";
 import { ImageIntensity } from "./ImageIntensity";
@@ -557,45 +550,6 @@ export function MapView({
         <div className="integration-image-tools map-toolbar">
           <button
             className="plot-tool-button map-icon-button"
-            aria-label="Load map images"
-            title="Load map images"
-            disabled={!ready || !state?.calibrated}
-            onClick={() => {
-              setLive(false);
-              void run("map_load", {}, "Integrating map…");
-            }}
-          >
-            <FolderOpen size={16} />
-          </button>
-          <button
-            className="plot-tool-button map-live-button"
-            aria-label="Live map"
-            aria-pressed={live}
-            title="Append new completed scan files from this map’s folder"
-            disabled={
-              !ready ||
-              !map?.canRebuild ||
-              !state?.calibrated ||
-              !!map?.normalized
-            }
-            onClick={() => setLive((v) => !v)}
-          >
-            <Radio size={15} />
-            Live
-          </button>
-          {live && (
-            <label className="check-row">
-              <input
-                aria-label="Follow newest map point"
-                type="checkbox"
-                checked={follow}
-                onChange={(e) => setFollow(e.target.checked)}
-              />
-              Follow
-            </label>
-          )}
-          <button
-            className="plot-tool-button map-icon-button"
             aria-label="Save map data…"
             title="Save map data as text or TIFF"
             disabled={!ready || !map}
@@ -661,6 +615,11 @@ export function MapView({
                 run={sourceRun}
                 reintegrate={reintegrate}
                 onReintegrate={onReintegrate}
+                live={live}
+                onLive={setLive}
+                follow={follow}
+                onFollow={setFollow}
+                windowUnit={viewPattern?.unit ?? map?.unit}
                 imageTab={tabbedImage ? detectorPanel : undefined}
               />
             </aside>

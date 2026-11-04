@@ -8,10 +8,18 @@ import {
   CircleCheck,
   FolderOpen,
   RefreshCw,
+  Radio,
+  Ruler,
 } from "lucide-react";
 import { MapLayers } from "./MapLayers";
-import { useEffect, useState, useRef, type ReactNode } from "react";
-import type { State } from "./types";
+import {
+  useEffect,
+  useState,
+  useRef,
+  type ReactNode,
+  type KeyboardEvent,
+} from "react";
+import type { State, Unit } from "./types";
 import { unitLabel } from "./types";
 import type { MapData, MapRun } from "./mapDomain";
 
@@ -22,19 +30,31 @@ export function MapControls({
   run,
   reintegrate,
   onReintegrate,
+  live,
+  onLive,
+  follow,
+  onFollow,
   imageTab,
+  windowUnit,
 }: {
   imageTab?: ReactNode;
+  windowUnit?: Unit;
   map: MapData | null;
   state: State | null;
   ready: boolean;
   run: MapRun;
   reintegrate: boolean;
   onReintegrate: (v: boolean) => void;
+  live: boolean;
+  onLive: (v: boolean) => void;
+  follow: boolean;
+  onFollow: (v: boolean) => void;
 }) {
   const [tab, setTab] = useState("Points");
-  const [rows, setRows] = useState(1),
-    [columns, setColumns] = useState(1);
+  const [rows, setRows] = useState(() => String(map?.dimension[0] ?? 1)),
+    [columns, setColumns] = useState(() => String(map?.dimension[1] ?? 1));
+  const gridPending = useRef<string | null>(null);
+  const submittedGrid = useRef<{ rows: string; columns: string } | null>(null);
   const [start, setStart] = useState(0),
     [stop, setStop] = useState(100),
     [reference, setReference] = useState(0);
@@ -44,8 +64,18 @@ export function MapControls({
   }, [map?.selectedSlot, map?.points]);
   useEffect(() => {
     if (map) {
-      setRows(map.dimension[0]);
-      setColumns(map.dimension[1]);
+      const submitted = submittedGrid.current;
+      setRows((current) =>
+        !submitted || current === submitted.rows
+          ? String(map.dimension[0])
+          : current,
+      );
+      setColumns((current) =>
+        !submitted || current === submitted.columns
+          ? String(map.dimension[1])
+          : current,
+      );
+      submittedGrid.current = null;
     }
   }, [map?.dimension[0], map?.dimension[1]]);
   useEffect(() => {
@@ -71,6 +101,49 @@ export function MapControls({
   useEffect(() => {
     if (!imageTab && tab === "Image") setTab("Points");
   }, [!!imageTab, tab]);
+  const gridRows = Number(rows),
+    gridColumns = Number(columns);
+  const gridNumbersValid =
+    rows.trim() !== "" &&
+    columns.trim() !== "" &&
+    Number.isInteger(gridRows) &&
+    Number.isInteger(gridColumns) &&
+    gridRows > 0 &&
+    gridColumns > 0;
+  const gridCells = gridNumbersValid ? gridRows * gridColumns : null;
+  const gridValid =
+    gridCells !== null &&
+    gridCells >= (map?.points ?? 0) &&
+    gridCells <= 4_000_000;
+  const applyGrid = async () => {
+    if (
+      !ready ||
+      !map ||
+      !gridValid ||
+      (gridRows === map.dimension[0] && gridColumns === map.dimension[1])
+    )
+      return;
+    const key = `${gridRows}:${gridColumns}`;
+    if (gridPending.current === key) return;
+    gridPending.current = key;
+    submittedGrid.current = { rows, columns };
+    try {
+      await run("map_grid", { rows: gridRows, columns: gridColumns });
+    } finally {
+      if (gridPending.current === key) gridPending.current = null;
+    }
+  };
+  const gridKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void applyGrid();
+    }
+    if (event.key === "Escape" && map) {
+      event.preventDefault();
+      setRows(String(map.dimension[0]));
+      setColumns(String(map.dimension[1]));
+    }
+  };
   const selected = map?.selectedSlot;
   const arrange = (op: string, args = {}) =>
     run("map_arrange", { op, slot: selected, index: map?.selected, ...args });
@@ -92,23 +165,32 @@ export function MapControls({
           ),
         )}
       </div>
-      <div
+      <TableScroll
         id="map-tab-content"
-        className={`map-tab-content ${tab === "Image" ? "map-image-tab" : ""}`}
+        className={`map-tab-content ${tab === "Image" ? "map-image-tab" : tab === "Points" ? "map-points-tab" : ""}`}
         role="tabpanel"
         aria-labelledby={`map-tab-${tab}`}
       >
         {tab === "Image" && imageTab}
         {tab === "Points" && (
           <section className="sidebar-section map-source-section">
-            <div className="map-source-actions">
+            <div
+              className="integration-image-tools map-source-actions"
+              role="group"
+              aria-label="Map scan controls"
+            >
               <button
+                className="plot-tool-button"
+                aria-label="Load images…"
+                title="Load detector images"
                 disabled={!ready || !state?.calibrated}
                 onClick={() => run("map_load", {}, "Integrating map images…")}
               >
-                <FolderOpen size={15} /> Load images…
+                <FolderOpen size={15} /> Load…
               </button>
               <button
+                className="plot-tool-button"
+                title="Integrate detector images from a folder"
                 disabled={!ready || !state?.calibrated}
                 onClick={() =>
                   run("map_folder", {}, "Integrating scan folder…")
@@ -117,40 +199,58 @@ export function MapControls({
                 Folder…
               </button>
               <button
-                aria-label="Load processed batch…"
-                title="Load a processed HDF5 / NeXus batch"
-                disabled={!ready}
-                onClick={() => run("map_batch", {}, "Loading processed batch…")}
+                className="plot-tool-button map-live-button"
+                aria-label="Live map"
+                aria-pressed={live}
+                title="Append new completed scan files from this map’s folder"
+                disabled={
+                  !ready ||
+                  !map?.canRebuild ||
+                  !state?.calibrated ||
+                  !!map?.normalized
+                }
+                onClick={() => onLive(!live)}
               >
-                Batch…
+                <Radio size={15} /> Live
               </button>
-            </div>
-            <div className="map-source-calibration">
+              <label
+                className="check-row map-follow"
+                title="Select the newest point as scan images arrive"
+              >
+                <input
+                  type="checkbox"
+                  aria-label="Follow newest map point"
+                  checked={follow}
+                  disabled={!live || !ready}
+                  onChange={(e) => onFollow(e.target.checked)}
+                />
+                Follow
+              </label>
+              <span className="map-source-spacer" />
               <button
-                className="quiet"
-                title={state?.calibrationName ?? "Load a PONI calibration"}
+                className="plot-tool-button map-source-icon"
+                aria-label="Load map calibration"
+                title={`Load calibration…${state?.calibrationName ? ` · ${state.calibrationName}` : ""}`}
                 disabled={!ready}
                 onClick={() => run("open_calibration")}
               >
-                {state?.calibrationName ?? "Load calibration…"}
+                <Ruler size={16} />
               </button>
-              {map && (
-                <button
-                  aria-label="Rebuild map"
-                  title="Reintegrate all map images with the current settings"
-                  disabled={!ready || !state?.calibrated || !map.canRebuild}
-                  onClick={() =>
-                    run("map_load", { reintegrate: true }, "Reintegrating map…")
-                  }
-                >
-                  <RefreshCw size={14} /> Rebuild
-                </button>
-              )}
+              <button
+                className="plot-tool-button map-source-icon"
+                aria-label="Reintegrate map"
+                title="Reintegrate all map images with the current settings"
+                disabled={!ready || !map?.canRebuild || !state?.calibrated}
+                onClick={() =>
+                  run("map_load", { reintegrate: true }, "Reintegrating map…")
+                }
+              >
+                <RefreshCw size={15} />
+              </button>
             </div>
             {!state?.calibrated && (
               <p className="map-note">
-                Load a calibration to integrate images. Processed batches can be
-                opened directly.
+                Load a calibration to integrate images.
               </p>
             )}
           </section>
@@ -428,7 +528,15 @@ export function MapControls({
               </section>
             )}
             {tab === "Layers" && (
-              <MapLayers map={map} ready={ready} run={run} />
+              <MapLayers
+                map={map}
+                ready={ready}
+                run={run}
+                unit={windowUnit ?? map.unit}
+                wavelength={
+                  state?.calibrated ? state.geometry.wavelength : undefined
+                }
+              />
             )}
             {tab === "Grid" && (
               <section className="sidebar-section">
@@ -463,7 +571,14 @@ export function MapControls({
                       type="number"
                       min="1"
                       value={rows}
-                      onChange={(e) => setRows(+e.target.value)}
+                      onChange={(e) => setRows(e.target.value)}
+                      onBlur={() => void applyGrid()}
+                      onKeyDown={gridKeyDown}
+                      aria-invalid={
+                        (rows !== "" &&
+                          (!Number.isInteger(gridRows) || gridRows < 1)) ||
+                        undefined
+                      }
                     />
                   </label>
                   <label className="field-label">
@@ -473,19 +588,26 @@ export function MapControls({
                       type="number"
                       min="1"
                       value={columns}
-                      onChange={(e) => setColumns(+e.target.value)}
+                      onChange={(e) => setColumns(e.target.value)}
+                      onBlur={() => void applyGrid()}
+                      onKeyDown={gridKeyDown}
+                      aria-invalid={
+                        (columns !== "" &&
+                          (!Number.isInteger(gridColumns) ||
+                            gridColumns < 1)) ||
+                        undefined
+                      }
                     />
                   </label>
                 </div>
-                <button
-                  disabled={!ready || rows * columns < map.points}
-                  onClick={() => run("map_grid", { rows, columns })}
-                >
-                  Apply grid
-                </button>
-                <p className="map-note">
-                  {rows * columns} cells for {map.points} points. Unfilled cells
-                  remain blank; row 0 is at the top.
+                <p className="map-note" aria-live="polite">
+                  {gridCells === null
+                    ? "Enter positive whole numbers for both dimensions."
+                    : gridCells < map.points
+                      ? `${gridCells} cells — at least ${map.points} are needed.`
+                      : gridCells > 4_000_000
+                        ? "Use no more than 4 million cells."
+                        : `${gridCells} cells for ${map.points} points.`}
                 </p>
                 {(
                   [
@@ -517,7 +639,7 @@ export function MapControls({
             )}
           </>
         )}
-      </div>
+      </TableScroll>
     </div>
   );
 }
