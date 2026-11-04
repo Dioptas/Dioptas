@@ -5,6 +5,13 @@ Mask, Integration and Map modes. It lives beside the existing Qt application
 and uses its scientific models and file formats. It is not a complete
 replacement yet.
 
+Integration and Map use the same `RasterView` and `PatternView` renderers.
+`diffractionPlotSetup.ts` prepares their common detector mask/click properties
+and pattern colors, visibility, phase references, overlay legends, linked radial
+position and click sampling. Each mode supplies its own display data and tools;
+Map ROI editing, Integration background inspection, independent image levels
+and per-mode plot preferences remain with their existing owners.
+
 ## Run this checkout
 
 Use standard CPython 3.13 (not a free-threaded interpreter):

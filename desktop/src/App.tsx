@@ -29,12 +29,9 @@ import {
   coordinateValue,
   type SourcedReading,
 } from "./PlotStatus";
-import {
-  patternPositionInUnit,
-  restoreMapPosition,
-  type PatternPosition,
-} from "./linkedPosition";
+import { restoreMapPosition, type PatternPosition } from "./linkedPosition";
 import { radialFields, radialValues } from "./radialReadout";
+import { detectorPlotSetup, patternPlotSetup } from "./diffractionPlotSetup";
 import { shapeHelp } from "./maskDomain";
 import type {
   Cake,
@@ -1097,6 +1094,22 @@ export default function App() {
       !!inspectedOriginal,
     ],
   );
+  const patternPlot = displayedPattern
+    ? patternPlotSetup({
+        pattern: displayedPattern,
+        patternColor: mode === "integration" ? originalPatternColor : "#ffffff",
+        showPattern: mode !== "integration" || originalPatternVisible,
+        patternName: state?.integration.patternName,
+        curves: displayedCurves,
+        referenceLines: mode === "integration" ? pattern?.phaseLines : undefined,
+        legendCurves: pattern?.curves ?? [],
+        showLegend: mode === "integration",
+        linked: mode === "integration" ? linked : undefined,
+        localPatternClick: mode === "integration" ? localPatternClick : undefined,
+        wavelength: state?.geometry.wavelength,
+        onInspect: mode === "integration" && ready ? inspectPattern : undefined,
+      })
+    : null;
   // The subtracted pattern can be cropped to the fitted range. Keep the slice
   // bounded by the original measurement so its edges can expand again.
   const backgroundX = pattern?.backgroundCurves?.[0]?.x ?? pattern?.x ?? [];
@@ -1541,15 +1554,18 @@ export default function App() {
                                 ? rawImage
                                 : image
                             }
-                            zoomMode="rectangle"
-                            mask={
-                              mode !== "integration" || state?.useMask
-                                ? (mask ?? undefined)
-                                : undefined
-                            }
-                            maskOpacity={
-                              state?.transparentMask?.valueOf() ? 0.72 : 1
-                            }
+                            {...detectorPlotSetup({
+                              state,
+                              mask,
+                              showMask: mode !== "integration" || state?.useMask,
+                              linked: mode === "integration" ? linked : undefined,
+                              localImageClick:
+                                mode === "integration" ? localImageClick : null,
+                              onInspect:
+                                mode === "integration"
+                                  ? inspectDetector
+                                  : undefined,
+                            })}
                             limits={limits}
                             log={logImage}
                             palette={palette}
@@ -1557,11 +1573,6 @@ export default function App() {
                             busy={!!busy}
                             resetKey={resetKey}
                             onHover={onHover}
-                            clickedPoint={
-                              mode === "integration"
-                                ? (linked?.imagePoint ?? localImageClick)
-                                : null
-                            }
                             peaks={detectorPeaks}
                             rings={detectorRings}
                             roi={
@@ -1598,9 +1609,6 @@ export default function App() {
                                   "Finding peaks…",
                                 );
                             }}
-                            onInspect={
-                              mode === "integration" ? inspectDetector : undefined
-                            }
                           />
                           <ImageIntensity
                             preferences={
@@ -1818,15 +1826,7 @@ export default function App() {
                         )}
                         {pattern ? (
                           <PatternView
-                            pattern={displayedPattern!}
-                            patternColor={
-                              mode === "integration"
-                                ? originalPatternColor
-                                : "#ffffff"
-                            }
-                            showPattern={
-                              mode !== "integration" || originalPatternVisible
-                            }
+                            {...patternPlot!.props}
                             emphasizePattern={
                               mode === "integration" &&
                               selectedOverlayUid === ORIGINAL_PATTERN_UID
@@ -1849,16 +1849,6 @@ export default function App() {
                             onZoomMode={setPatternZoom}
                             onHover={onPatternHover}
                             onResolution={setPatternResolution}
-                            linkedPosition={
-                              mode === "integration"
-                                ? patternPositionInUnit(
-                                    linked,
-                                    localPatternClick,
-                                    displayedPattern!.unit,
-                                    state?.geometry.wavelength,
-                                  )
-                                : undefined
-                            }
                             activeRing={
                               mode === "calibration" ? displayedRing : undefined
                             }
@@ -1914,48 +1904,7 @@ export default function App() {
                             onRegionChange={(_, min, max) =>
                               liveBackground.change({ range: [min, max] })
                             }
-                            overlayLegend={
-                              mode === "integration"
-                                ? [
-                                    ...(originalPatternVisible
-                                      ? [
-                                          {
-                                            name:
-                                              state?.integration?.patternName ??
-                                              "",
-                                            color: originalPatternColor,
-                                          },
-                                        ]
-                                      : []),
-                                    ...(pattern.curves ?? []),
-                                  ]
-                                : undefined
-                            }
-                            curves={displayedCurves}
-                            referenceLines={
-                              mode === "integration"
-                                ? pattern.phaseLines
-                                : undefined
-                            }
-                            onPick={(x, mouseY, resolution) => {
-                              if (!ready || mode !== "integration") return;
-                              const nearest = displayedPattern!.x.reduce(
-                                (best, value, i) =>
-                                  Math.abs(value - x) <
-                                  Math.abs(displayedPattern!.x[best] - x)
-                                    ? i
-                                    : best,
-                                0,
-                              );
-                              inspectPattern({
-                                x,
-                                mouseY,
-                                xResolution: resolution.x,
-                                yResolution: resolution.y,
-                                y: displayedPattern!.y[nearest],
-                                unit: displayedPattern!.unit,
-                              });
-                            }}
+                            onPick={patternPlot!.inspect}
                           />
                         ) : (
                           <div className="empty-pattern">
