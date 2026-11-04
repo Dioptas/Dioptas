@@ -1,7 +1,9 @@
 # Map workflow parity (2026-11-03)
 
-The GUI follow-up is in the assigned `codex/desktop-map` worktree, updated from
-`codex/react-desktop` at `dd9795d3`. The primary preview checkout is unchanged.
+The GUI follow-up was developed in the assigned `codex/desktop-map` worktree
+from `codex/react-desktop` at `dd9795d3`. Integration into the primary
+`codex/react-desktop` checkout on 2026-11-04 includes its subsequent phase-editor
+and database changes through `9777d23e`.
 Qt references were read from `/Users/clemens/Programming/Dioptas`, particularly
 MapWidget, MapPanelWidget, MapLayerWidget, MapGridPopup, MapPanelController,
 MapController and MapRoiInPatternController. Scientific integration, reduction,
@@ -188,6 +190,14 @@ registry, snapshot hook and optional normalization persistence hooks.
   selected task tab and displayed radial unit are local to the mounted view.
   Map scientific state is persisted. No portable Python runtime or Windows/Linux
   qualification is claimed.
+
+## Merge verification (2026-11-04)
+
+The combined Map and current React desktop tree passes the TypeScript/Vite
+build, all 44 JavaScript checks, 28 focused Python tests (Map, combined-view
+persistence and phase controls), and the complete headless Map workflow in
+Chromium and WebKit. Existing previews were not closed or restarted; the Python
+command additions require restarting the preview once.
 
 ## Current validation (2026-11-03)
 
