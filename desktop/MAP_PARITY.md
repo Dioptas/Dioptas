@@ -11,14 +11,20 @@ layout and expression calculations continue to use the existing Python models.
 
 ## GUI follow-up
 
-The Points reintegration checkbox and point-count/pattern/unit summary are
-removed. Available raw images are reintegrated automatically on point selection
-when calibration is present. Normalized patterns retain their stored scaling;
-stored-only projects fall back to their saved pattern when raw reintegration is
-unavailable. The full-map reintegration action remains separate. Normalization
-opens a small modal with editable bin limits/reference, Normalize and Restore,
-Escape/Close dismissal and focus restoration to its trigger.
+The point-count/pattern/unit summary and standalone normalization button are
+removed. A compact gear button in Points opens Map settings. It contains
+Reintegrate selected image (on by default, remembered in frontend preferences)
+and normalization. Available raw images are reintegrated on selection when
+this option is enabled and calibration is present. Normalized patterns retain
+their stored scaling; stored-only projects fall back to their saved pattern
+when raw reintegration is unavailable. Full-map reintegration remains separate.
 
+Normalization accepts a physical 2θ/Q/d range or the current bounds of an
+existing pattern window, plus a reference point. Unit switches convert both
+bounds. Angular conversion requires a loaded calibration; Q/d conversion does
+not. Applying a window reads its bounds at that time; editing it later does
+not silently renormalize patterns. Normalize and Restore, Escape/Close and
+focus restoration are available in the dialog.
 
 Points now owns Load, Folder, Live/Follow and Check filename numbering. The
 numbering check sits with insert/remove blank in the point-arrangement toolbar;
@@ -158,11 +164,14 @@ branch's baseline; no original Qt or shared scientific implementation was edited
   the model's straight-edge background handling. Expressions use the existing
   safe grammar, including existing project overlay references via `ovl()`.
 - Reversible mean-intensity normalization to a selected reference point over a
-  bin interval, using a dedicated BatchModel instance. The independent batch
+  physical radial interval or pattern window, using a dedicated BatchModel instance.
+  Range selection uses the shared strict-endpoint window rule on stored samples,
+  including descending axes. The internal bin interval remains supported for
+  older callers/projects. The independent batch
   workspace keeps its own data and normalization history. Repeated application starts from originals;
   invalid/nonpositive ranges are rejected. The `.dio` project retains normalized
   map patterns; a separate optional `react_map_normalization` group retains
-  originals/range/reference for Restore after reopening in this frontend. Qt
+  originals/range/reference/physical coordinates for Restore after reopening in this frontend. Qt
   reads the normal map and ignores this extra group; a subsequent Qt save does
   not preserve this frontend-only restore history.
 - Independent top histograms, intensity limits, Auto settings, linear/log mode
@@ -223,15 +232,21 @@ registry, snapshot hook and optional normalization persistence hooks.
   Map scientific state is persisted. No portable Python runtime or Windows/Linux
   qualification is claimed.
 
-## Compact normalization and automatic selection verification (2026-11-04)
+## Map settings and physical normalization verification (2026-11-04)
 
-Build and all 44 JavaScript checks pass. The complete headless Map workflows
-pass in Chromium and WebKit, including automatic selection with changed radial
-bin settings, normalized-pattern preservation, stored-pattern fallback when a
-raw file disappears, and the compact normalization dialog's application,
-restore, Close/Escape behavior and focus return. The point-summary line and
-reintegration checkbox are absent. This update does not require a Python or
-native-window restart.
+The production build, all 44 JavaScript checks, and the Python desktop suite
+(253 passed, 5 skipped) pass. Headless Chromium/WebKit workflows cover the compact settings dialog, changing
+reintegration preference, automatic selection with changed radial bin settings,
+manual range unit conversion, pattern-window normalization, restore, Close/Escape
+and focus return. They also cover normalized-pattern preservation and stored
+fallback when a raw file disappears. Analytic Python tests compare physical
+Q/d/2θ intervals to independently computed scale factors, verify descending
+axes and atomic failure, and save/reopen/restore the physical definition.
+A nearly constant map histogram also remains usable after normalization; all
+finite source samples are retained and scientific values are unchanged.
+Python processing changes require restarting an existing preview; frontend-only
+settings changes update through HMR. No visible native window is opened for
+routine verification.
 
 ## Numeric editing and control cleanup verification (2026-11-04)
 

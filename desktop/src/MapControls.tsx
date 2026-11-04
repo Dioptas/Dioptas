@@ -11,9 +11,10 @@ import {
   Radio,
   Crosshair,
   ListOrdered,
+  Settings,
 } from "lucide-react";
 import { MapLayers } from "./MapLayers";
-import { MapNormalizationDialog } from "./MapNormalizationDialog";
+import { MapSettingsDialog } from "./MapSettingsDialog";
 import {
   useEffect,
   useState,
@@ -35,7 +36,11 @@ export function MapControls({
   onFollow,
   imageTab,
   windowUnit,
+  reintegrateSelected,
+  onReintegrateSelected,
 }: {
+  reintegrateSelected: boolean;
+  onReintegrateSelected: (enabled: boolean) => void;
   imageTab?: ReactNode;
   windowUnit?: Unit;
   map: MapData | null;
@@ -52,9 +57,10 @@ export function MapControls({
     [columns, setColumns] = useState(() => String(map?.dimension[1] ?? 1));
   const gridPending = useRef<string | null>(null);
   const submittedGrid = useRef<{ rows: string; columns: string } | null>(null);
-  const [normalizationOpen, setNormalizationOpen] = useState(false);
-  const normalizationTrigger = useRef<HTMLButtonElement>(null);
-  const reintegrate = !!state?.calibrated && !map?.normalized;
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsTrigger = useRef<HTMLButtonElement>(null);
+  const reintegrate =
+    reintegrateSelected && !!state?.calibrated && !map?.normalized;
   const [page, setPage] = useState(0);
   useEffect(() => {
     setPage(map?.selectedSlot == null ? 0 : Math.floor(map.selectedSlot / 100));
@@ -419,6 +425,16 @@ export function MapControls({
                         <Ban size={16} />
                       )}
                     </button>
+                    <button
+                      ref={settingsTrigger}
+                      aria-label="Map settings"
+                      title="Map folder settings"
+                      aria-haspopup="dialog"
+                      disabled={!ready}
+                      onClick={() => setSettingsOpen(true)}
+                    >
+                      <Settings size={16} />
+                    </button>
                   </TableActions>
                 </div>
                 {map.labels.length > 100 && (
@@ -442,17 +458,6 @@ export function MapControls({
                     </button>
                   </div>
                 )}
-                <button
-                  ref={normalizationTrigger}
-                  className="quiet map-normalize-button"
-                  aria-label="Normalize patterns"
-                  title="Normalize patterns…"
-                  aria-pressed={map.normalized}
-                  disabled={!ready}
-                  onClick={() => setNormalizationOpen(true)}
-                >
-                  Normalize…
-                </button>
               </section>
             )}
             {tab === "Layers" && (
@@ -562,13 +567,17 @@ export function MapControls({
           </>
         )}
       </TableScroll>
-      {map && normalizationOpen && (
-        <MapNormalizationDialog
+      {map && settingsOpen && (
+        <MapSettingsDialog
           map={map}
           ready={ready}
           run={run}
-          anchor={normalizationTrigger.current}
-          onClose={() => setNormalizationOpen(false)}
+          anchor={settingsTrigger.current}
+          reintegrateSelected={reintegrateSelected}
+          onReintegrateSelected={onReintegrateSelected}
+          displayUnit={windowUnit ?? map.unit}
+          wavelength={state?.calibrated ? state.geometry.wavelength : undefined}
+          onClose={() => setSettingsOpen(false)}
         />
       )}
     </div>

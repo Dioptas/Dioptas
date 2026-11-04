@@ -120,6 +120,74 @@ def test_normalization_project_round_trip_and_exports(stored, tmp_path):
     assert tif.shape == (2, 3) and tif[1, 0] == 0
 
 
+@pytest.mark.parametrize("unit,minimum,maximum", [
+    ("q_A^-1", 2.5, 7.5),
+    ("d_A", 2*np.pi/7.5, 2*np.pi/2.5),
+    ("2th_deg", np.degrees(2*np.arcsin(2.5/(4*np.pi))),
+     np.degrees(2*np.arcsin(7.5/(4*np.pi)))),
+])
+def test_physical_normalization_matches_known_samples(stored, unit, minimum, maximum):
+    m = stored.configuration.map_model
+    original = m.pattern_intensities.copy()
+    if unit == "2th_deg":
+        c = stored.configuration.calibration_model
+        c.load(str(DATA / "CeO2_Pilatus1M.poni"))
+        c.pattern_geometry.wavelength = 1e-10
+    result = call(stored, "map_normalize", minimum=minimum, maximum=maximum,
+                  unit=unit, reference=2)
+    expected = original * (original[2, 3:8].mean()/original[:, 3:8].mean(axis=1))[:, None]
+    np.testing.assert_allclose(m.pattern_intensities, expected)
+    assert result["map"]["normalizationRange"] == [3, 8]
+    assert result["map"]["normalizationCoordinates"] == {
+        "minimum": minimum, "maximum": maximum, "unit": unit}
+    call(stored, "map_normalize", enabled=False)
+    np.testing.assert_allclose(m.pattern_intensities, original)
+
+
+def test_window_normalization_reapply_and_coordinate_persistence(stored, tmp_path):
+    m = stored.configuration.map_model
+    original = m.pattern_intensities.copy()
+    call(stored, "map_roi", name="A", minimum=2.5, maximum=7.5)
+    call(stored, "map_normalize", window="A", reference=2)
+    # A later window edit is used on the next explicit application, from originals.
+    call(stored, "map_roi", name="A", minimum=3.5, maximum=6.5)
+    result = call(stored, "map_normalize", window="A", reference=1)
+    expected = original * (original[1, 4:7].mean()/original[:, 4:7].mean(axis=1))[:, None]
+    np.testing.assert_allclose(m.pattern_intensities, expected)
+    definition = {"minimum": 3.5, "maximum": 6.5, "unit": "q_A^-1", "window": "A"}
+    assert result["map"]["normalizationCoordinates"] == definition
+    path = str(tmp_path / "physical.dio")
+    call(stored, "save_project", path=path)
+    reopened = DesktopSession()
+    result = call(reopened, "open_project", path=path)
+    assert result["map"]["normalizationCoordinates"] == definition
+    np.testing.assert_allclose(reopened.configuration.map_model.pattern_intensities, expected)
+    call(reopened, "map_normalize", enabled=False)
+    np.testing.assert_allclose(reopened.configuration.map_model.pattern_intensities, original)
+
+
+def test_descending_axis_normalization_and_invalid_range_atomicity(stored):
+    m = stored.configuration.map_model
+    original = m.pattern_intensities[:, ::-1].copy()
+    m.set_integration_results(m.pattern_x[::-1], original, m.point_infos, m.filepaths,
+                             m.pattern_unit, keep_layout=True)
+    stored._map_batch_owner = None
+    result = call(stored, "map_normalize", minimum=2.5, maximum=7.5, unit="q_A^-1")
+    expected = original * (original[0, 3:8].mean()/original[:, 3:8].mean(axis=1))[:, None]
+    np.testing.assert_allclose(m.pattern_intensities, expected)
+    definition = result["map"]["normalizationCoordinates"]
+    for payload in [
+        {"minimum": 7, "maximum": 2, "unit": "q_A^-1"},
+        {"minimum": 20, "maximum": 30, "unit": "q_A^-1"},
+        {"minimum": 2, "maximum": 7, "unit": "2th_deg"},  # no calibration
+        {"minimum": 2, "maximum": float("nan"), "unit": "q_A^-1"},
+        {"window": "missing"},
+    ]:
+        assert not stored.invoke("map_normalize", payload)["ok"]
+        np.testing.assert_allclose(m.pattern_intensities, expected)
+        assert call(stored, "state")["map"]["normalizationCoordinates"] == definition
+
+
 def test_batch_import_unit_and_missing_sources(tmp_path):
     path = tmp_path / "batch.h5"
     with h5py.File(path, "w") as f:

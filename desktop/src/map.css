@@ -514,13 +514,7 @@
   font-size: var(--text-small);
 }
 
-.map-normalize-button {
-  flex-shrink: 0;
-  align-self: flex-start;
-  margin-top: 7px;
-  font-size: var(--text-small);
-}
-.map-normalization-dialog {
+.map-settings-dialog {
   width: min(370px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   overflow: auto;
@@ -531,33 +525,47 @@
   background: #202226;
   color: #e2e6eb;
 }
-.map-normalization-dialog::backdrop {
+.map-settings-dialog::backdrop {
   background: #0008;
 }
-.map-normalization-dialog h3 {
+.map-settings-dialog h3 {
   margin: 0 0 9px;
   font-size: var(--text-normal);
 }
-.map-normalization-dialog input {
+.map-settings-dialog input:not([type="checkbox"]),
+.map-settings-dialog select {
   min-width: 0;
   width: 100%;
   font-size: var(--text-small);
 }
-.map-normalization-dialog .field-label {
+.map-settings-dialog .field-label {
   margin-top: 10px;
 }
-.map-normalization-dialog footer {
+.map-settings-dialog footer {
   display: flex;
   align-items: center;
   gap: 6px;
   margin-top: 18px;
 }
-.map-normalization-dialog footer > span {
+.map-settings-dialog footer > span {
   flex: 1;
 }
-.map-normalization-dialog footer button {
+.map-settings-dialog footer button {
   font-size: var(--text-small);
   min-height: 29px;
   padding: 4px 7px;
   white-space: nowrap;
+}
+
+.map-settings-dialog h4 {
+  margin: 15px 0 6px;
+  padding-top: 12px;
+  border-top: 1px solid #ffffff18;
+  font-size: var(--text-small);
+  font-weight: 500;
+}
+.map-settings-dialog .map-reintegrate-setting {
+  margin: 4px 0;
+  gap: 7px;
+  font-size: var(--text-small);
 }

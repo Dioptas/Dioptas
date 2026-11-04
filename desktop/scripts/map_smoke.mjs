@@ -113,8 +113,39 @@ try {
         .getAttribute("data-orientation"),
       "horizontal",
     );
+  const settingsButton = page.getByRole("button", {
+    name: "Map settings",
+    exact: true,
+  });
+  const settingsDialog = page.getByRole("dialog", {
+    name: "Map settings",
+    exact: true,
+  });
+  await settingsButton.click();
+  const reintegrateSetting = settingsDialog.getByLabel(
+    "Reintegrate selected image",
+    { exact: true },
+  );
+  assert.equal(await reintegrateSetting.isChecked(), true);
+  await reintegrateSetting.uncheck();
+  await settingsDialog
+    .getByRole("button", { name: "Close", exact: true })
+    .click();
+  const storedLength = state.pattern.y.length;
   const previousBins = state.state.bins;
   assert.equal((await invoke("integration_settings", { bins: 120 })).ok, true);
+  await scanClick(1, 2, 3, 3);
+  assert.equal(
+    (await invoke("state")).pattern.y.length,
+    storedLength,
+    "Disabled reintegration did not retain the stored pattern",
+  );
+  await settingsButton.click();
+  assert.equal(await reintegrateSetting.isChecked(), false);
+  await reintegrateSetting.check();
+  await settingsDialog
+    .getByRole("button", { name: "Close", exact: true })
+    .click();
   await scanClick(1, 2, 3, 3);
   state = await invoke("state");
   assert.equal(state.map.selected, 5);
@@ -630,27 +661,39 @@ try {
     await page.locator(".map-points-section > .map-note").count(),
     0,
   );
-  const normalizeButton = page.getByRole("button", {
-    name: "Normalize patterns",
-    exact: true,
-  });
+  const normalizeButton = settingsButton;
   await normalizeButton.click();
-  const normalizationDialog = page.getByRole("dialog", {
-    name: "Normalize patterns",
-    exact: true,
-  });
+  const normalizationDialog = settingsDialog;
   assert.ok(await normalizationDialog.isVisible());
   const dialogBounds = await normalizationDialog.boundingBox();
   assert.ok(
-    dialogBounds.width <= 390 && dialogBounds.height <= 420,
-    "Normalization dialog is not compact",
+    dialogBounds.width <= 390 && dialogBounds.height <= 550,
+    "Map settings dialog is not compact",
   );
-  const startBin = normalizationDialog.getByLabel("Normalization start bin", {
+  const minimum = normalizationDialog.getByLabel("Normalization minimum", {
     exact: true,
   });
-  await startBin.fill("");
-  assert.equal(await startBin.inputValue(), "");
-  await startBin.fill("0");
+  const maximum = normalizationDialog.getByLabel("Normalization maximum", {
+    exact: true,
+  });
+  await minimum.fill("");
+  assert.equal(await minimum.inputValue(), "");
+  await minimum.fill("2");
+  await minimum.press("Tab");
+  assert.ok(await maximum.evaluate((el) => el === document.activeElement));
+  await maximum.fill("8");
+  const rangeUnit = normalizationDialog.getByLabel("Normalization unit", {
+    exact: true,
+  });
+  const initialUnit = await rangeUnit.inputValue();
+  const alternateUnit = initialUnit === "q_A^-1" ? "d_A" : "q_A^-1";
+  await rangeUnit.selectOption(alternateUnit);
+  await rangeUnit.selectOption(initialUnit);
+  assert.ok(Math.abs(Number(await minimum.inputValue()) - 2) < 1e-10);
+  assert.ok(Math.abs(Number(await maximum.inputValue()) - 8) < 1e-10);
+  await page.screenshot({
+    path: path.join(artifacts, "map-settings-range.png"),
+  });
   await click("Normalize");
   assert.equal((await invoke("state")).map.normalized, true);
   await normalizationDialog
@@ -672,10 +715,25 @@ try {
   await click("Restore original");
   assert.equal((await invoke("state")).map.normalized, false);
   await normalizationDialog
+    .getByLabel("Normalization source", { exact: true })
+    .selectOption("window");
+  const chosenWindow = await normalizationDialog
+    .getByLabel("Normalization window", { exact: true })
+    .inputValue();
+  await click("Normalize");
+  assert.equal(
+    (await invoke("state")).map.normalizationCoordinates.window,
+    chosenWindow,
+  );
+  await page.screenshot({
+    path: path.join(artifacts, "map-settings-window.png"),
+  });
+  await click("Restore original");
+  await normalizationDialog
     .getByRole("button", { name: "Close", exact: true })
     .click();
   await page.waitForFunction(
-    () => !document.querySelector(".map-normalization-dialog"),
+    () => !document.querySelector(".map-settings-dialog"),
   );
   assert.ok(
     await normalizeButton.evaluate((el) => el === document.activeElement),
@@ -684,7 +742,7 @@ try {
   await normalizeButton.click();
   await page.keyboard.press("Escape");
   await page.waitForFunction(
-    () => !document.querySelector(".map-normalization-dialog"),
+    () => !document.querySelector(".map-settings-dialog"),
   );
   assert.ok(
     await normalizeButton.evaluate((el) => el === document.activeElement),

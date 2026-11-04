@@ -30,6 +30,12 @@ export interface MapData {
   normalized: boolean;
   normalizationRange: [number, number];
   normalizationReference: number;
+  normalizationCoordinates?: {
+    minimum: number;
+    maximum: number;
+    unit: Unit;
+    window?: string;
+  };
   indices: number[][];
   slotIndices: number[][];
   values: (number | null)[][];

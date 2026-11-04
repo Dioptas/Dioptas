@@ -88,9 +88,14 @@ def raster(
         finite = np.asarray(array, dtype=np.float64)
         finite = finite[np.isfinite(finite)]
         transformed = np.arcsinh(finite)
-        counts, edges = np.histogram(
-            transformed, bins=256, range=None if finite.size else (0, 1)
-        )
+        histogram_range = (0, 1)
+        if finite.size:
+            low, high = float(transformed.min()), float(transformed.max())
+            # Normalization can leave a map constant to floating-point precision.
+            # 256 distinct edges cannot fit in a span of only a few ULPs.
+            padding = max(abs(low), abs(high), 1.0) * 1e-6
+            histogram_range = (low - padding, high + padding) if high - low < padding else (low, high)
+        counts, edges = np.histogram(transformed, bins=256, range=histogram_range)
         result["limits"] = image_levels(array) or [0, 1]
         result["histogram"] = {
             "edges": np.sinh(edges).tolist(),

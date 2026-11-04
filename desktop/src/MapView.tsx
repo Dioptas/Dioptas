@@ -110,7 +110,12 @@ export function MapView({
   patternZoom: ZoomMode;
   onPatternZoom: (mode: ZoomMode) => void;
 }) {
-  const reintegrate = !!state?.calibrated && !map?.normalized;
+  const [reintegrateSelected, setReintegrateSelected] = usePreference<boolean>(
+    "reintegrate-selected",
+    true,
+  );
+  const reintegrate =
+    reintegrateSelected && !!state?.calibrated && !map?.normalized;
   const [smooth, setSmooth] = usePreference<boolean>("smooth", false),
     [smoothFactor, setSmoothFactor] = usePreference<number>("smooth-factor", 5);
   const [showContours, setShowContours] = usePreference<boolean>(
@@ -614,6 +619,8 @@ export function MapView({
                 onLive={setLive}
                 follow={follow}
                 onFollow={setFollow}
+                reintegrateSelected={reintegrateSelected}
+                onReintegrateSelected={setReintegrateSelected}
                 windowUnit={viewPattern?.unit ?? map?.unit}
                 imageTab={tabbedImage ? detectorPanel : undefined}
               />

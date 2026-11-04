@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import math
+import json
 import os
 import re
 
@@ -79,6 +80,7 @@ class MapWorkflow:
             "normalized": b.normalization_enabled,
             "normalizationRange": [int(v) for v in b.normalization_range],
             "normalizationReference": int(b.normalization_reference),
+            "normalizationCoordinates": self._map_normalization_coordinates(m, b),
             "slots": m.get_slots(),
             "labels": m.get_slot_labels(),
             "excluded": list(m.excluded_points),
@@ -426,13 +428,75 @@ class MapWorkflow:
             b.integration_unit = m.pattern_unit
             self._map_normalization_batch = b
             self._map_batch_owner = m
+            self._map_normalization_definition = None
         return self._map_normalization_batch
 
-    def _map_normalize(self, enabled=True, start=0, stop=None, reference=0):
+    def _map_normalization_coordinates(self, m, batch):
+        definition = getattr(self, "_map_normalization_definition", None)
+        if definition is not None:
+            return dict(definition)
+        if not batch.normalization_enabled and m.active_roi is not None:
+            roi = m.active_roi
+            return {"minimum": roi.x_min, "maximum": roi.x_max, "unit": m.pattern_unit}
+        x = np.asarray(m.pattern_x, dtype=float)
+        start, stop = batch.normalization_range
+        start, stop = max(0, min(int(start), len(x)-1)), max(1, min(int(stop), len(x)))
+        if stop <= start:
+            start, stop = 0, len(x)
+        # Cell boundaries reproduce a legacy [start, stop) interval exactly.
+        delta = float(x[1] - x[0]) if len(x) > 1 else max(abs(float(x[0])) * 0.01, 1e-6)
+        low = (x[start-1] + x[start]) / 2 if start else x[0] - delta / 2
+        high = (x[stop-1] + x[stop]) / 2 if stop < len(x) else x[-1] + (x[-1] - x[-2] if len(x) > 1 else delta) / 2
+        if not np.all(np.isfinite([low, high])):
+            finite = x[np.isfinite(x)]
+            low, high = (float(finite.min()), float(finite.max())) if len(finite) else (0.0, 1.0)
+        return {"minimum": float(min(low, high)), "maximum": float(max(low, high)), "unit": m.pattern_unit}
+
+    def _map_normalize(self, enabled=True, start=0, stop=None, reference=0,
+                       minimum=None, maximum=None, unit=None, window=None):
         m = self._require_map()
         b = self._map_normalization_model()
+        definition = None
         if enabled:
+            if window is not None:
+                roi = m.get_roi(window)
+                if roi is None:
+                    raise ValueError("Choose an existing pattern window for normalization.")
+                minimum, maximum, unit = roi.x_min, roi.x_max, m.pattern_unit
+            if minimum is not None or maximum is not None or unit is not None:
+                if minimum is None or maximum is None or unit not in {"2th_deg", "q_A^-1", "d_A"}:
+                    raise ValueError("Choose a radial unit and both normalization limits.")
+                low, high = float(minimum), float(maximum)
+                if not np.all(np.isfinite([low, high])) or low >= high:
+                    raise ValueError("Normalization limits must be finite and increasing.")
+                if low < 0 or (unit == "d_A" and low == 0) or (unit == "2th_deg" and high > 180):
+                    raise ValueError("Choose a physical radial range: nonnegative Q, positive d, or 2θ between 0° and 180°.")
+                bounds = np.asarray([low, high])
+                if unit != m.pattern_unit:
+                    if {unit, m.pattern_unit} <= {"q_A^-1", "d_A"}:
+                        with np.errstate(divide="ignore", invalid="ignore"):
+                            bounds = 2 * np.pi / bounds
+                    else:
+                        from dioptas.model.util.calc import convert_units
+                        c = self.configuration.calibration_model
+                        if not c.is_calibrated or not c.wavelength or c.wavelength <= 0:
+                            raise ValueError("Converting an angular normalization range needs a loaded calibration.")
+                        with np.errstate(divide="ignore", invalid="ignore"):
+                            bounds = convert_units(bounds, c.wavelength, unit, m.pattern_unit)
+                    if bounds is None or not np.all(np.isfinite(bounds)):
+                        raise ValueError("The normalization range cannot be converted to the stored radial unit.")
+                from dioptas.model.map_reduction import window_indices
+                indices = window_indices(m.pattern_x, sorted(bounds))
+                if not len(indices):
+                    raise ValueError("The normalization range contains no stored pattern samples.")
+                if np.any(np.diff(indices) != 1):
+                    raise ValueError("The normalization range must select contiguous stored samples.")
+                start, stop = int(indices[0]), int(indices[-1]) + 1
+                definition = {"minimum": low, "maximum": high, "unit": unit}
+                if window is not None:
+                    definition["window"] = window
             b.normalize((int(start), int(stop if stop is not None else len(m.pattern_x))), int(reference))
+            self._map_normalization_definition = definition
         else:
             b.restore_normalization()
         m.set_integration_results(m.pattern_x, b.data, m.point_infos, m.filepaths, m.pattern_unit, keep_layout=True)
@@ -490,6 +554,9 @@ class MapWorkflow:
             g.create_dataset("original", data=b._normalization_source[0])
             g.attrs["range"] = b.normalization_range
             g.attrs["reference"] = b.normalization_reference
+            definition = getattr(self, "_map_normalization_definition", None)
+            if definition is not None:
+                g.attrs["coordinates"] = json.dumps(definition)
 
     def _restore_map_normalization(self, path):
         self._map_selected = self._map_slot = None
@@ -509,5 +576,6 @@ class MapWorkflow:
             b.data, b.binning = original, m.pattern_x
             b.integration_unit = m.pattern_unit
             b.normalize(tuple(g.attrs["range"]), int(g.attrs["reference"]))
+            self._map_normalization_definition = json.loads(g.attrs["coordinates"]) if "coordinates" in g.attrs else None
             m.set_integration_results(m.pattern_x, b.data, m.point_infos, m.filepaths, m.pattern_unit, keep_layout=True)
             self._map_batch_owner = m

@@ -210,6 +210,20 @@ def test_histogram_counts_full_resolution_including_zero_and_negative_pixels():
     np.testing.assert_array_equal(data, before)
 
 
+@pytest.mark.parametrize("value", [0.0, 100.0, -100.0, 1e12])
+def test_histogram_nearly_constant_map_retains_all_samples(value):
+    data = np.array([[value, np.nextafter(value, np.inf), np.nextafter(value, -np.inf)]])
+    before = data.copy()
+    histogram = raster(data, histogram=True)["histogram"]
+    assert histogram["finitePixels"] == 3
+    assert sum(histogram["counts"]) == 3
+    assert np.all(np.isfinite(histogram["edges"]))
+    assert np.all(np.diff(histogram["edges"]) > 0)
+    assert histogram["edges"][0] <= data.min()
+    assert histogram["edges"][-1] >= data.max()
+    np.testing.assert_array_equal(data, before)
+
+
 def test_display_and_mask_have_original_spatial_resolution(raw):
     result = call(raw, "state")
     image, mask = result["image"], result["mask"]
