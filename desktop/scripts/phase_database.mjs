@@ -213,6 +213,67 @@ try {
     await resultCount.textContent(),
     `${browseNames.length} results`,
   );
+  const sourceAuthors = (record) => {
+    const reference = record.sourceRecord.reference;
+    return typeof reference === "string"
+      ? [reference]
+      : reference?.authors || [record.authors];
+  };
+  const expectedByAuthor = (name) =>
+    all.filter(
+      (m) =>
+        m.diffraction &&
+        m.references.some((r) =>
+          sourceAuthors(r).some((author) =>
+            author.toLowerCase().includes(name.toLowerCase()),
+          ),
+        ),
+    );
+  for (const author of ["Dewaele", "dewaele", "Garbarino"]) {
+    await query(author);
+    const names = await materialTable
+      .locator("tbody tr td:first-child")
+      .allTextContents();
+    const expected = expectedByAuthor(author);
+    assert.ok(
+      expected.length > 1,
+      "Expected several real materials for this author",
+    );
+    assert.deepEqual(new Set(names), new Set(expected.map((m) => m.name)));
+    assert.equal(names.length, new Set(names).size);
+    assert.equal(await resultCount.textContent(), `${names.length} results`);
+    await checkFixedPane();
+  }
+  assert.ok(
+    expectedByAuthor("Garbarino").some((m) =>
+      m.references.some(
+        (r) =>
+          !r.authors.includes("Garbarino") &&
+          sourceAuthors(r).some((a) => a.includes("Garbarino")),
+      ),
+    ),
+    "The coauthor case must not depend on compact citations",
+  );
+  await query("Dewaele");
+  await select(gold);
+  const coauthorFilter = db.getByRole("searchbox", {
+    name: "Filter EoS records",
+    exact: true,
+  });
+  await coauthorFilter.fill("Garbarino");
+  const coauthorReferences = gold.references
+    .map((r, index) => ({ r, index }))
+    .filter(({ r }) => sourceAuthors(r).some((a) => a.includes("Garbarino")))
+    .map(({ index }) => index);
+  const shownCoauthorReferences = await recordTable
+    .locator("tbody tr")
+    .evaluateAll((rows) => rows.map((r) => Number(r.dataset.reference)));
+  assert.deepEqual(shownCoauthorReferences, coauthorReferences);
+  await coauthorFilter.fill("");
+  await page.screenshot({
+    path: artifacts + "/phase-database-author-search.png",
+  });
+  await query("");
   await page
     .getByLabel("Search materials", { exact: true })
     .fill("unavailable");

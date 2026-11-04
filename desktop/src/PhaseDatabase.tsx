@@ -1,5 +1,12 @@
+import { matchesRecordAuthor, recordAuthors } from "./phaseAuthorSearch";
 import { Star } from "lucide-react";
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import { createPortal } from "react-dom";
 import { DataTable, TableScroll } from "./DataTable";
 import type { IntegrationRun } from "./integration";
@@ -61,6 +68,7 @@ function variant(record: DatabaseRecord, records: DatabaseRecord[]) {
 function matchesRecord(record: DatabaseRecord, query: string) {
   const terms = query.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
   const text = [
+    ...recordAuthors(record),
     record.authors,
     record.year,
     record.eos,
@@ -71,7 +79,12 @@ function matchesRecord(record: DatabaseRecord, query: string) {
   ]
     .join(" ")
     .toLocaleLowerCase();
-  return terms.every((term) => text.includes(term));
+  return (
+    matchesRecordAuthor(record, query) ||
+    terms.every(
+      (term) => text.includes(term) || matchesRecordAuthor(record, term),
+    )
+  );
 }
 function keepVisible(row: HTMLElement | null) {
   const scroll = row?.closest(".data-table-scroll");
@@ -197,7 +210,24 @@ export function PhaseDatabase({
     return () => clearTimeout(timer);
   }, [query, materials, run, ready, retry, result.query, searchError]);
   const pending = result.query !== query.trim();
-  const hits = pending ? [] : result.hits;
+  const authorHits = useMemo(
+    () =>
+      query.trim()
+        ? materials
+            .filter((m) =>
+              m.references.some((r) => matchesRecordAuthor(r, query)),
+            )
+            .sort((a, b) =>
+              compare(materialSortName(a.name), materialSortName(b.name)),
+            )
+        : [],
+    [materials, query],
+  );
+  // Keep the model's formula/name ranking, then append author-only matches once.
+  const namedIds = new Set(result.hits.map((m) => m.id));
+  const hits = pending
+    ? []
+    : [...result.hits, ...authorHits.filter((m) => !namedIds.has(m.id))];
   let shown = hits.filter(
     (m) =>
       m.diffraction &&
@@ -411,7 +441,8 @@ export function PhaseDatabase({
             ref={search}
             type="search"
             aria-label="Search materials"
-            placeholder="Search all materials: Au, MgFe, gold, periclase…"
+            placeholder="Search material, formula or author…"
+            title="Search material names, formulas, aliases or EoS authors."
             value={query}
             onChange={(e) => changeQuery(e.target.value)}
             onKeyDown={(e) => {

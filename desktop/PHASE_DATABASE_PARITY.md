@@ -6,7 +6,15 @@ through the selected record's Peritheos and reconstruction-report links.
 
 ## Visible workflow
 
-- Search by material name, formula or alias, using the existing ranked model search.
+- Search by material name, formula, alias or EoS author. The existing model's
+  material/formula ranking comes first; additional author matches use complete
+  reference author lists, including coauthors omitted from compact citations.
+  Author-only matches are appended alphabetically and material IDs are deduplicated.
+  Case, accents and citation punctuation are normalized; two-letter surnames match
+  whole words so element searches do not expand to incidental name fragments.
+  The correct surname spelling is Dewaele. The record filter also matches full
+  author lists. These client-side changes use the already-loaded catalog and do
+  not require restarting the processing worker.
 - All, Recent and Favourites show only materials with crystal structures or reference
   peaks usable for phase lines. All is first. The redundant diffraction column and
   filter control are removed, as is the duplicate Clear button; the search field's
@@ -66,7 +74,8 @@ and the built-in inspector were removed with their components.
 
 ## Verification
 
-- `npm run build` and 40 JavaScript tests pass.
+- `npm run build` and 44 JavaScript tests pass, including full/coauthor searches,
+  case/accent handling, legacy references, short surnames and formula-search isolation.
 - `node desktop/scripts/phase_database.mjs` and `--webkit` exercise real records:
   stale/incomplete searches, favourites/history, empty states, concise reference-first
   columns, absence of the old inspector, distinct same-author variants, documentation
@@ -78,7 +87,9 @@ and the built-in inspector were removed with their components.
   markers, no matches, native clearing, per-material reset and hidden-selection
   load protection. Bracketed magnesium compositions are checked against gold in
   ascending and descending material order. The latest filter/order changes were
-  verified headlessly, preserving the running user preview.
+  verified headlessly, preserving the running user preview. Real-catalog upper-search
+  checks cover Dewaele, case-insensitive variants and Garbarino coauthorship, all
+  matching materials, deduplication, count/layout stability and lower record filtering.
 - Layout checks cover 1440×1000, 1000×668 and 800×600 at both text sizes, including
   visible selected records/footer actions and no horizontal record-table scrolling.
 - The scoped native smoke passes for the simplified columns, absence of the inspector,
