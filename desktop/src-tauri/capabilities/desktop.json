@@ -2,7 +2,9 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "desktop",
   "description": "The local Dioptas window may call the bounded scientific command interface.",
-  "windows": ["main"],
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "allow-desktop-invoke",
     "allow-prepare-color-picker",
@@ -14,6 +16,8 @@
     "allow-open-phase-editor",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
-    "core:event:allow-emit"
+    "core:event:allow-emit",
+    "allow-open-map-window",
+    "allow-close-map-window"
   ]
 }

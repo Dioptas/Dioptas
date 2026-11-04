@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { DetachedMapWindow } from "./DetachedMapWindow";
 import { NativePhaseEditor } from "./NativePhaseEditor";
 import { isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -33,7 +34,10 @@ if (
   });
 } else {
   createRoot(document.getElementById("root")!).render(
-    isTauri() && getCurrentWindow().label === "calibration-tooltip" ? (
+    (isTauri() && getCurrentWindow().label === "map-window") ||
+      new URLSearchParams(location.search).has("map_window") ? (
+      <DetachedMapWindow />
+    ) : isTauri() && getCurrentWindow().label === "calibration-tooltip" ? (
       <NativeCalibrationTooltip />
     ) : isTauri() && getCurrentWindow().label === "phase-editor" ? (
       <NativePhaseEditor />

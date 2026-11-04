@@ -1,0 +1,17 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "map-window",
+  "description": "The detached scan map reads binary map displays; edits are ordered by the main window.",
+  "windows": [
+    "map-window"
+  ],
+  "permissions": [
+    "allow-desktop-invoke",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "core:event:allow-emit",
+    "core:window:allow-outer-position",
+    "core:window:allow-set-position",
+    "core:window:allow-set-size"
+  ]
+}

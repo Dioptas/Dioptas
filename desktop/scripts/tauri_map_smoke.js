@@ -180,9 +180,17 @@
       reopened.ok && reopened.map.rois.length === 2,
       "Native project map did not reopen",
     );
+    const detachedMap = await window.__dioptasMapWindowSmoke({
+      call,
+      click,
+      wait,
+      ready,
+      check,
+    });
     await window.__TAURI_INTERNALS__.invoke("native_smoke_report", {
       report: {
         ok: true,
+        detachedMap,
         host: "tauri",
         transport: host.transport,
         processingPid: host.pid,

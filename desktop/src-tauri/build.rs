@@ -3,6 +3,8 @@ fn main() {
         tauri_build::AppManifest::new().commands(&[
             "desktop_invoke",
             "open_phase_editor",
+            "open_map_window",
+            "close_map_window",
             "prepare_color_picker",
             "native_smoke_report",
             "show_calibration_tooltip",

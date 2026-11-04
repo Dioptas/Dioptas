@@ -298,6 +298,34 @@ def test_map_selection_defers_cake_for_shared_calibration_and_integration(tmp_pa
     assert not blank["state"]["integrationDirty"] and blank["cake"] is None
 
 
+
+def test_detached_map_selection_refreshes_complete_integration_without_replacing_scan():
+    s = DesktopSession()
+    call(s, "example")
+    call(s, "open_calibration", path=str(DATA / "CeO2_Pilatus1M.poni"))
+    call(s, "map_load", paths=[str(DATA / "CeO2_Pilatus1M.tif")] * 3)
+    m = s.configuration.map_model
+    stored_profiles = m.pattern_intensities.copy()
+    call(s, "integration_settings", bins=128, cake_bins=24)
+    result = call(s, "map_select", index=2, reintegrate=True, integration_view=True)
+    assert result["map"]["selected"] == 2
+    assert result["cake"]["height"] == 24
+    assert len(result["pattern"]["x"]) == 128
+    assert not result["state"]["integrationDirty"]
+    np.testing.assert_array_equal(m.pattern_intensities, stored_profiles)
+    # Read-only child refreshes send the map alone and never increment revision.
+    revision = result["state"]["revision"]
+    snapshot = call(s, "map_snapshot")
+    assert set(snapshot) == {"ok", "map"}
+    assert snapshot["map"]["selected"] == 2
+    assert call(s, "state")["state"]["revision"] == revision
+    # Docked Map keeps its stored profile; Integration calculates when entered.
+    docked = call(s, "map_select", index=1)
+    assert docked["cake"] is None
+    assert docked["state"]["integrationDirty"]
+    np.testing.assert_array_equal(docked["pattern"]["y"], stored_profiles[1])
+    assert call(s, "integrate")["cake"] is not None
+
 def test_cancel_real_map_preserves_previous_map_and_bypasses_worker():
     with ThreadPoolExecutor(1) as executor:
         bridge = DesktopBridge()

@@ -4,6 +4,7 @@ mod calibration_tooltip;
 mod color_picker;
 mod processor;
 mod phase_editor;
+mod map_window;
 
 use calibration_tooltip::{
     calibration_tooltip_ready, hide_calibration_tooltip, present_calibration_tooltip,
@@ -192,11 +193,14 @@ async fn desktop_invoke(
     payload: Option<Value>,
     cached_buffers: Option<Vec<String>>,
 ) -> Result<tauri::ipc::Response, String> {
-    if window.label() != "main" && window.label() != "phase-editor" {
+    if window.label() != "main" && window.label() != "phase-editor" && window.label() != "map-window" {
         return Err("Unknown desktop window.".into());
     }
     if window.label() == "phase-editor" && !matches!(action.as_str(), "integration_phase_editor" | "integration_phase" | "integration_phase_export") {
         return Err("This command is not available to the phase editor.".into());
+    }
+    if window.label() == "map-window" && !matches!(action.as_str(), "map_snapshot" | "map_display" | "map_levels") {
+        return Err("This command is not available to the map window.".into());
     }
     let processor = host.processor.clone()?;
     let cached = cached_buffers.unwrap_or_default();
@@ -303,6 +307,8 @@ fn main() {
             color_picker::prepare_color_picker,
             desktop_invoke,
             phase_editor::open_phase_editor,
+            map_window::open_map_window,
+            map_window::close_map_window,
             native_smoke_report,
             show_calibration_tooltip,
             hide_calibration_tooltip,
@@ -326,6 +332,10 @@ fn main() {
             Ok(())
         })
         .on_page_load(move |webview, payload| {
+            if smoke && webview.label() == "map-window" && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+                let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
+                let _ = webview.eval(include_str!("../../scripts/map_window_native_smoke.js"));
+            }
             if smoke && webview.label() == "phase-editor" && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
                 let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
                 let _ = webview.eval(include_str!("../../scripts/phase_editor_native_smoke.js"));
@@ -350,6 +360,7 @@ fn main() {
                 let _ = webview.eval(if tooltip_smoke {
                     include_str!("../../scripts/calibration_tooltip_native_smoke.js")
                 } else if map_smoke {
+                    let _ = webview.eval(include_str!("../../scripts/map_window_native_main.js"));
                     include_str!("../../scripts/tauri_map_smoke.js")
                 } else {
                     include_str!("../../scripts/tauri_smoke.js")
@@ -357,6 +368,10 @@ fn main() {
             }
         })
         .on_window_event(|window, event| {
+            if window.label() == "map-window" && matches!(event, tauri::WindowEvent::Destroyed) {
+                use tauri::Emitter;
+                let _ = window.app_handle().emit_to("main", "map-window-main", json!({"type": "closed"}));
+            }
             if window.label() != "main" {
                 return;
             }
@@ -369,6 +384,7 @@ fn main() {
                 let _ = calibration_tooltip::dismiss(window.app_handle(), None);
             }
             if matches!(event, tauri::WindowEvent::Destroyed) {
+                if let Some(map) = window.app_handle().get_webview_window("map-window") { let _ = map.destroy(); }
                 if let Some(editor) = window.app_handle().get_webview_window("phase-editor") { let _ = editor.destroy(); }
                 if let Some(popup) = window
                     .app_handle()

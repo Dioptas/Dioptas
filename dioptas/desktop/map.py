@@ -28,6 +28,7 @@ from .display import image_levels
 class MapWorkflow:
     def _map_commands(self):
         return {
+            "map_snapshot": self._map_snapshot,
             "map_load": self._map_load,
             "map_folder": self._map_folder,
             "map_batch": self._map_batch,
@@ -265,7 +266,7 @@ class MapWorkflow:
         m.active_layer = name
         return self._map_response()
 
-    def _map_select(self, index=None, row=None, column=None, slot=None, reintegrate=False):
+    def _map_select(self, index=None, row=None, column=None, slot=None, reintegrate=False, integration_view=False):
         m = self._require_map()
         if row is not None and column is not None:
             row, column = int(row), int(column)
@@ -294,7 +295,7 @@ class MapWorkflow:
             else:
                 self._has_image = False
                 warning = "Raw detector image unavailable; showing the stored pattern."
-            if reintegrate:
+            if reintegrate and not integration_view:
                 if not self._has_image or not self.configuration.is_calibrated:
                     raise ValueError("Reintegration needs the original image and a loaded calibration.")
                 x, y = self.configuration.integrate_image_1d(update_pattern_model=False)
@@ -313,12 +314,17 @@ class MapWorkflow:
         self._cake = None
         self._rings = []
         self._elapsed = None
-        # Map needs only its selected 1D pattern. Defer the cake and validation
-        # overlays until Calibration/Integration becomes active, using the same
-        # shared image and geometry. Never leave a cleared cake marked current.
-        self._integration_dirty = self._has_image and self.configuration.is_calibrated
-        response.update(self._map_response(), pattern=self._pattern, cake=None,
-                        rings=self._rings, linked=self._linked_snapshot(), mapWarning=warning)
+        # Map keeps its stored 1D profile. Other views calculate the complete
+        # shared image/cake/overlays with the current integration settings.
+        self._integration_dirty = bool(self._has_image and self.configuration.is_calibrated)
+        if integration_view and self._integration_dirty:
+            # A detached map drives the complete Integration workspace without
+            # changing the scan's stored or normalized profiles.
+            self._calculate()
+            response.update(self._snapshot(), mapWarning=warning)
+        else:
+            response.update(self._map_response(), pattern=self._pattern, cake=None,
+                            rings=self._rings, linked=self._linked_snapshot(), mapWarning=warning)
         return response
 
     def _map_arrange(self, op, slot=None, index=None, offset=0):

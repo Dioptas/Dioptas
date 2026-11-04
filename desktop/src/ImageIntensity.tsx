@@ -40,6 +40,8 @@ export function ImageIntensity({
   display = "detector",
   preferences,
   onPreferences,
+  initialLevelsReady = false,
+  initialAutoActive = true,
 }: {
   preferences: ImageDisplayPreferences;
   onPreferences: (preferences: ImageDisplayPreferences) => void;
@@ -53,6 +55,8 @@ export function ImageIntensity({
   onAuto: (settings: AutoLevels) => unknown;
   ready: boolean;
   display?: "detector" | "cake" | "map";
+  initialLevelsReady?: boolean;
+  initialAutoActive?: boolean;
 }) {
   const id = useId(),
     container = useRef<HTMLDivElement>(null);
@@ -76,7 +80,7 @@ export function ImageIntensity({
   );
   useEffect(() => setMinimumDraft(editableIntensity(limits[0])), [limits[0]]);
   useEffect(() => setMaximumDraft(editableIntensity(limits[1])), [limits[1]]);
-  const [autoActive, setAutoActive] = useState(true);
+  const [autoActive, setAutoActive] = useState(initialAutoActive);
   const applyAuto = (settings: AutoLevels) => {
     setAutoActive(true);
     return onAuto(settings);
@@ -90,7 +94,9 @@ export function ImageIntensity({
     });
   const setAuto = (auto: AutoLevels) => onPreferences({ ...preferences, auto });
   const [dialog, setDialog] = useState<{ x: number; y: number } | null>(null);
-  const previousSource = useRef<Raster["data"] | null>(null);
+  const previousSource = useRef<Raster["data"] | null>(
+    initialLevelsReady ? raster.data : null,
+  );
   const [drag, setDrag] = useState<WindowDrag | null>(null);
   const [hover, setHover] = useState<WindowDrag["kind"] | null>(null);
   const active = drag?.kind ?? hover;

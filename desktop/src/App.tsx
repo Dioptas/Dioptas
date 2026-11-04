@@ -44,6 +44,7 @@ import type {
 import { number } from "./types";
 import { MapView } from "./MapView";
 import type { MapData } from "./mapDomain";
+import { useMapWindow } from "./mapWindow";
 import { MaskView } from "./MaskView";
 import { MaskPanel } from "./MaskPanel";
 import { useMaskTools } from "./maskDomain";
@@ -188,7 +189,6 @@ export default function App() {
   } | null>(null);
   const [mapPatternZoom, setMapPatternZoom] = useState<ZoomMode>("rectangle");
   const [map, setMap] = useState<MapData | null>(null);
-  const [mapLevels, setMapLevels] = useState<[number, number]>();
   const [mapWarning, setMapWarning] = useState<string | null>(null);
   const requestMap = async (
     command: string,
@@ -288,7 +288,6 @@ export default function App() {
     if (!result.ok)
       throw new Error(result.error || "The operation could not be completed.");
     if ("map" in result) setMap(result.map ?? null);
-    if (result.mapLevels) setMapLevels(result.mapLevels);
     if ("mapWarning" in result) setMapWarning(result.mapWarning ?? null);
     if (result.state) {
       currentState.current = result.state;
@@ -382,6 +381,7 @@ export default function App() {
       message = "Processing…",
       onSuccess?: (result: Response) => void,
       shouldRun?: () => boolean,
+      queueIfBusy = false,
     ) => {
       const historyLabel = command.startsWith("redo")
         ? currentState.current?.redoLabel
@@ -408,6 +408,7 @@ export default function App() {
         (command === "integration_autoprocess_poll" &&
           (inFlight.current || commandTail.current)) ||
         (inFlight.current &&
+          !queueIfBusy &&
           !autoProcessInFlight.current &&
           !pendingMaskDraws.current &&
           !pendingBackgroundUpdates.current &&
@@ -419,7 +420,8 @@ export default function App() {
           !livePhaseConditions &&
           command !== "integration_phase_state" &&
           command !== "integration_phase_guides" &&
-          command !== "image_levels")
+          command !== "image_levels" &&
+          command !== "map_select")
       )
         return;
       const commandMode = activeMode.current;
@@ -492,7 +494,9 @@ export default function App() {
           command,
           commandMode === "mask" && canDeferIntegration.current
             ? { ...args, defer_integration: true }
-            : args,
+            : command === "map_select"
+              ? { ...args, integration_view: commandMode === "integration" }
+              : args,
         );
         // Stored-only map projects can be inspected even when their raw files are unavailable.
         if (
@@ -504,6 +508,7 @@ export default function App() {
         ) {
           result = await bridge.current(command, {
             ...args,
+            integration_view: commandMode === "integration",
             reintegrate: false,
           });
         }
@@ -920,6 +925,29 @@ export default function App() {
         : null;
 
   const ready = !!state && !busy;
+  const mapWindow = useMapWindow({
+    run: (command, args, message, done) =>
+      run(command, args, message, done, undefined, true),
+    // Like native child reads, browser popup reads use the processing worker's
+    // serialization rather than being dropped during a quiet main-window edit.
+    request: async (command, args) => bridge.current?.(command, args),
+    status: {
+      ready,
+      calibrated: !!state?.calibrated,
+      largeText,
+      error,
+      revision: state?.revision,
+    },
+    onOpen: () => {
+      setSettingsOpen(false);
+      setMode("integration");
+    },
+    onDock: () => {
+      setSettingsOpen(false);
+      setMode("map");
+    },
+    onError: setError,
+  });
   const backgroundContext = (s: State | null) =>
     JSON.stringify([
       s?.unit,
@@ -1351,6 +1379,7 @@ export default function App() {
               {mode === "map" ? (
                 <MapView
                   map={map}
+                  mapWindow={mapWindow}
                   image={image}
                   mask={mask}
                   pattern={pattern}
@@ -1359,7 +1388,6 @@ export default function App() {
                   run={run}
                   request={requestMap}
                   error={error}
-                  mapLevels={mapLevels}
                   reportPlot={reportPlot}
                   onDetectorHover={onHover}
                   onPatternHover={onPatternHover}

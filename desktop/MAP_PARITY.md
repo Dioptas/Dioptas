@@ -243,8 +243,13 @@ registry, snapshot hook and optional normalization persistence hooks.
 
 ## Remaining differences
 
-- A detached native map window remains unimplemented. The in-window resizable
-  and expandable map is supported. Live/follow-newest is now implemented as
+- A detached native scan-map window is supported alongside the in-window
+  resizable and expandable map. Detach returns the main workspace to Integration;
+  cells drive its detector, cake and pattern through the existing command queue.
+  Dock or window close restores the panel without clearing scan data. The child
+  shares the scan component and uses read-only binary map snapshots; no second
+  processing session is created. Window placement and plot zoom are not restored
+  on reopening. Live/follow-newest is implemented as
   described above; it does not monitor new frames inside existing HDF5 files.
 - Overlay loading/editing remains part of the shared integration work; Map can
   evaluate references to overlays already present in a project. It does not
@@ -411,3 +416,53 @@ The separate bundled calibration smoke timed out; see the qualification below.
 
 Generated reports and screenshots are under ignored `desktop/artifacts/`.
 These are scoped regression checks, not full Qt/cross-platform qualification.
+
+
+## Separate map window (2026-11-04)
+
+The map toolbar now offers Detach map beside Expand map. Only the scan panel
+moves; its histogram, active layer, smoothing, contours and exports stay with
+it. The main window returns to Integration and remains navigable. Map mode's
+Points/Layers/Grid controls remain available while detached. Show map reuses the
+existing child; Dock map returns to Map mode, while closing the child leaves
+the current main mode intact. The main window owns the processor and closes its
+child on exit. Child closure never shuts down the processor.
+
+The native child may read only map_snapshot/map_display/map_levels. Mutations
+are forwarded to the main window's existing ordered queue, including rapid
+cell selections. Read-only map_snapshot returns no detector/cake buffers and
+does not increment the scientific revision. A cell selected while Integration
+is active calculates the full current image/pattern/cake display. Stored map
+profiles and normalized map values are untouched. Docked Map selections retain
+the stored-profile behavior and mark Integration for calculation when entered.
+Shared scan preferences retain palette, log/linear, smoothing, contours and
+manual limits for unchanged raster contents. Window geometry and plot zoom
+are not persisted across reopening. Live polling retains its existing
+mode-exit behavior.
+
+Verification commands: `node desktop/scripts/map_window.mjs` (add `--webkit`
+for WebKit), `node desktop/scripts/map_smoke.mjs`,
+`.venv/bin/python -m pytest desktop/tests/test_map_workflow.py`,
+`npm --prefix desktop run build`, `npm --prefix desktop test`,
+`cargo test --manifest-path desktop/src-tauri/Cargo.toml`, and the isolated
+`npm --prefix desktop run tauri:smoke -- --map`. The native Map smoke includes
+child movement/resizing, binary snapshots, linked selection/cake, docking,
+reopening/closing and continued main-session access.
+
+Verified during this follow-up: 25 Map Python tests passed; calibration/session/
+bridge regressions passed (39 passed, 5 skipped); 48 frontend unit tests and
+10 Rust tests passed. Chromium and WebKit checks cover detach/select/dock,
+rapid selection order, shared layers and PNG output. Additional checks cover
+palette, manual contrast/log retention and the 460 × 360 child with larger
+text. The isolated WKWebView Map smoke passed independent child movement and
+resize, binary map reads, complete linked Integration displays, docking and
+child closure without stopping the processor. Window-manager checks used only
+the test process; the existing preview was not restarted.
+
+
+Primary-preview integration (2026-11-04): combined the detached map with the
+newer shared cake recalculation fix. Map selection retains raw/corrected detector
+responses and clears stale rings/timing; detached selections in Integration
+calculate the full current pattern/cake. Both regression cases remain covered;
+all 27 Map Python tests and the detached-window browser workflow pass in the
+primary checkout.
