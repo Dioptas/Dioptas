@@ -261,82 +261,100 @@ export function MapControls({
                     orientation="horizontal"
                     aria-label="Point arrangement actions"
                   >
-                    <button
-                      aria-label="Move up"
-                      title="Move up · Alt+↑"
-                      disabled={!ready || selected == null || selected === 0}
-                      onClick={() => arrange("move", { offset: -1 })}
+                    <div
+                      className="map-point-action-group"
+                      role="group"
+                      aria-label="Move points"
                     >
-                      <ArrowUp size={16} />
-                    </button>
-                    <button
-                      aria-label="Move down"
-                      title="Move down · Alt+↓"
-                      disabled={
-                        !ready ||
-                        selected == null ||
-                        selected >= map.slots.length - 1
-                      }
-                      onClick={() => arrange("move", { offset: 1 })}
+                      <button
+                        aria-label="Move up"
+                        title="Move up · Alt+↑"
+                        disabled={!ready || selected == null || selected === 0}
+                        onClick={() => arrange("move", { offset: -1 })}
+                      >
+                        <ArrowUp size={16} />
+                      </button>
+                      <button
+                        aria-label="Move down"
+                        title="Move down · Alt+↓"
+                        disabled={
+                          !ready ||
+                          selected == null ||
+                          selected >= map.slots.length - 1
+                        }
+                        onClick={() => arrange("move", { offset: 1 })}
+                      >
+                        <ArrowDown size={16} />
+                      </button>
+                    </div>
+                    <div
+                      className="map-point-action-group"
+                      role="group"
+                      aria-label="Blank cells and filename numbering"
                     >
-                      <ArrowDown size={16} />
-                    </button>
-                    <span className="map-action-spacer" />
-                    <button
-                      aria-label="Insert blank"
-                      title="Insert blank cell before selection"
-                      disabled={!ready || selected == null}
-                      onClick={() => arrange("insert")}
+                      <button
+                        aria-label="Insert blank"
+                        title="Insert blank cell before selection"
+                        disabled={!ready || selected == null}
+                        onClick={() => arrange("insert")}
+                      >
+                        <PlusSquare size={16} />
+                      </button>
+                      <button
+                        aria-label="Remove blank"
+                        title="Remove selected blank cell"
+                        disabled={
+                          !ready ||
+                          selected == null ||
+                          map.slots[selected] !== null ||
+                          !map.slots
+                            .slice(selected + 1)
+                            .some((point) => point !== null)
+                        }
+                        onClick={() => arrange("remove")}
+                      >
+                        <MinusSquare size={16} />
+                      </button>
+                      <button
+                        aria-label="Check filename numbering"
+                        title="Check filename numbering and insert blank cells for missing scan numbers"
+                        disabled={!ready}
+                        onClick={() => run("map_arrange", { op: "gaps" })}
+                      >
+                        <ListOrdered size={16} />
+                      </button>
+                    </div>
+                    <div
+                      className="map-point-action-group map-point-exclusion"
+                      role="group"
+                      aria-label="Point inclusion"
                     >
-                      <PlusSquare size={16} />
-                    </button>
+                      <button
+                        aria-label={
+                          map.selected != null &&
+                          map.excluded.includes(map.selected)
+                            ? "Include point"
+                            : "Exclude point"
+                        }
+                        title={
+                          map.selected != null &&
+                          map.excluded.includes(map.selected)
+                            ? "Put point back in map"
+                            : "Leave selected point out of map"
+                        }
+                        disabled={!ready || map.selected == null}
+                        onClick={() => arrange("exclude")}
+                      >
+                        {map.selected != null &&
+                        map.excluded.includes(map.selected) ? (
+                          <CircleCheck size={16} />
+                        ) : (
+                          <Ban size={16} />
+                        )}
+                      </button>
+                    </div>
                     <button
-                      aria-label="Remove blank"
-                      title="Remove selected blank cell"
-                      disabled={
-                        !ready ||
-                        selected == null ||
-                        map.slots[selected] !== null ||
-                        !map.slots
-                          .slice(selected + 1)
-                          .some((point) => point !== null)
-                      }
-                      onClick={() => arrange("remove")}
-                    >
-                      <MinusSquare size={16} />
-                    </button>
-                    <button
-                      aria-label="Check filename numbering"
-                      title="Check filename numbering and insert blank cells for missing scan numbers"
-                      disabled={!ready}
-                      onClick={() => run("map_arrange", { op: "gaps" })}
-                    >
-                      <ListOrdered size={16} />
-                    </button>
-                    <button
-                      aria-label={
-                        map.selected != null &&
-                        map.excluded.includes(map.selected)
-                          ? "Include point"
-                          : "Exclude point"
-                      }
-                      title={
-                        map.selected != null &&
-                        map.excluded.includes(map.selected)
-                          ? "Put point back in map"
-                          : "Leave selected point out of map"
-                      }
-                      disabled={!ready || map.selected == null}
-                      onClick={() => arrange("exclude")}
-                    >
-                      {map.selected != null &&
-                      map.excluded.includes(map.selected) ? (
-                        <CircleCheck size={16} />
-                      ) : (
-                        <Ban size={16} />
-                      )}
-                    </button>
-                    <button
+                      className="map-point-settings"
                       ref={settingsTrigger}
                       aria-label="Map settings"
                       title="Map folder settings"

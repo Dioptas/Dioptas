@@ -292,9 +292,22 @@
   min-height: 28px;
   padding: 4px;
 }
-.map-action-spacer {
-  width: 5px;
+.map-point-action-group {
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
+  gap: 2px;
+  padding-right: 8px;
+  margin-right: 4px;
+  border-right: 1px solid #ffffff18;
+}
+.map-point-action-group.map-point-exclusion {
+  padding-right: 0;
+  margin-right: 0;
+  border-right: 0;
+}
+.map-point-settings {
+  margin-left: auto;
 }
 .map-file-list {
   flex: 1;
