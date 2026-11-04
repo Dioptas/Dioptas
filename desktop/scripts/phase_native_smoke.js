@@ -155,9 +155,17 @@ window.__dioptasPhaseNativeSmoke = async ({
     "Native EoS database did not open",
   );
   check(
-    document.querySelectorAll(".phase-materials-scroll tbody tr").length > 0,
+    document.querySelectorAll('table[aria-label="Database materials"] tbody tr')
+      .length > 0,
     "Native database has no real materials",
   );
+  const databaseExplorer = await window.__dioptasDatabaseNativeSmoke({
+    call,
+    click,
+    ready,
+    delay,
+    check,
+  });
   click("Close EoS Material Database");
   await delay();
   return {
@@ -175,5 +183,6 @@ window.__dioptasPhaseNativeSmoke = async ({
 
     phaseList: true,
     database: true,
+    databaseExplorer,
   };
 };

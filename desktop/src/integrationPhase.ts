@@ -3,23 +3,7 @@ export interface PhaseReference {
   assessment: string;
   detail: string;
 }
-export interface PhaseMaterial {
-  id: string;
-  name: string;
-  spaceGroup: string;
-  diffraction: boolean;
-  defaultReference: number;
-  hold: string;
-  references: (PhaseReference & {
-    eos: string;
-    thermal: string;
-    pressureRange: string;
-    parameters: Record<string, number>;
-    errors: Record<string, number | null>;
-    fixed: string[];
-    loadError: string;
-  })[];
-}
+export type { DatabaseMaterial as PhaseMaterial } from "./phaseDatabaseTypes";
 export interface PhaseImport {
   paths: string[];
   minimumDSpacing: number;

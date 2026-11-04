@@ -1,0 +1,315 @@
+.phase-dialog.phase-database-dialog {
+  width: min(1280px, calc(100vw - 32px));
+  height: min(880px, calc(100vh - 32px));
+  min-width: min(720px, calc(100vw - 32px));
+  min-height: min(560px, calc(100vh - 32px));
+  resize: both;
+  overflow: hidden;
+}
+.phase-database-body {
+  padding: 10px 12px;
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+}
+.phase-database-search {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.phase-database-search input {
+  flex: 1;
+  width: 100%;
+}
+.phase-database-tools,
+.phase-database-heading,
+.phase-database-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.phase-database-tools {
+  flex-shrink: 0;
+}
+.phase-database-dialog [role="tablist"] {
+  display: flex;
+  gap: 3px;
+}
+.phase-database-dialog [role="tab"] {
+  border-color: transparent;
+  border-radius: 0;
+  background: transparent;
+}
+.phase-database-dialog [role="tab"][aria-selected="true"] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.phase-database-tools [role="tablist"] {
+  margin-right: auto;
+}
+.phase-database-tools label,
+.phase-database-conditions label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.phase-database-heading {
+  min-height: 29px;
+  flex-shrink: 0;
+}
+.phase-database-heading h3 {
+  font-size: inherit;
+  font-weight: 500;
+  margin: 0;
+  flex: 1;
+}
+.phase-database-heading > span {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: var(--text-meta);
+}
+.phase-database-heading > button {
+  padding: 2px 6px;
+}
+.phase-database-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 100px;
+  flex: 1 1 140px;
+}
+.phase-database-section:nth-of-type(2) {
+  flex: 1.3 1 160px;
+}
+.phase-database-section > .data-table-scroll {
+  flex: 1;
+  border: 1px solid var(--border);
+}
+.phase-database-dialog .data-table th {
+  padding: 0 7px;
+}
+.phase-database-dialog .data-table td {
+  padding: 4px 8px;
+}
+.phase-database-dialog .data-table thead button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 5px 0;
+  text-align: left;
+  white-space: nowrap;
+  min-height: 28px;
+}
+.phase-database-dialog .data-table thead button:hover {
+  color: var(--accent);
+}
+.phase-database-section tbody tr {
+  cursor: pointer;
+}
+.phase-database-section tbody tr:hover {
+  background: #ffffff08;
+}
+.phase-database-records {
+  min-width: 1140px;
+}
+.phase-database-records td {
+  white-space: nowrap;
+}
+.phase-database-records td:first-child {
+  min-width: 180px;
+  max-width: 290px;
+  white-space: normal;
+}
+.phase-database-records td:nth-child(3) {
+  min-width: 120px;
+}
+.phase-database-records td:last-child {
+  min-width: 180px;
+  max-width: 280px;
+  white-space: normal;
+}
+.phase-database-record-label {
+  display: block;
+  color: var(--muted);
+  font-size: var(--text-meta);
+}
+.phase-database-records small {
+  display: inline-block;
+  color: var(--accent);
+  font-size: var(--text-meta);
+}
+.phase-database-records strong {
+  font-weight: 500;
+}
+.phase-database-dialog .numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.phase-database-empty {
+  margin: 10px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.phase-database-empty button {
+  margin-left: 8px;
+}
+.phase-database-inspector {
+  min-height: 140px;
+  flex: 1.4 1 180px;
+  display: flex;
+  flex-direction: column;
+}
+.phase-database-inspector > .phase-database-heading {
+  border-bottom: 1px solid var(--border);
+}
+.phase-database-links {
+  margin-left: auto;
+}
+.phase-database-links button {
+  padding: 3px 5px;
+  color: var(--accent);
+}
+.phase-database-detail {
+  overflow: auto;
+  scrollbar-gutter: stable;
+  min-height: 0;
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-top: 0;
+  line-height: 1.5;
+  overscroll-behavior: contain;
+}
+.phase-database-detail h4 {
+  margin: 3px 0;
+  font-size: inherit;
+  font-weight: 500;
+}
+.phase-database-detail p {
+  margin: 4px 0 8px;
+}
+.phase-database-detail pre {
+  margin: 0;
+  font-size: var(--text-meta);
+  user-select: text;
+}
+.phase-database-detail dl {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  margin: 6px 0;
+  gap: 3px 10px;
+}
+.phase-database-detail dt {
+  color: var(--muted);
+}
+.phase-database-detail dd {
+  margin: 0;
+}
+.phase-database-detail .data-table td {
+  user-select: text;
+}
+.phase-database-conditions {
+  flex-shrink: 0;
+  max-height: 140px;
+  overflow: auto;
+}
+.phase-database-conditions:empty {
+  display: none;
+}
+.phase-database-legend {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: var(--text-meta);
+  line-height: 1.4;
+  margin: 0;
+}
+.phase-database-load-summary {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.phase-database-dialog footer button {
+  flex-shrink: 0;
+}
+@media (max-height: 650px) {
+  .phase-database-dialog {
+    min-height: 0;
+  }
+  .phase-database-body {
+    gap: 5px;
+  }
+  .phase-database-section {
+    min-height: 80px;
+  }
+  .phase-database-inspector {
+    min-height: 110px;
+  }
+}
+@media (max-width: 850px) {
+  .phase-database-heading > span {
+    display: none;
+  }
+  .phase-database-load-summary {
+    display: none;
+  }
+  .phase-database-dialog footer {
+    flex-wrap: wrap;
+  }
+}
+
+/* Short searches return their space to the records and inspection panes. */
+.phase-database-section[data-small="true"] {
+  flex: 0 0 auto;
+  min-height: 65px;
+}
+.phase-database-section[data-small="true"] > .data-table-scroll {
+  flex: 0 0 auto;
+  max-height: 130px;
+}
+.phase-database-record-label {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+@media (max-height: 650px) {
+  .phase-database-section:nth-of-type(2) {
+    min-height: 160px;
+  }
+  .phase-database-inspector {
+    min-height: 155px;
+  }
+}
+
+.phase-database-records {
+  table-layout: fixed;
+}
+.phase-database-dialog .phase-database-records th {
+  position: relative;
+  padding-right: 12px;
+}
+.phase-database-dialog .phase-database-records td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.phase-database-column-resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 7px;
+  cursor: col-resize;
+  touch-action: none;
+  border-right: 1px solid #ffffff12;
+}
+.phase-database-column-resize:hover,
+.phase-database-column-resize:focus-visible {
+  background: #ff950033;
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}

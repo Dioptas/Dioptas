@@ -201,49 +201,6 @@
   align-items: center;
   gap: 8px;
 }
-.phase-database {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.phase-db-tools {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-.phase-db-tools [role="tablist"] {
-  display: flex;
-  gap: 3px;
-  margin-right: auto;
-}
-.phase-db-tools label {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.phase-db-tools button[aria-selected="true"] {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
-.phase-materials-scroll {
-  overflow: auto;
-  min-height: 100px;
-  height: 220px;
-  flex-shrink: 0;
-  scrollbar-width: thin;
-}
-.phase-records-scroll {
-  overflow: auto;
-  min-height: 70px;
-  max-height: 210px;
-  flex-shrink: 0;
-  scrollbar-width: thin;
-}
-.phase-materials-scroll tr,
-.phase-records-scroll tr {
-  cursor: pointer;
-}
 .phase-assessment {
   white-space: pre-wrap;
   color: #b6bac0;
