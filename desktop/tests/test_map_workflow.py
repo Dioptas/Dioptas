@@ -215,3 +215,76 @@ def test_folder_order_and_multiframe_identity(tmp_path):
     call(s, "map_select", index=3)
     np.testing.assert_array_equal(s.configuration.img_model.img_data, 11)
     assert s.configuration.img_model.series_pos == 2
+
+
+def test_window_color_activation_and_expression_rename_are_persisted(stored, tmp_path):
+    call(stored, "map_roi", op="add")
+    call(stored, "map_roi", name="B", minimum=0, maximum=10)
+    result = call(stored, "map_roi", name="A", color="#c040e0", activate=True)
+    assert result["map"]["active"] == "A"
+    assert result["map"]["rois"][0]["color"] == "#c040e0"
+    before = stored.configuration.map_model.rois[0].x_min
+    rejected = stored.invoke("map_roi", {"name": "A", "minimum": 2, "color": "bad"})
+    assert not rejected["ok"]
+    assert stored.configuration.map_model.rois[0].x_min == before
+    call(stored, "map_expression", name="Ratio", expression="A/B")
+    result = call(stored, "map_expression", name="Ratio", new_name="Contrast", expression="(A-B)/(A+B)")
+    assert result["map"]["active"] == "Contrast"
+    assert list(result["map"]["expressions"]) == ["Contrast"]
+    assert not stored.invoke("map_expression", {"name": "Contrast", "new_name": "A", "expression": "A/B"})["ok"]
+    assert "Contrast" in stored.configuration.map_model.expressions
+    call(stored, "save_project", path=str(tmp_path / "styles.dio"))
+    reopened = DesktopSession()
+    result = call(reopened, "open_project", path=str(tmp_path / "styles.dio"))
+    assert result["map"]["rois"][0]["color"] == "#c040e0"
+    assert result["map"]["active"] == "Contrast"
+
+
+def test_map_mask_display_keeps_stored_pattern(stored):
+    selected = call(stored, "map_select", index=2)
+    before = selected["pattern"]
+    call(stored, "map_mask", use_mask=False, transparent_mask=True)
+    after = call(stored, "state")
+    assert after["pattern"] == before
+    assert after["state"]["useMask"] is False
+    assert after["state"]["transparentMask"] is True
+
+
+def test_live_append_waits_for_stable_scan_files_and_preserves_layout(tmp_path):
+    import shutil
+    s = DesktopSession()
+    call(s, "example")
+    call(s, "open_calibration", path=str(DATA / "CeO2_Pilatus1M.poni"))
+    s.configuration.integration_rad_points = 100
+    source = DATA / "CeO2_Pilatus1M.tif"
+    first, second = tmp_path / "scan_001.tif", tmp_path / "scan_002.tif"
+    shutil.copy(source, first)
+    call(s, "map_load", paths=[str(first)])
+    call(s, "map_grid", rows=1, columns=3, snake=True)
+    call(s, "map_roi", name="A", minimum=4, maximum=8)
+    shutil.copy(source, second)
+    # Ignore a different scan and a calibration image in the same folder.
+    shutil.copy(source, tmp_path / "other_003.tif")
+    shutil.copy(source, tmp_path / "calibration.tif")
+    assert "map" not in call(s, "map_poll")
+    # A file still being written must remain pending.
+    second.touch()
+    assert "map" not in call(s, "map_poll")
+    pending = call(s, "map_poll", check_only=True)
+    assert pending["mapPending"] == 1
+    assert s.configuration.map_model.num_points == 1
+    result = call(s, "map_poll", follow=False)
+    assert result["map"]["points"] == 2
+    assert result["map"]["selected"] == 0
+    assert result["map"]["dimension"] == [1, 3]
+    assert result["map"]["snake"]
+    assert result["map"]["rois"][0]["min"] == 4
+    assert s.configuration.img_model.filename == str(first)
+    assert "map" not in call(s, "map_poll")  # no duplicates
+    third = tmp_path / "scan_003.tif"
+    shutil.copy(source, third)
+    call(s, "map_poll")
+    result = call(s, "map_poll", follow=True)
+    assert result["map"]["points"] == 3
+    assert result["map"]["selected"] == 2
+    np.testing.assert_allclose(s.configuration.map_model.pattern_intensities[0], s.configuration.map_model.pattern_intensities[2])

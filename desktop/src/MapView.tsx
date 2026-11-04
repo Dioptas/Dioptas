@@ -1,26 +1,43 @@
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
+import {
+  Maximize2,
+  Minimize2,
+  Save,
+  FolderOpen,
+  Radio,
+  MoveHorizontal,
+} from "lucide-react";
 import { RasterView } from "./RasterView";
 import { PatternView } from "./PatternView";
 import { ImageIntensity } from "./ImageIntensity";
+import { MapControls } from "./MapControls";
+import { radialValues } from "./radialReadout";
 import { useImageDisplayPreferences } from "./useImageDisplayPreferences";
 import {
   number,
-  unitLabel,
   type Pattern,
   type Raster,
   type Response,
   type State,
+  type Unit,
 } from "./types";
 import type { MapData, MapRun } from "./mapDomain";
 import type { ReportPlot, PatternHover } from "./plotReadout";
 import type { ZoomMode } from "./usePlotNavigation";
 import "./map.css";
-function useDisplay(raster: Raster | null, display: string) {
+
+function useDisplay(raster: Raster | null, name: string) {
   const [limits, setLimits] = useState<[number, number]>([0, 1]);
   const [log, setLog] = useState(false),
     [palette, setPalette] = useState("grey");
   const [prefs, setPrefs] = useImageDisplayPreferences(
-    display,
+    name,
     "horizontal",
     false,
   );
@@ -38,6 +55,32 @@ function useDisplay(raster: Raster | null, display: string) {
     setPrefs,
   };
 }
+function usePreference<T extends string | number | boolean>(
+  name: string,
+  fallback: T,
+) {
+  const key = `dioptas-map:${name}`;
+  const [value, setValue] = useState<T>(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(key) ?? "null");
+      return typeof stored === typeof fallback &&
+        (typeof stored !== "number" || Number.isFinite(stored))
+        ? stored
+        : fallback;
+    } catch {
+      return fallback;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+      /* Session-only preference. */
+    }
+  }, [key, value]);
+  return [value, setValue] as const;
+}
+
 export function MapView({
   map,
   image,
@@ -45,11 +88,12 @@ export function MapView({
   pattern,
   state,
   ready,
+  error,
   run,
   request,
   reintegrate,
+  onReintegrate,
   mapLevels,
-  linked,
   reportPlot,
   onDetectorHover,
   onPatternHover,
@@ -62,28 +106,37 @@ export function MapView({
   pattern: Pattern | null;
   state: State | null;
   ready: boolean;
+  error?: string | null;
   run: MapRun;
   request: (
     command: string,
     args?: Record<string, unknown>,
   ) => Promise<Response | undefined>;
   reintegrate: boolean;
+  onReintegrate: (value: boolean) => void;
   mapLevels?: [number, number];
-  linked?: Response["linked"];
   reportPlot: ReportPlot;
   onDetectorHover: (point: { x: number; y: number } | null) => void;
   onPatternHover: (point: PatternHover | null) => void;
   patternZoom: ZoomMode;
   onPatternZoom: (mode: ZoomMode) => void;
 }) {
-  const [smooth, setSmooth] = useState(false),
-    [smoothFactor, setSmoothFactor] = useState(5);
-  const [showContours, setShowContours] = useState(false),
-    [contourCount, setContourCount] = useState(5);
+  const [smooth, setSmooth] = usePreference<boolean>("smooth", false),
+    [smoothFactor, setSmoothFactor] = usePreference<number>("smooth-factor", 5);
+  const [showContours, setShowContours] = usePreference<boolean>(
+      "contours",
+      false,
+    ),
+    [contourCount, setContourCount] = usePreference<number>("contour-count", 5);
   const [preview, setPreview] = useState<Raster | null>(null),
     [contours, setContours] = useState<number[][][]>([]);
   const requestRef = useRef(request);
   requestRef.current = request;
+  const runRef = useRef(run);
+  runRef.current = run;
+  useEffect(() => {
+    if (error) setLive(false);
+  }, [error]);
   useEffect(() => {
     let current = true;
     setPreview(null);
@@ -106,16 +159,146 @@ export function MapView({
   }, [map, ready, smooth, smoothFactor, showContours, contourCount]);
   const display = useDisplay(map?.raster ?? null, "map"),
     detector = useDisplay(image, "map-detector");
-  const [logPattern, setLogPattern] = useState(false),
-    [editRegions, setEditRegions] = useState(false);
+  const [scale, setScale] = usePreference<"linear" | "log" | "sqrt">(
+    "pattern-scale",
+    "linear",
+  );
+  const [antialias, setAntialias] = usePreference<boolean>(
+      "pattern-antialias",
+      true,
+    ),
+    [autoRange, setAutoRange] = usePreference<boolean>(
+      "pattern-auto-range",
+      true,
+    );
+  const [editRegions, setEditRegions] = useState(true),
+    [showRegions, setShowRegions] = useState(true);
+  const [patternUnit, setPatternUnit] = useState<Unit | null>(null);
   const [mapOnly, setMapOnly] = useState(false),
-    [share, setShare] = useState(43),
-    [upperShare, setUpperShare] = useState(48);
+    [share, setShare] = usePreference<number>("width", 36),
+    [upperShare, setUpperShare] = usePreference<number>("height", 44);
+  const [tabbedImage, setTabbedImage] = useState(false);
+  const [live, setLive] = useState(false),
+    [follow, setFollow] = useState(true);
   const layout = useRef<HTMLDivElement>(null),
-    mapPanel = useRef<HTMLElement>(null);
+    topPanel = useRef<HTMLDivElement>(null),
+    mapExporter = useRef<{ png: () => string } | null>(null);
+  useEffect(() => {
+    if (mapOnly || !topPanel.current) return;
+    const observer = new ResizeObserver(([entry]) =>
+      setTabbedImage(entry.contentRect.width < 740),
+    );
+    observer.observe(topPanel.current);
+    return () => observer.disconnect();
+  }, [mapOnly]);
   useEffect(() => {
     if (mapLevels) display.setLimits(mapLevels);
   }, [mapLevels]);
+  const sourceRun: MapRun = async (command, args, message) => {
+    if (
+      ["map_load", "map_folder", "map_batch", "map_normalize"].includes(command)
+    )
+      setLive(false);
+    await run(command, args, message);
+  };
+  const mapIdentity = map?.labels[0];
+  useEffect(() => {
+    setLive(false);
+  }, [mapIdentity]);
+  useEffect(() => {
+    if (!live || !ready || !map) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      const result = await requestRef.current("map_poll", { check_only: true });
+      if (cancelled) return;
+      if (result && !result.ok) {
+        setLive(false);
+        return;
+      }
+      if (result?.ok && result.mapPending) {
+        await runRef.current(
+          "map_poll",
+          { follow },
+          "Appending new scan images…",
+        );
+        if (cancelled) return;
+      }
+      timer = setTimeout(poll, 2000);
+    };
+    timer = setTimeout(poll, 1200);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [live, ready, follow, mapIdentity]);
+  const viewPattern = useMemo(() => {
+    if (!pattern) return null;
+    const requested = patternUnit ?? pattern.unit;
+    const unit =
+      requested === pattern.unit ||
+      (requested !== "2th_deg" && pattern.unit !== "2th_deg") ||
+      state?.calibrated
+        ? requested
+        : pattern.unit;
+    if (unit === pattern.unit) return pattern;
+    const converted = pattern.x
+      .map(
+        (x, i) =>
+          [
+            radialValues(x, pattern.unit, state?.geometry.wavelength)[unit],
+            pattern.y[i],
+          ] as const,
+      )
+      .filter(
+        (p): p is readonly [number, number | null] =>
+          p[0] != null && Number.isFinite(p[0]),
+      );
+    return {
+      x: converted.map((p) => p[0]),
+      y: converted.map((p) => p[1]),
+      unit,
+    };
+  }, [pattern, patternUnit, state?.geometry.wavelength, state?.calibrated]);
+  const regions = useMemo(() => {
+    if (!map || !viewPattern || !showRegions) return [];
+    return map.rois.flatMap((roi) => {
+      const values = [roi.min, roi.max].map(
+        (x) =>
+          radialValues(x, map.unit, state?.geometry.wavelength)[
+            viewPattern.unit
+          ],
+      );
+      if (!values.every((x): x is number => x != null && Number.isFinite(x)))
+        return [];
+      return [
+        {
+          ...roi,
+          appearance: "range" as const,
+          min: Math.min(...values),
+          max: Math.max(...values),
+          active:
+            roi.name ===
+            (map.rois.some((r) => r.name === map.active)
+              ? map.active
+              : map.rois[0]?.name),
+        },
+      ];
+    });
+  }, [map, viewPattern?.unit, showRegions, state?.geometry.wavelength]);
+  const changeRegion = (name: string, min: number, max: number) => {
+    if (!map || !viewPattern) return;
+    const values = [min, max].map(
+      (x) =>
+        radialValues(x, viewPattern.unit, state?.geometry.wavelength)[map.unit],
+    );
+    if (values.every((x): x is number => x != null && Number.isFinite(x)))
+      void run("map_roi", {
+        name,
+        minimum: Math.min(...values),
+        maximum: Math.max(...values),
+      });
+  };
   const intensity = (
     raster: Raster,
     d: ReturnType<typeof useDisplay>,
@@ -143,104 +326,127 @@ export function MapView({
       }}
     />
   );
+  const detectorPanel = (
+    <section className="map-detector-panel" aria-label="Map detector image">
+      {image && state?.hasImage ? (
+        <div className="detector-workspace">
+          <RasterView
+            raster={image}
+            mask={state.useMask ? (mask ?? undefined) : undefined}
+            maskOpacity={state.transparentMask ? 0.72 : 1}
+            limits={detector.limits}
+            log={detector.log}
+            palette={detector.palette}
+            busy={!ready}
+            zoomMode="rectangle"
+            onHover={onDetectorHover}
+          />
+          {intensity(image, detector, "detector")}
+        </div>
+      ) : (
+        <div className="empty-view">
+          <p>
+            {map
+              ? "No raw detector image for this cell."
+              : "Select a map point to inspect its detector image."}
+          </p>
+        </div>
+      )}
+      <div className="map-detector-tools">
+        <label className="check-row">
+          <input
+            aria-label="Map use mask"
+            type="checkbox"
+            checked={!!state?.useMask}
+            disabled={!ready || !state?.hasImage}
+            onChange={(e) =>
+              run("map_mask", { use_mask: e.target.checked, reintegrate })
+            }
+          />
+          Mask
+        </label>
+        <label className="check-row">
+          <input
+            aria-label="Map transparent mask"
+            type="checkbox"
+            checked={!!state?.transparentMask}
+            disabled={!ready || !state?.hasImage}
+            onChange={(e) =>
+              run("map_mask", { transparent_mask: e.target.checked })
+            }
+          />
+          Transparent
+        </label>
+      </div>
+    </section>
+  );
+  const divider = (vertical: boolean) => (
+    <div
+      className={`map-divider ${vertical ? "map-column-divider" : "map-row-divider"}`}
+      role="separator"
+      aria-label={vertical ? "Map panel width" : "Detector and pattern heights"}
+      aria-orientation={vertical ? "vertical" : "horizontal"}
+      aria-valuenow={Math.round(vertical ? share : upperShare)}
+      aria-valuemin={vertical ? 22 : 25}
+      aria-valuemax={vertical ? 65 : 70}
+      tabIndex={0}
+      onPointerDown={(e) => {
+        if (e.button === 0) {
+          e.preventDefault();
+          e.currentTarget.setPointerCapture(e.pointerId);
+        }
+      }}
+      onPointerMove={(e) => {
+        if (!e.currentTarget.hasPointerCapture(e.pointerId) || !layout.current)
+          return;
+        const b = layout.current.getBoundingClientRect();
+        if (vertical)
+          setShare(
+            Math.max(22, Math.min(65, ((e.clientX - b.left) / b.width) * 100)),
+          );
+        else
+          setUpperShare(
+            Math.max(25, Math.min(70, ((e.clientY - b.top) / b.height) * 100)),
+          );
+      }}
+      onPointerUp={(e) => {
+        if (e.currentTarget.hasPointerCapture(e.pointerId))
+          e.currentTarget.releasePointerCapture(e.pointerId);
+      }}
+      onDoubleClick={() => (vertical ? setShare(36) : setUpperShare(44))}
+      onKeyDown={(e) => {
+        const lower = vertical ? "ArrowLeft" : "ArrowUp",
+          higher = vertical ? "ArrowRight" : "ArrowDown";
+        if (e.key !== lower && e.key !== higher && e.key !== "Home") return;
+        e.preventDefault();
+        const delta = e.key === lower ? -3 : 3;
+        if (vertical)
+          setShare(
+            e.key === "Home" ? 36 : Math.max(22, Math.min(65, share + delta)),
+          );
+        else
+          setUpperShare(
+            e.key === "Home"
+              ? 44
+              : Math.max(25, Math.min(70, upperShare + delta)),
+          );
+      }}
+    >
+      <span />
+    </div>
+  );
   return (
     <div
       ref={layout}
       className={`map-layout ${mapOnly ? "map-only" : ""}`}
-      style={{
-        gridTemplateColumns: mapOnly
-          ? "minmax(0,1fr)"
-          : `minmax(0,${share}fr) 7px minmax(0,${100 - share}fr)`,
-        gridTemplateRows: `minmax(220px,${upperShare}fr) 7px minmax(220px,${100 - upperShare}fr)`,
-      }}
+      style={
+        {
+          "--map-share": `${share}%`,
+          "--map-upper-share": `${upperShare}%`,
+        } as CSSProperties
+      }
     >
-      <section
-        ref={mapPanel}
-        className="panel map-scan-panel"
-        aria-label="Scan map"
-      >
-        <div className="panel-heading map-heading">
-          <div className="map-layer-select">
-            <label htmlFor="map-layer">Layer:</label>
-            <select
-              id="map-layer"
-              aria-label="Map layer"
-              disabled={!ready || !map}
-              value={map?.active ?? ""}
-              onChange={(e) => run("map_layer", { name: e.target.value })}
-            >
-              {map ? (
-                [
-                  ...map.rois.map((r) => r.name),
-                  ...Object.keys(map.expressions),
-                ].map((n) => <option key={n}>{n}</option>)
-              ) : (
-                <option>No map loaded</option>
-              )}
-            </select>
-          </div>
-        </div>
-        <div className="map-toolbar">
-          <button onClick={() => setMapOnly((v) => !v)}>
-            {mapOnly ? "Dock detector / pattern" : "Expand map"}
-          </button>
-          <button
-            disabled={!ready || !map}
-            onClick={() => {
-              const canvas = mapPanel.current?.querySelector<HTMLCanvasElement>(
-                '[data-testid="detector-canvas"]',
-              );
-              if (canvas)
-                void run("map_export", {
-                  png_data: canvas.toDataURL("image/png").split(",")[1],
-                });
-            }}
-          >
-            Save PNG…
-          </button>
-        </div>
-        {map && (
-          <div className="map-toolbar map-display-controls">
-            <label>
-              <input
-                aria-label="Smooth map"
-                type="checkbox"
-                checked={smooth}
-                onChange={(e) => setSmooth(e.target.checked)}
-              />
-              Smooth
-            </label>
-            {smooth && (
-              <input
-                aria-label="Map smoothing factor"
-                type="range"
-                min="2"
-                max="10"
-                value={smoothFactor}
-                onChange={(e) => setSmoothFactor(+e.target.value)}
-              />
-            )}
-            <label>
-              <input
-                aria-label="Map contours"
-                type="checkbox"
-                checked={showContours}
-                onChange={(e) => setShowContours(e.target.checked)}
-              />
-              Contours
-            </label>
-            {showContours && (
-              <input
-                aria-label="Map contour count"
-                type="range"
-                min="1"
-                max="20"
-                value={contourCount}
-                onChange={(e) => setContourCount(+e.target.value)}
-              />
-            )}
-          </div>
-        )}
+      <section className="map-scan-panel" aria-label="Scan map">
         {map ? (
           <div className="detector-workspace map-raster" data-testid="scan-map">
             <RasterView
@@ -252,6 +458,7 @@ export function MapView({
               zoomMode="rectangle"
               tool="pan"
               busy={!ready}
+              exportRef={mapExporter}
               peaks={
                 map.selectedCell
                   ? [
@@ -295,11 +502,7 @@ export function MapView({
         ) : (
           <div className="empty-view">
             <h3>Load a scan</h3>
-            <p>
-              Integrate an ordered set of detector images,
-              <br />
-              open a processed batch, or reopen a .dio project.
-            </p>
+            <p>Integrate detector images or open a processed batch.</p>
             <button
               disabled={!ready || !state?.calibrated}
               className="primary"
@@ -309,170 +512,192 @@ export function MapView({
             </button>
           </div>
         )}
+        <div className="integration-image-tools map-display-controls">
+          <label>
+            <input
+              aria-label="Smooth map"
+              type="checkbox"
+              checked={smooth}
+              disabled={!map}
+              onChange={(e) => setSmooth(e.target.checked)}
+            />
+            Smooth
+          </label>
+          <input
+            aria-label="Map smoothing factor"
+            title={`Smoothing factor: ${smoothFactor}×`}
+            type="range"
+            min="2"
+            max="10"
+            value={smoothFactor}
+            disabled={!smooth || !map}
+            onChange={(e) => setSmoothFactor(+e.target.value)}
+          />
+          <label>
+            <input
+              aria-label="Map contours"
+              type="checkbox"
+              checked={showContours}
+              disabled={!map}
+              onChange={(e) => setShowContours(e.target.checked)}
+            />
+            Contours
+          </label>
+          <input
+            aria-label="Map contour count"
+            title={`${contourCount} contour levels`}
+            type="range"
+            min="1"
+            max="20"
+            value={contourCount}
+            disabled={!showContours || !map}
+            onChange={(e) => setContourCount(+e.target.value)}
+          />
+        </div>
+        <div className="integration-image-tools map-toolbar">
+          <button
+            className="plot-tool-button map-icon-button"
+            aria-label="Load map images"
+            title="Load map images"
+            disabled={!ready || !state?.calibrated}
+            onClick={() => {
+              setLive(false);
+              void run("map_load", {}, "Integrating map…");
+            }}
+          >
+            <FolderOpen size={16} />
+          </button>
+          <button
+            className="plot-tool-button map-live-button"
+            aria-label="Live map"
+            aria-pressed={live}
+            title="Append new completed scan files from this map’s folder"
+            disabled={
+              !ready ||
+              !map?.canRebuild ||
+              !state?.calibrated ||
+              !!map?.normalized
+            }
+            onClick={() => setLive((v) => !v)}
+          >
+            <Radio size={15} />
+            Live
+          </button>
+          {live && (
+            <label className="check-row">
+              <input
+                aria-label="Follow newest map point"
+                type="checkbox"
+                checked={follow}
+                onChange={(e) => setFollow(e.target.checked)}
+              />
+              Follow
+            </label>
+          )}
+          <button
+            className="plot-tool-button map-icon-button"
+            aria-label="Save map data…"
+            title="Save map data as text or TIFF"
+            disabled={!ready || !map}
+            onClick={() => run("map_export")}
+          >
+            <Save size={16} />
+          </button>
+          <label className="map-layer-select">
+            Layer
+            <select
+              aria-label="Map layer"
+              disabled={!ready || !map}
+              value={map?.active ?? ""}
+              onChange={(e) => run("map_layer", { name: e.target.value })}
+            >
+              {map ? (
+                [
+                  ...map.rois.map((r) => r.name),
+                  ...Object.keys(map.expressions),
+                ].map((n) => <option key={n}>{n}</option>)
+              ) : (
+                <option>No map loaded</option>
+              )}
+            </select>
+          </label>
+          <button
+            className="plot-tool-button map-icon-button"
+            aria-label="Save PNG…"
+            title="Save map viewport as PNG"
+            disabled={!ready || !map}
+            onClick={() => {
+              const png = mapExporter.current?.png();
+              if (png) void run("map_export", { png_data: png.split(",")[1] });
+            }}
+          >
+            PNG
+          </button>
+          <button
+            className="plot-tool-button map-icon-button"
+            aria-label={mapOnly ? "Dock detector / pattern" : "Expand map"}
+            title={
+              mapOnly ? "Restore detector, controls and pattern" : "Expand map"
+            }
+            onClick={() => setMapOnly((v) => !v)}
+          >
+            {mapOnly ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+          </button>
+        </div>
       </section>
       {!mapOnly && (
         <>
+          {divider(true)}
           <div
-            className="map-divider map-column-divider"
-            role="separator"
-            aria-label="Map panel width"
-            aria-orientation="vertical"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-                e.preventDefault();
-                setShare((v) =>
-                  Math.max(
-                    22,
-                    Math.min(75, v + (e.key === "ArrowLeft" ? -3 : 3)),
-                  ),
-                );
-              }
-            }}
-            onPointerDown={(e) =>
-              e.currentTarget.setPointerCapture(e.pointerId)
-            }
-            onPointerMove={(e) => {
-              if (
-                e.currentTarget.hasPointerCapture(e.pointerId) &&
-                layout.current
-              ) {
-                const bounds = layout.current.getBoundingClientRect();
-                setShare(
-                  Math.max(
-                    22,
-                    Math.min(
-                      75,
-                      ((e.clientX - bounds.left) / bounds.width) * 100,
-                    ),
-                  ),
-                );
-              }
-            }}
-          />
-          <section
-            className="panel map-detector-panel"
-            aria-label="Map detector image"
+            className={`map-analysis-top ${tabbedImage ? "map-image-tabbed" : ""}`}
+            ref={topPanel}
           >
-            {image && state?.hasImage ? (
-              <div className="detector-workspace">
-                <RasterView
-                  raster={image}
-                  mask={state.useMask ? (mask ?? undefined) : undefined}
-                  maskOpacity={state.transparentMask ? 0.72 : 1}
-                  limits={detector.limits}
-                  log={detector.log}
-                  palette={detector.palette}
-                  busy={!ready}
-                  zoomMode="rectangle"
-                  rings={linked?.contours ?? []}
-                  onInspect={(point) => {
-                    if (state.calibrated)
-                      void run("validation_position", {
-                        source: "image",
-                        ...point,
-                      });
-                  }}
-                  onHover={onDetectorHover}
-                />
-                {intensity(image, detector, "detector")}
-              </div>
-            ) : (
-              <div className="empty-view">
-                <p>
-                  {map
-                    ? "No raw detector image for this cell."
-                    : "Select a map point to inspect its detector image."}
-                </p>
-              </div>
-            )}
-          </section>
-          <div
-            className="map-divider map-row-divider"
-            role="separator"
-            aria-label="Detector and pattern heights"
-            aria-orientation="horizontal"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-                e.preventDefault();
-                setUpperShare((v) =>
-                  Math.max(
-                    25,
-                    Math.min(70, v + (e.key === "ArrowUp" ? -3 : 3)),
-                  ),
-                );
-              }
-            }}
-            onPointerDown={(e) =>
-              e.currentTarget.setPointerCapture(e.pointerId)
-            }
-            onPointerMove={(e) => {
-              if (
-                e.currentTarget.hasPointerCapture(e.pointerId) &&
-                layout.current
-              ) {
-                const b = layout.current.getBoundingClientRect();
-                setUpperShare(
-                  Math.max(
-                    25,
-                    Math.min(70, ((e.clientY - b.top) / b.height) * 100),
-                  ),
-                );
-              }
-            }}
-          />
-          <section className="panel map-pattern-panel" aria-label="Map pattern">
-            <div className="panel-heading map-heading">
-              <span>
-                Pattern {pattern ? `· ${unitLabel(pattern.unit)}` : ""}
-              </span>
-              <div className="map-pattern-actions">
-                <button
-                  className={editRegions ? "active" : ""}
-                  aria-pressed={editRegions}
-                  onClick={() => setEditRegions((v) => !v)}
-                >
-                  Edit windows
-                </button>
-                <button
-                  aria-pressed={logPattern}
-                  onClick={() => setLogPattern((v) => !v)}
-                >
-                  Log
-                </button>
-              </div>
-            </div>
-            {pattern ? (
+            {!tabbedImage && detectorPanel}
+            <aside className="map-task-panel" aria-label="Map tasks">
+              <MapControls
+                map={map}
+                state={state}
+                ready={ready}
+                run={sourceRun}
+                reintegrate={reintegrate}
+                onReintegrate={onReintegrate}
+                imageTab={tabbedImage ? detectorPanel : undefined}
+              />
+            </aside>
+          </div>
+          {divider(false)}
+          <section className="map-pattern-panel" aria-label="Map pattern">
+            {viewPattern && viewPattern.x.length ? (
               <PatternView
-                pattern={pattern}
-                log={logPattern}
+                key={viewPattern.unit}
+                pattern={viewPattern}
+                log={scale === "log"}
+                sqrt={scale === "sqrt"}
+                antialias={antialias}
+                compact
+                autoRange={autoRange}
+                onAutoRange={setAutoRange}
                 zoomMode={patternZoom}
                 onZoomMode={onPatternZoom}
                 onHover={onPatternHover}
                 hoverHint={
                   editRegions
-                    ? "Drag a window or its edges · right drag pans"
+                    ? "Drag window edges or body · click to center active window · left drag outside windows zooms · right drag pans"
                     : undefined
                 }
-                linkedPosition={
-                  pattern.unit === state?.unit ? linked?.radial : undefined
-                }
-                regions={
-                  map && pattern.unit === map.unit
-                    ? map.rois.map((r) => ({
-                        ...r,
-                        active: r.name === map.active,
-                      }))
-                    : []
-                }
-                editRegions={editRegions && ready}
-                onRegionChange={(name, minimum, maximum) =>
-                  run("map_roi", { name, minimum, maximum })
-                }
+                regions={regions}
+                editRegions={editRegions && ready && showRegions}
+                onRegionChange={changeRegion}
+                onRegionSelect={(name) => {
+                  if (map?.active !== name) void run("map_layer", { name });
+                }}
                 onPick={(x) => {
-                  if (state?.calibrated && pattern.unit === state.unit)
-                    void run("validation_position", { source: "pattern", x });
+                  if (!editRegions || !showRegions || !map) return;
+                  const active = regions.find((r) => r.active);
+                  if (active) {
+                    const half = (active.max - active.min) / 2;
+                    changeRegion(active.name, x - half, x + half);
+                  }
                 }}
               />
             ) : (
@@ -481,6 +706,97 @@ export function MapView({
                 pattern.
               </div>
             )}
+            <div
+              className="integration-pattern-tools map-pattern-tools"
+              role="group"
+              aria-label="Map pattern controls"
+            >
+              <div className="plot-tool-group">
+                {(
+                  [
+                    ["2th_deg", "2θ"],
+                    ["q_A^-1", "Q"],
+                    ["d_A", "d"],
+                  ] as [Unit, string][]
+                ).map(([unit, label]) => (
+                  <button
+                    key={unit}
+                    className="plot-tool-button"
+                    aria-label={`Map pattern unit ${label}`}
+                    title={`Display pattern in ${label}`}
+                    aria-pressed={(viewPattern?.unit ?? map?.unit) === unit}
+                    disabled={
+                      !pattern ||
+                      (unit !== pattern.unit &&
+                        (!state?.geometry.wavelength || !state?.calibrated) &&
+                        (unit === "2th_deg" || pattern.unit === "2th_deg"))
+                    }
+                    onClick={() => setPatternUnit(unit)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="plot-tool-group">
+                <button
+                  className="plot-tool-button"
+                  aria-label="Show pattern windows"
+                  title="Show pattern windows"
+                  aria-pressed={showRegions}
+                  onClick={() => setShowRegions((v) => !v)}
+                >
+                  ROI
+                </button>
+                <button
+                  className="plot-tool-button"
+                  aria-label="Edit windows"
+                  title="Edit pattern windows by dragging; turn off to zoom inside windows"
+                  aria-pressed={editRegions}
+                  disabled={!showRegions}
+                  onClick={() => setEditRegions((v) => !v)}
+                >
+                  <MoveHorizontal size={15} />
+                </button>
+              </div>
+              <div className="plot-tool-group">
+                <button
+                  className="plot-tool-button"
+                  aria-label="Logarithmic map pattern intensity"
+                  aria-pressed={scale === "log"}
+                  title="Logarithmic intensity"
+                  onClick={() => setScale(scale === "log" ? "linear" : "log")}
+                >
+                  Log
+                </button>
+                <button
+                  className="plot-tool-button"
+                  aria-label="Square root map pattern intensity"
+                  aria-pressed={scale === "sqrt"}
+                  title="Square-root intensity"
+                  onClick={() => setScale(scale === "sqrt" ? "linear" : "sqrt")}
+                >
+                  √
+                </button>
+              </div>
+              <button
+                className="plot-tool-button"
+                aria-label="Antialias map pattern"
+                title="Antialiased pattern lines"
+                aria-pressed={antialias}
+                onClick={() => setAntialias((v) => !v)}
+              >
+                AA
+              </button>
+              <button
+                className="plot-tool-button"
+                aria-label="Map pattern auto range"
+                title="Fit axes when the selected pattern changes"
+                aria-pressed={autoRange}
+                onClick={() => setAutoRange((v) => !v)}
+              >
+                A
+              </button>
+            </div>
           </section>
         </>
       )}

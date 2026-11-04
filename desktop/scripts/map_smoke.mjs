@@ -2,10 +2,10 @@ import { setInterfaceTextSize } from "./plot_navigation.mjs";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, mkdtemp, copyFile, rm } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { chromium } from "playwright";
+import { chromium, webkit } from "playwright";
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const artifacts = path.join(root, "desktop/artifacts");
 await mkdir(artifacts, { recursive: true });
@@ -37,7 +37,9 @@ function invoke(action, payload = {}) {
     host.stdin.write(JSON.stringify({ id, action, payload }) + "\n");
   });
 }
-const browser = await chromium.launch({ headless: true });
+const browser = await (
+  process.argv.includes("--webkit") ? webkit : chromium
+).launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
@@ -56,11 +58,13 @@ const ready = async () => {
   );
 };
 const click = async (name) => {
-  await page.getByRole("button", { name, exact: true }).click();
+  await page.getByRole("button", { name, exact: true }).first().click();
   await ready();
 };
 async function scanClick(row, col, rows, cols) {
-  const canvas = page.locator('[data-testid="scan-map"] canvas').first();
+  const canvas = page.locator(
+    '[data-testid="scan-map"] [data-testid="detector-canvas"]',
+  );
   const b = await canvas.boundingBox();
   const scale = Math.min((b.width - 8) / cols, (b.height - 8) / rows);
   await page.mouse.click(
@@ -105,8 +109,7 @@ try {
   assert.equal(state.map.selected, 5);
   assert.equal(
     await page
-      .locator(".map-detector-panel canvas")
-      .first()
+      .locator('.map-detector-panel [data-testid="detector-canvas"]')
       .getAttribute("data-full-width"),
     String(state.image.fullWidth),
   );
@@ -130,19 +133,18 @@ try {
   await page.getByRole("tab", { name: "Layers", exact: true }).click();
   await click("Add window");
   await page.getByLabel("Window B minimum", { exact: true }).fill("4");
+  await page.getByLabel("Window B minimum", { exact: true }).press("Enter");
+  await ready();
   await page.getByLabel("Window B maximum", { exact: true }).fill("8");
-  await page
-    .locator(".map-window")
-    .nth(1)
-    .getByRole("button", { name: "Apply window", exact: true })
-    .click();
+  await page.getByLabel("Window B maximum", { exact: true }).press("Enter");
   await ready();
   await page.getByLabel("Expression layer name", { exact: true }).fill("Ratio");
   await page.getByLabel("Map expression", { exact: true }).fill("A/B");
   await click("Apply expression");
   assert.equal((await invoke("state")).map.active, "Ratio");
-  await click("Edit windows");
-  const pattern = page.locator(".map-pattern-panel canvas");
+  const pattern = page.locator(
+    '.map-pattern-panel [data-testid="pattern-canvas"]',
+  );
   let b = await pattern.boundingBox();
   state = await invoke("state");
   const roi = state.map.rois[1],
@@ -162,13 +164,252 @@ try {
     (await invoke("state")).map.rois[1].min > roi.min,
     "Window edge did not update the real model",
   );
+  assert.equal(
+    (await invoke("state")).map.active,
+    "Ratio",
+    "Dragging a source window must preserve the displayed expression",
+  );
+  // Inline color and value edits update the same scientific windows as Qt.
+  await page.getByLabel("Window B color", { exact: true }).fill("#b050e0");
+  await ready();
+  assert.equal((await invoke("state")).map.rois[1].color, "#b050e0");
+  await page.getByLabel("Window B value", { exact: true }).selectOption("area");
+  await ready();
+  assert.equal((await invoke("state")).map.rois[1].reduction, "area");
+  await page.getByLabel("Window B value", { exact: true }).selectOption("sum");
+  await ready();
+  const original = (await invoke("state")).map.rois;
+  await click("Map pattern unit Q");
+  const qRegions = JSON.parse(await pattern.getAttribute("data-regions"));
+  const wavelength = (await invoke("state")).state.geometry.wavelength * 1e10;
+  const expectedQ =
+    (4 * Math.PI * Math.sin((original[1].min * Math.PI) / 360)) / wavelength;
+  assert.ok(Math.abs(qRegions[1].min - expectedQ) < 1e-10);
+  assert.deepEqual(
+    (await invoke("state")).map.rois,
+    original,
+    "Display units changed stored ROI ranges",
+  );
+  await click("Map pattern unit d");
+  const dRegions = JSON.parse(await pattern.getAttribute("data-regions"));
+  assert.ok(
+    dRegions[1].min < dRegions[1].max,
+    "Descending d conversion reversed the window",
+  );
+  // Drag the lower d edge and independently verify that the *upper* stored angle changes.
+  const dBox = await pattern.boundingBox();
+  const initialDBounds = await pattern.evaluate((el) => ({
+    left: +el.dataset.plotLeft,
+    width: +el.dataset.plotWidth,
+    min: +el.dataset.viewXMin,
+    max: +el.dataset.viewXMax,
+  }));
+  const dCenter = (dRegions[1].min + dRegions[1].max) / 2;
+  await page.mouse.move(
+    dBox.x +
+      initialDBounds.left +
+      ((dCenter - initialDBounds.min) /
+        (initialDBounds.max - initialDBounds.min)) *
+        initialDBounds.width,
+    dBox.y + dBox.height * 0.55,
+  );
+  await page.mouse.wheel(0, -1200);
+  await page.waitForTimeout(100);
+  const dBounds = await pattern.evaluate((el) => ({
+    left: +el.dataset.plotLeft,
+    width: +el.dataset.plotWidth,
+    min: +el.dataset.viewXMin,
+    max: +el.dataset.viewXMax,
+  }));
+  const dEdge =
+    dBox.x +
+    dBounds.left +
+    ((dRegions[1].min - dBounds.min) / (dBounds.max - dBounds.min)) *
+      dBounds.width;
+  const delta = (2 / dBounds.width) * (dBounds.max - dBounds.min);
+  await page.mouse.move(dEdge, dBox.y + dBox.height * 0.55);
+  await page.mouse.down();
+  await page.mouse.move(dEdge + 2, dBox.y + dBox.height * 0.55, { steps: 5 });
+  await page.mouse.up();
+  await ready();
+  const angleFromD =
+    (Math.asin(wavelength / (2 * (dRegions[1].min + delta))) * 360) / Math.PI;
+  assert.ok(
+    Math.abs((await invoke("state")).map.rois[1].max - angleFromD) < 1e-8,
+    JSON.stringify({
+      message: "d edge was not converted back to stored units",
+      original,
+      dRegions,
+      dBounds,
+      delta,
+      angleFromD,
+      after: (await invoke("state")).map.rois,
+    }),
+  );
+  await click("Map pattern unit 2θ");
+  assert.ok(
+    +(await pattern.getAttribute("data-view-x-max")) < 40,
+    "Unit change retained a viewport expressed in d spacing",
+  );
+  await page.getByLabel("Show map layer B", { exact: true }).click();
+  await ready();
+  // A stationary click outside the region recenters it without changing its width.
+  const beforeCenter = (await invoke("state")).map.rois[1];
+  const centerBox = await pattern.boundingBox();
+  const centerBounds = await pattern.evaluate((el) => ({
+    left: +el.dataset.plotLeft,
+    width: +el.dataset.plotWidth,
+    min: +el.dataset.viewXMin,
+    max: +el.dataset.viewXMax,
+  }));
+  const center = 11;
+  await page.mouse.click(
+    centerBox.x +
+      centerBounds.left +
+      ((center - centerBounds.min) / (centerBounds.max - centerBounds.min)) *
+        centerBounds.width,
+    centerBox.y + centerBox.height * 0.6,
+  );
+  await ready();
+  const afterCenter = (await invoke("state")).map.rois[1];
+  assert.ok(
+    Math.abs((afterCenter.max + afterCenter.min) / 2 - center) <
+      (centerBounds.max - centerBounds.min) / centerBounds.width,
+  );
+  assert.ok(
+    Math.abs(
+      afterCenter.max - afterCenter.min - (beforeCenter.max - beforeCenter.min),
+    ) < 1e-8,
+  );
+  // Shared range handles must translate as a whole and resize from either edge.
+  assert.ok(
+    JSON.parse(await pattern.getAttribute("data-regions")).every(
+      (r) => r.appearance === "range",
+    ),
+  );
+  const plotPoint = async (value) => {
+    const box = await pattern.boundingBox();
+    const bounds = await pattern.evaluate((el) => ({
+      left: +el.dataset.plotLeft,
+      top: +el.dataset.plotTop,
+      width: +el.dataset.plotWidth,
+      height: +el.dataset.plotHeight,
+      min: +el.dataset.viewXMin,
+      max: +el.dataset.viewXMax,
+    }));
+    return {
+      x:
+        box.x +
+        bounds.left +
+        ((value - bounds.min) / (bounds.max - bounds.min)) * bounds.width,
+      y: box.y + bounds.top + bounds.height * 0.55,
+    };
+  };
+  const moveBefore = (await invoke("state")).map.rois[1];
+  let point = await plotPoint((moveBefore.min + moveBefore.max) / 2);
+  await page.mouse.move(point.x, point.y);
+  await page.mouse.down();
+  await page.mouse.move(point.x + 18, point.y, { steps: 6 });
+  await page.mouse.up();
+  await ready();
+  const moveAfter = (await invoke("state")).map.rois[1];
+  assert.ok(
+    moveAfter.min > moveBefore.min && moveAfter.max > moveBefore.max,
+    "Range body did not translate",
+  );
+  assert.ok(
+    Math.abs(
+      moveAfter.max - moveAfter.min - (moveBefore.max - moveBefore.min),
+    ) < 1e-8,
+    "Range body changed its width",
+  );
+  point = await plotPoint(moveAfter.max);
+  await page.mouse.move(point.x, point.y);
+  await page.mouse.down();
+  await page.mouse.move(point.x + 10, point.y, { steps: 5 });
+  await page.mouse.up();
+  await ready();
+  const resized = (await invoke("state")).map.rois[1];
+  assert.equal(
+    resized.min,
+    moveAfter.min,
+    "Moving upper range edge changed lower edge",
+  );
+  assert.ok(resized.max > moveAfter.max, "Upper range edge did not resize");
+  const toolbar = page.getByRole("group", {
+    name: "Map pattern controls",
+    exact: true,
+  });
+  const toolbarBox = await toolbar.boundingBox(),
+    plotBox = await pattern.boundingBox();
+  assert.ok(
+    toolbarBox.x >= plotBox.x + plotBox.width - 1,
+    "Pattern controls are not beside the plot",
+  );
+  assert.ok(
+    toolbarBox.height > toolbarBox.width * 3,
+    "Pattern controls are not a vertical strip",
+  );
+  for (const button of [
+    toolbar.getByRole("button", { name: "Map pattern unit 2θ", exact: true }),
+    page.getByRole("button", { name: "Load map images", exact: true }),
+  ]) {
+    assert.equal(
+      await button.evaluate((el) => getComputedStyle(el).backgroundColor),
+      "rgba(0, 0, 0, 0)",
+      "Plot button retained its pill background",
+    );
+    assert.equal(
+      await button.evaluate((el) => getComputedStyle(el).borderRadius),
+      "1px",
+    );
+  }
+  assert.equal(await page.locator(".map-layers .map-note").count(), 0);
+  await click("Square root map pattern intensity");
+  assert.equal(await pattern.getAttribute("data-intensity-scale"), "sqrt");
+  await click("Logarithmic map pattern intensity");
+  assert.equal(await pattern.getAttribute("data-intensity-scale"), "log");
+  await click("Logarithmic map pattern intensity");
+  assert.equal(await pattern.getAttribute("data-intensity-scale"), "linear");
+  await click("Show pattern windows");
+  assert.deepEqual(JSON.parse(await pattern.getAttribute("data-regions")), []);
+  await click("Show pattern windows");
+  const storedBeforeMask = (await invoke("state")).pattern;
+  await page.getByLabel("Map use mask", { exact: true }).click();
+  await ready();
+  await page.waitForTimeout(100);
+  assert.deepEqual(
+    (await invoke("state")).pattern,
+    storedBeforeMask,
+    "Mask display silently replaced the stored map pattern",
+  );
+  await page.getByLabel("Map use mask", { exact: true }).click();
+  await ready();
+  await page.getByLabel("Map transparent mask", { exact: true }).click();
+  await ready();
+  assert.equal((await invoke("state")).state.transparentMask, true);
+  await page.getByLabel("Map transparent mask", { exact: true }).click();
+  await ready();
+  await page.getByLabel("Layer Ratio name", { exact: true }).fill("Contrast");
+  await page.getByLabel("Layer Ratio name", { exact: true }).press("Enter");
+  await ready();
+  assert.equal((await invoke("state")).map.expressions.Contrast, "A/B");
+  await page.getByLabel("Layer Contrast name", { exact: true }).fill("Ratio");
+  await page.getByLabel("Layer Contrast name", { exact: true }).press("Enter");
+  await ready();
+  await click("Live map");
+  await page.waitForTimeout(1450);
+  assert.ok(requests.includes("map_poll"));
+  await click("Live map");
   await click("Edit windows");
   const before = await pattern.getAttribute("data-view-x-max");
   await pattern.hover();
   await page.mouse.wheel(0, -150);
   await page.waitForTimeout(80);
   assert.notEqual(await pattern.getAttribute("data-view-x-max"), before);
-  const mapCanvas = page.locator('[data-testid="scan-map"] canvas').first();
+  const mapCanvas = page.locator(
+    '[data-testid="scan-map"] [data-testid="detector-canvas"]',
+  );
   const beforeView = await mapCanvas.getAttribute("data-view-x-max");
   await mapCanvas.hover();
   await page.mouse.wheel(0, -120);
@@ -184,7 +425,33 @@ try {
     countsBeforeHover,
     "Map hover made scientific payload requests",
   );
-  await page.getByRole("tab", { name: "Files", exact: true }).click();
+  await page.getByRole("tab", { name: "Points", exact: true }).click();
+  const options = page
+    .getByRole("listbox", { name: "Scan arrangement" })
+    .getByRole("option");
+  await options.nth(0).click();
+  await ready();
+  await options.nth(0).press("ArrowDown");
+  await ready();
+  await options.nth(1).press("ArrowDown");
+  await ready();
+  assert.equal(
+    (await invoke("state")).map.selectedSlot,
+    2,
+    "Arrow selection did not follow keyboard focus",
+  );
+  const pointOrder = (await invoke("state")).map.slots;
+  await options.nth(0).dragTo(options.nth(2));
+  await ready();
+  const moved = (await invoke("state")).map.slots;
+  assert.equal(moved[2], pointOrder[0]);
+  await click("Insert blank");
+  const withBlank = await invoke("state");
+  assert.ok(withBlank.map.slots.includes(null));
+  await click("Exclude point");
+  assert.ok((await invoke("state")).map.excluded.length > 0);
+  await click("Include point");
+  assert.equal((await invoke("state")).map.excluded.length, 0);
   await page.getByText("Normalize patterns", { exact: true }).click();
   await click("Normalize");
   assert.equal((await invoke("state")).map.normalized, true);
@@ -192,6 +459,8 @@ try {
   assert.equal((await invoke("state")).map.normalized, false);
   await click("Save PNG…");
   await click("Save map data…");
+  await page.getByLabel("Map layer", { exact: true }).selectOption("Ratio");
+  await ready();
   await click("Save project");
   await click("Expand map");
   assert.equal(await page.locator(".map-detector-panel").count(), 0);
@@ -211,12 +480,32 @@ try {
     "16px",
   );
   await setInterfaceTextSize(page, false);
-  await page.locator(".sidebar-scroll").evaluate((el) => (el.scrollTop = 0));
+  await page.getByRole("tab", { name: "Layers", exact: true }).click();
+  await page.getByLabel("Map layer", { exact: true }).selectOption("Ratio");
+  await ready();
+  await page.waitForTimeout(180);
   await page.screenshot({
     path: path.join(artifacts, "map-desktop.png"),
     fullPage: true,
   });
   await page.setViewportSize({ width: 1000, height: 760 });
+  await page.waitForTimeout(100);
+  const mapBounds = await page.locator(".map-task-panel").boundingBox();
+  const tableBounds = await page
+    .getByRole("table", { name: "Pattern windows", exact: true })
+    .boundingBox();
+  assert.ok(
+    tableBounds.x >= mapBounds.x &&
+      tableBounds.x + tableBounds.width <= mapBounds.x + mapBounds.width,
+  );
+  await page.getByRole("tab", { name: "Image", exact: true }).click();
+  assert.ok(
+    await page
+      .locator('.map-detector-panel [data-testid="detector-canvas"]')
+      .isVisible(),
+  );
+  await page.getByRole("tab", { name: "Layers", exact: true }).click();
+  await page.waitForTimeout(180);
   await page.screenshot({
     path: path.join(artifacts, "map-compact.png"),
     fullPage: true,
@@ -237,6 +526,40 @@ try {
       .count(),
     1,
   );
+  // Exercise the GUI's pending-file check and serialized append, not only its Live toggle.
+  const liveFolder = await mkdtemp(path.join(artifacts, "map-live-"));
+  try {
+    const firstImage = path.join(liveFolder, "scan_001.tif");
+    await copyFile(
+      path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
+      firstImage,
+    );
+    assert.equal((await invoke("map_load", { paths: [firstImage] })).ok, true);
+    await page.reload();
+    await ready();
+    await click("Map");
+    await click("Live map");
+    await copyFile(firstImage, path.join(liveFolder, "scan_002.tif"));
+    await page.waitForFunction(
+      () =>
+        document.querySelectorAll('.map-file-list [role="option"]').length ===
+        2,
+      null,
+      { timeout: 45000 },
+    );
+    await ready();
+    const liveState = await invoke("state");
+    assert.equal(
+      liveState.map.selected,
+      1,
+      "Live did not follow the appended point",
+    );
+    assert.equal(liveState.map.points, 2);
+    assert.equal(liveState.state.hasImage, true);
+    await click("Live map");
+  } finally {
+    await rm(liveFolder, { recursive: true, force: true });
+  }
   assert.deepEqual(errors, []);
   await writeFile(
     path.join(artifacts, "map-smoke.json"),
@@ -248,6 +571,7 @@ try {
         blankSelection: true,
         serpentine: true,
         windowDrag: true,
+        liveAppend: true,
         normalization: true,
         projectRoundTrip: true,
         independentHistograms: true,
@@ -259,6 +583,12 @@ try {
     ),
   );
   console.log("Map browser smoke passed");
+} catch (error) {
+  await page.screenshot({
+    path: path.join(artifacts, "map-failure.png"),
+    fullPage: true,
+  });
+  throw error;
 } finally {
   await browser.close();
   host.stdin.end();

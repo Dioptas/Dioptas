@@ -156,6 +156,7 @@ export interface Response {
   phaseImport?: PhaseImport;
   phaseCatalog?: PhaseMaterial[];
   map?: MapData | null;
+  mapPending?: number;
   mapLevels?: [number, number];
   mapWarning?: string | null;
   mapPreview?: Raster;

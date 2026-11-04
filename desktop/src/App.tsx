@@ -42,7 +42,6 @@ import type {
 } from "./types";
 import { number } from "./types";
 import { MapView } from "./MapView";
-import { MapControls } from "./MapControls";
 import type { MapData } from "./mapDomain";
 import { MaskView } from "./MaskView";
 import { MaskPanel } from "./MaskPanel";
@@ -518,7 +517,8 @@ export default function App() {
       !busy &&
       !error &&
       !settingsOpen &&
-      mode !== "mask"
+      mode !== "mask" &&
+      mode !== "map"
     )
       void run("integrate", {}, "Integrating image and cake…");
   }, [
@@ -1283,9 +1283,10 @@ export default function App() {
                   ready={ready}
                   run={run}
                   request={requestMap}
+                  error={error}
                   reintegrate={mapReintegrate}
+                  onReintegrate={setMapReintegrate}
                   mapLevels={mapLevels}
-                  linked={linked}
                   reportPlot={reportPlot}
                   onDetectorHover={onHover}
                   onPatternHover={onPatternHover}
@@ -1873,8 +1874,8 @@ export default function App() {
                 </>
               )}
             </main>
-            <aside
-              className={`sidebar ${mode === "calibration" ? "calibration-task-panel" : mode === "map" ? "map-task-panel" : ""}`}
+            {mode !== "map" && <aside
+              className={`sidebar ${mode === "calibration" ? "calibration-task-panel" : ""}`}
               data-calibration-section={
                 mode === "calibration" ? calibrationStep : undefined
               }
@@ -1929,16 +1930,7 @@ export default function App() {
                     : undefined
                 }
               >
-                {mode === "map" ? (
-                  <MapControls
-                    map={map}
-                    state={state}
-                    ready={ready}
-                    run={run}
-                    reintegrate={mapReintegrate}
-                    onReintegrate={setMapReintegrate}
-                  />
-                ) : mode === "mask" ? (
+                {mode === "mask" ? (
                   <MaskPanel
                     state={state}
                     ready={ready}
@@ -2244,7 +2236,7 @@ export default function App() {
                   </div>
                 </div>
               )}
-            </aside>
+            </aside>}
           </IntegrationWorkspace>
           {manualGeometryOpen && (
             <ManualGeometryDialog

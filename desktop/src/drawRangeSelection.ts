@@ -12,6 +12,20 @@ export function drawRangeSelection(
   activeEdge?: "min" | "max",
   moving = false,
 ) {
+  const highlight =
+    color === RANGE_SELECTION_COLOR
+      ? "#a8dbff"
+      : color === BACKGROUND_RANGE_COLOR
+        ? "#ffb347"
+        : "#" +
+          [1, 3, 5]
+            .map((offset) => {
+              const channel = parseInt(color.slice(offset, offset + 2), 16);
+              return Math.round(channel + (255 - channel) * 0.35)
+                .toString(16)
+                .padStart(2, "0");
+            })
+            .join("");
   context.save();
   context.fillStyle = color + "1a";
   context.fillRect(left, top, right - left, height);
@@ -29,12 +43,7 @@ export function drawRangeSelection(
     context.strokeStyle = "#10151b";
     context.lineWidth = 5;
     context.stroke();
-    context.strokeStyle =
-      edge === activeEdge
-        ? color === RANGE_SELECTION_COLOR
-          ? "#a8dbff"
-          : "#ffb347"
-        : color;
+    context.strokeStyle = edge === activeEdge ? highlight : color;
     context.lineWidth = 2;
     context.stroke();
     context.fillStyle = color;
