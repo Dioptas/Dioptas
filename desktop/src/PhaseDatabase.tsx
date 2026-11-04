@@ -36,6 +36,7 @@ const compare = (a: unknown, b: unknown) => {
         sensitivity: "base",
       });
 };
+const materialSortName = (name: string) => name.replace(/^[\s()[\]{}]+/u, "");
 const spaceGroup = (text: string) =>
   text
     .replace(
@@ -56,6 +57,21 @@ function variant(record: DatabaseRecord, records: DatabaseRecord[]) {
   const label = String(record.sourceRecord.label || record.label);
   const citation = `${record.authors} (${record.year}), `;
   return label.startsWith(citation) ? label.slice(citation.length) : label;
+}
+function matchesRecord(record: DatabaseRecord, query: string) {
+  const terms = query.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
+  const text = [
+    record.authors,
+    record.year,
+    record.eos,
+    record.thermal,
+    record.label,
+    "eos",
+    record.thermal ? "thermal therm term pvt" : "",
+  ]
+    .join(" ")
+    .toLocaleLowerCase();
+  return terms.every((term) => text.includes(term));
 }
 function keepVisible(row: HTMLElement | null) {
   const scroll = row?.closest(".data-table-scroll");
@@ -133,6 +149,7 @@ export function PhaseDatabase({
   } | null>(null);
   const [materialSort, setMaterialSort] = useState<Sort>(null);
   const [recordSort, setRecordSort] = useState<Sort>(null);
+  const [recordFilter, setRecordFilter] = useState({ material: "", text: "" });
   const materialTable = useRef<HTMLTableElement>(null);
   const recordTable = useRef<HTMLTableElement>(null);
   useEffect(() => {
@@ -192,15 +209,30 @@ export function PhaseDatabase({
   if (materialSort)
     shown.sort(
       (a, b) =>
-        compare(a[materialSort.key as "name"], b[materialSort.key as "name"]) *
-        (materialSort.descending ? -1 : 1),
+        compare(
+          materialSort.key === "name" ? materialSortName(a.name) : a.spaceGroup,
+          materialSort.key === "name" ? materialSortName(b.name) : b.spaceGroup,
+        ) * (materialSort.descending ? -1 : 1),
+    );
+  if (!materialSort && view !== "Recent" && !query.trim())
+    shown.sort((a, b) =>
+      compare(materialSortName(a.name), materialSortName(b.name)),
     );
   const material = shown.find((m) => m.id === selected) || shown[0];
-  const reference =
+  const chosenReference =
     choice && choice.material === material?.id
       ? choice.reference
       : (material?.defaultReference ?? -1);
+  const recordQuery =
+    recordFilter.material === material?.id ? recordFilter.text : "";
+  let records = (
+    material?.references.map((r, index) => ({ r, index })) || []
+  ).filter(({ r }) => matchesRecord(r, recordQuery));
+  const reference = records.some(({ index }) => index === chosenReference)
+    ? chosenReference
+    : -1;
   useEffect(() => {
+    setRecordFilter({ material: material?.id || "", text: "" });
     setChoice((previous) =>
       previous?.material === material?.id ? previous : null,
     );
@@ -215,10 +247,11 @@ export function PhaseDatabase({
     : !material.diffraction
       ? "No crystal structure or reference peak table is available. EoS records can still be inspected and exported."
       : material.references.length && !record
-        ? "Select an EoS record explicitly; no automatic default is recommended."
+        ? recordQuery.trim()
+          ? "Select a matching record, or clear the filter to restore the previous selection."
+          : "Select an EoS record explicitly; no automatic default is recommended."
         : record?.loadError || "";
   const canLoad = ready && !pending && !reason;
-  let records = material?.references.map((r, index) => ({ r, index })) || [];
   if (recordSort)
     records.sort((a, b) => {
       const value = (r: DatabaseRecord) =>
@@ -256,7 +289,7 @@ export function PhaseDatabase({
     keepVisible(
       recordTable.current?.querySelector('tr[aria-selected="true"]') || null,
     );
-  }, [material?.id, reference, result, materialSort, recordSort]);
+  }, [material?.id, reference, result, materialSort, recordSort, recordQuery]);
   const changeQuery = (q: string) => {
     if (q.trim() && beforeSearch.current === null) {
       beforeSearch.current = view;
@@ -278,7 +311,12 @@ export function PhaseDatabase({
   const load = (index = reference, m = material) => {
     if (!ready || pending || !m) return;
     const target = m.references[index];
-    if (!m.diffraction || (m.references.length && !target) || target?.loadError)
+    if (
+      !m.diffraction ||
+      (m.references.length && !target) ||
+      target?.loadError ||
+      (target && m.id === material?.id && !matchesRecord(target, recordQuery))
+    )
       return;
     void run(
       "integration_phase",
@@ -427,6 +465,27 @@ export function PhaseDatabase({
               </button>
             ))}
           </div>
+          {materialSort && (
+            <button
+              className="phase-database-sort-reset"
+              onClick={() => setMaterialSort(null)}
+            >
+              Restore{" "}
+              {query.trim()
+                ? "search ranking"
+                : view === "Recent"
+                  ? "recent order"
+                  : "alphabetical order"}
+            </button>
+          )}
+          <span
+            className="phase-database-result-count"
+            aria-label="Material result count"
+          >
+            {pending
+              ? "…"
+              : `${shown.length} ${shown.length === 1 ? "result" : "results"}`}
+          </span>
           <button
             className="icon-button phase-database-favourite"
             aria-label={
@@ -465,21 +524,6 @@ export function PhaseDatabase({
           aria-label="Material results"
           aria-busy={pending}
         >
-          <div className="phase-database-heading">
-            <h3>
-              {query.trim() ? "Search results" : "Materials"} ({shown.length})
-            </h3>
-            {materialSort && (
-              <button onClick={() => setMaterialSort(null)}>
-                Restore{" "}
-                {query.trim()
-                  ? "search ranking"
-                  : view === "Recent"
-                    ? "recent order"
-                    : "library order"}
-              </button>
-            )}
-          </div>
           <TableScroll>
             <DataTable ref={materialTable} aria-label="Database materials">
               <thead>
@@ -543,9 +587,35 @@ export function PhaseDatabase({
           <div className="phase-database-heading">
             <h3>
               {material
-                ? `${material.name} — EoS records (${records.length})`
+                ? `${material.name} — EoS records (${records.length}${recordQuery.trim() ? ` / ${material.references.length}` : ""})`
                 : "Equation of state records"}
             </h3>
+            <input
+              type="search"
+              className="phase-database-record-filter"
+              aria-label="Filter EoS records"
+              placeholder="Filter records…"
+              title="Filter authors, year, EoS or thermal model. PVT and TERM find thermal records."
+              value={recordQuery}
+              disabled={!material}
+              onChange={(e) =>
+                setRecordFilter({ material: material.id, text: e.target.value })
+              }
+              onKeyDown={(e) => {
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  const row =
+                    recordTable.current?.querySelector<HTMLTableRowElement>(
+                      'tbody tr[aria-selected="true"]',
+                    ) ||
+                    recordTable.current?.querySelector<HTMLTableRowElement>(
+                      "tbody tr",
+                    );
+                  row?.focus({ preventScroll: true });
+                  keepVisible(row || null);
+                }
+              }}
+            />
             {recordSort && (
               <button onClick={() => setRecordSort(null)}>
                 Restore record order
@@ -646,14 +716,16 @@ export function PhaseDatabase({
             {!records.length && (
               <p className="phase-database-empty">
                 {material
-                  ? "No EoS records for this material."
+                  ? recordQuery.trim()
+                    ? "No records match this filter."
+                    : "No EoS records for this material."
                   : "Select a material."}
               </p>
             )}
           </TableScroll>
         </section>
         <div className="phase-database-conditions">
-          {reason && material && (
+          {reason && material && records.length > 0 && (
             <p
               className="phase-condition-note"
               role="status"

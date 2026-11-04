@@ -179,9 +179,39 @@ try {
     "Material",
     "Space group",
   ]);
+  const browseNames = await materialTable
+    .locator("tbody tr td:first-child")
+    .allTextContents();
   assert.deepEqual(
-    await materialTable.locator("tbody tr td:first-child").allTextContents(),
-    all.filter((m) => m.diffraction).map((m) => m.name),
+    new Set(browseNames),
+    new Set(all.filter((m) => m.diffraction).map((m) => m.name)),
+  );
+  const bracketed = all.find((m) => m.diffraction && m.name.startsWith("(Mg"));
+  assert.ok(
+    bracketed,
+    "Expected a bracketed magnesium composition in the real catalog",
+  );
+  assert.ok(
+    browseNames.indexOf(bracketed.name) > browseNames.indexOf(gold.name),
+  );
+  await materialTable
+    .getByRole("button", { name: "Material", exact: true })
+    .click();
+  await materialTable
+    .getByRole("button", { name: "Material ↑", exact: true })
+    .click();
+  const descending = await materialTable
+    .locator("tbody tr td:first-child")
+    .allTextContents();
+  assert.ok(descending.indexOf(bracketed.name) < descending.indexOf(gold.name));
+  await db
+    .getByRole("button", { name: "Restore alphabetical order", exact: true })
+    .click();
+  assert.equal(await materialPane.getByRole("heading").count(), 0);
+  const resultCount = db.locator(".phase-database-result-count");
+  assert.equal(
+    await resultCount.textContent(),
+    `${browseNames.length} results`,
   );
   await page
     .getByLabel("Search materials", { exact: true })
@@ -267,6 +297,90 @@ try {
       reference.pressureRange || "—",
     );
   }
+  const recordFilter = db.getByRole("searchbox", {
+    name: "Filter EoS records",
+    exact: true,
+  });
+  const filterRecords = async (text, count) => {
+    await recordFilter.fill(text);
+    if (count !== undefined)
+      await page.waitForFunction(
+        (expected) =>
+          document.querySelectorAll(".phase-database-records tbody tr")
+            .length === expected,
+        count,
+      );
+  };
+  const visibleReferences = async () =>
+    (
+      await recordTable
+        .locator("tbody tr")
+        .evaluateAll((rows) => rows.map((r) => Number(r.dataset.reference)))
+    ).sort((a, b) => a - b);
+  const expectedReferences = (condition) =>
+    gold.references
+      .map((r, index) => ({ r, index }))
+      .filter(({ r }) => condition(r))
+      .map(({ index }) => index);
+  const vinets = expectedReferences((r) => r.eos === "Vinet");
+  await filterRecords("vinet", vinets.length);
+  assert.deepEqual(await visibleReferences(), vinets);
+  const thermal = expectedReferences((r) => !!r.thermal);
+  await filterRecords("tErM", thermal.length);
+  assert.deepEqual(await visibleReferences(), thermal);
+  const pvt = expectedReferences(
+    (r) => !!r.thermal || r.label.toLowerCase().includes("pvt"),
+  );
+  await filterRecords("PVT", pvt.length);
+  assert.deepEqual(await visibleReferences(), pvt);
+  const thermalVinet = expectedReferences(
+    (r) => r.eos === "Vinet" && !!r.thermal,
+  );
+  await filterRecords("Vinet TERM", thermalVinet.length);
+  assert.deepEqual(await visibleReferences(), thermalVinet);
+  // Hiding a selection must not load it or silently choose a different record.
+  await filterRecords("Sakai", 1);
+  assert.equal(await selectedRecord().count(), 0);
+  assert.equal(await loadButton.isDisabled(), true);
+  assert.equal(
+    await db.getByRole("button", { name: "Peritheos ↗", exact: true }).count(),
+    0,
+  );
+  const sakai = gold.references.findIndex((r) => r.authors.startsWith("Sakai"));
+  await recordTable.locator(`tr[data-reference="${sakai}"]`).click();
+  assert.equal(await loadButton.isEnabled(), true);
+  await filterRecords("TERM", thermal.length);
+  assert.equal(await selectedRecord().count(), 0);
+  assert.equal(await loadButton.isDisabled(), true);
+  await filterRecords("no-such-record", 0);
+  assert.ok((await db.innerText()).includes("No records match this filter."));
+  assert.equal(await resultCount.textContent(), "1 result");
+  // Clear with the native search-field X, restoring the chosen source identity.
+  await recordFilter.focus();
+  const filterBounds = await recordFilter.boundingBox();
+  await recordFilter.click({
+    position: { x: filterBounds.width - 14, y: filterBounds.height / 2 },
+  });
+  await page.waitForFunction(
+    (expected) =>
+      document.querySelectorAll(".phase-database-records tbody tr").length ===
+      expected,
+    gold.references.length,
+  );
+  assert.equal(
+    await selectedRecord().getAttribute("data-reference"),
+    String(sakai),
+  );
+  await filterRecords("Fei 2007", 1);
+  assert.ok((await recordTable.innerText()).includes("Default"));
+  await recordTable
+    .locator(`tr[data-reference="${gold.defaultReference}"]`)
+    .click();
+  await filterRecords("", gold.references.length);
+  assert.equal(
+    await selectedRecord().getAttribute("data-reference"),
+    String(gold.defaultReference),
+  );
   const sameCitation = gold.references
     .map((r, i) => ({ r, i }))
     .filter(({ r }) => r.authors === "Dewaele" && r.year === "2019");
@@ -350,6 +464,7 @@ try {
     0,
   );
   await query("palladium");
+  assert.equal(await recordFilter.inputValue(), "");
   const palladium = all.find((m) => m.id === "palladium");
   await select(palladium);
   assert.equal(await selectedRecord().count(), 0);
@@ -479,7 +594,9 @@ try {
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
   // Phase browsing excludes EoS-only and assumption-only materials in every view.
+  await filterRecords("TERM", thermal.length);
   await query("coesite");
+  assert.equal(await recordFilter.inputValue(), "");
   assert.deepEqual(
     await materialTable.locator("tbody tr td:first-child").allTextContents(),
     all
@@ -536,6 +653,9 @@ try {
           "recent load order",
           "diffraction-capable materials only",
           "fixed material pane height",
+          "material result count beside favourite",
+          "bracket-insensitive material order",
+          "record text/thermal filtering and hidden-selection protection",
           "icon-only favourite toggle",
           "native search clear",
           "thermal model and source pressure ranges",

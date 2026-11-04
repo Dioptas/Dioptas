@@ -10,7 +10,11 @@ through the selected record's Peritheos and reconstruction-report links.
 - All, Recent and Favourites show only materials with crystal structures or reference
   peaks usable for phase lines. All is first. The redundant diffraction column and
   filter control are removed, as is the duplicate Clear button; the search field's
-  native clear icon remains available. Favourites use an icon-only star.
+  native clear icon remains available. Favourites use an icon-only star, with the
+  material result count beside it instead of a separate materials headline.
+- Alphabetical browsing and the Material column sort ignore leading brackets in
+  display names. Scientific names remain unchanged; ranked searches and recent
+  history preserve their existing ordering semantics.
 - Select a material, then its record. The record table begins with author/year,
   followed by the EoS type, thermal-model availability, and the source fit pressure
   interval. The thermal indicator's tooltip gives the actual model name; the pressure
@@ -20,6 +24,12 @@ through the selected record's Peritheos and reconstruction-report links.
   author/year/type combinations.
 - Variant names retain catalog wording; repeated citation prefixes are removed.
   Full record labels remain available on hover. Rows stay one line high.
+- A small record filter matches author/year, EoS type, record labels and thermal-model
+  names, case-insensitively. Multiple words narrow the results together; PVT and
+  TERM also find records with thermal models. It resets when changing materials.
+  Counts show matching/total records, and the Default marker stays on the actual
+  default when visible. A hidden record cannot be loaded; clearing restores its
+  prior selection without changing any model default.
 - Load the selected record or export the material with all its records.
 - Open Peritheos or the reconstruction report for scientific detail.
 
@@ -64,6 +74,11 @@ and the built-in inspector were removed with their components.
   model loading/export, exclusion of EoS-only/assumption-only materials, the fixed
   material pane and column positions, native search clearing and the star toggle.
   Thermal indicators and fit pressure ranges are checked against every gold record.
+  Record filtering covers Vinet, PVT, TERM, combined terms, author/year, default
+  markers, no matches, native clearing, per-material reset and hidden-selection
+  load protection. Bracketed magnesium compositions are checked against gold in
+  ascending and descending material order. The latest filter/order changes were
+  verified headlessly, preserving the running user preview.
 - Layout checks cover 1440×1000, 1000×668 and 800×600 at both text sizes, including
   visible selected records/footer actions and no horizontal record-table scrolling.
 - The scoped native smoke passes for the simplified columns, absence of the inspector,

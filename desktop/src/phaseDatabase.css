@@ -218,3 +218,23 @@
 .app .phase-database-materials > .data-table-scroll {
   overflow-y: scroll;
 }
+
+.phase-database-dialog .phase-database-record-filter {
+  flex: 0 1 230px;
+  width: 230px;
+  min-width: 150px;
+  height: 30px;
+}
+.phase-database-heading h3 {
+  min-width: 0;
+}
+
+.phase-database-result-count {
+  color: var(--muted);
+  font-size: var(--text-meta);
+  white-space: nowrap;
+}
+.app button.phase-database-sort-reset {
+  padding: 3px 6px;
+  color: var(--muted);
+}
