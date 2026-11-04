@@ -7,25 +7,34 @@ through the selected record's Peritheos and reconstruction-report links.
 ## Visible workflow
 
 - Search by material name, formula or alias, using the existing ranked model search.
-- Choose from Recent, Favourites or All, optionally limited to diffraction data.
+- All, Recent and Favourites show only materials with crystal structures or reference
+  peaks usable for phase lines. All is first. The redundant diffraction column and
+  filter control are removed, as is the duplicate Clear button; the search field's
+  native clear icon remains available. Favourites use an icon-only star.
 - Select a material, then its record. The record table begins with author/year,
-  followed by the EoS type. A variant column appears only for materials whose
-  records contain otherwise ambiguous author/year/type combinations.
+  followed by the EoS type, thermal-model availability, and the source fit pressure
+  interval. The thermal indicator's tooltip gives the actual model name; the pressure
+  heading explains that the interval is not a phase-stability range. Non-numeric
+  source statuses (for example, reference model) are preserved. A variant column
+  appears only for materials whose records contain otherwise ambiguous
+  author/year/type combinations.
 - Variant names retain catalog wording; repeated citation prefixes are removed.
   Full record labels remain available on hover. Rows stay one line high.
 - Load the selected record or export the material with all its records.
 - Open Peritheos or the reconstruction report for scientific detail.
 
 The browser no longer shows assessment/source tabs, parameter tables, raw JSON,
-pressure/volume/modulus columns, long assessment text, material notes or a permanent
+volume/modulus columns, long assessment text, material notes or a permanent
 explanatory legend. It uses two separated lists in a smaller resizable dialog,
-with persistent footer actions and no horizontal record-table scrolling.
+with persistent footer actions and no horizontal record-table scrolling. The material
+pane is a fixed 180 px high with stable column positions for any number of search
+results; matching materials scroll inside it.
 
-Held defaults still require an explicit record selection. Unavailable diffraction
-data and source-only records still block loading. These states show one brief
-notice; the complete model reason remains in its tooltip. The existing tetragonal
-CaSiO3 approximation requires an explicit opt-in and displays a short approximation
-notice, with the complete model note available on hover.
+Held defaults still require an explicit record selection. Source-only records still
+block loading and show one brief notice, with the complete model reason in its
+tooltip. Materials without diffraction data, including entries needing an assumed
+structure, are excluded from this picker. Their source records and explicit model
+assumption support remain intact in the Python boundary.
 
 Source data, units, qualifications, provenance, published-record protections,
 record identity, defaults, assumptions, export and loading semantics remain owned
@@ -52,11 +61,14 @@ and the built-in inspector were removed with their components.
   stale/incomplete searches, favourites/history, empty states, concise reference-first
   columns, absence of the old inspector, distinct same-author variants, documentation
   routing, selection identity after sorting, held/source-only load restrictions,
-  model loading/export and explicit assumptions.
+  model loading/export, exclusion of EoS-only/assumption-only materials, the fixed
+  material pane and column positions, native search clearing and the star toggle.
+  Thermal indicators and fit pressure ranges are checked against every gold record.
 - Layout checks cover 1440×1000, 1000×668 and 800×600 at both text sizes, including
   visible selected records/footer actions and no horizontal record-table scrolling.
 - The scoped native smoke passes for the simplified columns, absence of the inspector,
-  documentation links, held/no-hit states, stable sorted identity and real loading;
+  documentation links, held/no-hit states, fixed material-pane height, source thermal
+  and pressure values, stable sorted identity and real loading;
   the detached Phase Editor checks and processing-child cleanup also pass. It was
   built with an isolated Cargo target while the user's live preview kept running.
 - Prior combined model verification: 241 desktop Python tests passed (5 skipped).
@@ -65,7 +77,8 @@ and the built-in inspector were removed with their components.
 
 ## Limits
 
-- React opens All with the diffraction filter enabled; Qt opens Recent with it off.
+- React opens All and lists diffraction-capable materials only; Qt initially opens
+  Recent and can also show EoS-only entries.
 - Recent/favourite IDs are preview-local and separate from Qt's INI settings.
 - Dialog size resets on reopening. The Qt vertical splitter is not reproduced.
 - External documentation URLs are resolved from the selected bundled record.

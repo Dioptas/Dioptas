@@ -86,13 +86,18 @@
   flex: 1;
   border: 1px solid var(--border);
 }
-.phase-database-section[data-small="true"] {
-  flex: 0 0 auto;
-  min-height: 0;
+.phase-database-materials {
+  flex: 0 0 180px;
+  height: 180px;
+  min-height: 180px;
 }
-.phase-database-section[data-small="true"] > .data-table-scroll {
-  flex: 0 0 auto;
-  max-height: 115px;
+.app button.phase-database-favourite {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 5px;
 }
 .phase-database-dialog .data-table th {
   padding: 0 9px;
@@ -121,11 +126,21 @@
 .phase-database-records {
   table-layout: fixed;
 }
-.phase-database-records th:first-child {
-  width: 40%;
+.phase-database-records th[data-column="authors"] {
+  width: 35%;
 }
-.phase-database-records th:nth-child(2) {
-  width: 22%;
+.phase-database-records th[data-column="eos"] {
+  width: 150px;
+}
+.phase-database-records th[data-column="thermal"] {
+  width: 78px;
+  text-align: center;
+}
+.phase-database-records th[data-column="pressureRange"] {
+  width: 155px;
+}
+.phase-database-thermal {
+  text-align: center;
 }
 .phase-database-dialog .phase-database-records td {
   white-space: nowrap;
@@ -186,4 +201,20 @@
     gap: 4px;
     flex-wrap: wrap;
   }
+}
+
+/* Keep column positions stable as search results change. */
+.phase-database-materials .data-table {
+  table-layout: fixed;
+}
+.phase-database-materials .data-table th:last-child {
+  width: 150px;
+}
+.phase-database-materials .data-table td:first-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app .phase-database-materials > .data-table-scroll {
+  overflow-y: scroll;
 }

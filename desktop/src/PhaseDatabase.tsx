@@ -1,3 +1,4 @@
+import { Star } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { DataTable, TableScroll } from "./DataTable";
@@ -7,7 +8,7 @@ import "./phaseDatabase.css";
 
 type View = "Recent" | "Favourites" | "All";
 type Sort = { key: string; descending: boolean } | null;
-const views: View[] = ["Recent", "Favourites", "All"];
+const views: View[] = ["All", "Recent", "Favourites"];
 const savedIds = (key: string): string[] => {
   try {
     const value: unknown = JSON.parse(localStorage.getItem(key) || "[]");
@@ -119,7 +120,6 @@ export function PhaseDatabase({
   const inFlight = useRef<string | null>(null);
   const [view, setView] = useState<View>("All");
   const beforeSearch = useRef<View | null>(null);
-  const [diffractionOnly, setDiffractionOnly] = useState(true);
   const [recent] = useState(() =>
     savedIds("dioptas-phase-recent").slice(0, 20),
   );
@@ -131,7 +131,6 @@ export function PhaseDatabase({
     material: string;
     reference: number;
   } | null>(null);
-  const [assumedFor, setAssumedFor] = useState("");
   const [materialSort, setMaterialSort] = useState<Sort>(null);
   const [recordSort, setRecordSort] = useState<Sort>(null);
   const materialTable = useRef<HTMLTableElement>(null);
@@ -184,7 +183,7 @@ export function PhaseDatabase({
   const hits = pending ? [] : result.hits;
   let shown = hits.filter(
     (m) =>
-      (!diffractionOnly || m.diffraction) &&
+      m.diffraction &&
       (view === "All" ||
         (view === "Recent" ? recent : favourites).includes(m.id)),
   );
@@ -202,7 +201,6 @@ export function PhaseDatabase({
       ? choice.reference
       : (material?.defaultReference ?? -1);
   useEffect(() => {
-    setAssumedFor("");
     setChoice((previous) =>
       previous?.material === material?.id ? previous : null,
     );
@@ -212,14 +210,13 @@ export function PhaseDatabase({
   const hasVariants = material?.references.some((r) =>
     variant(r, material.references),
   );
-  const assumed = !!material?.canAssumeStructure && assumedFor === material.id;
   const reason = !material
     ? "Select a material."
-    : !material.diffraction && !assumed
+    : !material.diffraction
       ? "No crystal structure or reference peak table is available. EoS records can still be inspected and exported."
       : material.references.length && !record
         ? "Select an EoS record explicitly; no automatic default is recommended."
-        : (assumed ? record?.assumedLoadError : record?.loadError) || "";
+        : record?.loadError || "";
   const canLoad = ready && !pending && !reason;
   let records = material?.references.map((r, index) => ({ r, index })) || [];
   if (recordSort)
@@ -229,7 +226,14 @@ export function PhaseDatabase({
           ? variant(r, material?.references || [])
           : recordSort.key === "authors"
             ? `${r.authors} (${r.year})`
-            : r.eos;
+            : recordSort.key === "thermal"
+              ? r.thermal
+              : recordSort.key === "pressureRange"
+                ? ((
+                    r.sourceRecord.experimental_pressure_range_gpa as
+                      number[] | undefined
+                  )?.[0] ?? r.pressureRange)
+                : r.eos;
       return compare(value(a.r), value(b.r)) * (recordSort.descending ? -1 : 1);
     });
   useEffect(() => {
@@ -269,18 +273,12 @@ export function PhaseDatabase({
     setSelected(id);
     if (id !== material?.id) {
       setChoice(null);
-      setAssumedFor("");
     }
   };
   const load = (index = reference, m = material) => {
     if (!ready || pending || !m) return;
-    const useAssumption = m.id === material?.id && assumed;
     const target = m.references[index];
-    if (
-      (!m.diffraction && !useAssumption) ||
-      (m.references.length && !target) ||
-      (useAssumption ? target?.assumedLoadError : target?.loadError)
-    )
+    if (!m.diffraction || (m.references.length && !target) || target?.loadError)
       return;
     void run(
       "integration_phase",
@@ -288,7 +286,6 @@ export function PhaseDatabase({
         operation: "load_database",
         material_id: m.id,
         reference: index,
-        assume_structure: useAssumption,
       },
       "Loading phase…",
       () => {
@@ -308,6 +305,14 @@ export function PhaseDatabase({
   ) => (
     <th
       scope="col"
+      data-column={key}
+      title={
+        key === "pressureRange"
+          ? "Pressure interval used to constrain the fit, not a phase-stability range."
+          : key === "thermal"
+            ? "Whether a thermal model is included. Hover over its indicator for the model name."
+            : undefined
+      }
       aria-sort={
         sort?.key === key
           ? sort.descending
@@ -331,7 +336,7 @@ export function PhaseDatabase({
     : view === "Recent"
       ? "No recently loaded materials. Choose All or search to load a phase; the last 20 appear here."
       : view === "Favourites"
-        ? "No favourites yet. Choose All or search, select a material and choose ☆ Favourite."
+        ? "No favourites yet. Choose All or search, select a material and mark its star."
         : "No materials in this view.";
   return createPortal(
     <dialog
@@ -382,15 +387,6 @@ export function PhaseDatabase({
               }
             }}
           />
-          <button
-            disabled={!query}
-            onClick={() => {
-              changeQuery("");
-              search.current?.focus();
-            }}
-          >
-            Clear
-          </button>
         </div>
         <div className="phase-database-tools">
           <div role="tablist" aria-label="Material views">
@@ -431,15 +427,19 @@ export function PhaseDatabase({
               </button>
             ))}
           </div>
-          <label title="Show materials with a crystal structure or reference peak table. Assumed structures are hidden.">
-            <input
-              type="checkbox"
-              checked={diffractionOnly}
-              onChange={(e) => setDiffractionOnly(e.target.checked)}
-            />
-            Diffraction data only
-          </label>
           <button
+            className="icon-button phase-database-favourite"
+            aria-label={
+              material && favourites.includes(material.id)
+                ? "Remove from favourites"
+                : "Add to favourites"
+            }
+            title={
+              material && favourites.includes(material.id)
+                ? "Remove from favourites"
+                : "Add to favourites"
+            }
+            aria-pressed={!!material && favourites.includes(material.id)}
             disabled={!material}
             onClick={() => {
               const ids = favourites.includes(material.id)
@@ -449,16 +449,21 @@ export function PhaseDatabase({
               saveIds("dioptas-phase-favourites", ids);
             }}
           >
-            {material && favourites.includes(material.id)
-              ? "★ Favourite"
-              : "☆ Favourite"}
+            <Star
+              size={17}
+              aria-hidden="true"
+              fill={
+                material && favourites.includes(material.id)
+                  ? "currentColor"
+                  : "none"
+              }
+            />
           </button>
         </div>
         <section
-          className="phase-database-section"
+          className="phase-database-section phase-database-materials"
           aria-label="Material results"
           aria-busy={pending}
-          data-small={shown.length <= 3}
         >
           <div className="phase-database-heading">
             <h3>
@@ -483,12 +488,6 @@ export function PhaseDatabase({
                   {sortHead(
                     "Space group",
                     "spaceGroup",
-                    materialSort,
-                    setMaterialSort,
-                  )}
-                  {sortHead(
-                    "Diffraction data",
-                    "diffractionStatus",
                     materialSort,
                     setMaterialSort,
                   )}
@@ -517,9 +516,8 @@ export function PhaseDatabase({
                       )
                     }
                   >
-                    <td>{m.name}</td>
+                    <td title={m.name}>{m.name}</td>
                     <td>{spaceGroup(m.spaceGroup)}</td>
-                    <td>{m.diffractionStatus}</td>
                   </tr>
                 ))}
               </tbody>
@@ -527,9 +525,6 @@ export function PhaseDatabase({
             {!shown.length && (
               <p role="status" className="phase-database-empty">
                 {pending ? searchError || "Searching materials…" : empty}
-                {!pending &&
-                  diffractionOnly &&
-                  " Materials without diffraction data are hidden; uncheck the filter to include them."}
                 {searchError && (
                   <button
                     onClick={() => {
@@ -567,6 +562,13 @@ export function PhaseDatabase({
                 <tr>
                   {sortHead("Reference", "authors", recordSort, setRecordSort)}
                   {sortHead("EoS", "eos", recordSort, setRecordSort)}
+                  {sortHead("Thermal", "thermal", recordSort, setRecordSort)}
+                  {sortHead(
+                    "Fit P range",
+                    "pressureRange",
+                    recordSort,
+                    setRecordSort,
+                  )}
                   {hasVariants &&
                     sortHead("Variant", "variant", recordSort, setRecordSort)}
                 </tr>
@@ -614,6 +616,24 @@ export function PhaseDatabase({
                     <td title={r.thermal ? `${r.eos} · ${r.thermal}` : r.eos}>
                       {r.eos}
                     </td>
+                    <td
+                      className="phase-database-thermal"
+                      title={r.thermal || "No thermal model"}
+                      aria-label={
+                        r.thermal
+                          ? `Thermal model: ${r.thermal}`
+                          : "No thermal model"
+                      }
+                    >
+                      {r.thermal ? "✓" : "—"}
+                    </td>
+                    <td
+                      title={
+                        r.pressureRange || "Fit pressure range not recorded"
+                      }
+                    >
+                      {r.pressureRange || "—"}
+                    </td>
                     {hasVariants && (
                       <td className="phase-database-variant" title={r.label}>
                         {variant(r, material.references)}
@@ -633,30 +653,13 @@ export function PhaseDatabase({
           </TableScroll>
         </section>
         <div className="phase-database-conditions">
-          {material?.canAssumeStructure && (
-            <label>
-              <input
-                type="checkbox"
-                checked={assumed}
-                onChange={(e) =>
-                  setAssumedFor(e.target.checked ? material.id : "")
-                }
-              />
-              Use assumed tetragonal perovskite structure
-            </label>
-          )}
-          {assumed && (
-            <p className="phase-condition-note" title={material.assumptionNote}>
-              Approximate diffraction lines; not a refined structure.
-            </p>
-          )}
           {reason && material && (
             <p
               className="phase-condition-note"
               role="status"
               title={material.hold || reason}
             >
-              {!material.diffraction && !assumed
+              {!material.diffraction
                 ? "No diffraction data available."
                 : !record
                   ? "Select a record to load."
@@ -672,7 +675,7 @@ export function PhaseDatabase({
           onClick={() =>
             void run(
               "integration_phase_export",
-              { material_id: material.id, assume_structure: assumed },
+              { material_id: material.id },
               "Exporting material…",
             )
           }

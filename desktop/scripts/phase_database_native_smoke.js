@@ -35,6 +35,17 @@ window.__dioptasDatabaseNativeSmoke = async ({
     );
     await ready();
   };
+  const paneHeight = db()
+    .querySelector('[aria-label="Material results"]')
+    .getBoundingClientRect().height;
+  check(
+    db().querySelector('[role="tablist"] button').textContent === "All",
+    "All is not the first tab",
+  );
+  check(
+    !db().querySelector('input[type="checkbox"]'),
+    "The diffraction filter is still visible",
+  );
   await search("palladium");
   check(
     !db().querySelector('.phase-database-records tr[aria-selected="true"]'),
@@ -50,6 +61,12 @@ window.__dioptasDatabaseNativeSmoke = async ({
   check(
     !db().querySelector('table[aria-label="Database materials"] tbody tr'),
     "Native no-hit search kept a stale material",
+  );
+  check(
+    db()
+      .querySelector('[aria-label="Material results"]')
+      .getBoundingClientRect().height === paneHeight,
+    "Native material list changed height for empty results",
   );
   await search("gold");
   const material = (
@@ -67,9 +84,20 @@ window.__dioptasDatabaseNativeSmoke = async ({
     return (
       headings[0] === "Reference" &&
       headings[1] === "EoS" &&
-      headings.length <= 3
+      headings[2] === "Thermal" &&
+      headings[3] === "Fit P range" &&
+      headings.length <= 5
     );
   }
+  const selectedRecord = material.references[Number(sourceIndex)];
+  check(
+    selected().cells[2].textContent === (selectedRecord.thermal ? "✓" : "—"),
+    "Native thermal availability differs from the source",
+  );
+  check(
+    selected().cells[3].textContent === (selectedRecord.pressureRange || "—"),
+    "Native fit pressure range differs from the source",
+  );
   const table = db().querySelector(".phase-database-records");
   [...table.querySelectorAll("th button")]
     .find((b) => b.textContent === "EoS")
@@ -112,6 +140,8 @@ window.__dioptasDatabaseNativeSmoke = async ({
     noHits: true,
     sortIdentity: true,
     conciseRecords: true,
+    fixedMaterialHeight: true,
+    thermalAndPressure: true,
     documentationLinks: true,
     loadSelected: true,
   };

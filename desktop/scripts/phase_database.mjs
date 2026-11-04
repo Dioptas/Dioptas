@@ -149,6 +149,40 @@ try {
     exact: true,
   });
   await open();
+  const materialPane = db.locator('section[aria-label="Material results"]');
+  const initialPane = await materialPane.boundingBox();
+  const initialSpaceGroup = await materialTable
+    .locator("th")
+    .last()
+    .boundingBox();
+  const checkFixedPane = async () => {
+    assert.equal((await materialPane.boundingBox()).height, initialPane.height);
+    assert.equal(
+      (await materialTable.locator("th").last().boundingBox()).x,
+      initialSpaceGroup.x,
+    );
+  };
+  assert.equal(
+    await db
+      .getByRole("tablist", { name: "Material views" })
+      .getByRole("tab")
+      .first()
+      .textContent(),
+    "All",
+  );
+  assert.equal(await db.getByRole("checkbox").count(), 0);
+  assert.equal(
+    await db.getByRole("button", { name: "Clear", exact: true }).count(),
+    0,
+  );
+  assert.deepEqual(await materialTable.locator("th").allTextContents(), [
+    "Material",
+    "Space group",
+  ]);
+  assert.deepEqual(
+    await materialTable.locator("tbody tr td:first-child").allTextContents(),
+    all.filter((m) => m.diffraction).map((m) => m.name),
+  );
   await page
     .getByLabel("Search materials", { exact: true })
     .fill("unavailable");
@@ -200,6 +234,8 @@ try {
   assert.deepEqual(await recordTable.locator("th").allTextContents(), [
     "Reference",
     "EoS",
+    "Thermal",
+    "Fit P range",
     "Variant",
   ]);
   assert.equal(await db.locator(".phase-database-inspector, pre").count(), 0);
@@ -215,6 +251,22 @@ try {
       .count(),
     0,
   );
+  await checkFixedPane();
+  for (const [index, reference] of gold.references.entries()) {
+    const row = recordTable.locator(`tr[data-reference="${index}"]`);
+    assert.equal(
+      await row.locator("td").nth(2).textContent(),
+      reference.thermal ? "✓" : "—",
+    );
+    assert.equal(
+      await row.locator("td").nth(2).getAttribute("title"),
+      reference.thermal || "No thermal model",
+    );
+    assert.equal(
+      await row.locator("td").nth(3).textContent(),
+      reference.pressureRange || "—",
+    );
+  }
   const sameCitation = gold.references
     .map((r, i) => ({ r, i }))
     .filter(({ r }) => r.authors === "Dewaele" && r.year === "2019");
@@ -230,11 +282,30 @@ try {
   await db.getByRole("button", { name: "Peritheos ↗", exact: true }).click();
   await ready();
   assert.equal(requests.at(-1).payload.reference, gold.defaultReference);
-  await db.getByRole("button", { name: "☆ Favourite", exact: true }).click();
+  await db
+    .getByRole("button", { name: "Add to favourites", exact: true })
+    .click();
+  const star = db.getByRole("button", {
+    name: "Remove from favourites",
+    exact: true,
+  });
+  assert.equal(await star.getAttribute("aria-pressed"), "true");
+  assert.equal(await star.textContent(), "");
+  assert.equal(await star.locator("svg").count(), 1);
   await db.getByRole("tab", { name: "Favourites", exact: true }).click();
   assert.equal(await materialTable.locator("tbody tr").count(), 1);
-  await db.getByRole("button", { name: "Clear", exact: true }).click();
-  await query("");
+  // Use the native search-field clear icon; there is no duplicate Clear action.
+  const searchInput = page.getByLabel("Search materials", { exact: true });
+  await searchInput.focus();
+  const searchBounds = await searchInput.boundingBox();
+  await searchInput.click({
+    position: { x: searchBounds.width - 14, y: searchBounds.height / 2 },
+  });
+  assert.equal(await searchInput.inputValue(), "");
+  await db
+    .locator('section[aria-label="Material results"][aria-busy="false"]')
+    .waitFor();
+  await checkFixedPane();
   assert.equal(
     await db
       .getByRole("tab", { name: "Favourites", exact: true })
@@ -264,6 +335,7 @@ try {
     "true",
   );
   await query("no such material xyz");
+  await checkFixedPane();
   assert.equal(await materialTable.locator("tbody tr").count(), 0);
   assert.equal(await recordTable.locator("tbody tr").count(), 0);
   assert.equal(await loadButton.isDisabled(), true);
@@ -293,6 +365,20 @@ try {
   assert.equal(requests.at(-1).payload.reference, explicit);
   await recordTable
     .getByRole("button", { name: "Reference", exact: true })
+    .click();
+  assert.equal(
+    await selectedRecord().getAttribute("data-reference"),
+    String(explicit),
+  );
+  await recordTable
+    .getByRole("button", { name: "Thermal", exact: true })
+    .click();
+  assert.equal(
+    await selectedRecord().getAttribute("data-reference"),
+    String(explicit),
+  );
+  await recordTable
+    .getByRole("button", { name: "Fit P range", exact: true })
     .click();
   assert.equal(
     await selectedRecord().getAttribute("data-reference"),
@@ -392,46 +478,28 @@ try {
     }
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
+  // Phase browsing excludes EoS-only and assumption-only materials in every view.
   await query("coesite");
-  await db.getByLabel("Diffraction data only", { exact: true }).uncheck();
-  const withoutRecords = all.find((m) => m.id === "coesite_v");
-  await select(withoutRecords);
-  assert.equal(await recordTable.locator("tbody tr").count(), 0);
-  assert.equal(await loadButton.isDisabled(), true);
-  assert.equal(
-    await db
-      .getByRole("button", { name: "Export .eosmat…", exact: true })
-      .isEnabled(),
-    true,
+  assert.deepEqual(
+    await materialTable.locator("tbody tr td:first-child").allTextContents(),
+    all
+      .filter((m) => m.diffraction && m.name.toLowerCase().includes("coesite"))
+      .map((m) => m.name),
   );
-  const only = all.find((m) => m.id === "coesite_iv");
-  await select(only);
-  assert.equal(await loadButton.isDisabled(), true);
+  await query("CaSiO3");
+  const unavailable = all.filter((m) => !m.diffraction);
+  const visibleNames = await materialTable
+    .locator("tbody tr td:first-child")
+    .allTextContents();
+  assert.ok(unavailable.every((m) => !visibleNames.includes(m.name)));
+  await query("gold");
+  await select(gold);
   await db
     .getByRole("button", { name: "Export .eosmat…", exact: true })
     .click();
   await ready();
   assert.equal(await db.isVisible(), true);
-  await query("CaSiO3");
-  const approximated = all.find((m) => m.canAssumeStructure);
-  await select(approximated);
-  assert.equal(await loadButton.isDisabled(), true);
-  await db
-    .getByLabel("Use assumed tetragonal perovskite structure", { exact: true })
-    .check();
-  assert.equal(await loadButton.isEnabled(), true);
-  assert.ok(
-    (await db.locator(".phase-database-conditions").innerText()).includes(
-      "not a refined structure",
-    ),
-  );
-  await loadButton.click();
-  await ready();
-  assert.ok(
-    (await call("state")).state.integration.phases
-      .at(-1)
-      .name.includes("assumed structure"),
-  );
+  await db.getByRole("button", { name: "Close", exact: true }).click();
   await open();
   await query("gold");
   await select(gold);
@@ -466,8 +534,11 @@ try {
           "external documentation links",
           "distinct same-author variants",
           "recent load order",
-          "EOS-only export",
-          "explicit assumed structure",
+          "diffraction-capable materials only",
+          "fixed material pane height",
+          "icon-only favourite toggle",
+          "native search clear",
+          "thermal model and source pressure ranges",
           "compact and larger-text layouts",
           "focus and keyboard",
         ],
