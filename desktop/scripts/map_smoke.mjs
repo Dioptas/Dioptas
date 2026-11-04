@@ -44,20 +44,36 @@ const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 let delayWindowEdits = false;
+let selectionGate = null;
+let selectionsStarted = 0;
 await page.exposeFunction("__dioptasInvoke", async (action, payload) => {
+  if (action === "map_select") {
+    selectionsStarted++;
+    if (selectionGate) await selectionGate;
+  }
   if (delayWindowEdits && action === "map_roi")
     await new Promise((resolve) => setTimeout(resolve, 120));
   return invoke(action, payload);
 });
 await page.addInitScript(() => {
   window.pywebview = {
-    api: { invoke: (a, p) => window.__dioptasInvoke(a, p) },
+    api: {
+      invoke: async (a, p) => {
+        window.__pendingCommands = (window.__pendingCommands ?? 0) + 1;
+        try {
+          return await window.__dioptasInvoke(a, p);
+        } finally {
+          window.__pendingCommands--;
+        }
+      },
+    },
   };
 });
 const ready = async () => {
   await page.waitForFunction(
     () =>
       !document.querySelector(".spin") &&
+      !window.__pendingCommands &&
       !document.querySelector('.map-layers[aria-busy="true"]'),
   );
   assert.equal(
@@ -160,6 +176,93 @@ try {
   );
   await scanClick(1, 2, 3, 3);
   state = await invoke("state");
+  // Hold a real image-selection request in flight to catch transient dimming
+  // and preview rebuilds, then check that further file clicks are retained.
+  await page.getByLabel("Smooth map", { exact: true }).check();
+  await page.getByLabel("Map contours", { exact: true }).check();
+  await ready();
+  const displayRequests = requests.filter((a) => a === "map_display").length;
+  const mapLevelRequests = requests.filter((a) => a === "map_levels").length;
+  await page.evaluate(() => {
+    window.__mapFlicker = [];
+    window.__scanCanvas = document.querySelector(
+      '[data-testid="scan-map"] canvas',
+    );
+    window.__mapObserver = new MutationObserver((changes) => {
+      if (changes.some((c) => c.attributeName === "disabled"))
+        window.__mapFlicker.push("controls toggled disabled");
+      if (document.querySelector(".spin"))
+        window.__mapFlicker.push("global busy indicator");
+    });
+    window.__mapObserver.observe(
+      document.querySelector(".app") ?? document.body,
+      {
+        subtree: true,
+        attributes: true,
+        childList: true,
+        attributeFilter: ["disabled"],
+      },
+    );
+  });
+  let releaseSelection;
+  selectionGate = new Promise((resolve) => {
+    releaseSelection = resolve;
+  });
+  const startedBefore = selectionsStarted;
+  const points = page
+    .getByRole("listbox", { name: "Scan arrangement" })
+    .getByRole("option");
+  await points.nth(1).click();
+  await page.waitForTimeout(100);
+  assert.equal(selectionsStarted, startedBefore + 1);
+  assert.equal(
+    await page.locator(".spin").count(),
+    0,
+    "Selection dimmed the whole app",
+  );
+  assert.equal(await points.nth(2).isEnabled(), true);
+  await points.nth(2).click();
+  await points.nth(3).click();
+  selectionGate = null;
+  releaseSelection();
+  await page.waitForFunction(
+    () =>
+      document
+        .querySelectorAll('[role="option"]')[3]
+        ?.getAttribute("aria-selected") === "true",
+  );
+  await ready();
+  assert.equal(
+    selectionsStarted,
+    startedBefore + 3,
+    "Rapid point clicks were dropped",
+  );
+  assert.equal((await invoke("state")).map.selectedSlot, 3);
+  assert.equal(
+    requests.filter((a) => a === "map_display").length,
+    displayRequests,
+    "Selection rebuilt the unchanged map preview",
+  );
+  assert.equal(
+    requests.filter((a) => a === "map_levels").length,
+    mapLevelRequests,
+    "Selection reset the scan histogram",
+  );
+  assert.deepEqual(
+    await page.evaluate(() => {
+      window.__mapObserver.disconnect();
+      return {
+        flicker: window.__mapFlicker,
+        sameCanvas:
+          window.__scanCanvas ===
+          document.querySelector('[data-testid="scan-map"] canvas'),
+      };
+    }),
+    { flicker: [], sameCanvas: true },
+  );
+  await page.getByLabel("Smooth map", { exact: true }).uncheck();
+  await page.getByLabel("Map contours", { exact: true }).uncheck();
+  await ready();
   assert.equal(
     await page
       .locator('.map-detector-panel [data-testid="detector-canvas"]')
@@ -1057,6 +1160,9 @@ try {
         ok: true,
         points: 9,
         linkedSelection: true,
+        quietSelection: true,
+        stableScanPreview: true,
+        rapidSelectionQueue: true,
         blankSelection: true,
         serpentine: true,
         windowDrag: true,

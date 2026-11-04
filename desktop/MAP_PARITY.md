@@ -21,6 +21,14 @@ this option is enabled and calibration is present. Normalized patterns retain
 their stored scaling; stored-only projects fall back to their saved pattern
 when raw reintegration is unavailable. Full-map reintegration remains separate.
 
+Point and file selection keep the controls enabled while loading the detector
+and pattern. Rapid selections use the command queue in click order. Selection
+metadata alone no longer clears or recomputes the scan's smoothing/contour
+preview; changes to scan pixels, dimensions or display options still refresh it.
+Headless checks hold a selection request in flight and verify stable controls,
+retained scan canvas, no redundant map-display/levels requests, and the final
+selection after several rapid file clicks.
+
 Normalization accepts a physical 2θ/Q/d range or the current bounds of an
 existing pattern window, plus a reference file. The reference selector shows
 the same 1-based arrangement row and filename as Points; blank cells are

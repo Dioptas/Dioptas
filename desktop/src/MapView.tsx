@@ -132,6 +132,8 @@ export function MapView({
   useEffect(() => {
     if (error) setLive(false);
   }, [error]);
+  // A point selection resends map metadata without changing the scan pixels.
+  // Keep its preview and contours instead of clearing/recomputing them.
   useEffect(() => {
     let current = true;
     setPreview(null);
@@ -151,7 +153,16 @@ export function MapView({
     return () => {
       current = false;
     };
-  }, [map, ready, smooth, smoothFactor, showContours, contourCount]);
+  }, [
+    map?.raster.data,
+    map?.raster.width,
+    map?.raster.height,
+    ready,
+    smooth,
+    smoothFactor,
+    showContours,
+    contourCount,
+  ]);
   const display = useDisplay(map?.raster ?? null, "map"),
     detector = useDisplay(image, "map-detector");
   const [scale, setScale] = usePreference<"linear" | "log" | "sqrt">(

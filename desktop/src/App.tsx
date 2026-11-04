@@ -211,6 +211,7 @@ export default function App() {
   const pendingMaskDraws = useRef(0);
   const pendingBackgroundUpdates = useRef(0);
   const pendingOverlayEdits = useRef(0);
+  const pendingMapSelections = useRef(0);
   const currentState = useRef<State | null>(null);
   const [state, setState] = useState<State | null>(null);
   useEffect(() => {
@@ -389,6 +390,7 @@ export default function App() {
           !pendingMaskDraws.current &&
           !pendingBackgroundUpdates.current &&
           !pendingOverlayEdits.current &&
+          !pendingMapSelections.current &&
           !liveBackground &&
           !livePhaseConditions &&
           command !== "integration_phase_state" &&
@@ -404,19 +406,21 @@ export default function App() {
             ["rectangle", "circle", "polygon", "arc"].includes(
               String(args.operation),
             )));
-      // Keep rapid drawing and the following edit in order without disabling
-      // every control for each small mask update.
+      // Keep quiet edits and map selections in order without disabling every
+      // control. Further clicks must not be dropped while an image loads.
       const previous = commandTail.current;
       let release!: () => void;
       const completion = new Promise<void>((resolve) => (release = resolve));
       commandTail.current = completion;
       if (maskDrawing) pendingMaskDraws.current++;
       if (overlayEditing) pendingOverlayEdits.current++;
+      if (command === "map_select") pendingMapSelections.current++;
       if (liveBackground) pendingBackgroundUpdates.current++;
       if (previous) await previous;
       if (shouldRun && !shouldRun()) {
         if (liveBackground) pendingBackgroundUpdates.current--;
         if (overlayEditing) pendingOverlayEdits.current--;
+        if (command === "map_select") pendingMapSelections.current--;
         if (commandTail.current === completion) commandTail.current = null;
         release();
         return;
@@ -436,6 +440,7 @@ export default function App() {
         command === "integration_phase_state" ||
         command === "integration_phase_guides" ||
         command === "integration_autoprocess_poll" ||
+        command === "map_select" ||
         command === "image_levels";
       if (!quiet) {
         ++progressGeneration.current;
@@ -515,6 +520,7 @@ export default function App() {
         autoProcessInFlight.current = false;
         if (maskDrawing) pendingMaskDraws.current--;
         if (overlayEditing) pendingOverlayEdits.current--;
+        if (command === "map_select") pendingMapSelections.current--;
         if (liveBackground) pendingBackgroundUpdates.current--;
         if (commandTail.current === completion) commandTail.current = null;
         release();
