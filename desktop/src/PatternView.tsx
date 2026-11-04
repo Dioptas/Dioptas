@@ -768,18 +768,6 @@ export function PatternView({
       width / dpr,
       height / dpr,
     );
-    if (linkedPosition !== undefined) {
-      const x = left + ((linkedPosition - xmin) / (xmax - xmin)) * w;
-      context.strokeStyle = POSITION_LINE_COLOR;
-      context.lineWidth = 1.5;
-      // Qt DashLine uses four pen widths on, two off.
-      context.setLineDash([6, 3]);
-      context.beginPath();
-      context.moveTo(x, top);
-      context.lineTo(x, top + h);
-      context.stroke();
-      context.setLineDash([]);
-    }
     if (navigation.selection) {
       const { start, end } = navigation.selection;
       const x = Math.min(start.x, end.x),
@@ -803,12 +791,27 @@ export function PatternView({
       }
     }
     if (hover !== null) {
-      context.setLineDash([3, 4]);
+      // Match the linked click marker so overlapping guides share one rhythm.
+      context.lineWidth = 1.5;
+      context.setLineDash([6, 3]);
       context.strokeStyle = "#7a8c9c";
       context.beginPath();
       context.moveTo(hover, top);
       context.lineTo(hover, top + h);
       context.stroke();
+    }
+    // Keep the clicked position in front when the moving guide overlaps it.
+    if (linkedPosition !== undefined) {
+      const x = left + ((linkedPosition - xmin) / (xmax - xmin)) * w;
+      context.strokeStyle = POSITION_LINE_COLOR;
+      context.lineWidth = 1.5;
+      // Qt DashLine uses four pen widths on, two off.
+      context.setLineDash([6, 3]);
+      context.beginPath();
+      context.moveTo(x, top);
+      context.lineTo(x, top + h);
+      context.stroke();
+      context.setLineDash([]);
     }
     context.restore();
     context.fillStyle = "#929ca7";
