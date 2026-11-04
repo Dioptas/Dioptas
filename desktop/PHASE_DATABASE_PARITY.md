@@ -12,9 +12,14 @@ through the selected record's Peritheos and reconstruction-report links.
   Author-only matches are appended alphabetically and material IDs are deduplicated.
   Case, accents and citation punctuation are normalized; two-letter surnames match
   whole words so element searches do not expand to incidental name fragments.
-  The correct surname spelling is Dewaele. The record filter also matches full
-  author lists. These client-side changes use the already-loaded catalog and do
-  not require restarting the processing worker.
+  The correct surname spelling is Dewaele. When the upper search matches an author
+  of the selected material, the EoS list automatically shows only that author's
+  records, including coauthored ones. The lower record filter narrows that subset
+  further; clearing it retains the author restriction. Clearing the upper search
+  restores the full record list. The original default is marked only if visible,
+  and a hidden record cannot be loaded or opened through the documentation action.
+  No matching record is silently promoted to a new default. These client-side
+  changes use the already-loaded catalog and do not require restarting the worker.
 - All, Recent and Favourites show only materials with crystal structures or reference
   peaks usable for phase lines. All is first. The redundant diffraction column and
   filter control are removed, as is the duplicate Clear button; the search field's
@@ -90,6 +95,9 @@ and the built-in inspector were removed with their components.
   verified headlessly, preserving the running user preview. Real-catalog upper-search
   checks cover Dewaele, case-insensitive variants and Garbarino coauthorship, all
   matching materials, deduplication, count/layout stability and lower record filtering.
+  Linked author filtering checks exact source record indices, coauthor intersections,
+  further EoS-type refinement, hidden-default load protection, selected-record links
+  and restoration of the full list/default marker after clearing the author search.
 - Layout checks cover 1440×1000, 1000×668 and 800×600 at both text sizes, including
   visible selected records/footer actions and no horizontal record-table scrolling.
 - The scoped native smoke passes for the simplified columns, absence of the inspector,

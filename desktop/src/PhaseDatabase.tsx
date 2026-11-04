@@ -255,9 +255,18 @@ export function PhaseDatabase({
       : (material?.defaultReference ?? -1);
   const recordQuery =
     recordFilter.material === material?.id ? recordFilter.text : "";
+  const authorQuery = material?.references.some((r) =>
+    matchesRecordAuthor(r, query),
+  )
+    ? query.trim()
+    : "";
   let records = (
     material?.references.map((r, index) => ({ r, index })) || []
-  ).filter(({ r }) => matchesRecord(r, recordQuery));
+  ).filter(
+    ({ r }) =>
+      (!authorQuery || matchesRecordAuthor(r, authorQuery)) &&
+      matchesRecord(r, recordQuery),
+  );
   const reference = records.some(({ index }) => index === chosenReference)
     ? chosenReference
     : -1;
@@ -277,8 +286,8 @@ export function PhaseDatabase({
     : !material.diffraction
       ? "No crystal structure or reference peak table is available. EoS records can still be inspected and exported."
       : material.references.length && !record
-        ? recordQuery.trim()
-          ? "Select a matching record, or clear the filter to restore the previous selection."
+        ? recordQuery.trim() || authorQuery
+          ? "Select a matching record. The previous selection is hidden by the active search/filter."
           : "Select an EoS record explicitly; no automatic default is recommended."
         : record?.loadError || "";
   const canLoad = ready && !pending && !reason;
@@ -319,7 +328,15 @@ export function PhaseDatabase({
     keepVisible(
       recordTable.current?.querySelector('tr[aria-selected="true"]') || null,
     );
-  }, [material?.id, reference, result, materialSort, recordSort, recordQuery]);
+  }, [
+    material?.id,
+    reference,
+    result,
+    materialSort,
+    recordSort,
+    recordQuery,
+    authorQuery,
+  ]);
   const changeQuery = (q: string) => {
     if (q.trim() && beforeSearch.current === null) {
       beforeSearch.current = view;
@@ -341,10 +358,14 @@ export function PhaseDatabase({
   const load = (index = reference, m = material) => {
     if (!ready || pending || !m) return;
     const target = m.references[index];
+    const authorFiltered = m.references.some((r) =>
+      matchesRecordAuthor(r, query),
+    );
     if (
       !m.diffraction ||
       (m.references.length && !target) ||
       target?.loadError ||
+      (target && authorFiltered && !matchesRecordAuthor(target, query)) ||
       (target && m.id === material?.id && !matchesRecord(target, recordQuery))
     )
       return;
@@ -618,15 +639,23 @@ export function PhaseDatabase({
           <div className="phase-database-heading">
             <h3>
               {material
-                ? `${material.name} — EoS records (${records.length}${recordQuery.trim() ? ` / ${material.references.length}` : ""})`
+                ? `${material.name} — EoS records (${records.length}${recordQuery.trim() || authorQuery ? ` / ${material.references.length}` : ""})`
                 : "Equation of state records"}
             </h3>
             <input
               type="search"
               className="phase-database-record-filter"
               aria-label="Filter EoS records"
-              placeholder="Filter records…"
-              title="Filter authors, year, EoS or thermal model. PVT and TERM find thermal records."
+              placeholder={
+                authorQuery
+                  ? `Filter ${authorQuery} records…`
+                  : "Filter records…"
+              }
+              title={
+                authorQuery
+                  ? `Showing only records matching author ${authorQuery}. Refine by reference, EoS or thermal model; clear the upper author search to show all authors.`
+                  : "Filter authors, year, EoS or thermal model. PVT and TERM find thermal records."
+              }
               value={recordQuery}
               disabled={!material}
               onChange={(e) =>

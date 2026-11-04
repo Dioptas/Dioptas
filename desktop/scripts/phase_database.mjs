@@ -243,6 +243,23 @@ try {
     assert.equal(names.length, new Set(names).size);
     assert.equal(await resultCount.textContent(), `${names.length} results`);
     await checkFixedPane();
+    // The chosen material must show only this author's records, including coauthored ones.
+    const currentName = await materialTable
+      .locator('tbody tr[aria-selected="true"] td:first-child')
+      .textContent();
+    const currentMaterial = all.find((m) => m.name === currentName);
+    const expectedRecordIds = currentMaterial.references
+      .map((r, index) => ({ r, index }))
+      .filter(({ r }) =>
+        sourceAuthors(r).some((a) =>
+          a.toLowerCase().includes(author.toLowerCase()),
+        ),
+      )
+      .map(({ index }) => index);
+    const visibleRecordIds = await recordTable
+      .locator("tbody tr")
+      .evaluateAll((rows) => rows.map((r) => Number(r.dataset.reference)));
+    assert.deepEqual(visibleRecordIds, expectedRecordIds);
   }
   assert.ok(
     expectedByAuthor("Garbarino").some((m) =>
@@ -256,6 +273,29 @@ try {
   );
   await query("Dewaele");
   await select(gold);
+  const dewaeleReferences = gold.references
+    .map((r, index) => ({ r, index }))
+    .filter(({ r }) => sourceAuthors(r).some((a) => a.includes("Dewaele")))
+    .map(({ index }) => index);
+  assert.deepEqual(
+    await recordTable
+      .locator("tbody tr")
+      .evaluateAll((rows) => rows.map((r) => Number(r.dataset.reference))),
+    dewaeleReferences,
+  );
+  assert.ok(!dewaeleReferences.includes(gold.defaultReference));
+  assert.equal(await selectedRecord().count(), 0);
+  assert.equal(await loadButton.isDisabled(), true);
+  const matchingReference = dewaeleReferences.find(
+    (index) => !gold.references[index].loadError,
+  );
+  await recordTable
+    .locator(`tr[data-reference="${matchingReference}"]`)
+    .click();
+  assert.equal(await loadButton.isEnabled(), true);
+  await db.getByRole("button", { name: "Peritheos ↗", exact: true }).click();
+  await ready();
+  assert.equal(requests.at(-1).payload.reference, matchingReference);
   const coauthorFilter = db.getByRole("searchbox", {
     name: "Filter EoS records",
     exact: true,
@@ -263,17 +303,48 @@ try {
   await coauthorFilter.fill("Garbarino");
   const coauthorReferences = gold.references
     .map((r, index) => ({ r, index }))
-    .filter(({ r }) => sourceAuthors(r).some((a) => a.includes("Garbarino")))
+    .filter(
+      ({ r, index }) =>
+        dewaeleReferences.includes(index) &&
+        sourceAuthors(r).some((a) => a.includes("Garbarino")),
+    )
     .map(({ index }) => index);
   const shownCoauthorReferences = await recordTable
     .locator("tbody tr")
     .evaluateAll((rows) => rows.map((r) => Number(r.dataset.reference)));
   assert.deepEqual(shownCoauthorReferences, coauthorReferences);
   await coauthorFilter.fill("");
+  assert.deepEqual(
+    await recordTable
+      .locator("tbody tr")
+      .evaluateAll((rows) => rows.map((r) => Number(r.dataset.reference))),
+    dewaeleReferences,
+  );
+  await coauthorFilter.fill("Vinet");
+  const dewaeleVinet = dewaeleReferences.filter(
+    (index) => gold.references[index].eos === "Vinet",
+  );
+  assert.deepEqual(
+    await recordTable
+      .locator("tbody tr")
+      .evaluateAll((rows) => rows.map((r) => Number(r.dataset.reference))),
+    dewaeleVinet,
+  );
+  await coauthorFilter.fill("");
   await page.screenshot({
     path: artifacts + "/phase-database-author-search.png",
   });
   await query("");
+  assert.equal(
+    await recordTable.locator("tbody tr").count(),
+    gold.references.length,
+  );
+  assert.equal(
+    await recordTable
+      .locator(`tr[data-reference="${gold.defaultReference}"] small`)
+      .textContent(),
+    "Default",
+  );
   await page
     .getByLabel("Search materials", { exact: true })
     .fill("unavailable");
