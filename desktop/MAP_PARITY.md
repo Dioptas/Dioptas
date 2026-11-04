@@ -232,6 +232,17 @@ registry, snapshot hook and optional normalization persistence hooks.
   Map scientific state is persisted. No portable Python runtime or Windows/Linux
   qualification is claimed.
 
+## Points layout and scrolling (2026-11-04)
+
+Point arrangement actions sit in one horizontal toolbar above the list, keeping
+all actions visible when the pattern is enlarged. The Points tab has no outer
+scroll surface; the file list fills its remaining height and is the only
+scrolling region. Indices share a right-aligned column sized for the total slot
+count; filenames share a left-aligned column and truncate with a tooltip.
+Headless Chromium/WebKit checks exercise short panels at normal and large text,
+number/filename alignment across one- and two-digit indices, and wheel scrolling
+inside the list and over the fixed toolbar.
+
 ## Map settings and physical normalization verification (2026-11-04)
 
 The production build, all 44 JavaScript checks, and the Python desktop suite

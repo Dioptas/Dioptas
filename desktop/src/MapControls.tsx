@@ -21,6 +21,7 @@ import {
   useRef,
   type ReactNode,
   type KeyboardEvent,
+  type CSSProperties,
 } from "react";
 import type { State, Unit } from "./types";
 import type { MapData, MapRun } from "./mapDomain";
@@ -256,98 +257,8 @@ export function MapControls({
             {tab === "Points" && (
               <section className="sidebar-section map-points-section">
                 <div className="map-points-tools" ref={list}>
-                  <TableScroll
-                    className="map-file-list data-list"
-                    role="listbox"
-                    aria-label="Scan arrangement"
-                  >
-                    {map.labels
-                      .slice(page * 100, page * 100 + 100)
-                      .map((label, offset) => {
-                        const slot = page * 100 + offset,
-                          point = map.slots[slot];
-                        return (
-                          <button
-                            role="option"
-                            aria-selected={selected === slot}
-                            disabled={!ready}
-                            key={slot}
-                            className={
-                              point !== null && map.excluded.includes(point)
-                                ? "data-list-row map-excluded"
-                                : "data-list-row"
-                            }
-                            draggable={ready}
-                            onDragStart={(event) => {
-                              draggedSlot.current = slot;
-                              event.dataTransfer.effectAllowed = "move";
-                              event.dataTransfer.setData(
-                                "text/plain",
-                                String(slot),
-                              );
-                            }}
-                            onDragOver={(event) => {
-                              event.preventDefault();
-                              event.dataTransfer.dropEffect = "move";
-                            }}
-                            onDrop={(event) => {
-                              event.preventDefault();
-                              const from = draggedSlot.current;
-                              draggedSlot.current = null;
-                              if (from !== null && from !== slot)
-                                void run("map_arrange", {
-                                  op: "move",
-                                  slot: from,
-                                  offset: slot - from,
-                                });
-                            }}
-                            onDragEnd={() => {
-                              draggedSlot.current = null;
-                            }}
-                            onKeyDown={(event) => {
-                              const offset =
-                                event.key === "ArrowUp"
-                                  ? -1
-                                  : event.key === "ArrowDown"
-                                    ? 1
-                                    : 0;
-                              if (
-                                !offset ||
-                                slot + offset < 0 ||
-                                slot + offset >= map.slots.length
-                              )
-                                return;
-                              event.preventDefault();
-                              keyboardSelection.current = true;
-                              if (event.altKey)
-                                void run("map_arrange", {
-                                  op: "move",
-                                  slot,
-                                  offset,
-                                });
-                              else
-                                void run("map_select", {
-                                  slot: slot + offset,
-                                  reintegrate,
-                                });
-                            }}
-                            onClick={() =>
-                              run("map_select", { slot, reintegrate })
-                            }
-                            title={label}
-                          >
-                            <span>{slot + 1}</span>
-                            <span className="map-point-name">
-                              {point === null
-                                ? "— Blank cell"
-                                : label || "Raw source unavailable"}
-                            </span>
-                          </button>
-                        );
-                      })}
-                  </TableScroll>
                   <TableActions
-                    orientation="vertical"
+                    orientation="horizontal"
                     aria-label="Point arrangement actions"
                   >
                     <button
@@ -436,6 +347,101 @@ export function MapControls({
                       <Settings size={16} />
                     </button>
                   </TableActions>
+                  <TableScroll
+                    className="map-file-list data-list"
+                    style={
+                      {
+                        "--map-point-index-width": `${Math.max(3, String(map.slots.length).length)}ch`,
+                      } as CSSProperties
+                    }
+                    role="listbox"
+                    aria-label="Scan arrangement"
+                  >
+                    {map.labels
+                      .slice(page * 100, page * 100 + 100)
+                      .map((label, offset) => {
+                        const slot = page * 100 + offset,
+                          point = map.slots[slot];
+                        return (
+                          <button
+                            role="option"
+                            aria-selected={selected === slot}
+                            disabled={!ready}
+                            key={slot}
+                            className={
+                              point !== null && map.excluded.includes(point)
+                                ? "data-list-row map-excluded"
+                                : "data-list-row"
+                            }
+                            draggable={ready}
+                            onDragStart={(event) => {
+                              draggedSlot.current = slot;
+                              event.dataTransfer.effectAllowed = "move";
+                              event.dataTransfer.setData(
+                                "text/plain",
+                                String(slot),
+                              );
+                            }}
+                            onDragOver={(event) => {
+                              event.preventDefault();
+                              event.dataTransfer.dropEffect = "move";
+                            }}
+                            onDrop={(event) => {
+                              event.preventDefault();
+                              const from = draggedSlot.current;
+                              draggedSlot.current = null;
+                              if (from !== null && from !== slot)
+                                void run("map_arrange", {
+                                  op: "move",
+                                  slot: from,
+                                  offset: slot - from,
+                                });
+                            }}
+                            onDragEnd={() => {
+                              draggedSlot.current = null;
+                            }}
+                            onKeyDown={(event) => {
+                              const offset =
+                                event.key === "ArrowUp"
+                                  ? -1
+                                  : event.key === "ArrowDown"
+                                    ? 1
+                                    : 0;
+                              if (
+                                !offset ||
+                                slot + offset < 0 ||
+                                slot + offset >= map.slots.length
+                              )
+                                return;
+                              event.preventDefault();
+                              keyboardSelection.current = true;
+                              if (event.altKey)
+                                void run("map_arrange", {
+                                  op: "move",
+                                  slot,
+                                  offset,
+                                });
+                              else
+                                void run("map_select", {
+                                  slot: slot + offset,
+                                  reintegrate,
+                                });
+                            }}
+                            onClick={() =>
+                              run("map_select", { slot, reintegrate })
+                            }
+                            title={label}
+                          >
+                            <span>{slot + 1}</span>
+                            <span className="map-point-name">
+                              {point === null
+                                ? "— Blank cell"
+                                : label || "Raw source unavailable"}
+                            </span>
+                          </button>
+                        );
+                      })}
+                  </TableScroll>
                 </div>
                 {map.labels.length > 100 && (
                   <div className="map-pagination">

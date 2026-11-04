@@ -828,7 +828,12 @@ try {
   for (const tab of ["Points", "Layers", "Grid"]) {
     await page.getByRole("tab", { name: tab, exact: true }).click();
     await page.waitForTimeout(40);
-    const scroll = await page.locator("#map-tab-content").evaluate((el) => ({
+    const panel = page.locator("#map-tab-content");
+    const surface =
+      tab === "Points"
+        ? page.getByRole("listbox", { name: "Scan arrangement" })
+        : panel;
+    const scroll = await surface.evaluate((el) => ({
       overflow: el.scrollHeight > el.clientHeight,
       reserved: el.offsetWidth - el.clientWidth,
       track: getComputedStyle(el, "::-webkit-scrollbar").width,
@@ -837,7 +842,10 @@ try {
         .every(
           (field) =>
             field.getBoundingClientRect().right <=
-            el.getBoundingClientRect().left + el.clientWidth + 1,
+            el.getBoundingClientRect().left +
+              el.clientLeft +
+              el.clientWidth +
+              1,
         ),
     }));
     assert.ok(scroll.overflow, `${tab} fixture did not exercise overflow`);
@@ -846,6 +854,87 @@ try {
       `${tab} scrollbar was not visible immediately`,
     );
     assert.ok(scroll.fieldsFit, `${tab} controls overlapped the scrollbar`);
+    if (tab === "Points") {
+      const verifyPointLayout = async () => {
+        assert.equal(
+          await panel.evaluate((el) => el.scrollHeight > el.clientHeight + 1),
+          false,
+          "Points acquired a second scrolling surface",
+        );
+        const actions = page.getByRole("toolbar", {
+          name: "Point arrangement actions",
+        });
+        const toolbarBox = await actions.boundingBox();
+        const listBox = await surface.boundingBox();
+        assert.ok(
+          toolbarBox.y + toolbarBox.height <= listBox.y + 1,
+          "Point actions are not above the file list",
+        );
+        const buttonTops = await actions
+          .locator("button")
+          .evaluateAll((buttons) =>
+            buttons.map((button) => button.getBoundingClientRect().top),
+          );
+        assert.ok(
+          Math.max(...buttonTops) - Math.min(...buttonTops) < 1,
+          "Point actions no longer fit in one row",
+        );
+        const alignment = await surface
+          .getByRole("option")
+          .evaluateAll((rows) =>
+            rows.map((row) => ({
+              numberRight: row.children[0].getBoundingClientRect().right,
+              nameLeft: row.children[1].getBoundingClientRect().left,
+            })),
+          );
+        assert.ok(
+          alignment.length >= 10,
+          "Point alignment fixture needs two-digit indices",
+        );
+        for (const row of alignment) {
+          assert.ok(
+            Math.abs(row.numberRight - alignment[0].numberRight) < 1,
+            "Point numbers do not share a column",
+          );
+          assert.ok(
+            Math.abs(row.nameLeft - alignment[0].nameLeft) < 1,
+            "Point filenames do not share a column",
+          );
+        }
+      };
+      await verifyPointLayout();
+      await surface.hover();
+      await page.mouse.wheel(0, 300);
+      await page.waitForTimeout(150);
+      assert.ok(
+        await surface.evaluate((el) => el.scrollTop > 0),
+        "The file list did not scroll",
+      );
+      assert.equal(
+        await panel.evaluate((el) => el.scrollTop),
+        0,
+        "Scrolling the file list moved the Points panel",
+      );
+      await page
+        .getByRole("toolbar", { name: "Point arrangement actions" })
+        .hover();
+      await page.mouse.wheel(0, 300);
+      await page.waitForTimeout(100);
+      assert.equal(
+        await panel.evaluate((el) => el.scrollTop),
+        0,
+        "Scrolling over actions moved the Points panel",
+      );
+      await page.screenshot({
+        path: path.join(artifacts, "map-points-short-panel.png"),
+      });
+      await setInterfaceTextSize(page, true);
+      await verifyPointLayout();
+      await page.screenshot({
+        path: path.join(artifacts, "map-points-short-panel-large-text.png"),
+      });
+      await setInterfaceTextSize(page, false);
+    }
   }
   await heightDivider.press("Home");
   await page.setViewportSize({ width: 1600, height: 1000 });

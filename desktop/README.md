@@ -166,7 +166,10 @@ panels; double-click a divider to restore its default proportions.
 Load calibrated images, a scan folder or a saved project. Load, Folder and
 Live/Follow are grouped in Points; calibration and full-map reintegration use
 compact icon buttons with tooltips. Grid dimensions apply on Enter or blur.
-Points, Layers and Grid show scrollbars as soon as content overflows.
+Points, Layers and Grid show scrollbars as soon as content overflows. Points
+keeps its action buttons in one row above the file list; only the list scrolls
+when the pattern is enlarged. Point indices and filenames use separate aligned
+columns.
 Points contains the scan arrangement with drag/keyboard reordering, blanks,
 filename-numbering checks and exclude/include. Selected raw images are
 reintegrated automatically with current settings when possible; stored-only and

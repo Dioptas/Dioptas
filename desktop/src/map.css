@@ -274,12 +274,14 @@
 }
 .map-points-tools {
   display: flex;
+  flex-direction: column;
   align-items: stretch;
-  gap: 7px;
+  gap: 6px;
 }
 .map-points-tools .data-table-actions {
-  padding-top: 2px;
-  gap: 7px;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
 }
 .map-points-tools .data-table-actions button,
 .map-section-heading button,
@@ -291,19 +293,22 @@
   padding: 4px;
 }
 .map-action-spacer {
-  height: 10px;
+  width: 5px;
+  flex-shrink: 0;
 }
 .map-file-list {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 110px;
-  max-height: 340px;
+  min-height: 0;
   border: 1px solid #ffffff18;
   border-radius: 4px;
 }
-.map-file-list button {
-  display: flex;
+.app .map-file-list .data-list-row {
+  display: grid;
+  grid-template-columns: var(--map-point-index-width, 3ch) minmax(0, 1fr);
+  justify-content: normal;
+  width: 100%;
   flex-shrink: 0;
   gap: 7px;
   border: 0;
@@ -314,11 +319,13 @@
 }
 .map-file-list button > span:first-child {
   color: #9199a1;
-  min-width: 24px;
+  min-width: 0;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 .map-file-list .map-point-name {
+  min-width: 0;
+  text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -486,9 +493,11 @@
 .map-source-spacer {
   flex: 1;
 }
-.map-points-tab {
+.app .map-tab-content.map-points-tab {
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  scrollbar-gutter: auto;
 }
 .map-source-section {
   flex-shrink: 0;
@@ -497,15 +506,14 @@
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 240px;
+  min-height: 0;
 }
 .map-points-tools {
   flex: 1;
-  min-height: 110px;
+  min-height: 0;
 }
-.map-points-tab .map-file-list {
-  max-height: none;
-  height: 100%;
+.map-pagination {
+  flex-shrink: 0;
 }
 
 .map-range-error {
