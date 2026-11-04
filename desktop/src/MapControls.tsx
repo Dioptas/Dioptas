@@ -9,7 +9,7 @@ import {
   FolderOpen,
   RefreshCw,
   Radio,
-  Ruler,
+  Crosshair,
 } from "lucide-react";
 import { MapLayers } from "./MapLayers";
 import {
@@ -234,7 +234,7 @@ export function MapControls({
                 disabled={!ready}
                 onClick={() => run("open_calibration")}
               >
-                <Ruler size={16} />
+                <Crosshair size={16} />
               </button>
               <button
                 className="plot-tool-button map-source-icon"
