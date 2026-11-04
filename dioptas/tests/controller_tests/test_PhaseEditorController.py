@@ -289,8 +289,7 @@ class PhaseEditorControllerTest(QtTest):
         index = phase.params['eos_current_index']
         identifier = phase.params['eos_records'][index]['identifier']
         assert self.jcpds_widget.eos_record_cb.currentData() == (
-            "https://peritheos.readthedocs.io/en/latest/material-summaries/"
-            f"gold/#record-{identifier}")
+            f"https://peritheos.com/eos/{identifier}")
         self.phase_model.duplicate_eos_record(self.controller.phase_ind, index)
         self.controller._update_eos_record_controls()
         assert not self.jcpds_widget.eos_record_cb.currentData()

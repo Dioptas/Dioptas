@@ -36,6 +36,7 @@ def test_catalog_matches_qt_for_every_bundled_record(catalog):
             assert data['errors'] == (record.get('parameter_errors') or {})
             assert data['fixed'] == (record.get('fixed_parameters') or [])
             assert data['recordUrl'] == eos.peritheos_record_url(material.identifier, record)
+            assert data['recordUrl'] == f"https://peritheos.com/eos/{record['identifier']}"
             assert data['reportUrl'] == eos.reconstruction_report_url(record)
 
 

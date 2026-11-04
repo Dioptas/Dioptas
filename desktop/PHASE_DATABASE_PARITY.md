@@ -99,3 +99,16 @@ and the built-in inspector were removed with their components.
 - External documentation URLs are resolved from the selected bundled record.
   Automated tests mock external browser launch and do not establish website
   availability or Windows/Linux native behavior.
+
+## Peritheos link destination
+
+The Peritheos button uses Dioptas's shared `peritheos_record_url` builder, not a
+URL stored in the material document. It now produces
+`https://peritheos.com/eos/<record-identifier>` for verified catalog identities.
+The public domain redirects to the corresponding Studio record path; the Fei
+(2007) gold record was verified on the live site in headless Chromium. The
+reconstruction-report button still uses the catalog's separate `report_url`,
+which currently points to Read the Docs. Those source report links were not
+rewritten. Shared URL, database, editor and custom-record protection checks pass.
+This Python-side change takes effect after restarting the preview's worker;
+the user's running preview was preserved.

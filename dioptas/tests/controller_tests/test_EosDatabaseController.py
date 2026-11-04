@@ -95,8 +95,7 @@ class EosDatabaseControllerTest(QtTest):
             self.dialog.eos_table.selectRow(row)
             material = self.controller.shown_materials[self.dialog.selected_material_row()]
             record = material.eos_records[self.dialog.selected_eos_row()]
-            expected = ("https://peritheos.readthedocs.io/en/latest/material-summaries/"
-                        f"gold/#record-{record['identifier']}")
+            expected = f"https://peritheos.com/eos/{record['identifier']}"
             assert self.dialog.peritheos_btn.isEnabled()
             with patch("qtpy.QtGui.QDesktopServices.openUrl", return_value=True) as open_url:
                 self.dialog.peritheos_btn.click()
@@ -115,7 +114,7 @@ class EosDatabaseControllerTest(QtTest):
         self.dialog.eos_table.selectRow(0)
         assert not self.dialog.load_btn.isEnabled()
         assert self.dialog.peritheos_btn.isEnabled()
-        assert "/material-summaries/coesite_iv/#record-" in self.dialog.peritheos_btn.toolTip()
+        assert self.dialog.peritheos_btn.toolTip().startswith("https://peritheos.com/eos/coesite_iv_")
 
     def test_selected_eos_stays_fully_visible_after_open_resize_and_splitter_move(self):
         self.dialog.search_input.setText("gold")

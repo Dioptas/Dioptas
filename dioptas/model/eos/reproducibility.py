@@ -77,7 +77,7 @@ def _catalog_record_identifiers(material_identifier):
 
 
 def peritheos_record_url(material_identifier, record, *, origin=None):
-    """Link known catalog records to their readable Peritheos documentation."""
+    """Link known catalog records to the public Peritheos application."""
     if _is_user_copy(record, origin) or not isinstance(material_identifier, str):
         return ""
     identifier = record.get("identifier")
@@ -86,8 +86,7 @@ def peritheos_record_url(material_identifier, record, *, origin=None):
     material_identifier, records = _catalog_record_identifiers(material_identifier)
     if identifier not in records:
         return ""
-    return ("https://peritheos.readthedocs.io/en/latest/material-summaries/"
-            f"{quote(material_identifier, safe='')}/#record-{quote(identifier, safe='')}")
+    return f"https://peritheos.com/eos/{quote(identifier, safe='')}"
 
 
 def reconstruction_report_url(record, *, origin=None):
