@@ -1,5 +1,3 @@
-import { DatabaseColumnResize } from "./DatabaseColumnResize";
-import { DatabaseRecordInspector } from "./DatabaseRecordInspector";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { DataTable, TableScroll } from "./DataTable";
@@ -44,11 +42,19 @@ const spaceGroup = (text: string) =>
       (_, p, a, b) => p + a + "₀₁₂₃₄₅₆₇₈₉"[Number(b)],
     )
     .replace(/_(\d)/g, (_, digit) => "₀₁₂₃₄₅₆₇₈₉"[Number(digit)]);
-function parameter(record: DatabaseRecord, key: string) {
-  const value = record.parameters[key];
-  if (value == null)
-    return record.eos === "BM2" && key === "K0_prime" ? "4 (fixed)" : "—";
-  return `${value.toLocaleString(undefined, { maximumSignificantDigits: 9 })}${record.errors[key] != null ? ` ± ${record.errors[key]}` : record.fixed.includes(key) ? "" : " (error n/r)"}${record.fixed.includes(key) ? " (fixed)" : ""}`;
+// Only add a variant name where author/year and EoS alone are ambiguous.
+// Keep the catalog's own wording, removing its repeated citation prefix.
+function variant(record: DatabaseRecord, records: DatabaseRecord[]) {
+  const duplicates = records.filter(
+    (r) =>
+      r.authors === record.authors &&
+      r.year === record.year &&
+      r.eos === record.eos,
+  );
+  if (duplicates.length < 2) return "";
+  const label = String(record.sourceRecord.label || record.label);
+  const citation = `${record.authors} (${record.year}), `;
+  return label.startsWith(citation) ? label.slice(citation.length) : label;
 }
 function keepVisible(row: HTMLElement | null) {
   const scroll = row?.closest(".data-table-scroll");
@@ -128,17 +134,6 @@ export function PhaseDatabase({
   const [assumedFor, setAssumedFor] = useState("");
   const [materialSort, setMaterialSort] = useState<Sort>(null);
   const [recordSort, setRecordSort] = useState<Sort>(null);
-  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({
-    label: 245,
-    thermal: 65,
-    authors: 145,
-    year: 65,
-    pressureRange: 130,
-    K0: 155,
-    K0_prime: 155,
-    V0: 175,
-    assessment: 190,
-  });
   const materialTable = useRef<HTMLTableElement>(null);
   const recordTable = useRef<HTMLTableElement>(null);
   useEffect(() => {
@@ -214,6 +209,9 @@ export function PhaseDatabase({
     if (material) setSelected(material.id);
   }, [material?.id]);
   const record = material?.references[reference];
+  const hasVariants = material?.references.some((r) =>
+    variant(r, material.references),
+  );
   const assumed = !!material?.canAssumeStructure && assumedFor === material.id;
   const reason = !material
     ? "Select a material."
@@ -227,15 +225,11 @@ export function PhaseDatabase({
   if (recordSort)
     records.sort((a, b) => {
       const value = (r: DatabaseRecord) =>
-        ["K0", "K0_prime", "V0"].includes(recordSort.key)
-          ? (r.parameters[recordSort.key] ??
-            (recordSort.key === "K0_prime" && r.eos === "BM2" ? 4 : null))
-          : recordSort.key === "pressureRange"
-            ? (
-                r.sourceRecord.experimental_pressure_range_gpa as
-                  number[] | undefined
-              )?.[0]
-            : r[recordSort.key as "label"];
+        recordSort.key === "variant"
+          ? variant(r, material?.references || [])
+          : recordSort.key === "authors"
+            ? `${r.authors} (${r.year})`
+            : r.eos;
       return compare(value(a.r), value(b.r)) * (recordSort.descending ? -1 : 1);
     });
   useEffect(() => {
@@ -258,7 +252,7 @@ export function PhaseDatabase({
     keepVisible(
       recordTable.current?.querySelector('tr[aria-selected="true"]') || null,
     );
-  }, [material?.id, reference, result, materialSort, recordSort, columnWidths]);
+  }, [material?.id, reference, result, materialSort, recordSort]);
   const changeQuery = (q: string) => {
     if (q.trim() && beforeSearch.current === null) {
       beforeSearch.current = view;
@@ -314,9 +308,6 @@ export function PhaseDatabase({
   ) => (
     <th
       scope="col"
-      style={
-        update === setRecordSort ? { width: columnWidths[key] } : undefined
-      }
       aria-sort={
         sort?.key === key
           ? sort.descending
@@ -333,15 +324,6 @@ export function PhaseDatabase({
         {label}
         {sort?.key === key ? (sort.descending ? " ↓" : " ↑") : ""}
       </button>
-      {update === setRecordSort && (
-        <DatabaseColumnResize
-          label={label}
-          width={columnWidths[key]}
-          onWidth={(width) =>
-            setColumnWidths((previous) => ({ ...previous, [key]: width }))
-          }
-        />
-      )}
     </th>
   );
   const empty = query.trim()
@@ -455,7 +437,7 @@ export function PhaseDatabase({
               checked={diffractionOnly}
               onChange={(e) => setDiffractionOnly(e.target.checked)}
             />
-            Hide materials without diffraction data
+            Diffraction data only
           </label>
           <button
             disabled={!material}
@@ -492,7 +474,6 @@ export function PhaseDatabase({
                     : "library order"}
               </button>
             )}
-            <span>↑ ↓ to select · Enter to load</span>
           </div>
           <TableScroll>
             <DataTable ref={materialTable} aria-label="Database materials">
@@ -581,41 +562,21 @@ export function PhaseDatabase({
               ref={recordTable}
               aria-label="Material EoS records"
               className="phase-database-records"
-              style={{
-                width: Object.values(columnWidths).reduce(
-                  (sum, width) => sum + width,
-                  0,
-                ),
-              }}
             >
               <thead>
                 <tr>
-                  {sortHead("EoS / record", "label", recordSort, setRecordSort)}
-                  {sortHead("T model", "thermal", recordSort, setRecordSort)}
-                  {sortHead("Authors", "authors", recordSort, setRecordSort)}
-                  {sortHead("Year", "year", recordSort, setRecordSort)}
-                  {sortHead(
-                    "Fit P range",
-                    "pressureRange",
-                    recordSort,
-                    setRecordSort,
-                  )}
-                  {sortHead("K₀ (GPa)", "K0", recordSort, setRecordSort)}
-                  {sortHead("K₀′", "K0_prime", recordSort, setRecordSort)}
-                  {sortHead("V₀ (Å³)", "V0", recordSort, setRecordSort)}
-                  {sortHead(
-                    "Assessment",
-                    "assessment",
-                    recordSort,
-                    setRecordSort,
-                  )}
+                  {sortHead("Reference", "authors", recordSort, setRecordSort)}
+                  {sortHead("EoS", "eos", recordSort, setRecordSort)}
+                  {hasVariants &&
+                    sortHead("Variant", "variant", recordSort, setRecordSort)}
                 </tr>
               </thead>
               <tbody>
                 {records.map(({ r, index }, i) => (
                   <tr
                     key={index}
-                    title={r.detail}
+                    title={r.label}
+                    data-reference={index}
                     aria-selected={index === reference}
                     tabIndex={
                       index === reference || (reference < 0 && i === 0) ? 0 : -1
@@ -640,34 +601,24 @@ export function PhaseDatabase({
                       )
                     }
                   >
-                    <td>
-                      <strong>{r.eos}</strong>
-                      <span
-                        className="phase-database-record-label"
-                        title={r.label}
-                      >
-                        {r.label}
+                    <td className="phase-database-reference">
+                      <span>
+                        {r.authors
+                          ? `${r.authors}${r.year ? ` (${r.year})` : ""}`
+                          : r.label}
                       </span>
                       {index === material.defaultReference && (
                         <small>Default</small>
                       )}
                     </td>
-                    <td title={r.thermal || "No thermal model"}>
-                      {r.thermal ? "✓" : "—"}
+                    <td title={r.thermal ? `${r.eos} · ${r.thermal}` : r.eos}>
+                      {r.eos}
                     </td>
-                    <td>{r.authors || "—"}</td>
-                    <td>{r.year || "—"}</td>
-                    <td>{r.pressureRange || "—"}</td>
-                    <td className="numeric" title={parameter(r, "K0")}>
-                      {parameter(r, "K0")}
-                    </td>
-                    <td className="numeric" title={parameter(r, "K0_prime")}>
-                      {parameter(r, "K0_prime")}
-                    </td>
-                    <td className="numeric" title={parameter(r, "V0")}>
-                      {parameter(r, "V0")}
-                    </td>
-                    <td>{r.assessment}</td>
+                    {hasVariants && (
+                      <td className="phase-database-variant" title={r.label}>
+                        {variant(r, material.references)}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -675,23 +626,13 @@ export function PhaseDatabase({
             {!records.length && (
               <p className="phase-database-empty">
                 {material
-                  ? "No EoS records. Diffraction data, where available, use the material’s reference structure."
-                  : "Select a material to inspect its records."}
+                  ? "No EoS records for this material."
+                  : "Select a material."}
               </p>
             )}
           </TableScroll>
         </section>
-        <DatabaseRecordInspector
-          material={material}
-          record={record}
-          reference={reference}
-          run={run}
-          ready={ready}
-        />
         <div className="phase-database-conditions">
-          {material?.hold && (
-            <p className="phase-condition-note">{material.hold}</p>
-          )}
           {material?.canAssumeStructure && (
             <label>
               <input
@@ -705,19 +646,24 @@ export function PhaseDatabase({
             </label>
           )}
           {assumed && (
-            <p className="phase-condition-note">{material.assumptionNote}</p>
+            <p className="phase-condition-note" title={material.assumptionNote}>
+              Approximate diffraction lines; not a refined structure.
+            </p>
           )}
           {reason && material && (
-            <p className="phase-condition-note" role="status">
-              {reason}
+            <p
+              className="phase-condition-note"
+              role="status"
+              title={material.hold || reason}
+            >
+              {!material.diffraction && !assumed
+                ? "No diffraction data available."
+                : !record
+                  ? "Select a record to load."
+                  : "This record is source-only and cannot be loaded."}
             </p>
           )}
         </div>
-        <p className="phase-database-legend">
-          Fit P range describes measurements constraining the published EoS, not
-          phase stability. Assessments are scoped numerical checks, separate
-          from source verification and recommendation for use.
-        </p>
       </div>
       <footer>
         <button
@@ -733,9 +679,38 @@ export function PhaseDatabase({
         >
           Export .eosmat…
         </button>
-        <span className="phase-database-load-summary">
-          {record ? `Selected: ${record.label}` : material?.name}
-        </span>
+        <div className="phase-database-links">
+          {record?.recordUrl && (
+            <button
+              disabled={!ready}
+              title="View the selected record in Peritheos"
+              onClick={() =>
+                void run(
+                  "integration_phase_documentation",
+                  { material_id: material.id, reference, kind: "record" },
+                  "Opening Peritheos record…",
+                )
+              }
+            >
+              Peritheos ↗
+            </button>
+          )}
+          {record?.reportUrl && (
+            <button
+              disabled={!ready}
+              title="Open the selected record’s reconstruction report"
+              onClick={() =>
+                void run(
+                  "integration_phase_documentation",
+                  { material_id: material.id, reference, kind: "report" },
+                  "Opening reconstruction report…",
+                )
+              }
+            >
+              Reconstruction report ↗
+            </button>
+          )}
+        </div>
         <button onClick={onClose}>Close</button>
         <button
           className="primary"

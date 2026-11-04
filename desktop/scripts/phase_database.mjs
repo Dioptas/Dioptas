@@ -197,28 +197,37 @@ try {
     await recordTable.locator("tbody tr").count(),
     gold.references.length,
   );
-  const resizer = recordTable.getByRole("separator", {
-    name: "Resize K₀ (GPa) column",
-    exact: true,
-  });
-  const oldWidth = Number(await resizer.getAttribute("aria-valuenow"));
-  await resizer.focus();
-  await resizer.press("ArrowRight");
+  assert.deepEqual(await recordTable.locator("th").allTextContents(), [
+    "Reference",
+    "EoS",
+    "Variant",
+  ]);
+  assert.equal(await db.locator(".phase-database-inspector, pre").count(), 0);
   assert.equal(
-    Number(await resizer.getAttribute("aria-valuenow")),
-    oldWidth + 10,
+    await db
+      .getByRole("tab", { name: "Assessment & source", exact: true })
+      .count(),
+    0,
   );
-  const handle = await resizer.boundingBox();
-  await page.mouse.move(handle.x + handle.width / 2, handle.y + 10);
-  await page.mouse.down();
-  await page.mouse.move(handle.x + 43, handle.y + 10);
-  await page.mouse.up();
-  assert.ok(
-    Number(await resizer.getAttribute("aria-valuenow")) > oldWidth + 35,
+  assert.equal(
+    await db
+      .getByRole("columnheader", { name: "K₀ (GPa)", exact: true })
+      .count(),
+    0,
   );
-  await db
-    .getByRole("button", { name: "View in Peritheos ↗", exact: true })
-    .click();
+  const sameCitation = gold.references
+    .map((r, i) => ({ r, i }))
+    .filter(({ r }) => r.authors === "Dewaele" && r.year === "2019");
+  assert.equal(sameCitation.length, 2);
+  const variants = await Promise.all(
+    sameCitation.map(({ i }) =>
+      recordTable
+        .locator(`tr[data-reference="${i}"] td:last-child`)
+        .textContent(),
+    ),
+  );
+  assert.ok(variants[0] !== variants[1] && variants.every(Boolean));
+  await db.getByRole("button", { name: "Peritheos ↗", exact: true }).click();
   await ready();
   assert.equal(requests.at(-1).payload.reference, gold.defaultReference);
   await db.getByRole("button", { name: "☆ Favourite", exact: true }).click();
@@ -265,9 +274,7 @@ try {
     true,
   );
   assert.equal(
-    await db
-      .getByRole("button", { name: "View in Peritheos ↗", exact: true })
-      .count(),
+    await db.getByRole("button", { name: "Peritheos ↗", exact: true }).count(),
     0,
   );
   await query("palladium");
@@ -275,24 +282,21 @@ try {
   await select(palladium);
   assert.equal(await selectedRecord().count(), 0);
   assert.equal(await loadButton.isDisabled(), true);
-  await recordTable
-    .getByRole("button", { name: "K₀ (GPa)", exact: true })
-    .click();
+  await recordTable.getByRole("button", { name: "EoS", exact: true }).click();
   assert.equal(await selectedRecord().count(), 0);
   assert.equal(await loadButton.isDisabled(), true);
   const explicit = palladium.references.findIndex((r) => !r.loadError);
-  await recordTable
-    .getByText(palladium.references[explicit].label, { exact: true })
-    .click();
+  await recordTable.locator(`tr[data-reference="${explicit}"]`).click();
   assert.equal(await loadButton.isEnabled(), true);
-  await db.getByRole("tab", { name: "Original record", exact: true }).click();
-  const raw = JSON.parse(await db.locator("pre").textContent());
-  assert.deepEqual(raw, palladium.references[explicit].sourceRecord);
-  await recordTable.getByRole("button", { name: "Year", exact: true }).click();
-  assert.ok(
-    (await selectedRecord().innerText()).includes(
-      palladium.references[explicit].label,
-    ),
+  await db.getByRole("button", { name: "Peritheos ↗", exact: true }).click();
+  await ready();
+  assert.equal(requests.at(-1).payload.reference, explicit);
+  await recordTable
+    .getByRole("button", { name: "Reference", exact: true })
+    .click();
+  assert.equal(
+    await selectedRecord().getAttribute("data-reference"),
+    String(explicit),
   );
   // Enter loads the identity selected before sorting, not the visible row number.
   await selectedRecord().press("Enter");
@@ -312,17 +316,12 @@ try {
   );
   await query("gold");
   await select(gold);
-  await db.getByRole("tab", { name: "Parameters", exact: true }).click();
-  assert.ok(
-    (
-      await db
-        .getByRole("table", { name: "Selected record parameters", exact: true })
-        .innerText()
-    ).includes("V0"),
+  assert.equal(
+    await db
+      .getByRole("tablist", { name: "Record inspection", exact: true })
+      .count(),
+    0,
   );
-  await db
-    .getByRole("tab", { name: "Assessment & source", exact: true })
-    .click();
   for (const large of [false, true]) {
     // The dialog stays usable when the app's existing text setting changes.
     await db.getByRole("button", { name: "Close", exact: true }).click();
@@ -362,6 +361,9 @@ try {
               return r.top >= area.top && r.bottom <= area.bottom;
             },
           ),
+          noHorizontalRecordScroll:
+            row.closest(".data-table-scroll").scrollWidth <=
+            row.closest(".data-table-scroll").clientWidth + 1,
           headerSticky:
             getComputedStyle(row.closest("table").querySelector("thead"))
               .position === "sticky",
@@ -371,7 +373,8 @@ try {
         metrics.inWindow &&
           metrics.footerVisible &&
           metrics.headerSticky &&
-          metrics.selectedVisible,
+          metrics.selectedVisible &&
+          metrics.noHorizontalRecordScroll,
         JSON.stringify(metrics),
       );
       // The focused source record must remain reachable by keyboard after resizing.
@@ -390,9 +393,7 @@ try {
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
   await query("coesite");
-  await db
-    .getByLabel("Hide materials without diffraction data", { exact: true })
-    .uncheck();
+  await db.getByLabel("Diffraction data only", { exact: true }).uncheck();
   const withoutRecords = all.find((m) => m.id === "coesite_v");
   await select(withoutRecords);
   assert.equal(await recordTable.locator("tbody tr").count(), 0);
@@ -461,8 +462,9 @@ try {
           "empty states",
           "held defaults",
           "sorted identity and Enter load",
-          "original metadata",
-          "parameters",
+          "concise reference-first records",
+          "external documentation links",
+          "distinct same-author variants",
           "recent load order",
           "EOS-only export",
           "explicit assumed structure",
@@ -475,7 +477,7 @@ try {
     ),
   );
   console.log(
-    "Database explorer passed: real-record search, inspection, sorting, safeguards, loading, keyboard and compact layouts.",
+    "Database explorer passed: real-record search, concise record selection, sorting, safeguards, loading, keyboard and compact layouts.",
   );
 } catch (error) {
   console.error(error);

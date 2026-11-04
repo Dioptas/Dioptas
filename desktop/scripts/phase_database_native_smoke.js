@@ -58,36 +58,40 @@ window.__dioptasDatabaseNativeSmoke = async ({
   const selected = () =>
     db().querySelector('.phase-database-records tr[aria-selected="true"]');
   check(selected(), "Native database lost the default record");
-  const label = selected().querySelector(
-    ".phase-database-record-label",
-  ).textContent;
+  const sourceIndex = selected().getAttribute("data-reference");
+  check(tableHeaders(), "Native record list is not reference-first");
+  function tableHeaders() {
+    const headings = [
+      ...db().querySelectorAll(".phase-database-records th"),
+    ].map((cell) => cell.textContent.trim());
+    return (
+      headings[0] === "Reference" &&
+      headings[1] === "EoS" &&
+      headings.length <= 3
+    );
+  }
   const table = db().querySelector(".phase-database-records");
   [...table.querySelectorAll("th button")]
-    .find((b) => b.textContent === "K₀ (GPa)")
+    .find((b) => b.textContent === "EoS")
     .click();
   await delay();
   check(
-    selected().querySelector(".phase-database-record-label").textContent ===
-      label,
+    selected().getAttribute("data-reference") === sourceIndex,
     "Native sorting changed record identity",
   );
-  const resize = table.querySelector('[aria-label="Resize K₀ (GPa) column"]');
-  const width = Number(resize.getAttribute("aria-valuenow"));
-  resize.dispatchEvent(
-    new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }),
-  );
-  await delay();
   check(
-    Number(resize.getAttribute("aria-valuenow")) === width + 10,
-    "Native column resize failed",
+    !db().querySelector(".phase-database-inspector, pre"),
+    "Native database still contains the long inspector",
   );
-  click("Original record");
-  await delay();
-  const record = JSON.parse(db().querySelector("pre").textContent);
   check(
-    record.identifier ===
-      material.references[material.defaultReference].identifier,
-    "Native inspector showed a different source record",
+    Number(sourceIndex) === material.defaultReference,
+    "Native default record changed",
+  );
+  check(
+    [...db().querySelectorAll("button")].some(
+      (b) => b.textContent === "Peritheos ↗",
+    ),
+    "Native database lost the documentation link",
   );
   const before = (await call("state")).state.integration.phases.length;
   click("Load as Phase");
@@ -107,8 +111,8 @@ window.__dioptasDatabaseNativeSmoke = async ({
     heldDefaults: true,
     noHits: true,
     sortIdentity: true,
-    columnResize: true,
-    originalRecord: true,
+    conciseRecords: true,
+    documentationLinks: true,
     loadSelected: true,
   };
 };
