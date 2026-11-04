@@ -218,6 +218,7 @@ references along with the measured curve without changing the stored profiles.
 Clicking Map's detector or pattern marks the same calibrated position with a
 green detector ring/crosshair and pattern line. Integration uses the same
 position, including after switching modes or detaching/docking the scan window.
+Selecting another scan point keeps both the green position and the Click readout.
 The line follows the active 2θ/Q/d display unit. Stationary pattern clicks also
 inspect inside editable ROIs; ROI drags continue to edit only the window. The
 shared footer reports the clicked 2θ, Q, d and azimuth when available.
