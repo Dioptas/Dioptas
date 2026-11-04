@@ -5,12 +5,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import {
-  Maximize2,
-  Minimize2,
-  ExternalLink,
-  MoveHorizontal,
-} from "lucide-react";
+import { PanelLeftClose, ExternalLink, MoveHorizontal } from "lucide-react";
 import { RasterView } from "./RasterView";
 import { PatternView } from "./PatternView";
 import { ImageIntensity } from "./ImageIntensity";
@@ -96,8 +91,7 @@ export function MapView({
   const [editRegions, setEditRegions] = useState(true),
     [showRegions, setShowRegions] = useState(true);
   const [patternUnit, setPatternUnit] = useState<Unit | null>(null);
-  const [mapOnly, setMapOnly] = useState(false),
-    [share, setShare] = useMapPreference<number>("width", 36),
+  const [share, setShare] = useMapPreference<number>("width", 36),
     [upperShare, setUpperShare] = useMapPreference<number>("height", 44);
   const [tabbedImage, setTabbedImage] = useState(false);
   const [live, setLive] = useState(false),
@@ -105,13 +99,13 @@ export function MapView({
   const layout = useRef<HTMLDivElement>(null),
     topPanel = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (mapOnly || !topPanel.current) return;
+    if (!topPanel.current) return;
     const observer = new ResizeObserver(([entry]) =>
       setTabbedImage(entry.contentRect.width < 740),
     );
     observer.observe(topPanel.current);
     return () => observer.disconnect();
-  }, [mapOnly]);
+  }, []);
   const sourceRun: MapRun = async (command, args, message) => {
     if (
       ["map_load", "map_folder", "map_batch", "map_normalize"].includes(command)
@@ -373,16 +367,10 @@ export function MapView({
   );
   return (
     <>
-      {mapWindow.detached && (
-        <div className="map-window-banner">
-          <span>Map in separate window</span>
-          <button onClick={mapWindow.open}>Show map</button>
-          <button onClick={mapWindow.dock}>Dock map</button>
-        </div>
-      )}
       <div
         ref={layout}
-        className={`map-layout ${mapOnly && !mapWindow.detached ? "map-only" : ""} ${mapWindow.detached ? "map-detached" : ""}`}
+        className="map-layout"
+        data-map-detached={mapWindow.detached}
         style={
           {
             "--map-share": `${share}%`,
@@ -390,7 +378,31 @@ export function MapView({
           } as CSSProperties
         }
       >
-        {mapWindow.detached ? null : (
+        {mapWindow.detached ? (
+          <section className="map-scan-panel" aria-label="Scan map">
+            <div className="empty-view map-detached-placeholder">
+              <p>Map is open in a separate window.</p>
+              <div className="map-detached-actions">
+                <button
+                  className="plot-tool-button map-icon-button"
+                  aria-label="Show map"
+                  title="Show the separate map window"
+                  onClick={mapWindow.open}
+                >
+                  <ExternalLink size={16} />
+                </button>
+                <button
+                  className="plot-tool-button map-icon-button"
+                  aria-label="Dock map"
+                  title="Dock map here"
+                  onClick={mapWindow.dock}
+                >
+                  <PanelLeftClose size={16} />
+                </button>
+              </div>
+            </div>
+          </section>
+        ) : (
           <ScanMapPanel
             map={map}
             calibrated={!!state?.calibrated}
@@ -410,191 +422,173 @@ export function MapView({
                 >
                   <ExternalLink size={16} />
                 </button>
-                <button
-                  className="plot-tool-button map-icon-button"
-                  aria-label={
-                    mapOnly ? "Dock detector / pattern" : "Expand map"
-                  }
-                  title={
-                    mapOnly
-                      ? "Restore detector, controls and pattern"
-                      : "Expand map"
-                  }
-                  onClick={() => setMapOnly((v) => !v)}
-                >
-                  {mapOnly ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-                </button>
               </>
             }
           />
         )}
-        {(!mapOnly || mapWindow.detached) && (
-          <>
-            {!mapWindow.detached && divider(true)}
+        <>
+          {divider(true)}
+          <div
+            className={`map-analysis-top ${tabbedImage ? "map-image-tabbed" : ""}`}
+            ref={topPanel}
+          >
+            {!tabbedImage && detectorPanel}
+            <aside className="map-task-panel" aria-label="Map tasks">
+              <MapControls
+                map={map}
+                state={state}
+                ready={ready}
+                run={sourceRun}
+                live={live}
+                onLive={setLive}
+                follow={follow}
+                onFollow={setFollow}
+                reintegrateSelected={reintegrateSelected}
+                onReintegrateSelected={setReintegrateSelected}
+                windowUnit={viewPattern?.unit ?? map?.unit}
+                imageTab={tabbedImage ? detectorPanel : undefined}
+              />
+            </aside>
+          </div>
+          {divider(false)}
+          <section className="map-pattern-panel" aria-label="Map pattern">
+            {viewPattern && viewPattern.x.length ? (
+              <PatternView
+                key={viewPattern.unit}
+                pattern={viewPattern}
+                log={scale === "log"}
+                sqrt={scale === "sqrt"}
+                antialias={antialias}
+                compact
+                autoRange={autoRange}
+                onAutoRange={setAutoRange}
+                zoomMode={patternZoom}
+                onZoomMode={onPatternZoom}
+                onHover={onPatternHover}
+                hoverHint={
+                  editRegions
+                    ? "Drag window edges or body · click to center active window · left drag outside windows zooms · right drag pans"
+                    : undefined
+                }
+                regions={regions}
+                editRegions={editRegions && ready && showRegions}
+                onRegionChange={changeRegion}
+                onRegionDragStart={liveRegion.begin}
+                onRegionInput={(name, min, max) =>
+                  changeRegion(name, min, max, false)
+                }
+                onRegionCancel={liveRegion.cancel}
+                onRegionSelect={(name) => {
+                  if (map?.active !== name) void run("map_layer", { name });
+                }}
+                onPick={(x) => {
+                  if (!editRegions || !showRegions || !map) return;
+                  const active = regions.find((r) => r.active);
+                  if (active) {
+                    const half = (active.max - active.min) / 2;
+                    changeRegion(active.name, x - half, x + half);
+                  }
+                }}
+              />
+            ) : (
+              <div className="empty-pattern">
+                Select a filled map cell to inspect its stored diffraction
+                pattern.
+              </div>
+            )}
             <div
-              className={`map-analysis-top ${tabbedImage ? "map-image-tabbed" : ""}`}
-              ref={topPanel}
+              className="integration-pattern-tools map-pattern-tools"
+              role="group"
+              aria-label="Map pattern controls"
             >
-              {!tabbedImage && detectorPanel}
-              <aside className="map-task-panel" aria-label="Map tasks">
-                <MapControls
-                  map={map}
-                  state={state}
-                  ready={ready}
-                  run={sourceRun}
-                  live={live}
-                  onLive={setLive}
-                  follow={follow}
-                  onFollow={setFollow}
-                  reintegrateSelected={reintegrateSelected}
-                  onReintegrateSelected={setReintegrateSelected}
-                  windowUnit={viewPattern?.unit ?? map?.unit}
-                  imageTab={tabbedImage ? detectorPanel : undefined}
-                />
-              </aside>
-            </div>
-            {divider(false)}
-            <section className="map-pattern-panel" aria-label="Map pattern">
-              {viewPattern && viewPattern.x.length ? (
-                <PatternView
-                  key={viewPattern.unit}
-                  pattern={viewPattern}
-                  log={scale === "log"}
-                  sqrt={scale === "sqrt"}
-                  antialias={antialias}
-                  compact
-                  autoRange={autoRange}
-                  onAutoRange={setAutoRange}
-                  zoomMode={patternZoom}
-                  onZoomMode={onPatternZoom}
-                  onHover={onPatternHover}
-                  hoverHint={
-                    editRegions
-                      ? "Drag window edges or body · click to center active window · left drag outside windows zooms · right drag pans"
-                      : undefined
-                  }
-                  regions={regions}
-                  editRegions={editRegions && ready && showRegions}
-                  onRegionChange={changeRegion}
-                  onRegionDragStart={liveRegion.begin}
-                  onRegionInput={(name, min, max) =>
-                    changeRegion(name, min, max, false)
-                  }
-                  onRegionCancel={liveRegion.cancel}
-                  onRegionSelect={(name) => {
-                    if (map?.active !== name) void run("map_layer", { name });
-                  }}
-                  onPick={(x) => {
-                    if (!editRegions || !showRegions || !map) return;
-                    const active = regions.find((r) => r.active);
-                    if (active) {
-                      const half = (active.max - active.min) / 2;
-                      changeRegion(active.name, x - half, x + half);
+              <div className="plot-tool-group">
+                {(
+                  [
+                    ["2th_deg", "2θ"],
+                    ["q_A^-1", "Q"],
+                    ["d_A", "d"],
+                  ] as [Unit, string][]
+                ).map(([unit, label]) => (
+                  <button
+                    key={unit}
+                    className="plot-tool-button"
+                    aria-label={`Map pattern unit ${label}`}
+                    title={`Display pattern in ${label}`}
+                    aria-pressed={(viewPattern?.unit ?? map?.unit) === unit}
+                    disabled={
+                      !pattern ||
+                      (unit !== pattern.unit &&
+                        (!state?.geometry.wavelength || !state?.calibrated) &&
+                        (unit === "2th_deg" || pattern.unit === "2th_deg"))
                     }
-                  }}
-                />
-              ) : (
-                <div className="empty-pattern">
-                  Select a filled map cell to inspect its stored diffraction
-                  pattern.
-                </div>
-              )}
-              <div
-                className="integration-pattern-tools map-pattern-tools"
-                role="group"
-                aria-label="Map pattern controls"
-              >
-                <div className="plot-tool-group">
-                  {(
-                    [
-                      ["2th_deg", "2θ"],
-                      ["q_A^-1", "Q"],
-                      ["d_A", "d"],
-                    ] as [Unit, string][]
-                  ).map(([unit, label]) => (
-                    <button
-                      key={unit}
-                      className="plot-tool-button"
-                      aria-label={`Map pattern unit ${label}`}
-                      title={`Display pattern in ${label}`}
-                      aria-pressed={(viewPattern?.unit ?? map?.unit) === unit}
-                      disabled={
-                        !pattern ||
-                        (unit !== pattern.unit &&
-                          (!state?.geometry.wavelength || !state?.calibrated) &&
-                          (unit === "2th_deg" || pattern.unit === "2th_deg"))
-                      }
-                      onClick={() => setPatternUnit(unit)}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <div className="plot-tool-group">
-                  <button
-                    className="plot-tool-button"
-                    aria-label="Show pattern windows"
-                    title="Show pattern windows"
-                    aria-pressed={showRegions}
-                    onClick={() => setShowRegions((v) => !v)}
+                    onClick={() => setPatternUnit(unit)}
                   >
-                    ROI
+                    {label}
                   </button>
-                  <button
-                    className="plot-tool-button"
-                    aria-label="Edit windows"
-                    title="Edit pattern windows by dragging; turn off to zoom inside windows"
-                    aria-pressed={editRegions}
-                    disabled={!showRegions}
-                    onClick={() => setEditRegions((v) => !v)}
-                  >
-                    <MoveHorizontal size={15} />
-                  </button>
-                </div>
-                <div className="plot-tool-group">
-                  <button
-                    className="plot-tool-button"
-                    aria-label="Logarithmic map pattern intensity"
-                    aria-pressed={scale === "log"}
-                    title="Logarithmic intensity"
-                    onClick={() => setScale(scale === "log" ? "linear" : "log")}
-                  >
-                    Log
-                  </button>
-                  <button
-                    className="plot-tool-button"
-                    aria-label="Square root map pattern intensity"
-                    aria-pressed={scale === "sqrt"}
-                    title="Square-root intensity"
-                    onClick={() =>
-                      setScale(scale === "sqrt" ? "linear" : "sqrt")
-                    }
-                  >
-                    √
-                  </button>
-                </div>
+                ))}
+              </div>
+              <div className="plot-tool-group">
                 <button
                   className="plot-tool-button"
-                  aria-label="Antialias map pattern"
-                  title="Antialiased pattern lines"
-                  aria-pressed={antialias}
-                  onClick={() => setAntialias((v) => !v)}
+                  aria-label="Show pattern windows"
+                  title="Show pattern windows"
+                  aria-pressed={showRegions}
+                  onClick={() => setShowRegions((v) => !v)}
                 >
-                  AA
+                  ROI
                 </button>
                 <button
                   className="plot-tool-button"
-                  aria-label="Map pattern auto range"
-                  title="Fit axes when the selected pattern changes"
-                  aria-pressed={autoRange}
-                  onClick={() => setAutoRange((v) => !v)}
+                  aria-label="Edit windows"
+                  title="Edit pattern windows by dragging; turn off to zoom inside windows"
+                  aria-pressed={editRegions}
+                  disabled={!showRegions}
+                  onClick={() => setEditRegions((v) => !v)}
                 >
-                  A
+                  <MoveHorizontal size={15} />
                 </button>
               </div>
-            </section>
-          </>
-        )}
+              <div className="plot-tool-group">
+                <button
+                  className="plot-tool-button"
+                  aria-label="Logarithmic map pattern intensity"
+                  aria-pressed={scale === "log"}
+                  title="Logarithmic intensity"
+                  onClick={() => setScale(scale === "log" ? "linear" : "log")}
+                >
+                  Log
+                </button>
+                <button
+                  className="plot-tool-button"
+                  aria-label="Square root map pattern intensity"
+                  aria-pressed={scale === "sqrt"}
+                  title="Square-root intensity"
+                  onClick={() => setScale(scale === "sqrt" ? "linear" : "sqrt")}
+                >
+                  √
+                </button>
+              </div>
+              <button
+                className="plot-tool-button"
+                aria-label="Antialias map pattern"
+                title="Antialiased pattern lines"
+                aria-pressed={antialias}
+                onClick={() => setAntialias((v) => !v)}
+              >
+                AA
+              </button>
+              <button
+                className="plot-tool-button"
+                aria-label="Map pattern auto range"
+                title="Fit axes when the selected pattern changes"
+                aria-pressed={autoRange}
+                onClick={() => setAutoRange((v) => !v)}
+              >
+                A
+              </button>
+            </div>
+          </section>
+        </>
       </div>
     </>
   );

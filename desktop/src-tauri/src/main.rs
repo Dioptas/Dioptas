@@ -299,6 +299,7 @@ fn main() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(TooltipState::default())
+        .manage(map_window::MapWindowState::default())
         .manage(Host {
             processor: Processor::start(example).map(Arc::new),
             smoke,
@@ -333,6 +334,14 @@ fn main() {
         })
         .on_page_load(move |webview, payload| {
             if smoke && webview.label() == "map-window" && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+                static EXPECTED_CHECKED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+                if !EXPECTED_CHECKED.swap(true, std::sync::atomic::Ordering::SeqCst) {
+                    if let Ok(expected) = std::env::var("DIOPTAS_MAP_WINDOW_EXPECTED") {
+                        if let Ok(value) = serde_json::from_str::<Value>(&expected) {
+                            let _ = webview.eval(format!("window.__dioptasMapPlacementExpected = {value};"));
+                        }
+                    }
+                }
                 let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
                 let _ = webview.eval(include_str!("../../scripts/map_window_native_smoke.js"));
             }
@@ -368,6 +377,7 @@ fn main() {
             }
         })
         .on_window_event(|window, event| {
+            map_window::window_event(window, event);
             if window.label() == "map-window" && matches!(event, tauri::WindowEvent::Destroyed) {
                 use tauri::Emitter;
                 let _ = window.app_handle().emit_to("main", "map-window-main", json!({"type": "closed"}));
@@ -401,6 +411,7 @@ fn main() {
             event,
             tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit
         ) {
+            map_window::save(handle);
             if let Ok(processor) = &handle.state::<Host>().processor {
                 processor.shutdown();
             }

@@ -1106,9 +1106,11 @@ try {
   await page.getByLabel("Map layer", { exact: true }).selectOption("Ratio");
   await ready();
   await click("Save project");
-  await click("Expand map");
-  assert.equal(await page.locator(".map-detector-panel").count(), 0);
-  await click("Dock detector / pattern");
+  assert.equal(
+    await page.getByRole("button", { name: "Expand map", exact: true }).count(),
+    0,
+  );
+  assert.equal(await page.locator(".map-detector-panel").count(), 1);
   await page.getByLabel("Smooth map", { exact: true }).click();
   await page.getByLabel("Map contours", { exact: true }).click();
   await page.waitForTimeout(500);

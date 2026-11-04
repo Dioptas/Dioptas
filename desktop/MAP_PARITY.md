@@ -73,8 +73,8 @@ the stored range. Untouched fields retain the original precision.
   tabs at upper right; pattern spanning the right side below them. Dividers
   support dragging, arrow keys, Home and double-click reset. Below 740 px of
   available analysis width, the detector moves into an Image tab. Below 850 px
-  window width the panels stack. Expand map restores the full-width in-window
-  map; it can be docked again. Task controls stay on the right.
+  window width the panels stack. The scan can be detached to a separate native
+  window. Task controls stay on the right.
 - Compact shared DataTable window editor, with exclusive map-layer radios,
   editable color swatches, names, From/To limits and all seven Qt value choices.
   Changes commit on blur or Enter; Escape reverts a draft. Display rounding does
@@ -151,8 +151,8 @@ branch's baseline; no original Qt or shared scientific implementation was edited
 - Dedicated **Map** mode in left navigation. The scan map occupies the left
   panel; detector and Points/Layers/Grid task controls occupy the upper right,
   with the pattern below them. Drag or use arrow keys on the dividers to
-  resize the map/detector/pattern. Expand map and Dock detector / pattern
-  provide a larger map in the same window. Narrow layouts stack the plots in a
+  resize the map/detector/pattern. Detach map opens an independent native
+  window. Narrow layouts stack the plots in a
   scrolling workspace. Task controls remain on the right.
 - Native multi-file image and folder selection. Explicit path lists retain
   supplied order; folder selection uses natural filename order. All frames
@@ -248,7 +248,7 @@ registry, snapshot hook and optional normalization persistence hooks.
   cells drive its detector, cake and pattern through the existing command queue.
   Dock or window close restores the panel without clearing scan data. The child
   shares the scan component and uses read-only binary map snapshots; no second
-  processing session is created. Window placement and plot zoom are not restored
+  processing session is created. Window placement is retained; plot zoom is not restored
   on reopening. Live/follow-newest is implemented as
   described above; it does not monitor new frames inside existing HDF5 files.
 - Overlay loading/editing remains part of the shared integration work; Map can
@@ -420,7 +420,7 @@ These are scoped regression checks, not full Qt/cross-platform qualification.
 
 ## Separate map window (2026-11-04)
 
-The map toolbar now offers Detach map beside Expand map. Only the scan panel
+The map toolbar offers a Detach map icon. Only the scan panel
 moves; its histogram, active layer, smoothing, contours and exports stay with
 it. The main window returns to Integration and remains navigable. Map mode's
 Points/Layers/Grid controls remain available while detached. Show map reuses the
@@ -436,8 +436,7 @@ is active calculates the full current image/pattern/cake display. Stored map
 profiles and normalized map values are untouched. Docked Map selections retain
 the stored-profile behavior and mark Integration for calculation when entered.
 Shared scan preferences retain palette, log/linear, smoothing, contours and
-manual limits for unchanged raster contents. Window geometry and plot zoom
-are not persisted across reopening. Live polling retains its existing
+manual limits for unchanged raster contents. Native window geometry is persisted across reopening; plot zoom is not. Live polling retains its existing
 mode-exit behavior.
 
 Verification commands: `node desktop/scripts/map_window.mjs` (add `--webkit`
@@ -466,3 +465,29 @@ responses and clears stale rings/timing; detached selections in Integration
 calculate the full current pattern/cake. Both regression cases remain covered;
 all 27 Map Python tests and the detached-window browser workflow pass in the
 primary checkout.
+
+
+## Remembered placement and detached placeholder (2026-11-04)
+
+Native Map saves logical inner size, normal frame dimensions, monitor identity
+and the logical offset within its work area. Docking, closing the map, closing
+the main window and quitting flush the last normal geometry to an atomic,
+versioned JSON file in the application configuration directory. Reopening uses
+the same monitor and relative position even after monitor rearrangement or DPI
+changes; size and position are clamped to the available work area. If the saved
+monitor is absent, the main window's current screen (or primary screen) is used.
+Minimized/maximized bounds do not replace the last normal bounds. Missing or
+malformed settings fall back to the normal window defaults.
+
+The in-window Expand map control is removed. Dock map is an icon with an
+accessible name and tooltip in the child and the main Map placeholder. Detaching
+retains the original map column and dividers: a quiet message and Show/Dock
+icons replace only the scan panel. There is no header above the Map workspace,
+and the detector, controls and pattern retain their original layout.
+
+`node desktop/scripts/map_window_geometry.mjs` uses disposable settings and
+isolated native windows to verify docking/reopening and persistence through a
+complete application restart. Rust tests cover negative monitor origins,
+disconnected screens, duplicate monitor names, scaling/rearrangement and invalid
+saved data. Headless Chromium/WebKit checks cover the retained column bounds,
+icon-only docking, removed expansion control and existing linked selection.

@@ -163,16 +163,23 @@ at upper right, and a wide pattern beneath them. When the analysis area is
 narrow, the detector moves into an Image tab. Drag the dividers to adjust the
 panels; double-click a divider to restore its default proportions.
 
-Use **Detach map** (the outward-arrow button beside Expand map) to move just
+Use **Detach map** (the outward-arrow button below the scan) to move just
 the scan map into an independent window and return the main window to
 Integration. Move that window to a second screen and click cells to update the
 main detector, cake and pattern. The window keeps its layer selector, histogram,
 Smooth/Contours and data/PNG exports. Map mode remains available in the main
 window for Points, Layers and Grid. **Show map** brings the existing window
-forward; **Dock map** returns it to Map mode. Closing the separate window also
+forward; the **Dock map** icon returns it to Map mode. Closing the separate window also
 docks the panel, without changing the main mode or discarding the scan.
 Palette, contrast for unchanged map pixels, smoothing and contours survive
-docking. Window placement and plot zoom are not restored after reopening.
+docking. The native map window remembers its size, position and monitor across
+docking and app restarts. If the display is rearranged or its scaling changes,
+placement follows the saved monitor; if it is disconnected, the window opens
+within the current display's usable area. Maximizing/minimizing preserves its
+last normal bounds. Plot zoom is not restored after reopening.
+While detached, Map mode retains the original left map column as a quiet
+placeholder with Show/Dock icons; the detector, controls and pattern keep their
+positions. There is no separate workspace header or in-window expansion button.
 Selections and layer edits use the main command queue and the same Python
 session; the child reads scan pixels through binary IPC. In Integration, a raw
 point is calculated with current settings to populate all integration plots;

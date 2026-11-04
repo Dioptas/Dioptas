@@ -27,6 +27,24 @@
       !document.querySelector(".mode-navigation"),
       "Detached window contains the main workspace",
     );
+    const initial = {
+      position: await invoke("plugin:window|outer_position", {
+        label: "map-window",
+      }),
+      width: innerWidth,
+      height: innerHeight,
+    };
+    const expected = window.__dioptasMapPlacementExpected;
+    if (expected) {
+      check(
+        Math.abs(initial.position.x - expected.position.x) <= 2 &&
+          Math.abs(initial.position.y - expected.position.y) <= 2 &&
+          Math.abs(initial.width - expected.width) <= 1 &&
+          Math.abs(initial.height - expected.height) <= 1,
+        "Map placement was not restored after application restart: " +
+          JSON.stringify({ initial, expected }),
+      );
+    }
     const before = await invoke("plugin:window|outer_position", {
       label: "map-window",
     });
@@ -85,6 +103,15 @@
     check(!document.querySelector('[role="alert"]'), "Map selection failed");
     report = {
       ok: true,
+      initial,
+      placed: {
+        position: await invoke("plugin:window|outer_position", {
+          label: "map-window",
+        }),
+        width: innerWidth,
+        height: innerHeight,
+      },
+      startupRestore: !!expected,
       independentlyMoved: true,
       resized: true,
       binarySnapshot: true,
@@ -100,7 +127,7 @@
   });
   if (report.ok) {
     const dock = [...document.querySelectorAll("button")].find(
-      (button) => button.textContent.trim() === "Dock map",
+      (button) => button.getAttribute("aria-label") === "Dock map",
     );
     dock.click();
   }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { PanelLeftClose } from "lucide-react";
 import { isTauri } from "@tauri-apps/api/core";
 import { connect } from "./bridge";
 import { mapWindowChannel, type MapWindowStatus } from "./mapWindowChannel";
@@ -152,10 +153,12 @@ export function DetachedMapWindow() {
           reportPlot={readout.report}
           actions={
             <button
+              className="plot-tool-button map-icon-button"
+              aria-label="Dock map"
               onClick={() => channel.current?.send({ type: "dock" })}
               title="Return the map to Map mode in the main window"
             >
-              Dock map
+              <PanelLeftClose size={16} />
             </button>
           }
         />

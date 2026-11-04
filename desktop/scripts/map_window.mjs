@@ -107,6 +107,7 @@ try {
   await ready();
   const initial = await invoke("state");
   assert.equal(initial.map.points, 9);
+  const analysisBefore = await page.locator(".map-analysis-top").boundingBox();
   const popupPromise = page.waitForEvent("popup");
   await page.getByRole("button", { name: "Detach map", exact: true }).click();
   const child = await popupPromise;
@@ -167,7 +168,19 @@ try {
   await page.getByRole("button", { name: "Show map", exact: true }).click();
   assert.equal(context.pages().length, 2, "Show map opened a duplicate window");
   await click("Map");
-  assert.equal(await page.locator(".map-window-banner").count(), 1);
+  assert.equal(await page.locator(".map-window-banner").count(), 0);
+  assert.equal(await page.locator(".map-detached-placeholder").count(), 1);
+  const analysisAfter = await page.locator(".map-analysis-top").boundingBox();
+  assert.ok(
+    Math.abs(analysisAfter.x - analysisBefore.x) < 1 &&
+      Math.abs(analysisAfter.width - analysisBefore.width) < 1,
+    "Detaching changed the original Map column layout",
+  );
+  for (const surface of [page, child]) {
+    const dock = surface.getByRole("button", { name: "Dock map", exact: true });
+    assert.equal((await dock.textContent()).trim(), "");
+    assert.equal(await dock.locator("svg").count(), 1);
+  }
   // Existing ROI commands remain in Map mode, and child layer controls follow edits.
   await page.getByRole("tab", { name: "Layers", exact: true }).click();
   await page.getByRole("button", { name: "Add window", exact: true }).click();

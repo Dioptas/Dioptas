@@ -8,12 +8,14 @@ window.__dioptasMapWindowSmoke = async ({
 }) => {
   const invoke = window.__TAURI_INTERNALS__.invoke;
   let resolveReport;
-  const completed = new Promise((resolve) => {
-    resolveReport = resolve;
-  });
+  const nextReport = () =>
+    new Promise((resolve) => {
+      resolveReport = resolve;
+    });
   const handler = window.__TAURI_INTERNALS__.transformCallback((event) =>
-    resolveReport(event.payload),
+    resolveReport?.(event.payload),
   );
+  const completed = nextReport();
   const eventId = await invoke("plugin:event|listen", {
     event: "map-window-smoke",
     target: { kind: "Any" },
@@ -52,11 +54,27 @@ window.__dioptasMapWindowSmoke = async ({
       state.map.selected === 5 && state.map.points === 6,
       "Dock lost map selection/data",
     );
-    // Reopen then close through the native window's normal close lifecycle.
-    await invoke("open_map_window");
-    await invoke("open_map_window");
-    await invoke("close_map_window");
+    const reopened = nextReport();
+    click("Detach map");
+    const second = await reopened;
+    check(second.ok, second.error || "Reopened map failed");
+    const expected = report.placed,
+      actual = second.initial;
+    check(
+      Math.abs(actual.position.x - expected.position.x) <= 2 &&
+        Math.abs(actual.position.y - expected.position.y) <= 2 &&
+        Math.abs(actual.width - expected.width) <= 1 &&
+        Math.abs(actual.height - expected.height) <= 1,
+      "Map bounds changed after docking: " +
+        JSON.stringify({ expected, actual }),
+    );
+    await wait(
+      () => document.querySelector('button[aria-label="Detach map"]'),
+      "Second dock did not restore Map mode",
+    );
     await ready();
+    report.geometryRestored = true;
+    report.lastPlacement = second.placed;
     check(
       (await call("state")).map.points === 6,
       "Closing the map stopped the shared processor",
