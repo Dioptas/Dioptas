@@ -523,8 +523,13 @@ Map's detector and pattern now use Integration's shared calibrated inspection
 state. Detector clicks show a green ring/crosshair and the matching radial line;
 pattern clicks update the same position on the detector. Integration and Map
 render the same physical 2θ selection in their own radial display units. Markers
-survive mode switches and scan-window detach/dock. The existing backend context
-invalidation still clears stale markers when the image/frame or geometry changes.
+survive mode switches and scan-window detach/dock. Selecting another scan point
+retains the chosen physical 2θ and azimuth and the footer Click readout. The
+selection queue restores the position through the existing calibrated-inspection
+command after loading a new detector file/frame, so contours match the selected
+image. This also covers rapid selections, detached-map selection in Integration,
+and Live/Follow. Unrelated image loading and geometry edits still clear stale
+markers.
 Stored-only/uncalibrated profiles can show a local pattern marker without sending
 an invalid calibrated-detector request. Calibration peak picking and Mask remain
 separate from linked inspection.
@@ -539,5 +544,6 @@ compact Click readout in the application footer.
 `node desktop/scripts/map_linked_position.mjs` (also `--webkit`) checks real
 calibrated images, actual green rendered pixels, detector/pattern clicks in
 both directions, mode switches, Q/d conversion with different Integration and
-Map units, ROI clicks/drags, and detach/dock. `npm --prefix desktop test` covers
+Map units, ROI clicks/drags, distinct scan files, rapid point changes, retained
+Click readouts, unrelated-image invalidation, and detach/dock. `npm --prefix desktop test` covers
 canonical physical-position conversion and uncalibrated local markers.

@@ -29,7 +29,11 @@ import {
   coordinateValue,
   type SourcedReading,
 } from "./PlotStatus";
-import { patternPositionInUnit, type PatternPosition } from "./linkedPosition";
+import {
+  patternPositionInUnit,
+  restoreMapPosition,
+  type PatternPosition,
+} from "./linkedPosition";
 import { radialFields, radialValues } from "./radialReadout";
 import { shapeHelp } from "./maskDomain";
 import type {
@@ -81,6 +85,19 @@ import {
 } from "./CalibrationExtras";
 import type { RingOverlay } from "./types";
 import type { ZoomMode } from "./usePlotNavigation";
+
+function clickContext(state: State | null) {
+  return JSON.stringify([
+    state?.imagePath,
+    state?.configurationIndex,
+    state?.projectName,
+    state?.integration.frame,
+    state?.integration.patternName,
+    state?.calibration.transformations,
+    state?.geometry,
+    state?.shape,
+  ]);
+}
 
 export default function App() {
   const detectorExport = useRef<RasterExport>(null);
@@ -147,6 +164,8 @@ export default function App() {
   const [showRings, setShowRings] = useState(true),
     [showNumbers, setShowNumbers] = useState(true);
   const [linked, setLinked] = useState<Response["linked"]>();
+  const currentLinked = useRef<Response["linked"]>(undefined);
+  const retainedClickContext = useRef<string | undefined>(undefined);
   const [clickedReading, setClickedReading] = useState<SourcedReading | null>(
     null,
   );
@@ -285,12 +304,17 @@ export default function App() {
   const hoverRequest = useRef(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const canDeferIntegration = useRef(false);
-  const apply = useCallback((result: Response, resetImageView = true) => {
+  const apply = useCallback((
+    result: Response,
+    resetImageView = true,
+    retainClick = false,
+  ) => {
     if (!result.ok)
       throw new Error(result.error || "The operation could not be completed.");
     if ("map" in result) setMap(result.map ?? null);
     if ("mapWarning" in result) setMapWarning(result.mapWarning ?? null);
     if (result.state) {
+      if (retainClick) retainedClickContext.current = clickContext(result.state);
       currentState.current = result.state;
       if (typeof result.state.integration.originalPatternVisible === "boolean")
         setShowOriginalPattern(result.state.integration.originalPatternVisible);
@@ -345,7 +369,10 @@ export default function App() {
     if (result.levels)
       (result.display === "cake" ? setCakeLimits : setLimits)(result.levels);
     if (result.nextRing !== undefined) setRing(result.nextRing);
-    if ("linked" in result) setLinked(result.linked);
+    if ("linked" in result) {
+      currentLinked.current = result.linked;
+      setLinked(result.linked);
+    }
     if (result.mask)
       setMask((previous) =>
         previous?.data === result.mask!.data &&
@@ -492,6 +519,7 @@ export default function App() {
             : s,
         );
       try {
+        const selectedPosition = currentLinked.current;
         let result = await bridge.current(
           command,
           commandMode === "mask" && canDeferIntegration.current
@@ -514,6 +542,16 @@ export default function App() {
             reintegrate: false,
           });
         }
+        const retainMapClick =
+          result.ok &&
+          !!result.map &&
+          (command === "map_select" || command === "map_poll");
+        if (retainMapClick)
+          result = await restoreMapPosition(
+            bridge.current,
+            result,
+            selectedPosition,
+          );
         const display = detectorDisplay.current;
         const raw = commandMode === "integration" && !correctedImageRef.current;
         result = await prepareDetectorImage(
@@ -523,7 +561,7 @@ export default function App() {
           readImageAutoLevels(display.name, display.filterGaps),
           raw,
         );
-        apply(result);
+        apply(result, true, retainMapClick);
         if (command === "integration_autoprocess_poll" && result.state)
           setError(result.state.integration.autoProcessError || null);
         if (
@@ -844,20 +882,13 @@ export default function App() {
     onHover(null);
     clearPlot();
   }, [mode, settingsOpen, onHover, clearPlot]);
+  const positionContext = clickContext(state);
   useEffect(() => {
+    if (retainedClickContext.current === positionContext) return;
     setClickedReading(null);
     setLocalImageClick(null);
     setLocalPatternClick(undefined);
-  }, [
-    state?.imagePath,
-    state?.configurationIndex,
-    state?.projectName,
-    state?.integration.frame,
-    state?.integration.patternName,
-    JSON.stringify(state?.calibration.transformations),
-    JSON.stringify(state?.geometry),
-    JSON.stringify(state?.shape),
-  ]);
+  }, [positionContext]);
   useEffect(() => setLocalPatternClick(undefined), [state?.unit]);
 
   const cakeClick = useMemo(() => {
@@ -899,7 +930,7 @@ export default function App() {
                     kind: "coordinate" as const,
                     value: coordinateValue(
                       linked.azimuth,
-                      cake
+                      mode === "integration" && cake
                         ? (cakePixelResolution.y / cake.fullHeight) *
                             (cake.azimuthRange[1] - cake.azimuthRange[0])
                         : 0.1,
