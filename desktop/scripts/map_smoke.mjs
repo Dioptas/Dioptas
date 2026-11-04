@@ -667,8 +667,20 @@ try {
   assert.ok(await normalizationDialog.isVisible());
   const dialogBounds = await normalizationDialog.boundingBox();
   assert.ok(
-    dialogBounds.width <= 390 && dialogBounds.height <= 550,
+    dialogBounds.width <= 350 && dialogBounds.height <= 320,
     "Map settings dialog is not compact",
+  );
+  const gearBounds = await settingsButton.boundingBox();
+  assert.ok(
+    Math.abs(
+      dialogBounds.x + dialogBounds.width - gearBounds.x - gearBounds.width,
+    ) <= 2,
+    "Map settings is not aligned to its gear button",
+  );
+  assert.ok(
+    dialogBounds.y >= gearBounds.y + gearBounds.height &&
+      dialogBounds.y - gearBounds.y - gearBounds.height <= 8,
+    "Map settings did not open next to its trigger",
   );
   const minimum = normalizationDialog.getByLabel("Normalization minimum", {
     exact: true,
@@ -747,6 +759,15 @@ try {
   assert.ok(
     await normalizeButton.evaluate((el) => el === document.activeElement),
     "Escape did not return focus to normalization",
+  );
+  await settingsButton.click();
+  await page.mouse.click(80, 500);
+  await page.waitForFunction(
+    () => !document.querySelector(".map-settings-dialog"),
+  );
+  assert.ok(
+    await settingsButton.evaluate((el) => el === document.activeElement),
+    "Outside dismissal did not return focus to the gear",
   );
   await click("Save PNG…");
   await click("Save map data…");

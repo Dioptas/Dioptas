@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
+import { X } from "lucide-react";
 import type { MapData, MapRun } from "./mapDomain";
 import { unitLabel, type Unit } from "./types";
 import { radialValues } from "./radialReadout";
@@ -79,7 +80,33 @@ export function MapSettingsDialog({
   useLayoutEffect(() => {
     const popup = dialog.current!;
     popup.showModal();
+    const place = () => {
+      const trigger = anchor?.getBoundingClientRect();
+      if (!trigger) return;
+      const width = popup.offsetWidth;
+      const height = popup.offsetHeight;
+      const gap = 6;
+      const inset = 8;
+      const below = trigger.bottom + gap;
+      const top =
+        below + height <= innerHeight - inset
+          ? below
+          : trigger.top - gap - height >= inset
+            ? trigger.top - gap - height
+            : Math.max(inset, innerHeight - inset - height);
+      popup.style.left = `${Math.max(inset, Math.min(trigger.right - width, innerWidth - width - inset))}px`;
+      popup.style.top = `${top}px`;
+    };
+    const observer = new ResizeObserver(place);
+    observer.observe(popup);
+    if (anchor) observer.observe(anchor);
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    place();
     return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
       popup.close();
       anchor?.focus({ preventScroll: true });
     };
@@ -117,6 +144,17 @@ export function MapSettingsDialog({
       ref={dialog}
       className="map-settings-dialog"
       aria-labelledby="map-settings-title"
+      onClick={(event) => {
+        if (event.target !== event.currentTarget) return;
+        const box = event.currentTarget.getBoundingClientRect();
+        if (
+          event.clientX < box.left ||
+          event.clientX > box.right ||
+          event.clientY < box.top ||
+          event.clientY > box.bottom
+        )
+          onClose();
+      }}
       onCancel={(event) => {
         event.preventDefault();
         onClose();
@@ -134,7 +172,18 @@ export function MapSettingsDialog({
             });
         }}
       >
-        <h3 id="map-settings-title">Map settings</h3>
+        <header>
+          <h3 id="map-settings-title">Map settings</h3>
+          <button
+            type="button"
+            className="quiet map-settings-close"
+            aria-label="Close"
+            title="Close"
+            onClick={onClose}
+          >
+            <X size={15} />
+          </button>
+        </header>
         <label className="check-row map-reintegrate-setting">
           <input
             autoFocus
@@ -147,7 +196,7 @@ export function MapSettingsDialog({
         </label>
         <h4>Normalize patterns</h4>
         <label className="field-label">
-          Normalize using
+          Use
           <select
             aria-label="Normalization source"
             value={source}
@@ -239,8 +288,8 @@ export function MapSettingsDialog({
             </div>
           </>
         )}
-        <label className="field-label">
-          Reference point (0 based)
+        <label className="field-label" title="Point index, starting at zero">
+          Reference point
           <input
             type="number"
             min="0"
@@ -266,9 +315,6 @@ export function MapSettingsDialog({
             Restore original
           </button>
           <span />
-          <button type="button" onClick={onClose}>
-            Close
-          </button>
           <button
             type="submit"
             className="primary"

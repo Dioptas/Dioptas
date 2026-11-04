@@ -174,8 +174,8 @@ Points contains the scan arrangement with drag/keyboard reordering, blanks,
 filename-numbering checks and exclude/include. Selected raw images are
 reintegrated automatically with current settings when possible; stored-only and
 normalized patterns remain available. The Points gear opens Map settings with
-an option to reintegrate selected images (on by default) and normalization.
-Normalize using a physical 2θ/Q/d range or an existing pattern window, choose a
+an option to reintegrate selected images (on by default) and normalization in a compact popup beside the gear. Click outside or press
+Escape to close it. Normalize using a physical 2θ/Q/d range or an existing pattern window, choose a
 reference point, and apply or restore the originals. A window supplies its current
 bounds when Normalize is pressed. Layers contains editable
 window and expression tables. Window colors link the table and pattern; edits

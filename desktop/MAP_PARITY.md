@@ -12,7 +12,9 @@ layout and expression calculations continue to use the existing Python models.
 ## GUI follow-up
 
 The point-count/pattern/unit summary and standalone normalization button are
-removed. A compact gear button in Points opens Map settings. It contains
+removed. A compact gear button in Points opens Map settings next to the trigger, with
+inline labels and controls. It remains within the viewport on resize, and
+clicking outside dismisses it. It contains
 Reintegrate selected image (on by default, remembered in frontend preferences)
 and normalization. Available raw images are reintegrated on selection when
 this option is enabled and calibration is present. Normalized patterns retain
