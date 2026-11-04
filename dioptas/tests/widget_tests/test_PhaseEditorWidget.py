@@ -172,8 +172,7 @@ class PhaseEditorWidgetTest(QtTest):
 
     def test_record_details_link_is_removed_when_switching_to_custom_record(self):
         widget = self.jcpds_editor_widget
-        url = ("https://peritheos.readthedocs.io/en/latest/material-summaries/"
-               "gold/#record-gold_fei_2007_vinet_2")
+        url = "https://peritheos.com/eos/gold_fei_2007_vinet_2"
         widget.update_eos_records(
             ['Published', 'Custom'], origins=['bundled', 'custom'],
             reproduction_details=['Parameter parity', 'Not assessed'],

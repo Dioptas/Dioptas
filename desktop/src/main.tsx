@@ -1,9 +1,11 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { NativePhaseEditor } from "./NativePhaseEditor";
 import { isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { NativeCalibrationTooltip } from "./NativeCalibrationTooltip";
 import { installNativeColorPickerAnchors } from "./nativeColorPicker";
+import { installSpinBoxWheel } from "./spinBoxWheel";
 import "./style.css";
 import "./buttons.css";
 import "./surfaces.css";
@@ -16,6 +18,7 @@ import "./calibrationNavigation.css";
 document.addEventListener("contextmenu", (event) => event.preventDefault());
 
 installNativeColorPickerAnchors();
+installSpinBoxWheel();
 
 if (
   import.meta.env.VITE_DIOPTAS_PATTERN_BENCHMARK === "1" &&
@@ -32,6 +35,8 @@ if (
   createRoot(document.getElementById("root")!).render(
     isTauri() && getCurrentWindow().label === "calibration-tooltip" ? (
       <NativeCalibrationTooltip />
+    ) : isTauri() && getCurrentWindow().label === "phase-editor" ? (
+      <NativePhaseEditor />
     ) : (
       <App />
     ),

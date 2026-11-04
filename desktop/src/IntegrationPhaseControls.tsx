@@ -1,11 +1,9 @@
+import { PhaseDatabase } from "./PhaseDatabase";
+import { isTauri } from "@tauri-apps/api/core";
+import { openNativePhaseEditor } from "./phaseEditorWindow";
+import type { EditorData } from "./phaseEditorTypes";
 import { DataTable, TableScroll, TableActions } from "./DataTable";
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Database, FolderOpen, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import type { IntegrationRun, IntegrationState } from "./integration";
@@ -14,6 +12,9 @@ import type {
   PhaseImport,
   PhaseMaterial,
 } from "./integrationPhase";
+import { PhaseEditor } from "./PhaseEditor";
+import { useSpinBoxWheel } from "./spinBoxWheel";
+import { createPhaseCommandQueue } from "./phaseCommandQueue";
 import "./integrationPhaseControls.css";
 
 /** Qt's PhaseWidget: action rail, row table, P/T steps and list files. */
@@ -30,16 +31,12 @@ export function IntegrationPhaseControls({
 }) {
   // Parent run invokes its callback while its command lock is held. Defer local
   // follow-up actions until that command has completed (file selection → load).
-  const run = useCallback<IntegrationRun>(
-    async (command, args, message, onSuccess) => {
-      let result: Parameters<NonNullable<typeof onSuccess>>[0] | undefined;
-      await parentRun(command, args, message, (r) => {
-        result = r;
-      });
-      if (result) onSuccess?.(result);
-    },
-    [parentRun],
-  );
+  const latestRun = useRef(parentRun);
+  latestRun.current = parentRun;
+  const commandQueue = useRef<IntegrationRun | null>(null);
+  if (!commandQueue.current)
+    commandQueue.current = createPhaseCommandQueue(() => latestRun.current);
+  const run = commandQueue.current;
   const [selected, setSelected] = useState(source.phases.length - 1);
   const previousCount = useRef(source.phases.length);
   const tableRef = useRef<HTMLTableElement>(null);
@@ -94,14 +91,20 @@ export function IntegrationPhaseControls({
     previousCount.current = source.phases.length;
   }, [source.phases.length, selected]);
   const action = (operation: string, args: Record<string, unknown> = {}) =>
-    void run("integration_phase", { operation, ...args }, "Updating phases…");
+    run("integration_phase", { operation, ...args }, "Updating phases…");
   const inspect = (index: number) =>
     void run(
       "integration_phase_editor",
       { index },
       "Opening phase editor…",
       (result) => {
-        if (result.phaseEditor) setEditor(result.phaseEditor);
+        if (result.phaseEditor) {
+          if (isTauri())
+            void openNativePhaseEditor(
+              (result.phaseEditor as EditorData).uid,
+            ).catch(() => setEditor(result.phaseEditor!));
+          else setEditor(result.phaseEditor);
+        }
       },
     );
   const load = (files: PhaseImport) => {
@@ -218,7 +221,7 @@ export function IntegrationPhaseControls({
           <tbody>
             {source.phases.map((p, index) => (
               <tr
-                key={index}
+                key={p.uid ?? index}
                 aria-selected={index === selected}
                 onClick={() => {
                   setSelected(index);
@@ -292,7 +295,7 @@ export function IntegrationPhaseControls({
                     min={-9999999}
                     max={9999999}
                     onCommit={(pressure) =>
-                      action("update", { index, pressure })
+                      action("update", { index, editor_uid: p.uid, pressure })
                     }
                   />
                 </td>
@@ -306,7 +309,11 @@ export function IntegrationPhaseControls({
                     min={0}
                     max={9999999}
                     onCommit={(temperature) =>
-                      action("update", { index, temperature })
+                      action("update", {
+                        index,
+                        editor_uid: p.uid,
+                        temperature,
+                      })
                     }
                   />
                 </td>
@@ -501,7 +508,7 @@ export function PhaseNumber({
   label: string;
   title?: string;
   value: number;
-  onCommit: (v: number) => void;
+  onCommit: (v: number) => void | Promise<void>;
   disabled?: boolean;
   step?: number | string;
   multiply?: boolean;
@@ -509,11 +516,44 @@ export function PhaseNumber({
   max?: number;
 }) {
   const [text, setText] = useState(String(value));
+  const input = useRef<HTMLInputElement>(null);
+  const pending = useRef(0);
+  const disposed = useRef(false);
+  useEffect(
+    () => () => {
+      disposed.current = true;
+    },
+    [],
+  );
+  const draftGeneration = useRef(0);
+  const applied = useRef(value);
+  applied.current = value;
   const last = useRef(value);
   useEffect(() => {
+    if (pending.current) return;
     setText(String(value));
     last.current = value;
-  }, [value, onCommit]);
+  }, [value]);
+  const send = (n: number) => {
+    const generation = ++draftGeneration.current;
+    last.current = n;
+    pending.current++;
+    void Promise.resolve(onCommit(n))
+      .catch(() => {})
+      .finally(() => {
+        pending.current--;
+        requestAnimationFrame(() => {
+          if (
+            !disposed.current &&
+            !pending.current &&
+            generation === draftGeneration.current
+          ) {
+            setText(String(applied.current));
+            last.current = applied.current;
+          }
+        });
+      });
+  };
   const commit = (input: HTMLInputElement) => {
     const n = Number(text);
     if (
@@ -523,8 +563,7 @@ export function PhaseNumber({
       (max === undefined || n <= max)
     ) {
       if (n !== last.current) {
-        last.current = n;
-        onCommit(n);
+        send(n);
       }
     } else {
       setText(String(value));
@@ -533,7 +572,8 @@ export function PhaseNumber({
     input.setCustomValidity("");
   };
   const increment = (direction: number) => {
-    const current = Number(text) || value;
+    const current =
+      text.trim() && Number.isFinite(Number(text)) ? Number(text) : value;
     const power = 10 ** Math.floor(Math.log10(Math.max(current, 1e-10)));
     const ratio = current / power;
     const multiple =
@@ -553,15 +593,19 @@ export function PhaseNumber({
     const next = multiply
       ? power * multiple
       : current + direction * (typeof step === "number" ? step : 1);
-    const n = Math.max(min ?? -Infinity, Math.min(max ?? Infinity, next));
+    const n = Math.max(
+      min ?? -Infinity,
+      Math.min(max ?? Infinity, Number(next.toPrecision(12))),
+    );
     setText(String(n));
     if (n !== last.current) {
-      last.current = n;
-      onCommit(n);
+      send(n);
     }
   };
+  useSpinBoxWheel(input, increment);
   return (
     <input
+      ref={input}
       className="numeric-stepper"
       type="number"
       aria-label={label}
@@ -578,7 +622,10 @@ export function PhaseNumber({
           Number(e.target.value) !== Number(text)
         )
           increment(Number(e.target.value) > Number(text) ? 1 : -1);
-        else setText(e.target.value);
+        else {
+          draftGeneration.current++;
+          setText(e.target.value);
+        }
       }}
       onBlur={(e) => commit(e.currentTarget)}
       onKeyDown={(e) => {
@@ -591,6 +638,7 @@ export function PhaseNumber({
           commit(e.currentTarget);
         }
         if (e.key === "Escape") {
+          draftGeneration.current++;
           setText(String(value));
           last.current = value;
         }
@@ -686,597 +734,6 @@ function PhaseImportDialog({
         >
           OK
         </button>
-      </footer>
-    </PhaseDialog>
-  );
-}
-
-const savedIds = (key: string): string[] => {
-  try {
-    return JSON.parse(localStorage.getItem(key) || "[]");
-  } catch {
-    return [];
-  }
-};
-function PhaseDatabase({
-  materials,
-  run,
-  ready,
-  onClose,
-}: {
-  materials: PhaseMaterial[];
-  run: IntegrationRun;
-  ready: boolean;
-  onClose: () => void;
-}) {
-  const [query, setQuery] = useState("");
-  const [hits, setHits] = useState(materials);
-  const [view, setView] = useState("All");
-  const [diffractionOnly, setDiffractionOnly] = useState(true);
-  const [recent, setRecent] = useState(() => savedIds("dioptas-phase-recent"));
-  const [favourites, setFavourites] = useState(() =>
-    savedIds("dioptas-phase-favourites"),
-  );
-  const [selected, setSelected] = useState("");
-  const [reference, setReference] = useState(-1);
-  const recordScroll = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const scroll = recordScroll.current;
-    const row = scroll?.querySelector('tr[aria-selected="true"]');
-    if (scroll && row)
-      scroll.scrollTop +=
-        row.getBoundingClientRect().top -
-        scroll.getBoundingClientRect().top -
-        30;
-  }, [reference, selected, hits]);
-  useEffect(() => {
-    if (!query.trim()) {
-      setHits(materials);
-      return;
-    }
-    let current = true;
-    const timer = setTimeout(() => {
-      void run(
-        "integration_phase_catalog",
-        { query },
-        "Searching materials…",
-        (r) => {
-          if (current && r.phaseCatalog) setHits(r.phaseCatalog);
-        },
-      );
-    }, 250);
-    return () => {
-      current = false;
-      clearTimeout(timer);
-    };
-  }, [query, materials, run]);
-  const shown = hits.filter(
-    (m) =>
-      (!diffractionOnly || m.diffraction) &&
-      (view === "All" ||
-        (view === "Recent" ? recent : favourites).includes(m.id)),
-  );
-  const material = shown.find((m) => m.id === selected) || shown[0];
-  useEffect(() => {
-    setReference(material?.defaultReference ?? -1);
-  }, [material?.id]);
-  const record = material?.references[reference];
-  const reason = !material
-    ? "Select a material."
-    : !material.diffraction
-      ? "No crystal structure or reference peak table is available for diffraction phase lines."
-      : material.references.length && !record
-        ? material.hold || "Select an EoS record explicitly."
-        : record?.loadError || "";
-  const parameter = (r: NonNullable<typeof record>, key: string) => {
-    const value = r.parameters[key];
-    if (value === undefined)
-      return r.eos === "BM2" && key === "K0_prime" ? "4 (fixed)" : "—";
-    return `${value.toLocaleString(undefined, { maximumSignificantDigits: 7 })}${r.errors[key] != null ? ` ± ${r.errors[key]}` : r.fixed.includes(key) ? "" : " (error n/r)"}${r.fixed.includes(key) ? " (fixed)" : ""}`;
-  };
-  return (
-    <PhaseDialog title="EoS Material Database" onClose={onClose} wide>
-      <div className="phase-dialog-body phase-database">
-        <input
-          type="search"
-          aria-label="Search materials"
-          placeholder="Search material name or formula…"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setView("All");
-          }}
-        />
-        <div className="phase-db-tools">
-          <div role="tablist" aria-label="Material views">
-            {["Recent", "Favourites", "All"].map((name) => (
-              <button
-                key={name}
-                role="tab"
-                aria-selected={view === name}
-                onClick={() => setView(name)}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
-          <label>
-            <input
-              type="checkbox"
-              checked={diffractionOnly}
-              onChange={(e) => setDiffractionOnly(e.target.checked)}
-            />
-            Hide EoS-only materials
-          </label>
-          <button
-            disabled={!material}
-            onClick={() => {
-              const ids = favourites.includes(material.id)
-                ? favourites.filter((id) => id !== material.id)
-                : [...favourites, material.id];
-              setFavourites(ids);
-              localStorage.setItem(
-                "dioptas-phase-favourites",
-                JSON.stringify(ids),
-              );
-            }}
-          >
-            {material && favourites.includes(material.id)
-              ? "★ Favourite"
-              : "☆ Favourite"}
-          </button>
-        </div>
-        <TableScroll className="phase-materials-scroll">
-          <DataTable>
-            <thead>
-              <tr>
-                <th>Material</th>
-                <th>Space group</th>
-                <th>Diffraction data</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((m) => (
-                <tr
-                  key={m.id}
-                  aria-selected={m.id === material?.id}
-                  tabIndex={0}
-                  onClick={() => setSelected(m.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setSelected(m.id);
-                    }
-                  }}
-                >
-                  <td>{m.name}</td>
-                  <td>{m.spaceGroup}</td>
-                  <td>{m.diffraction ? "Available" : "EoS only"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </DataTable>
-          {!shown.length && <p>No materials in this view match your search.</p>}
-        </TableScroll>
-        <TableScroll ref={recordScroll} className="phase-records-scroll">
-          <DataTable aria-label="Material EoS records">
-            <thead>
-              <tr>
-                <th>EoS</th>
-                <th>Thermal</th>
-                <th>Reference</th>
-                <th>P (GPa)</th>
-                <th>K₀ (GPa)</th>
-                <th>K₀′</th>
-                <th>V₀ (Å³)</th>
-                <th>Reproduction</th>
-              </tr>
-            </thead>
-            <tbody>
-              {material?.references.map((r, i) => (
-                <tr
-                  key={i}
-                  title={r.detail}
-                  aria-selected={i === reference}
-                  tabIndex={0}
-                  onClick={() => setReference(i)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setReference(i);
-                    }
-                  }}
-                >
-                  <td>{r.eos}</td>
-                  <td title={r.thermal}>{r.thermal ? "✓" : "—"}</td>
-                  <td>{r.label}</td>
-                  <td>{r.pressureRange}</td>
-                  <td>{parameter(r, "K0")}</td>
-                  <td>{parameter(r, "K0_prime")}</td>
-                  <td>{parameter(r, "V0")}</td>
-                  <td>{r.assessment}</td>
-                </tr>
-              ))}
-            </tbody>
-          </DataTable>
-        </TableScroll>
-        {record && <p className="phase-assessment">{record.detail}</p>}
-        {reason && <p className="phase-condition-note">{reason}</p>}
-      </div>
-      <footer>
-        <button
-          disabled={!ready || !material}
-          onClick={() =>
-            void run(
-              "integration_phase_export",
-              { material_id: material.id },
-              "Exporting material…",
-            )
-          }
-        >
-          Export .eosmat
-        </button>
-        <button onClick={onClose}>Cancel</button>
-        <button
-          className="primary"
-          disabled={!ready || !!reason}
-          title={reason}
-          onClick={() =>
-            void run(
-              "integration_phase",
-              {
-                operation: "load_database",
-                material_id: material.id,
-                reference,
-              },
-              "Loading phase…",
-              () => {
-                const ids = [
-                  material.id,
-                  ...recent.filter((id) => id !== material.id),
-                ].slice(0, 20);
-                setRecent(ids);
-                localStorage.setItem(
-                  "dioptas-phase-recent",
-                  JSON.stringify(ids),
-                );
-                onClose();
-              },
-            )
-          }
-        >
-          Load as Phase
-        </button>
-      </footer>
-    </PhaseDialog>
-  );
-}
-
-function PhaseEditor({
-  data,
-  ready,
-  run,
-  onData,
-  onClose,
-}: {
-  data: PhaseEditorData;
-  ready: boolean;
-  run: IntegrationRun;
-  onData: (v: PhaseEditorData) => void;
-  onClose: () => void;
-}) {
-  const [selected, setSelected] = useState<number[]>([]);
-  const [lengthStep, setLengthStep] = useState(0.01);
-  const [angleStep, setAngleStep] = useState(1);
-  const act = (operation: string, args: Record<string, unknown> = {}) =>
-    void run(
-      "integration_phase",
-      { operation, index: data.index, editor: true, ...args },
-      "Updating phase…",
-      (r) => {
-        if (r.phaseEditor) onData(r.phaseEditor);
-      },
-    );
-  const number = (
-    label: string,
-    parameter: string,
-    value: number,
-    disabled: boolean,
-    step: number | string = "any",
-    unit?: string,
-  ) => (
-    <label key={parameter}>
-      {label}
-      <PhaseNumber
-        label={label}
-        value={value}
-        disabled={disabled || !ready}
-        step={step}
-        onCommit={(v) => act("parameter", { parameter, value: v })}
-      />
-      {unit && <span>{unit}</span>}
-    </label>
-  );
-  return (
-    <PhaseDialog title="Phase Editor" onClose={onClose} wide>
-      <div className="phase-dialog-body phase-editor">
-        <label className="phase-editor-filename">
-          Filename:
-          <input readOnly value={data.filename} title={data.filename} />
-        </label>
-        <fieldset>
-          <legend>Lattice &amp; structure</legend>
-          {!data.editable && (
-            <p className="phase-condition-note">
-              Bundled material structure is read-only.
-            </p>
-          )}
-          <label>
-            Symmetry
-            <select
-              aria-label="Phase symmetry"
-              disabled={!data.editable || !ready}
-              value={data.symmetry}
-              onChange={(e) =>
-                act("parameter", {
-                  parameter: "symmetry",
-                  value: e.target.value,
-                })
-              }
-            >
-              {[
-                "cubic",
-                "tetragonal",
-                "hexagonal",
-                "trigonal",
-                "rhombohedral",
-                "orthorhombic",
-                "monoclinic",
-                "triclinic",
-              ].map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
-          </label>
-          <div className="phase-editor-grid">
-            {["a0", "b0", "c0"].map((p) =>
-              number(
-                `${p[0]}₀`,
-                p,
-                data.lattice[p],
-                !data.editable || !data.latticeEditable.includes(p),
-                lengthStep,
-                "Å",
-              ),
-            )}
-            {["a", "b", "c"].map((p) => (
-              <label key={p}>
-                {p}
-                <input
-                  aria-label={`Current lattice ${p}`}
-                  readOnly
-                  value={data.lattice[p].toFixed(4)}
-                />
-                <span>Å</span>
-              </label>
-            ))}
-            {["alpha0", "beta0", "gamma0"].map((p, i) =>
-              number(
-                ["α₀", "β₀", "γ₀"][i],
-                p,
-                data.lattice[p],
-                !data.editable || !data.latticeEditable.includes(p),
-                angleStep,
-                "°",
-              ),
-            )}
-            {["v0", "v"].map((p) => (
-              <label key={p}>
-                {p === "v0" ? "V₀" : "V"}
-                <input readOnly value={data.lattice[p].toFixed(4)} />
-                <span>Å³</span>
-              </label>
-            ))}
-          </div>
-          <div className="phase-lattice-steps">
-            <span>Steps:</span>
-            <label>
-              Length
-              <PhaseNumber
-                label="Lattice length step"
-                value={lengthStep}
-                min={0.0001}
-                onCommit={setLengthStep}
-              />
-            </label>
-            <label>
-              Angle
-              <PhaseNumber
-                label="Lattice angle step"
-                value={angleStep}
-                min={0.0001}
-                onCommit={setAngleStep}
-              />
-            </label>
-          </div>
-        </fieldset>
-        <fieldset>
-          <legend>Equation of State</legend>
-          {!!data.references.length && (
-            <label>
-              Material record:
-              <select
-                aria-label="Editor material record"
-                disabled={!ready || data.references.length < 2}
-                value={data.reference}
-                title={data.references[data.reference]?.detail}
-                onChange={(e) =>
-                  act("update", { reference: Number(e.target.value) })
-                }
-              >
-                {data.references.map((r, i) => (
-                  <option key={i} value={i}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          <p>
-            {data.eosType}
-            {data.thermalType ? ` · ${data.thermalType}` : ""}
-          </p>
-          {data.references[data.reference] && (
-            <p className="phase-assessment">
-              {data.references[data.reference].detail}
-            </p>
-          )}
-          {!data.eosEditable && (
-            <p className="phase-condition-note">
-              Published EoS record is read-only.
-            </p>
-          )}
-          <div className="phase-editor-grid">
-            {Object.entries(data.eosParameters).map(([p, v]) =>
-              number(
-                (
-                  {
-                    k0: "K₀",
-                    k0p0: "K₀′",
-                    k0pp0: "K₀″",
-                    alpha_t0: "α(T₀)",
-                    d_alpha_dt: "dα/dT",
-                    dk0dt: "dK₀/dT",
-                    dk0pdt: "dK₀′/dT",
-                  } as Record<string, string>
-                )[p],
-                p,
-                v,
-                !data.eosEditable,
-              ),
-            )}
-          </div>
-        </fieldset>
-        <fieldset>
-          <legend>Reflections</legend>
-          <div className="phase-reflection-actions">
-            <button
-              disabled={!ready || !data.editable}
-              onClick={() => act("reflection", { action: "add" })}
-            >
-              Add
-            </button>
-            <button
-              disabled={!ready || !data.editable || !selected.length}
-              onClick={() => {
-                act("reflection", { action: "remove", rows: selected });
-                setSelected([]);
-              }}
-            >
-              Delete
-            </button>
-            <button
-              disabled={!ready || !data.editable || !data.reflections.length}
-              onClick={() => {
-                act("reflection", { action: "clear" });
-                setSelected([]);
-              }}
-            >
-              Clear
-            </button>
-          </div>
-          <TableScroll className="phase-reflections-scroll">
-            <DataTable aria-label="Phase reflections">
-              <thead>
-                <tr>
-                  <th>Select</th>
-                  {[
-                    "h",
-                    "k",
-                    "l",
-                    "Intensity",
-                    "d₀ (Å)",
-                    "d (Å)",
-                    "2θ (°)",
-                  ].map((h) => (
-                    <th key={h}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {data.reflections.map((r, row) => (
-                  <tr key={row}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        aria-label={`Select reflection ${row + 1}`}
-                        checked={selected.includes(row)}
-                        onChange={(e) =>
-                          setSelected((s) =>
-                            e.target.checked
-                              ? [...s, row]
-                              : s.filter((n) => n !== row),
-                          )
-                        }
-                      />
-                    </td>
-                    {(["h", "k", "l", "intensity"] as const).map((p) => (
-                      <td key={p}>
-                        <PhaseNumber
-                          label={`Reflection ${row + 1} ${p}`}
-                          value={r[p]}
-                          disabled={!ready || !data.editable}
-                          step={p === "intensity" ? "any" : 1}
-                          onCommit={(value) =>
-                            act("reflection", {
-                              action: "update",
-                              row,
-                              parameter: p,
-                              value,
-                            })
-                          }
-                        />
-                      </td>
-                    ))}
-                    <td>{r.d0.toFixed(4)}</td>
-                    <td>{r.d.toFixed(4)}</td>
-                    <td>{r.twoTheta?.toFixed(4) ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </DataTable>
-          </TableScroll>
-        </fieldset>
-      </div>
-      <footer>
-        <button
-          disabled={!ready || !data.canReload}
-          onClick={() => act("reload")}
-        >
-          Reload File
-        </button>
-        <button
-          disabled={!ready}
-          onClick={() =>
-            void run(
-              "integration_phase_export",
-              { index: data.index },
-              "Saving phase…",
-              () =>
-                void run(
-                  "integration_phase_editor",
-                  { index: data.index },
-                  "",
-                  (r) => {
-                    if (r.phaseEditor) onData(r.phaseEditor);
-                  },
-                ),
-            )
-          }
-        >
-          Save As…
-        </button>
-        <button onClick={onClose}>Close</button>
       </footer>
     </PhaseDialog>
   );

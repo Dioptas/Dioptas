@@ -1,0 +1,241 @@
+.phase-dialog.phase-database-dialog {
+  width: min(960px, calc(100vw - 32px));
+  height: min(680px, calc(100vh - 32px));
+  min-width: min(680px, calc(100vw - 32px));
+  min-height: min(440px, calc(100vh - 32px));
+  resize: both;
+  overflow: hidden;
+}
+.phase-database-body {
+  padding: 12px 16px;
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: auto;
+}
+.phase-database-search {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.phase-database-search input {
+  flex: 1;
+  width: 100%;
+}
+.phase-database-tools,
+.phase-database-heading,
+.phase-database-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.phase-database-tools {
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.phase-database-dialog [role="tablist"] {
+  display: flex;
+  gap: 3px;
+  margin-right: auto;
+}
+.phase-database-dialog [role="tab"] {
+  border-color: transparent;
+  border-radius: 0;
+  background: transparent;
+}
+.phase-database-dialog [role="tab"][aria-selected="true"] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.phase-database-tools label,
+.phase-database-conditions label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.phase-database-heading {
+  min-height: 30px;
+  flex-shrink: 0;
+  margin-bottom: 5px;
+}
+.phase-database-heading h3 {
+  font-size: inherit;
+  font-weight: 500;
+  margin: 0;
+  flex: 1;
+}
+.phase-database-heading > button {
+  padding: 2px 6px;
+  color: var(--muted);
+}
+.phase-database-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 100px;
+  flex: 1 1 140px;
+}
+.phase-database-section:nth-of-type(2) {
+  flex: 2 1 240px;
+  border-top: 1px solid var(--border);
+  padding-top: 9px;
+  min-height: 150px;
+}
+.phase-database-section > .data-table-scroll {
+  flex: 1;
+  border: 1px solid var(--border);
+}
+.phase-database-materials {
+  flex: 0 0 180px;
+  height: 180px;
+  min-height: 180px;
+}
+.app button.phase-database-favourite {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 5px;
+}
+.phase-database-dialog .data-table th {
+  padding: 0 9px;
+}
+.phase-database-dialog .data-table td {
+  padding: 5px 10px;
+}
+.phase-database-dialog .data-table thead button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 5px 0;
+  text-align: left;
+  white-space: nowrap;
+  min-height: 28px;
+}
+.phase-database-dialog .data-table thead button:hover {
+  color: var(--accent);
+}
+.phase-database-section tbody tr {
+  cursor: pointer;
+}
+.phase-database-section tbody tr:hover {
+  background: #ffffff08;
+}
+.phase-database-records {
+  table-layout: fixed;
+}
+.phase-database-records th[data-column="authors"] {
+  width: 35%;
+}
+.phase-database-records th[data-column="eos"] {
+  width: 150px;
+}
+.phase-database-records th[data-column="thermal"] {
+  width: 78px;
+  text-align: center;
+}
+.phase-database-records th[data-column="pressureRange"] {
+  width: 155px;
+}
+.phase-database-thermal {
+  text-align: center;
+}
+.phase-database-dialog .phase-database-records td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.phase-database-reference small {
+  margin-left: 8px;
+  font-size: var(--text-meta);
+  color: var(--muted);
+}
+.phase-database-variant {
+  color: var(--muted);
+}
+.phase-database-empty {
+  margin: 10px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.phase-database-empty button {
+  margin-left: 8px;
+}
+.phase-database-conditions {
+  flex-shrink: 0;
+  max-height: 95px;
+  overflow: auto;
+}
+.phase-database-conditions:empty {
+  display: none;
+}
+.phase-database-conditions p {
+  margin: 4px 0;
+}
+.phase-database-links {
+  margin-right: auto;
+}
+.phase-database-links button {
+  color: var(--accent);
+  background: transparent;
+  border-color: transparent;
+  padding: 4px 5px;
+}
+.phase-database-dialog footer button {
+  flex-shrink: 0;
+}
+.phase-database-dialog footer > button.primary {
+  padding: 2px 6px;
+  font-weight: inherit;
+}
+@media (max-width: 800px) {
+  .phase-database-body {
+    padding: 10px 12px;
+    gap: 9px;
+  }
+  .phase-database-links {
+    gap: 3px;
+  }
+  .phase-database-dialog footer {
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+}
+
+/* Keep column positions stable as search results change. */
+.phase-database-materials .data-table {
+  table-layout: fixed;
+}
+.phase-database-materials .data-table th:last-child {
+  width: 150px;
+}
+.phase-database-materials .data-table td:first-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app .phase-database-materials > .data-table-scroll {
+  overflow-y: scroll;
+}
+
+.phase-database-dialog .phase-database-record-filter {
+  flex: 0 1 230px;
+  width: 230px;
+  min-width: 150px;
+  height: 30px;
+}
+.phase-database-heading h3 {
+  min-width: 0;
+}
+
+.phase-database-result-count {
+  color: var(--muted);
+  font-size: var(--text-meta);
+  white-space: nowrap;
+}
+.app button.phase-database-sort-reset {
+  padding: 3px 6px;
+  color: var(--muted);
+}

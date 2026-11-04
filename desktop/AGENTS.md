@@ -59,14 +59,29 @@ Keep mode-specific components, styling, command adapters and tests in separate
 files. Keep necessary App.tsx/types.ts/session.py routing changes small so the
 views can be combined. Do not perform unrelated shared-shell refactors.
 
-The primary live preview owns port 1420. Test your own bundled native window or
-use a temporary Tauri config with a distinct Vite port; do not reuse or kill the
-primary server/window. Other user windows may contain work.
+The primary live preview owns port 1420. Do not reuse or kill the primary
+server/window. Other user windows may contain work. If a native test is needed,
+use your own bundled test window or a temporary Tauri config with a distinct
+Vite port.
+
+## GUI testing
+
+Use headless tests by default. Run routine GUI interaction, layout, rendering,
+and screenshot checks through headless Playwright, alongside relevant model,
+unit, and build checks. Do not open native or headed browser windows, move the
+real mouse, or steal focus for routine verification.
+
+Open a real test window only when the behavior under test requires it, such as
+native window management, OS dialogs, native focus behavior, or a Tauri/WebKit
+integration issue that headless checks cannot adequately cover. Do not run
+visible native smoke tests after every small UI change. When a visible check
+is necessary, explain briefly why, use an isolated test window, and close only
+that test's windows and processes. Preserve the user's previews and work.
 
 Use standard CPython 3.13: `uv sync --python 3.13 --extra test` in your checkout,
 and `npm ci` in desktop. Never share an editable .venv or mutate another
 checkout's dependencies. Build with `npm run build`; exercise real models and
 meaningful Qt parity/interaction checks, then existing calibration/browser
-regressions as appropriate. Native smoke: `npm run tauri:smoke` (uses embedded
-assets, no Vite port). Record remaining gaps honestly; do not add dead buttons
-or fabricated scientific results.
+regressions as appropriate. When required by the criteria above, native smoke:
+`npm run tauri:smoke` (uses embedded assets, no Vite port). Record remaining gaps
+honestly; do not add dead buttons or fabricated scientific results.

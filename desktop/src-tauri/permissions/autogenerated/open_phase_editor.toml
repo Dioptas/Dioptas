@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-open-phase-editor"
+description = "Enables the open_phase_editor command without any pre-configured scope."
+commands.allow = ["open_phase_editor"]
+
+[[permission]]
+identifier = "deny-open-phase-editor"
+description = "Denies the open_phase_editor command without any pre-configured scope."
+commands.deny = ["open_phase_editor"]

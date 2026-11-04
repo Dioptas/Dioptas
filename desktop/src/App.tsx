@@ -1,3 +1,4 @@
+import { useNativePhaseEditorSync } from "./phaseEditorWindow";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowUpRight,
@@ -280,7 +281,7 @@ export default function App() {
       // An existing live preview may still have the earlier Python worker
       // loaded until the user restarts it.
       canDeferIntegration.current = "integrationDirty" in result.state;
-      if (result.patternOnly)
+      if (result.patternOnly && !result.phaseOnly)
         phaseGuideRevision.current = result.state.revision;
       setState((previous) => {
         const next = result.state!;
@@ -375,6 +376,11 @@ export default function App() {
           historyLabel === "integration_overlay");
       const liveBackground =
         command === "integration_background" && message === "";
+      const livePhaseConditions =
+        command === "integration_phase" &&
+        args.operation === "update" &&
+        (typeof args.pressure === "number" ||
+          typeof args.temperature === "number");
       if (
         !bridge.current ||
         (command === "integration_autoprocess_poll" &&
@@ -385,6 +391,9 @@ export default function App() {
           !pendingBackgroundUpdates.current &&
           !pendingOverlayEdits.current &&
           !liveBackground &&
+          !livePhaseConditions &&
+          command !== "integration_phase_state" &&
+          command !== "integration_phase_guides" &&
           command !== "image_levels")
       )
         return;
@@ -424,6 +433,9 @@ export default function App() {
         overlayEditing ||
         maskDrawing ||
         liveBackground ||
+        livePhaseConditions ||
+        command === "integration_phase_state" ||
+        command === "integration_phase_guides" ||
         command === "integration_autoprocess_poll" ||
         command === "image_levels";
       if (!quiet) {
@@ -502,6 +514,7 @@ export default function App() {
     },
     [apply],
   );
+  useNativePhaseEditorSync(run, state?.revision);
   useEffect(() => {
     if (mode !== "integration" || !state?.integration.autoProcess) return;
     const timer = setInterval(() => {
@@ -957,7 +970,14 @@ export default function App() {
       phaseGuideRevision.current !== state.revision
     ) {
       phaseGuideRevision.current = state.revision;
-      void run("integration_phase_guides", {}, "Updating phase guides…");
+      const revision = state.revision;
+      void run(
+        "integration_phase_guides",
+        {},
+        "",
+        undefined,
+        () => phaseGuideRevision.current === revision,
+      );
     }
   }, [mode, showImagePhases, state?.revision, ready]);
   const canIntegrate = !!state?.hasImage && !!state?.calibrated;

@@ -57,7 +57,9 @@ def test_phase_list_roundtrip_appends_and_preserves_false_names_colors_condition
     result = call(session, 'integration_phase_list', path=path)
     phases = result['state']['integration']['phases']
     assert len(phases) == 4
-    assert phases[:2] == phases[2:]
+    assert [{k: v for k, v in phase.items() if k != 'uid'} for phase in phases[:2]] == [
+        {k: v for k, v in phase.items() if k != 'uid'} for phase in phases[2:]]
+    assert len({phase['uid'] for phase in phases}) == 4
     assert phases[2]['visible'] is False
     assert phases[2]['name'] == 'Gold, named with comma'
     assert phases[2]['color'] == '#12ab45'
@@ -117,8 +119,10 @@ def test_editor_changes_lattice_and_reflections_through_real_model(session, tmp_
     call(session, 'integration_phase_export', index=0, path=path)
     restored = eos.load_material_file(path)
     assert restored.lattice.a == 4.2
+    call(session, 'integration_phase', operation='parameter', index=0, parameter='a0', value=4.3)
     call(session, 'integration_phase', operation='reload', index=0)
-    assert session._model.phase_model.phases[0].params['a0'] != 4.2
+    assert session._model.phase_model.phases[0].params['a0'] == 4.2
+    assert session._model.phase_model.phase_files[0] == path
 
 
 def test_prepare_cif_and_import_use_experimental_cutoff_and_wavelength(session):

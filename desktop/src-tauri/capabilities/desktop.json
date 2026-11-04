@@ -10,6 +10,10 @@
     "allow-hide-calibration-tooltip",
     "allow-native-smoke-report",
     "core:window:allow-title",
-    "core:window:allow-set-title"
+    "core:window:allow-set-title",
+    "allow-open-phase-editor",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "core:event:allow-emit"
   ]
 }

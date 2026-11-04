@@ -152,6 +152,7 @@ export interface RingOverlay {
   points: number[][];
 }
 export interface Response {
+  phaseRevision?: number;
   phaseEditor?: PhaseEditorData;
   phaseImport?: PhaseImport;
   phaseCatalog?: PhaseMaterial[];
@@ -165,6 +166,7 @@ export interface Response {
   error?: string;
   cancelled?: boolean;
   patternOnly?: boolean;
+  phaseOnly?: boolean;
   state?: State;
   image?: Raster;
   rawImage?: Raster;

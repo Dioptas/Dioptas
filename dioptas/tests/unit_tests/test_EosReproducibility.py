@@ -10,8 +10,7 @@ from ...model import eos
 def test_peritheos_record_link_targets_the_selected_catalog_record():
     record = {"identifier": "gold_fei_2007_vinet_2"}
     assert eos.peritheos_record_url("gold", record) == (
-        "https://peritheos.readthedocs.io/en/latest/material-summaries/"
-        "gold/#record-gold_fei_2007_vinet_2")
+        "https://peritheos.com/eos/gold_fei_2007_vinet_2")
     assert not eos.peritheos_record_url("gold", record, origin="custom")
     record["scientific_validation"] = {
         "status": "deferred", "note": "User-owned copy; coefficients changed."}
