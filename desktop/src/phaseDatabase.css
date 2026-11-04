@@ -186,6 +186,10 @@
 .phase-database-dialog footer button {
   flex-shrink: 0;
 }
+.phase-database-dialog footer > button.primary {
+  padding: 2px 6px;
+  font-weight: inherit;
+}
 @media (max-width: 800px) {
   .phase-database-body {
     padding: 10px 12px;
