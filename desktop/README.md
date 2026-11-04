@@ -125,7 +125,7 @@ Its `--dev` option still supports live frontend updates independently of Tauri.
    and fixed parameters. Refine continues from the existing geometry and is
    enabled once a geometry has been fitted, loaded or entered manually.
 6. Validate the ring overlays, cake, integrated pattern, and RMS residual.
-   Linked click inspection is available in Integration. Change
+   Linked click inspection is shared by Integration and Map. Change
    **Validation calibrant** to inspect a different reference without changing
    the geometry. Use the peak table to reassign groups, select/delete several
    groups, or undo/redo edits; refine again after editing selections.
@@ -215,6 +215,12 @@ Integration, including colors, phase pressure/temperature, overlay scale/offset
 and measured-pattern visibility. Manage those references in Integration; Map
 retains its Points/Layers/Grid controls. Changing Map's 2θ/Q/d display converts
 references along with the measured curve without changing the stored profiles.
+Clicking Map's detector or pattern marks the same calibrated position with a
+green detector ring/crosshair and pattern line. Integration uses the same
+position, including after switching modes or detaching/docking the scan window.
+The line follows the active 2θ/Q/d display unit. Stationary pattern clicks also
+inspect inside editable ROIs; ROI drags continue to edit only the window. The
+shared footer reports the clicked 2θ, Q, d and azimuth when available.
 
 Live watches the loaded scan folder for completed numbered continuation files.
 Follow selects the latest point; turn it off to retain the selected image.
@@ -381,7 +387,7 @@ fields. Coordinate precision follows the visible axis range and plot size: broad
 intensity ranges show whole numbers, and zooming reveals finer digits. Pattern
 x/y follow the pointer; I reports the nearest curve
 sample independently of the pointer's height, including log and square-root
-display modes. Only Integration adds a compact **Click** position alongside the
+display modes. Integration and Map share a compact **Click** position alongside the
 live readout, with green text and the selected azimuth. Hover and clicked radial
 positions always show **2θ**, **Q** and **d** together, independently of the plot's
 selected unit. These are degrees, Å⁻¹ and Å respectively (also named in the field

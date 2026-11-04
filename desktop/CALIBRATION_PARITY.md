@@ -33,7 +33,7 @@ preview replaces the complete application. The original Qt interface is unchange
 | Mask use and transparency | Load mask, use-mask switch, transparent display; saving, drawing/erasing/history in the dedicated Mask mode |
 | Calibrant lines and numbers | Independent display switches; soft solid reference lines and numbers appear on the detector and cake. Cake lines use 2θ; integrated-pattern references use its actual radial unit |
 | Validation reference selection without changing geometry | Dedicated Validation calibrant selector uses the loaded/fitted geometry wavelength; changing reference clears the old RMS diagnostic |
-| Linked detector/cake/pattern validation | Click inspection is limited to Integration by user preference; calibration retains live mouse coordinates and ring/peak overlays |
+| Linked detector/cake/pattern validation | Click inspection is shared by Integration and Map; calibration retains live mouse coordinates and ring/peak overlays |
 | pyFAI and Fit2D geometry inspection/input | Visible validation tabs with complete unit-labelled fields; Enter manually opens the same editor in a dialog from any step |
 | Load/save calibration | Save .poni available on every tab, protected against stale picks or pending drafts; quiet Load .poni / Enter manually actions; existing PONI reader/writer and `.dio` project persistence |
 | Image intensity/log/colormap | Each image has its own histogram, Auto and colour picker; small settings dialog for limits, auto modes, linear/log, size and horizontal/vertical layout; counts use every finite source pixel |
@@ -53,8 +53,8 @@ preview replaces the complete application. The original Qt interface is unchange
   with padding; the cake preserves its current azimuth limits.
 - Pick peaks is an explicit, shared switch: stationary detector clicks pick on
   any calibration tab when enabled. Dragging continues to zoom without adding
-  points. Linked click guides and the compact footer Click position are confined
-  to Integration; Calibration and Mask retain a single live mouse readout.
+  points. Linked click guides and the compact footer Click position are shared
+  by Integration and Map; Calibration and Mask retain a single live mouse readout.
 - Fit input validation counts the actual free parameters. This is only a minimum
   equation count, not a claim of identifiability or a well-constrained geometry;
   users should distribute peaks across rings and azimuths.

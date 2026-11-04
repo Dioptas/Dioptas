@@ -67,6 +67,7 @@ export function PatternView({
   zoomMode = "rectangle",
   onZoomMode,
   onPick,
+  onInspect,
   onHover,
   onResolution,
   hoverHint,
@@ -112,6 +113,11 @@ export function PatternView({
   zoomMode?: ZoomMode;
   onZoomMode?: (mode: ZoomMode) => void;
   onPick?: (
+    x: number,
+    mouseY: number,
+    resolution: { x: number; y: number },
+  ) => void;
+  onInspect?: (
     x: number,
     mouseY: number,
     resolution: { x: number; y: number },
@@ -1028,7 +1034,14 @@ export function PatternView({
             const { name, next, min, max } = regionDrag.current;
             if (next && (next.min !== min || next.max !== max))
               onRegionChange?.(next.name, next.min, next.max);
-            else onRegionSelect?.(name);
+            else {
+              onRegionSelect?.(name);
+              const point = navigation.data(navigation.screen(e));
+              onInspect?.(point.x, mouseValue(point.y), {
+                x: xResolution,
+                y: yResolutionAt(point.y),
+              });
+            }
             regionDrag.current = null;
             setRegionDraft(null);
             if (e.currentTarget.hasPointerCapture(e.pointerId))
@@ -1042,6 +1055,10 @@ export function PatternView({
             onAutoRange?.(false);
           if (result === "click") {
             const point = navigation.data(navigation.screen(e));
+            onInspect?.(point.x, mouseValue(point.y), {
+              x: xResolution,
+              y: yResolutionAt(point.y),
+            });
             onPick?.(point.x, mouseValue(point.y), {
               x: xResolution,
               y: yResolutionAt(point.y),

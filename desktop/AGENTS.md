@@ -29,9 +29,9 @@ and CALIBRATION_PARITY.md before changing its command or plot boundaries.
   readout/footer rows or floating pattern readout. Keep the footer to one line,
   without Image/Cake/Pattern source labels. Use fixed-width coordinate/intensity
   fields and coordinate precision that follows the visible axis range and plot
-  size, increasing when zoomed. Only Integration adds a compact Click position beside the live
-  readout and linked click markers. Pattern readouts show the mouse y coordinate
-  separately from curve intensity. Always show 2θ, Q and d together in radial
+  size, increasing when zoomed. Integration and Map share a compact Click
+  position beside the live readout and linked green click markers across modes.
+  Pattern readouts show the mouse y coordinate separately from curve intensity. Always show 2θ, Q and d together in radial
   hover and clicked readings, using the session wavelength; include these on
   calibrated detector hover too. Click readings use green text. Keep updates near 10 Hz.
 - Every image has independent intensity limits, linear/log (linear default),

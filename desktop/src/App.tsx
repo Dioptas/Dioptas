@@ -29,7 +29,8 @@ import {
   coordinateValue,
   type SourcedReading,
 } from "./PlotStatus";
-import { radialFields } from "./radialReadout";
+import { patternPositionInUnit, type PatternPosition } from "./linkedPosition";
+import { radialFields, radialValues } from "./radialReadout";
 import { shapeHelp } from "./maskDomain";
 import type {
   Cake,
@@ -153,7 +154,7 @@ export default function App() {
     x: number;
     y: number;
   } | null>(null);
-  const [localPatternClick, setLocalPatternClick] = useState<number>();
+  const [localPatternClick, setLocalPatternClick] = useState<PatternPosition>();
   const [patternResolution, setPatternResolution] = useState(0.01);
   const [cakePixelResolution, setCakePixelResolution] = useState({
     x: 1,
@@ -470,6 +471,7 @@ export default function App() {
         command === "integration_phase_guides" ||
         command === "integration_autoprocess_poll" ||
         command === "map_select" ||
+        command === "validation_position" ||
         command === "image_levels";
       if (!quiet) {
         ++progressGeneration.current;
@@ -948,6 +950,46 @@ export default function App() {
     },
     onError: setError,
   });
+  const inspectDetector = (point: {
+    x: number;
+    y: number;
+    value: number | null;
+  }) => {
+    if (!ready || (mode !== "integration" && mode !== "map") || !image) return;
+    setLocalImageClick(point);
+    setClickedReading({
+      source: "detector",
+      text: "Image click",
+      x: Math.floor(point.x),
+      row: image.fullHeight - 1 - Math.floor(point.y),
+      value: point.value,
+    });
+    if (state?.calibrated && state.hasImage)
+      void run(
+        "validation_position",
+        { source: "image", x: point.x, y: point.y },
+        "", undefined, undefined, true,
+      );
+  };
+  const inspectPattern = (point: PatternHover) => {
+    if (!ready || (mode !== "integration" && mode !== "map")) return;
+    setLocalPatternClick({ x: point.x, unit: point.unit });
+    setLocalImageClick(null);
+    if (point.xResolution != null) setPatternResolution(point.xResolution);
+    setClickedReading({
+      source: "pattern",
+      ...patternReading(point, state?.geometry.wavelength),
+    });
+    if (state?.calibrated && state.hasImage) {
+      const x = radialValues(point.x, point.unit, state.geometry.wavelength)[state.unit];
+      if (x != null && Number.isFinite(x))
+        void run(
+          "validation_position",
+          { source: "pattern", x },
+          "", undefined, undefined, true,
+        );
+    }
+  };
   const backgroundContext = (s: State | null) =>
     JSON.stringify([
       s?.unit,
@@ -1380,6 +1422,11 @@ export default function App() {
                 <MapView
                   map={map}
                   mapWindow={mapWindow}
+                  linked={linked}
+                  localImageClick={localImageClick}
+                  localPatternClick={localPatternClick}
+                  onDetectorInspect={inspectDetector}
+                  onPatternInspect={inspectPattern}
                   image={image}
                   mask={mask}
                   pattern={pattern}
@@ -1520,23 +1567,9 @@ export default function App() {
                                   "Finding peaks…",
                                 );
                             }}
-                            onInspect={(point) => {
-                              if (mode !== "integration") return;
-                              setLocalImageClick(point);
-                              setClickedReading({
-                                source: "detector",
-                                text: "Image click",
-                                x: Math.floor(point.x),
-                                row: image.fullHeight - 1 - Math.floor(point.y),
-                                value: point.value,
-                              });
-                              if (state?.calibrated)
-                                void run("validation_position", {
-                                  source: "image",
-                                  x: point.x,
-                                  y: point.y,
-                                });
-                            }}
+                            onInspect={
+                              mode === "integration" ? inspectDetector : undefined
+                            }
                           />
                           <ImageIntensity
                             preferences={
@@ -1787,7 +1820,12 @@ export default function App() {
                             onResolution={setPatternResolution}
                             linkedPosition={
                               mode === "integration"
-                                ? (linked?.radial ?? localPatternClick)
+                                ? patternPositionInUnit(
+                                    linked,
+                                    localPatternClick,
+                                    displayedPattern!.unit,
+                                    state?.geometry.wavelength,
+                                  )
                                 : undefined
                             }
                             activeRing={
@@ -1878,27 +1916,14 @@ export default function App() {
                                     : best,
                                 0,
                               );
-                              setLocalPatternClick(x);
-                              setLocalImageClick(null);
-                              setClickedReading({
-                                source: "pattern",
-                                ...patternReading(
-                                  {
-                                    x,
-                                    mouseY,
-                                    xResolution: resolution.x,
-                                    yResolution: resolution.y,
-                                    y: displayedPattern!.y[nearest],
-                                    unit: displayedPattern!.unit,
-                                  },
-                                  state?.geometry.wavelength,
-                                ),
+                              inspectPattern({
+                                x,
+                                mouseY,
+                                xResolution: resolution.x,
+                                yResolution: resolution.y,
+                                y: displayedPattern!.y[nearest],
+                                unit: displayedPattern!.unit,
                               });
-                              if (state?.calibrated)
-                                void run("validation_position", {
-                                  source: "pattern",
-                                  x,
-                                });
                             }}
                           />
                         ) : (
@@ -2396,7 +2421,7 @@ export default function App() {
                 )}
               </span>
             </div>
-            {mode === "integration" && (
+            {(mode === "integration" || mode === "map") && (
               <div className="plot-status-line clicked-position">
                 <span className="plot-status-kind">Click</span>
                 <span
