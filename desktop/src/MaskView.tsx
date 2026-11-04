@@ -3,6 +3,7 @@ import { RasterView } from "./RasterView";
 import { ImageIntensity } from "./ImageIntensity";
 import type { Raster, State } from "./types";
 import { useImageDisplayPreferences } from "./useImageDisplayPreferences";
+import { useRasterLevels } from "./useRasterLevels";
 import {
   previewMask,
   shapeHelp,
@@ -44,9 +45,7 @@ export function MaskView({
     status: { text: string; cancel: () => void } | null,
   ) => void;
 }) {
-  const [limits, setLimits] = useState<[number, number]>(
-    image?.limits ?? [0, 100],
-  );
+  const [limits, setLimits] = useRasterLevels(image);
   const [log, setLog] = useState(false),
     [palette, setPalette] = useState("grey");
   const [points, setPoints] = useState<MaskPoint[]>([]),
@@ -61,11 +60,10 @@ export function MaskView({
     "vertical",
   );
   useEffect(() => {
-    if (image) setLimits(image.limits);
-    setPoints([]);
+    setPoints((previous) => (previous.length ? [] : previous));
     setPendingOverlay(null);
     drawingSequence.current++;
-  }, [image]);
+  }, [image?.data]);
   useEffect(() => setPoints([]), [tools.shape, tools.erase, resetKey]);
   const cancelSelection = useCallback(() => setPoints([]), []);
   useEffect(() => {

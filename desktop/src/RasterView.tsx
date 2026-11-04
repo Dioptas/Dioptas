@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -242,10 +243,6 @@ export function RasterView({
     if (container.current) observer.observe(container.current);
     return () => observer.disconnect();
   }, []);
-  useEffect(() => {
-    navigation.reset();
-    setStroke([]);
-  }, [raster.fullWidth, raster.fullHeight, resetKey]);
   const left = cake ? cakeAxisWidth : imagePadding,
     right = cake ? 22 : imagePadding,
     top = cake ? 20 : imagePadding,
@@ -269,6 +266,22 @@ export function RasterView({
     !cake,
     zoomMode,
   );
+  const [resetSource, setResetSource] = useState([
+    raster.fullWidth,
+    raster.fullHeight,
+    resetKey,
+  ]);
+  if (
+    resetSource[0] !== raster.fullWidth ||
+    resetSource[1] !== raster.fullHeight ||
+    resetSource[2] !== resetKey
+  ) {
+    // A new file must not paint once in the previous view and then jump to
+    // its fitted view in an effect. Reset before committing the new pixels.
+    setResetSource([raster.fullWidth, raster.fullHeight, resetKey]);
+    navigation.reset();
+    if (stroke.length) setStroke([]);
+  }
   const view = navigation.view;
   const sx = plotWidth / (view.xMax - view.xMin),
     sy = plotHeight / (view.yMax - view.yMin);
@@ -292,7 +305,7 @@ export function RasterView({
   });
   const zoom = fitWidth / (view.xMax - view.xMin);
   const editableRoi = !!onRoiChange;
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!gpu.current) return;
     try {
       gpu.current.draw({
@@ -834,7 +847,7 @@ export function RasterView({
       editableRoi,
     ],
   );
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (canvas.current) draw(canvas.current);
   }, [draw]);
   useImperativeHandle(

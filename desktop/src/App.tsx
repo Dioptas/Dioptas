@@ -57,7 +57,11 @@ import { CalibrationPanel } from "./CalibrationPanel";
 import { CalibrationWorkflowTabs } from "./CalibrationWorkflowTabs";
 import { CalibrationRingControls } from "./CalibrationRingControls";
 import { ImageIntensity } from "./ImageIntensity";
-import { useImageDisplayPreferences } from "./useImageDisplayPreferences";
+import {
+  readImageAutoLevels,
+  useImageDisplayPreferences,
+} from "./useImageDisplayPreferences";
+import { prepareDetectorImage } from "./prepareDetectorImage";
 import { colorMaps } from "./colorMaps";
 import { IntegrationView } from "./IntegrationView";
 import {
@@ -238,6 +242,7 @@ export default function App() {
   const [palette, setPalette] = useState<Palette>("grey");
   const [limits, setLimits] = useState<[number, number]>([0, 100]);
   const imageSource = useRef<Raster | null>(null);
+  const rawImageSource = useRef<Raster | null>(null);
   const cakeSource = useRef<Cake | null>(null);
   const [cakeLimits, setCakeLimits] = useState<[number, number]>([0, 100]);
   const [cakeLog, setCakeLog] = useState(false);
@@ -251,6 +256,18 @@ export default function App() {
   const [multiDetectorPreferences, setMultiDetectorPreferences] =
     useImageDisplayPreferences("multi-detector", "horizontal");
   const multipleImages = mode === "integration" || calibrationStep === 3;
+  const detectorDisplay = useRef({ name: "detector", filterGaps: true });
+  detectorDisplay.current = {
+    name:
+      mode === "map"
+        ? "map-detector"
+        : mode === "mask"
+          ? "mask-detector"
+          : multipleImages
+            ? "multi-detector"
+            : "detector",
+    filterGaps: mode !== "map",
+  };
   useEffect(() => {
     if (!colorMaps[palette]) setPalette("grey");
     if (!colorMaps[cakePalette]) setCakePalette("grey");
@@ -296,7 +313,10 @@ export default function App() {
       });
     }
     if (result.phaseGuides) setPhaseGuides(result.phaseGuides);
-    if (result.rawImage) setRawImage(result.rawImage);
+    if (result.rawImage) {
+      rawImageSource.current = result.rawImage;
+      setRawImage(result.rawImage);
+    }
     if (result.image) {
       const sourceChanged =
         result.image.data !== imageSource.current?.data ||
@@ -476,6 +496,15 @@ export default function App() {
         ) {
           result = await bridge.current(command, { ...args, reintegrate: false });
         }
+        const display = detectorDisplay.current;
+        const raw = commandMode === "integration" && !correctedImageRef.current;
+        result = await prepareDetectorImage(
+          bridge.current,
+          result,
+          raw ? rawImageSource.current : imageSource.current,
+          readImageAutoLevels(display.name, display.filterGaps),
+          raw,
+        );
         apply(result);
         if (command === "integration_autoprocess_poll" && result.state)
           setError(result.state.integration.autoProcessError || null);
@@ -493,7 +522,7 @@ export default function App() {
             "open_project",
           ].includes(command)
         )
-          setSelectedPicks([]);
+          setSelectedPicks((previous) => (previous.length ? [] : previous));
         if (
           !result.cancelled &&
           ["calibrate", "manual_geometry", "open_calibration"].includes(command)

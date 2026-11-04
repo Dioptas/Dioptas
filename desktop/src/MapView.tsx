@@ -12,6 +12,7 @@ import { ImageIntensity } from "./ImageIntensity";
 import { MapControls } from "./MapControls";
 import { radialValues } from "./radialReadout";
 import { useImageDisplayPreferences } from "./useImageDisplayPreferences";
+import { useRasterLevels } from "./useRasterLevels";
 import {
   number,
   type Pattern,
@@ -26,7 +27,7 @@ import type { ZoomMode } from "./usePlotNavigation";
 import "./map.css";
 
 function useDisplay(raster: Raster | null, name: string) {
-  const [limits, setLimits] = useState<[number, number]>([0, 1]);
+  const [limits, setLimits] = useRasterLevels(raster);
   const [log, setLog] = useState(false),
     [palette, setPalette] = useState("grey");
   const [prefs, setPrefs] = useImageDisplayPreferences(
@@ -34,9 +35,6 @@ function useDisplay(raster: Raster | null, name: string) {
     "horizontal",
     false,
   );
-  useEffect(() => {
-    if (raster) setLimits(raster.limits);
-  }, [raster?.data]);
   return {
     limits,
     setLimits,
@@ -163,7 +161,36 @@ export function MapView({
     showContours,
     contourCount,
   ]);
-  const display = useDisplay(map?.raster ?? null, "map"),
+  const scanHistogramKey = JSON.stringify(map?.raster.histogram);
+  const scanRaster = useMemo(
+    () => map?.raster ?? null,
+    [
+      map?.raster.data,
+      map?.raster.dtype,
+      map?.raster.width,
+      map?.raster.height,
+      map?.raster.fullWidth,
+      map?.raster.fullHeight,
+      map?.raster.limits[0],
+      map?.raster.limits[1],
+      scanHistogramKey,
+    ],
+  );
+  const scanPeaks = useMemo(
+    () =>
+      map?.selectedCell && scanRaster
+        ? [
+            {
+              x: map.selectedCell[1],
+              y: scanRaster.height - map.selectedCell[0] - 1,
+              ring: 1,
+              selected: true,
+            },
+          ]
+        : [],
+    [map?.selectedCell?.[0], map?.selectedCell?.[1], scanRaster?.height],
+  );
+  const display = useDisplay(scanRaster, "map"),
     detector = useDisplay(image, "map-detector");
   const [scale, setScale] = usePreference<"linear" | "log" | "sqrt">(
     "pattern-scale",
@@ -453,10 +480,10 @@ export function MapView({
       }
     >
       <section className="map-scan-panel" aria-label="Scan map">
-        {map ? (
+        {map && scanRaster ? (
           <div className="detector-workspace map-raster" data-testid="scan-map">
             <RasterView
-              raster={preview ?? map.raster}
+              raster={preview ?? scanRaster}
               contours={contours}
               limits={display.limits}
               log={display.log}
@@ -465,18 +492,7 @@ export function MapView({
               tool="pan"
               busy={!ready}
               exportRef={mapExporter}
-              peaks={
-                map.selectedCell
-                  ? [
-                      {
-                        x: map.selectedCell[1],
-                        y: map.raster.height - map.selectedCell[0] - 1,
-                        ring: 1,
-                        selected: true,
-                      },
-                    ]
-                  : []
-              }
+              peaks={scanPeaks}
               onInspect={(point) =>
                 run(
                   "map_select",
@@ -503,7 +519,7 @@ export function MapView({
                 });
               }}
             />
-            {intensity(map.raster, display, "map")}
+            {intensity(scanRaster, display, "map")}
           </div>
         ) : (
           <div className="empty-view">

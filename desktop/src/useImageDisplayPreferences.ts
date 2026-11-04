@@ -1,6 +1,37 @@
 import { useEffect, useState } from "react";
 import type { AutoLevels, ImageDisplayPreferences } from "./types";
 
+export function readImageAutoLevels(
+  display: string,
+  filterGaps = true,
+): AutoLevels {
+  const key = `dioptas-auto-levels-v1:${display}`;
+  const auto: AutoLevels = {
+    mode: "percentile",
+    percentile: 2.5,
+    filter_gaps: filterGaps,
+  };
+  try {
+    const saved = JSON.parse(localStorage.getItem(key) ?? "null");
+    if (saved && typeof saved === "object") {
+      if (["percentile", "minmax", "mean3std"].includes(saved.mode))
+        auto.mode = saved.mode;
+      if (
+        typeof saved.percentile === "number" &&
+        Number.isFinite(saved.percentile) &&
+        saved.percentile >= 0.01 &&
+        saved.percentile <= 25
+      )
+        auto.percentile = saved.percentile;
+      if (typeof saved.filter_gaps === "boolean")
+        auto.filter_gaps = saved.filter_gaps;
+    }
+  } catch {
+    /* Use defaults if saved preferences cannot be read. */
+  }
+  return auto;
+}
+
 export function useImageDisplayPreferences(
   display: string,
   orientation: ImageDisplayPreferences["orientation"],
@@ -9,29 +40,7 @@ export function useImageDisplayPreferences(
   const key = `dioptas-auto-levels-v1:${display}`;
   const [preferences, setPreferences] = useState<ImageDisplayPreferences>(
     () => {
-      const auto: AutoLevels = {
-        mode: "percentile",
-        percentile: 2.5,
-        filter_gaps: filterGaps,
-      };
-      try {
-        const saved = JSON.parse(localStorage.getItem(key) ?? "null");
-        if (saved && typeof saved === "object") {
-          if (["percentile", "minmax", "mean3std"].includes(saved.mode))
-            auto.mode = saved.mode;
-          if (
-            typeof saved.percentile === "number" &&
-            Number.isFinite(saved.percentile) &&
-            saved.percentile >= 0.01 &&
-            saved.percentile <= 25
-          )
-            auto.percentile = saved.percentile;
-          if (typeof saved.filter_gaps === "boolean")
-            auto.filter_gaps = saved.filter_gaps;
-        }
-      } catch {
-        /* Use defaults if saved preferences cannot be read. */
-      }
+      const auto = readImageAutoLevels(display, filterGaps);
       return { size: "compact", orientation, auto };
     },
   );

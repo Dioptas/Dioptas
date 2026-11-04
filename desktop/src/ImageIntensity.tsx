@@ -113,6 +113,15 @@ export function ImageIntensity({
   }, []);
   useEffect(() => {
     if (!ready || previousSource.current === raster.data) return;
+    if (
+      raster.autoLevels?.mode === auto.mode &&
+      raster.autoLevels.percentile === auto.percentile &&
+      raster.autoLevels.filter_gaps === auto.filter_gaps
+    ) {
+      previousSource.current = raster.data;
+      setAutoActive(true);
+      return;
+    }
     const timer = setTimeout(() => {
       previousSource.current = raster.data;
       applyAuto(auto);

@@ -205,6 +205,15 @@ selects the Canvas renderer for diagnostics and comparisons.
 
 ## Image and pattern rendering
 
+New detector sources are published together with their source-precision Auto
+limits, across Calibration, Mask, Integration (corrected/raw) and Map. The
+command queue stays reserved through the Python intensity calculation. This
+avoids first showing new pixels with the previous file's or temporary default
+limits. Contrast and view resets happen before drawing; canvas layers update
+before the browser paints. Each display retains its own Auto preferences.
+`npm run test:detector-redraw -- --webkit` counts real draw/upload calls and
+checks delayed Auto responses; add `--canvas` to check the software fallback.
+
 Detector and cake images use WebGL 2 (`src/WebGLRaster.ts`). Each mounted view
 retains one full-resolution R32F intensity texture, an R8 mask and the selected
 colour lookup table. Intensity limits, linear/log mapping and mask transparency
