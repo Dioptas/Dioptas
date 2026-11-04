@@ -516,3 +516,28 @@ scales, shared visibility/pressure/temperature/scale/offset, and detach/dock.
 `npm --prefix desktop test` includes independent unit-conversion checks.
 Python Map/Integration tests cover shared reference values with mismatched
 stored/display units, normalized/stored-only profiles and extended CIF coverage.
+
+## Shared green inspection position (2026-11-04)
+
+Map's detector and pattern now use Integration's shared calibrated inspection
+state. Detector clicks show a green ring/crosshair and the matching radial line;
+pattern clicks update the same position on the detector. Integration and Map
+render the same physical 2θ selection in their own radial display units. Markers
+survive mode switches and scan-window detach/dock. The existing backend context
+invalidation still clears stale markers when the image/frame or geometry changes.
+Stored-only/uncalibrated profiles can show a local pattern marker without sending
+an invalid calibrated-detector request. Calibration peak picking and Mask remain
+separate from linked inspection.
+
+PatternView has an optional inspection callback alongside its existing picking
+callback. It fires for stationary clicks, including inside editable ROI regions;
+ROI drags do not change the green inspection position. Map's existing ROI
+selection and recentering continue to work. Position commands use the main
+ordered queue without disabling the plots, and both modes show the existing
+compact Click readout in the application footer.
+
+`node desktop/scripts/map_linked_position.mjs` (also `--webkit`) checks real
+calibrated images, actual green rendered pixels, detector/pattern clicks in
+both directions, mode switches, Q/d conversion with different Integration and
+Map units, ROI clicks/drags, and detach/dock. `npm --prefix desktop test` covers
+canonical physical-position conversion and uncalibrated local markers.

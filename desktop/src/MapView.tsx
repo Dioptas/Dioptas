@@ -11,6 +11,7 @@ import { PatternView } from "./PatternView";
 import { ImageIntensity } from "./ImageIntensity";
 import { MapControls } from "./MapControls";
 import { mapPatternInUnit } from "./mapPattern";
+import { patternPositionInUnit, type PatternPosition } from "./linkedPosition";
 import { radialValues } from "./radialReadout";
 import { useMapDisplay, useMapPreference } from "./mapPreferences";
 import { ScanMapPanel } from "./ScanMapPanel";
@@ -44,7 +45,21 @@ export function MapView({
   patternZoom,
   onPatternZoom,
   mapWindow,
+  linked,
+  localImageClick,
+  localPatternClick,
+  onDetectorInspect,
+  onPatternInspect,
 }: {
+  linked: Response["linked"];
+  localImageClick: { x: number; y: number } | null;
+  localPatternClick?: PatternPosition;
+  onDetectorInspect: (point: {
+    x: number;
+    y: number;
+    value: number | null;
+  }) => void;
+  onPatternInspect: (point: PatternHover) => void;
   map: MapData | null;
   image: Raster | null;
   mask: Raster | null;
@@ -254,6 +269,9 @@ export function MapView({
             busy={!ready}
             zoomMode="rectangle"
             onHover={onDetectorHover}
+            rings={linked?.contours}
+            clickedPoint={linked?.imagePoint ?? localImageClick}
+            onInspect={onDetectorInspect}
           />
           {intensity(image, detector, "detector")}
         </div>
@@ -440,6 +458,29 @@ export function MapView({
               <PatternView
                 key={viewPattern.unit}
                 pattern={viewPattern}
+                linkedPosition={patternPositionInUnit(
+                  linked,
+                  localPatternClick,
+                  viewPattern.unit,
+                  state?.geometry.wavelength,
+                )}
+                onInspect={(x, mouseY, resolution) => {
+                  const nearest = viewPattern.x.reduce(
+                    (best, value, i) =>
+                      Math.abs(value - x) < Math.abs(viewPattern.x[best] - x)
+                        ? i
+                        : best,
+                    0,
+                  );
+                  onPatternInspect({
+                    x,
+                    mouseY,
+                    unit: viewPattern.unit,
+                    y: viewPattern.y[nearest],
+                    xResolution: resolution.x,
+                    yResolution: resolution.y,
+                  });
+                }}
                 patternColor={state?.integration.originalPatternColor}
                 showPattern={state?.integration.originalPatternVisible ?? true}
                 curves={viewPattern.curves}
