@@ -55,6 +55,8 @@ createInterface({ input: host.stdout }).on("line", (line) => {
 function invoke(action, payload = {}) {
   if (action === "open_image" && payload.multiple && !payload.paths)
     payload = { ...payload, paths };
+  if (action === "open_image" && payload.batch_mode === "save")
+    payload = { ...payload, output_directory: temporary };
   if (action === "batch_load_data" && processed)
     payload = { paths: [path.join(artifacts, "batch.h5")] };
   requests.push(action);
@@ -85,7 +87,16 @@ await page.exposeFunction("__dioptasInvoke", async (action, payload) => {
 });
 await page.addInitScript(() => {
   window.pywebview = {
-    api: { invoke: (a, p) => window.__dioptasInvoke(a, p) },
+    api: {
+      invoke: async (a, p) => {
+        window.__pending = (window.__pending ?? 0) + 1;
+        try {
+          return await window.__dioptasInvoke(a, p);
+        } finally {
+          window.__pending--;
+        }
+      },
+    },
   };
   window.addEventListener("message", (e) => {
     if (e.data?.message?.command === "batch_select")
@@ -94,7 +105,10 @@ await page.addInitScript(() => {
 });
 const ready = async () => {
   await page.waitForFunction(
-    () => document.querySelector(".app") && !document.querySelector(".spin"),
+    () =>
+      document.querySelector(".app") &&
+      !document.querySelector(".spin") &&
+      !window.__pending,
   );
   assert.deepEqual(await page.getByRole("alert").allTextContents(), []);
 };
@@ -193,11 +207,55 @@ try {
     0,
   );
   await click(page, "Integration");
+  const batchButton = page.getByRole("button", {
+    name: "Batch view…",
+    exact: true,
+  });
+  assert.equal(await batchButton.getAttribute("aria-pressed"), "false");
+  assert.equal(
+    await page
+      .getByRole("group", { name: "Integration image controls", exact: true })
+      .getByRole("button", { name: "Batch view…", exact: true })
+      .count(),
+    0,
+  );
+  const fileInfo = page.getByRole("button", { name: "File Info", exact: true });
+  assert.equal(await fileInfo.getAttribute("aria-expanded"), "false");
+  await fileInfo.click();
+  // Qt's Image-tab modes share the same chooser; only Integrate opens Batch.
+  for (const mode of ["add", "average", "save"]) {
+    await page
+      .getByRole("radio", { name: `Batch mode ${mode}`, exact: true })
+      .click();
+    await ready();
+    await click(page, "Load image…");
+    if (mode === "save")
+      await page
+        .getByRole("status")
+        .filter({ hasText: "Saved 6 batch images" })
+        .waitFor();
+    else
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[aria-label="Image filename"]')?.value ===
+          "series_1.tif",
+      );
+    await ready();
+    assert.equal(context.pages().length, 1);
+    assert.equal((await invoke("state")).batch, null);
+  }
+  await page
+    .getByRole("radio", { name: "Batch mode integrate", exact: true })
+    .click();
+  await ready();
+  assert.equal(await fileInfo.getAttribute("aria-expanded"), "true");
+  await fileInfo.click();
   const opened = context.waitForEvent("page");
   await click(page, "Load image…");
   child = await opened;
   await child.waitForLoadState();
   await selected(child, 1);
+  assert.equal(await batchButton.getAttribute("aria-pressed"), "true");
   assert.equal(
     await page
       .getByRole("button", { name: "Integration", exact: true })
@@ -279,6 +337,51 @@ try {
   state = await invoke("state");
   assert.equal(state.state.imageName, "series_5.tif");
   assert(state.cake);
+  assert(state.linked);
+  await child.waitForFunction(() =>
+    Number.isFinite(
+      Number(
+        document.querySelector('[data-testid="batch-heatmap"]').dataset
+          .linkedPosition,
+      ),
+    ),
+  );
+  await child.mouse.move(b.x + 140, b.y + 80);
+  await child.locator('.detached-batch-footer [data-field="I"]').waitFor();
+  assert(
+    await child.locator('.detached-batch-footer [data-field="2θ"]').isVisible(),
+  );
+  assert(
+    await child
+      .locator('.detached-batch-footer [data-field="Frame"]')
+      .isVisible(),
+  );
+  assert.equal(
+    (
+      await invoke("integration_phase", {
+        operation: "load",
+        path: path.join(root, "dioptas/tests/data/jcpds/au_version3.jcpds"),
+      })
+    ).ok,
+    true,
+  );
+  // Refresh the main command state through a real UI command, as in normal use.
+  await click(child, "Next batch frame");
+  await selected(child, 6);
+  await click(child, "Previous batch frame");
+  await selected(child, 5);
+  await click(child, "Show batch phases");
+  await child.waitForFunction(
+    () =>
+      Number(
+        document.querySelector('[data-testid="batch-heatmap"]').dataset
+          .phaseLineCount,
+      ) > 0,
+  );
+  await child.mouse.move(b.x + 140, b.y + 80);
+  await child.locator('.detached-batch-footer [data-field="I"]').waitFor();
+  await child.screenshot({path: path.join(artifacts, "batch-phases.png")});
+  await click(child, "Show batch phases");
   // Both zoom modes share the blue selection, and a slice keeps all frame rows.
   const dragZoom = async (mode) => {
     await click(
@@ -735,6 +838,7 @@ try {
   await selectIntegrationDisplay(page, "cake");
   await click(page, "Hide batch view");
   assert.equal(await dock.count(), 0);
+  assert.equal(await batchButton.getAttribute("aria-pressed"), "false");
   assert.equal((await invoke("state")).batch.entries.length, 3);
   await click(page, "Batch view…");
   await dock.waitFor();

@@ -7,6 +7,7 @@ import { BatchView } from "./BatchView";
 import { usePlotReadout } from "./plotReadout";
 import type { BatchData, BatchRun } from "./batchDomain";
 import type { Invoke, Response } from "./types";
+import { ReadingFields } from "./PlotStatus";
 
 export function DetachedBatchWindow() {
   const [batch, setBatch] = useState<BatchData | null>(null);
@@ -129,6 +130,7 @@ export function DetachedBatchWindow() {
       data-text-size={status.largeText ? "large" : "normal"}
     >
       <BatchView
+        position={status.position}
         batch={batch}
         calibrated={status.calibrated}
         ready={status.ready}
@@ -139,11 +141,14 @@ export function DetachedBatchWindow() {
         onHide={() => void run("batch_hide")}
       />
       <footer className="detached-batch-footer">
-        <span>
-          {readout.reading?.text ??
-            (batch
-              ? `Frame ${batch.selected} · ${batch.entries[batch.selected]?.name}`
-              : "Load a series to inspect it in Integration.")}
+        <span className="batch-reading">
+          {readout.reading ? (
+            <ReadingFields reading={readout.reading} />
+          ) : batch ? (
+            `Frame ${batch.selected} · ${batch.entries[batch.selected]?.name}`
+          ) : (
+            "Load a series to inspect it in Integration."
+          )}
         </span>
         <span role={error || status.error ? "alert" : undefined}>
           {error ||

@@ -1,6 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { batchDisplayInUnit } from "../src/batchDisplay.ts";
+import { batchRadialBin } from "../src/batchPlot.ts";
+test("batch markers project into nonuniform ascending and descending radial axes", () => {
+  assert.equal(batchRadialBin(15, [10, 20, 40]), 1);
+  assert.equal(batchRadialBin(30, [40, 20, 10]), 1);
+  assert.equal(batchRadialBin(10, [40, 20, 10]), 2.5);
+  assert.equal(batchRadialBin(10, [10]), 0.5);
+  assert.equal(batchRadialBin(50, [10, 20, 40]), null);
+});
 test("linked batch coordinates convert without replacing the intensity matrix or columns", () => {
   const raster = { data: new Float32Array([1, 2, 3, 4]) };
   const original = { x: [10, 20], unit: "2th_deg", wavelength: 1e-10, raster };

@@ -228,6 +228,7 @@ class IntegrationWorkflow(PhaseWorkflow):
             "phases": self._phase_state(),
             "phaseColdPressure": self._model.phase_model.params.dac_thermal_pressure_enabled,
             "batchFrames": int(c.batch_model.n_img or 0),
+            "imageBatchMode": getattr(self, "_image_batch_mode", "integrate"),
             "patternName": c.pattern_model.pattern.name,
             "originalPatternColor": c.pattern_model.params.color,
             "originalPatternVisible": c.pattern_model.params.visible,

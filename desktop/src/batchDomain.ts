@@ -17,6 +17,9 @@ export interface BatchData {
   normalizationRange: [number, number];
   normalizationReference: number;
   calibration: string | null;
+  /** Phase coordinates are d spacings in angstroms, independent of display unit. */
+  phaseLines?: import("./types").Pattern["phaseLines"];
+  position?: import("./linkedPosition").PatternPosition | null;
 }
 export type BatchRun = (
   command: string,

@@ -13,6 +13,7 @@ interface Display {
   palette: string;
   range: PlotRange | null;
   zoomMode: ZoomMode;
+  phases: boolean;
   auto: boolean;
   initialized: boolean;
 }
@@ -26,6 +27,7 @@ function read(batch: BatchData | null): Display {
     palette: "grey",
     range: null,
     zoomMode: "rectangle",
+    phases: false,
     auto: true,
     initialized: false,
   };
@@ -33,6 +35,7 @@ function read(batch: BatchData | null): Display {
     const saved = JSON.parse(localStorage.getItem(key) ?? "null");
     fallback.zoomMode =
       saved?.zoomMode === "horizontal" ? "horizontal" : "rectangle";
+    fallback.phases = saved?.phases === true;
     if (
       saved?.id === batch?.id &&
       saved.limits?.length === 2 &&
@@ -42,6 +45,7 @@ function read(batch: BatchData | null): Display {
       return {
         ...saved,
         zoomMode: fallback.zoomMode,
+        phases: fallback.phases,
       };
   } catch {
     /* New series uses its own automatic limits. */

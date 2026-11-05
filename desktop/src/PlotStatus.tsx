@@ -151,4 +151,10 @@ export function ReadingFields({ reading }: { reading: PlotReading }) {
     : reading.text;
 }
 export const sourceLabel = (source: PlotSource) =>
-  ({ detector: "Image", cake: "Cake", pattern: "Pattern", map: "Map" })[source];
+  ({
+    detector: "Image",
+    cake: "Cake",
+    pattern: "Pattern",
+    map: "Map",
+    batch: "Batch",
+  })[source];

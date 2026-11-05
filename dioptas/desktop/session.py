@@ -251,6 +251,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
                     raise ValueError("Defer integration must be a boolean.")
                 self._defer_integration = defer_integration
                 readonly = {
+                    "image_batch_mode",
                     "integration_phase_state",
                     "integration_phase_guides",
                     "integration_phase_editor",
@@ -288,7 +289,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
                     result = handlers[action](**(arguments or {}))
                     if action in {"open_image", "next_image", "example"} and not result.get(
                         "cancelled"
-                    ):
+                    ) and not result.get("imageBatchSaved"):
                         self._integration_image_loaded()
                 if "state" in result:
                     result["state"] = self._state()["state"]
@@ -448,14 +449,14 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         self._calculate()
         return self._snapshot(include_image=True)
 
-    def _open_image(self, path=None, directory=None, paths=None, multiple=False):
+    def _open_image(self, path=None, directory=None, paths=None, multiple=False, batch_mode=None, output_directory=None):
         if multiple and paths is None and path is None and self._choose_file:
             paths = self._choose_file("batch_images", False)
         if paths is not None:
             if not paths:
                 return {"cancelled": True}
             if len(paths) > 1:
-                return self._batch_load(paths=paths)
+                return self._process_image_batch(paths, batch_mode, output_directory)
             path = paths[0]
         if path and directory and not Path(path).expanduser().is_absolute():
             path = str(Path(directory).expanduser() / path)

@@ -351,6 +351,20 @@ export default function App() {
           result.error || "The operation could not be completed.",
         );
       if ("batch" in result) setBatch(result.batch ?? null);
+      if (result.batchPosition) {
+        setLocalPatternClick(result.batchPosition);
+        setLocalImageClick(null);
+        const fields = radialFields(
+          result.batchPosition.x,
+          result.batchPosition.unit,
+          result.batchWavelength ?? undefined,
+        );
+        setClickedReading({
+          source: "batch",
+          fields,
+          text: fields.map((f) => `${f.label} ${f.value}`).join(" · "),
+        });
+      }
       if (result.batchSelection !== undefined)
         setBatch((b) =>
           b
@@ -358,6 +372,7 @@ export default function App() {
                 ...b,
                 selected: result.batchSelection!,
                 pattern: result.pattern ?? b.pattern,
+                position: result.batchPosition ?? b.position,
               }
             : b,
         );
@@ -469,8 +484,12 @@ export default function App() {
           setCakeLimits(result.cake.limits);
         cakeSource.current = result.cake ?? null;
       }
-      if (result.savedPath) {
-        setNotice(`Saved ${result.savedPath.split(/[\\/]/).at(-1)}`);
+      if (result.savedPath || result.savedPaths?.length) {
+        setNotice(
+          result.savedPaths?.length
+            ? `Saved ${result.savedPaths.length} batch images`
+            : `Saved ${result.savedPath!.split(/[\\/]/).at(-1)}`,
+        );
         if (toastTimer.current) clearTimeout(toastTimer.current);
         toastTimer.current = setTimeout(() => setNotice(null), 4500);
       }
@@ -531,6 +550,7 @@ export default function App() {
           command !== "integration_phase_state" &&
           command !== "integration_phase_guides" &&
           command !== "image_levels" &&
+          command !== "image_batch_mode" &&
           !frameSelection)
       )
         return;
@@ -591,7 +611,8 @@ export default function App() {
         command === "integration_autoprocess_poll" ||
         frameSelection ||
         command === "validation_position" ||
-        command === "image_levels";
+        command === "image_levels" ||
+        command === "image_batch_mode";
       if (!quiet) {
         ++progressGeneration.current;
         setProgress(undefined);
@@ -802,7 +823,12 @@ export default function App() {
         event.preventDefault();
         void run(
           "open_image",
-          mode === "integration" ? { multiple: true } : {},
+          mode === "integration"
+            ? {
+                multiple: true,
+                batch_mode: currentState.current?.integration.imageBatchMode ?? "integrate",
+              }
+            : {},
           "Opening image…",
         );
       } else if (mod && key === "s") {
@@ -1482,6 +1508,9 @@ export default function App() {
     run,
     request: requestMap,
     status: {
+      position: linked
+        ? { x: linked.twoTheta, unit: "2th_deg" }
+        : localPatternClick,
       ready,
       calibrated: !!state?.calibrated,
       largeText,
@@ -2077,7 +2106,6 @@ export default function App() {
                       )}
                       {mode === "integration" && (
                         <IntegrationImageControls
-                          onOpenBatch={openBatch}
                           onSaveImage={() => {
                             const source =
                               integrationDisplay === "cake" ? "cake" : "image";
@@ -2140,6 +2168,9 @@ export default function App() {
                       )}
                       {mode === "integration" && batchDockVisible && (
                         <BatchDock
+                          position={linked
+                            ? { x: linked.twoTheta, unit: "2th_deg" }
+                            : localPatternClick}
                           batch={batch}
                           calibrated={!!state?.calibrated}
                           ready={ready}
@@ -2550,6 +2581,8 @@ export default function App() {
                       )}
                       {mode === "integration" && (
                         <IntegrationView
+                          onOpenBatch={openBatch}
+                          batchOpen={batchDockVisible || batchWindow.detached}
                           state={state}
                           ready={ready}
                           run={run}

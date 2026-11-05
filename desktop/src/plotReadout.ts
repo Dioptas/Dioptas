@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Unit } from "./types";
 
-export type PlotSource = "detector" | "cake" | "pattern" | "map";
+export type PlotSource = "detector" | "cake" | "pattern" | "map" | "batch";
 export type PlotField = {
   label: string;
   value: string;

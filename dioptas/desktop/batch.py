@@ -12,11 +12,13 @@ from dioptas.model.worker_configuration import (
     build_worker_configuration,
 )
 from .display import image_levels
+from .image_batch import ImageBatchWorkflow
 
 
-class BatchWorkflow:
+class BatchWorkflow(ImageBatchWorkflow):
     def _batch_commands(self):
         return {
+            "image_batch_mode": self._set_image_batch_mode,
             "batch_snapshot": self._batch_snapshot,
             "batch_load_data": self._batch_load_data,
             "batch_folder_step": self._batch_folder_step,
@@ -93,6 +95,8 @@ class BatchWorkflow:
             b._desktop_display_source = b.data
             b._desktop_display_id = uuid4().hex
         profile = self._batch_pattern(b, self._batch_index())
+        linked = self._linked_snapshot()
+        clicked_owner, clicked = getattr(self, "_batch_clicked", (None, None))
         entries = []
         for i in range(len(b.data)):
             path, frame = b.get_image_info(i)
@@ -127,6 +131,11 @@ class BatchWorkflow:
                 "normalizationRange": list(b.normalization_range),
                 "normalizationReference": int(b.normalization_reference),
                 "calibration": b.used_calibration,
+                "phaseLines": self._pattern_reference_data("d_A")["phaseLines"],
+                "position": (
+                    {"x": linked["twoTheta"], "unit": "2th_deg"}
+                    if linked is not None else clicked if clicked_owner is b else None
+                ),
                 "mask": b.used_mask,
             }
         }
@@ -344,7 +353,7 @@ class BatchWorkflow:
         self._batch_selected, self._batch_owner = 0, b
         return {**self._batch_select(0), **self._batch_snapshot(), "batchOpened": True}
 
-    def _batch_select(self, index):
+    def _batch_select(self, index, position=None):
         b = self._require_batch()
         if (
             isinstance(index, bool)
@@ -353,6 +362,19 @@ class BatchWorkflow:
         ):
             raise ValueError("Choose a frame within the integrated batch.")
         index = int(index)
+        angle = None
+        if position is not None:
+            from .integration import finite
+            from dioptas.model.util.calc import convert_units
+            if not isinstance(position, dict) or position.get("unit") not in {"2th_deg", "q_A^-1", "d_A"}:
+                raise ValueError("Choose a valid batch radial position.")
+            position = {"x": finite(position.get("x"), "Batch radial position"), "unit": position["unit"]}
+            wavelength = getattr(b, "_desktop_wavelength", None)
+            if position["unit"] == "2th_deg":
+                angle = finite(position["x"], "2theta", 0, 180)
+            elif wavelength:
+                with np.errstate(invalid="ignore", divide="ignore"):
+                    angle = finite(float(convert_units(position["x"], wavelength, position["unit"], "2th_deg")), "2theta", 0, 180)
         path, frame = b.get_image_info(index)
         response = {}
         warning = None
@@ -386,6 +408,12 @@ class BatchWorkflow:
         self._integration_dirty = False
         self._batch_selected, self._batch_owner = index, b
         self._revision += 1
+        if position is not None:
+            self._batch_clicked = (b, position)
+            response["batchPosition"] = position
+            response["batchWavelength"] = getattr(b, "_desktop_wavelength", None)
+            if available and self.configuration.is_calibrated and angle is not None:
+                response.update(self._validation_position(source="cake", x=angle))
         return {
             **response,
             **self._state(),

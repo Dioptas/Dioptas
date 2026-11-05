@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { BatchData } from "./batchDomain";
 import { decodeRaster } from "./rasterTransfer";
-import { unitLabel, number } from "./types";
+import { unitLabel, type Pattern } from "./types";
+import { radialFields, radialValues } from "./radialReadout";
+import { intensityValue } from "./readoutNumbers";
+import type { PatternPosition } from "./linkedPosition";
+import { POSITION_LINE_COLOR } from "./plotColors";
+import { batchRadialBin } from "./batchPlot";
 import { linearTicks } from "./plotTicks";
 import { rasterCanvas } from "./rasterCanvas";
 import {
@@ -21,6 +26,8 @@ import {
  */
 export function BatchHeatmap({
   batch,
+  position,
+  phaseLines,
   viewport,
   zoomMode,
   onZoomMode,
@@ -33,6 +40,8 @@ export function BatchHeatmap({
   reportPlot,
 }: {
   batch: BatchData;
+  position?: PatternPosition;
+  phaseLines?: Pattern["phaseLines"];
   viewport?: import("./plotViewport").PlotViewport;
   zoomMode: ZoomMode;
   onZoomMode: (mode: ZoomMode) => void;
@@ -41,7 +50,7 @@ export function BatchHeatmap({
   sqrt?: boolean;
   palette: string;
   ready: boolean;
-  onSelect: (index: number) => void;
+  onSelect: (index: number, position?: PatternPosition) => void;
   reportPlot: ReportPlot;
 }) {
   const host = useRef<HTMLDivElement>(null),
@@ -134,6 +143,45 @@ export function BatchHeatmap({
     ctx.scale(sx, -sy);
     ctx.drawImage(bitmap, 0, 0, cols, rows);
     ctx.restore();
+    const maxima = new Map<number, number>();
+    for (const line of phaseLines ?? [])
+      maxima.set(
+        line.phaseIndex ?? 0,
+        Math.max(maxima.get(line.phaseIndex ?? 0) ?? 0, line.intensity),
+      );
+    for (const line of phaseLines ?? []) {
+      const x = radialValues(line.x, "d_A", batch.wavelength ?? undefined)[
+        batch.unit
+      ];
+      const bin = x == null ? null : batchRadialBin(x, batch.x);
+      if (bin == null) continue;
+      const maximum = maxima.get(line.phaseIndex ?? 0) ?? 0;
+      const strength =
+        maximum > 0 ? Math.max(0, Math.min(1, line.intensity / maximum)) : 0;
+      ctx.strokeStyle = line.color;
+      ctx.lineWidth = 1 + 3 * strength;
+      ctx.globalAlpha = 0.3 + 0.4 * strength;
+      ctx.beginPath();
+      ctx.moveTo(px(bin), bounds.top);
+      ctx.lineTo(px(bin), bounds.top + bounds.height);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    const clicked =
+      position &&
+      radialValues(position.x, position.unit, batch.wavelength ?? undefined)[
+        batch.unit
+      ];
+    const clickedBin =
+      clicked == null ? null : batchRadialBin(clicked, batch.x);
+    if (clickedBin != null) {
+      ctx.strokeStyle = POSITION_LINE_COLOR;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(px(clickedBin), bounds.top);
+      ctx.lineTo(px(clickedBin), bounds.top + bounds.height);
+      ctx.stroke();
+    }
     const y = py(batch.selected + 0.5);
     ctx.strokeStyle = "#ff9500";
     ctx.lineWidth = 1.5;
@@ -178,19 +226,8 @@ export function BatchHeatmap({
       Math.max(2, Math.floor(bounds.width / 90)),
     );
     for (const tick of ticks) {
-      const ascending = batch.x[cols - 1] > batch.x[0];
-      let low = 0,
-        high = cols - 1;
-      while (high - low > 1) {
-        const mid = (low + high) >>> 1;
-        if (batch.x[mid] < tick.value === ascending) low = mid;
-        else high = mid;
-      }
-      const fraction =
-        (tick.value - batch.x[low]) / (batch.x[high] - batch.x[low]);
-      const bin =
-        cols === 1 ? 0.5 : low + Math.max(0, Math.min(1, fraction)) + 0.5;
-      ctx.fillText(tick.label, px(bin), size.height - 26);
+      const bin = batchRadialBin(tick.value, batch.x);
+      if (bin != null) ctx.fillText(tick.label, px(bin), size.height - 26);
     }
     ctx.fillStyle = "#929ca7";
     ctx.fillText(
@@ -219,6 +256,8 @@ export function BatchHeatmap({
     batch.selected,
     batch.unit,
     zoomMode,
+    position,
+    phaseLines,
   ]);
   const hit = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const p = nav.screen(event),
@@ -233,7 +272,15 @@ export function BatchHeatmap({
       index < rows &&
       bin >= 0 &&
       bin < cols
-      ? { index, bin }
+      ? {
+          index,
+          bin,
+          radial: radial(d.x),
+          resolution: Math.abs(
+            radial(d.x + (nav.view.xMax - nav.view.xMin) / bounds.width) -
+              radial(d.x),
+          ),
+        }
       : null;
   };
   return (
@@ -244,6 +291,16 @@ export function BatchHeatmap({
         data-unit={batch.unit}
         data-intensity-scale={log ? "log" : sqrt ? "sqrt" : "linear"}
         data-zoom-mode={zoomMode}
+        data-phase-line-count={phaseLines?.length ?? 0}
+        data-linked-position={
+          position
+            ? (radialValues(
+                position.x,
+                position.unit,
+                batch.wavelength ?? undefined,
+              )[batch.unit] ?? undefined)
+            : undefined
+        }
         data-view-x-min={nav.view.xMin}
         data-view-x-max={nav.view.xMax}
         data-view-y-min={nav.view.yMin}
@@ -258,21 +315,36 @@ export function BatchHeatmap({
         onPointerMove={(e) => {
           nav.onPointerMove(e);
           const p = hit(e);
-          reportPlot(
-            "map",
-            p
-              ? {
-                  text: `Frame ${p.index} · ${unitLabel(batch.unit)} ${number(batch.x[p.bin], 5)} · I ${number(values[p.index * cols + p.bin], 5)}`,
-                  hint: `Click a row to select a pattern. Drag for ${zoomMode === "horizontal" ? "X-range" : "rectangle"} zoom; right drag to pan.`,
-                }
-              : null,
-          );
+          if (!p) {
+            reportPlot("batch", null);
+            return;
+          }
+          const fields = [
+            { label: "Frame", value: String(p.index), kind: "pixel" as const },
+            {
+              label: "I",
+              value: intensityValue(values[p.index * cols + p.bin]),
+              kind: "intensity" as const,
+            },
+            ...radialFields(
+              p.radial,
+              batch.unit,
+              batch.wavelength ?? undefined,
+              p.resolution,
+            ),
+          ];
+          reportPlot("batch", {
+            fields,
+            text: fields.map((f) => `${f.label} ${f.value}`).join(" · "),
+            hint: `Click to select a frame and radial position. Drag for ${zoomMode === "horizontal" ? "X-range" : "rectangle"} zoom; right drag to pan.`,
+          });
         }}
-        onPointerLeave={() => reportPlot("map", null)}
+        onPointerLeave={() => reportPlot("batch", null)}
         onPointerUp={(e) => {
           const gesture = nav.onPointerUp(e),
             p = hit(e);
-          if (gesture === "click" && p && ready) onSelect(p.index);
+          if (gesture === "click" && p && ready)
+            onSelect(p.index, { x: p.radial, unit: batch.unit });
         }}
         onPointerCancel={nav.onPointerCancel}
         onKeyDown={(e) => {

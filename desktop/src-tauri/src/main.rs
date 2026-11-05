@@ -41,6 +41,20 @@ fn folder_choice(action: &str, payload: &Value) -> bool {
     ) && payload["path"].is_null()
 }
 
+fn batch_image_output_choice(action: &str, payload: &Value) -> bool {
+    action == "open_image" && payload["batch_mode"] == "save"
+        && payload["paths"].as_array().is_some_and(|paths| paths.len() > 1)
+        && payload["output_directory"].is_null()
+}
+
+fn choose_batch_image_output(app: &tauri::AppHandle, action: &str, payload: &mut Value) -> Result<bool, String> {
+    if batch_image_output_choice(action, payload) {
+        let Some(folder) = app.dialog().file().blocking_pick_folder() else { return Ok(false); };
+        payload["output_directory"] = json!(folder.into_path().map_err(|e| e.to_string())?.to_string_lossy());
+    }
+    Ok(true)
+}
+
 fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
     if matches!(action, "integration_phase_files" | "integration_phase") && payload.get("paths").is_some_and(|v| !v.is_null()) {
         return None;
@@ -253,6 +267,9 @@ async fn desktop_invoke(
                     );
                 }
                 payload["paths"] = json!(paths);
+                if !choose_batch_image_output(&app, &action, &mut payload)? {
+                    return Ok(Packet::metadata(json!({"ok": true, "cancelled": true})));
+                }
                 return processor.request_packet(&action, payload, cached);
             }
             let selected = if choice.save {
@@ -270,6 +287,9 @@ async fn desktop_invoke(
             };
             let path = selected.into_path().map_err(|e| e.to_string())?;
             payload["path"] = Value::String(path.to_string_lossy().into_owned());
+        }
+        if !choose_batch_image_output(&app, &action, &mut payload)? {
+            return Ok(Packet::metadata(json!({"ok": true, "cancelled": true})));
         }
         processor.request_packet(&action, payload, cached)
     })
@@ -469,6 +489,10 @@ mod tests {
     }
     #[test]
     fn batch_dialogs_distinguish_sources_and_explicit_payloads() {
+        assert!(batch_image_output_choice("open_image", &json!({"batch_mode": "save", "paths": ["one.tif", "two.tif"]})));
+        assert!(!batch_image_output_choice("open_image", &json!({"batch_mode": "save", "paths": ["one.tif"]})));
+        assert!(!batch_image_output_choice("open_image", &json!({"batch_mode": "integrate", "paths": ["one.tif", "two.tif"]})));
+        assert!(!batch_image_output_choice("open_image", &json!({"batch_mode": "save", "paths": ["one.tif", "two.tif"], "output_directory": "/tmp"})));
         assert!(file_choice("batch_load", &json!({})).is_some());
         assert!(file_choice("batch_load_data", &json!({})).is_some());
         assert!(file_choice("batch_load_data", &json!({"paths": ["series.h5"]})).is_none());

@@ -342,3 +342,40 @@ def test_selected_frame_updates_cake_and_keeps_stored_series(prepared):
     assert snapshot["batch"]["selected"] == 2
     assert snapshot["batch"]["id"] == call(s, "batch_snapshot")["batch"]["id"]
     assert "image" not in snapshot and "cake" not in snapshot
+
+
+@pytest.mark.parametrize("unit", ["2th_deg", "q_A^-1", "d_A"])
+def test_batch_click_links_radial_position_and_keeps_matrix(prepared, unit):
+    s, paths = prepared
+    call(s, "batch_load", paths=paths)
+    batch = call(s, "batch_unit", unit=unit)["batch"]
+    matrix = s.configuration.batch_model.data.copy()
+    x = batch["x"][len(batch["x"]) // 2]
+    selected = call(s, "batch_select", index=1, position={"x": x, "unit": unit})
+    assert selected["batchPosition"] == {"x": x, "unit": unit}
+    assert selected["linked"]["radial"] == pytest.approx(x)
+    assert selected["state"]["imagePath"] == paths[1]
+    assert selected["cake"]
+    snapshot = call(s, "batch_snapshot")["batch"]
+    assert snapshot["position"]["unit"] == "2th_deg"
+    assert snapshot["position"]["x"] == pytest.approx(selected["linked"]["twoTheta"])
+    np.testing.assert_array_equal(s.configuration.batch_model.data, matrix)
+    Path(paths[0]).unlink()
+    stored = call(s, "batch_select", index=0, position={"x": x, "unit": unit})
+    assert stored["clearImage"] and stored["batchPosition"]["x"] == x
+    assert stored.get("linked") is None
+
+
+def test_batch_phase_lines_follow_shared_phase_conditions(prepared):
+    s, paths = prepared
+    call(s, "batch_load", paths=paths)
+    call(s, "integration_phase", operation="load", path=str(DATA / "jcpds/au_version3.jcpds"))
+    original = call(s, "batch_snapshot")["batch"]["phaseLines"]
+    assert original and all(line["x"] > 0 for line in original)
+    expected = s._model.phase_model.get_phase_line_positions(0, "d_A", s.configuration.calibration_model.wavelength * 1e10)
+    np.testing.assert_allclose([line["x"] for line in original], expected)
+    call(s, "integration_phase", operation="update", index=0, pressure=20)
+    changed = call(s, "batch_snapshot")["batch"]["phaseLines"]
+    assert changed[0]["x"] != original[0]["x"]
+    call(s, "integration_phase", operation="update", index=0, visible=False)
+    assert not call(s, "batch_snapshot")["batch"]["phaseLines"]

@@ -61,6 +61,7 @@ export interface IntegrationState {
     referenceDetails: PhaseReference[];
   }[];
   batchFrames: number;
+  imageBatchMode?: "integrate" | "add" | "average" | "save";
   patternName: string;
   originalPatternColor?: string;
   originalPatternVisible?: boolean;

@@ -133,6 +133,10 @@
   color: var(--accent);
   background: #ff950014;
 }
+.app .batch-series-toolbar button[aria-pressed="true"],
+.app .batch-series-toolbar button[aria-pressed="true"]:not(:disabled):hover {
+  color: var(--accent);
+}
 .batch-qt-content {
   flex: 1;
   min-height: 0;
@@ -385,6 +389,11 @@
 }
 .detached-batch-footer > span:first-child {
   margin-right: auto;
+}
+.batch-reading {
+  display: flex;
+  align-items: center;
+  min-width: 0;
 }
 .detached-batch-footer [role="alert"] {
   color: #ffb2a3;

@@ -75,24 +75,25 @@
 .integration-image-info {
   min-width: 0;
 }
-.integration-image-info > summary {
-  width: fit-content;
-  cursor: pointer;
-  padding: 5px 8px;
-  border-radius: 3px;
-  list-style: none;
-  background: #2b3036;
-  color: #dce0e3;
+.integration-file-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
-.integration-image-info > summary::-webkit-details-marker {
-  display: none;
+.integration-image-batch-modes {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+  min-width: 0;
 }
-.integration-image-info > summary:hover {
-  background: #383f46;
+.integration-image-batch-modes .check-row {
+  gap: 4px;
+  white-space: nowrap;
 }
-.integration-image-info > summary:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+.integration-file-actions button[aria-pressed="true"] {
+  color: var(--accent);
+  border-color: #ff950066;
 }
 .integration-image-info pre {
   max-height: 200px;

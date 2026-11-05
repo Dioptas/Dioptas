@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import type { State } from "./types";
 import type { IntegrationState } from "./integration";
 import { IntegrationFileNavigator } from "./IntegrationFileNavigator";
@@ -6,6 +6,8 @@ import "./integrationFileControls.css";
 
 /** Qt's file browser: load/watch, file stepping, filename and working folder. */
 export function IntegrationImageControls({
+  onOpenBatch,
+  batchOpen,
   state,
   source,
   fileStep,
@@ -13,6 +15,8 @@ export function IntegrationImageControls({
   action,
   frameControl,
 }: {
+  onOpenBatch: () => void;
+  batchOpen: boolean;
   state: State | null;
   source: IntegrationState;
   fileStep: number;
@@ -27,6 +31,8 @@ export function IntegrationImageControls({
   const filename = state?.imageName ?? "";
   const [fileDraft, setFileDraft] = useState(filename);
   const [directoryDraft, setDirectoryDraft] = useState(directory);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const infoId = useId();
   useEffect(() => setFileDraft(filename), [filename, path]);
   useEffect(() => setDirectoryDraft(directory), [directory]);
   const loadFilename = () => {
@@ -56,7 +62,11 @@ export function IntegrationImageControls({
         onLoad={() => {
           if (fileDraft.trim() && fileDraft !== filename) loadFilename();
           else
-            action("open_image", { directory: directoryDraft, multiple: true });
+            action("open_image", {
+              directory: directoryDraft,
+              multiple: true,
+              batch_mode: source.imageBatchMode ?? "integrate",
+            });
         }}
         onNavigate={(direction) =>
           action("next_image", { direction, step: fileStep })
@@ -104,10 +114,58 @@ export function IntegrationImageControls({
           …
         </button>
       </div>
-      <details className="integration-image-info">
-        <summary>File Info</summary>
-        <pre>{source.fileInfo || path || "No file loaded"}</pre>
-      </details>
+      <div
+        className="integration-image-batch-modes"
+        role="radiogroup"
+        aria-label="Batch mode"
+      >
+        <span>Batch mode:</span>
+        {(["integrate", "add", "average", "save"] as const).map((mode) => (
+          <label
+            className="check-row"
+            key={mode}
+            title={
+              {
+                integrate: "Integrate all selected images",
+                add: "Add all selected images",
+                average: "Average all selected images",
+                save: "Save corrected copies of all selected images",
+              }[mode]
+            }
+          >
+            <input
+              type="radio"
+              name={`${infoId}-batch-mode`}
+              aria-label={`Batch mode ${mode}`}
+              checked={(source.imageBatchMode ?? "integrate") === mode}
+              onChange={() => action("image_batch_mode", { mode })}
+            />
+            {mode[0].toUpperCase() + mode.slice(1)}
+          </label>
+        ))}
+      </div>
+      <div className="integration-file-actions">
+        <button
+          type="button"
+          aria-expanded={infoOpen}
+          aria-controls={infoId}
+          onClick={() => setInfoOpen((open) => !open)}
+        >
+          File Info
+        </button>
+        <button
+          type="button"
+          aria-label="Batch view…"
+          aria-pressed={batchOpen}
+          title={batchOpen ? "Show open Batch view" : "Open Batch view"}
+          onClick={onOpenBatch}
+        >
+          Batch…
+        </button>
+      </div>
+      <div className="integration-image-info" hidden={!infoOpen}>
+        <pre id={infoId}>{source.fileInfo || path || "No file loaded"}</pre>
+      </div>
     </div>
   );
 }

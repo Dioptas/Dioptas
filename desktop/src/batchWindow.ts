@@ -5,6 +5,7 @@ import type { IntegrationRun } from "./integration";
 import type { Response } from "./types";
 
 export interface BatchWindowStatus extends MapWindowStatus {
+  position?: import("./linkedPosition").PatternPosition;
   progress?: {
     running: boolean;
     current: number;
@@ -181,6 +182,8 @@ export function useBatchWindow({
     status.largeText,
     status.error,
     status.revision,
+    status.position?.x,
+    status.position?.unit,
     status.progress,
   ]);
   const open = async () => {

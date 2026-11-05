@@ -9,6 +9,11 @@ import numpy as np
 from PIL import Image
 
 
+def save_tiff_data(path, data):
+    """Qt's corrected int32 TIFF in the saved image's top-origin convention."""
+    Image.fromarray(np.flipud(np.asarray(data, dtype=np.int32))).save(path)
+
+
 def save_image(session, path=None, source="image", png_data=None, suggested_name=None):
     if source not in {"image", "cake"}:
         raise ValueError("Choose the detector image or cake to save.")
@@ -45,7 +50,7 @@ def save_image(session, path=None, source="image", png_data=None, suggested_name
         )
         # Match Qt ImageController.save_img: corrected scientific data, int32,
         # flipped to the saved image's top-origin row convention.
-        Image.fromarray(np.flipud(np.asarray(data, dtype=np.int32))).save(path)
+        save_tiff_data(path, data)
     elif suffix in {".txt", ".csv"} and source == "cake":
         delimiter = "," if suffix == ".csv" else " "
         with open(path, "w") as output:

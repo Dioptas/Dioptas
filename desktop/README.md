@@ -329,15 +329,19 @@ validation and remaining limitations, including detached windows and growing
 HDF5 datasets.
 ## Batch image series
 
-Integration → Image accepts multiple images and opens a separate Batch window after
-integration. It follows Qt's Files/2D dialog layout. Selecting a frame updates
+Integration → Image offers Qt's Integrate, Add, Average and Save choices for
+multiple images. Integrate opens a separate Batch window following Qt's Files/2D
+dialog layout. Selecting a frame updates
 Integration's detector, cake and stored pattern. Use **Dock batch** to place the
 series below the image in the lower-left corner; its divider resizes the dock,
-and the header can collapse it or detach it again. The compact **Batch** button
-beside the Image/Cake switch below the detector reopens the window or dock
-without discarding data, from any Integration controls tab. The dock's **Options** tab holds
+and the header can collapse it or detach it again. The compact **Batch…** button
+beside **File Info** in the Image tab reopens the window or dock without discarding
+data, and is orange while Batch is open. The dock's settings icon opens **Options**, which holds
 normalization and range settings so the series keeps most of the space. Its
 histogram defaults to vertical on the left, mirrored toward the plot.
+Hover uses separate Frame, intensity and radial fields in the shared footer.
+Clicking selects both a frame and the linked green radial marker. The Phases
+toggle shows shared phase references with the cake view's colors and line strengths.
 The floating window has pattern-style unit/scale buttons at the far right; the
 dock follows the main pattern’s controls. The dock shows frame position in the header instead
 of a bottom browsing slider; click rows or use the overview’s keyboard arrows.

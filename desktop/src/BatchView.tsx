@@ -8,6 +8,7 @@ import {
   FolderOpen,
   PanelBottomClose,
   Save,
+  Settings2,
   X,
 } from "lucide-react";
 import { DataTable, TableScroll } from "./DataTable";
@@ -26,6 +27,7 @@ import "./batch.css";
  * right-hand plot options, then actions and frame/range navigation below. */
 export function BatchView({
   batch,
+  position,
   calibrated,
   ready,
   run,
@@ -40,6 +42,7 @@ export function BatchView({
   onHide,
 }: {
   batch: BatchData | null;
+  position?: import("./linkedPosition").PatternPosition;
   calibrated: boolean;
   ready: boolean;
   run: BatchRun;
@@ -86,8 +89,15 @@ export function BatchView({
   useEffect(() => {
     if (batch) setTab((tab) => (docked && tab === "Options" ? tab : "2D"));
   }, [batch?.id]);
-  const select = (index: number) =>
-    void run("batch_select", { index }, "Loading batch frame…");
+  const select = (
+    index: number,
+    position?: import("./linkedPosition").PatternPosition,
+  ) =>
+    void run(
+      "batch_select",
+      { index, ...(position ? { position } : {}) },
+      "Loading batch frame…",
+    );
   const folder = batch?.files[0]?.path.replace(/[\\/][^\\/]*$/, "") ?? "";
   const folderLabel =
     folder
@@ -250,15 +260,26 @@ export function BatchView({
           ).map((name) => (
             <button
               role="tab"
+              aria-label={name}
+              title={name === "Options" ? "Options" : undefined}
               aria-selected={tab === name}
               key={name}
               disabled={name !== "Files" && !batch}
               onClick={() => setTab(name)}
             >
-              {name}
+              {name === "Options" ? <Settings2 size={15} /> : name}
             </button>
           ))}
         </div>
+        <PlotToggle
+          label="Show batch phases"
+          title="Show phase lines on the batch overview"
+          pressed={display.phases}
+          disabled={!batch?.phaseLines?.length}
+          onClick={() => display.update({ phases: !display.phases })}
+        >
+          Phases
+        </PlotToggle>
         <div className="batch-window-actions">
           {onCollapse && (
             <button
@@ -400,6 +421,8 @@ export function BatchView({
                   onAuto={auto}
                 />
                 <BatchHeatmap
+                  position={position ?? batch?.position ?? undefined}
+                  phaseLines={display.phases ? batch?.phaseLines : undefined}
                   batch={shownBatch!}
                   limits={display.limits}
                   log={shownLog}

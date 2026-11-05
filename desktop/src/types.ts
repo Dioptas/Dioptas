@@ -154,6 +154,7 @@ export interface RingOverlay {
   points: number[][];
 }
 export interface Response {
+  savedPaths?: string[];
   clearImage?: boolean;
   customCommands?: import("./customCommands").CustomCommand[];
   customCommandRuns?: Record<
@@ -164,6 +165,8 @@ export interface Response {
   phaseRevision?: number;
   batch?: import("./batchDomain").BatchData | null;
   batchSelection?: number;
+  batchPosition?: import("./linkedPosition").PatternPosition;
+  batchWavelength?: number | null;
   batchOpened?: boolean;
   batchLevels?: [number, number];
   batchWarning?: string | null;

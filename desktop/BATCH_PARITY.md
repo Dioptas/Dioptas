@@ -44,8 +44,9 @@ Axis labels also match its 13 px monospace font in both interface text sizes.
 the detector/cake and image toolbar. It shares the left column's width and leaves
 the pattern and right-hand task controls in place. Drag the divider (or focus it
 and use Up/Down) to resize; double-click resets the height. The header can collapse,
-hide or detach the panel. The compact **Batch** button beside the Image/Cake
-switch below the detector reopens it from any Integration controls tab.
+hide or detach the panel. The compact **Batch…** button beside **File Info** in
+Integration → Image reopens it. It is orange while either the dock or detached
+window is open, and neutral after closing/hiding it.
 The detached toolbar has no duplicate close button; use the native window close
 control. The dock retains its Hide button.
 Dock preference, open/closed state, height and collapsed state persist.
@@ -56,7 +57,7 @@ its closed state; quitting the app with Batch open preserves the open state.
 Startup restores the layout once the main window is ready, including an empty
 Batch panel before a scientific project is loaded. Project data still comes from
 the normal Load/Save project workflow.
-When docked, an **Options** tab beside Files/2D holds AutoScale, normalization
+When docked, a settings icon (accessible as **Options**) beside Files/2D holds AutoScale, normalization
 and Start/Stop/Step. The 2D tab has no bottom browsing row or slider: the header
 shows the selected zero-based frame index and final index. Click rows or use
 Up/Down and Home/End on the overview to browse. Open, previous/next-folder and
@@ -80,8 +81,13 @@ or changed screen scaling are handled by that shared implementation.
 ## Processing and linked selection
 
 - Integration → Image **Load image…** and Cmd/Ctrl+O accept multiple files.
-  Multiple selections integrate automatically and open Batch while the main
-  window stays in Integration. One image retains ordinary image loading.
+  Qt's **Integrate / Add / Average / Save** radio choices control multiple
+  selections. Integrate (the default) opens Batch while staying in Integration.
+  Add and Average use the existing image model and current transformations and
+  corrections. Save writes corrected, int32, top-origin TIFF copies prefixed
+  `batch_` into a chosen output folder; existing files are never overwritten.
+  Combining/exporting uses an isolated model and cancellation or failure keeps
+  the current image and complete batch. A single file retains ordinary loading.
 - Open raw/proc data accepts raw image series or one processed HDF5 batch.
   Previous/next folder uses Qt's neighboring numbered-folder lookup and matching
   file extension. Input order is preserved. A live calibration is required to
@@ -95,12 +101,20 @@ or changed screen scaling are handled by that shared implementation.
   Integration's normal processing path. The selected stored profile is then
   restored, including normalization. These calculations never replace the stored
   batch matrix. The linked green inspection position is retained.
+  Clicking the overview also sets its radial position, showing the shared green
+  marker on Batch, pattern, cake and detector. Stored-only batches retain a local
+  marker without inventing detector geometry. Hover uses the shared footer fields
+  for Frame, I, 2θ, Q and d, with zoom-dependent precision and recorded wavelength.
   Selection uses the same quiet, serialized command path as Map, keeping controls
   and plots mounted without global busy-state dimming. Further clicks queue while
   a frame loads rather than being dropped.
 - Missing raw files clear stale detector/cake pixels and show the stored profile
   with a message. Imported batches cannot be reintegrated until raw sources are
   loaded again. Raw source images remain external to saved projects.
+- **Phases** overlays shared visible phase references on the overview. Colors,
+  per-phase intensity-scaled widths and opacity match the cake view. Phase
+  coordinates are d spacings, converted with the batch's recorded wavelength;
+  pressure/temperature/visibility edits in Integration update the same references.
 - 2D uses one column per radial bin and one row per integrated frame. Physical
   tick labels follow the actual radial coordinates, including descending d axes.
   Display unit conversion retains the original axis and intensities; conversion
