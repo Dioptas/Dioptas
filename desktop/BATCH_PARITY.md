@@ -27,6 +27,14 @@ separate normalization-settings popup. Previous/slider/next, Frame, and
 Start/Stop/Step follow beneath. Displayed frame and bin indices start at zero,
 as in Qt. Start/Stop are inclusive; the adapter translates them to the existing
 one-based inclusive processing-command range.
+The 2D series grows bottom to top: frame zero is the lowest row. Selection,
+hover readouts and frame labels follow that orientation; Up moves to the next
+frame and Down to the previous one. Stored data stays in acquisition order.
+The lower-left plot controls select rectangle or X-range (slice) zoom, using
+the shared blue drag selection. X-range zoom preserves the frame range. The
+chosen mode survives tab changes, docking and reopening.
+The frame axis keeps its numeric labels without a title, with a narrow margin
+that grows only when larger frame numbers need it.
 
 **Dock batch** moves the same panel into Integration's lower-left corner below
 the detector/cake and image toolbar. It shares the left column's width and leaves

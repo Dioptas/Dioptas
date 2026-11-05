@@ -60,7 +60,7 @@
           pointerId: 7,
           button: 0,
           clientX: b.x + 120,
-          clientY: b.y + 12 + ((b.height - 58) * (target + 0.5)) / 5,
+          clientY: b.y + 12 + ((b.height - 58) * (5 - target - 0.5)) / 5,
         }),
       );
     await wait(

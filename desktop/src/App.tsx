@@ -245,7 +245,15 @@ export default function App() {
     command: string,
     args: Record<string, unknown> = {},
   ) => {
-    if (!bridge.current || inFlight.current) return;
+    // Batch snapshots/levels are read-only and the worker serializes them.
+    // A quiet image-level update must not drop the companion's refresh.
+    if (
+      !bridge.current ||
+      (inFlight.current &&
+        command !== "batch_snapshot" &&
+        command !== "batch_levels")
+    )
+      return;
     try {
       const result = await bridge.current(command, args);
       if (!result.ok) setError(result.error ?? "Map command failed.");

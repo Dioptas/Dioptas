@@ -2,7 +2,7 @@ import { radialValues } from "./radialReadout.ts";
 import type { Unit } from "./types";
 import { useState } from "react";
 import type { BatchData } from "./batchDomain";
-import type { PlotRange } from "./usePlotNavigation";
+import type { PlotRange, ZoomMode } from "./usePlotNavigation";
 import type { PlotViewport } from "./plotViewport";
 
 interface Display {
@@ -12,6 +12,7 @@ interface Display {
   sqrt: boolean;
   palette: string;
   range: PlotRange | null;
+  zoomMode: ZoomMode;
   auto: boolean;
   initialized: boolean;
 }
@@ -24,18 +25,24 @@ function read(batch: BatchData | null): Display {
     sqrt: false,
     palette: "grey",
     range: null,
+    zoomMode: "rectangle",
     auto: true,
     initialized: false,
   };
   try {
     const saved = JSON.parse(localStorage.getItem(key) ?? "null");
+    fallback.zoomMode =
+      saved?.zoomMode === "horizontal" ? "horizontal" : "rectangle";
     if (
       saved?.id === batch?.id &&
       saved.limits?.length === 2 &&
       saved.limits.every(Number.isFinite) &&
       saved.limits[0] < saved.limits[1]
     )
-      return saved;
+      return {
+        ...saved,
+        zoomMode: fallback.zoomMode,
+      };
   } catch {
     /* New series uses its own automatic limits. */
   }

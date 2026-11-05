@@ -109,8 +109,8 @@ export function BatchView({
       range: {
         xMin: display.range?.xMin ?? 0,
         xMax: display.range?.xMax ?? batch.x.length,
-        yMin: batch.entries.length - 1 - stop,
-        yMax: batch.entries.length - start,
+        yMin: start,
+        yMax: stop + 1,
       },
     });
   };
@@ -404,6 +404,8 @@ export function BatchView({
                   sqrt={shownSqrt}
                   palette={display.palette}
                   viewport={display.viewport}
+                  zoomMode={display.zoomMode}
+                  onZoomMode={(zoomMode) => display.update({ zoomMode })}
                   ready={ready}
                   onSelect={select}
                   reportPlot={reportPlot}

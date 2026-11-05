@@ -6,12 +6,14 @@ export function PlotZoomControls({
   left,
   bottom,
   label,
+  horizontalTitle,
 }: {
   mode: ZoomMode;
   onChange: (mode: ZoomMode) => void;
   left: number;
   bottom: number;
   label: string;
+  horizontalTitle?: string;
 }) {
   return (
     <>
@@ -41,9 +43,10 @@ export function PlotZoomControls({
         style={{ left: Math.max(8, left - 72) + 22, bottom: bottom - 24 }}
         type="button"
         title={
-          label === "Cake"
+          horizontalTitle ??
+          (label === "Cake"
             ? "X-range zoom: keep the azimuth range"
-            : "X-range zoom: fit intensity to the visible data"
+            : "X-range zoom: fit intensity to the visible data")
         }
         aria-label={`${label} X-range zoom`}
         aria-pressed={mode === "horizontal"}

@@ -4,8 +4,17 @@ import { decodeRaster } from "./rasterTransfer";
 import { unitLabel, number } from "./types";
 import { linearTicks } from "./plotTicks";
 import { rasterCanvas } from "./rasterCanvas";
-import { usePlotNavigation, usePlotWheel } from "./usePlotNavigation";
+import {
+  usePlotNavigation,
+  usePlotWheel,
+  type ZoomMode,
+} from "./usePlotNavigation";
 import type { ReportPlot } from "./plotReadout";
+import { PlotZoomControls } from "./PlotZoomControls";
+import {
+  drawRangeSelection,
+  RANGE_SELECTION_COLOR,
+} from "./drawRangeSelection";
 
 /** Bin-space projection retains every sample, including a nonuniform d axis.
  * Labels interpolate the stored radial coordinates, never assume 2theta.
@@ -13,6 +22,8 @@ import type { ReportPlot } from "./plotReadout";
 export function BatchHeatmap({
   batch,
   viewport,
+  zoomMode,
+  onZoomMode,
   limits,
   log,
   sqrt = false,
@@ -23,6 +34,8 @@ export function BatchHeatmap({
 }: {
   batch: BatchData;
   viewport?: import("./plotViewport").PlotViewport;
+  zoomMode: ZoomMode;
+  onZoomMode: (mode: ZoomMode) => void;
   limits: [number, number];
   log: boolean;
   sqrt?: boolean;
@@ -36,17 +49,18 @@ export function BatchHeatmap({
   const [size, setSize] = useState({ width: 600, height: 400 });
   const rows = batch.entries.length,
     cols = batch.x.length;
+  const left = Math.max(36, String(Math.max(0, rows - 1)).length * 8 + 12);
   const bounds = {
-    left: 58,
+    left,
     top: 12,
-    width: Math.max(1, size.width - 76),
+    width: Math.max(1, size.width - left - 18),
     height: Math.max(1, size.height - 58),
   };
   const nav = usePlotNavigation(
     { xMin: 0, xMax: cols, yMin: 0, yMax: rows },
     bounds,
     false,
-    "rectangle",
+    zoomMode,
     undefined,
     viewport,
   );
@@ -113,17 +127,17 @@ export function BatchHeatmap({
     ctx.rect(bounds.left, bounds.top, bounds.width, bounds.height);
     ctx.clip();
     ctx.imageSmoothingEnabled = false;
-    // Row zero is the first file, at the top of the series.
-    ctx.drawImage(bitmap, px(0), py(rows), cols * sx, rows * sy);
-    const y = py(rows - batch.selected - 0.5);
+    // Frame zero is at the bottom. Flip only the bitmap, keeping stored rows
+    // and frame indices in acquisition order.
+    ctx.save();
+    ctx.translate(px(0), py(0));
+    ctx.scale(sx, -sy);
+    ctx.drawImage(bitmap, 0, 0, cols, rows);
+    ctx.restore();
+    const y = py(batch.selected + 0.5);
     ctx.strokeStyle = "#ff9500";
     ctx.lineWidth = 1.5;
-    ctx.strokeRect(
-      px(0),
-      py(rows - batch.selected),
-      cols * sx,
-      Math.max(1, sy),
-    );
+    ctx.strokeRect(px(0), py(batch.selected + 1), cols * sx, Math.max(1, sy));
     ctx.fillStyle = "#ff9500";
     ctx.beginPath();
     ctx.moveTo(bounds.left, y - 5);
@@ -132,10 +146,18 @@ export function BatchHeatmap({
     ctx.fill();
     if (nav.selection) {
       const { start, end } = nav.selection;
-      ctx.fillStyle = "#ff950026";
-      ctx.strokeStyle = "#ff9500";
-      ctx.fillRect(start.x, start.y, end.x - start.x, end.y - start.y);
-      ctx.strokeRect(start.x, start.y, end.x - start.x, end.y - start.y);
+      const x = Math.min(start.x, end.x),
+        y = Math.min(start.y, end.y),
+        width = Math.abs(end.x - start.x),
+        height = Math.abs(end.y - start.y);
+      if (zoomMode === "horizontal") {
+        drawRangeSelection(ctx, x, x + width, y, height, RANGE_SELECTION_COLOR);
+      } else {
+        ctx.fillStyle = RANGE_SELECTION_COLOR + "20";
+        ctx.strokeStyle = RANGE_SELECTION_COLOR;
+        ctx.fillRect(x, y, width, height);
+        ctx.strokeRect(x, y, width, height);
+      }
     }
     ctx.restore();
     ctx.strokeStyle = "#666a70";
@@ -177,23 +199,25 @@ export function BatchHeatmap({
       Math.ceil((v.yMax - v.yMin) / Math.max(1, bounds.height / 42)),
     );
     for (
-      let i = Math.max(0, Math.floor(rows - v.yMax));
-      i < Math.min(rows, Math.ceil(rows - v.yMin));
+      let i = Math.max(0, Math.floor(v.yMin));
+      i < Math.min(rows, Math.ceil(v.yMax));
       i += stride
     ) {
-      ctx.fillText(String(i), bounds.left - 9, py(rows - i - 0.5) + 4);
+      ctx.fillText(String(i), bounds.left - 9, py(i + 0.5) + 4);
     }
-    ctx.save();
-    ctx.translate(15, bounds.top + bounds.height / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.textAlign = "center";
-    ctx.fillText("Frame", 0, 0);
-    ctx.restore();
-  }, [size, bitmap, nav.view, nav.selection, batch.selected, batch.unit]);
+  }, [
+    size,
+    bitmap,
+    nav.view,
+    nav.selection,
+    batch.selected,
+    batch.unit,
+    zoomMode,
+  ]);
   const hit = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const p = nav.screen(event),
       d = nav.data(p);
-    const index = rows - 1 - Math.floor(d.y),
+    const index = Math.floor(d.y),
       bin = Math.floor(d.x);
     return p.x >= bounds.left &&
       p.x <= bounds.left + bounds.width &&
@@ -213,6 +237,7 @@ export function BatchHeatmap({
         data-testid="batch-heatmap"
         data-unit={batch.unit}
         data-intensity-scale={log ? "log" : sqrt ? "sqrt" : "linear"}
+        data-zoom-mode={zoomMode}
         data-view-x-min={nav.view.xMin}
         data-view-x-max={nav.view.xMax}
         data-view-y-min={nav.view.yMin}
@@ -232,7 +257,7 @@ export function BatchHeatmap({
             p
               ? {
                   text: `Frame ${p.index} · ${unitLabel(batch.unit)} ${number(batch.x[p.bin], 5)} · I ${number(values[p.index * cols + p.bin], 5)}`,
-                  hint: "Click a row to select a pattern. Drag to zoom; right drag to pan.",
+                  hint: `Click a row to select a pattern. Drag for ${zoomMode === "horizontal" ? "X-range" : "rectangle"} zoom; right drag to pan.`,
                 }
               : null,
           );
@@ -263,12 +288,20 @@ export function BatchHeatmap({
                       0,
                       Math.min(
                         rows - 1,
-                        batch.selected + (e.key === "ArrowUp" ? -1 : 1),
+                        batch.selected + (e.key === "ArrowUp" ? 1 : -1),
                       ),
                     ),
             );
           }
         }}
+      />
+      <PlotZoomControls
+        mode={zoomMode}
+        onChange={onZoomMode}
+        left={bounds.left}
+        bottom={24}
+        label="Batch"
+        horizontalTitle="X-range zoom: keep the frame range"
       />
     </div>
   );

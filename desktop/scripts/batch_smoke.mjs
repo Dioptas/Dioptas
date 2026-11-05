@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { createInterface } from "node:readline";
-import { copyFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -11,15 +11,19 @@ const root = fileURLToPath(new URL("../../", import.meta.url));
 const artifacts = path.join(root, "desktop/artifacts");
 await mkdir(artifacts, { recursive: true });
 const temporary = await mkdtemp(path.join(tmpdir(), "dioptas-batch-window-"));
-const paths = [];
-for (let i = 0; i < 6; i++) {
-  const file = path.join(temporary, `series_${i + 1}.tif`);
-  await copyFile(
-    path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
-    file,
-  );
-  paths.push(file);
-}
+// Scaled fixture copies distinguish the rendered row order, not just labels.
+execFileSync(path.join(root, ".venv/bin/python"), [
+  "-c",
+  `import sys, pathlib, fabio
+data = fabio.open(sys.argv[1]).data.astype("float32")
+for i in range(6):
+    fabio.tifimage.TifImage(data=data * (i + 1)).write(str(pathlib.Path(sys.argv[2]) / f"series_{i + 1}.tif"))`,
+  path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
+  temporary,
+]);
+const paths = Array.from({ length: 6 }, (_, i) =>
+  path.join(temporary, `series_${i + 1}.tif`),
+);
 const host = spawn(
   path.join(root, ".venv/bin/python"),
   ["-u", "desktop/scripts/bridge_host.py"],
@@ -241,11 +245,82 @@ try {
   assert(await page.getByTestId("cake-canvas").isVisible());
   const canvas = child.getByTestId("batch-heatmap"),
     b = await canvas.boundingBox();
-  await child.mouse.click(b.x + 100, b.y + 12 + ((b.height - 58) * 4.5) / 6);
+  await child.waitForFunction(() => {
+    const c = document.querySelector('[data-testid="batch-heatmap"]'),
+      box = c.getBoundingClientRect(),
+      dpr = c.width / box.width;
+    const brightness = (fraction) => {
+      const data = c
+        .getContext("2d")
+        .getImageData(
+          Math.round(80 * dpr),
+          Math.round((12 + (box.height - 58) * fraction) * dpr),
+          Math.floor((box.width - 110) * dpr),
+          1,
+        ).data;
+      let sum = 0;
+      for (let i = 0; i < data.length; i += 4) sum += data[i];
+      return sum;
+    };
+    // Last frame is six times brighter and must be at the top.
+    return brightness(0.5 / 6) > brightness(5.5 / 6) * 1.1;
+  });
+  // Acquisition order runs upwards: bottom is frame zero, top is the last.
+  await child.mouse.click(b.x + 100, b.y + 12 + ((b.height - 58) * 5.5) / 6);
+  await selected(child, 1);
+  await canvas.press("ArrowUp");
+  await selected(child, 2);
+  await canvas.press("ArrowDown");
+  await selected(child, 1);
+  await child.mouse.click(b.x + 100, b.y + 12 + ((b.height - 58) * 0.5) / 6);
+  await selected(child, 6);
+  await child.mouse.click(b.x + 100, b.y + 12 + ((b.height - 58) * 1.5) / 6);
   await selected(child, 5);
   state = await invoke("state");
   assert.equal(state.state.imageName, "series_5.tif");
   assert(state.cake);
+  // Both zoom modes share the blue selection, and a slice keeps all frame rows.
+  const dragZoom = async (mode) => {
+    await click(
+      child,
+      `Batch ${mode === "rectangle" ? "rectangle" : "X-range"} zoom`,
+    );
+    const before = await readRange(child);
+    const x = b.x + 120,
+      y = b.y + 50,
+      endY = mode === "rectangle" ? y + 90 : y + 1;
+    await child.mouse.move(x, y);
+    await child.mouse.down();
+    await child.mouse.move(x + 140, endY, { steps: 5 });
+    // Sample the selection edge, away from the orange selected-frame marker.
+    await child.waitForFunction(() => {
+      const c = document.querySelector('[data-testid="batch-heatmap"]'),
+        dpr = c.width / c.getBoundingClientRect().width,
+        data = c
+          .getContext("2d")
+          .getImageData(
+            Math.floor(118 * dpr),
+            Math.floor(60 * dpr),
+            Math.ceil(5 * dpr),
+            Math.ceil(30 * dpr),
+          ).data;
+      for (let i = 0; i < data.length; i += 4)
+        if (data[i + 2] > data[i] + 40 && data[i + 1] > data[i] + 30)
+          return true;
+      return false;
+    });
+    await child.mouse.up();
+    const after = await readRange(child);
+    assert(after[1] - after[0] < before[1] - before[0]);
+    if (mode === "rectangle")
+      assert(after[3] - after[2] < before[3] - before[2]);
+    else sameRange(after.slice(2), before.slice(2));
+    await selected(child, 5); // A zoom drag must not select a different frame.
+    await canvas.press("f");
+    sameRange(await readRange(child), before);
+  };
+  await dragZoom("rectangle");
+  await dragZoom("horizontal");
   // Qt Files/2D grouping, normalization popup, and bottom range navigation.
   await child.getByRole("tab", { name: "Files", exact: true }).click();
   assert.equal(
@@ -263,6 +338,7 @@ try {
   await click(child, "Select batch file 2");
   await selected(child, 3);
   await child.getByRole("tab", { name: "2D", exact: true }).click();
+  assert.equal(await canvas.getAttribute("data-zoom-mode"), "horizontal");
   await click(child, "Normalization settings");
   const dialog = child.getByRole("dialog", {
     name: "Normalization settings",
@@ -306,6 +382,7 @@ try {
         ?.getAttribute("aria-pressed") === "true",
   );
   assert.equal((await invoke("state")).pattern.unit, "q_A^-1");
+  await ready();
   await click(child, "Batch unit 2θ");
   await child.waitForFunction(
     () =>
@@ -354,6 +431,7 @@ try {
   );
   await child.getByRole("tab", { name: "Files", exact: true }).click();
   await child.getByLabel("Batch frame step", { exact: true }).fill("2");
+  await ready();
   await click(child, "Integrate");
   await child.waitForFunction(() =>
     document
@@ -495,7 +573,11 @@ try {
     0,
   );
   assert.equal(await dock.locator(".batch-navigation-row").count(), 0);
-  await dock.getByTestId("batch-heatmap").press("ArrowDown");
+  assert.equal(
+    await dock.getByTestId("batch-heatmap").getAttribute("data-zoom-mode"),
+    "horizontal",
+  );
+  await dock.getByTestId("batch-heatmap").press("ArrowUp");
   await selected(page, 2);
   assert.equal((await invoke("state")).state.imageName, "series_3.tif");
   assert((await invoke("state")).cake);
