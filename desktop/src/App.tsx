@@ -2067,6 +2067,7 @@ export default function App() {
                       )}
                       {mode === "integration" && (
                         <IntegrationImageControls
+                          onOpenBatch={openBatch}
                           onSaveImage={() => {
                             const source =
                               integrationDisplay === "cake" ? "cake" : "image";
@@ -2542,7 +2543,6 @@ export default function App() {
                           state={state}
                           ready={ready}
                           run={run}
-                          onOpenBatch={openBatch}
                           backgroundSettings={liveBackground.settings}
                           onBackgroundChange={liveBackground.change}
                           backgroundUpdating={liveBackground.updating}

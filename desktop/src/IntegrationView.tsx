@@ -21,7 +21,6 @@ export function IntegrationView({
   state,
   ready,
   run,
-  onOpenBatch,
   backgroundSettings,
   onBackgroundChange,
   backgroundUpdating,
@@ -33,7 +32,6 @@ export function IntegrationView({
 }: {
   state: State | null;
   ready: boolean;
-  onOpenBatch: () => void;
   run: IntegrationRun;
   backgroundSettings: BackgroundSettings;
   onBackgroundChange: (patch: Partial<BackgroundSettings>) => void;
@@ -139,7 +137,6 @@ export function IntegrationView({
       >
         {tab === "Image" && (
           <IntegrationImageControls
-            onOpenBatch={onOpenBatch}
             state={state}
             source={source}
             fileStep={fileStep}

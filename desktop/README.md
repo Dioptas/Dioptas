@@ -333,8 +333,9 @@ Integration → Image accepts multiple images and opens a separate Batch window 
 integration. It follows Qt's Files/2D dialog layout. Selecting a frame updates
 Integration's detector, cake and stored pattern. Use **Dock batch** to place the
 series below the image in the lower-left corner; its divider resizes the dock,
-and the header can collapse it or detach it again. **Batch view…** reopens the
-window or dock without discarding data. The dock's **Options** tab holds
+and the header can collapse it or detach it again. The compact **Batch** button
+beside the Image/Cake switch below the detector reopens the window or dock
+without discarding data, from any Integration controls tab. The dock's **Options** tab holds
 normalization and range settings so the series keeps most of the space. Its
 histogram defaults to vertical on the left, mirrored toward the plot.
 The floating window has pattern-style unit/scale buttons at the far right; the

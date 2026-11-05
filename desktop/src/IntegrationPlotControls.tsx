@@ -51,6 +51,7 @@ export function IntegrationImageControls({
   onCakeShift,
   fullCake,
   onSaveImage,
+  onOpenBatch,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -67,6 +68,7 @@ export function IntegrationImageControls({
   onCakeShift: (shift: number) => void;
   fullCake: boolean;
   onSaveImage: () => void;
+  onOpenBatch: () => void;
 }) {
   return (
     <div
@@ -113,6 +115,16 @@ export function IntegrationImageControls({
           {value === "image" ? "Cake" : "Image"}
         </button>
       </div>
+      <button
+        className="plot-tool-button"
+        type="button"
+        aria-label="Batch view…"
+        title="Open Batch view"
+        disabled={!ready}
+        onClick={onOpenBatch}
+      >
+        Batch
+      </button>
       <span className="plot-tool-divider" />
       <label
         className="check-row"

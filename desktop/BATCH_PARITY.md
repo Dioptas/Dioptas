@@ -44,7 +44,8 @@ Axis labels also match its 13 px monospace font in both interface text sizes.
 the detector/cake and image toolbar. It shares the left column's width and leaves
 the pattern and right-hand task controls in place. Drag the divider (or focus it
 and use Up/Down) to resize; double-click resets the height. The header can collapse,
-hide or detach the panel. **Batch view…** in Integration → Image reopens it.
+hide or detach the panel. The compact **Batch** button beside the Image/Cake
+switch below the detector reopens it from any Integration controls tab.
 The detached toolbar has no duplicate close button; use the native window close
 control. The dock retains its Hide button.
 Dock preference, open/closed state, height and collapsed state persist.
