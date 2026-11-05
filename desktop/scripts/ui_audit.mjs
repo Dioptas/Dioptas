@@ -593,6 +593,27 @@ try {
     await child.getByRole("tab", { name: "Files", exact: true }).click();
     await capture("batch-files", child);
     await child.getByRole("tab", { name: "2D", exact: true }).click();
+    if (stage !== "before") {
+      assert.equal(await child.locator(".color-scale-legend").count(), 0);
+      await child
+        .getByRole("button", { name: "Batch histogram settings", exact: true })
+        .click();
+      const displaySettings = child.getByRole("dialog", {
+        name: "Batch display settings",
+        exact: true,
+      });
+      assert(
+        await displaySettings
+          .getByLabel("Batch minimum intensity", { exact: true })
+          .isVisible(),
+      );
+      assert(
+        await displaySettings
+          .getByLabel("Batch maximum intensity", { exact: true })
+          .isVisible(),
+      );
+      await child.keyboard.press("Escape");
+    }
     await child
       .getByRole("button", { name: "Normalization settings", exact: true })
       .click();
@@ -615,8 +636,12 @@ try {
         image.width >= view.width - 8,
         "Docked Batch fills the width alongside its independent histogram",
       );
+      assert.equal(
+        await page.locator(".batch-docked .color-scale-legend").count(),
+        0,
+      );
       checks.push(
-        "Batch heatmap fills the dock; quantitative legend sits below the plot",
+        "Batch heatmap fills the dock without an extra summary row; histogram settings expose color limits in the detached view",
       );
     }
 

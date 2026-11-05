@@ -208,37 +208,6 @@ input[aria-invalid="true"] {
 .mask-shape-grid .mask-navigate {
   grid-column: 1 / -1;
 }
-.color-scale-legend {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px 8px;
-  padding: 6px 10px;
-  color: var(--ui-muted);
-  font-size: var(--text-meta);
-}
-.color-scale-legend img {
-  min-width: 40px;
-  width: 80px;
-  height: 10px;
-  border: 1px solid var(--ui-input-border);
-}
-.color-scale-legend > span:first-child {
-  flex: 1 1 150px;
-  min-width: 0;
-}
-.color-scale-range {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
-.color-scale-legend small {
-  display: block;
-  margin-top: 3px;
-  font-size: inherit;
-}
 .batch-source-note {
   color: var(--ui-muted);
   font-size: var(--text-meta);

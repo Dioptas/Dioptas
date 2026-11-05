@@ -1,4 +1,4 @@
-import { ColorScaleLegend } from "./ColorScaleLegend";
+import { scientificValue } from "./ScientificNumberInput";
 import { TabList } from "./TabList";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -193,6 +193,11 @@ export function BatchView({
       data-selected-frame={batch?.selected ?? ""}
       aria-busy={!ready}
       aria-label="Batch series"
+      aria-description={
+        batch
+          ? `Intensity display limits ${scientificValue(display.limits[0])} to ${scientificValue(display.limits[1])}, ${shownLog ? "logarithmic" : shownSqrt ? "square root" : "linear"}.`
+          : undefined
+      }
     >
       <header className="batch-series-toolbar">
         <div
@@ -449,12 +454,6 @@ export function BatchView({
                     reportPlot={reportPlot}
                   />
                 </div>
-                <ColorScaleLegend
-                  label="Intensity · source units"
-                  palette={display.palette}
-                  limits={display.limits}
-                  scale={shownLog ? "log" : shownSqrt ? "sqrt" : "linear"}
-                />
               </div>
               {!linkedDisplay && plotOptions}
             </div>

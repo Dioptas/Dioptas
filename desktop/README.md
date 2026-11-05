@@ -830,7 +830,7 @@ editors. `Dialog` / `DialogHeader` own native modal focus, dismissal and headers
 nonmodal color and action menus retain their own list/menu interactions.
 `ScientificNumberInput` formats a visual preview while keeping the exact input
 value. `usePlotTypography` carries the Standard/Larger preference into canvas
-labels and axes, and `ColorScaleLegend`, `GeometryProvenance`, `PatternFreshness` and
+labels and axes, and `GeometryProvenance`, `PatternFreshness` and
 `StatusMessage` share scientific context and feedback. Chrome tokens live in
 `uiTheme.css`; scientific palettes remain independent. Integration options are
 kept as a session draft and applied together, including the radial coordinate.
@@ -930,3 +930,5 @@ The provenance file identifies the measured source and its limits. These are
 headless browser measurements, not native GPU/display-latency certification.
 
 The scan map uses its existing histogram/settings and Layer/ROI controls for scale and calculation context. The redundant permanent summary/color-key block below the map is removed in both main and detached Map views; a concise accessible description retains context without taking plot space.
+
+Batch follows the same layout as Map: the redundant permanent intensity/source-units/color-key row below the heatmap is removed in both docked and detached views. Its histogram and display settings own the scale controls, with accessible context on the series. The now-unused `ColorScaleLegend` component and styles have been removed.

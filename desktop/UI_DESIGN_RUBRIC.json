@@ -142,6 +142,7 @@
     "Maximize scientific data area: compact legends float inside plots and may be moved; never allocate an extra legend header above the data.",
     "Resting text fields use quiet recessed fills without pale outlines. Clear keyboard focus and error states remain visible.",
     "Keep WebGL2 as the normal pattern renderer and preserve exact source values, original detector pixels, shared gestures and local Python processing.",
-    "Map context belongs in the existing histogram/settings and Layer/ROI controls, with no permanent descriptive summary block below the scan map."
+    "Map context belongs in the existing histogram/settings and Layer/ROI controls, with no permanent descriptive summary block below the scan map.",
+    "Batch uses the same uncluttered layout as Map: histogram/settings hold scale context, without an extra summary row below the heatmap."
   ]
 }
