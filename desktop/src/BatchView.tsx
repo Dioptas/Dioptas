@@ -1,4 +1,10 @@
 import { useEffect, useState } from "react";
+import { detectorPlotSetup, patternPlotSetup } from "./diffractionPlotSetup";
+import {
+  patternViewport,
+  plotViewContext,
+  type SharedPlotViews,
+} from "./plotViewport";
 import { patternReading } from "./PlotStatus";
 import { BatchHeatmap } from "./BatchHeatmap";
 import { ImageIntensity } from "./ImageIntensity";
@@ -35,6 +41,7 @@ function useDisplay(raster: Raster | null, id: string) {
   };
 }
 export function BatchView({
+  plotViews,
   batch,
   image,
   mask,
@@ -47,6 +54,7 @@ export function BatchView({
   patternZoom,
   onPatternZoom,
 }: {
+  plotViews: SharedPlotViews;
   batch: BatchData | null;
   image: Raster | null;
   mask: Raster | null;
@@ -66,6 +74,20 @@ export function BatchView({
     detector = useDisplay(image, "batch-detector");
   const [expanded, setExpanded] = useState(false),
     [logPattern, setLogPattern] = useState(false);
+  const patternPlot = batch
+    ? patternPlotSetup({
+        pattern: batch.pattern,
+        viewport: patternViewport(
+          plotViews.pattern,
+          plotViewContext(state),
+          batch.unit,
+          logPattern ? "log" : "linear",
+          batch.wavelength ?? undefined,
+        ),
+        patternColor: state?.integration.originalPatternColor,
+        showLegend: false,
+      })
+    : null;
   const select = (index: number) =>
     void run("batch_select", { index }, "Loading batch frame…");
   return (
@@ -142,7 +164,7 @@ export function BatchView({
               <div className="detector-workspace">
                 <RasterView
                   raster={image}
-                  mask={state.useMask ? (mask ?? undefined) : undefined}
+                  {...detectorPlotSetup({ state, viewports: plotViews, mask })}
                   limits={detector.limits}
                   log={detector.log}
                   palette={detector.palette}
@@ -188,9 +210,9 @@ export function BatchView({
                 Log I
               </label>
             </div>
-            {batch ? (
+            {batch && patternPlot ? (
               <PatternView
-                pattern={batch.pattern}
+                {...patternPlot.props}
                 log={logPattern}
                 onHover={(point) =>
                   reportPlot(

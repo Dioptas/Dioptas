@@ -28,7 +28,9 @@ detector image and the selected stored pattern.
   matrix or substitute the current single-image integration for a stored pattern.
 - Detector and overview histograms are independent and start linear/Grey. Each
   uses the existing intensity, Auto, palette and display-settings controls.
-  Detector images retain full resolution, orientation and square pixels.
+  Detector images retain full resolution, orientation and square pixels. Batch
+  uses the shared detector/pattern setup: mask opacity follows the transparency
+  setting, and compatible detector/pattern zoom ranges carry between workspaces.
 - Plot gestures follow the shared implementation: rectangle zoom, right-drag
   pan, right-click zoom out, right-double-click fit and wheel zoom. F restores the
   overview. Dragging never also selects a row. Readouts use the app footer.
@@ -86,3 +88,13 @@ Verification in this worktree: 199 desktop Python tests passed (5 skipped),
 37 JavaScript tests and 11 Rust tests passed. Build, Chromium/WebKit batch
 smokes, the broader calibration/browser smoke, bundled native calibration
 smoke and dedicated native batch smoke passed.
+
+Merge verification on 2026-11-05: the main React checkout builds; 55 JavaScript
+and 16 Rust tests pass, as do Chromium/WebKit Batch checks (including shared
+zoom across Integration/Batch) and the broader headless calibration/browser
+workflow. The full desktop Python suite reports 277 passed, 5 skipped and one
+pre-existing failure in
+`test_prepare_cif_and_import_use_experimental_cutoff_and_wavelength`: its exact
+Q-cutoff expectation predates automatic structure-reflection coverage expansion.
+The same result was reproduced using the pre-merge `DesktopSession` from
+`bfe27394`. All ten Batch model tests pass.

@@ -1581,6 +1581,7 @@ export default function App() {
             >
               {mode === "batch" ? (
                 <BatchView
+                  plotViews={plotViews}
                   batch={batch}
                   image={image}
                   mask={mask}

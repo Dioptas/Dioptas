@@ -132,6 +132,56 @@ try {
   await ready();
   assert.equal((await invoke("state")).batch.selected, 3);
   await page.keyboard.press("f");
+  // Detector pixels and pattern intervals share the React workspace viewport memory.
+  const readView = async (plot) =>
+    plot.evaluate((el) =>
+      Object.fromEntries(
+        ["xMin", "xMax", "yMin", "yMax"].map((key) => [
+          key,
+          +el.dataset["view" + key[0].toUpperCase() + key.slice(1)],
+        ]),
+      ),
+    );
+  const sameX = (a, b) => {
+    assert(Math.abs(a.xMin - b.xMin) < 1e-6, `${a.xMin} vs ${b.xMin}`);
+    assert(Math.abs(a.xMax - b.xMax) < 1e-6, `${a.xMax} vs ${b.xMax}`);
+  };
+  const zoomPlot = async (plot) => {
+    const box = await plot.boundingBox();
+    await page.mouse.move(box.x + box.width * 0.35, box.y + box.height * 0.35);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.65, box.y + box.height * 0.65, {
+      steps: 5,
+    });
+    await page.mouse.up();
+    await ready();
+  };
+  const batchDetector = page.locator(
+    '.batch-detector-panel [data-testid="detector-canvas"]',
+  );
+  const batchPattern = page.locator(
+    '.batch-pattern-panel [data-testid="pattern-canvas"]',
+  );
+  await zoomPlot(batchDetector);
+  await zoomPlot(batchPattern);
+  const detectorView = await readView(batchDetector),
+    patternView = await readView(batchPattern);
+  await click("Integration");
+  sameX(
+    await readView(
+      page.locator('.integration-mode [data-testid="detector-canvas"]'),
+    ),
+    detectorView,
+  );
+  sameX(
+    await readView(
+      page.locator('.integration-mode [data-testid="pattern-canvas"]'),
+    ),
+    patternView,
+  );
+  await click("Batch");
+  sameX(await readView(batchDetector), detectorView);
+  sameX(await readView(batchPattern), patternView);
   await page.getByLabel("Filter batch files").fill("nonsense");
   assert.equal(
     await page.getByRole("button", { name: /Select batch pattern/ }).count(),
