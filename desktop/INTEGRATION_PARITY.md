@@ -251,8 +251,8 @@ smoke. Screenshots remain under ignored desktop/artifacts/.
 The Integration tab strip shares Calibration's flat tab styling and keyboard
 navigation (arrows, Home and End). Its order is Image, Pattern, Overlay, Phase,
 Background, Corrections. There is no manual Integrate image button; image loads
-and integration-setting changes calculate automatically. Only relevant background
-and correction Apply actions occupy the fixed task footer.
+and integration-setting changes calculate automatically. Background inspection/save actions sit beside subtraction; image-background and
+correction edits use the compact forms described below.
 
 ## Pattern phase-line scaling (2026-11-02)
 
@@ -525,3 +525,39 @@ ordering, Undo/Redo, hidden-state `.dio` round trips with and without overlays,
 unchanged numerical pattern data, and invalid boolean rejection. Chromium and
 WebKit checks include checkbox/plot synchronization and stable detector/cake
 canvases and table fields across visibility Undo/Redo.
+
+
+## Background and Corrections forms (2026-11-05)
+
+Qt's left type selectors and scientific parameter sets are retained, with flat
+navigation, active indicators, compact aligned values and filenames with full-path
+tooltips. cBN fields are grouped into Geometry, Alignment and Absorption; narrow
+panels use one column with a visible scrollbar. Both background range bounds and
+the current radial unit remain together. Invalid range pairs stay local until
+repaired. Display formatting does not change the stored range.
+
+Pattern background fitting and range dragging remain live through the existing
+background queue. Inspect in the Background tab shares the plot toolbar state;
+inspection does not alter the scientific pattern. Image-background and enabled
+absorption parameters commit on blur/Enter, with Escape restoring the applied
+value. Correction toggles apply immediately. Parameters can be prepared while a
+correction is off and are submitted together when enabled. Sequential edits merge
+against the preceding successful result; backend validation still restores the
+previous applied model on failure. Deferred edits are discarded after changing
+project, configuration or image context. File loading, mean-normalized flat-field
+correction, absorption formulas and project formats use the existing commands.
+
+`npm run test:integration-processing` (add `-- --webkit` for WebKit) exercises
+real-model editing, rejected values, inactive drafts, independent corrections,
+inspection, range/unit synchronization and compact/large-text layouts headlessly.
+
+
+The same numeric-form layout is used by the other Integration controls: compact
+rows anchored at the left, right-aligned labels 6 px from the input, and known
+physical units in a separate trailing column. Image frame selectors and
+Integration settings share this treatment; file-step rows already keep their
+labels next to the input. Overlay step sizes and waterfall spacing now use inline
+rows. Phase step sizes show P/value/GPa and T/value/K; phase table cells also
+place their units after the value. CIF import and the existing Phase Editor
+retain trailing units. Accessible input names, numeric stepping, edit commits,
+scientific parameters and command payloads are unchanged.

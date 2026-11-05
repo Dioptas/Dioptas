@@ -192,11 +192,6 @@
   cursor: pointer;
   color: #b7bdc4;
 }
-.integration-tab-background,
-.integration-tab-corrections {
-  grid-template-columns: 100px minmax(0, 1fr);
-  gap: 12px;
-}
 .integration-subnav {
   display: flex;
   flex-direction: column;
@@ -216,23 +211,6 @@
 .integration-subnav button[aria-pressed="true"] {
   background: #ffffff09;
   color: var(--accent);
-}
-.integration-tab-background .integration-group-body,
-.integration-tab-corrections .integration-group-body {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 12px;
-}
-.integration-tab-background .integration-group-body > :not(.field-label),
-.integration-tab-corrections .integration-group-body > :not(.field-label) {
-  grid-column: 1 / -1;
-}
-.integration-tab-background .integration-group-body > .field-label,
-.integration-tab-corrections .integration-group-body > .field-label {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 4px;
 }
 .integration-tab-overlay > .file-actions,
 .integration-tab-overlay > .integration-note,
@@ -473,32 +451,9 @@
   .integration-pattern-calibration {
     width: auto;
   }
-  .integration-tab-background,
-  .integration-tab-corrections {
-    grid-template-columns: 90px minmax(0, 1fr);
-  }
-  .integration-tab-corrections .integration-group-body {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 .integration-controls .file-actions {
   margin: 0;
-}
-.integration-task-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 6px;
-  border-top: 1px solid var(--border);
-  padding: 7px 10px;
-}
-.integration-task-actions .primary {
-  flex: 1;
-  min-height: 31px;
-  padding: 6px 10px;
-}
-.integration-task-actions button {
-  font-size: var(--text-small);
-  white-space: nowrap;
 }
 .integration-tab-image .field-label:has(select) {
   grid-template-columns: auto minmax(0, 1fr);
@@ -523,20 +478,4 @@
 .integration-cake-shift > span:last-child {
   width: 5ch;
   font-variant-numeric: tabular-nums;
-}
-/* Background parameters share one aligned label/value column, like Qt's form. */
-.integration-tab-background .integration-group-body > .field-label {
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: minmax(0, 1fr) 110px;
-  align-items: center;
-  gap: 8px;
-}
-@media (max-width: 1100px) {
-  .integration-tab-corrections .integration-group-body > .field-label {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 90px;
-    align-items: center;
-    gap: 8px;
-  }
 }

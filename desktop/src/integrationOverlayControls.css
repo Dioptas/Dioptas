@@ -5,7 +5,7 @@
 }
 .qt-overlay-controls {
   display: grid;
-  grid-template-columns: 29px minmax(0, 1fr) 128px;
+  grid-template-columns: 29px minmax(0, 1fr) 148px;
   gap: 6px;
   width: 100%;
   min-width: 0;
@@ -170,10 +170,12 @@
   cursor: default;
 }
 .qt-overlay-parameter-scroll > label {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  white-space: nowrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px;
+  align-items: center;
+  gap: 6px;
+  white-space: normal;
+  text-align: right;
 }
 .qt-overlay-parameters {
   display: flex;

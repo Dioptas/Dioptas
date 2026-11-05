@@ -1,0 +1,216 @@
+import { useRef, useState } from "react";
+import type { State } from "./types";
+import type { IntegrationRun } from "./integration";
+import {
+  ProcessingToggle,
+  ProcessingFile,
+  ProcessingNumberField,
+  ProcessingType,
+} from "./IntegrationProcessingFields";
+import "./integrationProcessingControls.css";
+
+const groups = [
+  [
+    "Geometry",
+    [
+      "diamond_thickness",
+      "seat_thickness",
+      "small_cbn_seat_radius",
+      "large_cbn_seat_radius",
+    ],
+  ],
+  [
+    "Alignment",
+    ["tilt", "tilt_rotation", "center_offset", "center_offset_angle"],
+  ],
+  ["Absorption", ["diamond_abs_length", "cbn_abs_length"]],
+] as const;
+
+export function IntegrationCorrectionControls({
+  state,
+  run,
+  tab,
+  onTabChange,
+}: {
+  tab: string;
+  onTabChange: (tab: string) => void;
+  state: State;
+  run: IntegrationRun;
+}) {
+  const source = state.integration;
+  const [inactiveParameters, setInactiveParameters] = useState<
+    Record<string, Record<string, number>>
+  >({});
+  const [switching, setSwitching] = useState<string | null>(null);
+  const current = useRef(source.corrections);
+  current.current = source.corrections;
+  const tail = useRef(Promise.resolve());
+  // Merge each complete edit against the previous successful result, so rapid
+  // Tab/Enter edits cannot overwrite a preceding parameter with a stale value.
+  const edit = (
+    kind: string,
+    patch: { enabled?: boolean; parameters?: Record<string, number> },
+  ) => {
+    const task = tail.current.then(() => {
+      const correction = current.current[kind];
+      return run(
+        "integration_correction",
+        {
+          kind,
+          enabled: patch.enabled ?? correction.enabled,
+          parameters: { ...correction.parameters, ...patch.parameters },
+        },
+        "",
+        (response) => {
+          if (response.state) {
+            current.current = response.state.integration.corrections;
+            const applied = current.current[kind];
+            if (applied.enabled)
+              setInactiveParameters((previous) => ({
+                ...previous,
+                [kind]: applied.parameters,
+              }));
+          }
+        },
+      );
+    });
+    tail.current = task.catch(() => {});
+    return task;
+  };
+  const correction = source.corrections[tab];
+  const name = tab === "cbn" ? "cBN seat" : "detector absorption";
+  const field = (key: string) => {
+    const definition = correction.fields[key];
+    return (
+      <ProcessingNumberField
+        key={key}
+        label={definition.label}
+        value={
+          correction.enabled
+            ? correction.parameters[key]
+            : (inactiveParameters[tab] ?? correction.parameters)[key]
+        }
+        min={definition.min}
+        max={definition.max}
+        disabled={!state.hasImage || switching === tab}
+        onCommit={async (value) => {
+          if (correction.enabled)
+            await edit(tab, { parameters: { [key]: value } });
+          else
+            setInactiveParameters((previous) => ({
+              ...previous,
+              [tab]: {
+                ...(previous[tab] ?? correction.parameters),
+                [key]: value,
+              },
+            }));
+        }}
+      />
+    );
+  };
+  return (
+    <>
+      <nav
+        className="integration-subnav processing-subnav"
+        aria-label="Correction type"
+      >
+        {[
+          ["flat", "Flat field"],
+          ["cbn", "cBN seat"],
+          ["oiadac", "Detector absorption"],
+        ].map(([key, label]) => (
+          <ProcessingType
+            key={key}
+            label={label}
+            selected={tab === key}
+            active={
+              key === "flat"
+                ? source.flatField.enabled
+                : source.corrections[key].enabled
+            }
+            onClick={() => onTabChange(key)}
+          />
+        ))}
+      </nav>
+      <div className="processing-page">
+        {tab === "flat" ? (
+          <div className="processing-form">
+            <ProcessingFile
+              kind="flat field"
+              filename={source.flatField.filename}
+              disabled={!state.hasImage}
+              onLoad={() => void run("integration_flat_field")}
+              onRemove={() =>
+                void run("integration_flat_field", { reset: true })
+              }
+            />
+            <ProcessingToggle
+              label="Apply flat field"
+              checked={source.flatField.enabled}
+              disabled={!source.flatField.filename}
+              onCommit={(enabled) =>
+                run("integration_flat_field", { enabled }, "")
+              }
+            />
+            <p className="integration-note">
+              Corrects pixel sensitivity using the mean-normalized flat field.
+            </p>
+          </div>
+        ) : (
+          <div className="processing-form">
+            <ProcessingToggle
+              key={tab}
+              label={`Apply ${name}`}
+              checked={correction.enabled}
+              disabled={!state.hasImage || !state.calibrated}
+              onCommit={async (enabled) => {
+                setSwitching(tab);
+                if (!enabled)
+                  setInactiveParameters((previous) => ({
+                    ...previous,
+                    [tab]: correction.parameters,
+                  }));
+                try {
+                  await edit(tab, {
+                    enabled,
+                    parameters: enabled ? inactiveParameters[tab] : undefined,
+                  });
+                } finally {
+                  setSwitching(null);
+                }
+              }}
+            />
+            {!correction.enabled && state.calibrated && (
+              <p className="integration-note">
+                Enable to apply these parameters.
+              </p>
+            )}
+            {!state.calibrated && (
+              <p className="integration-note">
+                Load an image and calibration to use this correction.
+              </p>
+            )}
+            {tab === "cbn" ? (
+              groups.map(([title, keys]) => (
+                <section
+                  key={title}
+                  className="processing-parameter-group"
+                  aria-label={title}
+                >
+                  <h3>{title}</h3>
+                  <div className="processing-parameter-grid">
+                    {keys.map(field)}
+                  </div>
+                </section>
+              ))
+            ) : (
+              <div className="processing-parameter-grid">
+                {Object.keys(correction.fields).map(field)}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}

@@ -62,7 +62,9 @@ await page.addInitScript(() => {
   });
   const stroke = CanvasRenderingContext2D.prototype.stroke;
   CanvasRenderingContext2D.prototype.stroke = function (...args) {
-    if (this.canvas.dataset.testid === "pattern-canvas") {
+    if (
+      ["pattern-canvas", "pattern-curves"].includes(this.canvas.dataset.testid)
+    ) {
       window.__overlayStrokes.push({
         color: this.strokeStyle,
         width: this.lineWidth,
@@ -74,7 +76,9 @@ await page.addInitScript(() => {
   const fill = CanvasRenderingContext2D.prototype.fillRect;
   CanvasRenderingContext2D.prototype.fillRect = function (...args) {
     if (
-      this.canvas.dataset.testid === "pattern-canvas" &&
+      ["pattern-canvas", "pattern-curves"].includes(
+        this.canvas.dataset.testid,
+      ) &&
       args[2] === 2 &&
       args[3] === 2 &&
       window.__overlayPixels.at(-1)?.color !== this.fillStyle
@@ -85,6 +89,52 @@ await page.addInitScript(() => {
         height: args[3],
       });
     return fill.apply(this, args);
+  };
+  // Curves use WebGL by default and a separate Canvas layer for the fallback.
+  const clearLayer = CanvasRenderingContext2D.prototype.clearRect;
+  CanvasRenderingContext2D.prototype.clearRect = function (...args) {
+    if (this.canvas.dataset.testid === "pattern-curves") {
+      window.__overlayStrokes = [];
+      window.__overlayPixels = [];
+    }
+    return clearLayer.apply(this, args);
+  };
+  const clearGPU = WebGL2RenderingContext.prototype.clear;
+  WebGL2RenderingContext.prototype.clear = function (...args) {
+    if (this.canvas.dataset.testid === "pattern-gpu") {
+      window.__overlayStrokes = [];
+      window.__overlayPixels = [];
+    }
+    return clearGPU.apply(this, args);
+  };
+  const draw = WebGL2RenderingContext.prototype.drawArraysInstanced;
+  WebGL2RenderingContext.prototype.drawArraysInstanced = function (...args) {
+    if (this.canvas.dataset.testid === "pattern-gpu") {
+      const program = this.getParameter(this.CURRENT_PROGRAM);
+      const color = this.getUniform(
+        program,
+        this.getUniformLocation(program, "color"),
+      );
+      const halfWidth = this.getUniform(
+        program,
+        this.getUniformLocation(program, "halfWidth"),
+      );
+      window.__overlayStrokes.push({
+        color:
+          "#" +
+          Array.from(color)
+            .slice(0, 3)
+            .map((c) =>
+              Math.round(c * 255)
+                .toString(16)
+                .padStart(2, "0"),
+            )
+            .join(""),
+        width: halfWidth * 2,
+      });
+      if (window.__overlayStrokes.length > 512) window.__overlayStrokes.shift();
+    }
+    return draw.apply(this, args);
   };
 
   window.pywebview = {

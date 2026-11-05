@@ -1,7 +1,18 @@
 import type { ReactNode } from "react";
+import "./integrationNumericFields.css";
+
+/** Separate only known unit suffixes; ranges and other parenthetical labels stay intact. */
+export function splitNumericLabel(label: string) {
+  const suffix = label.match(/\s+\((mm|µm|°|GPa|K|Å|Å⁻¹|Å³|%)\)$/);
+  return {
+    name: suffix ? label.slice(0, suffix.index) : label,
+    unit: suffix?.[1],
+  };
+}
 
 export function Field({
   label,
+  displayLabel,
   value,
   onChange,
   min,
@@ -10,6 +21,7 @@ export function Field({
   disabled = false,
 }: {
   label: string;
+  displayLabel?: string;
   value: number;
   onChange: (v: number) => void;
   min?: number;
@@ -17,9 +29,12 @@ export function Field({
   step?: number | string;
   disabled?: boolean;
 }) {
+  const { name, unit } = splitNumericLabel(displayLabel ?? label);
   return (
-    <label className="field-label">
-      {label}
+    <label
+      className={`field-label integration-number-field${unit ? " integration-number-with-unit" : ""}`}
+    >
+      <span>{name}</span>
       <input
         aria-label={label}
         type="number"
@@ -30,16 +45,23 @@ export function Field({
         disabled={disabled}
         onChange={(e) => onChange(Number(e.target.value))}
       />
+      {unit && (
+        <span className="integration-number-unit" aria-hidden="true">
+          {unit}
+        </span>
+      )}
     </label>
   );
 }
 export function Check({
   label,
+  displayLabel = label,
   checked,
   onChange,
   disabled = false,
 }: {
   label: string;
+  displayLabel?: string;
   checked: boolean;
   onChange: (v: boolean) => void;
   disabled?: boolean;
@@ -53,7 +75,7 @@ export function Check({
         disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
       />
-      {label}
+      {displayLabel}
     </label>
   );
 }
@@ -92,6 +114,7 @@ export function Sector({
       <div className="integration-fields">
         <Field
           label={`${title} minimum (°)`}
+          displayLabel="Minimum (°)"
           value={value?.[0] ?? -180}
           disabled={!value}
           min={-180}
@@ -100,6 +123,7 @@ export function Sector({
         />
         <Field
           label={`${title} maximum (°)`}
+          displayLabel="Maximum (°)"
           value={value?.[1] ?? 180}
           disabled={!value}
           min={-180}

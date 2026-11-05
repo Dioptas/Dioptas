@@ -273,6 +273,7 @@ export default function App() {
   const autoProcessInFlight = useRef(false);
   const pendingMaskDraws = useRef(0);
   const pendingBackgroundUpdates = useRef(0);
+  const pendingCorrectionEdits = useRef(0);
   const pendingOverlayEdits = useRef(0);
   const pendingFrameSelections = useRef(0);
   const pendingMapRegions = useRef(0);
@@ -500,6 +501,9 @@ export default function App() {
       const liveBackground =
         command === "integration_background" && message === "";
       const liveMapRegion = command === "map_roi" && message === "";
+      const liveCorrection = message === "" && [
+        "integration_correction", "integration_image_background", "integration_flat_field",
+      ].includes(command);
       const frameSelection =
         command === "map_select" || command === "batch_select";
       const livePhaseConditions =
@@ -516,10 +520,12 @@ export default function App() {
           !autoProcessInFlight.current &&
           !pendingMaskDraws.current &&
           !pendingBackgroundUpdates.current &&
+          !pendingCorrectionEdits.current &&
           !pendingOverlayEdits.current &&
           !pendingFrameSelections.current &&
           !pendingMapRegions.current &&
           !liveMapRegion &&
+          !liveCorrection &&
           !liveBackground &&
           !livePhaseConditions &&
           command !== "integration_phase_state" &&
@@ -554,9 +560,11 @@ export default function App() {
       if (frameSelection) pendingFrameSelections.current++;
       if (liveMapRegion) pendingMapRegions.current++;
       if (liveBackground) pendingBackgroundUpdates.current++;
+      if (liveCorrection) pendingCorrectionEdits.current++;
       if (previous) await previous;
       if (shouldRun && !shouldRun()) {
         if (liveBackground) pendingBackgroundUpdates.current--;
+        if (liveCorrection) pendingCorrectionEdits.current--;
         if (overlayEditing) pendingOverlayEdits.current--;
         if (frameSelection) pendingFrameSelections.current--;
         if (liveMapRegion) pendingMapRegions.current--;
@@ -576,6 +584,7 @@ export default function App() {
         maskDrawing ||
         liveBackground ||
         liveMapRegion ||
+        liveCorrection ||
         livePhaseConditions ||
         command === "integration_phase_state" ||
         command === "integration_phase_guides" ||
@@ -692,6 +701,7 @@ export default function App() {
         if (frameSelection) pendingFrameSelections.current--;
         if (liveMapRegion) pendingMapRegions.current--;
         if (liveBackground) pendingBackgroundUpdates.current--;
+        if (liveCorrection) pendingCorrectionEdits.current--;
         if (commandTail.current === completion) commandTail.current = null;
         release();
       }
@@ -2543,9 +2553,21 @@ export default function App() {
                           state={state}
                           ready={ready}
                           run={run}
+                          runProcessing={(command, args, message, onSuccess) =>
+                            run(command, args, message, onSuccess, () => {
+                              const current = currentState.current;
+                              return current?.projectName === state?.projectName &&
+                                current?.configurationIndex === state?.configurationIndex &&
+                                current?.imagePath === state?.imagePath;
+                            })}
                           backgroundSettings={liveBackground.settings}
                           onBackgroundChange={liveBackground.change}
                           backgroundUpdating={liveBackground.updating}
+                          inspectBackground={inspectBackground}
+                          onInspectBackgroundChange={setInspectBackground}
+                          backgroundDefaultRange={pattern?.x.length
+                            ? [Math.min(pattern.x[0], pattern.x.at(-1)!), Math.max(pattern.x[0], pattern.x.at(-1)!)]
+                            : [0, 50]}
                           onOverlaySelectionChange={setSelectedOverlayUid}
                           showOriginalPattern={originalPatternVisible}
                           onShowOriginalPatternChange={(visible) => {

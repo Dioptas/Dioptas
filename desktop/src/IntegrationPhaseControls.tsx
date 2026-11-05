@@ -182,8 +182,8 @@ export function IntegrationPhaseControls({
             <col className="phase-show-col" />
             <col className="phase-color-col" />
             <col className="phase-name-col" />
-            <col className="phase-value-col" />
-            <col className="phase-value-col" />
+            <col className="phase-pressure-col" />
+            <col className="phase-temperature-col" />
             <col className="phase-reference-col" />
           </colgroup>
           <thead>
@@ -212,9 +212,9 @@ export function IntegrationPhaseControls({
                     : "Pressure"
                 }
               >
-                {source.phaseColdPressure ? "P₀" : "P"} (GPa)
+                {source.phaseColdPressure ? "P₀" : "P"}
               </th>
-              <th>T (K)</th>
+              <th title="Temperature (K)">T</th>
               <th>Ref</th>
             </tr>
           </thead>
@@ -288,34 +288,50 @@ export function IntegrationPhaseControls({
                   {p.name}
                 </td>
                 <td>
-                  <PhaseNumber
-                    label={`Phase ${index + 1} pressure (GPa)`}
-                    value={p.pressure}
-                    step={pressureStep}
-                    min={-9999999}
-                    max={9999999}
-                    onCommit={(pressure) =>
-                      action("update", { index, editor_uid: p.uid, pressure })
-                    }
-                  />
+                  <div className="phase-condition-value">
+                    <PhaseNumber
+                      label={`Phase ${index + 1} pressure (GPa)`}
+                      value={p.pressure}
+                      step={pressureStep}
+                      min={-9999999}
+                      max={9999999}
+                      onCommit={(pressure) =>
+                        action("update", { index, editor_uid: p.uid, pressure })
+                      }
+                    />
+                    <span
+                      className="integration-number-unit"
+                      aria-hidden="true"
+                    >
+                      GPa
+                    </span>
+                  </div>
                 </td>
                 <td>
-                  <PhaseNumber
-                    label={`Phase ${index + 1} temperature (K)`}
-                    title="Absolute temperature in kelvin. 0 uses the legacy room-temperature convention."
-                    disabled={!p.thermal}
-                    value={p.temperature}
-                    step={temperatureStep}
-                    min={0}
-                    max={9999999}
-                    onCommit={(temperature) =>
-                      action("update", {
-                        index,
-                        editor_uid: p.uid,
-                        temperature,
-                      })
-                    }
-                  />
+                  <div className="phase-condition-value">
+                    <PhaseNumber
+                      label={`Phase ${index + 1} temperature (K)`}
+                      title="Absolute temperature in kelvin. 0 uses the legacy room-temperature convention."
+                      disabled={!p.thermal}
+                      value={p.temperature}
+                      step={temperatureStep}
+                      min={0}
+                      max={9999999}
+                      onCommit={(temperature) =>
+                        action("update", {
+                          index,
+                          editor_uid: p.uid,
+                          temperature,
+                        })
+                      }
+                    />
+                    <span
+                      className="integration-number-unit"
+                      aria-hidden="true"
+                    >
+                      K
+                    </span>
+                  </div>
                 </td>
                 <td>
                   <select
@@ -363,10 +379,12 @@ export function IntegrationPhaseControls({
       </TableScroll>
       <div className="phase-parameters">
         <div className="phase-step-controls">
-          <label>
-            P step
+          <span className="integration-parameter-caption">Step sizes</span>
+          <label className="phase-condition-step">
+            <span title="Pressure step">P</span>
             <PhaseNumber
               label="P step"
+              title="Pressure step (GPa)"
               multiply
               value={pressureStep}
               min={0.001}
@@ -374,11 +392,15 @@ export function IntegrationPhaseControls({
               step={pressureStep}
               onCommit={setPressureStep}
             />
+            <span className="integration-number-unit" aria-hidden="true">
+              GPa
+            </span>
           </label>
-          <label>
-            T Step
+          <label className="phase-condition-step">
+            <span title="Temperature step">T</span>
             <PhaseNumber
               label="T Step"
+              title="Temperature step (K)"
               multiply
               value={temperatureStep}
               min={1}
@@ -386,6 +408,9 @@ export function IntegrationPhaseControls({
               step={temperatureStep}
               onCommit={setTemperatureStep}
             />
+            <span className="integration-number-unit" aria-hidden="true">
+              K
+            </span>
           </label>
           <label
             className="phase-apply-all"

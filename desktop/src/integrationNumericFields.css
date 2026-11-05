@@ -1,0 +1,40 @@
+/* Shared Integration form rows: label / value / unit, grouped at the left. */
+.integration-controls .field-label.integration-number-field,
+.settings-integration .field-label.integration-number-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 82px;
+  align-items: center;
+  justify-self: start;
+  width: min(100%, 260px);
+  gap: 6px;
+  margin: 0;
+  text-align: right;
+  line-height: 1.25;
+}
+.integration-controls .integration-number-field.integration-number-with-unit,
+.settings-integration .integration-number-field.integration-number-with-unit {
+  grid-template-columns: minmax(0, 1fr) 82px 24px;
+}
+.integration-controls .integration-number-field input[type="number"],
+.settings-integration .integration-number-field input[type="number"] {
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  min-height: 28px;
+  margin: 0;
+  padding: 3px 5px;
+  text-align: right;
+}
+.integration-number-unit {
+  color: var(--muted);
+  font-size: var(--text-meta);
+  text-align: left;
+  white-space: nowrap;
+}
+.integration-parameter-caption {
+  color: var(--muted);
+  font-size: var(--text-meta);
+}
+.settings-integration .integration-fields {
+  grid-template-columns: minmax(0, 1fr);
+}

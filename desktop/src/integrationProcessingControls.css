@@ -1,0 +1,182 @@
+/* Qt's type list remains on the left; forms use the same compact rows as Image/Fit. */
+.integration-tab-background,
+.integration-tab-corrections {
+  grid-template-columns: 112px minmax(0, 1fr);
+  padding: 8px;
+  gap: 10px;
+  overflow: hidden;
+  container-type: inline-size;
+}
+.integration-controls .processing-subnav {
+  min-width: 0;
+  padding-right: 7px;
+  gap: 2px;
+}
+.integration-controls .processing-subnav button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 6px;
+  align-items: center;
+  gap: 5px;
+  padding: 6px;
+  min-height: 29px;
+  border-radius: 3px;
+  background: transparent;
+  font-size: var(--text-small);
+  line-height: 1.3;
+}
+.integration-controls .processing-subnav button:hover {
+  background: #ffffff09;
+}
+.integration-controls .processing-subnav button[aria-pressed="true"] {
+  background: #ffffff09;
+  color: var(--accent);
+}
+.processing-active {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #596068;
+}
+.processing-active[data-active="true"] {
+  background: var(--accent);
+}
+.processing-page {
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #596068 transparent;
+  padding-right: 3px;
+}
+.processing-form {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+}
+.integration-controls .processing-form .field-label {
+  grid-template-columns: minmax(0, 1fr) 82px;
+  gap: 6px;
+  line-height: 1.25;
+  text-align: right;
+}
+.processing-form > .field-label {
+  width: min(100%, 240px);
+  justify-self: start;
+}
+.integration-controls .processing-form .processing-field-with-unit {
+  grid-template-columns: minmax(0, 1fr) 82px 24px;
+}
+.processing-field-unit {
+  color: var(--muted);
+  font-size: var(--text-meta);
+  text-align: left;
+  white-space: nowrap;
+}
+.integration-controls .processing-form input[type="number"] {
+  height: 28px;
+  min-height: 28px;
+  margin: 0;
+  padding: 3px 5px;
+  text-align: right;
+  border-radius: 3px;
+}
+.processing-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.processing-toolbar > .check-row {
+  flex: 1;
+}
+.processing-toolbar button,
+.processing-file button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  gap: 4px;
+  min-width: 28px;
+  padding: 4px;
+  border-radius: 3px;
+  background: transparent;
+}
+.processing-toolbar button[aria-pressed="true"] {
+  color: var(--accent);
+  background: #ff950015;
+}
+.processing-toolbar svg,
+.processing-file svg {
+  width: 17px;
+  height: 17px;
+}
+.processing-file {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 6px;
+}
+.processing-file .integration-filename {
+  font-style: normal;
+}
+.processing-parameter-group {
+  min-width: 0;
+}
+.processing-parameter-group h3 {
+  margin: 0 0 4px;
+  font-size: var(--text-meta);
+  font-weight: 500;
+  color: var(--muted);
+}
+.processing-parameter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 250px));
+  gap: 5px 12px;
+}
+.processing-range {
+  display: grid;
+  width: min(100%, 320px);
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+}
+.integration-controls .processing-range .field-label {
+  display: block;
+}
+.processing-range-unit {
+  font-size: var(--text-meta);
+  white-space: nowrap;
+}
+.processing-overlay-background {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.processing-overlay-background button {
+  margin-left: auto;
+  padding: 3px 8px;
+}
+@container (max-width: 580px) {
+  .processing-parameter-grid {
+    grid-template-columns: minmax(0, 280px);
+  }
+  .processing-tool-label {
+    display: none;
+  }
+}
+
+.processing-range-error {
+  grid-column: 1 / -1;
+  color: #f0ad74;
+  font-size: var(--text-meta);
+}
+
+.processing-pane {
+  display: contents;
+}
+.processing-pane[hidden] {
+  display: none;
+}

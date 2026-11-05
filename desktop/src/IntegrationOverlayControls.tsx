@@ -443,8 +443,9 @@ export function IntegrationOverlayControls({
         aria-label="Overlay parameters"
       >
         <TableScroll className="qt-overlay-parameter-scroll">
-          <label>
-            Scale Step
+          <span className="integration-parameter-caption">Step sizes</span>
+          <label title="Scale step">
+            <span>Scale</span>
             <OverlayNumber
               label="Scale Step"
               value={scaleStep}
@@ -454,8 +455,8 @@ export function IntegrationOverlayControls({
               onCommit={setScaleStep}
             />
           </label>
-          <label>
-            Offset Step
+          <label title="Offset step">
+            <span>Offset</span>
             <OverlayNumber
               label="Offset Step"
               value={offsetStep}
@@ -483,17 +484,20 @@ export function IntegrationOverlayControls({
               <RotateCcw size={16} aria-hidden="true" />
             </button>
           </div>
-          <OverlayNumber
-            label="Waterfall separation"
-            value={source.waterfallSeparation}
-            min={-100000}
-            step={0.01}
-            max={100000}
-            multiply
-            onCommit={(separation) =>
-              action("waterfall_separation", { separation })
-            }
-          />
+          <label title="Waterfall separation">
+            <span>Spacing</span>
+            <OverlayNumber
+              label="Waterfall separation"
+              value={source.waterfallSeparation}
+              min={-100000}
+              step={0.01}
+              max={100000}
+              multiply
+              onCommit={(separation) =>
+                action("waterfall_separation", { separation })
+              }
+            />
+          </label>
         </TableScroll>
         <div className="qt-overlay-background-action">
           <button

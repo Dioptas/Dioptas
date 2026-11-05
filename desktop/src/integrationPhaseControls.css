@@ -6,7 +6,7 @@
 }
 .phase-controls {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) 100px;
+  grid-template-columns: 28px minmax(0, 1fr) 128px;
   gap: 6px;
   min-width: 0;
   min-height: 0;
@@ -47,7 +47,7 @@
 }
 .phase-controls table {
   width: 100%;
-  min-width: 425px;
+  min-width: 457px;
   table-layout: fixed;
   font-size: inherit;
 }
@@ -60,8 +60,11 @@
 .phase-name-col {
   width: auto;
 }
-.phase-value-col {
-  width: 80px;
+.phase-pressure-col {
+  width: 104px;
+}
+.phase-temperature-col {
+  width: 88px;
 }
 .phase-reference-col {
   width: 110px;
@@ -282,7 +285,7 @@
 }
 @media (max-width: 1100px) {
   .phase-controls {
-    grid-template-columns: 28px minmax(0, 1fr) 92px;
+    grid-template-columns: 28px minmax(0, 1fr) 128px;
     gap: 4px;
   }
   .phase-editor-grid {
@@ -355,4 +358,33 @@
 }
 .phase-step-controls .phase-apply-all {
   margin: 1px 0;
+}
+
+.phase-condition-value {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+}
+.phase-step-controls > .phase-condition-step {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) 26px;
+  align-items: center;
+  gap: 4px;
+  text-align: right;
+}
+.integration-controls .phase-condition-step input[type="number"] {
+  height: 28px;
+  min-height: 28px;
+  margin: 0;
+  padding: 3px 5px;
+  border-color: var(--table-control-border);
+  background-color: var(--table-control-background);
+}
+.phase-import-fields label {
+  text-align: right;
+}
+.phase-import-fields label > span:last-child {
+  text-align: left;
+  color: var(--muted);
 }

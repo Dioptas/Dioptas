@@ -287,11 +287,10 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
   await waitReady();
   assert.equal((await invoke("state")).state.useMask, true);
   await tab("Corrections");
-  await page.getByRole("button", { name: "Inc. Abs.", exact: true }).click();
-  await page.getByLabel("Apply detector absorption", { exact: true }).check();
   await page
-    .getByRole("button", { name: "Apply correction", exact: true })
+    .getByRole("button", { name: "Detector absorption", exact: true })
     .click();
+  await page.getByLabel("Apply detector absorption", { exact: true }).check();
   await waitReady();
   assert.equal(
     (await invoke("state")).state.integration.corrections.oiadac.enabled,
@@ -468,10 +467,16 @@ async function verifyIntegrationPlotTools(page, invoke, waitReady) {
     "Image background toggle is hidden without an image background",
   );
   await page.getByRole("tab", { name: "Background", exact: true }).click();
-  await click("Image Bkg");
+  await page
+    .getByRole("navigation", { name: "Background type" })
+    .getByRole("button", { name: "Image", exact: true })
+    .click();
   await click("Load background…");
   await page.getByLabel("Image background scale", { exact: true }).fill("0.1");
-  await click("Apply image background");
+  await page
+    .getByLabel("Image background scale", { exact: true })
+    .press("Enter");
+  await waitReady();
   const imageBefore = (
     await page.getByTestId("detector-canvas").screenshot()
   ).toString("base64");
@@ -485,7 +490,7 @@ async function verifyIntegrationPlotTools(page, invoke, waitReady) {
     "Raw and background-subtracted detector displays differ",
   );
   await click("Show corrected image");
-  await click("Remove");
+  await click("Remove background");
   assert.equal(
     await page
       .getByRole("button", { name: "Show corrected image", exact: true })
