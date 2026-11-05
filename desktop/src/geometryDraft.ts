@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { Calibration } from "./types";
 import { numericDraftError } from "./numericDraft";
 
@@ -61,14 +61,36 @@ const readDrafts = (calibration?: Calibration): Drafts => ({
 /** The session owns a geometry draft; changing visible modes never discards it. */
 export function useGeometryDraft(calibration?: Calibration) {
   const [drafts, setDrafts] = useState(() => readDrafts(calibration));
+  const base = useRef(readDrafts(calibration));
   const modelKey = JSON.stringify([calibration?.pyfai, calibration?.fit2d]);
   useLayoutEffect(() => {
-    setDrafts(readDrafts(calibration));
+    const next = readDrafts(calibration),
+      previous = base.current;
+    setDrafts(
+      (drafts) =>
+        Object.fromEntries(
+          (["pyfai", "fit2d"] as const).map((convention) => [
+            convention,
+            Object.fromEntries(
+              Object.entries(next[convention]).map(([key, value]) => [
+                key,
+                !numericDraftError(drafts[convention][key] ?? "") &&
+                Number(drafts[convention][key]) ===
+                  Number(previous[convention][key])
+                  ? value
+                  : (drafts[convention][key] ?? value),
+              ]),
+            ),
+          ]),
+        ) as Drafts,
+    );
+    base.current = next;
   }, [modelKey]);
-  const sync = useCallback(
-    (next?: Calibration) => setDrafts(readDrafts(next)),
-    [],
-  );
+  const sync = useCallback((next?: Calibration) => {
+    const values = readDrafts(next);
+    base.current = values;
+    setDrafts(values);
+  }, []);
   const changed = (convention: GeometryConvention) =>
     (convention === "pyfai" ? pyfaiFields : fit2dFields).some(
       ([key, , , factor]) => {

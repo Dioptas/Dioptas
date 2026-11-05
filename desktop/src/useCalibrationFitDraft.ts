@@ -1,18 +1,19 @@
-import { useCallback, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Calibration } from "./types";
 import { numericDraftError, type NumericLimits } from "./numericDraft";
 
 export const fitParameterLimits = (key: string): NumericLimits =>
   key === "wavelength"
-    ? { min: 0.01, max: 10 }
+    ? { min: 0.01, max: 10, unit: "Å" }
     : key === "dist"
-      ? { min: 1, max: 10000 }
+      ? { min: 1, max: 10000, unit: "mm" }
       : key.startsWith("poni")
-        ? { min: -1e5, max: 1e5 }
-        : { min: -2 * Math.PI, max: 2 * Math.PI };
+        ? { min: -1e5, max: 1e5, unit: "mm" }
+        : { min: -2 * Math.PI, max: 2 * Math.PI, unit: "rad" };
 export const fitEnergyLimits = {
   min: 12.39841984332 / 10,
   max: 12.39841984332 / 0.01,
+  unit: "keV",
 };
 
 /** Session-owned starting values are separate from applied geometry. */
@@ -46,12 +47,47 @@ export function useCalibrationFitDraft(c?: Calibration) {
     String(c?.polarization ?? 0.99),
   );
 
+  const base = useRef(c);
   useLayoutEffect(() => {
     if (c) {
-      setParameters(c.parameters);
-      setParameterText({});
-      setEnergyText(null);
-      setPolarization(String(c.polarization));
+      const previous = base.current;
+      setParameterText((texts) =>
+        Object.fromEntries(
+          Object.entries(texts).filter(
+            ([key, text]) =>
+              numericDraftError(text) ||
+              Number(text) !== previous?.parameters[key]?.value,
+          ),
+        ),
+      );
+      setParameters((settings) =>
+        Object.fromEntries(
+          Object.entries(c.parameters).map(([key, setting]) => [
+            key,
+            {
+              ...setting,
+              refine:
+                settings[key]?.refine !== previous?.parameters[key]?.refine
+                  ? (settings[key]?.refine ?? setting.refine)
+                  : setting.refine,
+            },
+          ]),
+        ),
+      );
+      setPolarization((text) =>
+        !previous ||
+        (!numericDraftError(text) && Number(text) === previous.polarization)
+          ? String(c.polarization)
+          : text,
+      );
+      if (
+        parameterText.wavelength === undefined ||
+        (!numericDraftError(parameterText.wavelength) &&
+          Number(parameterText.wavelength) ===
+            previous?.parameters.wavelength?.value)
+      )
+        setEnergyText(null);
+      base.current = c;
     }
   }, [JSON.stringify(c?.parameters), c?.polarization]);
 
@@ -73,6 +109,7 @@ export function useCalibrationFitDraft(c?: Calibration) {
           parameter.refine !== c.parameters[key]?.refine,
       ));
   const sync = useCallback((next?: Calibration) => {
+    base.current = next;
     setParameters(next?.parameters ?? {});
     setParameterText({});
     setEnergyText(null);

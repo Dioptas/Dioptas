@@ -29,7 +29,7 @@
       "before": 7,
       "after": 9.5,
       "criteria": "Make scientific scales, references, labels and color ranges interpretable without suggesting false data.",
-      "evidence": "Compact movable pattern/phase legends float inside the plot without a reserved header. Low/bar/high/scale stay together; original versus overlay names and Batch indices are explicit.",
+      "evidence": "Movable legends choose an in-plot corner with fewer curve samples and avoid phase/region/cursor labels. Explicit positions remain fixed when new data arrives; long names expand on focus/hover. No legend header is reserved.",
       "at91": 9.2
     },
     {
@@ -47,7 +47,7 @@
       "before": 8,
       "after": 9.5,
       "criteria": "Support common analysis tasks directly and preserve meaningful work during navigation.",
-      "evidence": "Fit starting values and manual/embedded geometry have App-owned session controllers. Mode changes and Escape/backdrop dismissal retain exact edits; resetting drafts does not alter applied geometry.",
+      "evidence": "Session-owned geometry and fit drafts survive mode changes, dismissal and Undo. Untouched values rebase to the applied model; applying consumes only its own draft. Intentional source replacement identifies the affected drafts and asks first.",
       "at91": 9.2
     },
     {
@@ -65,7 +65,7 @@
       "before": 6.5,
       "after": 9.5,
       "criteria": "Expose tools, gestures and explanations so users can learn without memorizing hidden actions.",
-      "evidence": "One scoped shortcut reference covers implemented workspace, brush, plot, sample-inspection, legend and pane-divider keys. Pending convention markers and descriptions identify where unfinished work lives.",
+      "evidence": "One scoped shortcut reference matches implemented handlers. Field errors include units and concise explicitly approximate bound previews; exact bounds still govern validation. The Click label explains selection/hover in its tooltip.",
       "at91": 9.0
     },
     {
@@ -191,7 +191,7 @@
       "before": 6.5,
       "after": 9.5,
       "criteria": "Make the actual next history operation clear and preserve unrelated scientific diagnostics.",
-      "evidence": "Shared history names/routes the actual scientific or custom action; mask Undo preserves fit diagnostics and queued Undo is retained. Geometry Reset changes only the draft; readonly inspection creates no scientific-history entry.",
+      "evidence": "Scientific history preserves fitted diagnostics for unrelated mask edits. Undo also preserves unrelated typed geometry and fit-seed drafts while rebasing untouched values. Explicit reset affects only draft state.",
       "at91": 9.3
     },
     {
@@ -227,7 +227,7 @@
       "before": 6.5,
       "after": 9.3,
       "criteria": "Centralize reusable UI policy and keep behavior reviewable and testable.",
-      "evidence": "Session draft ownership is separated from rendering; common legends, dividers, history and navigation replace repeated policy. Strict unused-symbol checks and historical-renderer compatibility pass; App/PhaseEditor orchestration remains substantial.",
+      "evidence": "Replacement policy has one hook with typed affected-draft categories; shared legend placement is independently tested and separate from dragging. Text-size tokens have one owner. App orchestration remains substantial.",
       "at91": 8.8
     }
   ],
@@ -238,7 +238,7 @@
     "The gold phase file is an editor/control fixture, not an identification of the CeO2 or Fe3O4C specimens. The six-frame Batch series is derived from the CeO2 image by known intensity multipliers.",
     "The GUI preserves existing scientific conventions, including pyFAI/Fit2D unit differences, zero-based Batch frames, a one-line footer and compact plot tools."
   ],
-  "status": "Follow-up findings on saving applied geometry, title clipping, ring-label overlap and draft replacement are fixed. Both browser engines passed 58 views and 36 behavior checks. Claude’s last completed independent score is 8.26/10; a further assessment is pending.",
+  "status": "Current Codex assessment is 9.472/10 (9.5 rounded). Latest completed independent Claude assessment is 8.86/10 on 436df4a7; a further review of subsequent fixes is pending. Native smoke qualification is incomplete.",
   "rubric": "UI_DESIGN_RUBRIC.json",
   "implementedImprovements": [
     {
@@ -345,63 +345,63 @@
   ],
   "peer": {
     "name": "Claude",
-    "mean": 8.26,
+    "mean": 8.86,
     "criteria": [
       {
         "id": "scientific_context",
-        "score": 8.5
+        "score": 9.0
       },
       {
         "id": "precision_units",
-        "score": 8.5
+        "score": 9.0
       },
       {
         "id": "visualization",
-        "score": 8.0
+        "score": 8.5
       },
       {
         "id": "inspection",
-        "score": 8.5
+        "score": 9.0
       },
       {
         "id": "workflow",
-        "score": 8.5
+        "score": 9.0
       },
       {
         "id": "navigation",
-        "score": 8.5
+        "score": 9.0
       },
       {
         "id": "learnability",
-        "score": 7.5
+        "score": 8.5
       },
       {
         "id": "cognitive_load",
-        "score": 8.0
+        "score": 9.0
       },
       {
         "id": "typography",
-        "score": 8.0
+        "score": 9.0
       },
       {
         "id": "readability",
-        "score": 8.0
+        "score": 9.0
       },
       {
         "id": "spacing",
-        "score": 8.0
+        "score": 9.0
       },
       {
         "id": "hierarchy",
-        "score": 8.5
+        "score": 9.0
       },
       {
         "id": "consistency",
-        "score": 8.5
+        "score": 9.0
       },
       {
         "id": "reuse",
-        "score": 8.5
+        "score": 9.0
       },
       {
         "id": "dialogs",
@@ -409,48 +409,48 @@
       },
       {
         "id": "keyboard",
-        "score": 8.5
+        "score": 9.0
       },
       {
         "id": "accessibility",
-        "score": 8.0
+        "score": 8.5
       },
       {
         "id": "feedback",
-        "score": 8.5
+        "score": 9.0
       },
       {
         "id": "validation",
-        "score": 8.5
+        "score": 9.0
       },
       {
         "id": "recovery",
-        "score": 8.5
+        "score": 9.0
       },
       {
         "id": "reversibility",
-        "score": 8.0
-      },
-      {
-        "id": "responsive",
-        "score": 7.5
-      },
-      {
-        "id": "responsiveness",
-        "score": 8.0
-      },
-      {
-        "id": "settings_files",
         "score": 8.5
       },
       {
+        "id": "responsive",
+        "score": 8.5
+      },
+      {
+        "id": "responsiveness",
+        "score": 8.5
+      },
+      {
+        "id": "settings_files",
+        "score": 9.0
+      },
+      {
         "id": "maintainability",
-        "score": 8.0
+        "score": 8.5
       }
     ],
-    "sourceCommit": "cee819d5",
+    "sourceCommit": "436df4a7",
     "reviewFile": "UI_PEER_REVIEW.txt",
-    "status": "Independent reassessment confirmed F1-F6 fixed and scored 8.26/10. Follow-up findings on saving, short axis titles, zoom-label overlap and draft replacement are being addressed."
+    "status": "Independent score 8.86/10. Follow-up improvements preserve drafts through Undo and choose less occupied in-plot legend positions; reassessment is pending."
   },
   "codexMean": 9.472,
   "target": 9.5,
@@ -464,7 +464,7 @@
   ],
   "scoreDisplay": "Overall scores are displayed to one decimal; the unrounded arithmetic mean is retained in codexMean. These are qualitative design judgments, not measured accuracy or certification.",
   "validation": {
-    "frontendUnitTests": 61,
+    "frontendUnitTests": 63,
     "modelTests": 294,
     "optionalModelTestsSkipped": 5,
     "browserEngines": [
@@ -472,7 +472,7 @@
       "WebKit"
     ],
     "capturedStatesPerEngine": 58,
-    "behaviorChecksPerEngine": 36,
+    "behaviorChecksPerEngine": 37,
     "uiBuildVerifiedAgainstScreenshots": true,
     "nativeOsDialogsRevalidated": false,
     "screenReaderSessionValidated": false,
@@ -480,7 +480,11 @@
     "webkitViews": 58,
     "toolbarChecks": "Active Batch controls are checked against ancestor clipping and actual pointer hit targets.",
     "poniDisplayConversion": "A changed PONI field is applied through the UI; mm-to-m conversion and Undo are checked against the real model at 1e-15 m tolerance.",
-    "batchAxisTitles": "Visible heatmap axis titles are measured against available height; full zero-based semantics remain in the accessible description."
+    "batchAxisTitles": "Visible heatmap axis titles are measured against available height; full zero-based semantics remain in the accessible description.",
+    "browserUiSha256": "eb1e1417d1709f25d710e0e467ecc73bf0b54014ec9a5b300401d6e82815395f",
+    "nativeBuildPassed": true,
+    "nativeBatchSmokePassed": false,
+    "nativeQualification": "Native smoke did not pass; failures and baseline comparison are retained in artifacts/ui-audit/native/summary.json."
   },
   "manualAccessibilityReview": {
     "popupControllers": "Open icon-picker controllers were verified to reference an existing role=dialog target; the axe incomplete result is retained rather than relabeled as an automatic pass.",
@@ -747,6 +751,115 @@
       "sourceCommit": "cc3c8704",
       "reviewFile": "UI_PEER_REVIEW.txt",
       "status": "Fresh independent post-reset review; confirmed findings are being fixed and a subsequent reassessment is pending."
+    },
+    {
+      "name": "Claude",
+      "mean": 8.26,
+      "criteria": [
+        {
+          "id": "scientific_context",
+          "score": 8.5
+        },
+        {
+          "id": "precision_units",
+          "score": 8.5
+        },
+        {
+          "id": "visualization",
+          "score": 8.0
+        },
+        {
+          "id": "inspection",
+          "score": 8.5
+        },
+        {
+          "id": "workflow",
+          "score": 8.5
+        },
+        {
+          "id": "navigation",
+          "score": 8.5
+        },
+        {
+          "id": "learnability",
+          "score": 7.5
+        },
+        {
+          "id": "cognitive_load",
+          "score": 8.0
+        },
+        {
+          "id": "typography",
+          "score": 8.0
+        },
+        {
+          "id": "readability",
+          "score": 8.0
+        },
+        {
+          "id": "spacing",
+          "score": 8.0
+        },
+        {
+          "id": "hierarchy",
+          "score": 8.5
+        },
+        {
+          "id": "consistency",
+          "score": 8.5
+        },
+        {
+          "id": "reuse",
+          "score": 8.5
+        },
+        {
+          "id": "dialogs",
+          "score": 9.0
+        },
+        {
+          "id": "keyboard",
+          "score": 8.5
+        },
+        {
+          "id": "accessibility",
+          "score": 8.0
+        },
+        {
+          "id": "feedback",
+          "score": 8.5
+        },
+        {
+          "id": "validation",
+          "score": 8.5
+        },
+        {
+          "id": "recovery",
+          "score": 8.5
+        },
+        {
+          "id": "reversibility",
+          "score": 8.0
+        },
+        {
+          "id": "responsive",
+          "score": 7.5
+        },
+        {
+          "id": "responsiveness",
+          "score": 8.0
+        },
+        {
+          "id": "settings_files",
+          "score": 8.5
+        },
+        {
+          "id": "maintainability",
+          "score": 8.0
+        }
+      ],
+      "sourceCommit": "cee819d5",
+      "reviewFile": "UI_PEER_REVIEW.txt",
+      "status": "Independent reassessment confirmed F1-F6 fixed and scored 8.26/10. Follow-up findings on saving, short axis titles, zoom-label overlap and draft replacement are being addressed."
     }
   ],
   "codexHistory": [

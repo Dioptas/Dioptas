@@ -7,8 +7,9 @@ export type LegendBounds = {
   width: number;
   height: number;
 };
+type Point = { x: number; y: number };
 
-/** Compact phase/curve names share bounded pointer and keyboard positioning. */
+/** In-plot legends share bounded positioning; explicit moves survive new data. */
 export function PlotLegend({
   label,
   entries,
@@ -30,37 +31,67 @@ export function PlotLegend({
   align?: "left" | "right";
   className?: string;
 }) {
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const drag = useRef<{ x: number; y: number; start: typeof offset } | null>(
-    null,
-  );
   const element = useRef<HTMLDivElement>(null);
-  const currentOffset = useRef(offset);
-  currentOffset.current = offset;
-  const move = (point: typeof offset) => {
-    if (!element.current) return;
-    const rect = element.current.getBoundingClientRect();
-    const minimumX = bounds.left + (align === "right" ? rect.width : 0);
-    const maximumX =
-      bounds.left + bounds.width - (align === "left" ? rect.width : 0);
-    const x = Math.max(minimumX, Math.min(maximumX, left + point.x)) - left;
-    const y =
-      Math.max(
+  const initialPosition = useRef<Point>({ x: left, y: top });
+  const manual = useRef(false),
+    positionRef = useRef<Point | null>(null);
+  const [position, setPosition] = useState<Point | null>(null);
+  const drag = useRef<{ x: number; y: number; start: Point } | null>(null);
+  const initial = (): Point => ({
+    x:
+      left -
+      (align === "right"
+        ? (element.current?.getBoundingClientRect().width ?? 0)
+        : 0),
+    y: top,
+  });
+  const bounded = (point: Point): Point => {
+    const rect = element.current?.getBoundingClientRect();
+    if (!rect) return point;
+    return {
+      x: Math.max(
+        bounds.left,
+        Math.min(bounds.left + bounds.width - rect.width, point.x),
+      ),
+      y: Math.max(
         bounds.top,
-        Math.min(bounds.top + bounds.height - rect.height, top + point.y),
-      ) - top;
-    setOffset((current) =>
-      current.x === x && current.y === y ? current : { x, y },
-    );
+        Math.min(bounds.top + bounds.height - rect.height, point.y),
+      ),
+    };
+  };
+  const commit = (point: Point) => {
+    const next = bounded(point);
+    positionRef.current = next;
+    setPosition((old) => (old?.x === next.x && old?.y === next.y ? old : next));
+  };
+  const move = (point: Point) => {
+    manual.current = true;
+    commit(point);
+  };
+  const reset = () => {
+    manual.current = false;
+    initialPosition.current = bounded(initial());
+    commit(initialPosition.current);
   };
   useLayoutEffect(() => {
-    move(currentOffset.current);
     const node = element.current;
     if (!node) return;
-    const observer = new ResizeObserver(() => move(currentOffset.current));
+    const refresh = () => {
+      initialPosition.current = bounded(initial());
+      commit(
+        manual.current
+          ? (positionRef.current ?? initialPosition.current)
+          : initialPosition.current,
+      );
+    };
+    refresh();
+    const observer = new ResizeObserver(refresh);
     observer.observe(node);
     return () => observer.disconnect();
   }, [
+    left,
+    top,
+    align,
     bounds.left,
     bounds.top,
     bounds.width,
@@ -70,6 +101,11 @@ export function PlotLegend({
     entries.length,
   ]);
   if (!entries.length) return null;
+  const start = initialPosition.current;
+  const offset =
+    manual.current && position
+      ? { x: position.x - start.x, y: position.y - start.y }
+      : { x: 0, y: 0 };
   return (
     <div
       ref={element}
@@ -77,16 +113,17 @@ export function PlotLegend({
       role="group"
       tabIndex={0}
       aria-label={label}
-      aria-description="Drag to move within the plot. Arrow keys move it; Shift moves faster. Home or Escape restores its position."
-      title="Drag to move · arrow keys move · Home restores"
+      aria-description="Drag to move within the plot. Arrow keys move it; Shift moves faster. Home or Escape restores its position. Focus or hover to read long names."
+      title="Drag to move · arrow keys move · Home restores · focus for full names"
       data-legend-offset={`${offset.x},${offset.y}`}
       style={{
-        left: left + offset.x,
-        top: top + offset.y,
+        left: position?.x ?? left,
+        top: position?.y ?? top,
         maxWidth: width,
         maxHeight: height,
         textAlign: align,
-        transform: align === "right" ? "translateX(-100%)" : undefined,
+        transform:
+          !position && align === "right" ? "translateX(-100%)" : undefined,
       }}
       onKeyDown={(event) => {
         if (event.ctrlKey || event.altKey || event.metaKey) return;
@@ -100,12 +137,13 @@ export function PlotLegend({
         if (event.key === "Home" || event.key === "Escape") {
           event.preventDefault();
           event.stopPropagation();
-          setOffset({ x: 0, y: 0 });
+          reset();
         } else if (deltas[event.key]) {
           event.preventDefault();
           event.stopPropagation();
-          const [x, y] = deltas[event.key];
-          move({ x: offset.x + x, y: offset.y + y });
+          const [x, y] = deltas[event.key],
+            current = positionRef.current ?? initial();
+          move({ x: current.x + x, y: current.y + y });
         }
       }}
       onPointerDown={(event) => {
@@ -113,7 +151,11 @@ export function PlotLegend({
         event.preventDefault();
         event.currentTarget.focus({ preventScroll: true });
         event.currentTarget.setPointerCapture(event.pointerId);
-        drag.current = { x: event.clientX, y: event.clientY, start: offset };
+        drag.current = {
+          x: event.clientX,
+          y: event.clientY,
+          start: positionRef.current ?? initial(),
+        };
       }}
       onPointerMove={(event) => {
         if (drag.current)

@@ -4,6 +4,11 @@
   window.__batchSmokeRunning = true;
   const call = window.__dioptasNativeCall,
     invoke = window.__TAURI_INTERNALS__.invoke;
+  const trace = (stage, details = {}) =>
+    invoke("plugin:event|emit", {
+      event: "native-smoke-diagnostic",
+      payload: { window: "main", stage, ...details },
+    });
   const delay = (ms = 70) => new Promise((r) => setTimeout(r, ms));
   const check = (v, m) => {
     if (!v) throw Error(m);
@@ -32,14 +37,20 @@
     b.click();
   };
   try {
+    await trace("batch-main-start");
     await ready();
+    await trace("batch-main-ready");
     const host = await call("__host__");
     check(
       host.ok && !host.qtApplication && host.tcpListeners === 0,
       "Wrong processing boundary",
     );
     let state = await call("state");
-    if (!sessionStorage.getItem("batch-smoke-loaded")) {
+    await trace("batch-main-state", {
+      hasBatch: !!state.batch,
+      loaded: sessionStorage.getItem("batch-smoke-loaded"),
+    });
+    if (!sessionStorage.getItem("batch-smoke-loaded") || !state.batch) {
       check(
         (
           await call("open_calibration", {
@@ -69,7 +80,18 @@
     );
     localStorage.setItem("dioptas-batch:docked", "false");
     let resolveReport;
-    const next = () => new Promise((r) => (resolveReport = r));
+    const next = () =>
+      new Promise((resolve, reject) => {
+        const timeout = setTimeout(
+          () =>
+            reject(Error("Timed out waiting for the Batch companion report")),
+          50000,
+        );
+        resolveReport = (report) => {
+          clearTimeout(timeout);
+          resolve(report);
+        };
+      });
     const handler = window.__TAURI_INTERNALS__.transformCallback((e) =>
       resolveReport?.(e.payload),
     );
@@ -79,6 +101,7 @@
       handler,
     });
     const firstPromise = next();
+    await trace("batch-opening-companion");
     click("Batch view…");
     const first = await firstPromise;
     check(first.ok, first.error);
@@ -108,7 +131,7 @@
     check(
       Math.abs(second.initial.width - first.placed.width) < 2 &&
         Math.abs(second.initial.height - first.placed.height) < 2,
-      "Batch window size was not remembered",
+      `Batch window size was not remembered: ${JSON.stringify({ first: first.placed, second: second.initial })}`,
     );
     check(
       Math.abs(second.initial.position.x - first.placed.position.x) < 2 &&

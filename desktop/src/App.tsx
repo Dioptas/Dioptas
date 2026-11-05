@@ -1,4 +1,4 @@
-import { ConfirmDraftReplacement } from "./ConfirmDraftReplacement";
+import { useDraftReplacement } from "./useDraftReplacement";
 import { useCalibrationFitDraft } from "./useCalibrationFitDraft";
 import { IntegrationModeIcon } from "./ModeIcons";
 import { WorkspaceModeButtons } from "./WorkspaceModeButtons";
@@ -179,10 +179,6 @@ export default function App() {
   }, [validationConvention]);
   const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false);
   const [manualGeometryOpen, setManualGeometryOpen] = useState(false);
-  const [draftReplacement, setDraftReplacement] = useState<{
-    action: string;
-    proceed: () => void;
-  } | null>(null);
   const [selectedPicks, setSelectedPicks] = useState<number[]>([]);
   const [advancedDirty, setAdvancedDirty] = useState(false);
   const [largeText, setLargeText] = useState(() => {
@@ -308,8 +304,11 @@ export default function App() {
   const geometryDirty = geometryDraft.dirty;
   const activeGeometryDirty = geometryDraft.changed(validationConvention);
   const activeGeometryValid = geometryDraft.valid(validationConvention);
-  const pendingCalibrationDrafts = useRef(false);
-  pendingCalibrationDrafts.current = geometryDirty || fitEditor.dirty;
+  const draftReplacement = useDraftReplacement({
+    geometry: geometryDirty,
+    fit: fitEditor.dirty,
+    integration: integrationDraft.dirty,
+  });
   const pendingOptionDrafts = useRef(false);
   pendingOptionDrafts.current =
     geometryDirty || fitEditor.dirty || integrationDraft.dirty;
@@ -541,32 +540,19 @@ export default function App() {
     ): Promise<void> => {
       if (
         !replaceDrafts &&
-        ["open_calibration", "open_project", "example"].includes(command) &&
-        (command === "open_calibration"
-          ? pendingCalibrationDrafts.current
-          : pendingOptionDrafts.current)
-      ) {
-        setDraftReplacement({
-          action:
-            command === "open_project"
-              ? "Open project"
-              : command === "example"
-                ? "Load example"
-                : "Load calibration",
-          proceed: () => {
-            void run(
-              command,
-              args,
-              message,
-              onSuccess,
-              shouldRun,
-              queueIfBusy,
-              true,
-            );
-          },
-        });
+        draftReplacement.request(command, () => {
+          void run(
+            command,
+            args,
+            message,
+            onSuccess,
+            shouldRun,
+            queueIfBusy,
+            true,
+          );
+        })
+      )
         return;
-      }
       const historyLabel = command.startsWith("redo")
         ? currentState.current?.redoLabel
         : currentState.current?.undoLabel;
@@ -750,6 +736,11 @@ export default function App() {
             resetFitDraft(result.state.calibration);
           }
         }
+        if (!result.cancelled && result.state) {
+          if (command === "manual_geometry")
+            resetGeometryDraft(result.state.calibration);
+          if (command === "calibrate") resetFitDraft(result.state.calibration);
+        }
         if (
           command === "save_project" &&
           result.savedPath &&
@@ -820,7 +811,13 @@ export default function App() {
         release();
       }
     },
-    [apply, resetIntegrationDraft, resetGeometryDraft, resetFitDraft],
+    [
+      apply,
+      resetIntegrationDraft,
+      resetGeometryDraft,
+      resetFitDraft,
+      draftReplacement.request,
+    ],
   );
   useNativePhaseEditorSync(run, state?.revision);
   useEffect(() => {
@@ -2732,13 +2729,17 @@ export default function App() {
                         aria-label="Save .poni calibration"
                         disabled={!canSaveCalibration}
                         title={
-                          geometryDirty
-                            ? "Apply or reset the geometry draft before saving."
-                            : setupDirty
-                              ? "Finish detector settings before saving."
-                              : state?.calibration.fitDirty
-                                ? "Ring selections changed; calibrate or refine before saving."
-                                : "Save the current applied geometry. Unapplied fit starting values remain in this session."
+                          !ready
+                            ? "Wait for processing to finish."
+                            : !state?.calibrated
+                              ? "Calibrate or load a geometry before saving."
+                              : geometryDirty
+                                ? "Apply or reset the geometry draft before saving."
+                                : setupDirty
+                                  ? "Finish detector settings before saving."
+                                  : state?.calibration.fitDirty
+                                    ? "Ring selections changed; calibrate or refine before saving."
+                                    : "Save the current applied geometry. Unapplied fit starting values remain in this session."
                         }
                         onClick={() =>
                           run(
@@ -2780,17 +2781,7 @@ export default function App() {
               </aside>
             )}
           </IntegrationWorkspace>
-          {draftReplacement && (
-            <ConfirmDraftReplacement
-              action={draftReplacement.action}
-              onCancel={() => setDraftReplacement(null)}
-              onContinue={() => {
-                const proceed = draftReplacement.proceed;
-                setDraftReplacement(null);
-                proceed();
-              }}
-            />
-          )}
+          {draftReplacement.dialog}
           {manualGeometryOpen && (
             <ManualGeometryDialog
               editor={geometryDraft}
@@ -2855,7 +2846,12 @@ export default function App() {
             </div>
             {!settingsOpen && (mode === "integration" || mode === "map") && (
               <div className="plot-status-line clicked-position">
-                <span className="plot-status-kind">Click</span>
+                <span
+                  className="plot-status-kind"
+                  title="Last selected position. Click a detector or pattern to choose a point; move the pointer to inspect values."
+                >
+                  Click
+                </span>
                 <span
                   data-testid="click-readout"
                   data-plot={clickedReading?.source}

@@ -161,7 +161,29 @@ export async function verifyPeerFindings({
     Math.abs(appliedPoni - editedPoniMm / 1000) < 1e-15,
     "Displayed mm convert to SI meters only at Apply",
   );
+  await page
+    .getByLabel("Manual distance", { exact: true })
+    .fill("350.1234567890123");
+  await tab("Step 3: Calibrate");
+  await rotation.fill("-0.03141592653589793");
+  await tab("Step 4: Validate");
   await click("Undo");
+  assert.equal(
+    await page.getByLabel("Manual distance", { exact: true }).inputValue(),
+    "350.1234567890123",
+    "Undo rebases untouched geometry fields and preserves the deliberate draft",
+  );
+  await tab("Step 3: Calibrate");
+  assert.equal(
+    await rotation.inputValue(),
+    "-0.03141592653589793",
+    "Undo also preserves exact independent fit-seed drafts",
+  );
+  await rotation.fill(
+    String((await invoke("state")).state.calibration.parameters.rot1.value),
+  );
+  await tab("Step 4: Validate");
+  await click("Reset geometry draft");
   assert(
     Math.abs(
       (await invoke("state")).state.calibration.pyfai.poni1 -
@@ -238,6 +260,7 @@ export async function verifyPeerFindings({
   await page.reload();
   await ready();
   return [
+    "Undo preserves exact unrelated geometry and fit-seed drafts while rebasing untouched values",
     "Unapplied fit seeds do not block saving current applied geometry",
     "Source replacement asks before discarding drafts; Cancel preserves them and confirmed loading resets them",
     "Finite energy outside the supported wavelength range blocks calibration",

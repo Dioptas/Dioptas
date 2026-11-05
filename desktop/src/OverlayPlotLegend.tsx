@@ -5,6 +5,7 @@ export function OverlayPlotLegend(props: {
   left: number;
   top: number;
   width: number;
+  align?: "left" | "right";
   height: number;
   bounds: LegendBounds;
 }) {

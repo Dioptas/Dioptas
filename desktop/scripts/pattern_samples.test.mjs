@@ -1,3 +1,4 @@
+import { legendPlacement } from "../src/legendPlacement.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
@@ -67,4 +68,29 @@ test("keyboard inspection follows visual coordinates without changing source ord
     assert.deepEqual(x, original);
   }
   assert.deepEqual([...sampleInspectionOrder([NaN], 0, 4, null, "first")], []);
+});
+
+test("legend defaults avoid occupied curves and labelled plot controls", () => {
+  const bounds = { left: 20, top: 10, width: 300, height: 200 };
+  const result = legendPlacement(
+    bounds,
+    100,
+    30,
+    [{ x: 280, y: 20 }],
+    [{ left: 20, top: 10, width: 100, height: 40 }],
+  );
+  assert(
+    result.top > 100,
+    "The legend uses empty lower space instead of the peak/cursor labels",
+  );
+  assert.equal(result.align, "right");
+});
+test("legend candidates stay inside small plot bounds", () => {
+  const bounds = { left: 3, top: 4, width: 20, height: 10 };
+  const result = legendPlacement(bounds, 100, 40, [], []);
+  const x = result.left - (result.align === "right" ? 20 : 0);
+  assert(x >= bounds.left && x + 20 <= bounds.left + bounds.width);
+  assert(
+    result.top >= bounds.top && result.top + 10 <= bounds.top + bounds.height,
+  );
 });

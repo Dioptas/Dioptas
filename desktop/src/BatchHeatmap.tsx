@@ -309,6 +309,10 @@ export function BatchHeatmap({
         ref={canvas}
         data-testid="batch-heatmap"
         data-plot-font-size={typography.size}
+        data-plot-left={bounds.left}
+        data-plot-top={bounds.top}
+        data-plot-width={bounds.width}
+        data-plot-height={bounds.height}
         data-unit={batch.unit}
         data-intensity-scale={log ? "log" : sqrt ? "sqrt" : "linear"}
         data-zoom-mode={zoomMode}

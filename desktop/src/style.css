@@ -10,9 +10,6 @@
   font-synthesis: none;
   font-size: var(--text-small);
   font-weight: 400;
-  --text-meta: 13px;
-  --text-small: 14px;
-  --text-body: 15px;
   --border: var(--ui-divider);
   --muted: var(--ui-muted);
   /* Original Dioptas orange, shared by flat actions and interface accents. */
@@ -1717,9 +1714,6 @@ input[type="checkbox"] {
   font-size: var(--text-body);
 }
 .app[data-text-size="large"] {
-  --text-meta: 14px;
-  --text-small: 16px;
-  --text-body: 17px;
 }
 .app[data-text-size="large"] .sidebar {
   width: 322px;

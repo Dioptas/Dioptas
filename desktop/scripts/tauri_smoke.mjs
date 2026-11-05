@@ -58,6 +58,7 @@ const read = (stream) =>
     console.log(line);
     if (!line.startsWith('{"tauriSmoke":')) return;
     const result = JSON.parse(line).tauriSmoke;
+    if (result.stage === "diagnostic") return;
     if (result.stage === "hmr") {
       probeUpdate = writeFile(probe, ":root { --dioptas-tauri-hmr: after; }\n");
     } else report = result;

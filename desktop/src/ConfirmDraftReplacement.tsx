@@ -2,16 +2,18 @@ import { Dialog, DialogHeader } from "./Dialog";
 
 export function ConfirmDraftReplacement({
   action,
+  drafts,
   onCancel,
   onContinue,
 }: {
   action: string;
+  drafts: string[];
   onCancel: () => void;
   onContinue: () => void;
 }) {
   return (
     <Dialog
-      className="ui-error-dialog"
+      className="ui-confirm-dialog"
       aria-label="Replace unapplied edits?"
       onDismiss={onCancel}
     >
@@ -21,8 +23,9 @@ export function ConfirmDraftReplacement({
         onClose={onCancel}
       />
       <p>
-        Loading new settings replaces the unapplied edits in this session.
-        Cancel to keep them, or continue to choose the new source.
+        Loading new settings replaces the unapplied {drafts.join(", ")} in this
+        session. Cancel to keep these edits, or continue to choose the new
+        source.
       </p>
       <div className="ui-dialog-actions">
         <button className="secondary" autoFocus onClick={onCancel}>

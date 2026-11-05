@@ -308,7 +308,7 @@ fn native_smoke_report(
         return Err("Native smoke mode is disabled.".into());
     }
     println!("{}", json!({"tauriSmoke": report}));
-    if report["stage"] == "hmr" {
+    if matches!(report["stage"].as_str(), Some("hmr" | "diagnostic")) {
         return Ok(());
     }
     app.exit(if report["ok"] == true { 0 } else { 1 });
@@ -354,6 +354,11 @@ fn main() {
                 window.set_title("Dioptas · Tauri live preview")?;
             }
             if smoke {
+                use tauri::Listener;
+                app.listen("native-smoke-diagnostic", |event| {
+                    let diagnostics: Value = serde_json::from_str(event.payload()).unwrap_or_else(|_| json!({"message": event.payload()}));
+                    println!("{}", json!({"tauriSmoke": {"stage": "diagnostic", "diagnostics": diagnostics}}));
+                });
                 let handle = app.handle().clone();
                 std::thread::spawn(move || {
                     std::thread::sleep(std::time::Duration::from_secs(if pattern_benchmark { 600 } else { 120 }));
@@ -364,6 +369,9 @@ fn main() {
             Ok(())
         })
         .on_page_load(move |webview, payload| {
+            if smoke && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+                let _ = webview.eval(include_str!("../../scripts/native_smoke_diagnostics.js"));
+            }
             if smoke && batch_smoke && std::env::var_os("DIOPTAS_BATCH_LAYOUT_STAGE").is_none() && webview.label() == "batch-window" && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
                 let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
                 let _ = webview.eval(include_str!("../../scripts/batch_window_native_smoke.js"));

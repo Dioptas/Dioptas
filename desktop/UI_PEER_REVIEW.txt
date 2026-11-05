@@ -1,108 +1,111 @@
-# Independent reassessment of the revised Dioptas GUI against the same 25-criterion rubric
+# Independent review of Dioptas GUI at commit 436df4a7 against the fixed 25-category rubric
 
-I opened neither `UI_DESIGN_REVIEW.json` nor any other reviewer's scores. I didn't change any files, and I didn't run the app, the tests or any audit. Without a shell I also couldn't read the new commit hash, so I reviewed the files as they are in the worktree.
+I did not open `UI_DESIGN_REVIEW.json` or anyone else's scores, and I didn't change any files or run anything. Without a shell I couldn't read the commit hash; I reviewed the files as they are in the worktree.
 
-**Reports.** `after/report.json` and `webkit/report.json` describe the same UI build (`uiSha256` d38f65…). Both show `completed: true`, `failure: null`, `errors: []` and 33 behavior checks (lines 24–56). Neither contains a non-empty `accessibility` array. No `toolbarReachability` entry is `clipped: true` or `hit: false`, and `ui_audit.mjs:211-212` turns any such entry into a failure. The new check strings come from `ui_audit_peer.mjs:187-190`.
+**Overall:** the new mean is **8.86**, up from 8.26. Part of the rise is that I'm now applying the rubric's 9 anchor literally. Where I observed no material defect, a category gets 9 even if native or screen-reader evidence is missing. Last round I had been holding some of those categories at 8.5 for missing evidence alone.
 
-## F1–F7: what happened to my earlier findings
+**Reports:**
+- **Same build:** `after/report.json` and `webkit/report.json` have the same `uiSha256` (c9a7ec25…).
+- **Clean run:** both show `completed: true`, `failure: null` and `errors: []`.
+- **36 checks:** listed at lines 24–59, including the new ones at 46–48.
+- **No failures:** neither report has a non-empty `accessibility` array or a `clipped: true` / `hit: false` reachability entry.
+- **Not counted:** I found no completed native Batch check or Retina WebGL benchmark under `artifacts/ui-audit`, so neither counts as passed.
+
+## N1–N5: what happened to last round's findings
 
 | ID | Status | What I checked |
 |---|---|---|
-| **F1** Fit seeds turned blank or "-" into 0 | **Fixed** | `useCalibrationFitDraft.ts:10-26` keeps the typed text and turns invalid text into `NaN`, never 0. Field errors are linked to their inputs (`CalibrationExtras.tsx:228-271`). Calibrate is blocked while the seeds are invalid (`App.tsx:1496-1513`). calibration-invalid-start.png shows Rotation 1 still holding "-" with "Enter a finite number." |
-| **F2** PONI in m in one place, mm in another | **Fixed** | `geometryDraft.ts:7-8` now uses mm with a ×1000 factor, and `GeometryEditor.tsx:60-65` divides by that factor before sending, so the backend still gets SI units. Fit, Validate and the manual dialog all show PONI 87.29485 mm. |
-| **F3** Batch toolbar cut off its action buttons | **Fixed** | `batch.css:57` adds `flex-wrap: wrap`. In batch-compact.png and batch-compact-large.png, Phases, Collapse, Detach and Hide are all visible, and the reachability data agrees. |
-| **F4** Manual-geometry draft lost on dismissal | **Fixed** | The dialog now uses the App's `geometryDraft` and shared convention (`App.tsx:2750-2753`). It also says that unapplied edits persist (`GeometryEditor.tsx:224-227`). |
-| **F5** Fit seeds not labelled as seeds | **Fixed** | The section is now headed "Starting values" with a "Start value" column and an explanatory note (`CalibrationExtras.tsx:179-219`). In other modes the status bar says "Unapplied calibration edits; the current geometry is still in use" (`App.tsx:1554-1555`). |
-| **F6** Frame field accepted out-of-range values | **Fixed** | `CommitNumberField.tsx` checks the frame against min 1, the frame count and whole numbers. Enter commits, Escape reverts, and errors are linked to the field (`IntegrationView.tsx:109-118`). integration-frame-validation.png shows "1.5 → Enter a whole number." |
-| **F7** Polish items | **Mostly fixed** | The heading is now sentence case (`MaskPanel.tsx:336`). `PathInput` scrolls long paths so the useful end shows. Cake ring labels are now kept inside the plot (`RasterView.tsx:584-585`), but in calibration-validate.png the "15" label is still covered by the 1× zoom badge (N3). The toolbar symbols are unchanged, which I treat as an optional enhancement. |
+| **N1** Save .poni blocked by fit-seed edits | **Fixed** | `canSaveCalibration` no longer depends on the seed draft (`App.tsx:1550-1555`). The Save tooltip now names the actual blocker: geometry draft, setup or ring changes. Otherwise it says the unapplied seeds remain in the session (`App.tsx:2734-2742`). |
+| **N2** Batch y-axis title clipped | **Fixed** | The title is measured and steps down through three shorter forms, ending in "i" (`BatchHeatmap.tsx:247-254`). The 0-based meaning stays in `aria-description` (`:330`). The screenshots show "Index" with no clipping. |
+| **N3** Ring label under the zoom badge | **Fixed** | Labels that would overlap the badge move below it (`RasterView.tsx:586-595`). In calibration-validate.png, "15" now sits below the 1× badge and is fully readable. |
+| **N4** Loading a source silently replaced drafts | **Fixed for the three source commands** | `run()` intercepts `open_calibration`, `open_project` and `example` when drafts are pending (`App.tsx:542-568`). Cancel keeps the drafts; Continue resets them only after a load that wasn't cancelled (`:743-751`). Cancel gets focus first (`ConfirmDraftReplacement.tsx:28`). One residual path remains (P1 below). |
+| **N5** Path field gave no truncation cue | **Fixed** | A visible leading "…" appears when the path is truncated, and a `ResizeObserver` keeps it current (`PathInput.tsx:10-24, 40-44`). Both batch-compact-large.png and integration-frame-validation.png show it. |
 
-## New defects
+**Other claims I checked:**
+- **Typography tokens:** core sizes are now tokens, for standard (`uiTheme.css:18-22`) and Larger (`:32-39`). The only remaining fixed px sizes are the four illustrative samples at `settings.css:167-179`.
+- **Fit and energy bounds:** these now live in `fitParameterLimits` and `fitEnergyLimits` (`useCalibrationFitDraft.ts:5-16`). I didn't check them against the backend's supported ranges.
 
-### Confirmed defects
+## New findings
 
-1. **N1. Editing a fit seed blocks Save .poni, contrary to what the UI says.**
-   - **Where:** `fitDraftDirty` → `canSaveCalibration` (`App.tsx:1514-1530`, button at `:2708`).
-   - **Trigger:** After a fit, change the Distance start value on Fit, then open Validate. Save .poni is disabled, but the status text at `App.tsx:1576` still says "Inspect fitted ring alignment and RMS, then save .poni." The button has no tooltip explaining why.
-   - **Why it matters:** The Fit note at `CalibrationExtras.tsx:180-184` says seeds "do not change the current geometry until you calibrate." Blocking the save of that current geometry contradicts it.
-   - **Fix:** Either stop blocking the save on seed edits, or explain the block in the button and the status line.
-   - **Basis:** Code reading only; I didn't run it. If the block is intentional, the explanation is still missing.
+All of these come from reading the code; I didn't run any of them.
 
-2. **N2. The Batch heatmap's y-axis title is cut off when the plot is short.**
-   - **Where:** `BatchHeatmap.tsx:243-248` draws the fixed string "Frame index (0-based)" centred on the plot without measuring it.
-   - **Seen in:** integration-frame-validation.png (standard text, once the toolbar wraps) and batch-compact-large.png, both showing "…(0-base".
-   - **Fix:** Use `measureText` and fall back to a shorter label such as "Frame (0-based)".
-
-3. **N3. A ring label is hidden under the zoom badge.**
-   - **Where:** `RasterView.tsx:584-586` keeps labels inside `plotWidth`, but the HTML 1× badge sits on top of that area.
-   - **Seen in:** calibration-validate.png, where cake label "15" is partly covered.
-
-### Minor confirmed gaps
-
-4. **N4. Loading a .poni silently replaces an unapplied geometry draft.**
-   - **Where:** `geometryDraft.ts:65-67` resets the draft whenever the model geometry changes.
-   - **Trigger:** Edit values in the manual dialog, close it, then click Load .poni. Only `!ready` disables that button (`App.tsx:2723`). The edits are discarded without a prompt, despite the dialog's "stay in this session" wording.
-
-5. **N5. `PathInput` gives no sign that a path is truncated.**
-   - **Where:** `PathInput.tsx:22` uses `text-overflow: clip`, so a path starts mid-word ("mens/.codex/…") with no leading ellipsis.
-   - It also only re-scrolls to the end when the value changes or on blur (`PathInput.tsx:15, 23-26`), not when the pane is resized.
-
-### Optional enhancements (not defects)
-
-- With large text, the compact Fit column shortens the Rotation 3 display to "−2.776… × 10⁻⁸". The exact value appears on focus.
-- The toolbar symbols `AA`, `A`, `|` and the footer label "Click —" are still explained only in Help.
-- The default in-plot legend position still overlaps curve peaks and the "A" cursor label (map-compact-large, batch-compact). Keeping the legend inside the plot and movable is your decision and isn't counted as a defect. A smarter default position would still help.
+- **P1. Undo/Redo and image loads can still replace pending drafts without asking (minor).**
+  - **Where:** `geometryDraft.ts:65-67` and `useCalibrationFitDraft.ts:49-56` rebuild the drafts whenever the model geometry or parameters change. The confirmation guard covers only the three source commands.
+  - **Trigger:** Calibrate, then type a manual geometry draft without applying it. Click outside the field and press ⌘/Ctrl+Z. The undo of the calibration restores the earlier geometry and the typed draft disappears without a prompt.
+  - **Judgement:** undo plausibly implies replacement, so I treat this as minor friction, not a defect.
+- **P2. Bound errors show raw constants and no unit (minor).** `numericDraft.ts:16-19` together with `fitEnergyLimits` produces "Enter a value of at least 1.239841984332." The wavelength and distance messages also omit Å and mm.
+- **P3. The Save tooltip's fallback text can be inaccurate (minor).** When Save is disabled only because nothing is calibrated yet or a command is running, the tooltip still reads "Save the current applied geometry…" (`App.tsx:2734-2742`).
+- **P4. The confirmation doesn't say which drafts would be lost (optional).** `ConfirmDraftReplacement.tsx:23-26` doesn't say whether the drafts are geometry, fit seeds or integration options.
+- **P5. The short Batch axis title drops "0-based" from view (optional).** At short heights it reads "Index". The toolbar's "Index 0 · 1 of 6" and the ARIA description keep the meaning.
+- **P6. The text-scale tokens are defined in two files (minor).** `style.css:13-15` and `:1720-1722` duplicate the base and Larger values that `uiTheme.css` also sets.
 
 ## Scores
 
-| ID | Score | Evidence | Remaining gaps |
+Key to the deficit classes in the table:
+- **M**: material friction I observed
+- **m**: minor limitation or optional enhancement
+- **D**: an intentional user decision
+- **E**: missing empirical evidence
+
+| ID | Score | Evidence | Gap below 10, or below 9 |
 |---|---|---|---|
-| scientific_context | 8.5 | Starting values are labelled as seeds; Loaded vs Fitted geometry; RMS shown; "current geometry is still in use" status | N1's misleading status message |
-| precision_units | 8.5 | PONI in mm everywhere with SI conversion; exact drafts kept; Unicode minus; 0-based and 1-based indices labelled | Compact large-text preview hides mantissa digits |
-| visualization | 8.0 | Numeric colour bars, ×10⁴ offset, ring labels kept inside the plot | N2, N3; default legend overlap |
-| inspection | 8.5 | Unchanged: linked readouts, keyboard sample inspection, square pixels on the fixtures | No native high-DPI evidence |
-| workflow | 8.5 | Shared persistent geometry draft; seed drafts survive mode switches | N1, N4 |
-| navigation | 8.5 | Unchanged rail and tab structure; wrapped Batch toolbar keeps its actions | Settings hides the data |
-| learnability | 7.5 | Field errors and seed note explain themselves | Symbols and "Click —" explained only in Help |
-| cognitive_load | 8.0 | Seed note is short; refinement options shown only when relevant | Fit column is long |
-| typography | 8.0 | Text tokens; heading case fixed | ~22 hard-coded px sizes; monospace axis titles |
-| readability | 8.0 | Error text readable; disabled controls dashed | Axe couldn't resolve contrast on gradients |
-| spacing | 8.0 | Error rows line up under their fields | Wrapped Batch row is uneven; N2 |
-| hierarchy | 8.5 | Unchanged, strong | — |
-| consistency | 8.5 | One PONI unit; one numeric-validation rule across editors | Minor heading/size drift |
-| reuse | 8.5 | Shared `numericDraftError`, `CommitNumberField`, `ScientificNumberInput`, `PathInput` and geometry draft | Refinement fields still use native `reportValidity` |
-| dialogs | 9.0 | Native modal, focus return, nested confirm; dismissing no longer loses work | No native window-manager evidence |
-| keyboard | 8.5 | Enter/Escape on the new fields are contained; shortcut list matches handlers | Bare Enter → integrate is broad |
-| accessibility | 8.0 | `aria-invalid` plus `aria-describedby` errors added; no automated axe violations | Headless only; no screen-reader run |
-| feedback | 8.5 | Field errors; blocker messages on Calibrate | N1 disabled button with no reason |
-| validation | 8.5 | Seeds, geometry and frame now validated and block commands | N1 may over-block |
-| recovery | 8.5 | Escape reverts fields; drafts persist; error details dialog | N4 silent replacement |
-| reversibility | 8.0 | Unchanged | Next undo action shown only in a tooltip |
-| responsive | 7.5 | Toolbar wraps; reachability tested at both text sizes | N2; legend truncation at compact sizes |
-| responsiveness | 8.0 | Unchanged | No timing evidence |
-| settings_files | 8.5 | Path tail shown; full path in title | N5 |
-| maintainability | 8.0 | Validation and draft logic in hooks; reachability enforced by the audit | `App.tsx` still ~2,850 lines |
+| scientific_context | 9.0 | Starting values separate from applied geometry; Save tooltip describes applied vs pending state; Loaded/Fitted provenance and RMS | m: P4. E: no broad user validation, so not 10. |
+| precision_units | 9.0 | Exact drafts; PONI in mm everywhere with SI conversion; Unicode minus and exponents; bounded energy | m: P2; compact preview hides mantissa digits until focus. |
+| visualization | **8.5** | Badge-aware ring labels; measured Batch title; numeric color bars | M: the default legend spot still covers curve peaks and the "A" cursor label, and the legend name is truncated at compact sizes (map-compact-large, batch-compact-large). Keeping the legend inside the plot and movable is D. The default placement is the gap. |
+| inspection | 9.0 | Linked readouts, keyboard sample inspection, square pixels on the fixtures | E: Retina WebGL benchmark not complete. |
+| workflow | 9.0 | Shared persistent drafts; seed edits no longer block Save; source loads guarded | m: P1. |
+| navigation | 9.0 | Rail left, tasks right; wrapped Batch actions reachable | D: Settings takes over the workspace. |
+| learnability | **8.5** | Toggles have accessible names and titles (`IntegrationPlotControls.tsx:371-376`, `MapView.tsx:575-580`); Help explains the symbols; gesture hints appear in the status bar | m: terse symbols (AA, A, \|, bg) need a hover or a trip to Help. The footer label "Click —" (`App.tsx:2858`) isn't explained. That's identifiable but not blocking friction, which is why it lands below 9. |
+| cognitive_load | 9.0 | Refinement options shown only when relevant; seed note is short | m: Fit column scrolls at Larger text. |
+| typography | 9.0 | Shared size tokens for both text sizes; consistent heading case | m: P6. D: monospace canvas axis titles, a Dioptas convention. |
+| readability | 9.0 | Muted text is high-contrast on the panel (about 8:1 by my estimate); disabled fields dashed; signs kept | E: axe couldn't resolve contrast over gradients. |
+| spacing | 9.0 | Field errors line up; stable action placement | m: empty space in the Pattern tab; wrapped Batch toolbar row is uneven. |
+| hierarchy | 9.0 | Data dominates; Apply geometry becomes primary while a draft is pending | m: none material. |
+| consistency | 9.0 | One unit and one validation rule across editors | m: the confirmation reuses the `ui-error-dialog` class. |
+| reuse | 9.0 | Shared `Dialog`, `numericDraftError`, `CommitNumberField`, `PathInput` and the confirmation component | m: none material. |
+| dialogs | 9.0 | Native modal; Escape cancels; Cancel focused first; drafts survive dismissal; focus returns to the trigger | E: no native window-manager check. m: P4. |
+| keyboard | 9.0 | Shortcut list matches the handlers; Enter/Escape on the new fields stay contained | m: bare Enter → integrate is broad but documented and non-destructive. |
+| accessibility | **8.5** | `aria-invalid` with linked error text; live regions; visible focus; ARIA description on the heatmap | E: no screen reader or native contrast check. m: canvas content is reachable only through descriptions and readouts. There are only two fixed text sizes and no check against OS-level scaling. Those gaps fall under this criterion's "text scaling" and "names/descriptions". |
+| feedback | 9.0 | Specific blocker reasons; notice after undo; "out of date" pattern state | m: P3. |
+| validation | 9.0 | Seeds, energy, geometry and frame are bounded and block commands | m: P2. |
+| recovery | 9.0 | Choosing Cancel in the confirmation keeps the drafts; error-details dialog; Escape reverts a field | m: P1. |
+| reversibility | **8.5** | Undo names the affected action, preserves the fit for mask edits, and confirms what it undid | M: P1. Undo can silently discard an unrelated pending draft, which goes against "preserve unrelated scientific diagnostics". m: the next undo action shows only in a tooltip. |
+| responsive | **8.5** | Toolbar reachability is measured at both text sizes; axis titles fit | M/D: legend truncation and overlap at 1000×760 (the in-plot legend itself is your decision). m: pattern header wraps onto a second line. |
+| responsiveness | **8.5** | Hover requests coalesced; queued actions; progress polling | E: no timing evidence I could read, and static screenshots can't show perceived speed. I'm not giving 9 here because I couldn't observe this category at all. |
+| settings_files | 9.0 | Path end visible with a "…" cue; source replacement guarded; drafts kept when saving | m: none material. |
+| maintainability | **8.5** | Draft and validation policy centralized; audit checks enforce behavior | M (structural): `App.tsx` is about 2,900 lines, with replacement policy, keyboard handling and save gating all inside `run()`. m: P6. |
 
 ## Mean
 
-Sum: 8.5+8.5+8.0+8.5+8.5 + 8.5+7.5+8.0+8.0+8.0 + 8.0+8.5+8.5+8.5+9.0 + 8.5+8.0+8.5+8.5+8.5 + 8.0+7.5+8.0+8.5+8.0 = **206.5**
+Sum: 9.0 + 9.0 + 8.5 + 9.0 + 9.0 + 9.0 + 8.5 + 9.0 + 9.0 + 9.0 + 9.0 + 9.0 + 9.0 + 9.0 + 9.0 + 9.0 + 8.5 + 9.0 + 9.0 + 9.0 + 8.5 + 8.5 + 8.5 + 9.0 + 8.5 = **221.5**
 
-Mean = 206.5 / 25 = **8.26** (previous review: 7.88)
+Mean = 221.5 / 25 = **8.86**. No category gets 10, because none has broad empirical validation.
 
-## Screenshots inspected
+## What I inspected
 
-I opened these from `after/` at full resolution:
-- batch-compact.png and batch-compact-large.png
-- calibration-fit.png and calibration-invalid-start.png
-- manual-geometry.png and manual-geometry-invalid.png
-- integration-frame-validation.png
-- calibration-validate.png
-- mask.png
-- map-compact-large.png
+**Screenshots,** all at full resolution from `after/`:
+- calibration-validate
+- calibration-fit
+- draft-replacement-confirmation
+- batch-compact-large
+- integration-frame-validation
+- phase-editor
+- settings-general
+- map-compact-large
 
-I didn't open the other screenshots this round.
+**Source read:**
+- `App.tsx` (lines 530–569, 736–805, 1505–1604, 2715–2808 and the "Click" label)
+- `ConfirmDraftReplacement.tsx`
+- `geometryDraft.ts`
+- `useCalibrationFitDraft.ts`
+- `numericDraft.ts`
+- `PathInput.tsx`
+- `historyLabels.ts`
+- the relevant parts of `BatchHeatmap.tsx` and `RasterView.tsx`
+- grep checks for typography tokens and toolbar titles
 
-## Limits
-
-- Behavior findings (N1, N4 and the fix checks) come from reading the code; the layout findings come from static headless renders.
-- The test results you mentioned (61 unit tests and the smoke runs) I didn't check, and I didn't run anything.
-- No native, screen-reader or performance testing was possible here. The missing evidence is a limit of this review; it doesn't mean the app failed those checks, and none of this amounts to accessibility certification.
+**Still unverified:**
+- **Runtime behavior:** I executed nothing, so every behavior claim (the fixes and P1–P3) is from reading code.
+- **Other screens:** I didn't open the Settings sub-pages, the custom-action editor or the overlay dialogs this round.
+- **Your test runs:** I didn't verify the test results you mentioned or the claim that the bounds match the backend's ranges.
+- **Native evidence:** there are no native, screen-reader or Retina results. Headless reports aren't accessibility certification.

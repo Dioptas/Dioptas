@@ -1,6 +1,9 @@
 /* Shared chrome tokens. Scientific palettes and data colors remain independent. */
 :root {
   color-scheme: dark;
+  --text-meta: 13px;
+  --text-small: 14px;
+  --text-body: 15px;
   --ui-workspace: #111519;
   --ui-panel: #1b1f24;
   --ui-raised: #292f36;
@@ -296,7 +299,8 @@ input[aria-invalid="true"] {
   max-height: 55dvh;
   overflow-y: auto;
 }
-.ui-error-dialog {
+.ui-error-dialog,
+.ui-confirm-dialog {
   width: min(640px, calc(100vw - 32px));
   padding: 20px;
 }
