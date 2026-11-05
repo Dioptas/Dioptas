@@ -1,3 +1,6 @@
+import { ColorScaleLegend } from "./ColorScaleLegend";
+import { scientificValue } from "./ScientificNumberInput";
+import { unitLabel } from "./types";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Save } from "lucide-react";
 import { RasterView } from "./RasterView";
@@ -109,6 +112,13 @@ export function ScanMapPanel({
     [map?.selectedCell?.[0], map?.selectedCell?.[1], scanRaster?.height],
   );
   const display = useMapDisplay(scanRaster, "map");
+  const activeRoi = map?.rois.find((roi) => roi.name === map.active);
+  const scaleDetail =
+    map && activeRoi
+      ? `${scientificValue(activeRoi.min, 5)}–${scientificValue(activeRoi.max, 5)} ${unitLabel(map.unit)} · ${activeRoi.reduction}${map.normalized ? " · normalized" : ""}`
+      : map
+        ? `Expression values${map.normalized ? " · normalized" : ""}`
+        : undefined;
   return (
     <section className="map-scan-panel" aria-label="Scan map">
       {map && scanRaster ? (
@@ -188,6 +198,15 @@ export function ScanMapPanel({
             </button>
           )}
         </div>
+      )}
+      {map && (
+        <ColorScaleLegend
+          label={`Layer ${map.active} · ${scanRaster?.fullHeight} × ${scanRaster?.fullWidth} grid`}
+          detail={scaleDetail}
+          palette={display.palette}
+          limits={display.limits}
+          scale={display.log ? "log" : "linear"}
+        />
       )}
       <div className="integration-image-tools map-display-controls">
         <label>

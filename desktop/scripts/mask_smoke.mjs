@@ -397,6 +397,8 @@ try {
     "Settings must not commit the pending mask polygon",
   );
   await page.keyboard.press("Escape");
+  // Enter belongs to a focused button; focus the plot to finish its polygon.
+  await page.getByTestId("detector-canvas").focus();
   await page.keyboard.press("Enter");
   await waitReady();
   const polygonCount = (await state()).state.maskedPixels;

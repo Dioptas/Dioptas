@@ -86,7 +86,16 @@ export function patternPlotSetup({
       overlayLegend: showLegend
         ? [
             ...(showPattern
-              ? [{ name: patternName, color: patternColor }]
+              ? [
+                  {
+                    name: (legendCurves ?? []).some(
+                      (curve) => curve.name === patternName,
+                    )
+                      ? `Original · ${patternName}`
+                      : patternName,
+                    color: patternColor,
+                  },
+                ]
               : []),
             ...(legendCurves ?? []),
           ]

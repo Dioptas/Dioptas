@@ -14,7 +14,7 @@
   display: flex;
   flex-direction: column;
   background: #14171b;
-  color: #dce2e7;
+  color: var(--ui-text);
   overflow: hidden;
 }
 .settings-header {
@@ -120,7 +120,7 @@
 }
 .settings-card {
   padding: 24px;
-  background: #1b1f24;
+  background: var(--ui-panel);
   border: 1px solid #ffffff0e;
   border-radius: 12px;
   flex-shrink: 0;
@@ -137,7 +137,7 @@
   margin-bottom: 10px;
 }
 .settings-card-heading > svg {
-  color: #9ca6b0;
+  color: var(--ui-muted);
 }
 .settings-size-options {
   display: grid;
@@ -163,7 +163,7 @@
   align-items: baseline;
   gap: 14px;
   height: 42px;
-  color: #dce2e7;
+  color: var(--ui-text);
   font-size: 28px;
   line-height: 42px;
 }
@@ -172,7 +172,7 @@
 }
 .settings-type-sample > span {
   font-size: 14px;
-  color: #9ca6b0;
+  color: var(--ui-muted);
   white-space: nowrap;
 }
 .settings-type-sample.is-large > span {
@@ -200,7 +200,7 @@
 .settings-preference-row select {
   width: 170px;
   flex-shrink: 0;
-  background: #13161a;
+  background: var(--ui-input);
 }
 .settings-card .settings-detail,
 .settings-detail {
@@ -243,7 +243,7 @@
   border: 1px solid #ffffff0e;
   border-radius: 12px;
   padding: 18px 20px;
-  background: #1b1f24;
+  background: var(--ui-panel);
   min-width: 0;
 }
 .settings-integration .integration-group:first-child {
@@ -301,7 +301,7 @@
   font-size: var(--text-small);
 }
 .settings-shortcut kbd {
-  background: #13161a;
+  background: var(--ui-input);
   border: 1px solid #ffffff18;
   border-radius: 5px;
   padding: 5px 9px;

@@ -1,3 +1,4 @@
+import { usePlotTypography } from "./usePlotTypography";
 import { WebGLPattern, type PatternCurve } from "./WebGLPattern";
 import { IntegrationPhaseLegend } from "./IntegrationPhaseLegend";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -183,6 +184,7 @@ export function PatternView({
       gpu.current = null;
     };
   }, [curveRenderer]);
+  const typography = usePlotTypography(container);
   const [size, setSize] = useState({ width: 900, height: 230 });
   const [left, setLeft] = useState(76);
   const [axisAnnotation, setAxisAnnotation] = useState(false);
@@ -252,10 +254,16 @@ export function PatternView({
     log,
     sqrt,
   ]);
-  // Integration tools sit against the plot; reserve headroom only for an exponent.
+  // Keep legends and scientific exponents above data, with scaled text gutters.
   const right = compact ? 0 : 32,
-    top = compact && !axisAnnotation ? 6 : 18,
-    bottom = 52;
+    top =
+      Math.max(
+        compact && !axisAnnotation ? 6 : 18,
+        (overlayLegend?.length ?? 0) > 0
+          ? Math.min(3, overlayLegend!.length) * typography.size * 1.35 + 14
+          : 0,
+      ) * typography.scale,
+    bottom = 52 * typography.scale;
   const w = Math.max(1, size.width - left - right),
     h = Math.max(1, size.height - top - bottom);
   const visibleCurves = useMemo(
@@ -333,7 +341,8 @@ export function PatternView({
   useEffect(() => {
     const previous = previousAutoRange.current;
     const managed = !!onAutoRange;
-    const toggled = previous?.managed && managed && previous.value !== autoRange;
+    const toggled =
+      previous?.managed && managed && previous.value !== autoRange;
     previousAutoRange.current = { value: autoRange, managed };
     if (navigating.current || (regionDrag.current && onRegionInput)) return;
     if (viewport) {
@@ -443,8 +452,8 @@ export function PatternView({
     context.scale(dpr, dpr);
     context.lineWidth = 1;
     context.setLineDash([]);
-    context.font = "13px ui-monospace, SFMono-Regular, monospace";
-    const intervalsY = Math.max(1, Math.floor(h / 48));
+    context.font = typography.mono;
+    const intervalsY = Math.max(1, Math.floor(h / (48 * typography.scale)));
     const inverse = (v: number) => Math.max(0, v) ** 2;
     const yAxis = log
       ? { ticks: logTicks(ymin, ymax, intervalsY), annotation: null }
@@ -490,7 +499,7 @@ export function PatternView({
       context.moveTo(left, y);
       context.lineTo(size.width - right, y);
       context.stroke();
-      context.fillStyle = "#7e8994";
+      context.fillStyle = typography.muted;
       context.textAlign = "right";
       context.fillText(tick.label, left - 10, y);
       context.strokeStyle = "#65717d";
@@ -511,7 +520,7 @@ export function PatternView({
       context.moveTo(x, top + h);
       context.lineTo(x, top + h + 4);
       context.stroke();
-      context.fillStyle = "#7e8994";
+      context.fillStyle = typography.muted;
       context.textAlign = "center";
       const halfLabel = context.measureText(tick.label).width / 2;
       context.fillText(
@@ -529,7 +538,7 @@ export function PatternView({
     context.textBaseline = "alphabetic";
     if (yAxis.annotation) {
       context.textAlign = "left";
-      context.fillStyle = "#7e8994";
+      context.fillStyle = typography.muted;
       context.fillText(yAxis.annotation, left, top - 6);
     }
     context.save();
@@ -595,6 +604,8 @@ export function PatternView({
     context.clip();
     // Reuse curve pixels when only the cursor, selection or editable region changes.
     const curveKey = [
+      typography.muted,
+      typography.mono,
       gpuVersion,
       curveRenderer,
       pattern,
@@ -765,6 +776,7 @@ export function PatternView({
         );
         curveContext.stroke();
       }
+      const ringLabelBoxes: { left: number; right: number; row: number }[] = [];
       for (const reference of calibrantLines) {
         const x = left + ((reference.x - xmin) / (xmax - xmin)) * w;
         if (x < left || x > left + w) continue;
@@ -777,7 +789,25 @@ export function PatternView({
         curveContext.stroke();
         if (showNumbers) {
           curveContext.fillStyle = "#ff4040";
-          curveContext.fillText(String(reference.ring), x + 4, top + 14);
+          const text = String(reference.ring),
+            width = curveContext.measureText(text).width;
+          const labelX = Math.max(
+            left + 2,
+            Math.min(x + 4, left + w - width - 2),
+          );
+          const row = Array.from({ length: 4 }, (_, i) => i).find(
+            (row) =>
+              !ringLabelBoxes.some(
+                (box) =>
+                  box.row === row &&
+                  labelX < box.right + 5 &&
+                  labelX + width > box.left - 5,
+              ),
+          );
+          if (row !== undefined) {
+            ringLabelBoxes.push({ left: labelX, right: labelX + width, row });
+            curveContext.fillText(text, labelX, top + 14 + row * 16);
+          }
         }
       }
       curveContext.restore();
@@ -840,7 +870,7 @@ export function PatternView({
       context.setLineDash([]);
     }
     context.restore();
-    context.fillStyle = "#929ca7";
+    context.fillStyle = typography.muted;
     context.textAlign = "center";
     context.fillText(unitLabel(pattern.unit), left + w / 2, size.height - 8);
     context.save();
@@ -858,6 +888,8 @@ export function PatternView({
       uploadBytes: gpu.current?.stats.uploadBytes,
     });
   }, [
+    typography.muted,
+    typography.mono,
     gpuVersion,
     curveRenderer,
     pattern,
@@ -932,7 +964,11 @@ export function PatternView({
   ]);
   return (
     <div ref={container} className="pattern-container">
-      <IntegrationPhaseLegend lines={referenceLines} left={left} />
+      <IntegrationPhaseLegend
+        lines={referenceLines}
+        left={left + (axisAnnotation ? typography.size * 4 : 0)}
+        top={axisAnnotation ? Math.max(26, top - typography.size * 1.35) : 6}
+      />
       <canvas
         ref={backdrop}
         className="pattern-background-layer"
@@ -951,11 +987,12 @@ export function PatternView({
       />
       <canvas
         ref={canvas}
-        tabIndex={-1}
+        tabIndex={0}
+        onKeyDown={navigation.onKeyDown}
         data-testid="pattern-canvas"
         data-curve-renderer={activeRenderer}
         data-requested-curve-renderer={curveRenderer}
-        aria-label={`Integrated diffraction pattern; left-drag ${zoomMode} zoom, right-drag pan, right-click zoom out`}
+        aria-label={`Integrated diffraction pattern; left-drag ${zoomMode} zoom, right-drag pan, right-click zoom out; keyboard arrows pan, +/- zoom, F restores view`}
         style={{ width: "100%", height: "100%", cursor: regionCursor }}
         data-regions={JSON.stringify(
           regions.map((r) =>
@@ -965,6 +1002,7 @@ export function PatternView({
         data-edit-regions={editRegions}
         data-region-updating={regionsUpdating}
         data-intensity-scale={log ? "log" : sqrt ? "sqrt" : "linear"}
+        data-plot-font-size={typography.size}
         data-antialias={antialias}
         data-auto-range={autoRange}
         data-curve-count={curves.length}
@@ -1100,7 +1138,7 @@ export function PatternView({
         <OverlayPlotLegend
           entries={overlayLegend}
           left={left + w - 10}
-          top={top + 5}
+          top={5}
           width={w * 0.6}
           height={h * 0.5}
         />

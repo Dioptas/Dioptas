@@ -6,9 +6,9 @@ import { fileURLToPath } from "node:url";
 const desktop = fileURLToPath(new URL("../", import.meta.url));
 const backend = process.argv.includes("--original")
   ? "original"
-  : process.argv.includes("--webgl")
-    ? "webgl2"
-    : "canvas2d";
+  : process.argv.includes("--canvas2d")
+    ? "canvas2d"
+    : "webgl2";
 const engine = process.argv.includes("--webkit") ? "webkit" : "chromium";
 const tag =
   process.argv.find((a) => a.startsWith("--tag="))?.slice(6) ?? backend;

@@ -100,7 +100,10 @@
       async () =>
         (await window.__dioptasNativeCall("map_snapshot")).map.selected === 5,
     );
-    check(!document.querySelector('[role="alert"]'), "Map selection failed");
+    check(
+      !document.querySelector('[role="alert"]')?.textContent.trim(),
+      "Map selection failed",
+    );
     report = {
       ok: true,
       initial,

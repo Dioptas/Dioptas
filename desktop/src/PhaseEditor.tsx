@@ -1,3 +1,6 @@
+import { ScientificNumberInput } from "./ScientificNumberInput";
+import { Dialog, DialogHeader } from "./Dialog";
+import { TabList } from "./TabList";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CopyPlus, ListX, Plus, Star, Trash2 } from "lucide-react";
@@ -43,7 +46,6 @@ export function PhaseEditor({
     ).values(),
   ];
   const dialog = useRef<HTMLDialogElement>(null);
-  const returnFocus = useRef<HTMLElement | null>(null);
   const [tab, setTab] = useState("Volume & structure");
   const [positionView, setPositionView] = useState("d-angle");
   const positions = (
@@ -97,20 +99,6 @@ export function PhaseEditor({
   const queue = useRef(Promise.resolve());
   const content = useRef(data);
   content.current = data;
-  useEffect(() => {
-    returnFocus.current =
-      document.activeElement === document.body
-        ? document.querySelector<HTMLElement>(
-            '.phase-action-rail button[aria-label="Edit selected Phase"]',
-          )
-        : (document.activeElement as HTMLElement);
-    if (!detached) dialog.current?.showModal();
-    return () => {
-      if (!detached) dialog.current?.close();
-      const target = returnFocus.current;
-      requestAnimationFrame(() => target?.focus());
-    };
-  }, []);
   useEffect(() => {
     setSelected([]);
     setConfirm("");
@@ -305,10 +293,18 @@ export function PhaseEditor({
       },
     );
   };
-  const Surface = detached ? "section" : "dialog";
+  const Surface = detached ? "section" : Dialog;
   const surfaceContent = (
     <Surface
-      ref={dialog}
+      {...(detached
+        ? { ref: dialog }
+        : {
+            dialogRef: dialog,
+            onDismiss: close,
+            returnFocusTarget: document.querySelector<HTMLButtonElement>(
+              '.phase-action-rail button[aria-label="Edit selected Phase"]',
+            ),
+          })}
       className={`phase-dialog pe-dialog${detached ? " pe-native" : ""}`}
       aria-label="Phase Editor"
       onCancel={(e) => {
@@ -318,14 +314,16 @@ export function PhaseEditor({
       }}
     >
       {!detached && (
-        <header>
-          <h2>
-            Phase Editor <span className="pe-material-name">· {data.name}</span>
-          </h2>
-          <button type="button" aria-label="Close Phase Editor" onClick={close}>
-            ×
-          </button>
-        </header>
+        <DialogHeader
+          title={
+            <>
+              Phase Editor{" "}
+              <span className="pe-material-name">· {data.name}</span>
+            </>
+          }
+          closeLabel="Close Phase Editor"
+          onClose={close}
+        />
       )}
       <div className="pe-source">
         <label className="pe-material-name-field">
@@ -368,37 +366,20 @@ export function PhaseEditor({
       </div>
       <div className="pe-body">
         <section className="pe-parameters" aria-label="Phase parameters">
-          <div className="pe-tabs" role="tablist" aria-label="Phase parameters">
-            {["Volume & structure", "Equation of state"].map((name, i) => (
-              <button
-                key={name}
-                role="tab"
-                id={`pe-tab-${i}`}
-                aria-selected={tab === name}
-                aria-controls={`pe-page-${i}`}
-                tabIndex={tab === name ? 0 : -1}
-                onClick={() => setTab(name)}
-                onKeyDown={(e) => {
-                  if (
-                    ["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)
-                  ) {
-                    e.preventDefault();
-                    const next = i === 0 ? 1 : 0;
-                    const index =
-                      e.key === "Home" ? 0 : e.key === "End" ? 1 : next;
-                    setTab(
-                      index === 0 ? "Volume & structure" : "Equation of state",
-                    );
-                    dialog.current
-                      ?.querySelector<HTMLButtonElement>(`#pe-tab-${index}`)
-                      ?.focus();
-                  }
-                }}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
+          <TabList
+            className="pe-tabs"
+            label="Phase parameters"
+            value={tab}
+            onChange={setTab}
+            options={["Volume & structure", "Equation of state"].map(
+              (name, i) => ({
+                value: name,
+                label: name,
+                id: `pe-tab-${i}`,
+                panelId: `pe-page-${i}`,
+              }),
+            )}
+          />
           <div
             className="pe-parameter-scroll"
             role="tabpanel"
@@ -499,18 +480,23 @@ export function PhaseEditor({
               }
             >
               {data.coldPressure ? "P₀ = " : "At "}
-              {data.pressure.toLocaleString()} GPa ·{" "}
-              {data.temperature.toLocaleString()} K
+              {String(data.pressure)} GPa · {String(data.temperature)} K
             </h3>
             <div className="pe-lattice-grid">
               {["a", "b", "c", "v0", "v"].map((p) => (
                 <label className="pe-field" key={p}>
                   <span>{p === "v0" ? "V₀" : p === "v" ? "V" : p}</span>
-                  <input
+                  <ScientificNumberInput
                     aria-label={`Current lattice ${p}`}
                     readOnly
-                    value={data.lattice[p].toPrecision(8)}
-                    title={String(data.lattice[p])}
+                    value={String(data.lattice[p])}
+                    displayDigits={6}
+                    title={`${p === "v0" ? "Reference volume" : "Calculated at current pressure and temperature"} · read-only · ${data.lattice[p]}`}
+                    aria-description={
+                      p === "v0"
+                        ? "Reference volume, read-only"
+                        : "Calculated value at current pressure and temperature, read-only"
+                    }
                   />
                   <span className="pe-unit">
                     {p.startsWith("v") ? "Å³" : "Å"}
@@ -1021,8 +1007,8 @@ export function PhaseEditor({
             </button>
           </div>
           <p className="pe-help">
-            ₀: reference · unmarked: current P/T. Intensities: 4 significant
-            digits; full precision on focus.
+            Subscript 0 = reference · unmarked: current P/T. Intensities: 4
+            significant digits; full precision on focus.
           </p>
         </section>
       </div>
@@ -1073,7 +1059,9 @@ export function PhaseEditor({
               : data.modified
                 ? "Unsaved changes"
                 : data.filename
-                  ? "Saved"
+                  ? data.canSaveCurrent
+                    ? "Saved to current file"
+                    : "Loaded reference · export to .eosmat to save a working copy"
                   : "Session material")}
         </p>
         <button
@@ -1104,7 +1092,7 @@ export function PhaseEditor({
           }
           onClick={() => void save("eosmat", data.canSaveCurrent)}
         >
-          Save
+          {data.canSaveCurrent ? "Save" : "Export .eosmat…"}
         </button>
         <button
           disabled={locked || rangesDirty}

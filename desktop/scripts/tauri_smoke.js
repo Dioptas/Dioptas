@@ -25,7 +25,7 @@
     for (let i = 0; i < 1000; i++) {
       if (predicate()) return;
       const error = document.querySelector('[role="alert"]');
-      if (error) throw Error(error.textContent);
+      if (error?.textContent.trim()) throw Error(error.textContent);
       await delay();
     }
     throw Error(message);

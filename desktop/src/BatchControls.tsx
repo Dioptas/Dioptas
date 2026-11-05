@@ -1,3 +1,5 @@
+import { useAnchoredDialog } from "./useAnchoredDialog";
+import { Dialog, DialogHeader } from "./Dialog";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, Settings2 } from "lucide-react";
@@ -32,9 +34,15 @@ export function BatchControls({
     [step, setStep] = useState(1),
     [jump, setJump] = useState("0");
   const normalizationButton = useRef<HTMLButtonElement>(null),
-    popup = useRef<HTMLDivElement>(null);
-  const [popupPosition, setPopupPosition] = useState({ left: 8, top: 8 });
+    popup = useRef<HTMLDialogElement>(null);
   const [normalization, setNormalization] = useState(false);
+  useAnchoredDialog(
+    popup,
+    normalizationButton.current,
+    normalization,
+    "end",
+    true,
+  );
   const [firstBin, setFirstBin] = useState(0),
     [lastBin, setLastBin] = useState(0),
     [reference, setReference] = useState(0);
@@ -59,26 +67,13 @@ export function BatchControls({
     batch?.normalizationReference,
     batch?.x.length,
   ]);
-  useEffect(() => {
-    if (!normalization) return;
-    const close = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setNormalization(false);
-    };
-    const outside = (e: PointerEvent) => {
-      if (
-        !popup.current?.contains(e.target as Node) &&
-        !normalizationButton.current?.contains(e.target as Node)
-      )
-        setNormalization(false);
-    };
-    document.addEventListener("keydown", close);
-    document.addEventListener("pointerdown", outside, true);
-    return () => {
-      document.removeEventListener("keydown", close);
-      document.removeEventListener("pointerdown", outside, true);
-      normalizationButton.current?.focus();
-    };
-  }, [normalization]);
+  const normalizationValid =
+    [firstBin, lastBin, reference].every(Number.isInteger) &&
+    firstBin >= 0 &&
+    firstBin <= lastBin &&
+    lastBin < (batch?.x.length ?? 0) &&
+    reference >= 0 &&
+    reference < count;
   const select = (index: number) =>
     void run("batch_select", { index }, "Loading batch frame…");
   const current = batch?.selected ?? 0;
@@ -137,11 +132,6 @@ export function BatchControls({
                   ),
                 );
                 setReference(batch?.normalizationReference ?? 0);
-                const r = normalizationButton.current!.getBoundingClientRect();
-                setPopupPosition({
-                  left: Math.max(8, Math.min(innerWidth - 318, r.right - 310)),
-                  top: Math.max(8, r.top - 280),
-                });
                 setNormalization((v) => !v);
               }}
             >
@@ -149,14 +139,18 @@ export function BatchControls({
             </button>
             {normalization &&
               createPortal(
-                <div
-                  ref={popup}
+                <Dialog
+                  returnFocusTarget={normalizationButton.current}
+                  dialogRef={popup}
+                  onDismiss={() => setNormalization(false)}
                   className="batch-normalization-popup"
-                  style={popupPosition}
-                  role="dialog"
                   aria-label="Normalization settings"
                 >
-                  <strong>Normalization settings</strong>
+                  <DialogHeader
+                    title="Normalization settings"
+                    closeLabel="Close normalization settings"
+                    onClose={() => setNormalization(false)}
+                  />
                   <p>
                     Match each frame’s mean intensity to the reference over the
                     selected bins. Bin and frame numbers start at 0.
@@ -168,8 +162,8 @@ export function BatchControls({
                       type="number"
                       min={0}
                       max={lastBin}
-                      value={firstBin}
-                      onChange={(e) => setFirstBin(Number(e.target.value))}
+                      value={Number.isFinite(firstBin) ? firstBin : ""}
+                      onChange={(e) => setFirstBin(e.target.valueAsNumber)}
                     />
                   </label>
                   <label>
@@ -179,23 +173,25 @@ export function BatchControls({
                       type="number"
                       min={firstBin}
                       max={(batch?.x.length ?? 1) - 1}
-                      value={lastBin}
-                      onChange={(e) => setLastBin(Number(e.target.value))}
+                      value={Number.isFinite(lastBin) ? lastBin : ""}
+                      onChange={(e) => setLastBin(e.target.valueAsNumber)}
                     />
                   </label>
                   <label>
-                    Reference frame
+                    Reference frame index
                     <input
                       aria-label="Normalization reference frame"
                       type="number"
                       min={0}
                       max={count - 1}
-                      value={reference}
-                      onChange={(e) => setReference(Number(e.target.value))}
+                      value={Number.isFinite(reference) ? reference : ""}
+                      onChange={(e) => setReference(e.target.valueAsNumber)}
                     />
                   </label>
                   <div>
                     <button
+                      className="primary"
+                      disabled={!ready || !normalizationValid}
                       onClick={() => {
                         void run(
                           "batch_normalization_settings",
@@ -211,7 +207,7 @@ export function BatchControls({
                       Cancel
                     </button>
                   </div>
-                </div>,
+                </Dialog>,
                 document.body,
               )}
           </span>
@@ -223,15 +219,13 @@ export function BatchControls({
     <div className="batch-range-row">
       <label>
         Start:
-        <input
+        <BatchRangeInput
           aria-label="Batch start frame"
-          type="number"
           min={0}
           max={stop}
           value={start}
           disabled={!batch}
-          onChange={(e) => {
-            const value = Number(e.target.value);
+          onCommit={(value) => {
             setStart(value);
             if (!filesView) onRange(value, Math.min(stop, count - 1));
           }}
@@ -239,15 +233,13 @@ export function BatchControls({
       </label>
       <label>
         Stop:
-        <input
+        <BatchRangeInput
           aria-label="Batch stop frame"
-          type="number"
           min={start}
           max={Math.max(0, max)}
           value={stop}
           disabled={!batch}
-          onChange={(e) => {
-            const value = Number(e.target.value);
+          onCommit={(value) => {
             setStop(value);
             if (!filesView) onRange(start, Math.min(value, count - 1));
           }}
@@ -255,14 +247,13 @@ export function BatchControls({
       </label>
       <label>
         Step:
-        <input
+        <BatchRangeInput
           aria-label="Batch frame step"
-          type="number"
           min={1}
           max={Math.max(1, max + 1)}
           value={step}
           disabled={!batch}
-          onChange={(e) => setStep(Number(e.target.value))}
+          onCommit={setStep}
         />
       </label>
     </div>
@@ -303,7 +294,7 @@ export function BatchControls({
         <ChevronRight size={15} />
       </button>
       <label className="batch-frame-number">
-        Frame ({count}/{batch?.total ?? 0})
+        Index · {current + 1} of {count} · {count}/{batch?.total ?? 0} loaded
         <input
           aria-label="Selected batch frame"
           type="number"
@@ -348,5 +339,50 @@ export function BatchControls({
         </>
       )}
     </div>
+  );
+}
+
+/** Batch ranges change only after a complete, valid integer is committed. */
+function BatchRangeInput({
+  value,
+  onCommit,
+  min,
+  max,
+  ...props
+}: {
+  value: number;
+  onCommit: (value: number) => void;
+  min: number;
+  max: number;
+  disabled: boolean;
+  "aria-label": string;
+}) {
+  const [text, setText] = useState(String(value));
+  useEffect(() => setText(String(value)), [value]);
+  const parsed = Number(text);
+  const valid =
+    text.trim() !== "" &&
+    Number.isInteger(parsed) &&
+    parsed >= min &&
+    parsed <= max;
+  return (
+    <input
+      {...props}
+      type="number"
+      min={min}
+      max={max}
+      step={1}
+      value={text}
+      aria-invalid={!valid || undefined}
+      title={`Integer from ${min} to ${max}; Enter or Tab applies`}
+      onChange={(event) => setText(event.currentTarget.value)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") event.currentTarget.blur();
+      }}
+      onBlur={() => {
+        if (valid && parsed !== value) onCommit(parsed);
+        else setText(String(value));
+      }}
+    />
   );
 }

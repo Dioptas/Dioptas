@@ -1,3 +1,6 @@
+import { ScientificNumberInput } from "./ScientificNumberInput";
+import { Dialog, DialogHeader } from "./Dialog";
+import { TabList } from "./TabList";
 import { useEffect, useState, useRef, Fragment } from "react";
 import {
   Check,
@@ -486,6 +489,7 @@ export function GeometryEditor({
   open = false,
   embedded = false,
   onDirtyChange,
+  onActiveDirtyChange,
   formId,
   convention: savedConvention,
   onConventionChange,
@@ -499,6 +503,7 @@ export function GeometryEditor({
   convention?: "pyfai" | "fit2d";
   onConventionChange?: (convention: "pyfai" | "fit2d") => void;
   onDirtyChange?: (dirty: boolean) => void;
+  onActiveDirtyChange?: (dirty: boolean) => void;
 }) {
   const [localConvention, setLocalConvention] = useState<"pyfai" | "fit2d">(
     "pyfai",
@@ -519,87 +524,89 @@ export function GeometryEditor({
         (name === "pyfai" ? pyfaiFields : fit2dFields).map(
           ([key, , , factor]) => [
             key,
-            String(Number(((c?.[name]?.[key] ?? 0) * factor).toPrecision(10))),
+            String((c?.[name]?.[key] ?? 0) * factor),
           ],
         ),
       );
     setDrafts({ pyfai: valuesFor("pyfai"), fit2d: valuesFor("fit2d") });
   }, [JSON.stringify(c?.pyfai), JSON.stringify(c?.fit2d)]);
-  const dirty = (["pyfai", "fit2d"] as const).some((name) =>
+  const changed = (name: "pyfai" | "fit2d") =>
     (name === "pyfai" ? pyfaiFields : fit2dFields).some(([key, , , factor]) => {
-      const value = (c?.[name]?.[key] ?? 0) * factor;
       const text = drafts[name][key];
       return (
         text !== undefined &&
-        (text === "" ||
+        (text.trim() === "" ||
           !Number.isFinite(Number(text)) ||
-          Math.abs(Number(text) - value) >
-            Math.max(1e-10, Math.abs(value) * 1e-9))
+          Number(text) !== (c?.[name]?.[key] ?? 0) * factor)
       );
-    }),
-  );
+    });
+  const dirty = changed("pyfai") || changed("fit2d");
+  const activeDirty = changed(convention);
+  const otherConvention = convention === "pyfai" ? "fit2d" : "pyfai";
+  const otherDirty = changed(otherConvention);
+  useEffect(() => {
+    onActiveDirtyChange?.(activeDirty);
+  }, [activeDirty, onActiveDirtyChange]);
+  useEffect(() => () => onActiveDirtyChange?.(false), [onActiveDirtyChange]);
   useEffect(() => {
     onDirtyChange?.(dirty);
   }, [dirty, onDirtyChange]);
   useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
-  const applyGeometry = () =>
-    run(
+  const applyGeometry = () => {
+    if (!activeDirty) return;
+    return run(
       "manual_geometry",
       {
         convention,
         values: Object.fromEntries(
-          fields.map(([key, , , factor]) => [key, Number(draft[key]) / factor]),
+          fields.map(([key, , , factor]) => [
+            key,
+            Number(draft[key]) === (c?.[convention]?.[key] ?? 0) * factor
+              ? (c?.[convention]?.[key] ?? 0)
+              : Number(draft[key]) / factor,
+          ]),
         ),
       },
       "Applying geometry…",
     );
+  };
   const content = (
     <>
-      <div
+      <TabList
         className="geometry-tabs"
-        role="tablist"
-        aria-label="Geometry convention"
-      >
-        {(["pyfai", "fit2d"] as const).map((value) => (
-          <button
-            type="button"
-            key={value}
-            role="tab"
-            aria-selected={convention === value}
-            tabIndex={convention === value ? 0 : -1}
-            onKeyDown={(event) => {
-              if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-                event.preventDefault();
-                setConvention(value === "pyfai" ? "fit2d" : "pyfai");
-                event.currentTarget.parentElement
-                  ?.querySelectorAll<HTMLButtonElement>("button")
-                  [value === "pyfai" ? 1 : 0]?.focus();
-              }
-            }}
-            onClick={() => setConvention(value)}
-          >
-            {value === "pyfai" ? "pyFAI" : "Fit2D"}
-          </button>
-        ))}
-      </div>
-      {dirty && !formId && (
-        <p className="control-note">Apply geometry to continue.</p>
+        label="Geometry convention"
+        value={convention}
+        onChange={setConvention}
+        options={(["pyfai", "fit2d"] as const).map((value) => ({
+          value,
+          label: value === "pyfai" ? "pyFAI" : "Fit2D",
+          title: changed(value)
+            ? `${value === "pyfai" ? "pyFAI" : "Fit2D"} · unapplied changes`
+            : undefined,
+        }))}
+      />
+      {dirty && (
+        <p className="control-note">
+          {otherDirty
+            ? `${otherConvention === "pyfai" ? "pyFAI" : "Fit2D"} has unapplied edits. Return there to apply or reset; this convention remains available for comparison.`
+            : "Apply or reset this geometry draft before editing the other convention."}
+        </p>
       )}
       {fields.map(([key, label, unit]) => (
         <label className="geometry-field" key={key}>
           <span>{label}</span>
-          <input
+          <ScientificNumberInput
             aria-label={`Manual ${label.toLowerCase()}`}
             required
             type="number"
             step="any"
-            disabled={!ready}
+            disabled={!ready || otherDirty}
             title={draft[key] ?? ""}
             value={draft[key] ?? ""}
-            onChange={(e) =>
+            onValueChange={(value) =>
               setDrafts((values) => ({
                 ...values,
-                [convention]: { ...values[convention], [key]: e.target.value },
+                [convention]: { ...values[convention], [key]: value },
               }))
             }
           />
@@ -607,21 +614,43 @@ export function GeometryEditor({
         </label>
       ))}
       {!formId && (
-        <button
-          type="button"
-          className="secondary full-input"
-          disabled={
-            !ready ||
-            fields.some(
-              ([key]) =>
-                draft[key] === "" || !Number.isFinite(Number(draft[key])),
-            )
-          }
-          onClick={applyGeometry}
-        >
-          <Check size={14} />
-          Apply geometry
-        </button>
+        <>
+          <button
+            type="button"
+            className="secondary full-input"
+            disabled={
+              !ready ||
+              !activeDirty ||
+              fields.some(
+                ([key]) =>
+                  draft[key] === "" || !Number.isFinite(Number(draft[key])),
+              )
+            }
+            onClick={applyGeometry}
+          >
+            <Check size={14} />
+            Apply geometry
+          </button>
+          {activeDirty && (
+            <button
+              type="button"
+              className="quiet full-input"
+              onClick={() =>
+                setDrafts((values) => ({
+                  ...values,
+                  [convention]: Object.fromEntries(
+                    fields.map(([key, , , factor]) => [
+                      key,
+                      String((c?.[convention]?.[key] ?? 0) * factor),
+                    ]),
+                  ),
+                }))
+              }
+            >
+              Reset geometry draft
+            </button>
+          )}
+        </>
       )}
     </>
   );
@@ -661,28 +690,25 @@ export function ManualGeometryDialog({
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    dialog.current?.showModal();
-  }, []);
   return (
-    <dialog ref={dialog} className="manual-geometry-dialog" onClose={onClose}>
-      <div className="manual-geometry-heading">
-        <h2>Enter calibration manually</h2>
-        <button
-          type="button"
-          autoFocus
-          onClick={() => dialog.current?.close()}
-          aria-label="Close manual geometry"
-        >
-          Close
-        </button>
-      </div>
+    <Dialog
+      dialogRef={dialog}
+      className="manual-geometry-dialog"
+      aria-label="Enter calibration manually"
+      onDismiss={onClose}
+      onClose={onClose}
+    >
+      <DialogHeader
+        title="Enter calibration manually"
+        closeLabel="Close manual geometry"
+        onClose={onClose}
+      />
       <GeometryEditor
         calibration={calibration}
         ready={ready}
         run={run}
         embedded
       />
-    </dialog>
+    </Dialog>
   );
 }

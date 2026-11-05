@@ -1,0 +1,385 @@
+{
+  "date": "2026-11-05",
+  "baseline": "b418d66b",
+  "scope": "React/Tauri scientific GUI: Calibration, Mask, Integration, Map, Batch, settings and sampled dialogs/editors. Scores assess design, not scientific accuracy or production readiness.",
+  "method": "25 independent categories, equal weight of 4% each. Both reviewers use these definitions and anchors. Decimal scores are allowed. No requirement to award a particular score. Codex and Claude ratings are independent, not averaged together. Earlier exploratory Claude reviews used the original ten groups.",
+  "scale": "1-3: Routine work is blocked or unreliable. 4-6: Usable, but recurring material friction or inconsistency remains. 7-8: Strong design with identifiable gaps in the reviewed workflows. 9-9.5: Polished in the reviewed workflows: key expectations met, no material defect observed in that category, only minor limitations or optional enhancements. 10: Exceptional design supported by broad empirical validation beyond this review.",
+  "criteria": [
+    {
+      "id": "scientific_context",
+      "name": "Scientific context and provenance",
+      "before": 7,
+      "after": 9.3,
+      "criteria": "Distinguish fitted, loaded, manual and derived results, their sources and diagnostic limits.",
+      "evidence": "Geometry provenance, point/ring/free-parameter counts, unavailable residuals and derived-fixture captions are explicit."
+    },
+    {
+      "id": "precision_units",
+      "name": "Numeric precision and units",
+      "before": 7,
+      "after": 9.2,
+      "criteria": "Keep exact stored values, legible signed display values and explicit scientific units/conventions.",
+      "evidence": "Exact-value inputs never round on focus; manual geometry drafts retain all digits, no-op Apply preserves RMS/provenance, and pyFAI/Fit2D units remain explicit."
+    },
+    {
+      "id": "visualization",
+      "name": "Data visualization clarity",
+      "before": 7,
+      "after": 9.2,
+      "criteria": "Make scientific scales, references, labels and color ranges interpretable without suggesting false data.",
+      "evidence": "Map ROI/reduction and contiguous low/bar/high/scale, Batch quantitative legend, duplicate original/overlay names distinguished, and plot labels/legends clear of the data."
+    },
+    {
+      "id": "inspection",
+      "name": "Plot interaction and inspection",
+      "before": 8.5,
+      "after": 9.3,
+      "criteria": "Preserve original detector resolution, square pixels, shared gestures and linked coordinates.",
+      "evidence": "Shared renderers, original-resolution pixels, physical 2\u03b8/Q/d readouts, linked markers and keyboard navigation."
+    },
+    {
+      "id": "workflow",
+      "name": "Workflow usability",
+      "before": 8,
+      "after": 9.2,
+      "criteria": "Support common analysis tasks directly and preserve meaningful work during navigation.",
+      "evidence": "Raw-image calibration, masks, integration, Map and Batch are exercised through real models."
+    },
+    {
+      "id": "navigation",
+      "name": "Navigation and information architecture",
+      "before": 7.5,
+      "after": 9.1,
+      "criteria": "Use predictable mode/task grouping, persistent actions and clear navigation state.",
+      "evidence": "Left modes/right tasks remain; shared task tabs and fixed calibration actions preserve familiar workflows."
+    },
+    {
+      "id": "learnability",
+      "name": "Discoverability and learnability",
+      "before": 6.5,
+      "after": 9.0,
+      "criteria": "Expose tools, gestures and explanations so users can learn without memorizing hidden actions.",
+      "evidence": "Visible Navigate mode, contextual tooltips and shared shortcuts, gestures and toolbar reference."
+    },
+    {
+      "id": "cognitive_load",
+      "name": "Cognitive load and progressive disclosure",
+      "before": 7.5,
+      "after": 9.0,
+      "criteria": "Keep relevant controls visible while keeping advanced or uncommon operations manageable.",
+      "evidence": "Mode-specific tasks, grouped scientific controls, modal advanced editors and concise scientific context."
+    },
+    {
+      "id": "typography",
+      "name": "Typography",
+      "before": 7,
+      "after": 9.1,
+      "criteria": "Use consistent type sizes, weights, hierarchy, numerals and scientific notation.",
+      "evidence": "Shared DOM and canvas type tokens: plot labels use 14 px standard/16 px Larger with higher contrast. Scientific minus signs/exponents are consistent; exact input values stay unchanged."
+    },
+    {
+      "id": "readability",
+      "name": "Readability and contrast",
+      "before": 6.5,
+      "after": 9.1,
+      "criteria": "Keep labels and values readable, preserve signs, and clearly distinguish inactive controls.",
+      "evidence": "Stronger field boundaries, legible disabled treatment and signed numeric previews with explicit truncation."
+    },
+    {
+      "id": "spacing",
+      "name": "Spacing and alignment",
+      "before": 7,
+      "after": 9.0,
+      "criteria": "Maintain deliberate spacing, aligned labels/values, usable tables and stable action placement.",
+      "evidence": "Aligned scientific forms, full-width Batch, fixed action bars and tested compact layouts."
+    },
+    {
+      "id": "hierarchy",
+      "name": "Visual hierarchy",
+      "before": 8,
+      "after": 9.1,
+      "criteria": "Let scientific data dominate while keeping state, source context and actions easy to scan.",
+      "evidence": "Plot-first workspaces, restrained orange accents, concise provenance and one-line workflow footer."
+    },
+    {
+      "id": "consistency",
+      "name": "Visual consistency across modes",
+      "before": 7,
+      "after": 9.2,
+      "criteria": "Use the same visual rules for equivalent controls, tabs, dialogs and states.",
+      "evidence": "Shared theme tokens, tab presentation, dialog headers, status feedback and quantitative legends."
+    },
+    {
+      "id": "reuse",
+      "name": "Component reuse and control semantics",
+      "before": 6.5,
+      "after": 9.3,
+      "criteria": "Give common interface behavior one owner without losing scientific mode responsibilities.",
+      "evidence": "Shared tabs, dialog/focus/header, measured popup placement, workflow notices, exact numeric previews, status messages, geometry provenance, color scales and shortcut reference."
+    },
+    {
+      "id": "dialogs",
+      "name": "Dialogs and focus management",
+      "before": 6,
+      "after": 9.2,
+      "criteria": "Make opening, dismissal, cancellation and focus return predictable, including nested dialogs.",
+      "evidence": "One native dialog contract, explicit triggers, Tab/Shift+Tab containment and safe confirmation defaults."
+    },
+    {
+      "id": "keyboard",
+      "name": "Keyboard efficiency and shortcut accuracy",
+      "before": 5.5,
+      "after": 9.2,
+      "criteria": "Make documented shortcuts operate correctly in the appropriate context without unsafe conflicts.",
+      "evidence": "Real keypress tests cover file/history actions, plot navigation, drawing tools, menus, fields and dialogs."
+    },
+    {
+      "id": "accessibility",
+      "name": "Accessibility and inclusive use",
+      "before": 5.5,
+      "after": 8.5,
+      "criteria": "Provide names/descriptions, semantic controls, focus visibility, text scaling and recoverable feedback.",
+      "evidence": "Automated checks and manual semantic/contrast review; formal screen-reader/canvas accessibility remains a limitation."
+    },
+    {
+      "id": "feedback",
+      "name": "System status and feedback",
+      "before": 6.5,
+      "after": 9.2,
+      "criteria": "Show processing, pending changes, stale plots and operation outcomes accurately.",
+      "evidence": "Shared status/error details and notices; fitted/loaded/manual context; loaded reference and saved working file are distinguished; empty linked-click readout is hidden in Settings."
+    },
+    {
+      "id": "validation",
+      "name": "Validation and error prevention",
+      "before": 7,
+      "after": 9.3,
+      "criteria": "Prevent incomplete or invalid edits from changing scientific state or misleading users.",
+      "evidence": "Atomic validated integration options; no-op manual guard; conventions can be compared without discarding drafts or applying the wrong draft; committed integer Batch ranges and invalid blank normalization checks."
+    },
+    {
+      "id": "recovery",
+      "name": "Error recovery",
+      "before": 6.5,
+      "after": 9.1,
+      "criteria": "Explain failures without losing scientific work and provide a clear way to continue.",
+      "evidence": "Readable full errors, copy fallback, dismissal, recalculation action and preserved drafts/state."
+    },
+    {
+      "id": "reversibility",
+      "name": "Undo, redo and reversibility",
+      "before": 6.5,
+      "after": 9.3,
+      "criteria": "Make the actual next history operation clear and preserve unrelated scientific diagnostics.",
+      "evidence": "Action-based shared history routing, accessible descriptions and measured-fit RMS regression checks."
+    },
+    {
+      "id": "responsive",
+      "name": "Responsive layout and text scaling",
+      "before": 7.5,
+      "after": 9.1,
+      "criteria": "Keep controls and plots usable at supported compact sizes and both text sizes.",
+      "evidence": "54 states per browser include all modes, manual/phase dialogs, custom menus and Batch normalization at 1000\u00d7760 in Standard/Larger; canvas font scaling and popup bounds are asserted."
+    },
+    {
+      "id": "responsiveness",
+      "name": "Performance and perceived responsiveness",
+      "before": 8,
+      "after": 9.0,
+      "criteria": "Keep navigation and feedback responsive during scientific processing and display updates.",
+      "evidence": "WebGL2 remains the app default; no curve uploads during navigation, quiet inspection requests queue user actions, and progress/cancel stay explicit. Headless GPU timings are not native performance measurements."
+    },
+    {
+      "id": "settings_files",
+      "name": "Settings and file workflow reliability",
+      "before": 7,
+      "after": 9.3,
+      "criteria": "Preserve deliberate drafts/preferences and make input/output sources and scope clear.",
+      "evidence": "Per-field draft rebase, explicit Apply, local preferences, source-aware Batch and existing file round trips."
+    },
+    {
+      "id": "maintainability",
+      "name": "Maintainability and ownership",
+      "before": 6.5,
+      "after": 8.8,
+      "criteria": "Centralize reusable UI policy and keep behavior reviewable and testable.",
+      "evidence": "Shared components/hooks/classification, documented tokens and reproducible audits; central orchestration is still substantial."
+    }
+  ],
+  "limitations": [
+    "These are subjective design ratings. They do not establish a consensus score, scientific accuracy, uncertainty estimates, usability-study results or production readiness.",
+    "Axe violations and items requiring manual review are recorded separately. Canvas accessibility and screen-reader workflows are not fully covered by automated checks.",
+    "Headless Chromium and WebKit were exercised. Native Tauri window management, OS file/color dialogs, screen readers, Windows/Linux packaging and portable Python distribution were not revalidated in this UI audit.",
+    "The gold phase file is an editor/control fixture, not an identification of the CeO2 or Fe3O4C specimens. The six-frame Batch series is derived from the CeO2 image by known intensity multipliers.",
+    "The GUI preserves existing scientific conventions, including pyFAI/Fit2D unit differences, zero-based Batch frames, a one-line footer and compact plot tools."
+  ],
+  "status": "Codex review complete; requested independent 9/10 target remains unverified because Claude final reassessment is blocked by its account usage limit.",
+  "rubric": "UI_DESIGN_RUBRIC.json",
+  "implementedImprovements": [
+    {
+      "problem": "Unclear scientific context and stale results",
+      "resolution": "Geometry source/fit diagnostics, stale-pattern action, quantitative Map/Batch scales and source-aware series context.",
+      "shared": [
+        "GeometryProvenance",
+        "PatternFreshness",
+        "ColorScaleLegend"
+      ]
+    },
+    {
+      "problem": "Clipped values and accidental provenance changes",
+      "resolution": "Exact input text with compact signed previews; no-op manual Apply prevention; convention comparison retains a single pending draft and restricts editing/applying to its owner; explicit calculated read-only values.",
+      "shared": [
+        "ScientificNumberInput"
+      ]
+    },
+    {
+      "problem": "Inconsistent focus and keyboard behavior",
+      "resolution": "Shared modal lifecycle, measured popup placement, roving tabs, accurate scoped shortcut help, native button/text/menu ownership and plot navigation keys.",
+      "shared": [
+        "Dialog",
+        "DialogHeader",
+        "useAnchoredDialog",
+        "TabList",
+        "ShortcutReference",
+        "usePlotNavigation"
+      ]
+    },
+    {
+      "problem": "Different chrome and text rules across workflows",
+      "resolution": "Neutral surface/control/type tokens shared with settings, phase editors, overlays and body popups; readable disabled/invalid/calculated states and large-text propagation. Canvas typography follows the same text preference, including readable axes and plot labels.",
+      "shared": [
+        "uiTheme.css",
+        "usePlotTypography"
+      ]
+    },
+    {
+      "problem": "Settings, history and feedback could lose user intent",
+      "resolution": "Per-field integration draft rebase and atomic Apply; history routed by actual edit; quiet requests queue user actions; stable live regions with detailed/copyable errors and shared transient notices.",
+      "shared": [
+        "useIntegrationSettingsDraft",
+        "historyLabels",
+        "StatusMessage",
+        "useWorkflowNotice"
+      ]
+    },
+    {
+      "problem": "Ambiguous Batch display and half-typed ranges",
+      "resolution": "Explicit zero-based indices plus ordinal position, full-width docked heatmap with separate legend, measured normalization popup and committed valid integer ranges.",
+      "shared": [
+        "ColorScaleLegend",
+        "useAnchoredDialog"
+      ]
+    }
+  ],
+  "peer": {
+    "name": "Claude",
+    "mean": 8.32,
+    "criteria": [
+      {
+        "id": "scientific_context",
+        "score": 8.5
+      },
+      {
+        "id": "precision_units",
+        "score": 8.5
+      },
+      {
+        "id": "visualization",
+        "score": 8.0
+      },
+      {
+        "id": "inspection",
+        "score": 8.5
+      },
+      {
+        "id": "workflow",
+        "score": 8.5
+      },
+      {
+        "id": "navigation",
+        "score": 8.5
+      },
+      {
+        "id": "learnability",
+        "score": 8.5
+      },
+      {
+        "id": "cognitive_load",
+        "score": 8.0
+      },
+      {
+        "id": "typography",
+        "score": 8.0
+      },
+      {
+        "id": "readability",
+        "score": 8.5
+      },
+      {
+        "id": "spacing",
+        "score": 8.0
+      },
+      {
+        "id": "hierarchy",
+        "score": 8.5
+      },
+      {
+        "id": "consistency",
+        "score": 8.0
+      },
+      {
+        "id": "reuse",
+        "score": 8.5
+      },
+      {
+        "id": "dialogs",
+        "score": 9.0
+      },
+      {
+        "id": "keyboard",
+        "score": 9.0
+      },
+      {
+        "id": "accessibility",
+        "score": 8.0
+      },
+      {
+        "id": "feedback",
+        "score": 8.0
+      },
+      {
+        "id": "validation",
+        "score": 8.5
+      },
+      {
+        "id": "recovery",
+        "score": 8.5
+      },
+      {
+        "id": "reversibility",
+        "score": 8.5
+      },
+      {
+        "id": "responsive",
+        "score": 7.5
+      },
+      {
+        "id": "responsiveness",
+        "score": 8.5
+      },
+      {
+        "id": "settings_files",
+        "score": 8.5
+      },
+      {
+        "id": "maintainability",
+        "score": 7.5
+      }
+    ],
+    "status": "Latest completed review predates the final typography, compact legends, detached Batch labels, save-status and expanded layout fixes. Final reassessment is pending.",
+    "raw": "UI_PEER_REVIEW.txt",
+    "blockedReason": "Claude account session usage limit",
+    "resetAt": "2026-11-05T21:30:00+01:00"
+  },
+  "codexMean": 9.124
+}

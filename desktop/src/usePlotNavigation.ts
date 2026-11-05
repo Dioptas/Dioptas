@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { PointerEvent, RefObject } from "react";
+import type { PointerEvent, KeyboardEvent, RefObject } from "react";
 import type { PlotViewport } from "./plotViewport";
 
 /** React wheel listeners are passive. Own the native wheel event so a plot
@@ -311,6 +311,52 @@ export function usePlotNavigation(
     if (factor < 1 && maxZoom / factor > 1000) return;
     setRange(scaled(current, factor, data(p, current)));
   }
+  function onKeyDown(event: KeyboardEvent<HTMLCanvasElement>) {
+    if (event.altKey || event.metaKey || event.ctrlKey) return;
+    const key = event.key.toLowerCase();
+    if (
+      ![
+        "+",
+        "=",
+        "-",
+        "f",
+        "home",
+        "arrowleft",
+        "arrowright",
+        "arrowup",
+        "arrowdown",
+      ].includes(key)
+    )
+      return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (key === "f" || key === "home") {
+      reset();
+      return;
+    }
+    if (["+", "=", "-"].includes(key)) {
+      const factor = key === "-" ? 2 : 0.5;
+      if (factor < 1 && (fit.xMax - fit.xMin) / (view.xMax - view.xMin) >= 1000)
+        return;
+      setRange(scaled(view, factor));
+      return;
+    }
+    const dx =
+      (view.xMax - view.xMin) *
+      0.1 *
+      (key === "arrowleft" ? -1 : key === "arrowright" ? 1 : 0);
+    const dy =
+      (view.yMax - view.yMin) *
+      0.1 *
+      (key === "arrowdown" ? -1 : key === "arrowup" ? 1 : 0);
+    const xMin = view.xMin + dx,
+      xMax = view.xMax + dx;
+    const [yMin, yMax] =
+      zoomMode === "horizontal" && dx && horizontalYRange
+        ? horizontalYRange(xMin, xMax)
+        : [view.yMin + dy, view.yMax + dy];
+    setRange({ xMin, xMax, yMin, yMax });
+  }
   return {
     view,
     hold: () => setRange(view),
@@ -323,5 +369,6 @@ export function usePlotNavigation(
     onPointerUp,
     onPointerCancel,
     onWheel,
+    onKeyDown,
   };
 }

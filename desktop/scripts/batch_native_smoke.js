@@ -12,7 +12,7 @@
     for (let i = 0; i < 600; i++) {
       if (await fn()) return;
       const e = document.querySelector('[role="alert"]');
-      if (e) throw Error(e.textContent);
+      if (e?.textContent.trim()) throw Error(e.textContent);
       await delay();
     }
     throw Error(message);

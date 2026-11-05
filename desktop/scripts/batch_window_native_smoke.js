@@ -66,7 +66,10 @@
     await wait(
       async () => (await call("batch_snapshot")).batch.selected === target,
     );
-    check(!document.querySelector('[role="alert"]'), "Batch selection failed");
+    check(
+      !document.querySelector('[role="alert"]')?.textContent.trim(),
+      "Batch selection failed",
+    );
     await invoke("plugin:window|set_size", {
       label: "batch-window",
       value: { Logical: { width: 820, height: 560 } },

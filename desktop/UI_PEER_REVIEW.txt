@@ -1,0 +1,109 @@
+**Overall: 8.3/10.** The 25 scores add up to 208, and 208 ÷ 25 = 8.32.
+
+**What I looked at:** the rubric, the earlier review (`claude-expanded-1.txt`), both `report.json` files (after and webkit) and the nine screenshots you listed. In the source I read the Batch, dialog, number-formatting, legend, theme, Phase-editor and status-bar code. I did not open `UI_DESIGN_REVIEW.json`, `scores.json` or `index.html`, and I ran nothing.
+
+**What the measured evidence shows:**
+- Both browser engines covered 36 views each, with zero axe violations and no horizontal overflow.
+- Every pattern canvas asked for WebGL2 and got WebGL2.
+- The report lists 20 behaviour checks, all passed.
+- The compact size and the larger text setting were measured: Map at 1000×760, in both text sizes.
+
+## Scores
+
+| # | Category | Score |
+|---|---|---|
+| 1 | Scientific context and provenance | 8.5 |
+| 2 | Numeric precision and units | 8.5 |
+| 3 | Data visualization clarity | 8.0 |
+| 4 | Plot interaction and inspection | 8.5 |
+| 5 | Workflow usability | 8.5 |
+| 6 | Navigation and information architecture | 8.5 |
+| 7 | Discoverability and learnability | 8.5 |
+| 8 | Cognitive load and progressive disclosure | 8.0 |
+| 9 | Typography | 8.0 |
+| 10 | Readability and contrast | 8.5 |
+| 11 | Spacing and alignment | 8.0 |
+| 12 | Visual hierarchy | 8.5 |
+| 13 | Visual consistency across modes | 8.0 |
+| 14 | Component reuse and control semantics | 8.5 |
+| 15 | Dialogs and focus management | 9.0 |
+| 16 | Keyboard efficiency and shortcut accuracy | 9.0 |
+| 17 | Accessibility and inclusive use | 8.0 |
+| 18 | System status and feedback | 8.0 |
+| 19 | Validation and error prevention | 8.5 |
+| 20 | Error recovery | 8.5 |
+| 21 | Undo, redo and reversibility | 8.5 |
+| 22 | Responsive layout and text scaling | 7.5 |
+| 23 | Performance and perceived responsiveness | 8.5 |
+| 24 | Settings and file workflow reliability | 8.5 |
+| 25 | Maintainability and ownership | 7.5 |
+
+**Arithmetic:** fourteen scores of 8.5 make 119, seven of 8.0 make 56, two of 9.0 make 18 and two of 7.5 make 15. 119 + 56 + 18 + 15 = 208, and 208 ÷ 25 = 8.32.
+
+**Earlier findings, checked against the current source:**
+- **Fixed:**
+  - M1: manual geometry now has a no-op guard.
+  - M2: the number preview is inset to `1px`, so the border stays visible.
+  - M3: read-only fields have their own style, and the current lattice values are shown as text.
+  - m1: Batch range fields only apply a complete, valid number (`BatchRangeInput`).
+  - m2: switching geometry convention is blocked until the edit is applied or reset.
+  - m3: covered by the overlay-menu check in the report.
+  - m4: the popup is placed by `useAnchoredDialog`.
+  - m5: covered by the queued-Undo check in the report.
+  - m8: the shortcut list wording was corrected.
+- **Partly fixed:** M4 (frame numbering), see D1, and m6 (number formatting), see D5.
+
+## Remaining defects
+
+**D1. Batch numbering is consistent only in the docked view.** Severity: minor to moderate.
+- **Evidence:**
+  - The docked header reads "Index N · k of n" (`BatchView.tsx:263`).
+  - The detached window footer still reads `Frame ${batch.selected} · name` (`DetachedBatchWindow.tsx:149`). `batch-normalization.png` shows "Frame 0 · series_1.tif".
+  - The heatmap readout labels the same 0-based value "Frame" (`BatchHeatmap.tsx:329`).
+  - Integration shows "Frame (1–N)" (`IntegrationView.tsx:109`).
+  - The detached navigator says "Index · 6/6 loaded" (`BatchControls.tsx:297`). It has no ordinal, and "6/6" is easy to read as the position.
+- **Impact:** in the detached window the same image is "Frame 0" there but "Frame 1" in Integration, and "series_1" in its file name. Your decision to keep the zero-based index is respected; the problem is that these places still use the word "Frame" for it.
+
+**D2. The color-scale legend splits apart at compact width.** Severity: minor.
+- **Evidence:** `.color-scale-legend` uses `flex-wrap: wrap` and pushes the label to the left with `margin-right: auto` (`uiTheme.css:196-213`).
+  - In `map-compact.png` the max value "95575" and "linear" wrap to the next line on the left, away from the white end of the bar.
+  - In `map-compact-large.png` the min value "93604" sits on its own line above the bar.
+- **Impact:** low and high limits are no longer next to their ends of the bar. That is the reading the legend exists for.
+
+**D3. Plot text ignores the "Larger" text setting.** Severity: minor.
+- **Evidence:** only CSS, App and the detached windows use the text-size setting; the pattern, raster and heatmap canvas code doesn't. In the compact screenshots, tick labels, axis titles and plot legends are the same pixel size at Standard and Larger.
+- **Impact:** the most important scientific text (2θ ticks, intensity labels) stays small for the users who chose larger text.
+
+**D4. The Phase editor gives two different statuses.** Severity: minor.
+- **Evidence:** in `phase-editor.png` the header says "Loaded material" but the footer says "Saved", while the orange primary Save button is enabled.
+  - The footer shows "Saved" whenever `data.filename` is set (`PhaseEditor.tsx:1062`).
+  - Save is enabled because `canSaveCurrent` is false (`:1089`).
+- **Impact:** for an unchanged JCPDS file, "Saved" next to an active primary Save suggests there is something left to save, or that it was already saved in a format it wasn't.
+
+**D5. Legends and range labels still print ASCII minus signs and `e` notation.** Severity: minor.
+- **Evidence:** `scientificValue` returns `String(Number(...))` (`ScientificNumberInput.tsx:5-6`). Only the input preview swaps in a real minus sign (`:36`). The color legend (`ColorScaleLegend.tsx:29,34`) and the Map ROI range (`ScanMapPanel.tsx:118`) use the raw string. "4.422507e-10" also appears in the Rotation 3 field in `calibration-fitted.png`.
+- **Impact:** negative or very small limits look different from the inputs, and "-0.5–1.2" is hard to tell apart from a range.
+
+**D6. The sidebar truncates the app's own example action name.** Severity: minor.
+- **Evidence:** "Inspect detector file" becomes "Inspect detect…" in the sidebar and its preview (`settings-custom-action-editor.png`), and "Inspect detecto.." in `map-compact-large.png`.
+- **Impact:** the bundled example breaks the editor's own advice ("Aim for one short word…").
+
+**D7. Small hierarchy and visualization issues.** Severity: minor.
+- **"Click —" outside plots:** the green "Click —" readout also shows in Settings (`settings-integration.png`; `App.tsx:2873` only checks the mode). It's an accent-colored label with nothing to read.
+- **Duplicate legend names:** in `integration-overlay-confirm.png` the plot legend shows "CeO2_Pilatus1M" twice, white and green. The table distinguishes "Original · …", but the legend doesn't.
+- **Legend over data:** in `map-compact.png` the pattern legend sits on top of the curve maximum and the phase marker "A".
+
+**D8. Structure (scored under maintainability, not a bug).** `App.tsx` is 2,940 lines and `PhaseEditor.tsx` is 1,112. Batch normalization still sends 1-based arguments to `batch_normalize` and 0-based ones to `batch_normalization_settings` (`BatchControls.tsx:110-112` vs `:198`).
+
+## Optional enhancements (not scored as defects)
+- **Mixed length units:** Distance is in mm while PONI 1 and 2 are in m. This matches Qt Dioptas; an optional hint would help new users.
+- **Footnote glyph:** the "₀: reference" footnote in the Phase editor renders the subscript on its own and it looks misplaced. A text label such as "subscript 0 = reference" would read better.
+- **Duplicate action:** "As Bkg" appears both in the Overlay panel and in the pattern toolbar.
+
+## Evidence limits
+- **Compact and large text:** measured only for Map at 1000×760. The other 34 views were captured at 1440×1000, Standard text. The Batch popup at large text, and Calibration and Integration at compact width, have no screenshots.
+- **axe "needs review" items:** these are not violations, but they still need manual review.
+  - `aria-prohibited-attr` is flagged in about 16 views and `aria-valid-attr-value` once (custom action icons).
+  - A likely cause, not confirmed, is the `aria-label` on the role-less span at `BatchView.tsx:260`.
+  - Color-contrast items over canvases also need manual review.
+- **Not covered:** there was no screen-reader pass. The behaviour checks come from scripted Playwright runs, not from users. Scientific accuracy is out of scope.

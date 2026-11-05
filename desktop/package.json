@@ -20,7 +20,10 @@
     "test:custom-commands": "node scripts/custom_commands_smoke.mjs",
     "benchmark:pattern": "node scripts/pattern_benchmark.mjs",
     "benchmark:pattern:native": "node scripts/pattern_native_benchmark.mjs",
-    "test:pattern-quality": "node scripts/pattern_quality.mjs"
+    "test:pattern-quality": "node scripts/pattern_quality.mjs",
+    "test:ui-audit": "node scripts/ui_audit.mjs --stage=after",
+    "test:ui-audit:baseline": "node scripts/ui_audit_baseline.mjs",
+    "report:ui-audit": "node scripts/ui_audit_report.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",
@@ -29,6 +32,7 @@
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@tauri-apps/cli": "^2.12.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

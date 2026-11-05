@@ -162,6 +162,15 @@ const checkBatchLayout = async (p) => {
     .locator(".batch-overview-image > .image-intensity")
     .boundingBox();
   const plot = await p.getByTestId("batch-heatmap").boundingBox();
+  const view = await p.locator(".batch-2d-view").boundingBox();
+  const image = await p.locator(".batch-overview-image").boundingBox();
+  const optionsLocator=p.locator(".batch-2d-view > .batch-options");
+  const options=await optionsLocator.count() ? await optionsLocator.boundingBox() : null;
+  assert(
+    image.width >= view.width - (options?.width ?? 0) - 8,
+    "Batch plot uses the available dock width; its color legend must not steal a column",
+  );
+
   assert(
     histogram.x + histogram.width <= plot.x + 1,
     JSON.stringify({ histogram, plot }),
@@ -353,7 +362,7 @@ try {
   );
   assert(
     await child
-      .locator('.detached-batch-footer [data-field="Frame"]')
+      .locator('.detached-batch-footer [data-field="Index"]')
       .isVisible(),
   );
   assert.equal(
@@ -539,7 +548,7 @@ try {
   await child.waitForFunction(() =>
     document
       .querySelector(".batch-frame-number")
-      ?.textContent.includes("(3/6)"),
+      ?.textContent.includes("3/6 loaded"),
   );
   await selected(child, 1);
   assert.equal((await invoke("state")).batch.entries.length, 3);

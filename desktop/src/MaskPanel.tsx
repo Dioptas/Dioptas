@@ -178,6 +178,13 @@ export function MaskPanel({
             ))}
           </div>
           <div className="mask-grid mask-shape-grid">
+            <button
+              className="mask-navigate"
+              aria-pressed={tools.shape === "navigate"}
+              onClick={() => tools.setShape("navigate")}
+            >
+              Navigate
+            </button>
             {(
               [
                 ["circle", "Circle"],

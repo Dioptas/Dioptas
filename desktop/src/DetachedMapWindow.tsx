@@ -1,3 +1,4 @@
+import { StatusMessage } from "./StatusMessage";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PanelLeftClose } from "lucide-react";
 import { isTauri } from "@tauri-apps/api/core";
@@ -168,12 +169,10 @@ export function DetachedMapWindow() {
           {readout.reading?.text ??
             "Select a map cell to inspect it in the main window."}
         </span>
-        <span role={error || readError || status.error ? "alert" : undefined}>
-          {error ||
-            readError ||
-            status.error ||
-            (!status.ready ? "Processing…" : "")}
-        </span>
+        <StatusMessage
+          error={error || readError || status.error || null}
+          message={!status.ready ? "Processing…" : ""}
+        />
       </footer>
     </div>
   );

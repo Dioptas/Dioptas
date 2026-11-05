@@ -1,3 +1,4 @@
+import { usePlotTypography } from "./usePlotTypography";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { BatchData } from "./batchDomain";
 import { decodeRaster } from "./rasterTransfer";
@@ -58,12 +59,16 @@ export function BatchHeatmap({
   const [size, setSize] = useState({ width: 600, height: 400 });
   const rows = batch.entries.length,
     cols = batch.x.length;
-  const left = Math.max(36, String(Math.max(0, rows - 1)).length * 8 + 12);
+  const typography = usePlotTypography(host);
+  const left = Math.max(
+    48 * typography.scale,
+    String(Math.max(0, rows - 1)).length * 8 + 12,
+  );
   const bounds = {
     left,
     top: 12,
     width: Math.max(1, size.width - left - 18),
-    height: Math.max(1, size.height - 58),
+    height: Math.max(1, size.height - 58 * typography.scale),
   };
   const nav = usePlotNavigation(
     { xMin: 0, xMax: cols, yMin: 0, yMax: rows },
@@ -215,8 +220,8 @@ export function BatchHeatmap({
     ctx.strokeStyle = "#65717d";
     ctx.lineWidth = 1;
     ctx.strokeRect(bounds.left, bounds.top, bounds.width, bounds.height);
-    ctx.font = "13px ui-monospace, SFMono-Regular, monospace";
-    ctx.fillStyle = "#7e8994";
+    ctx.font = typography.mono;
+    ctx.fillStyle = typography.muted;
     ctx.textAlign = "center";
     const a = radial(v.xMin),
       b = radial(v.xMax);
@@ -229,13 +234,19 @@ export function BatchHeatmap({
       const bin = batchRadialBin(tick.value, batch.x);
       if (bin != null) ctx.fillText(tick.label, px(bin), size.height - 26);
     }
-    ctx.fillStyle = "#929ca7";
+    ctx.fillStyle = typography.muted;
     ctx.fillText(
       unitLabel(batch.unit),
       bounds.left + bounds.width / 2,
       size.height - 6,
     );
-    ctx.fillStyle = "#7e8994";
+    ctx.save();
+    ctx.translate(13, bounds.top + bounds.height / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = "center";
+    ctx.fillText("Frame index (0-based)", 0, 0);
+    ctx.restore();
+    ctx.fillStyle = typography.muted;
     ctx.textAlign = "right";
     const stride = Math.max(
       1,
@@ -249,6 +260,8 @@ export function BatchHeatmap({
       ctx.fillText(String(i), bounds.left - 9, py(i + 0.5) + 4);
     }
   }, [
+    typography.muted,
+    typography.mono,
     size,
     bitmap,
     nav.view,
@@ -288,6 +301,7 @@ export function BatchHeatmap({
       <canvas
         ref={canvas}
         data-testid="batch-heatmap"
+        data-plot-font-size={typography.size}
         data-unit={batch.unit}
         data-intensity-scale={log ? "log" : sqrt ? "sqrt" : "linear"}
         data-zoom-mode={zoomMode}
@@ -320,7 +334,7 @@ export function BatchHeatmap({
             return;
           }
           const fields = [
-            { label: "Frame", value: String(p.index), kind: "pixel" as const },
+            { label: "Index", value: String(p.index), kind: "pixel" as const },
             {
               label: "I",
               value: intensityValue(values[p.index * cols + p.bin]),

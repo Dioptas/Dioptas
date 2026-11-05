@@ -1,3 +1,4 @@
+import { TabList } from "./TabList";
 import { TableScroll, TableActions } from "./DataTable";
 import {
   ArrowUp,
@@ -146,22 +147,23 @@ export function MapControls({
     run("map_arrange", { op, slot: selected, index: map?.selected, ...args });
   return (
     <div className="map-controls">
-      <div className="map-tabs" role="tablist" aria-label="Map controls">
-        {[...(imageTab ? ["Image"] : []), "Points", "Layers", "Grid"].map(
-          (t) => (
-            <button
-              key={t}
-              role="tab"
-              id={`map-tab-${t}`}
-              aria-selected={tab === t}
-              aria-controls="map-tab-content"
-              onClick={() => setTab(t)}
-            >
-              {t}
-            </button>
-          ),
-        )}
-      </div>
+      <TabList
+        className="map-tabs"
+        label="Map controls"
+        value={tab}
+        onChange={setTab}
+        options={[
+          ...(imageTab ? ["Image"] : []),
+          "Points",
+          "Layers",
+          "Grid",
+        ].map((t) => ({
+          value: t,
+          label: t,
+          id: `map-tab-${t}`,
+          panelId: "map-tab-content",
+        }))}
+      />
       <TableScroll
         id="map-tab-content"
         className={`map-tab-content ${tab === "Image" ? "map-image-tab" : tab === "Points" ? "map-points-tab" : ""}`}

@@ -1,0 +1,140 @@
+{
+  "version": "2026-11-05-expanded",
+  "scope": "React/Tauri scientific GUI: Calibration, Mask, Integration, Map, Batch, settings and sampled dialogs/editors. Scores assess design, not scientific accuracy or production readiness.",
+  "method": "25 independent categories, equal weight of 4% each. Both reviewers use these definitions and anchors. Decimal scores are allowed. No requirement to award a particular score.",
+  "scale": {
+    "1-3": "Routine work is blocked or unreliable.",
+    "4-6": "Usable, but recurring material friction or inconsistency remains.",
+    "7-8": "Strong design with identifiable gaps in the reviewed workflows.",
+    "9-9.5": "Polished in the reviewed workflows: key expectations met, no material defect observed in that category, only minor limitations or optional enhancements.",
+    "10": "Exceptional design supported by broad empirical validation beyond this review."
+  },
+  "limits": "This is a scoped scientific GUI design assessment, not scientific accuracy, production readiness, or formal accessibility certification. Missing evidence is identified explicitly; intentional documented user choices are not defects.",
+  "criteria": [
+    {
+      "id": "scientific_context",
+      "name": "Scientific context and provenance",
+      "definition": "Distinguish fitted, loaded, manual and derived results, their sources and diagnostic limits."
+    },
+    {
+      "id": "precision_units",
+      "name": "Numeric precision and units",
+      "definition": "Keep exact stored values, legible signed display values and explicit scientific units/conventions."
+    },
+    {
+      "id": "visualization",
+      "name": "Data visualization clarity",
+      "definition": "Make scientific scales, references, labels and color ranges interpretable without suggesting false data."
+    },
+    {
+      "id": "inspection",
+      "name": "Plot interaction and inspection",
+      "definition": "Preserve original detector resolution, square pixels, shared gestures and linked coordinates."
+    },
+    {
+      "id": "workflow",
+      "name": "Workflow usability",
+      "definition": "Support common analysis tasks directly and preserve meaningful work during navigation."
+    },
+    {
+      "id": "navigation",
+      "name": "Navigation and information architecture",
+      "definition": "Use predictable mode/task grouping, persistent actions and clear navigation state."
+    },
+    {
+      "id": "learnability",
+      "name": "Discoverability and learnability",
+      "definition": "Expose tools, gestures and explanations so users can learn without memorizing hidden actions."
+    },
+    {
+      "id": "cognitive_load",
+      "name": "Cognitive load and progressive disclosure",
+      "definition": "Keep relevant controls visible while keeping advanced or uncommon operations manageable."
+    },
+    {
+      "id": "typography",
+      "name": "Typography",
+      "definition": "Use consistent type sizes, weights, hierarchy, numerals and scientific notation."
+    },
+    {
+      "id": "readability",
+      "name": "Readability and contrast",
+      "definition": "Keep labels and values readable, preserve signs, and clearly distinguish inactive controls."
+    },
+    {
+      "id": "spacing",
+      "name": "Spacing and alignment",
+      "definition": "Maintain deliberate spacing, aligned labels/values, usable tables and stable action placement."
+    },
+    {
+      "id": "hierarchy",
+      "name": "Visual hierarchy",
+      "definition": "Let scientific data dominate while keeping state, source context and actions easy to scan."
+    },
+    {
+      "id": "consistency",
+      "name": "Visual consistency across modes",
+      "definition": "Use the same visual rules for equivalent controls, tabs, dialogs and states."
+    },
+    {
+      "id": "reuse",
+      "name": "Component reuse and control semantics",
+      "definition": "Give common interface behavior one owner without losing scientific mode responsibilities."
+    },
+    {
+      "id": "dialogs",
+      "name": "Dialogs and focus management",
+      "definition": "Make opening, dismissal, cancellation and focus return predictable, including nested dialogs."
+    },
+    {
+      "id": "keyboard",
+      "name": "Keyboard efficiency and shortcut accuracy",
+      "definition": "Make documented shortcuts operate correctly in the appropriate context without unsafe conflicts."
+    },
+    {
+      "id": "accessibility",
+      "name": "Accessibility and inclusive use",
+      "definition": "Provide names/descriptions, semantic controls, focus visibility, text scaling and recoverable feedback."
+    },
+    {
+      "id": "feedback",
+      "name": "System status and feedback",
+      "definition": "Show processing, pending changes, stale plots and operation outcomes accurately."
+    },
+    {
+      "id": "validation",
+      "name": "Validation and error prevention",
+      "definition": "Prevent incomplete or invalid edits from changing scientific state or misleading users."
+    },
+    {
+      "id": "recovery",
+      "name": "Error recovery",
+      "definition": "Explain failures without losing scientific work and provide a clear way to continue."
+    },
+    {
+      "id": "reversibility",
+      "name": "Undo, redo and reversibility",
+      "definition": "Make the actual next history operation clear and preserve unrelated scientific diagnostics."
+    },
+    {
+      "id": "responsive",
+      "name": "Responsive layout and text scaling",
+      "definition": "Keep controls and plots usable at supported compact sizes and both text sizes."
+    },
+    {
+      "id": "responsiveness",
+      "name": "Performance and perceived responsiveness",
+      "definition": "Keep navigation and feedback responsive during scientific processing and display updates."
+    },
+    {
+      "id": "settings_files",
+      "name": "Settings and file workflow reliability",
+      "definition": "Preserve deliberate drafts/preferences and make input/output sources and scope clear."
+    },
+    {
+      "id": "maintainability",
+      "name": "Maintainability and ownership",
+      "definition": "Centralize reusable UI policy and keep behavior reviewable and testable."
+    }
+  ]
+}

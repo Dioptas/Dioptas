@@ -259,8 +259,8 @@ try {
     .getByRole("button", { name: "Close settings", exact: true })
     .click();
   assert.equal(
-    await page.getByLabel("Processing engine", { exact: true }).count(),
-    0,
+    await page.getByLabel("Processing engine", { exact: true }).isVisible(),
+    false,
   );
   await setInterfaceTextSize(page, false);
   const settingsButton = page.getByRole("button", {
@@ -1027,13 +1027,24 @@ try {
   await page
     .getByRole("button", { name: "Apply integration options", exact: true })
     .click();
-  await page.getByRole("alert").waitFor();
-  assert.equal(await page.locator('.app-status [role="alert"]').count(), 1);
+  assert.ok(
+    await page
+      .getByLabel("Radial bins", { exact: true })
+      .evaluate((el) => !el.validity.valid),
+    "Invalid bins stay in the form for correction",
+  );
+  assert.equal(
+    (await invoke("state")).state.integration.actualBins,
+    automaticBins,
+    "Invalid options do not alter scientific binning",
+  );
+  assert.equal(
+    await page.getByRole("alert").count(),
+    0,
+    "Native form validation prevents a backend error",
+  );
   await page
     .getByRole("button", { name: "Close settings", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Dismiss error", exact: true })
     .click();
   await openIntegrationSettings(page);
   await page.getByLabel("Automatic radial binning", { exact: true }).uncheck();

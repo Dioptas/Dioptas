@@ -42,7 +42,7 @@
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 4px;
-  background: #202225;
+  background: var(--ui-panel);
 }
 .integration-layout .options-label {
   display: none;
@@ -294,15 +294,15 @@
   font-size: var(--text-small);
   padding: 5px 8px;
   min-height: 28px;
-  background: #24272a;
-  border: 1px solid #3b4045;
+  background: var(--ui-raised);
+  border: 1px solid var(--ui-border);
   border-radius: 3px;
   white-space: nowrap;
 }
 .integration-pattern-calibration {
   margin-left: auto;
   font-size: var(--text-meta);
-  color: #9da5ad;
+  color: var(--ui-muted);
   white-space: nowrap;
 }
 .integration-pattern-actions button {
@@ -351,8 +351,8 @@
   border: 1px solid transparent;
   border-radius: 3px;
   font-size: var(--text-small);
-  background: #24272a;
-  color: #b8bec5;
+  background: var(--ui-raised);
+  color: var(--ui-muted);
   flex-shrink: 0;
 }
 .integration-pattern-tools > button:last-child {
@@ -463,7 +463,7 @@
   align-items: center;
   gap: 5px;
   font-size: var(--text-small);
-  color: #b8bec5;
+  color: var(--ui-muted);
 }
 /* Reserve the same toolbar space in both views, including wrapped rows. */
 .integration-cake-shift[data-visible="false"] {

@@ -6,7 +6,7 @@
   cursor: move;
   overflow: hidden;
   text-align: right;
-  font-size: 13px;
+  font-size: var(--text-small);
   line-height: 1.35;
   z-index: 1;
 }

@@ -103,7 +103,7 @@
 .qt-overlay-table thead,
 .qt-overlay-original-group {
   min-width: 0;
-  background: #25282c;
+  background: var(--ui-raised);
   display: block;
   overflow: hidden;
   box-sizing: border-box;
@@ -116,9 +116,9 @@
 .qt-overlay-table th {
   display: flex;
   align-items: center;
-  background: #25282c;
+  background: var(--ui-raised);
   text-align: left;
-  color: #b9bec4;
+  color: var(--ui-muted);
   font-weight: 500;
   height: 29px;
 }
@@ -234,7 +234,7 @@
 .qt-overlay-menu {
   position: fixed;
   z-index: 50;
-  background: #292d31;
+  background: var(--ui-raised);
   padding: 4px;
   border: 1px solid #62676d;
   box-shadow: 0 3px 12px #0008;

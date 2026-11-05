@@ -1,3 +1,5 @@
+import { ColorScaleLegend } from "./ColorScaleLegend";
+import { TabList } from "./TabList";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronDown,
@@ -40,8 +42,10 @@ export function BatchView({
   onDetach,
   onDock,
   onHide,
+  activeImagePath,
 }: {
   batch: BatchData | null;
+  activeImagePath?: string | null;
   position?: import("./linkedPosition").PatternPosition;
   calibrated: boolean;
   ready: boolean;
@@ -99,12 +103,12 @@ export function BatchView({
       "Loading batch frame…",
     );
   const folder = batch?.files[0]?.path.replace(/[\\/][^\\/]*$/, "") ?? "";
-  const folderLabel =
-    folder
-      .split(/[\\/]+/)
-      .filter(Boolean)
-      .slice(-3)
-      .join("/") || "Batch";
+  const folderLabel = folder
+    ? `…/${folder
+        .split(/[\\/]+/)
+        .filter(Boolean)
+        .at(-1)}`
+    : "Batch";
   const auto = async () => {
     const r = await request("batch_levels", { ...prefs.auto });
     if (r?.batchLevels) display.update({ limits: r.batchLevels, auto: true });
@@ -240,37 +244,43 @@ export function BatchView({
         <span className="batch-folder-label" title={folder}>
           <span>{folderLabel}</span>
         </span>
+        {activeImagePath &&
+          batch &&
+          batch.entries[batch.selected]?.path !== activeImagePath && (
+            <span
+              className="batch-source-note"
+              title="This series differs from the detector image currently displayed. Select a batch frame to inspect its source."
+            >
+              Separate series
+            </span>
+          )}
         {docked && batch && (
           <span
             className="batch-position"
+            role="group"
             aria-label="Selected batch frame"
             title={`Frame ${batch.selected}; ${batch.entries.length} frames numbered 0–${batch.entries.length - 1} · ${batch.entries[batch.selected]?.name}`}
           >
-            {batch.selected} / {batch.entries.length - 1}
+            Index {batch.selected} · {batch.selected + 1} of{" "}
+            {batch.entries.length}
           </span>
         )}
-        <div
+        <TabList
           className="batch-view-tabs calibration-workflow-tabs"
-          role="tablist"
-          aria-label="Batch view"
-        >
-          {(docked
+          label="Batch view"
+          value={tab}
+          onChange={setTab}
+          options={(docked
             ? (["Files", "2D", "Options"] as const)
             : (["Files", "2D"] as const)
-          ).map((name) => (
-            <button
-              role="tab"
-              aria-label={name}
-              title={name === "Options" ? "Options" : undefined}
-              aria-selected={tab === name}
-              key={name}
-              disabled={name !== "Files" && !batch}
-              onClick={() => setTab(name)}
-            >
-              {name === "Options" ? <Settings2 size={15} /> : name}
-            </button>
-          ))}
-        </div>
+          ).map((name) => ({
+            value: name,
+            name,
+            label: name === "Options" ? <Settings2 size={15} /> : name,
+            title: name === "Options" ? "Options" : undefined,
+            disabled: name !== "Files" && !batch,
+          }))}
+        />
         <PlotToggle
           label="Show batch phases"
           title="Show phase lines on the batch overview"
@@ -398,42 +408,52 @@ export function BatchView({
               role="tabpanel"
               aria-label="Batch 2D view"
             >
-              <div className="batch-overview-image detector-workspace">
-                <ImageIntensity
-                  raster={batch.raster}
-                  limits={display.limits}
-                  onLimits={(limits) => display.update({ limits, auto: false })}
-                  log={shownLog}
-                  mirrored
-                  onLog={(log) =>
-                    linkedDisplay
-                      ? linkedDisplay.onScale(log ? "log" : "linear")
-                      : display.update({ log, sqrt: false, auto: false })
-                  }
+              <div className="batch-overview-column">
+                <div className="batch-overview-image detector-workspace">
+                  <ImageIntensity
+                    raster={batch.raster}
+                    limits={display.limits}
+                    onLimits={(limits) =>
+                      display.update({ limits, auto: false })
+                    }
+                    log={shownLog}
+                    mirrored
+                    onLog={(log) =>
+                      linkedDisplay
+                        ? linkedDisplay.onScale(log ? "log" : "linear")
+                        : display.update({ log, sqrt: false, auto: false })
+                    }
+                    palette={display.palette}
+                    onPalette={(palette) => display.update({ palette })}
+                    preferences={prefs}
+                    onPreferences={setPrefs}
+                    ready={ready}
+                    display="batch"
+                    initialLevelsReady={display.initialized}
+                    initialAutoActive={display.auto}
+                    onAuto={auto}
+                  />
+                  <BatchHeatmap
+                    position={position ?? batch?.position ?? undefined}
+                    phaseLines={display.phases ? batch?.phaseLines : undefined}
+                    batch={shownBatch!}
+                    limits={display.limits}
+                    log={shownLog}
+                    sqrt={shownSqrt}
+                    palette={display.palette}
+                    viewport={display.viewport}
+                    zoomMode={display.zoomMode}
+                    onZoomMode={(zoomMode) => display.update({ zoomMode })}
+                    ready={ready}
+                    onSelect={select}
+                    reportPlot={reportPlot}
+                  />
+                </div>
+                <ColorScaleLegend
+                  label="Intensity · source units"
                   palette={display.palette}
-                  onPalette={(palette) => display.update({ palette })}
-                  preferences={prefs}
-                  onPreferences={setPrefs}
-                  ready={ready}
-                  display="batch"
-                  initialLevelsReady={display.initialized}
-                  initialAutoActive={display.auto}
-                  onAuto={auto}
-                />
-                <BatchHeatmap
-                  position={position ?? batch?.position ?? undefined}
-                  phaseLines={display.phases ? batch?.phaseLines : undefined}
-                  batch={shownBatch!}
                   limits={display.limits}
-                  log={shownLog}
-                  sqrt={shownSqrt}
-                  palette={display.palette}
-                  viewport={display.viewport}
-                  zoomMode={display.zoomMode}
-                  onZoomMode={(zoomMode) => display.update({ zoomMode })}
-                  ready={ready}
-                  onSelect={select}
-                  reportPlot={reportPlot}
+                  scale={shownLog ? "log" : shownSqrt ? "sqrt" : "linear"}
                 />
               </div>
               {!linkedDisplay && plotOptions}

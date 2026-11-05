@@ -1,3 +1,16 @@
+import { useWorkflowNotice } from "./useWorkflowNotice";
+import { scientificValue } from "./ScientificNumberInput";
+import {
+  historyActionLabel,
+  scientificHistoryCommand,
+  isScientificHistoryCommand,
+  isCalibrationHistoryCommand,
+  canTraverseScientificHistory,
+} from "./historyLabels";
+import { useIntegrationSettingsDraft } from "./IntegrationSettings";
+import { ShortcutHelp } from "./ShortcutReference";
+import { GeometryProvenance } from "./GeometryProvenance";
+import { StatusMessage } from "./StatusMessage";
 import {
   layoutKeys,
   readLayoutFlag,
@@ -13,6 +26,7 @@ import {
   useState,
 } from "react";
 import {
+  CircleHelp,
   ArrowUpRight,
   Crosshair,
   FileImage,
@@ -162,8 +176,10 @@ export default function App() {
       /* Keep the session preference when local storage is unavailable. */
     }
   }, [validationConvention]);
+  const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false);
   const [manualGeometryOpen, setManualGeometryOpen] = useState(false);
   const [geometryDirty, setGeometryDirty] = useState(false);
+  const [activeGeometryDirty, setActiveGeometryDirty] = useState(false);
   const [selectedPicks, setSelectedPicks] = useState<number[]>([]);
   const [advancedDirty, setAdvancedDirty] = useState(false);
   const [fitDraft, setFitDraft] = useState<CalibrationFitDraft | null>(null);
@@ -271,6 +287,7 @@ export default function App() {
     inFlight = useRef(false);
   const commandTail = useRef<Promise<void> | null>(null);
   const autoProcessInFlight = useRef(false);
+  const quietInFlight = useRef(false);
   const pendingMaskDraws = useRef(0);
   const pendingBackgroundUpdates = useRef(0);
   const pendingCorrectionEdits = useRef(0);
@@ -279,6 +296,8 @@ export default function App() {
   const pendingMapRegions = useRef(0);
   const currentState = useRef<State | null>(null);
   const [state, setState] = useState<State | null>(null);
+  const integrationDraft = useIntegrationSettingsDraft(state);
+  const resetIntegrationDraft = integrationDraft.sync;
   useEffect(() => {
     void updateWindowTitle(state?.imageName).catch((error) =>
       console.warn("Could not update the native window title:", error),
@@ -294,7 +313,7 @@ export default function App() {
   );
   const [busy, setBusy] = useState("Connecting to Dioptas…"),
     [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useWorkflowNotice();
   const canPick = !!state?.hasImage && !setupDirty && !geometryDirty;
   const tool: Tool =
     mode === "calibration" && pickingEnabled && canPick ? "pick" : "pan";
@@ -342,7 +361,6 @@ export default function App() {
   const hoverLatest = useRef<{ x: number; y: number } | null>(null);
   const hoverLastSent = useRef(0);
   const hoverRequest = useRef(false);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const canDeferIntegration = useRef(false);
   const apply = useCallback(
     (result: Response, resetImageView = true, retainClick = false) => {
@@ -492,8 +510,6 @@ export default function App() {
             ? `Saved ${result.savedPaths.length} batch images`
             : `Saved ${result.savedPath!.split(/[\\/]/).at(-1)}`,
         );
-        if (toastTimer.current) clearTimeout(toastTimer.current);
-        toastTimer.current = setTimeout(() => setNotice(null), 4500);
       }
     },
     [],
@@ -512,19 +528,18 @@ export default function App() {
         : currentState.current?.undoLabel;
       const overlayEditing =
         (command === "integration_overlay" && args.operation !== "load") ||
-        ([
-          "undo_mask",
-          "redo_mask",
-          "undo_calibration",
-          "redo_calibration",
-        ].includes(command) &&
+        (isScientificHistoryCommand(command) &&
           historyLabel === "integration_overlay");
       const liveBackground =
         command === "integration_background" && message === "";
       const liveMapRegion = command === "map_roi" && message === "";
-      const liveCorrection = message === "" && [
-        "integration_correction", "integration_image_background", "integration_flat_field",
-      ].includes(command);
+      const liveCorrection =
+        message === "" &&
+        [
+          "integration_correction",
+          "integration_image_background",
+          "integration_flat_field",
+        ].includes(command);
       const frameSelection =
         command === "map_select" || command === "batch_select";
       const livePhaseConditions =
@@ -537,6 +552,7 @@ export default function App() {
         (command === "integration_autoprocess_poll" &&
           (inFlight.current || commandTail.current)) ||
         (inFlight.current &&
+          !quietInFlight.current &&
           !queueIfBusy &&
           !autoProcessInFlight.current &&
           !pendingMaskDraws.current &&
@@ -619,6 +635,7 @@ export default function App() {
         ++progressGeneration.current;
         setProgress(undefined);
         setBusy(message);
+        setNotice(null);
       }
       if (command !== "integration_autoprocess_poll") setError(null);
       if (command === "workflow_settings")
@@ -633,6 +650,7 @@ export default function App() {
               }
             : s,
         );
+      quietInFlight.current = quiet;
       try {
         const selectedPosition = currentLinked.current;
         let result = await bridge.current(
@@ -678,13 +696,28 @@ export default function App() {
           raw,
         );
         apply(result, true, retainMapClick);
+        if (
+          !result.cancelled &&
+          ["open_project", "example"].includes(command) &&
+          result.state
+        )
+          resetIntegrationDraft(result.state);
+        if (command === "open_calibration" && !result.cancelled) {
+          setNotice(
+            `Loaded calibration: ${result.state?.calibrationName ?? "PONI"}`,
+          );
+        }
+        if (isScientificHistoryCommand(command)) {
+          setNotice(
+            `${command.startsWith("undo") ? "Undid" : "Redid"} ${historyActionLabel(historyLabel)}`,
+          );
+        }
         if (command === "integration_autoprocess_poll" && result.state)
           setError(result.state.integration.autoProcessError || null);
         if (
           (command === "load_peaks" && !result.cancelled) ||
+          isCalibrationHistoryCommand(command) ||
           [
-            "undo_calibration",
-            "redo_calibration",
             "clear_peaks",
             "remove_pick",
             "remove_picks",
@@ -718,6 +751,7 @@ export default function App() {
           setBusy("");
         }
         inFlight.current = false;
+        quietInFlight.current = false;
         autoProcessInFlight.current = false;
         if (maskDrawing) pendingMaskDraws.current--;
         if (overlayEditing) pendingOverlayEdits.current--;
@@ -729,7 +763,7 @@ export default function App() {
         release();
       }
     },
-    [apply],
+    [apply, resetIntegrationDraft],
   );
   useNativePhaseEditorSync(run, state?.revision);
   useEffect(() => {
@@ -748,7 +782,7 @@ export default function App() {
       !error &&
       !settingsOpen &&
       mode !== "mask" &&
-      mode !== "map"
+      (mode !== "map" || !map)
     )
       void run("integrate", {}, "Integrating image and cake…");
   }, [
@@ -759,6 +793,7 @@ export default function App() {
     error,
     settingsOpen,
     mode,
+    map,
     run,
   ]);
   useEffect(() => {
@@ -780,7 +815,6 @@ export default function App() {
       ++hoverSequence.current;
       hoverLatest.current = null;
       if (hoverTimer.current) clearTimeout(hoverTimer.current);
-      if (toastTimer.current) clearTimeout(toastTimer.current);
     };
   }, [run]);
   useEffect(() => {
@@ -815,10 +849,21 @@ export default function App() {
       const target = event.target as HTMLElement;
       if (settingsOpen) return;
       if (
-        target.closest('[role="dialog"], dialog') ||
+        target.closest(
+          '[role="dialog"], dialog, [role="listbox"], [role="menu"]',
+        ) ||
         ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName)
       )
         return;
+      // Native controls own their unmodified activation keys.
+      if (target.closest('[contenteditable="true"]')) return;
+      if (
+        !(event.metaKey || event.ctrlKey) &&
+        ["Enter", " "].includes(event.key) &&
+        target.closest('button, a, summary, [role="tab"]')
+      )
+        return;
+      if (event.defaultPrevented) return;
       const key = event.key.toLowerCase(),
         mod = event.metaKey || event.ctrlKey;
       if (mod && key === "o") {
@@ -828,7 +873,9 @@ export default function App() {
           mode === "integration"
             ? {
                 multiple: true,
-                batch_mode: currentState.current?.integration.imageBatchMode ?? "integrate",
+                batch_mode:
+                  currentState.current?.integration.imageBatchMode ??
+                  "integrate",
               }
             : {},
           "Opening image…",
@@ -842,20 +889,26 @@ export default function App() {
         );
       } else if (mod && key === "z") {
         event.preventDefault();
+        if (!canTraverseScientificHistory(currentState.current, event.shiftKey))
+          return;
         void run(
-          mode === "calibration"
-            ? event.shiftKey
-              ? "redo_calibration"
-              : "undo_calibration"
-            : event.shiftKey
-              ? "redo_mask"
-              : "undo_mask",
+          scientificHistoryCommand(
+            event.shiftKey
+              ? currentState.current?.redoLabel
+              : currentState.current?.undoLabel,
+            event.shiftKey,
+          ),
           {},
           "Restoring previous state…",
         );
       } else if (mod && key === "y") {
         event.preventDefault();
-        void run(mode === "calibration" ? "redo_calibration" : "redo_mask");
+        if (!canTraverseScientificHistory(currentState.current, true)) return;
+        void run(
+          scientificHistoryCommand(currentState.current?.redoLabel, true),
+          {},
+          "Restoring previous state…",
+        );
       } else if (mode === "mask") {
         if (mod) return;
         if (key === "b") {
@@ -1469,8 +1522,8 @@ export default function App() {
     error ||
     (progress?.running
       ? `${progress.label ?? (mode === "integration" ? "Processing" : "Refining ring")} ${progress.current} / ${progress.total}`
-      : notice ||
-        busy ||
+      : busy ||
+        notice ||
         maskSelection?.text ||
         (mode === "integration"
           ? batchWarning
@@ -1495,7 +1548,9 @@ export default function App() {
                 "Check fit parameters, then calibrate the detector.",
                 state.calibration.fitDirty
                   ? "Ring selections changed. Calibrate or refine the geometry before saving."
-                  : "Inspect the rings and residual. Save .poni is available in every tab.",
+                  : state.calibration.rmsDegrees != null
+                    ? "Inspect fitted ring alignment and RMS, then save .poni."
+                    : "Inspect ring overlays. This geometry has no fitted peak residual.",
               ][calibrationStep]
           : mode === "map"
             ? map
@@ -1645,28 +1700,27 @@ export default function App() {
               <button
                 className="workspace-nav"
                 aria-label="Undo"
+                aria-description={
+                  customHistoryActive
+                    ? customCommands.undoLabel
+                    : historyActionLabel(state?.undoLabel)
+                }
                 title={
                   customHistoryActive
                     ? (customCommands.historyHint ??
                       `Undo: ${customCommands.undoLabel ?? "custom action"} · ⌘/Ctrl+Z`)
-                    : `Undo ${mode === "calibration" ? "calibration" : mode === "integration" ? "integration" : "mask"} edit · ⌘/Ctrl+Z`
+                    : `Undo ${historyActionLabel(state?.undoLabel)} · ⌘/Ctrl+Z`
                 }
                 disabled={
                   !ready ||
                   !(customHistoryActive
                     ? customCommands.canUndo
-                    : mode === "calibration"
-                      ? state?.calibration.canUndo
-                      : state?.canUndoMask)
+                    : canTraverseScientificHistory(state))
                 }
                 onClick={() =>
                   customHistoryActive
                     ? void customCommands.undo()
-                    : run(
-                        mode === "calibration"
-                          ? "undo_calibration"
-                          : "undo_mask",
-                      )
+                    : run(scientificHistoryCommand(state?.undoLabel))
                 }
               >
                 <Undo2 size={18} />
@@ -1674,28 +1728,27 @@ export default function App() {
               <button
                 className="workspace-nav"
                 aria-label="Redo"
+                aria-description={
+                  customHistoryActive
+                    ? customCommands.redoLabel
+                    : historyActionLabel(state?.redoLabel)
+                }
                 title={
                   customHistoryActive
                     ? (customCommands.historyHint ??
                       `Redo: ${customCommands.redoLabel ?? "custom action"} · ⇧⌘/Ctrl+Z`)
-                    : `Redo ${mode === "calibration" ? "calibration" : mode === "integration" ? "integration" : "mask"} edit · ⇧⌘/Ctrl+Z`
+                    : `Redo ${historyActionLabel(state?.redoLabel)} · ⇧⌘/Ctrl+Z`
                 }
                 disabled={
                   !ready ||
                   !(customHistoryActive
                     ? customCommands.canRedo
-                    : mode === "calibration"
-                      ? state?.calibration.canRedo
-                      : state?.canRedoMask)
+                    : canTraverseScientificHistory(state, true))
                 }
                 onClick={() =>
                   customHistoryActive
                     ? void customCommands.redo()
-                    : run(
-                        mode === "calibration"
-                          ? "redo_calibration"
-                          : "redo_mask",
-                      )
+                    : run(scientificHistoryCommand(state?.redoLabel, true))
                 }
               >
                 <Redo2 size={18} />
@@ -1730,6 +1783,17 @@ export default function App() {
                 <Save size={20} />
               </button>
             </div>
+            <button
+              className="workspace-nav navigation-help"
+              aria-label="Keyboard shortcuts and gestures"
+              title="Keyboard shortcuts and gestures"
+              onClick={() => setShortcutHelpOpen(true)}
+            >
+              <CircleHelp size={20} />
+            </button>
+            {shortcutHelpOpen && (
+              <ShortcutHelp onClose={() => setShortcutHelpOpen(false)} />
+            )}
             <button
               className={`workspace-nav navigation-settings ${settingsOpen ? "workspace-active" : ""}`}
               onClick={() => {
@@ -1801,7 +1865,13 @@ export default function App() {
                     <div className="workspace-toolbar">
                       {displayedRms != null && (
                         <span className="fit-summary">
-                          RMS {number(displayedRms, 5)}°
+                          RMS {scientificValue(displayedRms, 4)}° · {fitPoints}{" "}
+                          points ·{" "}
+                          {
+                            new Set(state?.calibration.picks.map((p) => p.ring))
+                              .size
+                          }{" "}
+                          rings
                         </span>
                       )}
                       <div className="image-overlay-controls">
@@ -2181,9 +2251,12 @@ export default function App() {
                       )}
                       {mode === "integration" && batchDockVisible && (
                         <BatchDock
-                          position={linked
-                            ? { x: linked.twoTheta, unit: "2th_deg" }
-                            : localPatternClick}
+                          activeImagePath={state?.imagePath}
+                          position={
+                            linked
+                              ? { x: linked.twoTheta, unit: "2th_deg" }
+                              : localPatternClick
+                          }
                           batch={batch}
                           calibrated={!!state?.calibrated}
                           ready={ready}
@@ -2518,44 +2591,49 @@ export default function App() {
                       {mode === "calibration" && (
                         <>
                           {calibrationStep === 3 && (
-                            <section className="calibration-validation-reference">
-                              <label className="calibration-field-row">
-                                <span>Calibrant</span>
-                                <select
-                                  aria-label="Validation calibrant"
+                            <>
+                              <GeometryProvenance state={state} detail />
+                              <section className="calibration-validation-reference">
+                                <label className="calibration-field-row">
+                                  <span>Calibrant</span>
+                                  <select
+                                    aria-label="Validation calibrant"
+                                    disabled={!ready}
+                                    value={
+                                      state?.calibration.calibrant ?? "CeO2"
+                                    }
+                                    onChange={(e) =>
+                                      run(
+                                        "validation_calibrant",
+                                        { calibrant: e.target.value },
+                                        "Updating reference lines…",
+                                      )
+                                    }
+                                  >
+                                    {(state?.calibration.calibrants ?? []).map(
+                                      (name) => (
+                                        <option key={name}>{name}</option>
+                                      ),
+                                    )}
+                                  </select>
+                                </label>
+                                <button
+                                  className="icon-button"
+                                  aria-label="Load custom validation reference"
+                                  title="Load custom reference spacings"
                                   disabled={!ready}
-                                  value={state?.calibration.calibrant ?? "CeO2"}
-                                  onChange={(e) =>
+                                  onClick={() =>
                                     run(
-                                      "validation_calibrant",
-                                      { calibrant: e.target.value },
-                                      "Updating reference lines…",
+                                      "open_calibrant",
+                                      { validation: true },
+                                      "Loading reference spacings…",
                                     )
                                   }
                                 >
-                                  {(state?.calibration.calibrants ?? []).map(
-                                    (name) => (
-                                      <option key={name}>{name}</option>
-                                    ),
-                                  )}
-                                </select>
-                              </label>
-                              <button
-                                className="icon-button"
-                                aria-label="Load custom validation reference"
-                                title="Load custom reference spacings"
-                                disabled={!ready}
-                                onClick={() =>
-                                  run(
-                                    "open_calibrant",
-                                    { validation: true },
-                                    "Loading reference spacings…",
-                                  )
-                                }
-                              >
-                                <FolderOpen size={16} />
-                              </button>
-                            </section>
+                                  <FolderOpen size={16} />
+                                </button>
+                              </section>
+                            </>
                           )}
                           <div hidden={calibrationStep !== 3}>
                             <GeometryEditor
@@ -2567,6 +2645,7 @@ export default function App() {
                               convention={validationConvention}
                               onConventionChange={setValidationConvention}
                               onDirtyChange={setGeometryDirty}
+                              onActiveDirtyChange={setActiveGeometryDirty}
                             />
                           </div>
                           {calibrationStep === 1 && (
@@ -2603,18 +2682,27 @@ export default function App() {
                           runProcessing={(command, args, message, onSuccess) =>
                             run(command, args, message, onSuccess, () => {
                               const current = currentState.current;
-                              return current?.projectName === state?.projectName &&
-                                current?.configurationIndex === state?.configurationIndex &&
-                                current?.imagePath === state?.imagePath;
-                            })}
+                              return (
+                                current?.projectName === state?.projectName &&
+                                current?.configurationIndex ===
+                                  state?.configurationIndex &&
+                                current?.imagePath === state?.imagePath
+                              );
+                            })
+                          }
                           backgroundSettings={liveBackground.settings}
                           onBackgroundChange={liveBackground.change}
                           backgroundUpdating={liveBackground.updating}
                           inspectBackground={inspectBackground}
                           onInspectBackgroundChange={setInspectBackground}
-                          backgroundDefaultRange={pattern?.x.length
-                            ? [Math.min(pattern.x[0], pattern.x.at(-1)!), Math.max(pattern.x[0], pattern.x.at(-1)!)]
-                            : [0, 50]}
+                          backgroundDefaultRange={
+                            pattern?.x.length
+                              ? [
+                                  Math.min(pattern.x[0], pattern.x.at(-1)!),
+                                  Math.max(pattern.x[0], pattern.x.at(-1)!),
+                                ]
+                              : [0, 50]
+                          }
                           onOverlaySelectionChange={setSelectedOverlayUid}
                           showOriginalPattern={originalPatternVisible}
                           onShowOriginalPatternChange={(visible) => {
@@ -2644,7 +2732,12 @@ export default function App() {
                             type="submit"
                             form="validation-geometry-form"
                             className="primary calibration-apply-geometry"
-                            disabled={!ready}
+                            disabled={!ready || !activeGeometryDirty}
+                            title={
+                              activeGeometryDirty
+                                ? "Apply the visible convention"
+                                : "Return to the convention with unapplied edits to apply it"
+                            }
                           >
                             Apply geometry
                           </button>
@@ -2739,6 +2832,7 @@ export default function App() {
           )}
           {settingsOpen && (
             <SettingsWorkspace
+              integrationDraft={integrationDraft}
               onCustomActionsActiveChange={setCustomActionsOpen}
               customCommands={customCommands}
               state={state}
@@ -2783,7 +2877,7 @@ export default function App() {
                 )}
               </span>
             </div>
-            {(mode === "integration" || mode === "map") && (
+            {!settingsOpen && (mode === "integration" || mode === "map") && (
               <div className="plot-status-line clicked-position">
                 <span className="plot-status-kind">Click</span>
                 <span
@@ -2811,9 +2905,7 @@ export default function App() {
             ) : (
               <span className="ready-dot" />
             )}
-            <span role={error ? "alert" : "status"} title={statusMessage}>
-              {statusMessage}
-            </span>
+            <StatusMessage error={error} message={statusMessage} />
             {error && (
               <button
                 className="secondary status-action"

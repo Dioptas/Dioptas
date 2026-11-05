@@ -19,7 +19,6 @@ import { useMapDisplay, useMapPreference } from "./mapPreferences";
 import { ScanMapPanel } from "./ScanMapPanel";
 import { useLiveMapRegion } from "./useLiveMapRegion";
 import {
-  number,
   type Pattern,
   type Raster,
   type Response,

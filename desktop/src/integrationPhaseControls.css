@@ -135,7 +135,7 @@
 }
 .phase-dialog {
   color: var(--text);
-  background: #202225;
+  background: var(--ui-panel);
   border: 1px solid #505257;
   border-radius: 5px;
   padding: 0;

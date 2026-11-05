@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { detectorViewport, plotViewContext, type SharedPlotViews } from "./plotViewport";
+import {
+  detectorViewport,
+  plotViewContext,
+  type SharedPlotViews,
+} from "./plotViewport";
 import { RasterView } from "./RasterView";
 import { ImageIntensity } from "./ImageIntensity";
 import type { Raster, State } from "./types";
@@ -112,10 +116,18 @@ export function MaskView({
     const key = (event: KeyboardEvent) => {
       if (
         (event.target as HTMLElement).closest(
-          'input,select,textarea,[role="dialog"]',
+          'input,select,textarea,dialog,[role="dialog"],[role="listbox"],[role="menu"],[contenteditable="true"]',
         ) ||
         event.ctrlKey ||
         event.metaKey
+      )
+        return;
+      if (
+        event.defaultPrevented ||
+        (["Enter", " "].includes(event.key) &&
+          (event.target as HTMLElement).closest(
+            'button, a, summary, [role="tab"]',
+          ))
       )
         return;
       if (event.key === "Escape") setPoints([]);

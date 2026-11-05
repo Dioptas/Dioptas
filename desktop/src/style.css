@@ -5,7 +5,7 @@
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-  color: #dce2e7;
+  color: var(--ui-text);
   background: #101419;
   font-synthesis: none;
   font-size: var(--text-small);
@@ -13,8 +13,8 @@
   --text-meta: 13px;
   --text-small: 14px;
   --text-body: 15px;
-  --border: #29313a;
-  --muted: #7f8b98;
+  --border: var(--ui-divider);
+  --muted: var(--ui-muted);
   /* Original Dioptas orange, shared by flat actions and interface accents. */
   --dioptas-orange: #ff9500;
   --accent: var(--dioptas-orange);
@@ -80,9 +80,9 @@ button svg {
 }
 input,
 select {
-  color: #dce2e7;
-  background: #11171d;
-  border: 1px solid #333d48;
+  color: var(--ui-text);
+  background: var(--ui-input);
+  border: 1px solid var(--ui-input-border);
   border-radius: 5px;
   padding: 9px 10px;
   min-width: 0;
@@ -174,7 +174,7 @@ button.secondary {
   background: #1d252e;
   border-color: #3b4652;
   padding: 9px 13px;
-  color: #dce2e7;
+  color: var(--ui-text);
 }
 button.quiet {
   padding: 8px 10px;
@@ -508,7 +508,7 @@ button.quiet {
   margin-top: 8px;
 }
 .levels-inputs > span {
-  color: #566270;
+  color: var(--ui-muted);
   margin-bottom: 8px;
 }
 .levels-inputs label {
@@ -518,7 +518,7 @@ button.quiet {
 .levels-inputs label > span {
   display: block;
   font-size: var(--text-small);
-  color: #627382;
+  color: var(--ui-muted);
   letter-spacing: 1px;
   margin: 3px 0 5px;
 }
@@ -830,10 +830,10 @@ h2 {
   border: 0;
   border-radius: 1px;
   background: transparent;
-  color: #606b76;
+  color: var(--ui-muted);
 }
 .plot-zoom-button:not(:disabled):hover {
-  color: #dce2e7;
+  color: var(--ui-text);
   background: #ffffff0a;
 }
 .plot-zoom-button[aria-pressed="true"],
@@ -944,7 +944,7 @@ h2 {
   gap: 8px;
 }
 .app-status > div:last-child {
-  color: #687c8c;
+  color: var(--ui-muted);
   font-size: var(--text-small);
 }
 .ready-dot {
@@ -1816,8 +1816,10 @@ input[type="checkbox"] {
 .intensity-histogram[data-active-target="max"] {
   cursor: ns-resize;
 }
-.image-intensity[data-orientation="horizontal"] .intensity-histogram[data-active-target="min"],
-.image-intensity[data-orientation="horizontal"] .intensity-histogram[data-active-target="max"] {
+.image-intensity[data-orientation="horizontal"]
+  .intensity-histogram[data-active-target="min"],
+.image-intensity[data-orientation="horizontal"]
+  .intensity-histogram[data-active-target="max"] {
   cursor: ew-resize;
 }
 .intensity-histogram[data-active-target="window"] {

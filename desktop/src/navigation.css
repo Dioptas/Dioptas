@@ -7,7 +7,7 @@
   margin: 0 6px 5px;
   padding: 10px 2px;
   gap: 7px;
-  color: #aeb7c1;
+  color: var(--ui-muted);
   font-weight: 500;
   border-radius: 8px;
 }

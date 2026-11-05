@@ -5,9 +5,11 @@ import "./integrationPhaseLegend.css";
 export function IntegrationPhaseLegend({
   lines,
   left,
+  top = 10,
 }: {
   lines: NonNullable<Pattern["phaseLines"]>;
   left: number;
+  top?: number;
 }) {
   const phases = new Map<string | number, (typeof lines)[number]>();
   for (const line of lines)
@@ -16,7 +18,7 @@ export function IntegrationPhaseLegend({
   return (
     <div
       className="integration-phase-legend"
-      style={{ left: left + 15 }}
+      style={{ left: left + 15, top }}
       aria-label="Phase legend"
     >
       {[...phases.entries()].map(([key, phase]) => (

@@ -7,10 +7,20 @@ Neither native host uses this browser-test process.
 import contextlib
 import json
 import sys
+import os
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(root))
+if "DIOPTAS_TEST_RANDOM_SEED" in os.environ:
+    # Opt-in repeatability for matched screenshots of Massif's measured-point
+    # search. Normal test runs and production processing keep their defaults.
+    import random
+    import numpy as np
+
+    seed = int(os.environ["DIOPTAS_TEST_RANDOM_SEED"])
+    random.seed(seed)
+    np.random.seed(seed)
 with contextlib.redirect_stdout(sys.stderr):
     from dioptas.desktop.bridge import DesktopBridge
 

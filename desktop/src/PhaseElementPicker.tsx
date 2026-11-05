@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { Dialog, DialogHeader } from "./Dialog";
+import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { EditorData } from "./phaseEditorTypes";
 
@@ -43,14 +44,6 @@ export function PhaseElementPicker({
   const dialog = useRef<HTMLDialogElement>(null);
   const [text, setText] = useState(value);
   const [error, setError] = useState("");
-  const opener = useRef(document.activeElement as HTMLElement | null);
-  useEffect(() => {
-    dialog.current?.showModal();
-    return () => {
-      dialog.current?.close();
-      opener.current?.focus();
-    };
-  }, []);
   const choose = (symbol: string) => {
     const item = elements.find(
       (e) => e.symbol.toLowerCase() === symbol.trim().toLowerCase(),
@@ -67,8 +60,9 @@ export function PhaseElementPicker({
     onClose();
   };
   return createPortal(
-    <dialog
-      ref={dialog}
+    <Dialog
+      onDismiss={onClose}
+      dialogRef={dialog}
       className="phase-dialog pe-element-dialog"
       aria-label="Choose element"
       onCancel={(e) => {
@@ -77,12 +71,11 @@ export function PhaseElementPicker({
         onClose();
       }}
     >
-      <header>
-        <h2>Choose element</h2>
-        <button aria-label="Close element picker" onClick={onClose}>
-          ×
-        </button>
-      </header>
+      <DialogHeader
+        title="Choose element"
+        closeLabel="Close element picker"
+        onClose={onClose}
+      />
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -139,7 +132,7 @@ export function PhaseElementPicker({
           <button className="primary">Use element</button>
         </footer>
       </form>
-    </dialog>,
+    </Dialog>,
     document.querySelector(".app") || document.body,
   );
 }

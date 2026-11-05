@@ -20,11 +20,7 @@ export function ProcessingNumberField({
   max?: number;
   disabled?: boolean;
 }) {
-  const unitMatch = displayLabel.match(/\s+\((mm|µm|°)\)$/);
-  const unit = unitMatch?.[1];
-  const name = unitMatch
-    ? displayLabel.slice(0, unitMatch.index)
-    : displayLabel;
+  const { name, unit } = splitNumericLabel(displayLabel);
   const [text, setText] = useState(String(value));
   const input = useRef<HTMLInputElement>(null);
   const latest = useRef(value);

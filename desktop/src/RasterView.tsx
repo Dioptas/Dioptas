@@ -1,3 +1,4 @@
+import { usePlotTypography } from "./usePlotTypography";
 import {
   useCallback,
   useEffect,
@@ -246,10 +247,11 @@ export function RasterView({
     if (container.current) observer.observe(container.current);
     return () => observer.disconnect();
   }, []);
+  const typography = usePlotTypography(canvas);
   const left = cake ? cakeAxisWidth : imagePadding,
     right = cake ? 22 : imagePadding,
     top = cake ? 20 : imagePadding,
-    bottom = cake ? 44 : imagePadding;
+    bottom = cake ? 44 * typography.scale : imagePadding;
   const plotWidth = Math.max(1, size.width - left - right),
     plotHeight = Math.max(1, size.height - top - bottom);
   const fitX = cake
@@ -488,7 +490,7 @@ export function RasterView({
             }
           }
         }
-        context.font = "400 13px -apple-system, sans-serif";
+        context.font = typography.text;
         context.textAlign = "left";
         for (const label of labels) {
           const width = context.measureText(label.text).width + 10;
@@ -552,7 +554,7 @@ export function RasterView({
             raster.fullWidth *
             sx;
         let lastLabelRight = -Infinity;
-        context.font = "400 13px -apple-system, sans-serif";
+        context.font = typography.text;
         context.textAlign = "left";
         for (const line of calibrantLines) {
           const x = lineX(line.twoTheta);
@@ -736,8 +738,8 @@ export function RasterView({
       }
       context.restore();
       if (cake) {
-        context.font = "13px ui-monospace, SFMono-Regular, monospace";
-        context.fillStyle = "#77828d";
+        context.font = typography.mono;
+        context.fillStyle = typography.muted;
         context.strokeStyle = "#35404a";
         context.lineWidth = 1;
         const { radialRange: xr, azimuthRange: yr } = raster as Cake;
@@ -752,7 +754,7 @@ export function RasterView({
         const yAxis = linearAxisTicks(
           yMin,
           yMax,
-          Math.max(1, Math.floor(plotHeight / 48)),
+          Math.max(1, Math.floor(plotHeight / (48 * typography.scale))),
         );
         const tickWidth = Math.max(
           0,
@@ -802,7 +804,7 @@ export function RasterView({
           context.textAlign = "left";
           context.fillText(yAxis.annotation, left, top - 6);
         }
-        context.fillStyle = "#929ca7";
+        context.fillStyle = typography.muted;
         context.textAlign = "center";
         context.fillText(
           unitLabel((raster as Cake).unit),
@@ -818,6 +820,9 @@ export function RasterView({
       }
     },
     [
+      typography.muted,
+      typography.mono,
+      typography.text,
       softwareImage,
       renderer,
       size,
@@ -898,21 +903,25 @@ export function RasterView({
       <canvas
         ref={gpuCanvas}
         className="raster-gpu-layer"
+        data-plot-font-size={typography.size}
         data-testid={cake ? "cake-gpu" : "detector-gpu"}
         aria-hidden="true"
         style={{ visibility: renderer === "webgl2" ? "visible" : "hidden" }}
       />
       <canvas
         ref={canvas}
+        tabIndex={0}
+        onKeyDown={navigation.onKeyDown}
         data-testid={cake ? "cake-canvas" : "detector-canvas"}
+        data-plot-font-size={typography.size}
         aria-label={
           cake
-            ? `Azimuthal cake; left-drag ${zoomMode} zoom, right-drag pan, right-click zoom out`
+            ? `Azimuthal cake; left-drag ${zoomMode} zoom, right-drag pan, right-click zoom out; keyboard arrows pan, +/- zoom, F restores view`
             : displayedRoi && onRoiChange
               ? "Detector image; drag inside the ROI to move, drag edges or corners to resize, Escape cancels; left-drag outside zooms, right-drag pans"
               : painting
-                ? "Detector image; click to stamp, left-drag rectangle zoom, Shift-drag paint, right-drag pan, right-click zoom out"
-                : "Detector image; left-drag rectangle zoom, right-drag pan, right-click zoom out"
+                ? "Detector image; click to stamp, left-drag rectangle zoom, Shift-drag paint, right-drag pan, right-click zoom out; keyboard arrows pan, +/- zoom, F restores view"
+                : "Detector image; left-drag rectangle zoom, right-drag pan, right-click zoom out; keyboard arrows pan, +/- zoom, F restores view"
         }
         style={{
           width: "100%",

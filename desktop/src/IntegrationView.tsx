@@ -1,3 +1,4 @@
+import { TabList } from "./TabList";
 import { useEffect, useState } from "react";
 import type { State } from "./types";
 import type { IntegrationRun } from "./integration";
@@ -67,63 +68,24 @@ export function IntegrationView({
     void run(command, args, "Updating integration…");
   return (
     <div className="integration-controls">
-      <div
+      <TabList
         className="integration-tabs calibration-workflow-tabs"
-        role="tablist"
-        aria-label="Integration controls"
-      >
-        {[
+        label="Integration controls"
+        value={tab}
+        onChange={setTab}
+        options={[
           "Image",
           "Pattern",
           "Overlay",
           "Phase",
           "Background",
           "Corrections",
-        ].map((name) => (
-          <button
-            key={name}
-            role="tab"
-            aria-selected={tab === name}
-            aria-controls="integration-tabpanel"
-            tabIndex={tab === name ? 0 : -1}
-            onKeyDown={(event) => {
-              const names = [
-                "Image",
-                "Pattern",
-                "Overlay",
-                "Phase",
-                "Background",
-                "Corrections",
-              ];
-              if (
-                ["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
-              ) {
-                event.preventDefault();
-                const next =
-                  event.key === "Home"
-                    ? names[0]
-                    : event.key === "End"
-                      ? names[names.length - 1]
-                      : names[
-                          (names.indexOf(tab) +
-                            (event.key === "ArrowLeft" ? -1 : 1) +
-                            names.length) %
-                            names.length
-                        ];
-                setTab(next);
-                (
-                  event.currentTarget.parentElement?.children[
-                    names.indexOf(next)
-                  ] as HTMLButtonElement
-                )?.focus();
-              }
-            }}
-            onClick={() => setTab(name)}
-          >
-            {name}
-          </button>
-        ))}
-      </div>
+        ].map((name) => ({
+          value: name,
+          label: name,
+          panelId: "integration-tabpanel",
+        }))}
+      />
       <fieldset
         disabled={!ready}
         className={`integration-fieldset integration-tab-${tab.toLowerCase()}`}

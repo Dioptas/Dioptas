@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, useRef, type ReactNode } from "react";
 import "./integrationNumericFields.css";
 
 /** Separate only known unit suffixes; ranges and other parenthetical labels stay intact. */
@@ -30,20 +30,31 @@ export function Field({
   disabled?: boolean;
 }) {
   const { name, unit } = splitNumericLabel(displayLabel ?? label);
+  const input = useRef<HTMLInputElement>(null);
+  const [draft, setDraft] = useState(String(value));
+  useEffect(() => {
+    if (document.activeElement !== input.current) setDraft(String(value));
+  }, [value]);
   return (
     <label
       className={`field-label integration-number-field${unit ? " integration-number-with-unit" : ""}`}
     >
       <span>{name}</span>
       <input
+        ref={input}
         aria-label={label}
+        required
         type="number"
-        value={value}
+        value={draft}
         min={min}
         max={max}
         step={step}
         disabled={disabled}
-        onChange={(e) => onChange(Number(e.target.value))}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          if (e.target.value.trim() && Number.isFinite(e.target.valueAsNumber))
+            onChange(e.target.valueAsNumber);
+        }}
       />
       {unit && (
         <span className="integration-number-unit" aria-hidden="true">

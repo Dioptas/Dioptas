@@ -1,3 +1,6 @@
+import { scientificValue } from "./ScientificNumberInput";
+import { GeometryProvenance } from "./GeometryProvenance";
+import { PatternFreshness } from "./PatternFreshness";
 import { useMemo, type ReactNode } from "react";
 import { decodeRaster } from "./rasterTransfer";
 import { Save } from "lucide-react";
@@ -232,13 +235,19 @@ export function IntegrationPatternActions({
       >
         As Bkg
       </button>
+      <PatternFreshness
+        state={state}
+        ready={ready}
+        onRetry={() => void run("integrate")}
+      />
+      <GeometryProvenance state={state} />
       <span
         className="integration-pattern-calibration"
         title={`${state?.calibrationName ?? "No calibration"} · wavelength`}
       >
         λ{" "}
         {state?.calibrated
-          ? (state.geometry.wavelength * 1e10).toFixed(5)
+          ? scientificValue(state.geometry.wavelength * 1e10)
           : "—"}{" "}
         Å
       </span>

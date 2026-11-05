@@ -15,8 +15,8 @@
   max-height: calc(100vh - 16px);
   overflow: auto;
   padding: 12px;
-  color: #dce2e7;
-  background: #232323;
+  color: var(--ui-text);
+  background: var(--ui-raised);
   border: 1px solid var(--border);
   border-radius: 7px;
   box-shadow: 0 8px 24px #0006;

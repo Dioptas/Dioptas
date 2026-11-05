@@ -13,7 +13,7 @@
     for (let i = 0; i < 250; i++) {
       if (await fn()) return;
       const alert = document.querySelector('[role="alert"]');
-      if (alert) throw Error(alert.textContent);
+      if (alert?.textContent.trim()) throw Error(alert.textContent);
       await new Promise((resolve) => setTimeout(resolve, 40));
     }
     throw Error(message);

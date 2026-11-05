@@ -359,7 +359,9 @@ The renderer comparison is described in
 [PATTERN_WEBGL_BENCHMARK.md](PATTERN_WEBGL_BENCHMARK.md). It covers ordinary and
 large-pattern navigation, CPU drawing cost, frame cadence, upload behavior and
 curve geometry. WebGL is the default; `VITE_DIOPTAS_PATTERN_RENDERER=canvas2d`
-selects the Canvas renderer for diagnostics and comparisons.
+selects the Canvas renderer for diagnostics and comparisons. The headless
+`npm run benchmark:pattern` now also defaults to WebGL; pass `-- --canvas2d`
+for an explicit fallback benchmark. Headless GPU timing is not a native GPU benchmark.
 
 ## Image and pattern rendering
 
@@ -820,3 +822,43 @@ uses the native report's client dimensions when
 `artifacts/qt-comparison-native.json` is available (`--native-report` overrides
 its path). Reports distinguish slot return, image-item paint, complete
 viewport paint, integration completion and settling time.
+
+## Shared interface and design audit
+
+`TabList` owns task-tab keyboard navigation across the modes, settings and phase
+editors. `Dialog` / `DialogHeader` own native modal focus, dismissal and headers;
+nonmodal color and action menus retain their own list/menu interactions.
+`ScientificNumberInput` formats a visual preview while keeping the exact input
+value. `usePlotTypography` carries the Standard/Larger preference into canvas
+labels and axes, and `ColorScaleLegend`, `GeometryProvenance`, `PatternFreshness` and
+`StatusMessage` share scientific context and feedback. Chrome tokens live in
+`uiTheme.css`; scientific palettes remain independent. Integration options are
+kept as a session draft and applied together, including the radial coordinate.
+The model's shared history action determines Undo/Redo routing and labels.
+Manual geometry keeps full-precision drafts, allows convention comparisons and
+requires applying/resetting a pending draft before editing the other convention.
+
+From `desktop`, run `npm run test:ui-audit` for the real-model Chromium review,
+or `node scripts/ui_audit.mjs --stage=webkit --webkit` for WebKit. The audit loads
+CeO2, performs an independent peak-seeded fit, loads the reference PONI separately,
+and exercises the measured map fixtures and a six-frame series derived from
+CeO2. It captures modes, settings, editors, dialogs and compact/large-text layouts,
+checks keyboard and error/draft behavior, canvas text scaling and anchored popup
+bounds, and records axe violations separately
+from checks requiring manual review. Results go to `artifacts/ui-audit`.
+`npm run test:ui-audit:baseline` builds the historical frontend at `b418d66b`
+without resetting this checkout; `-- --ref=REV` selects another baseline.
+These are headless browser checks, not OS-dialog or formal accessibility certification.
+
+`npm run report:ui-audit` assembles the dated rubric, raw reviews and matched
+screenshots into `artifacts/ui-audit/index.html`. The audit alone opts into a
+fixed peak-search random seed, so its measured-point fits match across the
+before/after and browser comparisons.
+
+The shared 25-category scoring definitions are in `UI_DESIGN_RUBRIC.json`;
+`UI_DESIGN_REVIEW.json` keeps Codex scores, evidence, improvements and the actual
+last completed peer scores. `UI_PEER_REVIEW.txt` preserves Claude’s raw review.
+The final peer reassessment is pending: the CLI reported its account session
+usage limit and a reset at 21:30 Berlin on November 5, 2026. The report must not
+present an earlier peer score as a grade of later fixes, or infer the requested
+9/10 from passing tests.
