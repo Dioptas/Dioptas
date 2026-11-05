@@ -167,7 +167,7 @@ export function BatchHeatmap({
     ctx.strokeStyle = "#65717d";
     ctx.lineWidth = 1;
     ctx.strokeRect(bounds.left, bounds.top, bounds.width, bounds.height);
-    ctx.font = `${host.current?.closest(".app")?.getAttribute("data-text-size") === "large" ? 14 : 13}px -apple-system, sans-serif`;
+    ctx.font = "13px ui-monospace, SFMono-Regular, monospace";
     ctx.fillStyle = "#7e8994";
     ctx.textAlign = "center";
     const a = radial(v.xMin),

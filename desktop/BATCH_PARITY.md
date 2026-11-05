@@ -38,6 +38,7 @@ chosen mode survives tab changes, docking and reopening.
 The frame axis keeps its numeric labels without a title, with a narrow margin
 that grows only when larger frame numbers need it.
 Axis numbers, unit labels and border use the pattern plot's muted colors.
+Axis labels also match its 13 px monospace font in both interface text sizes.
 
 **Dock batch** moves the same panel into Integration's lower-left corner below
 the detector/cake and image toolbar. It shares the left column's width and leaves
