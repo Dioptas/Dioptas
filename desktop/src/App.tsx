@@ -900,7 +900,8 @@ export default function App() {
   }, [busy]);
   useEffect(() => {
     function keyboard(event: KeyboardEvent) {
-      const target = event.target as HTMLElement;
+      const target =
+        event.target instanceof Element ? event.target : document.body;
       if (settingsOpen) return;
       if (
         target.closest(
@@ -1206,7 +1207,8 @@ export default function App() {
   useLayoutEffect(() => {
     if (!customHistoryActive) return;
     const keyboard = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement;
+      const target =
+        event.target instanceof Element ? event.target : document.body;
       if (
         event.defaultPrevented ||
         target.closest(

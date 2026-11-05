@@ -89,10 +89,9 @@ export function SettingsWorkspace({
     setSection(0);
     tabs.current?.querySelector<HTMLButtonElement>('[role="tab"]')?.focus();
     const key = (event: KeyboardEvent) => {
-      if (
-        event.defaultPrevented ||
-        (event.target as HTMLElement).closest('dialog, [role="dialog"]')
-      )
+      const target =
+        event.target instanceof Element ? event.target : document.body;
+      if (event.defaultPrevented || target.closest('dialog, [role="dialog"]'))
         return;
       if (event.key === "Escape") {
         event.preventDefault();

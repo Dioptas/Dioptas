@@ -240,6 +240,18 @@ const capture = async (name, target = page) => {
       plotToolbarRows.every((bar) => bar.rowsAligned && bar.height <= 46),
       `${name}: plot toolbars retain a single compact row: ${JSON.stringify(plotToolbarRows)}`,
     );
+  await target.addScriptTag({
+    path: path.join(root, "desktop/scripts/field_appearance_check.js"),
+  });
+  const fieldAppearance = await target.evaluate(() =>
+    window.__dioptasFieldAppearance(),
+  );
+  if (stage !== "before")
+    assert.equal(
+      fieldAppearance.failures.length,
+      0,
+      `${name}: resting fields must not have pale edges: ${JSON.stringify(fieldAppearance.failures)}`,
+    );
   const batchAxisLabels = await target
     .getByTestId("batch-heatmap")
     .evaluateAll((nodes) =>
@@ -269,6 +281,7 @@ const capture = async (name, target = page) => {
     name,
     batchAxisLabels,
     plotToolbarRows,
+    fieldAppearance,
     toolbarReachability,
     expandedPopupRelations,
     manualAccessibilityChecks: accessibility.incomplete.map((v) => ({

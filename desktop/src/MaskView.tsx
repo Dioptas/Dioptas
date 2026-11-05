@@ -114,8 +114,10 @@ export function MaskView({
   useEffect(() => {
     if (!active) return;
     const key = (event: KeyboardEvent) => {
+      const target =
+        event.target instanceof Element ? event.target : document.body;
       if (
-        (event.target as HTMLElement).closest(
+        target.closest(
           'input,select,textarea,dialog,[role="dialog"],[role="listbox"],[role="menu"],[contenteditable="true"]',
         ) ||
         event.ctrlKey ||
@@ -125,9 +127,7 @@ export function MaskView({
       if (
         event.defaultPrevented ||
         (["Enter", " "].includes(event.key) &&
-          (event.target as HTMLElement).closest(
-            'button, a, summary, [role="tab"]',
-          ))
+          target.closest('button, a, summary, [role="tab"]'))
       )
         return;
       if (event.key === "Escape") setPoints([]);

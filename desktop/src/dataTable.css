@@ -11,7 +11,7 @@
   --table-cell-padding: 1px 2px;
   --table-header-padding: 1px;
   --table-control-background: var(--ui-input);
-  --table-control-border: var(--ui-input-border);
+  --table-control-border: var(--ui-field-edge);
   --table-control-radius: 5px;
   --table-scroll-track: var(--ui-input);
   --table-scroll-thumb: #65707c;
@@ -95,6 +95,9 @@
 .app .data-table input[readonly] {
   background: transparent;
   border-color: transparent;
+}
+.app :is(.data-table, .data-table-grid) input[aria-invalid="true"] {
+  border-color: var(--ui-danger);
 }
 .app .data-table :is(input, select):focus-visible,
 .app .data-table-grid input:focus-visible {

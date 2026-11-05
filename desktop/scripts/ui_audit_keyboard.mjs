@@ -10,6 +10,26 @@ export async function verifyShortcuts({ page, ready, invoke }) {
     await ready();
   };
   const unfocus = () => page.evaluate(() => document.activeElement?.blur());
+  for (const mode of ["Calibration", "Mask", "Integration", "Calibration"]) {
+    await click(mode);
+    await page.evaluate(() =>
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+      ),
+    );
+    await ready();
+  }
+  await click("Settings");
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    ),
+  );
+  await ready();
+  assert.equal(await page.locator(".settings-workspace:visible").count(), 0);
+  checks.push(
+    "Window-targeted Escape works in Calibration, Mask, Integration and Settings without assuming an element target",
+  );
   await page.evaluate(() => {
     const original = window.__invoke;
     window.__shortcutCalls = [];
