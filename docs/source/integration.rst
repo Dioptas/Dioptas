@@ -28,6 +28,17 @@ The control panel on the upper right has several tabs:
 - **X** — Integration options (binning, azimuth range, supersampling)
 
 
+Image intensity scaling
+-----------------------
+
+Click **A** beside a colormap to recalculate its intensity limits for the current
+image using the selected autoscale settings. The button is available beside
+horizontal and vertical colormaps, including cake, map and batch views. It
+changes the displayed contrast while preserving the image zoom and pan. The
+underlying image and integrated intensities are unchanged. Use the neighboring
+gear button to configure the colormap and autoscale settings.
+
+
 File Handling
 -------------
 
@@ -78,6 +89,8 @@ current integrated pattern has no errors, selecting either format offers to enab
 reintegrate the current image. Turning error calculation off also turns off both error-bearing
 auto-save formats. The other formats remain available without error calculation.
 
+
+.. _integration-spottiness:
 
 Spottiness
 ~~~~~~~~~~
@@ -745,6 +758,10 @@ Options (X Tab)
 1D Integration
 ~~~~~~~~~~~~~~
 
+For the meaning of binning, pixel splitting, counting errors and spottiness, see
+:doc:`integration_concepts`. That guide also explains setup time, file loading
+and the difference between single-image latency and batch throughput.
+
 - *Number of Bins*: Manually set the number of integration bins, or check **auto** to let pyFAI decide.
 - *Azimuth Range*: Restrict the azimuthal range for integration (in degrees).
 - *Solid Angle Correction*: Enable/disable solid angle correction during integration.
@@ -753,8 +770,17 @@ Options (X Tab)
   time. When enabled, the errors are retained with the current pattern for ``.xye`` and
   ``.fxye`` export; saving does not repeat the integration. Error calculation uses the
   active integration engine (pyFAI or, when enabled and available, Dioptrin).
-- *Supersampling*: Split each pixel into n² sub-pixels for finer integration.
-  Can reduce peak widths for large pixels but may produce artifacts. Use with caution.
+  See :ref:`poisson-counting-errors` for when to use these uncertainties and what
+  they do and do not describe.
+- *Supersampling*: **With Dioptrin active, 1 selects geometric pixel splitting;
+  values greater than 1 select Dioptrin's native supersampling.** The value is
+  the number of subpixels per dimension: ``5`` uses ``5 × 5 = 25`` subpixels per
+  detector pixel. **A value of 1 does not turn pixel splitting off.** Higher
+  values select a different integration method, rather than increasing the
+  precision of geometric pixel splitting. See :ref:`dioptrin-sampling-modes`.
+  With pyFAI active, the control instead subdivides the detector pixels and
+  resamples the image before integration; higher values increase computation
+  and memory use without adding measured information.
 
 2D Cake Integration
 ~~~~~~~~~~~~~~~~~~~

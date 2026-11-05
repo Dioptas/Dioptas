@@ -15,6 +15,9 @@ Their changes are included here; the previous published release is 0.10.0. -->
   current settings while preserving zoom and pan, including cake, map and batch
   views.
 
+- Added an integration guide explaining binning, pixel splitting, backend-specific
+  supersampling, Poisson uncertainties, spottiness, and performance measurements.
+
 - Updated the optional Dioptrin integration backend to 0.7.0. Source installs
   can select the pinned `dioptrin` extra; standalone builds install the locked
   PyPI release on all platforms. Dioptrin 0.7.0 is MIT licensed and no longer

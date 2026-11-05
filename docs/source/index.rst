@@ -15,6 +15,7 @@ Welcome to Dioptas's documentation!
    calibration
    mask
    integration
+   integration_concepts
    configurations_and_projects
    map
    scripting_api
