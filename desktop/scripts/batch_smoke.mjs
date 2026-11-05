@@ -597,6 +597,42 @@ try {
     false,
   );
   sameRange(await readRange(page), range);
+  // Phase edits must update an already docked batch without a snapshot reload.
+  const snapshotReads = requests.filter((a) => a === "batch_snapshot").length;
+  const phaseToggle = dock.getByRole("button", {
+    name: "Show batch phases",
+    exact: true,
+  });
+  await page.getByRole("tab", { name: "Phase", exact: true }).click();
+  await click(page, "Removes all phases");
+  await ready();
+  assert(await phaseToggle.isDisabled());
+  await click(page, "Add phase…");
+  await ready();
+  assert(await phaseToggle.isEnabled());
+  await phaseToggle.click();
+  const phaseCount = () =>
+    dock
+      .getByTestId("batch-heatmap")
+      .getAttribute("data-phase-line-count")
+      .then(Number);
+  assert((await phaseCount()) > 0);
+  await page.getByLabel("Show phase 1", { exact: true }).click();
+  await ready();
+  assert(await phaseToggle.isDisabled());
+  assert.equal(await phaseCount(), 0);
+  await page.getByLabel("Show phase 1", { exact: true }).click();
+  await ready();
+  assert(await phaseToggle.isEnabled());
+  assert((await phaseCount()) > 0);
+  sameRange(await readRange(page), range);
+  await selected(page, 1);
+  assert.equal(
+    requests.filter((a) => a === "batch_snapshot").length,
+    snapshotReads,
+  );
+  await phaseToggle.click();
+  await page.getByRole("tab", { name: "Image", exact: true }).click();
   await dock.getByRole("tab", { name: "Options", exact: true }).click();
   assert(
     await dock.getByLabel("Batch start frame", { exact: true }).isVisible(),

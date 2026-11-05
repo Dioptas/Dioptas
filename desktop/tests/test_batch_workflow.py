@@ -369,13 +369,17 @@ def test_batch_click_links_radial_position_and_keeps_matrix(prepared, unit):
 def test_batch_phase_lines_follow_shared_phase_conditions(prepared):
     s, paths = prepared
     call(s, "batch_load", paths=paths)
-    call(s, "integration_phase", operation="load", path=str(DATA / "jcpds/au_version3.jcpds"))
+    loaded = call(s, "integration_phase", operation="load", path=str(DATA / "jcpds/au_version3.jcpds"))
     original = call(s, "batch_snapshot")["batch"]["phaseLines"]
+    assert loaded["batchPhaseLines"] == original
+    assert not {"batch", "image", "cake"}.intersection(loaded)
     assert original and all(line["x"] > 0 for line in original)
     expected = s._model.phase_model.get_phase_line_positions(0, "d_A", s.configuration.calibration_model.wavelength * 1e10)
     np.testing.assert_allclose([line["x"] for line in original], expected)
-    call(s, "integration_phase", operation="update", index=0, pressure=20)
+    updated = call(s, "integration_phase", operation="update", index=0, pressure=20)
     changed = call(s, "batch_snapshot")["batch"]["phaseLines"]
+    assert updated["batchPhaseLines"] == changed
     assert changed[0]["x"] != original[0]["x"]
-    call(s, "integration_phase", operation="update", index=0, visible=False)
+    hidden = call(s, "integration_phase", operation="update", index=0, visible=False)
+    assert hidden["batchPhaseLines"] == []
     assert not call(s, "batch_snapshot")["batch"]["phaseLines"]

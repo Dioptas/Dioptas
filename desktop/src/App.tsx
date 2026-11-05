@@ -351,6 +351,8 @@ export default function App() {
           result.error || "The operation could not be completed.",
         );
       if ("batch" in result) setBatch(result.batch ?? null);
+      if (result.batchPhaseLines !== undefined)
+        setBatch((b) => (b ? { ...b, phaseLines: result.batchPhaseLines } : b));
       if (result.batchPosition) {
         setLocalPatternClick(result.batchPosition);
         setLocalImageClick(null);

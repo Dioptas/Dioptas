@@ -180,6 +180,7 @@ class PhaseWorkflow:
     def _integration_phase_state(self):
         # Phase edits change table rows and reference lines, never detector pixels.
         return {**self._state(), 'pattern': self._pattern,
+                'batchPhaseLines': self._pattern_reference_data('d_A')['phaseLines'],
                 'patternOnly': True, 'phaseOnly': True}
 
     def _integration_phase_editor(self, index=None, editor_uid=None):

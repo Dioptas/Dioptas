@@ -164,6 +164,8 @@ export interface Response {
   customCommandContext?: import("./customCommands").CommandContext;
   phaseRevision?: number;
   batch?: import("./batchDomain").BatchData | null;
+  /** Phase references in d spacings (Å), independent of the batch display unit. */
+  batchPhaseLines?: Pattern["phaseLines"];
   batchSelection?: number;
   batchPosition?: import("./linkedPosition").PatternPosition;
   batchWavelength?: number | null;
