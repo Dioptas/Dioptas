@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, Settings2 } from "lucide-react";
 import type { BatchData, BatchRun } from "./batchDomain";
@@ -8,7 +8,6 @@ export function BatchControls({
   batch,
   docked = false,
   optionsVisible = false,
-  plotOptions,
   ready,
   calibrated,
   filesView,
@@ -19,7 +18,6 @@ export function BatchControls({
   batch: BatchData | null;
   docked?: boolean;
   optionsVisible?: boolean;
-  plotOptions?: ReactNode;
   ready: boolean;
   calibrated: boolean;
   filesView: boolean;
@@ -329,6 +327,7 @@ export function BatchControls({
   );
   return (
     <div
+      hidden={docked && !filesView && !optionsVisible}
       className={`batch-bottom-controls ${docked && optionsVisible ? "batch-options-active" : ""}`}
     >
       {docked ? (
@@ -337,11 +336,9 @@ export function BatchControls({
             className="batch-settings-content"
             hidden={!filesView && !optionsVisible}
           >
-            {optionsVisible && plotOptions}
             {actions}
             {ranges}
           </div>
-          {navigation}
         </>
       ) : (
         <>

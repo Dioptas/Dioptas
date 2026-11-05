@@ -12,11 +12,13 @@ and neutral charcoal/orange styling apply.
 The top row follows Qt: Open raw/proc data, previous/next folder, Save, source
 folder, and Files/2D tabs. Files shows Calibration File, Mask File, and the raw
 filename/N images table. Selecting a file selects its first integrated frame.
-2D shows the selectable intensity series with 2θ/Q/d and lin/√/log options at the
-right in the separate window. Its independent histogram uses the existing React
-image controls and defaults to vertical, leaving more height for the series.
+2D shows the selectable intensity series, a vertical histogram on the left, and
+2θ/Q/d plus Log/√ controls at the far right, in both floating and docked views.
+The mode buttons reuse the pattern view’s PlotToggle and styling. Turning off
+the active Log/√ button returns to linear. The independent histogram retains
+the existing React image controls and optional horizontal orientation.
 
-Below the view, Files offers Integrate; 2D offers AutoScale and Normalize with a
+In the separate window, Files offers Integrate; 2D offers AutoScale and Normalize with a
 separate normalization-settings popup. Previous/slider/next, Frame, and
 Start/Stop/Step follow beneath. Displayed frame and bin indices start at zero,
 as in Qt. Start/Stop are inclusive; the adapter translates them to the existing
@@ -28,12 +30,19 @@ the pattern and right-hand task controls in place. Drag the divider (or focus it
 and use Up/Down) to resize; double-click resets the height. The header can collapse,
 hide or detach the panel. **Batch view…** in Integration → Image reopens it.
 Dock preference and height persist. Hiding or closing the window keeps the batch.
-When docked, an **Options** tab beside Files/2D holds unit/scale controls,
-AutoScale, normalization and Start/Stop/Step. The 2D tab keeps only the series,
-histogram and frame navigation. Options edits survive tab changes, and returning
+When docked, an **Options** tab beside Files/2D holds AutoScale, normalization
+and Start/Stop/Step. The 2D tab has no bottom browsing row or slider: the header
+shows the selected zero-based frame index and final index. Click rows or use
+Up/Down and Home/End on the overview to browse. Open/folder/save actions live
+in the dock’s Files tab. Options edits survive tab changes, and returning
 to 2D preserves zoom, contrast and selection. Files retains its integration range.
-The full-width splitter between image and Batch has a visible grip, pointer
+The splitter shares Integration’s thin grip and hover styling, with pointer
 resizing, keyboard Up/Down and double-click reset; the dock can shrink to 220 px.
+The dock has no outer frame. Header paths are aligned at the trailing end so
+the meaningful folder name stays visible; Files shows basenames with full paths
+in tooltips. Header actions are rectangular and tabs use the shared underline
+style. The hidden cake-shift control no longer reserves a blank row above Batch
+when displaying the detector.
 Overview contrast, palette, scaling and zoom survive docking and reopening.
 The native window remembers its own size/monitor/position and uses Map's existing
 monitor-aware placement logic, with separate saved placement. Removed displays
@@ -57,6 +66,9 @@ or changed screen scaling are handled by that shared implementation.
   Integration's normal processing path. The selected stored profile is then
   restored, including normalization. These calculations never replace the stored
   batch matrix. The linked green inspection position is retained.
+  Selection uses the same quiet, serialized command path as Map, keeping controls
+  and plots mounted without global busy-state dimming. Further clicks queue while
+  a frame loads rather than being dropped.
 - Missing raw files clear stale detector/cake pixels and show the stored profile
   with a message. Imported batches cannot be reintegrated until raw sources are
   loaded again. Raw source images remain external to saved projects.
@@ -122,7 +134,11 @@ This requires real native windows; routine layout checks remain headless.
 
 Compact dock follow-up: Chromium and WebKit checks cover vertical histograms,
 Options reachability at both text sizes, retained edits/view state between tabs,
-and pointer/keyboard resizing of image, dock and overview. At 1000 × 700 with
+and pointer/keyboard resizing of image, dock and overview. They also hold a real
+frame load to verify that controls stay enabled and subsequent selections queue;
+check left-histogram/right-button geometry and exact pattern-button styling; and
+cover frameless docking, trailing paths and removal of the hidden toolbar row.
+At 1000 × 700 with
 large text and a 320 px dock, the 2D data area is at least 150 px tall.
 
 The prior CIF assertion fix remains covered by the full desktop Python suite.

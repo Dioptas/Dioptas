@@ -58,7 +58,7 @@ export function BatchDock(
     >
       {!collapsed && (
         <div
-          className="batch-dock-divider"
+          className="integration-divider integration-divider-horizontal batch-dock-divider"
           role="separator"
           tabIndex={0}
           aria-label="Image and batch divider"

@@ -255,7 +255,7 @@ export default function App() {
   const pendingMaskDraws = useRef(0);
   const pendingBackgroundUpdates = useRef(0);
   const pendingOverlayEdits = useRef(0);
-  const pendingMapSelections = useRef(0);
+  const pendingFrameSelections = useRef(0);
   const pendingMapRegions = useRef(0);
   const currentState = useRef<State | null>(null);
   const [state, setState] = useState<State | null>(null);
@@ -481,6 +481,8 @@ export default function App() {
       const liveBackground =
         command === "integration_background" && message === "";
       const liveMapRegion = command === "map_roi" && message === "";
+      const frameSelection =
+        command === "map_select" || command === "batch_select";
       const livePhaseConditions =
         command === "integration_phase" &&
         args.operation === "update" &&
@@ -496,7 +498,7 @@ export default function App() {
           !pendingMaskDraws.current &&
           !pendingBackgroundUpdates.current &&
           !pendingOverlayEdits.current &&
-          !pendingMapSelections.current &&
+          !pendingFrameSelections.current &&
           !pendingMapRegions.current &&
           !liveMapRegion &&
           !liveBackground &&
@@ -504,7 +506,7 @@ export default function App() {
           command !== "integration_phase_state" &&
           command !== "integration_phase_guides" &&
           command !== "image_levels" &&
-          command !== "map_select")
+          !frameSelection)
       )
         return;
       const batchAction =
@@ -522,7 +524,7 @@ export default function App() {
             ["rectangle", "circle", "polygon", "arc"].includes(
               String(args.operation),
             )));
-      // Keep quiet edits and map selections in order without disabling every
+      // Keep quiet edits and frame selections in order without disabling every
       // control. Further clicks must not be dropped while an image loads.
       const previous = commandTail.current;
       let release!: () => void;
@@ -530,14 +532,14 @@ export default function App() {
       commandTail.current = completion;
       if (maskDrawing) pendingMaskDraws.current++;
       if (overlayEditing) pendingOverlayEdits.current++;
-      if (command === "map_select") pendingMapSelections.current++;
+      if (frameSelection) pendingFrameSelections.current++;
       if (liveMapRegion) pendingMapRegions.current++;
       if (liveBackground) pendingBackgroundUpdates.current++;
       if (previous) await previous;
       if (shouldRun && !shouldRun()) {
         if (liveBackground) pendingBackgroundUpdates.current--;
         if (overlayEditing) pendingOverlayEdits.current--;
-        if (command === "map_select") pendingMapSelections.current--;
+        if (frameSelection) pendingFrameSelections.current--;
         if (liveMapRegion) pendingMapRegions.current--;
         if (commandTail.current === completion) commandTail.current = null;
         release();
@@ -559,7 +561,7 @@ export default function App() {
         command === "integration_phase_state" ||
         command === "integration_phase_guides" ||
         command === "integration_autoprocess_poll" ||
-        command === "map_select" ||
+        frameSelection ||
         command === "validation_position" ||
         command === "image_levels";
       if (!quiet) {
@@ -668,7 +670,7 @@ export default function App() {
         autoProcessInFlight.current = false;
         if (maskDrawing) pendingMaskDraws.current--;
         if (overlayEditing) pendingOverlayEdits.current--;
-        if (command === "map_select") pendingMapSelections.current--;
+        if (frameSelection) pendingFrameSelections.current--;
         if (liveMapRegion) pendingMapRegions.current--;
         if (liveBackground) pendingBackgroundUpdates.current--;
         if (commandTail.current === completion) commandTail.current = null;

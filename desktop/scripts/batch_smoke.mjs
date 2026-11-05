@@ -70,11 +70,23 @@ const page = await context.newPage();
 const errors = [];
 context.on("page", (p) => p.on("pageerror", (e) => errors.push(e.message)));
 page.on("pageerror", (e) => errors.push(e.message));
-await page.exposeFunction("__dioptasInvoke", invoke);
+let selectionGate = null,
+  selectionStarted = null;
+await page.exposeFunction("__dioptasInvoke", async (action, payload) => {
+  if (action === "batch_select" && selectionGate) {
+    selectionStarted?.();
+    await selectionGate;
+  }
+  return invoke(action, payload);
+});
 await page.addInitScript(() => {
   window.pywebview = {
     api: { invoke: (a, p) => window.__dioptasInvoke(a, p) },
   };
+  window.addEventListener("message", (e) => {
+    if (e.data?.message?.command === "batch_select")
+      window.__lastBatchRequest = e.data.message.args.index;
+  });
 });
 const ready = async () => {
   await page.waitForFunction(
@@ -87,8 +99,11 @@ const click = async (p, name) => {
 };
 const selected = async (p, n) => {
   await p.waitForFunction((n) => {
-    const input = document.querySelector('[aria-label="Selected batch frame"]');
-    return input && input.value === String(n - 1) && !input.disabled;
+    const panel = document.querySelector('[aria-label="Batch series"]');
+    return (
+      panel?.dataset.selectedFrame === String(n - 1) &&
+      panel.getAttribute("aria-busy") === "false"
+    );
   }, n);
   await ready();
   assert.equal((await invoke("state")).batch.selected, n - 1);
@@ -104,6 +119,20 @@ const readRange = (p) =>
     ]);
 const sameRange = (a, b) =>
   a.forEach((x, i) => assert(Math.abs(x - b[i]) < 1e-5, `${a} vs ${b}`));
+const checkBatchLayout = async (p) => {
+  const histogram = await p
+    .locator(".batch-overview-image > .image-intensity")
+    .boundingBox();
+  const plot = await p.getByTestId("batch-heatmap").boundingBox();
+  const modes = await p
+    .getByRole("group", { name: "Batch plot options", exact: true })
+    .boundingBox();
+  assert(
+    histogram.x + histogram.width <= plot.x + 1,
+    JSON.stringify({ histogram, plot }),
+  );
+  assert(modes.x >= plot.x + plot.width - 1, JSON.stringify({ plot, modes }));
+};
 let child;
 try {
   assert.equal((await invoke("example")).ok, true);
@@ -133,6 +162,35 @@ try {
       .getAttribute("aria-pressed"),
     "true",
   );
+  // Hold a real frame load: controls/canvases stay mounted and rapid clicks queue.
+  let releaseSelection;
+  selectionGate = new Promise((resolve) => (releaseSelection = resolve));
+  const selectionEntered = new Promise(
+    (resolve) => (selectionStarted = resolve),
+  );
+  await click(child, "Next batch frame");
+  await selectionEntered;
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Load image…", exact: true })
+      .isDisabled(),
+    false,
+  );
+  assert.equal(await page.locator(".spin").count(), 0);
+  assert.equal(await page.getByTestId("detector-canvas").count(), 1);
+  assert.equal(
+    await child
+      .getByRole("button", { name: "Next batch frame", exact: true })
+      .isDisabled(),
+    false,
+  );
+  await child.getByTestId("batch-heatmap").press("End");
+  await page.waitForFunction(() => window.__lastBatchRequest === 5);
+  releaseSelection();
+  selectionGate = null;
+  await selected(child, 6);
+  await child.getByTestId("batch-heatmap").press("Home");
+  await selected(child, 1);
   assert.equal(await child.locator(".intensity-histogram").count(), 1);
   assert.equal(await child.getByTestId("detector-canvas").count(), 0);
   await click(child, "Next batch frame");
@@ -217,8 +275,21 @@ try {
         .querySelector('[aria-label="Batch unit 2θ"]')
         ?.getAttribute("aria-pressed") === "true",
   );
-  await child.getByRole("button", { name: "√", exact: true }).click();
-  await child.getByRole("button", { name: "lin", exact: true }).click();
+  await checkBatchLayout(child);
+  await click(child, "Square root batch intensity");
+  assert.equal(
+    await child
+      .getByRole("button", { name: "Square root batch intensity", exact: true })
+      .getAttribute("aria-pressed"),
+    "true",
+  );
+  await click(child, "Square root batch intensity");
+  assert.equal(
+    await child
+      .getByRole("button", { name: "Square root batch intensity", exact: true })
+      .getAttribute("aria-pressed"),
+    "false",
+  );
   await child.getByRole("tab", { name: "Files", exact: true }).click();
   await child.getByLabel("Batch frame step", { exact: true }).fill("2");
   await click(child, "Integrate");
@@ -290,12 +361,14 @@ try {
       .isVisible(),
   );
   await dock.getByLabel("Batch frame step", { exact: true }).fill("2");
+  await dock.getByRole("tab", { name: "2D", exact: true }).click();
+  await checkBatchLayout(page);
   await dock.getByRole("button", { name: "Batch unit Q", exact: true }).click();
   await ready();
   assert.equal((await invoke("state")).pattern.unit, "q_A^-1");
   assert.equal(
     await dock
-      .getByRole("tab", { name: "Options", exact: true })
+      .getByRole("tab", { name: "2D", exact: true })
       .getAttribute("aria-selected"),
     "true",
   );
@@ -325,7 +398,12 @@ try {
   assert(dockBox.y >= image.y + image.height - 1);
   assert(dockBox.x < controls.x && dockBox.x + dockBox.width <= controls.x);
   assert(pattern.x >= dockBox.x + dockBox.width);
-  await click(page, "Next batch frame");
+  assert.equal(
+    await dock.getByLabel("Batch frame slider", { exact: true }).count(),
+    0,
+  );
+  assert.equal(await dock.locator(".batch-navigation-row").count(), 0);
+  await dock.getByTestId("batch-heatmap").press("ArrowDown");
   await selected(page, 2);
   assert.equal((await invoke("state")).state.imageName, "series_3.tif");
   assert((await invoke("state")).cake);
@@ -438,6 +516,58 @@ try {
   });
   const compactPlot = await dock.getByTestId("batch-heatmap").boundingBox();
   assert(compactPlot.height - 58 >= 150, JSON.stringify(compactPlot));
+  await checkBatchLayout(page);
+  const style = (element) => {
+    const s = getComputedStyle(element);
+    return [s.backgroundColor, s.color, s.borderRadius, s.padding, s.minHeight];
+  };
+  assert.deepEqual(
+    await dock
+      .getByRole("button", { name: "Batch unit 2θ", exact: true })
+      .evaluate(style),
+    await page
+      .getByRole("button", { name: "Pattern unit 2θ", exact: true })
+      .evaluate(style),
+  );
+  const dockStyle = await dock
+    .locator(".batch-series-panel")
+    .evaluate((e) => [
+      getComputedStyle(e).borderWidth,
+      getComputedStyle(e).borderRadius,
+    ]);
+  assert.deepEqual(dockStyle, ["0px", "0px"]);
+  const pathBounds = await dock
+    .locator(".batch-folder-label")
+    .evaluate((e) => ({
+      box: e.getBoundingClientRect().right,
+      text: e.firstElementChild.getBoundingClientRect().right,
+    }));
+  assert(Math.abs(pathBounds.box - pathBounds.text) < 1);
+  const grip = (e) => {
+    const s = getComputedStyle(e);
+    return [s.width, s.height, s.backgroundColor, s.opacity];
+  };
+  await divider.evaluate((e) => e.blur());
+  await page.mouse.move(0, 0);
+  assert.deepEqual(
+    await divider.locator("span").evaluate(grip),
+    await page
+      .getByRole("separator", {
+        name: "Controls and pattern divider",
+        exact: true,
+      })
+      .locator("span")
+      .evaluate(grip),
+  );
+  await selectIntegrationDisplay(page, "image");
+  assert.equal(
+    await page.locator(".integration-cake-shift").boundingBox(),
+    null,
+  );
+  await page.screenshot({
+    path: path.join(artifacts, "batch-docked-detector.png"),
+  });
+  await selectIntegrationDisplay(page, "cake");
   await click(page, "Hide batch view");
   assert.equal(await dock.count(), 0);
   assert.equal((await invoke("state")).batch.entries.length, 3);

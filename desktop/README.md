@@ -335,8 +335,11 @@ Integration's detector, cake and stored pattern. Use **Dock batch** to place the
 series below the image in the lower-left corner; its divider resizes the dock,
 and the header can collapse it or detach it again. **Batch view…** reopens the
 window or dock without discarding data. The dock's **Options** tab holds
-normalization, unit/scale and range settings so the series keeps most of the
-space. Its histogram defaults to vertical. Controls include frame range/step,
+normalization and range settings so the series keeps most of the space. Its
+histogram defaults to vertical on the left, with pattern-style unit/scale
+buttons at the far right. The dock shows frame position in the header instead
+of a bottom browsing slider; click rows or use the overview’s keyboard arrows.
+Selecting a frame keeps controls active without a global loading flash. Controls include frame range/step,
 normalization, HDF5/CSV saving and processed-batch import. Save project retains the series.
 See [Batch parity](BATCH_PARITY.md) for workflow, checks and scope.
 

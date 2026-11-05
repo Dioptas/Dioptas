@@ -102,8 +102,7 @@ export function BatchHeatmap({
     c.height = Math.round(size.height * dpr);
     const ctx = c.getContext("2d")!;
     ctx.scale(dpr, dpr);
-    ctx.fillStyle = "#202226";
-    ctx.fillRect(0, 0, size.width, size.height);
+    ctx.clearRect(0, 0, size.width, size.height);
     const v = nav.view,
       sx = bounds.width / (v.xMax - v.xMin),
       sy = bounds.height / (v.yMax - v.yMin);

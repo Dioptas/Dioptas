@@ -13,6 +13,7 @@ import {
 import { DataTable, TableScroll } from "./DataTable";
 import { BatchHeatmap } from "./BatchHeatmap";
 import { BatchControls } from "./BatchControls";
+import { PlotToggle } from "./IntegrationPlotControls";
 import { ImageIntensity } from "./ImageIntensity";
 import { useImageDisplayPreferences } from "./useImageDisplayPreferences";
 import { useBatchDisplay } from "./batchDisplay";
@@ -92,24 +93,28 @@ export function BatchView({
     });
   };
   const plotOptions = batch ? (
-    <div className="batch-options" aria-label="Batch plot options">
+    <div
+      className="integration-pattern-tools batch-options"
+      role="group"
+      aria-label="Batch plot options"
+    >
       <div
-        className="batch-unit-options"
+        className="plot-tool-group"
         role="group"
         aria-label="Batch radial unit"
       >
-        {docked && <span>Radial unit</span>}
         {(
           [
-            ["2th_deg", "2θ"],
-            ["q_A^-1", "Q"],
-            ["d_A", "d"],
-          ] as [Unit, string][]
-        ).map(([unit, label]) => (
-          <button
+            ["2th_deg", "2θ", "Two theta (degrees)"],
+            ["q_A^-1", "Q", "Scattering vector (Å⁻¹)"],
+            ["d_A", "d", "d spacing (Å)"],
+          ] as [Unit, string, string][]
+        ).map(([unit, label, title]) => (
+          <PlotToggle
             key={unit}
-            aria-label={`Batch unit ${label}`}
-            aria-pressed={batch.unit === unit}
+            label={`Batch unit ${label}`}
+            title={title}
+            pressed={batch.unit === unit}
             disabled={
               !ready ||
               (unit !== batch.sourceUnit &&
@@ -119,39 +124,38 @@ export function BatchView({
             onClick={() => run("batch_unit", { unit }, "Changing batch unit…")}
           >
             {label}
-          </button>
+          </PlotToggle>
         ))}
       </div>
       <div
-        className="batch-scale-options"
+        className="plot-tool-group"
         role="group"
         aria-label="Batch intensity scale"
       >
-        {docked && <span>Intensity scale</span>}
-        <button
-          aria-pressed={!display.log && !display.sqrt}
-          onClick={() => display.update({ log: false, sqrt: false })}
+        <PlotToggle
+          label="Logarithmic batch intensity"
+          title="Logarithmic intensity scale; turn off for linear"
+          pressed={display.log}
+          onClick={() => display.update({ log: !display.log, sqrt: false })}
         >
-          lin
-        </button>
-        <button
-          aria-pressed={display.sqrt}
-          onClick={() => display.update({ log: false, sqrt: true })}
+          Log
+        </PlotToggle>
+        <PlotToggle
+          label="Square root batch intensity"
+          title="Square-root intensity scale; turn off for linear"
+          pressed={display.sqrt}
+          onClick={() => display.update({ log: false, sqrt: !display.sqrt })}
         >
           √
-        </button>
-        <button
-          aria-pressed={display.log}
-          onClick={() => display.update({ log: true, sqrt: false })}
-        >
-          log
-        </button>
+        </PlotToggle>
       </div>
     </div>
   ) : null;
   return (
     <section
       className={`batch-series-panel ${collapsed ? "batch-collapsed" : ""} ${docked ? "batch-docked" : ""}`}
+      data-selected-frame={batch?.selected ?? ""}
+      aria-busy={!ready}
       aria-label="Batch series"
     >
       <header className="batch-series-toolbar">
@@ -159,6 +163,7 @@ export function BatchView({
           className="batch-file-toolbar"
           role="toolbar"
           aria-label="Batch files"
+          hidden={docked && tab !== "Files"}
         >
           <button
             aria-label="Load raw/proc data"
@@ -202,9 +207,22 @@ export function BatchView({
           </button>
         </div>
         <span className="batch-folder-label" title={folder}>
-          {folder || "Batch"}
+          <span>{folder || "Batch"}</span>
         </span>
-        <div className="batch-view-tabs" role="tablist" aria-label="Batch view">
+        {docked && batch && (
+          <span
+            className="batch-position"
+            aria-label="Selected batch frame"
+            title={`Frame ${batch.selected}; ${batch.entries.length} frames numbered 0–${batch.entries.length - 1} · ${batch.entries[batch.selected]?.name}`}
+          >
+            Frame {batch.selected} / {batch.entries.length - 1}
+          </span>
+        )}
+        <div
+          className="batch-view-tabs calibration-workflow-tabs"
+          role="tablist"
+          aria-label="Batch view"
+        >
           {(docked
             ? (["Files", "2D", "Options"] as const)
             : (["Files", "2D"] as const)
@@ -298,7 +316,7 @@ export function BatchView({
                             title={file.path}
                             onClick={() => select(file.first!)}
                           >
-                            {file.path}
+                            <span>{file.name}</span>
                           </button>
                         </td>
                         <td>{file.frames}</td>
@@ -337,17 +355,6 @@ export function BatchView({
               aria-label="Batch 2D view"
             >
               <div className="batch-overview-image detector-workspace">
-                <BatchHeatmap
-                  batch={batch}
-                  limits={display.limits}
-                  log={display.log}
-                  sqrt={display.sqrt}
-                  palette={display.palette}
-                  viewport={display.viewport}
-                  ready={ready}
-                  onSelect={select}
-                  reportPlot={reportPlot}
-                />
                 <ImageIntensity
                   raster={batch.raster}
                   limits={display.limits}
@@ -366,8 +373,19 @@ export function BatchView({
                   initialAutoActive={display.auto}
                   onAuto={auto}
                 />
+                <BatchHeatmap
+                  batch={batch}
+                  limits={display.limits}
+                  log={display.log}
+                  sqrt={display.sqrt}
+                  palette={display.palette}
+                  viewport={display.viewport}
+                  ready={ready}
+                  onSelect={select}
+                  reportPlot={reportPlot}
+                />
               </div>
-              {!docked && plotOptions}
+              {plotOptions}
             </div>
           )
         )}
@@ -376,7 +394,6 @@ export function BatchView({
         <BatchControls
           docked={docked}
           optionsVisible={tab === "Options"}
-          plotOptions={plotOptions}
           batch={batch}
           ready={ready}
           calibrated={calibrated}

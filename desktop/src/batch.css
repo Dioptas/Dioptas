@@ -29,28 +29,17 @@
   min-height: 36px;
 }
 .batch-dock-divider {
-  height: 12px;
-  flex: 0 0 12px;
+  height: 8px;
+  flex: 0 0 8px;
   cursor: row-resize;
-  display: grid;
-  place-items: center;
-  touch-action: none;
-  background: #292d32;
-  border-block: 1px solid #454b53;
 }
-.batch-dock-divider span {
-  width: 64px;
-  height: 4px;
-  border-radius: 2px;
-  background: #939ba6;
+.integration-left-pane:has(> .batch-dock)
+  .integration-cake-shift[data-visible="false"] {
+  display: none;
 }
-.batch-dock-divider:hover,
-.batch-dock-divider:focus-visible {
-  background: #353b43;
-}
-.batch-dock-divider:hover span,
-.batch-dock-divider:focus-visible span {
-  background: var(--accent);
+.integration-left-pane:has(> .batch-dock) > .integration-image-tools {
+  padding-top: 2px;
+  flex-shrink: 0;
 }
 .batch-series-panel {
   display: flex;
@@ -80,33 +69,64 @@
   gap: 2px;
   flex: 0 0 auto;
 }
-.batch-series-toolbar button {
+.batch-series-panel.batch-docked {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.app .batch-series-toolbar button {
   display: grid;
   place-items: center;
-  padding: 4px;
-  min-width: 25px;
-  min-height: 25px;
+  padding: 3px;
+  min-width: 26px;
+  min-height: 26px;
+  border-radius: 2px;
   background: transparent;
-  border-color: transparent;
+  color: #c4cbd3;
+  border: 1px solid transparent;
 }
-.batch-series-toolbar button:hover {
-  background: #383d42;
+.app .batch-file-toolbar button {
+  border-color: #414b55;
+}
+.app .batch-series-toolbar button:not(:disabled):hover {
+  background: #ffffff0a;
+  border-color: #75808b;
+  color: #f3f5f7;
+}
+.batch-file-toolbar[hidden] {
+  display: none;
 }
 .batch-folder-label {
+  display: flex;
+  justify-content: flex-end;
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   color: #bbc0c6;
   font-size: var(--text-meta);
 }
-.batch-view-tabs button {
-  padding: 3px 9px;
-  border-radius: 2px;
+.batch-folder-label > span {
+  flex: none;
 }
-.batch-series-panel button[aria-selected="true"],
-.batch-series-panel button[aria-pressed="true"] {
+.batch-position {
+  flex: none;
+  white-space: nowrap;
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+  color: #c4cbd3;
+}
+.app .batch-view-tabs.calibration-workflow-tabs button {
+  min-height: 30px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+}
+.app .batch-view-tabs.calibration-workflow-tabs button[aria-selected="true"] {
+  border-bottom-color: var(--accent);
+}
+.batch-action-row button[aria-pressed="true"] {
   color: var(--accent);
   background: #ff950014;
 }
@@ -162,7 +182,8 @@
   background: #ff95001a;
 }
 .batch-file-list td button {
-  display: block;
+  display: flex;
+  justify-content: flex-end;
   width: 100%;
   padding: 2px 0;
   border: 0;
@@ -171,6 +192,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.batch-file-list td button > span {
+  flex: none;
 }
 .batch-2d-view {
   display: flex;
@@ -185,28 +209,10 @@
   overflow: hidden;
 }
 .batch-options {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 3px;
-  padding: 6px 3px;
-  border-left: 1px solid var(--border);
-  flex: 0 0 36px;
-}
-.batch-options button {
-  padding: 3px;
-  min-height: 25px;
-  border-color: transparent;
-  background: transparent;
-}
-.batch-unit-options,
-.batch-scale-options {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.batch-scale-options {
-  margin-top: auto;
+  flex: 0 0 30px;
+  gap: 12px;
+  padding: 0;
+  border: 0;
 }
 .batch-heatmap {
   position: relative;
@@ -233,6 +239,9 @@
   gap: 3px;
   border-top: 1px solid var(--border);
 }
+.batch-bottom-controls[hidden] {
+  display: none;
+}
 .batch-docked .batch-bottom-controls {
   padding: 4px 6px;
 }
@@ -254,25 +263,6 @@
 }
 .batch-options-active .batch-settings-content {
   flex: 1;
-}
-.batch-docked .batch-options {
-  flex: 0 0 auto;
-  border: 0;
-  padding: 0;
-  gap: 8px;
-}
-.batch-docked .batch-unit-options,
-.batch-docked .batch-scale-options {
-  flex-direction: row;
-  align-items: center;
-  margin: 0;
-}
-.batch-docked .batch-options span {
-  width: 120px;
-  flex: 0 0 auto;
-}
-.batch-docked .batch-options button {
-  min-width: 36px;
 }
 .batch-action-row {
   display: flex;
