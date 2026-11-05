@@ -434,7 +434,7 @@
 }
 .app[data-text-size="large"] .map-controls,
 .app[data-text-size="large"] .map-controls :is(input, select, button) {
-  font-size: 16px;
+  font-size: var(--text-small);
 }
 @media (max-width: 850px) {
   .map-layout {

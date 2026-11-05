@@ -211,8 +211,23 @@ const capture = async (name, target = page) => {
       toolbarReachability.every((item) => !item.clipped && item.hit),
       `${name}: Batch toolbar controls must be reachable: ${JSON.stringify(toolbarReachability.filter((item) => item.clipped || !item.hit))}`,
     );
+  const batchAxisLabels = await target
+    .locator("canvas[data-y-axis-label]")
+    .evaluateAll((nodes) =>
+      nodes.filter(node => node.getClientRects().length && !node.closest('[inert], [aria-hidden="true"]')).map((node) => ({
+        label: node.dataset.yAxisLabel,
+        width: Number(node.dataset.yAxisLabelWidth),
+        available: Number(node.dataset.yAxisAvailable),
+      })),
+    );
+  if (stage !== "before")
+    assert(
+      batchAxisLabels.every((axis) => axis.width <= axis.available + 1),
+      `${name}: Batch axis title fits its available height`,
+    );
   inventory.push({
     name,
+    batchAxisLabels,
     toolbarReachability,
     expandedPopupRelations,
     manualAccessibilityChecks: accessibility.incomplete.map((v) => ({

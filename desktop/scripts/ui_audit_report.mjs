@@ -136,6 +136,7 @@ const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="v
 ${[
   ["calibration-validate", "Quiet input fields"],
   ["map-compact-large", "More plot space · Larger text"],
+  ["batch-compact-large", "Reachable Batch actions · Larger text"],
 ]
   .map(
     ([name, title]) =>

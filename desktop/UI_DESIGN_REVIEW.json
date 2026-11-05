@@ -238,7 +238,7 @@
     "The gold phase file is an editor/control fixture, not an identification of the CeO2 or Fe3O4C specimens. The six-frame Batch series is derived from the CeO2 image by known intensity multipliers.",
     "The GUI preserves existing scientific conventions, including pyFAI/Fit2D unit differences, zero-based Batch frames, a one-line footer and compact plot tools."
   ],
-  "status": "Post-reset Claude review of cc3c8704: 7.88/10. Confirmed findings are fixed; both engines passed 57 views and 33 behavior checks. Independent reassessment of the fixes is pending.",
+  "status": "Follow-up findings on saving applied geometry, title clipping, ring-label overlap and draft replacement are fixed. Both browser engines passed 58 views and 36 behavior checks. Claude’s last completed independent score is 8.26/10; a further assessment is pending.",
   "rubric": "UI_DESIGN_RUBRIC.json",
   "implementedImprovements": [
     {
@@ -345,15 +345,15 @@
   ],
   "peer": {
     "name": "Claude",
-    "mean": 7.88,
+    "mean": 8.26,
     "criteria": [
       {
         "id": "scientific_context",
-        "score": 8.0
+        "score": 8.5
       },
       {
         "id": "precision_units",
-        "score": 7.5
+        "score": 8.5
       },
       {
         "id": "visualization",
@@ -365,7 +365,7 @@
       },
       {
         "id": "workflow",
-        "score": 7.5
+        "score": 8.5
       },
       {
         "id": "navigation",
@@ -397,15 +397,15 @@
       },
       {
         "id": "consistency",
-        "score": 7.5
+        "score": 8.5
       },
       {
         "id": "reuse",
-        "score": 7.5
+        "score": 8.5
       },
       {
         "id": "dialogs",
-        "score": 8.5
+        "score": 9.0
       },
       {
         "id": "keyboard",
@@ -413,7 +413,7 @@
       },
       {
         "id": "accessibility",
-        "score": 7.5
+        "score": 8.0
       },
       {
         "id": "feedback",
@@ -421,11 +421,11 @@
       },
       {
         "id": "validation",
-        "score": 7.0
+        "score": 8.5
       },
       {
         "id": "recovery",
-        "score": 8.0
+        "score": 8.5
       },
       {
         "id": "reversibility",
@@ -433,7 +433,7 @@
       },
       {
         "id": "responsive",
-        "score": 6.5
+        "score": 7.5
       },
       {
         "id": "responsiveness",
@@ -441,16 +441,16 @@
       },
       {
         "id": "settings_files",
-        "score": 8.0
+        "score": 8.5
       },
       {
         "id": "maintainability",
-        "score": 7.5
+        "score": 8.0
       }
     ],
-    "sourceCommit": "cc3c8704",
+    "sourceCommit": "cee819d5",
     "reviewFile": "UI_PEER_REVIEW.txt",
-    "status": "Fresh independent post-reset review; confirmed findings are being fixed and a subsequent reassessment is pending."
+    "status": "Independent reassessment confirmed F1-F6 fixed and scored 8.26/10. Follow-up findings on saving, short axis titles, zoom-label overlap and draft replacement are being addressed."
   },
   "codexMean": 9.472,
   "target": 9.5,
@@ -471,14 +471,16 @@
       "Chromium",
       "WebKit"
     ],
-    "capturedStatesPerEngine": 54,
-    "behaviorChecksPerEngine": 33,
+    "capturedStatesPerEngine": 58,
+    "behaviorChecksPerEngine": 36,
     "uiBuildVerifiedAgainstScreenshots": true,
     "nativeOsDialogsRevalidated": false,
     "screenReaderSessionValidated": false,
-    "chromiumViews": 57,
-    "webkitViews": 57,
-    "toolbarChecks": "Active Batch controls are checked against ancestor clipping and actual pointer hit targets."
+    "chromiumViews": 58,
+    "webkitViews": 58,
+    "toolbarChecks": "Active Batch controls are checked against ancestor clipping and actual pointer hit targets.",
+    "poniDisplayConversion": "A changed PONI field is applied through the UI; mm-to-m conversion and Undo are checked against the real model at 1e-15 m tolerance.",
+    "batchAxisTitles": "Visible heatmap axis titles are measured against available height; full zero-based semantics remain in the accessible description."
   },
   "manualAccessibilityReview": {
     "popupControllers": "Open icon-picker controllers were verified to reference an existing role=dialog target; the axe incomplete result is retained rather than relabeled as an automatic pass.",
@@ -636,6 +638,115 @@
       "resetAt": "2026-11-05T21:30:00+01:00",
       "followupScheduledAt": "2026-11-05T21:35:00+01:00",
       "sourceCommit": "876e0651 and preceding review state"
+    },
+    {
+      "name": "Claude",
+      "mean": 7.88,
+      "criteria": [
+        {
+          "id": "scientific_context",
+          "score": 8.0
+        },
+        {
+          "id": "precision_units",
+          "score": 7.5
+        },
+        {
+          "id": "visualization",
+          "score": 8.0
+        },
+        {
+          "id": "inspection",
+          "score": 8.5
+        },
+        {
+          "id": "workflow",
+          "score": 7.5
+        },
+        {
+          "id": "navigation",
+          "score": 8.5
+        },
+        {
+          "id": "learnability",
+          "score": 7.5
+        },
+        {
+          "id": "cognitive_load",
+          "score": 8.0
+        },
+        {
+          "id": "typography",
+          "score": 8.0
+        },
+        {
+          "id": "readability",
+          "score": 8.0
+        },
+        {
+          "id": "spacing",
+          "score": 8.0
+        },
+        {
+          "id": "hierarchy",
+          "score": 8.5
+        },
+        {
+          "id": "consistency",
+          "score": 7.5
+        },
+        {
+          "id": "reuse",
+          "score": 7.5
+        },
+        {
+          "id": "dialogs",
+          "score": 8.5
+        },
+        {
+          "id": "keyboard",
+          "score": 8.5
+        },
+        {
+          "id": "accessibility",
+          "score": 7.5
+        },
+        {
+          "id": "feedback",
+          "score": 8.5
+        },
+        {
+          "id": "validation",
+          "score": 7.0
+        },
+        {
+          "id": "recovery",
+          "score": 8.0
+        },
+        {
+          "id": "reversibility",
+          "score": 8.0
+        },
+        {
+          "id": "responsive",
+          "score": 6.5
+        },
+        {
+          "id": "responsiveness",
+          "score": 8.0
+        },
+        {
+          "id": "settings_files",
+          "score": 8.0
+        },
+        {
+          "id": "maintainability",
+          "score": 7.5
+        }
+      ],
+      "sourceCommit": "cc3c8704",
+      "reviewFile": "UI_PEER_REVIEW.txt",
+      "status": "Fresh independent post-reset review; confirmed findings are being fixed and a subsequent reassessment is pending."
     }
   ],
   "codexHistory": [

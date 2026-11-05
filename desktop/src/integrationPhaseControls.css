@@ -174,7 +174,7 @@
   flex: 1;
 }
 .phase-dialog header button {
-  font-size: 19px;
+  font-size: var(--text-control-symbol);
   padding: 2px 9px;
 }
 .phase-dialog footer {

@@ -55,6 +55,13 @@ export async function verifyPeerFindings({
     (await invoke("state")).state.calibration.parameters,
     before.parameters,
   );
+  await tab("Step 4: Validate");
+  if (!before.fitDirty)
+    assert(
+      await button("Save .poni calibration").isEnabled(),
+      "Unapplied fit seeds do not block saving the current geometry",
+    );
+  await tab("Step 3: Calibrate");
   await rotation.fill(original);
   const energy = page.getByLabel("Fit energy in kiloelectronvolts", {
     exact: true,
@@ -63,6 +70,12 @@ export async function verifyPeerFindings({
   await energy.fill("");
   assert(await button("Calibrate").isDisabled());
   assert.equal(await energy.getAttribute("aria-invalid"), "true");
+  await energy.fill("5000");
+  assert(
+    await button("Calibrate").isDisabled(),
+    "Finite out-of-range energy cannot bypass wavelength bounds",
+  );
+  await energy.fill(energyOriginal);
   await energy.fill(energyOriginal);
   // Restore the original wavelength text exactly, avoiding reciprocal roundoff.
   await page
@@ -111,6 +124,25 @@ export async function verifyPeerFindings({
       .innerText(),
     "mm",
   );
+  await click("Load .poni");
+  const replacement = page.getByRole("dialog", {
+    name: "Replace unapplied edits?",
+    exact: true,
+  });
+  assert(
+    await replacement.isVisible(),
+    "Replacing a pending geometry draft requires an explicit choice",
+  );
+  await capture("draft-replacement-confirmation");
+  await replacement
+    .getByRole("button", { name: "Cancel", exact: true })
+    .click();
+  await ready();
+  assert.equal(
+    await page.getByLabel("Manual distance", { exact: true }).inputValue(),
+    "333.1234567890123",
+    "Cancel keeps the shared draft",
+  );
   await click("Reset geometry draft");
   assert.equal(
     await page.getByLabel("Manual distance", { exact: true }).inputValue(),
@@ -120,6 +152,35 @@ export async function verifyPeerFindings({
     (await invoke("state")).state.calibration.pyfai,
     before.pyfai,
     "Dialog edits never changed applied geometry",
+  );
+  const editedPoniMm = Number(await poni.inputValue()) + 0.125;
+  await poni.fill(String(editedPoniMm));
+  await click("Apply geometry");
+  const appliedPoni = (await invoke("state")).state.calibration.pyfai.poni1;
+  assert(
+    Math.abs(appliedPoni - editedPoniMm / 1000) < 1e-15,
+    "Displayed mm convert to SI meters only at Apply",
+  );
+  await click("Undo");
+  assert(
+    Math.abs(
+      (await invoke("state")).state.calibration.pyfai.poni1 -
+        before.pyfai.poni1,
+    ) < 1e-15,
+    "Undo restores the original PONI coordinate",
+  );
+  await page.getByLabel("Manual distance", { exact: true }).fill("350");
+  await click("Load .poni");
+  await replacement
+    .getByRole("button", { name: "Load calibration", exact: true })
+    .click();
+  await ready();
+  assert.equal(
+    Number(
+      await page.getByLabel("Manual distance", { exact: true }).inputValue(),
+    ),
+    (await invoke("state")).state.calibration.pyfai.dist * 1000,
+    "Confirmed source replacement resets the draft to the loaded geometry",
   );
   // A real three-frame HDF5 exercises the model's one-based frame navigation.
   const fixture = path.join(output, "frame-navigation.h5");
@@ -177,6 +238,9 @@ export async function verifyPeerFindings({
   await page.reload();
   await ready();
   return [
+    "Unapplied fit seeds do not block saving current applied geometry",
+    "Source replacement asks before discarding drafts; Cancel preserves them and confirmed loading resets them",
+    "Finite energy outside the supported wavelength range blocks calibration",
     "Fit seeds retain blank/partial/signed text, expose field errors and survive modes without changing model values",
     "Manual and embedded geometry share exact session drafts through Escape/backdrop dismissal; PONI uses mm consistently",
     "Geometry validation explains invalid fields and blocks Apply before a scientific command",

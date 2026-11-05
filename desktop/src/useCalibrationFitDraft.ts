@@ -1,6 +1,19 @@
 import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import type { Calibration } from "./types";
-import { numericDraftError } from "./numericDraft";
+import { numericDraftError, type NumericLimits } from "./numericDraft";
+
+export const fitParameterLimits = (key: string): NumericLimits =>
+  key === "wavelength"
+    ? { min: 0.01, max: 10 }
+    : key === "dist"
+      ? { min: 1, max: 10000 }
+      : key.startsWith("poni")
+        ? { min: -1e5, max: 1e5 }
+        : { min: -2 * Math.PI, max: 2 * Math.PI };
+export const fitEnergyLimits = {
+  min: 12.39841984332 / 10,
+  max: 12.39841984332 / 0.01,
+};
 
 /** Session-owned starting values are separate from applied geometry. */
 export function useCalibrationFitDraft(c?: Calibration) {
@@ -18,7 +31,12 @@ export function useCalibrationFitDraft(c?: Calibration) {
           const text = parameterText[key] ?? String(setting.value);
           return [
             key,
-            { ...setting, value: numericDraftError(text) ? NaN : Number(text) },
+            {
+              ...setting,
+              value: numericDraftError(text, fitParameterLimits(key))
+                ? NaN
+                : Number(text),
+            },
           ];
         }),
       ),

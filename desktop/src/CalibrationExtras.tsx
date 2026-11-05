@@ -11,7 +11,11 @@ import { CalibrationHelp, calibrationHelp } from "./CalibrationHelp";
 
 import { ScientificNumberInput } from "./ScientificNumberInput";
 import { numericDraftError } from "./numericDraft";
-import type { CalibrationFitEditor } from "./useCalibrationFitDraft";
+import {
+  fitParameterLimits,
+  fitEnergyLimits,
+  type CalibrationFitEditor,
+} from "./useCalibrationFitDraft";
 
 type Run = (
   command: string,
@@ -225,9 +229,7 @@ export function CalibrationExtras({
               const text =
                 parameterText[key] ??
                 String(parameterSettings[key]?.value ?? "");
-              const error = numericDraftError(text, {
-                positive: key === "dist" || key === "wavelength",
-              });
+              const error = numericDraftError(text, fitParameterLimits(key));
               return (
                 <Fragment key={key}>
                   <div className="constraint-row">
@@ -236,6 +238,8 @@ export function CalibrationExtras({
                       id={`constraint-${key}`}
                       aria-label={`${label} constraint value`}
                       step="any"
+                      min={fitParameterLimits(key).min}
+                      max={fitParameterLimits(key).max}
                       disabled={!ready}
                       value={text}
                       aria-invalid={error ? true : undefined}
@@ -289,13 +293,13 @@ export function CalibrationExtras({
                           }
                           aria-invalid={
                             energyText !== null &&
-                            numericDraftError(energyText, { positive: true })
+                            numericDraftError(energyText, fitEnergyLimits)
                               ? true
                               : undefined
                           }
                           aria-describedby={
                             energyText !== null &&
-                            numericDraftError(energyText, { positive: true })
+                            numericDraftError(energyText, fitEnergyLimits)
                               ? "fit-energy-error"
                               : undefined
                           }
@@ -303,9 +307,10 @@ export function CalibrationExtras({
                             setEnergyText?.(value);
                             setParameterText?.((p) => ({
                               ...p,
-                              wavelength: numericDraftError(value, {
-                                positive: true,
-                              })
+                              wavelength: numericDraftError(
+                                value,
+                                fitEnergyLimits,
+                              )
                                 ? ""
                                 : String(12.39841984332 / Number(value)),
                             }));
@@ -313,14 +318,12 @@ export function CalibrationExtras({
                         />
                         <span className="calibration-unit">keV</span>
                         {energyText !== null &&
-                          numericDraftError(energyText, { positive: true }) && (
+                          numericDraftError(energyText, fitEnergyLimits) && (
                             <span
                               className="ui-field-error constraint-error"
                               id="fit-energy-error"
                             >
-                              {numericDraftError(energyText, {
-                                positive: true,
-                              })}
+                              {numericDraftError(energyText, fitEnergyLimits)}
                             </span>
                           )}
                       </div>

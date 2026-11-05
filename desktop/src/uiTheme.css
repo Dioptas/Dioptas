@@ -15,6 +15,11 @@
   --ui-muted: #a6b1bc;
   --ui-placeholder: #91a0af;
   --ui-danger: #ffb3b9;
+  --text-heading: 17px;
+  --text-section: 20px;
+  --text-title: 22px;
+  --text-display: 25px;
+  --text-control-symbol: 20px;
   --ui-radius: 6px;
   --ui-dialog-radius: 10px;
   --text: var(--ui-text);
@@ -27,6 +32,11 @@
   --text-meta: 14px;
   --text-small: 16px;
   --text-body: 17px;
+  --text-heading: 19px;
+  --text-section: 22px;
+  --text-title: 24px;
+  --text-display: 28px;
+  --text-control-symbol: 22px;
 }
 dialog,
 [data-ui-dialog] {
@@ -472,4 +482,22 @@ input::placeholder,
 textarea::placeholder {
   color: var(--ui-placeholder);
   opacity: 1;
+}
+.path-input {
+  display: block;
+  min-width: 0;
+  position: relative;
+}
+.path-input-truncation {
+  position: absolute;
+  inset: 1px auto 1px 6px;
+  display: flex;
+  align-items: center;
+  padding-right: 2px;
+  color: var(--ui-muted);
+  background: var(--ui-input);
+  pointer-events: none;
+}
+.path-input:focus-within .path-input-truncation {
+  display: none;
 }

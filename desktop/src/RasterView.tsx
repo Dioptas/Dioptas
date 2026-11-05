@@ -583,13 +583,23 @@ export function RasterView({
             const text = String(line.ring);
             const width = context.measureText(text).width + 10;
             const labelX = Math.min(x + 3, left + plotWidth - width);
+            const badge = exporting
+              ? null
+              : container.current?.querySelector<HTMLElement>(".zoom-badge");
+            const badgeLeft = size.width - 11 - (badge?.offsetWidth ?? 0);
+            const labelTop =
+              badge &&
+              labelX + width > badgeLeft &&
+              top + 4 < 10 + badge.offsetHeight
+                ? Math.max(top + 4, 14 + badge.offsetHeight)
+                : top + 4;
             if (labelX < lastLabelRight + 6) continue;
             context.fillStyle = "#202226dd";
             context.beginPath();
-            context.roundRect(labelX, top + 4, width, 22, 3);
+            context.roundRect(labelX, labelTop, width, 22, 3);
             context.fill();
             context.fillStyle = "#ff4040";
-            context.fillText(text, labelX + 5, top + 20);
+            context.fillText(text, labelX + 5, labelTop + 16);
             lastLabelRight = labelX + width;
           }
         }

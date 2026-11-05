@@ -244,7 +244,14 @@ export function BatchHeatmap({
     ctx.translate(13, bounds.top + bounds.height / 2);
     ctx.rotate(-Math.PI / 2);
     ctx.textAlign = "center";
-    ctx.fillText("Frame index (0-based)", 0, 0);
+    const yLabel =
+      ["Frame index (0-based)", "Index (0-based)", "Index"].find(
+        (label) => ctx.measureText(label).width <= bounds.height - 8,
+      ) ?? "i";
+    c.dataset.yAxisLabel = yLabel;
+    c.dataset.yAxisLabelWidth = String(ctx.measureText(yLabel).width);
+    c.dataset.yAxisAvailable = String(bounds.height - 8);
+    ctx.fillText(yLabel, 0, 0);
     ctx.restore();
     ctx.fillStyle = typography.muted;
     ctx.textAlign = "right";
@@ -320,6 +327,7 @@ export function BatchHeatmap({
         data-view-y-min={nav.view.yMin}
         data-view-y-max={nav.view.yMax}
         aria-label="Batch intensity overview"
+        aria-description="Vertical axis: frame index (0-based)."
         tabIndex={0}
         onContextMenu={(e) => e.preventDefault()}
         onPointerDown={(e) => {

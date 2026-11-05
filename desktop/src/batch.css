@@ -409,7 +409,7 @@
 }
 @media (max-width: 540px) {
   .batch-folder-label {
-    font-size: 12px;
+    font-size: var(--text-meta);
   }
   .batch-view-tabs button {
     padding-left: 5px;
