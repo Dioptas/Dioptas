@@ -53,6 +53,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Optional open-source integration backend; pyFAI remains available without this extra.
+dioptrin = ["dioptrin==0.7.0"]
 test = [
     "pytest>=7.4.0,<10.0",
     "pytest-cov>=6.0,<7.0",

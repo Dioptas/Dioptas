@@ -102,6 +102,11 @@ uv sync
 
 This will create a new environment with all the required python packages in `.venv`.
 
+To include the optional Dioptrin 0.7.0 integration backend, use
+`uv sync --extra dioptrin` and start with `uv run --extra dioptrin dioptas`.
+Dioptrin 0.7.0 is [MIT licensed](https://pypi.org/project/dioptrin/0.7.0/) and
+requires no activation or license key. pyFAI remains the default backend.
+
 Afterward the program can be started by running:
 
 ```bash

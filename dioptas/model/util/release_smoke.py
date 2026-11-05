@@ -2,9 +2,48 @@
 from importlib.metadata import version
 import logging
 from pathlib import Path
+import sys
 from tempfile import TemporaryDirectory
 
 import numpy as np
+
+
+DIOPTRIN_VERSION = "0.7.0"
+
+
+def check_dioptrin_runtime(*, required=False):
+    """Verify the optional backend, requiring it in standalone distributions."""
+    try:
+        import dioptrin
+    except ImportError:
+        if required:
+            raise RuntimeError("Bundled Dioptrin backend is missing")
+        return None
+
+    actual = version("dioptrin")
+    if actual != DIOPTRIN_VERSION:
+        raise RuntimeError(f"Expected Dioptrin {DIOPTRIN_VERSION}, got {actual}")
+    # In 0.7 this compatibility API is a no-op: no key or activation is needed.
+    dioptrin.validate_license()
+    integrator = dioptrin.Integrator.from_poni_dict({
+        "poni_version": 2,
+        "dist": 0.1, "poni1": 0.0032, "poni2": 0.0032,
+        "rot1": 0.0, "rot2": 0.0, "rot3": 0.0,
+        "wavelength": 1e-10,
+        "detector": "Detector",
+        "detector_config": {"pixel1": 0.0001, "pixel2": 0.0001,
+                            "max_shape": [64, 64]},
+    }, method="pixel_split", unit="2th_deg")
+    image = np.full((64, 64), 100.0)
+    pattern = integrator.integrate1d(image, 32, errors=True)
+    cake = integrator.integrate2d(image, 32, 16)
+    for values, size in ((pattern.radial, 32), (pattern.intensity, 32),
+                         (pattern.errors, 32), (cake.intensity, 32 * 16)):
+        values = np.asarray(values)
+        if values.size != size or not np.all(np.isfinite(values)):
+            raise RuntimeError("Bundled Dioptrin synthetic integration failed")
+    logging.getLogger(__name__).info("Dioptrin %s: 1D/2D integration verified", actual)
+    return actual
 
 
 def check_release_runtime():
@@ -13,6 +52,8 @@ def check_release_runtime():
     from dioptas.pipeline import Pipeline
     from dioptas.model.util.mask_plugins.powder_outlier import _c_compute_binned
     from peritheos import Material as PeritheosMaterial, load_eosmat
+
+    check_dioptrin_runtime(required=getattr(sys, "frozen", False))
 
     peritheos_version = version("peritheos")
     if not peritheos_version.startswith("0.18."):

@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.11, <3.16"
 resolution-markers = [
     "python_full_version >= '3.15'",
@@ -394,6 +394,9 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+dioptrin = [
+    { name = "dioptrin" },
+]
 test = [
     { name = "mock" },
     { name = "pytest" },
@@ -405,6 +408,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "bitshuffle", specifier = ">=0.5.1" },
+    { name = "dioptrin", marker = "extra == 'dioptrin'", specifier = "==0.7.0" },
     { name = "extra-data", marker = "sys_platform == 'linux'", specifier = ">=1.13.0,<2.0" },
     { name = "h5py", specifier = ">=3.13.0,<4.0" },
     { name = "hdf5plugin", specifier = ">=5.0.0,<6.0" },
@@ -436,7 +440,44 @@ requires-dist = [
     { name = "xypattern", marker = "python_full_version < '3.14'", specifier = ">=1.2.3,<2.0" },
     { name = "xypattern", marker = "python_full_version >= '3.14'", specifier = ">=1.2.4,<2.0" },
 ]
-provides-extras = ["test"]
+provides-extras = ["dioptrin", "test"]
+
+[[package]]
+name = "dioptrin"
+version = "0.7.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy", version = "2.4.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.15'" },
+    { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.15'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5a/0b/f48d8e99fa2dc3c5cd4111d0365f1ad0df26c249424d952b38b505511bfa/dioptrin-0.7.0.tar.gz", hash = "sha256:50f8ebfd9d48cf0b3cbaca6673482636955981d36240723a00a0e87cd7856d1b", size = 6520736, upload-time = "2026-11-05T12:49:45.713Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ea/b4/6e8af8790211ea43c44637dd09be798c58b68f5ecdad9bac3bad2a5dd659/dioptrin-0.7.0-cp311-cp311-macosx_10_12_x86_64.whl", hash = "sha256:6110cf3d496abbbb25bb36e4038cb3ecaaf9f6f49d066ecf690924cf89b33c4d", size = 1005262, upload-time = "2026-11-05T12:49:09.641Z" },
+    { url = "https://files.pythonhosted.org/packages/04/10/7895ed68f55f68abb1958a701e930c9d2d58dcd7f2371a44f3f67a575960/dioptrin-0.7.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:94b51c6d3c12659ea0c66f5d6472dbc09c7f7538d936e548baaff59ed580d0ee", size = 944963, upload-time = "2026-11-05T12:49:11.118Z" },
+    { url = "https://files.pythonhosted.org/packages/3c/98/af183e9c1c42b8b81c32028d63298df9cef2036009b3538be2c1d0698e21/dioptrin-0.7.0-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:ebad65ba6a5e5478c4dec152f6aa37c6dbea0c6d8db71b6cd69d064df314d087", size = 961852, upload-time = "2026-11-05T12:49:12.619Z" },
+    { url = "https://files.pythonhosted.org/packages/9d/bb/b894d84e6d5735f754d1a2ed65e969fdf80f5713543aed6a438073b815be/dioptrin-0.7.0-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:a8d6e0e58a398de5fb8e1d9287d61833d2302c1a471d0149c8d82227947c9df4", size = 1048947, upload-time = "2026-11-05T12:49:13.919Z" },
+    { url = "https://files.pythonhosted.org/packages/0a/5c/2c9ac210efec7801c184649714138e8d451683127083d282b488eeca61e1/dioptrin-0.7.0-cp311-cp311-win_amd64.whl", hash = "sha256:c5e72ae3906892dddefeb7f85a9d03136144e8ad958860665e0afbc2cca3eeea", size = 1077327, upload-time = "2026-11-05T12:49:15.202Z" },
+    { url = "https://files.pythonhosted.org/packages/b7/ea/cda26030bc6351ac4663fbd47b54533bd1477c3cb0f02a4c89df972c2ef3/dioptrin-0.7.0-cp312-cp312-macosx_10_12_x86_64.whl", hash = "sha256:9b2c28795937aaf32017b12f94d950ec9e461b74332a4202be25032f0f5c23dd", size = 1012487, upload-time = "2026-11-05T12:49:16.33Z" },
+    { url = "https://files.pythonhosted.org/packages/7d/99/cf7eabaced406fc618f6f96a7695893ce5ccb87807d40cce466ebb5797b3/dioptrin-0.7.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:d2791e257e42a15141b91a5bc87da576cf82c002a080a61915d02edf5686445b", size = 938646, upload-time = "2026-11-05T12:49:17.902Z" },
+    { url = "https://files.pythonhosted.org/packages/30/3d/492b787c62afac542589d8f0c7e64f4c041bc59428c8208f90bf85248278/dioptrin-0.7.0-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:40271e804aec8b8c3e345b86e76e75766314e20f975b194b102c01828cad35a6", size = 957884, upload-time = "2026-11-05T12:49:19.242Z" },
+    { url = "https://files.pythonhosted.org/packages/d0/05/796499a9facb6f37f19bf36e36c1b24e1ed50c9d858e90dc2a030a034842/dioptrin-0.7.0-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:ab3b3f3bf5ec9f899db19fee3b660dfb69a8945268d04692fa8387b5e470d8f1", size = 1045479, upload-time = "2026-11-05T12:49:21.129Z" },
+    { url = "https://files.pythonhosted.org/packages/96/07/fe60da2a8786cbcbbf4b140e676f5c0f59a2eb86db27b4b1e763443ad891/dioptrin-0.7.0-cp312-cp312-win_amd64.whl", hash = "sha256:7ab47e14039f739a4f352e0d03fdda249c9944fc4eaf3da606327e3efdc9c598", size = 1072795, upload-time = "2026-11-05T12:49:22.409Z" },
+    { url = "https://files.pythonhosted.org/packages/aa/a6/57f1433d4b838552f1b8e6ed6fa442e342fa16eda342ea5ff11ea9dfa1da/dioptrin-0.7.0-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:83c35c2276cb015aa695d93dedb8f68bab87957230b2b86c7ee6c9798b8b21c3", size = 1012297, upload-time = "2026-11-05T12:49:23.94Z" },
+    { url = "https://files.pythonhosted.org/packages/66/5b/7ec9ebfcdf03f40df8ee3ac291734c9928c6a9cfb6f241b4152de4a30989/dioptrin-0.7.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:765e282f62bda5adb3081641f6c7434a45a3a82fd9e62f40dc7d6e4159eb8509", size = 938893, upload-time = "2026-11-05T12:49:25.119Z" },
+    { url = "https://files.pythonhosted.org/packages/fc/34/d02d8939f24be26bd02e2ad3134487e9875a41e763a4872842b0658954ad/dioptrin-0.7.0-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:cc0775d08a8996821a40fb85bd2ed011da019e95692fe89e650e79b79dad8440", size = 957388, upload-time = "2026-11-05T12:49:26.409Z" },
+    { url = "https://files.pythonhosted.org/packages/50/7e/3efabcdef77c3aab876d0eeb3795216a0204b069567ff7fa35fecf72742a/dioptrin-0.7.0-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:f1167e2445364df7425765b2224268605677d5c494904bae5ed6d211e3ba3e29", size = 1045698, upload-time = "2026-11-05T12:49:28.304Z" },
+    { url = "https://files.pythonhosted.org/packages/86/08/20e014bb684d7612029494bdb9ee5a25435dc26131eb8391c50fd9a4957c/dioptrin-0.7.0-cp313-cp313-win_amd64.whl", hash = "sha256:9574b77a33ea41b077a3e2af74f27489bd3cd206f15134ed2caf47d02f40a80a", size = 1072526, upload-time = "2026-11-05T12:49:29.737Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/23/9192c28eb721d0e1717a04b4ab9ec85cddb930a5a1fe10d652ed4e48c762/dioptrin-0.7.0-cp314-cp314-macosx_10_12_x86_64.whl", hash = "sha256:c187b88b7586dbc45b0e832d34e107d34c4c8565a8104f3bbc2fb8e95f9de5de", size = 1011831, upload-time = "2026-11-05T12:49:31.061Z" },
+    { url = "https://files.pythonhosted.org/packages/ce/c4/be28f7736534afd7283ad53af824b699f6ab580ad9856ad4b9e53fbd8f6c/dioptrin-0.7.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:fa7095b4fe40ae22185d603af96e4327ef38b3b8e9cfc7f3cedbabe68243ba49", size = 938507, upload-time = "2026-11-05T12:49:32.963Z" },
+    { url = "https://files.pythonhosted.org/packages/68/ae/4e40e53ce0faa5ac1ee9002cd0f521531289b67935b30c75f8a1e239da7b/dioptrin-0.7.0-cp314-cp314-manylinux_2_28_aarch64.whl", hash = "sha256:65440a351f9f5a3b6f1c9bf061d5c2dd137da7de574598a2410c5a14b514a67d", size = 956979, upload-time = "2026-11-05T12:49:34.343Z" },
+    { url = "https://files.pythonhosted.org/packages/bd/a1/76fa13f1591ec4dbec5389f4e1f801260892316c259adac51e7cb0f16f56/dioptrin-0.7.0-cp314-cp314-manylinux_2_28_x86_64.whl", hash = "sha256:55046fd712cc4cbd6a5565afa0f51fa68fd689e0f51aa4bf3a0fbb223c20a0da", size = 1044780, upload-time = "2026-11-05T12:49:35.712Z" },
+    { url = "https://files.pythonhosted.org/packages/db/bd/a7cb717ad50e135a6aeecc56f2ca4ddf90ef1fa5b036af513684ad1833af/dioptrin-0.7.0-cp314-cp314-win_amd64.whl", hash = "sha256:a961a9c8feac265f06f08d064c3b3b5e7341e32a33f4d52fe1d9a9f78a9bdfe4", size = 1072067, upload-time = "2026-11-05T12:49:37.335Z" },
+    { url = "https://files.pythonhosted.org/packages/ac/b3/ee0650090c3a7b10c9820d35c0aa76a386cdaa7581fa441c5ae652fc1f05/dioptrin-0.7.0-cp315-cp315-macosx_10_12_x86_64.whl", hash = "sha256:8aa23956bf2994886e216efb0e31cb12c5e40cbb11f69443d85f4869097f4c92", size = 1011719, upload-time = "2026-11-05T12:49:38.525Z" },
+    { url = "https://files.pythonhosted.org/packages/98/06/244cfd1a2b0579f0f6dece3a78a050b2cd2563c115a69b590c235ec372d6/dioptrin-0.7.0-cp315-cp315-macosx_11_0_arm64.whl", hash = "sha256:14fc18b74fecc5d3b137b9eee4c72b321f2e730515289ce825ccaf7434d6b007", size = 938423, upload-time = "2026-11-05T12:49:39.812Z" },
+    { url = "https://files.pythonhosted.org/packages/72/7a/1e0bfb51f46e7c7a2a2ec0cf97b74873696455ea81de86c33b6ea02c2300/dioptrin-0.7.0-cp315-cp315-manylinux_2_28_aarch64.whl", hash = "sha256:d6564b0db39eec04defb92eed8bf041d12c3ff5c52216416c9d9e9c04db8d7d5", size = 956848, upload-time = "2026-11-05T12:49:41.284Z" },
+    { url = "https://files.pythonhosted.org/packages/6a/09/51e8ecca3d6785c7df2334872085eef2691a302b8a7e3a5605b721a761bc/dioptrin-0.7.0-cp315-cp315-manylinux_2_28_x86_64.whl", hash = "sha256:4b55dfa6de20fce9f5accc21f81fe5bc8b6965cdb8cb8f88ad604a4437b0318d", size = 1044590, upload-time = "2026-11-05T12:49:42.581Z" },
+    { url = "https://files.pythonhosted.org/packages/ca/f9/c55881bcb74a91f50a8a7214ea81496e11961652209b5b30db6155ac5d4d/dioptrin-0.7.0-cp315-cp315-win_amd64.whl", hash = "sha256:9065316d7c321083854ced38899d5258e440c78d00a97a9d7faa8a83003e38b7", size = 1072228, upload-time = "2026-11-05T12:49:44.067Z" },
+]
 
 [[package]]
 name = "execnet"

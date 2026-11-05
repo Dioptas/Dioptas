@@ -23,6 +23,7 @@ block_cipher = None
 
 import sys
 import os
+from importlib.util import find_spec
 from sys import platform as _platform
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules, copy_metadata
 
@@ -62,6 +63,12 @@ extra_datas += copy_metadata("peritheos")
 
 hiddenimports = (fabio_hiddenimports + pyqtgraph_hiddenimports
                  + pyFAI_hiddenimports + peritheos_hiddenimports)
+
+# Source installs can use pyFAI alone. Standalone workflows install the locked
+# Dioptrin extra; include its native module and metadata for the startup check.
+if find_spec("dioptrin") is not None:
+    hiddenimports += collect_submodules("dioptrin")
+    extra_datas += copy_metadata("dioptrin")
 
 a = Analysis(
     ["run.py"],

@@ -99,3 +99,10 @@ The default branch is ``develop``. For a specific published release, check out
 its tag before running ``uv sync``, for example ``git checkout 0.11.0`` once that
 release is published. A source checkout builds Dioptas's small native extension
 and may require a C compiler; ordinary wheel installations do not.
+
+The optional Dioptrin backend is pinned to 0.7.0. Install it with
+``uv sync --extra dioptrin`` and start with ``uv run --extra dioptrin dioptas``.
+For a pip installation, use ``pip install 'dioptas[dioptrin]'``.
+Dioptrin 0.7.0 is MIT licensed and needs no activation or license key.
+pyFAI remains the default backend and works without this extra. See the
+`Dioptrin package <https://pypi.org/project/dioptrin/0.7.0/>`_.

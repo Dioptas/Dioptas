@@ -11,6 +11,11 @@ Their changes are included here; the previous published release is 0.10.0. -->
 
 ## Improvements
 
+- Updated the optional Dioptrin integration backend to 0.7.0. Source installs
+  can select the pinned `dioptrin` extra; standalone builds install the locked
+  PyPI release on all platforms. Dioptrin 0.7.0 is MIT licensed and no longer
+  requires activation or a license key.
+
 - Updated the material library and calculation engine to core Peritheos 0.18.0.
   Observation datasets are optional and are not required by Dioptas or its
   release startup checks.
