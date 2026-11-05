@@ -6,6 +6,70 @@ import json
 import threading
 from unittest.mock import MagicMock
 
+import pytest
+from qtpy import QtCore, QtGui, QtWidgets
+
+
+@pytest.fixture
+def notification_controller(qtbot, tmp_path):
+    module = importlib.import_module("dioptas.controller.MainController")
+    controller = module.MainController.__new__(module.MainController)
+    controller.widget = QtWidgets.QWidget()
+    qtbot.addWidget(controller.widget)
+    controller.settings_directory = str(tmp_path / "settings")
+    return controller
+
+
+@pytest.mark.parametrize("answer", [
+    QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No, 0,
+], ids=["open-download", "decline", "dismiss"])
+def test_release_is_not_announced_again_after_restart(
+    notification_controller, monkeypatch, answer,
+):
+    controller = notification_controller
+    dialogs = []
+    opened = []
+    monkeypatch.setattr(QtWidgets.QMessageBox, "exec_",
+                        lambda dialog: dialogs.append(dialog.text()) or answer)
+    monkeypatch.setattr(QtGui.QDesktopServices, "openUrl",
+                        lambda url: opened.append(url.toString()))
+    url = "https://github.com/Dioptas/Dioptas/releases/tag/0.12.0"
+    controller._show_update_notification("0.12.0", url)
+    controller._show_update_notification("0.12.0", url)
+
+    # A fresh controller reads the persisted state instead of instance memory.
+    restarted = type(controller).__new__(type(controller))
+    restarted.widget = controller.widget
+    restarted.settings_directory = controller.settings_directory
+    restarted._show_update_notification("0.12.0", url)
+    assert len(dialogs) == 1
+    assert opened == ([url] if answer == QtWidgets.QMessageBox.Yes else [])
+
+
+def test_new_release_gets_one_new_notification(notification_controller, monkeypatch):
+    dialogs = []
+    monkeypatch.setattr(QtWidgets.QMessageBox, "exec_",
+                        lambda dialog: dialogs.append(dialog.text()) or QtWidgets.QMessageBox.No)
+    controller = notification_controller
+    for version in ["0.12.0", "0.12.0", "0.13.0", "0.13.0", "0.12.0"]:
+        controller._show_update_notification(version, "https://example.com/release")
+    assert len(dialogs) == 2
+    assert "Dioptas 0.12.0 is available" in dialogs[0]
+    assert "Dioptas 0.13.0 is available" in dialogs[1]
+
+
+def test_invalid_saved_version_does_not_hide_updates(notification_controller, monkeypatch):
+    controller = notification_controller
+    settings = QtCore.QSettings(
+        controller.settings_directory + "/updates.ini", QtCore.QSettings.IniFormat)
+    settings.setValue("last_notified_version", "invalid")
+    settings.sync()
+    dialogs = []
+    monkeypatch.setattr(QtWidgets.QMessageBox, "exec_",
+                        lambda dialog: dialogs.append(dialog.text()) or QtWidgets.QMessageBox.No)
+    controller._show_update_notification("0.12.0", "https://example.com/release")
+    assert len(dialogs) == 1
+
 
 def test_release_feed_result_reaches_notification_on_gui_thread(
     main_controller, qtbot, monkeypatch

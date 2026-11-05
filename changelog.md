@@ -63,6 +63,10 @@ Their changes are included here; the previous published release is 0.10.0. -->
 
 ## Fixes
 
+- Startup update notifications appear only once per new release. Declining or
+  closing the popup is remembered across restarts; a newer release can notify
+  you again.
+
 - Integration option groups stack vertically in narrow panels so their controls remain accessible.
 
 - Bundled thermal records without a zero-pressure solution, including the Dewaele and Finger argon models, initialize at documented source conditions shown in the phase table.

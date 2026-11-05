@@ -10,6 +10,7 @@ import shlex
 from functools import partial
 from sys import platform as _platform
 
+from packaging.version import InvalidVersion, Version
 from qtpy import QtWidgets, QtCore, QtGui
 
 from ..widgets.MainWidget import MainWidget
@@ -170,6 +171,16 @@ class MainController:
         from qtpy.QtGui import QDesktopServices
         from qtpy.QtCore import QUrl
 
+        settings = QtCore.QSettings(
+            os.path.join(self.settings_directory, "updates.ini"),
+            QtCore.QSettings.IniFormat,
+        )
+        try:
+            if Version(settings.value("last_notified_version", "")) >= Version(version):
+                return
+        except InvalidVersion:
+            pass
+
         msg = QtWidgets.QMessageBox(self.widget)
         msg.setIcon(QtWidgets.QMessageBox.Information)
         msg.setWindowTitle("Update Available")
@@ -181,6 +192,10 @@ class MainController:
             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
         )
         msg.setDefaultButton(QtWidgets.QMessageBox.Yes)
+        # Remember the release before entering the dialog's nested event loop.
+        # Declining, closing, or restarting must not repeat the same prompt.
+        settings.setValue("last_notified_version", version)
+        settings.sync()
         if msg.exec_() == QtWidgets.QMessageBox.Yes:
             QDesktopServices.openUrl(QUrl(url))
 
