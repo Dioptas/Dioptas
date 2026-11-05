@@ -248,7 +248,7 @@ export function IntegrationSettings({
       <div className="settings-apply-bar">
         <p>
           {dirty
-            ? "Unapplied changes are kept when you leave Settings. Apply to recalculate."
+            ? "Unapplied changes stay in this session when you leave Settings. Apply to recalculate; projects save applied options."
             : "Binning, ranges and corrections match the current project."}
         </p>
         <button type="submit" className="primary" disabled={!ready || !dirty}>

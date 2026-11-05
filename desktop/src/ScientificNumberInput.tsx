@@ -44,6 +44,7 @@ export function ScientificNumberInput({
   // Formatting is a visual overlay. Never replace the input's value on focus:
   // doing so can interfere with native selection and the first edit event.
   const negative = display.startsWith("−");
+  const [mantissa, exponent] = display.split(" × ");
   return (
     <span className="scientific-number-input">
       <input
@@ -57,8 +58,11 @@ export function ScientificNumberInput({
       <span className="scientific-number-preview" aria-hidden="true">
         <span className="scientific-number-sign">{negative ? "−" : ""}</span>
         <span className="scientific-number-digits">
-          {negative ? display.slice(1) : display}
+          {negative ? mantissa.slice(1) : mantissa}
         </span>
+        {exponent && (
+          <span className="scientific-number-exponent"> × {exponent}</span>
+        )}
       </span>
     </span>
   );

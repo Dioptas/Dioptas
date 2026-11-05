@@ -330,6 +330,7 @@ export function IntegrationOverlayControls({
                 <td>
                   <span
                     className="qt-overlay-fixed-value"
+                    role="group"
                     aria-label="Original pattern scale"
                     title="Original scale is fixed"
                   >
@@ -339,6 +340,7 @@ export function IntegrationOverlayControls({
                 <td>
                   <span
                     className="qt-overlay-fixed-value"
+                    role="group"
                     aria-label="Original pattern offset"
                     title="Original offset is fixed"
                   >

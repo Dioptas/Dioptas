@@ -1,3 +1,4 @@
+import { LayoutDivider } from "./LayoutDivider";
 import {
   useEffect,
   useMemo,
@@ -10,7 +11,11 @@ import { RasterView } from "./RasterView";
 import { PatternView } from "./PatternView";
 import { ImageIntensity } from "./ImageIntensity";
 import { MapControls } from "./MapControls";
-import { patternViewport, plotViewContext, type SharedPlotViews } from "./plotViewport";
+import {
+  patternViewport,
+  plotViewContext,
+  type SharedPlotViews,
+} from "./plotViewport";
 import { mapPatternInUnit } from "./mapPattern";
 import type { PatternPosition } from "./linkedPosition";
 import { detectorPlotSetup, patternPlotSetup } from "./diffractionPlotSetup";
@@ -340,60 +345,27 @@ export function MapView({
     </section>
   );
   const divider = (vertical: boolean) => (
-    <div
+    <LayoutDivider
       className={`map-divider ${vertical ? "map-column-divider" : "map-row-divider"}`}
-      role="separator"
-      aria-label={vertical ? "Map panel width" : "Detector and pattern heights"}
-      aria-orientation={vertical ? "vertical" : "horizontal"}
-      aria-valuenow={Math.round(vertical ? share : upperShare)}
-      aria-valuemin={vertical ? 22 : 25}
-      aria-valuemax={vertical ? 65 : 70}
-      tabIndex={0}
-      onPointerDown={(e) => {
-        if (e.button === 0) {
-          e.preventDefault();
-          e.currentTarget.setPointerCapture(e.pointerId);
-        }
+      label={vertical ? "Map panel width" : "Detector and pattern heights"}
+      orientation={vertical ? "vertical" : "horizontal"}
+      value={vertical ? share : upperShare}
+      min={vertical ? 22 : 25}
+      max={vertical ? 65 : 70}
+      defaultValue={vertical ? 36 : 44}
+      step={3}
+      onChange={vertical ? setShare : setUpperShare}
+      pointerValue={(event) => {
+        const box = layout.current?.getBoundingClientRect();
+        return !box
+          ? null
+          : vertical
+            ? ((event.clientX - box.left) / box.width) * 100
+            : ((event.clientY - box.top) / box.height) * 100;
       }}
-      onPointerMove={(e) => {
-        if (!e.currentTarget.hasPointerCapture(e.pointerId) || !layout.current)
-          return;
-        const b = layout.current.getBoundingClientRect();
-        if (vertical)
-          setShare(
-            Math.max(22, Math.min(65, ((e.clientX - b.left) / b.width) * 100)),
-          );
-        else
-          setUpperShare(
-            Math.max(25, Math.min(70, ((e.clientY - b.top) / b.height) * 100)),
-          );
-      }}
-      onPointerUp={(e) => {
-        if (e.currentTarget.hasPointerCapture(e.pointerId))
-          e.currentTarget.releasePointerCapture(e.pointerId);
-      }}
-      onDoubleClick={() => (vertical ? setShare(36) : setUpperShare(44))}
-      onKeyDown={(e) => {
-        const lower = vertical ? "ArrowLeft" : "ArrowUp",
-          higher = vertical ? "ArrowRight" : "ArrowDown";
-        if (e.key !== lower && e.key !== higher && e.key !== "Home") return;
-        e.preventDefault();
-        const delta = e.key === lower ? -3 : 3;
-        if (vertical)
-          setShare(
-            e.key === "Home" ? 36 : Math.max(22, Math.min(65, share + delta)),
-          );
-        else
-          setUpperShare(
-            e.key === "Home"
-              ? 44
-              : Math.max(25, Math.min(70, upperShare + delta)),
-          );
-      }}
-    >
-      <span />
-    </div>
+    />
   );
+
   return (
     <>
       <div

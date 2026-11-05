@@ -7,6 +7,7 @@ export type TabOption<T extends string | number> = {
   id?: string;
   panelId?: string;
   title?: string;
+  description?: string;
   disabled?: boolean;
 };
 
@@ -44,6 +45,7 @@ export function TabList<T extends string | number>({
           role="tab"
           id={option.id ?? `${id}-${index}`}
           aria-label={option.name}
+          aria-description={option.description}
           aria-controls={option.panelId}
           aria-selected={value === option.value}
           tabIndex={focusValue === option.value ? 0 : -1}

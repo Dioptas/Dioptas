@@ -862,3 +862,32 @@ The final peer reassessment is pending: the CLI reported its account session
 usage limit and a reset at 21:30 Berlin on November 5, 2026. The report must not
 present an earlier peer score as a grade of later fixes, or infer the requested
 9/10 from passing tests.
+
+## Further interface refinement
+
+The current user-directed styling keeps resting text inputs quiet, with a
+recessed fill and no pale outline. Focus and invalid states remain visible.
+Pattern and phase legends float inside the data viewport; no extra legend
+header is reserved. `PlotLegend` shares their bounded pointer/keyboard movement.
+`LayoutDivider` shares pane resizing across Integration, Map and Batch, while
+`HistoryControls` and `WorkspaceModeButtons` own consistent shell actions.
+
+`geometryDraft` owns an exact manual draft for the session, independently of
+which mode is mounted. `GeometryEditor` presents it, marks its owner convention,
+allows read-only comparison and provides an explicit Reset. Model geometry or
+an opened project/calibration replaces that draft; navigation does not.
+Projects save applied options; pending option drafts remain in the session.
+
+A focused pattern supports Alt+Left/Right and Alt+Home/End to inspect visible
+source samples. This updates the existing readout and a polite accessible
+reading, without panning, altering data or sending a scientific edit. Descending
+d spacing, invalid coordinates and visible scaled overlays are covered.
+`node scripts/ui_audit.mjs --stage=polish --focus=polish` runs these focused
+regressions with real example data. The full audit includes them and saves ARIA
+trees alongside its screenshots. Explicit failures and UI-build hashes prevent
+a partial or outdated run from being published as current evidence.
+
+The 9.1 checkpoint is retained at `876e0651`. The current 25-category Codex
+assessment is displayed to one decimal (9.5); its arithmetic mean, per-category
+scores and limits are kept in `UI_DESIGN_REVIEW.json`. Claude’s older score is
+kept separate, with a follow-up scheduled for 21:35 Berlin on November 5.

@@ -217,7 +217,7 @@
   padding: 10px;
   color: var(--text);
   background: var(--ui-input);
-  border: 1px solid var(--border);
+  border: 1px solid var(--ui-field-edge);
   border-radius: 5px;
   font-size: var(--text-small);
   line-height: 1.5;

@@ -1,8 +1,21 @@
 import { usePlotTypography } from "./usePlotTypography";
 import { WebGLPattern, type PatternCurve } from "./WebGLPattern";
 import { IntegrationPhaseLegend } from "./IntegrationPhaseLegend";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { nearestSample, visibleSamples } from "./patternSamples";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
+import { scientificValue } from "./ScientificNumberInput";
+import {
+  nearestSample,
+  visibleSamples,
+  sampleInspectionOrder,
+  type InspectionDirection,
+} from "./patternSamples";
 import type { PlotViewport } from "./plotViewport";
 import type { Pattern } from "./types";
 import type { PatternHover } from "./plotReadout";
@@ -212,6 +225,28 @@ export function PatternView({
   } | null>(null);
   const [hover, setHover] = useState<number | null>(null);
   const [hoverY, setHoverY] = useState<number>(0);
+  const inspectionId = useId();
+  const [keyboardSample, setKeyboardSample] = useState<{
+    index: number;
+    x: number;
+    y: number;
+    name: string;
+    sourceX: number[];
+    sourceY: (number | null)[];
+  } | null>(null);
+  const inspectedCurve = showPattern
+    ? pattern
+    : (curves.find((curve) => curve.selected) ?? curves[0]);
+  const inspected =
+    keyboardSample &&
+    keyboardSample.sourceX === inspectedCurve?.x &&
+    keyboardSample.sourceY === inspectedCurve?.y
+      ? keyboardSample
+      : null;
+  useEffect(() => {
+    setKeyboardSample(null);
+  }, [inspectedCurve?.x, inspectedCurve?.y, pattern.unit]);
+
   const regionKey = JSON.stringify(regions);
   const cancelRegionDrag = (restore = false) => {
     const dragging = !!regionDrag.current;
@@ -254,15 +289,9 @@ export function PatternView({
     log,
     sqrt,
   ]);
-  // Keep legends and scientific exponents above data, with scaled text gutters.
+  // Reserve space for exponents only; legends float inside the data view.
   const right = compact ? 0 : 32,
-    top =
-      Math.max(
-        compact && !axisAnnotation ? 6 : 18,
-        (overlayLegend?.length ?? 0) > 0
-          ? Math.min(3, overlayLegend!.length) * typography.size * 1.35 + 14
-          : 0,
-      ) * typography.scale,
+    top = (compact && !axisAnnotation ? 6 : 18) * typography.scale,
     bottom = 52 * typography.scale;
   const w = Math.max(1, size.width - left - right),
     h = Math.max(1, size.height - top - bottom);
@@ -358,6 +387,10 @@ export function PatternView({
     else if (onAutoRange) navigation.hold();
   }, [pattern, autoRange, showPattern, viewport?.key]);
   usePlotWheel(canvas, (event) => {
+    if (keyboardSample) {
+      setKeyboardSample(null);
+      setHover(null);
+    }
     onAutoRange?.(false);
     navigation.onWheel(event);
   });
@@ -920,6 +953,59 @@ export function PatternView({
     top,
     right,
   ]);
+  const inspectByKeyboard = (event: ReactKeyboardEvent<HTMLCanvasElement>) => {
+    if (
+      !event.altKey ||
+      event.metaKey ||
+      event.ctrlKey ||
+      !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
+    )
+      return false;
+    event.preventDefault();
+    event.stopPropagation();
+    if (!inspectedCurve) return true;
+    const actions: Record<string, InspectionDirection> = {
+      ArrowLeft: "previous",
+      ArrowRight: "next",
+      Home: "first",
+      End: "last",
+    };
+    for (const index of sampleInspectionOrder(
+      inspectedCurve.x,
+      xmin,
+      xmax,
+      inspected?.index ?? null,
+      actions[event.key],
+    )) {
+      const x = inspectedCurve.x[index],
+        y = inspectedCurve.y[index];
+      if (
+        !Number.isFinite(x) ||
+        y == null ||
+        !Number.isFinite(y) ||
+        (log && y <= 0)
+      )
+        continue;
+      const transformed = transform(y);
+      if (transformed < ymin || transformed > ymax) continue;
+      setKeyboardSample({
+        index,
+        x,
+        y,
+        name: showPattern
+          ? (overlayLegend?.[0]?.name ?? "Original pattern")
+          : "name" in inspectedCurve && typeof inspectedCurve.name === "string"
+            ? inspectedCurve.name
+            : "Overlay",
+        sourceX: inspectedCurve.x,
+        sourceY: inspectedCurve.y,
+      });
+      setHover(left + ((x - xmin) / (xmax - xmin)) * w);
+      setHoverY(top + h - ((transformed - ymin) / yspan) * h);
+      break;
+    }
+    return true;
+  };
   const xvalue =
     hover === null ? null : xmin + ((hover - left) / w) * (xmax - xmin);
   const mouseValue = (y: number) =>
@@ -940,19 +1026,30 @@ export function PatternView({
   const nearest = xvalue === null ? -1 : nearestSample(pattern.x, xvalue);
   useEffect(() => {
     onHover?.(
-      nearest >= 0
+      inspected
         ? {
-            x: xvalue!,
-            y: pattern.y[nearest],
-            mouseY,
+            x: inspected.x,
+            y: inspected.y,
+            mouseY: inspected.y,
             xResolution,
             yResolution,
             unit: pattern.unit,
-            hint: hoverHint,
+            hint: `${inspected.name} · sample ${inspected.index + 1} of ${inspected.sourceX.length}`,
           }
-        : null,
+        : nearest >= 0
+          ? {
+              x: xvalue!,
+              y: pattern.y[nearest],
+              mouseY,
+              xResolution,
+              yResolution,
+              unit: pattern.unit,
+              hint: hoverHint,
+            }
+          : null,
     );
   }, [
+    inspected,
     nearest,
     xvalue,
     mouseY,
@@ -966,8 +1063,9 @@ export function PatternView({
     <div ref={container} className="pattern-container">
       <IntegrationPhaseLegend
         lines={referenceLines}
-        left={left + (axisAnnotation ? typography.size * 4 : 0)}
-        top={axisAnnotation ? Math.max(26, top - typography.size * 1.35) : 6}
+        left={left}
+        top={top + 5}
+        bounds={{ left, top, width: w, height: h }}
       />
       <canvas
         ref={backdrop}
@@ -988,7 +1086,39 @@ export function PatternView({
       <canvas
         ref={canvas}
         tabIndex={0}
-        onKeyDown={navigation.onKeyDown}
+        onKeyDown={(event) => {
+          if (inspectByKeyboard(event)) return;
+          if (
+            [
+              "ArrowLeft",
+              "ArrowRight",
+              "ArrowUp",
+              "ArrowDown",
+              "Home",
+              "f",
+              "F",
+              "+",
+              "-",
+              "=",
+            ].includes(event.key) &&
+            keyboardSample
+          ) {
+            setKeyboardSample(null);
+            setHover(null);
+          }
+          navigation.onKeyDown(event);
+        }}
+        onBlur={() => {
+          if (keyboardSample) {
+            setKeyboardSample(null);
+            setHover(null);
+          }
+        }}
+        aria-describedby={inspectionId}
+        aria-description="Alt+Left or Right inspects plotted samples without changing the view. Alt+Home or End selects the first or last visible sample."
+        data-keyboard-sample={inspected?.index}
+        data-keyboard-x={inspected?.x}
+        data-keyboard-y={inspected?.y}
         data-testid="pattern-canvas"
         data-curve-renderer={activeRenderer}
         data-requested-curve-renderer={curveRenderer}
@@ -1069,6 +1199,7 @@ export function PatternView({
           );
         }}
         onPointerMove={(e) => {
+          if (keyboardSample) setKeyboardSample(null);
           const drag = regionDrag.current;
           if (drag) {
             updateRegionDrag(navigation.screen(e));
@@ -1134,12 +1265,24 @@ export function PatternView({
         }}
         onPointerLeave={() => setHover(null)}
       />
+      <span
+        className="visually-hidden plot-keyboard-reading"
+        id={inspectionId}
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {inspected
+          ? `${inspected.name}, sample ${inspected.index + 1} of ${inspected.sourceX.length}. ${unitLabel(pattern.unit)} ${scientificValue(inspected.x, 8)}. Intensity ${scientificValue(inspected.y, 8)} a.u.`
+          : ""}
+      </span>
       {overlayLegend && (
         <OverlayPlotLegend
           entries={overlayLegend}
           left={left + w - 10}
-          top={5}
-          width={w * 0.6}
+          top={top + 5}
+          bounds={{ left, top, width: w, height: h }}
+          width={w * 0.55}
           height={h * 0.5}
         />
       )}

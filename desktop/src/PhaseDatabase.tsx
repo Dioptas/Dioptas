@@ -501,6 +501,8 @@ export function PhaseDatabase({
           )}
           <span
             className="phase-database-result-count"
+            role="status"
+            aria-live="polite"
             aria-label="Material result count"
           >
             {pending

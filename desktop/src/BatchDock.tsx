@@ -1,3 +1,4 @@
+import { LayoutDivider } from "./LayoutDivider";
 import {
   layoutKeys,
   readLayoutFlag,
@@ -51,42 +52,28 @@ export function BatchDock(
       style={{ height: collapsed ? 36 : height }}
     >
       {!collapsed && (
-        <div
+        <LayoutDivider
           className="integration-divider integration-divider-horizontal batch-dock-divider"
-          role="separator"
-          tabIndex={0}
-          aria-label="Image and batch divider"
-          title="Drag to resize image and Batch; double-click to reset"
-          aria-orientation="horizontal"
-          aria-valuemin={220}
-          aria-valuenow={Math.round(height)}
-          onPointerDown={(e) => {
-            if (e.button !== 0) return;
+          label="Image and batch divider"
+          orientation="horizontal"
+          value={height}
+          min={220}
+          max={Math.max(220, availableHeight)}
+          defaultValue={320}
+          step={20}
+          reverse
+          unit="px"
+          onChange={update}
+          onDragStart={(event) => {
             start.current = {
-              y: e.clientY,
+              y: event.clientY,
               height: container.current?.clientHeight ?? height,
             };
-            e.currentTarget.setPointerCapture(e.pointerId);
-            e.preventDefault();
           }}
-          onPointerMove={(e) => {
-            if (e.currentTarget.hasPointerCapture(e.pointerId))
-              update(start.current.height + start.current.y - e.clientY);
-          }}
-          onPointerUp={(e) => {
-            if (e.currentTarget.hasPointerCapture(e.pointerId))
-              e.currentTarget.releasePointerCapture(e.pointerId);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-              e.preventDefault();
-              update(height + (e.key === "ArrowUp" ? 20 : -20));
-            }
-          }}
-          onDoubleClick={() => update(320)}
-        >
-          <span />
-        </div>
+          pointerValue={(event) =>
+            start.current.height + start.current.y - event.clientY
+          }
+        />
       )}
       <BatchView
         {...props}

@@ -1,3 +1,7 @@
+import { IntegrationModeIcon } from "./ModeIcons";
+import { WorkspaceModeButtons } from "./WorkspaceModeButtons";
+import { HistoryControls } from "./HistoryControls";
+import { useGeometryDraft } from "./geometryDraft";
 import { useWorkflowNotice } from "./useWorkflowNotice";
 import { scientificValue } from "./ScientificNumberInput";
 import {
@@ -28,20 +32,16 @@ import {
 import {
   CircleHelp,
   ArrowUpRight,
-  Crosshair,
   FileImage,
   FolderOpen,
   Layers,
   LoaderCircle,
   Plus,
-  Redo2,
   Save,
   Settings,
   Sparkles,
-  Undo2,
 } from "lucide-react";
 import { connect, updateWindowTitle } from "./bridge";
-import { IntegrationModeIcon, MapModeIcon, MaskModeIcon } from "./ModeIcons";
 import { SettingsWorkspace } from "./SettingsWorkspace";
 import { useCustomCommands } from "./customCommands";
 import { CustomCommandButtons } from "./CustomCommandButtons";
@@ -178,8 +178,6 @@ export default function App() {
   }, [validationConvention]);
   const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false);
   const [manualGeometryOpen, setManualGeometryOpen] = useState(false);
-  const [geometryDirty, setGeometryDirty] = useState(false);
-  const [activeGeometryDirty, setActiveGeometryDirty] = useState(false);
   const [selectedPicks, setSelectedPicks] = useState<number[]>([]);
   const [advancedDirty, setAdvancedDirty] = useState(false);
   const [fitDraft, setFitDraft] = useState<CalibrationFitDraft | null>(null);
@@ -298,6 +296,12 @@ export default function App() {
   const [state, setState] = useState<State | null>(null);
   const integrationDraft = useIntegrationSettingsDraft(state);
   const resetIntegrationDraft = integrationDraft.sync;
+  const geometryDraft = useGeometryDraft(state?.calibration);
+  const resetGeometryDraft = geometryDraft.sync;
+  const geometryDirty = geometryDraft.dirty;
+  const activeGeometryDirty = geometryDraft.changed(validationConvention);
+  const pendingOptionDrafts = useRef(false);
+  pendingOptionDrafts.current = geometryDirty || integrationDraft.dirty;
   useEffect(() => {
     void updateWindowTitle(state?.imageName).catch((error) =>
       console.warn("Could not update the native window title:", error),
@@ -696,12 +700,21 @@ export default function App() {
           raw,
         );
         apply(result, true, retainMapClick);
+        if (!result.cancelled && result.state) {
+          if (["open_project", "example"].includes(command))
+            resetIntegrationDraft(result.state);
+          if (["open_project", "example", "open_calibration"].includes(command))
+            resetGeometryDraft(result.state.calibration);
+        }
         if (
-          !result.cancelled &&
-          ["open_project", "example"].includes(command) &&
-          result.state
-        )
-          resetIntegrationDraft(result.state);
+          command === "save_project" &&
+          result.savedPath &&
+          pendingOptionDrafts.current
+        ) {
+          setNotice(
+            `Saved ${result.savedPath.split(/[\\/]/).at(-1)} · unapplied option drafts remain in this session`,
+          );
+        }
         if (command === "open_calibration" && !result.cancelled) {
           setNotice(
             `Loaded calibration: ${result.state?.calibrationName ?? "PONI"}`,
@@ -763,7 +776,7 @@ export default function App() {
         release();
       }
     },
-    [apply, resetIntegrationDraft],
+    [apply, resetIntegrationDraft, resetGeometryDraft],
   );
   useNativePhaseEditorSync(run, state?.revision);
   useEffect(() => {
@@ -1530,6 +1543,9 @@ export default function App() {
           : mode === "map"
             ? mapWarning
             : null) ||
+        (geometryDirty && mode !== "calibration"
+          ? "Unapplied geometry edits in Calibration; the current geometry is still in use."
+          : null) ||
         plotReading?.hint ||
         (mode === "calibration" && calibrationStep === 2 && !fitReady
           ? fitBlocker
@@ -1634,126 +1650,26 @@ export default function App() {
     <div className="app" data-text-size={largeText ? "large" : "normal"}>
       <div className="app-body">
         <nav className="mode-navigation" aria-label="Workspace modes">
-          <button
-            className={`workspace-nav ${!settingsOpen && mode === "calibration" ? "workspace-active" : ""}`}
-            aria-label="Calibration"
-            aria-pressed={!settingsOpen && mode === "calibration"}
-            title="Calibration"
-            onClick={() => {
+          <WorkspaceModeButtons
+            mode={settingsOpen ? null : mode}
+            onSelect={(next) => {
               setSettingsOpen(false);
-              setMode("calibration");
+              setMode(next);
             }}
-          >
-            <Crosshair size={20} />
-            <span>Calib</span>
-          </button>
-          <button
-            className={`workspace-nav ${!settingsOpen && mode === "mask" ? "workspace-active" : ""}`}
-            aria-label="Mask"
-            aria-pressed={!settingsOpen && mode === "mask"}
-            title="Mask"
-            onClick={() => {
-              setSettingsOpen(false);
-              setMode("mask");
-            }}
-          >
-            <MaskModeIcon />
-            <span>Mask</span>
-          </button>
-          <button
-            className={`workspace-nav ${!settingsOpen && mode === "integration" ? "workspace-active" : ""}`}
-            aria-label="Integration"
-            aria-pressed={!settingsOpen && mode === "integration"}
-            title="Integration"
-            onClick={() => {
-              setSettingsOpen(false);
-              setMode("integration");
-            }}
-          >
-            <IntegrationModeIcon />
-            <span>Int</span>
-          </button>
-          <button
-            className={`workspace-nav ${!settingsOpen && mode === "map" ? "workspace-active" : ""}`}
-            aria-label="Map"
-            aria-pressed={!settingsOpen && mode === "map"}
-            title="Map"
-            onClick={() => {
-              setSettingsOpen(false);
-              setMode("map");
-            }}
-          >
-            <MapModeIcon />
-            <span>Map</span>
-          </button>
+          />
           <div className="navigation-utilities">
             <CustomCommandButtons
               controller={customCommands}
               ready={ready}
               onError={setError}
             />
-            <div
-              className="navigation-group navigation-history"
-              role="group"
-              aria-label="Edit history"
-            >
-              <button
-                className="workspace-nav"
-                aria-label="Undo"
-                aria-description={
-                  customHistoryActive
-                    ? customCommands.undoLabel
-                    : historyActionLabel(state?.undoLabel)
-                }
-                title={
-                  customHistoryActive
-                    ? (customCommands.historyHint ??
-                      `Undo: ${customCommands.undoLabel ?? "custom action"} · ⌘/Ctrl+Z`)
-                    : `Undo ${historyActionLabel(state?.undoLabel)} · ⌘/Ctrl+Z`
-                }
-                disabled={
-                  !ready ||
-                  !(customHistoryActive
-                    ? customCommands.canUndo
-                    : canTraverseScientificHistory(state))
-                }
-                onClick={() =>
-                  customHistoryActive
-                    ? void customCommands.undo()
-                    : run(scientificHistoryCommand(state?.undoLabel))
-                }
-              >
-                <Undo2 size={18} />
-              </button>
-              <button
-                className="workspace-nav"
-                aria-label="Redo"
-                aria-description={
-                  customHistoryActive
-                    ? customCommands.redoLabel
-                    : historyActionLabel(state?.redoLabel)
-                }
-                title={
-                  customHistoryActive
-                    ? (customCommands.historyHint ??
-                      `Redo: ${customCommands.redoLabel ?? "custom action"} · ⇧⌘/Ctrl+Z`)
-                    : `Redo ${historyActionLabel(state?.redoLabel)} · ⇧⌘/Ctrl+Z`
-                }
-                disabled={
-                  !ready ||
-                  !(customHistoryActive
-                    ? customCommands.canRedo
-                    : canTraverseScientificHistory(state, true))
-                }
-                onClick={() =>
-                  customHistoryActive
-                    ? void customCommands.redo()
-                    : run(scientificHistoryCommand(state?.redoLabel, true))
-                }
-              >
-                <Redo2 size={18} />
-              </button>
-            </div>
+            <HistoryControls
+              state={state}
+              ready={ready}
+              customActive={customHistoryActive}
+              custom={customCommands}
+              run={run}
+            />
             <div className="navigation-group" role="group" aria-label="Project">
               {state?.projectName && (
                 <div className="navigation-project" title={state.projectName}>
@@ -1774,11 +1690,12 @@ export default function App() {
                 aria-label="Save project"
                 disabled={!ready || (!state?.hasImage && !map && !batch)}
                 onClick={() => run("save_project", {}, "Saving project…")}
-                title={
-                  state?.projectName
-                    ? `Save ${state.projectName} · ⌘/Ctrl+S`
-                    : "Save project · ⌘/Ctrl+S"
+                aria-description={
+                  geometryDirty || integrationDraft.dirty
+                    ? "Projects save applied options. Unapplied option drafts remain in this session."
+                    : undefined
                 }
+                title={`${state?.projectName ? `Save ${state.projectName}` : "Save project"} · ⌘/Ctrl+S${geometryDirty || integrationDraft.dirty ? " · Saves applied options; unapplied drafts stay in this session" : ""}`}
               >
                 <Save size={20} />
               </button>
@@ -2637,15 +2554,13 @@ export default function App() {
                           )}
                           <div hidden={calibrationStep !== 3}>
                             <GeometryEditor
-                              calibration={state?.calibration}
+                              editor={geometryDraft}
                               ready={ready}
                               run={run}
                               embedded
                               formId="validation-geometry-form"
                               convention={validationConvention}
                               onConventionChange={setValidationConvention}
-                              onDirtyChange={setGeometryDirty}
-                              onActiveDirtyChange={setActiveGeometryDirty}
                             />
                           </div>
                           {calibrationStep === 1 && (
@@ -2706,6 +2621,7 @@ export default function App() {
                           onOverlaySelectionChange={setSelectedOverlayUid}
                           showOriginalPattern={originalPatternVisible}
                           onShowOriginalPatternChange={(visible) => {
+                            setShowOriginalPattern(visible);
                             void run("integration_overlay", {
                               operation: "original_visibility",
                               visible,
@@ -2713,6 +2629,7 @@ export default function App() {
                           }}
                           originalPatternColor={originalPatternColor}
                           onOriginalPatternColorChange={(color) => {
+                            setOriginalPatternColor(color);
                             void run("integration_overlay", {
                               operation: "original_color",
                               color,

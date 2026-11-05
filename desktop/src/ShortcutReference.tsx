@@ -47,6 +47,25 @@ export const shortcutGroups = [
       ["Pan the view", "Arrow keys"],
       ["Zoom in / out around the view center", "+ / −"],
       ["Restore the fitted view", "F / Home"],
+      ["Inspect previous / next visible pattern sample", "Alt + ← / →"],
+      ["Inspect first / last visible pattern sample", "Alt + Home / End"],
+    ],
+  },
+  {
+    title: "Focused pane dividers",
+    rows: [
+      ["Resize the adjacent panes", "Arrow keys"],
+      ["Resize in larger steps", "Shift + Arrow keys"],
+      ["Restore the default split", "Home · double-click"],
+      ["Expand to the allowed maximum", "End"],
+    ],
+  },
+  {
+    title: "Focused pattern & phase legends",
+    rows: [
+      ["Move the legend inside the plot", "Arrow keys"],
+      ["Move the legend faster", "Shift + Arrow keys"],
+      ["Restore the legend position", "Home / Esc"],
     ],
   },
   {

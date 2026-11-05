@@ -1,3 +1,4 @@
+import { LayoutDivider } from "./LayoutDivider";
 import {
   layoutKeys,
   readLayoutNumber,
@@ -69,53 +70,28 @@ export function IntegrationWorkspace({
       );
     };
     return (
-      <div
+      <LayoutDivider
         className={`integration-divider integration-divider-${axis}`}
-        role="separator"
-        tabIndex={0}
-        aria-label={
+        label={
           axis === "image"
             ? "Image and analysis divider"
             : "Controls and pattern divider"
         }
-        aria-orientation={axis === "image" ? "vertical" : "horizontal"}
-        aria-valuemin={25}
-        aria-valuemax={75}
-        aria-valuenow={Math.round(value)}
-        onPointerDown={(event) => {
-          if (event.button !== 0) return;
-          event.currentTarget.setPointerCapture(event.pointerId);
-          event.preventDefault();
-        }}
-        onPointerMove={(event) => {
-          if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+        orientation={axis === "image" ? "vertical" : "horizontal"}
+        value={value}
+        min={constrain(0, axis)}
+        max={constrain(100, axis)}
+        defaultValue={axis === "image" ? 50 : 38}
+        onChange={update}
+        pointerValue={(event) => {
           const box = container.current?.getBoundingClientRect();
-          if (!box) return;
-          update(
-            axis === "image"
+          return !box
+            ? null
+            : axis === "image"
               ? ((event.clientX - box.left) / box.width) * 100
-              : ((event.clientY - box.top) / box.height) * 100,
-          );
+              : ((event.clientY - box.top) / box.height) * 100;
         }}
-        onPointerUp={(event) => {
-          if (event.currentTarget.hasPointerCapture(event.pointerId))
-            event.currentTarget.releasePointerCapture(event.pointerId);
-        }}
-        onKeyDown={(event) => {
-          const lower = axis === "image" ? "ArrowLeft" : "ArrowUp";
-          const higher = axis === "image" ? "ArrowRight" : "ArrowDown";
-          if (event.key === lower || event.key === higher) {
-            event.preventDefault();
-            update(value + (event.key === lower ? -2 : 2));
-          } else if (event.key === "Home") {
-            event.preventDefault();
-            update(axis === "image" ? 50 : 38);
-          }
-        }}
-        onDoubleClick={() => update(axis === "image" ? 50 : 38)}
-      >
-        <span />
-      </div>
+      />
     );
   };
   return (

@@ -9,201 +9,226 @@
       "id": "scientific_context",
       "name": "Scientific context and provenance",
       "before": 7,
-      "after": 9.3,
+      "after": 9.5,
       "criteria": "Distinguish fitted, loaded, manual and derived results, their sources and diagnostic limits.",
-      "evidence": "Geometry provenance, point/ring/free-parameter counts, unavailable residuals and derived-fixture captions are explicit."
+      "evidence": "Fitted/loaded/manual provenance and unavailable diagnostics remain explicit. Pending geometry and integration drafts are separate from applied options; project-save wording states that distinction.",
+      "at91": 9.3
     },
     {
       "id": "precision_units",
       "name": "Numeric precision and units",
       "before": 7,
-      "after": 9.2,
+      "after": 9.5,
       "criteria": "Keep exact stored values, legible signed display values and explicit scientific units/conventions.",
-      "evidence": "Exact-value inputs never round on focus; manual geometry drafts retain all digits, no-op Apply preserves RMS/provenance, and pyFAI/Fit2D units remain explicit."
+      "evidence": "Unrounded native values remain authoritative. Compact fields preserve the sign and exponent even when the mantissa truncates. No-op geometry cannot erase provenance; finite readout lookup skips missing x coordinates.",
+      "at91": 9.2
     },
     {
       "id": "visualization",
       "name": "Data visualization clarity",
       "before": 7,
-      "after": 9.2,
+      "after": 9.5,
       "criteria": "Make scientific scales, references, labels and color ranges interpretable without suggesting false data.",
-      "evidence": "Map ROI/reduction and contiguous low/bar/high/scale, Batch quantitative legend, duplicate original/overlay names distinguished, and plot labels/legends clear of the data."
+      "evidence": "Compact movable pattern/phase legends float inside the plot without a reserved header. Low/bar/high/scale stay together; original versus overlay names and Batch indices are explicit.",
+      "at91": 9.2
     },
     {
       "id": "inspection",
       "name": "Plot interaction and inspection",
       "before": 8.5,
-      "after": 9.3,
+      "after": 9.5,
       "criteria": "Preserve original detector resolution, square pixels, shared gestures and linked coordinates.",
-      "evidence": "Shared renderers, original-resolution pixels, physical 2\u03b8/Q/d readouts, linked markers and keyboard navigation."
+      "evidence": "Alt+arrows and Alt+Home/End inspect real source samples without changing the viewport or model. Descending d spacing, hidden originals and scaled overlays are checked; original-pixel linked inspection remains covered.",
+      "at91": 9.3
     },
     {
       "id": "workflow",
       "name": "Workflow usability",
       "before": 8,
-      "after": 9.2,
+      "after": 9.5,
       "criteria": "Support common analysis tasks directly and preserve meaningful work during navigation.",
-      "evidence": "Raw-image calibration, masks, integration, Map and Batch are exercised through real models."
+      "evidence": "A session-owned geometry draft survives all modes and Settings. Conventions remain available for comparison; the other convention is read-only until the owner is applied/reset. Integration drafts retain deliberate edits.",
+      "at91": 9.2
     },
     {
       "id": "navigation",
       "name": "Navigation and information architecture",
       "before": 7.5,
-      "after": 9.1,
+      "after": 9.5,
       "criteria": "Use predictable mode/task grouping, persistent actions and clear navigation state.",
-      "evidence": "Left modes/right tasks remain; shared task tabs and fixed calibration actions preserve familiar workflows."
+      "evidence": "Shared workspace-mode and history components preserve names, selection and context. Pane dividers share pointer, arrows, Shift, Home, End and reset behavior without adding visible controls.",
+      "at91": 9.1
     },
     {
       "id": "learnability",
       "name": "Discoverability and learnability",
       "before": 6.5,
-      "after": 9.0,
+      "after": 9.5,
       "criteria": "Expose tools, gestures and explanations so users can learn without memorizing hidden actions.",
-      "evidence": "Visible Navigate mode, contextual tooltips and shared shortcuts, gestures and toolbar reference."
+      "evidence": "One scoped shortcut reference covers implemented workspace, brush, plot, sample-inspection, legend and pane-divider keys. Pending convention markers and descriptions identify where unfinished work lives.",
+      "at91": 9.0
     },
     {
       "id": "cognitive_load",
       "name": "Cognitive load and progressive disclosure",
       "before": 7.5,
-      "after": 9.0,
+      "after": 9.5,
       "criteria": "Keep relevant controls visible while keeping advanced or uncommon operations manageable.",
-      "evidence": "Mode-specific tasks, grouped scientific controls, modal advanced editors and concise scientific context."
+      "evidence": "Quiet recessed fields replace pale resting outlines. Legends take no header space. Source context, unapplied edits and errors are exposed where relevant while advanced controls stay grouped.",
+      "at91": 9.0
     },
     {
       "id": "typography",
       "name": "Typography",
       "before": 7,
-      "after": 9.1,
+      "after": 9.5,
       "criteria": "Use consistent type sizes, weights, hierarchy, numerals and scientific notation.",
-      "evidence": "Shared DOM and canvas type tokens: plot labels use 14 px standard/16 px Larger with higher contrast. Scientific minus signs/exponents are consistent; exact input values stay unchanged."
+      "evidence": "DOM and canvas use shared text-size tokens. Standard/Larger plot labels are 14/16 px, numeric previews align consistently, and scientific minus signs/exponents and units are readable.",
+      "at91": 9.1
     },
     {
       "id": "readability",
       "name": "Readability and contrast",
       "before": 6.5,
-      "after": 9.1,
+      "after": 9.5,
       "criteria": "Keep labels and values readable, preserve signs, and clearly distinguish inactive controls.",
-      "evidence": "Stronger field boundaries, legible disabled treatment and signed numeric previews with explicit truncation."
+      "evidence": "Values keep their sign/order of magnitude, placeholders use an explicit readable color, and inactive/calculated states are distinct. Clear focus/error indicators remain while resting fields have no pale border.",
+      "at91": 9.1
     },
     {
       "id": "spacing",
       "name": "Spacing and alignment",
       "before": 7,
-      "after": 9.0,
+      "after": 9.5,
       "criteria": "Maintain deliberate spacing, aligned labels/values, usable tables and stable action placement.",
-      "evidence": "Aligned scientific forms, full-width Batch, fixed action bars and tested compact layouts."
+      "evidence": "Labels, values and units stay aligned. Compact legends remain bounded and movable; measured popups, fixed task actions and scrollable editor tables are exercised in both text sizes.",
+      "at91": 9.0
     },
     {
       "id": "hierarchy",
       "name": "Visual hierarchy",
       "before": 8,
-      "after": 9.1,
+      "after": 9.5,
       "criteria": "Let scientific data dominate while keeping state, source context and actions easy to scan.",
-      "evidence": "Plot-first workspaces, restrained orange accents, concise provenance and one-line workflow footer."
+      "evidence": "Detector and pattern data keep the available space; legends overlay the data and fields recede visually. Orange highlights active modes/actions rather than permanent input frames.",
+      "at91": 9.1
     },
     {
       "id": "consistency",
       "name": "Visual consistency across modes",
       "before": 7,
-      "after": 9.2,
+      "after": 9.5,
       "criteria": "Use the same visual rules for equivalent controls, tabs, dialogs and states.",
-      "evidence": "Shared theme tokens, tab presentation, dialog headers, status feedback and quantitative legends."
+      "evidence": "Tabs, dialogs, field states, plot typography, legends, pane dividers, history, mode buttons, provenance and feedback share policies across modes and sampled detached views.",
+      "at91": 9.2
     },
     {
       "id": "reuse",
       "name": "Component reuse and control semantics",
       "before": 6.5,
-      "after": 9.3,
+      "after": 9.5,
       "criteria": "Give common interface behavior one owner without losing scientific mode responsibilities.",
-      "evidence": "Shared tabs, dialog/focus/header, measured popup placement, workflow notices, exact numeric previews, status messages, geometry provenance, color scales and shortcut reference."
+      "evidence": "GeometryEditor/geometryDraft, PlotLegend, LayoutDivider, HistoryControls and WorkspaceModeButtons join the shared Dialog/TabList/status/number components. Duplicated legend/splitter policies and old legend CSS are removed.",
+      "at91": 9.3
     },
     {
       "id": "dialogs",
       "name": "Dialogs and focus management",
       "before": 6,
-      "after": 9.2,
+      "after": 9.5,
       "criteria": "Make opening, dismissal, cancellation and focus return predictable, including nested dialogs.",
-      "evidence": "One native dialog contract, explicit triggers, Tab/Shift+Tab containment and safe confirmation defaults."
+      "evidence": "Shared native modal opening, containment, Escape/backdrop dismissal and focus return work for asynchronous and explicit triggers; measured placement, larger text and error-details workflows pass in both engines.",
+      "at91": 9.2
     },
     {
       "id": "keyboard",
       "name": "Keyboard efficiency and shortcut accuracy",
       "before": 5.5,
-      "after": 9.2,
+      "after": 9.5,
       "criteria": "Make documented shortcuts operate correctly in the appropriate context without unsafe conflicts.",
-      "evidence": "Real keypress tests cover file/history actions, plot navigation, drawing tools, menus, fields and dialogs."
+      "evidence": "Documented shortcuts are exercised through real handlers with text/button/menu/dialog isolation. Plot/sample/legend/divider keys have separate scopes; sample inspection preserves data and viewport state.",
+      "at91": 9.2
     },
     {
       "id": "accessibility",
       "name": "Accessibility and inclusive use",
       "before": 5.5,
-      "after": 8.5,
+      "after": 9.1,
       "criteria": "Provide names/descriptions, semantic controls, focus visibility, text scaling and recoverable feedback.",
-      "evidence": "Automated checks and manual semantic/contrast review; formal screen-reader/canvas accessibility remains a limitation."
+      "evidence": "Named generic elements now have valid roles, result counts announce updates, canvas samples expose a polite live reading, and accessibility-tree snapshots are saved. Popup target IDs are verified; an actual screen-reader session remains unvalidated.",
+      "at91": 8.5
     },
     {
       "id": "feedback",
       "name": "System status and feedback",
       "before": 6.5,
-      "after": 9.2,
+      "after": 9.5,
       "criteria": "Show processing, pending changes, stale plots and operation outcomes accurately.",
-      "evidence": "Shared status/error details and notices; fitted/loaded/manual context; loaded reference and saved working file are distinguished; empty linked-click readout is hidden in Settings."
+      "evidence": "Shared transient notices, error details/copy fallback, scientific source context and pending-draft cues remain visible. Original-curve visibility/color respond immediately and reconcile with the authoritative model.",
+      "at91": 9.2
     },
     {
       "id": "validation",
       "name": "Validation and error prevention",
       "before": 7,
-      "after": 9.3,
+      "after": 9.5,
       "criteria": "Prevent incomplete or invalid edits from changing scientific state or misleading users.",
-      "evidence": "Atomic validated integration options; no-op manual guard; conventions can be compared without discarding drafts or applying the wrong draft; committed integer Batch ranges and invalid blank normalization checks."
+      "evidence": "Atomic integration options, integer Batch commits, invalid blank normalization, no-op geometry protection and explicit draft ownership prevent partial or unintended edits. Invalid sample coordinates never become a reported valid point.",
+      "at91": 9.3
     },
     {
       "id": "recovery",
       "name": "Error recovery",
       "before": 6.5,
-      "after": 9.1,
+      "after": 9.5,
       "criteria": "Explain failures without losing scientific work and provide a clear way to continue.",
-      "evidence": "Readable full errors, copy fallback, dismissal, recalculation action and preserved drafts/state."
+      "evidence": "Real missing-file errors keep full detail and restore focus; copy failure is recoverable. Audit failures now preserve a screenshot/tree and explicit failure status; report generation rejects failed or mismatched UI builds.",
+      "at91": 9.1
     },
     {
       "id": "reversibility",
       "name": "Undo, redo and reversibility",
       "before": 6.5,
-      "after": 9.3,
+      "after": 9.5,
       "criteria": "Make the actual next history operation clear and preserve unrelated scientific diagnostics.",
-      "evidence": "Action-based shared history routing, accessible descriptions and measured-fit RMS regression checks."
+      "evidence": "Shared history names/routes the actual scientific or custom action; mask Undo preserves fit diagnostics and queued Undo is retained. Geometry Reset changes only the draft; readonly inspection creates no scientific-history entry.",
+      "at91": 9.3
     },
     {
       "id": "responsive",
       "name": "Responsive layout and text scaling",
       "before": 7.5,
-      "after": 9.1,
+      "after": 9.5,
       "criteria": "Keep controls and plots usable at supported compact sizes and both text sizes.",
-      "evidence": "54 states per browser include all modes, manual/phase dialogs, custom menus and Batch normalization at 1000\u00d7760 in Standard/Larger; canvas font scaling and popup bounds are asserted."
+      "evidence": "54 captured states per engine cover all modes and compact/larger-text dialogs/editors/menus. Canvas text scaling, popup bounds, contiguous scale limits and source-value previews are checked at 1000\u00d7760.",
+      "at91": 9.1
     },
     {
       "id": "responsiveness",
       "name": "Performance and perceived responsiveness",
       "before": 8,
-      "after": 9.0,
+      "after": 9.4,
       "criteria": "Keep navigation and feedback responsive during scientific processing and display updates.",
-      "evidence": "WebGL2 remains the app default; no curve uploads during navigation, quiet inspection requests queue user actions, and progress/cancel stay explicit. Headless GPU timings are not native performance measurements."
+      "evidence": "WebGL2 stays active, normal sample traversal uses cached coordinate order/binary lookup, and display-only inspection avoids backend edits. Quiet requests queue user intent; native GPU timing remains a separate validation limit.",
+      "at91": 9.0
     },
     {
       "id": "settings_files",
       "name": "Settings and file workflow reliability",
       "before": 7,
-      "after": 9.3,
+      "after": 9.5,
       "criteria": "Preserve deliberate drafts/preferences and make input/output sources and scope clear.",
-      "evidence": "Per-field draft rebase, explicit Apply, local preferences, source-aware Batch and existing file round trips."
+      "evidence": "Drafts survive navigation, integration rebases untouched fields and projects save applied values explicitly. Loading a project/example/calibration replaces its geometry draft; existing file, phase and Batch round trips remain covered.",
+      "at91": 9.3
     },
     {
       "id": "maintainability",
       "name": "Maintainability and ownership",
       "before": 6.5,
-      "after": 8.8,
+      "after": 9.3,
       "criteria": "Centralize reusable UI policy and keep behavior reviewable and testable.",
-      "evidence": "Shared components/hooks/classification, documented tokens and reproducible audits; central orchestration is still substantial."
+      "evidence": "Session draft ownership is separated from rendering; common legends, dividers, history and navigation replace repeated policy. Strict unused-symbol checks and historical-renderer compatibility pass; App/PhaseEditor orchestration remains substantial.",
+      "at91": 8.8
     }
   ],
   "limitations": [
@@ -213,7 +238,7 @@
     "The gold phase file is an editor/control fixture, not an identification of the CeO2 or Fe3O4C specimens. The six-frame Batch series is derived from the CeO2 image by known intensity multipliers.",
     "The GUI preserves existing scientific conventions, including pyFAI/Fit2D unit differences, zero-based Batch frames, a one-line footer and compact plot tools."
   ],
-  "status": "Codex review complete; requested independent 9/10 target remains unverified because Claude final reassessment is blocked by its account usage limit.",
+  "status": "The current Codex design assessment rounds to 9.5/10. Claude\u2019s independent follow-up is scheduled for 21:35 Berlin; its earlier score is retained separately.",
   "rubric": "UI_DESIGN_RUBRIC.json",
   "implementedImprovements": [
     {
@@ -268,6 +293,34 @@
       "shared": [
         "ColorScaleLegend",
         "useAnchoredDialog"
+      ]
+    },
+    {
+      "problem": "Pale field borders and legends outside the data view consumed attention and space",
+      "resolution": "Resting fields use quiet recessed fills; focus/errors remain visible. Compact pattern/phase legends float inside plots and share bounded mouse/keyboard movement.",
+      "shared": [
+        "uiTheme.css",
+        "PlotLegend"
+      ]
+    },
+    {
+      "problem": "Navigation could discard unfinished geometry and scientific samples were mouse-dependent",
+      "resolution": "Session-owned exact geometry drafts survive mode changes. Keyboard sample inspection reads actual values, honors visible/scaled data and leaves the view/model unchanged.",
+      "shared": [
+        "geometryDraft",
+        "GeometryEditor",
+        "patternSamples",
+        "PatternView"
+      ]
+    },
+    {
+      "problem": "Repeated shell/resize policies and unnamed generic regions weakened consistency",
+      "resolution": "Shared mode/history/divider components preserve the same naming and interaction contracts. Generic named regions receive valid roles, database counts announce updates and open popup targets are checked.",
+      "shared": [
+        "WorkspaceModeButtons",
+        "HistoryControls",
+        "LayoutDivider",
+        "TabList"
       ]
     }
   ],
@@ -376,10 +429,79 @@
         "score": 7.5
       }
     ],
-    "status": "Latest completed review predates the final typography, compact legends, detached Batch labels, save-status and expanded layout fixes. Final reassessment is pending.",
+    "status": "Earlier completed review, preceding the latest refinements. No current-state Claude score has been inferred; independent reassessment is scheduled for 21:35 Berlin.",
     "raw": "UI_PEER_REVIEW.txt",
     "blockedReason": "Claude account session usage limit",
-    "resetAt": "2026-11-05T21:30:00+01:00"
+    "resetAt": "2026-11-05T21:30:00+01:00",
+    "followupScheduledAt": "2026-11-05T21:35:00+01:00"
   },
-  "codexMean": 9.124
+  "codexMean": 9.472,
+  "target": 9.5,
+  "checkpoints": [
+    {
+      "commit": "876e0651",
+      "mean": 9.124,
+      "label": "First completed Codex design pass",
+      "artifact": "artifacts/ui-audit/checkpoint-9.1"
+    }
+  ],
+  "scoreDisplay": "Overall scores are displayed to one decimal; the unrounded arithmetic mean is retained in codexMean. These are qualitative design judgments, not measured accuracy or certification.",
+  "validation": {
+    "frontendUnitTests": 61,
+    "modelTests": 294,
+    "optionalModelTestsSkipped": 5,
+    "browserEngines": [
+      "Chromium",
+      "WebKit"
+    ],
+    "capturedStatesPerEngine": 54,
+    "behaviorChecksPerEngine": 28,
+    "uiBuildVerifiedAgainstScreenshots": true,
+    "nativeOsDialogsRevalidated": false,
+    "screenReaderSessionValidated": false
+  },
+  "manualAccessibilityReview": {
+    "popupControllers": "Open icon-picker controllers were verified to reference an existing role=dialog target; the axe incomplete result is retained rather than relabeled as an automatic pass.",
+    "emptyTables": "The two empty phase/expression tables contain no scientific records. Their empty-state/form context was inspected; empty-table axe items remain visible in the raw report.",
+    "remaining": "Texture/image and scientific-color cases remain marked for manual contrast review. Browser semantics and live text are tested; VoiceOver/NVDA and native OS workflows are not certified.",
+    "solidColorPairs": [
+      {
+        "use": "Input value",
+        "foreground": "#dce2e7",
+        "background": "#11171d",
+        "ratio": 13.809
+      },
+      {
+        "use": "Muted panel label",
+        "foreground": "#a6b1bc",
+        "background": "#1b1f24",
+        "ratio": 7.5993
+      },
+      {
+        "use": "Placeholder",
+        "foreground": "#91a0af",
+        "background": "#11171d",
+        "ratio": 6.7443
+      },
+      {
+        "use": "Axis label",
+        "foreground": "#a6b1bc",
+        "background": "#111519",
+        "ratio": 8.4151
+      },
+      {
+        "use": "Orange action label",
+        "foreground": "#ff9500",
+        "background": "#292f36",
+        "ratio": 6.1454
+      },
+      {
+        "use": "Primary button text",
+        "foreground": "#262019",
+        "background": "#ff9500",
+        "ratio": 7.3297
+      }
+    ],
+    "contrastScope": "Computed from solid sRGB tokens using the WCAG relative-luminance formula; texture/image overlays are excluded and retained for manual review."
+  }
 }

@@ -1,3 +1,4 @@
+import { nearestSample } from "./patternSamples";
 import {
   detectorViewport,
   plotViewContext,
@@ -113,11 +114,8 @@ export function patternPlotSetup({
       resolution: { x: number; y: number },
     ) => {
       if (!onInspect) return;
-      const nearest = pattern.x.reduce(
-        (best, value, i) =>
-          Math.abs(value - x) < Math.abs(pattern.x[best] - x) ? i : best,
-        0,
-      );
+      const nearest = nearestSample(pattern.x, x);
+      if (nearest < 0) return;
       onInspect({
         x,
         mouseY,
