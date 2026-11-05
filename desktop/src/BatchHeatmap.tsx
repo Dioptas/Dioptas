@@ -135,6 +135,12 @@ export function BatchHeatmap({
     ctx.drawImage(bitmap, 0, 0, cols, rows);
     ctx.restore();
     const y = py(batch.selected + 0.5);
+    ctx.strokeStyle = "#ff9500";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(px(0), y);
+    ctx.lineTo(px(cols), y);
+    ctx.stroke();
     ctx.fillStyle = "#ff9500";
     ctx.beginPath();
     ctx.moveTo(bounds.left, y - 5);
