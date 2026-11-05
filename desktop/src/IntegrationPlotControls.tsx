@@ -3,7 +3,7 @@ import { GeometryProvenance } from "./GeometryProvenance";
 import { PatternFreshness } from "./PatternFreshness";
 import { useMemo, type ReactNode } from "react";
 import { decodeRaster } from "./rasterTransfer";
-import { Save } from "lucide-react";
+import { FolderOpen, ImageMinus, Layers, Save } from "lucide-react";
 import type { Cake, State, Unit } from "./types";
 import type { IntegrationRun } from "./integration";
 import type { BackgroundSettings } from "./useLiveBackground";
@@ -203,7 +203,7 @@ export function IntegrationPatternActions({
   const hasPattern = !!state?.integration.patternName;
   return (
     <div
-      className="integration-pattern-actions"
+      className="integration-pattern-actions plot-toolbar"
       role="group"
       aria-label="Pattern actions"
     >
@@ -220,20 +220,26 @@ export function IntegrationPatternActions({
         <Save size={15} />
       </button>
       <button
+        aria-label="As Overlay"
+        title="Capture displayed pattern as an overlay"
         disabled={!ready || !hasPattern}
         onClick={() =>
           void run("integration_overlay", { operation: "capture" })
         }
       >
-        As Overlay
+        <Layers size={15} aria-hidden="true" />
+        <span className="plot-toolbar-label">As Overlay</span>
       </button>
       <button
+        aria-label="As Bkg"
+        title="Capture displayed pattern as background"
         disabled={!ready || !hasPattern}
         onClick={() =>
           void run("integration_overlay", { operation: "capture_background" })
         }
       >
-        As Bkg
+        <ImageMinus size={15} aria-hidden="true" />
+        <span className="plot-toolbar-label">As Bkg</span>
       </button>
       <PatternFreshness
         state={state}
@@ -252,11 +258,13 @@ export function IntegrationPatternActions({
         Å
       </span>
       <button
+        aria-label="Load calibration…"
         disabled={!ready}
-        title={state?.calibrationName ?? "Load a PONI calibration"}
+        title={`Load a PONI calibration · ${state?.calibrationName ?? "No calibration"}`}
         onClick={() => void run("open_calibration")}
       >
-        Load calibration…
+        <FolderOpen size={15} aria-hidden="true" />
+        <span className="plot-toolbar-label">Load calibration…</span>
       </button>
     </div>
   );

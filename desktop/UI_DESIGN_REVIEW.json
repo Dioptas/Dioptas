@@ -110,7 +110,7 @@
       "before": 8,
       "after": 9.5,
       "criteria": "Let scientific data dominate while keeping state, source context and actions easy to scan.",
-      "evidence": "Detector and pattern data keep the available space; legends overlay the data and fields recede visually. Orange highlights active modes/actions rather than permanent input frames.",
+      "evidence": "Detector and pattern data keep the available space. Plot headers stay on one row, duplicate Map/Batch summary blocks are removed, legends overlay the data and fields recede visually. Orange highlights active modes/actions rather than permanent input frames.",
       "at91": 9.1
     },
     {
@@ -200,7 +200,7 @@
       "before": 7.5,
       "after": 9.5,
       "criteria": "Keep controls and plots usable at supported compact sizes and both text sizes.",
-      "evidence": "Batch headers wrap instead of hiding trailing actions; collapsed headers retain their controls. Active toolbar buttons are checked against every clipping ancestor and actual pointer hit targets, in addition to the compact/Larger text audits.",
+      "evidence": "Batch and pattern headers retain one compact row at both text sizes. Secondary captions yield to tooltip-labelled icons in narrow panes, while frame counts compact to n/N. Active controls are checked against clipping ancestors and actual pointer hit targets; every captured header must remain at most 46 px high.",
       "at91": 9.1
     },
     {
@@ -373,6 +373,16 @@
         "BatchControls",
         "BatchView"
       ]
+    },
+    {
+      "problem": "Batch and pattern toolbars wrapped into a second row in narrow panes, reducing data space",
+      "resolution": "Both use a shared single-row plot-toolbar policy. Secondary captions yield to icon controls below 600 px, with accessible action names and full tooltips. Batch frame counts compact to n/N; calibration provenance stays available with ellipsis and a full tooltip. Existing plot legends stay inside the data area.",
+      "shared": [
+        "plot-toolbar",
+        "BatchView",
+        "IntegrationPatternActions",
+        "GeometryProvenance"
+      ]
     }
   ],
   "peer": {
@@ -512,10 +522,10 @@
     "screenReaderSessionValidated": false,
     "chromiumViews": 58,
     "webkitViews": 58,
-    "toolbarChecks": "Active Batch controls are checked against ancestor clipping and actual pointer hit targets.",
+    "toolbarChecks": "Active Batch and pattern controls are checked against ancestor clipping and pointer hit targets. Visible toolbars must keep all button centers in one compact row (at most 46 px high), including narrow panes at both text sizes.",
     "poniDisplayConversion": "A changed PONI field is applied through the UI; mm-to-m conversion and Undo are checked against the real model at 1e-15 m tolerance.",
     "batchAxisTitles": "No visible heatmap y-axis title; one-based frame ticks and accessible description. Real-model browser checks verify that displayed frames 1 and 6 select stored indices 0 and 5.",
-    "browserUiSha256": "62a06d15b4dd45a032cd1ae7cc3d846a1fd642cd74192284098a4077f9382892",
+    "browserUiSha256": "75ccf2f56e32445f546f7090d7ef260d16f79383334519611c36f6f1adb84948",
     "nativeBuildPassed": true,
     "nativeBatchSmokePassed": false,
     "nativeQualification": "Native smoke did not pass; failures and baseline comparison are retained in artifacts/ui-audit/native/summary.json.",

@@ -29,6 +29,7 @@ export function GeometryProvenance({
       className={`geometry-provenance${detail ? " calibration-provenance" : ""}`}
       role="group"
       aria-label="Calibration provenance"
+      title={`${source}${state.calibrationName ? ` · ${state.calibrationName}` : ""}`}
     >
       <strong>{source}</strong>
       {state.calibrationName && state.calibrationName !== "current" && (

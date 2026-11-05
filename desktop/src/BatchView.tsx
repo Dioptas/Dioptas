@@ -8,6 +8,8 @@ import {
   ChevronUp,
   ExternalLink,
   FolderOpen,
+  Layers,
+  Unlink,
   PanelBottomClose,
   Save,
   Settings2,
@@ -199,7 +201,7 @@ export function BatchView({
           : undefined
       }
     >
-      <header className="batch-series-toolbar">
+      <header className="batch-series-toolbar plot-toolbar">
         <div
           className="batch-file-toolbar"
           role="toolbar"
@@ -256,7 +258,8 @@ export function BatchView({
               className="batch-source-note"
               title="This series differs from the detector image currently displayed. Select a batch frame to inspect its source."
             >
-              Separate series
+              <Unlink size={14} aria-hidden="true" />
+              <span className="plot-toolbar-label">Separate series</span>
             </span>
           )}
         {docked && batch && (
@@ -266,7 +269,12 @@ export function BatchView({
             aria-label="Selected batch frame"
             title={`Frame ${batch.selected + 1} of ${batch.entries.length} · ${batch.entries[batch.selected]?.name}`}
           >
-            Frame {batch.selected + 1} of {batch.entries.length}
+            <span className="plot-toolbar-label">
+              Frame {batch.selected + 1} of {batch.entries.length}
+            </span>
+            <span className="batch-position-compact" aria-hidden="true">
+              {batch.selected + 1}/{batch.entries.length}
+            </span>
           </span>
         )}
         <TabList
@@ -292,7 +300,8 @@ export function BatchView({
           disabled={!batch?.phaseLines?.length}
           onClick={() => display.update({ phases: !display.phases })}
         >
-          Phases
+          <Layers size={15} aria-hidden="true" />
+          <span className="plot-toolbar-label">Phases</span>
         </PlotToggle>
         <div className="batch-window-actions">
           {onCollapse && (

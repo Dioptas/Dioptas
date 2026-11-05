@@ -474,3 +474,54 @@ textarea::placeholder {
 .path-input:focus-within .path-input-truncation {
   display: none;
 }
+
+/* Plot headers retain one row; secondary captions yield space to the data. */
+.app .plot-toolbar {
+  flex-wrap: nowrap;
+  container-type: inline-size;
+  container-name: plot-toolbar;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.app .plot-toolbar button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.app .plot-toolbar > .batch-folder-label {
+  flex: 1 1 0;
+}
+.app .plot-toolbar .batch-source-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+.batch-position-compact {
+  display: none;
+}
+.app .integration-pattern-actions .geometry-provenance {
+  flex: 1 1 0;
+}
+.app .integration-pattern-actions .geometry-provenance strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app .integration-pattern-actions .geometry-source-file {
+  flex: 0 2 auto;
+}
+.app .integration-pattern-actions .integration-pattern-calibration {
+  flex: 0 0 auto;
+}
+@container plot-toolbar (max-width: 600px) {
+  .plot-toolbar-label {
+    display: none;
+  }
+  .batch-position-compact {
+    display: inline;
+  }
+}

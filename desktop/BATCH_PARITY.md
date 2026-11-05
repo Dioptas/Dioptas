@@ -62,7 +62,9 @@ Batch panel before a scientific project is loaded. Project data still comes from
 the normal Load/Save project workflow.
 When docked, a settings icon (accessible as **Options**) beside Files/2D holds AutoScale, normalization
 and Start/Stop/Step. The 2D tab has no bottom browsing row or slider: the header
-shows the selected frame number and total frame count. Heatmap ticks, hover
+shows the selected frame number and total frame count (n/N in narrow panes).
+The header stays on one row; secondary captions become tooltip-labelled icons
+when space is tight. Heatmap ticks, hover
 readout, navigation, Start/Stop and normalization reference use frame numbers
 starting at 1; stored model indices and radial bin indices remain zero-based.
 The heatmap has no vertical axis title. Click rows or use

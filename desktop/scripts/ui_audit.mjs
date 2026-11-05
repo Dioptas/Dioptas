@@ -163,7 +163,7 @@ const capture = async (name, target = page) => {
       "Expanded popup controllers reference existing targets",
     );
   const toolbarReachability = await target
-    .locator("body:not(:has(dialog[open])) .batch-series-toolbar button")
+    .locator("body:not(:has(dialog[open])) .plot-toolbar button")
     .evaluateAll((buttons) =>
       buttons
         .filter(
@@ -209,7 +209,36 @@ const capture = async (name, target = page) => {
   if (stage !== "before")
     assert(
       toolbarReachability.every((item) => !item.clipped && item.hit),
-      `${name}: Batch toolbar controls must be reachable: ${JSON.stringify(toolbarReachability.filter((item) => item.clipped || !item.hit))}`,
+      `${name}: Plot toolbar controls must be reachable: ${JSON.stringify(toolbarReachability.filter((item) => item.clipped || !item.hit))}`,
+    );
+  const plotToolbarRows = await target
+    .locator("body:not(:has(dialog[open])) .plot-toolbar")
+    .evaluateAll((toolbars) =>
+      toolbars
+        .filter(
+          (bar) =>
+            bar.getClientRects().length &&
+            !bar.closest('[inert], [aria-hidden="true"]'),
+        )
+        .map((bar) => {
+          const centers = [...bar.querySelectorAll("button")]
+            .filter((button) => button.getClientRects().length)
+            .map((button) => {
+              const box = button.getBoundingClientRect();
+              return box.top + box.height / 2;
+            });
+          return {
+            height: bar.getBoundingClientRect().height,
+            rowsAligned:
+              !centers.length ||
+              Math.max(...centers) - Math.min(...centers) < 3,
+          };
+        }),
+    );
+  if (stage !== "before")
+    assert(
+      plotToolbarRows.every((bar) => bar.rowsAligned && bar.height <= 46),
+      `${name}: plot toolbars retain a single compact row: ${JSON.stringify(plotToolbarRows)}`,
     );
   const batchAxisLabels = await target
     .getByTestId("batch-heatmap")
@@ -239,6 +268,7 @@ const capture = async (name, target = page) => {
   inventory.push({
     name,
     batchAxisLabels,
+    plotToolbarRows,
     toolbarReachability,
     expandedPopupRelations,
     manualAccessibilityChecks: accessibility.incomplete.map((v) => ({
