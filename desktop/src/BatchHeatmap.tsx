@@ -12,16 +12,20 @@ import type { ReportPlot } from "./plotReadout";
  */
 export function BatchHeatmap({
   batch,
+  viewport,
   limits,
   log,
+  sqrt = false,
   palette,
   ready,
   onSelect,
   reportPlot,
 }: {
   batch: BatchData;
+  viewport?: import("./plotViewport").PlotViewport;
   limits: [number, number];
   log: boolean;
+  sqrt?: boolean;
   palette: string;
   ready: boolean;
   onSelect: (index: number) => void;
@@ -41,21 +45,37 @@ export function BatchHeatmap({
   const nav = usePlotNavigation(
     { xMin: 0, xMax: cols, yMin: 0, yMax: rows },
     bounds,
+    false,
+    "rectangle",
+    undefined,
+    viewport,
   );
   const values = useMemo(() => decodeRaster(batch.raster), [batch.raster.data]);
+  const coloredValues = useMemo(
+    () =>
+      sqrt
+        ? Float32Array.from(values, (v) => Math.sqrt(Math.max(0, v)))
+        : values,
+    [values, sqrt],
+  );
   const bitmap = useMemo(
     () =>
       rasterCanvas(
         batch.raster,
-        values,
+        coloredValues,
         undefined,
         null,
-        ...limits,
+        ...(sqrt
+          ? ([
+              Math.sqrt(Math.max(0, limits[0])),
+              Math.sqrt(Math.max(0, limits[1])),
+            ] as [number, number])
+          : limits),
         log,
         palette,
         0,
       ),
-    [batch.raster, values, limits, log, palette],
+    [batch.raster, coloredValues, limits, log, sqrt, palette],
   );
   useEffect(() => {
     const observer = new ResizeObserver(([e]) =>
@@ -64,7 +84,9 @@ export function BatchHeatmap({
     observer.observe(host.current!);
     return () => observer.disconnect();
   }, []);
-  useEffect(() => nav.reset(), [rows, cols]);
+  useEffect(() => {
+    if (!viewport) nav.reset();
+  }, [rows, cols]);
   usePlotWheel(canvas, nav.onWheel);
   const radial = (bin: number) => {
     const p = Math.max(0, Math.min(cols - 1, bin - 0.5)),
@@ -160,13 +182,13 @@ export function BatchHeatmap({
       i < Math.min(rows, Math.ceil(rows - v.yMin));
       i += stride
     ) {
-      ctx.fillText(String(i + 1), bounds.left - 9, py(rows - i - 0.5) + 4);
+      ctx.fillText(String(i), bounds.left - 9, py(rows - i - 0.5) + 4);
     }
     ctx.save();
     ctx.translate(15, bounds.top + bounds.height / 2);
     ctx.rotate(-Math.PI / 2);
     ctx.textAlign = "center";
-    ctx.fillText("Pattern", 0, 0);
+    ctx.fillText("Frame", 0, 0);
     ctx.restore();
   }, [size, bitmap, nav.view, nav.selection, batch.selected, batch.unit]);
   const hit = (event: React.PointerEvent<HTMLCanvasElement>) => {
@@ -190,6 +212,10 @@ export function BatchHeatmap({
       <canvas
         ref={canvas}
         data-testid="batch-heatmap"
+        data-view-x-min={nav.view.xMin}
+        data-view-x-max={nav.view.xMax}
+        data-view-y-min={nav.view.yMin}
+        data-view-y-max={nav.view.yMax}
         aria-label="Batch intensity overview"
         tabIndex={0}
         onContextMenu={(e) => e.preventDefault()}
@@ -204,7 +230,7 @@ export function BatchHeatmap({
             "map",
             p
               ? {
-                  text: `Pattern ${p.index + 1} · ${unitLabel(batch.unit)} ${number(batch.x[p.bin], 5)} · I ${number(values[p.index * cols + p.bin], 5)}`,
+                  text: `Frame ${p.index} · ${unitLabel(batch.unit)} ${number(batch.x[p.bin], 5)} · I ${number(values[p.index * cols + p.bin], 5)}`,
                   hint: "Click a row to select a pattern. Drag to zoom; right drag to pan.",
                 }
               : null,

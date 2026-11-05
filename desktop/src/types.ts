@@ -154,6 +154,7 @@ export interface RingOverlay {
   points: number[][];
 }
 export interface Response {
+  clearImage?: boolean;
   customCommands?: import("./customCommands").CustomCommand[];
   customCommandRuns?: Record<
     string,

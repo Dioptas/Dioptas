@@ -1,301 +1,329 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  FolderOpen,
-  Layers,
-  Save,
-} from "lucide-react";
-import { DataTable, TableScroll } from "./DataTable";
+import { createPortal } from "react-dom";
+import { ChevronLeft, ChevronRight, Settings2 } from "lucide-react";
 import type { BatchData, BatchRun } from "./batchDomain";
-import type { State } from "./types";
 
+/** Qt's bottom navigation and action rows; UI frame/bin numbers start at zero. */
 export function BatchControls({
   batch,
-  state,
   ready,
+  calibrated,
+  filesView,
   run,
+  onAutoScale,
+  onRange,
 }: {
   batch: BatchData | null;
-  state: State | null;
   ready: boolean;
+  calibrated: boolean;
+  filesView: boolean;
   run: BatchRun;
+  onAutoScale: () => void;
+  onRange: (start: number, stop: number) => void;
 }) {
-  const [query, setQuery] = useState("");
-  const [start, setStart] = useState(1),
-    [stop, setStop] = useState(1),
-    [step, setStep] = useState(1);
-  const [normStart, setNormStart] = useState(1),
-    [normStop, setNormStop] = useState(1),
-    [reference, setReference] = useState(1);
-  const [jump, setJump] = useState("1");
-  const selectedRow = useRef<HTMLTableRowElement>(null);
+  const count = batch?.entries.length ?? 0,
+    max = filesView ? (batch?.total ?? 1) - 1 : count - 1;
+  const [start, setStart] = useState(0),
+    [stop, setStop] = useState(Math.max(0, max)),
+    [step, setStep] = useState(1),
+    [jump, setJump] = useState("0");
+  const normalizationButton = useRef<HTMLButtonElement>(null),
+    popup = useRef<HTMLDivElement>(null);
+  const [popupPosition, setPopupPosition] = useState({ left: 8, top: 8 });
+  const [normalization, setNormalization] = useState(false);
+  const [firstBin, setFirstBin] = useState(0),
+    [lastBin, setLastBin] = useState(0),
+    [reference, setReference] = useState(0);
   useEffect(() => {
-    setStop(batch?.total ?? 1);
-    setStart(1);
+    setStart(0);
+    setStop(Math.max(0, max));
     setStep(1);
-    setQuery("");
-  }, [batch?.raster.height, batch?.total, batch?.entries[0]?.path]);
+  }, [max, filesView, batch?.files[0]?.path]);
+  useEffect(() => setJump(String(batch?.selected ?? 0)), [batch?.selected]);
   useEffect(() => {
-    setNormStart((batch?.normalizationRange[0] ?? 0) + 1);
-    setNormStop(
-      Math.min(batch?.x.length ?? 1, batch?.normalizationRange[1] ?? 1),
+    setFirstBin(batch?.normalizationRange[0] ?? 0);
+    setLastBin(
+      Math.min(
+        (batch?.x.length ?? 1) - 1,
+        (batch?.normalizationRange[1] ?? 1) - 1,
+      ),
     );
-    setReference((batch?.normalizationReference ?? 0) + 1);
-  }, [batch?.normalized, batch?.x.length]);
+    setReference(batch?.normalizationReference ?? 0);
+  }, [
+    batch?.normalizationRange[0],
+    batch?.normalizationRange[1],
+    batch?.normalizationReference,
+    batch?.x.length,
+  ]);
   useEffect(() => {
-    setJump(String((batch?.selected ?? 0) + 1));
-    selectedRow.current?.scrollIntoView({ block: "nearest" });
-  }, [batch?.selected]);
+    if (!normalization) return;
+    const close = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setNormalization(false);
+    };
+    const outside = (e: PointerEvent) => {
+      if (
+        !popup.current?.contains(e.target as Node) &&
+        !normalizationButton.current?.contains(e.target as Node)
+      )
+        setNormalization(false);
+    };
+    document.addEventListener("keydown", close);
+    document.addEventListener("pointerdown", outside, true);
+    return () => {
+      document.removeEventListener("keydown", close);
+      document.removeEventListener("pointerdown", outside, true);
+      normalizationButton.current?.focus();
+    };
+  }, [normalization]);
   const select = (index: number) =>
     void run("batch_select", { index }, "Loading batch frame…");
-  const count = batch?.entries.length ?? 0;
-  const numberField = (
-    label: string,
-    value: number,
-    set: (v: number) => void,
-    max: number,
-  ) => (
-    <label className="field-label">
-      {label}
-      <input
-        aria-label={label}
-        type="number"
-        min={1}
-        max={max}
-        step={1}
-        value={value}
-        onChange={(e) => set(Number(e.target.value))}
-      />
-    </label>
-  );
+  const current = batch?.selected ?? 0;
   return (
-    <div className="batch-controls">
-      <fieldset disabled={!ready} className="batch-source-actions">
-        <button
-          className="primary"
-          disabled={!state?.calibrated}
-          onClick={() => run("batch_load", {}, "Integrating batch…")}
-        >
-          <Layers size={16} />
-          Load images…
-        </button>
-        <button
-          disabled={!state?.calibrated}
-          onClick={() => run("batch_folder", {}, "Integrating batch folder…")}
-        >
-          <FolderOpen size={16} />
-          Load folder…
-        </button>
-        <button
-          onClick={() => run("batch_open", {}, "Opening processed batch…")}
-        >
-          Open processed batch…
-        </button>
-        <button
-          disabled={!batch}
-          onClick={() => run("integration_save_batch", {}, "Saving batch…")}
-        >
-          <Save size={16} />
-          Save batch…
-        </button>
-      </fieldset>
-      {!state?.calibrated && (
-        <p className="integration-note">
-          Load a calibration in Calibration to integrate images. Stored batches
-          can be opened directly.
-        </p>
-      )}
-      {batch && (
-        <>
-          <section
-            className="batch-navigation"
-            aria-label="Batch frame navigation"
+    <div className="batch-bottom-controls">
+      <div className="batch-action-row">
+        {filesView ? (
+          <button
+            disabled={!ready || !batch?.canReintegrate || !calibrated}
+            onClick={() =>
+              run(
+                "batch_load",
+                { reintegrate: true, start: start + 1, stop: stop + 1, step },
+                "Integrating batch…",
+              )
+            }
           >
-            <button
-              aria-label="Previous batch pattern"
-              title="Previous pattern"
-              disabled={!ready || batch.selected === 0}
-              onClick={() => select(batch.selected - 1)}
-            >
-              <ChevronLeft size={16} />
+            Integrate
+          </button>
+        ) : (
+          <>
+            <button disabled={!ready || !batch} onClick={onAutoScale}>
+              AutoScale
             </button>
-            <label>
-              Pattern
-              <input
-                aria-label="Selected batch pattern"
-                disabled={!ready}
-                type="number"
-                min={1}
-                max={count}
-                value={jump}
-                onChange={(e) => setJump(e.target.value)}
-                onBlur={() => {
-                  const n = Number(jump);
-                  if (
-                    Number.isInteger(n) &&
-                    n >= 1 &&
-                    n <= count &&
-                    n !== batch.selected + 1
-                  )
-                    select(n - 1);
-                  else setJump(String(batch.selected + 1));
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") e.currentTarget.blur();
-                }}
-              />
-              <span>/ {count}</span>
-            </label>
+            <span className="batch-control-divider" />
             <button
-              aria-label="Next batch pattern"
-              title="Next pattern"
-              disabled={!ready || batch.selected === count - 1}
-              onClick={() => select(batch.selected + 1)}
+              aria-label="Normalize batch"
+              aria-pressed={!!batch?.normalized}
+              disabled={!ready || !batch}
+              onClick={() =>
+                run(
+                  "batch_normalize",
+                  {
+                    enabled: !batch?.normalized,
+                    start: (batch?.normalizationRange[0] ?? 0) + 1,
+                    stop: batch?.normalizationRange[1],
+                    reference: (batch?.normalizationReference ?? 0) + 1,
+                  },
+                  "Updating normalization…",
+                )
+              }
             >
-              <ChevronRight size={16} />
+              Normalize
             </button>
-          </section>
-          <input
-            className="batch-search"
-            aria-label="Filter batch files"
-            placeholder="Filter files…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          <TableScroll className="batch-file-list">
-            <DataTable aria-label="Batch files">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>File</th>
-                  <th>Frame</th>
-                </tr>
-              </thead>
-              <tbody>
-                {batch.entries
-                  .map((entry, index) => ({ entry, index }))
-                  .filter(({ entry, index }) =>
-                    `${index + 1} ${entry.name} ${entry.frame}`
-                      .toLowerCase()
-                      .includes(query.toLowerCase()),
-                  )
-                  .map(({ entry, index }) => (
-                    <tr
-                      key={index}
-                      ref={index === batch.selected ? selectedRow : undefined}
-                      aria-selected={index === batch.selected}
-                      className={index === batch.selected ? "selected" : ""}
-                    >
-                      <td>{index + 1}</td>
-                      <td>
-                        <button
-                          disabled={!ready}
-                          aria-label={`Select batch pattern ${index + 1}`}
-                          title={entry.path || "Raw source unavailable"}
-                          onClick={() => select(index)}
-                        >
-                          {entry.name}
-                        </button>
-                      </td>
-                      <td>{entry.frame}</td>
-                    </tr>
-                  ))}
-              </tbody>
-            </DataTable>
-          </TableScroll>
-          <details className="batch-settings" open>
-            <summary>Integration range</summary>
-            <fieldset
-              disabled={!ready || !batch.canReintegrate || !state?.calibrated}
-            >
-              <div className="batch-three-fields">
-                {numberField("First frame", start, setStart, batch.total)}
-                {numberField("Last frame", stop, setStop, batch.total)}
-                {numberField("Stride", step, setStep, batch.total)}
-              </div>
-              <p className="integration-note">
-                {batch.total} source frames. Uses the current calibration, mask,
-                integration options and corrections.
-              </p>
+            <span className="batch-normalization-anchor">
               <button
-                disabled={
-                  start > stop || start < 1 || stop > batch.total || step < 1
-                }
-                onClick={() =>
-                  run(
-                    "batch_load",
-                    { reintegrate: true, start, stop, step },
-                    "Reintegrating batch…",
-                  )
-                }
+                ref={normalizationButton}
+                aria-label="Normalization settings"
+                title="Normalization settings"
+                disabled={!ready || !batch}
+                onClick={() => {
+                  setFirstBin(batch?.normalizationRange[0] ?? 0);
+                  setLastBin(
+                    Math.min(
+                      (batch?.x.length ?? 1) - 1,
+                      (batch?.normalizationRange[1] ?? 1) - 1,
+                    ),
+                  );
+                  setReference(batch?.normalizationReference ?? 0);
+                  const r =
+                    normalizationButton.current!.getBoundingClientRect();
+                  setPopupPosition({
+                    left: Math.max(
+                      8,
+                      Math.min(innerWidth - 318, r.right - 310),
+                    ),
+                    top: Math.max(8, r.top - 280),
+                  });
+                  setNormalization((v) => !v);
+                }}
               >
-                Reintegrate range
+                <Settings2 size={15} />
               </button>
-            </fieldset>
-            {!batch.canReintegrate && (
-              <p className="integration-note">
-                Load original images to reintegrate a stored batch.
-              </p>
-            )}
-          </details>
-          <details className="batch-settings">
-            <summary>
-              Normalization{batch.normalized ? " · active" : ""}
-            </summary>
-            <fieldset disabled={!ready}>
-              <p className="integration-note">
-                Match each pattern’s mean intensity in the selected bin interval
-                to a reference pattern.
-              </p>
-              <div className="batch-three-fields">
-                {numberField(
-                  "First bin",
-                  normStart,
-                  setNormStart,
-                  batch.x.length,
+              {normalization &&
+                createPortal(
+                  <div
+                    ref={popup}
+                    className="batch-normalization-popup"
+                    style={popupPosition}
+                    role="dialog"
+                    aria-label="Normalization settings"
+                  >
+                    <strong>Normalization settings</strong>
+                    <p>
+                      Match each frame’s mean intensity to the reference over
+                      the selected bins. Bin and frame numbers start at 0.
+                    </p>
+                    <label>
+                      First bin (inclusive)
+                      <input
+                        aria-label="First normalization bin"
+                        type="number"
+                        min={0}
+                        max={lastBin}
+                        value={firstBin}
+                        onChange={(e) => setFirstBin(Number(e.target.value))}
+                      />
+                    </label>
+                    <label>
+                      Last bin (inclusive)
+                      <input
+                        aria-label="Last normalization bin"
+                        type="number"
+                        min={firstBin}
+                        max={(batch?.x.length ?? 1) - 1}
+                        value={lastBin}
+                        onChange={(e) => setLastBin(Number(e.target.value))}
+                      />
+                    </label>
+                    <label>
+                      Reference frame
+                      <input
+                        aria-label="Normalization reference frame"
+                        type="number"
+                        min={0}
+                        max={count - 1}
+                        value={reference}
+                        onChange={(e) => setReference(Number(e.target.value))}
+                      />
+                    </label>
+                    <div>
+                      <button
+                        onClick={() => {
+                          void run(
+                            "batch_normalization_settings",
+                            { start: firstBin, stop: lastBin, reference },
+                            "Updating normalization settings…",
+                          );
+                          setNormalization(false);
+                        }}
+                      >
+                        Apply
+                      </button>
+                      <button onClick={() => setNormalization(false)}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>,
+                  document.body,
                 )}
-                {numberField("Last bin", normStop, setNormStop, batch.x.length)}
-                {numberField("Reference", reference, setReference, count)}
-              </div>
-              <div className="file-actions">
-                <button
-                  onClick={() =>
-                    run(
-                      "batch_normalize",
-                      { start: normStart, stop: normStop, reference },
-                      "Normalizing batch…",
-                    )
-                  }
-                >
-                  Normalize
-                </button>
-                <button
-                  disabled={!batch.normalized}
-                  onClick={() =>
-                    run(
-                      "batch_normalize",
-                      { enabled: false },
-                      "Restoring intensities…",
-                    )
-                  }
-                >
-                  Restore original
-                </button>
-              </div>
-            </fieldset>
-          </details>
-          <p
-            className="integration-note batch-provenance"
-            title={batch.calibration ?? ""}
-          >
-            {batch.calibration
-              ? `Calibration: ${batch.calibration.split(/[\\/]/).at(-1)}`
-              : "Stored integration intensities"}
-            {batch.normalized ? " · Normalized" : ""}
-          </p>
-        </>
-      )}
+            </span>
+          </>
+        )}
+      </div>
+      <div className="batch-navigation-row">
+        <button
+          aria-label="Previous batch frame"
+          title="Previous frame"
+          disabled={!ready || !count || current - step < start}
+          onClick={() => select(current - step)}
+        >
+          <ChevronLeft size={15} />
+        </button>
+        <input
+          className="batch-frame-slider"
+          aria-label="Batch frame slider"
+          type="range"
+          min={0}
+          max={Math.max(0, count - 1)}
+          value={Math.min(
+            Math.max(0, Number(jump) || 0),
+            Math.max(0, count - 1),
+          )}
+          disabled={!ready || !count}
+          onChange={(e) => setJump(e.target.value)}
+          onPointerUp={(e) => select(Number(e.currentTarget.value))}
+          onKeyUp={(e) => {
+            if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key))
+              select(Number(e.currentTarget.value));
+          }}
+        />
+        <button
+          aria-label="Next batch frame"
+          title="Next frame"
+          disabled={
+            !ready || !count || current + step > Math.min(stop, count - 1)
+          }
+          onClick={() => select(current + step)}
+        >
+          <ChevronRight size={15} />
+        </button>
+        <label className="batch-frame-number">
+          Frame ({count}/{batch?.total ?? 0})
+          <input
+            aria-label="Selected batch frame"
+            type="number"
+            min={0}
+            max={Math.max(0, count - 1)}
+            disabled={!ready || !count}
+            value={jump}
+            onChange={(e) => setJump(e.target.value)}
+            onBlur={() => {
+              const n = Number(jump);
+              if (Number.isInteger(n) && n >= 0 && n < count && n !== current)
+                select(n);
+              else setJump(String(current));
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
+            }}
+          />
+        </label>
+      </div>
+      <div className="batch-range-row">
+        <label>
+          Start:
+          <input
+            aria-label="Batch start frame"
+            type="number"
+            min={0}
+            max={stop}
+            value={start}
+            disabled={!batch}
+            onChange={(e) => {
+              const value = Number(e.target.value);
+              setStart(value);
+              if (!filesView) onRange(value, Math.min(stop, count - 1));
+            }}
+          />
+        </label>
+        <label>
+          Stop:
+          <input
+            aria-label="Batch stop frame"
+            type="number"
+            min={start}
+            max={Math.max(0, max)}
+            value={stop}
+            disabled={!batch}
+            onChange={(e) => {
+              const value = Number(e.target.value);
+              setStop(value);
+              if (!filesView) onRange(start, Math.min(value, count - 1));
+            }}
+          />
+        </label>
+        <label>
+          Step:
+          <input
+            aria-label="Batch frame step"
+            type="number"
+            min={1}
+            max={Math.max(1, max + 1)}
+            value={step}
+            disabled={!batch}
+            onChange={(e) => setStep(Number(e.target.value))}
+          />
+        </label>
+      </div>
     </div>
   );
 }

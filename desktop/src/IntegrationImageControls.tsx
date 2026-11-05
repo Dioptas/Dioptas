@@ -65,7 +65,7 @@ export function IntegrationImageControls({
         }
       />
       <button className="secondary" onClick={onOpenBatch}>
-        Batch processing…
+        Batch view…
       </button>
       {frameControl}
       <input

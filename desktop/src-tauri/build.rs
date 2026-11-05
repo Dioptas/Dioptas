@@ -5,6 +5,8 @@ fn main() {
             "open_phase_editor",
             "open_map_window",
             "close_map_window",
+            "open_batch_window",
+            "close_batch_window",
             "prepare_color_picker",
             "native_smoke_report",
             "show_calibration_tooltip",

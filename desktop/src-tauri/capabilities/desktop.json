@@ -18,6 +18,8 @@
     "core:event:allow-unlisten",
     "core:event:allow-emit",
     "allow-open-map-window",
-    "allow-close-map-window"
+    "allow-close-map-window",
+    "allow-open-batch-window",
+    "allow-close-batch-window"
   ]
 }

@@ -1,23 +1,40 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
-import { mkdir, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { chromium, webkit } from "playwright";
+import { selectIntegrationDisplay } from "./integration_display.mjs";
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const artifacts = path.join(root, "desktop/artifacts");
 await mkdir(artifacts, { recursive: true });
+const temporary = await mkdtemp(path.join(tmpdir(), "dioptas-batch-window-"));
+const paths = [];
+for (let i = 0; i < 6; i++) {
+  const file = path.join(temporary, `series_${i + 1}.tif`);
+  await copyFile(
+    path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
+    file,
+  );
+  paths.push(file);
+}
 const host = spawn(
   path.join(root, ".venv/bin/python"),
   ["-u", "desktop/scripts/bridge_host.py"],
   {
     cwd: root,
-    env: { ...process.env, OMP_NUM_THREADS: "2" },
+    env: {
+      ...process.env,
+      OMP_NUM_THREADS: "2",
+      DIOPTAS_CUSTOM_COMMANDS_FILE: path.join(temporary, "commands.json"),
+    },
     stdio: ["pipe", "pipe", "pipe"],
   },
 );
 let identifier = 0;
+let processed = false;
 const pending = new Map(),
   logs = [],
   requests = [];
@@ -33,13 +50,10 @@ createInterface({ input: host.stdout }).on("line", (line) => {
 });
 function invoke(action, payload = {}) {
   if (action === "open_image" && payload.multiple && !payload.paths)
-    payload = {
-      ...payload,
-      paths: Array(6).fill(
-        path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
-      ),
-    };
-  requests.push({ action, payload });
+    payload = { ...payload, paths };
+  if (action === "batch_load_data" && processed)
+    payload = { paths: [path.join(artifacts, "batch.h5")] };
+  requests.push(action);
   return new Promise((resolve, reject) => {
     const id = ++identifier,
       timer = setTimeout(() => reject(Error(`Timed out ${action}`)), 45000);
@@ -49,8 +63,12 @@ function invoke(action, payload = {}) {
 }
 const engine = process.argv.includes("--webkit") ? webkit : chromium;
 const browser = await engine.launch({ headless: true });
-const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+const context = await browser.newContext({
+  viewport: { width: 1600, height: 1000 },
+});
+const page = await context.newPage();
 const errors = [];
+context.on("page", (p) => p.on("pageerror", (e) => errors.push(e.message)));
 page.on("pageerror", (e) => errors.push(e.message));
 await page.exposeFunction("__dioptasInvoke", invoke);
 await page.addInitScript(() => {
@@ -59,17 +77,34 @@ await page.addInitScript(() => {
   };
 });
 const ready = async () => {
-  await page.waitForFunction(() => !document.querySelector(".spin"));
-  assert.equal(
-    await page.getByRole("alert").count(),
-    0,
-    JSON.stringify(await page.getByRole("alert").allTextContents()),
+  await page.waitForFunction(
+    () => document.querySelector(".app") && !document.querySelector(".spin"),
   );
+  assert.deepEqual(await page.getByRole("alert").allTextContents(), []);
 };
-const click = async (name) => {
-  await page.getByRole("button", { name, exact: true }).click();
+const click = async (p, name) => {
+  await p.getByRole("button", { name, exact: true }).click();
+};
+const selected = async (p, n) => {
+  await p.waitForFunction((n) => {
+    const input = document.querySelector('[aria-label="Selected batch frame"]');
+    return input && input.value === String(n - 1) && !input.disabled;
+  }, n);
   await ready();
+  assert.equal((await invoke("state")).batch.selected, n - 1);
 };
+const readRange = (p) =>
+  p
+    .getByTestId("batch-heatmap")
+    .evaluate((c) => [
+      +c.dataset.viewXMin,
+      +c.dataset.viewXMax,
+      +c.dataset.viewYMin,
+      +c.dataset.viewYMax,
+    ]);
+const sameRange = (a, b) =>
+  a.forEach((x, i) => assert(Math.abs(x - b[i]) < 1e-5, `${a} vs ${b}`));
+let child;
 try {
   assert.equal((await invoke("example")).ok, true);
   assert.equal(
@@ -82,126 +117,188 @@ try {
   );
   await page.goto("file://" + path.join(root, "dioptas/desktop/ui/index.html"));
   await ready();
-  await click("Integration");
-  await click("Load image…");
+  assert.equal(
+    await page.getByRole("button", { name: "Batch", exact: true }).count(),
+    0,
+  );
+  await click(page, "Integration");
+  const opened = context.waitForEvent("page");
+  await click(page, "Load image…");
+  child = await opened;
+  await child.waitForLoadState();
+  await selected(child, 1);
   assert.equal(
     await page
-      .getByRole("button", { name: "Batch", exact: true })
+      .getByRole("button", { name: "Integration", exact: true })
       .getAttribute("aria-pressed"),
     "true",
   );
-  assert.equal((await invoke("state")).batch.entries.length, 6);
+  assert.equal(await child.locator(".intensity-histogram").count(), 1);
+  assert.equal(await child.getByTestId("detector-canvas").count(), 0);
+  await click(child, "Next batch frame");
+  await selected(child, 2);
+  let state = await invoke("state");
+  assert.equal(state.state.imageName, "series_2.tif");
+  assert(state.cake && state.pattern);
+  assert.equal(await page.getByTestId("cake-canvas").count(), 1);
+  await selectIntegrationDisplay(page, "cake");
+  assert(await page.getByTestId("cake-canvas").isVisible());
+  const canvas = child.getByTestId("batch-heatmap"),
+    b = await canvas.boundingBox();
+  await child.mouse.click(b.x + 100, b.y + 12 + ((b.height - 58) * 4.5) / 6);
+  await selected(child, 5);
+  state = await invoke("state");
+  assert.equal(state.state.imageName, "series_5.tif");
+  assert(state.cake);
+  // Qt Files/2D grouping, normalization popup, and bottom range navigation.
+  await child.getByRole("tab", { name: "Files", exact: true }).click();
   assert.equal(
-    await page.locator(".batch-layout .intensity-histogram").count(),
-    2,
+    await child
+      .getByRole("columnheader", { name: "Raw file name", exact: true })
+      .count(),
+    1,
   );
-  await click("Next batch pattern");
-  assert.equal((await invoke("state")).batch.selected, 1);
-  await click("Select batch pattern 5");
-  assert.equal((await invoke("state")).batch.selected, 4);
-  const canvas = page.getByTestId("batch-heatmap");
-  let box = await canvas.boundingBox();
-  await page.mouse.click(
-    box.x + 100,
-    box.y + 12 + ((box.height - 58) * 2.5) / 6,
+  assert.equal(
+    await child
+      .getByRole("columnheader", { name: "N images", exact: true })
+      .count(),
+    1,
   );
+  await click(child, "Select batch file 2");
+  await selected(child, 3);
+  await child.getByRole("tab", { name: "2D", exact: true }).click();
+  await click(child, "Normalization settings");
+  const dialog = child.getByRole("dialog", {
+    name: "Normalization settings",
+    exact: true,
+  });
+  await dialog.getByLabel("First normalization bin", { exact: true }).fill("0");
+  await dialog.getByLabel("Last normalization bin", { exact: true }).fill("99");
+  await dialog
+    .getByLabel("Normalization reference frame", { exact: true })
+    .fill("1");
+  await click(child, "Apply");
+  await child.waitForTimeout(100);
   await ready();
-  assert.equal((await invoke("state")).batch.selected, 2);
-  await canvas.focus();
-  await page.keyboard.press("ArrowDown");
+  await click(child, "Normalization settings");
+  await dialog
+    .getByLabel("First normalization bin", { exact: true })
+    .fill("20");
+  await click(child, "Cancel");
+  await click(child, "Normalize batch");
+  await child.waitForFunction(
+    () =>
+      document
+        .querySelector('[aria-label="Normalize batch"]')
+        ?.getAttribute("aria-pressed") === "true",
+  );
+  assert.equal((await invoke("state")).batch.normalized, true);
+  assert.deepEqual((await invoke("state")).batch.normalizationRange, [0, 100]);
+  await click(child, "Normalize batch");
+  await child.waitForFunction(
+    () =>
+      document
+        .querySelector('[aria-label="Normalize batch"]')
+        ?.getAttribute("aria-pressed") === "false",
+  );
+  // Unit/scale buttons keep stored arrays intact and use the recorded wavelength.
+  await click(child, "Batch unit Q");
+  await child.waitForFunction(
+    () =>
+      document
+        .querySelector('[aria-label="Batch unit Q"]')
+        ?.getAttribute("aria-pressed") === "true",
+  );
+  assert.equal((await invoke("state")).pattern.unit, "q_A^-1");
+  await click(child, "Batch unit 2θ");
+  await child.waitForFunction(
+    () =>
+      document
+        .querySelector('[aria-label="Batch unit 2θ"]')
+        ?.getAttribute("aria-pressed") === "true",
+  );
+  await child.getByRole("button", { name: "√", exact: true }).click();
+  await child.getByRole("button", { name: "lin", exact: true }).click();
+  await child.getByRole("tab", { name: "Files", exact: true }).click();
+  await child.getByLabel("Batch frame step", { exact: true }).fill("2");
+  await click(child, "Integrate");
+  await child.waitForFunction(() =>
+    document
+      .querySelector(".batch-frame-number")
+      ?.textContent.includes("(3/6)"),
+  );
+  await selected(child, 1);
+  assert.equal((await invoke("state")).batch.entries.length, 3);
+  await click(child, "Save batch data");
+  await child.waitForTimeout(200);
   await ready();
-  assert.equal((await invoke("state")).batch.selected, 3);
+  // Source contrast and overview zoom survive docking across webviews.
+  await click(child, "Batch histogram settings");
+  await child.getByLabel("Batch minimum intensity", { exact: true }).fill("10");
+  await child
+    .getByLabel("Batch minimum intensity", { exact: true })
+    .press("Enter");
+  await click(child, "Close batch display settings");
   const wheel = await canvas.evaluate((c) => {
-    const e = new WheelEvent("wheel", {
-      deltaY: -140,
-      clientX: c.getBoundingClientRect().x + 120,
-      clientY: c.getBoundingClientRect().y + 120,
-      bubbles: true,
-      cancelable: true,
-    });
+    const b = c.getBoundingClientRect(),
+      e = new WheelEvent("wheel", {
+        deltaY: -140,
+        clientX: b.x + 120,
+        clientY: b.y + 120,
+        bubbles: true,
+        cancelable: true,
+      });
     c.dispatchEvent(e);
     return e.defaultPrevented;
   });
   assert.equal(wheel, true);
-  await page.keyboard.press("f");
-  box = await canvas.boundingBox();
-  await page.mouse.move(box.x + 90, box.y + 80);
-  await page.mouse.down();
-  await page.mouse.move(box.x + 200, box.y + 180, { steps: 5 });
-  await page.mouse.up();
-  await ready();
-  assert.equal((await invoke("state")).batch.selected, 3);
-  await page.keyboard.press("f");
-  // Detector pixels and pattern intervals share the React workspace viewport memory.
-  const readView = async (plot) =>
-    plot.evaluate((el) =>
-      Object.fromEntries(
-        ["xMin", "xMax", "yMin", "yMax"].map((key) => [
-          key,
-          +el.dataset["view" + key[0].toUpperCase() + key.slice(1)],
-        ]),
-      ),
-    );
-  const sameX = (a, b) => {
-    assert(Math.abs(a.xMin - b.xMin) < 1e-6, `${a.xMin} vs ${b.xMin}`);
-    assert(Math.abs(a.xMax - b.xMax) < 1e-6, `${a.xMax} vs ${b.xMax}`);
-  };
-  const zoomPlot = async (plot) => {
-    const box = await plot.boundingBox();
-    await page.mouse.move(box.x + box.width * 0.35, box.y + box.height * 0.35);
-    await page.mouse.down();
-    await page.mouse.move(box.x + box.width * 0.65, box.y + box.height * 0.65, {
-      steps: 5,
-    });
-    await page.mouse.up();
-    await ready();
-  };
-  const batchDetector = page.locator(
-    '.batch-detector-panel [data-testid="detector-canvas"]',
+  await child.waitForTimeout(80);
+  const range = await readRange(child);
+  const display = await child.evaluate(() =>
+    JSON.parse(localStorage.getItem("dioptas-batch:display")),
   );
-  const batchPattern = page.locator(
-    '.batch-pattern-panel [data-testid="pattern-canvas"]',
-  );
-  await zoomPlot(batchDetector);
-  await zoomPlot(batchPattern);
-  const detectorView = await readView(batchDetector),
-    patternView = await readView(batchPattern);
-  await click("Integration");
-  sameX(
-    await readView(
-      page.locator('.integration-mode [data-testid="detector-canvas"]'),
-    ),
-    detectorView,
-  );
-  sameX(
-    await readView(
-      page.locator('.integration-mode [data-testid="pattern-canvas"]'),
-    ),
-    patternView,
-  );
-  await click("Batch");
-  sameX(await readView(batchDetector), detectorView);
-  sameX(await readView(batchPattern), patternView);
-  await page.getByLabel("Filter batch files").fill("nonsense");
+  assert.equal(display.limits[0], 10);
+  await child.screenshot({ path: path.join(artifacts, "batch-window.png") });
+  await click(child, "Dock batch below image");
+  await child.waitForEvent("close");
+  child = null;
+  const dock = page.locator(".batch-dock");
+  await dock.waitFor();
+  await selected(page, 1);
+  sameRange(await readRange(page), range);
   assert.equal(
-    await page.getByRole("button", { name: /Select batch pattern/ }).count(),
-    0,
+    await page.evaluate(
+      () => JSON.parse(localStorage.getItem("dioptas-batch:display")).limits[0],
+    ),
+    10,
   );
-  await page.getByLabel("Filter batch files").fill("");
-  await page.getByText("Normalization", { exact: true }).click();
-  await click("Normalize");
-  assert.equal((await invoke("state")).batch.normalized, true);
-  await click("Restore original");
-  await page.getByLabel("Stride", { exact: true }).fill("2");
-  await click("Reintegrate range");
-  assert.equal((await invoke("state")).batch.entries.length, 3);
-  await click("Save batch…");
-  await click("Open processed batch…");
-  assert.equal((await invoke("state")).batch.entries.length, 3);
-  await click("Expand overview");
-  assert.equal(await page.locator(".batch-detector-panel").count(), 0);
-  await click("Show detector / pattern");
-  await page.screenshot({ path: path.join(artifacts, "batch-workspace.png") });
+  const image = await page.locator(".cake-panel").boundingBox(),
+    dockBox = await dock.boundingBox(),
+    controls = await page.locator(".integration-controls").boundingBox(),
+    pattern = await page.locator(".pattern-panel").boundingBox();
+  assert(dockBox.y >= image.y + image.height - 1);
+  assert(dockBox.x < controls.x && dockBox.x + dockBox.width <= controls.x);
+  assert(pattern.x >= dockBox.x + dockBox.width);
+  await click(page, "Next batch frame");
+  await selected(page, 2);
+  assert.equal((await invoke("state")).state.imageName, "series_3.tif");
+  assert((await invoke("state")).cake);
+  const divider = page.getByRole("separator", {
+    name: "Image and batch divider",
+    exact: true,
+  });
+  await divider.focus();
+  await divider.press("ArrowUp");
+  assert((await dock.boundingBox()).height > dockBox.height);
+  await click(page, "Collapse batch overview");
+  assert((await dock.boundingBox()).height < 50);
+  await click(page, "Expand batch overview");
+  await page.waitForFunction(() => {
+    const c = document.querySelector('[data-testid="batch-heatmap"]');
+    return c?.width > 200 && c?.height > 100;
+  });
+  await page.waitForTimeout(80);
+  await page.screenshot({ path: path.join(artifacts, "batch-docked.png") });
   for (const large of [false, true]) {
     await page.setViewportSize({ width: 1000, height: 700 });
     await page
@@ -213,29 +310,68 @@ try {
       );
     await page.waitForTimeout(100);
     const boxes = await page
-      .locator(".batch-layout section")
+      .locator(
+        ".integration-left-pane,.batch-dock,.integration-controls,.pattern-panel",
+      )
       .evaluateAll((nodes) =>
         nodes.map((n) => {
           const b = n.getBoundingClientRect();
-          return { width: b.width, height: b.height, right: b.right };
+          return {
+            x: b.x,
+            y: b.y,
+            width: b.width,
+            height: b.height,
+            right: b.right,
+            bottom: b.bottom,
+          };
         }),
       );
     assert(
-      boxes.every((b) => b.width > 100 && b.height > 80 && b.right <= 1000),
+      boxes.every(
+        (b) =>
+          b.width > 100 &&
+          b.height > 90 &&
+          b.x >= 0 &&
+          b.right <= 1000 &&
+          b.bottom <= 700,
+      ),
       JSON.stringify(boxes),
-    );
-    assert.equal(
-      await page.locator(".batch-layout .intensity-histogram").count(),
-      2,
     );
   }
   await page.screenshot({
-    path: path.join(artifacts, "batch-workspace-small.png"),
+    path: path.join(artifacts, "batch-docked-small.png"),
   });
-  await click("Calibration");
-  await click("Integration");
-  await click("Batch processing…");
-  assert.equal(await canvas.count(), 1);
+  await click(page, "Hide batch view");
+  assert.equal(await dock.count(), 0);
+  assert.equal((await invoke("state")).batch.entries.length, 3);
+  await click(page, "Batch view…");
+  await dock.waitFor();
+  const reopened = context.waitForEvent("page");
+  await click(page, "Detach batch");
+  child = await reopened;
+  await child.waitForLoadState();
+  await selected(child, 2);
+  assert.equal(await dock.count(), 0);
+  sameRange(await readRange(child), range);
+  await child.close();
+  child = null;
+  await page.waitForTimeout(500);
+  const again = context.waitForEvent("page");
+  await click(page, "Batch view…");
+  child = await again;
+  await child.waitForLoadState();
+  await selected(child, 2);
+  // A stored-only series must clear stale detector/cake pixels in Integration.
+  for (const file of paths) await rm(file);
+  processed = true;
+  await click(child, "Load raw/proc data");
+  await selected(child, 1);
+  state = await invoke("state");
+  assert.equal(state.state.hasImage, false);
+  assert.equal(state.cake, null);
+  assert.equal(await page.getByTestId("detector-canvas").count(), 0);
+  assert.equal(await page.getByTestId("cake-canvas").count(), 0);
+  assert.equal(await page.getByTestId("pattern-canvas").count(), 1);
   assert.deepEqual(errors, []);
   await writeFile(
     path.join(
@@ -245,16 +381,30 @@ try {
     JSON.stringify(
       {
         ok: true,
-        requests: requests.map((r) => r.action),
+        companionWindow: true,
+        lowerLeftDock: true,
+        linkedCake: true,
+        preservedDisplay: true,
+        requests,
         consoleErrors: errors,
       },
       null,
       2,
     ),
   );
-  console.log("Batch UI smoke passed");
+  console.log("Batch companion/dock smoke passed");
+} catch (e) {
+  await page
+    .screenshot({ path: path.join(artifacts, "batch-failure-main.png") })
+    .catch(() => {});
+  if (child)
+    await child
+      .screenshot({ path: path.join(artifacts, "batch-failure-window.png") })
+      .catch(() => {});
+  throw e;
 } finally {
   await browser.close();
   host.stdin.end();
   await writeFile(path.join(artifacts, "batch-smoke.log"), logs.join(""));
+  await rm(temporary, { recursive: true, force: true });
 }

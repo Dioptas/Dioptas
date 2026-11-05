@@ -158,6 +158,7 @@ def test_save_reopen_and_project_restore(prepared, tmp_path):
     r = call(s, "batch_open", path=str(output))
     assert r["batchOpened"] and not r["state"]["hasImage"]
     assert "unavailable" in r["batchWarning"]
+    assert r["clearImage"] and r["cake"] is None
     assert r["state"]["geometry"] == before
     assert r["batch"]["wavelength"] == wavelength
     np.testing.assert_array_equal(s.configuration.batch_model.data, normalized)
@@ -182,6 +183,79 @@ def test_processed_without_provenance_or_calibration(tmp_path):
     call(s, "integration_save_batch", path=str(out))
     call(s, "batch_open", path=str(out))
     assert call(s, "batch_select", index=1)["pattern"]["y"] == [4, 5, 6, 7]
+
+
+def test_qt_load_action_and_display_units(prepared, tmp_path):
+    s, paths = prepared
+    result = call(s, "batch_load_data", paths=paths)
+    b = s.configuration.batch_model
+    original = b.data.copy()
+    theta = b.binning.copy()
+    wavelength = b._desktop_wavelength
+    for unit, expected in (
+        ("q_A^-1", 4 * np.pi * np.sin(np.radians(theta / 2)) / (wavelength * 1e10)),
+        ("d_A", wavelength * 1e10 / (2 * np.sin(np.radians(theta / 2)))),
+        ("2th_deg", theta),
+    ):
+        displayed = call(s, "batch_unit", unit=unit)
+        assert displayed["batch"]["id"] == result["batch"]["id"]
+        assert displayed["pattern"]["unit"] == unit
+        np.testing.assert_allclose(displayed["pattern"]["x"], expected)
+        np.testing.assert_array_equal(b.data, original)
+        np.testing.assert_array_equal(b.binning, theta)
+    target = tmp_path / "series.h5"
+    call(s, "integration_save_batch", path=str(target))
+    imported = call(s, "batch_load_data", paths=[str(target)])
+    assert len(imported["batch"]["entries"]) == 3
+    np.testing.assert_array_equal(s.configuration.batch_model.data, original)
+
+
+def test_stored_reciprocal_units_need_no_invented_wavelength(tmp_path):
+    file = tmp_path / "stored.h5"
+    with h5py.File(file, "w") as f:
+        group = f.create_group("processed/result")
+        group["data"] = np.arange(12).reshape(3, 4)
+        group["binning"] = [1., 2., 4., 8.]
+        group["binning"].attrs["radial_unit"] = "q_A^-1"
+    s = DesktopSession()
+    call(s, "batch_load_data", paths=[str(file)])
+    r = call(s, "batch_unit", unit="d_A")
+    np.testing.assert_allclose(r["pattern"]["x"], 2 * np.pi / np.array([1., 2., 4., 8.]))
+    assert r["batch"]["wavelength"] is None
+    assert not s.invoke("batch_unit", {"unit": "2th_deg"})["ok"]
+    assert call(s, "batch_snapshot")["batch"]["unit"] == "d_A"
+
+
+def test_qt_normalization_settings_and_neighboring_folders(prepared, tmp_path):
+    s, paths = prepared
+    from shutil import copyfile
+    folders = []
+    for index in (1, 2):
+        folder = tmp_path / f"scan_{index:03d}"
+        folder.mkdir()
+        files = []
+        for source in paths:
+            target = folder / Path(source).name
+            copyfile(source, target)
+            files.append(str(target))
+        folders.append(files)
+    call(s, "batch_load_data", paths=folders[0])
+    r = call(s, "batch_folder_step", direction=1)
+    assert [e["path"] for e in r["batch"]["entries"]] == folders[1]
+    r = call(s, "batch_folder_step", direction=-1)
+    assert [e["path"] for e in r["batch"]["entries"]] == folders[0]
+    b = s.configuration.batch_model
+    original = b.data.copy()
+    r = call(s, "batch_normalization_settings", start=0, stop=99, reference=1)
+    assert not r["batch"]["normalized"]
+    assert r["batch"]["normalizationRange"] == [0, 100]
+    assert r["batch"]["normalizationReference"] == 1
+    np.testing.assert_array_equal(b.data, original)
+    call(s, "batch_normalize", start=1, stop=100, reference=2)
+    call(s, "batch_normalization_settings", start=0, stop=99, reference=2)
+    np.testing.assert_allclose(b.data.mean(axis=1), original[2].mean())
+    call(s, "batch_normalize", enabled=False)
+    np.testing.assert_array_equal(b.data, original)
 
 
 def test_cancellation_bypasses_worker_and_does_not_publish(prepared, monkeypatch):
@@ -241,3 +315,30 @@ def test_background_and_flat_field_match_live_integration(prepared, tmp_path):
     call(s, "settings", bins=200)
     # The batch remains a historical result until explicit reintegration.
     assert call(s, "state")["batch"]["pattern"] == stored
+
+
+def test_selected_frame_updates_cake_and_keeps_stored_series(prepared):
+    s, paths = prepared
+    call(s, "batch_load", paths=paths)
+    batch = s.configuration.batch_model
+    original = np.array(batch.data, copy=True)
+    first = call(s, "batch_select", index=0)
+    last = call(s, "batch_select", index=2)
+    assert first["cake"] and last["cake"]
+    assert last["state"]["imagePath"] == paths[2]
+    a = np.frombuffer(base64.b64decode(first["cake"]["data"]), dtype="<f4")
+    b = np.frombuffer(base64.b64decode(last["cake"]["data"]), dtype="<f4")
+    assert np.max(a) > 0
+    np.testing.assert_allclose(b, a*3, rtol=1e-6, atol=1e-5)
+    np.testing.assert_array_equal(batch.data, original)
+    np.testing.assert_allclose(last["pattern"]["y"], original[2])
+    call(s, "batch_normalize", start=1, stop=100, reference=2)
+    normalized = call(s, "batch_select", index=2)
+    assert normalized["cake"]
+    np.testing.assert_allclose(normalized["pattern"]["y"], batch.data[2])
+    # Normalization changes stored profiles, never the source detector/cake.
+    assert normalized["cake"]["data"] == last["cake"]["data"]
+    snapshot = call(s, "batch_snapshot")
+    assert snapshot["batch"]["selected"] == 2
+    assert snapshot["batch"]["id"] == call(s, "batch_snapshot")["batch"]["id"]
+    assert "image" not in snapshot and "cake" not in snapshot

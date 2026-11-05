@@ -2,7 +2,13 @@ use serde_json::{json, Value};
 use std::{fs, path::PathBuf, sync::Mutex};
 use tauri::{LogicalSize, Manager, PhysicalPosition, WebviewUrl, WebviewWindowBuilder};
 
-const LABEL: &str = "map-window";
+fn label<const K: u8>() -> &'static str {
+    if K == 0 {
+        "map-window"
+    } else {
+        "batch-window"
+    }
+}
 const DEFAULT_SIZE: [f64; 2] = [800., 760.];
 const MIN_SIZE: [f64; 2] = [460., 360.];
 
@@ -86,32 +92,42 @@ impl Placement {
 }
 
 #[derive(Default)]
-pub struct MapWindowState(Mutex<WindowState>);
+pub struct WindowPlacementState<const K: u8>(Mutex<WindowState>);
+pub type MapWindowState = WindowPlacementState<0>;
+pub type BatchWindowState = WindowPlacementState<1>;
 #[derive(Default)]
 struct WindowState {
     last_normal: Option<Placement>,
     restoring: bool,
 }
 
-fn state_path(app: &tauri::AppHandle) -> Option<PathBuf> {
+fn state_path<const K: u8>(app: &tauri::AppHandle) -> Option<PathBuf> {
     // Native tests use a disposable file, never the user's window preferences.
     if app.state::<crate::Host>().smoke {
-        return std::env::var_os("DIOPTAS_MAP_WINDOW_STATE").map(PathBuf::from);
+        return std::env::var_os(if K == 0 {
+            "DIOPTAS_MAP_WINDOW_STATE"
+        } else {
+            "DIOPTAS_BATCH_WINDOW_STATE"
+        })
+        .map(PathBuf::from);
     }
-    app.path()
-        .app_config_dir()
-        .ok()
-        .map(|dir| dir.join("map-window-v1.json"))
+    app.path().app_config_dir().ok().map(|dir| {
+        dir.join(if K == 0 {
+            "map-window-v1.json"
+        } else {
+            "batch-window-v1.json"
+        })
+    })
 }
-fn load(app: &tauri::AppHandle) -> Option<Placement> {
-    let bytes = fs::read(state_path(app)?).ok()?;
+fn load<const K: u8>(app: &tauri::AppHandle) -> Option<Placement> {
+    let bytes = fs::read(state_path::<K>(app)?).ok()?;
     if bytes.len() > 8192 {
         return None;
     }
     Placement::parse(&serde_json::from_slice::<Value>(&bytes).ok()?)
 }
-fn persist(app: &tauri::AppHandle, placement: &Placement) -> Result<(), String> {
-    let Some(path) = state_path(app) else {
+fn persist<const K: u8>(app: &tauri::AppHandle, placement: &Placement) -> Result<(), String> {
+    let Some(path) = state_path::<K>(app) else {
         return Ok(());
     };
     if let Some(parent) = path.parent() {
@@ -163,12 +179,12 @@ fn restored_position(saved: &Placement, screen: &Screen, outer: [f64; 2]) -> Phy
     PhysicalPosition::new(p[0], p[1])
 }
 
-fn remember(app: &tauri::AppHandle) {
-    let state = app.state::<MapWindowState>();
+fn remember<const K: u8>(app: &tauri::AppHandle) {
+    let state = app.state::<WindowPlacementState<K>>();
     if state.0.lock().unwrap().restoring {
         return;
     }
-    let Some(window) = app.get_webview_window(LABEL) else {
+    let Some(window) = app.get_webview_window(label::<K>()) else {
         return;
     };
     // Closing or quitting while minimized/maximized retains the normal bounds.
@@ -201,27 +217,27 @@ fn remember(app: &tauri::AppHandle) {
         state.0.lock().unwrap().last_normal = Some(placement);
     }
 }
-pub fn save(app: &tauri::AppHandle) {
-    remember(app);
+fn save_kind<const K: u8>(app: &tauri::AppHandle) {
+    remember::<K>(app);
     let placement = app
-        .state::<MapWindowState>()
+        .state::<WindowPlacementState<K>>()
         .0
         .lock()
         .unwrap()
         .last_normal
         .clone();
     if let Some(placement) = placement {
-        if let Err(error) = persist(app, &placement) {
+        if let Err(error) = persist::<K>(app, &placement) {
             eprintln!("Could not save map window placement: {error}");
         }
     }
 }
-pub fn window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
-    if (window.label() == LABEL || window.label() == "main")
+fn window_event_kind<const K: u8>(window: &tauri::Window, event: &tauri::WindowEvent) {
+    if (window.label() == label::<K>() || window.label() == "main")
         && matches!(event, tauri::WindowEvent::CloseRequested { .. })
     {
-        save(window.app_handle());
-    } else if window.label() == LABEL
+        save_kind::<K>(window.app_handle());
+    } else if window.label() == label::<K>()
         && matches!(
             event,
             tauri::WindowEvent::Moved(_)
@@ -229,28 +245,30 @@ pub fn window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
                 | tauri::WindowEvent::ScaleFactorChanged { .. }
         )
     {
-        remember(window.app_handle());
+        remember::<K>(window.app_handle());
     }
 }
 
-#[tauri::command]
-pub fn open_map_window(app: tauri::AppHandle, window: tauri::WebviewWindow) -> Result<(), String> {
+fn open_window<const K: u8>(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+) -> Result<(), String> {
     if window.label() != "main" {
         return Err("Only the main window may detach the map.".into());
     }
-    if let Some(map) = app.get_webview_window(LABEL) {
+    if let Some(map) = app.get_webview_window(label::<K>()) {
         map.show().map_err(|e| e.to_string())?;
         map.unminimize().map_err(|e| e.to_string())?;
         return map.set_focus().map_err(|e| e.to_string());
     }
-    let state = app.state::<MapWindowState>();
+    let state = app.state::<WindowPlacementState<K>>();
     let saved = state
         .0
         .lock()
         .unwrap()
         .last_normal
         .clone()
-        .or_else(|| load(&app));
+        .or_else(|| load::<K>(&app));
     let screens: Vec<Screen> = window
         .available_monitors()
         .map_err(|e| e.to_string())?
@@ -271,16 +289,24 @@ pub fn open_map_window(app: tauri::AppHandle, window: tauri::WebviewWindow) -> R
         .and_then(|saved| target_screen(saved, &screens, fallback));
     state.0.lock().unwrap().restoring = true;
     let opened = (|| -> Result<(), String> {
-        let map = WebviewWindowBuilder::new(&app, LABEL, WebviewUrl::App("index.html".into()))
-            .title("Map — Dioptas")
-            .inner_size(DEFAULT_SIZE[0], DEFAULT_SIZE[1])
-            .min_inner_size(MIN_SIZE[0], MIN_SIZE[1])
-            .visible(false)
-            .resizable(true)
-            .decorations(true)
-            .disable_drag_drop_handler()
-            .build()
-            .map_err(|e| e.to_string())?;
+        let map =
+            WebviewWindowBuilder::new(&app, label::<K>(), WebviewUrl::App("index.html".into()))
+                .title(if K == 0 {
+                    "Map — Dioptas"
+                } else {
+                    "Batch — Dioptas"
+                })
+                .inner_size(
+                    if K == 0 { DEFAULT_SIZE[0] } else { 900. },
+                    if K == 0 { DEFAULT_SIZE[1] } else { 600. },
+                )
+                .min_inner_size(MIN_SIZE[0], MIN_SIZE[1])
+                .visible(false)
+                .resizable(true)
+                .decorations(true)
+                .disable_drag_drop_handler()
+                .build()
+                .map_err(|e| e.to_string())?;
         if let (Some(saved), Some(index)) = (saved.as_ref(), target) {
             let screen = &screens[index];
             let size = restored_size(saved, screen);
@@ -315,22 +341,55 @@ pub fn open_map_window(app: tauri::AppHandle, window: tauri::WebviewWindow) -> R
     })();
     state.0.lock().unwrap().restoring = false;
     if opened.is_ok() {
-        remember(&app);
-    } else if let Some(map) = app.get_webview_window(LABEL) {
+        remember::<K>(&app);
+    } else if let Some(map) = app.get_webview_window(label::<K>()) {
         let _ = map.destroy();
     }
     opened
 }
 
-#[tauri::command]
-pub fn close_map_window(app: tauri::AppHandle, window: tauri::WebviewWindow) -> Result<(), String> {
+fn close_window<const K: u8>(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+) -> Result<(), String> {
     if window.label() != "main" {
         return Err("Only the main window may dock the map.".into());
     }
-    if let Some(map) = app.get_webview_window(LABEL) {
+    if let Some(map) = app.get_webview_window(label::<K>()) {
         map.close().map_err(|e| e.to_string())?;
     }
     Ok(())
+}
+
+pub fn save(app: &tauri::AppHandle) {
+    save_kind::<0>(app);
+    save_kind::<1>(app);
+}
+pub fn window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
+    window_event_kind::<0>(window, event);
+    window_event_kind::<1>(window, event);
+}
+#[tauri::command]
+pub fn open_map_window(app: tauri::AppHandle, window: tauri::WebviewWindow) -> Result<(), String> {
+    open_window::<0>(app, window)
+}
+#[tauri::command]
+pub fn close_map_window(app: tauri::AppHandle, window: tauri::WebviewWindow) -> Result<(), String> {
+    close_window::<0>(app, window)
+}
+#[tauri::command]
+pub fn open_batch_window(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+) -> Result<(), String> {
+    open_window::<1>(app, window)
+}
+#[tauri::command]
+pub fn close_batch_window(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+) -> Result<(), String> {
+    close_window::<1>(app, window)
 }
 
 #[cfg(test)]

@@ -17,6 +17,11 @@ from .display import image_levels
 class BatchWorkflow:
     def _batch_commands(self):
         return {
+            "batch_snapshot": self._batch_snapshot,
+            "batch_load_data": self._batch_load_data,
+            "batch_folder_step": self._batch_folder_step,
+            "batch_unit": self._batch_unit,
+            "batch_normalization_settings": self._batch_normalization_settings,
             "batch_load": self._batch_load,
             "integration_save_batch": self._batch_save,
             "batch_folder": self._batch_folder,
@@ -25,6 +30,53 @@ class BatchWorkflow:
             "batch_normalize": self._batch_normalize,
             "batch_levels": self._batch_levels,
         }
+
+    def _batch_load_data(self, paths=None):
+        if paths is None and self._choose_file:
+            paths = self._choose_file("batch_images", False)
+        if not paths:
+            return {"cancelled": True}
+        if isinstance(paths, str):
+            paths = [paths]
+        first = self._path(paths[0], "image")
+        if Path(first).suffix.lower() in {".h5", ".hdf5", ".nxs"}:
+            import h5py
+            with h5py.File(first, "r") as source:
+                processed = "processed/result" in source or ("data" in source and "binning" in source)
+            if processed:
+                if len(paths) != 1:
+                    raise ValueError("Open one processed batch at a time.")
+                return self._batch_open(first)
+        return self._batch_load(paths=paths)
+
+    def _batch_folder_step(self, direction=1):
+        b = self._require_batch()
+        if direction not in (-1, 1) or b.files is None or not len(b.files):
+            raise ValueError("Load raw image files before stepping through folders.")
+        paths = b.get_next_folder_filenames() if direction == 1 else b.get_previous_folder_filenames()
+        if not paths:
+            raise ValueError("No matching image files in the neighboring folder.")
+        return self._batch_load(paths=paths)
+
+    def _batch_unit(self, unit):
+        b = self._require_batch()
+        if unit not in {"2th_deg", "q_A^-1", "d_A"}:
+            raise ValueError("Choose 2theta, Q or d.")
+        if unit != b.integration_unit and "2th_deg" in {unit, b.integration_unit} and getattr(b, "_desktop_wavelength", None) is None:
+            raise ValueError("This stored batch has no recorded wavelength for that conversion.")
+        self.configuration.integration_unit = unit
+        return {**self._batch_select(self._batch_index()), **self._batch_snapshot()}
+
+    def _batch_normalization_settings(self, start, stop, reference):
+        b = self._require_batch()
+        if any(isinstance(v, bool) or int(v) != v for v in (start, stop, reference)) or not 0 <= start <= stop < len(b.binning) or not 0 <= reference < len(b.data):
+            raise ValueError("Choose inclusive normalization bins and a reference frame within the batch.")
+        if b.normalization_enabled:
+            b.normalize((int(start), int(stop)+1), int(reference))
+            return {**self._batch_select(self._batch_index()), **self._batch_snapshot()}
+        b.normalization_range = (int(start), int(stop)+1)
+        b.normalization_reference = int(reference)
+        return {**self._state(), **self._batch_snapshot()}
 
     def _require_batch(self):
         b = self.configuration.batch_model
@@ -36,6 +88,11 @@ class BatchWorkflow:
         b = self.configuration.batch_model
         if b.data is None or not len(b.data):
             return {"batch": None}
+        if getattr(b, "_desktop_display_source", None) is not b.data:
+            from uuid import uuid4
+            b._desktop_display_source = b.data
+            b._desktop_display_id = uuid4().hex
+        profile = self._batch_pattern(b, self._batch_index())
         entries = []
         for i in range(len(b.data)):
             path, frame = b.get_image_info(i)
@@ -47,14 +104,22 @@ class BatchWorkflow:
                     "frame": int(frame or 0) + 1,
                 }
             )
+        files = []
+        for file_index, path in enumerate(b.files if b.files is not None else []):
+            indices = [i for i, entry in enumerate(entries) if entry["path"] == str(path)]
+            frames = int(b.file_map[file_index+1] - b.file_map[file_index]) if b.file_map is not None and len(b.file_map) > file_index+1 else len(indices)
+            files.append({"path": str(path), "name": Path(path).name, "frames": frames, "first": indices[0] if indices else None})
         return {
             "batch": {
+                "id": b._desktop_display_id,
                 "raster": self._raster(b.data, max_side=None, histogram=True),
-                "x": np.asarray(b.binning).tolist(),
+                "x": profile["x"],
                 "wavelength": getattr(b, "_desktop_wavelength", None),
-                "unit": b.integration_unit,
+                "unit": profile["unit"],
+                "sourceUnit": b.integration_unit,
                 "entries": entries,
-                "pattern": self._batch_pattern(b, self._batch_index()),
+                "files": files,
+                "pattern": profile,
                 "selected": self._batch_index(),
                 "total": int(b.n_img_all or len(b.data)),
                 "canReintegrate": bool(b.raw_available),
@@ -62,15 +127,26 @@ class BatchWorkflow:
                 "normalizationRange": list(b.normalization_range),
                 "normalizationReference": int(b.normalization_reference),
                 "calibration": b.used_calibration,
+                "mask": b.used_mask,
             }
         }
 
-    @staticmethod
-    def _batch_pattern(batch, index):
+    def _batch_pattern(self, batch, index):
+        from dioptas.model.util.calc import convert_units
+        unit = self.configuration.integration_unit
+        wavelength = getattr(batch, "_desktop_wavelength", None)
+        if wavelength is None and unit != batch.integration_unit and "2th_deg" in {unit, batch.integration_unit}:
+            unit = batch.integration_unit
+        x = np.asarray(batch.binning)
+        if unit != batch.integration_unit:
+            if "2th_deg" not in {unit, batch.integration_unit}:
+                x = 2 * np.pi / x
+            else:
+                x = convert_units(x, wavelength, batch.integration_unit, unit)
         return {
-            "x": np.asarray(batch.binning).tolist(),
+            "x": x.tolist(),
             "y": [float(v) if np.isfinite(v) else None for v in batch.data[index]],
-            "unit": batch.integration_unit,
+            "unit": unit,
         }
 
     def _batch_index(self):
@@ -290,31 +366,32 @@ class BatchWorkflow:
         if available:
             self.configuration.calibration_model.clear_peaks()
             self._fit_rms = None
+            # Populate Integration's detector/cake through the usual correction
+            # and integration path, then restore the stored series profile.
+            self._calculate()
             response.update(
-                image=self._raster(
-                    self.configuration.img_model.img_data, max_side=None, histogram=True
-                ),
-                mask=self._raster(
-                    self.configuration.mask_model.get_display_mask(),
-                    mask=True,
-                    max_side=None,
-                ),
+                image=self._raster(self.configuration.img_model.img_data, max_side=None, histogram=True),
+                rawImage=self._raster(self.configuration.img_model.raw_img_data, max_side=None, histogram=True),
+                mask=self._raster(self.configuration.mask_model.get_display_mask(), mask=True, max_side=None),
             )
         else:
+            self._cake = None
             warning = "Raw detector image unavailable; showing the stored pattern."
-        x, y = np.asarray(b.binning), b.data[index]
-        self.configuration.pattern_model.set_pattern(
-            x, y, str(path or ""), unit=b.integration_unit
-        )
-        self._pattern = self._batch_pattern(b, index)
-        self._cake, self._integration_dirty = None, False
+        profile = self._batch_pattern(b, index)
+        x, y = np.asarray(profile["x"]), b.data[index]
+        # Stored profiles retain their own radial unit and intensities. Current
+        # image/cake processing never silently replaces the batch matrix.
+        self.configuration.pattern_model.set_pattern(x, y, str(path or ""), unit=profile["unit"])
+        self._refresh_integration_pattern()
+        self._integration_dirty = False
         self._batch_selected, self._batch_owner = index, b
         self._revision += 1
         return {
             **response,
             **self._state(),
             "pattern": self._pattern,
-            "cake": None,
+            "cake": self._cake,
+            "clearImage": not bool(available),
             "batchSelection": index,
             "batchWarning": warning,
         }

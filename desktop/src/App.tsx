@@ -1,5 +1,12 @@
 import { useNativePhaseEditorSync } from "./phaseEditorWindow";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ArrowUpRight,
   Crosshair,
@@ -34,7 +41,11 @@ import {
 import { restoreMapPosition, type PatternPosition } from "./linkedPosition";
 import { radialFields, radialValues } from "./radialReadout";
 import { detectorPlotSetup, patternPlotSetup } from "./diffractionPlotSetup";
-import { createPlotViews, patternViewport, plotViewContext } from "./plotViewport";
+import {
+  createPlotViews,
+  patternViewport,
+  plotViewContext,
+} from "./plotViewport";
 import { shapeHelp } from "./maskDomain";
 import type {
   Cake,
@@ -47,8 +58,8 @@ import type {
   Tool,
 } from "./types";
 import { number } from "./types";
-import { BatchView } from "./BatchView";
-import { BatchControls } from "./BatchControls";
+import { BatchDock } from "./BatchDock";
+import { useBatchWindow } from "./batchWindow";
 import type { BatchData } from "./batchDomain";
 import { MapView } from "./MapView";
 import type { MapData } from "./mapDomain";
@@ -190,7 +201,7 @@ export default function App() {
   const [setupDirty, setSetupDirty] = useState(false);
   const [setupValid, setSetupValid] = useState(true);
   const [mode, setMode] = useState<
-    "calibration" | "integration" | "mask" | "map" | "batch"
+    "calibration" | "integration" | "mask" | "map"
   >("calibration");
   const activeMode = useRef(mode);
   useEffect(() => {
@@ -214,6 +225,8 @@ export default function App() {
   } | null>(null);
   const [mapPatternZoom, setMapPatternZoom] = useState<ZoomMode>("rectangle");
   const [batch, setBatch] = useState<BatchData | null>(null);
+  const [batchDockVisible, setBatchDockVisible] = useState(false);
+  const [batchOpenRequest, setBatchOpenRequest] = useState(0);
   const [batchWarning, setBatchWarning] = useState<string | null>(null);
   const [map, setMap] = useState<MapData | null>(null);
   const [mapWarning, setMapWarning] = useState<string | null>(null);
@@ -311,117 +324,139 @@ export default function App() {
   const hoverRequest = useRef(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const canDeferIntegration = useRef(false);
-  const apply = useCallback((
-    result: Response,
-    resetImageView = true,
-    retainClick = false,
-  ) => {
-    if (!result.ok)
-      throw new Error(result.error || "The operation could not be completed.");
-    if ("batch" in result) setBatch(result.batch ?? null);
-    if (result.batchSelection !== undefined)
-      setBatch((b) =>
-        b
-          ? {
-              ...b,
-              selected: result.batchSelection!,
-              pattern: result.pattern ?? b.pattern,
-            }
-          : b,
-      );
-    if ("batchWarning" in result) setBatchWarning(result.batchWarning ?? null);
-    if (result.batchOpened) setMode("batch");
-    if ("map" in result) setMap(result.map ?? null);
-    if ("mapWarning" in result) setMapWarning(result.mapWarning ?? null);
-    if (result.state) {
-      if (retainClick) retainedClickContext.current = clickContext(result.state);
-      currentState.current = result.state;
-      if (typeof result.state.integration.originalPatternVisible === "boolean")
-        setShowOriginalPattern(result.state.integration.originalPatternVisible);
-      if (result.state.integration.originalPatternColor)
-        setOriginalPatternColor(result.state.integration.originalPatternColor);
-      // An existing live preview may still have the earlier Python worker
-      // loaded until the user restarts it.
-      canDeferIntegration.current = "integrationDirty" in result.state;
-      if (result.patternOnly && !result.phaseOnly)
-        phaseGuideRevision.current = result.state.revision;
-      setState((previous) => {
-        const next = result.state!;
-        if (!previous || !result.patternOnly) return next;
-        // Retain unchanged detector/controls inputs during a pattern-only edit.
-        return {
-          ...next,
-          calibration: previous.calibration,
-          geometry: previous.geometry,
-          integration: { ...next.integration, roi: previous.integration.roi },
-        };
-      });
-    }
-    if (result.phaseGuides) setPhaseGuides(result.phaseGuides);
-    if (result.rawImage) {
-      rawImageSource.current = result.rawImage;
-      setRawImage(result.rawImage);
-    }
-    if (result.image) {
-      const sourceChanged =
-        result.image.data !== imageSource.current?.data ||
-        result.image.width !== imageSource.current?.width ||
-        result.image.height !== imageSource.current?.height;
-      imageSource.current = result.image;
-      ++hoverSequence.current;
-      hoverLatest.current = null;
-      if (hoverTimer.current) clearTimeout(hoverTimer.current);
-      hoverTimer.current = null;
-      setPixel(null);
-      setImage(result.image);
-      // Recovery and state refreshes can resend the same detector image.
-      // Only a changed source should replace the user's contrast limits.
-      if (sourceChanged)
-        setLimits(
-          activeMode.current === "integration" &&
-            !correctedImageRef.current &&
-            result.rawImage
-            ? result.rawImage.limits
-            : result.image.limits,
+  const apply = useCallback(
+    (result: Response, resetImageView = true, retainClick = false) => {
+      if (!result.ok)
+        throw new Error(
+          result.error || "The operation could not be completed.",
         );
-      if (resetImageView) setResetKey((k) => k + 1);
-    }
-    if (result.levels)
-      (result.display === "cake" ? setCakeLimits : setLimits)(result.levels);
-    if (result.nextRing !== undefined) setRing(result.nextRing);
-    if ("linked" in result) {
-      currentLinked.current = result.linked;
-      setLinked(result.linked);
-    }
-    if (result.mask)
-      setMask((previous) =>
-        previous?.data === result.mask!.data &&
-        previous.width === result.mask!.width &&
-        previous.height === result.mask!.height
-          ? previous
-          : result.mask!,
-      );
-    if (result.rings) {
-      setRings(result.rings);
-    }
-    if ("pattern" in result) setPattern(result.pattern ?? null);
-    if ("cake" in result) {
-      setCake(result.cake ?? null);
-      if (
-        result.cake &&
-        (result.cake.data !== cakeSource.current?.data ||
-          result.cake.width !== cakeSource.current?.width ||
-          result.cake.height !== cakeSource.current?.height)
-      )
-        setCakeLimits(result.cake.limits);
-      cakeSource.current = result.cake ?? null;
-    }
-    if (result.savedPath) {
-      setNotice(`Saved ${result.savedPath.split(/[\\/]/).at(-1)}`);
-      if (toastTimer.current) clearTimeout(toastTimer.current);
-      toastTimer.current = setTimeout(() => setNotice(null), 4500);
-    }
-  }, []);
+      if ("batch" in result) setBatch(result.batch ?? null);
+      if (result.batchSelection !== undefined)
+        setBatch((b) =>
+          b
+            ? {
+                ...b,
+                selected: result.batchSelection!,
+                pattern: result.pattern ?? b.pattern,
+              }
+            : b,
+        );
+      if ("batchWarning" in result)
+        setBatchWarning(result.batchWarning ?? null);
+      if (result.batchOpened) {
+        setMode("integration");
+        setBatchOpenRequest((v) => v + 1);
+      }
+      if ("map" in result) setMap(result.map ?? null);
+      if ("mapWarning" in result) setMapWarning(result.mapWarning ?? null);
+      if (result.state) {
+        if (retainClick)
+          retainedClickContext.current = clickContext(result.state);
+        currentState.current = result.state;
+        if (
+          typeof result.state.integration.originalPatternVisible === "boolean"
+        )
+          setShowOriginalPattern(
+            result.state.integration.originalPatternVisible,
+          );
+        if (result.state.integration.originalPatternColor)
+          setOriginalPatternColor(
+            result.state.integration.originalPatternColor,
+          );
+        // An existing live preview may still have the earlier Python worker
+        // loaded until the user restarts it.
+        canDeferIntegration.current = "integrationDirty" in result.state;
+        if (result.patternOnly && !result.phaseOnly)
+          phaseGuideRevision.current = result.state.revision;
+        setState((previous) => {
+          const next = result.state!;
+          if (!previous || !result.patternOnly) return next;
+          // Retain unchanged detector/controls inputs during a pattern-only edit.
+          return {
+            ...next,
+            calibration: previous.calibration,
+            geometry: previous.geometry,
+            integration: { ...next.integration, roi: previous.integration.roi },
+          };
+        });
+      }
+      if (result.phaseGuides) setPhaseGuides(result.phaseGuides);
+      if (result.clearImage) {
+        setImage(null);
+        setRawImage(null);
+        setMask(null);
+        setPixel(null);
+        imageSource.current = null;
+        rawImageSource.current = null;
+        ++hoverSequence.current;
+        hoverLatest.current = null;
+      }
+      if (result.rawImage) {
+        rawImageSource.current = result.rawImage;
+        setRawImage(result.rawImage);
+      }
+      if (result.image) {
+        const sourceChanged =
+          result.image.data !== imageSource.current?.data ||
+          result.image.width !== imageSource.current?.width ||
+          result.image.height !== imageSource.current?.height;
+        imageSource.current = result.image;
+        ++hoverSequence.current;
+        hoverLatest.current = null;
+        if (hoverTimer.current) clearTimeout(hoverTimer.current);
+        hoverTimer.current = null;
+        setPixel(null);
+        setImage(result.image);
+        // Recovery and state refreshes can resend the same detector image.
+        // Only a changed source should replace the user's contrast limits.
+        if (sourceChanged)
+          setLimits(
+            activeMode.current === "integration" &&
+              !correctedImageRef.current &&
+              result.rawImage
+              ? result.rawImage.limits
+              : result.image.limits,
+          );
+        if (resetImageView) setResetKey((k) => k + 1);
+      }
+      if (result.levels)
+        (result.display === "cake" ? setCakeLimits : setLimits)(result.levels);
+      if (result.nextRing !== undefined) setRing(result.nextRing);
+      if ("linked" in result) {
+        currentLinked.current = result.linked;
+        setLinked(result.linked);
+      }
+      if (result.mask)
+        setMask((previous) =>
+          previous?.data === result.mask!.data &&
+          previous.width === result.mask!.width &&
+          previous.height === result.mask!.height
+            ? previous
+            : result.mask!,
+        );
+      if (result.rings) {
+        setRings(result.rings);
+      }
+      if ("pattern" in result) setPattern(result.pattern ?? null);
+      if ("cake" in result) {
+        setCake(result.cake ?? null);
+        if (
+          result.cake &&
+          (result.cake.data !== cakeSource.current?.data ||
+            result.cake.width !== cakeSource.current?.width ||
+            result.cake.height !== cakeSource.current?.height)
+        )
+          setCakeLimits(result.cake.limits);
+        cakeSource.current = result.cake ?? null;
+      }
+      if (result.savedPath) {
+        setNotice(`Saved ${result.savedPath.split(/[\\/]/).at(-1)}`);
+        if (toastTimer.current) clearTimeout(toastTimer.current);
+        toastTimer.current = setTimeout(() => setNotice(null), 4500);
+      }
+    },
+    [],
+  );
   const run = useCallback(
     async (
       command: string,
@@ -472,7 +507,14 @@ export default function App() {
           command !== "map_select")
       )
         return;
-      const commandMode = activeMode.current;
+      const batchAction =
+        command.startsWith("batch_") &&
+        !["batch_levels", "batch_snapshot"].includes(command);
+      const commandMode = batchAction ? "integration" : activeMode.current;
+      if (batchAction) {
+        setMode("integration");
+        setSettingsOpen(false);
+      }
       const maskDrawing =
         commandMode === "mask" &&
         (command === "mask_stroke" ||
@@ -564,8 +606,9 @@ export default function App() {
         }
         const retainMapClick =
           result.ok &&
-          !!result.map &&
-          (command === "map_select" || command === "map_poll");
+          ((!!result.map &&
+            (command === "map_select" || command === "map_poll")) ||
+            result.batchSelection !== undefined);
         if (retainMapClick)
           result = await restoreMapPosition(
             bridge.current,
@@ -728,7 +771,7 @@ export default function App() {
         event.preventDefault();
         void run(
           "open_image",
-          mode === "integration" || mode === "batch" ? { multiple: true } : {},
+          mode === "integration" ? { multiple: true } : {},
           "Opening image…",
         );
       } else if (mod && key === "s") {
@@ -1000,16 +1043,18 @@ export default function App() {
       const target = event.target as HTMLElement;
       if (
         event.defaultPrevented ||
-        target.closest('input, textarea, select, [contenteditable="true"], [role="dialog"], dialog')
-      ) return;
+        target.closest(
+          'input, textarea, select, [contenteditable="true"], [role="dialog"], dialog',
+        )
+      )
+        return;
       if (!(event.metaKey || event.ctrlKey)) return;
       const key = event.key.toLowerCase();
       if (key !== "z" && key !== "y") return;
       event.preventDefault();
       if (key === "y" || event.shiftKey) {
         if (customCommands.canRedo) void customCommands.redo();
-      }
-      else if (customCommands.canUndo) void customCommands.undo();
+      } else if (customCommands.canUndo) void customCommands.undo();
     };
     window.addEventListener("keydown", keyboard);
     return () => window.removeEventListener("keydown", keyboard);
@@ -1061,7 +1106,10 @@ export default function App() {
       void run(
         "validation_position",
         { source: "image", x: point.x, y: point.y },
-        "", undefined, undefined, true,
+        "",
+        undefined,
+        undefined,
+        true,
       );
   };
   const inspectPattern = (point: PatternHover) => {
@@ -1074,12 +1122,17 @@ export default function App() {
       ...patternReading(point, state?.geometry.wavelength),
     });
     if (state?.calibrated && state.hasImage) {
-      const x = radialValues(point.x, point.unit, state.geometry.wavelength)[state.unit];
+      const x = radialValues(point.x, point.unit, state.geometry.wavelength)[
+        state.unit
+      ];
       if (x != null && Number.isFinite(x))
         void run(
           "validation_position",
           { source: "pattern", x },
-          "", undefined, undefined, true,
+          "",
+          undefined,
+          undefined,
+          true,
         );
     }
   };
@@ -1177,11 +1230,13 @@ export default function App() {
         showPattern: mode !== "integration" || originalPatternVisible,
         patternName: state?.integration.patternName,
         curves: displayedCurves,
-        referenceLines: mode === "integration" ? pattern?.phaseLines : undefined,
+        referenceLines:
+          mode === "integration" ? pattern?.phaseLines : undefined,
         legendCurves: pattern?.curves ?? [],
         showLegend: mode === "integration",
         linked: mode === "integration" ? linked : undefined,
-        localPatternClick: mode === "integration" ? localPatternClick : undefined,
+        localPatternClick:
+          mode === "integration" ? localPatternClick : undefined,
         wavelength: state?.geometry.wavelength,
         onInspect: mode === "integration" && ready ? inspectPattern : undefined,
       })
@@ -1358,7 +1413,7 @@ export default function App() {
       : notice ||
         busy ||
         maskSelection?.text ||
-        (mode === "batch"
+        (mode === "integration"
           ? batchWarning
           : mode === "map"
             ? mapWarning
@@ -1387,26 +1442,63 @@ export default function App() {
             ? map
               ? "Select a map cell to inspect its detector image and pattern."
               : "Load scan images or a processed batch."
-            : mode === "batch"
-              ? batch
-                ? "Select a row or file to inspect its detector image and pattern."
-                : "Load batch images or open a processed series."
-              : mode === "mask"
-                ? `${shapeHelp[maskTools.shape]} · ${number(state?.maskedPixels ?? 0, 0)} masked`
-                : canIntegrate
-                  ? "Ready"
-                  : "Load a calibration to integrate this image."));
+            : mode === "mask"
+              ? `${shapeHelp[maskTools.shape]} · ${number(state?.maskedPixels ?? 0, 0)} masked`
+              : canIntegrate
+                ? "Ready"
+                : "Load a calibration to integrate this image."));
+  const batchWindow = useBatchWindow({
+    run,
+    request: requestMap,
+    status: {
+      ready,
+      calibrated: !!state?.calibrated,
+      largeText,
+      error,
+      revision: state?.revision,
+      progress: progress
+        ? {
+            running: progress.running,
+            current: progress.current,
+            total: progress.total,
+            label: progress.label,
+          }
+        : undefined,
+    },
+    onOpen: () => {
+      setMode("integration");
+      setBatchDockVisible(false);
+      try {
+        localStorage.setItem("dioptas-batch:docked", "false");
+      } catch {}
+    },
+    onDock: () => {
+      setMode("integration");
+      setBatchDockVisible(true);
+      try {
+        localStorage.setItem("dioptas-batch:docked", "true");
+      } catch {}
+    },
+    onError: setError,
+    cancel: () => bridge.current?.("cancel_refinement"),
+  });
   const openBatch = () => {
     clearPlot();
     setSettingsOpen(false);
-    setMode("batch");
-    if (batch && ready)
-      void run(
-        "batch_select",
-        { index: batch.selected },
-        "Loading batch frame…",
-      );
+    setMode("integration");
+    let docked = false;
+    try {
+      docked = localStorage.getItem("dioptas-batch:docked") === "true";
+    } catch {}
+    if (docked) setBatchDockVisible(true);
+    else batchWindow.open();
   };
+  const handledBatchOpen = useRef(0);
+  useEffect(() => {
+    if (handledBatchOpen.current === batchOpenRequest) return;
+    handledBatchOpen.current = batchOpenRequest;
+    openBatch();
+  }, [batchOpenRequest]);
   return (
     <div className="app" data-text-size={largeText ? "large" : "normal"}>
       <div className="app-body">
@@ -1451,15 +1543,6 @@ export default function App() {
             <span>Int</span>
           </button>
           <button
-            className={`workspace-nav ${!settingsOpen && mode === "batch" ? "workspace-active" : ""}`}
-            aria-label="Batch"
-            aria-pressed={!settingsOpen && mode === "batch"}
-            onClick={openBatch}
-          >
-            <Layers size={20} />
-            <span>Batch</span>
-          </button>
-          <button
             className={`workspace-nav ${!settingsOpen && mode === "map" ? "workspace-active" : ""}`}
             aria-label="Map"
             aria-pressed={!settingsOpen && mode === "map"}
@@ -1473,7 +1556,11 @@ export default function App() {
             <span>Map</span>
           </button>
           <div className="navigation-utilities">
-            <CustomCommandButtons controller={customCommands} ready={ready} onError={setError} />
+            <CustomCommandButtons
+              controller={customCommands}
+              ready={ready}
+              onError={setError}
+            />
             <div
               className="navigation-group navigation-history"
               role="group"
@@ -1482,9 +1569,12 @@ export default function App() {
               <button
                 className="workspace-nav"
                 aria-label="Undo"
-                title={customHistoryActive
-                  ? (customCommands.historyHint ?? `Undo: ${customCommands.undoLabel ?? "custom action"} · ⌘/Ctrl+Z`)
-                  : `Undo ${mode === "calibration" ? "calibration" : mode === "integration" ? "integration" : "mask"} edit · ⌘/Ctrl+Z`}
+                title={
+                  customHistoryActive
+                    ? (customCommands.historyHint ??
+                      `Undo: ${customCommands.undoLabel ?? "custom action"} · ⌘/Ctrl+Z`)
+                    : `Undo ${mode === "calibration" ? "calibration" : mode === "integration" ? "integration" : "mask"} edit · ⌘/Ctrl+Z`
+                }
                 disabled={
                   !ready ||
                   !(customHistoryActive
@@ -1496,7 +1586,11 @@ export default function App() {
                 onClick={() =>
                   customHistoryActive
                     ? void customCommands.undo()
-                    : run(mode === "calibration" ? "undo_calibration" : "undo_mask")
+                    : run(
+                        mode === "calibration"
+                          ? "undo_calibration"
+                          : "undo_mask",
+                      )
                 }
               >
                 <Undo2 size={18} />
@@ -1504,9 +1598,12 @@ export default function App() {
               <button
                 className="workspace-nav"
                 aria-label="Redo"
-                title={customHistoryActive
-                  ? (customCommands.historyHint ?? `Redo: ${customCommands.redoLabel ?? "custom action"} · ⇧⌘/Ctrl+Z`)
-                  : `Redo ${mode === "calibration" ? "calibration" : mode === "integration" ? "integration" : "mask"} edit · ⇧⌘/Ctrl+Z`}
+                title={
+                  customHistoryActive
+                    ? (customCommands.historyHint ??
+                      `Redo: ${customCommands.redoLabel ?? "custom action"} · ⇧⌘/Ctrl+Z`)
+                    : `Redo ${mode === "calibration" ? "calibration" : mode === "integration" ? "integration" : "mask"} edit · ⇧⌘/Ctrl+Z`
+                }
                 disabled={
                   !ready ||
                   !(customHistoryActive
@@ -1518,7 +1615,11 @@ export default function App() {
                 onClick={() =>
                   customHistoryActive
                     ? void customCommands.redo()
-                    : run(mode === "calibration" ? "redo_calibration" : "redo_mask")
+                    : run(
+                        mode === "calibration"
+                          ? "redo_calibration"
+                          : "redo_mask",
+                      )
                 }
               >
                 <Redo2 size={18} />
@@ -1579,22 +1680,7 @@ export default function App() {
               className={`${mode}-mode`}
               data-integration-display={integrationDisplay}
             >
-              {mode === "batch" ? (
-                <BatchView
-                  plotViews={plotViews}
-                  batch={batch}
-                  image={image}
-                  mask={mask}
-                  state={state}
-                  ready={ready}
-                  run={run}
-                  request={requestMap}
-                  reportPlot={reportPlot}
-                  onDetectorHover={onHover}
-                  patternZoom={patternZoom}
-                  onPatternZoom={setPatternZoom}
-                />
-              ) : mode === "map" ? (
+              {mode === "map" ? (
                 <MapView
                   map={map}
                   plotViews={plotViews}
@@ -1676,258 +1762,360 @@ export default function App() {
                   <div
                     className={`views-grid ${mode === "calibration" ? (calibrationStep === 3 ? "validation-views" : "image-only") : ""}`}
                   >
-                    <section className="panel detector-panel">
-                      {image ? (
-                        <div className="detector-workspace">
-                          <RasterView
-                            exportRef={detectorExport}
-                            raster={
-                              mode === "integration" &&
-                              !correctedImage &&
-                              rawImage
-                                ? rawImage
-                                : image
-                            }
-                            {...detectorPlotSetup({
-                              state,
-                              viewports: plotViews,
-                              mask,
-                              showMask: mode !== "integration" || state?.useMask,
-                              linked: mode === "integration" ? linked : undefined,
-                              localImageClick:
-                                mode === "integration" ? localImageClick : null,
-                              onInspect:
-                                mode === "integration"
-                                  ? inspectDetector
-                                  : undefined,
-                            })}
-                            limits={limits}
-                            log={logImage}
-                            palette={palette}
-                            tool={tool}
-                            busy={!!busy}
-                            resetKey={resetKey}
-                            onHover={onHover}
-                            peaks={detectorPeaks}
-                            rings={detectorRings}
-                            roi={
-                              mode === "integration"
-                                ? state?.integration.roi
-                                : undefined
-                            }
-                            onRoiChange={
-                              mode === "integration"
-                                ? (limits) =>
-                                    run(
-                                      "integration_roi",
-                                      { limits },
-                                      "Updating integration region…",
-                                    )
-                                : undefined
-                            }
-                            showNumbers={mode === "calibration" && showNumbers}
-                            currentPeakRing={
-                              mode === "calibration" ? displayedRing : undefined
-                            }
-                            activeRing={
-                              mode === "calibration" ? displayedRing : undefined
-                            }
-                            onPick={(point) => {
-                              if (
-                                mode === "calibration" &&
-                                pickingEnabled &&
-                                canPick
-                              )
-                                void run(
-                                  "pick_peak",
-                                  { ...point, ring, automatic },
-                                  "Finding peaks…",
-                                );
-                            }}
-                          />
-                          <ImageIntensity
-                            preferences={
-                              multipleImages
-                                ? multiDetectorPreferences
-                                : detectorPreferences
-                            }
-                            onPreferences={
-                              multipleImages
-                                ? setMultiDetectorPreferences
-                                : setDetectorPreferences
-                            }
-                            raster={
-                              mode === "integration" &&
-                              !correctedImage &&
-                              rawImage
-                                ? rawImage
-                                : image
-                            }
-                            ready={ready}
-                            onAuto={(settings) =>
-                              run(
-                                "image_levels",
-                                {
-                                  ...settings,
-                                  source:
-                                    mode === "integration" && !correctedImage
-                                      ? "raw_detector"
-                                      : "detector",
-                                },
-                                "Updating intensity range…",
-                              )
-                            }
-                            limits={limits}
-                            onLimits={setLimits}
-                            log={logImage}
-                            onLog={setLogImage}
-                            palette={palette}
-                            onPalette={setPalette}
-                          />
-                        </div>
-                      ) : (
-                        <div className="empty-view">
-                          <div className="empty-icon">
-                            <FileImage size={32} strokeWidth={1} />
-                          </div>
-                          <h3>Open a calibrant image</h3>
-                          <p>
-                            Open a calibrant image to begin, or explore
-                            <br />
-                            the included CeO₂ reference measurement.
-                          </p>
-                          <button
-                            className="primary"
-                            disabled={!ready}
-                            onClick={() =>
-                              run("open_image", {}, "Opening detector image…")
-                            }
-                          >
-                            <Plus size={15} />
-                            Open detector image
-                          </button>
-                          {state?.exampleAvailable && (
-                            <button
-                              className="text-button"
-                              disabled={!ready}
-                              onClick={() =>
-                                run(
-                                  "example",
-                                  {},
-                                  "Loading CeO₂ reference data…",
-                                )
-                              }
-                            >
-                              Explore example
-                              <ArrowUpRight size={14} />
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </section>
-                    {(mode === "integration" || calibrationStep === 3) && (
-                      <section className="panel cake-panel">
-                        {cake ? (
-                          <div className="detector-workspace cake-workspace">
+                    <div
+                      className={
+                        mode === "integration"
+                          ? "integration-left-pane"
+                          : "plot-group-contents"
+                      }
+                    >
+                      <section className="panel detector-panel">
+                        {image ? (
+                          <div className="detector-workspace">
                             <RasterView
-                              exportRef={cakeExport}
-                              raster={displayedCake ?? cake}
-                              onResolution={setCakePixelResolution}
-                              busy={!!busy}
-                              onHover={(point) =>
-                                reportPlot(
-                                  "cake",
-                                  point && cake
-                                    ? {
-                                        ...cakeReading(
-                                          displayedCake ?? cake,
-                                          point,
-                                          state?.geometry.wavelength,
-                                        ),
-                                        hint: "Left drag zooms · right drag pans · right double-click restores the fitted view.",
-                                      }
-                                    : null,
-                                )
+                              exportRef={detectorExport}
+                              raster={
+                                mode === "integration" &&
+                                !correctedImage &&
+                                rawImage
+                                  ? rawImage
+                                  : image
                               }
-                              linkedPosition={
+                              {...detectorPlotSetup({
+                                state,
+                                viewports: plotViews,
+                                mask,
+                                showMask:
+                                  mode !== "integration" || state?.useMask,
+                                linked:
+                                  mode === "integration" ? linked : undefined,
+                                localImageClick:
+                                  mode === "integration"
+                                    ? localImageClick
+                                    : null,
+                                onInspect:
+                                  mode === "integration"
+                                    ? inspectDetector
+                                    : undefined,
+                              })}
+                              limits={limits}
+                              log={logImage}
+                              palette={palette}
+                              tool={tool}
+                              busy={!!busy}
+                              resetKey={resetKey}
+                              onHover={onHover}
+                              peaks={detectorPeaks}
+                              rings={detectorRings}
+                              roi={
                                 mode === "integration"
-                                  ? linked?.twoTheta
+                                  ? state?.integration.roi
                                   : undefined
                               }
-                              clickedPoint={
-                                mode === "integration" ? cakeClick : null
+                              onRoiChange={
+                                mode === "integration"
+                                  ? (limits) =>
+                                      run(
+                                        "integration_roi",
+                                        { limits },
+                                        "Updating integration region…",
+                                      )
+                                  : undefined
+                              }
+                              showNumbers={
+                                mode === "calibration" && showNumbers
+                              }
+                              currentPeakRing={
+                                mode === "calibration"
+                                  ? displayedRing
+                                  : undefined
                               }
                               activeRing={
                                 mode === "calibration"
                                   ? displayedRing
                                   : undefined
                               }
-                              calibrantLines={cakeCalibrantLines}
-                              showNumbers={
-                                mode === "calibration" && showNumbers
-                              }
-                              onInspect={(point) => {
-                                if (mode !== "integration") return;
-                                setLocalImageClick(null);
-                                setClickedReading({
-                                  source: "cake",
-                                  ...cakeReading(
-                                    displayedCake ?? cake,
-                                    point,
-                                    state?.geometry.wavelength,
-                                  ),
-                                });
-                                const coords = cakeCoordinates(
-                                  displayedCake ?? cake,
-                                  point,
-                                );
-                                void run("validation_position", {
-                                  source: "cake",
-                                  ...coords,
-                                });
+                              onPick={(point) => {
+                                if (
+                                  mode === "calibration" &&
+                                  pickingEnabled &&
+                                  canPick
+                                )
+                                  void run(
+                                    "pick_peak",
+                                    { ...point, ring, automatic },
+                                    "Finding peaks…",
+                                  );
                               }}
-                              zoomMode={cakeZoom}
-                              onZoomMode={setCakeZoom}
-                              cake
-                              limits={cakeLimits}
-                              log={cakeLog}
-                              palette={cakePalette}
-                              resetKey={resetKey}
                             />
                             <ImageIntensity
-                              preferences={cakePreferences}
-                              onPreferences={setCakePreferences}
-                              display="cake"
-                              raster={cake}
+                              preferences={
+                                multipleImages
+                                  ? multiDetectorPreferences
+                                  : detectorPreferences
+                              }
+                              onPreferences={
+                                multipleImages
+                                  ? setMultiDetectorPreferences
+                                  : setDetectorPreferences
+                              }
+                              raster={
+                                mode === "integration" &&
+                                !correctedImage &&
+                                rawImage
+                                  ? rawImage
+                                  : image
+                              }
                               ready={ready}
                               onAuto={(settings) =>
                                 run(
                                   "image_levels",
-                                  { ...settings, source: "cake" },
-                                  "Updating cake intensity…",
+                                  {
+                                    ...settings,
+                                    source:
+                                      mode === "integration" && !correctedImage
+                                        ? "raw_detector"
+                                        : "detector",
+                                  },
+                                  "Updating intensity range…",
                                 )
                               }
-                              limits={cakeLimits}
-                              onLimits={setCakeLimits}
-                              log={cakeLog}
-                              onLog={setCakeLog}
-                              palette={cakePalette}
-                              onPalette={setCakePalette}
+                              limits={limits}
+                              onLimits={setLimits}
+                              log={logImage}
+                              onLog={setLogImage}
+                              palette={palette}
+                              onPalette={setPalette}
                             />
                           </div>
                         ) : (
-                          <div className="empty-view secondary-empty">
-                            <Layers size={30} strokeWidth={1} />
-                            <h3>Azimuthal cake</h3>
+                          <div className="empty-view">
+                            <div className="empty-icon">
+                              <FileImage size={32} strokeWidth={1} />
+                            </div>
+                            <h3>
+                              {mode === "integration"
+                                ? "Open a detector image"
+                                : "Open a calibrant image"}
+                            </h3>
                             <p>
-                              Load an image and its calibration
-                              <br />
-                              to calculate the azimuthal cake.
+                              {mode === "integration" && batchWarning ? (
+                                batchWarning
+                              ) : (
+                                <>
+                                  Open a calibrant image to begin, or explore
+                                  <br />
+                                  the included CeO₂ reference measurement.
+                                </>
+                              )}
                             </p>
+                            <button
+                              className="primary"
+                              disabled={!ready}
+                              onClick={() =>
+                                run("open_image", {}, "Opening detector image…")
+                              }
+                            >
+                              <Plus size={15} />
+                              Open detector image
+                            </button>
+                            {state?.exampleAvailable && (
+                              <button
+                                className="text-button"
+                                disabled={!ready}
+                                onClick={() =>
+                                  run(
+                                    "example",
+                                    {},
+                                    "Loading CeO₂ reference data…",
+                                  )
+                                }
+                              >
+                                Explore example
+                                <ArrowUpRight size={14} />
+                              </button>
+                            )}
                           </div>
                         )}
                       </section>
-                    )}
+                      {(mode === "integration" || calibrationStep === 3) && (
+                        <section className="panel cake-panel">
+                          {cake ? (
+                            <div className="detector-workspace cake-workspace">
+                              <RasterView
+                                exportRef={cakeExport}
+                                raster={displayedCake ?? cake}
+                                onResolution={setCakePixelResolution}
+                                busy={!!busy}
+                                onHover={(point) =>
+                                  reportPlot(
+                                    "cake",
+                                    point && cake
+                                      ? {
+                                          ...cakeReading(
+                                            displayedCake ?? cake,
+                                            point,
+                                            state?.geometry.wavelength,
+                                          ),
+                                          hint: "Left drag zooms · right drag pans · right double-click restores the fitted view.",
+                                        }
+                                      : null,
+                                  )
+                                }
+                                linkedPosition={
+                                  mode === "integration"
+                                    ? linked?.twoTheta
+                                    : undefined
+                                }
+                                clickedPoint={
+                                  mode === "integration" ? cakeClick : null
+                                }
+                                activeRing={
+                                  mode === "calibration"
+                                    ? displayedRing
+                                    : undefined
+                                }
+                                calibrantLines={cakeCalibrantLines}
+                                showNumbers={
+                                  mode === "calibration" && showNumbers
+                                }
+                                onInspect={(point) => {
+                                  if (mode !== "integration") return;
+                                  setLocalImageClick(null);
+                                  setClickedReading({
+                                    source: "cake",
+                                    ...cakeReading(
+                                      displayedCake ?? cake,
+                                      point,
+                                      state?.geometry.wavelength,
+                                    ),
+                                  });
+                                  const coords = cakeCoordinates(
+                                    displayedCake ?? cake,
+                                    point,
+                                  );
+                                  void run("validation_position", {
+                                    source: "cake",
+                                    ...coords,
+                                  });
+                                }}
+                                zoomMode={cakeZoom}
+                                onZoomMode={setCakeZoom}
+                                cake
+                                limits={cakeLimits}
+                                log={cakeLog}
+                                palette={cakePalette}
+                                resetKey={resetKey}
+                              />
+                              <ImageIntensity
+                                preferences={cakePreferences}
+                                onPreferences={setCakePreferences}
+                                display="cake"
+                                raster={cake}
+                                ready={ready}
+                                onAuto={(settings) =>
+                                  run(
+                                    "image_levels",
+                                    { ...settings, source: "cake" },
+                                    "Updating cake intensity…",
+                                  )
+                                }
+                                limits={cakeLimits}
+                                onLimits={setCakeLimits}
+                                log={cakeLog}
+                                onLog={setCakeLog}
+                                palette={cakePalette}
+                                onPalette={setCakePalette}
+                              />
+                            </div>
+                          ) : (
+                            <div className="empty-view secondary-empty">
+                              <Layers size={30} strokeWidth={1} />
+                              <h3>Azimuthal cake</h3>
+                              <p>
+                                Load an image and its calibration
+                                <br />
+                                to calculate the azimuthal cake.
+                              </p>
+                            </div>
+                          )}
+                        </section>
+                      )}
+                      {mode === "integration" && (
+                        <IntegrationImageControls
+                          onSaveImage={() => {
+                            const source =
+                              integrationDisplay === "cake" ? "cake" : "image";
+                            const exporter = (
+                              source === "cake" ? cakeExport : detectorExport
+                            ).current;
+                            if (!exporter) return;
+                            void run(
+                              "integration_save_image",
+                              {
+                                source,
+                                png_data: exporter.png(),
+                                suggested_name: `${state?.imageName?.replace(/\.[^.]+$/, "") ?? "image"}${source === "cake" ? "_cake" : ""}.png`,
+                              },
+                              "Saving image…",
+                            );
+                          }}
+                          cakeShift={cakeShift}
+                          onCakeShift={setCakeShift}
+                          fullCake={
+                            !!cake &&
+                            (Math.abs(
+                              cake.azimuthRange[1] - cake.azimuthRange[0],
+                            ) *
+                              cake.height) /
+                              Math.max(1, cake.height - 1) >=
+                              359
+                          }
+                          value={integrationDisplay}
+                          onChange={setIntegrationDisplay}
+                          state={state}
+                          ready={ready}
+                          run={run}
+                          showPhases={showImagePhases}
+                          onShowPhases={() => setShowImagePhases((v) => !v)}
+                          corrected={correctedImage}
+                          onCorrected={() => {
+                            setCorrectedImage((v) => !v);
+                            setLimits(
+                              (correctedImage ? rawImage : image)?.limits ??
+                                limits,
+                            );
+                            onHover(null);
+                          }}
+                          roi={!!state?.integration.roi}
+                          onRoi={() => {
+                            const [h, w] = state?.shape ?? [1, 1];
+                            void run("integration_roi", {
+                              limits: state?.integration.roi
+                                ? null
+                                : [
+                                    Math.floor(h * 0.1),
+                                    Math.ceil(h * 0.9),
+                                    Math.floor(w * 0.1),
+                                    Math.ceil(w * 0.9),
+                                  ],
+                            });
+                          }}
+                        />
+                      )}
+                      {mode === "integration" && batchDockVisible && (
+                        <BatchDock
+                          batch={batch}
+                          calibrated={!!state?.calibrated}
+                          ready={ready}
+                          run={run}
+                          request={requestMap}
+                          reportPlot={reportPlot}
+                          onDetach={() => batchWindow.open()}
+                          onHide={() => setBatchDockVisible(false)}
+                        />
+                      )}
+                    </div>
                     {((pattern && calibrationStep === 3) ||
                       mode === "integration") && (
                       <section className="panel pattern-panel">
@@ -2053,439 +2241,383 @@ export default function App() {
                       </section>
                     )}
                   </div>
-                  {mode === "integration" && (
-                    <IntegrationImageControls
-                      onSaveImage={() => {
-                        const source =
-                          integrationDisplay === "cake" ? "cake" : "image";
-                        const exporter = (
-                          source === "cake" ? cakeExport : detectorExport
-                        ).current;
-                        if (!exporter) return;
-                        void run(
-                          "integration_save_image",
-                          {
-                            source,
-                            png_data: exporter.png(),
-                            suggested_name: `${state?.imageName?.replace(/\.[^.]+$/, "") ?? "image"}${source === "cake" ? "_cake" : ""}.png`,
-                          },
-                          "Saving image…",
-                        );
-                      }}
-                      cakeShift={cakeShift}
-                      onCakeShift={setCakeShift}
-                      fullCake={
-                        !!cake &&
-                        (Math.abs(cake.azimuthRange[1] - cake.azimuthRange[0]) *
-                          cake.height) /
-                          Math.max(1, cake.height - 1) >=
-                          359
-                      }
-                      value={integrationDisplay}
-                      onChange={setIntegrationDisplay}
-                      state={state}
-                      ready={ready}
-                      run={run}
-                      showPhases={showImagePhases}
-                      onShowPhases={() => setShowImagePhases((v) => !v)}
-                      corrected={correctedImage}
-                      onCorrected={() => {
-                        setCorrectedImage((v) => !v);
-                        setLimits(
-                          (correctedImage ? rawImage : image)?.limits ?? limits,
-                        );
-                        onHover(null);
-                      }}
-                      roi={!!state?.integration.roi}
-                      onRoi={() => {
-                        const [h, w] = state?.shape ?? [1, 1];
-                        void run("integration_roi", {
-                          limits: state?.integration.roi
-                            ? null
-                            : [
-                                Math.floor(h * 0.1),
-                                Math.ceil(h * 0.9),
-                                Math.floor(w * 0.1),
-                                Math.ceil(w * 0.9),
-                              ],
-                        });
-                      }}
-                    />
-                  )}
                 </>
               )}
             </main>
-            {mode !== "map" && <aside
-              className={`sidebar ${mode === "calibration" ? "calibration-task-panel" : ""}`}
-              data-calibration-section={
-                mode === "calibration" ? calibrationStep : undefined
-              }
-            >
-              <div className="options-label">
-                {mode === "mask" ? "MASK OPTIONS" : "EXPERIMENT OPTIONS"}
-              </div>
-              {mode === "calibration" && (
-                <CalibrationRingControls
-                  calibration={displayedCalibration}
-                  ring={displayedRing}
-                  onRingChange={(value) => {
-                    setRing(value);
-                    setSelectedPicks(
-                      state?.calibration.picks.flatMap((pick, index) =>
-                        pick.ring === value ? [index] : [],
-                      ) ?? [],
-                    );
-                  }}
-                  picking={pickingEnabled}
-                  onPickingChange={setPickingEnabled}
-                  onAutoAdvanceChange={(autoIncrement) =>
-                    run("workflow_settings", { autoIncrement })
-                  }
-                  ready={ready}
-                  canPick={canPick}
-                />
-              )}
-              {mode === "calibration" && (
-                <CalibrationWorkflowTabs
-                  active={calibrationStep}
-                  disabled={[
-                    false,
-                    !setupValid || !state?.hasImage,
-                    !setupValid || !state?.hasImage,
-                    !setupValid || !state?.calibrated,
-                  ]}
-                  onChange={setCalibrationStep}
-                />
-              )}
-              <div
-                className="sidebar-scroll"
-                id={
-                  mode === "calibration"
-                    ? "calibration-task-content"
-                    : undefined
-                }
-                role={mode === "calibration" ? "tabpanel" : undefined}
-                aria-labelledby={
-                  mode === "calibration"
-                    ? `calibration-section-${calibrationStep}`
-                    : undefined
+            {mode !== "map" && (
+              <aside
+                className={`sidebar ${mode === "calibration" ? "calibration-task-panel" : ""}`}
+                data-calibration-section={
+                  mode === "calibration" ? calibrationStep : undefined
                 }
               >
-                {mode === "batch" ? (
-                  <BatchControls
-                    batch={batch}
-                    state={state}
+                <div className="options-label">
+                  {mode === "mask" ? "MASK OPTIONS" : "EXPERIMENT OPTIONS"}
+                </div>
+                {mode === "calibration" && (
+                  <CalibrationRingControls
+                    calibration={displayedCalibration}
+                    ring={displayedRing}
+                    onRingChange={(value) => {
+                      setRing(value);
+                      setSelectedPicks(
+                        state?.calibration.picks.flatMap((pick, index) =>
+                          pick.ring === value ? [index] : [],
+                        ) ?? [],
+                      );
+                    }}
+                    picking={pickingEnabled}
+                    onPickingChange={setPickingEnabled}
+                    onAutoAdvanceChange={(autoIncrement) =>
+                      run("workflow_settings", { autoIncrement })
+                    }
                     ready={ready}
-                    run={run}
+                    canPick={canPick}
                   />
-                ) : mode === "mask" ? (
-                  <MaskPanel
-                    state={state}
-                    ready={ready}
-                    run={run}
-                    tools={maskTools}
+                )}
+                {mode === "calibration" && (
+                  <CalibrationWorkflowTabs
+                    active={calibrationStep}
+                    disabled={[
+                      false,
+                      !setupValid || !state?.hasImage,
+                      !setupValid || !state?.hasImage,
+                      !setupValid || !state?.calibrated,
+                    ]}
+                    onChange={setCalibrationStep}
                   />
-                ) : (
-                  <>
-                    {mode === "calibration" && calibrationStep === 0 ? (
-                      <>
-                        <section className="sidebar-section setup-image-source">
-                          <div className="setup-image-row">
-                            <button
-                              className="secondary setup-open-image"
-                              disabled={!ready}
-                              onClick={() =>
-                                run("open_image", {}, "Opening detector image…")
-                              }
-                              title={
-                                state?.imagePath ?? "Open a detector image"
-                              }
-                            >
-                              <FolderOpen size={14} />
-                              Open image
-                            </button>
-                            {state?.hasImage && (
-                              <div className="setup-image-navigation">
-                                <button
-                                  className="secondary"
-                                  title="Previous image"
-                                  aria-label="Previous image"
-                                  disabled={!ready}
-                                  onClick={() =>
-                                    run(
-                                      "next_image",
-                                      { direction: -1 },
-                                      "Opening previous image…",
-                                    )
-                                  }
-                                >
-                                  ←
-                                </button>
-                                <button
-                                  className="secondary"
-                                  title="Next image"
-                                  aria-label="Next image"
-                                  disabled={!ready}
-                                  onClick={() =>
-                                    run(
-                                      "next_image",
-                                      { direction: 1 },
-                                      "Opening next image…",
-                                    )
-                                  }
-                                >
-                                  →
-                                </button>
+                )}
+                <div
+                  className="sidebar-scroll"
+                  id={
+                    mode === "calibration"
+                      ? "calibration-task-content"
+                      : undefined
+                  }
+                  role={mode === "calibration" ? "tabpanel" : undefined}
+                  aria-labelledby={
+                    mode === "calibration"
+                      ? `calibration-section-${calibrationStep}`
+                      : undefined
+                  }
+                >
+                  {mode === "mask" ? (
+                    <MaskPanel
+                      state={state}
+                      ready={ready}
+                      run={run}
+                      tools={maskTools}
+                    />
+                  ) : (
+                    <>
+                      {mode === "calibration" && calibrationStep === 0 ? (
+                        <>
+                          <section className="sidebar-section setup-image-source">
+                            <div className="setup-image-row">
+                              <button
+                                className="secondary setup-open-image"
+                                disabled={!ready}
+                                onClick={() =>
+                                  run(
+                                    "open_image",
+                                    {},
+                                    "Opening detector image…",
+                                  )
+                                }
+                                title={
+                                  state?.imagePath ?? "Open a detector image"
+                                }
+                              >
+                                <FolderOpen size={14} />
+                                Open image
+                              </button>
+                              {state?.hasImage && (
+                                <div className="setup-image-navigation">
+                                  <button
+                                    className="secondary"
+                                    title="Previous image"
+                                    aria-label="Previous image"
+                                    disabled={!ready}
+                                    onClick={() =>
+                                      run(
+                                        "next_image",
+                                        { direction: -1 },
+                                        "Opening previous image…",
+                                      )
+                                    }
+                                  >
+                                    ←
+                                  </button>
+                                  <button
+                                    className="secondary"
+                                    title="Next image"
+                                    aria-label="Next image"
+                                    disabled={!ready}
+                                    onClick={() =>
+                                      run(
+                                        "next_image",
+                                        { direction: 1 },
+                                        "Opening next image…",
+                                      )
+                                    }
+                                  >
+                                    →
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                            {state?.imageName && (
+                              <div
+                                className="setup-image-filename"
+                                title={state.imagePath ?? state.imageName}
+                              >
+                                {state.imageName}
                               </div>
                             )}
-                          </div>
-                          {state?.imageName && (
-                            <div
-                              className="setup-image-filename"
-                              title={state.imagePath ?? state.imageName}
-                            >
-                              {state.imageName}
-                            </div>
-                          )}
-                          {state?.exampleAvailable && !state?.hasImage && (
-                            <button
-                              className="example-link"
-                              disabled={!ready}
-                              onClick={() =>
-                                run(
-                                  "example",
-                                  {},
-                                  "Loading CeO₂ reference data…",
-                                )
-                              }
-                            >
-                              <Sparkles size={12} />
-                              Try the CeO₂ example
-                              <ArrowUpRight size={12} />
-                            </button>
-                          )}
-                        </section>
-                      </>
-                    ) : null}
-                    {mode === "calibration" && calibrationStep === 0 && (
-                      <CalibrationControls
-                        onDirtyChange={setSetupDirty}
-                        onValidityChange={setSetupValid}
-                        additionalOptions={
-                          <CalibrationExtras
-                            state={state}
-                            step={0}
-                            ready={ready}
-                            run={run}
-                            onDirtyChange={() => {}}
-                            imageToolsOnly
-                          />
-                        }
-                        maskControls={
-                          <CalibrationExtras
-                            state={state}
-                            step={0}
-                            ready={ready}
-                            run={run}
-                            onDirtyChange={() => {}}
-                            hideImageTools
-                          />
-                        }
-                        calibration={state?.calibration}
-                        ready={ready}
-                        hasImage={!!state?.hasImage}
-                        run={run}
-                      />
-                    )}
-                    {mode === "calibration" && (
-                      <>
-                        {calibrationStep === 3 && (
-                          <section className="calibration-validation-reference">
-                            <label className="calibration-field-row">
-                              <span>Calibrant</span>
-                              <select
-                                aria-label="Validation calibrant"
+                            {state?.exampleAvailable && !state?.hasImage && (
+                              <button
+                                className="example-link"
                                 disabled={!ready}
-                                value={state?.calibration.calibrant ?? "CeO2"}
-                                onChange={(e) =>
+                                onClick={() =>
                                   run(
-                                    "validation_calibrant",
-                                    { calibrant: e.target.value },
-                                    "Updating reference lines…",
+                                    "example",
+                                    {},
+                                    "Loading CeO₂ reference data…",
                                   )
                                 }
                               >
-                                {(state?.calibration.calibrants ?? []).map(
-                                  (name) => (
-                                    <option key={name}>{name}</option>
-                                  ),
-                                )}
-                              </select>
-                            </label>
-                            <button
-                              className="icon-button"
-                              aria-label="Load custom validation reference"
-                              title="Load custom reference spacings"
-                              disabled={!ready}
-                              onClick={() =>
-                                run(
-                                  "open_calibrant",
-                                  { validation: true },
-                                  "Loading reference spacings…",
-                                )
-                              }
-                            >
-                              <FolderOpen size={16} />
-                            </button>
+                                <Sparkles size={12} />
+                                Try the CeO₂ example
+                                <ArrowUpRight size={12} />
+                              </button>
+                            )}
                           </section>
-                        )}
-                        <div hidden={calibrationStep !== 3}>
-                          <GeometryEditor
-                            calibration={state?.calibration}
-                            ready={ready}
-                            run={run}
-                            embedded
-                            formId="validation-geometry-form"
-                            convention={validationConvention}
-                            onConventionChange={setValidationConvention}
-                            onDirtyChange={setGeometryDirty}
-                          />
-                        </div>
-                        {calibrationStep === 1 && (
-                          <CalibrationPanel
-                            selected={selectedPicks}
-                            onSelected={setSelectedPicks}
-                            onRingChange={setRing}
+                        </>
+                      ) : null}
+                      {mode === "calibration" && calibrationStep === 0 && (
+                        <CalibrationControls
+                          onDirtyChange={setSetupDirty}
+                          onValidityChange={setSetupValid}
+                          additionalOptions={
+                            <CalibrationExtras
+                              state={state}
+                              step={0}
+                              ready={ready}
+                              run={run}
+                              onDirtyChange={() => {}}
+                              imageToolsOnly
+                            />
+                          }
+                          maskControls={
+                            <CalibrationExtras
+                              state={state}
+                              step={0}
+                              ready={ready}
+                              run={run}
+                              onDirtyChange={() => {}}
+                              hideImageTools
+                            />
+                          }
+                          calibration={state?.calibration}
+                          ready={ready}
+                          hasImage={!!state?.hasImage}
+                          run={run}
+                        />
+                      )}
+                      {mode === "calibration" && (
+                        <>
+                          {calibrationStep === 3 && (
+                            <section className="calibration-validation-reference">
+                              <label className="calibration-field-row">
+                                <span>Calibrant</span>
+                                <select
+                                  aria-label="Validation calibrant"
+                                  disabled={!ready}
+                                  value={state?.calibration.calibrant ?? "CeO2"}
+                                  onChange={(e) =>
+                                    run(
+                                      "validation_calibrant",
+                                      { calibrant: e.target.value },
+                                      "Updating reference lines…",
+                                    )
+                                  }
+                                >
+                                  {(state?.calibration.calibrants ?? []).map(
+                                    (name) => (
+                                      <option key={name}>{name}</option>
+                                    ),
+                                  )}
+                                </select>
+                              </label>
+                              <button
+                                className="icon-button"
+                                aria-label="Load custom validation reference"
+                                title="Load custom reference spacings"
+                                disabled={!ready}
+                                onClick={() =>
+                                  run(
+                                    "open_calibrant",
+                                    { validation: true },
+                                    "Loading reference spacings…",
+                                  )
+                                }
+                              >
+                                <FolderOpen size={16} />
+                              </button>
+                            </section>
+                          )}
+                          <div hidden={calibrationStep !== 3}>
+                            <GeometryEditor
+                              calibration={state?.calibration}
+                              ready={ready}
+                              run={run}
+                              embedded
+                              formId="validation-geometry-form"
+                              convention={validationConvention}
+                              onConventionChange={setValidationConvention}
+                              onDirtyChange={setGeometryDirty}
+                            />
+                          </div>
+                          {calibrationStep === 1 && (
+                            <CalibrationPanel
+                              selected={selectedPicks}
+                              onSelected={setSelectedPicks}
+                              onRingChange={setRing}
+                              state={state}
+                              ready={ready}
+                              ring={ring}
+                              automatic={automatic}
+                              setAutomatic={setAutomatic}
+                              run={run}
+                            />
+                          )}
+                          <CalibrationExtras
                             state={state}
+                            step={calibrationStep === 2 ? 2 : -1}
                             ready={ready}
-                            ring={ring}
-                            automatic={automatic}
-                            setAutomatic={setAutomatic}
                             run={run}
+                            onDirtyChange={setAdvancedDirty}
+                            onFitDraftChange={setFitDraft}
                           />
-                        )}
-                        <CalibrationExtras
+                        </>
+                      )}
+                      {mode === "integration" && (
+                        <IntegrationView
                           state={state}
-                          step={calibrationStep === 2 ? 2 : -1}
                           ready={ready}
                           run={run}
-                          onDirtyChange={setAdvancedDirty}
-                          onFitDraftChange={setFitDraft}
+                          onOpenBatch={openBatch}
+                          backgroundSettings={liveBackground.settings}
+                          onBackgroundChange={liveBackground.change}
+                          backgroundUpdating={liveBackground.updating}
+                          onOverlaySelectionChange={setSelectedOverlayUid}
+                          showOriginalPattern={originalPatternVisible}
+                          onShowOriginalPatternChange={(visible) => {
+                            void run("integration_overlay", {
+                              operation: "original_visibility",
+                              visible,
+                            });
+                          }}
+                          originalPatternColor={originalPatternColor}
+                          onOriginalPatternColorChange={(color) => {
+                            void run("integration_overlay", {
+                              operation: "original_color",
+                              color,
+                            });
+                          }}
                         />
-                      </>
-                    )}
-                    {mode === "integration" && (
-                      <IntegrationView
-                        state={state}
-                        ready={ready}
-                        run={run}
-                        onOpenBatch={openBatch}
-                        backgroundSettings={liveBackground.settings}
-                        onBackgroundChange={liveBackground.change}
-                        backgroundUpdating={liveBackground.updating}
-                        onOverlaySelectionChange={setSelectedOverlayUid}
-                        showOriginalPattern={originalPatternVisible}
-                        onShowOriginalPatternChange={(visible) => {
-                          void run("integration_overlay", {
-                            operation: "original_visibility",
-                            visible,
-                          });
-                        }}
-                        originalPatternColor={originalPatternColor}
-                        onOriginalPatternColorChange={(color) => {
-                          void run("integration_overlay", {
-                            operation: "original_color",
-                            color,
-                          });
-                        }}
-                      />
-                    )}
-                  </>
-                )}
-              </div>
-              {mode === "calibration" && (
-                <div className="calibration-task-footer">
-                  {calibrationStep >= 2 && (
-                    <div className="calibration-main-action">
-                      {calibrationStep === 3 && geometryDirty && (
-                        <button
-                          type="submit"
-                          form="validation-geometry-form"
-                          className="primary calibration-apply-geometry"
-                          disabled={!ready}
-                        >
-                          Apply geometry
-                        </button>
                       )}
-                      <button
-                        className="primary fit-button"
-                        title={`Start a fresh geometry from the current peaks and start values.${!fitReady ? ` ${fitBlocker}` : ""}`}
-                        disabled={!fitReady}
-                        onClick={() =>
-                          run(
-                            "calibrate",
-                            { ...fitDraft, restart: true },
-                            "Calibrating detector geometry…",
-                          )
-                        }
-                      >
-                        Calibrate
-                      </button>
-                      <button
-                        className="secondary"
-                        title={`Adjust the existing geometry using the current peaks.${!state?.calibrated ? " Calibrate or load a geometry first." : !fitReady ? ` ${fitBlocker}` : ""}`}
-                        disabled={!fitReady || !state?.calibrated}
-                        onClick={() =>
-                          run(
-                            "calibrate",
-                            fitDraft ?? {},
-                            "Refining detector geometry…",
-                          )
-                        }
-                      >
-                        Refine
-                      </button>
-                    </div>
+                    </>
                   )}
-                  <div className="calibration-general-actions">
-                    <button
-                      className="secondary calibration-save"
-                      aria-label="Save .poni calibration"
-                      disabled={!canSaveCalibration}
-                      onClick={() =>
-                        run("save_calibration", {}, "Saving PONI calibration…")
-                      }
-                    >
-                      <Save size={15} />
-                      Save .poni
-                    </button>
-                    <div className="calibration-secondary-actions">
+                </div>
+                {mode === "calibration" && (
+                  <div className="calibration-task-footer">
+                    {calibrationStep >= 2 && (
+                      <div className="calibration-main-action">
+                        {calibrationStep === 3 && geometryDirty && (
+                          <button
+                            type="submit"
+                            form="validation-geometry-form"
+                            className="primary calibration-apply-geometry"
+                            disabled={!ready}
+                          >
+                            Apply geometry
+                          </button>
+                        )}
+                        <button
+                          className="primary fit-button"
+                          title={`Start a fresh geometry from the current peaks and start values.${!fitReady ? ` ${fitBlocker}` : ""}`}
+                          disabled={!fitReady}
+                          onClick={() =>
+                            run(
+                              "calibrate",
+                              { ...fitDraft, restart: true },
+                              "Calibrating detector geometry…",
+                            )
+                          }
+                        >
+                          Calibrate
+                        </button>
+                        <button
+                          className="secondary"
+                          title={`Adjust the existing geometry using the current peaks.${!state?.calibrated ? " Calibrate or load a geometry first." : !fitReady ? ` ${fitBlocker}` : ""}`}
+                          disabled={!fitReady || !state?.calibrated}
+                          onClick={() =>
+                            run(
+                              "calibrate",
+                              fitDraft ?? {},
+                              "Refining detector geometry…",
+                            )
+                          }
+                        >
+                          Refine
+                        </button>
+                      </div>
+                    )}
+                    <div className="calibration-general-actions">
                       <button
-                        className="quiet"
-                        disabled={!ready}
+                        className="secondary calibration-save"
+                        aria-label="Save .poni calibration"
+                        disabled={!canSaveCalibration}
                         onClick={() =>
                           run(
-                            "open_calibration",
+                            "save_calibration",
                             {},
-                            "Loading PONI calibration…",
+                            "Saving PONI calibration…",
                           )
                         }
                       >
-                        <FolderOpen size={14} />
-                        Load .poni
+                        <Save size={15} />
+                        Save .poni
                       </button>
-                      <button
-                        className="quiet"
-                        disabled={!ready}
-                        onClick={() => setManualGeometryOpen(true)}
-                      >
-                        Enter manually
-                      </button>
+                      <div className="calibration-secondary-actions">
+                        <button
+                          className="quiet"
+                          disabled={!ready}
+                          onClick={() =>
+                            run(
+                              "open_calibration",
+                              {},
+                              "Loading PONI calibration…",
+                            )
+                          }
+                        >
+                          <FolderOpen size={14} />
+                          Load .poni
+                        </button>
+                        <button
+                          className="quiet"
+                          disabled={!ready}
+                          onClick={() => setManualGeometryOpen(true)}
+                        >
+                          Enter manually
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </aside>}
+                )}
+              </aside>
+            )}
           </IntegrationWorkspace>
           {manualGeometryOpen && (
             <ManualGeometryDialog
@@ -2516,7 +2648,6 @@ export default function App() {
                   mask: "Mask",
                   integration: "Integration",
                   map: "Map",
-                  batch: "Batch",
                 }[mode]
               }
               patternZoom={mode === "map" ? mapPatternZoom : patternZoom}
@@ -2606,11 +2737,9 @@ export default function App() {
                   ? "Cancel map integration"
                   : mode === "integration"
                     ? "Cancel processing"
-                    : mode === "batch"
-                      ? "Cancel batch integration"
-                      : mode === "mask"
-                        ? "Cancel mask processing"
-                        : "Cancel refinement"}
+                    : mode === "mask"
+                      ? "Cancel mask processing"
+                      : "Cancel refinement"}
               </button>
             )}
           </div>

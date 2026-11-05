@@ -1,122 +1,158 @@
-// Real WKWebView, binary IPC, Python BatchModel and stored-series selection.
+// Runs only in its isolated --batch native test window.
 (async () => {
   if (window.__batchSmokeRunning) return;
   window.__batchSmokeRunning = true;
-  const call = window.__dioptasNativeCall;
-  const delay = () => new Promise((r) => setTimeout(r, 80));
-  const check = (ok, why) => {
-    if (!ok) throw Error(why);
+  const call = window.__dioptasNativeCall,
+    invoke = window.__TAURI_INTERNALS__.invoke;
+  const delay = (ms = 70) => new Promise((r) => setTimeout(r, ms));
+  const check = (v, m) => {
+    if (!v) throw Error(m);
   };
-  const ready = async () => {
-    await delay();
-    for (let i = 0; i < 1000; i++) {
-      const error = document.querySelector('[role="alert"]');
-      if (error) throw Error(error.textContent);
-      if (!document.querySelector(".spin")) return;
+  const wait = async (fn, message) => {
+    for (let i = 0; i < 600; i++) {
+      if (await fn()) return;
+      const e = document.querySelector('[role="alert"]');
+      if (e) throw Error(e.textContent);
       await delay();
     }
-    throw Error("Batch UI did not finish");
+    throw Error(message);
   };
+  const ready = () =>
+    wait(
+      () => !document.querySelector(".spin"),
+      "Main processing did not finish",
+    );
   const click = (label) => {
-    const button = [...document.querySelectorAll("button")].find(
+    const b = [...document.querySelectorAll("button")].find(
       (b) =>
         b.getAttribute("aria-label") === label ||
         b.textContent.trim() === label,
     );
-    check(button && !button.disabled, `Missing ${label}`);
-    button.click();
+    check(b && !b.disabled, `Missing ${label}`);
+    b.click();
   };
   try {
     await ready();
     const host = await call("__host__");
     check(
       host.ok && !host.qtApplication && host.tcpListeners === 0,
-      "Unexpected processing boundary",
+      "Wrong processing boundary",
     );
     let state = await call("state");
     if (!sessionStorage.getItem("batch-smoke-loaded")) {
-      const cal = await call("open_calibration", {
-        path: state.state.imagePath.replace(/\.tif$/, ".poni"),
-      });
-      check(cal.ok, cal.error);
-      const batch = await call("open_image", {
+      check(
+        (
+          await call("open_calibration", {
+            path: state.state.imagePath.replace(/\.tif$/, ".poni"),
+          })
+        ).ok,
+        "Calibration failed",
+      );
+      const batch = await call("batch_load", {
         paths: Array(5).fill(state.state.imagePath),
-        multiple: true,
       });
       check(
         batch.ok &&
-          batch.batch.entries.length === 5 &&
-          batch.batch.raster.data instanceof ArrayBuffer,
-        batch.error || "Batch transfer failed",
+          batch.batch.raster.data instanceof ArrayBuffer &&
+          batch.cake,
+        "Binary batch/cake failed",
       );
       sessionStorage.setItem("batch-smoke-loaded", "1");
       location.reload();
       return;
     }
-    click("Batch");
-    await ready();
+    click("Integration");
+    await delay();
     check(
-      document.querySelectorAll(".batch-layout .intensity-histogram").length ===
-        2,
-      "Independent histograms missing",
+      !document.querySelector('button[aria-label="Batch"]'),
+      "Batch still exists in mode navigation",
     );
-    click("Select batch pattern 4");
-    await ready();
-    state = await call("state");
-    check(state.batch.selected === 3, "File selection was not linked");
-    const canvas = document.querySelector('[data-testid="batch-heatmap"]'),
-      b = canvas.getBoundingClientRect();
-    canvas.setPointerCapture = canvas.releasePointerCapture = () => {};
-    for (const type of ["pointerdown", "pointerup"])
-      canvas.dispatchEvent(
-        new PointerEvent(type, {
-          bubbles: true,
-          pointerId: 1,
-          button: 0,
-          clientX: b.x + 100,
-          clientY: b.y + 12 + ((b.height - 58) * 1.5) / 5,
-        }),
-      );
-    await ready();
-    state = await call("state");
-    check(state.batch.selected === 1, "Heatmap selection was not linked");
-    const wheel = new WheelEvent("wheel", {
-      bubbles: true,
-      cancelable: true,
-      clientX: b.x + 100,
-      clientY: b.y + 100,
-      deltaY: -100,
+    localStorage.setItem("dioptas-batch:docked", "false");
+    let resolveReport;
+    const next = () => new Promise((r) => (resolveReport = r));
+    const handler = window.__TAURI_INTERNALS__.transformCallback((e) =>
+      resolveReport?.(e.payload),
+    );
+    await invoke("plugin:event|listen", {
+      event: "batch-window-smoke",
+      target: { kind: "Any" },
+      handler,
     });
-    canvas.dispatchEvent(wheel);
-    check(wheel.defaultPrevented, "Wheel scrolled workspace");
+    const firstPromise = next();
+    click("Batch view…");
+    const first = await firstPromise;
+    check(first.ok, first.error);
+    await wait(
+      () => document.querySelector(".batch-dock"),
+      "Batch did not dock",
+    );
+    await ready();
+    state = await call("state");
+    check(
+      state.batch.selected === first.selected && state.cake && state.pattern,
+      "Companion selection did not update Integration",
+    );
+    check(
+      document
+        .querySelector('[aria-label="Integration"]')
+        .getAttribute("aria-pressed") === "true",
+      "Integration was replaced",
+    );
+    const dock = document.querySelector(".batch-dock").getBoundingClientRect(),
+      image = document.querySelector(".detector-panel").getBoundingClientRect();
+    check(dock.y >= image.bottom - 1, "Dock is not below image");
+    const secondPromise = next();
+    click("Detach batch");
+    const second = await secondPromise;
+    check(second.ok, second.error);
+    check(
+      Math.abs(second.initial.width - first.placed.width) < 2 &&
+        Math.abs(second.initial.height - first.placed.height) < 2,
+      "Batch window size was not remembered",
+    );
+    check(
+      Math.abs(second.initial.position.x - first.placed.position.x) < 2 &&
+        Math.abs(second.initial.position.y - first.placed.position.y) < 2,
+      "Batch window position was not remembered",
+    );
+    await wait(
+      () => document.querySelector(".batch-dock"),
+      "Second dock failed",
+    );
+    state = await call("state");
+    check(
+      state.batch.selected === second.selected && state.cake,
+      "Reopened selection lost cake",
+    );
     const output = state.state.imagePath.replace(
       /dioptas\/tests\/data\/.+$/,
       "desktop/artifacts/native-batch.h5",
     );
-    const save = await call("integration_save_batch", { path: output });
-    check(save.ok, save.error);
-    const loaded = await call("batch_open", { path: output });
     check(
-      loaded.ok && loaded.batch.entries.length === 5,
-      loaded.error || "HDF5 roundtrip failed",
+      (await call("integration_save_batch", { path: output })).ok,
+      "Save failed",
     );
-    await window.__TAURI_INTERNALS__.invoke("native_smoke_report", {
+    check(
+      (await call("batch_open", { path: output })).ok,
+      "Stored batch failed",
+    );
+    await invoke("native_smoke_report", {
       report: {
         ok: true,
         processingPid: host.pid,
-        qtApplication: host.qtApplication,
-        tcpListeners: host.tcpListeners,
-        batchPatterns: 5,
+        companionWindow: true,
+        lowerLeftDock: true,
+        linkedCake: true,
         binaryBatch: true,
-        linkedSelection: true,
-        independentHistograms: true,
-        wheelPrevented: true,
+        queueRestricted: true,
+        placementRestored: true,
+        batchPatterns: 5,
         savedPath: output,
       },
     });
   } catch (e) {
-    await window.__TAURI_INTERNALS__.invoke("native_smoke_report", {
-      report: { ok: false, error: String(e.stack || e) },
+    await invoke("native_smoke_report", {
+      report: { ok: false, error: `${e}\n${e.stack ?? ""}` },
     });
   }
 })();

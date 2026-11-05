@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { DetachedBatchWindow } from "./DetachedBatchWindow";
 import { DetachedMapWindow } from "./DetachedMapWindow";
 import { NativePhaseEditor } from "./NativePhaseEditor";
 import { isTauri } from "@tauri-apps/api/core";
@@ -34,7 +35,10 @@ if (
   });
 } else {
   createRoot(document.getElementById("root")!).render(
-    (isTauri() && getCurrentWindow().label === "map-window") ||
+    (isTauri() && getCurrentWindow().label === "batch-window") ||
+      new URLSearchParams(location.search).has("batch_window") ? (
+      <DetachedBatchWindow />
+    ) : (isTauri() && getCurrentWindow().label === "map-window") ||
       new URLSearchParams(location.search).has("map_window") ? (
       <DetachedMapWindow />
     ) : isTauri() && getCurrentWindow().label === "calibration-tooltip" ? (

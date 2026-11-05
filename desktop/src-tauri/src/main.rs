@@ -44,7 +44,7 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
     if matches!(action, "integration_phase_files" | "integration_phase") && payload.get("paths").is_some_and(|v| !v.is_null()) {
         return None;
     }
-    if matches!(action, "map_load" | "batch_load" | "open_image")
+    if matches!(action, "map_load" | "batch_load" | "batch_load_data" | "open_image")
         && (payload.get("paths").is_some_and(|v| !v.is_null()) || payload["reintegrate"] == true)
     {
         return None;
@@ -80,7 +80,7 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
             "",
             false,
         ),
-        "map_load" | "batch_load" => (
+        "map_load" | "batch_load" | "batch_load_data" => (
             "Detector images",
             &["tif", "tiff", "edf", "cbf", "h5", "hdf5", "nxs", "mar3450"],
             "",
@@ -185,6 +185,16 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
     })
 }
 
+fn window_action_allowed(window: &str, action: &str) -> bool {
+    match window {
+        "main" => true,
+        "phase-editor" => matches!(action, "integration_phase_editor" | "integration_phase" | "integration_phase_export"),
+        "map-window" => matches!(action, "map_snapshot" | "map_display" | "map_levels"),
+        "batch-window" => matches!(action, "batch_snapshot" | "batch_levels"),
+        _ => false,
+    }
+}
+
 #[tauri::command]
 async fn desktop_invoke(
     app: tauri::AppHandle,
@@ -194,14 +204,8 @@ async fn desktop_invoke(
     payload: Option<Value>,
     cached_buffers: Option<Vec<String>>,
 ) -> Result<tauri::ipc::Response, String> {
-    if window.label() != "main" && window.label() != "phase-editor" && window.label() != "map-window" {
-        return Err("Unknown desktop window.".into());
-    }
-    if window.label() == "phase-editor" && !matches!(action.as_str(), "integration_phase_editor" | "integration_phase" | "integration_phase_export") {
-        return Err("This command is not available to the phase editor.".into());
-    }
-    if window.label() == "map-window" && !matches!(action.as_str(), "map_snapshot" | "map_display" | "map_levels") {
-        return Err("This command is not available to the map window.".into());
+    if !window_action_allowed(window.label(), &action) {
+        return Err("This command is not available to this desktop window.".into());
     }
     let processor = host.processor.clone()?;
     let cached = cached_buffers.unwrap_or_default();
@@ -234,7 +238,7 @@ async fn desktop_invoke(
             if let Some(directory) = payload["directory"].as_str() {
                 dialog = dialog.set_directory(directory);
             }
-            if matches!(action.as_str(), "map_load" | "batch_load" | "integration_overlay" | "integration_phase_files") || (action == "open_image" && payload["multiple"] == true) {
+            if matches!(action.as_str(), "map_load" | "batch_load" | "batch_load_data" | "integration_overlay" | "integration_phase_files") || (action == "open_image" && payload["multiple"] == true) {
                 let Some(selected) = dialog.blocking_pick_files() else {
                     return Ok(Packet::metadata(json!({"ok": true, "cancelled": true})));
                 };
@@ -302,6 +306,7 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .manage(TooltipState::default())
         .manage(map_window::MapWindowState::default())
+        .manage(map_window::BatchWindowState::default())
         .manage(Host {
             processor: Processor::start(example).map(Arc::new),
             smoke,
@@ -312,6 +317,8 @@ fn main() {
             phase_editor::open_phase_editor,
             map_window::open_map_window,
             map_window::close_map_window,
+            map_window::open_batch_window,
+            map_window::close_batch_window,
             native_smoke_report,
             show_calibration_tooltip,
             hide_calibration_tooltip,
@@ -335,6 +342,10 @@ fn main() {
             Ok(())
         })
         .on_page_load(move |webview, payload| {
+            if smoke && batch_smoke && webview.label() == "batch-window" && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+                let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
+                let _ = webview.eval(include_str!("../../scripts/batch_window_native_smoke.js"));
+            }
             if smoke && webview.label() == "map-window" && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
                 static EXPECTED_CHECKED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
                 if !EXPECTED_CHECKED.swap(true, std::sync::atomic::Ordering::SeqCst) {
@@ -386,6 +397,10 @@ fn main() {
                 use tauri::Emitter;
                 let _ = window.app_handle().emit_to("main", "map-window-main", json!({"type": "closed"}));
             }
+            if window.label() == "batch-window" && matches!(event, tauri::WindowEvent::Destroyed) {
+                use tauri::Emitter;
+                let _ = window.app_handle().emit_to("main", "batch-window-main", json!({"type": "closed"}));
+            }
             if window.label() != "main" {
                 return;
             }
@@ -398,6 +413,7 @@ fn main() {
                 let _ = calibration_tooltip::dismiss(window.app_handle(), None);
             }
             if matches!(event, tauri::WindowEvent::Destroyed) {
+                if let Some(batch) = window.app_handle().get_webview_window("batch-window") { let _ = batch.destroy(); }
                 if let Some(map) = window.app_handle().get_webview_window("map-window") { let _ = map.destroy(); }
                 if let Some(editor) = window.app_handle().get_webview_window("phase-editor") { let _ = editor.destroy(); }
                 if let Some(popup) = window
@@ -427,8 +443,21 @@ fn main() {
 mod tests {
     use super::*;
     #[test]
+    fn companion_windows_read_only_and_unknown_windows_rejected() {
+        assert!(window_action_allowed("batch-window", "batch_snapshot"));
+        assert!(window_action_allowed("batch-window", "batch_levels"));
+        for action in ["batch_select", "batch_load", "state", "integration_save_batch", "open_image"] {
+            assert!(!window_action_allowed("batch-window", action));
+        }
+        assert!(!window_action_allowed("unknown", "batch_snapshot"));
+        assert!(!window_action_allowed("map-window", "batch_snapshot"));
+        assert!(window_action_allowed("main", "batch_select"));
+    }
+    #[test]
     fn batch_dialogs_distinguish_sources_and_explicit_payloads() {
         assert!(file_choice("batch_load", &json!({})).is_some());
+        assert!(file_choice("batch_load_data", &json!({})).is_some());
+        assert!(file_choice("batch_load_data", &json!({"paths": ["series.h5"]})).is_none());
         assert!(file_choice("batch_load", &json!({"paths": ["one.tif", "two.tif"]})).is_none());
         assert!(file_choice("batch_load", &json!({"reintegrate": true})).is_none());
         assert!(file_choice("open_image", &json!({"paths": ["one.tif"]})).is_none());

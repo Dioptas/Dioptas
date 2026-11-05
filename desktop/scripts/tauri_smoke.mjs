@@ -23,8 +23,20 @@ const run = (command, args) =>
       code === 0 ? resolve() : reject(Error(`${command} exited with ${code}`)),
     );
   });
-if (!live) await run("npm", ["run", "tauri:build", "--", "--debug"]);
-else await writeFile(probe, ":root { --dioptas-tauri-hmr: before; }\n");
+if (!live) {
+  const buildArgs = ["run", "tauri:build", "--", "--debug"];
+  if (batchSmoke) {
+    const config = new URL("batch-native-config.json", artifacts);
+    await writeFile(
+      config,
+      JSON.stringify({
+        identifier: `org.dioptas.desktop.batch-smoke-${process.pid}`,
+      }),
+    );
+    buildArgs.push("--config", fileURLToPath(config));
+  }
+  await run("npm", buildArgs);
+} else await writeFile(probe, ":root { --dioptas-tauri-hmr: before; }\n");
 
 const child = spawn(
   live ? "npm" : "src-tauri/target/debug/dioptas-desktop",

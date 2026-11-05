@@ -8,6 +8,12 @@ export type MapWindowStatus = {
   largeText: boolean;
   error: string | null;
   revision?: number;
+  progress?: {
+    running: boolean;
+    current: number;
+    total: number;
+    label?: string;
+  };
 };
 export type MapWindowMessage =
   | { type: "ready" | "closed" | "dock" }
@@ -22,9 +28,13 @@ export type MapWindowMessage =
   | { type: "response"; id: string; result: Response };
 
 /** Native notifications contain no pixels; browser popups share their opener's bridge. */
-export function mapWindowChannel(child: boolean, session: string) {
-  const incoming = child ? "map-window-child" : "map-window-main";
-  const outgoing = child ? "map-window-main" : "map-window-child";
+export function mapWindowChannel(
+  child: boolean,
+  session: string,
+  kind: "map" | "batch" = "map",
+) {
+  const incoming = child ? `${kind}-window-child` : `${kind}-window-main`;
+  const outgoing = child ? `${kind}-window-main` : `${kind}-window-child`;
   const native = isTauri();
   let partner: Window | null = child ? window.opener : null;
   return {
@@ -32,7 +42,7 @@ export function mapWindowChannel(child: boolean, session: string) {
       if (native) void emit(outgoing, message);
       else
         partner?.postMessage(
-          { mapWindowSession: session, target: outgoing, message },
+          { [`${kind}WindowSession`]: session, target: outgoing, message },
           location.protocol === "file:" ? "*" : location.origin,
         );
     },
@@ -43,7 +53,7 @@ export function mapWindowChannel(child: boolean, session: string) {
         );
       const handler = (event: MessageEvent) => {
         if (
-          event.data?.mapWindowSession !== session ||
+          event.data?.[`${kind}WindowSession`] !== session ||
           event.data?.target !== incoming ||
           !event.source
         )

@@ -1,10 +1,14 @@
 import type { Raster, Unit } from "./types";
 export interface BatchData {
+  id: string;
   raster: Raster;
   pattern: import("./types").Pattern;
   x: number[];
   unit: Unit;
+  sourceUnit: Unit;
+  mask: string | null;
   wavelength: number | null;
+  files: { path: string; name: string; frames: number; first: number | null }[];
   entries: { path: string; name: string; frame: number }[];
   selected: number;
   total: number;
