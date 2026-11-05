@@ -135,9 +135,6 @@ export function BatchHeatmap({
     ctx.drawImage(bitmap, 0, 0, cols, rows);
     ctx.restore();
     const y = py(batch.selected + 0.5);
-    ctx.strokeStyle = "#ff9500";
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(px(0), py(batch.selected + 1), cols * sx, Math.max(1, sy));
     ctx.fillStyle = "#ff9500";
     ctx.beginPath();
     ctx.moveTo(bounds.left, y - 5);
@@ -145,6 +142,7 @@ export function BatchHeatmap({
     ctx.lineTo(bounds.left, y + 5);
     ctx.fill();
     if (nav.selection) {
+      ctx.lineWidth = 1.5;
       const { start, end } = nav.selection;
       const x = Math.min(start.x, end.x),
         y = Math.min(start.y, end.y),

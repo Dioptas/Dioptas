@@ -30,6 +30,8 @@ one-based inclusive processing-command range.
 The 2D series grows bottom to top: frame zero is the lowest row. Selection,
 hover readouts and frame labels follow that orientation; Up moves to the next
 frame and Down to the previous one. Stored data stays in acquisition order.
+The selected frame uses a small marker at the left edge, without an outline
+across the intensity map.
 The lower-left plot controls select rectangle or X-range (slice) zoom, using
 the shared blue drag selection. X-range zoom preserves the frame range. The
 chosen mode survives tab changes, docking and reopening.
