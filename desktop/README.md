@@ -928,3 +928,5 @@ Retina WebGL results in `artifacts/ui-audit/performance/` retain both WebKit's
 reported Apple GPU result and Chromium's slower SwiftShader wide-pan result.
 The provenance file identifies the measured source and its limits. These are
 headless browser measurements, not native GPU/display-latency certification.
+
+The scan map uses its existing histogram/settings and Layer/ROI controls for scale and calculation context. The redundant permanent summary/color-key block below the map is removed in both main and detached Map views; a concise accessible description retains context without taking plot space.

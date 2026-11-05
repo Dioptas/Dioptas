@@ -214,11 +214,17 @@ const capture = async (name, target = page) => {
   const batchAxisLabels = await target
     .locator("canvas[data-y-axis-label]")
     .evaluateAll((nodes) =>
-      nodes.filter(node => node.getClientRects().length && !node.closest('[inert], [aria-hidden="true"]')).map((node) => ({
-        label: node.dataset.yAxisLabel,
-        width: Number(node.dataset.yAxisLabelWidth),
-        available: Number(node.dataset.yAxisAvailable),
-      })),
+      nodes
+        .filter(
+          (node) =>
+            node.getClientRects().length &&
+            !node.closest('[inert], [aria-hidden="true"]'),
+        )
+        .map((node) => ({
+          label: node.dataset.yAxisLabel,
+          width: Number(node.dataset.yAxisLabelWidth),
+          available: Number(node.dataset.yAxisAvailable),
+        })),
     );
   if (stage !== "before")
     assert(
@@ -658,31 +664,32 @@ try {
       await page.keyboard.press("Escape");
       await capture("map-compact" + (large ? "-large" : ""));
       if (stage !== "before") {
-        const range = await page
-          .locator(".color-scale-range")
-          .evaluate((element) => {
-            const children = [...element.children].map((child) =>
-              child.getBoundingClientRect(),
-            );
-            return children.map((rect) => ({
-              x: rect.x,
-              y: rect.y,
-              width: rect.width,
-              height: rect.height,
-            }));
-          });
+        const scan = page.getByRole("region", {
+          name: "Scan map",
+          exact: true,
+        });
+        assert.equal(await scan.locator(".color-scale-legend").count(), 0);
+        assert.match(
+          await scan.getAttribute("aria-description"),
+          /Layer .*Display limits/,
+        );
+        await click("Map histogram settings");
+        const settings = page.getByRole("dialog", {
+          name: "Map display settings",
+          exact: true,
+        });
         assert(
-          range[0].x < range[1].x &&
-            range[2].x >= range[1].x + range[1].width - 1,
+          await settings
+            .getByLabel("Map minimum intensity", { exact: true })
+            .isVisible(),
         );
         assert(
-          Math.abs(
-            range[0].y +
-              range[0].height / 2 -
-              (range[2].y + range[2].height / 2),
-          ) < 2,
-          "Low and high limits remain beside their color-bar ends",
+          await settings
+            .getByLabel("Map maximum intensity", { exact: true })
+            .isVisible(),
         );
+        await page.keyboard.press("Escape");
+        await ready();
       }
       const suffix = large ? "-large" : "";
       await click("Calibration");
@@ -752,7 +759,9 @@ try {
       checks.push(
         "All modes, editors, action menus and Batch normalization fit 1000×760 at both text sizes; canvas labels switch from 14 to 16 px",
       );
-      checks.push("Compact Map color limits stay beside their color-bar ends");
+      checks.push(
+        "Compact Map has no permanent summary block; color limits remain available in histogram settings at both text sizes",
+      );
       await page.setViewportSize({ width: 1440, height: 1000 });
       await click("Keyboard shortcuts and gestures");
       await capture("shortcut-help");

@@ -1,4 +1,3 @@
-import { ColorScaleLegend } from "./ColorScaleLegend";
 import { scientificValue } from "./ScientificNumberInput";
 import { unitLabel } from "./types";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -120,7 +119,15 @@ export function ScanMapPanel({
         ? `Expression values${map.normalized ? " · normalized" : ""}`
         : undefined;
   return (
-    <section className="map-scan-panel" aria-label="Scan map">
+    <section
+      className="map-scan-panel"
+      aria-label="Scan map"
+      aria-description={
+        map
+          ? `Layer ${map.active}. ${scanRaster?.fullHeight} by ${scanRaster?.fullWidth} grid. ${scaleDetail ?? ""}. Display limits ${scientificValue(display.limits[0])} to ${scientificValue(display.limits[1])}, ${display.log ? "logarithmic" : "linear"}.`
+          : undefined
+      }
+    >
       {map && scanRaster ? (
         <div className="detector-workspace map-raster" data-testid="scan-map">
           <RasterView
@@ -198,15 +205,6 @@ export function ScanMapPanel({
             </button>
           )}
         </div>
-      )}
-      {map && (
-        <ColorScaleLegend
-          label={`Layer ${map.active} · ${scanRaster?.fullHeight} × ${scanRaster?.fullWidth} grid`}
-          detail={scaleDetail}
-          palette={display.palette}
-          limits={display.limits}
-          scale={display.log ? "log" : "linear"}
-        />
       )}
       <div className="integration-image-tools map-display-controls">
         <label>

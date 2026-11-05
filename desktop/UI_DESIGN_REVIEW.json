@@ -243,7 +243,7 @@
   "implementedImprovements": [
     {
       "problem": "Unclear scientific context and stale results",
-      "resolution": "Geometry source/fit diagnostics, stale-pattern action, quantitative Map/Batch scales and source-aware series context.",
+      "resolution": "Geometry source/fit diagnostics, stale-pattern actions, a quantitative Batch scale and source-aware series context. Map context uses the existing histogram/settings and Layer/ROI controls.",
       "shared": [
         "GeometryProvenance",
         "PatternFreshness",
@@ -349,6 +349,14 @@
         "PlotLegend",
         "legendPlacement",
         "plotLegend.css"
+      ]
+    },
+    {
+      "problem": "A permanent map summary duplicated Layer/ROI controls and histogram settings",
+      "resolution": "Removed the below-map text/color-key block; the existing controls and accessible description supply context while the map takes the space.",
+      "shared": [
+        "ScanMapPanel",
+        "ImageIntensity"
       ]
     }
   ],
@@ -459,7 +467,7 @@
     ],
     "sourceCommit": "59fd3e38",
     "reviewFile": "UI_PEER_REVIEW.txt",
-    "status": "Independent mean 9.02/10 on 59fd3e38, retained unchanged in a focused addendum on f3fa86ae. The remaining minor legend clutter then drove a compact dark background behind names and peak-weighted placement; no newer numeric peer score is inferred.",
+    "status": "Independent mean 9.02/10 on 59fd3e38, retained unchanged in a focused addendum on f3fa86ae. The remaining minor legend clutter then drove a compact dark background behind names and peak-weighted placement; no newer numeric peer score is inferred. The later user-requested removal of the redundant map summary is not a new peer rating.",
     "addendumSourceCommit": "f3fa86ae",
     "addendumFile": "artifacts/ui-audit/reviews/claude-addendum-f3fa86ae.txt"
   },
@@ -492,7 +500,7 @@
     "toolbarChecks": "Active Batch controls are checked against ancestor clipping and actual pointer hit targets.",
     "poniDisplayConversion": "A changed PONI field is applied through the UI; mm-to-m conversion and Undo are checked against the real model at 1e-15 m tolerance.",
     "batchAxisTitles": "Visible heatmap axis titles are measured against available height; full zero-based semantics remain in the accessible description.",
-    "browserUiSha256": "132640fafd66e55b0dc95984d928bb1193635f3f5f7fd461694e854fe6027097",
+    "browserUiSha256": "c3ac3a3a227c5382f928c8e2e282dd61b5111f5a17357f36c74dd702adc99b55",
     "nativeBuildPassed": true,
     "nativeBatchSmokePassed": false,
     "nativeQualification": "Native smoke did not pass; failures and baseline comparison are retained in artifacts/ui-audit/native/summary.json.",
