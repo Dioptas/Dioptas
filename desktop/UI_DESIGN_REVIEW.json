@@ -29,7 +29,7 @@
       "before": 7,
       "after": 9.5,
       "criteria": "Make scientific scales, references, labels and color ranges interpretable without suggesting false data.",
-      "evidence": "Movable legends choose an in-plot corner with fewer curve samples and avoid phase/region/cursor labels. Explicit positions remain fixed when new data arrives; long names expand on focus/hover. No legend header is reserved.",
+      "evidence": "Compact movable legends stay inside plots with no reserved header. A dark background keeps names clear; peak-weighted placement retains bucket extrema, protects peaks and avoids existing labels. Explicit positions remain stable; full names are available on focus/hover.",
       "at91": 9.2
     },
     {
@@ -234,7 +234,7 @@
   "limitations": [
     "These are subjective design ratings. They do not establish a consensus score, scientific accuracy, uncertainty estimates, usability-study results or production readiness.",
     "Axe violations and items requiring manual review are recorded separately. Canvas accessibility and screen-reader workflows are not fully covered by automated checks.",
-    "Headless Chromium and WebKit were exercised. Native Tauri window management, OS file/color dialogs, screen readers, Windows/Linux packaging and portable Python distribution were not revalidated in this UI audit.",
+    "Native build passed, but Batch smoke attempts did not establish native window-manager correctness. OS file/color dialogs, real screen readers, Windows/Linux packaging and portable Python distribution remain unqualified.",
     "The gold phase file is an editor/control fixture, not an identification of the CeO2 or Fe3O4C specimens. The six-frame Batch series is derived from the CeO2 image by known intensity multipliers.",
     "The GUI preserves existing scientific conventions, including pyFAI/Fit2D unit differences, zero-based Batch frames, a one-line footer and compact plot tools."
   ],
@@ -459,7 +459,9 @@
     ],
     "sourceCommit": "59fd3e38",
     "reviewFile": "UI_PEER_REVIEW.txt",
-    "status": "Independent final review: 9.02/10 on 59fd3e38. Subsequent minor legend halo, peak sampling, drag-threshold and Unicode-minus refinements are recorded separately; no later score is inferred."
+    "status": "Independent mean 9.02/10 on 59fd3e38, retained unchanged in a focused addendum on f3fa86ae. The remaining minor legend clutter then drove a compact dark background behind names and peak-weighted placement; no newer numeric peer score is inferred.",
+    "addendumSourceCommit": "f3fa86ae",
+    "addendumFile": "artifacts/ui-audit/reviews/claude-addendum-f3fa86ae.txt"
   },
   "codexMean": 9.472,
   "target": 9.5,
@@ -473,7 +475,7 @@
   ],
   "scoreDisplay": "Overall scores are displayed to one decimal; the unrounded arithmetic mean is retained in codexMean. These are qualitative design judgments, not measured accuracy or certification.",
   "validation": {
-    "frontendUnitTests": 64,
+    "frontendUnitTests": 65,
     "modelTests": 294,
     "optionalModelTestsSkipped": 5,
     "browserEngines": [
@@ -490,7 +492,7 @@
     "toolbarChecks": "Active Batch controls are checked against ancestor clipping and actual pointer hit targets.",
     "poniDisplayConversion": "A changed PONI field is applied through the UI; mm-to-m conversion and Undo are checked against the real model at 1e-15 m tolerance.",
     "batchAxisTitles": "Visible heatmap axis titles are measured against available height; full zero-based semantics remain in the accessible description.",
-    "browserUiSha256": "54df5e8b2baee67b2c1540140a6d5bde23b590a4c4341b3e4f41ca8dbdd8ce6e",
+    "browserUiSha256": "132640fafd66e55b0dc95984d928bb1193635f3f5f7fd461694e854fe6027097",
     "nativeBuildPassed": true,
     "nativeBatchSmokePassed": false,
     "nativeQualification": "Native smoke did not pass; failures and baseline comparison are retained in artifacts/ui-audit/native/summary.json.",

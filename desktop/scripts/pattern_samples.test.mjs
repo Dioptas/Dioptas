@@ -106,3 +106,15 @@ test("legend placement retains a one-sample diffraction peak between regular sam
   assert.equal(y[137], 9000);
   assert.equal(x[137], 137);
 });
+
+test("legend placement protects a peak rather than preferring a crowded baseline", () => {
+  const bounds = { left: 0, top: 0, width: 100, height: 100 };
+  const points = [
+    { x: 80, y: 10, weight: 10 },
+    ...Array.from({ length: 40 }, () => ({ x: 80, y: 90, weight: 0.05 })),
+  ];
+  const result = legendPlacement(bounds, 40, 20, points, [
+    { left: 0, top: 0, width: 50, height: 100 },
+  ]);
+  assert(result.top > 50);
+});

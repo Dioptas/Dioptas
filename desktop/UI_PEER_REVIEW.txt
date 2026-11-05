@@ -141,3 +141,69 @@ I didn't re-open the other screenshots this round.
 - both WebGL benchmark JSON files
 
 **Not executed:** the app, the 63 frontend unit tests, the audits, the Python tests, the native smoke and the benchmarks. Native window-manager behavior, screen readers and native GPU performance remain unvalidated.
+
+
+---
+
+# Addendum to my 59fd3e38 review: legend refinements and new performance evidence
+
+**Bottom line:** Q2, Q3 and Q5 are fixed. Q1 is only partly fixed: the halo works, but same-color curves still show between the letters, and in one standard-size screenshot the default legend sits over the main curve. I found no regressions. My scores are unchanged and the mean stays **9.02**.
+
+As before, this was read-only. I didn't open `UI_DESIGN_REVIEW.json` or anyone else's scores, and I didn't execute anything.
+
+## Q findings
+
+| ID | Status | What I checked |
+|---|---|---|
+| **Q1** Legend text crossed by same-color curves | **Partly fixed** | **Fixed:** `plotLegend.css:11-15` adds a 1-px halo in the workspace color, with no panel or header. `legendSampleIndices` keeps each bucket's min and max (`legendPlacement.ts:58-80`), so a single-sample peak isn't skipped; `pattern_samples.test.mjs:101-108` tests this. **Still visible:** in map-compact.png, map-compact-large.png and batch-compact-large.png, the green "CeO2_Pilatus1M" entry still has green peak lines running between its letters. The halo keeps the glyph edges clean but doesn't stop that clutter. **Residual:** in batch-compact.png (standard text), the default top-right legend covers the white curve's broad maximum around 18–24°. Every sampled point scores the same (`legendPlacement.ts:31-38`), so a corner the main curve passes through with few samples can still beat a corner full of baseline samples. I count this as a minor heuristic limitation, not a regression: the legend can still be moved, and the narrow peaks and A cursor stay clear. |
+| **Q2** Placement ignores cursor and ROI moves | **Fixed, documented as intentional** | A new comment (`PatternView.tsx:400-401`) says the legend corner stays fixed while you pan or move a cursor or ROI. I accept that as a deliberate stability choice. |
+| **Q3** Clicking could pin the legend | **Fixed** | You now have to drag at least 4 px before the legend pins (`PlotLegend.tsx:170-181`); a plain click only focuses it. Arrow keys pin it and Home/Escape return it to automatic (`:137-156`, `:78-83`). Whether it's pinned is now shown in its ARIA description, `title` and `data-manual-position` attribute (`:124-126`). |
+| **Q5** ASCII hyphen in bound messages | **Fixed** | Bound labels now use the Unicode minus (`numericDraft.ts:14-18`). |
+
+**Regressions:** none I can substantiate. The halo color matches the plot background in the screenshots. Sampling now takes at most about 256 points per curve, and all transforms are monotonic, so keeping each bucket's extremes still ranks samples correctly.
+
+## Reports and performance evidence
+
+**Reports.** `after/report.json` and `webkit/report.json` both show `completed: true`, `failure: null` and `errors: []`. I verified these fields in the previous round, and nothing in this round suggested they had changed.
+
+**New WebKit benchmark** (`performance/retina-webgl-webkit-current.json`):
+- Renderer "Apple GPU", WebGL 2.0, DPR 2, one 2,000-point curve.
+- The browser's refresh cadence was 20 ms. Every case (pan-wide, pan-zoomed, wheel) shows `missedFramePercent: 0`.
+- Input-to-submission p95 is 5 ms or less, and frame interval p95 is 22 ms or less.
+- Timings are reported in whole milliseconds.
+
+**Provenance** (`performance/provenance.json`):
+- Links the timings to 59fd3e38 "from the recorded session state". The raw benchmark files contain no commit hash, so this link rests on that file's word.
+- Correctly says the later legend changes weren't timed.
+
+**Native Batch smoke:** still unqualified, as you said. I didn't re-read its logs this round.
+
+## Scores
+
+**Responsiveness stays at 8.5.** The benchmark is meaningful new evidence: a real GPU, no missed frames, small input latency. Two things keep it below 9:
+- **Scope:** it covers panning and zooming one 2,000-point curve. The criterion also covers "navigation and feedback … during scientific processing", plus raster and heatmap redraws, multi-curve overlays and processing-time feedback. None of those are measured.
+- **Environment:** it ran in headless WebKit, not the Tauri app on a real display.
+
+A benchmark that adds raster, Batch heatmap and multi-overlay cases, or measures UI response while integration is running, would justify 9.0.
+
+**Visualization and readability stay at 9.0.** The Q1 residual is minor, and the user's movable in-plot legend design limits its impact.
+
+**No other changes.** All 25 prior scores are retained, so the sum is 225.5 and the mean **225.5 / 25 = 9.02**.
+
+## What I inspected and didn't execute
+
+**Source files:**
+- `PlotLegend.tsx`
+- `plotLegend.css`
+- `legendPlacement.ts:55-80`
+- `PatternView.tsx:398-489`
+- `numericDraft.ts`
+- `scripts/pattern_samples.test.mjs:90-108`
+
+**Screenshots** (full resolution, from `after/`):
+- map-compact.png and map-compact-large.png
+- batch-compact.png and batch-compact-large.png
+
+**Artifacts:** `performance/retina-webgl-webkit-current.json` and `performance/provenance.json`.
+
+**Not executed:** the app, the UI harness (including the jitter, keyboard-pin and Home-reset cases), the 64 frontend unit tests, the benchmarks and the native smoke. The new behaviors are verified from source and static screenshots only.

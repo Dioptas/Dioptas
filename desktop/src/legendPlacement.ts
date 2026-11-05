@@ -1,5 +1,5 @@
 type Rect = { left: number; top: number; width: number; height: number };
-type Point = { x: number; y: number };
+type Point = { x: number; y: number; weight?: number };
 /** Pick an in-plot corner with fewer curve samples and no labelled controls. */
 export function legendPlacement(
   bounds: Rect,
@@ -29,19 +29,21 @@ export function legendPlacement(
     { x: x0, y: y1, align: "left" as const },
   ];
   const score = (r: (typeof candidates)[number]) =>
-    points.filter(
-      (p) =>
-        p.x >= r.x - 4 &&
-        p.x <= r.x + w + 4 &&
-        p.y >= r.y - 4 &&
-        p.y <= r.y + h + 4,
-    ).length +
+    points
+      .filter(
+        (p) =>
+          p.x >= r.x - 4 &&
+          p.x <= r.x + w + 4 &&
+          p.y >= r.y - 4 &&
+          p.y <= r.y + h + 4,
+      )
+      .reduce((sum, point) => sum + (point.weight ?? 1), 0) +
     obstacles.reduce(
       (total, o) =>
         total +
         (Math.min(r.x + w, o.left + o.width) > Math.max(r.x, o.left) &&
         Math.min(r.y + h, o.top + o.height) > Math.max(r.y, o.top)
-          ? 10000
+          ? 1e9
           : 0),
       0,
     );

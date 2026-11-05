@@ -414,7 +414,7 @@ export function PatternView({
       h * 0.5,
       overlayLegend.length * typography.size * 1.35,
     );
-    const points: { x: number; y: number }[] = [];
+    const points: { x: number; y: number; weight: number }[] = [];
     for (const curve of visibleCurves) {
       const [start, end] = visibleSamples(curve.x, xmin, xmax, false);
       for (const i of legendSampleIndices(curve.x, curve.y, start, end)) {
@@ -430,6 +430,16 @@ export function PatternView({
         points.push({
           x: left + ((x - xmin) / (xmax - xmin)) * w,
           y: top + h - ((transform(y) - ymin) / yspan) * h,
+          weight:
+            0.05 +
+            20 *
+              Math.pow(
+                Math.abs(
+                  transform(y) -
+                    Math.max(ymin, Math.min(ymax, log ? ymin : transform(0))),
+                ) / yspan,
+                2,
+              ),
         });
       }
     }

@@ -8,6 +8,9 @@
   font-size: var(--text-meta);
   line-height: 1.35;
   z-index: 1;
+  background: var(--ui-workspace);
+  padding: 2px 4px;
+  border-radius: 3px;
   text-shadow:
     -1px 0 var(--ui-workspace),
     1px 0 var(--ui-workspace),
