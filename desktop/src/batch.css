@@ -108,6 +108,9 @@
 .batch-folder-label > span {
   position: absolute;
   right: 0;
+  width: max-content;
+  min-width: 100%;
+  text-align: center;
 }
 .batch-position {
   flex: none;

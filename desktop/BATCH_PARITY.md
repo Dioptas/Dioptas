@@ -43,6 +43,8 @@ the detector/cake and image toolbar. It shares the left column's width and leave
 the pattern and right-hand task controls in place. Drag the divider (or focus it
 and use Up/Down) to resize; double-click resets the height. The header can collapse,
 hide or detach the panel. **Batch view…** in Integration → Image reopens it.
+The detached toolbar has no duplicate close button; use the native window close
+control. The dock retains its Hide button.
 Dock preference, open/closed state, height and collapsed state persist.
 Both Integration splitters retain their preferred percentages. A smaller window
 clamps the displayed sizes without overwriting preferences, so expanding it
@@ -61,7 +63,8 @@ and selection. Files retains its integration range.
 The splitter shares Integration’s thin grip and hover styling, with pointer
 resizing, keyboard Up/Down and double-click reset; the dock can shrink to 220 px.
 The dock has no outer frame. The header shows the last three folder names,
-aligned at the trailing end, with the full path in its tooltip. Files shows
+centered when they fit and clipped from the left when space is tight, keeping
+the final folder visible, with the full path in its tooltip. Files shows
 basenames with full paths in tooltips. Header actions are borderless icons with
 hover/focus feedback; tabs use the shared underline style. The hidden cake-shift
 control no longer reserves a blank row above Batch

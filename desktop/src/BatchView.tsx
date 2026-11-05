@@ -289,13 +289,15 @@ export function BatchView({
               <PanelBottomClose size={15} />
             </button>
           )}
-          <button
-            aria-label="Hide batch view"
-            title="Hide Batch; keep the series"
-            onClick={onHide}
-          >
-            <X size={15} />
-          </button>
+          {docked && (
+            <button
+              aria-label="Hide batch view"
+              title="Hide Batch; keep the series"
+              onClick={onHide}
+            >
+              <X size={15} />
+            </button>
+          )}
         </div>
       </header>
       <div className="batch-qt-content" hidden={collapsed || tab === "Options"}>
