@@ -37,6 +37,7 @@ the shared blue drag selection. X-range zoom preserves the frame range. The
 chosen mode survives tab changes, docking and reopening.
 The frame axis keeps its numeric labels without a title, with a narrow margin
 that grows only when larger frame numbers need it.
+Axis numbers, unit labels and border use the pattern plot's muted colors.
 
 **Dock batch** moves the same panel into Integration's lower-left corner below
 the detector/cake and image toolbar. It shares the left column's width and leaves

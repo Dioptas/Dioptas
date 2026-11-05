@@ -164,11 +164,11 @@ export function BatchHeatmap({
       }
     }
     ctx.restore();
-    ctx.strokeStyle = "#666a70";
+    ctx.strokeStyle = "#65717d";
     ctx.lineWidth = 1;
     ctx.strokeRect(bounds.left, bounds.top, bounds.width, bounds.height);
     ctx.font = `${host.current?.closest(".app")?.getAttribute("data-text-size") === "large" ? 14 : 13}px -apple-system, sans-serif`;
-    ctx.fillStyle = "#c7c9cd";
+    ctx.fillStyle = "#7e8994";
     ctx.textAlign = "center";
     const a = radial(v.xMin),
       b = radial(v.xMax);
@@ -192,11 +192,13 @@ export function BatchHeatmap({
         cols === 1 ? 0.5 : low + Math.max(0, Math.min(1, fraction)) + 0.5;
       ctx.fillText(tick.label, px(bin), size.height - 26);
     }
+    ctx.fillStyle = "#929ca7";
     ctx.fillText(
       unitLabel(batch.unit),
       bounds.left + bounds.width / 2,
       size.height - 6,
     );
+    ctx.fillStyle = "#7e8994";
     ctx.textAlign = "right";
     const stride = Math.max(
       1,
