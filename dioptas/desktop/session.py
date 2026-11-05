@@ -36,6 +36,7 @@ from .integration import IntegrationWorkflow
 from .mask import MaskWorkflow
 from .map import MapWorkflow
 from .custom_commands import CustomCommands, CustomCommandWorkflow
+from .batch import BatchWorkflow
 
 logger = logging.getLogger(__name__)
 UNITS = {"2th_deg", "q_A^-1", "d_A"}
@@ -113,7 +114,7 @@ def _finite_number(value: Any, name: str, low: float, high: float) -> float:
     return number
 
 
-class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, MapWorkflow, CustomCommandWorkflow):
+class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, MapWorkflow, CustomCommandWorkflow, BatchWorkflow):
     """One scientific session. A native window can supply its file picker."""
 
     def __init__(self, choose_file=None, *, binary_images=False):
@@ -237,6 +238,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         }
         handlers.update(self._integration_handlers())
         handlers.update(self._map_commands())
+        handlers.update(self._batch_commands())
         with self._lock:
             try:
                 if action not in handlers:
@@ -279,7 +281,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
                         overlay_key = ("overlay", overlays[index].params.uid, next(iter(fields)))
                 context = (
                     nullcontext()
-                    if action in readonly or action.startswith("map_")
+                    if action in readonly or action.startswith(("map_", "batch_"))
                     else self._model.history.transaction(action, key=overlay_key, merge_consecutive=overlay_key is not None)
                 )
                 with context:
@@ -394,6 +396,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
     def _snapshot(self, include_image=False):
         result = self._state()
         result.update(self._map_snapshot())
+        result.update(self._batch_snapshot())
         result.update(pattern=self._pattern, cake=self._cake)
         result["rings"] = self._rings
         result["linked"] = self._linked_snapshot()
@@ -445,7 +448,15 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         self._calculate()
         return self._snapshot(include_image=True)
 
-    def _open_image(self, path=None, directory=None):
+    def _open_image(self, path=None, directory=None, paths=None, multiple=False):
+        if multiple and paths is None and path is None and self._choose_file:
+            paths = self._choose_file("batch_images", False)
+        if paths is not None:
+            if not paths:
+                return {"cancelled": True}
+            if len(paths) > 1:
+                return self._batch_load(paths=paths)
+            path = paths[0]
         if path and directory and not Path(path).expanduser().is_absolute():
             path = str(Path(directory).expanduser() / path)
         path = self._path(path, "image")
@@ -518,6 +529,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         self._has_image = candidate.img_model.img_data is not None
         self._project = path
         self._restore_map_normalization(path)
+        self._restore_batch_project(path)
         self._calculate()
         return self._snapshot(include_image=True)
 
@@ -537,6 +549,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
             self._model.save(temporary)
             with h5py.File(temporary, "r+") as project:
                 self._save_map_normalization(project)
+                self._save_batch_project(project)
                 project.attrs["react_desktop"] = json.dumps(
                     {
                         "version": 1,

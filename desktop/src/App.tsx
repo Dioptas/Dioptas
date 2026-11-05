@@ -46,6 +46,9 @@ import type {
   Tool,
 } from "./types";
 import { number } from "./types";
+import { BatchView } from "./BatchView";
+import { BatchControls } from "./BatchControls";
+import type { BatchData } from "./batchDomain";
 import { MapView } from "./MapView";
 import type { MapData } from "./mapDomain";
 import { useMapWindow } from "./mapWindow";
@@ -185,7 +188,7 @@ export default function App() {
   const [setupDirty, setSetupDirty] = useState(false);
   const [setupValid, setSetupValid] = useState(true);
   const [mode, setMode] = useState<
-    "calibration" | "integration" | "mask" | "map"
+    "calibration" | "integration" | "mask" | "map" | "batch"
   >("calibration");
   const activeMode = useRef(mode);
   useEffect(() => {
@@ -208,6 +211,8 @@ export default function App() {
     cancel: () => void;
   } | null>(null);
   const [mapPatternZoom, setMapPatternZoom] = useState<ZoomMode>("rectangle");
+  const [batch, setBatch] = useState<BatchData | null>(null);
+  const [batchWarning, setBatchWarning] = useState<string | null>(null);
   const [map, setMap] = useState<MapData | null>(null);
   const [mapWarning, setMapWarning] = useState<string | null>(null);
   const requestMap = async (
@@ -311,6 +316,19 @@ export default function App() {
   ) => {
     if (!result.ok)
       throw new Error(result.error || "The operation could not be completed.");
+    if ("batch" in result) setBatch(result.batch ?? null);
+    if (result.batchSelection !== undefined)
+      setBatch((b) =>
+        b
+          ? {
+              ...b,
+              selected: result.batchSelection!,
+              pattern: result.pattern ?? b.pattern,
+            }
+          : b,
+      );
+    if ("batchWarning" in result) setBatchWarning(result.batchWarning ?? null);
+    if (result.batchOpened) setMode("batch");
     if ("map" in result) setMap(result.map ?? null);
     if ("mapWarning" in result) setMapWarning(result.mapWarning ?? null);
     if (result.state) {
@@ -706,7 +724,11 @@ export default function App() {
         mod = event.metaKey || event.ctrlKey;
       if (mod && key === "o") {
         event.preventDefault();
-        void run("open_image", {}, "Opening image…");
+        void run(
+          "open_image",
+          mode === "integration" || mode === "batch" ? { multiple: true } : {},
+          "Opening image…",
+        );
       } else if (mod && key === "s") {
         event.preventDefault();
         void run(
@@ -1318,7 +1340,11 @@ export default function App() {
       : notice ||
         busy ||
         maskSelection?.text ||
-        (mode === "map" ? mapWarning : null) ||
+        (mode === "batch"
+          ? batchWarning
+          : mode === "map"
+            ? mapWarning
+            : null) ||
         plotReading?.hint ||
         (mode === "calibration" && calibrationStep === 2 && !fitReady
           ? fitBlocker
@@ -1343,11 +1369,26 @@ export default function App() {
             ? map
               ? "Select a map cell to inspect its detector image and pattern."
               : "Load scan images or a processed batch."
-            : mode === "mask"
-              ? `${shapeHelp[maskTools.shape]} · ${number(state?.maskedPixels ?? 0, 0)} masked`
-              : canIntegrate
-                ? "Ready"
-                : "Load a calibration to integrate this image."));
+            : mode === "batch"
+              ? batch
+                ? "Select a row or file to inspect its detector image and pattern."
+                : "Load batch images or open a processed series."
+              : mode === "mask"
+                ? `${shapeHelp[maskTools.shape]} · ${number(state?.maskedPixels ?? 0, 0)} masked`
+                : canIntegrate
+                  ? "Ready"
+                  : "Load a calibration to integrate this image."));
+  const openBatch = () => {
+    clearPlot();
+    setSettingsOpen(false);
+    setMode("batch");
+    if (batch && ready)
+      void run(
+        "batch_select",
+        { index: batch.selected },
+        "Loading batch frame…",
+      );
+  };
   return (
     <div className="app" data-text-size={largeText ? "large" : "normal"}>
       <div className="app-body">
@@ -1390,6 +1431,15 @@ export default function App() {
           >
             <IntegrationModeIcon />
             <span>Int</span>
+          </button>
+          <button
+            className={`workspace-nav ${!settingsOpen && mode === "batch" ? "workspace-active" : ""}`}
+            aria-label="Batch"
+            aria-pressed={!settingsOpen && mode === "batch"}
+            onClick={openBatch}
+          >
+            <Layers size={20} />
+            <span>Batch</span>
           </button>
           <button
             className={`workspace-nav ${!settingsOpen && mode === "map" ? "workspace-active" : ""}`}
@@ -1474,7 +1524,7 @@ export default function App() {
               <button
                 className="workspace-nav project-action"
                 aria-label="Save project"
-                disabled={!ready || (!state?.hasImage && !map)}
+                disabled={!ready || (!state?.hasImage && !map && !batch)}
                 onClick={() => run("save_project", {}, "Saving project…")}
                 title={
                   state?.projectName
@@ -1511,7 +1561,21 @@ export default function App() {
               className={`${mode}-mode`}
               data-integration-display={integrationDisplay}
             >
-              {mode === "map" ? (
+              {mode === "batch" ? (
+                <BatchView
+                  batch={batch}
+                  image={image}
+                  mask={mask}
+                  state={state}
+                  ready={ready}
+                  run={run}
+                  request={requestMap}
+                  reportPlot={reportPlot}
+                  onDetectorHover={onHover}
+                  patternZoom={patternZoom}
+                  onPatternZoom={setPatternZoom}
+                />
+              ) : mode === "map" ? (
                 <MapView
                   map={map}
                   mapWindow={mapWindow}
@@ -2085,7 +2149,14 @@ export default function App() {
                     : undefined
                 }
               >
-                {mode === "mask" ? (
+                {mode === "batch" ? (
+                  <BatchControls
+                    batch={batch}
+                    state={state}
+                    ready={ready}
+                    run={run}
+                  />
+                ) : mode === "mask" ? (
                   <MaskPanel
                     state={state}
                     ready={ready}
@@ -2286,6 +2357,7 @@ export default function App() {
                         state={state}
                         ready={ready}
                         run={run}
+                        onOpenBatch={openBatch}
                         backgroundSettings={liveBackground.settings}
                         onBackgroundChange={liveBackground.change}
                         backgroundUpdating={liveBackground.updating}
@@ -2422,6 +2494,7 @@ export default function App() {
                   mask: "Mask",
                   integration: "Integration",
                   map: "Map",
+                  batch: "Batch",
                 }[mode]
               }
               patternZoom={mode === "map" ? mapPatternZoom : patternZoom}
@@ -2511,9 +2584,11 @@ export default function App() {
                   ? "Cancel map integration"
                   : mode === "integration"
                     ? "Cancel processing"
-                    : mode === "mask"
-                      ? "Cancel mask processing"
-                      : "Cancel refinement"}
+                    : mode === "batch"
+                      ? "Cancel batch integration"
+                      : mode === "mask"
+                        ? "Cancel mask processing"
+                        : "Cancel refinement"}
               </button>
             )}
           </div>

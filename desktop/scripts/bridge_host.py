@@ -19,6 +19,10 @@ artifacts.mkdir(exist_ok=True)
 
 
 def choose_file(kind, save):
+    if kind == "batch_images":
+        return [str(root / "dioptas/tests/data/CeO2_Pilatus1M.tif")]
+    if kind == "batch_open":
+        return str(artifacts / "batch.h5")
     if kind == "map_images":
         return sorted(str(p) for p in (root / "dioptas/tests/data/map").glob("*.tif"))
     if kind == "map_png":

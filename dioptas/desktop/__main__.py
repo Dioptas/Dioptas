@@ -37,6 +37,8 @@ def main():
             result = window.create_file_dialog(webview.FileDialog.FOLDER)
             return result if isinstance(result, str) else result[0] if result else None
         filters = {
+            "batch_open": ("Integrated batch (*.h5;*.hdf5;*.nxs)",),
+            "batch_images": ("Detector images (*.tif;*.tiff;*.edf;*.cbf;*.h5;*.hdf5;*.nxs;*.mar3450)", "All files (*.*)"),
             "image": (
                 "Detector images (*.tif;*.tiff;*.edf;*.cbf;*.h5;*.hdf5;*.nxs;*.mar3450)",
                 "All files (*.*)",
@@ -60,7 +62,7 @@ def main():
         }
         result = window.create_file_dialog(
             webview.FileDialog.SAVE if save else webview.FileDialog.OPEN,
-            allow_multiple=kind == "overlays",
+            allow_multiple=kind in {"overlays", "batch_images"},
             file_types=filters[kind],
             save_filename={
                 "image_export": "image.png",
@@ -74,7 +76,7 @@ def main():
                 "peaks": "calibration-peaks.json",
             }.get(kind, ""),
         )
-        if kind == "overlays":
+        if kind in {"overlays", "batch_images"}:
             return result
         return result if isinstance(result, str) else result[0] if result else None
 

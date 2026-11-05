@@ -38,7 +38,8 @@ project storage are unchanged; task controls stay in the Integration workspace.
 | Corrections | Mean-normalized flat field with load/remove/use; cBN seat and oblique detector absorption with existing model parameters; active corrections rebuild on geometry changes |
 | Pattern load / previous / next / save | Existing PatternModel iterators and Configuration writers; XY, XYE, CHI, DAT, FXYE; raw or background-subtracted save; background-only XY/CHI/DAT; no top-level Export pattern button |
 | Autocreate | Existing Configuration._auto_save_patterns on explicit successful image load/navigation; editable folder/filename, native folder chooser, immediate Autocreate and format choices; normal and bkg_subtracted folders follow Qt; off after project reopen |
-| Backend folder integration (no Image-tab button) | Existing configuration.batch_model discovers same-extension files and their frames, integrates with current geometry/mask/corrections, reports progress and permits cancellation between frames; complete batch saves to model HDF5 or CSV; no duplicated Map workspace |
+| Batch processing | Image-tab multi-selection and a dedicated [2D Batch workspace](BATCH_PARITY.md) provide integration, linked inspection, range/stride, normalization and stored-series saving/import. |
+| Legacy backend folder integration | Existing configuration.batch_model discovers same-extension files and their frames, integrates with current geometry/mask/corrections, reports progress and permits cancellation between frames; complete batch saves to model HDF5 or CSV; no duplicated Map workspace |
 | Overlays | Native file import/current-pattern capture, visibility/color/scale/offset, delete, waterfall/reset, assign/remove pattern background; measured curves render on shared axes and participate in auto scaling |
 | Phases | Qt action rail/table/P–T steps/list files, multi-file JCPDS/CIF/EOSMAT import, real database and scoped editor; PhaseModel conditions/references and qualified reference-line rendering; see [Phase parity](PHASE_PARITY.md) |
 | Project persistence | Standard .dio models retain settings, backgrounds, corrections, overlays and phases. Autocreate is a session opt-in, never silently restored from a project. |
@@ -295,7 +296,7 @@ does not block subsequent files. Foreground actions wait for an in-flight
 automatic load instead of being dropped. Disabling clears the queue; changing
 folders starts a new baseline. Autoprocess is off after opening a project or
 the example. It does not integrate files already present when enabled, and
-arbitrary multi-image selection and the remaining Qt batch modes are separate.
+arbitrary multi-image selection is now available through the [Batch workspace](BATCH_PARITY.md). The remaining Qt batch modes are separate.
 
 Focused Chromium/WebKit checks cover the spinbox, label alignment, folder
 chooser, typed directory/filename, Enter/Load, real incoming-file integration,
