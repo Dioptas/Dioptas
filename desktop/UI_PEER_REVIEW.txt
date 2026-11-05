@@ -1,109 +1,139 @@
-**Overall: 8.3/10.** The 25 scores add up to 208, and 208 ÷ 25 = 8.32.
+# Independent UI design review: Dioptas desktop GUI at `cc3c8704`
 
-**What I looked at:** the rubric, the earlier review (`claude-expanded-1.txt`), both `report.json` files (after and webkit) and the nine screenshots you listed. In the source I read the Batch, dialog, number-formatting, legend, theme, Phase-editor and status-bar code. I did not open `UI_DESIGN_REVIEW.json`, `scores.json` or `index.html`, and I ran nothing.
+This was a read-only review; I changed no files. I formed my scores before opening `UI_DESIGN_REVIEW.json`, `index.html` or any peer scores, and I still haven't opened them. The headless `after/report.json` and `webkit/report.json` both record `completed: true`, `failure: null`, `errors: []` and empty automated `accessibility` arrays. Their `manualAccessibilityChecks` are axe "incomplete" items that still need a human check: color contrast that axe couldn't resolve over gradients or images, `th-has-data-cells` on the empty `.phase-table`, and `aria-controls` on the icon-picker trigger. These count as missing evidence, not as passes or failures.
 
-**What the measured evidence shows:**
-- Both browser engines covered 36 views each, with zero axe violations and no horizontal overflow.
-- Every pattern canvas asked for WebGL2 and got WebGL2.
-- The report lists 20 behaviour checks, all passed.
-- The compact size and the larger text setting were measured: Map at 1000×760, in both text sizes.
+## (1) Scores
 
-## Scores
+| ID | Score | Supporting evidence | Remaining gaps |
+|---|---|---|---|
+| scientific_context | 8.0 | Validate tab shows "Loaded geometry · CeO2_Pilatus1M" vs "Fitted geometry · 48 points · 3 rings · 6 free parameters · RMS Δ2θ 0.0105°". It says plainly "Fit residual unavailable · no fitted peak residuals". Phase Editor shows "Loaded reference · export to .eosmat to save a working copy". `PatternFreshness` warns when a pattern is out of date. | In Calibration › Fit, the values are fit starting values but are only headed "Parameters / Value". They disagree with the model geometry shown at the same time (manual-geometry.png: 200 mm / 0.406626 Å in Fit vs 1000 mm / 0.3344 Å in the dialog), and nothing says which is which. |
+| precision_units | 7.5 | `ScientificNumberInput` keeps the exact text and shows a formatted preview with a Unicode minus and superscript exponents (e.g. "−2.77646 × 10⁻⁸"). Exact values appear on focus. Batch labels its index base ("Frame index (0-based)", "Index 0 · 1 of 6"). | **PONI 1/2 is shown in mm in the Fit tab but in m in Validate and in the manual dialog.** The Integration frame field is 1-based ("Frame (1–N)") while Batch is 0-based. |
+| visualization | 8.0 | Color bars show numeric limits and scale type ("93604 ▭ 95575 linear"). Axes use ×10⁴ offset notation. Phase and calibrant lines are numbered and colored. Legends sit inside the plot with no reserved header. | At compact sizes the default legend position covers the curve and the "A" cursor label (map-compact-large, integration-compact-large). The cake ring label "15" is clipped at the right edge (calibration-validate). The map color bar has no intensity unit. |
+| inspection | 8.5 | Detector pixel readout is coalesced at ~100 ms with epoch guards (`App.tsx:993-1038`). Cake and pattern clicks are linked. Keyboard sample inspection (Alt+←/→) works. Gestures are the same across plots. Square pixels look right in the screenshots. | Square pixels are confirmed only visually on these fixtures. I did no native high-DPI check. |
+| workflow | 7.5 | Batch can dock or detach. Integration Settings uses an explicit draft with Apply. Geometry drafts survive mode switches through the App-level `useGeometryDraft` (`App.tsx:299`). | The manual geometry dialog uses its own separate draft (`GeometryEditor.tsx:198`), so closing it throws away typed values. |
+| navigation | 8.5 | Mode rail on the left, task tabs on the right, persistent undo/open/save/help/settings in the rail, "Back to Integration" in Settings, Validate tab disabled until it applies. | Minor: Settings takes over the whole workspace, so you can't see data while changing preferences. |
+| learnability | 7.5 | Shortcut reference with scopes, `CalibrationHelp` popovers, mode hints in the status bar, aria-descriptions on legends. | The plot toolbar symbols (`AA`, `A`, `|`, `bg`, `√`) are explained only in the help dialog (`ShortcutReference.tsx:131-148`). The footer label "Click —" (`App.tsx:2799`) isn't explained where it appears. |
+| cognitive_load | 8.0 | Refinement options appear only when "Automatic refinement" is on. Validate stays dimmed until relevant. Advanced settings live in Settings. | The Pattern tab leaves a large empty block (integration-pattern.png). The Calibration › Fit tab packs parameters and refinement into one long column. |
+| typography | 8.0 | Text-size tokens (`--text-meta/small/body`) with a large-text variant. Tabular numerals in 10 stylesheets. Canvas labels scale from 14 to 16 px. | There are about 22 hard-coded `font-size: Npx` values. `MaskPanel.tsx:336` has a literal "DYNAMIC MASKING PLUGINS" heading, while every other section heading is sentence case. Plot axis titles use monospace, unlike the sans-serif UI. |
+| readability | 8.0 | Disabled controls use a dashed border plus muted text and the not-allowed cursor (`uiTheme.css:400-416`). Signs are kept with a real minus. The placeholder color is tuned. | Axe could not determine many contrast nodes (up to ~54 per screen), so they're unverified. Muted grey on the charcoal panel looks marginal in a few labels (Fit column headers, "Parameter / Value"). |
+| spacing | 8.0 | Labels, values and units line up in the geometry and fit tables. Primary actions stay in the same bottom-right position. Settings cards are evenly spaced. | Empty space in the Pattern tab. The pattern header wraps "λ 0.4066 Å Load calibration…" onto a second line at compact width. |
+| hierarchy | 8.5 | Data plots take most of the area. The orange primary (Calibrate, Export .eosmat) stands out. State text is quiet. | The Phase Editor has three equally weighted save-type buttons next to the primary. This is minor. |
+| consistency | 7.5 | Shared `Dialog`/`DialogHeader`, `TabList`, rail and tab underline rules, quiet recessed inputs everywhere. | PONI units differ between tabs. Heading case is inconsistent. Number inputs follow at least three different editing behaviors (see reuse). |
+| reuse | 7.5 | One owner each for modal behavior (`Dialog.tsx`), tabs, legends (`PlotLegend`), scientific numbers and history labels. | `CalibrationExtras.tsx:237-241` and `IntegrationView.tsx:171-199` (`CommitField`) use their own `Number(e.target.value)` inputs instead of the shared draft-preserving pattern. Geometry drafts have two owners. |
+| dialogs | 8.5 | Native `showModal()`, Tab containment, Escape to cancel, focus return with a fallback for asynchronously opened dialogs (`Dialog.tsx:13-27, 51-69`). Phase Editor has a nested confirm and Escape closes the confirm first (`PhaseEditor.tsx:310-314`). | Clicking the backdrop dismisses every dialog with no dirty check (`Dialog.tsx:117-129`). This matters for the manual geometry dialog. |
+| keyboard | 8.5 | Every row I compared in `ShortcutReference.tsx` matches its handler: `App.tsx:861-962` and `MaskView.tsx:114-155`, including Q/W direction and limits, Ctrl+Y, P being inactive in Mask, Ctrl+S saving the mask in Mask mode, and mod-key bail-outs. Typing in fields, dialogs, menus and Settings is excluded from shortcuts. Batch ↑/↓ follows the plot's upward frame axis. | Bare Enter runs `integrate` in Calibration and Map whenever focus isn't on a field or button, including a focused plot. This is documented, but it's a broad, expensive key. |
+| accessibility | 7.5 | Labelled controls, stable `status` and `alert` live regions (`StatusMessage.tsx`), visible focus outline, reduced-motion support, two text sizes, accessible names on clipped controls. | Evidence is headless only: no screen reader, native contrast or Windows high-contrast checks. Geometry fields have no `aria-invalid` or per-field error message, and Apply is simply disabled. |
+| feedback | 8.5 | Progress polling every 150 ms with a generation guard. "Pattern out of date · Recalculate". Busy messages on every command. "General preferences take effect immediately". | The undo/redo action names appear only in tooltips. |
+| validation | 7.0 | Integration Apply is atomic and rejects invalid bins (per the report). Geometry Apply is disabled for empty or non-finite drafts. Phase Editor focuses the invalid field. | **The Fit constraint fields turn empty, partial or "-" input into 0** (finding F1). `CommitField` commits 0 when a frame field is cleared and has no min/max. |
+| recovery | 8.0 | Error details dialog with selectable text, a copy action and a fallback note. The missing-PONI path is exercised in the report. | Manual geometry edits are lost silently when the dialog is dismissed. |
+| reversibility | 8.0 | Shared scientific history picks a path that keeps the fit (`historyLabels.ts:57-64`). Labelled tooltips. Custom actions have their own history while their settings are open. | The next operation isn't shown in visible text. Keyboard-moved legend positions aren't part of history (acceptable). |
+| responsive | 6.5 | Most screens fit 1000×760 at both text sizes. Map color limits stay beside the bar ends. | **At 1000×760 (batch-compact.png) the Batch dock toolbar clips Phases, Collapse, Detach and Hide off-screen.** The aria tree still lists them, but they can't be clicked. The legend is truncated ("Fe3O4C_M1_map_11_P1_E…"). |
+| responsiveness | 8.0 | Hover requests are coalesced, actions queue behind quiet requests, phase commands go through a queue, and there are benchmark scripts. | This review contains no timing measurements, and I couldn't judge perceived speed from static images. |
+| settings_files | 8.0 | Settings drafts are explicit with Apply and a note that they match the current project. Phase file path, source and output scope are clear. Ctrl+S scope is documented. | The directory field truncates at the end (`integrationFileControls.css:64`), so it shows "/Users/clemens/.codex/…" and hides the folder name that matters. |
+| maintainability | 7.5 | Shared tokens in `uiTheme.css`, about 100 smoke and unit scripts plus Python workflow tests, and an audit harness with real handlers. | `App.tsx` is 2,858 lines and contains both global keyboard handlers. Hard-coded px sizes and colors remain in mode stylesheets. Number-input policy isn't centralized. |
 
-| # | Category | Score |
-|---|---|---|
-| 1 | Scientific context and provenance | 8.5 |
-| 2 | Numeric precision and units | 8.5 |
-| 3 | Data visualization clarity | 8.0 |
-| 4 | Plot interaction and inspection | 8.5 |
-| 5 | Workflow usability | 8.5 |
-| 6 | Navigation and information architecture | 8.5 |
-| 7 | Discoverability and learnability | 8.5 |
-| 8 | Cognitive load and progressive disclosure | 8.0 |
-| 9 | Typography | 8.0 |
-| 10 | Readability and contrast | 8.5 |
-| 11 | Spacing and alignment | 8.0 |
-| 12 | Visual hierarchy | 8.5 |
-| 13 | Visual consistency across modes | 8.0 |
-| 14 | Component reuse and control semantics | 8.5 |
-| 15 | Dialogs and focus management | 9.0 |
-| 16 | Keyboard efficiency and shortcut accuracy | 9.0 |
-| 17 | Accessibility and inclusive use | 8.0 |
-| 18 | System status and feedback | 8.0 |
-| 19 | Validation and error prevention | 8.5 |
-| 20 | Error recovery | 8.5 |
-| 21 | Undo, redo and reversibility | 8.5 |
-| 22 | Responsive layout and text scaling | 7.5 |
-| 23 | Performance and perceived responsiveness | 8.5 |
-| 24 | Settings and file workflow reliability | 8.5 |
-| 25 | Maintainability and ownership | 7.5 |
+## (2) Arithmetic mean
 
-**Arithmetic:** fourteen scores of 8.5 make 119, seven of 8.0 make 56, two of 9.0 make 18 and two of 7.5 make 15. 119 + 56 + 18 + 15 = 208, and 208 ÷ 25 = 8.32.
+Sum of the 25 scores:
+8.0+7.5+8.0+8.5+7.5+8.5+7.5+8.0+8.0+8.0+8.0+8.5+7.5+7.5+8.5+8.5+7.5+8.5+7.0+8.0+8.0+6.5+8.0+8.0+7.5 = **197.0**
 
-**Earlier findings, checked against the current source:**
-- **Fixed:**
-  - M1: manual geometry now has a no-op guard.
-  - M2: the number preview is inset to `1px`, so the border stays visible.
-  - M3: read-only fields have their own style, and the current lattice values are shown as text.
-  - m1: Batch range fields only apply a complete, valid number (`BatchRangeInput`).
-  - m2: switching geometry convention is blocked until the edit is applied or reset.
-  - m3: covered by the overlay-menu check in the report.
-  - m4: the popup is placed by `useAnchoredDialog`.
-  - m5: covered by the queued-Undo check in the report.
-  - m8: the shortcut list wording was corrected.
-- **Partly fixed:** M4 (frame numbering), see D1, and m6 (number formatting), see D5.
+Mean = 197.0 / 25 = **7.88**
 
-## Remaining defects
+## (3) Prioritized findings
 
-**D1. Batch numbering is consistent only in the docked view.** Severity: minor to moderate.
-- **Evidence:**
-  - The docked header reads "Index N · k of n" (`BatchView.tsx:263`).
-  - The detached window footer still reads `Frame ${batch.selected} · name` (`DetachedBatchWindow.tsx:149`). `batch-normalization.png` shows "Frame 0 · series_1.tif".
-  - The heatmap readout labels the same 0-based value "Frame" (`BatchHeatmap.tsx:329`).
-  - Integration shows "Frame (1–N)" (`IntegrationView.tsx:109`).
-  - The detached navigator says "Index · 6/6 loaded" (`BatchControls.tsx:297`). It has no ordinal, and "6/6" is easy to read as the position.
-- **Impact:** in the detached window the same image is "Frame 0" there but "Frame 1" in Integration, and "series_1" in its file name. Your decision to keep the zero-based index is respected; the problem is that these places still use the word "Frame" for it.
+### Confirmed code or design defects
 
-**D2. The color-scale legend splits apart at compact width.** Severity: minor.
-- **Evidence:** `.color-scale-legend` uses `flex-wrap: wrap` and pushes the label to the left with `margin-right: auto` (`uiTheme.css:196-213`).
-  - In `map-compact.png` the max value "95575" and "linear" wrap to the next line on the left, away from the white end of the bar.
-  - In `map-compact-large.png` the min value "93604" sits on its own line above the bar.
-- **Impact:** low and high limits are no longer next to their ends of the bar. That is the reading the legend exists for.
+**F1. Fit starting-value fields coerce input to 0 (validation, precision).**
+- **Where:** `CalibrationExtras.tsx:233-241`. The controlled input stores `value: Number(e.target.value)`. A number input reports `""` for empty or partial text such as "-", `Number("")` is 0, and React then writes "0" back into the field.
+- **Trigger:** In Calibration › Fit, select Rotation 1 and type `-0.01`. The leading "-" becomes "0". Clearing Distance before retyping stores a 0 mm seed, which goes into the next Calibrate run.
+- **Fix:** Keep the draft as a string with the `ScientificNumberInput` pattern. Mark it invalid and block Calibrate until it's finite.
+- **Scope:** I read this from the code path. I didn't run it.
 
-**D3. Plot text ignores the "Larger" text setting.** Severity: minor.
-- **Evidence:** only CSS, App and the detached windows use the text-size setting; the pattern, raster and heatmap canvas code doesn't. In the compact screenshots, tick labels, axis titles and plot legends are the same pixel size at Standard and Larger.
-- **Impact:** the most important scientific text (2θ ticks, intensity labels) stays small for the users who chose larger text.
+**F2. PONI units differ for the same quantity (precision, consistency).**
+- **Where:** `CalibrationExtras.tsx:23-24` uses mm; `geometryDraft.ts:6-7` uses m. Visible side by side in manual-geometry.png and calibration-fitted.png.
+- **Trigger:** A user copies PONI 1 from Validate (0.0853712 m) into the Fit seed (mm). The value is off by 1000×.
+- **Fix:** Pick one display unit, probably mm next to Distance in mm, and convert on the stored side.
 
-**D4. The Phase editor gives two different statuses.** Severity: minor.
-- **Evidence:** in `phase-editor.png` the header says "Loaded material" but the footer says "Saved", while the orange primary Save button is enabled.
-  - The footer shows "Saved" whenever `data.filename` is set (`PhaseEditor.tsx:1062`).
-  - Save is enabled because `canSaveCurrent` is false (`:1089`).
-- **Impact:** for an unchanged JCPDS file, "Saved" next to an active primary Save suggests there is something left to save, or that it was already saved in a format it wasn't.
+**F3. Batch dock toolbar clips its window actions at 1000×760 (responsive, navigation).**
+- **Where:** `batch.css:55-71`. `.batch-series-toolbar` is a non-wrapping flex row, its children are `flex: 0 0 auto`, and the parent panel has `overflow: hidden`.
+- **Evidence:** batch-compact.png and integration-compact-large.png show "Phases" cut off and no Collapse, Detach or Hide buttons. `batch-compact.aria.yml:48-51` shows they still exist in the DOM.
+- **Why the audit missed it:** its "fits 1000×760" check reports `overflow: false` because the clipping container hides the overflow.
+- **Fix:** Wrap the toolbar, move overflow into a menu, or shrink the folder label first.
 
-**D5. Legends and range labels still print ASCII minus signs and `e` notation.** Severity: minor.
-- **Evidence:** `scientificValue` returns `String(Number(...))` (`ScientificNumberInput.tsx:5-6`). Only the input preview swaps in a real minus sign (`:36`). The color legend (`ColorScaleLegend.tsx:29,34`) and the Map ROI range (`ScanMapPanel.tsx:118`) use the raw string. "4.422507e-10" also appears in the Rotation 3 field in `calibration-fitted.png`.
-- **Impact:** negative or very small limits look different from the inputs, and "-0.5–1.2" is hard to tell apart from a range.
+**F4. The manual geometry dialog has its own draft, and any dismissal discards it (workflow, recovery, dialogs).**
+- **Where:** `GeometryEditor.tsx:198` vs `App.tsx:299` and `App.tsx:2737-2748`. Dismissal paths are `Dialog.tsx:117-129` (backdrop), Escape and the X button.
+- **Trigger:** Type 10 geometry values, then accidentally click outside the dialog. Everything is lost, with no prompt. Separately, edits made in the Validate editor don't appear in the dialog.
+- **Fix:** Pass the App-level `geometryDraft` into the dialog, or confirm before dismissing when the draft is dirty.
 
-**D6. The sidebar truncates the app's own example action name.** Severity: minor.
-- **Evidence:** "Inspect detector file" becomes "Inspect detect…" in the sidebar and its preview (`settings-custom-action-editor.png`), and "Inspect detecto.." in `map-compact-large.png`.
-- **Impact:** the bundled example breaks the editor's own advice ("Aim for one short word…").
+**F5. Fit seed values aren't labelled as seeds (scientific context).**
+- **Where:** `CalibrationExtras.tsx:186, 219-225`. The headings read "Parameters" and "Value".
+- **Trigger:** Fit shows 200 mm while the model or dialog shows 1000 mm (manual-geometry.png). The user can't tell which geometry is the current one.
+- **Fix:** Rename to something like "Starting values" and/or add a provenance line in the Fit tab.
 
-**D7. Small hierarchy and visualization issues.** Severity: minor.
-- **"Click —" outside plots:** the green "Click —" readout also shows in Settings (`settings-integration.png`; `App.tsx:2873` only checks the mode). It's an accent-colored label with nothing to read.
-- **Duplicate legend names:** in `integration-overlay-confirm.png` the plot legend shows "CeO2_Pilatus1M" twice, white and green. The table distinguishes "Original · …", but the legend doesn't.
-- **Legend over data:** in `map-compact.png` the pattern legend sits on top of the curve maximum and the phase marker "A".
+**F6. `CommitField` frame input accepts clearing and has no range (validation).**
+- **Where:** `IntegrationView.tsx:180-197`.
+- **Trigger:** Clear the "Frame (1–N)" field and tab away. It commits frame 0.
+- **Fix:** Keep a string draft, add `min={1}` and `max={frames}`, and revert on an invalid blur.
 
-**D8. Structure (scored under maintainability, not a bug).** `App.tsx` is 2,940 lines and `PhaseEditor.tsx` is 1,112. Batch normalization still sends 1-based arguments to `batch_normalize` and 0-based ones to `batch_normalization_settings` (`BatchControls.tsx:110-112` vs `:198`).
+**F7. Smaller confirmed polish issues:**
+- The "DYNAMIC MASKING PLUGINS" heading is uppercase, unlike other headings (`MaskPanel.tsx:336`).
+- The directory path truncates its meaningful tail (`integrationFileControls.css:64`). Ellipsizing from the start would fix it.
+- The cake ring label "15" is clipped at the plot edge (calibration-validate.png).
+- Toolbar symbols `AA`, `A`, `|` have no text near the plot (`ShortcutReference.tsx:131-148`). They have hover titles, but the meaning is only explained in the help dialog.
 
-## Optional enhancements (not scored as defects)
-- **Mixed length units:** Distance is in mm while PONI 1 and 2 are in m. This matches Qt Dioptas; an optional hint would help new users.
-- **Footnote glyph:** the "₀: reference" footnote in the Phase editor renders the subscript on its own and it looks misplaced. A text label such as "subscript 0 = reference" would read better.
-- **Duplicate action:** "As Bkg" appears both in the Overlay panel and in the pattern toolbar.
+### Missing empirical evidence (not defects)
 
-## Evidence limits
-- **Compact and large text:** measured only for Map at 1000×760. The other 34 views were captured at 1440×1000, Standard text. The Batch popup at large text, and Calibration and Integration at compact width, have no screenshots.
-- **axe "needs review" items:** these are not violations, but they still need manual review.
-  - `aria-prohibited-attr` is flagged in about 16 views and `aria-valid-attr-value` once (custom action icons).
-  - A likely cause, not confirmed, is the `aria-label` on the role-less span at `BatchView.tsx:260`.
-  - Color-contrast items over canvases also need manual review.
-- **Not covered:** there was no screen-reader pass. The behaviour checks come from scripted Playwright runs, not from users. Scientific accuracy is out of scope.
+- No screen-reader run (VoiceOver or NVDA). All accessibility evidence is headless axe plus aria snapshots.
+- Native contrast for the axe "incomplete" nodes hasn't been resolved. Many sit over gradient or image backgrounds, including mode rail labels and calibration section tabs.
+- No native window-manager checks: Tauri multi-window focus, detached Batch/Map/Phase windows on Windows or Linux, high-DPI square-pixel rendering.
+- No timing data for perceived responsiveness on large detectors or long batch series.
+- No user testing on how learnable the toolbar symbols are.
+
+### Optional enhancements (within your constraints)
+
+- Pick a default legend position that avoids the curve maximum and cursor labels. This keeps the movable in-plot legend and adds no header.
+- Show the next undo/redo action as text, not only in a tooltip.
+- Consider requiring a focused plot for Enter → integrate, or show a hint for it, since it is a broad global key.
+
+## (4) What I inspected and the limits
+
+**Screenshots** (all full resolution, via Read, from `desktop/artifacts/ui-audit/after/`):
+- calibration-validate.png
+- calibration-fitted.png
+- manual-geometry.png
+- mask.png
+- integration-pattern.png
+- integration-compact-large.png
+- batch-docked.png
+- batch-compact.png
+- map-compact-large.png
+- map-settings.png
+- phase-editor.png
+- settings-general.png
+- settings-integration.png
+- settings-keyboard-shortcuts.png
+
+I also read `batch-compact.aria.yml`. I didn't open the other ~40 screenshots, including the overlay, background and corrections screens, the custom-action editor, phase-database, map-grid and map-layers, and the detached Batch window.
+
+**Reports:** I searched the structure and violation fields of `after/report.json` and `webkit/report.json`; both are about 760 KB, so I didn't read them in full.
+
+**Source read:**
+- `App.tsx` (keyboard handlers, hover, the manual geometry wiring)
+- `MaskView.tsx` (keys)
+- `ShortcutReference.tsx`
+- `Dialog.tsx`
+- `GeometryEditor.tsx` and `geometryDraft.ts`
+- `CalibrationExtras.tsx`
+- `ScientificNumberInput.tsx`
+- `StatusMessage.tsx` and `PatternFreshness.tsx`
+- `PlotLegend.tsx`
+- `IntegrationView.tsx` (`CommitField`) and the relevant part of `IntegrationPlotControls.tsx`
+- `BatchControls.tsx` (normalization dialog)
+- `uiTheme.css` and parts of `batch.css`
+- grep checks across the remaining `desktop/src` files
+
+**Limits:**
+- I didn't run the app, any tests, the audit scripts, or any native or Tauri build.
+- Every behavior claim above (F1, F4, F6 and the shortcut matching) comes from reading the code. The layout and visual claims come from static headless screenshots.
+- This is a design assessment, not a check of scientific accuracy, production readiness or formal accessibility compliance.
+- The scores are my own judgment against the rubric anchors and weren't aimed at any target.

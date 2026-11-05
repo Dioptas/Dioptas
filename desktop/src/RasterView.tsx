@@ -494,12 +494,20 @@ export function RasterView({
         context.textAlign = "left";
         for (const label of labels) {
           const width = context.measureText(label.text).width + 10;
+          const labelX = Math.max(
+            left,
+            Math.min(label.x + 3, left + plotWidth - width),
+          );
+          const labelY = Math.max(
+            top,
+            Math.min(label.y - 18, top + plotHeight - 22),
+          );
           context.fillStyle = "#202226dd";
           context.beginPath();
-          context.roundRect(label.x + 3, label.y - 18, width, 22, 3);
+          context.roundRect(labelX, labelY, width, 22, 3);
           context.fill();
           context.fillStyle = "#ff4040";
-          context.fillText(label.text, label.x + 8, label.y - 2);
+          context.fillText(label.text, labelX + 5, labelY + 16);
         }
         context.strokeStyle = "#ffffff88";
         context.lineWidth = 1;

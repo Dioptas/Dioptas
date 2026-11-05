@@ -1,10 +1,11 @@
 import { useCallback, useLayoutEffect, useState } from "react";
 import type { Calibration } from "./types";
+import { numericDraftError } from "./numericDraft";
 
 export const pyfaiFields = [
   ["dist", "Distance", "mm", 1000],
-  ["poni1", "PONI 1", "m", 1],
-  ["poni2", "PONI 2", "m", 1],
+  ["poni1", "PONI 1", "mm", 1000],
+  ["poni2", "PONI 2", "mm", 1000],
   ["rot1", "Rotation 1", "rad", 1],
   ["rot2", "Rotation 2", "rad", 1],
   ["rot3", "Rotation 3", "rad", 1],
@@ -26,6 +27,19 @@ export const fit2dFields = [
 ] as const;
 
 export type GeometryConvention = "pyfai" | "fit2d";
+export const geometryFieldError = (key: string, text: string) =>
+  numericDraftError(text, {
+    positive: [
+      "dist",
+      "directDist",
+      "pixel1",
+      "pixel2",
+      "pixelX",
+      "pixelY",
+      "wavelength",
+    ].includes(key),
+    ...(key === "polarization_factor" ? { min: -1, max: 1 } : {}),
+  });
 type Drafts = Record<GeometryConvention, Record<string, string>>;
 const valuesFor = (
   calibration: Calibration | undefined,
@@ -77,6 +91,10 @@ export function useGeometryDraft(calibration?: Calibration) {
     drafts,
     setDrafts,
     changed,
+    valid: (convention: GeometryConvention) =>
+      (convention === "pyfai" ? pyfaiFields : fit2dFields).every(
+        ([key]) => !geometryFieldError(key, drafts[convention][key] ?? ""),
+      ),
     dirty: changed("pyfai") || changed("fit2d"),
     sync,
     reset,

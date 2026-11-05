@@ -162,8 +162,58 @@ const capture = async (name, target = page) => {
       ),
       "Expanded popup controllers reference existing targets",
     );
+  const toolbarReachability = await target
+    .locator("body:not(:has(dialog[open])) .batch-series-toolbar button")
+    .evaluateAll((buttons) =>
+      buttons
+        .filter(
+          (button) =>
+            button.getClientRects().length &&
+            !button.closest('[inert], [aria-hidden="true"]'),
+        )
+        .map((button) => {
+          const rect = button.getBoundingClientRect();
+          let clipped =
+            rect.left < 0 ||
+            rect.top < 0 ||
+            rect.right > innerWidth ||
+            rect.bottom > innerHeight;
+          for (
+            let parent = button.parentElement;
+            parent;
+            parent = parent.parentElement
+          ) {
+            const style = getComputedStyle(parent),
+              box = parent.getBoundingClientRect();
+            if (style.display === "contents" || !parent.getClientRects().length)
+              continue;
+            if (/(hidden|auto|scroll|clip)/.test(style.overflowX))
+              clipped ||=
+                rect.left < box.left - 1 || rect.right > box.right + 1;
+            if (/(hidden|auto|scroll|clip)/.test(style.overflowY))
+              clipped ||=
+                rect.top < box.top - 1 || rect.bottom > box.bottom + 1;
+          }
+          const hit = document.elementFromPoint(
+            rect.left + rect.width / 2,
+            rect.top + rect.height / 2,
+          );
+          return {
+            name:
+              button.getAttribute("aria-label") ?? button.textContent.trim(),
+            clipped,
+            hit: hit === button || button.contains(hit),
+          };
+        }),
+    );
+  if (stage !== "before")
+    assert(
+      toolbarReachability.every((item) => !item.clipped && item.hit),
+      `${name}: Batch toolbar controls must be reachable: ${JSON.stringify(toolbarReachability.filter((item) => item.clipped || !item.hit))}`,
+    );
   inventory.push({
     name,
+    toolbarReachability,
     expandedPopupRelations,
     manualAccessibilityChecks: accessibility.incomplete.map((v) => ({
       id: v.id,
@@ -227,7 +277,20 @@ const capture = async (name, target = page) => {
 try {
   assert.equal((await invoke("example")).ok, true);
   await page.goto("file://" + uiPath);
-  if (process.argv.includes("--focus=polish")) {
+  if (process.argv.includes("--focus=peer")) {
+    await click("Load .poni");
+    const { verifyPeerFindings } = await import("./ui_audit_peer.mjs");
+    checks.push(
+      ...(await verifyPeerFindings({
+        page,
+        ready,
+        invoke,
+        root,
+        output,
+        capture,
+      })),
+    );
+  } else if (process.argv.includes("--focus=polish")) {
     await click("Load .poni");
     const { verifyPolish } = await import("./ui_audit_polish.mjs");
     checks.push(...(await verifyPolish({ page, ready, invoke, output })));
@@ -687,6 +750,17 @@ try {
       const { verifyShortcuts } = await import("./ui_audit_keyboard.mjs");
       checks.push(
         ...(await verifyShortcuts({ page, ready, invoke, requests, root })),
+      );
+      const { verifyPeerFindings } = await import("./ui_audit_peer.mjs");
+      checks.push(
+        ...(await verifyPeerFindings({
+          page,
+          ready,
+          invoke,
+          root,
+          output,
+          capture,
+        })),
       );
       const { verifyPolish } = await import("./ui_audit_polish.mjs");
       checks.push(...(await verifyPolish({ page, ready, invoke, output })));

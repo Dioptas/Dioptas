@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Check } from "lucide-react";
 import { Dialog, DialogHeader } from "./Dialog";
 import { TabList } from "./TabList";
@@ -6,10 +6,9 @@ import { ScientificNumberInput } from "./ScientificNumberInput";
 import {
   pyfaiFields,
   fit2dFields,
-  useGeometryDraft,
+  geometryFieldError,
   type GeometryDraft,
 } from "./geometryDraft";
-import type { Calibration } from "./types";
 type Run = (
   command: string,
   args?: Record<string, unknown>,
@@ -38,6 +37,7 @@ export function GeometryEditor({
   const [localConvention, setLocalConvention] = useState<"pyfai" | "fit2d">(
     "pyfai",
   );
+  const id = useId();
   const convention = savedConvention ?? localConvention;
   const setConvention = (value: "pyfai" | "fit2d") => {
     setLocalConvention(value);
@@ -50,7 +50,8 @@ export function GeometryEditor({
   const otherConvention = convention === "pyfai" ? "fit2d" : "pyfai";
   const otherDirty = changed(otherConvention);
   const applyGeometry = () => {
-    if (!activeDirty) return;
+    if (!ready || !activeDirty || otherDirty || !editor.valid(convention))
+      return;
     return run(
       "manual_geometry",
       {
@@ -101,46 +102,54 @@ export function GeometryEditor({
             : "Apply or reset this geometry draft before editing the other convention."}
         </p>
       )}
-      {fields.map(([key, label, unit]) => (
-        <label className="geometry-field" key={key}>
-          <span>{label}</span>
-          <ScientificNumberInput
-            aria-label={`Manual ${label.toLowerCase()}`}
-            required
-            type="number"
-            step="any"
-            disabled={!ready}
-            readOnly={otherDirty}
-            aria-description={
-              otherDirty
-                ? "Comparison only while the other convention has pending edits"
-                : undefined
-            }
-            title={draft[key] ?? ""}
-            value={draft[key] ?? ""}
-            onValueChange={(value) =>
-              setDrafts((values) => ({
-                ...values,
-                [convention]: { ...values[convention], [key]: value },
-              }))
-            }
-          />
-          <span className="calibration-unit">{unit}</span>
-        </label>
-      ))}
+      {fields.map(([key, label, unit]) => {
+        const error = !otherDirty
+          ? geometryFieldError(key, draft[key] ?? "")
+          : null;
+        return (
+          <label className="geometry-field" key={key}>
+            <span>{label}</span>
+            <ScientificNumberInput
+              aria-label={`Manual ${label.toLowerCase()}`}
+              required
+              type="number"
+              step="any"
+              disabled={!ready}
+              readOnly={otherDirty}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? `${id}-${key}-error` : undefined}
+              aria-description={
+                otherDirty
+                  ? "Comparison only while the other convention has pending edits"
+                  : undefined
+              }
+              title={draft[key] ?? ""}
+              value={draft[key] ?? ""}
+              onValueChange={(value) =>
+                setDrafts((values) => ({
+                  ...values,
+                  [convention]: { ...values[convention], [key]: value },
+                }))
+              }
+            />
+            <span className="calibration-unit">{unit}</span>
+            {error && (
+              <span
+                className="ui-field-error geometry-field-error"
+                id={`${id}-${key}-error`}
+              >
+                {error}
+              </span>
+            )}
+          </label>
+        );
+      })}
       {!formId && (
         <>
           <button
             type="button"
             className="secondary full-input"
-            disabled={
-              !ready ||
-              !activeDirty ||
-              fields.some(
-                ([key]) =>
-                  draft[key] === "" || !Number.isFinite(Number(draft[key])),
-              )
-            }
+            disabled={!ready || !activeDirty || !editor.valid(convention)}
             onClick={applyGeometry}
           >
             <Check size={14} />
@@ -184,18 +193,21 @@ export function GeometryEditor({
 }
 
 export function ManualGeometryDialog({
-  calibration,
+  editor,
+  convention,
+  onConventionChange,
   ready,
   run,
   onClose,
 }: {
-  calibration?: Calibration;
+  editor: GeometryDraft;
+  convention: "pyfai" | "fit2d";
+  onConventionChange: (convention: "pyfai" | "fit2d") => void;
   ready: boolean;
   run: Run;
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const editor = useGeometryDraft(calibration);
   return (
     <Dialog
       dialogRef={dialog}
@@ -209,7 +221,18 @@ export function ManualGeometryDialog({
         closeLabel="Close manual geometry"
         onClose={onClose}
       />
-      <GeometryEditor editor={editor} ready={ready} run={run} embedded />
+      <p className="control-note">
+        Unapplied edits stay in this session when you close this dialog. Apply
+        to use them, or reset to discard them.
+      </p>
+      <GeometryEditor
+        editor={editor}
+        convention={convention}
+        onConventionChange={onConventionChange}
+        ready={ready}
+        run={run}
+        embedded
+      />
     </Dialog>
   );
 }

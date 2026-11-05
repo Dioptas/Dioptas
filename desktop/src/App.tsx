@@ -1,3 +1,4 @@
+import { useCalibrationFitDraft } from "./useCalibrationFitDraft";
 import { IntegrationModeIcon } from "./ModeIcons";
 import { WorkspaceModeButtons } from "./WorkspaceModeButtons";
 import { HistoryControls } from "./HistoryControls";
@@ -112,7 +113,6 @@ import {
 import { IntegrationWorkspace } from "./IntegrationWorkspace";
 import {
   CalibrationExtras,
-  type CalibrationFitDraft,
   GeometryEditor,
   ManualGeometryDialog,
 } from "./CalibrationExtras";
@@ -180,7 +180,6 @@ export default function App() {
   const [manualGeometryOpen, setManualGeometryOpen] = useState(false);
   const [selectedPicks, setSelectedPicks] = useState<number[]>([]);
   const [advancedDirty, setAdvancedDirty] = useState(false);
-  const [fitDraft, setFitDraft] = useState<CalibrationFitDraft | null>(null);
   const [largeText, setLargeText] = useState(() => {
     try {
       return localStorage.getItem("dioptas-large-text") === "true";
@@ -296,12 +295,17 @@ export default function App() {
   const [state, setState] = useState<State | null>(null);
   const integrationDraft = useIntegrationSettingsDraft(state);
   const resetIntegrationDraft = integrationDraft.sync;
+  const fitEditor = useCalibrationFitDraft(state?.calibration);
+  const fitDraft = fitEditor.draft;
+  const resetFitDraft = fitEditor.sync;
   const geometryDraft = useGeometryDraft(state?.calibration);
   const resetGeometryDraft = geometryDraft.sync;
   const geometryDirty = geometryDraft.dirty;
   const activeGeometryDirty = geometryDraft.changed(validationConvention);
+  const activeGeometryValid = geometryDraft.valid(validationConvention);
   const pendingOptionDrafts = useRef(false);
-  pendingOptionDrafts.current = geometryDirty || integrationDraft.dirty;
+  pendingOptionDrafts.current =
+    geometryDirty || fitEditor.dirty || integrationDraft.dirty;
   useEffect(() => {
     void updateWindowTitle(state?.imageName).catch((error) =>
       console.warn("Could not update the native window title:", error),
@@ -703,8 +707,12 @@ export default function App() {
         if (!result.cancelled && result.state) {
           if (["open_project", "example"].includes(command))
             resetIntegrationDraft(result.state);
-          if (["open_project", "example", "open_calibration"].includes(command))
+          if (
+            ["open_project", "example", "open_calibration"].includes(command)
+          ) {
             resetGeometryDraft(result.state.calibration);
+            resetFitDraft(result.state.calibration);
+          }
         }
         if (
           command === "save_project" &&
@@ -776,7 +784,7 @@ export default function App() {
         release();
       }
     },
-    [apply, resetIntegrationDraft, resetGeometryDraft],
+    [apply, resetIntegrationDraft, resetGeometryDraft, resetFitDraft],
   );
   useNativePhaseEditorSync(run, state?.revision);
   useEffect(() => {
@@ -1543,8 +1551,8 @@ export default function App() {
           : mode === "map"
             ? mapWarning
             : null) ||
-        (geometryDirty && mode !== "calibration"
-          ? "Unapplied geometry edits in Calibration; the current geometry is still in use."
+        ((geometryDirty || fitEditor.dirty) && mode !== "calibration"
+          ? "Unapplied calibration edits; the current geometry is still in use."
           : null) ||
         plotReading?.hint ||
         (mode === "calibration" && calibrationStep === 2 && !fitReady
@@ -1691,11 +1699,11 @@ export default function App() {
                 disabled={!ready || (!state?.hasImage && !map && !batch)}
                 onClick={() => run("save_project", {}, "Saving project…")}
                 aria-description={
-                  geometryDirty || integrationDraft.dirty
+                  geometryDirty || fitEditor.dirty || integrationDraft.dirty
                     ? "Projects save applied options. Unapplied option drafts remain in this session."
                     : undefined
                 }
-                title={`${state?.projectName ? `Save ${state.projectName}` : "Save project"} · ⌘/Ctrl+S${geometryDirty || integrationDraft.dirty ? " · Saves applied options; unapplied drafts stay in this session" : ""}`}
+                title={`${state?.projectName ? `Save ${state.projectName}` : "Save project"} · ⌘/Ctrl+S${geometryDirty || fitEditor.dirty || integrationDraft.dirty ? " · Saves applied options; unapplied drafts stay in this session" : ""}`}
               >
                 <Save size={20} />
               </button>
@@ -2582,7 +2590,7 @@ export default function App() {
                             ready={ready}
                             run={run}
                             onDirtyChange={setAdvancedDirty}
-                            onFitDraftChange={setFitDraft}
+                            fitEditor={fitEditor}
                           />
                         </>
                       )}
@@ -2649,7 +2657,11 @@ export default function App() {
                             type="submit"
                             form="validation-geometry-form"
                             className="primary calibration-apply-geometry"
-                            disabled={!ready || !activeGeometryDirty}
+                            disabled={
+                              !ready ||
+                              !activeGeometryDirty ||
+                              !activeGeometryValid
+                            }
                             title={
                               activeGeometryDirty
                                 ? "Apply the visible convention"
@@ -2736,7 +2748,9 @@ export default function App() {
           </IntegrationWorkspace>
           {manualGeometryOpen && (
             <ManualGeometryDialog
-              calibration={state?.calibration}
+              editor={geometryDraft}
+              convention={validationConvention}
+              onConventionChange={setValidationConvention}
               ready={ready}
               onClose={() => setManualGeometryOpen(false)}
               run={(command, args, message) =>

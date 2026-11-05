@@ -54,6 +54,7 @@
 }
 .batch-series-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 5px;
   min-height: 34px;
@@ -96,7 +97,7 @@
 .batch-folder-label {
   position: relative;
   display: block;
-  flex: 1;
+  flex: 1 1 80px;
   min-width: 0;
   height: 1.4em;
   line-height: 1.4;
@@ -417,4 +418,18 @@
   .batch-frame-number {
     font-size: var(--text-meta);
   }
+}
+
+.batch-window-actions {
+  margin-left: auto;
+}
+.batch-collapsed
+  .batch-series-toolbar
+  :is(
+    .batch-file-toolbar,
+    .batch-folder-label,
+    .batch-source-note,
+    .batch-position
+  ) {
+  display: none;
 }

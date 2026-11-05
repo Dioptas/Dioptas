@@ -11,7 +11,7 @@
       "before": 7,
       "after": 9.5,
       "criteria": "Distinguish fitted, loaded, manual and derived results, their sources and diagnostic limits.",
-      "evidence": "Fitted/loaded/manual provenance and unavailable diagnostics remain explicit. Pending geometry and integration drafts are separate from applied options; project-save wording states that distinction.",
+      "evidence": "Fit controls identify values as seeds for the next fit, separately from current fitted/loaded/manual geometry. Pending option drafts and applied settings remain distinct, including project-save wording.",
       "at91": 9.3
     },
     {
@@ -20,7 +20,7 @@
       "before": 7,
       "after": 9.5,
       "criteria": "Keep exact stored values, legible signed display values and explicit scientific units/conventions.",
-      "evidence": "Unrounded native values remain authoritative. Compact fields preserve the sign and exponent even when the mantissa truncates. No-op geometry cannot erase provenance; finite readout lookup skips missing x coordinates.",
+      "evidence": "Exact string drafts retain signs, partial input and exponents. Fit and geometry PONI fields consistently display mm; pyFAI commands retain stored SI values through explicit conversion/no-op preservation. Frame positions explicitly use one-based bounds, unlike zero-based series indices.",
       "at91": 9.2
     },
     {
@@ -47,7 +47,7 @@
       "before": 8,
       "after": 9.5,
       "criteria": "Support common analysis tasks directly and preserve meaningful work during navigation.",
-      "evidence": "A session-owned geometry draft survives all modes and Settings. Conventions remain available for comparison; the other convention is read-only until the owner is applied/reset. Integration drafts retain deliberate edits.",
+      "evidence": "Fit starting values and manual/embedded geometry have App-owned session controllers. Mode changes and Escape/backdrop dismissal retain exact edits; resetting drafts does not alter applied geometry.",
       "at91": 9.2
     },
     {
@@ -128,7 +128,7 @@
       "before": 6.5,
       "after": 9.5,
       "criteria": "Give common interface behavior one owner without losing scientific mode responsibilities.",
-      "evidence": "GeometryEditor/geometryDraft, PlotLegend, LayoutDivider, HistoryControls and WorkspaceModeButtons join the shared Dialog/TabList/status/number components. Duplicated legend/splitter policies and old legend CSS are removed.",
+      "evidence": "ScientificNumberInput and numericDraft share exact display/validation; CommitNumberField commits bounded frame values, PathInput exposes long directory tails, and Fit/geometry controllers share session ownership across views. Dialogs, tabs, legends, dividers, history and modes retain common policies.",
       "at91": 9.3
     },
     {
@@ -173,7 +173,7 @@
       "before": 7,
       "after": 9.5,
       "criteria": "Prevent incomplete or invalid edits from changing scientific state or misleading users.",
-      "evidence": "Atomic integration options, integer Batch commits, invalid blank normalization, no-op geometry protection and explicit draft ownership prevent partial or unintended edits. Invalid sample coordinates never become a reported valid point.",
+      "evidence": "Fit, geometry and frame fields share finite/range validation and descriptive field errors. Blank/partial values never coerce to zero. Real three-frame HDF5 navigation rejects invalid indices without scientific commands.",
       "at91": 9.3
     },
     {
@@ -182,7 +182,7 @@
       "before": 6.5,
       "after": 9.5,
       "criteria": "Explain failures without losing scientific work and provide a clear way to continue.",
-      "evidence": "Real missing-file errors keep full detail and restore focus; copy failure is recoverable. Audit failures now preserve a screenshot/tree and explicit failure status; report generation rejects failed or mismatched UI builds.",
+      "evidence": "Dismissed manual-geometry drafts remain available in the shared editor. Exact fit drafts survive navigation; frame Escape restores the applied position. Existing error details/copy recovery and explicit audit failure artifacts remain covered.",
       "at91": 9.1
     },
     {
@@ -200,7 +200,7 @@
       "before": 7.5,
       "after": 9.5,
       "criteria": "Keep controls and plots usable at supported compact sizes and both text sizes.",
-      "evidence": "54 captured states per engine cover all modes and compact/larger-text dialogs/editors/menus. Canvas text scaling, popup bounds, contiguous scale limits and source-value previews are checked at 1000\u00d7760.",
+      "evidence": "Batch headers wrap instead of hiding trailing actions; collapsed headers retain their controls. Active toolbar buttons are checked against every clipping ancestor and actual pointer hit targets, in addition to the compact/Larger text audits.",
       "at91": 9.1
     },
     {
@@ -238,7 +238,7 @@
     "The gold phase file is an editor/control fixture, not an identification of the CeO2 or Fe3O4C specimens. The six-frame Batch series is derived from the CeO2 image by known intensity multipliers.",
     "The GUI preserves existing scientific conventions, including pyFAI/Fit2D unit differences, zero-based Batch frames, a one-line footer and compact plot tools."
   ],
-  "status": "The current Codex design assessment rounds to 9.5/10. Claude\u2019s independent follow-up is scheduled for 21:35 Berlin; its earlier score is retained separately.",
+  "status": "Post-reset Claude review of cc3c8704: 7.88/10. Confirmed findings are fixed; both engines passed 57 views and 33 behavior checks. Independent reassessment of the fixes is pending.",
   "rubric": "UI_DESIGN_RUBRIC.json",
   "implementedImprovements": [
     {
@@ -322,19 +322,38 @@
         "LayoutDivider",
         "TabList"
       ]
+    },
+    {
+      "problem": "Independent review found zero-coerced fit seeds, discarded manual drafts and clipped Batch actions",
+      "resolution": "String-preserving fit drafts, one shared geometry owner, consistent PONI mm display, explicit starting-value context, named field validation and wrapping Batch headers. Active toolbar controls are checked for clipping and hit targets.",
+      "shared": [
+        "numericDraft",
+        "ScientificNumberInput",
+        "useCalibrationFitDraft",
+        "geometryDraft",
+        "GeometryEditor"
+      ]
+    },
+    {
+      "problem": "Frame edits could commit invalid positions and long paths hid their useful tail",
+      "resolution": "Bounded one-based integer frame commits reject blanks/fractions; Escape restores the applied position. Long directory fields show their tail at rest and retain exact native editing and a full path title.",
+      "shared": [
+        "CommitNumberField",
+        "PathInput"
+      ]
     }
   ],
   "peer": {
     "name": "Claude",
-    "mean": 8.32,
+    "mean": 7.88,
     "criteria": [
       {
         "id": "scientific_context",
-        "score": 8.5
+        "score": 8.0
       },
       {
         "id": "precision_units",
-        "score": 8.5
+        "score": 7.5
       },
       {
         "id": "visualization",
@@ -346,7 +365,7 @@
       },
       {
         "id": "workflow",
-        "score": 8.5
+        "score": 7.5
       },
       {
         "id": "navigation",
@@ -354,7 +373,7 @@
       },
       {
         "id": "learnability",
-        "score": 8.5
+        "score": 7.5
       },
       {
         "id": "cognitive_load",
@@ -366,7 +385,7 @@
       },
       {
         "id": "readability",
-        "score": 8.5
+        "score": 8.0
       },
       {
         "id": "spacing",
@@ -378,62 +397,60 @@
       },
       {
         "id": "consistency",
-        "score": 8.0
-      },
-      {
-        "id": "reuse",
-        "score": 8.5
-      },
-      {
-        "id": "dialogs",
-        "score": 9.0
-      },
-      {
-        "id": "keyboard",
-        "score": 9.0
-      },
-      {
-        "id": "accessibility",
-        "score": 8.0
-      },
-      {
-        "id": "feedback",
-        "score": 8.0
-      },
-      {
-        "id": "validation",
-        "score": 8.5
-      },
-      {
-        "id": "recovery",
-        "score": 8.5
-      },
-      {
-        "id": "reversibility",
-        "score": 8.5
-      },
-      {
-        "id": "responsive",
         "score": 7.5
       },
       {
-        "id": "responsiveness",
+        "id": "reuse",
+        "score": 7.5
+      },
+      {
+        "id": "dialogs",
         "score": 8.5
       },
       {
-        "id": "settings_files",
+        "id": "keyboard",
         "score": 8.5
+      },
+      {
+        "id": "accessibility",
+        "score": 7.5
+      },
+      {
+        "id": "feedback",
+        "score": 8.5
+      },
+      {
+        "id": "validation",
+        "score": 7.0
+      },
+      {
+        "id": "recovery",
+        "score": 8.0
+      },
+      {
+        "id": "reversibility",
+        "score": 8.0
+      },
+      {
+        "id": "responsive",
+        "score": 6.5
+      },
+      {
+        "id": "responsiveness",
+        "score": 8.0
+      },
+      {
+        "id": "settings_files",
+        "score": 8.0
       },
       {
         "id": "maintainability",
         "score": 7.5
       }
     ],
-    "status": "Earlier completed review, preceding the latest refinements. No current-state Claude score has been inferred; independent reassessment is scheduled for 21:35 Berlin.",
-    "raw": "UI_PEER_REVIEW.txt",
-    "blockedReason": "Claude account session usage limit",
-    "resetAt": "2026-11-05T21:30:00+01:00",
-    "followupScheduledAt": "2026-11-05T21:35:00+01:00"
+    "sourceCommit": "cc3c8704",
+    "reviewFile": "UI_PEER_REVIEW.txt",
+    "status": "Fresh independent post-reset review; confirmed findings are being fixed and a subsequent reassessment is pending."
   },
   "codexMean": 9.472,
   "target": 9.5,
@@ -455,10 +472,13 @@
       "WebKit"
     ],
     "capturedStatesPerEngine": 54,
-    "behaviorChecksPerEngine": 28,
+    "behaviorChecksPerEngine": 33,
     "uiBuildVerifiedAgainstScreenshots": true,
     "nativeOsDialogsRevalidated": false,
-    "screenReaderSessionValidated": false
+    "screenReaderSessionValidated": false,
+    "chromiumViews": 57,
+    "webkitViews": 57,
+    "toolbarChecks": "Active Batch controls are checked against ancestor clipping and actual pointer hit targets."
   },
   "manualAccessibilityReview": {
     "popupControllers": "Open icon-picker controllers were verified to reference an existing role=dialog target; the axe incomplete result is retained rather than relabeled as an automatic pass.",
@@ -503,5 +523,126 @@
       }
     ],
     "contrastScope": "Computed from solid sRGB tokens using the WCAG relative-luminance formula; texture/image overlays are excluded and retained for manual review."
-  }
+  },
+  "peerHistory": [
+    {
+      "name": "Claude",
+      "mean": 8.32,
+      "criteria": [
+        {
+          "id": "scientific_context",
+          "score": 8.5
+        },
+        {
+          "id": "precision_units",
+          "score": 8.5
+        },
+        {
+          "id": "visualization",
+          "score": 8.0
+        },
+        {
+          "id": "inspection",
+          "score": 8.5
+        },
+        {
+          "id": "workflow",
+          "score": 8.5
+        },
+        {
+          "id": "navigation",
+          "score": 8.5
+        },
+        {
+          "id": "learnability",
+          "score": 8.5
+        },
+        {
+          "id": "cognitive_load",
+          "score": 8.0
+        },
+        {
+          "id": "typography",
+          "score": 8.0
+        },
+        {
+          "id": "readability",
+          "score": 8.5
+        },
+        {
+          "id": "spacing",
+          "score": 8.0
+        },
+        {
+          "id": "hierarchy",
+          "score": 8.5
+        },
+        {
+          "id": "consistency",
+          "score": 8.0
+        },
+        {
+          "id": "reuse",
+          "score": 8.5
+        },
+        {
+          "id": "dialogs",
+          "score": 9.0
+        },
+        {
+          "id": "keyboard",
+          "score": 9.0
+        },
+        {
+          "id": "accessibility",
+          "score": 8.0
+        },
+        {
+          "id": "feedback",
+          "score": 8.0
+        },
+        {
+          "id": "validation",
+          "score": 8.5
+        },
+        {
+          "id": "recovery",
+          "score": 8.5
+        },
+        {
+          "id": "reversibility",
+          "score": 8.5
+        },
+        {
+          "id": "responsive",
+          "score": 7.5
+        },
+        {
+          "id": "responsiveness",
+          "score": 8.5
+        },
+        {
+          "id": "settings_files",
+          "score": 8.5
+        },
+        {
+          "id": "maintainability",
+          "score": 7.5
+        }
+      ],
+      "status": "Earlier completed review, preceding the latest refinements. No current-state Claude score has been inferred; independent reassessment is scheduled for 21:35 Berlin.",
+      "raw": "UI_PEER_REVIEW.txt",
+      "blockedReason": "Claude account session usage limit",
+      "resetAt": "2026-11-05T21:30:00+01:00",
+      "followupScheduledAt": "2026-11-05T21:35:00+01:00",
+      "sourceCommit": "876e0651 and preceding review state"
+    }
+  ],
+  "codexHistory": [
+    {
+      "sourceCommit": "cc3c8704",
+      "mean": 9.472,
+      "status": "Earlier scoped self-assessment. The post-reset peer review subsequently identified material issues missed in this pass; see the preserved raw review and later regression fixes."
+    }
+  ]
 }

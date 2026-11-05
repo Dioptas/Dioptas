@@ -1,3 +1,4 @@
+import { PathInput } from "./PathInput";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import type { State } from "./types";
 import type { IntegrationState } from "./integration";
@@ -92,7 +93,7 @@ export function IntegrationImageControls({
         spellCheck={false}
       />
       <div className="integration-file-directory">
-        <input
+        <PathInput
           className="integration-file-path"
           aria-label="Image directory"
           value={directoryDraft}

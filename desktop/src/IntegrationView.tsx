@@ -1,3 +1,4 @@
+import { CommitNumberField } from "./CommitNumberField";
 import { TabList } from "./TabList";
 import { useEffect, useState } from "react";
 import type { State } from "./types";
@@ -105,8 +106,11 @@ export function IntegrationView({
             action={action}
             frameControl={
               source.frames > 1 && (
-                <CommitField
-                  label={`Frame (1–${source.frames})`}
+                <CommitNumberField
+                  label={`Frame position (1–${source.frames})`}
+                  min={1}
+                  max={source.frames}
+                  integer
                   value={source.frame}
                   onCommit={(frame) =>
                     action("integration_navigation", { frame })
@@ -166,34 +170,5 @@ export function IntegrationView({
         />
       </fieldset>
     </div>
-  );
-}
-function CommitField({
-  label,
-  value,
-  onCommit,
-}: {
-  label: string;
-  value: number;
-  onCommit: (value: number) => void;
-}) {
-  const [draft, setDraft] = useState(value);
-  useEffect(() => setDraft(value), [value]);
-  return (
-    <label className="field-label integration-number-field">
-      <span>{label}</span>
-      <input
-        aria-label={label}
-        type="number"
-        value={draft}
-        onChange={(e) => setDraft(Number(e.target.value))}
-        onBlur={() => {
-          if (draft !== value) onCommit(draft);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") e.currentTarget.blur();
-        }}
-      />
-    </label>
   );
 }
