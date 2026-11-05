@@ -1,3 +1,8 @@
+import {
+  detectorViewport,
+  plotViewContext,
+  type SharedPlotViews,
+} from "./plotViewport";
 import type { ComponentProps } from "react";
 import type { RasterView } from "./RasterView";
 import type { PatternView } from "./PatternView";
@@ -11,6 +16,7 @@ type PatternProps = ComponentProps<typeof PatternView>;
 /** Common detector setup; display levels and mode-specific tools stay with the caller. */
 export function detectorPlotSetup({
   state,
+  viewports,
   mask,
   showMask = state?.useMask,
   linked,
@@ -18,6 +24,7 @@ export function detectorPlotSetup({
   onInspect,
 }: {
   state: State | null;
+  viewports?: SharedPlotViews;
   mask: Raster | null;
   showMask?: boolean;
   linked?: Response["linked"];
@@ -25,6 +32,9 @@ export function detectorPlotSetup({
   onInspect?: DetectorProps["onInspect"];
 }) {
   return {
+    viewport: viewports
+      ? detectorViewport(viewports.detector, plotViewContext(state))
+      : undefined,
     zoomMode: "rectangle" as const,
     mask: showMask ? (mask ?? undefined) : undefined,
     maskOpacity: state?.transparentMask ? 0.72 : 1,
@@ -36,6 +46,7 @@ export function detectorPlotSetup({
 /** Shared pattern presentation and click sampling, with each mode's display data. */
 export function patternPlotSetup({
   pattern,
+  viewport,
   patternColor = "#ffffff",
   showPattern = true,
   patternName = "",
@@ -49,7 +60,12 @@ export function patternPlotSetup({
   onInspect,
 }: Pick<
   PatternProps,
-  "pattern" | "patternColor" | "showPattern" | "curves" | "referenceLines"
+  | "pattern"
+  | "viewport"
+  | "patternColor"
+  | "showPattern"
+  | "curves"
+  | "referenceLines"
 > & {
   patternName?: string;
   legendCurves?: Pattern["curves"];
@@ -62,6 +78,7 @@ export function patternPlotSetup({
   return {
     props: {
       pattern,
+      viewport,
       patternColor,
       showPattern,
       curves,

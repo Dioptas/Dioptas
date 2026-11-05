@@ -2,6 +2,7 @@ import { WebGLPattern, type PatternCurve } from "./WebGLPattern";
 import { IntegrationPhaseLegend } from "./IntegrationPhaseLegend";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { nearestSample, visibleSamples } from "./patternSamples";
+import type { PlotViewport } from "./plotViewport";
 import type { Pattern } from "./types";
 import type { PatternHover } from "./plotReadout";
 import { unitLabel } from "./types";
@@ -55,6 +56,7 @@ const EMPTY_REFERENCES: NonNullable<Pattern["phaseLines"]> = [];
 
 export function PatternView({
   pattern,
+  viewport,
   patternColor = "#ffffff",
   showPattern = true,
   emphasizePattern = false,
@@ -101,6 +103,7 @@ export function PatternView({
     uploadBytes?: number;
   }) => void;
   pattern: Pattern;
+  viewport?: PlotViewport;
   patternColor?: string;
   showPattern?: boolean;
   emphasizePattern?: boolean;
@@ -240,7 +243,7 @@ export function PatternView({
     return () => observer.disconnect();
   }, []);
   useEffect(() => {
-    navigation.reset();
+    if (!viewport) navigation.reset();
     setHover(null);
   }, [
     pattern.unit,
@@ -322,12 +325,29 @@ export function PatternView({
       }
       return min === Infinity ? [fitYMin, fitYMax] : paddedExtent([min, max]);
     },
+    viewport,
   );
+  const previousAutoRange = useRef<
+    { value: boolean; managed: boolean } | undefined
+  >(undefined);
   useEffect(() => {
+    const previous = previousAutoRange.current;
+    const managed = !!onAutoRange;
+    const toggled = previous?.managed && managed && previous.value !== autoRange;
+    previousAutoRange.current = { value: autoRange, managed };
     if (navigating.current || (regionDrag.current && onRegionInput)) return;
+    if (viewport) {
+      // A mode may mount with a different Auto preference. Adopt the shared
+      // viewport unless the user explicitly toggled Auto in this mounted view.
+      if (toggled) {
+        if (autoRange) navigation.reset();
+        else navigation.hold();
+      } else onAutoRange?.(!viewport.read());
+      return;
+    }
     if (autoRange) navigation.reset();
     else if (onAutoRange) navigation.hold();
-  }, [pattern, autoRange, showPattern]);
+  }, [pattern, autoRange, showPattern, viewport?.key]);
   usePlotWheel(canvas, (event) => {
     onAutoRange?.(false);
     navigation.onWheel(event);

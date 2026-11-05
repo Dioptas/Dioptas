@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { PointerEvent, RefObject } from "react";
+import type { PlotViewport } from "./plotViewport";
 
 /** React wheel listeners are passive. Own the native wheel event so a plot
  * zoom cannot also scroll its containing workspace (including in WKWebView). */
@@ -60,8 +61,14 @@ export function usePlotNavigation(
   aspectLocked = false,
   zoomMode: ZoomMode = "rectangle",
   horizontalYRange?: (xMin: number, xMax: number) => [number, number],
+  viewport?: PlotViewport,
 ) {
-  const [range, setRange] = useState<PlotRange | null>(null);
+  const [localRange, setLocalRange] = useState<PlotRange | null>(null);
+  const range = viewport ? viewport.read() : localRange;
+  const setRange = (next: PlotRange | null) => {
+    viewport?.write(next);
+    setLocalRange(next);
+  };
   const [selection, setSelection] = useState<ZoomSelection | null>(null);
   const gesture = useRef<Gesture | null>(null);
   const rightClick = useRef<{ time: number; point: ScreenPoint } | null>(null);

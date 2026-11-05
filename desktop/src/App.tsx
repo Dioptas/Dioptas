@@ -32,6 +32,7 @@ import {
 import { restoreMapPosition, type PatternPosition } from "./linkedPosition";
 import { radialFields, radialValues } from "./radialReadout";
 import { detectorPlotSetup, patternPlotSetup } from "./diffractionPlotSetup";
+import { createPlotViews, patternViewport, plotViewContext } from "./plotViewport";
 import { shapeHelp } from "./maskDomain";
 import type {
   Cake,
@@ -97,6 +98,7 @@ function clickContext(state: State | null) {
 }
 
 export default function App() {
+  const [plotViews] = useState(createPlotViews);
   const detectorExport = useRef<RasterExport>(null);
   const cakeExport = useRef<RasterExport>(null);
   const [integrationDisplay, setIntegrationDisplay] = useState("image");
@@ -738,7 +740,10 @@ export default function App() {
           maskTools.setErase(true);
         }
         if (key === "v") maskTools.setShape("navigate");
-        if (key === "f") setResetKey((k) => k + 1);
+        if (key === "f") {
+          plotViews.detector.current = null;
+          setResetKey((k) => k + 1);
+        }
         return;
       } else if (mod) return;
       else if (key === "b" || key === "e") {
@@ -748,8 +753,10 @@ export default function App() {
       } else if (key === "p" && canPick) {
         setMode("calibration");
         setPickingEnabled(true);
-      } else if (key === "f") setResetKey((k) => k + 1);
-      else if (
+      } else if (key === "f") {
+        plotViews.detector.current = null;
+        setResetKey((k) => k + 1);
+      } else if (
         (event.key === "Delete" || event.key === "Backspace") &&
         mode === "calibration" &&
         selectedPicks.length
@@ -1097,6 +1104,17 @@ export default function App() {
   const patternPlot = displayedPattern
     ? patternPlotSetup({
         pattern: displayedPattern,
+        viewport: patternViewport(
+          plotViews.pattern,
+          plotViewContext(state),
+          displayedPattern.unit,
+          logPattern
+            ? "log"
+            : mode === "integration" && sqrtPattern
+              ? "sqrt"
+              : "linear",
+          state?.geometry.wavelength,
+        ),
         patternColor: mode === "integration" ? originalPatternColor : "#ffffff",
         showPattern: mode !== "integration" || originalPatternVisible,
         patternName: state?.integration.patternName,
@@ -1465,6 +1483,7 @@ export default function App() {
               {mode === "map" ? (
                 <MapView
                   map={map}
+                  plotViews={plotViews}
                   mapWindow={mapWindow}
                   linked={linked}
                   localImageClick={localImageClick}
@@ -1487,6 +1506,7 @@ export default function App() {
                 />
               ) : mode === "mask" ? (
                 <MaskView
+                  plotViews={plotViews}
                   active={!settingsOpen}
                   image={image}
                   mask={mask}
@@ -1556,6 +1576,7 @@ export default function App() {
                             }
                             {...detectorPlotSetup({
                               state,
+                              viewports: plotViews,
                               mask,
                               showMask: mode !== "integration" || state?.useMask,
                               linked: mode === "integration" ? linked : undefined,

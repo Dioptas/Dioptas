@@ -13,7 +13,7 @@
     "build": "tsc --noEmit && vite build",
     "smoke": "node scripts/smoke.mjs",
     "format": "prettier --write src 'scripts/*.{mjs,js}' vite.config.ts src-tauri/*.json src-tauri/capabilities/*.json",
-    "test": "node --test scripts/overlay_color_scales.test.mjs scripts/plot_ticks.test.mjs scripts/raster_transfer.test.mjs scripts/phase_line_scaling.test.mjs scripts/readout_numbers.test.mjs scripts/radial_readout.test.mjs scripts/pattern_samples.test.mjs scripts/phase_command_queue.test.mjs scripts/phase_author_search.test.mjs scripts/prepare_detector_image.test.mjs scripts/map_pattern.test.mjs scripts/linked_position.test.mjs",
+    "test": "node --test scripts/overlay_color_scales.test.mjs scripts/plot_ticks.test.mjs scripts/raster_transfer.test.mjs scripts/phase_line_scaling.test.mjs scripts/readout_numbers.test.mjs scripts/radial_readout.test.mjs scripts/pattern_samples.test.mjs scripts/phase_command_queue.test.mjs scripts/phase_author_search.test.mjs scripts/prepare_detector_image.test.mjs scripts/map_pattern.test.mjs scripts/linked_position.test.mjs scripts/plot_viewport.test.mjs",
     "test:detector-redraw": "node scripts/detector_redraw_smoke.mjs",
     "test:rendering": "node scripts/rendering_smoke.mjs",
     "benchmark:pattern": "node scripts/pattern_benchmark.mjs",

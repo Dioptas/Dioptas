@@ -10,6 +10,7 @@ import {
 } from "react";
 import type { Cake, Palette, Raster, Tool, RingOverlay } from "./types";
 import type { MaskOverlay } from "./maskDomain";
+import type { PlotViewport } from "./plotViewport";
 import { decodeRaster } from "./rasterTransfer";
 import { colorsFor } from "./colorMaps";
 import { WebGLRaster } from "./WebGLRaster";
@@ -49,6 +50,7 @@ const EMPTY_CALIBRANT_LINES: { ring: number; twoTheta: number }[] = [];
 
 export function RasterView({
   raster,
+  viewport,
   exportRef,
   mask,
   limits,
@@ -83,6 +85,7 @@ export function RasterView({
   contours = EMPTY_CONTOURS,
 }: {
   raster: Raster;
+  viewport?: PlotViewport;
   exportRef?: Ref<RasterExport>;
   mask?: Raster;
   limits?: [number, number];
@@ -265,6 +268,8 @@ export function RasterView({
     { left, top, width: plotWidth, height: plotHeight },
     !cake,
     zoomMode,
+    undefined,
+    viewport,
   );
   const [resetSource, setResetSource] = useState([
     raster.fullWidth,
@@ -276,10 +281,10 @@ export function RasterView({
     resetSource[1] !== raster.fullHeight ||
     resetSource[2] !== resetKey
   ) {
-    // A new file must not paint once in the previous view and then jump to
-    // its fitted view in an effect. Reset before committing the new pixels.
+    // Standalone rasters reset before committing new pixels. Shared detector
+    // views use the viewport's compatibility key instead of an image refresh.
     setResetSource([raster.fullWidth, raster.fullHeight, resetKey]);
-    navigation.reset();
+    if (!viewport) navigation.reset();
     if (stroke.length) setStroke([]);
   }
   const view = navigation.view;
