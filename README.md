@@ -22,9 +22,10 @@ Python 3.11–3.15. The standalone macOS application targets Apple silicon;
 Intel Mac users can install the Python package.
 
 The offline material library and EoS calculations are supplied by Peritheos
-(0.17.x), with diffraction reflections calculated by PhaseSmith 0.7.
+(0.18.x), with diffraction reflections calculated by PhaseSmith 0.7.
 Both dependencies are installed automatically with the Python package and
 included in standalone applications.
+Dioptas uses core Peritheos; its optional observation datasets are not required.
 
 ## Installation
 

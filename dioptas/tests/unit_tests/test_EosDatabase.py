@@ -30,9 +30,11 @@ def gold(materials):
 
 def test_bundled_database_loads(materials):
     assert len(materials) >= 20
+    # Catalog display names can change; MgO's identity and formula remain stable.
+    assert next(m for m in materials if m.identifier == "mgo").formula == "MgO"
     names = {m.name for m in materials}
     assert {
-        "Gold", "Platinum", "MgO", "Diamond",
+        "Gold", "Platinum", "Diamond",
         "Zinc oxide (wurtzite B4)", "Zinc oxide (rocksalt B1)",
         "Zirconium (alpha)", "Zirconium (omega)", "Zirconium (beta)",
         "Nickel oxide (rhombohedral B1)", "Cementite",

@@ -53,13 +53,14 @@ To upgrade an existing Python installation::
 
     python -m pip install --upgrade dioptas
 
-Dioptas 0.11 requires Peritheos 0.17.x and PhaseSmith 0.7. Pip installs
+Dioptas 0.11 requires Peritheos 0.18.x and PhaseSmith 0.7. Pip installs
 these dependencies automatically. Catalog contents follow the installed
 Peritheos version; standalone applications contain the version selected when
-that application was built. The lock file selects the tested Peritheos 0.17.0
+that application was built. The lock file selects the tested Peritheos 0.18.0
 release. Source and standalone startup checks report the installed version
-and exercise native EOSMAT conversion, thermal calculations, packaged source
-data and scientific assessments.
+and exercise native EOSMAT conversion, thermal calculations, the core material
+library and scientific assessments. Dioptas does not require the optional
+``peritheos-datasets`` package or its observation tables.
 
 The BM2Reference equation retains its explicit reference pressure: its V0 and
 K0 describe the state at P0, which can be nonzero. Use ``.eosmat`` or a Dioptas

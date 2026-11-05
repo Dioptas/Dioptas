@@ -11,7 +11,9 @@ Their changes are included here; the previous published release is 0.10.0. -->
 
 ## Improvements
 
-- Updated the material library and calculation engine to Peritheos 0.17.0.
+- Updated the material library and calculation engine to core Peritheos 0.18.0.
+  Observation datasets are optional and are not required by Dioptas or its
+  release startup checks.
   BM2Reference retains its nonzero reference pressure in calculations, editing,
   material files and projects; legacy JCPDS export cannot discard that pressure.
 
