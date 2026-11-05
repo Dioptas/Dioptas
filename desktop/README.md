@@ -1,7 +1,7 @@
 # Dioptas React / Tauri desktop preview
 
 An experimental React/Tauri desktop interface for Dioptas with Calibration,
-Mask, Integration and Map modes. It lives beside the existing Qt application
+Mask, Integration, Batch and Map modes. It lives beside the existing Qt application
 and uses its scientific models and file formats. It is not a complete
 replacement yet.
 
@@ -149,6 +149,14 @@ resolution (no display decimation). Zoom therefore resolves the original
 detector pixels; calculations, brush edits and pixel readouts also use original
 resolution. Display payloads use float32; scientific arrays retain their source
 precision in Python.
+
+## Batch image series
+
+Integration → Image accepts multiple images and opens the Batch workspace after
+integration. A 2D intensity overview links to individual detector frames and
+stored patterns. Batch controls include frame range/stride, normalization,
+HDF5/CSV saving and processed-batch import. Save project retains the series.
+See [Batch parity](BATCH_PARITY.md) for workflow, checks and scope.
 
 ## WebGL pattern benchmark
 

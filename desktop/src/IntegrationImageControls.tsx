@@ -6,6 +6,7 @@ import "./integrationFileControls.css";
 
 /** Qt's file browser: load/watch, file stepping, filename and working folder. */
 export function IntegrationImageControls({
+  onOpenBatch,
   state,
   source,
   fileStep,
@@ -13,6 +14,7 @@ export function IntegrationImageControls({
   action,
   frameControl,
 }: {
+  onOpenBatch: () => void;
   state: State | null;
   source: IntegrationState;
   fileStep: number;
@@ -55,12 +57,16 @@ export function IntegrationImageControls({
         }
         onLoad={() => {
           if (fileDraft.trim() && fileDraft !== filename) loadFilename();
-          else action("open_image", { directory: directoryDraft });
+          else
+            action("open_image", { directory: directoryDraft, multiple: true });
         }}
         onNavigate={(direction) =>
           action("next_image", { direction, step: fileStep })
         }
       />
+      <button className="secondary" onClick={onOpenBatch}>
+        Batch processing…
+      </button>
       {frameControl}
       <input
         className="integration-file-path"

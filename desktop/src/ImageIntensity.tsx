@@ -52,7 +52,7 @@ export function ImageIntensity({
   onPalette: (value: Palette) => void;
   onAuto: (settings: AutoLevels) => unknown;
   ready: boolean;
-  display?: "detector" | "cake" | "map";
+  display?: "detector" | "cake" | "map" | "batch";
 }) {
   const id = useId(),
     container = useRef<HTMLDivElement>(null);
@@ -97,9 +97,15 @@ export function ImageIntensity({
   const label = (text: string) =>
     display === "detector"
       ? text
-      : `${display === "map" ? "Map" : "Cake"} ${text[0].toLowerCase()}${text.slice(1)}`;
+      : `${display === "batch" ? "Batch" : display === "map" ? "Map" : "Cake"} ${text[0].toLowerCase()}${text.slice(1)}`;
   const title =
-    display === "map" ? "Map" : display === "cake" ? "Cake" : "Detector";
+    display === "batch"
+      ? "Batch"
+      : display === "map"
+        ? "Map"
+        : display === "cake"
+          ? "Cake"
+          : "Detector";
   const open = (x: number, y: number) => setDialog({ x, y });
   useEffect(() => {
     const observer = new ResizeObserver(([entry]) =>

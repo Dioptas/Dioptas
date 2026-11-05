@@ -152,6 +152,11 @@ export interface RingOverlay {
   points: number[][];
 }
 export interface Response {
+  batch?: import("./batchDomain").BatchData | null;
+  batchSelection?: number;
+  batchOpened?: boolean;
+  batchLevels?: [number, number];
+  batchWarning?: string | null;
   phaseEditor?: PhaseEditorData;
   phaseImport?: PhaseImport;
   phaseCatalog?: PhaseMaterial[];

@@ -34,6 +34,7 @@ fn folder_choice(action: &str, payload: &Value) -> bool {
             | "integration_image_directory"
             | "integration_batch"
             | "map_folder"
+            | "batch_folder"
     ) && payload["path"].is_null()
 }
 
@@ -41,7 +42,7 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
     if matches!(action, "integration_phase_files" | "integration_phase") && payload.get("paths").is_some_and(|v| !v.is_null()) {
         return None;
     }
-    if action == "map_load"
+    if matches!(action, "map_load" | "batch_load" | "open_image")
         && (payload.get("paths").is_some_and(|v| !v.is_null()) || payload["reintegrate"] == true)
     {
         return None;
@@ -76,13 +77,13 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
             "",
             false,
         ),
-        "map_load" => (
-            "Scan detector images",
+        "map_load" | "batch_load" => (
+            "Detector images",
             &["tif", "tiff", "edf", "cbf", "h5", "hdf5", "nxs", "mar3450"],
             "",
             false,
         ),
-        "map_batch" => ("Processed batch", &["h5", "hdf5", "nxs"], "", false),
+        "batch_open" | "map_batch" => ("Processed batch", &["h5", "hdf5", "nxs"], "", false),
         "map_export" => (
             "Map data",
             &["txt", "tiff", "png"],
@@ -219,7 +220,7 @@ async fn desktop_invoke(
             if let Some(directory) = payload["directory"].as_str() {
                 dialog = dialog.set_directory(directory);
             }
-            if action == "map_load" || action == "integration_overlay" || action == "integration_phase_files" {
+            if matches!(action.as_str(), "map_load" | "batch_load" | "integration_overlay" | "integration_phase_files") || (action == "open_image" && payload["multiple"] == true) {
                 let Some(selected) = dialog.blocking_pick_files() else {
                     return Ok(Packet::metadata(json!({"ok": true, "cancelled": true})));
                 };
@@ -280,6 +281,7 @@ fn main() {
     let pattern_benchmark = args.iter().any(|a| a == "--pattern-benchmark");
     let tooltip_smoke = args.iter().any(|a| a == "--tooltip-smoke");
     let smoke = pattern_benchmark || tooltip_smoke || args.iter().any(|a| a == "--smoke");
+    let batch_smoke = std::env::args().any(|arg| arg == "--batch-smoke");
     let map_smoke = args.iter().any(|a| a == "--map-smoke");
     let example = args.iter().any(|a| a == "--example");
     let app = tauri::Builder::default()
@@ -332,6 +334,8 @@ fn main() {
                 }
                 let _ = webview.eval(if tooltip_smoke {
                     include_str!("../../scripts/calibration_tooltip_native_smoke.js")
+                } else if batch_smoke {
+                    include_str!("../../scripts/batch_native_smoke.js")
                 } else if map_smoke {
                     include_str!("../../scripts/tauri_map_smoke.js")
                 } else {
@@ -377,6 +381,17 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn batch_dialogs_distinguish_sources_and_explicit_payloads() {
+        assert!(file_choice("batch_load", &json!({})).is_some());
+        assert!(file_choice("batch_load", &json!({"paths": ["one.tif", "two.tif"]})).is_none());
+        assert!(file_choice("batch_load", &json!({"reintegrate": true})).is_none());
+        assert!(file_choice("open_image", &json!({"paths": ["one.tif"]})).is_none());
+        assert!(file_choice("open_image", &json!({"multiple": true})).is_some());
+        assert!(file_choice("batch_open", &json!({})).is_some());
+        assert!(folder_choice("batch_folder", &json!({})));
+        assert!(!folder_choice("batch_folder", &json!({"path": "/tmp"})));
+    }
     #[test]
     fn image_directory_uses_folder_dialog_only_without_explicit_path() {
         assert!(folder_choice("integration_image_directory", &json!({})));
