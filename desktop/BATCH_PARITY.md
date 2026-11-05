@@ -13,7 +13,8 @@ The top row follows Qt: Open raw/proc data, previous/next folder, Save, source
 folder, and Files/2D tabs. Files shows Calibration File, Mask File, and the raw
 filename/N images table. Selecting a file selects its first integrated frame.
 2D shows the selectable intensity series with 2θ/Q/d and lin/√/log options at the
-right. Its independent histogram uses the existing React image controls.
+right in the separate window. Its independent histogram uses the existing React
+image controls and defaults to vertical, leaving more height for the series.
 
 Below the view, Files offers Integrate; 2D offers AutoScale and Normalize with a
 separate normalization-settings popup. Previous/slider/next, Frame, and
@@ -27,6 +28,12 @@ the pattern and right-hand task controls in place. Drag the divider (or focus it
 and use Up/Down) to resize; double-click resets the height. The header can collapse,
 hide or detach the panel. **Batch view…** in Integration → Image reopens it.
 Dock preference and height persist. Hiding or closing the window keeps the batch.
+When docked, an **Options** tab beside Files/2D holds unit/scale controls,
+AutoScale, normalization and Start/Stop/Step. The 2D tab keeps only the series,
+histogram and frame navigation. Options edits survive tab changes, and returning
+to 2D preserves zoom, contrast and selection. Files retains its integration range.
+The full-width splitter between image and Batch has a visible grip, pointer
+resizing, keyboard Up/Down and double-click reset; the dock can shrink to 220 px.
 Overview contrast, palette, scaling and zoom survive docking and reopening.
 The native window remembers its own size/monitor/position and uses Map's existing
 monitor-aware placement logic, with separate saved placement. Removed displays
@@ -112,6 +119,11 @@ text sizes. Generated screenshots/reports are in ignored `desktop/artifacts/`.
 native window open/dock/reopen, remembered placement, binary reads, rejection of
 child mutations, linked cake/profile selection and processing-child cleanup.
 This requires real native windows; routine layout checks remain headless.
+
+Compact dock follow-up: Chromium and WebKit checks cover vertical histograms,
+Options reachability at both text sizes, retained edits/view state between tabs,
+and pointer/keyboard resizing of image, dock and overview. At 1000 × 700 with
+large text and a 320 px dock, the 2D data area is at least 150 px tall.
 
 The prior CIF assertion fix remains covered by the full desktop Python suite.
 

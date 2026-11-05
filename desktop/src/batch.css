@@ -22,24 +22,31 @@
   flex-direction: column;
   flex: 0 1 auto;
   max-height: calc(100% - 190px);
-  min-height: 280px;
+  min-height: 220px;
   min-width: 0;
 }
 .batch-dock.batch-dock-collapsed {
   min-height: 36px;
 }
 .batch-dock-divider {
-  height: 8px;
-  flex: 0 0 8px;
+  height: 12px;
+  flex: 0 0 12px;
   cursor: row-resize;
   display: grid;
   place-items: center;
   touch-action: none;
+  background: #292d32;
+  border-block: 1px solid #454b53;
 }
 .batch-dock-divider span {
-  width: 38px;
-  height: 2px;
-  background: #555b62;
+  width: 64px;
+  height: 4px;
+  border-radius: 2px;
+  background: #939ba6;
+}
+.batch-dock-divider:hover,
+.batch-dock-divider:focus-visible {
+  background: #353b43;
 }
 .batch-dock-divider:hover span,
 .batch-dock-divider:focus-visible span {
@@ -192,9 +199,14 @@
   border-color: transparent;
   background: transparent;
 }
-.batch-options-space {
-  flex: 1;
-  min-height: 8px;
+.batch-unit-options,
+.batch-scale-options {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.batch-scale-options {
+  margin-top: auto;
 }
 .batch-heatmap {
   position: relative;
@@ -220,6 +232,47 @@
   padding: 3px 6px 5px;
   gap: 3px;
   border-top: 1px solid var(--border);
+}
+.batch-docked .batch-bottom-controls {
+  padding: 4px 6px;
+}
+.batch-docked .batch-settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+.batch-docked .batch-settings-content[hidden] {
+  display: none;
+}
+.batch-options-active {
+  flex: 1;
+  min-height: 0;
+  border-top: 0;
+}
+.batch-options-active .batch-settings-content {
+  flex: 1;
+}
+.batch-docked .batch-options {
+  flex: 0 0 auto;
+  border: 0;
+  padding: 0;
+  gap: 8px;
+}
+.batch-docked .batch-unit-options,
+.batch-docked .batch-scale-options {
+  flex-direction: row;
+  align-items: center;
+  margin: 0;
+}
+.batch-docked .batch-options span {
+  width: 120px;
+  flex: 0 0 auto;
+}
+.batch-docked .batch-options button {
+  min-width: 36px;
 }
 .batch-action-row {
   display: flex;

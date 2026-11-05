@@ -334,7 +334,9 @@ integration. It follows Qt's Files/2D dialog layout. Selecting a frame updates
 Integration's detector, cake and stored pattern. Use **Dock batch** to place the
 series below the image in the lower-left corner; its divider resizes the dock,
 and the header can collapse it or detach it again. **Batch view…** reopens the
-window or dock without discarding data. Controls include frame range/step,
+window or dock without discarding data. The dock's **Options** tab holds
+normalization, unit/scale and range settings so the series keeps most of the
+space. Its histogram defaults to vertical. Controls include frame range/step,
 normalization, HDF5/CSV saving and processed-batch import. Save project retains the series.
 See [Batch parity](BATCH_PARITY.md) for workflow, checks and scope.
 

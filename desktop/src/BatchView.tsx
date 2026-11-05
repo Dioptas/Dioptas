@@ -31,6 +31,7 @@ export function BatchView({
   request,
   reportPlot,
   collapsed = false,
+  docked = false,
   onCollapse,
   onDetach,
   onDock,
@@ -46,6 +47,7 @@ export function BatchView({
   ) => Promise<Response | undefined>;
   reportPlot: ReportPlot;
   collapsed?: boolean;
+  docked?: boolean;
   onCollapse?: () => void;
   onDetach?: () => void;
   onDock?: () => void;
@@ -54,16 +56,18 @@ export function BatchView({
   const display = useBatchDisplay(batch);
   const [prefs, setPrefs] = useImageDisplayPreferences(
     "batch-overview",
-    "horizontal",
+    "vertical",
     false,
   );
-  const [tab, setTab] = useState<"Files" | "2D">(batch ? "2D" : "Files");
+  const [tab, setTab] = useState<"Files" | "2D" | "Options">(
+    batch ? "2D" : "Files",
+  );
   const rangeRef = useRef<[number, number]>([
     0,
     Math.max(0, (batch?.entries.length ?? 1) - 1),
   ]);
   useEffect(() => {
-    if (batch) setTab("2D");
+    if (batch) setTab((tab) => (docked && tab === "Options" ? tab : "2D"));
   }, [batch?.id]);
   const select = (index: number) =>
     void run("batch_select", { index }, "Loading batch frame…");
@@ -87,9 +91,67 @@ export function BatchView({
       },
     });
   };
+  const plotOptions = batch ? (
+    <div className="batch-options" aria-label="Batch plot options">
+      <div
+        className="batch-unit-options"
+        role="group"
+        aria-label="Batch radial unit"
+      >
+        {docked && <span>Radial unit</span>}
+        {(
+          [
+            ["2th_deg", "2θ"],
+            ["q_A^-1", "Q"],
+            ["d_A", "d"],
+          ] as [Unit, string][]
+        ).map(([unit, label]) => (
+          <button
+            key={unit}
+            aria-label={`Batch unit ${label}`}
+            aria-pressed={batch.unit === unit}
+            disabled={
+              !ready ||
+              (unit !== batch.sourceUnit &&
+                [unit, batch.sourceUnit].includes("2th_deg") &&
+                !batch.wavelength)
+            }
+            onClick={() => run("batch_unit", { unit }, "Changing batch unit…")}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <div
+        className="batch-scale-options"
+        role="group"
+        aria-label="Batch intensity scale"
+      >
+        {docked && <span>Intensity scale</span>}
+        <button
+          aria-pressed={!display.log && !display.sqrt}
+          onClick={() => display.update({ log: false, sqrt: false })}
+        >
+          lin
+        </button>
+        <button
+          aria-pressed={display.sqrt}
+          onClick={() => display.update({ log: false, sqrt: true })}
+        >
+          √
+        </button>
+        <button
+          aria-pressed={display.log}
+          onClick={() => display.update({ log: true, sqrt: false })}
+        >
+          log
+        </button>
+      </div>
+    </div>
+  ) : null;
   return (
     <section
-      className={`batch-series-panel ${collapsed ? "batch-collapsed" : ""}`}
+      className={`batch-series-panel ${collapsed ? "batch-collapsed" : ""} ${docked ? "batch-docked" : ""}`}
       aria-label="Batch series"
     >
       <header className="batch-series-toolbar">
@@ -143,12 +205,15 @@ export function BatchView({
           {folder || "Batch"}
         </span>
         <div className="batch-view-tabs" role="tablist" aria-label="Batch view">
-          {(["Files", "2D"] as const).map((name) => (
+          {(docked
+            ? (["Files", "2D", "Options"] as const)
+            : (["Files", "2D"] as const)
+          ).map((name) => (
             <button
               role="tab"
               aria-selected={tab === name}
               key={name}
-              disabled={name === "2D" && !batch}
+              disabled={name !== "Files" && !batch}
               onClick={() => setTab(name)}
             >
               {name}
@@ -194,7 +259,7 @@ export function BatchView({
           </button>
         </div>
       </header>
-      <div className="batch-qt-content" hidden={collapsed}>
+      <div className="batch-qt-content" hidden={collapsed || tab === "Options"}>
         {tab === "Files" ? (
           <div
             className="batch-files-view"
@@ -302,57 +367,16 @@ export function BatchView({
                   onAuto={auto}
                 />
               </div>
-              <div className="batch-options" aria-label="Batch plot options">
-                {(
-                  [
-                    ["2th_deg", "2θ"],
-                    ["q_A^-1", "Q"],
-                    ["d_A", "d"],
-                  ] as [Unit, string][]
-                ).map(([unit, label]) => (
-                  <button
-                    key={unit}
-                    aria-label={`Batch unit ${label}`}
-                    aria-pressed={batch.unit === unit}
-                    disabled={
-                      !ready ||
-                      (unit !== batch.sourceUnit &&
-                        [unit, batch.sourceUnit].includes("2th_deg") &&
-                        !batch.wavelength)
-                    }
-                    onClick={() =>
-                      run("batch_unit", { unit }, "Changing batch unit…")
-                    }
-                  >
-                    {label}
-                  </button>
-                ))}
-                <span className="batch-options-space" />
-                <button
-                  aria-pressed={!display.log && !display.sqrt}
-                  onClick={() => display.update({ log: false, sqrt: false })}
-                >
-                  lin
-                </button>
-                <button
-                  aria-pressed={display.sqrt}
-                  onClick={() => display.update({ log: false, sqrt: true })}
-                >
-                  √
-                </button>
-                <button
-                  aria-pressed={display.log}
-                  onClick={() => display.update({ log: true, sqrt: false })}
-                >
-                  log
-                </button>
-              </div>
+              {!docked && plotOptions}
             </div>
           )
         )}
       </div>
       {!collapsed && (
         <BatchControls
+          docked={docked}
+          optionsVisible={tab === "Options"}
+          plotOptions={plotOptions}
           batch={batch}
           ready={ready}
           calibrated={calibrated}

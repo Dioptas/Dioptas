@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, Settings2 } from "lucide-react";
 import type { BatchData, BatchRun } from "./batchDomain";
@@ -6,6 +6,9 @@ import type { BatchData, BatchRun } from "./batchDomain";
 /** Qt's bottom navigation and action rows; UI frame/bin numbers start at zero. */
 export function BatchControls({
   batch,
+  docked = false,
+  optionsVisible = false,
+  plotOptions,
   ready,
   calibrated,
   filesView,
@@ -14,6 +17,9 @@ export function BatchControls({
   onRange,
 }: {
   batch: BatchData | null;
+  docked?: boolean;
+  optionsVisible?: boolean;
+  plotOptions?: ReactNode;
   ready: boolean;
   calibrated: boolean;
   filesView: boolean;
@@ -78,252 +84,272 @@ export function BatchControls({
   const select = (index: number) =>
     void run("batch_select", { index }, "Loading batch frame…");
   const current = batch?.selected ?? 0;
-  return (
-    <div className="batch-bottom-controls">
-      <div className="batch-action-row">
-        {filesView ? (
+  const actions = (
+    <div className="batch-action-row">
+      {filesView ? (
+        <button
+          disabled={!ready || !batch?.canReintegrate || !calibrated}
+          onClick={() =>
+            run(
+              "batch_load",
+              { reintegrate: true, start: start + 1, stop: stop + 1, step },
+              "Integrating batch…",
+            )
+          }
+        >
+          Integrate
+        </button>
+      ) : (
+        <>
+          <button disabled={!ready || !batch} onClick={onAutoScale}>
+            AutoScale
+          </button>
+          <span className="batch-control-divider" />
           <button
-            disabled={!ready || !batch?.canReintegrate || !calibrated}
+            aria-label="Normalize batch"
+            aria-pressed={!!batch?.normalized}
+            disabled={!ready || !batch}
             onClick={() =>
               run(
-                "batch_load",
-                { reintegrate: true, start: start + 1, stop: stop + 1, step },
-                "Integrating batch…",
+                "batch_normalize",
+                {
+                  enabled: !batch?.normalized,
+                  start: (batch?.normalizationRange[0] ?? 0) + 1,
+                  stop: batch?.normalizationRange[1],
+                  reference: (batch?.normalizationReference ?? 0) + 1,
+                },
+                "Updating normalization…",
               )
             }
           >
-            Integrate
+            Normalize
           </button>
-        ) : (
-          <>
-            <button disabled={!ready || !batch} onClick={onAutoScale}>
-              AutoScale
-            </button>
-            <span className="batch-control-divider" />
+          <span className="batch-normalization-anchor">
             <button
-              aria-label="Normalize batch"
-              aria-pressed={!!batch?.normalized}
+              ref={normalizationButton}
+              aria-label="Normalization settings"
+              title="Normalization settings"
               disabled={!ready || !batch}
-              onClick={() =>
-                run(
-                  "batch_normalize",
-                  {
-                    enabled: !batch?.normalized,
-                    start: (batch?.normalizationRange[0] ?? 0) + 1,
-                    stop: batch?.normalizationRange[1],
-                    reference: (batch?.normalizationReference ?? 0) + 1,
-                  },
-                  "Updating normalization…",
-                )
-              }
+              onClick={() => {
+                setFirstBin(batch?.normalizationRange[0] ?? 0);
+                setLastBin(
+                  Math.min(
+                    (batch?.x.length ?? 1) - 1,
+                    (batch?.normalizationRange[1] ?? 1) - 1,
+                  ),
+                );
+                setReference(batch?.normalizationReference ?? 0);
+                const r = normalizationButton.current!.getBoundingClientRect();
+                setPopupPosition({
+                  left: Math.max(8, Math.min(innerWidth - 318, r.right - 310)),
+                  top: Math.max(8, r.top - 280),
+                });
+                setNormalization((v) => !v);
+              }}
             >
-              Normalize
+              <Settings2 size={15} />
             </button>
-            <span className="batch-normalization-anchor">
-              <button
-                ref={normalizationButton}
-                aria-label="Normalization settings"
-                title="Normalization settings"
-                disabled={!ready || !batch}
-                onClick={() => {
-                  setFirstBin(batch?.normalizationRange[0] ?? 0);
-                  setLastBin(
-                    Math.min(
-                      (batch?.x.length ?? 1) - 1,
-                      (batch?.normalizationRange[1] ?? 1) - 1,
-                    ),
-                  );
-                  setReference(batch?.normalizationReference ?? 0);
-                  const r =
-                    normalizationButton.current!.getBoundingClientRect();
-                  setPopupPosition({
-                    left: Math.max(
-                      8,
-                      Math.min(innerWidth - 318, r.right - 310),
-                    ),
-                    top: Math.max(8, r.top - 280),
-                  });
-                  setNormalization((v) => !v);
-                }}
-              >
-                <Settings2 size={15} />
-              </button>
-              {normalization &&
-                createPortal(
-                  <div
-                    ref={popup}
-                    className="batch-normalization-popup"
-                    style={popupPosition}
-                    role="dialog"
-                    aria-label="Normalization settings"
-                  >
-                    <strong>Normalization settings</strong>
-                    <p>
-                      Match each frame’s mean intensity to the reference over
-                      the selected bins. Bin and frame numbers start at 0.
-                    </p>
-                    <label>
-                      First bin (inclusive)
-                      <input
-                        aria-label="First normalization bin"
-                        type="number"
-                        min={0}
-                        max={lastBin}
-                        value={firstBin}
-                        onChange={(e) => setFirstBin(Number(e.target.value))}
-                      />
-                    </label>
-                    <label>
-                      Last bin (inclusive)
-                      <input
-                        aria-label="Last normalization bin"
-                        type="number"
-                        min={firstBin}
-                        max={(batch?.x.length ?? 1) - 1}
-                        value={lastBin}
-                        onChange={(e) => setLastBin(Number(e.target.value))}
-                      />
-                    </label>
-                    <label>
-                      Reference frame
-                      <input
-                        aria-label="Normalization reference frame"
-                        type="number"
-                        min={0}
-                        max={count - 1}
-                        value={reference}
-                        onChange={(e) => setReference(Number(e.target.value))}
-                      />
-                    </label>
-                    <div>
-                      <button
-                        onClick={() => {
-                          void run(
-                            "batch_normalization_settings",
-                            { start: firstBin, stop: lastBin, reference },
-                            "Updating normalization settings…",
-                          );
-                          setNormalization(false);
-                        }}
-                      >
-                        Apply
-                      </button>
-                      <button onClick={() => setNormalization(false)}>
-                        Cancel
-                      </button>
-                    </div>
-                  </div>,
-                  document.body,
-                )}
-            </span>
-          </>
-        )}
-      </div>
-      <div className="batch-navigation-row">
-        <button
-          aria-label="Previous batch frame"
-          title="Previous frame"
-          disabled={!ready || !count || current - step < start}
-          onClick={() => select(current - step)}
-        >
-          <ChevronLeft size={15} />
-        </button>
+            {normalization &&
+              createPortal(
+                <div
+                  ref={popup}
+                  className="batch-normalization-popup"
+                  style={popupPosition}
+                  role="dialog"
+                  aria-label="Normalization settings"
+                >
+                  <strong>Normalization settings</strong>
+                  <p>
+                    Match each frame’s mean intensity to the reference over the
+                    selected bins. Bin and frame numbers start at 0.
+                  </p>
+                  <label>
+                    First bin (inclusive)
+                    <input
+                      aria-label="First normalization bin"
+                      type="number"
+                      min={0}
+                      max={lastBin}
+                      value={firstBin}
+                      onChange={(e) => setFirstBin(Number(e.target.value))}
+                    />
+                  </label>
+                  <label>
+                    Last bin (inclusive)
+                    <input
+                      aria-label="Last normalization bin"
+                      type="number"
+                      min={firstBin}
+                      max={(batch?.x.length ?? 1) - 1}
+                      value={lastBin}
+                      onChange={(e) => setLastBin(Number(e.target.value))}
+                    />
+                  </label>
+                  <label>
+                    Reference frame
+                    <input
+                      aria-label="Normalization reference frame"
+                      type="number"
+                      min={0}
+                      max={count - 1}
+                      value={reference}
+                      onChange={(e) => setReference(Number(e.target.value))}
+                    />
+                  </label>
+                  <div>
+                    <button
+                      onClick={() => {
+                        void run(
+                          "batch_normalization_settings",
+                          { start: firstBin, stop: lastBin, reference },
+                          "Updating normalization settings…",
+                        );
+                        setNormalization(false);
+                      }}
+                    >
+                      Apply
+                    </button>
+                    <button onClick={() => setNormalization(false)}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>,
+                document.body,
+              )}
+          </span>
+        </>
+      )}
+    </div>
+  );
+  const ranges = (
+    <div className="batch-range-row">
+      <label>
+        Start:
         <input
-          className="batch-frame-slider"
-          aria-label="Batch frame slider"
-          type="range"
+          aria-label="Batch start frame"
+          type="number"
           min={0}
-          max={Math.max(0, count - 1)}
-          value={Math.min(
-            Math.max(0, Number(jump) || 0),
-            Math.max(0, count - 1),
-          )}
-          disabled={!ready || !count}
-          onChange={(e) => setJump(e.target.value)}
-          onPointerUp={(e) => select(Number(e.currentTarget.value))}
-          onKeyUp={(e) => {
-            if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key))
-              select(Number(e.currentTarget.value));
+          max={stop}
+          value={start}
+          disabled={!batch}
+          onChange={(e) => {
+            const value = Number(e.target.value);
+            setStart(value);
+            if (!filesView) onRange(value, Math.min(stop, count - 1));
           }}
         />
-        <button
-          aria-label="Next batch frame"
-          title="Next frame"
-          disabled={
-            !ready || !count || current + step > Math.min(stop, count - 1)
-          }
-          onClick={() => select(current + step)}
-        >
-          <ChevronRight size={15} />
-        </button>
-        <label className="batch-frame-number">
-          Frame ({count}/{batch?.total ?? 0})
-          <input
-            aria-label="Selected batch frame"
-            type="number"
-            min={0}
-            max={Math.max(0, count - 1)}
-            disabled={!ready || !count}
-            value={jump}
-            onChange={(e) => setJump(e.target.value)}
-            onBlur={() => {
-              const n = Number(jump);
-              if (Number.isInteger(n) && n >= 0 && n < count && n !== current)
-                select(n);
-              else setJump(String(current));
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") e.currentTarget.blur();
-            }}
-          />
-        </label>
-      </div>
-      <div className="batch-range-row">
-        <label>
-          Start:
-          <input
-            aria-label="Batch start frame"
-            type="number"
-            min={0}
-            max={stop}
-            value={start}
-            disabled={!batch}
-            onChange={(e) => {
-              const value = Number(e.target.value);
-              setStart(value);
-              if (!filesView) onRange(value, Math.min(stop, count - 1));
-            }}
-          />
-        </label>
-        <label>
-          Stop:
-          <input
-            aria-label="Batch stop frame"
-            type="number"
-            min={start}
-            max={Math.max(0, max)}
-            value={stop}
-            disabled={!batch}
-            onChange={(e) => {
-              const value = Number(e.target.value);
-              setStop(value);
-              if (!filesView) onRange(start, Math.min(value, count - 1));
-            }}
-          />
-        </label>
-        <label>
-          Step:
-          <input
-            aria-label="Batch frame step"
-            type="number"
-            min={1}
-            max={Math.max(1, max + 1)}
-            value={step}
-            disabled={!batch}
-            onChange={(e) => setStep(Number(e.target.value))}
-          />
-        </label>
-      </div>
+      </label>
+      <label>
+        Stop:
+        <input
+          aria-label="Batch stop frame"
+          type="number"
+          min={start}
+          max={Math.max(0, max)}
+          value={stop}
+          disabled={!batch}
+          onChange={(e) => {
+            const value = Number(e.target.value);
+            setStop(value);
+            if (!filesView) onRange(start, Math.min(value, count - 1));
+          }}
+        />
+      </label>
+      <label>
+        Step:
+        <input
+          aria-label="Batch frame step"
+          type="number"
+          min={1}
+          max={Math.max(1, max + 1)}
+          value={step}
+          disabled={!batch}
+          onChange={(e) => setStep(Number(e.target.value))}
+        />
+      </label>
+    </div>
+  );
+  const navigation = (
+    <div className="batch-navigation-row">
+      <button
+        aria-label="Previous batch frame"
+        title="Previous frame"
+        disabled={!ready || !count || current - step < start}
+        onClick={() => select(current - step)}
+      >
+        <ChevronLeft size={15} />
+      </button>
+      <input
+        className="batch-frame-slider"
+        aria-label="Batch frame slider"
+        type="range"
+        min={0}
+        max={Math.max(0, count - 1)}
+        value={Math.min(Math.max(0, Number(jump) || 0), Math.max(0, count - 1))}
+        disabled={!ready || !count}
+        onChange={(e) => setJump(e.target.value)}
+        onPointerUp={(e) => select(Number(e.currentTarget.value))}
+        onKeyUp={(e) => {
+          if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key))
+            select(Number(e.currentTarget.value));
+        }}
+      />
+      <button
+        aria-label="Next batch frame"
+        title="Next frame"
+        disabled={
+          !ready || !count || current + step > Math.min(stop, count - 1)
+        }
+        onClick={() => select(current + step)}
+      >
+        <ChevronRight size={15} />
+      </button>
+      <label className="batch-frame-number">
+        Frame ({count}/{batch?.total ?? 0})
+        <input
+          aria-label="Selected batch frame"
+          type="number"
+          min={0}
+          max={Math.max(0, count - 1)}
+          disabled={!ready || !count}
+          value={jump}
+          onChange={(e) => setJump(e.target.value)}
+          onBlur={() => {
+            const n = Number(jump);
+            if (Number.isInteger(n) && n >= 0 && n < count && n !== current)
+              select(n);
+            else setJump(String(current));
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+          }}
+        />
+      </label>
+    </div>
+  );
+  return (
+    <div
+      className={`batch-bottom-controls ${docked && optionsVisible ? "batch-options-active" : ""}`}
+    >
+      {docked ? (
+        <>
+          <div
+            className="batch-settings-content"
+            hidden={!filesView && !optionsVisible}
+          >
+            {optionsVisible && plotOptions}
+            {actions}
+            {ranges}
+          </div>
+          {navigation}
+        </>
+      ) : (
+        <>
+          {actions}
+          {navigation}
+          {ranges}
+        </>
+      )}
     </div>
   );
 }

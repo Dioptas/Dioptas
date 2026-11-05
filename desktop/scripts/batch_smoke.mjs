@@ -265,7 +265,53 @@ try {
   const dock = page.locator(".batch-dock");
   await dock.waitFor();
   await selected(page, 1);
+  assert.equal(
+    await dock.locator(".image-intensity").getAttribute("data-orientation"),
+    "vertical",
+  );
+  assert.equal(
+    await dock.getByLabel("Batch start frame", { exact: true }).isVisible(),
+    false,
+  );
+  assert.equal(
+    await dock
+      .getByRole("button", { name: "Normalize batch", exact: true })
+      .isVisible(),
+    false,
+  );
   sameRange(await readRange(page), range);
+  await dock.getByRole("tab", { name: "Options", exact: true }).click();
+  assert(
+    await dock.getByLabel("Batch start frame", { exact: true }).isVisible(),
+  );
+  assert(
+    await dock
+      .getByRole("button", { name: "Normalize batch", exact: true })
+      .isVisible(),
+  );
+  await dock.getByLabel("Batch frame step", { exact: true }).fill("2");
+  await dock.getByRole("button", { name: "Batch unit Q", exact: true }).click();
+  await ready();
+  assert.equal((await invoke("state")).pattern.unit, "q_A^-1");
+  assert.equal(
+    await dock
+      .getByRole("tab", { name: "Options", exact: true })
+      .getAttribute("aria-selected"),
+    "true",
+  );
+  await dock
+    .getByRole("button", { name: "Batch unit 2θ", exact: true })
+    .click();
+  await ready();
+  await dock.getByRole("tab", { name: "2D", exact: true }).click();
+  sameRange(await readRange(page), range);
+  await dock.getByRole("tab", { name: "Options", exact: true }).click();
+  assert.equal(
+    await dock.getByLabel("Batch frame step", { exact: true }).inputValue(),
+    "2",
+  );
+  await dock.getByLabel("Batch frame step", { exact: true }).fill("1");
+  await dock.getByRole("tab", { name: "2D", exact: true }).click();
   assert.equal(
     await page.evaluate(
       () => JSON.parse(localStorage.getItem("dioptas-batch:display")).limits[0],
@@ -290,6 +336,31 @@ try {
   await divider.focus();
   await divider.press("ArrowUp");
   assert((await dock.boundingBox()).height > dockBox.height);
+  const beforeDrag = await dock.boundingBox();
+  const beforeImage = await page.locator(".cake-panel").boundingBox();
+  const beforePlot = await dock.getByTestId("batch-heatmap").boundingBox();
+  const handle = await divider.boundingBox();
+  await page.mouse.move(
+    handle.x + handle.width / 2,
+    handle.y + handle.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    handle.x + handle.width / 2,
+    handle.y + handle.height / 2 - 50,
+  );
+  await page.mouse.up();
+  await page.waitForTimeout(100);
+  assert((await dock.boundingBox()).height > beforeDrag.height + 40);
+  assert(
+    (await page.locator(".cake-panel").boundingBox()).height <
+      beforeImage.height - 40,
+  );
+  assert(
+    (await dock.getByTestId("batch-heatmap").boundingBox()).height >
+      beforePlot.height + 40,
+  );
+  await divider.dblclick();
   await click(page, "Collapse batch overview");
   assert((await dock.boundingBox()).height < 50);
   await click(page, "Expand batch overview");
@@ -337,10 +408,36 @@ try {
       ),
       JSON.stringify(boxes),
     );
+    await dock.getByRole("tab", { name: "Options", exact: true }).click();
+    const optionBounds = await dock
+      .locator(".batch-settings-content")
+      .boundingBox();
+    for (const label of [
+      "Batch start frame",
+      "Batch stop frame",
+      "Batch frame step",
+    ]) {
+      const field = await dock.getByLabel(label, { exact: true }).boundingBox();
+      assert(
+        field.x >= optionBounds.x &&
+          field.x + field.width <= optionBounds.x + optionBounds.width,
+      );
+      assert(
+        field.y >= optionBounds.y &&
+          field.y + field.height <= optionBounds.y + optionBounds.height,
+      );
+    }
+    if (large)
+      await page.screenshot({
+        path: path.join(artifacts, "batch-docked-options.png"),
+      });
+    await dock.getByRole("tab", { name: "2D", exact: true }).click();
   }
   await page.screenshot({
     path: path.join(artifacts, "batch-docked-small.png"),
   });
+  const compactPlot = await dock.getByTestId("batch-heatmap").boundingBox();
+  assert(compactPlot.height - 58 >= 150, JSON.stringify(compactPlot));
   await click(page, "Hide batch view");
   assert.equal(await dock.count(), 0);
   assert.equal((await invoke("state")).batch.entries.length, 3);

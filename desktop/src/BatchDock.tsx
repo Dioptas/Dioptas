@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState, type ComponentProps } from "react";
 import { BatchView } from "./BatchView";
 export function BatchDock(
-  props: Omit<ComponentProps<typeof BatchView>, "collapsed" | "onCollapse">,
+  props: Omit<
+    ComponentProps<typeof BatchView>,
+    "collapsed" | "onCollapse" | "docked"
+  >,
 ) {
   const container = useRef<HTMLDivElement>(null),
     start = useRef({ y: 0, height: 0 });
@@ -9,7 +12,7 @@ export function BatchDock(
   const [height, setHeight] = useState(() => {
     try {
       return Math.max(
-        280,
+        220,
         Math.min(
           600,
           Number(localStorage.getItem("dioptas-batch:dock-height")) || 320,
@@ -24,7 +27,7 @@ export function BatchDock(
     const toolbar =
       parent?.querySelector(".integration-image-tools")?.getBoundingClientRect()
         .height ?? 40;
-    return Math.max(280, (parent?.clientHeight ?? 650) - toolbar - 180);
+    return Math.max(220, (parent?.clientHeight ?? 650) - toolbar - 180);
   };
   useEffect(() => {
     const parent = container.current?.parentElement;
@@ -39,7 +42,7 @@ export function BatchDock(
   }, []);
   const update = (next: number) => {
     const max = maximum();
-    const value = Math.max(280, Math.min(max, next));
+    const value = Math.max(220, Math.min(max, next));
     setHeight(value);
     try {
       localStorage.setItem("dioptas-batch:dock-height", String(value));
@@ -59,8 +62,9 @@ export function BatchDock(
           role="separator"
           tabIndex={0}
           aria-label="Image and batch divider"
+          title="Drag to resize image and Batch; double-click to reset"
           aria-orientation="horizontal"
-          aria-valuemin={280}
+          aria-valuemin={220}
           aria-valuenow={Math.round(height)}
           onPointerDown={(e) => {
             if (e.button !== 0) return;
@@ -92,6 +96,7 @@ export function BatchDock(
       )}
       <BatchView
         {...props}
+        docked
         collapsed={collapsed}
         onCollapse={() => setCollapsed((v) => !v)}
       />
