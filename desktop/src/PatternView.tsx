@@ -1,4 +1,4 @@
-import { legendPlacement } from "./legendPlacement";
+import { legendPlacement, legendSampleIndices } from "./legendPlacement";
 import { usePlotTypography } from "./usePlotTypography";
 import { WebGLPattern, type PatternCurve } from "./WebGLPattern";
 import { IntegrationPhaseLegend } from "./IntegrationPhaseLegend";
@@ -397,7 +397,8 @@ export function PatternView({
   });
   const { xMin: xmin, xMax: xmax, yMin: ymin, yMax: ymax } = navigation.view;
   const yspan = ymax - ymin;
-  // Choose on data/layout changes and Fit; keep the corner fixed while panning.
+  // Choose on data/layout changes and Fit. Keep the corner fixed while panning
+  // or moving cursors/ROIs so the legend does not chase the user's pointer.
   const legendNames =
     overlayLegend?.map((entry) => entry.name).join("\n") ?? "";
   const legendAnchor = useMemo(() => {
@@ -416,8 +417,7 @@ export function PatternView({
     const points: { x: number; y: number }[] = [];
     for (const curve of visibleCurves) {
       const [start, end] = visibleSamples(curve.x, xmin, xmax, false);
-      const stride = Math.max(1, Math.floor((end - start) / 128));
-      for (let i = start; i < end; i += stride) {
+      for (const i of legendSampleIndices(curve.x, curve.y, start, end)) {
         const x = curve.x[i],
           y = curve.y[i];
         if (

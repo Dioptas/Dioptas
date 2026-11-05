@@ -1,4 +1,7 @@
-import { legendPlacement } from "../src/legendPlacement.ts";
+import {
+  legendPlacement,
+  legendSampleIndices,
+} from "../src/legendPlacement.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
@@ -93,4 +96,13 @@ test("legend candidates stay inside small plot bounds", () => {
   assert(
     result.top >= bounds.top && result.top + 10 <= bounds.top + bounds.height,
   );
+});
+
+test("legend placement retains a one-sample diffraction peak between regular samples", () => {
+  const x = Array.from({ length: 1000 }, (_, i) => i),
+    y = x.map(() => 0);
+  y[137] = 9000;
+  assert([...legendSampleIndices(x, y, 0, x.length)].includes(137));
+  assert.equal(y[137], 9000);
+  assert.equal(x[137], 137);
 });

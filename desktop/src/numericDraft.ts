@@ -12,7 +12,10 @@ export function numericDraftError(text: string, limits: NumericLimits = {}) {
     return "Enter a finite number.";
   const value = Number(text);
   const limitLabel = (number: number) =>
-    `${Number.isInteger(number) ? number : `≈ ${Number(number.toPrecision(7))}`}${limits.unit ? ` ${limits.unit}` : ""}`;
+    `${Number.isInteger(number) ? number : `≈ ${Number(number.toPrecision(7))}`}${limits.unit ? ` ${limits.unit}` : ""}`.replaceAll(
+      "-",
+      "−",
+    );
   if (limits.integer && !Number.isInteger(value))
     return "Enter a whole number.";
   if (limits.positive && value <= 0) return "Enter a value greater than zero.";

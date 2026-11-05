@@ -238,7 +238,7 @@
     "The gold phase file is an editor/control fixture, not an identification of the CeO2 or Fe3O4C specimens. The six-frame Batch series is derived from the CeO2 image by known intensity multipliers.",
     "The GUI preserves existing scientific conventions, including pyFAI/Fit2D unit differences, zero-based Batch frames, a one-line footer and compact plot tools."
   ],
-  "status": "Current Codex assessment is 9.472/10 (9.5 rounded). Latest completed independent Claude assessment is 8.86/10 on 436df4a7; a further review of subsequent fixes is pending. Native smoke qualification is incomplete.",
+  "status": "Codex current scoped assessment: 9.472/10 (9.5 rounded); Claude independent review: 9.02/10 on 59fd3e38. The original independent 9/10 threshold is met. Claude has not awarded 9.5; native smoke qualification remains incomplete.",
   "rubric": "UI_DESIGN_RUBRIC.json",
   "implementedImprovements": [
     {
@@ -341,15 +341,24 @@
         "CommitNumberField",
         "PathInput"
       ]
+    },
+    {
+      "problem": "Same-colour curves could cross legend glyphs and click jitter could pin a legend",
+      "resolution": "A compact dark glyph halo improves labels without a panel/header. Placement retains bucket extrema so narrow diffraction peaks are sampled; pinning requires a deliberate drag or keyboard move and exposes its state.",
+      "shared": [
+        "PlotLegend",
+        "legendPlacement",
+        "plotLegend.css"
+      ]
     }
   ],
   "peer": {
     "name": "Claude",
-    "mean": 8.86,
+    "mean": 9.02,
     "criteria": [
       {
         "id": "scientific_context",
-        "score": 9.0
+        "score": 9.5
       },
       {
         "id": "precision_units",
@@ -357,7 +366,7 @@
       },
       {
         "id": "visualization",
-        "score": 8.5
+        "score": 9.0
       },
       {
         "id": "inspection",
@@ -365,7 +374,7 @@
       },
       {
         "id": "workflow",
-        "score": 9.0
+        "score": 9.5
       },
       {
         "id": "navigation",
@@ -373,7 +382,7 @@
       },
       {
         "id": "learnability",
-        "score": 8.5
+        "score": 9.0
       },
       {
         "id": "cognitive_load",
@@ -405,7 +414,7 @@
       },
       {
         "id": "dialogs",
-        "score": 9.0
+        "score": 9.5
       },
       {
         "id": "keyboard",
@@ -421,19 +430,19 @@
       },
       {
         "id": "validation",
-        "score": 9.0
+        "score": 9.5
       },
       {
         "id": "recovery",
-        "score": 9.0
+        "score": 9.5
       },
       {
         "id": "reversibility",
-        "score": 8.5
+        "score": 9.0
       },
       {
         "id": "responsive",
-        "score": 8.5
+        "score": 9.0
       },
       {
         "id": "responsiveness",
@@ -441,16 +450,16 @@
       },
       {
         "id": "settings_files",
-        "score": 9.0
+        "score": 8.5
       },
       {
         "id": "maintainability",
         "score": 8.5
       }
     ],
-    "sourceCommit": "436df4a7",
+    "sourceCommit": "59fd3e38",
     "reviewFile": "UI_PEER_REVIEW.txt",
-    "status": "Independent score 8.86/10. Follow-up improvements preserve drafts through Undo and choose less occupied in-plot legend positions; reassessment is pending."
+    "status": "Independent final review: 9.02/10 on 59fd3e38. Subsequent minor legend halo, peak sampling, drag-threshold and Unicode-minus refinements are recorded separately; no later score is inferred."
   },
   "codexMean": 9.472,
   "target": 9.5,
@@ -464,7 +473,7 @@
   ],
   "scoreDisplay": "Overall scores are displayed to one decimal; the unrounded arithmetic mean is retained in codexMean. These are qualitative design judgments, not measured accuracy or certification.",
   "validation": {
-    "frontendUnitTests": 63,
+    "frontendUnitTests": 64,
     "modelTests": 294,
     "optionalModelTestsSkipped": 5,
     "browserEngines": [
@@ -481,10 +490,19 @@
     "toolbarChecks": "Active Batch controls are checked against ancestor clipping and actual pointer hit targets.",
     "poniDisplayConversion": "A changed PONI field is applied through the UI; mm-to-m conversion and Undo are checked against the real model at 1e-15 m tolerance.",
     "batchAxisTitles": "Visible heatmap axis titles are measured against available height; full zero-based semantics remain in the accessible description.",
-    "browserUiSha256": "eb1e1417d1709f25d710e0e467ecc73bf0b54014ec9a5b300401d6e82815395f",
+    "browserUiSha256": "54df5e8b2baee67b2c1540140a6d5bde23b590a4c4341b3e4f41ca8dbdd8ce6e",
     "nativeBuildPassed": true,
     "nativeBatchSmokePassed": false,
-    "nativeQualification": "Native smoke did not pass; failures and baseline comparison are retained in artifacts/ui-audit/native/summary.json."
+    "nativeQualification": "Native smoke did not pass; failures and baseline comparison are retained in artifacts/ui-audit/native/summary.json.",
+    "webglRetina": {
+      "dpr": 2,
+      "cases": "normal, 2000 points, one curve; wide pan, zoomed pan and wheel",
+      "webkit": "Reported Apple GPU, WebGL 2.0; measured 20 ms cadence, no missed frames in these runs",
+      "chromium": "Reported SwiftShader; wide-pan median interval 49.9 ms and 50% missed frames relative to 16.7 ms measured cadence",
+      "limits": "Headless engine measurements; no native display-latency claim. Raw results retained in performance/."
+    },
+    "rustUnitTests": 17,
+    "legendFocusJitter": "Both engines verify that a focus click with 1px hand jitter leaves automatic positioning active; keyboard movement pins the legend, and Home restores it."
   },
   "manualAccessibilityReview": {
     "popupControllers": "Open icon-picker controllers were verified to reference an existing role=dialog target; the axe incomplete result is retained rather than relabeled as an automatic pass.",
@@ -860,6 +878,115 @@
       "sourceCommit": "cee819d5",
       "reviewFile": "UI_PEER_REVIEW.txt",
       "status": "Independent reassessment confirmed F1-F6 fixed and scored 8.26/10. Follow-up findings on saving, short axis titles, zoom-label overlap and draft replacement are being addressed."
+    },
+    {
+      "name": "Claude",
+      "mean": 8.86,
+      "criteria": [
+        {
+          "id": "scientific_context",
+          "score": 9.0
+        },
+        {
+          "id": "precision_units",
+          "score": 9.0
+        },
+        {
+          "id": "visualization",
+          "score": 8.5
+        },
+        {
+          "id": "inspection",
+          "score": 9.0
+        },
+        {
+          "id": "workflow",
+          "score": 9.0
+        },
+        {
+          "id": "navigation",
+          "score": 9.0
+        },
+        {
+          "id": "learnability",
+          "score": 8.5
+        },
+        {
+          "id": "cognitive_load",
+          "score": 9.0
+        },
+        {
+          "id": "typography",
+          "score": 9.0
+        },
+        {
+          "id": "readability",
+          "score": 9.0
+        },
+        {
+          "id": "spacing",
+          "score": 9.0
+        },
+        {
+          "id": "hierarchy",
+          "score": 9.0
+        },
+        {
+          "id": "consistency",
+          "score": 9.0
+        },
+        {
+          "id": "reuse",
+          "score": 9.0
+        },
+        {
+          "id": "dialogs",
+          "score": 9.0
+        },
+        {
+          "id": "keyboard",
+          "score": 9.0
+        },
+        {
+          "id": "accessibility",
+          "score": 8.5
+        },
+        {
+          "id": "feedback",
+          "score": 9.0
+        },
+        {
+          "id": "validation",
+          "score": 9.0
+        },
+        {
+          "id": "recovery",
+          "score": 9.0
+        },
+        {
+          "id": "reversibility",
+          "score": 8.5
+        },
+        {
+          "id": "responsive",
+          "score": 8.5
+        },
+        {
+          "id": "responsiveness",
+          "score": 8.5
+        },
+        {
+          "id": "settings_files",
+          "score": 9.0
+        },
+        {
+          "id": "maintainability",
+          "score": 8.5
+        }
+      ],
+      "sourceCommit": "436df4a7",
+      "reviewFile": "UI_PEER_REVIEW.txt",
+      "status": "Independent score 8.86/10. Follow-up improvements preserve drafts through Undo and choose less occupied in-plot legend positions; reassessment is pending."
     }
   ],
   "codexHistory": [

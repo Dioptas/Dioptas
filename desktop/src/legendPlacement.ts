@@ -54,3 +54,27 @@ export function legendPlacement(
     align: best.align,
   };
 }
+
+/** Keep each bucket's extrema so a narrow diffraction peak cannot be skipped. */
+export function* legendSampleIndices(
+  x: readonly number[],
+  y: readonly (number | null)[],
+  start: number,
+  end: number,
+  buckets = 128,
+): Generator<number> {
+  const step = Math.max(1, Math.ceil((end - start) / buckets));
+  for (let first = start; first < end; first += step) {
+    let low = -1,
+      high = -1;
+    for (let i = first; i < Math.min(end, first + step); i++) {
+      const value = y[i];
+      if (!Number.isFinite(x[i]) || value == null || !Number.isFinite(value))
+        continue;
+      if (low < 0 || value < y[low]!) low = i;
+      if (high < 0 || value > y[high]!) high = i;
+    }
+    if (low >= 0) yield low;
+    if (high >= 0 && high !== low) yield high;
+  }
+}

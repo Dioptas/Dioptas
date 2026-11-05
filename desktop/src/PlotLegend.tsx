@@ -33,10 +33,16 @@ export function PlotLegend({
 }) {
   const element = useRef<HTMLDivElement>(null);
   const initialPosition = useRef<Point>({ x: left, y: top });
+  const [isManual, setManual] = useState(false);
   const manual = useRef(false),
     positionRef = useRef<Point | null>(null);
   const [position, setPosition] = useState<Point | null>(null);
-  const drag = useRef<{ x: number; y: number; start: Point } | null>(null);
+  const drag = useRef<{
+    x: number;
+    y: number;
+    start: Point;
+    started: boolean;
+  } | null>(null);
   const initial = (): Point => ({
     x:
       left -
@@ -66,10 +72,12 @@ export function PlotLegend({
   };
   const move = (point: Point) => {
     manual.current = true;
+    setManual(true);
     commit(point);
   };
   const reset = () => {
     manual.current = false;
+    setManual(false);
     initialPosition.current = bounded(initial());
     commit(initialPosition.current);
   };
@@ -113,8 +121,9 @@ export function PlotLegend({
       role="group"
       tabIndex={0}
       aria-label={label}
-      aria-description="Drag to move within the plot. Arrow keys move it; Shift moves faster. Home or Escape restores its position. Focus or hover to read long names."
-      title="Drag to move · arrow keys move · Home restores · focus for full names"
+      aria-description={`${isManual ? "Position fixed until reset. " : "Automatically positioned when data or layout changes. "}Drag to move within the plot. Arrow keys move it; Shift moves faster. Home or Escape restores the default. Focus or hover to read long names.`}
+      title={`${isManual ? "Position fixed · " : ""}Drag to move · arrow keys move · Home restores · focus for full names`}
+      data-manual-position={isManual}
       data-legend-offset={`${offset.x},${offset.y}`}
       style={{
         left: position?.x ?? left,
@@ -155,14 +164,22 @@ export function PlotLegend({
           x: event.clientX,
           y: event.clientY,
           start: positionRef.current ?? initial(),
+          started: false,
         };
       }}
       onPointerMove={(event) => {
-        if (drag.current)
+        if (drag.current) {
+          const distance = Math.hypot(
+            event.clientX - drag.current.x,
+            event.clientY - drag.current.y,
+          );
+          if (!drag.current.started && distance < 4) return;
+          drag.current.started = true;
           move({
             x: drag.current.start.x + event.clientX - drag.current.x,
             y: drag.current.start.y + event.clientY - drag.current.y,
           });
+        }
       }}
       onPointerUp={() => {
         drag.current = null;

@@ -136,6 +136,31 @@ export async function verifyPolish({ page, ready, invoke, output }) {
   );
   await page.keyboard.press("Home");
   assert.equal(await legend.getAttribute("data-legend-offset"), "0,0");
+  await legend.hover();
+  await ready();
+  const legendBox = await legend.boundingBox();
+  await page.mouse.move(legendBox.x + 8, legendBox.y + 8);
+  await page.mouse.down();
+  await page.mouse.move(legendBox.x + 9, legendBox.y + 9);
+  await page.mouse.up();
+  assert.equal(
+    await legend.getAttribute("data-manual-position"),
+    "false",
+    "A focus click with hand jitter does not pin the legend",
+  );
+  await legend.focus();
+  await page.keyboard.press("ArrowLeft");
+  assert.equal(
+    await legend.getAttribute("data-manual-position"),
+    "true",
+    "An explicit keyboard move pins the position",
+  );
+  await page.keyboard.press("Home");
+  assert.equal(
+    await legend.getAttribute("data-manual-position"),
+    "false",
+    "Home restores automatic placement",
+  );
   await legend.blur();
   await canvas.focus();
   const revision = (await invoke("state")).state.revision;
