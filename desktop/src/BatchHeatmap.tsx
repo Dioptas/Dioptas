@@ -61,8 +61,8 @@ export function BatchHeatmap({
     cols = batch.x.length;
   const typography = usePlotTypography(host);
   const left = Math.max(
-    48 * typography.scale,
-    String(Math.max(0, rows - 1)).length * 8 + 12,
+    28 * typography.scale,
+    String(rows).length * 8 * typography.scale + 12,
   );
   const bounds = {
     left,
@@ -240,32 +240,22 @@ export function BatchHeatmap({
       bounds.left + bounds.width / 2,
       size.height - 6,
     );
-    ctx.save();
-    ctx.translate(13, bounds.top + bounds.height / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.textAlign = "center";
-    const yLabel =
-      ["Frame index (0-based)", "Index (0-based)", "Index"].find(
-        (label) => ctx.measureText(label).width <= bounds.height - 8,
-      ) ?? "i";
-    c.dataset.yAxisLabel = yLabel;
-    c.dataset.yAxisLabelWidth = String(ctx.measureText(yLabel).width);
-    c.dataset.yAxisAvailable = String(bounds.height - 8);
-    ctx.fillText(yLabel, 0, 0);
-    ctx.restore();
     ctx.fillStyle = typography.muted;
     ctx.textAlign = "right";
     const stride = Math.max(
       1,
       Math.ceil((v.yMax - v.yMin) / Math.max(1, bounds.height / 42)),
     );
+    const frameTicks: number[] = [];
     for (
       let i = Math.max(0, Math.floor(v.yMin));
       i < Math.min(rows, Math.ceil(v.yMax));
       i += stride
     ) {
-      ctx.fillText(String(i), bounds.left - 9, py(i + 0.5) + 4);
+      frameTicks.push(i + 1);
+      ctx.fillText(String(i + 1), bounds.left - 9, py(i + 0.5) + 4);
     }
+    c.dataset.frameTicks = JSON.stringify(frameTicks);
   }, [
     typography.muted,
     typography.mono,
@@ -331,7 +321,7 @@ export function BatchHeatmap({
         data-view-y-min={nav.view.yMin}
         data-view-y-max={nav.view.yMax}
         aria-label="Batch intensity overview"
-        aria-description="Vertical axis: frame index (0-based)."
+        aria-description="Vertical axis: frame number, starting at 1."
         tabIndex={0}
         onContextMenu={(e) => e.preventDefault()}
         onPointerDown={(e) => {
@@ -346,7 +336,11 @@ export function BatchHeatmap({
             return;
           }
           const fields = [
-            { label: "Index", value: String(p.index), kind: "pixel" as const },
+            {
+              label: "Frame",
+              value: String(p.index + 1),
+              kind: "pixel" as const,
+            },
             {
               label: "I",
               value: intensityValue(values[p.index * cols + p.bin]),

@@ -164,8 +164,10 @@ const checkBatchLayout = async (p) => {
   const plot = await p.getByTestId("batch-heatmap").boundingBox();
   const view = await p.locator(".batch-2d-view").boundingBox();
   const image = await p.locator(".batch-overview-image").boundingBox();
-  const optionsLocator=p.locator(".batch-2d-view > .batch-options");
-  const options=await optionsLocator.count() ? await optionsLocator.boundingBox() : null;
+  const optionsLocator = p.locator(".batch-2d-view > .batch-options");
+  const options = (await optionsLocator.count())
+    ? await optionsLocator.boundingBox()
+    : null;
   assert(
     image.width >= view.width - (options?.width ?? 0) - 8,
     "Batch plot uses the available dock width; its color legend must not steal a column",
@@ -332,7 +334,7 @@ try {
     // Last frame is six times brighter and must be at the top.
     return brightness(0.5 / 6) > brightness(5.5 / 6) * 1.1;
   });
-  // Acquisition order runs upwards: bottom is frame zero, top is the last.
+  // Acquisition order runs upwards: bottom displays frame 1, top the last.
   await child.mouse.click(b.x + 100, b.y + 12 + ((b.height - 58) * 5.5) / 6);
   await selected(child, 1);
   await canvas.press("ArrowUp");
@@ -362,7 +364,7 @@ try {
   );
   assert(
     await child
-      .locator('.detached-batch-footer [data-field="Index"]')
+      .locator('.detached-batch-footer [data-field="Frame"]')
       .isVisible(),
   );
   assert.equal(
@@ -460,7 +462,7 @@ try {
   await dialog.getByLabel("Last normalization bin", { exact: true }).fill("99");
   await dialog
     .getByLabel("Normalization reference frame", { exact: true })
-    .fill("1");
+    .fill("2");
   await click(child, "Apply");
   await child.waitForTimeout(100);
   await ready();
@@ -478,6 +480,7 @@ try {
   );
   assert.equal((await invoke("state")).batch.normalized, true);
   assert.deepEqual((await invoke("state")).batch.normalizationRange, [0, 100]);
+  assert.equal((await invoke("state")).batch.normalizationReference, 1);
   await click(child, "Normalize batch");
   await child.waitForFunction(
     () =>

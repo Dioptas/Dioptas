@@ -146,7 +146,7 @@ export function DetachedBatchWindow() {
           {readout.reading ? (
             <ReadingFields reading={readout.reading} />
           ) : batch ? (
-            `Index ${batch.selected} · ${batch.selected + 1} of ${batch.entries.length} · ${batch.entries[batch.selected]?.name}`
+            `Frame ${batch.selected + 1} of ${batch.entries.length} · ${batch.entries[batch.selected]?.name}`
           ) : (
             "Load a series to inspect it in Integration."
           )}

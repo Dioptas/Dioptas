@@ -264,10 +264,9 @@ export function BatchView({
             className="batch-position"
             role="group"
             aria-label="Selected batch frame"
-            title={`Frame ${batch.selected}; ${batch.entries.length} frames numbered 0–${batch.entries.length - 1} · ${batch.entries[batch.selected]?.name}`}
+            title={`Frame ${batch.selected + 1} of ${batch.entries.length} · ${batch.entries[batch.selected]?.name}`}
           >
-            Index {batch.selected} · {batch.selected + 1} of{" "}
-            {batch.entries.length}
+            Frame {batch.selected + 1} of {batch.entries.length}
           </span>
         )}
         <TabList

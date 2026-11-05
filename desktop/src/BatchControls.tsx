@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, Settings2 } from "lucide-react";
 import type { BatchData, BatchRun } from "./batchDomain";
 
-/** Qt's bottom navigation and action rows; UI frame/bin numbers start at zero. */
+/** Frame numbers are one-based in the UI; stored indices remain zero-based. */
 export function BatchControls({
   batch,
   docked = false,
@@ -32,7 +32,7 @@ export function BatchControls({
   const [start, setStart] = useState(0),
     [stop, setStop] = useState(Math.max(0, max)),
     [step, setStep] = useState(1),
-    [jump, setJump] = useState("0");
+    [jump, setJump] = useState("1");
   const normalizationButton = useRef<HTMLButtonElement>(null),
     popup = useRef<HTMLDialogElement>(null);
   const [normalization, setNormalization] = useState(false);
@@ -51,7 +51,10 @@ export function BatchControls({
     setStop(Math.max(0, max));
     setStep(1);
   }, [max, filesView, batch?.files[0]?.path]);
-  useEffect(() => setJump(String(batch?.selected ?? 0)), [batch?.selected]);
+  useEffect(
+    () => setJump(String((batch?.selected ?? 0) + 1)),
+    [batch?.selected],
+  );
   useEffect(() => {
     setFirstBin(batch?.normalizationRange[0] ?? 0);
     setLastBin(
@@ -153,7 +156,8 @@ export function BatchControls({
                   />
                   <p>
                     Match each frame’s mean intensity to the reference over the
-                    selected bins. Bin and frame numbers start at 0.
+                    selected bins. Bin numbers start at 0; frame numbers start
+                    at 1.
                   </p>
                   <label>
                     First bin (inclusive)
@@ -178,14 +182,14 @@ export function BatchControls({
                     />
                   </label>
                   <label>
-                    Reference frame index
+                    Reference frame
                     <input
                       aria-label="Normalization reference frame"
                       type="number"
-                      min={0}
-                      max={count - 1}
-                      value={Number.isFinite(reference) ? reference : ""}
-                      onChange={(e) => setReference(e.target.valueAsNumber)}
+                      min={1}
+                      max={count}
+                      value={Number.isFinite(reference) ? reference + 1 : ""}
+                      onChange={(e) => setReference(e.target.valueAsNumber - 1)}
                     />
                   </label>
                   <div>
@@ -221,13 +225,13 @@ export function BatchControls({
         Start:
         <BatchRangeInput
           aria-label="Batch start frame"
-          min={0}
-          max={stop}
-          value={start}
+          min={1}
+          max={stop + 1}
+          value={start + 1}
           disabled={!batch}
           onCommit={(value) => {
-            setStart(value);
-            if (!filesView) onRange(value, Math.min(stop, count - 1));
+            setStart(value - 1);
+            if (!filesView) onRange(value - 1, Math.min(stop, count - 1));
           }}
         />
       </label>
@@ -235,13 +239,13 @@ export function BatchControls({
         Stop:
         <BatchRangeInput
           aria-label="Batch stop frame"
-          min={start}
-          max={Math.max(0, max)}
-          value={stop}
+          min={start + 1}
+          max={Math.max(1, max + 1)}
+          value={stop + 1}
           disabled={!batch}
           onCommit={(value) => {
-            setStop(value);
-            if (!filesView) onRange(start, Math.min(value, count - 1));
+            setStop(value - 1);
+            if (!filesView) onRange(start, Math.min(value - 1, count - 1));
           }}
         />
       </label>
@@ -272,15 +276,15 @@ export function BatchControls({
         className="batch-frame-slider"
         aria-label="Batch frame slider"
         type="range"
-        min={0}
-        max={Math.max(0, count - 1)}
-        value={Math.min(Math.max(0, Number(jump) || 0), Math.max(0, count - 1))}
+        min={1}
+        max={Math.max(1, count)}
+        value={Math.min(Math.max(1, Number(jump) || 1), Math.max(1, count))}
         disabled={!ready || !count}
         onChange={(e) => setJump(e.target.value)}
-        onPointerUp={(e) => select(Number(e.currentTarget.value))}
+        onPointerUp={(e) => select(Number(e.currentTarget.value) - 1)}
         onKeyUp={(e) => {
           if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key))
-            select(Number(e.currentTarget.value));
+            select(Number(e.currentTarget.value) - 1);
         }}
       />
       <button
@@ -294,20 +298,25 @@ export function BatchControls({
         <ChevronRight size={15} />
       </button>
       <label className="batch-frame-number">
-        Index · {current + 1} of {count} · {count}/{batch?.total ?? 0} loaded
+        Frame · {current + 1} of {count} · {count}/{batch?.total ?? 0} loaded
         <input
           aria-label="Selected batch frame"
           type="number"
-          min={0}
-          max={Math.max(0, count - 1)}
+          min={1}
+          max={Math.max(1, count)}
           disabled={!ready || !count}
           value={jump}
           onChange={(e) => setJump(e.target.value)}
           onBlur={() => {
             const n = Number(jump);
-            if (Number.isInteger(n) && n >= 0 && n < count && n !== current)
-              select(n);
-            else setJump(String(current));
+            if (
+              Number.isInteger(n) &&
+              n >= 1 &&
+              n <= count &&
+              n - 1 !== current
+            )
+              select(n - 1);
+            else setJump(String(current + 1));
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter") e.currentTarget.blur();

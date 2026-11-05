@@ -212,7 +212,7 @@ const capture = async (name, target = page) => {
       `${name}: Batch toolbar controls must be reachable: ${JSON.stringify(toolbarReachability.filter((item) => item.clipped || !item.hit))}`,
     );
   const batchAxisLabels = await target
-    .locator("canvas[data-y-axis-label]")
+    .getByTestId("batch-heatmap")
     .evaluateAll((nodes) =>
       nodes
         .filter(
@@ -221,15 +221,20 @@ const capture = async (name, target = page) => {
             !node.closest('[inert], [aria-hidden="true"]'),
         )
         .map((node) => ({
-          label: node.dataset.yAxisLabel,
-          width: Number(node.dataset.yAxisLabelWidth),
-          available: Number(node.dataset.yAxisAvailable),
+          title: node.dataset.yAxisLabel ?? null,
+          ticks: JSON.parse(node.dataset.frameTicks ?? "[]"),
+          description: node.getAttribute("aria-description"),
         })),
     );
   if (stage !== "before")
     assert(
-      batchAxisLabels.every((axis) => axis.width <= axis.available + 1),
-      `${name}: Batch axis title fits its available height`,
+      batchAxisLabels.every(
+        (axis) =>
+          axis.title === null &&
+          axis.ticks.length &&
+          axis.ticks.every((tick) => Number.isInteger(tick) && tick >= 1),
+      ),
+      `${name}: Batch frame ticks start at 1 without a visible axis title`,
     );
   inventory.push({
     name,
@@ -585,6 +590,48 @@ try {
         );
         assert.equal((await invoke("state")).batch.selected, index);
       }
+      const frameInput = child.getByRole("spinbutton", {
+        name: "Selected batch frame",
+        exact: true,
+      });
+      for (const number of [6, 1]) {
+        await frameInput.fill(String(number));
+        await frameInput.press("Enter");
+        await child.waitForFunction(
+          (index) =>
+            document.querySelector('[aria-label="Batch series"]')?.dataset
+              .selectedFrame === String(index) &&
+            document
+              .querySelector('[aria-label="Batch series"]')
+              ?.getAttribute("aria-busy") === "false",
+          number - 1,
+        );
+        assert.equal((await invoke("state")).batch.selected, number - 1);
+        assert.equal(await frameInput.inputValue(), String(number));
+        assert.match(
+          await child.locator(".detached-batch-footer").textContent(),
+          new RegExp(`Frame ${number} of 6`),
+        );
+      }
+      assert.equal(
+        await child
+          .getByLabel("Batch start frame", { exact: true })
+          .inputValue(),
+        "1",
+      );
+      assert.equal(
+        await child
+          .getByLabel("Batch stop frame", { exact: true })
+          .inputValue(),
+        "6",
+      );
+      assert.equal(
+        await overview.getAttribute("data-frame-ticks"),
+        "[1,2,3,4,5,6]",
+      );
+      checks.push(
+        "Batch frame numbers 1 and 6 select model indices 0 and 5; full-range ticks and controls start at 1 without an axis title",
+      );
       await child.keyboard.press("f");
       checks.push(
         "Batch overview: ↑/↓/Home/End select actual frames; F restores view",

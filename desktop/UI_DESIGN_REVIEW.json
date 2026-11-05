@@ -20,7 +20,7 @@
       "before": 7,
       "after": 9.5,
       "criteria": "Keep exact stored values, legible signed display values and explicit scientific units/conventions.",
-      "evidence": "Exact string drafts retain signs, partial input and exponents. Fit and geometry PONI fields consistently display mm; pyFAI commands retain stored SI values through explicit conversion/no-op preservation. Frame positions explicitly use one-based bounds, unlike zero-based series indices.",
+      "evidence": "Exact string drafts retain signs, partial input and exponents. Fit and geometry PONI fields consistently display mm; pyFAI commands retain stored SI values through explicit conversion/no-op preservation. Frame positions and Batch frame numbers use one-based display bounds; underlying series indices remain zero-based.",
       "at91": 9.2
     },
     {
@@ -236,7 +236,7 @@
     "Axe violations and items requiring manual review are recorded separately. Canvas accessibility and screen-reader workflows are not fully covered by automated checks.",
     "Native build passed, but Batch smoke attempts did not establish native window-manager correctness. OS file/color dialogs, real screen readers, Windows/Linux packaging and portable Python distribution remain unqualified.",
     "The gold phase file is an editor/control fixture, not an identification of the CeO2 or Fe3O4C specimens. The six-frame Batch series is derived from the CeO2 image by known intensity multipliers.",
-    "The GUI preserves existing scientific conventions, including pyFAI/Fit2D unit differences, zero-based Batch frames, a one-line footer and compact plot tools."
+    "The GUI preserves existing scientific conventions, including pyFAI/Fit2D unit differences, one-based Batch frame display with unchanged zero-based data indices, a one-line footer and compact plot tools."
   ],
   "status": "Codex current scoped assessment: 9.472/10 (9.5 rounded); Claude independent review: 9.02/10 on 59fd3e38. The original independent 9/10 threshold is met. Claude has not awarded 9.5; native smoke qualification remains incomplete.",
   "rubric": "UI_DESIGN_RUBRIC.json",
@@ -288,7 +288,7 @@
     },
     {
       "problem": "Ambiguous Batch display and half-typed ranges",
-      "resolution": "Explicit zero-based indices plus ordinal position, a full-width docked heatmap, measured normalization popup and committed valid integer ranges.",
+      "resolution": "One-based frame numbers across heatmap ticks, hover readout, selected-frame navigation, range inputs and normalization reference; zero-based data indices are preserved. Full-width docked heatmap, measured normalization popup and committed valid integer ranges.",
       "shared": [
         "useAnchoredDialog"
       ]
@@ -363,6 +363,15 @@
       "shared": [
         "BatchView",
         "ImageIntensity"
+      ]
+    },
+    {
+      "problem": "The heatmap y-axis title repeated frame context and frame numbers started at 0",
+      "resolution": "Removed the visible y-axis title and reduced its gutter. Frame ticks, hover readout, selection navigation, ranges and normalization reference start at 1 in docked and detached views; model indices and radial bins stay unchanged.",
+      "shared": [
+        "BatchHeatmap",
+        "BatchControls",
+        "BatchView"
       ]
     }
   ],
@@ -473,7 +482,7 @@
     ],
     "sourceCommit": "59fd3e38",
     "reviewFile": "UI_PEER_REVIEW.txt",
-    "status": "Independent mean 9.02/10 on 59fd3e38, retained unchanged in a focused addendum on f3fa86ae. The remaining minor legend clutter then drove a compact dark background behind names and peak-weighted placement; no newer numeric peer score is inferred. The later user-requested removal of the redundant map summary is not a new peer rating. The subsequent user-requested Batch summary removal is not a new peer rating.",
+    "status": "Independent mean 9.02/10 on 59fd3e38, retained unchanged in a focused addendum on f3fa86ae. The remaining minor legend clutter then drove a compact dark background behind names and peak-weighted placement; no newer numeric peer score is inferred. The later user-requested removal of the redundant map summary is not a new peer rating. The subsequent user-requested Batch summary removal is not a new peer rating. The subsequent one-based Batch frame display change is not a new peer rating.",
     "addendumSourceCommit": "f3fa86ae",
     "addendumFile": "artifacts/ui-audit/reviews/claude-addendum-f3fa86ae.txt"
   },
@@ -497,7 +506,7 @@
       "WebKit"
     ],
     "capturedStatesPerEngine": 58,
-    "behaviorChecksPerEngine": 37,
+    "behaviorChecksPerEngine": 38,
     "uiBuildVerifiedAgainstScreenshots": true,
     "nativeOsDialogsRevalidated": false,
     "screenReaderSessionValidated": false,
@@ -505,8 +514,8 @@
     "webkitViews": 58,
     "toolbarChecks": "Active Batch controls are checked against ancestor clipping and actual pointer hit targets.",
     "poniDisplayConversion": "A changed PONI field is applied through the UI; mm-to-m conversion and Undo are checked against the real model at 1e-15 m tolerance.",
-    "batchAxisTitles": "Visible heatmap axis titles are measured against available height; full zero-based semantics remain in the accessible description.",
-    "browserUiSha256": "8ee41d1f6069f00966e87d065bd6919441a668337fcbe61c59b9d1dc23764e3e",
+    "batchAxisTitles": "No visible heatmap y-axis title; one-based frame ticks and accessible description. Real-model browser checks verify that displayed frames 1 and 6 select stored indices 0 and 5.",
+    "browserUiSha256": "62a06d15b4dd45a032cd1ae7cc3d846a1fd642cd74192284098a4077f9382892",
     "nativeBuildPassed": true,
     "nativeBatchSmokePassed": false,
     "nativeQualification": "Native smoke did not pass; failures and baseline comparison are retained in artifacts/ui-audit/native/summary.json.",
