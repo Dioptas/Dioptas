@@ -15,6 +15,9 @@ intensities, units, image pixels, histograms and mouse gestures are retained.
 
 - Native multi-file JCPDS/CIF/EOSMAT selection. CIF import asks for Intensity
   Cutoff (%) and Minimum d-spacing (Å), initialized from the real experiment.
+  Structure-backed reflection coverage extends to the complete measured pattern
+  plus its Q margin, retaining any wider requested range. Wavelength and
+  intensity cutoff remain those supplied at import.
 - Row selection, keyboard Up/Down/Home/End, Enter/double-click to edit,
   Delete/Backspace to remove, and selected/all removal through the action rail.
   Selected rows scroll below pinned headings; both table axes scroll at small

@@ -2,6 +2,7 @@
 import csv
 import json
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -125,15 +126,24 @@ def test_editor_changes_lattice_and_reflections_through_real_model(session, tmp_
     assert session._model.phase_model.phase_files[0] == path
 
 
-def test_prepare_cif_and_import_use_experimental_cutoff_and_wavelength(session):
-    path = str(next((DATA / 'cif').glob('*.cif')))
+@pytest.mark.parametrize('minimum_d_spacing', [0.8, 0.5], ids=['expand-to-pattern', 'retain-wider-request'])
+def test_prepare_cif_and_import_use_experimental_cutoff_and_wavelength(session, minimum_d_spacing):
+    path = str(DATA / 'cif/Fe2O3_shelx.cif')
     prepared = call(session, 'integration_phase_files', paths=[path])['phaseImport']
     assert prepared['paths'] == [path]
     assert prepared['minimumDSpacing'] > 0
-    call(session, 'integration_phase', operation='load', paths=[path], minimum_d_spacing=0.8, intensity_cutoff=2)
-    phase = session._model.phase_model.phases[0]
-    assert phase.state.reflection_wavelength == pytest.approx(session.configuration.calibration_model.wavelength * 1e10)
-    assert phase.state.reflection_q_max == pytest.approx(2 * np.pi / 0.8)
+    wavelength = session.configuration.calibration_model.wavelength * 1e10
+    model = session._model.phase_model
+    # Import must receive the user's cutoff even if the subsequent display
+    # refresh extends structure-backed reflections to the measured pattern.
+    with patch.object(model, 'add_cif', wraps=model.add_cif) as add_cif:
+        call(session, 'integration_phase', operation='load', paths=[path],
+             minimum_d_spacing=minimum_d_spacing, intensity_cutoff=2)
+    add_cif.assert_called_once_with(path, 2, minimum_d_spacing, wavelength)
+    phase = model.phases[0]
+    assert phase.state.reflection_wavelength == pytest.approx(wavelength)
+    expected_spacing = min(minimum_d_spacing, prepared['minimumDSpacing'])
+    assert phase.state.reflection_q_max == pytest.approx(2 * np.pi / expected_spacing)
     assert phase.state.reflection_intensity_cutoff == 2
 
 

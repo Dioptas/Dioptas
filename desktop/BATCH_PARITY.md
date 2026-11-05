@@ -98,3 +98,8 @@ pre-existing failure in
 Q-cutoff expectation predates automatic structure-reflection coverage expansion.
 The same result was reproduced using the pre-merge `DesktopSession` from
 `bfe27394`. All ten Batch model tests pass.
+
+CIF assertion follow-up (2026-11-05): the regression now verifies the requested
+import settings and final experimental coverage, including retention of a wider
+requested range. The focused phase/model tests pass (53 tests), and the full
+desktop Python suite passes with 279 passed and 5 skipped.
