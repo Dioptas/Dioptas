@@ -4,13 +4,18 @@
 import numpy as np
 import pytest
 from pyqtgraph import GraphicsLayoutWidget
-from qtpy.QtCore import QPointF
+from qtpy.QtCore import QPointF, Qt
+from qtpy.QtTest import QTest
 
 from dioptas.widgets.plot_widgets.ImgWidget import (
     CalibrationCakeWidget,
     ImgWidget,
+    IntegrationBatchWidget,
+    IntegrationCakeWidget,
+    IntegrationImgWidget,
     MaskImgWidget,
 )
+from dioptas.widgets.plot_widgets import utils
 
 
 @pytest.fixture
@@ -68,6 +73,65 @@ def test_plot_image_uses_dioptas_auto_level_only(qapp, qWidgetFactory, monkeypat
     widget.plot_image(np.arange(100).reshape(10, 10), auto_level=True)
 
     assert calls == [{"autoLevels": False}]
+
+
+@pytest.mark.parametrize("orientation", ["horizontal", "vertical"])
+@pytest.mark.parametrize("widget_class", [
+    ImgWidget, MaskImgWidget, IntegrationImgWidget, CalibrationCakeWidget,
+    IntegrationCakeWidget, IntegrationBatchWidget,
+])
+def test_autoscale_button_resets_intensity_without_changing_zoom(
+    qapp, qWidgetFactory, orientation, widget_class,
+):
+    layout_widget = qWidgetFactory(GraphicsLayoutWidget)
+    widget = widget_class(layout_widget, orientation=orientation)
+    image = np.arange(1, 101, dtype=np.float32).reshape(10, 10)
+    widget.plot_image(image)
+    histogram = getattr(widget, "img_histogram_LUT_" + orientation)
+    histogram.setLevels(20, 30)
+    widget.img_view_box.setRange(xRange=(2, 6), yRange=(3, 7), padding=0)
+    qapp.processEvents()
+    view_range = np.array(widget.img_view_box.viewRange())
+
+    QTest.mouseClick(histogram.autoscale_btn, Qt.LeftButton)
+
+    expected = utils.auto_level.get_range(image)
+    assert widget.data_img_item.getLevels() == pytest.approx(expected)
+    assert widget.img_histogram_LUT_horizontal.getExpLevels() == pytest.approx(expected)
+    assert widget.img_histogram_LUT_vertical.getExpLevels() == pytest.approx(expected)
+    np.testing.assert_allclose(widget.img_view_box.viewRange(), view_range)
+    np.testing.assert_array_equal(image, np.arange(1, 101).reshape(10, 10))
+
+
+@pytest.mark.parametrize("image", [
+    None, np.empty((0, 0)), np.full((3, 3), np.nan),
+])
+def test_autoscale_button_without_valid_data(qapp, qWidgetFactory, image):
+    layout_widget = qWidgetFactory(GraphicsLayoutWidget)
+    widget = ImgWidget(layout_widget)
+    QTest.mouseClick(widget.img_histogram_LUT_vertical.autoscale_btn, Qt.LeftButton)
+    widget.plot_image(np.arange(1, 101).reshape(10, 10), auto_level=True)
+    if image is not None:
+        widget.plot_image(image)
+    else:
+        widget.data_img_item.clear()
+    levels = widget.data_img_item.getLevels()
+
+    QTest.mouseClick(widget.img_histogram_LUT_vertical.autoscale_btn, Qt.LeftButton)
+
+    np.testing.assert_array_equal(widget.data_img_item.getLevels(), levels)
+
+
+def test_autoscale_button_preserves_signed_map_range(qapp, qWidgetFactory):
+    layout_widget = qWidgetFactory(GraphicsLayoutWidget)
+    widget = IntegrationImgWidget(layout_widget, orientation="horizontal")
+    image = np.arange(-100, 0, dtype=float).reshape(10, 10)
+    widget.plot_image(image)
+    widget.data_img_item.setLevels([1, 10])
+
+    QTest.mouseClick(widget.img_histogram_LUT_horizontal.autoscale_btn, Qt.LeftButton)
+
+    assert widget.data_img_item.getLevels() == pytest.approx(utils.auto_level.get_range(image))
 
 
 def test_mask_plot_uses_binary_storage_and_fixed_levels(qapp, qWidgetFactory):

@@ -60,6 +60,7 @@ class HistogramLUTItem(GraphicsWidget):
     sigLookupTableChanged = QtCore.Signal(object)
     sigLevelsChanged = QtCore.Signal(object)
     sigLevelChangeFinished = QtCore.Signal(object)
+    sigAutoLevelRequested = QtCore.Signal()
 
     def __init__(
             self, image=None, fillHistogram=False, orientation="horizontal", autoLevel=None
@@ -98,8 +99,19 @@ class HistogramLUTItem(GraphicsWidget):
         configurationButton.setToolTip("Configure colormap")
         configurationButton.clicked.connect(self._configurationButtonClicked)
 
+        self.autoscale_btn = FlatButton("A")
+        self.autoscale_btn.setFixedSize(30, 30)
+        self.autoscale_btn.setAccessibleName("Autoscale intensity")
+        self.autoscale_btn.setToolTip("Auto-scale intensity for the current image")
+        self.autoscale_btn.clicked.connect(self.sigAutoLevelRequested)
+        controls = QtWidgets.QWidget()
+        controls_layout = QtWidgets.QHBoxLayout(controls)
+        controls_layout.setContentsMargins(0, 0, 0, 0)
+        controls_layout.setSpacing(0)
+        controls_layout.addWidget(configurationButton)
+        controls_layout.addWidget(self.autoscale_btn)
         proxy = QtWidgets.QGraphicsProxyWidget()
-        proxy.setWidget(configurationButton)
+        proxy.setWidget(controls)
 
         if orientation == "horizontal":
             self.vb.setMouseEnabled(x=True, y=False)
@@ -121,8 +133,8 @@ class HistogramLUTItem(GraphicsWidget):
             self.region = LogarithmRegionItem([0, 1], LinearRegionItem.Horizontal)
             self.layout.addItem(self.vb, 0, 0)
             self.layout.addItem(self.gradient, 0, 1)
-            self.layout.addItem(self._normalizationLabel, 1, 0)
-            self.layout.addItem(proxy, 1, 1)
+            self.layout.addItem(proxy, 1, 0, 1, 2)
+            self.layout.addItem(self._normalizationLabel, 2, 0, 1, 2)
 
         self.gradient.setFlag(self.gradient.ItemStacksBehindParent)
         self.vb.setFlag(self.gradient.ItemStacksBehindParent)

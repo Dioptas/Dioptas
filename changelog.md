@@ -11,6 +11,10 @@ Their changes are included here; the previous published release is 0.10.0. -->
 
 ## Improvements
 
+- Added an **A** button beside image colormaps to autoscale intensity using the
+  current settings while preserving zoom and pan, including cake, map and batch
+  views.
+
 - Updated the optional Dioptrin integration backend to 0.7.0. Source installs
   can select the pinned `dioptrin` extra; standalone builds install the locked
   PyPI release on all platforms. Dioptrin 0.7.0 is MIT licensed and no longer

@@ -7,6 +7,7 @@ from pyqtgraph.opengl import GLViewWidget, GLGridItem
 from pyqtgraph import GraphicsLayoutWidget
 
 from .HistogramLUTItem import HistogramLUTItem
+from .utils import auto_level
 
 
 class SurfaceWidget(QtWidgets.QWidget):
@@ -51,6 +52,7 @@ class SurfaceWidget(QtWidgets.QWidget):
         self.img_histogram_LUT_horizontal.sigLevelsChanged.connect(self.update_color)
         self.img_histogram_LUT_horizontal.sigLevelChangeFinished.connect(self.update_color)
         self.img_histogram_LUT_horizontal.sigLookupTableChanged.connect(self.update_color)
+        self.img_histogram_LUT_horizontal.sigAutoLevelRequested.connect(self.auto_level)
 
         self.lut_pg_layout.addItem(self.img_histogram_LUT_horizontal, 0, 1)
 
@@ -82,6 +84,11 @@ class SurfaceWidget(QtWidgets.QWidget):
         if self.data is not None:
             colors = self.get_colors(self.data).reshape(-1, 4)
             self.surf_view_item.setData(z=self.data, colors=colors)
+
+    def auto_level(self):
+        levels = auto_level.get_range(self.data)
+        if levels is not None:
+            self.img_histogram_LUT_horizontal.setLevels(*levels)
 
     def plot_surface(self, data, start, step):
         self.g_pos = int((self.g_translate - start) / step)

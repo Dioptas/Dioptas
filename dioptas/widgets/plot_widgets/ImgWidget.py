@@ -47,6 +47,8 @@ class ImgWidget(QtCore.QObject):
             self.data_img_item, orientation="vertical"
         )
         self.pg_layout.addItem(self.img_histogram_LUT_vertical, row=1, col=2)
+        self.img_histogram_LUT_horizontal.sigAutoLevelRequested.connect(self.auto_level)
+        self.img_histogram_LUT_vertical.sigAutoLevelRequested.connect(self.auto_level)
 
     def create_mouse_click_item(self):
         self.mouse_click_item = pg.ScatterPlotItem()
@@ -136,9 +138,10 @@ class ImgWidget(QtCore.QObject):
             self.auto_range()
 
     def auto_level(self):
-        colormap_range = utils.auto_level.get_range(
-            self.img_histogram_LUT_horizontal.getImageData(copy=False)
-        )
+        data = self.img_histogram_LUT_horizontal.getImageData(copy=False)
+        if data is None or data.size == 0:
+            return
+        colormap_range = utils.auto_level.get_range(data)
         if colormap_range is None:
             return
         self.img_histogram_LUT_vertical.setLevels(*colormap_range)
