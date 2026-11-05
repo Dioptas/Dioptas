@@ -17,6 +17,14 @@ groups use the width of the upper-right pane rather than a tall sidebar. Left
 mode navigation remains unchanged. This is a working, scoped workflow, not full
 Qt replacement.
 
+Linked detector clicks retain their exact subpixel position. The cross and
+2θ contour share image coordinates measured from pixel edges; pyFAI and
+contour-array indices are converted from pixel centers. Inspection contours
+use full-resolution samples so enlarged detector pixels retain alignment.
+`node scripts/linked_position_smoke.mjs` (optionally `--webkit`) checks the
+real Python geometry and rendered cross/line paths at fit, enlarged pixel
+scale, and after resizing, using a headless browser.
+
 The former Options tab now lives in Settings → Integration: radial units,
 automatic/manual binning, supersampling, 1D/cake azimuth ranges, cake bins,
 solid angle, polarization, Poisson errors and zero trimming. The command and

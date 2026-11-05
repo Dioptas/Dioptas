@@ -36,6 +36,41 @@ def loaded():
 
 
 @pytest.mark.parametrize("supersampling", [1, 2])
+def test_linked_detector_contour_passes_through_subpixel_click(loaded, supersampling):
+    call(loaded, "integration_settings", supersampling=supersampling)
+    geometry = loaded.configuration.calibration_model.pattern_geometry
+    for x, y in [(637.2, 564.7), (500.5, 400.5), (350.85, 592.15)]:
+        linked = call(loaded, "validation_position", source="image", x=x, y=y)["linked"]
+        assert linked["imagePoint"] == {"x": x, "y": y}
+        expected = np.rad2deg(geometry.tth(
+            np.array([y * supersampling - 0.5]),
+            np.array([x * supersampling - 0.5]),
+        )[0])
+        assert linked["twoTheta"] == pytest.approx(expected)
+        # Measure distance to line segments, rather than just vertices: the
+        # click may lie between contour samples. A half-pixel shift fails this.
+        distances = []
+        point = np.array([x, y])
+        for contour in linked["contours"]:
+            vertices = np.array(contour["points"])
+            start, end = vertices[:-1], vertices[1:]
+            delta = end - start
+            length2 = np.sum(delta * delta, axis=1)
+            valid = length2 > 0
+            start, delta, length2 = start[valid], delta[valid], length2[valid]
+            fraction = np.clip(np.sum((point - start) * delta, axis=1) / length2, 0, 1)
+            distances.extend(np.linalg.norm(start + fraction[:, None] * delta - point, axis=1))
+        assert min(distances) < 0.005
+        back = call(
+            loaded, "validation_position", source="cake",
+            x=linked["twoTheta"], azimuth=linked["azimuth"],
+        )["linked"]
+        # Reverse-linked crosses use the same path that is drawn on the image.
+        cross = [back["imagePoint"]["x"], back["imagePoint"]["y"]]
+        assert any(cross in contour["points"] for contour in back["contours"])
+
+
+@pytest.mark.parametrize("supersampling", [1, 2])
 def test_pixel_readout_uses_original_pixel_centres_for_all_radial_units(loaded, supersampling):
     call(loaded, "integration_settings", supersampling=supersampling)
     pixel = call(loaded, "pixel", x=500, y=400)["pixel"]
@@ -394,7 +429,7 @@ def test_supersampling_keeps_original_pixel_geometry_and_poni(loaded, tmp_path):
     original = (calibration.orig_pixel1, calibration.orig_pixel2)
     expected_angle = np.rad2deg(calibration.get_pixel_two_theta_array()[400, 500])
     call(loaded, "integration_settings", supersampling=2)
-    linked = call(loaded, "validation_position", source="image", x=500, y=400)
+    linked = call(loaded, "validation_position", source="image", x=500.5, y=400.5)
     assert linked["linked"]["twoTheta"] == pytest.approx(expected_angle, abs=1e-10)
     path = tmp_path / "physical-pixels.poni"
     call(loaded, "save_calibration", path=str(path))

@@ -568,24 +568,26 @@ class CalibrationWorkflow:
         image_point = None
         if source == "image":
             h, w = self.configuration.img_model.img_data.shape
-            row = int(finite(y, "y", 0, h - 1e-9))
-            col = int(finite(x, "x", 0, w - 1e-9))
+            row = finite(y, "y", 0, h - 1e-9)
+            col = finite(x, "x", 0, w - 1e-9)
             factor = c.supersampling_factor
+            # Display coordinates start at pixel edges; pyFAI's integer
+            # coordinates refer to centers. Preserve the subpixel click.
             tth = float(
                 np.rad2deg(
                     c.pattern_geometry.tth(
-                        np.array([(row + 0.5) * factor - 0.5]),
-                        np.array([(col + 0.5) * factor - 0.5]),
+                        np.array([row * factor - 0.5]),
+                        np.array([col * factor - 0.5]),
                     )[0]
                 )
             )
             azi = float(
                 np.rad2deg(c.pattern_geometry.chi(
-                    np.array([(row + 0.5) * factor - 0.5]),
-                    np.array([(col + 0.5) * factor - 0.5]),
+                    np.array([row * factor - 0.5]),
+                    np.array([col * factor - 0.5]),
                 )[0])
             )
-            image_point = {"x": col + 0.5, "y": row + 0.5}
+            image_point = {"x": col, "y": row}
         elif source == "cake":
             tth = x
             if azimuth is not None:
@@ -611,18 +613,19 @@ class CalibrationWorkflow:
             )
         )
         angles = c.get_pixel_two_theta_array()
-        step = max(1, math.ceil(max(angles.shape) / 450))
+        # Contour indices also refer to pixel centers. Use the full-resolution
+        # path for inspection so zooming does not expose preview simplification.
+        paths = find_contours(angles, np.deg2rad(tth))
         contours = [
             {
                 "ring": 0,
-                "points": [[float(x * step), float(y * step)] for y, x in contour[::2]],
+                "points": [[float(x + 0.5), float(y + 0.5)] for y, x in contour],
             }
-            for contour in find_contours(angles[::step, ::step], np.deg2rad(tth))
+            for contour in paths
         ]
         # Keep the last azimuth for pattern clicks, as in Qt. Choose the closest
         # point on the full-resolution contour using a circular angular distance.
         if azi is not None and image_point is None:
-            paths = find_contours(angles, np.deg2rad(tth))
             if paths:
                 points = np.vstack(paths)
                 factor = c.supersampling_factor

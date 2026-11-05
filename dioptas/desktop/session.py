@@ -681,7 +681,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
                     {
                         "ring": index + 1,
                         "points": [
-                            [float(x * step), float(y * step)] for y, x in contour[::2]
+                            [float(x * step + 0.5), float(y * step + 0.5)] for y, x in contour[::2]
                         ],
                     }
                 )

@@ -369,7 +369,7 @@ class IntegrationWorkflow(PhaseWorkflow):
                 # thicker and more opaque, normalized independently per phase.
                 scaling = float(intensity / maximum) if maximum > 0 else 0
                 style = {"lineWidth": 1 + 3 * scaling, "opacity": 0.3 + 0.4 * scaling}
-                contours = [[[float(x * step), float(y * step)] for y, x in line[::2]]
+                contours = [[[float(x * step + 0.5), float(y * step + 0.5)] for y, x in line[::2]]
                             for line in find_contours(sampled, float(position))]
                 for points in contours:
                     guides.append({"ring": 0, "twoTheta": float(position), "color": color, "points": points,

@@ -216,9 +216,9 @@ def test_linked_validation_uses_current_pattern_units(fitted):
 def test_linked_click_retains_azimuth_across_refreshes_and_unit_changes(fitted):
     reference = call(fitted, "validation_position", source="image", x=637.2, y=564.7)["linked"]
     c = fitted.configuration.calibration_model
-    expected_azi = np.rad2deg(c.pattern_geometry.chi(np.array([564.]), np.array([637.]))[0])
+    expected_azi = np.rad2deg(c.pattern_geometry.chi(np.array([564.2]), np.array([636.7]))[0])
     assert reference["azimuth"] == pytest.approx(expected_azi)
-    assert reference["imagePoint"] == {"x": 637.5, "y": 564.5}
+    assert reference["imagePoint"] == {"x": 637.2, "y": 564.7}
     refreshed = call(fitted, "integrate")["linked"]
     assert refreshed == reference
     changed = call(fitted, "settings", unit="q_A^-1")["linked"]
@@ -226,8 +226,8 @@ def test_linked_click_retains_azimuth_across_refreshes_and_unit_changes(fitted):
     assert changed["radial"] != reference["radial"]
     back = call(fitted, "validation_position", source="cake", x=reference["twoTheta"], azimuth=reference["azimuth"] + 360)["linked"]
     assert back["azimuth"] == pytest.approx(expected_azi)
-    assert back["imagePoint"]["x"] == pytest.approx(637.5, abs=1)
-    assert back["imagePoint"]["y"] == pytest.approx(564.5, abs=1)
+    assert back["imagePoint"]["x"] == pytest.approx(637.2, abs=1)
+    assert back["imagePoint"]["y"] == pytest.approx(564.7, abs=1)
     pattern = call(fitted, "validation_position", source="pattern", x=changed["radial"])["linked"]
     assert pattern["azimuth"] == back["azimuth"]
     assert pattern["imagePoint"] == pytest.approx(back["imagePoint"])
