@@ -47,6 +47,9 @@ and use Up/Down) to resize; double-click resets the height. The header can colla
 hide or detach the panel. The compact **Batch…** button beside **File Info** in
 Integration → Image reopens it. It is orange while either the dock or detached
 window is open, and neutral after closing/hiding it.
+Clicking it while docked hides the panel without discarding data; clicking it
+while detached raises and restores the existing window, including if minimized.
+Automatic opening after integration and layout restoration always show Batch.
 The detached toolbar has no duplicate close button; use the native window close
 control. The dock retains its Hide button.
 Dock preference, open/closed state, height and collapsed state persist.

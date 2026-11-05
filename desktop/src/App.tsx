@@ -1550,6 +1550,17 @@ export default function App() {
     if (docked) setBatchDockVisible(true);
     else batchWindow.open();
   };
+  const activateBatch = () => {
+    if (batchWindow.detached) {
+      batchWindow.open();
+    } else if (batchDockVisible) {
+      clearPlot();
+      setBatchDockVisible(false);
+      saveLayoutValue(layoutKeys.batchOpen, false);
+    } else {
+      openBatch();
+    }
+  };
   const restoredBatchLayout = useRef(false);
   useEffect(() => {
     if (!ready || restoredBatchLayout.current) return;
@@ -2581,8 +2592,9 @@ export default function App() {
                       )}
                       {mode === "integration" && (
                         <IntegrationView
-                          onOpenBatch={openBatch}
+                          onOpenBatch={activateBatch}
                           batchOpen={batchDockVisible || batchWindow.detached}
+                          batchDocked={batchDockVisible}
                           state={state}
                           ready={ready}
                           run={run}

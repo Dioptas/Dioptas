@@ -380,7 +380,7 @@ try {
   );
   await child.mouse.move(b.x + 140, b.y + 80);
   await child.locator('.detached-batch-footer [data-field="I"]').waitFor();
-  await child.screenshot({path: path.join(artifacts, "batch-phases.png")});
+  await child.screenshot({ path: path.join(artifacts, "batch-phases.png") });
   await click(child, "Show batch phases");
   // Both zoom modes share the blue selection, and a slice keeps all frame rows.
   const dragZoom = async (mode) => {
@@ -842,12 +842,28 @@ try {
   assert.equal((await invoke("state")).batch.entries.length, 3);
   await click(page, "Batch view…");
   await dock.waitFor();
+  const retainedFrame = (await invoke("state")).batch.selected;
+  await click(page, "Batch view…");
+  assert.equal(await dock.count(), 0);
+  assert.equal(await batchButton.getAttribute("aria-pressed"), "false");
+  assert.equal(
+    await page.evaluate(() => localStorage.getItem("dioptas-batch:open")),
+    "false",
+  );
+  assert.equal((await invoke("state")).batch.selected, retainedFrame);
+  await click(page, "Batch view…");
+  await dock.waitFor();
   const reopened = context.waitForEvent("page");
   await click(page, "Detach batch");
   child = await reopened;
   await child.waitForLoadState();
   await selected(child, 2);
   assert.equal(await dock.count(), 0);
+  sameRange(await readRange(child), range);
+  await click(page, "Batch view…");
+  assert.equal(context.pages().length, 2);
+  assert(!child.isClosed());
+  await selected(child, 2);
   sameRange(await readRange(child), range);
   await child.close();
   child = null;

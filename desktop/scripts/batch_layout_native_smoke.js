@@ -4,6 +4,7 @@
   const call = window.__dioptasNativeCall;
   const stage = window.__batchLayoutStage;
   let childReady = false;
+  let existingWindowRaised = false;
   const events = [];
   const check = (value, message) => {
     if (!value) throw Error(message);
@@ -67,6 +68,27 @@
         () => childReady && read("dioptas-batch:docked") === "false",
         "Batch did not finish opening",
       );
+      await invoke("plugin:window|minimize", { label: "batch-window" });
+      await wait(
+        () => invoke("plugin:window|is_minimized", { label: "batch-window" }),
+        "Batch was not minimized",
+      );
+      await invoke("plugin:window|set_focus", { label: "main" });
+      click("Batch view…");
+      await wait(
+        async () =>
+          !(await invoke("plugin:window|is_minimized", {
+            label: "batch-window",
+          })) &&
+          (await invoke("plugin:window|is_focused", { label: "batch-window" })),
+        "Batch button did not restore and focus the existing window",
+      );
+      const windows = await invoke("plugin:window|get_all_windows");
+      check(
+        windows.filter((label) => label === "batch-window").length === 1,
+        "Batch window duplicated",
+      );
+      existingWindowRaised = true;
       check(
         read("dioptas-batch:open") === "true" &&
           read("dioptas-batch:docked") === "false",
@@ -158,6 +180,28 @@
       );
       click("Hide batch view");
       check(read("dioptas-batch:open") === "false", "Hide was not saved");
+      await wait(
+        () => !document.querySelector(".batch-dock"),
+        "Hide did not finish rendering",
+      );
+      click("Batch view…");
+      await wait(
+        () => document.querySelector(".batch-dock"),
+        "Batch button did not reopen dock",
+      );
+      click("Batch view…");
+      await wait(
+        () => !document.querySelector(".batch-dock"),
+        "Batch button did not hide dock",
+      );
+      check(
+        read("dioptas-batch:open") === "false",
+        "Button toggle did not save closed state",
+      );
+      check(
+        read("dioptas-batch:docked") === "true",
+        "Button toggle lost dock preference",
+      );
     }
     await invoke("native_smoke_report", {
       report: {
@@ -165,6 +209,7 @@
         stage,
         processingPid: host.pid,
         childReady,
+        existingWindowRaised,
         open: read("dioptas-batch:open"),
         docked: read("dioptas-batch:docked"),
       },

@@ -8,6 +8,7 @@ import "./integrationFileControls.css";
 export function IntegrationImageControls({
   onOpenBatch,
   batchOpen,
+  batchDocked,
   state,
   source,
   fileStep,
@@ -17,6 +18,7 @@ export function IntegrationImageControls({
 }: {
   onOpenBatch: () => void;
   batchOpen: boolean;
+  batchDocked: boolean;
   state: State | null;
   source: IntegrationState;
   fileStep: number;
@@ -157,7 +159,13 @@ export function IntegrationImageControls({
           type="button"
           aria-label="Batch view…"
           aria-pressed={batchOpen}
-          title={batchOpen ? "Show open Batch view" : "Open Batch view"}
+          title={
+            batchDocked
+              ? "Hide docked Batch view"
+              : batchOpen
+                ? "Show open Batch window"
+                : "Open Batch view"
+          }
           onClick={onOpenBatch}
         >
           Batch…

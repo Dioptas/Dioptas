@@ -12,6 +12,28 @@ await writeFile(
   JSON.stringify({
     identifier: `org.dioptas.desktop.batch-layout-${process.pid}-${Date.now()}`,
     productName: "Dioptas Batch Layout Check",
+    app: {
+      security: {
+        capabilities: [
+          "desktop",
+          "calibration-tooltip",
+          "phase-editor",
+          "map-window",
+          "batch-window",
+          {
+            identifier: "batch-layout-check",
+            windows: ["main", "batch-window"],
+            permissions: [
+              "core:window:allow-minimize",
+              "core:window:allow-is-minimized",
+              "core:window:allow-set-focus",
+              "core:window:allow-is-focused",
+              "core:window:allow-get-all-windows",
+            ],
+          },
+        ],
+      },
+    },
   }),
 );
 await new Promise((resolve, reject) => {

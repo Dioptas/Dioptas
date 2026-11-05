@@ -20,6 +20,7 @@ export function IntegrationView({
   run,
   onOpenBatch,
   batchOpen,
+  batchDocked,
   runProcessing,
   backgroundSettings,
   onBackgroundChange,
@@ -37,6 +38,7 @@ export function IntegrationView({
   ready: boolean;
   onOpenBatch: () => void;
   batchOpen: boolean;
+  batchDocked: boolean;
   run: IntegrationRun;
   runProcessing: IntegrationRun;
   backgroundSettings: BackgroundSettings;
@@ -133,6 +135,7 @@ export function IntegrationView({
           <IntegrationImageControls
             onOpenBatch={onOpenBatch}
             batchOpen={batchOpen}
+            batchDocked={batchDocked}
             state={state}
             source={source}
             fileStep={fileStep}
