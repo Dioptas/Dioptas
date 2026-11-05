@@ -85,12 +85,9 @@
   color: #c4cbd3;
   border: 1px solid transparent;
 }
-.app .batch-file-toolbar button {
-  border-color: #414b55;
-}
 .app .batch-series-toolbar button:not(:disabled):hover {
   background: #ffffff0a;
-  border-color: #75808b;
+  border-color: transparent;
   color: #f3f5f7;
 }
 .batch-file-toolbar[hidden] {

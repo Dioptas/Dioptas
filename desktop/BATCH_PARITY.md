@@ -50,10 +50,11 @@ Options edits survive tab changes, and returning to 2D preserves zoom, contrast
 and selection. Files retains its integration range.
 The splitter shares Integration’s thin grip and hover styling, with pointer
 resizing, keyboard Up/Down and double-click reset; the dock can shrink to 220 px.
-The dock has no outer frame. Header paths are aligned at the trailing end so
-the meaningful folder name stays visible; Files shows basenames with full paths
-in tooltips. Header actions are rectangular and tabs use the shared underline
-style. The hidden cake-shift control no longer reserves a blank row above Batch
+The dock has no outer frame. The header shows the last three folder names,
+aligned at the trailing end, with the full path in its tooltip. Files shows
+basenames with full paths in tooltips. Header actions are borderless icons with
+hover/focus feedback; tabs use the shared underline style. The hidden cake-shift
+control no longer reserves a blank row above Batch
 when displaying the detector.
 Overview contrast, palette, scaling and zoom survive docking and reopening.
 The native window remembers its own size/monitor/position and uses Map's existing

@@ -89,6 +89,12 @@ export function BatchView({
   const select = (index: number) =>
     void run("batch_select", { index }, "Loading batch frame…");
   const folder = batch?.files[0]?.path.replace(/[\\/][^\\/]*$/, "") ?? "";
+  const folderLabel =
+    folder
+      .split(/[\\/]+/)
+      .filter(Boolean)
+      .slice(-3)
+      .join("/") || "Batch";
   const auto = async () => {
     const r = await request("batch_levels", { ...prefs.auto });
     if (r?.batchLevels) display.update({ limits: r.batchLevels, auto: true });
@@ -222,7 +228,7 @@ export function BatchView({
           </button>
         </div>
         <span className="batch-folder-label" title={folder}>
-          <span>{folder || "Batch"}</span>
+          <span>{folderLabel}</span>
         </span>
         {docked && batch && (
           <span
