@@ -1,4 +1,15 @@
-import { useRef, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  layoutKeys,
+  readLayoutNumber,
+  saveLayoutValue,
+} from "./layoutPreferences";
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 
 /** Qt's horizontal image/right splitter and vertical controls/pattern splitter.
  * Renderers remain in App and retain their instances when these dividers move.
@@ -15,14 +26,29 @@ export function IntegrationWorkspace({
   children: ReactNode;
 }) {
   const container = useRef<HTMLDivElement>(null);
-  const [imageShare, setImageShare] = useState(50);
-  const [controlsShare, setControlsShare] = useState(38);
+  const [preferredImage, setImageShare] = useState(() =>
+    readLayoutNumber(layoutKeys.imageShare, 50, 25, 75),
+  );
+  const [preferredControls, setControlsShare] = useState(() =>
+    readLayoutNumber(layoutKeys.controlsShare, 38, 25, 75),
+  );
+  const [size, setSize] = useState({ width: 1000, height: 800 });
+  useLayoutEffect(() => {
+    const node = container.current;
+    if (!active || !node) return;
+    const measure = () =>
+      setSize((old) =>
+        old.width === node.clientWidth && old.height === node.clientHeight
+          ? old
+          : { width: node.clientWidth, height: node.clientHeight },
+      );
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [active]);
   const constrain = (value: number, axis: "image" | "controls") => {
-    const box = container.current;
-    const total =
-      axis === "image"
-        ? (box?.clientWidth ?? 1000) - 20
-        : (box?.clientHeight ?? 800) - 16;
+    const total = axis === "image" ? size.width - 20 : size.height - 16;
     const minimum = axis === "image" ? 300 : 208;
     const otherMinimum = axis === "image" ? 348 : 208;
     return Math.max(
@@ -30,12 +56,18 @@ export function IntegrationWorkspace({
       Math.min(Math.min(75, ((total - otherMinimum) / total) * 100), value),
     );
   };
+  const imageShare = constrain(preferredImage, "image");
+  const controlsShare = constrain(preferredControls, "controls");
   const divider = (axis: "image" | "controls") => {
     const value = axis === "image" ? imageShare : controlsShare;
-    const update = (next: number) =>
-      (axis === "image" ? setImageShare : setControlsShare)(
-        constrain(next, axis),
+    const update = (next: number) => {
+      const value = constrain(next, axis);
+      (axis === "image" ? setImageShare : setControlsShare)(value);
+      saveLayoutValue(
+        axis === "image" ? layoutKeys.imageShare : layoutKeys.controlsShare,
+        value,
       );
+    };
     return (
       <div
         className={`integration-divider integration-divider-${axis}`}

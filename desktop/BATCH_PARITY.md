@@ -13,10 +13,14 @@ The top row follows Qt: Open raw/proc data, previous/next folder, Save, source
 folder, and Files/2D tabs. Files shows Calibration File, Mask File, and the raw
 filename/N images table. Selecting a file selects its first integrated frame.
 2D shows the selectable intensity series, a vertical histogram on the left, and
-2θ/Q/d plus Log/√ controls at the far right, in both floating and docked views.
-The mode buttons reuse the pattern view’s PlotToggle and styling. Turning off
-the active Log/√ button returns to linear. The independent histogram retains
-the existing React image controls and optional horizontal orientation.
+2θ/Q/d plus Log/√ controls at the far right in the floating window. Those buttons
+reuse the pattern view’s PlotToggle and styling. When docked, Batch follows the
+main pattern’s units and Log/√ controls; duplicate buttons are removed. Axis
+conversion uses the batch’s recorded wavelength and never drops matrix columns;
+if a requested angular conversion is unavailable, the valid stored axis remains.
+The independent histogram is mirrored horizontally on the left, including its
+handle hit areas. Expanded labels remain upright; horizontal orientation keeps
+the existing unmirrored behavior.
 
 In the separate window, Files offers Integrate; 2D offers AutoScale and Normalize with a
 separate normalization-settings popup. Previous/slider/next, Frame, and
@@ -29,13 +33,21 @@ the detector/cake and image toolbar. It shares the left column's width and leave
 the pattern and right-hand task controls in place. Drag the divider (or focus it
 and use Up/Down) to resize; double-click resets the height. The header can collapse,
 hide or detach the panel. **Batch view…** in Integration → Image reopens it.
-Dock preference and height persist. Hiding or closing the window keeps the batch.
+Dock preference, open/closed state, height and collapsed state persist.
+Both Integration splitters retain their preferred percentages. A smaller window
+clamps the displayed sizes without overwriting preferences, so expanding it
+restores the preferred layout. Hiding or closing Batch keeps the data but saves
+its closed state; quitting the app with Batch open preserves the open state.
+Startup restores the layout once the main window is ready, including an empty
+Batch panel before a scientific project is loaded. Project data still comes from
+the normal Load/Save project workflow.
 When docked, an **Options** tab beside Files/2D holds AutoScale, normalization
 and Start/Stop/Step. The 2D tab has no bottom browsing row or slider: the header
 shows the selected zero-based frame index and final index. Click rows or use
-Up/Down and Home/End on the overview to browse. Open/folder/save actions live
-in the dock’s Files tab. Options edits survive tab changes, and returning
-to 2D preserves zoom, contrast and selection. Files retains its integration range.
+Up/Down and Home/End on the overview to browse. Open, previous/next-folder and
+Save remain visible at upper left in all tabs and both window states.
+Options edits survive tab changes, and returning to 2D preserves zoom, contrast
+and selection. Files retains its integration range.
 The splitter shares Integration’s thin grip and hover styling, with pointer
 resizing, keyboard Up/Down and double-click reset; the dock can shrink to 220 px.
 The dock has no outer frame. Header paths are aligned at the trailing end so
@@ -136,7 +148,8 @@ Compact dock follow-up: Chromium and WebKit checks cover vertical histograms,
 Options reachability at both text sizes, retained edits/view state between tabs,
 and pointer/keyboard resizing of image, dock and overview. They also hold a real
 frame load to verify that controls stay enabled and subsequent selections queue;
-check left-histogram/right-button geometry and exact pattern-button styling; and
+check mirrored histogram geometry and pointer dragging, linked units/scales,
+layout and popup restoration across frontend reloads, invalid preference fallback; and
 cover frameless docking, trailing paths and removal of the hidden toolbar row.
 At 1000 × 700 with
 large text and a 320 px dock, the 2D data area is at least 150 px tall.
@@ -149,3 +162,15 @@ companion/dock checks, the detached Map regression, the broader headless browser
 workflow and the isolated native Batch smoke passed. The first native run found
 an incorrect size/position argument in the test harness; the corrected harness
 passed. These checks do not establish Windows/Linux native window behavior.
+
+`node scripts/tauri_batch_layout.mjs` builds an isolated, named native app and
+checks floating restore after app exit, native child close, closed-state restore,
+docking/collapse and splitter restoration across fresh processing sessions.
+Its test profile and window placement are separate from the user preview.
+
+Layout/linked-controls verification (2026-11-05): 58 JavaScript tests and
+17 Rust tests pass, as do Chromium/WebKit Batch checks, detached Map checks,
+and the broader browser workflow. The bundled native restart campaign passes
+all four stages and reaps each processing child. It distinguishes an explicit
+child close from app shutdown, and checks docking before the original open
+command finishes. Routine layout and histogram checks remain headless.

@@ -1,3 +1,8 @@
+import {
+  layoutKeys,
+  readLayoutFlag,
+  saveLayoutValue,
+} from "./layoutPreferences";
 import { useNativePhaseEditorSync } from "./phaseEditorWindow";
 import {
   useCallback,
@@ -202,7 +207,9 @@ export default function App() {
   const [setupValid, setSetupValid] = useState(true);
   const [mode, setMode] = useState<
     "calibration" | "integration" | "mask" | "map"
-  >("calibration");
+  >(() =>
+    readLayoutFlag(layoutKeys.batchOpen) ? "integration" : "calibration",
+  );
   const activeMode = useRef(mode);
   useEffect(() => {
     activeMode.current = mode;
@@ -225,7 +232,11 @@ export default function App() {
   } | null>(null);
   const [mapPatternZoom, setMapPatternZoom] = useState<ZoomMode>("rectangle");
   const [batch, setBatch] = useState<BatchData | null>(null);
-  const [batchDockVisible, setBatchDockVisible] = useState(false);
+  const [batchDockVisible, setBatchDockVisible] = useState(
+    () =>
+      readLayoutFlag(layoutKeys.batchOpen) &&
+      readLayoutFlag(layoutKeys.batchDocked),
+  );
   const [batchOpenRequest, setBatchOpenRequest] = useState(0);
   const [batchWarning, setBatchWarning] = useState<string | null>(null);
   const [map, setMap] = useState<MapData | null>(null);
@@ -1470,17 +1481,16 @@ export default function App() {
     onOpen: () => {
       setMode("integration");
       setBatchDockVisible(false);
-      try {
-        localStorage.setItem("dioptas-batch:docked", "false");
-      } catch {}
+      saveLayoutValue(layoutKeys.batchDocked, false);
+      saveLayoutValue(layoutKeys.batchOpen, true);
     },
     onDock: () => {
       setMode("integration");
       setBatchDockVisible(true);
-      try {
-        localStorage.setItem("dioptas-batch:docked", "true");
-      } catch {}
+      saveLayoutValue(layoutKeys.batchDocked, true);
+      saveLayoutValue(layoutKeys.batchOpen, true);
     },
+    onClose: () => saveLayoutValue(layoutKeys.batchOpen, false),
     onError: setError,
     cancel: () => bridge.current?.("cancel_refinement"),
   });
@@ -1488,13 +1498,17 @@ export default function App() {
     clearPlot();
     setSettingsOpen(false);
     setMode("integration");
-    let docked = false;
-    try {
-      docked = localStorage.getItem("dioptas-batch:docked") === "true";
-    } catch {}
+    const docked = readLayoutFlag(layoutKeys.batchDocked);
+    saveLayoutValue(layoutKeys.batchOpen, true);
     if (docked) setBatchDockVisible(true);
     else batchWindow.open();
   };
+  const restoredBatchLayout = useRef(false);
+  useEffect(() => {
+    if (!ready || restoredBatchLayout.current) return;
+    restoredBatchLayout.current = true;
+    if (readLayoutFlag(layoutKeys.batchOpen)) openBatch();
+  }, [ready]);
   const handledBatchOpen = useRef(0);
   useEffect(() => {
     if (handledBatchOpen.current === batchOpenRequest) return;
@@ -2114,7 +2128,19 @@ export default function App() {
                           request={requestMap}
                           reportPlot={reportPlot}
                           onDetach={() => batchWindow.open()}
-                          onHide={() => setBatchDockVisible(false)}
+                          linkedDisplay={{
+                            unit: state?.unit ?? batch?.unit ?? "2th_deg",
+                            log: logPattern,
+                            sqrt: sqrtPattern,
+                            onScale: (scale) => {
+                              setLogPattern(scale === "log");
+                              setSqrtPattern(scale === "sqrt");
+                            },
+                          }}
+                          onHide={() => {
+                            setBatchDockVisible(false);
+                            saveLayoutValue(layoutKeys.batchOpen, false);
+                          }}
                         />
                       )}
                     </div>

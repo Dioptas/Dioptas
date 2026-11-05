@@ -16,7 +16,8 @@ export type MapWindowStatus = {
   };
 };
 export type MapWindowMessage =
-  | { type: "ready" | "closed" | "dock" }
+  | { type: "ready" | "dock" }
+  | { type: "closed"; shuttingDown?: boolean }
   | { type: "refresh"; status: MapWindowStatus }
   | {
       type: "request";

@@ -42,6 +42,7 @@ export function ImageIntensity({
   onPreferences,
   initialLevelsReady = false,
   initialAutoActive = true,
+  mirrored = false,
 }: {
   preferences: ImageDisplayPreferences;
   onPreferences: (preferences: ImageDisplayPreferences) => void;
@@ -57,6 +58,7 @@ export function ImageIntensity({
   display?: "detector" | "cake" | "map" | "batch";
   initialLevelsReady?: boolean;
   initialAutoActive?: boolean;
+  mirrored?: boolean;
 }) {
   const id = useId(),
     container = useRef<HTMLDivElement>(null);
@@ -220,7 +222,11 @@ export function ImageIntensity({
     const cross = horizontal
       ? (small ? 130 : 136) -
         ((event.clientY - box.top) / box.height) * thickness
-      : ((event.clientX - box.left) / box.width) * thickness + offset;
+      : (mirrored
+          ? 1 - (event.clientX - box.left) / box.width
+          : (event.clientX - box.left) / box.width) *
+          thickness +
+        offset;
     if (cross < 39 || cross > 94) return null;
     const value = coordinate(event),
       a = Math.asinh(limits[0]),
@@ -254,6 +260,7 @@ export function ImageIntensity({
         data-display={display}
         data-size={small ? "compact" : "expanded"}
         data-orientation={horizontal ? "horizontal" : "vertical"}
+        data-mirrored={mirrored && !horizontal}
         aria-label={`${title} intensity controls`}
       >
         <div className="histogram-container" ref={container}>
@@ -329,7 +336,9 @@ export function ImageIntensity({
               transform={
                 horizontal
                   ? `matrix(0,-1,-1,0,${length},${small ? 130 : 136})`
-                  : undefined
+                  : mirrored
+                    ? `translate(${2 * offset + thickness},0) scale(-1,1)`
+                    : undefined
               }
             >
               <rect
@@ -477,9 +486,17 @@ export function ImageIntensity({
               [0, 0.25, 0.5, 0.75, 1].map((f) => (
                 <text
                   key={f}
-                  x={horizontal ? 16 + f * plotLength : 36}
+                  x={
+                    horizontal
+                      ? 16 + f * plotLength
+                      : mirrored
+                        ? 2 * offset + thickness - 36
+                        : 36
+                  }
                   y={horizontal ? 124 : 20 + f * (plotLength - 4)}
-                  textAnchor={horizontal ? "middle" : "end"}
+                  textAnchor={
+                    horizontal ? "middle" : mirrored ? "start" : "end"
+                  }
                   fill="#a7b5c0"
                   fontSize="13"
                 >

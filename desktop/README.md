@@ -336,10 +336,15 @@ series below the image in the lower-left corner; its divider resizes the dock,
 and the header can collapse it or detach it again. **Batch view…** reopens the
 window or dock without discarding data. The dock's **Options** tab holds
 normalization and range settings so the series keeps most of the space. Its
-histogram defaults to vertical on the left, with pattern-style unit/scale
-buttons at the far right. The dock shows frame position in the header instead
+histogram defaults to vertical on the left, mirrored toward the plot.
+The floating window has pattern-style unit/scale buttons at the far right; the
+dock follows the main pattern’s controls. The dock shows frame position in the header instead
 of a bottom browsing slider; click rows or use the overview’s keyboard arrows.
-Selecting a frame keeps controls active without a global loading flash. Controls include frame range/step,
+Selecting a frame keeps controls active without a global loading flash.
+Both Integration splitters and Batch’s height, collapsed, open and docked states
+are remembered across restarts. Smaller windows clamp the visible layout without
+erasing your preferred sizes. Closing Batch keeps it closed on restart; quitting
+with Batch open restores it. Scientific data is restored by loading a project. Controls include frame range/step,
 normalization, HDF5/CSV saving and processed-batch import. Save project retains the series.
 See [Batch parity](BATCH_PARITY.md) for workflow, checks and scope.
 

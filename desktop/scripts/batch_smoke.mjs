@@ -120,18 +120,56 @@ const readRange = (p) =>
 const sameRange = (a, b) =>
   a.forEach((x, i) => assert(Math.abs(x - b[i]) < 1e-5, `${a} vs ${b}`));
 const checkBatchLayout = async (p) => {
+  for (const name of [
+    "Load raw/proc data",
+    "Previous batch folder",
+    "Next batch folder",
+    "Save batch data",
+  ]) {
+    assert(
+      await p.getByRole("button", { name, exact: true }).isVisible(),
+      `${name} must stay visible`,
+    );
+    const button = await p
+      .getByRole("button", { name, exact: true })
+      .boundingBox();
+    const header = await p.locator(".batch-series-toolbar").boundingBox();
+    assert(
+      button.x >= header.x - 1 &&
+        button.x + button.width <= header.x + header.width + 1,
+      `${name} overflows its toolbar`,
+    );
+  }
   const histogram = await p
     .locator(".batch-overview-image > .image-intensity")
     .boundingBox();
   const plot = await p.getByTestId("batch-heatmap").boundingBox();
-  const modes = await p
-    .getByRole("group", { name: "Batch plot options", exact: true })
-    .boundingBox();
   assert(
     histogram.x + histogram.width <= plot.x + 1,
     JSON.stringify({ histogram, plot }),
   );
-  assert(modes.x >= plot.x + plot.width - 1, JSON.stringify({ plot, modes }));
+  const bar = await p
+    .locator(".batch-overview-image")
+    .getByTestId("intensity-colour-bar")
+    .boundingBox();
+  const window = await p
+    .locator(".batch-overview-image")
+    .getByTestId("intensity-selected-window")
+    .boundingBox();
+  assert(bar.x + bar.width < window.x, JSON.stringify({ bar, window }));
+  if (await p.locator(".batch-docked").count()) {
+    assert.equal(
+      await p
+        .getByRole("group", { name: "Batch plot options", exact: true })
+        .count(),
+      0,
+    );
+  } else {
+    const modes = await p
+      .getByRole("group", { name: "Batch plot options", exact: true })
+      .boundingBox();
+    assert(modes.x >= plot.x + plot.width - 1);
+  }
 };
 let child;
 try {
@@ -275,6 +313,30 @@ try {
         .querySelector('[aria-label="Batch unit 2θ"]')
         ?.getAttribute("aria-pressed") === "true",
   );
+  const lower = child.getByRole("slider", {
+    name: "Batch lower intensity handle",
+    exact: true,
+  });
+  const upper = child.getByRole("slider", {
+    name: "Batch upper intensity handle",
+    exact: true,
+  });
+  const lowBefore = Number(await lower.getAttribute("aria-valuenow"));
+  const highBefore = Number(await upper.getAttribute("aria-valuenow"));
+  const handleBox = await lower.boundingBox();
+  await child.mouse.move(
+    handleBox.x + handleBox.width / 2,
+    handleBox.y + handleBox.height / 2,
+  );
+  await child.mouse.down();
+  await child.mouse.move(
+    handleBox.x + handleBox.width / 2,
+    handleBox.y + handleBox.height / 2 - 15,
+  );
+  await child.mouse.up();
+  assert(Number(await lower.getAttribute("aria-valuenow")) > lowBefore);
+  assert.equal(Number(await upper.getAttribute("aria-valuenow")), highBefore);
+  await click(child, "Batch auto intensity");
   await checkBatchLayout(child);
   await click(child, "Square root batch intensity");
   assert.equal(
@@ -330,8 +392,11 @@ try {
   );
   assert.equal(display.limits[0], 10);
   await child.screenshot({ path: path.join(artifacts, "batch-window.png") });
-  await click(child, "Dock batch below image");
-  await child.waitForEvent("close");
+  {
+    const closing = child.waitForEvent("close");
+    await click(child, "Dock batch below image");
+    await closing;
+  }
   child = null;
   const dock = page.locator(".batch-dock");
   await dock.waitFor();
@@ -363,17 +428,44 @@ try {
   await dock.getByLabel("Batch frame step", { exact: true }).fill("2");
   await dock.getByRole("tab", { name: "2D", exact: true }).click();
   await checkBatchLayout(page);
-  await dock.getByRole("button", { name: "Batch unit Q", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Pattern unit Q", exact: true })
+    .click();
   await ready();
   assert.equal((await invoke("state")).pattern.unit, "q_A^-1");
+  assert.equal(
+    await dock.getByTestId("batch-heatmap").getAttribute("data-unit"),
+    "q_A^-1",
+  );
+  await click(page, "Logarithmic pattern intensity");
+  assert.equal(
+    await dock
+      .getByTestId("batch-heatmap")
+      .getAttribute("data-intensity-scale"),
+    "log",
+  );
+  await click(page, "Square root pattern intensity");
+  assert.equal(
+    await dock
+      .getByTestId("batch-heatmap")
+      .getAttribute("data-intensity-scale"),
+    "sqrt",
+  );
+  await click(page, "Square root pattern intensity");
+  assert.equal(
+    await dock
+      .getByTestId("batch-heatmap")
+      .getAttribute("data-intensity-scale"),
+    "linear",
+  );
   assert.equal(
     await dock
       .getByRole("tab", { name: "2D", exact: true })
       .getAttribute("aria-selected"),
     "true",
   );
-  await dock
-    .getByRole("button", { name: "Batch unit 2θ", exact: true })
+  await page
+    .getByRole("button", { name: "Pattern unit 2θ", exact: true })
     .click();
   await ready();
   await dock.getByRole("tab", { name: "2D", exact: true }).click();
@@ -517,18 +609,6 @@ try {
   const compactPlot = await dock.getByTestId("batch-heatmap").boundingBox();
   assert(compactPlot.height - 58 >= 150, JSON.stringify(compactPlot));
   await checkBatchLayout(page);
-  const style = (element) => {
-    const s = getComputedStyle(element);
-    return [s.backgroundColor, s.color, s.borderRadius, s.padding, s.minHeight];
-  };
-  assert.deepEqual(
-    await dock
-      .getByRole("button", { name: "Batch unit 2θ", exact: true })
-      .evaluate(style),
-    await page
-      .getByRole("button", { name: "Pattern unit 2θ", exact: true })
-      .evaluate(style),
-  );
   const dockStyle = await dock
     .locator(".batch-series-panel")
     .evaluate((e) => [
@@ -542,7 +622,10 @@ try {
       box: e.getBoundingClientRect().right,
       text: e.firstElementChild.getBoundingClientRect().right,
     }));
-  assert(Math.abs(pathBounds.box - pathBounds.text) < 1);
+  assert(
+    Math.abs(pathBounds.box - pathBounds.text) < 1,
+    JSON.stringify(pathBounds),
+  );
   const grip = (e) => {
     const s = getComputedStyle(e);
     return [s.width, s.height, s.backgroundColor, s.opacity];
@@ -588,6 +671,95 @@ try {
   child = await again;
   await child.waitForLoadState();
   await selected(child, 2);
+  // A fresh frontend restores layout without reopening scientific files itself.
+  {
+    const closing = child.waitForEvent("close");
+    await click(child, "Dock batch below image");
+    await closing;
+  }
+  child = null;
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  const imageDivider = page.getByRole("separator", {
+    name: "Image and analysis divider",
+    exact: true,
+  });
+  const controlsDivider = page.getByRole("separator", {
+    name: "Controls and pattern divider",
+    exact: true,
+  });
+  await imageDivider.focus();
+  await imageDivider.press("Home");
+  await imageDivider.press("ArrowRight");
+  await imageDivider.press("ArrowRight");
+  await controlsDivider.focus();
+  await controlsDivider.press("Home");
+  await controlsDivider.press("ArrowDown");
+  await controlsDivider.press("ArrowDown");
+  await controlsDivider.press("ArrowDown");
+  await divider.dblclick();
+  await divider.focus();
+  for (let i = 0; i < 3; i++) await divider.press("ArrowUp");
+  await click(page, "Collapse batch overview");
+  await page.reload();
+  await ready();
+  await dock.waitFor();
+  assert.equal(await imageDivider.getAttribute("aria-valuenow"), "54");
+  assert.equal(await controlsDivider.getAttribute("aria-valuenow"), "44");
+  assert(
+    await dock.evaluate((e) => e.classList.contains("batch-dock-collapsed")),
+  );
+  await click(page, "Expand batch overview");
+  assert(Math.abs((await dock.boundingBox()).height - 380) < 2);
+  await divider.focus();
+  for (let i = 0; i < 10; i++) await divider.press("ArrowUp");
+  const preferred = await page.evaluate(() =>
+    localStorage.getItem("dioptas-batch:dock-height"),
+  );
+  await page.setViewportSize({ width: 1000, height: 700 });
+  await page.waitForTimeout(100);
+  assert((await dock.boundingBox()).height < Number(preferred));
+  assert.equal(
+    await page.evaluate(() =>
+      localStorage.getItem("dioptas-batch:dock-height"),
+    ),
+    preferred,
+  );
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await page.waitForTimeout(100);
+  assert(Math.abs((await dock.boundingBox()).height - Number(preferred)) < 2);
+  await click(page, "Hide batch view");
+  await page.reload();
+  await ready();
+  assert.equal(await dock.count(), 0);
+  await click(page, "Integration");
+  await click(page, "Batch view…");
+  await dock.waitFor();
+  let restoredPopup = context.waitForEvent("page");
+  await click(page, "Detach batch");
+  child = await restoredPopup;
+  await selected(child, 2);
+  restoredPopup = context.waitForEvent("page");
+  await page.reload();
+  child = await restoredPopup;
+  await child.waitForLoadState();
+  await selected(child, 2);
+  assert.equal(
+    await page.evaluate(() => localStorage.getItem("dioptas-batch:open")),
+    "true",
+  );
+  await child.close();
+  child = null;
+  await page.waitForFunction(
+    () => localStorage.getItem("dioptas-batch:open") === "false",
+  );
+  await page.reload();
+  await ready();
+  assert.equal(context.pages().length, 1);
+  await click(page, "Integration");
+  restoredPopup = context.waitForEvent("page");
+  await click(page, "Batch view…");
+  child = await restoredPopup;
+  await selected(child, 2);
   // A stored-only series must clear stale detector/cake pixels in Integration.
   for (const file of paths) await rm(file);
   processed = true;
@@ -599,6 +771,27 @@ try {
   assert.equal(await page.getByTestId("detector-canvas").count(), 0);
   assert.equal(await page.getByTestId("cake-canvas").count(), 0);
   assert.equal(await page.getByTestId("pattern-canvas").count(), 1);
+  await child.close();
+  child = null;
+  await page.waitForFunction(
+    () => localStorage.getItem("dioptas-batch:open") === "false",
+  );
+  await page.evaluate(() => {
+    localStorage.setItem("dioptas-layout:image-share", "NaN");
+    localStorage.setItem("dioptas-layout:controls-share", "Infinity");
+    localStorage.setItem("dioptas-batch:dock-height", "invalid");
+    localStorage.setItem("dioptas-batch:collapsed", "invalid");
+    localStorage.setItem("dioptas-batch:docked", "true");
+  });
+  await page.reload();
+  await ready();
+  await click(page, "Integration");
+  assert.equal(await imageDivider.getAttribute("aria-valuenow"), "50");
+  assert.equal(await controlsDivider.getAttribute("aria-valuenow"), "38");
+  await click(page, "Batch view…");
+  await dock.waitFor();
+  assert(Math.abs((await dock.boundingBox()).height - 320) < 2);
+  assert(await dock.getByTestId("batch-heatmap").isVisible());
   assert.deepEqual(errors, []);
   await writeFile(
     path.join(

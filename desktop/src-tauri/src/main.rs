@@ -13,13 +13,14 @@ use calibration_tooltip::{
 
 use processor::{Packet, Processor};
 use serde_json::{json, Value};
-use std::sync::Arc;
+use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use tauri::{Manager, State};
 use tauri_plugin_dialog::DialogExt;
 
 struct Host {
     processor: Result<Arc<Processor>, String>,
     smoke: bool,
+    closing: AtomicBool,
 }
 
 struct FileChoice {
@@ -310,6 +311,7 @@ fn main() {
         .manage(Host {
             processor: Processor::start(example).map(Arc::new),
             smoke,
+            closing: AtomicBool::new(false),
         })
         .invoke_handler(tauri::generate_handler![
             color_picker::prepare_color_picker,
@@ -342,7 +344,7 @@ fn main() {
             Ok(())
         })
         .on_page_load(move |webview, payload| {
-            if smoke && batch_smoke && webview.label() == "batch-window" && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+            if smoke && batch_smoke && std::env::var_os("DIOPTAS_BATCH_LAYOUT_STAGE").is_none() && webview.label() == "batch-window" && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
                 let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
                 let _ = webview.eval(include_str!("../../scripts/batch_window_native_smoke.js"));
             }
@@ -366,6 +368,14 @@ fn main() {
                 && webview.label() == "main"
                 && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished)
             {
+                if batch_smoke {
+                    if let Ok(stage) = std::env::var("DIOPTAS_BATCH_LAYOUT_STAGE") {
+                        let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
+                        let _ = webview.eval(format!("window.__batchLayoutStage={};", json!(stage)));
+                        let _ = webview.eval(include_str!("../../scripts/batch_layout_native_smoke.js"));
+                        return;
+                    }
+                }
                 if pattern_benchmark {
                     let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
                     let _ = webview.eval(include_str!("../../scripts/pattern_native_benchmark.js"));
@@ -392,6 +402,9 @@ fn main() {
             }
         })
         .on_window_event(|window, event| {
+            if window.label() == "main" && matches!(event, tauri::WindowEvent::CloseRequested { .. } | tauri::WindowEvent::Destroyed) {
+                window.app_handle().state::<Host>().closing.store(true, Ordering::SeqCst);
+            }
             map_window::window_event(window, event);
             if window.label() == "map-window" && matches!(event, tauri::WindowEvent::Destroyed) {
                 use tauri::Emitter;
@@ -399,7 +412,7 @@ fn main() {
             }
             if window.label() == "batch-window" && matches!(event, tauri::WindowEvent::Destroyed) {
                 use tauri::Emitter;
-                let _ = window.app_handle().emit_to("main", "batch-window-main", json!({"type": "closed"}));
+                let _ = window.app_handle().emit_to("main", "batch-window-main", json!({"type": "closed", "shuttingDown": window.app_handle().state::<Host>().closing.load(Ordering::SeqCst)}));
             }
             if window.label() != "main" {
                 return;
@@ -431,6 +444,7 @@ fn main() {
             event,
             tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit
         ) {
+            handle.state::<Host>().closing.store(true, Ordering::SeqCst);
             map_window::save(handle);
             if let Ok(processor) = &handle.state::<Host>().processor {
                 processor.shutdown();

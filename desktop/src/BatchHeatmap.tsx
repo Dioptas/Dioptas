@@ -211,6 +211,8 @@ export function BatchHeatmap({
       <canvas
         ref={canvas}
         data-testid="batch-heatmap"
+        data-unit={batch.unit}
+        data-intensity-scale={log ? "log" : sqrt ? "sqrt" : "linear"}
         data-view-x-min={nav.view.xMin}
         data-view-x-max={nav.view.xMax}
         data-view-y-min={nav.view.yMin}

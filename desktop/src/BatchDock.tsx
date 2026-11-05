@@ -1,3 +1,9 @@
+import {
+  layoutKeys,
+  readLayoutFlag,
+  readLayoutNumber,
+  saveLayoutValue,
+} from "./layoutPreferences";
 import { useEffect, useRef, useState, type ComponentProps } from "react";
 import { BatchView } from "./BatchView";
 export function BatchDock(
@@ -8,20 +14,14 @@ export function BatchDock(
 ) {
   const container = useRef<HTMLDivElement>(null),
     start = useRef({ y: 0, height: 0 });
-  const [collapsed, setCollapsed] = useState(false);
-  const [height, setHeight] = useState(() => {
-    try {
-      return Math.max(
-        220,
-        Math.min(
-          600,
-          Number(localStorage.getItem("dioptas-batch:dock-height")) || 320,
-        ),
-      );
-    } catch {
-      return 320;
-    }
-  });
+  const [collapsed, setCollapsed] = useState(() =>
+    readLayoutFlag(layoutKeys.batchCollapsed),
+  );
+  const [preferredHeight, setHeight] = useState(() =>
+    readLayoutNumber(layoutKeys.batchHeight, 320, 220, 600),
+  );
+  const [availableHeight, setAvailableHeight] = useState(600);
+  const height = Math.min(preferredHeight, availableHeight);
   const maximum = () => {
     const parent = container.current?.parentElement;
     const toolbar =
@@ -32,9 +32,7 @@ export function BatchDock(
   useEffect(() => {
     const parent = container.current?.parentElement;
     if (!parent) return;
-    const observer = new ResizeObserver(() =>
-      setHeight((h) => Math.min(h, maximum())),
-    );
+    const observer = new ResizeObserver(() => setAvailableHeight(maximum()));
     observer.observe(parent);
     const tools = parent.querySelector(".integration-image-tools");
     if (tools) observer.observe(tools);
@@ -44,11 +42,7 @@ export function BatchDock(
     const max = maximum();
     const value = Math.max(220, Math.min(max, next));
     setHeight(value);
-    try {
-      localStorage.setItem("dioptas-batch:dock-height", String(value));
-    } catch {
-      /* Keep session height. */
-    }
+    saveLayoutValue(layoutKeys.batchHeight, value);
   };
   return (
     <div
@@ -98,7 +92,10 @@ export function BatchDock(
         {...props}
         docked
         collapsed={collapsed}
-        onCollapse={() => setCollapsed((v) => !v)}
+        onCollapse={() => {
+          setCollapsed(!collapsed);
+          saveLayoutValue(layoutKeys.batchCollapsed, !collapsed);
+        }}
       />
     </div>
   );

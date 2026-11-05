@@ -1,3 +1,5 @@
+import { radialValues } from "./radialReadout.ts";
+import type { Unit } from "./types";
 import { useState } from "react";
 import type { BatchData } from "./batchDomain";
 import type { PlotRange } from "./usePlotNavigation";
@@ -58,4 +60,15 @@ export function useBatchDisplay(batch: BatchData | null) {
     write: (range) => update({ range }),
   };
   return { ...current, update, viewport };
+}
+
+/** Convert labels only; retain every matrix column and its recorded wavelength. */
+export function batchDisplayInUnit(batch: BatchData, unit: Unit): BatchData {
+  if (batch.unit === unit) return batch;
+  const x = batch.x.map(
+    (value) =>
+      radialValues(value, batch.unit, batch.wavelength ?? undefined)[unit],
+  );
+  if (x.some((value) => value == null || !Number.isFinite(value))) return batch;
+  return { ...batch, x: x as number[], unit };
 }

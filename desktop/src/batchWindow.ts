@@ -31,6 +31,7 @@ export function useBatchWindow({
   status,
   onDock,
   onOpen,
+  onClose,
   onError,
   cancel,
 }: {
@@ -42,6 +43,7 @@ export function useBatchWindow({
   status: BatchWindowStatus;
   onDock: () => void;
   onOpen: () => void;
+  onClose: () => void;
   onError: (error: string) => void;
   cancel: () => Promise<unknown> | undefined;
 }) {
@@ -53,20 +55,34 @@ export function useBatchWindow({
     status,
     onDock,
     onOpen,
+    onClose,
     onError,
     cancel,
   });
-  latest.current = { run, request, status, onDock, onOpen, onError, cancel };
+  latest.current = {
+    run,
+    request,
+    status,
+    onDock,
+    onOpen,
+    onClose,
+    onError,
+    cancel,
+  };
   const transport = useRef<ReturnType<typeof mapWindowChannel> | null>(null);
   const popup = useRef<Window | null>(null),
     opening = useRef(false);
-  const hide = async () => {
+  const shuttingDown = useRef(false),
+    internalClose = useRef(false);
+  const hide = async (rememberClosed = true) => {
+    internalClose.current = true;
     if (isTauri()) await invoke("close_batch_window");
     else popup.current?.close();
     setDetached(false);
+    if (rememberClosed) latest.current.onClose();
   };
   const dock = async () => {
-    await hide();
+    await hide(false);
     latest.current.onDock();
   };
   useEffect(() => {
@@ -76,8 +92,15 @@ export function useBatchWindow({
       if (message.type === "ready") {
         setDetached(true);
         channel.send({ type: "refresh", status: latest.current.status });
-      } else if (message.type === "closed") setDetached(false);
-      else if (message.type === "dock") {
+      } else if (message.type === "closed") {
+        setDetached(false);
+        if (
+          !shuttingDown.current &&
+          !internalClose.current &&
+          (!isTauri() || message.shuttingDown === false)
+        )
+          latest.current.onClose();
+      } else if (message.type === "dock") {
         try {
           await dock();
         } catch (e) {
@@ -132,9 +155,14 @@ export function useBatchWindow({
           if (popup.current?.closed) {
             popup.current = null;
             setDetached(false);
+            if (!shuttingDown.current && !internalClose.current)
+              latest.current.onClose();
           }
         }, 400);
-    const closing = () => popup.current?.close();
+    const closing = () => {
+      shuttingDown.current = true;
+      popup.current?.close();
+    };
     window.addEventListener("beforeunload", closing);
     return () => {
       clearInterval(timer);
@@ -158,6 +186,11 @@ export function useBatchWindow({
   const open = async () => {
     if (opening.current) return;
     opening.current = true;
+    internalClose.current = false;
+    // A child can become ready and dock/close before native open returns.
+    // Record the transition first so a late completion cannot undo that action.
+    setDetached(true);
+    latest.current.onOpen();
     try {
       if (isTauri()) await invoke("open_batch_window");
       else {
@@ -175,9 +208,8 @@ export function useBatchWindow({
             );
         } else popup.current.focus();
       }
-      setDetached(true);
-      latest.current.onOpen();
     } catch (e) {
+      setDetached(false);
       latest.current.onDock();
       latest.current.onError(String(e));
     } finally {

@@ -97,17 +97,20 @@
   display: none;
 }
 .batch-folder-label {
-  display: flex;
-  justify-content: flex-end;
+  position: relative;
+  display: block;
   flex: 1;
   min-width: 0;
+  height: 1.4em;
+  line-height: 1.4;
   overflow: hidden;
   white-space: nowrap;
   color: #bbc0c6;
   font-size: var(--text-meta);
 }
 .batch-folder-label > span {
-  flex: none;
+  position: absolute;
+  right: 0;
 }
 .batch-position {
   flex: none;

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronDown,
   ChevronLeft,
@@ -16,7 +16,7 @@ import { BatchControls } from "./BatchControls";
 import { PlotToggle } from "./IntegrationPlotControls";
 import { ImageIntensity } from "./ImageIntensity";
 import { useImageDisplayPreferences } from "./useImageDisplayPreferences";
-import { useBatchDisplay } from "./batchDisplay";
+import { batchDisplayInUnit, useBatchDisplay } from "./batchDisplay";
 import type { BatchData, BatchRun } from "./batchDomain";
 import type { Response, Unit } from "./types";
 import type { ReportPlot } from "./plotReadout";
@@ -33,6 +33,7 @@ export function BatchView({
   reportPlot,
   collapsed = false,
   docked = false,
+  linkedDisplay,
   onCollapse,
   onDetach,
   onDock,
@@ -49,12 +50,27 @@ export function BatchView({
   reportPlot: ReportPlot;
   collapsed?: boolean;
   docked?: boolean;
+  linkedDisplay?: {
+    unit: Unit;
+    log: boolean;
+    sqrt: boolean;
+    onScale: (scale: "linear" | "log" | "sqrt") => void;
+  };
   onCollapse?: () => void;
   onDetach?: () => void;
   onDock?: () => void;
   onHide: () => void;
 }) {
   const display = useBatchDisplay(batch);
+  const shownBatch = useMemo(
+    () =>
+      batch && linkedDisplay
+        ? batchDisplayInUnit(batch, linkedDisplay.unit)
+        : batch,
+    [batch, linkedDisplay?.unit],
+  );
+  const shownLog = linkedDisplay?.log ?? display.log;
+  const shownSqrt = linkedDisplay?.sqrt ?? display.sqrt;
   const [prefs, setPrefs] = useImageDisplayPreferences(
     "batch-overview",
     "vertical",
@@ -163,7 +179,6 @@ export function BatchView({
           className="batch-file-toolbar"
           role="toolbar"
           aria-label="Batch files"
-          hidden={docked && tab !== "Files"}
         >
           <button
             aria-label="Load raw/proc data"
@@ -215,7 +230,7 @@ export function BatchView({
             aria-label="Selected batch frame"
             title={`Frame ${batch.selected}; ${batch.entries.length} frames numbered 0–${batch.entries.length - 1} · ${batch.entries[batch.selected]?.name}`}
           >
-            Frame {batch.selected} / {batch.entries.length - 1}
+            {batch.selected} / {batch.entries.length - 1}
           </span>
         )}
         <div
@@ -359,9 +374,12 @@ export function BatchView({
                   raster={batch.raster}
                   limits={display.limits}
                   onLimits={(limits) => display.update({ limits, auto: false })}
-                  log={display.log}
+                  log={shownLog}
+                  mirrored
                   onLog={(log) =>
-                    display.update({ log, sqrt: false, auto: false })
+                    linkedDisplay
+                      ? linkedDisplay.onScale(log ? "log" : "linear")
+                      : display.update({ log, sqrt: false, auto: false })
                   }
                   palette={display.palette}
                   onPalette={(palette) => display.update({ palette })}
@@ -374,10 +392,10 @@ export function BatchView({
                   onAuto={auto}
                 />
                 <BatchHeatmap
-                  batch={batch}
+                  batch={shownBatch!}
                   limits={display.limits}
-                  log={display.log}
-                  sqrt={display.sqrt}
+                  log={shownLog}
+                  sqrt={shownSqrt}
                   palette={display.palette}
                   viewport={display.viewport}
                   ready={ready}
@@ -385,7 +403,7 @@ export function BatchView({
                   reportPlot={reportPlot}
                 />
               </div>
-              {plotOptions}
+              {!linkedDisplay && plotOptions}
             </div>
           )
         )}
