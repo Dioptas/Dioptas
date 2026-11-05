@@ -10,6 +10,7 @@ import { RasterView } from "./RasterView";
 import { PatternView } from "./PatternView";
 import { ImageIntensity } from "./ImageIntensity";
 import { MapControls } from "./MapControls";
+import { patternViewport, plotViewContext, type SharedPlotViews } from "./plotViewport";
 import { mapPatternInUnit } from "./mapPattern";
 import type { PatternPosition } from "./linkedPosition";
 import { detectorPlotSetup, patternPlotSetup } from "./diffractionPlotSetup";
@@ -32,6 +33,7 @@ import "./map.css";
 
 export function MapView({
   map,
+  plotViews,
   image,
   mask,
   pattern,
@@ -52,6 +54,7 @@ export function MapView({
   onDetectorInspect,
   onPatternInspect,
 }: {
+  plotViews: SharedPlotViews;
   linked: Response["linked"];
   localImageClick: { x: number; y: number } | null;
   localPatternClick?: PatternPosition;
@@ -175,6 +178,13 @@ export function MapView({
   const patternPlot = viewPattern
     ? patternPlotSetup({
         pattern: viewPattern,
+        viewport: patternViewport(
+          plotViews.pattern,
+          plotViewContext(state),
+          viewPattern.unit,
+          scale,
+          state?.geometry.wavelength,
+        ),
         patternColor: state?.integration.originalPatternColor,
         showPattern: state?.integration.originalPatternVisible ?? true,
         patternName: state?.integration.patternName,
@@ -278,6 +288,7 @@ export function MapView({
             raster={image}
             {...detectorPlotSetup({
               state,
+              viewports: plotViews,
               mask,
               linked,
               localImageClick,

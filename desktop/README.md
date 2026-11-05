@@ -10,7 +10,11 @@ Integration and Map use the same `RasterView` and `PatternView` renderers.
 and pattern colors, visibility, phase references, overlay legends, linked radial
 position and click sampling. Each mode supplies its own display data and tools;
 Map ROI editing, Integration background inspection, independent image levels
-and per-mode plot preferences remain with their existing owners.
+and per-mode plot preferences remain with their existing owners. Detector zoom
+and pan are shared across Calibration, Mask, Integration and Map during the
+session. Pattern ranges are shared across Calibration, Integration and Map,
+converting radial units and intensity scales as needed. Resizing keeps detector
+pixels square; F/right double-click still restore the fitted image view.
 
 ## Run this checkout
 

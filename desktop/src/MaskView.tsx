@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { detectorViewport, plotViewContext, type SharedPlotViews } from "./plotViewport";
 import { RasterView } from "./RasterView";
 import { ImageIntensity } from "./ImageIntensity";
 import type { Raster, State } from "./types";
@@ -19,6 +20,7 @@ export type MaskRun = (
 ) => Promise<void>;
 
 export function MaskView({
+  plotViews,
   active = true,
   image,
   mask,
@@ -31,6 +33,7 @@ export function MaskView({
   onHover,
   onSelectionStatus,
 }: {
+  plotViews?: SharedPlotViews;
   active?: boolean;
   image: Raster | null;
   mask: Raster | null;
@@ -159,6 +162,11 @@ export function MaskView({
         <div className="detector-workspace">
           <RasterView
             raster={image}
+            viewport={
+              plotViews
+                ? detectorViewport(plotViews.detector, plotViewContext(state))
+                : undefined
+            }
             imagePadding={0}
             mask={mask ?? undefined}
             maskOpacity={state?.transparentMask ? 0.4 : 1}

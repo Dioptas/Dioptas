@@ -547,3 +547,21 @@ both directions, mode switches, Q/d conversion with different Integration and
 Map units, ROI clicks/drags, distinct scan files, rapid point changes, retained
 Click readouts, unrelated-image invalidation, and detach/dock. `npm --prefix desktop test` covers
 canonical physical-position conversion and uncalibrated local markers.
+
+## Shared plot viewport (2026-11-05)
+
+The session owns detector and pattern viewport memory outside the mode views.
+The common navigation hook writes ranges immediately during gestures; mounting
+another mode reads the same range without resetting it. Detector ranges are
+shared with Calibration and Mask, retaining their center and horizontal pixel
+span while adapting the height to keep pixels square. Pattern ranges also
+carry into Calibration validation and convert 2θ/Q/d and linear/log/square-root
+coordinates when the destination mode uses a different display. Explicit Fit
+and Auto range still reset the shared view. Incompatible detector dimensions,
+transformations or configurations use the fitted view. Histograms and cake/scan
+map viewports remain independent.
+
+`node desktop/scripts/plot_viewport.mjs` (also `--webkit`) exercises zoom/pan
+round trips through all four modes, radial/intensity conversions, resizing,
+detach/dock, shared Fit reset and the F shortcut against real image processing.
+`npm --prefix desktop test` checks analytic viewport conversions.
