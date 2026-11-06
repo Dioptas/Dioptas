@@ -122,7 +122,7 @@ export function IntegrationImageControls({
         role="radiogroup"
         aria-label="Batch mode"
       >
-        <span>Batch mode:</span>
+        <span>Batch mode</span>
         {(["integrate", "add", "average", "save"] as const).map((mode) => (
           <label
             className="check-row"

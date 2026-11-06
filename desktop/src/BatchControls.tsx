@@ -123,6 +123,13 @@ export function BatchControls({
         </p>
       )}
       <button
+        title={
+          !normalizationValid
+            ? "Enter a valid normalization region"
+            : !normalizationChanged
+              ? "Normalization limits are unchanged"
+              : "Apply the normalization region"
+        }
         disabled={
           !ready || !batch || !normalizationValid || !normalizationChanged
         }
@@ -146,7 +153,7 @@ export function BatchControls({
   const ranges = (
     <div className="batch-range-row">
       <label>
-        Start:
+        Start
         <BatchRangeInput
           aria-label="Batch start frame"
           min={1}
@@ -160,7 +167,7 @@ export function BatchControls({
         />
       </label>
       <label>
-        Stop:
+        Stop
         <BatchRangeInput
           aria-label="Batch stop frame"
           min={start + 1}
@@ -174,7 +181,7 @@ export function BatchControls({
         />
       </label>
       <label>
-        Step:
+        Step
         <BatchRangeInput
           aria-label="Batch frame step"
           min={1}

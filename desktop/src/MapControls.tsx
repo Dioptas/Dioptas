@@ -233,11 +233,6 @@ export function MapControls({
                 <RefreshCw size={15} />
               </button>
             </div>
-            {!state?.calibrated && (
-              <p className="map-note">
-                Load a calibration to integrate images.
-              </p>
-            )}
           </section>
         )}
         {map && (

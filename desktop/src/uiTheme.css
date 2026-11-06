@@ -130,6 +130,11 @@ dialog h3 {
 button:disabled {
   opacity: 0.5;
 }
+/* Dim unavailable choice labels together with their checkbox/radio. Numeric
+   values keep the readable disabled treatment defined below. */
+label:has(> input:is([type="checkbox"], [type="radio"]):disabled) {
+  opacity: 0.5;
+}
 :is(button, summary, canvas, [tabindex]):focus-visible {
   outline: 2px solid var(--ui-focus);
   outline-offset: -2px;
