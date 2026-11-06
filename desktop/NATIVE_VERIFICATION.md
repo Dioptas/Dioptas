@@ -13,7 +13,7 @@ focus, file-dialog and native-renderer behavior.
 | Native file dialogs | Open-calibration, save-project and multi-file Batch panels appear and cancel without changing scientific state | `nativeFileDialogs` in the main report |
 | Map window | Binary snapshot, linked selection, independent movement, dock/reopen and full app restart pass | `artifacts/tauri-map-smoke.json` |
 | Native help | Four popups extend outside the app, flip at the screen edge, retain main-window focus and dismiss on Escape/blur; stale shows remain dismissed | `artifacts/calibration-tooltip-native-smoke.json` |
-| Field appearance | 465 resting-field samples per browser engine; native Batch/editor fields also pass. Table validation and focus remain visible | Browser `fieldAppearance` inventories and native `quietFields` / `tableFieldFocusAndError` |
+| Field appearance | 466 resting-field samples per current browser engine; native Batch/editor fields also passed the earlier campaign. Table validation and focus remain visible | Browser `fieldAppearance` inventories and native `quietFields` / `tableFieldFocusAndError` |
 
 Actual native window PNGs are under `artifacts/native-workflow/`,
 `artifacts/native-batch/` and `artifacts/native-map/`. Historical native failures
@@ -68,3 +68,21 @@ user clarification retains gray focus outlines but restores orange active
 selections in tables, tabs and controls. That cosmetic correction is verified in
 both browser engines, including Batch heatmap focus; it does not reopen native
 windows for routine styling checks. The app bundle is rebuilt with the correction.
+
+The subsequent Batch normalization, empty-state actions, compact calibration
+action and margin-start zoom changes pass the current headless Chromium/WebKit
+audits and real-model Batch tests. The default native app was rebuilt and opened
+with six intensity-scaled CeO2 frames and the reference PONI, leaving the user's
+existing window intact. Its populated docked Batch and Integration views were
+visually inspected in `artifacts/interactive-example/current-axis-ready.png`.
+This preview is not a rerun of the complete native campaign above.
+
+At `28a8abf5`, the native Batch smoke was rerun successfully: six detach/dock/
+reopen cycles, binary transfer, linked cake, restored native bounds and worker
+reaping. The broader workflow/Map/restart campaign above remains earlier evidence.
+During the final launch/capture attempt, macOS reported a locked session with
+`loginwindow` frontmost. Native screenshots from this last attempt are blank and
+do not qualify visual rendering. Current headless captures remain the visual
+evidence. A fresh normal app with six example frames is open for use after unlock;
+its worker readiness and native window title are verified. The older populated
+native preview screenshot predates the final minor refinements.

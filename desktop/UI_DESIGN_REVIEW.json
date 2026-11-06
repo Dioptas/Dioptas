@@ -1,5 +1,5 @@
 {
-  "date": "2026-11-05",
+  "date": "2026-11-06",
   "baseline": "b418d66b",
   "scope": "React/Tauri scientific GUI: Calibration, Mask, Integration, Map, Batch, settings and sampled dialogs/editors. Scores assess design, not scientific accuracy or production readiness.",
   "method": "25 independent categories, equal weight of 4% each. Both reviewers use these definitions and anchors. Decimal scores are allowed. No requirement to award a particular score. Codex and Claude ratings are independent, not averaged together. Earlier exploratory Claude reviews used the original ten groups.",
@@ -238,7 +238,7 @@
     "The gold phase file is an editor/control fixture, not an identification of the CeO2 or Fe3O4C specimens. The six-frame Batch series is derived from the CeO2 image by known intensity multipliers.",
     "The GUI preserves existing scientific conventions, including pyFAI/Fit2D unit differences, one-based Batch frame display with unchanged zero-based data indices, a one-line footer and compact plot tools."
   ],
-  "status": "Codex current scoped assessment: 9.472/10 (9.5 rounded); Claude independent review: 9.02/10 on 59fd3e38. The original independent 9/10 threshold is met. Claude has not awarded 9.5; scoped macOS native Batch, restart, scientific workflow, Map, native chooser cancellation and help qualification now pass.",
+  "status": "Codex scoped design assessment remains 9.472/10 (9.5 rounded). The latest actual independent Claude CLI follow-up returned 8.34/10 at b98e9c4e, confirming its ten previous findings were fixed. Two further minor consistency findings were subsequently fixed. All numeric peer results are retained without inflation; the requested common 9.5 threshold is not achieved.",
   "rubric": "UI_DESIGN_RUBRIC.json",
   "implementedImprovements": [
     {
@@ -288,9 +288,12 @@
     },
     {
       "problem": "Ambiguous Batch display and half-typed ranges",
-      "resolution": "One-based frame numbers across heatmap ticks, hover readout, selected-frame navigation, range inputs and normalization reference; zero-based data indices are preserved. Full-width docked heatmap, measured normalization popup and committed valid integer ranges.",
+      "resolution": "One-based displayed frame numbers with unchanged zero-based data indices. Full-width docked heatmap, committed valid integer ranges, physical normalization limits directly in Options and a compact toggle beside the axis. Limits follow the displayed 2θ/Q/d axis; the existing reference pattern is named by filename.",
       "shared": [
-        "useAnchoredDialog"
+        "ScientificNumberInput",
+        "BatchControls",
+        "BatchHeatmap",
+        "batchNormalizationRegion"
       ]
     },
     {
@@ -411,103 +414,146 @@
         "buttons.css",
         "dataTable.css"
       ]
+    },
+    {
+      "problem": "Batch zoom could not begin in axis margins like Cake",
+      "resolution": "Both use the same usePlotNavigation margin-selection option. Rectangle and X-range drags can begin outside the data rectangle; gutter-only drags and clicks do not zoom or select a frame.",
+      "shared": [
+        "usePlotNavigation"
+      ]
+    },
+    {
+      "problem": "Redundant scientific metadata and Batch controls consumed data space",
+      "resolution": "Removed Batch Files calibration/mask lines and duplicate AutoScale. The existing calibration action shows the geometry name, with source and exact wavelength in its tooltip. Batch phases use a diffraction-stick icon. The normalization toggle occupies the existing axis margin and settings are inline in Options.",
+      "shared": [
+        "IntegrationPlotControls",
+        "geometrySourceLabel",
+        "PlotToggle"
+      ]
+    },
+    {
+      "problem": "Empty Map and uncalibrated patterns did not offer the next action",
+      "resolution": "Map offers calibration first, then the same Load… and Folder… actions as Points. An image without calibration offers Load calibration… directly in the pattern area. Empty-state text uses the shared readable muted color.",
+      "shared": [
+        "MapLoadActions",
+        "LoadCalibrationButton"
+      ]
+    },
+    {
+      "problem": "Independent current-state review identified small accessibility, spacing and feedback inconsistencies",
+      "resolution": "Calibration action accessible names include the displayed geometry. Shared calibration actions use the same icon. Empty Map patterns describe map building. Normalization fields sit together with linked validation errors and Apply enabled for changed values only. Frame ranges have a legend, file actions use one-based names, and empty Map controls are visibly unavailable. Axis units use consistent parentheses. Screenshot transitions finish before capture.",
+      "shared": [
+        "LoadCalibrationButton",
+        "MapLoadActions",
+        "BatchControls",
+        "ui_audit.mjs"
+      ]
+    },
+    {
+      "problem": "Unavailable choice labels looked active and Batch punctuation varied",
+      "resolution": "A shared disabled checkbox/radio label rule replaces Map-specific styling while preserving readable numeric values. Batch labels omit redundant colons. Unchanged normalization Apply explains its state in a tooltip, and the duplicate empty Map task-panel calibration note is removed.",
+      "shared": [
+        "uiTheme.css",
+        "BatchControls",
+        "MapControls"
+      ]
     }
   ],
   "peer": {
     "name": "Claude",
-    "mean": 9.02,
+    "mean": 8.34,
     "criteria": [
       {
         "id": "scientific_context",
-        "score": 9.5
+        "score": 8.5
       },
       {
         "id": "precision_units",
-        "score": 9.0
+        "score": 8.5
       },
       {
         "id": "visualization",
-        "score": 9.0
+        "score": 8.0
       },
       {
         "id": "inspection",
-        "score": 9.0
+        "score": 8.5
       },
       {
         "id": "workflow",
-        "score": 9.5
+        "score": 8.5
       },
       {
         "id": "navigation",
-        "score": 9.0
+        "score": 8.5
       },
       {
         "id": "learnability",
-        "score": 9.0
+        "score": 8.0
       },
       {
         "id": "cognitive_load",
-        "score": 9.0
+        "score": 8.5
       },
       {
         "id": "typography",
-        "score": 9.0
+        "score": 8.0
       },
       {
         "id": "readability",
-        "score": 9.0
+        "score": 8.0
       },
       {
         "id": "spacing",
-        "score": 9.0
+        "score": 8.5
       },
       {
         "id": "hierarchy",
-        "score": 9.0
+        "score": 8.5
       },
       {
         "id": "consistency",
-        "score": 9.0
+        "score": 8.0
       },
       {
         "id": "reuse",
-        "score": 9.0
+        "score": 8.5
       },
       {
         "id": "dialogs",
-        "score": 9.5
+        "score": 8.5
       },
       {
         "id": "keyboard",
-        "score": 9.0
+        "score": 8.5
       },
       {
         "id": "accessibility",
-        "score": 8.5
+        "score": 8.0
       },
       {
         "id": "feedback",
-        "score": 9.0
+        "score": 8.5
       },
       {
         "id": "validation",
-        "score": 9.5
+        "score": 8.5
       },
       {
         "id": "recovery",
-        "score": 9.5
+        "score": 8.5
       },
       {
         "id": "reversibility",
-        "score": 9.0
+        "score": 8.0
       },
       {
         "id": "responsive",
-        "score": 9.0
+        "score": 8.5
       },
       {
         "id": "responsiveness",
-        "score": 8.5
+        "score": 8.0
       },
       {
         "id": "settings_files",
@@ -518,11 +564,8 @@
         "score": 8.5
       }
     ],
-    "sourceCommit": "59fd3e38",
-    "reviewFile": "UI_PEER_REVIEW.txt",
-    "status": "Independent mean 9.02/10 on 59fd3e38, retained unchanged in a focused addendum on f3fa86ae. The remaining minor legend clutter then drove a compact dark background behind names and peak-weighted placement; no newer numeric peer score is inferred. The later user-requested removal of the redundant map summary is not a new peer rating. The subsequent user-requested Batch summary removal is not a new peer rating. The subsequent one-based Batch frame display change is not a new peer rating.",
-    "addendumSourceCommit": "f3fa86ae",
-    "addendumFile": "artifacts/ui-audit/reviews/claude-addendum-f3fa86ae.txt"
+    "artifact": "artifacts/ui-audit/reviews/claude-current-followup-b98e9c4e.txt",
+    "status": "Independent follow-up: 8.34/10. Confirms all ten previous findings fixed. Two further minor findings subsequently fixed; this is the last actual numeric peer score, not a 9.5 consensus."
   },
   "codexMean": 9.472,
   "target": 9.5,
@@ -536,24 +579,24 @@
   ],
   "scoreDisplay": "Overall scores are displayed to one decimal; the unrounded arithmetic mean is retained in codexMean. These are qualitative design judgments, not measured accuracy or certification.",
   "validation": {
-    "frontendUnitTests": 65,
+    "frontendUnitTests": 66,
     "modelTests": 294,
     "optionalModelTestsSkipped": 5,
     "browserEngines": [
       "Chromium",
       "WebKit"
     ],
-    "capturedStatesPerEngine": 58,
-    "behaviorChecksPerEngine": 39,
+    "capturedStatesPerEngine": 61,
+    "behaviorChecksPerEngine": 40,
     "uiBuildVerifiedAgainstScreenshots": true,
     "nativeOsDialogsRevalidated": true,
     "screenReaderSessionValidated": false,
-    "chromiumViews": 58,
-    "webkitViews": 58,
+    "chromiumViews": 61,
+    "webkitViews": 61,
     "toolbarChecks": "Active Batch and pattern controls are checked against ancestor clipping and pointer hit targets. Visible toolbars must keep all button centers in one compact row (at most 46 px high), including narrow panes at both text sizes.",
     "poniDisplayConversion": "A changed PONI field is applied through the UI; mm-to-m conversion and Undo are checked against the real model at 1e-15 m tolerance.",
     "batchAxisTitles": "No visible heatmap y-axis title; one-based frame ticks and accessible description. Real-model browser checks verify that displayed frames 1 and 6 select stored indices 0 and 5.",
-    "browserUiSha256": "6c53912d27fe52ca11e44a486f567f6bc5e5c22d10bb799e4cf914f428c3658b",
+    "browserUiSha256": "fab2efc1623c32b1648fe5397fbce412b4ea44d1a76d4e3574f5a9b89739ace4",
     "nativeBuildPassed": true,
     "nativeBatchSmokePassed": true,
     "nativeQualification": "Scoped native macOS checks pass: six Batch reopen/dock cycles with changing native bounds; four Batch app-restart stages; measured-image calibration, masking, integration, phase/database/editor and export/project workflows; Map placement across an app restart; real file-chooser cancellation; four non-focusing help popups. Original failures remain archived in artifacts/ui-audit/native/summary.json.",
@@ -568,13 +611,18 @@
     "legendFocusJitter": "Both engines verify that a focus click with 1px hand jitter leaves automatic positioning active; keyboard movement pins the legend, and Home restores it.",
     "nativeOsDialogScope": "Real open-calibration, save-project and multi-file Batch chooser cancellation preserves scientific state. Human chooser selection and native colour-panel interaction remain unqualified.",
     "quietFieldChecks": {
-      "samplesPerBrowserEngine": 465,
+      "samplesPerBrowserEngine": 466,
       "nativeEditorRestingFields": 38,
       "nativeTableFocusAndError": true,
       "sharedChecker": "scripts/field_appearance_check.js"
     },
     "nativeEvidence": "NATIVE_VERIFICATION.md",
-    "neutralControlStates": "Both browser engines verify gray input and Batch heatmap focus outlines, while selected tabs retain orange. Active selection colours are preserved across tables, controls and dialogs."
+    "neutralControlStates": "Both browser engines verify gray input and Batch heatmap focus outlines, while selected tabs retain orange. Active selection colours are preserved across tables, controls and dialogs.",
+    "batchWorkflowCurrentTests": 29,
+    "batchInteraction": "Current Chromium and WebKit real-model Batch smoke passes: rectangle/X-range zoom from canvas margins, inert gutter-only gestures, unchanged frame selection on zoom, physical normalization from Options, unit switches and matching Q/d limits, restoration, detached/docked layouts and compact controls.",
+    "normalization": "All nine stored/display axis combinations are checked with independently calculated limits, a changed live wavelength, retained reference filename, original-count normalization, invalid-operation atomicity and exact restoration. Physical region and reference settings round-trip through .dio and processed HDF5.",
+    "currentNativePreview": "Default native app rebuilt and a fresh six-frame CeO2/reference-PONI session launched with Batch docked via macOS LaunchServices; worker readiness and native window title verified. The macOS session is locked (loginwindow frontmost), so the final native screenshot and activation cannot be verified. Earlier populated native preview: artifacts/interactive-example/current-axis-ready.png; current before/after images are headless.",
+    "currentNativeBatch": "At source 28a8abf5, the actual native Batch smoke passes six detach/dock/reopen cycles, binary transfer, linked cake, placement restoration and worker reaping; report artifacts/tauri-batch-smoke.json. Captures from this run are black while the macOS session is locked; DOM/process/window checks pass. Normalization region controls retain their current browser/model qualification, not a claim of native interaction testing."
   },
   "manualAccessibilityReview": {
     "popupControllers": "Open icon-picker controllers were verified to reference an existing role=dialog target; the axe incomplete result is retained rather than relabeled as an automatic pass.",
@@ -1065,6 +1113,18 @@
       "sourceCommit": "436df4a7",
       "reviewFile": "UI_PEER_REVIEW.txt",
       "status": "Independent score 8.86/10. Follow-up improvements preserve drafts through Undo and choose less occupied in-plot legend positions; reassessment is pending."
+    },
+    {
+      "date": "2026-11-06",
+      "mean": 8.2,
+      "artifact": "artifacts/ui-audit/reviews/claude-current-axis-normalization.txt",
+      "status": "Fresh independent review of the working tree at UI hash 6682f685. Actual Claude CLI, read-only tools. Its ten small findings prompted further accessibility, spacing, feedback and consistency fixes; no newer score inferred."
+    },
+    {
+      "date": "2026-11-06",
+      "mean": 8.34,
+      "artifact": "artifacts/ui-audit/reviews/claude-current-followup-b98e9c4e.txt",
+      "status": "Actual read-only Claude CLI follow-up at b98e9c4e confirmed all ten prior findings fixed; two further minor disabled-label/label-punctuation findings were subsequently fixed. No higher score is inferred."
     }
   ],
   "codexHistory": [

@@ -1,209 +1,78 @@
-# Final review of the Dioptas desktop GUI at commit 59fd3e38
+I score the current UI at **8.34 / 10**: 208.5 points across the 25 categories, each weighted 4%. That is up from 8.20 in my prior review. All ten earlier findings are fixed in the current source and screenshots. I found one new low-severity defect and one minor one. Nothing I found blocks routine work, and none of your listed design choices raised or lowered a score.
 
-**Bottom line:** mean **9.02** (the previous round was 8.86). Most claimed fixes hold in source. I found three new minor legend issues, and one real native check is still failing. I didn't change any files or run anything, and I didn't open `UI_DESIGN_REVIEW.json` or anyone else's scores. Without a shell I couldn't read the commit hash; I reviewed the files as they are in the worktree.
+## What I checked
+- **Rubric:** `desktop/UI_DESIGN_RUBRIC.json`, all 25 categories with their scoring anchors. I did not open `UI_DESIGN_REVIEW.json`, `UI_PEER_REVIEW.txt` or any Codex score.
+- **Source:** `BatchControls.tsx`, `LoadCalibrationButton.tsx`, `MapLoadActions.tsx`, `IntegrationPlotControls.tsx:195-399`, `MapControls.tsx:195-244`, `MapView.tsx:400-603`, `BatchHeatmap.tsx` (axis description and Normalize toggle), the disabled-state rules in `uiTheme.css`, `style.css` and `map.css`, and the batch command filter in `dioptas/desktop/session.py:285`.
+- **Browser evidence:**
+  - All 8 PNGs you named.
+  - `after/report.json`: `completed: true`, no failure.
+  - Neither browser report nor the two `batch-smoke*.json` files contains a failure. Both smoke files report `ok: true`.
+  - I only looked at targeted parts of the large JSON files.
+- **Native evidence:** I did not inspect it again, so it remains limited to the earlier campaign as you describe. I ran no tests or builds, so the 29 passing Python tests are your report.
 
-## Evidence I read
+## Prior findings, checked against the current tree
+All ten are fixed:
+1. The calibration action's accessible name now includes the visible geometry name (`IntegrationPlotControls.tsx:259-263`).
+2. The empty Map pattern now says "Build a map…" when no map exists (`MapView.tsx:497-499`).
+3. Both calibration actions use the FolderOpen icon (`LoadCalibrationButton.tsx:19`).
+4. "Folder…" has an icon, and its accessible name starts with the visible word (`MapLoadActions.tsx:29-34`).
+5. The Min/Max values now sit close to their labels (`batch-normalization.png`).
+6. Start/Stop/Step have a "Frame range" legend (`BatchControls.tsx:262-265`).
+7. Apply is only enabled when the limits are valid and changed (`:126-128`).
+8. The error message is linked to both fields through a unique `useId` (`:37`, `:97-119`).
+9. Map gutter controls are disabled when there is no pattern (`MapView.tsx:539-592`).
+10. The unit now reads "Search width Δ2θ (°)" (`calibration-fit.png`).
 
-**Headless reports**
-- `after/report.json` and `webkit/report.json` have the same `uiSha256` (eb1e1417…).
-- Both show `completed: true`, `failure: null`, `errors: []`.
-- 37 checks (lines 24–60), including "Undo preserves exact unrelated geometry and fit-seed drafts…" at line 46.
-- No non-empty `accessibility` array and no `clipped: true` / `hit: false` entries.
-
-**Native**
-- `native/summary.json`: `buildPassed: true`, `smokePassed: false`, "Native qualification incomplete".
-- `current-placement.log:1`: `"Batch window size was not remembered"`. The first window was 820×560; the restored one was 900×600 at a different position. This is a failing preference-persistence check, not just a missing result.
-
-**Performance**
-- `pattern-chromium-final-ui-webgl.json` is complete, valid JSON.
-- It doesn't record which source commit it ran against, and its renderer is still SwiftShader (software), not a native GPU.
-- One 2,000-point curve. `pan-wide` shows `missedFramePercent: 50` (about 50 ms between frames). `pan-zoomed` shows 0% and `wheel` 5%.
-- The older `performance/retina-webgl.json` has the same profile.
-- I treat this as headless software-render evidence only. It doesn't count as a native GPU pass.
-
-## P1–P6: what happened to my earlier findings
-
-| ID | Status | What I checked |
-|---|---|---|
-| **P1** Undo/model updates replaced drafts | **Fixed** | Fields you haven't touched now take the new model value; fields you edited keep your exact text, including unfinished text (`geometryDraft.ts:64-88`, `useCalibrationFitDraft.ts:50-92`). A successful Apply resets only the geometry draft and a successful Calibrate only the fit draft (`App.tsx:739-743`). A real Undo regression check exists (report line 46). |
-| **P2** Bound errors lacked units | **Fixed** | Errors now show units, mark rounded bounds with "≈", and print 7 significant digits. Commits still use the exact bounds (`numericDraft.ts:14-22`; units in `useCalibrationFitDraft.ts:5-17`). |
-| **P3** Save tooltip fallback was inaccurate | **Fixed** | The tooltip now covers processing, no geometry, geometry draft, setup and ring changes (`App.tsx:2731-2743`). |
-| **P4** Confirmation didn't name the drafts | **Fixed** | One hook owns the policy and lists the affected categories (`useDraftReplacement.tsx:21-44`). Integration options aren't listed for Load calibration, which is correct. The screenshot shows "the unapplied manual geometry". |
-| **P5** Short Batch title drops "0-based" | **Unchanged; optional** | batch-compact-large still shows "Index". The toolbar's "Index 0 · 1 of 6" and the ARIA description carry the meaning. |
-| **P6** Text tokens defined twice | **Fixed** | `--text-meta/small/body` are now defined only in `uiTheme.css:4-6, 35-37`. |
-
-**Other claims I checked**
-- **Click explanation:** "Click" now has a tooltip (`App.tsx:2850-2853`).
-- **Legend placement:** it samples the displayed curves and avoids the phase legend, the A cursor and ROI region labels (`PatternView.tsx:400-489`, `legendPlacement.ts`). Unit coverage is in `scripts/pattern_samples.test.mjs`, which I didn't run.
-- **Manual legend placement:** a dragged or keyboard-moved legend keeps its position and stays inside the plot (`PlotLegend.tsx:36-102`). Long names wrap on hover or focus (`plotLegend.css:18-21`).
-
-## New findings
-
-All of these come from reading code and static screenshots; I didn't reproduce them at runtime.
-
-- **Q1. Legend text can be crossed by curves of the same color (minor; visualization and readability).**
-  - **Seen in:** map-compact-large.png and batch-compact-large.png. Placement moved the legend to the bottom-right, so the primary peaks and the A cursor are now clear. But the green "CeO2_Pilatus1M" entry sits on the green overlay's narrow peaks, and the peaks visibly cut through the letters in batch-compact-large.
-  - **Cause:** `.plot-legend` has no halo or backdrop (`plotLegend.css:1-16`). Placement samples only about 128 points per curve (`PatternView.tsx:419`), so narrow diffraction peaks can fall between samples.
-  - **Fix that keeps your choices:** a 1-px dark text-shadow halo, and counting each sampled segment's maximum rather than isolated samples. The legend would stay compact, inside the plot and movable, with no header.
-- **Q2. Placement doesn't update when the cursor or ROI moves (minor, possibly intentional).**
-  - **Where:** the placement calculation's dependency list (`PatternView.tsx:471-489`) leaves out `linkedPosition` and `regions`, although both are used as obstacles (`:450-463`).
-  - **Trigger:** move the A cursor or a map ROI into the legend's current corner. The legend isn't re-placed until the data or layout next changes.
-  - If this is meant for stability, a comment would make that explicit.
-- **Q3. Clicking the legend can pin it without telling you (minor).**
-  - **Where:** any pointer move while the pointer is captured calls `move()`, which sets manual mode (`PlotLegend.tsx:67-70, 160-165`).
-  - **Trigger:** click the legend to focus it so the long names wrap, with a small hand jitter. The legend is now pinned and stops adjusting automatically until Home or Escape, and nothing shows it's pinned.
-  - **Fix:** require a few pixels of drag before switching to manual mode.
-- **Q4. Native Batch window size isn't remembered (unresolved native evidence).** See `current-placement.log:1` above. I can't tell from the log whether this is a product defect or a test-readiness problem, so I haven't counted it as confirmed. I did let it affect `settings_files`.
-- **Q5. Bound messages use an ASCII hyphen (trivial).** They read "≈ -6.283185 rad", while the rest of the UI uses a Unicode minus (`numericDraft.ts:15`).
-
-## How I separate 9.0 from 9.5
-
-- **9.0:** in the reviewed workflows the category's key expectations are met and I saw no material defect. At least one minor limitation is still visible, or the category's main behavior hasn't been exercised end to end.
-- **9.5:** everything in 9.0, plus I couldn't find any limitation beyond optional enhancements, and executed behavior checks in both headless engines cover the category's main expectations.
-- **10:** needs broad empirical validation, meaning native-platform runs and real users or assistive technology. No category qualifies.
-
-**What would justify the next step:**
-- **To 9.0** (the categories below 9):
-  - Responsiveness: a completed native-GPU benchmark tied to a source commit.
-  - Settings and files: a passing native Batch smoke, including window-size restore.
-  - Maintainability: splitting `App.tsx`'s `run()`, keyboard and save-gating logic into owners like `useDraftReplacement`.
-  - Accessibility: a VoiceOver or NVDA pass over the main workflows.
-- **From 9.0 to 9.5:** fix that category's listed minor limitations (e.g. Q1–Q3 for visualization, or a visible next-undo label for reversibility) and add an executed check for it.
-- **To 10:** native multi-platform qualification plus user or assistive-technology validation.
-
-## Scores
-
-Key to the deficit classes:
-- **M**: material friction I observed
-- **m**: minor limitation or optional enhancement
-- **D**: an intentional scientific-UI or user decision
-- **E**: missing empirical evidence
-
-| ID | Score | Evidence | Remaining gaps |
+## Remaining defects (confirmed)
+| # | Severity | Evidence | Fix |
 |---|---|---|---|
-| scientific_context | 9.5 | Starting values separate from applied geometry; Save tooltip describes applied vs pending state; confirmation names the draft categories; Loaded/Fitted provenance | E only |
-| precision_units | 9.0 | Exact drafts; approximate bounds marked "≈" with units; PONI mm→m conversion tested on the real model | m: Q5; compact preview hides mantissa digits until focus |
-| visualization | 9.0 | Data-aware default legend corner; peaks and A cursor clear; badge-aware ring labels | m: Q1, Q2, P5. D: compact in-plot legend |
-| inspection | 9.0 | Linked readouts, keyboard sample inspection, square pixels on the fixtures | E: no native GPU run |
-| workflow | 9.5 | Drafts survive Undo and model updates; Apply/Calibrate consume only their own draft; guarded source loads | m: none material |
-| navigation | 9.0 | Rail left, tasks right; Batch actions reachable | D: Settings takes over the workspace |
-| learnability | 9.0 | Toolbar symbols have names and tooltips; Help legend; "Click" now explained | m: explanations need a hover. D: terse Dioptas-style symbols |
-| cognitive_load | 9.0 | Progressive refinement options; short notes | m: Fit column scrolls at Larger text |
-| typography | 9.0 | One token owner for both text sizes | D: monospace canvas axis titles. m: Q5 |
-| readability | 9.0 | High-contrast muted text; dashed disabled fields; signs kept | m: Q1. E: axe couldn't resolve contrast over gradients |
-| spacing | 9.0 | Aligned error rows; stable action placement | m: empty space in the Pattern tab; uneven wrapped Batch row |
-| hierarchy | 9.0 | Data dominates; Apply becomes primary while a draft is pending | m: none material |
-| consistency | 9.0 | One unit, one validation rule, one confirmation pattern | m: Q5 |
-| reuse | 9.0 | Shared `Dialog`, numeric drafts, `PathInput`, `useDraftReplacement`, `PlotLegend` | m: none material |
-| dialogs | 9.5 | Native modal; Cancel focused first; Escape cancels; focus returns; drafts survive dismissal | E: no native window-manager check |
-| keyboard | 9.0 | Shortcut list matches the handlers; Enter/Escape stay inside fields; legend keys | m: bare Enter → integrate is broad but documented and non-destructive |
-| accessibility | **8.5** | `aria-invalid` with linked errors; live regions; legend wraps names on focus | E: no screen reader or native contrast check. m: plot data reachable only through readouts and descriptions; nothing tested beyond the two text sizes. Unchanged since my last rating, so held. |
-| feedback | 9.0 | Specific blocker reasons on Save/Calibrate; undo notice | m: blocker reasons live in tooltips on disabled buttons, which I couldn't verify in WebKit |
-| validation | 9.5 | Bounded seeds, energy, geometry and frame; errors with units; commands blocked; real HDF5 check | m: Q5 only |
-| recovery | 9.5 | Choosing Cancel in the replacement dialog keeps the data; error-details dialog; Escape reverts a field | E only |
-| reversibility | 9.0 | Undo keeps unrelated drafts; history names the action; notice after undo | m: next undo action shown only in a tooltip |
-| responsive | 9.0 | Toolbar reachability measured; legend names fit at 1000×760 Larger; axis titles measured | m: pattern header wraps. E: native restore (Q4) |
-| responsiveness | **8.5** | Hover coalescing; queued actions; benchmark CPU submission < 6 ms | E: SwiftShader only, no source identifier, `pan-wide` misses 50% of frames. I couldn't observe perceived speed, so I'm not giving 9 |
-| settings_files | **8.5** | Drafts and preferences preserved; path end visible; scoped replacement prompt | Q4: a failing native window-size persistence check, which falls under this criterion's "preferences"; held below 9 until it's resolved or explained |
-| maintainability | **8.5** | Draft and replacement policy extracted; single token owner; checks enforce behavior | M (structural): `App.tsx` is about 2,880 lines, with run pipeline, keyboard and save gating in one component |
+| A | Low (readability, maintainability) | Labels of disabled checkboxes stay at full brightness. Only the checkbox square is dimmed (`style.css:136-139`). Map's display controls have their own dimming rule (`map.css:675-677`), but nothing else does. You can see it in `map-calibration-required.png` and `map-build-empty.png`: "Follow" (`MapControls.tsx:201-213`, `disabled={!live…}`) looks checked and active next to a dimmed "Live". | Add one shared rule in `uiTheme.css` near line 130: `label:has(> input:disabled) { opacity: .5; }`. Then remove the copy in `map.css:675`. |
+| B | Minor (typography) | The Frame range labels end in colons ("Start:", "Stop:", "Step:", `BatchControls.tsx:149,163,177`). In the same panel, "Minimum 2θ (°)" has none, and the Calibration labels have none. | Remove the colons in Batch Options. Integration's "Batch mode:" could be aligned the same way. |
 
-## Mean
-
-Sum: 9.5 + 9.0 + 9.0 + 9.0 + 9.5 + 9.0 + 9.0 + 9.0 + 9.0 + 9.0 + 9.0 + 9.0 + 9.0 + 9.0 + 9.5 + 9.0 + 8.5 + 9.0 + 9.5 + 9.5 + 9.0 + 9.0 + 8.5 + 8.5 + 8.5 = **225.5**
-
-Mean = 225.5 / 25 = **9.02**. These are judgments, not release certification.
-
-## What I inspected and didn't execute
-
-**Screenshots** (full resolution, from `after/`):
-- map-compact-large.png
-- batch-compact-large.png
-- draft-replacement-confirmation.png
-- integration-pattern.png
-
-I didn't re-open the other screenshots this round.
-
-**Source files read:**
-- `geometryDraft.ts`
-- `useCalibrationFitDraft.ts`
-- `useDraftReplacement.tsx`
-- `ConfirmDraftReplacement.tsx`
-- `numericDraft.ts`
-- `PlotLegend.tsx` and `plotLegend.css`
-- `legendPlacement.ts`
-- `PatternView.tsx:395-489`
-- `App.tsx` (lines 295–318, 530–555, 722–751, 2721–2743, 2847–2854)
-- grep checks for the text tokens
-
-**Artifacts read:**
-- the two report headers and their check lists
-- `native/summary.json` and `current-placement.log`
-- both WebGL benchmark JSON files
-
-**Not executed:** the app, the 63 frontend unit tests, the audits, the Python tests, the native smoke and the benchmarks. Native window-manager behavior, screen readers and native GPU performance remain unvalidated.
-
-
----
-
-# Addendum to my 59fd3e38 review: legend refinements and new performance evidence
-
-**Bottom line:** Q2, Q3 and Q5 are fixed. Q1 is only partly fixed: the halo works, but same-color curves still show between the letters, and in one standard-size screenshot the default legend sits over the main curve. I found no regressions. My scores are unchanged and the mean stays **9.02**.
-
-As before, this was read-only. I didn't open `UI_DESIGN_REVIEW.json` or anyone else's scores, and I didn't execute anything.
-
-## Q findings
-
-| ID | Status | What I checked |
-|---|---|---|
-| **Q1** Legend text crossed by same-color curves | **Partly fixed** | **Fixed:** `plotLegend.css:11-15` adds a 1-px halo in the workspace color, with no panel or header. `legendSampleIndices` keeps each bucket's min and max (`legendPlacement.ts:58-80`), so a single-sample peak isn't skipped; `pattern_samples.test.mjs:101-108` tests this. **Still visible:** in map-compact.png, map-compact-large.png and batch-compact-large.png, the green "CeO2_Pilatus1M" entry still has green peak lines running between its letters. The halo keeps the glyph edges clean but doesn't stop that clutter. **Residual:** in batch-compact.png (standard text), the default top-right legend covers the white curve's broad maximum around 18–24°. Every sampled point scores the same (`legendPlacement.ts:31-38`), so a corner the main curve passes through with few samples can still beat a corner full of baseline samples. I count this as a minor heuristic limitation, not a regression: the legend can still be moved, and the narrow peaks and A cursor stay clear. |
-| **Q2** Placement ignores cursor and ROI moves | **Fixed, documented as intentional** | A new comment (`PatternView.tsx:400-401`) says the legend corner stays fixed while you pan or move a cursor or ROI. I accept that as a deliberate stability choice. |
-| **Q3** Clicking could pin the legend | **Fixed** | You now have to drag at least 4 px before the legend pins (`PlotLegend.tsx:170-181`); a plain click only focuses it. Arrow keys pin it and Home/Escape return it to automatic (`:137-156`, `:78-83`). Whether it's pinned is now shown in its ARIA description, `title` and `data-manual-position` attribute (`:124-126`). |
-| **Q5** ASCII hyphen in bound messages | **Fixed** | Bound labels now use the Unicode minus (`numericDraft.ts:14-18`). |
-
-**Regressions:** none I can substantiate. The halo color matches the plot background in the screenshots. Sampling now takes at most about 256 points per curve, and all transforms are monotonic, so keeping each bucket's extremes still ranks samples correctly.
-
-## Reports and performance evidence
-
-**Reports.** `after/report.json` and `webkit/report.json` both show `completed: true`, `failure: null` and `errors: []`. I verified these fields in the previous round, and nothing in this round suggested they had changed.
-
-**New WebKit benchmark** (`performance/retina-webgl-webkit-current.json`):
-- Renderer "Apple GPU", WebGL 2.0, DPR 2, one 2,000-point curve.
-- The browser's refresh cadence was 20 ms. Every case (pan-wide, pan-zoomed, wheel) shows `missedFramePercent: 0`.
-- Input-to-submission p95 is 5 ms or less, and frame interval p95 is 22 ms or less.
-- Timings are reported in whole milliseconds.
-
-**Provenance** (`performance/provenance.json`):
-- Links the timings to 59fd3e38 "from the recorded session state". The raw benchmark files contain no commit hash, so this link rests on that file's word.
-- Correctly says the later legend changes weren't timed.
-
-**Native Batch smoke:** still unqualified, as you said. I didn't re-read its logs this round.
+## Optional suggestions (not defects)
+- **Map vs. Integration gutter:** with no pattern, Map now disables Log, √, AA and A. Integration keeps the same local display toggles enabled (`IntegrationPlotControls.tsx:342-396`), which lets you set them ahead of time. You could keep those four enabled in Map and disable only the controls that need data (unit conversion, ROI, edit windows).
+- **Repeated message:** with no calibration, Map says it three times: in the empty state, in the task-panel note (`MapControls.tsx:236-240`) and in the status bar. The task-panel note could go.
+- **Legend placement:** in `batch-normalization-compact-large.png` the movable legend sits on top of the green trace. It could start in the corner with the least data. Moving legends is your choice, so this is a starting-position suggestion only.
+- **Disabled Apply:** a tooltip on the greyed-out Apply button, such as "Limits unchanged", would say why it is disabled.
+- **Batch heatmap axis:** the vertical axis has no visible "Frame" label. It is covered by the accessible description, the hover readout and "Frame 1 of 6", which fits your no-extra-labels choice.
 
 ## Scores
+| Category | Score | Category | Score |
+|---|---|---|---|
+| Scientific context | 8.5 | Consistency | 8.0 |
+| Precision/units | 8.5 | Reuse | 8.5 |
+| Visualization | 8.0 | Dialogs | 8.5 |
+| Inspection | 8.5 | Keyboard | 8.5 |
+| Workflow | 8.5 | Accessibility | 8.0 |
+| Navigation | 8.5 | Feedback | 8.5 |
+| Learnability | 8.0 | Validation | 8.5 |
+| Cognitive load | 8.5 | Recovery | 8.5 |
+| Typography | 8.0 | Reversibility | 8.0 |
+| Readability | 8.0 | Responsive layout | 8.5 |
+| Spacing | 8.5 | Responsiveness | 8.0 |
+| Hierarchy | 8.5 | Settings/files | 8.5 |
+| | | Maintainability | 8.5 |
 
-**Responsiveness stays at 8.5.** The benchmark is meaningful new evidence: a real GPU, no missed frames, small input latency. Two things keep it below 9:
-- **Scope:** it covers panning and zooming one 2,000-point curve. The criterion also covers "navigation and feedback … during scientific processing", plus raster and heatmap redraws, multi-curve overlays and processing-time feedback. None of those are measured.
-- **Environment:** it ran in headless WebKit, not the Tauri app on a real display.
+**Arithmetic mean:** (17 × 8.5 + 8 × 8.0) / 25 = 208.5 / 25 = **8.34**
 
-A benchmark that adds raster, Batch heatmap and multi-overlay cases, or measures UI response while integration is running, would justify 9.0.
+**Changes since last time:**
+- **Up:** Learnability, Cognitive load, Spacing, Consistency, Accessibility and Feedback, because the earlier findings are fixed.
+- **Still 8.0:**
+  - **Readability and Consistency:** defect A, and the gutter difference between modes.
+  - **Typography:** defect B.
+  - **Visualization:** the legend can overlap data at compact sizes.
+  - **Learnability:** Normalize and Options are still icon controls explained by tooltips.
+  - **Accessibility:** no screen-reader testing yet.
+  - **Responsiveness:** native display timing is unmeasured.
+- **Reversibility:** batch commands are excluded from Undo (`session.py:285`), and turning Normalize off restores the original data exactly. I did not check whether the Undo tooltip names the next operation, so a user may not realise Undo will skip a normalization change.
+- **Dialogs and Keyboard:** carried over from the prior review. I did not inspect them again this pass.
 
-**Visualization and readability stay at 9.0.** The Q1 residual is minor, and the user's movable in-plot legend design limits its impact.
+## Gaps in evidence (not defects)
+These have not been tested:
+- a human screen-reader study
+- native display timing and the native colour picker
+- Windows/Linux packaging
+- monitors with mixed DPI
+- whether every later UI change works natively (native evidence comes from the earlier campaign)
 
-**No other changes.** All 25 prior scores are retained, so the sum is 225.5 and the mean **225.5 / 25 = 9.02**.
-
-## What I inspected and didn't execute
-
-**Source files:**
-- `PlotLegend.tsx`
-- `plotLegend.css`
-- `legendPlacement.ts:55-80`
-- `PatternView.tsx:398-489`
-- `numericDraft.ts`
-- `scripts/pattern_samples.test.mjs:90-108`
-
-**Screenshots** (full resolution, from `after/`):
-- map-compact.png and map-compact-large.png
-- batch-compact.png and batch-compact-large.png
-
-**Artifacts:** `performance/retina-webgl-webkit-current.json` and `performance/provenance.json`.
-
-**Not executed:** the app, the UI harness (including the jitter, keyboard-pin and Home-reset cases), the 64 frontend unit tests, the benchmarks and the native smoke. The new behaviors are verified from source and static screenshots only.
+The orange-selection/gray-focus result and the latest refinements are confirmed only in the browser reports.
