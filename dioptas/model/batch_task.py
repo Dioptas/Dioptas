@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from contextlib import nullcontext
 
 import numpy as np
 from xypattern import Pattern
@@ -12,7 +13,7 @@ from xypattern.auto_background import SmoothBrucknerBackground
 
 from .worker_configuration import (
     WorkerConfigurationState,
-    build_worker_configuration,
+    isolated_worker_configuration,
 )
 
 
@@ -50,31 +51,38 @@ class BatchBackgroundTask:
 def compute_batch_integration(
     task: BatchIntegrationTask,
     callback=None,
+    *,
+    engine=None,
 ) -> BatchIntegrationResult:
-    configuration = build_worker_configuration(task.configuration)
-    batch_model = configuration.batch_model
-    batch_model.files = np.asarray(task.files)
-    batch_model.pos_map = np.array(task.pos_map, copy=True)
-    batch_model.pos_map_all = np.array(task.pos_map_all, copy=True)
-    batch_model.raw_available = True
-    batch_model.n_img_all = len(task.pos_map_all)
-    batch_model.integrate_raw_data(
-        task.start,
-        task.stop,
-        task.step,
-        task.use_all,
-        callback_fn=callback,
-    )
-    return BatchIntegrationResult(
-        data=np.asarray(batch_model.data),
-        binning=np.asarray(batch_model.binning),
-        pos_map=np.asarray(batch_model.pos_map),
-        used_mask=batch_model.used_mask,
-        used_mask_shape=batch_model.used_mask_shape,
-        used_calibration=batch_model.used_calibration,
-        azimuthal_std=batch_model.azimuthal_std,
-        integration_unit=batch_model.integration_unit,
-    )
+    with isolated_worker_configuration(task.configuration) as configuration:
+        batch_model = configuration.batch_model
+        batch_model.files = np.asarray(task.files)
+        batch_model.pos_map = np.array(task.pos_map, copy=True)
+        batch_model.pos_map_all = np.array(task.pos_map_all, copy=True)
+        batch_model.raw_available = True
+        batch_model.n_img_all = len(task.pos_map_all)
+        if engine is not None:
+            positions = task.pos_map_all if task.use_all else task.pos_map
+            configuration.img_model.load(task.files[int(positions[task.start][0])])
+        with (engine.reuse_for_configuration(configuration)
+              if engine is not None else nullcontext()):
+            batch_model.integrate_raw_data(
+                task.start,
+                task.stop,
+                task.step,
+                task.use_all,
+                callback_fn=callback,
+            )
+        return BatchIntegrationResult(
+            data=np.asarray(batch_model.data),
+            binning=np.asarray(batch_model.binning),
+            pos_map=np.asarray(batch_model.pos_map),
+            used_mask=batch_model.used_mask,
+            used_mask_shape=batch_model.used_mask_shape,
+            used_calibration=batch_model.used_calibration,
+            azimuthal_std=batch_model.azimuthal_std,
+            integration_unit=batch_model.integration_unit,
+        )
 
 
 def apply_batch_integration(batch_model, result: BatchIntegrationResult) -> None:

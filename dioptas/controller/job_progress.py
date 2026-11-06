@@ -6,8 +6,11 @@ from __future__ import annotations
 
 import threading
 import time
+import logging
 
 from qtpy import QtCore
+
+logger = logging.getLogger(__name__)
 
 
 class JobProgress(QtCore.QObject):
@@ -19,6 +22,15 @@ class JobProgress(QtCore.QObject):
         self.total = total
         self._cancelled = threading.Event()
         self._started_at = time.monotonic()
+        self._first_update_pending = True
+        self.value_changed.connect(self._record_first_gui_update)
+
+    @QtCore.Slot(int)
+    def _record_first_gui_update(self, value: int) -> None:
+        if self._first_update_pending:
+            self._first_update_pending = False
+            logger.debug("First integration progress reached GUI after %.3fs (value=%d)",
+                         time.monotonic() - self._started_at, value)
 
     @property
     def was_cancelled(self) -> bool:

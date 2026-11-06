@@ -106,6 +106,30 @@ def test_dedicated_runner_reuses_thread_and_finalizes_there(qtbot):
     assert finalized_on == [job_threads[0]]
 
 
+def test_independent_bulk_job_does_not_block_the_preview_owner(qtbot):
+    owner = DedicatedAsyncJobRunner()
+    bulk = owner.create_sibling()
+    started = threading.Event()
+    release = threading.Event()
+    completed = []
+    owner.succeeded.connect(lambda _id, result: completed.append(result))
+
+    def independent():
+        started.set()
+        assert release.wait(timeout=5)
+
+    try:
+        bulk.submit(independent, use_owner_thread=False)
+        assert started.wait(timeout=2)
+        owner.submit(lambda: "preview")
+        qtbot.waitUntil(lambda: completed == ["preview"], timeout=2000)
+    finally:
+        release.set()
+        qtbot.waitUntil(lambda: not bulk.is_busy, timeout=5000)
+        bulk.shutdown()
+        owner.shutdown()
+
+
 def test_dedicated_runner_can_shutdown_without_blocking_active_job(qtbot):
     started = threading.Event()
     release = threading.Event()

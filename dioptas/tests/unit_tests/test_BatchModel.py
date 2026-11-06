@@ -61,6 +61,40 @@ def test_integrate_raw_data(batch_model):
     assert batch_model.pos_map.shape == (8, 2)
 
 
+@pytest.mark.parametrize("fail", [False, True])
+def test_native_stream_is_drained_on_cancellation_or_error(batch_model, monkeypatch, fail):
+    from importlib import import_module
+    from itertools import count
+    from types import SimpleNamespace
+
+    module = import_module("dioptas.model.BatchModel")
+    ticks = count()
+    monkeypatch.setattr(module, "time", SimpleNamespace(monotonic=lambda: next(ticks)))
+    calibration = batch_model.configuration.calibration_model
+    monkeypatch.setattr(calibration, "sync_dioptrin_for_batch", lambda *args: 2)
+    consumed = []
+
+    def results(*args, **kwargs):
+        for index in range(4):
+            consumed.append(index)
+            yield SimpleNamespace(
+                is_ok=lambda index=index: not (fail and index == 1),
+                error="bad frame",
+                result=SimpleNamespace(radial=np.arange(2), intensity=np.ones(2)),
+            )
+
+    monkeypatch.setattr(calibration, "dioptrin_batch1d_iter", results)
+    if fail:
+        with pytest.raises(RuntimeError, match="bad frame"):
+            batch_model._integrate_raw_data_dioptrin_batch(0, 4, 1, True)
+    else:
+        batch_model._integrate_raw_data_dioptrin_batch(
+            0, 4, 1, True, callback_fn=lambda _: False)
+        assert batch_model.n_img == 1
+    assert consumed == [0, 1, 2, 3]
+    assert not batch_model.configuration.img_model.img_changed.blocked
+
+
 def test_get_image_info(batch_model):
     image = 10
     name, pos = batch_model.get_image_info(image, use_all=True)

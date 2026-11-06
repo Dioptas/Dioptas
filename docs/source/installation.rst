@@ -96,7 +96,7 @@ Clone the repository and install the dependencies using uv::
     uv run dioptas
 
 The default branch is ``develop``. For a specific published release, check out
-its tag before running ``uv sync``, for example ``git checkout 0.12.0`` once that
+its tag before running ``uv sync``, for example ``git checkout 0.12.1`` once that
 release is published. A source checkout builds Dioptas's small native extension
 and may require a C compiler; ordinary wheel installations do not.
 

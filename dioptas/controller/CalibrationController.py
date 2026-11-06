@@ -1141,11 +1141,7 @@ class CalibrationController:
         # the calibrant is not part of the configuration — sync the new
         # model from the combo box and redraw the pattern's calibrant lines
         self.load_calibrant(wavelength_from="pyFAI")
-        self._calibrant_overlays_dirty = True
-        if self._mode_active:
-            # the overlays are visible on every wizard step, so a stale
-            # ring drawing must not survive a reset or configuration switch
-            self._update_calibrant_overlays()
+        # load_calibrant already invalidates and redraws these overlays.
         # the ring counter continues after the new configuration's picked
         # rings — and returns to 1 on a project reset
         selections = calibration_model.params.peak_selections

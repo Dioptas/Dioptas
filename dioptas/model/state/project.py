@@ -263,7 +263,7 @@ def load_project(model: Any, f: h5py.File, make_configuration) -> None:
 
     for configuration in model.configurations:
         if configuration.calibration_model.is_calibrated:
-            configuration.integrate_image_1d()
+            configuration._request_pattern_integration()
         else:
             configuration.pattern_model.pattern.recalculate_pattern()
 

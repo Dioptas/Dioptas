@@ -40,7 +40,8 @@ class PhaseEditorController(QtCore.QObject):
     # reflection_line_removed = QtCore.Signal(int)
     # reflection_line_cleared = QtCore.Signal()
 
-    def __init__(self, integration_widget, dioptas_model=None, jcpds_phase=None):
+    def __init__(self, integration_widget, dioptas_model=None, jcpds_phase=None,
+                 *, connect_edit_button=True):
         """
         :param integration_widget: Reference to an IntegrationWidget
         :param dioptas_model: Reference to DioptasModel object
@@ -56,6 +57,7 @@ class PhaseEditorController(QtCore.QObject):
         self.phase_widget = self.integration_widget.phase_widget
         self.model = dioptas_model
         self.phase_model = self.model.phase_model
+        self._connect_edit_button = connect_edit_button
         self._configure_eos_types()
         self.create_connections()
 
@@ -93,7 +95,8 @@ class PhaseEditorController(QtCore.QObject):
 
     def create_connections(self):
         # Phase Widget Signals
-        self.phase_widget.edit_btn.clicked.connect(self.edit_btn_callback)
+        if self._connect_edit_button:
+            self.phase_widget.edit_btn.clicked.connect(self.edit_btn_callback)
         self.phase_widget.phase_tw.currentCellChanged.connect(self.phase_selection_changed)
 
         # Phase Model signals

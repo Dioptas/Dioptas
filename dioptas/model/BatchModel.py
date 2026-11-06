@@ -407,6 +407,8 @@ class BatchModel:
 
         # Configure integrator: load one image to get shape
         first_file_index = source[indices[0]][0]
+        result_iter = None
+        aborted = False
         self.configuration.img_model.img_changed.blocked = True
         try:
             self.configuration.calibration_model.img_model.load(
@@ -425,7 +427,6 @@ class BatchModel:
             spread_data: list[np.ndarray] = []
             pos_map: list[tuple[int, int]] = []
             binning: np.ndarray | None = None
-            aborted = False
 
             def frame_generator():
                 yield from iter_frames_indexed(
@@ -445,6 +446,10 @@ class BatchModel:
 
             last_callback_time = time.monotonic()
             for i, result in enumerate(result_iter):
+                if aborted:
+                    # Finish admitted native work before returning its backend
+                    # to the persistent engine (also required on cancellation).
+                    continue
                 if not result.is_ok():
                     raise RuntimeError(
                         f"Dioptrin batch integration failed: {result.error}"
@@ -465,9 +470,14 @@ class BatchModel:
                     last_callback_time = now
                     if not callback_fn(i + 1):
                         aborted = True
-                        break
         finally:
-            self.configuration.img_model.img_changed.blocked = False
+            try:
+                aborted = True
+                if result_iter is not None:
+                    for _ in result_iter:
+                        pass
+            finally:
+                self.configuration.img_model.img_changed.blocked = False
 
         self._finalize_batch_results(cal, intensity_data, pos_map, binning, unit)
         if spread_data:
@@ -628,7 +638,7 @@ class BatchModel:
         if not self.raw_available:
             return
         filename, pos = self.get_image_info(index, use_all)
-        self.configuration.calibration_model.img_model.load(filename, pos)
+        self.configuration.calibration_model.img_model.load_frame(filename, pos)
 
     def get_next_folder_filenames(self) -> list[str]:
         """Loads all files from the next folder with similar file-endings."""

@@ -345,3 +345,76 @@ def test_real_dioptrin_engine_is_reused_and_matches_live_path(
     np.testing.assert_allclose(first.pattern.intensity, expected_y)
     np.testing.assert_allclose(second.pattern.radial, expected_x)
     np.testing.assert_allclose(second.pattern.intensity, expected_y)
+
+
+@pytest.mark.parametrize("unit", ["2th_deg", "q_A^-1"])
+def test_bulk_jobs_reuse_preview_backend_and_reconcile_mask_edits(
+    calibrated_config, monkeypatch, unit,
+):
+    dioptrin = pytest.importorskip("dioptrin")
+    try:
+        dioptrin.validate_license()
+    except Exception as exc:
+        pytest.skip(f"Dioptrin license unavailable: {exc}")
+    from dioptas.model.CalibrationModel import CalibrationModel
+    from dioptas.model.worker_configuration import capture_worker_configuration
+    from dioptas.model.batch_task import BatchIntegrationTask, compute_batch_integration
+    from dioptas.model.map_task import compute_map_integration
+
+    config = calibrated_config
+    config.auto_integrate_pattern = False
+    config.auto_integrate_cake = False
+    config.calibration_model.use_dioptrin = True
+    config.calibration_model.dioptrin_num_workers = 2
+    config.integration_unit = unit
+    config.integration_rad_points = 300
+    config.trim_trailing_zeros = False
+    config.use_mask = True
+    mask = np.zeros(config.img_model.img_data.shape, dtype=bool)
+    config.mask_model.set_mask_data(mask)
+    engine = PersistentIntegrationEngine()
+    preview = engine.compute(config.create_integration_task()).pattern
+    native = engine.dioptrin_integrator
+    used = []
+    original = CalibrationModel.dioptrin_batch1d_iter
+
+    def record_backend(calibration, *args, **kwargs):
+        used.append(calibration._dioptrin_integrator)
+        return original(calibration, *args, **kwargs)
+
+    monkeypatch.setattr(CalibrationModel, "dioptrin_batch1d_iter", record_backend)
+    positions = np.array([[0, 0]])
+
+    def batch():
+        return compute_batch_integration(BatchIntegrationTask(
+            capture_worker_configuration(config), (config.img_model.filename,),
+            positions, positions, 0, 1, 1, True,
+        ), engine=engine)
+
+    try:
+        result = batch()
+        mapped = compute_map_integration(capture_worker_configuration(config),
+                                         [config.img_model.filename], engine=engine)
+        assert used == [native, native]
+        np.testing.assert_allclose(result.data[0], preview.intensity)
+        np.testing.assert_allclose(mapped.pattern_intensities[0], preview.intensity)
+
+        # An edited bulk mask must not leave the persistent preview's cached
+        # setter bookkeeping claiming that the old mask is still installed.
+        mask[:mask.shape[0] // 2] = True
+        config.mask_model.set_mask_data(mask)
+        edited = batch()
+        new_preview = engine.compute(config.create_integration_task()).pattern
+        np.testing.assert_allclose(edited.data[0], new_preview.intensity)
+        config.mask_model.set_mask_data(np.zeros_like(mask))
+        restored = engine.compute(config.create_integration_task()).pattern
+        np.testing.assert_allclose(restored.intensity, preview.intensity)
+        assert engine.dioptrin_integrator is native
+
+        config.calibration_model.pattern_geometry.dist += 0.001
+        changed = engine.compute(config.create_integration_task()).pattern
+        assert engine.dioptrin_integrator is not native
+        assert not np.allclose(changed.radial, preview.radial)
+    finally:
+        used.clear()
+        engine.close()

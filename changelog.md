@@ -1,3 +1,27 @@
+# 0.12.1 (2026-11-06)
+
+## Fixes and performance
+
+- Batch and Map reuse prepared Dioptrin integration state from the image view.
+  Session recovery warms the persistent integration worker, and parallel runs
+  prepare their lookup table before admitting frames. This removes the long
+  initial pause with large Eiger scans.
+- Selecting Map points and Batch frames reuses open readers for unchanged
+  image series and avoids decoding the initial frame twice. Changed or
+  replaced source files are reopened automatically.
+- Image histograms use exact weighted counts for repeated integer intensities
+  and share their cached result between display orientations. Refreshing an
+  edited image invalidates that cache. Every pixel still contributes, and
+  integrated intensities are unchanged.
+- Startup defers the phase editor until needed and avoids a duplicate
+  calibration-overlay redraw during session recovery.
+- Canceled or failed batch runs drain admitted native work before reusing the
+  integration backend; worker-owned native resources are released on their
+  owning thread.
+- Project recovery restores image state and file browsing safely. Standalone
+  update checks include trusted certificate data and handle missing or
+  relocated image directories.
+
 # 0.12.0 (2026-11-06)
 
 ## Highlights

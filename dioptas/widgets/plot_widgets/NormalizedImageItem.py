@@ -103,6 +103,7 @@ class NormalizedImageItem(pg.ImageItem):
         super().__init__(*args, **kwargs)
         self.__normalization = "linear"
         self.__rawImage = None
+        self._raw_histogram = None
         self._smooth_factor = 1
 
     def setSmoothFactor(self, factor: int):
@@ -142,6 +143,12 @@ class NormalizedImageItem(pg.ImageItem):
             return None
         return np.array(self.__rawImage, copy=copy)
 
+    def getRawHistogram(self, compute):
+        """Share the exact raw histogram between both orientation widgets."""
+        if self._raw_histogram is None:
+            self._raw_histogram = compute(self.__rawImage)
+        return self._raw_histogram
+
     def getNormalization(self) -> str:
         """Returns the currently used normalization"""
         return self.__normalization
@@ -163,6 +170,8 @@ class NormalizedImageItem(pg.ImageItem):
         return self._NORMALIZATIONS[self.getNormalization()]
 
     def setImage(self, image=None, *args, **kwargs):
+        # Also invalidate for an explicitly refreshed, in-place edited array.
+        self._raw_histogram = None
         if image is None:
             return super().setImage(None, *args, **kwargs)
 

@@ -50,6 +50,15 @@ class PhaseControllerTest(QtTest):
         del self.model
         gc.collect()
 
+    def test_phase_editor_is_created_only_when_requested(self):
+        assert self.controller._phase_editor_controller is None
+        # Inspecting or clearing the phase list must not construct the editor.
+        self.controller.clear_phases()
+        assert self.controller._phase_editor_controller is None
+        editor = self.controller.phase_editor_controller
+        assert self.controller.phase_editor_controller is editor
+        assert not editor.jcpds_widget.isVisible()
+
     def test_dac_controls_apply_to_all_phases_and_follow_undo(self):
         from ...model import eos
         from peritheos import get_material_document

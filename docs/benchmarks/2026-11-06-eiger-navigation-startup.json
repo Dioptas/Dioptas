@@ -1,0 +1,27 @@
+{
+  "settings": "Saved Eiger session; Qt offscreen event processing/painting, cProfile enabled before and after; warm OS cache; first map click includes reopening its restored series reader.",
+  "before_profile_seconds": {
+    "construct": 1.3530697240000005,
+    "restore": 1.611742007000001,
+    "map-click-200": 0.4772453319999996,
+    "map-click-400": 0.3479320899999999,
+    "map-click-205": 0.33175701200000013,
+    "batch-click-300": 0.32401013600000006,
+    "batch-click-500": 0.3400481240000002
+  },
+  "after_seconds": {
+    "construct": 0.8303200000082143,
+    "restore": 1.2602520000073127,
+    "map-click-200": 0.3520310830208473,
+    "map-click-400": 0.22733591601718217,
+    "map-click-205": 0.23017141700256616,
+    "batch-click-300": 0.17953795898938552,
+    "batch-click-500": 0.19124016701243818
+  },
+  "validation": "All 3 selected map images matched independently decoded source pixels exactly; stored patterns and full-resolution histogram bins/counts matched exactly.",
+  "launch_imports_seconds": {
+    "source_median": 1.49,
+    "frozen_median": 1.677
+  },
+  "timing_note": "After timings precede the final requested-frame-on-open refinement; final reader pixel parity is covered by regression tests. No projected speedup is included."
+}

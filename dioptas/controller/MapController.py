@@ -192,7 +192,7 @@ class MapController:
     def _auto_integrate_toggled(self, checked):
         self.model.current_configuration.auto_integrate_pattern = checked
         if checked:
-            self.model.current_configuration.integrate_image_1d()
+            self.model.current_configuration._request_pattern_integration()
         else:
             # the list rows are grid cells, so the point behind the selected
             # one has to be looked up rather than assumed to be its index
@@ -548,7 +548,13 @@ class MapController:
         )
 
     def update_image(self):
-        image = self.model.img_model.img_data
+        source = self.model.img_model
+        # Display can borrow the owned raw frame when no processing changes
+        # its values. Avoid an 80 MB float64 copy of a typical Eiger frame.
+        image = (source.raw_img_data
+                 if source.factor == 1 and source._background_data is None
+                 and not source._img_corrections.has_items()
+                 else source.img_data)
         if image is None:
             self.widget.img_plot_widget.plot_image(np.array([[], []]))
         else:

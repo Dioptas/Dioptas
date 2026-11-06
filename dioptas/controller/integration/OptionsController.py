@@ -127,16 +127,16 @@ class OptionsController:
         if layout:
             self.model.calibration_model.dioptrin_sparse_layout = layout
             if self.model.calibration_model.is_calibrated:
-                self.model.current_configuration.integrate_image_1d()
+                self.model.current_configuration._request_pattern_integration()
 
     def _use_dioptrin_toggled(self, checked):
         self.model.calibration_model.use_dioptrin = checked
         if checked and self.model.calibration_model.is_calibrated:
             self.model.calibration_model._create_dioptrin_integrator()
         if self.model.calibration_model.is_calibrated:
-            self.model.current_configuration.integrate_image_1d()
+            self.model.current_configuration._request_pattern_integration()
             if self.model.current_configuration.auto_integrate_cake:
-                self.model.current_configuration.integrate_image_2d()
+                self.model.current_configuration._request_cake_integration()
 
     def _poisson_errors_toggled(self, checked):
         if checked:
