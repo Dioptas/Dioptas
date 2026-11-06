@@ -80,7 +80,7 @@ Existing projects
 -----------------
 
 Keep original project files when upgrading and save your first updated session
-under a new name. Dioptas 0.11 reads the project format introduced in 0.9;
+under a new name. Dioptas 0.12 reads the project format introduced in 0.9;
 0.8.7 and earlier projects require their matching older application.
 See :doc:`configurations_and_projects` for persistence and recovery details.
 
@@ -96,7 +96,7 @@ Clone the repository and install the dependencies using uv::
     uv run dioptas
 
 The default branch is ``develop``. For a specific published release, check out
-its tag before running ``uv sync``, for example ``git checkout 0.11.0`` once that
+its tag before running ``uv sync``, for example ``git checkout 0.12.0`` once that
 release is published. A source checkout builds Dioptas's small native extension
 and may require a C compiler; ordinary wheel installations do not.
 

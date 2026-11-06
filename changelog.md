@@ -1,3 +1,59 @@
+# 0.12.0 (unreleased)
+
+## Highlights
+
+- **Edit user-owned crystal structures and EoS records.** Update atomic sites,
+  elements, occupancies and space groups, check crystallographic Z against the
+  chemical formula, and retain the changes in material files and projects.
+  Published library structures remain read-only.
+
+- **Use Dioptrin without activation.** Standalone builds include the MIT-licensed
+  Dioptrin 0.7.0 backend. Source and pip users can select the pinned `dioptrin`
+  extra; pyFAI remains the default and works without that extra.
+
+## Improvements
+
+- Updated the calculation engine and bundled material library to core Peritheos
+  0.18.0. Observation datasets are optional and are not required by Dioptas or
+  its release startup checks.
+
+- Native EOSMAT v4 imports and exports use Peritheos's conversion API, retaining
+  legacy v2/v3 readers. The EoS browser and editors show source information,
+  scoped reconstruction assessments, recommendation status and links to the
+  selected material record and reconstruction report. Held recommendations
+  require explicit record selection; no automatic 0 K DFT substitute is used
+  for palladium.
+
+- Batch normalization can be toggled off to restore the original intensities.
+  Its settings select the bin interval and reference frame; backgrounds and
+  azimuthal spread follow the same scaling.
+
+- Added an **A** button beside image colormaps to autoscale intensity using the
+  current settings while preserving zoom and pan, including cake, map and batch
+  views.
+
+- Added an integration guide explaining binning, pixel splitting, backend-specific
+  supersampling, Poisson uncertainties, spottiness, and performance measurements.
+
+- Added Developer ID signing, hardened runtime, notarization and DMG packaging
+  for macOS releases. Build diagnostics support delayed Apple responses and
+  preserve signed payloads so notarization can resume without rebuilding.
+
+## Fixes
+
+- Startup update checks use the published GitHub release feed. Notifications
+  appear only once per new release: opening the download page, declining or
+  closing the popup is remembered across restarts.
+
+- BM2Reference retains its nonzero reference pressure in calculations, editing,
+  material files and projects. Legacy JCPDS export cannot silently discard that
+  pressure.
+
+- Fixed clipped thermal-model headers in the EoS database table.
+
+- macOS app bundles report the application version in Finder and package
+  metadata instead of the packaging tool's default 0.0.0.
+
 # 0.11.0 (28.09.2026)
 
 <!-- 0.10.1 and 0.10.2 were development headings, not published releases.
@@ -11,39 +67,11 @@ Their changes are included here; the previous published release is 0.10.0. -->
 
 ## Improvements
 
-- Added an **A** button beside image colormaps to autoscale intensity using the
-  current settings while preserving zoom and pan, including cake, map and batch
-  views.
-
-- Added an integration guide explaining binning, pixel splitting, backend-specific
-  supersampling, Poisson uncertainties, spottiness, and performance measurements.
-
-- Updated the optional Dioptrin integration backend to 0.7.0. Source installs
-  can select the pinned `dioptrin` extra; standalone builds install the locked
-  PyPI release on all platforms. Dioptrin 0.7.0 is MIT licensed and no longer
-  requires activation or a license key.
-
-- Updated the material library and calculation engine to core Peritheos 0.18.0.
-  Observation datasets are optional and are not required by Dioptas or its
-  release startup checks.
-  BM2Reference retains its nonzero reference pressure in calculations, editing,
-  material files and projects; legacy JCPDS export cannot discard that pressure.
-
-- The EoS database and phase editor's record details link directly to the
-  selected EOS in the Peritheos material documentation, alongside the scoped
-  reconstruction assessments and existing reconstruction reports.
-
-- Batch normalization can be toggled off to restore the original intensities. Its settings select the bin interval and reference frame; backgrounds and azimuthal spread follow the same scaling.
-
-- User-owned crystal structures can be edited in the phase editor, including atomic sites, elements, occupancies and space groups. Valid edits recalculate diffraction lines and persist in material files and projects; published library structures remain read-only.
-
-- The phase editor automatically checks crystallographic Z from symmetry-expanded atomic sites and occupancies against the chemical formula. Formula mismatches and disagreements with stored Z are shown inline, with element counts and multiplicities available on hover; stored formula and EoS normalization are preserved.
-
 - Extended the Python compatibility range through 3.15, with backend and
   controller CI on 3.14 and 3.15 and wheel builds for both. Python 3.15 is
   currently a prerelease and requires source builds for several dependencies.
 
-- Updated to Peritheos 0.16.0 and PhaseSmith 0.7.0. Native EOSMAT v4 imports use Peritheos's conversion API and canonical materials export as v4, retaining legacy v2/v3 readers and project compatibility. The material browser shows scoped reconstruction assessments, separate source/workflow/recommendation information and a link to the selected reconstruction report. Held defaults require explicit selection, including Pd without an automatic 0 K DFT substitute. Deferred source records remain searchable and exportable; qualified diagnostic records require explicit selection. Release startup checks cover native interchange, thermal calculations, source resources and assessments. Qandilite reflections preserve the explicit space-group origin choice.
+- Updated to Peritheos 0.11.0 and PhaseSmith 0.7.0. The material browser keeps deferred source records searchable and exportable while disabling phase loading for those records. Qandilite reflections now preserve the explicit space-group origin choice.
 
 - Added range masking below the intensity thresholds for **2θ**, **q**, and **d-spacing**. Mask or unmask pixels inside or outside an interval, or leave one bound blank for a single cutoff. Uses the current calibration and supports undo/redo (#38).
 
@@ -62,10 +90,6 @@ Their changes are included here; the previous published release is 0.10.0. -->
 - The integrated cake on the calibration validation step now has synchronized **2θ** and **azimuth** axes that follow zooming and panning.
 
 ## Fixes
-
-- Startup update notifications appear only once per new release. Declining or
-  closing the popup is remembered across restarts; a newer release can notify
-  you again.
 
 - Integration option groups stack vertically in narrow panels so their controls remain accessible.
 
