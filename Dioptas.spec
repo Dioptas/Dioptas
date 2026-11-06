@@ -25,6 +25,7 @@ import sys
 import os
 from importlib.util import find_spec
 from sys import platform as _platform
+from packaging.version import Version
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules, copy_metadata
 
 pristine_sys_module = list(sys.modules.keys())
@@ -158,9 +159,12 @@ coll = COLLECT(
 )
 
 if _platform == "darwin":
+    bundle_version = Version(__version__).base_version
     app = BUNDLE(
         coll,
         name="Dioptas_{}.app".format(__version__),
         icon="dioptas/resources/icons/icon.icns",
         bundle_identifier="com.dioptas.Dioptas",
+        version=bundle_version,
+        info_plist={"CFBundleVersion": bundle_version},
     )
