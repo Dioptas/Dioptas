@@ -14,7 +14,7 @@ from ..utility import (
 import numpy as np
 
 from qtpy import QtWidgets
-from mock import MagicMock
+from mock import ANY, MagicMock
 from xypattern import Pattern
 
 from ...model.DioptasModel import DioptasModel
@@ -566,15 +566,19 @@ class BatchIntegrationFunctionalTest(QtTest):
 
         click_button(self.integration_widget.batch_widget.options_widget.q_btn)
         self.model.calibration_model.integrate_1d.assert_called_with(
-            mask=None, num_points=None, unit="q_A^-1", azi_range=None, trim_zeros=True
+            image=ANY, mask=None, num_points=None, unit="q_A^-1", azi_range=None, trim_zeros=True
+        )
+        np.testing.assert_array_equal(
+            self.model.calibration_model.integrate_1d.call_args.kwargs["image"],
+            self.model.img_model.img_data,
         )
 
         click_button(self.integration_widget.batch_widget.options_widget.d_btn)
         self.model.calibration_model.integrate_1d.assert_called_with(
-            mask=None, num_points=None, unit="d_A", azi_range=None, trim_zeros=True
+            image=ANY, mask=None, num_points=None, unit="d_A", azi_range=None, trim_zeros=True
         )
 
         click_button(self.integration_widget.batch_widget.options_widget.tth_btn)
         self.model.calibration_model.integrate_1d.assert_called_with(
-            mask=None, num_points=None, unit="2th_deg", azi_range=None, trim_zeros=True
+            image=ANY, mask=None, num_points=None, unit="2th_deg", azi_range=None, trim_zeros=True
         )
