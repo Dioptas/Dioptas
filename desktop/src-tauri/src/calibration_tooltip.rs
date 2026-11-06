@@ -110,7 +110,7 @@ pub async fn show_calibration_tooltip(
         popup.hide().map_err(|e| e.to_string())?;
         popup
     } else {
-        WebviewWindowBuilder::new(&app, LABEL, tauri::WebviewUrl::App("index.html".into()))
+        crate::smoke_storage::configure(&app, WebviewWindowBuilder::new(&app, LABEL, tauri::WebviewUrl::App("index.html".into())))
             .title("Calibration help")
             .parent(&window)
             .map_err(|e| e.to_string())?
@@ -165,6 +165,17 @@ pub fn present_calibration_tooltip(
     }
     let state = state.0.lock().map_err(|e| e.to_string())?;
     if state.content.is_some() && state.generation == generation {
+        #[cfg(target_os = "macos")]
+        {
+            // Tauri's show() calls makeKeyAndOrderFront on macOS even for a
+            // non-focusable window. Help must only order forward, retaining
+            // keyboard focus on the main window and its initiating control.
+            let _main = objc2::MainThreadMarker::new().ok_or("Calibration help must be presented on the UI thread")?;
+            let pointer = window.ns_window().map_err(|e| e.to_string())?;
+            let popup = unsafe { &*pointer.cast::<objc2_app_kit::NSWindow>() };
+            popup.orderFront(None);
+        }
+        #[cfg(not(target_os = "macos"))]
         window.show().map_err(|e| e.to_string())?;
     }
     Ok(())

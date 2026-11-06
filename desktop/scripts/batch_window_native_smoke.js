@@ -46,6 +46,13 @@
       document.querySelectorAll(".intensity-histogram").length === 1,
       "Batch has duplicated plots",
     );
+    const fields = window.__dioptasFieldAppearance();
+    check(
+      !fields.failures.length,
+      "Resting native Batch inputs have pale borders: " +
+        JSON.stringify(fields.failures),
+    );
+    await window.__dioptasCaptureNative("batch-floating");
     let rejected = false;
     try {
       await invoke("desktop_invoke", {
@@ -98,22 +105,27 @@
       !document.querySelector('[role="alert"]')?.textContent.trim(),
       "Batch selection failed",
     );
+    const placedSize = { width: 820 + target * 12, height: 560 + target * 8 };
     await invoke("plugin:window|set_size", {
       label: "batch-window",
-      value: { Logical: { width: 820, height: 560 } },
+      value: { Logical: placedSize },
     });
     await wait(async () => {
       const size = await windowSize();
-      return Math.abs(size.width - 820) < 1 && Math.abs(size.height - 560) < 1;
+      return (
+        Math.abs(size.width - placedSize.width) < 1 &&
+        Math.abs(size.height - placedSize.height) < 1
+      );
     });
     await invoke("plugin:window|set_position", {
       label: "batch-window",
-      value: { Logical: { x: 100, y: 90 } },
+      value: { Logical: { x: 100 + target * 10, y: 90 + target * 10 } },
     });
     await delay();
     await delay();
     report = {
       ok: true,
+      quietFields: fields,
       selected: target,
       initial,
       placed: {

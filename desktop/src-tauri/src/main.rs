@@ -5,6 +5,8 @@ mod color_picker;
 mod processor;
 mod phase_editor;
 mod map_window;
+mod smoke_storage;
+mod smoke_dialog;
 
 use calibration_tooltip::{
     calibration_tooltip_ready, hide_calibration_tooltip, present_calibration_tooltip,
@@ -307,6 +309,9 @@ fn native_smoke_report(
     if !host.smoke {
         return Err("Native smoke mode is disabled.".into());
     }
+    if report["stage"] == "cancel-file-dialog" {
+        return smoke_dialog::cancel_file_panel();
+    }
     println!("{}", json!({"tauriSmoke": report}));
     if matches!(report["stage"].as_str(), Some("hmr" | "diagnostic")) {
         return Ok(());
@@ -323,6 +328,14 @@ fn main() {
     let batch_smoke = std::env::args().any(|arg| arg == "--batch-smoke");
     let map_smoke = args.iter().any(|a| a == "--map-smoke");
     let example = args.iter().any(|a| a == "--example");
+    let mut context = tauri::generate_context!();
+    if smoke {
+        // Create test windows with private WebKit storage. Production windows
+        // retain their normal configuration and storage.
+        for window in &mut context.config_mut().app.windows {
+            window.create = false;
+        }
+    }
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(TooltipState::default())
@@ -349,7 +362,12 @@ fn main() {
         ])
         .setup(move |app| {
             color_picker::install()?;
-            let window = app.get_webview_window("main").unwrap();
+            let window = if smoke {
+                let config = app.config().app.windows.iter().find(|window| window.label == "main").unwrap().clone();
+                smoke_storage::configure(app.handle(), tauri::WebviewWindowBuilder::from_config(app.handle(), &config)?).build()?
+            } else {
+                app.get_webview_window("main").unwrap()
+            };
             if tauri::is_dev() {
                 window.set_title("Dioptas · Tauri live preview")?;
             }
@@ -370,6 +388,7 @@ fn main() {
         })
         .on_page_load(move |webview, payload| {
             if smoke && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+                let _ = webview.eval(include_str!("../../scripts/field_appearance_check.js"));
                 let _ = webview.eval(include_str!("../../scripts/native_smoke_diagnostics.js"));
             }
             if smoke && batch_smoke && std::env::var_os("DIOPTAS_BATCH_LAYOUT_STAGE").is_none() && webview.label() == "batch-window" && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
@@ -465,7 +484,7 @@ fn main() {
                 }
             }
         })
-        .build(tauri::generate_context!())
+        .build(context)
         .expect("Could not build the Dioptas native window");
     app.run(|handle, event| {
         if matches!(

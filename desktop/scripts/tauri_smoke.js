@@ -74,7 +74,48 @@
           .renderer === "webgl2",
       "Native detector did not use WebGL 2",
     );
+    await window.__dioptasCaptureNative("calibration-image");
     const initial = await call("state");
+    const nativeFileDialogs = [];
+    if (/Mac/.test(navigator.platform)) {
+      for (const action of [
+        "open_calibration",
+        "save_project",
+        "batch_load_data",
+      ]) {
+        const pending = call(action);
+        let cancelled = false;
+        for (let attempt = 0; attempt < 100; attempt++) {
+          try {
+            await window.__TAURI_INTERNALS__.invoke("native_smoke_report", {
+              report: { stage: "cancel-file-dialog" },
+            });
+            cancelled = true;
+            break;
+          } catch {
+            await delay(30);
+          }
+        }
+        check(cancelled, `Native ${action} chooser did not appear`);
+        const result = await pending;
+        check(
+          result.ok && result.cancelled,
+          `Native ${action} cancellation did not return cleanly`,
+        );
+        const current = await call("state");
+        check(
+          current.state.imagePath === initial.state.imagePath &&
+            current.state.calibrated === initial.state.calibrated,
+          "Cancelling a native chooser changed scientific state",
+        );
+        nativeFileDialogs.push({
+          action,
+          cancelled: true,
+          statePreserved: true,
+        });
+      }
+    }
+
     check(
       initial.ok && !initial.state.calibrated,
       "The example must start uncalibrated",
@@ -274,6 +315,7 @@
     click("Calibrate");
     await delay();
     await ready();
+    await window.__dioptasCaptureNative("calibration-validate");
     const fitted = await call("state");
     check(
       fitted.ok && fitted.state.calibrated,
@@ -525,6 +567,12 @@
       document.querySelectorAll(".intensity-histogram").length === 2,
       "Integration histograms are not independent",
     );
+    check(
+      !window.__dioptasFieldAppearance().failures.length,
+      "Resting native integration fields have pale borders: " +
+        JSON.stringify(window.__dioptasFieldAppearance().failures),
+    );
+    await window.__dioptasCaptureNative("integration");
     const phaseControls = await window.__dioptasPhaseNativeSmoke({
       call,
       click,
@@ -597,9 +645,11 @@
         integrationOverlay: true,
         integrationPhaseLines: phase.pattern.phaseLines.length,
         phaseControls,
+        quietFields: window.__dioptasFieldAppearance(),
         integrationPatternSaved: savedPattern.savedPath,
         integrationImagesSaved: imageExports,
         hotReloadVerified,
+        nativeFileDialogs,
         maskWorkflow,
         binaryTransfer,
       },

@@ -12,6 +12,10 @@
         },
       })
       .catch(() => {});
+  window.__dioptasCaptureNative = async (name) => {
+    await report({ capture: name });
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+  };
   window.addEventListener("error", (event) =>
     report({
       type: "error",
@@ -32,6 +36,7 @@
     () =>
       report({
         type: "startup",
+        fields: window.__dioptasFieldAppearance?.(),
         viewport: { width: innerWidth, height: innerHeight },
         visibility: document.visibilityState,
         focused: document.hasFocus(),

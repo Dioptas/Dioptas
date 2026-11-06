@@ -213,3 +213,13 @@ and the broader browser workflow. The bundled native restart campaign passes
 all four stages and reaps each processing child. It distinguishes an explicit
 child close from app shutdown, and checks docking before the original open
 command finishes. Routine layout and histogram checks remain headless.
+
+
+## Native requalification (2026-11-06)
+
+The current native check passes six detach/dock cycles with different native
+sizes/positions and linked selection. The four-stage app-restart campaign also
+compares saved native bounds, besides floating/closed/docked/collapsed layout and
+splitter state. Private WebKit stores isolate test preferences; each processing
+child is reaped. The old failures remain archived. See
+[NATIVE_VERIFICATION.md](NATIVE_VERIFICATION.md) for current scope and commands.

@@ -9,9 +9,11 @@ window.__dioptasDatabaseNativeSmoke = async ({
   const db = () =>
     document.querySelector('dialog[aria-label="EoS Material Database"][open]');
   const input = db().querySelector('input[aria-label="Search materials"]');
+  for (let i = 0; i < 100 && document.activeElement !== input; i++)
+    await delay(20);
   check(
     document.activeElement === input,
-    "Native database did not focus search",
+    `Native database did not focus search: ${document.activeElement?.outerHTML.slice(0, 300)}; windowFocused=${document.hasFocus()}`,
   );
   const search = async (query) => {
     Object.getOwnPropertyDescriptor(

@@ -92,6 +92,26 @@ window.__dioptasPhaseNativeSmoke = async ({
   });
   click("Edit selected Phase");
   const editorReport = await editorComplete;
+  // The child reports before closing. Wait for native destruction before the
+  // next main-window action; a synthetic click does not activate a background
+  // window the way a real user click does.
+  for (let i = 0; i < 150; i++) {
+    const windows = await window.__TAURI_INTERNALS__.invoke(
+      "plugin:window|get_all_windows",
+    );
+    if (!windows.includes("phase-editor")) break;
+    await delay(20);
+  }
+  check(
+    !(
+      await window.__TAURI_INTERNALS__.invoke("plugin:window|get_all_windows")
+    ).includes("phase-editor"),
+    "Native phase editor did not close",
+  );
+  await window.__TAURI_INTERNALS__.invoke("plugin:window|set_focus", {
+    label: "main",
+  });
+
   observer.disconnect();
   check(
     !previewFlickered,

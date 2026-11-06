@@ -104,6 +104,11 @@
       !document.querySelector('[role="alert"]')?.textContent.trim(),
       "Map selection failed",
     );
+    check(
+      !window.__dioptasFieldAppearance().failures.length,
+      "Resting native Map inputs have pale borders",
+    );
+    await window.__dioptasCaptureNative("map-floating");
     report = {
       ok: true,
       initial,

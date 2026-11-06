@@ -105,6 +105,7 @@
       label: "phase-editor",
       value: { Logical: { width: 1000, height: 480 } },
     });
+    await window.__dioptasCaptureNative("phase-editor");
     const field = await set("a₀", "invalid");
     check(
       field.getAttribute("aria-invalid") === "true",
@@ -131,9 +132,14 @@
     );
     await set("Lattice length step", 0.02);
     await click("Increase a₀");
+    const stepped = await window.__dioptasNativeCall(
+      "integration_phase_editor",
+      { editor_uid: new URLSearchParams(location.search).get("phase_uid") },
+    );
     check(
-      document.querySelector('input[aria-label="a₀"]').value === "4.22",
-      "Native lattice step did not use the length increment",
+      document.querySelector('input[aria-label="a₀"]').value === "4.22" &&
+        stepped.phaseEditor?.lattice.a0 === 4.22,
+      `Native lattice step did not use the length increment: ${JSON.stringify({ input: document.querySelector('input[aria-label="a₀"]').value, step: document.querySelector('input[aria-label="Lattice length step"]').value, model: stepped.phaseEditor?.lattice.a0, busy: document.querySelector('input[aria-label="a₀"]').getAttribute("aria-busy") })}`,
     );
     await click("Decrease a₀");
     check(
@@ -170,6 +176,32 @@
     check(
       intensity.value === "66.0396789",
       "Editing lost full scientific precision",
+    );
+    intensity.blur();
+    await set("Reflection 1 intensity", "invalid");
+    intensity.blur();
+    await idle();
+    const invalidTableStyle = getComputedStyle(intensity);
+    check(
+      intensity.getAttribute("aria-invalid") === "true" &&
+        invalidTableStyle.borderTopColor !== "rgba(0, 0, 0, 0)",
+      "Native table validation lost its visible error state",
+    );
+    intensity.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Escape",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    await idle();
+    intensity.focus();
+    await delay();
+    const focusStyle = getComputedStyle(intensity);
+    check(
+      focusStyle.outlineStyle !== "none" &&
+        parseFloat(focusStyle.outlineWidth) > 0,
+      "Native table field lost its visible focus state",
     );
     intensity.blur();
     const index = document
@@ -285,6 +317,11 @@
       document.querySelector('th[aria-sort] button[title="Sort by Q₀ (Å⁻¹)"]'),
       "Reference Q column missing",
     );
+    check(
+      !window.__dioptasFieldAppearance().failures.length,
+      "Resting native editor fields have pale borders: " +
+        JSON.stringify(window.__dioptasFieldAppearance().failures),
+    );
     report = {
       ok: true,
       nativeTitleBar: true,
@@ -292,9 +329,11 @@
       persistentScrollbars: true,
       compactIndices: true,
       intensityPrecision: true,
+      tableFieldFocusAndError: true,
       materialNameAndSave: true,
       noRefreshEcho: true,
       persistentRecordToolbar: true,
+      quietFields: window.__dioptasFieldAppearance(),
     };
   } catch (error) {
     report = { ok: false, error: String(error) };

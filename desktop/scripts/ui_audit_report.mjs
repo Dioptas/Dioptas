@@ -112,6 +112,14 @@ for (const name of names) {
     `<article data-category="${category(name)}"><h3>${escape(name.replaceAll("-", " "))}</h3><div class="pair">${panels.join("")}</div></article>`,
   );
 }
+const nativePassed = review.validation?.nativeBatchSmokePassed === true;
+if (nativePassed) {
+  const qualification = JSON.parse(
+    await readFile(path.join(output, "native/summary.json"), "utf8"),
+  );
+  if (!qualification.smokePassed)
+    throw new Error("Native pass requires a successful qualification record");
+}
 const checks = reports.find((r) => r.stage === "after").checks;
 const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dioptas scientific GUI review</title>
 <style>
@@ -128,11 +136,18 @@ const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="v
 <h2>Implemented improvements</h2>
 <div class="table-wrap"><table><thead><tr><th>Problem</th><th>Result</th><th>Shared ownership</th></tr></thead><tbody>${(review.implementedImprovements ?? []).map((item) => `<tr><td>${escape(item.problem)}</td><td>${escape(item.resolution)}</td><td>${item.shared.map(escape).join(", ")}</td></tr>`).join("")}</tbody></table></div>
 <h2>Validation and scientific provenance</h2>
-<p>The Python model regression suite passed <strong>294 tests, with 5 optional cases skipped</strong>; frontend unit tests passed <strong>${review.validation?.frontendUnitTests ?? 59}/${review.validation?.frontendUnitTests ?? 59}</strong>. The calibration/integration, Map, Mask, Batch, custom-action, phase-editor and database browser checks pass. The native build passed, but native Batch smoke did not pass; see its separate qualification record below. OS file/color dialogs and real screen readers remain unvalidated. The app still defaults to WebGL2 for pattern curves; all captured pattern views in both revised browser audits confirmed WebGL2 active. Canvas2D remains the fallback. The diagnostic benchmark now also defaults to WebGL; headless timings do not establish native GPU performance.</p>
+<p>The Python model regression suite passed <strong>294 tests, with 5 optional cases skipped</strong>; frontend unit tests passed <strong>${review.validation?.frontendUnitTests ?? 59}/${review.validation?.frontendUnitTests ?? 59}</strong>. The calibration/integration, Map, Mask, Batch, custom-action, phase-editor and database browser checks pass. ${nativePassed ? "Native macOS Batch, restart, Map, scientific workflow and help checks pass. Real open/save/Batch file-panel cancellation also passes; human chooser selection, colour-panel interaction and screen readers remain unqualified." : "Native Batch qualification remains incomplete; see its record below."} The app still defaults to WebGL2 for pattern curves; all captured pattern views in both revised browser audits confirmed WebGL2 active. Canvas2D remains the fallback. The diagnostic benchmark now also defaults to WebGL; headless timings do not establish native GPU performance.</p>
 <div class="table-wrap"><table><thead><tr><th>Snapshot</th><th>Captured views</th><th>Behavior checks</th><th>Axe violations</th></tr></thead><tbody>${reports.map((r) => `<tr><td><a href="${r.stage}/report.json">${r.stage}</a></td><td>${r.inventory.length}</td><td>${r.checks.length}</td><td>${r.inventory.reduce((n, s) => n + s.accessibility.length, 0)}</td></tr>`).join("")}</tbody></table></div>
 <p>Axe findings requiring manual review are retained in the JSON reports and are not counted as passes. Before/after use the same measured detector and map fixtures. A peak-seeded CeO2 fit is separate from loading its reference PONI. The gold phase is an editor fixture, not a specimen identification; the six Batch frames are known intensity-scaled copies of CeO2.</p>
 <ul class="checks">${checks.map((check) => `<li>${escape(check)}</li>`).join("")}</ul>
-<h2>Native and rendering qualification</h2><p class="note">The native build succeeded, but no native Batch smoke pass is claimed. Native runs produced timeouts and a size-restoration assertion; the original frontend also failed the size assertion. Test readiness and native-versus-WebKit dimension assumptions were investigated. The remaining failure is not fully resolved. <a href="native/summary.json">Native qualification record</a>, <a href="native/current-initial.log">current initial run</a>, <a href="native/baseline.log">original frontend run</a>, <a href="native/current-placement.log">placement diagnostics</a>.</p>
+<h2>Native and rendering qualification</h2><p class="note">${escape(review.validation?.nativeQualification ?? "See qualification record.")} <a href="native/summary.json">Current native qualification</a>. Earlier failed runs remain archived: <a href="native/current-initial.log">initial run</a>, <a href="native/baseline.log">original frontend comparison</a>, <a href="native/current-placement.log">placement diagnostics</a>.</p>
+${
+  nativePassed
+    ? `<p>Current raw reports: <a href="../tauri-native-smoke.json">scientific workflow and native file panels</a>, <a href="../tauri-batch-smoke.json">six Batch reopen cycles</a>, <a href="../tauri-batch-layout.json">four Batch restart stages</a>, <a href="../tauri-map-smoke.json">Map/restart</a>, <a href="../calibration-tooltip-native-smoke.json">non-focusing help</a>.</p>
+<div class="pair"><figure><figcaption>Actual native Batch window</figcaption><a href="../native-batch/batch-floating.png"><img loading="lazy" src="../native-batch/batch-floating.png" alt="Native Batch window with one-based frames and quiet fields"></a></figure><figure><figcaption>Actual native phase editor · quiet table inputs</figcaption><a href="../native-workflow/phase-editor.png"><img loading="lazy" src="../native-workflow/phase-editor.png" alt="Native phase editor with quiet table fields"></a></figure></div>`
+    : ""
+}
+
 <p>The current Retina WebGL benchmark uses device-pixel ratio 2 with 2,000 samples and one curve. WebKit reported Apple GPU/WebGL 2.0 and no missed frames in its three normal interaction scenarios at its measured 20 ms cadence. Chromium reported SwiftShader; wide panning was slower (49.9 ms median frame interval and 50% missed frames relative to its measured cadence). Both outcomes are retained. These headless results do not establish native display latency or general large-data performance. <a href="performance/retina-webgl-webkit-current.json">WebKit raw benchmark</a>, <a href="performance/retina-webgl-current.json">Chromium raw benchmark</a>.</p>
 <h2>Refinements since the 9.1 checkpoint</h2><p>Resting input outlines were removed and legends returned inside the data area. Shared geometry drafts, plot legends, pane dividers and keyboard sample inspection improve the working behavior. The earlier 9.1 captures are preserved for direct comparison.</p>
 ${[

@@ -67,10 +67,11 @@ try {
     ["--example", "--tooltip-smoke"],
     true,
   );
-  const line = output
+  const report = output
     .split("\n")
-    .find((line) => line.startsWith('{"tauriSmoke":'));
-  const report = line && JSON.parse(line).tauriSmoke;
+    .filter((line) => line.startsWith('{"tauriSmoke":'))
+    .map((line) => JSON.parse(line).tauriSmoke)
+    .find((value) => typeof value.ok === "boolean");
   assert.equal(report?.ok, true, "No successful native tooltip report");
   assert.equal(report.helpButtons, 4);
   await mkdir(path.join(desktop, "artifacts"), { recursive: true });

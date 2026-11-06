@@ -124,6 +124,7 @@
     const dock = document.querySelector(".batch-dock").getBoundingClientRect(),
       image = document.querySelector(".detector-panel").getBoundingClientRect();
     check(dock.y >= image.bottom - 1, "Dock is not below image");
+    await window.__dioptasCaptureNative("batch-docked");
     const secondPromise = next();
     click("Detach batch");
     const second = await secondPromise;
@@ -147,6 +148,37 @@
       state.batch.selected === second.selected && state.cake,
       "Reopened selection lost cake",
     );
+    const placements = [first, second];
+    for (let cycle = 0; cycle < 4; cycle++) {
+      const previous = placements.at(-1).placed;
+      const completion = next();
+      click("Detach batch");
+      const reopened = await completion;
+      check(reopened.ok, reopened.error);
+      check(
+        Math.abs(reopened.initial.width - previous.width) < 2 &&
+          Math.abs(reopened.initial.height - previous.height) < 2,
+        `Batch size changed in reopen cycle ${cycle}: ${JSON.stringify({ previous, initial: reopened.initial })}`,
+      );
+      check(
+        Math.abs(reopened.initial.position.x - previous.position.x) < 2 &&
+          Math.abs(reopened.initial.position.y - previous.position.y) < 2,
+        `Batch position changed in reopen cycle ${cycle}`,
+      );
+      await wait(
+        () => document.querySelector(".batch-dock"),
+        "Repeated dock failed",
+      );
+      await ready();
+      const selected = await call("state");
+      check(
+        selected.batch.selected === reopened.selected &&
+          selected.cake &&
+          selected.pattern,
+        "Repeated reopen lost linked selection",
+      );
+      placements.push(reopened);
+    }
     const output = state.state.imagePath.replace(
       /dioptas\/tests\/data\/.+$/,
       "desktop/artifacts/native-batch.h5",
@@ -169,6 +201,8 @@
         binaryBatch: true,
         queueRestricted: true,
         placementRestored: true,
+        reopenCycles: placements.length,
+        placements,
         batchPatterns: 5,
         savedPath: output,
       },

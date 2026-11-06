@@ -290,7 +290,10 @@ fn open_window<const K: u8>(
     state.0.lock().unwrap().restoring = true;
     let opened = (|| -> Result<(), String> {
         let map =
-            WebviewWindowBuilder::new(&app, label::<K>(), WebviewUrl::App("index.html".into()))
+            crate::smoke_storage::configure(
+                &app,
+                WebviewWindowBuilder::new(&app, label::<K>(), WebviewUrl::App("index.html".into())),
+            )
                 .title(if K == 0 {
                     "Map — Dioptas"
                 } else {
