@@ -48,6 +48,11 @@ jobs:
         env:
           CIBW_ENVIRONMENT_MACOS: DIOPTAS_REQUIRE_C_EXT=1 ${{ matrix.cibw_env_macos }} DIOPTAS_LIBOMP_PREFIX=${{ env.DIOPTAS_LIBOMP_PREFIX }}
 
+      - name: Set up Python for wheel verification
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
       - name: Verify each wheel contains the C extension
         shell: python
         run: |
