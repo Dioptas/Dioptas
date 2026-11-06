@@ -207,7 +207,9 @@ OpenMP runtime with a macOS 14 deployment target. This avoids inheriting the
 runner's newer Homebrew bottle requirements. The runtime build verifies its
 source checksums and Mach-O minimum OS. `DIOPTAS_LIBOMP_PREFIX` selects that
 runtime during extension compilation; ordinary local builds still detect
-Homebrew OpenMP. Intel wheels explicitly disable OpenMP.
+Homebrew OpenMP. Intel wheels explicitly disable OpenMP. Standalone app builds
+use the same portable runtime and macOS 14 target. Their CI checks inspect every
+bundled Mach-O image and reject dependencies requiring a newer macOS version.
 
 These checks require no Apple credentials or macOS services:
 

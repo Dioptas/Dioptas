@@ -42,7 +42,7 @@ jobs:
   build_macos:
     if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.notarization_status_only) }}
     # The type of runner that the job will run on
-    runs-on: macos-latest
+    runs-on: macos-15
     timeout-minutes: 240
     env:
       folder_name: 'DioptasMac'
@@ -50,7 +50,7 @@ jobs:
       DIOPTRIN_RELEASE: "v0.7.0"
       # xypattern 1.2.4's published arm64 wheels require macOS 26.
       UV_NO_BINARY_PACKAGE: xypattern
-      MACOSX_DEPLOYMENT_TARGET: "11.0"
+      MACOSX_DEPLOYMENT_TARGET: "14.0"
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -59,8 +59,8 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Install OpenMP
-      run: brew install libomp
+    - name: Build portable OpenMP
+      run: bash installer/macos/build_portable_libomp.sh "$RUNNER_TEMP/dioptas-libomp" "$MACOSX_DEPLOYMENT_TARGET"
 
     - name: Setup Python 3.13
       uses: actions/setup-python@v7
@@ -104,6 +104,9 @@ jobs:
 
     - name: Run PyInstaller
       run: uv run --extra dioptrin bash create_executable.sh
+
+    - name: Verify macOS deployment target
+      run: uv run --extra dioptrin python installer/macos/check_compatibility.py dist/Dioptas*.app --target "$MACOSX_DEPLOYMENT_TARGET"
 
     - name: Verify C extension bundled
       shell: bash

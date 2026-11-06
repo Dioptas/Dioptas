@@ -11,7 +11,7 @@ catalog; no separate Python installation is needed.
 
 - **Windows (64-bit x86):** use the installer, or unpack the ZIP and run
   ``Dioptas.exe``. Keep the executable with its accompanying folders.
-- **macOS (Apple silicon):** open the DMG and drag the application to
+- **macOS (Apple silicon, macOS 14 or newer):** open the DMG and drag the application to
   Applications, or unpack the application archive. Intel Mac users can use the
   Python package below. Signed and notarized releases use macOS's normal
   first-launch confirmation. Older releases and ordinary branch builds may
@@ -44,8 +44,8 @@ Activate it with ``source dioptas-env/bin/activate`` on macOS/Linux, or
     python -m pip install dioptas
     dioptas
 
-Python 3.15 is currently a prerelease. Several dependencies do not yet provide
-3.15 wheels, so installation requires source builds and native build tools,
+Several tested dependencies require source builds on Python 3.15, so
+installation needs native build tools,
 including HDF5 development libraries. Use Python 3.13 for the simplest
 installation. Free-threaded Python builds are not covered by this support range.
 
@@ -53,7 +53,7 @@ To upgrade an existing Python installation::
 
     python -m pip install --upgrade dioptas
 
-Dioptas 0.11 requires Peritheos 0.18.x and PhaseSmith 0.7. Pip installs
+Dioptas 0.12 requires Peritheos 0.18.x and PhaseSmith 0.7. Pip installs
 these dependencies automatically. Catalog contents follow the installed
 Peritheos version; standalone applications contain the version selected when
 that application was built. The lock file selects the tested Peritheos 0.18.0

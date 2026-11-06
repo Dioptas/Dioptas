@@ -175,21 +175,21 @@ jobs:
           dist/Dioptas_*_Setup.exe
 
   build_macos:
-    runs-on: macos-latest
+    runs-on: macos-15
     timeout-minutes: 240
     env:
       DIOPTAS_REQUIRE_C_EXT: "1"
       # Build xypattern for older macOS instead of bundling its macOS 26 wheel.
       UV_NO_BINARY_PACKAGE: xypattern
-      MACOSX_DEPLOYMENT_TARGET: "11.0"
+      MACOSX_DEPLOYMENT_TARGET: "14.0"
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
-    - name: Install OpenMP
-      run: brew install libomp
+    - name: Build portable OpenMP
+      run: bash installer/macos/build_portable_libomp.sh "$RUNNER_TEMP/dioptas-libomp" "$MACOSX_DEPLOYMENT_TARGET"
 
     - name: Setup Python 3.13
       uses: actions/setup-python@v7
@@ -232,6 +232,9 @@ jobs:
 
     - name: Run PyInstaller
       run: uv run --extra dioptrin bash create_executable.sh
+
+    - name: Verify macOS deployment target
+      run: uv run --extra dioptrin python installer/macos/check_compatibility.py dist/Dioptas*.app --target "$MACOSX_DEPLOYMENT_TARGET"
 
     - name: Verify C extension bundled
       shell: bash

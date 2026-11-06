@@ -38,6 +38,8 @@
 - Added Developer ID signing, hardened runtime, notarization and DMG packaging
   for macOS releases. Build diagnostics support delayed Apple responses and
   preserve signed payloads so notarization can resume without rebuilding.
+  Standalone apps target macOS 14 or newer, with dependency checks preventing
+  bundled libraries from silently requiring a newer system.
 
 ## Fixes
 

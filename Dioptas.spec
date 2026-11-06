@@ -166,5 +166,8 @@ if _platform == "darwin":
         icon="dioptas/resources/icons/icon.icns",
         bundle_identifier="com.dioptas.Dioptas",
         version=bundle_version,
-        info_plist={"CFBundleVersion": bundle_version},
+        info_plist={
+            "CFBundleVersion": bundle_version,
+            "LSMinimumSystemVersion": os.environ.get("MACOSX_DEPLOYMENT_TARGET", "14.0"),
+        },
     )
