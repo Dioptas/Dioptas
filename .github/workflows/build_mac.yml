@@ -47,7 +47,7 @@ jobs:
     env:
       folder_name: 'DioptasMac'
       DIOPTAS_REQUIRE_C_EXT: "1"
-      DIOPTRIN_RELEASE: "v0.7.0"
+      DIOPTRIN_RELEASE: "v0.8.0"
       # xypattern 1.2.4's published arm64 wheels require macOS 26.
       UV_NO_BINARY_PACKAGE: xypattern
       MACOSX_DEPLOYMENT_TARGET: "14.0"

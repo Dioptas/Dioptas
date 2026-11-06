@@ -100,9 +100,39 @@ its tag before running ``uv sync``, for example ``git checkout 0.12.0`` once tha
 release is published. A source checkout builds Dioptas's small native extension
 and may require a C compiler; ordinary wheel installations do not.
 
-The optional Dioptrin backend is pinned to 0.7.0. Install it with
+The optional Dioptrin backend is pinned to 0.8.0. Install it with
 ``uv sync --extra dioptrin`` and start with ``uv run --extra dioptrin dioptas``.
 For a pip installation, use ``pip install 'dioptas[dioptrin]'``.
-Dioptrin 0.7.0 is MIT licensed and needs no activation or license key.
+Dioptrin 0.8.0 is MIT licensed and needs no activation or license key.
 pyFAI remains the default backend and works without this extra. See the
-`Dioptrin package <https://pypi.org/project/dioptrin/0.7.0/>`_.
+`Dioptrin package <https://pypi.org/project/dioptrin/0.8.0/>`_.
+
+Batch and map integration use Dioptrin's fixed-mask mode when no dynamic mask
+plugin is enabled. With masking enabled and an active dynamic plugin, frames
+are integrated individually in dynamic mode so that each frame gets a fresh
+mask and normalization. Disabling masking or the dynamic plugins restores
+the fixed-mask batch path for the next run.
+
+The Dioptrin extra also installs the pinned MIT-licensed
+``bslz4-to-sparse==0.0.22a3`` decoder on platforms with its published wheels
+(macOS Apple Silicon, supported Linux architectures, and Windows x86-64).
+macOS Intel retains the existing
+decoder. The indexed fast path supports native-endian uint16/uint32
+bitshuffle/LZ4 datasets with one complete frame per chunk. Other layouts and
+an unavailable fast backend retain the existing HDF5/bitshuffle readers.
+
+Batch, map, and live-map append processing keep bounded parallel prefetch when
+dynamic masking is enabled. Each mask is still calculated for its own frame;
+transformations, background corrections and scaling run through ImgModel.
+Prefetched frames own independent arrays, and temporary readers are closed on
+completion, cancellation or failure. Dataset aliases are resolved by HDF5
+object identity; different image channels retain the established selection.
+
+The fast index treats a source as immutable for one integration run. Changes
+to its identity, size or modification time cause an error rather than returning
+stale counts; reopen the source before retrying. It is not a live/SWMR reader.
+Fast-decoder payload admission is capped at 2 GiB and eight workers; native
+integration queues, geometry and masks require additional memory.
+
+``dioptrin-io`` remains an independent Rust-only development package. Its Python
+binding is not yet available; this Qt reader interface can adopt it later.

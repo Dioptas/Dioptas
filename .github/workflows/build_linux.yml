@@ -44,7 +44,7 @@ jobs:
 
     - name: Verify Dioptrin version
       run: |
-        uv run --extra dioptrin python -c "from importlib.metadata import version; assert version('dioptrin') == '0.7.0'; print('Dioptrin 0.7.0')"
+        uv run --extra dioptrin python -c "from importlib.metadata import version; assert version('dioptrin') == '0.8.0'; print('Dioptrin 0.8.0')"
 
     - name: Test Dioptrin integration and pyFAI fallback
       env:

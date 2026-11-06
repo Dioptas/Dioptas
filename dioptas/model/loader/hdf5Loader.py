@@ -22,7 +22,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 BITSHUFFLE_FILTER_ID = 32008
-_NUM_CPUS: int = max((os.cpu_count() or 4) - 1, 1)
+_NUM_CPUS: int = min(max((os.cpu_count() or 4) - 1, 1), 8)
 
 
 class Hdf5ExternalLinkError(RuntimeError):
@@ -122,27 +122,72 @@ class Hdf5Image:
         self,
         n_frames: int | None = None,
         decomp_workers: int = _NUM_CPUS,
+        *,
+        start_frame: int = 0,
     ) -> Iterator[npt.NDArray[np.float64]]:
-        """Generator yielding all frames as contiguous float64 arrays.
+        """Yield independently owned, bottom-up float64 frames in order.
 
-        For bitshuffle-compressed datasets, decompression, vertical flip, and
-        float64 conversion all happen in parallel worker threads.  For other
-        datasets, frames are read sequentially through h5py.
+        Prefer indexed fast decoding; retain the existing decoder/general HDF5
+        fallback for unsupported layouts or an unavailable optional codec.
+        Source mutation and decoding failures propagate rather than replaying
+        already consumed frames through a different decoder.
         """
-        n = self.series_max if n_frames is None else min(n_frames, self.series_max)
+        from .fastHdf5 import FastChunkReader, UnsupportedFastLayout
 
-        if self._is_bitshuffle:
-            yield from self._gen_frames_parallel(n, decomp_workers)
+        stop = self.series_max if n_frames is None else min(start_frame + n_frames, self.series_max)
+        if start_frame < 0 or start_frame > stop or decomp_workers < 1:
+            raise ValueError('Invalid frame range or decoder worker count')
+        try:
+            reader = FastChunkReader(self.dataset, source_filename=self.filename)
+        except UnsupportedFastLayout:
+            reader = None
+        if reader is not None:
+            # At most 2 GiB of decoder payload. Native integration queues and
+            # masks are not included in this admission bound.
+            workers = min(decomp_workers, 8, max(1, (2 << 30) // max(1, reader.worker_bytes)))
+            if reader.worker_bytes > (2 << 30):
+                reader.close()
+                reader = None
+            else:
+                try:
+                    with ThreadPoolExecutor(max_workers=workers) as pool:
+                        pending: deque = deque()
+                        indices = iter(range(start_frame, stop))
+                        for _ in range(workers):
+                            index = next(indices, None)
+                            if index is not None:
+                                pending.append(pool.submit(reader.read, index))
+                        while pending:
+                            yield pending.popleft().result()
+                            index = next(indices, None)
+                            if index is not None:
+                                pending.append(pool.submit(reader.read, index))
+                    reader.check_source()
+                finally:
+                    reader.close()
+                return
+
+        # The stock bitshuffle fast path only handles a single LZ4 filter and
+        # complete spatial chunks. General HDF5 handles everything else.
+        properties = self.dataset.id.get_create_plist()
+        filters = [properties.get_filter(i) for i in range(properties.get_nfilters())]
+        lz4 = (self._is_bitshuffle and len(filters) == 1 and len(filters[0][2]) >= 5
+               and filters[0][2][4] == 2 and self.dataset.chunks == (1, *self.dataset.shape[1:]))
+        if lz4:
+            chunks = [self.dataset.id.get_chunk_info_by_coord((i, 0, 0)) for i in range(start_frame, stop)]
+            lz4 = all(c.filter_mask == 0 and c.byte_offset is not None for c in chunks)
+        if lz4:
+            yield from self._gen_frames_parallel(stop, decomp_workers, start_frame=start_frame)
         else:
-            for i in range(n):
-                yield np.ascontiguousarray(
-                    self.dataset[i][::-1], dtype=np.float64
-                )
+            for i in range(start_frame, stop):
+                yield np.ascontiguousarray(self.get_image(i), dtype=np.float64)
 
     def _gen_frames_parallel(
         self,
         n_frames: int,
         decomp_workers: int = _NUM_CPUS,
+        *,
+        start_frame: int = 0,
     ) -> Iterator[npt.NDArray[np.float64]]:
         """Read raw chunks and decompress bitshuffle-LZ4 in parallel threads.
 
@@ -166,7 +211,7 @@ class Hdf5Image:
 
         with ThreadPoolExecutor(max_workers=decomp_workers) as pool:
             pending: deque = deque()
-            idx: int = 0
+            idx: int = start_frame
 
             # Fill initial window
             while idx < n_frames and len(pending) < decomp_workers:

@@ -26,7 +26,7 @@ import os
 from importlib.util import find_spec
 from sys import platform as _platform
 from packaging.version import Version
-from PyInstaller.utils.hooks import collect_data_files, collect_submodules, copy_metadata
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules, copy_metadata, collect_dynamic_libs
 
 pristine_sys_module = list(sys.modules.keys())
 
@@ -71,10 +71,22 @@ if find_spec("dioptrin") is not None:
     hiddenimports += collect_submodules("dioptrin")
     extra_datas += copy_metadata("dioptrin")
 
+# The fast decoder loads its c2py native library by explicit filename, rather
+# than importing a standard CPython extension. Preserve that package layout.
+extra_binaries = []
+if find_spec("bslz4_to_sparse") is not None:
+    hiddenimports += collect_submodules(
+        "bslz4_to_sparse", filter=lambda name: ".cuda" not in name and ".conveyor" not in name
+    )
+    extra_binaries += collect_dynamic_libs(
+        "bslz4_to_sparse", search_patterns=["*.so", "*.dylib", "*.dll", "*.pyd"]
+    )
+    extra_datas += copy_metadata("bslz4_to_sparse")
+
 a = Analysis(
     ["run.py"],
     pathex=[folder],
-    binaries=[],
+    binaries=extra_binaries,
     datas=extra_datas,
     hiddenimports=hiddenimports,
     hookspath=[],

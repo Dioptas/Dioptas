@@ -9,10 +9,12 @@ from __future__ import annotations
 import logging
 import os
 from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
+import h5py
 
 if TYPE_CHECKING:
     from dioptas.model.ImgModel import ImgModel
@@ -68,38 +70,123 @@ def _apply_frame(
     return img_model._apply_frame_pipeline(raw_frame)
 
 
+def _selected_reader(filepath, img_model):
+    reader = try_open_bitshuffle_hdf5(filepath)
+    if reader is None:
+        return None
+    source = getattr(img_model, 'selected_source', None)
+    if (isinstance(source, str) and getattr(img_model, '_select_source', None) is not None
+            and source in reader.image_sources):
+        reader.select_source(source)
+    elif len(reader.image_sources) > 1:
+        # LImA/NeXus often exposes the SAME dataset through multiple hard links.
+        # Resolve object identity, or the actual dataset selected by FabIO,
+        # rather than treating equal shapes as sufficient evidence.
+        image = getattr(getattr(img_model, 'loader', None), 'fabio_image', None)
+        selected = getattr(image, 'dataset', None)
+        matches = ([name for name in reader.image_sources if reader.f[name].id == selected.id]
+                   if isinstance(selected, h5py.Dataset) else [])
+        if matches:
+            reader.select_source(matches[0])
+        elif not all(reader.f[name].id == reader.dataset.id for name in reader.image_sources):
+            reader.f.close()
+            return None
+    return reader
+
+
+class _SeriesCursor:
+    def __init__(self, reader, workers):
+        self.reader = reader
+        self.workers = workers
+        self.iterator = None
+        self.next_index = None
+        self.last_index = None
+        self.last_frame = None
+
+    def get(self, index):
+        if index < 0 or index >= self.reader.series_max:
+            raise IndexError(index)
+        if index == self.last_index:
+            return self.last_frame
+        if self.iterator is None or index != self.next_index:
+            self.close()
+            self.iterator = self.reader.gen_frames(
+                decomp_workers=self.workers, start_frame=index
+            )
+        self.last_frame = next(self.iterator)
+        self.last_index = index
+        self.next_index = index + 1
+        if self.next_index == self.reader.series_max:
+            self.close()
+        return self.last_frame
+
+    def close(self):
+        if self.iterator is not None:
+            close = getattr(self.iterator, 'close', None)
+            if close is not None:
+                close()
+            self.iterator = None
+
+
+@contextmanager
+def prefetch_series(img_model, workers=None):
+    """Prefetch raw frames while keeping ImgModel corrections on the caller.
+
+    Restore the original series callback and close files/workers on normal
+    completion, cancellation and errors. Random/repeated selections remain
+    valid and queued arrays retain independent ownership.
+    """
+    reader = _selected_reader(img_model.filename, img_model)
+    if reader is None:
+        yield
+        return
+    from dioptas.model.loader.hdf5Loader import _NUM_CPUS
+    cursor = _SeriesCursor(reader, workers or _NUM_CPUS)
+    original = img_model.series_get_image
+    img_model.series_get_image = cursor.get
+    try:
+        yield
+    finally:
+        img_model.series_get_image = original
+        try:
+            cursor.close()
+        finally:
+            reader.f.close()
+
+
 def _open_file_frames(
     filepath: str,
     img_model: ImgModel,
     fast_path: bool,
     *,
     load: bool = False,
+    workers: int | None = None,
 ) -> Iterator[npt.NDArray[np.float64]]:
-    """Open *filepath* and return a generator yielding processed frames.
-
-    Tries bitshuffle HDF5 parallel decompression first for fast frame
-    iteration; falls back to ``img_model.load`` +
-    ``img_model.load_series_img`` per frame.
-
-    When *load* is True, ``img_model.load(filepath)`` is always called
-    so that img_model state (img_data, series_max, etc.) reflects the
-    file.  This is needed when callers rely on img_model metadata
-    (e.g. for mask dimension).
-    """
-    hdf5_loader = try_open_bitshuffle_hdf5(filepath)
+    """Open a bounded raw-frame stream, retaining source selection/corrections."""
+    if load:
+        img_model.load(filepath)
+    hdf5_loader = _selected_reader(filepath, img_model)
     if hdf5_loader is not None:
-        if load:
-            img_model.load(filepath)
-
-        def bitshuffle_gen() -> Iterator[npt.NDArray[np.float64]]:
-            for raw in hdf5_loader.gen_frames():
-                yield _apply_frame(img_model, raw, fast_path)
+        def bitshuffle_gen():
+            frames = hdf5_loader.gen_frames(
+                **({'decomp_workers': workers} if workers is not None else {})
+            )
+            try:
+                for raw in frames:
+                    yield _apply_frame(img_model, raw, fast_path)
+            finally:
+                try:
+                    close = getattr(frames, 'close', None)
+                    if close is not None:
+                        close()
+                finally:
+                    hdf5_loader.f.close()
         return bitshuffle_gen()
 
-    # Fallback: always loads through img_model
-    img_model.load(filepath)
+    if not load:
+        img_model.load(filepath)
 
-    def fallback_gen() -> Iterator[npt.NDArray[np.float64]]:
+    def fallback_gen():
         for i in range(img_model.series_max):
             img_model.load_series_img(i + 1)
             yield img_model.get_img_data_float64()
@@ -113,6 +200,7 @@ def iter_frames_sequential(
     img_shape: tuple[int, ...],
     abort_check: Callable[[], bool] | None = None,
     on_frame: Callable[[str, int], None] | None = None,
+    workers: int | None = None,
 ) -> Iterator[npt.NDArray[np.float64]]:
     """Yield image frames from *filepaths* sequentially.
 
@@ -125,19 +213,22 @@ def iter_frames_sequential(
         if abort_check and abort_check():
             return
 
-        frame_iter = _open_file_frames(filepath, img_model, fast_path)
+        frame_iter = _open_file_frames(filepath, img_model, fast_path, workers=workers)
 
-        for frame_ind, frame in enumerate(frame_iter):
-            if abort_check and abort_check():
-                return
-            if frame_ind == 0 and frame.shape != img_shape:
-                raise ValueError(
-                    f"Image '{os.path.basename(filepath)}' has shape "
-                    f"{frame.shape}, expected {img_shape}"
-                )
-            if on_frame:
-                on_frame(filepath, frame_ind)
-            yield frame
+        try:
+            for frame_ind, frame in enumerate(frame_iter):
+                if abort_check and abort_check():
+                    return
+                if frame_ind == 0 and frame.shape != img_shape:
+                    raise ValueError(
+                        f"Image '{os.path.basename(filepath)}' has shape "
+                        f"{frame.shape}, expected {img_shape}"
+                    )
+                if on_frame:
+                    on_frame(filepath, frame_ind)
+                yield frame
+        finally:
+            frame_iter.close()
 
 
 def iter_frames_indexed(
@@ -147,6 +238,7 @@ def iter_frames_indexed(
     indices: list[int] | npt.NDArray[np.int_],
     *,
     mask_model: MaskModel | None = None,
+    workers: int | None = None,
     abort_check: Callable[[], bool] | None = None,
 ) -> Iterator[npt.NDArray[np.float64]]:
     """Yield image frames at specific ``(file_index, frame_pos)`` positions.
@@ -160,25 +252,31 @@ def iter_frames_indexed(
     frame_iter: Iterator[npt.NDArray[np.float64]] | None = None
     next_frame_pos: int = 0
 
-    for index in indices:
-        if abort_check and abort_check():
-            return
-        file_index, pos = source[index]
-        if file_index != current_file:
-            current_file = file_index
-            frame_iter = _open_file_frames(
-                files[file_index], img_model, fast_path, load=True,
-            )
-            if mask_model is not None:
-                mask_model.set_dimension(img_model.img_data.shape)
-            next_frame_pos = 0
+    try:
+        for index in indices:
+            if abort_check and abort_check():
+                return
+            file_index, pos = source[index]
+            if file_index != current_file or pos < next_frame_pos:
+                if frame_iter is not None:
+                    frame_iter.close()
+                current_file = file_index
+                frame_iter = _open_file_frames(
+                    files[file_index], img_model, fast_path, load=True, workers=workers,
+                )
+                if mask_model is not None:
+                    mask_model.set_dimension(img_model.img_data.shape)
+                next_frame_pos = 0
 
-        # Advance to requested position
-        frame: npt.NDArray[np.float64] | None = None
-        while next_frame_pos <= pos:
-            frame = next(frame_iter)
-            next_frame_pos += 1
-        yield frame
+            # Advance to requested position
+            frame: npt.NDArray[np.float64] | None = None
+            while next_frame_pos <= pos:
+                frame = next(frame_iter)
+                next_frame_pos += 1
+            yield frame
+    finally:
+        if frame_iter is not None:
+            frame_iter.close()
 
 
 def convert_tth_to_d(

@@ -1,0 +1,33 @@
+{
+  "schema": "phasesmith.hdf5-test-fixture.v1",
+  "sha256": "49b5b575bfb9137151e7dcf2f3f5def5c54f2b1430c8fcdec8a90fe53c62ccfe",
+  "shape": [
+    2,
+    3,
+    4
+  ],
+  "source_dtype": "uint32",
+  "filters": [
+    [
+      32008,
+      1,
+      [
+        0,
+        4,
+        4,
+        0,
+        2
+      ]
+    ]
+  ],
+  "producer": {
+    "h5py": "3.16.0",
+    "hdf5": "2.0.0",
+    "hdf5plugin": "7.1.0"
+  },
+  "generation_command": "python tools/generate_hdf5_test_fixture.py",
+  "frame_sha256": [
+    "f81aab69954686f6ca2221fb72810119e7fc26c6a7c3b6ed3f53c714f5907a7d",
+    "910feb470e516174e2dde24fdfa087ba4aa2ce4009f8edf8aa9eb9aec02aa5fc"
+  ]
+}

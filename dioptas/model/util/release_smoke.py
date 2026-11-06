@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 import numpy as np
 
 
-DIOPTRIN_VERSION = "0.7.0"
+DIOPTRIN_VERSION = "0.8.0"
 
 
 def check_dioptrin_runtime(*, required=False):
