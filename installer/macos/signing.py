@@ -15,6 +15,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import time
 
 
 REQUIRED_SECRETS = (
@@ -27,14 +28,21 @@ REQUIRED_SECRETS = (
 PROFILE = "dioptas-notarization"
 
 
-def run(*args, capture=False):
-    result = subprocess.run(args, text=True, capture_output=capture, check=False)
-    if result.returncode:
+def run(*args, capture=False, retry_codes=(), retry_delays=()):
+    for attempt in range(len(retry_delays) + 1):
+        result = subprocess.run(args, text=True, capture_output=capture, check=False)
+        if not result.returncode:
+            return result.stdout if capture else ""
+        if result.returncode in retry_codes and attempt < len(retry_delays):
+            delay = retry_delays[attempt]
+            print(f"Retrying {args[0]} {args[1]} after exit {result.returncode} "
+                  f"in {delay}s", flush=True)
+            time.sleep(delay)
+            continue
         if capture and result.stderr:
             print(result.stderr, file=sys.stderr)
         # CalledProcessError includes the entire command, potentially passwords.
         raise RuntimeError(f"{args[0]} {args[1]} failed (exit {result.returncode})")
-    return result.stdout if capture else ""
 
 
 def signing_dir():
@@ -193,8 +201,12 @@ def notarize(path, submission_id=None):
         )
     run("xcrun", "notarytool", "log", submission_id, *auth,
         str(logs / f"{path.name}-issues.json"))
-    run("xcrun", "stapler", "staple", str(path))
-    run("xcrun", "stapler", "validate", str(path))
+    # Apple's ticket-delivery service can drop the first connection after an
+    # accepted submission (stapler exit 68). Keep validation mandatory and
+    # retry only this transient failure, with a bounded delay.
+    for action in ("staple", "validate"):
+        run("xcrun", "stapler", action, str(path),
+            retry_codes=(68,), retry_delays=(5, 15, 30))
     if path.suffix == ".app":
         verify_app(path)
         run("spctl", "--assess", "--type", "execute", "--verbose=2", str(path))

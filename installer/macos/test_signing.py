@@ -107,6 +107,36 @@ class SigningTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "timestamped Developer ID"):
                     signing.verify_app(Path("Dioptas.app"))
 
+    def test_stapler_network_failure_retries_then_succeeds(self):
+        results = [subprocess.CompletedProcess([], code, "", "") for code in (68, 68, 0)]
+        with patch.object(signing.subprocess, "run", side_effect=results) as run, patch.object(
+            signing.time, "sleep",
+        ) as sleep:
+            signing.run("xcrun", "stapler", "validate", "Dioptas.app",
+                        retry_codes=(68,), retry_delays=(5, 15, 30))
+        self.assertEqual(run.call_count, 3)
+        self.assertEqual([call.args[0] for call in sleep.call_args_list], [5, 15])
+
+    def test_stapler_permanent_failure_is_not_retried(self):
+        with patch.object(signing.subprocess, "run", return_value=subprocess.CompletedProcess(
+            [], 65, "", "invalid ticket",
+        )) as run, patch.object(signing.time, "sleep") as sleep:
+            with self.assertRaisesRegex(RuntimeError, "exit 65"):
+                signing.run("xcrun", "stapler", "validate", "Dioptas.app",
+                            retry_codes=(68,), retry_delays=(5, 15, 30))
+        self.assertEqual(run.call_count, 1)
+        sleep.assert_not_called()
+
+    def test_stapler_repeated_network_failure_still_stops_release(self):
+        with patch.object(signing.subprocess, "run", return_value=subprocess.CompletedProcess(
+            [], 68, "", "connection lost",
+        )) as run, patch.object(signing.time, "sleep") as sleep:
+            with self.assertRaisesRegex(RuntimeError, "exit 68"):
+                signing.run("xcrun", "stapler", "staple", "Dioptas.app",
+                            retry_codes=(68,), retry_delays=(5, 15, 30))
+        self.assertEqual(run.call_count, 4)
+        self.assertEqual(sleep.call_count, 3)
+
     def test_accepted_app_is_stapled_and_gatekeeper_checked(self):
         signing.signing_dir().mkdir()
         result = subprocess.CompletedProcess([], 0, json.dumps({"id": "test-id", "status": "Accepted"}), "")
@@ -120,6 +150,10 @@ class SigningTests(unittest.TestCase):
         calls = [call.args for call in run.call_args_list]
         self.assertIn(("xcrun", "stapler", "staple", "Dioptas.app"), calls)
         self.assertIn(("xcrun", "stapler", "validate", "Dioptas.app"), calls)
+        for call in run.call_args_list:
+            if call.args[:2] == ("xcrun", "stapler"):
+                self.assertEqual(call.kwargs["retry_codes"], (68,))
+                self.assertTrue(call.kwargs["retry_delays"])
         self.assertEqual(calls[-1][0], "spctl")
 
     def test_accepted_dmg_is_signed_before_submission(self):
