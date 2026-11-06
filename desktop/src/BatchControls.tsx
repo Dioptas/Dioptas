@@ -1,9 +1,9 @@
-import { useAnchoredDialog } from "./useAnchoredDialog";
-import { Dialog, DialogHeader } from "./Dialog";
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { ChevronLeft, ChevronRight, Settings2 } from "lucide-react";
+import { useEffect, useId, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ScientificNumberInput } from "./ScientificNumberInput";
 import type { BatchData, BatchRun } from "./batchDomain";
+import { batchNormalizationRegion } from "./batchDisplay";
+import { unitLabel } from "./types";
 
 /** Frame numbers are one-based in the UI; stored indices remain zero-based. */
 export function BatchControls({
@@ -14,7 +14,6 @@ export function BatchControls({
   calibrated,
   filesView,
   run,
-  onAutoScale,
   onRange,
 }: {
   batch: BatchData | null;
@@ -24,7 +23,6 @@ export function BatchControls({
   calibrated: boolean;
   filesView: boolean;
   run: BatchRun;
-  onAutoScale: () => void;
   onRange: (start: number, stop: number) => void;
 }) {
   const count = batch?.entries.length ?? 0,
@@ -33,19 +31,16 @@ export function BatchControls({
     [stop, setStop] = useState(Math.max(0, max)),
     [step, setStep] = useState(1),
     [jump, setJump] = useState("1");
-  const normalizationButton = useRef<HTMLButtonElement>(null),
-    popup = useRef<HTMLDialogElement>(null);
-  const [normalization, setNormalization] = useState(false);
-  useAnchoredDialog(
-    popup,
-    normalizationButton.current,
-    normalization,
-    "end",
-    true,
-  );
-  const [firstBin, setFirstBin] = useState(0),
-    [lastBin, setLastBin] = useState(0),
-    [reference, setReference] = useState(0);
+  const [minimum, setMinimum] = useState(""),
+    [maximum, setMaximum] = useState("");
+  const region = batchNormalizationRegion(batch);
+  const normalizationErrorId = useId();
+  const axis =
+    batch?.unit === "q_A^-1" ? "Q" : batch?.unit === "d_A" ? "d" : "2θ";
+  useEffect(() => {
+    setMinimum(region ? String(region.minimum) : "");
+    setMaximum(region ? String(region.maximum) : "");
+  }, [batch?.id, batch?.unit, region?.minimum, region?.maximum]);
   useEffect(() => {
     setStart(0);
     setStop(Math.max(0, max));
@@ -55,169 +50,98 @@ export function BatchControls({
     () => setJump(String((batch?.selected ?? 0) + 1)),
     [batch?.selected],
   );
-  useEffect(() => {
-    setFirstBin(batch?.normalizationRange[0] ?? 0);
-    setLastBin(
-      Math.min(
-        (batch?.x.length ?? 1) - 1,
-        (batch?.normalizationRange[1] ?? 1) - 1,
-      ),
-    );
-    setReference(batch?.normalizationReference ?? 0);
-  }, [
-    batch?.normalizationRange[0],
-    batch?.normalizationRange[1],
-    batch?.normalizationReference,
-    batch?.x.length,
-  ]);
   const normalizationValid =
-    [firstBin, lastBin, reference].every(Number.isInteger) &&
-    firstBin >= 0 &&
-    firstBin <= lastBin &&
-    lastBin < (batch?.x.length ?? 0) &&
-    reference >= 0 &&
-    reference < count;
+    minimum.trim() !== "" &&
+    maximum.trim() !== "" &&
+    Number.isFinite(Number(minimum)) &&
+    Number.isFinite(Number(maximum)) &&
+    Number(minimum) >= 0 &&
+    (batch?.unit !== "d_A" || Number(minimum) > 0) &&
+    Number(minimum) < Number(maximum) &&
+    (batch?.unit !== "2th_deg" || Number(maximum) <= 180);
   const select = (index: number) =>
     void run("batch_select", { index }, "Loading batch frame…");
   const current = batch?.selected ?? 0;
-  const actions = (
+  const normalizationChanged =
+    !region ||
+    Number(minimum) !== region.minimum ||
+    Number(maximum) !== region.maximum;
+  const integration = filesView && (
     <div className="batch-action-row">
-      {filesView ? (
-        <button
-          disabled={!ready || !batch?.canReintegrate || !calibrated}
-          onClick={() =>
-            run(
-              "batch_load",
-              { reintegrate: true, start: start + 1, stop: stop + 1, step },
-              "Integrating batch…",
-            )
-          }
-        >
-          Integrate
-        </button>
-      ) : (
-        <>
-          <button disabled={!ready || !batch} onClick={onAutoScale}>
-            AutoScale
-          </button>
-          <span className="batch-control-divider" />
-          <button
-            aria-label="Normalize batch"
-            aria-pressed={!!batch?.normalized}
-            disabled={!ready || !batch}
-            onClick={() =>
-              run(
-                "batch_normalize",
-                {
-                  enabled: !batch?.normalized,
-                  start: (batch?.normalizationRange[0] ?? 0) + 1,
-                  stop: batch?.normalizationRange[1],
-                  reference: (batch?.normalizationReference ?? 0) + 1,
-                },
-                "Updating normalization…",
-              )
-            }
-          >
-            Normalize
-          </button>
-          <span className="batch-normalization-anchor">
-            <button
-              ref={normalizationButton}
-              aria-label="Normalization settings"
-              title="Normalization settings"
-              disabled={!ready || !batch}
-              onClick={() => {
-                setFirstBin(batch?.normalizationRange[0] ?? 0);
-                setLastBin(
-                  Math.min(
-                    (batch?.x.length ?? 1) - 1,
-                    (batch?.normalizationRange[1] ?? 1) - 1,
-                  ),
-                );
-                setReference(batch?.normalizationReference ?? 0);
-                setNormalization((v) => !v);
-              }}
-            >
-              <Settings2 size={15} />
-            </button>
-            {normalization &&
-              createPortal(
-                <Dialog
-                  returnFocusTarget={normalizationButton.current}
-                  dialogRef={popup}
-                  onDismiss={() => setNormalization(false)}
-                  className="batch-normalization-popup"
-                  aria-label="Normalization settings"
-                >
-                  <DialogHeader
-                    title="Normalization settings"
-                    closeLabel="Close normalization settings"
-                    onClose={() => setNormalization(false)}
-                  />
-                  <p>
-                    Match each frame’s mean intensity to the reference over the
-                    selected bins. Bin numbers start at 0; frame numbers start
-                    at 1.
-                  </p>
-                  <label>
-                    First bin (inclusive)
-                    <input
-                      aria-label="First normalization bin"
-                      type="number"
-                      min={0}
-                      max={lastBin}
-                      value={Number.isFinite(firstBin) ? firstBin : ""}
-                      onChange={(e) => setFirstBin(e.target.valueAsNumber)}
-                    />
-                  </label>
-                  <label>
-                    Last bin (inclusive)
-                    <input
-                      aria-label="Last normalization bin"
-                      type="number"
-                      min={firstBin}
-                      max={(batch?.x.length ?? 1) - 1}
-                      value={Number.isFinite(lastBin) ? lastBin : ""}
-                      onChange={(e) => setLastBin(e.target.valueAsNumber)}
-                    />
-                  </label>
-                  <label>
-                    Reference frame
-                    <input
-                      aria-label="Normalization reference frame"
-                      type="number"
-                      min={1}
-                      max={count}
-                      value={Number.isFinite(reference) ? reference + 1 : ""}
-                      onChange={(e) => setReference(e.target.valueAsNumber - 1)}
-                    />
-                  </label>
-                  <div>
-                    <button
-                      className="primary"
-                      disabled={!ready || !normalizationValid}
-                      onClick={() => {
-                        void run(
-                          "batch_normalization_settings",
-                          { start: firstBin, stop: lastBin, reference },
-                          "Updating normalization settings…",
-                        );
-                        setNormalization(false);
-                      }}
-                    >
-                      Apply
-                    </button>
-                    <button onClick={() => setNormalization(false)}>
-                      Cancel
-                    </button>
-                  </div>
-                </Dialog>,
-                document.body,
-              )}
-          </span>
-        </>
-      )}
+      <button
+        disabled={!ready || !batch?.canReintegrate || !calibrated}
+        onClick={() =>
+          run(
+            "batch_load",
+            { reintegrate: true, start: start + 1, stop: stop + 1, step },
+            "Integrating batch…",
+          )
+        }
+      >
+        Integrate
+      </button>
     </div>
+  );
+  const normalization = (
+    <fieldset className="batch-normalization-settings">
+      <legend>Normalization region</legend>
+      <p>
+        Match the mean intensity in this {axis} region to{" "}
+        {batch?.normalizationReferenceName ?? "the reference pattern"}.
+      </p>
+      <label>
+        Minimum {unitLabel(batch?.unit ?? "2th_deg")}
+        <ScientificNumberInput
+          aria-label={`Normalization minimum ${axis}`}
+          aria-invalid={!!batch && !normalizationValid}
+          aria-describedby={
+            batch && !normalizationValid ? normalizationErrorId : undefined
+          }
+          value={minimum}
+          disabled={!ready || !batch}
+          onValueChange={setMinimum}
+        />
+      </label>
+      <label>
+        Maximum {unitLabel(batch?.unit ?? "2th_deg")}
+        <ScientificNumberInput
+          aria-label={`Normalization maximum ${axis}`}
+          aria-invalid={!!batch && !normalizationValid}
+          aria-describedby={
+            batch && !normalizationValid ? normalizationErrorId : undefined
+          }
+          value={maximum}
+          disabled={!ready || !batch}
+          onValueChange={setMaximum}
+        />
+      </label>
+      {batch && !normalizationValid && (
+        <p id={normalizationErrorId} className="ui-field-error">
+          {axis === "2θ"
+            ? "Enter an increasing 2θ interval between 0° and 180°."
+            : `Enter an increasing, ${axis === "d" ? "positive" : "non-negative"} ${axis} interval.`}
+        </p>
+      )}
+      <button
+        disabled={
+          !ready || !batch || !normalizationValid || !normalizationChanged
+        }
+        onClick={() =>
+          run(
+            "batch_normalization_settings",
+            {
+              minimum: Number(minimum),
+              maximum: Number(maximum),
+              unit: batch?.unit,
+            },
+            "Updating normalization region…",
+          )
+        }
+      >
+        Apply normalization region
+      </button>
+      <p>Use the = icon beside the plot axis.</p>
+    </fieldset>
   );
   const ranges = (
     <div className="batch-range-row">
@@ -327,23 +251,23 @@ export function BatchControls({
   );
   return (
     <div
+      role={optionsVisible ? "tabpanel" : undefined}
+      aria-label={optionsVisible ? "Batch options" : undefined}
       hidden={docked && !filesView && !optionsVisible}
-      className={`batch-bottom-controls ${docked && optionsVisible ? "batch-options-active" : ""}`}
+      className={`batch-bottom-controls ${optionsVisible ? "batch-options-active" : ""}`}
     >
-      {docked ? (
-        <>
-          <div
-            className="batch-settings-content"
-            hidden={!filesView && !optionsVisible}
-          >
-            {actions}
+      {optionsVisible ? (
+        <div className="batch-settings-content">
+          {normalization}
+          <fieldset className="batch-frame-settings">
+            <legend>Frame range</legend>
             {ranges}
-          </div>
-        </>
+          </fieldset>
+        </div>
       ) : (
         <>
-          {actions}
-          {navigation}
+          {integration}
+          {!docked && navigation}
           {ranges}
         </>
       )}

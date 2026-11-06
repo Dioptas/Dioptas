@@ -8,7 +8,7 @@ import {
   ChevronUp,
   ExternalLink,
   FolderOpen,
-  Layers,
+  ChartNoAxesColumn,
   Unlink,
   PanelBottomClose,
   Save,
@@ -93,7 +93,7 @@ export function BatchView({
     Math.max(0, (batch?.entries.length ?? 1) - 1),
   ]);
   useEffect(() => {
-    if (batch) setTab((tab) => (docked && tab === "Options" ? tab : "2D"));
+    if (batch) setTab((tab) => (tab === "Options" ? tab : "2D"));
   }, [batch?.id]);
   const select = (
     index: number,
@@ -282,10 +282,7 @@ export function BatchView({
           label="Batch view"
           value={tab}
           onChange={setTab}
-          options={(docked
-            ? (["Files", "2D", "Options"] as const)
-            : (["Files", "2D"] as const)
-          ).map((name) => ({
+          options={(["Files", "2D", "Options"] as const).map((name) => ({
             value: name,
             name,
             label: name === "Options" ? <Settings2 size={15} /> : name,
@@ -300,7 +297,7 @@ export function BatchView({
           disabled={!batch?.phaseLines?.length}
           onClick={() => display.update({ phases: !display.phases })}
         >
-          <Layers size={15} aria-hidden="true" />
+          <ChartNoAxesColumn size={15} aria-hidden="true" />
           <span className="plot-toolbar-label">Phases</span>
         </PlotToggle>
         <div className="batch-window-actions">
@@ -351,14 +348,6 @@ export function BatchView({
             role="tabpanel"
             aria-label="Batch files"
           >
-            <dl className="batch-file-metadata">
-              <dt>Calibration File:</dt>
-              <dd title={batch?.calibration ?? ""}>
-                {batch?.calibration || "none loaded"}
-              </dd>
-              <dt>Mask File:</dt>
-              <dd title={batch?.mask ?? ""}>{batch?.mask || "none loaded"}</dd>
-            </dl>
             {batch ? (
               <TableScroll className="batch-file-list">
                 <DataTable aria-label="Raw batch files">
@@ -379,7 +368,7 @@ export function BatchView({
                         <td>
                           <button
                             disabled={!ready || file.first === null}
-                            aria-label={`Select batch file ${i}`}
+                            aria-label={`Select batch file ${i + 1}`}
                             title={file.path}
                             onClick={() => select(file.first!)}
                           >
@@ -459,6 +448,13 @@ export function BatchView({
                     onZoomMode={(zoomMode) => display.update({ zoomMode })}
                     ready={ready}
                     onSelect={select}
+                    onNormalize={() =>
+                      run(
+                        "batch_normalize",
+                        { enabled: !batch.normalized },
+                        "Updating normalization…",
+                      )
+                    }
                     reportPlot={reportPlot}
                   />
                 </div>
@@ -472,12 +468,11 @@ export function BatchView({
         <BatchControls
           docked={docked}
           optionsVisible={tab === "Options"}
-          batch={batch}
+          batch={shownBatch}
           ready={ready}
           calibrated={calibrated}
           filesView={tab === "Files"}
           run={run}
-          onAutoScale={auto}
           onRange={onRange}
         />
       )}

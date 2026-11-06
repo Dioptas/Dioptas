@@ -22,12 +22,14 @@ The independent histogram is mirrored horizontally on the left, including its
 handle hit areas. Expanded labels remain upright; horizontal orientation keeps
 the existing unmirrored behavior.
 
-In the separate window, Files offers Integrate; 2D offers AutoScale and Normalize with a
-separate normalization-settings popup. Previous/slider/next, Frame, and
-Start/Stop/Step follow beneath. Displayed frame and bin indices start at zero,
-as in Qt. Start/Stop are inclusive; the adapter translates them to the existing
-one-based inclusive processing-command range.
-The 2D series grows bottom to top: frame zero is the lowest row. Selection,
+In the separate window, Files offers Integrate. Histogram Auto owns intensity
+autoscaling; there is no duplicate AutoScale action. A compact Normalize toggle
+sits in the existing bottom-right axis margin in both docked and separate views.
+Options contains the normalization region directly, plus Start/Stop/Step.
+Previous/slider/next and Frame remain below the separate plot. Displayed frame
+numbers start at 1; stored indices remain zero-based. Start/Stop are inclusive;
+the adapter translates them to the existing processing-command range.
+The 2D series grows bottom to top: frame 1 is the lowest row. Selection,
 hover readouts and frame labels follow that orientation; Up moves to the next
 frame and Down to the previous one. Stored data stays in acquisition order.
 The selected frame uses an orange horizontal line and a small marker at the left
@@ -60,12 +62,12 @@ its closed state; quitting the app with Batch open preserves the open state.
 Startup restores the layout once the main window is ready, including an empty
 Batch panel before a scientific project is loaded. Project data still comes from
 the normal Load/Save project workflow.
-When docked, a settings icon (accessible as **Options**) beside Files/2D holds AutoScale, normalization
-and Start/Stop/Step. The 2D tab has no bottom browsing row or slider: the header
+The settings icon (accessible as **Options**) beside Files/2D holds normalization
+limits and Start/Stop/Step in both layouts. The docked 2D tab has no bottom browsing row or slider: the header
 shows the selected frame number and total frame count (n/N in narrow panes).
 The header stays on one row; secondary captions become tooltip-labelled icons
 when space is tight. Heatmap ticks, hover
-readout, navigation, Start/Stop and normalization reference use frame numbers
+readout, navigation and Start/Stop use frame numbers
 starting at 1; stored model indices and radial bin indices remain zero-based.
 The heatmap has no vertical axis title. Click rows or use
 Up/Down and Home/End on the overview to browse. Open, previous/next-folder and
@@ -129,13 +131,21 @@ or changed screen scaling are handled by that shared implementation.
   to/from 2θ requires the recorded source wavelength. Q↔d needs no wavelength.
 - Rectangle zoom, right-drag pan, right-click zoom out, right-double-click/F fit,
   wheel zoom and keyboard row selection use shared plot navigation. Dragging
-  never selects a frame. Readouts report original intensities, including in √/log
+  never selects a frame. Like Cake, rectangle/X-range selections may start in
+  the canvas axis margins; gutter-only gestures stay inert. Readouts report original intensities, including in √/log
   display. Detector pixels remain full resolution and square. Histograms for
   detector, cake and batch overview are independent.
-- Normalize matches each frame's mean over the selected inclusive bin interval
-  to a reference frame using Qt's model. Settings can be saved before enabling
-  normalization. Turning Normalize off restores retained original arrays exactly.
-  Invalid ranges and nonpositive means reject the operation.
+- Normalize matches each frame's mean over the selected physical interval to the
+  existing reference pattern using Qt's model. Limits follow the current Batch
+  axis (2θ in degrees, Q in Å⁻¹ or d in Å), including the linked pattern axis
+  while docked. The desktop adapter selects inclusive stored sample centres and
+  supplies a half-open bin interval to the unchanged scientific model; no
+  interpolation or resampling is introduced. Conversions use the batch's recorded
+  wavelength; Q↔d also works without one. The reference is identified by filename,
+  without an index field. Settings can be applied before enabling normalization
+  and are retained in .dio projects and optional processed-HDF5 metadata.
+  Turning Normalize off restores retained original arrays exactly. Invalid
+  regions and nonpositive means reject the operation without replacing data.
 
 The child uses the main window's ordered mutation queue and the same processing
 session. Native child commands are restricted to read-only batch snapshots and

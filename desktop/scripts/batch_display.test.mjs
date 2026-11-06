@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { batchDisplayInUnit } from "../src/batchDisplay.ts";
+import {
+  batchDisplayInUnit,
+  batchNormalizationRegion,
+} from "../src/batchDisplay.ts";
 import { batchRadialBin } from "../src/batchPlot.ts";
 test("batch markers project into nonuniform ascending and descending radial axes", () => {
   assert.equal(batchRadialBin(15, [10, 20, 40]), 1);
@@ -32,4 +35,26 @@ test("stored reciprocal axes link without inventing a wavelength", () => {
 test("unreachable angular conversion keeps all source columns and their valid axis", () => {
   const original = { x: [1, 100], unit: "q_A^-1", wavelength: 1e-10 };
   assert.equal(batchDisplayInUnit(original, "2th_deg"), original);
+});
+
+test("normalization limits follow the shown axis and keep the stored physical region", () => {
+  const original = {
+    unit: "d_A",
+    wavelength: null,
+    normalizationRegion: { minimum: 2, maximum: 4, unit: "q_A^-1" },
+  };
+  assert.deepEqual(batchNormalizationRegion(original), {
+    minimum: Math.PI / 2,
+    maximum: Math.PI,
+    unit: "d_A",
+  });
+  assert.deepEqual(original.normalizationRegion, {
+    minimum: 2,
+    maximum: 4,
+    unit: "q_A^-1",
+  });
+  assert.equal(
+    batchNormalizationRegion({ ...original, unit: "2th_deg" }),
+    null,
+  );
 });

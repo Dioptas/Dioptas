@@ -100,6 +100,90 @@ def test_range_stride_and_normalization_restore(prepared):
     assert s.configuration.batch_model is previous
 
 
+@pytest.mark.parametrize("stored_unit", ["2th_deg", "q_A^-1", "d_A"])
+@pytest.mark.parametrize("axis_unit", ["2th_deg", "q_A^-1", "d_A"])
+def test_physical_normalization_follows_axis_and_recorded_wavelength(prepared, stored_unit, axis_unit):
+    s, paths = prepared
+    s.configuration.integration_unit = stored_unit
+    call(s, "batch_load", paths=paths)
+    b = s.configuration.batch_model
+    original = b.data.copy()
+    wavelength = b._desktop_wavelength * 1e10
+    x = b.binning
+    # Independent physical conversions, including the descending d mapping.
+    q = x if stored_unit == "q_A^-1" else 2 * np.pi / x if stored_unit == "d_A" else 4 * np.pi * np.sin(np.radians(x / 2)) / wavelength
+    displayed = q if axis_unit == "q_A^-1" else 2 * np.pi / q if axis_unit == "d_A" else np.degrees(2 * np.arcsin(q * wavelength / (4 * np.pi)))
+    ordered = np.sort(displayed)
+    minimum, maximum = (ordered[19] + ordered[20]) / 2, (ordered[59] + ordered[60]) / 2
+    mask = (displayed >= minimum) & (displayed <= maximum)
+    indices = np.flatnonzero(mask)
+    # Retain an already chosen reference; changing the region doesn't renumber it.
+    call(s, "batch_normalization_settings", start=0, stop=99, reference=1)
+    s.configuration.calibration_model.pattern_geometry.wavelength *= 1.2
+    r = call(s, "batch_normalization_settings", minimum=minimum, maximum=maximum, unit=axis_unit)
+    definition = {"minimum": minimum, "maximum": maximum, "unit": axis_unit}
+    assert r["batch"]["normalizationRegion"] == definition
+    assert r["batch"]["normalizationReferenceName"] == "frame_002.tif"
+    assert b.normalization_range == (indices[0], indices[-1] + 1)
+    call(s, "batch_normalize")
+    means = original[:, mask].mean(axis=1)
+    np.testing.assert_allclose(b.data, original * (means[1] / means)[:, None])
+    # Reapplying is always calculated from original counts, not the scaled data.
+    call(s, "batch_normalization_settings", **definition)
+    np.testing.assert_allclose(b.data, original * (means[1] / means)[:, None])
+    normalized = b.data.copy()
+    for invalid in ({"minimum": maximum, "maximum": minimum},
+                    {"minimum": float("nan"), "maximum": maximum},
+                    {"minimum": True, "maximum": maximum},
+                    {"minimum": maximum * 10, "maximum": maximum * 11}):
+        assert not s.invoke("batch_normalization_settings", {**invalid, "unit": axis_unit})["ok"]
+        np.testing.assert_array_equal(b.data, normalized)
+        assert call(s, "batch_snapshot")["batch"]["normalizationRegion"] == definition
+    call(s, "batch_normalize", enabled=False)
+    np.testing.assert_array_equal(b.data, original)
+
+
+def test_normalization_region_project_and_hdf5_roundtrip(prepared, tmp_path):
+    s, paths = prepared
+    call(s, "batch_load", paths=paths)
+    b = s.configuration.batch_model
+    original = b.data.copy()
+    region = call(s, "batch_snapshot")["batch"]["normalizationRegion"]
+    call(s, "batch_normalization_settings", **region)
+    call(s, "batch_normalize")
+    project, processed = tmp_path / "region.dio", tmp_path / "region.h5"
+    call(s, "save_project", path=str(project))
+    call(s, "integration_save_batch", path=str(processed))
+    restored = DesktopSession()
+    r = call(restored, "open_project", path=str(project))
+    assert r["batch"]["normalizationRegion"] == region
+    np.testing.assert_array_equal(restored.configuration.batch_model.data, b.data)
+    call(restored, "batch_normalize", enabled=False)
+    np.testing.assert_array_equal(restored.configuration.batch_model.data, original)
+    r = call(restored, "batch_open", path=str(processed))
+    assert r["batch"]["normalizationRegion"] == region
+    np.testing.assert_array_equal(restored.configuration.batch_model.data, b.data)
+
+
+def test_normalization_reciprocal_limits_without_recorded_wavelength(tmp_path):
+    file = tmp_path / "reciprocal.h5"
+    with h5py.File(file, "w") as f:
+        g = f.create_group("processed/result")
+        g["data"] = np.array([[1., 2., 3., 4.], [3., 6., 9., 12.]])
+        g["binning"] = [1., 2., 3., 4.]
+        g["binning"].attrs["radial_unit"] = "q_A^-1"
+    s = DesktopSession()
+    r = call(s, "batch_open", path=str(file))
+    assert r["batch"]["normalizationRegion"]["unit"] == "q_A^-1"
+    original = s.configuration.batch_model.data.copy()
+    call(s, "batch_normalization_settings", minimum=1.8, maximum=3.5, unit="d_A")
+    call(s, "batch_normalize")
+    np.testing.assert_array_equal(s.configuration.batch_model.data[0], s.configuration.batch_model.data[1])
+    assert not s.invoke("batch_normalization_settings", {"minimum": 1, "maximum": 10, "unit": "2th_deg"})["ok"]
+    call(s, "batch_normalize", enabled=False)
+    np.testing.assert_array_equal(s.configuration.batch_model.data, original)
+
+
 def test_hdf5_frame_order(prepared, tmp_path):
     s, _ = prepared
     path = tmp_path / "series.h5"

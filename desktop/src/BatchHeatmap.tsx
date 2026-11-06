@@ -1,8 +1,12 @@
+import { Equal } from "lucide-react";
+import { PlotToggle } from "./IntegrationPlotControls";
 import { usePlotTypography } from "./usePlotTypography";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { BatchData } from "./batchDomain";
 import { decodeRaster } from "./rasterTransfer";
 import { unitLabel, type Pattern } from "./types";
+import { batchNormalizationRegion } from "./batchDisplay";
+import { scientificValue } from "./ScientificNumberInput";
 import { radialFields, radialValues } from "./radialReadout";
 import { intensityValue } from "./readoutNumbers";
 import type { PatternPosition } from "./linkedPosition";
@@ -38,6 +42,7 @@ export function BatchHeatmap({
   palette,
   ready,
   onSelect,
+  onNormalize,
   reportPlot,
 }: {
   batch: BatchData;
@@ -53,6 +58,7 @@ export function BatchHeatmap({
   ready: boolean;
   onSelect: (index: number, position?: PatternPosition) => void;
   reportPlot: ReportPlot;
+  onNormalize: () => void;
 }) {
   const host = useRef<HTMLDivElement>(null),
     canvas = useRef<HTMLCanvasElement>(null);
@@ -78,6 +84,7 @@ export function BatchHeatmap({
     undefined,
     viewport,
   );
+  const normalizationRegion = batchNormalizationRegion(batch);
   const values = useMemo(() => decodeRaster(batch.raster), [batch.raster.data]);
   const coloredValues = useMemo(
     () =>
@@ -326,7 +333,7 @@ export function BatchHeatmap({
         onContextMenu={(e) => e.preventDefault()}
         onPointerDown={(e) => {
           e.currentTarget.focus();
-          nav.onPointerDown(e);
+          nav.onPointerDown(e, true, true);
         }}
         onPointerMove={(e) => {
           nav.onPointerMove(e);
@@ -393,6 +400,23 @@ export function BatchHeatmap({
           }
         }}
       />
+      <div className="batch-normalize-toggle">
+        <PlotToggle
+          label="Normalize batch"
+          title={
+            batch.normalized
+              ? "Restore original batch intensities"
+              : normalizationRegion
+                ? `Normalize over ${scientificValue(normalizationRegion.minimum)}–${scientificValue(normalizationRegion.maximum)} ${unitLabel(batch.unit)}; edit the region in Options`
+                : "Set a normalization region in Options"
+          }
+          pressed={batch.normalized}
+          disabled={!ready || (!batch.normalized && !batch.normalizationRegion)}
+          onClick={onNormalize}
+        >
+          <Equal size={15} aria-hidden="true" />
+        </PlotToggle>
+      </div>
       <PlotZoomControls
         mode={zoomMode}
         onChange={onZoomMode}

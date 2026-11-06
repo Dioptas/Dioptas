@@ -17,6 +17,25 @@ interface Display {
   auto: boolean;
   initialized: boolean;
 }
+
+/** Preserve the physical region while labelling limits in the plot's axis. */
+export function batchNormalizationRegion(batch: BatchData | null) {
+  const region = batch?.normalizationRegion;
+  if (!batch || !region) return null;
+  const edges = [region.minimum, region.maximum].map(
+    (value) =>
+      radialValues(value, region.unit, batch.wavelength ?? undefined)[
+        batch.unit
+      ],
+  );
+  if (edges.some((value) => value == null || !Number.isFinite(value)))
+    return null;
+  return {
+    minimum: Math.min(...(edges as number[])),
+    maximum: Math.max(...(edges as number[])),
+    unit: batch.unit,
+  };
+}
 const key = "dioptas-batch:display";
 function read(batch: BatchData | null): Display {
   const fallback: Display = {

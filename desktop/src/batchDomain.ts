@@ -16,6 +16,8 @@ export interface BatchData {
   normalized: boolean;
   normalizationRange: [number, number];
   normalizationReference: number;
+  normalizationRegion?: { minimum: number; maximum: number; unit: Unit } | null;
+  normalizationReferenceName?: string;
   calibration: string | null;
   /** Phase coordinates are d spacings in angstroms, independent of display unit. */
   phaseLines?: import("./types").Pattern["phaseLines"];
