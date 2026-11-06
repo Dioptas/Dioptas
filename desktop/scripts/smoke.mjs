@@ -611,7 +611,7 @@ try {
     (await invoke("state")).state.calibration.workflow.numberOfRings,
     4,
   );
-  const searchWidth = page.getByLabel("Search width Δ2θ · °", { exact: true });
+  const searchWidth = page.getByLabel("Search width Δ2θ (°)", { exact: true });
   await searchWidth.fill("0.2");
   await searchWidth.press("Enter");
   await waitReady();

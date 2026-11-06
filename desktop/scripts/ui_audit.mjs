@@ -129,7 +129,10 @@ const tab = async (name) => {
 const capture = async (name, target = page) => {
   await ready();
   await target.mouse.move(2, 2);
-  await target.screenshot({ path: path.join(output, `${name}.png`) });
+  await target.screenshot({
+    path: path.join(output, `${name}.png`),
+    animations: "disabled",
+  });
   await writeFile(
     path.join(output, `${name}.aria.yml`),
     await target.locator("body").ariaSnapshot(),
@@ -365,6 +368,32 @@ try {
     checks.push(...(await verifyPolish({ page, ready, invoke, output })));
     await capture("polish-current");
   } else {
+    if (stage !== "before") {
+      await click("Integration");
+      assert(
+        await page
+          .getByRole("button", {
+            name: "Load calibration to integrate the image",
+            exact: true,
+          })
+          .isEnabled(),
+      );
+      await capture("integration-calibration-required");
+      await click("Map");
+      assert(
+        await page
+          .getByRole("button", {
+            name: "Load calibration to build a map",
+            exact: true,
+          })
+          .isEnabled(),
+      );
+      await capture("map-calibration-required");
+      await click("Calibration");
+      checks.push(
+        "Empty pattern and Map offer calibration before loading detector series",
+      );
+    }
     await capture("calibration-image");
     await tab("Step 2: Pick rings");
     await capture("calibration-peaks");
@@ -504,6 +533,20 @@ try {
     await click("Mask");
     await capture("mask");
     await click("Integration");
+    if (stage !== "before") {
+      const calibration = page.locator(".integration-calibration-button");
+      const current = (await invoke("state")).state;
+      assert.equal(
+        (await calibration.textContent()).trim(),
+        current.calibrationName.split(/[\\/]/).at(-1),
+      );
+      assert(
+        (await calibration.getAttribute("aria-label")).includes(
+          (await calibration.textContent()).trim(),
+        ),
+        "Calibration accessible name includes the visible geometry name",
+      );
+    }
     for (const t of [
       "Image",
       "Pattern",
@@ -724,11 +767,9 @@ try {
       );
       await child.keyboard.press("Escape");
     }
-    await child
-      .getByRole("button", { name: "Normalization settings", exact: true })
-      .click();
+    await child.getByRole("tab", { name: "Options", exact: true }).click();
     await capture("batch-normalization", child);
-    await child.keyboard.press("Escape");
+    await child.getByRole("tab", { name: "2D", exact: true }).click();
     await child
       .getByRole("button", { name: "Dock batch below image", exact: true })
       .click();
@@ -776,6 +817,25 @@ try {
       checks.push("Batch tabs: arrows and actual roving focus");
     }
     await click("Map");
+    if (stage !== "before") {
+      assert(
+        await page
+          .getByRole("button", {
+            name: "Load images to build a map",
+            exact: true,
+          })
+          .isEnabled(),
+      );
+      assert(
+        await page
+          .getByRole("button", {
+            name: "Folder… — build a map from a folder",
+            exact: true,
+          })
+          .isEnabled(),
+      );
+      await capture("map-build-empty");
+    }
     await click("Load map calibration");
     await page
       .locator(".map-controls")
@@ -846,24 +906,18 @@ try {
       await tab("Image");
       const dock = page.locator(".batch-docked");
       await dock.getByRole("tab", { name: "Options", exact: true }).click();
-      await dock
-        .getByRole("button", { name: "Normalization settings", exact: true })
-        .click();
       await capture("batch-normalization-compact" + suffix);
-      const popup = page.getByRole("dialog", {
-        name: "Normalization settings",
-        exact: true,
-      });
-      const popupBox = await popup.boundingBox();
+      const popupBox = await dock
+        .locator(".batch-settings-content")
+        .boundingBox();
       if (stage !== "before")
         assert(
           popupBox.x >= 0 &&
             popupBox.y >= 0 &&
             popupBox.x + popupBox.width <= 1001 &&
             popupBox.y + popupBox.height <= 761,
-          "Normalization popup remains inside compact viewport",
+          "Normalization settings remain inside compact viewport",
         );
-      await page.keyboard.press("Escape");
       await dock.getByRole("tab", { name: "2D", exact: true }).click();
       await capture("batch-compact" + suffix);
       if (stage !== "before") {

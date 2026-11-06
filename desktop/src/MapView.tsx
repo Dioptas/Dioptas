@@ -494,8 +494,9 @@ export function MapView({
               />
             ) : (
               <div className="empty-pattern">
-                Select a filled map cell to inspect its stored diffraction
-                pattern.
+                {map
+                  ? "Select a filled map cell to inspect its stored diffraction pattern."
+                  : "Build a map to inspect its diffraction patterns."}
               </div>
             )}
             <div
@@ -535,6 +536,7 @@ export function MapView({
                   aria-label="Show pattern windows"
                   title="Show pattern windows"
                   aria-pressed={showRegions}
+                  disabled={!pattern}
                   onClick={() => setShowRegions((v) => !v)}
                 >
                   ROI
@@ -544,7 +546,7 @@ export function MapView({
                   aria-label="Edit windows"
                   title="Edit pattern windows by dragging; turn off to zoom inside windows"
                   aria-pressed={editRegions}
-                  disabled={!showRegions}
+                  disabled={!pattern || !showRegions}
                   onClick={() => setEditRegions((v) => !v)}
                 >
                   <MoveHorizontal size={15} />
@@ -555,6 +557,7 @@ export function MapView({
                   className="plot-tool-button"
                   aria-label="Logarithmic map pattern intensity"
                   aria-pressed={scale === "log"}
+                  disabled={!pattern}
                   title="Logarithmic intensity"
                   onClick={() => setScale(scale === "log" ? "linear" : "log")}
                 >
@@ -564,6 +567,7 @@ export function MapView({
                   className="plot-tool-button"
                   aria-label="Square root map pattern intensity"
                   aria-pressed={scale === "sqrt"}
+                  disabled={!pattern}
                   title="Square-root intensity"
                   onClick={() => setScale(scale === "sqrt" ? "linear" : "sqrt")}
                 >
@@ -575,6 +579,7 @@ export function MapView({
                 aria-label="Antialias map pattern"
                 title="Antialiased pattern lines"
                 aria-pressed={antialias}
+                disabled={!pattern}
                 onClick={() => setAntialias((v) => !v)}
               >
                 AA
@@ -584,6 +589,7 @@ export function MapView({
                 aria-label="Map pattern auto range"
                 title="Fit axes when the selected pattern changes"
                 aria-pressed={autoRange}
+                disabled={!pattern}
                 onClick={() => setAutoRange((v) => !v)}
               >
                 A

@@ -408,7 +408,7 @@ export function CalibrationExtras({
                 </div>
                 {(
                   [
-                    ["deltaTth", "Search width Δ2θ · °"],
+                    ["deltaTth", "Search width Δ2θ (°)"],
                     ["meanFactor", "Intensity mean factor"],
                     ["intensityLimit", "Upper intensity limit"],
                     ["numberOfRings", "Number of rings"],

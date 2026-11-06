@@ -299,12 +299,6 @@
   border-radius: 3px;
   white-space: nowrap;
 }
-.integration-pattern-calibration {
-  margin-left: auto;
-  font-size: var(--text-meta);
-  color: var(--ui-muted);
-  white-space: nowrap;
-}
 .integration-pattern-actions button {
   min-width: 0;
   padding: 3px;
@@ -448,9 +442,6 @@
   .integration-controls .field-label {
     grid-template-columns: minmax(0, 1fr) 80px;
   }
-  .integration-pattern-calibration {
-    width: auto;
-  }
 }
 .integration-controls .file-actions {
   margin: 0;
@@ -478,4 +469,18 @@
 .integration-cake-shift > span:last-child {
   width: 5ch;
   font-variant-numeric: tabular-nums;
+}
+
+/* The current geometry names the existing calibration action. */
+.app .integration-pattern-actions .integration-calibration-button {
+  margin-left: auto;
+  flex: 0 1 auto;
+  max-width: 60%;
+  min-width: 0;
+}
+.integration-calibration-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

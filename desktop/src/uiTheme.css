@@ -236,19 +236,6 @@ input[aria-invalid="true"] {
   border-bottom: 1px solid var(--border);
   margin-bottom: 8px;
 }
-.integration-pattern-actions .geometry-provenance {
-  margin-left: auto;
-  min-width: 0;
-  flex-wrap: nowrap;
-  overflow: hidden;
-  align-items: center;
-}
-.integration-pattern-actions .geometry-provenance .geometry-source-file {
-  max-width: 180px;
-}
-.integration-pattern-actions .integration-pattern-calibration {
-  margin-left: 0;
-}
 .pattern-pending {
   color: var(--accent);
   font-size: var(--text-meta);
@@ -364,9 +351,6 @@ textarea {
   }
   .settings-integration .integration-group:first-child {
     grid-row: auto;
-  }
-  .integration-pattern-actions .geometry-provenance .geometry-source-file {
-    max-width: 100px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -502,20 +486,6 @@ textarea::placeholder {
 }
 .batch-position-compact {
   display: none;
-}
-.app .integration-pattern-actions .geometry-provenance {
-  flex: 1 1 0;
-}
-.app .integration-pattern-actions .geometry-provenance strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.app .integration-pattern-actions .geometry-source-file {
-  flex: 0 2 auto;
-}
-.app .integration-pattern-actions .integration-pattern-calibration {
-  flex: 0 0 auto;
 }
 @container plot-toolbar (max-width: 600px) {
   .plot-toolbar-label {

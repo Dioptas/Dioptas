@@ -672,3 +672,6 @@
 .detached-map-footer [role="alert"] {
   color: #ffad92;
 }
+.app .map-display-controls label:has(input:disabled) {
+  opacity: 0.5;
+}

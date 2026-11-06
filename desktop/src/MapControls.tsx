@@ -9,7 +9,7 @@ import {
   CircleCheck,
   RefreshCw,
   Radio,
-  Crosshair,
+  FolderOpen,
   ListOrdered,
   Settings,
 } from "lucide-react";
@@ -219,7 +219,7 @@ export function MapControls({
                 disabled={!ready}
                 onClick={() => run("open_calibration")}
               >
-                <Crosshair size={16} />
+                <FolderOpen size={16} />
               </button>
               <button
                 className="plot-tool-button map-source-icon"

@@ -1,4 +1,4 @@
-import { Crosshair } from "lucide-react";
+import { FolderOpen } from "lucide-react";
 
 export function LoadCalibrationButton({
   ready,
@@ -16,7 +16,7 @@ export function LoadCalibrationButton({
       disabled={!ready}
       onClick={onLoad}
     >
-      <Crosshair size={15} /> Load calibration…
+      <FolderOpen size={15} /> Load calibration…
     </button>
   );
 }

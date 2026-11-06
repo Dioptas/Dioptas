@@ -135,7 +135,7 @@ export async function verifyDraftsAndFeedback({ page, ready, invoke, output }) {
       window.__invoke = original;
     };
   });
-  await button("Load calibration…").click();
+  await page.locator(".integration-calibration-button").click();
   await page.getByRole("alert").waitFor();
   await button("View error details").click();
   const details = page.getByRole("dialog", {

@@ -1,6 +1,18 @@
 import type { State } from "./types";
 import { scientificValue } from "./ScientificNumberInput";
 
+export function geometrySourceLabel(source: string) {
+  return (
+    (
+      {
+        fitted: "Fitted geometry",
+        loaded: "Loaded geometry",
+        manual: "Manual geometry",
+      } as Record<string, string>
+    )[source] ?? "Geometry"
+  );
+}
+
 /** Expose the model's provenance, never infer a fit from a loaded geometry. */
 export function GeometryProvenance({
   state,
@@ -11,14 +23,7 @@ export function GeometryProvenance({
 }) {
   if (!state?.calibrated) return null;
   const c = state.calibration;
-  const source =
-    (
-      {
-        fitted: "Fitted geometry",
-        loaded: "Loaded geometry",
-        manual: "Manual geometry",
-      } as Record<string, string>
-    )[c.geometrySource] ?? "Geometry";
+  const source = geometrySourceLabel(c.geometrySource);
   const points = c.picks.reduce(
     (total, group) => total + group.points.length,
     0,
