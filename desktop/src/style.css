@@ -63,13 +63,13 @@ button:not(:disabled):hover {
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ui-focus);
   outline-offset: 3px;
 }
 input:not([type="checkbox"]):not([type="radio"]):focus-visible,
 select:focus-visible {
-  border-color: var(--accent);
-  outline: 1px solid var(--accent);
+  border-color: var(--ui-focus);
+  outline: 1px solid var(--ui-focus);
   outline-offset: -1px;
 }
 button svg {
@@ -148,7 +148,7 @@ input[type="radio"]:disabled {
   }
 }
 input[type="range"] {
-  accent-color: var(--accent);
+  accent-color: var(--ui-focus);
   padding: 0;
   border: 0;
   background: none;
@@ -237,10 +237,10 @@ button.quiet {
   gap: 10px;
   margin: 0 14px 8px;
   padding: 11px 12px;
-  border: 1px solid #ff950029;
+  border: 1px solid var(--ui-selection-edge);
   border-radius: 7px;
-  background: #ff95000c;
-  color: #ff9500;
+  background: var(--ui-selection-fill);
+  color: var(--ui-selection-text);
   font-size: var(--text-small);
   font-weight: 550;
 }
@@ -676,8 +676,8 @@ h2 {
   color: #8293a3;
 }
 .tool-group button.active {
-  color: #ff9500;
-  background: #ff950012;
+  color: var(--ui-selection-text);
+  background: var(--ui-selection-fill);
 }
 .tool-description {
   font-size: var(--text-small);
@@ -835,7 +835,7 @@ h2 {
 }
 .plot-zoom-button[aria-pressed="true"],
 .plot-zoom-button[aria-pressed="true"]:not(:disabled):hover {
-  color: var(--accent);
+  color: var(--ui-selection-text);
 }
 .plot-readout {
   position: absolute;
@@ -1100,7 +1100,7 @@ h2 {
   min-height: 39px;
 }
 .workspace-nav.workspace-active {
-  color: #ff9500;
+  color: var(--ui-selection-text);
 }
 .setup-pair {
   display: grid;
@@ -1448,7 +1448,7 @@ main {
 .calibration-step-buttons .active {
   color: var(--accent-text, var(--accent));
   background: #ffffff08;
-  border-color: var(--accent);
+  border-color: var(--ui-selection-edge);
 }
 .compact-export {
   margin-left: auto;
@@ -2298,7 +2298,7 @@ input[type="checkbox"] {
   outline: none;
 }
 .intensity-colour-bar:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ui-focus);
   outline-offset: 2px;
 }
 .display-settings-backdrop {
@@ -2392,7 +2392,7 @@ input[type="checkbox"] {
   font-size: var(--text-small);
 }
 .color-map-options [aria-selected="true"] {
-  border-color: #ff950080;
+  border-color: var(--ui-selection-edge);
 }
 .color-map-options .focused {
   background: #ffffff0a;

@@ -12,6 +12,10 @@
   --ui-button-hover: #383f46;
   --ui-border: #46515d;
   --ui-field-edge: transparent;
+  --ui-focus: #87939f;
+  --ui-selection-edge: #87939f;
+  --ui-selection-fill: #343a41;
+  --ui-selection-text: var(--ui-text);
   --ui-divider: #303740;
   --ui-text: #dce2e7;
   --ui-muted: #a6b1bc;
@@ -130,7 +134,7 @@ button:disabled {
   opacity: 0.5;
 }
 :is(button, summary, canvas, [tabindex]):focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ui-focus);
   outline-offset: -2px;
 }
 summary {
@@ -191,7 +195,7 @@ input[aria-invalid="true"] {
 }
 .app :is(.map-tabs, .batch-view-tabs) button[role="tab"][aria-selected="true"] {
   color: var(--ui-text);
-  border-bottom-color: var(--accent);
+  border-bottom-color: var(--ui-selection-edge);
 }
 .app .level-inputs label > span,
 .app .levels-inputs > span,
@@ -425,7 +429,7 @@ textarea:enabled:not([readonly]):not(:focus-visible):not(
   border-color: var(--ui-divider);
 }
 textarea:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ui-focus);
   outline-offset: 1px;
 }
 

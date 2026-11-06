@@ -4,7 +4,7 @@
   --table-header-background: var(--ui-raised);
   --table-header-text: var(--ui-muted);
   --table-border: #ffffff0b;
-  --table-selection: #ff950018;
+  --table-selection: var(--ui-selection-fill);
   --table-row-height: 26px;
   --table-header-height: 29px;
   --table-control-height: 23px;
@@ -69,7 +69,7 @@
 .app .data-table tr:focus-visible,
 .app .data-table-grid .data-table-row:focus-visible,
 .app .data-list .data-list-row:focus-visible {
-  outline: 1px solid var(--accent);
+  outline: 1px solid var(--ui-focus);
   outline-offset: -1px;
 }
 .app
@@ -101,7 +101,7 @@
 }
 .app .data-table :is(input, select):focus-visible,
 .app .data-table-grid input:focus-visible {
-  outline: 1px solid var(--accent);
+  outline: 1px solid var(--ui-focus);
   outline-offset: -1px;
 }
 .app .data-table input[type="checkbox"],

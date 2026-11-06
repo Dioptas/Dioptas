@@ -151,9 +151,9 @@
   background: transparent;
 }
 .geometry-tabs button[aria-selected="true"] {
-  color: var(--accent);
-  border-bottom: 2px solid var(--accent);
-  background: #ff95000c;
+  color: var(--ui-selection-text);
+  border-bottom: 2px solid var(--ui-selection-edge);
+  background: var(--ui-selection-fill);
 }
 .geometry-editor .geometry-field {
   grid-template-columns: minmax(0, 1fr) minmax(90px, 1.2fr) 32px;
@@ -232,8 +232,8 @@
   border-radius: 4px 4px 0 0;
 }
 .calibration-section-tabs button[aria-selected="true"] {
-  border-bottom: 2px solid var(--accent);
-  color: var(--accent);
+  border-bottom: 2px solid var(--ui-selection-edge);
+  color: var(--ui-selection-text);
 }
 .calibration-group-label {
   margin: 10px 0 6px;
@@ -413,7 +413,7 @@
   border-radius: 6px;
 }
 .app .clear-peaks-dialog-actions button:focus {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ui-focus);
   outline-offset: -2px;
 }
 .app .clear-peaks-dialog-actions .clear-peaks-confirm {

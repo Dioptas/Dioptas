@@ -58,9 +58,9 @@
     [aria-selected="true"]
   ),
 .app .segmented button.selected {
-  --button-fill: rgb(255 149 0 / 15%);
+  --button-fill: var(--ui-selection-fill);
   --button-edge: transparent;
-  color: var(--dioptas-orange);
+  color: var(--ui-selection-text);
   --button-sheen: none;
   background-color: var(--button-fill);
   background-image: var(--button-sheen);
@@ -74,7 +74,7 @@
     [aria-selected="true"]
   ):not(:disabled):hover,
 .app .segmented button.selected:not(:disabled):hover {
-  --button-fill: rgb(255 149 0 / 22%);
+  --button-fill: var(--ui-selection-fill);
   --button-edge: transparent;
 }
 .app button:not(:disabled):active {
@@ -100,7 +100,7 @@
 }
 .app .segmented button:is(.selected, [aria-pressed="true"]) {
   --button-fill: #343a41;
-  color: var(--accent);
+  color: var(--ui-selection-text);
   box-shadow: none;
 }
 .app .segmented button:is(.selected, [aria-pressed="true"]):hover {
@@ -179,7 +179,7 @@
     .integration-pattern-tools button,
     .integration-pattern-actions button
   )[aria-pressed="true"]:not(:disabled):hover {
-  color: var(--accent);
+  color: var(--ui-selection-text);
 }
 .app button.plot-zoom-button:active,
 .app

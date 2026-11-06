@@ -92,8 +92,8 @@
   white-space: nowrap;
 }
 .integration-file-actions button[aria-pressed="true"] {
-  color: var(--accent);
-  border-color: #ff950066;
+  color: var(--ui-selection-text);
+  border-color: var(--ui-selection-edge);
 }
 .integration-image-info pre {
   max-height: 200px;

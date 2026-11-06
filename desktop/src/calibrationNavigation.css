@@ -27,7 +27,7 @@
   --button-edge: transparent;
   color: #f3f5f7;
   background: transparent;
-  border-bottom-color: var(--accent);
+  border-bottom-color: var(--ui-selection-edge);
   box-shadow: none;
 }
 .app .calibration-workflow-tabs button:not(:disabled):hover {
@@ -37,7 +37,7 @@
   color: #f3f5f7;
 }
 .app .calibration-workflow-tabs button[aria-selected="true"]:hover {
-  border-bottom-color: var(--accent);
+  border-bottom-color: var(--ui-selection-edge);
 }
 .app .calibration-workflow-tabs button:focus-visible {
   outline-offset: -3px;
@@ -174,11 +174,11 @@
   background: rgb(255 255 255 / 6%);
 }
 .calibration-ring-options [aria-selected="true"] {
-  color: var(--accent);
-  background: rgb(255 149 0 / 15%);
+  color: var(--ui-selection-text);
+  background: var(--ui-selection-fill);
 }
 .calibration-ring-options:focus-visible [data-active="true"] {
-  outline: 1px solid var(--accent);
+  outline: 1px solid var(--ui-focus);
   outline-offset: -1px;
 }
 .calibration-ring-point-count {
@@ -188,10 +188,10 @@
   cursor: pointer;
 }
 .calibration-task-panel .peak-row[data-selected="true"] {
-  background: rgb(255 149 0 / 10%);
+  background: var(--ui-selection-fill);
 }
 .calibration-task-panel .peak-row:focus-visible {
-  outline: 1px solid var(--accent);
+  outline: 1px solid var(--ui-focus);
   outline-offset: -1px;
 }
 .calibration-picking-switch {

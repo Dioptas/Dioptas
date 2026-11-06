@@ -222,9 +222,9 @@
   width: 100%;
 }
 .qt-overlay-parameters button[aria-pressed="true"] {
-  color: var(--accent);
-  background: #ff950020;
-  border-color: #ff950080;
+  color: var(--ui-selection-text);
+  background: var(--ui-selection-fill);
+  border-color: var(--ui-selection-edge);
 }
 .qt-overlay-empty {
   color: #9a9fa6;

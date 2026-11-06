@@ -190,9 +190,9 @@
   padding: 0;
 }
 .app .custom-command-icon-grid button[aria-pressed="true"] {
-  --button-fill: #ff950018;
-  --button-edge: #ff950080;
-  color: var(--accent);
+  --button-fill: var(--ui-selection-fill);
+  --button-edge: var(--ui-selection-edge);
+  color: var(--ui-selection-text);
 }
 .custom-command-icon-grid > p {
   grid-column: 1 / -1;

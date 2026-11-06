@@ -110,7 +110,7 @@
       "before": 8,
       "after": 9.5,
       "criteria": "Let scientific data dominate while keeping state, source context and actions easy to scan.",
-      "evidence": "Detector and pattern data keep the available space. Plot headers stay on one row, duplicate Map/Batch summary blocks are removed, legends overlay the data and fields recede visually. Orange highlights active modes/actions rather than permanent input frames.",
+      "evidence": "Detector and pattern data keep the available space. Plot headers stay on one row, duplicate Map/Batch summary blocks are removed, legends overlay the data and fields recede visually. Neutral-gray focus/selection states leave orange for workspace identity, primary actions and scientific markers.",
       "at91": 9.1
     },
     {
@@ -119,7 +119,7 @@
       "before": 7,
       "after": 9.5,
       "criteria": "Use the same visual rules for equivalent controls, tabs, dialogs and states.",
-      "evidence": "Tabs, dialogs, field states, plot typography, legends, pane dividers, history, mode buttons, provenance and feedback share policies across modes and sampled detached views.",
+      "evidence": "Tabs, dialogs, field states, plot typography, legends, pane dividers, history, mode buttons, provenance and feedback share policies across modes and sampled detached views. Focus and control-selection states share a neutral-gray palette across the main and detached interfaces.",
       "at91": 9.2
     },
     {
@@ -234,11 +234,11 @@
   "limitations": [
     "These are subjective design ratings. They do not establish a consensus score, scientific accuracy, uncertainty estimates, usability-study results or production readiness.",
     "Axe violations and items requiring manual review are recorded separately. Canvas accessibility and screen-reader workflows are not fully covered by automated checks.",
-    "Native build passed, but Batch smoke attempts did not establish native window-manager correctness. OS file/color dialogs, real screen readers, Windows/Linux packaging and portable Python distribution remain unqualified.",
+    "Scoped native macOS Batch/restart, main scientific workflow, Map and help checks pass. Native file panels are tested for cancellation; human chooser selection, colour-panel interaction, real screen readers, Windows/Linux packaging and portable Python distribution remain unqualified.",
     "The gold phase file is an editor/control fixture, not an identification of the CeO2 or Fe3O4C specimens. The six-frame Batch series is derived from the CeO2 image by known intensity multipliers.",
     "The GUI preserves existing scientific conventions, including pyFAI/Fit2D unit differences, one-based Batch frame display with unchanged zero-based data indices, a one-line footer and compact plot tools."
   ],
-  "status": "Codex current scoped assessment: 9.472/10 (9.5 rounded); Claude independent review: 9.02/10 on 59fd3e38. The original independent 9/10 threshold is met. Claude has not awarded 9.5; native smoke qualification remains incomplete.",
+  "status": "Codex current scoped assessment: 9.472/10 (9.5 rounded); Claude independent review: 9.02/10 on 59fd3e38. The original independent 9/10 threshold is met. Claude has not awarded 9.5; scoped macOS native Batch, restart, scientific workflow, Map, native chooser cancellation and help qualification now pass.",
   "rubric": "UI_DESIGN_RUBRIC.json",
   "implementedImprovements": [
     {
@@ -383,6 +383,34 @@
         "IntegrationPatternActions",
         "GeometryProvenance"
       ]
+    },
+    {
+      "problem": "Scientific table inputs retained pale borders after ordinary form fields were quiet",
+      "resolution": "The shared table border token now references the same transparent field edge; the obsolete pale token is removed. A shared computed-style check covers 465 resting-field samples per engine and native editor/Batch controls. Table focus and validation states remain visible.",
+      "shared": [
+        "dataTable.css",
+        "uiTheme.css",
+        "field_appearance_check.js"
+      ]
+    },
+    {
+      "problem": "Native qualification mixed remembered test state, premature focus checks and final-result parsing; native help requested keyboard focus",
+      "resolution": "Native tests use private WebKit stores and disposable preferences, compare native logical bounds, wait for actual child destruction and distinguish diagnostics from results. The macOS help popup uses orderFront, and shortcut contexts handle window-targeted keys. Current native reports and screenshots are retained independently from browser evidence.",
+      "shared": [
+        "native_test_profile.mjs",
+        "smoke_storage",
+        "calibration_tooltip",
+        "native_capture.mjs"
+      ]
+    },
+    {
+      "problem": "Orange selection and focus outlines competed with scientific data across many controls",
+      "resolution": "Shared neutral-gray focus, selection-edge, fill and text tokens now cover fields, tabs, rows, toggles, icon pickers and settings. Resting fields remain borderless; errors remain visible. Orange workspace icons, primary actions and scientific markers are retained.",
+      "shared": [
+        "uiTheme.css",
+        "buttons.css",
+        "dataTable.css"
+      ]
     }
   ],
   "peer": {
@@ -516,19 +544,19 @@
       "WebKit"
     ],
     "capturedStatesPerEngine": 58,
-    "behaviorChecksPerEngine": 38,
+    "behaviorChecksPerEngine": 39,
     "uiBuildVerifiedAgainstScreenshots": true,
-    "nativeOsDialogsRevalidated": false,
+    "nativeOsDialogsRevalidated": true,
     "screenReaderSessionValidated": false,
     "chromiumViews": 58,
     "webkitViews": 58,
     "toolbarChecks": "Active Batch and pattern controls are checked against ancestor clipping and pointer hit targets. Visible toolbars must keep all button centers in one compact row (at most 46 px high), including narrow panes at both text sizes.",
     "poniDisplayConversion": "A changed PONI field is applied through the UI; mm-to-m conversion and Undo are checked against the real model at 1e-15 m tolerance.",
     "batchAxisTitles": "No visible heatmap y-axis title; one-based frame ticks and accessible description. Real-model browser checks verify that displayed frames 1 and 6 select stored indices 0 and 5.",
-    "browserUiSha256": "75ccf2f56e32445f546f7090d7ef260d16f79383334519611c36f6f1adb84948",
+    "browserUiSha256": "a8ee4b76594a28526076e890b6475bfb6d99ca41027cafdcb673b11747b16879",
     "nativeBuildPassed": true,
-    "nativeBatchSmokePassed": false,
-    "nativeQualification": "Native smoke did not pass; failures and baseline comparison are retained in artifacts/ui-audit/native/summary.json.",
+    "nativeBatchSmokePassed": true,
+    "nativeQualification": "Scoped native macOS checks pass: six Batch reopen/dock cycles with changing native bounds; four Batch app-restart stages; measured-image calibration, masking, integration, phase/database/editor and export/project workflows; Map placement across an app restart; real file-chooser cancellation; four non-focusing help popups. Original failures remain archived in artifacts/ui-audit/native/summary.json.",
     "webglRetina": {
       "dpr": 2,
       "cases": "normal, 2000 points, one curve; wide pan, zoomed pan and wheel",
@@ -537,12 +565,21 @@
       "limits": "Headless engine measurements; no native display-latency claim. Raw results retained in performance/."
     },
     "rustUnitTests": 17,
-    "legendFocusJitter": "Both engines verify that a focus click with 1px hand jitter leaves automatic positioning active; keyboard movement pins the legend, and Home restores it."
+    "legendFocusJitter": "Both engines verify that a focus click with 1px hand jitter leaves automatic positioning active; keyboard movement pins the legend, and Home restores it.",
+    "nativeOsDialogScope": "Real open-calibration, save-project and multi-file Batch chooser cancellation preserves scientific state. Human chooser selection and native colour-panel interaction remain unqualified.",
+    "quietFieldChecks": {
+      "samplesPerBrowserEngine": 465,
+      "nativeEditorRestingFields": 38,
+      "nativeTableFocusAndError": true,
+      "sharedChecker": "scripts/field_appearance_check.js"
+    },
+    "nativeEvidence": "NATIVE_VERIFICATION.md",
+    "neutralControlStates": "Both engines verify neutral-gray focused field outlines and selected-tab indicators; selection surfaces/edges share tokens across modes, dialogs, tables and detached views. Orange plot data, workspace identity and primary actions remain distinct."
   },
   "manualAccessibilityReview": {
     "popupControllers": "Open icon-picker controllers were verified to reference an existing role=dialog target; the axe incomplete result is retained rather than relabeled as an automatic pass.",
     "emptyTables": "The two empty phase/expression tables contain no scientific records. Their empty-state/form context was inspected; empty-table axe items remain visible in the raw report.",
-    "remaining": "Texture/image and scientific-color cases remain marked for manual contrast review. Browser semantics and live text are tested; VoiceOver/NVDA and native OS workflows are not certified.",
+    "remaining": "Texture/image and scientific-colour cases remain marked for manual contrast review. Browser semantics and live text are tested. Native workflows have scoped regression coverage; VoiceOver/NVDA sessions and native colour-panel interaction remain unqualified.",
     "solidColorPairs": [
       {
         "use": "Input value",
@@ -579,6 +616,12 @@
         "foreground": "#262019",
         "background": "#ff9500",
         "ratio": 7.3297
+      },
+      {
+        "use": "Neutral focus / selected-tab indicator",
+        "foreground": "#87939f",
+        "background": "#1b1f24",
+        "ratio": 5.287
       }
     ],
     "contrastScope": "Computed from solid sRGB tokens using the WCAG relative-luminance formula; texture/image overlays are excluded and retained for manual review."

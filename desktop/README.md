@@ -439,7 +439,7 @@ Plots occupy the main workspace, and
 one changing task panel stays on the right, following the existing Dioptas
 arrangement. A shared Ring / Auto advance / Pick peaks strip sits above horizontal
 Image / Peaks / Fit / Validate tabs in the right calibration panel; the active
-section has an orange underline. Tabs provide navigation, without Back/Next
+section has a neutral gray underline. Tabs provide navigation, without Back/Next
 buttons. The detector image stays visible; cake and pattern also appear on
 Validate. Image contains image/detector controls only.
 Parameters and Refinement are stacked in the Fit pane and scroll together when
@@ -551,7 +551,7 @@ All plots default to Rectangle zoom and detector views preserve square pixels.
 The cake and integrated patterns have two separate icon-only buttons in the empty
 corner below the y-axis and left of the x-axis for Rectangle and X-range zoom.
 Both buttons have transparent backgrounds and a subtle rectangular background only
-on hover; the selected icon is orange and the other icon is neutral. X-range selection fits the pattern's
+on hover; the selected icon is light gray and the other icon is muted. X-range selection fits the pattern's
 minimum and maximum intensity to the visible data instead of forcing a zero
 baseline; the cake keeps its current azimuth range. Wheel zoom follows the selected
 mode too. Settings also offers the pattern choice, independently for the main
@@ -866,7 +866,9 @@ certification. Subsequent fixes do not imply a new peer score.
 ## Shared interface behavior
 
 Resting text inputs use quiet recessed fills without pale outlines; focus and
-invalid states stay visible. Text sizes and control states share theme tokens.
+invalid states stay visible. Focus rings, selected tabs/rows, toggles and settings
+choices use shared neutral-gray tokens; orange remains for workspace identity,
+primary actions and scientific plot markers. Text sizes and states share theme tokens.
 `Dialog`, `TabList`, `HistoryControls`, `WorkspaceModeButtons`, `LayoutDivider`
 and the scientific value/status/provenance components centralize common policy.
 
@@ -903,9 +905,9 @@ shortcuts have explicit scopes and are exercised against the actual handlers.
 ## Evidence and remaining limits
 
 The current checks include 65 frontend unit tests, 17 Rust tests, and 58 captured
-views plus 37 behavior checks in each of Chromium and WebKit. Active Batch
-controls are checked against clipping ancestors and pointer hit targets; visible
-axis titles are measured against available space. ARIA snapshots and raw axe
+views plus 39 behavior checks in each of Chromium and WebKit. Batch and pattern controls are checked against clipping ancestors and pointer hit
+targets, and their headers must fit one row. Each engine inspects 465 resting
+field appearances across captured states, including scientific tables. ARIA snapshots and raw axe
 violations/incomplete findings accompany screenshots. Explicit failures and
 UI-build hashes prevent incomplete or stale runs being published as current.
 
@@ -916,13 +918,22 @@ frame navigation; TIFF fixtures follow the existing first-page PIL path. Gold
 phase/editor fixtures are not specimen identifications. The original screenshot
 baseline is `b418d66b`; the earlier 9.1 checkpoint is `876e0651`.
 
-The native build passes, but native Batch smoke has not passed. Timeouts and a
-placement assertion are retained in `artifacts/ui-audit/native/`, including an
-original-frontend comparison. Smoke diagnostics retain startup/JS errors and
-native-size observations; companion tests distinguish native logical size from
-WebKit viewport height and use measured plot bounds. These attempts do not
-establish native window-manager correctness. OS dialogs, real screen readers,
-Windows/Linux packaging and portable Python distribution remain unqualified.
+Native macOS qualification now passes: six Batch detach/dock cycles with changing
+bounds; four application-launch stages for floating/closed/docked/collapsed state,
+splitters and native bounds; Map docking and a full application restart; measured
+CeO2 calibration, WebGL detector/cake/pattern rendering, masking, phase/database
+editing, exports and project round trips. Native open, save and batch chooser
+cancellation preserves scientific state. All four native help popups retain main
+window focus, including screen-edge placement and Escape/blur dismissal.
+
+The original failed runs remain in `artifacts/ui-audit/native/`; they are historical
+failures, not rewritten passes. Current reports, commands and scope are described
+in [Native verification](NATIVE_VERIFICATION.md). Native screenshots are actual
+window captures, distinct from the browser screenshots. Native tests use private
+WebKit stores and disposable preference files; restart stages intentionally share
+their own store. Screen readers, colour-panel interaction, Windows/Linux packaging,
+portable Python distribution and native display-latency measurement remain outside
+this qualification.
 
 Retina WebGL results in `artifacts/ui-audit/performance/` retain both WebKit's
 reported Apple GPU result and Chromium's slower SwiftShader wide-pan result.
