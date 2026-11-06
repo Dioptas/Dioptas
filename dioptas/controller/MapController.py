@@ -548,7 +548,13 @@ class MapController:
         )
 
     def update_image(self):
-        image = self.model.img_model.img_data
+        source = self.model.img_model
+        # Display can borrow the owned raw frame when no processing changes
+        # its values. Avoid an 80 MB float64 copy of a typical Eiger frame.
+        image = (source.raw_img_data
+                 if source.factor == 1 and source._background_data is None
+                 and not source._img_corrections.has_items()
+                 else source.img_data)
         if image is None:
             self.widget.img_plot_widget.plot_image(np.array([[], []]))
         else:

@@ -48,6 +48,57 @@ def test_load_emits_signal(img_model):
     callback_fcn.assert_called_once_with()
 
 
+def test_series_navigation_reuses_reader_and_reopens_replaced_file(tmp_path, monkeypatch):
+    from PIL import Image
+    frames = [np.arange(20, dtype=np.uint16).reshape(4, 5) + index * 100
+              for index in range(3)]
+    filename = tmp_path / "series.tiff"
+
+    def write(path, arrays):
+        images = [Image.fromarray(array) for array in arrays]
+        images[0].save(path, save_all=True, append_images=images[1:])
+
+    write(filename, frames)
+    from ...model.loader.FabioLoader import FabioLoader
+    selected = FabioLoader(str(filename), frame_index=2)
+    assert selected.series_max == 3
+    np.testing.assert_array_equal(selected.get_image(2), frames[2][::-1])
+    model = ImgModel()
+    # PIL's legacy path treats TIFF as a single image; exercise FabIO's
+    # multi-frame reader, which is also used by Eiger navigation.
+    monkeypatch.setattr(model, "load_PIL", lambda *args: None)
+    model.load(str(filename))
+    reader = model.loader
+    model.flip_img_horizontally()
+    model.load_frame(str(filename), 2)
+    assert model.loader is reader
+    assert model.series_pos == 3
+    np.testing.assert_array_equal(model.raw_img_data, frames[2][::-1, ::-1])
+
+    replacement = tmp_path / "replacement.tiff"
+    replacement_frames = [frame + 1000 for frame in frames]
+    write(replacement, replacement_frames)
+    os.replace(replacement, filename)
+    model.load_frame(str(filename), 1)
+    assert model.loader is not reader
+    np.testing.assert_array_equal(model.raw_img_data, replacement_frames[1][::-1, ::-1])
+
+
+def test_fabio_loader_reuses_its_already_decoded_frame(monkeypatch):
+    from types import SimpleNamespace
+    from ...model.loader.FabioLoader import FabioLoader
+
+    image = np.arange(20).reshape(4, 5)
+    get_frame = MagicMock(return_value=SimpleNamespace(data=image + 1))
+    monkeypatch.setattr("fabio.open", lambda filename, frame=None: SimpleNamespace(
+        nframes=2, currentframe=0, data=image, get_frame=get_frame))
+    loader = FabioLoader("unused.tiff")
+    np.testing.assert_array_equal(loader.get_image(0), image[::-1])
+    get_frame.assert_not_called()
+    np.testing.assert_array_equal(loader.get_image(1), (image + 1)[::-1])
+    get_frame.assert_called_once_with(1)
+
+
 def test_flipping_images(img_model):
     original_image = np.copy(img_model._img_data)
     img_model.flip_img_vertically()

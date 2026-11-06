@@ -45,13 +45,25 @@ class PhaseController:
         self.phase_in_pattern_controller = PhaseInPatternController(self.integration_widget.pattern_widget, dioptas_model)
         self.phase_in_cake_controller = PhaseInCakeController(self.integration_widget, dioptas_model)
         self.phase_in_batch_controller = PhaseInBatchController(self.integration_widget.batch_widget, dioptas_model)
-        self.phase_editor_controller = PhaseEditorController(self.integration_widget, self.model)
+        self._phase_editor_controller = None
+        self.phase_widget.edit_btn.clicked.connect(self._edit_phase)
 
         self.phase_lw_items = []
         self.create_signals()
         self.update_temperature_step()
         self.update_pressure_step()
         self.update_dac_thermal_pressure_controls()
+
+    @property
+    def phase_editor_controller(self):
+        if self._phase_editor_controller is None:
+            self._phase_editor_controller = PhaseEditorController(
+                self.integration_widget, self.model, connect_edit_button=False)
+        return self._phase_editor_controller
+
+    def _edit_phase(self):
+        if self.phase_widget.get_selected_phase_row() >= 0:
+            self.phase_editor_controller.edit_btn_callback()
 
     def create_signals(self):
         # Button Callbacks
@@ -260,7 +272,7 @@ class PhaseController:
         self.phase_widget.del_phase(ind)
         # self.img_view_widget.del_cake_phase(ind)
 
-        if self.phase_editor_controller.active:
+        if self._phase_editor_controller is not None and self._phase_editor_controller.active:
             ind = self.phase_widget.get_selected_phase_row()
             if ind >= 0:
                 self.phase_editor_controller.show_phase(self.model.phase_model.phases[ind])
@@ -322,7 +334,8 @@ class PhaseController:
         """
         while self.phase_widget.phase_tw.rowCount() > 0:
             self.delete_btn_click_callback()
-            self.phase_editor_controller.close_view()
+            if self._phase_editor_controller is not None:
+                self._phase_editor_controller.close_view()
 
     def update_pressure_step(self):
         for pressure_sb in self.phase_widget.pressure_sbs:

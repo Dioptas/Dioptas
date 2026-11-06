@@ -1335,7 +1335,7 @@ class MapModel:
         if index < 0 or index >= len(self.point_infos):
             return
         point_info = self.point_infos[index]
-        self.configuration.img_model.load(
+        self.configuration.img_model.load_frame(
             point_info.filepath,
             point_info.frame_index,
         )

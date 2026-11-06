@@ -638,7 +638,7 @@ class BatchModel:
         if not self.raw_available:
             return
         filename, pos = self.get_image_info(index, use_all)
-        self.configuration.calibration_model.img_model.load(filename, pos)
+        self.configuration.calibration_model.img_model.load_frame(filename, pos)
 
     def get_next_folder_filenames(self) -> list[str]:
         """Loads all files from the next folder with similar file-endings."""

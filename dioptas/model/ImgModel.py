@@ -79,6 +79,8 @@ class ImgModel:
     def __init__(self) -> None:
         super().__init__()
         self.filename: str = ""
+        self._loaded_file_signature = None
+        self._loaded_source = None
 
         # All user-settable parameters live in the evented params dataclass;
         # the properties below delegate to it and add side effects.
@@ -342,6 +344,8 @@ class ImgModel:
         image_file_data = self.get_image_data(filename, pos)
         self.filename = filename
         self.set_loadable_attributes(image_file_data)
+        self._loaded_file_signature = self._file_signature(filename)
+        self._loaded_source = self.selected_source
 
         self.file_name_iterator.update_filename(filename)
         self._directory_watcher.path = os.path.dirname(str(filename))
@@ -352,6 +356,30 @@ class ImgModel:
         self._sync_file_params()
 
         self.img_changed.emit()
+
+    @staticmethod
+    def _file_signature(filename):
+        try:
+            stat = os.stat(filename)
+        except OSError:
+            return None
+        return stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns
+
+    def load_frame(self, filename: str, pos: int = 0) -> None:
+        """Navigate an unchanged series through its already open reader.
+
+        Explicit ``load`` still reopens files. Replaced/growing files and
+        changed HDF5 sources also reopen here, preserving fresh-data behavior.
+        """
+        filename = str(filename)
+        signature = self._file_signature(filename)
+        if (signature is not None and signature == self._loaded_file_signature
+                and os.path.abspath(filename) == os.path.abspath(self.filename)
+                and self.series_get_image is not None
+                and self.selected_source == self._loaded_source):
+            self.load_series_img(pos + 1)
+        else:
+            self.load(filename, pos)
 
     def get_image_data(self, filename: str, pos: int = 0) -> dict[str, Any]:
         """
@@ -446,7 +474,7 @@ class ImgModel:
     def load_fabio(self, filename: str, frame_index: int = 0) -> dict[str, Any] | None:
         """Loads an image using the fabio library."""
         try:
-            self.loader = FabioLoader(filename)
+            self.loader = FabioLoader(filename, frame_index)
             return {
                 "img_data_fabio": self.loader.fabio_image,
                 "img_data": self.loader.get_image(frame_index),

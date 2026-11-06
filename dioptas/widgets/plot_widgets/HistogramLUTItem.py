@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MIT
 
 import pathlib
-from collections import OrderedDict
 from typing import Optional
 
 from qtpy import QtCore, QtGui, QtWidgets
@@ -301,11 +300,14 @@ class HistogramLUTItem(GraphicsWidget):
         self._img_data = None
 
         if img_data is None:
-            img_data = self.imageItem.getData(copy=False)
-            if img_data is None:
-                return
-
-        left_edges_nonzero, log_hist_nonzero = get_histogram_data(img_data)
+            if isinstance(self.imageItem, NormalizedImageItem):
+                histogram = self.imageItem.getRawHistogram(get_histogram_data)
+            else:
+                img_data = self.imageItem.getData(copy=False)
+                histogram = get_histogram_data(img_data)
+        else:
+            histogram = get_histogram_data(img_data)
+        left_edges_nonzero, log_hist_nonzero = histogram
         if log_hist_nonzero is None:
             return
 
@@ -448,39 +450,27 @@ class LogarithmRegionItem(LinearRegionItem):
         self.lineMoveFinished()
 
 
-histogram_cache = OrderedDict()
-
-
 def get_histogram_data(img_data: np.ndarray) -> tuple:
-    """calculates the histogram data necessary for the histogram LUt item"""
+    """Exact full-image histogram, compressing repeated integer counts first."""
     if img_data is None:
         return None, None
-
-    ar_hash = hash(img_data[::13, ::17].tobytes())
-
-    if ar_hash in histogram_cache:
-        return histogram_cache[ar_hash]
-    else:
-        # np.log promotes small integer dtypes only to float16, whose
-        # precision is too coarse to build 1500 distinct bin edges — upcast
-        # before taking the log
-        if img_data.dtype.itemsize < 4:
-            img_data = img_data.astype(np.float32)
+    weights = None
+    # The sample only chooses an algorithm. Every pixel contributes to the
+    # exact value counts below; no histogram data or counts are subsampled.
+    if (img_data.dtype.kind in "iu" and img_data.size > 262144
+            and np.unique(img_data[::13, ::17]).size < 4096):
+        img_data, weights = np.unique(img_data, return_counts=True)
+    # np.log promotes small integers only to float16, too coarse for 1500 bins.
+    if img_data.dtype.itemsize < 4:
+        img_data = img_data.astype(np.float32)
+    with np.errstate(divide="ignore", invalid="ignore"):
         log_data = np.log(img_data)
-        log_data = log_data[np.isfinite(log_data)]
-        if log_data.size == 0:
-            return None, None
-
-        hist, bin_edges = np.histogram(log_data, bins=1500)
-
-        mask_nonzero = hist > 0
-        left_edges_nonzero = bin_edges[:-1][mask_nonzero]
-        hist_nonzero = hist[mask_nonzero]
-
-        log_hist_nonzero = np.log(hist_nonzero)
-
-        histogram_cache[ar_hash] = (left_edges_nonzero, log_hist_nonzero)
-        histogram_cache.move_to_end(ar_hash)
-        if len(histogram_cache) > 100:  # keep only 100 histograms in cache
-            histogram_cache.popitem(last=False)
-        return left_edges_nonzero, log_hist_nonzero
+    finite = np.isfinite(log_data)
+    log_data = log_data[finite]
+    if log_data.size == 0:
+        return None, None
+    if weights is not None:
+        weights = weights[finite]
+    hist, bin_edges = np.histogram(log_data, bins=1500, weights=weights)
+    nonzero = hist > 0
+    return bin_edges[:-1][nonzero], np.log(hist[nonzero])
