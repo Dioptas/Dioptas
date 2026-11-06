@@ -19,13 +19,19 @@ def _openmp_flags():
         return [], []
 
     if sys.platform == "darwin":
-        # macOS: check for Homebrew libomp
-        for prefix in ["/opt/homebrew/opt/libomp", "/usr/local/opt/libomp"]:
+        # CI can supply a runtime built for the wheel's deployment target.
+        # A runner's Homebrew bottle may require a newer macOS version.
+        configured_prefix = os.environ.get("DIOPTAS_LIBOMP_PREFIX")
+        prefixes = ([configured_prefix] if configured_prefix else
+                    ["/opt/homebrew/opt/libomp", "/usr/local/opt/libomp"])
+        for prefix in prefixes:
             if os.path.isdir(prefix):
                 return (
                     ["-Xpreprocessor", "-fopenmp", f"-I{prefix}/include"],
                     [f"-L{prefix}/lib", "-lomp"],
                 )
+        if configured_prefix:
+            raise RuntimeError(f"DIOPTAS_LIBOMP_PREFIX does not exist: {configured_prefix}")
         return [], []
     elif sys.platform == "win32":
         return ["/openmp"], []

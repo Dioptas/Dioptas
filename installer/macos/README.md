@@ -202,6 +202,13 @@ app. Ordinary branch builds do not access the Apple secrets or submit to Apple.
 
 ## Development checks
 
+Apple-silicon wheel builds use a supported macOS 15 runner and compile a pinned
+OpenMP runtime with a macOS 14 deployment target. This avoids inheriting the
+runner's newer Homebrew bottle requirements. The runtime build verifies its
+source checksums and Mach-O minimum OS. `DIOPTAS_LIBOMP_PREFIX` selects that
+runtime during extension compilation; ordinary local builds still detect
+Homebrew OpenMP. Intel wheels explicitly disable OpenMP.
+
 These checks require no Apple credentials or macOS services:
 
 ```sh

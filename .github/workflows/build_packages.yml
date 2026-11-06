@@ -19,12 +19,9 @@ jobs:
         include:
           - os: ubuntu-latest
           - os: windows-latest
-          # Apple silicon: built WITH OpenMP. Homebrew's libomp on this runner
-          # has a minimum target of macOS 14, and delocate refuses to bundle a
-          # library into a wheel tagged for an older macOS, so the wheel's
-          # target is raised to match. Apple silicon Macs all run 14 or newer
-          # in practice; older ones fall back to the sdist.
-          - os: macos-14
+          # macOS 14 runners are retired. Build OpenMP for macOS 14 on a
+          # supported runner so the wheel keeps its existing deployment target.
+          - os: macos-15
             openmp: true
             cibw_env_macos: MACOSX_DEPLOYMENT_TARGET=14.0
           # Intel: built WITHOUT OpenMP on purpose. Installing libomp here
@@ -36,19 +33,20 @@ jobs:
           # hung for the full 24h workflow limit, which is what blocked the
           # 0.8.6 PyPI release.)
           - os: macos-15-intel
+            cibw_env_macos: DIOPTAS_NO_OPENMP=1
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Install OpenMP (macOS)
+      - name: Build portable OpenMP (macOS)
         if: matrix.openmp
-        run: brew install libomp
+        run: bash installer/macos/build_portable_libomp.sh "$RUNNER_TEMP/dioptas-libomp" 14.0
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v4.2.1
         env:
-          CIBW_ENVIRONMENT_MACOS: ${{ matrix.cibw_env_macos }}
+          CIBW_ENVIRONMENT_MACOS: DIOPTAS_REQUIRE_C_EXT=1 ${{ matrix.cibw_env_macos }} DIOPTAS_LIBOMP_PREFIX=${{ env.DIOPTAS_LIBOMP_PREFIX }}
 
       - name: Verify each wheel contains the C extension
         shell: bash
