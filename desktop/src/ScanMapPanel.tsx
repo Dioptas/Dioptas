@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Save } from "lucide-react";
 import { RasterView } from "./RasterView";
 import { ImageIntensity } from "./ImageIntensity";
+import { MapLoadActions } from "./MapLoadActions";
+import { LoadCalibrationButton } from "./LoadCalibrationButton";
 import { useMapDisplay, useMapPreference } from "./mapPreferences";
 import { number, type Raster, type Response } from "./types";
 import type { MapData, MapRun } from "./mapDomain";
@@ -189,21 +191,33 @@ export function ScanMapPanel({
         </div>
       ) : (
         <div className="empty-view">
-          <h3>{allowLoad ? "Load a scan" : "No map loaded"}</h3>
+          <h3>{allowLoad ? "Build a map" : "No map loaded"}</h3>
           <p>
             {allowLoad
-              ? "Integrate detector images or open a processed batch."
-              : "Load a scan from Map mode in the main window."}
+              ? calibrated
+                ? "Build a map from detector images or a folder."
+                : "Load a calibration to build a map from detector images."
+              : "Build a map in Map mode in the main window."}
           </p>
-          {allowLoad && (
-            <button
-              disabled={!ready || !calibrated}
-              className="primary"
-              onClick={() => run("map_load", {}, "Integrating map…")}
-            >
-              Load images…
-            </button>
-          )}
+          {allowLoad &&
+            (calibrated ? (
+              <div className="integration-image-tools">
+                <MapLoadActions
+                  ready={ready}
+                  calibrated={calibrated}
+                  run={run}
+                  empty
+                />
+              </div>
+            ) : (
+              <LoadCalibrationButton
+                ready={ready}
+                label="Load calibration to build a map"
+                onLoad={() =>
+                  void run("open_calibration", {}, "Loading calibration…")
+                }
+              />
+            ))}
         </div>
       )}
       <div className="integration-image-tools map-display-controls">

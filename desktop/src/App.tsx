@@ -119,6 +119,7 @@ import {
 } from "./CalibrationExtras";
 import type { RingOverlay } from "./types";
 import type { ZoomMode } from "./usePlotNavigation";
+import { LoadCalibrationButton } from "./LoadCalibrationButton";
 
 function clickContext(state: State | null) {
   return JSON.stringify([
@@ -1603,7 +1604,9 @@ export default function App() {
           : mode === "map"
             ? map
               ? "Select a map cell to inspect its detector image and pattern."
-              : "Load scan images or a processed batch."
+              : state?.calibrated
+                ? "Build a map from detector images or a folder."
+                : "Load a calibration to build a map."
             : mode === "mask"
               ? `${shapeHelp[maskTools.shape]} · ${number(state?.maskedPixels ?? 0, 0)} masked`
               : canIntegrate
@@ -2345,10 +2348,29 @@ export default function App() {
                         ) : (
                           <div className="empty-pattern">
                             <IntegrationModeIcon size={25} />
-                            <span>
-                              Your integrated diffraction pattern will appear
-                              here.
-                            </span>
+                            {state?.hasImage && !state?.calibrated ? (
+                              <>
+                                <span>
+                                  Load a calibration to integrate this image.
+                                </span>
+                                <LoadCalibrationButton
+                                  ready={ready}
+                                  label="Load calibration to integrate the image"
+                                  onLoad={() =>
+                                    void run(
+                                      "open_calibration",
+                                      {},
+                                      "Loading calibration…",
+                                    )
+                                  }
+                                />
+                              </>
+                            ) : (
+                              <span>
+                                Your integrated diffraction pattern will appear
+                                here.
+                              </span>
+                            )}
                           </div>
                         )}
                       </section>

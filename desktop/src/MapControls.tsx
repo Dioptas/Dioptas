@@ -7,7 +7,6 @@ import {
   MinusSquare,
   Ban,
   CircleCheck,
-  FolderOpen,
   RefreshCw,
   Radio,
   Crosshair,
@@ -15,6 +14,7 @@ import {
   Settings,
 } from "lucide-react";
 import { MapLayers } from "./MapLayers";
+import { MapLoadActions } from "./MapLoadActions";
 import { MapSettingsDialog } from "./MapSettingsDialog";
 import {
   useEffect,
@@ -178,25 +178,11 @@ export function MapControls({
               role="group"
               aria-label="Map scan controls"
             >
-              <button
-                className="plot-tool-button"
-                aria-label="Load images…"
-                title="Load detector images"
-                disabled={!ready || !state?.calibrated}
-                onClick={() => run("map_load", {}, "Integrating map images…")}
-              >
-                <FolderOpen size={15} /> Load…
-              </button>
-              <button
-                className="plot-tool-button"
-                title="Integrate detector images from a folder"
-                disabled={!ready || !state?.calibrated}
-                onClick={() =>
-                  run("map_folder", {}, "Integrating scan folder…")
-                }
-              >
-                Folder…
-              </button>
+              <MapLoadActions
+                ready={ready}
+                calibrated={!!state?.calibrated}
+                run={run}
+              />
               <button
                 className="plot-tool-button map-live-button"
                 aria-label="Live map"

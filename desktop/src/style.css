@@ -916,12 +916,15 @@ h2 {
   align-items: center;
   justify-content: center;
   gap: 14px;
-  color: #627786;
+  flex-wrap: wrap;
+  align-content: center;
+  padding: 14px;
+  color: var(--ui-muted);
   font-size: var(--text-small);
   flex: 1;
 }
 .empty-pattern > svg {
-  color: #6e807e;
+  color: var(--ui-muted);
 }
 .app-status {
   height: 30px;
