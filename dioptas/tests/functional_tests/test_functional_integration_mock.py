@@ -3,7 +3,7 @@
 import pytest
 import os
 import numpy as np
-from mock import MagicMock, patch
+from mock import ANY, MagicMock, patch
 
 from qtpy import QtWidgets
 from xypattern import Pattern
@@ -39,11 +39,16 @@ def test_1D_integration_with_azimuth_limits(
     enter_value_into_text_field(integration_widget.oned_azimuth_max_txt, 80)
 
     dioptas_model.calibration_model.integrate_1d.assert_called_with(
+        image=ANY,
         mask=None,
         num_points=None,
         unit="2th_deg",
         azi_range=(-100, 80),
         trim_zeros=True,
+    )
+    np.testing.assert_array_equal(
+        dioptas_model.calibration_model.integrate_1d.call_args.kwargs["image"],
+        dioptas_model.img_model.img_data,
     )
 
 
@@ -81,6 +86,7 @@ def test_changing_number_of_integration_bins(
     )
 
     dioptas_model.calibration_model.integrate_1d.assert_called_with(
+        image=ANY,
         num_points=2 * previous_number_of_points,
         azi_range=None,
         mask=None,
@@ -92,7 +98,11 @@ def test_changing_number_of_integration_bins(
     # immediately the number is restored and the image looks like when she started
     integration_widget.automatic_binning_cb.setChecked(True)
     dioptas_model.calibration_model.integrate_1d.assert_called_with(
-        num_points=None, azi_range=None, mask=None, unit="2th_deg", trim_zeros=True
+        image=ANY, num_points=None, azi_range=None, mask=None, unit="2th_deg", trim_zeros=True
+    )
+    np.testing.assert_array_equal(
+        dioptas_model.calibration_model.integrate_1d.call_args.kwargs["image"],
+        dioptas_model.img_model.img_data,
     )
 
 
