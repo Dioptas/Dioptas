@@ -52,6 +52,7 @@ extra_datas = [
     (os.path.join(qt_material_path, "fonts", "roboto"), "qt_material/fonts/roboto"),
     (os.path.join(xraydb_path, "xraydb.sqlite"), "xraydb"),
 ]
+extra_datas += collect_data_files("certifi")
 
 fabio_hiddenimports = collect_submodules("fabio")
 pyqtgraph_hiddenimports = collect_submodules("pyqtgraph")

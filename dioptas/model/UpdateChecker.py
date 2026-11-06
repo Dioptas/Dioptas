@@ -2,8 +2,10 @@
 
 import logging
 import json
+import ssl
 import urllib.request
 import urllib.error
+import certifi
 from packaging.version import Version
 
 logger = logging.getLogger(__name__)
@@ -36,7 +38,10 @@ def check_for_update(current_version: str) -> dict | None:
                 "User-Agent": f"Dioptas/{current_version}",
             },
         )
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        # Frozen Python builds cannot rely on the build machine's OpenSSL
+        # certificate path existing on the user's computer.
+        context = ssl.create_default_context(cafile=certifi.where())
+        with urllib.request.urlopen(req, timeout=5, context=context) as resp:
             data = json.loads(resp.read().decode())
     except (urllib.error.URLError, OSError, UnicodeError, json.JSONDecodeError) as e:
         logger.warning("Update check failed for %s: %s", GITHUB_RELEASES_URL, e)

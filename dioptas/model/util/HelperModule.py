@@ -34,14 +34,23 @@ class FileNameIterator:
 
     def _get_files_list(self) -> list[tuple[float, str]]:
         t1 = time.time()
-        filename_list = os.listdir(self.directory)
-        files: list[str] = []
-        for file in filename_list:
-            if self.is_correct_file_type(file):
-                files.append(file)
-        paths = [os.path.join(self.directory, file) for file in files]
-        file_list = [(os.path.getctime(path), path) for path in paths]
-        self.filename_list = paths
+        file_list = []
+        try:
+            filename_list = os.listdir(self.directory) if self.directory else []
+        except OSError:
+            filename_list = []
+        for filename in filename_list:
+            if not self.is_correct_file_type(filename):
+                continue
+            path = os.path.join(self.directory, filename)
+            try:
+                if os.path.isfile(path):
+                    file_list.append((os.path.getctime(path), path))
+            except OSError:
+                # Files may disappear during a scan; macOS volume icons can
+                # also be dangling symlinks. Neither should abort recovery.
+                continue
+        self.filename_list = [path for _, path in file_list]
         logger.debug("Time needed for getting files: %.3fs", time.time() - t1)
         return file_list
 
@@ -164,8 +173,9 @@ class FileNameIterator:
             # can contend for the GIL long enough to stall Qt; native FSEvents
             # teardown is also unsafe in watchdog on macOS.
             self.update_file_list()
-            time_stat = os.path.getctime(self.complete_path)
-            cur_ind = self.ordered_file_list.index((time_stat, self.complete_path))
+            cur_ind = self._current_file_index()
+            if cur_ind is None:
+                return None
             try:
                 self.complete_path = self.ordered_file_list[cur_ind + step][1]
                 return self.complete_path
@@ -195,8 +205,9 @@ class FileNameIterator:
 
         if mode == "time":
             self.update_file_list()
-            time_stat = os.path.getctime(self.complete_path)
-            cur_ind = self.ordered_file_list.index((time_stat, self.complete_path))
+            cur_ind = self._current_file_index()
+            if cur_ind is None:
+                return None
             if cur_ind > 0:
                 try:
                     self.complete_path = self.ordered_file_list[cur_ind - step][1]
@@ -228,6 +239,13 @@ class FileNameIterator:
         return self._iterate_folder_number(self.complete_path, -1, mec_mode)
 
     def update_filename(self, new_filename: str) -> None:
+        if not new_filename:
+            # abspath("") is the working directory, not an image filename.
+            self.complete_path = self.directory = self.filename = None
+            self.file_list = []
+            self.ordered_file_list = []
+            self.filename_list = []
+            return
         self.complete_path = os.path.abspath(new_filename)
         new_directory, file_str = os.path.split(self.complete_path)
         ending = file_str.rsplit(".", 1)[-1]
@@ -240,6 +258,12 @@ class FileNameIterator:
 
         if self.create_timed_file_list and self.ordered_file_list == []:
             self.update_file_list()
+
+    def _current_file_index(self) -> int | None:
+        for index, (_, path) in enumerate(self.ordered_file_list):
+            if path == self.complete_path:
+                return index
+        return None
 
     def add_new_files_to_list(self) -> None:
         """Checks for new files in folder and adds them to the sorted file list."""

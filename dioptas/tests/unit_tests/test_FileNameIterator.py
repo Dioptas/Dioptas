@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 import os
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -13,6 +14,35 @@ data_path = os.path.join(unittest_path, '../data')
 @pytest.fixture
 def filename_iterator():
     return FileNameIterator()
+
+
+def test_empty_filename_does_not_scan_working_directory(filename_iterator, monkeypatch):
+    filename_iterator.create_timed_file_list = True
+    monkeypatch.setattr(os, "listdir", MagicMock(side_effect=AssertionError("unexpected scan")))
+    filename_iterator.update_filename("")
+    assert filename_iterator.complete_path is None
+    assert filename_iterator.get_next_filename(mode="time") is None
+
+
+def test_time_scan_skips_unreadable_entries(filename_iterator, tmp_path, monkeypatch):
+    image = tmp_path / "image_001.tif"
+    missing = tmp_path / "gone.tif"
+    image.touch()
+    (tmp_path / "directory.tif").mkdir()
+    missing.symlink_to(tmp_path / "missing-target")
+    filename_iterator.create_timed_file_list = True
+    filename_iterator.update_filename(str(image))
+    assert filename_iterator.filename_list == [str(image)]
+
+
+def test_time_scan_tolerates_files_disappearing(filename_iterator, tmp_path, monkeypatch):
+    image = tmp_path / "image_001.tif"
+    image.touch()
+    monkeypatch.setattr(os.path, "getctime", MagicMock(side_effect=FileNotFoundError("removed")))
+    filename_iterator.create_timed_file_list = True
+    filename_iterator.update_filename(str(image))
+    assert filename_iterator.file_list == []
+    assert filename_iterator.get_next_filename(mode="time") is None
 
 
 def test_get_next_filename_with_existent_file(filename_iterator):

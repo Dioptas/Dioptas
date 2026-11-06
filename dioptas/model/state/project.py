@@ -210,20 +210,35 @@ def load_project(model: Any, f: h5py.File, make_configuration) -> None:
     payloads = _ArrayStore(f["payloads"]) if "payloads" in f else _ArrayStore(f)
     cache = _ArrayStore(f["cache"]) if "cache" in f else _ArrayStore(f)
 
-    # loading a project replaces the session. Phases and overlays are global
-    # rather than per-configuration, so clearing the configurations is not
-    # enough — without this they accumulate across loads.
+    # Build configurations before touching the live session. A missing file
+    # or failing params callback must leave the existing models connected.
+    configurations = []
+    if not document["configurations"]:
+        raise ValueError("The project contains no configurations")
+    selected = int(document.get("selected_configuration", 0))
+    if not 0 <= selected < len(document["configurations"]):
+        raise ValueError("The project's selected configuration is out of range")
+    try:
+        for ind, config_document in enumerate(document["configurations"]):
+            configuration = make_configuration()
+            configurations.append(configuration)
+            _apply_configuration(configuration, config_document, payloads, cache)
+            if "configurations" in f and str(ind) in f["configurations"]:
+                configuration.map_model.load_from_hdf5(f["configurations"][str(ind)])
+    except Exception:
+        for configuration in configurations:
+            configuration.img_model._directory_watcher.deactivate()
+        raise
+
+    model.disconnect_models()
+    model.delete_configurations()
+    model.configurations = []
+    for configuration in configurations:
+        model.attach_configuration(configuration)
+    model.configuration_ind = selected
+    # Global models must be cleared only after a usable configuration exists.
     model.phase_model.reset()
     model.overlay_model.reset()
-    model.configurations = []
-    for ind, config_document in enumerate(document["configurations"]):
-        configuration = make_configuration()
-        _apply_configuration(configuration, config_document, payloads, cache)
-        model.attach_configuration(configuration)
-        if "configurations" in f and str(ind) in f["configurations"]:
-            configuration.map_model.load_from_hdf5(f["configurations"][str(ind)])
-
-    model.configuration_ind = int(document.get("selected_configuration", 0))
     model.connect_models()
     model.invalidate_multi_geometry()
     model.configuration_added.emit()
@@ -302,7 +317,10 @@ def _apply_configuration(
     _apply_params_dict(
         img_model.params,
         img_params,
-        exclude={"filename", "series_pos", "background_filename", "transformations"},
+        exclude={
+            "filename", "series_pos", "background_filename", "transformations",
+            "file_iteration_mode", "autoprocess",
+        },
     )
     img_model.set_transformations(img_params.get("transformations", []))
     img_model.set_loaded_file_state(
@@ -310,11 +328,14 @@ def _apply_configuration(
         series_pos=int(img_params.get("series_pos", 1)),
         background_filename=img_params.get("background_filename", ""),
     )
+    # Time browsing scans the image's directory. Restore its filename first.
+    img_model.params.file_iteration_mode = img_params.get("file_iteration_mode", "number")
     try:
         img_model.file_name_iterator.update_filename(img_model.filename)
         img_model._directory_watcher.path = os.path.dirname(img_model.filename)
     except EnvironmentError:
         logger.warning("Could not follow the image directory from the project")
+    img_model.params.autoprocess = bool(img_params.get("autoprocess", False))
 
     _apply_params_dict(configuration.mask_model.params, document["mask"])
     mask_data = payloads.get(document.get("mask_data"))

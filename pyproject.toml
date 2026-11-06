@@ -18,6 +18,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 dependencies = [
+    "certifi>=2025.1.31",
     "EXtra-data>=1.13.0,<2.0; sys_platform == \"linux\"",
     "h5py>=3.13.0,<4.0",
     "hdf5plugin>=5.0.0,<6.0",

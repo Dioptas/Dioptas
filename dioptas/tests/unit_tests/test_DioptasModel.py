@@ -303,6 +303,70 @@ def test_save_empty_configuration(dioptas_model, tmp_path):
     dioptas_model.save(os.path.join(tmp_path, "empty.dio"))
 
 
+def test_failed_configuration_restore_preserves_session(dioptas_model, tmp_path, monkeypatch):
+    import dioptas.model.state.project as project
+
+    filename = str(tmp_path / "session.dio")
+    dioptas_model.save(filename)
+    dioptas_model.add_configuration()
+    configuration = dioptas_model.current_configuration
+    dioptas_model.img_model.load(os.path.join(data_path, "image_001.tif"))
+    image = dioptas_model.img_data.copy()
+    monkeypatch.setattr(project, "_apply_configuration", MagicMock(side_effect=OSError("unreadable")))
+
+    with pytest.raises(OSError, match="unreadable"):
+        dioptas_model.load(filename)
+
+    assert dioptas_model.current_configuration is configuration
+    np.testing.assert_array_equal(dioptas_model.img_data, image)
+    changed = MagicMock()
+    dioptas_model.img_changed.connect(changed)
+    dioptas_model.img_model.img_changed.emit()
+    changed.assert_called_once()
+    dioptas_model.reset()
+    assert len(dioptas_model.configurations) == 1
+
+
+@pytest.mark.parametrize("empty, selected", [(True, 0), (False, -1), (False, 2)])
+def test_invalid_project_configuration_keeps_session(dioptas_model, tmp_path, empty, selected):
+    import h5py
+    import json
+
+    filename = str(tmp_path / "invalid.dio")
+    configuration = dioptas_model.current_configuration
+    dioptas_model.save(filename)
+    with h5py.File(filename, "r+") as f:
+        document = json.loads(f["state"][()])
+        if empty:
+            document["configurations"] = []
+        document["selected_configuration"] = selected
+        del f["state"]
+        f["state"] = json.dumps(document)
+    with pytest.raises(ValueError, match="configuration"):
+        dioptas_model.load(filename)
+    assert dioptas_model.current_configuration is configuration
+    dioptas_model.img_model.load(os.path.join(data_path, "image_001.tif"))
+    assert dioptas_model.img_data is not None
+
+
+def test_time_mode_project_restores_without_scanning_empty_filename(dioptas_model, tmp_path, monkeypatch):
+    filename = str(tmp_path / "session.dio")
+    dioptas_model.img_model.load(os.path.join(data_path, "image_001.tif"))
+    dioptas_model.img_model.file_iteration_mode = "time"
+    image = dioptas_model.img_data.copy()
+    dioptas_model.save(filename)
+    listdir = os.listdir
+
+    def checked_listdir(directory):
+        assert os.path.abspath(directory) == os.path.abspath(data_path)
+        return listdir(directory)
+
+    monkeypatch.setattr(os, "listdir", checked_listdir)
+    dioptas_model.load(filename)
+    assert dioptas_model.img_model.file_iteration_mode == "time"
+    np.testing.assert_array_equal(dioptas_model.img_data, image)
+
+
 def test_save_and_load_round_trips_params_only_fields(dioptas_model, tmp_path):
     """oned_azimuth_range and trim_trailing_zeros are not in the legacy .dio
     layout — they round-trip via the generic params group."""

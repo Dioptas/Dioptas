@@ -20,6 +20,14 @@ from ...model.DioptasModel import DioptasModel
 unittest_data_path = os.path.join(os.path.dirname(__file__), "../data")
 
 
+def test_mouse_hover_before_image_is_displayed(image_controller, monkeypatch):
+    monkeypatch.setattr(image_controller.widget.img_widget, "img_data", None)
+    update_labels = MagicMock()
+    monkeypatch.setattr(image_controller, "update_mouse_position_labels", update_labels)
+    image_controller.show_img_mouse_position(1, 2)
+    update_labels.assert_called_once_with(1, 2, None)
+
+
 def test_automatic_file_processing(
     integration_widget, dioptas_model, image_controller, qapp
 ):

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 import json
+import ssl
 import urllib.error
 from unittest.mock import patch, MagicMock
 
@@ -28,6 +29,10 @@ def test_update_available(mock_urlopen):
     assert request.full_url == "https://api.github.com/repos/Dioptas/Dioptas/releases/latest"
     assert request.get_header("User-agent") == "Dioptas/0.8.4"
     assert mock_urlopen.call_args.kwargs["timeout"] == 5
+    context = mock_urlopen.call_args.kwargs["context"]
+    assert context.verify_mode == ssl.CERT_REQUIRED
+    assert context.check_hostname
+    assert context.get_ca_certs()
 
 
 @patch("dioptas.model.UpdateChecker.urllib.request.urlopen")

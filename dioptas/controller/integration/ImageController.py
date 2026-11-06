@@ -884,6 +884,9 @@ class ImageController:
             img_data = self.widget.cake_widget.img_data
         else:
             img_data = self.widget.img_widget.img_data
+        if img_data is None:
+            self.update_mouse_position_labels(x, y, None)
+            return
         img_shape = img_data.shape
 
         if 0 < x < img_shape[1] - 1 and 0 < y < img_shape[0] - 1:

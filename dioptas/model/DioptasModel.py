@@ -254,8 +254,6 @@ class DioptasModel:
                 "GitHub) and re-export what you need."
             )
 
-        self.disconnect_models()
-
         # close the file even when loading fails partway — a leaked open
         # handle blocks any later save of the same file
         f = h5py.File(filename, "r")
@@ -279,7 +277,6 @@ class DioptasModel:
                 PROJECT_FORMAT_VERSION,
             )
 
-        self.delete_configurations()
         load_project(self, f, Configuration)
 
     def attach_configuration(self, configuration: Configuration) -> None:
