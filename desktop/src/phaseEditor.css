@@ -69,7 +69,7 @@
 }
 .phase-dialog.pe-dialog .pe-tabs button[role="tab"][aria-selected="true"] {
   color: var(--text);
-  border-bottom-color: var(--ui-selection-edge);
+  border-bottom-color: var(--accent);
 }
 .pe-parameter-scroll {
   overflow: auto;
@@ -813,8 +813,8 @@
   border: 1px solid var(--border);
 }
 .pe-periodic-table button[aria-pressed="true"] {
-  color: var(--ui-selection-text);
-  border-color: var(--ui-selection-edge);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 .pe-new-site label:has(button) {
   grid-template-columns: minmax(0, 1fr) auto;

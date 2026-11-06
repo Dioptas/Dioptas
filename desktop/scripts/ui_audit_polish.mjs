@@ -92,14 +92,12 @@ export async function verifyPolish({ page, ready, invoke, output }) {
   const selectionEdge = await selectedTab.evaluate(
     (element) => getComputedStyle(element).borderBottomColor,
   );
-  const selectionChannels = selectionEdge
-    .match(/[\d.]+/g)
-    .map(Number)
-    .slice(0, 3);
-  assert(
-    Math.max(...selectionChannels) - Math.min(...selectionChannels) < 40,
-    "Selected tabs use a neutral gray indicator",
+  assert.equal(
+    selectionEdge,
+    "rgb(255, 149, 0)",
+    "Selected tabs retain their orange indicator while focus is neutral",
   );
+  await page.screenshot({ path: path.join(output, "focus-and-selection.png") });
   await rotation.blur();
   await page.screenshot({
     path: path.join(output, "geometry-draft-restored.png"),
@@ -302,7 +300,7 @@ export async function verifyPolish({ page, ready, invoke, output }) {
   return [
     "Exact geometry drafts survive all modes and Settings without changing model geometry; Reset is explicit",
     "Shared pane dividers resize by keyboard and reset predictably",
-    "Resting inputs are quiet; focus and selection use visible neutral-gray indicators",
+    "Resting inputs are quiet; focus uses neutral gray while selection retains orange",
     "Sample inspection follows descending axes and the visible scaled overlay when the original is hidden",
     "Keyboard sample inspection exposes real x/intensity values and announces them without changing view or scientific state",
     "Legend stays inside the plot without a reserved header; keyboard movement leaves data ranges unchanged",

@@ -148,7 +148,7 @@ input[type="radio"]:disabled {
   }
 }
 input[type="range"] {
-  accent-color: var(--ui-focus);
+  accent-color: var(--accent);
   padding: 0;
   border: 0;
   background: none;
@@ -237,10 +237,10 @@ button.quiet {
   gap: 10px;
   margin: 0 14px 8px;
   padding: 11px 12px;
-  border: 1px solid var(--ui-selection-edge);
+  border: 1px solid #ff950029;
   border-radius: 7px;
-  background: var(--ui-selection-fill);
-  color: var(--ui-selection-text);
+  background: #ff95000c;
+  color: #ff9500;
   font-size: var(--text-small);
   font-weight: 550;
 }
@@ -676,8 +676,8 @@ h2 {
   color: #8293a3;
 }
 .tool-group button.active {
-  color: var(--ui-selection-text);
-  background: var(--ui-selection-fill);
+  color: #ff9500;
+  background: #ff950012;
 }
 .tool-description {
   font-size: var(--text-small);
@@ -835,7 +835,7 @@ h2 {
 }
 .plot-zoom-button[aria-pressed="true"],
 .plot-zoom-button[aria-pressed="true"]:not(:disabled):hover {
-  color: var(--ui-selection-text);
+  color: var(--accent);
 }
 .plot-readout {
   position: absolute;
@@ -1100,7 +1100,7 @@ h2 {
   min-height: 39px;
 }
 .workspace-nav.workspace-active {
-  color: var(--ui-selection-text);
+  color: #ff9500;
 }
 .setup-pair {
   display: grid;
@@ -1448,7 +1448,7 @@ main {
 .calibration-step-buttons .active {
   color: var(--accent-text, var(--accent));
   background: #ffffff08;
-  border-color: var(--ui-selection-edge);
+  border-color: var(--accent);
 }
 .compact-export {
   margin-left: auto;
@@ -2392,7 +2392,7 @@ input[type="checkbox"] {
   font-size: var(--text-small);
 }
 .color-map-options [aria-selected="true"] {
-  border-color: var(--ui-selection-edge);
+  border-color: #ff950080;
 }
 .color-map-options .focused {
   background: #ffffff0a;

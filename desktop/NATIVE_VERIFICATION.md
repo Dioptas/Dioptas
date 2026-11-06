@@ -61,3 +61,10 @@ and reloads use explicit fixture paths. Human file selection, native colour-pane
 interaction, screen readers, Windows/Linux packaging, mixed-DPI physical monitor
 changes and native display-latency measurements remain unqualified. Pure placement
 calculations for monitor changes remain covered by Rust unit tests.
+
+
+The last native colour checks/screenshots were recorded at `60330f06`. A later
+user clarification retains gray focus outlines but restores orange active
+selections in tables, tabs and controls. That cosmetic correction is verified in
+both browser engines, including Batch heatmap focus; it does not reopen native
+windows for routine styling checks. The app bundle is rebuilt with the correction.

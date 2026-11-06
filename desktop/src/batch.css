@@ -129,15 +129,15 @@
   border-bottom: 2px solid transparent;
 }
 .app .batch-view-tabs.calibration-workflow-tabs button[aria-selected="true"] {
-  border-bottom-color: var(--ui-selection-edge);
+  border-bottom-color: var(--accent);
 }
 .batch-action-row button[aria-pressed="true"] {
-  color: var(--ui-selection-text);
-  background: var(--ui-selection-fill);
+  color: var(--accent);
+  background: #ff950014;
 }
 .app .batch-series-toolbar button[aria-pressed="true"],
 .app .batch-series-toolbar button[aria-pressed="true"]:not(:disabled):hover {
-  color: var(--ui-selection-text);
+  color: var(--accent);
 }
 .batch-qt-content {
   flex: 1;
@@ -188,7 +188,7 @@
   font-variant-numeric: tabular-nums;
 }
 .batch-file-list tr[aria-selected="true"] td {
-  background: var(--ui-selection-fill);
+  background: #ff95001a;
 }
 .batch-file-list td button {
   display: flex;
@@ -306,7 +306,7 @@
   flex: 1;
   min-width: 30px;
   padding: 0;
-  accent-color: var(--ui-focus);
+  accent-color: var(--accent);
 }
 .batch-frame-number {
   display: flex;

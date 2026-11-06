@@ -64,9 +64,9 @@
   min-height: 44px;
 }
 .app .settings-categories button[aria-selected="true"] {
-  --button-fill: var(--ui-selection-fill);
-  --button-edge: var(--ui-selection-edge);
-  color: var(--ui-selection-text);
+  --button-fill: #ff950012;
+  --button-edge: #ff95002b;
+  color: var(--accent);
 }
 .settings-navigation-note {
   margin: auto 12px 0;

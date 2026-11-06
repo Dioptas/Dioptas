@@ -4,7 +4,7 @@
   --table-header-background: var(--ui-raised);
   --table-header-text: var(--ui-muted);
   --table-border: #ffffff0b;
-  --table-selection: var(--ui-selection-fill);
+  --table-selection: #ff950018;
   --table-row-height: 26px;
   --table-header-height: 29px;
   --table-control-height: 23px;

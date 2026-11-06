@@ -29,7 +29,7 @@
 }
 .integration-controls .processing-subnav button[aria-pressed="true"] {
   background: #ffffff09;
-  color: var(--ui-selection-text);
+  color: var(--accent);
 }
 .processing-active {
   width: 6px;
@@ -103,8 +103,8 @@
   background: transparent;
 }
 .processing-toolbar button[aria-pressed="true"] {
-  color: var(--ui-selection-text);
-  background: var(--ui-selection-fill);
+  color: var(--accent);
+  background: #ff950015;
 }
 .processing-toolbar svg,
 .processing-file svg {

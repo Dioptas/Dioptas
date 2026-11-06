@@ -439,7 +439,7 @@ Plots occupy the main workspace, and
 one changing task panel stays on the right, following the existing Dioptas
 arrangement. A shared Ring / Auto advance / Pick peaks strip sits above horizontal
 Image / Peaks / Fit / Validate tabs in the right calibration panel; the active
-section has a neutral gray underline. Tabs provide navigation, without Back/Next
+section has an orange underline. Tabs provide navigation, without Back/Next
 buttons. The detector image stays visible; cake and pattern also appear on
 Validate. Image contains image/detector controls only.
 Parameters and Refinement are stacked in the Fit pane and scroll together when
@@ -551,7 +551,7 @@ All plots default to Rectangle zoom and detector views preserve square pixels.
 The cake and integrated patterns have two separate icon-only buttons in the empty
 corner below the y-axis and left of the x-axis for Rectangle and X-range zoom.
 Both buttons have transparent backgrounds and a subtle rectangular background only
-on hover; the selected icon is light gray and the other icon is muted. X-range selection fits the pattern's
+on hover; the selected icon is orange and the other icon is neutral. X-range selection fits the pattern's
 minimum and maximum intensity to the visible data instead of forcing a zero
 baseline; the cake keeps its current azimuth range. Wheel zoom follows the selected
 mode too. Settings also offers the pattern choice, independently for the main
@@ -866,9 +866,9 @@ certification. Subsequent fixes do not imply a new peer score.
 ## Shared interface behavior
 
 Resting text inputs use quiet recessed fills without pale outlines; focus and
-invalid states stay visible. Focus rings, selected tabs/rows, toggles and settings
-choices use shared neutral-gray tokens; orange remains for workspace identity,
-primary actions and scientific plot markers. Text sizes and states share theme tokens.
+invalid states stay visible. Focus outlines use neutral gray, including inputs and scientific plots. Selected
+tabs, table rows, toggles and settings choices retain orange; focus and active
+selection remain distinct. Text sizes and states share theme tokens.
 `Dialog`, `TabList`, `HistoryControls`, `WorkspaceModeButtons`, `LayoutDivider`
 and the scientific value/status/provenance components centralize common policy.
 

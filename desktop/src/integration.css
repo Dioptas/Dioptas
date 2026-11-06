@@ -210,7 +210,7 @@
 }
 .integration-subnav button[aria-pressed="true"] {
   background: #ffffff09;
-  color: var(--ui-selection-text);
+  color: var(--accent);
 }
 .integration-tab-overlay > .file-actions,
 .integration-tab-overlay > .integration-note,
@@ -388,9 +388,9 @@
 }
 .integration-image-tools button[aria-pressed="true"],
 .integration-pattern-tools button[aria-pressed="true"] {
-  color: var(--ui-selection-text);
-  border-color: var(--ui-selection-edge);
-  background: var(--ui-selection-fill);
+  color: var(--accent);
+  border-color: #ff950066;
+  background: #ff95000c;
 }
 .integration-divider {
   display: flex;
@@ -426,7 +426,7 @@
 }
 .integration-divider:hover span,
 .integration-divider:focus-visible span {
-  background: var(--ui-focus);
+  background: var(--accent);
   opacity: 1;
 }
 .integration-layout .error-banner,

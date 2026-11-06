@@ -615,6 +615,26 @@ try {
     if (stage !== "before") {
       const overview = child.getByTestId("batch-heatmap");
       await overview.focus();
+      await overview.press("Shift");
+      const plotFocus = await overview.evaluate((canvas) => {
+        const style = getComputedStyle(canvas);
+        return {
+          colour: style.outlineColor,
+          width: parseFloat(style.outlineWidth),
+          style: style.outlineStyle,
+        };
+      });
+      const channels = plotFocus.colour
+        .match(/[\d.]+/g)
+        .map(Number)
+        .slice(0, 3);
+      assert(
+        plotFocus.style !== "none" &&
+          plotFocus.width > 0 &&
+          Math.max(...channels) - Math.min(...channels) < 40,
+        "Batch heatmap focus outline uses visible neutral gray",
+      );
+
       for (const [key, index] of [
         ["ArrowUp", 1],
         ["ArrowDown", 0],

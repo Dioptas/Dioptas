@@ -13,9 +13,6 @@
   --ui-border: #46515d;
   --ui-field-edge: transparent;
   --ui-focus: #87939f;
-  --ui-selection-edge: #87939f;
-  --ui-selection-fill: #343a41;
-  --ui-selection-text: var(--ui-text);
   --ui-divider: #303740;
   --ui-text: #dce2e7;
   --ui-muted: #a6b1bc;
@@ -195,7 +192,7 @@ input[aria-invalid="true"] {
 }
 .app :is(.map-tabs, .batch-view-tabs) button[role="tab"][aria-selected="true"] {
   color: var(--ui-text);
-  border-bottom-color: var(--ui-selection-edge);
+  border-bottom-color: var(--accent);
 }
 .app .level-inputs label > span,
 .app .levels-inputs > span,

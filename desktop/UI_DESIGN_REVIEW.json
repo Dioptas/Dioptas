@@ -110,7 +110,7 @@
       "before": 8,
       "after": 9.5,
       "criteria": "Let scientific data dominate while keeping state, source context and actions easy to scan.",
-      "evidence": "Detector and pattern data keep the available space. Plot headers stay on one row, duplicate Map/Batch summary blocks are removed, legends overlay the data and fields recede visually. Neutral-gray focus/selection states leave orange for workspace identity, primary actions and scientific markers.",
+      "evidence": "Detector and pattern data keep the available space. Plot headers stay on one row, duplicate Map/Batch summary blocks are removed, legends overlay the data and fields recede visually. Neutral-gray focus outlines stay separate from orange active/selected states; resting inputs have no permanent pale borders.",
       "at91": 9.1
     },
     {
@@ -119,7 +119,7 @@
       "before": 7,
       "after": 9.5,
       "criteria": "Use the same visual rules for equivalent controls, tabs, dialogs and states.",
-      "evidence": "Tabs, dialogs, field states, plot typography, legends, pane dividers, history, mode buttons, provenance and feedback share policies across modes and sampled detached views. Focus and control-selection states share a neutral-gray palette across the main and detached interfaces.",
+      "evidence": "Tabs, dialogs, field states, plot typography, legends, pane dividers, history, mode buttons, provenance and feedback share policies across modes and sampled detached views. Focus uses shared neutral-gray outlines while active selections retain orange across the main and detached interfaces.",
       "at91": 9.2
     },
     {
@@ -405,7 +405,7 @@
     },
     {
       "problem": "Orange selection and focus outlines competed with scientific data across many controls",
-      "resolution": "Shared neutral-gray focus, selection-edge, fill and text tokens now cover fields, tabs, rows, toggles, icon pickers and settings. Resting fields remain borderless; errors remain visible. Orange workspace icons, primary actions and scientific markers are retained.",
+      "resolution": "After user clarification, only focus outlines use the neutral-gray token, including input and plot focus. Selected tables, tabs, toggles, settings and pickers retain orange. Resting fields remain borderless and error states stay visible.",
       "shared": [
         "uiTheme.css",
         "buttons.css",
@@ -553,7 +553,7 @@
     "toolbarChecks": "Active Batch and pattern controls are checked against ancestor clipping and pointer hit targets. Visible toolbars must keep all button centers in one compact row (at most 46 px high), including narrow panes at both text sizes.",
     "poniDisplayConversion": "A changed PONI field is applied through the UI; mm-to-m conversion and Undo are checked against the real model at 1e-15 m tolerance.",
     "batchAxisTitles": "No visible heatmap y-axis title; one-based frame ticks and accessible description. Real-model browser checks verify that displayed frames 1 and 6 select stored indices 0 and 5.",
-    "browserUiSha256": "a8ee4b76594a28526076e890b6475bfb6d99ca41027cafdcb673b11747b16879",
+    "browserUiSha256": "6c53912d27fe52ca11e44a486f567f6bc5e5c22d10bb799e4cf914f428c3658b",
     "nativeBuildPassed": true,
     "nativeBatchSmokePassed": true,
     "nativeQualification": "Scoped native macOS checks pass: six Batch reopen/dock cycles with changing native bounds; four Batch app-restart stages; measured-image calibration, masking, integration, phase/database/editor and export/project workflows; Map placement across an app restart; real file-chooser cancellation; four non-focusing help popups. Original failures remain archived in artifacts/ui-audit/native/summary.json.",
@@ -574,7 +574,7 @@
       "sharedChecker": "scripts/field_appearance_check.js"
     },
     "nativeEvidence": "NATIVE_VERIFICATION.md",
-    "neutralControlStates": "Both engines verify neutral-gray focused field outlines and selected-tab indicators; selection surfaces/edges share tokens across modes, dialogs, tables and detached views. Orange plot data, workspace identity and primary actions remain distinct."
+    "neutralControlStates": "Both browser engines verify gray input and Batch heatmap focus outlines, while selected tabs retain orange. Active selection colours are preserved across tables, controls and dialogs."
   },
   "manualAccessibilityReview": {
     "popupControllers": "Open icon-picker controllers were verified to reference an existing role=dialog target; the axe incomplete result is retained rather than relabeled as an automatic pass.",
@@ -618,7 +618,7 @@
         "ratio": 7.3297
       },
       {
-        "use": "Neutral focus / selected-tab indicator",
+        "use": "Neutral focus indicator",
         "foreground": "#87939f",
         "background": "#1b1f24",
         "ratio": 5.287

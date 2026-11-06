@@ -46,8 +46,8 @@
   background: transparent;
 }
 .phase-database-dialog [role="tab"][aria-selected="true"] {
-  color: var(--ui-selection-text);
-  border-bottom-color: var(--ui-selection-edge);
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 .phase-database-tools label,
 .phase-database-conditions label {

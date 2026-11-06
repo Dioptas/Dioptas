@@ -101,12 +101,12 @@
 }
 .map-divider:hover,
 .map-divider:focus-visible {
-  background: var(--ui-selection-fill);
+  background: #ff950035;
   outline: none;
 }
 .map-divider:hover span,
 .map-divider:focus-visible span {
-  background: var(--ui-focus);
+  background: var(--accent);
 }
 .map-toolbar,
 .map-display-controls,
@@ -137,8 +137,8 @@
   align-items: center;
 }
 .map-toolbar [aria-pressed="true"] {
-  color: var(--ui-selection-text);
-  background: var(--ui-selection-fill);
+  color: var(--accent);
+  background: #ff95001a;
 }
 .map-layer-select {
   display: flex;
@@ -211,8 +211,8 @@
   min-width: 0;
 }
 .map-tabs button[aria-selected="true"] {
-  color: var(--ui-selection-text);
-  border-bottom-color: var(--ui-selection-edge);
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 .map-tab-content {
   overflow: auto;
@@ -340,8 +340,8 @@
   text-overflow: ellipsis;
 }
 .map-file-list [aria-selected="true"] {
-  color: var(--ui-selection-text);
-  background: var(--ui-selection-fill);
+  color: var(--accent);
+  background: #ff950018;
 }
 .map-file-list .map-excluded .map-point-name {
   text-decoration: line-through;
@@ -466,8 +466,8 @@
   box-shadow: none;
 }
 .app .map-controls .map-tabs button[aria-selected="true"] {
-  color: var(--ui-selection-text);
-  border-bottom-color: var(--ui-selection-edge);
+  color: var(--accent);
+  border-bottom-color: var(--accent);
   background: transparent;
 }
 .app .map-controls .map-tabs button:hover {
