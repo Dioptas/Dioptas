@@ -91,3 +91,11 @@ class OptionsControllerTest(QtTest):
 
         self.model.current_configuration.params.calculate_poisson_errors = True
         self.assertTrue(self.options_widget.calculate_poisson_errors_cb.isChecked())
+
+    def test_sparse_layout_choice_updates_model_and_renders_parameter_changes(self):
+        widget = self.options_widget.dioptrin_sparse_layout_cb
+        self.assertEqual(widget.currentData(), 'csc')
+        widget.setCurrentIndex(widget.findData('csr'))
+        self.assertEqual(self.model.calibration_model.dioptrin_sparse_layout, 'csr')
+        self.model.calibration_model.params.dioptrin_sparse_layout = 'csc'
+        self.assertEqual(widget.currentData(), 'csc')

@@ -55,6 +55,7 @@ class IntegrationTask:
     prefer_dioptrin: bool = False
     dioptrin_geometry_config: dict[str, float] | None = None
     calculate_azimuthal_std: bool = False
+    dioptrin_sparse_layout: str = "csc"
 
 
 @dataclass(frozen=True)
@@ -182,6 +183,8 @@ class PersistentIntegrationEngine:
         self, backend: _DioptrinBackend, task, unit: str
     ) -> None:
         integrator = backend.integrator
+        if hasattr(integrator, "set_sparse_layout"):
+            integrator.set_sparse_layout(task.dioptrin_sparse_layout)
         method = (
             ("supersampled", task.supersampling_factor)
             if task.supersampling_factor > 1

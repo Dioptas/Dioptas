@@ -156,7 +156,14 @@ class OptionsWidget(QtWidgets.QWidget):
         sampling.addWidget(self.bin_count_cb, 0, 2)
         sampling.addWidget(LabelAlignRight("Supersampling:"), 1, 0)
         sampling.addWidget(self.supersampling_sb, 1, 1)
-        sampling.addWidget(self.use_dioptrin_cb, 2, 0, 1, 3)
+        sampling.addWidget(self.use_dioptrin_cb, 2, 0)
+        self.dioptrin_sparse_layout_cb = QtWidgets.QComboBox()
+        self.dioptrin_sparse_layout_cb.addItem("CSC (default)", "csc")
+        self.dioptrin_sparse_layout_cb.addItem("CSR", "csr")
+        self.dioptrin_sparse_layout_cb.setToolTip(
+            "Fast 1D sparse layout. CSC favors large images; fixed masks cache normalization. "
+            "Strict arithmetic, azimuthal spread and 2D retain their existing paths.")
+        sampling.addWidget(self.dioptrin_sparse_layout_cb, 2, 1, 1, 2)
 
         self.oned_azimuth_min_txt = NumberTextField("-180")
         self.oned_azimuth_max_txt = NumberTextField("180")

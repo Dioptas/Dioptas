@@ -198,6 +198,7 @@ class CalibrationParams:
 
     use_dioptrin: bool = False
     dioptrin_num_workers: int = 1
+    dioptrin_sparse_layout: str = "csc"
 
     # --- the calibration result (moved here in step 2b) -----------------
     # Declared detector-first on purpose: apply_params walks fields in

@@ -702,8 +702,15 @@ class MapModel:
         unit = self.configuration.integration_unit
         azi_range = self.configuration.oned_azimuth_range
 
-        if len(new_files) > 1 and cal.can_use_dioptrin_batch(unit, azi_range):
+        self.configuration.prepare_dioptrin_mask_mode()
+        if (
+            not self.configuration.has_dynamic_mask
+            and len(new_files) > 1
+            and cal.can_use_dioptrin_batch(unit, azi_range)
+        ):
             try:
+                from dioptas.model.util.dynamic_integration import close_frame_pool
+                close_frame_pool(self.configuration, clear_plan=False)
                 infos, intensities = self._integrate_files_dioptrin(new_files)
                 return infos, intensities, []
             except Exception:
@@ -760,6 +767,7 @@ class MapModel:
                 filepaths,
                 img_shape=img_shape,
                 on_frame=lambda fp, fi: all_infos.append(MapPointInfo(fp, fi)),
+                workers=cal.dioptrin_num_workers,
             )
 
         infos: list[MapPointInfo] = []
@@ -787,15 +795,17 @@ class MapModel:
         self.configuration.img_model.load(filepath)
         infos: list[MapPointInfo] = []
         intensities: list[np.ndarray] = []
-        for frame_ind in range(self.configuration.img_model.series_max):
-            self.configuration.img_model.load_series_img(frame_ind + 1)
-            x, y = self.configuration.integrate_image_1d(update_pattern_model=False)
-            if len(x) != len(self.pattern_x):
-                raise ValueError(
-                    "The integrated pattern has a different length than the map's"
-                )
-            infos.append(MapPointInfo(filepath, frame_ind))
-            intensities.append(y)
+        from dioptas.model.util.dynamic_integration import frame_integrations
+        with frame_integrations(self.configuration,
+                                range(self.configuration.img_model.series_max)) as results:
+            for frame_ind, result in results:
+                x, y = result.radial, result.intensity
+                if len(x) != len(self.pattern_x):
+                    raise ValueError(
+                        "The integrated pattern has a different length than the map's"
+                    )
+                infos.append(MapPointInfo(filepath, frame_ind))
+                intensities.append(y)
         return infos, intensities
 
     def _apply_appended_data(self):
@@ -866,12 +876,19 @@ class MapModel:
         unit = self.configuration.integration_unit
         azi_range = self.configuration.oned_azimuth_range
 
-        if cal.can_use_dioptrin_batch(unit, azi_range):
+        self.configuration.prepare_dioptrin_mask_mode()
+        if (
+            not self.configuration.has_dynamic_mask
+            and cal.can_use_dioptrin_batch(unit, azi_range)
+        ):
+            from dioptas.model.util.dynamic_integration import close_frame_pool
+            close_frame_pool(self.configuration, clear_plan=False)
             self._integrate_dioptrin_batch(callback_fn=callback_fn)
         else:
             self._integrate_pyFAI(callback_fn=callback_fn)
 
     def _integrate_pyFAI(self, callback_fn=None):
+        """Integrate per frame with the selected backend and a fresh mask."""
         frame_count = 0
         n_total = None
         last_callback_time = time.monotonic()
@@ -883,34 +900,33 @@ class MapModel:
             if n_total is None:
                 n_total = len(self.filepaths) * series_max
 
-            for frame_ind in range(series_max):
-                self.configuration.img_model.load_series_img(frame_ind + 1)
-                x, y = self.configuration.integrate_image_1d(
-                    update_pattern_model=False
-                )
+            from dioptas.model.util.dynamic_integration import frame_integrations
+            with frame_integrations(self.configuration, range(series_max)) as results:
+                for frame_ind, result in results:
+                    x, y = result.radial, result.intensity
 
-                if file_ind == 0 and frame_ind == 0:
-                    self.pattern_x = x
-                else:
-                    if len(x) != len(self.pattern_x):
-                        raise ValueError(
-                            "The integrated patterns have different length, this is not supported"
-                        )
+                    if file_ind == 0 and frame_ind == 0:
+                        self.pattern_x = x
+                    else:
+                        if len(x) != len(self.pattern_x):
+                            raise ValueError(
+                                "The integrated patterns have different length, this is not supported"
+                            )
 
-                self.point_infos.append(MapPointInfo(filepath, frame_ind))
-                self.pattern_intensities.append(y)
+                    self.point_infos.append(MapPointInfo(filepath, frame_ind))
+                    self.pattern_intensities.append(y)
 
-                frame_count += 1
-                self.point_integrated.emit(
-                    file_ind + (frame_ind + 1) / series_max
-                )
+                    frame_count += 1
+                    self.point_integrated.emit(
+                        file_ind + (frame_ind + 1) / series_max
+                    )
 
-                now = time.monotonic()
-                if callback_fn is not None and now - last_callback_time > 0.1:
-                    last_callback_time = now
-                    if not callback_fn(frame_count, n_total):
-                        self.pattern_intensities = np.array(self.pattern_intensities)
-                        return
+                    now = time.monotonic()
+                    if callback_fn is not None and now - last_callback_time > 0.1:
+                        last_callback_time = now
+                        if not callback_fn(frame_count, n_total):
+                            self.pattern_intensities = np.array(self.pattern_intensities)
+                            return
 
         # Final callback to ensure progress reaches 100%
         if callback_fn is not None:
@@ -956,6 +972,7 @@ class MapModel:
                 img_shape=img_shape,
                 abort_check=lambda: aborted,
                 on_frame=lambda fp, fi: all_infos.append(MapPointInfo(fp, fi)),
+                workers=cal.dioptrin_num_workers,
             )
 
         result_iter = cal.dioptrin_batch1d_iter(frame_generator(), num_points)

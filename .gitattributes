@@ -62,3 +62,6 @@
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
 dioptas/_version.py export-subst
+
+# Historical patch data retain mandatory diff context prefixes.
+docs/benchmarks/*.patch -whitespace

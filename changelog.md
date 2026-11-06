@@ -1,4 +1,4 @@
-# 0.12.0 (unreleased)
+# 0.12.0 (2026-11-06)
 
 ## Highlights
 
@@ -8,10 +8,22 @@
   Published library structures remain read-only.
 
 - **Use Dioptrin without activation.** Standalone builds include the MIT-licensed
-  Dioptrin 0.7.0 backend. Source and pip users can select the pinned `dioptrin`
+  Dioptrin 0.9.0 backend. Source and pip users can select the pinned `dioptrin`
   extra; pyFAI remains the default and works without that extra.
 
 ## Improvements
+
+- Dioptrin 0.9.0 uses CSC by default for fast 1D integration, with cached
+  normalization for fixed masks and fused normalization for changing masks.
+  Integration options offer an explicit CSC/CSR choice. Float64 precision,
+  strict arithmetic, spread and 2D compatibility paths are preserved.
+- Batch and map runs parallelize complete dynamic-mask frame jobs over one
+  shared geometry/weight plan. Fixed/dynamic switches retain valid plans and
+  create only lightweight workers when needed; scientific input changes
+  invalidate dependent caches.
+- Supported Eiger HDF5 data use bounded parallel bitshuffle/LZ4 reading.
+  Spot Mask computes once per frame and releases the GIL during C work.
+
 
 - Updated the calculation engine and bundled material library to core Peritheos
   0.18.0. Observation datasets are optional and are not required by Dioptas or

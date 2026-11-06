@@ -1,0 +1,119 @@
+{
+  "date": "2026-11-06",
+  "source": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.h5",
+  "source_bytes": 5687072680,
+  "dataset": "entry_0000/instrument/eiger/data",
+  "workers": 4,
+  "warmups": [
+    {
+      "parallel": false,
+      "seconds": 11.488243416999467,
+      "frames": 625,
+      "fps": 54.40344335628983,
+      "process_cpu_seconds": 32.609759872000005,
+      "other_busy_cores": 3.478359456492428,
+      "peak_rss_GiB": 4.189208984375,
+      "relative_l2": 0.0
+    },
+    {
+      "parallel": true,
+      "seconds": 9.34931099996902,
+      "frames": 625,
+      "fps": 66.84984594074055,
+      "process_cpu_seconds": 34.924139391999994,
+      "other_busy_cores": 2.602957651978554,
+      "peak_rss_GiB": 10.772201538085938,
+      "relative_l2": 1.1163844359331067e-15
+    }
+  ],
+  "samples": [
+    {
+      "parallel": false,
+      "seconds": 10.193282834021375,
+      "frames": 625,
+      "fps": 61.31488845909222,
+      "process_cpu_seconds": 30.25110118399999,
+      "other_busy_cores": 2.7595524694086677,
+      "peak_rss_GiB": 7.016754150390625,
+      "relative_l2": 0.0
+    },
+    {
+      "parallel": true,
+      "seconds": 7.1857707079616375,
+      "frames": 625,
+      "fps": 86.97744826557255,
+      "process_cpu_seconds": 27.866229504000003,
+      "other_busy_cores": 4.264507140765965,
+      "peak_rss_GiB": 6.96722412109375,
+      "relative_l2": 1.1163844359331067e-15
+    },
+    {
+      "parallel": true,
+      "seconds": 7.113349916995503,
+      "frames": 625,
+      "fps": 87.86296292084897,
+      "process_cpu_seconds": 27.63451494399998,
+      "other_busy_cores": 2.092612514465491,
+      "peak_rss_GiB": 6.662353515625,
+      "relative_l2": 1.1163844359331067e-15
+    },
+    {
+      "parallel": false,
+      "seconds": 9.85979454201879,
+      "frames": 625,
+      "fps": 63.38874479954746,
+      "process_cpu_seconds": 29.572232192,
+      "other_busy_cores": 1.3507145358138735,
+      "peak_rss_GiB": 6.6624603271484375,
+      "relative_l2": 0.0
+    },
+    {
+      "parallel": false,
+      "seconds": 10.583269708033185,
+      "frames": 625,
+      "fps": 59.0554731422555,
+      "process_cpu_seconds": 30.01509888000001,
+      "other_busy_cores": 3.027882875906708,
+      "peak_rss_GiB": 6.6624603271484375,
+      "relative_l2": 0.0
+    },
+    {
+      "parallel": true,
+      "seconds": 7.316389416984748,
+      "frames": 625,
+      "fps": 85.42464928795123,
+      "process_cpu_seconds": 28.091846143999984,
+      "other_busy_cores": 3.016262885738593,
+      "peak_rss_GiB": 6.62933349609375,
+      "relative_l2": 1.1163844359331067e-15
+    }
+  ],
+  "median_fps": {
+    "serial": 61.31488845909222,
+    "whole_frame": 86.97744826557255
+  },
+  "settings": {
+    "bins": 2000,
+    "unit": "2th_deg",
+    "method": "pixel_split",
+    "precision": "float64",
+    "polarization": 0.965,
+    "solid_angle": true,
+    "threshold_above": 230,
+    "static_mask": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.mask",
+    "whole_frame_native_threads": 1,
+    "serial_reader_workers": 4,
+    "environment": {
+      "OMP_NUM_THREADS": "1",
+      "RAYON_NUM_THREADS": "4",
+      "OPENBLAS_NUM_THREADS": "1"
+    }
+  },
+  "source_hashes": {
+    "/Users/clemens/Programming/Dioptas/scripts/benchmark_dynamic_frame_pool.py": "03f0c0e2bbab166677d82a7ba489bea61e4f254964f46706718ded898500fc67",
+    "dioptas/model/util/dynamic_integration.py": "ccc6f7340750c00987ed66e537676079b9263d46a21be66e494093080551455b",
+    "dioptas/model/MapModel.py": "cf32f036d017e8dc8be37d055a911ab47535e435f31de5bb9f8877bb60fa8bf7",
+    "dioptas/model/loader/fastHdf5.py": "d204ce08cb616011642b266f455597173d107f7971544da0d006506655fdbc0a"
+  },
+  "limits": "Full original 625-frame Eiger file, warm OS cache, concurrent user work. Alternating paired runs share the same configuration. Serial baseline retains parallel decoder prefetch and intra-frame Rayon threads from the environment. Whole-frame jobs each decode, prepare, mask, normalize and integrate with a private single-thread native pool. Timed: file opening, snapshotting, all reads, mask updates, normalization, integration, ordering and map reduction. Initial Configuration construction and GUI rendering excluded. Cold execution retained separately."
+}

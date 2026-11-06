@@ -98,6 +98,8 @@ class CalibrationModel:
 
         self._dioptrin_integrator: Any = None
         self._dioptrin_integrator_key: tuple | None = None
+        self._dioptrin_mask_mode = "fixed"
+        self._dioptrin_polarization_state = None
 
         # side effects of settings changes live here (not in the property
         # setters), so a direct params write behaves exactly like the
@@ -116,6 +118,9 @@ class CalibrationModel:
             "distortion_spline_filename",
         ):
             self._reconcile_calibration_params()
+        elif info.signal.name == "dioptrin_sparse_layout":
+            if self._dioptrin_integrator is not None and hasattr(self._dioptrin_integrator, "set_sparse_layout"):
+                self._dioptrin_integrator.set_sparse_layout(self.dioptrin_sparse_layout)
         elif info.signal.name == "peak_selections":
             value = info.args[0]
             canonical = _canonical_peak_selections(value)
@@ -340,6 +345,16 @@ class CalibrationModel:
     def dioptrin_num_workers(self, new_value: int) -> None:
         self.params.dioptrin_num_workers = new_value
 
+    @property
+    def dioptrin_sparse_layout(self) -> str:
+        return self.params.dioptrin_sparse_layout
+
+    @dioptrin_sparse_layout.setter
+    def dioptrin_sparse_layout(self, layout: str) -> None:
+        if layout not in ("csc", "csr"):
+            raise ValueError("Sparse layout must be 'csc' or 'csr'")
+        self.params.dioptrin_sparse_layout = layout
+
     def _get_poni_dict(self) -> dict[str, float]:
         return {
             "pixel1": self.orig_pixel1,
@@ -375,13 +390,35 @@ class CalibrationModel:
                 method="pixel_split",
                 polarization_factor=self.polarization_factor,
                 unit="2th_deg",
+                mask_mode=self._dioptrin_mask_mode,
             )
+            if hasattr(self._dioptrin_integrator, "set_sparse_layout"):
+                self._dioptrin_integrator.set_sparse_layout(self.dioptrin_sparse_layout)
             self._dioptrin_integrator_key = key
+            self._dioptrin_polarization_state = (
+                self._dioptrin_integrator, self.polarization_factor
+            )
         except Exception:
             self._dioptrin_integrator = None
             self._dioptrin_integrator_key = None
+            self._dioptrin_polarization_state = None
             logger.info("Dioptrin integrator not available, using pyFAI")
             self.use_dioptrin = False
+
+    def set_dioptrin_mask_mode(self, mode: str) -> None:
+        """Select the execution layout before admitting an integration run."""
+        if self.use_dioptrin and self._dioptrin_integrator is not None:
+            if self._dioptrin_integrator.mask_mode != mode:
+                self._dioptrin_integrator.set_mask_mode(mode)
+        self._dioptrin_mask_mode = mode
+
+    def _sync_dioptrin_polarization(self, factor: float | None) -> None:
+        """Avoid recalculating full-detector corrections for an unchanged factor."""
+        previous = self._dioptrin_polarization_state
+        if (previous is None or previous[0] is not self._dioptrin_integrator
+                or previous[1] != factor):
+            self._dioptrin_integrator.set_polarization_factor(factor)
+            self._dioptrin_polarization_state = (self._dioptrin_integrator, factor)
 
     def can_use_dioptrin_batch(self, unit: str, azi_range: tuple[float, float] | None = None) -> bool:
         """Check whether dioptrin batch integration can be used for the given parameters."""
@@ -425,7 +462,7 @@ class CalibrationModel:
         self._dioptrin_integrator.set_mask(
             mask.astype(np.uint8) if mask is not None else None
         )
-        self._dioptrin_integrator.set_polarization_factor(self.polarization_factor)
+        self._sync_dioptrin_polarization(self.polarization_factor)
 
         if num_points is None:
             num_points = self.calculate_number_of_pattern_points(img_shape, 2)
@@ -451,7 +488,7 @@ class CalibrationModel:
                             azimuthal_std: bool = False) -> Iterator[Any]:
         """Run streaming dioptrin batch 1D integration (supports generators)."""
         return self._dioptrin_integrator.batch1d_iter(
-            images, num_points, num_workers=self.dioptrin_num_workers,
+            images, num_points, num_workers=self.dioptrin_num_workers, num_threads=1,
             **({"azimuthal_std": True} if azimuthal_std else {}),
         )
 
@@ -759,16 +796,18 @@ class CalibrationModel:
                     return np.logical_or(self.detector.mask, mask)
 
     def _prepare_integration_super_sampling(
-        self, mask: np.ndarray | None
+        self, mask: np.ndarray | None, image: np.ndarray | None = None
     ) -> tuple[np.ndarray, np.ndarray | None]:
+        if image is None:
+            image = self.img_model.img_data
         if self.supersampling_factor > 1:
             img_data = supersample_image(
-                self.img_model.img_data, self.supersampling_factor
+                image, self.supersampling_factor
             )
             if mask is not None:
                 mask = supersample_image(mask, self.supersampling_factor)
         else:
-            img_data = self.img_model.img_data
+            img_data = image
         return img_data, mask
 
     def integrate_1d(
@@ -783,6 +822,7 @@ class CalibrationModel:
         trim_zeros: bool = True,
         calculate_errors: bool = False,
         calculate_azimuthal_std: bool = False,
+        image: np.ndarray | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
         self.sigma = None
         self.azimuthal_std = None
@@ -790,17 +830,19 @@ class CalibrationModel:
             # do not perform integration if the image is completely masked...
             return self.tth, self.int
 
-        if self.pattern_geometry_img_shape != self.img_model.img_data.shape:
+        if image is None:
+            image = self.img_model.img_data
+        if self.pattern_geometry_img_shape != image.shape:
             # if cake geometry was used on differently shaped image before the azimuthal integrator needs to be reset
             self.pattern_geometry.reset()
-            self.pattern_geometry_img_shape = self.img_model.img_data.shape
+            self.pattern_geometry_img_shape = image.shape
 
         if polarization_factor is None:
             polarization_factor = self.polarization_factor
 
-        self._check_detector_and_image_shape()
+        self._check_detector_and_image_shape(image.shape)
         mask = self._prepare_integration_mask(mask)
-        if mask is not None and mask.shape != self.img_model.img_data.shape:
+        if mask is not None and mask.shape != image.shape:
             mask = None
 
         if self.use_dioptrin and self._dioptrin_integrator is not None:
@@ -812,7 +854,7 @@ class CalibrationModel:
             )
             if not needs_pyFAI:
                 img_data = np.ascontiguousarray(
-                    self.img_model.img_data, dtype=np.float64
+                    image, dtype=np.float64
                 )
 
                 if num_points is None:
@@ -833,7 +875,7 @@ class CalibrationModel:
                 self._dioptrin_integrator.set_mask(
                     mask.astype(np.uint8) if mask is not None else None
                 )
-                self._dioptrin_integrator.set_polarization_factor(polarization_factor)
+                self._sync_dioptrin_polarization(polarization_factor)
 
                 t1 = time.time()
                 if calculate_errors or calculate_azimuthal_std:
@@ -895,7 +937,7 @@ class CalibrationModel:
                     return self.tth, self.int
 
         # pyFAI path
-        img_data, mask = self._prepare_integration_super_sampling(mask)
+        img_data, mask = self._prepare_integration_super_sampling(mask, image)
 
         if num_points is None:
             num_points = self.calculate_number_of_pattern_points(img_data.shape, 2)
@@ -1013,7 +1055,7 @@ class CalibrationModel:
                 self._dioptrin_integrator.set_mask(
                     mask.astype(np.uint8) if mask is not None else None
                 )
-                self._dioptrin_integrator.set_polarization_factor(polarization_factor)
+                self._sync_dioptrin_polarization(polarization_factor)
 
                 azi_range_rad = None
                 if azimuth_range is not None:

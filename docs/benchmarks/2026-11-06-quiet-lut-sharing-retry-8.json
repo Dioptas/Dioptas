@@ -1,0 +1,236 @@
+{
+  "date": "2026-11-06",
+  "workers": 8,
+  "source": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.h5",
+  "source_bytes": 5687072680,
+  "source_mtime_ns": 1772087934000000000,
+  "settings": {
+    "frames": 625,
+    "bins": 2000,
+    "unit": "2th_deg",
+    "method": "pixel_split",
+    "polarization": 0.965,
+    "solid_angle": true,
+    "precision": "float64",
+    "threshold_above": 230,
+    "poisson_errors": false,
+    "azimuthal_std": false,
+    "native_threads_per_frame": 1,
+    "mask": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.mask",
+    "poni": "/Users/clemens/Programming/Dioptrin/docs/benchmarks/2026-11-05-bslz4/calibration.poni"
+  },
+  "warmups": [
+    {
+      "separate": true,
+      "seconds": 10.28170312504517,
+      "fps": 60.78759446745398,
+      "other_busy_cores": 5.040375089003714,
+      "process_busy_cores": 5.4890088742717,
+      "peak_rss_GiB": 10.02099609375,
+      "plan_ids": [
+        37682186768,
+        37682189328,
+        37682190608,
+        37682191888,
+        37682193168,
+        37682195728,
+        37682197008,
+        37682198288
+      ],
+      "worker_threads": 8,
+      "relative_l2": 0.0
+    },
+    {
+      "separate": false,
+      "seconds": 4.34251166699687,
+      "fps": 143.92592304357083,
+      "other_busy_cores": 4.146319138022649,
+      "process_busy_cores": 7.399994112214589,
+      "peak_rss_GiB": 8.315643310546875,
+      "plan_ids": [
+        37682188048
+      ],
+      "worker_threads": 8,
+      "relative_l2": 0.0
+    }
+  ],
+  "samples": [
+    {
+      "separate": true,
+      "seconds": 4.180724249978084,
+      "fps": 149.49562865890434,
+      "other_busy_cores": 4.988939408787291,
+      "process_busy_cores": 7.461056545923477,
+      "peak_rss_GiB": 8.29144287109375,
+      "plan_ids": [
+        37682186768,
+        37682189328,
+        37682190608,
+        37682191888,
+        37682193168,
+        37682195728,
+        37682197008,
+        37682198288
+      ],
+      "worker_threads": 8,
+      "relative_l2": 0.0
+    },
+    {
+      "separate": false,
+      "seconds": 4.440729499969166,
+      "fps": 140.74264149715484,
+      "other_busy_cores": 4.168910514389567,
+      "process_busy_cores": 7.14229409744958,
+      "peak_rss_GiB": 7.44207763671875,
+      "plan_ids": [
+        37682188048
+      ],
+      "worker_threads": 8,
+      "relative_l2": 0.0
+    },
+    {
+      "separate": false,
+      "seconds": 5.137268332997337,
+      "fps": 121.65998727096742,
+      "other_busy_cores": 5.3145609421679145,
+      "process_busy_cores": 6.300561362562713,
+      "peak_rss_GiB": 7.126373291015625,
+      "plan_ids": [
+        37682188048
+      ],
+      "worker_threads": 8,
+      "relative_l2": 0.0
+    },
+    {
+      "separate": true,
+      "seconds": 5.438465124985669,
+      "fps": 114.92213071820461,
+      "other_busy_cores": 5.846958049608289,
+      "process_busy_cores": 6.011167086427926,
+      "peak_rss_GiB": 6.884735107421875,
+      "plan_ids": [
+        37682186768,
+        37682189328,
+        37682190608,
+        37682191888,
+        37682193168,
+        37682195728,
+        37682197008,
+        37682198288
+      ],
+      "worker_threads": 8,
+      "relative_l2": 0.0
+    },
+    {
+      "separate": true,
+      "seconds": 5.704338958021253,
+      "fps": 109.56571911301758,
+      "other_busy_cores": 7.182544063632577,
+      "process_busy_cores": 5.614731928747468,
+      "peak_rss_GiB": 6.356109619140625,
+      "plan_ids": [
+        37682186768,
+        37682189328,
+        37682190608,
+        37682191888,
+        37682193168,
+        37682195728,
+        37682197008,
+        37682198288
+      ],
+      "worker_threads": 8,
+      "relative_l2": 0.0
+    },
+    {
+      "separate": false,
+      "seconds": 5.923705083027016,
+      "fps": 105.50829105094893,
+      "other_busy_cores": 8.068118541701319,
+      "process_busy_cores": 5.568617060041705,
+      "peak_rss_GiB": 6.152984619140625,
+      "plan_ids": [
+        37682188048
+      ],
+      "worker_threads": 8,
+      "relative_l2": 0.0
+    },
+    {
+      "separate": false,
+      "seconds": 6.545181582972873,
+      "fps": 95.49009329640631,
+      "other_busy_cores": 8.537571925172497,
+      "process_busy_cores": 4.931878674837034,
+      "peak_rss_GiB": 5.6160430908203125,
+      "plan_ids": [
+        37682188048
+      ],
+      "worker_threads": 8,
+      "relative_l2": 0.0
+    },
+    {
+      "separate": true,
+      "seconds": 6.6295524159795605,
+      "fps": 94.27484101242332,
+      "other_busy_cores": 8.207999793906646,
+      "process_busy_cores": 5.159418462934959,
+      "peak_rss_GiB": 5.6558380126953125,
+      "plan_ids": [
+        37682186768,
+        37682189328,
+        37682190608,
+        37682191888,
+        37682193168,
+        37682195728,
+        37682197008,
+        37682198288
+      ],
+      "worker_threads": 8,
+      "relative_l2": 0.0
+    },
+    {
+      "separate": true,
+      "seconds": 5.880326249985956,
+      "fps": 106.28661972649778,
+      "other_busy_cores": 8.055900297057129,
+      "process_busy_cores": 5.564092301184507,
+      "peak_rss_GiB": 4.8052825927734375,
+      "plan_ids": [
+        37682186768,
+        37682189328,
+        37682190608,
+        37682191888,
+        37682193168,
+        37682195728,
+        37682197008,
+        37682198288
+      ],
+      "worker_threads": 8,
+      "relative_l2": 0.0
+    },
+    {
+      "separate": false,
+      "seconds": 6.454653957975097,
+      "fps": 96.82935817616938,
+      "other_busy_cores": 8.472589409756836,
+      "process_busy_cores": 5.2214057409473975,
+      "peak_rss_GiB": 5.5667572021484375,
+      "plan_ids": [
+        37682188048
+      ],
+      "worker_threads": 8,
+      "relative_l2": 0.0
+    }
+  ],
+  "median_fps": {
+    "False": 105.50829105094893,
+    "True": 109.56571911301758
+  },
+  "source_hashes": {
+    "/Users/clemens/Programming/Dioptas/scripts/benchmark_lut_sharing.py": "97b0b110f8585f9c0ee52b79da30a16b72500cfed69b201a14021c4ce43348b0",
+    "dioptas/model/util/dynamic_integration.py": "3694888d0a21fb373518a84b1720e7a93b0ef112a76beaf044059485dff9d000",
+    "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.mask": "65801632091fd5b0198cc32127056590ee789121b0fe6ff5ef67c034f513bb5d",
+    "/Users/clemens/Programming/Dioptrin/docs/benchmarks/2026-11-05-bslz4/calibration.poni": "5999ef2e03bf1ef2db21e6ab042f3170bc86f81e99ce59488d1bd896ddf1b00e",
+    "/Users/clemens/Programming/Dioptas/.venv/lib/python3.13/site-packages/dioptrin/dioptrin.cpython-313-darwin.so": "56ac2493992e17105b4f0e9365115a9e7ebdad126bd227ebb75ab76051698103"
+  },
+  "limits": "Same locally built native library, same borrowed-array API and numerical kernels; only sharing differs. Separate creates one immutable prepared plan per frame worker. Production Qt MapModel and reader, full original Eiger file, warm OS cache, five alternating paired passes. Timed: opening, snapshotting, reading/decompression, image processing, changing threshold masks, normalization, integration and map assembly. GUI rendering excluded. Both pools remain resident to permit alternating warm trials, so warm RSS is combined process memory, not per-variant memory. First-run timings include setup, not cold disk IO. One PhaseSmith solver was observed active; measured other busy cores are recorded per trial."
+}

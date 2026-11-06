@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <limits.h>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -165,6 +166,11 @@ compute_outlier_mask_binned(PyObject *self, PyObject *args)
         return NULL;
     }
 
+    if (num_bins <= 0 || num_bins == INT_MAX || n > INT_MAX) {
+        PyErr_SetString(PyExc_ValueError, "invalid bin count or image too large");
+        return NULL;
+    }
+
     double *img = (double *)PyArray_DATA(img_arr);
     int *bins = (int *)PyArray_DATA(bin_idx_arr);
 
@@ -177,6 +183,8 @@ compute_outlier_mask_binned(PyObject *self, PyObject *args)
     /* Phase 1: count pixels per bin */
     int *bin_counts = (int *)calloc(num_bins, sizeof(int));
     if (!bin_counts) { Py_DECREF(mask_arr); return PyErr_NoMemory(); }
+
+    PyThreadState *saved = PyEval_SaveThread();
 
     for (Py_ssize_t i = 0; i < n; i++) {
         int b = bins[i];
@@ -192,16 +200,17 @@ compute_outlier_mask_binned(PyObject *self, PyObject *args)
     /* Phase 2: collect pixel indices and values per bin */
     /* Allocate flat arrays + offset table */
     int *offsets = (int *)calloc(num_bins + 1, sizeof(int));
-    if (!offsets) { free(bin_counts); Py_DECREF(mask_arr); return PyErr_NoMemory(); }
+    if (!offsets) { free(bin_counts); PyEval_RestoreThread(saved); Py_DECREF(mask_arr); return PyErr_NoMemory(); }
     for (int b = 0; b < num_bins; b++)
         offsets[b + 1] = offsets[b] + bin_counts[b];
 
     int total_binned = offsets[num_bins];
-    double *bin_vals = (double *)malloc(total_binned * sizeof(double));
-    int *bin_pix_idx = (int *)malloc(total_binned * sizeof(int));
+    double *bin_vals = (double *)malloc((total_binned ? total_binned : 1) * sizeof(double));
+    int *bin_pix_idx = (int *)malloc((total_binned ? total_binned : 1) * sizeof(int));
     if (!bin_vals || !bin_pix_idx) {
         free(bin_counts); free(offsets);
         free(bin_vals); free(bin_pix_idx);
+        PyEval_RestoreThread(saved);
         Py_DECREF(mask_arr);
         return PyErr_NoMemory();
     }
@@ -228,8 +237,8 @@ compute_outlier_mask_binned(PyObject *self, PyObject *args)
 #endif
     /* Loop counter declared outside the for: MSVC's OpenMP 2.0 rejects
      * C99-style "for (int b = 0; ...)" inside #pragma omp for. */
-    int b;
-    #pragma omp parallel for schedule(dynamic)
+    int b, allocation_failed = 0;
+    #pragma omp parallel for schedule(dynamic) reduction(|:allocation_failed)
     for (b = 0; b < num_bins; b++) {
         Py_ssize_t bsize = (Py_ssize_t)bin_counts[b];
         if (bsize < 3) continue;
@@ -243,6 +252,8 @@ compute_outlier_mask_binned(PyObject *self, PyObject *args)
                 twork, mask
             );
             free(twork);
+        } else {
+            allocation_failed = 1;
         }
     }
 
@@ -251,6 +262,11 @@ compute_outlier_mask_binned(PyObject *self, PyObject *args)
     free(bin_vals);
     free(bin_pix_idx);
 
+    PyEval_RestoreThread(saved);
+    if (allocation_failed) {
+        Py_DECREF(mask_arr);
+        return PyErr_NoMemory();
+    }
     return (PyObject *)mask_arr;
 }
 

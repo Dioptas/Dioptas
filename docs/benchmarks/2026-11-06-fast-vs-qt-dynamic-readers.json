@@ -1,0 +1,258 @@
+{
+  "frames": 16,
+  "source_indices": [
+    0,
+    41,
+    83,
+    124,
+    166,
+    208,
+    249,
+    291,
+    332,
+    374,
+    416,
+    457,
+    499,
+    540,
+    582,
+    624
+  ],
+  "source": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.h5",
+  "compressed_chunk_hashes": [
+    "26f26fa349c03e081cb9a582eea84e96d87221142c7123bef12db2475b4ff728",
+    "46f03079fe3fba0874e6c3a13621f4efda5e37ebe11bbacd406883d7e23b1ddd",
+    "0eb0f06af15889beac2a7194ed7793603b7a72e100f1b41ceb5825b3b37c20df",
+    "ab62f27b7be1cf9aa043c1609a3f8553e16337617a3dbdcdf3699cac08edda66",
+    "794a3871397c0ebed4315237c8a0893910b22f71cdfabf4f6c68775b77bf6531",
+    "37b2f098f4a2e3325fd616936c3c4400d77dd0314658ba06f338691aa8644610",
+    "0dd8b511da4e59fe279c2c8004c6fbd14523df20097a7233cc5d59e66bcb0048",
+    "63a55cc4c5a2b159aaeb52e282714ab07fdb16100c60bcfab1597834c6bc2d17",
+    "310de2c75957b530032a28a88d0b56c3e609c0e1befe6a9c0bcf40daab40e3f0",
+    "8b7e9ea7980153d5f75d66030761b6d56dd4f75c3b90839d6bf0dcae0f496457",
+    "892c6dab22c3876c0c38255b0eed3f271897757025fb92a9fa2c3d7496b9f252",
+    "45c2d16466eb0745420a5234a8cd7437b5eb6f1974c498aac236fdbf24024d70",
+    "09f39f3d368a1de93a1dd56dd0d245f425e5c366b2539774757f612c87ad54f6",
+    "c1210ec212e203c4de0846819fb658b631e39adf5073f7fdc09288a5089bb494",
+    "cc8ea734d883785362b88ad9d120b367f63a19d3d4b4afbc7a5be904810de6e9",
+    "9538c99276113a3906717e76e1f4eb6ce2e9d5c6f17794b6780e391a2bb1f0ab"
+  ],
+  "decoded_float64_hashes": [
+    "eedaf1087baba1fb807a8c186352143897ec0edbe8c223217920c1dd9191b8c1",
+    "0fe2dc68591d1125f685b84ac9fa2876a07c86d9df29625e039f3199c03fc492",
+    "fd50c038abbf9ba02d375d80dc4a6ac32d5a3ffd06e7488c44feb3c3f4fe831c",
+    "23bdc1fbe2ca8e93b997c3034990d06abd94dc527959f809077f8117d6140c77",
+    "19b3518981713076971cb5236f28b2ad8672a0e8a4f872fac3527a07d3083da5",
+    "239266359a4438ab72bb8231a3b9e39a8d6c9c1a9927b226496f92bc109ed785",
+    "f170fd57b2445c216f3e3f99b4e46b8701e6a2a3c4bc3d3bfff9af6d23a88200",
+    "e87dc4fa1f330eac4c1c0f62fef0e7dff6d84b8ce720489b212b9c70d4a90025",
+    "459f9acef42f212485f08b877b08dd982eb3a11fba691565cf9238305212cc1d",
+    "1da10c087a24186fa07123b20c2a42d4db6720ce047717976a7a28760ba72293",
+    "5f6327c54ebb4a035988e99354fcabcf275e15318f8aa22854f8ad84500e2dff",
+    "8bd1b5028a525a9f3d48d1fd82d3cc43a9c2ca68bd6f43e847b7fde6a23f8760",
+    "a11240666351118fa72a51bafcf2258c407693b2ea9be1ef4dde2f7701573de0",
+    "4dc4678d1375294255c84d752cab7eb85b9be79a241630339d4c252fffda7157",
+    "e7202507c9e5c814b71b31dd611da8203899cd9d831ec0f53a6f4502aba7c99a",
+    "a25953cce2825b85464c825fc52601c2ece5e507e00798608cdf1e4d0674085d"
+  ],
+  "decoder_workers": 8,
+  "within_frame_rayon_threads": 8,
+  "mask": "supplied static mask OR built-in threshold >230",
+  "settings": {
+    "bins": 2000,
+    "method": "pixel_split",
+    "polarization": 0.965,
+    "precision": "float64"
+  },
+  "warmup_seconds": {
+    "old_parallel_decode_qt_processing": 1.3198347499710508,
+    "qt_parallel_decode_qt_processing": 0.3437108329962939,
+    "qt_map_current_serial_reader": 0.8607353750267066,
+    "qt_map_hdf_serial_adapter": 0.8221667920006439,
+    "qt_map_parallel_reader_adapter": 0.26336404198082164
+  },
+  "measurements": {
+    "old_parallel_decode_qt_processing": [
+      {
+        "seconds": 0.290923084015958,
+        "fps": 54.997354555482275,
+        "process_cores": 2.9504980771925147,
+        "stages_wall_seconds": {
+          "decode_wall": 0.03750737401423976,
+          "qt_model_mask_integration_wall": 0.25309062498854473
+        },
+        "relative_l2": 0.0
+      },
+      {
+        "seconds": 0.24301370803732425,
+        "fps": 65.83990725964551,
+        "process_cores": 3.1891575428369014,
+        "stages_wall_seconds": {
+          "decode_wall": 0.03649458399740979,
+          "qt_model_mask_integration_wall": 0.20623895793687552
+        },
+        "relative_l2": 0.0
+      },
+      {
+        "seconds": 0.2393190420116298,
+        "fps": 66.85635988473693,
+        "process_cores": 3.2124982347315254,
+        "stages_wall_seconds": {
+          "decode_wall": 0.037488500063773245,
+          "qt_model_mask_integration_wall": 0.20153999998001382
+        },
+        "relative_l2": 0.0
+      }
+    ],
+    "qt_parallel_decode_qt_processing": [
+      {
+        "seconds": 0.32557558303233236,
+        "fps": 49.14373446245527,
+        "process_cores": 3.8119811947837348,
+        "stages_wall_seconds": {
+          "decode_wall": 0.1086772499838844,
+          "qt_model_mask_integration_wall": 0.21653704199707136
+        },
+        "relative_l2": 0.0
+      },
+      {
+        "seconds": 0.30060904094716534,
+        "fps": 53.225278752717685,
+        "process_cores": 3.9202613344125132,
+        "stages_wall_seconds": {
+          "decode_wall": 0.09889983298489824,
+          "qt_model_mask_integration_wall": 0.2013426250196062
+        },
+        "relative_l2": 0.0
+      },
+      {
+        "seconds": 0.3512717910343781,
+        "fps": 45.548775644310474,
+        "process_cores": 3.6027515795486798,
+        "stages_wall_seconds": {
+          "decode_wall": 0.11976416694233194,
+          "qt_model_mask_integration_wall": 0.23120166693115607
+        },
+        "relative_l2": 0.0
+      }
+    ],
+    "qt_map_current_serial_reader": [
+      {
+        "seconds": 0.8831297500291839,
+        "fps": 18.117383090617505,
+        "process_cores": 1.3461872391465857,
+        "stages_wall_seconds": {},
+        "relative_l2": 0.0
+      },
+      {
+        "seconds": 0.8641647080075927,
+        "fps": 18.51498892715649,
+        "process_cores": 1.3311443864123773,
+        "stages_wall_seconds": {},
+        "relative_l2": 0.0
+      },
+      {
+        "seconds": 0.9146980830118991,
+        "fps": 17.492110563209586,
+        "process_cores": 1.3279583969393727,
+        "stages_wall_seconds": {},
+        "relative_l2": 0.0
+      }
+    ],
+    "qt_map_hdf_serial_adapter": [
+      {
+        "seconds": 0.8183907500351779,
+        "fps": 19.550563101198605,
+        "process_cores": 1.342223137239496,
+        "stages_wall_seconds": {},
+        "relative_l2": 0.0
+      },
+      {
+        "seconds": 0.8187427090015262,
+        "fps": 19.54215875645761,
+        "process_cores": 1.3458965654104504,
+        "stages_wall_seconds": {},
+        "relative_l2": 0.0
+      },
+      {
+        "seconds": 0.8692276669899002,
+        "fps": 18.40714534019303,
+        "process_cores": 1.348711096667866,
+        "stages_wall_seconds": {},
+        "relative_l2": 0.0
+      }
+    ],
+    "qt_map_parallel_reader_adapter": [
+      {
+        "seconds": 0.26107670896453783,
+        "fps": 61.284670177810796,
+        "process_cores": 4.5665659136293915,
+        "stages_wall_seconds": {},
+        "relative_l2": 0.0
+      },
+      {
+        "seconds": 0.2769982499885373,
+        "fps": 57.76209777737625,
+        "process_cores": 4.379774962658447,
+        "stages_wall_seconds": {},
+        "relative_l2": 0.0
+      },
+      {
+        "seconds": 0.3159101249766536,
+        "fps": 50.647316230153855,
+        "process_cores": 3.908928212070633,
+        "stages_wall_seconds": {},
+        "relative_l2": 0.0
+      }
+    ]
+  },
+  "summary": {
+    "old_parallel_decode_qt_processing": {
+      "median_fps": 65.83990725964551,
+      "median_process_cores": 3.1891575428369014
+    },
+    "qt_parallel_decode_qt_processing": {
+      "median_fps": 49.14373446245527,
+      "median_process_cores": 3.8119811947837348
+    },
+    "qt_map_current_serial_reader": {
+      "median_fps": 18.117383090617505,
+      "median_process_cores": 1.3311443864123773
+    },
+    "qt_map_hdf_serial_adapter": {
+      "median_fps": 19.54215875645761,
+      "median_process_cores": 1.3458965654104504
+    },
+    "qt_map_parallel_reader_adapter": {
+      "median_fps": 57.76209777737625,
+      "median_process_cores": 4.379774962658447
+    }
+  },
+  "limits": "16-frame sampled subset, warm cache, no GUI rendering, concurrent work. First two grouped cases use the same Configuration image/mask/integration path and 8 decoder workers. Current Qt dynamic Map baseline inherently reads serially despite configured decoder budget; its benchmark-only adapter enables the same 8-worker Qt decoder without changing production code. Mask creation and integration remain sequential across frames, with within-frame Rayon threads matched. Preparation/LUT warmup excluded; timed frame read/decode included.",
+  "current_default_frame_loader": "dioptas.model.loader.FabioLoader.FabioLoader",
+  "current_default_fabio_image": "fabio.limaimage.LimaImage",
+  "versions": {
+    "dioptrin": "0.8.0",
+    "numpy": "2.4.1",
+    "h5py": "3.16.0",
+    "hdf5plugin": "5.1.0",
+    "bitshuffle": "0.5.2"
+  },
+  "old_decoder": {
+    "built_utc": "2026-11-05T12:08:28Z",
+    "compiler": "Apple clang version 21.0.0 (clang-2100.3.34.2)",
+    "git": "v0.0.22.a3-12-g94264db",
+    "modified": [],
+    "platform": "darwin_arm64",
+    "src_sha256": "fe6b3c32d2a22d0e0a06fa000a3c14df7ee26459db697fa603a65369a7db9ced",
+    "version": "0.0.22a3"
+  },
+  "source_hashes": {
+    "dioptas/model/Configuration.py": "fbb5f5cf56a51746e6f4bc0bde27684f4555c9139ef49e22f4225afb88478ea5",
+    "dioptas/model/CalibrationModel.py": "cf1467f912d574fd1337ea70f8b85740698d36307effa6df696978504cb880f9",
+    "dioptas/model/MapModel.py": "0d46af6bd64b8a0becfec3e9651932aa17e3a5b097159f2a0f494a5af347a9e2",
+    "dioptas/model/MaskPluginManager.py": "fdc9f3639807d4e537360e3b3810f70baa22425b978e228088be6f4be5edfe32",
+    "scripts/compare_qt_dynamic_readers.py": "bc1ba6d2b48ccab1bee61c4239ad8002847ef07d200a27e49c99206eedd7c01d"
+  },
+  "adapter_note": "Parallel Map adapter explicitly selects the existing Hdf5Image reader, then prefetches through its gen_frames(8); the default per-frame loader for this file is FabIO LimaImage. All adapters are benchmark-only."
+}

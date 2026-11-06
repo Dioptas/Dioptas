@@ -1,0 +1,136 @@
+{
+  "date": "2026-11-06",
+  "source": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.h5",
+  "source_bytes": 5687072680,
+  "dataset": "entry_0000/instrument/eiger/data",
+  "backend": "Local unreleased Dioptrin shared-plan build; version metadata remains 0.8.0, not published wheel.",
+  "workers": 8,
+  "warmups": [
+    {
+      "shared_plan_ids": [],
+      "parallel": false,
+      "seconds": 12.978663708025124,
+      "frames": 625,
+      "fps": 48.155959200448535,
+      "process_cpu_seconds": 42.748418304,
+      "other_busy_cores": 9.699117299576198,
+      "peak_rss_GiB": 4.6531982421875,
+      "relative_l2": 0.0
+    },
+    {
+      "shared_plan_ids": [
+        43798008848
+      ],
+      "parallel": true,
+      "seconds": 5.794509417028166,
+      "frames": 625,
+      "fps": 107.86072728837571,
+      "process_cpu_seconds": 39.856783616,
+      "other_busy_cores": 6.737967543758017,
+      "peak_rss_GiB": 5.90771484375,
+      "relative_l2": 1.0894276767727034e-15
+    }
+  ],
+  "samples": [
+    {
+      "shared_plan_ids": [],
+      "parallel": false,
+      "seconds": 14.103974291007034,
+      "frames": 625,
+      "fps": 44.313750656686324,
+      "process_cpu_seconds": 41.907681792,
+      "other_busy_cores": 10.685804943936434,
+      "peak_rss_GiB": 6.210205078125,
+      "relative_l2": 0.0
+    },
+    {
+      "shared_plan_ids": [
+        43798008848
+      ],
+      "parallel": true,
+      "seconds": 6.373631334048696,
+      "frames": 625,
+      "fps": 98.06026850991141,
+      "process_cpu_seconds": 37.88313036799999,
+      "other_busy_cores": 8.046726731455063,
+      "peak_rss_GiB": 3.980010986328125,
+      "relative_l2": 1.0894276767727034e-15
+    },
+    {
+      "shared_plan_ids": [
+        43798008848
+      ],
+      "parallel": true,
+      "seconds": 5.505583374993876,
+      "frames": 625,
+      "fps": 113.52112163784919,
+      "process_cpu_seconds": 37.798930432,
+      "other_busy_cores": 7.111157329102005,
+      "peak_rss_GiB": 3.9801483154296875,
+      "relative_l2": 1.0894276767727034e-15
+    },
+    {
+      "shared_plan_ids": [],
+      "parallel": false,
+      "seconds": 12.1456619160017,
+      "frames": 625,
+      "fps": 51.45870223643993,
+      "process_cpu_seconds": 39.92641843200001,
+      "other_busy_cores": 9.935529442738014,
+      "peak_rss_GiB": 4.0341339111328125,
+      "relative_l2": 0.0
+    },
+    {
+      "shared_plan_ids": [],
+      "parallel": false,
+      "seconds": 11.809065417037345,
+      "frames": 625,
+      "fps": 52.925441423865,
+      "process_cpu_seconds": 40.064873472000045,
+      "other_busy_cores": 9.732787690553621,
+      "peak_rss_GiB": 4.0341339111328125,
+      "relative_l2": 0.0
+    },
+    {
+      "shared_plan_ids": [
+        43798008848
+      ],
+      "parallel": true,
+      "seconds": 5.191379500029143,
+      "frames": 625,
+      "fps": 120.39189198102189,
+      "process_cpu_seconds": 37.23274342400001,
+      "other_busy_cores": 6.714449709529022,
+      "peak_rss_GiB": 4.0717315673828125,
+      "relative_l2": 1.0894276767727034e-15
+    }
+  ],
+  "median_fps": {
+    "serial": 51.45870223643993,
+    "whole_frame": 113.52112163784919
+  },
+  "settings": {
+    "bins": 2000,
+    "unit": "2th_deg",
+    "method": "pixel_split",
+    "precision": "float64",
+    "polarization": 0.965,
+    "solid_angle": true,
+    "threshold_above": 230,
+    "static_mask": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.mask",
+    "whole_frame_native_threads": 1,
+    "serial_reader_workers": 8,
+    "environment": {
+      "OMP_NUM_THREADS": "1",
+      "RAYON_NUM_THREADS": "8",
+      "OPENBLAS_NUM_THREADS": "1"
+    }
+  },
+  "source_hashes": {
+    "/Users/clemens/Programming/Dioptas/scripts/benchmark_dynamic_frame_pool.py": "57e9dcad9bba604f5f4a1e09a02a09ab13a48991de60728f971c767ca295b8af",
+    "dioptas/model/util/dynamic_integration.py": "f870753403ff239abbf0ee279b0e31c6828967a806c7cfb576e5de3184bff347",
+    "dioptas/model/MapModel.py": "8bc94ba6e96949e7efdccc995f536ae6a96728c9cd6145435543ec346e4d9723",
+    "dioptas/model/loader/fastHdf5.py": "d204ce08cb616011642b266f455597173d107f7971544da0d006506655fdbc0a"
+  },
+  "limits": "Full original 625-frame Eiger file, warm OS cache, concurrent user work. Alternating paired runs share the same configuration. Serial baseline retains parallel decoder prefetch and intra-frame Rayon threads from the environment. Whole-frame jobs each decode, prepare, mask, normalize and integrate with a private single-thread native pool. Timed: file opening, snapshotting, all reads, mask updates, normalization, integration, ordering and map reduction. Initial Configuration construction and GUI rendering excluded. Cold execution retained separately."
+}

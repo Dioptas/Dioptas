@@ -560,3 +560,34 @@ def test_static_plugin_cache_survives_same_shape_image_changes():
     manager.update_image(np.ones((4, 4)) * 2)
     manager.set_enabled(plugin.name, True)
     assert manager.plugins[plugin.name].cached_mask is cached
+
+
+@pytest.mark.parametrize("dynamic", [False, True])
+@pytest.mark.parametrize("clear_geometry", [False, True])
+def test_deferred_geometry_computes_once_with_new_image(manager, dynamic, clear_geometry):
+    from unittest.mock import Mock
+    plugin = GeometryAwarePlugin()
+    plugin.is_dynamic = dynamic
+    manager.register(plugin)
+    manager.set_enabled(plugin.name, True)
+    old_image = np.ones((8, 9))
+    manager.update_geometry(_make_geometry(old_image.shape))
+    manager.update_image(old_image)
+    plugin.compute_mask = Mock(wraps=plugin.compute_mask)
+    notification = Mock()
+    manager.mask_changed.connect(notification)
+
+    # Change dimensions too: computing against the previous image would be
+    # both wasted work and an invalid shape for the new geometry.
+    new_image = np.full((6, 7), 10.)
+    geometry = None if clear_geometry else _make_geometry(new_image.shape)
+    manager.update_geometry(geometry, recompute=False)
+    plugin.compute_mask.assert_not_called()
+    notification.assert_not_called()
+    manager.update_image(new_image)
+    plugin.compute_mask.assert_called_once()
+    assert plugin.compute_mask.call_args.args[0] is new_image
+    assert plugin.compute_mask.call_args.kwargs['geometry'] is geometry
+    expected = np.zeros(new_image.shape, bool) if geometry is None else geometry.tth_array > .5
+    np.testing.assert_array_equal(manager.get_combined_mask(), expected)
+    notification.assert_called_once()

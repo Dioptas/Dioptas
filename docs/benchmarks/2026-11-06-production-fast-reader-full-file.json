@@ -1,0 +1,193 @@
+{
+  "source": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.h5",
+  "file_bytes": 5687072680,
+  "frames": 625,
+  "shape": [
+    3262,
+    3108
+  ],
+  "decoder_workers": 8,
+  "integration_workers": 8,
+  "threads_per_integration_worker": 1,
+  "settings": {
+    "bins": 2000,
+    "method": "pixel_split",
+    "polarization": 0.965,
+    "solid_angle": true,
+    "precision": "float64",
+    "mask": "same supplied static mask",
+    "masked_pixels": 887588
+  },
+  "mask_sha256": "9d2fd07f8ccd51ea3dcbfbb263cc9a2961f487f48b8b3cf0577e94a72ebdc261",
+  "poni_sha256": "5999ef2e03bf1ef2db21e6ab042f3170bc86f81e99ce59488d1bd896ddf1b00e",
+  "old_decoder": {
+    "built_utc": "2026-10-27T20:47:55Z",
+    "compiler": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
+    "git": "v0.0.22.a3",
+    "modified": [],
+    "platform": "darwin_arm64",
+    "src_sha256": "fe6b3c32d2a22d0e0a06fa000a3c14df7ee26459db697fa603a65369a7db9ced",
+    "version": "0.0.22a3"
+  },
+  "old_decoder_path": "/Users/clemens/Programming/Dioptas/.venv/lib/python3.13/site-packages/bslz4_to_sparse",
+  "versions": {
+    "dioptrin": "0.8.0",
+    "numpy": "2.4.1",
+    "h5py": "3.16.0",
+    "hdf5plugin": "5.1.0",
+    "bitshuffle": "0.5.2"
+  },
+  "source_hashes": {
+    "dioptas/model/MapModel.py": "1aff71d71d5607f8b2c43997ddfb2c5c7a5d3dafd12e709cc499369956859abb",
+    "dioptas/model/CalibrationModel.py": "3b95b6fdd8a0465befa78697b17e33967a8172be465c0968b6e854df275d53f5",
+    "dioptas/model/ImgModel.py": "309ce81b947f1dc673c973e4076d8404e5ab623da2dd81ce83efb6f42c0b1dc4",
+    "dioptas/model/loader/hdf5Loader.py": "bac7a75a2d07a4e00e79f5b205b1d9e8f63639967e688cdea1fad9df66fd5ae2",
+    "dioptas/model/util/integration.py": "648133df147badf42baa476929edd40072b38f45a0478f86984ef345134a5bca",
+    "/Users/clemens/Programming/Dioptas/scripts/compare_fast_and_qt_eiger.py": "434a427346f5f86a08bef77866d705cce70990bc93ef43bd907765c93b3c88b3"
+  },
+  "warmup_seconds": {
+    "old_reusable_grouped": 4.062740333029069,
+    "qt_reader_native_stream": 3.9512975420220755,
+    "qt_map_actual": 3.898602750035934
+  },
+  "measurements": {
+    "old_reusable_grouped": [
+      {
+        "seconds": 3.962419957970269,
+        "fps": 157.73189279012044,
+        "process_cores": 7.1435413964802095,
+        "other_busy_cores": 6.585442551977749,
+        "stages_wall_seconds": {
+          "read_decode_flip_convert_wall": 2.005761332286056,
+          "integration_and_results_wall": 1.954549749090802
+        },
+        "decoder_worker_wall_sum": 13.793868990440387,
+        "decoder_calls": 625,
+        "img_data_calls": 0,
+        "img_data_allocated_bytes": 0,
+        "relative_l2": 0.0
+      },
+      {
+        "seconds": 4.623153584019747,
+        "fps": 135.1891060163686,
+        "process_cores": 6.247579812152015,
+        "other_busy_cores": 7.64337120926103,
+        "stages_wall_seconds": {
+          "read_decode_flip_convert_wall": 2.311931953940075,
+          "integration_and_results_wall": 2.308591876120772
+        },
+        "decoder_worker_wall_sum": 14.746541468368378,
+        "decoder_calls": 625,
+        "img_data_calls": 0,
+        "img_data_allocated_bytes": 0,
+        "relative_l2": 0.0
+      },
+      {
+        "seconds": 4.0413519170251675,
+        "fps": 154.65121890697938,
+        "process_cores": 7.007309084046688,
+        "other_busy_cores": 6.760361027931702,
+        "stages_wall_seconds": {
+          "read_decode_flip_convert_wall": 2.0235336669138633,
+          "integration_and_results_wall": 2.015406337217428
+        },
+        "decoder_worker_wall_sum": 13.815937845793087,
+        "decoder_calls": 625,
+        "img_data_calls": 0,
+        "img_data_allocated_bytes": 0,
+        "relative_l2": 0.0
+      }
+    ],
+    "qt_reader_native_stream": [
+      {
+        "seconds": 3.769704333972186,
+        "fps": 165.79549604661688,
+        "process_cores": 8.961446842278866,
+        "other_busy_cores": 4.954763913910967,
+        "stages_wall_seconds": {},
+        "decoder_worker_wall_sum": 0,
+        "decoder_calls": 0,
+        "img_data_calls": 0,
+        "img_data_allocated_bytes": 0,
+        "relative_l2": 0.0
+      },
+      {
+        "seconds": 3.682040958025027,
+        "fps": 169.7428157711851,
+        "process_cores": 9.160840247168903,
+        "other_busy_cores": 4.812388347134024,
+        "stages_wall_seconds": {},
+        "decoder_worker_wall_sum": 0,
+        "decoder_calls": 0,
+        "img_data_calls": 0,
+        "img_data_allocated_bytes": 0,
+        "relative_l2": 0.0
+      },
+      {
+        "seconds": 3.572962832986377,
+        "fps": 174.9248534661102,
+        "process_cores": 9.34345319570452,
+        "other_busy_cores": 4.555375961275274,
+        "stages_wall_seconds": {},
+        "decoder_worker_wall_sum": 0,
+        "decoder_calls": 0,
+        "img_data_calls": 0,
+        "img_data_allocated_bytes": 0,
+        "relative_l2": 0.0
+      }
+    ],
+    "qt_map_actual": [
+      {
+        "seconds": 3.969555416959338,
+        "fps": 157.4483624362013,
+        "process_cores": 8.512843492656081,
+        "other_busy_cores": 5.3703233134855575,
+        "stages_wall_seconds": {},
+        "decoder_worker_wall_sum": 0,
+        "decoder_calls": 0,
+        "img_data_calls": 1,
+        "img_data_allocated_bytes": 40553184,
+        "relative_l2": 0.0
+      },
+      {
+        "seconds": 3.8797312499955297,
+        "fps": 161.09363245217568,
+        "process_cores": 8.578858909373777,
+        "other_busy_cores": 5.362828417558914,
+        "stages_wall_seconds": {},
+        "decoder_worker_wall_sum": 0,
+        "decoder_calls": 0,
+        "img_data_calls": 1,
+        "img_data_allocated_bytes": 40553184,
+        "relative_l2": 0.0
+      },
+      {
+        "seconds": 3.656133000040427,
+        "fps": 170.94564119879917,
+        "process_cores": 9.330962248808456,
+        "other_busy_cores": 4.5990561612133,
+        "stages_wall_seconds": {},
+        "decoder_worker_wall_sum": 0,
+        "decoder_calls": 0,
+        "img_data_calls": 1,
+        "img_data_allocated_bytes": 40553184,
+        "relative_l2": 0.0
+      }
+    ]
+  },
+  "summary": {
+    "old_reusable_grouped": {
+      "median_fps": 154.65121890697938,
+      "median_process_cores": 7.007309084046688
+    },
+    "qt_reader_native_stream": {
+      "median_fps": 169.7428157711851,
+      "median_process_cores": 9.160840247168903
+    },
+    "qt_map_actual": {
+      "median_fps": 161.09363245217568,
+      "median_process_cores": 8.578858909373777
+    }
+  },
+  "limits": "Full 625-frame file, warm OS cache, paired/reordered passes during concurrent user work. Mask/LUT/chunk-index/mmap preparation excluded, but all timed frame access/decode/flip/convert/integration/results included. Qt layers open/read metadata and first frame per run. Decoder task wall sums overlap and must not be added to end-to-end wall times. Old decoder adapter is benchmark-only and uses allocated frame buffers for ownership safety; production Qt code unchanged."
+}

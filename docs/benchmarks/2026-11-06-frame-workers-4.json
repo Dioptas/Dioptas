@@ -1,0 +1,799 @@
+{
+  "date": "2026-11-06",
+  "source": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.h5",
+  "source_bytes": 5687072680,
+  "dataset": "entry_0000/instrument/eiger/data",
+  "source_indices": [
+    0,
+    41,
+    83,
+    124,
+    166,
+    208,
+    249,
+    291,
+    332,
+    374,
+    416,
+    457,
+    499,
+    540,
+    582,
+    624
+  ],
+  "shape": [
+    3262,
+    3108
+  ],
+  "subset_bytes": 5687072680,
+  "subset_creation": "APFS clone of original file; resize only the cloned dataset and overwrite four frames with exact original compressed chunks; no recompression; all decoded pixels independently compared. macOS cp -c is required for fixture preparation.",
+  "compressed_chunk_sha256": [
+    "26f26fa349c03e081cb9a582eea84e96d87221142c7123bef12db2475b4ff728",
+    "46f03079fe3fba0874e6c3a13621f4efda5e37ebe11bbacd406883d7e23b1ddd",
+    "0eb0f06af15889beac2a7194ed7793603b7a72e100f1b41ceb5825b3b37c20df",
+    "ab62f27b7be1cf9aa043c1609a3f8553e16337617a3dbdcdf3699cac08edda66",
+    "794a3871397c0ebed4315237c8a0893910b22f71cdfabf4f6c68775b77bf6531",
+    "37b2f098f4a2e3325fd616936c3c4400d77dd0314658ba06f338691aa8644610",
+    "0dd8b511da4e59fe279c2c8004c6fbd14523df20097a7233cc5d59e66bcb0048",
+    "63a55cc4c5a2b159aaeb52e282714ab07fdb16100c60bcfab1597834c6bc2d17",
+    "310de2c75957b530032a28a88d0b56c3e609c0e1befe6a9c0bcf40daab40e3f0",
+    "8b7e9ea7980153d5f75d66030761b6d56dd4f75c3b90839d6bf0dcae0f496457",
+    "892c6dab22c3876c0c38255b0eed3f271897757025fb92a9fa2c3d7496b9f252",
+    "45c2d16466eb0745420a5234a8cd7437b5eb6f1974c498aac236fdbf24024d70",
+    "09f39f3d368a1de93a1dd56dd0d245f425e5c366b2539774757f612c87ad54f6",
+    "c1210ec212e203c4de0846819fb658b631e39adf5073f7fdc09288a5089bb494",
+    "cc8ea734d883785362b88ad9d120b367f63a19d3d4b4afbc7a5be904810de6e9",
+    "9538c99276113a3906717e76e1f4eb6ce2e9d5c6f17794b6780e391a2bb1f0ab"
+  ],
+  "decoded_float64_sha256": [
+    "eedaf1087baba1fb807a8c186352143897ec0edbe8c223217920c1dd9191b8c1",
+    "0fe2dc68591d1125f685b84ac9fa2876a07c86d9df29625e039f3199c03fc492",
+    "fd50c038abbf9ba02d375d80dc4a6ac32d5a3ffd06e7488c44feb3c3f4fe831c",
+    "23bdc1fbe2ca8e93b997c3034990d06abd94dc527959f809077f8117d6140c77",
+    "19b3518981713076971cb5236f28b2ad8672a0e8a4f872fac3527a07d3083da5",
+    "239266359a4438ab72bb8231a3b9e39a8d6c9c1a9927b226496f92bc109ed785",
+    "f170fd57b2445c216f3e3f99b4e46b8701e6a2a3c4bc3d3bfff9af6d23a88200",
+    "e87dc4fa1f330eac4c1c0f62fef0e7dff6d84b8ce720489b212b9c70d4a90025",
+    "459f9acef42f212485f08b877b08dd982eb3a11fba691565cf9238305212cc1d",
+    "1da10c087a24186fa07123b20c2a42d4db6720ce047717976a7a28760ba72293",
+    "5f6327c54ebb4a035988e99354fcabcf275e15318f8aa22854f8ad84500e2dff",
+    "8bd1b5028a525a9f3d48d1fd82d3cc43a9c2ca68bd6f43e847b7fde6a23f8760",
+    "a11240666351118fa72a51bafcf2258c407693b2ea9be1ef4dde2f7701573de0",
+    "4dc4678d1375294255c84d752cab7eb85b9be79a241630339d4c252fffda7157",
+    "e7202507c9e5c814b71b31dd611da8203899cd9d831ec0f53a6f4502aba7c99a",
+    "a25953cce2825b85464c825fc52601c2ece5e507e00798608cdf1e4d0674085d"
+  ],
+  "mask_source": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.mask",
+  "mask_sha256": "65801632091fd5b0198cc32127056590ee789121b0fe6ff5ef67c034f513bb5d",
+  "poni": "/Users/clemens/Programming/Dioptrin/docs/benchmarks/2026-11-05-bslz4/calibration.poni",
+  "poni_sha256": "5999ef2e03bf1ef2db21e6ab042f3170bc86f81e99ce59488d1bd896ddf1b00e",
+  "packages": {
+    "dioptrin": "0.8.0",
+    "numpy": "2.4.1",
+    "h5py": "3.16.0",
+    "hdf5plugin": "5.1.0",
+    "scipy": "1.16.3"
+  },
+  "backend": "Published Dioptrin 0.8.0; current local Qt image-copy and polarization-state optimizations. Unreleased Rust setter guard is not installed; Qt already avoids redundant setters.",
+  "features": {
+    "bitshuffle_parallel_decoder": true,
+    "spot_native_extension": true,
+    "opencv_smoothing": false,
+    "openmp_max_threads": 1
+  },
+  "settings": {
+    "bins": 2000,
+    "method": "pixel_split",
+    "unit": "2th_deg",
+    "polarization": 0.965,
+    "solid_angle": true,
+    "precision": "float64",
+    "poisson_errors": false,
+    "factor": 1,
+    "background": null,
+    "workers": 4,
+    "threads_per_worker": 1,
+    "decompression_workers": 4,
+    "serial_frame_jobs": false
+  },
+  "source_hashes": {
+    "dioptas/model/MaskPluginManager.py": "fdc9f3639807d4e537360e3b3810f70baa22425b978e228088be6f4be5edfe32",
+    "dioptas/model/Configuration.py": "fbb5f5cf56a51746e6f4bc0bde27684f4555c9139ef49e22f4225afb88478ea5",
+    "dioptas/model/CalibrationModel.py": "3b95b6fdd8a0465befa78697b17e33967a8172be465c0968b6e854df275d53f5",
+    "dioptas/model/BatchModel.py": "94121e77bddb19d745ceee5b51767c3e04aa45c647aacef5f224e5702c129fe5",
+    "dioptas/model/MapModel.py": "cf32f036d017e8dc8be37d055a911ab47535e435f31de5bb9f8877bb60fa8bf7",
+    "dioptas/model/ImgModel.py": "309ce81b947f1dc673c973e4076d8404e5ab623da2dd81ce83efb6f42c0b1dc4",
+    "dioptas/model/loader/hdf5Loader.py": "bac7a75a2d07a4e00e79f5b205b1d9e8f63639967e688cdea1fad9df66fd5ae2",
+    "dioptas/model/util/mask_plugins/threshold.py": "c7b50016dc3011cc85d6f1f0ee88f31f7b9f04b90dd1a5690c3396aa5ed9ffab",
+    "dioptas/model/util/mask_plugins/cosmic.py": "69bc8b558a824ad9f83c51e76f205d10c81a8da251dc8dc0f1b7f7d0fcbe7a4b",
+    "dioptas/model/util/mask_plugins/powder_outlier.py": "8b8a8d85e726dd3ab6e763e035ffd0f5ce62689dd6e850bb3c00d45d54d200da"
+  },
+  "thread_environment": {
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "RAYON_NUM_THREADS": "1"
+  },
+  "limits": "Production Qt reader and processing; warm-cache sampled subset of same Eiger file, concurrent user activity. Explicit fixed batch worker/thread counts; dynamic masking/integration uses independent whole-frame workers and one private native thread per worker. Timings include Qt model dispatch, file opening, read/decompression, image preparation, mask updates and integration, result collection and map reduction. Exclude GUI rendering, fixture preparation, initial Configuration setup and first-run LUT/plugin setup. Independent references excluded from clocks. This is not full 625-frame or cold-SSD throughput.",
+  "results": [
+    {
+      "case": "threshold_230",
+      "workflow": "batch",
+      "mask_mode": "dynamic",
+      "first_run_seconds": 1.7679290419910103,
+      "samples": [
+        {
+          "seconds": 0.36571712500881404,
+          "process_cpu_seconds": 0.8694935040000011,
+          "other_busy_cores": 4.786504039025117,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        },
+        {
+          "seconds": 0.28480912500526756,
+          "process_cpu_seconds": 0.7917047040000007,
+          "other_busy_cores": 1.9953549454987938,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        },
+        {
+          "seconds": 0.2851364999660291,
+          "process_cpu_seconds": 0.7938401280000011,
+          "other_busy_cores": 1.7400784255258395,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        }
+      ],
+      "median_fps": 56.11347548246621,
+      "reference_relative_l2": 3.652180905229825e-16,
+      "masked_pixels": [
+        1099364,
+        946197,
+        992909,
+        1049021,
+        1008541,
+        1027791,
+        969880,
+        1025838,
+        924933,
+        937163,
+        944958,
+        934881,
+        933986,
+        923683,
+        921196,
+        1006552
+      ],
+      "mask_hashes": [
+        "04ee572be65bda7f53420dc66af685181e6898812cf05fdb58f8901e9588f1be",
+        "eab982f9d3128d7e617848864f8132c67eb9946691f38399032df1d5ae088edc",
+        "a5b3e3efcf8316c066c6bbd02c0ab25fce9201ce76a1d6fb178f3371e0170710",
+        "d4b9a1e6ae1a0f3ffa4eab9582a7c6c67e6801686c0211ba71d09497b3294ed7",
+        "7ecc991807353f24194ffe409c2cdaf22352a8d6470b0e28eaee69ceeaa6a0c1",
+        "4f9c0748fd08d44a69c005aeba70a6ec4b51b10a217b1c9408286e8284a9c017",
+        "dabfb4c66281c798fc5222ce60eb5391c58eda2442dff5cf172135b958582327",
+        "1e74a2aba365a81e8b5cc2c0e89c3aef0ffa9d79d3296f1e38e725d0dc9ab9ed",
+        "6ce2b614e7bd754530b1c2f4c85e295f162b05a3eaa5f9a30c0f340497d3760e",
+        "82db7bd207d743454639874c62f263624ad94207d5b9e111a4b8d737b4bcc058",
+        "99f7c6007d4a14bcdf45edbacf11757972229e8bbb040e12a3e6a22ca7914e46",
+        "b70201b27b9dd3d42270ec2a643850a5b9a471bc7bda349fbdea8257118ac4e1",
+        "6575c0c457c2559220fd1bc764381fe026737dd85001ff3a530298eb430fb553",
+        "99118880017c37293bc9729d8cc7a7636e9ba400470e984cc76efb0a6b3520f3",
+        "17ed1c3ff86b6bce142f907d1910a67832a988131304e02c37b540b97d01b717",
+        "86a6d277288c7ed97395aaa60724f5e9eeae065a7a3c676d2bfdeb7bf54b1504"
+      ],
+      "plugin_settings": {
+        "Threshold Mask": {
+          "above_enabled": true,
+          "above_value": 230,
+          "below_enabled": false,
+          "below_value": 0.0
+        }
+      }
+    },
+    {
+      "case": "threshold_230",
+      "workflow": "map",
+      "mask_mode": "dynamic",
+      "first_run_seconds": 1.9325200409512036,
+      "samples": [
+        {
+          "seconds": 0.2962903750012629,
+          "process_cpu_seconds": 0.811792896,
+          "other_busy_cores": 2.3902467432470345,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        },
+        {
+          "seconds": 0.29884624999249354,
+          "process_cpu_seconds": 0.8150141439999956,
+          "other_busy_cores": 2.860955612002458,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        },
+        {
+          "seconds": 0.29943433398148045,
+          "process_cpu_seconds": 0.8165624320000013,
+          "other_busy_cores": 4.052432972175421,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        }
+      ],
+      "median_fps": 53.53923631433184,
+      "reference_relative_l2": 3.652180905229825e-16,
+      "masked_pixels": [
+        1099364,
+        946197,
+        992909,
+        1049021,
+        1008541,
+        1027791,
+        969880,
+        1025838,
+        924933,
+        937163,
+        944958,
+        934881,
+        933986,
+        923683,
+        921196,
+        1006552
+      ],
+      "mask_hashes": [
+        "04ee572be65bda7f53420dc66af685181e6898812cf05fdb58f8901e9588f1be",
+        "eab982f9d3128d7e617848864f8132c67eb9946691f38399032df1d5ae088edc",
+        "a5b3e3efcf8316c066c6bbd02c0ab25fce9201ce76a1d6fb178f3371e0170710",
+        "d4b9a1e6ae1a0f3ffa4eab9582a7c6c67e6801686c0211ba71d09497b3294ed7",
+        "7ecc991807353f24194ffe409c2cdaf22352a8d6470b0e28eaee69ceeaa6a0c1",
+        "4f9c0748fd08d44a69c005aeba70a6ec4b51b10a217b1c9408286e8284a9c017",
+        "dabfb4c66281c798fc5222ce60eb5391c58eda2442dff5cf172135b958582327",
+        "1e74a2aba365a81e8b5cc2c0e89c3aef0ffa9d79d3296f1e38e725d0dc9ab9ed",
+        "6ce2b614e7bd754530b1c2f4c85e295f162b05a3eaa5f9a30c0f340497d3760e",
+        "82db7bd207d743454639874c62f263624ad94207d5b9e111a4b8d737b4bcc058",
+        "99f7c6007d4a14bcdf45edbacf11757972229e8bbb040e12a3e6a22ca7914e46",
+        "b70201b27b9dd3d42270ec2a643850a5b9a471bc7bda349fbdea8257118ac4e1",
+        "6575c0c457c2559220fd1bc764381fe026737dd85001ff3a530298eb430fb553",
+        "99118880017c37293bc9729d8cc7a7636e9ba400470e984cc76efb0a6b3520f3",
+        "17ed1c3ff86b6bce142f907d1910a67832a988131304e02c37b540b97d01b717",
+        "86a6d277288c7ed97395aaa60724f5e9eeae065a7a3c676d2bfdeb7bf54b1504"
+      ],
+      "plugin_settings": {
+        "Threshold Mask": {
+          "above_enabled": true,
+          "above_value": 230,
+          "below_enabled": false,
+          "below_value": 0.0
+        }
+      }
+    },
+    {
+      "case": "cosmic_default",
+      "workflow": "batch",
+      "mask_mode": "dynamic",
+      "first_run_seconds": 4.097040500026196,
+      "samples": [
+        {
+          "seconds": 2.647256499971263,
+          "process_cpu_seconds": 9.636821759999997,
+          "other_busy_cores": 1.9730533252228233,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        },
+        {
+          "seconds": 2.6508065829984844,
+          "process_cpu_seconds": 9.781047551999997,
+          "other_busy_cores": 2.187618095287424,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        },
+        {
+          "seconds": 2.564745666051749,
+          "process_cpu_seconds": 9.613189887999994,
+          "other_busy_cores": 1.7689122831781536,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        }
+      ],
+      "median_fps": 6.043993092537004,
+      "reference_relative_l2": 4.311628428045465e-16,
+      "masked_pixels": [
+        904253,
+        904879,
+        904615,
+        904098,
+        905070,
+        904764,
+        903970,
+        905350,
+        903850,
+        903983,
+        904577,
+        904158,
+        904592,
+        903691,
+        903052,
+        903796
+      ],
+      "mask_hashes": [
+        "fb20be7f9eb6a3187751757f61676a3a26e07f1012504fcd2ae114a123cd1f3c",
+        "932749cfbd5c65800a3f63bfa0ce24866501e1463e23917ae6230114fac4fa92",
+        "6de25a0b65e5b135b6395ab27902ad2d31fd2a35e3041158167df0f35eb30723",
+        "548d236c54947cb4f34093d38599ebac77f0fa35674fdec4b55d01e263263eca",
+        "1304c8fe67780326ea7608a055c98f176279e99a816873410775b5693dd1cb58",
+        "069ac3eb4da272d39b66df5d79d6c35a05d885437eb9f85529883806bc83872e",
+        "eb7ff553efec8aad84a5f2c4805a9e841eb030e2df87ba31cdbb1dde533bec97",
+        "1eeb2248c662739f79bc65b71443595f5407f90551012a808326b6eff3627a73",
+        "87e6e07ef588bb56eb9c88cfda0fb884d2f35830a6dd3354434d22523ed72a4a",
+        "cdbdd752d61bade68c293c0986f440e3762f1b8cb0cd7bb1c981e7608a1a12a1",
+        "ed45305c2ff6146411df4570f20f0c4bb99d0d7da00345b79927320273c7a1ab",
+        "9b8491b0ed8c8655ecf85aff71ad692e8acbd37563eda37b69068a9cd6ffa67b",
+        "8f7a58ac25ecef2217fc40a912c180fea9a687e950f9989f25300e138222f360",
+        "04bc651dea924fe53f874b57984d1231518dc5b92113a72d77883b264c5ab6ba",
+        "909ce150c535f7e92093bd38561d9cfe0250656e29f5c59dfc1454fa1c1cbaa2",
+        "b14cf7c52625fb19b256c758a425f3090971e56b0e683d0d7e71b4fe3fe36ddf"
+      ],
+      "plugin_settings": {
+        "Cosmic Ray Mask": {
+          "sigma": 5.0,
+          "window_size": 5,
+          "iterations": 2,
+          "min_intensity": 100.0
+        }
+      }
+    },
+    {
+      "case": "cosmic_default",
+      "workflow": "map",
+      "mask_mode": "dynamic",
+      "first_run_seconds": 4.0382918330142274,
+      "samples": [
+        {
+          "seconds": 2.563547790981829,
+          "process_cpu_seconds": 9.570558464000001,
+          "other_busy_cores": 2.0750311559343477,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        },
+        {
+          "seconds": 2.5407462080474943,
+          "process_cpu_seconds": 9.625570303999993,
+          "other_busy_cores": 1.5957633561389695,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        },
+        {
+          "seconds": 2.483107124979142,
+          "process_cpu_seconds": 9.420076543999997,
+          "other_busy_cores": 1.6752895652832684,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        }
+      ],
+      "median_fps": 6.297362542280693,
+      "reference_relative_l2": 4.311628428045465e-16,
+      "masked_pixels": [
+        904253,
+        904879,
+        904615,
+        904098,
+        905070,
+        904764,
+        903970,
+        905350,
+        903850,
+        903983,
+        904577,
+        904158,
+        904592,
+        903691,
+        903052,
+        903796
+      ],
+      "mask_hashes": [
+        "fb20be7f9eb6a3187751757f61676a3a26e07f1012504fcd2ae114a123cd1f3c",
+        "932749cfbd5c65800a3f63bfa0ce24866501e1463e23917ae6230114fac4fa92",
+        "6de25a0b65e5b135b6395ab27902ad2d31fd2a35e3041158167df0f35eb30723",
+        "548d236c54947cb4f34093d38599ebac77f0fa35674fdec4b55d01e263263eca",
+        "1304c8fe67780326ea7608a055c98f176279e99a816873410775b5693dd1cb58",
+        "069ac3eb4da272d39b66df5d79d6c35a05d885437eb9f85529883806bc83872e",
+        "eb7ff553efec8aad84a5f2c4805a9e841eb030e2df87ba31cdbb1dde533bec97",
+        "1eeb2248c662739f79bc65b71443595f5407f90551012a808326b6eff3627a73",
+        "87e6e07ef588bb56eb9c88cfda0fb884d2f35830a6dd3354434d22523ed72a4a",
+        "cdbdd752d61bade68c293c0986f440e3762f1b8cb0cd7bb1c981e7608a1a12a1",
+        "ed45305c2ff6146411df4570f20f0c4bb99d0d7da00345b79927320273c7a1ab",
+        "9b8491b0ed8c8655ecf85aff71ad692e8acbd37563eda37b69068a9cd6ffa67b",
+        "8f7a58ac25ecef2217fc40a912c180fea9a687e950f9989f25300e138222f360",
+        "04bc651dea924fe53f874b57984d1231518dc5b92113a72d77883b264c5ab6ba",
+        "909ce150c535f7e92093bd38561d9cfe0250656e29f5c59dfc1454fa1c1cbaa2",
+        "b14cf7c52625fb19b256c758a425f3090971e56b0e683d0d7e71b4fe3fe36ddf"
+      ],
+      "plugin_settings": {
+        "Cosmic Ray Mask": {
+          "sigma": 5.0,
+          "window_size": 5,
+          "iterations": 2,
+          "min_intensity": 100.0
+        }
+      }
+    },
+    {
+      "case": "spot_mean",
+      "workflow": "batch",
+      "mask_mode": "dynamic",
+      "first_run_seconds": 3.627856667037122,
+      "samples": [
+        {
+          "seconds": 1.1674641250283457,
+          "process_cpu_seconds": 4.2770165760000225,
+          "other_busy_cores": 1.9469407027743624,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        },
+        {
+          "seconds": 1.1848854580312036,
+          "process_cpu_seconds": 4.304456703999989,
+          "other_busy_cores": 1.9035960654688666,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        },
+        {
+          "seconds": 1.2230847500031814,
+          "process_cpu_seconds": 4.3684444159999885,
+          "other_busy_cores": 2.88741690550398,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        }
+      ],
+      "median_fps": 13.503414943234661,
+      "reference_relative_l2": 3.6665420392651363e-16,
+      "masked_pixels": [
+        892754,
+        893433,
+        895071,
+        893811,
+        896730,
+        911228,
+        893649,
+        906408,
+        900756,
+        894612,
+        904636,
+        900158,
+        894643,
+        895074,
+        895411,
+        894983
+      ],
+      "mask_hashes": [
+        "0d2f6f7862d94be988acc14766514db7ef97dcaf286ff6814f25bca08ce9336e",
+        "25c94b18fdb4fb4ec0c58eb98c828e0faf79433f43512a1d1d31619ca7ab3c1c",
+        "bb4b09ec443369ad04821af95a719204b63acc2b1ed1d31c0dafceb18cfa3ba3",
+        "ce843ef677c8d35d44e0847b761f205591bcfc053c46f0dbc3afcb0ed64aec72",
+        "6520adfac398f1708f05cb5d89cf0b7901503be419feddcd336a3cc61c93b7ed",
+        "336803caa021fcede126219b34e04ca84b000680247c79d78ef9f2ac972a2fbb",
+        "7cd886f575a13b75158a5e7fa6b1db2fc5b6d5e9fbba920ff33c534a53f9054e",
+        "6f20a56505c41c6e1d876fa5f5602ed94c755a2b91a40df9e4c820407d642b81",
+        "ca4cf249cbe5c9af297ff0e4631eae9ccf6c0cddcd87ae2bc0a863dbd0b6f53c",
+        "192187f97bd1275035168501c5f8f30aa128e8ccbcc305ed17435e3af1e2e751",
+        "5b17c5a99467e8ad6f05b7bf63b43663bf2d2f297ebff0131aa656be14ba0b4d",
+        "58efb3eb66ca5f2e0e7c595836bc440504c36d0ddea7398114a017c1b279154e",
+        "34287826c56b4a53cbfe1c4d880cc23f04a9900e4c849c64ad2dc4dc5b899ca8",
+        "4b0c1d4007ce6f119d6872039a3fe6480e1f4a9b478e5d7e381773aa62ef6f51",
+        "5578c4cc1b509e56c4964313026b36348402f250ef03c23ccd42f5dd0535e860",
+        "a5cf50bc35a5a8e199bc02c56ccc87e0f00ab5d9117ff5cdf72a2f34fb3aa74c"
+      ],
+      "plugin_settings": {
+        "Spot Mask": {
+          "method": "mean",
+          "esdmul": 3.0,
+          "num_bins": 445,
+          "iterations": 1,
+          "smooth_sigma": 1.0,
+          "smooth_threshold": 0.3
+        }
+      }
+    },
+    {
+      "case": "spot_mean",
+      "workflow": "map",
+      "mask_mode": "dynamic",
+      "first_run_seconds": 2.898827709024772,
+      "samples": [
+        {
+          "seconds": 1.169967707945034,
+          "process_cpu_seconds": 4.283183103999988,
+          "other_busy_cores": 1.7409171912328372,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        },
+        {
+          "seconds": 1.2012788749998435,
+          "process_cpu_seconds": 4.359815167999983,
+          "other_busy_cores": 2.3476520653334485,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        },
+        {
+          "seconds": 1.1810348329599947,
+          "process_cpu_seconds": 4.299515391999989,
+          "other_busy_cores": 2.6082927633900095,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        }
+      ],
+      "median_fps": 13.547441238375372,
+      "reference_relative_l2": 3.6665420392651363e-16,
+      "masked_pixels": [
+        892754,
+        893433,
+        895071,
+        893811,
+        896730,
+        911228,
+        893649,
+        906408,
+        900756,
+        894612,
+        904636,
+        900158,
+        894643,
+        895074,
+        895411,
+        894983
+      ],
+      "mask_hashes": [
+        "0d2f6f7862d94be988acc14766514db7ef97dcaf286ff6814f25bca08ce9336e",
+        "25c94b18fdb4fb4ec0c58eb98c828e0faf79433f43512a1d1d31619ca7ab3c1c",
+        "bb4b09ec443369ad04821af95a719204b63acc2b1ed1d31c0dafceb18cfa3ba3",
+        "ce843ef677c8d35d44e0847b761f205591bcfc053c46f0dbc3afcb0ed64aec72",
+        "6520adfac398f1708f05cb5d89cf0b7901503be419feddcd336a3cc61c93b7ed",
+        "336803caa021fcede126219b34e04ca84b000680247c79d78ef9f2ac972a2fbb",
+        "7cd886f575a13b75158a5e7fa6b1db2fc5b6d5e9fbba920ff33c534a53f9054e",
+        "6f20a56505c41c6e1d876fa5f5602ed94c755a2b91a40df9e4c820407d642b81",
+        "ca4cf249cbe5c9af297ff0e4631eae9ccf6c0cddcd87ae2bc0a863dbd0b6f53c",
+        "192187f97bd1275035168501c5f8f30aa128e8ccbcc305ed17435e3af1e2e751",
+        "5b17c5a99467e8ad6f05b7bf63b43663bf2d2f297ebff0131aa656be14ba0b4d",
+        "58efb3eb66ca5f2e0e7c595836bc440504c36d0ddea7398114a017c1b279154e",
+        "34287826c56b4a53cbfe1c4d880cc23f04a9900e4c849c64ad2dc4dc5b899ca8",
+        "4b0c1d4007ce6f119d6872039a3fe6480e1f4a9b478e5d7e381773aa62ef6f51",
+        "5578c4cc1b509e56c4964313026b36348402f250ef03c23ccd42f5dd0535e860",
+        "a5cf50bc35a5a8e199bc02c56ccc87e0f00ab5d9117ff5cdf72a2f34fb3aa74c"
+      ],
+      "plugin_settings": {
+        "Spot Mask": {
+          "method": "mean",
+          "esdmul": 3.0,
+          "num_bins": 445,
+          "iterations": 1,
+          "smooth_sigma": 1.0,
+          "smooth_threshold": 0.3
+        }
+      }
+    },
+    {
+      "case": "spot_median",
+      "workflow": "batch",
+      "mask_mode": "dynamic",
+      "first_run_seconds": 3.3333204580121674,
+      "samples": [
+        {
+          "seconds": 1.64671779202763,
+          "process_cpu_seconds": 6.134087679999993,
+          "other_busy_cores": 2.493391605938148,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        },
+        {
+          "seconds": 1.6332512079970911,
+          "process_cpu_seconds": 6.132776960000001,
+          "other_busy_cores": 3.4270435635935295,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        },
+        {
+          "seconds": 1.6178807499818504,
+          "process_cpu_seconds": 6.094379008000004,
+          "other_busy_cores": 2.4449397719668284,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        }
+      ],
+      "median_fps": 9.796410938903463,
+      "reference_relative_l2": 3.660438449900496e-16,
+      "masked_pixels": [
+        898701,
+        900384,
+        902625,
+        902245,
+        907269,
+        958950,
+        901415,
+        942522,
+        920805,
+        904482,
+        936157,
+        918308,
+        902854,
+        906698,
+        906191,
+        903407
+      ],
+      "mask_hashes": [
+        "75e46bd3ddb76c530753d327d1e09a9c950a9e8021f1a72ceec93987da52087c",
+        "2696f052892d69737cec4ec1ce4d70495d5e576e7a106e643f7d5622abbc89b6",
+        "877d0e4d608d4fed689f19292c479e4c7287e25f32e1ae3ffbd559f37781c357",
+        "c182a13b059e4837f0c6316a240d5620299425963c9ad82018ec9ded9257cbdd",
+        "1bd2ace6bb3ee42239b0b2ef534ea821b233b4c9353e171aaa69d9778447f2fd",
+        "e8de820075eb5ed22eb54953dee29fefd03f47d6da8165693a2b8215b9cf6d88",
+        "7dad08bb1b13f6eeca29096b00fade4354ae835901bcb45615d8ff6ef787cb40",
+        "98312324393edec89ca50c552486a274814d6d80c167c56ac1f5411031099c6c",
+        "a638b8effe6b1df430cd8f861b8e9f8a397723326456680f34bfd6acdd14435e",
+        "290c3989e56230be6e34fae815e046f4efed04415c20eaa389c6e8de537899c9",
+        "71cf285d37b8c67b421830deab27ac60e1ae40c47fef0f515af11a2208a66f0f",
+        "60cf8798bba88dbc8f2dfcda5e9b53b37015fa8b00ab8ad2990b80bc48132b61",
+        "70437a7a37b2522ca863b029c76ed41dafcfc000add474f6b2bb9b2d01ac3ef0",
+        "872f911081d7077c097baeb25612ee880ca51bd401a799f2b34b369b37dd4cf9",
+        "e04327fb5821ab89b04962ad156f854e7473f4963a89690bdd7447d6b3f71a36",
+        "0b9a7048bfedc5bc6ba2c2bf2501fe758b7359856ca4991e73c8546669685003"
+      ],
+      "plugin_settings": {
+        "Spot Mask": {
+          "method": "median",
+          "esdmul": 3.0,
+          "num_bins": 445,
+          "iterations": 1,
+          "smooth_sigma": 1.0,
+          "smooth_threshold": 0.3
+        }
+      }
+    },
+    {
+      "case": "spot_median",
+      "workflow": "map",
+      "mask_mode": "dynamic",
+      "first_run_seconds": 3.300915499974508,
+      "samples": [
+        {
+          "seconds": 1.6492159999907017,
+          "process_cpu_seconds": 6.142131199999994,
+          "other_busy_cores": 1.6297857891102503,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        },
+        {
+          "seconds": 1.6595117090037093,
+          "process_cpu_seconds": 6.196015103999969,
+          "other_busy_cores": 1.7679808344844559,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        },
+        {
+          "seconds": 1.6514242920093238,
+          "process_cpu_seconds": 6.187630591999977,
+          "other_busy_cores": 2.1450389370688736,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 0,
+            "frame_jobs": 16
+          }
+        }
+      ],
+      "median_fps": 9.688606421389412,
+      "reference_relative_l2": 3.660438449900496e-16,
+      "masked_pixels": [
+        898701,
+        900384,
+        902625,
+        902245,
+        907269,
+        958950,
+        901415,
+        942522,
+        920805,
+        904482,
+        936157,
+        918308,
+        902854,
+        906698,
+        906191,
+        903407
+      ],
+      "mask_hashes": [
+        "75e46bd3ddb76c530753d327d1e09a9c950a9e8021f1a72ceec93987da52087c",
+        "2696f052892d69737cec4ec1ce4d70495d5e576e7a106e643f7d5622abbc89b6",
+        "877d0e4d608d4fed689f19292c479e4c7287e25f32e1ae3ffbd559f37781c357",
+        "c182a13b059e4837f0c6316a240d5620299425963c9ad82018ec9ded9257cbdd",
+        "1bd2ace6bb3ee42239b0b2ef534ea821b233b4c9353e171aaa69d9778447f2fd",
+        "e8de820075eb5ed22eb54953dee29fefd03f47d6da8165693a2b8215b9cf6d88",
+        "7dad08bb1b13f6eeca29096b00fade4354ae835901bcb45615d8ff6ef787cb40",
+        "98312324393edec89ca50c552486a274814d6d80c167c56ac1f5411031099c6c",
+        "a638b8effe6b1df430cd8f861b8e9f8a397723326456680f34bfd6acdd14435e",
+        "290c3989e56230be6e34fae815e046f4efed04415c20eaa389c6e8de537899c9",
+        "71cf285d37b8c67b421830deab27ac60e1ae40c47fef0f515af11a2208a66f0f",
+        "60cf8798bba88dbc8f2dfcda5e9b53b37015fa8b00ab8ad2990b80bc48132b61",
+        "70437a7a37b2522ca863b029c76ed41dafcfc000add474f6b2bb9b2d01ac3ef0",
+        "872f911081d7077c097baeb25612ee880ca51bd401a799f2b34b369b37dd4cf9",
+        "e04327fb5821ab89b04962ad156f854e7473f4963a89690bdd7447d6b3f71a36",
+        "0b9a7048bfedc5bc6ba2c2bf2501fe758b7359856ca4991e73c8546669685003"
+      ],
+      "plugin_settings": {
+        "Spot Mask": {
+          "method": "median",
+          "esdmul": 3.0,
+          "num_bins": 445,
+          "iterations": 1,
+          "smooth_sigma": 1.0,
+          "smooth_threshold": 0.3
+        }
+      }
+    }
+  ]
+}

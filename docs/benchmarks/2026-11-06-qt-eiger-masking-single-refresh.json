@@ -1,0 +1,865 @@
+{
+  "date": "2026-11-06",
+  "source": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.h5",
+  "source_bytes": 5687072680,
+  "dataset": "entry_0000/instrument/eiger/data",
+  "source_indices": [
+    0,
+    208,
+    416,
+    624
+  ],
+  "shape": [
+    3262,
+    3108
+  ],
+  "subset_bytes": 5687072680,
+  "subset_creation": "APFS clone of original file; resize only the cloned dataset and overwrite four frames with exact original compressed chunks; no recompression; all decoded pixels independently compared. macOS cp -c is required for fixture preparation.",
+  "compressed_chunk_sha256": [
+    "26f26fa349c03e081cb9a582eea84e96d87221142c7123bef12db2475b4ff728",
+    "37b2f098f4a2e3325fd616936c3c4400d77dd0314658ba06f338691aa8644610",
+    "892c6dab22c3876c0c38255b0eed3f271897757025fb92a9fa2c3d7496b9f252",
+    "9538c99276113a3906717e76e1f4eb6ce2e9d5c6f17794b6780e391a2bb1f0ab"
+  ],
+  "decoded_float64_sha256": [
+    "eedaf1087baba1fb807a8c186352143897ec0edbe8c223217920c1dd9191b8c1",
+    "239266359a4438ab72bb8231a3b9e39a8d6c9c1a9927b226496f92bc109ed785",
+    "5f6327c54ebb4a035988e99354fcabcf275e15318f8aa22854f8ad84500e2dff",
+    "a25953cce2825b85464c825fc52601c2ece5e507e00798608cdf1e4d0674085d"
+  ],
+  "mask_source": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.mask",
+  "mask_sha256": "65801632091fd5b0198cc32127056590ee789121b0fe6ff5ef67c034f513bb5d",
+  "poni": "/Users/clemens/Programming/Dioptrin/docs/benchmarks/2026-11-05-bslz4/calibration.poni",
+  "poni_sha256": "5999ef2e03bf1ef2db21e6ab042f3170bc86f81e99ce59488d1bd896ddf1b00e",
+  "packages": {
+    "dioptrin": "0.8.0",
+    "numpy": "2.4.1",
+    "h5py": "3.16.0",
+    "hdf5plugin": "5.1.0",
+    "scipy": "1.16.3"
+  },
+  "backend": "Published Dioptrin 0.8.0; current local Qt image-copy and polarization-state optimizations. Unreleased Rust setter guard is not installed; Qt already avoids redundant setters.",
+  "features": {
+    "bitshuffle_parallel_decoder": true,
+    "spot_native_extension": true,
+    "opencv_smoothing": false
+  },
+  "settings": {
+    "bins": 2000,
+    "method": "pixel_split",
+    "unit": "2th_deg",
+    "polarization": 0.965,
+    "solid_angle": true,
+    "precision": "float64",
+    "poisson_errors": false,
+    "factor": 1,
+    "background": null,
+    "workers": 1,
+    "decompression_workers": 1
+  },
+  "source_hashes": {
+    "dioptas/model/MaskPluginManager.py": "fdc9f3639807d4e537360e3b3810f70baa22425b978e228088be6f4be5edfe32",
+    "dioptas/model/Configuration.py": "fbb5f5cf56a51746e6f4bc0bde27684f4555c9139ef49e22f4225afb88478ea5",
+    "dioptas/model/CalibrationModel.py": "cf1467f912d574fd1337ea70f8b85740698d36307effa6df696978504cb880f9",
+    "dioptas/model/BatchModel.py": "1cec10735958ec69e8f251f2c4485dd80eae7c425b81a04e96c4d5069a989cb8",
+    "dioptas/model/MapModel.py": "0d46af6bd64b8a0becfec3e9651932aa17e3a5b097159f2a0f494a5af347a9e2",
+    "dioptas/model/ImgModel.py": "309ce81b947f1dc673c973e4076d8404e5ab623da2dd81ce83efb6f42c0b1dc4",
+    "dioptas/model/loader/hdf5Loader.py": "2d96218dcc3e14d0da7ddea5b54b60804af1af789c47eb590a00842a81f14fa0",
+    "dioptas/model/util/mask_plugins/threshold.py": "c7b50016dc3011cc85d6f1f0ee88f31f7b9f04b90dd1a5690c3396aa5ed9ffab",
+    "dioptas/model/util/mask_plugins/cosmic.py": "69bc8b558a824ad9f83c51e76f205d10c81a8da251dc8dc0f1b7f7d0fcbe7a4b",
+    "dioptas/model/util/mask_plugins/powder_outlier.py": "f35e10c002189c0b1146d1199dbbe4be1f92e1e0b6b9d2ab8f958038a5284ebc"
+  },
+  "thread_environment": {
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "RAYON_NUM_THREADS": "1"
+  },
+  "limits": "Short warm-cache four-frame subset of same Eiger file, concurrent rsmith activity, one worker/thread. Timings include Qt model dispatch, file opening, read/decompression, image preparation, mask updates and integration, result collection and map reduction. Exclude GUI rendering, fixture preparation, initial Configuration setup and first-run LUT/plugin setup. Independent references excluded from clocks. This is not full 625-frame or cold-SSD throughput.",
+  "results": [
+    {
+      "case": "no_mask",
+      "workflow": "batch",
+      "mask_mode": "fixed",
+      "first_run_seconds": 1.072270791977644,
+      "samples": [
+        {
+          "seconds": 0.3322823329945095,
+          "process_cpu_seconds": 0.42125542399999993,
+          "other_busy_cores": 1.5310611655649748,
+          "dispatch": {
+            "batch_iterator": 1,
+            "per_frame": 0
+          }
+        },
+        {
+          "seconds": 0.3286028750007972,
+          "process_cpu_seconds": 0.4177584000000003,
+          "other_busy_cores": 1.4066876316999202,
+          "dispatch": {
+            "batch_iterator": 1,
+            "per_frame": 0
+          }
+        },
+        {
+          "seconds": 0.3300535830203444,
+          "process_cpu_seconds": 0.42038342399999973,
+          "other_busy_cores": 1.422849500981202,
+          "dispatch": {
+            "batch_iterator": 1,
+            "per_frame": 0
+          }
+        }
+      ],
+      "median_fps": 12.119244285717818,
+      "reference_relative_l2": 0.0,
+      "masked_pixels": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "mask_hashes": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "plugin_settings": {}
+    },
+    {
+      "case": "no_mask",
+      "workflow": "map",
+      "mask_mode": "fixed",
+      "first_run_seconds": 0.9029171660076827,
+      "samples": [
+        {
+          "seconds": 0.2517432500026189,
+          "process_cpu_seconds": 0.3408094720000001,
+          "other_busy_cores": 1.6254280025213907,
+          "dispatch": {
+            "batch_iterator": 1,
+            "per_frame": 0
+          }
+        },
+        {
+          "seconds": 0.2516689999611117,
+          "process_cpu_seconds": 0.3407543680000007,
+          "other_busy_cores": 1.427452853253121,
+          "dispatch": {
+            "batch_iterator": 1,
+            "per_frame": 0
+          }
+        },
+        {
+          "seconds": 0.25276683300035074,
+          "process_cpu_seconds": 0.3415224959999996,
+          "other_busy_cores": 1.4182141687589875,
+          "dispatch": {
+            "batch_iterator": 1,
+            "per_frame": 0
+          }
+        }
+      ],
+      "median_fps": 15.889204576322854,
+      "reference_relative_l2": 0.0,
+      "masked_pixels": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "mask_hashes": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "plugin_settings": {}
+    },
+    {
+      "case": "static_mask",
+      "workflow": "batch",
+      "mask_mode": "fixed",
+      "first_run_seconds": 1.0007314999820665,
+      "samples": [
+        {
+          "seconds": 0.33628250000765547,
+          "process_cpu_seconds": 0.4609712640000012,
+          "other_busy_cores": 3.5952769948313836,
+          "dispatch": {
+            "batch_iterator": 1,
+            "per_frame": 0
+          }
+        },
+        {
+          "seconds": 0.3379054580000229,
+          "process_cpu_seconds": 0.4619818880000004,
+          "other_busy_cores": 0,
+          "dispatch": {
+            "batch_iterator": 1,
+            "per_frame": 0
+          }
+        },
+        {
+          "seconds": 0.38109866698505357,
+          "process_cpu_seconds": 0.4874567039999995,
+          "other_busy_cores": 12.444397492913229,
+          "dispatch": {
+            "batch_iterator": 1,
+            "per_frame": 0
+          }
+        }
+      ],
+      "median_fps": 11.837630630990661,
+      "reference_relative_l2": 0.0,
+      "masked_pixels": [
+        887588,
+        887588,
+        887588,
+        887588
+      ],
+      "mask_hashes": [
+        "9d2fd07f8ccd51ea3dcbfbb263cc9a2961f487f48b8b3cf0577e94a72ebdc261",
+        "9d2fd07f8ccd51ea3dcbfbb263cc9a2961f487f48b8b3cf0577e94a72ebdc261",
+        "9d2fd07f8ccd51ea3dcbfbb263cc9a2961f487f48b8b3cf0577e94a72ebdc261",
+        "9d2fd07f8ccd51ea3dcbfbb263cc9a2961f487f48b8b3cf0577e94a72ebdc261"
+      ],
+      "plugin_settings": {}
+    },
+    {
+      "case": "static_mask",
+      "workflow": "map",
+      "mask_mode": "fixed",
+      "first_run_seconds": 0.9046578330453485,
+      "samples": [
+        {
+          "seconds": 0.25256399996578693,
+          "process_cpu_seconds": 0.3730545279999973,
+          "other_busy_cores": 1.8092264614909188,
+          "dispatch": {
+            "batch_iterator": 1,
+            "per_frame": 0
+          }
+        },
+        {
+          "seconds": 0.25233745900914073,
+          "process_cpu_seconds": 0.37338719999999626,
+          "other_busy_cores": 0,
+          "dispatch": {
+            "batch_iterator": 1,
+            "per_frame": 0
+          }
+        },
+        {
+          "seconds": 0.2540634589968249,
+          "process_cpu_seconds": 0.37679680000000104,
+          "other_busy_cores": 0,
+          "dispatch": {
+            "batch_iterator": 1,
+            "per_frame": 0
+          }
+        }
+      ],
+      "median_fps": 15.837569885422514,
+      "reference_relative_l2": 0.0,
+      "masked_pixels": [
+        887588,
+        887588,
+        887588,
+        887588
+      ],
+      "mask_hashes": [
+        "9d2fd07f8ccd51ea3dcbfbb263cc9a2961f487f48b8b3cf0577e94a72ebdc261",
+        "9d2fd07f8ccd51ea3dcbfbb263cc9a2961f487f48b8b3cf0577e94a72ebdc261",
+        "9d2fd07f8ccd51ea3dcbfbb263cc9a2961f487f48b8b3cf0577e94a72ebdc261",
+        "9d2fd07f8ccd51ea3dcbfbb263cc9a2961f487f48b8b3cf0577e94a72ebdc261"
+      ],
+      "plugin_settings": {}
+    },
+    {
+      "case": "threshold_230",
+      "workflow": "batch",
+      "mask_mode": "dynamic",
+      "first_run_seconds": 1.8288018750026822,
+      "samples": [
+        {
+          "seconds": 0.30941975000314415,
+          "process_cpu_seconds": 0.30930278400000333,
+          "other_busy_cores": 2.167596657479491,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        },
+        {
+          "seconds": 0.3077065830002539,
+          "process_cpu_seconds": 0.30779648000000037,
+          "other_busy_cores": 1.924572150030323,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        },
+        {
+          "seconds": 0.3096007499843836,
+          "process_cpu_seconds": 0.3090354560000037,
+          "other_busy_cores": 1.97339490964645,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        }
+      ],
+      "median_fps": 12.927423023124264,
+      "reference_relative_l2": 3.6279658311758093e-16,
+      "masked_pixels": [
+        1099364,
+        1027791,
+        944958,
+        1006552
+      ],
+      "mask_hashes": [
+        "04ee572be65bda7f53420dc66af685181e6898812cf05fdb58f8901e9588f1be",
+        "4f9c0748fd08d44a69c005aeba70a6ec4b51b10a217b1c9408286e8284a9c017",
+        "99f7c6007d4a14bcdf45edbacf11757972229e8bbb040e12a3e6a22ca7914e46",
+        "86a6d277288c7ed97395aaa60724f5e9eeae065a7a3c676d2bfdeb7bf54b1504"
+      ],
+      "plugin_settings": {
+        "Threshold Mask": {
+          "above_enabled": true,
+          "above_value": 230,
+          "below_enabled": false,
+          "below_value": 0.0
+        }
+      }
+    },
+    {
+      "case": "threshold_230",
+      "workflow": "map",
+      "mask_mode": "dynamic",
+      "first_run_seconds": 1.8371545419795439,
+      "samples": [
+        {
+          "seconds": 0.30749108298914507,
+          "process_cpu_seconds": 0.3068351999999983,
+          "other_busy_cores": 2.5144299875043403,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        },
+        {
+          "seconds": 0.30878645804477856,
+          "process_cpu_seconds": 0.3080895359999971,
+          "other_busy_cores": 3.0503619555214176,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        },
+        {
+          "seconds": 0.3142210000078194,
+          "process_cpu_seconds": 0.31246975999999904,
+          "other_busy_cores": 2.9200156576375917,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        }
+      ],
+      "median_fps": 12.953935950843873,
+      "reference_relative_l2": 3.6279658311758093e-16,
+      "masked_pixels": [
+        1099364,
+        1027791,
+        944958,
+        1006552
+      ],
+      "mask_hashes": [
+        "04ee572be65bda7f53420dc66af685181e6898812cf05fdb58f8901e9588f1be",
+        "4f9c0748fd08d44a69c005aeba70a6ec4b51b10a217b1c9408286e8284a9c017",
+        "99f7c6007d4a14bcdf45edbacf11757972229e8bbb040e12a3e6a22ca7914e46",
+        "86a6d277288c7ed97395aaa60724f5e9eeae065a7a3c676d2bfdeb7bf54b1504"
+      ],
+      "plugin_settings": {
+        "Threshold Mask": {
+          "above_enabled": true,
+          "above_value": 230,
+          "below_enabled": false,
+          "below_value": 0.0
+        }
+      }
+    },
+    {
+      "case": "threshold_207",
+      "workflow": "batch",
+      "mask_mode": "dynamic",
+      "first_run_seconds": 1.8517939579905942,
+      "samples": [
+        {
+          "seconds": 0.31951674999436364,
+          "process_cpu_seconds": 0.31930284799999953,
+          "other_busy_cores": 3.0067192155918954,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        },
+        {
+          "seconds": 0.31127625005319715,
+          "process_cpu_seconds": 0.31131225599999723,
+          "other_busy_cores": 1.5056970908132534,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        },
+        {
+          "seconds": 0.3118810409796424,
+          "process_cpu_seconds": 0.3118751999999958,
+          "other_busy_cores": 1.597162810457538,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        }
+      ],
+      "median_fps": 12.82540287615974,
+      "reference_relative_l2": 3.8424510754921075e-16,
+      "masked_pixels": [
+        1617385,
+        1449512,
+        1169086,
+        1372104
+      ],
+      "mask_hashes": [
+        "fb79ac7e9a8a5c3b4ad83abee54cd218992d76ed622faef29501c3147f64db39",
+        "6484faf99780eb546f2ee98b69e8d4cb554a110a8d48cc72288111cbdb9a572c",
+        "a3e5a08943801316c0d44137103dcc93be082d23398b5e986be859fb39a422b3",
+        "78d4af2889e25bcb74cb25b95e85e86e4c425aa897620dac9350e4b27780aef6"
+      ],
+      "plugin_settings": {
+        "Threshold Mask": {
+          "above_enabled": true,
+          "above_value": 207,
+          "below_enabled": false,
+          "below_value": 0.0
+        }
+      }
+    },
+    {
+      "case": "threshold_207",
+      "workflow": "map",
+      "mask_mode": "dynamic",
+      "first_run_seconds": 1.8300480829784647,
+      "samples": [
+        {
+          "seconds": 0.30925350001780316,
+          "process_cpu_seconds": 0.30922124800000006,
+          "other_busy_cores": 1.6839866062246995,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        },
+        {
+          "seconds": 0.3078550830250606,
+          "process_cpu_seconds": 0.30793203200000363,
+          "other_busy_cores": 1.5334096923321654,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        },
+        {
+          "seconds": 0.30759366700658575,
+          "process_cpu_seconds": 0.3077230080000035,
+          "other_busy_cores": 1.7954758212163933,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        }
+      ],
+      "median_fps": 12.993126378473292,
+      "reference_relative_l2": 3.8424510754921075e-16,
+      "masked_pixels": [
+        1617385,
+        1449512,
+        1169086,
+        1372104
+      ],
+      "mask_hashes": [
+        "fb79ac7e9a8a5c3b4ad83abee54cd218992d76ed622faef29501c3147f64db39",
+        "6484faf99780eb546f2ee98b69e8d4cb554a110a8d48cc72288111cbdb9a572c",
+        "a3e5a08943801316c0d44137103dcc93be082d23398b5e986be859fb39a422b3",
+        "78d4af2889e25bcb74cb25b95e85e86e4c425aa897620dac9350e4b27780aef6"
+      ],
+      "plugin_settings": {
+        "Threshold Mask": {
+          "above_enabled": true,
+          "above_value": 207,
+          "below_enabled": false,
+          "below_value": 0.0
+        }
+      }
+    },
+    {
+      "case": "cosmic_default",
+      "workflow": "batch",
+      "mask_mode": "dynamic",
+      "first_run_seconds": 3.8038008750299923,
+      "samples": [
+        {
+          "seconds": 2.3908020409871824,
+          "process_cpu_seconds": 2.3887845119999938,
+          "other_busy_cores": 2.075126004916651,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        },
+        {
+          "seconds": 2.3019792499835603,
+          "process_cpu_seconds": 2.2992172800000006,
+          "other_busy_cores": 2.6458894971246516,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        },
+        {
+          "seconds": 2.376932624960318,
+          "process_cpu_seconds": 2.3749876480000083,
+          "other_busy_cores": 4.028306167118757,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        }
+      ],
+      "median_fps": 1.6828411365117166,
+      "reference_relative_l2": 3.8337191407164044e-16,
+      "masked_pixels": [
+        904253,
+        904764,
+        904577,
+        903796
+      ],
+      "mask_hashes": [
+        "fb20be7f9eb6a3187751757f61676a3a26e07f1012504fcd2ae114a123cd1f3c",
+        "069ac3eb4da272d39b66df5d79d6c35a05d885437eb9f85529883806bc83872e",
+        "ed45305c2ff6146411df4570f20f0c4bb99d0d7da00345b79927320273c7a1ab",
+        "b14cf7c52625fb19b256c758a425f3090971e56b0e683d0d7e71b4fe3fe36ddf"
+      ],
+      "plugin_settings": {
+        "Cosmic Ray Mask": {
+          "sigma": 5.0,
+          "window_size": 5,
+          "iterations": 2,
+          "min_intensity": 100.0
+        }
+      }
+    },
+    {
+      "case": "cosmic_default",
+      "workflow": "map",
+      "mask_mode": "dynamic",
+      "first_run_seconds": 3.8848812920041382,
+      "samples": [
+        {
+          "seconds": 2.38271320797503,
+          "process_cpu_seconds": 2.376339327999993,
+          "other_busy_cores": 2.603611987926465,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        },
+        {
+          "seconds": 2.3633088340284303,
+          "process_cpu_seconds": 2.3603342080000047,
+          "other_busy_cores": 1.853192324695728,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        },
+        {
+          "seconds": 2.2578029580181465,
+          "process_cpu_seconds": 2.257367807999991,
+          "other_busy_cores": 1.6443561555216237,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        }
+      ],
+      "median_fps": 1.69254222825449,
+      "reference_relative_l2": 3.8337191407164044e-16,
+      "masked_pixels": [
+        904253,
+        904764,
+        904577,
+        903796
+      ],
+      "mask_hashes": [
+        "fb20be7f9eb6a3187751757f61676a3a26e07f1012504fcd2ae114a123cd1f3c",
+        "069ac3eb4da272d39b66df5d79d6c35a05d885437eb9f85529883806bc83872e",
+        "ed45305c2ff6146411df4570f20f0c4bb99d0d7da00345b79927320273c7a1ab",
+        "b14cf7c52625fb19b256c758a425f3090971e56b0e683d0d7e71b4fe3fe36ddf"
+      ],
+      "plugin_settings": {
+        "Cosmic Ray Mask": {
+          "sigma": 5.0,
+          "window_size": 5,
+          "iterations": 2,
+          "min_intensity": 100.0
+        }
+      }
+    },
+    {
+      "case": "spot_mean",
+      "workflow": "batch",
+      "mask_mode": "dynamic",
+      "first_run_seconds": 2.6969078330439515,
+      "samples": [
+        {
+          "seconds": 1.1660148330265656,
+          "process_cpu_seconds": 1.1659928320000006,
+          "other_busy_cores": 1.5986135984133496,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        },
+        {
+          "seconds": 1.1579802089836448,
+          "process_cpu_seconds": 1.1578896639999954,
+          "other_busy_cores": 1.5994317706300945,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        },
+        {
+          "seconds": 1.149992749968078,
+          "process_cpu_seconds": 1.150038784000003,
+          "other_busy_cores": 1.4956278776914758,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        }
+      ],
+      "median_fps": 3.4542904697056835,
+      "reference_relative_l2": 3.6278041464464506e-16,
+      "masked_pixels": [
+        892754,
+        911228,
+        904636,
+        894983
+      ],
+      "mask_hashes": [
+        "0d2f6f7862d94be988acc14766514db7ef97dcaf286ff6814f25bca08ce9336e",
+        "336803caa021fcede126219b34e04ca84b000680247c79d78ef9f2ac972a2fbb",
+        "5b17c5a99467e8ad6f05b7bf63b43663bf2d2f297ebff0131aa656be14ba0b4d",
+        "a5cf50bc35a5a8e199bc02c56ccc87e0f00ab5d9117ff5cdf72a2f34fb3aa74c"
+      ],
+      "plugin_settings": {
+        "Spot Mask": {
+          "method": "mean",
+          "esdmul": 3.0,
+          "num_bins": 445,
+          "iterations": 1,
+          "smooth_sigma": 1.0,
+          "smooth_threshold": 0.3
+        }
+      }
+    },
+    {
+      "case": "spot_mean",
+      "workflow": "map",
+      "mask_mode": "dynamic",
+      "first_run_seconds": 2.732065165997483,
+      "samples": [
+        {
+          "seconds": 1.165514666994568,
+          "process_cpu_seconds": 1.1651938559999877,
+          "other_busy_cores": 1.9346012605228033,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        },
+        {
+          "seconds": 1.1687259169993922,
+          "process_cpu_seconds": 1.1684720639999995,
+          "other_busy_cores": 2.166057840634988,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        },
+        {
+          "seconds": 1.1740088330116123,
+          "process_cpu_seconds": 1.1733775359999896,
+          "other_busy_cores": 2.3991492949549533,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        }
+      ],
+      "median_fps": 3.422530416942983,
+      "reference_relative_l2": 3.6278041464464506e-16,
+      "masked_pixels": [
+        892754,
+        911228,
+        904636,
+        894983
+      ],
+      "mask_hashes": [
+        "0d2f6f7862d94be988acc14766514db7ef97dcaf286ff6814f25bca08ce9336e",
+        "336803caa021fcede126219b34e04ca84b000680247c79d78ef9f2ac972a2fbb",
+        "5b17c5a99467e8ad6f05b7bf63b43663bf2d2f297ebff0131aa656be14ba0b4d",
+        "a5cf50bc35a5a8e199bc02c56ccc87e0f00ab5d9117ff5cdf72a2f34fb3aa74c"
+      ],
+      "plugin_settings": {
+        "Spot Mask": {
+          "method": "mean",
+          "esdmul": 3.0,
+          "num_bins": 445,
+          "iterations": 1,
+          "smooth_sigma": 1.0,
+          "smooth_threshold": 0.3
+        }
+      }
+    },
+    {
+      "case": "spot_median",
+      "workflow": "batch",
+      "mask_mode": "dynamic",
+      "first_run_seconds": 3.1614647500100546,
+      "samples": [
+        {
+          "seconds": 1.627368249988649,
+          "process_cpu_seconds": 1.6271078400000079,
+          "other_busy_cores": 1.5441447625115423,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        },
+        {
+          "seconds": 1.6223339169519022,
+          "process_cpu_seconds": 1.6222988799999882,
+          "other_busy_cores": 1.5642286052411116,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        },
+        {
+          "seconds": 1.6247308750171214,
+          "process_cpu_seconds": 1.624436223999993,
+          "other_busy_cores": 1.7452513641269192,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        }
+      ],
+      "median_fps": 2.461946197678953,
+      "reference_relative_l2": 3.648403679887505e-16,
+      "masked_pixels": [
+        898701,
+        958950,
+        936157,
+        903407
+      ],
+      "mask_hashes": [
+        "75e46bd3ddb76c530753d327d1e09a9c950a9e8021f1a72ceec93987da52087c",
+        "e8de820075eb5ed22eb54953dee29fefd03f47d6da8165693a2b8215b9cf6d88",
+        "71cf285d37b8c67b421830deab27ac60e1ae40c47fef0f515af11a2208a66f0f",
+        "0b9a7048bfedc5bc6ba2c2bf2501fe758b7359856ca4991e73c8546669685003"
+      ],
+      "plugin_settings": {
+        "Spot Mask": {
+          "method": "median",
+          "esdmul": 3.0,
+          "num_bins": 445,
+          "iterations": 1,
+          "smooth_sigma": 1.0,
+          "smooth_threshold": 0.3
+        }
+      }
+    },
+    {
+      "case": "spot_median",
+      "workflow": "map",
+      "mask_mode": "dynamic",
+      "first_run_seconds": 3.1605625419761054,
+      "samples": [
+        {
+          "seconds": 1.6304269169922918,
+          "process_cpu_seconds": 1.6290595839999895,
+          "other_busy_cores": 1.7608519499274087,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        },
+        {
+          "seconds": 1.6247008749633096,
+          "process_cpu_seconds": 1.6233911039999924,
+          "other_busy_cores": 1.5243476102326028,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        },
+        {
+          "seconds": 1.637336207961198,
+          "process_cpu_seconds": 1.6348546559999875,
+          "other_busy_cores": 1.9575364719027561,
+          "dispatch": {
+            "batch_iterator": 0,
+            "per_frame": 4
+          }
+        }
+      ],
+      "median_fps": 2.4533451688708294,
+      "reference_relative_l2": 3.648403679887505e-16,
+      "masked_pixels": [
+        898701,
+        958950,
+        936157,
+        903407
+      ],
+      "mask_hashes": [
+        "75e46bd3ddb76c530753d327d1e09a9c950a9e8021f1a72ceec93987da52087c",
+        "e8de820075eb5ed22eb54953dee29fefd03f47d6da8165693a2b8215b9cf6d88",
+        "71cf285d37b8c67b421830deab27ac60e1ae40c47fef0f515af11a2208a66f0f",
+        "0b9a7048bfedc5bc6ba2c2bf2501fe758b7359856ca4991e73c8546669685003"
+      ],
+      "plugin_settings": {
+        "Spot Mask": {
+          "method": "median",
+          "esdmul": 3.0,
+          "num_bins": 445,
+          "iterations": 1,
+          "smooth_sigma": 1.0,
+          "smooth_threshold": 0.3
+        }
+      }
+    }
+  ],
+  "thread_count_correction": {
+    "fixed_batch_workers": 1,
+    "fixed_threads_per_worker": 2,
+    "dynamic_rayon_threads": 1,
+    "dynamic_openmp_threads": 1,
+    "note": "Original fixed-path labels omitted the private pool default of two threads per worker; global RAYON_NUM_THREADS=1 does not override it. Timings remain unchanged."
+  }
+}

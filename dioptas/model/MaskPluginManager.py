@@ -109,9 +109,20 @@ class MaskPluginManager:
         if changed:
             self.mask_changed.emit()
 
-    def update_geometry(self, geometry: GeometryContext | None) -> None:
-        """Called when calibration geometry changes. Recomputes geometry-aware plugins."""
+    def update_geometry(
+        self, geometry: GeometryContext | None, *, recompute: bool = True
+    ) -> None:
+        """Refresh geometry, optionally deferring masks until the next image update.
+
+        Deferral lets a combined geometry/image refresh compute masks once on
+        the new image instead of first computing them on the previous image.
+        """
         self._geometry = geometry
+        if not recompute:
+            for entry in self._plugins.values():
+                if entry.plugin.needs_geometry:
+                    entry.cached_mask = None
+            return
 
         changed = False
         for entry in self._plugins.values():

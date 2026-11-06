@@ -46,6 +46,7 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
     is_dynamic = True
 
     def __init__(self):
+        self._num_threads = 0
         self.esdmul = 3.0
         self.num_bins = 445
         self.method = "median"  # "mean" (fast) or "median" (robust)
@@ -77,6 +78,7 @@ class PowderDiffSpotMaskPlugin(MaskPluginBase):
             smooth_sigma=self.smooth_sigma,
             smooth_threshold=self.smooth_threshold,
             plugin=self,
+            num_threads=self._num_threads,
         )
 
     def get_settings_schema(self) -> dict:

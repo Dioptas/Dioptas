@@ -1,0 +1,180 @@
+--- a/dioptas/model/Configuration.py
++++ b/dioptas/model/Configuration.py
+@@ -298,9 +298,10 @@
+     def integration_revision(self) -> int:
+         return self._integration_revision
+ 
+-    def _update_plugin_masks(self) -> None:
++    def _update_plugin_masks(self, image: np.ndarray | None = None) -> None:
+         """Update dynamic mask plugins with the current image data."""
+-        image = self.img_model.img_data
++        if image is None:
++            image = self.img_model.img_data
+         if image is not None:
+             # Pass user-drawn mask so plugins can exclude pre-masked pixels
+             # (e.g., detector gaps) from their statistics.
+@@ -402,6 +403,9 @@
+         """
+         logger.debug("Integrating image 1D")
+         if self.calibration_model.is_calibrated:
++            # Keep the processed image independent of ImgModel storage, but
++            # produce it only once for this mask/integration pair.
++            image = self.img_model.img_data
+             self.prepare_dioptrin_mask_mode()
+             if self.has_dynamic_mask and self.img_model.img_changed.blocked:
+                 # Batch/map loops suppress image signals, including the normal
+@@ -412,7 +416,7 @@
+                 signal.blocked = True
+                 try:
+                     self.update_mask_dimension()
+-                    self._update_plugin_masks()
++                    self._update_plugin_masks(image)
+                 finally:
+                     signal.blocked = was_blocked
+             if self.use_mask:
+@@ -423,6 +427,7 @@
+                 mask = None
+ 
+             integration_kwargs = dict(
++                image=image,
+                 azi_range=self.oned_azimuth_range,
+                 mask=mask,
+                 unit=self.integration_unit,
+--- a/dioptas/model/CalibrationModel.py
++++ b/dioptas/model/CalibrationModel.py
+@@ -99,6 +99,7 @@
+         self._dioptrin_integrator: Any = None
+         self._dioptrin_integrator_key: tuple | None = None
+         self._dioptrin_mask_mode = "fixed"
++        self._dioptrin_polarization_state = None
+ 
+         # side effects of settings changes live here (not in the property
+         # setters), so a direct params write behaves exactly like the
+@@ -379,9 +380,13 @@
+                 mask_mode=self._dioptrin_mask_mode,
+             )
+             self._dioptrin_integrator_key = key
++            self._dioptrin_polarization_state = (
++                self._dioptrin_integrator, self.polarization_factor
++            )
+         except Exception:
+             self._dioptrin_integrator = None
+             self._dioptrin_integrator_key = None
++            self._dioptrin_polarization_state = None
+             logger.info("Dioptrin integrator not available, using pyFAI")
+             self.use_dioptrin = False
+ 
+@@ -391,6 +396,14 @@
+             if self._dioptrin_integrator.mask_mode != mode:
+                 self._dioptrin_integrator.set_mask_mode(mode)
+         self._dioptrin_mask_mode = mode
++
++    def _sync_dioptrin_polarization(self, factor: float | None) -> None:
++        """Avoid recalculating full-detector corrections for an unchanged factor."""
++        previous = self._dioptrin_polarization_state
++        if (previous is None or previous[0] is not self._dioptrin_integrator
++                or previous[1] != factor):
++            self._dioptrin_integrator.set_polarization_factor(factor)
++            self._dioptrin_polarization_state = (self._dioptrin_integrator, factor)
+ 
+     def can_use_dioptrin_batch(self, unit: str, azi_range: tuple[float, float] | None = None) -> bool:
+         """Check whether dioptrin batch integration can be used for the given parameters."""
+@@ -434,7 +447,7 @@
+         self._dioptrin_integrator.set_mask(
+             mask.astype(np.uint8) if mask is not None else None
+         )
+-        self._dioptrin_integrator.set_polarization_factor(self.polarization_factor)
++        self._sync_dioptrin_polarization(self.polarization_factor)
+ 
+         if num_points is None:
+             num_points = self.calculate_number_of_pattern_points(img_shape, 2)
+@@ -768,16 +781,18 @@
+                     return np.logical_or(self.detector.mask, mask)
+ 
+     def _prepare_integration_super_sampling(
+-        self, mask: np.ndarray | None
++        self, mask: np.ndarray | None, image: np.ndarray | None = None
+     ) -> tuple[np.ndarray, np.ndarray | None]:
++        if image is None:
++            image = self.img_model.img_data
+         if self.supersampling_factor > 1:
+             img_data = supersample_image(
+-                self.img_model.img_data, self.supersampling_factor
++                image, self.supersampling_factor
+             )
+             if mask is not None:
+                 mask = supersample_image(mask, self.supersampling_factor)
+         else:
+-            img_data = self.img_model.img_data
++            img_data = image
+         return img_data, mask
+ 
+     def integrate_1d(
+@@ -792,6 +807,7 @@
+         trim_zeros: bool = True,
+         calculate_errors: bool = False,
+         calculate_azimuthal_std: bool = False,
++        image: np.ndarray | None = None,
+     ) -> tuple[np.ndarray, np.ndarray]:
+         self.sigma = None
+         self.azimuthal_std = None
+@@ -799,17 +815,19 @@
+             # do not perform integration if the image is completely masked...
+             return self.tth, self.int
+ 
+-        if self.pattern_geometry_img_shape != self.img_model.img_data.shape:
++        if image is None:
++            image = self.img_model.img_data
++        if self.pattern_geometry_img_shape != image.shape:
+             # if cake geometry was used on differently shaped image before the azimuthal integrator needs to be reset
+             self.pattern_geometry.reset()
+-            self.pattern_geometry_img_shape = self.img_model.img_data.shape
++            self.pattern_geometry_img_shape = image.shape
+ 
+         if polarization_factor is None:
+             polarization_factor = self.polarization_factor
+ 
+-        self._check_detector_and_image_shape()
++        self._check_detector_and_image_shape(image.shape)
+         mask = self._prepare_integration_mask(mask)
+-        if mask is not None and mask.shape != self.img_model.img_data.shape:
++        if mask is not None and mask.shape != image.shape:
+             mask = None
+ 
+         if self.use_dioptrin and self._dioptrin_integrator is not None:
+@@ -821,7 +839,7 @@
+             )
+             if not needs_pyFAI:
+                 img_data = np.ascontiguousarray(
+-                    self.img_model.img_data, dtype=np.float64
++                    image, dtype=np.float64
+                 )
+ 
+                 if num_points is None:
+@@ -842,7 +860,7 @@
+                 self._dioptrin_integrator.set_mask(
+                     mask.astype(np.uint8) if mask is not None else None
+                 )
+-                self._dioptrin_integrator.set_polarization_factor(polarization_factor)
++                self._sync_dioptrin_polarization(polarization_factor)
+ 
+                 t1 = time.time()
+                 if calculate_errors or calculate_azimuthal_std:
+@@ -904,7 +922,7 @@
+                     return self.tth, self.int
+ 
+         # pyFAI path
+-        img_data, mask = self._prepare_integration_super_sampling(mask)
++        img_data, mask = self._prepare_integration_super_sampling(mask, image)
+ 
+         if num_points is None:
+             num_points = self.calculate_number_of_pattern_points(img_data.shape, 2)
+@@ -1022,7 +1040,7 @@
+                 self._dioptrin_integrator.set_mask(
+                     mask.astype(np.uint8) if mask is not None else None
+                 )
+-                self._dioptrin_integrator.set_polarization_factor(polarization_factor)
++                self._sync_dioptrin_polarization(polarization_factor)
+ 
+                 azi_range_rad = None
+                 if azimuth_range is not None:

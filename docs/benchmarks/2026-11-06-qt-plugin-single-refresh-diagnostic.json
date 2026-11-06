@@ -1,0 +1,22 @@
+{
+  "source_frame": 0,
+  "limits": "One warm frame without file I/O, separate from throughput measurements.",
+  "results": [
+    {
+      "method": "mean",
+      "plugin_compute_calls_per_frame": 1,
+      "plugin_call_seconds": [
+        0.23146841599373147
+      ],
+      "total_frame_seconds": 0.46539391699479893
+    },
+    {
+      "method": "median",
+      "plugin_compute_calls_per_frame": 1,
+      "plugin_call_seconds": [
+        0.34715050004888326
+      ],
+      "total_frame_seconds": 0.5746993750217371
+    }
+  ]
+}

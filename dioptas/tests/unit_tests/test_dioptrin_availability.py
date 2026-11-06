@@ -82,7 +82,7 @@ def test_standalone_smoke_requires_dioptrin_but_source_does_not(monkeypatch):
 def test_release_smoke_rejects_stale_backend(monkeypatch):
     monkeypatch.setitem(sys.modules, "dioptrin", SimpleNamespace())
     monkeypatch.setattr(release_smoke, "version", lambda name: "0.6.1")
-    with pytest.raises(RuntimeError, match="Expected Dioptrin 0.8.0, got 0.6.1"):
+    with pytest.raises(RuntimeError, match="Expected Dioptrin 0.9.0, got 0.6.1"):
         release_smoke.check_dioptrin_runtime(required=True)
 
 
@@ -96,7 +96,7 @@ def test_published_backend_works_without_activation(tmp_path):
 import dioptas
 from dioptas.model.util.release_smoke import check_dioptrin_runtime
 assert dioptas._check_dioptrin_license()
-assert check_dioptrin_runtime(required=True) == '0.8.0'
+assert check_dioptrin_runtime(required=True) == '0.9.0'
 """
     result = subprocess.run([sys.executable, "-c", code], env=env,
                             cwd=Path(__file__).parents[3], capture_output=True,

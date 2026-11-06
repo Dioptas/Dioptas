@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 env:
-  DIOPTRIN_RELEASE: "v0.8.0"
+  DIOPTRIN_RELEASE: "v0.9.0"
 
 jobs:
   build_linux:

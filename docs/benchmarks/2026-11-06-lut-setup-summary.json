@@ -1,0 +1,50 @@
+{
+  "4": {
+    "separate": {
+      "setup_seconds": 1.494987208978273,
+      "setup_cpu_seconds": 6.046069707999999,
+      "peak_setup_rss_GiB": 7.121917724609375,
+      "ready_rss_GiB": 6.5412445068359375,
+      "other_busy_cores": 2.056158255798312,
+      "setup_range_seconds": [
+        1.4100263750297017,
+        1.5206970840226859
+      ]
+    },
+    "shared": {
+      "setup_seconds": 0.6825390420272015,
+      "setup_cpu_seconds": 1.49155664,
+      "peak_setup_rss_GiB": 2.4192962646484375,
+      "ready_rss_GiB": 2.4192962646484375,
+      "other_busy_cores": 2.0084055841505157,
+      "setup_range_seconds": [
+        0.6788466249709018,
+        0.7069917080225423
+      ]
+    }
+  },
+  "8": {
+    "separate": {
+      "setup_seconds": 2.4941767499549314,
+      "setup_cpu_seconds": 16.825425296000002,
+      "peak_setup_rss_GiB": 12.305404663085938,
+      "ready_rss_GiB": 10.4478759765625,
+      "other_busy_cores": 2.9703149740269437,
+      "setup_range_seconds": [
+        1.9151343749836087,
+        3.473724666982889
+      ]
+    },
+    "shared": {
+      "setup_seconds": 0.6210608340334147,
+      "setup_cpu_seconds": 1.871840172,
+      "peak_setup_rss_GiB": 2.66241455078125,
+      "ready_rss_GiB": 2.66241455078125,
+      "other_busy_cores": 2.2763539381184827,
+      "setup_range_seconds": [
+        0.6006045839749277,
+        0.6262005839962512
+      ]
+    }
+  }
+}

@@ -251,6 +251,7 @@ class Configuration:
             "correct_solid_angle",
             "distortion_spline_filename",
             "use_dioptrin",
+            "dioptrin_sparse_layout",
             "geometry",
             "detector_mode",
             "detector_name",
@@ -298,9 +299,10 @@ class Configuration:
     def integration_revision(self) -> int:
         return self._integration_revision
 
-    def _update_plugin_masks(self) -> None:
+    def _update_plugin_masks(self, image: np.ndarray | None = None) -> None:
         """Update dynamic mask plugins with the current image data."""
-        image = self.img_model.img_data
+        if image is None:
+            image = self.img_model.img_data
         if image is not None:
             # Pass user-drawn mask so plugins can exclude pre-masked pixels
             # (e.g., detector gaps) from their statistics.
@@ -309,7 +311,7 @@ class Configuration:
             # update_image will trigger plot_mask -> update_plugin_existing_mask,
             # which must see the current sum to break the recursion cycle.
             self._last_user_mask_sum = int(user_mask.sum())
-            self._update_plugin_geometry(image.shape)
+            self._update_plugin_geometry(image.shape, recompute_masks=False)
             self.mask_plugin_manager.update_image(
                 image, existing_mask=user_mask
             )
@@ -328,13 +330,13 @@ class Configuration:
             self._update_plugin_masks()
 
     def _update_plugin_geometry(
-        self, img_shape: tuple[int, int] | None = None
+        self, img_shape: tuple[int, int] | None = None, *, recompute_masks: bool = True
     ) -> None:
         """Build GeometryContext from calibration and pass to plugin manager."""
         from .util.MaskPlugin import GeometryContext
 
         if not self.calibration_model.is_calibrated:
-            self.mask_plugin_manager.update_geometry(None)
+            self.mask_plugin_manager.update_geometry(None, recompute=recompute_masks)
             return
 
         try:
@@ -342,7 +344,7 @@ class Configuration:
             if img_shape is None:
                 image = self.img_model.img_data
                 if image is None:
-                    self.mask_plugin_manager.update_geometry(None)
+                    self.mask_plugin_manager.update_geometry(None, recompute=recompute_masks)
                     return
                 img_shape = image.shape
             geometry = GeometryContext(
@@ -358,12 +360,12 @@ class Configuration:
                 pixel1=geo.detector.pixel1,
                 pixel2=geo.detector.pixel2,
             )
-            self.mask_plugin_manager.update_geometry(geometry)
+            self.mask_plugin_manager.update_geometry(geometry, recompute=recompute_masks)
         except Exception:
             logger.debug(
                 "Failed to build geometry context for mask plugins", exc_info=True
             )
-            self.mask_plugin_manager.update_geometry(None)
+            self.mask_plugin_manager.update_geometry(None, recompute=recompute_masks)
 
     def _register_mask_plugins(self) -> None:
         """Register built-in and discovered mask plugins."""
@@ -379,6 +381,19 @@ class Configuration:
             except Exception:
                 logger.exception("Failed to instantiate mask plugin: %s", plugin_cls)
 
+    @property
+    def has_dynamic_mask(self) -> bool:
+        """Whether integration uses any enabled, image-dependent mask plugin."""
+        return self.use_mask and any(
+            entry.enabled and entry.plugin.is_dynamic
+            for entry in self.mask_plugin_manager.plugins.values()
+        )
+
+    def prepare_dioptrin_mask_mode(self) -> None:
+        self.calibration_model.set_dioptrin_mask_mode(
+            "dynamic" if self.has_dynamic_mask else "fixed"
+        )
+
     def integrate_image_1d(self, update_pattern_model: bool = True) -> tuple[np.ndarray, np.ndarray] | None:
         """
         Integrates the image in the ImageModel to a Pattern. Will also automatically save the integrated pattern, if
@@ -389,6 +404,22 @@ class Configuration:
         """
         logger.debug("Integrating image 1D")
         if self.calibration_model.is_calibrated:
+            # Keep the processed image independent of ImgModel storage, but
+            # produce it only once for this mask/integration pair.
+            image = self.img_model.img_data
+            self.prepare_dioptrin_mask_mode()
+            if self.has_dynamic_mask and self.img_model.img_changed.blocked:
+                # Batch/map loops suppress image signals, including the normal
+                # plugin update. Refresh it without triggering GUI/automatic
+                # integrations for every intermediate frame.
+                signal = self.mask_plugin_manager.mask_changed
+                was_blocked = signal.blocked
+                signal.blocked = True
+                try:
+                    self.update_mask_dimension()
+                    self._update_plugin_masks(image)
+                finally:
+                    signal.blocked = was_blocked
             if self.use_mask:
                 mask = self.mask_model.get_mask()
             elif self.mask_model.roi is not None:
@@ -397,6 +428,7 @@ class Configuration:
                 mask = None
 
             integration_kwargs = dict(
+                image=image,
                 azi_range=self.oned_azimuth_range,
                 mask=mask,
                 unit=self.integration_unit,
@@ -514,6 +546,7 @@ class Configuration:
             ),
             calculate_cake=calculate_cake,
             prefer_dioptrin=bool(calibration.use_dioptrin),
+            dioptrin_sparse_layout=calibration.dioptrin_sparse_layout,
             dioptrin_geometry_config=(
                 deepcopy(calibration._get_poni_dict())
                 if calibration.use_dioptrin

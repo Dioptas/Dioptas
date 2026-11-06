@@ -1,0 +1,39 @@
+{
+  "source_frame": 0,
+  "limits": "One warm frame, no file I/O in diagnostic; independent from the full model throughput measurements. No production code changed.",
+  "results": [
+    {
+      "plugin": "Cosmic Ray Mask",
+      "settings": {},
+      "plugin_compute_calls_per_frame": 1,
+      "plugin_call_seconds": [
+        0.5670366660342552
+      ],
+      "total_frame_seconds": 0.815547583042644
+    },
+    {
+      "plugin": "Spot Mask",
+      "settings": {
+        "method": "mean"
+      },
+      "plugin_compute_calls_per_frame": 2,
+      "plugin_call_seconds": [
+        0.23091241699876264,
+        0.19906608399469405
+      ],
+      "total_frame_seconds": 0.670441624999512
+    },
+    {
+      "plugin": "Spot Mask",
+      "settings": {
+        "method": "median"
+      },
+      "plugin_compute_calls_per_frame": 2,
+      "plugin_call_seconds": [
+        0.33473087497986853,
+        0.32167683297302574
+      ],
+      "total_frame_seconds": 0.853688208037056
+    }
+  ]
+}

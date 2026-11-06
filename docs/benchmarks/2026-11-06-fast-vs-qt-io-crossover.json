@@ -1,0 +1,159 @@
+{
+  "source": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.h5",
+  "file_bytes": 5687072680,
+  "frames": 625,
+  "shape": [
+    3262,
+    3108
+  ],
+  "decoder_workers": 8,
+  "integration_workers": 8,
+  "threads_per_integration_worker": 1,
+  "settings": {
+    "bins": 2000,
+    "method": "pixel_split",
+    "polarization": 0.965,
+    "solid_angle": true,
+    "precision": "float64",
+    "mask": "same supplied static mask",
+    "masked_pixels": 887588
+  },
+  "mask_sha256": "9d2fd07f8ccd51ea3dcbfbb263cc9a2961f487f48b8b3cf0577e94a72ebdc261",
+  "poni_sha256": "5999ef2e03bf1ef2db21e6ab042f3170bc86f81e99ce59488d1bd896ddf1b00e",
+  "old_decoder": {
+    "built_utc": "2026-11-05T12:08:28Z",
+    "compiler": "Apple clang version 21.0.0 (clang-2100.3.34.2)",
+    "git": "v0.0.22.a3-12-g94264db",
+    "modified": [],
+    "platform": "darwin_arm64",
+    "src_sha256": "fe6b3c32d2a22d0e0a06fa000a3c14df7ee26459db697fa603a65369a7db9ced",
+    "version": "0.0.22a3"
+  },
+  "old_decoder_path": "/tmp/dioptrin-mask-modes-env-20261105/lib/python3.13/site-packages/bslz4_to_sparse",
+  "versions": {
+    "dioptrin": "0.8.0",
+    "numpy": "2.4.1",
+    "h5py": "3.16.0",
+    "hdf5plugin": "5.1.0",
+    "bitshuffle": "0.5.2"
+  },
+  "source_hashes": {
+    "dioptas/model/MapModel.py": "0d46af6bd64b8a0becfec3e9651932aa17e3a5b097159f2a0f494a5af347a9e2",
+    "dioptas/model/CalibrationModel.py": "cf1467f912d574fd1337ea70f8b85740698d36307effa6df696978504cb880f9",
+    "dioptas/model/ImgModel.py": "309ce81b947f1dc673c973e4076d8404e5ab623da2dd81ce83efb6f42c0b1dc4",
+    "dioptas/model/loader/hdf5Loader.py": "2d96218dcc3e14d0da7ddea5b54b60804af1af789c47eb590a00842a81f14fa0",
+    "dioptas/model/util/integration.py": "d462d338d811bd218da7f19493755250e8b9b2771ac54b84cf489ee1736fafb3",
+    "/Users/clemens/Programming/Dioptas/scripts/compare_fast_and_qt_eiger.py": "08e65e7a32cdd1aa9c5e3d3299247ec1d8c5d5ee9b685c07812d9bcf4d4f019e"
+  },
+  "warmup_seconds": {
+    "qt_mmap_decoder_grouped": 12.480289791012183,
+    "old_hdf_decoder_grouped": 3.467787124973256
+  },
+  "measurements": {
+    "qt_mmap_decoder_grouped": [
+      {
+        "seconds": 5.462874750024639,
+        "fps": 114.40862706895872,
+        "process_cores": 7.424238858820089,
+        "other_busy_cores": 1.6479076332502909,
+        "stages_wall_seconds": {
+          "read_decode_flip_convert_wall": 3.8588497863383964,
+          "integration_and_results_wall": 1.6022885449347086
+        },
+        "decoder_worker_wall_sum": 28.30339207459474,
+        "decoder_calls": 625,
+        "img_data_calls": 0,
+        "img_data_allocated_bytes": 0,
+        "relative_l2": 0.0
+      },
+      {
+        "seconds": 5.533254332956858,
+        "fps": 112.95341988482441,
+        "process_cores": 7.5737201795323195,
+        "other_busy_cores": 1.5746032037785378,
+        "stages_wall_seconds": {
+          "read_decode_flip_convert_wall": 3.931156919861678,
+          "integration_and_results_wall": 1.6004420860554092
+        },
+        "decoder_worker_wall_sum": 29.455931161297485,
+        "decoder_calls": 625,
+        "img_data_calls": 0,
+        "img_data_allocated_bytes": 0,
+        "relative_l2": 0.0
+      },
+      {
+        "seconds": 5.673517707968131,
+        "fps": 110.16093227702864,
+        "process_cores": 7.544617149935657,
+        "other_busy_cores": 1.6260601402673478,
+        "stages_wall_seconds": {
+          "read_decode_flip_convert_wall": 4.043732505117077,
+          "integration_and_results_wall": 1.6281043303897604
+        },
+        "decoder_worker_wall_sum": 30.36620629671961,
+        "decoder_calls": 625,
+        "img_data_calls": 0,
+        "img_data_allocated_bytes": 0,
+        "relative_l2": 0.0
+      }
+    ],
+    "old_hdf_decoder_grouped": [
+      {
+        "seconds": 3.3776944169658236,
+        "fps": 185.0374613110905,
+        "process_cores": 6.983118094261473,
+        "other_busy_cores": 1.8157832659952315,
+        "stages_wall_seconds": {
+          "read_decode_flip_convert_wall": 1.807992668938823,
+          "integration_and_results_wall": 1.568080747500062
+        },
+        "decoder_worker_wall_sum": 11.039223445288371,
+        "decoder_calls": 625,
+        "img_data_calls": 0,
+        "img_data_allocated_bytes": 0,
+        "relative_l2": 0.0
+      },
+      {
+        "seconds": 3.461812124995049,
+        "fps": 180.5412822629402,
+        "process_cores": 6.950831567739799,
+        "other_busy_cores": 1.8046984568662623,
+        "stages_wall_seconds": {
+          "read_decode_flip_convert_wall": 1.857785330794286,
+          "integration_and_results_wall": 1.6023953320691362
+        },
+        "decoder_worker_wall_sum": 11.349384947563522,
+        "decoder_calls": 625,
+        "img_data_calls": 0,
+        "img_data_allocated_bytes": 0,
+        "relative_l2": 0.0
+      },
+      {
+        "seconds": 3.4740495410514995,
+        "fps": 179.9053216180762,
+        "process_cores": 6.959321309126254,
+        "other_busy_cores": 1.6588632176499836,
+        "stages_wall_seconds": {
+          "read_decode_flip_convert_wall": 1.8601478323107585,
+          "integration_and_results_wall": 1.6122576261404902
+        },
+        "decoder_worker_wall_sum": 11.384795159043279,
+        "decoder_calls": 625,
+        "img_data_calls": 0,
+        "img_data_allocated_bytes": 0,
+        "relative_l2": 0.0
+      }
+    ]
+  },
+  "summary": {
+    "qt_mmap_decoder_grouped": {
+      "median_fps": 112.95341988482441,
+      "median_process_cores": 7.544617149935657
+    },
+    "old_hdf_decoder_grouped": {
+      "median_fps": 180.5412822629402,
+      "median_process_cores": 6.959321309126254
+    }
+  },
+  "limits": "Full 625-frame file, warm OS cache, paired/reordered passes during concurrent user work. Mask/LUT/chunk-index/mmap preparation excluded, but all timed frame access/decode/flip/convert/integration/results included. Qt layers open/read metadata and first frame per run. Decoder task wall sums overlap and must not be added to end-to-end wall times. Old decoder adapter is benchmark-only and uses allocated frame buffers for ownership safety; production Qt code unchanged."
+}

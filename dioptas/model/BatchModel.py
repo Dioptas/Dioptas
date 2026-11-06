@@ -286,9 +286,15 @@ class BatchModel:
 
         self.azimuthal_std = None
         self.integration_unit = unit
-        if cal.can_use_dioptrin_batch(unit, azi_range) and (
-            not self.configuration.calculate_azimuthal_std or cal.supports_dioptrin_spottiness()
+        self.configuration.prepare_dioptrin_mask_mode()
+        if (
+            not self.configuration.has_dynamic_mask
+            and cal.can_use_dioptrin_batch(unit, azi_range)
+            and (not self.configuration.calculate_azimuthal_std
+                 or cal.supports_dioptrin_spottiness())
         ):
+            from dioptas.model.util.dynamic_integration import close_frame_pool
+            close_frame_pool(self.configuration, clear_plan=False)
             self._integrate_raw_data_dioptrin_batch(
                 start, stop, step, use_all, callback_fn
             )
@@ -303,50 +309,49 @@ class BatchModel:
         use_all: bool = False,
         callback_fn: Callable[[int], bool] | None = None,
     ) -> None:
+        """Integrate sequentially using the configured Dioptrin or pyFAI backend.
+
+        Supported dynamic masks use independent whole-frame workers.
+        """
         intensity_data = []
         spread_data = []
         binning_data = []
         pos_map = []
         image_counter = 0
-        current_file = ""
+        from itertools import groupby
+        from dioptas.model.util.dynamic_integration import frame_integrations
 
-        # Block img_changed to prevent auto-integration and GUI updates
-        self.configuration.img_model.img_changed.blocked = True
+        image_model = self.configuration.img_model
+        was_blocked = image_model.img_changed.blocked
+        image_model.img_changed.blocked = True
         last_callback_time = time.monotonic()
+        positions = self.pos_map_all if use_all else self.pos_map
+        selected = (positions[index] for index in range(start, stop, step))
+        aborted = False
         try:
-            for index in range(start, stop, step):
-                if use_all:
-                    file_index, pos = self.pos_map_all[index]
-                else:
-                    file_index, pos = self.pos_map[index]
-                if file_index != current_file:
-                    current_file = file_index
-                    self.configuration.calibration_model.img_model.load(
-                        self.files[file_index]
-                    )
-                    self.configuration.mask_model.set_dimension(
-                        self.configuration.img_model.img_data.shape
-                    )
-
-                self.configuration.img_model.load_series_img(pos + 1)
-
-                binning, intensity = self.configuration.integrate_image_1d(
-                    update_pattern_model=False
-                )
-                image_counter += 1
-                pos_map.append((file_index, pos))
-                intensity_data.append(intensity)
-                if self.configuration.calculate_azimuthal_std:
-                    spread_data.append(self.configuration.calibration_model.azimuthal_std)
-                binning_data.append(binning)
-
-                now = time.monotonic()
-                if callback_fn is not None and now - last_callback_time > 0.1:
-                    last_callback_time = now
-                    if not callback_fn(image_counter):
-                        break
+            for file_index, group in groupby(selected, key=lambda item: item[0]):
+                image_model.load(self.files[file_index])
+                self.configuration.mask_model.set_dimension(image_model.img_data.shape)
+                indices = (int(pos) for _, pos in group)
+                with frame_integrations(self.configuration, indices) as results:
+                    for pos, result in results:
+                        binning, intensity = result.radial, result.intensity
+                        image_counter += 1
+                        pos_map.append((file_index, pos))
+                        intensity_data.append(intensity)
+                        if self.configuration.calculate_azimuthal_std:
+                            spread_data.append(result.azimuthal_std)
+                        binning_data.append(binning)
+                        now = time.monotonic()
+                        if callback_fn is not None and now - last_callback_time > 0.1:
+                            last_callback_time = now
+                            if not callback_fn(image_counter):
+                                aborted = True
+                                break
+                if aborted:
+                    break
         finally:
-            self.configuration.img_model.img_changed.blocked = False
+            image_model.img_changed.blocked = was_blocked
 
         if not intensity_data:
             return
@@ -429,6 +434,7 @@ class BatchModel:
                     source,
                     indices,
                     mask_model=self.configuration.mask_model,
+                    workers=cal.dioptrin_num_workers,
                     abort_check=lambda: aborted,
                 )
 

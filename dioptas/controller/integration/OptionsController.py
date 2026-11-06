@@ -41,6 +41,7 @@ class OptionsController:
         self._dioptrin_available = dioptas._dioptrin_available
         if not self._dioptrin_available:
             self.options_widget.use_dioptrin_cb.setVisible(False)
+        self.options_widget.dioptrin_sparse_layout_cb.setVisible(self._dioptrin_available)
 
     def create_bindings(self):
         configuration = lambda: self.model.current_configuration
@@ -91,10 +92,25 @@ class OptionsController:
             field="calibration.use_dioptrin",
         )
 
+        self.binder.add_render(
+            lambda: self.options_widget.dioptrin_sparse_layout_cb.setEnabled(
+                self.model.calibration_model.use_dioptrin),
+            self.options_widget.dioptrin_sparse_layout_cb,
+            field="calibration.use_dioptrin",
+        )
+        self.binder.add_render(
+            lambda: self.options_widget.dioptrin_sparse_layout_cb.setCurrentIndex(
+                self.options_widget.dioptrin_sparse_layout_cb.findData(
+                    self.model.calibration_model.dioptrin_sparse_layout)),
+            self.options_widget.dioptrin_sparse_layout_cb,
+            field="calibration.dioptrin_sparse_layout",
+        )
+
     def connect_signals(self):
         self.binder.connect_refresh(self.model.configuration_selected)
         self.binder.connect_refresh(self.model.pattern_changed)
         self.options_widget.use_dioptrin_cb.toggled.connect(self._use_dioptrin_toggled)
+        self.options_widget.dioptrin_sparse_layout_cb.currentIndexChanged.connect(self._sparse_layout_changed)
         self.options_widget.calculate_poisson_errors_cb.toggled.connect(
             self._poisson_errors_toggled
         )
@@ -105,6 +121,13 @@ class OptionsController:
         slider.setDisabled(not is_full)
         if not is_full:
             slider.setValue(0)
+
+    def _sparse_layout_changed(self, index):
+        layout = self.options_widget.dioptrin_sparse_layout_cb.itemData(index)
+        if layout:
+            self.model.calibration_model.dioptrin_sparse_layout = layout
+            if self.model.calibration_model.is_calibrated:
+                self.model.current_configuration.integrate_image_1d()
 
     def _use_dioptrin_toggled(self, checked):
         self.model.calibration_model.use_dioptrin = checked

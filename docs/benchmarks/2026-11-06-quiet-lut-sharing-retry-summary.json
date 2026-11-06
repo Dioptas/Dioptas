@@ -1,0 +1,46 @@
+{
+  "4": {
+    "variants": {
+      "separate": {
+        "median_fps": 81.40759551234105,
+        "fps_range": [
+          77.65432299595847,
+          88.66747713481809
+        ],
+        "median_other_busy_cores": 6.052237796824973
+      },
+      "shared": {
+        "median_fps": 82.64820816255727,
+        "fps_range": [
+          80.77820778282168,
+          89.34361319762994
+        ],
+        "median_other_busy_cores": 4.902996082892593
+      }
+    },
+    "paired_median_percent": 1.929267636296883,
+    "pairs": 5
+  },
+  "8": {
+    "variants": {
+      "separate": {
+        "median_fps": 109.56571911301758,
+        "fps_range": [
+          94.27484101242332,
+          149.49562865890434
+        ],
+        "median_other_busy_cores": 7.182544063632577
+      },
+      "shared": {
+        "median_fps": 105.50829105094893,
+        "fps_range": [
+          95.49009329640631,
+          140.74264149715484
+        ],
+        "median_other_busy_cores": 8.068118541701319
+      }
+    },
+    "paired_median_percent": -3.7031911942123075,
+    "pairs": 5
+  }
+}

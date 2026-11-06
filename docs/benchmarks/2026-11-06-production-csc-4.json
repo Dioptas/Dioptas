@@ -1,0 +1,91 @@
+{
+  "date": "2026-11-06",
+  "workers": 4,
+  "source": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.h5",
+  "settings": {
+    "bins": 2000,
+    "unit": "2th_deg",
+    "method": "pixel_split",
+    "precision": "float64",
+    "polarization": 0.965,
+    "solid_angle": true,
+    "mask": "original static mask",
+    "frame_native_threads": 1
+  },
+  "samples": [
+    {
+      "layout": "csr",
+      "seconds": 3.6379042500047944,
+      "fps": 171.80221277104155,
+      "process_cpu_seconds": 25.443899136000006,
+      "other_busy_cores": 3.1930749315702514,
+      "relative_l2": 0.0
+    },
+    {
+      "layout": "csc",
+      "seconds": 3.635524125013035,
+      "fps": 171.91468919155065,
+      "process_cpu_seconds": 22.109992704000003,
+      "other_busy_cores": 2.976189106153524,
+      "relative_l2": 7.557041246078217e-16
+    },
+    {
+      "layout": "csc",
+      "seconds": 3.70481916697463,
+      "fps": 168.69919200681997,
+      "process_cpu_seconds": 23.119597056000003,
+      "other_busy_cores": 2.93682429657828,
+      "relative_l2": 7.557041246078217e-16
+    },
+    {
+      "layout": "csr",
+      "seconds": 3.7929411249933764,
+      "fps": 164.77977891130368,
+      "process_cpu_seconds": 26.490038272,
+      "other_busy_cores": 2.828929154026851,
+      "relative_l2": 0.0
+    },
+    {
+      "layout": "csr",
+      "seconds": 3.8658051660167985,
+      "fps": 161.67395229697516,
+      "process_cpu_seconds": 26.367996415999993,
+      "other_busy_cores": 2.8149384453362076,
+      "relative_l2": 0.0
+    },
+    {
+      "layout": "csc",
+      "seconds": 3.797096459020395,
+      "fps": 164.59945296234125,
+      "process_cpu_seconds": 23.899530240000004,
+      "other_busy_cores": 3.023486467595947,
+      "relative_l2": 7.557041246078217e-16
+    }
+  ],
+  "warmups": [
+    {
+      "layout": "csr",
+      "seconds": 5.171916333958507,
+      "fps": 120.84495564947287,
+      "process_cpu_seconds": 29.414772,
+      "other_busy_cores": 1.9422642114196915,
+      "relative_l2": 0.0
+    },
+    {
+      "layout": "csc",
+      "seconds": 3.5249997500213794,
+      "fps": 177.3049771127528,
+      "process_cpu_seconds": 21.471314688,
+      "other_busy_cores": 1.6109746708543584,
+      "relative_l2": 7.557041246078217e-16
+    }
+  ],
+  "median_fps": {
+    "csr": 164.77977891130368,
+    "csc": 168.69919200681997
+  },
+  "native_binary": {
+    "/Users/clemens/Programming/Dioptas/.venv/lib/python3.13/site-packages/dioptrin/dioptrin.cpython-313-darwin.so": "7122bd8cc50838c408bcae0d2fe73c8eff31af6557cad20bae459218bd72fa6f"
+  },
+  "limits": "Production selectable layout API, same Qt configuration and full 625-frame Eiger file; alternating paired warm-cache runs. Includes file opening/reading/decompression, fixed-mask preparation, normalization, native integration and Map assembly; excludes GUI rendering and Configuration creation. Background work measured per sample."
+}

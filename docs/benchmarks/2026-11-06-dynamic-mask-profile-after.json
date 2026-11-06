@@ -1,0 +1,187 @@
+{
+  "dioptrin": "0.8.0",
+  "numpy": "2.4.1",
+  "source": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.h5",
+  "dataset": "entry_0000/instrument/eiger/data",
+  "indices": [
+    0,
+    208,
+    416,
+    624
+  ],
+  "decoded_sha256": [
+    "eedaf1087baba1fb807a8c186352143897ec0edbe8c223217920c1dd9191b8c1",
+    "239266359a4438ab72bb8231a3b9e39a8d6c9c1a9927b226496f92bc109ed785",
+    "5f6327c54ebb4a035988e99354fcabcf275e15318f8aa22854f8ad84500e2dff",
+    "a25953cce2825b85464c825fc52601c2ece5e507e00798608cdf1e4d0674085d"
+  ],
+  "settings": {
+    "bins": 2000,
+    "method": "pixel_split",
+    "mask_mode": "dynamic",
+    "threshold": 230,
+    "polarization": 0.965,
+    "float_precision": "float64",
+    "errors": false
+  },
+  "thread_environment": {
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "RAYON_NUM_THREADS": "1"
+  },
+  "source_hashes": {
+    "dioptas/model/Configuration.py": "623957f363325302b69426057302548365977049b3a0e1d401adff64fad9bfab",
+    "dioptas/model/CalibrationModel.py": "cf1467f912d574fd1337ea70f8b85740698d36307effa6df696978504cb880f9",
+    "dioptas/model/ImgModel.py": "309ce81b947f1dc673c973e4076d8404e5ab623da2dd81ce83efb6f42c0b1dc4"
+  },
+  "samples": [
+    {
+      "seconds": 0.43829695804743096,
+      "exclusive_seconds": {
+        "image_preparation_and_copies": 0.01876112597528845,
+        "plugin_geometry_context": 0.3028880830388516,
+        "threshold_mask_creation": 0.009407751087564975,
+        "plugin_refresh_overhead": 8.833291940391064e-05,
+        "combine_plugin_user_roi_masks": 0.0033052489743568003,
+        "combine_detector_mask": 7.749942597001791e-06,
+        "native_mask_upload": 0.0015467910561710596,
+        "native_integration_and_normalization": 0.09222091705305502,
+        "other_model_work": 0.010070958000142127
+      },
+      "calls": {
+        "image_preparation_and_copies": 4,
+        "plugin_geometry_context": 4,
+        "threshold_mask_creation": 4,
+        "plugin_refresh_overhead": 4,
+        "combine_plugin_user_roi_masks": 4,
+        "combine_detector_mask": 4,
+        "native_mask_upload": 4,
+        "native_integration_and_normalization": 4
+      },
+      "image_copy_bytes": 324425472
+    },
+    {
+      "seconds": 0.1359320420306176,
+      "exclusive_seconds": {
+        "image_preparation_and_copies": 0.008326292969286442,
+        "plugin_geometry_context": 0.014310041908174753,
+        "threshold_mask_creation": 0.008198708004783839,
+        "plugin_refresh_overhead": 7.658300455659628e-05,
+        "combine_plugin_user_roi_masks": 0.002074583957437426,
+        "combine_detector_mask": 5.918031092733145e-06,
+        "native_mask_upload": 0.0007539980579167604,
+        "native_integration_and_normalization": 0.09209370904136449,
+        "other_model_work": 0.010092207056004554
+      },
+      "calls": {
+        "image_preparation_and_copies": 4,
+        "plugin_geometry_context": 4,
+        "threshold_mask_creation": 4,
+        "plugin_refresh_overhead": 4,
+        "combine_plugin_user_roi_masks": 4,
+        "combine_detector_mask": 4,
+        "native_mask_upload": 4,
+        "native_integration_and_normalization": 4
+      },
+      "image_copy_bytes": 324425472
+    },
+    {
+      "seconds": 0.13553016702644527,
+      "exclusive_seconds": {
+        "image_preparation_and_copies": 0.00705841596936807,
+        "plugin_geometry_context": 0.014328458986710757,
+        "threshold_mask_creation": 0.00851270800922066,
+        "plugin_refresh_overhead": 8.354196324944496e-05,
+        "combine_plugin_user_roi_masks": 0.002007333969231695,
+        "combine_detector_mask": 5.08397351950407e-06,
+        "native_mask_upload": 0.0009510010131634772,
+        "native_integration_and_normalization": 0.09254662500461563,
+        "other_model_work": 0.010036998137366027
+      },
+      "calls": {
+        "image_preparation_and_copies": 4,
+        "plugin_geometry_context": 4,
+        "threshold_mask_creation": 4,
+        "plugin_refresh_overhead": 4,
+        "combine_plugin_user_roi_masks": 4,
+        "combine_detector_mask": 4,
+        "native_mask_upload": 4,
+        "native_integration_and_normalization": 4
+      },
+      "image_copy_bytes": 324425472
+    },
+    {
+      "seconds": 0.13514650001889095,
+      "exclusive_seconds": {
+        "image_preparation_and_copies": 0.007191167038399726,
+        "plugin_geometry_context": 0.014369083975907415,
+        "threshold_mask_creation": 0.008218083006795496,
+        "plugin_refresh_overhead": 7.06250430084765e-05,
+        "combine_plugin_user_roi_masks": 0.00209370901575312,
+        "combine_detector_mask": 5.83200016990304e-06,
+        "native_mask_upload": 0.000736208981834352,
+        "native_integration_and_normalization": 0.0924202500609681,
+        "other_model_work": 0.010041540896054357
+      },
+      "calls": {
+        "image_preparation_and_copies": 4,
+        "plugin_geometry_context": 4,
+        "threshold_mask_creation": 4,
+        "plugin_refresh_overhead": 4,
+        "combine_plugin_user_roi_masks": 4,
+        "combine_detector_mask": 4,
+        "native_mask_upload": 4,
+        "native_integration_and_normalization": 4
+      },
+      "image_copy_bytes": 324425472
+    },
+    {
+      "seconds": 0.1350404160330072,
+      "exclusive_seconds": {
+        "image_preparation_and_copies": 0.007113084953743964,
+        "plugin_geometry_context": 0.014392999990377575,
+        "threshold_mask_creation": 0.008222543052397668,
+        "plugin_refresh_overhead": 7.945590186864138e-05,
+        "combine_plugin_user_roi_masks": 0.002121000026818365,
+        "combine_detector_mask": 6.042071618139744e-06,
+        "native_mask_upload": 0.0007079169736243784,
+        "native_integration_and_normalization": 0.09228304197313264,
+        "other_model_work": 0.010114331089425832
+      },
+      "calls": {
+        "image_preparation_and_copies": 4,
+        "plugin_geometry_context": 4,
+        "threshold_mask_creation": 4,
+        "plugin_refresh_overhead": 4,
+        "combine_plugin_user_roi_masks": 4,
+        "combine_detector_mask": 4,
+        "native_mask_upload": 4,
+        "native_integration_and_normalization": 4
+      },
+      "image_copy_bytes": 324425472
+    }
+  ],
+  "uninstrumented_seconds": [
+    0.13548574998276308,
+    0.13574175001122057,
+    0.13516279199393466,
+    0.13560958299785852,
+    0.13613833294948563
+  ],
+  "median_fps": 29.49644052856623,
+  "median_profiled_ms_per_frame": {
+    "image_preparation_and_copies": 1.7977917595999315,
+    "plugin_geometry_context": 3.592270993976854,
+    "threshold_mask_creation": 2.055635763099417,
+    "plugin_refresh_overhead": 0.019863975467160344,
+    "combine_plugin_user_roi_masks": 0.52342725393828,
+    "combine_detector_mask": 0.0014795077731832862,
+    "native_mask_upload": 0.1884995144791901,
+    "native_integration_and_normalization": 23.07076049328316,
+    "other_model_work": 2.517739500035532
+  },
+  "image_getter_calls_per_frame": 1.0,
+  "image_copy_bytes_per_frame": 81106368.0,
+  "numerical_check": "byte-identical intensity vs pre-optimization reference",
+  "limits": "One thread, four warmed decoded Eiger9M frames, concurrent rsmith work; setup/decode/file I/O excluded. Exclusive wall timers; native integration includes normalization. Image bytes count getter allocations, not all process allocations."
+}
