@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from contextlib import contextmanager
 from dataclasses import dataclass
 
 import numpy as np
@@ -87,6 +88,20 @@ def build_worker_configuration(state: WorkerConfigurationState) -> Configuration
             list(state.image.get("transformations", []))
         )
     return configuration
+
+
+@contextmanager
+def isolated_worker_configuration(state: WorkerConfigurationState):
+    """Release native state on the worker even if a task fails or is canceled."""
+    configuration = build_worker_configuration(state)
+    try:
+        yield configuration
+    finally:
+        from .util.dynamic_integration import close_frame_pool
+        close_frame_pool(configuration)
+        calibration = configuration.calibration_model
+        calibration._dioptrin_polarization_state = None
+        calibration._dioptrin_integrator = None
 
 
 def _apply_dict(target, values: dict, exclude: set[str] | None = None) -> None:

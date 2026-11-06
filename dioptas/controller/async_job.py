@@ -135,9 +135,11 @@ class DedicatedAsyncJobRunner(QtCore.QObject):
         parent: QtCore.QObject | None = None,
         *,
         finalizer: Callable[[], None] | None = None,
+        executor: ThreadPoolExecutor | None = None,
     ) -> None:
         super().__init__(parent)
-        self._executor = ThreadPoolExecutor(
+        self._owns_executor = executor is None
+        self._executor = executor or ThreadPoolExecutor(
             max_workers=1,
             thread_name_prefix="dioptas-integration",
         )
@@ -150,7 +152,13 @@ class DedicatedAsyncJobRunner(QtCore.QObject):
     def is_busy(self) -> bool:
         return bool(self._jobs)
 
-    def submit(self, fn: Callable[[], Any]) -> int:
+    def create_sibling(self, parent=None):
+        """Independent job IDs/signals using the same native owner thread."""
+        if self._closed:
+            raise RuntimeError("Cannot share a closed job runner")
+        return DedicatedAsyncJobRunner(parent, executor=self._executor)
+
+    def submit(self, fn: Callable[[], Any], *, use_owner_thread: bool = True) -> int:
         if self._closed:
             raise RuntimeError("Cannot submit to a closed job runner")
         self._next_job_id += 1
@@ -163,7 +171,12 @@ class DedicatedAsyncJobRunner(QtCore.QObject):
         _RUNNING_JOBS.add(job)
         if not was_busy:
             self.busy_changed.emit(True)
-        self._executor.submit(job.run)
+        if use_owner_thread:
+            self._executor.submit(job.run)
+        else:
+            # Jobs with independent backends (dynamic masks or pyFAI) need
+            # not occupy the persistent native backend's owner thread.
+            QtCore.QThreadPool.globalInstance().start(job)
         return job_id
 
     @QtCore.Slot(int, object)
@@ -193,6 +206,11 @@ class DedicatedAsyncJobRunner(QtCore.QObject):
         if getattr(self, "_closed", True):
             return
         self._closed = True
+        if not self._owns_executor:
+            # Another runner owns this lane and its native-backend finalizer.
+            # Its FIFO shutdown will finish our already submitted jobs too.
+            self._jobs.clear()
+            return
         finalizer_future = None
         if self._finalizer is not None:
             # The single-worker executor is FIFO: this runs after submitted

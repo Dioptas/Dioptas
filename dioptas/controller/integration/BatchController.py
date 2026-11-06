@@ -50,6 +50,7 @@ class BatchController:
         dioptas_model: DioptasModel,
         *,
         run_async_integration: bool = True,
+        integration_coordinator=None,
     ):
         """
         :param widget: Reference to IntegrationView
@@ -58,7 +59,12 @@ class BatchController:
         self.widget = widget
         self.model = dioptas_model
         self._run_async_integration = run_async_integration
-        self._batch_runner = AsyncJobRunner(widget.batch_widget)
+        self._integration_coordinator = integration_coordinator
+        self._batch_runner = (
+            integration_coordinator.create_processing_runner(widget.batch_widget)
+            if integration_coordinator is not None
+            else AsyncJobRunner(widget.batch_widget)
+        )
         self._batch_runner.succeeded.connect(self._batch_integration_succeeded)
         self._batch_runner.failed.connect(self._batch_integration_failed)
         self._batch_jobs = {}
@@ -1615,8 +1621,19 @@ class BatchController:
                 step=step,
                 use_all=self.widget.batch_widget.mode_widget.view_f_btn.isChecked(),
             )
+            configuration = self.model.current_configuration
+            reuse_backend = (
+                self._integration_coordinator is not None
+                and not configuration.has_dynamic_mask
+                and configuration.calibration_model.can_use_dioptrin_batch(
+                    configuration.integration_unit, configuration.oned_azimuth_range)
+            )
             job_id = self._batch_runner.submit(
-                partial(compute_batch_integration, task, progress.update)
+                partial(compute_batch_integration, task, progress.update,
+                        **({"engine": self._integration_coordinator.integration_engine}
+                           if reuse_backend else {})),
+                **({"use_owner_thread": reuse_backend}
+                   if self._integration_coordinator is not None else {}),
             )
             self._batch_jobs[job_id] = (
                 batch_model,
@@ -1696,6 +1713,8 @@ class BatchController:
         if self._shutting_down:
             return
         self._shutting_down = True
+        if self._integration_coordinator is not None:
+            self._batch_runner.shutdown(wait=False)
         for _batch_model, _files, progress_dialog, progress in self._batch_jobs.values():
             progress.cancel()
             progress_dialog.close()

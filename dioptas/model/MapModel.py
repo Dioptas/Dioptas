@@ -979,44 +979,51 @@ class MapModel:
 
         last_callback_time = time.monotonic()
         frame_count = 0
-        for i, result in enumerate(result_iter):
-            if aborted:
-                # Drain remaining pre-fetched results from dioptrin without
-                # processing them. This ensures the iterator is fully
-                # consumed so cleanup doesn't crash on worker threads.
-                continue
+        try:
+            for i, result in enumerate(result_iter):
+                if aborted:
+                    # Drain remaining pre-fetched results from dioptrin without
+                    # processing them. This ensures the iterator is fully
+                    # consumed so cleanup doesn't crash on worker threads.
+                    continue
 
-            if not result.is_ok():
-                raise RuntimeError(
-                    f"Dioptrin batch integration failed: {result.error}"
-                )
-
-            x = np.array(result.result.radial)
-            y = np.array(result.result.intensity)
-            frame_count = i + 1
-
-            if frame_count == 1:
-                self.pattern_x = x
-            else:
-                if len(x) != len(self.pattern_x):
-                    raise ValueError(
-                        "The integrated patterns have different length, "
-                        "this is not supported"
+                if not result.is_ok():
+                    raise RuntimeError(
+                        f"Dioptrin batch integration failed: {result.error}"
                     )
 
-            self.point_infos.append(all_infos[i])
-            self.pattern_intensities.append(y)
+                x = np.array(result.result.radial)
+                y = np.array(result.result.intensity)
+                frame_count = i + 1
 
-            self.point_integrated.emit(frame_count)
+                if frame_count == 1:
+                    self.pattern_x = x
+                else:
+                    if len(x) != len(self.pattern_x):
+                        raise ValueError(
+                            "The integrated patterns have different length, "
+                            "this is not supported"
+                        )
 
-            # Throttle callback to avoid GUI overhead dominating throughput
-            now = time.monotonic()
-            if callback_fn is not None and now - last_callback_time > 0.1:
-                last_callback_time = now
-                if not callback_fn(frame_count, n_total):
-                    aborted = True
-                    # Don't break — let the for loop drain remaining
-                    # pre-fetched results so dioptrin shuts down cleanly.
+                self.point_infos.append(all_infos[i])
+                self.pattern_intensities.append(y)
+
+                self.point_integrated.emit(frame_count)
+
+                # Throttle callback to avoid GUI overhead dominating throughput
+                now = time.monotonic()
+                if callback_fn is not None and now - last_callback_time > 0.1:
+                    last_callback_time = now
+                    if not callback_fn(frame_count, n_total):
+                        aborted = True
+                        # Don't break — let the for loop drain remaining
+                        # pre-fetched results so dioptrin shuts down cleanly.
+        finally:
+            aborted_before_cleanup = aborted
+            aborted = True
+            for _ in result_iter:
+                pass
+            aborted = aborted_before_cleanup
 
         # Final callback to ensure progress reaches 100%
         if callback_fn is not None and not aborted:

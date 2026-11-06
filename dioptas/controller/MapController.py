@@ -192,7 +192,7 @@ class MapController:
     def _auto_integrate_toggled(self, checked):
         self.model.current_configuration.auto_integrate_pattern = checked
         if checked:
-            self.model.current_configuration.integrate_image_1d()
+            self.model.current_configuration._request_pattern_integration()
         else:
             # the list rows are grid cells, so the point behind the selected
             # one has to be looked up rather than assumed to be its index

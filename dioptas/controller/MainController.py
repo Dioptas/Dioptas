@@ -95,6 +95,7 @@ class MainController:
             self.widget.integration_widget,
             self.model,
             run_async_batch=run_async_processing,
+            integration_coordinator=self.integration_coordinator,
         )
         # The map panel moves between the map mode and its own window, so it
         # is owned here rather than by the mode it happens to sit in.
@@ -102,6 +103,7 @@ class MainController:
             self.widget.map_widget.map_panel_widget,
             self.model,
             run_async_load=run_async_processing,
+            integration_coordinator=self.integration_coordinator,
         )
         self.map_controller = MapController(
             self.widget.map_widget, self.model, self.map_panel_controller
@@ -343,9 +345,9 @@ class MainController:
         # changing from mask tab will reintegrate the image
         if old_index == 1:  # mask tab
             if self.model.use_mask and self.model.calibration_model.is_calibrated:
-                self.model.current_configuration.integrate_image_1d()
+                self.model.current_configuration._request_pattern_integration()
                 if self.model.current_configuration.auto_integrate_cake:
-                    self.model.current_configuration.integrate_image_2d()
+                    self.model.current_configuration._request_cake_integration()
 
         # update the GUI
         if ind == 2:  # integration tab

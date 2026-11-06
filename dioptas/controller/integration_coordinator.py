@@ -57,6 +57,14 @@ class AsyncIntegrationCoordinator(QtCore.QObject):
     def is_busy(self) -> bool:
         return self._runner.is_busy or bool(self._pending)
 
+    @property
+    def integration_engine(self):
+        return self._integration_engine
+
+    def create_processing_runner(self, parent):
+        """Give bulk jobs their own signals on the native backend's owner lane."""
+        return self._runner.create_sibling(parent)
+
     def shutdown(self) -> None:
         if self._closed:
             return

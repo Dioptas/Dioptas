@@ -1,0 +1,42 @@
+{
+  "settings": "Saved Eiger session, automatic 4791 bins, polarization 0.99, static mask, 13 workers, all 625 frames. Qt event loop with offscreen rendering.",
+  "before": [
+    {
+      "first_native_result": 6.540378624980804,
+      "first_progress_emitted": 6.549568624992389,
+      "total": 12.110531624988653,
+      "heartbeat_max_gap": 4.837262500019278
+    },
+    {
+      "first_native_result": 0.742252332973294,
+      "total": 4.355134291981813,
+      "heartbeat_max_gap": 0.1715171670075506
+    }
+  ],
+  "after": [
+    {
+      "native_iterator_start": 0.8158945830073208,
+      "same_native": true,
+      "first_native_result": 0.9920321659883484,
+      "first_progress_emitted": 0.9931393750011921,
+      "total": 4.891371875011828,
+      "heartbeat_max_gap": 0.1949737910181284
+    },
+    {
+      "native_iterator_start": 0.6208046249812469,
+      "same_native": true,
+      "first_native_result": 0.7846930419909768,
+      "first_progress_emitted": 0.7850606249994598,
+      "total": 4.650435708987061,
+      "heartbeat_max_gap": 0.16335333295864984
+    }
+  ],
+  "native_gui_verification": {
+    "date": "2026-11-06",
+    "platform": "macOS Cocoa, visible Dioptas LUT Test window",
+    "workflow": "Recovered the saved Eiger session, opened Map, selected the original eiger_0000.h5 through the native file dialog. Full 625-frame scan completed.",
+    "first_progress_received_on_gui_seconds": 0.898,
+    "log": "/tmp/dioptas-batch-lut-test.log",
+    "log_time": "2026-11-06 20:14:20 Europe/Berlin"
+  }
+}

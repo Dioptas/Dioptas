@@ -36,6 +36,7 @@ class IntegrationController:
         dioptas_model: DioptasModel,
         *,
         run_async_batch: bool = True,
+        integration_coordinator=None,
     ):
         """
         :param widget: Reference to an IntegrationWidget
@@ -47,6 +48,7 @@ class IntegrationController:
         self.widget = widget
         self.model = dioptas_model
         self._run_async_batch = run_async_batch
+        self._integration_coordinator = integration_coordinator
 
         self.create_sub_controller()
 
@@ -66,6 +68,7 @@ class IntegrationController:
             self.widget,
             self.model,
             run_async_integration=self._run_async_batch,
+            integration_coordinator=self._integration_coordinator,
         )
         self.map_roi_controller = MapRoiInPatternController(
             self.widget.pattern_widget, self.model

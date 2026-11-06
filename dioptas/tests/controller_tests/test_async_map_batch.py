@@ -7,6 +7,7 @@ import threading
 from importlib import import_module
 
 import numpy as np
+import pytest
 from qtpy import QtCore, QtWidgets
 
 from dioptas.controller.MapController import MapController
@@ -15,6 +16,86 @@ from dioptas.model.Configuration import Configuration
 from dioptas.model.DioptasModel import DioptasModel
 from dioptas.widgets.MapWidget import MapWidget
 from dioptas.widgets.integration import IntegrationWidget
+
+
+@pytest.mark.parametrize("workflow", ["batch", "map"])
+def test_bulk_controller_uses_the_warm_preview_worker(
+    qtbot, test_data_path, monkeypatch, workflow,
+):
+    dioptrin = pytest.importorskip("dioptrin")
+    try:
+        dioptrin.validate_license()
+    except Exception as exc:
+        pytest.skip(f"Dioptrin license unavailable: {exc}")
+    from dioptas.controller.integration_coordinator import AsyncIntegrationCoordinator
+    from dioptas.controller.MapPanelController import MapPanelController
+    from dioptas.model.CalibrationModel import CalibrationModel
+
+    model = DioptasModel()
+    config = model.current_configuration
+    config.auto_integrate_pattern = False
+    config.auto_integrate_cake = False
+    model.calibration_model.load(os.path.join(test_data_path, "CeO2_Pilatus1M.poni"))
+    model.calibration_model.use_dioptrin = True
+    model.calibration_model.dioptrin_num_workers = 2
+    path = os.path.join(test_data_path, "CeO2_Pilatus1M.tif")
+    model.img_model.load(path)
+    model.calibration_model._create_dioptrin_integrator()
+    coordinator = AsyncIntegrationCoordinator(model, debounce_ms=0)
+    previews = []
+    batches = []
+    real_compute = coordinator.integration_engine.compute
+
+    def compute(task):
+        result = real_compute(task)
+        previews.append((threading.get_ident(),
+                         id(coordinator.integration_engine.dioptrin_integrator)))
+        return result
+
+    real_batch = CalibrationModel.dioptrin_batch1d_iter
+
+    def batch(calibration, *args, **kwargs):
+        batches.append((threading.get_ident(), id(calibration._dioptrin_integrator)))
+        return real_batch(calibration, *args, **kwargs)
+
+    monkeypatch.setattr(coordinator.integration_engine, "compute", compute)
+    monkeypatch.setattr(CalibrationModel, "dioptrin_batch1d_iter", batch)
+    coordinator.request(config, calculate_pattern=True, calculate_cake=False)
+    qtbot.waitUntil(lambda: not coordinator.is_busy, timeout=10000)
+    expected = model.pattern_model.pattern.y.copy()
+
+    if workflow == "batch":
+        widget = IntegrationWidget()
+        controller = BatchController(widget, model, integration_coordinator=coordinator)
+        qtbot.addWidget(widget)
+        controller._load_data([path])
+        runner = controller._batch_runner
+    else:
+        widget = MapWidget()
+        qtbot.addWidget(widget)
+        controller = MapPanelController(widget.map_panel_widget, model,
+                                        integration_coordinator=coordinator)
+        module = import_module("dioptas.controller.MapPanelController")
+        monkeypatch.setattr(module, "open_files_dialog", lambda *args: [path])
+        controller.load_map()
+        runner = controller._map_runner
+    try:
+        qtbot.waitUntil(lambda: not runner.is_busy, timeout=10000)
+        assert batches == previews[:1]
+        assert batches[0][0] != threading.get_ident()
+        result = (model.batch_model.data[0] if workflow == "batch"
+                  else model.map_model.pattern_intensities[0])
+        np.testing.assert_allclose(result, expected)
+        # Closing a bulk surface must leave the shared preview lane alive.
+        controller.shutdown()
+        coordinator.request(config, calculate_pattern=True, calculate_cake=False)
+        qtbot.waitUntil(lambda: not coordinator.is_busy, timeout=10000)
+        assert previews[-1] == previews[0]
+    finally:
+        controller.shutdown()
+        coordinator.shutdown()
+        model.calibration_model._dioptrin_polarization_state = None
+        model.calibration_model._dioptrin_integrator = None
 
 
 def test_map_loading_integrates_off_gui_thread(qtbot, test_data_path, monkeypatch):

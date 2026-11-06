@@ -81,6 +81,32 @@ def test_coordinator_shutdown_detaches_configuration_scheduler(test_data_path):
         )
 
 
+def test_project_restore_warms_the_persistent_preview_worker(
+    qtbot, test_data_path, tmp_path, monkeypatch,
+):
+    model = _loaded_model(test_data_path)
+    project = str(tmp_path / "restore.dio")
+    model.save(project)
+    coordinator = AsyncIntegrationCoordinator(model, debounce_ms=0)
+    computed = []
+    original = coordinator.integration_engine.compute
+
+    def compute(task):
+        computed.append((threading.get_ident(), task.filename))
+        return original(task)
+
+    monkeypatch.setattr(coordinator.integration_engine, "compute", compute)
+    try:
+        model.load(project)
+        assert coordinator.is_busy
+        qtbot.waitUntil(lambda: not coordinator.is_busy, timeout=10000)
+        assert len(computed) == 1
+        assert computed[0][0] != threading.get_ident()
+        assert computed[0][1] == model.img_model.filename
+    finally:
+        coordinator.shutdown()
+
+
 def test_coordinator_reports_task_snapshot_failure_and_recovers(
     qtbot,
     test_data_path,

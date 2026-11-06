@@ -5,13 +5,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from contextlib import nullcontext
 
 import numpy as np
 
 from .MapModel import MapPointInfo
 from .worker_configuration import (
     WorkerConfigurationState,
-    build_worker_configuration,
+    isolated_worker_configuration,
 )
 
 
@@ -28,19 +29,25 @@ def compute_map_integration(
     state: WorkerConfigurationState,
     filepaths: list[str],
     callback=None,
+    *,
+    engine=None,
 ) -> MapIntegrationResult:
-    configuration = build_worker_configuration(state)
-    map_model = configuration.map_model
-    map_model.load(filepaths, callback_fn=callback)
-    return MapIntegrationResult(
-        pattern_x=np.asarray(map_model.pattern_x),
-        pattern_intensities=np.asarray(map_model.pattern_intensities),
-        point_infos=tuple(
-            (info.filepath, info.frame_index) for info in map_model.point_infos
-        ),
-        filepaths=tuple(filepaths),
-        pattern_unit=str(map_model.pattern_unit),
-    )
+    with isolated_worker_configuration(state) as configuration:
+        map_model = configuration.map_model
+        if engine is not None and filepaths:
+            configuration.img_model.load(filepaths[0])
+        with (engine.reuse_for_configuration(configuration)
+              if engine is not None else nullcontext()):
+            map_model.load(filepaths, callback_fn=callback)
+        return MapIntegrationResult(
+            pattern_x=np.asarray(map_model.pattern_x),
+            pattern_intensities=np.asarray(map_model.pattern_intensities),
+            point_infos=tuple(
+                (info.filepath, info.frame_index) for info in map_model.point_infos
+            ),
+            filepaths=tuple(filepaths),
+            pattern_unit=str(map_model.pattern_unit),
+        )
 
 
 def apply_map_integration(map_model, result: MapIntegrationResult) -> None:

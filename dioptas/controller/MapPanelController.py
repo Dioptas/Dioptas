@@ -46,10 +46,12 @@ class MapPanelController:
         dioptas_model: DioptasModel,
         *,
         run_async_load: bool = True,
+        integration_coordinator=None,
     ):
         self.widget = widget
         self.model = dioptas_model
         self._run_async_load = run_async_load
+        self._integration_coordinator = integration_coordinator
 
         #: emitted with the point index when a point is picked in the map plot,
         #: so hosts can follow the selection with their own widgets
@@ -60,7 +62,10 @@ class MapPanelController:
         self.blank_selected = Signal(int)
 
         self._contour_items: list[pg.IsocurveItem] = []
-        self._map_runner = AsyncJobRunner(widget)
+        self._map_runner = (
+            integration_coordinator.create_processing_runner(widget)
+            if integration_coordinator is not None else AsyncJobRunner(widget)
+        )
         self._map_runner.succeeded.connect(self._map_load_succeeded)
         self._map_runner.failed.connect(self._map_load_failed)
         self._map_jobs = {}
@@ -374,8 +379,18 @@ class MapPanelController:
         progressDialog.canceled.connect(progress.cancel)
         configuration = self.model.current_configuration
         state = capture_worker_configuration(configuration)
+        reuse_backend = (
+            self._integration_coordinator is not None
+            and not configuration.has_dynamic_mask
+            and configuration.calibration_model.can_use_dioptrin_batch(
+                configuration.integration_unit, configuration.oned_azimuth_range)
+        )
         job_id = self._map_runner.submit(
-            partial(compute_map_integration, state, filenames, progress.update)
+            partial(compute_map_integration, state, filenames, progress.update,
+                    **({"engine": self._integration_coordinator.integration_engine}
+                       if reuse_backend else {})),
+            **({"use_owner_thread": reuse_backend}
+               if self._integration_coordinator is not None else {}),
         )
         self._map_jobs[job_id] = (configuration, progressDialog, progress)
         self.widget.map_plot_control_widget.load_btn.setEnabled(False)
@@ -425,6 +440,8 @@ class MapPanelController:
         if self._shutting_down:
             return
         self._shutting_down = True
+        if self._integration_coordinator is not None:
+            self._map_runner.shutdown(wait=False)
         self.stop_live()
         for _configuration, progress_dialog, progress in self._map_jobs.values():
             progress.cancel()

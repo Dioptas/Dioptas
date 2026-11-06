@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from collections import OrderedDict
+from contextlib import contextmanager
 from dataclasses import dataclass
 import logging
 import threading
@@ -125,6 +126,57 @@ class PersistentIntegrationEngine:
             self._dioptrin_backends.clear()
             self._geometry_key = None
             self._dioptrin_unavailable = False
+
+    @contextmanager
+    def reuse_for_configuration(self, configuration):
+        """Lend a warm native backend to an isolated bulk configuration.
+
+        Called on this engine's dedicated worker, after loading the first
+        frame. GUI models never receive the native object. Bulk and preview
+        jobs share that lane so setters cannot race with another integration.
+        """
+        calibration = configuration.calibration_model
+        task = configuration.create_integration_task()
+        if (task is None or not task.prefer_dioptrin
+                or configuration.has_dynamic_mask
+                or not calibration.can_use_dioptrin_batch(
+                    task.unit, task.pattern_azimuth_range)):
+            yield
+            return
+        with self._lock:
+            self._select_geometry(task)
+            unit = "2th_deg" if task.unit == "d_A" else task.unit
+            backend = self._ensure_dioptrin(task, unit)
+            if backend is None:
+                yield
+                return
+            self._configure_dioptrin(backend, task, unit)
+            # Prepare lazy geometry/LUT/normalization on the owner before
+            # admitting a queue of large frames. A cold parallel batch can
+            # otherwise block its Python producer (and the GUI's GIL) while
+            # every worker waits for that initialization. Warm calls reuse it.
+            points = task.pattern_num_points or _calculate_num_points(
+                self._ensure_pyfai(task), task.image.shape)
+            backend.integrator.integrate1d(
+                np.ascontiguousarray(task.image, dtype=np.float64), points)
+            original = calibration._dioptrin_integrator
+            polarization = calibration._dioptrin_polarization_state
+            calibration._dioptrin_integrator = backend.integrator
+            calibration._dioptrin_polarization_state = (
+                backend.integrator, task.polarization_factor
+            )
+            try:
+                yield
+            finally:
+                calibration._dioptrin_integrator = original
+                calibration._dioptrin_polarization_state = polarization
+                # Bulk paths set native options directly. Reconcile them on
+                # the next preview rather than trusting old setter bookkeeping.
+                # Unchanged native setters preserve the LUT.
+                backend.method = None
+                backend.unit = None
+                backend.mask = _UNSET
+                backend.polarization = _UNSET
 
     def _select_geometry(self, task: IntegrationTask) -> None:
         key = (

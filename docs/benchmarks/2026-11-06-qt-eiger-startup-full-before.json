@@ -1,0 +1,49 @@
+{
+  "dioptrin_version": "0.9.0",
+  "input": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.h5",
+  "poni": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.poni",
+  "mask": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.mask",
+  "shape": [
+    3262,
+    3108
+  ],
+  "source_frames": 625,
+  "selected_batch_frames": 625,
+  "workers": 13,
+  "preview_cold_seconds": 0.6495898340363055,
+  "measurements": [
+    {
+      "case": "fresh_batch",
+      "reused_preview_backend": false,
+      "first_result_seconds": 2.7103748749941587,
+      "total_seconds": 5.641251499997452,
+      "output_frames": 625,
+      "max_abs_difference": 0.0
+    },
+    {
+      "case": "shared_batch",
+      "reused_preview_backend": true,
+      "first_result_seconds": 0.6713291250052862,
+      "total_seconds": 3.649447457981296,
+      "output_frames": 625,
+      "max_abs_difference": 0.0
+    },
+    {
+      "case": "shared_batch_repeat",
+      "reused_preview_backend": true,
+      "first_result_seconds": 0.6834380829823203,
+      "total_seconds": 3.5164707920048386,
+      "output_frames": 625,
+      "max_abs_difference": 0.0
+    },
+    {
+      "case": "shared_map",
+      "reused_preview_backend": true,
+      "first_result_seconds": 0.591504541982431,
+      "total_seconds": 3.7278132920037024,
+      "output_frames": 625,
+      "max_abs_difference": 0.0
+    }
+  ],
+  "limits": "Warm OS cache; concurrent user work; no GUI rendering. Map cancellation is throttled, so its output can exceed the requested prefix."
+}
