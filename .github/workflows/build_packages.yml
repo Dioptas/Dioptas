@@ -49,22 +49,21 @@ jobs:
           CIBW_ENVIRONMENT_MACOS: DIOPTAS_REQUIRE_C_EXT=1 ${{ matrix.cibw_env_macos }} DIOPTAS_LIBOMP_PREFIX=${{ env.DIOPTAS_LIBOMP_PREFIX }}
 
       - name: Verify each wheel contains the C extension
-        shell: bash
+        shell: python
         run: |
-          shopt -s nullglob
-          wheels=(wheelhouse/*.whl)
-          if [ ${#wheels[@]} -eq 0 ]; then
-            echo "ERROR: cibuildwheel produced no wheels"
-            exit 1
-          fi
-          for wheel in "${wheels[@]}"; do
-            if ! unzip -l "$wheel" | grep -qE '_powder_outlier_c\.[^/[:space:]]+\.(so|pyd)$'; then
-              echo "ERROR: $wheel does not contain _powder_outlier_c"
-              unzip -l "$wheel" | grep -i powder || true
-              exit 1
-            fi
-          done
-          echo "All ${#wheels[@]} wheel(s) contain the C extension."
+          from pathlib import Path, PurePosixPath
+          from zipfile import ZipFile
+
+          wheels = sorted(Path("wheelhouse").glob("*.whl"))
+          if not wheels:
+              raise SystemExit("ERROR: cibuildwheel produced no wheels")
+          for wheel in wheels:
+              with ZipFile(wheel) as archive:
+                  entries = [PurePosixPath(name) for name in archive.namelist()]
+              if not any(entry.name.startswith("_powder_outlier_c.")
+                         and entry.suffix in (".so", ".pyd") for entry in entries):
+                  raise SystemExit(f"ERROR: {wheel} does not contain _powder_outlier_c")
+          print(f"All {len(wheels)} wheel(s) contain the C extension.")
 
       - name: Upload wheels
         uses: actions/upload-artifact@v7
