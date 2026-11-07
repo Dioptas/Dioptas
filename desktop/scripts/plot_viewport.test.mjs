@@ -4,6 +4,7 @@ import {
   createPlotViews,
   detectorViewport,
   patternViewport,
+  plotViewContext,
 } from "../src/plotViewport.ts";
 const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-10, `${a} vs ${b}`);
 test("a shared detector view preserves pixel ranges and resets incompatible images", () => {
@@ -66,4 +67,25 @@ test("pattern intensity bounds follow log and square-root scales without changin
     patternViewport(views.pattern, "scan", "q_A^-1", "sqrt").read(),
     signed,
   );
+});
+
+test("replacing a configuration at the same index resets its plot context", () => {
+  const state = {
+    configurationIndex: 0,
+    configurationContext: 12,
+    shape: [32, 40],
+    calibration: { transformations: [] },
+  };
+  const views = createPlotViews();
+  const before = plotViewContext(state);
+  detectorViewport(views.detector, before).write({
+    xMin: 2,
+    xMax: 8,
+    yMin: 3,
+    yMax: 9,
+  });
+  const after = plotViewContext({ ...state, configurationContext: 13 });
+  assert.notEqual(before, after);
+  assert.equal(detectorViewport(views.detector, after).read(), null);
+  assert.equal(plotViewContext({ ...state }), before);
 });

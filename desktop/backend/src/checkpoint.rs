@@ -3,7 +3,8 @@
 use super::*;
 macro_rules! checkpoint {
     ($($(#[$meta:meta])* $name:ident:$kind:ty),* $(,)?)=>{
-        pub(super) struct Checkpoint { $($(#[$meta])* $name:$kind),* }
+        #[derive(Clone)]
+        pub(super) struct Checkpoint { $($(#[$meta])* pub(super) $name:$kind),* }
         impl Session {
             pub(super) fn checkpoint(&self)->Checkpoint {Checkpoint{$($(#[$meta])* $name:self.$name.clone()),*}}
             pub(super) fn restore_checkpoint(&mut self,c:Checkpoint){$($(#[$meta])* {self.$name=c.$name;})*}

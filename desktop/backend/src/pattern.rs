@@ -213,6 +213,7 @@ pub(crate) struct Patterns {
     pub background: Background,
     pub overlays: Vec<Overlay>,
     pub background_uid: Option<String>,
+    pub anonymous_background: Option<Arc<Curve>>,
     pub separation: f64,
     pub directory: String,
     pub file_mode: String,
@@ -232,6 +233,7 @@ impl Default for Patterns {
             background: Default::default(),
             overlays: vec![],
             background_uid: None,
+            anonymous_background: None,
             separation: 0.0,
             directory: String::new(),
             file_mode: "number".into(),
@@ -280,6 +282,35 @@ pub fn interpolate(x: &[f64], y: &[f64], value: f64) -> Option<f64> {
     Some(y[k - 1] + (value - x[k - 1]) / span * (y[k] - y[k - 1]))
 }
 impl Patterns {
+    pub fn restore_global(&mut self, source: &Self) {
+        if self.overlays != source.overlays {
+            self.extracted = None;
+        }
+        if self
+            .background_uid
+            .as_ref()
+            .is_some_and(|uid| !source.overlays.iter().any(|o| o.uid == *uid))
+        {
+            self.background_uid = None;
+        }
+        self.overlays = source.overlays.clone();
+        self.directory = source.directory.clone();
+        self.separation = source.separation;
+        self.next_uid = self.next_uid.max(source.next_uid);
+    }
+    pub fn project_overlay_ids(&mut self) {
+        let maximum = self
+            .overlays
+            .iter()
+            .filter_map(|o| o.uid.strip_prefix("native-overlay-")?.parse::<u64>().ok())
+            .max()
+            .unwrap_or(0);
+        self.next_uid = self.next_uid.max(maximum.saturating_add(1));
+    }
+    pub fn retain_counter(&mut self, source: &Self) {
+        self.next_uid = self.next_uid.max(source.next_uid);
+    }
+
     pub fn convert_unit(&mut self, to: &str, wavelength: f64) -> Result<(), String> {
         let from = self.unit.clone();
         if from == to {
@@ -334,7 +365,7 @@ impl Patterns {
     }
     pub fn details(&self) -> Value {
         json!({"patternName":self.name,"patternPath":if self.imported{self.path.clone().unwrap_or_default()}else{String::new()},"originalPatternColor":self.color,"originalPatternVisible":self.visible,
-        "patternFileIteration":self.file_mode,"patternBackground":{"enabled":self.background.enabled,"smoothing":self.background.smoothing,"iterations":self.background.iterations,"order":self.background.order,"range":self.background.range,"overlay":self.background_uid.is_some()},
+        "patternFileIteration":self.file_mode,"patternBackground":{"enabled":self.background.enabled,"smoothing":self.background.smoothing,"iterations":self.background.iterations,"order":self.background.order,"range":self.background.range,"overlay":self.background_uid.is_some()||self.anonymous_background.is_some()},
         "overlays":self.overlays.iter().map(|o|json!({"uid":o.uid,"name":o.name,"visible":o.visible,"color":o.color,"scale":o.scale,"offset":o.offset,"background":self.background_uid.as_ref()==Some(&o.uid)})).collect::<Vec<_>>(),"waterfallSeparation":self.separation,"overlayDirectory":self.directory})
     }
     pub fn configure_background(&mut self, args: &Value) -> Result<(), String> {
@@ -433,12 +464,17 @@ impl Patterns {
         let mut x = raw.x.as_ref().clone();
         let mut y = raw.y.as_ref().clone();
         let mut indices: Vec<_> = (0..x.len()).collect();
-        if let Some(bg) = self
+        if let Some(curve) = self
             .overlays
             .iter()
             .find(|o| Some(&o.uid) == self.background_uid.as_ref())
+            .map(Overlay::curve)
+            .or_else(|| {
+                self.anonymous_background
+                    .as_ref()
+                    .map(|c| c.as_ref().clone())
+            })
         {
-            let curve = bg.curve();
             let mut xx = vec![];
             let mut yy = vec![];
             let mut ii = vec![];
@@ -520,6 +556,7 @@ impl Patterns {
         ))
     }
     fn set_background(&mut self, uid: Option<String>) {
+        self.anonymous_background = None;
         if let Some(previous) = &self.background_uid
             && Some(previous) != uid.as_ref()
             && let Some(o) = self.overlays.iter_mut().find(|o| o.uid == *previous)

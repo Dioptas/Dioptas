@@ -32,6 +32,7 @@ pub(crate) struct Processing {
     background: Option<Plane>,
     pub scale: f64,
     pub offset: f64,
+    pub factor: f64,
     flat: Option<Plane>,
     flat_enabled: bool,
     corrections: Value,
@@ -48,6 +49,7 @@ impl PartialEq for Processing {
         };
         self.scale == other.scale
             && self.offset == other.offset
+            && self.factor == other.factor
             && self.flat_enabled == other.flat_enabled
             && self.corrections == other.corrections
             && same(&self.background, &other.background)
@@ -60,6 +62,7 @@ impl Default for Processing {
             background: None,
             scale: 1.0,
             offset: 0.0,
+            factor: 1.0,
             flat: None,
             flat_enabled: false,
             corrections: serde_json::from_str(include_str!("correction_defaults.json")).unwrap(),
@@ -74,7 +77,8 @@ impl Processing {
             + self.flat.as_ref().map_or(0, |p| p.values.len() * 8)
     }
     pub fn active(&self) -> bool {
-        self.background.is_some()
+        self.factor != 1.0
+            || self.background.is_some()
             || self.flat_enabled
             || self
                 .corrections
@@ -82,6 +86,49 @@ impl Processing {
                 .unwrap()
                 .values()
                 .any(|v| v["enabled"] == true)
+    }
+    pub fn project_background(&self) -> Option<(&str, [usize; 2], &[f64])> {
+        self.background
+            .as_ref()
+            .map(|p| (p.path.as_str(), p.shape, p.values.as_slice()))
+    }
+    pub fn project_flat(&self) -> Option<(&str, [usize; 2], &[f64], bool)> {
+        self.flat.as_ref().map(|p| {
+            (
+                p.path.as_str(),
+                p.shape,
+                p.values.as_slice(),
+                self.flat_enabled,
+            )
+        })
+    }
+    pub fn restore_background(&mut self, path: String, shape: [usize; 2], values: Vec<f64>) {
+        self.background = Some(Plane {
+            path,
+            shape,
+            values: Arc::new(values),
+        });
+        self.cache = None;
+    }
+    pub fn restore_flat(
+        &mut self,
+        path: String,
+        shape: [usize; 2],
+        values: Vec<f64>,
+        enabled: bool,
+    ) -> Result<(), String> {
+        if values.len() != shape[0] * shape[1] || values.iter().any(|v| !v.is_finite() || *v <= 0.0)
+        {
+            return Err("Invalid project flat-field response.".into());
+        }
+        self.flat = Some(Plane {
+            path,
+            shape,
+            values: Arc::new(values),
+        });
+        self.flat_enabled = enabled;
+        self.cache = None;
+        Ok(())
     }
     pub fn details(&self) -> Value {
         json!({"imageBackground":{"filename":self.background.as_ref().map(|p|&p.path),"scale":self.scale,"offset":self.offset},"flatField":{"filename":self.flat.as_ref().map(|p|&p.path),"enabled":self.flat_enabled},"corrections":self.corrections})
@@ -265,6 +312,11 @@ impl Processing {
                     }
                     *v /= factor;
                 }
+            }
+        }
+        if self.factor != 1.0 {
+            for value in &mut values {
+                *value *= self.factor;
             }
         }
         let values = Arc::new(values);

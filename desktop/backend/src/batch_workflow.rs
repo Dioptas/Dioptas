@@ -243,9 +243,13 @@ impl Session {
                     self.settings.unit.clone(),
                     Some(self.settings.geometry.wavelength),
                     entries,
-                    paths,
+                    images
+                        .iter()
+                        .map(|(p, _, _, _)| p.to_string_lossy().into_owned())
+                        .collect(),
                     total,
                 )?;
+                series.file_counts = images.iter().map(|(_, frames, _, _)| *frames).collect();
                 series.spread = spread.map(Arc::new);
                 series.raw_spread = series.spread.clone();
                 series.calibration = self.settings.calibration_name.clone().unwrap_or_default();
@@ -379,6 +383,7 @@ impl Session {
                 } else {
                     self.batch = Some(self.integrate_series(paths, args)?);
                 }
+                self.batch.as_mut().unwrap().selected = 0;
                 let b = self.batch.as_ref().unwrap().clone();
                 let mut reply = self.select_series(&b, 0, false, true, None)?;
                 self.attach_batch(&mut reply);
@@ -387,6 +392,7 @@ impl Session {
             }
             "batch_open" => {
                 self.batch = Some(Series::load(path(args)?)?);
+                self.batch.as_mut().unwrap().selected = 0;
                 let b = self.batch.as_ref().unwrap().clone();
                 let mut reply = self.select_series(&b, 0, false, true, None)?;
                 self.attach_batch(&mut reply);
@@ -542,6 +548,7 @@ impl Session {
                     .ok_or("No numbered neighboring scan folder.")?;
                 let paths = folder_paths(&target)?;
                 self.batch = Some(self.integrate_series(paths, &json!({}))?);
+                self.batch.as_mut().unwrap().selected = 0;
                 let b = self.batch.as_ref().unwrap().clone();
                 let mut reply = self.select_series(&b, 0, false, true, None)?;
                 self.attach_batch(&mut reply);

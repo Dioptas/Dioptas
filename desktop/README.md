@@ -20,7 +20,9 @@ dynamic recomputation, imprint and Undo/Redo. The native integration stage adds
 warm-plan reuse and combined HDF5 loading, corrections/backgrounds, pattern and
 overlay I/O, phase/material editing, Batch and Map with the existing controls.
 See the [qualification ledger](NATIVE_INTEGRATION_PARITY.md) for measured parity,
-benchmark scope and remaining project/configuration and detector work.
+benchmark scope and remaining detector work. Native format-2 `.dio` persistence
+and configuration select/add/duplicate/rename/remove controls are now available;
+see [project compatibility and verification](NATIVE_PROJECT_PARITY.md).
 
 Integration and Map use the same `RasterView` and `PatternView` renderers.
 `diffractionPlotSetup.ts` prepares their common detector mask/click properties
@@ -710,15 +712,17 @@ transport tests verify cancellation bypass even when every request worker is bus
   pywebview host also needs a supported renderer if used there.
 - The frontend offers seeded calibration plus staged automatic ring refinement,
   not Dioptrin's full automatic calibration/ring-identification workflow.
-- Full uncertainty diagnostics, explicit HDF5 dataset selection, and
-  configuration switching do not yet have frontend controls. Integration's
+- Full uncertainty diagnostics and explicit HDF5 dataset selection do not yet
+  have frontend controls. The Python preview also lacks configuration controls.
+  The native Rust preview has a configuration toolbar; its scope is described in
+  [NATIVE_PROJECT_PARITY.md](NATIVE_PROJECT_PARITY.md). Integration's
   Image tab now offers editable filenames/directories, a native folder chooser
   and Autoprocess for incoming stable images while Integration is open.
   Integration also exposes backgrounds, selected corrections, phases/overlays
   and pattern saving/autocreate; its remaining Qt scope is
   listed in [INTEGRATION_PARITY.md](INTEGRATION_PARITY.md).
-  Existing `.dio` configurations are retained;
-  only the selected configuration is displayed.
+  The Python preview retains existing `.dio` configurations and displays the
+  selected configuration.
 - Project saves use standard `.dio` data and an optional `react_desktop` HDF5
   attribute for workflow options, selected calibrant (including custom d-spacing
   text), setup confirmation and fit diagnostics. Qt Dioptas can
@@ -732,8 +736,8 @@ transport tests verify cancellation bypass even when every request worker is bus
   pyFAI may probe optional Qt modules when they are installed. A subprocess test
   verifies that the new session also runs when Qt imports are unavailable.
 
-The interface/engine boundary permits native Rust bindings later. The new host
-is Tauri; the scientific implementation still uses Python. WASM/browser-only
+The interface/engine boundary also supports the opt-in Rust backend described
+above. The default host is Tauri; the scientific implementation still uses Python. WASM/browser-only
 execution is not implemented.
 
 ## Verification on 2026-11-01

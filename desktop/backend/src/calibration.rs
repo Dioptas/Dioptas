@@ -38,7 +38,7 @@ pub(super) struct Reference {
     pub content: String,
 }
 impl Reference {
-    fn parse(name: &str, content: &str) -> Result<Self, String> {
+    pub(super) fn parse(name: &str, content: &str) -> Result<Self, String> {
         if content.len() > 1024 * 1024 {
             return Err("Calibrant files must be smaller than 1 MiB.".into());
         }

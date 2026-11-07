@@ -141,11 +141,18 @@ Eiger timing scope and reproduction commands. `src/correction_defaults.json`
 provides the existing cBN/OIADAC parameter metadata; `processing.rs` implements
 those corrections in native f64, together with image backgrounds and flat fields.
 
+## Projects and configurations
+
+Current format-2 `.dio` persistence now runs in Rust, with project-owned image,
+background and flat caches, shared phases/overlays and independent scientific
+configurations. React exposes select/add/duplicate/rename/remove controls in the
+native preview. Per-configuration Batch/Map state and calibration metadata use
+optional extensions alongside the existing interoperable scientific groups.
+See [project qualification](../NATIVE_PROJECT_PARITY.md) for cross-reader checks,
+offline behavior, atomic save/load cancellation and explicit compatibility limits.
+
 ## Remaining application migration
 
-- `.dio` project read/write, multiple configurations and their complete session
-  recovery remain unported. Processed Batch HDF5 is implemented separately; it
-  does not substitute for project persistence.
 - Named/nonuniform detectors, orientation variants, distortion splines and
   Fit2D manual-geometry conversion need their own input/geometry qualification.
 - Image rotations/flips, general geometric mask shapes/morphology and the
@@ -255,10 +262,10 @@ pattern and cake. Screenshots and its receipt are written under ignored
 these checks.
 
 Local checkpoint, 2026-11-07: native tests pass with and without the numerical
-engine (27 and 21 tests respectively); all 19 Tauri host tests and 59 JavaScript
+engine (32 and 26 tests respectively); all 19 Tauri host tests and 60 JavaScript
 tests pass. At the input-stage checkpoint the existing Python desktop suite
 passed with 294 tests and five optional skips; Python implementation files have
-not changed in this calibration stage. Strict native Clippy, formatting and the
+not changed in these native migration stages. Strict native Clippy, formatting and the
 production frontend build pass.
 The independent input/display comparisons and headless Chromium/WebKit workflow
 checks pass within their scope above. Visible native dialogs/windows and

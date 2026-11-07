@@ -24,7 +24,7 @@ export function createPlotViews(): SharedPlotViews {
 }
 export function plotViewContext(state: State | null) {
   return JSON.stringify([
-    state?.configurationIndex,
+    state?.configurationContext ?? state?.configurationIndex,
     state?.shape,
     state?.calibration.transformations,
   ]);

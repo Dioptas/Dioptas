@@ -180,9 +180,10 @@ mode compares JSON and verifies authored hashes/helper provenance.
 
 ## Remaining whole-application gates
 
-Project `.dio` persistence, multiple configurations, general image transforms,
+Project `.dio` persistence and multiple configurations are now implemented in
+the [next migration stage](NATIVE_PROJECT_PARITY.md). General image transforms,
 remaining geometric mask operations, named/distorted detector geometry, full
 reader-semantic coverage and cross-platform native installer qualification remain.
-Batch HDF5 preserves processed series, not the entire project/session. Numerical
+Batch HDF5 preserves processed series; `.dio` retains supported project state. Numerical
 fixture agreement is not a universal scientific equivalence proof. These gaps
 are explicit native errors; the backend never silently switches to Python.

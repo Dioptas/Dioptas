@@ -28,6 +28,8 @@ mod map_workflow;
 mod mask_io;
 #[path = "phase_workflow.rs"]
 mod phase_workflow;
+#[path = "project.rs"]
+mod project;
 use crate::mask_plugins::{Plugins, State as PluginState};
 use calibration::{Calibration, History, Workflow};
 #[cfg(feature = "dioptrin")]
@@ -91,6 +93,7 @@ impl Default for Settings {
 pub struct Session {
     root: PathBuf,
     settings: Settings,
+    project: project::Project,
     image: Option<Image>,
     image_raster: Option<Raster>,
     processed_raster: Option<Raster>,
@@ -142,6 +145,7 @@ impl Session {
         Self {
             root,
             settings: Settings::default(),
+            project: project::Project::default(),
             image: None,
             image_raster: None,
             processed_raster: None,
@@ -192,6 +196,12 @@ impl Session {
         if let Err(error) = request.validate() {
             return Reply::error(error);
         }
+        let project_checkpoint = self.project.clone();
+        let shared_before = (
+            self.phases.clone(),
+            self.patterns.overlays.clone(),
+            self.patterns.separation,
+        );
         let checkpoint = (!matches!(
             request.action.as_str(),
             "state"
@@ -218,6 +228,12 @@ impl Session {
         let calibration_head = self.calibration_history.undo.last().cloned();
         match self.dispatch(&request.action, &request.payload) {
             Ok(mut reply) => {
+                if self.phases != shared_before.0
+                    || self.patterns.overlays != shared_before.1
+                    || self.patterns.separation != shared_before.2
+                {
+                    self.forget_other_shared_history();
+                }
                 if let Some(before) = before {
                     let after = self.calibration_snapshot();
                     self.calibration_history
@@ -265,12 +281,16 @@ impl Session {
                 reply
             }
             Err(error) => {
+                self.project = project_checkpoint;
                 if let Some(checkpoint) = checkpoint {
                     self.restore_checkpoint(checkpoint);
                 }
                 if error.starts_with("Operation cancelled")
                     && (request.action.starts_with("batch_")
                         || request.action.starts_with("map_")
+                        || request.action == "open_project"
+                        || request.action == "save_project"
+                        || request.action == "configuration"
                         || request.action == "integration_batch"
                         || (request.action == "open_image"
                             && request.payload["paths"]
@@ -285,12 +305,15 @@ impl Session {
         }
     }
     fn dispatch(&mut self, action: &str, args: &Value) -> Result<Reply, String> {
+        if let Some(reply) = self.project_command(action, args)? {
+            return Ok(reply);
+        }
         if action == "mask_file" {
             return self.mask_file(args);
         }
         if action == "custom_command" {
             let image = self.image.as_ref();
-            let context = json!({"image_path":image.map(|i|&i.path),"image_name":image.and_then(|i|i.path.file_name()).map(|n|n.to_string_lossy()),"image_directory":image.and_then(|i|i.path.parent()),"frame_index":image.map(|i|i.frame),"frame_number":image.map(|i|i.frame+1),"dataset":image.and_then(|i|i.options.get("dataset")),"calibration_path":self.settings.calibration_path,"project_path":null,"wavelength_angstrom":if self.settings.calibrated{Some(self.settings.geometry.wavelength*1e10)}else{None}});
+            let context = json!({"image_path":image.map(|i|&i.path),"image_name":image.and_then(|i|i.path.file_name()).map(|n|n.to_string_lossy()),"image_directory":image.and_then(|i|i.path.parent()),"frame_index":image.map(|i|i.frame),"frame_number":image.map(|i|i.frame+1),"dataset":image.and_then(|i|i.options.get("dataset")),"calibration_path":self.settings.calibration_path,"project_path":self.project.path,"wavelength_angstrom":if self.settings.calibrated{Some(self.settings.geometry.wavelength*1e10)}else{None}});
             return Ok(Reply::metadata(self.actions.invoke(args, context)?));
         }
         if action == "open_image" && args.get("paths").is_some() {
@@ -338,7 +361,7 @@ impl Session {
                 return Ok(Reply::metadata(
                     json!({"ok": true, "protocol": 2, "transport": "stdio", "runtime": "rust", "pid": std::process::id(), "qtApplication": false,
                 "engine": if cfg!(feature="dioptrin") { Some("dioptrin") } else { None },
-                "capabilities": ["image-input", "frame-navigation", "binary-rasters", "display-statistics", "mask-brush", "mask-history", "mask-plugins", "calibration-peaks", "calibration-history", "uniform-poni", "manual-pyfai-geometry", "xy-export"]}),
+                "capabilities": ["image-input", "frame-navigation", "binary-rasters", "display-statistics", "mask-brush", "mask-history", "mask-plugins", "calibration-peaks", "calibration-history", "uniform-poni", "manual-pyfai-geometry", "xy-export", "project-format-2", "configuration-management"]}),
                 ));
             }
             "state" => return Ok(self.snapshot(true)),
@@ -1361,11 +1384,12 @@ impl Session {
             .unwrap_or_default();
         let mut result = json!({"ok": true, "backend": {"runtime": "rust", "experimental": true}, "state": {
             "revision": self.revision, "hasImage": self.image.is_some(), "imageName": name, "imagePath": image_path, "shape": shape,
-            "calibrationName": s.calibration_name, "calibrated": s.calibrated, "projectName": null, "unit": s.unit,
+            "calibrationName": s.calibration_name, "calibrated": s.calibrated, "projectName": self.project.path.as_ref().and_then(|p|p.file_name()).map(|p|p.to_string_lossy()), "unit": s.unit,
             "bins": if s.automatic_binning {Value::Null}else{json!(s.bins)}, "useMask": s.use_mask, "transparentMask": s.transparent_mask,
             "maskedPixels": self.effective_mask.iter().filter(|&&v| v != 0).count(), "canUndoMask": !self.undo.is_empty(), "canRedoMask": !self.redo.is_empty(),
             "maskDetails": {"mode": true, "filename": null, "plugins": self.plugins.details()}, "exampleAvailable": self.root.join("dioptas/tests/data/CeO2_Pilatus1M.tif").is_file(),
-            "elapsedMs": self.elapsed_ms, "integrationDirty": self.image.is_some() && s.calibrated && self.pattern.is_none(), "configurationCount": 1, "configurationIndex": 0,
+            "elapsedMs": self.elapsed_ms, "integrationDirty": self.image.is_some() && s.calibrated && self.pattern.is_none(), "configurationCount": self.project.configurations.len(), "configurationIndex": self.project.selected,
+            "configurationLabels": self.project.labels(),"configurationContext":self.project.active_id,
             "geometry": {"dist":g.dist,"poni1":g.poni1,"poni2":g.poni2,"rot1":g.rot1,"rot2":g.rot2,"rot3":g.rot3,"wavelength":g.wavelength},
             "integration": {
                 "roi":s.roi, "automaticBinning": s.automatic_binning, "actualBins": if s.automatic_binning {self.automatic_bins()}else{s.bins}, "supersampling":s.supersampling, "azimuthRange":s.azimuth, "cakeAzimuthRange":s.cake_azimuth,

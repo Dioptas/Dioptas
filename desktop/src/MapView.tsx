@@ -133,7 +133,11 @@ export function MapView({
       setLive(false);
     await run(command, args, message);
   };
-  const mapIdentity = map?.labels[0];
+  const mapIdentity = JSON.stringify([
+    state?.projectName,
+    state?.configurationContext ?? state?.configurationIndex,
+    map?.labels[0],
+  ]);
   useEffect(() => {
     setLive(false);
   }, [mapIdentity]);

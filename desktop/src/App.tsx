@@ -95,6 +95,7 @@ import {
   IntegrationPatternTools,
   useShiftedCake,
 } from "./IntegrationPlotControls";
+import { ConfigurationControls } from "./ConfigurationControls";
 import { IntegrationWorkspace } from "./IntegrationWorkspace";
 import {
   CalibrationExtras,
@@ -108,7 +109,7 @@ import type { ZoomMode } from "./usePlotNavigation";
 function clickContext(state: State | null) {
   return JSON.stringify([
     state?.imagePath,
-    state?.configurationIndex,
+    state?.configurationContext ?? state?.configurationIndex,
     state?.projectName,
     state?.integration.frame,
     state?.integration.patternName,
@@ -1719,7 +1720,10 @@ export default function App() {
               <button
                 className="workspace-nav project-action"
                 aria-label="Save project"
-                disabled={!ready || (!state?.hasImage && !map && !batch)}
+                disabled={
+                  !ready ||
+                  (!state?.configurationLabels && !state?.hasImage && !map && !batch)
+                }
                 onClick={() => run("save_project", {}, "Saving project…")}
                 title={
                   state?.projectName
@@ -1746,7 +1750,12 @@ export default function App() {
           </div>
         </nav>
 
-        <div className="workspace-stage">
+        <div
+          className={`workspace-stage ${state?.configurationLabels ? "has-configurations" : ""}`}
+        >
+          {state?.configurationLabels && !settingsOpen && (
+            <ConfigurationControls state={state} ready={ready} run={run} />
+          )}
           <IntegrationWorkspace
             concealed={settingsOpen}
             active={mode === "integration"}
@@ -1827,7 +1836,7 @@ export default function App() {
                       </div>
                     </div>
                   )}
-                  {state && state.configurationCount > 1 && (
+                  {state && !state.configurationLabels && state.configurationCount > 1 && (
                     <div className="info-banner">
                       Project contains {state.configurationCount}{" "}
                       configurations. This preview displays configuration{" "}

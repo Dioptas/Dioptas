@@ -331,3 +331,38 @@
     gap: 16px;
   }
 }
+
+.workspace-stage.has-configurations {
+  flex-direction: column;
+}
+.configuration-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-bottom: 1px solid #ffffff12;
+  background: #181c21;
+  font-size: var(--text-small);
+}
+.configuration-controls label,
+.configuration-controls form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.configuration-controls select {
+  min-width: 150px;
+  max-width: 300px;
+}
+.configuration-controls button,
+.configuration-controls input,
+.configuration-controls select {
+  font: inherit;
+  min-height: 28px;
+}
+.configuration-controls input {
+  width: 200px;
+}

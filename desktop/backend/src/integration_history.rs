@@ -34,6 +34,8 @@ struct Entry {
     sequence: u64,
     group: Option<String>,
     calculate: bool,
+    phases_changed: bool,
+    overlays_changed: bool,
 }
 #[derive(Default, Clone)]
 pub(super) struct IntegrationHistory {
@@ -57,6 +59,12 @@ pub(super) fn is_edit(action: &str) -> bool {
     )
 }
 impl IntegrationHistory {
+    pub fn forget_shared_edits(&mut self) {
+        self.undo
+            .retain(|e| !e.phases_changed && !e.overlays_changed);
+        self.redo
+            .retain(|e| !e.phases_changed && !e.overlays_changed);
+    }
     pub fn can_undo(&self) -> bool {
         !self.undo.is_empty()
     }
@@ -118,7 +126,12 @@ impl IntegrationHistory {
             before
         };
         self.redo.clear();
+        let phases_changed = before.phases != after.phases;
+        let overlays_changed = before.patterns.overlays != after.patterns.overlays
+            || before.patterns.separation != after.patterns.separation;
         self.undo.push(Arc::new(Entry {
+            phases_changed,
+            overlays_changed,
             before,
             after,
             sequence,
@@ -211,10 +224,18 @@ impl Session {
             self.settings = snap.settings;
             self.processing = snap.processing;
         }
+        let global_patterns = self.patterns.clone();
         self.patterns = snap.patterns;
-        let next_uid = self.phases.next_uid.max(snap.phases.next_uid);
-        self.phases = snap.phases;
-        self.phases.next_uid = next_uid;
+        if !entry.overlays_changed {
+            self.patterns.restore_global(&global_patterns);
+        } else {
+            self.patterns.retain_counter(&global_patterns);
+        }
+        if entry.phases_changed {
+            let next_uid = self.phases.next_uid.max(snap.phases.next_uid);
+            self.phases = snap.phases;
+            self.phases.next_uid = next_uid;
+        }
         self.patterns.raw = raw;
         self.patterns.name = name;
         self.patterns.path = path;

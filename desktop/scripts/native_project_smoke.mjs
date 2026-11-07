@@ -1,0 +1,171 @@
+import assert from "node:assert/strict";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { tmpdir } from "node:os";
+import { pathToFileURL } from "node:url";
+import { chromium, webkit } from "playwright";
+import { nativeClient, root } from "./native_backend_client.mjs";
+const artifacts = path.join(root, "desktop/artifacts/native-project");
+await mkdir(artifacts, { recursive: true });
+const temp = await mkdtemp(path.join(tmpdir(), "dioptas-project-ui-"));
+const receipts = [];
+try {
+  for (const [name, type] of [
+    ["chromium", chromium],
+    ["webkit", webkit],
+  ]) {
+    const native = nativeClient();
+    const browser = await type.launch({ headless: true });
+    try {
+      const project = path.join(temp, `${name}.dio`);
+      const calls = [],
+        errors = [];
+      const invoke = async (action, payload = {}) => {
+        calls.push([action, payload]);
+        if (["save_project", "open_project"].includes(action) && !payload.path)
+          payload = { ...payload, path: project };
+        const reply = await native.invoke(action, payload);
+        assert.equal(reply.ok, true, `${action}: ${reply.error}`);
+        return reply;
+      };
+      await invoke("open_image", {
+        path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
+      });
+      await invoke("open_calibration", {
+        path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+      });
+      await invoke("integration_settings", { bins: 128, cake_bins: 36 });
+      const page = await browser.newPage({
+        viewport: { width: 1500, height: 1000 },
+      });
+      page.setDefaultTimeout(45000);
+      page.on("pageerror", (e) => errors.push(e.message));
+      await page.exposeFunction("__nativeInvoke", async (a, p) =>
+        native.browserResult(await invoke(a, p)),
+      );
+      await page.addInitScript(() => {
+        window.pywebview = {
+          api: { invoke: (a, p) => window.__nativeInvoke(a, p) },
+        };
+      });
+      await page.goto(
+        pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
+      );
+      const group = page.getByRole("group", { name: "Project configurations" });
+      await group.waitFor();
+      const selector = group.getByRole("combobox", {
+        name: "Active configuration",
+      });
+      await group
+        .getByRole("button", { name: "Duplicate", exact: true })
+        .click();
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[aria-label="Active configuration"]')
+            ?.value === "1",
+      );
+      await group.getByRole("button", { name: "Rename", exact: true }).click();
+      await group
+        .getByRole("textbox", { name: "Configuration name" })
+        .fill("High pressure");
+      await group.getByRole("button", { name: "Apply", exact: true }).click();
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[aria-label="Active configuration"]')
+            ?.selectedOptions[0]?.textContent === "High pressure",
+      );
+      await group.getByRole("button", { name: "Add", exact: true }).click();
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[aria-label="Active configuration"]')?.options
+            .length === 3,
+      );
+      await group.getByRole("button", { name: "Remove", exact: true }).click();
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[aria-label="Active configuration"]')?.options
+            .length === 2,
+      );
+      await selector.selectOption("0");
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[aria-label="Active configuration"]')
+            ?.value === "0",
+      );
+      await page
+        .getByRole("button", { name: "Save project", exact: true })
+        .click();
+      await page.waitForFunction(() =>
+        document
+          .querySelector(".navigation-project")
+          ?.textContent?.endsWith(".dio"),
+      );
+      await group.getByRole("button", { name: "Remove", exact: true }).click();
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[aria-label="Active configuration"]')?.options
+            .length === 1,
+      );
+      await page
+        .getByRole("button", { name: "Open project", exact: true })
+        .click();
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[aria-label="Active configuration"]')?.options
+            .length === 2,
+      );
+      await selector.selectOption("1");
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[aria-label="Active configuration"]')
+            ?.value === "1",
+      );
+      await page
+        .getByRole("button", { name: "Integration", exact: true })
+        .click();
+      await page.waitForTimeout(300);
+      await page.screenshot({
+        path: path.join(artifacts, `${name}-configurations.png`),
+      });
+      const state = await invoke("state");
+      assert.deepEqual(state.state.configurationLabels, [
+        "Configuration 1",
+        "High pressure",
+      ]);
+      assert.equal(state.state.configurationIndex, 1);
+      assert.equal(state.pattern.x.length, 128);
+      await page.getByRole("button", { name: "Map", exact: true }).click();
+      await group.waitFor();
+      await page.screenshot({
+        path: path.join(artifacts, `${name}-map-configurations.png`),
+      });
+      assert.deepEqual(errors, []);
+      receipts.push({
+        browser: name,
+        pythonInChild: false,
+        projectControls: [
+          "add",
+          "duplicate",
+          "rename",
+          "select",
+          "remove",
+          "save",
+          "open",
+        ],
+        configurationLabels: state.state.configurationLabels,
+        errors,
+        commands: [...new Set(calls.map(([a]) => a))],
+      });
+    } finally {
+      await browser.close();
+      await native.close();
+    }
+  }
+} finally {
+  await rm(temp, { recursive: true, force: true });
+}
+await writeFile(
+  path.join(artifacts, "headless.json"),
+  JSON.stringify(receipts, null, 2) + "\n",
+);
+console.log(JSON.stringify(receipts, null, 2));

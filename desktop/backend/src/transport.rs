@@ -231,5 +231,8 @@ fn controlled(action: &str) -> bool {
             | "map_folder"
             | "map_poll"
             | "process_image_batch"
+            | "open_project"
+            | "save_project"
+            | "configuration"
     )
 }

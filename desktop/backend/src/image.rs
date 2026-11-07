@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
 pub struct Image {
-    reader: Arc<Mutex<Reader>>,
+    reader: Option<Arc<Mutex<Reader>>>,
     buffer: Arc<FrameBuffer>,
     combined_pixels: Option<Arc<PixelBuffer>>,
     pub path: PathBuf,
@@ -142,7 +142,7 @@ impl Image {
             );
         }
         let image = Self {
-            reader: Arc::new(Mutex::new(reader)),
+            reader: Some(Arc::new(Mutex::new(reader))),
             buffer: Arc::new(FrameBuffer::default()),
             combined_pixels: None,
             path,
@@ -163,10 +163,60 @@ impl Image {
         };
         Ok(image)
     }
+    pub fn from_cached(
+        path: PathBuf,
+        frame: usize,
+        frames: usize,
+        shape: [usize; 2],
+        values: Vec<f64>,
+        options: Value,
+    ) -> Result<Self, String> {
+        if shape.contains(&0)
+            || shape[0]
+                .checked_mul(shape[1])
+                .is_none_or(|n| n > 64 * 1024 * 1024 || n != values.len())
+            || frames == 0
+            || frame >= frames
+        {
+            return Err("Invalid project detector cache dimensions or samples.".into());
+        }
+        let stored = values
+            .chunks_exact(shape[1])
+            .rev()
+            .flatten()
+            .copied()
+            .collect();
+        Ok(Self {
+            reader: None,
+            buffer: Arc::new(FrameBuffer::default()),
+            combined_pixels: Some(Arc::new(PixelBuffer::F64(stored))),
+            path,
+            frame,
+            frames,
+            shape,
+            values: Arc::new(values),
+            source_dtype: "F64".into(),
+            ordinary_decodes: 0,
+            combined: false,
+            file_info: Arc::new(
+                "Restored project pixels; original source is not reread until navigation.".into(),
+            ),
+            options,
+        })
+    }
     pub fn read(&mut self, index: usize) -> Result<(), String> {
+        if self.reader.is_none() {
+            let mut options = self.options.clone();
+            options["frame"] = serde_json::json!(index);
+            let candidate = Self::open(&self.path, &options)?;
+            *self = candidate;
+            return Ok(());
+        }
         // A failed read must leave the preceding published frame intact.
         let mut candidate = FrameBuffer::default();
         self.reader
+            .as_ref()
+            .unwrap()
             .lock()
             .unwrap()
             .read_frame_into(index, &mut candidate)
@@ -214,15 +264,25 @@ impl Image {
             .unwrap_or_else(|| self.buffer.pixels().expect("published frame has samples"))
     }
     pub fn check_sources(&self) -> Result<(), String> {
+        if self.reader.is_none() {
+            return Ok(());
+        }
         self.reader
+            .as_ref()
+            .unwrap()
             .lock()
             .unwrap()
             .check_sources()
             .map_err(|e| e.to_string())
     }
     pub fn source_fingerprint(&self) -> Result<Vec<(PathBuf, FileIdentity)>, String> {
+        if self.reader.is_none() {
+            return Err("Open the original detector source before bulk processing.".into());
+        }
         let bindings = self
             .reader
+            .as_ref()
+            .unwrap()
             .lock()
             .unwrap()
             .source_bindings()
@@ -239,7 +299,10 @@ impl Image {
     }
     pub fn combined_source(&self, index: usize) -> Result<Option<CombinedSource>, String> {
         self.check_sources()?;
-        let reader = self.reader.lock().unwrap();
+        let Some(source_reader) = &self.reader else {
+            return Ok(None);
+        };
+        let reader = source_reader.lock().unwrap();
         let Some(dioptrin_io::wrapped::Metadata::Hdf5(m)) = reader.metadata(index) else {
             return Ok(None);
         };
@@ -301,7 +364,10 @@ impl Image {
     }
     fn metadata_text(&self) -> String {
         use dioptrin_io::wrapped::Metadata as M;
-        let reader = self.reader.lock().unwrap();
+        let Some(source_reader) = &self.reader else {
+            return self.file_info.as_ref().clone();
+        };
+        let reader = source_reader.lock().unwrap();
         let mut text = format!(
             "Source: {}\nFrame: {} / {}\nShape: {} × {}\nStored dtype: {}\n\n",
             self.path.display(),

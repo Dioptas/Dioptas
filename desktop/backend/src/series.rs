@@ -15,10 +15,13 @@ pub(crate) struct Series {
     pub data: Arc<Vec<f64>>,
     pub spread: Option<Arc<Vec<f64>>>,
     pub raw_spread: Option<Arc<Vec<f64>>>,
+    pub background: Option<Arc<Vec<f64>>>,
+    pub raw_background: Option<Arc<Vec<f64>>>,
     pub unit: String,
     pub wavelength: Option<f64>,
     pub entries: Arc<Vec<Entry>>,
     pub paths: Vec<String>,
+    pub file_counts: Vec<usize>,
     pub total: usize,
     pub selected: usize,
     pub normalization: [usize; 2],
@@ -66,6 +69,28 @@ impl Series {
             paths,
             self.total + other.total,
         )?;
+        if self.background.is_some() || other.background.is_some() {
+            return Err("Reintegrate series backgrounds before appending frames.".into());
+        }
+        s.file_counts = s
+            .paths
+            .iter()
+            .map(|p| {
+                self.paths
+                    .iter()
+                    .position(|a| a == p)
+                    .map(|i| self.file_counts[i])
+                    .unwrap_or(0)
+                    .max(
+                        other
+                            .paths
+                            .iter()
+                            .position(|a| a == p)
+                            .map(|i| other.file_counts[i])
+                            .unwrap_or(0),
+                    )
+            })
+            .collect();
         match (&self.spread, &other.spread) {
             (Some(a), Some(b)) => {
                 let mut spread = a.as_ref().clone();
@@ -96,6 +121,7 @@ impl Series {
     ) -> Result<Self, String> {
         if x.is_empty()
             || entries.is_empty()
+            || entries.len() > 1_000_000
             || data.len() != x.len().saturating_mul(entries.len())
             || data.len() > 64_000_000
             || x.iter().any(|x| !x.is_finite())
@@ -103,6 +129,17 @@ impl Series {
         {
             return Err("A series needs a bounded non-empty intensity matrix, finite radial axis and supported unit.".into());
         }
+        let file_counts = paths
+            .iter()
+            .map(|p| {
+                entries
+                    .iter()
+                    .filter(|e| e.path == *p)
+                    .map(|e| e.frame + 1)
+                    .max()
+                    .unwrap_or(0)
+            })
+            .collect();
         let raster = Raster::image(&data, [entries.len(), x.len()]);
         let n = x.len();
         let data = Arc::new(data);
@@ -114,6 +151,7 @@ impl Series {
             wavelength,
             entries: Arc::new(entries),
             paths,
+            file_counts,
             total,
             selected: 0,
             normalization: [0, n],
@@ -124,6 +162,8 @@ impl Series {
             mask: String::new(),
             spread: None,
             raw_spread: None,
+            background: None,
+            raw_background: None,
         })
     }
     pub fn count(&self) -> usize {
@@ -181,6 +221,7 @@ impl Series {
         let n = self.x.len();
         let mut data = self.raw.clone();
         let mut spread = self.raw_spread.clone();
+        let mut background = self.raw_background.clone();
         if enabled {
             if range[0] >= range[1] || range[1] > n || reference >= self.count() {
                 return Err("Choose a non-empty normalization interval and a reference frame within the series.".into());
@@ -208,6 +249,14 @@ impl Series {
                     .map(|(i, v)| v * factors[i / n])
                     .collect(),
             );
+            background = self.raw_background.as_ref().map(|s| {
+                Arc::new(
+                    s.iter()
+                        .enumerate()
+                        .map(|(i, v)| v * factors[i / n])
+                        .collect(),
+                )
+            });
             spread = self.raw_spread.as_ref().map(|s| {
                 Arc::new(
                     s.iter()
@@ -220,6 +269,7 @@ impl Series {
         self.raster = Raster::image(&data, [self.count(), n]);
         self.data = data;
         self.spread = spread;
+        self.background = background;
         self.normalized = enabled;
         self.normalization = range;
         self.reference = reference;
@@ -238,7 +288,7 @@ impl Series {
             .profile(self.selected, unit)
             .or_else(|_| self.profile(self.selected, &self.unit))
             .unwrap();
-        let files:Vec<_>=self.paths.iter().map(|p|json!({"path":p,"name":Path::new(p).file_name().unwrap_or_default().to_string_lossy(),"frames":self.entries.iter().filter(|e|e.path==*p).count(),"first":self.entries.iter().position(|e|e.path==*p)})).collect();
+        let files:Vec<_>=self.paths.iter().enumerate().map(|(i,p)|json!({"path":p,"name":Path::new(p).file_name().unwrap_or_default().to_string_lossy(),"frames":self.file_counts.get(i).copied().unwrap_or_else(||self.entries.iter().filter(|e|e.path==*p).count()),"first":self.entries.iter().position(|e|e.path==*p)})).collect();
         json!({"id":self.raster.buffer.id,"raster":self.raster.metadata,"x":curve.x,"wavelength":self.wavelength,"unit":unit,"sourceUnit":self.unit,"entries":self.entries.iter().map(|e|json!({"path":e.path,"name":if e.path.is_empty(){"Stored pattern".into()}else{Path::new(&e.path).file_name().unwrap_or_default().to_string_lossy()},"frame":e.frame+1})).collect::<Vec<_>>(),"files":files,"pattern":{"x":curve.x,"y":curve.y,"unit":unit},"selected":self.selected,"total":self.total,"canReintegrate":self.paths.iter().any(|p|!p.is_empty()&&Path::new(p).is_file()),"normalized":self.normalized,"normalizationRange":self.normalization,"normalizationReference":self.reference,"calibration":self.calibration,"mask":self.mask,"phaseLines":phases,"position":null})
     }
     pub fn save(&self, path: &Path) -> Result<(), String> {
@@ -328,17 +378,46 @@ impl Series {
                 .create("pos_map")
                 .and_then(|d| d.write_raw(&positions))
                 .map_err(|e| e.to_string())?;
+            if let Some(background) = &self.background {
+                process
+                    .new_dataset::<f64>()
+                    .shape([self.count(), self.x.len()])
+                    .create("bkg")
+                    .and_then(|d| d.write_raw(background.as_slice()))
+                    .map_err(|e| e.to_string())?;
+            }
             let mut filemap = vec![0_u64];
-            for p in &paths {
+            for (i, p) in paths.iter().enumerate() {
                 filemap.push(
                     filemap.last().unwrap()
-                        + self.entries.iter().filter(|e| e.path == *p).count() as u64,
+                        + self
+                            .file_counts
+                            .get(i)
+                            .copied()
+                            .unwrap_or_else(|| self.entries.iter().filter(|e| e.path == *p).count())
+                            as u64,
                 );
             }
             process
                 .new_dataset_builder()
                 .with_data(&filemap)
                 .create("file_map")
+                .map_err(|e| e.to_string())?;
+            let all_positions: Vec<i64> = paths
+                .iter()
+                .enumerate()
+                .flat_map(|(i, _)| {
+                    (0..self.file_counts.get(i).copied().unwrap_or_else(|| {
+                        self.entries.iter().filter(|e| e.path == paths[i]).count()
+                    }))
+                        .flat_map(move |frame| [i as i64, frame as i64])
+                })
+                .collect();
+            process
+                .new_dataset::<i64>()
+                .shape([all_positions.len() / 2, 2])
+                .create("pos_map_all")
+                .and_then(|d| d.write_raw(&all_positions))
                 .map_err(|e| e.to_string())?;
             for (name, value) in [
                 ("cal_file", self.calibration.as_str()),
@@ -362,7 +441,7 @@ impl Series {
                     .and_then(|a| a.write_scalar(&w))
                     .map_err(|e| e.to_string())?;
             }
-            let metadata = json!({"entries":self.entries,"paths":paths,"total":self.total,"selected":self.selected,"normalization":self.normalization,"reference":self.reference,"normalized":self.normalized});
+            let metadata = json!({"entries":self.entries,"paths":paths,"file_counts":self.file_counts,"total":self.total,"selected":self.selected,"normalization":self.normalization,"reference":self.reference,"normalized":self.normalized});
             let meta = serde_json::to_vec(&metadata).map_err(|e| e.to_string())?;
             result
                 .new_dataset_builder()
@@ -370,6 +449,14 @@ impl Series {
                 .create("desktop_metadata")
                 .map_err(|e| e.to_string())?;
             if self.normalized {
+                if let Some(background) = &self.raw_background {
+                    result
+                        .new_dataset::<f64>()
+                        .shape([self.count(), self.x.len()])
+                        .create("desktop_original_background")
+                        .and_then(|d| d.write_raw(background.as_slice()))
+                        .map_err(|e| e.to_string())?;
+                }
                 result
                     .new_dataset::<f64>()
                     .shape([self.count(), self.x.len()])
@@ -402,6 +489,7 @@ impl Series {
         let shape = d.shape();
         if shape.len() != 2
             || shape[0] == 0
+            || shape[0] > 1_000_000
             || shape[1] == 0
             || shape[0]
                 .checked_mul(shape[1])
@@ -436,9 +524,32 @@ impl Series {
         let mut paths = vec![];
         let mut calibration = String::new();
         let mut mask = String::new();
+        let mut counts = None;
+        let mut background = None;
         if let Ok(process) = f.group("processed/process") {
             if let Ok(files) = process.dataset("files") {
                 paths = read_strings(&files)?;
+            }
+            if let Ok(map) = process.dataset("file_map") {
+                let map = map.read_raw::<u64>().map_err(|e| e.to_string())?;
+                if map.len() != paths.len() + 1
+                    || map.first() != Some(&0)
+                    || map.windows(2).any(|w| w[0] > w[1])
+                    || map.last().copied().unwrap_or(0) > 1_000_000
+                {
+                    return Err("Invalid batch file map.".into());
+                }
+                counts = Some(
+                    map.windows(2)
+                        .map(|w| (w[1] - w[0]) as usize)
+                        .collect::<Vec<_>>(),
+                );
+            }
+            if let Ok(bg) = process.dataset("bkg") {
+                if bg.shape() != shape {
+                    return Err("Batch background matrix has the wrong shape.".into());
+                }
+                background = Some(Arc::new(bg.read_raw::<f64>().map_err(|e| e.to_string())?));
             }
             if let Ok(pos) = process.dataset("pos_map") {
                 if pos.shape() != [shape[0], 2] {
@@ -478,6 +589,12 @@ impl Series {
             paths,
             shape[0],
         )?;
+        if let Some(counts) = counts {
+            s.total = counts.iter().sum();
+            s.file_counts = counts;
+        }
+        s.background = background;
+        s.raw_background = s.background.clone();
         s.calibration = calibration;
         s.mask = mask;
         if let Ok(spread) = group.dataset("azimuthal_std") {
@@ -496,6 +613,18 @@ impl Series {
             let v: Value =
                 serde_json::from_slice(&meta.read_raw::<u8>().map_err(|e| e.to_string())?)
                     .map_err(|e| e.to_string())?;
+            if let Some(total) = v["total"].as_u64() {
+                if total > 1_000_000 {
+                    return Err("Stored source count exceeds one million frames.".into());
+                }
+                s.total = total as usize;
+            }
+            if let Some(selected) = v["selected"].as_u64() {
+                if selected >= s.count() as u64 {
+                    return Err("Invalid stored frame selection.".into());
+                }
+                s.selected = selected as usize;
+            }
             if v["normalized"] == true {
                 let original = group
                     .dataset("desktop_original")
@@ -516,6 +645,14 @@ impl Series {
                     || s.reference >= s.count()
                 {
                     return Err("Invalid stored normalization.".into());
+                }
+                if let Ok(background) = group.dataset("desktop_original_background") {
+                    if background.shape() != shape {
+                        return Err("Original background matrix has the wrong shape.".into());
+                    }
+                    s.raw_background = Some(Arc::new(
+                        background.read_raw::<f64>().map_err(|e| e.to_string())?,
+                    ));
                 }
                 if let Ok(spread) = group.dataset("desktop_original_spread") {
                     if spread.shape() != shape {

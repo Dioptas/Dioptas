@@ -178,7 +178,7 @@ export function IntegrationView({
         </div>
         <div className="processing-pane" hidden={tab !== "Corrections"}>
           <IntegrationCorrectionControls
-            key={`${state.projectName}:${state.configurationIndex}`}
+            key={`${state.projectName}:${state.configurationContext ?? state.configurationIndex}`}
             state={state}
             run={runProcessing}
             tab={correctionTab}

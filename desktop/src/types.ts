@@ -86,6 +86,8 @@ export interface State {
   integrationDirty: boolean;
   configurationCount: number;
   configurationIndex: number;
+  configurationLabels?: string[];
+  configurationContext?: number;
   geometry: {
     dist: number;
     poni1: number;

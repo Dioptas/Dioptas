@@ -53,7 +53,10 @@ pub(crate) fn dimensions(n: usize) -> Vec<[usize; 2]> {
     dims
 }
 impl Scan {
-    pub fn new(series: Series, patterns: &Patterns) -> Result<Self, String> {
+    pub fn new(mut series: Series, patterns: &Patterns) -> Result<Self, String> {
+        // Qt Map consumes Batch data, not its separately extracted background.
+        series.background = None;
+        series.raw_background = None;
         let dims = dimensions(series.count());
         let dimension = dims[0];
         let low = series.x.iter().copied().fold(f64::INFINITY, f64::min);
