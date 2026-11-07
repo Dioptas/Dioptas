@@ -72,6 +72,12 @@ if find_spec("dioptrin") is not None:
     hiddenimports += collect_submodules("dioptrin")
     extra_datas += copy_metadata("dioptrin")
 
+# The standard I/O wheel also carries the fused fixed-mask bridge.
+if find_spec("dioptrin_io") is not None:
+    hiddenimports += collect_submodules("dioptrin_io")
+    hiddenimports += collect_submodules("dioptrin_io_fused")
+    extra_datas += copy_metadata("dioptrin-io")
+
 # The fast decoder loads its c2py native library by explicit filename, rather
 # than importing a standard CPython extension. Preserve that package layout.
 extra_binaries = []

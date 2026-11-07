@@ -8,7 +8,8 @@ from tempfile import TemporaryDirectory
 import numpy as np
 
 
-DIOPTRIN_VERSION = "0.9.0"
+DIOPTRIN_VERSION = "0.10.0"
+DIOPTRIN_IO_VERSION = "0.2.0"
 
 
 def check_dioptrin_runtime(*, required=False):
@@ -23,7 +24,17 @@ def check_dioptrin_runtime(*, required=False):
     actual = version("dioptrin")
     if actual != DIOPTRIN_VERSION:
         raise RuntimeError(f"Expected Dioptrin {DIOPTRIN_VERSION}, got {actual}")
-    # In 0.7 this compatibility API is a no-op: no key or activation is needed.
+    if required:
+        try:
+            import dioptrin_io_fused
+        except ImportError as exc:
+            raise RuntimeError("Bundled fused I/O backend is missing") from exc
+        io_version = version("dioptrin-io")
+        if io_version != DIOPTRIN_IO_VERSION:
+            raise RuntimeError(f"Expected dioptrin-io {DIOPTRIN_IO_VERSION}, got {io_version}")
+        if not hasattr(dioptrin_io_fused.FusedHdf5Integrator, "load_integrate1d"):
+            raise RuntimeError("Bundled fused I/O API is missing")
+    # The compatibility API is a no-op: no key or activation is needed.
     dioptrin.validate_license()
     integrator = dioptrin.Integrator.from_poni_dict({
         "poni_version": 2,

@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 env:
-  DIOPTRIN_RELEASE: "v0.9.0"
+  DIOPTRIN_RELEASE: "v0.10.0"
 
 jobs:
   build_linux:
@@ -45,7 +45,7 @@ jobs:
 
     - name: Verify Dioptrin version
       run: |
-        uv run --extra dioptrin python -c "import os; from importlib.metadata import version; actual = version('dioptrin'); expected = os.environ['DIOPTRIN_RELEASE'].removeprefix('v'); assert actual == expected, f'Expected Dioptrin {expected}, got {actual}'; print(f'Dioptrin {actual}')"
+        uv run --extra dioptrin python -c "import os; from importlib.metadata import version; import dioptrin_io_fused; assert version('dioptrin-io') == '0.2.0'; assert hasattr(dioptrin_io_fused.FusedHdf5Integrator, 'load_integrate1d'); actual = version('dioptrin'); expected = os.environ['DIOPTRIN_RELEASE'].removeprefix('v'); assert actual == expected, f'Expected Dioptrin {expected}, got {actual}'; print(f'Dioptrin {actual}')"
 
     - name: Test Dioptrin integration and pyFAI fallback
       env:
@@ -120,7 +120,7 @@ jobs:
 
     - name: Verify Dioptrin version
       run: |
-        uv run --extra dioptrin python -c "import os; from importlib.metadata import version; actual = version('dioptrin'); expected = os.environ['DIOPTRIN_RELEASE'].removeprefix('v'); assert actual == expected, f'Expected Dioptrin {expected}, got {actual}'; print(f'Dioptrin {actual}')"
+        uv run --extra dioptrin python -c "import os; from importlib.metadata import version; import dioptrin_io_fused; assert version('dioptrin-io') == '0.2.0'; assert hasattr(dioptrin_io_fused.FusedHdf5Integrator, 'load_integrate1d'); actual = version('dioptrin'); expected = os.environ['DIOPTRIN_RELEASE'].removeprefix('v'); assert actual == expected, f'Expected Dioptrin {expected}, got {actual}'; print(f'Dioptrin {actual}')"
 
     - name: Test Dioptrin integration and pyFAI fallback
       env:
@@ -217,7 +217,7 @@ jobs:
 
     - name: Verify Dioptrin version
       run: |
-        uv run --extra dioptrin python -c "import os; from importlib.metadata import version; actual = version('dioptrin'); expected = os.environ['DIOPTRIN_RELEASE'].removeprefix('v'); assert actual == expected, f'Expected Dioptrin {expected}, got {actual}'; print(f'Dioptrin {actual}')"
+        uv run --extra dioptrin python -c "import os; from importlib.metadata import version; import dioptrin_io_fused; assert version('dioptrin-io') == '0.2.0'; assert hasattr(dioptrin_io_fused.FusedHdf5Integrator, 'load_integrate1d'); actual = version('dioptrin'); expected = os.environ['DIOPTRIN_RELEASE'].removeprefix('v'); assert actual == expected, f'Expected Dioptrin {expected}, got {actual}'; print(f'Dioptrin {actual}')"
 
     - name: Test Dioptrin integration and pyFAI fallback
       env:
