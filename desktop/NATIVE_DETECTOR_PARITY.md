@@ -1,8 +1,8 @@
 # Native detector geometry qualification
 
-This stage extends the opt-in Rust processor. Its default build now includes
-Dioptrin; it never invokes pyFAI or Python. The ordinary Python desktop launcher
-remains available while the remaining application and distribution work is qualified.
+React/Tauri now defaults to this Rust processor with Dioptrin. It never invokes
+pyFAI or Python. The Python comparison launcher remains explicitly selectable.
+See the [Python-removal audit](PYTHON_REMOVAL_AUDIT.md) for distribution and compatibility work.
 
 ## Ownership and supported behavior
 

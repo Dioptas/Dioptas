@@ -1,9 +1,9 @@
 # Native LA Cosmic operation
 
-The opt-in Rust processor now implements `mask_edit {operation: "cosmic"}`.
+The default Rust processor implements `mask_edit {operation: "cosmic"}`.
 React's Mask panel exposes the Qt **Cosmic Removal** action below the morphology
 controls. The existing Python desktop command also accepts this button's payload.
-The ordinary launcher remains Python; native LA Cosmic requires no optional
+The ordinary launcher now uses Rust; native LA Cosmic requires no optional
 Dioptrin feature, Python runtime, SciPy or additional native dependency.
 
 ## Preserved behavior

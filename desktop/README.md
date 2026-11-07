@@ -5,13 +5,13 @@ Mask, Integration and Map modes, plus a linked Batch window. It lives beside the
 and uses its scientific models and file formats. It is not a complete
 replacement yet.
 
-An opt-in [native Rust backend migration](backend/README.md) now runs the
+The default [Rust backend](backend/README.md) runs the
 image → peak picking/fitting or loaded/manual geometry → integration workflow without Python, using
-`dioptrin-io` and Dioptrin (now enabled by default in native builds). Build with
-`npm run backend:build:dioptrin`, then use `npm run tauri:native-dev` from
-`desktop/` for its isolated port 1428. This is an incomplete migration preview;
-the ordinary launcher still selects the existing Python backend. See the
-migration document for the implemented boundary, verification and remaining work.
+`dioptrin-io` and Dioptrin. `npm run tauri:dev`, `desktop/launch.command` and
+embedded Tauri builds select Rust without a Python environment. Build hooks
+compile and stage the matching native processor automatically.
+See the [Python-removal audit](PYTHON_REMOVAL_AUDIT.md) for remaining compatibility
+and distribution work. `npm run tauri:native-dev` retains its isolated port 1428.
 The native calibration stage retains the existing controls, automatic ring
 refinement, live progress/cancellation and grouped edit/fit Undo/Redo for the
 [qualified detector geometry](NATIVE_DETECTOR_PARITY.md).
@@ -41,10 +41,9 @@ pixels square; F/right double-click still restore the fitted image view.
 
 ## Run this checkout
 
-Use standard CPython 3.13 (not a free-threaded interpreter):
+Install Node/npm, Rust, a C/C++ compiler, CMake and Git, then:
 
 ```sh
-uv sync --python 3.13
 cd desktop
 npm ci
 npm run tauri:dev -- -- -- --example
@@ -62,7 +61,9 @@ the Rust host and requires the Rust toolchain and platform build prerequisites.
 The Tauri CLI owns a loopback Vite frontend on port 1420; React/CSS edits appear
 in the running native window. If that port is occupied, it fails rather than
 opening a different project's server. Closing the window also stops Vite.
-Rust changes rebuild/restart the host. Python processing changes require a restart.
+Host Rust changes rebuild/restart the host. After processor-source edits, restart
+Tauri so its build hook stages the updated processor. Python is only needed for
+the explicit compatibility backend and independent reference tests.
 
 For phase-editor work in its assigned checkout, use `npm run tauri:phase-dev`.
 This opens the raw-image example with live React/CSS updates on its dedicated
@@ -71,11 +72,11 @@ preview's port 1420 and existing bundled windows alone. Bundled `.app` previews
 contain the UI from their build and do not receive live edits.
 
 `src-tauri/` contains the Rust host. React calls one Tauri command, which sends
-requests over stdin/stdout to a local `dioptas.desktop.stdio` process. Native
+requests over stdin/stdout to a local `dioptas-processor` Rust process. Native
 file dialogs belong to Tauri. There is no scientific HTTP/API server or remote
 service. The bundled frontend uses the Tauri asset protocol, without Vite.
 Scientific objects are constructed, used and released on one processing thread,
-including the optional native integrator. Progress and cancellation bypass that
+including Dioptrin. Progress and cancellation bypass that
 worker without accessing native objects. Pipe responses carry request IDs so a
 long fit does not block progress/cancel responses. Window closure drops the pipe,
 cancels pending refinement and reaps the child, with a bounded kill fallback.
@@ -87,7 +88,7 @@ little-endian uint32 header length, the UTF-8 JSON header, then the raw buffers
 listed in that header. Buffer IDs identify immutable content; the window
 advertises the IDs it still retains so unchanged pixels need not be resent.
 
-The Python display cache retains up to 128 MiB of pixel buffers and associated
+The compatibility Python display cache retains up to 128 MiB of pixel buffers and associated
 statistics, keyed by the complete source content, shape, dtype and display
 options. This detects in-place image/mask changes while retaining statistics
 from the original scientific precision. The window retains up to 128 MiB of
@@ -100,11 +101,18 @@ array and calibrant angles agree; integrations continue to use the current
 scientific models. The legacy pywebview host and browser-test bridge keep their
 compatible JSON/base64 path.
 
-This is still a **source-checkout preview**, not a portable installer or a
-Rust-only scientific implementation. The host finds this checkout's `.venv`;
-`DIOPTAS_SOURCE_ROOT` and `DIOPTAS_PYTHON` can override those paths explicitly.
-The Python runtime and dependencies have not yet been bundled for distribution.
-Dioptrin remains optional. No Qt application is created by this host.
+This is still a **source-checkout preview**, not a portable installer. The default
+processing runtime is Rust/Dioptrin and requires no Python, pyFAI, FabIO or Qt.
+The build stages a target-specific processor for Tauri to copy beside the host
+and include in future bundles. Source-root independence, distribution resources,
+notices and cross-platform packaging remain qualification work.
+`DIOPTAS_SOURCE_ROOT` overrides the checkout root and `DIOPTAS_NATIVE_PROCESSOR`
+overrides the Rust executable. A missing processor fails without a Python fallback.
+
+For explicit compatibility comparison, use `--backend=python` or
+`DIOPTAS_BACKEND=python`; the command-line argument takes precedence. Set up that
+backend with `uv sync --python 3.13` first. `DIOPTAS_PYTHON` overrides its interpreter.
+No existing preview process is restarted when this source default changes.
 
 To build a local executable with embedded UI (no development server):
 
@@ -188,7 +196,7 @@ change scientific arrays. Detector images, masks and cake arrays are transferred
 resolution (no display decimation). Zoom therefore resolves the original
 detector pixels; calculations, brush edits and pixel readouts also use original
 resolution. Display payloads use float32; scientific arrays retain their source
-precision in Python.
+precision independently of the display buffers.
 
 ## Custom actions
 
@@ -300,7 +308,7 @@ last normal bounds. Plot zoom is not restored after reopening.
 While detached, Map mode retains the original left map column as a quiet
 placeholder with Show/Dock icons; the detector, controls and pattern keep their
 positions. There is no separate workspace header or in-window expansion button.
-Selections and layer edits use the main command queue and the same Python
+Selections and layer edits use the main command queue and the same Rust
 session; the child reads scan pixels through binary IPC. In Integration, a raw
 point is calculated with current settings to populate all integration plots;
 stored and normalized map profiles are retained. A missing raw image still
@@ -388,7 +396,7 @@ selects the Canvas renderer for diagnostics and comparisons.
 
 New detector sources are published together with their source-precision Auto
 limits, across Calibration, Mask, Integration (corrected/raw) and Map. The
-command queue stays reserved through the Python intensity calculation. This
+command queue stays reserved through the source-precision intensity calculation. This
 avoids first showing new pixels with the previous file's or temporary default
 limits. Contrast and view resets happen before drawing; canvas layers update
 before the browser paints. Each display retains its own Auto preferences.
@@ -634,34 +642,28 @@ choosers cover pattern/background/phase files and output/input folders. See
 [Integration parity and limitations](INTEGRATION_PARITY.md) for the implemented
 controls, scientific qualifications, tests and shared contracts.
 
-## Optional processing engine
+## Processing engine
 
-**pyFAI is the default and provides the complete implemented workflow without
-Dioptrin installed.** Tauri uses the normal Dioptas scientific dependencies.
-The `desktop` extra adds pywebview only for the earlier comparison host.
+The default Rust processor uses Dioptrin directly. It does not import pyFAI or
+call Python bindings. Detector/spline support is described in the
+[detector ledger](NATIVE_DETECTOR_PARITY.md). The manual form's “pyFAI” label
+names the PONI parameter convention; it does not select a Python runtime.
 
-To install the optional Dioptrin engine:
-
-```sh
-uv sync --python 3.13 --extra dioptrin
-```
-
-Then select **Dioptrin (optional)** under **Settings → General → Processing engine**. Selection
-checks its calibration API and normal license validation before changing the
-session. Installing the package does not select it automatically. The engine
-choice is local to the session, not restored from another computer's project.
-The new interface does not change either project's licensing.
-
-`dioptas/desktop/engines.py` defines the narrow calibration adapter: seeded peak
-finding and geometry fitting. The Dioptrin adapter calls its existing Python
-bindings; pyFAI uses the same calibration entry points as Qt Dioptas. Session
-storage, detector definitions, PONI conventions, and integration remain in the
-existing Dioptas models. Their existing pyFAI fallback rules still apply for
-native integration options that are unsupported. The native calibration adapter
-currently accepts only flat detectors with uniform pixels and no distortion
-spline; use pyFAI otherwise.
+The explicit Python compatibility backend retains its old engine selector and
+optional Dioptrin bindings (`uv sync --python 3.13 --extra dioptrin`). Its
+fallback rules and support boundary belong to that backend only.
 
 ## Development and verification
+
+For the current default, use `npm run backend:test`, `npm run build`, `npm test`,
+`npm run backend:prepare`, and `cargo test --manifest-path src-tauri/Cargo.toml`
+from `desktop/`. `npm run test:backend-commands` audits the legacy command routes;
+`npm run test:native-integration`, `test:native-calibration`, `test:native-project`
+and the other native scripts use headless Chromium/WebKit. See the audit for
+scope and the no-Python host-test invocation. Native window smokes below are
+explicit checks for behavior that needs an actual window.
+
+For independent Python references and the legacy comparison bridge:
 
 ```sh
 uv sync --python 3.13 --extra desktop --extra test
@@ -704,7 +706,7 @@ validation images and wheel capture, then closes only that window. The `--live`
 variant runs through the Tauri/Vite development launcher and changes a disposable
 CSS module to check hot reload without a document reload. Both verify that the
 processing child has exited. Reports go to `artifacts/tauri-*-smoke.json`.
-Rust tests also exercise the real Python pipe, full-resolution payloads,
+Rust host tests exercise the default Rust pipe, full-resolution payloads,
 concurrent progress, unexpected child termination, and cleanup. The Python
 transport tests verify cancellation bypass even when every request worker is busy.
 
@@ -727,22 +729,19 @@ transport tests verify cancellation bypass even when every request worker is bus
   listed in [INTEGRATION_PARITY.md](INTEGRATION_PARITY.md).
   The Python preview retains existing `.dio` configurations and displays the
   selected configuration.
-- Project saves use standard `.dio` data and an optional `react_desktop` HDF5
-  attribute for workflow options, selected calibrant (including custom d-spacing
-  text), setup confirmation and fit diagnostics. Qt Dioptas can
-  read the normal state; a subsequent Qt save does not retain this UI attribute.
+- Native format-2 project saves retain standard `.dio` state alongside owned
+  native resources and workflow metadata. See [project compatibility](NATIVE_PROJECT_PARITY.md);
+  legacy formats 0/1 are not admitted, and Qt writers can discard native extensions.
 - The cake retains its actual 2θ coordinate even when the 1D pattern uses Q or d,
   matching the existing synchronous Dioptas configuration API.
 - The source example is a regression/interaction fixture. Agreement on it does
   not establish calibration quality for other detectors or experimental data.
-- This keeps the existing Python scientific runtime. Qt remains a dependency
-  of the original application; the React host does not instantiate a Qt app.
-  pyFAI may probe optional Qt modules when they are installed. A subprocess test
-  verifies that the new session also runs when Qt imports are unavailable.
+- The React/Tauri default is Rust. The original Qt application and explicit
+  Python compatibility backend remain in the repository for comparison.
+  WASM/browser-only execution is not implemented.
 
-The interface/engine boundary also supports the opt-in Rust backend described
-above. The default host is Tauri; the scientific implementation still uses Python. WASM/browser-only
-execution is not implemented.
+The [Python-removal audit](PYTHON_REMOVAL_AUDIT.md) is the current remaining-work
+list. Verification sections below record earlier Python-era checkpoints.
 
 ## Verification on 2026-11-01
 

@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "identifier": "org.dioptas.desktop-preview",
   "build": {
-    "beforeDevCommand": "npm run dev -- --port 1420 --strictPort",
-    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "npm run backend:prepare -- --debug && npm run dev -- --port 1420 --strictPort",
+    "beforeBuildCommand": "npm run backend:prepare -- --tauri && npm run build",
     "devUrl": "http://127.0.0.1:1420",
     "frontendDist": "../../dioptas/desktop/ui"
   },
@@ -35,5 +35,10 @@
       "devCsp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost ws://127.0.0.1:1420; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:"
     }
   },
-  "bundle": { "active": false, "targets": ["app"], "icon": ["icons/icon.png"] }
+  "bundle": {
+    "active": false,
+    "targets": ["app"],
+    "icon": ["icons/icon.png"],
+    "externalBin": ["binaries/dioptas-processor"]
+  }
 }

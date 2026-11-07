@@ -3,7 +3,7 @@
   "productName": "Dioptas Phase Live",
   "identifier": "org.dioptas.phase-live-preview",
   "build": {
-    "beforeDevCommand": "npm run dev -- --port 1426 --strictPort",
+    "beforeDevCommand": "npm run backend:prepare -- --debug && npm run dev -- --port 1426 --strictPort",
     "devUrl": "http://127.0.0.1:1426"
   },
   "app": {

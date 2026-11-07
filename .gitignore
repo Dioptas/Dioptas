@@ -203,6 +203,7 @@ desktop/artifacts/
 desktop/src-tauri/target/
 desktop/backend/target/
 desktop/src-tauri/gen/
+desktop/src-tauri/binaries/dioptas-processor-*
 
 # Disposable hot-reload smoke probe (normally removed automatically)
 desktop/src/__dioptas_live_check_*.css

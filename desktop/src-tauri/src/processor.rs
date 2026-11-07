@@ -71,7 +71,7 @@ impl Backend {
         if choices.len() > 1 || args.iter().any(|arg| arg == "--backend") {
             return Err("Specify the processor once as --backend=rust or --backend=python.".into());
         }
-        match choices.first().copied().or(environment).unwrap_or("python") {
+        match choices.first().copied().or(environment).unwrap_or("rust") {
             "python" => Ok(Self::Python),
             "rust" => Ok(Self::Rust),
             _ => Err(
@@ -169,7 +169,10 @@ impl Processor {
 
     #[cfg(test)]
     pub fn start(example: bool) -> Result<Self, String> {
-        Self::start_backend(example, Backend::Python)
+        Self::start_backend(
+            example,
+            Backend::requested(&[], std::env::var("DIOPTAS_BACKEND").ok().as_deref())?,
+        )
     }
 
     pub fn start_backend(example: bool, backend: Backend) -> Result<Self, String> {
@@ -217,7 +220,7 @@ impl Processor {
                         })
                     });
                 if !native.is_file() {
-                    return Err(format!("The native processor is missing at {}. Build it with npm run backend:build in desktop. Python was not started.", native.display()));
+                    return Err(format!("The native processor is missing at {}. Run npm run backend:prepare in desktop (add -- --release for a release host), then restart. Python was not started.", native.display()));
                 }
                 let mut command = Command::new(native);
                 command.arg("--source-root").arg(&root);
@@ -348,7 +351,7 @@ mod tests {
 
     #[test]
     fn backend_selection_is_explicit_and_never_silently_falls_back() {
-        assert_eq!(Backend::requested(&[], None).unwrap(), Backend::Python);
+        assert_eq!(Backend::requested(&[], None).unwrap(), Backend::Rust);
         assert_eq!(
             Backend::requested(&[], Some("rust")).unwrap(),
             Backend::Rust
@@ -357,6 +360,15 @@ mod tests {
             Backend::requested(&["--backend=rust".into()], Some("python")).unwrap(),
             Backend::Rust
         );
+        assert_eq!(
+            Backend::requested(&[], Some("python")).unwrap(),
+            Backend::Python
+        );
+        assert_eq!(
+            Backend::requested(&["--backend=python".into()], Some("rust")).unwrap(),
+            Backend::Python
+        );
+        assert!(Backend::requested(&[], Some("unknown")).is_err());
         assert!(Backend::requested(&["--backend=unknown".into()], None).is_err());
         assert!(Backend::requested(&["--backend".into(), "rust".into()], None).is_err());
         assert!(
@@ -366,8 +378,8 @@ mod tests {
     }
 
     #[test]
-    fn native_processor_uses_the_same_pipe_and_releases_its_rust_child() {
-        let processor = Processor::start_backend(false, Backend::Rust).unwrap();
+    fn default_processor_uses_rust_and_releases_its_child() {
+        let processor = Processor::start(false).unwrap();
         let host = processor.request("__host__", json!({})).unwrap();
         assert_eq!(host["runtime"], "rust");
         assert_eq!(host["protocol"], 2);

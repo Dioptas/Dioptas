@@ -38,7 +38,10 @@
     "test:native-geometry-mask-transport": "node --test scripts/native_geometry_mask_transport.test.mjs",
     "test:native-detectors": "node scripts/native_detector_smoke.mjs",
     "test:native-lacosmic": "node scripts/native_lacosmic_smoke.mjs",
-    "test:native-lacosmic-transport": "node --test scripts/native_lacosmic_transport.test.mjs"
+    "test:native-lacosmic-transport": "node --test scripts/native_lacosmic_transport.test.mjs",
+    "backend:prepare": "node scripts/prepare_native_backend.mjs",
+    "tauri:python-dev": "tauri dev -- -- --backend=python",
+    "test:backend-commands": "node scripts/backend_command_audit.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",

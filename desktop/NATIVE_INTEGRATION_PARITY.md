@@ -1,10 +1,10 @@
 # Native integration qualification — 2026-11-07
 
-This ledger covers the opt-in Rust processing executable on `codex/native-backend`.
-The default launcher still uses Python. The Rust child does not import or execute
+This ledger covers the default Rust processing executable on `codex/native-backend`.
+The Rust child does not import or execute
 Python; independent comparison programs use Python only to calculate references.
 The existing React controls, binary raster contract and local stdio owner remain.
-There is no scientific HTTP service and Dioptrin remains an optional Cargo feature.
+There is no scientific HTTP service. Dioptrin is now the default native engine.
 
 ## Implemented boundary
 
@@ -183,8 +183,9 @@ mode compares JSON and verifies authored hashes/helper provenance.
 Project `.dio` persistence and multiple configurations are now implemented in
 the [project migration stage](NATIVE_PROJECT_PARITY.md). Image transforms and
 geometric masks are implemented in the [following stage](NATIVE_GEOMETRY_MASK_PARITY.md).
-Named/distorted detector geometry, full
-reader-semantic coverage and cross-platform native installer qualification remain.
+Named/distorted detector geometry is now implemented within the
+[detector qualification boundary](NATIVE_DETECTOR_PARITY.md). Full reader-semantic
+coverage and cross-platform native installer qualification remain.
 Batch HDF5 preserves processed series; `.dio` retains supported project state. Numerical
 fixture agreement is not a universal scientific equivalence proof. These gaps
 are explicit native errors; the backend never silently switches to Python.

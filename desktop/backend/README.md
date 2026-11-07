@@ -3,8 +3,8 @@
 The native migration runs the existing React interface against a Rust
 processing executable. It does not start or import Python. Tauri still owns
 native dialogs and the processor's stdio pipes; no scientific HTTP server is
-introduced. The normal preview continues to use its Python backend until the
-remaining workflows have been migrated and qualified.
+introduced. React/Tauri now selects this processor by default; the explicit
+Python comparison backend remains available. See the [Python-removal audit](../PYTHON_REMOVAL_AUDIT.md).
 
 ## Build and try
 
@@ -17,7 +17,10 @@ npm run backend:build
 # Compatibility alias; Dioptrin is now enabled by default.
 npm run backend:build:dioptrin
 
-# Explicit experimental Rust selection, with its own Vite port (1428).
+# Default Rust launch; the hook builds/stages the processor.
+npm run tauri:dev
+
+# Isolated Rust preview port (1428), preserved for this worktree.
 npm run tauri:native-dev
 ```
 
@@ -31,16 +34,18 @@ uncalibrated; its reference PONI is not used by picking/fitting tests.
 
 For an embedded frontend, first run `npm run build` and
 `npm run tauri:build -- --debug`, then start the resulting host with
-`--backend=rust`. `--backend=python` selects the existing backend. The environment
-alternative is `DIOPTAS_BACKEND=rust`; an explicit argument takes precedence.
+no backend argument. `--backend=python` explicitly selects the existing comparison
+backend. The environment alternative is `DIOPTAS_BACKEND=python`; an explicit argument takes precedence.
 Invalid backend names fail without launching a substitute.
 
 The host finds a native processor beside its executable, then this checkout's
 `desktop/backend/target/debug/dioptas-processor` (release for release hosts).
 `DIOPTAS_NATIVE_PROCESSOR` explicitly overrides the executable. Build the native
-processor in the matching profile for a release host. A missing native executable
-produces a build instruction; it does not launch Python. Installer bundling of
-the processor and cross-platform distribution qualification are still pending.
+processor with `npm run backend:prepare -- --release` for a release host. Standard
+Tauri hooks stage the matching target/profile as an external binary; Tauri copies
+it beside the host. A missing native executable produces a build instruction;
+it does not launch Python. Portable installer resources and cross-platform
+distribution qualification are still pending.
 
 HDF5 and its lossless codecs build from pinned native dependencies. Rust, a C
 compiler, CMake, and Git are build prerequisites. There is no installed Python,
@@ -174,13 +179,14 @@ for exact defaults, finite-input scope and independent reference checks.
   individual ports. The three bundled dynamic plugins, separate LA Cosmic action
   and NPY/TIFF/EDF/text mask loading are implemented.
 - Broader detector/format/scientific reference coverage and native installer
-  bundling/notices on macOS, Windows and Linux are required before switching the
-  default launcher and removing the desktop's required Python distribution.
+  bundling/notices on macOS, Windows and Linux remain prerequisites for a
+  portable distribution with the intended compatibility coverage. Rust is now
+  the source preview default and does not require a Python environment.
 
 Native builds now enable Dioptrin by default. The `--no-default-features`
 diagnostic build retains input/display/masking but disables numerical commands;
 it is not the target scientific runtime. Unported commands return
-errors without Python fallback. This opt-in backend is not yet a replacement
+errors without Python fallback. The default backend is not yet a replacement
 for every current application workflow.
 
 ## Native masking behavior

@@ -1,8 +1,8 @@
 # Native image orientation and geometric masks
 
-The opt-in Rust backend now handles the existing React `image_transform` and
-`mask_edit` commands. No new scientific server, Python fallback or mandatory
-Dioptrin dependency is introduced. The normal launcher still uses Python.
+The default Rust backend handles the existing React `image_transform` and
+`mask_edit` commands. There is no scientific server or Python fallback. The
+processor now uses Dioptrin by default; the Python launcher requires explicit selection.
 
 Read-only references are this checkout's `dioptas/desktop/calibration.py`,
 `dioptas/desktop/mask.py`, `ImgModel`, `CalibrationModel` and `MaskModel`. The

@@ -398,6 +398,7 @@ impl Session {
     ) -> Result<Option<Reply>, String> {
         let wavelength = self.settings.geometry.wavelength * 1e10;
         match action {
+            "integration_phase_state" => return Ok(Some(self.phase_response())),
             "integration_phase_files" => {
                 let paths = if let Some(p) = args.get("paths") {
                     p.clone()

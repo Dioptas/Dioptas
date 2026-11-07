@@ -1,10 +1,10 @@
 # Native projects and configurations
 
-The opt-in Rust processor now opens and saves current format-2 `.dio` projects
+The default Rust processor now opens and saves current format-2 `.dio` projects
 through the existing React/Tauri Open project and Save project actions. A
 configuration toolbar supplies Select, Add, Duplicate, Rename and Remove in
-Calibration, Mask, Integration and Map. The ordinary Python launcher remains the
-default. These controls are exposed when the backend advertises native
+Calibration, Mask, Integration and Map. Python is now an explicit comparison
+backend. These controls are exposed when the backend advertises native
 configuration support; this change does not add configuration commands to Python.
 
 ## Ownership and workflow
@@ -69,8 +69,9 @@ stages; an individual HDF5/library call is not interrupted internally.
 
 The current reader accepts format 2. Legacy formats 0/1 and future versions fail
 explicitly, as do active unsupported plugins and science outside the native
-adapter's supported boundary: named/nonuniform/oriented/spline detector geometry
-or unsupported thermal-pressure settings. Image rotations/flips and geometric
+adapter's supported boundary, including unsupported thermal-pressure settings.
+Named/nonuniform/oriented/spline detectors are now supported within the
+[detector ledger](NATIVE_DETECTOR_PARITY.md), including its legacy transformed-project limits. Image rotations/flips and geometric
 masks are now implemented in [the next stage](NATIVE_GEOMETRY_MASK_PARITY.md).
 Disabled unknown plugin state is retained. Legacy files need a compatible original reader and
 explicit data export; resaving in the current Python reader is not a legacy

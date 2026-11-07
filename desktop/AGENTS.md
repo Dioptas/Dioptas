@@ -47,8 +47,9 @@ and CALIBRATION_PARITY.md before changing its command or plot boundaries.
 - Keep calibration working. Do not restore the removed top-level Export pattern
   button. Normal Qt-style file/save workflows can live in appropriate
   integration controls.
-- No scientific HTTP server, mandatory Dioptrin, or Qt application in the new
-  host. Processing is currently Python over Tauri-owned stdio, not Rust/WASM.
+- No scientific HTTP server or Qt application in the new host. Following the
+  user-authorized migration, processing defaults to Rust/Dioptrin over Tauri-owned
+  stdio. Python is an explicitly selected comparison backend; this is not WASM.
 
 ## Parallel view implementation
 

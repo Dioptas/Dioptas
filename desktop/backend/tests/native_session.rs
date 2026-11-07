@@ -106,6 +106,50 @@ fn actual_tiff_fixture_has_original_full_resolution() {
 }
 
 #[test]
+fn detached_phase_refresh_preserves_detector_buffers_and_revision() {
+    let mut session = Session::new(root());
+    call(&mut session, "example", json!({}));
+    call(
+        &mut session,
+        "integration_phase",
+        json!({
+            "operation":"load", "path":root().join("dioptas/tests/data/jcpds/mo.jcpds")
+        }),
+    );
+    call(
+        &mut session,
+        "integration_phase",
+        json!({
+            "operation":"update", "index":0, "pressure":10.
+        }),
+    );
+    let before = call(&mut session, "state", json!({}));
+    let refreshed = call(&mut session, "integration_phase_state", json!({}));
+    assert_eq!(refreshed.result["phaseOnly"], true);
+    assert_eq!(refreshed.result["patternOnly"], true);
+    assert_eq!(refreshed.result["state"], before.result["state"]);
+    assert_eq!(
+        refreshed.result["state"]["integration"]["phases"][0]["pressure"],
+        10.
+    );
+    assert!(
+        !refreshed.result["batchPhaseLines"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    assert!(refreshed.buffers.is_empty());
+    for key in [
+        "image", "rawImage", "mask", "cake", "rings", "linked", "batch", "map",
+    ] {
+        assert!(
+            refreshed.result.get(key).is_none(),
+            "Unexpected replacement of {key}"
+        );
+    }
+}
+
+#[test]
 fn native_hdf5_stack_retains_integer_dtype_and_tracks_selected_frame() {
     let temp = tempfile::tempdir().unwrap();
     let path = temp.path().join("scan.h5");

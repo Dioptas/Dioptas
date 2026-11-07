@@ -1,7 +1,7 @@
 {
   "identifier": "org.dioptas.desktop-native-preview",
   "build": {
-    "beforeDevCommand": "npm run dev -- --port 1428 --strictPort",
+    "beforeDevCommand": "npm run backend:prepare -- --debug && npm run dev -- --port 1428 --strictPort",
     "devUrl": "http://127.0.0.1:1428"
   },
   "app": {
