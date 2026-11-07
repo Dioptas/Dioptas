@@ -484,16 +484,25 @@ class Configuration:
         *,
         calculate_pattern: bool = True,
         calculate_cake: bool = False,
+        allow_fused: bool = True,
     ) -> IntegrationTask | None:
         """Capture worker-safe integration inputs from the current state.
 
-        The returned task owns its processed image and mask arrays and carries
-        a serializable geometry config.  A worker can therefore calculate it
+        The returned task owns its processed arrays, or borrows immutable native
+        pixels with a matching prepared pattern, and carries a geometry config.  A worker can therefore calculate it
         without reading or mutating live models or emitting model signals.
         """
         if not self.calibration_model.is_calibrated:
             return None
-        image = self.img_model.img_data
+        from .loader.combinedHdf5 import PreparedPattern, masks_equal
+        from .util.integration import detect_fast_path
+        cached = self.img_model._combined_pattern if allow_fused and calculate_pattern else None
+        if not (cached is not None and cached.image is self.img_model.raw_img_data
+                and not cached.image.flags.writeable and detect_fast_path(self.img_model)
+                and not self.has_dynamic_mask):
+            cached = None
+        using_combined_pixels = cached is not None
+        image = cached.image if using_combined_pixels else self.img_model.img_data
         if image is None:
             return None
 
@@ -513,11 +522,18 @@ class Configuration:
         # ImgModel.img_data already returns a processed, independent array for
         # the common factor path.  ascontiguousarray avoids another copy while
         # ensuring pyFAI receives stable storage after the task is submitted.
-        image = np.ascontiguousarray(image)
-        if mask is not None:
-            mask = np.array(mask, dtype=bool, copy=True, order="C")
+        if cached is None:
+            image = np.ascontiguousarray(image)
+        if cached is not None and masks_equal(mask, cached.request.mask):
+            mask = cached.request.mask
+        else:
+            cached = None
+            if mask is not None:
+                mask = np.array(mask, dtype=bool, copy=True, order="C")
 
-        return IntegrationTask(
+        task = IntegrationTask(
+            fused_hdf5_source=None,
+            fused_num_workers=min(8, max(1, calibration.dioptrin_num_workers)),
             image=image,
             revision=self.integration_revision,
             mask=mask,
@@ -553,6 +569,15 @@ class Configuration:
                 else None
             ),
         )
+        if cached is not None and cached.matches(task):
+            from dataclasses import replace
+            task = replace(task, precomputed_pattern=PreparedPattern(cached, image, mask))
+        elif using_combined_pixels:
+            # Settings edits and other backends retain the original processed,
+            # contiguous snapshot path; never reread the already loaded source.
+            from dataclasses import replace
+            task = replace(task, image=np.ascontiguousarray(self.img_model.img_data))
+        return task
 
     def apply_integration_result(self, result: IntegrationResult) -> bool:
         """Commit a current worker result on the caller thread.

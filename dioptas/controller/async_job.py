@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import logging
 import traceback
+import weakref
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
@@ -136,6 +137,8 @@ class DedicatedAsyncJobRunner(QtCore.QObject):
         *,
         finalizer: Callable[[], None] | None = None,
         executor: ThreadPoolExecutor | None = None,
+        lane_runners=None,
+        owner_futures=None,
     ) -> None:
         super().__init__(parent)
         self._owns_executor = executor is None
@@ -143,6 +146,9 @@ class DedicatedAsyncJobRunner(QtCore.QObject):
             max_workers=1,
             thread_name_prefix="dioptas-integration",
         )
+        self._lane_runners = lane_runners if lane_runners is not None else weakref.WeakSet()
+        self._lane_runners.add(self)
+        self._owner_futures = owner_futures if owner_futures is not None else set()
         self._finalizer = finalizer
         self._next_job_id = 0
         self._jobs: dict[int, FunctionJob] = {}
@@ -156,7 +162,25 @@ class DedicatedAsyncJobRunner(QtCore.QObject):
         """Independent job IDs/signals using the same native owner thread."""
         if self._closed:
             raise RuntimeError("Cannot share a closed job runner")
-        return DedicatedAsyncJobRunner(parent, executor=self._executor)
+        return DedicatedAsyncJobRunner(parent, executor=self._executor, lane_runners=self._lane_runners, owner_futures=self._owner_futures)
+
+    def call_when_idle(self, fn):
+        """A synchronous image load can reuse the native owner without Qt signals.
+
+        Never wait behind a bulk/preview job. Caller falls back to normal loading.
+        """
+        if (self._closed or any(runner.is_busy for runner in self._lane_runners)
+                or any(not future.done() for future in tuple(self._owner_futures))):
+            return None
+        return self._submit_owner(fn).result()
+
+    def _submit_owner(self, fn):
+        # Track the executor work itself, even if a sibling closes its Qt signals
+        # before a long-running bulk job has completed.
+        future = self._executor.submit(fn)
+        self._owner_futures.add(future)
+        future.add_done_callback(self._owner_futures.discard)
+        return future
 
     def submit(self, fn: Callable[[], Any], *, use_owner_thread: bool = True) -> int:
         if self._closed:
@@ -172,7 +196,7 @@ class DedicatedAsyncJobRunner(QtCore.QObject):
         if not was_busy:
             self.busy_changed.emit(True)
         if use_owner_thread:
-            self._executor.submit(job.run)
+            self._submit_owner(job.run)
         else:
             # Jobs with independent backends (dynamic masks or pyFAI) need
             # not occupy the persistent native backend's owner thread.

@@ -1,0 +1,26 @@
+{
+  "recorded_utc": "2026-11-07T10:28:00.266385+00:00",
+  "source_sha256": {
+    "dioptas/controller/async_job.py": "8422650744d0413ebec60ea3dd57482bd8039092a604c0f0eeb0cb6d13bbb980",
+    "dioptas/controller/integration_coordinator.py": "46eca23574960c73d42ac3eedb26e497db360a3d8a957becd1030b730e415911",
+    "dioptas/model/Configuration.py": "fe56fe3468a1516dd4cb1a04d18fa27791c8172946e59b04d3e61dbc8622b79d",
+    "dioptas/model/ImgModel.py": "31259e778d4aa2dd59bdb672152478e5ffe4bc4a3dea326a0626fcdee1f369f7",
+    "dioptas/model/integration_task.py": "f9c536282eab92d1314dffcdbcbe2af32305941762f7caac1dbe5bc749a81106",
+    "dioptas/model/loader/combinedHdf5.py": "1dfeba4913128d51a403a1e546ddf08e4032fdd09f8dbaa4d2340d3b892150ac",
+    "scripts/benchmark_combined_hdf5.py": "d350e8810ed652bc0a70f483ab21ae0b9c341bbedcff3179af7b43eb2cac2ec0",
+    "/Users/clemens/Programming/dioptrin-io-worktrees/qt-fused/python-fused/src/lib.rs": "67e689a13b98f78a9c13be9b8b35c2f5f8fda2812d1c5e7fca971fb4b5df9511",
+    "/Users/clemens/Programming/dioptrin-io-worktrees/qt-fused/python-fused/Cargo.toml": "611fd178ce65f28b0daec8b4c7b329c2a0543dbc643af98402d42a50c52859a7",
+    "/Users/clemens/Programming/dioptrin-io-worktrees/qt-fused/python-fused/Cargo.lock": "9d6ce89861f4d112a77ba09ce13b9840f3c7b7dfd76473851d9161a45a4f1270"
+  },
+  "wheel_sha256": "253978ff9842f3ce7c7b825dd3ee7b8689b41444cd62057a7b0b1ca770f3ab28",
+  "cpu": "Apple M4 Pro",
+  "macos": "ProductName:\t\tmacOS\nProductVersion:\t\t26.6.2\nBuildVersion:\t\t25G83",
+  "python": "Python 3.13.5",
+  "rust": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+  "qt_base": "2e34f09f114cb950c4c84e7db4b83dc2d32fe307",
+  "io_base": "1fd538d297e1618b98941e3b9ddc29b112a60655",
+  "dioptrin_fixed_plan_commit": "72e9b72fa3ccaed19aa4ee09e3cb8bf002590a78",
+  "conditions": "Other desktop applications active; no CPU isolation. 12 sampled frames, three passes per error setting, rotated whole-pass mode order; default 25 ms debounce; warm compressed chunks; no decoded scan cache. Offscreen Qt display at 1200x900, physical monitor presentation excluded. Each timed mode reopens the selected frame, avoiding the one-frame FabIO decoded cache.",
+  "command": "QT_QPA_PLATFORM=offscreen RAYON_NUM_THREADS=8 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 python -m scripts.benchmark_combined_hdf5 --hdf5 FILE --poni PONI --mask-u8 MASK --output results.json",
+  "measurement": "Final repeat after the source-identity and resident-array fallback guards; 144 timing rows."
+}

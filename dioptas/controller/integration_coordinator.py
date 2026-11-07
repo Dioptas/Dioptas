@@ -74,6 +74,7 @@ class AsyncIntegrationCoordinator(QtCore.QObject):
         for configuration in self.model.configurations:
             if configuration.integration_scheduler == self.request:
                 configuration.integration_scheduler = None
+                configuration.img_model.combined_frame_loader = None
         self._runner.shutdown(wait=False)
 
     def attach_configurations(self, *_args) -> None:
@@ -82,6 +83,16 @@ class AsyncIntegrationCoordinator(QtCore.QObject):
             return
         for configuration in self.model.configurations:
             configuration.integration_scheduler = self.request
+            configuration.img_model.combined_frame_loader = partial(self._load_combined, configuration)
+
+    def _load_combined(self, configuration, filename, index, *, existing_loader=None):
+        if self._closed or QtCore.QThread.currentThread() != self.thread():
+            return None
+        from ..model.loader.combinedHdf5 import load_combined
+        return load_combined(configuration, filename, index,
+            lambda request: self._runner.call_when_idle(
+                partial(self._integration_engine.load_combined, request)),
+            existing_loader=existing_loader)
 
     def request(
         self,
